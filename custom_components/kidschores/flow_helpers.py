@@ -9,6 +9,7 @@ import uuid
 from typing import Any, Dict, List, Optional
 
 import voluptuous as vol
+from homeassistant.auth.models import User
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
@@ -42,7 +43,7 @@ def build_points_schema(
 
 def build_kid_schema(
     hass,
-    users,
+    users: list[User],
     default_kid_name=const.CONF_EMPTY,
     default_ha_user_id=None,
     internal_id=None,
@@ -51,12 +52,18 @@ def build_kid_schema(
     default_enable_persistent_notifications=False,
 ):
     """Build a Voluptuous schema for adding/editing a Kid, keyed by internal_id in the dict."""
-    user_options = [{"value": const.CONF_EMPTY, "label": const.LABEL_NONE}] + [
-        {"value": user.id, "label": user.name} for user in users
+    user_options: list[selector.SelectOptionDict] = [
+        selector.SelectOptionDict(value=const.CONF_EMPTY, label=const.LABEL_NONE)
+    ] + [
+        selector.SelectOptionDict(value=user.id, label=user.name or user.id)
+        for user in users
     ]
-    notify_options = [
-        {"value": const.CONF_EMPTY, "label": const.LABEL_NONE}
-    ] + _get_notify_services(hass)
+    notify_options: list[selector.SelectOptionDict] = [
+        selector.SelectOptionDict(value=const.CONF_EMPTY, label=const.LABEL_NONE)
+    ] + [
+        selector.SelectOptionDict(value=s["value"], label=s["label"])
+        for s in _get_notify_services(hass)
+    ]
 
     return vol.Schema(
         {
@@ -113,15 +120,22 @@ def build_parent_schema(
     internal_id=None,
 ):
     """Build a Voluptuous schema for adding/editing a Parent, keyed by internal_id in the dict."""
-    user_options = [{"value": const.CONF_EMPTY, "label": const.LABEL_NONE}] + [
-        {"value": user.id, "label": user.name} for user in users
+    user_options: list[selector.SelectOptionDict] = [
+        selector.SelectOptionDict(value=const.CONF_EMPTY, label=const.LABEL_NONE)
+    ] + [
+        selector.SelectOptionDict(value=user.id, label=user.name or user.id)
+        for user in users
     ]
-    kid_options = [
-        {"value": kid_id, "label": kid_name} for kid_name, kid_id in kids_dict.items()
+    kid_options: list[selector.SelectOptionDict] = [
+        selector.SelectOptionDict(value=kid_id, label=kid_name)
+        for kid_name, kid_id in kids_dict.items()
     ]
-    notify_options = [
-        {"value": const.CONF_EMPTY, "label": const.LABEL_NONE}
-    ] + _get_notify_services(hass)
+    notify_options: list[selector.SelectOptionDict] = [
+        selector.SelectOptionDict(value=const.CONF_EMPTY, label=const.LABEL_NONE)
+    ] + [
+        selector.SelectOptionDict(value=s["value"], label=s["label"])
+        for s in _get_notify_services(hass)
+    ]
 
     return vol.Schema(
         {
@@ -175,7 +189,9 @@ def build_parent_schema(
 # ----------------------------------------------------------------------------------
 
 
-def build_chore_schema(kids_dict, default=None):
+def build_chore_schema(
+    kids_dict: dict, default: Optional[Dict[str, Any]] = None
+) -> vol.Schema:
     """Build a schema for chores, referencing existing kids by name.
 
     Uses internal_id for entity management.
@@ -184,7 +200,7 @@ def build_chore_schema(kids_dict, default=None):
     chore_name_default = default.get(const.CONF_NAME, const.CONF_EMPTY)
     internal_id_default = default.get(const.CONF_INTERNAL_ID, str(uuid.uuid4()))
 
-    kid_choices = {k: k for k in kids_dict}
+    kid_choices = {v: k for k, v in kids_dict.items()}
 
     return vol.Schema(
         {
@@ -210,7 +226,15 @@ def build_chore_schema(kids_dict, default=None):
             vol.Required(
                 const.CONF_ASSIGNED_KIDS,
                 default=default.get(const.CONF_ASSIGNED_KIDS, []),
-            ): cv.multi_select(kid_choices),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        selector.SelectOptionDict(value=v, label=k)
+                        for k, v in kids_dict.items()
+                    ],
+                    multiple=True,
+                )
+            ),
             vol.Required(
                 const.CONF_SHARED_CHORE,
                 default=default.get(const.CONF_SHARED_CHORE, False),
@@ -270,7 +294,9 @@ def build_chore_schema(kids_dict, default=None):
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=[
-                        {"value": key, "label": const.WEEKDAY_OPTIONS[key]}
+                        selector.SelectOptionDict(
+                            value=key, label=const.WEEKDAY_OPTIONS[key]
+                        )
                         for key in const.WEEKDAY_OPTIONS
                     ],
                     multiple=True,
@@ -934,14 +960,18 @@ def build_badge_common_schema(
                 const.BADGE_TARGET_THRESHOLD_TYPE_STREAK_80PCT_DUE_CHORES,
                 const.BADGE_TARGET_THRESHOLD_TYPE_STREAK_SELECTED_DUE_CHORES_NO_OVERDUE,
             }
-            target_type_options = [
-                option
+            target_type_options: list[selector.SelectOptionDict] = [
+                selector.SelectOptionDict(
+                    value=option[const.CONF_VALUE], label=option[const.CONF_LABEL]
+                )
                 for option in const.TARGET_TYPE_OPTIONS or []
                 if option["value"] not in streak_types
             ]
         else:
-            target_type_options = [
-                option
+            target_type_options: list[selector.SelectOptionDict] = [
+                selector.SelectOptionDict(
+                    value=option[const.CONF_VALUE], label=option[const.CONF_LABEL]
+                )
                 for option in const.TARGET_TYPE_OPTIONS or []
                 if include_tracked_chores
                 or option["value"]
@@ -1059,15 +1089,15 @@ def build_badge_common_schema(
 
     # --- Achievement-Linked Component Schema ---
     if include_achievement_linked:
-        achievement_options = [
-            {"value": const.CONF_EMPTY, "label": const.LABEL_NONE}
+        achievement_options: list[selector.SelectOptionDict] = [
+            selector.SelectOptionDict(value=const.CONF_EMPTY, label=const.LABEL_NONE)
         ] + [
-            {
-                "value": achievement_id,
-                "label": achievement.get(
+            selector.SelectOptionDict(
+                value=achievement_id,
+                label=achievement.get(
                     const.DATA_ACHIEVEMENT_NAME, const.CONF_NONE_TEXT
                 ),
-            }
+            )
             for achievement_id, achievement in achievements_dict.items()
         ]
         default_achievement = default.get(
@@ -1091,11 +1121,13 @@ def build_badge_common_schema(
 
     # --- Challenge-Linked Component Schema ---
     if include_challenge_linked:
-        challenge_options = [{"value": const.CONF_EMPTY, "label": const.LABEL_NONE}] + [
-            {
-                "value": challenge_id,
-                "label": challenge.get(const.DATA_CHALLENGE_NAME, const.CONF_NONE_TEXT),
-            }
+        challenge_options: list[selector.SelectOptionDict] = [
+            selector.SelectOptionDict(value=const.CONF_EMPTY, label=const.LABEL_NONE)
+        ] + [
+            selector.SelectOptionDict(
+                value=challenge_id,
+                label=challenge.get(const.DATA_CHALLENGE_NAME, const.CONF_NONE_TEXT),
+            )
             for challenge_id, challenge in challenges_dict.items()
         ]
         default_challenge = default.get(
@@ -1119,12 +1151,13 @@ def build_badge_common_schema(
 
     # --- Tracked Chores Component Schema ---
     if include_tracked_chores:  # Use renamed flag
-        options = [{"value": const.CONF_EMPTY, "label": const.LABEL_NONE}]
-        options += [
-            {
-                "value": chore_id,
-                "label": chore.get(const.DATA_CHORE_NAME, const.CONF_NONE_TEXT),
-            }
+        options: list[selector.SelectOptionDict] = [
+            selector.SelectOptionDict(value=const.CONF_EMPTY, label=const.LABEL_NONE)
+        ] + [
+            selector.SelectOptionDict(
+                value=chore_id,
+                label=chore.get(const.DATA_CHORE_NAME, const.CONF_NONE_TEXT),
+            )
             for chore_id, chore in chores_dict.items()
         ]
         default_selected = default.get(
@@ -1153,12 +1186,13 @@ def build_badge_common_schema(
 
     # --- Assigned To Component Schema ---
     if include_assigned_to:
-        options = [{"value": const.CONF_EMPTY, "label": const.LABEL_NONE}]
-        options += [
-            {
-                "value": kid_id,
-                "label": kid.get(const.DATA_KID_NAME, const.CONF_NONE_TEXT),
-            }
+        options: list[selector.SelectOptionDict] = [
+            selector.SelectOptionDict(value=const.CONF_EMPTY, label=const.LABEL_NONE)
+        ] + [
+            selector.SelectOptionDict(
+                value=kid_id,
+                label=kid.get(const.DATA_KID_NAME, const.CONF_NONE_TEXT),
+            )
             for kid_id, kid in kids_dict.items()
         ]
         default_assigned = default.get(
@@ -1188,50 +1222,50 @@ def build_badge_common_schema(
     if include_awards:
         # Logic from build_badge_awards_schema
 
-        award_items_options = []
+        award_items_options: list[selector.SelectOptionDict] = []
 
         award_items_options.append(
-            {
-                const.CONF_VALUE: const.AWARD_ITEMS_KEY_POINTS,
-                const.CONF_LABEL: const.AWARD_ITEMS_LABEL_POINTS,
-            }
+            selector.SelectOptionDict(
+                value=const.AWARD_ITEMS_KEY_POINTS,
+                label=const.AWARD_ITEMS_LABEL_POINTS,
+            )
         )
 
         if is_cumulative:
             award_items_options.append(
-                {
-                    const.CONF_VALUE: const.AWARD_ITEMS_KEY_POINTS_MULTIPLIER,
-                    const.CONF_LABEL: const.AWARD_ITEMS_LABEL_POINTS_MULTIPLIER,
-                }
+                selector.SelectOptionDict(
+                    value=const.AWARD_ITEMS_KEY_POINTS_MULTIPLIER,
+                    label=const.AWARD_ITEMS_LABEL_POINTS_MULTIPLIER,
+                )
             )
 
         if rewards_dict:
             for reward_id, reward in rewards_dict.items():
                 label = f"{const.AWARD_ITEMS_LABEL_REWARD} {reward.get(const.DATA_REWARD_NAME, reward_id)}"
                 award_items_options.append(
-                    {
-                        const.CONF_VALUE: f"{const.AWARD_ITEMS_PREFIX_REWARD}{reward_id}",
-                        const.CONF_LABEL: label,
-                    }
+                    selector.SelectOptionDict(
+                        value=f"{const.AWARD_ITEMS_PREFIX_REWARD}{reward_id}",
+                        label=label,
+                    )
                 )
         if bonuses_dict:
             for bonus_id, bonus in bonuses_dict.items():
                 label = f"{const.AWARD_ITEMS_LABEL_BONUS} {bonus.get(const.DATA_BONUS_NAME, bonus_id)}"
                 award_items_options.append(
-                    {
-                        const.CONF_VALUE: f"{const.AWARD_ITEMS_PREFIX_BONUS}{bonus_id}",
-                        const.CONF_LABEL: label,
-                    }
+                    selector.SelectOptionDict(
+                        value=f"{const.AWARD_ITEMS_PREFIX_BONUS}{bonus_id}",
+                        label=label,
+                    )
                 )
         if include_penalties:
             if penalties_dict:
                 for penalty_id, penalty in penalties_dict.items():
                     label = f"{const.AWARD_ITEMS_LABEL_PENALTY} {penalty.get(const.DATA_PENALTY_NAME, penalty_id)}"
                     award_items_options.append(
-                        {
-                            const.CONF_VALUE: f"{const.AWARD_ITEMS_PREFIX_PENALTY}{penalty_id}",
-                            const.CONF_LABEL: label,
-                        }
+                        selector.SelectOptionDict(
+                            value=f"{const.AWARD_ITEMS_PREFIX_PENALTY}{penalty_id}",
+                            label=label,
+                        )
                     )
 
         default_award_items = default.get(
@@ -1386,7 +1420,10 @@ def build_badge_common_schema(
                         default=default_recurring_frequency,
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
-                            options=const.BADGE_RESET_SCHEDULE_OPTIONS,
+                            options=[
+                                selector.SelectOptionDict(**o)
+                                for o in const.BADGE_RESET_SCHEDULE_OPTIONS
+                            ],
                             mode=selector.SelectSelectorMode.DROPDOWN,
                             translation_key=const.TRANS_KEY_CFOF_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY,
                         )
@@ -1479,7 +1516,7 @@ def build_badge_common_schema(
 # ----------------------------------------------------------------------------------
 
 
-def build_reward_schema(default=None):
+def build_reward_schema(default: Optional[Dict[str, Any]] = None) -> vol.Schema:
     """Build a schema for rewards, keyed by internal_id in the dict."""
     default = default or {}
     reward_name_default = default.get(const.CONF_NAME, const.CONF_EMPTY)
@@ -1519,7 +1556,7 @@ def build_reward_schema(default=None):
 # ----------------------------------------------------------------------------------
 
 
-def build_bonus_schema(default=None):
+def build_bonus_schema(default: Optional[Dict[str, Any]] = None) -> vol.Schema:
     """Build a schema for bonuses, keyed by internal_id in the dict.
 
     Stores bonus_points as positive in the form, converted to negative internally.
@@ -1568,7 +1605,7 @@ def build_bonus_schema(default=None):
 # ----------------------------------------------------------------------------------
 
 
-def build_penalty_schema(default=None):
+def build_penalty_schema(default: Optional[Dict[str, Any]] = None) -> vol.Schema:
     """Build a schema for penalties, keyed by internal_id in the dict.
 
     Stores penalty_points as positive in the form, converted to negative internally.
@@ -1617,17 +1654,22 @@ def build_penalty_schema(default=None):
 # ----------------------------------------------------------------------------------
 
 
-def build_achievement_schema(kids_dict, chores_dict, default=None):
+def build_achievement_schema(
+    kids_dict, chores_dict, default: Optional[Dict[str, Any]] = None
+):
     """Build a schema for achievements, keyed by internal_id."""
     default = default or {}
     achievement_name_default = default.get(const.CONF_NAME, const.CONF_EMPTY)
     internal_id_default = default.get(const.CONF_INTERNAL_ID, str(uuid.uuid4()))
 
     kid_options = [
-        {"value": kid_id, "label": kid_name} for kid_name, kid_id in kids_dict.items()
+        selector.SelectOptionDict(value=kid_id, label=kid_name)
+        for kid_name, kid_id in kids_dict.items()
     ]
 
-    chore_options = [{"value": const.CONF_EMPTY, "label": const.LABEL_NONE}]
+    chore_options: list[selector.SelectOptionDict] = [
+        selector.SelectOptionDict(value=const.CONF_EMPTY, label=const.LABEL_NONE)
+    ]
     for chore_id, chore_data in chores_dict.items():
         chore_name = chore_data.get(const.CONF_NAME, f"Chore {chore_id[:6]}")
         chore_options.append({"value": chore_id, "label": chore_name})
@@ -1675,7 +1717,10 @@ def build_achievement_schema(kids_dict, chores_dict, default=None):
                 ),
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=const.ACHIEVEMENT_TYPE_OPTIONS,
+                    options=[
+                        selector.SelectOptionDict(**o)
+                        for o in const.ACHIEVEMENT_TYPE_OPTIONS
+                    ],
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
@@ -1729,17 +1774,22 @@ def build_achievement_schema(kids_dict, chores_dict, default=None):
 # ----------------------------------------------------------------------------------
 
 
-def build_challenge_schema(kids_dict, chores_dict, default=None):
+def build_challenge_schema(
+    kids_dict, chores_dict, default: Optional[Dict[str, Any]] = None
+):
     """Build a schema for challenges, keyed by internal_id."""
     default = default or {}
     challenge_name_default = default.get(const.CONF_NAME, const.CONF_EMPTY)
     internal_id_default = default.get(const.CONF_INTERNAL_ID, str(uuid.uuid4()))
 
     kid_options = [
-        {"value": kid_id, "label": kid_name} for kid_name, kid_id in kids_dict.items()
+        selector.SelectOptionDict(value=kid_id, label=kid_name)
+        for kid_name, kid_id in kids_dict.items()
     ]
 
-    chore_options = [{"value": const.CONF_EMPTY, "label": const.LABEL_NONE}]
+    chore_options: list[selector.SelectOptionDict] = [
+        selector.SelectOptionDict(value=const.CONF_EMPTY, label=const.LABEL_NONE)
+    ]
     for chore_id, chore_data in chores_dict.items():
         chore_name = chore_data.get(const.CONF_NAME, f"Chore {chore_id[:6]}")
         chore_options.append({"value": chore_id, "label": chore_name})
@@ -1786,7 +1836,10 @@ def build_challenge_schema(kids_dict, chores_dict, default=None):
                 ),
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=const.CHALLENGE_TYPE_OPTIONS,
+                    options=[
+                        selector.SelectOptionDict(**o)
+                        for o in const.CHALLENGE_TYPE_OPTIONS
+                    ],
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
@@ -1845,7 +1898,9 @@ def build_challenge_schema(kids_dict, chores_dict, default=None):
 # ----------------------------------------------------------------------------------
 
 
-def build_general_options_schema(default: dict = None) -> vol.Schema:
+def build_general_options_schema(
+    default: Optional[Dict[str, Any]] = None,
+) -> vol.Schema:
     """Build schema for general options including points adjust values and update interval."""
     default = default or {}
     current_values = default.get(const.CONF_POINTS_ADJUST_VALUES)
@@ -1920,7 +1975,7 @@ def _get_notify_services(hass: HomeAssistant) -> list[dict[str, str]]:
 
 
 # Ensure aware datetime objects
-def ensure_utc_datetime(hass: HomeAssistant, dt_value: any) -> str:
+def ensure_utc_datetime(hass: HomeAssistant, dt_value: Any) -> str:
     """Convert a datetime input (or datetime string) into an ISO timezone aware string(in UTC).
 
     If dt_value is naive, assume it is in the local timezone.
