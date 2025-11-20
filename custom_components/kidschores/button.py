@@ -260,6 +260,8 @@ async def async_setup_entry(
 class ClaimChoreButton(CoordinatorEntity, ButtonEntity):
     """Button to claim a chore as done (set chore state=claimed)."""
 
+    coordinator: KidsChoresDataCoordinator
+
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_BUTTON_CLAIM_CHORE_BUTTON
 
@@ -305,7 +307,9 @@ class ClaimChoreButton(CoordinatorEntity, ButtonEntity):
                 )
 
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
-            user_name = user_obj.name if user_obj else const.CONF_UNKNOWN
+            user_name = (
+                user_obj.name if user_obj and user_obj.name else const.CONF_UNKNOWN
+            )
 
             self.coordinator.claim_chore(
                 kid_id=self._kid_id,
@@ -354,6 +358,8 @@ class ClaimChoreButton(CoordinatorEntity, ButtonEntity):
 class ApproveChoreButton(CoordinatorEntity, ButtonEntity):
     """Button to approve a claimed chore for a kid (set chore state=approved or partial)."""
 
+    coordinator: KidsChoresDataCoordinator
+
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_BUTTON_APPROVE_CHORE_BUTTON
 
@@ -399,7 +405,9 @@ class ApproveChoreButton(CoordinatorEntity, ButtonEntity):
                 )
 
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
-            parent_name = user_obj.name if user_obj else const.CONF_UNKNOWN
+            parent_name = (
+                user_obj.name if user_obj and user_obj.name else const.CONF_UNKNOWN
+            )
 
             self.coordinator.approve_chore(
                 parent_name=parent_name,
@@ -446,6 +454,8 @@ class ApproveChoreButton(CoordinatorEntity, ButtonEntity):
 
 class DisapproveChoreButton(CoordinatorEntity, ButtonEntity):
     """Button to disapprove a chore."""
+
+    coordinator: KidsChoresDataCoordinator
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_BUTTON_DISAPPROVE_CHORE_BUTTON
@@ -502,7 +512,9 @@ class DisapproveChoreButton(CoordinatorEntity, ButtonEntity):
                 )
 
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
-            parent_name = user_obj.name if user_obj else const.CONF_UNKNOWN
+            parent_name = (
+                user_obj.name if user_obj and user_obj.name else const.CONF_UNKNOWN
+            )
 
             self.coordinator.disapprove_chore(
                 parent_name=parent_name,
@@ -552,6 +564,8 @@ class DisapproveChoreButton(CoordinatorEntity, ButtonEntity):
 class RewardButton(CoordinatorEntity, ButtonEntity):
     """Button to redeem a reward for a kid."""
 
+    coordinator: KidsChoresDataCoordinator
+
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_BUTTON_CLAIM_REWARD_BUTTON
 
@@ -596,7 +610,9 @@ class RewardButton(CoordinatorEntity, ButtonEntity):
                 )
 
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
-            parent_name = user_obj.name if user_obj else const.CONF_UNKNOWN
+            parent_name = (
+                user_obj.name if user_obj and user_obj.name else const.CONF_UNKNOWN
+            )
 
             self.coordinator.redeem_reward(
                 parent_name=parent_name,
@@ -645,6 +661,8 @@ class RewardButton(CoordinatorEntity, ButtonEntity):
 class ApproveRewardButton(CoordinatorEntity, ButtonEntity):
     """Button for parents to approve a reward claimed by a kid."""
 
+    coordinator: KidsChoresDataCoordinator
+
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_BUTTON_APPROVE_REWARD_BUTTON
 
@@ -688,7 +706,9 @@ class ApproveRewardButton(CoordinatorEntity, ButtonEntity):
                 )
 
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
-            parent_name = user_obj.name if user_obj else const.CONF_UNKNOWN
+            parent_name = (
+                user_obj.name if user_obj and user_obj.name else const.CONF_UNKNOWN
+            )
 
             # Approve the reward
             self.coordinator.approve_reward(
@@ -738,6 +758,8 @@ class ApproveRewardButton(CoordinatorEntity, ButtonEntity):
 
 class DisapproveRewardButton(CoordinatorEntity, ButtonEntity):
     """Button to disapprove a reward."""
+
+    coordinator: KidsChoresDataCoordinator
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_BUTTON_DISAPPROVE_REWARD_BUTTON
@@ -794,7 +816,9 @@ class DisapproveRewardButton(CoordinatorEntity, ButtonEntity):
                 )
 
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
-            parent_name = user_obj.name if user_obj else const.CONF_UNKNOWN
+            parent_name = (
+                user_obj.name if user_obj and user_obj.name else const.CONF_UNKNOWN
+            )
 
             self.coordinator.disapprove_reward(
                 parent_name=parent_name,
@@ -844,6 +868,8 @@ class DisapproveRewardButton(CoordinatorEntity, ButtonEntity):
 class PenaltyButton(CoordinatorEntity, ButtonEntity):
     """Button to apply a penalty for a kid."""
 
+    coordinator: KidsChoresDataCoordinator
+
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_BUTTON_PENALTY_BUTTON
 
@@ -889,7 +915,9 @@ class PenaltyButton(CoordinatorEntity, ButtonEntity):
                 )
 
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
-            parent_name = user_obj.name if user_obj else const.CONF_UNKNOWN
+            parent_name = (
+                user_obj.name if user_obj and user_obj.name else const.CONF_UNKNOWN
+            )
 
             self.coordinator.apply_penalty(
                 parent_name=parent_name,
@@ -939,6 +967,8 @@ class PenaltyButton(CoordinatorEntity, ButtonEntity):
 class PointsAdjustButton(CoordinatorEntity, ButtonEntity):
     """Button that increments or decrements a kid's points by 'delta'."""
 
+    coordinator: KidsChoresDataCoordinator
+
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_BUTTON_MANUAL_ADJUSTMENT_BUTTON
 
@@ -948,7 +978,7 @@ class PointsAdjustButton(CoordinatorEntity, ButtonEntity):
         entry: ConfigEntry,
         kid_id: str,
         kid_name: str,
-        delta: int,
+        delta: int | float,
         points_label: str,
     ):
         """Initialize the points adjust buttons."""
@@ -1034,6 +1064,8 @@ class PointsAdjustButton(CoordinatorEntity, ButtonEntity):
 class BonusButton(CoordinatorEntity, ButtonEntity):
     """Button to apply a bonus for a kid."""
 
+    coordinator: KidsChoresDataCoordinator
+
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_BUTTON_BONUS_BUTTON
 
@@ -1078,7 +1110,9 @@ class BonusButton(CoordinatorEntity, ButtonEntity):
                 )
 
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
-            parent_name = user_obj.name if user_obj else const.CONF_UNKNOWN
+            parent_name = (
+                user_obj.name if user_obj and user_obj.name else const.CONF_UNKNOWN
+            )
 
             self.coordinator.apply_bonus(
                 parent_name=parent_name,

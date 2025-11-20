@@ -9,6 +9,7 @@ user wishes to select a chore/reward/penalty dynamically.
 from __future__ import annotations
 
 from typing import Optional
+
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -44,6 +45,8 @@ async def async_setup_entry(
 
 class KidsChoresSelectBase(CoordinatorEntity, SelectEntity):
     """Base class for the KidsChores select entities."""
+
+    coordinator: KidsChoresDataCoordinator
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SELECT_BASE

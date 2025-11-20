@@ -275,6 +275,8 @@ async def async_setup_entry(
 class ChoreStatusSensor(CoordinatorEntity, SensorEntity):
     """Sensor for chore status: pending/claimed/approved/etc."""
 
+    coordinator: KidsChoresDataCoordinator
+
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_CHORE_STATUS_SENSOR
 
@@ -484,6 +486,8 @@ class ChoreStatusSensor(CoordinatorEntity, SensorEntity):
 class KidPointsSensor(CoordinatorEntity, SensorEntity):
     """Sensor for a kid's total points balance."""
 
+    coordinator: KidsChoresDataCoordinator
+
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_KID_POINTS_SENSOR
 
@@ -539,6 +543,8 @@ class KidPointsSensor(CoordinatorEntity, SensorEntity):
 class KidMaxPointsEverSensor(CoordinatorEntity, SensorEntity):
     """Sensor showing the maximum points a kid has ever reached."""
 
+    coordinator: KidsChoresDataCoordinator
+
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_KID_MAX_POINTS_EVER_SENSOR
 
@@ -580,6 +586,8 @@ class KidMaxPointsEverSensor(CoordinatorEntity, SensorEntity):
 # ------------------------------------------------------------------------------------------
 class CompletedChoresTotalSensor(CoordinatorEntity, SensorEntity):
     """Sensor tracking the total number of chores a kid has completed since integration start."""
+
+    coordinator: KidsChoresDataCoordinator
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_CHORES_COMPLETED_TOTAL_SENSOR
@@ -625,6 +633,8 @@ class CompletedChoresTotalSensor(CoordinatorEntity, SensorEntity):
 class CompletedChoresDailySensor(CoordinatorEntity, SensorEntity):
     """How many chores kid completed today."""
 
+    coordinator: KidsChoresDataCoordinator
+
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_CHORES_COMPLETED_DAILY_SENSOR
 
@@ -654,6 +664,8 @@ class CompletedChoresDailySensor(CoordinatorEntity, SensorEntity):
 class CompletedChoresWeeklySensor(CoordinatorEntity, SensorEntity):
     """How many chores kid completed this week."""
 
+    coordinator: KidsChoresDataCoordinator
+
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_CHORES_COMPLETED_WEEKLY_SENSOR
 
@@ -682,6 +694,8 @@ class CompletedChoresWeeklySensor(CoordinatorEntity, SensorEntity):
 # ------------------------------------------------------------------------------------------
 class CompletedChoresMonthlySensor(CoordinatorEntity, SensorEntity):
     """How many chores kid completed this month."""
+
+    coordinator: KidsChoresDataCoordinator
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_CHORES_COMPLETED_MONTHLY_SENSOR
@@ -713,6 +727,8 @@ class KidHighestBadgeSensor(CoordinatorEntity, SensorEntity):
     """Sensor that returns the highest cumulative badge a kid currently has,
     and calculates how many points are needed to reach the next cumulative badge.
     """
+
+    coordinator: KidsChoresDataCoordinator
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_KIDS_HIGHEST_BADGE_SENSOR
@@ -876,6 +892,8 @@ class KidHighestBadgeSensor(CoordinatorEntity, SensorEntity):
 class BadgeSensor(CoordinatorEntity, SensorEntity):
     """Sensor representing a single badge in KidsChores."""
 
+    coordinator: KidsChoresDataCoordinator
+
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_BADGE_SENSOR
 
@@ -972,6 +990,8 @@ class BadgeSensor(CoordinatorEntity, SensorEntity):
 class PendingChoreApprovalsSensor(CoordinatorEntity, SensorEntity):
     """Sensor listing all pending chore approvals."""
 
+    coordinator: KidsChoresDataCoordinator
+
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_PENDING_CHORES_APPROVALS_SENSOR
 
@@ -1025,6 +1045,8 @@ class PendingChoreApprovalsSensor(CoordinatorEntity, SensorEntity):
 class PendingRewardApprovalsSensor(CoordinatorEntity, SensorEntity):
     """Sensor listing all pending reward approvals."""
 
+    coordinator: KidsChoresDataCoordinator
+
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_PENDING_REWARDS_APPROVALS_SENSOR
 
@@ -1077,6 +1099,8 @@ class PendingRewardApprovalsSensor(CoordinatorEntity, SensorEntity):
 # ------------------------------------------------------------------------------------------
 class SharedChoreGlobalStateSensor(CoordinatorEntity, SensorEntity):
     """Sensor that shows the global state of a shared chore."""
+
+    coordinator: KidsChoresDataCoordinator
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_SHARED_CHORE_GLOBAL_STATUS_SENSOR
@@ -1180,6 +1204,8 @@ class SharedChoreGlobalStateSensor(CoordinatorEntity, SensorEntity):
 class RewardStatusSensor(CoordinatorEntity, SensorEntity):
     """Shows the status of a reward for a particular kid."""
 
+    coordinator: KidsChoresDataCoordinator
+
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_REWARD_STATUS_SENSOR
 
@@ -1259,6 +1285,8 @@ class RewardStatusSensor(CoordinatorEntity, SensorEntity):
 class PenaltyAppliesSensor(CoordinatorEntity, SensorEntity):
     """Sensor tracking how many times each penalty has been applied to a kid."""
 
+    coordinator: KidsChoresDataCoordinator
+
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_PENALTY_APPLIES_SENSOR
 
@@ -1317,6 +1345,8 @@ class PenaltyAppliesSensor(CoordinatorEntity, SensorEntity):
 class KidPointsEarnedDailySensor(CoordinatorEntity, SensorEntity):
     """Sensor for how many net points a kid earned today."""
 
+    coordinator: KidsChoresDataCoordinator
+
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_KID_POINTS_EARNED_DAILY_SENSOR
 
@@ -1354,6 +1384,8 @@ class KidPointsEarnedDailySensor(CoordinatorEntity, SensorEntity):
 # ------------------------------------------------------------------------------------------
 class KidPointsEarnedWeeklySensor(CoordinatorEntity, SensorEntity):
     """Sensor for how many net points a kid earned this week."""
+
+    coordinator: KidsChoresDataCoordinator
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_KID_POINTS_EARNED_WEEKLY_SENSOR
@@ -1394,6 +1426,8 @@ class KidPointsEarnedWeeklySensor(CoordinatorEntity, SensorEntity):
 class KidPointsEarnedMonthlySensor(CoordinatorEntity, SensorEntity):
     """Sensor for how many net points a kid earned this month."""
 
+    coordinator: KidsChoresDataCoordinator
+
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_KID_POINTS_EARNED_MONTHLY_SENSOR
 
@@ -1432,6 +1466,8 @@ class KidPointsEarnedMonthlySensor(CoordinatorEntity, SensorEntity):
 # ------------------------------------------------------------------------------------------
 class AchievementSensor(CoordinatorEntity, SensorEntity):
     """Sensor representing an achievement."""
+
+    coordinator: KidsChoresDataCoordinator
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_ACHIEVEMENT_STATE_SENSOR
@@ -1625,6 +1661,8 @@ class AchievementSensor(CoordinatorEntity, SensorEntity):
 class ChallengeSensor(CoordinatorEntity, SensorEntity):
     """Sensor representing a challenge."""
 
+    coordinator: KidsChoresDataCoordinator
+
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_CHALLENGE_STATE_SENSOR
 
@@ -1773,6 +1811,8 @@ class ChallengeSensor(CoordinatorEntity, SensorEntity):
 # ------------------------------------------------------------------------------------------
 class AchievementProgressSensor(CoordinatorEntity, SensorEntity):
     """Sensor representing a kid's progress toward a specific achievement."""
+
+    coordinator: KidsChoresDataCoordinator
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_ACHIEVEMENT_PROGRESS_SENSOR
@@ -1963,6 +2003,8 @@ class AchievementProgressSensor(CoordinatorEntity, SensorEntity):
 class ChallengeProgressSensor(CoordinatorEntity, SensorEntity):
     """Sensor representing a kid's progress toward a specific challenge."""
 
+    coordinator: KidsChoresDataCoordinator
+
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_CHALLENGE_PROGRESS_SENSOR
 
@@ -2124,6 +2166,8 @@ class ChallengeProgressSensor(CoordinatorEntity, SensorEntity):
 class KidHighestStreakSensor(CoordinatorEntity, SensorEntity):
     """Sensor returning the highest current streak among streak-type achievements for a kid."""
 
+    coordinator: KidsChoresDataCoordinator
+
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_KID_HIGHEST_STREAK_SENSOR
 
@@ -2190,6 +2234,8 @@ class KidHighestStreakSensor(CoordinatorEntity, SensorEntity):
 # ------------------------------------------------------------------------------------------
 class BonusAppliesSensor(CoordinatorEntity, SensorEntity):
     """Sensor tracking how many times each bonus has been applied to a kid."""
+
+    coordinator: KidsChoresDataCoordinator
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_BONUS_APPLIES_SENSOR

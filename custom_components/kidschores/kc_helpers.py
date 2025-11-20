@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from calendar import monthrange
 from datetime import date, datetime, time, timedelta, tzinfo
-from typing import TYPE_CHECKING, Iterable, Optional, Union
+from typing import TYPE_CHECKING, Iterable, Optional, Union, cast
 
 import homeassistant.util.dt as dt_util
 from homeassistant.auth.models import User
@@ -43,20 +43,22 @@ def _get_kidschores_coordinator(
 async def is_user_authorized_for_global_action(
     hass: HomeAssistant,
     user_id: str,
-    action: str,
 ) -> bool:
     """Check if the user is allowed to do a global action (penalty, reward, points adjust) that doesn't require a specific kid_id.
 
     By default:
       - Admin users => authorized
-      - Everyone else => not authorized
+      - Parents => authorized
+      - Everyone else => not authorized.
     """
     if not user_id:
         return False  # no user context => not authorized
 
-    user: User = await hass.auth.async_get_user(user_id)
+    user: Optional[User] = await hass.auth.async_get_user(user_id)
     if not user:
-        const.LOGGER.warning("WARNING: %s: Invalid user ID '%s'", action, user_id)
+        const.LOGGER.warning(
+            "WARNING: Invalid user ID '%s' for global action.", user_id
+        )
         return False
 
     if user.is_admin:
@@ -70,8 +72,7 @@ async def is_user_authorized_for_global_action(
                 return True
 
     const.LOGGER.warning(
-        "WARNING: %s: Non-admin user '%s' is not authorized in this logic",
-        action,
+        "WARNING: Non-admin user '%s' is not authorized for this global action.",
         user.name,
     )
     return False
@@ -93,7 +94,7 @@ async def is_user_authorized_for_kid(
     if not user_id:
         return False
 
-    user: User = await hass.auth.async_get_user(user_id)
+    user: Optional[User] = await hass.auth.async_get_user(user_id)
     if not user:
         const.LOGGER.warning("WARNING: Authorization: Invalid user ID '%s'", user_id)
         return False
@@ -102,17 +103,15 @@ async def is_user_authorized_for_kid(
     if user.is_admin:
         return True
 
-    # Allow non-admin users if they are registered as a parent in KidsChores.
-    coordinator = _get_kidschores_coordinator(hass)
-    if coordinator:
-        for parent in coordinator.parents_data.values():
-            if parent.get(const.DATA_PARENT_HA_USER_ID) == user.id:
-                return True
-
-    coordinator: KidsChoresDataCoordinator = _get_kidschores_coordinator(hass)
+    coordinator: Optional[KidsChoresDataCoordinator] = _get_kidschores_coordinator(hass)
     if not coordinator:
         const.LOGGER.warning("WARNING: Authorization: KidsChores coordinator not found")
         return False
+
+    # Allow non-admin users if they are registered as a parent in KidsChores.
+    for parent in coordinator.parents_data.values():
+        if parent.get(const.DATA_PARENT_HA_USER_ID) == user.id:
+            return True
 
     kid_info = coordinator.kids_data.get(kid_id)
     if not kid_info:
@@ -334,7 +333,7 @@ def get_today_chore_completion_progress(
     kid_info: dict,
     tracked_chores: list,
     *,
-    count_required: int = None,
+    count_required: Optional[int] = None,
     percent_required: float = 1.0,
     require_no_overdue: bool = False,
     only_due_today: bool = False,
@@ -473,10 +472,13 @@ def parse_datetime_to_utc(dt_str: str) -> Optional[datetime]:
     Example:
         "2025-04-07T14:30:00" → datetime.datetime(2025, 4, 7, 19, 30, tzinfo=UTC)
     """
-    return normalize_datetime_input(
-        dt_str,
-        default_tzinfo=const.DEFAULT_TIME_ZONE,
-        return_type=const.HELPER_RETURN_DATETIME_UTC,
+    return cast(
+        Optional[datetime],
+        normalize_datetime_input(
+            dt_str,
+            default_tzinfo=const.DEFAULT_TIME_ZONE,
+            return_type=const.HELPER_RETURN_DATETIME_UTC,
+        ),
     )
 
 
@@ -536,10 +538,10 @@ def format_datetime_with_return_type(
 
 
 def normalize_datetime_input(
-    dt_input: Union[str, date, datetime],
+    dt_input: Optional[Union[str, date, datetime]],
     default_tzinfo: Optional[tzinfo] = None,
     return_type: Optional[str] = const.HELPER_RETURN_DATETIME,
-) -> Union[datetime, date, str, None]:
+) -> Optional[Union[datetime, date, str, None]]:
     """
     Normalize various datetime input formats to a consistent format.
 
@@ -625,7 +627,7 @@ def adjust_datetime_by_interval(
     require_future: bool = False,
     reference_datetime: Optional[Union[str, date, datetime]] = None,
     return_type: Optional[str] = const.HELPER_RETURN_DATETIME,
-) -> Union[str, date, datetime]:
+) -> Optional[Union[str, date, datetime]]:
     """
     Add or Subtract a time interval to a date or datetime and returns the result in the desired format.
 
@@ -687,8 +689,11 @@ def adjust_datetime_by_interval(
     local_tz = const.DEFAULT_TIME_ZONE
 
     # Use normalize_datetime_input for consistent handling of base_date
-    base_dt = normalize_datetime_input(
-        base_date, default_tzinfo=local_tz, return_type=const.HELPER_RETURN_DATETIME
+    base_dt = cast(
+        datetime,
+        normalize_datetime_input(
+            base_date, default_tzinfo=local_tz, return_type=const.HELPER_RETURN_DATETIME
+        ),
     )
 
     if base_dt is None:
@@ -768,7 +773,7 @@ def adjust_datetime_by_interval(
 
         # Convert to UTC for consistent comparison
         result_utc = dt_util.as_utc(result)
-        reference_dt_utc = dt_util.as_utc(reference_dt)
+        reference_dt_utc = dt_util.as_utc(cast(datetime, reference_dt))
 
         # Loop until we have a future date
         max_iterations = 1000  # Safety limit
@@ -883,7 +888,7 @@ def get_next_scheduled_datetime(
     require_future: bool = True,
     reference_datetime: Optional[Union[str, date, datetime]] = None,
     return_type: Optional[str] = const.HELPER_RETURN_DATETIME,
-) -> Union[date, datetime, str]:
+) -> Optional[Union[date, datetime, str, None]]:
     """
     Calculates the next scheduled datetime based on an interval type from a given start date.
 
@@ -943,11 +948,14 @@ def get_next_scheduled_datetime(
     local_tz = const.DEFAULT_TIME_ZONE
 
     # Use normalize_datetime_input for consistent handling of base_date
-    base_date = normalize_datetime_input(
-        base_date, default_tzinfo=local_tz, return_type=const.HELPER_RETURN_DATETIME
+    base_date_norm = cast(
+        datetime,
+        normalize_datetime_input(
+            base_date, default_tzinfo=local_tz, return_type=const.HELPER_RETURN_DATETIME
+        ),
     )
 
-    if base_date is None:
+    if base_date_norm is None:
         const.LOGGER.error(
             "ERROR: Get Next Schedule DateTime - Could not parse base_date."
         )
@@ -959,98 +967,131 @@ def get_next_scheduled_datetime(
         Calculate the next datetime based on the interval type using add_interval_to_datetime.
         """
         if interval_type in {const.FREQUENCY_DAILY}:
-            return adjust_datetime_by_interval(
-                base_dt,
-                const.CONF_DAYS,
-                1,
-                end_of_period=None,
-                return_type=const.HELPER_RETURN_DATETIME,
+            return cast(
+                datetime,
+                adjust_datetime_by_interval(
+                    base_dt,
+                    const.CONF_DAYS,
+                    1,
+                    end_of_period=None,
+                    return_type=const.HELPER_RETURN_DATETIME,
+                ),
             )
         elif interval_type in {const.FREQUENCY_WEEKLY, const.FREQUENCY_CUSTOM_1_WEEK}:
-            return adjust_datetime_by_interval(
-                base_dt,
-                const.CONF_WEEKS,
-                1,
-                end_of_period=None,
-                return_type=const.HELPER_RETURN_DATETIME,
+            return cast(
+                datetime,
+                adjust_datetime_by_interval(
+                    base_dt,
+                    const.CONF_WEEKS,
+                    1,
+                    end_of_period=None,
+                    return_type=const.HELPER_RETURN_DATETIME,
+                ),
             )
         elif interval_type == const.FREQUENCY_BIWEEKLY:
-            return adjust_datetime_by_interval(
-                base_dt,
-                const.CONF_WEEKS,
-                2,
-                end_of_period=None,
-                return_type=const.HELPER_RETURN_DATETIME,
+            return cast(
+                datetime,
+                adjust_datetime_by_interval(
+                    base_dt,
+                    const.CONF_WEEKS,
+                    2,
+                    end_of_period=None,
+                    return_type=const.HELPER_RETURN_DATETIME,
+                ),
             )
         elif interval_type in {const.FREQUENCY_MONTHLY, const.FREQUENCY_CUSTOM_1_MONTH}:
-            return adjust_datetime_by_interval(
-                base_dt,
-                const.CONF_MONTHS,
-                1,
-                end_of_period=None,
-                return_type=const.HELPER_RETURN_DATETIME,
+            return cast(
+                datetime,
+                adjust_datetime_by_interval(
+                    base_dt,
+                    const.CONF_MONTHS,
+                    1,
+                    end_of_period=None,
+                    return_type=const.HELPER_RETURN_DATETIME,
+                ),
             )
         elif interval_type == const.FREQUENCY_QUARTERLY:
-            return adjust_datetime_by_interval(
-                base_dt,
-                const.CONF_QUARTERS,
-                1,
-                end_of_period=None,
-                return_type=const.HELPER_RETURN_DATETIME,
+            return cast(
+                datetime,
+                adjust_datetime_by_interval(
+                    base_dt,
+                    const.CONF_QUARTERS,
+                    1,
+                    end_of_period=None,
+                    return_type=const.HELPER_RETURN_DATETIME,
+                ),
             )
         elif interval_type in {const.FREQUENCY_YEARLY, const.FREQUENCY_CUSTOM_1_YEAR}:
-            return adjust_datetime_by_interval(
-                base_dt,
-                const.CONF_YEARS,
-                1,
-                end_of_period=None,
-                return_type=const.HELPER_RETURN_DATETIME,
+            return cast(
+                datetime,
+                adjust_datetime_by_interval(
+                    base_dt,
+                    const.CONF_YEARS,
+                    1,
+                    end_of_period=None,
+                    return_type=const.HELPER_RETURN_DATETIME,
+                ),
             )
         elif interval_type == const.PERIOD_DAY_END:
-            return adjust_datetime_by_interval(
-                base_dt,
-                const.CONF_DAYS,
-                0,
-                end_of_period=const.PERIOD_DAY_END,
-                return_type=const.HELPER_RETURN_DATETIME,
+            return cast(
+                datetime,
+                adjust_datetime_by_interval(
+                    base_dt,
+                    const.CONF_DAYS,
+                    0,
+                    end_of_period=const.PERIOD_DAY_END,
+                    return_type=const.HELPER_RETURN_DATETIME,
+                ),
             )
         elif interval_type == const.PERIOD_WEEK_END:
-            return adjust_datetime_by_interval(
-                base_dt,
-                const.CONF_DAYS,
-                0,
-                end_of_period=const.PERIOD_WEEK_END,
-                return_type=const.HELPER_RETURN_DATETIME,
+            return cast(
+                datetime,
+                adjust_datetime_by_interval(
+                    base_dt,
+                    const.CONF_DAYS,
+                    0,
+                    end_of_period=const.PERIOD_WEEK_END,
+                    return_type=const.HELPER_RETURN_DATETIME,
+                ),
             )
         elif interval_type == const.PERIOD_MONTH_END:
-            return adjust_datetime_by_interval(
-                base_dt,
-                const.CONF_DAYS,
-                0,
-                end_of_period=const.PERIOD_MONTH_END,
-                return_type=const.HELPER_RETURN_DATETIME,
+            return cast(
+                datetime,
+                adjust_datetime_by_interval(
+                    base_dt,
+                    const.CONF_DAYS,
+                    0,
+                    end_of_period=const.PERIOD_MONTH_END,
+                    return_type=const.HELPER_RETURN_DATETIME,
+                ),
             )
         elif interval_type == const.PERIOD_QUARTER_END:
-            return adjust_datetime_by_interval(
-                base_dt,
-                const.CONF_DAYS,
-                0,
-                end_of_period=const.PERIOD_QUARTER_END,
-                return_type=const.HELPER_RETURN_DATETIME,
+            return cast(
+                datetime,
+                adjust_datetime_by_interval(
+                    base_dt,
+                    const.CONF_DAYS,
+                    0,
+                    end_of_period=const.PERIOD_QUARTER_END,
+                    return_type=const.HELPER_RETURN_DATETIME,
+                ),
             )
         elif interval_type == const.PERIOD_YEAR_END:
-            return adjust_datetime_by_interval(
-                base_dt,
-                const.CONF_DAYS,
-                0,
-                end_of_period=const.PERIOD_YEAR_END,
-                return_type=const.HELPER_RETURN_DATETIME,
+            return cast(
+                datetime,
+                adjust_datetime_by_interval(
+                    base_dt,
+                    const.CONF_DAYS,
+                    0,
+                    end_of_period=const.PERIOD_YEAR_END,
+                    return_type=const.HELPER_RETURN_DATETIME,
+                ),
             )
         else:
             raise ValueError(f"Unsupported interval type: {interval_type}")
 
     # Calculate the initial next scheduled datetime.
-    result = calculate_next_interval(base_date)
+    result = calculate_next_interval(base_date_norm)
     if DEBUG:
         const.LOGGER.debug(
             "DEBUG: Get Next Schedule DateTime - After calculate_next_interval, result=%s",
@@ -1059,10 +1100,13 @@ def get_next_scheduled_datetime(
 
     # Process reference_datetime using normalize_datetime_input
     reference_dt = (
-        normalize_datetime_input(
-            reference_datetime,
-            default_tzinfo=local_tz,
-            return_type=const.HELPER_RETURN_DATETIME,
+        cast(
+            datetime,
+            normalize_datetime_input(
+                reference_datetime,
+                default_tzinfo=local_tz,
+                return_type=const.HELPER_RETURN_DATETIME,
+            ),
         )
         or get_now_local_time()
     )
@@ -1088,8 +1132,8 @@ def get_next_scheduled_datetime(
                 )
 
             previous_result = result  # Store before calculating new result
-            base_date = result  # We keep result in local time.
-            result = calculate_next_interval(base_date)
+            base_date_norm = result  # We keep result in local time.
+            result = calculate_next_interval(base_date_norm)
 
             # Check if we're in a loop (result didn't change as can happen with period ends)
             if result == previous_result:
@@ -1112,9 +1156,9 @@ def get_next_scheduled_datetime(
             if iteration_count >= max_iterations:
                 const.LOGGER.warning(
                     "WARN: Get Next Schedule DateTime - Maximum iterations (%d) reached! "
-                    "Params: base_date=%s, interval_type=%s, reference_datetime=%s",
+                    "Params: base_date_norm=%s, interval_type=%s, reference_datetime=%s",
                     max_iterations,
-                    base_date,
+                    base_date_norm,
                     interval_type,
                     reference_dt,
                 )
@@ -1142,7 +1186,7 @@ def get_next_applicable_day(
     applicable_days: Iterable[int],
     local_tz: Optional[tzinfo] = None,
     return_type: Optional[str] = const.HELPER_RETURN_DATETIME,
-) -> Union[datetime, date, str]:
+) -> Union[datetime, date, str, None]:
     """
     Advances the provided datetime to the next day (or same day) where the day-of-week
     (as returned by dt.weekday()) is included in the applicable_days iterable.
@@ -1220,7 +1264,6 @@ def get_next_applicable_day(
         const.LOGGER.debug(
             "DEBUG: HELPER Get Next Applicable Day - Final result: %s", final_result
         )
-        return final_result
 
 
 def cleanup_period_data(self, periods_data: dict, period_keys: dict):
@@ -1265,6 +1308,10 @@ def cleanup_period_data(self, periods_data: dict, period_keys: dict):
         require_future=False,
         return_type=const.HELPER_RETURN_DATETIME,
     )
+    if not isinstance(cutoff_date, datetime):
+        const.LOGGER.error("Failed to calculate weekly cutoff date.")
+        # Handle error appropriately, maybe return or raise
+        return
     cutoff_weekly = cutoff_date.strftime("%Y-W%V")
     weekly_data = periods_data.get(period_keys["weekly"], {})
     for week in list(weekly_data.keys()):
@@ -1279,6 +1326,10 @@ def cleanup_period_data(self, periods_data: dict, period_keys: dict):
         require_future=False,
         return_type=const.HELPER_RETURN_DATETIME,
     )
+    if not isinstance(cutoff_date, datetime):
+        const.LOGGER.error("Failed to calculate weekly cutoff date.")
+        # Handle error appropriately, maybe return or raise
+        return
     cutoff_monthly = cutoff_date.strftime("%Y-%m")
     monthly_data = periods_data.get(period_keys["monthly"], {})
     for month in list(monthly_data.keys()):

@@ -1702,7 +1702,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         ):
             now_local = kh.get_now_local_time()
             # Force the time to 23:59:00 (and zero microseconds)
-            default_due = now_local.replace(**const.DEFAULT_DUE_TIME)
+            default_due = now_local.replace(
+                hour=const.DEFAULT_DUE_TIME["hour"],
+                minute=const.DEFAULT_DUE_TIME["minute"],
+                second=const.DEFAULT_DUE_TIME["second"],
+                microsecond=const.DEFAULT_DUE_TIME["microsecond"],
+            )
             chore_data[const.DATA_CHORE_DUE_DATE] = default_due.isoformat()
             const.LOGGER.debug(
                 "DEBUG: Chore '%s' has frequency set to '%s' but no due date. Defaulting to 23:59 local time: %s",
@@ -2372,6 +2377,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         kid_info = self.kids_data.get(kid_id)
 
+        if not kid_info:
+            const.LOGGER.error(
+                "ERROR: Claim Chore - Kid info not found for kid_id '%s'", kid_id
+            )
+            return
+
         self._normalize_kid_lists(kid_info)
 
         allow_multiple = chore_info.get(
@@ -2450,6 +2461,11 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             raise HomeAssistantError(f"Kid ID '{kid_id}' not found.")
 
         kid_info = self.kids_data.get(kid_id)
+        if not kid_info:
+            const.LOGGER.error(
+                "ERROR: Claim Chore - Kid info not found for kid_id '%s'", kid_id
+            )
+            return
 
         allow_multiple = chore_info.get(
             const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY, False
@@ -3224,7 +3240,11 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
             # Most completed chore (all time)
             all_time = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {})
-            total_count = all_time.get(const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0)
+            total_count = (
+                all_time.get(const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0)
+                if all_time
+                else 0
+            )
             most_completed[chore_id] = total_count
 
             # Daily
@@ -3335,7 +3355,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             if due_date_local:
                 try:
                     today_local = kh.get_today_local_date()
-                    if due_date_local and due_date_local.date() == today_local:
+                    if (
+                        isinstance(due_date_local, datetime)
+                        and due_date_local.date() == today_local
+                    ):
                         stats[const.DATA_KID_CHORE_STATS_CURRENT_DUE_TODAY] += 1
                 except Exception:
                     pass
@@ -3351,14 +3374,16 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # --- Derived stats (no double counting, just pick max or calculate) ---
         if most_completed:
-            most_completed_chore_id = max(most_completed, key=most_completed.get)
+            most_completed_chore_id = max(
+                most_completed, key=lambda k: most_completed[k]
+            )
             chore_name = self.chores_data.get(most_completed_chore_id, {}).get(
                 const.DATA_CHORE_NAME, most_completed_chore_id
             )
             stats[const.DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE] = chore_name
         if most_completed_week:
             most_completed_week_id = max(
-                most_completed_week, key=most_completed_week.get
+                most_completed_week, key=lambda k: most_completed_week[k]
             )
             chore_name = self.chores_data.get(most_completed_week_id, {}).get(
                 const.DATA_CHORE_NAME, most_completed_week_id
@@ -3366,7 +3391,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             stats[const.DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_WEEK] = chore_name
         if most_completed_month:
             most_completed_month_id = max(
-                most_completed_month, key=most_completed_month.get
+                most_completed_month, key=lambda k: most_completed_month[k]
             )
             chore_name = self.chores_data.get(most_completed_month_id, {}).get(
                 const.DATA_CHORE_NAME, most_completed_month_id
@@ -3374,7 +3399,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             stats[const.DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_MONTH] = chore_name
         if most_completed_year:
             most_completed_year_id = max(
-                most_completed_year, key=most_completed_year.get
+                most_completed_year, key=lambda k: most_completed_year[k]
             )
             chore_name = self.chores_data.get(most_completed_year_id, {}).get(
                 const.DATA_CHORE_NAME, most_completed_year_id
@@ -3632,8 +3657,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             # const.DATA_KID_POINT_STATS_AVG_PER_CHORE: 0.0,
         }
 
-        pts_periods = kid_info.get(const.DATA_KID_POINT_DATA, {}).get(
-            const.DATA_KID_POINT_DATA_PERIODS, {}
+        point_data = kid_info.get(const.DATA_KID_POINT_DATA)
+        pts_periods = (
+            point_data.get(const.DATA_KID_POINT_DATA_PERIODS, {}) if point_data else {}
         )
 
         now_local = kh.get_now_local_time()
@@ -4864,6 +4890,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             require_future=False,
             return_type=const.HELPER_RETURN_DATETIME,
         )
+        if not isinstance(cutoff_date, datetime):
+            const.LOGGER.error("Failed to calculate weekly cutoff date.")
+            # Handle error appropriately, maybe return or raise
+            return
         cutoff_weekly = cutoff_date.strftime("%Y-W%V")
         weekly_data = periods_data.get(const.DATA_KID_BADGES_EARNED_PERIODS_WEEKLY, {})
         for week in list(weekly_data.keys()):
@@ -4878,6 +4908,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             require_future=False,
             return_type=const.HELPER_RETURN_DATETIME,
         )
+        if not isinstance(cutoff_date, datetime):
+            const.LOGGER.error("Failed to calculate weekly cutoff date.")
+            # Handle error appropriately, maybe return or raise
+            return
         cutoff_monthly = cutoff_date.strftime("%Y-%m")
         monthly_data = periods_data.get(
             const.DATA_KID_BADGES_EARNED_PERIODS_MONTHLY, {}
@@ -5031,6 +5065,11 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         elif badge_id:
             # Remove a specific awarded badge for all kids.
             badge_info = self.badges_data.get(badge_id)
+            if not badge_info:
+                const.LOGGER.error(
+                    "ERROR: Remove Awarded Badges - Badge ID '%s' not found.", badge_id
+                )
+                raise HomeAssistantError(f"Badge ID '{badge_id}' not found.")
             badge_name = badge_info.get(const.DATA_BADGE_NAME, badge_id)
             for kid_id, kid_info in self.kids_data.items():
                 kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown Kid")
@@ -5279,7 +5318,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             if next_lower
             else None,
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_THRESHOLD: float(
-                next_lower.get(const.DATA_BADGE_TARGET_THRESHOLD_VALUE, 0)
+                next_lower.get(const.DATA_BADGE_TARGET, {}).get(
+                    const.DATA_BADGE_TARGET_THRESHOLD_VALUE, 0
+                )
             )
             if next_lower
             else None,

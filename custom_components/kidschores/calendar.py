@@ -1,12 +1,14 @@
 # File: calendar.py
 
 import datetime
+
+from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.util import dt as dt_util
 
 from . import const
+from .coordinator import KidsChoresDataCoordinator
 
 # Map weekday integers (0=Monday, …) to e.g. "mon","tue","wed" in const.WEEKDAY_OPTIONS.
 WEEKDAY_MAP = {i: key for i, key in enumerate(const.WEEKDAY_OPTIONS.keys())}
@@ -42,6 +44,8 @@ async def async_setup_entry(
 
 class KidsChoresCalendarEntity(CalendarEntity):
     """Calendar entity representing a kid's combined chores + challenges."""
+
+    coordinator: KidsChoresDataCoordinator
 
     def __init__(
         self, coordinator, kid_id: str, kid_name: str, config_entry, calendar_duration

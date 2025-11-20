@@ -225,9 +225,7 @@ def async_setup_services(hass: HomeAssistant):
             raise HomeAssistantError(f"Chore '{chore_name}' not found")
 
         # Check if user is authorized
-        if user_id and not await kh.is_user_authorized_for_global_action(
-            hass, user_id, kid_id
-        ):
+        if user_id and not await kh.is_user_authorized_for_global_action(hass, user_id):
             const.LOGGER.warning("WARNING: Approve Chore: User not authorized")
             raise HomeAssistantError(
                 "You are not authorized to approve chores for this kid."
@@ -296,9 +294,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Check if user is authorized
         user_id = call.context.user_id
-        if user_id and not await kh.is_user_authorized_for_global_action(
-            hass, user_id, kid_id
-        ):
+        if user_id and not await kh.is_user_authorized_for_global_action(hass, user_id):
             const.LOGGER.warning("WARNING: Disapprove Chore: User not authorized")
             raise HomeAssistantError(
                 "You are not authorized to disapprove chores for this kid."
@@ -431,9 +427,7 @@ def async_setup_services(hass: HomeAssistant):
             raise HomeAssistantError(f"Reward '{reward_name}' not found")
 
         # Check if user is authorized
-        if user_id and not await kh.is_user_authorized_for_global_action(
-            hass, user_id, kid_id
-        ):
+        if user_id and not await kh.is_user_authorized_for_global_action(hass, user_id):
             const.LOGGER.warning("WARNING: Approve Reward: User not authorized")
             raise HomeAssistantError(
                 "You are not authorized to approve rewards for this kid."
@@ -498,9 +492,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Check if user is authorized
         user_id = call.context.user_id
-        if user_id and not await kh.is_user_authorized_for_global_action(
-            hass, user_id, kid_id
-        ):
+        if user_id and not await kh.is_user_authorized_for_global_action(hass, user_id):
             const.LOGGER.warning("WARNING: Disapprove Reward: User not authorized")
             raise HomeAssistantError(
                 "You are not authorized to disapprove rewards for this kid."
@@ -549,9 +541,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Check if user is authorized
         user_id = call.context.user_id
-        if user_id and not await kh.is_user_authorized_for_global_action(
-            hass, user_id, kid_id
-        ):
+        if user_id and not await kh.is_user_authorized_for_global_action(hass, user_id):
             const.LOGGER.warning("WARNING: Apply Penalty: User not authorized")
             raise HomeAssistantError(
                 "You are not authorized to apply penalties for this kid."
@@ -620,9 +610,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Check if user is authorized
         user_id = call.context.user_id
-        if user_id and not await kh.is_user_authorized_for_global_action(
-            hass, user_id, kid_id
-        ):
+        if user_id and not await kh.is_user_authorized_for_global_action(hass, user_id):
             const.LOGGER.warning("WARNING: Reset Penalties: User not authorized.")
             raise HomeAssistantError("You are not authorized to reset penalties.")
 
@@ -677,9 +665,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Check if user is authorized
         user_id = call.context.user_id
-        if user_id and not await kh.is_user_authorized_for_global_action(
-            hass, user_id, kid_id
-        ):
+        if user_id and not await kh.is_user_authorized_for_global_action(hass, user_id):
             const.LOGGER.warning("WARNING: Reset Bonuses: User not authorized.")
             raise HomeAssistantError("You are not authorized to reset bonuses.")
 
@@ -732,9 +718,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Check if user is authorized
         user_id = call.context.user_id
-        if user_id and not await kh.is_user_authorized_for_global_action(
-            hass, user_id, kid_id
-        ):
+        if user_id and not await kh.is_user_authorized_for_global_action(hass, user_id):
             const.LOGGER.warning("WARNING: Reset Rewards: User not authorized.")
             raise HomeAssistantError("You are not authorized to reset rewards.")
 
@@ -772,9 +756,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Check if user is authorized
         user_id = call.context.user_id
-        if user_id and not await kh.is_user_authorized_for_global_action(
-            hass, user_id, kid_name
-        ):
+        if user_id and not await kh.is_user_authorized_for_global_action(hass, user_id):
             const.LOGGER.warning("WARNING: Remove Awarded Badges: User not authorized.")
             raise HomeAssistantError("You are not authorized to remove awarded badges.")
 
@@ -823,9 +805,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Check if user is authorized
         user_id = call.context.user_id
-        if user_id and not await kh.is_user_authorized_for_global_action(
-            hass, user_id, kid_id
-        ):
+        if user_id and not await kh.is_user_authorized_for_global_action(hass, user_id):
             const.LOGGER.warning("WARNING: Apply Bonus: User not authorized")
             raise HomeAssistantError(
                 "You are not authorized to apply bonuses for this kid."

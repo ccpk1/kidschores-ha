@@ -175,7 +175,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             ),
             description_placeholders={
                 const.OPTIONS_FLOW_PLACEHOLDER_ENTITY_TYPE: self._entity_type
-            },
+            }
+            if self._entity_type
+            else {},
         )
 
     async def async_step_select_entity(self, user_input=None):
