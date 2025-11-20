@@ -396,7 +396,7 @@ class ApproveChoreButton(CoordinatorEntity, ButtonEntity):
         try:
             user_id = self._context.user_id if self._context else None
             if user_id and not await kh.is_user_authorized_for_global_action(
-                self.hass, user_id, const.SERVICE_APPROVE_CHORE
+                self.hass, user_id
             ):
                 raise HomeAssistantError(
                     const.ERROR_NOT_AUTHORIZED_ACTION_FMT.format(
@@ -503,7 +503,7 @@ class DisapproveChoreButton(CoordinatorEntity, ButtonEntity):
 
             user_id = self._context.user_id if self._context else None
             if user_id and not await kh.is_user_authorized_for_global_action(
-                self.hass, user_id, const.SERVICE_DISAPPROVE_CHORE
+                self.hass, user_id
             ):
                 raise HomeAssistantError(
                     const.ERROR_NOT_AUTHORIZED_ACTION_FMT.format(
@@ -697,7 +697,7 @@ class ApproveRewardButton(CoordinatorEntity, ButtonEntity):
         try:
             user_id = self._context.user_id if self._context else None
             if user_id and not await kh.is_user_authorized_for_global_action(
-                self.hass, user_id, const.SERVICE_APPROVE_REWARD
+                self.hass, user_id
             ):
                 raise HomeAssistantError(
                     const.ERROR_NOT_AUTHORIZED_ACTION_FMT.format(
@@ -807,7 +807,7 @@ class DisapproveRewardButton(CoordinatorEntity, ButtonEntity):
 
             user_id = self._context.user_id if self._context else None
             if user_id and not await kh.is_user_authorized_for_global_action(
-                self.hass, user_id, const.SERVICE_DISAPPROVE_REWARD
+                self.hass, user_id
             ):
                 raise HomeAssistantError(
                     const.ERROR_NOT_AUTHORIZED_ACTION_FMT.format(
@@ -906,7 +906,7 @@ class PenaltyButton(CoordinatorEntity, ButtonEntity):
         try:
             user_id = self._context.user_id if self._context else None
             if user_id and not await kh.is_user_authorized_for_global_action(
-                self.hass, user_id, const.SERVICE_APPLY_PENALTY
+                self.hass, user_id
             ):
                 raise HomeAssistantError(
                     const.ERROR_NOT_AUTHORIZED_ACTION_FMT.format(
@@ -1025,7 +1025,7 @@ class PointsAdjustButton(CoordinatorEntity, ButtonEntity):
         try:
             user_id = self._context.user_id if self._context else None
             if user_id and not await kh.is_user_authorized_for_global_action(
-                self.hass, user_id, const.SERVICE_ADJUST_POINTS
+                self.hass, user_id
             ):
                 raise HomeAssistantError(
                     const.ERROR_NOT_AUTHORIZED_ACTION_FMT.format(
@@ -1101,7 +1101,7 @@ class BonusButton(CoordinatorEntity, ButtonEntity):
         try:
             user_id = self._context.user_id if self._context else None
             if user_id and not await kh.is_user_authorized_for_global_action(
-                self.hass, user_id, const.SERVICE_APPLY_BONUS
+                self.hass, user_id
             ):
                 raise HomeAssistantError(
                     const.ERROR_NOT_AUTHORIZED_ACTION_FMT.format(
