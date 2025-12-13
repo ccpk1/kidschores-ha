@@ -55,6 +55,7 @@ class KidsChoresStorageManager:
                 const.DATA_CHALLENGES: {},
                 const.DATA_PENDING_CHORE_APPROVALS: [],
                 const.DATA_PENDING_REWARD_APPROVALS: [],
+                const.DATA_SCHEMA_VERSION: const.DEFAULT_ZERO,  # Will be set by migration
             }
         else:
             # Load existing data into memory.
@@ -69,6 +70,14 @@ class KidsChoresStorageManager:
     def get_data(self):
         """Retrieve the data structure (alternative getter)."""
         return self._data
+
+    def get_storage_path(self) -> str:
+        """Get the storage file path.
+
+        Returns:
+            str: The absolute path to the storage file.
+        """
+        return self._store.path
 
     def set_data(self, new_data: dict):
         """Replace the entire in-memory data structure."""
@@ -129,7 +138,10 @@ class KidsChoresStorageManager:
     async def unlink_user(self, user_id):
         """Unlink a Home Assistant user ID from any kid."""
 
-        if const.STORAGE_KEY_LINKED_USERS in self._data and user_id in self._data[const.STORAGE_KEY_LINKED_USERS]:
+        if (
+            const.STORAGE_KEY_LINKED_USERS in self._data
+            and user_id in self._data[const.STORAGE_KEY_LINKED_USERS]
+        ):
             del self._data[const.STORAGE_KEY_LINKED_USERS][user_id]
             await self.async_save()
 
@@ -143,7 +155,7 @@ class KidsChoresStorageManager:
         try:
             await self._store.async_save(self._data)
             const.LOGGER.debug("DEBUG: Data saved successfully to storage")
-        except Exception as e:
+        except (OSError, TypeError, ValueError) as e:
             const.LOGGER.error("ERROR: Failed to save data to storage: %s", e)
 
     async def async_clear_data(self):
@@ -182,7 +194,7 @@ class KidsChoresStorageManager:
             try:
                 os.remove(self._store.path)
                 const.LOGGER.info("INFO: Storage file removed: %s", self._store.path)
-            except Exception as e:
+            except OSError as e:
                 const.LOGGER.error("ERROR: Failed to remove storage file: %s", e)
         else:
             const.LOGGER.info("INFO: Storage file not found: %s", self._store.path)

@@ -147,6 +147,21 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             )
         const.LOGGER.info("INFO: Chore data migration complete.")
 
+    def _migrate_kid_data(self):
+        """Migrate each kid's data to include new fields if missing."""
+        kids = self._data.get(const.DATA_KIDS, {})
+        migrated_count = 0
+        for kid_id, kid_info in kids.items():
+            if const.DATA_KID_OVERDUE_NOTIFICATIONS not in kid_info:
+                kid_info[const.DATA_KID_OVERDUE_NOTIFICATIONS] = {}
+                migrated_count += 1
+                const.LOGGER.debug(
+                    "DEBUG: Added overdue_notifications field to kid '%s'", kid_id
+                )
+        const.LOGGER.info(
+            "INFO: Kid data migration complete. Migrated %s kids.", migrated_count
+        )
+
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     def _migrate_legacy_kid_chore_data_and_streaks(self):
         """Migrate legacy streak and stats data to the new kid chores structure (period-based).
@@ -574,13 +589,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self._persist()
         self.async_set_updated_data(self._data)
 
-        # --- Update config_entry.options so the UI sees the migrated badges ---
-        updated_options = dict(self.config_entry.options)
-        updated_options[const.CONF_BADGES] = self._data.get(const.DATA_BADGES, {})
-        self.hass.config_entries.async_update_entry(
-            self.config_entry, options=updated_options
-        )
-
         const.LOGGER.info(
             "INFO: Badge Migration - Completed migration of legacy badges to new structure"
         )
@@ -843,6 +851,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 # Migrate chore data and add new fields
                 self._migrate_chore_data()
 
+                # Migrate kid data and add new fields
+                self._migrate_kid_data()
+
                 #  Migrate Badge Data for Legacy Badges
                 self._migrate_badges()
 
@@ -895,7 +906,23 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         )
 
         # Merge config entry data (options) into the stored data
-        self._initialize_data_from_config()
+        # Skip this step if storage schema version >= 41 (storage-only architecture)
+        storage_schema_version = self._data.get(
+            const.DATA_SCHEMA_VERSION, const.DEFAULT_ZERO
+        )
+        if storage_schema_version < const.SCHEMA_VERSION_STORAGE_ONLY:
+            const.LOGGER.info(
+                "INFO: Storage schema version %s < %s, syncing from config_entry.options",
+                storage_schema_version,
+                const.SCHEMA_VERSION_STORAGE_ONLY,
+            )
+            self._initialize_data_from_config()
+        else:
+            const.LOGGER.info(
+                "INFO: Storage schema version %s >= %s, skipping config sync (storage-only mode)",
+                storage_schema_version,
+                const.SCHEMA_VERSION_STORAGE_ONLY,
+            )
 
         # Normalize all kids list fields
         for kid in self._data.get(const.DATA_KIDS, {}).values():
@@ -2300,6 +2327,274 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             "DEBUG: Challenge Updated - '%s', ID '%s'",
             challenge_info[const.DATA_CHALLENGE_NAME],
             challenge_id,
+        )
+
+    # -------------------------------------------------------------------------------------
+    # Public Entity Management Methods (for Options Flow - Phase 3)
+    # These methods provide direct storage updates without triggering config reloads
+    # -------------------------------------------------------------------------------------
+
+    def update_kid_entity(self, kid_id: str, kid_data: dict[str, Any]) -> None:
+        """Update kid entity in storage (Options Flow - no reload).
+
+        Args:
+            kid_id: Internal ID of the kid
+            kid_data: Dictionary with kid fields to update
+        """
+        if kid_id not in self._data.get(const.DATA_KIDS, {}):
+            raise ValueError(f"Kid {kid_id} not found")
+        self._update_kid(kid_id, kid_data)
+        self._persist()
+        self.async_update_listeners()
+
+    def delete_kid_entity(self, kid_id: str) -> None:
+        """Delete kid from storage and cleanup references.
+
+        Args:
+            kid_id: Internal ID of the kid to delete
+        """
+        if kid_id not in self._data.get(const.DATA_KIDS, {}):
+            raise ValueError(f"Kid {kid_id} not found")
+
+        kid_name = self._data[const.DATA_KIDS][kid_id].get(const.DATA_KID_NAME, kid_id)
+        del self._data[const.DATA_KIDS][kid_id]
+
+        # Remove HA entities
+        self._remove_entities_in_ha(kid_id)
+
+        # Cleanup references
+        self._cleanup_deleted_kid_references()
+        self._cleanup_parent_assignments()
+        self._cleanup_pending_chore_approvals()
+        self._cleanup_pending_reward_approvals()
+
+        self._persist()
+        self.async_update_listeners()
+        const.LOGGER.info("INFO: Deleted kid '%s' (ID: %s)", kid_name, kid_id)
+
+    def update_parent_entity(self, parent_id: str, parent_data: dict[str, Any]) -> None:
+        """Update parent entity in storage (Options Flow - no reload)."""
+        if parent_id not in self._data.get(const.DATA_PARENTS, {}):
+            raise ValueError(f"Parent {parent_id} not found")
+        self._update_parent(parent_id, parent_data)
+        self._persist()
+        self.async_update_listeners()
+
+    def delete_parent_entity(self, parent_id: str) -> None:
+        """Delete parent from storage."""
+        if parent_id not in self._data.get(const.DATA_PARENTS, {}):
+            raise ValueError(f"Parent {parent_id} not found")
+
+        parent_name = self._data[const.DATA_PARENTS][parent_id].get(
+            const.DATA_PARENT_NAME, parent_id
+        )
+        del self._data[const.DATA_PARENTS][parent_id]
+
+        self._persist()
+        self.async_update_listeners()
+        const.LOGGER.info("INFO: Deleted parent '%s' (ID: %s)", parent_name, parent_id)
+
+    def update_chore_entity(self, chore_id: str, chore_data: dict[str, Any]) -> None:
+        """Update chore entity in storage (Options Flow - no reload)."""
+        if chore_id not in self._data.get(const.DATA_CHORES, {}):
+            raise ValueError(f"Chore {chore_id} not found")
+        self._update_chore(chore_id, chore_data)
+        # Recalculate badges affected by chore changes
+        self._recalculate_all_badges()
+        self._persist()
+        self.async_update_listeners()
+
+    def delete_chore_entity(self, chore_id: str) -> None:
+        """Delete chore from storage and cleanup references."""
+        if chore_id not in self._data.get(const.DATA_CHORES, {}):
+            raise ValueError(f"Chore {chore_id} not found")
+
+        chore_name = self._data[const.DATA_CHORES][chore_id].get(
+            const.DATA_CHORE_NAME, chore_id
+        )
+        del self._data[const.DATA_CHORES][chore_id]
+
+        # Remove HA entities
+        self._remove_entities_in_ha(chore_id)
+
+        # Cleanup references
+        self._cleanup_deleted_chore_references()
+        self._cleanup_deleted_chore_in_achievements()
+        self._cleanup_deleted_chore_in_challenges()
+        self._cleanup_pending_chore_approvals()
+
+        # Remove orphaned shared chore sensors
+        self.hass.async_create_task(self._remove_orphaned_shared_chore_sensors())
+
+        self._persist()
+        self.async_update_listeners()
+        const.LOGGER.info("INFO: Deleted chore '%s' (ID: %s)", chore_name, chore_id)
+
+    def update_badge_entity(self, badge_id: str, badge_data: dict[str, Any]) -> None:
+        """Update badge entity in storage (Options Flow - no reload)."""
+        if badge_id not in self._data.get(const.DATA_BADGES, {}):
+            raise ValueError(f"Badge {badge_id} not found")
+        self._update_badge(badge_id, badge_data)
+        # Recalculate badge progress for all kids
+        self._recalculate_all_badges()
+        self._persist()
+        self.async_update_listeners()
+
+    def delete_badge_entity(self, badge_id: str) -> None:
+        """Delete badge from storage and cleanup references."""
+        if badge_id not in self._data.get(const.DATA_BADGES, {}):
+            raise ValueError(f"Badge {badge_id} not found")
+
+        badge_name = self._data[const.DATA_BADGES][badge_id].get(
+            const.DATA_BADGE_NAME, badge_id
+        )
+        del self._data[const.DATA_BADGES][badge_id]
+
+        # Remove awarded badges from kids
+        self._remove_awarded_badges_by_id(badge_id=badge_id)
+
+        self._persist()
+        self.async_update_listeners()
+        const.LOGGER.info("INFO: Deleted badge '%s' (ID: %s)", badge_name, badge_id)
+
+    def update_reward_entity(self, reward_id: str, reward_data: dict[str, Any]) -> None:
+        """Update reward entity in storage (Options Flow - no reload)."""
+        if reward_id not in self._data.get(const.DATA_REWARDS, {}):
+            raise ValueError(f"Reward {reward_id} not found")
+        self._update_reward(reward_id, reward_data)
+        self._persist()
+        self.async_update_listeners()
+
+    def delete_reward_entity(self, reward_id: str) -> None:
+        """Delete reward from storage and cleanup references."""
+        if reward_id not in self._data.get(const.DATA_REWARDS, {}):
+            raise ValueError(f"Reward {reward_id} not found")
+
+        reward_name = self._data[const.DATA_REWARDS][reward_id].get(
+            const.DATA_REWARD_NAME, reward_id
+        )
+        del self._data[const.DATA_REWARDS][reward_id]
+
+        # Remove HA entities
+        self._remove_entities_in_ha(reward_id)
+
+        # Cleanup pending reward approvals
+        self._cleanup_pending_reward_approvals()
+
+        self._persist()
+        self.async_update_listeners()
+        const.LOGGER.info("INFO: Deleted reward '%s' (ID: %s)", reward_name, reward_id)
+
+    def update_penalty_entity(
+        self, penalty_id: str, penalty_data: dict[str, Any]
+    ) -> None:
+        """Update penalty entity in storage (Options Flow - no reload)."""
+        if penalty_id not in self._data.get(const.DATA_PENALTIES, {}):
+            raise ValueError(f"Penalty {penalty_id} not found")
+        self._update_penalty(penalty_id, penalty_data)
+        self._persist()
+        self.async_update_listeners()
+
+    def delete_penalty_entity(self, penalty_id: str) -> None:
+        """Delete penalty from storage."""
+        if penalty_id not in self._data.get(const.DATA_PENALTIES, {}):
+            raise ValueError(f"Penalty {penalty_id} not found")
+
+        penalty_name = self._data[const.DATA_PENALTIES][penalty_id].get(
+            const.DATA_PENALTY_NAME, penalty_id
+        )
+        del self._data[const.DATA_PENALTIES][penalty_id]
+
+        # Remove HA entities
+        self._remove_entities_in_ha(penalty_id)
+
+        self._persist()
+        self.async_update_listeners()
+        const.LOGGER.info(
+            "INFO: Deleted penalty '%s' (ID: %s)", penalty_name, penalty_id
+        )
+
+    def update_bonus_entity(self, bonus_id: str, bonus_data: dict[str, Any]) -> None:
+        """Update bonus entity in storage (Options Flow - no reload)."""
+        if bonus_id not in self._data.get(const.DATA_BONUSES, {}):
+            raise ValueError(f"Bonus {bonus_id} not found")
+        self._update_bonus(bonus_id, bonus_data)
+        self._persist()
+        self.async_update_listeners()
+
+    def delete_bonus_entity(self, bonus_id: str) -> None:
+        """Delete bonus from storage."""
+        if bonus_id not in self._data.get(const.DATA_BONUSES, {}):
+            raise ValueError(f"Bonus {bonus_id} not found")
+
+        bonus_name = self._data[const.DATA_BONUSES][bonus_id].get(
+            const.DATA_BONUS_NAME, bonus_id
+        )
+        del self._data[const.DATA_BONUSES][bonus_id]
+
+        # Remove HA entities
+        self._remove_entities_in_ha(bonus_id)
+
+        self._persist()
+        self.async_update_listeners()
+        const.LOGGER.info("INFO: Deleted bonus '%s' (ID: %s)", bonus_name, bonus_id)
+
+    def update_achievement_entity(
+        self, achievement_id: str, achievement_data: dict[str, Any]
+    ) -> None:
+        """Update achievement entity in storage (Options Flow - no reload)."""
+        if achievement_id not in self._data.get(const.DATA_ACHIEVEMENTS, {}):
+            raise ValueError(f"Achievement {achievement_id} not found")
+        self._update_achievement(achievement_id, achievement_data)
+        self._persist()
+        self.async_update_listeners()
+
+    def delete_achievement_entity(self, achievement_id: str) -> None:
+        """Delete achievement from storage and cleanup references."""
+        if achievement_id not in self._data.get(const.DATA_ACHIEVEMENTS, {}):
+            raise ValueError(f"Achievement {achievement_id} not found")
+
+        achievement_name = self._data[const.DATA_ACHIEVEMENTS][achievement_id].get(
+            const.DATA_ACHIEVEMENT_NAME, achievement_id
+        )
+        del self._data[const.DATA_ACHIEVEMENTS][achievement_id]
+
+        # Remove orphaned achievement entities
+        self.hass.async_create_task(self._remove_orphaned_achievement_entities())
+
+        self._persist()
+        self.async_update_listeners()
+        const.LOGGER.info(
+            "INFO: Deleted achievement '%s' (ID: %s)", achievement_name, achievement_id
+        )
+
+    def update_challenge_entity(
+        self, challenge_id: str, challenge_data: dict[str, Any]
+    ) -> None:
+        """Update challenge entity in storage (Options Flow - no reload)."""
+        if challenge_id not in self._data.get(const.DATA_CHALLENGES, {}):
+            raise ValueError(f"Challenge {challenge_id} not found")
+        self._update_challenge(challenge_id, challenge_data)
+        self._persist()
+        self.async_update_listeners()
+
+    def delete_challenge_entity(self, challenge_id: str) -> None:
+        """Delete challenge from storage and cleanup references."""
+        if challenge_id not in self._data.get(const.DATA_CHALLENGES, {}):
+            raise ValueError(f"Challenge {challenge_id} not found")
+
+        challenge_name = self._data[const.DATA_CHALLENGES][challenge_id].get(
+            const.DATA_CHALLENGE_NAME, challenge_id
+        )
+        del self._data[const.DATA_CHALLENGES][challenge_id]
+
+        # Remove orphaned challenge entities
+        self.hass.async_create_task(self._remove_orphaned_challenge_entities())
+
+        self._persist()
+        self.async_update_listeners()
+        const.LOGGER.info(
+            "INFO: Deleted challenge '%s' (ID: %s)", challenge_name, challenge_id
         )
 
     # -------------------------------------------------------------------------------------
@@ -6888,6 +7183,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     )
 
                 # Check notification timestamp.
+                # Ensure the field exists (defensive coding for legacy data)
+                if const.DATA_KID_OVERDUE_NOTIFICATIONS not in kid_info:
+                    kid_info[const.DATA_KID_OVERDUE_NOTIFICATIONS] = {}
+
                 last_notif_str = kid_info[const.DATA_KID_OVERDUE_NOTIFICATIONS].get(
                     chore_id
                 )
@@ -7289,12 +7588,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             )
             return
 
-        self.hass.async_create_task(
-            self._update_chore_due_date_in_config(
-                chore_id, chore_info[const.DATA_CHORE_DUE_DATE], None, None, None
-            )
-        )
-
         for kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
             if kid_id:
                 self._process_chore_state(kid_id, chore_id, const.CHORE_STATE_PENDING)
@@ -7343,18 +7636,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 chore_info[const.DATA_CHORE_RECURRING_FREQUENCY] = const.FREQUENCY_NONE
                 chore_info.pop(const.DATA_CHORE_CUSTOM_INTERVAL, None)
                 chore_info.pop(const.DATA_CHORE_CUSTOM_INTERVAL_UNIT, None)
-
-        # Update config_entry.options so that the new due date is visible in Options.
-        # Use new_due_date here to ensure we’re passing the updated value.
-        self.hass.async_create_task(
-            self._update_chore_due_date_in_config(
-                chore_id,
-                chore_info.get(const.DATA_CHORE_DUE_DATE),
-                chore_info.get(const.DATA_CHORE_RECURRING_FREQUENCY),
-                chore_info.get(const.DATA_CHORE_CUSTOM_INTERVAL),
-                chore_info.get(const.DATA_CHORE_CUSTOM_INTERVAL_UNIT),
-            )
-        )
 
         # Reset the chore state to Pending
         for kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
@@ -7709,93 +7990,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         self._persist()
         self.async_set_updated_data(self._data)
-
-    # Persist new due dates on config entries
-    # This is not being used currently, but was refactored so it calls a new function _update_chore_due_date_in_config
-    # which can be used to update a single chore's due date and frequency.  New function can be used in multiple places.
-
-    async def _update_all_chore_due_dates_in_config(self) -> None:
-        """Update due dates for all chores in config_entry.options."""
-        tasks = []
-        for chore_id, chore_info in self.chores_data.items():
-            if const.DATA_CHORE_DUE_DATE in chore_info:
-                tasks.append(
-                    self._update_chore_due_date_in_config(
-                        chore_id,
-                        chore_info.get(const.DATA_CHORE_DUE_DATE),
-                        recurring_frequency=chore_info.get(
-                            const.DATA_CHORE_RECURRING_FREQUENCY
-                        ),
-                        custom_interval=chore_info.get(
-                            const.DATA_CHORE_CUSTOM_INTERVAL
-                        ),
-                        custom_interval_unit=chore_info.get(
-                            const.DATA_CHORE_CUSTOM_INTERVAL_UNIT
-                        ),
-                    )
-                )
-
-        # Run all updates concurrently
-        if tasks:
-            await asyncio.gather(*tasks)
-
-    # Persist new due dates on config entries
-    async def _update_chore_due_date_in_config(
-        self,
-        chore_id: str,
-        due_date: Optional[str],
-        recurring_frequency: Optional[str] = None,
-        custom_interval: Optional[int] = None,
-        custom_interval_unit: Optional[str] = None,
-    ) -> None:
-        """Update the due date and frequency fields for a specific chore in config_entry.options.
-
-        - due_date should be an ISO-formatted string (or None).
-        - If a frequency is passed, then that value is set.
-        If the frequency is const.FREQUENCY_CUSTOM, custom_interval and custom_interval_unit are required.
-        If the frequency is not custom, any custom interval settings are cleared.
-        - If no frequency is passed, then do not change the frequency or custom interval settings.
-        """
-        updated_options = dict(self.config_entry.options)
-        chores_conf = dict(updated_options.get(const.DATA_CHORES, {}))
-
-        # Get existing options for the chore.
-        existing_options = dict(chores_conf.get(chore_id, {}))
-
-        # Update due_date: set if provided; otherwise remove.
-        if due_date is not None:
-            existing_options[const.DATA_CHORE_DUE_DATE] = due_date
-        else:
-            existing_options.pop(const.DATA_CHORE_DUE_DATE, None)
-
-        # If a frequency is passed, update it.
-        if recurring_frequency is not None:
-            existing_options[const.DATA_CHORE_RECURRING_FREQUENCY] = recurring_frequency
-            if recurring_frequency == const.FREQUENCY_CUSTOM:
-                # For custom frequency, custom_interval and custom_interval_unit are required.
-                if custom_interval is None or custom_interval_unit is None:
-                    raise HomeAssistantError(
-                        "For custom frequency, both custom interval and custom interval unit are required."
-                    )
-                existing_options[const.DATA_CHORE_CUSTOM_INTERVAL] = custom_interval
-                existing_options[const.DATA_CHORE_CUSTOM_INTERVAL_UNIT] = (
-                    custom_interval_unit
-                )
-            else:
-                # For non-custom frequencies, clear any custom interval settings.
-                existing_options.pop(const.DATA_CHORE_CUSTOM_INTERVAL, None)
-                existing_options.pop(const.DATA_CHORE_CUSTOM_INTERVAL_UNIT, None)
-        # If no frequency is passed, leave the frequency and custom fields unchanged.
-
-        chores_conf[chore_id] = existing_options
-        updated_options[const.DATA_CHORES] = chores_conf
-
-        new_data = dict(self.config_entry.data)
-        new_data[const.DATA_LAST_CHANGE] = dt_util.utcnow().isoformat()
-
-        self.hass.config_entries.async_update_entry(
-            self.config_entry, data=new_data, options=updated_options
-        )
 
     # -------------------------------------------------------------------------------------
     # Notifications

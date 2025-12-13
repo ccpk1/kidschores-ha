@@ -55,7 +55,12 @@ DEFAULT_TIME_ZONE = None
 # Migration Flags
 MIGRATION_PERFORMED = "migration_performed"
 MIGRATION_KEY_VERSION = "migration_key_version"
-MIGRATION_KEY_VERSION_NUMBER = 40
+MIGRATION_KEY_VERSION_NUMBER = 41
+
+# Schema Version (for config→storage migration)
+DATA_SCHEMA_VERSION = "schema_version"  # Key in storage data
+CONF_SCHEMA_VERSION = "schema_version"  # Key in config_entry.options
+SCHEMA_VERSION_STORAGE_ONLY = 41  # Version 41+ means entities live in storage only
 
 # Migration Data
 MIGRATION_DATA_LEGACY_ORPHAN = "legacy_orphan"
@@ -263,7 +268,7 @@ CFOF_BADGES_INPUT_RESET_TYPE_UNUSED = "reset_type"
 CFOF_BADGES_INPUT_REQUIRED_CHORES_UNUSED = "required_chores"
 CFOF_BADGES_INPUT_START_DATE = "start_date"
 CFOF_BADGES_INPUT_TARGET_TYPE = "target_type"
-CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE = "threshhold_value"
+CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE = "threshold_value"
 CFOF_BADGES_INPUT_THRESHOLD_TYPE_UNUSED = "threshold_type"
 CFOF_BADGES_INPUT_THRESHOLD_VALUE_UNUSED = "threshold_value"
 CFOF_BADGES_INPUT_TRIGGER_INFO_UNUSED = "trigger_info"
