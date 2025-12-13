@@ -1,0 +1,184 @@
+"""Tests for KidsChores coordinator."""
+
+import uuid
+from unittest.mock import AsyncMock, patch
+
+from homeassistant.core import HomeAssistant
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from custom_components.kidschores.const import (
+    CHORE_STATE_APPROVED,
+    CHORE_STATE_CLAIMED,
+    CHORE_STATE_PENDING,
+    COORDINATOR,
+    DOMAIN,
+)
+
+from .conftest import create_mock_chore_data, create_mock_kid_data
+
+
+async def test_chore_lifecycle_complete_workflow(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+) -> None:
+    """Test complete chore lifecycle: create, claim, approve, verify persistence."""
+    # Get the coordinator
+    coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
+
+    # Mock notifications to prevent ServiceNotFound errors
+    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        # Create a kid
+        kid_id = str(uuid.uuid4())
+        kid_name = "Test Kid"
+        kid_data = create_mock_kid_data(name=kid_name, points=0.0)
+        kid_data["internal_id"] = kid_id
+        # pylint: disable=protected-access
+        coordinator._create_kid(kid_id, kid_data)
+
+        # Create a chore assigned to the kid (pass kid name, not ID)
+        chore_id = str(uuid.uuid4())
+        chore_data = create_mock_chore_data(
+            name="Test Chore",
+            default_points=int(10.0),
+            assigned_kids=[kid_name],  # Pass name, not ID
+        )
+        chore_data["internal_id"] = chore_id
+        coordinator._create_chore(chore_id, chore_data)
+        # pylint: enable=protected-access
+
+        # Verify initial state
+        assert coordinator.chores_data[chore_id]["state"] == CHORE_STATE_PENDING
+        assert coordinator.kids_data[kid_id]["points"] == 0.0
+
+        # Kid claims the chore
+        coordinator.claim_chore(kid_id, chore_id, "Test User")
+
+        # Verify claimed state - chore in kid's claimed list and chore state changed
+        assert coordinator.chores_data[chore_id]["state"] == CHORE_STATE_CLAIMED
+        assert chore_id in coordinator.kids_data[kid_id]["claimed_chores"]
+
+        # Approve the chore
+        coordinator.approve_chore("Test User", kid_id, chore_id)
+
+        # Verify approved state - chore in kid's approved list and points awarded
+        assert coordinator.chores_data[chore_id]["state"] == CHORE_STATE_APPROVED
+        assert chore_id in coordinator.kids_data[kid_id]["approved_chores"]
+        assert coordinator.kids_data[kid_id]["points"] == 10.0
+
+
+async def test_points_management_flow(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+) -> None:
+    """Test comprehensive point management: chores, bonuses, penalties."""
+    coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
+
+    # Mock notifications to prevent ServiceNotFound errors
+    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        # Create a kid
+        kid_id = str(uuid.uuid4())
+        kid_name = "Test Kid"
+        kid_data = create_mock_kid_data(name=kid_name, points=0.0)
+        kid_data["internal_id"] = kid_id
+        # pylint: disable=protected-access
+        coordinator._create_kid(kid_id, kid_data)
+
+        # Create and approve a chore for points
+        chore_id = str(uuid.uuid4())
+        chore_data = create_mock_chore_data(
+            name="Points Chore",
+            default_points=int(10.0),
+            assigned_kids=[kid_name],  # Pass name, not ID
+        )
+        chore_data["internal_id"] = chore_id
+        coordinator._create_chore(chore_id, chore_data)
+        # pylint: enable=protected-access
+        coordinator.claim_chore(kid_id, chore_id, "Test User")
+        coordinator.approve_chore("Test User", kid_id, chore_id)
+
+        # Verify points from chore
+        assert coordinator.kids_data[kid_id]["points"] == 10.0
+
+        # Apply a penalty
+        penalty_id = str(uuid.uuid4())
+        penalty_data = {
+            "internal_id": penalty_id,
+            "name": "Test Penalty",
+            "points": -5.0,
+            "assigned_kids": [kid_id],
+        }
+        # pylint: disable=protected-access
+        coordinator._data["penalties"] = {penalty_id: penalty_data}
+        # pylint: enable=protected-access
+        coordinator.apply_penalty("Test User", kid_id, penalty_id)
+
+        # Verify points after penalty
+        assert coordinator.kids_data[kid_id]["points"] == 5.0
+
+        # Apply a bonus
+        bonus_id = str(uuid.uuid4())
+        bonus_data = {
+            "internal_id": bonus_id,
+            "name": "Test Bonus",
+            "points": 15.0,
+            "assigned_kids": [kid_id],
+        }
+        # pylint: disable=protected-access
+        coordinator._data["bonuses"] = {bonus_id: bonus_data}
+        # pylint: enable=protected-access
+        coordinator.apply_bonus("Test User", kid_id, bonus_id)
+
+        # Verify final points
+        assert coordinator.kids_data[kid_id]["points"] == 20.0
+
+
+async def test_reward_approval_workflow(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+) -> None:
+    """Test reward redemption with approval and disapproval workflows."""
+    coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
+
+    # Mock notifications to prevent ServiceNotFound errors
+    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        # Create a kid with points
+        kid_id = str(uuid.uuid4())
+        kid_data = create_mock_kid_data(name="Test Kid", points=100.0)
+        kid_data["internal_id"] = kid_id
+        # pylint: disable=protected-access
+        coordinator._create_kid(kid_id, kid_data)
+
+        # Create a reward
+        reward_id = str(uuid.uuid4())
+        reward_data = {
+            "internal_id": reward_id,
+            "name": "Test Reward",
+            "cost": 50.0,
+            "assigned_kids": [kid_id],
+        }
+        coordinator._data["rewards"] = {reward_id: reward_data}
+        # pylint: enable=protected-access
+
+        # Redeem reward (adds to pending, doesn't deduct yet)
+        coordinator.redeem_reward("Test User", kid_id, reward_id)
+
+        # Verify points NOT yet deducted (still pending approval)
+        assert coordinator.kids_data[kid_id]["points"] == 100.0
+
+        # Approve reward (NOW deducts points)
+        coordinator.approve_reward("Test User", kid_id, reward_id)
+
+        # Verify points deducted after approval
+        assert coordinator.kids_data[kid_id]["points"] == 50.0
+
+        # Test disapproval workflow - redeem another reward
+        coordinator.redeem_reward("Test User", kid_id, reward_id)
+        assert (
+            coordinator.kids_data[kid_id]["points"] == 50.0
+        )  # Still 50, no deduction yet
+
+        # Disapprove reward (removes from pending, no refund since nothing was deducted)
+        coordinator.disapprove_reward("Test User", kid_id, reward_id)
+
+        # Verify points unchanged (nothing was deducted in the first place)
+        assert coordinator.kids_data[kid_id]["points"] == 50.0

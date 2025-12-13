@@ -374,7 +374,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     const.DATA_KID_INTERNAL_ID: internal_id,
                 }
                 coordinator._create_kid(internal_id, new_kid_data)
-                await coordinator._persist()
+                coordinator._persist()
                 coordinator.async_update_listeners()
 
                 const.LOGGER.debug(
@@ -443,7 +443,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     const.DATA_PARENT_INTERNAL_ID: internal_id,
                 }
                 coordinator._create_parent(internal_id, new_parent_data)
-                await coordinator._persist()
+                coordinator._persist()
                 coordinator.async_update_listeners()
 
                 const.LOGGER.debug(
@@ -593,7 +593,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.DATA_CHORE_INTERNAL_ID: internal_id,
             }
             coordinator._create_chore(internal_id, new_chore_data)
-            await coordinator._persist()
+            coordinator._persist()
             coordinator.async_update_listeners()
 
             const.LOGGER.debug(
@@ -784,7 +784,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     coordinator.update_badge_entity(internal_id, updated_badge_data)
                 else:
                     coordinator._create_badge(internal_id, updated_badge_data)
-                    await coordinator._persist()
+                    coordinator._persist()
                     coordinator.async_update_listeners()
 
                 const.LOGGER.debug(
@@ -865,7 +865,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     const.DATA_REWARD_INTERNAL_ID: internal_id,
                 }
                 coordinator._create_reward(internal_id, new_reward_data)
-                await coordinator._persist()
+                coordinator._persist()
                 coordinator.async_update_listeners()
 
                 const.LOGGER.debug(
@@ -916,7 +916,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     const.DATA_BONUS_INTERNAL_ID: internal_id,
                 }
                 coordinator._create_bonus(internal_id, new_bonus_data)
-                await coordinator._persist()
+                coordinator._persist()
                 coordinator.async_update_listeners()
 
                 const.LOGGER.debug(
@@ -967,7 +967,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     const.DATA_PENALTY_INTERNAL_ID: internal_id,
                 }
                 coordinator._create_penalty(internal_id, new_penalty_data)
-                await coordinator._persist()
+                coordinator._persist()
                 coordinator.async_update_listeners()
 
                 const.LOGGER.debug(
@@ -1049,7 +1049,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         const.DATA_ACHIEVEMENT_PROGRESS: {},
                     }
                     coordinator._create_achievement(internal_id, new_achievement_data)
-                    await coordinator._persist()
+                    coordinator._persist()
                     coordinator.async_update_listeners()
                     const.LOGGER.debug(
                         "DEBUG: Added Achievement '%s' with ID: %s",
@@ -1183,7 +1183,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         const.DATA_CHALLENGE_PROGRESS: {},
                     }
                     coordinator._create_challenge(internal_id, new_challenge_data)
-                    await coordinator._persist()
+                    coordinator._persist()
                     coordinator.async_update_listeners()
                     const.LOGGER.debug(
                         "DEBUG: Added Challenge '%s' with ID: %s",
