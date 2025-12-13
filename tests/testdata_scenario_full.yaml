@@ -1,0 +1,167 @@
+# Test Scenario: FULL
+# 2 parents, 3 kids, 7 chores, 5 badges, 5 rewards, 2 bonuses
+# Use case: Complete family, all features, complex interactions
+
+family:
+  parents:
+    - name: "Môm Astrid Stârblüm"
+      role: "gardener, loves stars"
+    - name: "Dad Leo"
+      role: "adventurer, loves maps"
+  kids:
+    - name: "Zoë"
+      age: 8
+      interests: ["animals"]
+    - name: "Max!"
+      age: 6
+      interests: ["robots"]
+    - name: "Lila"
+      age: 8
+      interests: ["painting"]
+
+chores:
+  - name: "Feed the cåts"
+    assigned_to: ["Zoë"]
+    type: "daily"
+    points: 10
+    icon: "mdi:cat"
+  - name: "Wåter the plänts"
+    assigned_to: ["Zoë"]
+    type: "daily"
+    points: 10
+    icon: "mdi:watering-can"
+  - name: "Pick up Lëgo!"
+    assigned_to: ["Max!"]
+    type: "weekly"
+    points: 15
+    icon: "mdi:lego"
+  - name: "Charge Røbot"
+    assigned_to: ["Max!"]
+    type: "daily"
+    points: 10
+    icon: "mdi:robot"
+  - name: "Paint the rãinbow"
+    assigned_to: ["Lila"]
+    type: "weekly"
+    points: 15
+    icon: "mdi:palette"
+  - name: "Sweep the p@tio"
+    assigned_to: ["Lila"]
+    type: "daily"
+    points: 10
+    icon: "mdi:broom"
+  - name: "Stär sweep"
+    assigned_to: ["Zoë", "Max!", "Lila"]
+    type: "periodic"
+    points: 20
+    icon: "mdi:star"
+
+badges:
+  - name: "Brønze Står"
+    type: "cumulative"
+    threshold: 400
+    icon: "mdi:star"
+    award: "+5 bonus points"
+    points_multiplier: 1.05
+    maintenance:
+      interval: "weekly"
+      required_points: 50
+      demote_on_fail: true
+  - name: "Sïlver Står"
+    type: "cumulative"
+    threshold: 800
+    icon: "mdi:star"
+    award: "+10 bonus points"
+    points_multiplier: 1.10
+    maintenance:
+      interval: "weekly"
+      required_points: 75
+      demote_on_fail: true
+  - name: "Gøld Står"
+    type: "cumulative"
+    threshold: 1600
+    icon: "mdi:star"
+    award: "+20 bonus points"
+    points_multiplier: 1.20
+    maintenance:
+      interval: "weekly"
+      required_points: 100
+      demote_on_fail: true
+  - name: "Wëekly Wïzard"
+    type: "periodic"
+    icon: "mdi:magic"
+    threshold:
+      type: "chore_count"
+      value: 10
+    award: "Stär Sprïnkle Bonus"
+  - name: "Dåily Dëlight"
+    type: "daily"
+    icon: "mdi:emoticon-happy"
+    threshold:
+      type: "chore_count"
+      value: 2
+    award: "+3 bonus points"
+
+bonuses:
+  - name: "Stär Sprïnkle Bonus"
+    description: "Extra points for helping a sibling"
+    points: 15
+    icon: "mdi:sparkles"
+  - name: "Mågic Mïnute Bonus"
+    description: "Quick tidy-up before dinner"
+    points: 10
+    icon: "mdi:timer"
+
+penalties:
+  - name: "Førget Chöre"
+    description: "Missed a daily chore"
+    points: -5
+    icon: "mdi:alert"
+  - name: "Messÿ Røom"
+    description: "Room not cleaned as requested"
+    points: -10
+    icon: "mdi:home-alert"
+  - name: "Låte för Dinner"
+    description: "Didn't come to dinner on time"
+    points: -3
+    icon: "mdi:clock-alert"
+
+rewards:
+  - name: "Ice Créam!"
+    cost: 60
+    icon: "mdi:ice-cream"
+  - name: "Movie Nïght"
+    cost: 120
+    icon: "mdi:movie"
+  - name: "Extra Plåytime"
+    cost: 40
+    icon: "mdi:gamepad-variant"
+  - name: "Stär Adventure Pack"
+    cost: 200
+    icon: "mdi:bag-personal"
+  - name: "Gården Picnic"
+    cost: 300
+    icon: "mdi:food"
+
+progress:
+  Zoë:
+    chores_completed: ["Feed the cåts", "Wåter the plänts", "Stär sweep"]
+    badges_earned: ["Brønze Står", "Dåily Dëlight"]
+    rewards_redeemed: ["Ice Créam!"]
+    points: 85
+    lifetime_points: 520
+    current_multiplier: 1.05
+  Max!:
+    chores_completed: ["Pick up Lëgo!", "Charge Røbot"]
+    badges_earned: []
+    points: 25
+    lifetime_points: 280
+    current_multiplier: 1.0
+  Lila:
+    chores_completed: ["Paint the rãinbow", "Sweep the p@tio"]
+    badges_earned: ["Dåily Dëlight"]
+    points: 28
+    lifetime_points: 310
+    current_multiplier: 1.0
+# Test focus: Full feature set, badge maintenance, multiplier effects, reward redemption,
+# shared chore claiming, complex dashboard rendering, multi-kid filtering

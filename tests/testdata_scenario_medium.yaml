@@ -1,0 +1,99 @@
+# Test Scenario: MEDIUM
+# 2 parents, 2 kids, 4 chores, 2 badges, 2 rewards, 2 bonuses
+# Use case: Typical family, moderate complexity
+
+family:
+  parents:
+    - name: "Môm Astrid Stârblüm"
+      role: "gardener, loves stars"
+    - name: "Dad Leo"
+      role: "adventurer, loves maps"
+  kids:
+    - name: "Zoë"
+      age: 8
+      interests: ["animals"]
+    - name: "Max!"
+      age: 6
+      interests: ["robots"]
+
+chores:
+  - name: "Feed the cåts"
+    assigned_to: ["Zoë"]
+    type: "daily"
+    points: 10
+    icon: "mdi:cat"
+  - name: "Wåter the plänts"
+    assigned_to: ["Zoë"]
+    type: "daily"
+    points: 10
+    icon: "mdi:watering-can"
+  - name: "Pick up Lëgo!"
+    assigned_to: ["Max!"]
+    type: "weekly"
+    points: 15
+    icon: "mdi:lego"
+  - name: "Stär sweep"
+    assigned_to: ["Zoë", "Max!"]
+    type: "periodic"
+    points: 20
+    icon: "mdi:star"
+
+badges:
+  - name: "Brønze Står"
+    type: "cumulative"
+    threshold: 400
+    icon: "mdi:star"
+    award: "+5 bonus points"
+    points_multiplier: 1.05
+    maintenance:
+      interval: "weekly"
+      required_points: 50
+      demote_on_fail: true
+  - name: "Dåily Dëlight"
+    type: "daily"
+    icon: "mdi:emoticon-happy"
+    threshold:
+      type: "chore_count"
+      value: 2
+    award: "+3 bonus points"
+
+bonuses:
+  - name: "Stär Sprïnkle Bonus"
+    description: "Extra points for helping a sibling"
+    points: 15
+    icon: "mdi:sparkles"
+  - name: "Mågic Mïnute Bonus"
+    description: "Quick tidy-up before dinner"
+    points: 10
+    icon: "mdi:timer"
+
+penalties:
+  - name: "Førget Chöre"
+    description: "Missed a daily chore"
+    points: -5
+    icon: "mdi:alert"
+  - name: "Messÿ Røom"
+    description: "Room not cleaned as requested"
+    points: -10
+    icon: "mdi:home-alert"
+
+rewards:
+  - name: "Ice Créam!"
+    cost: 60
+    icon: "mdi:ice-cream"
+  - name: "Extra Plåytime"
+    cost: 40
+    icon: "mdi:gamepad-variant"
+
+progress:
+  Zoë:
+    chores_completed: ["Feed the cåts", "Stär sweep"]
+    badges_earned: ["Dåily Dëlight"]
+    points: 35
+    lifetime_points: 350
+  Max!:
+    chores_completed: ["Pick up Lëgo!"]
+    badges_earned: []
+    points: 15
+    lifetime_points: 180
+# Test focus: Multi-kid coordination, shared chores, badge progression, reward redemption

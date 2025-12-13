@@ -965,7 +965,14 @@ class PenaltyButton(CoordinatorEntity, ButtonEntity):
     async def async_press(self):
         """Handle the button press event."""
         try:
+            const.LOGGER.debug(
+                "DEBUG: PenaltyButton.async_press called for kid=%s, penalty=%s",
+                self._kid_id,
+                self._penalty_id,
+            )
             user_id = self._context.user_id if self._context else None
+            const.LOGGER.debug("DEBUG: Context user_id=%s", user_id)
+
             if user_id and not await kh.is_user_authorized_for_global_action(
                 self.hass, user_id, const.SERVICE_APPLY_PENALTY
             ):
@@ -977,12 +984,14 @@ class PenaltyButton(CoordinatorEntity, ButtonEntity):
 
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
             parent_name = (user_obj.name if user_obj else None) or const.CONF_UNKNOWN
+            const.LOGGER.debug("DEBUG: About to call coordinator.apply_penalty")
 
             self.coordinator.apply_penalty(
                 parent_name=parent_name,
                 kid_id=self._kid_id,
                 penalty_id=self._penalty_id,
             )
+            const.LOGGER.debug("DEBUG: coordinator.apply_penalty completed")
             const.LOGGER.info(
                 "INFO: Penalty '%s' applied to Kid '%s' by Parent '%s'",
                 self._penalty_name,

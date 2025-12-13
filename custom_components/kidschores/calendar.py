@@ -467,7 +467,7 @@ class KidsChoresCalendarEntity(CalendarEntity):
     @property
     def event(self) -> CalendarEvent | None:
         """Return a single "current" event (chore or challenge) if one is active now (±1h)."""
-        now = dt_util.as_local(datetime.datetime.utcnow())
+        now = dt_util.as_local(dt_util.now())
         window_start = now - datetime.timedelta(hours=1)
         window_end = now + datetime.timedelta(hours=1)
         all_events = self._generate_all_events(window_start, window_end)

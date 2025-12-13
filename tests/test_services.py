@@ -35,7 +35,7 @@ async def test_service_claim_chore_with_names(
     with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
         # Create a kid
         kid_id = str(uuid.uuid4())
-        kid_name = "Alice"
+        kid_name = "Zoë Stårblüm"
         kid_data = create_mock_kid_data(name=kid_name, points=0.0)
         kid_data["internal_id"] = kid_id
         # pylint: disable=protected-access
@@ -44,8 +44,8 @@ async def test_service_claim_chore_with_names(
         # Create a chore (pass kid name, not ID)
         chore_id = str(uuid.uuid4())
         chore_data = create_mock_chore_data(
-            name="Dishes",
-            default_points=10.0,
+            name="Feed the cåts",
+            default_points=5.0,
             assigned_kids=[kid_name],  # Pass name, not ID
         )
         chore_data["internal_id"] = chore_id
@@ -56,7 +56,7 @@ async def test_service_claim_chore_with_names(
         await hass.services.async_call(
             DOMAIN,
             SERVICE_CLAIM_CHORE,
-            {ATTR_KID_NAME: "Alice", ATTR_CHORE_NAME: "Dishes"},
+            {ATTR_KID_NAME: "Zoë Stårblüm", ATTR_CHORE_NAME: "Feed the cåts"},
             blocking=True,
         )
 
@@ -76,7 +76,7 @@ async def test_service_approve_chore_success(
     with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
         # Create a kid
         kid_id = str(uuid.uuid4())
-        kid_name = "Bob"
+        kid_name = "Max! Stårblüm"
         kid_data = create_mock_kid_data(name=kid_name, points=0.0)
         kid_data["internal_id"] = kid_id
         # pylint: disable=protected-access
@@ -85,8 +85,8 @@ async def test_service_approve_chore_success(
         # Create and claim a chore (pass kid name, not ID)
         chore_id = str(uuid.uuid4())
         chore_data = create_mock_chore_data(
-            name="Vacuum",
-            default_points=15.0,
+            name="Wåter the Plånts",
+            default_points=7.0,
             assigned_kids=[kid_name],  # Pass name, not ID
         )
         chore_data["internal_id"] = chore_id
@@ -99,15 +99,15 @@ async def test_service_approve_chore_success(
             DOMAIN,
             SERVICE_APPROVE_CHORE,
             {
-                FIELD_PARENT_NAME: "Test Parent",
-                ATTR_KID_NAME: "Bob",
-                ATTR_CHORE_NAME: "Vacuum",
+                FIELD_PARENT_NAME: "Môm Astrid",
+                ATTR_KID_NAME: "Max! Stårblüm",
+                ATTR_CHORE_NAME: "Wåter the Plånts",
             },
             blocking=True,
         )
 
         # Verify approval and points awarded
-        assert coordinator.kids_data[kid_id]["points"] == 15.0
+        assert coordinator.kids_data[kid_id]["points"] == 7.0
 
 
 async def test_service_apply_bonus_and_penalty(
@@ -121,7 +121,7 @@ async def test_service_apply_bonus_and_penalty(
     with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
         # Create a kid
         kid_id = str(uuid.uuid4())
-        kid_data = create_mock_kid_data(name="Charlie", points=50.0)
+        kid_data = create_mock_kid_data(name="Lila Stårblüm", points=50.0)
         kid_data["internal_id"] = kid_id
         # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
@@ -131,8 +131,8 @@ async def test_service_apply_bonus_and_penalty(
         bonus_id = str(uuid.uuid4())
         bonus_data = {
             "internal_id": bonus_id,
-            "name": "Good Behavior",
-            "points": 10.0,
+            "name": "Stär Sprïnkle Bonus",
+            "points": 15.0,
             "assigned_kids": [kid_id],
         }
         # pylint: disable=protected-access
@@ -144,21 +144,21 @@ async def test_service_apply_bonus_and_penalty(
             DOMAIN,
             SERVICE_APPLY_BONUS,
             {
-                FIELD_PARENT_NAME: "Test Parent",
-                ATTR_KID_NAME: "Charlie",
-                ATTR_BONUS_NAME: "Good Behavior",
+                FIELD_PARENT_NAME: "Dad Leo",
+                ATTR_KID_NAME: "Lila Stårblüm",
+                ATTR_BONUS_NAME: "Stär Sprïnkle Bonus",
             },
             blocking=True,
         )
 
-        # Verify bonus applied
-        assert coordinator.kids_data[kid_id]["points"] == 60.0
+        # Verify bonus applied (50 + 15 = 65)
+        assert coordinator.kids_data[kid_id]["points"] == 65.0
 
         # Create a penalty
         penalty_id = str(uuid.uuid4())
         penalty_data = {
             "internal_id": penalty_id,
-            "name": "Broke Rule",
+            "name": "Førget Chöre",
             "points": -5.0,
             "assigned_kids": [kid_id],
         }
@@ -171,12 +171,12 @@ async def test_service_apply_bonus_and_penalty(
             DOMAIN,
             SERVICE_APPLY_PENALTY,
             {
-                FIELD_PARENT_NAME: "Test Parent",
-                ATTR_KID_NAME: "Charlie",
-                ATTR_PENALTY_NAME: "Broke Rule",
+                FIELD_PARENT_NAME: "Môm Astrid",
+                ATTR_KID_NAME: "Lila Stårblüm",
+                ATTR_PENALTY_NAME: "Førget Chöre",
             },
             blocking=True,
         )
 
-        # Verify penalty applied
-        assert coordinator.kids_data[kid_id]["points"] == 55.0
+        # Verify penalty applied (65 - 5 = 60)
+        assert coordinator.kids_data[kid_id]["points"] == 60.0

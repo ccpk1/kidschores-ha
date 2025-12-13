@@ -1,0 +1,647 @@
+"""Test dashboard Jinja template rendering.
+
+Tests that the KidsChores dashboard YAML templates render correctly
+with integration data, ensuring frontend compatibility.
+"""
+
+# pylint: disable=redefined-outer-name  # pytest fixtures redefine names
+# pylint: disable=unused-argument  # fixtures needed for test setup
+
+from datetime import timedelta
+
+import pytest
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.template import Template
+from homeassistant.util import dt as dt_util
+
+
+@pytest.fixture
+def kid_name():
+    """Return test kid name."""
+    return "Alice"
+
+
+@pytest.fixture
+def kid_slug(kid_name):
+    """Return slugified kid name."""
+    return kid_name.lower()
+
+
+@pytest.fixture
+async def dashboard_entities(hass: HomeAssistant, kid_slug: str):
+    """Set up entity states for dashboard testing."""
+    # Dashboard helper sensor with translations and entity lists
+    hass.states.async_set(
+        f"sensor.kc_{kid_slug}_ui_dashboard_helper",
+        "available",
+        {
+            "ui_translations": {
+                "welcome": "Welcome",
+                "your_points": "Your Points",
+                "weekly_completed": "This Week",
+                "todays_completed": "Today's Completed",
+                "overdue": "Overdue",
+                "due_today": "Due Today",
+                "due_this_week": "Due This Week",
+                "upcoming_bonus": "Upcoming",
+                "no_chores": "No chores available",
+                "no_rewards": "No rewards available",
+                "no_badges": "No badges available",
+                "card_chores": "My Chores",
+                "card_rewards": "My Rewards",
+                "card_showcase": "Showcase",
+                "card_badges": "My Badges",
+            },
+            "chores": [
+                {"eid": "sensor.kc_chore_make_bed", "name": "Make Bed"},
+                {"eid": "sensor.kc_chore_dishes", "name": "Dishes"},
+            ],
+            "rewards": [
+                {"eid": "sensor.kc_reward_ice_cream", "name": "Ice Cream"},
+            ],
+            "badges": [
+                {"eid": "sensor.kc_badge_bronze", "name": "Bronze Badge"},
+                {"eid": "sensor.kc_badge_silver", "name": "Silver Badge"},
+            ],
+            "chores_by_label": {
+                "Kitchen": ["sensor.kc_chore_dishes"],
+                "Bedroom": ["sensor.kc_chore_make_bed"],
+            },
+        },
+    )
+
+    # Points sensor
+    hass.states.async_set(
+        f"sensor.kc_{kid_slug}_points",
+        "250",
+        {
+            "unit_of_measurement": "Points",
+            "icon": "mdi:star",
+            "friendly_name": "Alice Points",
+        },
+    )
+
+    # Chores completed total sensor
+    hass.states.async_set(
+        f"sensor.kc_{kid_slug}_chores_completed_total",
+        "42",
+        {
+            "chore_stat_approved_week": 8,
+            "chore_stat_approved_today": 3,
+            "friendly_name": "Alice Chores Completed",
+        },
+    )
+
+    # Highest badge sensor
+    hass.states.async_set(
+        f"sensor.kc_{kid_slug}_highest_badge",
+        "Silver Badge",
+        {
+            "icon": "mdi:medal",
+            "awards": {"points_multiplier": 1.5},
+            "current_badge_name": "Silver Badge",
+            "next_higher_badge_name": "Gold Badge",
+            "next_lower_badge_name": "Bronze Badge",
+            "points_to_next_badge": 50,
+            "badge_status": "active",
+            "cycle_points": 100,
+            "maintenance_end_date": (dt_util.now() + timedelta(days=7)).isoformat(),
+            "maintenance_grace_end_date": (
+                dt_util.now() + timedelta(days=14)
+            ).isoformat(),
+            "maintenance_points_required": 100,
+            "maintenance_points_remaining": 50,
+            "last_awarded_date": (dt_util.now() - timedelta(days=30)).isoformat(),
+            "award_count": 2,
+            "friendly_name": "Alice Highest Badge",
+        },
+    )
+
+    # Individual chore sensors
+    hass.states.async_set(
+        "sensor.kc_chore_make_bed",
+        "available",
+        {
+            "friendly_name": "Make Bed",
+            "chore_name": "Make Bed",
+            "chore_points": 10,
+            "chore_state": "available",
+            "chore_type": "daily",
+            "chore_due_date": dt_util.now().isoformat(),
+            "kids_assigned": ["Alice"],
+            "icon": "mdi:bed",
+        },
+    )
+
+    hass.states.async_set(
+        "sensor.kc_chore_dishes",
+        "claimed",
+        {
+            "friendly_name": "Dishes",
+            "chore_name": "Dishes",
+            "chore_points": 15,
+            "chore_state": "claimed",
+            "chore_type": "daily",
+            "chore_due_date": (dt_util.now() - timedelta(days=1)).isoformat(),
+            "kids_assigned": ["Alice"],
+            "icon": "mdi:silverware",
+        },
+    )
+
+    # Individual reward sensors
+    hass.states.async_set(
+        "sensor.kc_reward_ice_cream",
+        "available",
+        {
+            "friendly_name": "Ice Cream",
+            "reward_name": "Ice Cream",
+            "reward_points": 50,
+            "reward_state": "available",
+            "kids_assigned": ["Alice"],
+            "icon": "mdi:ice-cream",
+        },
+    )
+
+    # Individual badge sensors
+    hass.states.async_set(
+        "sensor.kc_badge_bronze",
+        "earned",
+        {
+            "friendly_name": "Bronze Badge",
+            "badge_name": "Bronze Badge",
+            "badge_type": "cumulative",
+            "threshold": 100,
+            "kids_assigned": ["Alice"],
+            "kids_earned": ["Alice"],
+            "icon": "mdi:medal",
+            "awards": {"points_multiplier": 1.2},
+        },
+    )
+
+    hass.states.async_set(
+        "sensor.kc_badge_silver",
+        "earned",
+        {
+            "friendly_name": "Silver Badge",
+            "badge_name": "Silver Badge",
+            "badge_type": "cumulative",
+            "threshold": 250,
+            "kids_assigned": ["Alice"],
+            "kids_earned": ["Alice"],
+            "icon": "mdi:medal",
+            "awards": {"points_multiplier": 1.5},
+        },
+    )
+
+
+class TestDashboardWelcomeCard:
+    """Test welcome card template rendering."""
+
+    async def test_welcome_card_renders(
+        self, hass: HomeAssistant, dashboard_entities, kid_name: str, kid_slug: str
+    ):
+        """Test welcome card template renders without errors."""
+        template_str = (
+            """
+{%- set Kid_name = '"""
+            + kid_name
+            + """' -%}
+{%- set Kid_name_normalize = Kid_name | slugify() -%}
+{%- set dashboard_helper = 'sensor.kc_' ~ Kid_name_normalize ~ '_ui_dashboard_helper' -%}
+{%- set points_sensor = 'sensor.kc_' ~ Kid_name_normalize ~ '_points' -%}
+{%- set total_sensor = 'sensor.kc_' ~ Kid_name_normalize ~ '_chores_completed_total' -%}
+{%- set highest_badge_entity = 'sensor.kc_' ~ Kid_name_normalize ~ '_highest_badge' -%}
+
+{%- set ui = (state_attr(dashboard_helper, 'ui_translations') or {}) -%}
+{%- set points = states(points_sensor) | int(default=0) -%}
+{%- set points_label = state_attr(points_sensor, 'unit_of_measurement') -%}
+{%- set weekly_completed = state_attr(total_sensor, 'chore_stat_approved_week') | int(default=0) -%}
+{%- set todays_completed = state_attr(total_sensor, 'chore_stat_approved_today') | int(default=0) -%}
+{%- set highest_badge = states(highest_badge_entity) or 'None' -%}
+
+{%- set content =
+  "## 👋 " ~ ui.get('welcome', 'err-welcome') ~ ", " ~ Kid_name ~ "! \\n"
+  ~ "**⭐ " ~ ui.get('your_points', 'err-your_points') ~ ":** &nbsp;&nbsp;" ~ points ~ " " ~ points_label ~ "  \\n"
+  ~ "**📅 " ~ ui.get('weekly_completed', 'err-weekly_completed') ~ ":** &nbsp;&nbsp;" ~ weekly_completed ~ "  \\n"
+  ~ "**☀️ " ~ ui.get('todays_completed', 'err-todays_completed') ~ ":** &nbsp;&nbsp;" ~ todays_completed ~ "  \\n\\n"
+-%}
+{{ content }}
+"""
+        )
+        template = Template(template_str, hass)
+        result = template.async_render()
+
+        assert result is not None
+        assert "Welcome" in result
+        assert kid_name in result
+        assert "250" in result
+        assert "Points" in result
+        assert "8" in result  # weekly completed
+        assert "3" in result  # today's completed
+        assert "err-" not in result  # No missing translation errors
+
+    async def test_welcome_card_handles_missing_data(
+        self, hass: HomeAssistant, kid_name: str
+    ):
+        """Test welcome card gracefully handles missing entities."""
+        # Don't set up entities - test default handling
+        template_str = (
+            """
+{%- set Kid_name = '"""
+            + kid_name
+            + """' -%}
+{%- set Kid_name_normalize = Kid_name | slugify() -%}
+{%- set dashboard_helper = 'sensor.kc_' ~ Kid_name_normalize ~ '_ui_dashboard_helper' -%}
+{%- set points_sensor = 'sensor.kc_' ~ Kid_name_normalize ~ '_points' -%}
+
+{%- set ui = (state_attr(dashboard_helper, 'ui_translations') or {}) -%}
+{%- set points = states(points_sensor) | int(default=0) -%}
+{{ points }}
+"""
+        )
+        template = Template(template_str, hass)
+        result = template.async_render()
+
+        assert result == 0  # Should default to 0 when sensor missing
+
+
+class TestDashboardChoresCard:
+    """Test chores card template rendering."""
+
+    async def test_chores_card_renders(
+        self, hass: HomeAssistant, dashboard_entities, kid_name: str, kid_slug: str
+    ):
+        """Test chores card template renders without errors."""
+        template_str = (
+            """
+{%- set Kid_name = '"""
+            + kid_name
+            + """' -%}
+{%- set Kid_name_normalize = Kid_name | slugify() -%}
+{%- set dashboard_helper = 'sensor.kc_' ~ Kid_name_normalize ~ '_ui_dashboard_helper' -%}
+{%- set points_sensor = 'sensor.kc_' ~ Kid_name_normalize ~ '_points' -%}
+{%- set points_label = state_attr(points_sensor, 'unit_of_measurement') -%}
+
+{%- set ui = state_attr(dashboard_helper, 'ui_translations') or {} -%}
+{%- set chore_list = state_attr(dashboard_helper, 'chores') | default([], true) -%}
+
+{%- set ns = namespace(chore_count=0) -%}
+{%- for chore in chore_list -%}
+  {%- set chore_sensor_id = chore.eid if chore is mapping else chore -%}
+  {%- set chore_name = state_attr(chore_sensor_id, 'chore_name') -%}
+  {%- if chore_name -%}
+    {%- set ns.chore_count = ns.chore_count + 1 -%}
+  {%- endif -%}
+{%- endfor -%}
+{{ ns.chore_count }}
+"""
+        )
+        template = Template(template_str, hass)
+        result = template.async_render()
+
+        assert result == 2  # Should find both chores
+
+    async def test_chores_card_processes_state_colors(
+        self, hass: HomeAssistant, dashboard_entities, kid_slug: str
+    ):
+        """Test chore state determines correct icon color."""
+        template_str = """
+{%- set chore_sensor_id = 'sensor.kc_chore_make_bed' -%}
+{%- set chore_state = state_attr(chore_sensor_id, 'chore_state') -%}
+
+{%- if chore_state == 'available' -%}
+  green
+{%- elif chore_state == 'claimed' -%}
+  orange
+{%- elif chore_state == 'approved' -%}
+  blue
+{%- else -%}
+  grey
+{%- endif -%}
+"""
+        template = Template(template_str, hass)
+        result = template.async_render()
+
+        assert result.strip() == "green"  # Make bed is available
+
+    async def test_chores_card_identifies_overdue(
+        self, hass: HomeAssistant, dashboard_entities, kid_slug: str
+    ):
+        """Test overdue chore detection."""
+        template_str = """
+{%- set chore_sensor_id = 'sensor.kc_chore_dishes' -%}
+{%- set due_date_str = state_attr(chore_sensor_id, 'chore_due_date') -%}
+{%- set chore_state = state_attr(chore_sensor_id, 'chore_state') -%}
+
+{%- if due_date_str and chore_state not in ['approved', 'multi-approved'] -%}
+  {%- set due_date = as_datetime(due_date_str) -%}
+  {%- set now = now() -%}
+  {%- if due_date and due_date < now -%}
+    overdue
+  {%- else -%}
+    on-time
+  {%- endif -%}
+{%- else -%}
+  no-due-date
+{%- endif -%}
+"""
+        template = Template(template_str, hass)
+        result = template.async_render()
+
+        assert result.strip() == "overdue"  # Dishes is overdue
+
+
+class TestDashboardRewardsCard:
+    """Test rewards card template rendering."""
+
+    async def test_rewards_card_renders(
+        self, hass: HomeAssistant, dashboard_entities, kid_name: str, kid_slug: str
+    ):
+        """Test rewards card template renders without errors."""
+        template_str = (
+            """
+{%- set Kid_name = '"""
+            + kid_name
+            + """' -%}
+{%- set Kid_name_normalize = Kid_name | slugify() -%}
+{%- set dashboard_helper = 'sensor.kc_' ~ Kid_name_normalize ~ '_ui_dashboard_helper' -%}
+
+{%- set reward_list = state_attr(dashboard_helper, 'rewards') | default([], true) -%}
+
+{%- set ns = namespace(reward_count=0) -%}
+{%- for reward in reward_list -%}
+  {%- set reward_sensor_id = reward.eid if reward is mapping else reward -%}
+  {%- set reward_name = state_attr(reward_sensor_id, 'reward_name') -%}
+  {%- if reward_name -%}
+    {%- set ns.reward_count = ns.reward_count + 1 -%}
+  {%- endif -%}
+{%- endfor -%}
+{{ ns.reward_count }}
+"""
+        )
+        template = Template(template_str, hass)
+        result = template.async_render()
+
+        assert result == 1  # Should find ice cream reward
+
+
+class TestDashboardBadgesCard:
+    """Test badges card template rendering."""
+
+    async def test_badges_card_renders(
+        self, hass: HomeAssistant, dashboard_entities, kid_name: str, kid_slug: str
+    ):
+        """Test badges card template renders without errors."""
+        template_str = (
+            """
+{%- set Kid_name = '"""
+            + kid_name
+            + """' -%}
+{%- set Kid_name_normalize = Kid_name | slugify() -%}
+{%- set dashboard_helper = 'sensor.kc_' ~ Kid_name_normalize ~ '_ui_dashboard_helper' -%}
+{%- set highest_badge_sensor = 'sensor.kc_' ~ Kid_name_normalize ~ '_highest_badge' -%}
+
+{%- set hb_current_name = states(highest_badge_sensor) -%}
+{%- set hb_next_higher_name = state_attr(highest_badge_sensor, 'next_higher_badge_name') | default('') -%}
+{%- set hb_next_lower_name = state_attr(highest_badge_sensor, 'next_lower_badge_name') | default('') -%}
+
+{{ hb_current_name }},{{ hb_next_higher_name }},{{ hb_next_lower_name }}
+"""
+        )
+        template = Template(template_str, hass)
+        result = template.async_render()
+
+        assert "Silver Badge" in result
+        assert "Gold Badge" in result
+        assert "Bronze Badge" in result
+
+    async def test_badges_maintenance_status(
+        self, hass: HomeAssistant, dashboard_entities, kid_slug: str
+    ):
+        """Test badge maintenance status extraction."""
+        template_str = (
+            """
+{%- set highest_badge_sensor = 'sensor.kc_"""
+            + kid_slug
+            + """_highest_badge' -%}
+{%- set m_status = state_attr(highest_badge_sensor, 'badge_status') | default('active') -%}
+{%- set m_remaining = state_attr(highest_badge_sensor, 'maintenance_points_remaining') | int(default=0) -%}
+
+{{ m_status }},{{ m_remaining }}
+"""
+        )
+        template = Template(template_str, hass)
+        result = template.async_render()
+
+        assert "active" in result
+        assert "50" in result  # maintenance points remaining
+
+
+class TestDashboardTranslations:
+    """Test translation handling in templates."""
+
+    async def test_translations_loaded_from_helper(
+        self, hass: HomeAssistant, dashboard_entities, kid_slug: str
+    ):
+        """Test that translations are loaded from dashboard helper."""
+        template_str = (
+            """
+{%- set dashboard_helper = 'sensor.kc_"""
+            + kid_slug
+            + """_ui_dashboard_helper' -%}
+{%- set ui = state_attr(dashboard_helper, 'ui_translations') or {} -%}
+
+{{ ui.get('welcome', 'err-welcome') }}|{{ ui.get('your_points', 'err-your_points') }}
+"""
+        )
+        template = Template(template_str, hass)
+        result = template.async_render()
+
+        assert "Welcome" in result
+        assert "Your Points" in result
+        assert "err-" not in result
+
+    async def test_missing_translation_shows_error_key(
+        self, hass: HomeAssistant, dashboard_entities, kid_slug: str
+    ):
+        """Test that missing translations show error keys."""
+        template_str = (
+            """
+{%- set dashboard_helper = 'sensor.kc_"""
+            + kid_slug
+            + """_ui_dashboard_helper' -%}
+{%- set ui = state_attr(dashboard_helper, 'ui_translations') or {} -%}
+
+{{ ui.get('nonexistent_key', 'err-nonexistent_key') }}
+"""
+        )
+        template = Template(template_str, hass)
+        result = template.async_render()
+
+        assert result == "err-nonexistent_key"
+
+
+class TestDashboardFilters:
+    """Test template filter operations."""
+
+    async def test_slugify_filter(self, hass: HomeAssistant):
+        """Test slugify filter works correctly."""
+        template_str = """{{ 'Test Kid Name' | slugify() }}"""
+        template = Template(template_str, hass)
+        result = template.async_render()
+
+        assert result == "test_kid_name"
+
+    async def test_int_filter_with_default(self, hass: HomeAssistant):
+        """Test int filter with default value."""
+        template_str = """{{ 'invalid' | int(default=42) }}"""
+        template = Template(template_str, hass)
+        result = template.async_render()
+
+        assert result == 42
+
+    async def test_datetime_parsing(self, hass: HomeAssistant):
+        """Test datetime parsing in templates."""
+        now = dt_util.now()
+        template_str = (
+            """
+{%- set date_str = '"""
+            + now.isoformat()
+            + """' -%}
+{%- set parsed = strptime(date_str[:19], '%Y-%m-%dT%H:%M:%S') -%}
+{{ parsed.year }}
+"""
+        )
+        template = Template(template_str, hass)
+        result = template.async_render()
+
+        assert result == now.year
+
+
+class TestDashboardComplexScenarios:
+    """Test complex multi-entity scenarios."""
+
+    async def test_empty_chore_list(
+        self, hass: HomeAssistant, kid_name: str, kid_slug: str
+    ):
+        """Test dashboard handles empty chore lists gracefully."""
+        # Set up helper with empty chore list
+        hass.states.async_set(
+            f"sensor.kc_{kid_slug}_ui_dashboard_helper",
+            "available",
+            {
+                "ui_translations": {"no_chores": "No chores available"},
+                "chores": [],
+            },
+        )
+
+        template_str = (
+            """
+{%- set Kid_name = '"""
+            + kid_name
+            + """' -%}
+{%- set Kid_name_normalize = Kid_name | slugify() -%}
+{%- set dashboard_helper = 'sensor.kc_' ~ Kid_name_normalize ~ '_ui_dashboard_helper' -%}
+{%- set chore_list = state_attr(dashboard_helper, 'chores') | default([], true) -%}
+{%- set ui = state_attr(dashboard_helper, 'ui_translations') or {} -%}
+
+{%- if chore_list | length == 0 -%}
+{{ ui.get('no_chores', 'err-no_chores') }}
+{%- else -%}
+{{ chore_list | length }} chores
+{%- endif -%}
+"""
+        )
+        template = Template(template_str, hass)
+        result = template.async_render()
+
+        assert result == "No chores available"
+
+    async def test_multiple_kids_filtering(
+        self, hass: HomeAssistant, dashboard_entities, kid_name: str
+    ):
+        """Test that chores filter correctly by assigned kid."""
+        # Add a chore NOT assigned to Alice
+        hass.states.async_set(
+            "sensor.kc_chore_bob_only",
+            "available",
+            {
+                "chore_name": "Bob's Chore",
+                "kids_assigned": ["Bob"],
+            },
+        )
+
+        template_str = (
+            """
+{%- set Kid_name = '"""
+            + kid_name
+            + """' -%}
+{%- set chore_sensor_id = 'sensor.kc_chore_bob_only' -%}
+{%- set assigned = state_attr(chore_sensor_id, 'kids_assigned') -%}
+
+{%- if assigned is iterable and assigned is not string and assigned | length > 0 and Kid_name not in assigned -%}
+  filtered_out
+{%- else -%}
+  included
+{%- endif -%}
+"""
+        )
+        template = Template(template_str, hass)
+        result = template.async_render()
+
+        assert result.strip() == "filtered_out"
+
+    async def test_chores_by_label_grouping(
+        self, hass: HomeAssistant, dashboard_entities, kid_slug: str
+    ):
+        """Test chores_by_label structure works correctly."""
+        template_str = (
+            """
+{%- set dashboard_helper = 'sensor.kc_"""
+            + kid_slug
+            + """_ui_dashboard_helper' -%}
+{%- set chores_by_label = state_attr(dashboard_helper, 'chores_by_label') | default({}, true) -%}
+
+{%- set label_count = chores_by_label.keys() | list | length -%}
+{{ label_count }}
+"""
+        )
+        template = Template(template_str, hass)
+        result = template.async_render()
+
+        assert result == 2  # Kitchen and Bedroom labels
+
+
+@pytest.mark.asyncio
+async def test_full_dashboard_integration(
+    hass: HomeAssistant, dashboard_entities, kid_name: str, kid_slug: str
+):
+    """Integration test: Verify all major dashboard sections render together."""
+    # Test that all key dashboard elements can coexist
+    template_str = (
+        """
+{%- set Kid_name = '"""
+        + kid_name
+        + """' -%}
+{%- set Kid_name_normalize = Kid_name | slugify() -%}
+{%- set dashboard_helper = 'sensor.kc_' ~ Kid_name_normalize ~ '_ui_dashboard_helper' -%}
+
+{#- Test all major data sources accessible -#}
+{%- set ui = state_attr(dashboard_helper, 'ui_translations') or {} -%}
+{%- set chore_list = state_attr(dashboard_helper, 'chores') | default([], true) -%}
+{%- set reward_list = state_attr(dashboard_helper, 'rewards') | default([], true) -%}
+{%- set badge_list = state_attr(dashboard_helper, 'badges') | default([], true) -%}
+{%- set points = states('sensor.kc_' ~ Kid_name_normalize ~ '_points') | int(default=0) -%}
+
+PASS:{{ ui.keys() | length }},{{ chore_list | length }},{{ reward_list | length }},{{ badge_list | length }},{{ points }}
+"""
+    )
+    template = Template(template_str, hass)
+    result = template.async_render()
+
+    assert "PASS:" in result
+    assert ",2," in result  # 2 chores
+    assert ",1," in result  # 1 reward
+    assert ",250" in result  # 250 points
+    parts = result.split(",")
+    assert len(parts) == 5  # All data present

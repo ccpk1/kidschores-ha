@@ -1747,6 +1747,9 @@ TRANS_KEY_CFOF_ERROR_AWARD_POINTS_MINIMUM = (
 )
 TRANS_KEY_CFOF_ERROR_AWARD_INVALID_MULTIPLIER = "Invalid multiplier value."
 TRANS_KEY_CFOF_ERROR_AWARD_INVALID_AWARD_ITEM = "invalid_award_item_selected"
+TRANS_KEY_CFOF_ERROR_AWARD_AT_LEAST_ONE_REQUIRED = (
+    "At least one award item must be selected."
+)
 TRANS_KEY_CFOF_ERROR_BADGE_ACHIEVEMENT_REQUIRED = "Associated achievement is required."
 TRANS_KEY_CFOF_ERROR_BADGE_CHALLENGE_REQUIRED = "Associated challenge is required."
 TRANS_KEY_CFOF_ERROR_BADGE_OCCASION_TYPE_REQUIRED = "Occasion type is required."

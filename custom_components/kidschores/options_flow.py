@@ -8,6 +8,7 @@ Ensures consistency and reloads the integration upon changes.
 # Note: Options flow is tightly coupled to coordinator and needs direct access
 # to internal creation/persistence methods (_create_* and _persist).
 
+import asyncio
 import datetime
 import uuid
 from typing import Any, Dict, Optional
@@ -40,6 +41,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         self._entry_options = {}
         self._action = None
         self._entity_type = None
+        self._reload_needed = False  # Track if reload is needed
 
     def _get_coordinator(self):
         """Get the coordinator from hass.data."""
@@ -49,6 +51,16 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_init(self, user_input=None):
         """Display the main menu for the Options Flow."""
+        # Check if reload is needed from previous entity add/edit operations
+        if self._reload_needed and user_input is None:
+            const.LOGGER.debug("DEBUG: Performing deferred reload after entity changes")
+            self._reload_needed = False
+            # Wait briefly to ensure storage writes complete before reload
+            await asyncio.sleep(0.1)
+            await self._reload_entry_after_entity_change()
+            # Note: After reload, the flow might be invalidated, but that's expected
+            # The user will need to reopen the options flow to see new sensors
+
         self._entry_options = dict(self.config_entry.options)
 
         if user_input is not None:
@@ -380,6 +392,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.LOGGER.debug(
                     "DEBUG: Added Kid '%s' with ID: %s", kid_name, internal_id
                 )
+                self._mark_reload_needed()
                 return await self.async_step_init()
 
         # Retrieve HA users for linking
@@ -602,6 +615,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 internal_id,
                 due_date_str,
             )
+            self._mark_reload_needed()
             return await self.async_step_init()
 
         # Use flow_helpers.fh.build_chore_schema, passing current kids
@@ -795,6 +809,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     updated_badge_data,
                 )
 
+                self._mark_reload_needed()
                 return await self.async_step_init()
 
         # --- Build Schema ---
@@ -871,6 +886,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.LOGGER.debug(
                     "DEBUG: Added Reward '%s' with ID: %s", reward_name, internal_id
                 )
+                self._mark_reload_needed()
                 return await self.async_step_init()
 
         schema = fh.build_reward_schema()
@@ -922,6 +938,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.LOGGER.debug(
                     "DEBUG: Added Bonus '%s' with ID: %s", bonus_name, internal_id
                 )
+                self._mark_reload_needed()
                 return await self.async_step_init()
 
         schema = fh.build_bonus_schema()
@@ -973,6 +990,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.LOGGER.debug(
                     "DEBUG: Added Penalty '%s' with ID: %s", penalty_name, internal_id
                 )
+                self._mark_reload_needed()
                 return await self.async_step_init()
 
         schema = fh.build_penalty_schema()
@@ -1016,6 +1034,19 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     chore_id = c
 
                 if not errors:
+                    # Convert kid names to internal IDs for storage
+                    coordinator = self._get_coordinator()
+                    assigned_kids_names = user_input[
+                        const.CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS
+                    ]
+                    kids_dict = {
+                        kid[const.DATA_KID_NAME]: kid[const.DATA_KID_INTERNAL_ID]
+                        for kid in coordinator.data.get(const.DATA_KIDS, [])
+                    }
+                    assigned_kids_ids = [
+                        kids_dict.get(name, name) for name in assigned_kids_names
+                    ]
+
                     internal_id = user_input.get(
                         const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
                     )
@@ -1031,9 +1062,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                             const.CFOF_ACHIEVEMENTS_INPUT_ICON,
                             const.DEFAULT_ACHIEVEMENTS_ICON,
                         ),
-                        const.DATA_ACHIEVEMENT_ASSIGNED_KIDS: user_input[
-                            const.CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS
-                        ],
+                        const.DATA_ACHIEVEMENT_ASSIGNED_KIDS: assigned_kids_ids,
                         const.DATA_ACHIEVEMENT_TYPE: _type,
                         const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID: chore_id,
                         const.DATA_ACHIEVEMENT_CRITERIA: user_input.get(
@@ -1056,6 +1085,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         achievement_name,
                         internal_id,
                     )
+                    self._mark_reload_needed()
                     return await self.async_step_init()
 
         kids_dict = {
@@ -1148,6 +1178,19 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     end_date = None
 
                 if not errors:
+                    # Convert kid names to internal IDs for storage
+                    coordinator = self._get_coordinator()
+                    assigned_kids_names = user_input[
+                        const.CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS
+                    ]
+                    kids_dict = {
+                        kid[const.DATA_KID_NAME]: kid[const.DATA_KID_INTERNAL_ID]
+                        for kid in coordinator.data.get(const.DATA_KIDS, [])
+                    }
+                    assigned_kids_ids = [
+                        kids_dict.get(name, name) for name in assigned_kids_names
+                    ]
+
                     internal_id = user_input.get(
                         const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
                     )
@@ -1163,9 +1206,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                             const.CFOF_CHALLENGES_INPUT_ICON,
                             const.DEFAULT_CHALLENGES_ICON,
                         ),
-                        const.DATA_CHALLENGE_ASSIGNED_KIDS: user_input[
-                            const.CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS
-                        ],
+                        const.DATA_CHALLENGE_ASSIGNED_KIDS: assigned_kids_ids,
                         const.DATA_CHALLENGE_TYPE: _type,
                         const.DATA_CHALLENGE_SELECTED_CHORE_ID: chore_id,
                         const.DATA_CHALLENGE_CRITERIA: user_input.get(
@@ -1190,6 +1231,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         challenge_name,
                         internal_id,
                     )
+                    self._mark_reload_needed()
                     return await self.async_step_init()
 
         kids_dict = {
@@ -1260,12 +1302,13 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     const.DATA_KID_DASHBOARD_LANGUAGE: dashboard_language,
                 }
 
-                # Update via coordinator (no reload)
+                # Update via coordinator
                 coordinator.update_kid_entity(internal_id, updated_kid_data)
 
                 const.LOGGER.debug(
                     "DEBUG: Edited Kid '%s' with ID: %s", new_name, internal_id
                 )
+                self._mark_reload_needed()
                 return await self.async_step_init()
 
         # Retrieve HA users for linking
@@ -1511,16 +1554,33 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     errors=errors,
                 )
 
-            coordinator.update_chore_entity(internal_id, updated_chore_data)
+            # Update chore and check if assigned kids changed
+            assignments_changed = coordinator.update_chore_entity(
+                internal_id, updated_chore_data
+            )
 
             const.LOGGER.debug(
                 "DEBUG: Edited Chore '%s' with ID: %s", new_name, internal_id
             )
+
+            # Only reload if assignments changed (entities added/removed)
+            if assignments_changed:
+                const.LOGGER.debug(
+                    "DEBUG: Chore assignments changed, marking reload needed"
+                )
+                self._mark_reload_needed()
+
             return await self.async_step_init()
 
         # Use flow_helpers.fh.build_chore_schema, passing current kids
         kids_dict = {
             data[const.DATA_KID_NAME]: eid
+            for eid, data in coordinator.kids_data.items()
+        }
+
+        # Create reverse mapping from internal_id to name
+        id_to_name = {
+            eid: data[const.DATA_KID_NAME]
             for eid, data in coordinator.kids_data.items()
         }
 
@@ -1549,9 +1609,19 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     e,
                 )
 
+        # Convert assigned_kids from internal_ids to names for display
+        assigned_kids_ids = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+        assigned_kids_names = [
+            id_to_name.get(kid_id, kid_id) for kid_id in assigned_kids_ids
+        ]
+
         schema = fh.build_chore_schema(
             kids_dict,
-            default={**chore_data, const.DATA_CHORE_DUE_DATE: existing_due_date},
+            default={
+                **chore_data,
+                const.DATA_CHORE_DUE_DATE: existing_due_date,
+                const.DATA_CHORE_ASSIGNED_KIDS: assigned_kids_names,
+            },
         )
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_EDIT_CHORE,
@@ -1669,6 +1739,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.LOGGER.debug(
                     "DEBUG: Edited Reward '%s' with ID: %s", new_name, internal_id
                 )
+                self._mark_reload_needed()
                 return await self.async_step_init()
 
         schema = fh.build_reward_schema(default=reward_data)
@@ -1727,6 +1798,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.LOGGER.debug(
                     "DEBUG: Edited Penalty '%s' with ID: %s", new_name, internal_id
                 )
+                self._mark_reload_needed()
                 return await self.async_step_init()
 
         # Prepare data for schema (convert points to positive for display)
@@ -1790,6 +1862,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.LOGGER.debug(
                     "DEBUG: Edited Bonus '%s' with ID: %s", new_name, internal_id
                 )
+                self._mark_reload_needed()
                 return await self.async_step_init()
 
         # Prepare data for schema (convert points to positive for display)
@@ -1844,6 +1917,19 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     chore_id = c
 
                 if not errors:
+                    # Convert kid names to internal IDs for storage
+                    coordinator = self._get_coordinator()
+                    assigned_kids_names = user_input[
+                        const.CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS
+                    ]
+                    kids_dict = {
+                        kid[const.DATA_KID_NAME]: kid[const.DATA_KID_INTERNAL_ID]
+                        for kid in coordinator.data.get(const.DATA_KIDS, [])
+                    }
+                    assigned_kids_ids = [
+                        kids_dict.get(name, name) for name in assigned_kids_names
+                    ]
+
                     updated_achievement_data = {
                         const.DATA_ACHIEVEMENT_NAME: new_name,
                         const.DATA_ACHIEVEMENT_DESCRIPTION: user_input.get(
@@ -1855,9 +1941,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         const.DATA_ACHIEVEMENT_ICON: user_input.get(
                             const.CFOF_ACHIEVEMENTS_INPUT_ICON, const.CONF_EMPTY
                         ),
-                        const.DATA_ACHIEVEMENT_ASSIGNED_KIDS: user_input[
-                            const.CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS
-                        ],
+                        const.DATA_ACHIEVEMENT_ASSIGNED_KIDS: assigned_kids_ids,
                         const.DATA_ACHIEVEMENT_TYPE: _type,
                         const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID: chore_id,
                         const.DATA_ACHIEVEMENT_CRITERIA: user_input.get(
@@ -1880,6 +1964,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         new_name,
                         internal_id,
                     )
+                    self._mark_reload_needed()
                     return await self.async_step_init()
 
         kids_dict = {
@@ -1888,8 +1973,27 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         }
         chores_dict = coordinator.chores_data
 
+        # Create reverse mapping from internal_id to name
+        id_to_name = {
+            kid_id: kid_data[const.DATA_KID_NAME]
+            for kid_id, kid_data in coordinator.kids_data.items()
+        }
+
+        # Convert assigned_kids from internal_ids to names for display
+        assigned_kids_ids = achievement_data.get(
+            const.DATA_ACHIEVEMENT_ASSIGNED_KIDS, []
+        )
+        assigned_kids_names = [
+            id_to_name.get(kid_id, kid_id) for kid_id in assigned_kids_ids
+        ]
+
         achievement_schema = fh.build_achievement_schema(
-            kids_dict=kids_dict, chores_dict=chores_dict, default=achievement_data
+            kids_dict=kids_dict,
+            chores_dict=chores_dict,
+            default={
+                **achievement_data,
+                const.DATA_ACHIEVEMENT_ASSIGNED_KIDS: assigned_kids_names,
+            },
         )
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_EDIT_ACHIEVEMENT,
@@ -1918,6 +2022,21 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 for kid_id, data in coordinator.kids_data.items()
             }
             chores_dict = coordinator.chores_data
+
+            # Create reverse mapping from internal_id to name
+            id_to_name = {
+                kid_id: data[const.DATA_KID_NAME]
+                for kid_id, data in coordinator.kids_data.items()
+            }
+
+            # Convert assigned_kids from internal_ids to names for display
+            assigned_kids_ids = challenge_data.get(
+                const.DATA_CHALLENGE_ASSIGNED_KIDS, []
+            )
+            assigned_kids_names = [
+                id_to_name.get(kid_id, kid_id) for kid_id in assigned_kids_ids
+            ]
+
             # Convert stored start/end dates to a display format (e.g. local time string)
             default_data = {
                 **challenge_data,
@@ -1937,6 +2056,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         challenge_data[const.DATA_CHALLENGE_END_DATE]
                     )
                 ).strftime("%Y-%m-%d %H:%M:%S"),
+                const.DATA_CHALLENGE_ASSIGNED_KIDS: assigned_kids_names,
             }
             schema = fh.build_challenge_schema(
                 kids_dict=kids_dict, chores_dict=chores_dict, default=default_data
@@ -2014,6 +2134,19 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     chore_id = c
 
                 if not errors:
+                    # Convert kid names to internal IDs for storage
+                    coordinator = self._get_coordinator()
+                    assigned_kids_names = user_input[
+                        const.CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS
+                    ]
+                    kids_dict = {
+                        kid[const.DATA_KID_NAME]: kid[const.DATA_KID_INTERNAL_ID]
+                        for kid in coordinator.data.get(const.DATA_KIDS, [])
+                    }
+                    assigned_kids_ids = [
+                        kids_dict.get(name, name) for name in assigned_kids_names
+                    ]
+
                     updated_challenge_data = {
                         const.DATA_CHALLENGE_NAME: new_name,
                         const.DATA_CHALLENGE_DESCRIPTION: user_input.get(
@@ -2025,9 +2158,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         const.DATA_CHALLENGE_ICON: user_input.get(
                             const.CFOF_CHALLENGES_INPUT_ICON, const.CONF_EMPTY
                         ),
-                        const.DATA_CHALLENGE_ASSIGNED_KIDS: user_input[
-                            const.CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS
-                        ],
+                        const.DATA_CHALLENGE_ASSIGNED_KIDS: assigned_kids_ids,
                         const.DATA_CHALLENGE_TYPE: _type,
                         const.DATA_CHALLENGE_SELECTED_CHORE_ID: chore_id,
                         const.DATA_CHALLENGE_CRITERIA: user_input.get(
@@ -2052,6 +2183,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         new_name,
                         internal_id,
                     )
+                    self._mark_reload_needed()
                     return await self.async_step_init()
 
         kids_dict = {
@@ -2406,6 +2538,40 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         )
 
     # ------------------ HELPER METHODS ------------------
+    def _mark_reload_needed(self):
+        """Mark that a reload is needed after the current flow completes.
+
+        When entities (rewards, bonuses, chores, etc.) are added, edited, or deleted,
+        the coordinator data is updated but new sensors are not automatically created.
+        We defer the reload until the user returns to the main menu to avoid
+        interrupting the flow mid-operation.
+        """
+        const.LOGGER.debug("DEBUG: Marking reload needed after entity change")
+        self._reload_needed = True
+
+    async def _reload_entry_after_entity_change(self):
+        """Reload the config entry to recreate sensors.
+
+        This is called when returning to the main menu after entity changes.
+        After reload, triggers an immediate coordinator refresh so new entities get data.
+        """
+        const.LOGGER.debug(
+            "DEBUG: Reloading entry after entity changes: %s",
+            self.config_entry.entry_id,
+        )
+        await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+        const.LOGGER.debug("DEBUG: Entry reloaded successfully")
+
+        # Trigger immediate coordinator refresh so new entities get data right away
+        # instead of waiting for the next update interval
+        coordinator = self._get_coordinator()
+        if coordinator:
+            const.LOGGER.debug(
+                "DEBUG: Triggering immediate coordinator refresh after reload"
+            )
+            await coordinator.async_request_refresh()
+            const.LOGGER.debug("DEBUG: Coordinator refresh completed")
+
     async def _update_system_settings_and_reload(self):
         """Update system settings in config and reload (for points_label, update_interval, etc.)."""
         new_data = dict(self.config_entry.data)

@@ -213,7 +213,7 @@ def create_mock_kid_data(
         "use_persistent_notifications": True,
         "dashboard_language": "en",
         "chore_states": {},
-        "badges_earned": [],
+        "badges_earned": {},  # Dict with badge_id as key, not list
         "claimed_chores": [],
         "approved_chores": [],
         "reward_claims": {},
@@ -329,3 +329,741 @@ async def init_integration_with_data(
         await hass.async_block_till_done()
 
     return mock_config_entry
+
+
+# ============================================================================
+# Scenario Loading Infrastructure
+# ============================================================================
+
+
+def load_scenario_yaml(scenario_name: str) -> dict[str, Any]:
+    """Load a test scenario YAML file.
+
+    Args:
+        scenario_name: Name of the scenario (minimal, medium, full, or storyline)
+
+    Returns:
+        Dictionary containing the scenario data with keys:
+        - family: Dict with parents and kids lists
+        - chores: List of chore entities
+        - badges: List of badge entities
+        - bonuses: List of bonus entities
+        - penalties: List of penalty entities
+        - rewards: List of reward entities
+        - progress: Dict mapping kid names to progress data
+
+    Example:
+        >>> scenario = load_scenario_yaml("minimal")
+        >>> parents = scenario["family"]["parents"]
+        >>> kids = scenario["family"]["kids"]
+    """
+    import os
+
+    import yaml
+
+    scenario_path = os.path.join(
+        os.path.dirname(__file__), f"testdata_scenario_{scenario_name}.yaml"
+    )
+
+    with open(scenario_path, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
+# ==============================================================================
+# Storage Inspection Helpers
+# ==============================================================================
+
+
+def get_storage_data(hass: HomeAssistant) -> dict[str, Any]:
+    """Get current kidschores_data from storage for debugging.
+
+    Returns:
+        Dictionary containing all coordinator data from storage
+    """
+    from custom_components.kidschores.const import COORDINATOR
+
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        if entry.state.name == "LOADED":
+            coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+            return {
+                "kids": coordinator.kids_data,
+                "parents": coordinator.parents_data,
+                "chores": coordinator.chores_data,
+                "rewards": coordinator.rewards_data,
+                "penalties": coordinator.penalties_data,
+                "bonuses": coordinator.bonuses_data,
+                "badges": coordinator.badges_data,
+                "achievements": coordinator.achievements_data,
+                "challenges": coordinator.challenges_data,
+            }
+    return {}
+
+
+def dump_storage_for_debug(hass: HomeAssistant, label: str = "") -> None:
+    """Pretty print storage data for debugging.
+
+    Args:
+        hass: Home Assistant instance
+        label: Optional label to identify this dump
+    """
+    import json
+
+    data = get_storage_data(hass)
+    print(f"\n{'=' * 80}")
+    print(f"STORAGE DUMP: {label}")
+    print("=" * 80)
+    print(json.dumps(data, indent=2, default=str))
+    print("=" * 80)
+
+
+async def reload_entity_platforms(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+) -> None:
+    """Reload entity platforms to create entities for newly added coordinator data.
+
+    This is needed when data is loaded directly into the coordinator after the
+    initial platform setup. The platforms need to be reloaded so they can
+    create entities for the new data (penalties, bonuses, kids, etc.).
+
+    Args:
+        hass: Home Assistant instance
+        config_entry: Config entry for the integration
+    """
+    from homeassistant.const import Platform
+
+    # Unload platforms first
+    await hass.config_entries.async_unload_platforms(
+        config_entry,
+        [Platform.BUTTON, Platform.SENSOR, Platform.CALENDAR, Platform.SELECT],
+    )
+    await hass.async_block_till_done()
+
+    # Reload platforms - this will recreate entities based on current coordinator data
+    await hass.config_entries.async_forward_entry_setups(
+        config_entry,
+        [Platform.BUTTON, Platform.SENSOR, Platform.CALENDAR, Platform.SELECT],
+    )
+    await hass.async_block_till_done()
+
+
+# ==============================================================================
+# Options Flow-Based Scenario Loading (EXPERIMENTAL - NOT CURRENTLY USED)
+# ==============================================================================
+
+
+async def apply_scenario_via_options_flow(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+    scenario_data: dict[str, Any],
+) -> dict[str, str]:
+    """Apply scenario data using options flow (proper entity lifecycle).
+
+    This uses the real options flow to add entities, ensuring:
+    - Entity platforms are notified and create entities automatically
+    - All HA lifecycle events fire correctly
+    - Tests match real user workflow
+
+    Args:
+        hass: Home Assistant instance
+        config_entry: Config entry for the integration
+        scenario_data: Scenario data loaded from YAML
+
+    Returns:
+        Dictionary mapping entity names to internal IDs for reference in tests
+
+    Note:
+        This is slower than direct coordinator manipulation but more realistic
+        and avoids entity platform reload issues.
+    """
+    from custom_components.kidschores.const import COORDINATOR
+
+    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+    name_to_id_map = {}
+
+    # Mock notifications during setup
+    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        # Phase 1: Add kids via options flow
+        family = scenario_data.get("family", {})
+        for kid in family.get("kids", []):
+            result = await hass.config_entries.options.async_init(config_entry.entry_id)
+            assert result.get("type") == "menu"
+
+            # Navigate to add kid
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"], {"next_step": "add_kid"}
+            )
+
+            # Fill kid form
+            kid_data = {
+                "kid_name": kid["name"],
+                "kid_initial_points": 0.0,
+            }
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"], kid_data
+            )
+
+            # Extract kid_id from coordinator (just added)
+            kid_id = None
+            for k_id, k_info in coordinator.kids_data.items():
+                if k_info.get("name") == kid["name"]:
+                    kid_id = k_id
+                    break
+            if kid_id:
+                name_to_id_map[f"kid:{kid['name']}"] = kid_id
+
+        # Phase 2: Add parents
+        for parent in family.get("parents", []):
+            result = await hass.config_entries.options.async_init(config_entry.entry_id)
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"], {"next_step": "add_parent"}
+            )
+
+            parent_data = {
+                "parent_name": parent["name"],
+            }
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"], parent_data
+            )
+
+            # Extract parent_id
+            parent_id = None
+            for p_id, p_info in coordinator.parents_data.items():
+                if p_info.get("name") == parent["name"]:
+                    parent_id = p_id
+                    break
+            if parent_id:
+                name_to_id_map[f"parent:{parent['name']}"] = parent_id
+
+        # Phase 3: Add chores
+        for chore in scenario_data.get("chores", []):
+            result = await hass.config_entries.options.async_init(config_entry.entry_id)
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"], {"next_step": "add_chore"}
+            )
+
+            # Map assigned kid names to IDs
+            assigned_kid_ids = [
+                name_to_id_map[f"kid:{name}"]
+                for name in chore.get("assigned_to", [])
+                if f"kid:{name}" in name_to_id_map
+            ]
+
+            chore_data = {
+                "chore_name": chore["name"],
+                "chore_default_points": chore.get("points", 10),
+                "chore_assigned_kids": assigned_kid_ids,
+                "chore_icon": chore.get("icon", "mdi:check"),
+                "chore_recurring_frequency": chore.get("type", "once"),
+            }
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"], chore_data
+            )
+
+            # Extract chore_id
+            chore_id = None
+            for c_id, c_info in coordinator.chores_data.items():
+                if c_info.get("name") == chore["name"]:
+                    chore_id = c_id
+                    break
+            if chore_id:
+                name_to_id_map[f"chore:{chore['name']}"] = chore_id
+
+        # Phase 4: Add penalties
+        for penalty in scenario_data.get("penalties", []):
+            result = await hass.config_entries.options.async_init(config_entry.entry_id)
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"], {"next_step": "add_penalty"}
+            )
+
+            penalty_data = {
+                "penalty_name": penalty["name"],
+                "penalty_points": abs(penalty["points"]),  # Store as positive
+                "penalty_description": penalty.get("description", ""),
+                "penalty_icon": penalty.get("icon", "mdi:alert"),
+            }
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"], penalty_data
+            )
+
+            # Extract penalty_id
+            penalty_id = None
+            for pen_id, pen_info in coordinator.penalties_data.items():
+                if pen_info.get("name") == penalty["name"]:
+                    penalty_id = pen_id
+                    break
+            if penalty_id:
+                name_to_id_map[f"penalty:{penalty['name']}"] = penalty_id
+
+        # Phase 5: Add bonuses
+        for bonus in scenario_data.get("bonuses", []):
+            result = await hass.config_entries.options.async_init(config_entry.entry_id)
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"], {"next_step": "add_bonus"}
+            )
+
+            bonus_data = {
+                "bonus_name": bonus["name"],
+                "bonus_points": bonus["points"],
+                "bonus_description": bonus.get("description", ""),
+                "bonus_icon": bonus.get("icon", "mdi:plus-circle"),
+            }
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"], bonus_data
+            )
+
+            # Extract bonus_id
+            bonus_id = None
+            for b_id, b_info in coordinator.bonuses_data.items():
+                if b_info.get("name") == bonus["name"]:
+                    bonus_id = b_id
+                    break
+            if bonus_id:
+                name_to_id_map[f"bonus:{bonus['name']}"] = bonus_id
+
+        # Phase 6: Add rewards
+        for reward in scenario_data.get("rewards", []):
+            result = await hass.config_entries.options.async_init(config_entry.entry_id)
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"], {"next_step": "add_reward"}
+            )
+
+            reward_data = {
+                "reward_name": reward["name"],
+                "reward_cost": reward["cost"],
+                "reward_description": reward.get("description", ""),
+                "reward_icon": reward.get("icon", "mdi:gift"),
+            }
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"], reward_data
+            )
+
+            # Extract reward_id
+            reward_id = None
+            for r_id, r_info in coordinator.rewards_data.items():
+                if r_info.get("name") == reward["name"]:
+                    reward_id = r_id
+                    break
+            if reward_id:
+                name_to_id_map[f"reward:{reward['name']}"] = reward_id
+
+        # Phase 7: Add badges (complex, cumulative type only for now)
+        for badge in scenario_data.get("badges", []):
+            if badge["type"] == "cumulative":
+                result = await hass.config_entries.options.async_init(
+                    config_entry.entry_id
+                )
+                result = await hass.config_entries.options.async_configure(
+                    result["flow_id"], {"next_step": "add_badge"}
+                )
+
+                # Select cumulative type
+                result = await hass.config_entries.options.async_configure(
+                    result["flow_id"], {"badge_type": "cumulative"}
+                )
+
+                badge_data = {
+                    "badge_name": badge["name"],
+                    "badge_icon": badge.get("icon", "mdi:medal"),
+                    "badge_description": badge.get("award", ""),
+                    "badge_threshold_value": badge.get("threshold", 100),
+                    "badge_point_multiplier": badge.get("points_multiplier", 1.0),
+                }
+                result = await hass.config_entries.options.async_configure(
+                    result["flow_id"], badge_data
+                )
+
+                # Extract badge_id
+                badge_id = None
+                for bg_id, bg_info in coordinator.badges_data.items():
+                    if bg_info.get("name") == badge["name"]:
+                        badge_id = bg_id
+                        break
+                if badge_id:
+                    name_to_id_map[f"badge:{badge['name']}"] = badge_id
+
+        # Phase 8: Apply progress state (if any)
+        progress = scenario_data.get("progress", {})
+        for kid_name, kid_progress in progress.items():
+            kid_id = name_to_id_map.get(f"kid:{kid_name}")
+            if not kid_id:
+                continue
+
+            # Set points
+            if "points" in kid_progress:
+                coordinator.kids_data[kid_id]["points"] = float(kid_progress["points"])
+
+            # Set lifetime points
+            if "lifetime_points" in kid_progress:
+                coordinator.kids_data[kid_id]["lifetime_points"] = float(
+                    kid_progress["lifetime_points"]
+                )
+
+            # Mark chores as completed
+            for chore_name in kid_progress.get("chores_completed", []):
+                chore_id = name_to_id_map.get(f"chore:{chore_name}")
+                if (
+                    chore_id
+                    and chore_id not in coordinator.kids_data[kid_id]["approved_chores"]
+                ):
+                    coordinator.kids_data[kid_id]["approved_chores"].append(chore_id)
+
+        # Persist changes and refresh
+        coordinator._persist()  # pylint: disable=protected-access
+        await coordinator.async_request_refresh()
+        await hass.async_block_till_done()
+
+    return name_to_id_map
+
+
+async def apply_scenario_direct(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+    scenario_data: dict[str, Any],
+    mock_users: dict[str, Any] | None = None,
+) -> dict[str, str]:
+    """Apply scenario data using direct coordinator calls (fast path).
+
+    This bypasses the options flow UI and directly populates the coordinator
+    using internal methods. Use this for workflow tests where you need fast
+    setup with realistic data.
+
+    Args:
+        hass: Home Assistant instance
+        config_entry: Config entry for the integration
+        scenario_data: Scenario data loaded from YAML
+        mock_users: Optional dict of mock HA users to link to parents/kids
+
+    Returns:
+        Dictionary mapping entity names to internal IDs for reference in tests
+
+    Note:
+        This function creates entities in dependency order:
+        1. Kids (no dependencies)
+        2. Parents (reference kid IDs)
+        3. Chores (reference kid IDs)
+        4. Badges, Bonuses, Penalties, Rewards
+        5. Apply progress state (claimed chores, points, badges earned)
+    """
+    from custom_components.kidschores.const import COORDINATOR
+
+    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+    name_to_id_map = {}
+
+    # Mock notification to prevent ServiceNotFound errors during scenario loading
+    # The _notify_kid method tries to call persistent_notification.create which
+    # isn't available in test environment
+    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        return await _apply_scenario_data(
+            coordinator, scenario_data, name_to_id_map, hass, mock_users
+        )
+
+
+async def _apply_scenario_data(
+    coordinator, scenario_data, name_to_id_map, hass, mock_users=None
+):
+    """Internal helper to apply scenario data with notification mocking."""
+    # Phase 1: Create kids
+    family = scenario_data.get("family", {})
+    for kid in family.get("kids", []):
+        kid_id = str(uuid.uuid4())
+        kid_name = kid["name"]
+        kid_data = create_mock_kid_data(name=kid_name, points=0.0)
+        kid_data["internal_id"] = kid_id
+        # pylint: disable=protected-access
+        coordinator._create_kid(kid_id, kid_data)
+        name_to_id_map[f"kid:{kid_name}"] = kid_id
+
+    # Phase 2: Create parents (they may reference kids)
+    for idx, parent in enumerate(family.get("parents", [])):
+        parent_id = str(uuid.uuid4())
+        parent_name = parent["name"]
+        # Link first parent to parent1 mock user for authorization tests
+        parent_ha_user_id = ""
+        if mock_users and idx == 0 and "parent1" in mock_users:
+            parent_ha_user_id = mock_users["parent1"].id
+        parent_data = {
+            "internal_id": parent_id,
+            "name": parent_name,
+            "ha_user_id": parent_ha_user_id,
+            "associated_kids": [],  # Could map kid names to IDs if needed
+            "enable_notifications": False,
+            "mobile_notify_service": "",
+            "use_persistent_notifications": False,
+        }
+        # pylint: disable=protected-access
+        coordinator._create_parent(parent_id, parent_data)
+        name_to_id_map[f"parent:{parent_name}"] = parent_id
+
+    # Phase 3: Create chores (reference kid names)
+    for chore in scenario_data.get("chores", []):
+        chore_id = str(uuid.uuid4())
+        chore_name = chore["name"]
+        assigned_kid_names = chore.get("assigned_to", [])
+        chore_data = create_mock_chore_data(
+            name=chore_name,
+            default_points=chore.get("points", 10),
+            assigned_kids=assigned_kid_names,  # Pass names, coordinator resolves
+        )
+        chore_data["internal_id"] = chore_id
+        chore_data["icon"] = chore.get("icon", "mdi:check")
+        chore_data["recurring_frequency"] = chore.get("type", "once")
+        # pylint: disable=protected-access
+        coordinator._create_chore(chore_id, chore_data)
+        name_to_id_map[f"chore:{chore_name}"] = chore_id
+
+    # Phase 4: Create bonuses
+    for bonus in scenario_data.get("bonuses", []):
+        bonus_id = str(uuid.uuid4())
+        bonus_name = bonus["name"]
+        bonus_data = {
+            "internal_id": bonus_id,
+            "name": bonus_name,
+            "points": bonus["points"],
+            "description": bonus.get("description", ""),
+            "icon": bonus.get("icon", "mdi:plus-circle"),
+        }
+        # pylint: disable=protected-access
+        coordinator._create_bonus(bonus_id, bonus_data)
+        name_to_id_map[f"bonus:{bonus_name}"] = bonus_id
+
+    # Phase 5: Create penalties
+    for penalty in scenario_data.get("penalties", []):
+        penalty_id = str(uuid.uuid4())
+        penalty_name = penalty["name"]
+        penalty_data = {
+            "internal_id": penalty_id,
+            "name": penalty_name,
+            "points": penalty["points"],  # Store as negative (matches storage format)
+            "description": penalty.get("description", ""),
+            "icon": penalty.get("icon", "mdi:alert"),
+        }
+        # pylint: disable=protected-access
+        coordinator._create_penalty(penalty_id, penalty_data)
+        name_to_id_map[f"penalty:{penalty_name}"] = penalty_id
+
+    # Phase 6: Create rewards
+    for reward in scenario_data.get("rewards", []):
+        reward_id = str(uuid.uuid4())
+        reward_name = reward["name"]
+        reward_data = create_mock_reward_data(reward_name, reward["cost"])
+        reward_data["internal_id"] = reward_id
+        reward_data["icon"] = reward.get("icon", "mdi:gift")
+        # pylint: disable=protected-access
+        coordinator._create_reward(reward_id, reward_data)
+        name_to_id_map[f"reward:{reward_name}"] = reward_id
+
+    # Phase 7: Create badges (optional, complex structure)
+    for badge in scenario_data.get("badges", []):
+        badge_id = str(uuid.uuid4())
+        badge_name = badge["name"]
+        badge_data = {
+            "internal_id": badge_id,
+            "name": badge_name,
+            "badge_type": badge["type"],  # Use badge_type, not type
+            "icon": badge.get("icon", "mdi:medal"),
+            "description": badge.get("award", ""),
+            "badge_labels": [],
+            "target": {
+                "threshold_value": badge.get("threshold", 100),
+                "maintenance_rules": badge.get("maintenance_rules", 0),
+            },
+            "awards": {
+                "award_points": badge.get("award_points", 0),
+                "award_reward": badge.get("award_reward", ""),
+                "award_items": [],
+                "point_multiplier": badge.get("points_multiplier", 1.0),
+            },
+            "assigned_to": [],
+            "earned_by": [],
+            "reset_schedule": {
+                "frequency": "none",
+                "applicable_days": [],
+                "custom_interval": None,
+                "custom_interval_unit": None,
+            },
+        }
+        # pylint: disable=protected-access
+        coordinator._create_badge(badge_id, badge_data)
+        name_to_id_map[f"badge:{badge_name}"] = badge_id
+
+    # Phase 8: Apply progress state
+    progress = scenario_data.get("progress", {})
+    for kid_name, kid_progress in progress.items():
+        kid_id = name_to_id_map.get(f"kid:{kid_name}")
+        if not kid_id:
+            continue
+
+        # Set points and lifetime points
+        if "points" in kid_progress:
+            coordinator.kids_data[kid_id]["points"] = float(kid_progress["points"])
+        if "lifetime_points" in kid_progress:
+            coordinator.kids_data[kid_id]["lifetime_points"] = float(
+                kid_progress["lifetime_points"]
+            )
+
+        # Mark chores as completed
+        for chore_name in kid_progress.get("chores_completed", []):
+            chore_id = name_to_id_map.get(f"chore:{chore_name}")
+            if chore_id:
+                if chore_id not in coordinator.kids_data[kid_id]["approved_chores"]:
+                    coordinator.kids_data[kid_id]["approved_chores"].append(chore_id)
+
+        # Award badges
+        for badge_name in kid_progress.get("badges_earned", []):
+            badge_id = name_to_id_map.get(f"badge:{badge_name}")
+            if badge_id:
+                badge_entry = {
+                    "badge_name": badge_name,
+                    "last_awarded_date": "2024-01-01",
+                    "award_count": 1,
+                    "periods": {
+                        "daily": {"2024-01-01": 1},
+                        "weekly": {"2024-W01": 1},
+                        "monthly": {"2024-01": 1},
+                        "yearly": {"2024": 1},
+                    },
+                }
+                if badge_id not in coordinator.kids_data[kid_id]["badges_earned"]:
+                    coordinator.kids_data[kid_id]["badges_earned"][badge_id] = (
+                        badge_entry
+                    )
+
+    # Persist and refresh
+    # pylint: disable=protected-access
+    coordinator._persist()  # Not async
+    await coordinator.async_request_refresh()
+    await hass.async_block_till_done()
+
+    # Note: Entity platforms (button, sensor) were already set up during init_integration
+    # but with empty data. After loading scenario data, we need to trigger entity creation
+    # for the new penalties, bonuses, etc. The platforms will be reloaded when the config
+    # entry is reloaded, but for testing we manually add the entities here.
+    # Note: Platform reload is handled by reload_entity_platforms() fixture.
+
+    return name_to_id_map
+
+
+def get_button_entity_id(
+    hass: HomeAssistant,
+    kid_name: str,
+    action_type: str,
+    entity_name: str,
+) -> str | None:
+    """Find button entity ID by pattern matching.
+
+    Args:
+        hass: Home Assistant instance
+        kid_name: Name of the kid (will be slugified)
+        action_type: Type of action (claim_chore, approve_chore, apply_bonus, etc.)
+        entity_name: Name of the chore/reward/bonus/penalty
+
+    Returns:
+        Entity ID string if found, None otherwise
+
+    Example:
+        >>> button_id = get_button_entity_id(hass, "Zoë", "claim_chore", "Feed the cåts")
+        >>> # Returns: "button.kc_zoe_starblum_claim_chore_feed_the_cats"
+    """
+    from homeassistant.util import slugify
+
+    kid_slug = slugify(kid_name)
+    entity_slug = slugify(entity_name)
+
+    # Pattern: button.kc_{kid}_{action}_{entity}
+    pattern = f"button.kc_{kid_slug}_{action_type}_{entity_slug}"
+
+    # Check if entity exists
+    state = hass.states.get(pattern)
+    if state:
+        return pattern
+
+    # Fallback: search all button entities
+    for entity_id in hass.states.async_entity_ids("button"):
+        if (
+            kid_slug in entity_id
+            and entity_slug in entity_id
+            and action_type in entity_id
+        ):
+            return entity_id
+
+    return None
+
+
+@pytest.fixture
+async def scenario_minimal(  # pylint: disable=redefined-outer-name
+    hass: HomeAssistant, init_integration: MockConfigEntry, mock_hass_users: dict
+) -> tuple[MockConfigEntry, dict[str, str]]:
+    """Fixture providing minimal scenario with proper entity creation.
+
+    Returns:
+        Tuple of (config_entry, name_to_id_map)
+
+    Scenario Contents:
+        - 1 parent: Môm Astrid (linked to parent1 mock user)
+        - 1 kid: Zoë (10 points, 10 lifetime)
+        - 2 chores: Feed the cåts, Wåter the plänts
+        - 1 badge: Brønze Står
+        - 1 bonus: Stär Sprïnkle Bonus
+        - 1 penalty: Førget Chöre
+        - 1 reward: Ice Créam!
+
+    Use for: Basic workflow tests, simple point tracking
+
+    Note: Loads scenario data then reloads platforms to create entities
+    """
+    # Load scenario data into the already-initialized integration
+    scenario_data = load_scenario_yaml("minimal")
+    name_to_id_map = await apply_scenario_direct(
+        hass, init_integration, scenario_data, mock_hass_users
+    )
+
+    # Reload platforms so they create entities with the new data
+    await reload_entity_platforms(hass, init_integration)
+
+    return init_integration, name_to_id_map
+
+
+@pytest.fixture
+async def scenario_medium(  # pylint: disable=redefined-outer-name
+    hass: HomeAssistant, init_integration: MockConfigEntry
+) -> tuple[MockConfigEntry, dict[str, str]]:
+    """Fixture providing medium scenario loaded into coordinator.
+
+    Returns:
+        Tuple of (config_entry, name_to_id_map)
+
+    Scenario Contents:
+        - 2 parents: Môm Astrid, Dad Leo
+        - 2 kids: Zoë (35 points, 350 lifetime), Max! (15 points, 180 lifetime)
+        - 4 chores: Including shared chore "Stär sweep"
+        - 2 badges: Brønze Står, Dåily Dëlight (Zoë earned)
+        - 2 bonuses, 2 penalties, 2 rewards
+
+    Use for: Multi-kid coordination, shared chore tests
+    """
+    scenario_data = load_scenario_yaml("medium")
+    name_to_id_map = await apply_scenario_direct(hass, init_integration, scenario_data)
+    return init_integration, name_to_id_map
+
+
+@pytest.fixture
+async def scenario_full(  # pylint: disable=redefined-outer-name
+    hass: HomeAssistant, init_integration: MockConfigEntry
+) -> tuple[MockConfigEntry, dict[str, str]]:
+    """Fixture providing full scenario loaded into coordinator.
+
+    Returns:
+        Tuple of (config_entry, name_to_id_map)
+
+    Scenario Contents:
+        - 2 parents: Môm Astrid, Dad Leo
+        - 3 kids: Zoë (520 lifetime), Max! (280 lifetime), Lila (310 lifetime)
+        - 7 chores: Mix of daily, weekly, periodic, shared
+        - 5 badges: Multiple cumulative badges with multipliers
+        - 2 bonuses, 3 penalties, 5 rewards
+
+    Use for: Badge maintenance, complex workflows, performance testing
+    """
+    scenario_data = load_scenario_yaml("full")
+    name_to_id_map = await apply_scenario_direct(hass, init_integration, scenario_data)
+    return init_integration, name_to_id_map

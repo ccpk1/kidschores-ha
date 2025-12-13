@@ -39,7 +39,7 @@ async def test_form_user_flow_success(hass: HomeAssistant) -> None:
         result_points = await hass.config_entries.flow.async_configure(
             result_intro.get("flow_id"),
             user_input={
-                CONF_POINTS_LABEL: "Stars",
+                CONF_POINTS_LABEL: "Stär Points",
                 CONF_POINTS_ICON: "mdi:star",
             },
         )

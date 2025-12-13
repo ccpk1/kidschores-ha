@@ -38,8 +38,8 @@ async def test_chore_lifecycle_complete_workflow(
         # Create a chore assigned to the kid (pass kid name, not ID)
         chore_id = str(uuid.uuid4())
         chore_data = create_mock_chore_data(
-            name="Test Chore",
-            default_points=int(10.0),
+            name="Feed the cåts",
+            default_points=int(5.0),
             assigned_kids=[kid_name],  # Pass name, not ID
         )
         chore_data["internal_id"] = chore_id
@@ -63,7 +63,7 @@ async def test_chore_lifecycle_complete_workflow(
         # Verify approved state - chore in kid's approved list and points awarded
         assert coordinator.chores_data[chore_id]["state"] == CHORE_STATE_APPROVED
         assert chore_id in coordinator.kids_data[kid_id]["approved_chores"]
-        assert coordinator.kids_data[kid_id]["points"] == 10.0
+        assert coordinator.kids_data[kid_id]["points"] == 5.0
 
 
 async def test_points_management_flow(
@@ -77,7 +77,7 @@ async def test_points_management_flow(
     with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
         # Create a kid
         kid_id = str(uuid.uuid4())
-        kid_name = "Test Kid"
+        kid_name = "Max! Stårblüm"
         kid_data = create_mock_kid_data(name=kid_name, points=0.0)
         kid_data["internal_id"] = kid_id
         # pylint: disable=protected-access
@@ -86,8 +86,8 @@ async def test_points_management_flow(
         # Create and approve a chore for points
         chore_id = str(uuid.uuid4())
         chore_data = create_mock_chore_data(
-            name="Points Chore",
-            default_points=int(10.0),
+            name="Pick up Lëgo!",
+            default_points=int(8.0),
             assigned_kids=[kid_name],  # Pass name, not ID
         )
         chore_data["internal_id"] = chore_id
@@ -97,13 +97,13 @@ async def test_points_management_flow(
         coordinator.approve_chore("Test User", kid_id, chore_id)
 
         # Verify points from chore
-        assert coordinator.kids_data[kid_id]["points"] == 10.0
+        assert coordinator.kids_data[kid_id]["points"] == 8.0
 
         # Apply a penalty
         penalty_id = str(uuid.uuid4())
         penalty_data = {
             "internal_id": penalty_id,
-            "name": "Test Penalty",
+            "name": "Førget Chöre",
             "points": -5.0,
             "assigned_kids": [kid_id],
         }
@@ -112,14 +112,14 @@ async def test_points_management_flow(
         # pylint: enable=protected-access
         coordinator.apply_penalty("Test User", kid_id, penalty_id)
 
-        # Verify points after penalty
-        assert coordinator.kids_data[kid_id]["points"] == 5.0
+        # Verify points after penalty (8 - 5 = 3)
+        assert coordinator.kids_data[kid_id]["points"] == 3.0
 
         # Apply a bonus
         bonus_id = str(uuid.uuid4())
         bonus_data = {
             "internal_id": bonus_id,
-            "name": "Test Bonus",
+            "name": "Stär Sprïnkle Bonus",
             "points": 15.0,
             "assigned_kids": [kid_id],
         }
@@ -128,8 +128,8 @@ async def test_points_management_flow(
         # pylint: enable=protected-access
         coordinator.apply_bonus("Test User", kid_id, bonus_id)
 
-        # Verify final points
-        assert coordinator.kids_data[kid_id]["points"] == 20.0
+        # Verify final points (3 + 15 = 18)
+        assert coordinator.kids_data[kid_id]["points"] == 18.0
 
 
 async def test_reward_approval_workflow(
@@ -143,7 +143,7 @@ async def test_reward_approval_workflow(
     with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
         # Create a kid with points
         kid_id = str(uuid.uuid4())
-        kid_data = create_mock_kid_data(name="Test Kid", points=100.0)
+        kid_data = create_mock_kid_data(name="Lila Stårblüm", points=100.0)
         kid_data["internal_id"] = kid_id
         # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
@@ -152,7 +152,7 @@ async def test_reward_approval_workflow(
         reward_id = str(uuid.uuid4())
         reward_data = {
             "internal_id": reward_id,
-            "name": "Test Reward",
+            "name": "Ice Créam!",
             "cost": 50.0,
             "assigned_kids": [kid_id],
         }

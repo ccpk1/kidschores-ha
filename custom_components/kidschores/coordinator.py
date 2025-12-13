@@ -516,10 +516,15 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 badge_info[const.DATA_BADGE_AWARDS], dict
             ):
                 badge_info[const.DATA_BADGE_AWARDS] = {}
-            # Force award items to be multiplier since the was the only award type in the original badges
-            badge_info[const.DATA_BADGE_AWARDS][const.DATA_BADGE_AWARDS_AWARD_ITEMS] = [
-                const.AWARD_ITEMS_KEY_POINTS_MULTIPLIER
-            ]
+            # Preserve existing award_items if present, otherwise default to multiplier
+            # (multiplier was the only award type in the original badges before award_items existed)
+            if (
+                const.DATA_BADGE_AWARDS_AWARD_ITEMS
+                not in badge_info[const.DATA_BADGE_AWARDS]
+            ):
+                badge_info[const.DATA_BADGE_AWARDS][
+                    const.DATA_BADGE_AWARDS_AWARD_ITEMS
+                ] = [const.AWARD_ITEMS_KEY_POINTS_MULTIPLIER]
             badge_info[const.DATA_BADGE_AWARDS].setdefault(
                 const.DATA_BADGE_AWARDS_AWARD_POINTS, 0
             )
@@ -1100,9 +1105,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             else:
                 update_method(entity_id, entity_body)
 
-        # Remove orphaned shared chore sensors.
+        # Remove orphaned chore-related entities
         if section == const.DATA_CHORES:
             self.hass.async_create_task(self._remove_orphaned_shared_chore_sensors())
+            self.hass.async_create_task(self._remove_orphaned_kid_chore_entities())
 
         # Remove orphaned achievement and challenges sensors
         self.hass.async_create_task(self._remove_orphaned_achievement_entities())
@@ -1113,8 +1119,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             self.remove_deprecated_entities(self.hass, self.config_entry)
         )
 
-        # Remove deprecated buttons
+        # Remove deprecated/orphaned dynamic entities
         self.remove_deprecated_button_entities()
+        self.remove_deprecated_sensor_entities()
 
     def _cleanup_all_links(self) -> None:
         """Run all cross-entity cleanup routines."""
@@ -1157,6 +1164,63 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                         "DEBUG: Removed orphaned Shared Chore Global State Sensor: %s",
                         entity_entry.entity_id,
                     )
+
+    async def _remove_orphaned_kid_chore_entities(self) -> None:
+        """Remove kid-chore entities (sensors/buttons) for kids no longer assigned to chores."""
+        ent_reg = er.async_get(self.hass)
+        prefix = f"{self.config_entry.entry_id}_"
+
+        # Build a set of valid kid-chore combinations
+        valid_combinations = set()
+        for chore_id, chore_info in self.chores_data.items():
+            assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+            for kid_id in assigned_kids:
+                valid_combinations.add((kid_id, chore_id))
+
+        # Check all entities for orphaned kid-chore entities
+        for entity_entry in list(ent_reg.entities.values()):
+            # Only check our integration's entities
+            if entity_entry.platform != const.DOMAIN:
+                continue
+
+            unique_id = str(entity_entry.unique_id)
+            if not unique_id.startswith(prefix):
+                continue
+
+            # Extract the core part after entry_id prefix
+            core = unique_id[len(prefix) :]
+
+            # Check if this is a kid-chore entity by looking for kid_id and chore_id
+            # Format is: {kid_id}_{chore_id}{suffix} where suffix could be various things
+            # We need to check each chore to see if this entity matches
+            is_kid_chore_entity = False
+            entity_kid_id = None
+            entity_chore_id = None
+
+            for chore_id in self.chores_data.keys():
+                if chore_id in core:
+                    # Found chore_id, now extract kid_id
+                    parts = core.split(f"_{chore_id}")
+                    if len(parts) >= 1 and parts[0]:
+                        potential_kid_id = parts[0]
+                        # Check if this is a valid kid
+                        if potential_kid_id in self.kids_data:
+                            is_kid_chore_entity = True
+                            entity_kid_id = potential_kid_id
+                            entity_chore_id = chore_id
+                            break
+
+            # If this is a kid-chore entity, check if it's still valid
+            if is_kid_chore_entity:
+                if (entity_kid_id, entity_chore_id) not in valid_combinations:
+                    const.LOGGER.debug(
+                        "DEBUG: Removing orphaned kid-chore entity '%s' (unique_id: %s) - Kid '%s' no longer assigned to Chore '%s'",
+                        entity_entry.entity_id,
+                        entity_entry.unique_id,
+                        entity_kid_id,
+                        entity_chore_id,
+                    )
+                    ent_reg.async_remove(entity_entry.entity_id)
 
     async def _remove_orphaned_achievement_entities(self) -> None:
         """Remove achievement progress entities for kids that are no longer assigned."""
@@ -1226,16 +1290,23 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         """Remove all kid-specific chore entities for a given kid and chore."""
         ent_reg = er.async_get(self.hass)
         for entity_entry in list(ent_reg.entities.values()):
+            # Only process entities from our integration
+            if entity_entry.platform != const.DOMAIN:
+                continue
+
+            # Check if this entity belongs to this kid and chore
+            # The unique_id format is: {entry_id}_{kid_id}_{chore_id}{suffix}
             if (kid_id in entity_entry.unique_id) and (
                 chore_id in entity_entry.unique_id
             ):
-                ent_reg.async_remove(entity_entry.entity_id)
                 const.LOGGER.debug(
-                    "DEBUG: Removed kid-specific entity '%s' for Kid ID '%s' and Chore '%s'",
+                    "DEBUG: Removing kid-chore entity '%s' (unique_id: %s) for Kid ID '%s' and Chore '%s'",
                     entity_entry.entity_id,
+                    entity_entry.unique_id,
                     kid_id,
                     chore_id,
                 )
+                ent_reg.async_remove(entity_entry.entity_id)
 
     def _cleanup_chore_from_kid(self, kid_id: str, chore_id: str) -> None:
         """Remove references to a specific chore from a kid's data."""
@@ -1452,7 +1523,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     def remove_deprecated_button_entities(self) -> None:
         """Remove dynamic button entities that are not present in the current configuration."""
         ent_reg = er.async_get(self.hass)
-        entry_prefix = f"{self.config_entry.entry_id}_"
 
         # Build the set of expected unique_ids ("whitelist")
         allowed_uids = set()
@@ -1513,15 +1583,141 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # --- Now remove any button entity whose unique_id is not in allowed_uids ---
         for entity_entry in list(ent_reg.entities.values()):
-            if entity_entry.domain != "button" or not entity_entry.unique_id.startswith(
-                entry_prefix
-            ):
+            # Only check buttons from our platform (kidschores)
+            if entity_entry.platform != const.DOMAIN or entity_entry.domain != "button":
                 continue
+
+            # If this button doesn't match our whitelist, remove it
+            # This catches old entities from previous configs, migrations, or different entry_ids
             if entity_entry.unique_id not in allowed_uids:
-                ent_reg.async_remove(entity_entry.entity_id)
-                const.LOGGER.debug(
-                    "DEBUG: Removed deprecated Button '%s'", entity_entry.entity_id
+                const.LOGGER.info(
+                    "INFO: Removing orphaned/deprecated Button '%s' with unique_id '%s'",
+                    entity_entry.entity_id,
+                    entity_entry.unique_id,
                 )
+                ent_reg.async_remove(entity_entry.entity_id)
+
+    def remove_deprecated_sensor_entities(self) -> None:
+        """Remove dynamic sensor entities that are not present in the current configuration."""
+        ent_reg = er.async_get(self.hass)
+
+        # Build the set of expected unique_ids ("whitelist")
+        allowed_uids = set()
+
+        # --- Chore Status Sensors ---
+        # For each chore, create expected unique IDs for chore status sensors
+        for chore_id, chore_info in self.chores_data.items():
+            for kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
+                uid = f"{self.config_entry.entry_id}_{kid_id}_{chore_id}{const.SENSOR_KC_UID_SUFFIX_CHORE_STATUS_SENSOR}"
+                allowed_uids.add(uid)
+
+        # --- Shared Chore Global State Sensors ---
+        for chore_id, chore_info in self.chores_data.items():
+            if chore_info.get(const.DATA_CHORE_SHARED_CHORE, False):
+                uid = f"{self.config_entry.entry_id}_{chore_id}{const.DATA_GLOBAL_STATE_SUFFIX}"
+                allowed_uids.add(uid)
+
+        # --- Reward Status Sensors ---
+        for reward_id in self.rewards_data.keys():
+            for kid_id in self.kids_data.keys():
+                uid = f"{self.config_entry.entry_id}_{kid_id}_{reward_id}{const.SENSOR_KC_UID_SUFFIX_REWARD_STATUS_SENSOR}"
+                allowed_uids.add(uid)
+
+        # --- Penalty/Bonus Apply Sensors ---
+        for kid_id in self.kids_data.keys():
+            for penalty_id in self.penalties_data.keys():
+                uid = f"{self.config_entry.entry_id}_{kid_id}_{penalty_id}{const.SENSOR_KC_UID_SUFFIX_PENALTY_APPLIES_SENSOR}"
+                allowed_uids.add(uid)
+            for bonus_id in self.bonuses_data.keys():
+                uid = f"{self.config_entry.entry_id}_{kid_id}_{bonus_id}{const.SENSOR_KC_UID_SUFFIX_BONUS_APPLIES_SENSOR}"
+                allowed_uids.add(uid)
+
+        # --- Achievement Progress Sensors ---
+        for achievement_id, achievement in self.achievements_data.items():
+            for kid_id in achievement.get(const.DATA_ACHIEVEMENT_ASSIGNED_KIDS, []):
+                uid = f"{self.config_entry.entry_id}_{kid_id}_{achievement_id}{const.SENSOR_KC_UID_SUFFIX_ACHIEVEMENT_PROGRESS_SENSOR}"
+                allowed_uids.add(uid)
+
+        # --- Challenge Progress Sensors ---
+        for challenge_id, challenge in self.challenges_data.items():
+            for kid_id in challenge.get(const.DATA_CHALLENGE_ASSIGNED_KIDS, []):
+                uid = f"{self.config_entry.entry_id}_{kid_id}_{challenge_id}{const.SENSOR_KC_UID_SUFFIX_CHALLENGE_PROGRESS_SENSOR}"
+                allowed_uids.add(uid)
+
+        # --- Kid-specific sensors (not dynamic based on chores/rewards) ---
+        # These are created once per kid and don't need validation against dynamic data
+        for kid_id in self.kids_data.keys():
+            # Standard kid sensors
+            allowed_uids.add(
+                f"{self.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_POINTS_SENSOR}"
+            )
+            allowed_uids.add(
+                f"{self.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_TOTAL_SENSOR}"
+            )
+            allowed_uids.add(
+                f"{self.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_DAILY_SENSOR}"
+            )
+            allowed_uids.add(
+                f"{self.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_WEEKLY_SENSOR}"
+            )
+            allowed_uids.add(
+                f"{self.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_MONTHLY_SENSOR}"
+            )
+            allowed_uids.add(
+                f"{self.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_HIGHEST_BADGE_SENSOR}"
+            )
+            allowed_uids.add(
+                f"{self.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_DAILY_SENSOR}"
+            )
+            allowed_uids.add(
+                f"{self.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_WEEKLY_SENSOR}"
+            )
+            allowed_uids.add(
+                f"{self.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_MONTHLY_SENSOR}"
+            )
+            allowed_uids.add(
+                f"{self.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_MAX_POINTS_EVER_SENSOR}"
+            )
+            allowed_uids.add(
+                f"{self.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_HIGHEST_STREAK_SENSOR}"
+            )
+            allowed_uids.add(
+                f"{self.config_entry.entry_id}_{kid_id}_ui_dashboard_helper"
+            )  # Hardcoded in sensor.py
+
+            # Badge progress sensors
+            badge_progress_data = self.kids_data[kid_id].get(
+                const.DATA_KID_BADGE_PROGRESS, {}
+            )
+            for badge_id, progress_info in badge_progress_data.items():
+                badge_type = progress_info.get(const.DATA_KID_BADGE_PROGRESS_TYPE)
+                if badge_type != const.BADGE_TYPE_CUMULATIVE:
+                    uid = f"{self.config_entry.entry_id}_{kid_id}_{badge_id}{const.SENSOR_KC_UID_SUFFIX_BADGE_PROGRESS_SENSOR}"
+                    allowed_uids.add(uid)
+
+        # --- Global sensors (not kid-specific) ---
+        allowed_uids.add(
+            f"{self.config_entry.entry_id}{const.SENSOR_KC_UID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR}"
+        )
+        allowed_uids.add(
+            f"{self.config_entry.entry_id}{const.SENSOR_KC_UID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR}"
+        )
+
+        # --- Now remove any sensor entity whose unique_id is not in allowed_uids ---
+        for entity_entry in list(ent_reg.entities.values()):
+            # Only check sensors from our platform (kidschores)
+            if entity_entry.platform != const.DOMAIN or entity_entry.domain != "sensor":
+                continue
+
+            # If this sensor doesn't match our whitelist, remove it
+            # This catches old entities from previous configs, migrations, or different entry_ids
+            if entity_entry.unique_id not in allowed_uids:
+                const.LOGGER.info(
+                    "INFO: Removing orphaned/deprecated Sensor '%s' with unique_id '%s'",
+                    entity_entry.entity_id,
+                    entity_entry.unique_id,
+                )
+                ent_reg.async_remove(entity_entry.entity_id)
 
     # -------------------------------------------------------------------------------------
     # Create/Update Entities
@@ -1832,7 +2028,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 )
             )
 
-    def _update_chore(self, chore_id: str, chore_data: dict[str, Any]):
+    def _update_chore(self, chore_id: str, chore_data: dict[str, Any]) -> bool:
+        """Update chore data. Returns True if assigned kids changed (requiring reload)."""
         chore_info = self._data[const.DATA_CHORES][chore_id]
         chore_info[const.DATA_CHORE_NAME] = chore_data.get(
             const.DATA_CHORE_NAME, chore_info[const.DATA_CHORE_NAME]
@@ -1878,6 +2075,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 )
         old_assigned = set(chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []))
         new_assigned = set(assigned_kids_ids)
+
+        # Check if kids were ADDED (reload needed to create new entities)
+        # Removed kids don't need reload - we just remove their entities
+        added_kids = new_assigned - old_assigned
+        assignments_changed = len(added_kids) > 0
+
         removed_kids = old_assigned - new_assigned
         for kid in removed_kids:
             self._remove_kid_chore_entities(kid, chore_id)
@@ -1941,6 +2144,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         )
 
         self.hass.async_create_task(self._check_overdue_chores())
+        return assignments_changed
 
     # -- Badges
     def _create_badge(self, badge_id: str, badge_data: dict[str, Any]):
@@ -2394,15 +2598,21 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self.async_update_listeners()
         const.LOGGER.info("INFO: Deleted parent '%s' (ID: %s)", parent_name, parent_id)
 
-    def update_chore_entity(self, chore_id: str, chore_data: dict[str, Any]) -> None:
-        """Update chore entity in storage (Options Flow - no reload)."""
+    def update_chore_entity(self, chore_id: str, chore_data: dict[str, Any]) -> bool:
+        """Update chore entity in storage (Options Flow).
+
+        Returns True if assigned kids changed (indicating reload is needed).
+        """
         if chore_id not in self._data.get(const.DATA_CHORES, {}):
             raise ValueError(f"Chore {chore_id} not found")
-        self._update_chore(chore_id, chore_data)
+        assignments_changed = self._update_chore(chore_id, chore_data)
         # Recalculate badges affected by chore changes
         self._recalculate_all_badges()
         self._persist()
         self.async_update_listeners()
+        # Clean up any orphaned kid-chore entities after assignment changes
+        self.hass.async_create_task(self._remove_orphaned_kid_chore_entities())
+        return assignments_changed
 
     def delete_chore_entity(self, chore_id: str) -> None:
         """Delete chore from storage and cleanup references."""

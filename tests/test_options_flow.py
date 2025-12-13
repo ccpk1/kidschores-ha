@@ -55,7 +55,7 @@ async def test_options_flow_add_kid_success(
     # Add the kid
     result = await hass.config_entries.options.async_configure(
         result.get("flow_id"),
-        user_input={CFOF_KIDS_INPUT_KID_NAME: "Test Kid"},
+        user_input={CFOF_KIDS_INPUT_KID_NAME: "Zoë Stårblüm"},
     )
 
     # Should return to main menu after successful add
@@ -80,7 +80,7 @@ async def test_options_flow_add_kid_duplicate_name(
     )
     result = await hass.config_entries.options.async_configure(
         result.get("flow_id"),
-        user_input={CFOF_KIDS_INPUT_KID_NAME: "Existing Kid"},
+        user_input={CFOF_KIDS_INPUT_KID_NAME: "Lila Stårblüm"},
     )
 
     # Navigate to add kid form
@@ -97,7 +97,7 @@ async def test_options_flow_add_kid_duplicate_name(
     # Try to add kid with duplicate name
     result = await hass.config_entries.options.async_configure(
         result.get("flow_id"),
-        user_input={CFOF_KIDS_INPUT_KID_NAME: "Existing Kid"},
+        user_input={CFOF_KIDS_INPUT_KID_NAME: "Lila Stårblüm"},
     )
 
     assert result.get("type") == FlowResultType.FORM
