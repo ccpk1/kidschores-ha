@@ -118,9 +118,36 @@ async def test_options_flow_add_chore(
     hass: HomeAssistant,
     init_integration: MockConfigEntry,
 ) -> None:
-    """Test adding a chore via options flow."""
-    # Navigate to chores management
+    """Test adding a chore via options flow.
+
+    Uses testdata_storyline.yaml: Adds kid 'Zoë' first, then adds chore 'Feed the cåts'
+    assigned to Zoë. Tests new validation requiring at least one kid assigned.
+    """
+    # First, add a kid so we have someone to assign the chore to
     result = await hass.config_entries.options.async_init(init_integration.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result.get("flow_id"),
+        user_input={OPTIONS_FLOW_INPUT_MENU_SELECTION: OPTIONS_FLOW_KIDS},
+    )
+
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == OPTIONS_FLOW_STEP_MANAGE_ENTITY
+
+    result = await hass.config_entries.options.async_configure(
+        result.get("flow_id"),
+        user_input={OPTIONS_FLOW_INPUT_MANAGE_ACTION: OPTIONS_FLOW_ACTIONS_ADD},
+    )
+
+    # Add kid "Zoë" from testdata_storyline.yaml
+    result = await hass.config_entries.options.async_configure(
+        result.get("flow_id"),
+        user_input={CFOF_KIDS_INPUT_KID_NAME: "Zoë"},
+    )
+
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == OPTIONS_FLOW_STEP_INIT
+
+    # Now navigate to chores management
     result = await hass.config_entries.options.async_configure(
         result.get("flow_id"),
         user_input={OPTIONS_FLOW_INPUT_MENU_SELECTION: OPTIONS_FLOW_CHORES},
@@ -138,13 +165,13 @@ async def test_options_flow_add_chore(
     assert result.get("type") == FlowResultType.FORM
     assert result.get("step_id") == OPTIONS_FLOW_STEP_ADD_CHORE
 
-    # Add the chore
+    # Add chore "Feed the cåts" from testdata_storyline.yaml, assigned to Zoë
     result = await hass.config_entries.options.async_configure(
         result.get("flow_id"),
         user_input={
             CFOF_CHORES_INPUT_NAME: "Feed the cåts",
-            CFOF_CHORES_INPUT_DEFAULT_POINTS: 5,
-            CFOF_CHORES_INPUT_ASSIGNED_KIDS: [],
+            CFOF_CHORES_INPUT_DEFAULT_POINTS: 10,
+            CFOF_CHORES_INPUT_ASSIGNED_KIDS: ["Zoë"],
         },
     )
 

@@ -283,6 +283,7 @@
       "invalid_kid_name": "Invalid kid name",
       "invalid_parent_count": "Invalid parent count",
       "invalid_parent_name": "Invalid parent name",
+      "no_kids_assigned": "At least one kid must be assigned to the chore",
       "invalid_penalty": "Invalid penalty",
       "invalid_penalty_count": "Invalid penalty count",
       "invalid_penalty_name": "Invalid penalty name",
@@ -293,7 +294,8 @@
       "invalid_bonus_count": "Invalid bonus count",
       "invalid_bonus_name": "Invalid bonus name",
       "invalid_start_date": "Invalid start date.",
-      "start_date_in_past": "Start Date must be in the future."
+      "start_date_in_past": "Start Date must be in the future.",
+      "points_label_required": "Points label is required"
     },
     "abort": {
       "single_instance_allowed": "Only a single KidsChores instance can be configured."
@@ -1085,6 +1087,7 @@
       "invalid_end_date": "Invalid end date.",
       "invalid_kid_count": "Invalid kid count",
       "invalid_kid_name": "Invalid kid name",
+      "no_kids_assigned": "At least one kid must be assigned to the chore",
       "invalid_penalty": "Invalid penalty",
       "invalid_penalty_count": "Invalid penalty count",
       "invalid_bonus": "Invalid bonus",
@@ -1092,7 +1095,8 @@
       "invalid_reward": "Invalid reward",
       "invalid_reward_count": "Invalid reward count",
       "invalid_start_date": "Invalid start date.",
-      "start_date_in_past": "Start Date must be in the future."
+      "start_date_in_past": "Start Date must be in the future.",
+      "points_label_required": "Points label is required"
     },
     "abort": {
       "invalid_action": "Invalid Action",

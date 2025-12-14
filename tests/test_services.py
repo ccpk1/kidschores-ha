@@ -41,12 +41,12 @@ async def test_service_claim_chore_with_names(
         # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
 
-        # Create a chore (pass kid name, not ID)
+        # Create a chore (pass kid ID, not name)
         chore_id = str(uuid.uuid4())
         chore_data = create_mock_chore_data(
             name="Feed the cåts",
             default_points=5.0,
-            assigned_kids=[kid_name],  # Pass name, not ID
+            assigned_kids=[kid_id],  # Pass UUID, not name
         )
         chore_data["internal_id"] = chore_id
         coordinator._create_chore(chore_id, chore_data)
@@ -82,12 +82,12 @@ async def test_service_approve_chore_success(
         # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
 
-        # Create and claim a chore (pass kid name, not ID)
+        # Create and claim a chore (pass kid ID, not name)
         chore_id = str(uuid.uuid4())
         chore_data = create_mock_chore_data(
             name="Wåter the Plånts",
             default_points=7.0,
-            assigned_kids=[kid_name],  # Pass name, not ID
+            assigned_kids=[kid_id],  # Pass UUID, not name
         )
         chore_data["internal_id"] = chore_id
         coordinator._create_chore(chore_id, chore_data)

@@ -115,21 +115,27 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_manage_points(self, user_input=None):
         """Let user edit the points label/icon after initial setup."""
+        errors = {}
+
         if user_input is not None:
-            new_label = user_input.get(
-                const.CONF_POINTS_LABEL, const.DEFAULT_POINTS_LABEL
-            )
-            new_icon = user_input.get(const.CONF_POINTS_ICON, const.DEFAULT_POINTS_ICON)
+            # Validate inputs
+            errors = fh.validate_points_inputs(user_input)
 
-            self._entry_options = dict(self.config_entry.options)
-            self._entry_options[const.CONF_POINTS_LABEL] = new_label
-            self._entry_options[const.CONF_POINTS_ICON] = new_icon
-            const.LOGGER.debug(
-                "DEBUG: Configured points with name %s and icon %s", new_label, new_icon
-            )
-            await self._update_system_settings_and_reload()
+            if not errors:
+                # Build points configuration
+                points_data = fh.build_points_data(user_input)
 
-            return await self.async_step_init()
+                # Update options
+                self._entry_options = dict(self.config_entry.options)
+                self._entry_options.update(points_data)
+                const.LOGGER.debug(
+                    "DEBUG: Configured points with name %s and icon %s",
+                    points_data[const.CONF_POINTS_LABEL],
+                    points_data[const.CONF_POINTS_ICON],
+                )
+                await self._update_system_settings_and_reload()
+
+                return await self.async_step_init()
 
         # Get existing values from entry options
         current_label = self._entry_options.get(
@@ -316,7 +322,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         )
 
     def _get_entity_dict(self):
-        """Retrieve the appropriate entity dictionary based on entity_type from coordinator storage."""
+        """Retrieve appropriate entity dict based on entity_type."""
         coordinator = self._get_coordinator()
 
         entity_type_to_data = {
@@ -347,44 +353,19 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         kids_dict = coordinator.kids_data
 
         if user_input is not None:
-            kid_name = user_input[const.CFOF_KIDS_INPUT_KID_NAME].strip()
-            ha_user_id = (
-                user_input.get(const.CFOF_KIDS_INPUT_HA_USER) or const.CONF_EMPTY
-            )
-            enable_mobile_notifications = user_input.get(
-                const.CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS, True
-            )
-            notify_service = (
-                user_input.get(const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE)
-                or const.CONF_EMPTY
-            )
-            enable_persist = user_input.get(
-                const.CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
-            )
+            # Validate inputs
+            errors = fh.validate_kids_inputs(user_input, kids_dict)
 
-            if not kid_name:
-                errors[const.CFOP_ERROR_KID_NAME] = (
-                    const.TRANS_KEY_CFOF_INVALID_KID_NAME
-                )
+            if not errors:
+                # Build kid data
+                kid_data = fh.build_kids_data(user_input, kids_dict)
 
-            elif any(
-                kid_data[const.DATA_KID_NAME] == kid_name
-                for kid_data in kids_dict.values()
-            ):
-                errors[const.CFOP_ERROR_KID_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_KID
+                # Get internal_id and the kid data dict
+                internal_id = list(kid_data.keys())[0]
+                new_kid_data = kid_data[internal_id]
+                kid_name = new_kid_data[const.DATA_KID_NAME]
 
-            else:
-                internal_id = user_input.get(
-                    const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
-                )
-                new_kid_data = {
-                    const.DATA_KID_NAME: kid_name,
-                    const.DATA_KID_HA_USER_ID: ha_user_id,
-                    const.DATA_KID_ENABLE_NOTIFICATIONS: enable_mobile_notifications,
-                    const.DATA_KID_MOBILE_NOTIFY_SERVICE: notify_service,
-                    const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS: enable_persist,
-                    const.DATA_KID_INTERNAL_ID: internal_id,
-                }
+                # Add to coordinator
                 coordinator._create_kid(internal_id, new_kid_data)
                 coordinator._persist()
                 coordinator.async_update_listeners()
@@ -417,44 +398,19 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         parents_dict = coordinator.parents_data
 
         if user_input is not None:
-            parent_name = user_input[const.CFOF_PARENTS_INPUT_NAME].strip()
-            ha_user_id = (
-                user_input.get(const.CFOF_PARENTS_INPUT_HA_USER) or const.CONF_EMPTY
-            )
-            associated_kids = user_input.get(
-                const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS, []
-            )
-            enable_mobile_notifications = user_input.get(
-                const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS, True
-            )
-            notify_service = (
-                user_input.get(const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE)
-                or const.CONF_EMPTY
-            )
-            enable_persist = user_input.get(
-                const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
-            )
+            # Validate inputs
+            errors = fh.validate_parents_inputs(user_input, parents_dict)
 
-            if any(
-                parent_data[const.DATA_PARENT_NAME] == parent_name
-                for parent_data in parents_dict.values()
-            ):
-                errors[const.CFPO_ERROR_PARENT_NAME] = (
-                    const.TRANS_KEY_CFOF_DUPLICATE_PARENT
-                )
-            else:
-                internal_id = user_input.get(
-                    const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
-                )
-                new_parent_data = {
-                    const.DATA_PARENT_NAME: parent_name,
-                    const.DATA_PARENT_HA_USER_ID: ha_user_id,
-                    const.DATA_PARENT_ASSOCIATED_KIDS: associated_kids,
-                    const.DATA_PARENT_ENABLE_NOTIFICATIONS: enable_mobile_notifications,
-                    const.DATA_PARENT_MOBILE_NOTIFY_SERVICE: notify_service,
-                    const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS: enable_persist,
-                    const.DATA_PARENT_INTERNAL_ID: internal_id,
-                }
+            if not errors:
+                # Build parent data
+                parent_data = fh.build_parents_data(user_input, parents_dict)
+
+                # Get internal_id and the parent data dict
+                internal_id = list(parent_data.keys())[0]
+                new_parent_data = parent_data[internal_id]
+                parent_name = new_parent_data[const.DATA_PARENT_NAME]
+
+                # Add to coordinator
                 coordinator._create_parent(internal_id, new_parent_data)
                 coordinator._persist()
                 coordinator.async_update_listeners()
@@ -496,47 +452,18 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         chores_dict = coordinator.chores_data
 
         if user_input is not None:
-            chore_name = user_input[const.CFOF_CHORES_INPUT_NAME].strip()
-            raw_due = user_input[const.CFOF_CHORES_INPUT_DUE_DATE]
-            internal_id = user_input.get(
-                const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
+            # Build kids_dict for name→UUID conversion
+            kids_dict = {
+                data[const.DATA_KID_NAME]: eid
+                for eid, data in coordinator.kids_data.items()
+            }
+
+            # Build and validate chore data
+            chore_data, errors = fh.build_chores_data(
+                self.hass, user_input, kids_dict, chores_dict
             )
 
-            if raw_due:
-                try:
-                    if isinstance(raw_due, datetime.datetime):
-                        parsed_due = raw_due
-                    else:
-                        parsed_due = dt_util.parse_datetime(
-                            raw_due
-                        ) or datetime.datetime.fromisoformat(raw_due)
-                    due_utc = dt_util.as_utc(parsed_due)
-                    if due_utc < dt_util.utcnow():
-                        errors[const.CFOP_ERROR_DUE_DATE] = (
-                            const.TRANS_KEY_CFOF_DUE_DATE_IN_PAST
-                        )
-                    else:
-                        due_date_str = due_utc.isoformat()
-                except (ValueError, TypeError, AttributeError):
-                    errors[const.CFOP_ERROR_DUE_DATE] = (
-                        const.TRANS_KEY_CFOF_INVALID_DUE_DATE
-                    )
-            else:
-                due_date_str = None
-
-            if any(
-                chore_data[const.DATA_CHORE_NAME] == chore_name
-                for chore_data in chores_dict.values()
-            ):
-                errors[const.CFOP_ERROR_CHORE_NAME] = (
-                    const.TRANS_KEY_CFOF_DUPLICATE_CHORE
-                )
-
             if errors:
-                kids_dict = {
-                    data[const.DATA_KID_NAME]: eid
-                    for eid, data in coordinator.kids_data.items()
-                }
                 schema = fh.build_chore_schema(kids_dict, default=user_input)
                 return self.async_show_form(
                     step_id=const.OPTIONS_FLOW_STEP_ADD_CHORE,
@@ -544,67 +471,13 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     errors=errors,
                 )
 
-            if (
-                user_input.get(const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY)
-                != const.FREQUENCY_CUSTOM
-            ):
-                user_input.pop(const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL, None)
-                user_input.pop(const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT, None)
+            # Get internal_id and the chore data dict
+            internal_id = list(chore_data.keys())[0]
+            new_chore_data = chore_data[internal_id]
+            chore_name = new_chore_data[const.DATA_CHORE_NAME]
+            due_date_str = new_chore_data[const.DATA_CHORE_DUE_DATE]
 
-            new_chore_data = {
-                const.DATA_CHORE_NAME: chore_name,
-                const.DATA_CHORE_DEFAULT_POINTS: user_input[
-                    const.CFOF_CHORES_INPUT_DEFAULT_POINTS
-                ],
-                const.DATA_CHORE_PARTIAL_ALLOWED: user_input[
-                    const.CFOF_CHORES_INPUT_PARTIAL_ALLOWED
-                ],
-                const.DATA_CHORE_SHARED_CHORE: user_input[
-                    const.CFOF_CHORES_INPUT_SHARED_CHORE
-                ],
-                const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY: user_input[
-                    const.CFOF_CHORES_INPUT_ALLOW_MULTIPLE_CLAIMS
-                ],
-                const.DATA_CHORE_ASSIGNED_KIDS: user_input[
-                    const.CFOF_CHORES_INPUT_ASSIGNED_KIDS
-                ],
-                const.DATA_CHORE_DESCRIPTION: user_input.get(
-                    const.CFOF_CHORES_INPUT_DESCRIPTION, const.CONF_EMPTY
-                ),
-                const.DATA_CHORE_LABELS: user_input.get(
-                    const.CFOF_CHORES_INPUT_LABELS, []
-                ),
-                const.DATA_CHORE_ICON: user_input.get(
-                    const.CFOF_CHORES_INPUT_ICON, const.DEFAULT_CHORE_ICON
-                ),
-                const.DATA_CHORE_RECURRING_FREQUENCY: user_input.get(
-                    const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY, const.CONF_EMPTY
-                ),
-                const.DATA_CHORE_CUSTOM_INTERVAL: user_input.get(
-                    const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL
-                ),
-                const.DATA_CHORE_CUSTOM_INTERVAL_UNIT: user_input.get(
-                    const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT
-                ),
-                const.DATA_CHORE_DUE_DATE: due_date_str,
-                const.DATA_CHORE_APPLICABLE_DAYS: user_input.get(
-                    const.CFOF_CHORES_INPUT_APPLICABLE_DAYS,
-                    const.DEFAULT_APPLICABLE_DAYS,
-                ),
-                const.DATA_CHORE_NOTIFY_ON_CLAIM: user_input.get(
-                    const.CFOF_CHORES_INPUT_NOTIFY_ON_CLAIM,
-                    const.DEFAULT_NOTIFY_ON_CLAIM,
-                ),
-                const.DATA_CHORE_NOTIFY_ON_APPROVAL: user_input.get(
-                    const.CFOF_CHORES_INPUT_NOTIFY_ON_APPROVAL,
-                    const.DEFAULT_NOTIFY_ON_APPROVAL,
-                ),
-                const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL: user_input.get(
-                    const.CFOF_CHORES_INPUT_NOTIFY_ON_DISAPPROVAL,
-                    const.DEFAULT_NOTIFY_ON_DISAPPROVAL,
-                ),
-                const.DATA_CHORE_INTERNAL_ID: internal_id,
-            }
+            # Add to coordinator
             coordinator._create_chore(internal_id, new_chore_data)
             coordinator._persist()
             coordinator.async_update_listeners()
@@ -618,7 +491,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             self._mark_reload_needed()
             return await self.async_step_init()
 
-        # Use flow_helpers.fh.build_chore_schema, passing current kids
+        # Use flow_helpers.build_chore_schema, passing current kids
         kids_dict = {
             data[const.DATA_KID_NAME]: eid
             for eid, data in coordinator.kids_data.items()
@@ -1444,107 +1317,31 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         chore_data = chores_dict[internal_id]
 
         if user_input is not None:
-            new_name = user_input[const.CFOF_CHORES_INPUT_NAME].strip()
-            raw_due = user_input.get(const.CFOF_CHORES_INPUT_DUE_DATE)
+            # Build kids_dict for name→UUID conversion
+            kids_dict = {
+                data[const.DATA_KID_NAME]: eid
+                for eid, data in coordinator.kids_data.items()
+            }
 
-            # Check for duplicate names excluding current chore
-            if any(
-                data[const.DATA_CHORE_NAME] == new_name and eid != internal_id
-                for eid, data in chores_dict.items()
-            ):
-                errors[const.CFOP_ERROR_CHORE_NAME] = (
-                    const.TRANS_KEY_CFOF_DUPLICATE_CHORE
-                )
-            else:
-                if (
-                    user_input.get(const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY)
-                    != const.FREQUENCY_CUSTOM
-                ):
-                    user_input.pop(const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL, None)
-                    user_input.pop(const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT, None)
+            # Add internal_id for validation
+            # (to exclude current chore from duplicate check)
+            user_input[const.CFOF_GLOBAL_INPUT_INTERNAL_ID] = internal_id
 
-                updated_chore_data = {
-                    const.DATA_CHORE_NAME: new_name,
-                    const.DATA_CHORE_DESCRIPTION: user_input.get(
-                        const.CFOF_CHORES_INPUT_DESCRIPTION, const.CONF_EMPTY
-                    ),
-                    const.DATA_CHORE_LABELS: user_input.get(
-                        const.CFOF_CHORES_INPUT_LABELS, []
-                    ),
-                    const.DATA_CHORE_DEFAULT_POINTS: user_input[
-                        const.CFOF_CHORES_INPUT_DEFAULT_POINTS
-                    ],
-                    const.DATA_CHORE_SHARED_CHORE: user_input[
-                        const.CFOF_CHORES_INPUT_SHARED_CHORE
-                    ],
-                    const.DATA_CHORE_PARTIAL_ALLOWED: user_input[
-                        const.CFOF_CHORES_INPUT_PARTIAL_ALLOWED
-                    ],
-                    const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY: user_input[
-                        const.CFOF_CHORES_INPUT_ALLOW_MULTIPLE_CLAIMS
-                    ],
-                    const.DATA_CHORE_ASSIGNED_KIDS: user_input[
-                        const.CFOF_CHORES_INPUT_ASSIGNED_KIDS
-                    ],
-                    const.DATA_CHORE_ICON: user_input.get(
-                        const.CFOF_CHORES_INPUT_ICON, const.CONF_EMPTY
-                    ),
-                    const.DATA_CHORE_RECURRING_FREQUENCY: user_input.get(
-                        const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY,
-                        const.FREQUENCY_NONE,
-                    ),
-                    const.DATA_CHORE_CUSTOM_INTERVAL: user_input.get(
-                        const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL
-                    ),
-                    const.DATA_CHORE_CUSTOM_INTERVAL_UNIT: user_input.get(
-                        const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT
-                    ),
-                    const.DATA_CHORE_APPLICABLE_DAYS: user_input.get(
-                        const.CFOF_CHORES_INPUT_APPLICABLE_DAYS, []
-                    ),
-                    const.DATA_CHORE_NOTIFY_ON_CLAIM: user_input.get(
-                        const.CFOF_CHORES_INPUT_NOTIFY_ON_CLAIM, True
-                    ),
-                    const.DATA_CHORE_NOTIFY_ON_APPROVAL: user_input.get(
-                        const.CFOF_CHORES_INPUT_NOTIFY_ON_APPROVAL, True
-                    ),
-                    const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL: user_input.get(
-                        const.CFOF_CHORES_INPUT_NOTIFY_ON_DISAPPROVAL, True
-                    ),
-                }
+            # Build a temporary dict for duplicate checking that excludes current chore
+            chores_for_validation = {
+                cid: cdata for cid, cdata in chores_dict.items()
+                if cid != internal_id
+            }
 
-                if raw_due:
-                    try:
-                        if isinstance(raw_due, datetime.datetime):
-                            parsed_due = raw_due
-                        else:
-                            parsed_due = dt_util.parse_datetime(
-                                raw_due
-                            ) or datetime.datetime.fromisoformat(raw_due)
-                        due_utc = dt_util.as_utc(parsed_due)
-                        if due_utc < dt_util.utcnow():
-                            errors[const.CFOP_ERROR_DUE_DATE] = (
-                                const.TRANS_KEY_CFOF_DUE_DATE_IN_PAST
-                            )
-                        else:
-                            updated_chore_data[const.DATA_CHORE_DUE_DATE] = (
-                                due_utc.isoformat()
-                            )
-                    except (ValueError, TypeError, AttributeError):
-                        errors[const.CFOP_ERROR_DUE_DATE] = (
-                            const.TRANS_KEY_CFOF_INVALID_DUE_DATE
-                        )
-                else:
-                    updated_chore_data[const.DATA_CHORE_DUE_DATE] = None
-                    const.LOGGER.debug(
-                        "DEBUG: No date/time provided. Defaulting to None"
-                    )
+            # Build and validate chore data using helper function
+            chore_data_dict, errors = fh.build_chores_data(
+                self.hass, user_input, kids_dict, chores_for_validation
+            )
+
+            # Extract chore data (must be before error check to avoid E0606)
+            updated_chore_data = chore_data_dict.get(internal_id, {})
 
             if errors:
-                kids_dict = {
-                    data[const.DATA_KID_NAME]: eid
-                    for eid, data in coordinator.kids_data.items()
-                }
                 default_data = user_input.copy()
                 return self.async_show_form(
                     step_id=const.OPTIONS_FLOW_STEP_EDIT_CHORE,
@@ -1559,6 +1356,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 internal_id, updated_chore_data
             )
 
+            new_name = updated_chore_data.get(
+                const.DATA_CHORE_NAME,
+                chore_data.get(const.DATA_CHORE_NAME),
+            )
             const.LOGGER.debug(
                 "DEBUG: Edited Chore '%s' with ID: %s", new_name, internal_id
             )
@@ -2517,8 +2318,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.CONF_RETENTION_YEARLY
             )
             const.LOGGER.debug(
-                "DEBUG: General Options Updated: Points Adjust Values=%s, Update Interval=%s, Calendar Period to Show=%s, "
-                "Retention Daily=%s, Retention Weekly=%s, Retention Monthly=%s, Retention Yearly=%s",
+                "DEBUG: General Options Updated: Points Adjust Values=%s, "
+                "Update Interval=%s, Calendar Period to Show=%s, "
+                "Retention Daily=%s, Retention Weekly=%s, "
+                "Retention Monthly=%s, Retention Yearly=%s",
                 self._entry_options.get(const.CONF_POINTS_ADJUST_VALUES),
                 self._entry_options.get(const.CONF_UPDATE_INTERVAL),
                 self._entry_options.get(const.CONF_CALENDAR_SHOW_PERIOD),

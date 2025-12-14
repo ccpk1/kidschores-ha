@@ -947,9 +947,16 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     # -------------------------------------------------------------------------------------
     # Data Initialization from Config
     # -------------------------------------------------------------------------------------
+    # TODO(KC 5.0): Remove entire _initialize_data_from_config() section after KC 3.x support dropped
+    # This includes:
+    # - _initialize_data_from_config() (lines 951-986)
+    # - _ensure_minimal_structure() (lines 988-1004)
+    # - _initialize_kids(), _initialize_parents(), etc. (lines 1012-1059)
+    # - _sync_entities() (lines 1065-1124)
+    # Total: ~174 lines for KC 3.x→4.x migration compatibility only
 
     def _initialize_data_from_config(self):
-        """Merge config_entry options with stored data structures using internal_id."""
+        """LEGACY: Merge config_entry options with stored data structures (KC 3.x compatibility only)."""
         options = self.config_entry.options
 
         # Retrieve configuration dictionaries from config entry options
@@ -1911,17 +1918,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
     # -- Chores
     def _create_chore(self, chore_id: str, chore_data: dict[str, Any]):
-        assigned_kids_ids = []
-        for kid_name in chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
-            kid_id = kh.get_kid_id_by_name(self, kid_name)
-            if kid_id:
-                assigned_kids_ids.append(kid_id)
-            else:
-                const.LOGGER.warning(
-                    "WARNING: Chore '%s': Kid ID '%s' not found. Skipping assignment",
-                    chore_data.get(const.DATA_CHORE_NAME, chore_id),
-                    kid_name,
-                )
+        # assigned_kids now contains UUIDs directly from flow helpers (no conversion needed)
+        assigned_kids_ids = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
 
         # If chore is recurring, set due_date to creation date if not set
         # CLS 20251110 Due date no longer required for recurring
@@ -2062,17 +2060,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.DATA_CHORE_SHARED_CHORE, chore_info[const.DATA_CHORE_SHARED_CHORE]
         )
 
-        assigned_kids_ids = []
-        for kid_name in chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
-            kid_id = kh.get_kid_id_by_name(self, kid_name)
-            if kid_id:
-                assigned_kids_ids.append(kid_id)
-            else:
-                const.LOGGER.warning(
-                    "WARNING: Chore '%s': Kid ID '%s' not found. Skipping assignment",
-                    chore_data.get(const.DATA_CHORE_NAME, chore_id),
-                    kid_name,
-                )
+        # assigned_kids now contains UUIDs directly from flow helpers (no conversion needed)
+        assigned_kids_ids = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
         old_assigned = set(chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []))
         new_assigned = set(assigned_kids_ids)
 

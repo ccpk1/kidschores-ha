@@ -86,17 +86,14 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         errors = {}
 
         if user_input is not None:
-            points_label = user_input.get(
-                const.CONF_POINTS_LABEL, const.DEFAULT_POINTS_LABEL
-            )
-            points_icon = user_input.get(
-                const.CONF_POINTS_ICON, const.DEFAULT_POINTS_ICON
-            )
+            # Validate inputs
+            errors = fh.validate_points_inputs(user_input)
 
-            self._data[const.CONF_POINTS_LABEL] = points_label
-            self._data[const.CONF_POINTS_ICON] = points_icon
-
-            return await self.async_step_kid_count()
+            if not errors:
+                # Build and store points configuration
+                points_data = fh.build_points_data(user_input)
+                self._data.update(points_data)
+                return await self.async_step_kid_count()
 
         points_schema = fh.build_points_schema(
             default_label=const.DEFAULT_POINTS_LABEL,
@@ -138,42 +135,17 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         """Collect each kid's info using internal_id as the primary key."""
         errors = {}
         if user_input is not None:
-            kid_name = user_input[const.CFOF_KIDS_INPUT_KID_NAME].strip()
-            ha_user_id = (
-                user_input.get(const.CFOF_KIDS_INPUT_HA_USER) or const.CONF_EMPTY
-            )
-            enable_mobile_notifications = user_input.get(
-                const.CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS, True
-            )
-            notify_service = (
-                user_input.get(const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE)
-                or const.CONF_EMPTY
-            )
-            enable_persist = user_input.get(
-                const.CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
-            )
+            # Validate inputs
+            errors = fh.validate_kids_inputs(user_input, self._kids_temp)
 
-            if not kid_name:
-                errors[const.CFOP_ERROR_KID_NAME] = (
-                    const.TRANS_KEY_CFOF_INVALID_KID_NAME
-                )
-            elif any(
-                kid_data[const.DATA_KID_NAME] == kid_name
-                for kid_data in self._kids_temp.values()
-            ):
-                errors[const.CFOP_ERROR_KID_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_KID
-            else:
-                internal_id = user_input.get(
-                    const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
-                )
-                self._kids_temp[internal_id] = {
-                    const.DATA_KID_NAME: kid_name,
-                    const.DATA_KID_HA_USER_ID: ha_user_id,
-                    const.DATA_KID_ENABLE_NOTIFICATIONS: enable_mobile_notifications,
-                    const.DATA_KID_MOBILE_NOTIFY_SERVICE: notify_service,
-                    const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS: enable_persist,
-                    const.DATA_KID_INTERNAL_ID: internal_id,
-                }
+            if not errors:
+                # Build and store kid data
+                kid_data = fh.build_kids_data(user_input, self._kids_temp)
+                self._kids_temp.update(kid_data)
+
+                # Get internal_id and name for logging
+                internal_id = list(kid_data.keys())[0]
+                kid_name = kid_data[internal_id][const.DATA_KID_NAME]
                 const.LOGGER.debug(
                     "DEBUG: Added Kid: %s with ID: %s", kid_name, internal_id
                 )
@@ -240,48 +212,17 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         """
         errors = {}
         if user_input is not None:
-            parent_name = user_input[const.CFOF_PARENTS_INPUT_NAME].strip()
-            ha_user_id = (
-                user_input.get(const.CFOF_PARENTS_INPUT_HA_USER) or const.CONF_EMPTY
-            )
-            associated_kids = user_input.get(
-                const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS, []
-            )
-            enable_mobile_notifications = user_input.get(
-                const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS, True
-            )
-            notify_service = (
-                user_input.get(const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE)
-                or const.CONF_EMPTY
-            )
-            enable_persist = user_input.get(
-                const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
-            )
+            # Validate inputs
+            errors = fh.validate_parents_inputs(user_input, self._parents_temp)
 
-            if not parent_name:
-                errors[const.CFPO_ERROR_PARENT_NAME] = (
-                    const.TRANS_KEY_CFOF_INVALID_PARENT_NAME
-                )
-            elif any(
-                parent_data[const.DATA_PARENT_NAME] == parent_name
-                for parent_data in self._parents_temp.values()
-            ):
-                errors[const.CFPO_ERROR_PARENT_NAME] = (
-                    const.TRANS_KEY_CFOF_DUPLICATE_PARENT
-                )
-            else:
-                internal_id = user_input.get(
-                    const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
-                )
-                self._parents_temp[internal_id] = {
-                    const.DATA_PARENT_NAME: parent_name,
-                    const.DATA_PARENT_HA_USER_ID: ha_user_id,
-                    const.DATA_PARENT_ASSOCIATED_KIDS: associated_kids,
-                    const.DATA_PARENT_ENABLE_NOTIFICATIONS: enable_mobile_notifications,
-                    const.DATA_PARENT_MOBILE_NOTIFY_SERVICE: notify_service,
-                    const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS: enable_persist,
-                    const.DATA_PARENT_INTERNAL_ID: internal_id,
-                }
+            if not errors:
+                # Build and store parent data
+                parent_data = fh.build_parents_data(user_input, self._parents_temp)
+                self._parents_temp.update(parent_data)
+
+                # Get internal_id and name for logging
+                internal_id = list(parent_data.keys())[0]
+                parent_name = parent_data[internal_id][const.DATA_PARENT_NAME]
                 const.LOGGER.debug(
                     "DEBUG: Added Parent: %s with ID: %s", parent_name, internal_id
                 )
@@ -356,46 +297,19 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         errors = {}
 
         if user_input is not None:
-            chore_name = user_input[const.CFOF_CHORES_INPUT_NAME].strip()
-            internal_id = user_input.get(
-                const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
+            # Build kids_dict for name→UUID conversion
+            kids_dict = {
+                kid_data[const.DATA_KID_NAME]: kid_id
+                for kid_id, kid_data in self._kids_temp.items()
+            }
+
+            # Build and validate chore data
+            chore_data, errors = fh.build_chores_data(
+                self.hass, user_input, kids_dict, self._chores_temp
             )
 
-            if user_input.get(const.CFOF_CHORES_INPUT_DUE_DATE):
-                raw_due = user_input[const.CFOF_CHORES_INPUT_DUE_DATE]
-                try:
-                    due_date_str = fh.ensure_utc_datetime(self.hass, raw_due)
-                    due_dt = dt_util.parse_datetime(due_date_str)
-                    if due_dt and due_dt < dt_util.utcnow():
-                        errors[const.CFOP_ERROR_DUE_DATE] = (
-                            const.TRANS_KEY_CFOF_DUE_DATE_IN_PAST
-                        )
-                except ValueError:
-                    errors[const.CFOP_ERROR_DUE_DATE] = (
-                        const.TRANS_KEY_CFOF_INVALID_DUE_DATE
-                    )
-                    due_date_str = None
-            else:
-                due_date_str = None
-
-            if not chore_name:
-                errors[const.CFOP_ERROR_CHORE_NAME] = (
-                    const.TRANS_KEY_CFOF_INVALID_CHORE_NAME
-                )
-            elif any(
-                chore_data[const.DATA_CHORE_NAME] == chore_name
-                for chore_data in self._chores_temp.values()
-            ):
-                errors[const.CFOP_ERROR_CHORE_NAME] = (
-                    const.TRANS_KEY_CFOF_DUPLICATE_CHORE
-                )
-
             if errors:
-                kids_dict = {
-                    kid_data[const.DATA_KID_NAME]: kid_id
-                    for kid_id, kid_data in self._kids_temp.items()
-                }
-                # Re-show the form with the user's current input and errors:
+                # Re-show the form with the user's current input and errors
                 default_data = user_input.copy()
                 return self.async_show_form(
                     step_id=const.CONFIG_FLOW_STEP_CHORES,
@@ -403,68 +317,12 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                     errors=errors,
                 )
 
-            if (
-                user_input.get(const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY)
-                != const.FREQUENCY_CUSTOM
-            ):
-                user_input.pop(const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL, None)
-                user_input.pop(const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT, None)
+            # Store the chore
+            self._chores_temp.update(chore_data)
 
-            # If no errors, store the chore
-            self._chores_temp[internal_id] = {
-                const.DATA_CHORE_NAME: chore_name,
-                const.DATA_CHORE_DEFAULT_POINTS: user_input[
-                    const.CFOF_CHORES_INPUT_DEFAULT_POINTS
-                ],
-                const.DATA_CHORE_PARTIAL_ALLOWED: user_input[
-                    const.CFOF_CHORES_INPUT_PARTIAL_ALLOWED
-                ],
-                const.DATA_CHORE_SHARED_CHORE: user_input[
-                    const.CFOF_CHORES_INPUT_SHARED_CHORE
-                ],
-                const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY: user_input[
-                    const.CFOF_CHORES_INPUT_ALLOW_MULTIPLE_CLAIMS
-                ],
-                const.DATA_CHORE_ASSIGNED_KIDS: user_input[
-                    const.CFOF_CHORES_INPUT_ASSIGNED_KIDS
-                ],
-                const.DATA_CHORE_DESCRIPTION: user_input.get(
-                    const.CFOF_CHORES_INPUT_DESCRIPTION, const.CONF_EMPTY
-                ),
-                const.DATA_CHORE_LABELS: user_input.get(
-                    const.CFOF_CHORES_INPUT_LABELS, []
-                ),
-                const.DATA_CHORE_ICON: user_input.get(
-                    const.CFOF_CHORES_INPUT_ICON, const.DEFAULT_CHORE_ICON
-                ),
-                const.DATA_CHORE_RECURRING_FREQUENCY: user_input.get(
-                    const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY, const.CONF_EMPTY
-                ),
-                const.DATA_CHORE_CUSTOM_INTERVAL: user_input.get(
-                    const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL
-                ),
-                const.DATA_CHORE_CUSTOM_INTERVAL_UNIT: user_input.get(
-                    const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT
-                ),
-                const.DATA_CHORE_DUE_DATE: due_date_str,
-                const.DATA_CHORE_APPLICABLE_DAYS: user_input.get(
-                    const.CFOF_CHORES_INPUT_APPLICABLE_DAYS,
-                    const.DEFAULT_APPLICABLE_DAYS,
-                ),
-                const.DATA_CHORE_NOTIFY_ON_CLAIM: user_input.get(
-                    const.CFOF_CHORES_INPUT_NOTIFY_ON_CLAIM,
-                    const.DEFAULT_NOTIFY_ON_CLAIM,
-                ),
-                const.DATA_CHORE_NOTIFY_ON_APPROVAL: user_input.get(
-                    const.CFOF_CHORES_INPUT_NOTIFY_ON_APPROVAL,
-                    const.DEFAULT_NOTIFY_ON_APPROVAL,
-                ),
-                const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL: user_input.get(
-                    const.CFOF_CHORES_INPUT_NOTIFY_ON_DISAPPROVAL,
-                    const.DEFAULT_NOTIFY_ON_DISAPPROVAL,
-                ),
-                const.DATA_CHORE_INTERNAL_ID: internal_id,
-            }
+            # Get internal_id and name for logging
+            internal_id = list(chore_data.keys())[0]
+            chore_name = chore_data[internal_id][const.DATA_CHORE_NAME]
             const.LOGGER.debug(
                 "DEBUG: Added Chore: %s with ID: %s", chore_name, internal_id
             )
@@ -474,13 +332,15 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                 return await self.async_step_badge_count()
             return await self.async_step_chores()
 
-        # Use flow_helpers.fh.build_chore_schema, passing the current kids
+        # Use flow_helpers.build_chore_schema, passing the current kids
         kids_dict = {
             kid_data[const.DATA_KID_NAME]: kid_id
             for kid_id, kid_data in self._kids_temp.items()
         }
         default_data = {}
-        chore_schema = fh.build_chore_schema(kids_dict, default_data)
+        chore_schema = fh.build_chore_schema(
+            kids_dict, default_data
+        )
         return self.async_show_form(
             step_id=const.CONFIG_FLOW_STEP_CHORES,
             data_schema=chore_schema,
@@ -1156,7 +1016,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     async def async_step_finish(self, user_input=None):
         """Finalize summary and create the config entry."""
         if user_input is not None:
-            return self._create_entry()
+            return await self._create_entry()
 
         # Create a mapping from kid_id to kid_name for easy lookup
         kid_id_to_name = {
@@ -1253,30 +1113,79 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             description_placeholders={const.OPTIONS_FLOW_PLACEHOLDER_SUMMARY: summary},
         )
 
-    def _create_entry(self):
-        """Finalize config entry with data and options using internal_id as keys."""
-        entry_data = {}
+    async def _create_entry(self):
+        """Finalize config entry with direct-to-storage entity data (KC 4.0+ architecture)."""
+        from .storage_manager import KidsChoresStorageManager
+
+        # Write all entity data directly to storage BEFORE creating config entry
+        # This implements the KC 4.0 storage-only architecture from day one
+        storage_data = {
+            const.DATA_SCHEMA_VERSION: const.SCHEMA_VERSION_STORAGE_ONLY,  # Set to 41 immediately
+            const.DATA_KIDS: self._kids_temp,
+            const.DATA_PARENTS: self._parents_temp,
+            const.DATA_CHORES: self._chores_temp,
+            const.DATA_BADGES: self._badges_temp,
+            const.DATA_REWARDS: self._rewards_temp,
+            const.DATA_PENALTIES: self._penalties_temp,
+            const.DATA_BONUSES: self._bonuses_temp,
+            const.DATA_ACHIEVEMENTS: self._achievements_temp,
+            const.DATA_CHALLENGES: self._challenges_temp,
+            # Initialize runtime-only sections
+            const.DATA_PENDING_CHORE_APPROVALS: [],
+            const.DATA_PENDING_REWARD_APPROVALS: [],
+        }
+
+        # Initialize storage manager and save entity data
+        storage_manager = KidsChoresStorageManager(self.hass)
+        storage_manager.set_data(storage_data)
+        await storage_manager.async_save()
+
+        const.LOGGER.info(
+            "INFO: Created storage with schema version %s (%d kids, %d chores, %d badges)",
+            const.SCHEMA_VERSION_STORAGE_ONLY,
+            len(self._kids_temp),
+            len(self._chores_temp),
+            len(self._badges_temp)
+        )
+
+        # Config entry contains ONLY system settings (no entity data)
+        entry_data = {}  # Keep empty - standard HA pattern
         entry_options = {
+            # Points configuration
             const.CONF_POINTS_LABEL: self._data.get(
                 const.CONF_POINTS_LABEL, const.DEFAULT_POINTS_LABEL
             ),
             const.CONF_POINTS_ICON: self._data.get(
                 const.CONF_POINTS_ICON, const.DEFAULT_POINTS_ICON
             ),
-            const.CONF_KIDS: self._kids_temp,
-            const.CONF_PARENTS: self._parents_temp,
-            const.CONF_CHORES: self._chores_temp,
-            const.CONF_BADGES: self._badges_temp,
-            const.CONF_REWARDS: self._rewards_temp,
-            const.CONF_PENALTIES: self._penalties_temp,
-            const.CONF_BONUSES: self._bonuses_temp,
-            const.CONF_ACHIEVEMENTS: self._achievements_temp,
-            const.CONF_CHALLENGES: self._challenges_temp,
+            # Update & Calendar settings
+            const.CONF_UPDATE_INTERVAL: self._data.get(
+                const.CONF_UPDATE_INTERVAL, const.DEFAULT_UPDATE_INTERVAL
+            ),
+            const.CONF_CALENDAR_SHOW_PERIOD: self._data.get(
+                const.CONF_CALENDAR_SHOW_PERIOD, const.DEFAULT_CALENDAR_SHOW_PERIOD
+            ),
+            # History retention periods
+            const.CONF_RETENTION_DAILY: self._data.get(
+                const.CONF_RETENTION_DAILY, const.DEFAULT_RETENTION_DAILY
+            ),
+            const.CONF_RETENTION_WEEKLY: self._data.get(
+                const.CONF_RETENTION_WEEKLY, const.DEFAULT_RETENTION_WEEKLY
+            ),
+            const.CONF_RETENTION_MONTHLY: self._data.get(
+                const.CONF_RETENTION_MONTHLY, const.DEFAULT_RETENTION_MONTHLY
+            ),
+            const.CONF_RETENTION_YEARLY: self._data.get(
+                const.CONF_RETENTION_YEARLY, const.DEFAULT_RETENTION_YEARLY
+            ),
+            # Adjustable point values
+            const.CONF_POINTS_ADJUST_VALUES: self._data.get(
+                const.CONF_POINTS_ADJUST_VALUES, const.DEFAULT_POINTS_ADJUST_VALUES
+            ),
         }
 
         const.LOGGER.debug(
-            "DEBUG: Creating KidsChores with data %s, options %s",
-            entry_data,
+            "DEBUG: Creating config entry with system settings only: %s",
             entry_options,
         )
         return self.async_create_entry(

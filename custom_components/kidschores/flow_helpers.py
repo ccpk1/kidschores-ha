@@ -38,6 +38,47 @@ def build_points_schema(
     )
 
 
+def build_points_data(user_input: Dict[str, Any]) -> Dict[str, Any]:
+    """Build points configuration data from user input.
+
+    Converts form input (CONF_* keys) to system settings format.
+
+    Args:
+        user_input: Dictionary containing user inputs from the form.
+
+    Returns:
+        Dictionary with points label and icon configuration.
+    """
+    return {
+        const.CONF_POINTS_LABEL: user_input.get(
+            const.CONF_POINTS_LABEL, const.DEFAULT_POINTS_LABEL
+        ),
+        const.CONF_POINTS_ICON: user_input.get(
+            const.CONF_POINTS_ICON, const.DEFAULT_POINTS_ICON
+        ),
+    }
+
+
+def validate_points_inputs(user_input: Dict[str, Any]) -> Dict[str, str]:
+    """Validate points configuration inputs.
+
+    Args:
+        user_input: Dictionary containing user inputs from the form.
+
+    Returns:
+        Dictionary of errors (empty if validation passes).
+    """
+    errors = {}
+
+    points_label = user_input.get(const.CONF_POINTS_LABEL, "").strip()
+
+    # Validate label is not empty
+    if not points_label:
+        errors["base"] = "points_label_required"
+
+    return errors
+
+
 # ----------------------------------------------------------------------------------
 # KIDS SCHEMA
 # ----------------------------------------------------------------------------------
@@ -110,6 +151,81 @@ async def build_kid_schema(
             ): str,
         }
     )
+
+
+def build_kids_data(
+    user_input: Dict[str, Any],
+    existing_kids: Dict[str, Any] = None,  # pylint: disable=unused-argument
+) -> Dict[str, Any]:
+    """Build kid data from user input.
+
+    Converts form input (CFOF_* keys) to storage format (DATA_* keys).
+
+    Args:
+        user_input: Dictionary containing user inputs from the form.
+        existing_kids: Optional dictionary of existing kids for duplicate checking.
+
+    Returns:
+        Dictionary with kid data in storage format, keyed by internal_id.
+    """
+    kid_name = user_input.get(const.CFOF_KIDS_INPUT_KID_NAME, "").strip()
+    internal_id = user_input.get(
+        const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
+    )
+
+    ha_user_id = user_input.get(const.CFOF_KIDS_INPUT_HA_USER) or const.CONF_EMPTY
+    enable_mobile_notifications = user_input.get(
+        const.CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS, True
+    )
+    notify_service = (
+        user_input.get(const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE) or const.CONF_EMPTY
+    )
+    enable_persist = user_input.get(
+        const.CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
+    )
+
+    return {
+        internal_id: {
+            const.DATA_KID_NAME: kid_name,
+            const.DATA_KID_HA_USER_ID: ha_user_id,
+            const.DATA_KID_ENABLE_NOTIFICATIONS: enable_mobile_notifications,
+            const.DATA_KID_MOBILE_NOTIFY_SERVICE: notify_service,
+            const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS: enable_persist,
+            const.DATA_KID_INTERNAL_ID: internal_id,
+        }
+    }
+
+
+def validate_kids_inputs(
+    user_input: Dict[str, Any], existing_kids: Dict[str, Any] = None
+) -> Dict[str, str]:
+    """Validate kid configuration inputs.
+
+    Args:
+        user_input: Dictionary containing user inputs from the form.
+        existing_kids: Optional dictionary of existing kids for duplicate checking.
+
+    Returns:
+        Dictionary of errors (empty if validation passes).
+    """
+    errors = {}
+
+    kid_name = user_input.get(const.CFOF_KIDS_INPUT_KID_NAME, "").strip()
+
+    # Validate name is not empty
+    if not kid_name:
+        errors[const.CFOP_ERROR_KID_NAME] = const.TRANS_KEY_CFOF_INVALID_KID_NAME
+        return errors
+
+    # Check for duplicate names
+    if existing_kids:
+        if any(
+            kid_data[const.DATA_KID_NAME] == kid_name
+            for kid_data in existing_kids.values()
+        ):
+            errors[const.CFOP_ERROR_KID_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_KID
+
+    return errors
 
 
 # ----------------------------------------------------------------------------------
@@ -185,6 +301,84 @@ def build_parent_schema(
             ): str,
         }
     )
+
+
+def build_parents_data(
+    user_input: Dict[str, Any],
+    existing_parents: Dict[str, Any] = None,  # pylint: disable=unused-argument
+) -> Dict[str, Any]:
+    """Build parent data from user input.
+
+    Converts form input (CFOF_* keys) to storage format (DATA_* keys).
+
+    Args:
+        user_input: Dictionary containing user inputs from the form.
+        existing_parents: Optional dictionary of existing parents for duplicate checking.
+
+    Returns:
+        Dictionary with parent data in storage format, keyed by internal_id.
+    """
+    parent_name = user_input.get(const.CFOF_PARENTS_INPUT_NAME, "").strip()
+    internal_id = user_input.get(
+        const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
+    )
+
+    ha_user_id = user_input.get(const.CFOF_PARENTS_INPUT_HA_USER) or const.CONF_EMPTY
+    associated_kids = user_input.get(const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS, [])
+    enable_mobile_notifications = user_input.get(
+        const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS, True
+    )
+    notify_service = (
+        user_input.get(const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE)
+        or const.CONF_EMPTY
+    )
+    enable_persist = user_input.get(
+        const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
+    )
+
+    return {
+        internal_id: {
+            const.DATA_PARENT_NAME: parent_name,
+            const.DATA_PARENT_HA_USER_ID: ha_user_id,
+            const.DATA_PARENT_ASSOCIATED_KIDS: associated_kids,
+            const.DATA_PARENT_ENABLE_NOTIFICATIONS: enable_mobile_notifications,
+            const.DATA_PARENT_MOBILE_NOTIFY_SERVICE: notify_service,
+            const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS: enable_persist,
+            const.DATA_PARENT_INTERNAL_ID: internal_id,
+        }
+    }
+
+
+def validate_parents_inputs(
+    user_input: Dict[str, Any], existing_parents: Dict[str, Any] = None
+) -> Dict[str, str]:
+    """Validate parent configuration inputs.
+
+    Args:
+        user_input: Dictionary containing user inputs from the form.
+        existing_parents: Optional dictionary of existing parents for duplicate checking.
+
+    Returns:
+        Dictionary of errors (empty if validation passes).
+    """
+    errors = {}
+
+    parent_name = user_input.get(const.CFOF_PARENTS_INPUT_NAME, "").strip()
+
+    # Validate name is not empty
+    if not parent_name:
+        errors[const.CFPO_ERROR_PARENT_NAME] = const.TRANS_KEY_CFOF_INVALID_PARENT_NAME
+        return errors
+
+    # Check for duplicate names
+    if existing_parents:
+        if any(
+            parent_data[const.DATA_PARENT_NAME] == parent_name
+            for parent_data in existing_parents.values()
+        ):
+            errors[const.CFPO_ERROR_PARENT_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_PARENT
+
+    return errors
 
 
 # ----------------------------------------------------------------------------------
@@ -287,8 +481,8 @@ def build_chore_schema(kids_dict, default=None):
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=[
-                        {"value": key, "label": const.WEEKDAY_OPTIONS[key]}
-                        for key in const.WEEKDAY_OPTIONS
+                        {"value": key, "label": label}
+                        for key, label in const.WEEKDAY_OPTIONS.items()
                     ],
                     multiple=True,
                     translation_key=const.TRANS_KEY_FLOW_HELPERS_APPLICABLE_DAYS,
@@ -321,6 +515,136 @@ def build_chore_schema(kids_dict, default=None):
     )
 
 
+def build_chores_data(
+    hass,
+    user_input: Dict[str, Any],
+    kids_dict: Dict[str, Any],
+    existing_chores: Dict[str, Any] = None,
+) -> tuple[Dict[str, Any], Dict[str, str]]:
+    """Build chore data from user input with validation.
+
+    Converts form input (CFOF_* keys) to storage format (DATA_* keys).
+    Also validates the due date and converts assigned kid names to UUIDs.
+
+    Args:
+        hass: Home Assistant instance for datetime utilities.
+        user_input: Dictionary containing user inputs from the form.
+        kids_dict: Dictionary mapping kid names to kid internal_ids (UUIDs).
+        existing_chores: Optional dictionary of existing chores for duplicate checking.
+
+    Returns:
+        Tuple of (chore_data_dict, errors_dict). If errors exist, chore_data will be empty.
+    """
+    errors = {}
+    chore_name = user_input.get(const.CFOF_CHORES_INPUT_NAME, "").strip()
+    internal_id = user_input.get(
+        const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
+    )
+
+    # Validate chore name
+    if not chore_name:
+        errors[const.CFOP_ERROR_CHORE_NAME] = const.TRANS_KEY_CFOF_INVALID_CHORE_NAME
+        return {}, errors
+
+    # Check for duplicate names
+    if existing_chores and any(
+        chore_data[const.DATA_CHORE_NAME] == chore_name
+        for chore_data in existing_chores.values()
+    ):
+        errors[const.CFOP_ERROR_CHORE_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_CHORE
+        return {}, errors
+
+    # Process due date
+    due_date_str = None
+    if user_input.get(const.CFOF_CHORES_INPUT_DUE_DATE):
+        raw_due = user_input[const.CFOF_CHORES_INPUT_DUE_DATE]
+        try:
+            due_date_str = ensure_utc_datetime(hass, raw_due)
+            due_dt = dt_util.parse_datetime(due_date_str)
+            if due_dt and due_dt < dt_util.utcnow():
+                errors[const.CFOP_ERROR_DUE_DATE] = const.TRANS_KEY_CFOF_DUE_DATE_IN_PAST
+                return {}, errors
+        except (ValueError, TypeError, AttributeError):
+            errors[const.CFOP_ERROR_DUE_DATE] = const.TRANS_KEY_CFOF_INVALID_DUE_DATE
+            return {}, errors
+
+    # Clean up custom interval fields if not using custom frequency
+    if (
+        user_input.get(const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY)
+        != const.FREQUENCY_CUSTOM
+    ):
+        custom_interval = None
+        custom_interval_unit = None
+    else:
+        custom_interval = user_input.get(const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL)
+        custom_interval_unit = user_input.get(const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT)
+
+    # Convert assigned kid names to UUIDs
+    assigned_kids_names = user_input.get(const.CFOF_CHORES_INPUT_ASSIGNED_KIDS, [])
+    assigned_kids_ids = [
+        kids_dict[kid_name]
+        for kid_name in assigned_kids_names
+        if kid_name in kids_dict
+    ]
+
+    # Validate at least one kid is assigned
+    if not assigned_kids_ids:
+        errors[const.CFOP_ERROR_ASSIGNED_KIDS] = const.TRANS_KEY_CFOF_NO_KIDS_ASSIGNED
+        return {}, errors
+
+    # Build chore data
+    chore_data = {
+        const.DATA_CHORE_NAME: chore_name,
+        const.DATA_CHORE_DEFAULT_POINTS: user_input.get(
+            const.CFOF_CHORES_INPUT_DEFAULT_POINTS, const.DEFAULT_POINTS
+        ),
+        const.DATA_CHORE_PARTIAL_ALLOWED: user_input.get(
+            const.CFOF_CHORES_INPUT_PARTIAL_ALLOWED, False
+        ),
+        const.DATA_CHORE_SHARED_CHORE: user_input.get(
+            const.CFOF_CHORES_INPUT_SHARED_CHORE, False
+        ),
+        const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY: user_input.get(
+            const.CFOF_CHORES_INPUT_ALLOW_MULTIPLE_CLAIMS, False
+        ),
+        const.DATA_CHORE_ASSIGNED_KIDS: assigned_kids_ids,
+        const.DATA_CHORE_DESCRIPTION: user_input.get(
+            const.CFOF_CHORES_INPUT_DESCRIPTION, const.CONF_EMPTY
+        ),
+        const.DATA_CHORE_LABELS: user_input.get(
+            const.CFOF_CHORES_INPUT_LABELS, []
+        ),
+        const.DATA_CHORE_ICON: user_input.get(
+            const.CFOF_CHORES_INPUT_ICON, const.DEFAULT_CHORE_ICON
+        ),
+        const.DATA_CHORE_RECURRING_FREQUENCY: user_input.get(
+            const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY, const.CONF_EMPTY
+        ),
+        const.DATA_CHORE_CUSTOM_INTERVAL: custom_interval,
+        const.DATA_CHORE_CUSTOM_INTERVAL_UNIT: custom_interval_unit,
+        const.DATA_CHORE_DUE_DATE: due_date_str,
+        const.DATA_CHORE_APPLICABLE_DAYS: user_input.get(
+            const.CFOF_CHORES_INPUT_APPLICABLE_DAYS,
+            const.DEFAULT_APPLICABLE_DAYS,
+        ),
+        const.DATA_CHORE_NOTIFY_ON_CLAIM: user_input.get(
+            const.CFOF_CHORES_INPUT_NOTIFY_ON_CLAIM,
+            const.DEFAULT_NOTIFY_ON_CLAIM,
+        ),
+        const.DATA_CHORE_NOTIFY_ON_APPROVAL: user_input.get(
+            const.CFOF_CHORES_INPUT_NOTIFY_ON_APPROVAL,
+            const.DEFAULT_NOTIFY_ON_APPROVAL,
+        ),
+        const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL: user_input.get(
+            const.CFOF_CHORES_INPUT_NOTIFY_ON_DISAPPROVAL,
+            const.DEFAULT_NOTIFY_ON_DISAPPROVAL,
+        ),
+        const.DATA_CHORE_INTERNAL_ID: internal_id,
+    }
+
+    return {internal_id: chore_data}, {}
+
+
 # ----------------------------------------------------------------------------------
 # BADGES SCHEMAS
 # ----------------------------------------------------------------------------------
@@ -338,7 +662,8 @@ def build_badge_common_data(
     Args:
         user_input: The dictionary containing user inputs from the form.
         internal_id: The internal ID for the badge.
-        badge_type: The type of the badge (e.g., cumulative, daily, periodic). Default is cumulative.
+        badge_type: The type of the badge (cumulative, daily, periodic).
+            Default is cumulative.
 
     Returns:
         A dictionary representing the badge's configuration data.
@@ -542,12 +867,13 @@ def validate_badge_common_inputs(
 
     Args:
         user_input: The dictionary containing user inputs from the form.
-        internal_id: The internal ID for the badge (None when adding a new badge).
-        existing_badges: Dictionary of existing badge configurations for uniqueness checks.
-        badge_type: The type of the badge (e.g., cumulative, daily, periodic). Default is cumulative.
+        internal_id: The internal ID for the badge (None when adding new).
+        existing_badges: Dictionary of existing badges for uniqueness checks.
+        badge_type: The type of the badge (cumulative, daily, periodic).
+            Default is cumulative.
 
     Returns:
-        A dictionary of validation errors {field_key: error_message_or_translation_key}.
+        A dictionary of validation errors {field_key: error_message}.
     """
     errors: Dict[str, str] = {}
     existing_badges = existing_badges or {}
@@ -773,7 +1099,7 @@ def validate_badge_common_inputs(
 
         # Clear custom interval fields if not custom
         if recurring_frequency != const.CONF_CUSTOM:
-            # Note that END_DATE is not cleared here, because it can be used with the frequencies as a reference date
+            # Note: END_DATE not cleared - can be used as reference date
             user_input.update(
                 {
                     const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE: const.CONF_NONE,
@@ -853,14 +1179,16 @@ def build_badge_common_schema(
         kids: Dictionary of available kids for the assigned_to selector.
         chores: Dictionary of available chores for the tracked selector.
         rewards: Dictionary of available rewards for the awards selector.
-        badge_type: The type of the badge (e.g., cumulative, daily, periodic). Default is cumulative.
+        badge_type: The type of the badge (cumulative, daily, periodic).
+            Default is cumulative.
 
     Special Notes:
-        The `default` parameter in this helper is populated dynamically based on the context.
-        or editing, it receives either `badge_data` (on the first load) or `user_input` (after an error).
-        This allows the schema to pre-fill fields with existing data while preserving user changes
-        when the form is regenerated after validation errors.
-        Reason for this is because user_input field names do not always match the data keys in the badge data.
+        The `default` parameter is populated dynamically:
+        - On first load: receives `badge_data`
+        - After error: receives `user_input`
+        This pre-fills fields while preserving user changes when form
+        is regenerated after validation errors.
+        Note: user_input field names don't always match badge data keys.
 
     Returns:
         A dictionary representing the Voluptuous schema.
@@ -1211,14 +1539,19 @@ def build_badge_common_schema(
         if is_cumulative:
             award_items_options.append(
                 {
-                    const.CONF_VALUE: const.AWARD_ITEMS_KEY_POINTS_MULTIPLIER,
-                    const.CONF_LABEL: const.AWARD_ITEMS_LABEL_POINTS_MULTIPLIER,
+                    const.CONF_VALUE: (
+                        const.AWARD_ITEMS_KEY_POINTS_MULTIPLIER
+                    ),
+                    const.CONF_LABEL: (
+                        const.AWARD_ITEMS_LABEL_POINTS_MULTIPLIER
+                    ),
                 }
             )
 
         if rewards_dict:
             for reward_id, reward in rewards_dict.items():
-                label = f"{const.AWARD_ITEMS_LABEL_REWARD} {reward.get(const.DATA_REWARD_NAME, reward_id)}"
+                reward_name = reward.get(const.DATA_REWARD_NAME, reward_id)
+                label = f"{const.AWARD_ITEMS_LABEL_REWARD} {reward_name}"
                 award_items_options.append(
                     {
                         const.CONF_VALUE: f"{const.AWARD_ITEMS_PREFIX_REWARD}{reward_id}",
@@ -1227,7 +1560,8 @@ def build_badge_common_schema(
                 )
         if bonuses_dict:
             for bonus_id, bonus in bonuses_dict.items():
-                label = f"{const.AWARD_ITEMS_LABEL_BONUS} {bonus.get(const.DATA_BONUS_NAME, bonus_id)}"
+                bonus_name = bonus.get(const.DATA_BONUS_NAME, bonus_id)
+                label = f"{const.AWARD_ITEMS_LABEL_BONUS} {bonus_name}"
                 award_items_options.append(
                     {
                         const.CONF_VALUE: f"{const.AWARD_ITEMS_PREFIX_BONUS}{bonus_id}",
@@ -1381,7 +1715,8 @@ def build_badge_common_schema(
             ),
         )
 
-        # For BADGE_TYPE_DAILY hide reset schedule fields and force value in validation
+        # For BADGE_TYPE_DAILY hide reset schedule fields
+        # and force value in validation
         if not is_daily:
             # Build the schema fields for other badge types
             schema_fields.update(
@@ -1411,10 +1746,8 @@ def build_badge_common_schema(
                                     step=1,
                                 )
                             ),
-                            vol.Coerce(int),  # Coerce the input to an integer
-                            vol.Range(
-                                min=0
-                            ),  # Ensure the value is greater than or equal to 0
+                            vol.Coerce(int),  # Coerce to integer
+                            vol.Range(min=0),  # Ensure >= 0
                         ),
                     ),
                     # Custom Interval Unit

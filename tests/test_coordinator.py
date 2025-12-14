@@ -35,12 +35,12 @@ async def test_chore_lifecycle_complete_workflow(
         # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
 
-        # Create a chore assigned to the kid (pass kid name, not ID)
+        # Create a chore assigned to the kid (pass kid ID, not name)
         chore_id = str(uuid.uuid4())
         chore_data = create_mock_chore_data(
             name="Feed the cåts",
             default_points=int(5.0),
-            assigned_kids=[kid_name],  # Pass name, not ID
+            assigned_kids=[kid_id],  # Pass UUID, not name
         )
         chore_data["internal_id"] = chore_id
         coordinator._create_chore(chore_id, chore_data)
@@ -88,7 +88,7 @@ async def test_points_management_flow(
         chore_data = create_mock_chore_data(
             name="Pick up Lëgo!",
             default_points=int(8.0),
-            assigned_kids=[kid_name],  # Pass name, not ID
+            assigned_kids=[kid_id],  # Pass UUID, not name
         )
         chore_data["internal_id"] = chore_id
         coordinator._create_chore(chore_id, chore_data)

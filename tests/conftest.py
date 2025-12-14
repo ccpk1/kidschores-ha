@@ -794,15 +794,21 @@ async def _apply_scenario_data(
         coordinator._create_parent(parent_id, parent_data)
         name_to_id_map[f"parent:{parent_name}"] = parent_id
 
-    # Phase 3: Create chores (reference kid names)
+    # Phase 3: Create chores (convert kid names to UUIDs)
     for chore in scenario_data.get("chores", []):
         chore_id = str(uuid.uuid4())
         chore_name = chore["name"]
         assigned_kid_names = chore.get("assigned_to", [])
+        # Convert kid names to UUIDs
+        assigned_kid_ids = [
+            name_to_id_map[f"kid:{kid_name}"]
+            for kid_name in assigned_kid_names
+            if f"kid:{kid_name}" in name_to_id_map
+        ]
         chore_data = create_mock_chore_data(
             name=chore_name,
             default_points=chore.get("points", 10),
-            assigned_kids=assigned_kid_names,  # Pass names, coordinator resolves
+            assigned_kids=assigned_kid_ids,  # Pass UUIDs, not names
         )
         chore_data["internal_id"] = chore_id
         chore_data["icon"] = chore.get("icon", "mdi:check")
