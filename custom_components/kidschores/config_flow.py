@@ -338,9 +338,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             for kid_id, kid_data in self._kids_temp.items()
         }
         default_data = {}
-        chore_schema = fh.build_chore_schema(
-            kids_dict, default_data
-        )
+        chore_schema = fh.build_chore_schema(kids_dict, default_data)
         return self.async_show_form(
             step_id=const.CONFIG_FLOW_STEP_CHORES,
             data_schema=chore_schema,
@@ -1120,7 +1118,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         # Write all entity data directly to storage BEFORE creating config entry
         # This implements the KC 4.0 storage-only architecture from day one
         storage_data = {
-            const.DATA_SCHEMA_VERSION: const.SCHEMA_VERSION_STORAGE_ONLY,  # Set to 41 immediately
+            const.DATA_SCHEMA_VERSION: const.SCHEMA_VERSION_STORAGE_ONLY,  # Set to 42 immediately
             const.DATA_KIDS: self._kids_temp,
             const.DATA_PARENTS: self._parents_temp,
             const.DATA_CHORES: self._chores_temp,
@@ -1145,7 +1143,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             const.SCHEMA_VERSION_STORAGE_ONLY,
             len(self._kids_temp),
             len(self._chores_temp),
-            len(self._badges_temp)
+            len(self._badges_temp),
         )
 
         # Config entry contains ONLY system settings (no entity data)

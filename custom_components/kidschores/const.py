@@ -52,16 +52,17 @@ STORAGE_VERSION = 1
 # Default timezone: initially None, to be set once hass is available.
 DEFAULT_TIME_ZONE = None
 
-# Migration Flags
-# TODO(KC 5.0): Remove MIGRATION_* constants after KC 3.x support dropped
-MIGRATION_PERFORMED = "migration_performed"  # For KC 3.x→4.x migration only
-MIGRATION_KEY_VERSION = "migration_key_version"  # For KC 3.x→4.x migration only
-MIGRATION_KEY_VERSION_NUMBER = 41  # Target version for KC 3.x→4.x migration
-
 # Schema Version (for config→storage migration)
 DATA_SCHEMA_VERSION = "schema_version"  # Key in storage data
 CONF_SCHEMA_VERSION = "schema_version"  # Key in config_entry.options
-SCHEMA_VERSION_STORAGE_ONLY = 41  # Version 41+ means entities live in storage only
+SCHEMA_VERSION_STORAGE_ONLY = 42  # Version 42+ means entities live in storage only
+
+# Legacy Migration Keys (CLEANUP ONLY - removed in schema v42)
+# These constants are only used to clean up old keys from KC 4.x beta installations
+# TODO(KC 5.0): Remove after KC 4.x beta support dropped (all users on v42+)
+MIGRATION_PERFORMED = "migration_performed"  # LEGACY: Redundant with schema_version
+MIGRATION_KEY_VERSION = "migration_key_version"  # LEGACY: Redundant with schema_version
+MIGRATION_KEY_VERSION_NUMBER = 41  # LEGACY: Old target version for KC 3.x→4.x migration
 
 # Migration Data
 MIGRATION_DATA_LEGACY_ORPHAN = "legacy_orphan"

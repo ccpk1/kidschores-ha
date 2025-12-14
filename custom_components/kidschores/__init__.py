@@ -79,7 +79,7 @@ async def _migrate_config_to_storage(
         await storage_manager.async_save()
         return
 
-    # Migration needed: config has entities and storage version < 41
+    # Migration needed: config has entities and storage version < 42
     const.LOGGER.info("INFO: ========================================")
     const.LOGGER.info(
         "INFO: Starting config→storage migration (schema version %s → %s)",
@@ -253,7 +253,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # PHASE 2: Migrate entity data from config to storage (one-time hand-off)
     # This must happen BEFORE coordinator initialization to ensure coordinator
-    # loads from storage-only mode (schema_version >= 41)
+    # loads from storage-only mode (schema_version >= 42)
     await _migrate_config_to_storage(hass, entry, storage_manager)
 
     # Create the data coordinator for managing updates and synchronization.

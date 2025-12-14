@@ -59,7 +59,7 @@ badges:
   - name: "Brønze Står"
     type: "cumulative"
     threshold: 400 # Lifetime points
-    icon: "mdi:star"
+    icon: "mdi:medal-outline"
     award: "+5 bonus points"
     points_multiplier: 1.05
     maintenance:
@@ -69,7 +69,7 @@ badges:
   - name: "Sïlver Står"
     type: "cumulative"
     threshold: 800
-    icon: "mdi:star"
+    icon: "mdi:medal"
     award: "+10 bonus points"
     points_multiplier: 1.10
     maintenance:
@@ -79,7 +79,7 @@ badges:
   - name: "Gøld Står"
     type: "cumulative"
     threshold: 1600
-    icon: "mdi:star"
+    icon: "mdi:trophy"
     award: "+20 bonus points"
     points_multiplier: 1.20
     maintenance:

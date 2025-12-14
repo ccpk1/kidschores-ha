@@ -1,8 +1,9 @@
 # KidsChores Legacy Code Cleanup Tracking
 
 **Target Version**: KC 5.0 (12+ months post KC 4.0 release)
-**Prerequisite**: <1% of users on schema_version < 41
+**Prerequisite**: <1% of users on schema_version < 42
 **Date**: December 2024
+**Current Schema Version**: 42
 
 ---
 
@@ -11,6 +12,69 @@
 This document tracks legacy code, constants, and methods that support KC 3.x → KC 4.0 migration. These items are marked for removal in **KC 5.0** after sufficient adoption time (6-12 months).
 
 **Current Status**: All legacy code is functional and necessary for backward compatibility. Do not remove until adoption metrics confirm <1% of users remain on KC 3.x.
+
+---
+
+## Schema Version 42 Cleanup (December 2024)
+
+**Target**: Simplify migration tracking by removing redundant keys
+
+### Changes in v42
+
+**Removed from Storage**:
+
+- ❌ `migration_performed` - Boolean flag (redundant with schema_version)
+- ❌ `migration_key_version` - Version number (duplicate of schema_version)
+
+**Kept in Storage**:
+
+- ✅ `schema_version` - Single source of truth for migration status (v42+)
+
+### Migration Logic Simplification
+
+**Before (Schema v41)**:
+
+```python
+# Triple redundancy - checking same thing three ways
+current_version = const.MIGRATION_KEY_VERSION_NUMBER  # 41
+stored_version = self._data.get(const.MIGRATION_KEY_VERSION, 0)  # 41
+if (not self._data.get(const.MIGRATION_PERFORMED, False)) or (stored_version < current_version):
+    # Run migrations...
+    self._data[const.MIGRATION_PERFORMED] = True
+    self._data[const.MIGRATION_KEY_VERSION] = current_version
+```
+
+**After (Schema v42)**:
+
+```python
+# Single version check - clean and simple
+storage_schema_version = self._data.get(const.DATA_SCHEMA_VERSION, 0)
+if storage_schema_version < const.SCHEMA_VERSION_STORAGE_ONLY:  # 42
+    # Run migrations...
+    self._data[const.DATA_SCHEMA_VERSION] = const.SCHEMA_VERSION_STORAGE_ONLY
+```
+
+### Auto-Cleanup for KC 4.x Beta Users
+
+Users who installed KC 4.x beta with schema v41 will have the redundant keys automatically removed on first coordinator load:
+
+```python
+# coordinator.py - async_config_entry_first_refresh()
+# Clean up legacy migration keys from KC 4.x beta (schema v41)
+if const.MIGRATION_PERFORMED in self._data:
+    const.LOGGER.debug("Cleaning up legacy key: migration_performed")
+    del self._data[const.MIGRATION_PERFORMED]
+if const.MIGRATION_KEY_VERSION in self._data:
+    const.LOGGER.debug("Cleaning up legacy key: migration_key_version")
+    del self._data[const.MIGRATION_KEY_VERSION]
+```
+
+**Impact**:
+
+- Simplified storage structure
+- Single source of truth for migrations
+- Automatic cleanup for beta users
+- Constants kept temporarily for cleanup logic
 
 ---
 
@@ -68,15 +132,22 @@ self._data = storage_data  # Direct assignment, no config sync
 
 **Purpose**: Track migration status and version numbers
 
-| Constant                       | Line | Purpose                                    | Removal Version |
-| ------------------------------ | ---- | ------------------------------------------ | --------------- |
-| `MIGRATION_PERFORMED`          | 56   | Flag indicating migration completed        | KC 5.0          |
-| `MIGRATION_KEY_VERSION`        | 57   | Key for version number in storage          | KC 5.0          |
-| `MIGRATION_KEY_VERSION_NUMBER` | 58   | Target version (41) for migration          | KC 5.0          |
-| `MIGRATION_DATA_LEGACY_ORPHAN` | 66   | Marker for orphaned legacy data            | KC 5.0          |
-| `SCHEMA_VERSION_STORAGE_ONLY`  | 63   | **KEEP** - Threshold for storage-only mode | Permanent       |
+| Constant                       | Line | Purpose                                    | Status          | Removal Version |
+| ------------------------------ | ---- | ------------------------------------------ | --------------- | --------------- |
+| `MIGRATION_PERFORMED`          | 62   | **REMOVED v42** - Redundant boolean flag   | ✅ Cleaned      | v4.0 Beta       |
+| `MIGRATION_KEY_VERSION`        | 63   | **REMOVED v42** - Redundant version number | ✅ Cleaned      | v4.0 Beta       |
+| `MIGRATION_KEY_VERSION_NUMBER` | 64   | **LEGACY** - Old target version (41)       | For cleanup     | KC 5.0          |
+| `MIGRATION_DATA_LEGACY_ORPHAN` | 66   | Marker for orphaned legacy data            | Active          | KC 5.0          |
+| `SCHEMA_VERSION_STORAGE_ONLY`  | 60   | **KEEP** - Schema version (v42+)           | Permanent (v42) | Permanent       |
 
-**Note**: `SCHEMA_VERSION_STORAGE_ONLY = 41` should be **kept permanently** as it defines the storage-only architecture threshold.
+**Schema Version 42 Changes (December 2024)**:
+
+- ✅ **Removed**: `migration_performed` and `migration_key_version` keys from storage
+- ✅ **Simplified**: Now using only `schema_version` to track migrations
+- ✅ **Auto-cleanup**: Coordinator removes legacy keys on first load for KC 4.x beta users
+- 🔄 **Constants kept**: `MIGRATION_PERFORMED` and `MIGRATION_KEY_VERSION` constants remain for cleanup logic only
+
+**Rationale**: KC 4.x beta users may have schema v41 with redundant keys. Schema v42 automatically cleans these up on first coordinator load. The constants are only used to identify and delete the legacy keys.
 
 ### Legacy Kid Data Keys - Lines 568-630
 

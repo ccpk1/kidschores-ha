@@ -842,14 +842,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         if stored_data:
             self._data = stored_data
 
-            # Run migrations only if not done before
-            current_version = const.MIGRATION_KEY_VERSION_NUMBER
-            stored_version = self._data.get(
-                const.MIGRATION_KEY_VERSION, const.DEFAULT_ZERO
+            # Run migrations based on schema version
+            storage_schema_version = self._data.get(
+                const.DATA_SCHEMA_VERSION, const.DEFAULT_ZERO
             )
-            if (not self._data.get(const.MIGRATION_PERFORMED, False)) or (
-                stored_version < current_version
-            ):
+
+            if storage_schema_version < const.SCHEMA_VERSION_STORAGE_ONLY:
                 # Migrate any datetime fields in stored data to UTC-aware strings
                 self._migrate_stored_datetimes()
 
@@ -874,15 +872,30 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 # Migrate legacy chore streaks and stats to new structure
                 self._migrate_legacy_kid_chore_data_and_streaks()
 
-                # Flag migrations as done
-                self._data[const.MIGRATION_PERFORMED] = True
-                self._data[const.MIGRATION_KEY_VERSION] = current_version
+                # Update to current schema version
+                self._data[const.DATA_SCHEMA_VERSION] = (
+                    const.SCHEMA_VERSION_STORAGE_ONLY
+                )
 
+                const.LOGGER.info(
+                    "Migrated storage from schema version %s to %s",
+                    storage_schema_version,
+                    const.SCHEMA_VERSION_STORAGE_ONLY,
+                )
             else:
                 const.LOGGER.debug(
-                    "DEBUG: Data migration to version '%s' already performed. Skipping migration.",
-                    current_version,
+                    "Storage already at schema version %s, skipping migration",
+                    storage_schema_version,
                 )
+
+            # Clean up legacy migration keys from KC 4.x beta (schema v41)
+            # These keys are redundant with schema_version and should be removed
+            if const.MIGRATION_PERFORMED in self._data:
+                const.LOGGER.debug("Cleaning up legacy key: migration_performed")
+                del self._data[const.MIGRATION_PERFORMED]
+            if const.MIGRATION_KEY_VERSION in self._data:
+                const.LOGGER.debug("Cleaning up legacy key: migration_key_version")
+                del self._data[const.MIGRATION_KEY_VERSION]
 
         else:
             self._data = {
@@ -898,7 +911,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.DATA_PENDING_CHORE_APPROVALS: [],
                 const.DATA_PENDING_REWARD_APPROVALS: [],
             }
-            self._data[const.MIGRATION_PERFORMED] = True
+            self._data[const.DATA_SCHEMA_VERSION] = const.SCHEMA_VERSION_STORAGE_ONLY
 
         if not isinstance(self._data.get(const.DATA_PENDING_CHORE_APPROVALS), list):
             self._data[const.DATA_PENDING_CHORE_APPROVALS] = []

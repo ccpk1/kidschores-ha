@@ -11,6 +11,7 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from . import const
@@ -844,7 +845,7 @@ def async_setup_services(hass: HomeAssistant):
             ) from e
 
     async def handle_reset_all_data(_call: ServiceCall):
-        """Handle manually resetting ALL data in KidsChores."""
+        """Handle manually resetting ALL data in KidsChores (factory reset)."""
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning("WARNING: Reset All Data: No KidsChores entry found")
@@ -857,15 +858,54 @@ def async_setup_services(hass: HomeAssistant):
 
         coordinator: KidsChoresDataCoordinator = data[const.COORDINATOR]
 
-        # Clear everything from storage
+        # Step 1: Create backup before factory reset
+        try:
+            import shutil
+            from datetime import datetime
+            from pathlib import Path
+
+            backup_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            storage_path = Path(coordinator.storage_manager.get_storage_path())
+            backup_path = (
+                storage_path.parent
+                / f"{storage_path.name}_reset_backup_{backup_timestamp}"
+            )
+
+            if storage_path.exists():
+                await hass.async_add_executor_job(
+                    shutil.copy2, str(storage_path), str(backup_path)
+                )
+                const.LOGGER.info(
+                    "INFO: Created pre-reset backup: %s", backup_path.name
+                )
+        except Exception as err:  # pylint: disable=broad-exception-caught
+            const.LOGGER.warning("WARNING: Failed to create pre-reset backup: %s", err)
+
+        # Step 2: Clean up entity registry BEFORE clearing storage
+        # This prevents orphaned registry entries that cause _2 suffixes when re-adding entities
+        ent_reg = er.async_get(hass)
+        entity_count = 0
+        for entity_entry in er.async_entries_for_config_entry(ent_reg, entry_id):
+            ent_reg.async_remove(entity_entry.entity_id)
+            entity_count += 1
+            const.LOGGER.debug(
+                "DEBUG: Removed entity registry entry: %s (unique_id: %s)",
+                entity_entry.entity_id,
+                entity_entry.unique_id,
+            )
+
+        const.LOGGER.info("INFO: Removed %d entity registry entries", entity_count)
+
+        # Step 3: Clear everything from storage (resets to empty kids/chores/badges structure)
         await coordinator.storage_manager.async_clear_data()
 
-        # Re-init the coordinator with reload config entry
+        # Step 4: Reload config entry to clean up platforms and reinitialize
+        # This ensures all internal state is properly reset
         await hass.config_entries.async_reload(entry_id)
 
         coordinator.async_set_updated_data(coordinator.data)
         const.LOGGER.info(
-            "INFO: Manually reset all KidsChores data. Integration is now cleared"
+            "INFO: Factory reset complete. Backup created, entity registry cleaned, all data cleared."
         )
 
     async def handle_reset_all_chores(_call: ServiceCall):

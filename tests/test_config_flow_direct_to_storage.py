@@ -1,7 +1,7 @@
 """Test config flow direct-to-storage functionality.
 
 Validates that fresh installations (KC 4.0) write entities directly to
-.storage/kidschores_data with schema_version 41, bypassing migration.
+.storage/kidschores_data with schema_version 42, bypassing migration.
 
 Uses testdata_storyline.yaml character names (Zoë, Môm Astrid, "Feed the cåts").
 """
@@ -9,17 +9,17 @@ Uses testdata_storyline.yaml character names (Zoë, Môm Astrid, "Feed the cåts
 # pylint: disable=protected-access  # Accessing internal methods for testing
 
 import pytest
-from homeassistant.core import HomeAssistant
 from homeassistant import config_entries
+from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
 from custom_components.kidschores.const import (
     CONF_POINTS_ICON,
     CONF_POINTS_LABEL,
     COORDINATOR,
+    DATA_CHORES,
     DATA_KIDS,
     DATA_PARENTS,
-    DATA_CHORES,
     DATA_SCHEMA_VERSION,
     DOMAIN,
     SCHEMA_VERSION_STORAGE_ONLY,
@@ -56,9 +56,9 @@ async def test_direct_storage_creates_one_parent_one_kid_one_chore(
     # Verify coordinator loaded the data from storage
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    # Check schema version is 41 (storage-only mode)
+    # Check schema version is 42 (storage-only mode)
     assert coordinator.data[DATA_SCHEMA_VERSION] == SCHEMA_VERSION_STORAGE_ONLY
-    assert SCHEMA_VERSION_STORAGE_ONLY == 41
+    assert SCHEMA_VERSION_STORAGE_ONLY == 42
 
     # Verify exactly 1 parent from storyline
     parents = coordinator.data[DATA_PARENTS]
@@ -259,9 +259,9 @@ async def test_fresh_config_flow_creates_storage_only_entry(
     # Verify coordinator loaded data from storage
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    # Check schema version is 41 (storage-only)
+    # Check schema version is 42 (storage-only)
     assert coordinator.data[DATA_SCHEMA_VERSION] == SCHEMA_VERSION_STORAGE_ONLY
-    assert SCHEMA_VERSION_STORAGE_ONLY == 41
+    assert SCHEMA_VERSION_STORAGE_ONLY == 42
 
     # Verify exactly 1 parent created
     parents = coordinator.data[DATA_PARENTS]
@@ -301,5 +301,10 @@ async def test_fresh_config_flow_creates_storage_only_entry(
 
     # Validate that entities are keyed by internal_id (not name)
     assert all(isinstance(kid_id, str) and len(kid_id) > 10 for kid_id in kids.keys())
-    assert all(isinstance(parent_id, str) and len(parent_id) > 10 for parent_id in parents.keys())
-    assert all(isinstance(chore_id, str) and len(chore_id) > 10 for chore_id in chores.keys())
+    assert all(
+        isinstance(parent_id, str) and len(parent_id) > 10
+        for parent_id in parents.keys()
+    )
+    assert all(
+        isinstance(chore_id, str) and len(chore_id) > 10 for chore_id in chores.keys()
+    )

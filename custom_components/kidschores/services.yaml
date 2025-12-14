@@ -217,7 +217,9 @@ apply_bonus:
 
 reset_all_data:
   name: "Reset All Data"
-  description: "Completely clears the KidsChores data from storage."
+  description: >
+    Factory reset: Creates backup, cleans entity registry, and completely clears all KidsChores data from storage.
+    Backup file is saved as kidschores_data_reset_backup_[timestamp] in .storage directory.
   fields: {}
 
 reset_all_chores:
