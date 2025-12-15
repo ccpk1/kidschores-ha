@@ -487,6 +487,148 @@ async def test_options_flow_add_challenge(
     assert result.get("step_id") == OPTIONS_FLOW_STEP_INIT
 
 
+async def test_options_flow_edit_achievement(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+) -> None:
+    """Test editing an existing achievement via options flow."""
+    # First add an achievement to edit
+    result = await hass.config_entries.options.async_init(init_integration.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result.get("flow_id"),
+        user_input={OPTIONS_FLOW_INPUT_MENU_SELECTION: OPTIONS_FLOW_ACHIEVEMENTS},
+    )
+    result = await hass.config_entries.options.async_configure(
+        result.get("flow_id"),
+        user_input={OPTIONS_FLOW_INPUT_MANAGE_ACTION: OPTIONS_FLOW_ACTIONS_ADD},
+    )
+    result = await hass.config_entries.options.async_configure(
+        result.get("flow_id"),
+        user_input={
+            CFOF_ACHIEVEMENTS_INPUT_NAME: "Initial Achievement",
+            CFOF_ACHIEVEMENTS_INPUT_TYPE: ACHIEVEMENT_TYPE_TOTAL,
+            CFOF_ACHIEVEMENTS_INPUT_DESCRIPTION: "Initial description",
+            CFOF_ACHIEVEMENTS_INPUT_CRITERIA: "chore_completion",
+            CFOF_ACHIEVEMENTS_INPUT_TARGET_VALUE: 5,
+            CFOF_ACHIEVEMENTS_INPUT_REWARD_POINTS: 25.0,
+            CFOF_ACHIEVEMENTS_INPUT_ICON: "mdi:star",
+            CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS: [],
+        },
+    )
+
+    # Now edit it
+    result = await hass.config_entries.options.async_configure(
+        result.get("flow_id"),
+        user_input={OPTIONS_FLOW_INPUT_MENU_SELECTION: OPTIONS_FLOW_ACHIEVEMENTS},
+    )
+    result = await hass.config_entries.options.async_configure(
+        result.get("flow_id"),
+        user_input={OPTIONS_FLOW_INPUT_MANAGE_ACTION: OPTIONS_FLOW_ACTIONS_EDIT},
+    )
+
+    # Select the achievement to edit
+    result = await hass.config_entries.options.async_configure(
+        result.get("flow_id"),
+        user_input={OPTIONS_FLOW_INPUT_ENTITY_NAME: "Initial Achievement"},
+    )
+
+    # Verify we're on the edit form
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "edit_achievement"
+
+    # Submit updated data
+    result = await hass.config_entries.options.async_configure(
+        result.get("flow_id"),
+        user_input={
+            CFOF_ACHIEVEMENTS_INPUT_NAME: "Updated Achievement",
+            CFOF_ACHIEVEMENTS_INPUT_TYPE: ACHIEVEMENT_TYPE_TOTAL,
+            CFOF_ACHIEVEMENTS_INPUT_DESCRIPTION: "Updated description",
+            CFOF_ACHIEVEMENTS_INPUT_CRITERIA: "chore_completion",
+            CFOF_ACHIEVEMENTS_INPUT_TARGET_VALUE: 10,
+            CFOF_ACHIEVEMENTS_INPUT_REWARD_POINTS: 50.0,
+            CFOF_ACHIEVEMENTS_INPUT_ICON: "mdi:trophy",
+            CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS: [],
+        },
+    )
+
+    # Should return to main menu after successful edit
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == OPTIONS_FLOW_STEP_INIT
+
+
+async def test_options_flow_edit_challenge(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+) -> None:
+    """Test editing an existing challenge via options flow."""
+    # First add a challenge to edit
+    result = await hass.config_entries.options.async_init(init_integration.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result.get("flow_id"),
+        user_input={OPTIONS_FLOW_INPUT_MENU_SELECTION: OPTIONS_FLOW_CHALLENGES},
+    )
+    result = await hass.config_entries.options.async_configure(
+        result.get("flow_id"),
+        user_input={OPTIONS_FLOW_INPUT_MANAGE_ACTION: OPTIONS_FLOW_ACTIONS_ADD},
+    )
+    result = await hass.config_entries.options.async_configure(
+        result.get("flow_id"),
+        user_input={
+            CFOF_CHALLENGES_INPUT_NAME: "Initial Challenge",
+            CFOF_CHALLENGES_INPUT_TYPE: CHALLENGE_TYPE_DAILY_MIN,
+            CFOF_CHALLENGES_INPUT_DESCRIPTION: "Initial challenge description",
+            CFOF_CHALLENGES_INPUT_CRITERIA: "daily_completion",
+            CFOF_CHALLENGES_INPUT_TARGET_VALUE: 5,
+            CFOF_CHALLENGES_INPUT_START_DATE: "2026-06-01",
+            CFOF_CHALLENGES_INPUT_END_DATE: "2026-07-31",
+            CFOF_CHALLENGES_INPUT_REWARD_POINTS: 50.0,
+            CFOF_CHALLENGES_INPUT_ICON: "mdi:flag",
+            CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS: [],
+        },
+    )
+
+    # Now edit it
+    result = await hass.config_entries.options.async_configure(
+        result.get("flow_id"),
+        user_input={OPTIONS_FLOW_INPUT_MENU_SELECTION: OPTIONS_FLOW_CHALLENGES},
+    )
+    result = await hass.config_entries.options.async_configure(
+        result.get("flow_id"),
+        user_input={OPTIONS_FLOW_INPUT_MANAGE_ACTION: OPTIONS_FLOW_ACTIONS_EDIT},
+    )
+
+    # Select the challenge to edit
+    result = await hass.config_entries.options.async_configure(
+        result.get("flow_id"),
+        user_input={OPTIONS_FLOW_INPUT_ENTITY_NAME: "Initial Challenge"},
+    )
+
+    # Verify we're on the edit form
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "edit_challenge"
+
+    # Submit updated data
+    result = await hass.config_entries.options.async_configure(
+        result.get("flow_id"),
+        user_input={
+            CFOF_CHALLENGES_INPUT_NAME: "Updated Challenge",
+            CFOF_CHALLENGES_INPUT_TYPE: CHALLENGE_TYPE_DAILY_MIN,
+            CFOF_CHALLENGES_INPUT_DESCRIPTION: "Updated challenge description",
+            CFOF_CHALLENGES_INPUT_CRITERIA: "daily_completion",
+            CFOF_CHALLENGES_INPUT_TARGET_VALUE: 10,
+            CFOF_CHALLENGES_INPUT_START_DATE: "2026-06-01",
+            CFOF_CHALLENGES_INPUT_END_DATE: "2026-08-31",
+            CFOF_CHALLENGES_INPUT_REWARD_POINTS: 100.0,
+            CFOF_CHALLENGES_INPUT_ICON: "mdi:flag-checkered",
+            CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS: [],
+        },
+    )
+
+    # Should return to main menu after successful edit
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == OPTIONS_FLOW_STEP_INIT
+
+
 async def test_options_flow_edit_chore_preserves_assigned_kids(
     hass: HomeAssistant, init_integration: MockConfigEntry
 ):

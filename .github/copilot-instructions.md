@@ -12,8 +12,9 @@
 
 ## Code Quality Standards
 
-- **No linting errors**: Run `pylint custom_components/kidschores/` before committing
-- **No type errors**: Check Pylance/Pyright in VS Code (set to "basic" or "strict" mode)
+- **Automated linting**: `./utils/quick_lint.sh --fix` or `python utils/lint_check.py --integration`
+- **No linting errors**: Script checks pylint (critical errors only), type errors, trailing whitespace
+- **No type errors**: Pyright/Pylance errors are caught by lint scripts (set VS Code to "basic" mode)
 - **Type hints**: All functions/methods must have type hints (params and return)
 - **Docstrings**: All public functions/methods/classes require docstrings
 - **Error handling**: Use specific exceptions (`HomeAssistantError`, `ServiceValidationError`, `ConfigEntryNotReady`, `ConfigEntryAuthFailed`)
@@ -60,17 +61,21 @@ Add shared functions to these files, not elsewhere.
 
 ## Development
 
-**Validation**: HACS & Hassfest via GitHub Actions. Local: `pylint custom_components/kidschores/` and check Pylance (VS Code) for type errors.
+**Validation**: HACS & Hassfest via GitHub Actions. Local: `./utils/quick_lint.sh --fix` (comprehensive linting including pylint, type checking, and formatting).
 
-**Testing**: 78 automated tests (71 passing, 7 skipped). **CRITICAL**: When working on tests, follow `tests/TESTING_AGENT_INSTRUCTIONS.md` (89 lines, concise quick reference). For detailed troubleshooting after 3 failed attempts, consult `tests/TESTING_TECHNICAL_GUIDE.md`.
+**Linting**: **ALWAYS run after EVERY change**: `./utils/quick_lint.sh --fix` - This checks pylint errors, type errors (Pyright/Pylance), trailing whitespace (auto-fixes), and line length. See `utils/README_LINTING.md` for details.
+
+**Testing**: 111 automated tests (111 passing, 7 skipped). **CRITICAL**: When working on tests, follow `tests/TESTING_AGENT_INSTRUCTIONS.md` (89 lines, concise quick reference). For detailed troubleshooting after 3 failed attempts, consult `tests/TESTING_TECHNICAL_GUIDE.md`.
 
 **Testing as Debugging Tool**: The test suite is highly effective for debugging both the integration and dashboard. When investigating issues:
+
 - Write a test that reproduces the bug → reveals exact failure point
 - Use coordinator tests to verify business logic without UI
 - Use dashboard template tests to validate Jinja2 syntax and data access
 - Scenario YAML files provide consistent, reproducible test data
 
 **Key Test Patterns**:
+
 - **Options Flow**: UI simulation for validation tests
 - **Direct Coordinator Loading**: Business logic via YAML scenarios + platform reload
 - **Direct Entity Access**: Bypass service dispatcher after reload
@@ -78,6 +83,7 @@ Add shared functions to these files, not elsewhere.
 - **User Context**: `button_entity._context = Context(user_id=mock_user.id)`
 
 **Test Code Quality** (mandatory before committing):
+
 - ✅ **No severity 8 errors** (import errors, attribute access issues, TypedDict issues)
 - ✅ **No severity 4 warnings** unless explicitly acceptable (see below)
 - ✅ **No unused imports or variables** (remove or prefix with `_`)
@@ -89,12 +95,14 @@ Add shared functions to these files, not elsewhere.
 - ✅ Descriptive test names: `test_<feature>_<action>_<expected>`
 
 **Acceptable test warnings** (severity 2-4, can ignore or suppress):
+
 - `too-many-locals` (R0914) - Test setup often needs many variables
 - `import-outside-toplevel` (C0415) - Acceptable in test fixtures (severity 2)
 - `too-many-lines` (C0302) - conftest.py can exceed 1000 lines (severity 2)
 - `line-too-long` (C0301) - Acceptable for readability (severity 2)
 
 **Must fix or suppress before committing** (severity 4):
+
 - Import errors (`no-name-in-module`, `reportAttributeAccessIssue`)
 - TypedDict access issues (`reportTypedDictNotRequiredAccess` - use `.get()` with defaults)
 - Unused imports/variables (F401, W0611, F841, W0612) - remove them
@@ -109,6 +117,7 @@ Add shared functions to these files, not elsewhere.
   Place immediately after module docstring, before imports
 
 **False positives**: If linter reports errors but code works correctly, suppress with comments:
+
 ```python
 # pylint: disable=no-member  # False positive - dynamic attribute
 # type: ignore[attr-defined]  # Mypy false positive
@@ -127,17 +136,20 @@ from unittest.mock import AsyncMock
 ```
 
 **Why module-level?**
+
 - Prevents missing warnings in large files (8+ occurrences easily overlooked)
 - More maintainable - one suppression instead of 8+
 - Standard practice for test files accessing internal APIs
 - IDE diagnostics may not refresh immediately after adding suppressions
 
 **Common module-level suppressions for tests**:
+
 - `protected-access` - Tests accessing `_context`, `_persist()`, `_get_*()` internal methods
 - `redefined-outer-name` - Entire test file uses pytest fixtures that shadow fixture names
 - `unused-argument` - Can also use at function level for skipped tests
 
 **Verification after fixing warnings**:
+
 1. Run `pylint tests/*.py 2>&1 | grep -E "^[WE][0-9]{4}:"`
 2. Restart VS Code or reload window to refresh IDE diagnostics
 3. Check file in editor - green checkmark = no warnings

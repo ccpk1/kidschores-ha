@@ -494,37 +494,12 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         """
         errors = {}
         if user_input is not None:
-            reward_name = user_input[const.CFOF_REWARDS_INPUT_NAME].strip()
-            internal_id = user_input.get(
-                const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
-            )
-
-            if not reward_name:
-                errors[const.CFOP_ERROR_REWARD_NAME] = (
-                    const.TRANS_KEY_CFOF_INVALID_REWARD_NAME
-                )
-            elif any(
-                reward_data[const.DATA_REWARD_NAME] == reward_name
-                for reward_data in self._rewards_temp.values()
-            ):
-                errors[const.CFOP_ERROR_REWARD_NAME] = (
-                    const.TRANS_KEY_CFOF_DUPLICATE_REWARD
-                )
-            else:
-                self._rewards_temp[internal_id] = {
-                    const.DATA_REWARD_NAME: reward_name,
-                    const.DATA_REWARD_COST: user_input[const.CFOF_REWARDS_INPUT_COST],
-                    const.DATA_REWARD_DESCRIPTION: user_input.get(
-                        const.CFOF_REWARDS_INPUT_DESCRIPTION, const.CONF_EMPTY
-                    ),
-                    const.DATA_REWARD_LABELS: user_input.get(
-                        const.CFOF_REWARDS_INPUT_LABELS, []
-                    ),
-                    const.DATA_REWARD_ICON: user_input.get(
-                        const.CFOF_REWARDS_INPUT_ICON, const.DEFAULT_REWARD_ICON
-                    ),
-                    const.DATA_REWARD_INTERNAL_ID: internal_id,
-                }
+            errors = fh.validate_rewards_inputs(user_input, self._rewards_temp)
+            if not errors:
+                reward_data = fh.build_rewards_data(user_input, self._rewards_temp)
+                self._rewards_temp.update(reward_data)
+                internal_id = list(reward_data.keys())[0]
+                reward_name = reward_data[internal_id][const.DATA_REWARD_NAME]
                 const.LOGGER.debug(
                     "DEBUG: Added Reward: %s with ID: %s", reward_name, internal_id
                 )
@@ -583,40 +558,18 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         """
         errors = {}
         if user_input is not None:
-            penalty_name = user_input[const.CFOF_PENALTIES_INPUT_NAME].strip()
-            penalty_points = user_input[const.CFOF_PENALTIES_INPUT_POINTS]
-            internal_id = user_input.get(
-                const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
-            )
+            # Validate inputs
+            errors = fh.validate_penalties_inputs(user_input, self._penalties_temp)
 
-            if not penalty_name:
-                errors[const.CFOP_ERROR_PENALTY_NAME] = (
-                    const.TRANS_KEY_CFOF_INVALID_PENALTY_NAME
+            if not errors:
+                # Build penalty data
+                penalty_data = fh.build_penalties_data(user_input, self._penalties_temp)
+                self._penalties_temp.update(penalty_data)
+
+                penalty_name = user_input[const.CFOF_PENALTIES_INPUT_NAME].strip()
+                internal_id = user_input.get(
+                    const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
                 )
-            elif any(
-                penalty_data[const.DATA_PENALTY_NAME] == penalty_name
-                for penalty_data in self._penalties_temp.values()
-            ):
-                errors[const.CFOP_ERROR_PENALTY_NAME] = (
-                    const.TRANS_KEY_CFOF_DUPLICATE_PENALTY
-                )
-            else:
-                self._penalties_temp[internal_id] = {
-                    const.DATA_PENALTY_NAME: penalty_name,
-                    const.DATA_PENALTY_DESCRIPTION: user_input.get(
-                        const.CFOF_PENALTIES_INPUT_DESCRIPTION, const.CONF_EMPTY
-                    ),
-                    const.DATA_PENALTY_LABELS: user_input.get(
-                        const.CFOF_PENALTIES_INPUT_LABELS, []
-                    ),
-                    const.DATA_PENALTY_POINTS: -abs(
-                        penalty_points
-                    ),  # Ensure points are negative
-                    const.DATA_PENALTY_ICON: user_input.get(
-                        const.CFOF_PENALTIES_INPUT_ICON, const.DEFAULT_PENALTY_ICON
-                    ),
-                    const.DATA_PENALTY_INTERNAL_ID: internal_id,
-                }
                 const.LOGGER.debug(
                     "DEBUG: Added Penalty: %s with ID: %s", penalty_name, internal_id
                 )
@@ -673,38 +626,18 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         """
         errors = {}
         if user_input is not None:
-            bonus_name = user_input[const.CFOF_BONUSES_INPUT_NAME].strip()
-            bonus_points = user_input[const.CFOF_BONUSES_INPUT_POINTS]
-            internal_id = user_input.get(
-                const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
-            )
+            # Validate inputs
+            errors = fh.validate_bonuses_inputs(user_input, self._bonuses_temp)
 
-            if not bonus_name:
-                errors[const.CFOP_ERROR_BONUS_NAME] = (
-                    const.TRANS_KEY_CFOF_INVALID_BONUS_NAME
+            if not errors:
+                # Build bonus data
+                bonus_data = fh.build_bonuses_data(user_input, self._bonuses_temp)
+                self._bonuses_temp.update(bonus_data)
+
+                bonus_name = user_input[const.CFOF_BONUSES_INPUT_NAME].strip()
+                internal_id = user_input.get(
+                    const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
                 )
-            elif any(
-                bonus_data[const.DATA_BONUS_NAME] == bonus_name
-                for bonus_data in self._bonuses_temp.values()
-            ):
-                errors[const.CFOP_ERROR_BONUS_NAME] = (
-                    const.TRANS_KEY_CFOF_DUPLICATE_BONUS
-                )
-            else:
-                self._bonuses_temp[internal_id] = {
-                    const.DATA_BONUS_NAME: bonus_name,
-                    const.DATA_BONUS_DESCRIPTION: user_input.get(
-                        const.CFOF_BONUSES_INPUT_DESCRIPTION, const.CONF_EMPTY
-                    ),
-                    const.DATA_BONUS_LABELS: user_input.get(
-                        const.CFOF_BONUSES_INPUT_LABELS, []
-                    ),
-                    const.DATA_BONUS_POINTS: abs(bonus_points),
-                    const.DATA_BONUS_ICON: user_input.get(
-                        const.CFOF_BONUSES_INPUT_ICON, const.DEFAULT_BONUS_ICON
-                    ),
-                    const.DATA_BONUS_INTERNAL_ID: internal_id,
-                }
                 const.LOGGER.debug(
                     "DEBUG: Added Bonus '%s' with ID: %s", bonus_name, internal_id
                 )
@@ -758,73 +691,30 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         errors = {}
 
         if user_input is not None:
-            achievement_name = user_input[const.CFOF_ACHIEVEMENTS_INPUT_NAME].strip()
-            if not achievement_name:
-                errors[const.CFOP_ERROR_ACHIEVEMENT_NAME] = (
-                    const.TRANS_KEY_CFOF_INVALID_ACHIEVEMENT_NAME
+            # Build achievement data with integrated validation
+            achievement_data, errors = fh.build_achievements_data(
+                user_input, self._achievements_temp, kids_name_to_id={}
+            )
+
+            if not errors:
+                self._achievements_temp.update(achievement_data)
+
+                achievement_name = user_input[
+                    const.CFOF_ACHIEVEMENTS_INPUT_NAME
+                ].strip()
+                internal_id = user_input.get(
+                    const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
                 )
-            elif any(
-                achievement_data[const.DATA_ACHIEVEMENT_NAME] == achievement_name
-                for achievement_data in self._achievements_temp.values()
-            ):
-                errors[const.CFOP_ERROR_ACHIEVEMENT_NAME] = (
-                    const.TRANS_KEY_CFOF_DUPLICATE_ACHIEVEMENT
+                const.LOGGER.debug(
+                    "DEBUG: Added Achievement '%s' with ID: %s",
+                    achievement_name,
+                    internal_id,
                 )
-            else:
-                _type = user_input[const.CFOF_ACHIEVEMENTS_INPUT_TYPE]
 
-                if _type == const.ACHIEVEMENT_TYPE_STREAK:
-                    chore_id = user_input.get(
-                        const.CFOF_ACHIEVEMENTS_INPUT_SELECTED_CHORE_ID
-                    )
-                    if not chore_id or chore_id == const.CONF_NONE_TEXT:
-                        errors[const.CFOP_ERROR_SELECT_CHORE_ID] = (
-                            const.TRANS_KEY_CFOF_CHORE_MUST_BE_SELECTED
-                        )
-
-                    final_chore_id = chore_id
-                else:
-                    # Discard chore if not streak
-                    final_chore_id = const.CONF_EMPTY
-
-                if not errors:
-                    internal_id = user_input.get(
-                        const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
-                    )
-                    self._achievements_temp[internal_id] = {
-                        const.DATA_ACHIEVEMENT_NAME: achievement_name,
-                        const.DATA_ACHIEVEMENT_DESCRIPTION: user_input.get(
-                            const.CFOF_ACHIEVEMENTS_INPUT_DESCRIPTION, const.CONF_EMPTY
-                        ),
-                        const.DATA_ACHIEVEMENT_LABELS: user_input.get(
-                            const.CFOF_ACHIEVEMENTS_INPUT_LABELS, []
-                        ),
-                        const.DATA_ACHIEVEMENT_ICON: user_input.get(
-                            const.CFOF_ACHIEVEMENTS_INPUT_ICON,
-                            const.DEFAULT_ACHIEVEMENTS_ICON,
-                        ),
-                        const.DATA_ACHIEVEMENT_ASSIGNED_KIDS: user_input[
-                            const.CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS
-                        ],
-                        const.DATA_ACHIEVEMENT_TYPE: _type,
-                        const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID: final_chore_id,
-                        const.DATA_ACHIEVEMENT_CRITERIA: user_input.get(
-                            const.CFOF_ACHIEVEMENTS_INPUT_CRITERIA, const.CONF_EMPTY
-                        ).strip(),
-                        const.DATA_ACHIEVEMENT_TARGET_VALUE: user_input[
-                            const.CFOF_ACHIEVEMENTS_INPUT_TARGET_VALUE
-                        ],
-                        const.DATA_ACHIEVEMENT_REWARD_POINTS: user_input[
-                            const.CFOF_ACHIEVEMENTS_INPUT_REWARD_POINTS
-                        ],
-                        const.DATA_ACHIEVEMENT_INTERNAL_ID: internal_id,
-                        const.DATA_ACHIEVEMENT_PROGRESS: {},
-                    }
-
-                    self._achievement_index += 1
-                    if self._achievement_index >= self._achievement_count:
-                        return await self.async_step_challenge_count()
-                    return await self.async_step_achievements()
+            self._achievement_index += 1
+            if self._achievement_index >= self._achievement_count:
+                return await self.async_step_challenge_count()
+            return await self.async_step_achievements()
 
         kids_dict = {
             kid_data[const.DATA_KID_NAME]: kid_id
@@ -874,122 +764,56 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             errors=errors,
         )
 
-    # pylint: disable=too-many-locals,too-many-branches,too-many-statements,too-many-nested-blocks
     async def async_step_challenges(self, user_input=None):
         """Collect each challenge's details using internal_id as the key."""
         errors = {}
         if user_input is not None:
-            challenge_name = user_input[const.CFOF_CHALLENGES_INPUT_NAME].strip()
-            if not challenge_name:
-                errors[const.CFOP_ERROR_CHALLENGE_NAME] = (
-                    const.TRANS_KEY_CFOF_INVALID_CHALLENGE_NAME
-                )
-            elif any(
-                challenge_data[const.DATA_CHALLENGE_NAME] == challenge_name
-                for challenge_data in self._challenges_temp.values()
-            ):
-                errors[const.CFOP_ERROR_CHALLENGE_NAME] = (
-                    const.TRANS_KEY_CFOF_DUPLICATE_CHALLENGE
-                )
-            else:
-                _type = user_input[const.CFOF_CHALLENGES_INPUT_TYPE]
+            # Use the helper to build and validate challenge data
+            challenge_data, errors = fh.build_challenges_data(
+                self.hass,
+                user_input,
+                self._kids_temp,
+                existing_challenges=self._challenges_temp,
+                current_id=None,  # New challenge
+            )
 
-                if _type == const.CHALLENGE_TYPE_TOTAL_WITHIN_WINDOW:
-                    chosen_chore_id = user_input.get(
-                        const.CFOF_CHALLENGES_INPUT_SELECTED_CHORE_ID
-                    )
-                    if not chosen_chore_id or chosen_chore_id == const.CONF_NONE_TEXT:
-                        errors[const.CFOP_ERROR_SELECT_CHORE_ID] = (
-                            const.TRANS_KEY_CFOF_CHORE_MUST_BE_SELECTED
-                        )
-                    final_chore_id = chosen_chore_id
-                else:
-                    # Discard chore if not "const.CHALLENGE_TYPE_TOTAL_WITHIN_WINDOW"
-                    final_chore_id = const.CONF_EMPTY
+            if not errors and challenge_data:
+                # Additional config flow specific validation: dates must be in the future
+                start_date_str = list(challenge_data.values())[0][
+                    const.DATA_CHALLENGE_START_DATE
+                ]
+                end_date_str = list(challenge_data.values())[0][
+                    const.DATA_CHALLENGE_END_DATE
+                ]
 
-                # Process start_date and end_date using the helper:
-                start_date_input = user_input.get(
-                    const.CFOF_CHALLENGES_INPUT_START_DATE
-                )
-                end_date_input = user_input.get(const.CFOF_CHALLENGES_INPUT_END_DATE)
+                start_dt = dt_util.parse_datetime(start_date_str)
+                end_dt = dt_util.parse_datetime(end_date_str)
 
-                if start_date_input:
-                    try:
-                        start_date = fh.ensure_utc_datetime(self.hass, start_date_input)
-                        start_dt = dt_util.parse_datetime(start_date)
-                        if start_dt and start_dt < dt_util.utcnow():
-                            errors[const.CFOP_ERROR_START_DATE] = (
-                                const.TRANS_KEY_CFOF_START_DATE_IN_PAST
-                            )
-                    except (KeyError, ValueError, AttributeError, TypeError):
-                        errors[const.CFOP_ERROR_START_DATE] = (
-                            const.TRANS_KEY_CFOF_INVALID_START_DATE
-                        )
-                        start_date = None
-                else:
-                    start_date = None
-
-                if end_date_input:
-                    try:
-                        end_date = fh.ensure_utc_datetime(self.hass, end_date_input)
-                        end_dt = dt_util.parse_datetime(end_date)
-                        if end_dt and end_dt <= dt_util.utcnow():
-                            errors[const.CFOP_ERROR_END_DATE] = (
-                                const.TRANS_KEY_CFOF_END_DATE_IN_PAST
-                            )
-                        if start_date:
-                            # Compare start_dt and end_dt if both are valid
-                            if end_dt and start_dt and end_dt <= start_dt:
-                                errors[const.CFOP_ERROR_END_DATE] = (
-                                    const.TRANS_KEY_CFOF_END_DATE_NOT_AFTER_START_DATE
-                                )
-                    except (KeyError, ValueError, AttributeError, TypeError):
-                        errors[const.CFOP_ERROR_END_DATE] = (
-                            const.TRANS_KEY_CFOF_INVALID_END_DATE
-                        )
-                        end_date = None
-                else:
-                    end_date = None
-
-                if not errors:
-                    internal_id = user_input.get(
-                        const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
-                    )
-                    self._challenges_temp[internal_id] = {
-                        const.DATA_CHALLENGE_NAME: challenge_name,
-                        const.DATA_CHALLENGE_DESCRIPTION: user_input.get(
-                            const.CFOF_CHALLENGES_INPUT_DESCRIPTION, const.CONF_EMPTY
-                        ),
-                        const.DATA_CHALLENGE_LABELS: user_input.get(
-                            const.CFOF_CHALLENGES_INPUT_LABELS, []
-                        ),
-                        const.DATA_CHALLENGE_ICON: user_input.get(
-                            const.CFOF_CHALLENGES_INPUT_ICON,
-                            const.DEFAULT_CHALLENGES_ICON,
-                        ),
-                        const.DATA_CHALLENGE_ASSIGNED_KIDS: user_input[
-                            const.CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS
-                        ],
-                        const.DATA_CHALLENGE_TYPE: _type,
-                        const.DATA_CHALLENGE_SELECTED_CHORE_ID: final_chore_id,
-                        const.DATA_CHALLENGE_CRITERIA: user_input.get(
-                            const.CFOF_CHALLENGES_INPUT_CRITERIA, const.CONF_EMPTY
-                        ).strip(),
-                        const.DATA_CHALLENGE_TARGET_VALUE: user_input[
-                            const.CFOF_CHALLENGES_INPUT_TARGET_VALUE
-                        ],
-                        const.DATA_CHALLENGE_REWARD_POINTS: user_input[
-                            const.CFOF_CHALLENGES_INPUT_REWARD_POINTS
-                        ],
-                        const.DATA_CHALLENGE_START_DATE: start_date,
-                        const.DATA_CHALLENGE_END_DATE: end_date,
-                        const.DATA_CHALLENGE_INTERNAL_ID: internal_id,
-                        const.DATA_CHALLENGE_PROGRESS: {},
+                if start_dt and start_dt < dt_util.utcnow():
+                    errors = {
+                        const.CFOP_ERROR_START_DATE: const.TRANS_KEY_CFOF_START_DATE_IN_PAST
                     }
-                    self._challenge_index += 1
-                    if self._challenge_index >= self._challenge_count:
-                        return await self.async_step_finish()
-                    return await self.async_step_challenges()
+                elif end_dt and end_dt <= dt_util.utcnow():
+                    errors = {
+                        const.CFOP_ERROR_END_DATE: const.TRANS_KEY_CFOF_END_DATE_IN_PAST
+                    }
+
+            if not errors and challenge_data:
+                self._challenges_temp.update(challenge_data)
+
+                challenge_name = user_input[const.CFOF_CHALLENGES_INPUT_NAME].strip()
+                internal_id = list(challenge_data.keys())[0]
+                const.LOGGER.debug(
+                    "DEBUG: Added Challenge '%s' with ID: %s",
+                    challenge_name,
+                    internal_id,
+                )
+
+            if not errors:
+                self._challenge_index += 1
+                if self._challenge_index >= self._challenge_count:
+                    return await self.async_step_finish()
+                return await self.async_step_challenges()
 
         kids_dict = {
             kid_data[const.DATA_KID_NAME]: kid_id

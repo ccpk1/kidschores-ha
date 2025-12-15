@@ -4,9 +4,10 @@
 Handles add/edit/delete operations with entities referenced internally by internal_id.
 Ensures consistency and reloads the integration upon changes.
 """
-# pylint: disable=protected-access
-# Note: Options flow is tightly coupled to coordinator and needs direct access
+# pylint: disable=protected-access,broad-exception-caught
+# protected-access: Options flow is tightly coupled to coordinator and needs direct access
 # to internal creation/persistence methods (_create_* and _persist).
+# broad-exception-caught: Reload operations use broad catch to ensure robustness per HA guidelines.
 
 import asyncio
 import datetime
@@ -21,6 +22,10 @@ from homeassistant.util import dt as dt_util
 from . import const
 from . import flow_helpers as fh
 from . import kc_helpers as kh
+
+# ----------------------------------------------------------------------------------
+# INITIALIZATION & HELPERS
+# ----------------------------------------------------------------------------------
 
 
 def _ensure_str(value):
@@ -48,6 +53,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         return self.hass.data[const.DOMAIN][self.config_entry.entry_id][
             const.COORDINATOR
         ]
+
+    # ----------------------------------------------------------------------------------
+    # MAIN MENU
+    # ----------------------------------------------------------------------------------
 
     async def async_step_init(self, user_input=None):
         """Display the main menu for the Options Flow."""
@@ -391,6 +400,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_ADD_KID, data_schema=schema, errors=errors
         )
 
+    # ----------------------------------------------------------------------------------
+    # PARENTS MANAGEMENT
+    # ----------------------------------------------------------------------------------
+
     async def async_step_add_parent(self, user_input=None):
         """Add a new parent."""
         coordinator = self._get_coordinator()
@@ -444,6 +457,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             data_schema=parent_schema,
             errors=errors,
         )
+
+    # ----------------------------------------------------------------------------------
+    # CHORES MANAGEMENT
+    # ----------------------------------------------------------------------------------
 
     async def async_step_add_chore(self, user_input=None):
         """Add a new chore."""
@@ -500,6 +517,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_ADD_CHORE, data_schema=schema, errors=errors
         )
+
+    # ----------------------------------------------------------------------------------
+    # BADGES MANAGEMENT
+    # ----------------------------------------------------------------------------------
 
     async def async_step_add_badge(self, user_input=None):
         """Entry point to add a new badge."""
@@ -725,37 +746,17 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         rewards_dict = coordinator.rewards_data
 
         if user_input is not None:
-            reward_name = user_input[const.CFOF_REWARDS_INPUT_NAME].strip()
-            internal_id = user_input.get(
-                const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
-            )
+            errors = fh.validate_rewards_inputs(user_input, rewards_dict)
+            if not errors:
+                reward_data = fh.build_rewards_data(user_input, rewards_dict)
+                internal_id = list(reward_data.keys())[0]
+                new_reward_data = reward_data[internal_id]
 
-            if any(
-                reward_data[const.DATA_REWARD_NAME] == reward_name
-                for reward_data in rewards_dict.values()
-            ):
-                errors[const.CFOP_ERROR_REWARD_NAME] = (
-                    const.TRANS_KEY_CFOF_DUPLICATE_REWARD
-                )
-            else:
-                new_reward_data = {
-                    const.DATA_REWARD_NAME: reward_name,
-                    const.DATA_REWARD_COST: user_input[const.CFOF_REWARDS_INPUT_COST],
-                    const.DATA_REWARD_DESCRIPTION: user_input.get(
-                        const.CFOF_REWARDS_INPUT_DESCRIPTION, const.CONF_EMPTY
-                    ),
-                    const.DATA_REWARD_LABELS: user_input.get(
-                        const.CFOF_REWARDS_INPUT_LABELS, []
-                    ),
-                    const.DATA_REWARD_ICON: user_input.get(
-                        const.CFOF_REWARDS_INPUT_ICON, const.DEFAULT_REWARD_ICON
-                    ),
-                    const.DATA_REWARD_INTERNAL_ID: internal_id,
-                }
                 coordinator._create_reward(internal_id, new_reward_data)
                 coordinator._persist()
                 coordinator.async_update_listeners()
 
+                reward_name = new_reward_data[const.DATA_REWARD_NAME]
                 const.LOGGER.debug(
                     "DEBUG: Added Reward '%s' with ID: %s", reward_name, internal_id
                 )
@@ -769,6 +770,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             errors=errors,
         )
 
+    # ----------------------------------------------------------------------------------
+    # BONUSES MANAGEMENT
+    # ----------------------------------------------------------------------------------
+
     async def async_step_add_bonus(self, user_input=None):
         """Add a new bonus."""
         coordinator = self._get_coordinator()
@@ -776,38 +781,19 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         bonuses_dict = coordinator.bonuses_data
 
         if user_input is not None:
-            bonus_name = user_input[const.CFOF_BONUSES_INPUT_NAME].strip()
-            bonus_points = user_input[const.CFOF_BONUSES_INPUT_POINTS]
-            internal_id = user_input.get(
-                const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
-            )
+            # Validate inputs
+            errors = fh.validate_bonuses_inputs(user_input, bonuses_dict)
 
-            if any(
-                bonus_data[const.DATA_BONUS_NAME] == bonus_name
-                for bonus_data in bonuses_dict.values()
-            ):
-                errors[const.CFOP_ERROR_BONUS_NAME] = (
-                    const.TRANS_KEY_CFOF_DUPLICATE_BONUS
-                )
-            else:
-                new_bonus_data = {
-                    const.DATA_BONUS_NAME: bonus_name,
-                    const.DATA_BONUS_DESCRIPTION: user_input.get(
-                        const.CFOF_BONUSES_INPUT_DESCRIPTION, const.CONF_EMPTY
-                    ),
-                    const.DATA_BONUS_LABELS: user_input.get(
-                        const.CFOF_BONUSES_INPUT_LABELS, []
-                    ),
-                    const.DATA_BONUS_POINTS: abs(bonus_points),
-                    const.DATA_BONUS_ICON: user_input.get(
-                        const.CFOF_BONUSES_INPUT_ICON, const.DEFAULT_BONUS_ICON
-                    ),
-                    const.DATA_BONUS_INTERNAL_ID: internal_id,
-                }
+            if not errors:
+                # Build bonus data
+                bonus_data = fh.build_bonuses_data(user_input, bonuses_dict)
+                internal_id, new_bonus_data = next(iter(bonus_data.items()))
+
                 coordinator._create_bonus(internal_id, new_bonus_data)
                 coordinator._persist()
                 coordinator.async_update_listeners()
 
+                bonus_name = user_input[const.CFOF_BONUSES_INPUT_NAME].strip()
                 const.LOGGER.debug(
                     "DEBUG: Added Bonus '%s' with ID: %s", bonus_name, internal_id
                 )
@@ -826,40 +812,19 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         penalties_dict = coordinator.penalties_data
 
         if user_input is not None:
-            penalty_name = user_input[const.CFOF_PENALTIES_INPUT_NAME].strip()
-            penalty_points = user_input[const.CFOF_PENALTIES_INPUT_POINTS]
-            internal_id = user_input.get(
-                const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
-            )
+            # Validate inputs
+            errors = fh.validate_penalties_inputs(user_input, penalties_dict)
 
-            if any(
-                penalty_data[const.DATA_PENALTY_NAME] == penalty_name
-                for penalty_data in penalties_dict.values()
-            ):
-                errors[const.CFOP_ERROR_PENALTY_NAME] = (
-                    const.TRANS_KEY_CFOF_DUPLICATE_PENALTY
-                )
-            else:
-                new_penalty_data = {
-                    const.DATA_PENALTY_NAME: penalty_name,
-                    const.DATA_PENALTY_DESCRIPTION: user_input.get(
-                        const.CFOF_PENALTIES_INPUT_DESCRIPTION, const.CONF_EMPTY
-                    ),
-                    const.DATA_PENALTY_LABELS: user_input.get(
-                        const.CFOF_PENALTIES_INPUT_LABELS, []
-                    ),
-                    const.DATA_PENALTY_POINTS: -abs(
-                        penalty_points
-                    ),  # Ensure points are negative
-                    const.DATA_PENALTY_ICON: user_input.get(
-                        const.CFOF_PENALTIES_INPUT_ICON, const.DEFAULT_PENALTY_ICON
-                    ),
-                    const.DATA_PENALTY_INTERNAL_ID: internal_id,
-                }
+            if not errors:
+                # Build penalty data
+                penalty_data = fh.build_penalties_data(user_input, penalties_dict)
+                internal_id, new_penalty_data = next(iter(penalty_data.items()))
+
                 coordinator._create_penalty(internal_id, new_penalty_data)
                 coordinator._persist()
                 coordinator.async_update_listeners()
 
+                penalty_name = user_input[const.CFOF_PENALTIES_INPUT_NAME].strip()
                 const.LOGGER.debug(
                     "DEBUG: Added Penalty '%s' with ID: %s", penalty_name, internal_id
                 )
@@ -873,93 +838,46 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             errors=errors,
         )
 
+    # ----------------------------------------------------------------------------------
+    # ACHIEVEMENTS MANAGEMENT
+    # ----------------------------------------------------------------------------------
+
     async def async_step_add_achievement(self, user_input=None):
         """Add a new achievement."""
         coordinator = self._get_coordinator()
         errors = {}
         achievements_dict = coordinator.achievements_data
-
         chores_dict = coordinator.chores_data
 
         if user_input is not None:
-            achievement_name = user_input[const.CFOF_ACHIEVEMENTS_INPUT_NAME].strip()
-            if any(
-                data[const.DATA_ACHIEVEMENT_NAME] == achievement_name
-                for data in achievements_dict.values()
-            ):
-                errors[const.CFOP_ERROR_ACHIEVEMENT_NAME] = (
-                    const.TRANS_KEY_CFOF_DUPLICATE_ACHIEVEMENT
+            # Build kids name to ID mapping for options flow
+            kids_name_to_id = {
+                kid[const.DATA_KID_NAME]: kid[const.DATA_KID_INTERNAL_ID]
+                for kid in coordinator.data.get(const.DATA_KIDS, [])
+            }
+
+            # Build achievement data with integrated validation
+            achievement_data, errors = fh.build_achievements_data(
+                user_input, achievements_dict, kids_name_to_id
+            )
+
+            if not errors:
+                internal_id, new_achievement_data = next(iter(achievement_data.items()))
+
+                coordinator._create_achievement(internal_id, new_achievement_data)
+                coordinator._persist()
+                coordinator.async_update_listeners()
+
+                achievement_name = user_input[
+                    const.CFOF_ACHIEVEMENTS_INPUT_NAME
+                ].strip()
+                const.LOGGER.debug(
+                    "DEBUG: Added Achievement '%s' with ID: %s",
+                    achievement_name,
+                    internal_id,
                 )
-            else:
-                _type = user_input[const.CFOF_ACHIEVEMENTS_INPUT_TYPE]
-
-                chore_id = const.CONF_EMPTY
-
-                if _type == const.ACHIEVEMENT_TYPE_STREAK:
-                    c = (
-                        user_input.get(const.CFOF_ACHIEVEMENTS_INPUT_SELECTED_CHORE_ID)
-                        or const.CONF_EMPTY
-                    )
-                    if not c or c == const.CONF_NONE_TEXT:
-                        errors[const.CFOP_ERROR_SELECT_CHORE_ID] = (
-                            const.TRANS_KEY_CFOF_CHORE_MUST_BE_SELECTED
-                        )
-                    chore_id = c
-
-                if not errors:
-                    # Convert kid names to internal IDs for storage
-                    coordinator = self._get_coordinator()
-                    assigned_kids_names = user_input[
-                        const.CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS
-                    ]
-                    kids_dict = {
-                        kid[const.DATA_KID_NAME]: kid[const.DATA_KID_INTERNAL_ID]
-                        for kid in coordinator.data.get(const.DATA_KIDS, [])
-                    }
-                    assigned_kids_ids = [
-                        kids_dict.get(name, name) for name in assigned_kids_names
-                    ]
-
-                    internal_id = user_input.get(
-                        const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
-                    )
-                    new_achievement_data = {
-                        const.DATA_ACHIEVEMENT_NAME: achievement_name,
-                        const.DATA_ACHIEVEMENT_DESCRIPTION: user_input.get(
-                            const.CFOF_ACHIEVEMENTS_INPUT_DESCRIPTION, const.CONF_EMPTY
-                        ),
-                        const.DATA_ACHIEVEMENT_LABELS: user_input.get(
-                            const.CFOF_ACHIEVEMENTS_INPUT_LABELS, []
-                        ),
-                        const.DATA_ACHIEVEMENT_ICON: user_input.get(
-                            const.CFOF_ACHIEVEMENTS_INPUT_ICON,
-                            const.DEFAULT_ACHIEVEMENTS_ICON,
-                        ),
-                        const.DATA_ACHIEVEMENT_ASSIGNED_KIDS: assigned_kids_ids,
-                        const.DATA_ACHIEVEMENT_TYPE: _type,
-                        const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID: chore_id,
-                        const.DATA_ACHIEVEMENT_CRITERIA: user_input.get(
-                            const.CFOF_ACHIEVEMENTS_INPUT_CRITERIA, const.CONF_EMPTY
-                        ).strip(),
-                        const.DATA_ACHIEVEMENT_TARGET_VALUE: user_input[
-                            const.CFOF_ACHIEVEMENTS_INPUT_TARGET_VALUE
-                        ],
-                        const.DATA_ACHIEVEMENT_REWARD_POINTS: user_input[
-                            const.CFOF_ACHIEVEMENTS_INPUT_REWARD_POINTS
-                        ],
-                        const.DATA_ACHIEVEMENT_INTERNAL_ID: internal_id,
-                        const.DATA_ACHIEVEMENT_PROGRESS: {},
-                    }
-                    coordinator._create_achievement(internal_id, new_achievement_data)
-                    coordinator._persist()
-                    coordinator.async_update_listeners()
-                    const.LOGGER.debug(
-                        "DEBUG: Added Achievement '%s' with ID: %s",
-                        achievement_name,
-                        internal_id,
-                    )
-                    self._mark_reload_needed()
-                    return await self.async_step_init()
+                self._mark_reload_needed()
+                return await self.async_step_init()
 
         kids_dict = {
             kid_data[const.DATA_KID_NAME]: kid_id
@@ -974,138 +892,62 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             errors=errors,
         )
 
+    # ----------------------------------------------------------------------------------
+    # CHALLENGES MANAGEMENT
+    # ----------------------------------------------------------------------------------
+
     async def async_step_add_challenge(self, user_input=None):
         """Add a new challenge."""
         coordinator = self._get_coordinator()
         errors = {}
-        challenges_dict = coordinator.challenges_data
-
         chores_dict = coordinator.chores_data
 
         if user_input is not None:
-            challenge_name = user_input[const.CFOF_CHALLENGES_INPUT_NAME].strip()
-            if any(
-                data[const.DATA_CHALLENGE_NAME] == challenge_name
-                for data in challenges_dict.values()
-            ):
-                errors[const.CFOP_ERROR_CHALLENGE_NAME] = (
-                    const.TRANS_KEY_CFOF_DUPLICATE_CHALLENGE
-                )
-            else:
-                _type = user_input[const.CFOF_CHALLENGES_INPUT_TYPE]
+            # Use helper to build and validate challenge data
+            challenge_data, errors = fh.build_challenges_data(
+                self.hass,
+                user_input,
+                coordinator.kids_data,
+                existing_challenges=coordinator.challenges_data,
+                current_id=None,  # New challenge
+            )
 
-                chore_id = const.CONF_EMPTY
-                if _type == const.CHALLENGE_TYPE_TOTAL_WITHIN_WINDOW:
-                    c = (
-                        user_input.get(const.CFOF_CHALLENGES_INPUT_SELECTED_CHORE_ID)
-                        or const.CONF_EMPTY
-                    )
-                    if not c or c == const.CONF_NONE_TEXT:
-                        errors[const.CFOP_ERROR_SELECT_CHORE_ID] = (
-                            const.TRANS_KEY_CFOF_CHORE_MUST_BE_SELECTED
-                        )
-                    chore_id = c
+            if not errors and challenge_data:
+                # Additional validation for options flow: dates must be in the future
+                internal_id = list(challenge_data.keys())[0]
+                start_date_str = challenge_data[internal_id][
+                    const.DATA_CHALLENGE_START_DATE
+                ]
+                end_date_str = challenge_data[internal_id][
+                    const.DATA_CHALLENGE_END_DATE
+                ]
 
-                # Process start_date and end_date using the helper:
-                start_date_input = user_input.get(
-                    const.CFOF_CHALLENGES_INPUT_START_DATE
-                )
-                end_date_input = user_input.get(const.CFOF_CHALLENGES_INPUT_END_DATE)
+                start_dt = dt_util.parse_datetime(start_date_str)
+                end_dt = dt_util.parse_datetime(end_date_str)
 
-                if start_date_input:
-                    try:
-                        start_date = fh.ensure_utc_datetime(self.hass, start_date_input)
-                        start_dt = dt_util.parse_datetime(start_date)
-                        if start_dt and start_dt < dt_util.utcnow():
-                            errors[const.CFOP_ERROR_START_DATE] = (
-                                const.TRANS_KEY_CFOF_START_DATE_IN_PAST
-                            )
-                    except (ValueError, TypeError, AttributeError):
-                        errors[const.CFOP_ERROR_START_DATE] = (
-                            const.TRANS_KEY_CFOF_INVALID_START_DATE
-                        )
-                        start_date = None
-                else:
-                    start_date = None
-
-                if end_date_input:
-                    try:
-                        end_date = fh.ensure_utc_datetime(self.hass, end_date_input)
-                        end_dt = dt_util.parse_datetime(end_date)
-                        if end_dt and end_dt <= dt_util.utcnow():
-                            errors[const.CFOP_ERROR_END_DATE] = (
-                                const.TRANS_KEY_CFOF_END_DATE_IN_PAST
-                            )
-                        if start_date:
-                            sdt = dt_util.parse_datetime(start_date)
-                            if sdt and end_dt and end_dt <= sdt:
-                                errors[const.CFOP_ERROR_END_DATE] = (
-                                    const.TRANS_KEY_CFOF_END_DATE_NOT_AFTER_START_DATE
-                                )
-                    except (ValueError, TypeError, AttributeError):
-                        errors[const.CFOP_ERROR_END_DATE] = (
-                            const.TRANS_KEY_CFOF_INVALID_END_DATE
-                        )
-                        end_date = None
-                else:
-                    end_date = None
-
-                if not errors:
-                    # Convert kid names to internal IDs for storage
-                    coordinator = self._get_coordinator()
-                    assigned_kids_names = user_input[
-                        const.CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS
-                    ]
-                    kids_dict = {
-                        kid[const.DATA_KID_NAME]: kid[const.DATA_KID_INTERNAL_ID]
-                        for kid in coordinator.data.get(const.DATA_KIDS, [])
+                if start_dt and start_dt < dt_util.utcnow():
+                    errors = {
+                        const.CFOP_ERROR_START_DATE: const.TRANS_KEY_CFOF_START_DATE_IN_PAST
                     }
-                    assigned_kids_ids = [
-                        kids_dict.get(name, name) for name in assigned_kids_names
-                    ]
-
-                    internal_id = user_input.get(
-                        const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
-                    )
-                    new_challenge_data = {
-                        const.DATA_CHALLENGE_NAME: challenge_name,
-                        const.DATA_CHALLENGE_DESCRIPTION: user_input.get(
-                            const.CFOF_CHALLENGES_INPUT_DESCRIPTION, const.CONF_EMPTY
-                        ),
-                        const.DATA_CHALLENGE_LABELS: user_input.get(
-                            const.CFOF_CHALLENGES_INPUT_LABELS, []
-                        ),
-                        const.DATA_CHALLENGE_ICON: user_input.get(
-                            const.CFOF_CHALLENGES_INPUT_ICON,
-                            const.DEFAULT_CHALLENGES_ICON,
-                        ),
-                        const.DATA_CHALLENGE_ASSIGNED_KIDS: assigned_kids_ids,
-                        const.DATA_CHALLENGE_TYPE: _type,
-                        const.DATA_CHALLENGE_SELECTED_CHORE_ID: chore_id,
-                        const.DATA_CHALLENGE_CRITERIA: user_input.get(
-                            const.CFOF_CHALLENGES_INPUT_CRITERIA, const.CONF_EMPTY
-                        ).strip(),
-                        const.DATA_CHALLENGE_TARGET_VALUE: user_input[
-                            const.CFOF_CHALLENGES_INPUT_TARGET_VALUE
-                        ],
-                        const.DATA_CHALLENGE_REWARD_POINTS: user_input[
-                            const.CFOF_CHALLENGES_INPUT_REWARD_POINTS
-                        ],
-                        const.DATA_CHALLENGE_START_DATE: start_date,
-                        const.DATA_CHALLENGE_END_DATE: end_date,
-                        const.DATA_CHALLENGE_INTERNAL_ID: internal_id,
-                        const.DATA_CHALLENGE_PROGRESS: {},
+                elif end_dt and end_dt <= dt_util.utcnow():
+                    errors = {
+                        const.CFOP_ERROR_END_DATE: const.TRANS_KEY_CFOF_END_DATE_IN_PAST
                     }
-                    coordinator._create_challenge(internal_id, new_challenge_data)
-                    coordinator._persist()
-                    coordinator.async_update_listeners()
-                    const.LOGGER.debug(
-                        "DEBUG: Added Challenge '%s' with ID: %s",
-                        challenge_name,
-                        internal_id,
-                    )
-                    self._mark_reload_needed()
-                    return await self.async_step_init()
+
+            if not errors and challenge_data:
+                internal_id = list(challenge_data.keys())[0]
+                coordinator._create_challenge(internal_id, challenge_data[internal_id])
+                coordinator._persist()
+                coordinator.async_update_listeners()
+
+                challenge_name = user_input[const.CFOF_CHALLENGES_INPUT_NAME].strip()
+                const.LOGGER.debug(
+                    "DEBUG: Added Challenge '%s' with ID: %s",
+                    challenge_name,
+                    internal_id,
+                )
+                self._mark_reload_needed()
+                return await self.async_step_init()
 
         kids_dict = {
             kid_data[const.DATA_KID_NAME]: kid_id
@@ -1120,7 +962,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             errors=errors,
         )
 
-    # ------------------ EDIT ENTITY ------------------
+    # ----------------------------------------------------------------------------------
+    # EDIT METHODS (Cross-Entity - Keep Together)
+    # ----------------------------------------------------------------------------------
+
     async def async_step_edit_kid(self, user_input=None):
         """Edit an existing kid."""
         coordinator = self._get_coordinator()
@@ -1329,8 +1174,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             # Build a temporary dict for duplicate checking that excludes current chore
             chores_for_validation = {
-                cid: cdata for cid, cdata in chores_dict.items()
-                if cid != internal_id
+                cid: cdata for cid, cdata in chores_dict.items() if cid != internal_id
             }
 
             # Build and validate chore data using helper function
@@ -1510,33 +1354,26 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         reward_data = rewards_dict[internal_id]
 
         if user_input is not None:
-            new_name = user_input[const.CFOF_REWARDS_INPUT_NAME].strip()
+            # Build a temporary dict for duplicate checking that excludes current reward
+            rewards_for_validation = {
+                rid: rdata for rid, rdata in rewards_dict.items() if rid != internal_id
+            }
 
-            # Check for duplicate names excluding current reward
-            if any(
-                data[const.DATA_REWARD_NAME] == new_name and eid != internal_id
-                for eid, data in rewards_dict.items()
-            ):
-                errors[const.CFOP_ERROR_REWARD_NAME] = (
-                    const.TRANS_KEY_CFOF_DUPLICATE_REWARD
-                )
-            else:
+            errors = fh.validate_rewards_inputs(user_input, rewards_for_validation)
+            if not errors:
+                reward_data = fh.build_rewards_data(user_input, rewards_for_validation)
+                # Extract the reward data (without the internal_id wrapper)
+                updated_reward_data = list(reward_data.values())[0]
+                # Remove internal_id from updated data as it's already set
                 updated_reward_data = {
-                    const.DATA_REWARD_NAME: new_name,
-                    const.DATA_REWARD_COST: user_input[const.CFOF_REWARDS_INPUT_COST],
-                    const.DATA_REWARD_DESCRIPTION: user_input.get(
-                        const.CFOF_REWARDS_INPUT_DESCRIPTION, const.CONF_EMPTY
-                    ),
-                    const.DATA_REWARD_LABELS: user_input.get(
-                        const.CFOF_REWARDS_INPUT_LABELS, []
-                    ),
-                    const.DATA_REWARD_ICON: user_input.get(
-                        const.CFOF_REWARDS_INPUT_ICON, const.CONF_EMPTY
-                    ),
+                    k: v
+                    for k, v in updated_reward_data.items()
+                    if k != const.DATA_REWARD_INTERNAL_ID
                 }
 
                 coordinator.update_reward_entity(internal_id, updated_reward_data)
 
+                new_name = updated_reward_data[const.DATA_REWARD_NAME]
                 const.LOGGER.debug(
                     "DEBUG: Edited Reward '%s' with ID: %s", new_name, internal_id
                 )
@@ -1567,32 +1404,17 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         if user_input is not None:
             new_name = user_input[const.CFOF_PENALTIES_INPUT_NAME].strip()
-            penalty_points = user_input[const.CFOF_PENALTIES_INPUT_POINTS]
 
             # Check for duplicate names excluding current penalty
-            if any(
-                data[const.DATA_PENALTY_NAME] == new_name and eid != internal_id
-                for eid, data in penalties_dict.items()
-            ):
-                errors[const.CFOP_ERROR_PENALTY_NAME] = (
-                    const.TRANS_KEY_CFOF_DUPLICATE_PENALTY
-                )
-            else:
-                updated_penalty_data = {
-                    const.DATA_PENALTY_NAME: new_name,
-                    const.DATA_PENALTY_DESCRIPTION: user_input.get(
-                        const.CFOF_PENALTIES_INPUT_DESCRIPTION, const.CONF_EMPTY
-                    ),
-                    const.DATA_PENALTY_LABELS: user_input.get(
-                        const.CFOF_PENALTIES_INPUT_LABELS, []
-                    ),
-                    const.DATA_PENALTY_POINTS: -abs(
-                        penalty_points
-                    ),  # Ensure points are negative
-                    const.DATA_PENALTY_ICON: user_input.get(
-                        const.CFOF_PENALTIES_INPUT_ICON, const.CONF_EMPTY
-                    ),
-                }
+            penalties_except_current = {
+                eid: data for eid, data in penalties_dict.items() if eid != internal_id
+            }
+            errors = fh.validate_penalties_inputs(user_input, penalties_except_current)
+
+            if not errors:
+                # Build updated penalty data
+                penalty_data_dict = fh.build_penalties_data(user_input, penalties_dict)
+                _, updated_penalty_data = next(iter(penalty_data_dict.items()))
 
                 coordinator.update_penalty_entity(internal_id, updated_penalty_data)
 
@@ -1631,32 +1453,17 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         if user_input is not None:
             new_name = user_input[const.CFOF_BONUSES_INPUT_NAME].strip()
-            bonus_points = user_input[const.CFOF_BONUSES_INPUT_POINTS]
 
             # Check for duplicate names excluding current bonus
-            if any(
-                data[const.DATA_BONUS_NAME] == new_name and eid != internal_id
-                for eid, data in bonuses_dict.items()
-            ):
-                errors[const.CFOP_ERROR_BONUS_NAME] = (
-                    const.TRANS_KEY_CFOF_DUPLICATE_BONUS
-                )
-            else:
-                updated_bonus_data = {
-                    const.DATA_BONUS_NAME: new_name,
-                    const.DATA_BONUS_DESCRIPTION: user_input.get(
-                        const.CFOF_BONUSES_INPUT_DESCRIPTION, const.CONF_EMPTY
-                    ),
-                    const.DATA_BONUS_LABELS: user_input.get(
-                        const.CFOF_BONUSES_INPUT_LABELS, []
-                    ),
-                    const.DATA_BONUS_POINTS: abs(
-                        bonus_points
-                    ),  # Ensure points are positive
-                    const.DATA_BONUS_ICON: user_input.get(
-                        const.CFOF_BONUSES_INPUT_ICON, const.CONF_EMPTY
-                    ),
-                }
+            bonuses_except_current = {
+                eid: data for eid, data in bonuses_dict.items() if eid != internal_id
+            }
+            errors = fh.validate_bonuses_inputs(user_input, bonuses_except_current)
+
+            if not errors:
+                # Build updated bonus data
+                bonus_data_dict = fh.build_bonuses_data(user_input, bonuses_dict)
+                _, updated_bonus_data = next(iter(bonus_data_dict.items()))
 
                 coordinator.update_bonus_entity(internal_id, updated_bonus_data)
 
@@ -1694,79 +1501,39 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         achievement_data = achievements_dict[internal_id]
 
         if user_input is not None:
-            new_name = user_input[const.CFOF_ACHIEVEMENTS_INPUT_NAME].strip()
-            if any(
-                data[const.DATA_ACHIEVEMENT_NAME] == new_name and eid != internal_id
+            # Check for duplicate names excluding current achievement
+            achievements_except_current = {
+                eid: data
                 for eid, data in achievements_dict.items()
-            ):
-                errors[const.CFOP_ERROR_ACHIEVEMENT_NAME] = (
-                    const.TRANS_KEY_CFOF_DUPLICATE_ACHIEVEMENT
+                if eid != internal_id
+            }
+
+            # Build kids name to ID mapping for options flow
+            kids_name_to_id = {
+                kid[const.DATA_KID_NAME]: kid[const.DATA_KID_INTERNAL_ID]
+                for kid in coordinator.data.get(const.DATA_KIDS, [])
+            }
+
+            # Build achievement data with integrated validation
+            achievement_data_dict, errors = fh.build_achievements_data(
+                user_input, achievements_except_current, kids_name_to_id
+            )
+
+            if not errors:
+                _, updated_achievement_data = next(iter(achievement_data_dict.items()))
+
+                coordinator.update_achievement_entity(
+                    internal_id, updated_achievement_data
                 )
-            else:
-                _type = user_input[const.CFOF_ACHIEVEMENTS_INPUT_TYPE]
 
-                chore_id = const.CONF_EMPTY
-                if _type == const.ACHIEVEMENT_TYPE_STREAK:
-                    c = (
-                        user_input.get(const.CFOF_ACHIEVEMENTS_INPUT_SELECTED_CHORE_ID)
-                        or const.CONF_EMPTY
-                    )
-                    if not c or c == const.CONF_NONE_TEXT:
-                        errors[const.CFOP_ERROR_SELECT_CHORE_ID] = (
-                            const.TRANS_KEY_CFOF_CHORE_MUST_BE_SELECTED
-                        )
-                    chore_id = c
-
-                if not errors:
-                    # Convert kid names to internal IDs for storage
-                    coordinator = self._get_coordinator()
-                    assigned_kids_names = user_input[
-                        const.CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS
-                    ]
-                    kids_dict = {
-                        kid[const.DATA_KID_NAME]: kid[const.DATA_KID_INTERNAL_ID]
-                        for kid in coordinator.data.get(const.DATA_KIDS, [])
-                    }
-                    assigned_kids_ids = [
-                        kids_dict.get(name, name) for name in assigned_kids_names
-                    ]
-
-                    updated_achievement_data = {
-                        const.DATA_ACHIEVEMENT_NAME: new_name,
-                        const.DATA_ACHIEVEMENT_DESCRIPTION: user_input.get(
-                            const.CFOF_ACHIEVEMENTS_INPUT_DESCRIPTION, const.CONF_EMPTY
-                        ),
-                        const.DATA_ACHIEVEMENT_LABELS: user_input.get(
-                            const.CFOF_ACHIEVEMENTS_INPUT_LABELS, []
-                        ),
-                        const.DATA_ACHIEVEMENT_ICON: user_input.get(
-                            const.CFOF_ACHIEVEMENTS_INPUT_ICON, const.CONF_EMPTY
-                        ),
-                        const.DATA_ACHIEVEMENT_ASSIGNED_KIDS: assigned_kids_ids,
-                        const.DATA_ACHIEVEMENT_TYPE: _type,
-                        const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID: chore_id,
-                        const.DATA_ACHIEVEMENT_CRITERIA: user_input.get(
-                            const.CFOF_ACHIEVEMENTS_INPUT_CRITERIA, const.CONF_EMPTY
-                        ).strip(),
-                        const.DATA_ACHIEVEMENT_TARGET_VALUE: user_input[
-                            const.CFOF_ACHIEVEMENTS_INPUT_TARGET_VALUE
-                        ],
-                        const.DATA_ACHIEVEMENT_REWARD_POINTS: user_input[
-                            const.CFOF_ACHIEVEMENTS_INPUT_REWARD_POINTS
-                        ],
-                    }
-
-                    coordinator.update_achievement_entity(
-                        internal_id, updated_achievement_data
-                    )
-
-                    const.LOGGER.debug(
-                        "DEBUG: Edited Achievement '%s' with ID: %s",
-                        new_name,
-                        internal_id,
-                    )
-                    self._mark_reload_needed()
-                    return await self.async_step_init()
+                new_name = user_input[const.CFOF_ACHIEVEMENTS_INPUT_NAME].strip()
+                const.LOGGER.debug(
+                    "DEBUG: Edited Achievement '%s' with ID: %s",
+                    new_name,
+                    internal_id,
+                )
+                self._mark_reload_needed()
+                return await self.async_step_init()
 
         kids_dict = {
             kid_data[const.DATA_KID_NAME]: kid_id
@@ -1868,138 +1635,54 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 errors=errors,
             )
 
-        start_date_input = user_input.get(const.CFOF_CHALLENGES_INPUT_START_DATE)
-        if start_date_input:
-            try:
-                new_start_date = fh.ensure_utc_datetime(self.hass, start_date_input)
-                start_dt = dt_util.parse_datetime(new_start_date)
-                if start_dt and start_dt < dt_util.utcnow():
-                    errors[const.CFOP_ERROR_START_DATE] = (
-                        const.TRANS_KEY_CFOF_START_DATE_IN_PAST
-                    )
-            except (ValueError, TypeError, AttributeError):
-                errors[const.CFOP_ERROR_START_DATE] = (
-                    const.TRANS_KEY_CFOF_INVALID_START_DATE
-                )
-                new_start_date = None
-        else:
-            new_start_date = None
+        # Use helper to build and validate challenge data
+        challenge_data_dict, errors = fh.build_challenges_data(
+            self.hass,
+            user_input,
+            coordinator.kids_data,
+            existing_challenges=coordinator.challenges_data,
+            current_id=internal_id,  # Editing existing challenge
+        )
 
-        end_date_input = user_input.get(const.CFOF_CHALLENGES_INPUT_END_DATE)
-        if end_date_input:
-            try:
-                new_end_date = fh.ensure_utc_datetime(self.hass, end_date_input)
-                end_dt = dt_util.parse_datetime(new_end_date)
+        if not errors and challenge_data_dict:
+            # Additional validation for options flow: dates must be in the future
+            updated_data = challenge_data_dict[internal_id]
+            start_date_str = updated_data[const.DATA_CHALLENGE_START_DATE]
+            end_date_str = updated_data[const.DATA_CHALLENGE_END_DATE]
 
-                if end_dt and end_dt <= dt_util.utcnow():
-                    errors[const.CFOP_ERROR_END_DATE] = (
-                        const.TRANS_KEY_CFOF_END_DATE_IN_PAST
-                    )
+            start_dt = dt_util.parse_datetime(start_date_str)
+            end_dt = dt_util.parse_datetime(end_date_str)
 
-                if new_start_date:
-                    sdt = dt_util.parse_datetime(new_start_date)
-                    if sdt and end_dt and end_dt <= sdt:
-                        errors[const.CFOP_ERROR_END_DATE] = (
-                            const.TRANS_KEY_CFOF_END_DATE_NOT_AFTER_START_DATE
-                        )
-            except (ValueError, TypeError, AttributeError):
-                errors[const.CFOP_ERROR_END_DATE] = (
-                    const.TRANS_KEY_CFOF_INVALID_END_DATE
-                )
-                new_end_date = None
-        else:
-            new_end_date = None
+            if start_dt and start_dt < dt_util.utcnow():
+                errors = {
+                    const.CFOP_ERROR_START_DATE: const.TRANS_KEY_CFOF_START_DATE_IN_PAST
+                }
+            elif end_dt and end_dt <= dt_util.utcnow():
+                errors = {
+                    const.CFOP_ERROR_END_DATE: const.TRANS_KEY_CFOF_END_DATE_IN_PAST
+                }
 
-        if user_input is not None:
+        if not errors:
+            coordinator.update_challenge_entity(internal_id, updated_data)
+
             new_name = user_input[const.CFOF_CHALLENGES_INPUT_NAME].strip()
-            if any(
-                data[const.DATA_CHALLENGE_NAME] == new_name and eid != internal_id
-                for eid, data in challenges_dict.items()
-            ):
-                errors[const.CFOP_ERROR_CHALLENGE_NAME] = (
-                    const.TRANS_KEY_CFOF_DUPLICATE_CHALLENGE
-                )
-            else:
-                _type = user_input[const.CFOF_CHALLENGES_INPUT_TYPE]
+            const.LOGGER.debug(
+                "DEBUG: Edited Challenge '%s' with ID: %s",
+                new_name,
+                internal_id,
+            )
+            self._mark_reload_needed()
+            return await self.async_step_init()
 
-                chore_id = const.CONF_EMPTY
-                if _type == const.CHALLENGE_TYPE_TOTAL_WITHIN_WINDOW:
-                    c = (
-                        user_input.get(const.CFOF_CHALLENGES_INPUT_SELECTED_CHORE_ID)
-                        or const.CONF_EMPTY
-                    )
-                    if not c or c == const.CONF_NONE_TEXT:
-                        errors[const.CFOP_ERROR_SELECT_CHORE_ID] = (
-                            const.TRANS_KEY_CFOF_CHORE_MUST_BE_SELECTED
-                        )
-                    chore_id = c
-
-                if not errors:
-                    # Convert kid names to internal IDs for storage
-                    coordinator = self._get_coordinator()
-                    assigned_kids_names = user_input[
-                        const.CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS
-                    ]
-                    kids_dict = {
-                        kid[const.DATA_KID_NAME]: kid[const.DATA_KID_INTERNAL_ID]
-                        for kid in coordinator.data.get(const.DATA_KIDS, [])
-                    }
-                    assigned_kids_ids = [
-                        kids_dict.get(name, name) for name in assigned_kids_names
-                    ]
-
-                    updated_challenge_data = {
-                        const.DATA_CHALLENGE_NAME: new_name,
-                        const.DATA_CHALLENGE_DESCRIPTION: user_input.get(
-                            const.CFOF_CHALLENGES_INPUT_DESCRIPTION, const.CONF_EMPTY
-                        ),
-                        const.DATA_CHALLENGE_LABELS: user_input.get(
-                            const.CFOF_CHALLENGES_INPUT_LABELS, []
-                        ),
-                        const.DATA_CHALLENGE_ICON: user_input.get(
-                            const.CFOF_CHALLENGES_INPUT_ICON, const.CONF_EMPTY
-                        ),
-                        const.DATA_CHALLENGE_ASSIGNED_KIDS: assigned_kids_ids,
-                        const.DATA_CHALLENGE_TYPE: _type,
-                        const.DATA_CHALLENGE_SELECTED_CHORE_ID: chore_id,
-                        const.DATA_CHALLENGE_CRITERIA: user_input.get(
-                            const.CFOF_CHALLENGES_INPUT_CRITERIA, const.CONF_EMPTY
-                        ).strip(),
-                        const.DATA_CHALLENGE_TARGET_VALUE: user_input[
-                            const.CFOF_CHALLENGES_INPUT_TARGET_VALUE
-                        ],
-                        const.DATA_CHALLENGE_REWARD_POINTS: user_input[
-                            const.CFOF_CHALLENGES_INPUT_REWARD_POINTS
-                        ],
-                        const.DATA_CHALLENGE_START_DATE: new_start_date,
-                        const.DATA_CHALLENGE_END_DATE: new_end_date,
-                    }
-
-                    coordinator.update_challenge_entity(
-                        internal_id, updated_challenge_data
-                    )
-
-                    const.LOGGER.debug(
-                        "DEBUG: Edited Challenge '%s' with ID: %s",
-                        new_name,
-                        internal_id,
-                    )
-                    self._mark_reload_needed()
-                    return await self.async_step_init()
-
+        # Show form again with validation errors, preserving user input
         kids_dict = {
             kid_data[const.DATA_KID_NAME]: kid_id
             for kid_id, kid_data in coordinator.kids_data.items()
         }
         chores_dict = coordinator.chores_data
 
-        default_data = {
-            **challenge_data,
-            const.DATA_CHALLENGE_START_DATE: new_start_date,
-            const.DATA_CHALLENGE_END_DATE: new_end_date,
-        }
         challenge_schema = fh.build_challenge_schema(
-            kids_dict=kids_dict, chores_dict=chores_dict, default=default_data
+            kids_dict=kids_dict, chores_dict=chores_dict, default=user_input
         )
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_EDIT_CHALLENGE,
@@ -2007,7 +1690,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             errors=errors,
         )
 
-    # ------------------ DELETE ENTITY ------------------
+    # ----------------------------------------------------------------------------------
+    # DELETE METHODS (Cross-Entity - Keep Together)
+    # ----------------------------------------------------------------------------------
+
     async def async_step_delete_kid(self, user_input=None):
         """Delete a kid."""
         coordinator = self._get_coordinator()
@@ -2280,7 +1966,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             },
         )
 
-    # ------------------ GENERAL OPTIONS ------------------
+    # ----------------------------------------------------------------------------------
+    # GENERAL OPTIONS
+    # ----------------------------------------------------------------------------------
+
     async def async_step_manage_general_options(self, user_input=None):
         """Manage general options: points adjust values and update interval."""
         if user_input is not None:
@@ -2340,7 +2029,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             description_placeholders={},
         )
 
-    # ------------------ HELPER METHODS ------------------
+    # ----------------------------------------------------------------------------------
+    # HELPER METHODS (RELOAD & PERSISTENCE)
+    # ----------------------------------------------------------------------------------
+
     def _mark_reload_needed(self):
         """Mark that a reload is needed after the current flow completes.
 
@@ -2362,8 +2054,17 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             "DEBUG: Reloading entry after entity changes: %s",
             self.config_entry.entry_id,
         )
-        await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-        const.LOGGER.debug("DEBUG: Entry reloaded successfully")
+        try:
+            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+            const.LOGGER.debug("DEBUG: Entry reloaded successfully")
+        except Exception as err:
+            const.LOGGER.error(
+                "Failed to reload config entry after entity changes: %s",
+                err,
+                exc_info=True,
+            )
+            # Continue despite reload failure - UI still shows menu and entities
+            # will reload on next Home Assistant restart
 
         # Trigger immediate coordinator refresh so new entities get data right away
         # instead of waiting for the next update interval
@@ -2387,5 +2088,14 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             "DEBUG: Updating system settings. Reloading entry: %s",
             self.config_entry.entry_id,
         )
-        await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-        const.LOGGER.debug("DEBUG: System settings updated and KidsChores reloaded")
+        try:
+            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+            const.LOGGER.debug("DEBUG: System settings updated and KidsChores reloaded")
+        except Exception as err:
+            const.LOGGER.error(
+                "Failed to reload config entry after system settings update: %s",
+                err,
+                exc_info=True,
+            )
+            # Continue despite reload failure - settings saved in config entry
+            # and will take effect on next Home Assistant restart

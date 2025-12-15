@@ -23,13 +23,23 @@ from custom_components.kidschores.const import (
 )
 
 
+def _get_coordinator(hass: HomeAssistant, entry: MockConfigEntry):
+    """Get the coordinator instance from hass.data.
+
+    Helper function to get current coordinator reference,
+    which is especially important after reset_all_data since it reloads
+    the config entry and creates a new coordinator instance.
+    """
+    return hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+
+
 @pytest.mark.asyncio
 async def test_reset_all_data_cleans_entity_registry(
     hass: HomeAssistant,
     init_integration: MockConfigEntry,
 ) -> None:
     """Test that reset_all_data removes ALL entity registry entries."""
-    coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
+    coordinator = _get_coordinator(hass, init_integration)
     ent_reg = er.async_get(hass)
 
     # Mock notifications to prevent ServiceNotFound errors
@@ -99,7 +109,10 @@ async def test_reset_all_data_cleans_entity_registry(
         )
         await hass.async_block_till_done()
 
-        # Step 5: Verify entity registry cleaned and recreated (reload recreates global entities)
+        # Step 5: Get fresh coordinator reference (reset_all_data reloads entry, creating new coordinator)
+        coordinator = _get_coordinator(hass, init_integration)
+
+        # Step 6: Verify entity registry cleaned and recreated (reload recreates global entities)
         # The reset removes all entities, then reload recreates global select/sensor entities
         entities_after_reset = er.async_entries_for_config_entry(
             ent_reg, init_integration.entry_id
@@ -112,19 +125,19 @@ async def test_reset_all_data_cleans_entity_registry(
 
         print("✓ Entity registry cleaned and global entities recreated after reload")
 
-        # Step 6: Verify storage is cleared
+        # Step 7: Verify storage is cleared
         assert len(coordinator.kids_data) == 0, "Kids data should be empty"
         assert len(coordinator.chores_data) == 0, "Chores data should be empty"
 
         print("✓ Storage cleared")
 
-        # Step 7: Re-add the same kid and chore
+        # Step 8: Re-add the same kid and chore
         coordinator._create_kid(kid_id, kid_data)
         coordinator._create_chore(chore_id, chore_data)
         await coordinator.async_refresh()
         await hass.async_block_till_done()
 
-        # Step 8: Verify entities recreated without _2 suffixes
+        # Step 9: Verify entities recreated without _2 suffixes
         final_entities = er.async_entries_for_config_entry(
             ent_reg, init_integration.entry_id
         )
@@ -148,7 +161,7 @@ async def test_reset_all_data_with_multiple_kids_no_duplicates(
     init_integration: MockConfigEntry,
 ) -> None:
     """Test reset_all_data with multiple kids prevents all entity duplicates."""
-    coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
+    coordinator = _get_coordinator(hass, init_integration)
     ent_reg = er.async_get(hass)
 
     with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
@@ -210,6 +223,9 @@ async def test_reset_all_data_with_multiple_kids_no_duplicates(
             DOMAIN, SERVICE_RESET_ALL_DATA, {}, blocking=True
         )
         await hass.async_block_till_done()
+
+        # Get fresh coordinator reference (reset_all_data reloads entry, creating new coordinator)
+        coordinator = _get_coordinator(hass, init_integration)
 
         # Verify cleanup (reload recreates global entities, which is expected)
         entities_after_reset = er.async_entries_for_config_entry(

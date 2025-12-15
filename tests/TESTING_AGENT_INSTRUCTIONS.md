@@ -85,15 +85,23 @@ If issue persists after 3 attempts, consult [TESTING_TECHNICAL_GUIDE.md](TESTING
 ### Before Committing - Mandatory Checks
 
 ```bash
-# Check for any severity 4+ warnings (must be 0)
-pylint tests/*.py 2>&1 | grep -E "^[WE][0-9]{4}:"
+# ALWAYS RUN after EVERY change:
+./utils/quick_lint.sh --fix
+
+# This checks:
+# - Pylint errors (critical severity 4+)
+# - Type errors (Pyright/Pylance)
+# - Trailing whitespace (auto-fixes)
+# - Line length warnings
 
 # Verify all tests pass
 python -m pytest tests/ -v
 
-# Check ruff (must pass)
-python -m ruff check tests/
+# For detailed checks on specific files:
+python utils/lint_check.py --file path/to/file.py
 ```
+
+**See [utils/README_LINTING.md](../utils/README_LINTING.md) for complete linting guide.**
 
 ### Severity 4 Errors/Warnings - MUST FIX OR SUPPRESS
 

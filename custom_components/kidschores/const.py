@@ -1099,7 +1099,7 @@ DEFAULT_TROPHY_OUTLINE = "mdi:trophy-outline"
 # ------------------------------------------------------------------------------------------------
 DEFAULT_ACHIEVEMENT_REWARD_POINTS = 0
 DEFAULT_ACHIEVEMENT_TARGET = 1
-DEFAULT_APPLICABLE_DAYS = []
+DEFAULT_APPLICABLE_DAYS: list[str] = []
 DEFAULT_BADGE_AWARD_MODE_UNUSED = "award_none"
 DEFAULT_BADGE_AWARD_POINTS = 0
 DEFAULT_BADGE_DAILY_THRESHOLD_UNUSED = 5
