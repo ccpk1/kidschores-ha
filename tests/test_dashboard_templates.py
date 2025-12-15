@@ -645,3 +645,115 @@ PASS:{{ ui.keys() | length }},{{ chore_list | length }},{{ reward_list | length 
     assert ",250" in result  # 250 points
     parts = result.split(",")
     assert len(parts) == 5  # All data present
+
+
+class TestDashboardPreferenceValidation:
+    """Test preference validation with partial/invalid string inputs."""
+
+    async def test_preference_partial_string_input(self, hass: HomeAssistant):
+        """Test boolean preferences handle partial strings during typing."""
+        # Simulate user typing "true" character by character: "t", "tr", "tru", "true"
+        partial_values = ["t", "tr", "tru", "invalid", "123", ""]
+
+        for partial_value in partial_values:
+            template_str = (
+                """
+{%- set pref_exclude_approved = '"""
+                + partial_value
+                + """' -%}
+
+{#-- Type coercion for preferences - should handle invalid input gracefully --#}
+{%- set pref_exclude_approved = pref_exclude_approved if (pref_exclude_approved is boolean or pref_exclude_approved in ['true', 'false']) else false -%}
+{%- set pref_exclude_approved = pref_exclude_approved | bool if pref_exclude_approved is not boolean else pref_exclude_approved -%}
+
+{#-- Test that preference is now a valid boolean --#}
+RESULT: {{ pref_exclude_approved }}
+TYPE: {{ pref_exclude_approved is boolean }}
+"""
+            )
+            template = Template(template_str, hass)
+            result = template.async_render()
+
+            assert "RESULT: False" in result or "RESULT: True" in result
+            assert "TYPE: True" in result
+            assert "err-" not in result
+
+    async def test_preference_valid_boolean_strings(self, hass: HomeAssistant):
+        """Test boolean preferences correctly parse valid 'true'/'false' strings."""
+        test_cases = [
+            ("true", True),
+            ("false", False),
+            (True, True),
+            (False, False),
+        ]
+
+        for input_value, expected_bool in test_cases:
+            if isinstance(input_value, bool):
+                template_str = (
+                    """
+{%- set pref_exclude_approved = """
+                    + str(input_value).lower()
+                    + """ -%}
+"""
+                )
+            else:
+                template_str = (
+                    """
+{%- set pref_exclude_approved = '"""
+                    + input_value
+                    + """' -%}
+"""
+                )
+
+            template_str += """
+{%- set pref_exclude_approved = pref_exclude_approved if (pref_exclude_approved is boolean or pref_exclude_approved in ['true', 'false']) else false -%}
+{%- set pref_exclude_approved = pref_exclude_approved | bool if pref_exclude_approved is not boolean else pref_exclude_approved -%}
+
+RESULT: {{ pref_exclude_approved }}
+"""
+            template = Template(template_str, hass)
+            result = template.async_render()
+
+            expected_str = str(expected_bool)
+            assert f"RESULT: {expected_str}" in result
+
+    async def test_all_preferences_safe_coercion(
+        self, hass: HomeAssistant, dashboard_entities, kid_name: str, kid_slug: str
+    ):
+        """Test all boolean preferences use safe coercion pattern."""
+        # Test with partial string that would cause bool filter to fail
+        template_str = (
+            """
+{%- set name = '"""
+            + kid_name
+            + """' -%}
+{%- set pref_use_overdue_grouping = 't' -%}
+{%- set pref_use_today_grouping = 'tr' -%}
+{%- set pref_exclude_approved = 'invalid' -%}
+{%- set pref_use_label_grouping = 123 -%}
+{%- set pref_show_penalties = '' -%}
+
+{#-- Type coercion using safe pattern --#}
+{%- set pref_use_overdue_grouping = pref_use_overdue_grouping if (pref_use_overdue_grouping is boolean or pref_use_overdue_grouping in ['true', 'false']) else true -%}
+{%- set pref_use_overdue_grouping = pref_use_overdue_grouping | bool if pref_use_overdue_grouping is not boolean else pref_use_overdue_grouping -%}
+
+{%- set pref_use_today_grouping = pref_use_today_grouping if (pref_use_today_grouping is boolean or pref_use_today_grouping in ['true', 'false']) else true -%}
+{%- set pref_use_today_grouping = pref_use_today_grouping | bool if pref_use_today_grouping is not boolean else pref_use_today_grouping -%}
+
+{%- set pref_exclude_approved = pref_exclude_approved if (pref_exclude_approved is boolean or pref_exclude_approved in ['true', 'false']) else false -%}
+{%- set pref_exclude_approved = pref_exclude_approved | bool if pref_exclude_approved is not boolean else pref_exclude_approved -%}
+
+{%- set pref_use_label_grouping = pref_use_label_grouping if (pref_use_label_grouping is boolean or pref_use_label_grouping in ['true', 'false']) else false -%}
+{%- set pref_use_label_grouping = pref_use_label_grouping | bool if pref_use_label_grouping is not boolean else pref_use_label_grouping -%}
+
+{%- set pref_show_penalties = pref_show_penalties if (pref_show_penalties is boolean or pref_show_penalties in ['true', 'false']) else true -%}
+{%- set pref_show_penalties = pref_show_penalties | bool if pref_show_penalties is not boolean else pref_show_penalties -%}
+
+PASS: {{ pref_use_overdue_grouping is boolean }},{{ pref_use_today_grouping is boolean }},{{ pref_exclude_approved is boolean }},{{ pref_use_label_grouping is boolean }},{{ pref_show_penalties is boolean }}
+"""
+        )
+        template = Template(template_str, hass)
+        result = template.async_render()
+
+        # All should be valid booleans
+        assert "PASS: True,True,True,True,True" in result

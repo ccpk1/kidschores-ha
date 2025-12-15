@@ -17,7 +17,6 @@
   "award_status": "Estado del Premio",
   "awards": "Premios",
   "badge": "Insignia",
-  "badge_setup_prompt": "¡Configura insignias para premiar logros y mantener las tareas divertidas!",
   "bonus": "Bonificación",
   "bonuses_applied": "Bonificaciones Aplicadas",
   "challenge": "Desafío",
@@ -69,7 +68,7 @@
   "need": "Necesitas",
   "no": "No",
   "no_achievements_found": "No se Encontraron Logros",
-  "no_badges_found": "No se encontraron insignias",
+  "no_badges_found": "Sin Insignias Acumulativas",
   "no_challenges_found": "No se Encontraron Desafíos",
   "no_chore_selected": "Ninguna Tarea Seleccionada o Estado No Disponible",
   "no_date_set": "Sin Fecha Establecida",
@@ -125,5 +124,8 @@
   "weekly_completed": "Completada Semanalmente",
   "weekly_performance": "Rendimiento Semanal",
   "welcome": "Bienvenido",
-  "went_overdue": "Vencida"
+  "went_overdue": "Vencida",
+  "cumulative_badge_setup_prompt": "¡Configura insignias acumulativas para seguir hitos!",
+  "no_periodic_badges_found": "Sin Insignias Periódicas",
+  "periodic_badge_setup_prompt": "¡Configura insignias periódicas para seguir objetivos diarios, semanales o mensuales!"
 }

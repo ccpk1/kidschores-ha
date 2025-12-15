@@ -17,7 +17,6 @@
   "award_status": "Auszeichnungsstatus",
   "awards": "Auszeichnungen",
   "badge": "Abzeichen",
-  "badge_setup_prompt": "Richte Abzeichen ein, um Meilensteine zu belohnen und Aufgaben spaßig zu halten!",
   "bonus": "Bonus",
   "bonuses_applied": "Boni Angewendet",
   "challenge": "Herausforderung",
@@ -70,7 +69,7 @@
   "need": "Benötigt",
   "no": "Nein",
   "no_achievements_found": "Keine Erfolge Gefunden",
-  "no_badges_found": "Keine Abzeichen gefunden",
+  "no_badges_found": "Keine Kumulative Abzeichen",
   "no_challenges_found": "Keine Herausforderungen Gefunden",
   "no_chore_selected": "Keine Aufgabe Ausgewählt oder Status Nicht Verfügbar",
   "no_date_set": "Kein Datum Festgelegt",
@@ -128,5 +127,8 @@
   "weekly_completed": "Wöchentlich Abgeschlossen",
   "weekly_performance": "Wöchentliche Leistung",
   "welcome": "Willkommen",
-  "went_overdue": "Wurde Überfällig"
+  "went_overdue": "Wurde Überfällig",
+  "cumulative_badge_setup_prompt": "Richte kumulative Abzeichen ein, um Meilensteine zu verfolgen!",
+  "no_periodic_badges_found": "Keine Periodische Abzeichen",
+  "periodic_badge_setup_prompt": "Richte periodische Abzeichen ein, um tägliche, wöchentliche oder monatliche Ziele zu verfolgen!"
 }

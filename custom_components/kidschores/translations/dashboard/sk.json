@@ -17,7 +17,6 @@
   "award_status": "Stav Ocenenia",
   "awards": "Ocenenia",
   "badge": "Odznak",
-  "badge_setup_prompt": "Nastavte odznaky! Odmeňte dosiahnuté ciele a udržte zábavu pri plnení úloh.",
   "bonus": "Bonus",
   "bonuses_applied": "Použité Bonusy",
   "challenge": "Výzva",
@@ -70,7 +69,7 @@
   "need": "Potrebuješ",
   "no": "Nie",
   "no_achievements_found": "Nenašli sa Žiadne Úspechy",
-  "no_badges_found": "Nenašli sa žiadne odznaky",
+  "no_badges_found": "Žiadne Kumulatívne Odznaky",
   "no_challenges_found": "Nenašli sa Žiadne Výzvy",
   "no_chore_selected": "Nie je Vybratá Žiadna Úloha alebo Stav Nie je Dostupný",
   "no_date_set": "Žiadny Dátum Nenastavený",
@@ -128,5 +127,8 @@
   "weekly_completed": "Dokončené Tento Týždeň",
   "weekly_performance": "Týždenný Výkon",
   "welcome": "Vitaj",
-  "went_overdue": "Bola Po Termíne"
+  "went_overdue": "Bola Po Termíne",
+  "cumulative_badge_setup_prompt": "Nastavte kumulatívne odznaky na sledovanie míľnikov!",
+  "no_periodic_badges_found": "Žiadne Periodické Odznaky",
+  "periodic_badge_setup_prompt": "Nastavte periodické odznaky na sledovanie denných, týždenných alebo mesačných cieľov!"
 }

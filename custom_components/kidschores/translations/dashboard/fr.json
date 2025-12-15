@@ -17,7 +17,6 @@
   "award_status": "Statut de la Récompense",
   "awards": "Récompenses",
   "badge": "Badge",
-  "badge_setup_prompt": "Configurez des badges pour récompenser les étapes et garder les tâches amusantes!",
   "bonus": "Bonus",
   "bonuses_applied": "Bonus Appliqués",
   "challenge": "Défi",
@@ -70,7 +69,7 @@
   "need": "Besoin",
   "no": "Non",
   "no_achievements_found": "Aucun Succès Trouvé",
-  "no_badges_found": "Aucun badge trouvé",
+  "no_badges_found": "Aucun Badge Cumulatif",
   "no_challenges_found": "Aucun Défi Trouvé",
   "no_chore_selected": "Aucune Tâche Sélectionnée ou Statut Non Disponible",
   "no_date_set": "Aucune Date Définie",
@@ -128,5 +127,8 @@
   "weekly_completed": "Complétées Cette Semaine",
   "weekly_performance": "Performance Hebdomadaire",
   "welcome": "Bienvenue",
-  "went_overdue": "Est Devenue Retard"
+  "went_overdue": "Est Devenue Retard",
+  "cumulative_badge_setup_prompt": "Configurez des badges cumulatifs pour suivre les jalons!",
+  "no_periodic_badges_found": "Aucun Badge Périodique",
+  "periodic_badge_setup_prompt": "Configurez des badges périodiques pour suivre les objectifs quotidiens, hebdomadaires ou mensuels!"
 }

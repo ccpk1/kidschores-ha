@@ -17,7 +17,6 @@
   "award_status": "Status Onderscheiding",
   "awards": "Onderscheidingen",
   "badge": "Badge",
-  "badge_setup_prompt": "Stel badges in om mijlpalen te belonen en taken leuk te houden!",
   "bonus": "Bonus",
   "bonuses_applied": "Bonussen Toegepast",
   "challenge": "Uitdaging",
@@ -70,7 +69,7 @@
   "need": "Nodig",
   "no": "Nee",
   "no_achievements_found": "Geen Prestaties Gevonden",
-  "no_badges_found": "Geen badges gevonden",
+  "no_badges_found": "Geen Cumulatieve Badges",
   "no_challenges_found": "Geen Uitdagingen Gevonden",
   "no_chore_selected": "Geen Taak Geselecteerd of Status Niet Beschikbaar",
   "no_date_set": "Geen Datum Ingesteld",
@@ -128,5 +127,8 @@
   "weekly_completed": "Deze Week Voltooid",
   "weekly_performance": "Wekelijkse Prestaties",
   "welcome": "Welkom",
-  "went_overdue": "Is Achterstallig Geworden"
+  "went_overdue": "Is Achterstallig Geworden",
+  "cumulative_badge_setup_prompt": "Stel cumulatieve badges in om mijlpalen bij te houden!",
+  "no_periodic_badges_found": "Geen Periodieke Badges",
+  "periodic_badge_setup_prompt": "Stel periodieke badges in om dagelijkse, wekelijkse of maandelijkse doelen bij te houden!"
 }

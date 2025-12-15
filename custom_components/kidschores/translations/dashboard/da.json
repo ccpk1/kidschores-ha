@@ -17,7 +17,6 @@
   "award_status": "Præmiestatus",
   "awards": "Præmier",
   "badge": "Mærke",
-  "badge_setup_prompt": "Opsæt mærker for at belønne milepæle og gøre opgaver sjove!",
   "bonus": "Bonus",
   "bonuses_applied": "Bonusser Anvendt",
   "challenge": "Udfordring",
@@ -70,7 +69,7 @@
   "need": "Skal Bruge",
   "no": "Nej",
   "no_achievements_found": "Ingen Præstationer Fundet",
-  "no_badges_found": "Ingen mærker fundet",
+  "no_badges_found": "Ingen Kumulative Mærker",
   "no_challenges_found": "Ingen Udfordringer Fundet",
   "no_chore_selected": "Ingen Opgave Valgt eller Status Utilgængelig",
   "no_date_set": "Ingen Dato Indstillet",
@@ -128,5 +127,8 @@
   "weekly_completed": "Fuldførte Ugentlig",
   "weekly_performance": "Ugentlig Ydeevne",
   "welcome": "Velkommen",
-  "went_overdue": "Blev Forfalden"
+  "went_overdue": "Blev Forfalden",
+  "cumulative_badge_setup_prompt": "Opsæt kumulative mærker for at spore milepæle!",
+  "no_periodic_badges_found": "Ingen Periodiske Mærker",
+  "periodic_badge_setup_prompt": "Opsæt periodiske mærker for at spore daglige, ugentlige eller månedlige mål!"
 }

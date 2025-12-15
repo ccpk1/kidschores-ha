@@ -17,7 +17,6 @@
   "award_status": "Estat del Premi",
   "awards": "Premis",
   "badge": "Insígnia",
-  "badge_setup_prompt": "Configura insígnies per a premiar assoliments i mantenir les tasques divertides!",
   "bonus": "Bonificació",
   "bonuses_applied": "Bonificacions Aplicades",
   "challenge": "Desafiament",
@@ -70,7 +69,7 @@
   "need": "Necessites",
   "no": "No",
   "no_achievements_found": "No s'han Trobat Assoliments",
-  "no_badges_found": "No s'han trobat insígnies",
+  "no_badges_found": "Cap Insígnia Acumulativa",
   "no_challenges_found": "No s'han Trobat Desafiaments",
   "no_chore_selected": "Cap Tasca Seleccionada o Estat No Disponible",
   "no_date_set": "Cap Data Establerta",
@@ -128,5 +127,8 @@
   "weekly_completed": "Completades Setmanals",
   "weekly_performance": "Rendiment Setmanal",
   "welcome": "Benvingut",
-  "went_overdue": "Va Passar al Venciment"
+  "went_overdue": "Va Passar al Venciment",
+  "cumulative_badge_setup_prompt": "Configura insígnies acumulatives per seguir fites!",
+  "no_periodic_badges_found": "Cap Insígnia Periòdica",
+  "periodic_badge_setup_prompt": "Configura insígnies periòdiques per seguir objectius diaris, setmanals o mensuals!"
 }
