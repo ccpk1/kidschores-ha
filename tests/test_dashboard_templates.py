@@ -757,3 +757,405 @@ PASS: {{ pref_use_overdue_grouping is boolean }},{{ pref_use_today_grouping is b
 
         # All should be valid booleans
         assert "PASS: True,True,True,True,True" in result
+
+
+class TestDashboardApprovalButtonsFullCard:
+    """Test full approval buttons card rendering end-to-end."""
+
+    async def test_approval_card_full_render_with_claimed_chore(
+        self, hass: HomeAssistant, dashboard_entities, kid_name: str, kid_slug: str
+    ):
+        """Test full approval card template renders mushroom-template-card entries for claimed chores.
+
+        This is an end-to-end test that renders the complete approval card template,
+        including all button building and rendering logic. It verifies that:
+        1. Pending approvals are collected from sensor
+        2. Button EIDs are properly extracted (None values filtered)
+        3. Button groups are built with proper structure
+        4. Mushroom-template-card entries are generated in output
+        """
+        # Set up pending chore approvals sensor with proper button EIDs
+        hass.states.async_set(
+            "sensor.kc_global_chore_pending_approvals",
+            "1",
+            {
+                kid_name: [
+                    {
+                        "chore_name": "Dishes",
+                        "claimed_on": dt_util.now().isoformat(),
+                        "approve_button_eid": "button.kc_alice_approve_dishes",
+                        "disapprove_button_eid": "button.kc_alice_disapprove_dishes",
+                    }
+                ]
+            },
+        )
+
+        # Also set up reward approvals
+        hass.states.async_set(
+            "sensor.kc_global_reward_pending_approvals",
+            "1",
+            {
+                kid_name: [
+                    {
+                        "reward_name": "Ice Cream",
+                        "claimed_on": dt_util.now().isoformat(),
+                        "approve_button_eid": "button.kc_alice_approve_ice_cream",
+                        "disapprove_button_eid": "button.kc_alice_disapprove_ice_cream",
+                    }
+                ]
+            },
+        )
+
+        # Render the FULL approval card template including rendering logic
+        template_str = (
+            """
+{%- set name = '"""
+            + kid_name
+            + """' -%}
+{%- set pref_column_count = 2 -%}
+{%- set name_normalize = name | slugify() -%}
+{%- set dashboard_helper = 'sensor.kc_' ~ name_normalize ~ '_ui_dashboard_helper' -%}
+
+{%- set ns = namespace(
+  approve_chore_buttons=[],
+  approve_reward_buttons=[],
+  group_cards=[],
+  has_approvals='false'
+) -%}
+
+{#-- Validation: Check if name is configured --#}
+{%- if name == 'Kidname' | replace(' ', '') or name == '' -%}
+  {%- set skip_render = true -%}
+{%- elif states(dashboard_helper) in ['unknown', 'unavailable'] -%}
+  {%- set skip_render = true -%}
+{%- else -%}
+  {%- set skip_render = false -%}
+{%- endif -%}
+
+{#-- 3. Collect Data --#}
+{%- set ui = state_attr(dashboard_helper, 'ui_translations') or {} -%}
+
+{%- set pending_chore_data = state_attr('sensor.kc_global_chore_pending_approvals', name) | default([], true) if states('sensor.kc_global_chore_pending_approvals') not in ['unavailable', 'unknown'] else state_attr('sensor.kc_pending_chore_approvals', name) | default([], true) if states('sensor.kc_pending_chore_approvals') not in ['unavailable', 'unknown'] else [] -%}
+
+{%- set pending_reward_data = state_attr('sensor.kc_global_reward_pending_approvals', name) | default([], true) if states('sensor.kc_global_reward_pending_approvals') not in ['unavailable', 'unknown'] else state_attr('sensor.kc_global_pending_reward_approvals', name) | default([], true) if states('sensor.kc_global_pending_reward_approvals') not in ['unavailable', 'unknown'] else state_attr('sensor.kc_pending_reward_approvals', name) | default([], true) if states('sensor.kc_pending_reward_approvals') not in ['unavailable', 'unknown'] else [] -%}
+
+{#-- 4. Build Display --#}
+{%- if pending_chore_data | count > 0 -%}
+  {%- for entry in pending_chore_data -%}
+    {%- set ap = (entry.approve_button_eid if entry.approve_button_eid not in [None, 'None', ''] else '') | default('') -%}
+    {%- set dis = (entry.disapprove_button_eid if entry.disapprove_button_eid not in [None, 'None', ''] else '') | default('') -%}
+    {%- set cname = entry.chore_name | default('') -%}
+
+    {%- if ap != '' -%}
+      {%- if ap not in (ns.approve_chore_buttons | map(attribute='eid') | list) -%}
+        {%- set ns.approve_chore_buttons = ns.approve_chore_buttons + [{'eid': ap, 'primary': ui.get('ok', 'err-ok') ~ ': ' ~ cname, 'icon': 'mdi:thumb-up', 'icon_color': 'green'}] -%}
+      {%- endif -%}
+    {%- endif -%}
+
+    {%- if dis != '' -%}
+      {%- if dis not in (ns.approve_chore_buttons | map(attribute='eid') | list) -%}
+        {%- set ns.approve_chore_buttons = ns.approve_chore_buttons + [{'eid': dis, 'primary': ui.get('no', 'err-no') ~ ': ' ~ cname, 'icon': 'mdi:thumb-down', 'icon_color': 'red'}] -%}
+      {%- endif -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+
+{%- if pending_reward_data | count > 0 -%}
+  {%- for entry in pending_reward_data -%}
+    {%- set ap = (entry.approve_button_eid if entry.approve_button_eid not in [None, 'None', ''] else '') | default('') -%}
+    {%- set dis = (entry.disapprove_button_eid if entry.disapprove_button_eid not in [None, 'None', ''] else '') | default('') -%}
+    {%- set rname = entry.reward_name | default('') -%}
+
+    {%- if ap != '' -%}
+      {%- if ap not in (ns.approve_reward_buttons | map(attribute='eid') | list) -%}
+        {%- set ns.approve_reward_buttons = ns.approve_reward_buttons + [{'eid': ap, 'primary': ui.get('ok', 'err-ok') ~ ': ' ~ rname, 'icon': 'mdi:thumb-up', 'icon_color': 'green'}] -%}
+      {%- endif -%}
+    {%- endif -%}
+
+    {%- if dis != '' -%}
+      {%- if dis not in (ns.approve_reward_buttons | map(attribute='eid') | list) -%}
+        {%- set ns.approve_reward_buttons = ns.approve_reward_buttons + [{'eid': dis, 'primary': ui.get('no', 'err-no') ~ ': ' ~ rname, 'icon': 'mdi:thumb-down', 'icon_color': 'red'}] -%}
+      {%- endif -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+
+{%- set button_groups = [
+    {'name': ui.get('chore_approvals', 'err-chore_approvals'), 'buttons': ns.approve_chore_buttons, 'icon': 'mdi:thumb-up-outline'},
+    {'name': ui.get('reward_approvals', 'err-reward_approvals'), 'buttons': ns.approve_reward_buttons, 'icon': 'mdi:thumb-up-outline'}
+] -%}
+
+{#-- 5. Render --#}
+{%- if not skip_render -%}
+  {%- for group in button_groups -%}
+  {%- set ns.group_cards = [] -%}
+
+  {%- if group.buttons | length > 0 -%}
+    {%- set heading_card = {
+      'type': 'heading',
+      'icon': group.icon,
+      'heading': group.name,
+      'heading_style': 'title'
+    } -%}
+
+    {%- for button in group.buttons -%}
+      {%- if button is mapping -%}
+        {%- set eid = button.eid -%}
+        {%- set primary = button.primary -%}
+        {%- set icon = button.icon -%}
+        {%- set icon_color = button.icon_color -%}
+      {%- endif -%}
+
+      {%- set ns.group_cards = ns.group_cards + [{
+        'type': 'custom:mushroom-template-card',
+        'entity': eid,
+        'primary': primary,
+        'icon': icon,
+        'layout': '',
+        'icon_color': icon_color,
+        'tap_action': {
+          'action': 'toggle'
+        },
+        'hold_action': {
+          'action': 'more-info'
+        }
+      }] -%}
+    {%- endfor -%}
+
+    RENDERED_GROUP: {{ group.name }}|{{ ns.group_cards | length }}
+    {%- for card in ns.group_cards -%}
+CARD:{{ card.entity }}|{{ card.type }}
+    {%- endfor -%}
+  {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+
+CHORE_BUTTONS:{{ ns.approve_chore_buttons | length }}
+REWARD_BUTTONS:{{ ns.approve_reward_buttons | length }}
+SKIP_RENDER:{{ skip_render }}
+"""
+        )
+        template = Template(template_str, hass)
+        result = template.async_render()
+
+        # Verify rendering completed
+        assert "SKIP_RENDER:False" in result, (
+            f"Template rendering failed. Output: {result}"
+        )
+
+        # Verify buttons were collected
+        assert "CHORE_BUTTONS:2" in result, (
+            f"Expected 2 chore buttons (approve + disapprove). Output: {result}"
+        )
+        assert "REWARD_BUTTONS:2" in result, (
+            f"Expected 2 reward buttons (approve + disapprove). Output: {result}"
+        )
+
+        # Verify groups were rendered
+        assert "RENDERED_GROUP:" in result, f"No groups rendered. Output: {result}"
+
+        # Verify mushroom-template-card entries exist
+        assert (
+            "CARD:button.kc_alice_approve_dishes|custom:mushroom-template-card"
+            in result
+        ), f"Approve chore card not rendered. Output: {result}"
+        assert (
+            "CARD:button.kc_alice_disapprove_dishes|custom:mushroom-template-card"
+            in result
+        ), f"Disapprove chore card not rendered. Output: {result}"
+        assert (
+            "CARD:button.kc_alice_approve_ice_cream|custom:mushroom-template-card"
+            in result
+        ), f"Approve reward card not rendered. Output: {result}"
+        assert (
+            "CARD:button.kc_alice_disapprove_ice_cream|custom:mushroom-template-card"
+            in result
+        ), f"Disapprove reward card not rendered. Output: {result}"
+
+
+def state_attr(hass: HomeAssistant, entity_id: str, attr: str):
+    """Get state attribute from entity."""
+    state = hass.states.get(entity_id)
+    if state:
+        return state.attributes.get(attr)
+    return None
+
+
+class TestDashboardApprovalButtonsCard:
+    """Test approval buttons card rendering with pending approvals."""
+
+    async def test_approval_buttons_with_claimed_chore(
+        self, hass: HomeAssistant, dashboard_entities, kid_name: str, kid_slug: str
+    ):
+        """Test approval buttons card renders when chore is claimed.
+
+        This test verifies the approval buttons appear after a chore is claimed.
+        The pending approvals sensor must have the button entity IDs populated.
+        """
+        # Set up pending chore approvals sensor with claimed chore
+        hass.states.async_set(
+            "sensor.kc_global_chore_pending_approvals",
+            "1",
+            {
+                kid_name: [
+                    {
+                        "chore_name": "Dishes",
+                        "claimed_on": dt_util.now().isoformat(),
+                        "approve_button_eid": "button.kc_alice_approve_dishes",
+                        "disapprove_button_eid": "button.kc_alice_disapprove_dishes",
+                    }
+                ]
+            },
+        )
+
+        # Render the approval buttons card template
+        template_str = (
+            """
+{%- set name = '"""
+            + kid_name
+            + """' -%}
+{%- set pref_column_count = 2 -%}
+{%- set name_normalize = name | slugify() -%}
+{%- set dashboard_helper = 'sensor.kc_' ~ name_normalize ~ '_ui_dashboard_helper' -%}
+
+{%- set ns = namespace(
+  approve_chore_buttons=[],
+  group_cards=[]
+) -%}
+
+{#-- Check if name is configured --#}
+{%- if name == 'Kidname' | replace(' ', '') or name == '' -%}
+  {{- 'ERROR: Name not configured' -}}
+  {%- set skip_render = true -%}
+{%- elif states(dashboard_helper) in ['unknown', 'unavailable'] -%}
+  {{- 'ERROR: Dashboard helper unavailable' -}}
+  {%- set skip_render = true -%}
+{%- else -%}
+  {%- set skip_render = false -%}
+{%- endif -%}
+
+{#-- Get translations --#}
+{%- set ui = state_attr(dashboard_helper, 'ui_translations') or {} -%}
+
+{#-- Get pending approvals --#}
+{%- set pending_chore_data = state_attr('sensor.kc_global_chore_pending_approvals', name) | default([], true) if states('sensor.kc_global_chore_pending_approvals') not in ['unavailable', 'unknown'] else [] -%}
+
+{#-- Build button list from pending chore data --#}
+{%- if pending_chore_data | count > 0 -%}
+  {%- for entry in pending_chore_data -%}
+    {%- set ap = entry.approve_button_eid | default('') -%}
+    {%- set dis = entry.disapprove_button_eid | default('') -%}
+    {%- set cname = entry.chore_name | default('') -%}
+
+    {%- if ap != '' -%}
+      {%- if ap not in (ns.approve_chore_buttons | map(attribute='eid') | list) -%}
+        {%- set ns.approve_chore_buttons = ns.approve_chore_buttons + [{'eid': ap, 'primary': 'Approve: ' ~ cname}] -%}
+      {%- endif -%}
+    {%- endif -%}
+
+    {%- if dis != '' -%}
+      {%- if dis not in (ns.approve_chore_buttons | map(attribute='eid') | list) -%}
+        {%- set ns.approve_chore_buttons = ns.approve_chore_buttons + [{'eid': dis, 'primary': 'Disapprove: ' ~ cname}] -%}
+      {%- endif -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+
+RESULT: {{ ns.approve_chore_buttons | length }},{{ ns.approve_chore_buttons | map(attribute='eid') | list | string }}
+"""
+        )
+        template = Template(template_str, hass)
+        result = template.async_render()
+
+        # Verify buttons were found
+        assert "RESULT:" in result
+        assert "ERROR:" not in result
+        assert "skip_render = true" not in result
+
+        # Verify both approve and disapprove buttons found
+        assert "'button.kc_alice_approve_dishes'" in result
+        assert "'button.kc_alice_disapprove_dishes'" in result
+
+        # Verify correct count
+        assert "RESULT: 2," in result
+
+    async def test_approval_buttons_empty_when_no_pending(
+        self, hass: HomeAssistant, dashboard_entities, kid_name: str, kid_slug: str
+    ):
+        """Test approval buttons card renders empty when no pending approvals."""
+        # Don't set up pending chore approvals sensor
+
+        template_str = (
+            """
+{%- set name = '"""
+            + kid_name
+            + """' -%}
+{%- set name_normalize = name | slugify() -%}
+
+{%- set pending_chore_data = state_attr('sensor.kc_global_chore_pending_approvals', name) | default([], true) if states('sensor.kc_global_chore_pending_approvals') not in ['unavailable', 'unknown'] else [] -%}
+
+PENDING_COUNT: {{ pending_chore_data | count }}
+"""
+        )
+        template = Template(template_str, hass)
+        result = template.async_render()
+
+        # Should have empty list
+        assert "PENDING_COUNT: 0" in result
+
+    async def test_approval_buttons_missing_button_eid(
+        self, hass: HomeAssistant, dashboard_entities, kid_name: str, kid_slug: str
+    ):
+        """Test approval buttons card handles missing button entity IDs gracefully.
+
+        When approve_button_eid is None, it should be filtered out and not rendered.
+        Only disapprove_button_eid should appear in the button list.
+        """
+        # Set up pending chore approvals sensor with missing button EIDs
+        hass.states.async_set(
+            "sensor.kc_global_chore_pending_approvals",
+            "1",
+            {
+                kid_name: [
+                    {
+                        "chore_name": "Dishes",
+                        "claimed_on": dt_util.now().isoformat(),
+                        "approve_button_eid": None,  # Missing!
+                        "disapprove_button_eid": "button.kc_alice_disapprove_dishes",
+                    }
+                ]
+            },
+        )
+
+        template_str = (
+            """
+{%- set name = '"""
+            + kid_name
+            + """' -%}
+{%- set ns = namespace(approve_chore_buttons=[]) -%}
+
+{%- set pending_chore_data = state_attr('sensor.kc_global_chore_pending_approvals', name) | default([], true) if states('sensor.kc_global_chore_pending_approvals') not in ['unavailable', 'unknown'] else [] -%}
+
+{%- if pending_chore_data | count > 0 -%}
+  {%- for entry in pending_chore_data -%}
+    {%- set ap = (entry.approve_button_eid if entry.approve_button_eid not in [None, 'None', ''] else '') | default('') -%}
+    {%- set dis = (entry.disapprove_button_eid if entry.disapprove_button_eid not in [None, 'None', ''] else '') | default('') -%}
+
+    {%- if ap != '' -%}
+      {%- set ns.approve_chore_buttons = ns.approve_chore_buttons + [{'eid': ap}] -%}
+    {%- endif -%}
+
+    {%- if dis != '' -%}
+      {%- set ns.approve_chore_buttons = ns.approve_chore_buttons + [{'eid': dis}] -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+
+BUTTONS: {{ ns.approve_chore_buttons | length }}
+"""
+        )
+        template = Template(template_str, hass)
+        result = template.async_render()
+
+        # Should only have disapprove button (approve is None and filtered out)
+        assert "BUTTONS: 1" in result

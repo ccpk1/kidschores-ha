@@ -236,10 +236,8 @@ CFOF_BADGES_INPUT_ASSOCIATED_CHALLENGE = "associated_challenge"
 CFOF_BADGES_INPUT_AWARD_ITEMS = "award_items"
 CFOF_BADGES_INPUT_AWARD_MODE = "award_mode"
 CFOF_BADGES_INPUT_AWARD_POINTS = "award_points"
-CFOF_BADGES_INPUT_AWARD_POINTS_REWARD = "award_points_reward"
 CFOF_BADGES_INPUT_AWARD_REWARD = "award_reward"
 CFOF_BADGES_INPUT_BADGE_COUNT = "badge_count"
-CFOF_BADGES_INPUT_CUSTOM_RESET_DATE = "custom_reset_date"
 CFOF_BADGES_INPUT_DAILY_THRESHOLD = "daily_threshold"
 CFOF_BADGES_INPUT_DAILY_THRESHOLD_TYPE = "threshold_type"
 CFOF_BADGES_INPUT_DESCRIPTION = "badge_description"
@@ -429,9 +427,6 @@ CONF_NOTIFY_ON_DISAPPROVAL = "notify_on_disapproval"
 NOTIFICATION_EVENT = "mobile_app_notification_action"
 
 # Badge configuration keys
-# TODO(KC 5.0): Remove after KC 3.x migration support dropped
-CONF_BADGE_AWARD_NONE_LEGACY = "award_none"  # Legacy badge award mode
-
 # Badge types
 BADGE_TYPE_ACHIEVEMENT_LINKED = "achievement_linked"
 BADGE_TYPE_CHALLENGE_LINKED = "challenge_linked"
@@ -499,6 +494,9 @@ CONF_RETENTION_YEARLY = "retention_yearly"
 # ------------------------------------------------------------------------------------------------
 # Data Keys
 # ------------------------------------------------------------------------------------------------
+# Pluralization: Use SINGULAR for single-field data (DATA_KID_NAME = "name"), PLURAL for
+# collections (DATA_KID_APPROVED_CHORES = "approved_chores", DATA_KIDS = "kids"). See
+# ARCHITECTURE.md "Entity Plurality" (lines 926-941) for details.
 
 # GLOBAL
 DATA_ACHIEVEMENTS = "achievements"
@@ -520,12 +518,10 @@ DATA_REWARDS = "rewards"
 
 # KIDS
 DATA_KID_APPROVED_CHORES = "approved_chores"
-DATA_KID_BADGE_GRACE_EXPIRY_UNUSED = "badge_grace_expiry"
-DATA_KID_BADGE_EARNED_ID_UNUSED = "badge_id"
 DATA_KID_BADGES_EARNED_NAME = "badge_name"
 DATA_KID_BADGES_EARNED_LAST_AWARDED = "last_awarded_date"
 DATA_KID_BADGES_EARNED_AWARD_COUNT = "award_count"
-DATA_KID_BADGES_LEGACY = "badges"
+DATA_KID_BADGES_DEPRECATED = "badges"
 DATA_KID_BADGES_EARNED = "badges_earned"
 DATA_KID_BADGES_EARNED_PERIODS = "periods"
 DATA_KID_BADGES_EARNED_PERIODS_DAILY = "daily"
@@ -579,15 +575,7 @@ DATA_KID_BADGE_PROGRESS_CHORES_COMPLETED = "chores_completed"
 DATA_KID_BADGE_PROGRESS_DAYS_COMPLETED = "days_completed"
 
 DATA_KID_BONUS_APPLIES = "bonus_applies"
-DATA_KID_CHORE_APPROVALS_LEGACY = "chore_approvals"
-DATA_KID_CHORE_CLAIMS_LEGACY = "chore_claims"
-DATA_KID_CHORE_STREAKS_LEGACY = "chore_streaks"
 DATA_KID_CLAIMED_CHORES = "claimed_chores"
-DATA_KID_COMPLETED_CHORES_MONTHLY_LEGACY = "completed_chores_monthly"
-DATA_KID_COMPLETED_CHORES_TOTAL_LEGACY = "completed_chores_total"
-DATA_KID_COMPLETED_CHORES_TODAY_LEGACY = "completed_chores_today"
-DATA_KID_COMPLETED_CHORES_WEEKLY_LEGACY = "completed_chores_weekly"
-DATA_KID_COMPLETED_CHORES_YEARLY_LEGACY = "completed_chores_yearly"
 
 # Kid Chore Data Structure Constants
 DATA_KID_CHORE_DATA = "chore_data"
@@ -734,16 +722,8 @@ DATA_KID_OVERDUE_NOTIFICATIONS = "overdue_notifications"
 DATA_KID_OVERALL_CHORE_STREAK = "overall_chore_streak"
 DATA_KID_PENALTY_APPLIES = "penalty_applies"
 DATA_KID_PENDING_REWARDS = "pending_rewards"
-DATA_KID_PERIODIC_BADGE_POINTS_UNUSED = "periodic_badge_points"
-DATA_KID_PERIODIC_BADGE_PROGRESS_UNUSED = "periodic_badge_progress"
-DATA_KID_PERIODIC_BADGE_SUCCESS_UNUSED = "periodic_badge_success"
 DATA_KID_POINTS = "points"
-DATA_KID_POINTS_EARNED_MONTHLY_LEGACY = "points_earned_monthly"
-DATA_KID_POINTS_EARNED_TODAY_LEGACY = "points_earned_today"
-DATA_KID_POINTS_EARNED_WEEKLY_LEGACY = "points_earned_weekly"
-DATA_KID_POINTS_EARNED_YEARLY_LEGACY = "points_earned_yearly"
 DATA_KID_POINTS_MULTIPLIER = "points_multiplier"
-DATA_KID_PRE_RESET_BADGE_UNUSED = "pre_reset_badge"
 DATA_KID_REDEEMED_REWARDS = "redeemed_rewards"
 DATA_KID_REWARD_APPROVALS = "reward_approvals"
 DATA_KID_REWARD_CLAIMS = "reward_claims"
@@ -792,15 +772,16 @@ POINTS_SOURCE_MANUAL = "manual"
 POINTS_SOURCE_OTHER = "other"
 
 # Example list of valid sources for UI/enumeration:
+# Lowercase literals required by Home Assistant SelectSelector schema
 POINTS_SOURCE_OPTIONS = [
-    {CONF_VALUE: POINTS_SOURCE_CHORES, CONF_LABEL: "Chores"},
-    {CONF_VALUE: POINTS_SOURCE_BONUSES, CONF_LABEL: "Bonuses"},
-    {CONF_VALUE: POINTS_SOURCE_PENALTIES, CONF_LABEL: "Penalties"},
-    {CONF_VALUE: POINTS_SOURCE_BADGES, CONF_LABEL: "Badges"},
-    {CONF_VALUE: POINTS_SOURCE_ACHIEVEMENTS, CONF_LABEL: "Achievements"},
-    {CONF_VALUE: POINTS_SOURCE_CHALLENGES, CONF_LABEL: "Challenges"},
-    {CONF_VALUE: POINTS_SOURCE_REWARDS, CONF_LABEL: "Rewards"},
-    {CONF_VALUE: POINTS_SOURCE_OTHER, CONF_LABEL: "Other"},
+    {"value": POINTS_SOURCE_CHORES, "label": "Chores"},
+    {"value": POINTS_SOURCE_BONUSES, "label": "Bonuses"},
+    {"value": POINTS_SOURCE_PENALTIES, "label": "Penalties"},
+    {"value": POINTS_SOURCE_BADGES, "label": "Badges"},
+    {"value": POINTS_SOURCE_ACHIEVEMENTS, "label": "Achievements"},
+    {"value": POINTS_SOURCE_CHALLENGES, "label": "Challenges"},
+    {"value": POINTS_SOURCE_REWARDS, "label": "Rewards"},
+    {"value": POINTS_SOURCE_OTHER, "label": "Other"},
 ]
 
 # --- Kid Point Stats (modeled after chore stats) ---
@@ -920,44 +901,6 @@ DATA_BADGE_TARGET_TYPE = "target_type"
 DATA_BADGE_TRACKED_CHORES = "tracked_chores"
 DATA_BADGE_TRACKED_CHORES_SELECTED_CHORES = "selected_chores"
 DATA_BADGE_TYPE = "badge_type"
-
-# BADGES - DEPRECATED but used in migration
-DATA_BADGE_THRESHOLD_TYPE_LEGACY = "threshold_type"  # USED IN MIGRATION TO 4.0
-DATA_BADGE_THRESHOLD_VALUE_LEGACY = "threshold_value"  # USED IN  MIGRATION TO 4.0
-DATA_BADGE_CHORE_COUNT_TYPE_LEGACY = "chore_count_type"  # USED IN  MIGRATION TO 4.0
-DATA_BADGE_POINTS_MULTIPLIER_LEGACY = "points_multiplier"  # USED IN  MIGRATION TO 4.0
-
-
-# BADGES - DEPRECATED Constants
-DATA_BADGE_REQUIRED_CHORES_LEGACY = "required_chores"  # NEEDS TO BE REMOVED AFTER FIX
-DATA_BADGE_RESET_GRACE_PERIOD_UNUSED = (
-    "reset_grace_period"  # NEEDS TO BE REMOVED AFTER FIX
-)
-DATA_BADGE_RESET_PERIODICALLY_UNUSED = (
-    "reset_periodically"  # NEEDS TO BE REMOVED AFTER FIX
-)
-DATA_BADGE_RESET_TYPE_UNUSED = "reset_type"  # NEEDS TO BE REMOVED AFTER FIX
-# DATA_BADGE_ASSIGNED_KIDS = "assigned_kids"
-# DATA_BADGE_CRITERIA_MODE = "criteria_mode"
-# DATA_BADGE_CRITERIA_MODE_CHORES = "chores"
-# DATA_BADGE_CRITERIA_MODE_POINTS = "points"
-# DATA_BADGE_CUSTOM_RESET_DATE = "custom_reset_date"
-DATA_BADGE_DAILY_THRESHOLD_UNUSED = "daily_threshold"
-# DATA_BADGE_DAILY_THRESHOLD_TYPE = "threshold_type"
-DATA_BADGE_END_DATE_UNUSED = "end_date"
-# DATA_BADGE_LAST_RESET = "last_reset"
-# DATA_BADGE_OCCASION_DATE = "occasion_date"
-# DATA_BADGE_ONE_TIME_REWARD = "one_time_reward"
-DATA_BADGE_PERIODIC_RECURRENT_UNUSED = "recurrent"
-DATA_BADGE_SPECIAL_OCCASION_DATE_UNUSED = "occasion_date"
-DATA_BADGE_SPECIAL_OCCASION_LAST_AWARDED_LEGACY = "last_awarded"
-DATA_BADGE_SPECIAL_OCCASION_RECURRENCY_UNUSED = "recurrent"
-DATA_BADGE_START_DATE_UNUSED = "start_date"
-# DATA_BADGE_RESET_CRITERIA = "reset_criteria"
-# DATA_BADGE_REWARD = "reward"
-# DATA_BADGE_TRIGGER_INFO = "trigger_info"
-# DATA_BADGE_TYPE_TOTAL = "total"
-
 
 # REWARDS
 DATA_REWARD_COST = "cost"
@@ -1100,12 +1043,8 @@ DEFAULT_TROPHY_OUTLINE = "mdi:trophy-outline"
 DEFAULT_ACHIEVEMENT_REWARD_POINTS = 0
 DEFAULT_ACHIEVEMENT_TARGET = 1
 DEFAULT_APPLICABLE_DAYS: list[str] = []
-DEFAULT_BADGE_AWARD_MODE_UNUSED = "award_none"
 DEFAULT_BADGE_AWARD_POINTS = 0
-DEFAULT_BADGE_DAILY_THRESHOLD_UNUSED = 5
 DEFAULT_BADGE_MAINTENANCE_THRESHOLD = 0  # Added
-DEFAULT_BADGE_RESET_GRACE_PERIOD_UNUSED = 0
-DEFAULT_BADGE_REWARD_UNUSED = 0
 DEFAULT_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT = CONF_NONE
 DEFAULT_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL = CONF_NONE
 DEFAULT_BADGE_RESET_SCHEDULE_END_DATE = CONF_NONE
@@ -1127,7 +1066,6 @@ DEFAULT_BADGE_TARGET = {
     "value": DEFAULT_BADGE_TARGET_THRESHOLD_VALUE,
 }
 DEFAULT_BADGE_THRESHOLD_VALUE_LEGACY = 50
-DEFAULT_BADGE_THRESHOLD_TYPE_UNUSED = "points"
 DEFAULT_BONUS_POINTS = 1
 DEFAULT_CALENDAR_SHOW_PERIOD = 90
 DEFAULT_CHALLENGE_REWARD_POINTS = 0
@@ -1369,6 +1307,18 @@ PRIMARY_GROUP_TODAY = "today"
 PRIMARY_GROUP_THIS_WEEK = "this_week"
 PRIMARY_GROUP_OTHER = "other"
 
+
+# ================================================================================================
+# Entity ID Constants (SUFFIX and MIDFIX patterns)
+# ================================================================================================
+#
+# See docs/ARCHITECTURE.md "Entity ID Construction Patterns" for detailed explanation of:
+# - SUFFIX pattern: Appended identifiers ("_points", "_badge")
+# - MIDFIX pattern: Embedded between parts ("_chore_claim_", "_bonus_")
+# - UNIQUE_ID construction: entry_id + [_ids] + SUFFIX
+# - ENTITY_ID construction: prefix + [names] + [MIDFIX] + [names] + [SUFFIX]
+#
+# ================================================================================================
 
 # ------------------------------------------------------------------------------------------------
 # Sensors
@@ -1631,7 +1581,7 @@ CFOP_ERROR_CHORE_NAME = "chore_name"
 CFOP_ERROR_DUE_DATE = "due_date"
 CFOP_ERROR_END_DATE = "end_date"
 CFOP_ERROR_KID_NAME = "kid_name"
-CFPO_ERROR_PARENT_NAME = "parent_name"
+CFOP_ERROR_PARENT_NAME = "parent_name"
 CFOP_ERROR_PENALTY_NAME = "penalty_name"
 CFOP_ERROR_REWARD_NAME = "reward_name"
 CFOP_ERROR_SELECT_CHORE_ID = "selected_chore_id"
@@ -1674,8 +1624,6 @@ TRANS_KEY_NO_DUE_DATE = "No due date set"
 TRANS_KEY_CFOF_BADGE_ASSIGNED_TO = "assigned_to"
 TRANS_KEY_CFOF_BADGE_ASSOCIATED_ACHIEVEMENT = "associated_achievement"
 TRANS_KEY_CFOF_BADGE_AWARD_ITEMS = "award_items"
-TRANS_KEY_CFOF_BADGE_AWARD_MODE_UNUSED = "award_mode"  # Added
-TRANS_KEY_CFOF_BADGE_AWARD_REWARD_UNUSED = "award_reward"  # Added
 TRANS_KEY_CFOF_BADGE_ASSOCIATED_CHALLENGE = "associated_challenge"
 TRANS_KEY_CFOF_BADGE_LABELS = "badge_labels"
 TRANS_KEY_CFOF_BADGE_OCCASION_TYPE = "occasion_type"
@@ -1742,12 +1690,25 @@ TRANS_KEY_CFOF_INVALID_BADGE_TARGET_THRESHOLD_VALUE = (
     "invalid_badge_target_threshold_value"
 )
 TRANS_KEY_CFOF_INVALID_BADGE_TYPE = "invalid_badge_type"
+TRANS_KEY_CFOF_INVALID_MAINTENANCE_RULES = "invalid_maintenance_rules"
+TRANS_KEY_CFOF_TARGET_THRESHOLD_REQUIRED = "target_threshold_required"
+TRANS_KEY_CFOF_INVALID_FORMAT_LIST = "invalid_format_list_expected"
+TRANS_KEY_CFOF_END_DATE_BEFORE_START = "end_date_before_start_date"
+TRANS_KEY_CFOF_INVALID_GRACE_PERIOD = "invalid_grace_period_days"
 TRANS_KEY_CFOF_INVALID_BONUS = "invalid_bonus"
 TRANS_KEY_CFOF_INVALID_BONUS_COUNT = "invalid_bonus_count"
 TRANS_KEY_CFOF_INVALID_BONUS_NAME = "invalid_bonus_name"
 TRANS_KEY_CFOF_INVALID_CHALLENGE = "invalid_challenge"
 TRANS_KEY_CFOF_INVALID_CHALLENGE_COUNT = "invalid_challenge_count"
 TRANS_KEY_CFOF_INVALID_CHALLENGE_NAME = "invalid_challenge_name"
+TRANS_KEY_CFOF_CHALLENGE_NAME_REQUIRED = "err_name_required"
+TRANS_KEY_CFOF_CHALLENGE_NAME_DUPLICATE = "err_name_duplicate"
+TRANS_KEY_CFOF_CHALLENGE_DATES_REQUIRED = "err_dates_required"
+TRANS_KEY_CFOF_CHALLENGE_END_BEFORE_START = "err_end_before_start"
+TRANS_KEY_CFOF_CHALLENGE_INVALID_DATE = "err_invalid_date"
+TRANS_KEY_CFOF_CHALLENGE_TARGET_INVALID = "err_target_invalid"
+TRANS_KEY_CFOF_CHALLENGE_POINTS_NEGATIVE = "err_points_negative"
+TRANS_KEY_CFOF_CHALLENGE_POINTS_INVALID = "err_points_invalid"
 TRANS_KEY_CFOF_INVALID_CHORE = "invalid_chore"
 TRANS_KEY_CFOF_INVALID_CHORE_COUNT = "invalid_chore_count"
 TRANS_KEY_CFOF_INVALID_CHORE_NAME = "invalid_chore_name"
@@ -1768,6 +1729,7 @@ TRANS_KEY_CFOF_INVALID_REWARD = "invalid_reward"
 TRANS_KEY_CFOF_INVALID_REWARD_COUNT = "invalid_reward_count"
 TRANS_KEY_CFOF_INVALID_REWARD_NAME = "invalird_reward_name"
 TRANS_KEY_CFOF_INVALID_START_DATE = "invalid_start_date"
+TRANS_KEY_CFOF_POINTS_LABEL_REQUIRED = "points_label_required"
 TRANS_KEY_CFOF_MAIN_MENU = "main_menu"
 TRANS_KEY_CFOF_MANAGE_ACTIONS = "manage_actions"
 TRANS_KEY_CFOF_NO_ENTITY_TYPE = "no_{}s"
@@ -1971,12 +1933,6 @@ CONFIG_FLOW_STEP = {
     BADGE_TYPE_SPECIAL_OCCASION: CONFIG_FLOW_STEP_BADGES,
 }
 
-# Badge Award Mode
-# TODO(KC 5.0): Remove after KC 3.x support dropped
-AWARD_MODE_OPTIONS_UNUSED = [
-    CONF_BADGE_AWARD_NONE_LEGACY,  # Only remaining legacy constant
-]
-
 AWARD_ITEMS_KEY_POINTS = "points"
 AWARD_ITEMS_KEY_POINTS_MULTIPLIER = "multiplier"
 AWARD_ITEMS_KEY_REWARDS = "rewards"
@@ -2041,71 +1997,72 @@ BADGE_HANDLER_PARAM_FROM_CHORES_ONLY = "from_chores_only"
 # Badge Special Occasion Types
 OCCASION_TYPE_OPTIONS = [CONF_BIRTHDAY, CONF_HOLIDAY, CONF_CUSTOM]
 
+# Lowercase literals required by Home Assistant SelectSelector schema
 TARGET_TYPE_OPTIONS = [
-    {CONF_VALUE: BADGE_TARGET_THRESHOLD_TYPE_POINTS, CONF_LABEL: "Points Earned"},
+    {"value": BADGE_TARGET_THRESHOLD_TYPE_POINTS, "label": "Points Earned"},
     {
-        CONF_VALUE: BADGE_TARGET_THRESHOLD_TYPE_POINTS_CHORES,
-        CONF_LABEL: "Points Earned (From Chores)",
+        "value": BADGE_TARGET_THRESHOLD_TYPE_POINTS_CHORES,
+        "label": "Points Earned (From Chores)",
     },
     {
-        CONF_VALUE: BADGE_TARGET_THRESHOLD_TYPE_CHORE_COUNT,
-        CONF_LABEL: "Chores Completed",
+        "value": BADGE_TARGET_THRESHOLD_TYPE_CHORE_COUNT,
+        "label": "Chores Completed",
     },
     {
-        CONF_VALUE: BADGE_TARGET_THRESHOLD_TYPE_DAYS_SELECTED_CHORES,
-        CONF_LABEL: "Days Selected Chores Completed",
+        "value": BADGE_TARGET_THRESHOLD_TYPE_DAYS_SELECTED_CHORES,
+        "label": "Days Selected Chores Completed",
     },
     {
-        CONF_VALUE: BADGE_TARGET_THRESHOLD_TYPE_DAYS_80PCT_CHORES,
-        CONF_LABEL: "Days 80% of Selected Chores Completed",
+        "value": BADGE_TARGET_THRESHOLD_TYPE_DAYS_80PCT_CHORES,
+        "label": "Days 80% of Selected Chores Completed",
     },
     {
-        CONF_VALUE: BADGE_TARGET_THRESHOLD_TYPE_DAYS_SELECTED_CHORES_NO_OVERDUE,
-        CONF_LABEL: "Days Selected Chores Completed (No Overdue)",
+        "value": BADGE_TARGET_THRESHOLD_TYPE_DAYS_SELECTED_CHORES_NO_OVERDUE,
+        "label": "Days Selected Chores Completed (No Overdue)",
     },
     {
-        CONF_VALUE: BADGE_TARGET_THRESHOLD_TYPE_DAYS_SELECTED_DUE_CHORES,
-        CONF_LABEL: "Days Selected Due Chores Completed",
+        "value": BADGE_TARGET_THRESHOLD_TYPE_DAYS_SELECTED_DUE_CHORES,
+        "label": "Days Selected Due Chores Completed",
     },
     {
-        CONF_VALUE: BADGE_TARGET_THRESHOLD_TYPE_DAYS_80PCT_DUE_CHORES,
-        CONF_LABEL: "Days 80% of Selected Due Chores Completed",
+        "value": BADGE_TARGET_THRESHOLD_TYPE_DAYS_80PCT_DUE_CHORES,
+        "label": "Days 80% of Selected Due Chores Completed",
     },
     {
-        CONF_VALUE: BADGE_TARGET_THRESHOLD_TYPE_DAYS_SELECTED_DUE_CHORES_NO_OVERDUE,
-        CONF_LABEL: "Days Selected Due Chores Completed (No Overdue)",
+        "value": BADGE_TARGET_THRESHOLD_TYPE_DAYS_SELECTED_DUE_CHORES_NO_OVERDUE,
+        "label": "Days Selected Due Chores Completed (No Overdue)",
     },
     {
-        CONF_VALUE: BADGE_TARGET_THRESHOLD_TYPE_DAYS_MIN_3_CHORES,
-        CONF_LABEL: "Days Minimum 3 Chores Completed",
+        "value": BADGE_TARGET_THRESHOLD_TYPE_DAYS_MIN_3_CHORES,
+        "label": "Days Minimum 3 Chores Completed",
     },
     {
-        CONF_VALUE: BADGE_TARGET_THRESHOLD_TYPE_DAYS_MIN_5_CHORES,
-        CONF_LABEL: "Days Minimum 5 Chores Completed",
+        "value": BADGE_TARGET_THRESHOLD_TYPE_DAYS_MIN_5_CHORES,
+        "label": "Days Minimum 5 Chores Completed",
     },
     {
-        CONF_VALUE: BADGE_TARGET_THRESHOLD_TYPE_DAYS_MIN_7_CHORES,
-        CONF_LABEL: "Days Minimum 7 Chores Completed",
+        "value": BADGE_TARGET_THRESHOLD_TYPE_DAYS_MIN_7_CHORES,
+        "label": "Days Minimum 7 Chores Completed",
     },
     {
-        CONF_VALUE: BADGE_TARGET_THRESHOLD_TYPE_STREAK_SELECTED_CHORES,
-        CONF_LABEL: "Streak: Selected Chores Completed",
+        "value": BADGE_TARGET_THRESHOLD_TYPE_STREAK_SELECTED_CHORES,
+        "label": "Streak: Selected Chores Completed",
     },
     {
-        CONF_VALUE: BADGE_TARGET_THRESHOLD_TYPE_STREAK_80PCT_CHORES,
-        CONF_LABEL: "Streak: 80% of Selected Chores Completed",
+        "value": BADGE_TARGET_THRESHOLD_TYPE_STREAK_80PCT_CHORES,
+        "label": "Streak: 80% of Selected Chores Completed",
     },
     {
-        CONF_VALUE: BADGE_TARGET_THRESHOLD_TYPE_STREAK_SELECTED_CHORES_NO_OVERDUE,
-        CONF_LABEL: "Streak: Selected Chores Completed (No Overdue)",
+        "value": BADGE_TARGET_THRESHOLD_TYPE_STREAK_SELECTED_CHORES_NO_OVERDUE,
+        "label": "Streak: Selected Chores Completed (No Overdue)",
     },
     {
-        CONF_VALUE: BADGE_TARGET_THRESHOLD_TYPE_STREAK_80PCT_DUE_CHORES,
-        CONF_LABEL: "Streak: 80% of Selected Due Chores Completed",
+        "value": BADGE_TARGET_THRESHOLD_TYPE_STREAK_80PCT_DUE_CHORES,
+        "label": "Streak: 80% of Selected Due Chores Completed",
     },
     {
-        CONF_VALUE: BADGE_TARGET_THRESHOLD_TYPE_STREAK_SELECTED_DUE_CHORES_NO_OVERDUE,
-        CONF_LABEL: "Streak: Selected Due Chores Completed (No Overdue)",
+        "value": BADGE_TARGET_THRESHOLD_TYPE_STREAK_SELECTED_DUE_CHORES_NO_OVERDUE,
+        "label": "Streak: Selected Due Chores Completed (No Overdue)",
     },
 ]
 
@@ -2192,3 +2149,139 @@ REWARD_OPTION_NONE = [
         "label": LABEL_NONE,
     }
 ]
+
+
+# ================================================================================================
+# DEPRECATED CONSTANTS (Currently active in KC 4.x, planned for future refactoring)
+# These reference CURRENT storage keys that are actively used in production code.
+# They are marked for eventual replacement when underlying features are refactored.
+# DO NOT DELETE - would break current KC 4.x installations without migration.
+# ================================================================================================
+
+# Kid Badge Data (used in migration functions)
+DATA_KID_BADGES_DEPRECATED = (
+    "badges"  # Used in _migrate_kid_badges(), remove when migration dropped
+)
+
+# Kid Chore Tracking (actively used in production)
+DATA_KID_CHORE_APPROVALS_DEPRECATED = (
+    "chore_approvals"  # Used in async_approve_chore(), _create_kid()
+)
+DATA_KID_CHORE_CLAIMS_DEPRECATED = "chore_claims"  # Used in migration and _create_kid()
+DATA_KID_CHORE_STREAKS_DEPRECATED = (
+    "chore_streaks"  # Used in _remove_chore_from_kid_data(), _create_kid()
+)
+
+# Kid Completed Chores Counters (actively written to storage)
+DATA_KID_COMPLETED_CHORES_MONTHLY_DEPRECATED = (
+    "completed_chores_monthly"  # Written in async_approve_chore()
+)
+DATA_KID_COMPLETED_CHORES_TOTAL_DEPRECATED = (
+    "completed_chores_total"  # Read by sensors, written in async_approve_chore()
+)
+DATA_KID_COMPLETED_CHORES_TODAY_DEPRECATED = (
+    "completed_chores_today"  # Read by sensors, written in async_approve_chore()
+)
+DATA_KID_COMPLETED_CHORES_WEEKLY_DEPRECATED = (
+    "completed_chores_weekly"  # Written in async_approve_chore()
+)
+DATA_KID_COMPLETED_CHORES_YEARLY_DEPRECATED = (
+    "completed_chores_yearly"  # Written in reset functions
+)
+
+# Kid Points Earned Tracking (actively written to storage)
+DATA_KID_POINTS_EARNED_MONTHLY_DEPRECATED = (
+    "points_earned_monthly"  # Used in _update_kid_points_earned()
+)
+DATA_KID_POINTS_EARNED_TODAY_DEPRECATED = (
+    "points_earned_today"  # Used in _update_kid_points_earned()
+)
+DATA_KID_POINTS_EARNED_WEEKLY_DEPRECATED = (
+    "points_earned_weekly"  # Used in _update_kid_points_earned()
+)
+DATA_KID_POINTS_EARNED_YEARLY_DEPRECATED = (
+    "points_earned_yearly"  # Written in reset functions
+)
+
+
+# ================================================================================================
+# LEGACY CONSTANTS (KC 3.x migration only - used in one-time data conversion)
+# These reference OLD storage keys from KC 3.x that are replaced during migration to KC 4.x.
+# After migration completes, these keys NO LONGER EXIST in storage.
+# Remove in KC-vNext after KC 3.x migration support is dropped.
+# DO NOT DELETE - would break KC 3.x to KC 4.x migration for upgrading users.
+# ================================================================================================
+
+DATA_BADGE_CHORE_COUNT_TYPE_LEGACY = (
+    "chore_count_type"  # Read in _migrate_badge_schema()
+)
+DATA_BADGE_POINTS_MULTIPLIER_LEGACY = (
+    "points_multiplier"  # Read in _migrate_badge_schema()
+)
+DATA_BADGE_THRESHOLD_TYPE_LEGACY = (
+    "threshold_type"  # Read in _migrate_badge_schema(), deleted after
+)
+DATA_BADGE_THRESHOLD_VALUE_LEGACY = (
+    "threshold_value"  # Read in _migrate_badge_schema(), deleted after
+)
+
+
+# ================================================================================================
+# UNUSED CONSTANTS (No code references - safe to delete anytime)
+# These constants have NO references in active code or migrations.
+# They represent abandoned features, development artifacts, or fully replaced functionality.
+# Can be deleted immediately without breaking anything.
+# Kept temporarily for code review traceability.
+# ================================================================================================
+
+# Badge Data Keys (never used or fully replaced)
+DATA_BADGE_REQUIRED_CHORES_UNUSED = (
+    "required_chores"  # Never implemented in any schema version
+)
+DATA_BADGE_SPECIAL_OCCASION_LAST_AWARDED_UNUSED = (
+    "last_awarded"  # Defined but never used in migration
+)
+
+# Badge Award Mode (never used)
+CONF_BADGE_AWARD_NONE_UNUSED = "award_none"  # Defined but never used anywhere
+AWARD_MODE_OPTIONS_UNUSED = [
+    CONF_BADGE_AWARD_NONE_UNUSED,  # Array never referenced
+]
+
+# Config Flow & Options Flow
+CFOF_BADGES_INPUT_AWARD_POINTS_REWARD_UNUSED = "award_points_reward"
+CFOF_BADGES_INPUT_CUSTOM_RESET_DATE_UNUSED = "custom_reset_date"
+
+# Badge Data Keys
+DATA_BADGE_DAILY_THRESHOLD_UNUSED = "daily_threshold"
+DATA_BADGE_END_DATE_UNUSED = "end_date"
+DATA_BADGE_PERIODIC_RECURRENT_UNUSED = "recurrent"
+DATA_BADGE_RESET_GRACE_PERIOD_UNUSED = (
+    "reset_grace_period"  # NEEDS TO BE REMOVED AFTER FIX
+)
+DATA_BADGE_RESET_PERIODICALLY_UNUSED = (
+    "reset_periodically"  # NEEDS TO BE REMOVED AFTER FIX
+)
+DATA_BADGE_RESET_TYPE_UNUSED = "reset_type"  # NEEDS TO BE REMOVED AFTER FIX
+DATA_BADGE_SPECIAL_OCCASION_DATE_UNUSED = "occasion_date"
+DATA_BADGE_SPECIAL_OCCASION_RECURRENCY_UNUSED = "recurrent"
+DATA_BADGE_START_DATE_UNUSED = "start_date"
+
+# Kid Badge Data Keys
+DATA_KID_BADGE_EARNED_ID_UNUSED = "badge_id"
+DATA_KID_BADGE_GRACE_EXPIRY_UNUSED = "badge_grace_expiry"
+DATA_KID_PERIODIC_BADGE_POINTS_UNUSED = "periodic_badge_points"
+DATA_KID_PERIODIC_BADGE_PROGRESS_UNUSED = "periodic_badge_progress"
+DATA_KID_PERIODIC_BADGE_SUCCESS_UNUSED = "periodic_badge_success"
+DATA_KID_PRE_RESET_BADGE_UNUSED = "pre_reset_badge"
+
+# Default Values
+DEFAULT_BADGE_AWARD_MODE_UNUSED = "award_none"
+DEFAULT_BADGE_DAILY_THRESHOLD_UNUSED = 5
+DEFAULT_BADGE_RESET_GRACE_PERIOD_UNUSED = 0
+DEFAULT_BADGE_REWARD_UNUSED = 0
+DEFAULT_BADGE_THRESHOLD_TYPE_UNUSED = "points"
+
+# Translation Keys
+TRANS_KEY_CFOF_BADGE_AWARD_MODE_UNUSED = "award_mode"  # Added
+TRANS_KEY_CFOF_BADGE_AWARD_REWARD_UNUSED = "award_reward"  # Added

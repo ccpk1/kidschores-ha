@@ -5,9 +5,11 @@
 family:
   parents:
     - name: "Môm Astrid Stârblüm"
+      ha_user_name: "parent1"
       role: "gardener, loves stars"
   kids:
     - name: "Zoë"
+      ha_user_name: "kid1"
       age: 8
       interests: ["animals"]
 

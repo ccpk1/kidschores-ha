@@ -8,14 +8,15 @@ cd "$(dirname "$0")/.." || exit 1
 if [[ "$1" == "--fix" ]]; then
     echo "🔧 Auto-fixing trailing whitespace..."
     find custom_components/kidschores -name "*.py" -exec sed -i 's/[[:space:]]*$//' {} +
+    find tests -name "*.py" -exec sed -i 's/[[:space:]]*$//' {} +
     echo "✓ Trailing whitespace fixed"
     echo ""
 fi
 
-# Run the comprehensive linting check
+# Run the comprehensive linting check on both integration and tests
 echo "🔍 Running comprehensive lint check..."
 echo ""
-python utils/lint_check.py --integration
+python utils/lint_check.py
 
 exit_code=$?
 

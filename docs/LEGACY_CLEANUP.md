@@ -9,7 +9,7 @@
 
 ## Overview
 
-This document tracks legacy code, constants, and methods that support KC 3.x → KC 4.0 migration. These items are marked for removal in **KC 5.0** after sufficient adoption time (6-12 months).
+This document tracks legacy code, constants, and methods that support KC 3.x → KC 4.0 migration. These items are marked for removal in **KC-vFuture** after sufficient adoption time (6-12 months).
 
 **Current Status**: All legacy code is functional and necessary for backward compatibility. Do not remove until adoption metrics confirm <1% of users remain on KC 3.x.
 

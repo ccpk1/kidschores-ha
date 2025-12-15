@@ -712,7 +712,12 @@ class CompletedChoresTotalSensor(CoordinatorEntity, SensorEntity):
 
 # ------------------------------------------------------------------------------------------
 class CompletedChoresDailySensor(CoordinatorEntity, SensorEntity):
-    """How many chores kid completed today."""
+    """How many chores kid completed today.
+
+    NOTE: This sensor is a candidate for optional deprecation in KC-vNext.
+    Its data is now available as 'chore_stat_approved_today' attribute on
+    CompletedChoresTotalSensor.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_CHORES_COMPLETED_DAILY_SENSOR
@@ -757,7 +762,12 @@ class CompletedChoresDailySensor(CoordinatorEntity, SensorEntity):
 
 # ------------------------------------------------------------------------------------------
 class CompletedChoresWeeklySensor(CoordinatorEntity, SensorEntity):
-    """How many chores kid completed this week."""
+    """How many chores kid completed this week.
+
+    NOTE: This sensor is a candidate for optional deprecation in KC-vNext.
+    Its data is now available as 'chore_stat_approved_week' attribute on
+    CompletedChoresTotalSensor.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_CHORES_COMPLETED_WEEKLY_SENSOR
@@ -802,7 +812,12 @@ class CompletedChoresWeeklySensor(CoordinatorEntity, SensorEntity):
 
 # ------------------------------------------------------------------------------------------
 class CompletedChoresMonthlySensor(CoordinatorEntity, SensorEntity):
-    """How many chores kid completed this month."""
+    """How many chores kid completed this month.
+
+    NOTE: This sensor is a candidate for optional deprecation in KC-vNext.
+    Its data is now available as 'chore_stat_approved_month' attribute on
+    CompletedChoresTotalSensor.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_CHORES_COMPLETED_MONTHLY_SENSOR
@@ -1298,11 +1313,17 @@ class BadgeSensor(CoordinatorEntity, SensorEntity):
         occasion_type = badge_info.get(const.DATA_BADGE_OCCASION_TYPE, None)
         if occasion_type:
             attributes[const.ATTR_OCCASION_TYPE] = occasion_type
+
+        # Get tracked chores from nested structure: tracked_chores.selected_chores
+        tracked_chores = badge_info.get(const.DATA_BADGE_TRACKED_CHORES, {})
+        selected_chore_ids = tracked_chores.get(
+            const.DATA_BADGE_TRACKED_CHORES_SELECTED_CHORES, []
+        )
         attributes[const.ATTR_REQUIRED_CHORES] = [
             self.coordinator.chores_data.get(chore_id, {}).get(
                 const.DATA_CHORE_NAME, chore_id
             )
-            for chore_id in badge_info.get(const.DATA_BADGE_REQUIRED_CHORES_LEGACY, [])
+            for chore_id in selected_chore_ids
         ]
 
         # Awards info
@@ -1874,7 +1895,12 @@ class PenaltyAppliesSensor(CoordinatorEntity, SensorEntity):
 
 # ------------------------------------------------------------------------------------------
 class KidPointsEarnedDailySensor(CoordinatorEntity, SensorEntity):
-    """Sensor for how many net points a kid earned today."""
+    """Sensor for how many net points a kid earned today.
+
+    NOTE: This sensor is a candidate for optional deprecation in KC-vNext.
+    Its data is now available as 'point_stat_points_net_today' attribute on
+    KidPointsSensor.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_KID_POINTS_EARNED_DAILY_SENSOR
@@ -1930,7 +1956,12 @@ class KidPointsEarnedDailySensor(CoordinatorEntity, SensorEntity):
 
 # ------------------------------------------------------------------------------------------
 class KidPointsEarnedWeeklySensor(CoordinatorEntity, SensorEntity):
-    """Sensor for how many net points a kid earned this week."""
+    """Sensor for how many net points a kid earned this week.
+
+    NOTE: This sensor is a candidate for optional deprecation in KC-vNext.
+    Its data is now available as 'point_stat_points_net_week' attribute on
+    KidPointsSensor.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_KID_POINTS_EARNED_WEEKLY_SENSOR
@@ -1987,7 +2018,12 @@ class KidPointsEarnedWeeklySensor(CoordinatorEntity, SensorEntity):
 
 # ------------------------------------------------------------------------------------------
 class KidPointsEarnedMonthlySensor(CoordinatorEntity, SensorEntity):
-    """Sensor for how many net points a kid earned this month."""
+    """Sensor for how many net points a kid earned this month.
+
+    NOTE: This sensor is a candidate for optional deprecation in KC-vNext.
+    Its data is now available as 'point_stat_points_net_month' attribute on
+    KidPointsSensor.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_KID_POINTS_EARNED_MONTHLY_SENSOR
@@ -2106,7 +2142,7 @@ class AchievementSensor(CoordinatorEntity, SensorEntity):
                     else const.DEFAULT_ZERO
                 )
                 current_total = self.coordinator.kids_data.get(kid_id, {}).get(
-                    const.DATA_KID_COMPLETED_CHORES_TOTAL_LEGACY, const.DEFAULT_ZERO
+                    const.DATA_KID_COMPLETED_CHORES_TOTAL_DEPRECATED, const.DEFAULT_ZERO
                 )
                 total_current += current_total
                 total_effective_target += baseline + target
@@ -2145,7 +2181,7 @@ class AchievementSensor(CoordinatorEntity, SensorEntity):
 
             for kid_id in assigned_kids:
                 daily = self.coordinator.kids_data.get(kid_id, {}).get(
-                    const.DATA_KID_COMPLETED_CHORES_TODAY_LEGACY, const.DEFAULT_ZERO
+                    const.DATA_KID_COMPLETED_CHORES_TODAY_DEPRECATED, const.DEFAULT_ZERO
                 )
                 kid_progress = (
                     100
@@ -2209,7 +2245,9 @@ class AchievementSensor(CoordinatorEntity, SensorEntity):
             ):
                 kids_progress[kid_name] = self.coordinator.kids_data.get(
                     kid_id, {}
-                ).get(const.DATA_KID_COMPLETED_CHORES_TODAY_LEGACY, const.DEFAULT_ZERO)
+                ).get(
+                    const.DATA_KID_COMPLETED_CHORES_TODAY_DEPRECATED, const.DEFAULT_ZERO
+                )
             else:
                 kids_progress[kid_name] = const.DEFAULT_ZERO
 
@@ -2475,7 +2513,7 @@ class AchievementProgressSensor(CoordinatorEntity, SensorEntity):
             )
 
             current_total = self.coordinator.kids_data.get(self._kid_id, {}).get(
-                const.DATA_KID_COMPLETED_CHORES_TODAY_LEGACY, const.DEFAULT_ZERO
+                const.DATA_KID_COMPLETED_CHORES_TODAY_DEPRECATED, const.DEFAULT_ZERO
             )
 
             effective_target = baseline + target
@@ -2507,7 +2545,7 @@ class AchievementProgressSensor(CoordinatorEntity, SensorEntity):
 
         elif ach_type == const.ACHIEVEMENT_TYPE_DAILY_MIN:
             daily = self.coordinator.kids_data.get(self._kid_id, {}).get(
-                const.DATA_KID_COMPLETED_CHORES_TOTAL_LEGACY, const.DEFAULT_ZERO
+                const.DATA_KID_COMPLETED_CHORES_TOTAL_DEPRECATED, const.DEFAULT_ZERO
             )
 
             percent = (
@@ -2563,7 +2601,7 @@ class AchievementProgressSensor(CoordinatorEntity, SensorEntity):
             == const.ACHIEVEMENT_TYPE_DAILY_MIN
         ):
             raw_progress = self.coordinator.kids_data.get(self._kid_id, {}).get(
-                const.DATA_KID_COMPLETED_CHORES_TODAY_LEGACY, const.DEFAULT_ZERO
+                const.DATA_KID_COMPLETED_CHORES_TODAY_DEPRECATED, const.DEFAULT_ZERO
             )
 
         associated_chore = const.CONF_EMPTY

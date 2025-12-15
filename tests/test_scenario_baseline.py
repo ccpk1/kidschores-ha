@@ -214,27 +214,36 @@ async def test_scenario_special_characters(
 # ============================================================================
 
 
-@pytest.mark.skip(
-    reason="Dashboard helper requires entity platform reload after scenario loading"
-)
 async def test_dashboard_helper_sensor_exists(
     hass: HomeAssistant,
-    scenario_minimal: tuple[MockConfigEntry, dict[str, str]],  # pylint: disable=unused-argument
+    scenario_minimal: tuple[MockConfigEntry, dict[str, str]],
 ) -> None:
-    """Test dashboard helper sensor created for kid.
-
-    TODO: Implement entity platform reload after kids added via scenario.
-    """
+    """Test dashboard helper sensor created for kid with valid attributes."""
     # Dashboard helper should exist for Zoë
     # Entity ID pattern: sensor.kc_zoe_ui_dashboard_helper
     from homeassistant.util import slugify
+
+    mock_config_entry, _ = scenario_minimal
+
+    # Reload config entry to ensure sensor platform creates dashboard helper
+    await hass.config_entries.async_reload(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
 
     kid_slug = slugify("Zoë")
     dashboard_helper_id = f"sensor.kc_{kid_slug}_ui_dashboard_helper"
 
     state = hass.states.get(dashboard_helper_id)
-    assert state is not None
-    assert state.state is not None
+    assert state is not None, (
+        f"Dashboard helper sensor {dashboard_helper_id} should exist"
+    )
+    assert state.state is not None, "Dashboard helper sensor state should not be None"
+
+    # Validate key attributes exist
+    assert "ui_translations" in state.attributes, (
+        "Should have ui_translations attribute"
+    )
+    assert "chores" in state.attributes, "Should have chores attribute"
+    assert "rewards" in state.attributes, "Should have rewards attribute"
 
 
 @pytest.mark.skip(

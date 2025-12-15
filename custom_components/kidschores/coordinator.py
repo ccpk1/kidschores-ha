@@ -173,7 +173,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             # --- Per-kid migration (run once per kid) ---
             # Only migrate these once per kid, not per chore
             chore_stats = kid_info.setdefault(const.DATA_KID_CHORE_STATS, {})
-            legacy_streaks = kid_info.get(const.DATA_KID_CHORE_STREAKS_LEGACY, {})
+            legacy_streaks = kid_info.get(const.DATA_KID_CHORE_STREAKS_DEPRECATED, {})
             legacy_max = 0
             last_longest_streak_date = None
 
@@ -203,19 +203,21 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
             # Migrate all-time and yearly completed counts from legacy (once per kid)
             chore_stats[const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME] = kid_info.get(
-                const.DATA_KID_COMPLETED_CHORES_TOTAL_LEGACY, 0
+                const.DATA_KID_COMPLETED_CHORES_TOTAL_DEPRECATED, 0
             )
             chore_stats[const.DATA_KID_CHORE_STATS_APPROVED_YEAR] = kid_info.get(
-                const.DATA_KID_COMPLETED_CHORES_TOTAL_LEGACY, 0
+                const.DATA_KID_COMPLETED_CHORES_TOTAL_DEPRECATED, 0
             )
 
             # Migrate all-time claimed count from legacy (use max of any chore's claims or completed_chores_total)
             all_claims = [
-                kid_info.get(const.DATA_KID_CHORE_CLAIMS_LEGACY, {}).get(chore_id, 0)
+                kid_info.get(const.DATA_KID_CHORE_CLAIMS_DEPRECATED, {}).get(
+                    chore_id, 0
+                )
                 for chore_id in self.chores_data.keys()
             ]
             all_claims.append(
-                kid_info.get(const.DATA_KID_COMPLETED_CHORES_TOTAL_LEGACY, 0)
+                kid_info.get(const.DATA_KID_COMPLETED_CHORES_TOTAL_DEPRECATED, 0)
             )
             chore_stats[const.DATA_KID_CHORE_STATS_CLAIMED_ALL_TIME] = (
                 max(all_claims) if all_claims else 0
@@ -308,12 +310,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                         ] = legacy_streak.get(const.DATA_KID_MAX_STREAK, 0)
 
                 # --- Migrate claim/approval counts for this chore ---
-                claims = kid_info.get(const.DATA_KID_CHORE_CLAIMS_LEGACY, {}).get(
+                claims = kid_info.get(const.DATA_KID_CHORE_CLAIMS_DEPRECATED, {}).get(
                     chore_id, 0
                 )
-                approvals = kid_info.get(const.DATA_KID_CHORE_APPROVALS_LEGACY, {}).get(
-                    chore_id, 0
-                )
+                approvals = kid_info.get(
+                    const.DATA_KID_CHORE_APPROVALS_DEPRECATED, {}
+                ).get(chore_id, 0)
 
                 # --- Migrate period completion and claim counts for this chore ---
                 now_local = kh.get_now_local_time()
@@ -409,7 +411,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # Optionally, remove legacy data after migration
         # for kid_info in self.kids_data.values():
-        #     kid_info.pop(const.DATA_KID_CHORE_STREAKS_LEGACY, None)
+        #     kid_info.pop(const.DATA_KID_CHORE_STREAKS_DEPRECATED, None)
 
     # pylint: disable=too-many-branches,too-many-statements
     def _migrate_badges(self):
@@ -605,7 +607,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         Also set their cumulative cycle points to their current points balance to avoid losing progress.
         """
         for _, kid_info in self.kids_data.items():
-            legacy_badge_names = kid_info.get(const.DATA_KID_BADGES_LEGACY, [])
+            legacy_badge_names = kid_info.get(const.DATA_KID_BADGES_DEPRECATED, [])
             if not legacy_badge_names:
                 continue
 
@@ -661,7 +663,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         today_local_iso = kh.get_today_local_iso()
 
         for kid_id, kid_info in self.kids_data.items():
-            legacy_badge_names = kid_info.get(const.DATA_KID_BADGES_LEGACY, [])
+            legacy_badge_names = kid_info.get(const.DATA_KID_BADGES_DEPRECATED, [])
             badges_earned = kid_info.setdefault(const.DATA_KID_BADGES_EARNED, {})
 
             for badge_name in legacy_badge_names:
@@ -699,8 +701,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 )
 
             # Cleanup: remove the legacy badges list after migration
-            if const.DATA_KID_BADGES_LEGACY in kid_info:
-                del kid_info[const.DATA_KID_BADGES_LEGACY]
+            if const.DATA_KID_BADGES_DEPRECATED in kid_info:
+                del kid_info[const.DATA_KID_BADGES_DEPRECATED]
 
         self._persist()
         self.async_set_updated_data(self._data)
@@ -711,13 +713,13 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         for _, kid_info in self.kids_data.items():
             # Legacy values
             legacy_today = round(
-                kid_info.get(const.DATA_KID_POINTS_EARNED_TODAY_LEGACY, 0.0), 1
+                kid_info.get(const.DATA_KID_POINTS_EARNED_TODAY_DEPRECATED, 0.0), 1
             )
             legacy_week = round(
-                kid_info.get(const.DATA_KID_POINTS_EARNED_WEEKLY_LEGACY, 0.0), 1
+                kid_info.get(const.DATA_KID_POINTS_EARNED_WEEKLY_DEPRECATED, 0.0), 1
             )
             legacy_month = round(
-                kid_info.get(const.DATA_KID_POINTS_EARNED_MONTHLY_LEGACY, 0.0), 1
+                kid_info.get(const.DATA_KID_POINTS_EARNED_MONTHLY_DEPRECATED, 0.0), 1
             )
             legacy_max = round(kid_info.get(const.DATA_KID_MAX_POINTS_EVER, 0.0), 1)
 
@@ -797,9 +799,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 }
 
             # Optionally, remove legacy fields after migration
-            # kid_info.pop(const.DATA_KID_POINTS_EARNED_TODAY_LEGACY, None)
-            # kid_info.pop(const.DATA_KID_POINTS_EARNED_WEEKLY_LEGACY, None)
-            # kid_info.pop(const.DATA_KID_POINTS_EARNED_MONTHLY_LEGACY, None)
+            # kid_info.pop(const.DATA_KID_POINTS_EARNED_TODAY_DEPRECATED, None)
+            # kid_info.pop(const.DATA_KID_POINTS_EARNED_WEEKLY_DEPRECATED, None)
+            # kid_info.pop(const.DATA_KID_POINTS_EARNED_MONTHLY_DEPRECATED, None)
             # kid_info.pop(const.DATA_KID_MAX_POINTS_EVER, None)
 
         const.LOGGER.info("INFO: Legacy point stats migration complete.")
@@ -960,7 +962,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     # -------------------------------------------------------------------------------------
     # Data Initialization from Config
     # -------------------------------------------------------------------------------------
-    # TODO(KC 5.0): Remove entire _initialize_data_from_config() section after KC 3.x support dropped
+    # TODO(KC-vNext): Remove entire _initialize_data_from_config() section after KC 3.x support dropped
     # This includes:
     # - _initialize_data_from_config() (lines 951-986)
     # - _ensure_minimal_structure() (lines 988-1004)
@@ -1347,8 +1349,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # Remove from dictionary fields if present
         for dict_key in [
-            const.DATA_KID_CHORE_CLAIMS_LEGACY,
-            const.DATA_KID_CHORE_APPROVALS_LEGACY,
+            const.DATA_KID_CHORE_CLAIMS_DEPRECATED,
+            const.DATA_KID_CHORE_APPROVALS_DEPRECATED,
         ]:
             if chore_id in kid_info.get(dict_key, {}):
                 kid_info[dict_key].pop(chore_id)
@@ -1361,10 +1363,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # Remove from chore streaks if present
         if (
-            const.DATA_KID_CHORE_STREAKS_LEGACY in kid_info
-            and chore_id in kid_info[const.DATA_KID_CHORE_STREAKS_LEGACY]
+            const.DATA_KID_CHORE_STREAKS_DEPRECATED in kid_info
+            and chore_id in kid_info[const.DATA_KID_CHORE_STREAKS_DEPRECATED]
         ):
-            kid_info[const.DATA_KID_CHORE_STREAKS_LEGACY].pop(chore_id)
+            kid_info[const.DATA_KID_CHORE_STREAKS_DEPRECATED].pop(chore_id)
             const.LOGGER.debug(
                 "DEBUG: Removed Chore Streak for Chore '%s' from Kid ID '%s'",
                 chore_id,
@@ -1454,8 +1456,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
             # Clean up dictionary fields
             for dict_key in [
-                const.DATA_KID_CHORE_CLAIMS_LEGACY,
-                const.DATA_KID_CHORE_APPROVALS_LEGACY,
+                const.DATA_KID_CHORE_CLAIMS_DEPRECATED,
+                const.DATA_KID_CHORE_APPROVALS_DEPRECATED,
             ]:
                 if dict_key in kid_info:
                     kid_info[dict_key] = {
@@ -1465,10 +1467,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     }
 
             # Clean up chore streaks
-            if const.DATA_KID_CHORE_STREAKS_LEGACY in kid_info:
-                for chore in list(kid_info[const.DATA_KID_CHORE_STREAKS_LEGACY].keys()):
+            if const.DATA_KID_CHORE_STREAKS_DEPRECATED in kid_info:
+                for chore in list(
+                    kid_info[const.DATA_KID_CHORE_STREAKS_DEPRECATED].keys()
+                ):
                     if chore not in valid_chore_ids:
-                        del kid_info[const.DATA_KID_CHORE_STREAKS_LEGACY][chore]
+                        del kid_info[const.DATA_KID_CHORE_STREAKS_DEPRECATED][chore]
                         const.LOGGER.debug(
                             "DEBUG: Removed Chore Streak for deleted Chore '%s'", chore
                         )
@@ -1760,17 +1764,17 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.DATA_KID_APPROVED_CHORES: kid_data.get(
                 const.DATA_KID_APPROVED_CHORES, []
             ),
-            const.DATA_KID_COMPLETED_CHORES_TODAY_LEGACY: kid_data.get(
-                const.DATA_KID_COMPLETED_CHORES_TODAY_LEGACY, const.DEFAULT_ZERO
+            const.DATA_KID_COMPLETED_CHORES_TODAY_DEPRECATED: kid_data.get(
+                const.DATA_KID_COMPLETED_CHORES_TODAY_DEPRECATED, const.DEFAULT_ZERO
             ),
-            const.DATA_KID_COMPLETED_CHORES_WEEKLY_LEGACY: kid_data.get(
-                const.DATA_KID_COMPLETED_CHORES_WEEKLY_LEGACY, const.DEFAULT_ZERO
+            const.DATA_KID_COMPLETED_CHORES_WEEKLY_DEPRECATED: kid_data.get(
+                const.DATA_KID_COMPLETED_CHORES_WEEKLY_DEPRECATED, const.DEFAULT_ZERO
             ),
-            const.DATA_KID_COMPLETED_CHORES_MONTHLY_LEGACY: kid_data.get(
-                const.DATA_KID_COMPLETED_CHORES_MONTHLY_LEGACY, const.DEFAULT_ZERO
+            const.DATA_KID_COMPLETED_CHORES_MONTHLY_DEPRECATED: kid_data.get(
+                const.DATA_KID_COMPLETED_CHORES_MONTHLY_DEPRECATED, const.DEFAULT_ZERO
             ),
-            const.DATA_KID_COMPLETED_CHORES_TOTAL_LEGACY: kid_data.get(
-                const.DATA_KID_COMPLETED_CHORES_TOTAL_LEGACY, const.DEFAULT_ZERO
+            const.DATA_KID_COMPLETED_CHORES_TOTAL_DEPRECATED: kid_data.get(
+                const.DATA_KID_COMPLETED_CHORES_TOTAL_DEPRECATED, const.DEFAULT_ZERO
             ),
             const.DATA_KID_HA_USER_ID: kid_data.get(const.DATA_KID_HA_USER_ID),
             const.DATA_KID_INTERNAL_ID: kid_id,
@@ -1783,11 +1787,11 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.DATA_KID_REWARD_APPROVALS: kid_data.get(
                 const.DATA_KID_REWARD_APPROVALS, {}
             ),
-            const.DATA_KID_CHORE_CLAIMS_LEGACY: kid_data.get(
-                const.DATA_KID_CHORE_CLAIMS_LEGACY, {}
+            const.DATA_KID_CHORE_CLAIMS_DEPRECATED: kid_data.get(
+                const.DATA_KID_CHORE_CLAIMS_DEPRECATED, {}
             ),
-            const.DATA_KID_CHORE_APPROVALS_LEGACY: kid_data.get(
-                const.DATA_KID_CHORE_APPROVALS_LEGACY, {}
+            const.DATA_KID_CHORE_APPROVALS_DEPRECATED: kid_data.get(
+                const.DATA_KID_CHORE_APPROVALS_DEPRECATED, {}
             ),
             const.DATA_KID_PENALTY_APPLIES: kid_data.get(
                 const.DATA_KID_PENALTY_APPLIES, {}
@@ -1801,14 +1805,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.DATA_KID_REDEEMED_REWARDS: kid_data.get(
                 const.DATA_KID_REDEEMED_REWARDS, []
             ),
-            const.DATA_KID_POINTS_EARNED_TODAY_LEGACY: kid_data.get(
-                const.DATA_KID_POINTS_EARNED_TODAY_LEGACY, const.DEFAULT_ZERO
+            const.DATA_KID_POINTS_EARNED_TODAY_DEPRECATED: kid_data.get(
+                const.DATA_KID_POINTS_EARNED_TODAY_DEPRECATED, const.DEFAULT_ZERO
             ),
-            const.DATA_KID_POINTS_EARNED_WEEKLY_LEGACY: kid_data.get(
-                const.DATA_KID_POINTS_EARNED_WEEKLY_LEGACY, const.DEFAULT_ZERO
+            const.DATA_KID_POINTS_EARNED_WEEKLY_DEPRECATED: kid_data.get(
+                const.DATA_KID_POINTS_EARNED_WEEKLY_DEPRECATED, const.DEFAULT_ZERO
             ),
-            const.DATA_KID_POINTS_EARNED_MONTHLY_LEGACY: kid_data.get(
-                const.DATA_KID_POINTS_EARNED_MONTHLY_LEGACY, const.DEFAULT_ZERO
+            const.DATA_KID_POINTS_EARNED_MONTHLY_DEPRECATED: kid_data.get(
+                const.DATA_KID_POINTS_EARNED_MONTHLY_DEPRECATED, const.DEFAULT_ZERO
             ),
             const.DATA_KID_MAX_POINTS_EVER: kid_data.get(
                 const.DATA_KID_MAX_POINTS_EVER, const.DEFAULT_ZERO
@@ -1822,7 +1826,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS: kid_data.get(
                 const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS, True
             ),
-            const.DATA_KID_CHORE_STREAKS_LEGACY: {},
+            const.DATA_KID_CHORE_STREAKS_DEPRECATED: {},
             const.DATA_KID_OVERDUE_CHORES: [],
             const.DATA_KID_OVERDUE_NOTIFICATIONS: {},
         }
@@ -3281,10 +3285,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 kid_info[const.DATA_KID_APPROVED_CHORES].append(chore_id)
 
             # Increment Chore Approvals
-            if chore_id in kid_info[const.DATA_KID_CHORE_APPROVALS_LEGACY]:
-                kid_info[const.DATA_KID_CHORE_APPROVALS_LEGACY][chore_id] += 1
+            if chore_id in kid_info[const.DATA_KID_CHORE_APPROVALS_DEPRECATED]:
+                kid_info[const.DATA_KID_CHORE_APPROVALS_DEPRECATED][chore_id] += 1
             else:
-                kid_info[const.DATA_KID_CHORE_APPROVALS_LEGACY][chore_id] = 1
+                kid_info[const.DATA_KID_CHORE_APPROVALS_DEPRECATED][chore_id] = 1
 
             chore_info[const.DATA_CHORE_LAST_COMPLETED] = dt_util.utcnow().isoformat()
 
@@ -3509,10 +3513,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             # --- Handle APPROVED state ---
             elif state == const.CHORE_STATE_APPROVED:
                 # LEGACY: Deprecate in the future
-                kid_info[const.DATA_KID_COMPLETED_CHORES_TODAY_LEGACY] += 1
-                kid_info[const.DATA_KID_COMPLETED_CHORES_WEEKLY_LEGACY] += 1
-                kid_info[const.DATA_KID_COMPLETED_CHORES_MONTHLY_LEGACY] += 1
-                kid_info[const.DATA_KID_COMPLETED_CHORES_TOTAL_LEGACY] += 1
+                kid_info[const.DATA_KID_COMPLETED_CHORES_TODAY_DEPRECATED] += 1
+                kid_info[const.DATA_KID_COMPLETED_CHORES_WEEKLY_DEPRECATED] += 1
+                kid_info[const.DATA_KID_COMPLETED_CHORES_MONTHLY_DEPRECATED] += 1
+                kid_info[const.DATA_KID_COMPLETED_CHORES_TOTAL_DEPRECATED] += 1
 
                 kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_APPROVED] = now_iso
 
@@ -4023,12 +4027,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         kid_info[const.DATA_KID_POINTS] = new
 
         # 3) Update legacy rolling stats
-        kid_info.setdefault(const.DATA_KID_POINTS_EARNED_TODAY_LEGACY, 0.0)
-        kid_info.setdefault(const.DATA_KID_POINTS_EARNED_WEEKLY_LEGACY, 0.0)
-        kid_info.setdefault(const.DATA_KID_POINTS_EARNED_MONTHLY_LEGACY, 0.0)
-        kid_info[const.DATA_KID_POINTS_EARNED_TODAY_LEGACY] += delta_value
-        kid_info[const.DATA_KID_POINTS_EARNED_WEEKLY_LEGACY] += delta_value
-        kid_info[const.DATA_KID_POINTS_EARNED_MONTHLY_LEGACY] += delta_value
+        kid_info.setdefault(const.DATA_KID_POINTS_EARNED_TODAY_DEPRECATED, 0.0)
+        kid_info.setdefault(const.DATA_KID_POINTS_EARNED_WEEKLY_DEPRECATED, 0.0)
+        kid_info.setdefault(const.DATA_KID_POINTS_EARNED_MONTHLY_DEPRECATED, 0.0)
+        kid_info[const.DATA_KID_POINTS_EARNED_TODAY_DEPRECATED] += delta_value
+        kid_info[const.DATA_KID_POINTS_EARNED_WEEKLY_DEPRECATED] += delta_value
+        kid_info[const.DATA_KID_POINTS_EARNED_MONTHLY_DEPRECATED] += delta_value
         kid_info[const.DATA_KID_MAX_POINTS_EVER] += delta_value
 
         # 4) Legacy cumulative badge logic
@@ -6982,12 +6986,13 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     or progress[const.DATA_ACHIEVEMENT_BASELINE] is None
                 ):
                     progress[const.DATA_ACHIEVEMENT_BASELINE] = kid_info.get(
-                        const.DATA_KID_COMPLETED_CHORES_TOTAL_LEGACY, const.DEFAULT_ZERO
+                        const.DATA_KID_COMPLETED_CHORES_TOTAL_DEPRECATED,
+                        const.DEFAULT_ZERO,
                     )
 
                 # Calculate progress as (current total minus baseline)
                 current_total = kid_info.get(
-                    const.DATA_KID_COMPLETED_CHORES_TOTAL_LEGACY, const.DEFAULT_ZERO
+                    const.DATA_KID_COMPLETED_CHORES_TOTAL_DEPRECATED, const.DEFAULT_ZERO
                 )
 
                 progress[const.DATA_ACHIEVEMENT_CURRENT_VALUE] = current_total
@@ -7017,7 +7022,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     progress.get(const.DATA_ACHIEVEMENT_LAST_AWARDED_DATE)
                     != today_local_iso
                     and kid_info.get(
-                        const.DATA_KID_COMPLETED_CHORES_TODAY_LEGACY,
+                        const.DATA_KID_COMPLETED_CHORES_TODAY_DEPRECATED,
                         const.DEFAULT_ZERO,
                     )
                     >= target
@@ -7048,7 +7053,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             kid_info = self.kids_data.get(kid_id, {})
             progress_dict = {
                 const.DATA_ACHIEVEMENT_BASELINE: kid_info.get(
-                    const.DATA_KID_COMPLETED_CHORES_TOTAL_LEGACY, const.DEFAULT_ZERO
+                    const.DATA_KID_COMPLETED_CHORES_TOTAL_DEPRECATED, const.DEFAULT_ZERO
                 ),
                 const.DATA_ACHIEVEMENT_CURRENT_VALUE: const.DEFAULT_ZERO,
                 const.DATA_ACHIEVEMENT_AWARDED: False,
@@ -7517,29 +7522,31 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Reset counters on kids
         for kid_info in self.kids_data.values():
             if frequency == const.FREQUENCY_DAILY:
-                kid_info[const.DATA_KID_COMPLETED_CHORES_TODAY_LEGACY] = (
+                kid_info[const.DATA_KID_COMPLETED_CHORES_TODAY_DEPRECATED] = (
                     const.DEFAULT_ZERO
                 )
-                kid_info[const.DATA_KID_POINTS_EARNED_TODAY_LEGACY] = const.DEFAULT_ZERO
+                kid_info[const.DATA_KID_POINTS_EARNED_TODAY_DEPRECATED] = (
+                    const.DEFAULT_ZERO
+                )
             elif frequency == const.FREQUENCY_WEEKLY:
-                kid_info[const.DATA_KID_COMPLETED_CHORES_WEEKLY_LEGACY] = (
+                kid_info[const.DATA_KID_COMPLETED_CHORES_WEEKLY_DEPRECATED] = (
                     const.DEFAULT_ZERO
                 )
-                kid_info[const.DATA_KID_POINTS_EARNED_WEEKLY_LEGACY] = (
+                kid_info[const.DATA_KID_POINTS_EARNED_WEEKLY_DEPRECATED] = (
                     const.DEFAULT_ZERO
                 )
             elif frequency == const.FREQUENCY_MONTHLY:
-                kid_info[const.DATA_KID_COMPLETED_CHORES_MONTHLY_LEGACY] = (
+                kid_info[const.DATA_KID_COMPLETED_CHORES_MONTHLY_DEPRECATED] = (
                     const.DEFAULT_ZERO
                 )
-                kid_info[const.DATA_KID_POINTS_EARNED_MONTHLY_LEGACY] = (
+                kid_info[const.DATA_KID_POINTS_EARNED_MONTHLY_DEPRECATED] = (
                     const.DEFAULT_ZERO
                 )
             elif frequency == const.FREQUENCY_YEARLY:
-                kid_info[const.DATA_KID_COMPLETED_CHORES_YEARLY_LEGACY] = (
+                kid_info[const.DATA_KID_COMPLETED_CHORES_YEARLY_DEPRECATED] = (
                     const.DEFAULT_ZERO
                 )
-                kid_info[const.DATA_KID_POINTS_EARNED_YEARLY_LEGACY] = (
+                kid_info[const.DATA_KID_POINTS_EARNED_YEARLY_DEPRECATED] = (
                     const.DEFAULT_ZERO
                 )
 

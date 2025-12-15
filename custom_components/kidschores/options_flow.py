@@ -354,7 +354,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             return {}
         return coordinator.data.get(key, {})
 
-    # ------------------ ADD ENTITY ------------------
+    # ----------------------------------------------------------------------------------
+    # KIDS MANAGEMENT
+    # ----------------------------------------------------------------------------------
+
     async def async_step_add_kid(self, user_input=None):
         """Add a new kid."""
         coordinator = self._get_coordinator()
@@ -655,19 +658,24 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         errors: Dict[str, str] = {}
 
-        # Determine internal_id
+        # Determine internal_id (UUID-based primary key, persists across renames)
         if is_edit:
+            # Edit mode: retrieve internal_id from context (set when user selected badge to edit)
             internal_id = self.context.get(const.CFOF_GLOBAL_INPUT_INTERNAL_ID)
+            # Validate that the badge still exists (defensive: could have been deleted by another process)
             if not internal_id or internal_id not in badges_dict:
                 const.LOGGER.error("ERROR: Invalid Internal ID for editing badge.")
                 return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_BADGE)
         else:
-            # Generate a new internal_id for adding a badge
+            # Add mode: generate new UUID and store in context for form resubmissions
+            # Context persists across form validation errors (same internal_id on retry)
             internal_id = str(uuid.uuid4())
             self.context[const.CFOF_GLOBAL_INPUT_INTERNAL_ID] = internal_id  # type: ignore[typeddict-unknown-key]
 
         if user_input is not None:
             # --- Validate Inputs ---
+            # Badge validation is complex: checks name uniqueness, reward/bonus/penalty
+            # existence, and type-specific rules (e.g., periodic requires repeat_interval)
             errors = fh.validate_badge_common_inputs(
                 user_input=user_input,
                 internal_id=internal_id,
@@ -680,6 +688,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             if not errors:
                 # --- Build Data ---
+                # Convert form inputs to storage format, handling multi-select conversions
                 updated_badge_data = fh.build_badge_common_data(
                     user_input=user_input,
                     internal_id=internal_id,
@@ -688,9 +697,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 updated_badge_data[const.DATA_BADGE_TYPE] = badge_type
 
                 # --- Save Data ---
+                # Edit vs Add have different coordinator methods and persistence needs
                 if is_edit:
+                    # Edit: update existing badge (triggers entity state update)
                     coordinator.update_badge_entity(internal_id, updated_badge_data)
                 else:
+                    # Add: create new badge + persist + notify listeners of new entity
                     coordinator._create_badge(internal_id, updated_badge_data)
                     coordinator._persist()
                     coordinator.async_update_listeners()
@@ -738,6 +750,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             description_placeholders=None,
             last_step=False,
         )
+
+    # ----------------------------------------------------------------------------------
+    # REWARDS MANAGEMENT
+    # ----------------------------------------------------------------------------------
 
     async def async_step_add_reward(self, user_input=None):
         """Add a new reward."""
@@ -804,6 +820,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_ADD_BONUS, data_schema=schema, errors=errors
         )
+
+    # ----------------------------------------------------------------------------------
+    # PENALTIES MANAGEMENT
+    # ----------------------------------------------------------------------------------
 
     async def async_step_add_penalty(self, user_input=None):
         """Add a new penalty."""
@@ -966,6 +986,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     # EDIT METHODS (Cross-Entity - Keep Together)
     # ----------------------------------------------------------------------------------
 
+    # --- Kids ---
+
     async def async_step_edit_kid(self, user_input=None):
         """Edit an existing kid."""
         coordinator = self._get_coordinator()
@@ -1054,6 +1076,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_EDIT_KID, data_schema=schema, errors=errors
         )
 
+    # --- Parents ---
+
     async def async_step_edit_parent(self, user_input=None):
         """Edit an existing parent."""
         coordinator = self._get_coordinator()
@@ -1093,7 +1117,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 data[const.DATA_PARENT_NAME] == new_name and eid != internal_id
                 for eid, data in parents_dict.items()
             ):
-                errors[const.CFPO_ERROR_PARENT_NAME] = (
+                errors[const.CFOP_ERROR_PARENT_NAME] = (
                     const.TRANS_KEY_CFOF_DUPLICATE_PARENT
                 )
             else:
@@ -1145,6 +1169,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             data_schema=parent_schema,
             errors=errors,
         )
+
+    # --- Chores ---
 
     async def async_step_edit_chore(self, user_input=None):
         """Edit an existing chore."""
@@ -1338,6 +1364,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             is_edit=True,
         )
 
+    # --- Rewards ---
+
     async def async_step_edit_reward(self, user_input=None):
         """Edit an existing reward."""
         coordinator = self._get_coordinator()
@@ -1386,6 +1414,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             data_schema=schema,
             errors=errors,
         )
+
+    # --- Penalties ---
 
     async def async_step_edit_penalty(self, user_input=None):
         """Edit an existing penalty."""
@@ -1436,6 +1466,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             errors=errors,
         )
 
+    # --- Bonuses ---
+
     async def async_step_edit_bonus(self, user_input=None):
         """Edit an existing bonus."""
         coordinator = self._get_coordinator()
@@ -1484,6 +1516,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             data_schema=schema,
             errors=errors,
         )
+
+    # --- Achievements ---
 
     async def async_step_edit_achievement(self, user_input=None):
         """Edit an existing achievement."""
@@ -1568,6 +1602,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             data_schema=achievement_schema,
             errors=errors,
         )
+
+    # --- Challenges ---
 
     async def async_step_edit_challenge(self, user_input=None):
         """Edit an existing challenge."""
@@ -1694,6 +1730,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     # DELETE METHODS (Cross-Entity - Keep Together)
     # ----------------------------------------------------------------------------------
 
+    # --- Kids ---
+
     async def async_step_delete_kid(self, user_input=None):
         """Delete a kid."""
         coordinator = self._get_coordinator()
@@ -1723,6 +1761,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.OPTIONS_FLOW_PLACEHOLDER_KID_NAME: kid_name
             },
         )
+
+    # --- Parents ---
 
     async def async_step_delete_parent(self, user_input=None):
         """Delete a parent."""
@@ -1754,6 +1794,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             },
         )
 
+    # --- Chores ---
+
     async def async_step_delete_chore(self, user_input=None):
         """Delete a chore."""
         coordinator = self._get_coordinator()
@@ -1783,6 +1825,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.OPTIONS_FLOW_PLACEHOLDER_CHORE_NAME: chore_name
             },
         )
+
+    # --- Badges ---
 
     async def async_step_delete_badge(self, user_input=None):
         """Delete a badge."""
@@ -1814,6 +1858,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             },
         )
 
+    # --- Rewards ---
+
     async def async_step_delete_reward(self, user_input=None):
         """Delete a reward."""
         coordinator = self._get_coordinator()
@@ -1844,6 +1890,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             },
         )
 
+    # --- Penalties ---
+
     async def async_step_delete_penalty(self, user_input=None):
         """Delete a penalty."""
         coordinator = self._get_coordinator()
@@ -1873,6 +1921,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.OPTIONS_FLOW_PLACEHOLDER_PENALTY_NAME: penalty_name
             },
         )
+
+    # --- Achievements ---
 
     async def async_step_delete_achievement(self, user_input=None):
         """Delete an achievement."""
@@ -1906,6 +1956,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             },
         )
 
+    # --- Challenges ---
+
     async def async_step_delete_challenge(self, user_input=None):
         """Delete a challenge."""
         coordinator = self._get_coordinator()
@@ -1935,6 +1987,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.OPTIONS_FLOW_PLACEHOLDER_CHALLENGE_NAME: challenge_name
             },
         )
+
+    # --- Bonuses ---
 
     async def async_step_delete_bonus(self, user_input=None):
         """Delete a bonus."""

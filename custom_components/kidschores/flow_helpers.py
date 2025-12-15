@@ -76,6 +76,8 @@ validation logic becomes complex enough to warrant it.
 """
 
 # pyright: reportArgumentType=false
+# Reason: Voluptuous schema definitions use dynamic typing that pyright cannot infer.
+# The selector.SelectSelector and vol.Schema patterns are runtime-validated by Home Assistant.
 
 import datetime
 import uuid
@@ -145,7 +147,7 @@ def validate_points_inputs(user_input: Dict[str, Any]) -> Dict[str, str]:
 
     # Validate label is not empty
     if not points_label:
-        errors["base"] = "points_label_required"
+        errors["base"] = const.TRANS_KEY_CFOF_POINTS_LABEL_REQUIRED
 
     return errors
 
@@ -226,7 +228,7 @@ async def build_kid_schema(
 
 def build_kids_data(
     user_input: Dict[str, Any],
-    existing_kids: Dict[str, Any] = None,  # pylint: disable=unused-argument
+    existing_kids: Dict[str, Any] = None,  # pylint: disable=unused-argument  # Reserved for API consistency with validate_kids_inputs
 ) -> Dict[str, Any]:
     """Build kid data from user input.
 
@@ -374,7 +376,7 @@ def build_parent_schema(
 
 def build_parents_data(
     user_input: Dict[str, Any],
-    existing_parents: Dict[str, Any] = None,  # pylint: disable=unused-argument
+    existing_parents: Dict[str, Any] = None,  # pylint: disable=unused-argument  # Reserved for API consistency with validate_parents_inputs
 ) -> Dict[str, Any]:
     """Build parent data from user input.
 
@@ -434,7 +436,7 @@ def validate_parents_inputs(
 
     # Validate name is not empty
     if not parent_name:
-        errors[const.CFPO_ERROR_PARENT_NAME] = const.TRANS_KEY_CFOF_INVALID_PARENT_NAME
+        errors[const.CFOP_ERROR_PARENT_NAME] = const.TRANS_KEY_CFOF_INVALID_PARENT_NAME
         return errors
 
     # Check for duplicate names
@@ -443,7 +445,7 @@ def validate_parents_inputs(
             parent_data[const.DATA_PARENT_NAME] == parent_name
             for parent_data in existing_parents.values()
         ):
-            errors[const.CFPO_ERROR_PARENT_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_PARENT
+            errors[const.CFOP_ERROR_PARENT_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_PARENT
 
     return errors
 
@@ -1005,7 +1007,7 @@ def validate_badge_common_inputs(
             )
             if maintenance_rules is None or maintenance_rules < 0:
                 errors[const.CFOF_BADGES_INPUT_MAINTENANCE_RULES] = (
-                    "invalid_maintenance_rules"
+                    const.TRANS_KEY_CFOF_INVALID_MAINTENANCE_RULES
                 )
         else:
             # Regular badge validation
@@ -1015,7 +1017,7 @@ def validate_badge_common_inputs(
 
             if target_threshold is None or str(target_threshold).strip() == "":
                 errors[const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = (
-                    "target_threshold_required"  # Use translation key
+                    const.TRANS_KEY_CFOF_TARGET_THRESHOLD_REQUIRED
                 )
             else:
                 try:
@@ -1916,7 +1918,7 @@ def build_reward_schema(default=None):
 
 def build_rewards_data(
     user_input: Dict[str, Any],
-    existing_rewards: Dict[str, Any] = None,  # pylint: disable=unused-argument
+    existing_rewards: Dict[str, Any] = None,  # pylint: disable=unused-argument  # Reserved for API consistency with validate_rewards_inputs
 ) -> Dict[str, Any]:
     """Build reward data from user input.
 
@@ -2033,7 +2035,7 @@ def build_bonus_schema(default=None):
 
 def build_bonuses_data(
     user_input: Dict[str, Any],
-    existing_bonuses: Dict[str, Any] = None,  # pylint: disable=unused-argument
+    existing_bonuses: Dict[str, Any] = None,  # pylint: disable=unused-argument  # Reserved for API consistency with validate_bonuses_inputs
 ) -> Dict[str, Any]:
     """Build bonus data from user input.
 
@@ -2152,7 +2154,7 @@ def build_penalty_schema(default=None):
 
 def build_penalties_data(
     user_input: Dict[str, Any],
-    existing_penalties: Dict[str, Any] = None,  # pylint: disable=unused-argument
+    existing_penalties: Dict[str, Any] = None,  # pylint: disable=unused-argument  # Reserved for API consistency with validate_penalties_inputs
 ) -> Dict[str, Any]:
     """Build penalty data from user input.
 
@@ -2264,9 +2266,12 @@ def build_achievements_data(
             return {}, errors
 
     # Type-specific validation: streak type requires chore selection
+    # Streak achievements track consecutive completions of a specific chore
+    # Other achievement types (one_time, recurring) don't need chore selection
     _type = user_input[const.CFOF_ACHIEVEMENTS_INPUT_TYPE]
     if _type == const.ACHIEVEMENT_TYPE_STREAK:
         chore_id = user_input.get(const.CFOF_ACHIEVEMENTS_INPUT_SELECTED_CHORE_ID)
+        # Validate that a chore was actually selected (not None or placeholder)
         if not chore_id or chore_id == const.CONF_NONE_TEXT:
             errors[const.CFOP_ERROR_SELECT_CHORE_ID] = (
                 const.TRANS_KEY_CFOF_CHORE_MUST_BE_SELECTED
@@ -2274,16 +2279,20 @@ def build_achievements_data(
             return {}, errors
         final_chore_id = chore_id
     else:
-        # Discard chore if not streak
+        # Non-streak types: discard any chore selection to prevent data inconsistency
         final_chore_id = const.CONF_EMPTY
 
     # Get assigned kids (convert names to IDs if in options flow)
+    # Different flow contexts use different kid identifiers:
+    # - Config flow: uses internal_ids directly (kids created in same session)
+    # - Options flow: uses kid names (must convert to internal_ids for storage)
     assigned_kids = user_input[const.CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS]
     if kids_name_to_id:
-        # Options flow: convert kid names to internal IDs
+        # Options flow: convert kid names to internal IDs using provided mapping
+        # Fallback to name if mapping fails (defensive programming)
         assigned_kids_ids = [kids_name_to_id.get(name, name) for name in assigned_kids]
     else:
-        # Config flow: already has internal IDs
+        # Config flow: already has internal IDs from entity creation in same session
         assigned_kids_ids = assigned_kids
 
     internal_id = user_input.get(const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4()))
@@ -2341,7 +2350,7 @@ def build_challenges_data(
 
     # Validate required fields
     if not user_input.get(const.CFOF_CHALLENGES_INPUT_NAME, "").strip():
-        return None, {"base": "err_name_required"}
+        return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_NAME_REQUIRED}
 
     challenge_name = user_input[const.CFOF_CHALLENGES_INPUT_NAME].strip()
 
@@ -2353,30 +2362,33 @@ def build_challenges_data(
                     chal_data.get(const.DATA_CHALLENGE_NAME, "").lower()
                     == challenge_name.lower()
                 ):
-                    return None, {"base": "err_name_duplicate"}
+                    return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_NAME_DUPLICATE}
 
     # Validate dates
     start_date_str = user_input.get(const.CFOF_CHALLENGES_INPUT_START_DATE)
     end_date_str = user_input.get(const.CFOF_CHALLENGES_INPUT_END_DATE)
 
     if not start_date_str or not end_date_str:
-        return None, {"base": "err_dates_required"}
+        return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_DATES_REQUIRED}
 
     try:
-        # Parse and convert to UTC aware datetime strings
+        # Step 1: Parse user input (local time strings) and convert to UTC-aware ISO strings
+        # This normalizes different input formats to a consistent storage format
         start_date = ensure_utc_datetime(hass, start_date_str)
         end_date = ensure_utc_datetime(hass, end_date_str)
 
-        # Parse back to datetime for comparison
+        # Step 2: Parse the UTC ISO strings back to datetime objects for comparison
+        # We need datetime objects (not strings) to perform date arithmetic
         start_dt = dt_util.parse_datetime(start_date)
         end_dt = dt_util.parse_datetime(end_date)
 
+        # Step 3: Validate end date is after start date (chronological order required)
         if start_dt and end_dt and end_dt <= start_dt:
-            return None, {"base": "err_end_before_start"}
+            return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_END_BEFORE_START}
 
     except (ValueError, TypeError) as ex:
         const.LOGGER.warning("Challenge date parsing error: %s", ex)
-        return None, {"base": "err_invalid_date"}
+        return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_INVALID_DATE}
 
     # Validate target value
     try:
@@ -2384,9 +2396,9 @@ def build_challenges_data(
             user_input.get(const.CFOF_CHALLENGES_INPUT_TARGET_VALUE, 0)
         )
         if target_value <= 0:
-            return None, {"base": "err_target_invalid"}
+            return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_TARGET_INVALID}
     except (ValueError, TypeError):
-        return None, {"base": "err_target_invalid"}
+        return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_TARGET_INVALID}
 
     # Validate reward points
     try:
@@ -2394,17 +2406,20 @@ def build_challenges_data(
             user_input.get(const.CFOF_CHALLENGES_INPUT_REWARD_POINTS, 0)
         )
         if reward_points < 0:
-            return None, {"base": "err_points_negative"}
+            return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_POINTS_NEGATIVE}
     except (ValueError, TypeError):
-        return None, {"base": "err_points_invalid"}
+        return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_POINTS_INVALID}
 
     # Convert assigned kids from names to IDs
+    # UI uses kid names (user-friendly), but storage uses internal_ids (rename-safe)
     assigned_kids_names = user_input.get(const.CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS, [])
+    # Normalize to list (selector might return single value or list)
     if not isinstance(assigned_kids_names, list):
         assigned_kids_names = [assigned_kids_names] if assigned_kids_names else []
 
     assigned_kids_ids = []
     for kid_name in assigned_kids_names:
+        # Look up internal_id by matching kid name (case-sensitive)
         kid_id = next(
             (
                 k_id
@@ -2807,7 +2822,7 @@ def process_penalty_form_input(user_input: dict) -> dict:
 
 # Get notify services from HA
 def _get_notify_services(hass: HomeAssistant) -> list[dict[str, str]]:
-    """Return a list of all notify.* services as"""
+    """Return a list of all notify.* services as value/label dictionaries for selector options."""
     services_list = []
     all_services = hass.services.async_services()
     if const.NOTIFY_DOMAIN in all_services:

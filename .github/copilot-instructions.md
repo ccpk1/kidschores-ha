@@ -28,8 +28,8 @@
 
 - **Storage** (`storage_manager.py`): JSON persistence, keyed by `internal_id`
 - **Coordinator** (`coordinator.py`): 8000+ lines handling chore lifecycle, badge calculations, notifications, recurring schedules
-- **Entities**: `sensor.py` (20+ types), `button.py` (actions), `calendar.py`, `select.py`
-- **Config**: `const.py` (2200+ lines) centralizes `DATA_*`, `CONF_*`, `SERVICE_*`, `TRANS_KEY_*` constants
+- **Entities**: `sensor.py` (50+ entity types across multiple platforms), `button.py` (claim/approve/disapprove actions), `calendar.py` (event scheduling), `select.py` (entity selection menus)
+- **Config**: `const.py` (2400+ lines) centralizes constants across 18+ prefix categories (see Constant Naming Standards below)
 
 ## Critical Patterns
 
@@ -179,6 +179,73 @@ Inherit from `CoordinatorEntity` for automatic coordinator updates. Set `unique_
 **Coordinator error handling**: Wrap I/O in try/except, log with `const.LOGGER.error()`, return last known data on transient failures. Use `UpdateFailed` only for persistent errors.
 
 **Dashboard**: Use modern template sensors, standard Lovelace cards (Entities, Tile, Button), or `mushroom-cards`. Reload translations via `_async_reload_translations()`.
+
+## Constant Naming Standards
+
+The codebase uses strict, consistent naming patterns for all constants in `const.py` (95%+ consistency). Follow these patterns precisely:
+
+### Primary Constant Prefixes (8 Categories)
+
+1. **`DATA_*`** - Storage/runtime data keys (120+ occurrences, 100% consistent)
+
+   - Pattern: `DATA_{ENTITY}_{PROPERTY}` (singular entity name)
+   - Examples: `DATA_KID_NAME`, `DATA_CHORE_POINTS`, `DATA_BADGE_TYPE`
+   - Used for: Accessing dictionary keys in stored entity data
+
+2. **`CFOF_*`** - Config Flow & Options Flow input field names (150+ occurrences, 80% consistent)
+
+   - Pattern: `CFOF_{ENTITIES}_INPUT_{GENERIC_FIELD}` (plural entity, generic field)
+   - Examples: `CFOF_KIDS_INPUT_NAME`, `CFOF_CHORES_INPUT_DESCRIPTION`, `CFOF_BADGES_INPUT_ICON`
+   - Note: 80% use generic fields (NAME/DESCRIPTION/ICON), 20% use entity-specific fields
+   - Used for: User input field keys in config/options flow schemas
+
+3. **`CFOP_ERROR_*`** - Config Flow & Options Flow error keys (20+ occurrences, 100% consistent after fixes)
+
+   - Pattern: `CFOP_ERROR_{FIELD_NAME}` (snake_case field name matching input field)
+   - Examples: `CFOP_ERROR_KID_NAME`, `CFOP_ERROR_PARENT_NAME`, `CFOP_ERROR_START_DATE`
+   - Used for: Error dictionary keys to mark which field has validation error
+
+4. **`TRANS_KEY_CFOF_*`** - Translation keys for config/options flows (100+ occurrences, 95% consistent)
+
+   - Pattern: `TRANS_KEY_CFOF_{TYPE}_{DETAIL}` or `TRANS_KEY_CFOF_{ERROR_DESCRIPTION}`
+   - Examples: `TRANS_KEY_CFOF_DUPLICATE_KID`, `TRANS_KEY_CFOF_INVALID_BADGE_TYPE`, `TRANS_KEY_CFOF_BADGE_ASSIGNED_TO`
+   - Used for: User-facing error messages and field labels (localized)
+
+5. **`CONFIG_FLOW_STEP_*`** - Config flow step identifiers (20+ occurrences, 100% consistent)
+
+   - Pattern: `CONFIG_FLOW_STEP_{ACTION}_{ENTITY}` (action then entity)
+   - Examples: `CONFIG_FLOW_STEP_COUNT_KIDS`, `CONFIG_FLOW_STEP_COLLECT_CHORES`, `CONFIG_FLOW_STEP_SUMMARY`
+   - Used for: Defining unique step IDs in multi-step config flow
+
+6. **`OPTIONS_FLOW_*`** - Options flow menu/action identifiers (40+ occurrences, 100% consistent)
+
+   - Pattern: `OPTIONS_FLOW_{ACTION}_{ENTITY}` (action then entity)
+   - Examples: `OPTIONS_FLOW_ADD_KID`, `OPTIONS_FLOW_EDIT_CHORE`, `OPTIONS_FLOW_DELETE_BADGE`
+   - Used for: Menu items and action handlers in options flow
+
+7. **`DEFAULT_*`** - Default values for config/options (30+ occurrences, 100% consistent)
+
+   - Pattern: `DEFAULT_{SETTING_NAME}` (descriptive setting name)
+   - Examples: `DEFAULT_POINTS_LABEL`, `DEFAULT_UPDATE_INTERVAL`, `DEFAULT_ICON`
+   - Used for: Providing fallback values when user doesn't specify
+
+8. **`LABEL_*`** - UI label constants (8+ occurrences, 100% consistent)
+   - Pattern: `LABEL_{ENTITY_TYPE}` (entity type in singular)
+   - Examples: `LABEL_KID`, `LABEL_CHORE`, `LABEL_BADGE`
+   - Used for: Consistent UI text across components
+
+### Critical Rules
+
+- **Entity naming**: Use SINGULAR for `DATA_*` keys (data about one entity), PLURAL for `CFOF_*` inputs (form collecting multiple)
+- **Field naming**: Use SNAKE_CASE consistently (e.g., `KID_NAME` not `KIDNAME`)
+- **Error keys**: Must match input field names exactly (e.g., `CFOP_ERROR_PARENT_NAME` pairs with `CFOF_PARENTS_INPUT_NAME`)
+- **Never mix patterns**: Don't create `CFPO_ERROR_*` (typo), `DATA_KIDS_*` (wrong plurality), or `CONFIG_FLOW_KIDS_*` (wrong order)
+
+### Quality Control
+
+All constants are validated during code review to ensure 100% pattern consistency. Use existing constants as templates when adding new ones.
+
+---
 
 ## Debugging
 

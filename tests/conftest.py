@@ -40,14 +40,19 @@ def auto_enable_custom_integrations(enable_custom_integrations: Any) -> Any:
 
 @pytest.fixture
 async def mock_hass_users(hass: HomeAssistant) -> dict[str, Any]:
-    """Create mock Home Assistant users for testing."""
+    """Create mock Home Assistant users for testing.
+
+    User names match ha_user_name values in test YAML files:
+    - parent1, parent2 (parents)
+    - kid1, kid2, kid3 (kids)
+    """
     # Create admin user
     admin_user = await hass.auth.async_create_user(
         "Admin User",
         group_ids=["system-admin"],
     )
 
-    # Create parent users
+    # Create parent users (match YAML ha_user_name values)
     parent1_user = await hass.auth.async_create_user(
         "Parent One",
         group_ids=["system-users"],
@@ -57,13 +62,17 @@ async def mock_hass_users(hass: HomeAssistant) -> dict[str, Any]:
         group_ids=["system-users"],
     )
 
-    # Create kid users
+    # Create kid users (match YAML ha_user_name values)
     kid1_user = await hass.auth.async_create_user(
         "Kid One",
         group_ids=["system-users"],
     )
     kid2_user = await hass.auth.async_create_user(
         "Kid Two",
+        group_ids=["system-users"],
+    )
+    kid3_user = await hass.auth.async_create_user(
+        "Kid Three",
         group_ids=["system-users"],
     )
 
@@ -73,6 +82,7 @@ async def mock_hass_users(hass: HomeAssistant) -> dict[str, Any]:
         "parent2": parent2_user,
         "kid1": kid1_user,
         "kid2": kid2_user,
+        "kid3": kid3_user,
     }
 
 
@@ -661,11 +671,18 @@ async def apply_scenario_via_options_flow(
                     result["flow_id"], {"badge_type": "cumulative"}
                 )
 
+                # Extract threshold value (handle both number and dict formats)
+                threshold = badge.get("threshold", 100)
+                if isinstance(threshold, dict):
+                    threshold_value = threshold.get("value", 100)
+                else:
+                    threshold_value = threshold
+
                 badge_data = {
                     "badge_name": badge["name"],
                     "badge_icon": badge.get("icon", "mdi:medal"),
                     "badge_description": badge.get("award", ""),
-                    "badge_threshold_value": badge.get("threshold", 100),
+                    "badge_threshold_value": threshold_value,
                     "badge_point_multiplier": badge.get("points_multiplier", 1.0),
                 }
                 result = await hass.config_entries.options.async_configure(
@@ -769,18 +786,27 @@ async def _apply_scenario_data(
         kid_name = kid["name"]
         kid_data = create_mock_kid_data(name=kid_name, points=0.0)
         kid_data["internal_id"] = kid_id
+
+        # Assign HA user if ha_user_name specified in YAML
+        ha_user_name = kid.get("ha_user_name", "")
+        if ha_user_name and mock_users and ha_user_name in mock_users:
+            kid_data["ha_user_id"] = mock_users[ha_user_name].id
+
         # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
         name_to_id_map[f"kid:{kid_name}"] = kid_id
 
     # Phase 2: Create parents (they may reference kids)
-    for idx, parent in enumerate(family.get("parents", [])):
+    for parent in family.get("parents", []):
         parent_id = str(uuid.uuid4())
         parent_name = parent["name"]
-        # Link first parent to parent1 mock user for authorization tests
+
+        # Assign HA user if ha_user_name specified in YAML
         parent_ha_user_id = ""
-        if mock_users and idx == 0 and "parent1" in mock_users:
-            parent_ha_user_id = mock_users["parent1"].id
+        ha_user_name = parent.get("ha_user_name", "")
+        if ha_user_name and mock_users and ha_user_name in mock_users:
+            parent_ha_user_id = mock_users[ha_user_name].id
+
         parent_data = {
             "internal_id": parent_id,
             "name": parent_name,

@@ -5,14 +5,18 @@
 family:
   parents:
     - name: "Môm Astrid Stârblüm"
+      ha_user_name: "parent1"
       role: "gardener, loves stars"
     - name: "Dad Leo"
+      ha_user_name: "parent2"
       role: "adventurer, loves maps"
   kids:
     - name: "Zoë"
+      ha_user_name: "kid1"
       age: 8
       interests: ["animals"]
     - name: "Max!"
+      ha_user_name: "kid2"
       age: 6
       interests: ["robots"]
 
@@ -52,9 +56,7 @@ badges:
   - name: "Dåily Dëlight"
     type: "daily"
     icon: "mdi:emoticon-happy"
-    threshold:
-      type: "chore_count"
-      value: 2
+    threshold: 2
     award: "+3 bonus points"
 
 bonuses:

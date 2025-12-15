@@ -38,7 +38,10 @@ RESET = "\033[0m"
 # Severity 4+ error codes that MUST be fixed or suppressed
 CRITICAL_CODES = {
     "E0602",  # Undefined variable
-    "E0611",  # No name in module    "W0101",  # Unreachable code (always a bug)    "W0612",  # Unused variable
+    "E0611",  # No name in module
+    "E1101",  # No member (attribute not found)
+    "W0101",  # Unreachable code (always a bug)
+    "W0612",  # Unused variable
     "W0613",  # Unused argument
     "W0611",  # Unused import
     "F401",  # Module imported but unused
@@ -301,12 +304,16 @@ def main():
         test_files = list((project_root / "tests").glob("test_*.py"))
         files_to_check = [str(f) for f in test_files]
     else:
-        # Check key integration files by default
-        files_to_check = [
+        # Check key integration files and critical test files by default
+        integration_files = [
             "custom_components/kidschores/config_flow.py",
             "custom_components/kidschores/options_flow.py",
             "custom_components/kidschores/flow_helpers.py",
+            "custom_components/kidschores/const.py",
+            "custom_components/kidschores/coordinator.py",
         ]
+        test_files = list((project_root / "tests").glob("test_*.py"))
+        files_to_check = integration_files + [str(f) for f in test_files]
 
     print(f"{BOLD}{BLUE}KidsChores Linting Check{RESET}")
     print(f"{BLUE}Checking {len(files_to_check)} file(s){RESET}\n")
