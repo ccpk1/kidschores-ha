@@ -2207,5 +2207,38 @@
         "name": "{kid_name} {sign_label} {points_label}"
       }
     }
+  },
+  "exceptions": {
+    "not_authorized_action": {
+      "message": "You are not authorized to {action} for this kid."
+    },
+    "not_authorized_action_global": {
+      "message": "You are not authorized to {action}."
+    },
+    "entity_not_found": {
+      "message": "{entity_type} '{name}' not found"
+    },
+    "calendar_create_not_supported": {
+      "message": "Creating events is not supported for this calendar"
+    },
+    "calendar_delete_not_supported": {
+      "message": "Deleting events is not supported for this calendar"
+    },
+    "calendar_update_not_supported": {
+      "message": "Updating events is not supported for this calendar"
+    }
+  },
+  "action_labels": {
+    "approve_chores": "approve chores",
+    "disapprove_chores": "disapprove chores",
+    "redeem_rewards": "redeem rewards",
+    "approve_rewards": "approve rewards",
+    "disapprove_rewards": "disapprove rewards",
+    "apply_penalties": "apply penalties",
+    "apply_bonuses": "apply bonuses",
+    "reset_penalties": "reset penalties",
+    "reset_bonuses": "reset bonuses",
+    "reset_rewards": "reset rewards",
+    "remove_badges": "remove awarded badges"
   }
 }

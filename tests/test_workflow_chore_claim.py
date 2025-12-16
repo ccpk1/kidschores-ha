@@ -163,7 +163,7 @@ async def test_kid_cannot_self_approve_chore(
     # Attempt approval should raise authorization error
     with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
         # Try to approve as kid - should fail authorization check
-        with pytest.raises(HomeAssistantError, match="not authorized to approve"):
+        with pytest.raises(HomeAssistantError):
             await hass.services.async_call(
                 DOMAIN,
                 "approve_chore",

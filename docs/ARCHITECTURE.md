@@ -335,6 +335,167 @@ def _persist(self):
 
 ---
 
+## Deprecation Convention: \_UNUSED Suffix (Development-Cycle Only)
+
+### Purpose & Scope
+
+The `_UNUSED` suffix is a **development-cycle tool** for safe rollback during active refactoring. It allows marking constants as deprecated without immediate deletion, enabling quick reversion if patterns change. **However, all \_UNUSED constants MUST be removed before production candidate testing and release.**
+
+**This approach is NOT a long-term deprecation mechanism** — it's optimized for iterative development, not backward compatibility across releases.
+
+### When to Use \_UNUSED
+
+✅ **Use \_UNUSED when:**
+
+- You're consolidating patterns (e.g., CONF*\* → FREQUENCY*\*) in active development
+- Tests confirm new pattern works but old constants might be needed for quick rollback
+- Within a single development branch/cycle (v4.0 development, for example)
+- You want the flexibility to revert without full reconstruction
+
+❌ **Do NOT use \_UNUSED when:**
+
+- Releasing to production (delete before final build)
+- Moving code to staging/production branches (must be cleaned first)
+- Communicating with external users about deprecation (use release notes + migration code instead)
+- Spanning multiple release cycles (indicates long-term deprecation, which needs full deletion + migration)
+
+### Standard Approach (During Development)
+
+**All development-cycle \_UNUSED constants must:**
+
+1. **Use `_UNUSED` suffix at END of constant name**
+
+   ```python
+   # ✅ CORRECT (development tool)
+   CONF_DAY_END_UNUSED = "day_end"
+   CONF_CUSTOM_1_MONTH_UNUSED = "custom_1_month"
+
+   # ❌ WRONG
+   CONF_UNUSED_DAY_END = "day_end"
+   UNUSED_CONF_CUSTOM_1_MONTH = "custom_1_month"
+   ```
+
+2. **Be moved to dedicated `_UNUSED` section at end of `const.py`**
+
+   - Location: After all active constants, in final section marked `# [Category] (Development-Only: Removed before vX.0 production release)`
+   - Organization: Group deprecated constants by category/reason for deprecation
+   - Purpose: Keep const.py organized; unused constants isolated and visible as temporary
+   - Visibility: Makes it obvious what's temporary during code review
+
+3. **Include inline comment explaining replacement AND exit criteria**
+   ```python
+   # Configuration Keys (Development-Only: Removed before v4.0 production release)
+   # Replaced by FREQUENCY_* and PERIOD_* patterns
+   CONF_CUSTOM_1_MONTH_UNUSED = "custom_1_month"  # Use FREQUENCY_CUSTOM_1_MONTH instead. [DELETE BEFORE PROD]
+   CONF_DAY_END_UNUSED = "day_end"  # Use PERIOD_DAY_END instead. [DELETE BEFORE PROD]
+   CONF_UNAVAILABLE_UNUSED = "unavailable"  # Unused sentinel. [DELETE BEFORE PROD]
+   ```
+
+### Exit Criteria: When to Delete \_UNUSED Constants
+
+**Delete all \_UNUSED constants BEFORE moving to production testing when:**
+
+1. ✅ All tests pass with new pattern (e.g., FREQUENCY\_\* constants work in production code)
+2. ✅ Code review confirms new pattern is correct (no planned rollbacks)
+3. ✅ No code still references the old \*\_UNUSED constants
+4. ✅ Grep returns zero results: `grep "CONSTANT_UNUSED" custom_components/kidschores/*.py`
+5. ✅ Final linting passes: `./utils/quick_lint.sh` shows no errors
+6. ✅ Before final RC (Release Candidate) build or production deployment
+
+**Timing Guideline**: Remove \_UNUSED constants at the end of each development cycle:
+
+- Development branch (v4.0-dev) → Contains \_UNUSED constants ✅
+- Release candidate (v4.0-rc1) → Must be cleaned (no \_UNUSED) ✅
+- Production release (v4.0) → Zero \_UNUSED constants ✅
+
+### Comparison: \_UNUSED vs. Proper Deprecation
+
+| Scenario               | \_UNUSED Approach                  | Proper Deprecation                        |
+| ---------------------- | ---------------------------------- | ----------------------------------------- |
+| **Timeframe**          | Single dev cycle                   | Across release cycles                     |
+| **Use Case**           | Safe rollback during refactoring   | Long-term backward compat                 |
+| **Lifecycle**          | Delete before prod                 | Document in CHANGELOG + keep for versions |
+| **Example**            | CONF*\* → FREQUENCY*\* in v4.0-dev | Removing v3.x feature in v5.0             |
+| **User Communication** | None needed (internal tool)        | Release notes + migration guide           |
+
+**Note**: KidsChores does NOT currently have a long-term deprecation system. If you need to deprecate constants across releases (e.g., "remove in v5.0"), use deletion + migration code in next major version instead.
+
+### Example: CONF\_\* Period End Consolidation (Development Cycle)
+
+**Initial State (Development Started):**
+
+```python
+# Active constants (lines 358-390)
+CONF_DAY_END = "day_end"
+CONF_WEEK_END = "week_end"
+CONF_MONTH_END = "month_end"
+CONF_QUARTER_END = "quarter_end"
+CONF_YEAR_END = "year_end"
+
+# Canonical pattern (lines 1000+) - new pattern being introduced
+PERIOD_DAY_END = "day_end"
+PERIOD_WEEK_END = "week_end"
+PERIOD_MONTH_END = "month_end"
+PERIOD_QUARTER_END = "quarter_end"
+PERIOD_YEAR_END = "year_end"
+```
+
+**During Development (Testing new pattern):**
+
+```python
+# Active constants (lines 358-390) - now using PERIOD_* everywhere
+
+# Deprecated section (end of file) - marked temporary
+# Configuration Keys (Development-Only: Removed before v4.0 production release)
+# Replaced by PERIOD_* pattern - PERIOD_* constants now used in all code
+CONF_DAY_END_UNUSED = "day_end"  # Use PERIOD_DAY_END instead. [DELETE BEFORE PROD]
+CONF_WEEK_END_UNUSED = "week_end"  # Use PERIOD_WEEK_END instead. [DELETE BEFORE PROD]
+CONF_MONTH_END_UNUSED = "month_end"  # Use PERIOD_MONTH_END instead. [DELETE BEFORE PROD]
+CONF_QUARTER_END_UNUSED = "quarter_end"  # Use PERIOD_QUARTER_END instead. [DELETE BEFORE PROD]
+CONF_YEAR_END_UNUSED = "year_end"  # Use PERIOD_YEAR_END instead. [DELETE BEFORE PROD]
+```
+
+**Before Production Release (Final cleanup):**
+
+```python
+# All active constants (including PERIOD_* patterns)
+
+# _UNUSED section: COMPLETELY REMOVED
+# (No deprecated constants left)
+
+# Cleaned, production-ready const.py
+```
+
+### Finding & Cleaning \_UNUSED Constants
+
+**Locate all development-cycle \_UNUSED constants:**
+
+```bash
+# Find all _UNUSED constants
+grep "^[A-Z_]*_UNUSED = " custom_components/kidschores/const.py
+
+# Verify they're not used anywhere (should return no results)
+grep -r "CONSTANT_UNUSED" custom_components/kidschores/ --include="*.py"
+
+# Count how many _UNUSED constants remain
+grep -c "^[A-Z_]*_UNUSED = " custom_components/kidschores/const.py
+```
+
+**Checklist before deleting:**
+
+- [ ] All \_UNUSED constant references removed from codebase
+- [ ] Tests pass: `pytest tests/ -q --tb=short` (expect 111 passing)
+- [ ] Linting passes: `./utils/quick_lint.sh` (expect 10.00/10)
+- [ ] Grep shows zero code references to old constants
+- [ ] Code review approved the cleanup
+- [ ] Removed before moving to Release Candidate build
+
+---
+
+## Constant Naming Standards (Complete Reference)
+
+---
+
 ## Constant Naming Standards (Complete Reference)
 
 The `const.py` file (2400+ lines) uses strict, consistent naming patterns across **27+ categories** and **1000+ constants**. This section documents all patterns - both documented and previously undocumented.
@@ -454,15 +615,281 @@ These categories were discovered in the codebase but not previously documented:
     - Usage: Entity selector creation in `select.py` platform
     - Consistency: 100%
 
-15. **`ERROR_*`** (25+ constants) - Error messages and codes
+15. **Error Handling (Phase 3-4B Implementation)** - Template-based internationalized error messages
 
-    - Sub-patterns:
-      - `ERROR_{ENTITY}_NOT_FOUND` - Entity lookup failures (e.g., `ERROR_KID_NOT_FOUND`)
-      - `ERROR_NOT_AUTHORIZED_{ACTION}` - Permission denials (e.g., `ERROR_NOT_AUTHORIZED_APPROVE_CHORES`)
-      - `ERROR_{ISSUE}_*` - Specific validation errors (e.g., `ERROR_INVALID_POINTS`, `ERROR_UNNAMED_ACHIEVEMENT`)
-    - Examples: `ERROR_CHORE_NOT_FOUND`, `ERROR_PENALTY_NOT_FOUND_FMT`, `ERROR_CALENDAR_CREATE_NOT_SUPPORTED`
-    - Usage: Exception messages in `coordinator.py` and `services.py`
-    - Consistency: 95% - mostly systematic, some variations for complex errors
+    **Translation Keys** (5 constants):
+
+    - `TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION` - Action denied for a specific kid (maps to template: "You are not authorized to {action} for this kid.")
+    - `TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION_GLOBAL` - Global action denied (maps to template: "You are not authorized to {action}.")
+    - `TRANS_KEY_ERROR_CALENDAR_CREATE_NOT_SUPPORTED` - Calendar creation not supported
+    - `TRANS_KEY_ERROR_CALENDAR_DELETE_NOT_SUPPORTED` - Calendar deletion not supported
+    - `TRANS_KEY_ERROR_CALENDAR_UPDATE_NOT_SUPPORTED` - Calendar updates not supported
+    - Usage: Exception translation keys in `services.py` (11 uses) and `calendar.py` (3 uses)
+    - Consistency: 100% - All error raises use template pattern
+
+    **Action Identifiers** (11 constants):
+
+    - `ERROR_ACTION_APPROVE_CHORES`, `ERROR_ACTION_DISAPPROVE_CHORES`, `ERROR_ACTION_REDEEM_REWARDS`, `ERROR_ACTION_APPROVE_REWARDS`, `ERROR_ACTION_DISAPPROVE_REWARDS`, `ERROR_ACTION_APPLY_PENALTIES`, `ERROR_ACTION_APPLY_BONUSES`, `ERROR_ACTION_RESET_PENALTIES`, `ERROR_ACTION_RESET_BONUSES`, `ERROR_ACTION_RESET_REWARDS`, `ERROR_ACTION_REMOVE_BADGES`
+    - Usage: Placeholders in `translation_placeholders={"action": ERROR_ACTION_*}` for template substitution
+    - Mapped to: `translations/en.json["action_labels"]` for internationalization
+    - Consistency: 100% - All 11 actively used in services.py error raises
+
+    **Implementation Pattern** (HomeAssistantError with translation_key):
+
+    ```python
+    # Authorization error (action-specific)
+    raise HomeAssistantError(
+        translation_domain=const.DOMAIN,
+        translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION,
+        translation_placeholders={"action": const.ERROR_ACTION_APPROVE_CHORES},
+    )
+
+    # Global authorization error
+    raise HomeAssistantError(
+        translation_domain=const.DOMAIN,
+        translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION_GLOBAL,
+    )
+
+    # Calendar operations (no placeholders needed)
+    raise HomeAssistantError(
+        translation_domain=const.DOMAIN,
+        translation_key=const.TRANS_KEY_ERROR_CALENDAR_CREATE_NOT_SUPPORTED,
+    )
+    ```
+
+    **Translation Templates** (6 entries in `translations/en.json`):
+
+    - `"not_authorized_action"`: "You are not authorized to {action} for this kid."
+    - `"not_authorized_action_global"`: "You are not authorized to {action}."
+    - `"calendar_create_not_supported"`: "Calendar event creation is not supported"
+    - `"calendar_delete_not_supported"`: "Calendar event deletion is not supported"
+    - `"calendar_update_not_supported"`: "Calendar event updates are not supported"
+
+    **Phase 3-4B Consolidation Results**:
+
+    - Before: 29 hardcoded ERROR\_\* constants (18 old message constants + 11 unused \_UNUSED constants)
+    - After: 16 active constants (5 TRANS*KEY*_ + 11 ERROR*ACTION*_)
+    - Benefit: 91% fewer translation keys needed; single template translates to all languages
+    - Code Impact: 14 error raises updated to use translation_key pattern (11 in services.py, 3 in calendar.py)
+    - Consistency: 100% - All service authorization checks and calendar operations use templated errors
+
+---
+
+## Template Translation System (Phase 3-4B Architecture)
+
+### Design Philosophy: Separation of Content and Templates
+
+KidsChores uses a **template-based translation architecture** that separates:
+
+1. **Message templates** (in `translations/en.json`) - Content that rarely changes
+2. **Dynamic placeholders** (via `ERROR_ACTION_*` constants) - Values that vary per context
+3. **Translation keys** (via `TRANS_KEY_*` constants) - Stable identifiers for templates
+
+This approach dramatically reduces the translation burden while maintaining full internationalization support.
+
+### How It Works
+
+**Problem (Pre-Phase 3B)**:
+
+- Old system: 29 separate hardcoded error message constants (e.g., `ERROR_NOT_AUTHORIZED_APPROVE_CHORES`, `ERROR_NOT_AUTHORIZED_DISAPPROVE_CHORES`, etc.)
+- Each constant required: English definition + translation to es.json, fr.json, de.json, it.json
+- Total: 29 × 5 languages = 145 translation entries
+- Maintenance: Adding a new action required updating 5+ files
+
+**Solution (Phase 3-4B)**:
+
+- New system: 1 template + 11 action identifiers
+- Each action identifier has: 1 English label + translation to es.json, fr.json, de.json, it.json
+- Total: 11 × 5 languages = 55 translation entries
+- Maintenance: Adding a new action requires: 1 code constant + 5 language labels
+
+**Result**: 62% reduction in translation entries (from 145 to 55)
+
+### Implementation Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Template Translation System - Data Flow                        │
+└─────────────────────────────────────────────────────────────────┘
+
+CODE (services.py, calendar.py)
+    ↓
+    raise HomeAssistantError(
+        translation_domain=const.DOMAIN,
+        translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION,  ← Translation Key
+        translation_placeholders={"action": const.ERROR_ACTION_APPROVE_CHORES}  ← Placeholder
+    )
+    ↓
+    ↓─────────────────────────────────────────────────────────────┐
+    │                                                             │
+    │  const.py (Constants)                                      │
+    │  ├─ TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION (lookup key)    │
+    │  └─ ERROR_ACTION_APPROVE_CHORES (identifier)              │
+    │                                                             │
+    ↓─────────────────────────────────────────────────────────────┓
+    │                                                             │
+    │  translations/en.json (Template + Labels)                │
+    │  ├─ "exceptions": {                                        │
+    │  │   "not_authorized_action": "You are not authorized     │
+    │  │     to {action} for this kid."  ← Template             │
+    │  ├─ "action_labels": {                                    │
+    │  │   "approve_chores": "approve chores"  ← Label          │
+    │  │   "disapprove_chores": "disapprove chores"            │
+    │  │   ...                                                   │
+    │                                                             │
+    ↓─────────────────────────────────────────────────────────────┓
+    │                                                             │
+    │  Home Assistant Template Engine (at runtime)              │
+    │  1. Fetch template: "You are not authorized to {action}   │
+    │     for this kid."                                         │
+    │  2. Fetch label: "approve_chores" → "approve chores"     │
+    │  3. Substitute: {action} = "approve chores"              │
+    │  4. Render: "You are not authorized to approve chores     │
+    │     for this kid."                                        │
+    │                                                             │
+    ↓─────────────────────────────────────────────────────────────┓
+
+UI (Error Dialog)
+    "You are not authorized to approve chores for this kid."
+```
+
+### File Structure and Responsibilities
+
+**1. const.py** - Translation Key and Action Constants
+
+```python
+# Translation key (single per error pattern)
+TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION = "not_authorized_action"
+
+# Action identifiers (one per unique action)
+ERROR_ACTION_APPROVE_CHORES = "approve_chores"
+ERROR_ACTION_DISAPPROVE_CHORES = "disapprove_chores"
+ERROR_ACTION_REDEEM_REWARDS = "redeem_rewards"
+# ... 8 more actions
+```
+
+**2. translations/en.json** - Templates and Labels
+
+```json
+{
+  "exceptions": {
+    "not_authorized_action": "You are not authorized to {action} for this kid.",
+    "not_authorized_action_global": "You are not authorized to {action}."
+  },
+  "action_labels": {
+    "approve_chores": "approve chores",
+    "disapprove_chores": "disapprove chores",
+    "redeem_rewards": "redeem rewards",
+    ...
+  }
+}
+```
+
+**3. services.py, calendar.py** - Error Raises
+
+```python
+# All authorization errors use the same template key
+raise HomeAssistantError(
+    translation_domain=const.DOMAIN,
+    translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION,
+    translation_placeholders={"action": const.ERROR_ACTION_APPROVE_CHORES},
+)
+```
+
+### Multi-Language Support (Current and Future)
+
+**Currently Implemented**:
+
+- English (en.json) - COMPLETE ✅
+- Mechanism ready for: Spanish (es.json), French (fr.json), German (de.json), Italian (it.json)
+
+**How to Add a New Language**:
+
+1. Copy `translations/en.json` to `translations/es.json` (example: Spanish)
+2. Translate ONLY the template strings in `exceptions` and `action_labels`
+3. Keep constant names (keys) unchanged
+4. No code changes needed - Home Assistant automatically selects language based on user's locale
+
+**Translation File Example (Spanish)**:
+
+```json
+{
+  "exceptions": {
+    "not_authorized_action": "No estás autorizado a {action} para este niño.",
+    "not_authorized_action_global": "No estás autorizado a {action}."
+  },
+  "action_labels": {
+    "approve_chores": "aprobar tareas",
+    "disapprove_chores": "desaprobar tareas",
+    "redeem_rewards": "canjear recompensas",
+    ...
+  }
+}
+```
+
+### Advantages Over Hardcoded Constants
+
+| Aspect               | Old Approach (Hardcoded)                 | New Approach (Templates)        |
+| -------------------- | ---------------------------------------- | ------------------------------- |
+| Constants per action | 1 (message)                              | 1 (identifier only)             |
+| Total constants      | 29 ERROR\_\* across all actions          | 11 ERROR*ACTION*\* (reusable)   |
+| New language cost    | 29 translations × N languages            | 11 translations × N languages   |
+| New action cost      | +1 constant + N translations             | +1 constant + N labels          |
+| Consistency          | Error: 11 variations of "not authorized" | Template: 1 source of truth     |
+| Maintenance          | Update each constant + each translation  | Update template + labels        |
+| i18n Readiness       | 95% done (each message hardcoded)        | 100% ready (structure in place) |
+| Scalability          | O(actions × languages)                   | O(actions) + O(languages)       |
+
+### Best Practices for New Errors
+
+When adding new error types to the system:
+
+1. **Define a Translation Key** in `const.py`:
+
+   ```python
+   TRANS_KEY_ERROR_MY_NEW_ERROR = "my_new_error"
+   ```
+
+2. **Add Exception Template** to `translations/en.json`:
+
+   ```json
+   {
+     "exceptions": {
+       "my_new_error": "Something went wrong: {details}"
+     }
+   }
+   ```
+
+3. **Define Action/Detail Constants** (only if needed):
+
+   ```python
+   ERROR_ACTION_MY_NEW_ACTION = "my_new_action"
+   ```
+
+4. **Raise Error in Code**:
+
+   ```python
+   raise HomeAssistantError(
+       translation_domain=const.DOMAIN,
+       translation_key=const.TRANS_KEY_ERROR_MY_NEW_ERROR,
+       translation_placeholders={"details": const.ERROR_ACTION_MY_NEW_ACTION},
+   )
+   ```
+
+5. **Add Translations** (for each new language file):
+   - Copy template to translations/es.json, fr.json, etc.
+   - Translate only the message content
+   - Keep JSON structure identical
+
+### Architectural Constraints
+
+- **Template variables**: Must use `{variable_name}` syntax (curly braces required)
+- **Placeholder keys**: Must match variable names in template (e.g., `{action}` → `{"action": ...}`)
+- **Translation keys**: Must be unique per error pattern (no duplicates across exception types)
+- **Action labels**: Must be lowercase, single-word or hyphenated (e.g., `"approve-chores"` not `"ApprovChores"`)
+- **JSON format**: Must be valid JSON in all translation files (test with `python -m json.tool`)
+
+---
 
 16. **`ACTION_*`** (6 constants) - Notification action button titles
 
@@ -612,9 +1039,10 @@ Consistency: **100%** - All platform entities (`sensor.py`, `button.py`, `select
 | BUTTON*KC*\*      | 20+       | 100%        | Dec 2025     |
 | SERVICE\_\*       | 17        | 100%        | Dec 2025     |
 | OPTIONS*FLOW*\*   | 65+       | 100%        | Dec 2025     |
-| ERROR\_\*         | 25+       | 95%         | Dec 2025     |
+| TRANS_KEY_ERROR   | 5         | 100%        | Dec 2025     |
+| ERROR_ACTION\_\*  | 11        | 100%        | Dec 2025     |
 | BADGE\_\*         | 30+       | 100%        | Dec 2025     |
-| **TOTAL**         | **1000+** | **~98%**    | **Dec 2025** |
+| **TOTAL**         | **1000+** | **~99%**    | **Dec 2025** |
 
 ### Code Review Checklist for New Constants
 

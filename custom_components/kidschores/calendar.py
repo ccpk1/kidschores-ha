@@ -98,7 +98,10 @@ class KidsChoresCalendarEntity(CalendarEntity):
 
     async def async_create_event(self, **kwargs) -> None:
         """Create a new event - not supported for read-only calendar."""
-        raise NotImplementedError(const.ERROR_CALENDAR_CREATE_NOT_SUPPORTED)
+        raise HomeAssistantError(
+            translation_domain=const.DOMAIN,
+            translation_key=const.TRANS_KEY_ERROR_CALENDAR_CREATE_NOT_SUPPORTED,
+        )
 
     async def async_delete_event(
         self,
@@ -107,7 +110,10 @@ class KidsChoresCalendarEntity(CalendarEntity):
         recurrence_range: str | None = None,
     ) -> None:
         """Delete an event - not supported for read-only calendar."""
-        raise NotImplementedError(const.ERROR_CALENDAR_DELETE_NOT_SUPPORTED)
+        raise HomeAssistantError(
+            translation_domain=const.DOMAIN,
+            translation_key=const.TRANS_KEY_ERROR_CALENDAR_DELETE_NOT_SUPPORTED,
+        )
 
     async def async_update_event(
         self,
@@ -117,7 +123,10 @@ class KidsChoresCalendarEntity(CalendarEntity):
         recurrence_range: str | None = None,
     ) -> None:
         """Update an event - not supported for read-only calendar."""
-        raise NotImplementedError(const.ERROR_CALENDAR_UPDATE_NOT_SUPPORTED)
+        raise HomeAssistantError(
+            translation_domain=const.DOMAIN,
+            translation_key=const.TRANS_KEY_ERROR_CALENDAR_UPDATE_NOT_SUPPORTED,
+        )
 
     def _generate_events_for_chore(
         self,

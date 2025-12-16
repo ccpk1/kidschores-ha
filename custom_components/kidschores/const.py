@@ -349,13 +349,9 @@ CONF_BIWEEKLY = "biweekly"
 CONF_CALENDAR_SHOW_PERIOD = "calendar_show_period"
 CONF_COST = "cost"
 CONF_CUSTOM = "custom"
-CONF_CUSTOM_1_MONTH = "custom_1_month"
-CONF_CUSTOM_1_WEEK = "custom_1_week"
-CONF_CUSTOM_1_YEAR = "custom_1_year"
 CONF_DAILY = "daily"
 CONF_DAY = "day"
 CONF_DAYS = "days"
-CONF_DAY_END = "day_end"
 CONF_DESCRIPTION = "description"
 CONF_DOT = "."
 CONF_EMPTY = ""
@@ -368,7 +364,6 @@ CONF_LABEL = "label"
 CONF_MINUTES = "minutes"
 CONF_MONTHS = "months"
 CONF_MONTHLY = "monthly"
-CONF_MONTH_END = "month_end"
 CONF_NAME = "name"
 CONF_NONE = None
 CONF_NONE_TEXT = "None"
@@ -376,18 +371,13 @@ CONF_POINTS = "points"
 CONF_QUARTER = "quarter"
 CONF_QUARTERLY = "quarterly"
 CONF_QUARTERS = "quarters"
-CONF_QUARTER_END = "quarter_end"
 CONF_SHARED_CHORE = "shared_chore"
-CONF_UNAVAILABLE = "unavailable"
 CONF_UNKNOWN = "Unknown"
 CONF_VALUE = "value"
 CONF_WEEKS = "weeks"
 CONF_WEEKLY = "weekly"
-CONF_WEEK_END = "week_end"
-CONF_YEAR_END = "year_end"
 CONF_YEARLY = "yearly"
 CONF_YEARS = "years"
-CONF_YEAR_END = "year_end"
 
 # Points configuration keys
 CONF_POINTS_ICON = "points_icon"
@@ -1507,59 +1497,28 @@ BUTTON_REWARD_PREFIX = "reward_button_"
 # Errors and Warnings
 # ------------------------------------------------------------------------------------------------
 DUE_DATE_NOT_SET = "Not Set"
-ERROR_BONUS_NOT_FOUND = "Bonus not found."
-ERROR_BONUS_NOT_FOUND_FMT = "Bonus '{}' not found"
-ERROR_CHORE_NOT_FOUND = "Chore not found."
-ERROR_CHORE_NOT_FOUND_FMT = "Chore '{}' not found"
-ERROR_INVALID_POINTS = "Invalid points."
-ERROR_KID_NOT_FOUND = "Kid not found."
-ERROR_KID_NOT_FOUND_FMT = "Kid '{}' not found"
-ERROR_NOT_AUTHORIZED_ACTION_FMT = "Not authorized to {}."
-ERROR_NOT_AUTHORIZED_FMT = "User not authorized to {} for this kid."
-ERROR_PENALTY_NOT_FOUND = "Penalty not found."
-ERROR_PENALTY_NOT_FOUND_FMT = "Penalty '{}' not found"
-ERROR_REWARD_NOT_FOUND = "Reward not found."
-ERROR_REWARD_NOT_FOUND_FMT = "Reward '{}' not found"
-ERROR_UNNAMED_ACHIEVEMENT = "Unnamed Achievement"
-ERROR_USER_NOT_AUTHORIZED = "User is not authorized to perform this action."
 
-# Authorization Error Messages
-ERROR_NOT_AUTHORIZED_APPROVE_CHORES = (
-    "You are not authorized to approve chores for this kid."
-)
-ERROR_NOT_AUTHORIZED_DISAPPROVE_CHORES = (
-    "You are not authorized to disapprove chores for this kid."
-)
-ERROR_NOT_AUTHORIZED_REDEEM_REWARDS = (
-    "You are not authorized to redeem rewards for this kid."
-)
-ERROR_NOT_AUTHORIZED_APPROVE_REWARDS = (
-    "You are not authorized to approve rewards for this kid."
-)
-ERROR_NOT_AUTHORIZED_DISAPPROVE_REWARDS = (
-    "You are not authorized to disapprove rewards for this kid."
-)
-ERROR_NOT_AUTHORIZED_APPLY_PENALTIES = (
-    "You are not authorized to apply penalties for this kid."
-)
-ERROR_NOT_AUTHORIZED_APPLY_BONUSES = (
-    "You are not authorized to apply bonuses for this kid."
-)
-ERROR_NOT_AUTHORIZED_RESET_PENALTIES = "You are not authorized to reset penalties."
-ERROR_NOT_AUTHORIZED_RESET_BONUSES = "You are not authorized to reset bonuses."
-ERROR_NOT_AUTHORIZED_RESET_REWARDS = "You are not authorized to reset rewards."
-ERROR_NOT_AUTHORIZED_REMOVE_BADGES = "You are not authorized to remove awarded badges."
+# Translation Keys for Phase 2-4 Error Migration (Action Templating)
+# These map to templated exceptions in translations/en.json using action labels
+TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION = "not_authorized_action"
+TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION_GLOBAL = "not_authorized_action_global"
+TRANS_KEY_ERROR_CALENDAR_CREATE_NOT_SUPPORTED = "calendar_create_not_supported"
+TRANS_KEY_ERROR_CALENDAR_DELETE_NOT_SUPPORTED = "calendar_delete_not_supported"
+TRANS_KEY_ERROR_CALENDAR_UPDATE_NOT_SUPPORTED = "calendar_update_not_supported"
 
-# Calendar Error Messages
-ERROR_CALENDAR_CREATE_NOT_SUPPORTED = (
-    "Creating events is not supported for this calendar"
-)
-ERROR_CALENDAR_DELETE_NOT_SUPPORTED = (
-    "Deleting events is not supported for this calendar"
-)
-ERROR_CALENDAR_UPDATE_NOT_SUPPORTED = (
-    "Updating events is not supported for this calendar"
-)
+# Action identifiers for use with TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION template
+# These are referenced in translations/en.json["action_labels"]
+ERROR_ACTION_APPROVE_CHORES = "approve_chores"
+ERROR_ACTION_DISAPPROVE_CHORES = "disapprove_chores"
+ERROR_ACTION_REDEEM_REWARDS = "redeem_rewards"
+ERROR_ACTION_APPROVE_REWARDS = "approve_rewards"
+ERROR_ACTION_DISAPPROVE_REWARDS = "disapprove_rewards"
+ERROR_ACTION_APPLY_PENALTIES = "apply_penalties"
+ERROR_ACTION_APPLY_BONUSES = "apply_bonuses"
+ERROR_ACTION_RESET_PENALTIES = "reset_penalties"
+ERROR_ACTION_RESET_BONUSES = "reset_bonuses"
+ERROR_ACTION_RESET_REWARDS = "reset_rewards"
+ERROR_ACTION_REMOVE_BADGES = "remove_badges"
 
 MSG_NO_ENTRY_FOUND = "No KidsChores entry found"
 
@@ -2242,12 +2201,6 @@ DATA_BADGE_SPECIAL_OCCASION_LAST_AWARDED_UNUSED = (
     "last_awarded"  # Defined but never used in migration
 )
 
-# Badge Award Mode (never used)
-CONF_BADGE_AWARD_NONE_UNUSED = "award_none"  # Defined but never used anywhere
-AWARD_MODE_OPTIONS_UNUSED = [
-    CONF_BADGE_AWARD_NONE_UNUSED,  # Array never referenced
-]
-
 # Config Flow & Options Flow
 CFOF_BADGES_INPUT_AWARD_POINTS_REWARD_UNUSED = "award_points_reward"
 CFOF_BADGES_INPUT_CUSTOM_RESET_DATE_UNUSED = "custom_reset_date"
@@ -2281,6 +2234,17 @@ DEFAULT_BADGE_DAILY_THRESHOLD_UNUSED = 5
 DEFAULT_BADGE_RESET_GRACE_PERIOD_UNUSED = 0
 DEFAULT_BADGE_REWARD_UNUSED = 0
 DEFAULT_BADGE_THRESHOLD_TYPE_UNUSED = "points"
+
+# Configuration Keys (Deprecated - replaced by FREQUENCY_* and PERIOD_* patterns)
+CONF_CUSTOM_1_MONTH_UNUSED = "custom_1_month"  # Use FREQUENCY_CUSTOM_1_MONTH instead
+CONF_CUSTOM_1_WEEK_UNUSED = "custom_1_week"  # Use FREQUENCY_CUSTOM_1_WEEK instead
+CONF_CUSTOM_1_YEAR_UNUSED = "custom_1_year"  # Use FREQUENCY_CUSTOM_1_YEAR instead
+CONF_DAY_END_UNUSED = "day_end"  # Use PERIOD_DAY_END instead
+CONF_MONTH_END_UNUSED = "month_end"  # Use PERIOD_MONTH_END instead
+CONF_QUARTER_END_UNUSED = "quarter_end"  # Use PERIOD_QUARTER_END instead
+CONF_UNAVAILABLE_UNUSED = "unavailable"  # Unused sentinel value
+CONF_WEEK_END_UNUSED = "week_end"  # Use PERIOD_WEEK_END instead
+CONF_YEAR_END_UNUSED = "year_end"  # Use PERIOD_YEAR_END instead
 
 # Translation Keys
 TRANS_KEY_CFOF_BADGE_AWARD_MODE_UNUSED = "award_mode"  # Added
