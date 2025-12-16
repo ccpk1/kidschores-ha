@@ -33,7 +33,9 @@ def _ensure_str(value):
     if isinstance(value, dict):
         # Attempt to get a known key or fallback
         return str(
-            value.get(const.CONF_VALUE, next(iter(value.values()), const.CONF_EMPTY))
+            value.get(
+                const.CONF_VALUE, next(iter(value.values()), const.SENTINEL_EMPTY)
+            )
         )
     return str(value)
 
@@ -83,7 +85,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             elif selection.startswith(const.OPTIONS_FLOW_MENU_MANAGE_PREFIX):
                 self._entity_type = selection.replace(
-                    const.OPTIONS_FLOW_MENU_MANAGE_PREFIX, const.CONF_EMPTY
+                    const.OPTIONS_FLOW_MENU_MANAGE_PREFIX, const.SENTINEL_EMPTY
                 )
                 return await self.async_step_manage_entity()
 
@@ -224,7 +226,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         entity_dict = self._get_entity_dict()
         entity_names = [
-            data.get(const.OPTIONS_FLOW_DATA_ENTITY_NAME, const.UNKNOWN_ENTITY)
+            data.get(
+                const.OPTIONS_FLOW_DATA_ENTITY_NAME,
+                const.TRANS_KEY_DISPLAY_UNKNOWN_ENTITY,
+            )
             for data in entity_dict.values()
         ]
 
@@ -393,7 +398,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         schema = await fh.build_kid_schema(
             self.hass,
             users=users,
-            default_kid_name=const.CONF_EMPTY,
+            default_kid_name=const.SENTINEL_EMPTY,
             default_ha_user_id=None,
             default_enable_mobile_notifications=False,
             default_mobile_notify_service=None,
@@ -447,7 +452,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             self.hass,
             users=users,
             kids_dict=kids_dict,
-            default_parent_name=const.CONF_EMPTY,
+            default_parent_name=const.SENTINEL_EMPTY,
             default_ha_user_id=None,
             default_associated_kids=[],
             default_enable_mobile_notifications=False,
@@ -1007,14 +1012,14 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             new_name = user_input[const.CFOF_KIDS_INPUT_KID_NAME].strip()
             ha_user_id = (
-                user_input.get(const.CFOF_KIDS_INPUT_HA_USER) or const.CONF_EMPTY
+                user_input.get(const.CFOF_KIDS_INPUT_HA_USER) or const.SENTINEL_EMPTY
             )
             enable_notifications = user_input.get(
                 const.CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS, True
             )
             mobile_notify_service = (
                 user_input.get(const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE)
-                or const.CONF_EMPTY
+                or const.SENTINEL_EMPTY
             )
             use_persistent = user_input.get(
                 const.CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
@@ -1096,7 +1101,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             new_name = user_input[const.CFOF_PARENTS_INPUT_NAME].strip()
             ha_user_id = (
-                user_input.get(const.CFOF_PARENTS_INPUT_HA_USER) or const.CONF_EMPTY
+                user_input.get(const.CFOF_PARENTS_INPUT_HA_USER) or const.SENTINEL_EMPTY
             )
             associated_kids = user_input.get(
                 const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS, []
@@ -1106,7 +1111,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             )
             mobile_notify_service = (
                 user_input.get(const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE)
-                or const.CONF_EMPTY
+                or const.SENTINEL_EMPTY
             )
             use_persistent = user_input.get(
                 const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
@@ -2029,7 +2034,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             # Get the raw text from the multiline text area.
             points_str = user_input.get(
-                const.CONF_POINTS_ADJUST_VALUES, const.CONF_EMPTY
+                const.CONF_POINTS_ADJUST_VALUES, const.SENTINEL_EMPTY
             ).strip()
             if points_str:
                 # Parse the values by splitting on separator.

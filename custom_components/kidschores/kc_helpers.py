@@ -632,8 +632,8 @@ def adjust_datetime_by_interval(  # pyright: ignore[reportReturnType]
     Parameters:
     - base_date: ISO string, datetime.date, or datetime.datetime.
     - interval_unit: One of the defined const.CONF_* constants:
-        - const.CONF_MINUTES, const.CONF_HOURS, const.CONF_DAYS, const.CONF_WEEKS,
-          const.CONF_MONTHS, const.CONF_QUARTERS, const.CONF_YEARS.
+        - const.TIME_UNIT_MINUTES, const.TIME_UNIT_HOURS, const.TIME_UNIT_DAYS, const.TIME_UNIT_WEEKS,
+          const.TIME_UNIT_MONTHS, const.TIME_UNIT_QUARTERS, const.TIME_UNIT_YEARS.
     - delta: Number of time units to add.
     - end_of_period: Optional string to adjust the result to the end of the period.
                      Valid values are:
@@ -698,22 +698,22 @@ def adjust_datetime_by_interval(  # pyright: ignore[reportReturnType]
         return None
 
     # Calculate the basic interval addition.
-    if interval_unit == const.CONF_MINUTES:
+    if interval_unit == const.TIME_UNIT_MINUTES:
         result = base_dt + timedelta(minutes=delta)
-    elif interval_unit == const.CONF_HOURS:
+    elif interval_unit == const.TIME_UNIT_HOURS:
         result = base_dt + timedelta(hours=delta)
-    elif interval_unit == const.CONF_DAYS:
+    elif interval_unit == const.TIME_UNIT_DAYS:
         result = base_dt + timedelta(days=delta)
-    elif interval_unit == const.CONF_WEEKS:
+    elif interval_unit == const.TIME_UNIT_WEEKS:
         result = base_dt + timedelta(weeks=delta)
-    elif interval_unit in {const.CONF_MONTHS, const.CONF_QUARTERS}:
-        multiplier = 1 if interval_unit == const.CONF_MONTHS else 3
+    elif interval_unit in {const.TIME_UNIT_MONTHS, const.TIME_UNIT_QUARTERS}:
+        multiplier = 1 if interval_unit == const.TIME_UNIT_MONTHS else 3
         total_months = base_dt.month - 1 + (delta * multiplier)
         year = int(base_dt.year + total_months // 12)
         month = int(total_months % 12 + 1)
         day = min(base_dt.day, monthrange(year, month)[1])
         result = base_dt.replace(year=year, month=month, day=day)
-    elif interval_unit == const.CONF_YEARS:
+    elif interval_unit == const.TIME_UNIT_YEARS:
         year = int(base_dt.year + delta)
         day = min(base_dt.day, monthrange(year, base_dt.month)[1])
         result = base_dt.replace(year=year, day=day)
@@ -787,22 +787,22 @@ def adjust_datetime_by_interval(  # pyright: ignore[reportReturnType]
             previous_result = result  # Store before calculating new interval
 
             # Add the interval again
-            if interval_unit == const.CONF_MINUTES:
+            if interval_unit == const.TIME_UNIT_MINUTES:
                 result = result + timedelta(minutes=delta)
-            elif interval_unit == const.CONF_HOURS:
+            elif interval_unit == const.TIME_UNIT_HOURS:
                 result = result + timedelta(hours=delta)
-            elif interval_unit == const.CONF_DAYS:
+            elif interval_unit == const.TIME_UNIT_DAYS:
                 result = result + timedelta(days=delta)
-            elif interval_unit == const.CONF_WEEKS:
+            elif interval_unit == const.TIME_UNIT_WEEKS:
                 result = result + timedelta(weeks=delta)
-            elif interval_unit in {const.CONF_MONTHS, const.CONF_QUARTERS}:
-                multiplier = 1 if interval_unit == const.CONF_MONTHS else 3
+            elif interval_unit in {const.TIME_UNIT_MONTHS, const.TIME_UNIT_QUARTERS}:
+                multiplier = 1 if interval_unit == const.TIME_UNIT_MONTHS else 3
                 total_months = result.month - 1 + (delta * multiplier)
                 year = result.year + total_months // 12
                 month = total_months % 12 + 1
                 day = min(result.day, monthrange(year, month)[1])
                 result = result.replace(year=year, month=month, day=day)
-            elif interval_unit == const.CONF_YEARS:
+            elif interval_unit == const.TIME_UNIT_YEARS:
                 year = result.year + delta
                 day = min(result.day, monthrange(year, result.month)[1])
                 result = result.replace(year=year, day=day)
@@ -961,7 +961,7 @@ def get_next_scheduled_datetime(
         if interval_type in {const.FREQUENCY_DAILY}:
             return adjust_datetime_by_interval(
                 base_dt,
-                const.CONF_DAYS,
+                const.TIME_UNIT_DAYS,
                 1,
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
@@ -969,7 +969,7 @@ def get_next_scheduled_datetime(
         elif interval_type in {const.FREQUENCY_WEEKLY, const.FREQUENCY_CUSTOM_1_WEEK}:
             return adjust_datetime_by_interval(
                 base_dt,
-                const.CONF_WEEKS,
+                const.TIME_UNIT_WEEKS,
                 1,
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
@@ -977,7 +977,7 @@ def get_next_scheduled_datetime(
         elif interval_type == const.FREQUENCY_BIWEEKLY:
             return adjust_datetime_by_interval(
                 base_dt,
-                const.CONF_WEEKS,
+                const.TIME_UNIT_WEEKS,
                 2,
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
@@ -985,7 +985,7 @@ def get_next_scheduled_datetime(
         elif interval_type in {const.FREQUENCY_MONTHLY, const.FREQUENCY_CUSTOM_1_MONTH}:
             return adjust_datetime_by_interval(
                 base_dt,
-                const.CONF_MONTHS,
+                const.TIME_UNIT_MONTHS,
                 1,
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
@@ -993,7 +993,7 @@ def get_next_scheduled_datetime(
         elif interval_type == const.FREQUENCY_QUARTERLY:
             return adjust_datetime_by_interval(
                 base_dt,
-                const.CONF_QUARTERS,
+                const.TIME_UNIT_QUARTERS,
                 1,
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
@@ -1001,7 +1001,7 @@ def get_next_scheduled_datetime(
         elif interval_type in {const.FREQUENCY_YEARLY, const.FREQUENCY_CUSTOM_1_YEAR}:
             return adjust_datetime_by_interval(
                 base_dt,
-                const.CONF_YEARS,
+                const.TIME_UNIT_YEARS,
                 1,
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
@@ -1009,7 +1009,7 @@ def get_next_scheduled_datetime(
         elif interval_type == const.PERIOD_DAY_END:
             return adjust_datetime_by_interval(
                 base_dt,
-                const.CONF_DAYS,
+                const.TIME_UNIT_DAYS,
                 0,
                 end_of_period=const.PERIOD_DAY_END,
                 return_type=const.HELPER_RETURN_DATETIME,
@@ -1017,7 +1017,7 @@ def get_next_scheduled_datetime(
         elif interval_type == const.PERIOD_WEEK_END:
             return adjust_datetime_by_interval(
                 base_dt,
-                const.CONF_DAYS,
+                const.TIME_UNIT_DAYS,
                 0,
                 end_of_period=const.PERIOD_WEEK_END,
                 return_type=const.HELPER_RETURN_DATETIME,
@@ -1025,7 +1025,7 @@ def get_next_scheduled_datetime(
         elif interval_type == const.PERIOD_MONTH_END:
             return adjust_datetime_by_interval(
                 base_dt,
-                const.CONF_DAYS,
+                const.TIME_UNIT_DAYS,
                 0,
                 end_of_period=const.PERIOD_MONTH_END,
                 return_type=const.HELPER_RETURN_DATETIME,
@@ -1033,7 +1033,7 @@ def get_next_scheduled_datetime(
         elif interval_type == const.PERIOD_QUARTER_END:
             return adjust_datetime_by_interval(
                 base_dt,
-                const.CONF_DAYS,
+                const.TIME_UNIT_DAYS,
                 0,
                 end_of_period=const.PERIOD_QUARTER_END,
                 return_type=const.HELPER_RETURN_DATETIME,
@@ -1041,7 +1041,7 @@ def get_next_scheduled_datetime(
         elif interval_type == const.PERIOD_YEAR_END:
             return adjust_datetime_by_interval(
                 base_dt,
-                const.CONF_DAYS,
+                const.TIME_UNIT_DAYS,
                 0,
                 end_of_period=const.PERIOD_YEAR_END,
                 return_type=const.HELPER_RETURN_DATETIME,
@@ -1100,7 +1100,7 @@ def get_next_scheduled_datetime(
                 # Break the loop by adding 1 hour and recalculating
                 result = adjust_datetime_by_interval(
                     result,
-                    const.CONF_HOURS,
+                    const.TIME_UNIT_HOURS,
                     1,
                     end_of_period=None,
                     return_type=const.HELPER_RETURN_DATETIME,
@@ -1277,7 +1277,7 @@ def cleanup_period_data(
     # Daily: keep configured days
     cutoff_daily = adjust_datetime_by_interval(
         today_local.isoformat(),
-        interval_unit=const.CONF_DAYS,
+        interval_unit=const.TIME_UNIT_DAYS,
         delta=-retention_daily,
         require_future=False,
         return_type=const.HELPER_RETURN_ISO_DATE,
@@ -1290,7 +1290,7 @@ def cleanup_period_data(
     # Weekly: keep configured weeks
     cutoff_date = adjust_datetime_by_interval(
         today_local.isoformat(),
-        interval_unit=const.CONF_WEEKS,
+        interval_unit=const.TIME_UNIT_WEEKS,
         delta=-retention_weekly,
         require_future=False,
         return_type=const.HELPER_RETURN_DATETIME,
@@ -1304,7 +1304,7 @@ def cleanup_period_data(
     # Monthly: keep configured months
     cutoff_date = adjust_datetime_by_interval(
         today_local.isoformat(),
-        interval_unit=const.CONF_MONTHS,
+        interval_unit=const.TIME_UNIT_MONTHS,
         delta=-retention_monthly,
         require_future=False,
         return_type=const.HELPER_RETURN_DATETIME,

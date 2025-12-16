@@ -1,10 +1,14 @@
-# File: calendar.py
+"""Calendar platform for KidsChores integration.
+
+Provides a read-only calendar view of chore due dates and schedule information.
+"""
 
 import datetime
 
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
 from . import const
@@ -137,8 +141,10 @@ class KidsChoresCalendarEntity(CalendarEntity):
         """Same recurring-chores logic from earlier solutions."""
         events: list[CalendarEvent] = []
 
-        summary = chore.get(const.DATA_CHORE_NAME, const.UNKNOWN_CHORE)
-        description = chore.get(const.DATA_CHORE_DESCRIPTION, const.CONF_EMPTY)
+        summary = chore.get(
+            const.DATA_CHORE_NAME, const.TRANS_KEY_DISPLAY_UNKNOWN_CHORE
+        )
+        description = chore.get(const.DATA_CHORE_DESCRIPTION, const.SENTINEL_EMPTY)
         recurring = chore.get(
             const.DATA_CHORE_RECURRING_FREQUENCY, const.FREQUENCY_NONE
         )
@@ -284,12 +290,14 @@ class KidsChoresCalendarEntity(CalendarEntity):
 
             elif recurring == const.FREQUENCY_CUSTOM:
                 interval = chore.get(const.DATA_CHORE_CUSTOM_INTERVAL, 1)
-                unit = chore.get(const.DATA_CHORE_CUSTOM_INTERVAL_UNIT, const.CONF_DAYS)
-                if unit == const.CONF_DAYS:
+                unit = chore.get(
+                    const.DATA_CHORE_CUSTOM_INTERVAL_UNIT, const.TIME_UNIT_DAYS
+                )
+                if unit == const.TIME_UNIT_DAYS:
                     start_event = due_dt - datetime.timedelta(days=interval)
-                elif unit == const.CONF_WEEKS:
+                elif unit == const.TIME_UNIT_WEEKS:
                     start_event = due_dt - datetime.timedelta(weeks=interval)
-                elif unit == const.CONF_MONTHS:
+                elif unit == const.TIME_UNIT_MONTHS:
                     start_event = due_dt - datetime.timedelta(days=30 * interval)
                 else:
                     start_event = due_dt
@@ -376,12 +384,14 @@ class KidsChoresCalendarEntity(CalendarEntity):
 
         if recurring == const.FREQUENCY_CUSTOM:
             interval = chore.get(const.DATA_CHORE_CUSTOM_INTERVAL, 1)
-            unit = chore.get(const.DATA_CHORE_CUSTOM_INTERVAL_UNIT, const.CONF_DAYS)
-            if unit == const.CONF_DAYS:
+            unit = chore.get(
+                const.DATA_CHORE_CUSTOM_INTERVAL_UNIT, const.TIME_UNIT_DAYS
+            )
+            if unit == const.TIME_UNIT_DAYS:
                 step = datetime.timedelta(days=interval)
-            elif unit == const.CONF_WEEKS:
+            elif unit == const.TIME_UNIT_WEEKS:
                 step = datetime.timedelta(weeks=interval)
-            elif unit == const.CONF_MONTHS:
+            elif unit == const.TIME_UNIT_MONTHS:
                 step = datetime.timedelta(days=30 * interval)
             else:
                 step = datetime.timedelta(days=interval)
@@ -421,9 +431,11 @@ class KidsChoresCalendarEntity(CalendarEntity):
         events: list[CalendarEvent] = []
 
         challenge_name = challenge.get(
-            const.DATA_CHALLENGE_NAME, const.UNKNOWN_CHALLENGE
+            const.DATA_CHALLENGE_NAME, const.TRANS_KEY_DISPLAY_UNKNOWN_CHALLENGE
         )
-        description = challenge.get(const.DATA_CHALLENGE_DESCRIPTION, const.CONF_EMPTY)
+        description = challenge.get(
+            const.DATA_CHALLENGE_DESCRIPTION, const.SENTINEL_EMPTY
+        )
         start_str = challenge.get(const.DATA_CHALLENGE_START_DATE)
         end_str = challenge.get(const.DATA_CHALLENGE_END_DATE)
         if not start_str or not end_str:

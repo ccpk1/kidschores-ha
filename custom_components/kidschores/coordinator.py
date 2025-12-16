@@ -1510,7 +1510,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             selected = challenge_info.get(const.DATA_CHALLENGE_SELECTED_CHORE_ID)
             if selected and selected not in valid_chore_ids:
                 challenge_info[const.DATA_CHALLENGE_SELECTED_CHORE_ID] = (
-                    const.CONF_EMPTY
+                    const.SENTINEL_EMPTY
                 )
                 const.LOGGER.debug(
                     "DEBUG: Removed Selected Chore ID in Challenge '%s'",
@@ -1751,7 +1751,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     # -- Kids
     def _create_kid(self, kid_id: str, kid_data: dict[str, Any]):
         self._data[const.DATA_KIDS][kid_id] = {
-            const.DATA_KID_NAME: kid_data.get(const.DATA_KID_NAME, const.CONF_EMPTY),
+            const.DATA_KID_NAME: kid_data.get(
+                const.DATA_KID_NAME, const.SENTINEL_EMPTY
+            ),
             const.DATA_KID_POINTS: kid_data.get(
                 const.DATA_KID_POINTS, const.DEFAULT_ZERO
             ),
@@ -1821,7 +1823,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.DATA_KID_ENABLE_NOTIFICATIONS, True
             ),
             const.DATA_KID_MOBILE_NOTIFY_SERVICE: kid_data.get(
-                const.DATA_KID_MOBILE_NOTIFY_SERVICE, const.CONF_EMPTY
+                const.DATA_KID_MOBILE_NOTIFY_SERVICE, const.SENTINEL_EMPTY
             ),
             const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS: kid_data.get(
                 const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS, True
@@ -1848,7 +1850,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         existing.update(kid_data)
         kids[kid_id] = existing
 
-        kid_name = existing.get(const.DATA_KID_NAME, const.CONF_EMPTY)
+        kid_name = existing.get(const.DATA_KID_NAME, const.SENTINEL_EMPTY)
         const.LOGGER.debug(
             "DEBUG: Kid Updated - '%s', ID '%s'",
             kid_name,
@@ -1870,17 +1872,17 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         self._data[const.DATA_PARENTS][parent_id] = {
             const.DATA_PARENT_NAME: parent_data.get(
-                const.DATA_PARENT_NAME, const.CONF_EMPTY
+                const.DATA_PARENT_NAME, const.SENTINEL_EMPTY
             ),
             const.DATA_PARENT_HA_USER_ID: parent_data.get(
-                const.DATA_PARENT_HA_USER_ID, const.CONF_EMPTY
+                const.DATA_PARENT_HA_USER_ID, const.SENTINEL_EMPTY
             ),
             const.DATA_PARENT_ASSOCIATED_KIDS: associated_kids_ids,
             const.DATA_PARENT_ENABLE_NOTIFICATIONS: parent_data.get(
                 const.DATA_PARENT_ENABLE_NOTIFICATIONS, True
             ),
             const.DATA_PARENT_MOBILE_NOTIFY_SERVICE: parent_data.get(
-                const.DATA_PARENT_MOBILE_NOTIFY_SERVICE, const.CONF_EMPTY
+                const.DATA_PARENT_MOBILE_NOTIFY_SERVICE, const.SENTINEL_EMPTY
             ),
             const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS: parent_data.get(
                 const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS, True
@@ -1920,7 +1922,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         )
         parent_info[const.DATA_PARENT_MOBILE_NOTIFY_SERVICE] = parent_data.get(
             const.DATA_PARENT_MOBILE_NOTIFY_SERVICE,
-            parent_info.get(const.DATA_PARENT_MOBILE_NOTIFY_SERVICE, const.CONF_EMPTY),
+            parent_info.get(
+                const.DATA_PARENT_MOBILE_NOTIFY_SERVICE, const.SENTINEL_EMPTY
+            ),
         )
         parent_info[const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS] = parent_data.get(
             const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS,
@@ -1959,7 +1963,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         self._data[const.DATA_CHORES][chore_id] = {
             const.DATA_CHORE_NAME: chore_data.get(
-                const.DATA_CHORE_NAME, const.CONF_EMPTY
+                const.DATA_CHORE_NAME, const.SENTINEL_EMPTY
             ),
             const.DATA_CHORE_STATE: chore_data.get(
                 const.DATA_CHORE_STATE, const.CHORE_STATE_PENDING
@@ -1975,7 +1979,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.DATA_CHORE_PARTIAL_ALLOWED, const.DEFAULT_PARTIAL_ALLOWED
             ),
             const.DATA_CHORE_DESCRIPTION: chore_data.get(
-                const.DATA_CHORE_DESCRIPTION, const.CONF_EMPTY
+                const.DATA_CHORE_DESCRIPTION, const.SENTINEL_EMPTY
             ),
             const.DATA_CHORE_LABELS: chore_data.get(const.DATA_CHORE_LABELS, []),
             const.DATA_CHORE_ICON: chore_data.get(
@@ -2162,7 +2166,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self._data.setdefault(const.DATA_BADGES, {})[badge_id] = badge_data
 
         badge_info = self._data[const.DATA_BADGES][badge_id]
-        badge_name = badge_info.get(const.DATA_BADGE_NAME, const.CONF_EMPTY)
+        badge_name = badge_info.get(const.DATA_BADGE_NAME, const.SENTINEL_EMPTY)
 
         const.LOGGER.debug(
             "DEBUG: Badge Updated - '%s', ID '%s'",
@@ -2179,7 +2183,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         existing.update(badge_data)
         badges[badge_id] = existing
 
-        badge_name = existing.get(const.DATA_BADGE_NAME, const.CONF_EMPTY)
+        badge_name = existing.get(const.DATA_BADGE_NAME, const.SENTINEL_EMPTY)
         const.LOGGER.debug(
             "DEBUG: Badge Updated - '%s', ID '%s'",
             badge_name,
@@ -2190,13 +2194,13 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     def _create_reward(self, reward_id: str, reward_data: dict[str, Any]):
         self._data[const.DATA_REWARDS][reward_id] = {
             const.DATA_REWARD_NAME: reward_data.get(
-                const.DATA_REWARD_NAME, const.CONF_EMPTY
+                const.DATA_REWARD_NAME, const.SENTINEL_EMPTY
             ),
             const.DATA_REWARD_COST: reward_data.get(
                 const.DATA_REWARD_COST, const.DEFAULT_REWARD_COST
             ),
             const.DATA_REWARD_DESCRIPTION: reward_data.get(
-                const.DATA_REWARD_DESCRIPTION, const.CONF_EMPTY
+                const.DATA_REWARD_DESCRIPTION, const.SENTINEL_EMPTY
             ),
             const.DATA_REWARD_LABELS: reward_data.get(const.DATA_REWARD_LABELS, []),
             const.DATA_REWARD_ICON: reward_data.get(
@@ -2238,13 +2242,13 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     def _create_bonus(self, bonus_id: str, bonus_data: dict[str, Any]):
         self._data[const.DATA_BONUSES][bonus_id] = {
             const.DATA_BONUS_NAME: bonus_data.get(
-                const.DATA_BONUS_NAME, const.CONF_EMPTY
+                const.DATA_BONUS_NAME, const.SENTINEL_EMPTY
             ),
             const.DATA_BONUS_POINTS: bonus_data.get(
                 const.DATA_BONUS_POINTS, const.DEFAULT_BONUS_POINTS
             ),
             const.DATA_BONUS_DESCRIPTION: bonus_data.get(
-                const.DATA_BONUS_DESCRIPTION, const.CONF_EMPTY
+                const.DATA_BONUS_DESCRIPTION, const.SENTINEL_EMPTY
             ),
             const.DATA_BONUS_LABELS: bonus_data.get(const.DATA_BONUS_LABELS, []),
             const.DATA_BONUS_ICON: bonus_data.get(
@@ -2285,13 +2289,13 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     def _create_penalty(self, penalty_id: str, penalty_data: dict[str, Any]):
         self._data[const.DATA_PENALTIES][penalty_id] = {
             const.DATA_PENALTY_NAME: penalty_data.get(
-                const.DATA_PENALTY_NAME, const.CONF_EMPTY
+                const.DATA_PENALTY_NAME, const.SENTINEL_EMPTY
             ),
             const.DATA_PENALTY_POINTS: penalty_data.get(
                 const.DATA_PENALTY_POINTS, -const.DEFAULT_PENALTY_POINTS
             ),
             const.DATA_PENALTY_DESCRIPTION: penalty_data.get(
-                const.DATA_PENALTY_DESCRIPTION, const.CONF_EMPTY
+                const.DATA_PENALTY_DESCRIPTION, const.SENTINEL_EMPTY
             ),
             const.DATA_PENALTY_LABELS: penalty_data.get(const.DATA_PENALTY_LABELS, []),
             const.DATA_PENALTY_ICON: penalty_data.get(
@@ -2334,16 +2338,16 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     ):
         self._data[const.DATA_ACHIEVEMENTS][achievement_id] = {
             const.DATA_ACHIEVEMENT_NAME: achievement_data.get(
-                const.DATA_ACHIEVEMENT_NAME, const.CONF_EMPTY
+                const.DATA_ACHIEVEMENT_NAME, const.SENTINEL_EMPTY
             ),
             const.DATA_ACHIEVEMENT_DESCRIPTION: achievement_data.get(
-                const.DATA_ACHIEVEMENT_DESCRIPTION, const.CONF_EMPTY
+                const.DATA_ACHIEVEMENT_DESCRIPTION, const.SENTINEL_EMPTY
             ),
             const.DATA_ACHIEVEMENT_LABELS: achievement_data.get(
                 const.DATA_ACHIEVEMENT_LABELS, []
             ),
             const.DATA_ACHIEVEMENT_ICON: achievement_data.get(
-                const.DATA_ACHIEVEMENT_ICON, const.CONF_EMPTY
+                const.DATA_ACHIEVEMENT_ICON, const.SENTINEL_EMPTY
             ),
             const.DATA_ACHIEVEMENT_ASSIGNED_KIDS: achievement_data.get(
                 const.DATA_ACHIEVEMENT_ASSIGNED_KIDS, []
@@ -2352,10 +2356,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.DATA_ACHIEVEMENT_TYPE, const.ACHIEVEMENT_TYPE_STREAK
             ),
             const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID: achievement_data.get(
-                const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID, const.CONF_EMPTY
+                const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID, const.SENTINEL_EMPTY
             ),
             const.DATA_ACHIEVEMENT_CRITERIA: achievement_data.get(
-                const.DATA_ACHIEVEMENT_CRITERIA, const.CONF_EMPTY
+                const.DATA_ACHIEVEMENT_CRITERIA, const.SENTINEL_EMPTY
             ),
             const.DATA_ACHIEVEMENT_TARGET_VALUE: achievement_data.get(
                 const.DATA_ACHIEVEMENT_TARGET_VALUE, const.DEFAULT_ACHIEVEMENT_TARGET
@@ -2406,7 +2410,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             achievement_data.get(
                 const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID,
                 achievement_info.get(
-                    const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID, const.CONF_EMPTY
+                    const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID, const.SENTINEL_EMPTY
                 ),
             )
         )
@@ -2432,16 +2436,16 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     def _create_challenge(self, challenge_id: str, challenge_data: dict[str, Any]):
         self._data[const.DATA_CHALLENGES][challenge_id] = {
             const.DATA_CHALLENGE_NAME: challenge_data.get(
-                const.DATA_CHALLENGE_NAME, const.CONF_EMPTY
+                const.DATA_CHALLENGE_NAME, const.SENTINEL_EMPTY
             ),
             const.DATA_CHALLENGE_DESCRIPTION: challenge_data.get(
-                const.DATA_CHALLENGE_DESCRIPTION, const.CONF_EMPTY
+                const.DATA_CHALLENGE_DESCRIPTION, const.SENTINEL_EMPTY
             ),
             const.DATA_CHALLENGE_LABELS: challenge_data.get(
                 const.DATA_CHALLENGE_LABELS, []
             ),
             const.DATA_CHALLENGE_ICON: challenge_data.get(
-                const.DATA_CHALLENGE_ICON, const.CONF_EMPTY
+                const.DATA_CHALLENGE_ICON, const.SENTINEL_EMPTY
             ),
             const.DATA_CHALLENGE_ASSIGNED_KIDS: challenge_data.get(
                 const.DATA_CHALLENGE_ASSIGNED_KIDS, []
@@ -2450,10 +2454,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.DATA_CHALLENGE_TYPE, const.CHALLENGE_TYPE_DAILY_MIN
             ),
             const.DATA_CHALLENGE_SELECTED_CHORE_ID: challenge_data.get(
-                const.DATA_CHALLENGE_SELECTED_CHORE_ID, const.CONF_EMPTY
+                const.DATA_CHALLENGE_SELECTED_CHORE_ID, const.SENTINEL_EMPTY
             ),
             const.DATA_CHALLENGE_CRITERIA: challenge_data.get(
-                const.DATA_CHALLENGE_CRITERIA, const.CONF_EMPTY
+                const.DATA_CHALLENGE_CRITERIA, const.SENTINEL_EMPTY
             ),
             const.DATA_CHALLENGE_TARGET_VALUE: challenge_data.get(
                 const.DATA_CHALLENGE_TARGET_VALUE, const.DEFAULT_CHALLENGE_TARGET
@@ -2509,7 +2513,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         challenge_info[const.DATA_CHALLENGE_SELECTED_CHORE_ID] = challenge_data.get(
             const.DATA_CHALLENGE_SELECTED_CHORE_ID,
             challenge_info.get(
-                const.DATA_CHALLENGE_SELECTED_CHORE_ID, const.CONF_EMPTY
+                const.DATA_CHALLENGE_SELECTED_CHORE_ID, const.SENTINEL_EMPTY
             ),
         )
         challenge_info[const.DATA_CHALLENGE_CRITERIA] = challenge_data.get(
@@ -2933,15 +2937,15 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             actions = [
                 {
                     const.NOTIFY_ACTION: f"{const.ACTION_APPROVE_CHORE}|{kid_id}|{chore_id}",
-                    const.NOTIFY_TITLE: const.ACTION_TITLE_APPROVE,
+                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_APPROVE,
                 },
                 {
                     const.NOTIFY_ACTION: f"{const.ACTION_DISAPPROVE_CHORE}|{kid_id}|{chore_id}",
-                    const.NOTIFY_TITLE: const.ACTION_TITLE_DISAPPROVE,
+                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE,
                 },
                 {
                     const.NOTIFY_ACTION: f"{const.ACTION_REMIND_30}|{kid_id}|{chore_id}",
-                    const.NOTIFY_TITLE: const.ACTION_TITLE_REMIND_30,
+                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_REMIND_30,
                 },
             ]
             # Pass extra context so the event handler can route the action.
@@ -3538,7 +3542,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 # Calculate today's streak based on yesterday's daily period data
                 yesterday_local_iso = kh.adjust_datetime_by_interval(
                     today_local_iso,
-                    interval_unit=const.CONF_DAYS,
+                    interval_unit=const.TIME_UNIT_DAYS,
                     delta=-1,
                     require_future=False,
                     return_type=const.HELPER_RETURN_ISO_DATE,
@@ -3650,10 +3654,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             self,
             periods_data=periods_data,
             period_keys={
-                const.CONF_DAILY: const.DATA_KID_CHORE_DATA_PERIODS_DAILY,
-                const.CONF_WEEKLY: const.DATA_KID_CHORE_DATA_PERIODS_WEEKLY,
-                const.CONF_MONTHLY: const.DATA_KID_CHORE_DATA_PERIODS_MONTHLY,
-                const.CONF_YEARLY: const.DATA_KID_CHORE_DATA_PERIODS_YEARLY,
+                const.FREQUENCY_DAILY: const.DATA_KID_CHORE_DATA_PERIODS_DAILY,
+                const.FREQUENCY_WEEKLY: const.DATA_KID_CHORE_DATA_PERIODS_WEEKLY,
+                const.FREQUENCY_MONTHLY: const.DATA_KID_CHORE_DATA_PERIODS_MONTHLY,
+                const.FREQUENCY_YEARLY: const.DATA_KID_CHORE_DATA_PERIODS_YEARLY,
             },
             retention_daily=self.config_entry.options.get(
                 const.CONF_RETENTION_DAILY, const.DEFAULT_RETENTION_DAILY
@@ -4332,15 +4336,15 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         actions = [
             {
                 const.NOTIFY_ACTION: f"{const.ACTION_APPROVE_REWARD}|{kid_id}|{reward_id}|{notif_id}",
-                const.NOTIFY_TITLE: const.ACTION_TITLE_APPROVE,
+                const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_APPROVE,
             },
             {
                 const.NOTIFY_ACTION: f"{const.ACTION_DISAPPROVE_REWARD}|{kid_id}|{reward_id}|{notif_id}",
-                const.NOTIFY_TITLE: const.ACTION_TITLE_DISAPPROVE,
+                const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE,
             },
             {
                 const.NOTIFY_ACTION: f"{const.ACTION_REMIND_30}|{kid_id}|{reward_id}|{notif_id}",
-                const.NOTIFY_TITLE: const.ACTION_TITLE_REMIND_30,
+                const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_REMIND_30,
             },
         ]
         extra_data = {
@@ -4997,7 +5001,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 # Only increment streak if yesterday was completed
                 yesterday_iso = kh.adjust_datetime_by_interval(
                     today_local_iso,
-                    interval_unit=const.CONF_DAYS,
+                    interval_unit=const.TIME_UNIT_DAYS,
                     delta=-1,
                     require_future=False,
                     return_type=const.HELPER_RETURN_ISO_DATE,
@@ -5950,7 +5954,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 and reset_schedule.get(
                     const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT
                 )
-                == const.CONF_DAYS
+                == const.TIME_UNIT_DAYS
             )
 
             if is_daily or is_custom_1_day:
@@ -5984,7 +5988,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     # Default fallback to weekly
                     new_end_date_iso = kh.adjust_datetime_by_interval(
                         prior_end_date_iso,
-                        interval_unit=const.CONF_WEEKS,
+                        interval_unit=const.TIME_UNIT_WEEKS,
                         delta=1,
                         require_future=True,
                         return_type=const.HELPER_RETURN_ISO_DATE,
@@ -6027,7 +6031,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                             new_start_date_iso = str(
                                 kh.adjust_datetime_by_interval(
                                     new_end_date_iso,
-                                    interval_unit=const.CONF_DAYS,
+                                    interval_unit=const.TIME_UNIT_DAYS,
                                     delta=-duration,
                                     require_future=False,  # Allow past dates for calculation
                                     return_type=const.HELPER_RETURN_ISO_DATE,
@@ -6265,7 +6269,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                                 and reset_schedule.get(
                                     const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT
                                 )
-                                == const.CONF_DAYS
+                                == const.TIME_UNIT_DAYS
                             )
 
                             if is_daily or is_custom_1_day:
@@ -6292,7 +6296,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                                     # Default fallback to weekly
                                     new_end_date_iso = kh.adjust_datetime_by_interval(
                                         today_local_iso,
-                                        interval_unit=const.CONF_WEEKS,
+                                        interval_unit=const.TIME_UNIT_WEEKS,
                                         delta=1,
                                         require_future=True,
                                         return_type=const.HELPER_RETURN_ISO_DATE,
@@ -6637,7 +6641,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # Check if the maintenance period or grace period has ended
         if award_success or demotion_required or is_first_time:
-            if frequency == const.CONF_CUSTOM:
+            if frequency == const.FREQUENCY_CUSTOM:
                 # If custom interval and unit are valid, calculate next_end make sure it is in the future and past the reference
                 if custom_interval and custom_interval_unit:
                     next_end = kh.adjust_datetime_by_interval(
@@ -6671,7 +6675,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             # Compute the grace period end date by adding the grace period (in days) to the maintenance end date
             next_grace = kh.adjust_datetime_by_interval(
                 next_end,
-                const.CONF_DAYS,
+                const.TIME_UNIT_DAYS,
                 grace_days,
                 require_future=True,
                 return_type=const.HELPER_RETURN_ISO_DATE,
@@ -7450,15 +7454,15 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     actions = [
                         {
                             const.NOTIFY_ACTION: f"{const.ACTION_APPROVE_CHORE}|{kid_id}|{chore_id}",
-                            const.NOTIFY_TITLE: const.ACTION_TITLE_APPROVE,
+                            const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_APPROVE,
                         },
                         {
                             const.NOTIFY_ACTION: f"{const.ACTION_DISAPPROVE_CHORE}|{kid_id}|{chore_id}",
-                            const.NOTIFY_TITLE: const.ACTION_TITLE_DISAPPROVE,
+                            const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE,
                         },
                         {
                             const.NOTIFY_ACTION: f"{const.ACTION_REMIND_30}|{kid_id}|{chore_id}",
-                            const.NOTIFY_TITLE: const.ACTION_TITLE_REMIND_30,
+                            const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_REMIND_30,
                         },
                     ]
                     if debug_enabled:
@@ -7503,7 +7507,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # Daily
         if now.hour == const.DEFAULT_DAILY_RESET_TIME.get(
-            const.CONF_HOUR, const.DEFAULT_HOUR
+            const.TIME_UNIT_HOUR, const.DEFAULT_HOUR
         ):
             await self._reset_chore_counts(const.FREQUENCY_DAILY, now)
 
@@ -7676,7 +7680,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.LOGGER.debug(
                 "DEBUG: Daily Reset - Rewards - Cleared daily reward statuses for Kid ID '%s' (%s)",
                 kid_id,
-                kid_info.get(const.DATA_KID_NAME, const.UNKNOWN_KID),
+                kid_info.get(const.DATA_KID_NAME, const.TRANS_KEY_DISPLAY_UNKNOWN_KID),
             )
 
         self._persist()
@@ -7693,9 +7697,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             custom_interval = chore_info.get(const.DATA_CHORE_CUSTOM_INTERVAL)
             custom_unit = chore_info.get(const.DATA_CHORE_CUSTOM_INTERVAL_UNIT)
             if custom_interval is None or custom_unit not in [
-                const.CONF_DAYS,
-                const.CONF_WEEKS,
-                const.CONF_MONTHS,
+                const.TIME_UNIT_DAYS,
+                const.TIME_UNIT_WEEKS,
+                const.TIME_UNIT_MONTHS,
             ]:
                 const.LOGGER.warning(
                     "WARNING: Chore Due Date - Reschedule - Custom frequency set, but custom interval or unit invalid for Chore ID '%s'",
@@ -8313,7 +8317,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.CONF_ENABLE_PERSISTENT_NOTIFICATIONS, True
         )
         mobile_notify_service = kid_info.get(
-            const.CONF_MOBILE_NOTIFY_SERVICE, const.CONF_EMPTY
+            const.CONF_MOBILE_NOTIFY_SERVICE, const.SENTINEL_EMPTY
         )
         if mobile_enabled and mobile_notify_service:
             await async_send_notification(
@@ -8366,7 +8370,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.CONF_ENABLE_PERSISTENT_NOTIFICATIONS, True
             )
             mobile_notify_service = parent_info.get(
-                const.CONF_MOBILE_NOTIFY_SERVICE, const.CONF_EMPTY
+                const.CONF_MOBILE_NOTIFY_SERVICE, const.SENTINEL_EMPTY
             )
             if mobile_enabled and mobile_notify_service:
                 await async_send_notification(
@@ -8448,15 +8452,15 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             actions = [
                 {
                     const.NOTIFY_ACTION: f"{const.ACTION_APPROVE_CHORE}|{kid_id}|{chore_id}",
-                    const.NOTIFY_TITLE: const.ACTION_TITLE_APPROVE,
+                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_APPROVE,
                 },
                 {
                     const.NOTIFY_ACTION: f"{const.ACTION_DISAPPROVE_CHORE}|{kid_id}|{chore_id}",
-                    const.NOTIFY_TITLE: const.ACTION_TITLE_DISAPPROVE,
+                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE,
                 },
                 {
                     const.NOTIFY_ACTION: f"{const.ACTION_REMIND_30}|{kid_id}|{chore_id}",
-                    const.NOTIFY_TITLE: const.ACTION_TITLE_REMIND_30,
+                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_REMIND_30,
                 },
             ]
             extra_data = {const.DATA_KID_ID: kid_id, const.DATA_CHORE_ID: chore_id}
@@ -8484,15 +8488,15 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             actions = [
                 {
                     const.NOTIFY_ACTION: f"{const.ACTION_APPROVE_REWARD}|{kid_id}|{reward_id}",
-                    const.NOTIFY_TITLE: const.ACTION_TITLE_APPROVE,
+                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_APPROVE,
                 },
                 {
                     const.NOTIFY_ACTION: f"{const.ACTION_DISAPPROVE_REWARD}|{kid_id}|{reward_id}",
-                    const.NOTIFY_TITLE: const.ACTION_TITLE_DISAPPROVE,
+                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE,
                 },
                 {
                     const.NOTIFY_ACTION: f"{const.ACTION_REMIND_30}|{kid_id}|{reward_id}",
-                    const.NOTIFY_TITLE: const.ACTION_TITLE_REMIND_30,
+                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_REMIND_30,
                 },
             ]
             extra_data = {const.DATA_KID_ID: kid_id, const.DATA_REWARD_ID: reward_id}

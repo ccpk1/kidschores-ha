@@ -318,7 +318,7 @@ class ClaimChoreButton(CoordinatorEntity, ButtonEntity):
                 )
 
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
-            user_name = (user_obj.name if user_obj else None) or const.CONF_UNKNOWN
+            user_name = (user_obj.name if user_obj else None) or const.DISPLAY_UNKNOWN
 
             self.coordinator.claim_chore(
                 kid_id=self._kid_id,
@@ -425,7 +425,7 @@ class ApproveChoreButton(CoordinatorEntity, ButtonEntity):
                 )
 
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
-            parent_name = (user_obj.name if user_obj else None) or const.CONF_UNKNOWN
+            parent_name = (user_obj.name if user_obj else None) or const.DISPLAY_UNKNOWN
 
             self.coordinator.approve_chore(
                 parent_name=parent_name,
@@ -539,7 +539,7 @@ class DisapproveChoreButton(CoordinatorEntity, ButtonEntity):
                 )
 
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
-            parent_name = (user_obj.name if user_obj else None) or const.CONF_UNKNOWN
+            parent_name = (user_obj.name if user_obj else None) or const.DISPLAY_UNKNOWN
 
             self.coordinator.disapprove_chore(
                 parent_name=parent_name,
@@ -646,7 +646,7 @@ class RewardButton(CoordinatorEntity, ButtonEntity):
                 )
 
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
-            parent_name = (user_obj.name if user_obj else None) or const.CONF_UNKNOWN
+            parent_name = (user_obj.name if user_obj else None) or const.DISPLAY_UNKNOWN
 
             self.coordinator.redeem_reward(
                 parent_name=parent_name,
@@ -751,7 +751,7 @@ class ApproveRewardButton(CoordinatorEntity, ButtonEntity):
                 )
 
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
-            parent_name = (user_obj.name if user_obj else None) or const.CONF_UNKNOWN
+            parent_name = (user_obj.name if user_obj else None) or const.DISPLAY_UNKNOWN
 
             # Approve the reward
             self.coordinator.approve_reward(
@@ -868,7 +868,7 @@ class DisapproveRewardButton(CoordinatorEntity, ButtonEntity):
                 )
 
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
-            parent_name = (user_obj.name if user_obj else None) or const.CONF_UNKNOWN
+            parent_name = (user_obj.name if user_obj else None) or const.DISPLAY_UNKNOWN
 
             self.coordinator.disapprove_reward(
                 parent_name=parent_name,
@@ -983,7 +983,7 @@ class PenaltyButton(CoordinatorEntity, ButtonEntity):
                 )
 
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
-            parent_name = (user_obj.name if user_obj else None) or const.CONF_UNKNOWN
+            parent_name = (user_obj.name if user_obj else None) or const.DISPLAY_UNKNOWN
             const.LOGGER.debug("DEBUG: About to call coordinator.apply_penalty")
 
             self.coordinator.apply_penalty(
@@ -1200,7 +1200,7 @@ class BonusButton(CoordinatorEntity, ButtonEntity):
                 )
 
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
-            parent_name = (user_obj.name if user_obj else None) or const.CONF_UNKNOWN
+            parent_name = (user_obj.name if user_obj else None) or const.DISPLAY_UNKNOWN
 
             self.coordinator.apply_bonus(
                 parent_name=parent_name,

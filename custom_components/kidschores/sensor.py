@@ -378,7 +378,7 @@ class ChoreStatusSensor(CoordinatorEntity, SensorEntity):
         today_local_iso = kh.get_today_local_date().isoformat()
         yesterday_local_iso = kh.adjust_datetime_by_interval(
             today_local_iso,
-            interval_unit=const.CONF_DAYS,
+            interval_unit=const.TIME_UNIT_DAYS,
             delta=-1,
             require_future=False,
             return_type=const.HELPER_RETURN_ISO_DATE,
@@ -420,7 +420,7 @@ class ChoreStatusSensor(CoordinatorEntity, SensorEntity):
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_CHORE_NAME: self._chore_name,
             const.ATTR_DESCRIPTION: chore_info.get(
-                const.DATA_CHORE_DESCRIPTION, const.CONF_EMPTY
+                const.DATA_CHORE_DESCRIPTION, const.SENTINEL_EMPTY
             ),
             const.ATTR_ASSIGNED_KIDS: assigned_kids_names,
             const.ATTR_LABELS: friendly_labels,
@@ -446,10 +446,10 @@ class ChoreStatusSensor(CoordinatorEntity, SensorEntity):
             const.ATTR_SHARED_CHORE: shared,
             const.ATTR_GLOBAL_STATE: global_state,
             const.ATTR_DUE_DATE: chore_info.get(
-                const.DATA_CHORE_DUE_DATE, const.DUE_DATE_NOT_SET
+                const.DATA_CHORE_DUE_DATE, const.TRANS_KEY_DISPLAY_DUE_DATE_NOT_SET
             ),
             const.ATTR_RECURRING_FREQUENCY: chore_info.get(
-                const.DATA_CHORE_RECURRING_FREQUENCY, const.CONF_NONE_TEXT
+                const.DATA_CHORE_RECURRING_FREQUENCY, const.SENTINEL_NONE_TEXT
             ),
             const.ATTR_APPLICABLE_DAYS: chore_info.get(
                 const.DATA_CHORE_APPLICABLE_DAYS, []
@@ -907,7 +907,7 @@ class KidHighestBadgeSensor(CoordinatorEntity, SensorEntity):
         )
         highest_badge_name = cumulative_badge_progress_info.get(
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_NAME,
-            const.CONF_NONE_TEXT,
+            const.SENTINEL_NONE_TEXT,
         )
         return highest_badge_name
 
@@ -920,7 +920,7 @@ class KidHighestBadgeSensor(CoordinatorEntity, SensorEntity):
         )
         highest_badge_id = cumulative_badge_progress_info.get(
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_ID,
-            const.CONF_NONE_TEXT,
+            const.SENTINEL_NONE_TEXT,
         )
         highest_badge_info = self.coordinator.badges_data.get(highest_badge_id, {})
         highest_badge_icon = highest_badge_info.get(
@@ -945,39 +945,39 @@ class KidHighestBadgeSensor(CoordinatorEntity, SensorEntity):
         )
         current_badge_id = cumulative_badge_progress_info.get(
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_ID,
-            const.CONF_NONE_TEXT,
+            const.SENTINEL_NONE_TEXT,
         )
         current_badge_name = cumulative_badge_progress_info.get(
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_NAME,
-            const.CONF_NONE_TEXT,
+            const.SENTINEL_NONE_TEXT,
         )
         highest_earned_badge_id = cumulative_badge_progress_info.get(
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_ID,
-            const.CONF_NONE_TEXT,
+            const.SENTINEL_NONE_TEXT,
         )
         highest_earned_badge_name = cumulative_badge_progress_info.get(
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_NAME,
-            const.CONF_NONE_TEXT,
+            const.SENTINEL_NONE_TEXT,
         )
         next_higher_badge_id = cumulative_badge_progress_info.get(
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_BADGE_ID,
-            const.CONF_NONE_TEXT,
+            const.SENTINEL_NONE_TEXT,
         )
         next_higher_badge_name = cumulative_badge_progress_info.get(
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_BADGE_NAME,
-            const.CONF_NONE_TEXT,
+            const.SENTINEL_NONE_TEXT,
         )
         next_lower_badge_id = cumulative_badge_progress_info.get(
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_BADGE_ID,
-            const.CONF_NONE_TEXT,
+            const.SENTINEL_NONE_TEXT,
         )
         next_lower_badge_name = cumulative_badge_progress_info.get(
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_BADGE_NAME,
-            const.CONF_NONE_TEXT,
+            const.SENTINEL_NONE_TEXT,
         )
         badge_status = cumulative_badge_progress_info.get(
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_STATUS,
-            const.CONF_NONE_TEXT,
+            const.SENTINEL_NONE_TEXT,
         )
         highest_badge_threshold_value = cumulative_badge_progress_info.get(
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_THRESHOLD,
@@ -1012,7 +1012,7 @@ class KidHighestBadgeSensor(CoordinatorEntity, SensorEntity):
             current_badge_id, {}
         )
         last_awarded_date = badge_earned.get(
-            const.DATA_KID_BADGES_EARNED_LAST_AWARDED, const.CONF_NONE
+            const.DATA_KID_BADGES_EARNED_LAST_AWARDED, const.SENTINEL_NONE
         )
         award_count = badge_earned.get(
             const.DATA_KID_BADGES_EARNED_AWARD_COUNT, const.DEFAULT_ZERO
@@ -1149,7 +1149,7 @@ class BadgeProgressSensor(CoordinatorEntity, SensorEntity):
             self._badge_id, {}
         )
         last_awarded_date = badge_earned.get(
-            const.DATA_KID_BADGES_EARNED_LAST_AWARDED, const.CONF_NONE
+            const.DATA_KID_BADGES_EARNED_LAST_AWARDED, const.SENTINEL_NONE
         )
         award_count = badge_earned.get(
             const.DATA_KID_BADGES_EARNED_AWARD_COUNT, const.DEFAULT_ZERO
@@ -1195,7 +1195,7 @@ class BadgeProgressSensor(CoordinatorEntity, SensorEntity):
         }
 
         attributes[const.ATTR_DESCRIPTION] = badge_info.get(
-            const.DATA_BADGE_DESCRIPTION, const.CONF_EMPTY
+            const.DATA_BADGE_DESCRIPTION, const.SENTINEL_EMPTY
         )
 
         # Convert tracked chore IDs to friendly names and add to attributes
@@ -1272,7 +1272,7 @@ class BadgeSensor(CoordinatorEntity, SensorEntity):
         # Basic badge info
         attributes[const.ATTR_FRIENDLY_NAME] = badge_info.get(const.DATA_BADGE_NAME)
         attributes[const.ATTR_DESCRIPTION] = badge_info.get(
-            const.DATA_BADGE_DESCRIPTION, const.CONF_EMPTY
+            const.DATA_BADGE_DESCRIPTION, const.SENTINEL_EMPTY
         )
         attributes[const.ATTR_BADGE_TYPE] = badge_info.get(
             const.DATA_BADGE_TYPE, const.BADGE_TYPE_CUMULATIVE
@@ -1430,10 +1430,13 @@ class PendingChoreApprovalsSensor(CoordinatorEntity, SensorEntity):
             kid_id = approval[const.DATA_KID_ID]
             chore_id = approval[const.DATA_CHORE_ID]
             kid_name = (
-                kh.get_kid_name_by_id(self.coordinator, kid_id) or const.UNKNOWN_KID
+                kh.get_kid_name_by_id(self.coordinator, kid_id)
+                or const.TRANS_KEY_DISPLAY_UNKNOWN_KID
             )
             chore_info = self.coordinator.chores_data.get(chore_id, {})
-            chore_name = chore_info.get(const.DATA_CHORE_NAME, const.UNKNOWN_CHORE)
+            chore_name = chore_info.get(
+                const.DATA_CHORE_NAME, const.TRANS_KEY_DISPLAY_UNKNOWN_CHORE
+            )
 
             timestamp = approval[const.DATA_CHORE_TIMESTAMP]
 
@@ -1522,10 +1525,13 @@ class PendingRewardApprovalsSensor(CoordinatorEntity, SensorEntity):
             kid_id = approval[const.DATA_KID_ID]
             reward_id = approval[const.DATA_REWARD_ID]
             kid_name = (
-                kh.get_kid_name_by_id(self.coordinator, kid_id) or const.UNKNOWN_KID
+                kh.get_kid_name_by_id(self.coordinator, kid_id)
+                or const.TRANS_KEY_DISPLAY_UNKNOWN_KID
             )
             reward_info = self.coordinator.rewards_data.get(reward_id, {})
-            reward_name = reward_info.get(const.DATA_REWARD_NAME, const.UNKNOWN_REWARD)
+            reward_name = reward_info.get(
+                const.DATA_REWARD_NAME, const.TRANS_KEY_DISPLAY_UNKNOWN_REWARD
+            )
 
             timestamp = approval[const.DATA_REWARD_TIMESTAMP]
 
@@ -1633,16 +1639,16 @@ class SharedChoreGlobalStateSensor(CoordinatorEntity, SensorEntity):
         attributes = {
             const.ATTR_CHORE_NAME: self._chore_name,
             const.ATTR_DESCRIPTION: chore_info.get(
-                const.DATA_CHORE_DESCRIPTION, const.CONF_EMPTY
+                const.DATA_CHORE_DESCRIPTION, const.SENTINEL_EMPTY
             ),
             const.ATTR_RECURRING_FREQUENCY: chore_info.get(
-                const.DATA_CHORE_RECURRING_FREQUENCY, const.CONF_NONE_TEXT
+                const.DATA_CHORE_RECURRING_FREQUENCY, const.SENTINEL_NONE_TEXT
             ),
             const.ATTR_APPLICABLE_DAYS: chore_info.get(
                 const.DATA_CHORE_APPLICABLE_DAYS, []
             ),
             const.ATTR_DUE_DATE: chore_info.get(
-                const.DATA_CHORE_DUE_DATE, const.DUE_DATE_NOT_SET
+                const.DATA_CHORE_DUE_DATE, const.TRANS_KEY_DISPLAY_DUE_DATE_NOT_SET
             ),
             const.ATTR_DEFAULT_POINTS: chore_info.get(
                 const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_ZERO
@@ -1777,7 +1783,7 @@ class RewardStatusSensor(CoordinatorEntity, SensorEntity):
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_REWARD_NAME: self._reward_name,
             const.ATTR_DESCRIPTION: reward_info.get(
-                const.DATA_REWARD_DESCRIPTION, const.CONF_EMPTY
+                const.DATA_REWARD_DESCRIPTION, const.SENTINEL_EMPTY
             ),
             const.ATTR_COST: reward_info.get(
                 const.DATA_REWARD_COST, const.DEFAULT_REWARD_COST
@@ -1877,7 +1883,7 @@ class PenaltyAppliesSensor(CoordinatorEntity, SensorEntity):
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_PENALTY_NAME: self._penalty_name,
             const.ATTR_DESCRIPTION: penalty_info.get(
-                const.DATA_PENALTY_DESCRIPTION, const.CONF_EMPTY
+                const.DATA_PENALTY_DESCRIPTION, const.SENTINEL_EMPTY
             ),
             const.ATTR_PENALTY_POINTS: penalty_info.get(
                 const.DATA_PENALTY_POINTS, const.DEFAULT_PENALTY_POINTS
@@ -2212,12 +2218,12 @@ class AchievementSensor(CoordinatorEntity, SensorEntity):
                 kid_name = kh.get_kid_name_by_id(self.coordinator, kid_id) or kid_id
                 earned_by.append(kid_name)
 
-        associated_chore = const.CONF_EMPTY
+        associated_chore = const.SENTINEL_EMPTY
         selected_chore_id = achievement.get(const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID)
         if selected_chore_id:
             associated_chore = self.coordinator.chores_data.get(
                 selected_chore_id, {}
-            ).get(const.DATA_CHORE_NAME, const.CONF_EMPTY)
+            ).get(const.DATA_CHORE_NAME, const.SENTINEL_EMPTY)
 
         assigned_kids_ids = achievement.get(const.DATA_ACHIEVEMENT_ASSIGNED_KIDS, [])
         assigned_kids_names = [
@@ -2259,13 +2265,13 @@ class AchievementSensor(CoordinatorEntity, SensorEntity):
         return {
             const.ATTR_ACHIEVEMENT_NAME: self._achievement_name,
             const.ATTR_DESCRIPTION: achievement.get(
-                const.DATA_ACHIEVEMENT_DESCRIPTION, const.CONF_EMPTY
+                const.DATA_ACHIEVEMENT_DESCRIPTION, const.SENTINEL_EMPTY
             ),
             const.ATTR_ASSIGNED_KIDS: assigned_kids_names,
             const.ATTR_TYPE: ach_type,
             const.ATTR_ASSOCIATED_CHORE: associated_chore,
             const.ATTR_CRITERIA: achievement.get(
-                const.DATA_ACHIEVEMENT_CRITERIA, const.CONF_EMPTY
+                const.DATA_ACHIEVEMENT_CRITERIA, const.SENTINEL_EMPTY
             ),
             const.ATTR_TARGET_VALUE: achievement.get(
                 const.DATA_ACHIEVEMENT_TARGET_VALUE
@@ -2385,12 +2391,12 @@ class ChallengeSensor(CoordinatorEntity, SensorEntity):
                 kid_name = kh.get_kid_name_by_id(self.coordinator, kid_id) or kid_id
                 earned_by.append(kid_name)
 
-        associated_chore = const.CONF_EMPTY
+        associated_chore = const.SENTINEL_EMPTY
         selected_chore_id = challenge.get(const.DATA_CHALLENGE_SELECTED_CHORE_ID)
         if selected_chore_id:
             associated_chore = self.coordinator.chores_data.get(
                 selected_chore_id, {}
-            ).get(const.DATA_CHORE_NAME, const.CONF_EMPTY)
+            ).get(const.DATA_CHORE_NAME, const.SENTINEL_EMPTY)
 
         assigned_kids_ids = challenge.get(const.DATA_CHALLENGE_ASSIGNED_KIDS, [])
         assigned_kids_names = [
@@ -2428,13 +2434,13 @@ class ChallengeSensor(CoordinatorEntity, SensorEntity):
         return {
             const.ATTR_CHALLENGE_NAME: self._challenge_name,
             const.ATTR_DESCRIPTION: challenge.get(
-                const.DATA_CHALLENGE_DESCRIPTION, const.CONF_EMPTY
+                const.DATA_CHALLENGE_DESCRIPTION, const.SENTINEL_EMPTY
             ),
             const.ATTR_ASSIGNED_KIDS: assigned_kids_names,
             const.ATTR_TYPE: challenge_type,
             const.ATTR_ASSOCIATED_CHORE: associated_chore,
             const.ATTR_CRITERIA: challenge.get(
-                const.DATA_CHALLENGE_CRITERIA, const.CONF_EMPTY
+                const.DATA_CHALLENGE_CRITERIA, const.SENTINEL_EMPTY
             ),
             const.ATTR_TARGET_VALUE: challenge.get(const.DATA_CHALLENGE_TARGET_VALUE),
             const.ATTR_REWARD_POINTS: challenge.get(const.DATA_CHALLENGE_REWARD_POINTS),
@@ -2604,12 +2610,12 @@ class AchievementProgressSensor(CoordinatorEntity, SensorEntity):
                 const.DATA_KID_COMPLETED_CHORES_TODAY_DEPRECATED, const.DEFAULT_ZERO
             )
 
-        associated_chore = const.CONF_EMPTY
+        associated_chore = const.SENTINEL_EMPTY
         selected_chore_id = achievement.get(const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID)
         if selected_chore_id:
             associated_chore = self.coordinator.chores_data.get(
                 selected_chore_id, {}
-            ).get(const.DATA_CHORE_NAME, const.CONF_EMPTY)
+            ).get(const.DATA_CHORE_NAME, const.SENTINEL_EMPTY)
 
         assigned_kids_ids = achievement.get(const.DATA_ACHIEVEMENT_ASSIGNED_KIDS, [])
         assigned_kids_names = [
@@ -2626,13 +2632,13 @@ class AchievementProgressSensor(CoordinatorEntity, SensorEntity):
         return {
             const.ATTR_ACHIEVEMENT_NAME: self._achievement_name,
             const.ATTR_DESCRIPTION: achievement.get(
-                const.DATA_ACHIEVEMENT_DESCRIPTION, const.CONF_EMPTY
+                const.DATA_ACHIEVEMENT_DESCRIPTION, const.SENTINEL_EMPTY
             ),
             const.ATTR_ASSIGNED_KIDS: assigned_kids_names,
             const.ATTR_TYPE: achievement.get(const.DATA_ACHIEVEMENT_TYPE),
             const.ATTR_ASSOCIATED_CHORE: associated_chore,
             const.ATTR_CRITERIA: achievement.get(
-                const.DATA_ACHIEVEMENT_CRITERIA, const.CONF_EMPTY
+                const.DATA_ACHIEVEMENT_CRITERIA, const.SENTINEL_EMPTY
             ),
             const.ATTR_TARGET_VALUE: target,
             const.ATTR_REWARD_POINTS: achievement.get(
@@ -2774,12 +2780,12 @@ class ChallengeProgressSensor(CoordinatorEntity, SensorEntity):
         else:
             raw_progress = const.DEFAULT_ZERO
 
-        associated_chore = const.CONF_EMPTY
+        associated_chore = const.SENTINEL_EMPTY
         selected_chore_id = challenge.get(const.DATA_CHALLENGE_SELECTED_CHORE_ID)
         if selected_chore_id:
             associated_chore = self.coordinator.chores_data.get(
                 selected_chore_id, {}
-            ).get(const.DATA_CHORE_NAME, const.CONF_EMPTY)
+            ).get(const.DATA_CHORE_NAME, const.SENTINEL_EMPTY)
 
         assigned_kids_ids = challenge.get(const.DATA_CHALLENGE_ASSIGNED_KIDS, [])
         assigned_kids_names = [
@@ -2796,13 +2802,13 @@ class ChallengeProgressSensor(CoordinatorEntity, SensorEntity):
         return {
             const.ATTR_CHALLENGE_NAME: self._challenge_name,
             const.ATTR_DESCRIPTION: challenge.get(
-                const.DATA_CHALLENGE_DESCRIPTION, const.CONF_EMPTY
+                const.DATA_CHALLENGE_DESCRIPTION, const.SENTINEL_EMPTY
             ),
             const.ATTR_ASSIGNED_KIDS: assigned_kids_names,
             const.ATTR_TYPE: challenge_type,
             const.ATTR_ASSOCIATED_CHORE: associated_chore,
             const.ATTR_CRITERIA: challenge.get(
-                const.DATA_CHALLENGE_CRITERIA, const.CONF_EMPTY
+                const.DATA_CHALLENGE_CRITERIA, const.SENTINEL_EMPTY
             ),
             const.ATTR_TARGET_VALUE: target,
             const.ATTR_REWARD_POINTS: challenge.get(const.DATA_CHALLENGE_REWARD_POINTS),
@@ -2878,7 +2884,7 @@ class KidHighestStreakSensor(CoordinatorEntity, SensorEntity):
                 == const.ACHIEVEMENT_TYPE_STREAK
             ):
                 achievement_name = achievement.get(
-                    const.DATA_ACHIEVEMENT_NAME, const.ERROR_UNNAMED_ACHIEVEMENT
+                    const.DATA_ACHIEVEMENT_NAME, const.DISPLAY_UNKNOWN
                 )
                 progress_for_kid = achievement.get(
                     const.DATA_ACHIEVEMENT_PROGRESS, {}
@@ -2974,7 +2980,7 @@ class BonusAppliesSensor(CoordinatorEntity, SensorEntity):
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_BONUS_NAME: self._bonus_name,
             const.ATTR_DESCRIPTION: bonus_info.get(
-                const.DATA_BONUS_DESCRIPTION, const.CONF_EMPTY
+                const.DATA_BONUS_DESCRIPTION, const.SENTINEL_EMPTY
             ),
             const.ATTR_BONUS_POINTS: bonus_info.get(
                 const.DATA_BONUS_POINTS, const.DEFAULT_BONUS_POINTS
@@ -3381,7 +3387,7 @@ class DashboardHelperSensor(CoordinatorEntity, SensorEntity):
             assigned_to = badge_info.get(const.DATA_BADGE_ASSIGNED_TO, [])
             if assigned_to and self._kid_id not in assigned_to:
                 continue
-            badge_type = badge_info.get(const.DATA_BADGE_TYPE, const.CONF_EMPTY)
+            badge_type = badge_info.get(const.DATA_BADGE_TYPE, const.SENTINEL_EMPTY)
             # Skip cumulative badges (special case)
             if badge_type == const.BADGE_TYPE_CUMULATIVE:
                 continue
@@ -3402,7 +3408,7 @@ class DashboardHelperSensor(CoordinatorEntity, SensorEntity):
                 badge_id, {}
             )
             badge_status = badge_progress.get(
-                const.DATA_KID_BADGE_PROGRESS_STATUS, const.CONF_NONE
+                const.DATA_KID_BADGE_PROGRESS_STATUS, const.SENTINEL_NONE
             )
 
             badges_attr.append(

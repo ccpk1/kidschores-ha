@@ -160,7 +160,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         kid_schema = await fh.build_kid_schema(
             self.hass,
             users=users,
-            default_kid_name=const.CONF_EMPTY,
+            default_kid_name=const.SENTINEL_EMPTY,
             default_ha_user_id=None,
             default_enable_mobile_notifications=False,
             default_mobile_notify_service=None,
@@ -244,7 +244,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             self.hass,
             users=users,
             kids_dict=kids_dict,
-            default_parent_name=const.CONF_EMPTY,
+            default_parent_name=const.SENTINEL_EMPTY,
             default_ha_user_id=None,
             default_associated_kids=[],
             default_enable_mobile_notifications=False,
@@ -850,7 +850,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         parents_summary = []
         for parent in self._parents_temp.values():
             associated_kids_names = [
-                kid_id_to_name.get(kid_id, const.UNKNOWN_KID)
+                kid_id_to_name.get(kid_id, const.TRANS_KEY_DISPLAY_UNKNOWN_KID)
                 for kid_id in parent.get(const.DATA_PARENT_ASSOCIATED_KIDS, [])
             ]
             if associated_kids_names:
@@ -865,57 +865,57 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             ", ".join(
                 kid_data[const.DATA_KID_NAME] for kid_data in self._kids_temp.values()
             )
-            or const.CONF_NONE_TEXT
+            or const.SENTINEL_NONE_TEXT
         )
-        parents_names = ", ".join(parents_summary) or const.CONF_NONE_TEXT
+        parents_names = ", ".join(parents_summary) or const.SENTINEL_NONE_TEXT
         chores_names = (
             ", ".join(
                 chore_data[const.DATA_CHORE_NAME]
                 for chore_data in self._chores_temp.values()
             )
-            or const.CONF_NONE_TEXT
+            or const.SENTINEL_NONE_TEXT
         )
         badges_names = (
             ", ".join(
                 badge_data[const.DATA_BADGE_NAME]
                 for badge_data in self._badges_temp.values()
             )
-            or const.CONF_NONE_TEXT
+            or const.SENTINEL_NONE_TEXT
         )
         rewards_names = (
             ", ".join(
                 reward_data[const.DATA_REWARD_NAME]
                 for reward_data in self._rewards_temp.values()
             )
-            or const.CONF_NONE_TEXT
+            or const.SENTINEL_NONE_TEXT
         )
         penalties_names = (
             ", ".join(
                 penalty_data[const.DATA_PENALTY_NAME]
                 for penalty_data in self._penalties_temp.values()
             )
-            or const.CONF_NONE_TEXT
+            or const.SENTINEL_NONE_TEXT
         )
         bonuses_names = (
             ", ".join(
                 bonus_data[const.DATA_BONUS_NAME]
                 for bonus_data in self._bonuses_temp.values()
             )
-            or const.CONF_NONE_TEXT
+            or const.SENTINEL_NONE_TEXT
         )
         achievements_names = (
             ", ".join(
                 achievement_data[const.DATA_ACHIEVEMENT_NAME]
                 for achievement_data in self._achievements_temp.values()
             )
-            or const.CONF_NONE_TEXT
+            or const.SENTINEL_NONE_TEXT
         )
         challenges_names = (
             ", ".join(
                 challenge_data[const.DATA_CHALLENGE_NAME]
                 for challenge_data in self._challenges_temp.values()
             )
-            or const.CONF_NONE_TEXT
+            or const.SENTINEL_NONE_TEXT
         )
 
         summary = (

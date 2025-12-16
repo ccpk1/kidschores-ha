@@ -298,7 +298,11 @@ def main():
             "custom_components/kidschores/config_flow.py",
             "custom_components/kidschores/options_flow.py",
             "custom_components/kidschores/flow_helpers.py",
+            "custom_components/kidschores/const.py",
             "custom_components/kidschores/coordinator.py",
+            "custom_components/kidschores/services.py",
+            "custom_components/kidschores/calendar.py",
+            "custom_components/kidschores/sensor.py",
         ]
     elif args.tests:
         test_files = list((project_root / "tests").glob("test_*.py"))
@@ -311,6 +315,9 @@ def main():
             "custom_components/kidschores/flow_helpers.py",
             "custom_components/kidschores/const.py",
             "custom_components/kidschores/coordinator.py",
+            "custom_components/kidschores/services.py",
+            "custom_components/kidschores/calendar.py",
+            "custom_components/kidschores/sensor.py",
         ]
         test_files = list((project_root / "tests").glob("test_*.py"))
         files_to_check = integration_files + [str(f) for f in test_files]

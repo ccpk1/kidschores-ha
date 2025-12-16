@@ -56,9 +56,9 @@ def test_build_kids_data_with_defaults() -> None:
 
     kid_data = result["alex-id"]
     assert kid_data[const.DATA_KID_NAME] == "Alex"
-    assert kid_data[const.DATA_KID_HA_USER_ID] == const.CONF_EMPTY
+    assert kid_data[const.DATA_KID_HA_USER_ID] == const.SENTINEL_EMPTY
     assert kid_data[const.DATA_KID_ENABLE_NOTIFICATIONS] is True  # Default
-    assert kid_data[const.DATA_KID_MOBILE_NOTIFY_SERVICE] == const.CONF_EMPTY
+    assert kid_data[const.DATA_KID_MOBILE_NOTIFY_SERVICE] == const.SENTINEL_EMPTY
     assert kid_data[const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS] is True  # Default
 
 

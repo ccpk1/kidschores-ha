@@ -233,7 +233,7 @@ class ChoresKidSelect(KidsChoresSelectBase):
     def options(self) -> list[str]:
         """Return a list of chore names assigned to this kid, with a 'None' option."""
         # Start with a "None" entry
-        options = [const.CONF_NONE_TEXT]
+        options = [const.SENTINEL_NONE_TEXT]
         for chore_id, chore_info in self.coordinator.chores_data.items():
             if self._kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
                 options.append(

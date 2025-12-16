@@ -39,7 +39,7 @@ async def async_send_notification(
         data.update(extra_data)  # type: ignore[attr-defined]
 
     try:
-        if const.CONF_DOT not in notify_service:
+        if const.DISPLAY_DOT not in notify_service:
             domain = const.NOTIFY_DOMAIN
             service = notify_service
         else:

@@ -146,7 +146,7 @@ def async_setup_services(hass: HomeAssistant):
         """Handle claiming a chore."""
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
-            const.LOGGER.warning("WARNING: Claim Chore: %s", const.MSG_NO_ENTRY_FOUND)
+            const.LOGGER.warning("WARNING: Claim Chore: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND)
             return
 
         coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
@@ -159,27 +159,21 @@ def async_setup_services(hass: HomeAssistant):
         # Map kid_name and chore_name to internal_ids
         kid_id = kh.get_kid_id_by_name(coordinator, kid_name)
         if not kid_id:
-            const.LOGGER.warning(
-                "WARNING: Claim Chore: %s", const.ERROR_KID_NOT_FOUND_FMT % kid_name
-            )
-            raise HomeAssistantError(const.ERROR_KID_NOT_FOUND_FMT.format(kid_name))
+            const.LOGGER.warning("WARNING: Claim Chore: Kid not found: %s", kid_name)
+            raise HomeAssistantError(f"Kid '{kid_name}' not found")
 
         chore_id = kh.get_chore_id_by_name(coordinator, chore_name)
         if not chore_id:
             const.LOGGER.warning(
-                "WARNING: Claim Chore: %s", const.ERROR_CHORE_NOT_FOUND_FMT % chore_name
+                "WARNING: Claim Chore: Chore not found: %s", chore_name
             )
-            raise HomeAssistantError(const.ERROR_CHORE_NOT_FOUND_FMT.format(chore_name))
+            raise HomeAssistantError(f"Chore '{chore_name}' not found")
 
         # Check if user is authorized
         if user_id and not await kh.is_user_authorized_for_kid(hass, user_id, kid_id):
-            const.LOGGER.warning(
-                "WARNING: Claim Chore: %s", const.ERROR_NOT_AUTHORIZED_FMT
-            )
+            const.LOGGER.warning("WARNING: Claim Chore: User not authorized")
             raise HomeAssistantError(
-                const.ERROR_NOT_AUTHORIZED_FMT.format(
-                    const.TRANS_KEY_FMT_ERROR_CLAIM_CHORES
-                )
+                f"User not authorized to claim chores for '{kid_name}'"
             )
 
         # Process chore claim
@@ -200,7 +194,7 @@ def async_setup_services(hass: HomeAssistant):
         entry_id = kh.get_first_kidschores_entry(hass)
 
         if not entry_id:
-            const.LOGGER.warning("WARNING: Approve Chore: %s", const.MSG_NO_ENTRY_FOUND)
+            const.LOGGER.warning("WARNING: Approve Chore: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND)
             return
 
         coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
@@ -271,7 +265,7 @@ def async_setup_services(hass: HomeAssistant):
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
-                "WARNING: Disapprove Chore: %s", const.MSG_NO_ENTRY_FOUND
+                "WARNING: Disapprove Chore: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
             )
             return
 
@@ -329,7 +323,7 @@ def async_setup_services(hass: HomeAssistant):
         """Handle redeeming a reward (claiming without deduction)."""
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
-            const.LOGGER.warning("WARNING: Redeem Reward: %s", const.MSG_NO_ENTRY_FOUND)
+            const.LOGGER.warning("WARNING: Redeem Reward: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND)
             return
 
         coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
@@ -412,7 +406,7 @@ def async_setup_services(hass: HomeAssistant):
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
-                "WARNING: Approve Reward: %s", const.MSG_NO_ENTRY_FOUND
+                "WARNING: Approve Reward: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
             )
             return
 
@@ -481,7 +475,7 @@ def async_setup_services(hass: HomeAssistant):
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
-                "WARNING: Disapprove Reward: %s", const.MSG_NO_ENTRY_FOUND
+                "WARNING: Disapprove Reward: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
             )
             return
 
@@ -539,7 +533,7 @@ def async_setup_services(hass: HomeAssistant):
         """Handle applying a penalty."""
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
-            const.LOGGER.warning("WARNING: Apply Penalty: %s", const.MSG_NO_ENTRY_FOUND)
+            const.LOGGER.warning("WARNING: Apply Penalty: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND)
             return
 
         coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
@@ -605,7 +599,7 @@ def async_setup_services(hass: HomeAssistant):
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
-                "WARNING: Reset Penalties: %s", const.MSG_NO_ENTRY_FOUND
+                "WARNING: Reset Penalties: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
             )
             return
 
@@ -669,7 +663,7 @@ def async_setup_services(hass: HomeAssistant):
         """Handle resetting bonuses."""
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
-            const.LOGGER.warning("WARNING: Reset Bonuses: %s", const.MSG_NO_ENTRY_FOUND)
+            const.LOGGER.warning("WARNING: Reset Bonuses: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND)
             return
 
         coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
@@ -728,7 +722,7 @@ def async_setup_services(hass: HomeAssistant):
         """Handle resetting rewards counts."""
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
-            const.LOGGER.warning("WARNING: Reset Rewards: %s", const.MSG_NO_ENTRY_FOUND)
+            const.LOGGER.warning("WARNING: Reset Rewards: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND)
             return
 
         coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
@@ -788,7 +782,7 @@ def async_setup_services(hass: HomeAssistant):
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
-                "WARNING: Remove Awarded Badges: %s", const.MSG_NO_ENTRY_FOUND
+                "WARNING: Remove Awarded Badges: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
             )
             return
 
@@ -831,7 +825,7 @@ def async_setup_services(hass: HomeAssistant):
         """Handle applying a bonus."""
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
-            const.LOGGER.warning("WARNING: Apply Bonus: %s", const.MSG_NO_ENTRY_FOUND)
+            const.LOGGER.warning("WARNING: Apply Bonus: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND)
             return
 
         coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
@@ -998,7 +992,7 @@ def async_setup_services(hass: HomeAssistant):
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
-                "WARNING: Reset Overdue Chores: %s", const.MSG_NO_ENTRY_FOUND
+                "WARNING: Reset Overdue Chores: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
             )
             return
 
@@ -1045,7 +1039,7 @@ def async_setup_services(hass: HomeAssistant):
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
-                "WARNING: Set Chore Due Date: %s", const.MSG_NO_ENTRY_FOUND
+                "WARNING: Set Chore Due Date: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
             )
             return
 
@@ -1061,7 +1055,7 @@ def async_setup_services(hass: HomeAssistant):
             const.LOGGER.warning(
                 "WARNING: Set Chore Due Date: Chore '%s' not found", chore_name
             )
-            raise HomeAssistantError(const.ERROR_CHORE_NOT_FOUND_FMT.format(chore_name))
+            raise HomeAssistantError(f"Chore '{chore_name}' not found")
 
         if due_date_input:
             try:
@@ -1101,7 +1095,7 @@ def async_setup_services(hass: HomeAssistant):
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
-                "WARNING: Skip Chore Due Date: %s", const.MSG_NO_ENTRY_FOUND
+                "WARNING: Skip Chore Due Date: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
             )
             return
 

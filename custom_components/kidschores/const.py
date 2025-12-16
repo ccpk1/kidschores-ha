@@ -8,6 +8,7 @@ services, and options flow.
 """
 
 import logging
+from typing import Final
 
 import homeassistant.util.dt as dt_util
 from homeassistant.const import Platform
@@ -19,20 +20,16 @@ def set_default_timezone(hass):
     DEFAULT_TIME_ZONE = dt_util.get_time_zone(hass.config.time_zone)
 
 
-# ------------------------------------------------------------------------------------------------
+# ================================================================================================
 # General / Integration Information
-# ------------------------------------------------------------------------------------------------
-# Integration Name
-KIDSCHORES_TITLE = "KidsChores"
+# ================================================================================================
 
-# Integration Domain
-DOMAIN = "kidschores"
+KIDSCHORES_TITLE: Final = "KidsChores"
+DOMAIN: Final = "kidschores"
+LOGGER: Final = logging.getLogger(__package__)
 
-# Logger
-LOGGER = logging.getLogger(__package__)
-
-# Supported Platforms
-PLATFORMS = [
+# Supported platforms
+PLATFORMS: Final = [
     Platform.BUTTON,
     Platform.CALENDAR,
     Platform.SELECT,
@@ -40,445 +37,479 @@ PLATFORMS = [
 ]
 
 # Coordinator
-COORDINATOR = "coordinator"
-COORDINATOR_SUFFIX = "_coordinator"
+COORDINATOR: Final = "coordinator"
+COORDINATOR_SUFFIX: Final = "_coordinator"
 
-# Storage and Versioning
-STORAGE_MANAGER = "storage_manager"
-STORAGE_KEY = "kidschores_data"
-STORAGE_KEY_LINKED_USERS = "linked_users"
-STORAGE_VERSION = 1
+# Storage
+STORAGE_MANAGER: Final = "storage_manager"
+STORAGE_KEY: Final = "kidschores_data"
+STORAGE_KEY_LINKED_USERS: Final = "linked_users"
+STORAGE_VERSION: Final = 1
 
-# Default timezone: initially None, to be set once hass is available.
+# Default timezone (set once hass is available)
 DEFAULT_TIME_ZONE = None
 
-# Schema Version (for config→storage migration)
-DATA_SCHEMA_VERSION = "schema_version"  # Key in storage data
-CONF_SCHEMA_VERSION = "schema_version"  # Key in config_entry.options
-SCHEMA_VERSION_STORAGE_ONLY = 42  # Version 42+ means entities live in storage only
+# Schema version for config→storage migration
+DATA_SCHEMA_VERSION: Final = "schema_version"
+CONF_SCHEMA_VERSION: Final = "schema_version"
+SCHEMA_VERSION_STORAGE_ONLY: Final = 42
 
-# Legacy Migration Keys (CLEANUP ONLY - removed in schema v42)
-# These constants are only used to clean up old keys from KC 4.x beta installations
-# TODO(KC 5.0): Remove after KC 4.x beta support dropped (all users on v42+)
-MIGRATION_PERFORMED = "migration_performed"  # LEGACY: Redundant with schema_version
-MIGRATION_KEY_VERSION = "migration_key_version"  # LEGACY: Redundant with schema_version
-MIGRATION_KEY_VERSION_NUMBER = 41  # LEGACY: Old target version for KC 3.x→4.x migration
+# Update interval (seconds)
+DEFAULT_UPDATE_INTERVAL: Final = 5
 
-# Migration Data
-MIGRATION_DATA_LEGACY_ORPHAN = "legacy_orphan"
 
-# Update Interval
-DEFAULT_UPDATE_INTERVAL = 5
+# ================================================================================================
+# Core Constants (used by other constants)
+# ================================================================================================
 
-# ------------------------------------------------------------------------------------------------
-# Configuration Keys
-# ------------------------------------------------------------------------------------------------
+# Time Units
+TIME_UNIT_DAY: Final = "day"
+TIME_UNIT_DAYS: Final = "days"
+TIME_UNIT_HOUR: Final = "hour"
+TIME_UNIT_HOURS: Final = "hours"
+TIME_UNIT_MINUTE: Final = "minute"
+TIME_UNIT_MINUTES: Final = "minutes"
+TIME_UNIT_MONTH: Final = "month"
+TIME_UNIT_MONTHS: Final = "months"
+TIME_UNIT_QUARTER: Final = "quarter"
+TIME_UNIT_QUARTERS: Final = "quarters"
+TIME_UNIT_WEEK: Final = "week"
+TIME_UNIT_WEEKS: Final = "weeks"
+TIME_UNIT_YEAR: Final = "year"
+TIME_UNIT_YEARS: Final = "years"
 
-# ConfigFlow Steps
-CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT = "achievement_count"
-CONFIG_FLOW_STEP_ACHIEVEMENTS = "achievements"
-CONFIG_FLOW_STEP_BADGE_COUNT = "badge_count"
-CONFIG_FLOW_STEP_BADGES = "badges"
-CONFIG_FLOW_STEP_BONUS_COUNT = "bonus_count"
-CONFIG_FLOW_STEP_BONUSES = "bonuses"
-CONFIG_FLOW_STEP_CHALLENGE_COUNT = "challenge_count"
-CONFIG_FLOW_STEP_CHALLENGES = "challenges"
-CONFIG_FLOW_STEP_CHORE_COUNT = "chore_count"
-CONFIG_FLOW_STEP_CHORES = "chores"
-CONFIG_FLOW_STEP_FINISH = "finish"
-CONFIG_FLOW_STEP_INTRO = "intro"
-CONFIG_FLOW_STEP_KID_COUNT = "kid_count"
-CONFIG_FLOW_STEP_KIDS = "kids"
-CONFIG_FLOW_STEP_PARENT_COUNT = "parent_count"
-CONFIG_FLOW_STEP_PARENTS = "parents"
-CONFIG_FLOW_STEP_PENALTY_COUNT = "penalty_count"
-CONFIG_FLOW_STEP_PENALTIES = "penalties"
-CONFIG_FLOW_STEP_POINTS = "points_label"
-CONFIG_FLOW_STEP_REWARD_COUNT = "reward_count"
-CONFIG_FLOW_STEP_REWARDS = "rewards"
+# Frequencies
+FREQUENCY_BIWEEKLY: Final = "biweekly"
+FREQUENCY_CUSTOM: Final = "custom"
+FREQUENCY_CUSTOM_1_MONTH: Final = "custom_1_month"
+FREQUENCY_CUSTOM_1_QUARTER: Final = "custom_1_quarter"
+FREQUENCY_CUSTOM_1_WEEK: Final = "custom_1_week"
+FREQUENCY_CUSTOM_1_YEAR: Final = "custom_1_year"
+FREQUENCY_DAILY: Final = "daily"
+FREQUENCY_MONTHLY: Final = "monthly"
+FREQUENCY_NONE: Final = "none"
+FREQUENCY_QUARTERLY: Final = "quarterly"
+FREQUENCY_WEEKLY: Final = "weekly"
+FREQUENCY_YEARLY: Final = "yearly"
+
+# Periods
+PERIOD_ALL_TIME: Final = "all_time"
+PERIOD_DAY_END: Final = "day_end"
+PERIOD_MONTH_END: Final = "month_end"
+PERIOD_QUARTER_END: Final = "quarter_end"
+PERIOD_WEEK_END: Final = "week_end"
+PERIOD_YEAR_END: Final = "year_end"
+
+# Sentinel Values
+SENTINEL_EMPTY: Final = ""
+SENTINEL_NONE: Final = None
+SENTINEL_NONE_TEXT: Final = "None"
+
+# Display Values
+DISPLAY_DOT: Final = "."
+DISPLAY_UNKNOWN: Final = "Unknown"
+
+# Occasion Types
+OCCASION_BIRTHDAY: Final = "birthday"
+OCCASION_HOLIDAY: Final = "holiday"
+
+
+# ================================================================================================
+# Configuration Keys (CONF_*)
+# ================================================================================================
+
+# Flow Management
+# ConfigFlow steps
+CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT: Final = "achievement_count"
+CONFIG_FLOW_STEP_ACHIEVEMENTS: Final = "achievements"
+CONFIG_FLOW_STEP_BADGE_COUNT: Final = "badge_count"
+CONFIG_FLOW_STEP_BADGES: Final = "badges"
+CONFIG_FLOW_STEP_BONUS_COUNT: Final = "bonus_count"
+CONFIG_FLOW_STEP_BONUSES: Final = "bonuses"
+CONFIG_FLOW_STEP_CHALLENGE_COUNT: Final = "challenge_count"
+CONFIG_FLOW_STEP_CHALLENGES: Final = "challenges"
+CONFIG_FLOW_STEP_CHORE_COUNT: Final = "chore_count"
+CONFIG_FLOW_STEP_CHORES: Final = "chores"
+CONFIG_FLOW_STEP_FINISH: Final = "finish"
+CONFIG_FLOW_STEP_INTRO: Final = "intro"
+CONFIG_FLOW_STEP_KID_COUNT: Final = "kid_count"
+CONFIG_FLOW_STEP_KIDS: Final = "kids"
+CONFIG_FLOW_STEP_PARENT_COUNT: Final = "parent_count"
+CONFIG_FLOW_STEP_PARENTS: Final = "parents"
+CONFIG_FLOW_STEP_PENALTY_COUNT: Final = "penalty_count"
+CONFIG_FLOW_STEP_PENALTIES: Final = "penalties"
+CONFIG_FLOW_STEP_POINTS: Final = "points_label"
+CONFIG_FLOW_STEP_REWARD_COUNT: Final = "reward_count"
+CONFIG_FLOW_STEP_REWARDS: Final = "rewards"
 
 # OptionsFlow Management Menus Keys
-OPTIONS_FLOW_DIC_ACHIEVEMENT = "achievement"
-OPTIONS_FLOW_DIC_BADGE = "badge"
-OPTIONS_FLOW_DIC_BONUS = "bonus"
-OPTIONS_FLOW_DIC_CHALLENGE = "challenge"
-OPTIONS_FLOW_DIC_CHORE = "chore"
-OPTIONS_FLOW_DIC_KID = "kid"
-OPTIONS_FLOW_DIC_PARENT = "parent"
-OPTIONS_FLOW_DIC_PENALTY = "penalty"
-OPTIONS_FLOW_DIC_REWARD = "reward"
-
-OPTIONS_FLOW_ACTIONS_ADD = "add"
-OPTIONS_FLOW_ACTIONS_BACK = "back"
-OPTIONS_FLOW_ACTIONS_DELETE = "delete"
-OPTIONS_FLOW_ACTIONS_EDIT = "edit"
-
-OPTIONS_FLOW_ACHIEVEMENTS = "manage_achievement"
-OPTIONS_FLOW_BADGES = "manage_badge"
-OPTIONS_FLOW_BONUSES = "manage_bonus"
-OPTIONS_FLOW_CHALLENGES = "manage_challenge"
-OPTIONS_FLOW_CHORES = "manage_chore"
-OPTIONS_FLOW_FINISH = "done"
-OPTIONS_FLOW_GENERAL_OPTIONS = "general_options"
-OPTIONS_FLOW_KIDS = "manage_kid"
-OPTIONS_FLOW_PARENTS = "manage_parent"
-OPTIONS_FLOW_PENALTIES = "manage_penalty"
-OPTIONS_FLOW_POINTS = "manage_points"
-OPTIONS_FLOW_REWARDS = "manage_reward"
+OPTIONS_FLOW_DIC_ACHIEVEMENT: Final = "achievement"
+OPTIONS_FLOW_DIC_BADGE: Final = "badge"
+OPTIONS_FLOW_DIC_BONUS: Final = "bonus"
+OPTIONS_FLOW_DIC_CHALLENGE: Final = "challenge"
+OPTIONS_FLOW_DIC_CHORE: Final = "chore"
+OPTIONS_FLOW_DIC_KID: Final = "kid"
+OPTIONS_FLOW_DIC_PARENT: Final = "parent"
+OPTIONS_FLOW_DIC_PENALTY: Final = "penalty"
+OPTIONS_FLOW_DIC_REWARD: Final = "reward"
+OPTIONS_FLOW_ACTIONS_ADD: Final = "add"
+OPTIONS_FLOW_ACTIONS_BACK: Final = "back"
+OPTIONS_FLOW_ACTIONS_DELETE: Final = "delete"
+OPTIONS_FLOW_ACTIONS_EDIT: Final = "edit"
+OPTIONS_FLOW_ACHIEVEMENTS: Final = "manage_achievement"
+OPTIONS_FLOW_BADGES: Final = "manage_badge"
+OPTIONS_FLOW_BONUSES: Final = "manage_bonus"
+OPTIONS_FLOW_CHALLENGES: Final = "manage_challenge"
+OPTIONS_FLOW_CHORES: Final = "manage_chore"
+OPTIONS_FLOW_FINISH: Final = "done"
+OPTIONS_FLOW_GENERAL_OPTIONS: Final = "general_options"
+OPTIONS_FLOW_KIDS: Final = "manage_kid"
+OPTIONS_FLOW_PARENTS: Final = "manage_parent"
+OPTIONS_FLOW_PENALTIES: Final = "manage_penalty"
+OPTIONS_FLOW_POINTS: Final = "manage_points"
+OPTIONS_FLOW_REWARDS: Final = "manage_reward"
 
 # OptionsFlow Configuration Keys
-CONF_ACHIEVEMENTS = "achievements"
-CONF_BADGES = "badges"
-CONF_BONUSES = "bonuses"
-CONF_CHALLENGES = "challenges"
-CONF_CHORES = "chores"
-CONF_KIDS = "kids"
-CONF_PARENTS = "parents"
-CONF_PENALTIES = "penalties"
-CONF_REWARDS = "rewards"
+CONF_ACHIEVEMENTS: Final = "achievements"
+CONF_BADGES: Final = "badges"
+CONF_BONUSES: Final = "bonuses"
+CONF_CHALLENGES: Final = "challenges"
+CONF_CHORES: Final = "chores"
+CONF_KIDS: Final = "kids"
+CONF_PARENTS: Final = "parents"
+CONF_PENALTIES: Final = "penalties"
+CONF_REWARDS: Final = "rewards"
 
 # OptionsFlow Steps
-OPTIONS_FLOW_STEP_INIT = "init"
-OPTIONS_FLOW_STEP_MANAGE_ENTITY = "manage_entity"
-OPTIONS_FLOW_STEP_MANAGE_GENERAL_OPTIONS = "manage_general_options"
-OPTIONS_FLOW_STEP_MANAGE_POINTS = "manage_points"
-OPTIONS_FLOW_STEP_SELECT_ENTITY = "select_entity"
+OPTIONS_FLOW_STEP_INIT: Final = "init"
+OPTIONS_FLOW_STEP_MANAGE_ENTITY: Final = "manage_entity"
+OPTIONS_FLOW_STEP_MANAGE_GENERAL_OPTIONS: Final = "manage_general_options"
+OPTIONS_FLOW_STEP_MANAGE_POINTS: Final = "manage_points"
+OPTIONS_FLOW_STEP_SELECT_ENTITY: Final = "select_entity"
 
-OPTIONS_FLOW_STEP_ADD_ACHIEVEMENT = "add_achievement"
-OPTIONS_FLOW_STEP_ADD_BADGE = "add_badge"
-OPTIONS_FLOW_STEP_ADD_BADGE_ACHIEVEMENT = "add_badge_achievement"
-OPTIONS_FLOW_STEP_ADD_BADGE_CHALLENGE = "add_badge_challenge"
-OPTIONS_FLOW_STEP_ADD_BADGE_CUMULATIVE = "add_badge_cumulative"
-OPTIONS_FLOW_STEP_ADD_BADGE_DAILY = "add_badge_daily"
-OPTIONS_FLOW_STEP_ADD_BADGE_PERIODIC = "add_badge_periodic"
-OPTIONS_FLOW_STEP_ADD_BADGE_SPECIAL = "add_badge_special"
-OPTIONS_FLOW_STEP_ADD_BONUS = "add_bonus"
-OPTIONS_FLOW_STEP_ADD_CHALLENGE = "add_challenge"
-OPTIONS_FLOW_STEP_ADD_CHORE = "add_chore"
-OPTIONS_FLOW_STEP_ADD_KID = "add_kid"
-OPTIONS_FLOW_STEP_ADD_PARENT = "add_parent"
-OPTIONS_FLOW_STEP_ADD_PENALTY = "add_penalty"
-OPTIONS_FLOW_STEP_ADD_REWARD = "add_reward"
+OPTIONS_FLOW_STEP_ADD_ACHIEVEMENT: Final = "add_achievement"
+OPTIONS_FLOW_STEP_ADD_BADGE: Final = "add_badge"
+OPTIONS_FLOW_STEP_ADD_BADGE_ACHIEVEMENT: Final = "add_badge_achievement"
+OPTIONS_FLOW_STEP_ADD_BADGE_CHALLENGE: Final = "add_badge_challenge"
+OPTIONS_FLOW_STEP_ADD_BADGE_CUMULATIVE: Final = "add_badge_cumulative"
+OPTIONS_FLOW_STEP_ADD_BADGE_DAILY: Final = "add_badge_daily"
+OPTIONS_FLOW_STEP_ADD_BADGE_PERIODIC: Final = "add_badge_periodic"
+OPTIONS_FLOW_STEP_ADD_BADGE_SPECIAL: Final = "add_badge_special"
+OPTIONS_FLOW_STEP_ADD_BONUS: Final = "add_bonus"
+OPTIONS_FLOW_STEP_ADD_CHALLENGE: Final = "add_challenge"
+OPTIONS_FLOW_STEP_ADD_CHORE: Final = "add_chore"
+OPTIONS_FLOW_STEP_ADD_KID: Final = "add_kid"
+OPTIONS_FLOW_STEP_ADD_PARENT: Final = "add_parent"
+OPTIONS_FLOW_STEP_ADD_PENALTY: Final = "add_penalty"
+OPTIONS_FLOW_STEP_ADD_REWARD: Final = "add_reward"
 
-OPTIONS_FLOW_STEP_EDIT_ACHIEVEMENT = "edit_achievement"
-OPTIONS_FLOW_STEP_EDIT_BADGE_ACHIEVEMENT = "edit_badge_achievement"
-OPTIONS_FLOW_STEP_EDIT_BADGE_CHALLENGE = "edit_badge_challenge"
-OPTIONS_FLOW_STEP_EDIT_BADGE_CUMULATIVE = "edit_badge_cumulative"
-OPTIONS_FLOW_STEP_EDIT_BADGE_DAILY = "edit_badge_daily"
-OPTIONS_FLOW_STEP_EDIT_BADGE_PERIODIC = "edit_badge_periodic"
-OPTIONS_FLOW_STEP_EDIT_BADGE_SPECIAL = "edit_badge_special"
-OPTIONS_FLOW_STEP_EDIT_BONUS = "edit_bonus"
-OPTIONS_FLOW_STEP_EDIT_CHALLENGE = "edit_challenge"
-OPTIONS_FLOW_STEP_EDIT_CHORE = "edit_chore"
-OPTIONS_FLOW_STEP_EDIT_KID = "edit_kid"
-OPTIONS_FLOW_STEP_EDIT_PARENT = "edit_parent"
-OPTIONS_FLOW_STEP_EDIT_PENALTY = "edit_penalty"
-OPTIONS_FLOW_STEP_EDIT_REWARD = "edit_reward"
+OPTIONS_FLOW_STEP_EDIT_ACHIEVEMENT: Final = "edit_achievement"
+OPTIONS_FLOW_STEP_EDIT_BADGE_ACHIEVEMENT: Final = "edit_badge_achievement"
+OPTIONS_FLOW_STEP_EDIT_BADGE_CHALLENGE: Final = "edit_badge_challenge"
+OPTIONS_FLOW_STEP_EDIT_BADGE_CUMULATIVE: Final = "edit_badge_cumulative"
+OPTIONS_FLOW_STEP_EDIT_BADGE_DAILY: Final = "edit_badge_daily"
+OPTIONS_FLOW_STEP_EDIT_BADGE_PERIODIC: Final = "edit_badge_periodic"
+OPTIONS_FLOW_STEP_EDIT_BADGE_SPECIAL: Final = "edit_badge_special"
+OPTIONS_FLOW_STEP_EDIT_BONUS: Final = "edit_bonus"
+OPTIONS_FLOW_STEP_EDIT_CHALLENGE: Final = "edit_challenge"
+OPTIONS_FLOW_STEP_EDIT_CHORE: Final = "edit_chore"
+OPTIONS_FLOW_STEP_EDIT_KID: Final = "edit_kid"
+OPTIONS_FLOW_STEP_EDIT_PARENT: Final = "edit_parent"
+OPTIONS_FLOW_STEP_EDIT_PENALTY: Final = "edit_penalty"
+OPTIONS_FLOW_STEP_EDIT_REWARD: Final = "edit_reward"
 
-OPTIONS_FLOW_STEP_DELETE_ACHIEVEMENT = "delete_achievement"
-OPTIONS_FLOW_STEP_DELETE_BADGE = "delete_badge"
-OPTIONS_FLOW_STEP_DELETE_BONUS = "delete_bonus"
-OPTIONS_FLOW_STEP_DELETE_CHALLENGE = "delete_challenge"
-OPTIONS_FLOW_STEP_DELETE_CHORE = "delete_chore"
-OPTIONS_FLOW_STEP_DELETE_KID = "delete_kid"
-OPTIONS_FLOW_STEP_DELETE_PARENT = "delete_parent"
-OPTIONS_FLOW_STEP_DELETE_PENALTY = "delete_penalty"
-OPTIONS_FLOW_STEP_DELETE_REWARD = "delete_reward"
+OPTIONS_FLOW_STEP_DELETE_ACHIEVEMENT: Final = "delete_achievement"
+OPTIONS_FLOW_STEP_DELETE_BADGE: Final = "delete_badge"
+OPTIONS_FLOW_STEP_DELETE_BONUS: Final = "delete_bonus"
+OPTIONS_FLOW_STEP_DELETE_CHALLENGE: Final = "delete_challenge"
+OPTIONS_FLOW_STEP_DELETE_CHORE: Final = "delete_chore"
+OPTIONS_FLOW_STEP_DELETE_KID: Final = "delete_kid"
+OPTIONS_FLOW_STEP_DELETE_PARENT: Final = "delete_parent"
+OPTIONS_FLOW_STEP_DELETE_PENALTY: Final = "delete_penalty"
+OPTIONS_FLOW_STEP_DELETE_REWARD: Final = "delete_reward"
 
 # ConfigFlow & OptionsFlow User Input Fields
 
 # GLOBAL
-CFOF_GLOBAL_INPUT_INTERNAL_ID = "internal_id"
+CFOF_GLOBAL_INPUT_INTERNAL_ID: Final = "internal_id"
 
 # KIDS
-CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE = "dashboard_language"
-CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS = "enable_mobile_notifications"
-CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS = "enable_persistent_notifications"
-CFOF_KIDS_INPUT_HA_USER = "ha_user"
-CFOF_KIDS_INPUT_KID_COUNT = "kid_count"
-CFOF_KIDS_INPUT_KID_NAME = "kid_name"
-CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE = "mobile_notify_service"
+CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE: Final = "dashboard_language"
+CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: Final = "enable_mobile_notifications"
+CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: Final = (
+    "enable_persistent_notifications"
+)
+CFOF_KIDS_INPUT_HA_USER: Final = "ha_user"
+CFOF_KIDS_INPUT_KID_COUNT: Final = "kid_count"
+CFOF_KIDS_INPUT_KID_NAME: Final = "kid_name"
+CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: Final = "mobile_notify_service"
 
 # PARENTS
-CFOF_PARENTS_INPUT_ASSOCIATED_KIDS = "associated_kids"
-CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS = "enable_mobile_notifications"
-CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS = "enable_persistent_notifications"
-CFOF_PARENTS_INPUT_HA_USER = "ha_user_id"
-CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE = "mobile_notify_service"
-CFOF_PARENTS_INPUT_NAME = "parent_name"
-CFOF_PARENTS_INPUT_PARENT_COUNT = "parent_count"
+CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: Final = "associated_kids"
+CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: Final = "enable_mobile_notifications"
+CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: Final = (
+    "enable_persistent_notifications"
+)
+CFOF_PARENTS_INPUT_HA_USER: Final = "ha_user_id"
+CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: Final = "mobile_notify_service"
+CFOF_PARENTS_INPUT_NAME: Final = "parent_name"
+CFOF_PARENTS_INPUT_PARENT_COUNT: Final = "parent_count"
 
 # CHORES
-CFOF_CHORES_INPUT_ALLOW_MULTIPLE_CLAIMS = "allow_multiple_claims_per_day"
-CFOF_CHORES_INPUT_APPLICABLE_DAYS = "applicable_days"
-CFOF_CHORES_INPUT_ASSIGNED_KIDS = "assigned_kids"
-CFOF_CHORES_INPUT_CHORE_COUNT = "chore_count"
-CFOF_CHORES_INPUT_CUSTOM_INTERVAL = "custom_interval"
-CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT = "custom_interval_unit"
-CFOF_CHORES_INPUT_DEFAULT_POINTS = "default_points"
-CFOF_CHORES_INPUT_DESCRIPTION = "chore_description"
-CFOF_CHORES_INPUT_DUE_DATE = "due_date"
-CFOF_CHORES_INPUT_ICON = "icon"
-CFOF_CHORES_INPUT_LABELS = "chore_labels"
-CFOF_CHORES_INPUT_NAME = "chore_name"
-CFOF_CHORES_INPUT_NOTIFY_ON_APPROVAL = "notify_on_approval"
-CFOF_CHORES_INPUT_NOTIFY_ON_CLAIM = "notify_on_claim"
-CFOF_CHORES_INPUT_NOTIFY_ON_DISAPPROVAL = "notify_on_disapproval"
-CFOF_CHORES_INPUT_PARTIAL_ALLOWED = "partial_allowed"
-CFOF_CHORES_INPUT_RECURRING_FREQUENCY = "recurring_frequency"
-CFOF_CHORES_INPUT_SHARED_CHORE = "shared_chore"
+CFOF_CHORES_INPUT_ALLOW_MULTIPLE_CLAIMS: Final = "allow_multiple_claims_per_day"
+CFOF_CHORES_INPUT_APPLICABLE_DAYS: Final = "applicable_days"
+CFOF_CHORES_INPUT_ASSIGNED_KIDS: Final = "assigned_kids"
+CFOF_CHORES_INPUT_CHORE_COUNT: Final = "chore_count"
+CFOF_CHORES_INPUT_CUSTOM_INTERVAL: Final = "custom_interval"
+CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT: Final = "custom_interval_unit"
+CFOF_CHORES_INPUT_DEFAULT_POINTS: Final = "default_points"
+CFOF_CHORES_INPUT_DESCRIPTION: Final = "chore_description"
+CFOF_CHORES_INPUT_DUE_DATE: Final = "due_date"
+CFOF_CHORES_INPUT_ICON: Final = "icon"
+CFOF_CHORES_INPUT_LABELS: Final = "chore_labels"
+CFOF_CHORES_INPUT_NAME: Final = "chore_name"
+CFOF_CHORES_INPUT_NOTIFY_ON_APPROVAL: Final = "notify_on_approval"
+CFOF_CHORES_INPUT_NOTIFY_ON_CLAIM: Final = "notify_on_claim"
+CFOF_CHORES_INPUT_NOTIFY_ON_DISAPPROVAL: Final = "notify_on_disapproval"
+CFOF_CHORES_INPUT_PARTIAL_ALLOWED: Final = "partial_allowed"
+CFOF_CHORES_INPUT_RECURRING_FREQUENCY: Final = "recurring_frequency"
+CFOF_CHORES_INPUT_SHARED_CHORE: Final = "shared_chore"
 
 # BADGES
-CFOF_BADGES_INPUT_ASSIGNED_KIDS = "assigned_kids"
-CFOF_BADGES_INPUT_ASSIGNED_TO = "assigned_to"
-CFOF_BADGES_INPUT_ASSOCIATED_ACHIEVEMENT = "associated_achievement"
-CFOF_BADGES_INPUT_ASSOCIATED_CHALLENGE = "associated_challenge"
-CFOF_BADGES_INPUT_AWARD_ITEMS = "award_items"
-CFOF_BADGES_INPUT_AWARD_MODE = "award_mode"
-CFOF_BADGES_INPUT_AWARD_POINTS = "award_points"
-CFOF_BADGES_INPUT_AWARD_REWARD = "award_reward"
-CFOF_BADGES_INPUT_BADGE_COUNT = "badge_count"
-CFOF_BADGES_INPUT_DAILY_THRESHOLD = "daily_threshold"
-CFOF_BADGES_INPUT_DAILY_THRESHOLD_TYPE = "threshold_type"
-CFOF_BADGES_INPUT_DESCRIPTION = "badge_description"
-CFOF_BADGES_INPUT_END_DATE = "end_date"
-CFOF_BADGES_INPUT_ICON = "icon"
-CFOF_BADGES_INPUT_LABELS = "badge_labels"
-CFOF_BADGES_INPUT_MAINTENANCE_RULES = "maintenance_rules"
-CFOF_BADGES_INPUT_NAME = "badge_name"
-CFOF_BADGES_INPUT_OCCASION_TYPE = "occasion_type"
-CFOF_BADGES_INPUT_POINTS_MULTIPLIER = "points_multiplier"
-CFOF_BADGES_INPUT_RESET_SCHEDULE = "reset_schedule"
-CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL = "custom_interval"
-CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT = "custom_interval_unit"
-CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE = "end_date"
-CFOF_BADGES_INPUT_RESET_SCHEDULE_GRACE_PERIOD_DAYS = "grace_period_days"
-CFOF_BADGES_INPUT_RESET_SCHEDULE_RECURRING_FREQUENCY = "recurring_frequency"
-CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE = "start_date"
-CFOF_BADGES_INPUT_SELECTED_CHORES = "selected_chores"
-CFOF_BADGES_INPUT_START_DATE = "start_date"
-CFOF_BADGES_INPUT_TARGET_TYPE = "target_type"
-CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE = "threshold_value"
-CFOF_BADGES_INPUT_TYPE = "badge_type"
+CFOF_BADGES_INPUT_ASSIGNED_KIDS: Final = "assigned_kids"
+CFOF_BADGES_INPUT_ASSIGNED_TO: Final = "assigned_to"
+CFOF_BADGES_INPUT_ASSOCIATED_ACHIEVEMENT: Final = "associated_achievement"
+CFOF_BADGES_INPUT_ASSOCIATED_CHALLENGE: Final = "associated_challenge"
+CFOF_BADGES_INPUT_AWARD_ITEMS: Final = "award_items"
+CFOF_BADGES_INPUT_AWARD_MODE: Final = "award_mode"
+CFOF_BADGES_INPUT_AWARD_POINTS: Final = "award_points"
+CFOF_BADGES_INPUT_AWARD_REWARD: Final = "award_reward"
+CFOF_BADGES_INPUT_BADGE_COUNT: Final = "badge_count"
+CFOF_BADGES_INPUT_DAILY_THRESHOLD: Final = "daily_threshold"
+CFOF_BADGES_INPUT_DAILY_THRESHOLD_TYPE: Final = "threshold_type"
+CFOF_BADGES_INPUT_DESCRIPTION: Final = "badge_description"
+CFOF_BADGES_INPUT_END_DATE: Final = "end_date"
+CFOF_BADGES_INPUT_ICON: Final = "icon"
+CFOF_BADGES_INPUT_LABELS: Final = "badge_labels"
+CFOF_BADGES_INPUT_MAINTENANCE_RULES: Final = "maintenance_rules"
+CFOF_BADGES_INPUT_NAME: Final = "badge_name"
+CFOF_BADGES_INPUT_OCCASION_TYPE: Final = "occasion_type"
+CFOF_BADGES_INPUT_POINTS_MULTIPLIER: Final = "points_multiplier"
+CFOF_BADGES_INPUT_RESET_SCHEDULE: Final = "reset_schedule"
+CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL: Final = "custom_interval"
+CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT: Final = "custom_interval_unit"
+CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE: Final = "end_date"
+CFOF_BADGES_INPUT_RESET_SCHEDULE_GRACE_PERIOD_DAYS: Final = "grace_period_days"
+CFOF_BADGES_INPUT_RESET_SCHEDULE_RECURRING_FREQUENCY: Final = "recurring_frequency"
+CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE: Final = "start_date"
+CFOF_BADGES_INPUT_SELECTED_CHORES: Final = "selected_chores"
+CFOF_BADGES_INPUT_START_DATE: Final = "start_date"
+CFOF_BADGES_INPUT_TARGET_TYPE: Final = "target_type"
+CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE: Final = "threshold_value"
+CFOF_BADGES_INPUT_TYPE: Final = "badge_type"
 
 # REWARDS
-CFOF_REWARDS_INPUT_COST = "reward_cost"
-CFOF_REWARDS_INPUT_DESCRIPTION = "reward_description"
-CFOF_REWARDS_INPUT_ICON = "icon"
-CFOF_REWARDS_INPUT_LABELS = "reward_labels"
-CFOF_REWARDS_INPUT_NAME = "reward_name"
-CFOF_REWARDS_INPUT_REWARD_COUNT = "reward_count"
+CFOF_REWARDS_INPUT_COST: Final = "reward_cost"
+CFOF_REWARDS_INPUT_DESCRIPTION: Final = "reward_description"
+CFOF_REWARDS_INPUT_ICON: Final = "icon"
+CFOF_REWARDS_INPUT_LABELS: Final = "reward_labels"
+CFOF_REWARDS_INPUT_NAME: Final = "reward_name"
+CFOF_REWARDS_INPUT_REWARD_COUNT: Final = "reward_count"
 
 # BONUSES
-CFOF_BONUSES_INPUT_BONUS_COUNT = "bonus_count"
-CFOF_BONUSES_INPUT_DESCRIPTION = "bonus_description"
-CFOF_BONUSES_INPUT_ICON = "icon"
-CFOF_BONUSES_INPUT_LABELS = "bonus_labels"
-CFOF_BONUSES_INPUT_NAME = "bonus_name"
-CFOF_BONUSES_INPUT_POINTS = "bonus_points"
+CFOF_BONUSES_INPUT_BONUS_COUNT: Final = "bonus_count"
+CFOF_BONUSES_INPUT_DESCRIPTION: Final = "bonus_description"
+CFOF_BONUSES_INPUT_ICON: Final = "icon"
+CFOF_BONUSES_INPUT_LABELS: Final = "bonus_labels"
+CFOF_BONUSES_INPUT_NAME: Final = "bonus_name"
+CFOF_BONUSES_INPUT_POINTS: Final = "bonus_points"
 
 # PENALTIES
-CFOF_PENALTIES_INPUT_DESCRIPTION = "penalty_description"
-CFOF_PENALTIES_INPUT_ICON = "icon"
-CFOF_PENALTIES_INPUT_LABELS = "penalty_labels"
-CFOF_PENALTIES_INPUT_NAME = "penalty_name"
-CFOF_PENALTIES_INPUT_PENALTY_COUNT = "penalty_count"
-CFOF_PENALTIES_INPUT_POINTS = "penalty_points"
+CFOF_PENALTIES_INPUT_DESCRIPTION: Final = "penalty_description"
+CFOF_PENALTIES_INPUT_ICON: Final = "icon"
+CFOF_PENALTIES_INPUT_LABELS: Final = "penalty_labels"
+CFOF_PENALTIES_INPUT_NAME: Final = "penalty_name"
+CFOF_PENALTIES_INPUT_PENALTY_COUNT: Final = "penalty_count"
+CFOF_PENALTIES_INPUT_POINTS: Final = "penalty_points"
 
 # ACHIEVEMENTS
-CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT = "achievement_count"
-CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS = "assigned_kids"
-CFOF_ACHIEVEMENTS_INPUT_CRITERIA = "criteria"
-CFOF_ACHIEVEMENTS_INPUT_DESCRIPTION = "description"
-CFOF_ACHIEVEMENTS_INPUT_ICON = "icon"
-CFOF_ACHIEVEMENTS_INPUT_LABELS = "achievement_labels"
-CFOF_ACHIEVEMENTS_INPUT_NAME = "name"
-CFOF_ACHIEVEMENTS_INPUT_REWARD_POINTS = "reward_points"
-CFOF_ACHIEVEMENTS_INPUT_SELECTED_CHORE_ID = "selected_chore_id"
-CFOF_ACHIEVEMENTS_INPUT_TARGET_VALUE = "target_value"
-CFOF_ACHIEVEMENTS_INPUT_TYPE = "type"
+CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT: Final = "achievement_count"
+CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS: Final = "assigned_kids"
+CFOF_ACHIEVEMENTS_INPUT_CRITERIA: Final = "criteria"
+CFOF_ACHIEVEMENTS_INPUT_DESCRIPTION: Final = "description"
+CFOF_ACHIEVEMENTS_INPUT_ICON: Final = "icon"
+CFOF_ACHIEVEMENTS_INPUT_LABELS: Final = "achievement_labels"
+CFOF_ACHIEVEMENTS_INPUT_NAME: Final = "name"
+CFOF_ACHIEVEMENTS_INPUT_REWARD_POINTS: Final = "reward_points"
+CFOF_ACHIEVEMENTS_INPUT_SELECTED_CHORE_ID: Final = "selected_chore_id"
+CFOF_ACHIEVEMENTS_INPUT_TARGET_VALUE: Final = "target_value"
+CFOF_ACHIEVEMENTS_INPUT_TYPE: Final = "type"
 
 # CHALLENGES
-CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS = "assigned_kids"
-CFOF_CHALLENGES_INPUT_CHALLENGE_COUNT = "challenge_count"
-CFOF_CHALLENGES_INPUT_CRITERIA = "criteria"
-CFOF_CHALLENGES_INPUT_DESCRIPTION = "description"
-CFOF_CHALLENGES_INPUT_END_DATE = "end_date"
-CFOF_CHALLENGES_INPUT_ICON = "icon"
-CFOF_CHALLENGES_INPUT_LABELS = "challenge_labels"
-CFOF_CHALLENGES_INPUT_NAME = "name"
-CFOF_CHALLENGES_INPUT_REWARD_POINTS = "reward_points"
-CFOF_CHALLENGES_INPUT_SELECTED_CHORE_ID = "selected_chore_id"
-CFOF_CHALLENGES_INPUT_START_DATE = "start_date"
-CFOF_CHALLENGES_INPUT_TARGET_VALUE = "target_value"
-CFOF_CHALLENGES_INPUT_TYPE = "type"
+CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS: Final = "assigned_kids"
+CFOF_CHALLENGES_INPUT_CHALLENGE_COUNT: Final = "challenge_count"
+CFOF_CHALLENGES_INPUT_CRITERIA: Final = "criteria"
+CFOF_CHALLENGES_INPUT_DESCRIPTION: Final = "description"
+CFOF_CHALLENGES_INPUT_END_DATE: Final = "end_date"
+CFOF_CHALLENGES_INPUT_ICON: Final = "icon"
+CFOF_CHALLENGES_INPUT_LABELS: Final = "challenge_labels"
+CFOF_CHALLENGES_INPUT_NAME: Final = "name"
+CFOF_CHALLENGES_INPUT_REWARD_POINTS: Final = "reward_points"
+CFOF_CHALLENGES_INPUT_SELECTED_CHORE_ID: Final = "selected_chore_id"
+CFOF_CHALLENGES_INPUT_START_DATE: Final = "start_date"
+CFOF_CHALLENGES_INPUT_TARGET_VALUE: Final = "target_value"
+CFOF_CHALLENGES_INPUT_TYPE: Final = "type"
 
 # OptionsFlow Input Fields
-OPTIONS_FLOW_INPUT_ENTITY_NAME = "entity_name"
-OPTIONS_FLOW_INPUT_INTERNAL_ID = "internal_id"
-OPTIONS_FLOW_INPUT_MENU_SELECTION = "menu_selection"
-OPTIONS_FLOW_INPUT_MANAGE_ACTION = "manage_action"
+OPTIONS_FLOW_INPUT_ENTITY_NAME: Final = "entity_name"
+OPTIONS_FLOW_INPUT_INTERNAL_ID: Final = "internal_id"
+OPTIONS_FLOW_INPUT_MENU_SELECTION: Final = "menu_selection"
+OPTIONS_FLOW_INPUT_MANAGE_ACTION: Final = "manage_action"
 
 # OptionsFlow Data Fields
-OPTIONS_FLOW_DATA_ENTITY_NAME = "name"
+OPTIONS_FLOW_DATA_ENTITY_NAME: Final = "name"
 
 # OptionsFlow Placeholders
-OPTIONS_FLOW_PLACEHOLDER_ACTION = "action"
-OPTIONS_FLOW_PLACEHOLDER_ACHIEVEMENT_NAME = "achievement_name"
-OPTIONS_FLOW_PLACEHOLDER_BADGE_NAME = "badge_name"
-OPTIONS_FLOW_PLACEHOLDER_BONUS_NAME = "bonus_name"
-OPTIONS_FLOW_PLACEHOLDER_CHALLENGE_NAME = "challenge_name"
-OPTIONS_FLOW_PLACEHOLDER_CHORE_NAME = "chore_name"
-OPTIONS_FLOW_PLACEHOLDER_ENTITY_TYPE = "entity_type"
-OPTIONS_FLOW_PLACEHOLDER_KID_NAME = "kid_name"
-OPTIONS_FLOW_PLACEHOLDER_PARENT_NAME = "parent_name"
-OPTIONS_FLOW_PLACEHOLDER_PENALTY_NAME = "penalty_name"
-OPTIONS_FLOW_PLACEHOLDER_REWARD_NAME = "reward_name"
-OPTIONS_FLOW_PLACEHOLDER_SUMMARY = "summary"
+OPTIONS_FLOW_PLACEHOLDER_ACTION: Final = "action"
+OPTIONS_FLOW_PLACEHOLDER_ACHIEVEMENT_NAME: Final = "achievement_name"
+OPTIONS_FLOW_PLACEHOLDER_BADGE_NAME: Final = "badge_name"
+OPTIONS_FLOW_PLACEHOLDER_BONUS_NAME: Final = "bonus_name"
+OPTIONS_FLOW_PLACEHOLDER_CHALLENGE_NAME: Final = "challenge_name"
+OPTIONS_FLOW_PLACEHOLDER_CHORE_NAME: Final = "chore_name"
+OPTIONS_FLOW_PLACEHOLDER_ENTITY_TYPE: Final = "entity_type"
+OPTIONS_FLOW_PLACEHOLDER_KID_NAME: Final = "kid_name"
+OPTIONS_FLOW_PLACEHOLDER_PARENT_NAME: Final = "parent_name"
+OPTIONS_FLOW_PLACEHOLDER_PENALTY_NAME: Final = "penalty_name"
+OPTIONS_FLOW_PLACEHOLDER_REWARD_NAME: Final = "reward_name"
+OPTIONS_FLOW_PLACEHOLDER_SUMMARY: Final = "summary"
 
 
 # OptionsFlow Helpers
-OPTIONS_FLOW_ASYNC_STEP_PREFIX = "async_step_"
-OPTIONS_FLOW_ASYNC_STEP_ADD_PREFIX = "async_step_add_"
-OPTIONS_FLOW_MENU_MANAGE_PREFIX = "manage_"
+OPTIONS_FLOW_ASYNC_STEP_PREFIX: Final = "async_step_"
+OPTIONS_FLOW_ASYNC_STEP_ADD_PREFIX: Final = "async_step_add_"
+OPTIONS_FLOW_MENU_MANAGE_PREFIX: Final = "manage_"
 
 
-# Global configuration keys
-CONF_BIRTHDAY = "birthday"
-CONF_BIWEEKLY = "biweekly"
-CONF_CALENDAR_SHOW_PERIOD = "calendar_show_period"
-CONF_COST = "cost"
-CONF_CUSTOM = "custom"
-CONF_DAILY = "daily"
-CONF_DAY = "day"
-CONF_DAYS = "days"
-CONF_DESCRIPTION = "description"
-CONF_DOT = "."
-CONF_EMPTY = ""
-CONF_HOLIDAY = "holiday"
-CONF_HOUR = "hour"
-CONF_HOURS = "hours"
-CONF_ICON = "icon"
-CONF_INTERNAL_ID = "internal_id"
-CONF_LABEL = "label"
-CONF_MINUTES = "minutes"
-CONF_MONTHS = "months"
-CONF_MONTHLY = "monthly"
-CONF_NAME = "name"
-CONF_NONE = None
-CONF_NONE_TEXT = "None"
-CONF_POINTS = "points"
-CONF_QUARTER = "quarter"
-CONF_QUARTERLY = "quarterly"
-CONF_QUARTERS = "quarters"
-CONF_SHARED_CHORE = "shared_chore"
-CONF_UNKNOWN = "Unknown"
-CONF_VALUE = "value"
-CONF_WEEKS = "weeks"
-CONF_WEEKLY = "weekly"
-CONF_YEARLY = "yearly"
-CONF_YEARS = "years"
+# Global Settings
+CONF_CALENDAR_SHOW_PERIOD: Final = "calendar_show_period"
+CONF_COST: Final = "cost"
+CONF_DASHBOARD_LANGUAGE: Final = "dashboard_language"
+CONF_HA_USER: Final = "ha_user"
+CONF_INTERNAL_ID: Final = "internal_id"
+CONF_LABEL: Final = "label"
+CONF_POINTS: Final = "points"
+CONF_POINTS_ADJUST_VALUES: Final = "points_adjust_values"
+CONF_POINTS_ICON: Final = "points_icon"
+CONF_POINTS_LABEL: Final = "points_label"
+CONF_RETENTION_DAILY: Final = "retention_daily"
+CONF_RETENTION_MONTHLY: Final = "retention_monthly"
+CONF_RETENTION_WEEKLY: Final = "retention_weekly"
+CONF_RETENTION_YEARLY: Final = "retention_yearly"
+CONF_SHARED_CHORE: Final = "shared_chore"
+CONF_UPDATE_INTERVAL: Final = "update_interval"
+CONF_VALUE: Final = "value"
 
-# Points configuration keys
-CONF_POINTS_ICON = "points_icon"
-CONF_POINTS_LABEL = "points_label"
+# Chore Custom Interval Reset Periods
+CUSTOM_INTERVAL_UNIT_OPTIONS: Final = [
+    SENTINEL_EMPTY,
+    TIME_UNIT_DAYS,
+    TIME_UNIT_WEEKS,
+    TIME_UNIT_MONTHS,
+]
 
-# Kids configuration keys
-CONF_HA_USER = "ha_user"
-CONF_DASHBOARD_LANGUAGE = "dashboard_language"
+# Entity-Specific Configuration
+# Achievements
+CONF_ACHIEVEMENT_ASSIGNED_KIDS: Final = "assigned_kids"
+CONF_ACHIEVEMENT_CRITERIA: Final = "criteria"
+CONF_ACHIEVEMENT_LABELS: Final = "achievement_labels"
+CONF_ACHIEVEMENT_REWARD_POINTS: Final = "reward_points"
+CONF_ACHIEVEMENT_SELECTED_CHORE_ID: Final = "selected_chore_id"
+CONF_ACHIEVEMENT_TARGET_VALUE: Final = "target_value"
+CONF_ACHIEVEMENT_TYPE: Final = "type"
+CONF_ACHIEVEMENTS: Final = "achievements"
 
-# Parents configuration keys
-CONF_HA_USER_ID = "ha_user_id"
-CONF_PARENT_NAME = "parent_name"
-CONF_ASSOCIATED_KIDS = "associated_kids"
+# Bonuses
+CONF_BONUS_DESCRIPTION: Final = "bonus_description"
+CONF_BONUS_LABELS: Final = "bonus_labels"
+CONF_BONUS_NAME: Final = "bonus_name"
+CONF_BONUS_POINTS: Final = "bonus_points"
+CONF_BONUSES: Final = "bonuses"
 
-# Chores configuration keys
-CONF_ALLOW_MULTIPLE_CLAIMS_PER_DAY = "allow_multiple_claims_per_day"
-CONF_APPLICABLE_DAYS = "applicable_days"
-CONF_ASSIGNED_KIDS = "assigned_kids"
-CONF_CHORE_DESCRIPTION = "chore_description"
-CONF_CHORE_LABELS = "chore_labels"
-CONF_CHORE_NAME = "chore_name"
-CONF_CUSTOM_INTERVAL = "custom_interval"
-CONF_CUSTOM_INTERVAL_UNIT = "custom_interval_unit"
-CONF_DEFAULT_POINTS = "default_points"
-CONF_DUE_DATE = "due_date"
-CONF_PARTIAL_ALLOWED = "partial_allowed"
-CONF_RECURRING_FREQUENCY = "recurring_frequency"
+# Challenges
+CONF_CHALLENGE_ASSIGNED_KIDS: Final = "assigned_kids"
+CONF_CHALLENGE_CRITERIA: Final = "criteria"
+CONF_CHALLENGE_END_DATE: Final = "end_date"
+CONF_CHALLENGE_LABELS: Final = "challenge_labels"
+CONF_CHALLENGE_REWARD_POINTS: Final = "reward_points"
+CONF_CHALLENGE_SELECTED_CHORE_ID: Final = "selected_chore_id"
+CONF_CHALLENGE_START_DATE: Final = "start_date"
+CONF_CHALLENGE_TARGET_VALUE: Final = "target_value"
+CONF_CHALLENGE_TYPE: Final = "type"
+CONF_CHALLENGES: Final = "challenges"
 
-# Notification configuration keys
-CONF_ENABLE_MOBILE_NOTIFICATIONS = "enable_mobile_notifications"
-CONF_ENABLE_PERSISTENT_NOTIFICATIONS = "enable_persistent_notifications"
-CONF_MOBILE_NOTIFY_SERVICE = "mobile_notify_service"
-CONF_NOTIFY_ON_APPROVAL = "notify_on_approval"
-CONF_NOTIFY_ON_CLAIM = "notify_on_claim"
-CONF_NOTIFY_ON_DISAPPROVAL = "notify_on_disapproval"
+# Chores
+CONF_ALLOW_MULTIPLE_CLAIMS_PER_DAY: Final = "allow_multiple_claims_per_day"
+CONF_APPLICABLE_DAYS: Final = "applicable_days"
+CONF_ASSIGNED_KIDS: Final = "assigned_kids"
+CONF_CHORE_DESCRIPTION: Final = "chore_description"
+CONF_CHORE_LABELS: Final = "chore_labels"
+CONF_CHORE_NAME: Final = "chore_name"
+CONF_CHORES: Final = "chores"
+CONF_CUSTOM_INTERVAL: Final = "custom_interval"
+CONF_CUSTOM_INTERVAL_UNIT: Final = "custom_interval_unit"
+CONF_DEFAULT_POINTS: Final = "default_points"
+CONF_DUE_DATE: Final = "due_date"
+CONF_PARTIAL_ALLOWED: Final = "partial_allowed"
+CONF_RECURRING_FREQUENCY: Final = "recurring_frequency"
 
-NOTIFICATION_EVENT = "mobile_app_notification_action"
+# Kids
+CONF_KIDS: Final = "kids"
 
-# Badge configuration keys
-# Badge types
-BADGE_TYPE_ACHIEVEMENT_LINKED = "achievement_linked"
-BADGE_TYPE_CHALLENGE_LINKED = "challenge_linked"
-BADGE_TYPE_CUMULATIVE = "cumulative"
-BADGE_TYPE_DAILY = "daily"
-BADGE_TYPE_PERIODIC = "periodic"
-BADGE_TYPE_SPECIAL_OCCASION = "special_occasion"
+# Notifications
+CONF_ENABLE_MOBILE_NOTIFICATIONS: Final = "enable_mobile_notifications"
+CONF_ENABLE_PERSISTENT_NOTIFICATIONS: Final = "enable_persistent_notifications"
+CONF_MOBILE_NOTIFY_SERVICE: Final = "mobile_notify_service"
+CONF_NOTIFY_ON_APPROVAL: Final = "notify_on_approval"
+CONF_NOTIFY_ON_CLAIM: Final = "notify_on_claim"
+CONF_NOTIFY_ON_DISAPPROVAL: Final = "notify_on_disapproval"
+NOTIFICATION_EVENT: Final = "mobile_app_notification_action"
 
-# Reward configuration keys
-CONF_REWARD_COST = "reward_cost"
-CONF_REWARD_DESCRIPTION = "reward_description"
-CONF_REWARD_LABELS = "reward_labels"
-CONF_REWARD_NAME = "reward_name"
+# Parents
+CONF_ASSOCIATED_KIDS: Final = "associated_kids"
+CONF_HA_USER_ID: Final = "ha_user_id"
+CONF_PARENT_NAME: Final = "parent_name"
+CONF_PARENTS: Final = "parents"
 
-# Bonus configuration keys
-CONF_BONUS_DESCRIPTION = "bonus_description"
-CONF_BONUS_LABELS = "bonus_labels"
-CONF_BONUS_NAME = "bonus_name"
-CONF_BONUS_POINTS = "bonus_points"
+# Penalties
+CONF_PENALTIES: Final = "penalties"
+CONF_PENALTY_DESCRIPTION: Final = "penalty_description"
+CONF_PENALTY_LABELS: Final = "penalty_labels"
+CONF_PENALTY_NAME: Final = "penalty_name"
+CONF_PENALTY_POINTS: Final = "penalty_points"
 
-# Penalty configuration keys
-CONF_PENALTY_DESCRIPTION = "penalty_description"
-CONF_PENALTY_LABELS = "penalty_labels"
-CONF_PENALTY_NAME = "penalty_name"
-CONF_PENALTY_POINTS = "penalty_points"
+# Rewards
+CONF_REWARD_COST: Final = "reward_cost"
+CONF_REWARD_DESCRIPTION: Final = "reward_description"
+CONF_REWARD_LABELS: Final = "reward_labels"
+CONF_REWARD_NAME: Final = "reward_name"
+CONF_REWARDS: Final = "rewards"
 
-# Achievement configuration keys
-CONF_ACHIEVEMENT_ASSIGNED_KIDS = "assigned_kids"
-CONF_ACHIEVEMENT_CRITERIA = "criteria"
-CONF_ACHIEVEMENT_LABELS = "achievement_labels"
-CONF_ACHIEVEMENT_REWARD_POINTS = "reward_points"
-CONF_ACHIEVEMENT_SELECTED_CHORE_ID = "selected_chore_id"
-CONF_ACHIEVEMENT_TARGET_VALUE = "target_value"
-CONF_ACHIEVEMENT_TYPE = "type"
+# Badge Types
+BADGE_TYPE_ACHIEVEMENT_LINKED: Final = "achievement_linked"
+BADGE_TYPE_CHALLENGE_LINKED: Final = "challenge_linked"
+BADGE_TYPE_CUMULATIVE: Final = "cumulative"
+BADGE_TYPE_DAILY: Final = "daily"
+BADGE_TYPE_PERIODIC: Final = "periodic"
+BADGE_TYPE_SPECIAL_OCCASION: Final = "special_occasion"
 
-# Achievement types
-ACHIEVEMENT_TYPE_DAILY_MIN = "daily_minimum"
-ACHIEVEMENT_TYPE_STREAK = "chore_streak"
-ACHIEVEMENT_TYPE_TOTAL = "chore_total"
+# Achievement Types
+ACHIEVEMENT_TYPE_DAILY_MIN: Final = "daily_minimum"
+ACHIEVEMENT_TYPE_STREAK: Final = "chore_streak"
+ACHIEVEMENT_TYPE_TOTAL: Final = "chore_total"
 
-# Challenge configuration keys
-CONF_CHALLENGE_ASSIGNED_KIDS = "assigned_kids"
-CONF_CHALLENGE_CRITERIA = "criteria"
-CONF_CHALLENGE_END_DATE = "end_date"
-CONF_CHALLENGE_LABELS = "challenge_labels"
-CONF_CHALLENGE_REWARD_POINTS = "reward_points"
-CONF_CHALLENGE_SELECTED_CHORE_ID = "selected_chore_id"
-CONF_CHALLENGE_START_DATE = "start_date"
-CONF_CHALLENGE_TARGET_VALUE = "target_value"
-CONF_CHALLENGE_TYPE = "type"
-
-# Challenge types
-CHALLENGE_TYPE_DAILY_MIN = "daily_minimum"
-CHALLENGE_TYPE_TOTAL_WITHIN_WINDOW = "total_within_window"
-
-# General Options
-CONF_POINTS_ADJUST_VALUES = "points_adjust_values"
-CONF_UPDATE_INTERVAL = "update_interval"
-CONF_RETENTION_DAILY = "retention_daily"
-CONF_RETENTION_WEEKLY = "retention_weekly"
-CONF_RETENTION_MONTHLY = "retention_monthly"
-CONF_RETENTION_YEARLY = "retention_yearly"
+# Challenge Types
+CHALLENGE_TYPE_DAILY_MIN: Final = "daily_minimum"
+CHALLENGE_TYPE_TOTAL_WITHIN_WINDOW: Final = "total_within_window"
 
 
 # ------------------------------------------------------------------------------------------------
@@ -489,242 +520,260 @@ CONF_RETENTION_YEARLY = "retention_yearly"
 # ARCHITECTURE.md "Entity Plurality" (lines 926-941) for details.
 
 # GLOBAL
-DATA_ACHIEVEMENTS = "achievements"
-DATA_ASSIGNED_KIDS = "assigned_kids"
-DATA_BADGES = "badges"
-DATA_BONUSES = "bonuses"
-DATA_CHALLENGES = "challenges"
-DATA_CHORES = "chores"
-DATA_COORDINATOR = "coordinator"
-DATA_GLOBAL_STATE_SUFFIX = "_global_state"
-DATA_INTERNAL_ID = "internal_id"
-DATA_KIDS = "kids"
-DATA_LAST_CHANGE = "last_change"
-DATA_NAME = "name"
-DATA_PARENTS = "parents"
-DATA_PENALTIES = "penalties"
-DATA_PROGRESS = "progress"
-DATA_REWARDS = "rewards"
+DATA_ACHIEVEMENTS: Final = "achievements"
+DATA_ASSIGNED_KIDS: Final = "assigned_kids"
+DATA_BADGES: Final = "badges"
+DATA_BONUSES: Final = "bonuses"
+DATA_CHALLENGES: Final = "challenges"
+DATA_CHORES: Final = "chores"
+DATA_COORDINATOR: Final = "coordinator"
+DATA_GLOBAL_STATE_SUFFIX: Final = "_global_state"
+DATA_INTERNAL_ID: Final = "internal_id"
+DATA_KIDS: Final = "kids"
+DATA_LAST_CHANGE: Final = "last_change"
+DATA_NAME: Final = "name"
+DATA_PARENTS: Final = "parents"
+DATA_PENALTIES: Final = "penalties"
+DATA_PROGRESS: Final = "progress"
+DATA_REWARDS: Final = "rewards"
 
 # KIDS
-DATA_KID_APPROVED_CHORES = "approved_chores"
-DATA_KID_BADGES_EARNED_NAME = "badge_name"
-DATA_KID_BADGES_EARNED_LAST_AWARDED = "last_awarded_date"
-DATA_KID_BADGES_EARNED_AWARD_COUNT = "award_count"
-DATA_KID_BADGES_DEPRECATED = "badges"
-DATA_KID_BADGES_EARNED = "badges_earned"
-DATA_KID_BADGES_EARNED_PERIODS = "periods"
-DATA_KID_BADGES_EARNED_PERIODS_DAILY = "daily"
-DATA_KID_BADGES_EARNED_PERIODS_WEEKLY = "weekly"
-DATA_KID_BADGES_EARNED_PERIODS_MONTHLY = "monthly"
-DATA_KID_BADGES_EARNED_PERIODS_YEARLY = "yearly"
+DATA_KID_APPROVED_CHORES: Final = "approved_chores"
+DATA_KID_BADGES_EARNED_NAME: Final = "badge_name"
+DATA_KID_BADGES_EARNED_LAST_AWARDED: Final = "last_awarded_date"
+DATA_KID_BADGES_EARNED_AWARD_COUNT: Final = "award_count"
+DATA_KID_BADGES_DEPRECATED: Final = "badges"
+DATA_KID_BADGES_EARNED: Final = "badges_earned"
+DATA_KID_BADGES_EARNED_PERIODS: Final = "periods"
+DATA_KID_BADGES_EARNED_PERIODS_DAILY: Final = "daily"
+DATA_KID_BADGES_EARNED_PERIODS_WEEKLY: Final = "weekly"
+DATA_KID_BADGES_EARNED_PERIODS_MONTHLY: Final = "monthly"
+DATA_KID_BADGES_EARNED_PERIODS_YEARLY: Final = "yearly"
 
 
 # Badge Progress Data Structure
-DATA_KID_BADGE_PROGRESS = "badge_progress"
+DATA_KID_BADGE_PROGRESS: Final = "badge_progress"
 
 # Common Badge Progress Fields
-DATA_KID_BADGE_PROGRESS_APPROVED_COUNT = "approved_count"
-DATA_KID_BADGE_PROGRESS_CHORES_COMPLETED = "chores_completed"
-DATA_KID_BADGE_PROGRESS_CHORES_CYCLE_COUNT = "chores_cycle_count"
-DATA_KID_BADGE_PROGRESS_CHORES_TODAY = "chores_today"
-DATA_KID_BADGE_PROGRESS_CRITERIA_MET = "criteria_met"
-DATA_KID_BADGE_PROGRESS_CYCLE_COUNT = "cycle_count"
-DATA_KID_BADGE_PROGRESS_DAYS_COMPLETED = "days_completed"
-DATA_KID_BADGE_PROGRESS_DAYS_CYCLE_COUNT = "days_cycle_count"
-DATA_KID_BADGE_PROGRESS_END_DATE = "end_date"
-DATA_KID_BADGE_PROGRESS_LAST_AWARDED = "last_awarded"
-DATA_KID_BADGE_PROGRESS_LAST_UPDATE_DAY = "last_update_day"
-DATA_KID_BADGE_PROGRESS_NAME = "name"
-DATA_KID_BADGE_PROGRESS_OVERALL_PROGRESS = "overall_progress"
-DATA_KID_BADGE_PROGRESS_PENALTY_APPLIED = "penalty_applied"
-DATA_KID_BADGE_PROGRESS_POINTS_CYCLE_COUNT = "points_cycle_count"
-DATA_KID_BADGE_PROGRESS_POINTS_TODAY = "points_today"
-DATA_KID_BADGE_PROGRESS_RECURRING_FREQUENCY = "recurring_frequency"
-DATA_KID_BADGE_PROGRESS_START_DATE = "start_date"
-DATA_KID_BADGE_PROGRESS_STATUS = "status"
-DATA_KID_BADGE_PROGRESS_TARGET_THRESHOLD_VALUE = "threshold_value"
-DATA_KID_BADGE_PROGRESS_TARGET_TYPE = "target_type"
-DATA_KID_BADGE_PROGRESS_TODAY_COMPLETED = "today_completed"
-DATA_KID_BADGE_PROGRESS_TOTAL_COUNT = "total_count"
-DATA_KID_BADGE_PROGRESS_TRACKED_CHORES = "tracked_chores"
-DATA_KID_BADGE_PROGRESS_TYPE = "badge_type"
+DATA_KID_BADGE_PROGRESS_APPROVED_COUNT: Final = "approved_count"
+DATA_KID_BADGE_PROGRESS_CHORES_COMPLETED: Final = "chores_completed"
+DATA_KID_BADGE_PROGRESS_CHORES_CYCLE_COUNT: Final = "chores_cycle_count"
+DATA_KID_BADGE_PROGRESS_CHORES_TODAY: Final = "chores_today"
+DATA_KID_BADGE_PROGRESS_CRITERIA_MET: Final = "criteria_met"
+DATA_KID_BADGE_PROGRESS_CYCLE_COUNT: Final = "cycle_count"
+DATA_KID_BADGE_PROGRESS_DAYS_COMPLETED: Final = "days_completed"
+DATA_KID_BADGE_PROGRESS_DAYS_CYCLE_COUNT: Final = "days_cycle_count"
+DATA_KID_BADGE_PROGRESS_END_DATE: Final = "end_date"
+DATA_KID_BADGE_PROGRESS_LAST_AWARDED: Final = "last_awarded"
+DATA_KID_BADGE_PROGRESS_LAST_UPDATE_DAY: Final = "last_update_day"
+DATA_KID_BADGE_PROGRESS_NAME: Final = "name"
+DATA_KID_BADGE_PROGRESS_OVERALL_PROGRESS: Final = "overall_progress"
+DATA_KID_BADGE_PROGRESS_PENALTY_APPLIED: Final = "penalty_applied"
+DATA_KID_BADGE_PROGRESS_POINTS_CYCLE_COUNT: Final = "points_cycle_count"
+DATA_KID_BADGE_PROGRESS_POINTS_TODAY: Final = "points_today"
+DATA_KID_BADGE_PROGRESS_RECURRING_FREQUENCY: Final = "recurring_frequency"
+DATA_KID_BADGE_PROGRESS_START_DATE: Final = "start_date"
+DATA_KID_BADGE_PROGRESS_STATUS: Final = "status"
+DATA_KID_BADGE_PROGRESS_TARGET_THRESHOLD_VALUE: Final = "threshold_value"
+DATA_KID_BADGE_PROGRESS_TARGET_TYPE: Final = "target_type"
+DATA_KID_BADGE_PROGRESS_TODAY_COMPLETED: Final = "today_completed"
+DATA_KID_BADGE_PROGRESS_TOTAL_COUNT: Final = "total_count"
+DATA_KID_BADGE_PROGRESS_TRACKED_CHORES: Final = "tracked_chores"
+DATA_KID_BADGE_PROGRESS_TYPE: Final = "badge_type"
 
 # For Points Target Type
-DATA_KID_BADGE_PROGRESS_POINTS_CYCLE_COUNT = "points_cycle_count"
+DATA_KID_BADGE_PROGRESS_POINTS_CYCLE_COUNT: Final = "points_cycle_count"
 
 # For Chore Count Target Type
-DATA_KID_BADGE_PROGRESS_CHORES_CYCLE_COUNT = "chores_cycle_count"
+DATA_KID_BADGE_PROGRESS_CHORES_CYCLE_COUNT: Final = "chores_cycle_count"
 
 # For All Required Chores Target Type
-DATA_KID_BADGE_PROGRESS_DAYS_CYCLE_COUNT = "days_cycle_count"
+DATA_KID_BADGE_PROGRESS_DAYS_CYCLE_COUNT: Final = "days_cycle_count"
 
 # Shared fields for tracking across target types
-DATA_KID_BADGE_PROGRESS_TRACKED_CHORES = "tracked_chores"
-DATA_KID_BADGE_PROGRESS_CHORES_COMPLETED = "chores_completed"
-DATA_KID_BADGE_PROGRESS_DAYS_COMPLETED = "days_completed"
+DATA_KID_BADGE_PROGRESS_TRACKED_CHORES: Final = "tracked_chores"
+DATA_KID_BADGE_PROGRESS_CHORES_COMPLETED: Final = "chores_completed"
+DATA_KID_BADGE_PROGRESS_DAYS_COMPLETED: Final = "days_completed"
 
-DATA_KID_BONUS_APPLIES = "bonus_applies"
-DATA_KID_CLAIMED_CHORES = "claimed_chores"
+DATA_KID_BONUS_APPLIES: Final = "bonus_applies"
+DATA_KID_CLAIMED_CHORES: Final = "claimed_chores"
 
 # Kid Chore Data Structure Constants
-DATA_KID_CHORE_DATA = "chore_data"
-DATA_KID_CHORE_DATA_STATE = "state"
-DATA_KID_CHORE_DATA_NAME = "name"
-DATA_KID_CHORE_DATA_DUE_DATE = "due_date"
-DATA_KID_CHORE_DATA_LAST_APPROVED = "last_approved"
-DATA_KID_CHORE_DATA_LAST_CLAIMED = "last_claimed"
-DATA_KID_CHORE_DATA_LAST_DISAPPROVED = "last_disapproved"
-DATA_KID_CHORE_DATA_LAST_OVERDUE = "last_overdue"
-DATA_KID_CHORE_DATA_LAST_LONGEST_STREAK_ALL_TIME = "last_longest_streak_all_time"
-DATA_KID_CHORE_DATA_TOTAL_COUNT = "total_count"
-DATA_KID_CHORE_DATA_TOTAL_POINTS = "total_points"
-DATA_KID_CHORE_DATA_PERIODS = "periods"
-DATA_KID_CHORE_DATA_PERIODS_ALL_TIME = "all_time"
-DATA_KID_CHORE_DATA_PERIODS_DAILY = "daily"
-DATA_KID_CHORE_DATA_PERIODS_WEEKLY = "weekly"
-DATA_KID_CHORE_DATA_PERIODS_MONTHLY = "monthly"
-DATA_KID_CHORE_DATA_PERIODS_YEARLY = "yearly"
-DATA_KID_CHORE_DATA_PERIOD_APPROVED = "approved"
-DATA_KID_CHORE_DATA_PERIOD_CLAIMED = "claimed"
-DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED = "disapproved"
-DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK = "longest_streak"
-DATA_KID_CHORE_DATA_PERIOD_OVERDUE = "overdue"
-DATA_KID_CHORE_DATA_PERIOD_POINTS = "points"
-DATA_KID_CHORE_DATA_BADGE_REFS = "badge_refs"
+DATA_KID_CHORE_DATA: Final = "chore_data"
+DATA_KID_CHORE_DATA_STATE: Final = "state"
+DATA_KID_CHORE_DATA_NAME: Final = "name"
+DATA_KID_CHORE_DATA_DUE_DATE: Final = "due_date"
+DATA_KID_CHORE_DATA_LAST_APPROVED: Final = "last_approved"
+DATA_KID_CHORE_DATA_LAST_CLAIMED: Final = "last_claimed"
+DATA_KID_CHORE_DATA_LAST_DISAPPROVED: Final = "last_disapproved"
+DATA_KID_CHORE_DATA_LAST_OVERDUE: Final = "last_overdue"
+DATA_KID_CHORE_DATA_LAST_LONGEST_STREAK_ALL_TIME: Final = "last_longest_streak_all_time"
+DATA_KID_CHORE_DATA_TOTAL_COUNT: Final = "total_count"
+DATA_KID_CHORE_DATA_TOTAL_POINTS: Final = "total_points"
+DATA_KID_CHORE_DATA_PERIODS: Final = "periods"
+DATA_KID_CHORE_DATA_PERIODS_ALL_TIME: Final = "all_time"
+DATA_KID_CHORE_DATA_PERIODS_DAILY: Final = "daily"
+DATA_KID_CHORE_DATA_PERIODS_WEEKLY: Final = "weekly"
+DATA_KID_CHORE_DATA_PERIODS_MONTHLY: Final = "monthly"
+DATA_KID_CHORE_DATA_PERIODS_YEARLY: Final = "yearly"
+DATA_KID_CHORE_DATA_PERIOD_APPROVED: Final = "approved"
+DATA_KID_CHORE_DATA_PERIOD_CLAIMED: Final = "claimed"
+DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED: Final = "disapproved"
+DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK: Final = "longest_streak"
+DATA_KID_CHORE_DATA_PERIOD_OVERDUE: Final = "overdue"
+DATA_KID_CHORE_DATA_PERIOD_POINTS: Final = "points"
+DATA_KID_CHORE_DATA_BADGE_REFS: Final = "badge_refs"
 
 # Chore Stats Keys
-DATA_KID_CHORE_STATS = "chore_stats"
+DATA_KID_CHORE_STATS: Final = "chore_stats"
 
 # --- Approval Counts = Completion Counts ---
-DATA_KID_CHORE_STATS_APPROVED_TODAY = "approved_today"
-DATA_KID_CHORE_STATS_APPROVED_WEEK = "approved_week"
-DATA_KID_CHORE_STATS_APPROVED_MONTH = "approved_month"
-DATA_KID_CHORE_STATS_APPROVED_YEAR = "approved_year"
-DATA_KID_CHORE_STATS_APPROVED_ALL_TIME = "approved_all_time"
+DATA_KID_CHORE_STATS_APPROVED_TODAY: Final = "approved_today"
+DATA_KID_CHORE_STATS_APPROVED_WEEK: Final = "approved_week"
+DATA_KID_CHORE_STATS_APPROVED_MONTH: Final = "approved_month"
+DATA_KID_CHORE_STATS_APPROVED_YEAR: Final = "approved_year"
+DATA_KID_CHORE_STATS_APPROVED_ALL_TIME: Final = "approved_all_time"
 
 # --- Most Completed Chore ---
-DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE = "most_completed_chore"
-DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_WEEK = "most_completed_chore_week"
-DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_MONTH = "most_completed_chore_month"
-DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_YEAR = "most_completed_chore_year"
+DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE: Final = "most_completed_chore"
+DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_WEEK: Final = "most_completed_chore_week"
+DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_MONTH: Final = "most_completed_chore_month"
+DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_YEAR: Final = "most_completed_chore_year"
 
 # --- Last Completion Date ---
-DATA_KID_CHORE_DATA_APPROVED_LAST_DATE = "approved_last_date"
+DATA_KID_CHORE_DATA_APPROVED_LAST_DATE: Final = "approved_last_date"
 
 # --- Total Points from Chores ---
-DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_TODAY = "total_points_from_chores_today"
-DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_WEEK = "total_points_from_chores_week"
-DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_MONTH = "total_points_from_chores_month"
-DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_YEAR = "total_points_from_chores_year"
+DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_TODAY: Final = (
+    "total_points_from_chores_today"
+)
+DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_WEEK: Final = (
+    "total_points_from_chores_week"
+)
+DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_MONTH: Final = (
+    "total_points_from_chores_month"
+)
+DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_YEAR: Final = (
+    "total_points_from_chores_year"
+)
 DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_ALL_TIME = (
     "total_points_from_chores_all_time"
 )
 
 # --- Overdue Counts ---
-DATA_KID_CHORE_STATS_OVERDUE_TODAY = "overdue_today"
-DATA_KID_CHORE_STATS_OVERDUE_WEEK = "overdue_week"
-DATA_KID_CHORE_STATS_OVERDUE_MONTH = "overdue_month"
-DATA_KID_CHORE_STATS_OVERDUE_YEAR = "overdue_year"
-DATA_KID_CHORE_STATS_OVERDUE_ALL_TIME = "overdue_count_all_time"
+DATA_KID_CHORE_STATS_OVERDUE_TODAY: Final = "overdue_today"
+DATA_KID_CHORE_STATS_OVERDUE_WEEK: Final = "overdue_week"
+DATA_KID_CHORE_STATS_OVERDUE_MONTH: Final = "overdue_month"
+DATA_KID_CHORE_STATS_OVERDUE_YEAR: Final = "overdue_year"
+DATA_KID_CHORE_STATS_OVERDUE_ALL_TIME: Final = "overdue_count_all_time"
 
 # --- Claimed Counts ---
-DATA_KID_CHORE_STATS_CLAIMED_TODAY = "claimed_today"
-DATA_KID_CHORE_STATS_CLAIMED_WEEK = "claimed_week"
-DATA_KID_CHORE_STATS_CLAIMED_MONTH = "claimed_month"
-DATA_KID_CHORE_STATS_CLAIMED_YEAR = "claimed_year"
-DATA_KID_CHORE_STATS_CLAIMED_ALL_TIME = "claimed_all_time"
+DATA_KID_CHORE_STATS_CLAIMED_TODAY: Final = "claimed_today"
+DATA_KID_CHORE_STATS_CLAIMED_WEEK: Final = "claimed_week"
+DATA_KID_CHORE_STATS_CLAIMED_MONTH: Final = "claimed_month"
+DATA_KID_CHORE_STATS_CLAIMED_YEAR: Final = "claimed_year"
+DATA_KID_CHORE_STATS_CLAIMED_ALL_TIME: Final = "claimed_all_time"
 
 # --- Claimed but Not Approved ---
-DATA_KID_CHORE_STATS_DISAPPROVED_TODAY = "disapproved_today"
-DATA_KID_CHORE_STATS_DISAPPROVED_WEEK = "disapproved_week"
-DATA_KID_CHORE_STATS_DISAPPROVED_MONTH = "disapproved_month"
-DATA_KID_CHORE_STATS_DISAPPROVED_YEAR = "disapproved_year"
-DATA_KID_CHORE_STATS_DISAPPROVED_ALL_TIME = "disapproved_all_time"
+DATA_KID_CHORE_STATS_DISAPPROVED_TODAY: Final = "disapproved_today"
+DATA_KID_CHORE_STATS_DISAPPROVED_WEEK: Final = "disapproved_week"
+DATA_KID_CHORE_STATS_DISAPPROVED_MONTH: Final = "disapproved_month"
+DATA_KID_CHORE_STATS_DISAPPROVED_YEAR: Final = "disapproved_year"
+DATA_KID_CHORE_STATS_DISAPPROVED_ALL_TIME: Final = "disapproved_all_time"
 
 # --- Chores Current Stats ---
-DATA_KID_CHORE_STATS_CURRENT_DUE_TODAY = "current_due_today"
-DATA_KID_CHORE_STATS_CURRENT_OVERDUE = "current_overdue"
-DATA_KID_CHORE_STATS_CURRENT_CLAIMED = "current_claimed"
-DATA_KID_CHORE_STATS_CURRENT_APPROVED = "current_approved"
+DATA_KID_CHORE_STATS_CURRENT_DUE_TODAY: Final = "current_due_today"
+DATA_KID_CHORE_STATS_CURRENT_OVERDUE: Final = "current_overdue"
+DATA_KID_CHORE_STATS_CURRENT_CLAIMED: Final = "current_claimed"
+DATA_KID_CHORE_STATS_CURRENT_APPROVED: Final = "current_approved"
 
 # --- Longest Streaks ---
-DATA_KID_CHORE_STATS_LONGEST_STREAK_WEEK = "longest_streak_week"
-DATA_KID_CHORE_STATS_LONGEST_STREAK_MONTH = "longest_streak_month"
-DATA_KID_CHORE_STATS_LONGEST_STREAK_YEAR = "longest_streak_year"
-DATA_KID_CHORE_STATS_LONGEST_STREAK_ALL_TIME = "longest_streak_all_time"
+DATA_KID_CHORE_STATS_LONGEST_STREAK_WEEK: Final = "longest_streak_week"
+DATA_KID_CHORE_STATS_LONGEST_STREAK_MONTH: Final = "longest_streak_month"
+DATA_KID_CHORE_STATS_LONGEST_STREAK_YEAR: Final = "longest_streak_year"
+DATA_KID_CHORE_STATS_LONGEST_STREAK_ALL_TIME: Final = "longest_streak_all_time"
 
 # --- Average Chores Per Day ---
-DATA_KID_CHORE_STATS_AVG_PER_DAY_MONTH = "avg_per_day_month"
-DATA_KID_CHORE_STATS_AVG_PER_DAY_WEEK = "avg_per_day_week"
+DATA_KID_CHORE_STATS_AVG_PER_DAY_MONTH: Final = "avg_per_day_month"
+DATA_KID_CHORE_STATS_AVG_PER_DAY_WEEK: Final = "avg_per_day_week"
 
 
 # --- Badge Progress Tracking ---
-DATA_KID_CUMULATIVE_BADGE_PROGRESS = "cumulative_badge_progress"
+DATA_KID_CUMULATIVE_BADGE_PROGRESS: Final = "cumulative_badge_progress"
 
 # Current badge (in effect)
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_ID = "current_badge_id"
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_NAME = "current_badge_name"
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_THRESHOLD = "current_threshold"
+DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_ID: Final = "current_badge_id"
+DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_NAME: Final = "current_badge_name"
+DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_THRESHOLD: Final = "current_threshold"
 
 # Highest earned badge (lifetime)
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_ID = "highest_earned_badge_id"
+DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_ID: Final = (
+    "highest_earned_badge_id"
+)
 DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_NAME = (
     "highest_earned_badge_name"
 )
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_THRESHOLD = "highest_earned_threshold"
+DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_THRESHOLD: Final = (
+    "highest_earned_threshold"
+)
 
 # Next higher badge
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_BADGE_ID = "next_higher_badge_id"
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_BADGE_NAME = "next_higher_badge_name"
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_THRESHOLD = "next_higher_threshold"
+DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_BADGE_ID: Final = "next_higher_badge_id"
+DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_BADGE_NAME: Final = (
+    "next_higher_badge_name"
+)
+DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_THRESHOLD: Final = (
+    "next_higher_threshold"
+)
 DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_POINTS_NEEDED = (
     "next_higher_points_needed"
 )
 
 # Next lower badge
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_BADGE_ID = "next_lower_badge_id"
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_BADGE_NAME = "next_lower_badge_name"
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_THRESHOLD = "next_lower_threshold"
+DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_BADGE_ID: Final = "next_lower_badge_id"
+DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_BADGE_NAME: Final = (
+    "next_lower_badge_name"
+)
+DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_THRESHOLD: Final = "next_lower_threshold"
 
 # Maintenance tracking
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_BASELINE = "baseline"
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS = "cycle_points"
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_STATUS = "status"
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_END_DATE = "maintenance_end_date"
+DATA_KID_CUMULATIVE_BADGE_PROGRESS_BASELINE: Final = "baseline"
+DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS: Final = "cycle_points"
+DATA_KID_CUMULATIVE_BADGE_PROGRESS_STATUS: Final = "status"
+DATA_KID_CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_END_DATE: Final = "maintenance_end_date"
 DATA_KID_CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_GRACE_END_DATE = (
     "maintenance_grace_end_date"
 )
-DATA_KID_CURRENT_STREAK = "current_streak"
-DATA_KID_ENABLE_NOTIFICATIONS = "enable_notifications"
-DATA_KID_HA_USER_ID = "ha_user_id"
-DATA_KID_ID = "kid_id"
-DATA_KID_INTERNAL_ID = "internal_id"
-DATA_KID_LAST_BADGE_RESET = "last_badge_reset"
-DATA_KID_LAST_CHORE_DATE = "last_chore_date"
-DATA_KID_LAST_STREAK_DATE = "last_date"
-DATA_KID_MAX_POINTS_EVER = "max_points_ever"
-DATA_KID_MAX_STREAK = "max_streak"
-DATA_KID_MOBILE_NOTIFY_SERVICE = "mobile_notify_service"
-DATA_KID_NAME = "name"
-DATA_KID_OVERDUE_CHORES = "overdue_chores"
-DATA_KID_OVERDUE_NOTIFICATIONS = "overdue_notifications"
-DATA_KID_OVERALL_CHORE_STREAK = "overall_chore_streak"
-DATA_KID_PENALTY_APPLIES = "penalty_applies"
-DATA_KID_PENDING_REWARDS = "pending_rewards"
-DATA_KID_POINTS = "points"
-DATA_KID_POINTS_MULTIPLIER = "points_multiplier"
-DATA_KID_REDEEMED_REWARDS = "redeemed_rewards"
-DATA_KID_REWARD_APPROVALS = "reward_approvals"
-DATA_KID_REWARD_CLAIMS = "reward_claims"
-DATA_KID_TODAY_CHORE_APPROVALS = "today_chore_approvals"
-DATA_KID_USE_PERSISTENT_NOTIFICATIONS = "use_persistent_notifications"
-DATA_KID_DASHBOARD_LANGUAGE = "dashboard_language"
+DATA_KID_CURRENT_STREAK: Final = "current_streak"
+DATA_KID_ENABLE_NOTIFICATIONS: Final = "enable_notifications"
+DATA_KID_HA_USER_ID: Final = "ha_user_id"
+DATA_KID_ID: Final = "kid_id"
+DATA_KID_INTERNAL_ID: Final = "internal_id"
+DATA_KID_LAST_BADGE_RESET: Final = "last_badge_reset"
+DATA_KID_LAST_CHORE_DATE: Final = "last_chore_date"
+DATA_KID_LAST_STREAK_DATE: Final = "last_date"
+DATA_KID_MAX_POINTS_EVER: Final = "max_points_ever"
+DATA_KID_MAX_STREAK: Final = "max_streak"
+DATA_KID_MOBILE_NOTIFY_SERVICE: Final = "mobile_notify_service"
+DATA_KID_NAME: Final = "name"
+DATA_KID_OVERDUE_CHORES: Final = "overdue_chores"
+DATA_KID_OVERDUE_NOTIFICATIONS: Final = "overdue_notifications"
+DATA_KID_OVERALL_CHORE_STREAK: Final = "overall_chore_streak"
+DATA_KID_PENALTY_APPLIES: Final = "penalty_applies"
+DATA_KID_PENDING_REWARDS: Final = "pending_rewards"
+DATA_KID_POINTS: Final = "points"
+DATA_KID_POINTS_MULTIPLIER: Final = "points_multiplier"
+DATA_KID_REDEEMED_REWARDS: Final = "redeemed_rewards"
+DATA_KID_REWARD_APPROVALS: Final = "reward_approvals"
+DATA_KID_REWARD_CLAIMS: Final = "reward_claims"
+DATA_KID_TODAY_CHORE_APPROVALS: Final = "today_chore_approvals"
+DATA_KID_USE_PERSISTENT_NOTIFICATIONS: Final = "use_persistent_notifications"
+DATA_KID_DASHBOARD_LANGUAGE: Final = "dashboard_language"
 
 # ——————————————————————————————————————————————
 # Dashboard Translation Settings
 # ——————————————————————————————————————————————
-DEFAULT_DASHBOARD_LANGUAGE = "en"
+DEFAULT_DASHBOARD_LANGUAGE: Final = "en"
 DASHBOARD_TRANSLATIONS_DIR = "translations/dashboard"
 
 # ——————————————————————————————————————————————
@@ -732,34 +781,34 @@ DASHBOARD_TRANSLATIONS_DIR = "translations/dashboard"
 # ——————————————————————————————————————————————
 
 # Top‑level key for storing period‑by‑period point history
-DATA_KID_POINT_DATA = "point_data"
+DATA_KID_POINT_DATA: Final = "point_data"
 
 # Sub‑section containing all period buckets
-DATA_KID_POINT_DATA_PERIODS = "periods"
+DATA_KID_POINT_DATA_PERIODS: Final = "periods"
 
 # Individual period buckets
-DATA_KID_POINT_DATA_PERIODS_DAILY = "daily"
-DATA_KID_POINT_DATA_PERIODS_WEEKLY = "weekly"
-DATA_KID_POINT_DATA_PERIODS_MONTHLY = "monthly"
-DATA_KID_POINT_DATA_PERIODS_YEARLY = "yearly"
+DATA_KID_POINT_DATA_PERIODS_DAILY: Final = "daily"
+DATA_KID_POINT_DATA_PERIODS_WEEKLY: Final = "weekly"
+DATA_KID_POINT_DATA_PERIODS_MONTHLY: Final = "monthly"
+DATA_KID_POINT_DATA_PERIODS_YEARLY: Final = "yearly"
 
 # Within each period entry:
 #   – points_total: net delta for that period
 #   – by_source: breakdown of delta by source type
-DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL = "points_total"
-DATA_KID_POINT_DATA_PERIOD_BY_SOURCE = "by_source"
+DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL: Final = "points_total"
+DATA_KID_POINT_DATA_PERIOD_BY_SOURCE: Final = "by_source"
 
 # Point Sources
 # --- Point Source Types (all plural) ---
-POINTS_SOURCE_CHORES = "chores"
-POINTS_SOURCE_BONUSES = "bonuses"
-POINTS_SOURCE_PENALTIES = "penalties"
-POINTS_SOURCE_BADGES = "badges"
-POINTS_SOURCE_ACHIEVEMENTS = "achievements"
-POINTS_SOURCE_CHALLENGES = "challenges"
-POINTS_SOURCE_REWARDS = "rewards"
-POINTS_SOURCE_MANUAL = "manual"
-POINTS_SOURCE_OTHER = "other"
+POINTS_SOURCE_CHORES: Final = "chores"
+POINTS_SOURCE_BONUSES: Final = "bonuses"
+POINTS_SOURCE_PENALTIES: Final = "penalties"
+POINTS_SOURCE_BADGES: Final = "badges"
+POINTS_SOURCE_ACHIEVEMENTS: Final = "achievements"
+POINTS_SOURCE_CHALLENGES: Final = "challenges"
+POINTS_SOURCE_REWARDS: Final = "rewards"
+POINTS_SOURCE_MANUAL: Final = "manual"
+POINTS_SOURCE_OTHER: Final = "other"
 
 # Example list of valid sources for UI/enumeration:
 # Lowercase literals required by Home Assistant SelectSelector schema
@@ -775,271 +824,246 @@ POINTS_SOURCE_OPTIONS = [
 ]
 
 # --- Kid Point Stats (modeled after chore stats) ---
-DATA_KID_POINT_STATS = "point_stats"
+DATA_KID_POINT_STATS: Final = "point_stats"
 
 # --- Per-period totals ---
-DATA_KID_POINT_STATS_EARNED_TODAY = "points_earned_today"
-DATA_KID_POINT_STATS_EARNED_WEEK = "points_earned_week"
-DATA_KID_POINT_STATS_EARNED_MONTH = "points_earned_month"
-DATA_KID_POINT_STATS_EARNED_YEAR = "points_earned_year"
-DATA_KID_POINT_STATS_EARNED_ALL_TIME = "points_earned_all_time"
+DATA_KID_POINT_STATS_EARNED_TODAY: Final = "points_earned_today"
+DATA_KID_POINT_STATS_EARNED_WEEK: Final = "points_earned_week"
+DATA_KID_POINT_STATS_EARNED_MONTH: Final = "points_earned_month"
+DATA_KID_POINT_STATS_EARNED_YEAR: Final = "points_earned_year"
+DATA_KID_POINT_STATS_EARNED_ALL_TIME: Final = "points_earned_all_time"
 
 # --- Per-period by-source breakdowns ---
-DATA_KID_POINT_STATS_BY_SOURCE_TODAY = "points_by_source_today"
-DATA_KID_POINT_STATS_BY_SOURCE_WEEK = "points_by_source_week"
-DATA_KID_POINT_STATS_BY_SOURCE_MONTH = "points_by_source_month"
-DATA_KID_POINT_STATS_BY_SOURCE_YEAR = "points_by_source_year"
-DATA_KID_POINT_STATS_BY_SOURCE_ALL_TIME = "points_by_source_all_time"
+DATA_KID_POINT_STATS_BY_SOURCE_TODAY: Final = "points_by_source_today"
+DATA_KID_POINT_STATS_BY_SOURCE_WEEK: Final = "points_by_source_week"
+DATA_KID_POINT_STATS_BY_SOURCE_MONTH: Final = "points_by_source_month"
+DATA_KID_POINT_STATS_BY_SOURCE_YEAR: Final = "points_by_source_year"
+DATA_KID_POINT_STATS_BY_SOURCE_ALL_TIME: Final = "points_by_source_all_time"
 
 # --- Per-period spent (negative deltas) ---
-DATA_KID_POINT_STATS_SPENT_TODAY = "points_spent_today"
-DATA_KID_POINT_STATS_SPENT_WEEK = "points_spent_week"
-DATA_KID_POINT_STATS_SPENT_MONTH = "points_spent_month"
-DATA_KID_POINT_STATS_SPENT_YEAR = "points_spent_year"
-DATA_KID_POINT_STATS_SPENT_ALL_TIME = "points_spent_all_time"
+DATA_KID_POINT_STATS_SPENT_TODAY: Final = "points_spent_today"
+DATA_KID_POINT_STATS_SPENT_WEEK: Final = "points_spent_week"
+DATA_KID_POINT_STATS_SPENT_MONTH: Final = "points_spent_month"
+DATA_KID_POINT_STATS_SPENT_YEAR: Final = "points_spent_year"
+DATA_KID_POINT_STATS_SPENT_ALL_TIME: Final = "points_spent_all_time"
 
 # --- Per-period net (earned - spent) ---
-DATA_KID_POINT_STATS_NET_TODAY = "points_net_today"
-DATA_KID_POINT_STATS_NET_WEEK = "points_net_week"
-DATA_KID_POINT_STATS_NET_MONTH = "points_net_month"
-DATA_KID_POINT_STATS_NET_YEAR = "points_net_year"
-DATA_KID_POINT_STATS_NET_ALL_TIME = "points_net_all_time"
+DATA_KID_POINT_STATS_NET_TODAY: Final = "points_net_today"
+DATA_KID_POINT_STATS_NET_WEEK: Final = "points_net_week"
+DATA_KID_POINT_STATS_NET_MONTH: Final = "points_net_month"
+DATA_KID_POINT_STATS_NET_YEAR: Final = "points_net_year"
+DATA_KID_POINT_STATS_NET_ALL_TIME: Final = "points_net_all_time"
 
 # --- Streaks (days with positive points) ---
-DATA_KID_POINT_STATS_EARNING_STREAK_CURRENT = "points_earning_streak_current"
-DATA_KID_POINT_STATS_EARNING_STREAK_LONGEST = "points_earning_streak_longest"
+DATA_KID_POINT_STATS_EARNING_STREAK_CURRENT: Final = "points_earning_streak_current"
+DATA_KID_POINT_STATS_EARNING_STREAK_LONGEST: Final = "points_earning_streak_longest"
 
 # --- Averages ---
-DATA_KID_POINT_STATS_AVG_PER_DAY_WEEK = "avg_points_per_day_week"
-DATA_KID_POINT_STATS_AVG_PER_DAY_MONTH = "avg_points_per_day_month"
-DATA_KID_POINT_STATS_AVG_PER_CHORE = "avg_points_per_chore"
+DATA_KID_POINT_STATS_AVG_PER_DAY_WEEK: Final = "avg_points_per_day_week"
+DATA_KID_POINT_STATS_AVG_PER_DAY_MONTH: Final = "avg_points_per_day_month"
+DATA_KID_POINT_STATS_AVG_PER_CHORE: Final = "avg_points_per_chore"
 
 # --- Highest balance ever (highest balance) ---
-DATA_KID_POINT_STATS_HIGHEST_BALANCE = "highest_balance"
+DATA_KID_POINT_STATS_HIGHEST_BALANCE: Final = "highest_balance"
 
 # --- All time point stats ---
-DATA_KID_POINTS_EARNED_ALL_TIME = "points_earned_all_time"
-DATA_KID_POINTS_SPENT_ALL_TIME = "points_spent_all_time"
-DATA_KID_POINTS_NET_ALL_TIME = "points_net_all_time"
-DATA_KID_POINTS_BY_SOURCE_ALL_TIME = "points_by_source_all_time"
+DATA_KID_POINTS_EARNED_ALL_TIME: Final = "points_earned_all_time"
+DATA_KID_POINTS_SPENT_ALL_TIME: Final = "points_spent_all_time"
+DATA_KID_POINTS_NET_ALL_TIME: Final = "points_net_all_time"
+DATA_KID_POINTS_BY_SOURCE_ALL_TIME: Final = "points_by_source_all_time"
 
 # PARENTS
-DATA_PARENT_ASSOCIATED_KIDS = "associated_kids"
-DATA_PARENT_ENABLE_NOTIFICATIONS = "enable_notifications"
-DATA_PARENT_HA_USER_ID = "ha_user_id"
-DATA_PARENT_INTERNAL_ID = "internal_id"
-DATA_PARENT_MOBILE_NOTIFY_SERVICE = "mobile_notify_service"
-DATA_PARENT_NAME = "name"
-DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS = "use_persistent_notifications"
+DATA_PARENT_ASSOCIATED_KIDS: Final = "associated_kids"
+DATA_PARENT_ENABLE_NOTIFICATIONS: Final = "enable_notifications"
+DATA_PARENT_HA_USER_ID: Final = "ha_user_id"
+DATA_PARENT_INTERNAL_ID: Final = "internal_id"
+DATA_PARENT_MOBILE_NOTIFY_SERVICE: Final = "mobile_notify_service"
+DATA_PARENT_NAME: Final = "name"
+DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS: Final = "use_persistent_notifications"
 
 # CHORES
-DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY = "allow_multiple_claims_per_day"
-DATA_CHORE_APPLICABLE_DAYS = "applicable_days"
-DATA_CHORE_ASSIGNED_KIDS = "assigned_kids"
-DATA_CHORE_CUSTOM_INTERVAL = "custom_interval"
-DATA_CHORE_CUSTOM_INTERVAL_UNIT = "custom_interval_unit"
-DATA_CHORE_DEFAULT_POINTS = "default_points"
-DATA_CHORE_DESCRIPTION = "description"
-DATA_CHORE_DUE_DATE = "due_date"
-DATA_CHORE_ICON = "icon"
-DATA_CHORE_ID = "chore_id"
-DATA_CHORE_INTERNAL_ID = "internal_id"
-DATA_CHORE_LABELS = "chore_labels"
-DATA_CHORE_LAST_CLAIMED = "last_claimed"
-DATA_CHORE_LAST_COMPLETED = "last_completed"
-DATA_CHORE_NAME = "name"
-DATA_CHORE_NOTIFY_ON_APPROVAL = "notify_on_approval"
-DATA_CHORE_NOTIFY_ON_CLAIM = "notify_on_claim"
-DATA_CHORE_NOTIFY_ON_DISAPPROVAL = "notify_on_disapproval"
-DATA_CHORE_PARTIAL_ALLOWED = "partial_allowed"
-DATA_CHORE_RECURRING_FREQUENCY = "recurring_frequency"
-DATA_CHORE_SHARED_CHORE = "shared_chore"
-DATA_CHORE_STATE = "state"
-DATA_CHORE_TIMESTAMP = "timestamp"
+DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY: Final = "allow_multiple_claims_per_day"
+DATA_CHORE_APPLICABLE_DAYS: Final = "applicable_days"
+DATA_CHORE_ASSIGNED_KIDS: Final = "assigned_kids"
+DATA_CHORE_CUSTOM_INTERVAL: Final = "custom_interval"
+DATA_CHORE_CUSTOM_INTERVAL_UNIT: Final = "custom_interval_unit"
+DATA_CHORE_DEFAULT_POINTS: Final = "default_points"
+DATA_CHORE_DESCRIPTION: Final = "description"
+DATA_CHORE_DUE_DATE: Final = "due_date"
+DATA_CHORE_ICON: Final = "icon"
+DATA_CHORE_ID: Final = "chore_id"
+DATA_CHORE_INTERNAL_ID: Final = "internal_id"
+DATA_CHORE_LABELS: Final = "chore_labels"
+DATA_CHORE_LAST_CLAIMED: Final = "last_claimed"
+DATA_CHORE_LAST_COMPLETED: Final = "last_completed"
+DATA_CHORE_NAME: Final = "name"
+DATA_CHORE_NOTIFY_ON_APPROVAL: Final = "notify_on_approval"
+DATA_CHORE_NOTIFY_ON_CLAIM: Final = "notify_on_claim"
+DATA_CHORE_NOTIFY_ON_DISAPPROVAL: Final = "notify_on_disapproval"
+DATA_CHORE_PARTIAL_ALLOWED: Final = "partial_allowed"
+DATA_CHORE_RECURRING_FREQUENCY: Final = "recurring_frequency"
+DATA_CHORE_SHARED_CHORE: Final = "shared_chore"
+DATA_CHORE_STATE: Final = "state"
+DATA_CHORE_TIMESTAMP: Final = "timestamp"
 
 # BADGES
-DATA_BADGE_ASSIGNED_TO = "assigned_to"
-DATA_BADGE_ASSOCIATED_ACHIEVEMENT = "associated_achievement"
-DATA_BADGE_ASSOCIATED_CHALLENGE = "associated_challenge"
-DATA_BADGE_AWARDS = "awards"
-DATA_BADGE_AWARDS_AWARD_ITEMS = "award_items"
-DATA_BADGE_AWARDS_AWARD_POINTS = "award_points"
-DATA_BADGE_AWARDS_AWARD_POINTS_REWARD = "award_points_reward"
-DATA_BADGE_AWARDS_AWARD_REWARD = "award_reward"
-DATA_BADGE_AWARDS_POINT_MULTIPLIER = "points_multiplier"
-DATA_BADGE_DESCRIPTION = "description"
-DATA_BADGE_EARNED_BY = "earned_by"
-DATA_BADGE_ICON = "icon"
-DATA_BADGE_ID = "badge_id"
-DATA_BADGE_INTERNAL_ID = "internal_id"
-DATA_BADGE_LABELS = "badge_labels"
-DATA_BADGE_MAINTENANCE_RULES = "maintenance_rules"
-DATA_BADGE_NAME = "name"
-DATA_BADGE_OCCASION_TYPE = "occasion_type"
-DATA_BADGE_RESET_SCHEDULE = "reset_schedule"
-DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL = "custom_interval"
-DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT = "custom_interval_unit"
-DATA_BADGE_RESET_SCHEDULE_END_DATE = "end_date"
-DATA_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS = "grace_period_days"
-DATA_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS = "grace_period_days"
-DATA_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY = "recurring_frequency"
-DATA_BADGE_RESET_SCHEDULE_START_DATE = "start_date"
-DATA_BADGE_SPECIAL_OCCASION_TYPE = "occasion_type"
-DATA_BADGE_TARGET = "target"
-DATA_BADGE_TARGET_THRESHOLD_VALUE = "threshold_value"
-DATA_BADGE_TARGET_TYPE = "target_type"
-DATA_BADGE_TRACKED_CHORES = "tracked_chores"
-DATA_BADGE_TRACKED_CHORES_SELECTED_CHORES = "selected_chores"
-DATA_BADGE_TYPE = "badge_type"
+DATA_BADGE_ASSIGNED_TO: Final = "assigned_to"
+DATA_BADGE_ASSOCIATED_ACHIEVEMENT: Final = "associated_achievement"
+DATA_BADGE_ASSOCIATED_CHALLENGE: Final = "associated_challenge"
+DATA_BADGE_AWARDS: Final = "awards"
+DATA_BADGE_AWARDS_AWARD_ITEMS: Final = "award_items"
+DATA_BADGE_AWARDS_AWARD_POINTS: Final = "award_points"
+DATA_BADGE_AWARDS_AWARD_POINTS_REWARD: Final = "award_points_reward"
+DATA_BADGE_AWARDS_AWARD_REWARD: Final = "award_reward"
+DATA_BADGE_AWARDS_POINT_MULTIPLIER: Final = "points_multiplier"
+DATA_BADGE_DESCRIPTION: Final = "description"
+DATA_BADGE_EARNED_BY: Final = "earned_by"
+DATA_BADGE_ICON: Final = "icon"
+DATA_BADGE_ID: Final = "badge_id"
+DATA_BADGE_INTERNAL_ID: Final = "internal_id"
+DATA_BADGE_LABELS: Final = "badge_labels"
+DATA_BADGE_MAINTENANCE_RULES: Final = "maintenance_rules"
+DATA_BADGE_NAME: Final = "name"
+DATA_BADGE_OCCASION_TYPE: Final = "occasion_type"
+DATA_BADGE_RESET_SCHEDULE: Final = "reset_schedule"
+DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL: Final = "custom_interval"
+DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT: Final = "custom_interval_unit"
+DATA_BADGE_RESET_SCHEDULE_END_DATE: Final = "end_date"
+DATA_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS: Final = "grace_period_days"
+DATA_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY: Final = "recurring_frequency"
+DATA_BADGE_RESET_SCHEDULE_START_DATE: Final = "start_date"
+DATA_BADGE_SPECIAL_OCCASION_TYPE: Final = "occasion_type"
+DATA_BADGE_TARGET: Final = "target"
+DATA_BADGE_TARGET_THRESHOLD_VALUE: Final = "threshold_value"
+DATA_BADGE_TARGET_TYPE: Final = "target_type"
+DATA_BADGE_TRACKED_CHORES: Final = "tracked_chores"
+DATA_BADGE_TRACKED_CHORES_SELECTED_CHORES: Final = "selected_chores"
+DATA_BADGE_TYPE: Final = "badge_type"
 
 # REWARDS
-DATA_REWARD_COST = "cost"
-DATA_REWARD_DESCRIPTION = "description"
-DATA_REWARD_ICON = "icon"
-DATA_REWARD_ID = "reward_id"
-DATA_REWARD_INTERNAL_ID = "internal_id"
-DATA_REWARD_LABELS = "reward_labels"
-DATA_REWARD_NAME = "name"
-DATA_REWARD_NOTIFICATION_ID = "notification_id"
-DATA_REWARD_TIMESTAMP = "timestamp"
+DATA_REWARD_COST: Final = "cost"
+DATA_REWARD_DESCRIPTION: Final = "description"
+DATA_REWARD_ICON: Final = "icon"
+DATA_REWARD_ID: Final = "reward_id"
+DATA_REWARD_INTERNAL_ID: Final = "internal_id"
+DATA_REWARD_LABELS: Final = "reward_labels"
+DATA_REWARD_NAME: Final = "name"
+DATA_REWARD_NOTIFICATION_ID: Final = "notification_id"
+DATA_REWARD_TIMESTAMP: Final = "timestamp"
 
 # BONUSES
-DATA_BONUS_DESCRIPTION = "description"
-DATA_BONUS_ICON = "icon"
-DATA_BONUS_ID = "bonus_id"
-DATA_BONUS_INTERNAL_ID = "internal_id"
-DATA_BONUS_LABELS = "bonus_labels"
-DATA_BONUS_NAME = "name"
-DATA_BONUS_POINTS = "points"
+DATA_BONUS_DESCRIPTION: Final = "description"
+DATA_BONUS_ICON: Final = "icon"
+DATA_BONUS_ID: Final = "bonus_id"
+DATA_BONUS_INTERNAL_ID: Final = "internal_id"
+DATA_BONUS_LABELS: Final = "bonus_labels"
+DATA_BONUS_NAME: Final = "name"
+DATA_BONUS_POINTS: Final = "points"
 
 # PENALTIES
-DATA_PENALTY_DESCRIPTION = "description"
-DATA_PENALTY_ICON = "icon"
-DATA_PENALTY_ID = "penalty_id"
-DATA_PENALTY_INTERNAL_ID = "internal_id"
-DATA_PENALTY_LABELS = "penalty_labels"
-DATA_PENALTY_NAME = "name"
-DATA_PENALTY_POINTS = "points"
+DATA_PENALTY_DESCRIPTION: Final = "description"
+DATA_PENALTY_ICON: Final = "icon"
+DATA_PENALTY_ID: Final = "penalty_id"
+DATA_PENALTY_INTERNAL_ID: Final = "internal_id"
+DATA_PENALTY_LABELS: Final = "penalty_labels"
+DATA_PENALTY_NAME: Final = "name"
+DATA_PENALTY_POINTS: Final = "points"
 
 # ACHIEVEMENTS
-DATA_ACHIEVEMENT_ASSIGNED_KIDS = "assigned_kids"
-DATA_ACHIEVEMENT_AWARDED = "awarded"
-DATA_ACHIEVEMENT_BASELINE = "baseline"
-DATA_ACHIEVEMENT_CRITERIA = "criteria"
-DATA_ACHIEVEMENT_CURRENT_STREAK = "current_streak"
-DATA_ACHIEVEMENT_CURRENT_VALUE = "current_value"
-DATA_ACHIEVEMENT_DESCRIPTION = "description"
-DATA_ACHIEVEMENT_ICON = "icon"
-DATA_ACHIEVEMENT_ID = "achievement_id"
-DATA_ACHIEVEMENT_INTERNAL_ID = "internal_id"
-DATA_ACHIEVEMENT_LABELS = "achievement_labels"
-DATA_ACHIEVEMENT_LAST_AWARDED_DATE = "last_awarded_date"
-DATA_ACHIEVEMENT_NAME = "name"
-DATA_ACHIEVEMENT_PROGRESS = "progress"
-DATA_ACHIEVEMENT_PROGRESS_SUFFIX = "_achievement_progress"
-DATA_ACHIEVEMENT_REWARD_POINTS = "reward_points"
-DATA_ACHIEVEMENT_SELECTED_CHORE_ID = "selected_chore_id"
-DATA_ACHIEVEMENT_TARGET_VALUE = "target_value"
-DATA_ACHIEVEMENT_TYPE = "type"
+DATA_ACHIEVEMENT_ASSIGNED_KIDS: Final = "assigned_kids"
+DATA_ACHIEVEMENT_AWARDED: Final = "awarded"
+DATA_ACHIEVEMENT_BASELINE: Final = "baseline"
+DATA_ACHIEVEMENT_CRITERIA: Final = "criteria"
+DATA_ACHIEVEMENT_CURRENT_STREAK: Final = "current_streak"
+DATA_ACHIEVEMENT_CURRENT_VALUE: Final = "current_value"
+DATA_ACHIEVEMENT_DESCRIPTION: Final = "description"
+DATA_ACHIEVEMENT_ICON: Final = "icon"
+DATA_ACHIEVEMENT_ID: Final = "achievement_id"
+DATA_ACHIEVEMENT_INTERNAL_ID: Final = "internal_id"
+DATA_ACHIEVEMENT_LABELS: Final = "achievement_labels"
+DATA_ACHIEVEMENT_LAST_AWARDED_DATE: Final = "last_awarded_date"
+DATA_ACHIEVEMENT_NAME: Final = "name"
+DATA_ACHIEVEMENT_PROGRESS: Final = "progress"
+DATA_ACHIEVEMENT_PROGRESS_SUFFIX: Final = "_achievement_progress"
+DATA_ACHIEVEMENT_REWARD_POINTS: Final = "reward_points"
+DATA_ACHIEVEMENT_SELECTED_CHORE_ID: Final = "selected_chore_id"
+DATA_ACHIEVEMENT_TARGET_VALUE: Final = "target_value"
+DATA_ACHIEVEMENT_TYPE: Final = "type"
 
 # CHALLENGES
-DATA_CHALLENGE_ASSIGNED_KIDS = "assigned_kids"
-DATA_CHALLENGE_AWARDED = "awarded"
-DATA_CHALLENGE_COUNT = "count"
-DATA_CHALLENGE_CRITERIA = "criteria"
-DATA_CHALLENGE_DAILY_COUNTS = "daily_counts"
-DATA_CHALLENGE_DESCRIPTION = "description"
-DATA_CHALLENGE_END_DATE = "end_date"
-DATA_CHALLENGE_ICON = "icon"
-DATA_CHALLENGE_ID = "challenge_id"
-DATA_CHALLENGE_INTERNAL_ID = "internal_id"
-DATA_CHALLENGE_LABELS = "challenge_labels"
-DATA_CHALLENGE_NAME = "name"
-DATA_CHALLENGE_PROGRESS = "progress"
-DATA_CHALLENGE_PROGRESS_SUFFIX = "_challenge_progress"
-DATA_CHALLENGE_REQUIRED_DAILY = "required_daily"
-DATA_CHALLENGE_REWARD_POINTS = "reward_points"
-DATA_CHALLENGE_SELECTED_CHORE_ID = "selected_chore_id"
-DATA_CHALLENGE_START_DATE = "start_date"
-DATA_CHALLENGE_TARGET_VALUE = "target_value"
-DATA_CHALLENGE_TYPE = "type"
+DATA_CHALLENGE_ASSIGNED_KIDS: Final = "assigned_kids"
+DATA_CHALLENGE_AWARDED: Final = "awarded"
+DATA_CHALLENGE_COUNT: Final = "count"
+DATA_CHALLENGE_CRITERIA: Final = "criteria"
+DATA_CHALLENGE_DAILY_COUNTS: Final = "daily_counts"
+DATA_CHALLENGE_DESCRIPTION: Final = "description"
+DATA_CHALLENGE_END_DATE: Final = "end_date"
+DATA_CHALLENGE_ICON: Final = "icon"
+DATA_CHALLENGE_ID: Final = "challenge_id"
+DATA_CHALLENGE_INTERNAL_ID: Final = "internal_id"
+DATA_CHALLENGE_LABELS: Final = "challenge_labels"
+DATA_CHALLENGE_NAME: Final = "name"
+DATA_CHALLENGE_PROGRESS: Final = "progress"
+DATA_CHALLENGE_PROGRESS_SUFFIX: Final = "_challenge_progress"
+DATA_CHALLENGE_REQUIRED_DAILY: Final = "required_daily"
+DATA_CHALLENGE_REWARD_POINTS: Final = "reward_points"
+DATA_CHALLENGE_SELECTED_CHORE_ID: Final = "selected_chore_id"
+DATA_CHALLENGE_START_DATE: Final = "start_date"
+DATA_CHALLENGE_TARGET_VALUE: Final = "target_value"
+DATA_CHALLENGE_TYPE: Final = "type"
 
 # Runtime Data Keys
-DATA_PENDING_CHORE_APPROVALS = "pending_chore_approvals"
-DATA_PENDING_REWARD_APPROVALS = "pending_reward_approvals"
-
-# ------------------------------------------------------------------------------------------------
-# Frequencies
-# ------------------------------------------------------------------------------------------------
-FREQUENCY_BIWEEKLY = "biweekly"
-FREQUENCY_CUSTOM = "custom"
-FREQUENCY_CUSTOM_1_MONTH = "custom_1_month"
-FREQUENCY_CUSTOM_1_QUARTER = "custom_1_quarter"
-FREQUENCY_CUSTOM_1_WEEK = "custom_1_week"
-FREQUENCY_CUSTOM_1_YEAR = "custom_1_year"
-FREQUENCY_DAILY = "daily"
-FREQUENCY_MONTHLY = "monthly"
-FREQUENCY_NONE = "none"
-FREQUENCY_QUARTERLY = "quarterly"
-FREQUENCY_WEEKLY = "weekly"
-FREQUENCY_YEARLY = "yearly"
-
-# ------------------------------------------------------------------------------------------------
-# Periods
-# ------------------------------------------------------------------------------------------------
-PERIOD_DAY_END = "day_end"
-PERIOD_MONTH_END = "month_end"
-PERIOD_QUARTER_END = "quarter_end"
-PERIOD_WEEK_END = "week_end"
-PERIOD_YEAR_END = "year_end"
-PERIOD_ALL_TIME = "all_time"
+DATA_PENDING_CHORE_APPROVALS: Final = "pending_chore_approvals"
+DATA_PENDING_REWARD_APPROVALS: Final = "pending_reward_approvals"
 
 
-# ------------------------------------------------------------------------------------------------
+# ================================================================================================
 # Default Icons
-# ------------------------------------------------------------------------------------------------
-DEFAULT_ACHIEVEMENTS_ICON = "mdi:trophy-award"
-DEFAULT_BADGE_ICON = "mdi:shield-star-outline"
-DEFAULT_BONUS_ICON = "mdi:seal"
-DEFAULT_CALENDAR_ICON = "mdi:calendar"
-DEFAULT_CHALLENGES_ICON = "mdi:trophy"
-DEFAULT_CHORE_ICON = "mdi:checkbox-marked-circle-auto-outline"
-DEFAULT_CHORE_APPROVE_ICON = "mdi:checkbox-marked-circle-outline"
-DEFAULT_CHORE_CLAIM_ICON = "mdi:clipboard-check-outline"
-DEFAULT_CHORE_SENSOR_ICON = "mdi:checkbox-blank-circle-outline"
-DEFAULT_COMPLETED_CHORES_DAILY_SENSOR_ICON = "mdi:clipboard-check-outline"
-DEFAULT_COMPLETED_CHORES_MONTHLY_SENSOR_ICON = "mdi:clipboard-list-outline"
-DEFAULT_COMPLETED_CHORES_TOTAL_SENSOR_ICON = "mdi:clipboard-text-clock-outline"
-DEFAULT_COMPLETED_CHORES_WEEKLY_SENSOR_ICON = "mdi:clipboard-check-multiple-outline"
-DEFAULT_DISAPPROVE_ICON = "mdi:close-circle-outline"
-DEFAULT_ICON = "mdi:star-outline"
-DEFAULT_PENALTY_ICON = "mdi:alert-outline"
-DEFAULT_PENDING_CHORE_APPROVALS_SENSOR_ICON = "mdi:checkbox-blank-badge-outline"
-DEFAULT_PENDING_REWARD_APPROVALS_SENSOR_ICON = "mdi:gift-open-outline"
-DEFAULT_POINTS_ADJUST_MINUS_ICON = "mdi:minus-circle-outline"
-DEFAULT_POINTS_ADJUST_MINUS_MULTIPLE_ICON = "mdi:minus-circle-multiple-outline"
-DEFAULT_POINTS_ADJUST_PLUS_ICON = "mdi:plus-circle-outline"
-DEFAULT_POINTS_ADJUST_PLUS_MULTIPLE_ICON = "mdi:plus-circle-multiple-outline"
-DEFAULT_POINTS_ICON = "mdi:star-outline"
-DEFAULT_STREAK_ICON = "mdi:blur-linear"
-DEFAULT_REWARD_ICON = "mdi:gift-outline"
-DEFAULT_TROPHY_ICON = "mdi:trophy"
-DEFAULT_TROPHY_OUTLINE = "mdi:trophy-outline"
+# ================================================================================================
+DEFAULT_ACHIEVEMENTS_ICON: Final = "mdi:trophy-award"
+DEFAULT_BADGE_ICON: Final = "mdi:shield-star-outline"
+DEFAULT_BONUS_ICON: Final = "mdi:seal"
+DEFAULT_CALENDAR_ICON: Final = "mdi:calendar"
+DEFAULT_CHALLENGES_ICON: Final = "mdi:trophy"
+DEFAULT_CHORE_ICON: Final = "mdi:checkbox-marked-circle-auto-outline"
+DEFAULT_CHORE_APPROVE_ICON: Final = "mdi:checkbox-marked-circle-outline"
+DEFAULT_CHORE_CLAIM_ICON: Final = "mdi:clipboard-check-outline"
+DEFAULT_CHORE_SENSOR_ICON: Final = "mdi:checkbox-blank-circle-outline"
+DEFAULT_COMPLETED_CHORES_DAILY_SENSOR_ICON: Final = "mdi:clipboard-check-outline"
+DEFAULT_COMPLETED_CHORES_MONTHLY_SENSOR_ICON: Final = "mdi:clipboard-list-outline"
+DEFAULT_COMPLETED_CHORES_TOTAL_SENSOR_ICON: Final = "mdi:clipboard-text-clock-outline"
+DEFAULT_COMPLETED_CHORES_WEEKLY_SENSOR_ICON: Final = (
+    "mdi:clipboard-check-multiple-outline"
+)
+DEFAULT_DISAPPROVE_ICON: Final = "mdi:close-circle-outline"
+DEFAULT_ICON: Final = "mdi:star-outline"
+DEFAULT_PENALTY_ICON: Final = "mdi:alert-outline"
+DEFAULT_PENDING_CHORE_APPROVALS_SENSOR_ICON: Final = "mdi:checkbox-blank-badge-outline"
+DEFAULT_PENDING_REWARD_APPROVALS_SENSOR_ICON: Final = "mdi:gift-open-outline"
+DEFAULT_POINTS_ADJUST_MINUS_ICON: Final = "mdi:minus-circle-outline"
+DEFAULT_POINTS_ADJUST_MINUS_MULTIPLE_ICON: Final = "mdi:minus-circle-multiple-outline"
+DEFAULT_POINTS_ADJUST_PLUS_ICON: Final = "mdi:plus-circle-outline"
+DEFAULT_POINTS_ADJUST_PLUS_MULTIPLE_ICON: Final = "mdi:plus-circle-multiple-outline"
+DEFAULT_POINTS_ICON: Final = "mdi:star-outline"
+DEFAULT_STREAK_ICON: Final = "mdi:blur-linear"
+DEFAULT_REWARD_ICON: Final = "mdi:gift-outline"
+DEFAULT_TROPHY_ICON: Final = "mdi:trophy"
+DEFAULT_TROPHY_OUTLINE: Final = "mdi:trophy-outline"
 
 
 # ------------------------------------------------------------------------------------------------
 # Default Values
 # ------------------------------------------------------------------------------------------------
-DEFAULT_ACHIEVEMENT_REWARD_POINTS = 0
-DEFAULT_ACHIEVEMENT_TARGET = 1
+DEFAULT_ACHIEVEMENT_REWARD_POINTS: Final = 0
+DEFAULT_ACHIEVEMENT_TARGET: Final = 1
 DEFAULT_APPLICABLE_DAYS: list[str] = []
-DEFAULT_BADGE_AWARD_POINTS = 0
+DEFAULT_BADGE_AWARD_POINTS: Final = 0
 DEFAULT_BADGE_MAINTENANCE_THRESHOLD = 0  # Added
-DEFAULT_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT = CONF_NONE
-DEFAULT_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL = CONF_NONE
-DEFAULT_BADGE_RESET_SCHEDULE_END_DATE = CONF_NONE
-DEFAULT_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS = 0
-DEFAULT_BADGE_RESET_SCHEDULE_START_DATE = CONF_NONE
+DEFAULT_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT = SENTINEL_NONE
+DEFAULT_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL = SENTINEL_NONE
+DEFAULT_BADGE_RESET_SCHEDULE_END_DATE = SENTINEL_NONE
+DEFAULT_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS: Final = 0
+DEFAULT_BADGE_RESET_SCHEDULE_START_DATE = SENTINEL_NONE
 DEFAULT_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY = FREQUENCY_NONE
 DEFAULT_BADGE_RESET_SCHEDULE = {
     DATA_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY: DEFAULT_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY,
@@ -1049,49 +1073,49 @@ DEFAULT_BADGE_RESET_SCHEDULE = {
     DATA_BADGE_RESET_SCHEDULE_END_DATE: DEFAULT_BADGE_RESET_SCHEDULE_END_DATE,
     DATA_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS: DEFAULT_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS,
 }
-DEFAULT_BADGE_TARGET_TYPE = "points"
-DEFAULT_BADGE_TARGET_THRESHOLD_VALUE = 50
+DEFAULT_BADGE_TARGET_TYPE: Final = "points"
+DEFAULT_BADGE_TARGET_THRESHOLD_VALUE: Final = 50
 DEFAULT_BADGE_TARGET = {
     "type": DEFAULT_BADGE_TARGET_TYPE,
     "value": DEFAULT_BADGE_TARGET_THRESHOLD_VALUE,
 }
-DEFAULT_BADGE_THRESHOLD_VALUE_LEGACY = 50
-DEFAULT_BONUS_POINTS = 1
-DEFAULT_CALENDAR_SHOW_PERIOD = 90
-DEFAULT_CHALLENGE_REWARD_POINTS = 0
-DEFAULT_RETENTION_DAILY = 7
-DEFAULT_RETENTION_WEEKLY = 5
-DEFAULT_RETENTION_MONTHLY = 3
-DEFAULT_RETENTION_YEARLY = 3
-DEFAULT_CHALLENGE_TARGET = 1
-DEFAULT_CHORES_UNIT = "Chores"
+DEFAULT_BADGE_THRESHOLD_VALUE_LEGACY: Final = 50
+DEFAULT_BONUS_POINTS: Final = 1
+DEFAULT_CALENDAR_SHOW_PERIOD: Final = 90
+DEFAULT_CHALLENGE_REWARD_POINTS: Final = 0
+DEFAULT_RETENTION_DAILY: Final = 7
+DEFAULT_RETENTION_WEEKLY: Final = 5
+DEFAULT_RETENTION_MONTHLY: Final = 3
+DEFAULT_RETENTION_YEARLY: Final = 3
+DEFAULT_CHALLENGE_TARGET: Final = 1
+DEFAULT_CHORES_UNIT: Final = "Chores"
 DEFAULT_DAILY_RESET_TIME = {"hour": 0, "minute": 0, "second": 0}
 DEFAULT_DUE_TIME = {"hour": 23, "minute": 59, "second": 0}
-DEFAULT_HOUR = 0
-DEFAULT_KID_POINTS_MULTIPLIER = 1
-DEFAULT_MONTHLY_RESET_DAY = 1
+DEFAULT_HOUR: Final = 0
+DEFAULT_KID_POINTS_MULTIPLIER: Final = 1
+DEFAULT_MONTHLY_RESET_DAY: Final = 1
 DEFAULT_MULTIPLE_CLAIMS_PER_DAY = False
-DEFAULT_NOTIFY_DELAY_REMINDER = 24
+DEFAULT_NOTIFY_DELAY_REMINDER: Final = 24
 DEFAULT_NOTIFY_ON_APPROVAL = True
 DEFAULT_NOTIFY_ON_CLAIM = True
 DEFAULT_NOTIFY_ON_DISAPPROVAL = True
 DEFAULT_PARTIAL_ALLOWED = False
-DEFAULT_PENALTY_POINTS = 1
-DEFAULT_PENDING_CHORES_UNIT = "Pending Chores"
-DEFAULT_PENDING_REWARDS_UNIT = "Pending Rewards"
-DEFAULT_POINTS = 5
+DEFAULT_PENALTY_POINTS: Final = 1
+DEFAULT_PENDING_CHORES_UNIT: Final = "Pending Chores"
+DEFAULT_PENDING_REWARDS_UNIT: Final = "Pending Rewards"
+DEFAULT_POINTS: Final = 5
 DEFAULT_POINTS_ADJUST_VALUES = [+1, -1, +2, -2, +10, -10]
-DEFAULT_POINTS_LABEL = "Points"
+DEFAULT_POINTS_LABEL: Final = "Points"
 DEFAULT_POINTS_MULTIPLIER = 1.0
-DEFAULT_REWARD_COST = 10
-DEFAULT_REMINDER_DELAY = 30
-DEFAULT_WEEKLY_RESET_DAY = 0
-DEFAULT_YEAR_END_DAY = 31
-DEFAULT_YEAR_END_HOUR = 23
-DEFAULT_YEAR_END_MINUTE = 59
-DEFAULT_YEAR_END_MONTH = 12
-DEFAULT_YEAR_END_SECOND = 0
-DEFAULT_ZERO = 0
+DEFAULT_REWARD_COST: Final = 10
+DEFAULT_REMINDER_DELAY: Final = 30
+DEFAULT_WEEKLY_RESET_DAY: Final = 0
+DEFAULT_YEAR_END_DAY: Final = 31
+DEFAULT_YEAR_END_HOUR: Final = 23
+DEFAULT_YEAR_END_MINUTE: Final = 59
+DEFAULT_YEAR_END_MONTH: Final = 12
+DEFAULT_YEAR_END_SECOND: Final = 0
+DEFAULT_ZERO: Final = 0
 
 
 # ------------------------------------------------------------------------------------------------
@@ -1099,15 +1123,15 @@ DEFAULT_ZERO = 0
 # ------------------------------------------------------------------------------------------------
 # Badge Target Types for all supported badge logic
 
-BADGE_TARGET_THRESHOLD_TYPE_POINTS = "points"
-BADGE_TARGET_THRESHOLD_TYPE_POINTS_CHORES = "points_chores"
-BADGE_TARGET_THRESHOLD_TYPE_CHORE_COUNT = "chore_count"
-BADGE_TARGET_THRESHOLD_TYPE_DAYS_SELECTED_CHORES = "days_all_chores"
+BADGE_TARGET_THRESHOLD_TYPE_POINTS: Final = "points"
+BADGE_TARGET_THRESHOLD_TYPE_POINTS_CHORES: Final = "points_chores"
+BADGE_TARGET_THRESHOLD_TYPE_CHORE_COUNT: Final = "chore_count"
+BADGE_TARGET_THRESHOLD_TYPE_DAYS_SELECTED_CHORES: Final = "days_all_chores"
 BADGE_TARGET_THRESHOLD_TYPE_DAYS_80PCT_CHORES = "days_80pct_chores"
 BADGE_TARGET_THRESHOLD_TYPE_DAYS_SELECTED_CHORES_NO_OVERDUE = (
     "days_all_chores_no_overdue"
 )
-BADGE_TARGET_THRESHOLD_TYPE_DAYS_SELECTED_DUE_CHORES = "days_all_due_chores"
+BADGE_TARGET_THRESHOLD_TYPE_DAYS_SELECTED_DUE_CHORES: Final = "days_all_due_chores"
 BADGE_TARGET_THRESHOLD_TYPE_DAYS_80PCT_DUE_CHORES = "days_80pct_due_chores"
 BADGE_TARGET_THRESHOLD_TYPE_DAYS_SELECTED_DUE_CHORES_NO_OVERDUE = (
     "days_all_due_chores_no_overdue"
@@ -1115,7 +1139,7 @@ BADGE_TARGET_THRESHOLD_TYPE_DAYS_SELECTED_DUE_CHORES_NO_OVERDUE = (
 BADGE_TARGET_THRESHOLD_TYPE_DAYS_MIN_3_CHORES = "days_min_3_chores"
 BADGE_TARGET_THRESHOLD_TYPE_DAYS_MIN_5_CHORES = "days_min_5_chores"
 BADGE_TARGET_THRESHOLD_TYPE_DAYS_MIN_7_CHORES = "days_min_7_chores"
-BADGE_TARGET_THRESHOLD_TYPE_STREAK_SELECTED_CHORES = "streak_all_chores"
+BADGE_TARGET_THRESHOLD_TYPE_STREAK_SELECTED_CHORES: Final = "streak_all_chores"
 BADGE_TARGET_THRESHOLD_TYPE_STREAK_80PCT_CHORES = "streak_80pct_chores"
 BADGE_TARGET_THRESHOLD_TYPE_STREAK_SELECTED_CHORES_NO_OVERDUE = (
     "streak_all_chores_no_overdue"
@@ -1126,8 +1150,8 @@ BADGE_TARGET_THRESHOLD_TYPE_STREAK_SELECTED_DUE_CHORES_NO_OVERDUE = (
 )
 
 # Legacy
-BADGE_THRESHOLD_TYPE_CHORE_COUNT = "chore_count"
-BADGE_THRESHOLD_TYPE_POINTS = "points"
+BADGE_THRESHOLD_TYPE_CHORE_COUNT: Final = "chore_count"
+BADGE_THRESHOLD_TYPE_POINTS: Final = "points"
 
 
 # ------------------------------------------------------------------------------------------------
@@ -1150,9 +1174,9 @@ REWARD_STATE_CLAIMED = "claimed"
 REWARD_STATE_NOT_CLAIMED = "not_claimed"
 
 # Badge States
-BADGE_STATE_IN_PROGRESS = "in_progress"
-BADGE_STATE_EARNED = "earned"
-BADGE_STATE_ACTIVE_CYCLE = "active_cycle"
+BADGE_STATE_IN_PROGRESS: Final = "in_progress"
+BADGE_STATE_EARNED: Final = "earned"
+BADGE_STATE_ACTIVE_CYCLE: Final = "active_cycle"
 CUMULATIVE_BADGE_STATE_ACTIVE = "active"
 CUMULATIVE_BADGE_STATE_GRACE = "grace"
 CUMULATIVE_BADGE_STATE_DEMOTED = "demoted"
@@ -1161,10 +1185,10 @@ CUMULATIVE_BADGE_STATE_DEMOTED = "demoted"
 # Actions
 # ------------------------------------------------------------------------------------------------
 
-# Action titles for notifications
-ACTION_TITLE_APPROVE = "Approve"
-ACTION_TITLE_DISAPPROVE = "Disapprove"
-ACTION_TITLE_REMIND_30 = "Remind in 30 mins"
+# Action titles for notifications (translation keys)
+TRANS_KEY_NOTIF_ACTION_APPROVE: Final = "notif_action_approve"
+TRANS_KEY_NOTIF_ACTION_DISAPPROVE: Final = "notif_action_disapprove"
+TRANS_KEY_NOTIF_ACTION_REMIND_30: Final = "notif_action_remind_30"
 
 # Action identifiers
 ACTION_APPROVE_CHORE = "APPROVE_CHORE"
@@ -1177,120 +1201,120 @@ ACTION_REMIND_30 = "REMIND_30"
 # ------------------------------------------------------------------------------------------------
 # Entities Attributes
 # ------------------------------------------------------------------------------------------------
-ATTR_ACHIEVEMENT_NAME = "achievement_name"
-ATTR_ALL_EARNED_BADGES = "all_earned_badges"
-ATTR_ALLOW_MULTIPLE_CLAIMS_PER_DAY = "allow_multiple_claims_per_day"
-ATTR_APPLICABLE_DAYS = "applicable_days"
-ATTR_AWARDED = "awarded"
-ATTR_BADGE_AWARDS = "awards"
-ATTR_BONUS_BUTTON_EID = "bonus_button_eid"
-ATTR_ASSIGNED_KIDS = "assigned_kids"
-ATTR_ASSOCIATED_ACHIEVEMENT = "associated_achievement"
-ATTR_ASSOCIATED_CHALLENGE = "associated_challenge"
-ATTR_ASSOCIATED_CHORE = "associated_chore"
-ATTR_AWARD_POINTS = "award_points"
-ATTR_AWARD_REWARD = "award_reward"
-ATTR_BADGE_AWARD_MODE = "award_mode"
-ATTR_BADGE_STATUS = "badge_status"
-ATTR_BADGE_TYPE = "badge_type"
-ATTR_BONUS_NAME = "bonus_name"
-ATTR_BONUS_POINTS = "bonus_points"
-ATTR_CHALLENGE_NAME = "challenge_name"
-ATTR_CHALLENGE_TYPE = "challenge_type"
-ATTR_CHORE_APPROVALS_COUNT = "chore_approvals_count"
-ATTR_CHORE_APPROVALS_TODAY = "chore_approvals_today"
-ATTR_CHORE_CLAIMS_COUNT = "chore_claims_count"
-ATTR_CHORE_CURRENT_STREAK = "chore_current_streak"
-ATTR_CHORE_HIGHEST_STREAK = "chore_highest_streak"
-ATTR_CHORE_POINTS_EARNED = "chore_points_earned"
-ATTR_CHORE_OVERDUE_COUNT = "chore_overdue_count"
-ATTR_CHORE_DISAPPROVED_COUNT = "chore_disapproved_count"
-ATTR_CHORE_LAST_LONGEST_STREAK_DATE = "chore_last_longest_streak_date"
-ATTR_CHORE_APPROVE_BUTTON_ENTITY_ID = "approve_button_eid"
-ATTR_CHORE_CLAIM_BUTTON_ENTITY_ID = "claim_button_eid"
-ATTR_CHORE_DISAPPROVE_BUTTON_ENTITY_ID = "disapprove_button_eid"
-ATTR_CHORE_NAME = "chore_name"
-ATTR_CLAIMED_ON = "Claimed on"
-ATTR_COST = "cost"
-ATTR_CRITERIA = "criteria"
-ATTR_BADGE_CUMULATIVE_BASELINE_POINTS = "baseline_points"
-ATTR_BADGE_CUMULATIVE_CYCLE_POINTS = "cycle_points"
-ATTR_BADGE_CUMULATIVE_GRACE_END_DATE = "maintenance_grace_end_date"
-ATTR_BADGE_CUMULATIVE_MAINTENANCE_POINTS_REQUIRED = "maintenance_points_required"
-ATTR_BADGE_CUMULATIVE_MAINTENANCE_END_DATE = "maintenance_end_date"
-ATTR_BADGE_CUMULATIVE_POINTS_TO_MAINTENANCE = "maintenance_points_remaining"
-ATTR_CURRENT_BADGE_ID = "current_badge_id"
-ATTR_CURRENT_BADGE_NAME = "current_badge_name"
-ATTR_CUSTOM_FREQUENCY_INTERVAL = "custom_frequency_interval"
-ATTR_CUSTOM_FREQUENCY_UNIT = "custom_frequency_unit"
-ATTR_DAILY_THRESHOLD = "daily_threshold"
-ATTR_DEFAULT_POINTS = "default_points"
-ATTR_DESCRIPTION = "description"
-ATTR_DUE_DATE = "due_date"
-ATTR_END_DATE = "end_date"
-ATTR_FRIENDLY_NAME = "friendly_name"
-ATTR_GLOBAL_STATE = "global_state"
-ATTR_HIGHEST_BADGE_THRESHOLD_VALUE = "highest_badge_threshold_value"
-ATTR_HIGHEST_EARNED_BADGE_ID = "highest_earned_badge_id"
-ATTR_HIGHEST_EARNED_BADGE_NAME = "highest_earned_badge_name"
-ATTR_KID_NAME = "kid_name"
-ATTR_KIDS_ASSIGNED = "kids_assigned"
-ATTR_KIDS_EARNED = "kids_earned"
-ATTR_LABELS = "labels"
-ATTR_LAST_CLAIMED = "last_claimed"
-ATTR_LAST_COMPLETED = "last_completed"
-ATTR_NEXT_HIGHER_BADGE_ID = "next_higher_badge_id"
-ATTR_NEXT_HIGHER_BADGE_NAME = "next_higher_badge_name"
-ATTR_NEXT_LOWER_BADGE_ID = "next_lower_badge_id"
-ATTR_NEXT_LOWER_BADGE_NAME = "next_lower_badge_name"
-ATTR_OCCASION_DATE = "occasion_date"
-ATTR_OCCASION_TYPE = "occasion_type"
-ATTR_PARTIAL_ALLOWED = "partial_allowed"
-ATTR_PENALTY_BUTTON_EID = "penalty_button_eid"
-ATTR_PENALTY_NAME = "penalty_name"
-ATTR_PENALTY_POINTS = "penalty_points"
-ATTR_PERIODIC_RECURRENT = "recurrent"
-ATTR_POINTS_MULTIPLIER = "points_multiplier"
-ATTR_POINTS_TO_NEXT_BADGE = "points_to_next_badge"
-ATTR_RAW_PROGRESS = "raw_progress"
-ATTR_RECURRING_FREQUENCY = "recurring_frequency"
-ATTR_REQUIRED_CHORES = "required_chores"
-ATTR_REDEEMED_ON = "Redeemed on"
-ATTR_RESET_SCHEDULE = "reset_schedule"
-ATTR_REWARD_APPROVALS_COUNT = "reward_approvals_count"
-ATTR_REWARD_CLAIMS_COUNT = "reward_claims_count"
-ATTR_REWARD_NAME = "reward_name"
-ATTR_REWARD_POINTS = "reward_points"
-ATTR_REWARD_APPROVE_BUTTON_ENTITY_ID = "approve_button_eid"
-ATTR_REWARD_CLAIM_BUTTON_ENTITY_ID = "claim_button_eid"
-ATTR_REWARD_DISAPPROVE_BUTTON_ENTITY_ID = "disapprove_button_eid"
-ATTR_SIGN_LABEL = "sign_label"
-ATTR_START_DATE = "start_date"
-ATTR_STREAKS_BY_ACHIEVEMENT = "streaks_by_achievement"
-ATTR_SHARED_CHORE = "shared_chore"
-ATTR_TARGET = "target"
-ATTR_TARGET_VALUE = "target_value"
-ATTR_THRESHOLD_TYPE = "threshold_type"
-ATTR_THRESHOLD_VALUE = "threshold_value"
+ATTR_ACHIEVEMENT_NAME: Final = "achievement_name"
+ATTR_ALL_EARNED_BADGES: Final = "all_earned_badges"
+ATTR_ALLOW_MULTIPLE_CLAIMS_PER_DAY: Final = "allow_multiple_claims_per_day"
+ATTR_APPLICABLE_DAYS: Final = "applicable_days"
+ATTR_AWARDED: Final = "awarded"
+ATTR_BADGE_AWARDS: Final = "awards"
+ATTR_BONUS_BUTTON_EID: Final = "bonus_button_eid"
+ATTR_ASSIGNED_KIDS: Final = "assigned_kids"
+ATTR_ASSOCIATED_ACHIEVEMENT: Final = "associated_achievement"
+ATTR_ASSOCIATED_CHALLENGE: Final = "associated_challenge"
+ATTR_ASSOCIATED_CHORE: Final = "associated_chore"
+ATTR_AWARD_POINTS: Final = "award_points"
+ATTR_AWARD_REWARD: Final = "award_reward"
+ATTR_BADGE_AWARD_MODE: Final = "award_mode"
+ATTR_BADGE_STATUS: Final = "badge_status"
+ATTR_BADGE_TYPE: Final = "badge_type"
+ATTR_BONUS_NAME: Final = "bonus_name"
+ATTR_BONUS_POINTS: Final = "bonus_points"
+ATTR_CHALLENGE_NAME: Final = "challenge_name"
+ATTR_CHALLENGE_TYPE: Final = "challenge_type"
+ATTR_CHORE_APPROVALS_COUNT: Final = "chore_approvals_count"
+ATTR_CHORE_APPROVALS_TODAY: Final = "chore_approvals_today"
+ATTR_CHORE_CLAIMS_COUNT: Final = "chore_claims_count"
+ATTR_CHORE_CURRENT_STREAK: Final = "chore_current_streak"
+ATTR_CHORE_HIGHEST_STREAK: Final = "chore_highest_streak"
+ATTR_CHORE_POINTS_EARNED: Final = "chore_points_earned"
+ATTR_CHORE_OVERDUE_COUNT: Final = "chore_overdue_count"
+ATTR_CHORE_DISAPPROVED_COUNT: Final = "chore_disapproved_count"
+ATTR_CHORE_LAST_LONGEST_STREAK_DATE: Final = "chore_last_longest_streak_date"
+ATTR_CHORE_APPROVE_BUTTON_ENTITY_ID: Final = "approve_button_eid"
+ATTR_CHORE_CLAIM_BUTTON_ENTITY_ID: Final = "claim_button_eid"
+ATTR_CHORE_DISAPPROVE_BUTTON_ENTITY_ID: Final = "disapprove_button_eid"
+ATTR_CHORE_NAME: Final = "chore_name"
+ATTR_CLAIMED_ON: Final = "Claimed on"
+ATTR_COST: Final = "cost"
+ATTR_CRITERIA: Final = "criteria"
+ATTR_BADGE_CUMULATIVE_BASELINE_POINTS: Final = "baseline_points"
+ATTR_BADGE_CUMULATIVE_CYCLE_POINTS: Final = "cycle_points"
+ATTR_BADGE_CUMULATIVE_GRACE_END_DATE: Final = "maintenance_grace_end_date"
+ATTR_BADGE_CUMULATIVE_MAINTENANCE_POINTS_REQUIRED: Final = "maintenance_points_required"
+ATTR_BADGE_CUMULATIVE_MAINTENANCE_END_DATE: Final = "maintenance_end_date"
+ATTR_BADGE_CUMULATIVE_POINTS_TO_MAINTENANCE: Final = "maintenance_points_remaining"
+ATTR_CURRENT_BADGE_ID: Final = "current_badge_id"
+ATTR_CURRENT_BADGE_NAME: Final = "current_badge_name"
+ATTR_CUSTOM_FREQUENCY_INTERVAL: Final = "custom_frequency_interval"
+ATTR_CUSTOM_FREQUENCY_UNIT: Final = "custom_frequency_unit"
+ATTR_DAILY_THRESHOLD: Final = "daily_threshold"
+ATTR_DEFAULT_POINTS: Final = "default_points"
+ATTR_DESCRIPTION: Final = "description"
+ATTR_DUE_DATE: Final = "due_date"
+ATTR_END_DATE: Final = "end_date"
+ATTR_FRIENDLY_NAME: Final = "friendly_name"
+ATTR_GLOBAL_STATE: Final = "global_state"
+ATTR_HIGHEST_BADGE_THRESHOLD_VALUE: Final = "highest_badge_threshold_value"
+ATTR_HIGHEST_EARNED_BADGE_ID: Final = "highest_earned_badge_id"
+ATTR_HIGHEST_EARNED_BADGE_NAME: Final = "highest_earned_badge_name"
+ATTR_KID_NAME: Final = "kid_name"
+ATTR_KIDS_ASSIGNED: Final = "kids_assigned"
+ATTR_KIDS_EARNED: Final = "kids_earned"
+ATTR_LABELS: Final = "labels"
+ATTR_LAST_CLAIMED: Final = "last_claimed"
+ATTR_LAST_COMPLETED: Final = "last_completed"
+ATTR_NEXT_HIGHER_BADGE_ID: Final = "next_higher_badge_id"
+ATTR_NEXT_HIGHER_BADGE_NAME: Final = "next_higher_badge_name"
+ATTR_NEXT_LOWER_BADGE_ID: Final = "next_lower_badge_id"
+ATTR_NEXT_LOWER_BADGE_NAME: Final = "next_lower_badge_name"
+ATTR_OCCASION_DATE: Final = "occasion_date"
+ATTR_OCCASION_TYPE: Final = "occasion_type"
+ATTR_PARTIAL_ALLOWED: Final = "partial_allowed"
+ATTR_PENALTY_BUTTON_EID: Final = "penalty_button_eid"
+ATTR_PENALTY_NAME: Final = "penalty_name"
+ATTR_PENALTY_POINTS: Final = "penalty_points"
+ATTR_PERIODIC_RECURRENT: Final = "recurrent"
+ATTR_POINTS_MULTIPLIER: Final = "points_multiplier"
+ATTR_POINTS_TO_NEXT_BADGE: Final = "points_to_next_badge"
+ATTR_RAW_PROGRESS: Final = "raw_progress"
+ATTR_RECURRING_FREQUENCY: Final = "recurring_frequency"
+ATTR_REQUIRED_CHORES: Final = "required_chores"
+ATTR_REDEEMED_ON: Final = "Redeemed on"
+ATTR_RESET_SCHEDULE: Final = "reset_schedule"
+ATTR_REWARD_APPROVALS_COUNT: Final = "reward_approvals_count"
+ATTR_REWARD_CLAIMS_COUNT: Final = "reward_claims_count"
+ATTR_REWARD_NAME: Final = "reward_name"
+ATTR_REWARD_POINTS: Final = "reward_points"
+ATTR_REWARD_APPROVE_BUTTON_ENTITY_ID: Final = "approve_button_eid"
+ATTR_REWARD_CLAIM_BUTTON_ENTITY_ID: Final = "claim_button_eid"
+ATTR_REWARD_DISAPPROVE_BUTTON_ENTITY_ID: Final = "disapprove_button_eid"
+ATTR_SIGN_LABEL: Final = "sign_label"
+ATTR_START_DATE: Final = "start_date"
+ATTR_STREAKS_BY_ACHIEVEMENT: Final = "streaks_by_achievement"
+ATTR_SHARED_CHORE: Final = "shared_chore"
+ATTR_TARGET: Final = "target"
+ATTR_TARGET_VALUE: Final = "target_value"
+ATTR_THRESHOLD_TYPE: Final = "threshold_type"
+ATTR_THRESHOLD_VALUE: Final = "threshold_value"
 
-ATTR_TRIGGER_INFO = "trigger_info"
-ATTR_TYPE = "type"
+ATTR_TRIGGER_INFO: Final = "trigger_info"
+ATTR_TYPE: Final = "type"
 
 # Dashboard Helper Sensor Attributes
-ATTR_CHORES_BY_LABEL = "chores_by_label"
-ATTR_CHORE_DUE_DATE = "due_date"
-ATTR_CHORE_IS_TODAY_AM = "is_today_am"
-ATTR_CHORE_LABELS = "labels"
-ATTR_CHORE_PRIMARY_GROUP = "primary_group"
+ATTR_CHORES_BY_LABEL: Final = "chores_by_label"
+ATTR_CHORE_DUE_DATE: Final = "due_date"
+ATTR_CHORE_IS_TODAY_AM: Final = "is_today_am"
+ATTR_CHORE_LABELS: Final = "labels"
+ATTR_CHORE_PRIMARY_GROUP: Final = "primary_group"
 
 # Common attributes for chores and rewards in dashboard helper
-ATTR_EID = "eid"
-ATTR_NAME = "name"
-ATTR_STATUS = "status"
-ATTR_CLAIMS = "claims"
-ATTR_APPROVALS = "approvals"
-ATTR_POINTS = "points"
-ATTR_APPLIED = "applied"
+ATTR_EID: Final = "eid"
+ATTR_NAME: Final = "name"
+ATTR_STATUS: Final = "status"
+ATTR_CLAIMS: Final = "claims"
+ATTR_APPROVALS: Final = "approvals"
+ATTR_POINTS: Final = "points"
+ATTR_APPLIED: Final = "applied"
 
 # Primary Group Values
 PRIMARY_GROUP_TODAY = "today"
@@ -1315,116 +1339,124 @@ PRIMARY_GROUP_OTHER = "other"
 # ------------------------------------------------------------------------------------------------
 
 # Sensor Prefixes
-SENSOR_KC_PREFIX = "sensor.kc_"
+SENSOR_KC_PREFIX: Final = "sensor.kc_"
 
 # Sensor Unique ID Suffixes
-SENSOR_KC_UID_SUFFIX_ACHIEVEMENT_SENSOR = "_achievement"
-SENSOR_KC_UID_SUFFIX_ACHIEVEMENT_PROGRESS_SENSOR = "_achievement_progress"
-SENSOR_KC_UID_SUFFIX_BADGE_PROGRESS_SENSOR = "_badge_progress"
-SENSOR_KC_UID_SUFFIX_BADGE_SENSOR = "_badge_sensor"
-SENSOR_KC_UID_SUFFIX_BONUS_APPLIES_SENSOR = "_bonus_applies"
-SENSOR_KC_UID_SUFFIX_CHALLENGE_SENSOR = "_challenge"
-SENSOR_KC_UID_SUFFIX_CHALLENGE_PROGRESS_SENSOR = "_challenge_progress"
-SENSOR_KC_UID_SUFFIX_COMPLETED_DAILY_SENSOR = "_completed_daily"
-SENSOR_KC_UID_SUFFIX_COMPLETED_MONTHLY_SENSOR = "_completed_monthly"
-SENSOR_KC_UID_SUFFIX_COMPLETED_TOTAL_SENSOR = "_completed_total"
-SENSOR_KC_UID_SUFFIX_COMPLETED_WEEKLY_SENSOR = "_completed_weekly"
-SENSOR_KC_UID_SUFFIX_CHORE_STATUS_SENSOR = "_status"
-SENSOR_KC_UID_SUFFIX_KID_HIGHEST_BADGE_SENSOR = "_highest_badge"
-SENSOR_KC_UID_SUFFIX_KID_HIGHEST_STREAK_SENSOR = "_highest_streak"
-SENSOR_KC_UID_SUFFIX_KID_MAX_POINTS_EVER_SENSOR = "_max_points_ever"
-SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_DAILY_SENSOR = "_points_earned_daily"
-SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_MONTHLY_SENSOR = "_points_earned_monthly"
-SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_WEEKLY_SENSOR = "_points_earned_weekly"
-SENSOR_KC_UID_SUFFIX_KID_POINTS_SENSOR = "_points"
-SENSOR_KC_UID_SUFFIX_PENALTY_APPLIES_SENSOR = "_penalty_applies"
-SENSOR_KC_UID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR = "_pending_chore_approvals"
-SENSOR_KC_UID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR = "_pending_reward_approvals"
-SENSOR_KC_UID_SUFFIX_REWARD_STATUS_SENSOR = "_reward_status"
-SENSOR_KC_UID_SUFFIX_SHARED_CHORE_GLOBAL_STATE_SENSOR = "_global_state"
+SENSOR_KC_UID_SUFFIX_ACHIEVEMENT_SENSOR: Final = "_achievement"
+SENSOR_KC_UID_SUFFIX_ACHIEVEMENT_PROGRESS_SENSOR: Final = "_achievement_progress"
+SENSOR_KC_UID_SUFFIX_BADGE_PROGRESS_SENSOR: Final = "_badge_progress"
+SENSOR_KC_UID_SUFFIX_BADGE_SENSOR: Final = "_badge_sensor"
+SENSOR_KC_UID_SUFFIX_BONUS_APPLIES_SENSOR: Final = "_bonus_applies"
+SENSOR_KC_UID_SUFFIX_CHALLENGE_SENSOR: Final = "_challenge"
+SENSOR_KC_UID_SUFFIX_CHALLENGE_PROGRESS_SENSOR: Final = "_challenge_progress"
+SENSOR_KC_UID_SUFFIX_COMPLETED_DAILY_SENSOR: Final = "_completed_daily"
+SENSOR_KC_UID_SUFFIX_COMPLETED_MONTHLY_SENSOR: Final = "_completed_monthly"
+SENSOR_KC_UID_SUFFIX_COMPLETED_TOTAL_SENSOR: Final = "_completed_total"
+SENSOR_KC_UID_SUFFIX_COMPLETED_WEEKLY_SENSOR: Final = "_completed_weekly"
+SENSOR_KC_UID_SUFFIX_CHORE_STATUS_SENSOR: Final = "_status"
+SENSOR_KC_UID_SUFFIX_KID_HIGHEST_BADGE_SENSOR: Final = "_highest_badge"
+SENSOR_KC_UID_SUFFIX_KID_HIGHEST_STREAK_SENSOR: Final = "_highest_streak"
+SENSOR_KC_UID_SUFFIX_KID_MAX_POINTS_EVER_SENSOR: Final = "_max_points_ever"
+SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_DAILY_SENSOR: Final = "_points_earned_daily"
+SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_MONTHLY_SENSOR: Final = "_points_earned_monthly"
+SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_WEEKLY_SENSOR: Final = "_points_earned_weekly"
+SENSOR_KC_UID_SUFFIX_KID_POINTS_SENSOR: Final = "_points"
+SENSOR_KC_UID_SUFFIX_PENALTY_APPLIES_SENSOR: Final = "_penalty_applies"
+SENSOR_KC_UID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR: Final = "_pending_chore_approvals"
+SENSOR_KC_UID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR: Final = (
+    "_pending_reward_approvals"
+)
+SENSOR_KC_UID_SUFFIX_REWARD_STATUS_SENSOR: Final = "_reward_status"
+SENSOR_KC_UID_SUFFIX_SHARED_CHORE_GLOBAL_STATE_SENSOR: Final = "_global_state"
 
 # Sensor Entity ID Mid & Suffixes
-SENSOR_KC_EID_MIDFIX_ACHIEVEMENT_PROGRESS_SENSOR = "_achievement_status_"
-SENSOR_KC_EID_MIDFIX_ACHIEVEMENT_SENSOR = "achievement_status_"
-SENSOR_KC_EID_MIDFIX_BADGE_PROGRESS_SENSOR = "_badge_status_"
-SENSOR_KC_EID_MIDFIX_BONUS_APPLIES_SENSOR = "_bonuses_applied_"
-SENSOR_KC_EID_MIDFIX_CHALLENGE_PROGRESS_SENSOR = "_challenge_status_"
-SENSOR_KC_EID_MIDFIX_CHALLENGE_SENSOR = "challenge_status_"
-SENSOR_KC_EID_MIDFIX_CHORE_STATUS_SENSOR = "_chore_status_"
-SENSOR_KC_EID_MIDFIX_CHORES_COMPLETED_DAILY_SENSOR = "_chores_completed_daily"
-SENSOR_KC_EID_MIDFIX_CHORES_COMPLETED_MONTHLY_SENSOR = "_chores_completed_monthly"
-SENSOR_KC_EID_MIDFIX_CHORES_COMPLETED_TOTAL_SENSOR = "_chores_completed_total"
-SENSOR_KC_EID_MIDFIX_CHORES_COMPLETED_WEEKLY_SENSOR = "_chores_completed_weekly"
-SENSOR_KC_EID_MIDFIX_KID_HIGHEST_BADGE_SENSOR = "_highest_badge"
-SENSOR_KC_EID_MIDFIX_KID_HIGHEST_STREAK_SENSOR = "_highest_streak"
-SENSOR_KC_EID_MIDFIX_PENALTY_APPLIES_SENSOR = "_penalties_applied_"
-SENSOR_KC_EID_MIDFIX_REWARD_STATUS_SENSOR = "_reward_status_"
-SENSOR_KC_EID_MIDFIX_SHARED_CHORE_GLOBAL_STATUS_SENSOR = "global_chore_status_"
-SENSOR_KC_EID_SUFFIX_BADGE_SENSOR = "_badge"
-SENSOR_KC_EID_SUFFIX_KID_MAX_POINTS_EARNED_SENSOR = "_points_max_ever"
-SENSOR_KC_EID_SUFFIX_KID_POINTS_EARNED_DAILY_SENSOR = "_points_earned_daily"
-SENSOR_KC_EID_SUFFIX_KID_POINTS_EARNED_MONTHLY_SENSOR = "_points_earned_monthly"
-SENSOR_KC_EID_SUFFIX_KID_POINTS_EARNED_WEEKLY_SENSOR = "_points_earned_weekly"
-SENSOR_KC_EID_SUFFIX_KID_POINTS_SENSOR = "_points"
-SENSOR_KC_EID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR = "global_chore_pending_approvals"
-SENSOR_KC_EID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR = "global_reward_pending_approvals"
+SENSOR_KC_EID_MIDFIX_ACHIEVEMENT_PROGRESS_SENSOR: Final = "_achievement_status_"
+SENSOR_KC_EID_MIDFIX_ACHIEVEMENT_SENSOR: Final = "achievement_status_"
+SENSOR_KC_EID_MIDFIX_BADGE_PROGRESS_SENSOR: Final = "_badge_status_"
+SENSOR_KC_EID_MIDFIX_BONUS_APPLIES_SENSOR: Final = "_bonuses_applied_"
+SENSOR_KC_EID_MIDFIX_CHALLENGE_PROGRESS_SENSOR: Final = "_challenge_status_"
+SENSOR_KC_EID_MIDFIX_CHALLENGE_SENSOR: Final = "challenge_status_"
+SENSOR_KC_EID_MIDFIX_CHORE_STATUS_SENSOR: Final = "_chore_status_"
+SENSOR_KC_EID_MIDFIX_CHORES_COMPLETED_DAILY_SENSOR: Final = "_chores_completed_daily"
+SENSOR_KC_EID_MIDFIX_CHORES_COMPLETED_MONTHLY_SENSOR: Final = (
+    "_chores_completed_monthly"
+)
+SENSOR_KC_EID_MIDFIX_CHORES_COMPLETED_TOTAL_SENSOR: Final = "_chores_completed_total"
+SENSOR_KC_EID_MIDFIX_CHORES_COMPLETED_WEEKLY_SENSOR: Final = "_chores_completed_weekly"
+SENSOR_KC_EID_MIDFIX_KID_HIGHEST_BADGE_SENSOR: Final = "_highest_badge"
+SENSOR_KC_EID_MIDFIX_KID_HIGHEST_STREAK_SENSOR: Final = "_highest_streak"
+SENSOR_KC_EID_MIDFIX_PENALTY_APPLIES_SENSOR: Final = "_penalties_applied_"
+SENSOR_KC_EID_MIDFIX_REWARD_STATUS_SENSOR: Final = "_reward_status_"
+SENSOR_KC_EID_MIDFIX_SHARED_CHORE_GLOBAL_STATUS_SENSOR: Final = "global_chore_status_"
+SENSOR_KC_EID_SUFFIX_BADGE_SENSOR: Final = "_badge"
+SENSOR_KC_EID_SUFFIX_KID_MAX_POINTS_EARNED_SENSOR: Final = "_points_max_ever"
+SENSOR_KC_EID_SUFFIX_KID_POINTS_EARNED_DAILY_SENSOR: Final = "_points_earned_daily"
+SENSOR_KC_EID_SUFFIX_KID_POINTS_EARNED_MONTHLY_SENSOR: Final = "_points_earned_monthly"
+SENSOR_KC_EID_SUFFIX_KID_POINTS_EARNED_WEEKLY_SENSOR: Final = "_points_earned_weekly"
+SENSOR_KC_EID_SUFFIX_KID_POINTS_SENSOR: Final = "_points"
+SENSOR_KC_EID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR: Final = (
+    "global_chore_pending_approvals"
+)
+SENSOR_KC_EID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR: Final = (
+    "global_reward_pending_approvals"
+)
 
 # ------------------------------------------------------------------------------------------------
 # Selects
 # ------------------------------------------------------------------------------------------------
 
 # Select Prefixes
-SELECT_KC_PREFIX = "select.kc_"
+SELECT_KC_PREFIX: Final = "select.kc_"
 
 # Select Unique ID Mid & Suffixes
-SELECT_KC_UID_MIDFIX_CHORES_SELECT = "_chores_select_"
-SELECT_KC_UID_SUFFIX_BONUSES_SELECT = "_bonuses_select"
-SELECT_KC_UID_SUFFIX_CHORES_SELECT = "_chores_select"
-SELECT_KC_UID_SUFFIX_PENALTIES_SELECT = "_penalties_select"
-SELECT_KC_UID_SUFFIX_REWARDS_SELECT = "_rewards_select"
+SELECT_KC_UID_MIDFIX_CHORES_SELECT: Final = "_chores_select_"
+SELECT_KC_UID_SUFFIX_BONUSES_SELECT: Final = "_bonuses_select"
+SELECT_KC_UID_SUFFIX_CHORES_SELECT: Final = "_chores_select"
+SELECT_KC_UID_SUFFIX_PENALTIES_SELECT: Final = "_penalties_select"
+SELECT_KC_UID_SUFFIX_REWARDS_SELECT: Final = "_rewards_select"
 
 # Select Entity ID Mid & Suffixes
-SELECT_KC_EID_SUFFIX_ALL_BONUSES = "all_bonuses"
-SELECT_KC_EID_SUFFIX_ALL_CHORES = "all_chores"
-SELECT_KC_EID_SUFFIX_ALL_PENALTIES = "all_penalties"
-SELECT_KC_EID_SUFFIX_ALL_REWARDS = "all_rewards"
-SELECT_KC_EID_SUFFIX_CHORE_LIST = "_chore_list"
+SELECT_KC_EID_SUFFIX_ALL_BONUSES: Final = "all_bonuses"
+SELECT_KC_EID_SUFFIX_ALL_CHORES: Final = "all_chores"
+SELECT_KC_EID_SUFFIX_ALL_PENALTIES: Final = "all_penalties"
+SELECT_KC_EID_SUFFIX_ALL_REWARDS: Final = "all_rewards"
+SELECT_KC_EID_SUFFIX_CHORE_LIST: Final = "_chore_list"
 
 # ------------------------------------------------------------------------------------------------
 # Buttons
 # ------------------------------------------------------------------------------------------------
 
 # Button Prefixes
-BUTTON_KC_PREFIX = "button.kc_"
+BUTTON_KC_PREFIX: Final = "button.kc_"
 
 # Button Unique ID Mid & Suffixes
-BUTTON_KC_UID_MIDFIX_ADJUST_POINTS = "_adjust_points_"
-BUTTON_KC_UID_SUFFIX_APPROVE = "_approve"
-BUTTON_KC_UID_SUFFIX_APPROVE_REWARD = "_approve_reward"
-BUTTON_KC_UID_SUFFIX_CLAIM = "_claim"
-BUTTON_KC_UID_SUFFIX_DISAPPROVE = "_disapprove"
-BUTTON_KC_UID_SUFFIX_DISAPPROVE_REWARD = "_disapprove_reward"
+BUTTON_KC_UID_MIDFIX_ADJUST_POINTS: Final = "_adjust_points_"
+BUTTON_KC_UID_SUFFIX_APPROVE: Final = "_approve"
+BUTTON_KC_UID_SUFFIX_APPROVE_REWARD: Final = "_approve_reward"
+BUTTON_KC_UID_SUFFIX_CLAIM: Final = "_claim"
+BUTTON_KC_UID_SUFFIX_DISAPPROVE: Final = "_disapprove"
+BUTTON_KC_UID_SUFFIX_DISAPPROVE_REWARD: Final = "_disapprove_reward"
 
 # Button Entity ID Mid & Suffixes
-BUTTON_KC_EID_MIDFIX_BONUS = "_bonus_"
-BUTTON_KC_EID_MIDFIX_CHORE_APPROVAL = "_chore_approval_"
-BUTTON_KC_EID_MIDFIX_CHORE_CLAIM = "_chore_claim_"
-BUTTON_KC_EID_MIDFIX_CHORE_DISAPPROVAL = "_chore_disapproval_"
-BUTTON_KC_EID_MIDFIX_PENALTY = "_penalty_"
-BUTTON_KC_EID_MIDFIX_REWARD_APPROVAL = "_reward_approval_"
-BUTTON_KC_EID_MIDFIX_REWARD_CLAIM = "_reward_claim_"
-BUTTON_KC_EID_MIDFIX_REWARD_DISAPPROVAL = "_reward_disapproval_"
-BUTTON_KC_EID_SUFFIX_POINTS = "_points"
+BUTTON_KC_EID_MIDFIX_BONUS: Final = "_bonus_"
+BUTTON_KC_EID_MIDFIX_CHORE_APPROVAL: Final = "_chore_approval_"
+BUTTON_KC_EID_MIDFIX_CHORE_CLAIM: Final = "_chore_claim_"
+BUTTON_KC_EID_MIDFIX_CHORE_DISAPPROVAL: Final = "_chore_disapproval_"
+BUTTON_KC_EID_MIDFIX_PENALTY: Final = "_penalty_"
+BUTTON_KC_EID_MIDFIX_REWARD_APPROVAL: Final = "_reward_approval_"
+BUTTON_KC_EID_MIDFIX_REWARD_CLAIM: Final = "_reward_claim_"
+BUTTON_KC_EID_MIDFIX_REWARD_DISAPPROVAL: Final = "_reward_disapproval_"
+BUTTON_KC_EID_SUFFIX_POINTS: Final = "_points"
 
 # ------------------------------------------------------------------------------------------------
 # Calendars
 # ------------------------------------------------------------------------------------------------
 
 # Calendar Prefixes
-CALENDAR_KC_PREFIX = "calendar.kc_"
+CALENDAR_KC_PREFIX: Final = "calendar.kc_"
 
 # Calendar Unique ID Mid & Suffixes
-CALENDAR_KC_UID_SUFFIX_CALENDAR = "_calendar"
+CALENDAR_KC_UID_SUFFIX_CALENDAR: Final = "_calendar"
 
 # ------------------------------------------------------------------------------------------------
 # Helper Return Types
@@ -1439,24 +1471,24 @@ HELPER_RETURN_ISO_DATETIME = "iso_datetime"
 # ------------------------------------------------------------------------------------------------
 # Services
 # ------------------------------------------------------------------------------------------------
-SERVICE_ADJUST_POINTS = "adjust_points"
-SERVICE_APPLY_BONUS = "apply_bonus"
-SERVICE_APPLY_PENALTY = "apply_penalty"
-SERVICE_APPROVE_CHORE = "approve_chore"
-SERVICE_APPROVE_REWARD = "approve_reward"
-SERVICE_CLAIM_CHORE = "claim_chore"
-SERVICE_DISAPPROVE_CHORE = "disapprove_chore"
-SERVICE_DISAPPROVE_REWARD = "disapprove_reward"
-SERVICE_REDEEM_REWARD = "redeem_reward"
-SERVICE_REMOVE_AWARDED_BADGES = "remove_awarded_badges"
-SERVICE_RESET_ALL_CHORES = "reset_all_chores"
-SERVICE_RESET_ALL_DATA = "reset_all_data"
-SERVICE_RESET_BONUSES = "reset_bonuses"
-SERVICE_RESET_OVERDUE_CHORES = "reset_overdue_chores"
-SERVICE_RESET_PENALTIES = "reset_penalties"
-SERVICE_RESET_REWARDS = "reset_rewards"
-SERVICE_SET_CHORE_DUE_DATE = "set_chore_due_date"
-SERVICE_SKIP_CHORE_DUE_DATE = "skip_chore_due_date"
+SERVICE_ADJUST_POINTS: Final = "adjust_points"
+SERVICE_APPLY_BONUS: Final = "apply_bonus"
+SERVICE_APPLY_PENALTY: Final = "apply_penalty"
+SERVICE_APPROVE_CHORE: Final = "approve_chore"
+SERVICE_APPROVE_REWARD: Final = "approve_reward"
+SERVICE_CLAIM_CHORE: Final = "claim_chore"
+SERVICE_DISAPPROVE_CHORE: Final = "disapprove_chore"
+SERVICE_DISAPPROVE_REWARD: Final = "disapprove_reward"
+SERVICE_REDEEM_REWARD: Final = "redeem_reward"
+SERVICE_REMOVE_AWARDED_BADGES: Final = "remove_awarded_badges"
+SERVICE_RESET_ALL_CHORES: Final = "reset_all_chores"
+SERVICE_RESET_ALL_DATA: Final = "reset_all_data"
+SERVICE_RESET_BONUSES: Final = "reset_bonuses"
+SERVICE_RESET_OVERDUE_CHORES: Final = "reset_overdue_chores"
+SERVICE_RESET_PENALTIES: Final = "reset_penalties"
+SERVICE_RESET_REWARDS: Final = "reset_rewards"
+SERVICE_SET_CHORE_DUE_DATE: Final = "set_chore_due_date"
+SERVICE_SKIP_CHORE_DUE_DATE: Final = "skip_chore_due_date"
 
 
 # ------------------------------------------------------------------------------------------------
@@ -1477,346 +1509,364 @@ FIELD_REWARD_NAME = "reward_name"
 # ------------------------------------------------------------------------------------------------
 # Labels
 # ------------------------------------------------------------------------------------------------
-LABEL_BADGES = "Badges"
-LABEL_COMPLETED_DAILY = "Daily Completed Chores"
-LABEL_COMPLETED_MONTHLY = "Monthly Completed Chores"
-LABEL_COMPLETED_WEEKLY = "Weekly Completed Chores"
-LABEL_NONE = ""
-LABEL_POINTS = "Points"
+LABEL_BADGES: Final = "Badges"
+LABEL_COMPLETED_DAILY: Final = "Daily Completed Chores"
+LABEL_COMPLETED_MONTHLY: Final = "Monthly Completed Chores"
+LABEL_COMPLETED_WEEKLY: Final = "Weekly Completed Chores"
+LABEL_NONE: Final = ""
+LABEL_POINTS: Final = "Points"
 
 
 # ------------------------------------------------------------------------------------------------
 # Button Prefixes
 # ------------------------------------------------------------------------------------------------
-BUTTON_BONUS_PREFIX = "bonus_button_"
-BUTTON_PENALTY_PREFIX = "penalty_button_"
-BUTTON_REWARD_PREFIX = "reward_button_"
+BUTTON_BONUS_PREFIX: Final = "bonus_button_"
+BUTTON_PENALTY_PREFIX: Final = "penalty_button_"
+BUTTON_REWARD_PREFIX: Final = "reward_button_"
 
 
 # ------------------------------------------------------------------------------------------------
 # Errors and Warnings
 # ------------------------------------------------------------------------------------------------
-DUE_DATE_NOT_SET = "Not Set"
+TRANS_KEY_DISPLAY_DUE_DATE_NOT_SET: Final = "display_due_date_not_set"
 
 # Translation Keys for Phase 2-4 Error Migration (Action Templating)
 # These map to templated exceptions in translations/en.json using action labels
-TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION = "not_authorized_action"
-TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION_GLOBAL = "not_authorized_action_global"
-TRANS_KEY_ERROR_CALENDAR_CREATE_NOT_SUPPORTED = "calendar_create_not_supported"
-TRANS_KEY_ERROR_CALENDAR_DELETE_NOT_SUPPORTED = "calendar_delete_not_supported"
-TRANS_KEY_ERROR_CALENDAR_UPDATE_NOT_SUPPORTED = "calendar_update_not_supported"
+TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION: Final = "not_authorized_action"
+TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION_GLOBAL: Final = "not_authorized_action_global"
+TRANS_KEY_ERROR_CALENDAR_CREATE_NOT_SUPPORTED: Final = "calendar_create_not_supported"
+TRANS_KEY_ERROR_CALENDAR_DELETE_NOT_SUPPORTED: Final = "calendar_delete_not_supported"
+TRANS_KEY_ERROR_CALENDAR_UPDATE_NOT_SUPPORTED: Final = "calendar_update_not_supported"
 
 # Action identifiers for use with TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION template
 # These are referenced in translations/en.json["action_labels"]
-ERROR_ACTION_APPROVE_CHORES = "approve_chores"
-ERROR_ACTION_DISAPPROVE_CHORES = "disapprove_chores"
-ERROR_ACTION_REDEEM_REWARDS = "redeem_rewards"
-ERROR_ACTION_APPROVE_REWARDS = "approve_rewards"
-ERROR_ACTION_DISAPPROVE_REWARDS = "disapprove_rewards"
-ERROR_ACTION_APPLY_PENALTIES = "apply_penalties"
-ERROR_ACTION_APPLY_BONUSES = "apply_bonuses"
-ERROR_ACTION_RESET_PENALTIES = "reset_penalties"
-ERROR_ACTION_RESET_BONUSES = "reset_bonuses"
-ERROR_ACTION_RESET_REWARDS = "reset_rewards"
-ERROR_ACTION_REMOVE_BADGES = "remove_badges"
+ERROR_ACTION_APPROVE_CHORES: Final = "approve_chores"
+ERROR_ACTION_DISAPPROVE_CHORES: Final = "disapprove_chores"
+ERROR_ACTION_REDEEM_REWARDS: Final = "redeem_rewards"
+ERROR_ACTION_APPROVE_REWARDS: Final = "approve_rewards"
+ERROR_ACTION_DISAPPROVE_REWARDS: Final = "disapprove_rewards"
+ERROR_ACTION_APPLY_PENALTIES: Final = "apply_penalties"
+ERROR_ACTION_APPLY_BONUSES: Final = "apply_bonuses"
+ERROR_ACTION_RESET_PENALTIES: Final = "reset_penalties"
+ERROR_ACTION_RESET_BONUSES: Final = "reset_bonuses"
+ERROR_ACTION_RESET_REWARDS: Final = "reset_rewards"
+ERROR_ACTION_REMOVE_BADGES: Final = "remove_badges"
 
-MSG_NO_ENTRY_FOUND = "No KidsChores entry found"
+TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND: Final = "error_msg_no_entry_found"
 
-# Unknown States
-UNKNOWN_CHALLENGE = "Unknown Challenge"
-UNKNOWN_CHORE = "Unknown Chore"
-UNKNOWN_KID = "Unknown Kid"
-UNKNOWN_REWARD = "Unknown Reward"
-UNKNOWN_ENTITY = "Unknown Entity"
+# Unknown States (Display Translation Keys)
+TRANS_KEY_DISPLAY_UNKNOWN_CHALLENGE: Final = "display_unknown_challenge"
+TRANS_KEY_DISPLAY_UNKNOWN_CHORE: Final = "display_unknown_chore"
+TRANS_KEY_DISPLAY_UNKNOWN_KID: Final = "display_unknown_kid"
+TRANS_KEY_DISPLAY_UNKNOWN_REWARD: Final = "display_unknown_reward"
+TRANS_KEY_DISPLAY_UNKNOWN_ENTITY: Final = "display_unknown_entity"
 
 # Config Flow & Options Flow Error Keys
-CFOP_ERROR_ACHIEVEMENT_NAME = "name"
-CFOP_ERROR_BADGE_NAME = "badge_name"
-CFOP_ERROR_ASSIGNED_KIDS = "assigned_kids"
-CFOP_ERROR_BASE = "base"
-CFOP_ERROR_BONUS_NAME = "bonus_name"
-CFOP_ERROR_CHALLENGE_NAME = "name"
-CFOP_ERROR_CHORE_NAME = "chore_name"
-CFOP_ERROR_DUE_DATE = "due_date"
-CFOP_ERROR_END_DATE = "end_date"
-CFOP_ERROR_KID_NAME = "kid_name"
-CFOP_ERROR_PARENT_NAME = "parent_name"
-CFOP_ERROR_PENALTY_NAME = "penalty_name"
-CFOP_ERROR_REWARD_NAME = "reward_name"
-CFOP_ERROR_SELECT_CHORE_ID = "selected_chore_id"
-CFOP_ERROR_START_DATE = "start_date"
+CFOP_ERROR_ACHIEVEMENT_NAME: Final = "name"
+CFOP_ERROR_BADGE_NAME: Final = "badge_name"
+CFOP_ERROR_ASSIGNED_KIDS: Final = "assigned_kids"
+CFOP_ERROR_BASE: Final = "base"
+CFOP_ERROR_BONUS_NAME: Final = "bonus_name"
+CFOP_ERROR_CHALLENGE_NAME: Final = "name"
+CFOP_ERROR_CHORE_NAME: Final = "chore_name"
+CFOP_ERROR_DUE_DATE: Final = "due_date"
+CFOP_ERROR_END_DATE: Final = "end_date"
+CFOP_ERROR_KID_NAME: Final = "kid_name"
+CFOP_ERROR_PARENT_NAME: Final = "parent_name"
+CFOP_ERROR_PENALTY_NAME: Final = "penalty_name"
+CFOP_ERROR_REWARD_NAME: Final = "reward_name"
+CFOP_ERROR_SELECT_CHORE_ID: Final = "selected_chore_id"
+CFOP_ERROR_START_DATE: Final = "start_date"
 
 
 # ------------------------------------------------------------------------------------------------
 # Parent Approval Workflow
 # ------------------------------------------------------------------------------------------------
-PARENT_APPROVAL_REQUIRED = True  # Enable parent approval for certain actions
-HA_USERNAME_LINK_ENABLED = True  # Enable linking kids to HA usernames
+DEFAULT_PARENT_APPROVAL_REQUIRED: Final = (
+    True  # Enable parent approval for certain actions
+)
+DEFAULT_HA_USERNAME_LINK_ENABLED: Final = True  # Enable linking kids to HA usernames
 
 
 # ------------------------------------------------------------------------------------------------
 # Calendar Attributes
 # ------------------------------------------------------------------------------------------------
-ATTR_CAL_ALL_DAY = "all_day"
-ATTR_CAL_DESCRIPTION = "description"
-ATTR_CAL_END = "end"
-ATTR_CAL_MANUFACTURER = "manufacturer"
-ATTR_CAL_START = "start"
-ATTR_CAL_SUMMARY = "summary"
+ATTR_CAL_ALL_DAY: Final = "all_day"
+ATTR_CAL_DESCRIPTION: Final = "description"
+ATTR_CAL_END: Final = "end"
+ATTR_CAL_MANUFACTURER: Final = "manufacturer"
+ATTR_CAL_START: Final = "start"
+ATTR_CAL_SUMMARY: Final = "summary"
 
 
 # ------------------------------------------------------------------------------------------------
 # Translation Keys
 # ------------------------------------------------------------------------------------------------
 # Global
-TRANS_KEY_LABEL_ACHIEVEMENT = "Achievement"
-TRANS_KEY_LABEL_BADGE = "Badge"
-TRANS_KEY_LABEL_BONUS = "Bonus"
-TRANS_KEY_LABEL_CHALLENGE = "Challenge"
-TRANS_KEY_LABEL_CHORE = "Chore"
-TRANS_KEY_LABEL_KID = "Kid"
-TRANS_KEY_LABEL_PENALTY = "Penalty"
-TRANS_KEY_LABEL_REWARD = "Reward"
-TRANS_KEY_NO_DUE_DATE = "No due date set"
+TRANS_KEY_LABEL_ACHIEVEMENT: Final = "label_achievement"
+TRANS_KEY_LABEL_BADGE: Final = "label_badge"
+TRANS_KEY_LABEL_BONUS: Final = "label_bonus"
+TRANS_KEY_LABEL_CHALLENGE: Final = "label_challenge"
+TRANS_KEY_LABEL_CHORE: Final = "label_chore"
+TRANS_KEY_LABEL_KID: Final = "label_kid"
+TRANS_KEY_LABEL_PENALTY: Final = "label_penalty"
+TRANS_KEY_LABEL_REWARD: Final = "label_reward"
+TRANS_KEY_NO_DUE_DATE: Final = "no_due_date"
 
 # ConfigFlow & OptionsFlow Translation Keys
-TRANS_KEY_CFOF_BADGE_ASSIGNED_TO = "assigned_to"
-TRANS_KEY_CFOF_BADGE_ASSOCIATED_ACHIEVEMENT = "associated_achievement"
-TRANS_KEY_CFOF_BADGE_AWARD_ITEMS = "award_items"
-TRANS_KEY_CFOF_BADGE_ASSOCIATED_CHALLENGE = "associated_challenge"
-TRANS_KEY_CFOF_BADGE_LABELS = "badge_labels"
-TRANS_KEY_CFOF_BADGE_OCCASION_TYPE = "occasion_type"
-TRANS_KEY_CFOF_BADGE_RESET_SCHEDULE_END_DATE_REQUIRED = "end_date_required"
-TRANS_KEY_CFOF_BADGE_RESET_SCHEDULE = "reset_schedule"
-TRANS_KEY_CFOF_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY = "recurring_frequency"
-TRANS_KEY_CFOF_BADGE_RESET_SCHEDULE_START_DATE_REQUIRED = "start_date_required"
-TRANS_KEY_CFOF_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT = "custom_interval_unit"
-TRANS_KEY_CFOF_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL = "custom_interval"
-TRANS_KEY_CFOF_BADGE_SELECTED_CHORES = "selected_chores"
-TRANS_KEY_CFOF_BADGE_TARGET_TYPE = "target_type"
-TRANS_KEY_CFOF_BADGE_TYPE = "badge_type"
-TRANS_KEY_CFOF_CHORE_MUST_BE_SELECTED = "a_chore_must_be_selected"
-TRANS_KEY_CFOF_DUE_DATE_IN_PAST = "due_date_in_past"
-TRANS_KEY_CFOF_DUPLICATE_ACHIEVEMENT = "duplicate_achievement"
-TRANS_KEY_CFOF_DUPLICATE_BADGE = "duplicate_badge"
-TRANS_KEY_CFOF_DUPLICATE_BONUS = "duplicate_bonus"
-TRANS_KEY_CFOF_DUPLICATE_CHALLENGE = "duplicate_challenge"
-TRANS_KEY_CFOF_DUPLICATE_CHORE = "duplicate_chore"
-TRANS_KEY_CFOF_DUPLICATE_KID = "duplicate_kid"
-TRANS_KEY_CFOF_DUPLICATE_PARENT = "duplicate_parent"
-TRANS_KEY_CFOF_DUPLICATE_PENALTY = "duplicate_penalty"
-TRANS_KEY_CFOF_DUPLICATE_REWARD = "duplicate_reward"
-TRANS_KEY_CFOF_END_DATE_IN_PAST = "end_date_in_past"
-TRANS_KEY_CFOF_END_DATE_NOT_AFTER_START_DATE = "end_date_not_after_start_date"
-TRANS_KEY_CFOF_ERROR_ASSIGNED_KIDS = "At least one kid must be assigned."
-TRANS_KEY_ERROR_SINGLE_INSTANCE = "single_instance_allowed"
-TRANS_KEY_CFOF_ERROR_AWARD_POINTS_MINIMUM = (
-    "Award points must be greater than 0 if points are selected."
+TRANS_KEY_CFOF_BADGE_ASSIGNED_TO: Final = "assigned_to"
+TRANS_KEY_CFOF_BADGE_ASSOCIATED_ACHIEVEMENT: Final = "associated_achievement"
+TRANS_KEY_CFOF_BADGE_AWARD_ITEMS: Final = "award_items"
+TRANS_KEY_CFOF_BADGE_ASSOCIATED_CHALLENGE: Final = "associated_challenge"
+TRANS_KEY_CFOF_BADGE_LABELS: Final = "badge_labels"
+TRANS_KEY_CFOF_BADGE_OCCASION_TYPE: Final = "occasion_type"
+TRANS_KEY_CFOF_BADGE_RESET_SCHEDULE_END_DATE_REQUIRED: Final = "end_date_required"
+TRANS_KEY_CFOF_BADGE_RESET_SCHEDULE: Final = "reset_schedule"
+TRANS_KEY_CFOF_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY: Final = "recurring_frequency"
+TRANS_KEY_CFOF_BADGE_RESET_SCHEDULE_START_DATE_REQUIRED: Final = "start_date_required"
+TRANS_KEY_CFOF_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT: Final = "custom_interval_unit"
+TRANS_KEY_CFOF_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL: Final = "custom_interval"
+TRANS_KEY_CFOF_BADGE_SELECTED_CHORES: Final = "selected_chores"
+TRANS_KEY_CFOF_BADGE_TARGET_TYPE: Final = "target_type"
+TRANS_KEY_CFOF_BADGE_TYPE: Final = "badge_type"
+TRANS_KEY_CFOF_CHORE_MUST_BE_SELECTED: Final = "a_chore_must_be_selected"
+TRANS_KEY_CFOF_DUE_DATE_IN_PAST: Final = "due_date_in_past"
+TRANS_KEY_CFOF_DUPLICATE_ACHIEVEMENT: Final = "duplicate_achievement"
+TRANS_KEY_CFOF_DUPLICATE_BADGE: Final = "duplicate_badge"
+TRANS_KEY_CFOF_DUPLICATE_BONUS: Final = "duplicate_bonus"
+TRANS_KEY_CFOF_DUPLICATE_CHALLENGE: Final = "duplicate_challenge"
+TRANS_KEY_CFOF_DUPLICATE_CHORE: Final = "duplicate_chore"
+TRANS_KEY_CFOF_DUPLICATE_KID: Final = "duplicate_kid"
+TRANS_KEY_CFOF_DUPLICATE_PARENT: Final = "duplicate_parent"
+TRANS_KEY_CFOF_DUPLICATE_PENALTY: Final = "duplicate_penalty"
+TRANS_KEY_CFOF_DUPLICATE_REWARD: Final = "duplicate_reward"
+TRANS_KEY_CFOF_END_DATE_IN_PAST: Final = "end_date_in_past"
+TRANS_KEY_CFOF_END_DATE_NOT_AFTER_START_DATE: Final = "end_date_not_after_start_date"
+TRANS_KEY_CFOF_ERROR_ASSIGNED_KIDS: Final = "error_assigned_kids"
+TRANS_KEY_ERROR_SINGLE_INSTANCE: Final = "single_instance_allowed"
+TRANS_KEY_CFOF_ERROR_AWARD_POINTS_MINIMUM: Final = "error_award_points_minimum"
+TRANS_KEY_CFOF_ERROR_AWARD_INVALID_MULTIPLIER: Final = "error_award_invalid_multiplier"
+TRANS_KEY_CFOF_ERROR_AWARD_INVALID_AWARD_ITEM: Final = "invalid_award_item_selected"
+TRANS_KEY_CFOF_ERROR_AWARD_AT_LEAST_ONE_REQUIRED: Final = (
+    "error_award_at_least_one_required"
 )
-TRANS_KEY_CFOF_ERROR_AWARD_INVALID_MULTIPLIER = "Invalid multiplier value."
-TRANS_KEY_CFOF_ERROR_AWARD_INVALID_AWARD_ITEM = "invalid_award_item_selected"
-TRANS_KEY_CFOF_ERROR_AWARD_AT_LEAST_ONE_REQUIRED = (
-    "At least one award item must be selected."
+TRANS_KEY_CFOF_ERROR_BADGE_ACHIEVEMENT_REQUIRED: Final = (
+    "error_badge_achievement_required"
 )
-TRANS_KEY_CFOF_ERROR_BADGE_ACHIEVEMENT_REQUIRED = "Associated achievement is required."
-TRANS_KEY_CFOF_ERROR_BADGE_CHALLENGE_REQUIRED = "Associated challenge is required."
-TRANS_KEY_CFOF_ERROR_BADGE_OCCASION_TYPE_REQUIRED = "Occasion type is required."
-TRANS_KEY_CFOF_ERROR_BADGE_CUSTOM_RESET_DATE_REQUIRED = (
-    "Custom reset date is required when reset type is custom."
+TRANS_KEY_CFOF_ERROR_BADGE_CHALLENGE_REQUIRED: Final = "error_badge_challenge_required"
+TRANS_KEY_CFOF_ERROR_BADGE_OCCASION_TYPE_REQUIRED: Final = (
+    "error_badge_occasion_type_required"
 )
-TRANS_KEY_CFOF_ERROR_BADGE_END_DATE_REQUIRED = (
-    "End date is required when reset schedule is custom."
+TRANS_KEY_CFOF_ERROR_BADGE_CUSTOM_RESET_DATE_REQUIRED: Final = (
+    "error_badge_custom_reset_date_required"
 )
-TRANS_KEY_CFOF_ERROR_BADGE_RESET_TYPE_REQUIRED = (
-    "Reset type is required when periodic reset is enabled."
+TRANS_KEY_CFOF_ERROR_BADGE_END_DATE_REQUIRED: Final = "error_badge_end_date_required"
+TRANS_KEY_CFOF_ERROR_BADGE_RESET_TYPE_REQUIRED: Final = (
+    "error_badge_reset_type_required"
 )
-TRANS_KEY_CFOF_ERROR_BADGE_START_DATE_REQUIRED = (
-    "Start date is required when reset schedule is custom."
+TRANS_KEY_CFOF_ERROR_BADGE_START_DATE_REQUIRED: Final = (
+    "error_badge_start_date_required"
 )
-TRANS_KEY_CFOF_ERROR_REWARD_SELECTION = (
-    "An award reward must be selected when award mode is {}."
+TRANS_KEY_CFOF_ERROR_REWARD_SELECTION: Final = "error_reward_selection"
+TRANS_KEY_CFOF_ERROR_POINTS_MULTIPLIER_REQUIRED: Final = (
+    "error_points_multiplier_required"
 )
-TRANS_KEY_CFOF_ERROR_POINTS_MULTIPLIER_REQUIRED = "Points multiplier >0 is required."
-TRANS_KEY_CFOF_ERROR_THRESHOLD_REQUIRED = "Threshold value >0 is required."
-TRANS_KEY_CFOF_INVALID_ACHIEVEMENT = "invalid_achievement"
-TRANS_KEY_CFOF_INVALID_ACHIEVEMENT_COUNT = "invalid_achievement_count"
-TRANS_KEY_CFOF_INVALID_ACHIEVEMENT_NAME = "invalid_achievement_name"
-TRANS_KEY_CFOF_INVALID_ACTION = "invalid_action"
-TRANS_KEY_CFOF_INVALID_BADGE = "invalid_badge"
-TRANS_KEY_CFOF_INVALID_BADGE_COUNT = "invalid_badge_count"
-TRANS_KEY_CFOF_INVALID_BADGE_NAME = "invalid_badge_name"
+TRANS_KEY_CFOF_ERROR_THRESHOLD_REQUIRED: Final = "error_threshold_required"
+TRANS_KEY_CFOF_INVALID_ACHIEVEMENT: Final = "invalid_achievement"
+TRANS_KEY_CFOF_INVALID_ACHIEVEMENT_COUNT: Final = "invalid_achievement_count"
+TRANS_KEY_CFOF_INVALID_ACHIEVEMENT_NAME: Final = "invalid_achievement_name"
+TRANS_KEY_CFOF_INVALID_ACTION: Final = "invalid_action"
+TRANS_KEY_CFOF_INVALID_BADGE: Final = "invalid_badge"
+TRANS_KEY_CFOF_INVALID_BADGE_COUNT: Final = "invalid_badge_count"
+TRANS_KEY_CFOF_INVALID_BADGE_NAME: Final = "invalid_badge_name"
 TRANS_KEY_CFOF_INVALID_BADGE_TARGET_THRESHOLD_VALUE = (
     "invalid_badge_target_threshold_value"
 )
-TRANS_KEY_CFOF_INVALID_BADGE_TYPE = "invalid_badge_type"
-TRANS_KEY_CFOF_INVALID_MAINTENANCE_RULES = "invalid_maintenance_rules"
-TRANS_KEY_CFOF_TARGET_THRESHOLD_REQUIRED = "target_threshold_required"
-TRANS_KEY_CFOF_INVALID_FORMAT_LIST = "invalid_format_list_expected"
-TRANS_KEY_CFOF_END_DATE_BEFORE_START = "end_date_before_start_date"
-TRANS_KEY_CFOF_INVALID_GRACE_PERIOD = "invalid_grace_period_days"
-TRANS_KEY_CFOF_INVALID_BONUS = "invalid_bonus"
-TRANS_KEY_CFOF_INVALID_BONUS_COUNT = "invalid_bonus_count"
-TRANS_KEY_CFOF_INVALID_BONUS_NAME = "invalid_bonus_name"
-TRANS_KEY_CFOF_INVALID_CHALLENGE = "invalid_challenge"
-TRANS_KEY_CFOF_INVALID_CHALLENGE_COUNT = "invalid_challenge_count"
-TRANS_KEY_CFOF_INVALID_CHALLENGE_NAME = "invalid_challenge_name"
-TRANS_KEY_CFOF_CHALLENGE_NAME_REQUIRED = "err_name_required"
-TRANS_KEY_CFOF_CHALLENGE_NAME_DUPLICATE = "err_name_duplicate"
-TRANS_KEY_CFOF_CHALLENGE_DATES_REQUIRED = "err_dates_required"
-TRANS_KEY_CFOF_CHALLENGE_END_BEFORE_START = "err_end_before_start"
-TRANS_KEY_CFOF_CHALLENGE_INVALID_DATE = "err_invalid_date"
-TRANS_KEY_CFOF_CHALLENGE_TARGET_INVALID = "err_target_invalid"
-TRANS_KEY_CFOF_CHALLENGE_POINTS_NEGATIVE = "err_points_negative"
-TRANS_KEY_CFOF_CHALLENGE_POINTS_INVALID = "err_points_invalid"
-TRANS_KEY_CFOF_INVALID_CHORE = "invalid_chore"
-TRANS_KEY_CFOF_INVALID_CHORE_COUNT = "invalid_chore_count"
-TRANS_KEY_CFOF_INVALID_CHORE_NAME = "invalid_chore_name"
-TRANS_KEY_CFOF_NO_KIDS_ASSIGNED = "no_kids_assigned"
-TRANS_KEY_CFOF_INVALID_DUE_DATE = "invalid_due_date"
-TRANS_KEY_CFOF_INVALID_END_DATE = "invalid_end_date"
-TRANS_KEY_CFOF_INVALID_ENTITY = "invalid_entity"
-TRANS_KEY_CFOF_INVALID_KID = "invalid_kid"
-TRANS_KEY_CFOF_INVALID_KID_COUNT = "invalid_kid_count"
-TRANS_KEY_CFOF_INVALID_KID_NAME = "invalid_kid_name"
-TRANS_KEY_CFOF_INVALID_PARENT = "invalid_parent"
-TRANS_KEY_CFOF_INVALID_PARENT_COUNT = "invalid_parent_count"
-TRANS_KEY_CFOF_INVALID_PARENT_NAME = "invalid_parent_name"
-TRANS_KEY_CFOF_INVALID_PENALTY = "invalid_penalty"
-TRANS_KEY_CFOF_INVALID_PENALTY_COUNT = "invalid_penalty_count"
-TRANS_KEY_CFOF_INVALID_PENALTY_NAME = "invalid_penalty_name"
-TRANS_KEY_CFOF_INVALID_REWARD = "invalid_reward"
-TRANS_KEY_CFOF_INVALID_REWARD_COUNT = "invalid_reward_count"
-TRANS_KEY_CFOF_INVALID_REWARD_NAME = "invalird_reward_name"
-TRANS_KEY_CFOF_INVALID_START_DATE = "invalid_start_date"
-TRANS_KEY_CFOF_POINTS_LABEL_REQUIRED = "points_label_required"
-TRANS_KEY_CFOF_MAIN_MENU = "main_menu"
-TRANS_KEY_CFOF_MANAGE_ACTIONS = "manage_actions"
-TRANS_KEY_CFOF_NO_ENTITY_TYPE = "no_{}s"
-TRANS_KEY_CFOF_POINTS_ADJUST = "points_adjust_options"
-TRANS_KEY_CFOF_REQUIRED_CHORES = "required_chores"
-TRANS_KEY_CFOP_RESET_SCHEDULE = "reset_schedule"
-TRANS_KEY_CFOF_START_DATE_IN_PAST = "start_date_in_past"
-TRANS_KEY_CFOF_SETUP_COMPLETE = "setup_complete"
-TRANS_KEY_CFOF_SUMMARY_ACHIEVEMENTS = "Achievements: "
-TRANS_KEY_CFOF_SUMMARY_BADGES = "Badges: "
-TRANS_KEY_CFOF_SUMMARY_BONUSES = "Bonuses: "
-TRANS_KEY_CFOF_SUMMARY_CHALLENGES = "Challenges: "
-TRANS_KEY_CFOF_SUMMARY_CHORES = "Chores: "
-TRANS_KEY_CFOF_SUMMARY_KIDS = "Kids: "
-TRANS_KEY_CFOF_SUMMARY_PARENTS = "Parents: "
-TRANS_KEY_CFOF_SUMMARY_PENALTIES = "Penalties: "
-TRANS_KEY_CFOF_SUMMARY_REWARDS = "Rewards: "
+TRANS_KEY_CFOF_INVALID_BADGE_TYPE: Final = "invalid_badge_type"
+TRANS_KEY_CFOF_INVALID_MAINTENANCE_RULES: Final = "invalid_maintenance_rules"
+TRANS_KEY_CFOF_TARGET_THRESHOLD_REQUIRED: Final = "target_threshold_required"
+TRANS_KEY_CFOF_INVALID_FORMAT_LIST: Final = "invalid_format_list_expected"
+TRANS_KEY_CFOF_END_DATE_BEFORE_START: Final = "end_date_before_start_date"
+TRANS_KEY_CFOF_INVALID_GRACE_PERIOD: Final = "invalid_grace_period_days"
+TRANS_KEY_CFOF_INVALID_BONUS: Final = "invalid_bonus"
+TRANS_KEY_CFOF_INVALID_BONUS_COUNT: Final = "invalid_bonus_count"
+TRANS_KEY_CFOF_INVALID_BONUS_NAME: Final = "invalid_bonus_name"
+TRANS_KEY_CFOF_INVALID_CHALLENGE: Final = "invalid_challenge"
+TRANS_KEY_CFOF_INVALID_CHALLENGE_COUNT: Final = "invalid_challenge_count"
+TRANS_KEY_CFOF_INVALID_CHALLENGE_NAME: Final = "invalid_challenge_name"
+TRANS_KEY_CFOF_CHALLENGE_NAME_REQUIRED: Final = "err_name_required"
+TRANS_KEY_CFOF_CHALLENGE_NAME_DUPLICATE: Final = "err_name_duplicate"
+TRANS_KEY_CFOF_CHALLENGE_DATES_REQUIRED: Final = "err_dates_required"
+TRANS_KEY_CFOF_CHALLENGE_END_BEFORE_START: Final = "err_end_before_start"
+TRANS_KEY_CFOF_CHALLENGE_INVALID_DATE: Final = "err_invalid_date"
+TRANS_KEY_CFOF_CHALLENGE_TARGET_INVALID: Final = "err_target_invalid"
+TRANS_KEY_CFOF_CHALLENGE_POINTS_NEGATIVE: Final = "err_points_negative"
+TRANS_KEY_CFOF_CHALLENGE_POINTS_INVALID: Final = "err_points_invalid"
+TRANS_KEY_CFOF_INVALID_CHORE: Final = "invalid_chore"
+TRANS_KEY_CFOF_INVALID_CHORE_COUNT: Final = "invalid_chore_count"
+TRANS_KEY_CFOF_INVALID_CHORE_NAME: Final = "invalid_chore_name"
+TRANS_KEY_CFOF_NO_KIDS_ASSIGNED: Final = "no_kids_assigned"
+TRANS_KEY_CFOF_INVALID_DUE_DATE: Final = "invalid_due_date"
+TRANS_KEY_CFOF_INVALID_END_DATE: Final = "invalid_end_date"
+TRANS_KEY_CFOF_INVALID_ENTITY: Final = "invalid_entity"
+TRANS_KEY_CFOF_INVALID_KID: Final = "invalid_kid"
+TRANS_KEY_CFOF_INVALID_KID_COUNT: Final = "invalid_kid_count"
+TRANS_KEY_CFOF_INVALID_KID_NAME: Final = "invalid_kid_name"
+TRANS_KEY_CFOF_INVALID_PARENT: Final = "invalid_parent"
+TRANS_KEY_CFOF_INVALID_PARENT_COUNT: Final = "invalid_parent_count"
+TRANS_KEY_CFOF_INVALID_PARENT_NAME: Final = "invalid_parent_name"
+TRANS_KEY_CFOF_INVALID_PENALTY: Final = "invalid_penalty"
+TRANS_KEY_CFOF_INVALID_PENALTY_COUNT: Final = "invalid_penalty_count"
+TRANS_KEY_CFOF_INVALID_PENALTY_NAME: Final = "invalid_penalty_name"
+TRANS_KEY_CFOF_INVALID_REWARD: Final = "invalid_reward"
+TRANS_KEY_CFOF_INVALID_REWARD_COUNT: Final = "invalid_reward_count"
+TRANS_KEY_CFOF_INVALID_REWARD_NAME: Final = "invalird_reward_name"
+TRANS_KEY_CFOF_INVALID_START_DATE: Final = "invalid_start_date"
+TRANS_KEY_CFOF_POINTS_LABEL_REQUIRED: Final = "points_label_required"
+TRANS_KEY_CFOF_MAIN_MENU: Final = "main_menu"
+TRANS_KEY_CFOF_MANAGE_ACTIONS: Final = "manage_actions"
+TRANS_KEY_CFOF_NO_ENTITY_TYPE: Final = "no_{}s"
+TRANS_KEY_CFOF_POINTS_ADJUST: Final = "points_adjust_options"
+TRANS_KEY_CFOF_REQUIRED_CHORES: Final = "required_chores"
+TRANS_KEY_CFOP_RESET_SCHEDULE: Final = "reset_schedule"
+TRANS_KEY_CFOF_START_DATE_IN_PAST: Final = "start_date_in_past"
+TRANS_KEY_CFOF_SETUP_COMPLETE: Final = "setup_complete"
+TRANS_KEY_CFOF_SUMMARY_ACHIEVEMENTS: Final = "Achievements: "
+TRANS_KEY_CFOF_SUMMARY_BADGES: Final = "Badges: "
+TRANS_KEY_CFOF_SUMMARY_BONUSES: Final = "Bonuses: "
+TRANS_KEY_CFOF_SUMMARY_CHALLENGES: Final = "Challenges: "
+TRANS_KEY_CFOF_SUMMARY_CHORES: Final = "Chores: "
+TRANS_KEY_CFOF_SUMMARY_KIDS: Final = "Kids: "
+TRANS_KEY_CFOF_SUMMARY_PARENTS: Final = "Parents: "
+TRANS_KEY_CFOF_SUMMARY_PENALTIES: Final = "Penalties: "
+TRANS_KEY_CFOF_SUMMARY_REWARDS: Final = "Rewards: "
 
 # Flow Helpers Translation Keys
-TRANS_KEY_FLOW_HELPERS_APPLICABLE_DAYS = "applicable_days"
-TRANS_KEY_FLOW_HELPERS_ASSIGNED_KIDS = "assigned_kids"
-TRANS_KEY_FLOW_HELPERS_ASSOCIATED_ACHIEVEMENT = "associated_achievement"
-TRANS_KEY_FLOW_HELPERS_ASSOCIATED_CHALLENGE = "associated_challenge"
-TRANS_KEY_FLOW_HELPERS_ASSOCIATED_KIDS = "associated_kids"
-TRANS_KEY_FLOW_HELPERS_AWARD_MODE = "award_mode"
-TRANS_KEY_FLOW_HELPERS_AWARD_REWARD = "award_reward"
-TRANS_KEY_FLOW_HELPERS_CUSTOM_INTERVAL_UNIT = "custom_interval_unit"
-TRANS_KEY_FLOW_HELPERS_DAILY_THRESHOLD_TYPE = "daily_threshold_type"
-TRANS_KEY_FLOW_HELPERS_MAIN_MENU = "main_menu"
-TRANS_KEY_FLOW_HELPERS_MANAGE_ACTIONS = "manage_actions"
-TRANS_KEY_FLOW_HELPERS_OCCASION_TYPE = "occasion_type"
-TRANS_KEY_FLOW_HELPERS_ONE_TIME_REWARD = "one_time_reward"
-TRANS_KEY_FLOW_HELPERS_PERIOD = "period"
-TRANS_KEY_FLOW_HELPERS_RECURRING_FREQUENCY = "recurring_frequency"
-TRANS_KEY_FLOW_HELPERS_RESET_CRITERIA = "reset_criteria"
-TRANS_KEY_FLOW_HELPERS_RESET_TYPE = "reset_type"
-TRANS_KEY_FLOW_HELPERS_SELECTED_CHORE_ID = "selected_chore_id"
-TRANS_KEY_FLOW_HELPERS_THRESHOLD_TYPE = "threshold_type"
+TRANS_KEY_FLOW_HELPERS_APPLICABLE_DAYS: Final = "applicable_days"
+TRANS_KEY_FLOW_HELPERS_ASSIGNED_KIDS: Final = "assigned_kids"
+TRANS_KEY_FLOW_HELPERS_ASSOCIATED_ACHIEVEMENT: Final = "associated_achievement"
+TRANS_KEY_FLOW_HELPERS_ASSOCIATED_CHALLENGE: Final = "associated_challenge"
+TRANS_KEY_FLOW_HELPERS_ASSOCIATED_KIDS: Final = "associated_kids"
+TRANS_KEY_FLOW_HELPERS_AWARD_MODE: Final = "award_mode"
+TRANS_KEY_FLOW_HELPERS_AWARD_REWARD: Final = "award_reward"
+TRANS_KEY_FLOW_HELPERS_CUSTOM_INTERVAL_UNIT: Final = "custom_interval_unit"
+TRANS_KEY_FLOW_HELPERS_DAILY_THRESHOLD_TYPE: Final = "daily_threshold_type"
+TRANS_KEY_FLOW_HELPERS_MAIN_MENU: Final = "main_menu"
+TRANS_KEY_FLOW_HELPERS_MANAGE_ACTIONS: Final = "manage_actions"
+TRANS_KEY_FLOW_HELPERS_OCCASION_TYPE: Final = "occasion_type"
+TRANS_KEY_FLOW_HELPERS_ONE_TIME_REWARD: Final = "one_time_reward"
+TRANS_KEY_FLOW_HELPERS_PERIOD: Final = "period"
+TRANS_KEY_FLOW_HELPERS_RECURRING_FREQUENCY: Final = "recurring_frequency"
+TRANS_KEY_FLOW_HELPERS_RESET_CRITERIA: Final = "reset_criteria"
+TRANS_KEY_FLOW_HELPERS_RESET_TYPE: Final = "reset_type"
+TRANS_KEY_FLOW_HELPERS_SELECTED_CHORE_ID: Final = "selected_chore_id"
+TRANS_KEY_FLOW_HELPERS_THRESHOLD_TYPE: Final = "threshold_type"
 
 # Sensor Translation Keys
-TRANS_KEY_SENSOR_ACHIEVEMENT_PROGRESS_SENSOR = "achievement_progress_sensor"
-TRANS_KEY_SENSOR_ACHIEVEMENT_STATE_SENSOR = "achievement_state_sensor"
-TRANS_KEY_SENSOR_BADGE_SENSOR = "badge_sensor"
-TRANS_KEY_SENSOR_BONUS_APPLIES_SENSOR = "bonus_applies_sensor"
-TRANS_KEY_SENSOR_CHALLENGE_PROGRESS_SENSOR = "challenge_progress_sensor"
-TRANS_KEY_SENSOR_CHALLENGE_STATE_SENSOR = "challenge_state_sensor"
-TRANS_KEY_SENSOR_CHORES_COMPLETED_DAILY_SENSOR = "chores_completed_daily_sensor"
-TRANS_KEY_SENSOR_CHORES_COMPLETED_MONTHLY_SENSOR = "chores_completed_monthly_sensor"
-TRANS_KEY_SENSOR_CHORES_COMPLETED_TOTAL_SENSOR = "chores_completed_total_sensor"
-TRANS_KEY_SENSOR_CHORES_COMPLETED_WEEKLY_SENSOR = "chores_completed_weekly_sensor"
-TRANS_KEY_SENSOR_CHORE_STATUS_SENSOR = "chore_status_sensor"
-TRANS_KEY_SENSOR_KID_HIGHEST_STREAK_SENSOR = "kid_highest_streak_sensor"
-TRANS_KEY_SENSOR_KID_MAX_POINTS_EVER_SENSOR = "kid_max_points_ever_sensor"
-TRANS_KEY_SENSOR_KID_POINTS_EARNED_DAILY_SENSOR = "kid_points_earned_daily_sensor"
-TRANS_KEY_SENSOR_KID_POINTS_EARNED_MONTHLY_SENSOR = "kid_points_earned_monthly_sensor"
-TRANS_KEY_SENSOR_KID_POINTS_EARNED_WEEKLY_SENSOR = "kid_points_earned_weekly_sensor"
-TRANS_KEY_SENSOR_KID_POINTS_SENSOR = "kid_points_sensor"
-TRANS_KEY_SENSOR_KIDS_HIGHEST_BADGE_SENSOR = "kids_highest_badge_sensor"
-TRANS_KEY_SENSOR_PENALTY_APPLIES_SENSOR = "penalty_applies_sensor"
-TRANS_KEY_SENSOR_PENDING_CHORES_APPROVALS_SENSOR = "pending_chores_approvals_sensor"
-TRANS_KEY_SENSOR_PENDING_REWARDS_APPROVALS_SENSOR = "pending_rewards_approvals_sensor"
-TRANS_KEY_SENSOR_REWARD_STATUS_SENSOR = "reward_status_sensor"
-TRANS_KEY_SENSOR_SHARED_CHORE_GLOBAL_STATUS_SENSOR = "shared_chore_global_status_sensor"
+TRANS_KEY_SENSOR_ACHIEVEMENT_PROGRESS_SENSOR: Final = "achievement_progress_sensor"
+TRANS_KEY_SENSOR_ACHIEVEMENT_STATE_SENSOR: Final = "achievement_state_sensor"
+TRANS_KEY_SENSOR_BADGE_SENSOR: Final = "badge_sensor"
+TRANS_KEY_SENSOR_BONUS_APPLIES_SENSOR: Final = "bonus_applies_sensor"
+TRANS_KEY_SENSOR_CHALLENGE_PROGRESS_SENSOR: Final = "challenge_progress_sensor"
+TRANS_KEY_SENSOR_CHALLENGE_STATE_SENSOR: Final = "challenge_state_sensor"
+TRANS_KEY_SENSOR_CHORES_COMPLETED_DAILY_SENSOR: Final = "chores_completed_daily_sensor"
+TRANS_KEY_SENSOR_CHORES_COMPLETED_MONTHLY_SENSOR: Final = (
+    "chores_completed_monthly_sensor"
+)
+TRANS_KEY_SENSOR_CHORES_COMPLETED_TOTAL_SENSOR: Final = "chores_completed_total_sensor"
+TRANS_KEY_SENSOR_CHORES_COMPLETED_WEEKLY_SENSOR: Final = (
+    "chores_completed_weekly_sensor"
+)
+TRANS_KEY_SENSOR_CHORE_STATUS_SENSOR: Final = "chore_status_sensor"
+TRANS_KEY_SENSOR_KID_HIGHEST_STREAK_SENSOR: Final = "kid_highest_streak_sensor"
+TRANS_KEY_SENSOR_KID_MAX_POINTS_EVER_SENSOR: Final = "kid_max_points_ever_sensor"
+TRANS_KEY_SENSOR_KID_POINTS_EARNED_DAILY_SENSOR: Final = (
+    "kid_points_earned_daily_sensor"
+)
+TRANS_KEY_SENSOR_KID_POINTS_EARNED_MONTHLY_SENSOR: Final = (
+    "kid_points_earned_monthly_sensor"
+)
+TRANS_KEY_SENSOR_KID_POINTS_EARNED_WEEKLY_SENSOR: Final = (
+    "kid_points_earned_weekly_sensor"
+)
+TRANS_KEY_SENSOR_KID_POINTS_SENSOR: Final = "kid_points_sensor"
+TRANS_KEY_SENSOR_KIDS_HIGHEST_BADGE_SENSOR: Final = "kids_highest_badge_sensor"
+TRANS_KEY_SENSOR_PENALTY_APPLIES_SENSOR: Final = "penalty_applies_sensor"
+TRANS_KEY_SENSOR_PENDING_CHORES_APPROVALS_SENSOR: Final = (
+    "pending_chores_approvals_sensor"
+)
+TRANS_KEY_SENSOR_PENDING_REWARDS_APPROVALS_SENSOR: Final = (
+    "pending_rewards_approvals_sensor"
+)
+TRANS_KEY_SENSOR_REWARD_STATUS_SENSOR: Final = "reward_status_sensor"
+TRANS_KEY_SENSOR_SHARED_CHORE_GLOBAL_STATUS_SENSOR: Final = (
+    "shared_chore_global_status_sensor"
+)
 
 
 # Sensor Attributes Translation Keys
-TRANS_KEY_SENSOR_ATTR_ACHIEVEMENT_NAME = "achievement_name"
-TRANS_KEY_SENSOR_ATTR_BADGE_NAME = "badge_name"
-TRANS_KEY_SENSOR_ATTR_BONUS_NAME = "bonus_name"
-TRANS_KEY_SENSOR_ATTR_CHALLENGE_NAME = "challenge_name"
-TRANS_KEY_SENSOR_ATTR_CHORE_NAME = "chore_name"
-TRANS_KEY_SENSOR_ATTR_KID_NAME = "kid_name"
-TRANS_KEY_SENSOR_ATTR_PENALTY_NAME = "penalty_name"
-TRANS_KEY_SENSOR_ATTR_POINTS = "points"
-TRANS_KEY_SENSOR_ATTR_REWARD_NAME = "reward_name"
+TRANS_KEY_SENSOR_ATTR_ACHIEVEMENT_NAME: Final = "achievement_name"
+TRANS_KEY_SENSOR_ATTR_BADGE_NAME: Final = "badge_name"
+TRANS_KEY_SENSOR_ATTR_BONUS_NAME: Final = "bonus_name"
+TRANS_KEY_SENSOR_ATTR_CHALLENGE_NAME: Final = "challenge_name"
+TRANS_KEY_SENSOR_ATTR_CHORE_NAME: Final = "chore_name"
+TRANS_KEY_SENSOR_ATTR_KID_NAME: Final = "kid_name"
+TRANS_KEY_SENSOR_ATTR_PENALTY_NAME: Final = "penalty_name"
+TRANS_KEY_SENSOR_ATTR_POINTS: Final = "points"
+TRANS_KEY_SENSOR_ATTR_REWARD_NAME: Final = "reward_name"
 
 # Select Translation Keys
-TRANS_KEY_SELECT_BASE = "kc_select_base"
-TRANS_KEY_SELECT_BONUSES = "bonuses_select"
-TRANS_KEY_SELECT_CHORES = "chores_select"
-TRANS_KEY_SELECT_CHORES_KID = "chores_kid_select"
-TRANS_KEY_SELECT_PENALTIES = "penalties_select"
-TRANS_KEY_SELECT_REWARDS = "rewards_select"
+TRANS_KEY_SELECT_BASE: Final = "kc_select_base"
+TRANS_KEY_SELECT_BONUSES: Final = "bonuses_select"
+TRANS_KEY_SELECT_CHORES: Final = "chores_select"
+TRANS_KEY_SELECT_CHORES_KID: Final = "chores_kid_select"
+TRANS_KEY_SELECT_PENALTIES: Final = "penalties_select"
+TRANS_KEY_SELECT_REWARDS: Final = "rewards_select"
 
 # Select Labels
-TRANS_KEY_SELECT_LABEL_ALL_BONUSES = "All Bonuses"
-TRANS_KEY_SELECT_LABEL_ALL_CHORES = "All Chores"
-TRANS_KEY_SELECT_LABEL_ALL_PENALTIES = "All Penalties"
-TRANS_KEY_SELECT_LABEL_ALL_REWARDS = "All Rewards"
-TRANS_KEY_SELECT_LABEL_CHORES_FOR = "Chores for"
+TRANS_KEY_SELECT_LABEL_ALL_BONUSES: Final = "select_label_all_bonuses"
+TRANS_KEY_SELECT_LABEL_ALL_CHORES: Final = "select_label_all_chores"
+TRANS_KEY_SELECT_LABEL_ALL_PENALTIES: Final = "select_label_all_penalties"
+TRANS_KEY_SELECT_LABEL_ALL_REWARDS: Final = "select_label_all_rewards"
+TRANS_KEY_SELECT_LABEL_CHORES_FOR: Final = "select_label_chores_for"
 
 # Button Translation Keys
-TRANS_KEY_BUTTON_APPROVE_CHORE_BUTTON = "approve_chore_button"
-TRANS_KEY_BUTTON_APPROVE_REWARD_BUTTON = "approve_reward_button"
-TRANS_KEY_BUTTON_BONUS_BUTTON = "bonus_button"
-TRANS_KEY_BUTTON_CLAIM_CHORE_BUTTON = "claim_chore_button"
-TRANS_KEY_BUTTON_CLAIM_REWARD_BUTTON = "claim_reward_button"
-TRANS_KEY_BUTTON_DELTA_PLUS_LABEL = "+"
-TRANS_KEY_BUTTON_DELTA_MINUS_TEXT = "minus_"
-TRANS_KEY_BUTTON_DELTA_PLUS_TEXT = "plus_"
-TRANS_KEY_BUTTON_DISAPPROVE_CHORE_BUTTON = "disapprove_chore_button"
-TRANS_KEY_BUTTON_DISAPPROVE_REWARD_BUTTON = "disapprove_reward_button"
-TRANS_KEY_BUTTON_MANUAL_ADJUSTMENT_BUTTON = "manual_adjustment_button"
-TRANS_KEY_BUTTON_PENALTY_BUTTON = "penalty_button"
+TRANS_KEY_BUTTON_APPROVE_CHORE_BUTTON: Final = "approve_chore_button"
+TRANS_KEY_BUTTON_APPROVE_REWARD_BUTTON: Final = "approve_reward_button"
+TRANS_KEY_BUTTON_BONUS_BUTTON: Final = "bonus_button"
+TRANS_KEY_BUTTON_CLAIM_CHORE_BUTTON: Final = "claim_chore_button"
+TRANS_KEY_BUTTON_CLAIM_REWARD_BUTTON: Final = "claim_reward_button"
+TRANS_KEY_BUTTON_DELTA_PLUS_LABEL: Final = "+"
+TRANS_KEY_BUTTON_DELTA_MINUS_TEXT: Final = "minus_"
+TRANS_KEY_BUTTON_DELTA_PLUS_TEXT: Final = "plus_"
+TRANS_KEY_BUTTON_DISAPPROVE_CHORE_BUTTON: Final = "disapprove_chore_button"
+TRANS_KEY_BUTTON_DISAPPROVE_REWARD_BUTTON: Final = "disapprove_reward_button"
+TRANS_KEY_BUTTON_MANUAL_ADJUSTMENT_BUTTON: Final = "manual_adjustment_button"
+TRANS_KEY_BUTTON_PENALTY_BUTTON: Final = "penalty_button"
 
 
 # Button Attributes Translation Keys
-TRANS_KEY_BUTTON_ATTR_BONUS_NAME = "bonus_name"
-TRANS_KEY_BUTTON_ATTR_CHORE_NAME = "chore_name"
-TRANS_KEY_BUTTON_ATTR_KID_NAME = "kid_name"
-TRANS_KEY_BUTTON_ATTR_PENALTY_NAME = "penalty_name"
-TRANS_KEY_BUTTON_ATTR_POINTS_LABEL = "points_label"
-TRANS_KEY_BUTTON_ATTR_REWARD_NAME = "reward_name"
-TRANS_KEY_BUTTON_ATTR_SIGN_LABEL = "sign_label"
+TRANS_KEY_BUTTON_ATTR_BONUS_NAME: Final = "bonus_name"
+TRANS_KEY_BUTTON_ATTR_CHORE_NAME: Final = "chore_name"
+TRANS_KEY_BUTTON_ATTR_KID_NAME: Final = "kid_name"
+TRANS_KEY_BUTTON_ATTR_PENALTY_NAME: Final = "penalty_name"
+TRANS_KEY_BUTTON_ATTR_POINTS_LABEL: Final = "points_label"
+TRANS_KEY_BUTTON_ATTR_REWARD_NAME: Final = "reward_name"
+TRANS_KEY_BUTTON_ATTR_SIGN_LABEL: Final = "sign_label"
 
 # Calendar Attributes Translation Keys
 TRANS_KEY_CALENDAR_NAME = f"{KIDSCHORES_TITLE} Calendar"
 
 # FMT Errors Translation Keys
-TRANS_KEY_FMT_ERROR_ADJUST_POINTS = "adjust_points"
-TRANS_KEY_FMT_ERROR_APPLY_BONUS = "apply_bonus"
-TRANS_KEY_FMT_ERROR_APPLY_PENALTIES = "apply_penalties"
-TRANS_KEY_FMT_ERROR_APPROVE_CHORES = "approve_chores"
-TRANS_KEY_FMT_ERROR_APPROVE_REWARDS = "approve_rewards"
-TRANS_KEY_FMT_ERROR_CLAIM_CHORES = "claim_chores"
-TRANS_KEY_FMT_ERROR_DISAPPROVE_CHORES = "disapprove_chores"
-TRANS_KEY_FMT_ERROR_DISAPPROVE_REWARDS = "disapprove_rewards"
-TRANS_KEY_FMT_ERROR_REDEEM_REWARDS = "redeem_rewards"
+TRANS_KEY_FMT_ERROR_ADJUST_POINTS: Final = "adjust_points"
+TRANS_KEY_FMT_ERROR_APPLY_BONUS: Final = "apply_bonus"
+TRANS_KEY_FMT_ERROR_APPLY_PENALTIES: Final = "apply_penalties"
+TRANS_KEY_FMT_ERROR_APPROVE_CHORES: Final = "approve_chores"
+TRANS_KEY_FMT_ERROR_APPROVE_REWARDS: Final = "approve_rewards"
+TRANS_KEY_FMT_ERROR_CLAIM_CHORES: Final = "claim_chores"
+TRANS_KEY_FMT_ERROR_DISAPPROVE_CHORES: Final = "disapprove_chores"
+TRANS_KEY_FMT_ERROR_DISAPPROVE_REWARDS: Final = "disapprove_rewards"
+TRANS_KEY_FMT_ERROR_REDEEM_REWARDS: Final = "redeem_rewards"
 
 # ------------------------------------------------------------------------------------------------
 # Notification Keys
@@ -1859,11 +1909,8 @@ WEEKDAY_OPTIONS = {
     "sun": "Sunday",
 }
 
-# Chore Custom Interval Reset Periods
-CUSTOM_INTERVAL_UNIT_OPTIONS = [CONF_EMPTY, CONF_DAYS, CONF_WEEKS, CONF_MONTHS]
-
 # Badge Type to Options Flow Add Step Name Mapping
-OPTIONS_FLOW_ADD_STEP = {
+OPTIONS_FLOW_ADD_STEP: Final = {
     BADGE_TYPE_ACHIEVEMENT_LINKED: OPTIONS_FLOW_STEP_ADD_BADGE_ACHIEVEMENT,
     BADGE_TYPE_CHALLENGE_LINKED: OPTIONS_FLOW_STEP_ADD_BADGE_CHALLENGE,
     BADGE_TYPE_CUMULATIVE: OPTIONS_FLOW_STEP_ADD_BADGE_CUMULATIVE,
@@ -1873,7 +1920,7 @@ OPTIONS_FLOW_ADD_STEP = {
 }
 
 # Badge Type to Options Flow Edit Step Name Mapping
-OPTIONS_FLOW_EDIT_STEP = {
+OPTIONS_FLOW_EDIT_STEP: Final = {
     BADGE_TYPE_ACHIEVEMENT_LINKED: OPTIONS_FLOW_STEP_EDIT_BADGE_ACHIEVEMENT,
     BADGE_TYPE_CHALLENGE_LINKED: OPTIONS_FLOW_STEP_EDIT_BADGE_CHALLENGE,
     BADGE_TYPE_CUMULATIVE: OPTIONS_FLOW_STEP_EDIT_BADGE_CUMULATIVE,
@@ -1943,18 +1990,18 @@ BADGE_RESET_SCHEDULE_OPTIONS = [
     {"value": PERIOD_MONTH_END, "label": "Month-End"},
     {"value": PERIOD_QUARTER_END, "label": "Quarter-End"},
     {"value": PERIOD_YEAR_END, "label": "Year-End"},
-    {"value": CONF_CUSTOM, "label": "Custom (define period below)"},
+    {"value": FREQUENCY_CUSTOM, "label": "Custom (define period below)"},
 ]
 
 # Badge target handler constants for handler mapping keys
-BADGE_HANDLER_PARAM_PERCENT_REQUIRED = "percent_required"
-BADGE_HANDLER_PARAM_ONLY_DUE_TODAY = "only_due_today"
-BADGE_HANDLER_PARAM_REQUIRE_NO_OVERDUE = "require_no_overdue"
-BADGE_HANDLER_PARAM_MIN_COUNT = "min_count"
-BADGE_HANDLER_PARAM_FROM_CHORES_ONLY = "from_chores_only"
+BADGE_HANDLER_PARAM_PERCENT_REQUIRED: Final = "percent_required"
+BADGE_HANDLER_PARAM_ONLY_DUE_TODAY: Final = "only_due_today"
+BADGE_HANDLER_PARAM_REQUIRE_NO_OVERDUE: Final = "require_no_overdue"
+BADGE_HANDLER_PARAM_MIN_COUNT: Final = "min_count"
+BADGE_HANDLER_PARAM_FROM_CHORES_ONLY: Final = "from_chores_only"
 
 # Badge Special Occasion Types
-OCCASION_TYPE_OPTIONS = [CONF_BIRTHDAY, CONF_HOLIDAY, CONF_CUSTOM]
+OCCASION_TYPE_OPTIONS = [OCCASION_BIRTHDAY, OCCASION_HOLIDAY, FREQUENCY_CUSTOM]
 
 # Lowercase literals required by Home Assistant SelectSelector schema
 TARGET_TYPE_OPTIONS = [
@@ -2104,7 +2151,7 @@ CHALLENGE_TYPE_OPTIONS = [
 # Reward Options
 REWARD_OPTION_NONE = [
     {
-        "value": CONF_EMPTY,
+        "value": SENTINEL_EMPTY,
         "label": LABEL_NONE,
     }
 ]
@@ -2126,7 +2173,9 @@ DATA_KID_BADGES_DEPRECATED = (
 DATA_KID_CHORE_APPROVALS_DEPRECATED = (
     "chore_approvals"  # Used in async_approve_chore(), _create_kid()
 )
-DATA_KID_CHORE_CLAIMS_DEPRECATED = "chore_claims"  # Used in migration and _create_kid()
+DATA_KID_CHORE_CLAIMS_DEPRECATED: Final = (
+    "chore_claims"  # Used in migration and _create_kid()
+)
 DATA_KID_CHORE_STREAKS_DEPRECATED = (
     "chore_streaks"  # Used in _remove_chore_from_kid_data(), _create_kid()
 )
@@ -2164,13 +2213,26 @@ DATA_KID_POINTS_EARNED_YEARLY_DEPRECATED = (
 
 
 # ================================================================================================
-# LEGACY CONSTANTS (KC 3.x migration only - used in one-time data conversion)
-# These reference OLD storage keys from KC 3.x that are replaced during migration to KC 4.x.
+# LEGACY CONSTANTS (KC 3.x→4.x and KC 4.x→5.x migrations - one-time data conversion only)
+# These reference OLD storage keys that are replaced during migration.
 # After migration completes, these keys NO LONGER EXIST in storage.
-# Remove in KC-vNext after KC 3.x migration support is dropped.
-# DO NOT DELETE - would break KC 3.x to KC 4.x migration for upgrading users.
+# Remove in KC-vNext after migration support is dropped.
+# DO NOT DELETE - would break migrations for upgrading users.
 # ================================================================================================
 
+# KC 4.x Beta Cleanup (removed in schema v42)
+# Used in coordinator._migrate_*() functions to clean up deprecated keys from KC 4.x beta
+# TODO(KC 5.0): Remove after KC 4.x beta support dropped (all users on v42+)
+MIGRATION_PERFORMED = (
+    "migration_performed"  # Cleanup key, redundant with schema_version
+)
+MIGRATION_KEY_VERSION = (
+    "migration_key_version"  # Cleanup key, redundant with schema_version
+)
+MIGRATION_KEY_VERSION_NUMBER = 41  # Old target version for KC 3.x→4.x migration
+MIGRATION_DATA_LEGACY_ORPHAN = "legacy_orphan"  # Cleanup data key from beta
+
+# KC 3.x→4.x Badge Migration
 DATA_BADGE_CHORE_COUNT_TYPE_LEGACY = (
     "chore_count_type"  # Read in _migrate_badge_schema()
 )
@@ -2183,69 +2245,3 @@ DATA_BADGE_THRESHOLD_TYPE_LEGACY = (
 DATA_BADGE_THRESHOLD_VALUE_LEGACY = (
     "threshold_value"  # Read in _migrate_badge_schema(), deleted after
 )
-
-
-# ================================================================================================
-# UNUSED CONSTANTS (No code references - safe to delete anytime)
-# These constants have NO references in active code or migrations.
-# They represent abandoned features, development artifacts, or fully replaced functionality.
-# Can be deleted immediately without breaking anything.
-# Kept temporarily for code review traceability.
-# ================================================================================================
-
-# Badge Data Keys (never used or fully replaced)
-DATA_BADGE_REQUIRED_CHORES_UNUSED = (
-    "required_chores"  # Never implemented in any schema version
-)
-DATA_BADGE_SPECIAL_OCCASION_LAST_AWARDED_UNUSED = (
-    "last_awarded"  # Defined but never used in migration
-)
-
-# Config Flow & Options Flow
-CFOF_BADGES_INPUT_AWARD_POINTS_REWARD_UNUSED = "award_points_reward"
-CFOF_BADGES_INPUT_CUSTOM_RESET_DATE_UNUSED = "custom_reset_date"
-
-# Badge Data Keys
-DATA_BADGE_DAILY_THRESHOLD_UNUSED = "daily_threshold"
-DATA_BADGE_END_DATE_UNUSED = "end_date"
-DATA_BADGE_PERIODIC_RECURRENT_UNUSED = "recurrent"
-DATA_BADGE_RESET_GRACE_PERIOD_UNUSED = (
-    "reset_grace_period"  # NEEDS TO BE REMOVED AFTER FIX
-)
-DATA_BADGE_RESET_PERIODICALLY_UNUSED = (
-    "reset_periodically"  # NEEDS TO BE REMOVED AFTER FIX
-)
-DATA_BADGE_RESET_TYPE_UNUSED = "reset_type"  # NEEDS TO BE REMOVED AFTER FIX
-DATA_BADGE_SPECIAL_OCCASION_DATE_UNUSED = "occasion_date"
-DATA_BADGE_SPECIAL_OCCASION_RECURRENCY_UNUSED = "recurrent"
-DATA_BADGE_START_DATE_UNUSED = "start_date"
-
-# Kid Badge Data Keys
-DATA_KID_BADGE_EARNED_ID_UNUSED = "badge_id"
-DATA_KID_BADGE_GRACE_EXPIRY_UNUSED = "badge_grace_expiry"
-DATA_KID_PERIODIC_BADGE_POINTS_UNUSED = "periodic_badge_points"
-DATA_KID_PERIODIC_BADGE_PROGRESS_UNUSED = "periodic_badge_progress"
-DATA_KID_PERIODIC_BADGE_SUCCESS_UNUSED = "periodic_badge_success"
-DATA_KID_PRE_RESET_BADGE_UNUSED = "pre_reset_badge"
-
-# Default Values
-DEFAULT_BADGE_AWARD_MODE_UNUSED = "award_none"
-DEFAULT_BADGE_DAILY_THRESHOLD_UNUSED = 5
-DEFAULT_BADGE_RESET_GRACE_PERIOD_UNUSED = 0
-DEFAULT_BADGE_REWARD_UNUSED = 0
-DEFAULT_BADGE_THRESHOLD_TYPE_UNUSED = "points"
-
-# Configuration Keys (Deprecated - replaced by FREQUENCY_* and PERIOD_* patterns)
-CONF_CUSTOM_1_MONTH_UNUSED = "custom_1_month"  # Use FREQUENCY_CUSTOM_1_MONTH instead
-CONF_CUSTOM_1_WEEK_UNUSED = "custom_1_week"  # Use FREQUENCY_CUSTOM_1_WEEK instead
-CONF_CUSTOM_1_YEAR_UNUSED = "custom_1_year"  # Use FREQUENCY_CUSTOM_1_YEAR instead
-CONF_DAY_END_UNUSED = "day_end"  # Use PERIOD_DAY_END instead
-CONF_MONTH_END_UNUSED = "month_end"  # Use PERIOD_MONTH_END instead
-CONF_QUARTER_END_UNUSED = "quarter_end"  # Use PERIOD_QUARTER_END instead
-CONF_UNAVAILABLE_UNUSED = "unavailable"  # Unused sentinel value
-CONF_WEEK_END_UNUSED = "week_end"  # Use PERIOD_WEEK_END instead
-CONF_YEAR_END_UNUSED = "year_end"  # Use PERIOD_YEAR_END instead
-
-# Translation Keys
-TRANS_KEY_CFOF_BADGE_AWARD_MODE_UNUSED = "award_mode"  # Added
-TRANS_KEY_CFOF_BADGE_AWARD_REWARD_UNUSED = "award_reward"  # Added

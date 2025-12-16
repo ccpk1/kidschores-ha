@@ -59,10 +59,10 @@ def test_build_parents_data_with_defaults() -> None:
 
     parent_data = result["grandma-id"]
     assert parent_data[const.DATA_PARENT_NAME] == "Grandma"
-    assert parent_data[const.DATA_PARENT_HA_USER_ID] == const.CONF_EMPTY
+    assert parent_data[const.DATA_PARENT_HA_USER_ID] == const.SENTINEL_EMPTY
     assert parent_data[const.DATA_PARENT_ASSOCIATED_KIDS] == []
     assert parent_data[const.DATA_PARENT_ENABLE_NOTIFICATIONS] is True  # Default
-    assert parent_data[const.DATA_PARENT_MOBILE_NOTIFY_SERVICE] == const.CONF_EMPTY
+    assert parent_data[const.DATA_PARENT_MOBILE_NOTIFY_SERVICE] == const.SENTINEL_EMPTY
     assert (
         parent_data[const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS] is True
     )  # Default

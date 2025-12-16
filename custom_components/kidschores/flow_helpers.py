@@ -84,6 +84,7 @@ import uuid
 from typing import Any, Dict, Optional, Tuple
 
 import voluptuous as vol
+from homeassistant.const import CONF_DESCRIPTION, CONF_ICON, CONF_NAME  # noqa: F401
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
@@ -160,7 +161,7 @@ def validate_points_inputs(user_input: Dict[str, Any]) -> Dict[str, str]:
 async def build_kid_schema(
     hass,
     users,
-    default_kid_name=const.CONF_EMPTY,
+    default_kid_name=const.SENTINEL_EMPTY,
     default_ha_user_id=None,
     internal_id=None,
     default_enable_mobile_notifications=False,
@@ -169,11 +170,11 @@ async def build_kid_schema(
     default_dashboard_language=None,
 ):
     """Build a Voluptuous schema for adding/editing a Kid, keyed by internal_id in the dict."""
-    user_options = [{"value": const.CONF_EMPTY, "label": const.LABEL_NONE}] + [
+    user_options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}] + [
         {"value": user.id, "label": user.name} for user in users
     ]
     notify_options = [
-        {"value": const.CONF_EMPTY, "label": const.LABEL_NONE}
+        {"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}
     ] + _get_notify_services(hass)
 
     # Get available dashboard languages
@@ -183,7 +184,7 @@ async def build_kid_schema(
         {
             vol.Required(const.CFOF_KIDS_INPUT_KID_NAME, default=default_kid_name): str,
             vol.Optional(
-                const.CONF_HA_USER, default=default_ha_user_id or const.CONF_EMPTY
+                const.CONF_HA_USER, default=default_ha_user_id or const.SENTINEL_EMPTY
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=user_options,
@@ -207,7 +208,7 @@ async def build_kid_schema(
             ): selector.BooleanSelector(),
             vol.Optional(
                 const.CONF_MOBILE_NOTIFY_SERVICE,
-                default=default_mobile_notify_service or const.CONF_EMPTY,
+                default=default_mobile_notify_service or const.SENTINEL_EMPTY,
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=notify_options,
@@ -244,12 +245,12 @@ def build_kids_data(
     kid_name = user_input.get(const.CFOF_KIDS_INPUT_KID_NAME, "").strip()
     internal_id = user_input.get(const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4()))
 
-    ha_user_id = user_input.get(const.CFOF_KIDS_INPUT_HA_USER) or const.CONF_EMPTY
+    ha_user_id = user_input.get(const.CFOF_KIDS_INPUT_HA_USER) or const.SENTINEL_EMPTY
     enable_mobile_notifications = user_input.get(
         const.CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS, True
     )
     notify_service = (
-        user_input.get(const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE) or const.CONF_EMPTY
+        user_input.get(const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE) or const.SENTINEL_EMPTY
     )
     enable_persist = user_input.get(
         const.CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
@@ -308,7 +309,7 @@ def build_parent_schema(
     hass,
     users,
     kids_dict,
-    default_parent_name=const.CONF_EMPTY,
+    default_parent_name=const.SENTINEL_EMPTY,
     default_ha_user_id=None,
     default_associated_kids=None,
     default_enable_mobile_notifications=False,
@@ -317,21 +318,21 @@ def build_parent_schema(
     internal_id=None,
 ):
     """Build a Voluptuous schema for adding/editing a Parent, keyed by internal_id in the dict."""
-    user_options = [{"value": const.CONF_EMPTY, "label": const.LABEL_NONE}] + [
+    user_options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}] + [
         {"value": user.id, "label": user.name} for user in users
     ]
     kid_options = [
         {"value": kid_id, "label": kid_name} for kid_name, kid_id in kids_dict.items()
     ]
     notify_options = [
-        {"value": const.CONF_EMPTY, "label": const.LABEL_NONE}
+        {"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}
     ] + _get_notify_services(hass)
 
     return vol.Schema(
         {
             vol.Required(const.CONF_PARENT_NAME, default=default_parent_name): str,
             vol.Optional(
-                const.CONF_HA_USER_ID, default=default_ha_user_id or const.CONF_EMPTY
+                const.CONF_HA_USER_ID, default=default_ha_user_id or const.SENTINEL_EMPTY
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=user_options,
@@ -355,7 +356,7 @@ def build_parent_schema(
             ): selector.BooleanSelector(),
             vol.Optional(
                 const.CONF_MOBILE_NOTIFY_SERVICE,
-                default=default_mobile_notify_service or const.CONF_EMPTY,
+                default=default_mobile_notify_service or const.SENTINEL_EMPTY,
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=notify_options,
@@ -392,14 +393,14 @@ def build_parents_data(
     parent_name = user_input.get(const.CFOF_PARENTS_INPUT_NAME, "").strip()
     internal_id = user_input.get(const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4()))
 
-    ha_user_id = user_input.get(const.CFOF_PARENTS_INPUT_HA_USER) or const.CONF_EMPTY
+    ha_user_id = user_input.get(const.CFOF_PARENTS_INPUT_HA_USER) or const.SENTINEL_EMPTY
     associated_kids = user_input.get(const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS, [])
     enable_mobile_notifications = user_input.get(
         const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS, True
     )
     notify_service = (
         user_input.get(const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE)
-        or const.CONF_EMPTY
+        or const.SENTINEL_EMPTY
     )
     enable_persist = user_input.get(
         const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
@@ -461,7 +462,7 @@ def build_chore_schema(kids_dict, default=None):
     Uses internal_id for entity management.
     """
     default = default or {}
-    chore_name_default = default.get(const.CONF_NAME, const.CONF_EMPTY)
+    chore_name_default = default.get(CONF_NAME, const.SENTINEL_EMPTY)
     internal_id_default = default.get(const.CONF_INTERNAL_ID, str(uuid.uuid4()))
 
     kid_choices = {k: k for k in kids_dict}
@@ -471,7 +472,7 @@ def build_chore_schema(kids_dict, default=None):
             vol.Required(const.CONF_CHORE_NAME, default=chore_name_default): str,
             vol.Optional(
                 const.CONF_CHORE_DESCRIPTION,
-                default=default.get(const.CONF_DESCRIPTION, const.CONF_EMPTY),
+                default=default.get(CONF_DESCRIPTION, const.SENTINEL_EMPTY),
             ): str,
             vol.Optional(
                 const.CONF_CHORE_LABELS,
@@ -504,7 +505,7 @@ def build_chore_schema(kids_dict, default=None):
                 default=default.get(const.CONF_PARTIAL_ALLOWED, False),
             ): selector.BooleanSelector(),
             vol.Optional(
-                const.CONF_ICON, default=default.get(const.CONF_ICON, const.CONF_EMPTY)
+                CONF_ICON, default=default.get(CONF_ICON, const.SENTINEL_EMPTY)
             ): selector.IconSelector(),
             vol.Required(
                 const.CONF_RECURRING_FREQUENCY,
@@ -678,14 +679,14 @@ def build_chores_data(
         ),
         const.DATA_CHORE_ASSIGNED_KIDS: assigned_kids_ids,
         const.DATA_CHORE_DESCRIPTION: user_input.get(
-            const.CFOF_CHORES_INPUT_DESCRIPTION, const.CONF_EMPTY
+            const.CFOF_CHORES_INPUT_DESCRIPTION, const.SENTINEL_EMPTY
         ),
         const.DATA_CHORE_LABELS: user_input.get(const.CFOF_CHORES_INPUT_LABELS, []),
         const.DATA_CHORE_ICON: user_input.get(
             const.CFOF_CHORES_INPUT_ICON, const.DEFAULT_CHORE_ICON
         ),
         const.DATA_CHORE_RECURRING_FREQUENCY: user_input.get(
-            const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY, const.CONF_EMPTY
+            const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY, const.SENTINEL_EMPTY
         ),
         const.DATA_CHORE_CUSTOM_INTERVAL: custom_interval,
         const.DATA_CHORE_CUSTOM_INTERVAL_UNIT: custom_interval_unit,
@@ -751,7 +752,7 @@ def build_badge_common_data(
     badge_data = {
         const.DATA_BADGE_NAME: user_input.get(const.CFOF_BADGES_INPUT_NAME, "").strip(),
         const.DATA_BADGE_DESCRIPTION: user_input.get(
-            const.CFOF_BADGES_INPUT_DESCRIPTION, const.CONF_EMPTY
+            const.CFOF_BADGES_INPUT_DESCRIPTION, const.SENTINEL_EMPTY
         ),
         const.DATA_BADGE_LABELS: user_input.get(const.CFOF_BADGES_INPUT_LABELS, []),
         const.DATA_BADGE_ICON: user_input.get(
@@ -794,21 +795,21 @@ def build_badge_common_data(
     # --- Special Occasion Component ---
     if include_special_occasion:
         occasion_type = user_input.get(
-            const.CFOF_BADGES_INPUT_OCCASION_TYPE, const.CONF_EMPTY
+            const.CFOF_BADGES_INPUT_OCCASION_TYPE, const.SENTINEL_EMPTY
         )
         badge_data[const.DATA_BADGE_SPECIAL_OCCASION_TYPE] = occasion_type
 
     # --- Achievement-Linked Component ---
     if include_achievement_linked:
         achievement_id = user_input.get(
-            const.CFOF_BADGES_INPUT_ASSOCIATED_ACHIEVEMENT, const.CONF_EMPTY
+            const.CFOF_BADGES_INPUT_ASSOCIATED_ACHIEVEMENT, const.SENTINEL_EMPTY
         )
         badge_data[const.DATA_BADGE_ASSOCIATED_ACHIEVEMENT] = achievement_id
 
     # --- Challenge-Linked Component ---
     if include_challenge_linked:
         challenge_id = user_input.get(
-            const.CFOF_BADGES_INPUT_ASSOCIATED_CHALLENGE, const.CONF_EMPTY
+            const.CFOF_BADGES_INPUT_ASSOCIATED_CHALLENGE, const.SENTINEL_EMPTY
         )
         badge_data[const.DATA_BADGE_ASSOCIATED_CHALLENGE] = challenge_id
 
@@ -820,7 +821,7 @@ def build_badge_common_data(
         selected_chores = [
             chore_id
             for chore_id in selected_chores
-            if chore_id and chore_id != const.CONF_EMPTY
+            if chore_id and chore_id != const.SENTINEL_EMPTY
         ]
         # Output key remains 'tracked' as per spec example, flag name is just for clarity
         badge_data[const.DATA_BADGE_TRACKED_CHORES] = {
@@ -833,7 +834,7 @@ def build_badge_common_data(
         if not isinstance(assigned, list):
             assigned = [assigned] if assigned else []
         assigned = [
-            kid_id for kid_id in assigned if kid_id and kid_id != const.CONF_EMPTY
+            kid_id for kid_id in assigned if kid_id and kid_id != const.SENTINEL_EMPTY
         ]
         badge_data[const.DATA_BADGE_ASSIGNED_TO] = assigned
 
@@ -851,7 +852,7 @@ def build_badge_common_data(
                 "Could not parse award points value '%s'. Using default.", points_input
             )
         multiplier = user_input.get(
-            const.CFOF_BADGES_INPUT_POINTS_MULTIPLIER, const.CONF_NONE
+            const.CFOF_BADGES_INPUT_POINTS_MULTIPLIER, const.SENTINEL_NONE
         )
 
         # --- Unified Award Items ---
@@ -869,7 +870,7 @@ def build_badge_common_data(
     if include_reset_schedule:
         recurring_frequency = user_input.get(
             const.CFOF_BADGES_INPUT_RESET_SCHEDULE_RECURRING_FREQUENCY,
-            const.CONF_WEEKLY,  # Default mode if not provided
+            const.FREQUENCY_WEEKLY,  # Default mode if not provided
         )
         start_date = user_input.get(
             const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE, None
@@ -892,7 +893,7 @@ def build_badge_common_data(
         start_date = None if start_date in (None, "") else start_date
         end_date = None if end_date in (None, "") else end_date
 
-        if recurring_frequency == const.CONF_CUSTOM:
+        if recurring_frequency == const.FREQUENCY_CUSTOM:
             start_date = user_input.get(
                 const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE
             )  # Get raw
@@ -1039,9 +1040,9 @@ def validate_badge_common_inputs(
     # --- Special Occasion Validation ---
     if include_special_occasion:
         occasion_type = user_input.get(
-            const.CFOF_BADGES_INPUT_OCCASION_TYPE, const.CONF_EMPTY
+            const.CFOF_BADGES_INPUT_OCCASION_TYPE, const.SENTINEL_EMPTY
         )
-        if not occasion_type or occasion_type == const.CONF_EMPTY:
+        if not occasion_type or occasion_type == const.SENTINEL_EMPTY:
             errors[const.CFOF_BADGES_INPUT_OCCASION_TYPE] = (
                 const.TRANS_KEY_CFOF_ERROR_BADGE_OCCASION_TYPE_REQUIRED
             )
@@ -1049,9 +1050,9 @@ def validate_badge_common_inputs(
     # --- Achievement-Linked Validation ---
     if include_achievement_linked:
         achievement_id = user_input.get(
-            const.CFOF_BADGES_INPUT_ASSOCIATED_ACHIEVEMENT, const.CONF_EMPTY
+            const.CFOF_BADGES_INPUT_ASSOCIATED_ACHIEVEMENT, const.SENTINEL_EMPTY
         )
-        if not achievement_id or achievement_id == const.CONF_EMPTY:
+        if not achievement_id or achievement_id == const.SENTINEL_EMPTY:
             errors[const.CFOF_BADGES_INPUT_ASSOCIATED_ACHIEVEMENT] = (
                 const.TRANS_KEY_CFOF_ERROR_BADGE_ACHIEVEMENT_REQUIRED
             )
@@ -1059,9 +1060,9 @@ def validate_badge_common_inputs(
     # --- Challenge-Linked Validation ---
     if include_challenge_linked:
         challenge_id = user_input.get(
-            const.CFOF_BADGES_INPUT_ASSOCIATED_CHALLENGE, const.CONF_EMPTY
+            const.CFOF_BADGES_INPUT_ASSOCIATED_CHALLENGE, const.SENTINEL_EMPTY
         )
-        if not challenge_id or challenge_id == const.CONF_EMPTY:
+        if not challenge_id or challenge_id == const.SENTINEL_EMPTY:
             errors[const.CFOF_BADGES_INPUT_ASSOCIATED_CHALLENGE] = (
                 const.TRANS_KEY_CFOF_ERROR_BADGE_CHALLENGE_REQUIRED
             )
@@ -1147,7 +1148,7 @@ def validate_badge_common_inputs(
                     const.TRANS_KEY_CFOF_ERROR_AWARD_INVALID_MULTIPLIER
                 )
         else:
-            user_input[const.CFOF_BADGES_INPUT_POINTS_MULTIPLIER] = const.CONF_NONE
+            user_input[const.CFOF_BADGES_INPUT_POINTS_MULTIPLIER] = const.SENTINEL_NONE
 
         # 3. All selected award_items must be valid
         for item in award_items:
@@ -1165,20 +1166,20 @@ def validate_badge_common_inputs(
         )
 
         # Clear custom interval fields if not custom
-        if recurring_frequency != const.CONF_CUSTOM:
+        if recurring_frequency != const.FREQUENCY_CUSTOM:
             # Note: END_DATE not cleared - can be used as reference date
             user_input.update(
                 {
-                    const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE: const.CONF_NONE,
-                    const.CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL: const.CONF_NONE,
-                    const.CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT: const.CONF_NONE,
+                    const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE: const.SENTINEL_NONE,
+                    const.CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL: const.SENTINEL_NONE,
+                    const.CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT: const.SENTINEL_NONE,
                 }
             )
 
         start_date = user_input.get(const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE)
         end_date = user_input.get(const.CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE)
 
-        if recurring_frequency == const.CONF_CUSTOM:
+        if recurring_frequency == const.FREQUENCY_CUSTOM:
             # Validate start and end dates for periodic badges
             # If no custom interval and custom interval unit, then it will just do a one time reset
             if is_periodic and not start_date:
@@ -1211,7 +1212,7 @@ def validate_badge_common_inputs(
 
         if is_daily:
             user_input[const.CFOF_BADGES_INPUT_RESET_SCHEDULE_RECURRING_FREQUENCY] = (
-                const.CONF_DAILY
+                const.FREQUENCY_DAILY
             )
 
         # Special occasion is just a periodic badge that has a start and end date of the same day.
@@ -1301,14 +1302,14 @@ def build_badge_common_schema(
                 const.CFOF_BADGES_INPUT_NAME,
                 default=default.get(
                     const.CFOF_BADGES_INPUT_NAME,
-                    default.get(const.DATA_BADGE_NAME, const.CONF_EMPTY),
+                    default.get(const.DATA_BADGE_NAME, const.SENTINEL_EMPTY),
                 ),
             ): str,
             vol.Optional(
                 const.CFOF_BADGES_INPUT_DESCRIPTION,
                 default=default.get(
                     const.CFOF_BADGES_INPUT_DESCRIPTION,
-                    default.get(const.DATA_BADGE_DESCRIPTION, const.CONF_EMPTY),
+                    default.get(const.DATA_BADGE_DESCRIPTION, const.SENTINEL_EMPTY),
                 ),
             ): str,
             # CLS - Tried to make this work with tranlation_key, but it doesn't seem to support it
@@ -1447,7 +1448,7 @@ def build_badge_common_schema(
         occasion_type_options = const.OCCASION_TYPE_OPTIONS or []
         default_occasion_type = default.get(
             const.CFOF_BADGES_INPUT_OCCASION_TYPE,
-            default.get(const.DATA_BADGE_SPECIAL_OCCASION_TYPE, const.CONF_EMPTY),
+            default.get(const.DATA_BADGE_SPECIAL_OCCASION_TYPE, const.SENTINEL_EMPTY),
         )
         schema_fields.update(
             {
@@ -1467,19 +1468,19 @@ def build_badge_common_schema(
     # --- Achievement-Linked Component Schema ---
     if include_achievement_linked:
         achievement_options = [
-            {"value": const.CONF_EMPTY, "label": const.LABEL_NONE}
+            {"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}
         ] + [
             {
                 "value": achievement_id,
                 "label": achievement.get(
-                    const.DATA_ACHIEVEMENT_NAME, const.CONF_NONE_TEXT
+                    const.DATA_ACHIEVEMENT_NAME, const.SENTINEL_NONE_TEXT
                 ),
             }
             for achievement_id, achievement in achievements_dict.items()
         ]
         default_achievement = default.get(
             const.CFOF_BADGES_INPUT_ASSOCIATED_ACHIEVEMENT,
-            default.get(const.DATA_BADGE_ASSOCIATED_ACHIEVEMENT, const.CONF_EMPTY),
+            default.get(const.DATA_BADGE_ASSOCIATED_ACHIEVEMENT, const.SENTINEL_EMPTY),
         )
         schema_fields.update(
             {
@@ -1498,16 +1499,16 @@ def build_badge_common_schema(
 
     # --- Challenge-Linked Component Schema ---
     if include_challenge_linked:
-        challenge_options = [{"value": const.CONF_EMPTY, "label": const.LABEL_NONE}] + [
+        challenge_options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}] + [
             {
                 "value": challenge_id,
-                "label": challenge.get(const.DATA_CHALLENGE_NAME, const.CONF_NONE_TEXT),
+                "label": challenge.get(const.DATA_CHALLENGE_NAME, const.SENTINEL_NONE_TEXT),
             }
             for challenge_id, challenge in challenges_dict.items()
         ]
         default_challenge = default.get(
             const.CFOF_BADGES_INPUT_ASSOCIATED_CHALLENGE,
-            default.get(const.DATA_BADGE_ASSOCIATED_CHALLENGE, const.CONF_EMPTY),
+            default.get(const.DATA_BADGE_ASSOCIATED_CHALLENGE, const.SENTINEL_EMPTY),
         )
         schema_fields.update(
             {
@@ -1526,11 +1527,11 @@ def build_badge_common_schema(
 
     # --- Tracked Chores Component Schema ---
     if include_tracked_chores:  # Use renamed flag
-        options = [{"value": const.CONF_EMPTY, "label": const.LABEL_NONE}]
+        options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}]
         options += [
             {
                 "value": chore_id,
-                "label": chore.get(const.DATA_CHORE_NAME, const.CONF_NONE_TEXT),
+                "label": chore.get(const.DATA_CHORE_NAME, const.SENTINEL_NONE_TEXT),
             }
             for chore_id, chore in chores_dict.items()
         ]
@@ -1560,11 +1561,11 @@ def build_badge_common_schema(
 
     # --- Assigned To Component Schema ---
     if include_assigned_to:
-        options = [{"value": const.CONF_EMPTY, "label": const.LABEL_NONE}]
+        options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}]
         options += [
             {
                 "value": kid_id,
-                "label": kid.get(const.DATA_KID_NAME, const.CONF_NONE_TEXT),
+                "label": kid.get(const.DATA_KID_NAME, const.SENTINEL_NONE_TEXT),
             }
             for kid_id, kid in kids_dict.items()
         ]
@@ -1884,7 +1885,7 @@ def build_badge_common_schema(
 def build_reward_schema(default=None):
     """Build a schema for rewards, keyed by internal_id in the dict."""
     default = default or {}
-    reward_name_default = default.get(const.CONF_NAME, const.CONF_EMPTY)
+    reward_name_default = default.get(CONF_NAME, const.SENTINEL_EMPTY)
     internal_id_default = default.get(const.CONF_INTERNAL_ID, str(uuid.uuid4()))
 
     return vol.Schema(
@@ -1892,7 +1893,7 @@ def build_reward_schema(default=None):
             vol.Required(const.CONF_REWARD_NAME, default=reward_name_default): str,
             vol.Optional(
                 const.CONF_REWARD_DESCRIPTION,
-                default=default.get(const.CONF_DESCRIPTION, const.CONF_EMPTY),
+                default=default.get(CONF_DESCRIPTION, const.SENTINEL_EMPTY),
             ): str,
             vol.Optional(
                 const.CONF_REWARD_LABELS,
@@ -1909,7 +1910,7 @@ def build_reward_schema(default=None):
                 )
             ),
             vol.Optional(
-                const.CONF_ICON, default=default.get(const.CONF_ICON, const.CONF_EMPTY)
+                CONF_ICON, default=default.get(CONF_ICON, const.SENTINEL_EMPTY)
             ): selector.IconSelector(),
             vol.Required(const.CONF_INTERNAL_ID, default=internal_id_default): str,
         }
@@ -1939,7 +1940,7 @@ def build_rewards_data(
             const.DATA_REWARD_NAME: reward_name,
             const.DATA_REWARD_COST: user_input[const.CFOF_REWARDS_INPUT_COST],
             const.DATA_REWARD_DESCRIPTION: user_input.get(
-                const.CFOF_REWARDS_INPUT_DESCRIPTION, const.CONF_EMPTY
+                const.CFOF_REWARDS_INPUT_DESCRIPTION, const.SENTINEL_EMPTY
             ),
             const.DATA_REWARD_LABELS: user_input.get(
                 const.CFOF_REWARDS_INPUT_LABELS, []
@@ -1995,7 +1996,7 @@ def build_bonus_schema(default=None):
     Stores bonus_points as positive in the form, converted to negative internally.
     """
     default = default or {}
-    bonus_name_default = default.get(const.CONF_NAME, const.CONF_EMPTY)
+    bonus_name_default = default.get(CONF_NAME, const.SENTINEL_EMPTY)
     internal_id_default = default.get(const.CONF_INTERNAL_ID, str(uuid.uuid4()))
 
     # Display bonus points as positive for user input
@@ -2010,7 +2011,7 @@ def build_bonus_schema(default=None):
             vol.Required(const.CONF_BONUS_NAME, default=bonus_name_default): str,
             vol.Optional(
                 const.CONF_BONUS_DESCRIPTION,
-                default=default.get(const.CONF_DESCRIPTION, const.CONF_EMPTY),
+                default=default.get(CONF_DESCRIPTION, const.SENTINEL_EMPTY),
             ): str,
             vol.Optional(
                 const.CONF_BONUS_LABELS,
@@ -2026,7 +2027,7 @@ def build_bonus_schema(default=None):
                 )
             ),
             vol.Optional(
-                const.CONF_ICON, default=default.get(const.CONF_ICON, const.CONF_EMPTY)
+                CONF_ICON, default=default.get(CONF_ICON, const.SENTINEL_EMPTY)
             ): selector.IconSelector(),
             vol.Required(const.CONF_INTERNAL_ID, default=internal_id_default): str,
         }
@@ -2057,7 +2058,7 @@ def build_bonuses_data(
         internal_id: {
             const.DATA_BONUS_NAME: bonus_name,
             const.DATA_BONUS_DESCRIPTION: user_input.get(
-                const.CFOF_BONUSES_INPUT_DESCRIPTION, const.CONF_EMPTY
+                const.CFOF_BONUSES_INPUT_DESCRIPTION, const.SENTINEL_EMPTY
             ),
             const.DATA_BONUS_LABELS: user_input.get(
                 const.CFOF_BONUSES_INPUT_LABELS, []
@@ -2114,7 +2115,7 @@ def build_penalty_schema(default=None):
     Stores penalty_points as positive in the form, converted to negative internally.
     """
     default = default or {}
-    penalty_name_default = default.get(const.CONF_NAME, const.CONF_EMPTY)
+    penalty_name_default = default.get(CONF_NAME, const.SENTINEL_EMPTY)
     internal_id_default = default.get(const.CONF_INTERNAL_ID, str(uuid.uuid4()))
 
     # Display penalty points as positive for user input
@@ -2129,7 +2130,7 @@ def build_penalty_schema(default=None):
             vol.Required(const.CONF_PENALTY_NAME, default=penalty_name_default): str,
             vol.Optional(
                 const.CONF_PENALTY_DESCRIPTION,
-                default=default.get(const.CONF_DESCRIPTION, const.CONF_EMPTY),
+                default=default.get(CONF_DESCRIPTION, const.SENTINEL_EMPTY),
             ): str,
             vol.Optional(
                 const.CONF_PENALTY_LABELS,
@@ -2145,7 +2146,7 @@ def build_penalty_schema(default=None):
                 )
             ),
             vol.Optional(
-                const.CONF_ICON, default=default.get(const.CONF_ICON, const.CONF_EMPTY)
+                CONF_ICON, default=default.get(CONF_ICON, const.SENTINEL_EMPTY)
             ): selector.IconSelector(),
             vol.Required(const.CONF_INTERNAL_ID, default=internal_id_default): str,
         }
@@ -2176,7 +2177,7 @@ def build_penalties_data(
         internal_id: {
             const.DATA_PENALTY_NAME: penalty_name,
             const.DATA_PENALTY_DESCRIPTION: user_input.get(
-                const.CFOF_PENALTIES_INPUT_DESCRIPTION, const.CONF_EMPTY
+                const.CFOF_PENALTIES_INPUT_DESCRIPTION, const.SENTINEL_EMPTY
             ),
             const.DATA_PENALTY_LABELS: user_input.get(
                 const.CFOF_PENALTIES_INPUT_LABELS, []
@@ -2272,7 +2273,7 @@ def build_achievements_data(
     if _type == const.ACHIEVEMENT_TYPE_STREAK:
         chore_id = user_input.get(const.CFOF_ACHIEVEMENTS_INPUT_SELECTED_CHORE_ID)
         # Validate that a chore was actually selected (not None or placeholder)
-        if not chore_id or chore_id == const.CONF_NONE_TEXT:
+        if not chore_id or chore_id == const.SENTINEL_NONE_TEXT:
             errors[const.CFOP_ERROR_SELECT_CHORE_ID] = (
                 const.TRANS_KEY_CFOF_CHORE_MUST_BE_SELECTED
             )
@@ -2280,7 +2281,7 @@ def build_achievements_data(
         final_chore_id = chore_id
     else:
         # Non-streak types: discard any chore selection to prevent data inconsistency
-        final_chore_id = const.CONF_EMPTY
+        final_chore_id = const.SENTINEL_EMPTY
 
     # Get assigned kids (convert names to IDs if in options flow)
     # Different flow contexts use different kid identifiers:
@@ -2301,7 +2302,7 @@ def build_achievements_data(
         internal_id: {
             const.DATA_ACHIEVEMENT_NAME: achievement_name,
             const.DATA_ACHIEVEMENT_DESCRIPTION: user_input.get(
-                const.CFOF_ACHIEVEMENTS_INPUT_DESCRIPTION, const.CONF_EMPTY
+                const.CFOF_ACHIEVEMENTS_INPUT_DESCRIPTION, const.SENTINEL_EMPTY
             ),
             const.DATA_ACHIEVEMENT_LABELS: user_input.get(
                 const.CFOF_ACHIEVEMENTS_INPUT_LABELS, []
@@ -2314,7 +2315,7 @@ def build_achievements_data(
             const.DATA_ACHIEVEMENT_TYPE: _type,
             const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID: final_chore_id,
             const.DATA_ACHIEVEMENT_CRITERIA: user_input.get(
-                const.CFOF_ACHIEVEMENTS_INPUT_CRITERIA, const.CONF_EMPTY
+                const.CFOF_ACHIEVEMENTS_INPUT_CRITERIA, const.SENTINEL_EMPTY
             ).strip(),
             const.DATA_ACHIEVEMENT_TARGET_VALUE: user_input[
                 const.CFOF_ACHIEVEMENTS_INPUT_TARGET_VALUE
@@ -2444,7 +2445,7 @@ def build_challenges_data(
         internal_id: {
             const.DATA_CHALLENGE_NAME: challenge_name,
             const.DATA_CHALLENGE_DESCRIPTION: user_input.get(
-                const.CFOF_CHALLENGES_INPUT_DESCRIPTION, const.CONF_EMPTY
+                const.CFOF_CHALLENGES_INPUT_DESCRIPTION, const.SENTINEL_EMPTY
             ).strip(),
             const.DATA_CHALLENGE_LABELS: user_input.get(
                 const.CFOF_CHALLENGES_INPUT_LABELS, []
@@ -2456,10 +2457,10 @@ def build_challenges_data(
             const.DATA_CHALLENGE_ASSIGNED_KIDS: assigned_kids_ids,
             const.DATA_CHALLENGE_TYPE: _type,
             const.DATA_CHALLENGE_SELECTED_CHORE_ID: user_input.get(
-                const.CFOF_CHALLENGES_INPUT_SELECTED_CHORE_ID, const.CONF_EMPTY
+                const.CFOF_CHALLENGES_INPUT_SELECTED_CHORE_ID, const.SENTINEL_EMPTY
             ),
             const.DATA_CHALLENGE_CRITERIA: user_input.get(
-                const.CFOF_CHALLENGES_INPUT_CRITERIA, const.CONF_EMPTY
+                const.CFOF_CHALLENGES_INPUT_CRITERIA, const.SENTINEL_EMPTY
             ).strip(),
             const.DATA_CHALLENGE_TARGET_VALUE: target_value,
             const.DATA_CHALLENGE_REWARD_POINTS: reward_points,
@@ -2481,44 +2482,44 @@ def build_challenges_data(
 def build_achievement_schema(kids_dict, chores_dict, default=None):
     """Build a schema for achievements, keyed by internal_id."""
     default = default or {}
-    achievement_name_default = default.get(const.CONF_NAME, const.CONF_EMPTY)
+    achievement_name_default = default.get(CONF_NAME, const.SENTINEL_EMPTY)
     internal_id_default = default.get(const.CONF_INTERNAL_ID, str(uuid.uuid4()))
 
     kid_options = [
         {"value": kid_id, "label": kid_name} for kid_name, kid_id in kids_dict.items()
     ]
 
-    chore_options = [{"value": const.CONF_EMPTY, "label": const.LABEL_NONE}]
+    chore_options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}]
     for chore_id, chore_data in chores_dict.items():
-        chore_name = chore_data.get(const.CONF_NAME, f"Chore {chore_id[:6]}")
+        chore_name = chore_data.get(CONF_NAME, f"Chore {chore_id[:6]}")
         chore_options.append({"value": chore_id, "label": chore_name})
 
     default_selected_chore = default.get(
-        const.CONF_ACHIEVEMENT_SELECTED_CHORE_ID, const.CONF_EMPTY
+        const.CONF_ACHIEVEMENT_SELECTED_CHORE_ID, const.SENTINEL_EMPTY
     )
     if not default_selected_chore or default_selected_chore not in [
         option["value"] for option in chore_options
     ]:
         pass
 
-    default_criteria = default.get(const.CONF_ACHIEVEMENT_CRITERIA, const.CONF_EMPTY)
+    default_criteria = default.get(const.CONF_ACHIEVEMENT_CRITERIA, const.SENTINEL_EMPTY)
     default_assigned_kids = default.get(const.CONF_ACHIEVEMENT_ASSIGNED_KIDS, [])
     if not isinstance(default_assigned_kids, list):
         default_assigned_kids = [default_assigned_kids]
 
     return vol.Schema(
         {
-            vol.Required(const.CONF_NAME, default=achievement_name_default): str,
+            vol.Required(CONF_NAME, default=achievement_name_default): str,
             vol.Optional(
-                const.CONF_DESCRIPTION,
-                default=default.get(const.CONF_DESCRIPTION, const.CONF_EMPTY),
+                CONF_DESCRIPTION,
+                default=default.get(CONF_DESCRIPTION, const.SENTINEL_EMPTY),
             ): str,
             vol.Optional(
                 const.CONF_ACHIEVEMENT_LABELS,
                 default=default.get(const.CONF_ACHIEVEMENT_LABELS, []),
             ): selector.LabelSelector(selector.LabelSelectorConfig(multiple=True)),
             vol.Optional(
-                const.CONF_ICON, default=default.get(const.CONF_ICON, const.CONF_EMPTY)
+                CONF_ICON, default=default.get(CONF_ICON, const.SENTINEL_EMPTY)
             ): selector.IconSelector(),
             vol.Required(
                 const.CONF_ACHIEVEMENT_ASSIGNED_KIDS, default=default_assigned_kids
@@ -2593,43 +2594,43 @@ def build_achievement_schema(kids_dict, chores_dict, default=None):
 def build_challenge_schema(kids_dict, chores_dict, default=None):
     """Build a schema for challenges, keyed by internal_id."""
     default = default or {}
-    challenge_name_default = default.get(const.CONF_NAME, const.CONF_EMPTY)
+    challenge_name_default = default.get(CONF_NAME, const.SENTINEL_EMPTY)
     internal_id_default = default.get(const.CONF_INTERNAL_ID, str(uuid.uuid4()))
 
     kid_options = [
         {"value": kid_id, "label": kid_name} for kid_name, kid_id in kids_dict.items()
     ]
 
-    chore_options = [{"value": const.CONF_EMPTY, "label": const.LABEL_NONE}]
+    chore_options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}]
     for chore_id, chore_data in chores_dict.items():
-        chore_name = chore_data.get(const.CONF_NAME, f"Chore {chore_id[:6]}")
+        chore_name = chore_data.get(CONF_NAME, f"Chore {chore_id[:6]}")
         chore_options.append({"value": chore_id, "label": chore_name})
 
     default_selected_chore = default.get(
-        const.CONF_CHALLENGE_SELECTED_CHORE_ID, const.CONF_EMPTY
+        const.CONF_CHALLENGE_SELECTED_CHORE_ID, const.SENTINEL_EMPTY
     )
     available_values = [option["value"] for option in chore_options]
     if default_selected_chore not in available_values:
         default_selected_chore = ""
 
-    default_criteria = default.get(const.CONF_CHALLENGE_CRITERIA, const.CONF_EMPTY)
+    default_criteria = default.get(const.CONF_CHALLENGE_CRITERIA, const.SENTINEL_EMPTY)
     default_assigned_kids = default.get(const.CONF_CHALLENGE_ASSIGNED_KIDS, [])
     if not isinstance(default_assigned_kids, list):
         default_assigned_kids = [default_assigned_kids]
 
     return vol.Schema(
         {
-            vol.Required(const.CONF_NAME, default=challenge_name_default): str,
+            vol.Required(CONF_NAME, default=challenge_name_default): str,
             vol.Optional(
-                const.CONF_DESCRIPTION,
-                default=default.get(const.CONF_DESCRIPTION, const.CONF_EMPTY),
+                CONF_DESCRIPTION,
+                default=default.get(CONF_DESCRIPTION, const.SENTINEL_EMPTY),
             ): str,
             vol.Optional(
                 const.CONF_CHALLENGE_LABELS,
                 default=default.get(const.CONF_CHALLENGE_LABELS, []),
             ): selector.LabelSelector(selector.LabelSelectorConfig(multiple=True)),
             vol.Optional(
-                const.CONF_ICON, default=default.get(const.CONF_ICON, const.CONF_EMPTY)
+                CONF_ICON, default=default.get(CONF_ICON, const.SENTINEL_EMPTY)
             ): selector.IconSelector(),
             vol.Required(
                 const.CONF_CHALLENGE_ASSIGNED_KIDS, default=default_assigned_kids
