@@ -8,7 +8,7 @@ user wishes to select a chore/reward/penalty dynamically.
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
@@ -17,6 +17,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import const
+from . import kc_helpers as kh
 from .coordinator import KidsChoresDataCoordinator
 
 
@@ -100,6 +101,7 @@ class ChoresSelect(KidsChoresSelectBase):
         self.entity_id = (
             f"{const.SELECT_KC_PREFIX}{const.SELECT_KC_EID_SUFFIX_ALL_CHORES}"
         )
+        self._attr_device_info = kh.create_system_device_info(entry)
 
     @property
     def options(self) -> list[str]:
@@ -131,6 +133,7 @@ class RewardsSelect(KidsChoresSelectBase):
         self.entity_id = (
             f"{const.SELECT_KC_PREFIX}{const.SELECT_KC_EID_SUFFIX_ALL_REWARDS}"
         )
+        self._attr_device_info = kh.create_system_device_info(entry)
 
     @property
     def options(self) -> list[str]:
@@ -162,6 +165,7 @@ class PenaltiesSelect(KidsChoresSelectBase):
         self.entity_id = (
             f"{const.SELECT_KC_PREFIX}{const.SELECT_KC_EID_SUFFIX_ALL_PENALTIES}"
         )
+        self._attr_device_info = kh.create_system_device_info(entry)
 
     @property
     def options(self) -> list[str]:
@@ -193,6 +197,7 @@ class BonusesSelect(KidsChoresSelectBase):
         self.entity_id = (
             f"{const.SELECT_KC_PREFIX}{const.SELECT_KC_EID_SUFFIX_ALL_BONUSES}"
         )
+        self._attr_device_info = kh.create_system_device_info(entry)
 
     @property
     def options(self) -> list[str]:
@@ -224,10 +229,13 @@ class ChoresKidSelect(KidsChoresSelectBase):
         self._attr_unique_id = (
             f"{entry.entry_id}{const.SELECT_KC_UID_MIDFIX_CHORES_SELECT}{kid_id}"
         )
-        self._attr_name = f"{const.KIDSCHORES_TITLE}: {const.TRANS_KEY_SELECT_LABEL_CHORES_FOR} {kid_name}"
+        self._attr_translation_placeholders = {
+            const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
+        }
         self.entity_id = (
             f"{const.SELECT_KC_PREFIX}{kid_name}{const.SELECT_KC_EID_SUFFIX_CHORE_LIST}"
         )
+        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
     @property
     def options(self) -> list[str]:
@@ -243,3 +251,14 @@ class ChoresKidSelect(KidsChoresSelectBase):
                     )
                 )
         return options
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes."""
+        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_name = kid_info.get(
+            const.DATA_KID_NAME, f"{const.TRANS_KEY_LABEL_KID} {self._kid_id}"
+        )
+        return {
+            const.ATTR_KID_NAME: kid_name,
+        }

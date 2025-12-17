@@ -1362,7 +1362,7 @@
       "chores_completed_monthly_sensor": {
         "name": "{kid_name} - Erledigte Hausarbeiten - Monatlich"
       },
-      "kids_highest_badge_sensor": {
+      "kids_badges_sensor": {
         "name": "{kid_name} - Abzeichen",
         "state_attributes": {
           "kid_name": {
@@ -1816,7 +1816,7 @@
           }
         }
       },
-      "kid_highest_streak_sensor": {
+      "kid_chores_highest_streak_sensor": {
         "name": "{kid_name} - Höchste Serie",
         "state_attributes": {
           "streaks_by_achievement": {

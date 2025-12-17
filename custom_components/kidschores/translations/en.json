@@ -1527,7 +1527,7 @@
   "entity": {
     "sensor": {
       "chore_status_sensor": {
-        "name": "{kid_name} - Status - {chore_name}",
+        "name": "Chore Status - {chore_name}",
         "state": {
           "pending": "Pending",
           "approved": "Approved",
@@ -1647,25 +1647,30 @@
         }
       },
       "kid_points_sensor": {
-        "name": "{kid_name} - {points}"
+        "name": "{points}",
+        "state_attributes": {
+          "description": {
+            "name": "Current point balance - earn from chores, spend on rewards"
+          }
+        }
       },
       "kid_max_points_ever_sensor": {
-        "name": "{kid_name} - Maximum Points Ever"
+        "name": "Maximum {points} Ever"
       },
       "chores_completed_total_sensor": {
-        "name": "{kid_name} - Chores Completed - Total"
+        "name": "Chores Completed - Total"
       },
       "chores_completed_daily_sensor": {
-        "name": "{kid_name} - Chores Completed - Daily"
+        "name": "Chores Completed - Daily"
       },
       "chores_completed_weekly_sensor": {
-        "name": "{kid_name} - Chores Completed - Weekly"
+        "name": "Chores Completed - Weekly"
       },
       "chores_completed_monthly_sensor": {
-        "name": "{kid_name} - Chores Completed - Monthly"
+        "name": "Chores Completed - Monthly"
       },
-      "kids_highest_badge_sensor": {
-        "name": "{kid_name} - Badge",
+      "kids_badges_sensor": {
+        "name": "Badges",
         "state_attributes": {
           "kid_name": {
             "name": "Kid Name"
@@ -1734,9 +1739,6 @@
               "false": "No"
             }
           },
-          "threshold_type": {
-            "name": "Threshold Type"
-          },
           "daily_threshold": {
             "name": "Daily Threshold"
           },
@@ -1767,10 +1769,10 @@
         "name": "Pending Reward Approvals"
       },
       "reward_claims_sensor": {
-        "name": "{kid_name} - Claims - {reward_name}"
+        "name": "Claims - {reward_name}"
       },
       "reward_approvals_sensor": {
-        "name": "{kid_name} - Approvals - {reward_name}"
+        "name": "Approvals - {reward_name}"
       },
       "shared_chore_global_status_sensor": {
         "name": "{chore_name} - Global Status",
@@ -1847,7 +1849,7 @@
         }
       },
       "reward_status_sensor": {
-        "name": "{kid_name} - Reward Status - {reward_name}",
+        "name": "Reward status - {reward_name}",
         "state": {
           "not_claimed": "Not Claimed",
           "approved": "Approved",
@@ -1880,13 +1882,13 @@
         }
       },
       "chore_claims_sensor": {
-        "name": "{kid_name} - Claims - {chore_name}"
+        "name": "Claims - {chore_name}"
       },
       "chore_approvals_sensor": {
-        "name": "{kid_name} - Approvals - {chore_name}"
+        "name": "Approvals - {chore_name}"
       },
       "penalty_applies_sensor": {
-        "name": "{kid_name} - Penalties Applied - {penalty_name}",
+        "name": "Penalties applied - {penalty_name}",
         "state_attributes": {
           "kid_name": {
             "name": "Kid Name"
@@ -1906,7 +1908,7 @@
         }
       },
       "bonus_applies_sensor": {
-        "name": "{kid_name} - Bonus Applies - {bonus_name}",
+        "name": "Bonus Applies - {bonus_name}",
         "state_attributes": {
           "kid_name": {
             "name": "Kid Name"
@@ -1926,13 +1928,13 @@
         }
       },
       "kid_points_earned_daily_sensor": {
-        "name": "{kid_name} - Points Earned - Daily"
+        "name": "Points Earned - Daily"
       },
       "kid_points_earned_weekly_sensor": {
-        "name": "{kid_name} - Points Earned - Weekly"
+        "name": "Points Earned - Weekly"
       },
       "kid_points_earned_monthly_sensor": {
-        "name": "{kid_name} - Points Earned - Monthly"
+        "name": "Points Earned - Monthly"
       },
       "achievement_state_sensor": {
         "name": "Achievement - {achievement_name}",
@@ -2020,7 +2022,7 @@
         }
       },
       "achievement_progress_sensor": {
-        "name": "{kid_name} - Progress - {achievement_name}",
+        "name": "Progress - {achievement_name}",
         "state_attributes": {
           "achievement_name": {
             "name": "Achievement Name"
@@ -2067,7 +2069,7 @@
         }
       },
       "challenge_progress_sensor": {
-        "name": "{kid_name} - Progress - {challenge_name}",
+        "name": "Progress - {challenge_name}",
         "state_attributes": {
           "challenge_name": {
             "name": "Challenge Name"
@@ -2118,8 +2120,8 @@
           }
         }
       },
-      "kid_highest_streak_sensor": {
-        "name": "{kid_name} - Highest Streak",
+      "kid_chores_highest_streak_sensor": {
+        "name": "Highest Chore Streak",
         "state_attributes": {
           "streaks_by_achievement": {
             "name": "Streaks by Achievement"
@@ -2127,7 +2129,7 @@
         }
       },
       "chore_streak_sensor": {
-        "name": "{kid_name} - Streak - {chore_name}",
+        "name": "Streak - {chore_name}",
         "state_attributes": {
           "last_date": {
             "name": "Last Date"
@@ -2136,11 +2138,41 @@
             "name": "Current Streak"
           }
         }
+      },
+      "dashboard_helper_sensor": {
+        "name": "UI Dashboard Helper"
+      }
+    },
+    "select": {
+      "chores_select": {
+        "name": "Select Chore"
+      },
+      "rewards_select": {
+        "name": "Select Reward"
+      },
+      "penalties_select": {
+        "name": "Select Penalty"
+      },
+      "bonuses_select": {
+        "name": "Select Bonus"
+      },
+      "chore_list_helper": {
+        "name": "UI Dashboard Chore List Helper"
+      }
+    },
+    "calendar": {
+      "calendar_name": {
+        "name": "Calendar"
+      }
+    },
+    "datetime": {
+      "date_helper": {
+        "name": "UI Dashboard Date Helper"
       }
     },
     "button": {
       "claim_chore_button": {
-        "name": "{kid_name} - Claim Chore - {chore_name}",
+        "name": "Claim Chore - {chore_name}",
         "state_attributes": {
           "labels": {
             "name": "Labels"
@@ -2148,7 +2180,7 @@
         }
       },
       "approve_chore_button": {
-        "name": "{kid_name} - Approve Chore - {chore_name}",
+        "name": "Approve Chore - {chore_name}",
         "state_attributes": {
           "labels": {
             "name": "Labels"
@@ -2156,7 +2188,7 @@
         }
       },
       "disapprove_chore_button": {
-        "name": "{kid_name} - Disapprove Chore - {chore_name}",
+        "name": "Disapprove Chore - {chore_name}",
         "state_attributes": {
           "labels": {
             "name": "Labels"
@@ -2164,7 +2196,7 @@
         }
       },
       "claim_reward_button": {
-        "name": "{kid_name} - Claim Reward - {reward_name}",
+        "name": "Claim Reward - {reward_name}",
         "state_attributes": {
           "labels": {
             "name": "Labels"
@@ -2172,7 +2204,7 @@
         }
       },
       "approve_reward_button": {
-        "name": "{kid_name} - Approve Reward - {reward_name}",
+        "name": "Approve Reward - {reward_name}",
         "state_attributes": {
           "labels": {
             "name": "Labels"
@@ -2180,7 +2212,7 @@
         }
       },
       "disapprove_reward_button": {
-        "name": "{kid_name} - Disapprove Reward - {reward_name}",
+        "name": "Disapprove Reward - {reward_name}",
         "state_attributes": {
           "labels": {
             "name": "Labels"
@@ -2188,7 +2220,7 @@
         }
       },
       "penalty_button": {
-        "name": "{kid_name} - Apply Penalty - {penalty_name}",
+        "name": "Apply Penalty - {penalty_name}",
         "state_attributes": {
           "labels": {
             "name": "Labels"
@@ -2196,7 +2228,7 @@
         }
       },
       "bonus_button": {
-        "name": "{kid_name} - Apply Bonus - {bonus_name}",
+        "name": "Apply Bonus - {bonus_name}",
         "state_attributes": {
           "labels": {
             "name": "Labels"
@@ -2204,7 +2236,7 @@
         }
       },
       "manual_adjustment_button": {
-        "name": "{kid_name} {sign_label} {points_label}"
+        "name": "{sign_label} {points_label}"
       }
     }
   },

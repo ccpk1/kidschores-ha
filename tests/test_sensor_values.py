@@ -5,6 +5,10 @@ ensuring the new schema (DATA_KID_CHORE_STATS, DATA_KID_POINT_STATS) provides
 accurate data to sensor entities.
 """
 
+# pylint: disable=protected-access  # Accessing _notify_kid for mocking in tests
+
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from homeassistant.core import HomeAssistant
 
@@ -32,11 +36,13 @@ async def test_completed_chores_daily_sensor_increments_on_approval(
     # Get an unclaimed chore assigned to Zoë (not pre-completed in YAML)
     chore_id = name_to_id_map["chore:Wåter the plänts"]
 
-    # Claim and approve chore
-    parent_id = name_to_id_map["parent:Môm Astrid Stârblüm"]
-    coordinator.claim_chore(kid_id, chore_id, "test_user")
-    coordinator.approve_chore(parent_id, kid_id, chore_id)
-    await hass.async_block_till_done()
+    # Mock notifications to prevent ServiceNotFound errors
+    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        # Claim and approve chore
+        parent_id = name_to_id_map["parent:Môm Astrid Stârblüm"]
+        coordinator.claim_chore(kid_id, chore_id, "test_user")
+        coordinator.approve_chore(parent_id, kid_id, chore_id)
+        await hass.async_block_till_done()
 
     # Verify chore stats incremented
     stats_after = coordinator.kids_data[kid_id].get(const.DATA_KID_CHORE_STATS, {})
@@ -58,12 +64,14 @@ async def test_completed_chores_total_sensor_attributes(
 
     kid_id = name_to_id_map["kid:Zoë"]
 
-    # Initialize stats by approving an unclaimed chore (not pre-completed in YAML)
-    chore_id = name_to_id_map["chore:Wåter the plänts"]
-    parent_id = name_to_id_map["parent:Môm Astrid Stârblüm"]
-    coordinator.claim_chore(kid_id, chore_id, "test_user")
-    coordinator.approve_chore(parent_id, kid_id, chore_id)
-    await hass.async_block_till_done()
+    # Mock notifications to prevent ServiceNotFound errors
+    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        # Initialize stats by approving an unclaimed chore (not pre-completed in YAML)
+        chore_id = name_to_id_map["chore:Wåter the plänts"]
+        parent_id = name_to_id_map["parent:Môm Astrid Stârblüm"]
+        coordinator.claim_chore(kid_id, chore_id, "test_user")
+        coordinator.approve_chore(parent_id, kid_id, chore_id)
+        await hass.async_block_till_done()
 
     # Get chore stats from coordinator
     chore_stats = coordinator.kids_data[kid_id].get(const.DATA_KID_CHORE_STATS, {})

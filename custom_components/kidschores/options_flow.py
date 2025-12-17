@@ -1030,8 +1030,13 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.DEFAULT_DASHBOARD_LANGUAGE,
             )
 
+            # Validate name is not empty
+            if not new_name:
+                errors[const.CFOP_ERROR_KID_NAME] = (
+                    const.TRANS_KEY_CFOF_INVALID_KID_NAME
+                )
             # Check for duplicate names excluding current kid
-            if any(
+            elif any(
                 data[const.DATA_KID_NAME] == new_name and eid != internal_id
                 for eid, data in kids_dict.items()
             ):
@@ -1117,8 +1122,13 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
             )
 
+            # Validate name is not empty
+            if not new_name:
+                errors[const.CFOP_ERROR_PARENT_NAME] = (
+                    const.TRANS_KEY_CFOF_INVALID_PARENT_NAME
+                )
             # Check for duplicate names excluding current parent
-            if any(
+            elif any(
                 data[const.DATA_PARENT_NAME] == new_name and eid != internal_id
                 for eid, data in parents_dict.items()
             ):

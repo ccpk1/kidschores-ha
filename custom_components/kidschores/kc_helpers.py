@@ -1449,3 +1449,78 @@ async def load_dashboard_translation(
                 const.LOGGER.error("Error loading English translations: %s", err)
 
     return {}
+
+
+# -------- Device Info Helpers --------
+def create_kid_device_info(kid_id: str, kid_name: str, config_entry):
+    """Create device info for a kid profile.
+
+    Args:
+        kid_id: Internal ID (UUID) of the kid
+        kid_name: Display name of the kid
+        config_entry: Config entry for this integration instance
+
+    Returns:
+        DeviceInfo dict for the kid device
+    """
+    from homeassistant.helpers.device_registry import DeviceEntryType
+    from homeassistant.helpers.entity import DeviceInfo
+
+    return DeviceInfo(
+        identifiers={(const.DOMAIN, kid_id)},
+        name=f"{kid_name} ({config_entry.title})",
+        manufacturer="KidsChores",
+        model="Kid Profile",
+        entry_type=DeviceEntryType.SERVICE,
+    )
+
+
+def create_system_device_info(config_entry):
+    """Create device info for system/global entities.
+
+    Args:
+        config_entry: Config entry for this integration instance
+
+    Returns:
+        DeviceInfo dict for the system device
+    """
+    from homeassistant.helpers.device_registry import DeviceEntryType
+    from homeassistant.helpers.entity import DeviceInfo
+
+    return DeviceInfo(
+        identifiers={(const.DOMAIN, f"{config_entry.entry_id}_system")},
+        name=f"System ({config_entry.title})",
+        manufacturer="KidsChores",
+        model="System Controls",
+        entry_type=DeviceEntryType.SERVICE,
+    )
+
+
+def get_entity_name_or_log_error(
+    entity_type: str,
+    entity_id: str,
+    entity_data: dict,
+    name_key: str,
+) -> str | None:
+    """Get entity name from data dict, log error if missing (data corruption detection).
+
+    Args:
+        entity_type: Type of entity (for logging) e.g. 'kid', 'chore', 'reward'
+        entity_id: Entity ID (for logging)
+        entity_data: Dict containing entity data
+        name_key: Key to look up name in entity_data
+
+    Returns:
+        Entity name if present, None if missing (with error log)
+    """
+    name = entity_data.get(name_key)
+    if not name:
+        const.LOGGER.error(
+            "Data corruption: %s %s missing %s. Entity will not be created. "
+            "This indicates a storage issue or validation bypass.",
+            entity_type,
+            entity_id,
+            name_key,
+        )
+        return None
+    return name

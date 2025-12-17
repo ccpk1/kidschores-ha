@@ -12,6 +12,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
 from . import const
+from . import kc_helpers as kh
 
 # Map weekday integers (0=Monday, …) to e.g. "mon","tue","wed" in const.WEEKDAY_OPTIONS.
 WEEKDAY_MAP = {i: key for i, key in enumerate(const.WEEKDAY_OPTIONS.keys())}
@@ -48,6 +49,9 @@ async def async_setup_entry(
 class KidsChoresCalendarEntity(CalendarEntity):
     """Calendar entity representing a kid's combined chores + challenges."""
 
+    _attr_has_entity_name = True
+    _attr_translation_key = const.TRANS_KEY_CALENDAR_NAME
+
     def __init__(
         self, coordinator, kid_id: str, kid_name: str, config_entry, calendar_duration
     ):
@@ -57,11 +61,16 @@ class KidsChoresCalendarEntity(CalendarEntity):
         self._kid_name = kid_name
         self._config_entry = config_entry
         self._calendar_duration = calendar_duration
-        self._attr_name = f"{const.TRANS_KEY_CALENDAR_NAME}: {kid_name}"
         self._attr_unique_id = (
             f"{config_entry.entry_id}_{kid_id}{const.CALENDAR_KC_UID_SUFFIX_CALENDAR}"
         )
+        self._attr_translation_placeholders = {
+            const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
+        }
         self.entity_id = f"{const.CALENDAR_KC_PREFIX}{kid_name}"
+        self._attr_device_info = kh.create_kid_device_info(
+            kid_id, kid_name, config_entry
+        )
 
     async def async_get_events(
         self,

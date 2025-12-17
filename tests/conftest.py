@@ -1001,6 +1001,10 @@ def get_button_entity_id(
     kid_slug = slugify(kid_name)
     entity_slug = slugify(entity_name)
 
+    # Strip redundant "_bonus" suffix for bonus entities (matches button.py logic)
+    if action_type == "bonus" and entity_slug.endswith("_bonus"):
+        entity_slug = entity_slug[:-6]
+
     # Pattern: button.kc_{kid}_{action}_{entity}
     pattern = f"button.kc_{kid_slug}_{action_type}_{entity_slug}"
 

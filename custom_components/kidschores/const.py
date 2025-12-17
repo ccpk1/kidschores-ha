@@ -32,6 +32,7 @@ LOGGER: Final = logging.getLogger(__package__)
 PLATFORMS: Final = [
     Platform.BUTTON,
     Platform.CALENDAR,
+    Platform.DATETIME,
     Platform.SELECT,
     Platform.SENSOR,
 ]
@@ -426,14 +427,12 @@ CONF_ACHIEVEMENT_REWARD_POINTS: Final = "reward_points"
 CONF_ACHIEVEMENT_SELECTED_CHORE_ID: Final = "selected_chore_id"
 CONF_ACHIEVEMENT_TARGET_VALUE: Final = "target_value"
 CONF_ACHIEVEMENT_TYPE: Final = "type"
-CONF_ACHIEVEMENTS: Final = "achievements"
 
 # Bonuses
 CONF_BONUS_DESCRIPTION: Final = "bonus_description"
 CONF_BONUS_LABELS: Final = "bonus_labels"
 CONF_BONUS_NAME: Final = "bonus_name"
 CONF_BONUS_POINTS: Final = "bonus_points"
-CONF_BONUSES: Final = "bonuses"
 
 # Challenges
 CONF_CHALLENGE_ASSIGNED_KIDS: Final = "assigned_kids"
@@ -445,7 +444,6 @@ CONF_CHALLENGE_SELECTED_CHORE_ID: Final = "selected_chore_id"
 CONF_CHALLENGE_START_DATE: Final = "start_date"
 CONF_CHALLENGE_TARGET_VALUE: Final = "target_value"
 CONF_CHALLENGE_TYPE: Final = "type"
-CONF_CHALLENGES: Final = "challenges"
 
 # Chores
 CONF_ALLOW_MULTIPLE_CLAIMS_PER_DAY: Final = "allow_multiple_claims_per_day"
@@ -454,16 +452,12 @@ CONF_ASSIGNED_KIDS: Final = "assigned_kids"
 CONF_CHORE_DESCRIPTION: Final = "chore_description"
 CONF_CHORE_LABELS: Final = "chore_labels"
 CONF_CHORE_NAME: Final = "chore_name"
-CONF_CHORES: Final = "chores"
 CONF_CUSTOM_INTERVAL: Final = "custom_interval"
 CONF_CUSTOM_INTERVAL_UNIT: Final = "custom_interval_unit"
 CONF_DEFAULT_POINTS: Final = "default_points"
 CONF_DUE_DATE: Final = "due_date"
 CONF_PARTIAL_ALLOWED: Final = "partial_allowed"
 CONF_RECURRING_FREQUENCY: Final = "recurring_frequency"
-
-# Kids
-CONF_KIDS: Final = "kids"
 
 # Notifications
 CONF_ENABLE_MOBILE_NOTIFICATIONS: Final = "enable_mobile_notifications"
@@ -478,10 +472,8 @@ NOTIFICATION_EVENT: Final = "mobile_app_notification_action"
 CONF_ASSOCIATED_KIDS: Final = "associated_kids"
 CONF_HA_USER_ID: Final = "ha_user_id"
 CONF_PARENT_NAME: Final = "parent_name"
-CONF_PARENTS: Final = "parents"
 
 # Penalties
-CONF_PENALTIES: Final = "penalties"
 CONF_PENALTY_DESCRIPTION: Final = "penalty_description"
 CONF_PENALTY_LABELS: Final = "penalty_labels"
 CONF_PENALTY_NAME: Final = "penalty_name"
@@ -492,7 +484,6 @@ CONF_REWARD_COST: Final = "reward_cost"
 CONF_REWARD_DESCRIPTION: Final = "reward_description"
 CONF_REWARD_LABELS: Final = "reward_labels"
 CONF_REWARD_NAME: Final = "reward_name"
-CONF_REWARDS: Final = "rewards"
 
 # Badge Types
 BADGE_TYPE_ACHIEVEMENT_LINKED: Final = "achievement_linked"
@@ -542,7 +533,6 @@ DATA_KID_APPROVED_CHORES: Final = "approved_chores"
 DATA_KID_BADGES_EARNED_NAME: Final = "badge_name"
 DATA_KID_BADGES_EARNED_LAST_AWARDED: Final = "last_awarded_date"
 DATA_KID_BADGES_EARNED_AWARD_COUNT: Final = "award_count"
-DATA_KID_BADGES_DEPRECATED: Final = "badges"
 DATA_KID_BADGES_EARNED: Final = "badges_earned"
 DATA_KID_BADGES_EARNED_PERIODS: Final = "periods"
 DATA_KID_BADGES_EARNED_PERIODS_DAILY: Final = "daily"
@@ -581,19 +571,7 @@ DATA_KID_BADGE_PROGRESS_TOTAL_COUNT: Final = "total_count"
 DATA_KID_BADGE_PROGRESS_TRACKED_CHORES: Final = "tracked_chores"
 DATA_KID_BADGE_PROGRESS_TYPE: Final = "badge_type"
 
-# For Points Target Type
-DATA_KID_BADGE_PROGRESS_POINTS_CYCLE_COUNT: Final = "points_cycle_count"
-
-# For Chore Count Target Type
-DATA_KID_BADGE_PROGRESS_CHORES_CYCLE_COUNT: Final = "chores_cycle_count"
-
-# For All Required Chores Target Type
-DATA_KID_BADGE_PROGRESS_DAYS_CYCLE_COUNT: Final = "days_cycle_count"
-
-# Shared fields for tracking across target types
-DATA_KID_BADGE_PROGRESS_TRACKED_CHORES: Final = "tracked_chores"
-DATA_KID_BADGE_PROGRESS_CHORES_COMPLETED: Final = "chores_completed"
-DATA_KID_BADGE_PROGRESS_DAYS_COMPLETED: Final = "days_completed"
+# Note: Shared fields already defined above in Common Badge Progress Fields section
 
 DATA_KID_BONUS_APPLIES: Final = "bonus_applies"
 DATA_KID_CLAIMED_CHORES: Final = "claimed_chores"
@@ -635,7 +613,9 @@ DATA_KID_CHORE_STATS_APPROVED_YEAR: Final = "approved_year"
 DATA_KID_CHORE_STATS_APPROVED_ALL_TIME: Final = "approved_all_time"
 
 # --- Most Completed Chore ---
-DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE: Final = "most_completed_chore"
+DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_ALL_TIME: Final = (
+    "most_completed_chore_all_time"
+)
 DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_WEEK: Final = "most_completed_chore_week"
 DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_MONTH: Final = "most_completed_chore_month"
 DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_YEAR: Final = "most_completed_chore_year"
@@ -1341,6 +1321,20 @@ PRIMARY_GROUP_OTHER = "other"
 # Sensor Prefixes
 SENSOR_KC_PREFIX: Final = "sensor.kc_"
 
+# ------------------------------------------------------------------------------------------------
+# DateTime
+# ------------------------------------------------------------------------------------------------
+
+# DateTime Prefix
+DATETIME_KC_PREFIX: Final = "datetime.kc_"
+
+# DateTime Entity ID Midfix and Suffix
+DATETIME_KC_EID_MIDFIX_UI_DASHBOARD: Final = "_ui_dashboard_"
+DATETIME_KC_EID_SUFFIX_DATE_HELPER: Final = "date_helper"
+
+# DateTime Unique ID Suffix
+DATETIME_KC_UID_SUFFIX_DATE_HELPER: Final = "_date_helper"
+
 # Sensor Unique ID Suffixes
 SENSOR_KC_UID_SUFFIX_ACHIEVEMENT_SENSOR: Final = "_achievement"
 SENSOR_KC_UID_SUFFIX_ACHIEVEMENT_PROGRESS_SENSOR: Final = "_achievement_progress"
@@ -1349,13 +1343,14 @@ SENSOR_KC_UID_SUFFIX_BADGE_SENSOR: Final = "_badge_sensor"
 SENSOR_KC_UID_SUFFIX_BONUS_APPLIES_SENSOR: Final = "_bonus_applies"
 SENSOR_KC_UID_SUFFIX_CHALLENGE_SENSOR: Final = "_challenge"
 SENSOR_KC_UID_SUFFIX_CHALLENGE_PROGRESS_SENSOR: Final = "_challenge_progress"
+SENSOR_KC_UID_SUFFIX_CHORES_SENSOR: Final = "_chores"
 SENSOR_KC_UID_SUFFIX_COMPLETED_DAILY_SENSOR: Final = "_completed_daily"
 SENSOR_KC_UID_SUFFIX_COMPLETED_MONTHLY_SENSOR: Final = "_completed_monthly"
 SENSOR_KC_UID_SUFFIX_COMPLETED_TOTAL_SENSOR: Final = "_completed_total"
 SENSOR_KC_UID_SUFFIX_COMPLETED_WEEKLY_SENSOR: Final = "_completed_weekly"
 SENSOR_KC_UID_SUFFIX_CHORE_STATUS_SENSOR: Final = "_status"
-SENSOR_KC_UID_SUFFIX_KID_HIGHEST_BADGE_SENSOR: Final = "_highest_badge"
-SENSOR_KC_UID_SUFFIX_KID_HIGHEST_STREAK_SENSOR: Final = "_highest_streak"
+SENSOR_KC_UID_SUFFIX_KID_HIGHEST_BADGE_SENSOR: Final = "_badges"
+SENSOR_KC_UID_SUFFIX_KID_HIGHEST_STREAK_SENSOR: Final = "_chores_highest_streak"
 SENSOR_KC_UID_SUFFIX_KID_MAX_POINTS_EVER_SENSOR: Final = "_max_points_ever"
 SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_DAILY_SENSOR: Final = "_points_earned_daily"
 SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_MONTHLY_SENSOR: Final = "_points_earned_monthly"
@@ -1377,14 +1372,15 @@ SENSOR_KC_EID_MIDFIX_BONUS_APPLIES_SENSOR: Final = "_bonuses_applied_"
 SENSOR_KC_EID_MIDFIX_CHALLENGE_PROGRESS_SENSOR: Final = "_challenge_status_"
 SENSOR_KC_EID_MIDFIX_CHALLENGE_SENSOR: Final = "challenge_status_"
 SENSOR_KC_EID_MIDFIX_CHORE_STATUS_SENSOR: Final = "_chore_status_"
-SENSOR_KC_EID_MIDFIX_CHORES_COMPLETED_DAILY_SENSOR: Final = "_chores_completed_daily"
-SENSOR_KC_EID_MIDFIX_CHORES_COMPLETED_MONTHLY_SENSOR: Final = (
+SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_DAILY_SENSOR: Final = "_chores_completed_daily"
+SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_MONTHLY_SENSOR: Final = (
     "_chores_completed_monthly"
 )
-SENSOR_KC_EID_MIDFIX_CHORES_COMPLETED_TOTAL_SENSOR: Final = "_chores_completed_total"
-SENSOR_KC_EID_MIDFIX_CHORES_COMPLETED_WEEKLY_SENSOR: Final = "_chores_completed_weekly"
-SENSOR_KC_EID_MIDFIX_KID_HIGHEST_BADGE_SENSOR: Final = "_highest_badge"
-SENSOR_KC_EID_MIDFIX_KID_HIGHEST_STREAK_SENSOR: Final = "_highest_streak"
+SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_TOTAL_SENSOR: Final = "_chores_completed_total"
+SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_WEEKLY_SENSOR: Final = "_chores_completed_weekly"
+SENSOR_KC_EID_SUFFIX_KID_CHORES_SENSOR: Final = "_chores"
+SENSOR_KC_EID_SUFFIX_KID_HIGHEST_BADGE_SENSOR: Final = "_badges"
+SENSOR_KC_EID_SUFFIX_KID_HIGHEST_STREAK_SENSOR: Final = "_chores_highest_streak"
 SENSOR_KC_EID_MIDFIX_PENALTY_APPLIES_SENSOR: Final = "_penalties_applied_"
 SENSOR_KC_EID_MIDFIX_REWARD_STATUS_SENSOR: Final = "_reward_status_"
 SENSOR_KC_EID_MIDFIX_SHARED_CHORE_GLOBAL_STATUS_SENSOR: Final = "global_chore_status_"
@@ -1400,6 +1396,9 @@ SENSOR_KC_EID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR: Final = (
 SENSOR_KC_EID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR: Final = (
     "global_reward_pending_approvals"
 )
+# Sensor Entity ID Midfix and Suffix for UI Dashboard Helper
+SENSOR_KC_EID_MIDFIX_UI_DASHBOARD: Final = "_ui_dashboard_"
+SENSOR_KC_EID_SUFFIX_UI_DASHBOARD_HELPER: Final = "helper"
 
 # ------------------------------------------------------------------------------------------------
 # Selects
@@ -1420,7 +1419,7 @@ SELECT_KC_EID_SUFFIX_ALL_BONUSES: Final = "all_bonuses"
 SELECT_KC_EID_SUFFIX_ALL_CHORES: Final = "all_chores"
 SELECT_KC_EID_SUFFIX_ALL_PENALTIES: Final = "all_penalties"
 SELECT_KC_EID_SUFFIX_ALL_REWARDS: Final = "all_rewards"
-SELECT_KC_EID_SUFFIX_CHORE_LIST: Final = "_chore_list"
+SELECT_KC_EID_SUFFIX_CHORE_LIST: Final = "_ui_dashboard_chore_list_helper"
 
 # ------------------------------------------------------------------------------------------------
 # Buttons
@@ -1540,6 +1539,7 @@ TRANS_KEY_ERROR_CALENDAR_UPDATE_NOT_SUPPORTED: Final = "calendar_update_not_supp
 
 # Action identifiers for use with TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION template
 # These are referenced in translations/en.json["action_labels"]
+ERROR_ACTION_CLAIM_CHORES: Final = "claim_chores"
 ERROR_ACTION_APPROVE_CHORES: Final = "approve_chores"
 ERROR_ACTION_DISAPPROVE_CHORES: Final = "disapprove_chores"
 ERROR_ACTION_REDEEM_REWARDS: Final = "redeem_rewards"
@@ -1547,6 +1547,7 @@ ERROR_ACTION_APPROVE_REWARDS: Final = "approve_rewards"
 ERROR_ACTION_DISAPPROVE_REWARDS: Final = "disapprove_rewards"
 ERROR_ACTION_APPLY_PENALTIES: Final = "apply_penalties"
 ERROR_ACTION_APPLY_BONUSES: Final = "apply_bonuses"
+ERROR_ACTION_ADJUST_POINTS: Final = "adjust_points"
 ERROR_ACTION_RESET_PENALTIES: Final = "reset_penalties"
 ERROR_ACTION_RESET_BONUSES: Final = "reset_bonuses"
 ERROR_ACTION_RESET_REWARDS: Final = "reset_rewards"
@@ -1777,8 +1778,9 @@ TRANS_KEY_SENSOR_CHORES_COMPLETED_TOTAL_SENSOR: Final = "chores_completed_total_
 TRANS_KEY_SENSOR_CHORES_COMPLETED_WEEKLY_SENSOR: Final = (
     "chores_completed_weekly_sensor"
 )
+TRANS_KEY_SENSOR_CHORES_SENSOR: Final = "chores_sensor"
 TRANS_KEY_SENSOR_CHORE_STATUS_SENSOR: Final = "chore_status_sensor"
-TRANS_KEY_SENSOR_KID_HIGHEST_STREAK_SENSOR: Final = "kid_highest_streak_sensor"
+TRANS_KEY_SENSOR_KID_HIGHEST_STREAK_SENSOR: Final = "kid_chores_highest_streak_sensor"
 TRANS_KEY_SENSOR_KID_MAX_POINTS_EVER_SENSOR: Final = "kid_max_points_ever_sensor"
 TRANS_KEY_SENSOR_KID_POINTS_EARNED_DAILY_SENSOR: Final = (
     "kid_points_earned_daily_sensor"
@@ -1790,7 +1792,7 @@ TRANS_KEY_SENSOR_KID_POINTS_EARNED_WEEKLY_SENSOR: Final = (
     "kid_points_earned_weekly_sensor"
 )
 TRANS_KEY_SENSOR_KID_POINTS_SENSOR: Final = "kid_points_sensor"
-TRANS_KEY_SENSOR_KIDS_HIGHEST_BADGE_SENSOR: Final = "kids_highest_badge_sensor"
+TRANS_KEY_SENSOR_KIDS_HIGHEST_BADGE_SENSOR: Final = "kids_badges_sensor"
 TRANS_KEY_SENSOR_PENALTY_APPLIES_SENSOR: Final = "penalty_applies_sensor"
 TRANS_KEY_SENSOR_PENDING_CHORES_APPROVALS_SENSOR: Final = (
     "pending_chores_approvals_sensor"
@@ -1815,11 +1817,14 @@ TRANS_KEY_SENSOR_ATTR_PENALTY_NAME: Final = "penalty_name"
 TRANS_KEY_SENSOR_ATTR_POINTS: Final = "points"
 TRANS_KEY_SENSOR_ATTR_REWARD_NAME: Final = "reward_name"
 
+# DateTime Translation Keys
+TRANS_KEY_DATETIME_DATE_HELPER: Final = "date_helper"
+
 # Select Translation Keys
 TRANS_KEY_SELECT_BASE: Final = "kc_select_base"
 TRANS_KEY_SELECT_BONUSES: Final = "bonuses_select"
 TRANS_KEY_SELECT_CHORES: Final = "chores_select"
-TRANS_KEY_SELECT_CHORES_KID: Final = "chores_kid_select"
+TRANS_KEY_SELECT_CHORES_KID: Final = "chore_list_helper"
 TRANS_KEY_SELECT_PENALTIES: Final = "penalties_select"
 TRANS_KEY_SELECT_REWARDS: Final = "rewards_select"
 
@@ -1855,7 +1860,7 @@ TRANS_KEY_BUTTON_ATTR_REWARD_NAME: Final = "reward_name"
 TRANS_KEY_BUTTON_ATTR_SIGN_LABEL: Final = "sign_label"
 
 # Calendar Attributes Translation Keys
-TRANS_KEY_CALENDAR_NAME = f"{KIDSCHORES_TITLE} Calendar"
+TRANS_KEY_CALENDAR_NAME: Final = "calendar_name"
 
 # FMT Errors Translation Keys
 TRANS_KEY_FMT_ERROR_ADJUST_POINTS: Final = "adjust_points"
@@ -2165,7 +2170,7 @@ REWARD_OPTION_NONE = [
 # ================================================================================================
 
 # Kid Badge Data (used in migration functions)
-DATA_KID_BADGES_DEPRECATED = (
+DATA_KID_BADGES_DEPRECATED: Final = (
     "badges"  # Used in _migrate_kid_badges(), remove when migration dropped
 )
 

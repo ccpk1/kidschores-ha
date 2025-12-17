@@ -3737,7 +3737,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.DATA_KID_CHORE_STATS, {}
             ).get(const.DATA_KID_CHORE_STATS_LONGEST_STREAK_ALL_TIME, 0),
             # --- Most completed chore ---
-            const.DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE: None,
+            const.DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_ALL_TIME: None,
             const.DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_WEEK: None,
             const.DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_MONTH: None,
             const.DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_YEAR: None,
@@ -3924,7 +3924,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             chore_name = self.chores_data.get(most_completed_chore_id, {}).get(
                 const.DATA_CHORE_NAME, most_completed_chore_id
             )
-            stats[const.DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE] = chore_name
+            stats[const.DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_ALL_TIME] = chore_name
         if most_completed_week:
             most_completed_week_id = max(
                 most_completed_week, key=lambda x: most_completed_week.get(x, 0)

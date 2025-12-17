@@ -918,6 +918,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             or const.SENTINEL_NONE_TEXT
         )
 
+        # Use TRANS_KEY constants that already contain English labels (e.g., "Kids: ")
         summary = (
             f"{const.TRANS_KEY_CFOF_SUMMARY_KIDS}{kids_names}\n\n"
             f"{const.TRANS_KEY_CFOF_SUMMARY_PARENTS}{parents_names}\n\n"
@@ -1011,7 +1012,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             entry_options,
         )
         return self.async_create_entry(
-            title=const.KIDSCHORES_TITLE, data=entry_data, options=entry_options
+            title="KidsChores", data=entry_data, options=entry_options
         )
 
     @staticmethod
