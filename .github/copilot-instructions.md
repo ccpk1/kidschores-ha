@@ -63,9 +63,23 @@ Add shared functions to these files, not elsewhere.
 
 **Validation**: HACS & Hassfest via GitHub Actions. Local: `./utils/quick_lint.sh --fix` (comprehensive linting including pylint, type checking, and formatting).
 
-**Linting**: **ALWAYS run after EVERY change**: `./utils/quick_lint.sh --fix` - This checks pylint errors, type errors (Pyright/Pylance), trailing whitespace (auto-fixes), and line length. See `utils/README_LINTING.md` for details.
+**Linting**: During development, you may run quick individual file lints. **Before completion**: See mandatory requirements below.
 
-**Testing**: 111 automated tests (111 passing, 7 skipped). **CRITICAL**: When working on tests, follow `tests/TESTING_AGENT_INSTRUCTIONS.md` (89 lines, concise quick reference). For detailed troubleshooting after 3 failed attempts, consult `tests/TESTING_TECHNICAL_GUIDE.md`.
+**Testing**: 150 automated tests (139 passing, 11 intentionally skipped, ~7 seconds execution). **CRITICAL**: When working on tests, follow `tests/TESTING_AGENT_INSTRUCTIONS.md` (quick reference). For detailed troubleshooting after 3 failed attempts, consult `tests/TESTING_GUIDE.md`.
+
+### Before Completion - MANDATORY REQUIREMENTS ✅
+
+**Work is NOT complete until BOTH commands pass:**
+
+```bash
+# 1. FULL LINT CHECK (~22 seconds)
+./utils/quick_lint.sh --fix
+
+# 2. FULL TEST SUITE (~7 seconds - 150 tests)
+python -m pytest tests/ -v --tb=line
+```
+
+**NEVER declare work complete without running both commands above.** During development, individual file tests are acceptable for quick iteration, but final validation requires full suite execution.
 
 **Testing as Debugging Tool**: The test suite is highly effective for debugging both the integration and dashboard. When investigating issues:
 

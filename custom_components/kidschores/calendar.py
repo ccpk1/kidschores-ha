@@ -14,9 +14,6 @@ from homeassistant.util import dt as dt_util
 from . import const
 from . import kc_helpers as kh
 
-# Map weekday integers (0=Monday, …) to e.g. "mon","tue","wed" in const.WEEKDAY_OPTIONS.
-WEEKDAY_MAP = {i: key for i, key in enumerate(const.WEEKDAY_OPTIONS.keys())}
-
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities
@@ -39,14 +36,12 @@ async def async_setup_entry(
             const.DATA_KID_NAME, f"{const.TRANS_KEY_LABEL_KID} {kid_id}"
         )
         entities.append(
-            KidsChoresCalendarEntity(
-                coordinator, kid_id, kid_name, entry, calendar_duration
-            )
+            KidScheduleCalendar(coordinator, kid_id, kid_name, entry, calendar_duration)
         )
     async_add_entities(entities)
 
 
-class KidsChoresCalendarEntity(CalendarEntity):
+class KidScheduleCalendar(CalendarEntity):
     """Calendar entity representing a kid's combined chores + challenges."""
 
     _attr_has_entity_name = True
@@ -55,6 +50,15 @@ class KidsChoresCalendarEntity(CalendarEntity):
     def __init__(
         self, coordinator, kid_id: str, kid_name: str, config_entry, calendar_duration
     ):
+        """Initialize the calendar entity.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+            config_entry: ConfigEntry for this integration instance.
+            calendar_duration: Duration (in days) for calendar event generation window.
+        """
         super().__init__()
         self.coordinator = coordinator
         self._kid_id = kid_id
@@ -141,13 +145,357 @@ class KidsChoresCalendarEntity(CalendarEntity):
             translation_key=const.TRANS_KEY_ERROR_CALENDAR_UPDATE_NOT_SUPPORTED,
         )
 
+    def _event_overlaps_window(
+        self,
+        event: CalendarEvent,
+        window_start: datetime.datetime,
+        window_end: datetime.datetime,
+    ) -> bool:
+        """Check if event overlaps [window_start, window_end]."""
+        sdt = event.start
+        edt = event.end
+        if isinstance(sdt, datetime.date) and not isinstance(sdt, datetime.datetime):
+            tz = dt_util.get_time_zone(self.hass.config.time_zone)
+            sdt = datetime.datetime.combine(sdt, datetime.time.min, tzinfo=tz)
+        if isinstance(edt, datetime.date) and not isinstance(edt, datetime.datetime):
+            tz = dt_util.get_time_zone(self.hass.config.time_zone)
+            edt = datetime.datetime.combine(edt, datetime.time.min, tzinfo=tz)
+        if not sdt or not edt:
+            return False
+        return (edt > window_start) and (sdt < window_end)
+
+    def _add_event_if_overlaps(
+        self,
+        events: list[CalendarEvent],
+        event: CalendarEvent,
+        window_start: datetime.datetime,
+        window_end: datetime.datetime,
+    ) -> None:
+        """Add event to list if it overlaps the window."""
+        if self._event_overlaps_window(event, window_start, window_end):
+            events.append(event)
+
+    def _generate_non_recurring_with_due_date(
+        self,
+        events: list[CalendarEvent],
+        summary: str,
+        description: str,
+        due_dt: datetime.datetime,
+        window_start: datetime.datetime,
+        window_end: datetime.datetime,
+    ) -> None:
+        """Generate event for non-recurring chore with due date."""
+        if window_start <= due_dt <= window_end:
+            # All chores with due_date create 1-hour timed events
+            e = CalendarEvent(
+                summary=summary,
+                start=due_dt,
+                end=due_dt + datetime.timedelta(hours=1),
+                description=description,
+            )
+            self._add_event_if_overlaps(events, e, window_start, window_end)
+
+    def _generate_non_recurring_without_due_date(
+        self,
+        events: list[CalendarEvent],
+        summary: str,
+        description: str,
+        applicable_days: list[int],
+        window_start: datetime.datetime,
+        window_end: datetime.datetime,
+    ) -> None:
+        """Generate events for non-recurring chore without due date on applicable days."""
+        if not applicable_days:
+            return
+
+        gen_start = window_start
+        gen_end = min(
+            window_end,
+            dt_util.as_local(datetime.datetime.now() + self._calendar_duration),
+        )
+        current = gen_start
+        local_tz = dt_util.get_time_zone(self.hass.config.time_zone)
+        while current <= gen_end:
+            if current.weekday() in applicable_days:
+                # Create full-day event from 00:00:00 to 23:59:59 in local timezone
+                day_start = datetime.datetime.combine(
+                    current.date(), datetime.time(0, 0, 0), tzinfo=local_tz
+                )
+                day_end = datetime.datetime.combine(
+                    current.date(), datetime.time(23, 59, 59), tzinfo=local_tz
+                )
+                e = CalendarEvent(
+                    summary=summary,
+                    start=day_start,
+                    end=day_end,
+                    description=description,
+                )
+                self._add_event_if_overlaps(events, e, window_start, window_end)
+            current += datetime.timedelta(days=1)
+
+    def _generate_recurring_daily_with_due_date(
+        self,
+        events: list[CalendarEvent],
+        summary: str,
+        description: str,
+        due_dt: datetime.datetime,
+        window_start: datetime.datetime,
+        window_end: datetime.datetime,
+    ) -> None:
+        """Generate event for daily recurring chore with due date."""
+        if window_start <= due_dt <= window_end:
+            # All chores with due_date create 1-hour timed events
+            e = CalendarEvent(
+                summary=summary,
+                start=due_dt,
+                end=due_dt + datetime.timedelta(hours=1),
+                description=description,
+            )
+            self._add_event_if_overlaps(events, e, window_start, window_end)
+
+    def _generate_recurring_weekly_with_due_date(
+        self,
+        events: list[CalendarEvent],
+        summary: str,
+        description: str,
+        due_dt: datetime.datetime,
+        window_start: datetime.datetime,
+        window_end: datetime.datetime,
+    ) -> None:
+        """Generate event for weekly recurring chore with due date."""
+        start_event = due_dt - datetime.timedelta(weeks=1)
+        end_event = due_dt
+        if start_event < window_end and end_event > window_start:
+            e = CalendarEvent(
+                summary=summary,
+                start=start_event.date(),
+                end=(end_event.date() + datetime.timedelta(days=1)),
+                description=description,
+            )
+            self._add_event_if_overlaps(events, e, window_start, window_end)
+
+    def _generate_recurring_biweekly_with_due_date(
+        self,
+        events: list[CalendarEvent],
+        summary: str,
+        description: str,
+        due_dt: datetime.datetime,
+        window_start: datetime.datetime,
+        window_end: datetime.datetime,
+    ) -> None:
+        """Generate event for biweekly recurring chore with due date."""
+        start_event = due_dt - datetime.timedelta(weeks=2)
+        end_event = due_dt
+        if start_event < window_end and end_event > window_start:
+            e = CalendarEvent(
+                summary=summary,
+                start=start_event.date(),
+                end=(end_event.date() + datetime.timedelta(days=1)),
+                description=description,
+            )
+            self._add_event_if_overlaps(events, e, window_start, window_end)
+
+    def _generate_recurring_monthly_with_due_date(
+        self,
+        events: list[CalendarEvent],
+        summary: str,
+        description: str,
+        due_dt: datetime.datetime,
+        window_start: datetime.datetime,
+        window_end: datetime.datetime,
+    ) -> None:
+        """Generate event for monthly recurring chore with due date."""
+        first_day = due_dt.replace(day=1)
+        if first_day < window_end and due_dt > window_start:
+            e = CalendarEvent(
+                summary=summary,
+                start=first_day.date(),
+                end=(due_dt.date() + datetime.timedelta(days=1)),
+                description=description,
+            )
+            self._add_event_if_overlaps(events, e, window_start, window_end)
+
+    def _generate_recurring_custom_with_due_date(
+        self,
+        events: list[CalendarEvent],
+        summary: str,
+        description: str,
+        due_dt: datetime.datetime,
+        interval: int,
+        unit: str,
+        window_start: datetime.datetime,
+        window_end: datetime.datetime,
+    ) -> None:
+        """Generate event for custom interval recurring chore with due date."""
+        if unit == const.TIME_UNIT_DAYS:
+            start_event = due_dt - datetime.timedelta(days=interval)
+        elif unit == const.TIME_UNIT_WEEKS:
+            start_event = due_dt - datetime.timedelta(weeks=interval)
+        elif unit == const.TIME_UNIT_MONTHS:
+            start_event = due_dt - datetime.timedelta(days=30 * interval)
+        else:
+            start_event = due_dt
+
+        if start_event < window_end and due_dt > window_start:
+            e = CalendarEvent(
+                summary=summary,
+                start=start_event.date(),
+                end=(due_dt.date() + datetime.timedelta(days=1)),
+                description=description,
+            )
+            self._add_event_if_overlaps(events, e, window_start, window_end)
+
+    def _generate_recurring_daily_without_due_date(
+        self,
+        events: list[CalendarEvent],
+        summary: str,
+        description: str,
+        applicable_days: list[int],
+        gen_start: datetime.datetime,
+        cutoff: datetime.datetime,
+        window_start: datetime.datetime,
+        window_end: datetime.datetime,
+    ) -> None:
+        """Generate full-day events for daily recurring chore without due date."""
+        local_tz = dt_util.get_time_zone(self.hass.config.time_zone)
+        current = gen_start
+        while current <= cutoff:
+            if applicable_days and current.weekday() not in applicable_days:
+                current += datetime.timedelta(days=1)
+                continue
+            # Create full-day event from 00:00:00 to 23:59:59 in local timezone
+            day_start = datetime.datetime.combine(
+                current.date(), datetime.time(0, 0, 0), tzinfo=local_tz
+            )
+            day_end = datetime.datetime.combine(
+                current.date(), datetime.time(23, 59, 59), tzinfo=local_tz
+            )
+            e = CalendarEvent(
+                summary=summary,
+                start=day_start,
+                end=day_end,
+                description=description,
+            )
+            self._add_event_if_overlaps(events, e, window_start, window_end)
+            current += datetime.timedelta(days=1)
+
+    def _generate_recurring_weekly_biweekly_without_due_date(
+        self,
+        events: list[CalendarEvent],
+        summary: str,
+        description: str,
+        recurring: str,
+        gen_start: datetime.datetime,
+        cutoff: datetime.datetime,
+        window_start: datetime.datetime,
+        window_end: datetime.datetime,
+    ) -> None:
+        """Generate multi-day block events for weekly/biweekly recurring chore without due date."""
+        week_delta = 7 if recurring == const.FREQUENCY_WEEKLY else 14
+        current = gen_start
+        # align to Monday
+        while current.weekday() != 0:
+            current += datetime.timedelta(days=1)
+        while current <= cutoff:
+            # multi-day block from Monday..Sunday (or 2 weeks for biweekly)
+            block_days = 6 if recurring == const.FREQUENCY_WEEKLY else 13
+            start_block = current
+            end_block = current + datetime.timedelta(days=block_days)
+            e = CalendarEvent(
+                summary=summary,
+                start=start_block.date(),
+                end=end_block.date() + datetime.timedelta(days=1),
+                description=description,
+            )
+            self._add_event_if_overlaps(events, e, window_start, window_end)
+            current += datetime.timedelta(days=week_delta)
+
+    def _generate_recurring_monthly_without_due_date(
+        self,
+        events: list[CalendarEvent],
+        summary: str,
+        description: str,
+        gen_start: datetime.datetime,
+        cutoff: datetime.datetime,
+        window_start: datetime.datetime,
+        window_end: datetime.datetime,
+    ) -> None:
+        """Generate full-month block events for monthly recurring chore without due date."""
+        cur = gen_start
+        while cur <= cutoff:
+            first_day = cur.replace(day=1)
+            next_month = first_day + datetime.timedelta(days=32)
+            next_month = next_month.replace(day=1)
+            last_day = next_month - datetime.timedelta(days=1)
+
+            e = CalendarEvent(
+                summary=summary,
+                start=first_day.date(),
+                end=last_day.date() + datetime.timedelta(days=1),
+                description=description,
+            )
+            self._add_event_if_overlaps(events, e, window_start, window_end)
+            cur = next_month
+
+    def _generate_recurring_custom_without_due_date(
+        self,
+        events: list[CalendarEvent],
+        summary: str,
+        description: str,
+        applicable_days: list[int],
+        interval: int,
+        unit: str,
+        gen_start: datetime.datetime,
+        cutoff: datetime.datetime,
+        window_start: datetime.datetime,
+        window_end: datetime.datetime,
+    ) -> None:
+        """Generate custom interval events for custom recurring chore without due date."""
+        if unit == const.TIME_UNIT_DAYS:
+            step = datetime.timedelta(days=interval)
+        elif unit == const.TIME_UNIT_WEEKS:
+            step = datetime.timedelta(weeks=interval)
+        elif unit == const.TIME_UNIT_MONTHS:
+            step = datetime.timedelta(days=30 * interval)
+        else:
+            step = datetime.timedelta(days=interval)
+
+        current = gen_start
+        while current <= cutoff:
+            # Check applicable days
+            if applicable_days and current.weekday() not in applicable_days:
+                current += step
+                continue
+            e = CalendarEvent(
+                summary=summary,
+                start=current.date(),
+                end=current.date() + step,
+                description=description,
+            )
+            self._add_event_if_overlaps(events, e, window_start, window_end)
+            current += step
+
     def _generate_events_for_chore(
         self,
         chore: dict,
         window_start: datetime.datetime,
         window_end: datetime.datetime,
     ) -> list[CalendarEvent]:
-        """Same recurring-chores logic from earlier solutions."""
+        """Generate calendar events for a chore within the given time window.
+
+        This method dispatches to specialized helper methods based on chore type:
+        - Non-recurring: with/without due_date
+        - Recurring with due_date: daily/weekly/biweekly/monthly/custom
+        - Recurring without due_date: daily/weekly/biweekly/monthly/custom
+
+        Args:
+            chore: Chore dictionary with configuration data
+            window_start: Start of calendar window
+            window_end: End of calendar window
+
+        Returns:
+            List of CalendarEvent objects for this chore
+        """
         events: list[CalendarEvent] = []
 
         summary = chore.get(
@@ -159,79 +507,29 @@ class KidsChoresCalendarEntity(CalendarEntity):
         )
         applicable_days = chore.get(const.DATA_CHORE_APPLICABLE_DAYS, [])
 
-        # Parse chore due_date if any
+        # Parse chore due_date using battle-tested helper
         due_date_str = chore.get(const.DATA_CHORE_DUE_DATE)
         due_dt: datetime.datetime | None = None
         if due_date_str:
-            dt_parsed = dt_util.parse_datetime(due_date_str)
-            if dt_parsed:
-                due_dt = dt_util.as_local(dt_parsed)
-
-        def is_midnight(dt_obj: datetime.datetime) -> bool:
-            return (dt_obj.hour, dt_obj.minute, dt_obj.second) == (0, 0, 0)
-
-        def overlaps(ev: CalendarEvent) -> bool:
-            """Check if event overlaps [window_start, window_end]."""
-            sdt = ev.start
-            edt = ev.end
-            if isinstance(sdt, datetime.date) and not isinstance(
-                sdt, datetime.datetime
-            ):
-                tz = dt_util.get_time_zone(self.hass.config.time_zone)
-                sdt = datetime.datetime.combine(sdt, datetime.time.min, tzinfo=tz)
-            if isinstance(edt, datetime.date) and not isinstance(
-                edt, datetime.datetime
-            ):
-                tz = dt_util.get_time_zone(self.hass.config.time_zone)
-                edt = datetime.datetime.combine(edt, datetime.time.min, tzinfo=tz)
-            if not sdt or not edt:
-                return False
-            return (edt > window_start) and (sdt < window_end)
+            parsed = kh.normalize_datetime_input(due_date_str)
+            if isinstance(parsed, datetime.datetime):
+                due_dt = parsed
 
         # --- Non-recurring chores ---
         if recurring == const.FREQUENCY_NONE:
             if due_dt:
-                # single event if in window
-                if window_start <= due_dt <= window_end:
-                    if is_midnight(due_dt):
-                        e = CalendarEvent(
-                            summary=summary,
-                            start=due_dt.date(),
-                            end=due_dt.date() + datetime.timedelta(days=1),
-                            description=description,
-                        )
-                    else:
-                        e = CalendarEvent(
-                            summary=summary,
-                            start=due_dt,
-                            end=due_dt + datetime.timedelta(hours=1),
-                            description=description,
-                        )
-                    if overlaps(e):
-                        events.append(e)
+                self._generate_non_recurring_with_due_date(
+                    events, summary, description, due_dt, window_start, window_end
+                )
             else:
-                # No due_date => possibly show on applicable_days for next 3 months
-                if applicable_days:
-                    gen_start = window_start
-                    gen_end = min(
-                        window_end,
-                        dt_util.as_local(
-                            datetime.datetime.now() + self._calendar_duration
-                        ),
-                    )
-                    current = gen_start
-                    while current <= gen_end:
-                        if WEEKDAY_MAP[current.weekday()] in applicable_days:
-                            e = CalendarEvent(
-                                summary=summary,
-                                start=current.date(),
-                                end=current.date() + datetime.timedelta(days=1),
-                                description=description,
-                            )
-                            if overlaps(e):
-                                events.append(e)
-                        current += datetime.timedelta(days=1)
-
+                self._generate_non_recurring_without_due_date(
+                    events,
+                    summary,
+                    description,
+                    applicable_days,
+                    window_start,
+                    window_end,
+                )
             return events
 
         # --- Recurring chores with a due_date ---
@@ -241,86 +539,36 @@ class KidsChoresCalendarEntity(CalendarEntity):
                 return events
 
             if recurring == const.FREQUENCY_DAILY:
-                if window_start <= due_dt <= window_end:
-                    if is_midnight(due_dt):
-                        e = CalendarEvent(
-                            summary=summary,
-                            start=due_dt.date(),
-                            end=due_dt.date() + datetime.timedelta(days=1),
-                            description=description,
-                        )
-                    else:
-                        e = CalendarEvent(
-                            summary=summary,
-                            start=due_dt,
-                            end=due_dt + datetime.timedelta(hours=1),
-                            description=description,
-                        )
-                    if overlaps(e):
-                        events.append(e)
-
+                self._generate_recurring_daily_with_due_date(
+                    events, summary, description, due_dt, window_start, window_end
+                )
             elif recurring == const.FREQUENCY_WEEKLY:
-                start_event = due_dt - datetime.timedelta(weeks=1)
-                end_event = due_dt
-                if start_event < window_end and end_event > window_start:
-                    e = CalendarEvent(
-                        summary=summary,
-                        start=start_event.date(),
-                        end=(end_event.date() + datetime.timedelta(days=1)),
-                        description=description,
-                    )
-                    if overlaps(e):
-                        events.append(e)
-
+                self._generate_recurring_weekly_with_due_date(
+                    events, summary, description, due_dt, window_start, window_end
+                )
             elif recurring == const.FREQUENCY_BIWEEKLY:
-                start_event = due_dt - datetime.timedelta(weeks=2)
-                end_event = due_dt
-                if start_event < window_end and end_event > window_start:
-                    e = CalendarEvent(
-                        summary=summary,
-                        start=start_event.date(),
-                        end=(end_event.date() + datetime.timedelta(days=1)),
-                        description=description,
-                    )
-                    if overlaps(e):
-                        events.append(e)
-
+                self._generate_recurring_biweekly_with_due_date(
+                    events, summary, description, due_dt, window_start, window_end
+                )
             elif recurring == const.FREQUENCY_MONTHLY:
-                first_day = due_dt.replace(day=1)
-                if first_day < window_end and due_dt > window_start:
-                    e = CalendarEvent(
-                        summary=summary,
-                        start=first_day.date(),
-                        end=(due_dt.date() + datetime.timedelta(days=1)),
-                        description=description,
-                    )
-                    if overlaps(e):
-                        events.append(e)
-
+                self._generate_recurring_monthly_with_due_date(
+                    events, summary, description, due_dt, window_start, window_end
+                )
             elif recurring == const.FREQUENCY_CUSTOM:
                 interval = chore.get(const.DATA_CHORE_CUSTOM_INTERVAL, 1)
                 unit = chore.get(
                     const.DATA_CHORE_CUSTOM_INTERVAL_UNIT, const.TIME_UNIT_DAYS
                 )
-                if unit == const.TIME_UNIT_DAYS:
-                    start_event = due_dt - datetime.timedelta(days=interval)
-                elif unit == const.TIME_UNIT_WEEKS:
-                    start_event = due_dt - datetime.timedelta(weeks=interval)
-                elif unit == const.TIME_UNIT_MONTHS:
-                    start_event = due_dt - datetime.timedelta(days=30 * interval)
-                else:
-                    start_event = due_dt
-
-                if start_event < window_end and due_dt > window_start:
-                    e = CalendarEvent(
-                        summary=summary,
-                        start=start_event.date(),
-                        end=(due_dt.date() + datetime.timedelta(days=1)),
-                        description=description,
-                    )
-                    if overlaps(e):
-                        events.append(e)
-
+                self._generate_recurring_custom_with_due_date(
+                    events,
+                    summary,
+                    description,
+                    due_dt,
+                    interval,
+                    unit,
+                    window_start,
+                    window_end,
+                )
             return events
 
         # --- Recurring chores without a due_date => next 3 months
@@ -331,99 +579,54 @@ class KidsChoresCalendarEntity(CalendarEntity):
         cutoff = min(window_end, future_limit)
 
         if recurring == const.FREQUENCY_DAILY:
-            current = gen_start
-            while current <= cutoff:
-                if (
-                    applicable_days
-                    and WEEKDAY_MAP[current.weekday()] not in applicable_days
-                ):
-                    current += datetime.timedelta(days=1)
-                    continue
-                e = CalendarEvent(
-                    summary=summary,
-                    start=current.date(),
-                    end=current.date() + datetime.timedelta(days=1),
-                    description=description,
-                )
-                if overlaps(e):
-                    events.append(e)
-                current += datetime.timedelta(days=1)
-            return events
-
-        if recurring in (const.FREQUENCY_WEEKLY, const.FREQUENCY_BIWEEKLY):
-            week_delta = 7 if recurring == const.FREQUENCY_WEEKLY else 14
-            current = gen_start
-            # align to Monday
-            while current.weekday() != 0:
-                current += datetime.timedelta(days=1)
-            while current <= cutoff:
-                # multi-day block from Monday..Sunday (or 2 weeks for biweekly)
-                block_days = 6 if recurring == const.FREQUENCY_WEEKLY else 13
-                start_block = current
-                end_block = current + datetime.timedelta(days=block_days)
-                e = CalendarEvent(
-                    summary=summary,
-                    start=start_block.date(),
-                    end=end_block.date() + datetime.timedelta(days=1),
-                    description=description,
-                )
-                if overlaps(e):
-                    events.append(e)
-                current += datetime.timedelta(days=week_delta)
-            return events
-
-        if recurring == const.FREQUENCY_MONTHLY:
-            cur = gen_start
-            while cur <= cutoff:
-                first_day = cur.replace(day=1)
-                next_month = first_day + datetime.timedelta(days=32)
-                next_month = next_month.replace(day=1)
-                last_day = next_month - datetime.timedelta(days=1)
-
-                e = CalendarEvent(
-                    summary=summary,
-                    start=first_day.date(),
-                    end=last_day.date() + datetime.timedelta(days=1),
-                    description=description,
-                )
-                if overlaps(e):
-                    events.append(e)
-                cur = next_month
-            return events
-
-        if recurring == const.FREQUENCY_CUSTOM:
+            self._generate_recurring_daily_without_due_date(
+                events,
+                summary,
+                description,
+                applicable_days,
+                gen_start,
+                cutoff,
+                window_start,
+                window_end,
+            )
+        elif recurring in (const.FREQUENCY_WEEKLY, const.FREQUENCY_BIWEEKLY):
+            self._generate_recurring_weekly_biweekly_without_due_date(
+                events,
+                summary,
+                description,
+                recurring,
+                gen_start,
+                cutoff,
+                window_start,
+                window_end,
+            )
+        elif recurring == const.FREQUENCY_MONTHLY:
+            self._generate_recurring_monthly_without_due_date(
+                events,
+                summary,
+                description,
+                gen_start,
+                cutoff,
+                window_start,
+                window_end,
+            )
+        elif recurring == const.FREQUENCY_CUSTOM:
             interval = chore.get(const.DATA_CHORE_CUSTOM_INTERVAL, 1)
             unit = chore.get(
                 const.DATA_CHORE_CUSTOM_INTERVAL_UNIT, const.TIME_UNIT_DAYS
             )
-            if unit == const.TIME_UNIT_DAYS:
-                step = datetime.timedelta(days=interval)
-            elif unit == const.TIME_UNIT_WEEKS:
-                step = datetime.timedelta(weeks=interval)
-            elif unit == const.TIME_UNIT_MONTHS:
-                step = datetime.timedelta(days=30 * interval)
-            else:
-                step = datetime.timedelta(days=interval)
-
-            current = gen_start
-            while current <= cutoff:
-                # Check applicable days
-                if (
-                    applicable_days
-                    and WEEKDAY_MAP[current.weekday()] not in applicable_days
-                ):
-                    current += step
-                    continue
-                e = CalendarEvent(
-                    summary=summary,
-                    start=current.date(),
-                    end=current.date() + step,
-                    description=description,
-                )
-                if overlaps(e):
-                    events.append(e)
-                current += step
-            return events
+            self._generate_recurring_custom_without_due_date(
+                events,
+                summary,
+                description,
+                applicable_days,
+                interval,
+                unit,
+                gen_start,
+                cutoff,
+                window_start,
+                window_end,
+            )
 
         return events
 

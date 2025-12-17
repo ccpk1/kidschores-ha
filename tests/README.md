@@ -149,79 +149,30 @@ Our testing documentation is organized into focused guides:
 
 ### 1. [README.md](README.md) (This File)
 
-**High-level overview**: Testing philosophy, family introduction, quick start
+**Purpose**: Quick overview and getting started guide
 
-**Target Audience**: New contributors, code reviewers, stakeholders
+### 2. [TESTING_GUIDE.md](TESTING_GUIDE.md)
 
-**Contents**:
-
-- Stårblüm Family introduction
-- Testing philosophy
-- What we test (summary)
-- Quick start commands
-- Documentation map
-
-### 2. [TESTING_TECHNICAL_GUIDE.md](TESTING_TECHNICAL_GUIDE.md)
-
-**Comprehensive technical guide**: All test types, patterns, and best practices
-
-**Target Audience**: Developers writing or modifying tests
-
-**Contents**:
-
-- Test structure and organization
-- **Data loading methods** (options flow vs direct coordinator)
-- Running tests (all options)
-- Test categories (8 types with examples)
-- **Dashboard template testing** (complete section)
-- Test fixtures and scenarios
-- Testing patterns (6 common patterns)
-- Debugging tests
-- Best practices
-
-**Key Sections**:
-
-- **Data Loading Methods**: Critical distinction between options flow (UI simulation) and direct coordinator loading (business logic)
-- **Dashboard Template Testing**: Complete guide to Jinja2 template validation
-- **Critical Patterns**: Platform reload, direct entity access, notification mocks, authorization
+**Purpose**: Comprehensive technical guide for writing and debugging tests
+**Topics**: Data loading methods, test patterns, fixtures, debugging, best practices
 
 ### 3. [TESTING_AGENT_INSTRUCTIONS.md](TESTING_AGENT_INSTRUCTIONS.md)
 
-**AI agent guidance**: Step-by-step workflows and troubleshooting
-
-**Target Audience**: AI agents, automated test generators
-
-**Contents**:
-
-- Quick reference commands
-- Test processing workflow (4 steps)
-- Critical patterns (6 essential patterns)
-- Troubleshooting guide (common issues + solutions)
-- Code quality standards (no lint errors/warnings)
-- Lessons learned (10 key insights)
-- Common errors and solutions
-- Best practices checklist
-
-**Key Sections**:
-
-- **Test Processing Workflow**: Step-by-step guide for determining test type and data loading method
-- **Troubleshooting Guide**: Solutions to common test failures
-- **Lessons Learned**: 10 key insights from building the test suite (platform reload, service dispatcher, authorization, etc.)
-- **Code Quality Standards**: Linting, naming, type hints, docstrings
+**Purpose**: Quick reference for AI agents
+**Topics**: Decision trees, essential patterns, code quality checklist
 
 ### 4. [TEST_SCENARIOS.md](TEST_SCENARIOS.md)
 
-**Test data scenarios**: Stårblüm Family storyline details
+**Purpose**: Test scenario descriptions and YAML structure
+**Topics**: Stårblüm family storyline, scenario data, usage examples
 
-**Target Audience**: Test data authors, scenario designers
+---
 
-**Contents**:
+## 🛠️ For Test Developers
 
-- Stårblüm Family backstory
-- Scenario descriptions (minimal, medium, full)
-- Entity lists for each scenario
-- Usage guide: loading YAML, using in tests
-- When to use each scenario
+- **Writing new tests?** → Read [TESTING_GUIDE.md](TESTING_GUIDE.md)
+- **AI agent?** → Use [TESTING_AGENT_INSTRUCTIONS.md](TESTING_AGENT_INSTRUCTIONS.md)
+- **Understanding test data?** → See [TEST_SCENARIOS.md](TEST_SCENARIOS.md)
 
 ---
 
@@ -290,71 +241,11 @@ See [TEST_SCENARIOS.md](TEST_SCENARIOS.md) for full details.
 
 ## 🎓 Learning Path
 
-New to the test suite? Follow this learning path:
-
-### Step 1: Read the Overview (You're Here!)
-
-- Understand testing philosophy
-- Meet the Stårblüm Family
-- Learn what we test
-
-### Step 2: Run Tests
-
-```bash
-python -m pytest tests/ -v
-```
-
-Watch all 46 tests pass, understand test categories
-
-### Step 3: Study One Test File
-
-Start with `test_dashboard_templates.py` (simplest):
-
-- Read test structure
-- Understand fixtures (`dashboard_entities`)
-- See template rendering pattern
-
-### Step 4: Read Technical Guide
-
-Open [TESTING_TECHNICAL_GUIDE.md](TESTING_TECHNICAL_GUIDE.md):
-
-- **CRITICAL**: Read "Data Loading Methods" section first!
-- Understand options flow vs direct coordinator loading
-- Study dashboard template testing
-- Learn test patterns and fixtures
-
-### Step 5: Write Your First Test
-
-Modify an existing test or add new one:
-
-```python
-async def test_my_feature(hass, scenario_minimal):
-    """Test my new feature."""
-    config_entry, name_to_id_map = scenario_minimal
-    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
-
-    # Get entity IDs from map
-    kid_id = name_to_id_map["kid:Zoë"]
-
-    # Execute action
-    # Verify result
-```
-
-### Step 6: Deep Dive
-
-- Explore coordinator tests for complex logic
-- Study workflow tests for entity interaction patterns
-- Review dashboard tests for template techniques
-
-### Step 7: AI Agent Development (Optional)
-
-If developing tests with AI assistance, read [TESTING_AGENT_INSTRUCTIONS.md](TESTING_AGENT_INSTRUCTIONS.md):
-
-- Test processing workflow (4-step decision tree)
-- Critical patterns (platform reload, direct entity access, notification mocking)
-- Troubleshooting guide (6 common issues with solutions)
-- Code quality standards (no linting errors/warnings)
-- **Lessons Learned** (10 key insights from building test suite)
+1. **Run tests**: `python -m pytest tests/ -v` (150 tests in 7 seconds!)
+2. **Read**: [TESTING_GUIDE.md](TESTING_GUIDE.md) for comprehensive guide
+3. **Study**: Start with `test_dashboard_templates.py` (simplest examples)
+4. **Write**: Follow patterns from existing tests
+5. **AI Agents**: Use [TESTING_AGENT_INSTRUCTIONS.md](TESTING_AGENT_INSTRUCTIONS.md) for quick patterns
 
 ---
 
@@ -420,63 +311,16 @@ See [TESTING_TECHNICAL_GUIDE.md](TESTING_TECHNICAL_GUIDE.md) "Dashboard Template
 
 ### Development
 
-```bash
-# Run tests with auto-rerun on changes
-python -m pytest tests/ -v --looponfail
+See [TESTING_GUIDE.md](TESTING_GUIDE.md) for full details on:
 
-# Run specific test pattern
-python -m pytest tests/ -k "dashboard" -v
+- **Data Loading Methods**: Options flow vs direct coordinator loading
+- **Dashboard Templates**: Jinja2 template validation
+- **Test Patterns**: Platform reload, entity access, notification mocking
+  # Arrange: Set up data via options flow
+  # Act: Execute service or call coordinator method
+  # Assert: Verify expected state changes
 
-# Stop on first failure
-python -m pytest tests/ -x
-
-# Show print statements
-python -m pytest tests/ -v -s
-```
-
-### Debugging
-
-```bash
-# Run with debug logging
-python -m pytest tests/ -v --log-cli-level=DEBUG
-
-# Run single test with full output
-python -m pytest tests/test_coordinator.py::test_claim_chore -vv --tb=short
-
-# Show test duration
-python -m pytest tests/ -v --durations=10
-```
-
-### Coverage
-
-```bash
-# Generate HTML coverage report
-python -m pytest tests/ --cov=custom_components.kidschores --cov-report=html
-
-# Open report
-open htmlcov/index.html
-```
-
----
-
-## 🤝 Contributing Tests
-
-### Before Adding Tests
-
-1. **Check existing tests** - Avoid duplicates
-2. **Use options flow** - Enter data realistically
-3. **Follow naming conventions** - `test_<feature>_<action>_<expected_result>`
-4. **Use scenarios** - Load from YAML when possible
-
-### Test Structure
-
-```python
-async def test_feature_name(hass, config_entry):
-    """Test description: what this test validates."""
-    # Arrange: Set up data via options flow
-    # Act: Execute service or call coordinator method
-    # Assert: Verify expected state changes
-```
+````
 
 ### Running Your Tests
 
@@ -486,7 +330,7 @@ python -m pytest tests/test_your_file.py::test_your_function -v
 
 # Run all tests to ensure no regressions
 python -m pytest tests/ -v
-```
+````
 
 ### Documentation
 
@@ -498,52 +342,22 @@ If your test introduces new patterns:
 
 ---
 
-## 📊 Test Coverage
+## 📊 Test Statistics
 
-Current coverage: **~95%** of integration code
+- **Total Tests**: 150 (139 passing, 11 skipped)
+- **Execution Time**: ~7 seconds
+- **Test Files**: 22 active files
+- **Code Coverage**: ~95% of integration code
 
-**Well-Covered**:
+**Test Distribution**:
 
-- ✅ Config flow (100%)
-- ✅ Options flow (98%)
-- ✅ Coordinator logic (96%)
-- ✅ Dashboard templates (100% syntax validation)
-- ✅ Services (94%)
-
-**Areas for Improvement**:
-
-- ⚠️ Notification action handlers (edge cases)
-- ⚠️ Storage migration (version upgrades)
-- ⚠️ Error recovery (network failures)
-
----
-
-## 🐛 Debugging Tests
-
-### Test Fails
-
-1. **Read the traceback** - Error location + message
-2. **Check assumptions** - Did options flow complete?
-3. **Print coordinator state** - `print(json.dumps(coordinator.data, indent=2))`
-4. **Enable debug logging** - See fixture in conftest.py
-5. **Run in isolation** - `-k "test_name"` to avoid test pollution
-
-### Dashboard Template Fails
-
-1. **Check entity_id** - Does dashboard helper sensor exist?
-2. **Check attributes** - Is data populated in sensor?
-3. **Test snippet in HA UI** - Developer Tools → Templates
-4. **Print template output** - Add debug prints in test
-
-See [TESTING_INSTRUCTIONS.md](TESTING_INSTRUCTIONS.md) "Debugging Tests" section for more techniques.
-
----
-
-## 📅 Version History
-
-- **v1.0.0** (Dec 2024): Initial test suite with 46 tests
-  - Config flow tests (8)
-  - Coordinator tests (12)
+- Config/Setup: 8 tests
+- Coordinator Logic: 12 tests
+- Options Flow: 18 tests
+- Workflows: 23 tests
+- Dashboard: 35 tests
+- Helpers: 31 tests
+- Other: 23 tests
   - Options flow tests (9)
   - Service tests (5)
   - Dashboard template tests (17)
@@ -552,21 +366,12 @@ See [TESTING_INSTRUCTIONS.md](TESTING_INSTRUCTIONS.md) "Debugging Tests" section
 
 ---
 
-## 📚 Additional Resources
+See [TESTING_GUIDE.md](TESTING_GUIDE.md) "Debugging" section for:
 
-- **Integration README**: `../README.md` - Integration overview and features
-- **Code**: `../custom_components/kidschores/` - Integration source code
-- **Documentation**: `../README.md` - User-facing documentation
-
-**External Links**:
-
-- [pytest Documentation](https://docs.pytest.org/) - Official pytest docs
-- [Home Assistant Testing](https://developers.home-assistant.io/docs/development_testing) - HA testing guidelines
-- [Jinja2 Templates](https://jinja.palletsprojects.com/) - Template syntax reference
-
----
-
-## ❓ FAQ
+- Test failure troubleshooting
+- Dashboard template debugging
+- Coordinator state inspection
+- Logging and isolation techniques
 
 **Q: Why "Stårblüm Family"?**
 A: Special characters ensure robust Unicode handling. The magical theme makes tests fun!

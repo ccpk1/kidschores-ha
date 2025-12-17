@@ -11,6 +11,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.kidschores.const import (
     CONF_POINTS_ICON,
     CONF_POINTS_LABEL,
+    CONF_SHOW_LEGACY_ENTITIES,
     DATA_ACHIEVEMENTS,
     DATA_BADGES,
     DATA_BONUSES,
@@ -98,6 +99,7 @@ def mock_config_entry() -> MockConfigEntry:
         options={
             CONF_POINTS_LABEL: DEFAULT_POINTS_LABEL,
             CONF_POINTS_ICON: DEFAULT_POINTS_ICON,
+            CONF_SHOW_LEGACY_ENTITIES: True,
         },
         entry_id="test_entry_id",
         unique_id="test_unique_id",
@@ -152,6 +154,28 @@ def mock_coordinator(
     mock.async_update_listeners = MagicMock()
     # pylint: disable=protected-access
     mock._persist = AsyncMock()
+
+    # Add test kid for calendar tests
+    test_kid_id = str(uuid.uuid4())
+    mock.test_kid_id = test_kid_id
+    mock.kids_data[test_kid_id] = {
+        "internal_id": test_kid_id,
+        "name": "Test Kid",
+        "points": 100.0,
+        "ha_user_id": "",
+        "enable_notifications": True,
+        "mobile_notify_service": "",
+        "use_persistent_notifications": True,
+        "dashboard_language": "en",
+        "chore_states": {},
+        "badges_earned": {},
+        "claimed_chores": [],
+        "approved_chores": [],
+        "reward_claims": {},
+        "bonus_applies": {},
+        "penalty_applies": {},
+        "overdue_notifications": {},
+    }
 
     # Mock CRUD methods
     mock._create_kid = MagicMock()

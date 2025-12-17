@@ -1,5 +1,6 @@
 #!/bin/bash
 # Quick lint check - run after every change
+# OPTIMIZED: Batches pylint for 10x speed improvement!
 # Usage: ./utils/quick_lint.sh [--fix]
 
 cd "$(dirname "$0")/.." || exit 1

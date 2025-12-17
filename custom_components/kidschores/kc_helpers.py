@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Iterable, Optional, Union
 import homeassistant.util.dt as dt_util
 from homeassistant.auth.models import User
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.label_registry import async_get
+from homeassistant.helpers.label_registry import async_get as async_get_label_registry
 
 from . import const
 
@@ -237,7 +237,7 @@ def get_bonus_id_by_name(
 
 def get_friendly_label(hass, label_name: str) -> str:
     """Retrieve the friendly name for a given label_name."""
-    registry = async_get(hass)
+    registry = async_get_label_registry(hass)
     label_entry = registry.async_get_label(label_name)
     return label_entry.name if label_entry else label_name
 
@@ -1463,8 +1463,7 @@ def create_kid_device_info(kid_id: str, kid_name: str, config_entry):
     Returns:
         DeviceInfo dict for the kid device
     """
-    from homeassistant.helpers.device_registry import DeviceEntryType
-    from homeassistant.helpers.entity import DeviceInfo
+    from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 
     return DeviceInfo(
         identifiers={(const.DOMAIN, kid_id)},
@@ -1484,8 +1483,7 @@ def create_system_device_info(config_entry):
     Returns:
         DeviceInfo dict for the system device
     """
-    from homeassistant.helpers.device_registry import DeviceEntryType
-    from homeassistant.helpers.entity import DeviceInfo
+    from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 
     return DeviceInfo(
         identifiers={(const.DOMAIN, f"{config_entry.entry_id}_system")},
@@ -1524,3 +1522,31 @@ def get_entity_name_or_log_error(
         )
         return None
     return name
+
+
+def get_entity_id_from_unique_id(hass: HomeAssistant, unique_id: str) -> str | None:
+    """Look up entity ID from unique ID via entity registry.
+
+    This helper centralizes the entity registry lookup pattern that was
+    duplicated ~10 times across sensor.py. Returns None if lookup fails.
+
+    Args:
+        hass: Home Assistant instance
+        unique_id: The unique_id to search for
+
+    Returns:
+        Entity ID string if found, None otherwise
+    """
+    try:
+        from homeassistant.helpers.entity_registry import async_get
+
+        entity_registry = async_get(hass)
+        for entity in entity_registry.entities.values():
+            if entity.unique_id == unique_id:
+                return entity.entity_id
+    except (KeyError, ValueError, AttributeError, RuntimeError) as ex:
+        const.LOGGER.debug(
+            "Entity registry lookup failed for unique_id %s: %s", unique_id, ex
+        )
+
+    return None

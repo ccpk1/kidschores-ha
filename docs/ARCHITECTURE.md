@@ -1160,6 +1160,277 @@ All MIDFIX and SUFFIX constants are defined in `const.py` (lines 1312-1425):
 
 See `const.py` for the complete list organized by entity type (Sensors, Selects, Buttons, Calendars).
 
+---
+
+### Entity Class Naming Standards
+
+**Core Pattern**: `[Scope][Entity][Property]EntityType`
+
+All entity classes follow a consistent naming convention that makes the code self-documenting and ensures naming consistency across the entire codebase. This pattern applies to **all entity types** (sensors, buttons, selects, calendars, etc.).
+
+#### Components
+
+1. **Scope** (required): Indicates the data scope and ownership
+
+   - `Kid` - Per-kid data/actions initiated by the kid (e.g., `KidPointsSensor`, `KidChoreClaimButton`, `KidRewardRedeemButton`)
+   - `Parent` - Per-kid actions initiated by parents/admins (e.g., `ParentChoreApproveButton`, `ParentPenaltyApplyButton`, `ParentPointsAdjustButton`)
+   - `System` - System-wide data aggregating across ALL kids (e.g., `SystemBadgeSensor`, `SystemChoresPendingApprovalSensor`)
+   - **Rule**: ALL entities MUST have explicit scope prefix (no blank scopes)
+   - **Distinction**: `Kid` and `Parent` scopes are per-kid (one instance per kid), while `System` scope is global (one instance shared across all kids)
+
+2. **Entity**: The subject being measured or acted upon
+
+   - Primary: `Chore`, `Badge`, `Reward`, `Penalty`, `Bonus`, `Achievement`, `Challenge`, `Points`
+   - Plural form for collections: `Chores`, `Badges`, `Rewards`, etc. (used when representing multiple)
+
+3. **Property**: The specific aspect or action
+   - For sensors: `Status`, `Progress`, `Approvals`, `Applied`, `Earned`, `Streak`, `Highest`, `Pending`
+   - For buttons: `Claim`, `Approve`, `Disapprove`, `Apply`, `Redeem`
+   - For selects: `Assigned`, `Available`, `Filter`
+   - **Order**: Property typically follows entity (e.g., `BadgeHighest` not `HighestBadge`)
+
+#### Naming Best Practices
+
+**1. Consistent Property Ordering**
+
+- ✅ `KidBadgeHighestSensor` - Property after entity type
+- ❌ `KidHighestBadgeSensor` - Inconsistent ordering
+
+**2. Plural for Collections, Singular for Items**
+
+- ✅ `SystemChoresPendingApprovalSensor` - Multiple chores pending
+- ✅ `SystemChoreSharedStateSensor` - Single chore's state
+- ❌ `SystemChorePendingApprovalsSensor` - Mixing singular/plural
+
+**3. System Prefix for Global Entities**
+
+- ✅ `SystemBadgeSensor` - Badge data aggregated across system
+- ❌ `BadgeSensor` - Ambiguous scope
+
+**4. Descriptive Property Names**
+
+- ✅ `SystemChoreSharedStateSensor` - Clear: shared chore state
+- ❌ `SystemChoreGlobalStateSensor` - "Global" ambiguous with "System"
+
+#### Modern Entity Naming (15 Sensor Examples)
+
+**Kid-Specific Sensors** (11 total):
+
+```python
+KidChoreStatusSensor          # Status of specific chore for kid
+KidPointsSensor               # Current point balance for kid
+KidChoresSensor               # All-time chore stats for kid
+KidBadgeHighestSensor         # Highest badge earned by kid (property after entity)
+KidBadgeProgressSensor        # Progress toward earning specific badge
+KidRewardStatusSensor         # Reward claim/approval status for kid
+KidPenaltyAppliedSensor       # Count of penalty applications to kid
+KidBonusAppliedSensor         # Count of bonus applications to kid
+KidAchievementProgressSensor  # Progress toward achievement for kid
+KidChallengeProgressSensor    # Progress toward challenge for kid
+KidDashboardHelperSensor      # Aggregated dashboard data for kid
+```
+
+**System-Level Sensors** (4 total):
+
+```python
+SystemBadgeSensor                # Badge information aggregated across system
+SystemChoreSharedStateSensor     # Global state of specific shared chore
+SystemAchievementSensor          # Achievement progress across all kids
+SystemChallengeSensor            # Challenge progress across all kids
+```
+
+**Legacy Sensors** (11 total, optional via `show_legacy_entities` flag):
+
+```python
+# System aggregate sensors
+SystemChoreApprovalsSensor           # Total chore approvals (all kids)
+SystemChoreApprovalsDailySensor      # Today's approvals
+SystemChoreApprovalsWeeklySensor     # This week's approvals
+SystemChoreApprovalsMonthlySensor    # This month's approvals
+SystemChoresPendingApprovalSensor    # Pending chore approvals (plural: multiple chores)
+SystemRewardsPendingApprovalSensor   # Pending reward approvals (plural: multiple rewards)
+
+# Kid aggregate sensors
+KidMaxPointsEverSensor               # Highest points ever reached by kid
+KidChoreStreakSensor                 # Longest completion streak for kid
+KidPointsEarnedDailySensor           # Points earned today
+KidPointsEarnedWeeklySensor          # Points earned this week
+KidPointsEarnedMonthlySensor         # Points earned this month
+```
+
+#### Applying Naming Pattern to Other Entity Types
+
+The same `[Scope][Entity][Property]EntityType` pattern applies consistently across **all platforms**:
+
+**Button Entities**:
+
+```python
+# Kid-scoped buttons (kid-initiated actions)
+KidChoreClaimButton                  # Kid claims a chore
+KidRewardRedeemButton                # Kid redeems a reward
+
+# Parent-scoped buttons (parent-initiated actions on a specific kid)
+ParentChoreApproveButton             # Parent approves chore for kid
+ParentChoreDisapproveButton          # Parent disapproves chore for kid
+ParentRewardApproveButton            # Parent approves reward for kid
+ParentRewardDisapproveButton         # Parent disapproves reward for kid
+ParentBonusApplyButton               # Parent applies bonus to kid
+ParentPenaltyApplyButton             # Parent applies penalty to kid
+ParentPointsAdjustButton             # Parent manually adjusts kid's points
+```
+
+**Select Entities**:
+
+```python
+# Kid-scoped selects (dashboard helpers)
+KidDashboardHelperChoresSelect       # Kid's chores for UI dashboard selection
+
+# System-scoped selects (global lists for system-wide actions)
+SystemChoresSelect                   # All chores across all kids
+SystemRewardsSelect                  # All rewards across all kids
+SystemPenaltiesSelect                # All penalties across all kids
+SystemBonusesSelect                  # All bonuses across all kids
+```
+
+**Calendar Entities**:
+
+```python
+# Kid-scoped calendars
+KidScheduleCalendar          # Kid's schedule (chores + challenges combined)
+KidRewardHistoryCalendar     # Kid's reward history
+
+# System-scoped calendars
+SystemChoreGlobalCalendar    # All chores across all kids
+SystemEventMasterCalendar    # System-wide event calendar
+```
+
+**DateTime Entities**:
+
+```python
+# Kid-scoped datetime (dashboard helpers)
+KidDashboardHelperDateTimePicker     # Kid's date/time picker for UI dashboard
+KidDailyResetDatetime                # Kid's daily reset time override
+
+# System-scoped datetime
+SystemDailyResetDatetime             # System-wide daily reset time
+```
+
+#### File Organization Pattern
+
+**Modern Entities** (`sensor.py`, `button.py`, `select.py`, `calendar.py`):
+
+```python
+"""Entity file header with counts and organization.
+
+Entities Defined in This File (X):
+
+# Kid-Specific Entities (X)
+01. Kid[Entity][Property][Type]
+02. ...
+
+# System-Level Entities (X)
+XX. System[Entity][Property][Type]
+XX+1. ...
+
+Legacy Entities Imported from [type]_legacy.py (X):
+- System[Entity]...[Type]  (optional, controlled by show_legacy_entities flag)
+"""
+```
+
+**Legacy Entities** (`sensor_legacy.py`, etc.):
+
+- Wrapped in `if show_legacy_entities:` blocks during instantiation
+- Module-level imports (for Python caching optimization)
+- Clearly documented as deprecated with data migration paths
+
+#### Key Implementation Patterns
+
+**1. Performance Optimization** (entity registry access):
+
+```python
+# ❌ Bad: O(n) iteration over entire registry
+for entity in entity_registry.entities.values():
+    if entity.unique_id.endswith("_suffix"):
+        found_entity = entity
+
+# ✅ Good: O(1) direct lookup
+entity_id = entity_registry.async_get_entity_id(
+    platform="sensor",
+    domain=const.DOMAIN,
+    unique_id=f"{entry_id}_{kid_id}_suffix"
+)
+```
+
+**2. Legacy Entity Pattern**:
+
+```python
+# sensor_legacy.py - Module-level imports (Python caching)
+from . import const
+from .coordinator import KidsChoresDataCoordinator
+
+class SystemOldFeatureSensor(CoordinatorEntity, SensorEntity):
+    """Legacy sensor (data now in modern sensor attributes)."""
+    ...
+
+# sensor.py - Conditional instantiation
+from .sensor_legacy import SystemOldFeatureSensor
+
+show_legacy_entities = entry.options.get(const.CONF_SHOW_LEGACY_ENTITIES, False)
+if show_legacy_entities:
+    entities.append(SystemOldFeatureSensor(coordinator, entry))
+```
+
+**3. Coordinator-Based Entities**:
+
+```python
+class Kid[Entity][Property]Sensor(CoordinatorEntity, SensorEntity):
+    """Sensor description."""
+
+    _attr_has_entity_name = True
+    _attr_translation_key = const.TRANS_KEY_SENSOR_[ENTITY]_[PROPERTY]
+
+    def __init__(self, coordinator: KidsChoresDataCoordinator, entry: ConfigEntry, ...):
+        super().__init__(coordinator)
+        # Initialize with coordinator data access
+
+    @property
+    def native_value(self):
+        """Get value from coordinator data."""
+        return self.coordinator.kids_data[self._kid_id].get(const.DATA_[ENTITY]_[PROPERTY])
+
+    @property
+    def extra_state_attributes(self):
+        """Provide rich context via attributes."""
+        return {
+            const.ATTR_PURPOSE: "What this sensor value represents",
+            const.ATTR_[ENTITY]_NAME: self._entity_name,
+            # ... comprehensive attributes for frontend/automations
+        }
+```
+
+**4. Header Documentation**:
+
+Every entity file MUST have:
+
+- Total count (modern + system-level)
+- Categorized list (Kid-Specific vs System-Level)
+- Legacy imports documented separately
+- Clear numbering for easy reference
+
+#### Benefits of This Pattern
+
+✅ **Self-Documenting Code**: Class name immediately reveals scope, subject, and action
+✅ **IDE Auto-Complete**: Typing `Kid` or `System` filters relevant entities
+✅ **Grep-Friendly**: Searching `System` finds all system-level entities
+✅ **Consistent Maintenance**: Same pattern across 5+ entity types
+✅ **Future-Proof**: Easy to add new entity types following same structure
+✅ **Performance-Optimized**: O(1) lookups documented and enforced
+✅ **Clean Deprecation**: Legacy entities isolated with clear migration paths
+
+See [SENSOR_REFACTORING_PLAN.md](SENSOR_REFACTORING_PLAN.md) and [SENSOR_CLEANUP_AND_PERFORMANCE.md](SENSOR_CLEANUP_AND_PERFORMANCE.md) for the complete refactoring plan and performance optimization details.
+
+---
+
 ### Adding New Entity Types
 
 Always use coordinator methods for CRUD operations:

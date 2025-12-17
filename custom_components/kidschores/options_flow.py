@@ -2075,11 +2075,17 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             self._entry_options[const.CONF_RETENTION_YEARLY] = user_input.get(
                 const.CONF_RETENTION_YEARLY
             )
+            # Update legacy entities toggle
+            self._entry_options[const.CONF_SHOW_LEGACY_ENTITIES] = user_input.get(
+                const.CONF_SHOW_LEGACY_ENTITIES,
+                const.DEFAULT_SHOW_LEGACY_ENTITIES,
+            )
             const.LOGGER.debug(
                 "DEBUG: General Options Updated: Points Adjust Values=%s, "
                 "Update Interval=%s, Calendar Period to Show=%s, "
                 "Retention Daily=%s, Retention Weekly=%s, "
-                "Retention Monthly=%s, Retention Yearly=%s",
+                "Retention Monthly=%s, Retention Yearly=%s, "
+                "Show Legacy Entities=%s",
                 self._entry_options.get(const.CONF_POINTS_ADJUST_VALUES),
                 self._entry_options.get(const.CONF_UPDATE_INTERVAL),
                 self._entry_options.get(const.CONF_CALENDAR_SHOW_PERIOD),
@@ -2087,6 +2093,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 self._entry_options.get(const.CONF_RETENTION_WEEKLY),
                 self._entry_options.get(const.CONF_RETENTION_MONTHLY),
                 self._entry_options.get(const.CONF_RETENTION_YEARLY),
+                self._entry_options.get(const.CONF_SHOW_LEGACY_ENTITIES),
             )
             await self._update_system_settings_and_reload()
             return await self.async_step_init()

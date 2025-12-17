@@ -6,21 +6,23 @@ Features:
 2) Reward Buttons using user-defined or default icons.
 3) Penalty Buttons using user-defined or default icons.
 4) Bonus Buttons using user-defined or default icons.
-5) PointsAdjustButton: manually increments/decrements a kid's points.
-6) ApproveRewardButton: allows parents to approve rewards claimed by kids.
+5) ParentPointsAdjustButton: manually increments/decrements a kid's points.
+6) ParentRewardApproveButton: allows parents to approve rewards claimed by kids.
 
 """
+
+from typing import Any
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import const
 from . import kc_helpers as kh
 from .coordinator import KidsChoresDataCoordinator
+from .entity import KidsChoresCoordinatorEntity
 
 
 async def async_setup_entry(
@@ -61,7 +63,7 @@ async def async_setup_entry(
             )
             # Claim Button
             entities.append(
-                ClaimChoreButton(
+                KidChoreClaimButton(
                     coordinator=coordinator,
                     entry=entry,
                     kid_id=kid_id,
@@ -73,7 +75,7 @@ async def async_setup_entry(
             )
             # Approve Button
             entities.append(
-                ApproveChoreButton(
+                ParentChoreApproveButton(
                     coordinator=coordinator,
                     entry=entry,
                     kid_id=kid_id,
@@ -85,7 +87,7 @@ async def async_setup_entry(
             )
             # Disapprove Button
             entities.append(
-                DisapproveChoreButton(
+                ParentChoreDisapproveButton(
                     coordinator=coordinator,
                     entry=entry,
                     kid_id=kid_id,
@@ -107,7 +109,7 @@ async def async_setup_entry(
             )
             # Redeem Reward Button
             entities.append(
-                RewardButton(
+                KidRewardRedeemButton(
                     coordinator=coordinator,
                     entry=entry,
                     kid_id=kid_id,
@@ -122,7 +124,7 @@ async def async_setup_entry(
             )
             # Approve Reward Button
             entities.append(
-                ApproveRewardButton(
+                ParentRewardApproveButton(
                     coordinator=coordinator,
                     entry=entry,
                     kid_id=kid_id,
@@ -139,7 +141,7 @@ async def async_setup_entry(
             )
             # Disapprove Reward Button
             entities.append(
-                DisapproveRewardButton(
+                ParentRewardDisapproveButton(
                     coordinator=coordinator,
                     entry=entry,
                     kid_id=kid_id,
@@ -163,7 +165,7 @@ async def async_setup_entry(
                 const.DATA_PENALTY_ICON, const.DEFAULT_PENALTY_ICON
             )
             entities.append(
-                PenaltyButton(
+                ParentPenaltyApplyButton(
                     coordinator=coordinator,
                     entry=entry,
                     kid_id=kid_id,
@@ -186,7 +188,7 @@ async def async_setup_entry(
             # If no user-defined icon, fallback to const.DEFAULT_BONUS_ICON
             bonus_icon = bonus_info.get(const.DATA_BONUS_ICON, const.DEFAULT_BONUS_ICON)
             entities.append(
-                BonusButton(
+                ParentBonusApplyButton(
                     coordinator=coordinator,
                     entry=entry,
                     kid_id=kid_id,
@@ -238,12 +240,12 @@ async def async_setup_entry(
         )
         for delta in points_adjust_values:
             const.LOGGER.debug(
-                "DEBUG: Creating PointsAdjustButton for Kid '%s' with delta %s",
+                "DEBUG: Creating ParentPointsAdjustButton for Kid '%s' with delta %s",
                 kid_name,
                 delta,
             )
             entities.append(
-                PointsAdjustButton(
+                ParentPointsAdjustButton(
                     coordinator=coordinator,
                     entry=entry,
                     kid_id=kid_id,
@@ -257,8 +259,12 @@ async def async_setup_entry(
 
 
 # ------------------ Chore Buttons ------------------
-class ClaimChoreButton(CoordinatorEntity, ButtonEntity):
-    """Button to claim a chore as done (set chore state=claimed)."""
+class KidChoreClaimButton(KidsChoresCoordinatorEntity, ButtonEntity):
+    """Button to claim a chore as done (set chore state=claimed).
+
+    Allows kids to mark chores as completed. Validates user authorization
+    against kid ID, calls coordinator.claim_chore(), and triggers refresh.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_BUTTON_CLAIM_CHORE_BUTTON
@@ -273,7 +279,17 @@ class ClaimChoreButton(CoordinatorEntity, ButtonEntity):
         chore_name: str,
         icon: str,
     ):
-        """Initialize the claim chore button."""
+        """Initialize the claim chore button.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access and updates.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+            chore_id: Unique identifier for the chore.
+            chore_name: Display name of the chore.
+            icon: Icon override from chore configuration or default.
+        """
 
         super().__init__(coordinator)
         self._entry = entry
@@ -292,20 +308,10 @@ class ClaimChoreButton(CoordinatorEntity, ButtonEntity):
         self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_CHORE_CLAIM}{chore_name}"
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
     def press(self) -> None:
         """Synchronous press - not used, Home Assistant calls async_press."""
 
-    async def async_press(self):
+    async def async_press(self) -> None:
         """Handle the button press event."""
         try:
             user_id = self._context.user_id if self._context else None
@@ -352,7 +358,7 @@ class ClaimChoreButton(CoordinatorEntity, ButtonEntity):
             )
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Include extra state attributes for the button."""
         chore_info = self.coordinator.chores_data.get(self._chore_id, {})
         stored_labels = chore_info.get(const.DATA_CHORE_LABELS, [])
@@ -368,8 +374,13 @@ class ClaimChoreButton(CoordinatorEntity, ButtonEntity):
         return attributes
 
 
-class ApproveChoreButton(CoordinatorEntity, ButtonEntity):
-    """Button to approve a claimed chore for a kid (set chore state=approved or partial)."""
+class ParentChoreApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
+    """Button to approve a claimed chore for a kid (set chore state=approved or partial).
+
+    Parent-only button that approves claimed chores, awards points, triggers badge
+    calculations, and handles multi-kid shared chore logic (partial vs full approval).
+    Validates global parent authorization before execution.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_BUTTON_APPROVE_CHORE_BUTTON
@@ -384,7 +395,17 @@ class ApproveChoreButton(CoordinatorEntity, ButtonEntity):
         chore_name: str,
         icon: str,
     ):
-        """Initialize the approve chore button."""
+        """Initialize the approve chore button.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access and updates.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+            chore_id: Unique identifier for the chore.
+            chore_name: Display name of the chore.
+            icon: Icon override from chore configuration or default approval icon.
+        """
 
         super().__init__(coordinator)
         self._entry = entry
@@ -403,21 +424,19 @@ class ApproveChoreButton(CoordinatorEntity, ButtonEntity):
         self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_CHORE_APPROVAL}{chore_name}"
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
     def press(self) -> None:
         """Synchronous press - not used, Home Assistant calls async_press."""
 
-    async def async_press(self):
-        """Handle the button press event."""
+    async def async_press(self) -> None:
+        """Handle the button press event.
+
+        Validates global parent authorization, retrieves parent name from context,
+        calls coordinator.approve_chore() to award points and update state, triggers
+        badge calculations and notifications, and refreshes all dependent entities.
+
+        Raises:
+            HomeAssistantError: If user not authorized for global parent actions.
+        """
         try:
             user_id = self._context.user_id if self._context else None
             if user_id and not await kh.is_user_authorized_for_global_action(
@@ -462,7 +481,7 @@ class ApproveChoreButton(CoordinatorEntity, ButtonEntity):
             )
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Include extra state attributes for the button."""
         chore_info = self.coordinator.chores_data.get(self._chore_id, {})
         stored_labels = chore_info.get(const.DATA_CHORE_LABELS, [])
@@ -478,8 +497,12 @@ class ApproveChoreButton(CoordinatorEntity, ButtonEntity):
         return attributes
 
 
-class DisapproveChoreButton(CoordinatorEntity, ButtonEntity):
-    """Button to disapprove a chore."""
+class ParentChoreDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
+    """Button to disapprove a chore.
+
+    Parent-only button that rejects pending chore approvals, removes from approval queue,
+    and resets chore state to available. Validates pending approval exists before execution.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_BUTTON_DISAPPROVE_CHORE_BUTTON
@@ -494,7 +517,17 @@ class DisapproveChoreButton(CoordinatorEntity, ButtonEntity):
         chore_name: str,
         icon: str = const.DEFAULT_DISAPPROVE_ICON,
     ):
-        """Initialize the disapprove chore button."""
+        """Initialize the disapprove chore button.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access and updates.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+            chore_id: Unique identifier for the chore.
+            chore_name: Display name of the chore.
+            icon: Icon override, defaults to disapprove icon.
+        """
 
         super().__init__(coordinator)
         self._kid_id = kid_id
@@ -510,21 +543,19 @@ class DisapproveChoreButton(CoordinatorEntity, ButtonEntity):
         self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_CHORE_DISAPPROVAL}{chore_name}"
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
     def press(self) -> None:
         """Synchronous press - not used, Home Assistant calls async_press."""
 
-    async def async_press(self):
-        """Handle the button press event."""
+    async def async_press(self) -> None:
+        """Handle the button press event.
+
+        Validates pending approval exists for this kid/chore combination, checks
+        global parent authorization, retrieves parent name from context, calls
+        coordinator.disapprove_chore() to remove from approval queue and reset state.
+
+        Raises:
+            HomeAssistantError: If no pending approval found or user not authorized.
+        """
         try:
             # Check if there's a pending approval for this kid and chore.
             pending_approvals = self.coordinator.pending_chore_approvals
@@ -581,7 +612,7 @@ class DisapproveChoreButton(CoordinatorEntity, ButtonEntity):
             )
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Include extra state attributes for the button."""
         chore_info = self.coordinator.chores_data.get(self._chore_id, {})
         stored_labels = chore_info.get(const.DATA_CHORE_LABELS, [])
@@ -598,8 +629,13 @@ class DisapproveChoreButton(CoordinatorEntity, ButtonEntity):
 
 
 # ------------------ Reward Buttons ------------------
-class RewardButton(CoordinatorEntity, ButtonEntity):
-    """Button to redeem a reward for a kid."""
+class KidRewardRedeemButton(KidsChoresCoordinatorEntity, ButtonEntity):
+    """Button to redeem a reward for a kid.
+
+    Allows kids to spend points on rewards. Validates user authorization against kid ID,
+    checks sufficient points balance, deducts points, creates pending reward approval,
+    and triggers coordinator refresh.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_BUTTON_CLAIM_REWARD_BUTTON
@@ -614,7 +650,17 @@ class RewardButton(CoordinatorEntity, ButtonEntity):
         reward_name: str,
         icon: str,
     ):
-        """Initialize the reward button."""
+        """Initialize the reward button.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access and updates.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+            reward_id: Unique identifier for the reward.
+            reward_name: Display name of the reward.
+            icon: Icon override from reward configuration or default.
+        """
         super().__init__(coordinator)
         self._entry = entry
         self._kid_id = kid_id
@@ -632,21 +678,19 @@ class RewardButton(CoordinatorEntity, ButtonEntity):
         self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_REWARD_CLAIM}{reward_name}"
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
     def press(self) -> None:
         """Synchronous press - not used, Home Assistant calls async_press."""
 
-    async def async_press(self):
-        """Handle the button press event."""
+    async def async_press(self) -> None:
+        """Handle the button press event.
+
+        Validates user authorization for kid, retrieves user name from context,
+        calls coordinator.redeem_reward() to deduct points and create pending approval,
+        and triggers coordinator refresh to update all dependent entities.
+
+        Raises:
+            HomeAssistantError: If user not authorized or insufficient points balance.
+        """
         try:
             user_id = self._context.user_id if self._context else None
             if user_id and not await kh.is_user_authorized_for_kid(
@@ -692,7 +736,7 @@ class RewardButton(CoordinatorEntity, ButtonEntity):
             )
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Include extra state attributes for the button."""
         reward_info = self.coordinator.rewards_data.get(self._reward_id, {})
         stored_labels = reward_info.get(const.DATA_REWARD_LABELS, [])
@@ -708,8 +752,12 @@ class RewardButton(CoordinatorEntity, ButtonEntity):
         return attributes
 
 
-class ApproveRewardButton(CoordinatorEntity, ButtonEntity):
-    """Button for parents to approve a reward claimed by a kid."""
+class ParentRewardApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
+    """Button for parents to approve a reward claimed by a kid.
+
+    Parent-only button that confirms reward redemption, removes from pending approval
+    queue, and triggers notifications. Validates global parent authorization before execution.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_BUTTON_APPROVE_REWARD_BUTTON
@@ -724,7 +772,17 @@ class ApproveRewardButton(CoordinatorEntity, ButtonEntity):
         reward_name: str,
         icon: str,
     ):
-        """Initialize the approve reward button."""
+        """Initialize the approve reward button.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access and updates.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+            reward_id: Unique identifier for the reward.
+            reward_name: Display name of the reward.
+            icon: Icon override from reward configuration or default.
+        """
 
         super().__init__(coordinator)
         self._entry = entry
@@ -741,21 +799,19 @@ class ApproveRewardButton(CoordinatorEntity, ButtonEntity):
         self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_REWARD_APPROVAL}{reward_name}"
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
     def press(self) -> None:
         """Synchronous press - not used, Home Assistant calls async_press."""
 
-    async def async_press(self):
-        """Handle the button press event."""
+    async def async_press(self) -> None:
+        """Handle the button press event.
+
+        Validates global parent authorization, retrieves parent name from context,
+        calls coordinator.approve_reward() to confirm redemption and remove from pending
+        queue, triggers notifications, and refreshes all dependent entities.
+
+        Raises:
+            HomeAssistantError: If user not authorized for global parent actions.
+        """
         try:
             user_id = self._context.user_id if self._context else None
             if user_id and not await kh.is_user_authorized_for_global_action(
@@ -803,7 +859,7 @@ class ApproveRewardButton(CoordinatorEntity, ButtonEntity):
             )
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Include extra state attributes for the button."""
         reward_info = self.coordinator.rewards_data.get(self._reward_id, {})
         stored_labels = reward_info.get(const.DATA_REWARD_LABELS, [])
@@ -819,8 +875,12 @@ class ApproveRewardButton(CoordinatorEntity, ButtonEntity):
         return attributes
 
 
-class DisapproveRewardButton(CoordinatorEntity, ButtonEntity):
-    """Button to disapprove a reward."""
+class ParentRewardDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
+    """Button to disapprove a reward.
+
+    Parent-only button that rejects pending reward redemptions, refunds points to kid,
+    and removes from approval queue. Validates pending approval exists before execution.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_BUTTON_DISAPPROVE_REWARD_BUTTON
@@ -835,7 +895,17 @@ class DisapproveRewardButton(CoordinatorEntity, ButtonEntity):
         reward_name: str,
         icon: str = const.DEFAULT_DISAPPROVE_ICON,
     ):
-        """Initialize the disapprove reward button."""
+        """Initialize the disapprove reward button.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access and updates.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+            reward_id: Unique identifier for the reward.
+            reward_name: Display name of the reward.
+            icon: Icon override, defaults to disapprove icon.
+        """
 
         super().__init__(coordinator)
         self._kid_id = kid_id
@@ -851,21 +921,19 @@ class DisapproveRewardButton(CoordinatorEntity, ButtonEntity):
         self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_REWARD_DISAPPROVAL}{reward_name}"
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
     def press(self) -> None:
         """Synchronous press - not used, Home Assistant calls async_press."""
 
-    async def async_press(self):
-        """Handle the button press event."""
+    async def async_press(self) -> None:
+        """Handle the button press event.
+
+        Validates pending approval exists for this kid/reward combination, checks
+        global parent authorization, retrieves parent name from context, calls
+        coordinator.disapprove_reward() to refund points and remove from approval queue.
+
+        Raises:
+            HomeAssistantError: If no pending approval found or user not authorized.
+        """
         try:
             # Check if there's a pending approval for this kid and reward.
             pending_approvals = self.coordinator.pending_reward_approvals
@@ -922,7 +990,7 @@ class DisapproveRewardButton(CoordinatorEntity, ButtonEntity):
             )
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Include extra state attributes for the button."""
         reward_info = self.coordinator.rewards_data.get(self._reward_id, {})
         stored_labels = reward_info.get(const.DATA_REWARD_LABELS, [])
@@ -939,8 +1007,12 @@ class DisapproveRewardButton(CoordinatorEntity, ButtonEntity):
 
 
 # ------------------ Penalty Button ------------------
-class PenaltyButton(CoordinatorEntity, ButtonEntity):
-    """Button to apply a penalty for a kid."""
+class ParentPenaltyApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
+    """Button to apply a penalty for a kid.
+
+    Parent-only button that deducts points from kid's balance based on penalty
+    configuration. Validates global parent authorization before execution.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_BUTTON_PENALTY_BUTTON
@@ -955,7 +1027,17 @@ class PenaltyButton(CoordinatorEntity, ButtonEntity):
         penalty_name: str,
         icon: str,
     ):
-        """Initialize the penalty button."""
+        """Initialize the penalty button.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access and updates.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+            penalty_id: Unique identifier for the penalty.
+            penalty_name: Display name of the penalty.
+            icon: Icon override from penalty configuration or default.
+        """
 
         super().__init__(coordinator)
         self._entry = entry
@@ -974,24 +1056,22 @@ class PenaltyButton(CoordinatorEntity, ButtonEntity):
         self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_PENALTY}{penalty_name}"
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
     def press(self) -> None:
         """Synchronous press - not used, Home Assistant calls async_press."""
 
-    async def async_press(self):
-        """Handle the button press event."""
+    async def async_press(self) -> None:
+        """Handle the button press event.
+
+        Validates global parent authorization, retrieves parent name from context,
+        calls coordinator.apply_penalty() to deduct points from kid's balance based
+        on penalty configuration, and triggers coordinator refresh.
+
+        Raises:
+            HomeAssistantError: If user not authorized for global parent actions.
+        """
         try:
             const.LOGGER.debug(
-                "DEBUG: PenaltyButton.async_press called for kid=%s, penalty=%s",
+                "DEBUG: ParentPenaltyApplyButton.async_press called for kid=%s, penalty=%s",
                 self._kid_id,
                 self._penalty_id,
             )
@@ -1043,7 +1123,7 @@ class PenaltyButton(CoordinatorEntity, ButtonEntity):
             )
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Include extra state attributes for the button."""
         penalty_info = self.coordinator.penalties_data.get(self._penalty_id, {})
         stored_labels = penalty_info.get(const.DATA_PENALTY_LABELS, [])
@@ -1060,8 +1140,13 @@ class PenaltyButton(CoordinatorEntity, ButtonEntity):
 
 
 # ------------------ Points Adjust Button ------------------
-class PointsAdjustButton(CoordinatorEntity, ButtonEntity):
-    """Button that increments or decrements a kid's points by 'delta'."""
+class ParentPointsAdjustButton(KidsChoresCoordinatorEntity, ButtonEntity):
+    """Button that increments or decrements a kid's points by 'delta'.
+
+    Parent-only button for manual points adjustments. Creates multiple button instances
+    per kid based on configured delta values (e.g., +1, +10, -2). Validates global
+    parent authorization before execution.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_BUTTON_MANUAL_ADJUSTMENT_BUTTON
@@ -1075,7 +1160,16 @@ class PointsAdjustButton(CoordinatorEntity, ButtonEntity):
         delta: int | float,
         points_label: str,
     ):
-        """Initialize the points adjust buttons."""
+        """Initialize the points adjust buttons.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access and updates.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+            delta: Points adjustment value (positive for increment, negative for decrement).
+            points_label: User-configured label for points (e.g., "Points", "Stars").
+        """
 
         super().__init__(coordinator)
         self._entry = entry
@@ -1115,21 +1209,19 @@ class PointsAdjustButton(CoordinatorEntity, ButtonEntity):
         else:
             self._attr_icon = const.DEFAULT_POINTS_ADJUST_PLUS_ICON
 
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
     def press(self) -> None:
         """Synchronous press - not used, Home Assistant calls async_press."""
 
-    async def async_press(self):
-        """Handle the button press event."""
+    async def async_press(self) -> None:
+        """Handle the button press event.
+
+        Validates global parent authorization, calls coordinator.update_kid_points()
+        with delta value and manual source, logs adjustment, and triggers coordinator
+        refresh to update points balance and all dependent entities.
+
+        Raises:
+            HomeAssistantError: If user not authorized for global parent actions.
+        """
         try:
             user_id = self._context.user_id if self._context else None
             if user_id and not await kh.is_user_authorized_for_global_action(
@@ -1171,15 +1263,19 @@ class PointsAdjustButton(CoordinatorEntity, ButtonEntity):
             )
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
         return {
             const.ATTR_KID_NAME: self._kid_name,
         }
 
 
-class BonusButton(CoordinatorEntity, ButtonEntity):
-    """Button to apply a bonus for a kid."""
+class ParentBonusApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
+    """Button to apply a bonus for a kid.
+
+    Parent-only button that adds points to kid's balance based on bonus configuration.
+    Validates global parent authorization before execution.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_BUTTON_BONUS_BUTTON
@@ -1194,7 +1290,17 @@ class BonusButton(CoordinatorEntity, ButtonEntity):
         bonus_name: str,
         icon: str,
     ):
-        """Initialize the bonus button."""
+        """Initialize the bonus button.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access and updates.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+            bonus_id: Unique identifier for the bonus.
+            bonus_name: Display name of the bonus.
+            icon: Icon override from bonus configuration or default.
+        """
         super().__init__(coordinator)
         self._entry = entry
         self._kid_id = kid_id
@@ -1216,21 +1322,19 @@ class BonusButton(CoordinatorEntity, ButtonEntity):
         self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_BONUS}{bonus_slug}"
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
     def press(self) -> None:
         """Synchronous press - not used, Home Assistant calls async_press."""
 
-    async def async_press(self):
-        """Handle the button press event."""
+    async def async_press(self) -> None:
+        """Handle the button press event.
+
+        Validates global parent authorization, retrieves parent name from context,
+        calls coordinator.apply_bonus() to add points to kid's balance based on bonus
+        configuration, and triggers coordinator refresh.
+
+        Raises:
+            HomeAssistantError: If user not authorized for global parent actions.
+        """
         try:
             user_id = self._context.user_id if self._context else None
             if user_id and not await kh.is_user_authorized_for_global_action(
@@ -1276,7 +1380,7 @@ class BonusButton(CoordinatorEntity, ButtonEntity):
             )
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Include extra state attributes for the button."""
         bonus_info = self.coordinator.bonuses_data.get(self._bonus_id, {})
         stored_labels = bonus_info.get(const.DATA_BONUS_LABELS, [])

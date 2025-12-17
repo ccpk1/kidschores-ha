@@ -59,6 +59,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self.storage_manager = storage_manager
         self._data: dict[str, Any] = {}
 
+        # Change tracking for pending approvals (for dashboard helper optimization)
+        self._pending_chore_changed: bool = True  # True on first load
+        self._pending_reward_changed: bool = True  # True on first load
+
     # -------------------------------------------------------------------------------------
     # Migrate Data and Converters
     # -------------------------------------------------------------------------------------
@@ -1165,7 +1169,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 )
 
     async def _remove_orphaned_shared_chore_sensors(self):
-        """Remove SharedChoreGlobalStateSensor entities for chores no longer marked as shared."""
+        """Remove SystemChoreSharedStateSensor entities for chores no longer marked as shared."""
         ent_reg = er.async_get(self.hass)
         prefix = f"{self.config_entry.entry_id}_"
         suffix = const.DATA_GLOBAL_STATE_SUFFIX
@@ -1382,24 +1386,33 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 and ap.get(const.DATA_CHORE_ID) == chore_id
             )
         ]
+        self._pending_chore_changed = True
 
     def _cleanup_pending_chore_approvals(self) -> None:
         """Remove any pending chore approvals for chore IDs that no longer exist."""
         valid_chore_ids = set(self._data.get(const.DATA_CHORES, {}).keys())
+        old_count = len(self._data.get(const.DATA_PENDING_CHORE_APPROVALS, []))
         self._data[const.DATA_PENDING_CHORE_APPROVALS] = [
             ap
             for ap in self._data.get(const.DATA_PENDING_CHORE_APPROVALS, [])
             if ap.get(const.DATA_CHORE_ID) in valid_chore_ids
         ]
+        new_count = len(self._data[const.DATA_PENDING_CHORE_APPROVALS])
+        if old_count != new_count:
+            self._pending_chore_changed = True
 
     def _cleanup_pending_reward_approvals(self) -> None:
         """Remove any pending reward approvals for reward IDs that no longer exist."""
         valid_reward_ids = set(self._data.get(const.DATA_REWARDS, {}).keys())
+        old_count = len(self._data.get(const.DATA_PENDING_REWARD_APPROVALS, []))
         self._data[const.DATA_PENDING_REWARD_APPROVALS] = [
             approval
             for approval in self._data.get(const.DATA_PENDING_REWARD_APPROVALS, [])
             if approval.get(const.DATA_REWARD_ID) in valid_reward_ids
         ]
+        new_count = len(self._data[const.DATA_PENDING_REWARD_APPROVALS])
+        if old_count != new_count:
+            self._pending_reward_changed = True
 
     def _cleanup_deleted_kid_references(self) -> None:
         """Remove references to kids that no longer exist from other sections."""
@@ -3309,6 +3322,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     and ap.get(const.DATA_CHORE_ID) == chore_id
                 )
             ]
+            self._pending_chore_changed = True
 
         elif new_state == const.CHORE_STATE_PENDING:
             # Remove the chore from both claimed and approved lists.
@@ -3328,6 +3342,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     and ap.get(const.DATA_CHORE_ID) == chore_id
                 )
             ]
+            self._pending_chore_changed = True
 
         elif new_state == const.CHORE_STATE_OVERDUE:
             # Mark as overdue.
@@ -4325,6 +4340,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.DATA_REWARD_NOTIFICATION_ID: notif_id,
             }
         )
+        self._pending_reward_changed = True
 
         # increment reward_claims counter
         if reward_id in kid_info[const.DATA_KID_REWARD_CLAIMS]:
@@ -4426,6 +4442,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 else:
                     del approvals[i]
                     break
+        self._pending_reward_changed = True
 
         # Increment reward approval counter for the kid.
         if reward_id in kid_info[const.DATA_KID_REWARD_APPROVALS]:
@@ -4467,6 +4484,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 del approvals[i]
                 break
         self._data[const.DATA_PENDING_REWARD_APPROVALS] = approvals
+        self._pending_reward_changed = True
 
         kid_info = self.kids_data.get(kid_id)
         if kid_info and reward_id in kid_info.get(const.DATA_KID_PENDING_REWARDS, []):

@@ -1,34 +1,42 @@
 # File: sensor.py
 """Sensors for the KidsChores integration.
 
-This file defines all sensor entities for each Kid, Chore, Reward, and Badge.
+This file defines modern sensor entities for each Kid, Chore, Reward, and Badge.
+Legacy/optional sensors are imported from sensor_legacy.py.
 
-Available Sensors:
-01. ChoreStatusSensor
+Sensors Defined in This File (15):
+
+# Modern Kid-Specific Sensors (11)
+01. KidChoreStatusSensor
 02. KidPointsSensor
-03. KidMaxPointsEverSensor
-04. CompletedChoresTotalSensor
-05. CompletedChoresDailySensor
-06. CompletedChoresWeeklySensor
-07. CompletedChoresMonthlySensor
-08. KidHighestBadgeSensor
-09. BadgeProgressSensor
-10. BadgeSensor
-11. PendingChoreApprovalsSensor
-12. PendingRewardApprovalsSensor
-13. SharedChoreGlobalStateSensor
-14. RewardStatusSensor
-15. PenaltyAppliesSensor
-16. KidPointsEarnedDailySensor
-17. KidPointsEarnedWeeklySensor
-18. KidPointsEarnedMonthlySensor
-19. AchievementSensor
-20. ChallengeSensor
-21. AchievementProgressSensor
-22. ChallengeProgressSensor
-23. KidHighestStreakSensor
-24. BonusAppliesSensor
-25. DashboardHelperSensor
+03. KidChoresSensor
+04. KidBadgeHighestSensor
+05. KidBadgeProgressSensor
+06. KidRewardStatusSensor
+07. KidPenaltyAppliedSensor
+08. KidBonusAppliedSensor
+09. KidAchievementProgressSensor
+10. KidChallengeProgressSensor
+11. KidDashboardHelperSensor
+
+# Modern System-Level Sensors (4)
+12. SystemBadgeSensor
+13. SystemChoreSharedStateSensor
+14. SystemAchievementSensor
+15. SystemChallengeSensor
+
+Legacy Sensors Imported from sensor_legacy.py (11):
+- KidMaxPointsEverSensor
+- KidChoreStreakSensor
+- KidPointsEarnedDailySensor
+- KidPointsEarnedWeeklySensor
+- KidPointsEarnedMonthlySensor
+- SystemChoreApprovalsSensor
+- SystemChoreApprovalsDailySensor
+- SystemChoreApprovalsWeeklySensor
+- SystemChoreApprovalsMonthlySensor
+- SystemChoresPendingApprovalSensor
+- SystemRewardsPendingApprovalSensor
 """
 
 from datetime import datetime
@@ -39,12 +47,25 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import PERCENTAGE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_registry import async_get
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from . import const
 from . import kc_helpers as kh
 from .coordinator import KidsChoresDataCoordinator
+from .entity import KidsChoresCoordinatorEntity
+from .sensor_legacy import (
+    KidChoreStreakSensor,
+    KidMaxPointsEverSensor,
+    KidPointsEarnedDailySensor,
+    KidPointsEarnedMonthlySensor,
+    KidPointsEarnedWeeklySensor,
+    SystemChoreApprovalsDailySensor,
+    SystemChoreApprovalsMonthlySensor,
+    SystemChoreApprovalsSensor,
+    SystemChoreApprovalsWeeklySensor,
+    SystemChoresPendingApprovalSensor,
+    SystemRewardsPendingApprovalSensor,
+)
 
 
 async def async_setup_entry(
@@ -58,13 +79,13 @@ async def async_setup_entry(
         const.CONF_POINTS_LABEL, const.DEFAULT_POINTS_LABEL
     )
     points_icon = entry.options.get(const.CONF_POINTS_ICON, const.DEFAULT_POINTS_ICON)
+    show_legacy_entities = entry.options.get(const.CONF_SHOW_LEGACY_ENTITIES, False)
     entities = []
 
-    # Sensor to detail number of Chores pending approval
-    entities.append(PendingChoreApprovalsSensor(coordinator, entry))
-
-    # Sensor to detail number of Rewards pending approval
-    entities.append(PendingRewardApprovalsSensor(coordinator, entry))
+    # Legacy pending approval sensors (optional)
+    if show_legacy_entities:
+        entities.append(SystemChoresPendingApprovalSensor(coordinator, entry))
+        entities.append(SystemRewardsPendingApprovalSensor(coordinator, entry))
 
     # For each kid, add standard sensors
     for kid_id, kid_info in coordinator.kids_data.items():
@@ -81,56 +102,56 @@ async def async_setup_entry(
             )
         )
         # Chores sensor with all stats (like points sensor)
-        entities.append(ChoresSensor(coordinator, entry, kid_id, kid_name))
-        entities.append(
-            CompletedChoresTotalSensor(coordinator, entry, kid_id, kid_name)
-        )
+        entities.append(KidChoresSensor(coordinator, entry, kid_id, kid_name))
 
-        # Chores completed by each Kid during the day
-        entities.append(
-            CompletedChoresDailySensor(coordinator, entry, kid_id, kid_name)
-        )
-
-        # Chores completed by each Kid during the week
-        entities.append(
-            CompletedChoresWeeklySensor(coordinator, entry, kid_id, kid_name)
-        )
-
-        # Chores completed by each Kid during the month
-        entities.append(
-            CompletedChoresMonthlySensor(coordinator, entry, kid_id, kid_name)
-        )
+        # Legacy chore completion sensors (optional)
+        if show_legacy_entities:
+            entities.append(
+                SystemChoreApprovalsSensor(coordinator, entry, kid_id, kid_name)
+            )
+            entities.append(
+                SystemChoreApprovalsDailySensor(coordinator, entry, kid_id, kid_name)
+            )
+            entities.append(
+                SystemChoreApprovalsWeeklySensor(coordinator, entry, kid_id, kid_name)
+            )
+            entities.append(
+                SystemChoreApprovalsMonthlySensor(coordinator, entry, kid_id, kid_name)
+            )
 
         # Kid Highest Badge
-        entities.append(KidHighestBadgeSensor(coordinator, entry, kid_id, kid_name))
+        entities.append(KidBadgeHighestSensor(coordinator, entry, kid_id, kid_name))
 
-        # Poimts obtained per Kid during the day
-        entities.append(
-            KidPointsEarnedDailySensor(
-                coordinator, entry, kid_id, kid_name, points_label, points_icon
+        # Legacy points earned sensors (optional)
+        if show_legacy_entities:
+            # Points obtained per Kid during the day
+            entities.append(
+                KidPointsEarnedDailySensor(
+                    coordinator, entry, kid_id, kid_name, points_label, points_icon
+                )
             )
-        )
 
-        # Poimts obtained per Kid during the week
-        entities.append(
-            KidPointsEarnedWeeklySensor(
-                coordinator, entry, kid_id, kid_name, points_label, points_icon
+            # Points obtained per Kid during the week
+            entities.append(
+                KidPointsEarnedWeeklySensor(
+                    coordinator, entry, kid_id, kid_name, points_label, points_icon
+                )
             )
-        )
 
-        # Poimts obtained per Kid during the month
-        entities.append(
-            KidPointsEarnedMonthlySensor(
-                coordinator, entry, kid_id, kid_name, points_label, points_icon
+            # Points obtained per Kid during the month
+            entities.append(
+                KidPointsEarnedMonthlySensor(
+                    coordinator, entry, kid_id, kid_name, points_label, points_icon
+                )
             )
-        )
 
-        # Maximum Points ever obtained ny a kid
-        entities.append(
-            KidMaxPointsEverSensor(
-                coordinator, entry, kid_id, kid_name, points_label, points_icon
+        # Legacy maximum points sensor (optional)
+        if show_legacy_entities:
+            entities.append(
+                KidMaxPointsEverSensor(
+                    coordinator, entry, kid_id, kid_name, points_label, points_icon
+                )
             )
-        )
 
         # Penalty Applies
         for penalty_id, penalty_info in coordinator.penalties_data.items():
@@ -140,7 +161,7 @@ async def async_setup_entry(
             if not penalty_name:
                 continue
             entities.append(
-                PenaltyAppliesSensor(
+                KidPenaltyAppliedSensor(
                     coordinator, entry, kid_id, kid_name, penalty_id, penalty_name
                 )
             )
@@ -153,12 +174,12 @@ async def async_setup_entry(
             if not bonus_name:
                 continue
             entities.append(
-                BonusAppliesSensor(
+                KidBonusAppliedSensor(
                     coordinator, entry, kid_id, kid_name, bonus_id, bonus_name
                 )
             )
 
-        # BadgeProgressSensor Progress per Kid for each non-cumulative badge
+        # KidBadgeProgressSensor Progress per Kid for each non-cumulative badge
         badge_progress_data = kid_info.get(const.DATA_KID_BADGE_PROGRESS, {})
         for badge_id, progress_info in badge_progress_data.items():
             badge_type = progress_info.get(const.DATA_KID_BADGE_PROGRESS_TYPE)
@@ -169,7 +190,7 @@ async def async_setup_entry(
                 if not badge_name:
                     continue
                 entities.append(
-                    BadgeProgressSensor(
+                    KidBadgeProgressSensor(
                         coordinator, entry, kid_id, kid_name, badge_id, badge_name
                     )
                 )
@@ -186,7 +207,7 @@ async def async_setup_entry(
                 if not achievement_name:
                     continue
                 entities.append(
-                    AchievementProgressSensor(
+                    KidAchievementProgressSensor(
                         coordinator,
                         entry,
                         kid_id,
@@ -205,7 +226,7 @@ async def async_setup_entry(
                 if not challenge_name:
                     continue
                 entities.append(
-                    ChallengeProgressSensor(
+                    KidChallengeProgressSensor(
                         coordinator,
                         entry,
                         kid_id,
@@ -216,14 +237,16 @@ async def async_setup_entry(
                 )
 
         # Highest Streak Sensor per Kid
-        entities.append(KidHighestStreakSensor(coordinator, entry, kid_id, kid_name))
+        # Legacy streak sensor (optional)
+        if show_legacy_entities:
+            entities.append(KidChoreStreakSensor(coordinator, entry, kid_id, kid_name))
 
         # Dashboard helper sensor: aggregates key kid data (chores, rewards, etc.)
         entities.append(
-            DashboardHelperSensor(coordinator, entry, kid_id, kid_name, points_label)
+            KidDashboardHelperSensor(coordinator, entry, kid_id, kid_name, points_label)
         )
 
-    # For each chore assigned to each kid, add a ChoreStatusSensor
+    # For each chore assigned to each kid, add a KidChoreStatusSensor
     for chore_id, chore_info in coordinator.chores_data.items():
         chore_name = kh.get_entity_name_or_log_error(
             "chore", chore_id, chore_info, const.DATA_CHORE_NAME
@@ -239,7 +262,7 @@ async def async_setup_entry(
             if not kid_name:
                 continue
             entities.append(
-                ChoreStatusSensor(
+                KidChoreStatusSensor(
                     coordinator, entry, kid_id, kid_name, chore_id, chore_name
                 )
             )
@@ -253,10 +276,10 @@ async def async_setup_entry(
             if not chore_name:
                 continue
             entities.append(
-                SharedChoreGlobalStateSensor(coordinator, entry, chore_id, chore_name)
+                SystemChoreSharedStateSensor(coordinator, entry, chore_id, chore_name)
             )
 
-    # For each Reward, add a RewardStatusSensor
+    # For each Reward, add a KidRewardStatusSensor
     for reward_id, reward_info in coordinator.rewards_data.items():
         reward_name = kh.get_entity_name_or_log_error(
             "reward", reward_id, reward_info, const.DATA_REWARD_NAME
@@ -272,7 +295,7 @@ async def async_setup_entry(
             if not kid_name:
                 continue
             entities.append(
-                RewardStatusSensor(
+                KidRewardStatusSensor(
                     coordinator, entry, kid_id, kid_name, reward_id, reward_name
                 )
             )
@@ -284,7 +307,7 @@ async def async_setup_entry(
         )
         if not badge_name:
             continue
-        entities.append(BadgeSensor(coordinator, entry, badge_id, badge_name))
+        entities.append(SystemBadgeSensor(coordinator, entry, badge_id, badge_name))
 
     # For each Achievement, add an AchievementSensor
     for achievement_id, achievement in coordinator.achievements_data.items():
@@ -294,7 +317,9 @@ async def async_setup_entry(
         if not achievement_name:
             continue
         entities.append(
-            AchievementSensor(coordinator, entry, achievement_id, achievement_name)
+            SystemAchievementSensor(
+                coordinator, entry, achievement_id, achievement_name
+            )
         )
 
     # For each Challenge, add a ChallengeSensor
@@ -305,15 +330,20 @@ async def async_setup_entry(
         if not challenge_name:
             continue
         entities.append(
-            ChallengeSensor(coordinator, entry, challenge_id, challenge_name)
+            SystemChallengeSensor(coordinator, entry, challenge_id, challenge_name)
         )
 
     async_add_entities(entities)
 
 
 # ------------------------------------------------------------------------------------------
-class ChoreStatusSensor(CoordinatorEntity, SensorEntity):
-    """Sensor for chore status: pending/claimed/approved/etc."""
+class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
+    """Sensor for chore status: pending/claimed/approved/etc.
+
+    Tracks individual kid's chore state independent of shared chore global state.
+    Provides comprehensive attributes including per-chore statistics (claims, approvals,
+    streaks, points earned), chore configuration, and button entity IDs for UI integration.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_CHORE_STATUS_SENSOR
@@ -327,7 +357,16 @@ class ChoreStatusSensor(CoordinatorEntity, SensorEntity):
         chore_id: str,
         chore_name: str,
     ):
-        """Initialize the sensor."""
+        """Initialize the sensor.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+            chore_id: Unique identifier for the chore.
+            chore_name: Display name of the chore.
+        """
 
         super().__init__(coordinator)
         self._kid_id = kid_id
@@ -344,18 +383,12 @@ class ChoreStatusSensor(CoordinatorEntity, SensorEntity):
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
     @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
+    def native_value(self) -> Any:
+        """Return the chore's state based on shared or individual tracking.
 
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
-    @property
-    def native_value(self):
-        """Return the chore's state based on shared or individual tracking."""
+        Priority order: approved > claimed > overdue > pending.
+        Always returns kid's individual status, not shared chore global state.
+        """
         kid_info = self.coordinator.kids_data.get(self._kid_id, {})
 
         # The status of the kids chore should always be their own status.
@@ -370,8 +403,15 @@ class ChoreStatusSensor(CoordinatorEntity, SensorEntity):
             return const.CHORE_STATE_PENDING
 
     @property
-    def extra_state_attributes(self):
-        """Include points, description, etc. Uses new per-chore data where possible."""
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Include points, description, etc. Uses new per-chore data where possible.
+
+        Provides comprehensive chore metadata including:
+        - Configuration: points, labels, assigned kids, recurrence, due date
+        - Statistics: all-time and daily claims/approvals/streaks via periods data structure
+        - UI Integration: button entity IDs for claim/approve/disapprove actions
+        - State tracking: individual vs shared/global state differentiation
+        """
         chore_info = self.coordinator.chores_data.get(self._chore_id, {})
         shared = chore_info.get(const.DATA_CHORE_SHARED_CHORE, False)
         global_state = chore_info.get(const.DATA_CHORE_STATE, const.CHORE_STATE_UNKNOWN)
@@ -521,11 +561,9 @@ class ChoreStatusSensor(CoordinatorEntity, SensorEntity):
                 unique_id = (
                     f"{self._entry.entry_id}_{self._kid_id}_{self._chore_id}{suffix}"
                 )
-                entity_id = None
-                for entity in entity_registry.entities.values():
-                    if entity.unique_id == unique_id:
-                        entity_id = entity.entity_id
-                        break
+                entity_id = entity_registry.async_get_entity_id(
+                    "button", const.DOMAIN, unique_id
+                )
                 button_entity_ids[attr_name] = entity_id
         except (KeyError, ValueError, AttributeError):
             for _, attr_name in button_types:
@@ -544,8 +582,13 @@ class ChoreStatusSensor(CoordinatorEntity, SensorEntity):
 
 
 # ------------------------------------------------------------------------------------------
-class KidPointsSensor(CoordinatorEntity, SensorEntity):
-    """Sensor for a kid's total points balance."""
+class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
+    """Sensor for a kid's total points balance.
+
+    Primary currency sensor - tracks current spendable points balance. Uses
+    MEASUREMENT state class for graphing. Exposes comprehensive point statistics
+    in attributes including earnings, spending, bonuses, and penalties.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_KID_POINTS_SENSOR
@@ -559,7 +602,16 @@ class KidPointsSensor(CoordinatorEntity, SensorEntity):
         points_label: str,
         points_icon: str,
     ):
-        """Initialize the sensor."""
+        """Initialize the sensor.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+            points_label: User-configured label for points (e.g., "Points", "Stars").
+            points_icon: User-configured icon for points display.
+        """
 
         super().__init__(coordinator)
         self._kid_id = kid_id
@@ -578,17 +630,7 @@ class KidPointsSensor(CoordinatorEntity, SensorEntity):
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
     @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
-    @property
-    def native_value(self):
+    def native_value(self) -> Any:
         """Return the kid's total points."""
         kid_info = self.coordinator.kids_data.get(self._kid_id, {})
         return kid_info.get(const.DATA_KID_POINTS, const.DEFAULT_ZERO)
@@ -604,8 +646,13 @@ class KidPointsSensor(CoordinatorEntity, SensorEntity):
         return self._points_icon or const.DEFAULT_POINTS_ICON
 
     @property
-    def extra_state_attributes(self):
-        """Expose all point stats as attributes."""
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Expose all point stats as attributes.
+
+        Dynamically includes all DATA_KID_POINT_STATS fields prefixed with
+        'point_stat_' for frontend access to detailed breakdowns (earned, spent,
+        bonuses, penalties, sources, etc.).
+        """
         kid_info = self.coordinator.kids_data.get(self._kid_id, {})
         point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
         attributes = {
@@ -619,76 +666,7 @@ class KidPointsSensor(CoordinatorEntity, SensorEntity):
 
 
 # ------------------------------------------------------------------------------------------
-class KidMaxPointsEverSensor(CoordinatorEntity, SensorEntity):
-    """Sensor showing the maximum points a kid has ever reached."""
-
-    _attr_has_entity_name = True
-    _attr_translation_key = const.TRANS_KEY_SENSOR_KID_MAX_POINTS_EVER_SENSOR
-
-    def __init__(
-        self,
-        coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
-        kid_id: str,
-        kid_name: str,
-        points_label: str,
-        points_icon: str,
-    ):
-        """Initialize the sensor."""
-
-        super().__init__(coordinator)
-        self._kid_id = kid_id
-        self._kid_name = kid_name
-        self._points_label = points_label
-        self._points_icon = points_icon
-        self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_MAX_POINTS_EVER_SENSOR}"
-        self._entry = entry
-        self._attr_translation_placeholders = {
-            const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
-            const.TRANS_KEY_SENSOR_ATTR_POINTS: points_label,
-        }
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_MAX_POINTS_EARNED_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
-
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
-    @property
-    def native_value(self):
-        """Return the highest points total the kid has ever reached."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
-        point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
-        return point_stats.get(
-            const.DATA_KID_POINT_STATS_HIGHEST_BALANCE, const.DEFAULT_ZERO
-        )
-
-    @property
-    def icon(self):
-        """Use the same icon as points or any custom icon you prefer."""
-        return self._points_icon or const.DEFAULT_POINTS_ICON
-
-    @property
-    def native_unit_of_measurement(self):
-        """Optionally display the same points label for consistency."""
-        return self._points_label or const.LABEL_POINTS
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return extra state attributes."""
-        return {
-            const.ATTR_KID_NAME: self._kid_name,
-        }
-
-
-# ------------------------------------------------------------------------------------------
-class ChoresSensor(CoordinatorEntity, SensorEntity):
+class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
     """Sensor showing chores count with all chore statistics as attributes.
 
     This sensor provides a central view of all chore-related metrics for a kid,
@@ -705,7 +683,14 @@ class ChoresSensor(CoordinatorEntity, SensorEntity):
         kid_id: str,
         kid_name: str,
     ):
-        """Initialize the sensor."""
+        """Initialize the sensor.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+        """
         super().__init__(coordinator)
         self._kid_id = kid_id
         self._kid_name = kid_name
@@ -722,17 +707,7 @@ class ChoresSensor(CoordinatorEntity, SensorEntity):
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
     @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
-    @property
-    def native_value(self):
+    def native_value(self) -> Any:
         """Return the total number of chores completed by the kid."""
         kid_info = self.coordinator.kids_data.get(self._kid_id, {})
         stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
@@ -741,8 +716,12 @@ class ChoresSensor(CoordinatorEntity, SensorEntity):
         )
 
     @property
-    def extra_state_attributes(self):
-        """Expose all chore stats as attributes."""
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Expose all chore stats as attributes.
+
+        Dynamically includes all DATA_KID_CHORE_STATS fields prefixed with
+        'chore_stat_' for frontend access (approved, claimed, overdue counts, etc.).
+        """
         kid_info = self.coordinator.kids_data.get(self._kid_id, {})
         stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
         attributes = {
@@ -755,238 +734,13 @@ class ChoresSensor(CoordinatorEntity, SensorEntity):
 
 
 # ------------------------------------------------------------------------------------------
-class CompletedChoresTotalSensor(CoordinatorEntity, SensorEntity):
-    """Sensor tracking the total number of chores a kid has completed since integration start."""
-
-    _attr_has_entity_name = True
-    _attr_translation_key = const.TRANS_KEY_SENSOR_CHORES_COMPLETED_TOTAL_SENSOR
-
-    def __init__(
-        self,
-        coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
-        kid_id: str,
-        kid_name: str,
-    ):
-        """Initialize the sensor."""
-
-        super().__init__(coordinator)
-        self._kid_id = kid_id
-        self._kid_name = kid_name
-        self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_TOTAL_SENSOR}"
-        self._attr_native_unit_of_measurement = const.DEFAULT_CHORES_UNIT
-        self._attr_icon = const.DEFAULT_COMPLETED_CHORES_TOTAL_SENSOR_ICON
-        self._attr_translation_placeholders = {
-            const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
-        }
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_TOTAL_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
-
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
-    @property
-    def native_value(self):
-        """Return the total number of chores completed by the kid."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
-        stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
-        return stats.get(
-            const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME, const.DEFAULT_ZERO
-        )
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return extra state attributes."""
-        return {
-            const.ATTR_KID_NAME: self._kid_name,
-        }
-
-
-# ------------------------------------------------------------------------------------------
-class CompletedChoresDailySensor(CoordinatorEntity, SensorEntity):
-    """How many chores kid completed today.
-
-    NOTE: This sensor is a candidate for optional deprecation in KC-vNext.
-    Its data is now available as 'chore_stat_approved_today' attribute on
-    CompletedChoresTotalSensor.
-    """
-
-    _attr_has_entity_name = True
-    _attr_translation_key = const.TRANS_KEY_SENSOR_CHORES_COMPLETED_DAILY_SENSOR
-
-    def __init__(
-        self,
-        coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
-        kid_id: str,
-        kid_name: str,
-    ):
-        """Initialize the sensor."""
-
-        super().__init__(coordinator)
-        self._kid_id = kid_id
-        self._kid_name = kid_name
-        self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_DAILY_SENSOR}"
-        self._attr_native_unit_of_measurement = const.DEFAULT_CHORES_UNIT
-        self._attr_icon = const.DEFAULT_COMPLETED_CHORES_DAILY_SENSOR_ICON
-        self._attr_translation_placeholders = {
-            const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
-        }
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_DAILY_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
-
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
-    @property
-    def native_value(self):
-        """Return the number of chores completed today."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
-        stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
-        return stats.get(const.DATA_KID_CHORE_STATS_APPROVED_TODAY, const.DEFAULT_ZERO)
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return extra state attributes."""
-        return {
-            const.ATTR_KID_NAME: self._kid_name,
-        }
-
-
-# ------------------------------------------------------------------------------------------
-class CompletedChoresWeeklySensor(CoordinatorEntity, SensorEntity):
-    """How many chores kid completed this week.
-
-    NOTE: This sensor is a candidate for optional deprecation in KC-vNext.
-    Its data is now available as 'chore_stat_approved_week' attribute on
-    CompletedChoresTotalSensor.
-    """
-
-    _attr_has_entity_name = True
-    _attr_translation_key = const.TRANS_KEY_SENSOR_CHORES_COMPLETED_WEEKLY_SENSOR
-
-    def __init__(
-        self,
-        coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
-        kid_id: str,
-        kid_name: str,
-    ):
-        """Initialize the sensor."""
-
-        super().__init__(coordinator)
-        self._kid_id = kid_id
-        self._kid_name = kid_name
-        self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_WEEKLY_SENSOR}"
-        self._attr_native_unit_of_measurement = const.DEFAULT_CHORES_UNIT
-        self._attr_icon = const.DEFAULT_COMPLETED_CHORES_WEEKLY_SENSOR_ICON
-        self._attr_translation_placeholders = {
-            const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
-        }
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_WEEKLY_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
-
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
-    @property
-    def native_value(self):
-        """Return the number of chores completed this week."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
-        stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
-        return stats.get(const.DATA_KID_CHORE_STATS_APPROVED_WEEK, const.DEFAULT_ZERO)
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return extra state attributes."""
-        return {
-            const.ATTR_KID_NAME: self._kid_name,
-        }
-
-
-# ------------------------------------------------------------------------------------------
-class CompletedChoresMonthlySensor(CoordinatorEntity, SensorEntity):
-    """How many chores kid completed this month.
-
-    NOTE: This sensor is a candidate for optional deprecation in KC-vNext.
-    Its data is now available as 'chore_stat_approved_month' attribute on
-    CompletedChoresTotalSensor.
-    """
-
-    _attr_has_entity_name = True
-    _attr_translation_key = const.TRANS_KEY_SENSOR_CHORES_COMPLETED_MONTHLY_SENSOR
-
-    def __init__(
-        self,
-        coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
-        kid_id: str,
-        kid_name: str,
-    ):
-        """Initialize the sensor."""
-
-        super().__init__(coordinator)
-        self._kid_id = kid_id
-        self._kid_name = kid_name
-        self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_MONTHLY_SENSOR}"
-        self._attr_native_unit_of_measurement = const.DEFAULT_CHORES_UNIT
-        self._attr_icon = const.DEFAULT_COMPLETED_CHORES_MONTHLY_SENSOR_ICON
-        self._attr_translation_placeholders = {
-            const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
-        }
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_MONTHLY_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
-
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
-    @property
-    def native_value(self):
-        """Return the number of chores completed this month."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
-        stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
-        return stats.get(const.DATA_KID_CHORE_STATS_APPROVED_MONTH, const.DEFAULT_ZERO)
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return extra state attributes."""
-        return {
-            const.ATTR_KID_NAME: self._kid_name,
-        }
-
-
-# ------------------------------------------------------------------------------------------
-class KidHighestBadgeSensor(CoordinatorEntity, SensorEntity):
+class KidBadgeHighestSensor(KidsChoresCoordinatorEntity, SensorEntity):
     """Sensor that returns the highest cumulative badge a kid currently has,
     and calculates how many points are needed to reach the next cumulative badge.
+
+    Tracks cumulative badge progression including maintenance requirements, grace periods,
+    baseline/cycle points, and provides comprehensive badge metadata in attributes.
+    Icon dynamically reflects the current highest badge.
     """
 
     _attr_has_entity_name = True
@@ -999,7 +753,14 @@ class KidHighestBadgeSensor(CoordinatorEntity, SensorEntity):
         kid_id: str,
         kid_name: str,
     ):
-        """Initialize the sensor."""
+        """Initialize the sensor.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+        """
 
         super().__init__(coordinator)
         self._entry = entry
@@ -1011,16 +772,6 @@ class KidHighestBadgeSensor(CoordinatorEntity, SensorEntity):
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_HIGHEST_BADGE_SENSOR}"
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
-
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
 
     @property
     def native_value(self) -> str:
@@ -1053,7 +804,7 @@ class KidHighestBadgeSensor(CoordinatorEntity, SensorEntity):
         return highest_badge_icon
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Provide additional details about the highest cumulative badge,
         including the points needed to reach the next cumulative badge,
         reset schedule, maintenance rules, description, and awards if present.
@@ -1208,8 +959,13 @@ class KidHighestBadgeSensor(CoordinatorEntity, SensorEntity):
 
 
 # ------------------------------------------------------------------------------------------
-class BadgeProgressSensor(CoordinatorEntity, SensorEntity):
-    """Badge Progress Sensor for a kid's progress on a specific non-cumulative badge."""
+class KidBadgeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
+    """Badge Progress Sensor for a kid's progress on a specific non-cumulative badge.
+
+    Tracks individual badge progress as percentage (0-100). Supports achievement,
+    challenge, daily, and periodic badge types. Provides comprehensive progress
+    metadata including criteria met, tracked chores, start/end dates, and award history.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = "badge_progress_sensor"
@@ -1225,7 +981,16 @@ class BadgeProgressSensor(CoordinatorEntity, SensorEntity):
         badge_id: str,
         badge_name: str,
     ):
-        """Initialize the BadgeProgressSensor."""
+        """Initialize the KidBadgeProgressSensor.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+            badge_id: Unique identifier for the badge.
+            badge_name: Display name of the badge.
+        """
         super().__init__(coordinator)
         self._entry = entry
         self._kid_id = kid_id
@@ -1239,16 +1004,6 @@ class BadgeProgressSensor(CoordinatorEntity, SensorEntity):
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_MIDFIX_BADGE_PROGRESS_SENSOR}{badge_name}"
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
-
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
 
     @property
     def native_value(self) -> float:
@@ -1347,8 +1102,16 @@ class BadgeProgressSensor(CoordinatorEntity, SensorEntity):
 
 
 # ------------------------------------------------------------------------------------------
-class BadgeSensor(CoordinatorEntity, SensorEntity):
-    """Sensor representing a single badge in KidsChores."""
+class SystemBadgeSensor(KidsChoresCoordinatorEntity, SensorEntity):
+    """Sensor representing a single badge in KidsChores.
+
+    Provides system-wide badge configuration and metadata including badge type
+    (cumulative, achievement, challenge, daily, periodic, special), target values,
+    associated achievements/challenges, tracked chores, and award items (points,
+    rewards, bonuses, penalties, multipliers). Tracks which kids have earned the
+    badge and which kids are assigned to it. Supports occasion-based badges for
+    special events.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_BADGE_SENSOR
@@ -1360,6 +1123,14 @@ class BadgeSensor(CoordinatorEntity, SensorEntity):
         badge_id: str,
         badge_name: str,
     ):
+        """Initialize the sensor.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+            badge_id: Unique identifier for the badge.
+            badge_name: Display name of the badge.
+        """
         super().__init__(coordinator)
         self._entry = entry
         self._badge_id = badge_id
@@ -1374,16 +1145,6 @@ class BadgeSensor(CoordinatorEntity, SensorEntity):
         self._attr_device_info = kh.create_system_device_info(entry)
 
     @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
-    @property
     def native_value(self) -> int:
         """State: number of kids who have earned this badge."""
         badge_info = self.coordinator.badges_data.get(self._badge_id, {})
@@ -1391,7 +1152,7 @@ class BadgeSensor(CoordinatorEntity, SensorEntity):
         return len(kids_earned_ids)
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Full badge info, including per-kid earned stats and periods."""
         badge_info = self.coordinator.badges_data.get(self._badge_id, {})
         attributes = {}
@@ -1509,200 +1270,16 @@ class BadgeSensor(CoordinatorEntity, SensorEntity):
 
 
 # ------------------------------------------------------------------------------------------
-class PendingChoreApprovalsSensor(CoordinatorEntity, SensorEntity):
-    """Sensor listing all pending chore approvals."""
+class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
+    """Sensor that shows the global state of a shared chore.
 
-    _attr_has_entity_name = True
-    _attr_translation_key = const.TRANS_KEY_SENSOR_PENDING_CHORES_APPROVALS_SENSOR
-
-    def __init__(self, coordinator: KidsChoresDataCoordinator, entry: ConfigEntry):
-        """Initialize the sensor."""
-
-        super().__init__(coordinator)
-        self._entry = entry
-        self._attr_unique_id = f"{entry.entry_id}{const.SENSOR_KC_UID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR}"
-        self._attr_icon = const.DEFAULT_PENDING_CHORE_APPROVALS_SENSOR_ICON
-        self._attr_native_unit_of_measurement = const.DEFAULT_PENDING_CHORES_UNIT
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{const.SENSOR_KC_EID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR}"
-        self._attr_device_info = kh.create_system_device_info(entry)
-
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
-    @property
-    def native_value(self):
-        """Return a summary of pending chore approvals."""
-        approvals = self.coordinator.pending_chore_approvals
-        return f"{len(approvals)}"
-
-    @property
-    def extra_state_attributes(self):
-        """Return detailed pending chores."""
-        approvals = self.coordinator.pending_chore_approvals
-        grouped_by_kid = {}
-
-        try:
-            entity_registry = async_get(self.hass)
-        except (KeyError, ValueError, AttributeError):
-            entity_registry = None
-
-        for approval in approvals:
-            kid_id = approval[const.DATA_KID_ID]
-            chore_id = approval[const.DATA_CHORE_ID]
-            kid_name = (
-                kh.get_kid_name_by_id(self.coordinator, kid_id)
-                or const.TRANS_KEY_DISPLAY_UNKNOWN_KID
-            )
-            chore_info = self.coordinator.chores_data.get(chore_id, {})
-            chore_name = chore_info.get(
-                const.DATA_CHORE_NAME, const.TRANS_KEY_DISPLAY_UNKNOWN_CHORE
-            )
-
-            timestamp = approval[const.DATA_CHORE_TIMESTAMP]
-
-            # Get approve and disapprove button entity IDs
-            approve_button_eid = None
-            disapprove_button_eid = None
-            if entity_registry:
-                try:
-                    for suffix, attr_name in [
-                        (const.BUTTON_KC_UID_SUFFIX_APPROVE, "approve"),
-                        (const.BUTTON_KC_UID_SUFFIX_DISAPPROVE, "disapprove"),
-                    ]:
-                        unique_id = (
-                            f"{self._entry.entry_id}_{kid_id}_{chore_id}{suffix}"
-                        )
-                        for entity in entity_registry.entities.values():
-                            if entity.unique_id == unique_id:
-                                if attr_name == "approve":
-                                    approve_button_eid = entity.entity_id
-                                else:
-                                    disapprove_button_eid = entity.entity_id
-                                break
-                except (KeyError, ValueError, AttributeError):
-                    pass
-
-            if kid_name not in grouped_by_kid:
-                grouped_by_kid[kid_name] = []
-
-            grouped_by_kid[kid_name].append(
-                {
-                    const.ATTR_CHORE_NAME: chore_name,
-                    const.ATTR_CLAIMED_ON: timestamp,
-                    const.ATTR_CHORE_APPROVE_BUTTON_ENTITY_ID: approve_button_eid,
-                    const.ATTR_CHORE_DISAPPROVE_BUTTON_ENTITY_ID: disapprove_button_eid,
-                }
-            )
-
-        return grouped_by_kid
-
-
-# ------------------------------------------------------------------------------------------
-class PendingRewardApprovalsSensor(CoordinatorEntity, SensorEntity):
-    """Sensor listing all pending reward approvals."""
-
-    _attr_has_entity_name = True
-    _attr_translation_key = const.TRANS_KEY_SENSOR_PENDING_REWARDS_APPROVALS_SENSOR
-
-    def __init__(self, coordinator: KidsChoresDataCoordinator, entry: ConfigEntry):
-        """Initialize the sensor."""
-
-        super().__init__(coordinator)
-        self._entry = entry
-        self._attr_unique_id = f"{entry.entry_id}{const.SENSOR_KC_UID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR}"
-        self._attr_icon = const.DEFAULT_PENDING_REWARD_APPROVALS_SENSOR_ICON
-        self._attr_native_unit_of_measurement = const.DEFAULT_PENDING_REWARDS_UNIT
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{const.SENSOR_KC_EID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR}"
-        self._attr_device_info = kh.create_system_device_info(entry)
-
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
-    @property
-    def native_value(self):
-        """Return a summary of pending reward approvals."""
-        approvals = self.coordinator.pending_reward_approvals
-        return f"{len(approvals)}"
-
-    @property
-    def extra_state_attributes(self):
-        """Return detailed pending rewards."""
-        approvals = self.coordinator.pending_reward_approvals
-        grouped_by_kid = {}
-
-        try:
-            entity_registry = async_get(self.hass)
-        except (KeyError, ValueError, AttributeError):
-            entity_registry = None
-
-        for approval in approvals:
-            kid_id = approval[const.DATA_KID_ID]
-            reward_id = approval[const.DATA_REWARD_ID]
-            kid_name = (
-                kh.get_kid_name_by_id(self.coordinator, kid_id)
-                or const.TRANS_KEY_DISPLAY_UNKNOWN_KID
-            )
-            reward_info = self.coordinator.rewards_data.get(reward_id, {})
-            reward_name = reward_info.get(
-                const.DATA_REWARD_NAME, const.TRANS_KEY_DISPLAY_UNKNOWN_REWARD
-            )
-
-            timestamp = approval[const.DATA_REWARD_TIMESTAMP]
-
-            # Get approve and disapprove button entity IDs
-            approve_button_eid = None
-            disapprove_button_eid = None
-            if entity_registry:
-                try:
-                    for suffix, attr_name in [
-                        (const.BUTTON_KC_UID_SUFFIX_APPROVE_REWARD, "approve"),
-                        (const.BUTTON_KC_UID_SUFFIX_DISAPPROVE_REWARD, "disapprove"),
-                    ]:
-                        unique_id = (
-                            f"{self._entry.entry_id}_{kid_id}_{reward_id}{suffix}"
-                        )
-                        for entity in entity_registry.entities.values():
-                            if entity.unique_id == unique_id:
-                                if attr_name == "approve":
-                                    approve_button_eid = entity.entity_id
-                                else:
-                                    disapprove_button_eid = entity.entity_id
-                                break
-                except (KeyError, ValueError, AttributeError):
-                    pass
-
-            if kid_name not in grouped_by_kid:
-                grouped_by_kid[kid_name] = []
-
-            grouped_by_kid[kid_name].append(
-                {
-                    const.ATTR_REWARD_NAME: reward_name,
-                    const.ATTR_REDEEMED_ON: timestamp,
-                    const.ATTR_REWARD_APPROVE_BUTTON_ENTITY_ID: approve_button_eid,
-                    const.ATTR_REWARD_DISAPPROVE_BUTTON_ENTITY_ID: disapprove_button_eid,
-                }
-            )
-
-        return grouped_by_kid
-
-
-# ------------------------------------------------------------------------------------------
-class SharedChoreGlobalStateSensor(CoordinatorEntity, SensorEntity):
-    """Sensor that shows the global state of a shared chore."""
+    Tracks system-wide shared chore state independent of individual kid status.
+    Provides comprehensive chore configuration including recurring frequency
+    (daily/weekly/monthly/custom), applicable days, due dates, default points,
+    partial completion settings, multiple claims per day allowance, and total
+    approvals today across all assigned kids. Useful for monitoring chores that
+    multiple kids can claim simultaneously.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_SHARED_CHORE_GLOBAL_STATUS_SENSOR
@@ -1714,7 +1291,14 @@ class SharedChoreGlobalStateSensor(CoordinatorEntity, SensorEntity):
         chore_id: str,
         chore_name: str,
     ):
-        """Initialize the sensor."""
+        """Initialize the sensor.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+            chore_id: Unique identifier for the shared chore.
+            chore_name: Display name of the shared chore.
+        """
         super().__init__(coordinator)
         self._entry = entry
         self._chore_id = chore_id
@@ -1725,16 +1309,6 @@ class SharedChoreGlobalStateSensor(CoordinatorEntity, SensorEntity):
         }
         self._attr_device_info = kh.create_system_device_info(entry)
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{const.SENSOR_KC_EID_MIDFIX_SHARED_CHORE_GLOBAL_STATUS_SENSOR}{chore_name}"
-
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
 
     @property
     def native_value(self) -> str:
@@ -1821,8 +1395,13 @@ class SharedChoreGlobalStateSensor(CoordinatorEntity, SensorEntity):
 
 
 # ------------------------------------------------------------------------------------------
-class RewardStatusSensor(CoordinatorEntity, SensorEntity):
-    """Shows the status of a reward for a particular kid."""
+class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
+    """Shows the status of a reward for a particular kid.
+
+    Tracks reward redemption lifecycle: Not Claimed → Claimed (pending approval) → Approved.
+    Provides reward metadata including cost, claims/approvals counts, and button entity IDs
+    for UI integration.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_REWARD_STATUS_SENSOR
@@ -1836,7 +1415,16 @@ class RewardStatusSensor(CoordinatorEntity, SensorEntity):
         reward_id: str,
         reward_name: str,
     ):
-        """Initialize the sensor."""
+        """Initialize the sensor.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+            reward_id: Unique identifier for the reward.
+            reward_name: Display name of the reward.
+        """
 
         super().__init__(coordinator)
         self._entry = entry
@@ -1851,16 +1439,6 @@ class RewardStatusSensor(CoordinatorEntity, SensorEntity):
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_MIDFIX_REWARD_STATUS_SENSOR}{reward_name}"
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
-
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
 
     @property
     def native_value(self) -> str:
@@ -1891,28 +1469,20 @@ class RewardStatusSensor(CoordinatorEntity, SensorEntity):
             entity_registry = async_get(self.hass)
             # Claim button uses BUTTON_REWARD_PREFIX instead of a UID suffix
             claim_unique_id = f"{self._entry.entry_id}_{const.BUTTON_REWARD_PREFIX}{self._kid_id}_{self._reward_id}"
-            for entity in entity_registry.entities.values():
-                if entity.unique_id == claim_unique_id:
-                    claim_button_eid = entity.entity_id
-                    break
+            claim_button_eid = entity_registry.async_get_entity_id(
+                "button", const.DOMAIN, claim_unique_id
+            )
 
             # Approve and disapprove buttons use UID suffixes
-            for suffix, button_type in [
-                (const.BUTTON_KC_UID_SUFFIX_APPROVE_REWARD, "approve"),
-                (const.BUTTON_KC_UID_SUFFIX_DISAPPROVE_REWARD, "disapprove"),
-            ]:
-                unique_id = (
-                    f"{self._entry.entry_id}_{self._kid_id}_{self._reward_id}{suffix}"
-                )
-                entity_id = None
-                for entity in entity_registry.entities.values():
-                    if entity.unique_id == unique_id:
-                        entity_id = entity.entity_id
-                        break
-                if button_type == "approve":
-                    approve_button_eid = entity_id
-                elif button_type == "disapprove":
-                    disapprove_button_eid = entity_id
+            approve_unique_id = f"{self._entry.entry_id}_{self._kid_id}_{self._reward_id}{const.BUTTON_KC_UID_SUFFIX_APPROVE_REWARD}"
+            approve_button_eid = entity_registry.async_get_entity_id(
+                "button", const.DOMAIN, approve_unique_id
+            )
+
+            disapprove_unique_id = f"{self._entry.entry_id}_{self._kid_id}_{self._reward_id}{const.BUTTON_KC_UID_SUFFIX_DISAPPROVE_REWARD}"
+            disapprove_button_eid = entity_registry.async_get_entity_id(
+                "button", const.DOMAIN, disapprove_unique_id
+            )
         except (KeyError, ValueError, AttributeError):
             pass
 
@@ -1947,8 +1517,12 @@ class RewardStatusSensor(CoordinatorEntity, SensorEntity):
 
 
 # ------------------------------------------------------------------------------------------
-class PenaltyAppliesSensor(CoordinatorEntity, SensorEntity):
-    """Sensor tracking how many times each penalty has been applied to a kid."""
+class KidPenaltyAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
+    """Sensor tracking how many times each penalty has been applied to a kid.
+
+    Counts penalty applications for individual kid/penalty combinations. Provides penalty
+    metadata including points deducted, description, and button entity ID for UI integration.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_PENALTY_APPLIES_SENSOR
@@ -1962,7 +1536,16 @@ class PenaltyAppliesSensor(CoordinatorEntity, SensorEntity):
         penalty_id: str,
         penalty_name: str,
     ):
-        """Initialize the sensor."""
+        """Initialize the sensor.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+            penalty_id: Unique identifier for the penalty.
+            penalty_name: Display name of the penalty.
+        """
         super().__init__(coordinator)
         self._entry = entry
         self._kid_id = kid_id
@@ -1978,17 +1561,7 @@ class PenaltyAppliesSensor(CoordinatorEntity, SensorEntity):
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
     @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
-    @property
-    def native_value(self):
+    def native_value(self) -> Any:
         """Return the number of times the penalty has been applied."""
         kid_info = self.coordinator.kids_data.get(self._kid_id, {})
         return kid_info.get(const.DATA_KID_PENALTY_APPLIES, {}).get(
@@ -1996,7 +1569,7 @@ class PenaltyAppliesSensor(CoordinatorEntity, SensorEntity):
         )
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Expose additional details like penalty points and description."""
         penalty_info = self.coordinator.penalties_data.get(self._penalty_id, {})
 
@@ -2005,15 +1578,14 @@ class PenaltyAppliesSensor(CoordinatorEntity, SensorEntity):
             kh.get_friendly_label(self.hass, label) for label in stored_labels
         ]
 
-        # Get the PenaltyButton entity_id
+        # Get the ParentPenaltyApplyButton entity_id
         penalty_button_eid = None
         try:
             entity_registry = async_get(self.hass)
             unique_id = f"{self._entry.entry_id}_{const.BUTTON_PENALTY_PREFIX}{self._kid_id}_{self._penalty_id}"
-            for entity in entity_registry.entities.values():
-                if entity.unique_id == unique_id:
-                    penalty_button_eid = entity.entity_id
-                    break
+            penalty_button_eid = entity_registry.async_get_entity_id(
+                "button", const.DOMAIN, unique_id
+            )
         except (KeyError, ValueError, AttributeError):
             pass
 
@@ -2038,217 +1610,16 @@ class PenaltyAppliesSensor(CoordinatorEntity, SensorEntity):
 
 
 # ------------------------------------------------------------------------------------------
-class KidPointsEarnedDailySensor(CoordinatorEntity, SensorEntity):
-    """Sensor for how many net points a kid earned today.
+class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
+    """Sensor representing an achievement.
 
-    NOTE: This sensor is a candidate for optional deprecation in KC-vNext.
-    Its data is now available as 'point_stat_points_net_today' attribute on
-    KidPointsSensor.
+    Provides system-wide achievement definition and tracks aggregated progress
+    across all assigned kids as a percentage (0-100). Supports three achievement
+    types: TOTAL (cumulative completions with baselines), STREAK (consecutive
+    completions), and DAILY_MIN (minimum daily requirements). Includes achievement
+    metadata such as target values, reward points, criteria, associated chore,
+    and list of kids who have earned the achievement.
     """
-
-    _attr_has_entity_name = True
-    _attr_translation_key = const.TRANS_KEY_SENSOR_KID_POINTS_EARNED_DAILY_SENSOR
-
-    def __init__(
-        self,
-        coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
-        kid_id: str,
-        kid_name: str,
-        points_label: str,
-        points_icon: str,
-    ):
-        """Initialize the sensor."""
-        super().__init__(coordinator)
-        self._kid_id = kid_id
-        self._kid_name = kid_name
-        self._points_label = points_label
-        self._points_icon = points_icon
-        self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_DAILY_SENSOR}"
-        self._attr_translation_placeholders = {
-            const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
-        }
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_POINTS_EARNED_DAILY_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
-
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
-    @property
-    def native_value(self):
-        """Return how many net points the kid has earned so far today."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
-        point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
-        return point_stats.get(const.DATA_KID_POINT_STATS_NET_TODAY, const.DEFAULT_ZERO)
-
-    @property
-    def native_unit_of_measurement(self):
-        """Return the points label."""
-        return self._points_label or const.LABEL_POINTS
-
-    @property
-    def icon(self):
-        """Use the points' custom icon if set, else fallback."""
-        return self._points_icon or const.DEFAULT_POINTS_ICON
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return extra state attributes."""
-        return {
-            const.ATTR_KID_NAME: self._kid_name,
-        }
-
-
-# ------------------------------------------------------------------------------------------
-class KidPointsEarnedWeeklySensor(CoordinatorEntity, SensorEntity):
-    """Sensor for how many net points a kid earned this week.
-
-    NOTE: This sensor is a candidate for optional deprecation in KC-vNext.
-    Its data is now available as 'point_stat_points_net_week' attribute on
-    KidPointsSensor.
-    """
-
-    _attr_has_entity_name = True
-    _attr_translation_key = const.TRANS_KEY_SENSOR_KID_POINTS_EARNED_WEEKLY_SENSOR
-
-    def __init__(
-        self,
-        coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
-        kid_id: str,
-        kid_name: str,
-        points_label: str,
-        points_icon: str,
-    ):
-        """Initialize the sensor."""
-
-        super().__init__(coordinator)
-        self._kid_id = kid_id
-        self._kid_name = kid_name
-        self._points_label = points_label
-        self._points_icon = points_icon
-        self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_WEEKLY_SENSOR}"
-        self._attr_translation_placeholders = {
-            const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
-        }
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_POINTS_EARNED_WEEKLY_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
-
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
-    @property
-    def native_value(self):
-        """Return how many net points the kid has earned this week."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
-        point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
-        return point_stats.get(const.DATA_KID_POINT_STATS_NET_WEEK, const.DEFAULT_ZERO)
-
-    @property
-    def native_unit_of_measurement(self):
-        """Return the points label."""
-        return self._points_label or const.LABEL_POINTS
-
-    @property
-    def icon(self):
-        """Use the points' custom icon if set, else fallback."""
-        return self._points_icon or const.DEFAULT_POINTS_ICON
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return extra state attributes."""
-        return {
-            const.ATTR_KID_NAME: self._kid_name,
-        }
-
-
-# ------------------------------------------------------------------------------------------
-class KidPointsEarnedMonthlySensor(CoordinatorEntity, SensorEntity):
-    """Sensor for how many net points a kid earned this month.
-
-    NOTE: This sensor is a candidate for optional deprecation in KC-vNext.
-    Its data is now available as 'point_stat_points_net_month' attribute on
-    KidPointsSensor.
-    """
-
-    _attr_has_entity_name = True
-    _attr_translation_key = const.TRANS_KEY_SENSOR_KID_POINTS_EARNED_MONTHLY_SENSOR
-
-    def __init__(
-        self,
-        coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
-        kid_id: str,
-        kid_name: str,
-        points_label: str,
-        points_icon: str,
-    ):
-        """Initialize the sensor."""
-
-        super().__init__(coordinator)
-        self._kid_id = kid_id
-        self._kid_name = kid_name
-        self._points_label = points_label
-        self._points_icon = points_icon
-        self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_MONTHLY_SENSOR}"
-        self._attr_translation_placeholders = {
-            const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
-        }
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_POINTS_EARNED_MONTHLY_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
-
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
-    @property
-    def native_value(self):
-        """Return how many net points the kid has earned this month."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
-        point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
-        return point_stats.get(const.DATA_KID_POINT_STATS_NET_MONTH, const.DEFAULT_ZERO)
-
-    @property
-    def native_unit_of_measurement(self):
-        """Return the points label."""
-        return self._points_label or const.LABEL_POINTS
-
-    @property
-    def icon(self):
-        """Use the points' custom icon if set, else fallback."""
-        return self._points_icon or const.DEFAULT_POINTS_ICON
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return extra state attributes."""
-        return {
-            const.ATTR_KID_NAME: self._kid_name,
-        }
-
-
-# ------------------------------------------------------------------------------------------
-class AchievementSensor(CoordinatorEntity, SensorEntity):
-    """Sensor representing an achievement."""
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_ACHIEVEMENT_STATE_SENSOR
@@ -2260,7 +1631,14 @@ class AchievementSensor(CoordinatorEntity, SensorEntity):
         achievement_id: str,
         achievement_name: str,
     ):
-        """Initialize the AchievementSensor."""
+        """Initialize the SystemAchievementSensor.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+            achievement_id: Unique identifier for the achievement.
+            achievement_name: Display name of the achievement.
+        """
         super().__init__(coordinator)
         self._entry = entry
         self._achievement_id = achievement_id
@@ -2274,17 +1652,7 @@ class AchievementSensor(CoordinatorEntity, SensorEntity):
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{const.SENSOR_KC_EID_MIDFIX_ACHIEVEMENT_SENSOR}{achievement_name}"
 
     @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
-    @property
-    def native_value(self):
+    def native_value(self) -> Any:
         """Return the overall progress percentage toward the achievement."""
 
         achievement = self.coordinator.achievements_data.get(self._achievement_id, {})
@@ -2369,7 +1737,7 @@ class AchievementSensor(CoordinatorEntity, SensorEntity):
         return min(100, round(percent, 1))
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra attributes for this achievement."""
         achievement = self.coordinator.achievements_data.get(self._achievement_id, {})
         progress = achievement.get(const.DATA_ACHIEVEMENT_PROGRESS, {})
@@ -2465,8 +1833,17 @@ class AchievementSensor(CoordinatorEntity, SensorEntity):
 
 
 # ------------------------------------------------------------------------------------------
-class ChallengeSensor(CoordinatorEntity, SensorEntity):
-    """Sensor representing a challenge."""
+class SystemChallengeSensor(KidsChoresCoordinatorEntity, SensorEntity):
+    """Sensor representing a challenge.
+
+    Provides system-wide challenge definition and tracks aggregated progress
+    across all assigned kids as a percentage (0-100). Supports two challenge
+    types: TOTAL_WITHIN_WINDOW (simple count toward target within date range)
+    and DAILY_MIN (required daily minimum summed across all days in window).
+    Includes challenge metadata such as start/end dates, target values, reward
+    points, criteria, associated chore, and list of kids who have earned the
+    challenge reward.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_CHALLENGE_STATE_SENSOR
@@ -2478,7 +1855,14 @@ class ChallengeSensor(CoordinatorEntity, SensorEntity):
         challenge_id: str,
         challenge_name: str,
     ):
-        """Initialize the ChallengeSensor."""
+        """Initialize the ChallengeSensor.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+            challenge_id: Unique identifier for the challenge.
+            challenge_name: Display name of the challenge.
+        """
         super().__init__(coordinator)
         self._entry = entry
         self._challenge_id = challenge_id
@@ -2492,17 +1876,7 @@ class ChallengeSensor(CoordinatorEntity, SensorEntity):
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{const.SENSOR_KC_EID_MIDFIX_CHALLENGE_SENSOR}{challenge_name}"
 
     @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
-    @property
-    def native_value(self):
+    def native_value(self) -> Any:
         """Return the overall progress percentage toward the challenge."""
 
         challenge = self.coordinator.challenges_data.get(self._challenge_id, {})
@@ -2549,7 +1923,7 @@ class ChallengeSensor(CoordinatorEntity, SensorEntity):
         return min(100, round(percent, 1))
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra attributes for this challenge."""
         challenge = self.coordinator.challenges_data.get(self._challenge_id, {})
         progress = challenge.get(const.DATA_CHALLENGE_PROGRESS, {})
@@ -2638,8 +2012,15 @@ class ChallengeSensor(CoordinatorEntity, SensorEntity):
 
 
 # ------------------------------------------------------------------------------------------
-class AchievementProgressSensor(CoordinatorEntity, SensorEntity):
-    """Sensor representing a kid's progress toward a specific achievement."""
+class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
+    """Sensor representing a kid's progress toward a specific achievement.
+
+    Tracks achievement progress as a percentage (0-100) for individual kid/achievement
+    combinations. Supports multiple achievement types: TOTAL (cumulative count with
+    baseline), STREAK (consecutive completions), and DAILY_MIN (daily minimum
+    requirements). Provides comprehensive metadata including target value, reward
+    points, criteria, associated chore, and award status.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_ACHIEVEMENT_PROGRESS_SENSOR
@@ -2653,7 +2034,16 @@ class AchievementProgressSensor(CoordinatorEntity, SensorEntity):
         achievement_id: str,
         achievement_name: str,
     ):
-        """Initialize the sensor."""
+        """Initialize the sensor.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+            achievement_id: Unique identifier for the achievement.
+            achievement_name: Display name of the achievement.
+        """
         super().__init__(coordinator)
         self._entry = entry
         self._kid_id = kid_id
@@ -2670,18 +2060,17 @@ class AchievementProgressSensor(CoordinatorEntity, SensorEntity):
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
     @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
-    @property
     def native_value(self) -> float:
-        """Return the progress percentage toward the achievement."""
+        """Return the progress percentage toward the achievement.
+
+        Calculates percentage based on achievement type:
+        - TOTAL: (current_value / (baseline + target)) * 100
+        - STREAK: (current_streak / target) * 100
+        - DAILY_MIN: (daily_completions / target) * 100
+
+        Returns:
+            Progress percentage capped at 100.0, rounded to 1 decimal place.
+        """
         achievement = self.coordinator.achievements_data.get(self._achievement_id, {})
         target = achievement.get(const.DATA_ACHIEVEMENT_TARGET_VALUE, 1)
         ach_type = achievement.get(const.DATA_ACHIEVEMENT_TYPE)
@@ -2846,8 +2235,15 @@ class AchievementProgressSensor(CoordinatorEntity, SensorEntity):
 
 
 # ------------------------------------------------------------------------------------------
-class ChallengeProgressSensor(CoordinatorEntity, SensorEntity):
-    """Sensor representing a kid's progress toward a specific challenge."""
+class KidChallengeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
+    """Sensor representing a kid's progress toward a specific challenge.
+
+    Tracks challenge progress as a percentage (0-100) for individual kid/challenge
+    combinations. Supports two challenge types: TOTAL_WITHIN_WINDOW (simple count
+    toward target) and DAILY_MIN (required daily minimums summed across date range).
+    Includes comprehensive metadata such as start/end dates, target values, reward
+    points, associated chore, and award status.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_CHALLENGE_PROGRESS_SENSOR
@@ -2861,7 +2257,16 @@ class ChallengeProgressSensor(CoordinatorEntity, SensorEntity):
         challenge_id: str,
         challenge_name: str,
     ):
-        """Initialize the sensor."""
+        """Initialize the sensor.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+            challenge_id: Unique identifier for the challenge.
+            challenge_name: Display name of the challenge.
+        """
         super().__init__(coordinator)
         self._entry = entry
         self._kid_id = kid_id
@@ -2878,18 +2283,16 @@ class ChallengeProgressSensor(CoordinatorEntity, SensorEntity):
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
     @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
-    @property
     def native_value(self) -> float:
-        """Return the challenge progress percentage."""
+        """Return the challenge progress percentage.
+
+        Calculates percentage based on challenge type:
+        - TOTAL_WITHIN_WINDOW: (count / target) * 100
+        - DAILY_MIN: (sum_of_daily_counts / (required_daily * num_days)) * 100
+
+        Returns:
+            Progress percentage capped at 100.0, rounded to 1 decimal place.
+        """
         challenge = self.coordinator.challenges_data.get(self._challenge_id, {})
         target = challenge.get(const.DATA_CHALLENGE_TARGET_VALUE, 1)
         challenge_type = challenge.get(const.DATA_CHALLENGE_TYPE)
@@ -3026,89 +2429,12 @@ class ChallengeProgressSensor(CoordinatorEntity, SensorEntity):
 
 
 # ------------------------------------------------------------------------------------------
-class KidHighestStreakSensor(CoordinatorEntity, SensorEntity):
-    """Sensor returning the highest current streak among streak-type achievements for a kid."""
+class KidBonusAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
+    """Sensor tracking how many times each bonus has been applied to a kid.
 
-    _attr_has_entity_name = True
-    _attr_translation_key = const.TRANS_KEY_SENSOR_KID_HIGHEST_STREAK_SENSOR
-
-    def __init__(
-        self,
-        coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
-        kid_id: str,
-        kid_name: str,
-    ):
-        """Initialize the sensor."""
-        super().__init__(coordinator)
-        self._entry = entry
-        self._kid_id = kid_id
-        self._kid_name = kid_name
-        self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_HIGHEST_STREAK_SENSOR}"
-        # No unit of measurement - streak is a count, not a duration
-        self._attr_translation_placeholders = {
-            const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
-        }
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_HIGHEST_STREAK_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
-
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
-    @property
-    def native_value(self) -> int:
-        """Return the highest current streak among all streak achievements for the kid."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
-        chore_stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
-        return chore_stats.get(
-            const.DATA_KID_CHORE_STATS_LONGEST_STREAK_ALL_TIME, const.DEFAULT_ZERO
-        )
-
-    @property
-    def extra_state_attributes(self) -> dict:
-        """Return extra attributes including individual streaks per achievement."""
-        streaks = {}
-        for achievement in self.coordinator.achievements_data.values():
-            if (
-                achievement.get(const.DATA_ACHIEVEMENT_TYPE)
-                == const.ACHIEVEMENT_TYPE_STREAK
-            ):
-                achievement_name = achievement.get(
-                    const.DATA_ACHIEVEMENT_NAME, const.DISPLAY_UNKNOWN
-                )
-                progress_for_kid = achievement.get(
-                    const.DATA_ACHIEVEMENT_PROGRESS, {}
-                ).get(self._kid_id)
-
-                if isinstance(progress_for_kid, dict):
-                    streaks[achievement_name] = progress_for_kid.get(
-                        const.DATA_ACHIEVEMENT_CURRENT_STREAK, const.DEFAULT_ZERO
-                    )
-
-                elif isinstance(progress_for_kid, int):
-                    streaks[achievement_name] = progress_for_kid
-
-        return {
-            const.ATTR_KID_NAME: self._kid_name,
-            const.ATTR_STREAKS_BY_ACHIEVEMENT: streaks,
-        }
-
-    @property
-    def icon(self) -> str:
-        """Return an icon for 'highest streak'. You can choose any default or allow config overrides."""
-        return const.DEFAULT_STREAK_ICON
-
-
-# ------------------------------------------------------------------------------------------
-class BonusAppliesSensor(CoordinatorEntity, SensorEntity):
-    """Sensor tracking how many times each bonus has been applied to a kid."""
+    Counts bonus applications for individual kid/bonus combinations. Provides bonus
+    metadata including points awarded, description, and button entity ID for UI integration.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SENSOR_BONUS_APPLIES_SENSOR
@@ -3122,7 +2448,16 @@ class BonusAppliesSensor(CoordinatorEntity, SensorEntity):
         bonus_id: str,
         bonus_name: str,
     ):
-        """Initialize the sensor."""
+        """Initialize the sensor.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+            bonus_id: Unique identifier for the bonus.
+            bonus_name: Display name of the bonus.
+        """
         super().__init__(coordinator)
         self._entry = entry
         self._kid_id = kid_id
@@ -3142,17 +2477,7 @@ class BonusAppliesSensor(CoordinatorEntity, SensorEntity):
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
     @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
-
-    @property
-    def native_value(self):
+    def native_value(self) -> Any:
         """Return the number of times the bonus has been applied."""
         kid_info = self.coordinator.kids_data.get(self._kid_id, {})
         return kid_info.get(const.DATA_KID_BONUS_APPLIES, {}).get(
@@ -3160,7 +2485,7 @@ class BonusAppliesSensor(CoordinatorEntity, SensorEntity):
         )
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Expose additional details like bonus points and description."""
         bonus_info = self.coordinator.bonuses_data.get(self._bonus_id, {})
 
@@ -3169,15 +2494,14 @@ class BonusAppliesSensor(CoordinatorEntity, SensorEntity):
             kh.get_friendly_label(self.hass, label) for label in stored_labels
         ]
 
-        # Get the BonusButton entity_id
+        # Get the ParentBonusApplyButton entity_id
         bonus_button_eid = None
         try:
             entity_registry = async_get(self.hass)
             unique_id = f"{self._entry.entry_id}_{const.BUTTON_BONUS_PREFIX}{self._kid_id}_{self._bonus_id}"
-            for entity in entity_registry.entities.values():
-                if entity.unique_id == unique_id:
-                    bonus_button_eid = entity.entity_id
-                    break
+            bonus_button_eid = entity_registry.async_get_entity_id(
+                "button", const.DOMAIN, unique_id
+            )
         except (KeyError, ValueError, AttributeError):
             pass
 
@@ -3202,12 +2526,18 @@ class BonusAppliesSensor(CoordinatorEntity, SensorEntity):
 
 
 # ------------------------------------------------------------------------------------------
-class DashboardHelperSensor(CoordinatorEntity, SensorEntity):
+class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
     """Aggregated dashboard helper sensor for a kid.
 
     Provides a consolidated view of all kid-related entities including chores,
     rewards, badges, bonuses, penalties, achievements, challenges, and point buttons.
-    Also serves dashboard translations for multilingual UI support.
+    Serves pre-sorted and pre-filtered entity lists to optimize dashboard template
+    rendering performance. Also provides ui_translations dictionary containing all
+    40+ localization keys from backend integration JSON for multilingual dashboard
+    support without requiring language-specific YAML variants.
+
+    This sensor is the single source of truth for the KidsChores dashboard,
+    eliminating expensive frontend list iterations and sorting operations.
     """
 
     _attr_has_entity_name = True
@@ -3221,6 +2551,15 @@ class DashboardHelperSensor(CoordinatorEntity, SensorEntity):
         kid_name: str,
         points_label: str,
     ):
+        """Initialize the sensor.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+            points_label: Customizable label for points currency (e.g., 'Points', 'Stars').
+        """
         super().__init__(coordinator)
         self._entry = entry
         self._kid_id = kid_id
@@ -3268,6 +2607,16 @@ class DashboardHelperSensor(CoordinatorEntity, SensorEntity):
         if dashboard_language != self._current_language:
             self.hass.async_create_task(self._async_reload_translations())
 
+        # Check if pending approvals changed - forces attribute rebuild
+        # Flags are reset in extra_state_attributes after rebuild
+        # pylint: disable=protected-access  # Intentional access to change flags
+        if (
+            self.coordinator._pending_chore_changed
+            or self.coordinator._pending_reward_changed
+        ):
+            # Flag set - attributes will rebuild in next extra_state_attributes call
+            pass
+
         super()._handle_coordinator_update()
 
     async def _async_reload_translations(self) -> None:
@@ -3282,16 +2631,6 @@ class DashboardHelperSensor(CoordinatorEntity, SensorEntity):
         )
         self._current_language = dashboard_language
         self.async_write_ha_state()
-
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return typed coordinator."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set coordinator."""
-        object.__setattr__(self, "_coordinator", value)
 
     def _get_next_monday_7am_local(self) -> datetime:
         """Calculate the next Monday at 7:00 AM local time.
@@ -3430,7 +2769,7 @@ class DashboardHelperSensor(CoordinatorEntity, SensorEntity):
         return const.PRIMARY_GROUP_OTHER
 
     @property
-    def native_value(self):
+    def native_value(self) -> Any:
         """Return an overall summary string. Primary consumers should use attributes."""
         # Provide a short human-readable summary
         kid_info = self.coordinator.kids_data.get(self._kid_id, {})
@@ -3497,6 +2836,123 @@ class DashboardHelperSensor(CoordinatorEntity, SensorEntity):
         # Minimal native value summarizing counts
         return f"chores:{len(chores)} rewards:{len(rewards)} badges:{badges_count} bonuses:{bonuses_count} penalties:{penalties_count} achievements:{achievements_count} challenges:{challenges_count}"
 
+    def _build_pending_approvals(self, entity_registry) -> dict:
+        """Build pending approvals data with button entity IDs.
+
+        Returns:
+            dict: {
+                "chores": [
+                    {
+                        "chore_id": "uuid",
+                        "chore_name": "Take out Trash",
+                        "timestamp": "2024-01-15T10:30:00+00:00",
+                        "approve_button_eid": "button.kc_kid_a_chore_1_approve",
+                        "disapprove_button_eid": "button.kc_kid_a_chore_1_disapprove"
+                    }
+                ],
+                "rewards": [...]
+            }
+        """
+        pending_chores = []
+        pending_rewards = []
+
+        # Get all pending approvals from coordinator
+        # pylint: disable=protected-access  # Accessing coordinator internal data
+        pending_chore_approvals = self.coordinator._data.get(
+            const.DATA_PENDING_CHORE_APPROVALS, []
+        )
+        pending_reward_approvals = self.coordinator._data.get(
+            const.DATA_PENDING_REWARD_APPROVALS, []
+        )
+
+        # Filter for this kid's pending chores
+        for approval in pending_chore_approvals:
+            if approval.get(const.DATA_KID_ID) != self._kid_id:
+                continue
+
+            chore_id = approval.get(const.DATA_CHORE_ID)
+            chore_info = self.coordinator.chores_data.get(chore_id, {})
+            chore_name = kh.get_entity_name_or_log_error(
+                "chore", chore_id, chore_info, const.DATA_CHORE_NAME
+            )
+            if not chore_name:
+                continue
+
+            # Build button unique IDs and lookup entity IDs
+            approve_uid = (
+                f"{self._entry.entry_id}_{self._kid_id}_{chore_id}"
+                f"{const.BUTTON_KC_UID_SUFFIX_APPROVE}"
+            )
+            disapprove_uid = (
+                f"{self._entry.entry_id}_{self._kid_id}_{chore_id}"
+                f"{const.BUTTON_KC_UID_SUFFIX_DISAPPROVE}"
+            )
+
+            approve_eid = None
+            disapprove_eid = None
+            if entity_registry:
+                approve_eid = entity_registry.async_get_entity_id(
+                    "button", const.DOMAIN, approve_uid
+                )
+                disapprove_eid = entity_registry.async_get_entity_id(
+                    "button", const.DOMAIN, disapprove_uid
+                )
+
+            pending_chores.append(
+                {
+                    "chore_id": chore_id,
+                    "chore_name": chore_name,
+                    "timestamp": approval.get(const.DATA_CHORE_TIMESTAMP),
+                    "approve_button_eid": approve_eid,
+                    "disapprove_button_eid": disapprove_eid,
+                }
+            )
+
+        # Filter for this kid's pending rewards
+        for approval in pending_reward_approvals:
+            if approval.get(const.DATA_KID_ID) != self._kid_id:
+                continue
+
+            reward_id = approval.get(const.DATA_REWARD_ID)
+            reward_info = self.coordinator.rewards_data.get(reward_id, {})
+            reward_name = kh.get_entity_name_or_log_error(
+                "reward", reward_id, reward_info, const.DATA_REWARD_NAME
+            )
+            if not reward_name:
+                continue
+
+            # Build button unique IDs and lookup entity IDs
+            approve_uid = (
+                f"{self._entry.entry_id}_{self._kid_id}_{reward_id}"
+                f"{const.BUTTON_KC_UID_SUFFIX_APPROVE_REWARD}"
+            )
+            disapprove_uid = (
+                f"{self._entry.entry_id}_{self._kid_id}_{reward_id}"
+                f"{const.BUTTON_KC_UID_SUFFIX_DISAPPROVE_REWARD}"
+            )
+
+            approve_eid = None
+            disapprove_eid = None
+            if entity_registry:
+                approve_eid = entity_registry.async_get_entity_id(
+                    "button", const.DOMAIN, approve_uid
+                )
+                disapprove_eid = entity_registry.async_get_entity_id(
+                    "button", const.DOMAIN, disapprove_uid
+                )
+
+            pending_rewards.append(
+                {
+                    "reward_id": reward_id,
+                    "reward_name": reward_name,
+                    "timestamp": approval.get(const.DATA_REWARD_TIMESTAMP),
+                    "approve_button_eid": approve_eid,
+                    "disapprove_button_eid": disapprove_eid,
+                }
+            )
+
+        return {"chores": pending_chores, "rewards": pending_rewards}
+
     @property
     def extra_state_attributes(self) -> dict:
         """Return detailed aggregated structure as attributes.
@@ -3529,10 +2985,9 @@ class DashboardHelperSensor(CoordinatorEntity, SensorEntity):
             chore_eid = None
             if entity_registry:
                 unique_id = f"{self._entry.entry_id}_{self._kid_id}_{chore_id}{const.SENSOR_KC_UID_SUFFIX_CHORE_STATUS_SENSOR}"
-                for entity in entity_registry.entities.values():
-                    if entity.unique_id == unique_id:
-                        chore_eid = entity.entity_id
-                        break
+                chore_eid = entity_registry.async_get_entity_id(
+                    "sensor", const.DOMAIN, unique_id
+                )
 
             # Use helper method to calculate all chore attributes
             chore_attrs = self._calculate_chore_attributes(
@@ -3565,10 +3020,9 @@ class DashboardHelperSensor(CoordinatorEntity, SensorEntity):
             reward_eid = None
             if entity_registry:
                 unique_id = f"{self._entry.entry_id}_{self._kid_id}_{reward_id}{const.SENSOR_KC_UID_SUFFIX_REWARD_STATUS_SENSOR}"
-                for entity in entity_registry.entities.values():
-                    if entity.unique_id == unique_id:
-                        reward_eid = entity.entity_id
-                        break
+                reward_eid = entity_registry.async_get_entity_id(
+                    "sensor", const.DOMAIN, unique_id
+                )
 
             # Get reward labels (always a list, even if empty)
             reward_labels = reward_info.get(const.DATA_REWARD_LABELS, [])
@@ -3621,10 +3075,9 @@ class DashboardHelperSensor(CoordinatorEntity, SensorEntity):
             badge_eid = None
             if entity_registry:
                 unique_id = f"{self._entry.entry_id}_{self._kid_id}_{badge_id}{const.SENSOR_KC_UID_SUFFIX_BADGE_PROGRESS_SENSOR}"
-                for entity in entity_registry.entities.values():
-                    if entity.unique_id == unique_id:
-                        badge_eid = entity.entity_id
-                        break
+                badge_eid = entity_registry.async_get_entity_id(
+                    "sensor", const.DOMAIN, unique_id
+                )
 
             # Get badge status from kid's badge progress
             badge_progress = kid_info.get(const.DATA_KID_BADGE_PROGRESS, {}).get(
@@ -3654,14 +3107,13 @@ class DashboardHelperSensor(CoordinatorEntity, SensorEntity):
             )
             if not bonus_name:
                 continue
-            # Get BonusAppliesSensor entity_id
+            # Get KidBonusAppliedSensor entity_id
             bonus_eid = None
             if entity_registry:
                 unique_id = f"{self._entry.entry_id}_{self._kid_id}_{bonus_id}{const.SENSOR_KC_UID_SUFFIX_BONUS_APPLIES_SENSOR}"
-                for entity in entity_registry.entities.values():
-                    if entity.unique_id == unique_id:
-                        bonus_eid = entity.entity_id
-                        break
+                bonus_eid = entity_registry.async_get_entity_id(
+                    "sensor", const.DOMAIN, unique_id
+                )
 
             # Get bonus points
             bonus_points = bonus_info.get(const.DATA_BONUS_POINTS, 0)
@@ -3694,10 +3146,9 @@ class DashboardHelperSensor(CoordinatorEntity, SensorEntity):
             penalty_eid = None
             if entity_registry:
                 unique_id = f"{self._entry.entry_id}_{self._kid_id}_{penalty_id}{const.SENSOR_KC_UID_SUFFIX_PENALTY_APPLIES_SENSOR}"
-                for entity in entity_registry.entities.values():
-                    if entity.unique_id == unique_id:
-                        penalty_eid = entity.entity_id
-                        break
+                penalty_eid = entity_registry.async_get_entity_id(
+                    "sensor", const.DOMAIN, unique_id
+                )
 
             # Get penalty points (stored as positive, represents points removed)
             penalty_points = penalty_info.get(const.DATA_PENALTY_POINTS, 0)
@@ -3736,14 +3187,13 @@ class DashboardHelperSensor(CoordinatorEntity, SensorEntity):
             )
             if not achievement_name:
                 continue
-            # Get AchievementProgressSensor entity_id
+            # Get KidAchievementProgressSensor entity_id
             achievement_eid = None
             if entity_registry:
                 unique_id = f"{self._entry.entry_id}_{self._kid_id}_{achievement_id}{const.SENSOR_KC_UID_SUFFIX_ACHIEVEMENT_PROGRESS_SENSOR}"
-                for entity in entity_registry.entities.values():
-                    if entity.unique_id == unique_id:
-                        achievement_eid = entity.entity_id
-                        break
+                achievement_eid = entity_registry.async_get_entity_id(
+                    "sensor", const.DOMAIN, unique_id
+                )
             achievements_attr.append(
                 {
                     const.ATTR_EID: achievement_eid,
@@ -3766,14 +3216,13 @@ class DashboardHelperSensor(CoordinatorEntity, SensorEntity):
             )
             if not challenge_name:
                 continue
-            # Get ChallengeProgressSensor entity_id
+            # Get KidChallengeProgressSensor entity_id
             challenge_eid = None
             if entity_registry:
                 unique_id = f"{self._entry.entry_id}_{self._kid_id}_{challenge_id}{const.SENSOR_KC_UID_SUFFIX_CHALLENGE_PROGRESS_SENSOR}"
-                for entity in entity_registry.entities.values():
-                    if entity.unique_id == unique_id:
-                        challenge_eid = entity.entity_id
-                        break
+                challenge_eid = entity_registry.async_get_entity_id(
+                    "sensor", const.DOMAIN, unique_id
+                )
             challenges_attr.append(
                 {
                     const.ATTR_EID: challenge_eid,
@@ -3785,6 +3234,9 @@ class DashboardHelperSensor(CoordinatorEntity, SensorEntity):
         challenges_attr.sort(key=lambda c: c.get(const.ATTR_NAME, "").lower())
 
         # Point adjustment buttons for this kid
+        # NOTE: This section MUST iterate entity_registry because we need to find ALL buttons
+        # matching a prefix pattern (not a single unique_id). This is acceptable O(n)
+        # because it only runs once per dashboard refresh, not per-entity.
         points_buttons_attr = []
         if entity_registry:
             # Find all point adjustment buttons for this kid
@@ -3860,6 +3312,14 @@ class DashboardHelperSensor(CoordinatorEntity, SensorEntity):
         # Sort labels alphabetically for consistent ordering
         chores_by_label = dict(sorted(chores_by_label.items()))
 
+        # Build pending approvals data if flags indicate changes
+        pending_approvals = self._build_pending_approvals(entity_registry)
+
+        # Reset change flags after building attributes
+        # pylint: disable=protected-access  # Intentional flag reset after rebuild
+        self.coordinator._pending_chore_changed = False
+        self.coordinator._pending_reward_changed = False
+
         return {
             "chores": chores_attr,
             const.ATTR_CHORES_BY_LABEL: chores_by_label,
@@ -3870,6 +3330,7 @@ class DashboardHelperSensor(CoordinatorEntity, SensorEntity):
             "achievements": achievements_attr,
             "challenges": challenges_attr,
             "points_buttons": points_buttons_attr,
+            "pending_approvals": pending_approvals,
             const.ATTR_KID_NAME: self._kid_name,
             "ui_translations": self._ui_translations,
             "language": dashboard_language,

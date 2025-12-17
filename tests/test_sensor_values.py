@@ -22,7 +22,7 @@ async def test_completed_chores_daily_sensor_increments_on_approval(
     hass: HomeAssistant,
     scenario_full: tuple,
 ) -> None:
-    """Test CompletedChoresDailySensor increments after chore approval."""
+    """Test SystemChoreApprovalsDailySensor increments after chore approval."""
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
@@ -58,7 +58,7 @@ async def test_completed_chores_total_sensor_attributes(
     hass: HomeAssistant,
     scenario_full: tuple,
 ) -> None:
-    """Test CompletedChoresTotalSensor exposes correct chore_stats attributes."""
+    """Test SystemChoreApprovalsSensor exposes correct chore_stats attributes."""
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
@@ -197,7 +197,7 @@ async def test_badge_sensor_reads_from_new_schema(
     hass: HomeAssistant,
     scenario_full: tuple,
 ) -> None:
-    """Test BadgeSensor accesses badge data from new schema structure."""
+    """Test SystemBadgeSensor accesses badge data from new schema structure."""
     config_entry, _ = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
@@ -269,11 +269,11 @@ async def test_completed_chores_sensors_use_new_schema(
     sensor_type: str,  # pylint: disable=unused-argument  # Used in test parameterization
     stats_key: str,
 ) -> None:
-    """Test CompletedChores sensors read from DATA_KID_CHORE_STATS dict.
+    """Test SystemChoreApprovals sensors read from DATA_KID_CHORE_STATS dict.
 
-    NOTE: These sensors (CompletedChoresDaily/Weekly/MonthlySensor) are marked
+    NOTE: These sensors (SystemChoreApprovalsDaily/Weekly/MonthlySensor) are marked
     for optional deprecation in KC-vNext as their data is now available as
-    attributes on CompletedChoresTotalSensor.
+    attributes on SystemChoreApprovalsSensor.
     """
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]

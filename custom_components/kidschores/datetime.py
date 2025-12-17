@@ -31,12 +31,14 @@ async def async_setup_entry(
     entities = []
     for kid_id, kid_info in coordinator.kids_data.items():
         kid_name = kid_info.get(const.DATA_KID_NAME, f"Kid {kid_id}")
-        entities.append(KidDateTimeHelper(coordinator, entry, kid_id, kid_name))
+        entities.append(
+            KidDashboardHelperDateTimePicker(coordinator, entry, kid_id, kid_name)
+        )
 
     async_add_entities(entities)
 
 
-class KidDateTimeHelper(DateTimeEntity, RestoreEntity):
+class KidDashboardHelperDateTimePicker(DateTimeEntity, RestoreEntity):
     """DateTime helper entity for kid-specific date/time selection."""
 
     _attr_has_entity_name = True
@@ -49,7 +51,14 @@ class KidDateTimeHelper(DateTimeEntity, RestoreEntity):
         kid_id: str,
         kid_name: str,
     ) -> None:
-        """Initialize the datetime helper."""
+        """Initialize the datetime helper.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+        """
         self.coordinator = coordinator
         self._kid_id = kid_id
         self._kid_name = kid_name

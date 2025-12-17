@@ -3,7 +3,6 @@
 from homeassistant.util import slugify
 
 from custom_components.kidschores import const
-from custom_components.kidschores.button import PointsAdjustButton
 
 
 def test_points_button_entity_id_pattern() -> None:
@@ -75,7 +74,7 @@ def test_bonus_button_suffix_stripping() -> None:
     ]
 
     for bonus_name, slugified_name, expected_suffix in test_cases:
-        # Simulate what BonusButton __init__ does
+        # Simulate what ParentBonusApplyButton __init__ does
         entity_slug = slugified_name
 
         # Strip redundant _bonus suffix if present

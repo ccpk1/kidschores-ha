@@ -14,11 +14,11 @@ from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import const
 from . import kc_helpers as kh
 from .coordinator import KidsChoresDataCoordinator
+from .entity import KidsChoresCoordinatorEntity
 
 
 async def async_setup_entry(
@@ -30,41 +30,50 @@ async def async_setup_entry(
     data = hass.data[const.DOMAIN][entry.entry_id]
     coordinator: KidsChoresDataCoordinator = data[const.COORDINATOR]
 
-    # Create one global select entity for each category
-    selects = [
-        ChoresSelect(coordinator, entry),
-        RewardsSelect(coordinator, entry),
-        PenaltiesSelect(coordinator, entry),
-        BonusesSelect(coordinator, entry),
-    ]
+    selects = []
 
+    # Legacy system-wide select entities (disabled by default)
+    show_legacy_entities = entry.options.get(
+        const.CONF_SHOW_LEGACY_ENTITIES, const.DEFAULT_SHOW_LEGACY_ENTITIES
+    )
+    if show_legacy_entities:
+        selects.extend(
+            [
+                SystemChoresSelect(coordinator, entry),
+                SystemRewardsSelect(coordinator, entry),
+                SystemPenaltiesSelect(coordinator, entry),
+                SystemBonusesSelect(coordinator, entry),
+            ]
+        )
+
+    # Kid-specific dashboard helper selects
     for kid_id in coordinator.kids_data.keys():
-        selects.append(ChoresKidSelect(coordinator, entry, kid_id))
+        selects.append(KidDashboardHelperChoresSelect(coordinator, entry, kid_id))
 
     async_add_entities(selects)
 
 
-class KidsChoresSelectBase(CoordinatorEntity, SelectEntity):
-    """Base class for the KidsChores select entities."""
+class KidsChoresSelectBase(KidsChoresCoordinatorEntity, SelectEntity):
+    """Base class for the KidsChores select entities.
+
+    Provides common select functionality for choosing chores, rewards, penalties,
+    or bonuses from dropdown lists. Stores selected option and updates state.
+    Used by both legacy system-wide selects and kid-specific dashboard helpers.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SELECT_BASE
 
     def __init__(self, coordinator: KidsChoresDataCoordinator, entry: ConfigEntry):
-        """Initialize the base select entity."""
+        """Initialize the base select entity.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+        """
         super().__init__(coordinator)
         self._entry = entry
         self._selected_option: Optional[str] = None
-
-    @property
-    def coordinator(self) -> KidsChoresDataCoordinator:
-        """Return the coordinator with proper typing."""
-        return object.__getattribute__(self, "_coordinator")
-
-    @coordinator.setter
-    def coordinator(self, value: KidsChoresDataCoordinator) -> None:
-        """Set the coordinator."""
-        object.__setattr__(self, "_coordinator", value)
 
     @property
     def current_option(self) -> Optional[str]:
@@ -72,7 +81,11 @@ class KidsChoresSelectBase(CoordinatorEntity, SelectEntity):
         return self._selected_option
 
     async def async_select_option(self, option: str) -> None:
-        """When the user selects an option from the dropdown, store it."""
+        """When the user selects an option from the dropdown, store it.
+
+        Args:
+            option: The selected option name (chore/reward/penalty/bonus name).
+        """
         self._selected_option = option
         self.async_write_ha_state()
 
@@ -83,14 +96,23 @@ class KidsChoresSelectBase(CoordinatorEntity, SelectEntity):
         self._selected_option = option
 
 
-class ChoresSelect(KidsChoresSelectBase):
-    """Global select entity listing all defined chores by name."""
+class SystemChoresSelect(KidsChoresSelectBase):
+    """Global select entity listing all defined chores by name (legacy).
+
+    NOTE: Legacy entity disabled by default. Provides system-wide chore selection
+    for automations. Consider using kid-specific selects for better organization.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SELECT_CHORES
 
     def __init__(self, coordinator: KidsChoresDataCoordinator, entry: ConfigEntry):
-        """Initialize the Chores select entity."""
+        """Initialize the Chores select entity.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+        """
         super().__init__(coordinator, entry)
         self._attr_unique_id = (
             f"{entry.entry_id}{const.SELECT_KC_UID_SUFFIX_CHORES_SELECT}"
@@ -115,14 +137,23 @@ class ChoresSelect(KidsChoresSelectBase):
         ]
 
 
-class RewardsSelect(KidsChoresSelectBase):
-    """Global select entity listing all defined rewards by name."""
+class SystemRewardsSelect(KidsChoresSelectBase):
+    """Global select entity listing all defined rewards by name (legacy).
+
+    NOTE: Legacy entity disabled by default. Provides system-wide reward selection
+    for automations. Consider using kid-specific reward buttons for better organization.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SELECT_REWARDS
 
     def __init__(self, coordinator: KidsChoresDataCoordinator, entry: ConfigEntry):
-        """Initialize the Rewards select entity."""
+        """Initialize the Rewards select entity.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+        """
         super().__init__(coordinator, entry)
         self._attr_unique_id = (
             f"{entry.entry_id}{const.SELECT_KC_UID_SUFFIX_REWARDS_SELECT}"
@@ -147,14 +178,23 @@ class RewardsSelect(KidsChoresSelectBase):
         ]
 
 
-class PenaltiesSelect(KidsChoresSelectBase):
-    """Global select entity listing all defined penalties by name."""
+class SystemPenaltiesSelect(KidsChoresSelectBase):
+    """Global select entity listing all defined penalties by name (legacy).
+
+    NOTE: Legacy entity disabled by default. Provides system-wide penalty selection
+    for automations. Consider using penalty buttons for better organization.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SELECT_PENALTIES
 
     def __init__(self, coordinator: KidsChoresDataCoordinator, entry: ConfigEntry):
-        """Initialize the Penalties select entity."""
+        """Initialize the Penalties select entity.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+        """
         super().__init__(coordinator, entry)
         self._attr_unique_id = (
             f"{entry.entry_id}{const.SELECT_KC_UID_SUFFIX_PENALTIES_SELECT}"
@@ -179,14 +219,23 @@ class PenaltiesSelect(KidsChoresSelectBase):
         ]
 
 
-class BonusesSelect(KidsChoresSelectBase):
-    """Global select entity listing all defined bonuses by name."""
+class SystemBonusesSelect(KidsChoresSelectBase):
+    """Global select entity listing all defined bonuses by name (legacy).
+
+    NOTE: Legacy entity disabled by default. Provides system-wide bonus selection
+    for automations. Consider using bonus buttons for better organization.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SELECT_BONUSES
 
     def __init__(self, coordinator: KidsChoresDataCoordinator, entry: ConfigEntry):
-        """Initialize the Bonuses select entity."""
+        """Initialize the Bonuses select entity.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+        """
         super().__init__(coordinator, entry)
         self._attr_unique_id = (
             f"{entry.entry_id}{const.SELECT_KC_UID_SUFFIX_BONUSES_SELECT}"
@@ -211,8 +260,13 @@ class BonusesSelect(KidsChoresSelectBase):
         ]
 
 
-class ChoresKidSelect(KidsChoresSelectBase):
-    """Select entity listing only the chores assigned to a specific kid."""
+class KidDashboardHelperChoresSelect(KidsChoresSelectBase):
+    """Select entity listing only the chores assigned to a specific kid (dashboard helper).
+
+    Filters chore list to show only assignments for this kid. Used by dashboard
+    automations to dynamically select kid-specific chores. Includes 'None' option
+    for clearing selection.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SELECT_CHORES_KID
@@ -220,7 +274,13 @@ class ChoresKidSelect(KidsChoresSelectBase):
     def __init__(
         self, coordinator: KidsChoresDataCoordinator, entry: ConfigEntry, kid_id: str
     ):
-        """Initialize the ChoresKidSelect."""
+        """Initialize the KidDashboardHelperChoresSelect.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid to filter chores.
+        """
         super().__init__(coordinator, entry)
         self._kid_id = kid_id
         kid_name = coordinator.kids_data.get(kid_id, {}).get(
@@ -239,7 +299,11 @@ class ChoresKidSelect(KidsChoresSelectBase):
 
     @property
     def options(self) -> list[str]:
-        """Return a list of chore names assigned to this kid, with a 'None' option."""
+        """Return a list of chore names assigned to this kid, with a 'None' option.
+
+        Filters coordinator.chores_data to include only chores where kid_id is in
+        the assigned_kids list. Prepends 'None' option for clearing selection.
+        """
         # Start with a "None" entry
         options = [const.SENTINEL_NONE_TEXT]
         for chore_id, chore_info in self.coordinator.chores_data.items():

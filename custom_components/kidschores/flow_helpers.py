@@ -250,7 +250,8 @@ def build_kids_data(
         const.CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS, True
     )
     notify_service = (
-        user_input.get(const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE) or const.SENTINEL_EMPTY
+        user_input.get(const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE)
+        or const.SENTINEL_EMPTY
     )
     enable_persist = user_input.get(
         const.CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
@@ -332,7 +333,8 @@ def build_parent_schema(
         {
             vol.Required(const.CONF_PARENT_NAME, default=default_parent_name): str,
             vol.Optional(
-                const.CONF_HA_USER_ID, default=default_ha_user_id or const.SENTINEL_EMPTY
+                const.CONF_HA_USER_ID,
+                default=default_ha_user_id or const.SENTINEL_EMPTY,
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=user_options,
@@ -393,7 +395,9 @@ def build_parents_data(
     parent_name = user_input.get(const.CFOF_PARENTS_INPUT_NAME, "").strip()
     internal_id = user_input.get(const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4()))
 
-    ha_user_id = user_input.get(const.CFOF_PARENTS_INPUT_HA_USER) or const.SENTINEL_EMPTY
+    ha_user_id = (
+        user_input.get(const.CFOF_PARENTS_INPUT_HA_USER) or const.SENTINEL_EMPTY
+    )
     associated_kids = user_input.get(const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS, [])
     enable_mobile_notifications = user_input.get(
         const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS, True
@@ -1499,10 +1503,14 @@ def build_badge_common_schema(
 
     # --- Challenge-Linked Component Schema ---
     if include_challenge_linked:
-        challenge_options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}] + [
+        challenge_options = [
+            {"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}
+        ] + [
             {
                 "value": challenge_id,
-                "label": challenge.get(const.DATA_CHALLENGE_NAME, const.SENTINEL_NONE_TEXT),
+                "label": challenge.get(
+                    const.DATA_CHALLENGE_NAME, const.SENTINEL_NONE_TEXT
+                ),
             }
             for challenge_id, challenge in challenges_dict.items()
         ]
@@ -2502,7 +2510,9 @@ def build_achievement_schema(kids_dict, chores_dict, default=None):
     ]:
         pass
 
-    default_criteria = default.get(const.CONF_ACHIEVEMENT_CRITERIA, const.SENTINEL_EMPTY)
+    default_criteria = default.get(
+        const.CONF_ACHIEVEMENT_CRITERIA, const.SENTINEL_EMPTY
+    )
     default_assigned_kids = default.get(const.CONF_ACHIEVEMENT_ASSIGNED_KIDS, [])
     if not isinstance(default_assigned_kids, list):
         default_assigned_kids = [default_assigned_kids]
@@ -2736,6 +2746,9 @@ def build_general_options_schema(default: Optional[dict] = None) -> vol.Schema:
     default_retention_yearly = default.get(
         const.CONF_RETENTION_YEARLY, const.DEFAULT_RETENTION_YEARLY
     )
+    default_show_legacy_entities = default.get(
+        const.CONF_SHOW_LEGACY_ENTITIES, const.DEFAULT_SHOW_LEGACY_ENTITIES
+    )
 
     return vol.Schema(
         {
@@ -2804,6 +2817,9 @@ def build_general_options_schema(default: Optional[dict] = None) -> vol.Schema:
                     step=1,
                 )
             ),
+            vol.Required(
+                const.CONF_SHOW_LEGACY_ENTITIES, default=default_show_legacy_entities
+            ): selector.BooleanSelector(),
         }
     )
 

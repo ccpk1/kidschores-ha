@@ -1,6 +1,6 @@
 # Testing Agent Instructions - KidsChores Integration
 
-Quick reference for AI agents working on the KidsChores test suite. Consult [TESTING_TECHNICAL_GUIDE.md](TESTING_TECHNICAL_GUIDE.md) if issues persist after 3 attempts.
+Quick reference for AI agents working on the KidsChores test suite. Consult [TESTING_GUIDE.md](TESTING_GUIDE.md) if issues persist after 3 attempts.
 
 ## Quick Commands
 
@@ -73,7 +73,7 @@ with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
 
 ## Troubleshooting (3-Attempt Rule)
 
-If issue persists after 3 attempts, consult [TESTING_TECHNICAL_GUIDE.md](TESTING_TECHNICAL_GUIDE.md) sections:
+If issue persists after 3 attempts, consult [TESTING_GUIDE.md](TESTING_GUIDE.md) sections:
 
 - **Debugging** (line ~1100) - Full troubleshooting guide
 - **Lessons Learned** (line ~1200) - Common pitfalls
@@ -82,24 +82,54 @@ If issue persists after 3 attempts, consult [TESTING_TECHNICAL_GUIDE.md](TESTING
 
 ## Code Quality Requirements
 
-### Before Committing - Mandatory Checks
+### During Development (Optional - Quick Iteration)
 
 ```bash
-# ALWAYS RUN after EVERY change:
+# Run specific test file while working
+python -m pytest tests/test_coordinator.py -v
+
+# Lint single file
+python utils/lint_check.py --integration custom_components/kidschores/sensor.py
+
+# Quick syntax check
+python -m py_compile custom_components/kidschores/sensor.py
+```
+
+### Before Completion - MANDATORY REQUIREMENTS ✅
+
+**Work is NOT complete until BOTH commands pass:**
+
+```bash
+# 1. FULL LINT CHECK (~22 seconds - BATCHED for speed)
 ./utils/quick_lint.sh --fix
 
-# This checks:
-# - Pylint errors (critical severity 4+)
-# - Type errors (Pyright/Pylance)
-# - Trailing whitespace (auto-fixes)
-# - Line length warnings
+# This verifies:
+# ✅ Pylint errors (critical severity 4+) across ALL files
+# ✅ Trailing whitespace (auto-fixes)
+# ✅ Line length compliance
+# ✅ No import errors or syntax issues
+# Type checking DISABLED by default for speed
 
-# Verify all tests pass
-python -m pytest tests/ -v
+# 2. FULL TEST SUITE (~7 seconds - 150 tests)
+python -m pytest tests/ -v --tb=line
+
+# This verifies:
+# ✅ All 150 tests pass (allows intentional skips)
+# ✅ No regressions introduced
+# ✅ Integration behavior correct end-to-end
+```
+
+**NEVER declare work complete without running both commands above.**
+
+### Optional: Full Type Checking (slower, ~1-2 minutes)
+
+python utils/lint_check.py --types
 
 # For detailed checks on specific files:
+
 python utils/lint_check.py --file path/to/file.py
-```
+
+````
 
 **See [utils/README_LINTING.md](../utils/README_LINTING.md) for complete linting guide.**
 
@@ -126,7 +156,7 @@ python utils/lint_check.py --file path/to/file.py
 # pylint: disable=unused-argument  # Fixtures needed for test setup
 
 from unittest.mock import AsyncMock
-```
+````
 
 **Place immediately after docstring, before imports**
 

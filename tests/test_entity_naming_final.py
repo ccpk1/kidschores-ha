@@ -1,29 +1,27 @@
 """Test entity naming consistency - badges, rewards, buttons, and friendly names."""
 
-# pylint: disable=protected-access
+# pylint: disable=protected-access,redefined-outer-name  # Pytest fixtures
+
+from unittest.mock import AsyncMock
 
 import pytest
-from unittest.mock import patch, AsyncMock
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
 
 from custom_components.kidschores import const
+from custom_components.kidschores.button import (
+    KidChoreClaimButton,
+    ParentBonusApplyButton,
+    ParentChoreDisapproveButton,
+    ParentPenaltyApplyButton,
+    ParentRewardDisapproveButton,
+)
 from custom_components.kidschores.coordinator import KidsChoresDataCoordinator
 from custom_components.kidschores.sensor import (
-    BadgeSensor,
-    KidHighestBadgeSensor,
-    BadgeProgressSensor,
-    ChoreStatusSensor,
-    RewardStatusSensor,
-    PenaltyAppliesSensor,
-)
-from custom_components.kidschores.button import (
-    ClaimChoreButton,
-    DisapproveChoreButton,
-    BonusButton,
-    PenaltyButton,
-    DisapproveRewardButton,
+    KidBadgeHighestSensor,
+    KidBadgeProgressSensor,
+    KidChoreStatusSensor,
+    KidPenaltyAppliedSensor,
+    KidRewardStatusSensor,
+    SystemBadgeSensor,
 )
 from tests.conftest import MockConfigEntry
 
@@ -42,7 +40,7 @@ def mock_config_entry() -> MockConfigEntry:
 
 @pytest.mark.asyncio
 async def test_badge_sensor_has_system_device_info(mock_config_entry):
-    """Test that BadgeSensor (global) uses system device info, not kid device."""
+    """Test that SystemBadgeSensor (global) uses system device info, not kid device."""
     coordinator = AsyncMock(spec=KidsChoresDataCoordinator)
     coordinator.badges_data = {
         "badge_1": {
@@ -51,7 +49,7 @@ async def test_badge_sensor_has_system_device_info(mock_config_entry):
     }
     coordinator.kids_data = {}
 
-    sensor = BadgeSensor(
+    sensor = SystemBadgeSensor(
         coordinator=coordinator,
         entry=mock_config_entry,
         badge_id="badge_1",
@@ -84,7 +82,7 @@ async def test_kid_highest_badge_sensor_friendly_name():
         }
     }
 
-    sensor = KidHighestBadgeSensor(
+    sensor = KidBadgeHighestSensor(
         coordinator=coordinator,
         entry=mock_config_entry,
         kid_id="kid_1",
@@ -92,14 +90,16 @@ async def test_kid_highest_badge_sensor_friendly_name():
     )
 
     # Verify translation key is set correctly
-    assert sensor._attr_translation_key == const.TRANS_KEY_SENSOR_KIDS_HIGHEST_BADGE_SENSOR
+    assert (
+        sensor._attr_translation_key == const.TRANS_KEY_SENSOR_KIDS_HIGHEST_BADGE_SENSOR
+    )
     # Verify entity has name attribute for friendly name translation
     assert sensor._attr_has_entity_name is True
 
 
 @pytest.mark.asyncio
 async def test_badge_progress_sensor_has_kid_name():
-    """Test that BadgeProgressSensor includes kid_name attribute."""
+    """Test that KidBadgeProgressSensor includes kid_name attribute."""
     mock_config_entry = MockConfigEntry(
         title="KidsChores",
         domain=const.DOMAIN,
@@ -119,7 +119,7 @@ async def test_badge_progress_sensor_has_kid_name():
         }
     }
 
-    sensor = BadgeProgressSensor(
+    sensor = KidBadgeProgressSensor(
         coordinator=coordinator,
         entry=mock_config_entry,
         kid_id="kid_1",
@@ -134,7 +134,7 @@ async def test_badge_progress_sensor_has_kid_name():
 
 @pytest.mark.asyncio
 async def test_chore_status_sensor_has_kid_name_and_device():
-    """Test that ChoreStatusSensor has kid_name attribute and kid device info."""
+    """Test that KidChoreStatusSensor has kid_name attribute and kid device info."""
     mock_config_entry = MockConfigEntry(
         title="KidsChores",
         domain=const.DOMAIN,
@@ -154,7 +154,7 @@ async def test_chore_status_sensor_has_kid_name_and_device():
         }
     }
 
-    sensor = ChoreStatusSensor(
+    sensor = KidChoreStatusSensor(
         coordinator=coordinator,
         entry=mock_config_entry,
         kid_id="kid_1",
@@ -172,7 +172,7 @@ async def test_chore_status_sensor_has_kid_name_and_device():
 
 @pytest.mark.asyncio
 async def test_reward_status_sensor_has_kid_name():
-    """Test that RewardStatusSensor includes kid_name attribute."""
+    """Test that KidRewardStatusSensor includes kid_name attribute."""
     mock_config_entry = MockConfigEntry(
         title="KidsChores",
         domain=const.DOMAIN,
@@ -199,7 +199,7 @@ async def test_reward_status_sensor_has_kid_name():
         }
     }
 
-    sensor = RewardStatusSensor(
+    sensor = KidRewardStatusSensor(
         coordinator=coordinator,
         entry=mock_config_entry,
         kid_id="kid_1",
@@ -216,7 +216,7 @@ async def test_reward_status_sensor_has_kid_name():
 
 @pytest.mark.asyncio
 async def test_penalty_applies_sensor_has_kid_name():
-    """Test that PenaltyAppliesSensor includes kid_name attribute."""
+    """Test that KidPenaltyAppliedSensor includes kid_name attribute."""
     mock_config_entry = MockConfigEntry(
         title="KidsChores",
         domain=const.DOMAIN,
@@ -240,7 +240,7 @@ async def test_penalty_applies_sensor_has_kid_name():
         }
     }
 
-    sensor = PenaltyAppliesSensor(
+    sensor = KidPenaltyAppliedSensor(
         coordinator=coordinator,
         entry=mock_config_entry,
         kid_id="kid_1",
@@ -257,7 +257,7 @@ async def test_penalty_applies_sensor_has_kid_name():
 
 @pytest.mark.asyncio
 async def test_claim_chore_button_has_kid_name():
-    """Test that ClaimChoreButton includes kid_name in extra_state_attributes."""
+    """Test that KidChoreClaimButton includes kid_name in extra_state_attributes."""
     mock_config_entry = MockConfigEntry(
         title="KidsChores",
         domain=const.DOMAIN,
@@ -272,7 +272,7 @@ async def test_claim_chore_button_has_kid_name():
         }
     }
 
-    button = ClaimChoreButton(
+    button = KidChoreClaimButton(
         coordinator=coordinator,
         entry=mock_config_entry,
         kid_id="kid_1",
@@ -305,7 +305,7 @@ async def test_disapprove_chore_button_has_kid_name():
         }
     }
 
-    button = DisapproveChoreButton(
+    button = ParentChoreDisapproveButton(
         coordinator=coordinator,
         entry=mock_config_entry,
         kid_id="kid_1",
@@ -338,7 +338,7 @@ async def test_bonus_button_has_kid_name():
         }
     }
 
-    button = BonusButton(
+    button = ParentBonusApplyButton(
         coordinator=coordinator,
         entry=mock_config_entry,
         kid_id="kid_1",
@@ -371,7 +371,7 @@ async def test_penalty_button_has_kid_name():
         }
     }
 
-    button = PenaltyButton(
+    button = ParentPenaltyApplyButton(
         coordinator=coordinator,
         entry=mock_config_entry,
         kid_id="kid_1",
@@ -404,7 +404,7 @@ async def test_disapprove_reward_button_has_kid_name():
         }
     }
 
-    button = DisapproveRewardButton(
+    button = ParentRewardDisapproveButton(
         coordinator=coordinator,
         entry=mock_config_entry,
         kid_id="kid_1",

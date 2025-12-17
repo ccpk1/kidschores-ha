@@ -468,6 +468,9 @@ CONF_NOTIFY_ON_CLAIM: Final = "notify_on_claim"
 CONF_NOTIFY_ON_DISAPPROVAL: Final = "notify_on_disapproval"
 NOTIFICATION_EVENT: Final = "mobile_app_notification_action"
 
+# Sensor Settings
+CONF_SHOW_LEGACY_ENTITIES: Final = "show_legacy_entities"
+
 # Parents
 CONF_ASSOCIATED_KIDS: Final = "associated_kids"
 CONF_HA_USER_ID: Final = "ha_user_id"
@@ -1073,6 +1076,7 @@ DEFAULT_DAILY_RESET_TIME = {"hour": 0, "minute": 0, "second": 0}
 DEFAULT_DUE_TIME = {"hour": 23, "minute": 59, "second": 0}
 DEFAULT_HOUR: Final = 0
 DEFAULT_KID_POINTS_MULTIPLIER: Final = 1
+DEFAULT_SHOW_LEGACY_ENTITIES: Final = False
 DEFAULT_MONTHLY_RESET_DAY: Final = 1
 DEFAULT_MULTIPLE_CLAIMS_PER_DAY = False
 DEFAULT_NOTIFY_DELAY_REMINDER: Final = 24
@@ -1230,6 +1234,7 @@ ATTR_CUSTOM_FREQUENCY_UNIT: Final = "custom_frequency_unit"
 ATTR_DAILY_THRESHOLD: Final = "daily_threshold"
 ATTR_DEFAULT_POINTS: Final = "default_points"
 ATTR_DESCRIPTION: Final = "description"
+ATTR_PURPOSE: Final = "purpose"
 ATTR_DUE_DATE: Final = "due_date"
 ATTR_END_DATE: Final = "end_date"
 ATTR_FRIENDLY_NAME: Final = "friendly_name"
