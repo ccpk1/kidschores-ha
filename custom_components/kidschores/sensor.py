@@ -55,10 +55,10 @@ from .coordinator import KidsChoresDataCoordinator
 from .entity import KidsChoresCoordinatorEntity
 from .sensor_legacy import (
     KidChoreStreakSensor,
-    KidMaxPointsEverSensor,
     KidPointsEarnedDailySensor,
     KidPointsEarnedMonthlySensor,
     KidPointsEarnedWeeklySensor,
+    KidPointsMaxEverSensor,
     SystemChoreApprovalsDailySensor,
     SystemChoreApprovalsMonthlySensor,
     SystemChoreApprovalsSensor,
@@ -148,7 +148,7 @@ async def async_setup_entry(
         # Legacy maximum points sensor (optional)
         if show_legacy_entities:
             entities.append(
-                KidMaxPointsEverSensor(
+                KidPointsMaxEverSensor(
                     coordinator, entry, kid_id, kid_name, points_label, points_icon
                 )
             )

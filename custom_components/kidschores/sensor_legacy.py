@@ -19,16 +19,14 @@ Pending Approval Sensors (2):
 5. SystemChoresPendingApprovalSensor - Pending chore approvals (global)
 6. SystemRewardsPendingApprovalSensor - Pending reward approvals (global)
 
-Kid Points Earned Sensors (3):
+Kid Points Earned Sensors (4):
 7. KidPointsEarnedDailySensor - Daily points earned (data in KidPointsSensor attributes)
 8. KidPointsEarnedWeeklySensor - Weekly points earned (data in KidPointsSensor attributes)
 9. KidPointsEarnedMonthlySensor - Monthly points earned (data in KidPointsSensor attributes)
+10. KidPointsMaxEverSensor - Maximum points ever reached (data in KidPointsSensor attributes)
 
 Streak Sensor (1):
-10. KidChoreStreakSensor - Highest chore streak (data in KidPointsSensor attributes)
-
-Max Points Sensor (1):
-11. KidMaxPointsEverSensor - Maximum points ever reached (data in KidPointsSensor attributes)
+11. KidChoreStreakSensor - Highest chore streak (data in KidPointsSensor attributes)
 """
 
 from typing import Any
@@ -41,80 +39,6 @@ from . import const
 from . import kc_helpers as kh
 from .coordinator import KidsChoresDataCoordinator
 from .entity import KidsChoresCoordinatorEntity
-
-# ------------------------------------------------------------------------------------------
-# KID MAX POINTS SENSOR
-# ------------------------------------------------------------------------------------------
-
-
-class KidMaxPointsEverSensor(KidsChoresCoordinatorEntity, SensorEntity):
-    """Legacy sensor showing the maximum points a kid has ever reached.
-
-    NOTE: This sensor is legacy/optional. Data is now available as 'point_stat_highest_balance'
-    attribute on the KidPointsSensor entity.
-    """
-
-    _attr_has_entity_name = True
-    _attr_translation_key = const.TRANS_KEY_SENSOR_KID_MAX_POINTS_EVER_SENSOR
-
-    def __init__(
-        self,
-        coordinator: KidsChoresDataCoordinator,
-        entry,
-        kid_id: str,
-        kid_name: str,
-        points_label: str,
-        points_icon: str,
-    ) -> None:
-        """Initialize the legacy max points sensor.
-
-        Args:
-            coordinator: KidsChoresDataCoordinator instance for data access.
-            entry: ConfigEntry for this integration instance.
-            kid_id: Unique identifier for the kid.
-            kid_name: Display name of the kid.
-            points_label: Customizable label for points currency.
-            points_icon: Customizable icon for points display.
-        """
-        super().__init__(coordinator)
-        self._kid_id = kid_id
-        self._kid_name = kid_name
-        self._points_label = points_label
-        self._points_icon = points_icon
-        self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_MAX_POINTS_EVER_SENSOR}"
-        self._attr_translation_placeholders = {
-            const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
-            const.TRANS_KEY_SENSOR_ATTR_POINTS: points_label,
-        }
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_MAX_POINTS_EARNED_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
-
-    @property
-    def native_value(self) -> int:
-        """Return the highest points total the kid has ever reached."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
-        point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
-        return point_stats.get(
-            const.DATA_KID_POINT_STATS_HIGHEST_BALANCE, const.DEFAULT_ZERO
-        )
-
-    @property
-    def icon(self) -> str:
-        """Use the same icon as points or any custom icon you prefer."""
-        return self._points_icon or const.DEFAULT_POINTS_ICON
-
-    @property
-    def native_unit_of_measurement(self) -> str:
-        """Optionally display the same points label for consistency."""
-        return self._points_label or const.LABEL_POINTS
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return extra state attributes."""
-        return {
-            const.ATTR_KID_NAME: self._kid_name,
-        }
-
 
 # ------------------------------------------------------------------------------------------
 # SYSTEM CHORE APPROVAL SENSORS
@@ -702,6 +626,75 @@ class KidPointsEarnedMonthlySensor(KidsChoresCoordinatorEntity, SensorEntity):
     def icon(self) -> str:
         """Use the points' custom icon if set, else fallback."""
         return self._points_icon or const.DEFAULT_POINTS_ICON
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes."""
+        return {
+            const.ATTR_KID_NAME: self._kid_name,
+        }
+
+
+class KidPointsMaxEverSensor(KidsChoresCoordinatorEntity, SensorEntity):
+    """Legacy sensor showing the maximum points a kid has ever reached.
+
+    NOTE: This sensor is legacy/optional. Data is now available as 'point_stat_highest_balance'
+    attribute on the KidPointsSensor entity.
+    """
+
+    _attr_has_entity_name = True
+    _attr_translation_key = const.TRANS_KEY_SENSOR_KID_MAX_POINTS_EVER_SENSOR
+
+    def __init__(
+        self,
+        coordinator: KidsChoresDataCoordinator,
+        entry,
+        kid_id: str,
+        kid_name: str,
+        points_label: str,
+        points_icon: str,
+    ) -> None:
+        """Initialize the legacy max points sensor.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+            points_label: Customizable label for points currency.
+            points_icon: Customizable icon for points display.
+        """
+        super().__init__(coordinator)
+        self._kid_id = kid_id
+        self._kid_name = kid_name
+        self._points_label = points_label
+        self._points_icon = points_icon
+        self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_MAX_POINTS_EVER_SENSOR}"
+        self._attr_translation_placeholders = {
+            const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
+            const.TRANS_KEY_SENSOR_ATTR_POINTS: points_label,
+        }
+        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_MAX_POINTS_EARNED_SENSOR}"
+        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+
+    @property
+    def native_value(self) -> int:
+        """Return the highest points total the kid has ever reached."""
+        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
+        return point_stats.get(
+            const.DATA_KID_POINT_STATS_HIGHEST_BALANCE, const.DEFAULT_ZERO
+        )
+
+    @property
+    def icon(self) -> str:
+        """Use the same icon as points or any custom icon you prefer."""
+        return self._points_icon or const.DEFAULT_POINTS_ICON
+
+    @property
+    def native_unit_of_measurement(self) -> str:
+        """Optionally display the same points label for consistency."""
+        return self._points_label or const.LABEL_POINTS
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

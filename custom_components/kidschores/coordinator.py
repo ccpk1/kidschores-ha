@@ -844,7 +844,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
     async def async_config_entry_first_refresh(self):
         """Load from storage and merge config options."""
-        stored_data = self.storage_manager.get_data()
+        stored_data = self.storage_manager.data
         if stored_data:
             self._data = stored_data
 
@@ -2561,6 +2561,39 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     # These methods provide direct storage updates without triggering config reloads
     # -------------------------------------------------------------------------------------
 
+    def _update_kid_device_name(self, kid_id: str, kid_name: str) -> None:
+        """Update kid device name in device registry.
+
+        When a kid's name changes, this function updates the corresponding
+        device registry entry so the device name reflects immediately without
+        requiring a reboot. This also cascades to entity friendly names.
+
+        Args:
+            kid_id: Internal UUID of the kid
+            kid_name: New name for the kid
+
+        """
+        from homeassistant.helpers import device_registry as dr
+
+        device_registry = dr.async_get(self.hass)
+        device = device_registry.async_get_device(identifiers={(const.DOMAIN, kid_id)})
+
+        if device:
+            new_device_name = f"{kid_name} ({self.config_entry.title})"
+            device_registry.async_update_device(device.id, name=new_device_name)
+            const.LOGGER.debug(
+                "Updated device name for kid '%s' (ID: %s) to '%s'",
+                kid_name,
+                kid_id,
+                new_device_name,
+            )
+        else:
+            const.LOGGER.warning(
+                "Device not found for kid '%s' (ID: %s), cannot update name",
+                kid_name,
+                kid_id,
+            )
+
     def update_kid_entity(self, kid_id: str, kid_data: dict[str, Any]) -> None:
         """Update kid entity in storage (Options Flow - no reload).
 
@@ -2570,8 +2603,18 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         """
         if kid_id not in self._data.get(const.DATA_KIDS, {}):
             raise ValueError(f"Kid {kid_id} not found")
+
+        # Check if name is changing
+        old_name = self._data[const.DATA_KIDS][kid_id].get(const.DATA_KID_NAME)
+        new_name = kid_data.get(const.DATA_KID_NAME)
+
         self._update_kid(kid_id, kid_data)
         self._persist()
+
+        # Update device registry if name changed
+        if new_name and new_name != old_name:
+            self._update_kid_device_name(kid_id, new_name)
+
         self.async_update_listeners()
 
     def delete_kid_entity(self, kid_id: str) -> None:

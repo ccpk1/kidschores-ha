@@ -91,10 +91,61 @@ async def test_legacy_sensors_not_created_when_disabled(hass: HomeAssistant):
     )
 
 
-@pytest.mark.skip(reason="Need to implement proper reload test")
 async def test_legacy_sensors_removed_when_option_changed(
-    hass: HomeAssistant,  # pylint: disable=unused-argument
+    hass: HomeAssistant,
+    mock_config_entry,
+    init_integration,  # pylint: disable=unused-argument
 ):
     """Test that legacy sensors are removed when show_legacy_entities changes from True to False."""
-    # This test requires implementing proper config entry reload logic
-    pass
+    entity_registry = er.async_get(hass)
+
+    # Verify legacy sensors exist initially (flag enabled by default in fixture)
+    initial_legacy_sensors = []
+    for entity in entity_registry.entities.values():
+        if entity.domain == "sensor" and const.DOMAIN in entity.platform:
+            if any(
+                pattern in entity.unique_id
+                for pattern in [
+                    const.SENSOR_KC_UID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR,
+                    const.SENSOR_KC_UID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR,
+                ]
+            ):
+                initial_legacy_sensors.append(entity.entity_id)
+
+    assert len(initial_legacy_sensors) == 2, (
+        f"Expected 2 global legacy sensors initially, found {len(initial_legacy_sensors)}"
+    )
+
+    # Disable legacy entities via options
+    new_options = dict(mock_config_entry.options)
+    new_options[const.CONF_SHOW_LEGACY_ENTITIES] = False
+    hass.config_entries.async_update_entry(mock_config_entry, options=new_options)
+
+    # Reload config entry (should trigger cleanup)
+    await hass.config_entries.async_reload(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Verify legacy sensors are REMOVED from registry (not just unavailable)
+    remaining_legacy_sensors = []
+    for entity in entity_registry.entities.values():
+        if entity.domain == "sensor" and const.DOMAIN in entity.platform:
+            if any(
+                pattern in entity.unique_id
+                for pattern in [
+                    const.SENSOR_KC_UID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR,
+                    const.SENSOR_KC_UID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR,
+                ]
+            ):
+                remaining_legacy_sensors.append(entity.entity_id)
+
+    assert len(remaining_legacy_sensors) == 0, (
+        f"Expected 0 legacy sensors after disabling flag, "
+        f"found {len(remaining_legacy_sensors)}: {remaining_legacy_sensors}"
+    )
+
+    # Verify entities are not just unavailable - they should be GONE
+    for entity_id in initial_legacy_sensors:
+        entity_entry = entity_registry.async_get(entity_id)
+        assert entity_entry is None, (
+            f"Entity {entity_id} should be removed from registry, not just unavailable"
+        )

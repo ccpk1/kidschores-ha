@@ -132,6 +132,7 @@ CONFIG_FLOW_STEP_CHALLENGES: Final = "challenges"
 CONFIG_FLOW_STEP_CHORE_COUNT: Final = "chore_count"
 CONFIG_FLOW_STEP_CHORES: Final = "chores"
 CONFIG_FLOW_STEP_FINISH: Final = "finish"
+CONFIG_FLOW_STEP_DATA_RECOVERY: Final = "data_recovery"
 CONFIG_FLOW_STEP_INTRO: Final = "intro"
 CONFIG_FLOW_STEP_KID_COUNT: Final = "kid_count"
 CONFIG_FLOW_STEP_KIDS: Final = "kids"
@@ -153,6 +154,9 @@ OPTIONS_FLOW_DIC_KID: Final = "kid"
 OPTIONS_FLOW_DIC_PARENT: Final = "parent"
 OPTIONS_FLOW_DIC_PENALTY: Final = "penalty"
 OPTIONS_FLOW_DIC_REWARD: Final = "reward"
+
+# OptionsFlow Backup Management Menu
+OPTIONS_FLOW_RESTORE_BACKUP: Final = "restore_backup"
 OPTIONS_FLOW_ACTIONS_ADD: Final = "add"
 OPTIONS_FLOW_ACTIONS_BACK: Final = "back"
 OPTIONS_FLOW_ACTIONS_DELETE: Final = "delete"
@@ -186,6 +190,8 @@ OPTIONS_FLOW_STEP_INIT: Final = "init"
 OPTIONS_FLOW_STEP_MANAGE_ENTITY: Final = "manage_entity"
 OPTIONS_FLOW_STEP_MANAGE_GENERAL_OPTIONS: Final = "manage_general_options"
 OPTIONS_FLOW_STEP_MANAGE_POINTS: Final = "manage_points"
+OPTIONS_FLOW_STEP_RESTORE_BACKUP: Final = "restore_backup"
+OPTIONS_FLOW_STEP_CONFIRM_RESTORE: Final = "confirm_restore"
 OPTIONS_FLOW_STEP_SELECT_ENTITY: Final = "select_entity"
 
 OPTIONS_FLOW_STEP_ADD_ACHIEVEMENT: Final = "add_achievement"
@@ -233,6 +239,11 @@ OPTIONS_FLOW_STEP_DELETE_REWARD: Final = "delete_reward"
 
 # GLOBAL
 CFOF_GLOBAL_INPUT_INTERNAL_ID: Final = "internal_id"
+
+# DATA RECOVERY
+CFOF_DATA_RECOVERY_INPUT_SELECTION: Final = "backup_selection"
+CFOF_DATA_RECOVERY_INPUT_JSON_DATA: Final = "json_data"
+CFOF_RESTORE_BACKUP_INPUT_SELECTION: Final = "backup_file"
 
 # KIDS
 CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE: Final = "dashboard_language"
@@ -409,6 +420,12 @@ CONF_RETENTION_YEARLY: Final = "retention_yearly"
 CONF_SHARED_CHORE: Final = "shared_chore"
 CONF_UPDATE_INTERVAL: Final = "update_interval"
 CONF_VALUE: Final = "value"
+
+# Backup Management Configuration
+CONF_BACKUP_RETENTION_DAYS: Final = "backup_retention_days"
+DEFAULT_BACKUP_RETENTION_DAYS: Final = 3  # 0 = disabled, 1-7 = days
+MIN_BACKUP_RETENTION_DAYS: Final = 0
+MAX_BACKUP_RETENTION_DAYS: Final = 7
 
 # Chore Custom Interval Reset Periods
 CUSTOM_INTERVAL_UNIT_OPTIONS: Final = [
@@ -1572,6 +1589,10 @@ CFOP_ERROR_ACHIEVEMENT_NAME: Final = "name"
 CFOP_ERROR_BADGE_NAME: Final = "badge_name"
 CFOP_ERROR_ASSIGNED_KIDS: Final = "assigned_kids"
 CFOP_ERROR_BASE: Final = "base"
+CFOP_ERROR_CORRUPT_FILE: Final = "corrupt_file"
+CFOP_ERROR_INVALID_JSON: Final = "invalid_json"
+CFOP_ERROR_NO_BACKUPS_FOUND: Final = "no_backups_found"
+CFOP_ERROR_RESTORE_FAILED: Final = "restore_failed"
 CFOP_ERROR_BONUS_NAME: Final = "bonus_name"
 CFOP_ERROR_CHALLENGE_NAME: Final = "name"
 CFOP_ERROR_CHORE_NAME: Final = "chore_name"
@@ -1620,6 +1641,16 @@ TRANS_KEY_LABEL_REWARD: Final = "label_reward"
 TRANS_KEY_NO_DUE_DATE: Final = "no_due_date"
 
 # ConfigFlow & OptionsFlow Translation Keys
+# Data Recovery
+TRANS_KEY_CFOF_DATA_RECOVERY_TITLE: Final = "data_recovery_title"
+TRANS_KEY_CFOF_DATA_RECOVERY_DESCRIPTION: Final = "data_recovery_description"
+TRANS_KEY_CFOF_BACKUP_START_FRESH: Final = "backup_start_fresh"
+TRANS_KEY_CFOF_BACKUP_PASTE_JSON: Final = "backup_paste_json"
+TRANS_KEY_CFOF_BACKUP_CURRENT_ACTIVE: Final = "backup_current_active"
+TRANS_KEY_CFOF_BACKUP_AGE: Final = "backup_age"
+TRANS_KEY_CFOF_RESTORE_WARNING: Final = "restore_warning"
+
+# Badge Fields
 TRANS_KEY_CFOF_BADGE_ASSIGNED_TO: Final = "assigned_to"
 TRANS_KEY_CFOF_BADGE_ASSOCIATED_ACHIEVEMENT: Final = "associated_achievement"
 TRANS_KEY_CFOF_BADGE_AWARD_ITEMS: Final = "award_items"

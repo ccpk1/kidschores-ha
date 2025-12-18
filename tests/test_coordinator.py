@@ -182,3 +182,130 @@ async def test_reward_approval_workflow(
 
         # Verify points unchanged (nothing was deducted in the first place)
         assert coordinator.kids_data[kid_id]["points"] == 50.0
+
+
+async def test_kid_device_name_updates_immediately(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+) -> None:
+    """Test that kid device name updates immediately when changed via coordinator."""
+    from unittest.mock import Mock
+
+    from homeassistant.helpers import device_registry as dr
+
+    from custom_components.kidschores import const
+
+    # Get the coordinator
+    coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
+
+    # Add a kid to coordinator
+    kid_id = str(uuid.uuid4())
+    kid_data = create_mock_kid_data(name="Zoe", points=0.0)
+    kid_data["internal_id"] = kid_id
+    # pylint: disable=protected-access
+    coordinator._create_kid(kid_id, kid_data)
+    # pylint: enable=protected-access
+
+    # Manually create the device (simulates what entities do during setup)
+    device_registry = dr.async_get(hass)
+    device = device_registry.async_get_or_create(
+        config_entry_id=init_integration.entry_id,
+        identifiers={(DOMAIN, kid_id)},
+        name="Zoe (KidsChores)",
+        manufacturer="KidsChores",
+        model="Kid Profile",
+    )
+
+    # Verify device exists with initial name
+    assert device is not None, "Kid device should exist in registry"
+    initial_device_name = device.name
+    assert "Zoe" in initial_device_name, (
+        f"Device name should contain 'Zoe', got: {initial_device_name}"
+    )
+
+    # Update kid name via coordinator
+    updated_kid_data = {
+        const.DATA_KID_NAME: "Sarah",
+        const.DATA_KID_HA_USER_ID: None,
+    }
+    coordinator.update_kid_entity(kid_id, updated_kid_data)
+    await hass.async_block_till_done()
+
+    # Verify device name updated immediately (without reload/reboot)
+    device = device_registry.async_get_device(identifiers={(DOMAIN, kid_id)})
+    updated_device_name = device.name
+
+    assert "Sarah" in updated_device_name, (
+        f"Device name should contain 'Sarah', got: {updated_device_name}"
+    )
+    assert "Zoe" not in updated_device_name, (
+        f"Device name should not contain old name 'Zoe', got: {updated_device_name}"
+    )
+
+
+async def test_config_entry_title_updates_device_names(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+) -> None:
+    """Test that changing config entry title updates all kid device names."""
+    from homeassistant.helpers import device_registry as dr
+
+    from custom_components.kidschores import const
+
+    # Get the coordinator
+    coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
+
+    # Add two kids to coordinator
+    kid1_id = str(uuid.uuid4())
+    kid1_data = create_mock_kid_data(name="Alice", points=0.0)
+    kid1_data["internal_id"] = kid1_id
+    kid2_id = str(uuid.uuid4())
+    kid2_data = create_mock_kid_data(name="Bob", points=0.0)
+    kid2_data["internal_id"] = kid2_id
+    # pylint: disable=protected-access
+    coordinator._create_kid(kid1_id, kid1_data)
+    coordinator._create_kid(kid2_id, kid2_data)
+    # pylint: enable=protected-access
+
+    # Manually create devices (simulates what entities do during setup)
+    device_registry = dr.async_get(hass)
+    device1 = device_registry.async_get_or_create(
+        config_entry_id=init_integration.entry_id,
+        identifiers={(DOMAIN, kid1_id)},
+        name="Alice (KidsChores)",
+        manufacturer="KidsChores",
+        model="Kid Profile",
+    )
+    device2 = device_registry.async_get_or_create(
+        config_entry_id=init_integration.entry_id,
+        identifiers={(DOMAIN, kid2_id)},
+        name="Bob (KidsChores)",
+        manufacturer="KidsChores",
+        model="Kid Profile",
+    )
+
+    # Verify initial device names
+    assert "Alice (KidsChores)" in device1.name
+    assert "Bob (KidsChores)" in device2.name
+
+    # Change config entry title
+    hass.config_entries.async_update_entry(init_integration, title="Family Chores")
+
+    # Trigger update listener by calling async_update_options
+    from custom_components.kidschores import async_update_options
+
+    await async_update_options(hass, init_integration)
+    await hass.async_block_till_done()
+
+    # Verify device names updated with new title
+    device1 = device_registry.async_get_device(identifiers={(DOMAIN, kid1_id)})
+    device2 = device_registry.async_get_device(identifiers={(DOMAIN, kid2_id)})
+
+    assert "Alice (Family Chores)" == device1.name, (
+        f"Device 1 name should be 'Alice (Family Chores)', got: {device1.name}"
+    )
+    assert "Bob (Family Chores)" == device2.name, (
+        f"Device 2 name should be 'Bob (Family Chores)', got: {device2.name}"
+    )
+    assert "KidsChores" not in device1.name, "Old title should not be in device1 name"
+    assert "KidsChores" not in device2.name, "Old title should not be in device2 name"

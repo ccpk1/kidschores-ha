@@ -40,7 +40,7 @@ async def _migrate_config_to_storage(
         storage_manager: Initialized storage manager
 
     """
-    storage_data = storage_manager.get_data()
+    storage_data = storage_manager.data
     storage_version = storage_data.get(const.DATA_SCHEMA_VERSION, const.DEFAULT_ZERO)
 
     # Check if migration is needed
@@ -238,6 +238,121 @@ async def _migrate_config_to_storage(
     const.LOGGER.info("INFO: ========================================")
 
 
+async def _update_all_kid_device_names(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Update all kid device names when config entry title changes.
+
+    When the integration name (config entry title) changes, all kid device
+    names need to be updated since they include the title in the format:
+    "{kid_name} ({entry.title})".
+
+    Args:
+        hass: Home Assistant instance
+        entry: Config entry with potentially new title
+
+    """
+    from homeassistant.helpers import device_registry as dr
+
+    # Get coordinator to access kid data
+    if const.DOMAIN not in hass.data or entry.entry_id not in hass.data[const.DOMAIN]:
+        const.LOGGER.debug(
+            "Coordinator not found for entry %s, skipping device name updates",
+            entry.entry_id,
+        )
+        return
+
+    coordinator = hass.data[const.DOMAIN][entry.entry_id].get(const.COORDINATOR)
+    if not coordinator:
+        return
+
+    device_registry = dr.async_get(hass)
+    updated_count = 0
+
+    # Update device name for each kid
+    for kid_id, kid_data in coordinator.kids_data.items():
+        kid_name = kid_data.get(const.DATA_KID_NAME, "Unknown")
+        device = device_registry.async_get_device(identifiers={(const.DOMAIN, kid_id)})
+
+        if device:
+            new_device_name = f"{kid_name} ({entry.title})"
+            # Only update if name actually changed
+            if device.name != new_device_name:
+                device_registry.async_update_device(device.id, name=new_device_name)
+                const.LOGGER.debug(
+                    "Updated device name for kid '%s' (ID: %s) to '%s'",
+                    kid_name,
+                    kid_id,
+                    new_device_name,
+                )
+                updated_count += 1
+
+    if updated_count > 0:
+        const.LOGGER.info(
+            "Updated %d kid device names for new integration title: %s",
+            updated_count,
+            entry.title,
+        )
+
+
+async def _cleanup_legacy_entities(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Remove legacy entities when show_legacy_entities is disabled.
+
+    This function scans the entity registry for legacy sensor entities
+    belonging to this config entry and removes them when the legacy
+    flag is disabled. Prevents entities from appearing as "unavailable".
+
+    Args:
+        hass: Home Assistant instance
+        entry: Config entry to check for legacy flag
+
+    """
+    from homeassistant.helpers import entity_registry as er
+
+    show_legacy = entry.options.get(const.CONF_SHOW_LEGACY_ENTITIES, False)
+    if show_legacy:
+        const.LOGGER.debug("Legacy entities enabled, skipping cleanup")
+        return  # Keep entities when flag is enabled
+
+    entity_registry = er.async_get(hass)
+
+    # Define legacy unique_id suffixes to clean up
+    legacy_suffixes = [
+        const.SENSOR_KC_UID_SUFFIX_COMPLETED_TOTAL_SENSOR,
+        const.SENSOR_KC_UID_SUFFIX_COMPLETED_DAILY_SENSOR,
+        const.SENSOR_KC_UID_SUFFIX_COMPLETED_WEEKLY_SENSOR,
+        const.SENSOR_KC_UID_SUFFIX_COMPLETED_MONTHLY_SENSOR,
+        const.SENSOR_KC_UID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR,
+        const.SENSOR_KC_UID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR,
+        const.SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_DAILY_SENSOR,
+        const.SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_WEEKLY_SENSOR,
+        const.SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_MONTHLY_SENSOR,
+        const.SENSOR_KC_UID_SUFFIX_KID_HIGHEST_STREAK_SENSOR,
+        const.SENSOR_KC_UID_SUFFIX_KID_MAX_POINTS_EVER_SENSOR,
+    ]
+
+    # Scan and remove legacy entities for this config entry
+    removed_count = 0
+    for entity_entry in er.async_entries_for_config_entry(
+        entity_registry, entry.entry_id
+    ):
+        if entity_entry.domain == "sensor":
+            for suffix in legacy_suffixes:
+                if entity_entry.unique_id.endswith(suffix):
+                    const.LOGGER.debug(
+                        "Removing legacy entity (flag disabled): %s (unique_id: %s)",
+                        entity_entry.entity_id,
+                        entity_entry.unique_id,
+                    )
+                    entity_registry.async_remove(entity_entry.entity_id)
+                    removed_count += 1
+                    break
+
+    if removed_count > 0:
+        const.LOGGER.info(
+            "Removed %d legacy entities (show_legacy_entities=False)",
+            removed_count,
+        )
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up the integration from a config entry."""
     const.LOGGER.info("INFO: Starting setup for KidsChores entry: %s", entry.entry_id)
@@ -278,6 +393,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Forward the setup to supported platforms (sensors, buttons, etc.).
     await hass.config_entries.async_forward_entry_setups(entry, const.PLATFORMS)
 
+    # Cleanup legacy entities if flag is disabled (after platform setup)
+    await _cleanup_legacy_entities(hass, entry)
+
+    # Register update listener for config entry changes (e.g., title changes)
+    entry.async_on_unload(entry.add_update_listener(async_update_options))
+
     # Listen for notification actions from the companion app.
     async def handle_notification_event(event):
         """Handle notification action events."""
@@ -287,6 +408,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     const.LOGGER.info("INFO: KidsChores setup complete for entry: %s", entry.entry_id)
     return True
+
+
+async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Handle options update (e.g., integration name change).
+
+    This is called when the config entry is updated, including when the user
+    changes the integration name in the UI. We need to update all kid device
+    names to reflect the new title.
+
+    Args:
+        hass: Home Assistant instance
+        entry: Updated config entry
+
+    """
+    const.LOGGER.debug(
+        "Config entry updated for %s, checking for device name updates", entry.entry_id
+    )
+
+    # Update all kid device names in case title changed
+    await _update_all_kid_device_names(hass, entry)
+
+    # Reload the config entry to apply changes
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass, entry):
