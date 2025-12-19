@@ -4,10 +4,13 @@
 Handles add/edit/delete operations with entities referenced internally by internal_id.
 Ensures consistency and reloads the integration upon changes.
 """
-# pylint: disable=protected-access,broad-exception-caught
+# pylint: disable=protected-access,broad-exception-caught,too-many-lines
+# pylint: disable=import-outside-toplevel
 # protected-access: Options flow is tightly coupled to coordinator and needs direct access
 # to internal creation/persistence methods (_create_* and _persist).
 # broad-exception-caught: Reload operations use broad catch to ensure robustness per HA guidelines.
+# too-many-lines: Options flow inherently large (2862 lines) due to menu-driven architecture
+# import-outside-toplevel: Backup operations conditionally import to avoid circular deps/performance
 
 import asyncio
 import datetime
@@ -16,6 +19,7 @@ from typing import Any, Dict, Optional
 
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.helpers import selector
 from homeassistant.util import dt as dt_util
 
@@ -49,6 +53,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         self._action = None
         self._entity_type = None
         self._reload_needed = False  # Track if reload is needed
+        self._delete_confirmed = False  # Track backup deletion confirmation
+        self._restore_confirmed = False  # Track backup restoration confirmation
+        self._backup_to_delete = None  # Track backup filename to delete
+        self._backup_to_restore = None  # Track backup filename to restore
 
     def _get_coordinator(self):
         """Get the coordinator from hass.data."""
@@ -64,7 +72,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         """Display the main menu for the Options Flow."""
         # Check if reload is needed from previous entity add/edit operations
         if self._reload_needed and user_input is None:
-            const.LOGGER.debug("DEBUG: Performing deferred reload after entity changes")
+            const.LOGGER.debug("Performing deferred reload after entity changes")
             self._reload_needed = False
             # Wait briefly to ensure storage writes complete before reload
             await asyncio.sleep(0.1)
@@ -140,7 +148,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 self._entry_options = dict(self.config_entry.options)
                 self._entry_options.update(points_data)
                 const.LOGGER.debug(
-                    "DEBUG: Configured points with name %s and icon %s",
+                    "Configured points with name %s and icon %s",
                     points_data[const.CONF_POINTS_LABEL],
                     points_data[const.CONF_POINTS_ICON],
                 )
@@ -246,13 +254,13 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 None,
             )
             if not internal_id:
-                const.LOGGER.error(
-                    "ERROR: Selected entity '%s' not found", selected_name
-                )
+                const.LOGGER.error("Selected entity '%s' not found", selected_name)
                 return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_ENTITY)
 
             # Store internal_id in context for later use
-            self.context[const.OPTIONS_FLOW_INPUT_INTERNAL_ID] = internal_id  # type: ignore[typeddict-unknown-key]
+            self.context[  # type: ignore[typeddict-unknown-key]
+                const.OPTIONS_FLOW_INPUT_INTERNAL_ID
+            ] = internal_id
 
             # Route based on action
             if self._action == const.OPTIONS_FLOW_ACTIONS_EDIT:
@@ -288,7 +296,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         )
                     else:
                         const.LOGGER.error(
-                            "ERROR: Unknown badge type '%s' for badge ID '%s'",
+                            "Unknown badge type '%s' for badge ID '%s'",
                             badge_type,
                             internal_id,
                         )
@@ -353,7 +361,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         key = entity_type_to_data.get(self._entity_type)  # type: ignore[assignment]
         if key is None:
             const.LOGGER.error(
-                "ERROR: Unknown entity type '%s'. Cannot retrieve entity dictionary",
+                "Unknown entity type '%s'. Cannot retrieve entity dictionary",
                 self._entity_type,
             )
             return {}
@@ -387,9 +395,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 coordinator._persist()
                 coordinator.async_update_listeners()
 
-                const.LOGGER.debug(
-                    "DEBUG: Added Kid '%s' with ID: %s", kid_name, internal_id
-                )
+                const.LOGGER.debug("Added Kid '%s' with ID: %s", kid_name, internal_id)
                 self._mark_reload_needed()
                 return await self.async_step_init()
 
@@ -437,7 +443,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 coordinator.async_update_listeners()
 
                 const.LOGGER.debug(
-                    "DEBUG: Added Parent '%s' with ID: %s", parent_name, internal_id
+                    "Added Parent '%s' with ID: %s", parent_name, internal_id
                 )
                 return await self.async_step_init()
 
@@ -508,7 +514,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             coordinator.async_update_listeners()
 
             const.LOGGER.debug(
-                "DEBUG: Added Chore '%s' with ID: %s and Due Date %s",
+                "Added Chore '%s' with ID: %s and Due Date %s",
                 chore_name,
                 internal_id,
                 due_date_str,
@@ -534,7 +540,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         """Entry point to add a new badge."""
         if user_input is not None:
             badge_type = user_input[const.CFOF_BADGES_INPUT_TYPE]
-            self.context[const.CFOF_BADGES_INPUT_TYPE] = badge_type  # type: ignore[typeddict-unknown-key]
+            self.context[  # type: ignore[typeddict-unknown-key]
+                const.CFOF_BADGES_INPUT_TYPE
+            ] = badge_type
 
             # Redirect to the appropriate step based on badge type
             if badge_type == const.BADGE_TYPE_CUMULATIVE:
@@ -669,13 +677,15 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             internal_id = self.context.get(const.CFOF_GLOBAL_INPUT_INTERNAL_ID)
             # Validate that the badge still exists (defensive: could have been deleted by another process)
             if not internal_id or internal_id not in badges_dict:
-                const.LOGGER.error("ERROR: Invalid Internal ID for editing badge.")
+                const.LOGGER.error("Invalid Internal ID for editing badge.")
                 return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_BADGE)
         else:
             # Add mode: generate new UUID and store in context for form resubmissions
             # Context persists across form validation errors (same internal_id on retry)
             internal_id = str(uuid.uuid4())
-            self.context[const.CFOF_GLOBAL_INPUT_INTERNAL_ID] = internal_id  # type: ignore[typeddict-unknown-key]
+            self.context[  # type: ignore[typeddict-unknown-key]
+                const.CFOF_GLOBAL_INPUT_INTERNAL_ID
+            ] = internal_id
 
         if user_input is not None:
             # --- Validate Inputs ---
@@ -745,8 +755,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             else const.OPTIONS_FLOW_ADD_STEP.get(badge_type)
         )
         if not step_name:
-            const.LOGGER.error("ERROR: Invalid badge type '%s'.", badge_type)
-            return self.async_abort(reason="invalid_badge_type")
+            const.LOGGER.error("Invalid badge type '%s'.", badge_type)
+            return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_BADGE_TYPE)
 
         return self.async_show_form(
             step_id=step_name,
@@ -779,7 +789,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                 reward_name = new_reward_data[const.DATA_REWARD_NAME]
                 const.LOGGER.debug(
-                    "DEBUG: Added Reward '%s' with ID: %s", reward_name, internal_id
+                    "Added Reward '%s' with ID: %s", reward_name, internal_id
                 )
                 self._mark_reload_needed()
                 return await self.async_step_init()
@@ -816,7 +826,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                 bonus_name = user_input[const.CFOF_BONUSES_INPUT_NAME].strip()
                 const.LOGGER.debug(
-                    "DEBUG: Added Bonus '%s' with ID: %s", bonus_name, internal_id
+                    "Added Bonus '%s' with ID: %s", bonus_name, internal_id
                 )
                 self._mark_reload_needed()
                 return await self.async_step_init()
@@ -851,7 +861,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                 penalty_name = user_input[const.CFOF_PENALTIES_INPUT_NAME].strip()
                 const.LOGGER.debug(
-                    "DEBUG: Added Penalty '%s' with ID: %s", penalty_name, internal_id
+                    "Added Penalty '%s' with ID: %s", penalty_name, internal_id
                 )
                 self._mark_reload_needed()
                 return await self.async_step_init()
@@ -897,7 +907,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     const.CFOF_ACHIEVEMENTS_INPUT_NAME
                 ].strip()
                 const.LOGGER.debug(
-                    "DEBUG: Added Achievement '%s' with ID: %s",
+                    "Added Achievement '%s' with ID: %s",
                     achievement_name,
                     internal_id,
                 )
@@ -967,7 +977,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                 challenge_name = user_input[const.CFOF_CHALLENGES_INPUT_NAME].strip()
                 const.LOGGER.debug(
-                    "DEBUG: Added Challenge '%s' with ID: %s",
+                    "Added Challenge '%s' with ID: %s",
                     challenge_name,
                     internal_id,
                 )
@@ -975,8 +985,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 return await self.async_step_init()
 
         kids_dict = {
-            kid_data[const.DATA_KID_NAME]: kid_id
-            for kid_id, kid_data in coordinator.kids_data.items()
+            data[const.DATA_KID_NAME]: eid
+            for eid, data in coordinator.kids_data.items()
         }
         challenge_schema = fh.build_challenge_schema(
             kids_dict=kids_dict, chores_dict=chores_dict, default=user_input
@@ -1002,9 +1012,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
 
         if not internal_id or internal_id not in kids_dict:
-            const.LOGGER.error(
-                "ERROR: Edit Kid - Invalid Internal ID '%s'", internal_id
-            )
+            const.LOGGER.error("Edit Kid - Invalid Internal ID '%s'", internal_id)
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_KID)
 
         kid_data = kids_dict[internal_id]
@@ -1055,9 +1063,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 # Update via coordinator
                 coordinator.update_kid_entity(internal_id, updated_kid_data)
 
-                const.LOGGER.debug(
-                    "DEBUG: Edited Kid '%s' with ID: %s", new_name, internal_id
-                )
+                const.LOGGER.debug("Edited Kid '%s' with ID: %s", new_name, internal_id)
                 self._mark_reload_needed()
                 return await self.async_step_init()
 
@@ -1096,9 +1102,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
 
         if not internal_id or internal_id not in parents_dict:
-            const.LOGGER.error(
-                "ERROR: Edit Parent - Invalid Internal ID '%s'", internal_id
-            )
+            const.LOGGER.error("Edit Parent - Invalid Internal ID '%s'", internal_id)
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_PARENT)
 
         parent_data = parents_dict[internal_id]
@@ -1148,7 +1152,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 coordinator.update_parent_entity(internal_id, updated_parent_data)
 
                 const.LOGGER.debug(
-                    "DEBUG: Edited Parent '%s' with ID: %s", new_name, internal_id
+                    "Edited Parent '%s' with ID: %s", new_name, internal_id
                 )
                 return await self.async_step_init()
 
@@ -1195,9 +1199,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
 
         if not internal_id or internal_id not in chores_dict:
-            const.LOGGER.error(
-                "ERROR: Edit Chore - Invalid Internal ID '%s'", internal_id
-            )
+            const.LOGGER.error("Edit Chore - Invalid Internal ID '%s'", internal_id)
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_CHORE)
 
         chore_data = chores_dict[internal_id]
@@ -1245,15 +1247,11 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.DATA_CHORE_NAME,
                 chore_data.get(const.DATA_CHORE_NAME),
             )
-            const.LOGGER.debug(
-                "DEBUG: Edited Chore '%s' with ID: %s", new_name, internal_id
-            )
+            const.LOGGER.debug("Edited Chore '%s' with ID: %s", new_name, internal_id)
 
             # Only reload if assignments changed (entities added/removed)
             if assignments_changed:
-                const.LOGGER.debug(
-                    "DEBUG: Chore assignments changed, marking reload needed"
-                )
+                const.LOGGER.debug("Chore assignments changed, marking reload needed")
                 self._mark_reload_needed()
 
             return await self.async_step_init()
@@ -1285,12 +1283,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     "%Y-%m-%d %H:%M:%S"
                 )
                 const.LOGGER.debug(
-                    "DEBUG: Processed existing_due_date for DateTimeSelector: %s",
+                    "Processed existing_due_date for DateTimeSelector: %s",
                     existing_due_date,
                 )
             except ValueError as e:
                 const.LOGGER.error(
-                    "ERROR: Failed to parse existing_due_date '%s': %s",
+                    "Failed to parse existing_due_date '%s': %s",
                     existing_due_str,
                     e,
                 )
@@ -1389,9 +1387,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
 
         if not internal_id or internal_id not in rewards_dict:
-            const.LOGGER.error(
-                "ERROR: Edit Reward - Invalid Internal ID '%s'", internal_id
-            )
+            const.LOGGER.error("Edit Reward - Invalid Internal ID '%s'", internal_id)
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_REWARD)
 
         reward_data = rewards_dict[internal_id]
@@ -1418,7 +1414,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                 new_name = updated_reward_data[const.DATA_REWARD_NAME]
                 const.LOGGER.debug(
-                    "DEBUG: Edited Reward '%s' with ID: %s", new_name, internal_id
+                    "Edited Reward '%s' with ID: %s", new_name, internal_id
                 )
                 self._mark_reload_needed()
                 return await self.async_step_init()
@@ -1440,9 +1436,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
 
         if not internal_id or internal_id not in penalties_dict:
-            const.LOGGER.error(
-                "ERROR: Edit Penalty - Invalid Internal ID '%s'", internal_id
-            )
+            const.LOGGER.error("Edit Penalty - Invalid Internal ID '%s'", internal_id)
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_PENALTY)
 
         penalty_data = penalties_dict[internal_id]
@@ -1464,7 +1458,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 coordinator.update_penalty_entity(internal_id, updated_penalty_data)
 
                 const.LOGGER.debug(
-                    "DEBUG: Edited Penalty '%s' with ID: %s", new_name, internal_id
+                    "Edited Penalty '%s' with ID: %s", new_name, internal_id
                 )
                 self._mark_reload_needed()
                 return await self.async_step_init()
@@ -1491,9 +1485,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
 
         if not internal_id or internal_id not in bonuses_dict:
-            const.LOGGER.error(
-                "ERROR: Edit Bonus - Invalid Internal ID '%s'", internal_id
-            )
+            const.LOGGER.error("Edit Bonus - Invalid Internal ID '%s'", internal_id)
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_BONUS)
 
         bonus_data = bonuses_dict[internal_id]
@@ -1515,7 +1507,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 coordinator.update_bonus_entity(internal_id, updated_bonus_data)
 
                 const.LOGGER.debug(
-                    "DEBUG: Edited Bonus '%s' with ID: %s", new_name, internal_id
+                    "Edited Bonus '%s' with ID: %s", new_name, internal_id
                 )
                 self._mark_reload_needed()
                 return await self.async_step_init()
@@ -1543,7 +1535,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
         if not internal_id or internal_id not in achievements_dict:
             const.LOGGER.error(
-                "ERROR: Edit Achievement - Invalid Internal ID '%s'", internal_id
+                "Edit Achievement - Invalid Internal ID '%s'", internal_id
             )
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_ACHIEVEMENT)
 
@@ -1577,7 +1569,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                 new_name = user_input[const.CFOF_ACHIEVEMENTS_INPUT_NAME].strip()
                 const.LOGGER.debug(
-                    "DEBUG: Edited Achievement '%s' with ID: %s",
+                    "Edited Achievement '%s' with ID: %s",
                     new_name,
                     internal_id,
                 )
@@ -1628,9 +1620,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
 
         if not internal_id or internal_id not in challenges_dict:
-            const.LOGGER.error(
-                "ERROR: Edit Challenge - Invalid Internal ID '%s'", internal_id
-            )
+            const.LOGGER.error("Edit Challenge - Invalid Internal ID '%s'", internal_id)
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_CHALLENGE)
 
         challenge_data = challenges_dict[internal_id]
@@ -1718,7 +1708,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             new_name = user_input[const.CFOF_CHALLENGES_INPUT_NAME].strip()
             const.LOGGER.debug(
-                "DEBUG: Edited Challenge '%s' with ID: %s",
+                "Edited Challenge '%s' with ID: %s",
                 new_name,
                 internal_id,
             )
@@ -1754,9 +1744,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
 
         if not internal_id or internal_id not in kids_dict:
-            const.LOGGER.error(
-                "ERROR: Delete Kid - Invalid Internal ID '%s'", internal_id
-            )
+            const.LOGGER.error("Delete Kid - Invalid Internal ID '%s'", internal_id)
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_KID)
 
         kid_name = kids_dict[internal_id][const.DATA_KID_NAME]
@@ -1764,9 +1752,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             coordinator.delete_kid_entity(internal_id)
 
-            const.LOGGER.debug(
-                "DEBUG: Deleted Kid '%s' with ID: %s", kid_name, internal_id
-            )
+            const.LOGGER.debug("Deleted Kid '%s' with ID: %s", kid_name, internal_id)
             return await self.async_step_init()
 
         return self.async_show_form(
@@ -1786,9 +1772,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
 
         if not internal_id or internal_id not in parents_dict:
-            const.LOGGER.error(
-                "ERROR: Delete Parent - Invalid Internal ID '%s'", internal_id
-            )
+            const.LOGGER.error("Delete Parent - Invalid Internal ID '%s'", internal_id)
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_PARENT)
 
         parent_name = parents_dict[internal_id][const.DATA_PARENT_NAME]
@@ -1797,7 +1781,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             coordinator.delete_parent_entity(internal_id)
 
             const.LOGGER.debug(
-                "DEBUG: Deleted Parent '%s' with ID: %s", parent_name, internal_id
+                "Deleted Parent '%s' with ID: %s", parent_name, internal_id
             )
             return await self.async_step_init()
 
@@ -1818,9 +1802,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
 
         if not internal_id or internal_id not in chores_dict:
-            const.LOGGER.error(
-                "ERROR: Delete Chore - Invalid Internal ID '%s'", internal_id
-            )
+            const.LOGGER.error("Delete Chore - Invalid Internal ID '%s'", internal_id)
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_CHORE)
 
         chore_name = chores_dict[internal_id][const.DATA_CHORE_NAME]
@@ -1829,7 +1811,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             coordinator.delete_chore_entity(internal_id)
 
             const.LOGGER.debug(
-                "DEBUG: Deleted Chore '%s' with ID: %s", chore_name, internal_id
+                "Deleted Chore '%s' with ID: %s", chore_name, internal_id
             )
             return await self.async_step_init()
 
@@ -1850,9 +1832,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
 
         if not internal_id or internal_id not in badges_dict:
-            const.LOGGER.error(
-                "ERROR: Delete Badge - Invalid Internal ID '%s'", internal_id
-            )
+            const.LOGGER.error("Delete Badge - Invalid Internal ID '%s'", internal_id)
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_BADGE)
 
         badge_name = badges_dict[internal_id][const.DATA_BADGE_NAME]
@@ -1861,7 +1841,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             coordinator.delete_badge_entity(internal_id)
 
             const.LOGGER.debug(
-                "DEBUG: Deleted Badge '%s' with ID: %s", badge_name, internal_id
+                "Deleted Badge '%s' with ID: %s", badge_name, internal_id
             )
             return await self.async_step_init()
 
@@ -1882,9 +1862,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
 
         if not internal_id or internal_id not in rewards_dict:
-            const.LOGGER.error(
-                "ERROR: Delete Reward - Invalid Internal ID '%s'", internal_id
-            )
+            const.LOGGER.error("Delete Reward - Invalid Internal ID '%s'", internal_id)
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_REWARD)
 
         reward_name = rewards_dict[internal_id][const.DATA_REWARD_NAME]
@@ -1893,7 +1871,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             coordinator.delete_reward_entity(internal_id)
 
             const.LOGGER.debug(
-                "DEBUG: Deleted Reward '%s' with ID: %s", reward_name, internal_id
+                "Deleted Reward '%s' with ID: %s", reward_name, internal_id
             )
             return await self.async_step_init()
 
@@ -1914,9 +1892,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
 
         if not internal_id or internal_id not in penalties_dict:
-            const.LOGGER.error(
-                "ERROR: Delete Penalty - Invalid Internal ID '%s'", internal_id
-            )
+            const.LOGGER.error("Delete Penalty - Invalid Internal ID '%s'", internal_id)
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_PENALTY)
 
         penalty_name = penalties_dict[internal_id][const.DATA_PENALTY_NAME]
@@ -1925,7 +1901,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             coordinator.delete_penalty_entity(internal_id)
 
             const.LOGGER.debug(
-                "DEBUG: Deleted Penalty '%s' with ID: %s", penalty_name, internal_id
+                "Deleted Penalty '%s' with ID: %s", penalty_name, internal_id
             )
             return await self.async_step_init()
 
@@ -1947,7 +1923,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         if not internal_id or internal_id not in achievements_dict:
             const.LOGGER.error(
-                "ERROR: Delete Achievement - Invalid Internal ID '%s'", internal_id
+                "Delete Achievement - Invalid Internal ID '%s'", internal_id
             )
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_ACHIEVEMENT)
 
@@ -1957,7 +1933,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             coordinator.delete_achievement_entity(internal_id)
 
             const.LOGGER.debug(
-                "DEBUG: Deleted Achievement '%s' with ID: %s",
+                "Deleted Achievement '%s' with ID: %s",
                 achievement_name,
                 internal_id,
             )
@@ -1981,7 +1957,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         if not internal_id or internal_id not in challenges_dict:
             const.LOGGER.error(
-                "ERROR: Delete Challenge - Invalid Internal ID '%s'", internal_id
+                "Delete Challenge - Invalid Internal ID '%s'", internal_id
             )
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_CHALLENGE)
 
@@ -1991,7 +1967,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             coordinator.delete_challenge_entity(internal_id)
 
             const.LOGGER.debug(
-                "DEBUG: Deleted Challenge '%s' with ID: %s", challenge_name, internal_id
+                "Deleted Challenge '%s' with ID: %s", challenge_name, internal_id
             )
             return await self.async_step_init()
 
@@ -2012,9 +1988,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
 
         if not internal_id or internal_id not in bonuses_dict:
-            const.LOGGER.error(
-                "ERROR: Delete Bonus - Invalid Internal ID '%s'", internal_id
-            )
+            const.LOGGER.error("Delete Bonus - Invalid Internal ID '%s'", internal_id)
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_BONUS)
 
         bonus_name = bonuses_dict[internal_id][const.DATA_BONUS_NAME]
@@ -2023,7 +1997,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             coordinator.delete_bonus_entity(internal_id)
 
             const.LOGGER.debug(
-                "DEBUG: Deleted Bonus '%s' with ID: %s", bonus_name, internal_id
+                "Deleted Bonus '%s' with ID: %s", bonus_name, internal_id
             )
             return await self.async_step_init()
 
@@ -2040,7 +2014,21 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     # ----------------------------------------------------------------------------------
 
     async def async_step_manage_general_options(self, user_input=None):
-        """Manage general options: points adjust values and update interval."""
+        """Manage general options: points adjust values, update interval, retention, and backup settings."""
+        # Check if this is a backup management action
+        if user_input is not None and const.CFOF_BACKUP_ACTION_SELECTION in user_input:
+            action = user_input[const.CFOF_BACKUP_ACTION_SELECTION]
+            # Skip empty/default selection
+            if action and action.strip():
+                if action == "view_backups":
+                    return await self.async_step_view_backups()
+                elif action == "create_backup":
+                    return await self.async_step_create_manual_backup()
+                elif action == "restore_backup":
+                    return await self.async_step_restore_from_options()
+                elif action == "return_to_settings":
+                    user_input = None  # Re-show the settings form
+
         if user_input is not None:
             # Get the raw text from the multiline text area.
             points_str = user_input.get(
@@ -2062,40 +2050,56 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             self._entry_options[const.CONF_CALENDAR_SHOW_PERIOD] = user_input.get(
                 const.CONF_CALENDAR_SHOW_PERIOD
             )
-            # Update retention periods
-            self._entry_options[const.CONF_RETENTION_DAILY] = user_input.get(
-                const.CONF_RETENTION_DAILY
-            )
-            self._entry_options[const.CONF_RETENTION_WEEKLY] = user_input.get(
-                const.CONF_RETENTION_WEEKLY
-            )
-            self._entry_options[const.CONF_RETENTION_MONTHLY] = user_input.get(
-                const.CONF_RETENTION_MONTHLY
-            )
-            self._entry_options[const.CONF_RETENTION_YEARLY] = user_input.get(
-                const.CONF_RETENTION_YEARLY
-            )
+            # Parse consolidated retention periods
+            retention_str = user_input.get(const.CONF_RETENTION_PERIODS, "").strip()
+            if retention_str:
+                try:
+                    daily, weekly, monthly, yearly = fh.parse_retention_periods(
+                        retention_str
+                    )
+                    self._entry_options[const.CONF_RETENTION_DAILY] = daily
+                    self._entry_options[const.CONF_RETENTION_WEEKLY] = weekly
+                    self._entry_options[const.CONF_RETENTION_MONTHLY] = monthly
+                    self._entry_options[const.CONF_RETENTION_YEARLY] = yearly
+                except ValueError as err:
+                    const.LOGGER.error("Failed to parse retention periods: %s", err)
+                    # Use defaults if parsing fails
+                    self._entry_options[const.CONF_RETENTION_DAILY] = (
+                        const.DEFAULT_RETENTION_DAILY
+                    )
+                    self._entry_options[const.CONF_RETENTION_WEEKLY] = (
+                        const.DEFAULT_RETENTION_WEEKLY
+                    )
+                    self._entry_options[const.CONF_RETENTION_MONTHLY] = (
+                        const.DEFAULT_RETENTION_MONTHLY
+                    )
+                    self._entry_options[const.CONF_RETENTION_YEARLY] = (
+                        const.DEFAULT_RETENTION_YEARLY
+                    )
             # Update legacy entities toggle
             self._entry_options[const.CONF_SHOW_LEGACY_ENTITIES] = user_input.get(
                 const.CONF_SHOW_LEGACY_ENTITIES,
                 const.DEFAULT_SHOW_LEGACY_ENTITIES,
             )
+            # Update backup retention (count-based)
+            self._entry_options[const.CONF_BACKUPS_MAX_RETAINED] = user_input.get(
+                const.CONF_BACKUPS_MAX_RETAINED,
+                const.DEFAULT_BACKUPS_MAX_RETAINED,
+            )
             const.LOGGER.debug(
-                "DEBUG: General Options Updated: Points Adjust Values=%s, "
+                "General Options Updated: Points Adjust Values=%s, "
                 "Update Interval=%s, Calendar Period to Show=%s, "
-                "Retention Daily=%s, Retention Weekly=%s, "
-                "Retention Monthly=%s, Retention Yearly=%s, "
-                "Show Legacy Entities=%s",
+                "Retention Periods=%s, "
+                "Show Legacy Entities=%s, Backup Retention=%s",
                 self._entry_options.get(const.CONF_POINTS_ADJUST_VALUES),
                 self._entry_options.get(const.CONF_UPDATE_INTERVAL),
                 self._entry_options.get(const.CONF_CALENDAR_SHOW_PERIOD),
-                self._entry_options.get(const.CONF_RETENTION_DAILY),
-                self._entry_options.get(const.CONF_RETENTION_WEEKLY),
-                self._entry_options.get(const.CONF_RETENTION_MONTHLY),
-                self._entry_options.get(const.CONF_RETENTION_YEARLY),
+                retention_str,
                 self._entry_options.get(const.CONF_SHOW_LEGACY_ENTITIES),
+                self._entry_options.get(const.CONF_BACKUPS_MAX_RETAINED),
             )
             await self._update_system_settings_and_reload()
+            # After saving settings, return to main menu
             return await self.async_step_init()
 
         general_schema = fh.build_general_options_schema(self._entry_options)
@@ -2103,6 +2107,660 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_MANAGE_GENERAL_OPTIONS,
             data_schema=general_schema,
             description_placeholders={},
+        )
+
+    async def async_step_restore_backup(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle restore_backup step - delegate to restore_from_options."""
+        return await self.async_step_restore_from_options(user_input)
+
+    async def async_step_restore_from_options(self, user_input=None):
+        """Handle restore options from general options menu (same as config flow)."""
+        from pathlib import Path
+
+        errors = {}
+
+        if user_input is not None:
+            selection = user_input.get(const.CFOF_DATA_RECOVERY_INPUT_SELECTION)
+
+            if selection == "cancel":
+                # Return to backup management menu without making changes
+                return await self.async_step_manage_general_options()
+            if selection == "start_fresh":
+                return await self._handle_start_fresh_from_options()
+            if selection == "current_active":
+                return await self._handle_use_current_from_options()
+            if selection == "paste_json":
+                return await self.async_step_restore_paste_json_options()
+            # Otherwise it's a backup filename - restore it
+            if selection:
+                return await self._handle_restore_backup_from_options(selection)
+
+            errors[const.CFOP_ERROR_BASE] = const.TRANS_KEY_CFOF_INVALID_SELECTION
+
+        # Build selection menu
+        storage_path = Path(self.hass.config.path(".storage", const.STORAGE_KEY))
+        storage_file_exists = await self.hass.async_add_executor_job(
+            storage_path.exists
+        )
+
+        # Discover backups (pass None for storage_manager - not needed for discovery)
+        backups = await fh.discover_backups(self.hass, None)
+        if not isinstance(backups, list):
+            backups = []  # Handle any unexpected return type
+
+        # Build options dict
+        options = {}
+
+        # Add cancel option first (for easy access)
+        options["cancel"] = "↩️  Cancel (return to backup menu)"
+
+        # Only show "use current" if file actually exists
+        if storage_file_exists:
+            options["current_active"] = (
+                f"📂 Use current active file: {storage_path.name}"
+            )
+
+        options["start_fresh"] = "🆕 Start fresh (creates backup of existing data)"
+
+        # Add discovered backups with age info
+        for backup in backups:
+            age_str = fh.format_backup_age(backup["age_hours"])
+            tag_display = backup["tag"].replace("-", " ").title()
+            label = f"⏮️  Restore [{tag_display}]: {backup['filename']} ({age_str})"
+            options[backup["filename"]] = label
+
+        # Add paste JSON option
+        options["paste_json"] = "📋 Paste JSON data from diagnostics"
+
+        # Build schema
+        data_schema = vol.Schema(
+            {vol.Required(const.CFOF_DATA_RECOVERY_INPUT_SELECTION): vol.In(options)}
+        )
+
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_RESTORE_BACKUP,
+            data_schema=data_schema,
+            errors=errors,
+            description_placeholders={
+                "storage_path": str(storage_path.parent),
+                "backup_count": str(len(backups)),
+            },
+        )
+
+    async def _handle_start_fresh_from_options(self):
+        """Handle 'Start Fresh' from options - backup existing and delete, then reload."""
+        import os
+        from pathlib import Path
+
+        from .storage_manager import KidsChoresStorageManager
+
+        try:
+            storage_manager = KidsChoresStorageManager(self.hass)
+            storage_path = Path(storage_manager.get_storage_path())
+
+            # Create safety backup if file exists
+            if storage_path.exists():
+                backup_name = fh.create_timestamped_backup(
+                    self.hass, storage_manager, const.BACKUP_TAG_RECOVERY
+                )
+                if backup_name:
+                    const.LOGGER.info(
+                        "Created safety backup before fresh start: %s", backup_name
+                    )
+
+                # Delete active file
+                await self.hass.async_add_executor_job(os.remove, str(storage_path))
+                const.LOGGER.info("Deleted active storage file for fresh start")
+
+            # Reload the entry to reinitialize from scratch
+            self._mark_reload_needed()
+            return await self.async_step_init()
+
+        except Exception as err:  # pylint: disable=broad-except
+            const.LOGGER.error("Fresh start failed: %s", err)
+            return self.async_abort(reason="unknown")
+
+    async def _handle_use_current_from_options(self):
+        """Handle 'Use Current Active' from options - validate and reload."""
+        import json
+        from pathlib import Path
+
+        try:
+            # Get storage path without creating storage manager yet
+            storage_path = Path(self.hass.config.path(".storage", const.STORAGE_KEY))
+
+            if not storage_path.exists():
+                return self.async_abort(reason="file_not_found")
+
+            # Validate JSON
+            data_str = await self.hass.async_add_executor_job(
+                storage_path.read_text, "utf-8"
+            )
+
+            try:
+                json.loads(data_str)  # Parse to validate
+            except json.JSONDecodeError:
+                return self.async_abort(reason="corrupt_file")
+
+            # Validate structure
+            if not fh.validate_backup_json(data_str):
+                return self.async_abort(reason="invalid_structure")
+
+            const.LOGGER.info("Using current active storage file")
+            self._mark_reload_needed()
+            return await self.async_step_init()
+
+        except Exception as err:  # pylint: disable=broad-except
+            const.LOGGER.error("Use current failed: %s", err)
+            return self.async_abort(reason="unknown")
+
+    async def async_step_restore_paste_json_options(self, user_input=None):
+        """Allow user to paste JSON data from diagnostics in options flow."""
+        import json
+        from pathlib import Path
+
+        errors = {}
+
+        if user_input is not None:
+            json_text = user_input.get(
+                const.CFOF_DATA_RECOVERY_INPUT_JSON_DATA, ""
+            ).strip()
+
+            if not json_text:
+                errors[const.CFOP_ERROR_BASE] = "empty_json"
+            else:
+                try:
+                    # Parse JSON
+                    pasted_data = json.loads(json_text)
+
+                    # Validate structure
+                    if not fh.validate_backup_json(json_text):
+                        errors[const.CFOP_ERROR_BASE] = "invalid_structure"
+                    else:
+                        # Determine data format and extract storage data
+                        storage_data = pasted_data
+
+                        # Handle diagnostic format (KC 4.0+ diagnostic exports)
+                        if "home_assistant" in pasted_data and "data" in pasted_data:
+                            const.LOGGER.info("Processing diagnostic export format")
+                            storage_data = pasted_data["data"]
+                        # Handle Store format (KC 3.0/3.1/4.0beta1)
+                        elif "version" in pasted_data and "data" in pasted_data:
+                            const.LOGGER.info("Processing Store format")
+                            storage_data = pasted_data["data"]
+                        # Raw storage data format
+                        else:
+                            const.LOGGER.info("Processing raw storage format")
+                            storage_data = pasted_data
+
+                        # Always wrap in HA Store format for storage file
+                        wrapped_data = {
+                            "version": 1,
+                            "minor_version": 1,
+                            "key": const.STORAGE_KEY,
+                            "data": storage_data,
+                        }
+
+                        # Write to storage file
+                        storage_path = Path(
+                            self.hass.config.path(".storage", const.STORAGE_KEY)
+                        )
+
+                        # Write wrapped data to storage (directory created by HA/test fixtures)
+                        await self.hass.async_add_executor_job(
+                            storage_path.write_text,
+                            json.dumps(wrapped_data, indent=2),
+                            "utf-8",
+                        )
+
+                        const.LOGGER.info("Successfully imported JSON data to storage")
+
+                        # Cleanup old backups
+                        from .storage_manager import KidsChoresStorageManager
+
+                        storage_manager = KidsChoresStorageManager(self.hass)
+                        max_backups = const.DEFAULT_BACKUPS_MAX_RETAINED
+                        await fh.cleanup_old_backups(
+                            self.hass, storage_manager, max_backups
+                        )
+
+                        # Reload and return to init
+                        self._mark_reload_needed()
+                        return await self.async_step_init()
+
+                except json.JSONDecodeError:
+                    errors[const.CFOP_ERROR_BASE] = "invalid_json"
+                except Exception as err:  # pylint: disable=broad-except
+                    const.LOGGER.error("Paste JSON failed: %s", err)
+                    errors[const.CFOP_ERROR_BASE] = "unknown"
+
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_PASTE_JSON_RESTORE,
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        const.CFOF_DATA_RECOVERY_INPUT_JSON_DATA
+                    ): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            multiline=True,
+                            type=selector.TextSelectorType.PASSWORD,
+                        )
+                    )
+                }
+            ),
+            errors=errors,
+        )
+
+    async def async_step_paste_json_restore(self, user_input=None) -> dict[str, Any]:
+        """Handle paste_json_restore step - delegate to paste_json_options."""
+        return await self.async_step_restore_paste_json_options(user_input)
+
+    async def _handle_restore_backup_from_options(self, backup_filename: str):
+        """Handle restoring from a specific backup file in options flow."""
+        import json
+        import shutil
+        from pathlib import Path
+
+        from .storage_manager import KidsChoresStorageManager
+
+        try:
+            # Get storage path directly without creating storage manager yet
+            storage_path = Path(self.hass.config.path(".storage", const.STORAGE_KEY))
+            backup_path = storage_path.parent / backup_filename
+
+            if not backup_path.exists():
+                const.LOGGER.error("Backup file not found: %s", backup_filename)
+                return self.async_abort(reason="file_not_found")
+
+            # Read and validate backup
+            backup_data_str = await self.hass.async_add_executor_job(
+                backup_path.read_text, "utf-8"
+            )
+
+            try:
+                json.loads(backup_data_str)  # Validate parseable JSON
+            except json.JSONDecodeError:
+                const.LOGGER.error("Backup file has invalid JSON: %s", backup_filename)
+                return self.async_abort(reason="corrupt_file")
+
+            # Validate structure
+            if not fh.validate_backup_json(backup_data_str):
+                const.LOGGER.error(
+                    "Backup file missing required keys: %s", backup_filename
+                )
+                return self.async_abort(reason="invalid_structure")
+
+            # Create safety backup of current file if it exists
+            if storage_path.exists():
+                # Create storage manager only for safety backup creation
+                storage_manager = KidsChoresStorageManager(self.hass)
+                safety_backup = fh.create_timestamped_backup(
+                    self.hass, storage_manager, const.BACKUP_TAG_RECOVERY
+                )
+                if safety_backup:
+                    const.LOGGER.info(
+                        "Created safety backup before restore: %s", safety_backup
+                    )
+
+            # Parse backup data
+            backup_data = json.loads(backup_data_str)
+
+            # Check if backup already has Home Assistant storage format
+            if "version" in backup_data and "data" in backup_data:
+                # Already in storage format - restore as-is
+                await self.hass.async_add_executor_job(
+                    shutil.copy2, str(backup_path), str(storage_path)
+                )
+            else:
+                # Raw data format (like v30, v31, v40beta1 samples)
+                # Load through storage manager to add proper wrapper
+                storage_manager = KidsChoresStorageManager(self.hass)
+                storage_manager.set_data(backup_data)
+                await storage_manager.async_save()
+
+            const.LOGGER.info("Restored backup: %s", backup_filename)
+
+            # Cleanup old backups
+            storage_manager = KidsChoresStorageManager(self.hass)
+            max_backups = const.DEFAULT_BACKUPS_MAX_RETAINED
+            await fh.cleanup_old_backups(self.hass, storage_manager, max_backups)
+
+            # Reload and return to init
+            self._mark_reload_needed()
+            return await self.async_step_init()
+
+        except Exception as err:  # pylint: disable=broad-except
+            const.LOGGER.error("Restore backup failed: %s", err)
+            return self.async_abort(reason="unknown")
+
+    async def async_step_backup_actions_menu(self, user_input=None):
+        """Show backup management actions menu."""
+        from .storage_manager import KidsChoresStorageManager
+
+        if user_input is not None:
+            action = user_input[const.CFOF_BACKUP_ACTION_SELECTION]
+
+            if action == "view_backups":
+                return await self.async_step_view_backups()
+            elif action == "create_backup":
+                return await self.async_step_create_manual_backup()
+            elif action == "return_to_menu":
+                return await self.async_step_init()
+
+        # Discover backups to show count
+        storage_manager = KidsChoresStorageManager(self.hass)
+        backups = await fh.discover_backups(self.hass, storage_manager)
+        backup_count = len(backups)
+
+        # Calculate total storage usage
+        total_size_mb = sum(b.get("size_bytes", 0) for b in backups) / (1024 * 1024)
+
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_BACKUP_ACTIONS,
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        const.CFOF_BACKUP_ACTION_SELECTION
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=[
+                                "view_backups",
+                                "create_backup",
+                                "return_to_menu",
+                            ],
+                            mode=selector.SelectSelectorMode.LIST,
+                            translation_key=const.TRANS_KEY_CFOF_BACKUP_ACTIONS,
+                        )
+                    )
+                }
+            ),
+            description_placeholders={
+                "backup_count": str(backup_count),
+                "storage_size": f"{total_size_mb:.2f}",
+            },
+        )
+
+    async def async_step_view_backups(self, user_input=None):
+        """View and manage existing backups."""
+        from .storage_manager import KidsChoresStorageManager
+
+        storage_manager = KidsChoresStorageManager(self.hass)
+
+        if user_input is not None:
+            action = user_input.get(const.CFOF_BACKUP_SELECTION)
+
+            if action == "return":
+                return await self.async_step_backup_actions_menu()
+            elif action and action.startswith("delete_"):
+                # Extract backup filename and store in context
+                backup_filename = action.replace("delete_", "")
+                self._backup_to_delete = backup_filename
+                return await self.async_step_delete_backup_confirm()
+            elif action and action.startswith("restore_"):
+                # Extract backup filename and store in context
+                backup_filename = action.replace("restore_", "")
+                self._backup_to_restore = backup_filename
+                return await self.async_step_confirm_restore_backup()
+
+        # Discover all backups (must await async function)
+        backups = await fh.discover_backups(self.hass, storage_manager)
+
+        if not backups:
+            # No backups found
+            return self.async_show_form(
+                step_id=const.OPTIONS_FLOW_STEP_VIEW_BACKUPS,
+                data_schema=vol.Schema(
+                    {
+                        vol.Required(
+                            const.CFOF_BACKUP_SELECTION
+                        ): selector.SelectSelector(
+                            selector.SelectSelectorConfig(
+                                options=["return"],
+                                mode=selector.SelectSelectorMode.LIST,
+                            )
+                        )
+                    }
+                ),
+                description_placeholders={"backup_list": "No backups found"},
+            )
+
+        # Build backup list with actions
+        backup_options = []
+        for backup in backups:
+            age_str = fh.format_backup_age(backup["age_hours"])
+            size_kb = backup["size_bytes"] / 1024
+            tag_display = backup["tag"].replace("-", " ").title()
+
+            # Add restore option
+            label = f"🔄 Restore: {backup['filename']} ({tag_display}, {age_str}, {size_kb:.1f} KB)"
+            backup_options.append(
+                {
+                    "value": f"restore_{backup['filename']}",
+                    "label": label,
+                }
+            )
+
+            # Add delete option (skip pre-migration and manual tags)
+            if backup["tag"] not in [
+                const.BACKUP_TAG_PRE_MIGRATION,
+                const.BACKUP_TAG_MANUAL,
+            ]:
+                label = f"🗑️  Delete: {backup['filename']} ({tag_display}, {age_str})"
+                backup_options.append(
+                    {
+                        "value": f"delete_{backup['filename']}",
+                        "label": label,
+                    }
+                )
+
+        backup_options.append(
+            {
+                "value": "return",
+                "label": const.TRANS_KEY_CFOF_BACKUP_RETURN_MENU,
+            }
+        )
+
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_VIEW_BACKUPS,
+            data_schema=vol.Schema(
+                {
+                    vol.Required(const.CFOF_BACKUP_SELECTION): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=backup_options,
+                            mode=selector.SelectSelectorMode.LIST,
+                        )
+                    )
+                }
+            ),
+            description_placeholders={"backup_count": str(len(backups))},
+        )
+
+    async def async_step_create_manual_backup(self, user_input=None):
+        """Create a manual backup."""
+        from .storage_manager import KidsChoresStorageManager
+
+        if user_input is not None:
+            if user_input.get("confirm"):
+                storage_manager = KidsChoresStorageManager(self.hass)
+
+                # Create manual backup
+                backup_filename = fh.create_timestamped_backup(
+                    self.hass,
+                    storage_manager,
+                    const.BACKUP_TAG_MANUAL,
+                )
+
+                if backup_filename:
+                    const.LOGGER.info("Manual backup created: %s", backup_filename)
+                    # Run cleanup with current retention setting
+                    retention = self._entry_options.get(
+                        const.CONF_BACKUPS_MAX_RETAINED,
+                        const.DEFAULT_BACKUPS_MAX_RETAINED,
+                    )
+                    await fh.cleanup_old_backups(self.hass, storage_manager, retention)
+
+                    # Show success message and return to backup menu
+                    const.LOGGER.info(
+                        "Manual backup created successfully: %s", backup_filename
+                    )
+                    return await self.async_step_backup_actions_menu()
+                else:
+                    const.LOGGER.error("Failed to create manual backup")
+                    return await self.async_step_backup_actions_menu()
+            else:
+                return await self.async_step_backup_actions_menu()
+
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_CREATE_MANUAL_BACKUP,
+            data_schema=vol.Schema(
+                {
+                    vol.Required("confirm", default=False): selector.BooleanSelector(),
+                }
+            ),
+            description_placeholders={},
+        )
+
+    async def async_step_delete_backup_confirm(self, user_input=None):
+        """Confirm backup deletion."""
+        from pathlib import Path
+
+        from .storage_manager import KidsChoresStorageManager
+
+        # Get backup filename from context (set by view_backups step)
+        backup_filename = getattr(self, "_backup_to_delete", None)
+
+        if user_input is not None:
+            if user_input.get("confirm"):
+                storage_manager = KidsChoresStorageManager(self.hass)
+                storage_path = Path(storage_manager.get_storage_path())
+                # Type guard: ensure backup_filename is a string before using in Path operation
+                if isinstance(backup_filename, str):
+                    backup_path = storage_path.parent / backup_filename
+
+                    if backup_path.exists():
+                        try:
+                            await self.hass.async_add_executor_job(backup_path.unlink)
+                            const.LOGGER.info("Deleted backup: %s", backup_filename)
+                        except Exception as err:
+                            const.LOGGER.error(
+                                "Failed to delete backup %s: %s", backup_filename, err
+                            )
+                    else:
+                        const.LOGGER.error("Backup file not found: %s", backup_filename)
+                else:
+                    const.LOGGER.error("Invalid backup filename: %s", backup_filename)
+
+            # Clear the backup filename and return to view
+            self._backup_to_delete = None
+            return await self.async_step_view_backups()
+
+        # Show confirmation form
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_DELETE_BACKUP_CONFIRM,
+            data_schema=vol.Schema(
+                {
+                    vol.Required("confirm", default=False): selector.BooleanSelector(),
+                }
+            ),
+            description_placeholders={"backup_filename": backup_filename or "unknown"},
+        )
+
+    async def async_step_confirm_restore_backup(self, user_input=None):
+        """Confirm backup restoration."""
+        import shutil
+        from pathlib import Path
+
+        from .storage_manager import KidsChoresStorageManager
+
+        # Get backup filename from context (set by view_backups step)
+        backup_filename = getattr(self, "_backup_to_restore", None)
+
+        if user_input is not None:
+            if user_input.get("confirm"):
+                storage_manager = KidsChoresStorageManager(self.hass)
+                storage_path = Path(storage_manager.get_storage_path())
+                # Type guard: ensure backup_filename is a string before using in Path operation
+                if not isinstance(backup_filename, str):
+                    const.LOGGER.error("Invalid backup filename: %s", backup_filename)
+                    self._backup_to_restore = None
+                    return await self.async_step_view_backups()
+
+                backup_path = storage_path.parent / backup_filename
+
+                if not backup_path.exists():
+                    const.LOGGER.error("Backup file not found: %s", backup_filename)
+                    self._backup_to_restore = None
+                    return await self.async_step_view_backups()
+
+                # Read and validate backup
+                try:
+                    backup_data_str = await self.hass.async_add_executor_job(
+                        backup_path.read_text, "utf-8"
+                    )
+                except Exception as err:  # pylint: disable=broad-except
+                    const.LOGGER.error(
+                        "Failed to read backup file %s: %s", backup_filename, err
+                    )
+                    self._backup_to_restore = None
+                    return await self.async_step_view_backups()
+
+                if not fh.validate_backup_json(backup_data_str):
+                    const.LOGGER.error("Invalid backup file: %s", backup_filename)
+                    self._backup_to_restore = None
+                    return await self.async_step_view_backups()
+
+                try:
+                    # Create safety backup of current file
+                    safety_backup = fh.create_timestamped_backup(
+                        self.hass,
+                        storage_manager,
+                        const.BACKUP_TAG_RECOVERY,
+                    )
+                    const.LOGGER.info("Created safety backup: %s", safety_backup)
+
+                    # Restore backup
+                    await self.hass.async_add_executor_job(
+                        shutil.copy2, backup_path, storage_path
+                    )
+                    const.LOGGER.info("Restored backup: %s", backup_filename)
+
+                    # Cleanup old backups
+                    retention = self._entry_options.get(
+                        const.CONF_BACKUPS_MAX_RETAINED,
+                        const.DEFAULT_BACKUPS_MAX_RETAINED,
+                    )
+                    await fh.cleanup_old_backups(self.hass, storage_manager, retention)
+
+                    # Clear context and reload integration to pick up restored data
+                    self._backup_to_restore = None
+                    await self.hass.config_entries.async_reload(
+                        self.config_entry.entry_id
+                    )
+
+                    return self.async_abort(reason="backup_restored")
+
+                except Exception as err:
+                    const.LOGGER.error(
+                        "Failed to restore backup %s: %s", backup_filename, err
+                    )
+                    self._backup_to_restore = None
+                    return await self.async_step_view_backups()
+            else:
+                # User cancelled - clear context and return to view
+                self._backup_to_restore = None
+                return await self.async_step_view_backups()
+
+        # Show confirmation form
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_RESTORE_BACKUP_CONFIRM,
+            data_schema=vol.Schema(
+                {
+                    vol.Required("confirm", default=False): selector.BooleanSelector(),
+                }
+            ),
+            description_placeholders={"backup_filename": backup_filename or "unknown"},
         )
 
     # ----------------------------------------------------------------------------------
@@ -2117,7 +2775,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         We defer the reload until the user returns to the main menu to avoid
         interrupting the flow mid-operation.
         """
-        const.LOGGER.debug("DEBUG: Marking reload needed after entity change")
+        const.LOGGER.debug("Marking reload needed after entity change")
         self._reload_needed = True
 
     async def _reload_entry_after_entity_change(self):
@@ -2127,12 +2785,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         After reload, triggers an immediate coordinator refresh so new entities get data.
         """
         const.LOGGER.debug(
-            "DEBUG: Reloading entry after entity changes: %s",
+            "Reloading entry after entity changes: %s",
             self.config_entry.entry_id,
         )
         try:
             await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-            const.LOGGER.debug("DEBUG: Entry reloaded successfully")
+            const.LOGGER.debug("Entry reloaded successfully")
         except Exception as err:
             const.LOGGER.error(
                 "Failed to reload config entry after entity changes: %s",
@@ -2146,11 +2804,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         # instead of waiting for the next update interval
         coordinator = self._get_coordinator()
         if coordinator:
-            const.LOGGER.debug(
-                "DEBUG: Triggering immediate coordinator refresh after reload"
-            )
+            const.LOGGER.debug("Triggering immediate coordinator refresh after reload")
             await coordinator.async_request_refresh()
-            const.LOGGER.debug("DEBUG: Coordinator refresh completed")
+            const.LOGGER.debug("Coordinator refresh completed")
 
     async def _update_system_settings_and_reload(self):
         """Update system settings in config and reload (for points_label, update_interval, etc.)."""
@@ -2161,12 +2817,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             self.config_entry, data=new_data, options=self._entry_options
         )
         const.LOGGER.debug(
-            "DEBUG: Updating system settings. Reloading entry: %s",
+            "Updating system settings. Reloading entry: %s",
             self.config_entry.entry_id,
         )
         try:
             await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-            const.LOGGER.debug("DEBUG: System settings updated and KidsChores reloaded")
+            const.LOGGER.debug("System settings updated and KidsChores reloaded")
         except Exception as err:
             const.LOGGER.error(
                 "Failed to reload config entry after system settings update: %s",

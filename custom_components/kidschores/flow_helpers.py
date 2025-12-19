@@ -80,6 +80,9 @@ validation logic becomes complex enough to warrant it.
 # The selector.SelectSelector and vol.Schema patterns are runtime-validated by Home Assistant.
 
 import datetime
+import json
+import os
+import shutil
 import uuid
 from typing import Any, Dict, Optional, Tuple
 
@@ -1295,7 +1298,7 @@ def build_badge_common_schema(
     is_special_occasion = badge_type == const.BADGE_TYPE_SPECIAL_OCCASION
 
     const.LOGGER.debug(
-        "DEBUG: Build Badge Common Schema - Badge Data Passed to Schema: %s", default
+        "Build Badge Common Schema - Badge Data Passed to Schema: %s", default
     )
 
     # --- Start Common Schema ---
@@ -1881,7 +1884,7 @@ def build_badge_common_schema(
                     }
                 )
 
-    const.LOGGER.debug("DEBUG: Build Badge Common Schema - Returning Schema Fields")
+    const.LOGGER.debug("Build Badge Common Schema - Returning Schema Fields")
     return schema_fields
 
 
@@ -2734,6 +2737,8 @@ def build_general_options_schema(default: Optional[dict] = None) -> vol.Schema:
     default_calendar_period = default.get(
         const.CONF_CALENDAR_SHOW_PERIOD, const.DEFAULT_CALENDAR_SHOW_PERIOD
     )
+
+    # Consolidated retention periods (pipe-separated: Daily|Weekly|Monthly|Yearly)
     default_retention_daily = default.get(
         const.CONF_RETENTION_DAILY, const.DEFAULT_RETENTION_DAILY
     )
@@ -2746,6 +2751,13 @@ def build_general_options_schema(default: Optional[dict] = None) -> vol.Schema:
     default_retention_yearly = default.get(
         const.CONF_RETENTION_YEARLY, const.DEFAULT_RETENTION_YEARLY
     )
+    default_retention_periods = format_retention_periods(
+        default_retention_daily,
+        default_retention_weekly,
+        default_retention_monthly,
+        default_retention_yearly,
+    )
+
     default_show_legacy_entities = default.get(
         const.CONF_SHOW_LEGACY_ENTITIES, const.DEFAULT_SHOW_LEGACY_ENTITIES
     )
@@ -2778,48 +2790,53 @@ def build_general_options_schema(default: Optional[dict] = None) -> vol.Schema:
                 )
             ),
             vol.Required(
-                const.CONF_RETENTION_DAILY, default=default_retention_daily
-            ): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    mode=selector.NumberSelectorMode.BOX,
-                    min=1,
-                    max=90,
-                    step=1,
-                )
-            ),
-            vol.Required(
-                const.CONF_RETENTION_WEEKLY, default=default_retention_weekly
-            ): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    mode=selector.NumberSelectorMode.BOX,
-                    min=1,
-                    max=52,
-                    step=1,
-                )
-            ),
-            vol.Required(
-                const.CONF_RETENTION_MONTHLY, default=default_retention_monthly
-            ): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    mode=selector.NumberSelectorMode.BOX,
-                    min=1,
-                    max=24,
-                    step=1,
-                )
-            ),
-            vol.Required(
-                const.CONF_RETENTION_YEARLY, default=default_retention_yearly
-            ): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    mode=selector.NumberSelectorMode.BOX,
-                    min=1,
-                    max=10,
-                    step=1,
+                const.CONF_RETENTION_PERIODS, default=default_retention_periods
+            ): selector.TextSelector(
+                selector.TextSelectorConfig(
+                    multiline=False,
                 )
             ),
             vol.Required(
                 const.CONF_SHOW_LEGACY_ENTITIES, default=default_show_legacy_entities
             ): selector.BooleanSelector(),
+            vol.Required(
+                const.CONF_BACKUPS_MAX_RETAINED,
+                default=default.get(
+                    const.CONF_BACKUPS_MAX_RETAINED,
+                    const.DEFAULT_BACKUPS_MAX_RETAINED,
+                ),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    mode=selector.NumberSelectorMode.BOX,
+                    min=const.MIN_BACKUPS_MAX_RETAINED,
+                    max=const.MAX_BACKUPS_MAX_RETAINED,
+                    step=1,
+                )
+            ),
+            vol.Optional(const.CFOF_BACKUP_ACTION_SELECTION): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        {
+                            "value": "",
+                            "label": const.TRANS_KEY_CFOF_BACKUP_ACTION_SELECT,
+                        },
+                        {
+                            "value": "create_backup",
+                            "label": const.TRANS_KEY_CFOF_BACKUP_ACTION_CREATE,
+                        },
+                        {
+                            "value": "view_backups",
+                            "label": const.TRANS_KEY_CFOF_BACKUP_ACTION_VIEW,
+                        },
+                        {
+                            "value": "restore_backup",
+                            "label": const.TRANS_KEY_CFOF_BACKUP_ACTION_RESTORE,
+                        },
+                    ],
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                    translation_key=const.TRANS_KEY_CFOF_BACKUP_ACTIONS,
+                )
+            ),
         }
     )
 
@@ -2827,6 +2844,53 @@ def build_general_options_schema(default: Optional[dict] = None) -> vol.Schema:
 # ----------------------------------------------------------------------------------
 # HELPERS
 # ----------------------------------------------------------------------------------
+
+
+def format_retention_periods(daily: int, weekly: int, monthly: int, yearly: int) -> str:
+    """Format retention periods as pipe-separated string for display.
+
+    Args:
+        daily: Daily retention count
+        weekly: Weekly retention count
+        monthly: Monthly retention count
+        yearly: Yearly retention count
+
+    Returns:
+        Pipe-separated string (e.g., "7|4|12|3")
+    """
+    return f"{daily}|{weekly}|{monthly}|{yearly}"
+
+
+def parse_retention_periods(retention_str: str) -> tuple[int, int, int, int]:
+    """Parse pipe-separated retention periods string.
+
+    Args:
+        retention_str: Pipe-separated string (e.g., "7|4|12|3")
+
+    Returns:
+        Tuple of (daily, weekly, monthly, yearly) as integers
+
+    Raises:
+        ValueError: If format is invalid or values are not positive integers
+    """
+    try:
+        parts = [p.strip() for p in retention_str.split("|")]
+        if len(parts) != 4:
+            raise ValueError(
+                f"Expected 4 values (Daily|Weekly|Monthly|Yearly), got {len(parts)}"
+            )
+
+        daily, weekly, monthly, yearly = [int(p) for p in parts]
+
+        if not all(v > 0 for v in [daily, weekly, monthly, yearly]):
+            raise ValueError("All retention values must be positive integers")
+
+        return daily, weekly, monthly, yearly
+    except (ValueError, AttributeError) as ex:
+        raise ValueError(
+            f"Invalid retention format. Expected 'Daily|Weekly|Monthly|Yearly' "
+            f"(e.g., '7|4|12|3'): {ex}"
+        ) from ex
 
 
 # Penalty points are stored as negative internally, but displayed as positive in the form.
@@ -2868,3 +2932,384 @@ def ensure_utc_datetime(hass: HomeAssistant, dt_value: Any) -> str:
 
     # Convert to UTC and return the ISO string
     return dt_util.as_utc(dt_value).isoformat()
+
+
+# ----------------------------------------------------------------------------------
+# BACKUP HELPERS
+# ----------------------------------------------------------------------------------
+
+
+def create_timestamped_backup(
+    hass: HomeAssistant, storage_manager, tag: str
+) -> str | None:
+    """Create a timestamped backup file with specified tag.
+
+    Args:
+        hass: Home Assistant instance
+        storage_manager: Storage manager instance
+        tag: Backup tag (e.g., 'recovery', 'removal', 'reset', 'pre-migration', 'manual')
+
+    Returns:
+        Filename of created backup (e.g., 'kidschores_data_2025-12-18_14-30-22_removal')
+        or None if backup creation failed.
+
+    File naming format: kidschores_data_YYYY-MM-DD_HH-MM-SS_<tag>
+    Example: kidschores_data_2025-12-18_14-30-22_removal
+    """
+    try:
+        # Get current UTC timestamp in filesystem-safe ISO 8601 format
+        timestamp = dt_util.utcnow().strftime("%Y-%m-%d_%H-%M-%S")
+        filename = f"kidschores_data_{timestamp}_{tag}"
+
+        # Get storage file path
+        storage_path = storage_manager.get_storage_path()
+
+        # Check if source file exists
+        if not os.path.exists(storage_path):
+            const.LOGGER.warning("Storage file does not exist, cannot create backup")
+            return None
+
+        # Ensure .storage directory exists
+        storage_dir = hass.config.path(".storage")
+        os.makedirs(storage_dir, exist_ok=True)
+
+        # Copy file to backup location
+        backup_path = hass.config.path(".storage", filename)
+        shutil.copy2(storage_path, backup_path)
+
+        const.LOGGER.debug("Created backup: %s", filename)
+        return filename
+
+    except (OSError, ValueError) as ex:
+        const.LOGGER.error("Failed to create backup with tag %s: %s", tag, ex)
+        return None
+
+
+async def cleanup_old_backups(
+    hass: HomeAssistant,
+    storage_manager,
+    max_backups: int,  # pylint: disable=unused-argument
+) -> None:
+    """Delete old backups beyond max_backups limit per tag.
+
+    Args:
+        hass: Home Assistant instance
+        storage_manager: Storage manager instance (unused but kept for API consistency)
+        max_backups: Maximum number of backups to retain per tag (0 = no limit)
+
+    Behavior:
+        - Keeps newest N backups per tag
+        - Never deletes 'pre-migration' or 'manual' tagged backups
+        - If max_backups is 0, no cleanup is performed (unlimited retention)
+        - Logs warnings for deletion failures but continues processing
+    """
+    # Ensure max_backups is an integer (defensive programming for config entry options)
+    max_backups = int(max_backups)
+
+    if max_backups <= 0:
+        const.LOGGER.debug("Backup cleanup disabled (max_backups=%s)", max_backups)
+        return
+
+    try:
+        # Discover all backups
+        backups_list = await discover_backups(hass, storage_manager)
+        const.LOGGER.debug("Backup cleanup: found %d total backups", len(backups_list))
+
+        # Group backups by tag
+        backups_by_tag: dict[str, list[dict]] = {}
+        for backup in backups_list:
+            tag = backup.get("tag", "unknown")  # Handle backups without tag
+            if tag not in backups_by_tag:
+                backups_by_tag[tag] = []
+            backups_by_tag[tag].append(backup)
+
+        const.LOGGER.debug(
+            "Backup cleanup: tags found: %s", list(backups_by_tag.keys())
+        )
+
+        # Process each tag (including recovery and reset backups)
+        for tag, tag_backups in backups_by_tag.items():
+            const.LOGGER.debug(
+                "Processing %d backups for tag '%s'", len(tag_backups), tag
+            )
+
+            # Never delete permanent backups
+            if tag in (const.BACKUP_TAG_PRE_MIGRATION, const.BACKUP_TAG_MANUAL):
+                const.LOGGER.debug("Skipping cleanup for permanent tag: %s", tag)
+                continue
+
+            # Sort by timestamp (newest first) - use defensive programming for missing timestamp
+            tag_backups.sort(
+                key=lambda b: b.get("timestamp", "1970-01-01T00:00:00.000000+00:00"),
+                reverse=True,
+            )
+
+            # Delete oldest backups beyond max_backups (applies to all tags: recovery, reset, etc.)
+            backups_to_delete = tag_backups[max_backups:]
+            const.LOGGER.debug(
+                "Tag '%s': keeping %d newest, deleting %d oldest (max_backups=%d)",
+                tag,
+                min(len(tag_backups), max_backups),
+                len(backups_to_delete),
+                max_backups,
+            )
+
+            for backup in backups_to_delete:
+                try:
+                    backup_path = hass.config.path(".storage", backup["filename"])
+                    os.remove(backup_path)
+                    const.LOGGER.info(
+                        "Cleaned up old %s backup: %s", tag, backup["filename"]
+                    )
+                except OSError as ex:
+                    const.LOGGER.warning(
+                        "Failed to delete backup %s: %s", backup["filename"], ex
+                    )
+
+    except (OSError, ValueError) as ex:
+        const.LOGGER.error("Failed during backup cleanup: %s", ex)
+
+
+async def discover_backups(hass: HomeAssistant, storage_manager) -> list[dict]:  # pylint: disable=unused-argument
+    """Scan .storage/ directory for backup files and return metadata list.
+
+    Args:
+        hass: Home Assistant instance
+        storage_manager: Storage manager instance (unused but kept for API consistency)
+
+    Returns:
+        List of backup metadata dictionaries with keys:
+        - filename: str (e.g., 'kidschores_data_2025-12-18_14-30-22_removal')
+        - tag: str (e.g., 'recovery', 'removal', 'reset', 'pre-migration', 'manual')
+        - timestamp: datetime (parsed from filename)
+        - age_hours: float (hours since backup creation)
+        - size_bytes: int (file size in bytes)
+
+    File naming format: kidschores_data_YYYY-MM-DD_HH-MM-SS_<tag>
+    Invalid filenames are skipped with debug log.
+    """
+    backups_list = []
+    storage_dir = hass.config.path(".storage")
+
+    try:
+        # Check if storage directory exists (non-blocking)
+        if not await hass.async_add_executor_job(os.path.exists, storage_dir):
+            const.LOGGER.warning("Storage directory does not exist: %s", storage_dir)
+            return backups_list
+
+        # Get directory listing (non-blocking)
+        filenames = await hass.async_add_executor_job(os.listdir, storage_dir)
+        for filename in filenames:
+            # Match format: kidschores_data_YYYY-MM-DD_HH-MM-SS_<tag>
+            if not filename.startswith("kidschores_data_"):
+                continue
+
+            # Skip active file (no timestamp/tag suffix)
+            if filename == "kidschores_data":
+                continue
+
+            # Parse filename: kidschores_data_YYYY-MM-DD_HH-MM-SS_<tag>
+            try:
+                # Remove 'kidschores_data_' prefix
+                suffix = filename[16:]  # len("kidschores_data_") = 16
+
+                # Split into timestamp and tag parts
+                # Format: YYYY-MM-DD_HH-MM-SS_<tag>
+                parts = suffix.rsplit("_", 1)  # Split from right to get tag
+                if len(parts) != 2:
+                    const.LOGGER.debug("Skipping invalid backup filename: %s", filename)
+                    continue
+
+                timestamp_str, tag = parts
+
+                # Parse timestamp (format: YYYY-MM-DD_HH-MM-SS)
+                # Split date and time parts, convert time hyphens to colons
+                # YYYY-MM-DD_HH-MM-SS -> YYYY-MM-DD HH:MM:SS
+                date_part, time_part = timestamp_str.split("_", 1)
+                time_part_clean = time_part.replace("-", ":")
+                timestamp_str_clean = f"{date_part} {time_part_clean}"
+                timestamp = datetime.datetime.strptime(
+                    timestamp_str_clean, "%Y-%m-%d %H:%M:%S"
+                ).replace(tzinfo=datetime.timezone.utc)
+
+                # Calculate age
+                age_hours = (dt_util.utcnow() - timestamp).total_seconds() / 3600
+
+                # Get file size (non-blocking)
+                file_path = os.path.join(storage_dir, filename)
+                size_bytes = await hass.async_add_executor_job(
+                    os.path.getsize, file_path
+                )
+
+                backups_list.append(
+                    {
+                        "filename": filename,
+                        "tag": tag,
+                        "timestamp": timestamp,
+                        "age_hours": age_hours,
+                        "size_bytes": size_bytes,
+                    }
+                )
+
+            except (ValueError, OSError) as ex:
+                const.LOGGER.debug("Skipping invalid backup file %s: %s", filename, ex)
+                continue
+
+    except OSError as ex:
+        const.LOGGER.error("Failed to scan storage directory: %s", ex)
+
+    # Sort by timestamp (newest first)
+    backups_list.sort(key=lambda b: b["timestamp"], reverse=True)
+    return backups_list
+
+
+def format_backup_age(age_hours: float) -> str:
+    """Convert hours to human-readable age string.
+
+    Args:
+        age_hours: Age in hours (can be fractional)
+
+    Returns:
+        Human-readable string like:
+        - "2 minutes ago"
+        - "1 hour ago"
+        - "5 hours ago"
+        - "2 days ago"
+        - "3 weeks ago"
+
+    Precision:
+        - < 1 hour: minutes
+        - < 24 hours: hours
+        - < 7 days: days
+        - >= 7 days: weeks
+    """
+    if age_hours < 1:
+        minutes = max(1, int(age_hours * 60))  # Always show at least 1 minute
+        return f"{minutes} minute{'s' if minutes != 1 else ''} ago"
+
+    if age_hours < 24:
+        hours = int(age_hours)
+        return f"{hours} hour{'s' if hours != 1 else ''} ago"
+
+    if age_hours < 168:  # 7 days
+        days = int(age_hours / 24)
+        return f"{days} day{'s' if days != 1 else ''} ago"
+
+    weeks = int(age_hours / 168)
+    return f"{weeks} week{'s' if weeks != 1 else ''} ago"
+
+
+def validate_backup_json(json_str: str) -> bool:
+    """Validate JSON structure of backup data.
+
+    Args:
+        json_str: JSON string to validate
+
+    Returns:
+        True if JSON is valid and contains expected top-level keys.
+        False if JSON is malformed or missing required structure.
+
+    Supported formats:
+        1. Diagnostic format (KC 4.0+ diagnostic exports):
+            {
+                "home_assistant": {...},
+                "custom_components": {...},
+                "integration_manifest": {...},
+                "data": {
+                    "kids": dict,
+                    "parents": dict,
+                    ...
+                }
+            }
+
+        2. Modern format (schema_version 42):
+            {
+                "schema_version": 42,
+                "kids": dict,
+                "parents": dict,
+                ...
+            }
+
+        3. Legacy format (no schema_version - KC 3.0/3.1/early 4.0beta):
+            {
+                "kids": dict,
+                "parents": dict,
+                ...
+            }
+
+        4. Store format (version 1 - KC 3.0/3.1/4.0beta1):
+            {
+                "version": 1,
+                "minor_version": 1,
+                "key": "kidschores_data",
+                "data": {
+                    "kids": dict,
+                    "parents": dict,
+                    ...
+                }
+            }
+
+    Minimum requirements:
+        - Valid JSON syntax
+        - Top-level object (dict)
+        - If Store format, version must be 1 (only version supported)
+        - Contains at least one entity type key (kids, parents, chores, rewards)
+    """
+    try:
+        data = json.loads(json_str)
+
+        # Must be a dictionary
+        if not isinstance(data, dict):
+            const.LOGGER.debug("Backup JSON is not a dictionary")
+            return False
+
+        # Handle diagnostic format (KC 4.0+ diagnostic exports)
+        if "home_assistant" in data and "data" in data:
+            const.LOGGER.debug("Detected diagnostic export format")
+            # Diagnostic format wraps storage data in "data" key with metadata
+            if not isinstance(data["data"], dict):
+                const.LOGGER.debug("Diagnostic format 'data' is not a dictionary")
+                return False
+            data = data["data"]  # Unwrap for entity validation
+
+        # Handle Store format (KC 3.0/3.1/4.0beta1) - version 1 only
+        elif "version" in data:
+            store_version = data.get("version")
+            if store_version != 1:
+                const.LOGGER.warning(
+                    "Unsupported Store version %s - only version 1 (KC 3.x/4.0beta) is supported",
+                    store_version,
+                )
+                return False
+            # Store format wraps data in "data" key
+            if "data" not in data:
+                const.LOGGER.debug("Store format missing 'data' wrapper")
+                return False
+            data = data["data"]  # Unwrap for entity validation
+
+        # schema_version is optional - old backups won't have it and will be migrated
+
+        # Must have at least one entity type
+        entity_keys = {
+            "kids",
+            "parents",
+            "chores",
+            "rewards",
+            "bonuses",
+            "penalties",
+            "achievements",
+            "challenges",
+            "badges",
+        }
+        if not any(key in data for key in entity_keys):
+            const.LOGGER.debug("Backup JSON missing all entity type keys")
+            return False
+
+        return True
+
+    except json.JSONDecodeError as ex:
+        const.LOGGER.debug("Invalid JSON in backup: %s", ex)
+        return False
+    except (TypeError, ValueError) as ex:
+        const.LOGGER.debug("Unexpected error validating backup JSON: %s", ex)
+        return False

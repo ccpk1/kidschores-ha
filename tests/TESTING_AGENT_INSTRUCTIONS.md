@@ -2,6 +2,8 @@
 
 Quick reference for AI agents working on the KidsChores test suite. Consult [TESTING_GUIDE.md](TESTING_GUIDE.md) if issues persist after 3 attempts.
 
+> **Terminal Requirement**: Run every command (tests, lint, helpers) inside an actual terminal/console session so output is captured and visible; never “simulate” command execution.
+
 ## Quick Commands
 
 ```bash

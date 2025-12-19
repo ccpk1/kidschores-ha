@@ -1,7 +1,7 @@
-# KidsChores Integration Architecture (v4.0+)
+# KidsChores Integration Architecture (v4.2+)
 
-**Version**: 4.0+
-**Schema Version**: 41 (Storage-Only Mode)
+**Version**: 4.2+
+**Storage Schema Version**: 42 (Storage-Only Mode with Meta Section)
 **Date**: December 2025
 
 ---
@@ -9,6 +9,13 @@
 ## Executive Summary
 
 Starting with **KidsChores v4.0**, the integration uses a **storage-only architecture** where all entity data (kids, chores, badges, rewards, etc.) is stored exclusively in Home Assistant's persistent storage (`.storage/kidschores_data`), while configuration entries contain only system-level settings.
+
+**KidsChores v4.2** introduced the **meta section architecture** where the storage schema version is stored in a dedicated `meta` section rather than at the top level. This change:
+
+- ✅ Prevents test framework interference with version detection
+- ✅ Enables robust migration testing and validation
+- ✅ Provides migration history tracking and metadata
+- ✅ Separates versioning metadata from entity data
 
 This architectural change:
 
@@ -42,7 +49,7 @@ This architectural change:
 │ (9 settings total)     │        │ • achievements           │
 │                        │        │ • challenges             │
 │ Requires Reload: YES   │        │ • pending_approvals      │
-│                        │        │ • schema_version: 41     │
+│                        │        │ • meta.schema_version: 42│
 │                        │        │                          │
 │                        │        │ Requires Reload: NO      │
 └────────────────────────┘        └──────────────────────────┘
@@ -50,19 +57,20 @@ This architectural change:
     [Reload Flow]                    [Coordinator Refresh]
 ```
 
-### Schema Version 41: Storage-Only Mode
+### Schema Version 42: Storage-Only Mode with Meta Section
 
-The **`schema_version`** field in storage data determines the integration's operational mode:
+The **`meta.schema_version`** field in storage data determines the integration's operational mode:
 
-| Schema Version | Mode                   | Behavior                                      |
-| -------------- | ---------------------- | --------------------------------------------- |
-| < 41           | Legacy (KC 3.x)        | Reads entity data from `config_entry.options` |
-| ≥ 41           | Storage-Only (KC 4.0+) | Reads entity data exclusively from storage    |
+| Schema Version | Mode                   | Behavior                                                        |
+| -------------- | ---------------------- | --------------------------------------------------------------- |
+| < 42           | Legacy (KC 3.x/4.0)    | Reads entity data from `config_entry.options` or legacy storage |
+| ≥ 42           | Storage-Only (KC 4.2+) | Reads entity data exclusively from storage with meta section    |
 
 **Key Files**:
 
-- `custom_components/kidschores/const.py`: `SCHEMA_VERSION_STORAGE_ONLY = 41`
-- `custom_components/kidschores/coordinator.py`: Lines 914-929 (version check)
+- `custom_components/kidschores/const.py`: `SCHEMA_VERSION_STORAGE_ONLY = 42`
+- `custom_components/kidschores/coordinator.py`: Lines 851-856 (version check)
+- `custom_components/kidschores/__init__.py`: Lines 45-51 (migration detection)
 
 ---
 
@@ -107,7 +115,7 @@ async def _update_system_settings_and_reload(self):
 
 **File**: `.storage/kidschores_data`
 **Format**: JSON
-**Version**: `STORAGE_VERSION = 1` (file format), `schema_version = 41` (data structure)
+**Version**: `STORAGE_VERSION = 1` (Home Assistant Store format), `meta.schema_version = 42` (KidsChores data structure)
 
 ### Storage Structure
 
@@ -115,16 +123,31 @@ async def _update_system_settings_and_reload(self):
 {
     "version": 1,
     "minor_version": 1,
-    "key": "kidschores",
+    "key": "kidschores_data",
     "data": {
-        "schema_version": 41,
+        "meta": {
+            "schema_version": 42,
+            "last_migration_date": "2025-12-18T10:00:00+00:00",
+            "migrations_applied": [
+                "datetime_utc",
+                "chore_data_structure",
+                "kid_data_structure",
+                "badge_restructure",
+                "cumulative_badge_progress",
+                "badges_earned_dict",
+                "point_stats",
+                "chore_data_and_streaks"
+            ]
+        },
         "kids": {
             "kid_uuid_1": {
                 "internal_id": "kid_uuid_1",
                 "name": "Sarah",
                 "points": 150,
                 "ha_user_id": "user_123",
-                "badges_earned": [...],
+                "badges_earned": {...},
+                "point_stats": {...},
+                "chore_data": {...},
                 ...
             }
         },
@@ -142,6 +165,68 @@ async def _update_system_settings_and_reload(self):
 }
 ```
 
+### Versioning Architecture
+
+KidsChores uses a **dual versioning system**:
+
+#### 1. Home Assistant Store Version (File Format)
+
+```json
+{
+    "version": 1,          // HA Store format version (always 1)
+    "minor_version": 1,    // HA Store minor version
+    "key": "kidschores_data",
+    "data": { ... }        // KidsChores data with schema_version
+}
+```
+
+#### 2. KidsChores Schema Version (Data Structure)
+
+**Legacy Format (v41 and below)**:
+
+```json
+{
+    "data": {
+        "schema_version": 41,  // Top-level schema version
+        "kids": {...}
+    }
+}
+```
+
+**Modern Format (v42+)**:
+
+```json
+{
+    "data": {
+        "meta": {
+            "schema_version": 42,                    // Nested in meta section
+            "last_migration_date": "2025-12-18...",
+            "migrations_applied": ["badge_restructure", ...]
+        },
+        "kids": {...}
+    }
+}
+```
+
+#### Why Meta Section?
+
+1. **Test Framework Compatibility**: Home Assistant test framework auto-injects `schema_version: 42` at the top level, breaking migration tests. The nested `meta.schema_version` is protected from this interference.
+
+2. **Semantic Separation**: Version metadata is separated from entity data, following database schema versioning patterns.
+
+3. **Migration Tracking**: The `meta` section can track migration history, dates, and applied transformations.
+
+#### Version Detection Logic
+
+```python
+# Both __init__.py and coordinator.py use this pattern:
+meta_section = storage_data.get("meta", {})
+storage_version = meta_section.get(
+    "schema_version",
+    storage_data.get("schema_version", 0)  # Fallback to top-level
+)
+```
+
 ### Entity Update Flow
 
 ```python
@@ -156,50 +241,59 @@ async def async_step_edit_kid(self, user_input=None):
 
 ---
 
-## Migration Path: KC 3.x → KC 4.0
+## Migration Path: KC 3.x → KC 4.2
 
-### One-Time Migration (Schema Version < 41 → 41)
+### One-Time Migration (Schema Version < 42 → 42)
 
 **File**: `custom_components/kidschores/__init__.py`
-**Function**: `_migrate_config_to_storage()` (Lines 25-237)
+**Function**: `_migrate_config_to_storage()` (Lines 45-51)
 
-**Trigger**: Runs automatically on first load after upgrade to KC 4.0+
+**Trigger**: Runs automatically on first load after upgrade to KC 4.2+
 
 **Process**:
 
-1. **Check Storage Version**: Read current `schema_version` from storage
-2. **Detect Clean Install**: If no entity data in `config_entry.options`, mark as v41 and skip
-3. **Create Backup**: Write timestamped backup to `.storage/kidschores_backup_<timestamp>`
+1. **Check Storage Version**: Read from `meta.schema_version` or fallback to top-level `schema_version`
+2. **Detect Clean Install**: If no entity data in `config_entry.options`, create meta section with v42 and skip
+3. **Create Backup**: Write timestamped backup to `.storage/kidschores_data_<timestamp>_<tag>`
 4. **Merge Entity Data**: Copy kids, parents, chores, badges, etc. from config → storage
 5. **Exclude Runtime Fields**: Skip non-persistent fields like `kids_assigned` (relational)
 6. **Update Config Entry**: Remove entity data from `config_entry.options`, keep only system settings
-7. **Set Schema Version**: Mark storage as `schema_version: 41`
+7. **Set Schema Version**: Create meta section with `schema_version: 42`, migration date, and applied migrations list
 
-**Result**: After migration, coordinator detects `schema_version >= 41` and skips config sync forever.
+**Result**: After migration, coordinator detects `meta.schema_version >= 42` and skips config sync forever.
 
 ### Migration Detection Logic
 
 ```python
-# coordinator.py (Lines 914-929)
-storage_schema_version = self._data.get(const.DATA_SCHEMA_VERSION, 0)
+# coordinator.py (Lines 851-856)
+# Get schema version from meta section (v42+) or top-level (v41-)
+meta = self._data.get(const.DATA_META, {})
+storage_schema_version = meta.get(
+    const.DATA_META_SCHEMA_VERSION,
+    self._data.get(const.DATA_SCHEMA_VERSION, const.DEFAULT_ZERO),
+)
 
 if storage_schema_version < const.SCHEMA_VERSION_STORAGE_ONLY:
-    # KC 3.x compatibility path
-    const.LOGGER.info("Storage version %s < %s, syncing from config", ...)
-    self._initialize_data_from_config()  # Read from config_entry.options
+    # KC 3.x/4.0 compatibility path - migrate data
+    const.LOGGER.info("Storage version %s < %s, running migrations", ...)
+    self._migrate_stored_datetimes()
+    self._migrate_chore_data()
+    self._migrate_kid_data()
+    # ... other migrations
 else:
-    # KC 4.x normal operation
-    const.LOGGER.info("Storage version %s >= %s, skipping config sync", ...)
-    # Storage is already the source of truth - nothing to do
+    # KC 4.2+ normal operation
+    const.LOGGER.info("Storage version %s >= %s, skipping migrations", ...)
+    # Storage is already at current schema version
 ```
 
 ### Backward Compatibility
 
-The integration maintains backward compatibility for KC 3.x installations:
+The integration maintains backward compatibility for KC 3.x/4.0 installations:
 
-- **Legacy Method**: `_initialize_data_from_config()` still exists for users with `schema_version < 41`
-- **Safety Net**: If storage is corrupted or deleted, method rebuilds from config (if available)
-- **Deprecation Timeline**: Method marked for removal in **KC-vNext** (after 6+ months of v4.x adoption)
+- **Legacy Support**: Migration system handles v30, v31, v40beta1, v41 → v42 upgrades automatically
+- **Dual Version Detection**: Code reads from both `meta.schema_version` (v42+) and top-level `schema_version` (legacy)
+- **Safety Net**: If storage is corrupted or deleted, clean install creates v42 meta section
+- **Migration Testing**: Comprehensive test suite validates all migration paths (see MIGRATION_TESTING_PLAN.md)
 
 ---
 
@@ -216,10 +310,10 @@ User Input → config_entry.options → Migration → Storage
                   (inefficient double-write)
 ```
 
-**New Pattern (KC 4.0)**:
+**New Pattern (KC 4.2)**:
 
 ```
-User Input → Storage (with schema_version: 41)
+User Input → Storage (with meta.schema_version: 42)
           → config_entry.options (system settings only)
                   (direct write, no migration)
 ```
@@ -242,7 +336,11 @@ async def async_step_create_entry(self, user_input=None):
 
     # Write entities directly to storage BEFORE creating config entry
     storage_data = {
-        const.DATA_SCHEMA_VERSION: const.SCHEMA_VERSION_STORAGE_ONLY,
+        const.DATA_META: {
+            const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_STORAGE_ONLY,
+            const.DATA_META_LAST_MIGRATION_DATE: datetime.now(dt_util.UTC).isoformat(),
+            const.DATA_META_MIGRATIONS_APPLIED: []
+        },
         const.DATA_KIDS: self._kids_temp,
         const.DATA_PARENTS: self._parents_temp,
         const.DATA_CHORES: self._chores_temp,
@@ -281,6 +379,28 @@ async def async_step_create_entry(self, user_input=None):
 - ✅ Options flow updates storage directly (no config entry involvement)
 
 **Result**: Config flow can focus on collecting data and writing it cleanly, without worrying about config entry size limits or merge conflicts.
+
+---
+
+## Related Documentation
+
+**This document serves as the canonical reference for KidsChores architecture and versioning.** For specific implementation details, see:
+
+### Testing & Migration
+
+- **[MIGRATION_TESTING_PLAN.md](MIGRATION_TESTING_PLAN.md)** - Migration test implementation, sample validation, and test framework patterns
+- **[STORAGE_TESTING_SUMMARY.md](STORAGE_TESTING_SUMMARY.md)** - Storage system test coverage and validation results
+
+### Feature Implementation
+
+- **[DATA_RECOVERY_BACKUP_PLAN.md](DATA_RECOVERY_BACKUP_PLAN.md)** - Backup/restore procedures and config flow data recovery
+- **[SENSOR_REFACTORING_PLAN.md](SENSOR_REFACTORING_PLAN.md)** - Entity platform architecture and performance optimization
+- **[COORDINATOR_REVIEW_IMPROVEMENTS.md](COORDINATOR_REVIEW_IMPROVEMENTS.md)** - Coordinator design patterns and data flow
+
+### Maintenance & Cleanup
+
+- **[LEGACY_CLEANUP.md](LEGACY_CLEANUP.md)** - Deprecation timeline for pre-v42 compatibility code
+- **[RELEASE_NOTES_v0.4.0.md](RELEASE_NOTES_v0.4.0.md)** - v4.0 release details and storage architecture changes
 
 ---
 
@@ -1093,6 +1213,99 @@ When adding new constants, ensure:
 
 ## Developer Guide
 
+### Entity Lookup Helper Pattern
+
+**Location**: `custom_components/kidschores/kc_helpers.py` (Lines 245-390)
+
+The integration provides two sets of entity lookup functions for resolving entity names to internal IDs:
+
+#### Basic Lookup Functions (Optional Return)
+
+Return `Optional[str]` - caller must handle `None`:
+
+```python
+def get_kid_id_by_name(coordinator: KidsChoresDataCoordinator, kid_name: str) -> Optional[str]
+def get_chore_id_by_name(coordinator: KidsChoresDataCoordinator, chore_name: str) -> Optional[str]
+def get_reward_id_by_name(coordinator: KidsChoresDataCoordinator, reward_name: str) -> Optional[str]
+def get_penalty_id_by_name(coordinator: KidsChoresDataCoordinator, penalty_name: str) -> Optional[str]
+def get_bonus_id_by_name(coordinator: KidsChoresDataCoordinator, bonus_name: str) -> Optional[str]
+def get_badge_id_by_name(coordinator: KidsChoresDataCoordinator, badge_name: str) -> Optional[str]
+```
+
+**Usage**: When you need to check if entity exists without raising errors:
+
+```python
+kid_id = get_kid_id_by_name(coordinator, "Sarah")
+if kid_id:
+    # Process kid data
+else:
+    # Handle missing kid case
+```
+
+#### Lookup-or-Raise Helper Functions (Non-Optional Return)
+
+Return `str` - raises `HomeAssistantError` if entity not found:
+
+```python
+def get_kid_id_or_raise(coordinator: KidsChoresDataCoordinator, kid_name: str, action: str) -> str
+def get_chore_id_or_raise(coordinator: KidsChoresDataCoordinator, chore_name: str, action: str) -> str
+def get_reward_id_or_raise(coordinator: KidsChoresDataCoordinator, reward_name: str, action: str) -> str
+def get_penalty_id_or_raise(coordinator: KidsChoresDataCoordinator, penalty_name: str, action: str) -> str
+def get_bonus_id_or_raise(coordinator: KidsChoresDataCoordinator, bonus_name: str, action: str) -> str
+def get_badge_id_or_raise(coordinator: KidsChoresDataCoordinator, badge_name: str, action: str) -> str
+```
+
+**Usage**: Primary pattern for service handlers and validation code:
+
+```python
+# Before (4 lines):
+kid_id = kh.get_kid_id_by_name(coordinator, kid_name)
+if not kid_id:
+    const.LOGGER.warning("WARNING: Claim Chore: Kid not found: %s", kid_name)
+    raise HomeAssistantError(f"Kid '{kid_name}' not found")
+
+# After (1 line):
+kid_id = kh.get_kid_id_or_raise(coordinator, kid_name, "Claim Chore")
+```
+
+**Parameters**:
+
+- `coordinator`: The KidsChores data coordinator instance
+- `entity_name`: Name of the entity to look up (kid, chore, reward, etc.)
+- `action`: Description of the action for error context (e.g., "Claim Chore", "Apply Penalty")
+
+**Error Handling**:
+
+- Logs warning with context: `"WARNING: {action}: {entity_type} not found: {entity_name}"`
+- Raises: `HomeAssistantError(f"{entity_type} '{entity_name}' not found")`
+
+**Implementation Pattern**:
+Each helper follows this template:
+
+```python
+def get_entity_id_or_raise(coordinator, entity_name: str, action: str) -> str:
+    """Get entity ID by name or raise HomeAssistantError if not found."""
+    entity_id = get_entity_id_by_name(coordinator, entity_name)
+    if not entity_id:
+        const.LOGGER.warning("WARNING: %s: Entity not found: %s", action, entity_name)
+        raise HomeAssistantError(f"Entity '{entity_name}' not found")
+    return entity_id
+```
+
+**Design Rationale**:
+
+- **Eliminates Code Duplication**: Reduces ~200+ lines of duplicate validation patterns in services.py
+- **HA Core Precedent**: Follows pattern from `device_automation.__init__.py:async_get_entity_registry_entry_or_raise()`
+- **Type Safety**: Return type is `str` (not `Optional[str]`), enabling mypy/pylint validation
+- **Error Context**: `action` parameter provides meaningful context in logs and errors
+
+**When to Use Each Pattern**:
+
+- **Use `get_*_id_by_name()`**: UI code, optional lookups, existence checks
+- **Use `get_*_id_or_raise()`**: Service handlers, validation that must fail fast
+
+---
+
 ### Entity ID Construction Patterns
 
 Home Assistant entities require two unique identifiers:
@@ -1475,15 +1688,18 @@ coordinator._persist()
 
 ### Testing Storage-Only Mode
 
-All tests should use `schema_version: 41` in fixtures:
+All tests should use `schema_version: 42` in fixtures:
 
 ```python
 @pytest.fixture
 def mock_storage_data():
     return {
-        const.DATA_SCHEMA_VERSION: 41,  # Storage-only mode
+        const.DATA_META: {
+            const.DATA_META_SCHEMA_VERSION: 42  # v42+ format
+        },
         const.DATA_KIDS: {...},
         const.DATA_CHORES: {...},
+        # No top-level schema_version in v42+ format
     }
 ```
 
@@ -1499,7 +1715,7 @@ def mock_storage_data():
 
 ### KC-vNext (Future Release)
 
-- ⚠️ Deprecation warnings for users still on schema < 41
+- ⚠️ Deprecation warnings for users still on schema < 42
 - ⚠️ Documentation encourages upgrade to KC 4.0+
 - ⚠️ Evaluate optional deprecation of redundant sensor entities
 
@@ -1507,10 +1723,10 @@ def mock_storage_data():
 
 - ❌ Remove `_initialize_data_from_config()` method (~160 lines)
 - ❌ Remove migration constants (MIGRATION\*, \*\_LEGACY)
-- ❌ Require `schema_version >= 41` for all installations
+- ❌ Require `meta.schema_version >= 42` for all installations
 - ❌ Breaking change: KC 3.x users must upgrade to KC 4.0+ first
 
-**Prerequisite**: Telemetry showing <1% of users on schema version < 41
+**Prerequisite**: Telemetry showing <1% of users on schema version < 42
 
 ---
 
@@ -1522,17 +1738,17 @@ def mock_storage_data():
 | -------------------- | ----------------------- | ----- | ------------------------------------------------- |
 | `__init__.py`        | Entry point, migration  | 400   | `_migrate_config_to_storage()` (25-237)           |
 | `coordinator.py`     | Business logic, storage | 8,517 | Version check (914-929), `_persist()` (8513-8517) |
-| `const.py`           | Constants               | 2,235 | `SCHEMA_VERSION_STORAGE_ONLY = 41` (63)           |
+| `const.py`           | Constants               | 2,325 | `SCHEMA_VERSION_STORAGE_ONLY = 42` (56-58)        |
 | `config_flow.py`     | Initial setup           | 1,291 | Direct-to-storage write                           |
 | `options_flow.py`    | Settings & entities     | 2,589 | Direct storage updates                            |
 | `storage_manager.py` | Storage abstraction     | 76    | `async_save()`, `get_data()`                      |
 
 ### Storage Files
 
-| Path                           | Purpose               | Format                   |
-| ------------------------------ | --------------------- | ------------------------ |
-| `.storage/kidschores_data`     | Entity data + runtime | JSON (STORAGE_VERSION=1) |
-| `.storage/kidschores_backup_*` | Migration backups     | JSON (timestamped)       |
+| Path                               | Purpose                   | Format                   |
+| ---------------------------------- | ------------------------- | ------------------------ |
+| `.storage/kidschores_data`         | Entity data + runtime     | JSON (STORAGE_VERSION=1) |
+| `.storage/kidschores_data_*_<tag>` | Migration/restore backups | JSON (timestamped)       |
 
 ---
 
@@ -1542,8 +1758,8 @@ def mock_storage_data():
 
 If storage is corrupted, the integration will attempt to recover:
 
-1. **With KC 3.x Backup**: If `schema_version < 41`, reads from `config_entry.options`
-2. **Without Backup**: Creates fresh storage with `schema_version: 41` (data loss)
+1. **With KC 3.x Backup**: If `meta.schema_version < 42`, runs migration from `config_entry.options`
+2. **Without Backup**: Creates fresh storage with `meta.schema_version: 42` (data loss)
 
 **Prevention**: Regular Home Assistant backups include `.storage/` directory
 
@@ -1964,6 +2180,269 @@ Constant naming consistency is validated during:
 - Integration testing (verifies constants resolve correctly)
 
 All new constants must follow these patterns precisely. The codebase maintains 95%+ consistency across 600+ constant references.
+
+---
+
+## Mandatory vs Optional Constants: Usage Requirements
+
+### Mandatory: ALL User-Facing Text MUST Use Constants
+
+**Do NOT hardcode user-visible strings.** This rule applies to **ALL** text that any user—even a developer—might encounter:
+
+#### Categories Requiring Constants
+
+1. **Service Error Messages** (ALL exceptions and errors)
+
+   ```python
+   # ❌ WRONG - Hardcoded error message
+   raise HomeAssistantError("Kid not found")
+
+   # ✅ CORRECT - Uses constant and translation framework
+   raise HomeAssistantError(
+       translation_domain=const.DOMAIN,
+       translation_key=const.TRANS_KEY_ERROR_ENTITY_NOT_FOUND,
+       translation_placeholders={"entity_type": "Kid", "name": kid_name},
+   )
+   ```
+
+2. **Config/Options Flow Labels, Descriptions, and Errors**
+
+   ```python
+   # ❌ WRONG - Hardcoded UI text
+   STEP_USER_SCHEMA = vol.Schema({
+       vol.Required("name"): cv.string,
+   })
+
+   # ✅ CORRECT - Uses const and translation keys
+   STEP_USER_SCHEMA = vol.Schema({
+       vol.Required(const.CFOF_KIDS_INPUT_NAME): cv.string,
+   })
+   errors[const.CFOP_ERROR_KID_NAME] = const.TRANS_KEY_CFOF_INVALID_KID_NAME
+   ```
+
+3. **Entity Names, Descriptions, and Attributes**
+
+   ```python
+   # ❌ WRONG - Hardcoded entity name
+   _attr_name = "Temperature"
+
+   # ✅ CORRECT - Uses translation key
+   _attr_translation_key = "temperature"
+   ```
+
+4. **Notification Messages**
+
+   ```python
+   # ❌ WRONG - Hardcoded notification text
+   await hass.components.persistent_notification.async_create(
+       "Chore approved!"
+   )
+
+   # ✅ CORRECT - Uses translation framework
+   notification_data = {
+       ATTR_TITLE: "Chore Approved",
+       ATTR_MESSAGE: translate_template(
+           const.TRANS_KEY_NOTIFICATION_CHORE_APPROVED,
+           {"chore_name": chore_name}
+       ),
+   }
+   ```
+
+5. **User-Visible Log Messages (INFO, WARNING, ERROR levels)**
+
+   ```python
+   # ❌ WRONG - Hardcoded log message at user-visible level
+   _LOGGER.warning("User deleted chore successfully")
+
+   # ✅ CORRECT - Uses constant for consistency
+   _LOGGER.warning(
+       "Claim Chore: %s",
+       const.TRANS_KEY_ACTION_CLAIM_CHORE_SUCCESS,
+   )
+   ```
+
+#### Why This Matters
+
+- **Localization**: Constants enable translation to 40+ languages without code changes
+- **Consistency**: All error messages follow the same pattern and tone
+- **Maintainability**: Change a message once in `const.py`, applies everywhere
+- **Quality**: Code review can verify all user-facing text uses proper frameworks
+- **Debugging**: Developers can trace which part of code generated a user message
+
+---
+
+### Optional: Debug Logging Does NOT Require Constants
+
+**Debug logs are developer-only output.** You may use inline f-strings for rapid prototyping and troubleshooting:
+
+#### When Debug Logging is Acceptable
+
+1. **Debug-Level Logs** (not shown to users unless explicitly enabled)
+
+   ```python
+   # ✅ ACCEPTABLE - Debug logs don't need constants
+   _LOGGER.debug(f"Processing chore: {chore_data}")
+   _LOGGER.debug(f"Kid points: {kid_info.get('points', 0)}")
+   _LOGGER.debug(f"Badge criteria: {badge_config}")
+   ```
+
+2. **Exception Stack Traces and Internal State**
+
+   ```python
+   # ✅ ACCEPTABLE - Internal diagnostics
+   _LOGGER.debug(f"Storage structure: {json.dumps(coordinator.kids_data, indent=2)}")
+   _LOGGER.debug(f"Exception details: {traceback.format_exc()}")
+   ```
+
+3. **Temporary Development Output** (removed before commit)
+   ```python
+   # ✅ ACCEPTABLE FOR DEBUGGING - Remove before commit
+   _LOGGER.debug(f"TODO: Fix chore claim for {kid_id} - current state: {state}")
+   ```
+
+#### Why This is Acceptable
+
+- Debug logs are only visible when `logger: custom_components.kidschores: debug` is set in `configuration.yaml`
+- Users will not see these messages in normal operation
+- Developers need rapid iteration without constant overhead
+- Performance: Avoids unnecessary constant lookups in debug paths
+- Clarity: Context and variable names make the debug intent obvious
+
+#### Non-Negotiable: Do NOT Do This
+
+```python
+# ❌ WRONG - Debug logs MUST be at DEBUG level, not INFO
+_LOGGER.info(f"Temporary debug: {some_var}")  # USERS WILL SEE THIS
+
+# ❌ WRONG - Don't hardcode user-visible WARNING/ERROR messages
+_LOGGER.error("Chore approval failed")  # Should use constant + translation
+
+# ❌ WRONG - Don't mix debug output with user messages
+_LOGGER.warning(
+    f"DEBUG: Processing {kid_id}, state={state}, expected={expected}"
+    # USERS WILL SEE "DEBUG:" label
+)
+```
+
+---
+
+### Implementation Checklist
+
+When adding new user-facing text, ask yourself:
+
+1. **Is this text shown to a user?** (error message, notification, entity name, config label, log)
+
+   - YES → Use a constant and translation key
+   - NO → Check question 2
+
+2. **Is this output at DEBUG log level?**
+
+   - YES → f-string is OK for rapid development (but clean before commit)
+   - NO → Check question 3
+
+3. **Is this internal diagnostics or development tool output?**
+   - YES → f-string is acceptable
+   - NO → Use a constant
+
+**Decision Tree Summary**:
+
+```
+User-facing text?
+├─ YES → Use const + TRANS_KEY (mandatory)
+└─ NO
+   ├─ Debug log? → f-string OK (optional)
+   ├─ Exception details? → f-string OK (optional)
+   └─ Production INFO/WARNING/ERROR? → Use const (mandatory)
+```
+
+---
+
+### Code Examples: Before & After
+
+#### Example 1: Service Handler Error
+
+**Before (❌ No constants)**:
+
+```python
+async def async_claim_chore(hass: HomeAssistant, service_call: ServiceCall) -> None:
+    """Claim a chore."""
+    kid_name = service_call.data.get(ATTR_KID)
+    chore_name = service_call.data.get(ATTR_CHORE)
+
+    if not kid_info:
+        raise HomeAssistantError(f"Kid '{kid_name}' not found")
+    if not chore_info:
+        raise HomeAssistantError(f"Chore '{chore_name}' not found")
+```
+
+**After (✅ With constants)**:
+
+```python
+async def async_claim_chore(hass: HomeAssistant, service_call: ServiceCall) -> None:
+    """Claim a chore."""
+    kid_name = service_call.data.get(ATTR_KID)
+    chore_name = service_call.data.get(ATTR_CHORE)
+
+    if not kid_info:
+        raise HomeAssistantError(
+            translation_domain=const.DOMAIN,
+            translation_key=const.TRANS_KEY_ERROR_ENTITY_NOT_FOUND,
+            translation_placeholders={"entity_type": "Kid", "name": kid_name},
+        )
+    if not chore_info:
+        raise HomeAssistantError(
+            translation_domain=const.DOMAIN,
+            translation_key=const.TRANS_KEY_ERROR_ENTITY_NOT_FOUND,
+            translation_placeholders={"entity_type": "Chore", "name": chore_name},
+        )
+```
+
+#### Example 2: Config Flow Validation
+
+**Before (❌ No constants)**:
+
+```python
+async def async_step_user(self, user_input=None):
+    errors = {}
+
+    if not user_input[name]:
+        errors["name"] = "invalid_name"
+
+    if duplicate_check(user_input[name]):
+        errors["name"] = "name_already_exists"
+```
+
+**After (✅ With constants)**:
+
+```python
+async def async_step_user(self, user_input=None):
+    errors = {}
+
+    if not user_input[const.CFOF_KIDS_INPUT_NAME]:
+        errors[const.CFOP_ERROR_KID_NAME] = const.TRANS_KEY_CFOF_KID_NAME_REQUIRED
+
+    if duplicate_check(user_input[const.CFOF_KIDS_INPUT_NAME]):
+        errors[const.CFOP_ERROR_KID_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_KID
+```
+
+#### Example 3: Debug vs Production Logging
+
+**Before (❌ Mixed concerns)**:
+
+```python
+_LOGGER.warning(f"DEBUG: Processing kid {kid_id}")  # Mixed debug into warning
+_LOGGER.info(f"Chore update failed: {error}")  # Hardcoded, no constant
+```
+
+**After (✅ Separated concerns)**:
+
+```python
+_LOGGER.debug(f"Processing kid {kid_id}")  # Debug level OK, f-string fine
+_LOGGER.warning(
+    "Update Chore: %s",
+    const.TRANS_KEY_ACTION_UPDATE_CHORE_FAILED,  # User-visible, use constant
+)
+```
 
 ---
 

@@ -1,0 +1,32 @@
+{
+  "config": {
+    "step": {
+      "manage_general_options": {
+        "title": "General options",
+        "description": "Configure general integration settings",
+        "data": {
+          "points_label": "Points label",
+          "points_icon": "Points icon",
+          "update_interval": "Update interval (minutes)",
+          "backup_retention_periods": "Backup retention (Daily|Weekly|Monthly|Yearly)",
+          "points_adjust_values": "Points adjustment values (comma-separated)"
+        }
+      }
+    },
+    "error": {
+      "invalid_retention_format": "Invalid format. Use 4 numbers separated by pipes (e.g., '3|2|1|0'). Each value must be 0-10.",
+      "invalid_points_adjust_values": "Invalid format. Use comma-separated numbers (e.g., '-10, -5, 5, 10')."
+    }
+  },
+  "selector": {
+    "backup_actions": {
+      "options": {
+        "backup_action_select": "Select backup action...",
+        "backup_action_create": "Create backup now",
+        "backup_action_view": "View & manage backups",
+        "backup_action_restore": "Restore from backup",
+        "backup_return_menu": "← Return to Backup Menu"
+      }
+    }
+  }
+}

@@ -42,7 +42,7 @@ async def load_scenario_to_live_instance(reset_first: bool = False):
     """Load test scenario data into a live Home Assistant instance via REST API."""
 
     # Load scenario data
-    scenario_file = Path("/workspaces/kidschores-ha/tests/testdata_scenario_full.yaml")
+    scenario_file = Path("/workspaces/kidschores-ha/tests/testdata_storyline_max.yaml")
     with open(scenario_file, encoding="utf-8") as f:
         scenario = yaml.safe_load(f)
 

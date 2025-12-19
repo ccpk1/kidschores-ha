@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Iterable, Optional, Union
 import homeassistant.util.dt as dt_util
 from homeassistant.auth.models import User
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.label_registry import async_get as async_get_label_registry
 
 from . import const
@@ -240,6 +241,72 @@ def get_friendly_label(hass, label_name: str) -> str:
     registry = async_get_label_registry(hass)
     label_entry = registry.async_get_label(label_name)
     return label_entry.name if label_entry else label_name
+
+
+# ────────────────────────────────────────────────────────────────
+# 🔍 Entity Lookup Helpers with Error Raising (for Services)
+# These helpers wrap the lookup functions above and raise HomeAssistantError
+# when entities are not found. This centralizes the error handling pattern
+# used throughout services.py, eliminating 40+ duplicate lookup blocks.
+# ────────────────────────────────────────────────────────────────
+
+
+def get_kid_id_or_raise(coordinator: KidsChoresDataCoordinator, kid_name: str) -> str:
+    """Get kid ID by name or raise HomeAssistantError if not found."""
+    kid_id = get_kid_id_by_name(coordinator, kid_name)
+    if not kid_id:
+        raise HomeAssistantError(f"Kid '{kid_name}' not found")
+    return kid_id
+
+
+def get_chore_id_or_raise(
+    coordinator: KidsChoresDataCoordinator, chore_name: str
+) -> str:
+    """Get chore ID by name or raise HomeAssistantError if not found."""
+    chore_id = get_chore_id_by_name(coordinator, chore_name)
+    if not chore_id:
+        raise HomeAssistantError(f"Chore '{chore_name}' not found")
+    return chore_id
+
+
+def get_reward_id_or_raise(
+    coordinator: KidsChoresDataCoordinator, reward_name: str
+) -> str:
+    """Get reward ID by name or raise HomeAssistantError if not found."""
+    reward_id = get_reward_id_by_name(coordinator, reward_name)
+    if not reward_id:
+        raise HomeAssistantError(f"Reward '{reward_name}' not found")
+    return reward_id
+
+
+def get_penalty_id_or_raise(
+    coordinator: KidsChoresDataCoordinator, penalty_name: str
+) -> str:
+    """Get penalty ID by name or raise HomeAssistantError if not found."""
+    penalty_id = get_penalty_id_by_name(coordinator, penalty_name)
+    if not penalty_id:
+        raise HomeAssistantError(f"Penalty '{penalty_name}' not found")
+    return penalty_id
+
+
+def get_badge_id_or_raise(
+    coordinator: KidsChoresDataCoordinator, badge_name: str
+) -> str:
+    """Get badge ID by name or raise HomeAssistantError if not found."""
+    badge_id = get_badge_id_by_name(coordinator, badge_name)
+    if not badge_id:
+        raise HomeAssistantError(f"Badge '{badge_name}' not found")
+    return badge_id
+
+
+def get_bonus_id_or_raise(
+    coordinator: KidsChoresDataCoordinator, bonus_name: str
+) -> str:
+    """Get bonus ID by name or raise HomeAssistantError if not found."""
+    bonus_id = get_bonus_id_by_name(coordinator, bonus_name)
+    if not bonus_id:
+        raise HomeAssistantError(f"Bonus '{bonus_name}' not found")
+    return bonus_id
 
 
 # ────────────────────────────────────────────────────────────────

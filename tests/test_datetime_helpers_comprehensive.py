@@ -12,10 +12,10 @@ Can be run as:
 """
 
 # pylint: disable=protected-access  # Accessing internal helpers for testing
+# pylint: disable=redefined-outer-name  # Pytest fixtures shadow names
+# pylint: disable=unused-argument  # Some test fixtures required for setup
 
-from datetime import date, datetime, time, timedelta
-from typing import Any
-from unittest.mock import patch
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import pytest

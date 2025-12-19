@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.kidschores import const
 from custom_components.kidschores.const import (
     CHORE_STATE_APPROVED,
     CHORE_STATE_CLAIMED,
@@ -189,11 +190,7 @@ async def test_kid_device_name_updates_immediately(
     init_integration: MockConfigEntry,
 ) -> None:
     """Test that kid device name updates immediately when changed via coordinator."""
-    from unittest.mock import Mock
-
     from homeassistant.helpers import device_registry as dr
-
-    from custom_components.kidschores import const
 
     # Get the coordinator
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
@@ -249,8 +246,6 @@ async def test_config_entry_title_updates_device_names(
 ) -> None:
     """Test that changing config entry title updates all kid device names."""
     from homeassistant.helpers import device_registry as dr
-
-    from custom_components.kidschores import const
 
     # Get the coordinator
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]

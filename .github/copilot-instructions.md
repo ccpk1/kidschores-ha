@@ -1,55 +1,104 @@
 # KidsChores Home Assistant Integration - AI Coding Instructions
 
-**Core Pattern**: All entities use `internal_id` (UUID) as primary key. Names are changeable; IDs persist across renames.
+## System Architecture (Read First)
+
+**Three-Layer Pattern**: Data flows Storage → Coordinator → Entities
+- **Storage** ([storage_manager.py](custom_components/kidschores/storage_manager.py), 292 lines): JSON persistence via HA's Store helper, keyed by `internal_id` (UUID)
+- **Coordinator** ([coordinator.py](custom_components/kidschores/coordinator.py), 8600+ lines): Business logic for chore lifecycle, badge tracking, recurring scheduling, notifications
+- **Entities** (50+ types across [sensor.py](custom_components/kidschores/sensor.py), [button.py](custom_components/kidschores/button.py), [calendar.py](custom_components/kidschores/calendar.py), [select.py](custom_components/kidschores/select.py)): CoordinatorEntity subclasses for UI
+
+**Storage-Only Architecture (v4.2+)**: All entity data (kids, chores, badges, rewards) stored exclusively in `.storage/kidschores_data` with schema version 42 in `meta.schema_version`. Config entry contains only 9 system settings (points_label, points_icon, update_interval, etc.). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for full data separation model.
+
+**Critical**: All entity lookups use `internal_id` (stable UUIDs), never names. Names can be renamed; IDs persist. Use helper: `_get_entity_by_name_as_id(hass, name)` to resolve names→IDs in [kc_helpers.py](custom_components/kidschores/kc_helpers.py#L800-L850).
+
+## Config Flow Architecture
+
+**Multi-Step User Journey** ([config_flow.py](custom_components/kidschores/config_flow.py), 1300+ lines):
+1. `data_recovery` → Detect existing storage file, offer: use current / start fresh / restore backup / paste JSON
+2. `intro` → System settings (points_label, points_icon, update_interval)
+3. `count_kids` → "How many kids?"
+4. `collect_kids` → Multi-step form for each kid
+5. `count_chores` → "How many chores?"
+6. `collect_chores` → Multi-step form for each chore (with optional badges/rewards/bonuses/penalties)
+7. `summary` → Review and create entry
+
+**Options Flow** ([options_flow.py](custom_components/kidschores/options_flow.py), 1000+ lines): Menu-driven entity management → calls `coordinator._merge_and_update_entities()` to sync storage.
+
+**Must know**: Config flow validates via `flow_helpers.py` (2000+ lines) schemas. All user input passes through Voluptuous selectors with entity name resolution.
 
 ## Tech Stack
 
-- **Python 3.12+**, PEP 8, Black formatting, mandatory type hints
-- **Async I/O**: All I/O must be async; use `hass.async_add_executor_job` only for blocking third-party calls
-- **Imports**: Relative (e.g., `from . import const`)
-- **Logging**: `const.LOGGER` with `DEBUG:`, `INFO:`, `WARNING:`, `ERROR:` prefixes (lazy logging: `_LOGGER.debug("Message: %s", value)`)
-- **Shared code**: Add common functions to `kc_helpers.py` or `flow_helpers.py`, not elsewhere
+- **Python 3.12+**, PEP 8, type hints (all functions/methods required)
+- **Async I/O**: All I/O async; `hass.async_add_executor_job()` for blocking third-party calls
+- **Imports**: Relative paths (`from . import const`)
+- **Logging**: `const.LOGGER` with lazy logging: `LOGGER.debug("Message: %s", var)` (never f-strings in lazy logging)
+- **Shared code**: Add to [kc_helpers.py](custom_components/kidschores/kc_helpers.py) (1550+ lines) for entity/helper functions, or [flow_helpers.py](custom_components/kidschores/flow_helpers.py) (2000+ lines) for flow validation/builders
 
 ## Code Quality Standards
 
-- **Automated linting**: `./utils/quick_lint.sh --fix` or `python utils/lint_check.py --integration`
-- **No linting errors**: Script checks pylint (critical errors only), type errors, trailing whitespace
-- **No type errors**: Pyright/Pylance errors are caught by lint scripts (set VS Code to "basic" mode)
-- **Type hints**: All functions/methods must have type hints (params and return)
-- **Docstrings**: All public functions/methods/classes require docstrings
+- **Automated linting**: `./utils/quick_lint.sh --fix` (~22 seconds, comprehensive check) or `python utils/lint_check.py --integration` (individual file)
+- **No linting errors**: Script checks pylint critical errors, type errors, trailing whitespace
+- **Type hints**: ALL functions/methods required (params + return type). Pyright/Pylance in VS Code: set to "basic" mode
+- **Docstrings**: All public functions/methods/classes required (Google style)
 - **Error handling**: Use specific exceptions (`HomeAssistantError`, `ServiceValidationError`, `ConfigEntryNotReady`, `ConfigEntryAuthFailed`)
 - **No debug code**: Remove print statements, pdb, commented code before committing
-- **Descriptive naming**: Functions/variables should be self-documenting (e.g., `get_kid_by_name()`, not `get_k()`)
-- **DRY principle**: Use helper functions in `kc_helpers.py`/`flow_helpers.py` instead of duplicating code
+- **Descriptive naming**: `get_kid_by_name()` not `get_k()`; `chore_data` not `cd`
+- **DRY principle**: Reusable logic goes to [kc_helpers.py](custom_components/kidschores/kc_helpers.py) or [flow_helpers.py](custom_components/kidschores/flow_helpers.py)
 
-## Architecture Overview
+## Critical Data Flow Patterns
 
-**Storage → Coordinator → Entities**
+### Entity Identification
+- **ALWAYS use `internal_id`** for lookups (UUIDs), never entity names
+- Names change on rename; IDs persist. Use helper: `_get_entity_by_name_as_id(hass, name)` to resolve names→IDs
+- Example: `chore_data = coordinator.chores_data[internal_id]` ✅, not `...chores_data[chore_name]` ❌
 
-- **Storage** (`storage_manager.py`): JSON persistence, keyed by `internal_id`
-- **Coordinator** (`coordinator.py`): 8000+ lines handling chore lifecycle, badge calculations, notifications, recurring schedules
-- **Entities**: `sensor.py` (50+ entity types across multiple platforms), `button.py` (claim/approve/disapprove actions), `calendar.py` (event scheduling), `select.py` (entity selection menus)
-- **Config**: `const.py` (2400+ lines) centralizes constants across 18+ prefix categories (see Constant Naming Standards below)
+### DateTime Handling
+- **Store as UTC-aware ISO strings**: `2025-04-22T11:57:16.855704+00:00`
+- Use `kc_helpers.parse_datetime_to_utc(dt_str)` to convert any format
+- Migration logic in `coordinator._migrate_stored_datetimes()` handles legacy formats
 
-## Critical Patterns
+### Recurring Chores
+- Coordinator resets via `async_track_time_change()` at midnight (local time)
+- Supports daily/weekly/monthly intervals
+- Each reset: chore state → "pending", streaks reset based on maintenance rules
 
-**Entity Identification**: Always use `internal_id`, never names for lookups (names change on renames).
+### Notifications
+- Action strings embed IDs: `"approve_chore_{kid_id}_{chore_id}"` (not names)
+- Handlers in [notification_action_handler.py](custom_components/kidschores/notification_action_handler.py) route to coordinator methods
+- Send via `async_send_notification()` in [notification_helper.py](custom_components/kidschores/notification_helper.py)
 
-**DateTime**: Store as UTC-aware ISO strings via `kc_helpers.parse_datetime_to_utc()`. Migration logic in `coordinator._migrate_stored_datetimes()`.
+### Access Control Pattern
+```python
+# Global admin-only action
+if not await is_user_authorized_for_global_action(hass, user_id, "delete_all"):
+    raise HomeAssistantError("Admin only")
 
-**Recurring Chores**: Coordinator resets on midnight via `async_track_time_change` using daily/weekly/monthly intervals.
+# Kid-specific action (parents or admin)
+if not await is_user_authorized_for_kid(hass, user_id, kid_id):
+    raise HomeAssistantError("Not authorized for this kid")
+```
+See [kc_helpers.py](custom_components/kidschores/kc_helpers.py#L50-L100) for full patterns
 
-**Notifications**: Action strings embed `kid_id` and `chore_id` (e.g., `"approve_chore_<kid_id>_<chore_id>"`). Handlers in `notification_action_handler.py` route to coordinator.
+### Badge Tracking
+- Types: `achievement`, `challenge`, `cumulative`, `daily`, `periodic`, `special`
+- Stored in kid's `badges_earned` dict: `{badge_id: {internal_id, last_awarded_date, award_count}}`
+- Maintenance: periodic checks reset badges if requirements not met (daily/weekly/monthly)
 
-**Access Control**: `is_user_authorized_for_kid(hass, user_id, kid_id)` and `is_user_authorized_for_global_action()` in `kc_helpers.py`. Admins always allowed; non-admins checked against parents/kids lists.
+## Configuration & Services Architecture
 
-**Badges**: Tracked by type (`achievement`, `challenge`, `cumulative`, `daily`, `periodic`, `special`), with progress in kid's `badges_earned` list (includes `internal_id`, `last_awarded_date`, multiplier).
+**Config Flow** ([config_flow.py](custom_components/kidschores/config_flow.py), 1300+ lines): Multi-step UI setup with data recovery.
 
-## Configuration & Services
+**Options Flow** ([options_flow.py](custom_components/kidschores/options_flow.py)): Manage existing entities. Changes sync to storage via `coordinator._merge_and_update_entities()`.
 
-**Config Flow** (`config_flow.py`, 1300+ lines): Multi-step UI setup. **Options Flow** (`options_flow.py`): Manage existing entities. Must sync with storage via `coordinator._merge_and_update_entities()`.
-
-**Services** (18 total in `services.yaml`): Receive entity names → resolve to `internal_id` → call coordinator. Lifecycle: `claim_chore`, `approve_chore`, `disapprove_chore`. Rewards: `redeem_reward`, `approve_reward`, `disapprove_reward`. Points: `adjust_points`, `apply_bonus`, `apply_penalty`. Resets: `reset_all_chores`, `reset_penalties`, etc.
+**Services** (18 total in [services.yaml](custom_components/kidschores/services.yaml)):
+- Input: Receive entity names from user
+- Processing: Resolve names→`internal_id` via [services.py](custom_components/kidschores/services.py) schemas
+- Output: Call coordinator methods with IDs
+- Categories:
+  - Lifecycle: `claim_chore`, `approve_chore`, `disapprove_chore`
+  - Rewards: `redeem_reward`, `approve_reward`, `disapprove_reward`
+  - Points: `adjust_points`, `apply_bonus`, `apply_penalty`
+  - Resets: `reset_all_chores`, `reset_penalties`, `reset_streaks`
 
 ## Helper Utilities
 
@@ -168,9 +217,55 @@ from unittest.mock import AsyncMock
 2. Restart VS Code or reload window to refresh IDE diagnostics
 3. Check file in editor - green checkmark = no warnings
 
-**Key Files**: `coordinator.py` (business logic), `const.py` (all constants), `storage_manager.py` (persistence), `services.py` (service schemas → coordinator calls), entity platforms (`sensor.py`, `button.py`, `calendar.py`, `select.py`).
+---
 
-## Common Pitfalls
+## Testing Strategy
+
+**Test Organization**: Tests mirror real-world workflows using the Stårblüm family scenario (parents, kids, chores, badges). See [tests/README.md](tests/README.md) for full context.
+
+**Test Data**: Use YAML scenarios in [tests/testdata_storyline_*.yaml](tests):
+- **minimal**: Zoë's first week (1 kid, 1 chore, 10 points)
+- **medium**: Zoë and Max! with shared chores
+- **full**: All features, special characters for Unicode validation
+
+**Key Test Patterns**:
+1. **Config Flow**: Simulate user UI input → test all paths (intro, collect_kids, collect_chores, summary)
+2. **Coordinator Logic**: Direct method calls with mock storage (no UI)
+3. **Services**: Name→ID resolution → verify coordinator methods called
+4. **Dashboard Templates**: Jinja2 rendering validation, entity filtering, translations
+
+**Before Completion - MANDATORY REQUIREMENTS ✅**
+
+Work is NOT complete until BOTH pass:
+
+```bash
+# 1. FULL LINT CHECK (~22 seconds)
+./utils/quick_lint.sh --fix
+
+# 2. FULL TEST SUITE (~7 seconds - 150 tests)
+python -m pytest tests/ -v --tb=line
+```
+
+**Test Code Quality Standards**:
+- ✅ **No severity 8 errors** (import errors, attribute access issues)
+- ✅ **Type hints on all test functions** (params and return type)
+- ✅ **Module-level suppressions for test files**: `# pylint: disable=protected-access  # Accessing _context/_persist for testing`
+- ✅ **Descriptive test names**: `test_<feature>_<action>_<expected>`
+- ✅ **No TODO/FIXME comments** - resolve or create issue
+
+**Debugging with Tests**:
+- Write failing test to reproduce bug
+- Add snapshot tests for structural validation
+- Use coordinator tests for business logic without UI
+- Mock notifications: `patch.object(coordinator, "_notify_kid", new=AsyncMock())`
+
+## Debugging
+
+- Debug logging: `logger: custom_components.kidschores: debug` in `configuration.yaml`
+- Storage: `.storage/kidschores_data` (JSON with `internal_id` keys)
+- Entity registry: `.storage/core.entity_registry`
+- Services: Developer Tools → Services to test
+- Coordinator: Check `last_update_success` property
 
 1. Don't use entity names as keys; use `internal_id`
 2. Store datetimes as UTC-aware ISO strings via `kc_helpers.parse_datetime_to_utc()`
@@ -178,6 +273,29 @@ from unittest.mock import AsyncMock
 4. Never hardcode user-facing strings; use `const.TRANS_KEY_*`
 5. Services receive names; resolve to `internal_id` before coordinator calls
 6. Notification action strings must embed both `kid_id` and `chore_id`/`reward_id`
+7. Always pass `config_entry` to DataUpdateCoordinator (it's accepted and recommended)
+8. In test files, use module-level `# pylint: disable=protected-access` instead of inline suppressions
+
+## Recent Architecture Changes (v4.2+)
+
+### Storage Schema Migration (v41 → v42+)
+- **Before**: Top-level `schema_version` key
+- **After**: Nested in `meta.schema_version` with migration tracking
+- Migration logic in `coordinator._migrate_config_to_storage()` handles legacy formats
+- All datetimes converted to UTC-aware ISO format
+
+### Config Flow Data Recovery
+- New first step: detect existing `kidschores_data` file
+- Options: use current, start fresh (with backup), restore backup, paste JSON
+- Backup system: `kidschores_data_YYYY-MM-DD_HH-MM-SS_{tag}` format (timestamped)
+- Backup tags: `recovery` (auto), `removal` (before delete), `manual` (user), `pre-migration` (permanent)
+- Diagnostic export: Returns raw storage data for paste recovery (byte-for-byte compatible)
+
+### Dashboard Helper Sensor
+- New entity: `sensor.kc_<kid>_ui_dashboard_helper` (v0.4.0+)
+- Pre-sorted lists: `chores`, `rewards`, `bonuses`, `penalties`, `achievements`, `challenges`, `badges`
+- `ui_translations` dict: All 40+ localization keys from backend (no language-specific YAML variants)
+- Optimizes frontend: No expensive Jinja2 list iterations, pre-computed metrics
 
 ## Adding/Modifying Features
 
@@ -185,6 +303,7 @@ from unittest.mock import AsyncMock
 - **New service**: Schema in `services.py`, add to `services.yaml`, implement in coordinator
 - **Data structure change**: Update storage version in `const.py`, add migration in coordinator
 - **New constant**: Add to `const.py` with proper prefix; update translations if user-facing
+- **New chore property**: Add to `DATA_CHORE_*` constants, config flow schema, flow_helpers builder, and coordinator merge logic
 
 ## Entity Design
 

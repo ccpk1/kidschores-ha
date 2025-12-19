@@ -43,7 +43,19 @@ class KidsChoresStorageManager:
         Returns:
             dict: Default structure with all data keys initialized.
         """
+        from datetime import datetime
+
+        from homeassistant.util import dt as dt_util
+
         return {
+            const.DATA_META: {
+                const.DATA_META_SCHEMA_VERSION: const.DEFAULT_ZERO,  # Will be set by migration
+                const.DATA_META_LAST_MIGRATION_DATE: datetime.now(
+                    dt_util.UTC
+                ).isoformat(),
+                const.DATA_META_MIGRATIONS_APPLIED: [],
+            },
+            const.DATA_SCHEMA_VERSION: const.DEFAULT_ZERO,  # Top-level schema version for backward compatibility
             const.DATA_KIDS: {},
             const.DATA_CHORES: {},
             const.DATA_BADGES: {},
@@ -55,7 +67,6 @@ class KidsChoresStorageManager:
             const.DATA_CHALLENGES: {},
             const.DATA_PENDING_CHORE_APPROVALS: [],
             const.DATA_PENDING_REWARD_APPROVALS: [],
-            const.DATA_SCHEMA_VERSION: const.DEFAULT_ZERO,  # Will be set by migration
         }
 
     async def async_initialize(self) -> None:
@@ -70,14 +81,35 @@ class KidsChoresStorageManager:
             # No existing data, create a new default structure.
             const.LOGGER.info("INFO: No existing storage found. Initializing new data")
             self._data = self._get_default_structure()
+            const.LOGGER.debug(
+                "DEBUG: Initialized with default structure: %s keys",
+                len(self._data.keys()),
+            )
         else:
             # Load existing data into memory.
             self._data = existing_data
-            const.LOGGER.info("INFO: Storage data loaded successfully")
+            const.LOGGER.debug(
+                "DEBUG: Loaded existing data from storage: %s entities",
+                {
+                    "kids": len(self._data.get(const.DATA_KIDS, {})),
+                    "chores": len(self._data.get(const.DATA_CHORES, {})),
+                    "badges": len(self._data.get(const.DATA_BADGES, {})),
+                    "total_keys": len(self._data.keys()),
+                },
+            )
 
     @property
     def data(self) -> dict[str, Any]:
         """Retrieve the in-memory data cache."""
+        const.LOGGER.debug(
+            "DEBUG: Storage manager data property accessed: %s entities",
+            {
+                "kids": len(self._data.get(const.DATA_KIDS, {})),
+                "chores": len(self._data.get(const.DATA_CHORES, {})),
+                "badges": len(self._data.get(const.DATA_BADGES, {})),
+                "total_keys": len(self._data.keys()),
+            },
+        )
         return self._data
 
     def get_storage_path(self) -> str:
@@ -90,6 +122,15 @@ class KidsChoresStorageManager:
 
     def set_data(self, new_data: dict[str, Any]) -> None:
         """Replace the entire in-memory data structure."""
+        const.LOGGER.debug(
+            "DEBUG: Storage manager set_data called with: %s entities",
+            {
+                "kids": len(new_data.get(const.DATA_KIDS, {})),
+                "chores": len(new_data.get(const.DATA_CHORES, {})),
+                "badges": len(new_data.get(const.DATA_BADGES, {})),
+                "total_keys": len(new_data.keys()),
+            },
+        )
         self._data = new_data
 
     def get_kids(self) -> dict[str, Any]:

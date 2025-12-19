@@ -1,0 +1,30 @@
+feat: Add return type hints to config_flow.py and localize data recovery errors
+
+## Changes
+- Added FlowResult return type hints to all 28 async_step_* and _handle_* methods
+  in config_flow.py for improved type safety and IDE support
+- Replaced 9 hardcoded abort reason strings with TRANS_KEY_* constants:
+  - "file_not_found" → const.TRANS_KEY_CFOP_ERROR_FILE_NOT_FOUND
+  - "corrupt_file" → const.TRANS_KEY_CFOP_ERROR_CORRUPT_FILE
+  - "invalid_structure" → const.TRANS_KEY_CFOP_ERROR_INVALID_STRUCTURE
+  - "unknown" → const.TRANS_KEY_CFOP_ERROR_UNKNOWN
+- Added 6 new constants to const.py for abort reasons (TRANS_KEY_CFOP_ERROR_*)
+
+## Architectural Compliance
+- Eliminates hardcoded user-facing strings (ARCHITECTURE.md compliance)
+- All async methods now have complete type hints (CODE_REVIEW_GUIDE.md compliance)
+- Translation coverage verified in en.json
+- Constant naming patterns verified (95%+ consistency)
+
+## Testing
+- All 483 tests passing ✅
+- 10 tests skipped (intentional)
+- 0 failures ✅
+- Lint validation: all 40 files pass quality standards ✅
+
+## Breaking Changes
+None - all changes are non-breaking (type hints and string localization)
+
+## Related Issues
+Completes comprehensive code review of config_flow.py per CODE_REVIEW_GUIDE.md and ARCHITECTURE.md standards.
+

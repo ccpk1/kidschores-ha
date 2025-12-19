@@ -21,9 +21,17 @@ async def test_form_user_flow_success(hass: HomeAssistant) -> None:
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
     assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "data_recovery"
+
+    # Step 1: Choose "start fresh" from data recovery menu
+    result = await hass.config_entries.flow.async_configure(
+        result.get("flow_id"),
+        user_input={"backup_selection": "start_fresh"},
+    )
+    assert result.get("type") == FlowResultType.FORM
     assert result.get("step_id") == "intro"
 
-    # Step 1: Pass intro step (empty form)
+    # Step 2: Pass intro step (empty form)
     result_intro = await hass.config_entries.flow.async_configure(
         result.get("flow_id"),
         user_input={},
@@ -58,6 +66,14 @@ async def test_form_user_flow_default_values(hass: HomeAssistant) -> None:
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
     assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "data_recovery"
+
+    # Navigate through data_recovery menu
+    result = await hass.config_entries.flow.async_configure(
+        result.get("flow_id"),
+        user_input={"backup_selection": "start_fresh"},
+    )
+    assert result.get("type") == FlowResultType.FORM
     assert result.get("step_id") == "intro"
 
     # Step 1: Pass intro step (empty form)
@@ -86,6 +102,13 @@ async def test_form_cannot_connect(hass: HomeAssistant) -> None:
     """Test we handle cannot connect error."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    assert result.get("step_id") == "data_recovery"
+
+    # Navigate through data_recovery menu
+    result = await hass.config_entries.flow.async_configure(
+        result.get("flow_id"),
+        user_input={"backup_selection": "start_fresh"},
     )
     assert result.get("step_id") == "intro"
 
@@ -140,6 +163,13 @@ async def test_form_user_flow_custom_labels(hass: HomeAssistant) -> None:
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
+    assert result.get("step_id") == "data_recovery"
+
+    # Navigate through data_recovery menu
+    result = await hass.config_entries.flow.async_configure(
+        result.get("flow_id"),
+        user_input={"backup_selection": "start_fresh"},
+    )
     assert result.get("step_id") == "intro"
 
     # Step 1: Pass intro
@@ -171,6 +201,13 @@ async def test_form_empty_label_uses_default(hass: HomeAssistant) -> None:
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
+    assert result.get("step_id") == "data_recovery"
+
+    # Navigate through data_recovery menu
+    result = await hass.config_entries.flow.async_configure(
+        result.get("flow_id"),
+        user_input={"backup_selection": "start_fresh"},
+    )
     assert result.get("step_id") == "intro"
 
     # Step 1: Pass intro
@@ -201,6 +238,13 @@ async def test_form_schema_version_set(hass: HomeAssistant) -> None:
     """Test that schema version is correctly set in config data."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    assert result.get("step_id") == "data_recovery"
+
+    # Navigate through data_recovery menu
+    result = await hass.config_entries.flow.async_configure(
+        result.get("flow_id"),
+        user_input={"backup_selection": "start_fresh"},
     )
     assert result.get("step_id") == "intro"
 

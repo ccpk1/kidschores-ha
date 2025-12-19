@@ -1,4 +1,5 @@
 # File: const.py
+# pylint: disable=too-many-lines  # Constants module requires 2300+ lines for complete integration config
 """Constants for the KidsChores integration.
 
 This file centralizes configuration keys, defaults, labels, domain names,
@@ -48,12 +49,21 @@ STORAGE_KEY_LINKED_USERS: Final = "linked_users"
 STORAGE_VERSION: Final = 1
 
 # Default timezone (set once hass is available)
-DEFAULT_TIME_ZONE = None
+# pylint: disable=invalid-name
+DEFAULT_TIME_ZONE = None  # noqa: N816
 
 # Schema version for config→storage migration
 DATA_SCHEMA_VERSION: Final = "schema_version"
 CONF_SCHEMA_VERSION: Final = "schema_version"
-SCHEMA_VERSION_STORAGE_ONLY: Final = 42
+SCHEMA_VERSION_STORAGE_ONLY: Final = (
+    42  # v42: Storage-only mode (staying on v42 per 2025-12-19 decision)
+)
+
+# Storage metadata section (for future v43+)
+DATA_META: Final = "meta"
+DATA_META_SCHEMA_VERSION: Final = "schema_version"
+DATA_META_LAST_MIGRATION_DATE: Final = "last_migration_date"
+DATA_META_MIGRATIONS_APPLIED: Final = "migrations_applied"
 
 # Update interval (seconds)
 DEFAULT_UPDATE_INTERVAL: Final = 5
@@ -193,6 +203,16 @@ OPTIONS_FLOW_STEP_MANAGE_POINTS: Final = "manage_points"
 OPTIONS_FLOW_STEP_RESTORE_BACKUP: Final = "restore_backup"
 OPTIONS_FLOW_STEP_CONFIRM_RESTORE: Final = "confirm_restore"
 OPTIONS_FLOW_STEP_SELECT_ENTITY: Final = "select_entity"
+
+# OptionsFlow Backup Management Steps
+OPTIONS_FLOW_STEP_BACKUP_ACTIONS: Final = "backup_actions_menu"
+OPTIONS_FLOW_STEP_VIEW_BACKUPS: Final = "view_backups"
+OPTIONS_FLOW_STEP_CREATE_MANUAL_BACKUP: Final = "create_manual_backup"
+OPTIONS_FLOW_STEP_CREATE_BACKUP_CONFIRM: Final = "create_backup_confirm"
+OPTIONS_FLOW_STEP_CREATE_BACKUP_SUCCESS: Final = "create_backup_success"
+OPTIONS_FLOW_STEP_DELETE_BACKUP_CONFIRM: Final = "delete_backup_confirm"
+OPTIONS_FLOW_STEP_RESTORE_BACKUP_CONFIRM: Final = "restore_backup_confirm"
+OPTIONS_FLOW_STEP_PASTE_JSON_RESTORE: Final = "paste_json_restore"
 
 OPTIONS_FLOW_STEP_ADD_ACHIEVEMENT: Final = "add_achievement"
 OPTIONS_FLOW_STEP_ADD_BADGE: Final = "add_badge"
@@ -378,6 +398,10 @@ OPTIONS_FLOW_INPUT_INTERNAL_ID: Final = "internal_id"
 OPTIONS_FLOW_INPUT_MENU_SELECTION: Final = "menu_selection"
 OPTIONS_FLOW_INPUT_MANAGE_ACTION: Final = "manage_action"
 
+# OptionsFlow Backup Management Input Fields
+CFOF_BACKUP_ACTION_SELECTION: Final = "backup_action_selection"
+CFOF_BACKUP_SELECTION: Final = "backup_selection"
+
 # OptionsFlow Data Fields
 OPTIONS_FLOW_DATA_ENTITY_NAME: Final = "name"
 
@@ -415,6 +439,9 @@ CONF_POINTS_ICON: Final = "points_icon"
 CONF_POINTS_LABEL: Final = "points_label"
 CONF_RETENTION_DAILY: Final = "retention_daily"
 CONF_RETENTION_MONTHLY: Final = "retention_monthly"
+CONF_RETENTION_PERIODS: Final = (
+    "retention_periods"  # Consolidated field (Daily|Weekly|Monthly|Yearly)
+)
 CONF_RETENTION_WEEKLY: Final = "retention_weekly"
 CONF_RETENTION_YEARLY: Final = "retention_yearly"
 CONF_SHARED_CHORE: Final = "shared_chore"
@@ -422,10 +449,19 @@ CONF_UPDATE_INTERVAL: Final = "update_interval"
 CONF_VALUE: Final = "value"
 
 # Backup Management Configuration
-CONF_BACKUP_RETENTION_DAYS: Final = "backup_retention_days"
-DEFAULT_BACKUP_RETENTION_DAYS: Final = 3  # 0 = disabled, 1-7 = days
-MIN_BACKUP_RETENTION_DAYS: Final = 0
-MAX_BACKUP_RETENTION_DAYS: Final = 7
+CONF_BACKUPS_MAX_RETAINED: Final = "backups_max_retained"
+DEFAULT_BACKUPS_MAX_RETAINED: Final = 5  # Keep last N backups per tag (0 = disabled)
+MIN_BACKUPS_MAX_RETAINED: Final = 0  # 0 = disable automatic backups
+MAX_BACKUPS_MAX_RETAINED: Final = 10  # Maximum number of backups to retain
+
+# Backup Tags (for backup filename identification)
+BACKUP_TAG_RECOVERY: Final = "recovery"  # Data recovery actions
+BACKUP_TAG_REMOVAL: Final = "removal"  # Integration removal
+BACKUP_TAG_RESET: Final = "reset"  # Factory reset
+BACKUP_TAG_PRE_MIGRATION: Final = (
+    "pre-migration"  # Before schema upgrade (never deleted)
+)
+BACKUP_TAG_MANUAL: Final = "manual"  # User-initiated (never deleted)
 
 # Chore Custom Interval Reset Periods
 CUSTOM_INTERVAL_UNIT_OPTIONS: Final = [
@@ -1066,12 +1102,20 @@ DEFAULT_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS: Final = 0
 DEFAULT_BADGE_RESET_SCHEDULE_START_DATE = SENTINEL_NONE
 DEFAULT_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY = FREQUENCY_NONE
 DEFAULT_BADGE_RESET_SCHEDULE = {
-    DATA_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY: DEFAULT_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY,
-    DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL: DEFAULT_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL,
-    DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT: DEFAULT_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT,
+    DATA_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY: (
+        DEFAULT_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY
+    ),
+    DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL: (
+        DEFAULT_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL
+    ),
+    DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT: (
+        DEFAULT_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT
+    ),
     DATA_BADGE_RESET_SCHEDULE_START_DATE: DEFAULT_BADGE_RESET_SCHEDULE_START_DATE,
     DATA_BADGE_RESET_SCHEDULE_END_DATE: DEFAULT_BADGE_RESET_SCHEDULE_END_DATE,
-    DATA_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS: DEFAULT_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS,
+    DATA_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS: (
+        DEFAULT_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS
+    ),
 }
 DEFAULT_BADGE_TARGET_TYPE: Final = "points"
 DEFAULT_BADGE_TARGET_THRESHOLD_VALUE: Final = 50
@@ -1577,6 +1621,13 @@ ERROR_ACTION_REMOVE_BADGES: Final = "remove_badges"
 
 TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND: Final = "error_msg_no_entry_found"
 
+# Error message translation keys for service handlers
+# Reusing existing template patterns from en.json to minimize translations
+TRANS_KEY_ERROR_ENTITY_NOT_FOUND: Final = (
+    "entity_not_found"  # Reuses: {entity_type} '{name}' not found
+)
+TRANS_KEY_ERROR_INSUFFICIENT_POINTS: Final = "error_insufficient_points"
+
 # Unknown States (Display Translation Keys)
 TRANS_KEY_DISPLAY_UNKNOWN_CHALLENGE: Final = "display_unknown_challenge"
 TRANS_KEY_DISPLAY_UNKNOWN_CHORE: Final = "display_unknown_chore"
@@ -1590,6 +1641,7 @@ CFOP_ERROR_BADGE_NAME: Final = "badge_name"
 CFOP_ERROR_ASSIGNED_KIDS: Final = "assigned_kids"
 CFOP_ERROR_BASE: Final = "base"
 CFOP_ERROR_CORRUPT_FILE: Final = "corrupt_file"
+CFOP_ERROR_FILE_NOT_FOUND: Final = "file_not_found"
 CFOP_ERROR_INVALID_JSON: Final = "invalid_json"
 CFOP_ERROR_NO_BACKUPS_FOUND: Final = "no_backups_found"
 CFOP_ERROR_RESTORE_FAILED: Final = "restore_failed"
@@ -1604,6 +1656,9 @@ CFOP_ERROR_PENALTY_NAME: Final = "penalty_name"
 CFOP_ERROR_REWARD_NAME: Final = "reward_name"
 CFOP_ERROR_SELECT_CHORE_ID: Final = "selected_chore_id"
 CFOP_ERROR_START_DATE: Final = "start_date"
+# Additional error keys used by config_flow.py abort() calls
+CFOP_ERROR_INVALID_STRUCTURE: Final = "invalid_structure"
+CFOP_ERROR_UNKNOWN: Final = "unknown"
 
 
 # ------------------------------------------------------------------------------------------------
@@ -1650,6 +1705,14 @@ TRANS_KEY_CFOF_BACKUP_CURRENT_ACTIVE: Final = "backup_current_active"
 TRANS_KEY_CFOF_BACKUP_AGE: Final = "backup_age"
 TRANS_KEY_CFOF_RESTORE_WARNING: Final = "restore_warning"
 
+# Backup Management
+TRANS_KEY_CFOF_BACKUP_ACTIONS: Final = "backup_actions"
+TRANS_KEY_CFOF_BACKUP_ACTION_SELECT: Final = "backup_action_select"
+TRANS_KEY_CFOF_BACKUP_ACTION_CREATE: Final = "backup_action_create"
+TRANS_KEY_CFOF_BACKUP_ACTION_VIEW: Final = "backup_action_view"
+TRANS_KEY_CFOF_BACKUP_ACTION_RESTORE: Final = "backup_action_restore"
+TRANS_KEY_CFOF_BACKUP_RETURN_MENU: Final = "backup_return_menu"
+
 # Badge Fields
 TRANS_KEY_CFOF_BADGE_ASSIGNED_TO: Final = "assigned_to"
 TRANS_KEY_CFOF_BADGE_ASSOCIATED_ACHIEVEMENT: Final = "associated_achievement"
@@ -1680,6 +1743,11 @@ TRANS_KEY_CFOF_DUPLICATE_REWARD: Final = "duplicate_reward"
 TRANS_KEY_CFOF_END_DATE_IN_PAST: Final = "end_date_in_past"
 TRANS_KEY_CFOF_END_DATE_NOT_AFTER_START_DATE: Final = "end_date_not_after_start_date"
 TRANS_KEY_CFOF_ERROR_ASSIGNED_KIDS: Final = "error_assigned_kids"
+# Config Flow abort reason translation keys (for async_abort calls)
+TRANS_KEY_CFOP_ERROR_FILE_NOT_FOUND: Final = "file_not_found"
+TRANS_KEY_CFOP_ERROR_CORRUPT_FILE: Final = "corrupt_file"
+TRANS_KEY_CFOP_ERROR_INVALID_STRUCTURE: Final = "invalid_structure"
+TRANS_KEY_CFOP_ERROR_UNKNOWN: Final = "unknown"
 TRANS_KEY_ERROR_SINGLE_INSTANCE: Final = "single_instance_allowed"
 TRANS_KEY_CFOF_ERROR_AWARD_POINTS_MINIMUM: Final = "error_award_points_minimum"
 TRANS_KEY_CFOF_ERROR_AWARD_INVALID_MULTIPLIER: Final = "error_award_invalid_multiplier"
@@ -1758,6 +1826,7 @@ TRANS_KEY_CFOF_INVALID_PENALTY_NAME: Final = "invalid_penalty_name"
 TRANS_KEY_CFOF_INVALID_REWARD: Final = "invalid_reward"
 TRANS_KEY_CFOF_INVALID_REWARD_COUNT: Final = "invalid_reward_count"
 TRANS_KEY_CFOF_INVALID_REWARD_NAME: Final = "invalird_reward_name"
+TRANS_KEY_CFOF_INVALID_SELECTION: Final = "invalid_selection"
 TRANS_KEY_CFOF_INVALID_START_DATE: Final = "invalid_start_date"
 TRANS_KEY_CFOF_POINTS_LABEL_REQUIRED: Final = "points_label_required"
 TRANS_KEY_CFOF_MAIN_MENU: Final = "main_menu"

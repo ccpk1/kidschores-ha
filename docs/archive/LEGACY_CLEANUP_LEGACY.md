@@ -1,5 +1,7 @@
 # KidsChores Legacy Code Cleanup Tracking
 
+> **📖 Canonical Reference**: See [ARCHITECTURE.md](ARCHITECTURE.md) for current versioning and deprecation timeline.
+
 **Target Version**: KC 5.0 (12+ months post KC 4.0 release)
 **Prerequisite**: <1% of users on schema_version < 42
 **Date**: December 2024

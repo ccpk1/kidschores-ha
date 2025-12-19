@@ -17,6 +17,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
 from . import const
+from . import flow_helpers as fh
 from .coordinator import KidsChoresDataCoordinator
 from .notification_action_handler import async_handle_notification_action
 from .services import async_setup_services, async_unload_services
@@ -41,7 +42,15 @@ async def _migrate_config_to_storage(
 
     """
     storage_data = storage_manager.data
-    storage_version = storage_data.get(const.DATA_SCHEMA_VERSION, const.DEFAULT_ZERO)
+
+    # Check schema version - support both v41 (top-level) and v42+ (meta section)
+    # v41 format: {"schema_version": 41, "kids": {...}}
+    # v42+ format: {"meta": {"schema_version": 42}, "kids": {...}}
+    meta_section = storage_data.get(const.DATA_META, {})
+    storage_version = meta_section.get(
+        const.DATA_META_SCHEMA_VERSION,
+        storage_data.get(const.DATA_SCHEMA_VERSION, const.DEFAULT_ZERO),
+    )
 
     # Check if migration is needed
     if storage_version >= const.SCHEMA_VERSION_STORAGE_ONLY:
@@ -68,15 +77,43 @@ async def _migrate_config_to_storage(
         ]
     )
 
-    if not config_has_entities:
+    # Also check if storage already has entity data (handles storage-based v3.x installations)
+    storage_has_entities = any(
+        len(storage_data.get(key, {})) > 0
+        for key in [
+            const.DATA_KIDS,
+            const.DATA_CHORES,
+            const.DATA_BADGES,
+            const.DATA_REWARDS,
+        ]
+    )
+
+    # Only treat as clean install if BOTH config and storage are empty
+    if not config_has_entities and not storage_has_entities:
         const.LOGGER.info(
-            "INFO: No entity data in config_entry.options, setting storage version to %s (clean install)",
+            "INFO: No entity data in config or storage, setting storage version to %s (clean install)",
             const.SCHEMA_VERSION_STORAGE_ONLY,
         )
-        # Clean install - just set version and save
-        storage_data[const.DATA_SCHEMA_VERSION] = const.SCHEMA_VERSION_STORAGE_ONLY
+        # Clean install - set version in meta section and save
+        from datetime import datetime
+
+        from homeassistant.util import dt as dt_util
+
+        storage_data[const.DATA_META] = {
+            const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_STORAGE_ONLY,
+            const.DATA_META_LAST_MIGRATION_DATE: datetime.now(dt_util.UTC).isoformat(),
+            const.DATA_META_MIGRATIONS_APPLIED: [],
+        }
         storage_manager.set_data(storage_data)
         await storage_manager.async_save()
+        return
+
+    # Storage-only data (Config Flow import path): let coordinator handle all migrations
+    if not config_has_entities and storage_has_entities:
+        const.LOGGER.info(
+            "INFO: Storage has data but config is empty (schema v%s). Coordinator will handle migrations.",
+            storage_version,
+        )
         return
 
     # Migration needed: config has entities and storage version < 42
@@ -89,21 +126,13 @@ async def _migrate_config_to_storage(
 
     # Create backup of storage data before migration
     try:
-        import shutil
-        from datetime import datetime
-        from pathlib import Path
-
-        backup_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        storage_path = Path(storage_manager.get_storage_path())
-        backup_path = (
-            storage_path.parent / f"{storage_path.name}_backup_{backup_timestamp}"
+        backup_name = fh.create_timestamped_backup(
+            hass, storage_manager, const.BACKUP_TAG_PRE_MIGRATION
         )
-
-        if storage_path.exists():
-            shutil.copy2(str(storage_path), str(backup_path))
-            const.LOGGER.info(
-                "INFO: Created pre-migration backup: %s", backup_path.name
-            )
+        if backup_name:
+            const.LOGGER.info("INFO: Created pre-migration backup: %s", backup_name)
+        else:
+            const.LOGGER.warning("WARNING: No data available for pre-migration backup")
     except Exception as err:  # pylint: disable=broad-exception-caught
         const.LOGGER.warning("WARNING: Failed to create pre-migration backup: %s", err)
 
@@ -174,8 +203,9 @@ async def _migrate_config_to_storage(
                     # New entity - add from config
                     storage_data[data_key][entity_id] = config_entity_data
 
-                # For kids, ensure each kid has the overdue_notifications field
+                # For kids, ensure each kid has the required v42 fields
                 if config_key == const.CONF_KIDS:
+                    # Add overdue_notifications field if missing
                     if (
                         const.DATA_KID_OVERDUE_NOTIFICATIONS
                         not in storage_data[data_key][entity_id]
@@ -190,8 +220,18 @@ async def _migrate_config_to_storage(
                 config_key,
             )
 
-    # Set new schema version
-    storage_data[const.DATA_SCHEMA_VERSION] = const.SCHEMA_VERSION_STORAGE_ONLY
+    # Set new schema version in meta section
+    from datetime import datetime
+
+    from homeassistant.util import dt as dt_util
+
+    storage_data[const.DATA_META] = {
+        const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_STORAGE_ONLY,
+        const.DATA_META_LAST_MIGRATION_DATE: datetime.now(dt_util.UTC).isoformat(),
+        const.DATA_META_MIGRATIONS_APPLIED: ["config_to_storage"],
+    }
+    # Remove old top-level schema_version if present
+    storage_data.pop(const.DATA_SCHEMA_VERSION, None)
 
     # Save merged data to storage
     storage_manager.set_data(storage_data)
@@ -366,10 +406,51 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Initialize new file.
     await storage_manager.async_initialize()
 
+    # DEBUG: Check what was loaded from storage
+    loaded_data = storage_manager.data
+    const.LOGGER.debug(
+        "DEBUG: __init__ after storage load: %d kids, %d parents, %d chores, %d badges",
+        len(loaded_data.get(const.DATA_KIDS, {})),
+        len(loaded_data.get(const.DATA_PARENTS, {})),
+        len(loaded_data.get(const.DATA_CHORES, {})),
+        len(loaded_data.get(const.DATA_BADGES, {})),
+    )
+
     # PHASE 2: Migrate entity data from config to storage (one-time hand-off)
     # This must happen BEFORE coordinator initialization to ensure coordinator
     # loads from storage-only mode (schema_version >= 42)
     await _migrate_config_to_storage(hass, entry, storage_manager)
+
+    # Create safety backup and cleanup only on true startup (not on settings reload)
+    # Check if coordinator already exists in hass.data to detect reload
+    coordinator_exists = entry.entry_id in hass.data.get(
+        const.DOMAIN, {}
+    ) and const.COORDINATOR in hass.data[const.DOMAIN].get(entry.entry_id, {})
+
+    if not coordinator_exists:
+        # This is a true startup, create safety backup and cleanup
+        backup_name = fh.create_timestamped_backup(
+            hass, storage_manager, const.BACKUP_TAG_RECOVERY
+        )
+        if backup_name:
+            const.LOGGER.info(
+                "Created startup recovery backup: %s (automatic safety backup)",
+                backup_name,
+            )
+        else:
+            const.LOGGER.warning(
+                "Failed to create startup backup - continuing with setup"
+            )
+
+        # Cleanup old backups based on retention setting
+        max_backups = int(
+            entry.options.get(
+                const.CONF_BACKUPS_MAX_RETAINED, const.DEFAULT_BACKUPS_MAX_RETAINED
+            )
+        )
+        await fh.cleanup_old_backups(hass, storage_manager, max_backups)
+    else:
+        const.LOGGER.debug("Skipping startup backup and cleanup on settings reload")
 
     # Create the data coordinator for managing updates and synchronization.
     coordinator = KidsChoresDataCoordinator(hass, entry, storage_manager)
@@ -450,7 +531,16 @@ async def async_unload_entry(hass, entry):
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Handle removal of a config entry."""
+    """Handle removal of a config entry.
+
+    Creates a backup before deletion to allow data recovery if integration
+    is re-added. Backup is tagged with 'removal' for easy identification.
+
+    Args:
+        hass: Home Assistant instance
+        entry: Config entry being removed
+
+    """
     const.LOGGER.info("INFO: Removing KidsChores entry: %s", entry.entry_id)
 
     # Safely check if data exists before attempting to access it
@@ -458,6 +548,27 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         storage_manager: KidsChoresStorageManager = hass.data[const.DOMAIN][
             entry.entry_id
         ][const.STORAGE_MANAGER]
-        await storage_manager.async_delete_storage()
 
-    const.LOGGER.info("INFO: KidsChores entry data cleared: %s", entry.entry_id)
+        # Create backup before deletion (allows data recovery on re-add)
+        backup_name = fh.create_timestamped_backup(
+            hass, storage_manager, const.BACKUP_TAG_REMOVAL
+        )
+        if backup_name:
+            const.LOGGER.info(
+                "Created removal backup: %s (integration can be re-added to restore data)",
+                backup_name,
+            )
+        else:
+            const.LOGGER.warning(
+                "Failed to create removal backup - data will be permanently deleted"
+            )
+
+        # Delete active storage file
+        await storage_manager.async_delete_storage()
+        const.LOGGER.info(
+            "KidsChores storage file deleted for entry: %s", entry.entry_id
+        )
+    else:
+        const.LOGGER.info(
+            "No storage data found for entry %s - nothing to remove", entry.entry_id
+        )

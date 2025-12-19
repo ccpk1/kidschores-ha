@@ -6,6 +6,13 @@
         "title": "Welcome to KidsChores",
         "description": "This wizard will guide you through setting up KidsChores."
       },
+      "data_recovery": {
+        "title": "Data Recovery Options",
+        "description": "Existing KidsChores data found in:\n{storage_path}\n\nFound {backup_count} backup files.\n\nWhat would you like to do?",
+        "data": {
+          "backup_selection": "Select Option"
+        }
+      },
       "points_label": {
         "title": "Points Label",
         "description": "Choose a label and icon for points.",
@@ -295,10 +302,18 @@
       "invalid_bonus_name": "Invalid bonus name",
       "invalid_start_date": "Invalid start date.",
       "start_date_in_past": "Start Date must be in the future.",
-      "points_label_required": "Points label is required"
+      "points_label_required": "Points label is required",
+      "corrupt_file": "The selected file contains invalid JSON and cannot be read.",
+      "invalid_structure": "The selected file is missing required data structure.",
+      "file_not_found": "The selected file could not be found.",
+      "invalid_selection": "Please select a valid option."
     },
     "abort": {
-      "single_instance_allowed": "Only a single KidsChores instance can be configured."
+      "single_instance_allowed": "Only a single KidsChores instance can be configured.",
+      "already_configured": "KidsChores data has been restored successfully. You can now reload the integration.",
+      "file_not_found": "The selected backup file could not be found.",
+      "corrupt_file": "The selected file contains invalid JSON and cannot be read.",
+      "invalid_structure": "The selected file is missing required KidsChores data structure."
     }
   },
   "options": {
@@ -1052,7 +1067,8 @@
           "retention_daily": "Daily Data Retention (Days)",
           "retention_weekly": "Weekly Data Retention (Weeks)",
           "retention_monthly": "Monthly Data Retention (Months)",
-          "retention_yearly": "Yearly Data Retention (Years)"
+          "retention_yearly": "Yearly Data Retention (Years)",
+          "backups_max_retained": "Maximum Backups to Retain"
         },
         "data_description": {
           "points_adjust_values": "List of values for the manual points adjustment buttons. Each value separate by '|'.",
@@ -1061,7 +1077,56 @@
           "retention_daily": "Number of days of daily historical data to retain before cleanup. Minimum 1, maximum 90.",
           "retention_weekly": "Number of weeks of weekly historical data to retain before cleanup. Minimum 1, maximum 52.",
           "retention_monthly": "Number of months of monthly historical data to retain before cleanup. Minimum 1, maximum 24.",
-          "retention_yearly": "Number of years of yearly historical data to retain before cleanup. Minimum 1, maximum 10."
+          "retention_yearly": "Number of years of yearly historical data to retain before cleanup. Minimum 1, maximum 10.",
+          "backups_max_retained": "Maximum number of backup files to keep. Older backups will be automatically deleted. Set to 0 to disable automatic backups."
+        }
+      },
+      "backup_actions": {
+        "title": "Backup Management",
+        "description": "Manage your KidsChores data backups. Current status: {backup_count} backups using {storage_size} MB.",
+        "data": {
+          "backup_action_selection": "Select an Action"
+        },
+        "data_description": {
+          "backup_action_selection": "Choose a backup management action."
+        }
+      },
+      "view_backups": {
+        "title": "View Backups",
+        "description": "You have {backup_count} backup file(s). Select a backup to restore or delete.",
+        "data": {
+          "backup_selection": "Select Backup"
+        },
+        "data_description": {
+          "backup_selection": "Choose a backup to restore or delete, or return to the backup menu."
+        }
+      },
+      "create_backup_confirm": {
+        "title": "Create Manual Backup",
+        "description": "Create a manual backup of your current KidsChores data?",
+        "data": {
+          "confirm": "Confirm"
+        }
+      },
+      "create_backup_success": {
+        "title": "Backup Created",
+        "description": "Manual backup created successfully: {backup_filename}",
+        "data": {
+          "continue": "Continue"
+        }
+      },
+      "delete_backup_confirm": {
+        "title": "Delete Backup",
+        "description": "Are you sure you want to delete this backup?\n\nFile: {backup_filename}\n\nThis action cannot be undone.",
+        "data": {
+          "confirm": "Confirm Deletion"
+        }
+      },
+      "restore_backup_confirm": {
+        "title": "Restore Backup",
+        "description": "Are you sure you want to restore this backup?\n\nFile: {backup_filename}\n\nYour current data will be backed up before restoration. The integration will reload after restoration.",
+        "data": {
+          "confirm": "Confirm Restoration"
         }
       }
     },
@@ -1096,7 +1161,11 @@
       "invalid_reward_count": "Invalid reward count",
       "invalid_start_date": "Invalid start date.",
       "start_date_in_past": "Start Date must be in the future.",
-      "points_label_required": "Points label is required"
+      "points_label_required": "Points label is required",
+      "corrupt_file": "The selected file contains invalid JSON and cannot be read.",
+      "invalid_structure": "The selected file is missing required data structure.",
+      "file_not_found": "The selected file could not be found.",
+      "invalid_selection": "Please select a valid option."
     },
     "abort": {
       "invalid_action": "Invalid Action",
@@ -1119,7 +1188,8 @@
       "no_bonus": "No Bonuses are setup for edit. Add one entry first.",
       "no_achievement": "No Achievements are setup for edit. Add one entry first.",
       "no_challenge": "No Challenges are setup for edit. Add one entry first.",
-      "setup_complete": "Setup Complete"
+      "setup_complete": "Setup Complete",
+      "backup_restored": "Backup restored successfully. The integration has been reloaded with the restored data."
     }
   },
   "selector": {
@@ -1145,6 +1215,15 @@
         "edit": "Edit",
         "delete": "Delete",
         "back": "Back to Main Menu"
+      }
+    },
+    "backup_actions": {
+      "options": {
+        "backup_action_select": "Select backup action...",
+        "backup_action_create": "Create backup now",
+        "backup_action_view": "View & manage backups",
+        "backup_action_restore": "Restore from backup",
+        "backup_return_menu": "← Return to Backup Menu"
       }
     },
     "badge_type": {
@@ -1226,6 +1305,13 @@
       "options": {
         "points": "Points",
         "chore_count": "Chore Count"
+      }
+    },
+    "backup_action_selection": {
+      "options": {
+        "view_backups": "View & Manage Backups",
+        "create_backup": "Create Manual Backup",
+        "return_to_menu": "Return to Main Menu"
       }
     }
   },
@@ -2249,6 +2335,9 @@
     },
     "entity_not_found": {
       "message": "{entity_type} '{name}' not found"
+    },
+    "error_insufficient_points": {
+      "message": "{kid_name} does not have enough points to redeem '{reward_name}'"
     },
     "calendar_create_not_supported": {
       "message": "Creating events is not supported for this calendar"

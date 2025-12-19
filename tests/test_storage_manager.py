@@ -8,8 +8,7 @@ including error handling, user linking features, and data clearing operations.
 # pylint: disable=redefined-outer-name  # Pytest fixtures redefine names
 # pylint: disable=unused-argument  # Test fixtures may be unused in simple tests
 
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant

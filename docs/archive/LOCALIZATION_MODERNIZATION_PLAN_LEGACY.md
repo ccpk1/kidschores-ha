@@ -39,7 +39,7 @@ Modernize KidsChores integration to use Home Assistant 2024/2025 translation sta
 
 5. **File paths** (3 instances)
 
-   - Pattern: `f"{storage_path.name}_backup_{timestamp}"`
+   - Pattern: `f"{storage_path.name}_{timestamp}_{tag}"`
    - Reason: Filesystem naming, not user-facing
    - Decision: Keep as-is
 

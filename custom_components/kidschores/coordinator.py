@@ -162,6 +162,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.LOGGER.debug(
                     "DEBUG: Added overdue_notifications field to kid '%s'", kid_id
                 )
+            # Ensure cumulative_badge_progress exists (initialized empty, populated later)
+            if const.DATA_KID_CUMULATIVE_BADGE_PROGRESS not in kid_info:
+                kid_info[const.DATA_KID_CUMULATIVE_BADGE_PROGRESS] = {}
+                const.LOGGER.debug(
+                    "DEBUG: Added cumulative_badge_progress field to kid '%s'", kid_id
+                )
         const.LOGGER.info(
             "INFO: Kid data migration complete. Migrated %s kids.", migrated_count
         )
@@ -664,6 +670,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
     def _migrate_kid_legacy_badges_to_badges_earned(self):
         """One-time migration from legacy 'badges' list to structured 'badges_earned' dict for each kid."""
+        const.LOGGER.info(
+            "INFO: Migration - Starting legacy badges to badges_earned migration"
+        )
         today_local_iso = kh.get_today_local_iso()
 
         for kid_id, kid_info in self.kids_data.items():
@@ -844,16 +853,38 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
     async def async_config_entry_first_refresh(self):
         """Load from storage and merge config options."""
+        const.LOGGER.debug(
+            "DEBUG: Coordinator first refresh - requesting data from storage manager"
+        )
         stored_data = self.storage_manager.data
+        const.LOGGER.debug(
+            "DEBUG: Coordinator received data from storage manager: %s entities",
+            {
+                "kids": len(stored_data.get(const.DATA_KIDS, {})),
+                "chores": len(stored_data.get(const.DATA_CHORES, {})),
+                "badges": len(stored_data.get(const.DATA_BADGES, {})),
+                "schema_version": stored_data.get(const.DATA_META, {}).get(
+                    const.DATA_META_SCHEMA_VERSION,
+                    stored_data.get(const.DATA_SCHEMA_VERSION, "missing"),
+                ),
+            },
+        )
         if stored_data:
             self._data = stored_data
 
-            # Run migrations based on schema version
-            storage_schema_version = self._data.get(
-                const.DATA_SCHEMA_VERSION, const.DEFAULT_ZERO
+            # Get schema version from meta section (v43+) or top-level (v42-)
+            meta = self._data.get(const.DATA_META, {})
+            storage_schema_version = meta.get(
+                const.DATA_META_SCHEMA_VERSION,
+                self._data.get(const.DATA_SCHEMA_VERSION, const.DEFAULT_ZERO),
             )
 
             if storage_schema_version < const.SCHEMA_VERSION_STORAGE_ONLY:
+                const.LOGGER.info(
+                    "INFO: Storage schema version %s < %s, running migrations",
+                    storage_schema_version,
+                    const.SCHEMA_VERSION_STORAGE_ONLY,
+                )
                 # Migrate any datetime fields in stored data to UTC-aware strings
                 self._migrate_stored_datetimes()
 
@@ -878,10 +909,28 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 # Migrate legacy chore streaks and stats to new structure
                 self._migrate_legacy_kid_chore_data_and_streaks()
 
-                # Update to current schema version
-                self._data[const.DATA_SCHEMA_VERSION] = (
-                    const.SCHEMA_VERSION_STORAGE_ONLY
-                )
+                # Update to current schema version in meta section
+                # Use module-level datetime and dt_util imports
+
+                self._data[const.DATA_META] = {
+                    const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_STORAGE_ONLY,
+                    const.DATA_META_LAST_MIGRATION_DATE: datetime.now(
+                        dt_util.UTC
+                    ).isoformat(),
+                    const.DATA_META_MIGRATIONS_APPLIED: [
+                        "datetime_utc",
+                        "chore_data_structure",
+                        "kid_data_structure",
+                        "badge_restructure",
+                        "cumulative_badge_progress",
+                        "badges_earned_dict",
+                        "point_stats",
+                        "chore_data_and_streaks",
+                    ],
+                }
+
+                # Remove old top-level schema_version if present (v42 → v43 migration)
+                self._data.pop(const.DATA_SCHEMA_VERSION, None)
 
                 const.LOGGER.info(
                     "Migrated storage from schema version %s to %s",
@@ -931,9 +980,11 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # Merge config entry data (options) into the stored data
         # Skip this step if storage schema version >= 41 (storage-only architecture)
+        # Check both top-level schema_version (for backward compatibility) and meta section
+        meta_section = self._data.get(const.DATA_META, {})
         storage_schema_version = self._data.get(
             const.DATA_SCHEMA_VERSION, const.DEFAULT_ZERO
-        )
+        ) or meta_section.get(const.DATA_META_SCHEMA_VERSION, const.DEFAULT_ZERO)
         if storage_schema_version < const.SCHEMA_VERSION_STORAGE_ONLY:
             const.LOGGER.info(
                 "INFO: Storage schema version %s < %s, syncing from config_entry.options",
@@ -4092,6 +4143,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         kid_info.setdefault(const.DATA_KID_POINTS_EARNED_TODAY_DEPRECATED, 0.0)
         kid_info.setdefault(const.DATA_KID_POINTS_EARNED_WEEKLY_DEPRECATED, 0.0)
         kid_info.setdefault(const.DATA_KID_POINTS_EARNED_MONTHLY_DEPRECATED, 0.0)
+        kid_info.setdefault(const.DATA_KID_MAX_POINTS_EVER, 0.0)
         kid_info[const.DATA_KID_POINTS_EARNED_TODAY_DEPRECATED] += delta_value
         kid_info[const.DATA_KID_POINTS_EARNED_WEEKLY_DEPRECATED] += delta_value
         kid_info[const.DATA_KID_POINTS_EARNED_MONTHLY_DEPRECATED] += delta_value

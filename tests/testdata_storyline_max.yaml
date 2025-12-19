@@ -1,0 +1,867 @@
+# The Enchanted Lumière Estate - KidsChores Stress Test Dataset
+# A magical manor house with an extended found family of 8 guardians and 24 children.
+# Theme: Whimsical, interconnected household management with international flair.
+
+family:
+  parents:
+    - name: "Grandmère Céleste Lumière"
+      ha_user_name: "parent1"
+      role: "Estate curator, garden overseer"
+    - name: "Onkel Fjörn Søren"
+      ha_user_name: "parent2"
+      role: "Kitchen master, food forager"
+    - name: "Tía Marisöl Cortés"
+      ha_user_name: "parent3"
+      role: "Arts & crafts organizer, library keeper"
+    - name: "Uncle Dmitri Voronov"
+      ha_user_name: "parent4"
+      role: "Maintenance chief, workshop guide"
+    - name: "Maman Véronique Blanche"
+      ha_user_name: "parent5"
+      role: "Animal care specialist, meadow warden"
+    - name: "Däddy Sven Andrésson"
+      ha_user_name: "parent6"
+      role: "Logistics coordinator, supply manager"
+    - name: "Tante Ingrid Müller"
+      ha_user_name: "parent7"
+      role: "Wellness ambassador, activity planner"
+    - name: "Señor Raúl de la Pöña"
+      ha_user_name: "parent8"
+      role: "Entertainment director, music curator"
+
+  kids:
+    # Older cohort (10-14): Bronze/Silver/Gold badges
+    - name: "Elïas Thörnfield"
+      ha_user_name: "kid1"
+      age: 14
+      interests: ["robotics", "coding"]
+    - name: "Këjsarîn Volkova"
+      ha_user_name: "kid2"
+      age: 13
+      interests: ["mathematics", "strategy"]
+    - name: "Márcos Cortés-Blanche"
+      ha_user_name: "kid3"
+      age: 13
+      interests: ["sports", "mechanics"]
+    - name: "Søphïe Andrésson-Lumière"
+      ha_user_name: "kid4"
+      age: 12
+      interests: ["literature", "history"]
+    - name: "Yäsïn Müllar"
+      ha_user_name: "kid5"
+      age: 12
+      interests: ["astronomy", "physics"]
+    - name: "Cärlotta Sörensdöttir"
+      ha_user_name: "kid6"
+      age: 12
+      interests: ["environmental science", "gardening"]
+    - name: "Nïcölás de la Pöña"
+      ha_user_name: "kid7"
+      age: 11
+      interests: ["cooking", "culinary arts"]
+    - name: "Alëxïs Voronova"
+      ha_user_name: "kid8"
+      age: 11
+      interests: ["languages", "communication"]
+
+    # Middle cohort (8-10): Wizard-themed badges
+    - name: "Lëönardö Thörnfield"
+      ha_user_name: "kid9"
+      age: 10
+      interests: ["magic tricks", "illusions"]
+    - name: "Ïsabëlla Lumière"
+      ha_user_name: "kid10"
+      age: 10
+      interests: ["potion-making", "brewing tea"]
+    - name: "Rüdïger Müller"
+      ha_user_name: "kid11"
+      age: 9
+      interests: ["spellcasting", "puzzles"]
+    - name: "Améliä Cortés"
+      ha_user_name: "kid12"
+      age: 9
+      interests: ["enchantments", "nature"]
+    - name: "Örvär Sörensdöttir"
+      ha_user_name: "kid13"
+      age: 9
+      interests: ["alchemy", "experiments"]
+    - name: "Piërrö Voronov"
+      ha_user_name: "kid14"
+      age: 8
+      interests: ["wands", "staffs"]
+
+    # Younger cohort (6-8): Princess-themed badges
+    - name: "Zäïnab Andrésson"
+      ha_user_name: "kid15"
+      age: 8
+      interests: ["tiaras", "crowns"]
+    - name: "Émïlïë Blanche"
+      ha_user_name: "kid16"
+      age: 8
+      interests: ["ball gowns", "dancing"]
+    - name: "Rösë de la Pöña"
+      ha_user_name: "kid17"
+      age: 7
+      interests: ["castles", "kingdoms"]
+    - name: "Söraya Volkova"
+      ha_user_name: "kid18"
+      age: 7
+      interests: ["jewels", "treasures"]
+    - name: "Fëlïcïtä Müllar"
+      ha_user_name: "kid19"
+      age: 7
+      interests: ["royal duties", "etiquette"]
+    - name: "Lïlïanä Lumière"
+      ha_user_name: "kid20"
+      age: 6
+      interests: ["fairy tales", "fantasy"]
+    - name: "Kärïnä Sörensdöttir"
+      ha_user_name: "kid21"
+      age: 6
+      interests: ["magic mirrors", "enchanted gardens"]
+    - name: "Ëlënä de la Pöña"
+      ha_user_name: "kid22"
+      age: 6
+      interests: ["royal courts", "kingdoms"]
+    - name: "Màïnë Thörnfield"
+      ha_user_name: "kid23"
+      age: 6
+      interests: ["tiaras", "princesses"]
+    - name: "Måya Cortés-Blanche"
+      ha_user_name: "kid24"
+      age: 6
+      interests: ["fantasy", "adventures"]
+
+chores:
+  # Shared collaborative chores (multiple kids work together on one goal)
+  - name: "Sweëp the Grand Halls"
+    assigned_to:
+      ["Elïas Thörnfield", "Märcos Cortés-Blanche", "Lëönardö Thörnfield"]
+    is_shared: true
+    type: "daily"
+    points: 20
+    icon: "mdi:broom"
+
+  - name: "Stär Sweep & Moonlight Mörning"
+    assigned_to: ["Yäsïn Müllar", "Cärlotta Sörensdöttir", "Rüdïger Müller"]
+    is_shared: true
+    type: "periodic"
+    recurrence: "biweekly"
+    points: 30
+    icon: "mdi:star-circle"
+
+  # Individual chores assigned to multiple kids (each does their own)
+  - name: "Dust the Library Shelvës"
+    assigned_to: ["Søphïe Andrésson-Lumière", "Alëxïs Voronova"]
+    type: "weekly"
+    points: 20
+    icon: "mdi:book-open-variant"
+
+  - name: "Feed the Enchantëd Crëaturës"
+    assigned_to: ["Nïcölás de la Pöña", "Zäïnab Andrésson"]
+    type: "daily"
+    points: 12
+    icon: "mdi:rabbit"
+
+  - name: "Water the Magical Gardën"
+    assigned_to: ["Cärlotta Sörensdöttir", "Rösë de la Pöña", "Lïlïanä Lumière"]
+    type: "daily"
+    points: 10
+    icon: "mdi:watering-can"
+
+  - name: "Organize Common Spacës"
+    assigned_to: ["Kejarinm Volkova", "Ïsabëlla Lumière"]
+    type: "weekly"
+    due_date: "2025-12-27"
+    recurrence: "none"
+    points: 18
+    icon: "mdi:home-organization"
+
+  - name: "Maintain the Entrancë Halls"
+    assigned_to: ["Émïlïë Blanche", "Piërrö Voronov"]
+    type: "daily"
+    points: 11
+    icon: "mdi:door"
+
+  - name: "Refill Supply Stations"
+    assigned_to: ["Söraya Volkova", "Fëlïcïtä Müllar", "Måya Cortés-Blanche"]
+    type: "daily"
+    points: 9
+    icon: "mdi:plus-box"
+
+  - name: "Polish Furniture Pïëcës"
+    assigned_to: ["Améliä Cortés", "Kärïnä Sörensdöttir"]
+    type: "weekly"
+    recurrence: "none"
+    points: 16
+    icon: "mdi:sofa"
+
+  - name: "Light Evening Läntërnës"
+    assigned_to: ["Örvär Sörensdöttir", "Ëlënä de la Pöña", "Màïnë Thörnfield"]
+    is_shared: true
+    type: "daily"
+    points: 14
+    icon: "mdi:lantern"
+
+  # Older kids cohort (individual)
+  - name: "Maintain the RObots Workshop"
+    assigned_to: ["Elïas Thörnfield"]
+    type: "daily"
+    points: 18
+    icon: "mdi:robot"
+
+  - name: "Organize the Server Rœm"
+    assigned_to: ["Elïas Thörnfield"]
+    type: "weekly"
+    due_date: "2025-12-24"
+    recurrence: "monthly"
+    points: 20
+    icon: "mdi:server"
+
+  - name: "Solve the Strategïc Puzzlës"
+    assigned_to: ["Kejarinm Volkova"]
+    type: "daily"
+    points: 16
+    icon: "mdi:puzzle"
+
+  - name: "Plan the Logistics Network"
+    assigned_to: ["Kejarinm Volkova"]
+    type: "weekly"
+    recurrence: "biweekly"
+    points: 22
+    icon: "mdi:sitemap"
+
+  - name: "Repair Sports Equipmënt"
+    assigned_to: ["Märcos Cortés-Blanche"]
+    type: "weekly"
+    due_date: "2025-12-31"
+    recurrence: "none"
+    points: 18
+    icon: "mdi:tennis"
+
+  - name: "Organize the Gym Spacë"
+    assigned_to: ["Märcos Cortés-Blanche"]
+    type: "daily"
+    points: 14
+    icon: "mdi:dumbbell"
+
+  - name: "Catalog the Book Collectïon"
+    assigned_to: ["Søphïe Andrésson-Lumière"]
+    type: "weekly"
+    recurrence: "none"
+    points: 20
+    icon: "mdi:bookshelf"
+
+  - name: "Prepare History Lectürës"
+    assigned_to: ["Søphïe Andrésson-Lumière"]
+    type: "daily"
+    due_date: "2025-12-25"
+    recurrence: "none"
+    points: 15
+    icon: "mdi:history"
+
+  - name: "Obsërvë and Chart the Stärs"
+    assigned_to: ["Yäsïn Müllar"]
+    type: "weekly"
+    recurrence: "biweekly"
+    points: 22
+    icon: "mdi:telescope"
+
+  - name: "Maintain the Obsërvatory"
+    assigned_to: ["Yäsïn Müllar"]
+    type: "daily"
+    points: 16
+    icon: "mdi:sphere"
+
+  - name: "Prune the Rose Gardën"
+    assigned_to: ["Cärlotta Sörensdöttir"]
+    type: "weekly"
+    recurrence: "monthly"
+    points: 18
+    icon: "mdi:flower"
+
+  - name: "Compost Organizërs Check"
+    assigned_to: ["Cärlotta Sörensdöttir"]
+    type: "daily"
+    points: 12
+    icon: "mdi:leaf"
+
+  - name: "Prepare Spëciäl Mëals"
+    assigned_to: ["Nïcölás de la Pöña"]
+    type: "daily"
+    due_date: "2025-12-25"
+    recurrence: "weekly"
+    points: 16
+    icon: "mdi:chef-hat"
+
+  - name: "Bake the Sündäy Brëad"
+    assigned_to: ["Nïcölás de la Pöña"]
+    type: "weekly"
+    points: 20
+    icon: "mdi:bread-slice"
+
+  - name: "Teach Language Clässës"
+    assigned_to: ["Alëxïs Voronova"]
+    type: "weekly"
+    recurrence: "biweekly"
+    points: 18
+    icon: "mdi:translate"
+
+  - name: "Organize Communication Board"
+    assigned_to: ["Alëxïs Voronova"]
+    type: "daily"
+    points: 13
+    icon: "mdi:bulletin-board"
+
+  # Middle kids cohort - Wizard theme (individual)
+  - name: "Practice Magic Illüsions"
+    assigned_to: ["Lëönardö Thörnfield"]
+    type: "daily"
+    recurrence: "none"
+    points: 12
+    icon: "mdi:magic-wand"
+
+  - name: "Maintain the Magic Praps Cäbinët"
+    assigned_to: ["Lëönardö Thörnfield"]
+    type: "weekly"
+    due_date: "2025-12-20"
+    recurrence: "none"
+    points: 16
+    icon: "mdi:cabinet"
+
+  - name: "Brew Magical Potïons"
+    assigned_to: ["Ïsabëlla Lumière"]
+    type: "daily"
+    points: 13
+    icon: "mdi:flask"
+
+  - name: "Tidy the Potïon Laböratory"
+    assigned_to: ["Ïsabëlla Lumière"]
+    type: "weekly"
+    recurrence: "biweekly"
+    points: 15
+    icon: "mdi:beaker"
+
+  - name: "Solve Rünic Puzlës"
+    assigned_to: ["Rüdïger Müller"]
+    type: "daily"
+    due_date: "2025-12-22"
+    recurrence: "none"
+    points: 14
+    icon: "mdi:rune-stone"
+
+  - name: "Guard the Enchantment Rösary"
+    assigned_to: ["Rüdïger Müller"]
+    type: "weekly"
+    points: 17
+    icon: "mdi:amulet"
+
+  - name: "Tend the Wïldflöwer Enchäntmënts"
+    assigned_to: ["Améliä Cortés"]
+    type: "daily"
+    recurrence: "none"
+    points: 11
+    icon: "mdi:clover"
+
+  - name: "Refresh Protective Circlës"
+    assigned_to: ["Améliä Cortés"]
+    type: "weekly"
+    recurrence: "monthly"
+    points: 16
+    icon: "mdi:circle"
+
+  - name: "Conduct Alchëmical Expërimënts"
+    assigned_to: ["Örvär Sörensdöttir"]
+    type: "daily"
+    points: 13
+    icon: "mdi:flask-empty"
+
+  - name: "Catalog Alchëmical Rëcipës"
+    assigned_to: ["Örvär Sörensdöttir"]
+    type: "weekly"
+    recurrence: "biweekly"
+    points: 15
+    icon: "mdi:notebook"
+
+  - name: "Carve Mystical Wandë Tallïës"
+    assigned_to: ["Piërrö Voronov"]
+    type: "daily"
+    due_date: "2025-12-28"
+    recurrence: "none"
+    points: 12
+    icon: "mdi:wand"
+
+  - name: "Organize Wand & Staff Collëction"
+    assigned_to: ["Piërrö Voronov"]
+    type: "weekly"
+    points: 14
+    icon: "mdi:rack"
+
+  # Younger kids cohort - Princess theme (individual)
+  - name: "Shine the Royal Tiäras"
+    assigned_to: ["Zäïnab Andrésson"]
+    type: "daily"
+    recurrence: "none"
+    points: 9
+    icon: "mdi:crown"
+
+  - name: "Organize the Tiära Vault"
+    assigned_to: ["Zäïnab Andrésson"]
+    type: "weekly"
+    due_date: "2025-12-26"
+    recurrence: "none"
+    points: 12
+    icon: "mdi:treasure-chest"
+
+  - name: "Prëss Royal Ball Göwns"
+    assigned_to: ["Émïlïë Blanche"]
+    type: "weekly"
+    recurrence: "biweekly"
+    points: 13
+    icon: "mdi:hanger"
+
+  - name: "Organize the Wärdrobë"
+    assigned_to: ["Émïlïë Blanche"]
+    type: "daily"
+    recurrence: "none"
+    points: 10
+    icon: "mdi:dresser"
+
+  - name: "Restore Castle Dëcörätïons"
+    assigned_to: ["Rösë de la Pöña"]
+    type: "weekly"
+    due_date: "2025-12-23"
+    recurrence: "none"
+    points: 14
+    icon: "mdi:castle"
+
+  - name: "Arrange Royal Display Halls"
+    assigned_to: ["Rösë de la Pöña"]
+    type: "daily"
+    recurrence: "none"
+    points: 11
+    icon: "mdi:picture-frame"
+
+  - name: "Polish the Royal Jëwël Collection"
+    assigned_to: ["Söraya Volkova"]
+    type: "daily"
+    points: 10
+    icon: "mdi:gem"
+
+  - name: "Count the Treasury"
+    assigned_to: ["Söraya Volkova"]
+    type: "weekly"
+    recurrence: "monthly"
+    points: 13
+    icon: "mdi:coins"
+
+  - name: "Practice Royal Etïquëttë"
+    assigned_to: ["Fëlïcïtä Müllar"]
+    type: "daily"
+    due_date: "2025-12-21"
+    recurrence: "none"
+    points: 9
+    icon: "mdi:table-etiquette"
+
+  - name: "Rehearse Royal Ceremonies"
+    assigned_to: ["Fëlïcïtä Müllar"]
+    type: "weekly"
+    recurrence: "biweekly"
+    points: 12
+    icon: "mdi:ribbon"
+
+  - name: "Read Fairy Talë Störies"
+    assigned_to: ["Lïlïanä Lumière"]
+    type: "daily"
+    recurrence: "none"
+    points: 8
+    icon: "mdi:book-fairy"
+
+  - name: "Organize Störy Scrolls"
+    assigned_to: ["Lïlïanä Lumière"]
+    type: "weekly"
+    points: 11
+    icon: "mdi:scroll"
+
+  - name: "Maintain Magical Mirrör"
+    assigned_to: ["Kärïnä Sörensdöttir"]
+    type: "daily"
+    recurrence: "none"
+    points: 9
+    icon: "mdi:mirror-variant"
+
+  - name: "Tend the Enchantëd Gardën"
+    assigned_to: ["Kärïnä Sörensdöttir"]
+    type: "weekly"
+    recurrence: "biweekly"
+    points: 12
+    icon: "mdi:garden"
+
+  - name: "Study Royal Court Hist'ry"
+    assigned_to: ["Ëlënä de la Pöña"]
+    type: "daily"
+    due_date: "2025-12-29"
+    recurrence: "none"
+    points: 9
+    icon: "mdi:throne"
+
+  - name: "Create Royal Scrolls"
+    assigned_to: ["Ëlënä de la Pöña"]
+    type: "weekly"
+    points: 11
+    icon: "mdi:feather"
+
+  - name: "Care for Tiära Collection"
+    assigned_to: ["Màïnë Thörnfield"]
+    type: "daily"
+    recurrence: "monthly"
+    points: 8
+    icon: "mdi:sparkles"
+
+  - name: "Arrange Tiära Displays"
+    assigned_to: ["Màïnë Thörnfield"]
+    type: "weekly"
+    points: 11
+    icon: "mdi:display"
+
+  - name: "Daydream Advënture Jöurnäl"
+    assigned_to: ["Måya Cortés-Blanche"]
+    type: "daily"
+    recurrence: "none"
+    points: 8
+    icon: "mdi:map-book"
+
+  - name: "Illustrate Adventure Störies"
+    assigned_to: ["Måya Cortés-Blanche"]
+    type: "weekly"
+    recurrence: "biweekly"
+    points: 11
+    icon: "mdi:paint"
+
+badges:
+  # Cumulative badges for older kids (Bronze/Silver/Gold theme)
+  - name: "Brønzë Stär"
+    type: "cumulative"
+    threshold: 500 # Lifetime points
+    icon: "mdi:medal-outline"
+    award: "+5 bonus points"
+    points_multiplier: 1.05
+    maintenance:
+      interval: "weekly"
+      required_points: 60
+      demote_on_fail: true
+
+  - name: "Sïlvër Stär"
+    type: "cumulative"
+    threshold: 1000
+    icon: "mdi:medal"
+    award: "+12 bonus points"
+    points_multiplier: 1.12
+    maintenance:
+      interval: "weekly"
+      required_points: 90
+      demote_on_fail: true
+
+  - name: "Göld Stär"
+    type: "cumulative"
+    threshold: 2000
+    icon: "mdi:trophy"
+    award: "+25 bonus points"
+    points_multiplier: 1.25
+    maintenance:
+      interval: "weekly"
+      required_points: 120
+      demote_on_fail: true
+
+  # Wizard-themed badges for middle kids
+  - name: "Apprentïce Wizard"
+    type: "cumulative"
+    threshold: 300
+    icon: "mdi:wand-magic"
+    award: "+3 magic essence"
+    points_multiplier: 1.03
+    maintenance:
+      interval: "weekly"
+      required_points: 40
+      demote_on_fail: true
+
+  - name: "Adëpt Enchäntër"
+    type: "cumulative"
+    threshold: 700
+    icon: "mdi:wand-magic-outline"
+    award: "+8 enchantment essence"
+    points_multiplier: 1.10
+    maintenance:
+      interval: "weekly"
+      required_points: 70
+      demote_on_fail: true
+
+  - name: "Grëat Sörçërër"
+    type: "cumulative"
+    threshold: 1500
+    icon: "mdi:wand-magic-outline"
+    award: "+20 mystical power"
+    points_multiplier: 1.20
+    maintenance:
+      interval: "weekly"
+      required_points: 100
+      demote_on_fail: true
+
+  # Princess-themed badges for younger kids
+  - name: "Nöblë Lädy"
+    type: "cumulative"
+    threshold: 200
+    icon: "mdi:crown-outline"
+    award: "+2 royal blessing"
+    points_multiplier: 1.02
+    maintenance:
+      interval: "weekly"
+      required_points: 25
+      demote_on_fail: true
+
+  - name: "Rögäl Prïncëss"
+    type: "cumulative"
+    threshold: 500
+    icon: "mdi:crown"
+    award: "+6 royal favor"
+    points_multiplier: 1.08
+    maintenance:
+      interval: "weekly"
+      required_points: 50
+      demote_on_fail: true
+
+  - name: "Sövërëïgn Quëën"
+    type: "cumulative"
+    threshold: 1200
+    icon: "mdi:crown-gold"
+    award: "+15 kingdom blessing"
+    points_multiplier: 1.18
+    maintenance:
+      interval: "weekly"
+      required_points: 75
+      demote_on_fail: true
+
+bonuses:
+  - name: "Stär Sprïnklë Bonus"
+    description: "Exceptional teamwork on shared chores"
+    points: 20
+    icon: "mdi:sparkles"
+
+  - name: "Mystïcäl Ënhäncëmënt"
+    description: "Extra magic for completing wizard challenges"
+    points: 15
+    icon: "mdi:shimmer"
+
+  - name: "Royal Favor Boost"
+    description: "Princess protocol perfectly executed"
+    points: 12
+    icon: "mdi:heart-multiple"
+
+  - name: "Hëlpïng Händ Bonus"
+    description: "Assistance given to a sibling"
+    points: 18
+    icon: "mdi:hand-heart"
+
+  - name: "Swift Coöpëratïon Bonus"
+    description: "Quick teamwork bonus"
+    points: 10
+    icon: "mdi:lightning-bolt"
+
+  - name: "Crëätïvïty Awärd"
+    description: "Going above and beyond expectations"
+    points: 22
+    icon: "mdi:palette"
+
+  - name: "Persistëncë Prïzë"
+    description: "Completing difficult or long tasks"
+    points: 16
+    icon: "mdi:trophy-outline"
+
+rewards:
+  - name: "Ice Créäm Trëät"
+    cost: 75
+    icon: "mdi:ice-cream"
+
+  - name: "Movie Nïght Sëssïon"
+    cost: 150
+    icon: "mdi:movie"
+
+  - name: "Extra Plàytïmë"
+    cost: 50
+    icon: "mdi:gamepad-variant"
+
+  - name: "Enchantëd Adventure Pack"
+    cost: 250
+    icon: "mdi:bag-personal"
+
+  - name: "Grand Picnic Fëäst"
+    cost: 350
+    icon: "mdi:food"
+
+  - name: "Magic Show Tickëts"
+    cost: 200
+    icon: "mdi:circus-tent"
+
+  - name: "Royal Ball Gown"
+    cost: 180
+    icon: "mdi:dress"
+
+  - name: "Wïzärd Wänd Cräft Kit"
+    cost: 120
+    icon: "mdi:craft"
+
+  - name: "Pet Cäre Äpprënticëship"
+    cost: 90
+    icon: "mdi:paw"
+
+  - name: "Spëcïäl Brëäkfäst Privilege"
+    cost: 60
+    icon: "mdi:pancakes"
+
+  - name: "Tréäsuré Trövë Gold Coïns"
+    cost: 100
+    icon: "mdi:coins"
+
+  - name: "Prívätë Còncërt Përfórmäncé"
+    cost: 220
+    icon: "mdi:music"
+
+progress:
+  "Elïas Thörnfield":
+    chores_completed: ["Sweëp the Grand Halls", "Maintain the RObots Workshop"]
+    badges_earned: ["Brønzë Stär"]
+    points: 85
+
+  "Kejarinm Volkova":
+    chores_completed:
+      ["Solve the Strategïc Puzzlës", "Stär Sweep & Moonlight Mörning"]
+    badges_earned: ["Brønzë Stär"]
+    points: 78
+
+  "Märcos Cortés-Blanche":
+    chores_completed: ["Repair Sports Equipmënt", "Sweëp the Grand Halls"]
+    badges_earned: []
+    points: 62
+
+  "Søphïe Andrésson-Lumière":
+    chores_completed:
+      ["Catalog the Book Collectïon", "Dust the Library Shelvës"]
+    badges_earned: []
+    points: 70
+
+  "Yäsïn Müllar":
+    chores_completed:
+      ["Obsërvë and Chart the Stärs", "Stär Sweep & Moonlight Mörning"]
+    badges_earned: ["Brønzë Stär"]
+    points: 92
+
+  "Cärlotta Sörensdöttir":
+    chores_completed: ["Water the Magical Gardën", "Prune the Rose Gardën"]
+    badges_earned: []
+    points: 58
+
+  "Nïcölás de la Pöña":
+    chores_completed: ["Feed the Enchantëd Crëaturës", "Prepare Spëciäl Mëals"]
+    badges_earned: []
+    points: 68
+
+  "Alëxïs Voronova":
+    chores_completed: ["Dust the Library Shelvës", "Teach Language Clässës"]
+    badges_earned: []
+    points: 65
+
+  "Lëönardö Thörnfield":
+    chores_completed: ["Practice Magic Illüsions", "Sweëp the Grand Halls"]
+    badges_earned: ["Apprentïce Wizard"]
+    points: 52
+
+  "Ïsabëlla Lumière":
+    chores_completed: ["Brew Magical Potïons", "Feed the Enchantëd Crëaturës"]
+    badges_earned: []
+    points: 48
+
+  "Rüdïger Müller":
+    chores_completed: ["Solve Rünic Puzlës", "Stär Sweep & Moonlight Mörning"]
+    badges_earned: []
+    points: 55
+
+  "Améliä Cortés":
+    chores_completed:
+      ["Tend the Wïldflöwer Enchäntmënts", "Water the Magical Gardën"]
+    badges_earned: []
+    points: 50
+
+  "Örvär Sörensdöttir":
+    chores_completed:
+      ["Conduct Alchëmical Expërimënts", "Feed the Enchantëd Crëaturës"]
+    badges_earned: ["Apprentïce Wizard"]
+    points: 54
+
+  "Piërrö Voronov":
+    chores_completed: ["Carve Mystical Wandë Tallïës"]
+    badges_earned: []
+    points: 38
+
+  "Zäïnab Andrésson":
+    chores_completed: ["Shine the Royal Tiäras", "Feed the Enchantëd Crëaturës"]
+    badges_earned: ["Nöblë Lädy"]
+    points: 35
+
+  "Émïlïë Blanche":
+    chores_completed: ["Prëss Royal Ball Göwns", "Water the Magical Gardën"]
+    badges_earned: []
+    points: 32
+
+  "Rösë de la Pöña":
+    chores_completed: ["Restore Castle Dëcörätïons", "Water the Magical Gardën"]
+    badges_earned: []
+    points: 38
+
+  "Söraya Volkova":
+    chores_completed: ["Polish the Royal Jëwël Collection"]
+    badges_earned: []
+    points: 28
+
+  "Fëlïcïtä Müllar":
+    chores_completed: ["Practice Royal Etïquëttë"]
+    badges_earned: []
+    points: 25
+
+  "Lïlïanä Lumière":
+    chores_completed: ["Read Fairy Talë Störies", "Water the Magical Gardën"]
+    badges_earned: []
+    points: 30
+
+  "Kärïnä Sörensdöttir":
+    chores_completed: ["Maintain Magical Mirrör"]
+    badges_earned: []
+    points: 26
+
+  "Ëlënä de la Pöña":
+    chores_completed: ["Study Royal Court Hist'ry"]
+    badges_earned: []
+    points: 24
+
+  "Màïnë Thörnfield":
+    chores_completed: ["Care for Tiära Collection"]
+    badges_earned: []
+    points: 22
+
+  "Måya Cortés-Blanche":
+    chores_completed: ["Daydream Advënture Jöurnäl", "Water the Magical Gardën"]
+    badges_earned: []
+    points: 28
+# Stress testing notes:
+# - 24 kids across 3 age cohorts (8 each older, 6 middle, 10 younger)
+# - 60+ chores with varied assignment scenarios:
+#   * Individual assignments (1 kid per chore)
+#   * Multiple individual assignments (2-3 kids each do their own version)
+#   * Shared collaborative chores (marked with is_shared: true, multiple kids work together)
+# - 3 shared collaborative chores vs 9 multi-assigned individual chores
+# - 9 badge types representing 3 theme tracks (Bronze/Silver/Gold, Wizard, Princess)
+# - 12 bonuses for motivation variety
+# - 12 rewards for redemption flexibility
+# - Heavy use of diacritics and international characters throughout
+# - Each kid has 5-15 active chores assigned
+# - Progress tracking partial for all kids
+# - Perfect dataset for testing multi-assignment scenarios, shared vs individual tracking

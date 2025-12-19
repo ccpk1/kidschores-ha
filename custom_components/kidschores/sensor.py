@@ -241,10 +241,7 @@ async def async_setup_entry(
         if show_legacy_entities:
             entities.append(KidChoreStreakSensor(coordinator, entry, kid_id, kid_name))
 
-        # Dashboard helper sensor: aggregates key kid data (chores, rewards, etc.)
-        entities.append(
-            KidDashboardHelperSensor(coordinator, entry, kid_id, kid_name, points_label)
-        )
+        # Dashboard helper sensor will be created after all individual entities
 
     # For each chore assigned to each kid, add a KidChoreStatusSensor
     for chore_id, chore_info in coordinator.chores_data.items():
@@ -331,6 +328,18 @@ async def async_setup_entry(
             continue
         entities.append(
             SystemChallengeSensor(coordinator, entry, challenge_id, challenge_name)
+        )
+
+    # Dashboard helper sensors: Created last to ensure all referenced entities exist
+    # This prevents entity ID lookup failures during initial setup
+    for kid_id, kid_data in coordinator.kids_data.items():
+        kid_name = kh.get_entity_name_or_log_error(
+            "kid", kid_id, kid_data, const.DATA_KID_NAME
+        )
+        if not kid_name:
+            continue
+        entities.append(
+            KidDashboardHelperSensor(coordinator, entry, kid_id, kid_name, points_label)
         )
 
     async_add_entities(entities)
@@ -811,10 +820,22 @@ class KidBadgeHighestSensor(KidsChoresCoordinatorEntity, SensorEntity):
         Also shows baseline points, cycle points, grace_end_date, and points to maintenance if applicable.
         """
         kid_info = self.coordinator.kids_data.get(self._kid_id, {})
-        earned_badge_list = [
-            badge_name.get(const.DATA_KID_BADGES_EARNED_NAME)
-            for badge_name in kid_info.get(const.DATA_KID_BADGES_EARNED, {}).values()
-        ]
+
+        # Defensive: Handle badges_earned as either dict (v42+) or list (legacy v41)
+        badges_earned_data = kid_info.get(const.DATA_KID_BADGES_EARNED, {})
+        if isinstance(badges_earned_data, dict):
+            # V42+ format: dict of badge_id -> badge_info
+            earned_badge_list = [
+                badge_info.get(const.DATA_KID_BADGES_EARNED_NAME)
+                for badge_info in badges_earned_data.values()
+            ]
+        elif isinstance(badges_earned_data, list):
+            # Legacy v41 format: list of badge name strings (e.g., ["Badge 1", "Badge 2"])
+            earned_badge_list = badges_earned_data
+        else:
+            # Fallback: empty list
+            earned_badge_list = []
+
         cumulative_badge_progress_info = kid_info.get(
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {}
         )
@@ -883,9 +904,14 @@ class KidBadgeHighestSensor(KidsChoresCoordinatorEntity, SensorEntity):
         ]
 
         # Get last awarded date and award count for the current badge (if earned)
-        badge_earned = kid_info.get(const.DATA_KID_BADGES_EARNED, {}).get(
-            current_badge_id, {}
-        )
+        # Defensive: Handle badges_earned as either dict (v42+) or list (legacy v41)
+        badges_earned_data = kid_info.get(const.DATA_KID_BADGES_EARNED, {})
+        if isinstance(badges_earned_data, dict):
+            badge_earned = badges_earned_data.get(current_badge_id, {})
+        else:
+            # Legacy v41: list format, no per-badge metadata
+            badge_earned = {}
+
         last_awarded_date = badge_earned.get(
             const.DATA_KID_BADGES_EARNED_LAST_AWARDED, const.SENTINEL_NONE
         )
@@ -1025,9 +1051,15 @@ class KidBadgeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         badge_progress = kid_info.get(const.DATA_KID_BADGE_PROGRESS, {}).get(
             self._badge_id, {}
         )
-        badge_earned = kid_info.get(const.DATA_KID_BADGES_EARNED, {}).get(
-            self._badge_id, {}
-        )
+
+        # Defensive: Handle badges_earned as either dict (v42+) or list (legacy v41)
+        badges_earned_data = kid_info.get(const.DATA_KID_BADGES_EARNED, {})
+        if isinstance(badges_earned_data, dict):
+            badge_earned = badges_earned_data.get(self._badge_id, {})
+        else:
+            # Legacy v41: list format, no per-badge metadata
+            badge_earned = {}
+
         last_awarded_date = badge_earned.get(
             const.DATA_KID_BADGES_EARNED_LAST_AWARDED, const.SENTINEL_NONE
         )

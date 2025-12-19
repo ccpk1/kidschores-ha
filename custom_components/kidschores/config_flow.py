@@ -69,10 +69,11 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         if any(self._async_current_entries()):
             return self.async_abort(reason=const.TRANS_KEY_ERROR_SINGLE_INSTANCE)
 
-        # Continue your normal flow
-        return await self.async_step_intro()
+        # Always show data recovery options first (even if no file exists)
+        # This allows users to restore from backup, paste JSON, or start fresh
+        return await self.async_step_data_recovery()
 
-    async def async_step_intro(self, user_input=None):
+    async def async_step_intro(self, user_input: Optional[dict[str, Any]] = None):
         """Intro / welcome step. Press Next to continue."""
         if user_input is not None:
             return await self.async_step_points_label()
@@ -81,7 +82,363 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             step_id=const.CONFIG_FLOW_STEP_INTRO, data_schema=vol.Schema({})
         )
 
-    async def async_step_points_label(self, user_input=None):
+    # --------------------------------------------------------------------------
+    # DATA RECOVERY
+    # --------------------------------------------------------------------------
+    async def async_step_data_recovery(
+        self, user_input: Optional[dict[str, Any]] = None
+    ):
+        """Handle data recovery options when existing storage is found."""
+        from pathlib import Path
+
+        errors = {}
+
+        if user_input is not None:
+            selection = user_input.get(const.CFOF_DATA_RECOVERY_INPUT_SELECTION)
+
+            if selection == "start_fresh":
+                return await self._handle_start_fresh()
+            if selection == "current_active":
+                return await self._handle_use_current()
+            if selection == "paste_json":
+                return await self._handle_paste_json()
+            # Otherwise it's a backup filename - restore it
+            if selection:
+                return await self._handle_restore_backup(selection)
+
+            errors["base"] = "invalid_selection"
+
+        # Build selection menu
+        storage_path = Path(self.hass.config.path(".storage", const.STORAGE_KEY))
+        storage_file_exists = await self.hass.async_add_executor_job(
+            storage_path.exists
+        )
+
+        # Discover backups (pass None for storage_manager - not needed for discovery)
+        backups = await fh.discover_backups(self.hass, None)
+
+        # Build options dict
+        options = {}
+
+        # Only show "use current" if file actually exists
+        if storage_file_exists:
+            options["current_active"] = (
+                f"📂 Use current active file: {storage_path.name}"
+            )
+
+        options["start_fresh"] = "🆕 Start fresh (creates backup of existing data)"
+
+        # Add discovered backups with age info
+        for backup in backups:
+            age_str = fh.format_backup_age(backup["age_hours"])
+            tag_display = backup["tag"].replace("-", " ").title()
+            label = f"⏮️  Restore [{tag_display}]: {backup['filename']} ({age_str})"
+            options[backup["filename"]] = label
+
+        # Add paste JSON option
+        options["paste_json"] = "📋 Paste JSON data from diagnostics"
+
+        # Build schema
+        data_schema = vol.Schema(
+            {vol.Required(const.CFOF_DATA_RECOVERY_INPUT_SELECTION): vol.In(options)}
+        )
+
+        return self.async_show_form(
+            step_id=const.CONFIG_FLOW_STEP_DATA_RECOVERY,
+            data_schema=data_schema,
+            errors=errors,
+            description_placeholders={
+                "storage_path": str(storage_path.parent),
+                "backup_count": str(len(backups)),
+            },
+        )
+
+    async def _handle_start_fresh(self):
+        """Handle 'Start Fresh' - backup existing and delete."""
+        import os
+        from pathlib import Path
+
+        from .storage_manager import KidsChoresStorageManager
+
+        try:
+            storage_manager = KidsChoresStorageManager(self.hass)
+            storage_path = Path(storage_manager.get_storage_path())
+
+            # Create safety backup if file exists
+            if storage_path.exists():
+                backup_name = fh.create_timestamped_backup(
+                    self.hass, storage_manager, const.BACKUP_TAG_RECOVERY
+                )
+                if backup_name:
+                    const.LOGGER.info(
+                        "Created safety backup before fresh start: %s", backup_name
+                    )
+
+                # Delete active file
+                await self.hass.async_add_executor_job(os.remove, str(storage_path))
+                const.LOGGER.info("Deleted active storage file for fresh start")
+
+            # Continue to intro (standard setup)
+            return await self.async_step_intro()
+
+        except Exception as err:  # pylint: disable=broad-except
+            const.LOGGER.error("Fresh start failed: %s", err)
+            return self.async_abort(reason=const.TRANS_KEY_CFOP_ERROR_UNKNOWN)
+
+    async def _handle_use_current(self):
+        """Handle 'Use Current Active' - validate and continue setup."""
+        import json
+        from pathlib import Path
+
+        try:
+            # Get storage path without creating storage manager yet
+            storage_path = Path(self.hass.config.path(".storage", const.STORAGE_KEY))
+
+            if not storage_path.exists():
+                return self.async_abort(
+                    reason=const.TRANS_KEY_CFOP_ERROR_FILE_NOT_FOUND
+                )
+
+            # Validate JSON
+            data_str = await self.hass.async_add_executor_job(
+                storage_path.read_text, "utf-8"
+            )
+
+            try:
+                current_data = json.loads(data_str)  # Validate parseable JSON
+            except json.JSONDecodeError:
+                const.LOGGER.error("Current active file has invalid JSON")
+                return self.async_abort(reason=const.TRANS_KEY_CFOP_ERROR_CORRUPT_FILE)
+
+            # Check if file has Home Assistant storage format wrapper
+            needs_wrapping = not ("version" in current_data and "data" in current_data)
+
+            # Validate structure (validate_backup_json handles both formats)
+            if not fh.validate_backup_json(data_str):
+                const.LOGGER.error("Current active file missing required keys")
+                return self.async_abort(
+                    reason=const.TRANS_KEY_CFOP_ERROR_INVALID_STRUCTURE
+                )
+
+            # Wrap raw data if needed
+            if needs_wrapping:
+                # Raw data format (like v30, v31, v40beta1 samples)
+                # Need to wrap it in proper storage format
+                const.LOGGER.info(
+                    "Using current active storage file (wrapping raw data)"
+                )
+
+                # Build wrapped format
+                wrapped_data = {
+                    "version": 1,
+                    "minor_version": 1,
+                    "key": const.STORAGE_KEY,
+                    "data": current_data,
+                }
+
+                # Write wrapped data directly to file
+                await self.hass.async_add_executor_job(
+                    storage_path.write_text, json.dumps(wrapped_data, indent=2), "utf-8"
+                )
+            else:
+                # Already in storage format - file is ready to use
+                const.LOGGER.info("Using current active storage file (already wrapped)")
+
+            # File is valid - create config entry immediately with existing data
+            # No need to collect kids/chores/points since they're already defined
+            return self.async_create_entry(
+                title="KidsChores",
+                data={},  # Empty - integration will load from storage file
+            )
+
+        except Exception as err:  # pylint: disable=broad-except
+            const.LOGGER.error("Use current failed: %s", err)
+            return self.async_abort(reason=const.TRANS_KEY_CFOP_ERROR_UNKNOWN)
+
+    async def _handle_restore_backup(self, backup_filename: str):
+        """Handle restoring from a specific backup file."""
+        import json
+        import shutil
+        from pathlib import Path
+
+        from .storage_manager import KidsChoresStorageManager
+
+        try:
+            # Get storage path directly without creating storage manager yet
+            storage_path = Path(self.hass.config.path(".storage", const.STORAGE_KEY))
+            backup_path = storage_path.parent / backup_filename
+
+            if not backup_path.exists():
+                const.LOGGER.error("Backup file not found: %s", backup_filename)
+                return self.async_abort(
+                    reason=const.TRANS_KEY_CFOP_ERROR_FILE_NOT_FOUND
+                )
+
+            # Read and validate backup
+            backup_data_str = await self.hass.async_add_executor_job(
+                backup_path.read_text, "utf-8"
+            )
+
+            try:
+                json.loads(backup_data_str)  # Validate parseable JSON
+            except json.JSONDecodeError:
+                const.LOGGER.error("Backup file has invalid JSON: %s", backup_filename)
+                return self.async_abort(reason=const.TRANS_KEY_CFOP_ERROR_CORRUPT_FILE)
+
+            # Validate structure
+            if not fh.validate_backup_json(backup_data_str):
+                const.LOGGER.error(
+                    "Backup file missing required keys: %s", backup_filename
+                )
+                return self.async_abort(
+                    reason=const.TRANS_KEY_CFOP_ERROR_INVALID_STRUCTURE
+                )
+
+            # Create safety backup of current file if it exists
+            if storage_path.exists():
+                # Create storage manager only for safety backup creation
+                storage_manager = KidsChoresStorageManager(self.hass)
+                safety_backup = fh.create_timestamped_backup(
+                    self.hass, storage_manager, const.BACKUP_TAG_RECOVERY
+                )
+                if safety_backup:
+                    const.LOGGER.info(
+                        "Created safety backup before restore: %s", safety_backup
+                    )
+
+            # Parse backup data
+            backup_data = json.loads(backup_data_str)
+
+            # Check if backup already has Home Assistant storage format
+            if "version" in backup_data and "data" in backup_data:
+                # Already in storage format - restore as-is
+                await self.hass.async_add_executor_job(
+                    shutil.copy2, str(backup_path), str(storage_path)
+                )
+            else:
+                # Raw data format (like v30, v31, v40beta1 samples)
+                # Load through storage manager to add proper wrapper
+                storage_manager = KidsChoresStorageManager(self.hass)
+                storage_manager.set_data(backup_data)
+                await storage_manager.async_save()
+
+            const.LOGGER.info("Restored backup: %s", backup_filename)
+
+            # Cleanup old backups
+            storage_manager = KidsChoresStorageManager(self.hass)
+            max_backups = const.DEFAULT_BACKUPS_MAX_RETAINED
+            await fh.cleanup_old_backups(self.hass, storage_manager, max_backups)
+
+            # Backup successfully restored - create config entry immediately
+            # No need to collect kids/chores/points since they were in the backup
+            return self.async_create_entry(
+                title="KidsChores",
+                data={},  # Empty - integration will load from restored storage file
+            )
+
+        except Exception as err:  # pylint: disable=broad-except
+            const.LOGGER.error("Restore backup failed: %s", err)
+            return self.async_abort(reason=const.TRANS_KEY_CFOP_ERROR_UNKNOWN)
+
+    async def _handle_paste_json(self):
+        """Handle pasting JSON data from diagnostics - show text input form."""
+        return await self.async_step_paste_json_input()
+
+    async def async_step_paste_json_input(
+        self, user_input: Optional[dict[str, Any]] = None
+    ):
+        """Allow user to paste JSON data from diagnostics."""
+        import json
+        from pathlib import Path
+
+        errors = {}
+
+        if user_input is not None:
+            json_text = user_input.get(
+                const.CFOF_DATA_RECOVERY_INPUT_JSON_DATA, ""
+            ).strip()
+
+            if not json_text:
+                errors["base"] = "empty_json"
+            else:
+                try:
+                    # Parse JSON
+                    pasted_data = json.loads(json_text)
+
+                    # Validate structure
+                    if not fh.validate_backup_json(json_text):
+                        errors["base"] = "invalid_structure"
+                    else:
+                        # Determine data format and extract storage data
+                        storage_data = pasted_data
+
+                        # Handle diagnostic format (KC 4.0+ diagnostic exports)
+                        if "home_assistant" in pasted_data and "data" in pasted_data:
+                            const.LOGGER.info("Processing diagnostic export format")
+                            storage_data = pasted_data["data"]
+                        # Handle Store format (KC 3.0/3.1/4.0beta1)
+                        elif "version" in pasted_data and "data" in pasted_data:
+                            const.LOGGER.info("Processing Store format")
+                            storage_data = pasted_data["data"]
+                        # Raw storage data format
+                        else:
+                            const.LOGGER.info("Processing raw storage format")
+                            storage_data = pasted_data
+
+                        # Always wrap in HA Store format for storage file
+                        wrapped_data = {
+                            "version": 1,
+                            "minor_version": 1,
+                            "key": const.STORAGE_KEY,
+                            "data": storage_data,
+                        }
+
+                        # Write to storage file
+                        storage_path = Path(
+                            self.hass.config.path(".storage", const.STORAGE_KEY)
+                        )
+
+                        # Write wrapped data to storage (directory created by HA/test fixtures)
+                        await self.hass.async_add_executor_job(
+                            storage_path.write_text,
+                            json.dumps(wrapped_data, indent=2),
+                            "utf-8",
+                        )
+
+                        const.LOGGER.info("Successfully imported JSON data to storage")
+
+                        # Create config entry - integration will load from storage
+                        return self.async_create_entry(
+                            title="KidsChores",
+                            data={},
+                        )
+
+                except json.JSONDecodeError as err:
+                    const.LOGGER.error("Invalid JSON pasted: %s", err)
+                    errors["base"] = "invalid_json"
+                except Exception as err:  # pylint: disable=broad-except
+                    const.LOGGER.error("Failed to process pasted JSON: %s", err)
+                    errors["base"] = "unknown"
+
+        # Show form with text area
+        data_schema = vol.Schema(
+            {
+                vol.Required(const.CFOF_DATA_RECOVERY_INPUT_JSON_DATA): str,
+            }
+        )
+
+        return self.async_show_form(
+            step_id="paste_json_input",
+            data_schema=data_schema,
+            errors=errors,
+            description_placeholders={
+                "help_text": "Paste the complete JSON from diagnostics or backup file"
+            },
+        )
+
+    async def async_step_points_label(
+        self, user_input: Optional[dict[str, Any]] = None
+    ):
         """Let the user define a custom label for points."""
         errors = {}
 
@@ -109,7 +466,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     # KIDS
     # --------------------------------------------------------------------------
-    async def async_step_kid_count(self, user_input=None):
+    async def async_step_kid_count(self, user_input: Optional[dict[str, Any]] = None):
         """Ask how many kids to define initially."""
         errors = {}
         if user_input is not None:
@@ -131,7 +488,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             step_id=const.CONFIG_FLOW_STEP_KID_COUNT, data_schema=schema, errors=errors
         )
 
-    async def async_step_kids(self, user_input=None):
+    async def async_step_kids(self, user_input: Optional[dict[str, Any]] = None):
         """Collect each kid's info using internal_id as the primary key."""
         errors = {}
         if user_input is not None:
@@ -173,7 +530,9 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     # PARENTS
     # --------------------------------------------------------------------------
-    async def async_step_parent_count(self, user_input=None):
+    async def async_step_parent_count(
+        self, user_input: Optional[dict[str, Any]] = None
+    ):
         """Ask how many parents to define initially."""
         errors = {}
         if user_input is not None:
@@ -205,7 +564,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             errors=errors,
         )
 
-    async def async_step_parents(self, user_input=None):
+    async def async_step_parents(self, user_input: Optional[dict[str, Any]] = None):
         """Collect each parent's info using internal_id as the primary key.
 
         Store in self._parents_temp as a dict keyed by internal_id.
@@ -261,7 +620,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     # CHORES
     # --------------------------------------------------------------------------
-    async def async_step_chore_count(self, user_input=None):
+    async def async_step_chore_count(self, user_input: Optional[dict[str, Any]] = None):
         """Ask how many chores to define."""
         errors = {}
         if user_input is not None:
@@ -289,7 +648,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             errors=errors,
         )
 
-    async def async_step_chores(self, user_input=None):
+    async def async_step_chores(self, user_input: Optional[dict[str, Any]] = None):
         """Collect chore details using internal_id as the primary key.
 
         Store in self._chores_temp as a dict keyed by internal_id.
@@ -348,7 +707,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     # BADGES
     # --------------------------------------------------------------------------
-    async def async_step_badge_count(self, user_input=None):
+    async def async_step_badge_count(self, user_input: Optional[dict[str, Any]] = None):
         """Ask how many badges to define."""
         errors = {}
         if user_input is not None:
@@ -376,7 +735,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             errors=errors,
         )
 
-    async def async_step_badges(self, user_input=None):
+    async def async_step_badges(self, user_input: Optional[dict[str, Any]] = None):
         """Collect badge details using internal_id as the primary key."""
         return await self.async_add_badge_common(
             user_input=user_input,
@@ -455,7 +814,9 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     # REWARDS
     # --------------------------------------------------------------------------
-    async def async_step_reward_count(self, user_input=None):
+    async def async_step_reward_count(
+        self, user_input: Optional[dict[str, Any]] = None
+    ):
         """Ask how many rewards to define."""
         errors = {}
         if user_input is not None:
@@ -487,7 +848,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             errors=errors,
         )
 
-    async def async_step_rewards(self, user_input=None):
+    async def async_step_rewards(self, user_input: Optional[dict[str, Any]] = None):
         """Collect reward details using internal_id as the primary key.
 
         Store in self._rewards_temp as a dict keyed by internal_id.
@@ -519,7 +880,9 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     # PENALTIES
     # --------------------------------------------------------------------------
-    async def async_step_penalty_count(self, user_input=None):
+    async def async_step_penalty_count(
+        self, user_input: Optional[dict[str, Any]] = None
+    ):
         """Ask how many penalties to define."""
         errors = {}
         if user_input is not None:
@@ -551,7 +914,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             errors=errors,
         )
 
-    async def async_step_penalties(self, user_input=None):
+    async def async_step_penalties(self, user_input: Optional[dict[str, Any]] = None):
         """Collect penalty details using internal_id as the primary key.
 
         Store in self._penalties_temp as a dict keyed by internal_id.
@@ -589,7 +952,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     # BONUSES
     # --------------------------------------------------------------------------
-    async def async_step_bonus_count(self, user_input=None):
+    async def async_step_bonus_count(self, user_input: Optional[dict[str, Any]] = None):
         """Ask how many bonuses to define."""
         errors = {}
         if user_input is not None:
@@ -619,7 +982,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             errors=errors,
         )
 
-    async def async_step_bonuses(self, user_input=None):
+    async def async_step_bonuses(self, user_input: Optional[dict[str, Any]] = None):
         """Collect bonus details using internal_id as the primary key.
 
         Store in self._bonuses_temp as a dict keyed by internal_id.
@@ -655,7 +1018,9 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     # ACHIEVEMENTS
     # --------------------------------------------------------------------------
-    async def async_step_achievement_count(self, user_input=None):
+    async def async_step_achievement_count(
+        self, user_input: Optional[dict[str, Any]] = None
+    ):
         """Ask how many achievements to define initially."""
         errors = {}
         if user_input is not None:
@@ -686,7 +1051,9 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             errors=errors,
         )
 
-    async def async_step_achievements(self, user_input=None):
+    async def async_step_achievements(
+        self, user_input: Optional[dict[str, Any]] = None
+    ):
         """Collect each achievement's details using internal_id as the key."""
         errors = {}
 
@@ -733,7 +1100,9 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     # CHALLENGES
     # --------------------------------------------------------------------------
-    async def async_step_challenge_count(self, user_input=None):
+    async def async_step_challenge_count(
+        self, user_input: Optional[dict[str, Any]] = None
+    ):
         """Ask how many challenges to define initially."""
         errors = {}
         if user_input is not None:
@@ -764,7 +1133,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             errors=errors,
         )
 
-    async def async_step_challenges(self, user_input=None):
+    async def async_step_challenges(self, user_input: Optional[dict[str, Any]] = None):
         """Collect each challenge's details using internal_id as the key."""
         errors = {}
         if user_input is not None:
@@ -835,7 +1204,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     # FINISH
     # --------------------------------------------------------------------------
-    async def async_step_finish(self, user_input=None):
+    async def async_step_finish(self, user_input: Optional[dict[str, Any]] = None):
         """Finalize summary and create the config entry."""
         if user_input is not None:
             return await self._create_entry()
@@ -964,11 +1333,22 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         await storage_manager.async_save()
 
         const.LOGGER.info(
-            "INFO: Created storage with schema version %s (%d kids, %d chores, %d badges)",
+            "INFO: Config Flow saved storage with schema version %s (%d kids, %d parents, %d chores, %d badges, %d rewards, %d bonuses, %d penalties)",
             const.SCHEMA_VERSION_STORAGE_ONLY,
             len(self._kids_temp),
+            len(self._parents_temp),
             len(self._chores_temp),
             len(self._badges_temp),
+            len(self._rewards_temp),
+            len(self._bonuses_temp),
+            len(self._penalties_temp),
+        )
+        const.LOGGER.debug(
+            "DEBUG: Config Flow - Kids data: %s",
+            {
+                kid_id: kid_data.get(const.DATA_KID_NAME)
+                for kid_id, kid_data in self._kids_temp.items()
+            },
         )
 
         # Config entry contains ONLY system settings (no entity data)
