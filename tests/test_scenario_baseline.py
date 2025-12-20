@@ -137,7 +137,7 @@ async def test_scenario_progress_state_applied(
     zoe_id = name_to_id_map["kid:Zoë"]
     zoe_data = coordinator.kids_data[zoe_id]
     assert zoe_data["points"] == 35.0
-    assert zoe_data["lifetime_points"] == 350.0
+    assert zoe_data["point_stats"]["points_net_all_time"] == 350.0
     assert len(zoe_data["approved_chores"]) >= 2
     assert len(zoe_data["badges_earned"]) == 1
 
@@ -145,7 +145,7 @@ async def test_scenario_progress_state_applied(
     max_id = name_to_id_map["kid:Max!"]
     max_data = coordinator.kids_data[max_id]
     assert max_data["points"] == 15.0
-    assert max_data["lifetime_points"] == 180.0
+    assert max_data["point_stats"]["points_net_all_time"] == 180.0
     assert len(max_data["approved_chores"]) >= 1
     assert len(max_data["badges_earned"]) == 0
 

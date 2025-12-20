@@ -37,7 +37,7 @@ PRODUCTION_JSON_DATA = {
             "internal_id": "kid-1",
             "name": "Zoë",
             "points": 100.0,
-            "lifetime_points": 500.0,
+            "point_stats": {"points_net_all_time": 500.0},
             "badges_earned": {},
             "claimed_chores": [],
             "approved_chores": [],

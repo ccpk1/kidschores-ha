@@ -934,3 +934,89 @@ async def test_service_skip_chore_due_date_success(
         new_due_date = coordinator.chores_data[chore_id]["due_date"]
         assert new_due_date != original_due_date
         assert coordinator.chores_data[chore_id]["state"] == CHORE_STATE_PENDING
+
+
+# ============================================================================
+# HELPER FUNCTION DEMONSTRATIONS - Testing Standards Maturity Initiative
+# ============================================================================
+# Added: 2025-12-20 (Phase 1)
+# Purpose: Demonstrate new helper functions for cleaner test code
+# See: tests/conftest.py for helper implementations
+# ============================================================================
+
+
+async def test_helper_construct_entity_id_demonstration(
+    hass: HomeAssistant,
+    scenario_minimal: tuple[MockConfigEntry, dict[str, str]],
+) -> None:
+    """Demonstrate construct_entity_id() helper - eliminates entity ID construction.
+
+    BEFORE (old pattern):
+        kid_slug = kid_name.lower().replace(" ", "_")
+        entity_id = f"sensor.kc_{kid_slug}_points"
+
+    AFTER (new helper):
+        entity_id = construct_entity_id("sensor", kid_name, "points")
+    """
+    from tests.conftest import construct_entity_id
+
+    # Get existing kid from scenario
+    entry, name_map = scenario_minimal  # pylint: disable=unused-variable
+    kid_name = "Zoë"
+
+    # OLD PATTERN: Manual entity ID construction (6+ lines of boilerplate)
+    # kid_slug = kid_name.lower().replace(" ", "_").replace("ë", "e")
+    # entity_id = f"sensor.kc_{kid_slug}_points"
+
+    # NEW PATTERN: Use helper for clean entity ID construction (1 line)
+    entity_id = construct_entity_id("sensor", kid_name, "points")
+
+    # Verify entity ID is correctly formatted (HA normalizes diacritics: ë → e)
+    assert entity_id == "sensor.kc_zoe_points"
+
+    # Verify state exists (entity was created by integration)
+    state = hass.states.get(entity_id)
+    assert state is not None, f"Entity {entity_id} should exist"
+
+
+async def test_helper_assert_entity_state_demonstration(
+    hass: HomeAssistant,
+    scenario_minimal: tuple[MockConfigEntry, dict[str, str]],
+) -> None:
+    """Demonstrate assert_entity_state() helper - one-line entity verification.
+
+    BEFORE (old pattern):
+        state = hass.states.get(entity_id)
+        assert state is not None
+        assert state.state == "85"
+        assert state.attributes.get("unit_of_measurement") == "points"
+
+    AFTER (new helper):
+        await assert_entity_state(hass, entity_id, "85", {"unit_of_measurement": "points"})
+    """
+    from tests.conftest import assert_entity_state, construct_entity_id
+
+    # Get existing kid from scenario
+    entry, name_map = scenario_minimal  # pylint: disable=unused-variable
+    kid_name = "Zoë"
+    entity_id = construct_entity_id("sensor", kid_name, "points")
+
+    # OLD PATTERN: Multiple lines to verify entity state (4+ lines)
+    # state = hass.states.get(entity_id)
+    # assert state is not None, f"Entity {entity_id} not found"
+    # assert state.state == "85", f"Expected 85, got {state.state}"
+    # assert state.attributes.get("unit_of_measurement") == "points"
+
+    # NEW PATTERN: One-line entity state verification
+    # Note: scenario_minimal fixture loads Zoë with 10 points
+    await assert_entity_state(
+        hass,
+        entity_id,
+        "10.0",  # Expected state from scenario_minimal fixture
+        {"unit_of_measurement": "Points"},  # Note: Capital P in integration
+    )
+
+    # Helper returns state object for additional assertions if needed
+    state = await assert_entity_state(hass, entity_id, "10.0")
+    assert float(state.state) >= 0.0, "Points should be non-negative"
+

@@ -1262,6 +1262,76 @@ TRANS_KEY_NOTIF_ACTION_APPROVE: Final = "notif_action_approve"
 TRANS_KEY_NOTIF_ACTION_DISAPPROVE: Final = "notif_action_disapprove"
 TRANS_KEY_NOTIF_ACTION_REMIND_30: Final = "notif_action_remind_30"
 
+# Notification Title Translation Keys
+TRANS_KEY_NOTIF_TITLE_CHORE_ASSIGNED: Final = "notification_title_chore_assigned"
+TRANS_KEY_NOTIF_TITLE_CHORE_CLAIMED: Final = "notification_title_chore_claimed"
+TRANS_KEY_NOTIF_TITLE_CHORE_APPROVED: Final = "notification_title_chore_approved"
+TRANS_KEY_NOTIF_TITLE_CHORE_DISAPPROVED: Final = "notification_title_chore_disapproved"
+TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE: Final = "notification_title_chore_overdue"
+TRANS_KEY_NOTIF_TITLE_CHORE_REMINDER: Final = "notification_title_chore_reminder"
+
+TRANS_KEY_NOTIF_TITLE_REWARD_CLAIMED: Final = "notification_title_reward_claimed"
+TRANS_KEY_NOTIF_TITLE_REWARD_APPROVED: Final = "notification_title_reward_approved"
+TRANS_KEY_NOTIF_TITLE_REWARD_DISAPPROVED: Final = (
+    "notification_title_reward_disapproved"
+)
+TRANS_KEY_NOTIF_TITLE_REWARD_REMINDER: Final = "notification_title_reward_reminder"
+
+TRANS_KEY_NOTIF_TITLE_BADGE_EARNED: Final = "notification_title_badge_earned"
+TRANS_KEY_NOTIF_TITLE_ACHIEVEMENT_EARNED: Final = (
+    "notification_title_achievement_earned"
+)
+TRANS_KEY_NOTIF_TITLE_CHALLENGE_COMPLETED: Final = (
+    "notification_title_challenge_completed"
+)
+
+TRANS_KEY_NOTIF_TITLE_PENALTY_APPLIED: Final = "notification_title_penalty_applied"
+TRANS_KEY_NOTIF_TITLE_BONUS_APPLIED: Final = "notification_title_bonus_applied"
+
+# Notification Message Translation Keys
+TRANS_KEY_NOTIF_MESSAGE_CHORE_ASSIGNED: Final = "notification_message_chore_assigned"
+TRANS_KEY_NOTIF_MESSAGE_CHORE_CLAIMED: Final = "notification_message_chore_claimed"
+TRANS_KEY_NOTIF_MESSAGE_CHORE_APPROVED: Final = "notification_message_chore_approved"
+TRANS_KEY_NOTIF_MESSAGE_CHORE_DISAPPROVED: Final = (
+    "notification_message_chore_disapproved"
+)
+TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE: Final = "notification_message_chore_overdue"
+TRANS_KEY_NOTIF_MESSAGE_CHORE_REMINDER: Final = "notification_message_chore_reminder"
+
+TRANS_KEY_NOTIF_MESSAGE_REWARD_CLAIMED_KID: Final = (
+    "notification_message_reward_claimed_kid"
+)
+TRANS_KEY_NOTIF_MESSAGE_REWARD_CLAIMED_PARENT: Final = (
+    "notification_message_reward_claimed_parent"
+)
+TRANS_KEY_NOTIF_MESSAGE_REWARD_APPROVED: Final = "notification_message_reward_approved"
+TRANS_KEY_NOTIF_MESSAGE_REWARD_DISAPPROVED: Final = (
+    "notification_message_reward_disapproved"
+)
+TRANS_KEY_NOTIF_MESSAGE_REWARD_REMINDER: Final = "notification_message_reward_reminder"
+
+TRANS_KEY_NOTIF_MESSAGE_BADGE_EARNED_KID: Final = (
+    "notification_message_badge_earned_kid"
+)
+TRANS_KEY_NOTIF_MESSAGE_BADGE_EARNED_PARENT: Final = (
+    "notification_message_badge_earned_parent"
+)
+TRANS_KEY_NOTIF_MESSAGE_ACHIEVEMENT_EARNED_KID: Final = (
+    "notification_message_achievement_earned_kid"
+)
+TRANS_KEY_NOTIF_MESSAGE_ACHIEVEMENT_EARNED_PARENT: Final = (
+    "notification_message_achievement_earned_parent"
+)
+TRANS_KEY_NOTIF_MESSAGE_CHALLENGE_COMPLETED_KID: Final = (
+    "notification_message_challenge_completed_kid"
+)
+TRANS_KEY_NOTIF_MESSAGE_CHALLENGE_COMPLETED_PARENT: Final = (
+    "notification_message_challenge_completed_parent"
+)
+
+TRANS_KEY_NOTIF_MESSAGE_PENALTY_APPLIED: Final = "notification_message_penalty_applied"
+TRANS_KEY_NOTIF_MESSAGE_BONUS_APPLIED: Final = "notification_message_bonus_applied"
+
 # Action identifiers
 ACTION_APPROVE_CHORE = "APPROVE_CHORE"
 ACTION_APPROVE_REWARD = "APPROVE_REWARD"
@@ -1306,6 +1376,7 @@ ATTR_CHORE_APPROVE_BUTTON_ENTITY_ID: Final = "approve_button_eid"
 ATTR_CHORE_CLAIM_BUTTON_ENTITY_ID: Final = "claim_button_eid"
 ATTR_CHORE_DISAPPROVE_BUTTON_ENTITY_ID: Final = "disapprove_button_eid"
 ATTR_CHORE_NAME: Final = "chore_name"
+ATTR_CLAIMED_ON: Final = "Claimed on"
 ATTR_COST: Final = "cost"
 ATTR_CRITERIA: Final = "criteria"
 ATTR_BADGE_CUMULATIVE_BASELINE_POINTS: Final = "baseline_points"
@@ -1355,6 +1426,7 @@ ATTR_RESET_SCHEDULE: Final = "reset_schedule"
 ATTR_REWARD_APPROVALS_COUNT: Final = "reward_approvals_count"
 ATTR_REWARD_CLAIMS_COUNT: Final = "reward_claims_count"
 ATTR_REWARD_NAME: Final = "reward_name"
+ATTR_REDEEMED_ON: Final = "Redeemed on"
 ATTR_REWARD_POINTS: Final = "reward_points"
 ATTR_REWARD_APPROVE_BUTTON_ENTITY_ID: Final = "approve_button_eid"
 ATTR_REWARD_CLAIM_BUTTON_ENTITY_ID: Final = "claim_button_eid"

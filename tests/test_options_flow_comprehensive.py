@@ -16,6 +16,7 @@ from custom_components.kidschores.const import (
     CFOF_ACHIEVEMENTS_INPUT_REWARD_POINTS,
     CFOF_ACHIEVEMENTS_INPUT_TARGET_VALUE,
     CFOF_ACHIEVEMENTS_INPUT_TYPE,
+    CFOF_BADGES_INPUT_ASSIGNED_TO,
     CFOF_BADGES_INPUT_AWARD_POINTS,
     CFOF_BADGES_INPUT_END_DATE,
     CFOF_BADGES_INPUT_ICON,
@@ -300,11 +301,15 @@ async def test_options_flow_add_penalty(
 
 async def test_options_flow_add_badge_cumulative(
     hass: HomeAssistant,
-    init_integration: MockConfigEntry,
+    scenario_medium: tuple[MockConfigEntry, dict[str, str]],
 ) -> None:
     """Test adding a cumulative badge via options flow."""
+    # Arrange: Use scenario_medium which has pre-loaded kids
+    config_entry, name_to_id_map = scenario_medium
+    zoe_id = name_to_id_map["kid:Zoë"]
+
     # Navigate to badges management
-    result = await hass.config_entries.options.async_init(init_integration.entry_id)
+    result = await hass.config_entries.options.async_init(config_entry.entry_id)
     result = await hass.config_entries.options.async_configure(
         result.get("flow_id"),
         user_input={OPTIONS_FLOW_INPUT_MENU_SELECTION: OPTIONS_FLOW_BADGES},
@@ -339,6 +344,7 @@ async def test_options_flow_add_badge_cumulative(
             CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE: 10,
             CFOF_BADGES_INPUT_ICON: "mdi:broom",
             CFOF_BADGES_INPUT_AWARD_POINTS: 20.0,
+            CFOF_BADGES_INPUT_ASSIGNED_TO: [zoe_id],
         },
     )
 
@@ -349,11 +355,15 @@ async def test_options_flow_add_badge_cumulative(
 
 async def test_options_flow_add_badge_periodic(
     hass: HomeAssistant,
-    init_integration: MockConfigEntry,
+    scenario_medium: tuple[MockConfigEntry, dict[str, str]],
 ) -> None:
     """Test adding a periodic badge via options flow."""
+    # Arrange: Use scenario_medium which has pre-loaded kids
+    config_entry, name_to_id_map = scenario_medium
+    zoe_id = name_to_id_map["kid:Zoë"]
+
     # Navigate to badges management
-    result = await hass.config_entries.options.async_init(init_integration.entry_id)
+    result = await hass.config_entries.options.async_init(config_entry.entry_id)
     result = await hass.config_entries.options.async_configure(
         result.get("flow_id"),
         user_input={OPTIONS_FLOW_INPUT_MENU_SELECTION: OPTIONS_FLOW_BADGES},
@@ -389,6 +399,7 @@ async def test_options_flow_add_badge_periodic(
             CFOF_BADGES_INPUT_START_DATE: "2026-01-01",
             CFOF_BADGES_INPUT_END_DATE: "2026-12-31",
             CFOF_BADGES_INPUT_AWARD_POINTS: 15.0,
+            CFOF_BADGES_INPUT_ASSIGNED_TO: [zoe_id],
         },
     )
 

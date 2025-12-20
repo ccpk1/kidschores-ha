@@ -135,7 +135,13 @@ async def load_scenario_to_running_instance():  # pylint: disable=too-many-local
             "bonus_applies": {},
             "penalty_applies": {},
             "overdue_notifications": {},
-            "lifetime_points": float(progress.get("lifetime_points", 0.0)),
+            "point_stats": {
+                "points_net_all_time": float(
+                    progress.get("point_stats", {}).get(
+                        "points_net_all_time", progress.get("lifetime_points", 0.0)
+                    )  # Fallback for old format
+                )
+            },
         }
 
         # Use coordinator's internal method to create kid

@@ -65,6 +65,7 @@ badges:
   - name: "Brønze Står"
     type: "cumulative"
     threshold: 400
+    assigned_to: ["Zoë", "Max!", "Lillÿ"] # Phase 2: Explicit assignment required
     icon: "mdi:star"
     award: "+5 bonus points"
     points_multiplier: 1.05
@@ -161,19 +162,22 @@ progress:
     badges_earned: ["Brønze Står", "Dåily Dëlight"]
     rewards_redeemed: ["Ice Créam!"]
     points: 85
-    lifetime_points: 520
+    point_stats:
+      points_net_all_time: 520.0
     current_multiplier: 1.05
   Max!:
     chores_completed: ["Pick up Lëgo!", "Charge Røbot"]
     badges_earned: []
     points: 25
-    lifetime_points: 280
+    point_stats:
+      points_net_all_time: 280.0
     current_multiplier: 1.0
   Lila:
     chores_completed: ["Paint the rãinbow", "Sweep the p@tio"]
     badges_earned: ["Dåily Dëlight"]
     points: 28
-    lifetime_points: 310
+    point_stats:
+      points_net_all_time: 310.0
     current_multiplier: 1.0
 # Test focus: Full feature set, badge maintenance, multiplier effects, reward redemption,
 # shared chore claiming, complex dashboard rendering, multi-kid filtering

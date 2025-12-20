@@ -29,6 +29,7 @@ badges:
   - name: "Brønze Står"
     type: "cumulative"
     threshold: 400
+    assigned_to: ["Zoë"] # Phase 2: Explicit assignment required
     icon: "mdi:star"
     award: "+5 bonus points"
     points_multiplier: 1.05
@@ -59,5 +60,6 @@ progress:
     chores_completed: ["Feed the cåts"]
     badges_earned: []
     points: 10
-    lifetime_points: 10
+    point_stats:
+      points_net_all_time: 10.0
 # Test focus: Basic entity creation, single kid dashboard, simple point tracking

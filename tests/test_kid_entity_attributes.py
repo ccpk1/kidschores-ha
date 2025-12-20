@@ -93,23 +93,23 @@ async def test_all_kid_entities_have_kid_name_attribute(
         # Track if kid_name exists
         if kid_name_attr:
             entities_with_kid_name.append(entity_id)
-            print(f"  ✅ Has kid_name attribute")
+            print("  ✅ Has kid_name attribute")
         else:
             entities_without_kid_name.append(entity_id)
-            print(f"  ❌ MISSING kid_name attribute")
+            print("  ❌ MISSING kid_name attribute")
 
         print()
 
     # Summary
     print(f"{'=' * 80}")
-    print(f"SUMMARY")
+    print("SUMMARY")
     print(f"{'=' * 80}")
     print(f"Total kid entities checked: {len(kid_entities)}")
     print(f"Entities WITH kid_name:     {len(entities_with_kid_name)}")
     print(f"Entities WITHOUT kid_name:  {len(entities_without_kid_name)}")
 
     if entities_without_kid_name:
-        print(f"\n❌ MISSING kid_name attribute:")
+        print("\n❌ MISSING kid_name attribute:")
         for entity_id in entities_without_kid_name:
             print(f"  - {entity_id}")
 
@@ -151,7 +151,7 @@ async def test_specific_friendly_names(hass: HomeAssistant, scenario_medium) -> 
     )
 
     print(f"\n{'=' * 80}")
-    print(f"SPECIFIC FRIENDLY NAME CHECKS")
+    print("SPECIFIC FRIENDLY NAME CHECKS")
     print(f"{'=' * 80}")
     print(
         f"✅ Dashboard Helper: {dashboard_helper.attributes.get('friendly_name', 'Unknown')}"
@@ -160,7 +160,7 @@ async def test_specific_friendly_names(hass: HomeAssistant, scenario_medium) -> 
     print(
         f"✅ Date Helper kid_name: {date_helper.attributes.get(const.ATTR_KID_NAME, 'Unknown')}"
     )
-    print(f"✅ Date Helper has NO kid_id attribute")
+    print("✅ Date Helper has NO kid_id attribute")
     print(f"{'=' * 80}\n")
 
 
@@ -195,6 +195,6 @@ async def test_chore_status_friendly_name(hass: HomeAssistant, scenario_medium) 
                 f"Chore status sensor {entry.entity_id} should have 'Chore Status' "
                 f"in friendly name, got: {friendly_name}"
             )
-            print(f"  ✅ Contains 'Chore Status'")
+            print("  ✅ Contains 'Chore Status'")
 
     print(f"{'=' * 80}\n")

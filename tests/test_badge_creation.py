@@ -15,6 +15,7 @@ from custom_components.kidschores.const import (
     BADGE_TYPE_DAILY,
     BADGE_TYPE_PERIODIC,
     BADGE_TYPE_SPECIAL_OCCASION,
+    CFOF_BADGES_INPUT_ASSIGNED_TO,
     CFOF_BADGES_INPUT_AWARD_ITEMS,
     CFOF_BADGES_INPUT_AWARD_POINTS,
     CFOF_BADGES_INPUT_END_DATE,
@@ -65,16 +66,18 @@ class TestBadgeCreation:
     async def test_create_cumulative_badge_via_options_flow(
         self,
         hass: HomeAssistant,
-        init_integration: MockConfigEntry,
+        scenario_medium: tuple[MockConfigEntry, dict[str, str]],
     ) -> None:
         """Test creating a cumulative badge via options flow creates badge in coordinator."""
-        # Arrange: Verify integration is loaded
-        assert init_integration.state == ConfigEntryState.LOADED
-        coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
+        # Arrange: Use medium scenario with kids pre-loaded
+        config_entry, name_to_id_map = scenario_medium
+        assert config_entry.state == ConfigEntryState.LOADED
+        coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
         initial_badges = coordinator._data.get(DATA_BADGES, {}).copy()
+        zoe_id = name_to_id_map["kid:Zoë"]
 
         # Act: Navigate to badge creation flow
-        result = await hass.config_entries.options.async_init(init_integration.entry_id)
+        result = await hass.config_entries.options.async_init(config_entry.entry_id)
         result = await hass.config_entries.options.async_configure(
             result.get("flow_id"),
             user_input={OPTIONS_FLOW_INPUT_MENU_SELECTION: OPTIONS_FLOW_BADGES},
@@ -102,6 +105,7 @@ class TestBadgeCreation:
             CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE: 100,
             CFOF_BADGES_INPUT_ICON: "mdi:star-outline",
             CFOF_BADGES_INPUT_AWARD_POINTS: 25.0,
+            CFOF_BADGES_INPUT_ASSIGNED_TO: [zoe_id],
         }
 
         result = await hass.config_entries.options.async_configure(
@@ -143,16 +147,18 @@ class TestBadgeCreation:
     async def test_create_periodic_badge_via_options_flow(
         self,
         hass: HomeAssistant,
-        init_integration: MockConfigEntry,
+        scenario_medium: tuple[MockConfigEntry, dict[str, str]],
     ) -> None:
         """Test creating a periodic badge via options flow creates badge in coordinator."""
-        # Arrange: Verify integration is loaded
-        assert init_integration.state == ConfigEntryState.LOADED
-        coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
+        # Arrange: Use medium scenario with kids pre-loaded
+        config_entry, name_to_id_map = scenario_medium
+        assert config_entry.state == ConfigEntryState.LOADED
+        coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
         initial_badges = coordinator._data.get(DATA_BADGES, {}).copy()
+        zoe_id = name_to_id_map["kid:Zoë"]
 
         # Act: Navigate to badge creation flow
-        result = await hass.config_entries.options.async_init(init_integration.entry_id)
+        result = await hass.config_entries.options.async_init(config_entry.entry_id)
         result = await hass.config_entries.options.async_configure(
             result.get("flow_id"),
             user_input={OPTIONS_FLOW_INPUT_MENU_SELECTION: OPTIONS_FLOW_BADGES},
@@ -176,6 +182,7 @@ class TestBadgeCreation:
             CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE: 7,
             CFOF_BADGES_INPUT_ICON: "mdi:calendar-week",
             CFOF_BADGES_INPUT_AWARD_POINTS: 50.0,
+            CFOF_BADGES_INPUT_ASSIGNED_TO: [zoe_id],
         }
 
         result = await hass.config_entries.options.async_configure(
@@ -211,11 +218,12 @@ class TestBadgeCreation:
     async def test_badge_creation_minimal_scenario(
         self,
         hass: HomeAssistant,
-        scenario_minimal: tuple[MockConfigEntry, dict[str, str]],
+        scenario_medium: tuple[MockConfigEntry, dict[str, str]],
     ) -> None:
-        """Test badge creation via options flow with minimal scenario data loaded."""
-        # Arrange: Use minimal scenario fixture
-        config_entry, _ = scenario_minimal  # name_to_id_map unused
+        """Test badge creation via options flow with medium scenario data loaded."""
+        # Arrange: Use medium scenario fixture with kids pre-loaded
+        config_entry, name_to_id_map = scenario_medium
+        zoe_id = name_to_id_map["kid:Zoë"]
         coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
         # Assert: Minimal scenario has the expected existing badge count
@@ -269,6 +277,7 @@ class TestBadgeCreation:
             CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE: 800,
             CFOF_BADGES_INPUT_ICON: "mdi:star-circle",
             CFOF_BADGES_INPUT_POINTS_MULTIPLIER: 1.15,
+            CFOF_BADGES_INPUT_ASSIGNED_TO: [zoe_id],
         }
 
         result = await hass.config_entries.options.async_configure(
@@ -323,8 +332,9 @@ class TestBadgeCreation:
     ) -> None:
         """Test comprehensive badge creation covering all badge types from scenarios."""
         # Arrange: Use medium scenario fixture with comprehensive test data
-        config_entry, _ = scenario_medium  # name_to_id_map unused
+        config_entry, name_to_id_map = scenario_medium
         coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+        zoe_id = name_to_id_map["kid:Zoë"]
 
         # Define all badge types to test (based on medium/full scenarios)
         badge_test_cases = [
@@ -339,6 +349,7 @@ class TestBadgeCreation:
                     CFOF_BADGES_INPUT_AWARD_ITEMS: [AWARD_ITEMS_KEY_POINTS_MULTIPLIER],
                     CFOF_BADGES_INPUT_POINTS_MULTIPLIER: 1.05,
                     CFOF_BADGES_INPUT_MAINTENANCE_RULES: 300,
+                    CFOF_BADGES_INPUT_ASSIGNED_TO: [zoe_id],
                 },
                 "entity_id": "sensor.kc_platinum_achievement_badge",
             },
@@ -353,6 +364,7 @@ class TestBadgeCreation:
                     CFOF_BADGES_INPUT_AWARD_ITEMS: [AWARD_ITEMS_KEY_POINTS_MULTIPLIER],
                     CFOF_BADGES_INPUT_POINTS_MULTIPLIER: 1.15,
                     CFOF_BADGES_INPUT_MAINTENANCE_RULES: 600,
+                    CFOF_BADGES_INPUT_ASSIGNED_TO: [zoe_id],
                 },
                 "entity_id": "sensor.kc_diamond_excellence_badge",
             },
@@ -367,6 +379,7 @@ class TestBadgeCreation:
                     CFOF_BADGES_INPUT_AWARD_ITEMS: [AWARD_ITEMS_KEY_POINTS_MULTIPLIER],
                     CFOF_BADGES_INPUT_POINTS_MULTIPLIER: 1.25,
                     CFOF_BADGES_INPUT_MAINTENANCE_RULES: 1200,
+                    CFOF_BADGES_INPUT_ASSIGNED_TO: [zoe_id],
                 },
                 "entity_id": "sensor.kc_titanium_master_badge",
             },
@@ -381,6 +394,7 @@ class TestBadgeCreation:
                     CFOF_BADGES_INPUT_RESET_SCHEDULE_RECURRING_FREQUENCY: "weekly",
                     CFOF_BADGES_INPUT_START_DATE: "2025-10-01",
                     CFOF_BADGES_INPUT_END_DATE: "2025-12-31",
+                    CFOF_BADGES_INPUT_ASSIGNED_TO: [zoe_id],
                 },
                 "entity_id": "sensor.kc_monday_master_badge",
             },
@@ -394,6 +408,7 @@ class TestBadgeCreation:
                     CFOF_BADGES_INPUT_ICON: "mdi:emoticon-happy",
                     CFOF_BADGES_INPUT_AWARD_ITEMS: [AWARD_ITEMS_KEY_POINTS],
                     CFOF_BADGES_INPUT_AWARD_POINTS: 3.0,
+                    CFOF_BADGES_INPUT_ASSIGNED_TO: [zoe_id],
                 },
                 "entity_id": "sensor.kc_morning_champion_badge",
             },
@@ -406,6 +421,7 @@ class TestBadgeCreation:
                     CFOF_BADGES_INPUT_ICON: "mdi:party-popper",
                     CFOF_BADGES_INPUT_OCCASION_TYPE: "birthday",
                     CFOF_BADGES_INPUT_RESET_SCHEDULE_RECURRING_FREQUENCY: "none",
+                    CFOF_BADGES_INPUT_ASSIGNED_TO: [zoe_id],
                 },
                 "entity_id": "sensor.kc_celebration_star_badge",
             },
@@ -514,7 +530,9 @@ class TestBadgeCreation:
                 )
                 if CFOF_BADGES_INPUT_POINTS_MULTIPLIER in test_case["data"]:
                     assert (
-                        badge_data[DATA_BADGE_AWARDS][DATA_BADGE_AWARDS_POINT_MULTIPLIER]
+                        badge_data[DATA_BADGE_AWARDS][
+                            DATA_BADGE_AWARDS_POINT_MULTIPLIER
+                        ]
                         == (test_case["data"][CFOF_BADGES_INPUT_POINTS_MULTIPLIER])
                     )
                 if CFOF_BADGES_INPUT_MAINTENANCE_RULES in test_case["data"]:

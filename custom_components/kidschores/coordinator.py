@@ -13,6 +13,7 @@ Manages entities primarily using internal_id for consistency.
 
 import asyncio
 import random
+import sys
 import uuid
 from calendar import monthrange
 from datetime import date, datetime, timedelta
@@ -23,6 +24,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_change
+from homeassistant.helpers.translation import async_get_translations
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
@@ -58,6 +60,13 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self.config_entry = config_entry
         self.storage_manager = storage_manager
         self._data: dict[str, Any] = {}
+
+        # Test mode detection for reminder delays
+        self._test_mode = "pytest" in sys.modules
+        const.LOGGER.debug(
+            "Coordinator initialized in %s mode",
+            "TEST" if self._test_mode else "PRODUCTION",
+        )
 
         # Change tracking for pending approvals (for dashboard helper optimization)
         self._pending_chore_changed: bool = True  # True on first load
@@ -2089,10 +2098,11 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             due_str = due_date if due_date else const.TRANS_KEY_NO_DUE_DATE
             extra_data = {const.DATA_KID_ID: kid_id, const.DATA_CHORE_ID: chore_id}
             self.hass.async_create_task(
-                self._notify_kid(
+                self._notify_kid_translated(
                     kid_id,
-                    title="KidsChores: New Chore",
-                    message=f"New chore '{new_name}' was assigned to you! Due: {due_str}",
+                    title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_ASSIGNED,
+                    message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_ASSIGNED,
+                    message_data={"chore_name": new_name, "due_date": due_str},
                     extra_data=extra_data,
                 )
             )
@@ -2797,6 +2807,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 },
             )
         self._update_badge(badge_id, badge_data)
+        # Phase 4: Sync badge_progress after badge update (handles assignment changes)
+        for kid_id in self.kids_data:
+            self._sync_badge_progress_for_kid(kid_id)
         # Recalculate badge progress for all kids
         self._recalculate_all_badges()
         self._persist()
@@ -2821,6 +2834,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # Remove awarded badges from kids
         self._remove_awarded_badges_by_id(badge_id=badge_id)
+
+        # Phase 4: Clean up badge_progress from all kids after badge deletion
+        for kid_id in self.kids_data:
+            self._sync_badge_progress_for_kid(kid_id)
 
         self._persist()
         self.async_update_listeners()
@@ -3196,13 +3213,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.DATA_CHORE_ID: chore_id,
             }
             self.hass.async_create_task(
-                self._notify_parents(
+                self._notify_parents_translated(
                     kid_id,
-                    title="KidsChores: Chore Claimed",
-                    message=(
-                        f"'{self.kids_data[kid_id][const.DATA_KID_NAME]}' claimed chore "
-                        f"'{self.chores_data[chore_id][const.DATA_CHORE_NAME]}'"
-                    ),
+                    title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_CLAIMED,
+                    message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_CLAIMED,
+                    message_data={
+                        "kid_name": self.kids_data[kid_id][const.DATA_KID_NAME],
+                        "chore_name": self.chores_data[chore_id][const.DATA_CHORE_NAME],
+                    },
                     actions=actions,
                     extra_data=extra_data,
                 )
@@ -3378,13 +3396,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         ):
             extra_data = {const.DATA_KID_ID: kid_id, const.DATA_CHORE_ID: chore_id}
             self.hass.async_create_task(
-                self._notify_kid(
+                self._notify_kid_translated(
                     kid_id,
-                    title="KidsChores: Chore Approved",
-                    message=(
-                        f"Your chore '{chore_info[const.DATA_CHORE_NAME]}' was approved. "
-                        f"You earned {default_points} points plus multiplier."
-                    ),
+                    title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_APPROVED,
+                    message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_APPROVED,
+                    message_data={
+                        "chore_name": chore_info[const.DATA_CHORE_NAME],
+                        "points": default_points,
+                    },
                     extra_data=extra_data,
                 )
             )
@@ -3424,10 +3443,11 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         ):
             extra_data = {const.DATA_KID_ID: kid_id, const.DATA_CHORE_ID: chore_id}
             self.hass.async_create_task(
-                self._notify_kid(
+                self._notify_kid_translated(
                     kid_id,
-                    title="KidsChores: Chore Disapproved",
-                    message=f"Your chore '{chore_info[const.DATA_CHORE_NAME]}' was disapproved.",
+                    title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_DISAPPROVED,
+                    message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_DISAPPROVED,
+                    message_data={"chore_name": chore_info[const.DATA_CHORE_NAME]},
                     extra_data=extra_data,
                 )
             )
@@ -4656,10 +4676,15 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.DATA_REWARD_NOTIFICATION_ID: notif_id,
         }
         self.hass.async_create_task(
-            self._notify_parents(
+            self._notify_parents_translated(
                 kid_id,
-                title="KidsChores: Reward Claimed",
-                message=f"'{kid_info[const.DATA_KID_NAME]}' claimed reward '{reward_info[const.DATA_REWARD_NAME]}'",
+                title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_CLAIMED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_CLAIMED_PARENT,
+                message_data={
+                    "kid_name": kid_info[const.DATA_KID_NAME],
+                    "reward_name": reward_info[const.DATA_REWARD_NAME],
+                    "points": reward_info[const.DATA_REWARD_COST],
+                },
                 actions=actions,
                 extra_data=extra_data,
             )
@@ -4763,10 +4788,11 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Notify the kid that the reward has been approved
         extra_data = {const.DATA_KID_ID: kid_id, const.DATA_REWARD_ID: reward_id}
         self.hass.async_create_task(
-            self._notify_kid(
+            self._notify_kid_translated(
                 kid_id,
-                title="KidsChores: Reward Approved",
-                message=f"Your reward '{reward_info[const.DATA_REWARD_NAME]}' was approved.",
+                title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_APPROVED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_APPROVED,
+                message_data={"reward_name": reward_info[const.DATA_REWARD_NAME]},
                 extra_data=extra_data,
             )
         )
@@ -4807,10 +4833,11 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Send a notification to the kid that reward was disapproved
         extra_data = {const.DATA_KID_ID: kid_id, const.DATA_REWARD_ID: reward_id}
         self.hass.async_create_task(
-            self._notify_kid(
+            self._notify_kid_translated(
                 kid_id,
-                title="KidsChores: Reward Disapproved",
-                message=f"Your reward '{reward_info[const.DATA_REWARD_NAME]}' was disapproved.",
+                title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_DISAPPROVED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_DISAPPROVED,
+                message_data={"reward_name": reward_info[const.DATA_REWARD_NAME]},
                 extra_data=extra_data,
             )
         )
@@ -4948,7 +4975,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         for badge_id, badge_info in self.badges_data.items():
             badge_type = badge_info.get(const.DATA_BADGE_TYPE)
 
-            # Determine if this badge is assigned to the kid
             # Feature Change v4.2: Badges now require explicit assignment.
             # Empty assigned_to means badge is not assigned to any kid.
             assigned_to_list = badge_info.get(const.DATA_BADGE_ASSIGNED_TO, [])
@@ -5536,18 +5562,23 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         extra_data = {const.DATA_KID_ID: kid_id, const.DATA_BADGE_ID: badge_id}
         self.hass.async_create_task(
-            self._notify_kid(
+            self._notify_kid_translated(
                 kid_id,
-                title="KidsChores: Badge Earned",
-                message=message,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_BADGE_EARNED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_BADGE_EARNED_KID,
+                message_data={"badge_name": badge_info.get(const.DATA_BADGE_NAME)},
                 extra_data=extra_data,
             )
         )
         self.hass.async_create_task(
-            self._notify_parents(
+            self._notify_parents_translated(
                 kid_id,
-                title="KidsChores: Badge Earned",
-                message=parent_message,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_BADGE_EARNED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_BADGE_EARNED_PARENT,
+                message_data={
+                    "kid_name": self.kids_data[kid_id][const.DATA_KID_NAME],
+                    "badge_name": badge_info.get(const.DATA_BADGE_NAME),
+                },
                 extra_data=extra_data,
             )
         )
@@ -6470,8 +6501,26 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         if not kid_info:
             return
 
+        # Phase 4: Clean up badge_progress for badges no longer assigned to this kid
+        if const.DATA_KID_BADGE_PROGRESS in kid_info:
+            badges_to_remove = []
+            for progress_badge_id in kid_info[const.DATA_KID_BADGE_PROGRESS]:
+                badge_info = self.badges_data.get(progress_badge_id)
+                # Remove if badge deleted OR kid not in assigned_to list
+                if not badge_info or kid_id not in badge_info.get(
+                    const.DATA_BADGE_ASSIGNED_TO, []
+                ):
+                    badges_to_remove.append(progress_badge_id)
+
+            for badge_id in badges_to_remove:
+                del kid_info[const.DATA_KID_BADGE_PROGRESS][badge_id]
+                const.LOGGER.debug(
+                    "DEBUG: Removed badge_progress for badge '%s' from kid '%s' (unassigned or deleted)",
+                    badge_id,
+                    kid_info.get(const.DATA_KID_NAME, kid_id),
+                )
+
         for badge_id, badge_info in self.badges_data.items():
-            # Skip badges that are not assigned to this kid
             # Feature Change v4.2: Badges now require explicit assignment.
             # Empty assigned_to means badge is not assigned to any kid.
             assigned_to_list = badge_info.get(const.DATA_BADGE_ASSIGNED_TO, [])
@@ -6799,24 +6848,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                         )
                     if end_date_iso:
                         progress[const.DATA_KID_BADGE_PROGRESS_END_DATE] = end_date_iso
-
-        # ===============================================================
-        # SECTION 3: CLEANUP - Remove progress for badges that are no longer assigned to this kid
-        # ===============================================================
-        assigned_badge_ids = {
-            badge_id
-            for badge_id, badge_info in self.badges_data.items()
-            if not badge_info.get(const.DATA_BADGE_ASSIGNED_TO, [])
-            or kid_id in badge_info.get(const.DATA_BADGE_ASSIGNED_TO, [])
-        }
-        progress_badge_ids = set(kid_info[const.DATA_KID_BADGE_PROGRESS].keys())
-        for badge_id in progress_badge_ids - assigned_badge_ids:
-            del kid_info[const.DATA_KID_BADGE_PROGRESS][badge_id]
-            const.LOGGER.info(
-                "INFO: Badge Maintenance - Removed badge progress for badge '%s' from kid '%s' (badge unassigned).",
-                badge_id,
-                kid_info.get(const.DATA_KID_NAME, kid_id),
-            )
 
     def _manage_cumulative_badge_maintenance(self, kid_id: str) -> None:
         """
@@ -7253,10 +7284,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Send a notification to the kid that a penalty was applied
         extra_data = {const.DATA_KID_ID: kid_id, const.DATA_PENALTY_ID: penalty_id}
         self.hass.async_create_task(
-            self._notify_kid(
+            self._notify_kid_translated(
                 kid_id,
-                title="KidsChores: Penalty Applied",
-                message=f"A '{penalty_info[const.DATA_PENALTY_NAME]}' penalty was applied. Your points changed by {penalty_pts}.",
+                title_key=const.TRANS_KEY_NOTIF_TITLE_PENALTY_APPLIED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_PENALTY_APPLIED,
+                message_data={
+                    "penalty_name": penalty_info[const.DATA_PENALTY_NAME],
+                    "points": penalty_pts,
+                },
                 extra_data=extra_data,
             )
         )
@@ -7306,10 +7341,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Send a notification to the kid that a bonus was applied
         extra_data = {const.DATA_KID_ID: kid_id, const.DATA_BONUS_ID: bonus_id}
         self.hass.async_create_task(
-            self._notify_kid(
+            self._notify_kid_translated(
                 kid_id,
-                title="KidsChores: Bonus Applied",
-                message=f"A '{bonus_info[const.DATA_BONUS_NAME]}' bonus was applied. Your points changed by {bonus_pts}.",
+                title_key=const.TRANS_KEY_NOTIF_TITLE_BONUS_APPLIED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_BONUS_APPLIED,
+                message_data={
+                    "bonus_name": bonus_info[const.DATA_BONUS_NAME],
+                    "points": bonus_pts,
+                },
                 extra_data=extra_data,
             )
         )
@@ -7475,18 +7514,29 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.DATA_ACHIEVEMENT_ID: achievement_id,
         }
         self.hass.async_create_task(
-            self._notify_kid(
+            self._notify_kid_translated(
                 kid_id,
-                title="KidsChores: Achievement Earned",
-                message=f"You have earned the achievement: '{achievement_info.get(const.DATA_ACHIEVEMENT_NAME)}'.",
+                title_key=const.TRANS_KEY_NOTIF_TITLE_ACHIEVEMENT_EARNED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_ACHIEVEMENT_EARNED_KID,
+                message_data={
+                    "achievement_name": achievement_info.get(
+                        const.DATA_ACHIEVEMENT_NAME
+                    ),
+                },
                 extra_data=extra_data,
             )
         )
         self.hass.async_create_task(
-            self._notify_parents(
+            self._notify_parents_translated(
                 kid_id,
-                title="KidsChores: Achievement Earned",
-                message=f"{self.kids_data[kid_id][const.DATA_KID_NAME]} has earned the achievement: '{achievement_info.get(const.DATA_ACHIEVEMENT_NAME)}'.",
+                title_key=const.TRANS_KEY_NOTIF_TITLE_ACHIEVEMENT_EARNED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_ACHIEVEMENT_EARNED_PARENT,
+                message_data={
+                    "kid_name": self.kids_data[kid_id][const.DATA_KID_NAME],
+                    "achievement_name": achievement_info.get(
+                        const.DATA_ACHIEVEMENT_NAME
+                    ),
+                },
                 extra_data=extra_data,
             )
         )
@@ -7620,18 +7670,25 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Notify kid and parents
         extra_data = {const.DATA_KID_ID: kid_id, const.DATA_CHALLENGE_ID: challenge_id}
         self.hass.async_create_task(
-            self._notify_kid(
+            self._notify_kid_translated(
                 kid_id,
-                title="KidsChores: Challenge Completed",
-                message=f"You have completed the challenge: '{challenge_info.get(const.DATA_CHALLENGE_NAME)}'.",
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHALLENGE_COMPLETED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHALLENGE_COMPLETED_KID,
+                message_data={
+                    "challenge_name": challenge_info.get(const.DATA_CHALLENGE_NAME),
+                },
                 extra_data=extra_data,
             )
         )
         self.hass.async_create_task(
-            self._notify_parents(
+            self._notify_parents_translated(
                 kid_id,
-                title="KidsChores: Challenge Completed",
-                message=f"{self.kids_data[kid_id][const.DATA_KID_NAME]} has completed the challenge: '{challenge_info.get(const.DATA_CHALLENGE_NAME)}'.",
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHALLENGE_COMPLETED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHALLENGE_COMPLETED_PARENT,
+                message_data={
+                    "kid_name": self.kids_data[kid_id][const.DATA_KID_NAME],
+                    "challenge_name": challenge_info.get(const.DATA_CHALLENGE_NAME),
+                },
                 extra_data=extra_data,
             )
         )
@@ -7860,18 +7917,30 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                             kid_id,
                         )
                     self.hass.async_create_task(
-                        self._notify_kid(
+                        self._notify_kid_translated(
                             kid_id,
-                            title="KidsChores: Chore Overdue",
-                            message=f"Your chore '{chore_info.get('name', 'Unnamed Chore')}' is overdue",
+                            title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE,
+                            message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE,
+                            message_data={
+                                "chore_name": chore_info.get("name", "Unnamed Chore"),
+                                "due_date": chore_info.get(
+                                    const.DATA_CHORE_DUE_DATE, "Unknown"
+                                ),
+                            },
                             extra_data=extra_data,
                         )
                     )
                     self.hass.async_create_task(
-                        self._notify_parents(
+                        self._notify_parents_translated(
                             kid_id,
-                            title="KidsChores: Chore Overdue",
-                            message=f"{kh.get_kid_name_by_id(self, kid_id)}'s chore '{chore_info.get('name', 'Unnamed Chore')}' is overdue",
+                            title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE,
+                            message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE,
+                            message_data={
+                                "chore_name": chore_info.get("name", "Unnamed Chore"),
+                                "due_date": chore_info.get(
+                                    const.DATA_CHORE_DUE_DATE, "Unknown"
+                                ),
+                            },
                             actions=actions,
                             extra_data=extra_data,
                         )
@@ -8803,6 +8872,63 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 kid_id,
             )
 
+    async def _notify_kid_translated(
+        self,
+        kid_id: str,
+        title_key: str,
+        message_key: str,
+        message_data: Optional[dict[str, Any]] = None,
+        actions: Optional[list[dict[str, str]]] = None,
+        extra_data: Optional[dict] = None,
+    ) -> None:
+        """Notify a kid using translated title and message.
+
+        Args:
+            kid_id: The internal ID of the kid
+            title_key: Translation key for the notification title
+            message_key: Translation key for the notification message
+            message_data: Dictionary of placeholder values for message formatting
+            actions: Optional list of notification actions
+            extra_data: Optional extra data for mobile notifications
+        """
+        # Load translations using Home Assistant's API
+        translations = await async_get_translations(
+            self.hass,
+            language=self.hass.config.language,
+            category="notifications",
+            integrations={const.DOMAIN},
+        )
+
+        # Convert const key to JSON key by removing prefix
+        # e.g., "notification_title_chore_assigned" -> "chore_assigned"
+        json_key = title_key.replace("notification_title_", "").replace(
+            "notification_message_", ""
+        )
+
+        # Look up translations with flattened key format
+        title = translations.get(
+            f"component.{const.DOMAIN}.notifications.{json_key}.title",
+            title_key,
+        )
+        message_template = translations.get(
+            f"component.{const.DOMAIN}.notifications.{json_key}.message",
+            message_key,
+        )
+
+        # Format message with placeholders
+        try:
+            message = message_template.format(**(message_data or {}))
+        except KeyError as err:
+            const.LOGGER.warning(
+                "Missing placeholder %s for notification '%s'",
+                err,
+                json_key,
+            )
+            message = message_template  # Use template without formatting
+
+        # Call original notification method
+        await self._notify_kid(kid_id, title, message, actions, extra_data)
+
     async def _notify_parents(
         self,
         kid_id: str,
@@ -8856,6 +8982,63 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     parent_id,
                 )
 
+    async def _notify_parents_translated(
+        self,
+        kid_id: str,
+        title_key: str,
+        message_key: str,
+        message_data: Optional[dict[str, Any]] = None,
+        actions: Optional[list[dict[str, str]]] = None,
+        extra_data: Optional[dict] = None,
+    ) -> None:
+        """Notify parents using translated title and message.
+
+        Args:
+            kid_id: The internal ID of the kid (to find associated parents)
+            title_key: Translation key for the notification title
+            message_key: Translation key for the notification message
+            message_data: Dictionary of placeholder values for message formatting
+            actions: Optional list of notification actions
+            extra_data: Optional extra data for mobile notifications
+        """
+        # Load translations using Home Assistant's API
+        translations = await async_get_translations(
+            self.hass,
+            language=self.hass.config.language,
+            category="notifications",
+            integrations={const.DOMAIN},
+        )
+
+        # Convert const key to JSON key by removing prefix
+        # e.g., "notification_title_chore_assigned" -> "chore_assigned"
+        json_key = title_key.replace("notification_title_", "").replace(
+            "notification_message_", ""
+        )
+
+        # Look up translations with flattened key format
+        title = translations.get(
+            f"component.{const.DOMAIN}.notifications.{json_key}.title",
+            title_key,
+        )
+        message_template = translations.get(
+            f"component.{const.DOMAIN}.notifications.{json_key}.message",
+            message_key,
+        )
+
+        # Format message with placeholders
+        try:
+            message = message_template.format(**(message_data or {}))
+        except KeyError as err:
+            const.LOGGER.warning(
+                "Missing placeholder %s for notification '%s'",
+                err,
+                json_key,
+            )
+            message = message_template  # Use template without formatting
+
+        # Call original notification method
+        await self._notify_parents(kid_id, title, message, actions, extra_data)
+
     async def remind_in_minutes(
         self,
         kid_id: str,
@@ -8878,7 +9061,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             reward_id,
             minutes,
         )
-        await asyncio.sleep(minutes * 60)
+        # Use 5 seconds in test mode, convert minutes to seconds in production
+        delay_seconds = 5 if self._test_mode else (minutes * 60)
+        await asyncio.sleep(delay_seconds)
 
         kid_info = self.kids_data.get(kid_id)
         if not kid_info:
@@ -8922,10 +9107,16 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 },
             ]
             extra_data = {const.DATA_KID_ID: kid_id, const.DATA_CHORE_ID: chore_id}
-            await self._notify_parents(
+            await self._notify_parents_translated(
                 kid_id,
-                title="KidsChores: Reminder for Pending Chore",
-                message=f"Reminder: {kid_info.get(const.DATA_KID_NAME, 'A kid')} has '{chore_info.get(const.DATA_CHORE_NAME, 'Unnamed Chore')}' chore pending approval.",
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_REMINDER,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_REMINDER,
+                message_data={
+                    "chore_name": chore_info.get(
+                        const.DATA_CHORE_NAME, "Unnamed Chore"
+                    ),
+                    "kid_name": kid_info.get(const.DATA_KID_NAME, "A kid"),
+                },
                 actions=actions,
                 extra_data=extra_data,
             )
@@ -8960,10 +9151,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             extra_data = {const.DATA_KID_ID: kid_id, const.DATA_REWARD_ID: reward_id}
             reward_info = self.rewards_data.get(reward_id, {})
             reward_name = reward_info.get(const.DATA_REWARD_NAME, "the reward")
-            await self._notify_parents(
+            await self._notify_parents_translated(
                 kid_id,
-                title="KidsChores: Reminder for Pending Reward",
-                message=f"Reminder: {kid_info.get(const.DATA_KID_NAME, 'A kid')} has '{reward_name}' reward pending approval.",
+                title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_REMINDER,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_REMINDER,
+                message_data={
+                    "reward_name": reward_name,
+                    "kid_name": kid_info.get(const.DATA_KID_NAME, "A kid"),
+                },
                 actions=actions,
                 extra_data=extra_data,
             )

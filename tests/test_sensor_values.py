@@ -339,3 +339,107 @@ async def test_points_earned_sensors_use_new_schema(
     # Verify it's a valid points value
     value = point_stats.get(stats_key, 0)
     assert isinstance(value, (int, float)), f"{stats_key} should be numeric"
+
+
+# ============================================================================
+# HELPER FUNCTION DEMONSTRATIONS - Testing Standards Maturity Initiative
+# ============================================================================
+# Added: 2025-12-20 (Phase 1)
+# Purpose: Demonstrate new helper functions for test creation
+# See: tests/conftest.py for helper implementations
+# ============================================================================
+
+
+async def test_helper_get_kid_by_name_demonstration(
+    hass: HomeAssistant,
+    scenario_full: tuple,
+) -> None:
+    """Demonstrate get_kid_by_name() helper - avoids hardcoded indices.
+
+    BEFORE (old pattern):
+        kid_id = name_to_id_map["kid:Zoë"]
+        kid_data = coordinator.kids_data[kid_id]
+
+    AFTER (new helper):
+        kid = get_kid_by_name(coordinator.data, "Zoë")
+    """
+    from tests.conftest import get_kid_by_name
+
+    config_entry, _ = scenario_full  # Don't need name_to_id_map anymore
+    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+
+    # OLD PATTERN: Use name_to_id_map lookup
+    # kid_id = name_to_id_map["kid:Zoë"]
+    # kid_data = coordinator.kids_data[kid_id]
+
+    # NEW PATTERN: Get kid directly by name
+    kid = get_kid_by_name(coordinator.data, "Zoë")
+
+    assert kid["name"] == "Zoë"
+    assert "internal_id" in kid
+    assert "points" in kid
+
+
+async def test_helper_get_chore_by_name_demonstration(
+    hass: HomeAssistant,
+    scenario_full: tuple,
+) -> None:
+    """Demonstrate get_chore_by_name() helper - finds chores by name.
+
+    BEFORE (old pattern):
+        chore_id = name_to_id_map["chore:Wåter the plänts"]
+        chore_data = coordinator.chores_data[chore_id]
+
+    AFTER (new helper):
+        chore = get_chore_by_name(coordinator.data, "Wåter the plänts")
+    """
+    from tests.conftest import get_chore_by_name
+
+    config_entry, _ = scenario_full
+    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+
+    # OLD PATTERN: Use name_to_id_map lookup
+    # chore_id = name_to_id_map["chore:Wåter the plänts"]
+    # chore_data = coordinator.chores_data[chore_id]
+
+    # NEW PATTERN: Get chore directly by name
+    chore = get_chore_by_name(coordinator.data, "Wåter the plänts")
+
+    assert chore["name"] == "Wåter the plänts"
+    assert "internal_id" in chore
+    assert "state" in chore
+
+
+async def test_helper_create_test_datetime_demonstration(
+    hass: HomeAssistant,  # pylint: disable=unused-argument
+) -> None:
+    """Demonstrate create_test_datetime() helper - UTC datetime creation.
+
+    BEFORE (old pattern):
+        from datetime import datetime, timedelta, timezone
+        overdue_date = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+
+    AFTER (new helper):
+        overdue_date = create_test_datetime(days_offset=-7)
+    """
+    from tests.conftest import create_test_datetime
+    from datetime import datetime, timezone
+
+    # OLD PATTERN: Manual datetime construction
+    # from datetime import datetime, timedelta, timezone
+    # overdue_date = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+
+    # NEW PATTERN: Use helper for clean datetime creation
+    overdue_date = create_test_datetime(days_offset=-7)
+    # future_date = create_test_datetime(days_offset=7, hours_offset=2)  # Example only
+
+    # Verify dates are valid ISO format with timezone
+    assert "T" in overdue_date
+    assert "+" in overdue_date or "Z" in overdue_date
+
+    # Verify date is approximately 7 days ago (within reason)
+    parsed = datetime.fromisoformat(overdue_date.replace("Z", "+00:00"))
+    now = datetime.now(timezone.utc)
+    diff_days = (now - parsed).days
+    assert 6 <= diff_days <= 8, "Overdue date should be ~7 days ago"
+

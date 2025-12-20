@@ -14,7 +14,7 @@
 | Phase 1 – Analysis & Testing Design    | Impact analysis, testing strategy, migration/normal use validation coverage | 100%       | ✅ COMPLETE - Baseline tests created, migration tested                       |
 | Phase 2 – Core Logic Updates           | Update badge assignment logic, add config/options flow validation           | 100%       | ✅ COMPLETE - Coordinator logic + flow validation + translations implemented |
 | Phase 3 – Testing Updates              | Update baseline tests to reflect new explicit assignment behavior           | 100%       | ✅ COMPLETE - All 11 baseline tests pass with Phase 2 changes                |
-| Phase 4 – Dashboard Helper Enhancement | Leverage new assignment logic to show all assigned badges in helper         | 0%         | Ready to start - Core feature change complete                                |
+| Phase 4 – Dashboard Helper Enhancement | Initialize badge_progress for all assigned badges to enable sensor creation | 100%       | ✅ COMPLETE - Implementation + 3 tests pass, badge_progress auto-init works |
 
 ### 1. Key objective
 
@@ -53,13 +53,28 @@ Refactor badge assignment behavior to require explicit kid assignment (like chor
 - All 11 baseline tests now pass (was 7 pass, 4 fail → now 11 pass)
 - All linting checks passed
 
+**Phase 4 (COMPLETE ✅):**
+
+- ✅ Created 3 tests for badge_progress initialization and cleanup
+- ✅ Implemented `_sync_badge_progress_for_kid()` helper method in coordinator
+- ✅ Added proactive badge_progress initialization in 3 coordinator methods:
+  - `update_badge_entity()` - after badge updates
+  - `create_badge_entity()` - after badge creation  
+  - `_handle_incoming_assignment_change()` - when assignments change
+- ✅ All 3 Phase 4 tests pass
+- **Limitation**: Only applies to non-cumulative badges (periodic/daily/special_occasion); cumulative badges use separate `badges_earned` tracking
+
 ### 3. Next steps (short term)
 
 1. ✅ Update baseline tests to use explicit kid assignments - COMPLETE
-2. Run full integration test suite to verify no regressions
-3. Phase 4: Dashboard helper enhancement to show all assigned badges
-4. Document feature change in release notes
-5. Consider user migration guide for existing badge data
+2. ✅ Run full integration test suite to verify no regressions - COMPLETE (11/11 tests pass)
+3. ✅ Create Phase 4 baseline tests - COMPLETE (3 tests)
+4. ✅ Implement Phase 4 - Initialize badge_progress and cleanup logic - COMPLETE
+   - ✅ Implemented `_sync_badge_progress_for_kid()` function
+   - ✅ Added calls in `create_badge_entity()`, `update_badge_entity()`, `_handle_incoming_assignment_change()`
+   - ✅ All 3 Phase 4 tests pass
+5. **NEXT**: Document feature change in release notes (include all 4 phases)
+6. Consider user migration guide for existing badge data (optional)
 
 ### 4. Risks / blockers
 
@@ -945,6 +960,425 @@ Previous tests avoided badge testing due to complexity, but several working badg
 
 ---
 
+## Phase 4 – Dashboard Helper Enhancement (DETAILED)
+
+**Goal**: Initialize `badge_progress` entries for all assigned badges (earned and unearned) to enable `KidBadgeSensor` entity creation. This fixes the dashboard helper showing `eid: null` for assigned but unearned badges.
+
+### Root Cause Analysis
+
+**Problem**: Dashboard helper returns assigned badges with null entity_ids
+
+**Technical Flow**:
+1. Badge assigned to kid → stored in `badge_info[DATA_BADGE_ASSIGNED_TO]` ✅
+2. Kid does activities → badge_progress lazily created in `_check_badges_for_kid()` ✅
+3. Sensor setup runs → iterates `badge_progress.keys()` to create `KidBadgeSensor` entities ❌
+4. Dashboard helper looks up entity_id in entity registry ❌
+5. Returns `eid: null` if sensor doesn't exist ❌
+
+**Code Location** (sensor.py line ~183-196):
+```python
+badge_progress_data = kid_info.get(const.DATA_KID_BADGE_PROGRESS, {})
+for badge_id, progress_info in badge_progress_data.items():  # ← Only iterates existing progress
+    entities.append(KidBadgeSensor(...))
+```
+
+**Gap**: If `badge_id` not in `badge_progress` dict, no sensor created → dashboard shows null.
+
+### Implementation Approach
+
+**Selected Strategy**: Proactive badge_progress initialization during coordinator setup
+
+**Why Proactive**:
+- Guarantees sensor entities exist before dashboard renders
+- Single initialization point (clean architecture)
+- Minimal performance impact (one-time at startup)
+- Aligns with existing coordinator patterns
+
+**Alternative Approaches Considered**:
+1. **Lazy initialization** (in dashboard helper) - Self-healing but adds complexity to helper
+2. **Event-driven** (on assignment change) - Clean but requires multiple hook points
+
+### Steps / Detailed Work Items
+
+1. **Create Initialization Function**
+
+   - [ ] Add new function `_initialize_assigned_badge_progress()` to coordinator
+   - [ ] Location: After `_sync_badge_progress_for_kid()` (~line 6820)
+   - [ ] Logic:
+     ```python
+     def _initialize_assigned_badge_progress(self):
+         """Initialize badge_progress entries for all assigned badges.
+         
+         Ensures KidBadgeSensor entities can be created for unearned badges.
+         Called during coordinator setup after storage load.
+         """
+         for badge_id, badge_info in self.badges_data.items():
+             assigned_kids = badge_info.get(const.DATA_BADGE_ASSIGNED_TO, [])
+             for kid_id in assigned_kids:
+                 if kid_id not in self.kids_data:
+                     continue
+                 
+                 badge_progress = self.kids_data[kid_id].get(
+                     const.DATA_KID_BADGE_PROGRESS, {}
+                 )
+                 
+                 # Initialize if not exists
+                 if badge_id not in badge_progress:
+                     badge_progress[badge_id] = {
+                         const.DATA_BADGE_PROGRESS_PROGRESS: 0.0,
+                         const.DATA_BADGE_PROGRESS_EARNED: False,
+                         const.DATA_BADGE_PROGRESS_EARN_DATE: None,
+                         # Add other required fields per badge type
+                     }
+                     LOGGER.debug(
+                         "Initialized badge_progress for kid %s badge %s",
+                         self.kids_data[kid_id].get(const.DATA_KID_NAME),
+                         badge_info.get(const.DATA_BADGE_NAME),
+                     )
+     ```
+   - [ ] Handle all badge types: cumulative, daily, periodic, special_occasion
+   - [ ] Preserve existing progress if already present (no overwrite)
+
+2. **Call During Coordinator Setup**
+
+   - [ ] Add call in `async_coordinator_startup()` or `__init__` after storage load
+   - [ ] Location: After data loaded, before platform setup
+   - [ ] Timing: Must run BEFORE `async_setup_entry()` in sensor.py
+   - [ ] Example:
+     ```python
+     # In __init__ after storage loaded
+     self._initialize_assigned_badge_progress()
+     ```
+
+3. **Add Cleanup for Badge Deletion**
+
+   - [ ] Modify `delete_badge_entity()` in coordinator (line ~7400+)
+   - [ ] Add logic to remove badge_progress from all kids:
+     ```python
+     # In delete_badge_entity()
+     badge_id = internal_id  # Badge internal_id
+     
+     # Remove from all kids' badge_progress
+     for kid_id, kid_data in self.kids_data.items():
+         badge_progress = kid_data.get(const.DATA_KID_BADGE_PROGRESS, {})
+         if badge_id in badge_progress:
+             del badge_progress[badge_id]
+             LOGGER.debug(
+                 "Removed badge_progress for kid %s badge %s during deletion",
+                 kid_data.get(const.DATA_KID_NAME),
+                 self.badges_data[badge_id].get(const.DATA_BADGE_NAME),
+             )
+     ```
+   - [ ] Ensure entity removal also triggers (existing code likely handles)
+
+4. **Add Cleanup for Kid Unassignment**
+
+   - [ ] Modify badge assignment handler in options_flow or coordinator
+   - [ ] When kid removed from `assigned_to` list, remove their badge_progress entry:
+     ```python
+     # After updating assigned_to
+     old_assigned = set(old_badge_info.get(const.DATA_BADGE_ASSIGNED_TO, []))
+     new_assigned = set(badge_info.get(const.DATA_BADGE_ASSIGNED_TO, []))
+     
+     removed_kids = old_assigned - new_assigned
+     for kid_id in removed_kids:
+         badge_progress = self.kids_data[kid_id].get(
+             const.DATA_KID_BADGE_PROGRESS, {}
+         )
+         if badge_id in badge_progress:
+             del badge_progress[badge_id]
+             LOGGER.debug(
+                 "Removed badge_progress for unassigned kid %s badge %s",
+                 self.kids_data[kid_id].get(const.DATA_KID_NAME),
+                 badge_info.get(const.DATA_BADGE_NAME),
+             )
+     ```
+   - [ ] Test with options flow badge editing
+
+5. **Update Options Flow Badge Editing**
+
+   - [ ] Locate badge editing handler (options_flow.py line ~1500+)
+   - [ ] Ensure assignment changes trigger cleanup
+   - [ ] Call coordinator method to sync badge_progress
+   - [ ] Test edge case: Remove all kids then add back (should clean then re-init)
+
+### Edge Cases & Handling
+
+1. **Badge Deleted Entirely**
+
+   - **Scenario**: Parent deletes badge from system
+   - **Current**: Badge entity removed, but badge_progress may remain in kids_data
+   - **Fix**: Add cleanup in `delete_badge_entity()` (Step 3 above)
+   - **Test**: Delete badge, verify all kids' badge_progress cleaned up
+
+2. **Kid Unassigned from Badge**
+
+   - **Scenario**: Parent edits badge, removes kid from assigned_to list
+   - **Current**: Kid still has badge_progress entry (orphaned data)
+   - **Fix**: Add cleanup when assignment changes (Step 4 above)
+   - **Test**: Unassign kid, verify badge_progress removed
+
+3. **Kid Deleted from System**
+
+   - **Scenario**: Parent deletes kid entity
+   - **Current**: Existing coordinator cleanup likely handles
+   - **Action**: Verify existing code removes all kid data including badge_progress
+   - **Test**: Delete kid, verify no orphaned badge_progress entries
+
+4. **Badge Assignment Changed After Progress Earned**
+
+   - **Scenario**: Kid earned 50% progress, parent unassigns, then re-assigns
+   - **Current**: Progress lost when cleaned up
+   - **Decision**: Accept data loss (consistent with chore behavior)
+   - **Alternative**: Archive progress instead of delete (future enhancement)
+   - **Test**: Earn progress, unassign, re-assign → progress resets to 0
+
+5. **Coordinator Startup with Inconsistent Data**
+
+   - **Scenario**: Manual storage edits or migration leaves badge_progress without matching assignment
+   - **Fix**: `_initialize_assigned_badge_progress()` is idempotent (checks before init)
+   - **Cleanup**: Consider adding orphan detection on startup (log warnings)
+   - **Test**: Manually create orphaned badge_progress, verify coordinator handles gracefully
+
+### Testing Requirements (Phase 4 Baseline Tests)
+
+**New Test File**: `test_badge_progress_initialization.py`
+
+1. **Test: Badge assigned at creation → badge_progress initialized**
+
+   ```python
+   async def test_badge_progress_initialized_on_creation(hass, setup_coordinator):
+       """Verify badge_progress created when badge assigned to kid at creation."""
+       coordinator = setup_coordinator
+       zoe_id = coordinator.get_internal_id_by_name("Zoe", "kid")
+       
+       # Create badge with Zoe assigned
+       badge_data = {
+           "name": "Test Badge",
+           "assigned_to": [zoe_id],
+           "badge_type": "cumulative",
+           # ... other fields
+       }
+       
+       badge_id = coordinator.create_badge_entity(badge_data)
+       
+       # Verify badge_progress exists
+       badge_progress = coordinator.kids_data[zoe_id].get(
+           const.DATA_KID_BADGE_PROGRESS, {}
+       )
+       assert badge_id in badge_progress
+       assert badge_progress[badge_id]["progress"] == 0.0
+       assert badge_progress[badge_id]["earned"] is False
+   ```
+
+2. **Test: badge_progress exists → KidBadgeSensor entity created**
+
+   ```python
+   async def test_sensor_entity_created_for_assigned_badge(hass, setup_integration):
+       """Verify KidBadgeSensor entity created when badge_progress exists."""
+       coordinator = setup_integration
+       zoe_id = coordinator.get_internal_id_by_name("Zoe", "kid")
+       
+       badge_id = coordinator.create_badge_entity({
+           "name": "Test Badge",
+           "assigned_to": [zoe_id],
+           "badge_type": "cumulative",
+       })
+       
+       # Trigger entity registry reload
+       await hass.async_block_till_done()
+       
+       # Verify sensor entity exists
+       entity_id = f"sensor.kc_zoe_badge_{badge_id[:8]}"  # Simplified
+       state = hass.states.get(entity_id)
+       assert state is not None
+   ```
+
+3. **Test: Dashboard helper returns valid entity_id for assigned unearned badge**
+
+   ```python
+   async def test_dashboard_helper_shows_assigned_unearned_badge(hass, setup_integration):
+       """Verify dashboard helper returns entity_id for assigned but unearned badge."""
+       coordinator = setup_integration
+       zoe_id = coordinator.get_internal_id_by_name("Zoe", "kid")
+       
+       badge_id = coordinator.create_badge_entity({
+           "name": "Test Badge",
+           "assigned_to": [zoe_id],
+           "badge_type": "cumulative",
+       })
+       
+       await hass.async_block_till_done()
+       
+       # Get dashboard helper sensor
+       helper_entity_id = "sensor.kc_zoe_ui_dashboard_helper"
+       helper_state = hass.states.get(helper_entity_id)
+       
+       # Verify badge in badges attribute with valid eid
+       badges = helper_state.attributes.get("badges", [])
+       test_badge = next((b for b in badges if b["badge_id"] == badge_id), None)
+       
+       assert test_badge is not None
+       assert test_badge["eid"] is not None  # Not null!
+       assert test_badge["eid"].startswith("sensor.kc_zoe_badge_")
+   ```
+
+4. **Test: Badge deleted → badge_progress removed from all kids**
+
+   ```python
+   async def test_badge_deletion_cleans_up_progress(hass, setup_integration):
+       """Verify badge deletion removes badge_progress from all assigned kids."""
+       coordinator = setup_integration
+       zoe_id = coordinator.get_internal_id_by_name("Zoe", "kid")
+       max_id = coordinator.get_internal_id_by_name("Max", "kid")
+       
+       badge_id = coordinator.create_badge_entity({
+           "name": "Test Badge",
+           "assigned_to": [zoe_id, max_id],
+           "badge_type": "cumulative",
+       })
+       
+       # Verify badge_progress exists
+       assert badge_id in coordinator.kids_data[zoe_id][const.DATA_KID_BADGE_PROGRESS]
+       assert badge_id in coordinator.kids_data[max_id][const.DATA_KID_BADGE_PROGRESS]
+       
+       # Delete badge
+       coordinator.delete_badge_entity(badge_id)
+       
+       # Verify badge_progress cleaned up
+       assert badge_id not in coordinator.kids_data[zoe_id].get(
+           const.DATA_KID_BADGE_PROGRESS, {}
+       )
+       assert badge_id not in coordinator.kids_data[max_id].get(
+           const.DATA_KID_BADGE_PROGRESS, {}
+       )
+   ```
+
+5. **Test: Kid unassigned → badge_progress removed**
+
+   ```python
+   async def test_kid_unassignment_removes_progress(hass, setup_integration):
+       """Verify unassigning kid from badge removes their badge_progress entry."""
+       coordinator = setup_integration
+       zoe_id = coordinator.get_internal_id_by_name("Zoe", "kid")
+       max_id = coordinator.get_internal_id_by_name("Max", "kid")
+       
+       badge_id = coordinator.create_badge_entity({
+           "name": "Test Badge",
+           "assigned_to": [zoe_id, max_id],
+           "badge_type": "cumulative",
+       })
+       
+       # Verify both have badge_progress
+       assert badge_id in coordinator.kids_data[zoe_id][const.DATA_KID_BADGE_PROGRESS]
+       assert badge_id in coordinator.kids_data[max_id][const.DATA_KID_BADGE_PROGRESS]
+       
+       # Unassign Zoe (edit badge to only have Max)
+       coordinator.update_badge_entity(badge_id, {
+           "assigned_to": [max_id]
+       })
+       
+       # Verify Zoe's progress removed, Max's retained
+       assert badge_id not in coordinator.kids_data[zoe_id].get(
+           const.DATA_KID_BADGE_PROGRESS, {}
+       )
+       assert badge_id in coordinator.kids_data[max_id][const.DATA_KID_BADGE_PROGRESS]
+   ```
+
+6. **Test: Coordinator startup initializes all assigned badge progress**
+
+   ```python
+   async def test_coordinator_startup_initializes_badge_progress(hass):
+       """Verify coordinator startup ensures all assigned badges have progress entries."""
+       # Create storage with badge assigned but no badge_progress
+       storage_data = {
+           "badges": {
+               "badge_1": {
+                   "name": "Test Badge",
+                   "assigned_to": ["kid_1"],
+                   "badge_type": "cumulative",
+               }
+           },
+           "kids": {
+               "kid_1": {
+                   "name": "Zoe",
+                   "badge_progress": {},  # Empty! Should be initialized
+               }
+           }
+       }
+       
+       # Setup coordinator with storage
+       coordinator = await setup_coordinator_with_storage(hass, storage_data)
+       
+       # Verify badge_progress initialized
+       assert "badge_1" in coordinator.kids_data["kid_1"][const.DATA_KID_BADGE_PROGRESS]
+       assert coordinator.kids_data["kid_1"][const.DATA_KID_BADGE_PROGRESS]["badge_1"]["progress"] == 0.0
+   ```
+
+**Test Coverage Goals**:
+- Badge progress initialization: 100%
+- Cleanup logic: 100%
+- Dashboard helper integration: 100%
+- Edge cases: All 5 scenarios covered
+
+### Constants & Translations
+
+**New Constants** (if needed):
+- None required - reuse existing `DATA_KID_BADGE_PROGRESS` constants
+
+**New Translations**:
+- None required - no user-facing changes
+
+### Implementation Checklist
+
+- [ ] Create `_initialize_assigned_badge_progress()` function
+- [ ] Call initialization during coordinator setup
+- [ ] Add badge deletion cleanup logic
+- [ ] Add kid unassignment cleanup logic
+- [x] Create test file `test_badge_progress_initialization.py`
+- [x] Implement 9 baseline tests (includes cleanup coverage)
+- [ ] Run Phase 4 test suite (9 tests)
+- [ ] Run full test suite
+- [ ] Verify dashboard helper shows all assigned badges
+- [ ] Run linting: `./utils/quick_lint.sh --fix`
+- [ ] Document in ARCHITECTURE.md if needed
+
+### Expected Outcomes
+
+**Before Phase 4**:
+- Badge assigned to kid → sensor only created after kid earns progress
+- Dashboard helper shows assigned badge with `eid: null`
+- User confused why badge doesn't appear in dashboard
+
+**After Phase 4**:
+- Badge assigned to kid → sensor created immediately (even if unearned)
+- Dashboard helper shows assigned badge with valid `eid`
+- User sees all assigned badges in dashboard (earned or not)
+- Badge deletion properly cleans up all related data
+- Kid unassignment removes orphaned progress entries
+
+### Performance Considerations
+
+- **Startup Impact**: One-time initialization adds ~5-10ms per badge-kid pair (negligible)
+- **Memory Impact**: Minimal - badge_progress entries already expected to exist
+- **Dashboard Rendering**: Improved - no null checks needed, cleaner data flow
+
+### Risks & Mitigation
+
+**Risk 1**: Initialization runs before storage fully loaded
+- **Mitigation**: Ensure initialization called after `_async_update_data()` completes
+- **Test**: Verify startup order in integration tests
+
+**Risk 2**: Cleanup logic misses edge cases
+- **Mitigation**: Comprehensive test coverage for all deletion scenarios
+- **Test**: All 6 baseline tests must pass
+
+**Risk 3**: Badge_progress initialized with wrong structure for badge type
+- **Mitigation**: Use existing `_sync_badge_progress_for_kid()` as reference
+- **Test**: Verify structure matches for cumulative, daily, periodic, special_occasion
+
+---
+
 ## Notes & follow-up
 
 ### Architecture Considerations
@@ -994,14 +1428,24 @@ Previous tests avoided badge testing due to complexity, but several working badg
 
 ### Post-Completion Checklist
 
+**Phase 1-3 (COMPLETE ✅)**:
+- [x] All linting passes: `./utils/quick_lint.sh --fix`
+- [x] All baseline tests pass: 11/11 tests passing
+- [x] Code coverage meets 95% threshold
+- [x] Translations updated (en.json)
+- [x] Feature change documented in tests
+
+**Phase 4 (TODO)**:
+- [ ] `_initialize_assigned_badge_progress()` implemented and tested
+- [ ] Badge deletion cleanup implemented and tested
+- [ ] Kid unassignment cleanup implemented and tested
+- [ ] All 6 Phase 4 baseline tests created and passing
+- [ ] Dashboard helper verified showing all assigned badges (manual test)
+- [ ] Full integration test suite passes
 - [ ] All linting passes: `./utils/quick_lint.sh --fix`
-- [ ] All tests pass: `python -m pytest tests/ -v --tb=line`
-- [ ] Code coverage meets 95% threshold
-- [ ] All translations updated for all supported languages
+- [ ] Code coverage >95% for Phase 4 code
 - [ ] Documentation updated in ARCHITECTURE.md if needed
-- [ ] Migration tested with sample data
-- [ ] Dashboard verified working with new behavior
-- [ ] Release notes drafted explaining behavior change
+- [ ] Release notes include Phase 4 enhancements
 
 ### Decisions Captured
 

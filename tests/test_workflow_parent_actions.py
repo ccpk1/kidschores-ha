@@ -518,7 +518,7 @@ async def test_multiple_badges_awarded_simultaneously(
 
     # Set lifetime points to cross multiple thresholds
     # This is scenario-dependent, just verify structure
-    coordinator.kids_data[kid_id]["lifetime_points"] = 100.0
+    coordinator.kids_data[kid_id]["point_stats"]["points_net_all_time"] = 100.0
 
     # Apply large bonus to potentially earn multiple badges
     # Note: Full scenario may not have bonus buttons for all kids

@@ -740,6 +740,16 @@ async def apply_scenario_via_options_flow(
                 coordinator.kids_data[kid_id]["point_stats"]["points_net_all_time"] = (
                     float(kid_progress["lifetime_points"])
                 )
+            # Also support direct point_stats structure
+            elif (
+                "point_stats" in kid_progress
+                and "points_net_all_time" in kid_progress["point_stats"]
+            ):
+                if "point_stats" not in coordinator.kids_data[kid_id]:
+                    coordinator.kids_data[kid_id]["point_stats"] = {}
+                coordinator.kids_data[kid_id]["point_stats"]["points_net_all_time"] = (
+                    float(kid_progress["point_stats"]["points_net_all_time"])
+                )
 
             # Mark chores as completed
             for chore_name in kid_progress.get("chores_completed", []):
@@ -931,7 +941,11 @@ async def _apply_scenario_data(
                 "award_items": [],
                 "point_multiplier": badge.get("points_multiplier", 1.0),
             },
-            "assigned_to": [],
+            "assigned_to": [
+                name_to_id_map.get(f"kid:{kid_name}")
+                for kid_name in badge.get("assigned_to", [])
+                if f"kid:{kid_name}" in name_to_id_map
+            ],
             "earned_by": [],
             "reset_schedule": {
                 "frequency": "none",
@@ -959,6 +973,16 @@ async def _apply_scenario_data(
                 coordinator.kids_data[kid_id]["point_stats"] = {}
             coordinator.kids_data[kid_id]["point_stats"]["points_net_all_time"] = float(
                 kid_progress["lifetime_points"]
+            )
+        # Also support direct point_stats structure
+        elif (
+            "point_stats" in kid_progress
+            and "points_net_all_time" in kid_progress["point_stats"]
+        ):
+            if "point_stats" not in coordinator.kids_data[kid_id]:
+                coordinator.kids_data[kid_id]["point_stats"] = {}
+            coordinator.kids_data[kid_id]["point_stats"]["points_net_all_time"] = float(
+                kid_progress["point_stats"]["points_net_all_time"]
             )
 
         # Mark chores as completed
@@ -1131,3 +1155,245 @@ async def scenario_full(  # pylint: disable=redefined-outer-name
     scenario_data = load_scenario_yaml("full")
     name_to_id_map = await apply_scenario_direct(hass, init_integration, scenario_data)
     return init_integration, name_to_id_map
+
+
+# ============================================================================
+# HELPER FUNCTIONS - Testing Standards Maturity Initiative (Phase 1)
+# ============================================================================
+# Added: 2025-12-20
+# Purpose: Reduce boilerplate, eliminate hardcoded values, standardize patterns
+# See: docs/in-process/TESTING_STANDARDS_MATURITY_PLAN.md
+# ============================================================================
+
+
+def construct_entity_id(domain: str, kid_name: str, entity_type: str) -> str:
+    """
+    Construct entity ID matching integration's slugification logic.
+
+    Args:
+        domain: Entity domain (e.g., "sensor", "button")
+        kid_name: Kid's display name from testdata (e.g., "Alex", "Sarah")
+        entity_type: Entity type suffix (e.g., "points", "lifetime_points")
+
+    Returns:
+        Complete entity ID (e.g., "sensor.kc_alex_points")
+
+    Examples:
+        >>> construct_entity_id("sensor", "Alex", "points")
+        "sensor.kc_alex_points"
+        >>> construct_entity_id("button", "Sarah Jane", "approve_all_chores")
+        "button.kc_sarah_jane_approve_all_chores"
+        >>> construct_entity_id("sensor", "Zoë", "points")
+        "sensor.kc_zoe_points"
+    """
+    from homeassistant.util import slugify
+
+    # Use HA's slugify to match entity registry normalization (removes diacritics)
+    kid_slug = slugify(kid_name)
+    return f"{domain}.kc_{kid_slug}_{entity_type}"
+
+
+async def assert_entity_state(
+    hass: HomeAssistant,
+    entity_id: str,
+    expected_state: str,
+    expected_attrs: dict[str, Any] | None = None,
+) -> Any:
+    """
+    Assert entity exists with expected state and optionally attributes.
+
+    Args:
+        hass: Home Assistant instance
+        entity_id: Full entity ID to check
+        expected_state: Expected state value
+        expected_attrs: Optional dict of attribute keys/values to verify
+
+    Returns:
+        State object (for further assertions if needed)
+
+    Raises:
+        AssertionError: If entity not found or state/attributes don't match
+
+    Examples:
+        >>> await assert_entity_state(hass, "sensor.kc_alex_points", "100")
+        >>> await assert_entity_state(
+        ...     hass,
+        ...     "sensor.kc_alex_points",
+        ...     "100",
+        ...     {"unit_of_measurement": "points", "icon": "mdi:star"}
+        ... )
+    """
+    state = hass.states.get(entity_id)
+    assert state is not None, f"Entity {entity_id} not found in state machine"
+    assert state.state == expected_state, (
+        f"Entity {entity_id} state mismatch: "
+        f"expected '{expected_state}', got '{state.state}'"
+    )
+    if expected_attrs:
+        for key, value in expected_attrs.items():
+            actual = state.attributes.get(key)
+            assert actual == value, (
+                f"Entity {entity_id} attribute '{key}' mismatch: "
+                f"expected '{value}', got '{actual}'"
+            )
+    return state
+
+
+def get_kid_by_name(data: dict[str, Any], name: str) -> dict[str, Any]:
+    """
+    Find kid in coordinator data by name (avoids hardcoded indices).
+
+    Args:
+        data: Coordinator data dict (from coordinator.data)
+        name: Kid's display name (e.g., "Alex", "Zoë")
+
+    Returns:
+        Kid data dict
+
+    Raises:
+        ValueError: If kid not found
+
+    Examples:
+        >>> kid = get_kid_by_name(coordinator.data, "Alex")
+        >>> assert kid["points"] == 100
+    """
+    kids = data.get(DATA_KIDS, {})
+    for _, kid_data in kids.items():
+        if kid_data.get("name") == name:
+            return kid_data
+    raise ValueError(f"Kid '{name}' not found in coordinator data")
+
+
+def get_chore_by_name(
+    data: dict[str, Any],
+    chore_name: str,
+    kid_name: str | None = None,
+) -> dict[str, Any]:
+    """
+    Find chore in coordinator data by name, optionally filtered by kid.
+
+    Args:
+        data: Coordinator data dict (from coordinator.data)
+        chore_name: Chore's display name (e.g., "Clean Room")
+        kid_name: Optional kid name filter (for shared chores)
+
+    Returns:
+        Chore data dict
+
+    Raises:
+        ValueError: If chore not found
+
+    Examples:
+        >>> chore = get_chore_by_name(coordinator.data, "Clean Room")
+        >>> chore = get_chore_by_name(coordinator.data, "Set Table", kid_name="Alex")
+    """
+    chores = data.get(DATA_CHORES, {})
+    candidates = [c for c in chores.values() if c.get("name") == chore_name]
+
+    if not candidates:
+        raise ValueError(f"Chore '{chore_name}' not found in coordinator data")
+
+    if kid_name and len(candidates) > 1:
+        # Filter by kid if multiple matches (e.g., shared chores)
+        kid = get_kid_by_name(data, kid_name)
+        candidates = [
+            c for c in candidates if c.get("assigned_to") == kid["internal_id"]
+        ]
+        if not candidates:
+            raise ValueError(f"Chore '{chore_name}' not found for kid '{kid_name}'")
+
+    return candidates[0]
+
+
+def get_reward_by_name(
+    data: dict[str, Any],
+    reward_name: str,
+    kid_name: str | None = None,
+) -> dict[str, Any]:
+    """
+    Find reward in coordinator data by name, optionally filtered by kid.
+
+    Args:
+        data: Coordinator data dict (from coordinator.data)
+        reward_name: Reward's display name (e.g., "Ice Cream")
+        kid_name: Optional kid name filter
+
+    Returns:
+        Reward data dict
+
+    Raises:
+        ValueError: If reward not found
+
+    Examples:
+        >>> reward = get_reward_by_name(coordinator.data, "Ice Cream")
+        >>> reward = get_reward_by_name(coordinator.data, "Movie", kid_name="Alex")
+    """
+    rewards = data.get(DATA_REWARDS, {})
+    candidates = [r for r in rewards.values() if r.get("name") == reward_name]
+
+    if not candidates:
+        raise ValueError(f"Reward '{reward_name}' not found in coordinator data")
+
+    if kid_name and len(candidates) > 1:
+        # Filter by kid if multiple matches
+        kid = get_kid_by_name(data, kid_name)
+        candidates = [
+            r for r in candidates if r.get("assigned_to") == kid["internal_id"]
+        ]
+        if not candidates:
+            raise ValueError(f"Reward '{reward_name}' not found for kid '{kid_name}'")
+
+    return candidates[0]
+
+
+def create_test_datetime(days_offset: int = 0, hours_offset: int = 0) -> str:
+    """
+    Create UTC ISO datetime string for testing, offset from now.
+
+    Args:
+        days_offset: Days to offset from current time (negative = past)
+        hours_offset: Hours to offset from current time (negative = past)
+
+    Returns:
+        UTC ISO datetime string compatible with testdata format
+
+    Examples:
+        >>> overdue_date = create_test_datetime(days_offset=-7)  # 7 days ago
+        >>> future_date = create_test_datetime(days_offset=7)     # 7 days from now
+        >>> soon = create_test_datetime(hours_offset=2)            # 2 hours from now
+    """
+    from datetime import datetime, timedelta, timezone
+
+    test_dt = datetime.now(timezone.utc) + timedelta(
+        days=days_offset, hours=hours_offset
+    )
+    return test_dt.isoformat()
+
+
+def make_overdue(base_date: str | None = None, days: int = 7) -> str:
+    """
+    Create an overdue datetime string N days in the past.
+
+    Args:
+        base_date: Optional base date to offset from (ISO format)
+        days: Number of days in the past (default: 7)
+
+    Returns:
+        UTC ISO datetime string representing overdue date
+
+    Examples:
+        >>> overdue = make_overdue()  # 7 days ago from now
+        >>> overdue = make_overdue(days=14)  # 14 days ago
+        >>> overdue = make_overdue(base_date="2024-12-25T00:00:00+00:00", days=3)
+    """
+    from datetime import datetime, timedelta, timezone
+
+    if base_date:
+        # Parse the base date and offset it
+        base_dt = datetime.fromisoformat(base_date.replace("Z", "+00:00"))
+        result_dt = base_dt - timedelta(days=days)
+    else:
+        # Offset from now
+        result_dt = datetime.now(timezone.utc) - timedelta(days=days)
+
+    return result_dt.isoformat()

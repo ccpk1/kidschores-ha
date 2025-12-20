@@ -134,7 +134,7 @@ STORAGE_V42_MINIMAL = {
             "internal_id": "zoe-uuid",
             "name": "Zoë",
             "points": 10.0,
-            "lifetime_points": 10.0,
+            "point_stats": {"points_net_all_time": 10.0},
             "badges_earned": {},  # v42 uses dict, not list
             "claimed_chores": [],
             "approved_chores": [],
@@ -152,7 +152,7 @@ STORAGE_V42_MINIMAL = {
             "redeemed_rewards": [],
             "overdue_notifications": {},
             "chore_states": {},
-            "point_stats": {
+            "points_stats_daily": {
                 "points_by_source_today": {
                     "chores": 10.0,
                     "bonuses": 0.0,

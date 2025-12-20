@@ -1,8 +1,10 @@
 # Testing Agent Instructions - KidsChores Integration
 
-Quick reference for AI agents working on the KidsChores test suite. Consult [TESTING_GUIDE.md](TESTING_GUIDE.md) if issues persist after 3 attempts.
+**Quick-start guide for AI agents.** For comprehensive details, see **[TESTING_GUIDE.md](TESTING_GUIDE.md)**.
 
-> **Terminal Requirement**: Run every command (tests, lint, helpers) inside an actual terminal/console session so output is captured and visible; never “simulate” command execution.
+> **Terminal Requirement**: Run every command (tests, lint, helpers) inside an actual terminal/console session so output is captured and visible; never "simulate" command execution.
+
+---
 
 ## Quick Commands
 
@@ -17,70 +19,112 @@ python -m pytest tests/test_workflow_parent_actions.py -v
 python -m pytest tests/ -x
 ```
 
-## Critical Decision Tree
+---
 
-### Step 1: Identify Test Type
+## Test Creation Workflow
 
-| Test Type      | File Pattern                                   | Data Loading       |
-| -------------- | ---------------------------------------------- | ------------------ |
-| UI Workflow    | `test_config_flow.py`, `test_options_flow*.py` | Options flow       |
-| Business Logic | `test_coordinator.py`, `test_services.py`      | Direct coordinator |
-| User Workflow  | `test_workflow_*.py`                           | Direct + reload    |
-| Dashboard      | `test_dashboard_templates.py`                  | Mock states        |
+### 1. Identify Test Type → See [TESTING_GUIDE.md § Test Categories](TESTING_GUIDE.md#test-categories)
 
-### Step 2: Load Data Correctly
+| Test Type      | File Pattern              | Data Loading       | Full Details                                               |
+| -------------- | ------------------------- | ------------------ | ---------------------------------------------------------- |
+| UI Workflow    | `test_config_flow.py`     | Options flow       | [Config Flow Tests](TESTING_GUIDE.md#1-config-flow-tests) |
+| Options Flow   | `test_options_flow*.py`   | Options flow       | [Options Flow Tests](TESTING_GUIDE.md#2-options-flow-tests) |
+| Business Logic | `test_coordinator.py`     | Direct coordinator | [Coordinator Tests](TESTING_GUIDE.md#3-coordinator-tests) |
+| Services       | `test_services.py`        | Direct coordinator | [Service Tests](TESTING_GUIDE.md#4-service-tests)         |
+| User Workflow  | `test_workflow_*.py`      | Direct + reload    | [Workflow Tests](TESTING_GUIDE.md#5-workflow-tests-kid-chores) |
+| Dashboard      | `test_dashboard_templates.py` | Mock states     | [Dashboard Tests](TESTING_GUIDE.md#dashboard-template-testing) |
+
+### 2. Use Helper Functions (conftest.py)
+
+**Entity ID Construction:**
+```python
+entity_id = construct_entity_id("sensor", "Alex", "points")
+# Returns: "sensor.kc_alex_points"
+```
+
+**Entity State Verification:**
+```python
+await assert_entity_state(hass, entity_id, "100", {"icon": "mdi:star"})
+# Asserts state and optional attributes
+```
+
+**Data Access by Name (not index):**
+```python
+kid = get_kid_by_name(coordinator.data, "Zoë")
+chore = get_chore_by_name(coordinator.data, "Clean Room")
+reward = get_reward_by_name(coordinator.data, "Ice Cream")
+```
+
+**Datetime Creation:**
+```python
+overdue_date = create_test_datetime(days_offset=-7)  # 7 days ago
+future_date = create_test_datetime(days_offset=7)    # 7 days from now
+```
+
+**See [TESTING_GUIDE.md § Test Fixtures](TESTING_GUIDE.md#test-fixtures) for complete helper reference.**
+
+### 3. Load Test Data → See [TESTING_GUIDE.md § Data Loading Methods](TESTING_GUIDE.md#data-loading-methods)
 
 **Options Flow** (UI simulation):
-
 ```python
 result = await hass.config_entries.options.async_init(config_entry.entry_id)
-result = await hass.config_entries.options.async_configure(
-    result["flow_id"], user_input={"next_step": "add_kid"}
-)
+# Navigate through flow steps...
 ```
 
 **Direct Loading** (business logic):
-
 ```python
 config_entry, name_to_id_map = scenario_minimal
 coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 kid_id = name_to_id_map["kid:Zoë"]
 ```
 
-### Step 3: Execute Action
+**See [TESTING_GUIDE.md § Data Loading Methods](TESTING_GUIDE.md#data-loading-methods) for detailed comparison.**
 
-**Direct entity access** (workflow tests):
-
-```python
-button_entity = None
-for entity in hass.data.get("entity_components", {}).get("button", {}).entities:
-    if entity.entity_id == button_id:
-        button_entity = entity
-        break
-
-button_entity._context = Context(user_id=mock_hass_users["parent1"].id)
-
-with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-    await button_entity.async_press()
-```
+---
 
 ## Essential Patterns
 
+For detailed explanations, see **[TESTING_GUIDE.md § Testing Patterns](TESTING_GUIDE.md#testing-patterns)**.
+
 1. **Platform Reload**: `await reload_entity_platforms(hass, config_entry)`
-2. **Direct Entity Access**: Find entity in `hass.data.get("entity_components", {}).get("button", {}).entities`
+2. **Direct Entity Access**: Use helper `get_entity_by_id()` or search `hass.data.get("entity_components", {}).get("button", {}).entities`
 3. **Mock Notifications**: `with patch.object(coordinator, "_notify_kid", new=AsyncMock())`
 4. **Set User Context**: `button_entity._context = Context(user_id=mock_hass_users["parent1"].id)`
 5. **Test Real Structures**: `penalty_applies`, `bonus_applies`, `point_stats`, `badges_earned`
-6. **Badge Cycle Reset**: Check `badges_earned` or `baseline`, NOT `cycle_points` (resets to 0)
+
+---
+
+## Test Data Scenarios
+
+See **[TESTING_GUIDE.md § Test Fixtures](TESTING_GUIDE.md#test-fixtures)** for complete details.
+
+| Fixture | Kids | Chores | Badges | Bonuses | Penalties | Rewards | Use Case |
+|---------|------|--------|--------|---------|-----------|---------|----------|
+| `scenario_minimal` | 1 (Zoë) | 2 | 1 | 1 | 1 | 1 | Single-kid workflows |
+| `scenario_medium` | 2 | 4 (shared) | 2 | 2 | 2 | 2 | Multi-kid coordination |
+| `scenario_full` | 3 | 7 (mixed) | 5 | 2 | 3 | 5 | Badge maintenance, complex |
+
+**Quick Access:**
+```python
+async def test_example(hass, scenario_minimal, mock_hass_users):
+    config_entry, name_to_id_map = scenario_minimal
+    kid_id = name_to_id_map["kid:Zoë"]
+    chore_id = name_to_id_map["chore:Clean room!"]
+```
+
+---
 
 ## Troubleshooting (3-Attempt Rule)
 
-If issue persists after 3 attempts, consult [TESTING_GUIDE.md](TESTING_GUIDE.md) sections:
+**If issue persists after 3 attempts, consult [TESTING_GUIDE.md](TESTING_GUIDE.md):**
 
-- **Debugging** (line ~1100) - Full troubleshooting guide
-- **Lessons Learned** (line ~1200) - Common pitfalls
-- **Testing Patterns** (line ~900) - Detailed code patterns
-- **Data Loading Methods** (line ~100) - When to use each method
+- **[§ Debugging](TESTING_GUIDE.md#debugging)** - Full troubleshooting guide
+- **[§ Lessons Learned](TESTING_GUIDE.md#lessons-learned)** - Common pitfalls and solutions
+- **[§ Testing Patterns](TESTING_GUIDE.md#testing-patterns)** - Detailed code patterns
+- **[§ Data Loading Methods](TESTING_GUIDE.md#data-loading-methods)** - When to use each approach
+- **[§ Dashboard Template Testing](TESTING_GUIDE.md#dashboard-template-testing)** - Jinja2 validation patterns
+
+---
 
 ## Code Quality Requirements
 
@@ -125,13 +169,12 @@ python -m pytest tests/ -v --tb=line
 
 ### Optional: Full Type Checking (slower, ~1-2 minutes)
 
+```bash
 python utils/lint_check.py --types
 
 # For detailed checks on specific files:
-
 python utils/lint_check.py --file path/to/file.py
-
-````
+```
 
 **See [utils/README_LINTING.md](../utils/README_LINTING.md) for complete linting guide.**
 
@@ -158,7 +201,7 @@ python utils/lint_check.py --file path/to/file.py
 # pylint: disable=unused-argument  # Fixtures needed for test setup
 
 from unittest.mock import AsyncMock
-````
+```
 
 **Place immediately after docstring, before imports**
 
@@ -180,4 +223,4 @@ from unittest.mock import AsyncMock
 
 ---
 
-**Last Updated**: December 13, 2024
+**Last Updated**: December 20, 2024

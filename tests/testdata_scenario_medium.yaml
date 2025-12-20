@@ -46,6 +46,7 @@ badges:
   - name: "Brønze Står"
     type: "cumulative"
     threshold: 400
+    assigned_to: ["Zoë", "Max!"] # Phase 2: Explicit assignment required
     icon: "mdi:star"
     award: "+5 bonus points"
     points_multiplier: 1.05
@@ -128,10 +129,12 @@ progress:
     chores_completed: ["Feed the cåts", "Stär sweep"]
     badges_earned: ["Dåily Dëlight"]
     points: 35
-    lifetime_points: 350
+    point_stats:
+      points_net_all_time: 350.0
   Max!:
     chores_completed: ["Pick up Lëgo!"]
     badges_earned: []
     points: 15
-    lifetime_points: 180
+    point_stats:
+      points_net_all_time: 180.0
 # Test focus: Multi-kid coordination, shared chores, badge progression, reward redemption
