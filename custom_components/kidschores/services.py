@@ -336,16 +336,24 @@ def async_setup_services(hass: HomeAssistant):
         # Check if kid has enough points
         kid_info = coordinator.kids_data.get(kid_id)
         reward_info = coordinator.rewards_data.get(reward_id)
-        if not kid_info or not reward_info:
-            const.LOGGER.warning(
-                "Redeem Reward: %s", const.TRANS_KEY_ERROR_ENTITY_NOT_FOUND
-            )
+        if not kid_info:
+            const.LOGGER.warning("Redeem Reward: Kid not found")
             raise HomeAssistantError(
                 translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_ENTITY_NOT_FOUND,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
                 translation_placeholders={
-                    "entity_type": "Kid or Reward",
-                    "name": kid_name or reward_name or "unknown",
+                    "entity_type": const.LABEL_KID,
+                    "name": kid_name or "unknown",
+                },
+            )
+        if not reward_info:
+            const.LOGGER.warning("Redeem Reward: Reward not found")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_REWARD,
+                    "name": reward_name or "unknown",
                 },
             )
 

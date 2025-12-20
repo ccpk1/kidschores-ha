@@ -1,0 +1,267 @@
+{
+  "audit_date": "2025-12-19",
+  "auditor": "Phase 0 Framework Application - Entity Platform Files",
+  "files_audited": 5,
+  "total_loc": 5968,
+
+  "executive_summary": {
+    "overall_finding": "Entity files show EXCELLENT constant usage patterns. Nearly all attribute keys use const.ATTR_* or const.DATA_* constants. Dashboard helper sensor uses hardcoded dictionary keys for JSON structure (intentional design choice for frontend consumption).",
+    "key_insight": "Entity platform code is already 95%+ compliant. Primary finding: Dashboard helper sensor uses 12 hardcoded attribute keys ('chores', 'rewards', 'chore_id', etc.) for JSON API structure consumed by frontend dashboard.",
+    "recommendation": "Dashboard helper attribute keys should be added as ATTR_DASHBOARD_* constants for consistency, though current implementation is functional and intentional."
+  },
+
+  "sensor_py": {
+    "file": "custom_components/kidschores/sensor.py",
+    "loc": 3374,
+    "sections": {
+      "logging": {
+        "total_statements": 0,
+        "compliance_percent": "N/A",
+        "notes": "No logging in sensor.py - entities use coordinator logging. This is acceptable pattern for entity platforms."
+      },
+      "user_facing_strings": {
+        "total": 0,
+        "hardcoded": 0,
+        "compliance_percent": 100,
+        "notes": "All entity names use translation_key. No hardcoded user-facing strings."
+      },
+      "attributes": {
+        "extra_state_attributes_methods": 17,
+        "const_attr_usage": 195,
+        "const_data_usage": 350,
+        "compliance_percent": 95,
+        "hardcoded_keys_found": 12,
+        "details": [
+          "Dashboard helper sensor (_build_pending_approvals and extra_state_attributes):",
+          "  - 'chores': list attribute key",
+          "  - 'rewards': list attribute key",
+          "  - 'chore_id': nested dict key",
+          "  - 'chore_name': nested dict key",
+          "  - 'reward_id': nested dict key",
+          "  - 'reward_name': nested dict key",
+          "  - 'timestamp': nested dict key",
+          "  - 'approve_button_eid': nested dict key",
+          "  - 'disapprove_button_eid': nested dict key",
+          "  - 'id': nested dict key (shorthand)",
+          "  - 'name': nested dict key (shorthand)",
+          "  - 'cost': nested dict key"
+        ],
+        "rationale": "These are JSON API structure keys for dashboard consumption. Frontend expects specific key names. Could be constants, but functional as-is."
+      },
+      "translation_keys": {
+        "found": 15,
+        "coverage_percent": 100,
+        "notes": "All sensor translation_key attributes properly set. No missing translations."
+      }
+    },
+    "summary": "Excellent compliance. Dashboard helper uses 12 hardcoded keys for JSON structure - consider ATTR_DASHBOARD_* constants.",
+    "constants_needed": {
+      "ATTR_DASHBOARD_CHORES": "Top-level chores list key",
+      "ATTR_DASHBOARD_REWARDS": "Top-level rewards list key",
+      "ATTR_DASHBOARD_CHORE_ID": "Nested chore ID key",
+      "ATTR_DASHBOARD_CHORE_NAME": "Nested chore name key",
+      "ATTR_DASHBOARD_REWARD_ID": "Nested reward ID key",
+      "ATTR_DASHBOARD_REWARD_NAME": "Nested reward name key",
+      "ATTR_DASHBOARD_TIMESTAMP": "Approval timestamp key",
+      "ATTR_DASHBOARD_APPROVE_BUTTON_EID": "Approve button entity_id key",
+      "ATTR_DASHBOARD_DISAPPROVE_BUTTON_EID": "Disapprove button entity_id key",
+      "ATTR_DASHBOARD_ID": "Generic ID key",
+      "ATTR_DASHBOARD_NAME": "Generic name key",
+      "ATTR_DASHBOARD_COST": "Reward cost key"
+    }
+  },
+
+  "button_py": {
+    "file": "custom_components/kidschores/button.py",
+    "loc": 1396,
+    "sections": {
+      "logging": {
+        "total_statements": 36,
+        "debug": 25,
+        "info": 0,
+        "warning": 0,
+        "error": 11,
+        "compliance_percent": 100,
+        "notes": "All logging uses lazy evaluation. Appropriate debug/error severity."
+      },
+      "user_facing_strings": {
+        "total": 0,
+        "hardcoded": 0,
+        "compliance_percent": 100,
+        "notes": "All button entities use translation_key. No hardcoded strings."
+      },
+      "attributes": {
+        "extra_state_attributes_methods": 9,
+        "const_attr_usage": 17,
+        "const_data_usage": 29,
+        "compliance_percent": 100,
+        "hardcoded_keys_found": 0,
+        "notes": "All attribute keys use const.ATTR_* or const.DATA_* constants."
+      },
+      "translation_keys": {
+        "found": 12,
+        "coverage_percent": 100,
+        "notes": "All button translation_key attributes properly set."
+      }
+    },
+    "summary": "Perfect compliance. All logging, attributes, and translations use constants.",
+    "constants_needed": {}
+  },
+
+  "calendar_py": {
+    "file": "custom_components/kidschores/calendar.py",
+    "loc": 747,
+    "sections": {
+      "logging": {
+        "total_statements": 1,
+        "compliance_percent": 100,
+        "notes": "Minimal logging - one statement using lazy evaluation."
+      },
+      "user_facing_strings": {
+        "total": 0,
+        "hardcoded": 0,
+        "compliance_percent": 100,
+        "notes": "Calendar uses translation_key. No hardcoded strings."
+      },
+      "attributes": {
+        "extra_state_attributes_methods": 1,
+        "const_attr_usage": 1,
+        "const_data_usage": 18,
+        "compliance_percent": 100,
+        "hardcoded_keys_found": 0,
+        "notes": "Single extra_state_attributes method returns {const.ATTR_KID_NAME: self._kid_name}. Perfect."
+      },
+      "translation_keys": {
+        "found": 1,
+        "coverage_percent": 100
+      }
+    },
+    "summary": "Perfect compliance. Minimal, clean implementation.",
+    "constants_needed": {}
+  },
+
+  "select_py": {
+    "file": "custom_components/kidschores/select.py",
+    "loc": 328,
+    "sections": {
+      "logging": {
+        "total_statements": 0,
+        "compliance_percent": "N/A",
+        "notes": "No logging - entity platform delegates to coordinator."
+      },
+      "user_facing_strings": {
+        "total": 0,
+        "hardcoded": 0,
+        "compliance_percent": 100
+      },
+      "attributes": {
+        "extra_state_attributes_methods": 1,
+        "const_attr_usage": 1,
+        "const_data_usage": 8,
+        "compliance_percent": 100,
+        "hardcoded_keys_found": 0
+      },
+      "translation_keys": {
+        "found": 1,
+        "coverage_percent": 100
+      }
+    },
+    "summary": "Perfect compliance. Clean select entity implementation.",
+    "constants_needed": {}
+  },
+
+  "datetime_py": {
+    "file": "custom_components/kidschores/datetime.py",
+    "loc": 123,
+    "sections": {
+      "logging": {
+        "total_statements": 0,
+        "compliance_percent": "N/A"
+      },
+      "user_facing_strings": {
+        "total": 0,
+        "hardcoded": 0,
+        "compliance_percent": 100
+      },
+      "attributes": {
+        "extra_state_attributes_methods": 1,
+        "const_attr_usage": 1,
+        "const_data_usage": 1,
+        "compliance_percent": 100,
+        "hardcoded_keys_found": 0
+      },
+      "translation_keys": {
+        "found": 1,
+        "coverage_percent": 100
+      }
+    },
+    "summary": "Perfect compliance. Minimal datetime entity.",
+    "constants_needed": {}
+  },
+
+  "consolidated_findings": {
+    "total_loc": 5968,
+    "total_logging_statements": 37,
+    "logging_compliance": "100%",
+    "total_hardcoded_strings": 0,
+    "total_hardcoded_attribute_keys": 12,
+    "attribute_compliance": "95%+",
+    "translation_compliance": "100%",
+    "constants_needed": {
+      "ATTR_DASHBOARD_*": 12,
+      "total": 12
+    },
+    "code_locations_to_update": {
+      "sensor_py_dashboard_helper": 12,
+      "total": 12
+    },
+    "key_findings": [
+      "Entity platform files are already 95%+ compliant with constant usage",
+      "Dashboard helper sensor intentionally uses hardcoded keys for JSON API structure",
+      "All entity translation_key attributes properly set - 100% coverage",
+      "Logging patterns excellent where present (button.py shows best practice)",
+      "No user-facing hardcoded strings found in any entity file",
+      "sensor.py and button.py have no logging (delegate to coordinator) - acceptable pattern",
+      "All extra_state_attributes methods use const.ATTR_* and const.DATA_* extensively"
+    ],
+    "recommendations": [
+      "OPTIONAL: Add ATTR_DASHBOARD_* constants for dashboard helper JSON keys (low priority - functional as-is)",
+      "Entity files require minimal remediation - already follow best practices",
+      "Focus remediation efforts on config_flow.py and flow_helpers.py (higher priority)",
+      "Dashboard helper design is intentional - JSON structure consumed by frontend dashboard YAML"
+    ]
+  },
+
+  "phase_readiness": {
+    "phase_0_complete": true,
+    "phase_1b_complete": true,
+    "ready_for_phase_2": true,
+    "blockers": [],
+    "priority_assessment": "Entity files LOW priority for remediation. Config/options flows HIGH priority."
+  },
+
+  "comparison_with_flow_files": {
+    "config_flow_py": {
+      "hardcoded_strings": 15,
+      "constants_needed": 40,
+      "priority": "HIGH"
+    },
+    "options_flow_py": {
+      "hardcoded_strings": 0,
+      "constants_needed": 12,
+      "priority": "LOW"
+    },
+    "flow_helpers_py": {
+      "hardcoded_strings": 109,
+      "constants_needed": 53,
+      "priority": "HIGH"
+    },
+    "entity_files_total": {
+      "hardcoded_strings": 0,
+      "hardcoded_attribute_keys": 12,
+      "constants_needed": 12,
+      "priority": "LOW"
+    },
+    "recommendation": "Prioritize flow_helpers.py and config_flow.py for Phase 2. Entity files can be deferred or considered optional improvement."
+  }
+}

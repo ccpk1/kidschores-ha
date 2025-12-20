@@ -977,6 +977,14 @@ def validate_badge_common_inputs(
     # --- Start Common Validation ---
     badge_name = user_input.get(const.CFOF_BADGES_INPUT_NAME, "").strip()
 
+    # Feature Change v4.2: Validate assigned_to is not empty for badge types that support it
+    if include_assigned_to:
+        assigned_to = user_input.get(const.CFOF_BADGES_INPUT_ASSIGNED_TO, [])
+        if not assigned_to or len(assigned_to) == 0:
+            errors[const.CFOF_BADGES_INPUT_ASSIGNED_TO] = (
+                const.TRANS_KEY_CFOF_BADGE_REQUIRES_ASSIGNMENT
+            )
+
     if not badge_name:
         errors[const.CFOF_BADGES_INPUT_NAME] = const.TRANS_KEY_CFOF_INVALID_BADGE_NAME
 
@@ -1008,6 +1016,27 @@ def validate_badge_common_inputs(
             user_input[const.CFOF_BADGES_INPUT_TARGET_TYPE] = (
                 const.BADGE_TARGET_THRESHOLD_TYPE_POINTS
             )
+
+            # Validate threshold value
+            target_threshold = user_input.get(
+                const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE
+            )
+
+            if target_threshold is None or str(target_threshold).strip() == "":
+                errors[const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = (
+                    const.TRANS_KEY_CFOF_TARGET_THRESHOLD_REQUIRED
+                )
+            else:
+                try:
+                    value = float(target_threshold)
+                    if value <= 0:
+                        errors[const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = (
+                            const.TRANS_KEY_CFOF_INVALID_BADGE_TARGET_THRESHOLD_VALUE
+                        )
+                except (TypeError, ValueError):
+                    errors[const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = (
+                        const.TRANS_KEY_CFOF_INVALID_BADGE_TARGET_THRESHOLD_VALUE
+                    )
 
             # Validate maintenance rules
             maintenance_rules = user_input.get(
@@ -1199,7 +1228,7 @@ def validate_badge_common_inputs(
                 )
             elif start_date and end_date < start_date:
                 errors[const.CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE] = (
-                    "end_date_before_start_date"
+                    const.TRANS_KEY_CFOF_END_DATE_BEFORE_START
                 )
 
         # Validate grace period for cumulative badges
@@ -1381,6 +1410,12 @@ def build_badge_common_schema(
             ),
         )
 
+        # Ensure default_threshold is always convertible to float
+        try:
+            default_threshold_float = float(default_threshold)
+        except (TypeError, ValueError):
+            default_threshold_float = float(const.DEFAULT_BADGE_TARGET_THRESHOLD_VALUE)
+
         if not (is_cumulative or is_special_occasion):
             # Include the target_type field for non-cumulative badges
             schema_fields.update(
@@ -1404,9 +1439,7 @@ def build_badge_common_schema(
                 {
                     vol.Required(
                         const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE,
-                        default=float(
-                            default_threshold
-                        ),  # Ensure the default is a float
+                        default=default_threshold_float,
                     ): vol.All(
                         selector.NumberSelector(
                             selector.NumberSelectorConfig(
@@ -1415,7 +1448,7 @@ def build_badge_common_schema(
                                 step=1,
                             )
                         ),
-                        vol.Coerce(float),  # Coerce the input to an integer
+                        vol.Coerce(float),  # Coerce the input to a float
                         vol.Range(min=0),  # Ensure non-negative values
                     ),
                 }

@@ -106,10 +106,12 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             if selection:
                 return await self._handle_restore_backup(selection)
 
-            errors["base"] = "invalid_selection"
+            errors["base"] = const.CFOP_ERROR_INVALID_SELECTION
 
         # Build selection menu
-        storage_path = Path(self.hass.config.path(".storage", const.STORAGE_KEY))
+        storage_path = Path(
+            self.hass.config.path(const.STORAGE_PATH_SEGMENT, const.STORAGE_KEY)
+        )
         storage_file_exists = await self.hass.async_add_executor_job(
             storage_path.exists
         )
@@ -359,7 +361,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             ).strip()
 
             if not json_text:
-                errors["base"] = "empty_json"
+                errors["base"] = const.CFOP_ERROR_EMPTY_JSON
             else:
                 try:
                     # Parse JSON
@@ -367,19 +369,25 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
                     # Validate structure
                     if not fh.validate_backup_json(json_text):
-                        errors["base"] = "invalid_structure"
+                        errors["base"] = const.CFOP_ERROR_INVALID_STRUCTURE
                     else:
                         # Determine data format and extract storage data
                         storage_data = pasted_data
 
                         # Handle diagnostic format (KC 4.0+ diagnostic exports)
-                        if "home_assistant" in pasted_data and "data" in pasted_data:
+                        if (
+                            const.DATA_KEY_HOME_ASSISTANT in pasted_data
+                            and const.DATA_KEY_DATA in pasted_data
+                        ):
                             const.LOGGER.info("Processing diagnostic export format")
-                            storage_data = pasted_data["data"]
+                            storage_data = pasted_data[const.DATA_KEY_DATA]
                         # Handle Store format (KC 3.0/3.1/4.0beta1)
-                        elif "version" in pasted_data and "data" in pasted_data:
+                        elif (
+                            const.DATA_KEY_VERSION in pasted_data
+                            and const.DATA_KEY_DATA in pasted_data
+                        ):
                             const.LOGGER.info("Processing Store format")
-                            storage_data = pasted_data["data"]
+                            storage_data = pasted_data[const.DATA_KEY_DATA]
                         # Raw storage data format
                         else:
                             const.LOGGER.info("Processing raw storage format")
@@ -387,15 +395,17 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
                         # Always wrap in HA Store format for storage file
                         wrapped_data = {
-                            "version": 1,
+                            const.DATA_KEY_VERSION: 1,
                             "minor_version": 1,
-                            "key": const.STORAGE_KEY,
-                            "data": storage_data,
+                            const.DATA_KEY_KEY: const.STORAGE_KEY,
+                            const.DATA_KEY_DATA: storage_data,
                         }
 
                         # Write to storage file
                         storage_path = Path(
-                            self.hass.config.path(".storage", const.STORAGE_KEY)
+                            self.hass.config.path(
+                                const.STORAGE_PATH_SEGMENT, const.STORAGE_KEY
+                            )
                         )
 
                         # Write wrapped data to storage (directory created by HA/test fixtures)
@@ -415,10 +425,10 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
                 except json.JSONDecodeError as err:
                     const.LOGGER.error("Invalid JSON pasted: %s", err)
-                    errors["base"] = "invalid_json"
+                    errors["base"] = const.CFOP_ERROR_INVALID_JSON
                 except Exception as err:  # pylint: disable=broad-except
                     const.LOGGER.error("Failed to process pasted JSON: %s", err)
-                    errors["base"] = "unknown"
+                    errors["base"] = const.CFOP_ERROR_UNKNOWN
 
         # Show form with text area
         data_schema = vol.Schema(

@@ -149,7 +149,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             chore_info.setdefault(
                 const.CONF_NOTIFY_ON_DISAPPROVAL, const.DEFAULT_NOTIFY_ON_DISAPPROVAL
             )
-        const.LOGGER.info("INFO: Chore data migration complete.")
+        const.LOGGER.info("Chore data migration complete.")
 
     def _migrate_kid_data(self):
         """Migrate each kid's data to include new fields if missing."""
@@ -817,7 +817,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             # kid_info.pop(const.DATA_KID_POINTS_EARNED_MONTHLY_DEPRECATED, None)
             # kid_info.pop(const.DATA_KID_MAX_POINTS_EVER, None)
 
-        const.LOGGER.info("INFO: Legacy point stats migration complete.")
+        const.LOGGER.info("Legacy point stats migration complete.")
 
     # -------------------------------------------------------------------------------------
     # Normalize Lists
@@ -917,16 +917,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     const.DATA_META_LAST_MIGRATION_DATE: datetime.now(
                         dt_util.UTC
                     ).isoformat(),
-                    const.DATA_META_MIGRATIONS_APPLIED: [
-                        "datetime_utc",
-                        "chore_data_structure",
-                        "kid_data_structure",
-                        "badge_restructure",
-                        "cumulative_badge_progress",
-                        "badges_earned_dict",
-                        "point_stats",
-                        "chore_data_and_streaks",
-                    ],
+                    const.DATA_META_MIGRATIONS_APPLIED: const.DEFAULT_MIGRATIONS_APPLIED,
                 }
 
                 # Remove old top-level schema_version if present (v42 → v43 migration)
@@ -1587,19 +1578,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         """Remove old/deprecated sensor entities from the entity registry that are no longer used."""
 
         ent_reg = er.async_get(hass)
-        old_suffixes = [
-            "_badges",
-            "_reward_claims",
-            "_reward_approvals",
-            "_chore_claims",
-            "_chore_approvals",
-            "_streak",
-        ]
 
         for entity_id, entity_entry in list(ent_reg.entities.items()):
             if not entity_entry.unique_id.startswith(f"{entry.entry_id}_"):
                 continue
-            if any(entity_entry.unique_id.endswith(suffix) for suffix in old_suffixes):
+            if any(
+                entity_entry.unique_id.endswith(suffix)
+                for suffix in const.DEPRECATED_SUFFIXES
+            ):
                 ent_reg.async_remove(entity_id)
                 const.LOGGER.debug(
                     "DEBUG: Removed deprecated Entity '%s', UID '%s'",
@@ -2653,7 +2639,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             kid_data: Dictionary with kid fields to update
         """
         if kid_id not in self._data.get(const.DATA_KIDS, {}):
-            raise ValueError(f"Kid {kid_id} not found")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_KID,
+                    "name": kid_id,
+                },
+            )
 
         # Check if name is changing
         old_name = self._data[const.DATA_KIDS][kid_id].get(const.DATA_KID_NAME)
@@ -2675,7 +2668,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             kid_id: Internal ID of the kid to delete
         """
         if kid_id not in self._data.get(const.DATA_KIDS, {}):
-            raise ValueError(f"Kid {kid_id} not found")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_KID,
+                    "name": kid_id,
+                },
+            )
 
         kid_name = self._data[const.DATA_KIDS][kid_id].get(const.DATA_KID_NAME, kid_id)
         del self._data[const.DATA_KIDS][kid_id]
@@ -2696,7 +2696,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     def update_parent_entity(self, parent_id: str, parent_data: dict[str, Any]) -> None:
         """Update parent entity in storage (Options Flow - no reload)."""
         if parent_id not in self._data.get(const.DATA_PARENTS, {}):
-            raise ValueError(f"Parent {parent_id} not found")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_PARENT,
+                    "name": parent_id,
+                },
+            )
         self._update_parent(parent_id, parent_data)
         self._persist()
         self.async_update_listeners()
@@ -2704,7 +2711,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     def delete_parent_entity(self, parent_id: str) -> None:
         """Delete parent from storage."""
         if parent_id not in self._data.get(const.DATA_PARENTS, {}):
-            raise ValueError(f"Parent {parent_id} not found")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_PARENT,
+                    "name": parent_id,
+                },
+            )
 
         parent_name = self._data[const.DATA_PARENTS][parent_id].get(
             const.DATA_PARENT_NAME, parent_id
@@ -2721,7 +2735,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         Returns True if assigned kids changed (indicating reload is needed).
         """
         if chore_id not in self._data.get(const.DATA_CHORES, {}):
-            raise ValueError(f"Chore {chore_id} not found")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_CHORE,
+                    "name": chore_id,
+                },
+            )
         assignments_changed = self._update_chore(chore_id, chore_data)
         # Recalculate badges affected by chore changes
         self._recalculate_all_badges()
@@ -2734,7 +2755,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     def delete_chore_entity(self, chore_id: str) -> None:
         """Delete chore from storage and cleanup references."""
         if chore_id not in self._data.get(const.DATA_CHORES, {}):
-            raise ValueError(f"Chore {chore_id} not found")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_CHORE,
+                    "name": chore_id,
+                },
+            )
 
         chore_name = self._data[const.DATA_CHORES][chore_id].get(
             const.DATA_CHORE_NAME, chore_id
@@ -2760,7 +2788,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     def update_badge_entity(self, badge_id: str, badge_data: dict[str, Any]) -> None:
         """Update badge entity in storage (Options Flow - no reload)."""
         if badge_id not in self._data.get(const.DATA_BADGES, {}):
-            raise ValueError(f"Badge {badge_id} not found")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_BADGE,
+                    "name": badge_id,
+                },
+            )
         self._update_badge(badge_id, badge_data)
         # Recalculate badge progress for all kids
         self._recalculate_all_badges()
@@ -2770,7 +2805,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     def delete_badge_entity(self, badge_id: str) -> None:
         """Delete badge from storage and cleanup references."""
         if badge_id not in self._data.get(const.DATA_BADGES, {}):
-            raise ValueError(f"Badge {badge_id} not found")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_BADGE,
+                    "name": badge_id,
+                },
+            )
 
         badge_name = self._data[const.DATA_BADGES][badge_id].get(
             const.DATA_BADGE_NAME, badge_id
@@ -2787,7 +2829,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     def update_reward_entity(self, reward_id: str, reward_data: dict[str, Any]) -> None:
         """Update reward entity in storage (Options Flow - no reload)."""
         if reward_id not in self._data.get(const.DATA_REWARDS, {}):
-            raise ValueError(f"Reward {reward_id} not found")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_REWARD,
+                    "name": reward_id,
+                },
+            )
         self._update_reward(reward_id, reward_data)
         self._persist()
         self.async_update_listeners()
@@ -2795,7 +2844,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     def delete_reward_entity(self, reward_id: str) -> None:
         """Delete reward from storage and cleanup references."""
         if reward_id not in self._data.get(const.DATA_REWARDS, {}):
-            raise ValueError(f"Reward {reward_id} not found")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_REWARD,
+                    "name": reward_id,
+                },
+            )
 
         reward_name = self._data[const.DATA_REWARDS][reward_id].get(
             const.DATA_REWARD_NAME, reward_id
@@ -2817,7 +2873,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     ) -> None:
         """Update penalty entity in storage (Options Flow - no reload)."""
         if penalty_id not in self._data.get(const.DATA_PENALTIES, {}):
-            raise ValueError(f"Penalty {penalty_id} not found")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_PENALTY,
+                    "name": penalty_id,
+                },
+            )
         self._update_penalty(penalty_id, penalty_data)
         self._persist()
         self.async_update_listeners()
@@ -2825,7 +2888,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     def delete_penalty_entity(self, penalty_id: str) -> None:
         """Delete penalty from storage."""
         if penalty_id not in self._data.get(const.DATA_PENALTIES, {}):
-            raise ValueError(f"Penalty {penalty_id} not found")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_PENALTY,
+                    "name": penalty_id,
+                },
+            )
 
         penalty_name = self._data[const.DATA_PENALTIES][penalty_id].get(
             const.DATA_PENALTY_NAME, penalty_id
@@ -2844,7 +2914,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     def update_bonus_entity(self, bonus_id: str, bonus_data: dict[str, Any]) -> None:
         """Update bonus entity in storage (Options Flow - no reload)."""
         if bonus_id not in self._data.get(const.DATA_BONUSES, {}):
-            raise ValueError(f"Bonus {bonus_id} not found")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_BONUS,
+                    "name": bonus_id,
+                },
+            )
         self._update_bonus(bonus_id, bonus_data)
         self._persist()
         self.async_update_listeners()
@@ -2852,7 +2929,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     def delete_bonus_entity(self, bonus_id: str) -> None:
         """Delete bonus from storage."""
         if bonus_id not in self._data.get(const.DATA_BONUSES, {}):
-            raise ValueError(f"Bonus {bonus_id} not found")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_BONUS,
+                    "name": bonus_id,
+                },
+            )
 
         bonus_name = self._data[const.DATA_BONUSES][bonus_id].get(
             const.DATA_BONUS_NAME, bonus_id
@@ -2871,7 +2955,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     ) -> None:
         """Update achievement entity in storage (Options Flow - no reload)."""
         if achievement_id not in self._data.get(const.DATA_ACHIEVEMENTS, {}):
-            raise ValueError(f"Achievement {achievement_id} not found")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_ACHIEVEMENT,
+                    "name": achievement_id,
+                },
+            )
         self._update_achievement(achievement_id, achievement_data)
         self._persist()
         self.async_update_listeners()
@@ -2879,7 +2970,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     def delete_achievement_entity(self, achievement_id: str) -> None:
         """Delete achievement from storage and cleanup references."""
         if achievement_id not in self._data.get(const.DATA_ACHIEVEMENTS, {}):
-            raise ValueError(f"Achievement {achievement_id} not found")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_ACHIEVEMENT,
+                    "name": achievement_id,
+                },
+            )
 
         achievement_name = self._data[const.DATA_ACHIEVEMENTS][achievement_id].get(
             const.DATA_ACHIEVEMENT_NAME, achievement_id
@@ -2900,7 +2998,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     ) -> None:
         """Update challenge entity in storage (Options Flow - no reload)."""
         if challenge_id not in self._data.get(const.DATA_CHALLENGES, {}):
-            raise ValueError(f"Challenge {challenge_id} not found")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_CHALLENGE,
+                    "name": challenge_id,
+                },
+            )
         self._update_challenge(challenge_id, challenge_data)
         self._persist()
         self.async_update_listeners()
@@ -2908,7 +3013,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     def delete_challenge_entity(self, challenge_id: str) -> None:
         """Delete challenge from storage and cleanup references."""
         if challenge_id not in self._data.get(const.DATA_CHALLENGES, {}):
-            raise ValueError(f"Challenge {challenge_id} not found")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_CHALLENGE,
+                    "name": challenge_id,
+                },
+            )
 
         challenge_name = self._data[const.DATA_CHALLENGES][challenge_id].get(
             const.DATA_CHALLENGE_NAME, challenge_id
@@ -2993,7 +3105,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.LOGGER.warning(
                 "WARNING: Claim Chore - Chore ID '%s' not found", chore_id
             )
-            raise HomeAssistantError(f"Chore ID '{chore_id}' not found.")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_CHORE,
+                    "name": chore_id,
+                },
+            )
 
         chore_info = self.chores_data[chore_id]
         if kid_id not in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
@@ -3003,12 +3122,24 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 kid_id,
             )
             raise HomeAssistantError(
-                f"Chore '{chore_info.get(const.DATA_CHORE_NAME)}' is not assigned to kid '{self.kids_data[kid_id][const.DATA_KID_NAME]}'."
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_ASSIGNED,
+                translation_placeholders={
+                    "entity": chore_info.get(const.DATA_CHORE_NAME),
+                    "kid": self.kids_data[kid_id][const.DATA_KID_NAME],
+                },
             )
 
         if kid_id not in self.kids_data:
-            const.LOGGER.warning("WARNING: Kid ID '%s' not found", kid_id)
-            raise HomeAssistantError(f"Kid ID '{kid_id}' not found.")
+            const.LOGGER.warning("Kid ID '%s' not found", kid_id)
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_KID,
+                    "name": kid_id,
+                },
+            )
 
         kid_info = self.kids_data[kid_id]
 
@@ -3035,7 +3166,11 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     "claimed today. Multiple claims not allowed."
                 )
                 const.LOGGER.warning(error_message)
-                raise HomeAssistantError(error_message)
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_ALREADY_CLAIMED,
+                    translation_placeholders={"entity": chore_name},
+                )
 
         self._process_chore_state(kid_id, chore_id, const.CHORE_STATE_CLAIMED)
 
@@ -3086,16 +3221,35 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     ):
         """Approve a chore for kid_id if assigned."""
         if chore_id not in self.chores_data:
-            raise HomeAssistantError(f"Chore ID '{chore_id}' not found.")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_CHORE,
+                    "name": chore_id,
+                },
+            )
 
         chore_info = self.chores_data[chore_id]
         if kid_id not in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
             raise HomeAssistantError(
-                f"Chore '{chore_info.get(const.DATA_CHORE_NAME)}' is not assigned to kid '{self.kids_data[kid_id][const.DATA_KID_NAME]}'."
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_ASSIGNED,
+                translation_placeholders={
+                    "entity": chore_info.get(const.DATA_CHORE_NAME),
+                    "kid": self.kids_data[kid_id][const.DATA_KID_NAME],
+                },
             )
 
         if kid_id not in self.kids_data:
-            raise HomeAssistantError(f"Kid ID '{kid_id}' not found.")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_KID,
+                    "name": kid_id,
+                },
+            )
 
         kid_info = self.kids_data[kid_id]
 
@@ -3110,7 +3264,11 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     "approved today. Multiple approvals not allowed."
                 )
                 const.LOGGER.warning(error_message)
-                raise HomeAssistantError(error_message)
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_ALREADY_CLAIMED,
+                    translation_placeholders={"entity": chore_name},
+                )
 
         default_points = chore_info.get(
             const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_POINTS
@@ -3238,11 +3396,25 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         """Disapprove a chore for kid_id."""
         chore_info = self.chores_data.get(chore_id)
         if not chore_info:
-            raise HomeAssistantError(f"Chore ID '{chore_id}' not found.")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_CHORE,
+                    "name": chore_id,
+                },
+            )
 
         kid_info = self.kids_data.get(kid_id)
         if not kid_info:
-            raise HomeAssistantError(f"Kid ID '{kid_id}' not found.")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_KID,
+                    "name": kid_id,
+                },
+            )
 
         self._process_chore_state(kid_id, chore_id, const.CHORE_STATE_PENDING)
 
@@ -4408,16 +4580,36 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         """Kid claims a reward => mark as pending approval (no deduction yet)."""
         reward_info = self.rewards_data.get(reward_id)
         if not reward_info:
-            raise HomeAssistantError(f"Reward ID '{reward_id}' not found.")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_REWARD,
+                    "name": reward_id,
+                },
+            )
 
         kid_info = self.kids_data.get(kid_id)
         if not kid_info:
-            raise HomeAssistantError(f"Kid ID '{kid_id}' not found.")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_KID,
+                    "name": kid_id,
+                },
+            )
 
         cost = reward_info.get(const.DATA_REWARD_COST, const.DEFAULT_ZERO)
         if kid_info[const.DATA_KID_POINTS] < cost:
             raise HomeAssistantError(
-                f"'{kid_info[const.DATA_KID_NAME]}' does not have enough points ({cost} needed)."
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_INSUFFICIENT_POINTS,
+                translation_placeholders={
+                    "kid": kid_info[const.DATA_KID_NAME],
+                    "current": str(kid_info[const.DATA_KID_POINTS]),
+                    "required": str(cost),
+                },
             )
 
         kid_info.setdefault(const.DATA_KID_PENDING_REWARDS, []).append(reward_id)
@@ -4486,11 +4678,25 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         """Parent approves the reward => deduct points."""
         kid_info = self.kids_data.get(kid_id)
         if not kid_info:
-            raise HomeAssistantError(f"Kid ID '{kid_id}' not found.")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_KID,
+                    "name": kid_id,
+                },
+            )
 
         reward_info = self.rewards_data.get(reward_id)
         if not reward_info:
-            raise HomeAssistantError(f"Reward ID '{reward_id}' not found.")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_REWARD,
+                    "name": reward_id,
+                },
+            )
 
         cost = reward_info.get(const.DATA_REWARD_COST, const.DEFAULT_ZERO)
 
@@ -4500,7 +4706,13 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         if pending_count > 0:
             if kid_info[const.DATA_KID_POINTS] < cost:
                 raise HomeAssistantError(
-                    f"'{kid_info[const.DATA_KID_NAME]}' does not have enough points to redeem '{reward_info[const.DATA_REWARD_NAME]}'."
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_INSUFFICIENT_POINTS,
+                    translation_placeholders={
+                        "kid": kid_info[const.DATA_KID_NAME],
+                        "current": str(kid_info[const.DATA_KID_POINTS]),
+                        "required": str(cost),
+                    },
                 )
 
             # Deduct points for one claim.
@@ -4567,7 +4779,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         reward_info = self.rewards_data.get(reward_id)
         if not reward_info:
-            raise HomeAssistantError(f"Reward ID '{reward_id}' not found.")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_REWARD,
+                    "name": reward_id,
+                },
+            )
 
         # Remove only one entry of each reward claim from pending approvals
         approvals = self._data.get(const.DATA_PENDING_REWARD_APPROVALS, [])
@@ -4730,10 +4949,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             badge_type = badge_info.get(const.DATA_BADGE_TYPE)
 
             # Determine if this badge is assigned to the kid
-            is_assigned_to = bool(
-                not badge_info.get(const.DATA_BADGE_ASSIGNED_TO, [])
-                or kid_id in badge_info.get(const.DATA_BADGE_ASSIGNED_TO, [])
-            )
+            # Feature Change v4.2: Badges now require explicit assignment.
+            # Empty assigned_to means badge is not assigned to any kid.
+            assigned_to_list = badge_info.get(const.DATA_BADGE_ASSIGNED_TO, [])
+            is_assigned_to = kid_id in assigned_to_list
             if not is_assigned_to:
                 continue
 
@@ -5154,7 +5373,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         badge_info = self.badges_data.get(badge_id)
         kid_info = self.kids_data.get(kid_id, {})
         if not kid_info:
-            const.LOGGER.error("ERROR: Award Badge - Kid ID '%s' not found.", kid_id)
+            const.LOGGER.error("Award Badge - Kid ID '%s' not found.", kid_id)
             return
         if not badge_info:
             const.LOGGER.error(
@@ -5572,7 +5791,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.LOGGER.error(
                     "ERROR: Remove Awarded Badges - Kid name '%s' not found.", kid_name
                 )
-                raise HomeAssistantError(f"Kid name '{kid_name}' not found.")
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                    translation_placeholders={
+                        "entity_type": const.LABEL_KID,
+                        "name": kid_name,
+                    },
+                )
         else:
             kid_id = None
 
@@ -5633,7 +5859,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     ) -> None:
         """Removes awarded badges based on provided kid_id and badge_id."""
 
-        const.LOGGER.info("INFO: Remove Awarded Badges - Starting removal process.")
+        const.LOGGER.info("Remove Awarded Badges - Starting removal process.")
         found = False
 
         if badge_id and kid_id:
@@ -5644,12 +5870,26 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.LOGGER.error(
                     "ERROR: Remove Awarded Badges - Kid ID '%s' not found.", kid_id
                 )
-                raise HomeAssistantError(f"Kid ID '{kid_id}' not found.")
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                    translation_placeholders={
+                        "entity_type": const.LABEL_KID,
+                        "name": kid_id,
+                    },
+                )
             if not badge_info:
                 const.LOGGER.error(
                     "ERROR: Remove Awarded Badges - Badge ID '%s' not found.", badge_id
                 )
-                raise HomeAssistantError(f"Badge ID '{badge_id}' not found.")
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                    translation_placeholders={
+                        "entity_type": const.LABEL_BADGE,
+                        "name": badge_id,
+                    },
+                )
             badge_name = badge_info.get(const.DATA_BADGE_NAME, badge_id)
             kid_name = kid_info.get(const.DATA_KID_NAME, kid_id)
             # Remove the badge from the kid's badges_earned.
@@ -5725,7 +5965,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.LOGGER.error(
                     "ERROR: Remove Awarded Badges - Kid ID '%s' not found.", kid_id
                 )
-                raise HomeAssistantError(f"Kid ID '{kid_id}' not found.")
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                    translation_placeholders={
+                        "entity_type": const.LABEL_KID,
+                        "name": kid_id,
+                    },
+                )
             kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown Kid")
             for badge_id, badge_info in self.badges_data.items():
                 badge_name = badge_info.get(const.DATA_BADGE_NAME)
@@ -5805,7 +6052,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
     def _recalculate_all_badges(self):
         """Global re-check of all badges for all kids."""
-        const.LOGGER.info("INFO: Recalculate All Badges - Starting Recalculation")
+        const.LOGGER.info("Recalculate All Badges - Starting Recalculation")
 
         # Re-evaluate badge criteria for each kid.
         for kid_id in self.kids_data.keys():
@@ -5813,7 +6060,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         self._persist()
         self.async_set_updated_data(self._data)
-        const.LOGGER.info("INFO: Recalculate All Badges - Recalculation Complete")
+        const.LOGGER.info("Recalculate All Badges - Recalculation Complete")
 
     def _get_cumulative_badge_progress(self, kid_id: str) -> dict[str, Any]:
         """
@@ -6225,10 +6472,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         for badge_id, badge_info in self.badges_data.items():
             # Skip badges that are not assigned to this kid
-            is_assigned_to = bool(
-                not badge_info.get(const.DATA_BADGE_ASSIGNED_TO, [])
-                or kid_id in badge_info.get(const.DATA_BADGE_ASSIGNED_TO, [])
-            )
+            # Feature Change v4.2: Badges now require explicit assignment.
+            # Empty assigned_to means badge is not assigned to any kid.
+            assigned_to_list = badge_info.get(const.DATA_BADGE_ASSIGNED_TO, [])
+            is_assigned_to = kid_id in assigned_to_list
             if not is_assigned_to:
                 continue
 
@@ -6972,11 +7219,25 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         """Apply penalty => negative points to reduce kid's points."""
         penalty_info = self.penalties_data.get(penalty_id)
         if not penalty_info:
-            raise HomeAssistantError(f"Penalty ID '{penalty_id}' not found.")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_PENALTY,
+                    "name": penalty_id,
+                },
+            )
 
         kid_info = self.kids_data.get(kid_id)
         if not kid_info:
-            raise HomeAssistantError(f"Kid ID '{kid_id}' not found.")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_KID,
+                    "name": kid_id,
+                },
+            )
 
         penalty_pts = penalty_info.get(const.DATA_PENALTY_POINTS, const.DEFAULT_ZERO)
         self.update_kid_points(
@@ -7011,11 +7272,25 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         """Apply bonus => positive points to increase kid's points."""
         bonus_info = self.bonuses_data.get(bonus_id)
         if not bonus_info:
-            raise HomeAssistantError(f"Bonus ID '{bonus_id}' not found.")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_BONUS,
+                    "name": bonus_id,
+                },
+            )
 
         kid_info = self.kids_data.get(kid_id)
         if not kid_info:
-            raise HomeAssistantError(f"Kid ID '{kid_id}' not found.")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_KID,
+                    "name": kid_id,
+                },
+            )
 
         bonus_pts = bonus_info.get(const.DATA_BONUS_POINTS, const.DEFAULT_ZERO)
         self.update_kid_points(
@@ -7941,7 +8216,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Retrieve the chore data; raise error if not found.
         chore_info = self.chores_data.get(chore_id)
         if chore_info is None:
-            raise HomeAssistantError(f"Chore ID '{chore_id}' not found.")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_CHORE,
+                    "name": chore_id,
+                },
+            )
 
         # Convert the due_date to an ISO-formatted string if provided; otherwise use None.
         new_due_date_iso = due_date.isoformat() if due_date else None
@@ -7991,7 +8273,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         """Skip the current due date of a recurring chore and reschedule it."""
         chore_info = self.chores_data.get(chore_id)
         if not chore_info:
-            raise HomeAssistantError(f"Chore ID '{chore_id}' not found.")
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_CHORE,
+                    "name": chore_id,
+                },
+            )
 
         if (
             chore_info.get(const.DATA_CHORE_RECURRING_FREQUENCY, const.FREQUENCY_NONE)
@@ -8021,7 +8310,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             # Specific chore reset (with or without kid_id)
             chore_info = self.chores_data.get(chore_id)
             if not chore_info:
-                raise HomeAssistantError(f"Chore ID '{chore_id}' not found.")
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                    translation_placeholders={
+                        "entity_type": const.LABEL_CHORE,
+                        "name": chore_id,
+                    },
+                )
 
             const.LOGGER.info(
                 "INFO: Reset Overdue Chores - Rescheduling chore: %s",
@@ -8037,7 +8333,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             # kid that are multi assigned will show as reset for those other kids
             kid_info = self.kids_data.get(kid_id)
             if not kid_info:
-                raise HomeAssistantError(f"Kid ID '{kid_id}' not found.")
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                    translation_placeholders={
+                        "entity_type": const.LABEL_KID,
+                        "name": kid_id,
+                    },
+                )
             for chore_id, chore_info in self.chores_data.items():
                 if kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
                     if chore_id in kid_info.get(const.DATA_KID_OVERDUE_CHORES, []):
@@ -8081,7 +8384,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.LOGGER.error(
                     "ERROR: Reset Penalties - Kid ID '%s' not found.", kid_id
                 )
-                raise HomeAssistantError(f"Kid ID '{kid_id}' not found.")
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                    translation_placeholders={
+                        "entity_type": const.LABEL_KID,
+                        "name": kid_id,
+                    },
+                )
             if penalty_id not in kid_info.get(const.DATA_KID_PENALTY_APPLIES, {}):
                 const.LOGGER.error(
                     "ERROR: Reset Penalties - Penalty ID '%s' does not apply to Kid ID '%s'.",
@@ -8115,7 +8425,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.LOGGER.error(
                     "ERROR: Reset Penalties - Kid ID '%s' not found.", kid_id
                 )
-                raise HomeAssistantError(f"Kid ID '{kid_id}' not found.")
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                    translation_placeholders={
+                        "entity_type": const.LABEL_KID,
+                        "name": kid_id,
+                    },
+                )
 
             kid_info[const.DATA_KID_PENALTY_APPLIES].clear()
 
@@ -8152,7 +8469,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.LOGGER.error(
                     "ERROR: Reset Bonuses - Kid ID '%s' not found.", kid_id
                 )
-                raise HomeAssistantError(f"Kid ID '{kid_id}' not found.")
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                    translation_placeholders={
+                        "entity_type": const.LABEL_KID,
+                        "name": kid_id,
+                    },
+                )
             if bonus_id not in kid_info.get(const.DATA_KID_BONUS_APPLIES, {}):
                 const.LOGGER.error(
                     "ERROR: Reset Bonuses - Bonus '%s' does not apply to Kid ID '%s'.",
@@ -8186,7 +8510,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.LOGGER.error(
                     "ERROR: Reset Bonuses - Kid ID '%s' not found.", kid_id
                 )
-                raise HomeAssistantError(f"Kid ID '{kid_id}' not found.")
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                    translation_placeholders={
+                        "entity_type": const.LABEL_KID,
+                        "name": kid_id,
+                    },
+                )
 
             kid_info[const.DATA_KID_BONUS_APPLIES].clear()
 
@@ -8226,7 +8557,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.LOGGER.error(
                     "ERROR: Reset Rewards - Kid ID '%s' not found.", kid_id
                 )
-                raise HomeAssistantError(f"Kid ID '{kid_id}' not found.")
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                    translation_placeholders={
+                        "entity_type": const.LABEL_KID,
+                        "name": kid_id,
+                    },
+                )
 
             kid_info[const.DATA_KID_REWARD_CLAIMS].pop(reward_id, None)
             kid_info[const.DATA_KID_REWARD_APPROVALS].pop(reward_id, None)
@@ -8290,7 +8628,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.LOGGER.error(
                     "ERROR: Reset Rewards - Kid ID '%s' not found.", kid_id
                 )
-                raise HomeAssistantError(f"Kid ID '{kid_id}' not found.")
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                    translation_placeholders={
+                        "entity_type": const.LABEL_KID,
+                        "name": kid_id,
+                    },
+                )
 
             kid_info[const.DATA_KID_REWARD_CLAIMS].clear()
             kid_info[const.DATA_KID_REWARD_APPROVALS].clear()

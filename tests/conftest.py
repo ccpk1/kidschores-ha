@@ -733,10 +733,12 @@ async def apply_scenario_via_options_flow(
             if "points" in kid_progress:
                 coordinator.kids_data[kid_id]["points"] = float(kid_progress["points"])
 
-            # Set lifetime points
+            # Set lifetime points (points_net_all_time in point_stats)
             if "lifetime_points" in kid_progress:
-                coordinator.kids_data[kid_id]["lifetime_points"] = float(
-                    kid_progress["lifetime_points"]
+                if "point_stats" not in coordinator.kids_data[kid_id]:
+                    coordinator.kids_data[kid_id]["point_stats"] = {}
+                coordinator.kids_data[kid_id]["point_stats"]["points_net_all_time"] = (
+                    float(kid_progress["lifetime_points"])
                 )
 
             # Mark chores as completed
@@ -953,7 +955,9 @@ async def _apply_scenario_data(
         if "points" in kid_progress:
             coordinator.kids_data[kid_id]["points"] = float(kid_progress["points"])
         if "lifetime_points" in kid_progress:
-            coordinator.kids_data[kid_id]["lifetime_points"] = float(
+            if "point_stats" not in coordinator.kids_data[kid_id]:
+                coordinator.kids_data[kid_id]["point_stats"] = {}
+            coordinator.kids_data[kid_id]["point_stats"]["points_net_all_time"] = float(
                 kid_progress["lifetime_points"]
             )
 

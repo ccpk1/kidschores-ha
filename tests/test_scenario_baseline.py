@@ -73,7 +73,7 @@ async def test_medium_scenario_entity_counts(
     assert len(coordinator.parents_data) == 2
     assert len(coordinator.kids_data) == 2
     assert len(coordinator.chores_data) == 4
-    assert len(coordinator.badges_data) == 2
+    assert len(coordinator.badges_data) == 6
     assert len(coordinator.bonuses_data) == 2
     assert len(coordinator.penalties_data) == 2
     assert len(coordinator.rewards_data) == 2
@@ -104,7 +104,7 @@ async def test_full_scenario_entity_counts(
     assert len(coordinator.parents_data) == 2
     assert len(coordinator.kids_data) == 3
     assert len(coordinator.chores_data) == 7
-    assert len(coordinator.badges_data) == 5
+    assert len(coordinator.badges_data) == 6
     assert len(coordinator.bonuses_data) == 2
     assert len(coordinator.penalties_data) == 3
     assert len(coordinator.rewards_data) == 5

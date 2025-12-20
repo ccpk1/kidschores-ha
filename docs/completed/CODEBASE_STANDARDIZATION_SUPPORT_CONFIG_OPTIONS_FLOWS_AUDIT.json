@@ -1,0 +1,191 @@
+{
+  "audit_date": "2025-12-19",
+  "auditor": "Phase 0 Framework Application",
+  "files_audited": 2,
+  "total_loc": 4262,
+
+  "config_flow_py": {
+    "file": "custom_components/kidschores/config_flow.py",
+    "audit_date": "2025-12-19",
+    "loc_total": 1400,
+    "sections": {
+      "logging": {
+        "total_statements": 32,
+        "debug": 12,
+        "info": 14,
+        "warning": 0,
+        "error": 6,
+        "compliance_percent": 100,
+        "issues": [],
+        "notes": "All logging uses lazy evaluation with %s placeholders. Appropriate severity levels."
+      },
+      "user_facing_strings": {
+        "total": 15,
+        "error_messages": 5,
+        "field_labels": 0,
+        "descriptions": 10,
+        "hardcoded": 15,
+        "compliance_percent": 0,
+        "issues": [
+          "Line 109: errors['base'] = 'invalid_selection' - Hardcoded error key",
+          "Line 126: f'📂 Use current active file: {storage_path.name}' - Hardcoded UI text",
+          "Line 129: '🆕 Start fresh (creates backup of existing data)' - Hardcoded UI text",
+          "Line 135: f'⏮️  Restore [{tag_display}]: {backup['filename']} ({age_str})' - Hardcoded UI text",
+          "Line 139: '📋 Paste JSON data from diagnostics' - Hardcoded UI text",
+          "Line 362: errors['base'] = 'empty_json' - Hardcoded error key",
+          "Line 370: errors['base'] = 'invalid_structure' - Hardcoded error key",
+          "Line 418: errors['base'] = 'invalid_json' - Hardcoded error key",
+          "Line 421: errors['base'] = 'unknown' - Hardcoded error key",
+          "Line 435: 'Paste the complete JSON from diagnostics or backup file' - Hardcoded help text",
+          "Lines 1226-1228: Parent summary string formatting - Hardcoded text patterns",
+          "Lines 1292-1300: Summary strings using const keys but with hardcoded formatting"
+        ]
+      },
+      "data_constants": {
+        "total": 28,
+        "dict_keys": 8,
+        "entity_keys": 0,
+        "enum_values": 5,
+        "format_strings": 10,
+        "magic_strings": 5,
+        "high_priority": 10,
+        "medium_priority": 13,
+        "low_priority": 5,
+        "details": [
+          "HIGH: '.storage' - Used 3+ times for storage path",
+          "HIGH: 'version' - Used 4+ times for data structure validation",
+          "HIGH: 'data' - Used 10+ times for data structure access",
+          "HIGH: 'home_assistant' - Used 2 times for diagnostic format detection",
+          "HIGH: 'key' - Used 2 times for storage manager initialization",
+          "MEDIUM: Error key strings: 'invalid_selection', 'empty_json', 'invalid_structure', 'invalid_json', 'unknown'",
+          "MEDIUM: Backup tag strings: tag.replace('-', ' ').title()",
+          "MEDIUM: Age formatting patterns",
+          "LOW: Single-use descriptive strings"
+        ]
+      },
+      "translation_keys": {
+        "found": 18,
+        "in_en_json": 12,
+        "missing_en_json": 6,
+        "coverage_percent": 67,
+        "missing_keys": [
+          "TRANS_KEY_CFOP_ERROR_INVALID_SELECTION (for 'invalid_selection')",
+          "TRANS_KEY_CFOP_ERROR_EMPTY_JSON (for 'empty_json')",
+          "TRANS_KEY_CFOP_ERROR_INVALID_STRUCTURE (for 'invalid_structure')",
+          "TRANS_KEY_CFOP_ERROR_INVALID_JSON (for 'invalid_json')",
+          "TRANS_KEY_CFOF_DATA_RECOVERY_USE_CURRENT (for UI text)",
+          "TRANS_KEY_CFOF_DATA_RECOVERY_START_FRESH (for UI text)",
+          "TRANS_KEY_CFOF_DATA_RECOVERY_RESTORE_BACKUP (for UI text)",
+          "TRANS_KEY_CFOF_DATA_RECOVERY_PASTE_JSON (for UI text)",
+          "TRANS_KEY_CFOF_PASTE_JSON_HELP (for help text)"
+        ]
+      }
+    },
+    "summary": "15 hardcoded UI strings; 28 data constants needed; 6 missing translation keys; 100% logging compliance",
+    "priority_remediation": [
+      "HIGH: Add 5 CFOP_ERROR_* constants for error keys",
+      "HIGH: Add 4 TRANS_KEY_CFOF_* constants for data recovery UI text",
+      "HIGH: Add DATA_KEY_VERSION, DATA_KEY_DATA, DATA_KEY_KEY constants for structure access",
+      "MEDIUM: Add FORMAT_BACKUP_RESTORE pattern constants",
+      "MEDIUM: Add STORAGE_PATH_SEGMENT constant for '.storage' string"
+    ],
+    "next_phase": "Add constants to const.py; update 15 code locations; add 6 translations to en.json"
+  },
+
+  "options_flow_py": {
+    "file": "custom_components/kidschores/options_flow.py",
+    "audit_date": "2025-12-19",
+    "loc_total": 2862,
+    "sections": {
+      "logging": {
+        "total_statements": 94,
+        "debug": 72,
+        "info": 0,
+        "warning": 0,
+        "error": 22,
+        "compliance_percent": 100,
+        "issues": [],
+        "notes": "All logging uses lazy evaluation. Heavy use of debug for add/edit/delete operations. Appropriate severity levels for errors."
+      },
+      "user_facing_strings": {
+        "total": 0,
+        "error_messages": 0,
+        "field_labels": 0,
+        "descriptions": 0,
+        "hardcoded": 0,
+        "compliance_percent": 100,
+        "issues": [],
+        "notes": "Options flow delegates ALL validation to flow_helpers.py. No direct error assignment in options flow code. All user-facing strings come from flow_helpers validators. This is excellent architecture."
+      },
+      "data_constants": {
+        "total": 12,
+        "dict_keys": 5,
+        "entity_keys": 3,
+        "enum_values": 4,
+        "format_strings": 0,
+        "magic_strings": 0,
+        "high_priority": 3,
+        "medium_priority": 6,
+        "low_priority": 3,
+        "details": [
+          "HIGH: 'version' - Used for schema version checks",
+          "HIGH: 'data' - Used for storage data access",
+          "MEDIUM: Entity dictionary access patterns (already mostly using const.DATA_* keys)",
+          "LOW: Menu option strings (defined via const.OPTIONS_FLOW_* already)"
+        ]
+      },
+      "translation_keys": {
+        "found": 22,
+        "in_en_json": 22,
+        "missing_en_json": 0,
+        "coverage_percent": 100,
+        "notes": "All TRANS_KEY_CFOF_* constants found in code already exist in en.json. Excellent coverage."
+      }
+    },
+    "summary": "0 hardcoded UI strings; 12 data constants identified (mostly already using const); 0 missing translations; 100% logging & translation compliance",
+    "priority_remediation": [
+      "LOW: Consider adding DATA_KEY_VERSION and DATA_KEY_DATA for consistency with config_flow",
+      "LOW: No urgent remediation needed - architecture is excellent"
+    ],
+    "next_phase": "Minimal changes needed; focus on config_flow remediation"
+  },
+
+  "consolidated_findings": {
+    "total_hardcoded_strings": 15,
+    "total_data_constants": 40,
+    "total_logging_statements": 126,
+    "logging_compliance": "100%",
+    "translation_compliance": {
+      "config_flow": "67%",
+      "options_flow": "100%",
+      "overall": "88%"
+    },
+    "constants_needed": {
+      "CFOP_ERROR_*": 5,
+      "TRANS_KEY_CFOF_*": 9,
+      "DATA_KEY_*": 8,
+      "FORMAT_*": 3,
+      "OTHER": 15
+    },
+    "code_locations_to_update": {
+      "config_flow_py": 35,
+      "options_flow_py": 5,
+      "total": 40
+    },
+    "recommendations": [
+      "config_flow.py requires immediate attention (15 hardcoded strings, 6 missing translations)",
+      "options_flow.py is exemplary - delegates validation to flow_helpers",
+      "Add missing error key constants: CFOP_ERROR_INVALID_SELECTION, CFOP_ERROR_EMPTY_JSON, CFOP_ERROR_INVALID_STRUCTURE, CFOP_ERROR_INVALID_JSON",
+      "Add data recovery UI translation keys for localization support",
+      "Add data structure access constants: DATA_KEY_VERSION, DATA_KEY_DATA, DATA_KEY_KEY, DATA_KEY_HOME_ASSISTANT",
+      "Consider extracting backup UI text formatting to reusable helper function"
+    ]
+  },
+
+  "phase_readiness": {
+    "phase_0_complete": true,
+    "phase_1c_complete": true,
+    "ready_for_phase_2": true,
+    "blockers": []
+  }
+}

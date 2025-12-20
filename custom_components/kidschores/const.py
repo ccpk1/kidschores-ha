@@ -65,6 +65,33 @@ DATA_META_SCHEMA_VERSION: Final = "schema_version"
 DATA_META_LAST_MIGRATION_DATE: Final = "last_migration_date"
 DATA_META_MIGRATIONS_APPLIED: Final = "migrations_applied"
 
+# Storage Data Keys (Phase 2b)
+# Top-level keys in .storage/kidschores_data (not entity-specific DATA_KID_*, DATA_CHORE_*, etc.)
+DATA_KEY_KIDS: Final = "kids"
+DATA_KEY_PARENTS: Final = "parents"
+DATA_KEY_CHORES: Final = "chores"
+DATA_KEY_REWARDS: Final = "rewards"
+DATA_KEY_BADGES: Final = "badges"
+DATA_KEY_ACHIEVEMENTS: Final = "achievements"
+DATA_KEY_CHALLENGES: Final = "challenges"
+DATA_KEY_LINKED_USERS: Final = "linked_users"  # Matches STORAGE_KEY_LINKED_USERS
+
+# Storage Structure Keys (Phase 3 - config_flow remediation)
+# Common keys used in storage file structure validation and diagnostics
+DATA_KEY_VERSION: Final = "version"  # Schema version key
+DATA_KEY_DATA: Final = "data"  # Main data container key
+DATA_KEY_KEY: Final = "key"  # Storage manager key parameter
+DATA_KEY_HOME_ASSISTANT: Final = "home_assistant"  # Diagnostic format detection
+
+# Storage Path Segment (Phase 3)
+STORAGE_PATH_SEGMENT: Final = ".storage"  # Storage directory name
+
+# Format Strings (Phase 2b)
+# Date/time format patterns used across the integration
+FORMAT_DATETIME_ISO: Final = "%Y-%m-%dT%H:%M:%S.%f%z"  # ISO 8601 with timezone
+FORMAT_DATETIME_DISPLAY: Final = "%Y-%m-%d %H:%M"  # Human-readable datetime
+FORMAT_DATE_ONLY: Final = "%Y-%m-%d"  # Date without time
+
 # Update interval (seconds)
 DEFAULT_UPDATE_INTERVAL: Final = 5
 
@@ -1279,7 +1306,6 @@ ATTR_CHORE_APPROVE_BUTTON_ENTITY_ID: Final = "approve_button_eid"
 ATTR_CHORE_CLAIM_BUTTON_ENTITY_ID: Final = "claim_button_eid"
 ATTR_CHORE_DISAPPROVE_BUTTON_ENTITY_ID: Final = "disapprove_button_eid"
 ATTR_CHORE_NAME: Final = "chore_name"
-ATTR_CLAIMED_ON: Final = "Claimed on"
 ATTR_COST: Final = "cost"
 ATTR_CRITERIA: Final = "criteria"
 ATTR_BADGE_CUMULATIVE_BASELINE_POINTS: Final = "baseline_points"
@@ -1325,7 +1351,6 @@ ATTR_POINTS_TO_NEXT_BADGE: Final = "points_to_next_badge"
 ATTR_RAW_PROGRESS: Final = "raw_progress"
 ATTR_RECURRING_FREQUENCY: Final = "recurring_frequency"
 ATTR_REQUIRED_CHORES: Final = "required_chores"
-ATTR_REDEEMED_ON: Final = "Redeemed on"
 ATTR_RESET_SCHEDULE: Final = "reset_schedule"
 ATTR_REWARD_APPROVALS_COUNT: Final = "reward_approvals_count"
 ATTR_REWARD_CLAIMS_COUNT: Final = "reward_claims_count"
@@ -1581,6 +1606,55 @@ LABEL_COMPLETED_WEEKLY: Final = "Weekly Completed Chores"
 LABEL_NONE: Final = ""
 LABEL_POINTS: Final = "Points"
 
+# Entity Type Labels (for error messages and translation placeholders)
+LABEL_KID: Final = "Kid"
+LABEL_CHORE: Final = "Chore"
+LABEL_REWARD: Final = "Reward"
+LABEL_BADGE: Final = "Badge"
+LABEL_PENALTY: Final = "Penalty"
+LABEL_BONUS: Final = "Bonus"
+LABEL_PARENT: Final = "Parent"
+LABEL_ACHIEVEMENT: Final = "Achievement"
+LABEL_CHALLENGE: Final = "Challenge"
+
+# Deprecated entity unique_id suffixes (for cleanup/migration - KC 3.x compatibility)
+DEPRECATED_SUFFIX_BADGES: Final = "_badges"
+DEPRECATED_SUFFIX_REWARD_CLAIMS: Final = "_reward_claims"
+DEPRECATED_SUFFIX_REWARD_APPROVALS: Final = "_reward_approvals"
+DEPRECATED_SUFFIX_CHORE_CLAIMS: Final = "_chore_claims"
+DEPRECATED_SUFFIX_CHORE_APPROVALS: Final = "_chore_approvals"
+DEPRECATED_SUFFIX_STREAK: Final = "_streak"
+
+DEPRECATED_SUFFIXES: Final = [
+    DEPRECATED_SUFFIX_BADGES,
+    DEPRECATED_SUFFIX_REWARD_CLAIMS,
+    DEPRECATED_SUFFIX_REWARD_APPROVALS,
+    DEPRECATED_SUFFIX_CHORE_CLAIMS,
+    DEPRECATED_SUFFIX_CHORE_APPROVALS,
+    DEPRECATED_SUFFIX_STREAK,
+]
+
+# Migration identifiers (for schema version tracking in DATA_META_MIGRATIONS_APPLIED)
+MIGRATION_DATETIME_UTC: Final = "datetime_utc"
+MIGRATION_CHORE_DATA_STRUCTURE: Final = "chore_data_structure"
+MIGRATION_KID_DATA_STRUCTURE: Final = "kid_data_structure"
+MIGRATION_BADGE_RESTRUCTURE: Final = "badge_restructure"
+MIGRATION_CUMULATIVE_BADGE_PROGRESS: Final = "cumulative_badge_progress"
+MIGRATION_BADGES_EARNED_DICT: Final = "badges_earned_dict"
+MIGRATION_POINT_STATS: Final = "point_stats"
+MIGRATION_CHORE_DATA_AND_STREAKS: Final = "chore_data_and_streaks"
+
+DEFAULT_MIGRATIONS_APPLIED: Final = [
+    MIGRATION_DATETIME_UTC,
+    MIGRATION_CHORE_DATA_STRUCTURE,
+    MIGRATION_KID_DATA_STRUCTURE,
+    MIGRATION_BADGE_RESTRUCTURE,
+    MIGRATION_CUMULATIVE_BADGE_PROGRESS,
+    MIGRATION_BADGES_EARNED_DICT,
+    MIGRATION_POINT_STATS,
+    MIGRATION_CHORE_DATA_AND_STREAKS,
+]
+
 
 # ------------------------------------------------------------------------------------------------
 # Button Prefixes
@@ -1594,6 +1668,38 @@ BUTTON_REWARD_PREFIX: Final = "reward_button_"
 # Errors and Warnings
 # ------------------------------------------------------------------------------------------------
 TRANS_KEY_DISPLAY_DUE_DATE_NOT_SET: Final = "display_due_date_not_set"
+
+# Translation Keys for Phase 2b: Generic Error Templates (coordinator.py remediation)
+# These 12 templates replace 41 hardcoded f-strings in coordinator.py using placeholders
+# Format: TRANS_KEY_ERROR_{CATEGORY} with translation_placeholders for dynamic values
+TRANS_KEY_ERROR_NOT_FOUND: Final = "not_found"  # {entity_type} '{name}' not found
+TRANS_KEY_ERROR_NOT_ASSIGNED: Final = "not_assigned"  # {entity} not assigned to {kid}
+TRANS_KEY_ERROR_INSUFFICIENT_POINTS: Final = (
+    "insufficient_points"  # {kid} has {current}, needs {required}
+)
+TRANS_KEY_ERROR_ALREADY_CLAIMED: Final = "already_claimed"  # {entity} already claimed
+TRANS_KEY_ERROR_INVALID_STATUS: Final = (
+    "invalid_status"  # {entity} status is {status}, expected {expected}
+)
+TRANS_KEY_ERROR_ENTITY_MISMATCH: Final = (
+    "entity_mismatch"  # {provided} does not match {expected}
+)
+TRANS_KEY_ERROR_INVALID_FREQUENCY: Final = (
+    "invalid_frequency"  # Recurring frequency '{frequency}' is not valid
+)
+TRANS_KEY_ERROR_MISSING_FIELD: Final = (
+    "missing_field"  # Required field '{field}' is missing from {entity}
+)
+TRANS_KEY_ERROR_INVALID_DATE: Final = "invalid_date"  # {field} date '{date}' is invalid
+TRANS_KEY_ERROR_DATE_CONSTRAINT: Final = (
+    "date_constraint"  # {constraint} violation: {detail}
+)
+TRANS_KEY_ERROR_OPERATION_FAILED: Final = (
+    "operation_failed"  # {operation} failed: {reason}
+)
+TRANS_KEY_ERROR_CONFIGURATION: Final = (
+    "configuration_error"  # Configuration error: {detail}
+)
 
 # Translation Keys for Phase 2-4 Error Migration (Action Templating)
 # These map to templated exceptions in translations/en.json using action labels
@@ -1621,12 +1727,19 @@ ERROR_ACTION_REMOVE_BADGES: Final = "remove_badges"
 
 TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND: Final = "error_msg_no_entry_found"
 
-# Error message translation keys for service handlers
-# Reusing existing template patterns from en.json to minimize translations
-TRANS_KEY_ERROR_ENTITY_NOT_FOUND: Final = (
-    "entity_not_found"  # Reuses: {entity_type} '{name}' not found
-)
-TRANS_KEY_ERROR_INSUFFICIENT_POINTS: Final = "error_insufficient_points"
+# Config Flow & Options Flow Translation Keys (Phase 2b)
+# Generic templates for validation errors across config/options flows
+TRANS_KEY_CFOF_INVALID_INPUT: Final = "invalid_input"  # General validation failure
+TRANS_KEY_CFOF_DUPLICATE_NAME: Final = "duplicate_name"  # Name already exists
+TRANS_KEY_CFOF_INVALID_DATE_RANGE: Final = "invalid_date_range"  # Start/end date issues
+TRANS_KEY_CFOF_MISSING_REQUIRED: Final = "missing_required"  # Required field missing
+TRANS_KEY_CFOF_INVALID_FORMAT: Final = "invalid_format"  # Format validation failure
+
+# Time Format Translation Keys (Phase 2b)
+# Used for consistent datetime display across UI components
+TRANS_KEY_TIME_FORMAT_SHORT: Final = "time_format_short"  # "1d 3h"
+TRANS_KEY_TIME_FORMAT_MEDIUM: Final = "time_format_medium"  # "1 day, 3 hours"
+TRANS_KEY_TIME_FORMAT_LONG: Final = "time_format_long"  # "1 day, 3 hours, 15 minutes"
 
 # Unknown States (Display Translation Keys)
 TRANS_KEY_DISPLAY_UNKNOWN_CHALLENGE: Final = "display_unknown_challenge"
@@ -1659,6 +1772,9 @@ CFOP_ERROR_START_DATE: Final = "start_date"
 # Additional error keys used by config_flow.py abort() calls
 CFOP_ERROR_INVALID_STRUCTURE: Final = "invalid_structure"
 CFOP_ERROR_UNKNOWN: Final = "unknown"
+# Phase 3 additions for config_flow remediation
+CFOP_ERROR_EMPTY_JSON: Final = "empty_json"  # Empty JSON data provided
+CFOP_ERROR_INVALID_SELECTION: Final = "invalid_selection"  # Invalid menu selection
 
 
 # ------------------------------------------------------------------------------------------------
@@ -1679,6 +1795,24 @@ ATTR_CAL_END: Final = "end"
 ATTR_CAL_MANUFACTURER: Final = "manufacturer"
 ATTR_CAL_START: Final = "start"
 ATTR_CAL_SUMMARY: Final = "summary"
+
+
+# ------------------------------------------------------------------------------------------------
+# Dashboard Helper Sensor Attributes (Phase 2b)
+# JSON keys exposed in sensor.kc_<kid>_ui_dashboard_helper attributes for dashboard consumption
+# ------------------------------------------------------------------------------------------------
+ATTR_DASHBOARD_CHORES: Final = "chores"
+ATTR_DASHBOARD_REWARDS: Final = "rewards"
+ATTR_DASHBOARD_BONUSES: Final = "bonuses"
+ATTR_DASHBOARD_PENALTIES: Final = "penalties"
+ATTR_DASHBOARD_ACHIEVEMENTS: Final = "achievements"
+ATTR_DASHBOARD_CHALLENGES: Final = "challenges"
+ATTR_DASHBOARD_BADGES: Final = "badges"
+ATTR_DASHBOARD_CHORES_BY_LABEL: Final = "chores_by_label"
+ATTR_DASHBOARD_PENDING_APPROVALS: Final = "pending_approvals"
+ATTR_DASHBOARD_POINTS_BUTTONS: Final = "points_buttons"
+ATTR_DASHBOARD_KID_NAME: Final = "kid_name"
+ATTR_DASHBOARD_UI_TRANSLATIONS: Final = "ui_translations"
 
 
 # ------------------------------------------------------------------------------------------------
@@ -1765,6 +1899,7 @@ TRANS_KEY_CFOF_ERROR_BADGE_OCCASION_TYPE_REQUIRED: Final = (
 TRANS_KEY_CFOF_ERROR_BADGE_CUSTOM_RESET_DATE_REQUIRED: Final = (
     "error_badge_custom_reset_date_required"
 )
+TRANS_KEY_CFOF_BADGE_REQUIRES_ASSIGNMENT: Final = "badge_requires_assignment"
 TRANS_KEY_CFOF_ERROR_BADGE_END_DATE_REQUIRED: Final = "error_badge_end_date_required"
 TRANS_KEY_CFOF_ERROR_BADGE_RESET_TYPE_REQUIRED: Final = (
     "error_badge_reset_type_required"

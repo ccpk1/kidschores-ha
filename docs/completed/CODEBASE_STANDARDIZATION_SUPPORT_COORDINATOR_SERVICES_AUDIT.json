@@ -1,0 +1,260 @@
+{
+  "metadata": {
+    "audit_date": "2025-12-19",
+    "audit_phase": "Phase 1d - Core Module Analysis",
+    "files_audited": 2,
+    "total_lines": 9819,
+    "auditor": "AI Agent",
+    "framework": "Phase 0 6-Step Audit Process"
+  },
+  "summary": {
+    "coordinator_py": {
+      "file_path": "custom_components/kidschores/coordinator.py",
+      "lines_of_code": 8642,
+      "primary_function": "Core business logic coordinator - manages all chore lifecycle, badge tracking, recurring scheduling, notifications",
+      "logging_compliance": "100% compliant (196 lazy logging statements)",
+      "translation_compliance": "5% (17 TRANS_KEY usages out of 41 error strings)",
+      "priority_assessment": "HIGH - 41 hardcoded user-facing error messages need translation",
+      "key_finding": "All HomeAssistantError messages use hardcoded f-strings instead of translation_key pattern"
+    },
+    "services_py": {
+      "file_path": "custom_components/kidschores/services.py",
+      "lines_of_code": 1177,
+      "primary_function": "Service action handlers - validates user input and calls coordinator methods",
+      "logging_compliance": "100% compliant (86 lazy logging statements)",
+      "translation_compliance": "95%+ (41 TRANS_KEY usages, most errors use translation_key)",
+      "priority_assessment": "LOW - Exemplary architecture, already uses translation_key pattern",
+      "key_finding": "services.py is the GOLD STANDARD - uses translation_key for all user-facing errors"
+    }
+  },
+  "coordinator_py_detailed_findings": {
+    "logging_analysis": {
+      "total_logging_statements": 196,
+      "lazy_logging_compliance": "100%",
+      "logger_debug": "~120 statements (estimated)",
+      "logger_info": "~40 statements (estimated)",
+      "logger_warning": "~30 statements (estimated)",
+      "logger_error": "~6 statements (estimated)",
+      "finding": "✅ Perfect lazy logging pattern throughout: LOGGER.debug('Message: %s', var)"
+    },
+    "user_facing_strings": {
+      "total_hardcoded_error_strings": 41,
+      "error_categories": {
+        "not_found_errors": {
+          "count": 17,
+          "pattern": "f\"<Entity> ID '{id}' not found.\"",
+          "examples": [
+            "Line 2996: f\"Chore ID '{chore_id}' not found.\"",
+            "Line 3011: f\"Kid ID '{kid_id}' not found.\"",
+            "Line 4411: f\"Reward ID '{reward_id}' not found.\"",
+            "Line 5652: f\"Badge ID '{badge_id}' not found.\"",
+            "Line 6975: f\"Penalty ID '{penalty_id}' not found.\"",
+            "Line 7014: f\"Bonus ID '{bonus_id}' not found.\""
+          ],
+          "remediation": "Create TRANS_KEY_ERROR_ENTITY_NOT_FOUND with placeholders {entity_type} and {entity_id}"
+        },
+        "not_assigned_errors": {
+          "count": 3,
+          "pattern": "f\"Chore '{chore_name}' is not assigned to kid '{kid_name}'.\"",
+          "examples": [
+            "Line 3005: f\"Chore '{chore_info.get(const.DATA_CHORE_NAME)}' is not assigned to kid '{self.kids_data[kid_id][const.DATA_KID_NAME]}'.\"",
+            "Line 3093: (similar pattern)",
+            "Line 8000: f\"Chore '{chore_name}' does not have a recurring frequency.\""
+          ],
+          "remediation": "Create TRANS_KEY_ERROR_CHORE_NOT_ASSIGNED and TRANS_KEY_ERROR_NO_RECURRING_FREQUENCY"
+        },
+        "insufficient_points_errors": {
+          "count": 4,
+          "pattern": "f\"'{kid_name}' does not have enough points...\"",
+          "examples": [
+            "Line 4419: f\"'{kid_info[const.DATA_KID_NAME]}' does not have enough points ({cost} needed).\"",
+            "Line 4502: f\"'{kid_name}' does not have enough points to redeem '{reward_name}'.\"",
+            "Line 4519: (similar pattern)"
+          ],
+          "remediation": "Already exists as TRANS_KEY_ERROR_INSUFFICIENT_POINTS - needs to be USED instead of f-strings"
+        },
+        "already_claimed_errors": {
+          "count": 2,
+          "pattern": "f\"Chore '{chore_name}' has already been claimed today...\"",
+          "examples": [
+            "Line 3038: error_message variable containing 'has already been claimed today. Multiple claims not allowed.'",
+            "Line 3113: (similar pattern in disapprove_chore)"
+          ],
+          "remediation": "Create TRANS_KEY_ERROR_CHORE_ALREADY_CLAIMED"
+        },
+        "entity_mismatch_errors": {
+          "count": 4,
+          "pattern": "f\"<Entity> ID '{id}' does not apply to Kid ID '{kid_id}'.\"",
+          "examples": [
+            "Line 8091: f\"Penalty ID '{penalty_id}' does not apply to Kid ID '{kid_id}'.\"",
+            "Line 8162: f\"Bonus ID '{bonus_id}' does not apply to Kid ID '{kid_id}'.\""
+          ],
+          "remediation": "Create TRANS_KEY_ERROR_ENTITY_MISMATCH with placeholders"
+        },
+        "recurring_frequency_errors": {
+          "count": 3,
+          "pattern": "Chore does not have recurring frequency or due date",
+          "examples": [
+            "Line 7953: f\"Missing 'due date' in Chore ID '{chore_id}': {err}\"",
+            "Line 8000: f\"Chore '{chore_name}' does not have a recurring frequency.\"",
+            "Line 8004: f\"Chore '{chore_name}' does not have a due date set.\""
+          ],
+          "remediation": "Create TRANS_KEY_ERROR_MISSING_DUE_DATE and TRANS_KEY_ERROR_NO_RECURRING_FREQ"
+        },
+        "other_errors": {
+          "count": 8,
+          "examples": [
+            "Line 5575: f\"Kid name '{kid_name}' not found.\"",
+            "Various context-specific validation errors"
+          ]
+        }
+      },
+      "translation_key_usage": {
+        "current_count": 17,
+        "examples_of_correct_usage": [
+          "Line 3059: const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_APPROVE",
+          "Line 3189: const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE",
+          "Notification action titles use TRANS_KEY pattern correctly"
+        ],
+        "finding": "Only 17 out of 41 user-facing strings use translation keys (mostly in notifications). All HomeAssistantError messages use hardcoded f-strings."
+      }
+    },
+    "data_constants_usage": {
+      "const_data_usage_count": 1992,
+      "compliance": "100%",
+      "finding": "✅ Perfect - ALL data access uses const.DATA_* constants. No hardcoded dict keys found."
+    },
+    "notification_methods": {
+      "method_names": [
+        "_notify_kid (Line 8410)",
+        "_notify_parents (Line 8461)"
+      ],
+      "notification_patterns": {
+        "mobile_notifications": "Uses async_send_notification helper",
+        "persistent_notifications": "Uses hass.services.async_call with NOTIFY_* constants",
+        "notification_titles_messages": "Passed as parameters (title, message) - content comes from calling methods"
+      },
+      "finding": "✅ Notification infrastructure is well-structured. Titles/messages are parameters, not hardcoded in notification methods."
+    },
+    "constants_needed": {
+      "error_message_constants": {
+        "category": "TRANS_KEY_ERROR_*",
+        "estimated_count": 12,
+        "examples": [
+          "TRANS_KEY_ERROR_ENTITY_NOT_FOUND",
+          "TRANS_KEY_ERROR_CHORE_NOT_ASSIGNED",
+          "TRANS_KEY_ERROR_CHORE_ALREADY_CLAIMED",
+          "TRANS_KEY_ERROR_ENTITY_MISMATCH",
+          "TRANS_KEY_ERROR_MISSING_DUE_DATE",
+          "TRANS_KEY_ERROR_NO_RECURRING_FREQ",
+          "TRANS_KEY_ERROR_NO_DUE_DATE_SET",
+          "TRANS_KEY_ERROR_KID_NAME_NOT_FOUND"
+        ],
+        "note": "Most can be generic with placeholders: {entity_type}, {entity_id}, {entity_name}, {kid_name}, {chore_name}, {reward_name}"
+      }
+    }
+  },
+  "services_py_detailed_findings": {
+    "logging_analysis": {
+      "total_logging_statements": 86,
+      "lazy_logging_compliance": "100%",
+      "pattern": "All use LOGGER.warning, LOGGER.info, or LOGGER.debug with %s placeholders",
+      "finding": "✅ Perfect lazy logging pattern throughout"
+    },
+    "user_facing_strings": {
+      "total_error_raises": 38,
+      "errors_with_translation_key": 36,
+      "errors_without_translation_key": 2,
+      "translation_compliance": "95%",
+      "pattern_analysis": {
+        "correct_pattern": "raise HomeAssistantError(translation_domain=const.DOMAIN, translation_key=const.TRANS_KEY_ERROR_*, translation_placeholders={...})",
+        "examples": [
+          "Line 167: raise HomeAssistantError(translation_domain=const.DOMAIN, translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION, translation_placeholders={'action': const.ERROR_ACTION_CLAIM_CHORES})",
+          "Line 343: raise HomeAssistantError(translation_domain=const.DOMAIN, translation_key=const.TRANS_KEY_ERROR_ENTITY_NOT_FOUND, translation_placeholders=...)",
+          "Line 358: raise HomeAssistantError(translation_domain=const.DOMAIN, translation_key=const.TRANS_KEY_ERROR_INSUFFICIENT_POINTS, translation_placeholders=...)"
+        ]
+      },
+      "finding": "✅ services.py is EXEMPLARY - uses translation_key pattern for 95%+ of error messages. This is the gold standard pattern."
+    },
+    "data_constants_usage": {
+      "const_data_usage_count": 8,
+      "const_trans_key_usage_count": 41,
+      "finding": "Minimal DATA_ usage (delegates to coordinator). Heavy TRANS_KEY usage (correct pattern)."
+    },
+    "translation_keys_used": {
+      "count": 41,
+      "primary_keys": [
+        "TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION",
+        "TRANS_KEY_ERROR_ENTITY_NOT_FOUND",
+        "TRANS_KEY_ERROR_INSUFFICIENT_POINTS",
+        "TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND"
+      ],
+      "finding": "All translation keys already defined in const.py and properly used with translation_placeholders"
+    },
+    "constants_needed": {
+      "count": 0,
+      "finding": "✅ NO NEW CONSTANTS NEEDED - services.py already uses existing TRANS_KEY_ERROR_* constants correctly"
+    }
+  },
+  "priority_recommendations": {
+    "high_priority": {
+      "file": "coordinator.py",
+      "issue": "41 hardcoded HomeAssistantError f-string messages",
+      "impact": "User-facing error messages are not translatable",
+      "effort": "Medium - Need to define 12 new translation keys and replace 41 error strings",
+      "recommendation": "Replace all HomeAssistantError f-strings with translation_key pattern (copy services.py pattern)",
+      "estimated_constants_needed": 12
+    },
+    "low_priority": {
+      "file": "services.py",
+      "issue": "None - exemplary implementation",
+      "impact": "No issues found",
+      "effort": "N/A",
+      "recommendation": "Use services.py as the reference implementation for error handling patterns",
+      "estimated_constants_needed": 0
+    }
+  },
+  "pattern_comparison": {
+    "services_py_gold_standard": {
+      "pattern": "raise HomeAssistantError(translation_domain=const.DOMAIN, translation_key=const.TRANS_KEY_ERROR_*, translation_placeholders={...})",
+      "benefits": [
+        "Fully translatable error messages",
+        "Consistent error handling",
+        "Proper placeholder substitution",
+        "Follows Home Assistant best practices"
+      ]
+    },
+    "coordinator_py_anti_pattern": {
+      "pattern": "raise HomeAssistantError(f\"<Entity> ID '{entity_id}' not found.\")",
+      "issues": [
+        "Hardcoded English strings",
+        "Not translatable",
+        "Inconsistent error messages",
+        "Violates Home Assistant guidelines"
+      ]
+    },
+    "migration_path": {
+      "step_1": "Define 12 new TRANS_KEY_ERROR_* constants in const.py",
+      "step_2": "Add corresponding translations to en.json",
+      "step_3": "Replace all 41 f-string errors with translation_key pattern",
+      "step_4": "Test all error paths to verify translations work",
+      "estimated_effort": "4-6 hours"
+    }
+  },
+  "acceptance_criteria": {
+    "phase_1d_complete": true,
+    "coordinator_logging_compliant": true,
+    "services_logging_compliant": true,
+    "coordinator_translation_compliant": false,
+    "services_translation_compliant": true,
+    "ready_for_phase_2": true,
+    "notes": "coordinator.py needs translation remediation in Phase 3. services.py is the gold standard reference."
+  },
+  "next_steps": {
+    "immediate": "Update plan document with Phase 1d findings",
+    "phase_2": "Define 12 new TRANS_KEY_ERROR_* constants for coordinator.py error messages",
+    "phase_3": "Replace 41 hardcoded error strings in coordinator.py with translation_key pattern (copy services.py approach)",
+    "phase_4": "Add 12 new error message translations to en.json",
+    "testing": "Verify all 41 error paths still work after remediation"
+  }
+}

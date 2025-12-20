@@ -34,7 +34,7 @@ badges:
     points_multiplier: 1.05
     maintenance:
       interval: "weekly"
-      required_points: 50
+      required_points: 300 # 3/4 of threshold (400 * 3/4 = 300)
       demote_on_fail: true
 
 bonuses:

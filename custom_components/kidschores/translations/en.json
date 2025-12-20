@@ -262,6 +262,7 @@
     },
     "error": {
       "a_chore_must_be_selected": "A chore must be selected",
+      "badge_requires_assignment": "At least one kid must be assigned to this badge",
       "duplicate_achievement": "An achievement with this name already exists",
       "duplicate_badge": "A badge with this name already exists",
       "duplicate_challenge": "A challenge with this name already exists",
@@ -306,7 +307,12 @@
       "corrupt_file": "The selected file contains invalid JSON and cannot be read.",
       "invalid_structure": "The selected file is missing required data structure.",
       "file_not_found": "The selected file could not be found.",
-      "invalid_selection": "Please select a valid option."
+      "invalid_selection": "Please select a valid option.",
+      "invalid_input": "The provided input is invalid. Please check your entries and try again.",
+      "duplicate_name": "An item with this name already exists. Please choose a different name.",
+      "invalid_date_range": "The date range is invalid. End date must be after start date.",
+      "missing_required": "Required field is missing. Please provide all required information.",
+      "invalid_format": "The format is invalid. Please check your input and try again."
     },
     "abort": {
       "single_instance_allowed": "Only a single KidsChores instance can be configured.",
@@ -1132,6 +1138,7 @@
     },
     "error": {
       "a_chore_must_be_selected": "A chore must be selected",
+      "badge_requires_assignment": "At least one kid must be assigned to this badge",
       "duplicate_achievement": "An achievement with this name already exists",
       "duplicate_badge": "A badge with this name already exists",
       "duplicate_challenge": "A challenge with this name already exists",
@@ -2326,18 +2333,21 @@
       }
     }
   },
+  "display": {
+    "due_date_not_set": "No due date set",
+    "time_format_short": "{value}{unit}",
+    "time_format_medium": "{value} {unit}",
+    "time_format_long": "{value} {unit}, {remainder}"
+  },
   "exceptions": {
+    "error_msg_no_entry_found": {
+      "message": "No matching entry found in configuration."
+    },
     "not_authorized_action": {
       "message": "You are not authorized to {action} for this kid."
     },
     "not_authorized_action_global": {
       "message": "You are not authorized to {action}."
-    },
-    "entity_not_found": {
-      "message": "{entity_type} '{name}' not found"
-    },
-    "error_insufficient_points": {
-      "message": "{kid_name} does not have enough points to redeem '{reward_name}'"
     },
     "calendar_create_not_supported": {
       "message": "Creating events is not supported for this calendar"
@@ -2347,6 +2357,42 @@
     },
     "calendar_update_not_supported": {
       "message": "Updating events is not supported for this calendar"
+    },
+    "not_found": {
+      "message": "{entity_type} '{name}' not found"
+    },
+    "not_assigned": {
+      "message": "{entity} not assigned to {kid}"
+    },
+    "insufficient_points": {
+      "message": "{kid} has {current} points but needs {required} points"
+    },
+    "already_claimed": {
+      "message": "{entity} has already been claimed"
+    },
+    "invalid_status": {
+      "message": "{entity} status is '{status}', expected '{expected}'"
+    },
+    "entity_mismatch": {
+      "message": "{provided} does not match {expected}"
+    },
+    "invalid_frequency": {
+      "message": "Recurring frequency '{frequency}' is not valid"
+    },
+    "missing_field": {
+      "message": "Required field '{field}' is missing from {entity}"
+    },
+    "invalid_date": {
+      "message": "{field} date '{date}' is invalid"
+    },
+    "date_constraint": {
+      "message": "{constraint} violation: {detail}"
+    },
+    "operation_failed": {
+      "message": "{operation} failed: {reason}"
+    },
+    "configuration_error": {
+      "message": "Configuration error: {detail}"
     }
   },
   "action_labels": {

@@ -10,12 +10,498 @@
 
 ## Table of Contents
 
-1. [General Code Quality](#general-code-quality)
-2. [Entity Review Checklist](#entity-review-checklist)
-3. [Performance Review](#performance-review)
-4. [Standards Compliance](#standards-compliance)
-5. [Platform-Specific Reviews](#platform-specific-reviews)
-6. [Review Process](#review-process)
+1. [Phase 0: Repeatable Audit Framework](#phase-0-repeatable-audit-framework) ⭐ **REQUIRED FIRST STEP**
+2. [General Code Quality](#general-code-quality)
+3. [Entity Review Checklist](#entity-review-checklist)
+4. [Performance Review](#performance-review)
+5. [Standards Compliance](#standards-compliance)
+6. [Platform-Specific Reviews](#platform-specific-reviews)
+7. [Review Process](#review-process)
+
+---
+
+## Phase 0: Repeatable Audit Framework
+
+**CRITICAL**: All new files must be audited using this framework BEFORE code review. This ensures consistent identification of user-facing strings, data constants, logging patterns, and translation requirements.
+
+**When to use**: Auditing any new Python file for integration into the KidsChores codebase (entity platforms, helper modules, coordinator changes, etc.)
+
+**Output**: Standardized audit report (JSON format) documenting findings and required constants.
+
+### Step 1: Logging Audit
+
+```bash
+# Search for all logging statements in file
+grep -n "const\.LOGGER\.\(debug\|info\|warning\|error\)" file.py
+```
+
+**Checklist**:
+
+- [ ] Search for all `const.LOGGER.*` calls in file
+- [ ] Verify each uses lazy logging (not f-strings): `logger.debug("Message: %s", var)` ✓
+- [ ] Count by severity: DEBUG, INFO, WARNING, ERROR
+- [ ] Document any hardcoded strings in log messages
+- [ ] Verify no f-strings in lazy logging (should use `%s`, `%d` placeholders)
+
+**Documentation**:
+
+- Total log statements: **N**
+- Debug: **X**, Info: **Y**, Warning: **Z**, Error: **W**
+- Compliance: **100%** (or list issues found)
+- Example: "22 log statements reviewed; 100% compliant; all use correct lazy logging patterns"
+
+### Step 2: User-Facing String Identification
+
+**Checklist**:
+
+- [ ] Identify all user-facing validation error messages (config flow, options flow)
+- [ ] Identify all field labels and descriptions (schema builders)
+- [ ] Identify all entity names, descriptions used in UI
+- [ ] Identify all error messages returned to user
+- [ ] **Identify all notification titles and messages** (coordinator notification calls) ⭐ NEW
+- [ ] Search for hardcoded strings in error dicts: `errors['field'] = 'hardcoded_string'`
+- [ ] Search for strings in field builders: `vol.Optional("name", description="...")`
+- [ ] **Search for hardcoded notification strings**: `title="..."`, `message=...` ⭐ NEW
+
+**Search patterns**:
+
+```python
+errors["field"] = "hardcoded"  # ❌ Identify these
+vol.Optional("field", description="Hardcoded text")  # ❌ Identify these
+return vol.Schema({...})  # Check for embedded strings
+```
+
+**Notification-specific patterns** ⭐ NEW:
+
+```bash
+# Find hardcoded notification titles
+grep -n 'title="[A-Z]' file.py
+
+# Find hardcoded notification messages (often with f-strings)
+grep -n 'message=.*f"' file.py
+
+# Find notification function calls
+grep -n '_notify_kid\|_notify_parents\|async_send_notification' file.py
+```
+
+**Documentation**:
+
+- Total user-facing strings found: **N**
+- Error messages: **X**
+- Field labels: **Y**
+- Descriptions: **Z**
+- **Notification titles/messages**: **W** ⭐ NEW
+- Other UI text: **V**
+- Hardcoded (non-constant) strings: **List with line numbers**
+
+### Step 3: Data/Lookup Constant Identification
+
+**Checklist**:
+
+- [ ] Search for repeated string literals (use `grep` with frequency count)
+- [ ] Identify dictionary keys used 2+ times: `dict['key']`, `dict.get('key')`
+- [ ] Identify enum-like strings: status values, type names, tag names
+- [ ] Identify format strings: date formats, filename patterns, templates
+- [ ] Identify magic numbers and delimiters: hardcoded lengths, delimiters
+
+**Search patterns**:
+
+```bash
+# Find most-repeated string literals (potential constants)
+grep -oE "'[^']+'|\"[^\"]+\"" file.py | sort | uniq -c | sort -rn | head -20
+
+# Find dictionary access patterns
+grep -E "\[.?['\"][^'\"]+['\"]" file.py
+
+# Find hardcoded delimiters or formats
+grep -E "(split|join|format|strftime)" file.py
+```
+
+**Documentation**:
+
+- Total data constants needed: **N**
+- Dictionary keys: **X** items
+- Entity type/enum values: **Y** items
+- Format strings: **Z** items
+- Magic strings: **W** items
+- **Breakdown by priority**:
+  - HIGH (>5 occurrences): **X** items
+  - MEDIUM (2-4 occurrences): **Y** items
+  - LOW (1 occurrence): **Z** items
+
+### Step 4: Pattern Analysis
+
+**Checklist**:
+
+- [ ] Verify error messages follow `CFOP_ERROR_*` → `TRANS_KEY_CFOF_*` pattern
+- [ ] Verify field labels use appropriate `CFOF_*` or `LABEL_*` constants
+- [ ] Verify data structure access is consistent (dict keys vs. const references)
+- [ ] Verify logging compliance (no f-strings, lazy evaluation)
+- [ ] Search for `const.` usage to understand naming patterns in file
+
+**Documentation**:
+
+- Pattern compliance: **X%** (Y errors, Z warnings)
+- Naming patterns identified: (e.g., "BACKUP*KEY*_", "ENTITY*KEY*_", etc.)
+- Issues found: (list any inconsistencies)
+
+### Step 5: Translation Key Verification
+
+**Checklist**:
+
+- [ ] Extract all unique `TRANS_KEY_*` and `CFOP_ERROR_*` constants found in file
+- [ ] Cross-reference against `en.json` → verify English translations exist
+- [ ] Identify missing translation keys (constants defined but no en.json entry)
+- [ ] Document gaps for Phase 4 remediation
+- [ ] Note: No strings.json required (KidsChores uses en.json as master, storage-only architecture)
+
+**Search patterns**:
+
+```bash
+# Find all TRANS_KEY_ and CFOP_ERROR_ references
+grep -n "TRANS_KEY_\|CFOP_ERROR_" file.py
+
+# Verify in en.json (master file)
+grep -c "TRANS_KEY_\|CFOP_ERROR_" custom_components/kidschores/translations/en.json
+```
+
+**Documentation**:
+
+- Translation keys found: **N**
+- In en.json: **Y** ✓
+- Missing translations: **List with keys**
+- Translation coverage: **X%** (en.json is master, 100% expected)
+
+### Step 5b: Translation Rationalization (Conditional)
+
+**When to perform**: If Step 5 identified new translation keys OR new user-facing strings without existing translation templates.
+
+**Checklist**:
+
+- [ ] Review extracted user-facing strings from Step 2
+- [ ] For each string without a translation template, check if similar patterns exist in en.json
+- [ ] Document existing translation templates that could be reused
+- [ ] If pattern doesn't exist, draft new translation template following KidsChores naming conventions
+- [ ] Flag ambiguous strings for confirmation with domain expert
+
+**Search for existing patterns**:
+
+```bash
+# Check for similar translation patterns
+grep -i "error\|invalid\|required\|duplicate" custom_components/kidschores/translations/en.json | head -20
+
+# Look for UI text patterns
+grep -i "button\|confirm\|cancel\|success" custom_components/kidschores/translations/en.json | head -20
+```
+
+**Documentation**:
+
+- Strings requiring new translations: **X**
+- Reusable existing templates found: **Y** (list patterns)
+- New translation templates drafted: **Z**
+- Ambiguous items flagged for review: **List with rationale**
+
+### Step 6: Audit Documentation
+
+**Generate standardized audit report** (JSON format):
+
+```json
+{
+  "file": "custom_components/kidschores/flow_helpers.py",
+  "audit_date": "2025-12-19",
+  "loc_total": 3316,
+  "sections": {
+    "logging": {
+      "total_statements": 22,
+      "debug": 17,
+      "info": 2,
+      "warning": 3,
+      "error": 0,
+      "compliance_percent": 100,
+      "issues": []
+    },
+    "user_facing_strings": {
+      "total": 62,
+      "error_messages": 32,
+      "field_labels": 15,
+      "descriptions": 8,
+      "other": 7,
+      "hardcoded": 6,
+      "compliance_percent": 90
+    },
+    "data_constants": {
+      "total": 47,
+      "dict_keys": 12,
+      "entity_keys": 9,
+      "enum_values": 15,
+      "format_strings": 9,
+      "magic_strings": 3,
+      "high_priority": 21,
+      "medium_priority": 21,
+      "low_priority": 5
+    },
+    "translation_keys": {
+      "found": 28,
+      "in_en_json": 28,
+      "missing_en_json": 0,
+      "coverage_percent": 100
+    }
+  },
+  "summary": "109 total hardcoded strings; 90% user-facing compliance; 53+ constants needed",
+  "constants_needed": [
+    {
+      "string": "tag",
+      "occurrences": 9,
+      "suggested_constant": "BACKUP_KEY_TAG = 'tag'",
+      "priority": "HIGH"
+    }
+  ],
+  "next_phase": "Constant definition and code remediation"
+}
+```
+
+**Documentation checklist**:
+
+- [ ] All file sections read (line ranges documented)
+- [ ] Logging audit completed and verified
+- [ ] User-facing strings 100% identified
+- [ ] Data constants categorized by priority
+- [ ] Translation keys cross-referenced with en.json (master file)
+- [ ] Audit report generated (JSON format)
+- [ ] Estimated LOC changes calculated
+- [ ] Summary statement written
+
+### Audit Completion Checklist
+
+**Before proceeding to code review**, verify:
+
+- [ ] All 6 steps completed for the file
+- [ ] Audit report generated and reviewed
+- [ ] No identified user-facing strings missing constants
+- [ ] All data constants categorized by priority
+- [ ] Translation gaps documented
+- [ ] **Notification strings audited** (if file contains notification code) ⭐ NEW
+- [ ] Estimated constants needed: **N** new constants
+- [ ] Estimated code locations to update: **M** locations
+- [ ] File is ready for Phase 2+ remediation OR full code review
+
+---
+
+### Step 6b: Notification-Specific Audit (Conditional) ⭐ NEW
+
+**When to perform**: If Step 2 identified notification-related code (calls to `_notify_kid`, `_notify_parents`, or `async_send_notification`).
+
+**Why this is needed**: Phase 3/3b focused on exception messages. Notification strings use a different pattern (direct function parameters) and require separate auditing to ensure complete standardization.
+
+**Checklist**:
+
+- [ ] Locate all notification function calls in file
+- [ ] For each notification call, identify:
+  - [ ] `title=` parameter value (hardcoded string or constant?)
+  - [ ] `message=` parameter value (hardcoded string/f-string or constant?)
+  - [ ] Any embedded entity names or dynamic data (should use message_data dict)
+- [ ] Document required TRANS*KEY_NOTIF_TITLE*\* constants
+- [ ] Document required TRANS*KEY_NOTIF_MESSAGE*\* constants
+- [ ] Flag f-strings in notification messages (should use placeholder substitution)
+
+**Search patterns**:
+
+```bash
+# Find all notification calls
+grep -n '_notify_kid\|_notify_parents\|async_send_notification' file.py
+
+# For each call found, extract title/message
+grep -A 5 '_notify_kid(' file.py | grep 'title=\|message='
+
+# Find hardcoded notification titles
+grep -n 'title="[A-Z]' file.py
+
+# Find f-string notification messages (need conversion)
+grep -n 'message=.*f"' file.py
+```
+
+**Documentation**:
+
+```json
+{
+  "notification_audit": {
+    "notification_calls_found": 15,
+    "hardcoded_titles": 15,
+    "hardcoded_messages": 15,
+    "f_strings_in_messages": 15,
+    "required_title_constants": [
+      "TRANS_KEY_NOTIF_TITLE_CHORE_APPROVED",
+      "TRANS_KEY_NOTIF_TITLE_CHORE_DISAPPROVED",
+      ...
+    ],
+    "required_message_constants": [
+      "TRANS_KEY_NOTIF_MESSAGE_CHORE_APPROVED",
+      "TRANS_KEY_NOTIF_MESSAGE_CHORE_DISAPPROVED",
+      ...
+    ],
+    "estimated_effort": "4-6 hours for full notification refactor"
+  }
+}
+```
+
+**Example Finding**:
+
+```python
+# ❌ FOUND (Line 3257):
+self.hass.async_create_task(
+    self._notify_kid(
+        kid_id,
+        title="KidsChores: Chore Approved",  # ❌ Hardcoded
+        message=f"Your chore '{chore_info[const.DATA_CHORE_NAME]}' was approved.",  # ❌ f-string
+    )
+)
+
+# ✅ TARGET PATTERN:
+self.hass.async_create_task(
+    self._notify_kid(
+        kid_id,
+        title=const.TRANS_KEY_NOTIF_TITLE_CHORE_APPROVED,  # ✅ Constant
+        message=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_APPROVED,  # ✅ Constant
+        message_data={"chore_name": chore_info[const.DATA_CHORE_NAME]},  # ✅ Data dict
+    )
+)
+```
+
+**Notification Audit Completion**:
+
+- [ ] All notification calls documented
+- [ ] Required constants identified and counted
+- [ ] Translation entries planned (for en.json)
+- [ ] Effort estimate calculated
+- [ ] Findings documented in `/docs/in-process/PHASE3C_NOTIFICATION_REFACTOR_FINDING.md` (or similar)
+
+---
+
+### Step 7: Reverse Translation Audit (Phase 4b)
+
+**When to perform**: After completing Phase 3/3b/3c code remediation and Phase 4 forward translation validation. This step finds **unused translation keys** in en.json that are no longer referenced in code.
+
+**Why this matters**:
+
+- Prevents translation bloat (fewer strings = easier maintenance)
+- Reduces future translation burden when adding new languages
+- Keeps en.json clean and understandable
+- Establishes clean baseline for future work
+
+**Checklist**:
+
+- [ ] Extract all translation keys from en.json structure
+- [ ] For each key, search codebase for references (const.py, all \*.py files)
+- [ ] Categorize findings: actively used, legacy/deprecated, reserved for future, truly orphaned
+- [ ] Distinguish between different translation sections (exceptions, config.error, config.abort, entity, etc.)
+- [ ] Document why certain "unused" keys should be kept (future use, external references)
+
+**Search patterns**:
+
+```bash
+# Extract exception keys from en.json
+jq -r '.exceptions | keys[]' custom_components/kidschores/translations/en.json
+
+# Search for each key in codebase
+for key in $(jq -r '.exceptions | keys[]' custom_components/kidschores/translations/en.json); do
+  if ! grep -r "\"$key\"" custom_components/kidschores/*.py > /dev/null; then
+    echo "Potentially unused: exceptions.$key"
+  fi
+done
+
+# Check if key exists as TRANS_KEY constant
+grep "TRANS_KEY.*=.*\"$key\"" custom_components/kidschores/const.py
+```
+
+**Automated script approach**:
+
+```python
+# Phase 4b reverse audit script (see implementation below)
+python3 << 'EOF'
+import json
+import re
+from pathlib import Path
+
+# Read en.json and extract all keys from all sections
+with open("custom_components/kidschores/translations/en.json") as f:
+    translations = json.load(f)
+
+# Check exceptions section
+exceptions = translations.get("exceptions", {})
+for key in exceptions.keys():
+    # Search in const.py for constant definition
+    # Search in all *.py for direct usage
+    # Report if orphaned
+
+# Repeat for config.error, config.abort, entity.*, etc.
+EOF
+```
+
+**Documentation**:
+
+```json
+{
+  "reverse_translation_audit": {
+    "en_json_sections_audited": [
+      "exceptions",
+      "config.error",
+      "config.abort",
+      "entity",
+      "display"
+    ],
+    "total_keys_found": 150,
+    "actively_used": 120,
+    "potentially_unused": 30,
+    "findings": [
+      {
+        "section": "exceptions",
+        "key": "entity_not_found",
+        "status": "unused",
+        "recommendation": "Remove (duplicate of 'not_found')",
+        "rationale": "Not referenced in const.py or any *.py files"
+      },
+      {
+        "section": "exceptions",
+        "key": "configuration_error",
+        "status": "reserved",
+        "recommendation": "Keep (future use)",
+        "rationale": "Generic template for future configuration errors"
+      }
+    ],
+    "summary": {
+      "remove": 10,
+      "keep_reserved": 15,
+      "keep_legacy": 5
+    }
+  }
+}
+```
+
+**Review criteria for "unused" keys**:
+
+- **Remove**: True orphans with no purpose (typos, renamed keys, obsolete features)
+- **Keep (Reserved)**: Generic templates for future features (document in comments)
+- **Keep (Legacy)**: May be used by external tools, dashboards, or migration logic
+- **Keep (External)**: Referenced in YAML dashboards or automations
+- **Investigate**: Ambiguous cases requiring domain expert review
+
+**Completion criteria**:
+
+- [ ] All en.json sections audited (exceptions, config, entity, display)
+- [ ] Each "unused" key categorized with recommendation
+- [ ] Removal candidates listed with rationale
+- [ ] "Keep" decisions documented with reason
+- [ ] Update en.json if removing orphaned keys
+- [ ] Run full test suite to verify no breakage (510/510 expected)
+- [ ] Generate report: `/docs/completed/PHASE4B_REVERSE_TRANSLATION_AUDIT.md`
+
+---
+
+- [ ] All data constants categorized by priority
+- [ ] Translation gaps documented
+- [ ] Estimated constants needed: **N** new constants
+- [ ] Estimated code locations to update: **M** locations
+- [ ] File is ready for Phase 2+ remediation OR full code review
 
 ---
 
@@ -182,12 +668,12 @@ _attr_native_unit_of_measurement = "Points"
 
 ```python
 _attr_translation_key = "kid_points"
-# Corresponds to strings.json:
-# "entity": { "sensor": { "kid_points": { "name": "Points" } } }
+# Corresponds to en.json (master translation file):
+# { "kid_points": "Points" }
 ```
 
 - [ ] Translation key set for all entities
-- [ ] Corresponding entry exists in `strings.json`
+- [ ] Corresponding entry exists in `en.json` (master file)
 - [ ] Translation follows naming pattern
 - [ ] No hardcoded user-facing strings
 
@@ -423,6 +909,68 @@ def native_value(self) -> str:
 
 ---
 
+### Notification Standards ⭐ NEW
+
+**✅ Notification Title/Message Patterns**
+
+```python
+# ✅ GOOD: Use translation constants
+self.hass.async_create_task(
+    self._notify_kid(
+        kid_id,
+        title=const.TRANS_KEY_NOTIF_TITLE_CHORE_APPROVED,  # ✅ Constant
+        message=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_APPROVED,  # ✅ Constant
+        message_data={  # ✅ Separate data dict for placeholders
+            "chore_name": chore_info[const.DATA_CHORE_NAME],
+            "points": points_earned,
+        },
+        extra_data=extra_data,
+    )
+)
+
+# ❌ BAD: Hardcoded strings
+self.hass.async_create_task(
+    self._notify_kid(
+        kid_id,
+        title="KidsChores: Chore Approved",  # ❌ Hardcoded
+        message=f"Your chore '{chore_name}' was approved.",  # ❌ f-string
+    )
+)
+```
+
+**Checklist**:
+
+- [ ] **No hardcoded notification titles** - all use `TRANS_KEY_NOTIF_TITLE_*` constants
+- [ ] **No hardcoded notification messages** - all use `TRANS_KEY_NOTIF_MESSAGE_*` constants
+- [ ] **No f-strings in notification messages** - use `message_data` dict for placeholder substitution
+- [ ] **All notification constants exist in const.py**
+- [ ] **All notification translations exist in en.json** with proper placeholders
+- [ ] Action strings properly encode context (e.g., `f"{ACTION_APPROVE}|{kid_id}|{chore_id}"`)
+
+**Why This Matters**:
+
+- **Translation Support**: Hardcoded strings prevent localization
+- **Maintainability**: Constants centralize notification text
+- **Consistency**: Standard pattern across all notifications
+- **Testing**: Mock notifications easier with constants
+
+**Common Notification Patterns to Audit**:
+
+```bash
+# Find all notification calls
+grep -n '_notify_kid\|_notify_parents\|async_send_notification' coordinator.py
+
+# Find hardcoded titles (should use constants)
+grep -n 'title="[A-Z]' coordinator.py
+
+# Find f-string messages (should use message_data)
+grep -n 'message=.*f"' coordinator.py
+```
+
+**Reference**: See `/docs/in-process/PHASE3C_NOTIFICATION_REFACTOR_FINDING.md` for comprehensive notification audit findings.
+
+---
+
 ## Platform-Specific Reviews
 
 ### Sensor Platform (`sensor.py`)
@@ -528,6 +1076,29 @@ async def async_set_value(self, value: datetime) -> None:
 
 ## Review Process
 
+### Phase 0 (Required): Audit Framework
+
+**⭐ BEFORE ANY CODE REVIEW**, complete Phase 0 audit using steps above:
+
+1. **Logging Audit** – Verify lazy logging patterns (100% compliance expected)
+2. **User-facing Strings** – Identify all hardcoded UI text requiring constants
+3. **Data/Lookup Constants** – Identify all repeated string literals
+4. **Pattern Analysis** – Verify naming consistency (CFOP*ERROR*\_, CFOF\_\_, DATA\_\*, etc.)
+5. **Translation Verification** – Check en.json (master file) coverage
+6. **Audit Documentation** – Generate standardized report (JSON)
+
+**Deliverable**: Audit report documenting:
+
+- Total hardcoded strings and breakdown
+- Constants needed (with priority: HIGH/MEDIUM/LOW)
+- Translation gaps (missing en.json entries)
+- Estimated code locations to update
+- Ready for Phase 2 remediation
+
+**Gate**: Phase 0 must be **100% complete** before proceeding to code review.
+
+---
+
 ### Step 1: Pre-Review Validation
 
 **Run Automated Checks**
@@ -589,7 +1160,7 @@ mypy custom_components/kidschores/
 
 **Translation Coverage**
 
-- [ ] All translation keys exist in `strings.json`
+- [ ] All translation keys exist in `en.json` (master file)
 - [ ] All user-facing strings translated
 - [ ] No hardcoded English text
 - [ ] Error messages translatable
@@ -702,10 +1273,10 @@ mypy custom_components/kidschores/
 **Check**:
 
 - [ ] `translation_key` set correctly
-- [ ] Entry exists in `strings.json`
+- [ ] Entry exists in `en.json` (master file)
 - [ ] Translation file format valid
 
-**Fix**: Add missing translations
+**Fix**: Add missing translations to en.json
 
 ### Issue: Entity Not Appearing
 
@@ -784,6 +1355,117 @@ snapshot = tracemalloc.take_snapshot()
 
 ---
 
-**Review Guide Version**: 1.0
-**Last Updated**: December 17, 2025
+**Review Guide Version**: 1.1
+**Last Updated**: December 19, 2025
 **Maintainer**: KidsChores Development Team
+
+---
+
+## Phase 0: Audit Framework – Required Deliverables
+
+**This section confirms Phase 0 audit outputs as REQUIRED for all code reviews.**
+
+### Deliverable 1: Audit Report (JSON)
+
+**Filename**: `audit_report_<filename>_<date>.json`
+
+**Contents**:
+
+```json
+{
+  "file": "path/to/file.py",
+  "audit_date": "YYYY-MM-DD",
+  "loc_total": 1234,
+  "sections": {
+    "logging": { ... },
+    "user_facing_strings": { ... },
+    "data_constants": { ... },
+    "translation_keys": { ... }
+  },
+  "summary": "...",
+  "constants_needed": [ ... ]
+}
+```
+
+**When**: Generated during Phase 0 step 6
+
+**Where**: Attached to PR description or referenced in code review comment
+
+### Deliverable 2: Constants List
+
+**Format**: Table or JSON array
+
+**Columns**:
+
+- String value
+- Suggested constant name
+- Priority (HIGH/MEDIUM/LOW)
+- Occurrence count
+- Line numbers
+
+**Example**:
+| String | Suggested Constant | Priority | Count | Lines |
+|--------|-------------------|----------|-------|-------|
+| `"base"` | `KEY_BASE = 'base'` | HIGH | 9 | 124, 1039, 2251, ... |
+| `"tag"` | `BACKUP_KEY_TAG = 'tag'` | HIGH | 9 | 2933, 3024, ... |
+
+### Deliverable 3: Translation Gaps Report
+
+**Format**: List of missing entries in en.json (master file)
+
+**Contents**:
+
+- TRANS*KEY*\* constants found in code but missing in en.json
+- CFOP*ERROR*\* constants found in code but missing in en.json
+- Suggested English translations for each gap
+- **Note**: KidsChores uses en.json only; no strings.json required (storage-only architecture)
+
+**Example**:
+
+```markdown
+## Missing en.json Entries (4 total)
+
+1. `CFOP_ERROR_DUPLICATE_CHORE_NAME`
+
+   - Location: flow_helpers.py:1082
+   - Suggested text: "Chore name already exists"
+
+2. `TRANS_KEY_CFOF_INVALID_DATE_FORMAT`
+   - Location: flow_helpers.py:2175
+   - Suggested text: "Invalid date format (YYYY-MM-DD)"
+```
+
+### Deliverable 4: Code Remediation Plan
+
+**Format**: Checklist or table
+
+**Contents**:
+
+- HIGH priority: Constant definitions needed first
+- MEDIUM priority: Secondary constant definitions
+- LOW priority: Nice-to-have constants
+
+**Estimated effort**:
+
+- X new constants to add to const.py
+- Y code locations to update (with line numbers)
+- Z translation entries to add to en.json only
+- Estimated LOC changes: W
+
+### Acceptance Gate: Phase 0 Completion
+
+**All of the following must be true before PR approval**:
+
+- [ ] **Audit report generated** – JSON document with complete findings
+- [ ] **Constants list created** – All hardcoded strings categorized
+- [ ] **Translation gaps identified** – Missing en.json entries documented
+- [ ] **Code remediation plan ready** – Estimate of constants + code changes calculated
+- [ ] **Phase 0 checklist** – All 6 steps completed with documentation
+- [ ] **Sign-off** – Lead developer confirms audit is complete and accurate
+
+**If Phase 0 is incomplete**, PR should not proceed past code review. Return to Phase 0 for completion.
+
+---
+
+**Phase 0 Audit Framework Integration**: Complete ✅
+**Last Updated**: December 19, 2025

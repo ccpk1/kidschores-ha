@@ -1,0 +1,170 @@
+# Coordinator.py performance & optimization second opinion
+
+**File reviewed**: [custom_components/kidschores/coordinator.py](custom_components/kidschores/coordinator.py)  
+**Guide used**: [docs/CODE_REVIEW_GUIDE.md](docs/CODE_REVIEW_GUIDE.md) (Performance Review focus)  
+**Date**: 2025-12-19  
+
+## Executive summary
+
+There are multiple high-impact performance risks in the coordinator that will show up as:
+
+- event loop stalls during periodic updates (especially as chores/kids/entities scale)
+- excessive disk I/O due to frequent storage writes
+- expensive entity-registry full scans triggered more often than necessary
+- unbounded long-lived async tasks (`asyncio.sleep`) for reminders
+
+Several of these issues compound: the coordinator’s update interval is user-configurable, and the periodic update path includes a full overdue scan.
+
+## Highest-risk hotspots (prioritized)
+
+### 1) Periodic update does a full overdue scan (High)
+
+Evidence:
+- DataUpdateCoordinator update interval is derived from options: [custom_components/kidschores/coordinator.py](custom_components/kidschores/coordinator.py#L34-L58)
+- Periodic update calls overdue scan every tick: [custom_components/kidschores/coordinator.py](custom_components/kidschores/coordinator.py#L842-L855)
+- Overdue scan is an $O(\#chores \times \#assigned\_kids)$ walk, parsing datetimes and potentially spawning notifications: [custom_components/kidschores/coordinator.py](custom_components/kidschores/coordinator.py#L7679-L7878)
+
+Why it’s risky:
+- If `CONF_UPDATE_INTERVAL` is set small (or defaults to small), the scan runs frequently and can monopolize the event loop.
+- Each iteration parses ISO strings (`parse_datetime_to_utc`) repeatedly rather than caching.
+
+Key concerns/questions:
+- What is the default and minimum allowed update interval? Is it enforced anywhere?
+- Is `_check_overdue_chores()` intended to run every update, or only on schedule (e.g., hourly) / only near due times?
+
+Optimization ideas (high leverage):
+- Decouple overdue scanning from DataUpdateCoordinator polling. Run it on a dedicated schedule (e.g., `async_track_time_interval`) with an interval appropriate to your “overdue” semantics.
+- Cache parsed due dates / last notification timestamps in-memory for the duration of a run, at minimum.
+- Consider “next due time” indexing to avoid scanning all chores when nothing can become overdue.
+
+### 2) Storage writes are likely too frequent (High)
+
+Evidence:
+- `_persist()` writes by calling `Store.async_save` via `KidsChoresStorageManager.async_save`: [custom_components/kidschores/storage_manager.py](custom_components/kidschores/storage_manager.py#L188-L234)
+- Coordinator calls `_persist()` very frequently (52 call sites): see search results; `_persist()` itself: [custom_components/kidschores/coordinator.py](custom_components/kidschores/coordinator.py#L8985-L8987)
+- Some flows persist inside loops (especially badge evaluation) which can amplify writes:
+  - `_check_badges_for_kid()` persists inside the per-badge loop for cumulative badges: [custom_components/kidschores/coordinator.py](custom_components/kidschores/coordinator.py#L4970-L5060)
+
+Why it’s risky:
+- `Store.async_save` is “real work” (JSON serialization + file write). Even when scheduled with `hass.add_job`, frequent writes can saturate I/O and cause CPU churn.
+- Persist-inside-loop patterns can result in many back-to-back saves from a single user action.
+
+Key concerns/questions:
+- Is the storage layer already debounced? (Current implementation appears to save immediately per call.)
+- Do you need durability after each mutation, or can you accept small delays (seconds)?
+
+Optimization ideas (high leverage):
+- Move to debounced/delayed saving (Home Assistant’s Store supports delayed saves patterns; the current implementation does not appear to use them).
+- In coordinator methods, batch updates and call `_persist()` once per “transaction” rather than once per badge/child.
+
+### 3) Entity registry full scans and $O(\#entities \times \#chores)$ parsing (High)
+
+Evidence:
+- `_remove_entities_in_ha()` iterates all registry entities each call and is invoked per removed entity: [custom_components/kidschores/coordinator.py](custom_components/kidschores/coordinator.py#L1198-L1211)
+- `_remove_orphaned_kid_chore_entities()`:
+  - builds `valid_combinations`, then iterates all registry entities, then for each entity loops all chores to detect chore_id via substring search and split: [custom_components/kidschores/coordinator.py](custom_components/kidschores/coordinator.py#L1237-L1291)
+
+Why it’s risky:
+- Registry scans can be huge in real HA instances.
+- The nested loop on chores per entity scales poorly as chores grow.
+- These functions are `async` but do heavy CPU work without yielding; they can stall the event loop.
+
+Key concerns/questions:
+- How often do these orphan-cleanup tasks run in normal operation (not just migrations/options flow)?
+- Are unique_id formats stable and parseable in $O(1)$ without scanning chores?
+
+Optimization ideas (high leverage):
+- Avoid scanning all chores for each entity: encode kid_id and chore_id in a predictable delimiter-based unique_id format and parse directly.
+- Filter registry entries early by `platform == const.DOMAIN` and by known suffixes/prefixes.
+- Consider chunking large registry scans (yield control periodically) if they must remain in the event loop.
+
+### 4) Reminder implementation uses long-lived sleeping tasks (High)
+
+Evidence:
+- `remind_in_minutes()` awaits `asyncio.sleep(minutes * 60)`: [custom_components/kidschores/coordinator.py](custom_components/kidschores/coordinator.py#L8870-L8935)
+
+Why it’s risky:
+- Each reminder creates a task that lives until it wakes. A burst of reminders can create many resident tasks.
+- Tasks may outlive config entry unload/reload unless explicitly tracked and cancelled.
+
+Key concerns/questions:
+- Where is `remind_in_minutes()` scheduled from? Is there a cap or dedupe per (kid_id, chore_id/reward_id)?
+- Do you cancel pending reminders on unload?
+
+Optimization ideas (high leverage):
+- Use HA scheduler helpers (e.g., `async_call_later` or `async_track_point_in_time`) instead of long sleeps.
+- Track scheduled handles/tasks so they can be cancelled on unload and deduplicated.
+
+### 5) Parent notifications are sent sequentially (Medium → High if many parents) 
+
+Evidence:
+- `_notify_parents()` loops and awaits notification sends sequentially: [custom_components/kidschores/coordinator.py](custom_components/kidschores/coordinator.py#L8790-L8869)
+
+Why it’s risky:
+- Sequential I/O can make user actions feel slow (approval/claim flows). 
+- It also increases time spent holding state between mutations and saves.
+
+Optimization ideas:
+- Batch / gather notification sends with a small concurrency limit.
+- Ensure failures are isolated per parent (don’t fail the whole chain).
+
+## Additional performance concerns (Medium)
+
+### Badge reference updates are heavy and repeated
+
+Evidence:
+- `_update_chore_badge_references_for_kid()` clears and rebuilds refs by iterating kids → chores and badges → kids → chores: [custom_components/kidschores/coordinator.py](custom_components/kidschores/coordinator.py#L5710-L5768)
+- `_get_badge_in_scope_chores_list()` loops all chores to build lists: [custom_components/kidschores/coordinator.py](custom_components/kidschores/coordinator.py#L5106-L5125)
+
+Concern:
+- This is likely $O(\#kids \times \#chores + \#badges \times \#kids \times \#chores)$.
+- It’s called during first refresh and after badge evaluation; depending on frequency, it can be a major CPU consumer.
+
+### Unnecessary work inside overdue check
+
+Evidence:
+- In `_check_overdue_chores()`, there is a loop that sets `kid_info` but does nothing with it: [custom_components/kidschores/coordinator.py](custom_components/kidschores/coordinator.py#L7706-L7710)
+
+Concern:
+- This is extra per-iteration work (small), but it may also indicate a logic error where `kid_info` from a prior loop is reused later.
+
+### Potential wasted auth lookup
+
+Evidence:
+- `send_kc_notification()` calls `await hass.auth.async_get_user(user_id)` but then uses persistent notification service in the same way regardless of the user object: [custom_components/kidschores/coordinator.py](custom_components/kidschores/coordinator.py#L8685-L8778)
+
+Concern:
+- If the user lookup doesn’t change behavior, it’s a pointless await and can add latency.
+
+## Recommendations (low-churn ordering)
+
+1) **Define performance invariants**
+- Establish minimum update interval and decide whether overdue scans should be event-driven/scheduled rather than per-update.
+
+2) **Debounce storage writes**
+- Coalesce `_persist()` calls (especially inside loops) so a single user action leads to a single save.
+
+3) **De-risk registry scans**
+- Rework unique_id parsing to avoid nested scanning over chores.
+- Ensure orphan cleanup is not invoked frequently during normal operation.
+
+4) **Replace sleep-based reminders**
+- Move to HA scheduler callbacks with cancellation/deduping.
+
+5) **Parallelize parent notification sends carefully**
+- Use limited concurrency to reduce latency without spamming the event loop.
+
+## Suggested next measurements (to validate impact)
+
+- Capture a profiling log in a realistic instance (e.g., 5 kids, 50 chores, 30 badges, 200 entities):
+  - how long `_check_overdue_chores()` takes per run
+  - how often `_persist()` is called during common actions (claim/approve/reset)
+  - number of pending reminder tasks over time
+
+## Open questions to answer before optimization work
+
+- What is the intended update interval behavior, and should it be user-configurable?
+- Is immediate durability required after each mutation, or can writes be delayed by a few seconds?
+- What are typical upper-bound counts for kids/chores/badges in real installs?
+- Do you have (or want) a concurrency limit for notifications?
+- When unloading/reloading the integration, what happens to scheduled reminders and async tasks?

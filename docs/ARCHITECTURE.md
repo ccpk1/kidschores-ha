@@ -117,6 +117,45 @@ async def _update_system_settings_and_reload(self):
 **Format**: JSON
 **Version**: `STORAGE_VERSION = 1` (Home Assistant Store format), `meta.schema_version = 42` (KidsChores data structure)
 
+### Translation Architecture
+
+KidsChores uses **two separate translation systems**:
+
+#### 1. Integration Translations (Standard HA)
+
+**Location**: `custom_components/kidschores/translations/en.json` (and other language codes)
+**Purpose**: Home Assistant integration translations for:
+
+- Exception messages (`exceptions.*`)
+- Config flow UI (`config.*`)
+- Entity names and states (`entity.*`)
+- Service descriptions (`selector.*`)
+
+**Usage**: Standard Home Assistant translation system via `hass.localize()` and `translation_key` attributes.
+
+#### 2. Dashboard Translations (Custom System)
+
+**Location**: `custom_components/kidschores/translations/dashboard/en.json` (and 10+ other languages)
+**Purpose**: **Custom dashboard-specific translations** for the KidsChores Dashboard Helper sensor.
+**Important**: These are **NOT part of Home Assistant's integration translation system**. This is a custom approach unique to KidsChores.
+
+**Why Custom?**: The dashboard helper sensor pre-computes all UI translations and exposes them via the `ui_translations` attribute. This allows:
+
+- Frontend dashboard YAML to access translations without backend calls
+- Single-language selection per kid (not system-wide)
+- Optimized dashboard rendering (no expensive template lookups)
+- Support for 10+ languages without HA core language pack dependencies
+
+**Access Pattern**:
+
+```jinja2
+{%- set dashboard_helper = 'sensor.kc_' ~ kid_name ~ '_ui_dashboard_helper' -%}
+{%- set ui = state_attr(dashboard_helper, 'ui_translations') or {} -%}
+{{ ui.get('welcome', 'err-welcome') }}  {# Fallback for missing keys #}
+```
+
+**Note**: Dashboard translations are loaded by the dashboard helper sensor (sensor.py) and are completely separate from the integration's standard `translations/en.json` file.
+
 ### Storage Structure
 
 ```json
