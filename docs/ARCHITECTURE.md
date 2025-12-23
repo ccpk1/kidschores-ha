@@ -133,6 +133,24 @@ KidsChores uses **two separate translation systems**:
 
 **Usage**: Standard Home Assistant translation system via `hass.localize()` and `translation_key` attributes.
 
+**Coordinator Notifications** (v4.3+): Coordinator uses `async_get_translations()` API for:
+
+- Dynamic notification messages (36 translation keys: 18 title + 18 message)
+- Test mode detection (5s vs 1800s reminder delays)
+- Wrapper methods: `_notify_kid()`, `_notify_reminder()`
+
+**Example**:
+
+```python
+translations = await async_get_translations(
+    self.hass,
+    self.hass.config.language,
+    "entity_component",
+    {const.DOMAIN}
+)
+title = translations.get(const.TRANS_KEY_NOTIF_TITLE_CHORE_APPROVED, "Chore Approved")
+```
+
 #### 2. Dashboard Translations (Custom System)
 
 **Location**: `custom_components/kidschores/translations/dashboard/en.json` (and 10+ other languages)

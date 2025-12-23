@@ -4754,7 +4754,13 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             # Direct approval (no pending claim present).
             if kid_info[const.DATA_KID_POINTS] < cost:
                 raise HomeAssistantError(
-                    f"'{kid_info[const.DATA_KID_NAME]}' does not have enough points to redeem '{reward_info[const.DATA_REWARD_NAME]}'."
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_INSUFFICIENT_POINTS,
+                    translation_placeholders={
+                        "kid": kid_info[const.DATA_KID_NAME],
+                        "current": str(kid_info[const.DATA_KID_POINTS]),
+                        "required": str(cost),
+                    },
                 )
             kid_info[const.DATA_KID_POINTS] -= cost
             kid_info[const.DATA_KID_REDEEMED_REWARDS].append(reward_id)
@@ -8302,7 +8308,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             chore_info[const.DATA_CHORE_DUE_DATE] = new_due_date_iso
         except KeyError as err:
             raise HomeAssistantError(
-                f"Missing 'due date' in Chore ID '{chore_id}': {err}"
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_MISSING_FIELD,
+                translation_placeholders={
+                    "field": "due_date",
+                    "entity": f"chore '{chore_id}'",
+                },
             ) from err
 
         # If the due date is cleared (None), then remove any recurring frequency
@@ -8356,11 +8367,20 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             == const.FREQUENCY_NONE
         ):
             raise HomeAssistantError(
-                f"Chore '{chore_info.get(const.DATA_CHORE_NAME, chore_id)}' does not have a recurring frequency."
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_INVALID_FREQUENCY,
+                translation_placeholders={
+                    "frequency": "none",
+                },
             )
         if not chore_info.get(const.DATA_CHORE_DUE_DATE):
             raise HomeAssistantError(
-                f"Chore '{chore_info.get(const.DATA_CHORE_NAME, chore_id)}' does not have a due date set."
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_MISSING_FIELD,
+                translation_placeholders={
+                    "field": "due_date",
+                    "entity": f"chore '{chore_info.get(const.DATA_CHORE_NAME, chore_id)}'",
+                },
             )
 
         # Compute the next due date and update the chore options/config.
@@ -8468,7 +8488,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     kid_id,
                 )
                 raise HomeAssistantError(
-                    f"Penalty ID '{penalty_id}' does not apply to Kid ID '{kid_id}'."
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_ASSIGNED,
+                    translation_placeholders={
+                        "entity": f"penalty '{penalty_id}'",
+                        "kid": kid_id,
+                    },
                 )
 
             kid_info[const.DATA_KID_PENALTY_APPLIES].pop(penalty_id, None)
@@ -8553,7 +8578,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     kid_id,
                 )
                 raise HomeAssistantError(
-                    f"Bonus ID '{bonus_id}' does not apply to Kid ID '{kid_id}'."
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_ASSIGNED,
+                    translation_placeholders={
+                        "entity": f"bonus '{bonus_id}'",
+                        "kid": kid_id,
+                    },
                 )
 
             kid_info[const.DATA_KID_BONUS_APPLIES].pop(bonus_id, None)

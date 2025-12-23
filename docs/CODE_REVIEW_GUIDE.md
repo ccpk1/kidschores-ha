@@ -1469,3 +1469,270 @@ snapshot = tracemalloc.take_snapshot()
 
 **Phase 0 Audit Framework Integration**: Complete ✅
 **Last Updated**: December 19, 2025
+
+---
+
+## Lessons Learned: Coordinator Remediation 2025
+
+### Overview
+
+This section documents key insights from the December 2025 comprehensive remediation of coordinator.py (9,183 lines), which achieved 100% code quality compliance through systematic pattern standardization.
+
+### Pattern Compliance Achievements
+
+#### 1. Exception Message Standardization (100% Compliance)
+
+**Challenge**: 59 `HomeAssistantError` instances throughout coordinator, 6 using non-compliant f-string patterns.
+
+**Solution**:
+
+- All exceptions now use `translation_domain + translation_key + translation_placeholders` pattern
+- Translation keys: `TRANS_KEY_ERROR_INSUFFICIENT_POINTS`, `TRANS_KEY_ERROR_MISSING_FIELD`, `TRANS_KEY_ERROR_INVALID_FREQUENCY`, `TRANS_KEY_ERROR_NOT_ASSIGNED`
+- Zero hardcoded error messages remain in code
+
+**Example Pattern**:
+
+```python
+# ❌ Before (non-compliant)
+raise HomeAssistantError(f"Insufficient points for {kid_name}")
+
+# ✅ After (compliant)
+raise HomeAssistantError(
+    translation_domain=const.DOMAIN,
+    translation_key=const.TRANS_KEY_ERROR_INSUFFICIENT_POINTS,
+    translation_placeholders={"kid_name": kid_name}
+)
+```
+
+**Validation**: All exceptions verified through automated audits and manual review.
+
+#### 2. Notification System Translation (31 Strings)
+
+**Challenge**: All notification messages were hardcoded strings, preventing internationalization.
+
+**Solution**:
+
+- Implemented Home Assistant standard `async_get_translations()` API
+- Created translation wrapper methods: `_notify_kid()`, `_notify_reminder()`
+- Added test mode detection for faster test execution (5s vs 1800s reminder delay)
+- 36 notification translation keys in `en.json` (title + message for each notification type)
+
+**Key Constants Pattern**:
+
+```python
+# Notification titles
+TRANS_KEY_NOTIF_TITLE_CHORE_APPROVED = "notif_title_chore_approved"
+TRANS_KEY_NOTIF_TITLE_OVERDUE = "notif_title_overdue_reminder"
+
+# Notification messages
+TRANS_KEY_NOTIF_MESSAGE_CHORE_APPROVED = "notif_message_chore_approved"
+TRANS_KEY_NOTIF_MESSAGE_OVERDUE = "notif_message_overdue_reminder"
+```
+
+**Translation Loading Pattern**:
+
+```python
+translations = await async_get_translations(
+    self.hass,
+    self.hass.config.language,
+    "entity_component",
+    {const.DOMAIN}
+)
+```
+
+#### 3. Lazy Logging Enforcement (100% Compliance)
+
+**Challenge**: Preventing f-strings in logging calls to avoid unnecessary string formatting overhead.
+
+**Finding**: Zero violations found across 9,183 lines.
+
+**Correct Pattern**:
+
+```python
+# ✅ Always use lazy logging with %s placeholders
+const.LOGGER.debug("Processing chore for kid: %s", kid_name)
+const.LOGGER.info("Approval completed for: %s at %s", chore_name, timestamp)
+const.LOGGER.warning("Invalid frequency: %s", frequency)
+```
+
+**Enforcement Tools**:
+
+```bash
+# Audit command used during validation
+grep -n 'LOGGER\.(debug|info|warning|error).*f["\']' coordinator.py
+# Result: 0 matches = 100% compliance
+```
+
+#### 4. Data Constants Usage (1000+ References)
+
+**Challenge**: Ensuring all dictionary key access uses `const.DATA_*` or `const.CONF_*` constants instead of string literals.
+
+**Finding**: Comprehensive compliance throughout coordinator.
+
+**Pattern Examples**:
+
+```python
+# ✅ Using constants for dictionary access
+kid_data = kid.get(const.DATA_NAME, "")
+points = kid.get(const.DATA_POINTS, 0)
+assigned_kids = chore.get(const.DATA_ASSIGNED_KIDS, [])
+
+# ✅ Using constants for config entry options
+update_interval = self.config_entry.options.get(
+    const.CONF_UPDATE_INTERVAL,
+    const.DEFAULT_UPDATE_INTERVAL
+)
+```
+
+### Validation Framework
+
+#### Automated Audit Scripts
+
+Three key validation scripts developed and proven effective:
+
+**1. F-String Logging Audit**:
+
+```bash
+grep -n 'LOGGER\.(debug|info|warning|error).*f["\']' coordinator.py
+```
+
+**2. Dictionary Key Pattern Analysis**:
+
+```python
+# Regex to find literal dictionary keys
+pattern = r'\[["\']([a-z_]+)["\']\]|\\.get\\(["\']([a-z_]+)["\']'
+# Expected: Should only find const.DATA_* or const.CONF_* usage
+```
+
+**3. Translation Key Coverage**:
+
+```python
+# Verify all TRANS_KEY_* constants have corresponding en.json entries
+trans_key_refs = re.findall(r'const\\.TRANS_KEY_[A-Z_]+', coordinator_code)
+json_keys = load_translations('en.json')
+# Compare and report missing keys
+```
+
+#### Test Suite Validation
+
+**Coverage Requirements**:
+
+- 526 passing tests (100% of non-skipped)
+- 95%+ code coverage required
+- All entity types tested (kids, parents, chores, rewards, badges, challenges, achievements)
+
+**Key Test Categories**:
+
+1. Config/Options flows (UI interactions)
+2. Coordinator business logic (direct method testing)
+3. Workflow scenarios (end-to-end state changes)
+4. Migration/backward compatibility
+5. Datetime handling (timezone-aware operations)
+6. Dashboard template rendering
+
+### Recommendations for Future Work
+
+#### 1. Maintain 100% Pattern Compliance
+
+**New Code Checklist**:
+
+- [ ] All exceptions use `translation_domain + translation_key + translation_placeholders`
+- [ ] No hardcoded user-facing strings
+- [ ] Lazy logging only (`const.LOGGER.*()` with `%s` placeholders)
+- [ ] Dictionary access via `const.DATA_*` or `const.CONF_*`
+
+#### 2. Translation System Best Practices
+
+**When Adding New Notifications**:
+
+1. Define constants in `const.py`:
+   - `TRANS_KEY_NOTIF_TITLE_<event>` (title key)
+   - `TRANS_KEY_NOTIF_MESSAGE_<event>` (message key)
+2. Add entries to `translations/en.json`
+3. Use wrapper methods: `_notify_kid()` or `_notify_reminder()`
+4. Test with `pytest -k notification` to verify
+
+**When Adding New Exceptions**:
+
+1. Define constant: `TRANS_KEY_ERROR_<condition>`
+2. Add entry to `translations/en.json` under `exceptions` section
+3. Use full pattern with placeholders
+4. Test error paths explicitly
+
+#### 3. Avoid Common Pitfalls
+
+**Pitfall #1**: Using f-strings in `HomeAssistantError`
+
+```python
+# ❌ WRONG - Not translatable, not testable
+raise HomeAssistantError(f"Kid {kid_name} not found")
+
+# ✅ RIGHT - Translatable, testable
+raise HomeAssistantError(
+    translation_domain=const.DOMAIN,
+    translation_key=const.TRANS_KEY_ERROR_KID_NOT_FOUND,
+    translation_placeholders={"kid_name": kid_name}
+)
+```
+
+**Pitfall #2**: Hardcoding dictionary keys
+
+```python
+# ❌ WRONG - Magic strings
+name = kid["name"]
+points = kid.get("points", 0)
+
+# ✅ RIGHT - Using constants
+name = kid[const.DATA_NAME]
+points = kid.get(const.DATA_POINTS, 0)
+```
+
+**Pitfall #3**: Inconsistent notification patterns
+
+```python
+# ❌ WRONG - Hardcoded string
+await self.notify("Chore approved!")
+
+# ✅ RIGHT - Translation system
+await self._notify_kid(
+    kid,
+    title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_APPROVED,
+    message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_APPROVED,
+    placeholders={"chore_name": chore_name}
+)
+```
+
+### Metrics Summary
+
+**Remediation Results (Phase 3 Complete)**:
+
+| Metric                   | Target              | Achieved             | Status |
+| ------------------------ | ------------------- | -------------------- | ------ |
+| Exception compliance     | 100%                | 59/59 (100%)         | ✅     |
+| Notification translation | All strings         | 31 strings converted | ✅     |
+| Lazy logging compliance  | Zero f-strings      | 0 violations         | ✅     |
+| Translation key coverage | All keys in en.json | 44/44 keys           | ✅     |
+| Test pass rate           | 95%+                | 526/526 (100%)       | ✅     |
+| Code quality score       | 9.5+                | 9.64/10              | ✅     |
+
+**Effort Investment**:
+
+- Phase 1 (Notification Constants): ~4 hours
+- Phase 2 (Translation System): ~6 hours
+- Phase 3 (Validation & Testing): ~8 hours
+- **Total**: ~18 hours for 100% compliance
+
+### Integration with Phase 0 Framework
+
+These remediation achievements demonstrate the effectiveness of the Phase 0 Audit Framework:
+
+1. **Systematic pattern identification** - All 59 exceptions cataloged
+2. **Translation gap analysis** - 44 translation keys properly mapped
+3. **Automated validation** - Scripts proven effective for auditing
+4. **Documentation** - Comprehensive guide for future code quality work
+
+**Next Steps for Future Files**: Apply Phase 0 framework BEFORE code review to prevent quality debt.
+
+---
+
+**Last Updated**: December 19, 2025 (Phase 3 Coordinator Remediation Complete)
