@@ -521,6 +521,12 @@ async def async_unload_entry(hass, entry):
     """Unload a config entry."""
     const.LOGGER.info("INFO: Unloading KidsChores entry: %s", entry.entry_id)
 
+    # Force immediate save of any pending changes before unload
+    if const.DOMAIN in hass.data and entry.entry_id in hass.data[const.DOMAIN]:
+        coordinator = hass.data[const.DOMAIN][entry.entry_id][const.COORDINATOR]
+        coordinator._persist(immediate=True)
+        const.LOGGER.debug("Forced immediate persist before unload")
+
     # Unload platforms
     unload_ok = await hass.config_entries.async_unload_platforms(entry, const.PLATFORMS)
 

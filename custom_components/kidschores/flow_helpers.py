@@ -793,11 +793,17 @@ def build_badge_common_data(
             const.DEFAULT_BADGE_MAINTENANCE_THRESHOLD,
         )
 
-        badge_data[const.DATA_BADGE_TARGET] = {
-            const.DATA_BADGE_TARGET_TYPE: target_type,
+        # Build target dict - only add target_type for non-cumulative badges
+        target_dict = {
             const.DATA_BADGE_TARGET_THRESHOLD_VALUE: threshold_value,
             const.DATA_BADGE_MAINTENANCE_RULES: maintenance_rules,
         }
+
+        # Cumulative badges don't need target_type (they always use points)
+        if badge_type != const.BADGE_TYPE_CUMULATIVE:
+            target_dict[const.DATA_BADGE_TARGET_TYPE] = target_type
+
+        badge_data[const.DATA_BADGE_TARGET] = target_dict
 
     # --- Special Occasion Component ---
     if include_special_occasion:

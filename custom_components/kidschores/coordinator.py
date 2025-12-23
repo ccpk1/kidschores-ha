@@ -72,6 +72,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self._pending_chore_changed: bool = True  # True on first load
         self._pending_reward_changed: bool = True  # True on first load
 
+        # Debounced persist tracking (Phase 2 optimization)
+        self._persist_task: asyncio.Task | None = None
+        self._persist_debounce_seconds = 5
+
     # -------------------------------------------------------------------------------------
     # Migrate Data and Converters
     # -------------------------------------------------------------------------------------
@@ -236,7 +240,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             self._recalculate_chore_stats_for_kid(kid_id)
             self._recalculate_point_stats_for_kid(kid_id)
 
-        self._persist()
+        self._persist(immediate=True)  # Startup persist should be immediate
         await super().async_config_entry_first_refresh()
 
     # -------------------------------------------------------------------------------------
@@ -357,7 +361,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # PERF: Log entity registry cleanup duration
         perf_duration = time.perf_counter() - perf_start
         entity_count = len(ent_reg.entities)
-        const.LOGGER.info(
+        const.LOGGER.debug(
             "PERF: _remove_orphaned_kid_chore_entities() scanned %d entities in %.3fs",
             entity_count,
             perf_duration,
@@ -2295,7 +2299,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self.async_set_updated_data(self._data)
 
         perf_duration = time.perf_counter() - perf_start
-        const.LOGGER.info(
+        const.LOGGER.debug(
             "PERF: claim_chore() took %.3fs for kid '%s' chore '%s'",
             perf_duration,
             kid_id,
@@ -2486,7 +2490,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self.async_set_updated_data(self._data)
 
         perf_duration = time.perf_counter() - perf_start
-        const.LOGGER.info(
+        const.LOGGER.debug(
             "PERF: approve_chore() took %.3fs for kid '%s' chore '%s' (includes %.1f points addition)",
             perf_duration,
             kid_id,
@@ -3969,6 +3973,16 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self._manage_badge_maintenance(kid_id)
         self._manage_cumulative_badge_maintenance(kid_id)
 
+        # OPTIMIZATION: Calculate today_local_iso once per kid instead of per badge
+        today_local_iso = kh.get_today_local_iso()
+
+        # OPTIMIZATION: Pre-compute kid's assigned chores once instead of per badge
+        kid_assigned_chores = []
+        for chore_id, chore_info in self.chores_data.items():
+            chore_assigned_to = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+            if not chore_assigned_to or kid_id in chore_assigned_to:
+                kid_assigned_chores.append(chore_id)
+
         # Mapping of target_type to handler and parameters
         target_type_handlers = {
             const.BADGE_TARGET_THRESHOLD_TYPE_POINTS: (
@@ -4129,8 +4143,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
                     self._award_badge(kid_id, badge_id)
 
-                self._persist()
-                self.async_set_updated_data(self._data)
+                # OPTIMIZATION: Defer persist to end (removed mid-loop persist)
                 continue
 
             # Respect badge start/end dates
@@ -4141,7 +4154,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.DATA_KID_BADGE_PROGRESS_START_DATE
             )
             end_date_iso = badge_progress.get(const.DATA_KID_BADGE_PROGRESS_END_DATE)
-            today_local_iso = kh.get_today_local_iso()
+            # today_local_iso calculated once per kid (see line ~3973)
             in_effect = (not start_date_iso or today_local_iso >= start_date_iso) and (
                 not end_date_iso or today_local_iso <= end_date_iso
             )
@@ -4158,8 +4171,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             if not in_effect:
                 continue
 
-            # Get chores tracked by this badge
-            tracked_chores = self._get_badge_in_scope_chores_list(badge_info, kid_id)
+            # Get chores tracked by this badge (using pre-computed kid chores)
+            tracked_chores = self._get_badge_in_scope_chores_list(
+                badge_info, kid_id, kid_assigned_chores
+            )
             target_type = badge_info.get(const.DATA_BADGE_TARGET, {}).get(
                 const.DATA_BADGE_TARGET_TYPE
             )
@@ -4216,14 +4231,16 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # PERF: Log badge evaluation duration
         perf_duration = time.perf_counter() - perf_start
         badge_count = len(self.badges_data)
-        const.LOGGER.info(
+        const.LOGGER.debug(
             "PERF: _check_badges_for_kid() evaluated %d badges in %.3fs for kid '%s'",
             badge_count,
             perf_duration,
             kid_id,
         )
 
-    def _get_badge_in_scope_chores_list(self, badge_info: dict, kid_id: str) -> list:
+    def _get_badge_in_scope_chores_list(
+        self, badge_info: dict, kid_id: str, kid_assigned_chores: list | None = None
+    ) -> list:
         """
         Get the list of chore IDs that are in-scope for this badge evaluation.
 
@@ -4231,12 +4248,25 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         - Returns only those specific chore IDs that are also assigned to the kid
         For badges without tracked chores:
         - Returns all chore IDs assigned to the kid
+
+        Args:
+            badge_info: Badge configuration dictionary
+            kid_id: Kid's internal ID
+            kid_assigned_chores: Optional pre-computed list of chores assigned to kid
+                                (optimization to avoid re-iterating all chores)
         """
 
-        badge_type = badge_info.get(const.DATA_BADGE_TYPE, const.BADGE_TYPE_CUMULATIVE)
+        badge_type = badge_info.get(const.DATA_BADGE_TYPE, const.BADGE_TYPE_PERIODIC)
         include_tracked_chores = badge_type in const.INCLUDE_TRACKED_CHORES_BADGE_TYPES
 
-        kid_assigned_chores = []
+        # OPTIMIZATION: Use pre-computed list if provided, otherwise compute
+        if kid_assigned_chores is None:
+            kid_assigned_chores = []
+            # Get all chores assigned to this kid
+            for chore_id, chore_info in self.chores_data.items():
+                chore_assigned_to = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+                if not chore_assigned_to or kid_id in chore_assigned_to:
+                    kid_assigned_chores.append(chore_id)
 
         # If badge does not include tracked chores, return empty list
         if include_tracked_chores:
@@ -4245,12 +4275,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.DATA_BADGE_TRACKED_CHORES_SELECTED_CHORES, []
             )
 
-            # Get all chores assigned to this kid
-            for chore_id, chore_info in self.chores_data.items():
-                chore_assigned_to = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
-                if not chore_assigned_to or kid_id in chore_assigned_to:
-                    kid_assigned_chores.append(chore_id)
-
             if tracked_chore_ids:
                 # Badge has specific tracked chores, return only those that are also assigned to the kid
                 return [
@@ -4258,12 +4282,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     for chore_id in tracked_chore_ids
                     if chore_id in kid_assigned_chores
                 ]
-            else:
-                # Badge considers all chores, return all chores assigned to the kid
-                return kid_assigned_chores
-        else:
-            # Badge does not include tracked chores component, return the empty list
+            # Badge considers all chores, return all chores assigned to the kid
             return kid_assigned_chores
+        # Badge does not include tracked chores component, return empty list
+        return []
 
     def _handle_badge_target_points(  # pylint: disable=unused-argument
         self,
@@ -7057,7 +7079,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         perf_duration = time.perf_counter() - perf_start
         chore_count = len(self.chores_data)
         kid_count = len(self.kids_data)
-        const.LOGGER.info(
+        const.LOGGER.debug(
             "PERF: _check_overdue_chores() took %.3fs for %d chores × %d kids = %d operations",
             perf_duration,
             chore_count,
@@ -8131,7 +8153,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # PERF: Log parent notification latency
         perf_duration = time.perf_counter() - perf_start
-        const.LOGGER.info(
+        const.LOGGER.debug(
             "PERF: _notify_parents() sent %d notifications in %.3fs (sequential, avg %.3fs/parent)",
             parent_count,
             perf_duration,
@@ -8332,15 +8354,69 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     # Storage
     # -------------------------------------------------------------------------------------
 
-    def _persist(self):
-        """Save to persistent storage."""
-        # PERF: Track storage write frequency
-        perf_start = time.perf_counter()
+    def _persist(self, immediate: bool = True):
+        """Save coordinator data to persistent storage.
 
-        self.storage_manager.set_data(self._data)
-        self.hass.add_job(self.storage_manager.async_save)
+        Default behavior is immediate synchronous persistence to avoid race conditions
+        between persist operations and config entry reload/unload. This is the safest
+        and simplest approach for a system with frequent entity additions/deletions.
 
-        perf_duration = time.perf_counter() - perf_start
-        const.LOGGER.info(
-            "PERF: _persist() took %.3fs (queued async save)", perf_duration
-        )
+        Args:
+            immediate: If True (default), save immediately without debouncing.
+                      If False, schedule save with 5-second debouncing to batch multiple
+                      updates (NOT currently used - kept for future optimization if needed).
+
+        Philosophy:
+            - Immediate=True is the default because:
+              1. Most _persist() calls are NOT in loops
+              2. Avoids race conditions with config reload timing
+              3. Simplifies debugging and guarantees consistency
+              4. Tests run efficiently without artificial delays
+            - Debouncing (immediate=False) could be added in the future if profiling
+              shows a specific high-frequency operation benefits from it
+        """
+        if immediate:
+            # Cancel any pending debounced save
+            if self._persist_task and not self._persist_task.done():
+                self._persist_task.cancel()
+                self._persist_task = None
+
+            # Immediate synchronous save
+            perf_start = time.perf_counter()
+            self.storage_manager.set_data(self._data)
+            self.hass.add_job(self.storage_manager.async_save)
+            perf_duration = time.perf_counter() - perf_start
+            const.LOGGER.debug(
+                "PERF: _persist(immediate=True) took %.3fs (queued async save)",
+                perf_duration,
+            )
+        else:
+            # Debounced save - cancel existing task and schedule new one
+            if self._persist_task and not self._persist_task.done():
+                self._persist_task.cancel()
+
+            self._persist_task = self.hass.async_create_task(
+                self._persist_debounced_impl()
+            )
+
+    async def _persist_debounced_impl(self):
+        """Implementation of debounced persist with delay."""
+        try:
+            # Wait for debounce period
+            await asyncio.sleep(self._persist_debounce_seconds)
+
+            # PERF: Track storage write frequency
+            perf_start = time.perf_counter()
+
+            self.storage_manager.set_data(self._data)
+            await self.storage_manager.async_save()
+
+            perf_duration = time.perf_counter() - perf_start
+            const.LOGGER.debug(
+                "PERF: _persist_debounced_impl() took %.3fs (async save completed)",
+                perf_duration,
+            )
+        except asyncio.CancelledError:
+            # Task was cancelled, new save scheduled
+            const.LOGGER.debug("Debounced persist cancelled (replaced by new save)")
+            raise

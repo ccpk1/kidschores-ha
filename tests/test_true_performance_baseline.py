@@ -27,6 +27,8 @@ from homeassistant.helpers import entity_registry as er
 
 from custom_components.kidschores.const import COORDINATOR, DOMAIN
 
+pytestmark = pytest.mark.slow
+
 
 class PerfCapture:
     """Capture PERF timing data from coordinator operations."""

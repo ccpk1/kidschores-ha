@@ -1,6 +1,6 @@
 # KidsChores Performance Issues - Status & Action Items
 
-**Last Updated**: December 24, 2025 - 07:15 UTC (Performance test stress test FIX COMPLETED)
+**Last Updated**: December 23, 2025 - 16:45 UTC (Debounce optimization phase complete - immediate=True as default, race conditions fixed)
 **Purpose**: Central tracking of all identified performance concerns and their resolution status
 
 ---
@@ -9,12 +9,37 @@
 
 | Category                    | Issues Identified     | Resolved | In Progress | Not Started |
 | --------------------------- | --------------------- | -------- | ----------- | ----------- |
-| **Coordinator Performance** | 5 critical + 3 medium | 0        | 0           | 8           |
+| **Coordinator Performance** | 5 critical + 3 medium | 1 ✅     | 0           | 7           |
 | **Sensor Performance**      | 8 critical hotspots   | 8 ✅     | 0           | 0           |
 | **Performance Testing**     | Baseline capture      | 3 ✅     | 0           | 0           |
-| **Total**                   | **17**                | **11**   | **0**       | **6**       |
+| **Badge Optimization**      | 5 proposed changes    | 1 ✅     | 0           | 0           |
+| **Persistence Strategy**    | Debounce vs Immediate | 1 ✅     | 0           | 0           |
+| **Total**                   | **22**                | **13**   | **0**       | **9**       |
 
-**Status**: ✅ **Phase 0 COMPLETE & VALIDATED** - Comprehensive performance baseline captured with both small-scale and stress test data. ALL TESTS PASSING (531 passed, 10 skipped).
+**Status**: ✅ **Phase 0, Badge Optimization Phase 1, & Persistence Strategy COMPLETE**
+
+**Latest Completion - Persistence Strategy Phase (Dec 23, 2025)**:
+
+**Strategic Decision**: Changed `_persist()` default from `immediate=False` to `immediate=True`
+
+- ✅ Fixed race condition: Config entry reload no longer reads stale storage
+- ✅ Eliminated test hangs: Debounce delays (5s per entity creation) removed
+- ✅ Improved performance: 548 tests now complete in 18.96s (vs. timeout/hanging)
+- ✅ Enhanced code clarity: Immediate persistence is the default, correct approach
+- ✅ Normalized options_flow.py: All 9 entity creations use `_persist()` without explicit parameter
+- ✅ Improved docstring: Comprehensive explanation of immediate=True strategy
+
+**Key Findings**:
+
+1. **Debouncing Unnecessary**: High-frequency operations (badge checking, overdue scanning) don't call `_persist()` directly
+2. **Race Condition Critical**: Config entry reload timing (0.1s) vs persist debounce (5s) caused lost data in tests
+3. **Immediate Default Correct**:
+   - Ensures data consistency (always safe)
+   - Eliminates hidden delays from tests
+   - Simplifies mental model (no surprise timing behavior)
+   - Backward compatible (can still use `immediate=False` if profiling shows need)
+4. **Test Performance Impact**: 5-second debounce delays accumulate across 548 tests, causing timeouts
+5. **Analysis Result**: Comprehensive code review found no high-frequency batch operations that would benefit from debouncing
 
 **Accomplishments**:
 
@@ -56,14 +81,142 @@
 4. ✅ Memory usage reasonable (2MB per kid)
 5. ⚠️ Persistence time high but expected for large dataset writes
 
-**Optimization Priority** (based on stress test data):
+**Optimization Priority** (based on stress test data + learnings):
 
-1. **Badge checking optimization** - Highest impact (372ms → target <200ms for 100 kids)
-2. Badge progress caching - Reduce redundant calculations
-3. Storage write batching - Reduce persistence overhead
-4. Overdue scan already optimal - No changes needed
+1. ~~**Badge checking optimization**~~ - Phase 1 complete, limited gains without algorithm changes
+2. ~~**Storage write batching**~~ (Issue #2) - REJECTED (race condition risk outweighs I/O benefit)
+3. ~~**Decouple overdue scan**~~ (Issue #1) - LOW ROI (1ms overhead, negligible impact)
+4. **Parent notification concurrency** (Issue #5) - MEDIUM ROI, 2-3 hour effort (UX improvement)
+5. **Entity registry cleanup** (Issue #3) - MEDIUM ROI, 8-12 hour effort (scalability)
+6. **Badge reference updates** (Issue #6) - LOW priority (monitor real usage first)
+7. **Minor cleanups** (Issues #7, #8) - Nice-to-have (15-30 min each)
 
-**Next Action**: Begin Phase 1 - Focus on badge checking optimization (highest impact)
+**Next Action**: Implement Parent Notification Concurrency (Issue #5) - quick win for UX improvement
+
+---
+
+## 💾 **Persistence Strategy - Complete (Debounce Optimization Decision)**
+
+**Status**: ✅ COMPLETE - Strategic decision made and implemented
+
+### Problem Discovered
+
+During Phase 2 implementation (debounced persist), a critical race condition emerged:
+
+1. **Config Flow**: Entity creation called `coordinator._persist()` (debounced 5s delay)
+2. **Reload Logic**: Config entry reload triggered after 0.1s wait
+3. **Race**: Reload read storage BEFORE new entity was persisted
+4. **Result**: New entities missing from reloaded coordinator → test failures
+
+**Impact**: Tests timing out or hanging due to accumulated 5-second debounce delays
+
+### Strategic Decision: Immediate=True as Default
+
+**Changed**: `def _persist(self, immediate: bool = False):` → `def _persist(self, immediate: bool = True):`
+
+**Rationale**:
+
+1. **Safety First**: Immediate persistence ensures data consistency, eliminates race conditions
+2. **No Hidden Delays**: Tests and operations complete predictably without surprise timing behavior
+3. **Simpler Model**: Developers don't need to remember when to add `immediate=True`
+4. **Backward Compatible**: Can still use `immediate=False` if profiling identifies high-frequency batch operations
+5. **Supported by Analysis**: Comprehensive review found no high-frequency batch operations that would benefit from debouncing
+
+### Findings from Code Analysis
+
+**High-Frequency Operations** (Don't call `_persist()` directly):
+
+- `_check_badges_for_kid()` - Evaluates badges, doesn't persist
+- `_check_achievements_for_kid()` - Checks achievements, doesn't persist
+- `_check_challenges_for_kid()` - Checks challenges, doesn't persist
+- Overdue scanning - Reads only, doesn't persist
+
+**Lower-Frequency Update Methods** (Call `_persist()` once):
+
+- `update_kid_entity()`, `update_parent_entity()`, etc. - One persist per call
+- Update/delete operations - Not in loops
+- Entity creation - One persist per new entity
+
+**Final Persist Timing**:
+
+- Happens once per `coordinator.async_refresh()` cycle
+- No cascading delays from multiple debounced operations
+
+**Conclusion**: Debouncing optimization doesn't address any real bottleneck. Immediate=True is correct.
+
+### Results
+
+**Test Performance**:
+
+- Before: Tests timing out (>300s) or hanging
+- After: 548 tests pass in 18.96 seconds
+- Per-test average: ~35ms
+
+**Code Quality**:
+
+- All 9 entity creation calls in options_flow.py normalized to `coordinator._persist()`
+- Docstring enhanced with comprehensive explanation
+- Linting: 9.65/10 (maintained)
+- All tests passing: 548 passed, 10 skipped
+
+**Fixed Issues**:
+
+- ✅ Race condition between persist and reload
+- ✅ Test hanging/timeout issues
+- ✅ Hidden timing delays in operations
+
+---
+
+## 🎯 **Badge Optimization - Phase 1 Complete**
+
+**Status**: ✅ COMPLETE - Performance baseline restored after discovering false optimization
+
+### Journey Summary
+
+**Baseline**: 372ms for 100 kids × 18 badges (3.7ms per kid)
+
+**Optimizations Attempted**:
+
+1. ❌ Pre-compute KidDailyStatsCache - **REVERTED** (caused 62% regression)
+2. ✅ Cache kid-assigned chores - **KEPT** (minimal but harmless)
+3. ✅ Hoist today_local_iso - **KEPT** (minimal but harmless)
+4. ✅ Defer persist operations - **KEPT** (correct optimization)
+5. ❌ Prune days_completed dict - **REVERTED** (tied to cache)
+
+**Performance Results**:
+
+- After all optimizations: 600ms (62% WORSE!)
+- After reverting Opt 1: 372ms (baseline restored)
+- Net improvement: 0% (but valuable lessons learned!)
+
+**Root Cause Analysis**:
+
+- **Baseline**: Helpers called on-demand when specific badge handlers needed them
+- **"Optimized"**: Helpers always called upfront for ALL kids (always-on execution)
+- **Problem**: No work reduction + cache construction overhead = worse performance
+
+**Key Findings**:
+
+1. 🔥 Cache construction has cost (dataclass creation, memory allocation, parameter passing)
+2. 🔥 On-demand execution beats always-on caching when not all code paths need data
+3. 🔥 Operation count reduction ≠ actual performance improvement
+4. ✅ Test coverage critical (27 badge tests caught all functional issues)
+5. ✅ Baseline validation essential (stress test revealed regression)
+
+**Final State**:
+
+- Performance: 372ms (exact baseline)
+- Tests: 552 passed, 10 skipped
+- Linting: 9.65/10
+- Documentation: Updated with lessons learned
+
+**Recommendation**: Badge evaluation is already efficient (3.7ms per kid). Focus optimization efforts on higher-impact areas:
+
+- Storage I/O batching (90%+ reduction potential)
+- Overdue scan decoupling (event loop relief)
+- Parent notification concurrency (UX improvement)
+
+**Reference**: [BADGE_OPTIMIZATION_PROPOSAL.md](BADGE_OPTIMIZATION_PROPOSAL.md)
 
 ---
 
@@ -120,32 +273,28 @@ async def async_setup_entry(...):
 
 - **Location**: 52 `_persist()` call sites throughout coordinator.py
 - **Problem**: Immediate JSON serialization + file write on every mutation
-- **Impact**: Saturates disk I/O, especially in badge evaluation loops (lines 4970-5060)
-- **Status**: ❌ **NOT ADDRESSED**
+- **Impact**: Would reduce I/O by 90%+ with batching, but introduces race condition risk
+- **Status**: ✅ **ANALYZED & REJECTED** (Decided against in Persistence Strategy phase)
 
-**Recommended Solution**:
+**Why Rejected**:
 
-```python
-# Implement debounced saving pattern
-from homeassistant.helpers.storage import Store
+Our Persistence Strategy phase analysis revealed that debounced writes create unacceptable race conditions:
 
-self._store = Store(hass, STORAGE_VERSION, STORAGE_KEY, private=True)
-self._save_task = None
+- Config entry reload timing (0.1s) vs persist debounce (5s) causes lost data
+- New entities missing from reloaded coordinator when persist hasn't completed
+- Test hangs and timeouts from accumulated 5-second delays
+- Risk of data inconsistency outweighs I/O optimization benefits
 
-async def _persist_debounced(self):
-    """Save with 5-second debounce."""
-    if self._save_task:
-        self._save_task.cancel()
+**Decision**: Keep immediate=True as default for safety and correctness
 
-    async def _delayed_save():
-        await asyncio.sleep(5)
-        await self._persist()
+**Note**: Could be revisited if:
 
-    self._save_task = hass.async_create_task(_delayed_save())
-```
+1. A safer batching strategy is designed (e.g., batch within same refresh cycle only)
+2. Reload logic is refactored to wait for pending persists
+3. Real-world performance monitoring shows I/O saturation as actual bottleneck
 
-**Effort**: 6-8 hours
-**Priority**: HIGH - Reduces I/O by 90%+ in typical usage
+**Effort**: 6-8 hours (if reconsidered with safety improvements)
+**Priority**: LOW (REJECTED) - Safety > I/O optimization
 
 ---
 
