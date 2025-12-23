@@ -421,15 +421,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # loads from storage-only mode (schema_version >= 42)
     await _migrate_config_to_storage(hass, entry, storage_manager)
 
-    # Create safety backup and cleanup only on true startup (not on settings reload)
-    # Check if coordinator already exists in hass.data to detect reload
-    coordinator_exists = entry.entry_id in hass.data.get(
-        const.DOMAIN, {}
-    ) and const.COORDINATOR in hass.data[const.DOMAIN].get(entry.entry_id, {})
+    # Create safety backup only on true first startup (not on reloads)
+    # Use a persistent flag across reloads to prevent duplicate backups
+    startup_backup_key = f"{const.DOMAIN}_startup_backup_created_{entry.entry_id}"
 
-    if not coordinator_exists:
-        # This is a true startup, create safety backup and cleanup
-        backup_name = fh.create_timestamped_backup(
+    # Check if we've already created a startup backup for this entry in this HA session
+    if not hass.data.get(startup_backup_key, False):
+        # Mark that we're creating the backup (before the actual creation)
+        # This prevents race conditions if multiple reloads happen simultaneously
+        hass.data[startup_backup_key] = True
+
+        backup_name = await fh.create_timestamped_backup(
             hass, storage_manager, const.BACKUP_TAG_RECOVERY
         )
         if backup_name:
@@ -441,16 +443,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             const.LOGGER.warning(
                 "Failed to create startup backup - continuing with setup"
             )
-
-        # Cleanup old backups based on retention setting
-        max_backups = int(
-            entry.options.get(
-                const.CONF_BACKUPS_MAX_RETAINED, const.DEFAULT_BACKUPS_MAX_RETAINED
-            )
-        )
-        await fh.cleanup_old_backups(hass, storage_manager, max_backups)
     else:
-        const.LOGGER.debug("Skipping startup backup and cleanup on settings reload")
+        const.LOGGER.debug("Skipping startup backup on settings reload")
+
+    # Always cleanup old backups based on current retention setting
+    # This ensures changes to max_backups are applied immediately
+    max_backups = int(
+        entry.options.get(
+            const.CONF_BACKUPS_MAX_RETAINED, const.DEFAULT_BACKUPS_MAX_RETAINED
+        )
+    )
+    await fh.cleanup_old_backups(hass, storage_manager, max_backups)
 
     # Create the data coordinator for managing updates and synchronization.
     coordinator = KidsChoresDataCoordinator(hass, entry, storage_manager)

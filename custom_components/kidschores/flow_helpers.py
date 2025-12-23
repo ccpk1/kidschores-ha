@@ -2972,7 +2972,7 @@ def ensure_utc_datetime(hass: HomeAssistant, dt_value: Any) -> str:
 # ----------------------------------------------------------------------------------
 
 
-def create_timestamped_backup(
+async def create_timestamped_backup(
     hass: HomeAssistant, storage_manager, tag: str
 ) -> str | None:
     """Create a timestamped backup file with specified tag.
@@ -2997,18 +2997,20 @@ def create_timestamped_backup(
         # Get storage file path
         storage_path = storage_manager.get_storage_path()
 
-        # Check if source file exists
-        if not os.path.exists(storage_path):
+        # Check if source file exists (non-blocking)
+        if not await hass.async_add_executor_job(os.path.exists, storage_path):
             const.LOGGER.warning("Storage file does not exist, cannot create backup")
             return None
 
-        # Ensure .storage directory exists
+        # Ensure .storage directory exists (non-blocking)
         storage_dir = hass.config.path(".storage")
-        os.makedirs(storage_dir, exist_ok=True)
+        await hass.async_add_executor_job(
+            lambda: os.makedirs(storage_dir, exist_ok=True)
+        )
 
-        # Copy file to backup location
+        # Copy file to backup location (non-blocking)
         backup_path = hass.config.path(".storage", filename)
-        shutil.copy2(storage_path, backup_path)
+        await hass.async_add_executor_job(shutil.copy2, storage_path, backup_path)
 
         const.LOGGER.debug("Created backup: %s", filename)
         return filename
@@ -3090,7 +3092,7 @@ async def cleanup_old_backups(
             for backup in backups_to_delete:
                 try:
                     backup_path = hass.config.path(".storage", backup["filename"])
-                    os.remove(backup_path)
+                    await hass.async_add_executor_job(os.remove, backup_path)
                     const.LOGGER.info(
                         "Cleaned up old %s backup: %s", tag, backup["filename"]
                     )
