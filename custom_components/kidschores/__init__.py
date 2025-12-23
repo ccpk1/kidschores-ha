@@ -126,7 +126,7 @@ async def _migrate_config_to_storage(
 
     # Create backup of storage data before migration
     try:
-        backup_name = fh.create_timestamped_backup(
+        backup_name = await fh.create_timestamped_backup(
             hass, storage_manager, const.BACKUP_TAG_PRE_MIGRATION
         )
         if backup_name:
@@ -553,7 +553,7 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         ][const.STORAGE_MANAGER]
 
         # Create backup before deletion (allows data recovery on re-add)
-        backup_name = fh.create_timestamped_backup(
+        backup_name = await fh.create_timestamped_backup(
             hass, storage_manager, const.BACKUP_TAG_REMOVAL
         )
         if backup_name:

@@ -54,13 +54,13 @@ async def test_backup_actions_all_navigation_paths(
 @pytest.mark.parametrize(
     "max_backups_change,current_backups,expected_new_backups",
     [
-        (3, 5, 2),  # Decrease: 5 -> 3, system creates 2 safety backups during reload
-        (7, 4, 2),  # Increase: 4 -> 7, system creates 2 safety backups during reload
+        (3, 5, 0),  # Decrease: 5 -> 3, no new backups on reload (1 per session only)
+        (7, 4, 0),  # Increase: 4 -> 7, no new backups on reload (1 per session only)
         (
             0,
             3,
-            2,
-        ),  # Disable: 3 -> 0 (unlimited), system creates 2 safety backups during reload
+            0,
+        ),  # Disable: 3 -> 0 (unlimited), no new backups on reload (1 per session only)
     ],
 )
 async def test_max_backup_retention_changes(
@@ -70,7 +70,12 @@ async def test_max_backup_retention_changes(
     current_backups: int,
     expected_new_backups: int,
 ) -> None:
-    """Test max backup retention changes create expected safety backups during reload."""
+    """Test max backup retention changes during reload.
+
+    Note: Backup is created once per HA session on initial setup.
+    Settings reloads do NOT create additional backups to prevent duplicate
+    backups within 1 second of each other (fixed in commit 1fc8018).
+    """
     result = await hass.config_entries.options.async_init(init_integration.entry_id)
 
     # Navigate to general options

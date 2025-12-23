@@ -833,7 +833,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Step 1: Create backup before factory reset
         try:
-            backup_name = fh.create_timestamped_backup(
+            backup_name = await fh.create_timestamped_backup(
                 hass, coordinator.storage_manager, const.BACKUP_TAG_RESET
             )
             if backup_name:

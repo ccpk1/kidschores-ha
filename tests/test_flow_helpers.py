@@ -6,7 +6,7 @@
 import datetime
 import json
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -43,6 +43,8 @@ def mock_hass():
     hass.config.path.side_effect = lambda *args: os.path.join(
         "/mock/.storage", *args[1:]
     )
+    # Mock async_add_executor_job to return the result directly (simulating async execution)
+    hass.async_add_executor_job = AsyncMock(side_effect=lambda func, *args: func(*args))
     return hass
 
 
@@ -55,7 +57,7 @@ def mock_hass():
 @patch("custom_components.kidschores.flow_helpers.shutil.copy2")
 @patch("os.path.exists", return_value=True)
 @patch("os.makedirs")
-def test_create_timestamped_backup_success(
+async def test_create_timestamped_backup_success(
     mock_makedirs, mock_exists, mock_copy, mock_utcnow, mock_hass, mock_storage_manager
 ):
     """Test successful backup creation."""
@@ -64,8 +66,10 @@ def test_create_timestamped_backup_success(
         2024, 12, 18, 15, 30, 45, tzinfo=datetime.timezone.utc
     )
 
-    # Execute
-    filename = create_timestamped_backup(mock_hass, mock_storage_manager, "recovery")
+    # Execute - create_timestamped_backup is now async
+    filename = await create_timestamped_backup(
+        mock_hass, mock_storage_manager, "recovery"
+    )
 
     # Verify
     assert filename == "kidschores_data_2024-12-18_15-30-45_recovery"
@@ -79,7 +83,7 @@ def test_create_timestamped_backup_success(
 @patch("custom_components.kidschores.flow_helpers.shutil.copy2")
 @patch("os.path.exists", return_value=True)
 @patch("os.makedirs")
-def test_create_timestamped_backup_all_tags(
+async def test_create_timestamped_backup_all_tags(
     mock_makedirs, mock_exists, mock_copy, mock_utcnow, mock_hass, mock_storage_manager
 ):
     """Test backup creation with all tag types."""
@@ -90,27 +94,29 @@ def test_create_timestamped_backup_all_tags(
     tags = ["recovery", "removal", "reset", "pre-migration", "manual"]
 
     for tag in tags:
-        filename = create_timestamped_backup(mock_hass, mock_storage_manager, tag)
+        filename = await create_timestamped_backup(mock_hass, mock_storage_manager, tag)
         assert filename == f"kidschores_data_2024-12-18_10-00-00_{tag}"
         assert mock_copy.call_count >= 1
 
 
 @patch("builtins.open", side_effect=OSError("Disk full"))
-def test_create_timestamped_backup_write_failure(
+async def test_create_timestamped_backup_write_failure(
     mock_file, mock_hass, mock_storage_manager
 ):
     """Test backup creation handles write failures gracefully."""
-    filename = create_timestamped_backup(mock_hass, mock_storage_manager, "recovery")
+    filename = await create_timestamped_backup(
+        mock_hass, mock_storage_manager, "recovery"
+    )
 
     assert filename is None
 
 
-def test_create_timestamped_backup_no_data(mock_hass):
+async def test_create_timestamped_backup_no_data(mock_hass):
     """Test backup creation when no data available."""
     manager = MagicMock()
     manager.get_all_data.return_value = None
 
-    filename = create_timestamped_backup(mock_hass, manager, "recovery")
+    filename = await create_timestamped_backup(mock_hass, manager, "recovery")
 
     assert filename is None
 

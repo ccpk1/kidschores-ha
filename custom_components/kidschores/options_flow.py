@@ -2202,7 +2202,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             # Create safety backup if file exists
             if storage_path.exists():
-                backup_name = fh.create_timestamped_backup(
+                backup_name = await fh.create_timestamped_backup(
                     self.hass, storage_manager, const.BACKUP_TAG_RECOVERY
                 )
                 if backup_name:
@@ -2396,7 +2396,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             if storage_path.exists():
                 # Create storage manager only for safety backup creation
                 storage_manager = KidsChoresStorageManager(self.hass)
-                safety_backup = fh.create_timestamped_backup(
+                safety_backup = await fh.create_timestamped_backup(
                     self.hass, storage_manager, const.BACKUP_TAG_RECOVERY
                 )
                 if safety_backup:
@@ -2586,7 +2586,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 storage_manager = KidsChoresStorageManager(self.hass)
 
                 # Create manual backup
-                backup_filename = fh.create_timestamped_backup(
+                backup_filename = await fh.create_timestamped_backup(
                     self.hass,
                     storage_manager,
                     const.BACKUP_TAG_MANUAL,
@@ -2713,7 +2713,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                 try:
                     # Create safety backup of current file
-                    safety_backup = fh.create_timestamped_backup(
+                    safety_backup = await fh.create_timestamped_backup(
                         self.hass,
                         storage_manager,
                         const.BACKUP_TAG_RECOVERY,
