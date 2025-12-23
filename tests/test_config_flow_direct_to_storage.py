@@ -3,7 +3,7 @@
 Validates that fresh installations (KC 4.0) write entities directly to
 .storage/kidschores_data with schema_version 42, bypassing migration.
 
-Uses testdata_storyline.yaml character names (Zoë, Môm Astrid, "Feed the cåts").
+Uses scenario_minimal fixture (testdata_scenario_minimal.yaml) character names (Zoë, Môm Astrid, "Feed the cåts").
 """
 
 # pylint: disable=protected-access  # Accessing internal methods for testing

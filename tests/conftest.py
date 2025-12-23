@@ -229,7 +229,11 @@ async def init_integration(
         assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()
 
-    return mock_config_entry
+    yield mock_config_entry
+
+    # Cleanup: unload the integration
+    await hass.config_entries.async_unload(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
 
 
 def create_mock_kid_data(
@@ -254,6 +258,8 @@ def create_mock_kid_data(
         "bonus_applies": {},
         "penalty_applies": {},
         "overdue_notifications": {},
+        "badge_progress": {},  # Badge progress tracking (periodic badges)
+        "cumulative_badge_progress": {},  # Cumulative badge progress
     }
 
 
@@ -374,7 +380,7 @@ def load_scenario_yaml(scenario_name: str) -> dict[str, Any]:
     """Load a test scenario YAML file.
 
     Args:
-        scenario_name: Name of the scenario (minimal, medium, full, or storyline)
+        scenario_name: Name of the scenario (minimal, medium, full, or performance_stress)
 
     Returns:
         Dictionary containing the scenario data with keys:
@@ -886,7 +892,9 @@ async def _apply_scenario_data(
         bonus_data = {
             "internal_id": bonus_id,
             "name": bonus_name,
-            "points": bonus["points"],
+            "points": bonus.get(
+                "points", bonus.get("points_value", 10)
+            ),  # Handle both field names
             "description": bonus.get("description", ""),
             "icon": bonus.get("icon", "mdi:plus-circle"),
         }
@@ -901,7 +909,9 @@ async def _apply_scenario_data(
         penalty_data = {
             "internal_id": penalty_id,
             "name": penalty_name,
-            "points": penalty["points"],  # Store as negative (matches storage format)
+            "points": penalty.get(
+                "points", penalty.get("points_value", -10)
+            ),  # Handle both field names, store as negative
             "description": penalty.get("description", ""),
             "icon": penalty.get("icon", "mdi:alert"),
         }
@@ -1153,6 +1163,29 @@ async def scenario_full(  # pylint: disable=redefined-outer-name
     Use for: Badge maintenance, complex workflows, performance testing
     """
     scenario_data = load_scenario_yaml("full")
+    name_to_id_map = await apply_scenario_direct(hass, init_integration, scenario_data)
+    return init_integration, name_to_id_map
+
+
+@pytest.fixture
+async def scenario_stress(  # pylint: disable=redefined-outer-name
+    hass: HomeAssistant, init_integration: MockConfigEntry
+) -> tuple[MockConfigEntry, dict[str, str]]:
+    """Fixture providing stress test scenario loaded into coordinator.
+
+    Returns:
+        Tuple of (config_entry, name_to_id_map)
+
+    Scenario Contents:
+        - 25 parents across 5 estate zones
+        - 100 kids across 4 age cohorts (25 each)
+        - 500+ chores (mix of individual/multi-assigned, heavy use of shared chores)
+        - 18 badges (8 cumulative + 10 periodic with different frequencies)
+        - Expected ~1,500+ entities for performance testing
+
+    Use for: Performance baseline capture, optimization validation, stress testing
+    """
+    scenario_data = load_scenario_yaml("performance_stress")
     name_to_id_map = await apply_scenario_direct(hass, init_integration, scenario_data)
     return init_integration, name_to_id_map
 

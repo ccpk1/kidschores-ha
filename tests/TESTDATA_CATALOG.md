@@ -8,13 +8,13 @@
 
 ## Quick Reference Table
 
-| Scenario          | Kids | Parents | Chores | Badges | Rewards | Bonuses | Penalties | Complexity        | Best For                 |
-| ----------------- | ---- | ------- | ------ | ------ | ------- | ------- | --------- | ----------------- | ------------------------ |
-| **minimal**       | 1    | 1       | 2      | 1      | 1       | 1       | 1         | ⭐ Basic          | Setup, single-kid flows  |
-| **medium**        | 2    | 2       | 4      | 6      | 2       | 2       | 2         | ⭐⭐ Moderate     | Multi-kid, shared chores |
-| **full**          | 3    | 2       | 7      | 5      | 5       | 2       | 0         | ⭐⭐⭐ Complete   | Full feature coverage    |
-| **storyline**     | 3    | 2       | 7      | 5      | 5       | 2       | 0         | ⭐⭐⭐ Complete   | Baseline reference       |
-| **storyline_max** | 24   | 8       | 50+    | 30+    | 30+     | 15+     | 10+       | ⭐⭐⭐⭐⭐ Stress | Performance, edge cases  |
+| Scenario               | Kids | Parents | Chores | Badges | Rewards | Bonuses | Penalties | Complexity        | Best For                             |
+| ---------------------- | ---- | ------- | ------ | ------ | ------- | ------- | --------- | ----------------- | ------------------------------------ |
+| **minimal**            | 1    | 1       | 2      | 1      | 1       | 1       | 1         | ⭐ Basic          | Setup, single-kid flows              |
+| **medium**             | 2    | 2       | 4      | 6      | 2       | 2       | 2         | ⭐⭐ Moderate     | Multi-kid, shared chores             |
+| **full**               | 3    | 2       | 7      | 5      | 5       | 2       | 0         | ⭐⭐⭐ Complete   | Full feature coverage                |
+| **full**               | 2    | 3       | 7      | 5      | 2       | 2       | 0         | ⭐⭐⭐ Complete   | Baseline reference (Stârblüm family) |
+| **performance_stress** | 100  | 25      | 500+   | 18     | 30+     | 15+     | 10+       | ⭐⭐⭐⭐⭐ Stress | Performance testing                  |
 
 ---
 
@@ -235,15 +235,15 @@
 
 #### Search Keywords
 
-`full`, `complete`, `comprehensive`, `all features`, `3 kids`, `Zoë`, `Max!`, `Lila`, `storyline`
+`full`, `complete`, `comprehensive`, `all features`, `3 kids`, `Zoë`, `Max!`, `Lila`, `baseline`, `Stârblüm`
 
 ---
 
-### 4. `testdata_storyline.yaml` ⭐⭐⭐ BASELINE REFERENCE
+### 4. `testdata_scenario_full.yaml` ⭐⭐⭐ BASELINE REFERENCE (Stârblüm Family)
 
 **Theme:** The Stârblüm Family (Canonical Baseline)
 **Complexity:** Reference implementation for test standardization
-**File:** `tests/testdata_storyline.yaml`
+**File:** `tests/testdata_scenario_full.yaml`
 
 **NOTE:** This file is **identical to `scenario_full`** and serves as the canonical baseline. Use `scenario_full` in tests for clarity; this exists for naming consistency.
 
@@ -255,15 +255,15 @@
 
 #### Search Keywords
 
-`storyline`, `baseline`, `reference`, `canonical`, `standard`
+`baseline`, `reference`, `canonical`, `standard`, `Stârblüm family`
 
 ---
 
-### 5. `testdata_storyline_max.yaml` ⭐⭐⭐⭐⭐ STRESS TEST
+### 5. `testdata_scenario_performance_stress.yaml` ⭐⭐⭐⭐⭐ STRESS TEST
 
 **Theme:** The Enchanted Lumière Estate
 **Complexity:** Maximum scale stress testing with 24 kids, 8 parents
-**File:** `tests/testdata_storyline_max.yaml`
+**File:** `tests/testdata_scenario_performance_stress.yaml`
 
 #### Entities Overview
 
@@ -362,7 +362,7 @@
 | Entity Creation      | `scenario_minimal`  | Fast, simple validation                |
 | Multi-Kid Logic      | `scenario_medium`   | Realistic family with shared chores    |
 | Dashboard Rendering  | `scenario_full`     | Complete feature coverage              |
-| Performance/Scale    | `storyline_max`     | Stress test with 24 kids               |
+| Performance/Scale    | `scenario_stress`   | Performance stress test with 100 kids  |
 | Workflow Testing     | `scenario_full`     | End-to-end flows with all entity types |
 | Badge Logic          | `scenario_medium`   | Multiple badge types + maintenance     |
 | Calendar Integration | `scenario_full`     | Daily/weekly/periodic chores           |
@@ -373,8 +373,8 @@
 | ----------------------- | ---------------------------------------- |
 | 1 kid                   | `scenario_minimal`                       |
 | 2 kids                  | `scenario_medium`                        |
-| 3 kids                  | `scenario_full` or `storyline`           |
-| 24 kids                 | `storyline_max`                          |
+| 3 kids                  | `scenario_full` fixture                  |
+| 100 kids                | `scenario_stress` fixture                |
 | Shared chores           | `scenario_medium` or `scenario_full`     |
 | Badge maintenance       | Any scenario (all have maintenance)      |
 | Special occasion badges | `scenario_medium` (has time-bound badge) |
@@ -405,7 +405,7 @@
 
 ### Scenario: "I need to test dashboard with lots of entities"
 
-**Use:** `storyline_max`
+**Use:** `scenario_stress` fixture
 **Why:** 24 kids, 50+ chores - tests pagination, performance
 
 ### Scenario: "I need to test calendar entity with different recurrence types"
@@ -416,7 +416,7 @@
 ### Scenario: "I need to test special characters in names"
 
 **Use:** ANY scenario (all use special characters)
-**Best:** `storyline_max` (international characters from multiple languages)
+**Best:** `scenario_stress` fixture (100 kids with international characters from multiple languages)
 
 ### Scenario: "I need to test bonus/penalty application"
 

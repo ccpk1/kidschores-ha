@@ -121,7 +121,7 @@ async def test_options_flow_add_chore(
 ) -> None:
     """Test adding a chore via options flow.
 
-    Uses testdata_storyline.yaml: Adds kid 'Zoë' first, then adds chore 'Feed the cåts'
+    Uses scenario_minimal fixture (testdata_scenario_minimal.yaml): Adds kid 'Zoë' first, then adds chore 'Feed the cåts'
     assigned to Zoë. Tests new validation requiring at least one kid assigned.
     """
     # First, add a kid so we have someone to assign the chore to
@@ -139,7 +139,7 @@ async def test_options_flow_add_chore(
         user_input={OPTIONS_FLOW_INPUT_MANAGE_ACTION: OPTIONS_FLOW_ACTIONS_ADD},
     )
 
-    # Add kid "Zoë" from testdata_storyline.yaml
+    # Add kid "Zoë" from scenario_minimal (testdata_scenario_minimal.yaml)
     result = await hass.config_entries.options.async_configure(
         result.get("flow_id"),
         user_input={CFOF_KIDS_INPUT_KID_NAME: "Zoë"},
@@ -166,7 +166,7 @@ async def test_options_flow_add_chore(
     assert result.get("type") == FlowResultType.FORM
     assert result.get("step_id") == OPTIONS_FLOW_STEP_ADD_CHORE
 
-    # Add chore "Feed the cåts" from testdata_storyline.yaml, assigned to Zoë
+    # Add chore "Feed the cåts" from scenario_minimal (testdata_scenario_minimal.yaml), assigned to Zoë
     result = await hass.config_entries.options.async_configure(
         result.get("flow_id"),
         user_input={

@@ -44,7 +44,7 @@
   - `get_kid_by_name(data, name)` / `get_chore_by_name(data, name)` - Access by name not index
   - `create_test_datetime(days_offset)` - UTC datetime creation
   - `assert_entity_state(hass, entity_id, state, attrs)` - State verification
-- **Scenarios**: Use `tests/testdata_storyline.yaml` and `testdata_storyline_max.yaml` for consistent test data.
+- **Scenarios**: Use pytest fixtures (`scenario_minimal`, `scenario_medium`, `scenario_full`, `scenario_stress`) for consistent test data. All fixtures use testdata_scenario_*.yaml files and automatically load/reload entities.
 - **Test Types**:
   - **UI**: `test_config_flow.py`, `test_options_flow*.py` (options flow navigation)
   - **Business Logic**: `test_coordinator.py`, `test_services.py` (direct coordinator access)
@@ -86,4 +86,4 @@ await reload_entity_platforms(hass, config_entry)
 - **Helpers**: `kc_helpers.py` (shared utils), `flow_helpers.py` (validation/schemas)
 - **Storage**: `storage_manager.py` (handles `.storage/kidschores_data` persistence)
 - **Translations**: `translations/en.json` (master file for all user-facing text)
-- **Test Data**: `tests/testdata_storyline*.yaml` (consistent test scenarios)
+- **Test Data**: `tests/testdata_scenario_*.yaml` files loaded via `scenario_*` fixtures (minimal, medium, full, performance_stress)

@@ -13,6 +13,7 @@ Manages entities primarily using internal_id for consistency.
 
 import asyncio
 import sys
+import time
 import uuid
 from calendar import monthrange
 from datetime import date, datetime, timedelta
@@ -295,6 +296,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
     async def _remove_orphaned_kid_chore_entities(self) -> None:
         """Remove kid-chore entities (sensors/buttons) for kids no longer assigned to chores."""
+        # PERF: Measure entity registry cleanup duration
+        perf_start = time.perf_counter()
+
         ent_reg = er.async_get(self.hass)
         prefix = f"{self.config_entry.entry_id}_"
 
@@ -349,6 +353,15 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                         entity_chore_id,
                     )
                     ent_reg.async_remove(entity_entry.entity_id)
+
+        # PERF: Log entity registry cleanup duration
+        perf_duration = time.perf_counter() - perf_start
+        entity_count = len(ent_reg.entities)
+        const.LOGGER.info(
+            "PERF: _remove_orphaned_kid_chore_entities() scanned %d entities in %.3fs",
+            entity_count,
+            perf_duration,
+        )
 
     async def _remove_orphaned_achievement_entities(self) -> None:
         """Remove achievement progress entities for kids that are no longer assigned."""
@@ -2169,6 +2182,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
     def claim_chore(self, kid_id: str, chore_id: str, user_name: str):  # pylint: disable=unused-argument
         """Kid claims chore => state=claimed; parent must then approve."""
+        perf_start = time.perf_counter()
         if chore_id not in self.chores_data:
             const.LOGGER.warning(
                 "WARNING: Claim Chore - Chore ID '%s' not found", chore_id
@@ -2280,6 +2294,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self._persist()
         self.async_set_updated_data(self._data)
 
+        perf_duration = time.perf_counter() - perf_start
+        const.LOGGER.info(
+            "PERF: claim_chore() took %.3fs for kid '%s' chore '%s'",
+            perf_duration,
+            kid_id,
+            chore_id,
+        )
+
     # pylint: disable=too-many-locals,too-many-branches,unused-argument
     def approve_chore(
         self,
@@ -2289,6 +2311,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         points_awarded: Optional[float] = None,  # Reserved for future feature
     ):
         """Approve a chore for kid_id if assigned."""
+        perf_start = time.perf_counter()
         if chore_id not in self.chores_data:
             raise HomeAssistantError(
                 translation_domain=const.DOMAIN,
@@ -2461,6 +2484,15 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         self._persist()
         self.async_set_updated_data(self._data)
+
+        perf_duration = time.perf_counter() - perf_start
+        const.LOGGER.info(
+            "PERF: approve_chore() took %.3fs for kid '%s' chore '%s' (includes %.1f points addition)",
+            perf_duration,
+            kid_id,
+            chore_id,
+            default_points,
+        )
 
     def disapprove_chore(self, parent_name: str, kid_id: str, chore_id: str):  # pylint: disable=unused-argument
         """Disapprove a chore for kid_id."""
@@ -3926,6 +3958,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         - Updates an overall progress field (DATA_KID_BADGE_PROGRESS_OVERALL_PROGRESS) for UI/logic.
         - Awards badges if criteria are met.
         """
+        # PERF: Measure badge evaluation duration per kid
+        perf_start = time.perf_counter()
+
         kid_info = self.kids_data.get(kid_id)
         if not kid_info:
             return
@@ -4177,6 +4212,16 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         self._persist()
         self.async_set_updated_data(self._data)
+
+        # PERF: Log badge evaluation duration
+        perf_duration = time.perf_counter() - perf_start
+        badge_count = len(self.badges_data)
+        const.LOGGER.info(
+            "PERF: _check_badges_for_kid() evaluated %d badges in %.3fs for kid '%s'",
+            badge_count,
+            perf_duration,
+            kid_id,
+        )
 
     def _get_badge_in_scope_chores_list(self, badge_info: dict, kid_id: str) -> list:
         """
@@ -6795,6 +6840,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         Send an overdue notification only if not sent in the last 24 hours.
         """
+        # PERF: Measure overdue scan duration
+        perf_start = time.perf_counter()
+
         now_utc = dt_util.utcnow()
         const.LOGGER.debug(
             "DEBUG: Overdue Chores - Starting check at %s. Enable debug flag to see more details.",
@@ -7004,6 +7052,18 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     )
         if debug_enabled:
             const.LOGGER.debug("DEBUG: Overdue Chores - Check completed")
+
+        # PERF: Log overdue scan duration
+        perf_duration = time.perf_counter() - perf_start
+        chore_count = len(self.chores_data)
+        kid_count = len(self.kids_data)
+        const.LOGGER.info(
+            "PERF: _check_overdue_chores() took %.3fs for %d chores × %d kids = %d operations",
+            perf_duration,
+            chore_count,
+            kid_count,
+            chore_count * kid_count,
+        )
 
     async def _reset_all_chore_counts(self, now: datetime):
         """Trigger resets based on the current time for all frequencies."""
@@ -8019,6 +8079,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         extra_data: Optional[dict] = None,
     ) -> None:
         """Notify all parents associated with a kid using their settings."""
+        # PERF: Measure parent notification latency (sequential vs concurrent)
+        perf_start = time.perf_counter()
+        parent_count = 0
+
         for parent_id, parent_info in self.parents_data.items():
             if kid_id not in parent_info.get(const.DATA_PARENT_ASSOCIATED_KIDS, []):
                 continue
@@ -8038,6 +8102,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.CONF_MOBILE_NOTIFY_SERVICE, const.SENTINEL_EMPTY
             )
             if mobile_enabled and mobile_notify_service:
+                parent_count += 1
                 await async_send_notification(
                     self.hass,
                     mobile_notify_service,
@@ -8047,6 +8112,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     extra_data=extra_data,
                 )
             elif persistent_enabled:
+                parent_count += 1
                 await self.hass.services.async_call(
                     const.NOTIFY_PERSISTENT_NOTIFICATION,
                     const.NOTIFY_CREATE,
@@ -8062,6 +8128,15 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     "DEBUG: Notification - No notification method configured for Parent ID '%s'",
                     parent_id,
                 )
+
+        # PERF: Log parent notification latency
+        perf_duration = time.perf_counter() - perf_start
+        const.LOGGER.info(
+            "PERF: _notify_parents() sent %d notifications in %.3fs (sequential, avg %.3fs/parent)",
+            parent_count,
+            perf_duration,
+            perf_duration / parent_count if parent_count > 0 else 0,
+        )
 
     async def _notify_parents_translated(
         self,
@@ -8259,5 +8334,13 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
     def _persist(self):
         """Save to persistent storage."""
+        # PERF: Track storage write frequency
+        perf_start = time.perf_counter()
+
         self.storage_manager.set_data(self._data)
         self.hass.add_job(self.storage_manager.async_save)
+
+        perf_duration = time.perf_counter() - perf_start
+        const.LOGGER.info(
+            "PERF: _persist() took %.3fs (queued async save)", perf_duration
+        )

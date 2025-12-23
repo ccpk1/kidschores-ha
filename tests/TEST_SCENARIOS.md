@@ -1,6 +1,6 @@
 # KidsChores Test Scenarios
 
-This directory contains test data scenarios for the KidsChores integration, all based on **The Stârblüm Family** storyline.
+This directory contains test data scenarios for the KidsChores integration, all based on **The Stârblüm Family** theme.
 
 ## The Stârblüm Family
 
@@ -146,7 +146,7 @@ async def test_badge_maintenance(hass, full_family):
 
 To create new scenarios:
 
-1. Start with `testdata_storyline.yaml` (baseline)
+1. Start with `scenario_minimal` fixture (testdata_scenario_minimal.yaml)
 2. Copy to `testdata_scenario_<name>.yaml`
 3. Subset or modify family members, entities, progress
 4. Add test focus comment at bottom

@@ -57,6 +57,7 @@ async def test_pending_approvals_structure(
 
     # Get updated dashboard helper state (Zoë from minimal scenario)
     dashboard_helper = hass.states.get("sensor.kc_zoe_ui_dashboard_helper")
+    assert dashboard_helper is not None
     pending = dashboard_helper.attributes["pending_approvals"]
 
     # Should have one pending chore approval for Zoë
@@ -88,6 +89,7 @@ async def test_pending_approvals_updated_after_claim(
 
     # Initial state - no pending approvals
     dashboard_helper = hass.states.get("sensor.kc_zoe_ui_dashboard_helper")
+    assert dashboard_helper is not None
     pending = dashboard_helper.attributes["pending_approvals"]
     initial_count = len(pending["chores"])
 
@@ -102,6 +104,7 @@ async def test_pending_approvals_updated_after_claim(
 
     # Verify pending approvals list was updated
     dashboard_helper = hass.states.get("sensor.kc_zoe_ui_dashboard_helper")
+    assert dashboard_helper is not None
     pending = dashboard_helper.attributes["pending_approvals"]
     assert len(pending["chores"]) == initial_count + 1
 
@@ -125,6 +128,7 @@ async def test_pending_approval_cleared_on_approve(
 
         # Verify pending approval exists
         dashboard_helper = hass.states.get("sensor.kc_zoe_ui_dashboard_helper")
+        assert dashboard_helper is not None
         pending = dashboard_helper.attributes["pending_approvals"]
         assert len(pending["chores"]) == 1
 
@@ -142,5 +146,6 @@ async def test_pending_approval_cleared_on_approve(
 
         # Verify pending approval is cleared
         dashboard_helper = hass.states.get("sensor.kc_zoe_ui_dashboard_helper")
+        assert dashboard_helper is not None
         pending = dashboard_helper.attributes["pending_approvals"]
         assert len(pending["chores"]) == 0

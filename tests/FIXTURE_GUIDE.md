@@ -671,7 +671,7 @@ async def test_shared_chore_multi_claim(hass, scenario_medium):
 - ✅ Badge assignment and maintenance
 - ✅ Special occasion badge testing (Dec 21 badge)
 - ❌ Single-kid tests (use scenario_minimal)
-- ❌ Stress testing (use scenario_full/storyline_max)
+- ✅ Stress testing (use `scenario_stress` fixture)
 
 **Files Using This**: `test_badge_assignment_baseline.py`, `test_badge_creation.py`
 
@@ -719,13 +719,13 @@ async def test_badge_maintenance_tracking(hass, scenario_full):
 - ✅ Performance testing (3 kids is moderate load)
 - ✅ Complete feature coverage
 - ❌ Simple tests (use scenario_minimal)
-- ❌ Extreme stress testing (use storyline_max)
+- ✅ Extreme stress testing (use `scenario_stress` fixture)
 
 **Notes**:
 
-- Identical to `storyline` scenario (canonical baseline)
+- Identical to `scenario_full` fixture (canonical baseline)
 - Use `scenario_full` when semantic name is clearer
-- Use `storyline` when referencing "The Stârblüm Family" theme
+- Use `scenario_full` fixture when needing "The Stârblüm Family" theme
 
 ---
 
@@ -1318,7 +1318,7 @@ kid_data = get_kid_by_name(coordinator.kids_data, "Zoë")
 **Symptoms**:
 
 ```python
-fixture 'scenario_storyline' not found
+fixture 'scenario_full' provides identical data
 ```
 
 **Cause**: Using wrong scenario name
@@ -1326,11 +1326,11 @@ fixture 'scenario_storyline' not found
 **Solution**: Only 3 scenario fixtures exist: `scenario_minimal`, `scenario_medium`, `scenario_full`
 
 ```python
-# ❌ WRONG - storyline is a YAML file, not a fixture
+# ❌ WRONG - storyline is a YAML file reference, not a fixture
 async def test_something(hass, scenario_storyline):
     pass
 
-# ✅ CORRECT - use scenario_full (identical to storyline)
+# ✅ CORRECT - use scenario_full fixture (provides identical Stârblüm family data)
 async def test_something(hass, scenario_full):
     pass
 ```
@@ -1346,8 +1346,10 @@ async def test_something(hass, scenario_full):
 - `testdata_scenario_minimal.yaml`
 - `testdata_scenario_medium.yaml`
 - `testdata_scenario_full.yaml`
-- `testdata_storyline.yaml` (same as full)
-- `testdata_storyline_max.yaml` (24 kids, no fixture yet)
+- `testdata_scenario_minimal.yaml` → `scenario_minimal` fixture
+- `testdata_scenario_medium.yaml` → `scenario_medium` fixture
+- `testdata_scenario_full.yaml` → `scenario_full` fixture (Stârblüm family reference)
+- `testdata_scenario_performance_stress.yaml` → `scenario_stress` fixture (100 kids, 500+ chores)
 
 ---
 
@@ -1399,18 +1401,18 @@ zoe_id = name_map["Zoë"]  # Guaranteed correct
 
 ## Quick Reference: Fixture Selection Matrix
 
-| Test Type                     | Need Entities? | Data Complexity | Recommended Fixture                       |
-| ----------------------------- | -------------- | --------------- | ----------------------------------------- |
-| Config flow                   | No             | None            | `mock_config_entry`                       |
-| Options flow                  | No             | None            | `mock_config_entry`                       |
-| Unit test (coordinator logic) | No             | Custom          | `mock_coordinator` + data helpers         |
-| Simple workflow               | Yes            | Minimal         | `init_integration_with_data`              |
-| Single-kid tests              | Yes            | Realistic       | `scenario_minimal`                        |
-| Multi-kid coordination        | Yes            | Realistic       | `scenario_medium`                         |
-| Badge maintenance             | Yes            | Complete        | `scenario_full`                           |
-| Shared chores                 | Yes            | Realistic       | `scenario_medium`                         |
-| Performance testing           | Yes            | Realistic       | `scenario_full`                           |
-| Stress testing                | Yes            | Extreme         | Manual load `testdata_storyline_max.yaml` |
+| Test Type                     | Need Entities? | Data Complexity | Recommended Fixture               |
+| ----------------------------- | -------------- | --------------- | --------------------------------- |
+| Config flow                   | No             | None            | `mock_config_entry`               |
+| Options flow                  | No             | None            | `mock_config_entry`               |
+| Unit test (coordinator logic) | No             | Custom          | `mock_coordinator` + data helpers |
+| Simple workflow               | Yes            | Minimal         | `init_integration_with_data`      |
+| Single-kid tests              | Yes            | Realistic       | `scenario_minimal`                |
+| Multi-kid coordination        | Yes            | Realistic       | `scenario_medium`                 |
+| Badge maintenance             | Yes            | Complete        | `scenario_full`                   |
+| Shared chores                 | Yes            | Realistic       | `scenario_medium`                 |
+| Performance testing           | Yes            | Realistic       | `scenario_full`                   |
+| Stress testing                | Yes            | Extreme         | Use `scenario_stress` fixture     |
 
 ---
 
