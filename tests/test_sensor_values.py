@@ -422,8 +422,9 @@ async def test_helper_create_test_datetime_demonstration(
     AFTER (new helper):
         overdue_date = create_test_datetime(days_offset=-7)
     """
-    from tests.conftest import create_test_datetime
     from datetime import datetime, timezone
+
+    from tests.conftest import create_test_datetime
 
     # OLD PATTERN: Manual datetime construction
     # from datetime import datetime, timedelta, timezone
@@ -442,4 +443,3 @@ async def test_helper_create_test_datetime_demonstration(
     now = datetime.now(timezone.utc)
     diff_days = (now - parsed).days
     assert 6 <= diff_days <= 8, "Overdue date should be ~7 days ago"
-

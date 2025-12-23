@@ -1019,4 +1019,3 @@ async def test_helper_assert_entity_state_demonstration(
     # Helper returns state object for additional assertions if needed
     state = await assert_entity_state(hass, entity_id, "10.0")
     assert float(state.state) >= 0.0, "Points should be non-negative"
-

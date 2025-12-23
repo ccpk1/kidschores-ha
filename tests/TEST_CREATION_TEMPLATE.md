@@ -5,6 +5,7 @@
 **Audience**: AI agents, developers creating new tests
 
 **Related Documentation**:
+
 - [TESTDATA_CATALOG.md](./TESTDATA_CATALOG.md) - Scenario selection guide
 - [FIXTURE_GUIDE.md](./FIXTURE_GUIDE.md) - Fixture usage reference
 - [TESTING_AGENT_INSTRUCTIONS.md](./TESTING_AGENT_INSTRUCTIONS.md) - Quick-start guide
@@ -86,17 +87,17 @@ async def test_form_<flow_name>_<scenario>(hass: HomeAssistant) -> None:
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
-    
+
     # ASSERT: Verify initial form
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "expected_first_step"
-    
+
     # ACT: Submit form with valid data
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         user_input={"field_name": "value"},
     )
-    
+
     # ASSERT: Verify flow progressed
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "next_step"
@@ -120,13 +121,13 @@ async def test_form_points_label_validation_empty(hass: HomeAssistant) -> None:
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], user_input={}
     )
-    
+
     # ACT: Submit empty points label
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         user_input={CONF_POINTS_LABEL: ""},
     )
-    
+
     # ASSERT: Verify validation error
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "points_label"
@@ -174,18 +175,18 @@ async def test_service_<service_name>_<scenario>(
     """Test <service> with <scenario description>."""
     # ARRANGE: Get scenario data
     entry, name_map = scenario_minimal
-    
+
     kid_name = "Zoë"
     chore_name = "Feed the cåts"
-    
+
     # Get IDs using helpers
     kid_id = name_map[kid_name]
     chore_id = name_map[chore_name]
-    
+
     # Get coordinator
     from custom_components.kidschores.const import COORDINATOR
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-    
+
     # ACT: Call service
     await hass.services.async_call(
         DOMAIN,
@@ -193,7 +194,7 @@ async def test_service_<service_name>_<scenario>(
         {ATTR_KID_NAME: kid_name, ATTR_CHORE_NAME: chore_name},
         blocking=True,
     )
-    
+
     # ASSERT: Verify state changes
     chore_data = coordinator.chores_data[chore_id]
     assert chore_data["state"] == CHORE_STATE_CLAIMED
@@ -209,7 +210,7 @@ async def test_service_claim_chore_invalid_kid_name(
 ) -> None:
     """Test claim_chore service rejects invalid kid name."""
     entry, name_map = scenario_minimal
-    
+
     # ACT & ASSERT: Service call should raise validation error
     with pytest.raises(ServiceValidationError, match="Kid not found"):
         await hass.services.async_call(
@@ -229,14 +230,14 @@ async def test_service_approve_chore_updates_points_sensor(
 ) -> None:
     """Test approve_chore service updates kid's points sensor."""
     entry, name_map = scenario_minimal
-    
+
     kid_name = "Zoë"
     chore_name = "Feed the cåts"
-    
+
     # Get initial points
     points_sensor = construct_entity_id("sensor", kid_name, "points")
     initial_points = float(hass.states.get(points_sensor).state)
-    
+
     # Claim and approve chore
     await hass.services.async_call(
         DOMAIN, SERVICE_CLAIM_CHORE,
@@ -248,7 +249,7 @@ async def test_service_approve_chore_updates_points_sensor(
         {ATTR_CHORE_NAME: chore_name},
         blocking=True,
     )
-    
+
     # Verify points increased
     final_points = float(hass.states.get(points_sensor).state)
     assert final_points == initial_points + 10.0  # chore is worth 10 points
@@ -289,13 +290,13 @@ async def test_<entity_type>_<attribute>_<scenario>(
     # ARRANGE
     entry, name_map = scenario_minimal
     kid_name = "Zoë"
-    
+
     # Construct entity ID using helper
     entity_id = construct_entity_id("sensor", kid_name, "points")
-    
+
     # ACT: (if testing after action)
     # await hass.services.async_call(...)
-    
+
     # ASSERT: Verify state and attributes
     await assert_entity_state(
         hass,
@@ -319,12 +320,12 @@ async def test_sensor_points_updates_after_chore_approval(
     entry, name_map = scenario_minimal
     kid_name = "Zoë"
     chore_name = "Feed the cåts"
-    
+
     # Get initial state
     points_sensor = construct_entity_id("sensor", kid_name, "points")
     initial_state = hass.states.get(points_sensor)
     initial_points = float(initial_state.state)
-    
+
     # Claim and approve chore
     await hass.services.async_call(
         DOMAIN, SERVICE_CLAIM_CHORE,
@@ -336,7 +337,7 @@ async def test_sensor_points_updates_after_chore_approval(
         {ATTR_CHORE_NAME: chore_name},
         blocking=True,
     )
-    
+
     # Verify state updated
     await assert_entity_state(
         hass,
@@ -357,18 +358,18 @@ async def test_sensor_unavailable_when_kid_removed(
     entry, name_map = scenario_minimal
     kid_name = "Zoë"
     kid_id = name_map[kid_name]
-    
+
     points_sensor = construct_entity_id("sensor", kid_name, "points")
-    
+
     # Verify initially available
     state = hass.states.get(points_sensor)
     assert state.state != "unavailable"
-    
+
     # Remove kid
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
     await coordinator.async_remove_kid(kid_id)
     await hass.async_block_till_done()
-    
+
     # Verify sensor unavailable
     state = hass.states.get(points_sensor)
     assert state.state == "unavailable"
@@ -409,18 +410,18 @@ async def test_coordinator_<operation>_<scenario>(
     """Test coordinator <operation> with <scenario>."""
     # ARRANGE: Get coordinator
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
-    
+
     # Create test data
     kid_name = "Test Kid"
     kid_age = 10
-    
+
     # ACT: Perform coordinator operation
     kid_id = await coordinator.async_add_kid(
         name=kid_name,
         age=kid_age,
         interests=["testing"],
     )
-    
+
     # ASSERT: Verify data structure
     assert kid_id in coordinator.kids_data
     kid_data = coordinator.kids_data[kid_id]
@@ -438,7 +439,7 @@ async def test_coordinator_add_kid_validates_name(
 ) -> None:
     """Test coordinator rejects empty kid name."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
-    
+
     # ACT & ASSERT: Should raise validation error
     with pytest.raises(ValueError, match="Name cannot be empty"):
         await coordinator.async_add_kid(name="", age=8, interests=[])
@@ -454,22 +455,22 @@ async def test_coordinator_approve_chore_applies_points(
     """Test coordinator applies points when chore approved."""
     entry, name_map = scenario_minimal
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-    
+
     kid_name = "Zoë"
     chore_name = "Feed the cåts"
-    
+
     # Get initial points
     kid_data = get_kid_by_name(coordinator.kids_data, kid_name)
     initial_points = kid_data["points"]
-    
+
     # Get chore points
     chore_data = get_chore_by_name(coordinator.chores_data, chore_name)
     chore_points = chore_data["default_points"]
-    
+
     # Claim and approve
     await coordinator.async_claim_chore(kid_data["internal_id"], chore_data["internal_id"])
     await coordinator.async_approve_chore(chore_data["internal_id"])
-    
+
     # Verify points added
     kid_data = get_kid_by_name(coordinator.kids_data, kid_name)
     assert kid_data["points"] == initial_points + chore_points
@@ -516,35 +517,35 @@ async def test_workflow_<name>_<scenario>(
     # ARRANGE: Get scenario data
     entry, name_map = scenario_minimal
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-    
+
     kid_name = "Zoë"
     chore_name = "Feed the cåts"
-    
+
     kid_data = get_kid_by_name(coordinator.kids_data, kid_name)
     chore_data = get_chore_by_name(coordinator.chores_data, chore_name)
-    
+
     initial_points = kid_data["points"]
     chore_points = chore_data["default_points"]
-    
+
     # ACT: Step 1 - Claim chore
     claim_button = construct_entity_id("button", kid_name, f"claim_chore_{chore_name}")
     await hass.services.async_call("button", "press", {"entity_id": claim_button}, blocking=True)
-    
+
     # ASSERT: Verify claim state
     chore_data = get_chore_by_name(coordinator.chores_data, chore_name)
     assert chore_data["state"] == CHORE_STATE_CLAIMED
-    
+
     # ACT: Step 2 - Approve chore
     approve_button = construct_entity_id("button", kid_name, f"approve_chore_{chore_name}")
     await hass.services.async_call("button", "press", {"entity_id": approve_button}, blocking=True)
-    
+
     # ASSERT: Verify approval and points
     chore_data = get_chore_by_name(coordinator.chores_data, chore_name)
     assert chore_data["state"] == CHORE_STATE_APPROVED
-    
+
     kid_data = get_kid_by_name(coordinator.kids_data, kid_name)
     assert kid_data["points"] == initial_points + chore_points
-    
+
     # ASSERT: Verify entity states
     points_sensor = construct_entity_id("sensor", kid_name, "points")
     await assert_entity_state(
@@ -564,31 +565,31 @@ async def test_workflow_shared_chore_both_kids(
     """Test shared chore workflow with both kids claiming."""
     entry, name_map = scenario_medium
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-    
+
     # Both kids claim shared chore
     shared_chore = "Stär sweep"
     zoe_id = name_map["Zoë"]
     max_id = name_map["Max!"]
-    
+
     # Zoë claims
     await hass.services.async_call(
         DOMAIN, SERVICE_CLAIM_CHORE,
         {ATTR_KID_NAME: "Zoë", ATTR_CHORE_NAME: shared_chore},
         blocking=True,
     )
-    
+
     # Max claims (should succeed - shared chore)
     await hass.services.async_call(
         DOMAIN, SERVICE_CLAIM_CHORE,
         {ATTR_KID_NAME: "Max!", ATTR_CHORE_NAME: shared_chore},
         blocking=True,
     )
-    
+
     # Verify both claims exist
     chore_data = get_chore_by_name(coordinator.chores_data, shared_chore)
     assert zoe_id in chore_data["claims"]
     assert max_id in chore_data["claims"]
-    
+
     # Approve both
     await hass.services.async_call(
         DOMAIN, SERVICE_APPROVE_CHORE,
@@ -600,7 +601,7 @@ async def test_workflow_shared_chore_both_kids(
         {ATTR_CHORE_NAME: shared_chore, ATTR_KID_NAME: "Max!"},
         blocking=True,
     )
-    
+
     # Verify both got points
     zoe_data = coordinator.kids_data[zoe_id]
     max_data = coordinator.kids_data[max_id]
@@ -639,14 +640,14 @@ from custom_components.kidschores.const import DOMAIN
 async def test_integration_<scenario>(hass: HomeAssistant, init_integration: MockConfigEntry) -> None:
     """Test integration <scenario description>."""
     # ARRANGE: Integration already set up by fixture
-    
+
     # ASSERT: Verify integration loaded
     assert init_integration.entry_id in hass.data[DOMAIN]
-    
+
     # ASSERT: Verify platforms loaded
     assert hass.states.async_entity_ids(Platform.SENSOR)
     assert hass.states.async_entity_ids(Platform.BUTTON)
-    
+
     # ASSERT: Verify coordinator exists
     from custom_components.kidschores.const import COORDINATOR
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
@@ -662,19 +663,19 @@ async def test_integration_loads_scenario_data(
 ) -> None:
     """Test integration creates entities from scenario data."""
     entry, name_map = scenario_minimal
-    
+
     # Verify kid entities created
     kid_name = "Zoë"
     points_sensor = construct_entity_id("sensor", kid_name, "points")
     lifetime_sensor = construct_entity_id("sensor", kid_name, "lifetime_points")
-    
+
     assert hass.states.get(points_sensor) is not None
     assert hass.states.get(lifetime_sensor) is not None
-    
+
     # Verify chore buttons created
     chore_name = "Feed the cåts"
     claim_button = construct_entity_id("button", kid_name, f"claim_chore_feed_the_cats")
-    
+
     assert hass.states.get(claim_button) is not None
 ```
 
@@ -688,11 +689,11 @@ async def test_integration_unload(
     """Test integration unloads cleanly."""
     # Verify loaded
     assert init_integration.entry_id in hass.data[DOMAIN]
-    
+
     # Unload
     await hass.config_entries.async_unload(init_integration.entry_id)
     await hass.async_block_till_done()
-    
+
     # Verify unloaded
     assert init_integration.entry_id not in hass.data[DOMAIN]
 ```
@@ -714,6 +715,7 @@ async def test_integration_unload(
 **Pattern**: `test_<component>_<action>_<scenario>`
 
 **Examples**:
+
 ```python
 # Good - descriptive, clear hierarchy
 test_service_claim_chore_success()
@@ -733,6 +735,7 @@ test_it_works()
 **Pattern**: `test_<module>_<focus>.py`
 
 **Examples**:
+
 ```python
 # Good - specific focus
 test_config_flow.py
@@ -771,17 +774,17 @@ async def test_example(hass, scenario_minimal):
     # ARRANGE: Set up test data and get references
     entry, name_map = scenario_minimal
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-    
+
     kid_name = "Zoë"
     initial_points = get_kid_by_name(coordinator.kids_data, kid_name)["points"]
-    
+
     # ACT: Perform the action being tested
     await hass.services.async_call(
         DOMAIN, SERVICE_CLAIM_CHORE,
         {ATTR_KID_NAME: kid_name, ATTR_CHORE_NAME: "Feed the cåts"},
         blocking=True,
     )
-    
+
     # ASSERT: Verify expected outcomes
     kid_data = get_kid_by_name(coordinator.kids_data, kid_name)
     assert "feed_the_cats" in kid_data["claimed_chores"]
@@ -792,6 +795,7 @@ async def test_example(hass, scenario_minimal):
 **Purpose**: Set up test preconditions
 
 **Good practices**:
+
 - Get all data references at start
 - Create test data using helpers
 - Set up mocks/patches
@@ -814,6 +818,7 @@ kid_data = get_kid_by_name(...)  # Should be in ARRANGE
 **Purpose**: Execute ONE action being tested
 
 **Good practices**:
+
 - One primary action per test
 - Use `blocking=True` for service calls
 - Add `await hass.async_block_till_done()` after non-blocking operations
@@ -838,6 +843,7 @@ await service_call_3()  # Should be separate test
 **Purpose**: Verify expected outcomes
 
 **Good practices**:
+
 - Multiple related assertions OK
 - Check both positive and negative conditions
 - Use helper functions for complex checks
@@ -1019,7 +1025,7 @@ async def test_claim_chore(hass, scenario_minimal):
 # Good - verify behavior
 async def test_claim_chore(hass, scenario_minimal):
     await hass.services.async_call(...)
-    
+
     chore_data = get_chore_by_name(coordinator.chores_data, "Feed the cåts")
     assert chore_data["state"] == CHORE_STATE_CLAIMED
 ```
@@ -1110,7 +1116,7 @@ import pytest
 def test_kid_name_slugification(kid_name, expected_slug):
     """Test kid names are slugified correctly."""
     from homeassistant.util import slugify
-    
+
     result = slugify(kid_name)
     assert result == expected_slug
 ```
@@ -1133,13 +1139,13 @@ async def test_reward_claim_point_validation(
 ):
     """Test reward claim validates sufficient points."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
-    
+
     kid_data = create_mock_kid_data("kid1", "Test", points=points)
     reward_data = create_mock_reward_data("reward1", "Reward", cost=cost)
-    
+
     coordinator.kids_data["kid1"] = kid_data
     coordinator.rewards_data["reward1"] = reward_data
-    
+
     if should_succeed:
         await coordinator.async_claim_reward("kid1", "reward1")
         assert True  # No exception
@@ -1161,11 +1167,11 @@ async def test_points_sensor_exists_all_scenarios(
     """Test points sensor exists in all scenarios."""
     # Use request.getfixturevalue to get fixture dynamically
     entry, name_map = request.getfixturevalue(scenario_fixture)
-    
+
     # All scenarios have Zoë
     points_sensor = construct_entity_id("sensor", "Zoë", "points")
     state = hass.states.get(points_sensor)
-    
+
     assert state is not None
     assert state.state != "unavailable"
 ```
@@ -1173,12 +1179,14 @@ async def test_points_sensor_exists_all_scenarios(
 ### When to Parametrize
 
 ✅ **Use parametrization when**:
+
 - Testing same logic with different inputs
 - Validating boundary conditions (0, 1, max values)
 - Testing multiple similar error cases
 - Verifying behavior across scenarios
 
 ❌ **Don't parametrize when**:
+
 - Tests have different logic
 - Tests need different fixtures
 - Tests verify completely different things
@@ -1191,6 +1199,7 @@ async def test_points_sensor_exists_all_scenarios(
 Before submitting/completing a test, verify:
 
 ### ✅ Structure & Organization
+
 - [ ] Test has clear, descriptive name following convention
 - [ ] Test function has docstring explaining purpose
 - [ ] Test follows AAA pattern (Arrange, Act, Assert)
@@ -1198,13 +1207,15 @@ Before submitting/completing a test, verify:
 - [ ] Related tests are grouped together
 
 ### ✅ Test Data
+
 - [ ] Using scenario from TESTDATA_CATALOG.md (not made-up data)
 - [ ] Using correct fixture for test type (see FIXTURE_GUIDE.md)
-- [ ] Using Phase 1 helpers (construct_entity_id, get_*_by_name, etc.)
+- [ ] Using Phase 1 helpers (construct*entity_id, get*\*\_by_name, etc.)
 - [ ] No hardcoded entity IDs or data values
 - [ ] Test data is realistic and meaningful
 
 ### ✅ Test Behavior
+
 - [ ] Test has clear assertions (doesn't just run code)
 - [ ] Test verifies expected behavior, not implementation
 - [ ] Test is focused (one thing per test)
@@ -1212,12 +1223,14 @@ Before submitting/completing a test, verify:
 - [ ] Test cleans up after itself (fixtures handle this usually)
 
 ### ✅ Error Handling
+
 - [ ] Negative cases tested (invalid input, missing data)
 - [ ] Uses pytest.raises for expected exceptions
 - [ ] Error messages are checked (match="expected message")
 - [ ] Validation errors use ServiceValidationError
 
 ### ✅ Maintainability
+
 - [ ] Test will fail if behavior changes (not brittle)
 - [ ] Test is independent (no reliance on other test order)
 - [ ] Test is fast (uses minimal fixtures needed)
@@ -1225,6 +1238,7 @@ Before submitting/completing a test, verify:
 - [ ] Comments explain "why", not "what"
 
 ### ✅ Documentation
+
 - [ ] Test name clearly indicates what's being tested
 - [ ] Docstring explains test purpose and scenario
 - [ ] Complex logic has comments explaining approach
@@ -1234,20 +1248,20 @@ Before submitting/completing a test, verify:
 
 ## Quick Reference: Test Type Selection
 
-| I need to test... | Test Type | Fixture | File |
-|-------------------|-----------|---------|------|
-| UI flow navigation | Config Flow | `hass` | `test_config_flow.py` |
-| Form validation | Config Flow | `hass` | `test_config_flow.py` |
-| Service call behavior | Service | Scenario | `test_services.py` |
-| Service validation | Service | Scenario | `test_services.py` |
-| Entity state after action | Entity State | Scenario | `test_sensor.py` / `test_button.py` |
-| Entity attributes | Entity State | Scenario | `test_sensor.py` |
-| Coordinator logic | Coordinator | `init_integration` | `test_coordinator.py` |
-| Data validation | Coordinator | `mock_coordinator` | `test_coordinator.py` |
-| Multi-step workflow | Workflow | Scenario | `test_workflow_*.py` |
-| Complete user journey | Workflow | Scenario | `test_workflow_*.py` |
-| Integration setup | Integration | `init_integration` | `test_init.py` |
-| Platform loading | Integration | `init_integration` | `test_init.py` |
+| I need to test...         | Test Type    | Fixture            | File                                |
+| ------------------------- | ------------ | ------------------ | ----------------------------------- |
+| UI flow navigation        | Config Flow  | `hass`             | `test_config_flow.py`               |
+| Form validation           | Config Flow  | `hass`             | `test_config_flow.py`               |
+| Service call behavior     | Service      | Scenario           | `test_services.py`                  |
+| Service validation        | Service      | Scenario           | `test_services.py`                  |
+| Entity state after action | Entity State | Scenario           | `test_sensor.py` / `test_button.py` |
+| Entity attributes         | Entity State | Scenario           | `test_sensor.py`                    |
+| Coordinator logic         | Coordinator  | `init_integration` | `test_coordinator.py`               |
+| Data validation           | Coordinator  | `mock_coordinator` | `test_coordinator.py`               |
+| Multi-step workflow       | Workflow     | Scenario           | `test_workflow_*.py`                |
+| Complete user journey     | Workflow     | Scenario           | `test_workflow_*.py`                |
+| Integration setup         | Integration  | `init_integration` | `test_init.py`                      |
+| Platform loading          | Integration  | `init_integration` | `test_init.py`                      |
 
 ---
 
@@ -1260,6 +1274,6 @@ Before submitting/completing a test, verify:
 
 ---
 
-**Last Updated**: 2025-01-20  
-**Testing Standards Maturity Initiative**: Phase 3 Complete  
+**Last Updated**: 2025-01-20
+**Testing Standards Maturity Initiative**: Phase 3 Complete
 **Next Phase**: Implementation and adoption across test suite

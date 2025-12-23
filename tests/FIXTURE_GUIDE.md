@@ -5,6 +5,7 @@
 **Audience**: AI agents, developers creating/maintaining tests
 
 **Related Documentation**:
+
 - [TESTDATA_CATALOG.md](./TESTDATA_CATALOG.md) - Scenario data reference
 - [TESTING_AGENT_INSTRUCTIONS.md](./TESTING_AGENT_INSTRUCTIONS.md) - Quick-start guide
 - [TESTING_GUIDE.md](./TESTING_GUIDE.md) - Comprehensive testing documentation
@@ -18,7 +19,7 @@
 ```
 Do you need entities to exist?
 ├─ NO → Use mock_config_entry + mock_coordinator (unit tests)
-└─ YES → Need real coordinator? 
+└─ YES → Need real coordinator?
     ├─ NO → Use mock_coordinator with create_mock_*_data() helpers
     └─ YES → Use init_integration, then:
         ├─ Empty data? → Use as-is (config flow tests)
@@ -43,9 +44,10 @@ Do you need entities to exist?
 ## Core Setup Fixtures
 
 ### `auto_enable_custom_integrations`
-**Scope**: Function (autouse=True)  
-**Dependencies**: `enable_custom_integrations` (from pytest-homeassistant)  
-**Returns**: Pass-through of enable_custom_integrations  
+
+**Scope**: Function (autouse=True)
+**Dependencies**: `enable_custom_integrations` (from pytest-homeassistant)
+**Returns**: Pass-through of enable_custom_integrations
 
 **Purpose**: Automatically enables custom integrations for all tests
 
@@ -59,6 +61,7 @@ async def test_something(hass):
 ```
 
 **Notes**:
+
 - Applied to every test function automatically
 - Enables loading of custom_components during tests
 - Required for KidsChores integration to load
@@ -66,13 +69,15 @@ async def test_something(hass):
 ---
 
 ### `mock_hass_users`
-**Scope**: Function  
-**Dependencies**: `hass` (Home Assistant instance)  
-**Returns**: `dict[str, Any]` - Dictionary mapping user IDs to user objects  
+
+**Scope**: Function
+**Dependencies**: `hass` (Home Assistant instance)
+**Returns**: `dict[str, Any]` - Dictionary mapping user IDs to user objects
 
 **Purpose**: Creates mock Home Assistant users for parent authentication testing
 
 **Structure**:
+
 ```python
 {
     "parent1": User(id="parent1_id", name="Parent One"),
@@ -81,27 +86,30 @@ async def test_something(hass):
 ```
 
 **Usage**:
+
 ```python
 async def test_parent_authorization(hass, mock_hass_users):
     """Test that only authorized parents can approve chores."""
     parent1 = mock_hass_users["parent1"]
-    
+
     # Use parent1.id in authorization checks
     context = Context(user_id=parent1.id)
     await hass.services.async_call(
-        DOMAIN, "approve_chore", 
-        {"chore_id": "some_id"}, 
+        DOMAIN, "approve_chore",
+        {"chore_id": "some_id"},
         context=context
     )
 ```
 
 **When to Use**:
+
 - ✅ Testing service calls with authorization
 - ✅ Testing parent-only actions (approve, modify points)
 - ✅ Scenario fixtures (automatically passed to apply_scenario_direct)
 - ❌ Tests that don't check user permissions
 
 **Notes**:
+
 - User objects are created with Home Assistant's auth system
 - User IDs are consistent: "parent1_id", "parent2_id"
 - Scenarios link parents to these IDs via `ha_userid` in YAML
@@ -109,13 +117,15 @@ async def test_parent_authorization(hass, mock_hass_users):
 ---
 
 ### `mock_config_entry`
-**Scope**: Function  
-**Dependencies**: None  
-**Returns**: `MockConfigEntry`  
+
+**Scope**: Function
+**Dependencies**: None
+**Returns**: `MockConfigEntry`
 
 **Purpose**: Creates a minimal config entry for KidsChores integration
 
 **Structure**:
+
 ```python
 MockConfigEntry(
     domain=DOMAIN,
@@ -127,23 +137,26 @@ MockConfigEntry(
 ```
 
 **Usage**:
+
 ```python
 async def test_config_flow(hass, mock_config_entry):
     """Test configuration flow initialization."""
     mock_config_entry.add_to_hass(hass)
-    
+
     # Now available via hass.config_entries
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
 ```
 
 **When to Use**:
+
 - ✅ Config flow tests (before setup)
 - ✅ Options flow tests
 - ✅ Testing setup error handling
 - ❌ Tests needing populated data (use init_integration instead)
 
 **Notes**:
+
 - Does NOT call async_setup_entry - integration not loaded
 - Empty data dict - KidsChores v4.2+ stores data in .storage only
 - Entry not added to hass automatically - call `.add_to_hass(hass)` first
@@ -151,13 +164,15 @@ async def test_config_flow(hass, mock_config_entry):
 ---
 
 ### `mock_storage_data`
-**Scope**: Function  
-**Dependencies**: None  
-**Returns**: `dict[str, dict]` - Empty storage structure  
+
+**Scope**: Function
+**Dependencies**: None
+**Returns**: `dict[str, dict]` - Empty storage structure
 
 **Purpose**: Provides empty storage structure for testing initialization
 
 **Structure**:
+
 ```python
 {
     "kids": {},
@@ -173,6 +188,7 @@ async def test_config_flow(hass, mock_config_entry):
 ```
 
 **Usage**:
+
 ```python
 def test_empty_storage_initialization(mock_storage_data):
     """Test that empty storage has correct structure."""
@@ -182,6 +198,7 @@ def test_empty_storage_initialization(mock_storage_data):
 ```
 
 **When to Use**:
+
 - ✅ Testing storage initialization logic
 - ✅ Verifying empty state behavior
 - ✅ Unit tests for storage manager
@@ -190,31 +207,35 @@ def test_empty_storage_initialization(mock_storage_data):
 ---
 
 ### `mock_storage_manager`
-**Scope**: Function  
-**Dependencies**: `mock_storage_data`  
-**Returns**: `MagicMock` - Mocked KCStorageManager  
+
+**Scope**: Function
+**Dependencies**: `mock_storage_data`
+**Returns**: `MagicMock` - Mocked KCStorageManager
 
 **Purpose**: Provides a mocked storage manager for unit testing without real file I/O
 
 **Methods Mocked**:
+
 - `async_load()` → Returns mock_storage_data
 - `async_save()` → No-op (doesn't write files)
 - `get_data()` → Returns mock_storage_data
 - `async_clear_kid_data()` → No-op
 
 **Usage**:
+
 ```python
 async def test_coordinator_load(hass, mock_storage_manager):
     """Test coordinator loads data from storage."""
     coordinator = KCDataCoordinator(hass, mock_storage_manager, mock_config_entry)
-    
+
     await coordinator.async_load()
-    
+
     # Verify load was called
     mock_storage_manager.async_load.assert_called_once()
 ```
 
 **When to Use**:
+
 - ✅ Unit testing coordinator logic
 - ✅ Testing without filesystem access
 - ✅ Fast tests that don't need persistence
@@ -223,13 +244,15 @@ async def test_coordinator_load(hass, mock_storage_manager):
 ---
 
 ### `mock_coordinator`
-**Scope**: Function  
-**Dependencies**: `mock_config_entry`, `mock_storage_manager`  
-**Returns**: `KCDataCoordinator` - Initialized coordinator with empty data  
+
+**Scope**: Function
+**Dependencies**: `mock_config_entry`, `mock_storage_manager`
+**Returns**: `KCDataCoordinator` - Initialized coordinator with empty data
 
 **Purpose**: Provides a real coordinator instance with mocked storage (no file I/O)
 
 **Usage**:
+
 ```python
 async def test_add_kid(mock_coordinator):
     """Test adding a kid to empty coordinator."""
@@ -238,18 +261,20 @@ async def test_add_kid(mock_coordinator):
         age=8,
         interests=["testing"]
     )
-    
+
     assert kid_id in mock_coordinator.kids_data
     assert mock_coordinator.kids_data[kid_id]["name"] == "Test Kid"
 ```
 
 **When to Use**:
+
 - ✅ Unit testing coordinator methods (add_kid, add_chore, etc.)
 - ✅ Testing business logic without integration setup
 - ✅ Fast isolated tests
 - ❌ Tests needing entity platforms (use init_integration)
 
 **Notes**:
+
 - Real KCDataCoordinator instance, but storage is mocked
 - No entities created (button, sensor platforms not loaded)
 - No config entry setup in Home Assistant
@@ -257,13 +282,15 @@ async def test_add_kid(mock_coordinator):
 ---
 
 ### `init_integration`
-**Scope**: Function (async)  
-**Dependencies**: `hass`, `mock_config_entry`  
-**Returns**: `MockConfigEntry` - Config entry after successful setup  
+
+**Scope**: Function (async)
+**Dependencies**: `hass`, `mock_config_entry`
+**Returns**: `MockConfigEntry` - Config entry after successful setup
 
 **Purpose**: Fully sets up KidsChores integration with empty data - coordinator + all entity platforms loaded
 
 **What It Does**:
+
 1. Adds mock_config_entry to Home Assistant
 2. Calls `async_setup_entry()` - loads integration
 3. Waits for setup to complete
@@ -271,13 +298,14 @@ async def test_add_kid(mock_coordinator):
 5. Coordinator initialized with empty storage
 
 **Usage**:
+
 ```python
 async def test_entity_platforms_loaded(hass, init_integration):
     """Test that all entity platforms are available."""
     # integration is fully loaded, but data is empty
     assert hass.states.async_entity_ids("button") == []
     assert hass.states.async_entity_ids("sensor") == []
-    
+
     # Coordinator is accessible via hass.data
     from custom_components.kidschores.const import DATA_COORDINATOR
     coordinator = hass.data[DOMAIN][init_integration.entry_id][DATA_COORDINATOR]
@@ -285,6 +313,7 @@ async def test_entity_platforms_loaded(hass, init_integration):
 ```
 
 **When to Use**:
+
 - ✅ Config flow tests
 - ✅ Options flow tests
 - ✅ Testing integration initialization
@@ -292,6 +321,7 @@ async def test_entity_platforms_loaded(hass, init_integration):
 - ❌ Tests needing populated data (add scenario fixture)
 
 **Notes**:
+
 - Integration fully loaded but coordinator has NO data
 - Entity platforms registered but no entities created (empty data)
 - Use with `apply_scenario_direct()` or scenario fixtures to add data
@@ -299,33 +329,37 @@ async def test_entity_platforms_loaded(hass, init_integration):
 ---
 
 ### `init_integration_with_data`
-**Scope**: Function (async)  
-**Dependencies**: `hass`, `init_integration`  
-**Returns**: `tuple[MockConfigEntry, dict[str, str]]` - (config_entry, name_to_id_map)  
+
+**Scope**: Function (async)
+**Dependencies**: `hass`, `init_integration`
+**Returns**: `tuple[MockConfigEntry, dict[str, str]]` - (config_entry, name_to_id_map)
 
 **Purpose**: Sets up integration with 1 kid, 2 chores, 1 reward for simple tests
 
 **Data Created**:
+
 - 1 kid: "Test Kid" (age 8, 50 initial points)
 - 2 chores: "Test Chore 1" (10pts), "Test Chore 2" (15pts)
 - 1 reward: "Test Reward" (30pt cost)
 
 **Usage**:
+
 ```python
 async def test_claim_chore_workflow(hass, init_integration_with_data):
     """Test basic claim/approve workflow."""
     entry, name_map = init_integration_with_data
-    
+
     # Entities exist with test data
     kid_id = name_map["Test Kid"]
     chore_id = name_map["Test Chore 1"]
-    
+
     # Test claiming
     claim_button = f"button.kc_test_kid_claim_chore_test_chore_1"
     await hass.services.async_call("button", "press", {"entity_id": claim_button})
 ```
 
 **When to Use**:
+
 - ✅ Simple workflow tests (claim, approve, earn)
 - ✅ Tests needing minimal realistic data
 - ✅ Quick smoke tests
@@ -333,6 +367,7 @@ async def test_claim_chore_workflow(hass, init_integration_with_data):
 - ❌ Tests needing badges/achievements (use scenario fixtures)
 
 **Notes**:
+
 - Reloads entity platforms to create button/sensor entities
 - Returns name_to_id_map for easy lookups
 - Good balance: more data than init_integration, simpler than scenarios
@@ -342,13 +377,15 @@ async def test_claim_chore_workflow(hass, init_integration_with_data):
 ## Data Creation Helpers
 
 ### `create_mock_kid_data()`
-**Type**: Function (not fixture)  
-**Dependencies**: None  
-**Returns**: `dict[str, Any]` - Kid data structure  
+
+**Type**: Function (not fixture)
+**Dependencies**: None
+**Returns**: `dict[str, Any]` - Kid data structure
 
 **Purpose**: Creates a single kid's data dictionary for testing
 
 **Signature**:
+
 ```python
 def create_mock_kid_data(
     kid_id: str,
@@ -360,6 +397,7 @@ def create_mock_kid_data(
 ```
 
 **Usage**:
+
 ```python
 def test_kid_data_structure(mock_coordinator):
     """Test coordinator handles kid data correctly."""
@@ -370,20 +408,22 @@ def test_kid_data_structure(mock_coordinator):
         points=100,
         lifetime_points=500
     )
-    
+
     mock_coordinator.kids_data["kid123"] = kid_data
-    
+
     assert mock_coordinator.kids_data["kid123"]["name"] == "Alex"
     assert mock_coordinator.kids_data["kid123"]["points"] == 100
 ```
 
 **When to Use**:
+
 - ✅ Unit tests needing custom kid data
 - ✅ Testing coordinator methods with specific values
 - ✅ Building custom test scenarios
 - ❌ Integration tests (use scenarios)
 
 **Structure Created**:
+
 ```python
 {
     "internal_id": kid_id,
@@ -402,11 +442,13 @@ def test_kid_data_structure(mock_coordinator):
 ---
 
 ### `create_mock_chore_data()`
-**Type**: Function (not fixture)  
-**Dependencies**: None  
-**Returns**: `dict[str, Any]` - Chore data structure  
+
+**Type**: Function (not fixture)
+**Dependencies**: None
+**Returns**: `dict[str, Any]` - Chore data structure
 
 **Signature**:
+
 ```python
 def create_mock_chore_data(
     chore_id: str,
@@ -418,12 +460,13 @@ def create_mock_chore_data(
 ```
 
 **Usage**:
+
 ```python
 def test_chore_assignment(mock_coordinator):
     """Test chore assignment to multiple kids."""
     kid1_id = "kid1"
     kid2_id = "kid2"
-    
+
     chore_data = create_mock_chore_data(
         chore_id="chore123",
         name="Shared Cleanup",
@@ -431,20 +474,22 @@ def test_chore_assignment(mock_coordinator):
         points=20,
         chore_type="daily"
     )
-    
+
     mock_coordinator.chores_data["chore123"] = chore_data
-    
+
     assert len(chore_data["assigned_to"]) == 2
     assert chore_type == "daily"
 ```
 
 **When to Use**:
+
 - ✅ Testing chore logic with specific types
 - ✅ Shared chore tests
 - ✅ Custom claim/approve scenarios
 - ❌ Realistic workflow tests (use scenarios)
 
 **Structure Created**:
+
 ```python
 {
     "internal_id": chore_id,
@@ -462,11 +507,13 @@ def test_chore_assignment(mock_coordinator):
 ---
 
 ### `create_mock_reward_data()`
-**Type**: Function (not fixture)  
-**Dependencies**: None  
-**Returns**: `dict[str, Any]` - Reward data structure  
+
+**Type**: Function (not fixture)
+**Dependencies**: None
+**Returns**: `dict[str, Any]` - Reward data structure
 
 **Signature**:
+
 ```python
 def create_mock_reward_data(
     reward_id: str,
@@ -476,6 +523,7 @@ def create_mock_reward_data(
 ```
 
 **Usage**:
+
 ```python
 def test_reward_claiming(mock_coordinator):
     """Test reward claim validation."""
@@ -484,21 +532,23 @@ def test_reward_claiming(mock_coordinator):
         name="Movie Night",
         cost=100
     )
-    
+
     mock_coordinator.rewards_data["reward123"] = reward_data
-    
+
     # Test insufficient points
     kid_data = create_mock_kid_data("kid1", "Alex", points=50)
     assert kid_data["points"] < reward_data["cost"]
 ```
 
 **When to Use**:
+
 - ✅ Testing reward purchase logic
 - ✅ Points validation tests
 - ✅ Custom reward scenarios
 - ❌ Multi-reward tests (use scenarios)
 
 **Structure Created**:
+
 ```python
 {
     "internal_id": reward_id,
@@ -517,13 +567,15 @@ def test_reward_claiming(mock_coordinator):
 **See [TESTDATA_CATALOG.md](./TESTDATA_CATALOG.md) for complete entity listings**
 
 ### `scenario_minimal`
-**Scope**: Function (async)  
-**Dependencies**: `hass`, `init_integration`, `mock_hass_users`  
-**Returns**: `tuple[MockConfigEntry, dict[str, str]]`  
+
+**Scope**: Function (async)
+**Dependencies**: `hass`, `init_integration`, `mock_hass_users`
+**Returns**: `tuple[MockConfigEntry, dict[str, str]]`
 
 **Purpose**: Simplest realistic scenario - 1 kid, 2 chores, basic features
 
 **Scenario Contents**:
+
 - 1 parent: Môm Astrid (linked to parent1 mock user)
 - 1 kid: Zoë (10 points, 10 lifetime)
 - 2 chores: "Feed the cåts", "Wåter the plänts"
@@ -533,25 +585,27 @@ def test_reward_claiming(mock_coordinator):
 - 1 reward: "Ice Créam!"
 
 **Usage**:
+
 ```python
 async def test_basic_claim_approve(hass, scenario_minimal):
     """Test claim and approve workflow with realistic data."""
     entry, name_map = scenario_minimal
-    
+
     # Get kid and chore IDs from scenario
     zoe_id = name_map["Zoë"]
     feed_cats_id = name_map["Feed the cåts"]
-    
+
     # Claim chore
     claim_button = f"button.kc_zoe_claim_chore_feed_the_cats"
     await hass.services.async_call("button", "press", {"entity_id": claim_button})
-    
+
     # Verify claim registered
     coordinator = get_coordinator(hass, entry)
     assert feed_cats_id in coordinator.chores_data[feed_cats_id]["claims"]
 ```
 
 **When to Use**:
+
 - ✅ Basic workflow tests (claim, approve, complete)
 - ✅ Single-kid dashboard tests
 - ✅ Simple point tracking
@@ -564,13 +618,15 @@ async def test_basic_claim_approve(hass, scenario_minimal):
 ---
 
 ### `scenario_medium`
-**Scope**: Function (async)  
-**Dependencies**: `hass`, `init_integration`  
-**Returns**: `tuple[MockConfigEntry, dict[str, str]]`  
+
+**Scope**: Function (async)
+**Dependencies**: `hass`, `init_integration`
+**Returns**: `tuple[MockConfigEntry, dict[str, str]]`
 
 **Purpose**: Multi-kid scenario with shared chores and badge progression
 
 **Scenario Contents**:
+
 - 2 parents: Môm Astrid, Dad Leo
 - 2 kids: Zoë (35 points, 350 lifetime), Max! (15 points, 180 lifetime)
 - 4 chores: Including shared "Stär sweep"
@@ -578,28 +634,29 @@ async def test_basic_claim_approve(hass, scenario_minimal):
 - 2 bonuses, 2 penalties, 2 rewards
 
 **Usage**:
+
 ```python
 async def test_shared_chore_multi_claim(hass, scenario_medium):
     """Test that shared chores allow multiple claims."""
     entry, name_map = scenario_medium
-    
+
     # Both kids can claim "Stär sweep"
     zoe_id = name_map["Zoë"]
     max_id = name_map["Max!"]
     sweep_id = name_map["Stär sweep"]
-    
+
     # Zoë claims
     await hass.services.async_call(
         "button", "press",
         {"entity_id": "button.kc_zoe_claim_chore_star_sweep"}
     )
-    
+
     # Max claims (should succeed - shared chore)
     await hass.services.async_call(
         "button", "press",
         {"entity_id": "button.kc_max_claim_chore_star_sweep"}
     )
-    
+
     # Verify both claims exist
     coordinator = get_coordinator(hass, entry)
     claims = coordinator.chores_data[sweep_id]["claims"]
@@ -608,6 +665,7 @@ async def test_shared_chore_multi_claim(hass, scenario_medium):
 ```
 
 **When to Use**:
+
 - ✅ Multi-kid coordination tests
 - ✅ Shared chore workflows
 - ✅ Badge assignment and maintenance
@@ -620,13 +678,15 @@ async def test_shared_chore_multi_claim(hass, scenario_medium):
 ---
 
 ### `scenario_full`
-**Scope**: Function (async)  
-**Dependencies**: `hass`, `init_integration`  
-**Returns**: `tuple[MockConfigEntry, dict[str, str]]`  
+
+**Scope**: Function (async)
+**Dependencies**: `hass`, `init_integration`
+**Returns**: `tuple[MockConfigEntry, dict[str, str]]`
 
 **Purpose**: Complete feature coverage - 3 kids, all entity types, badge maintenance
 
 **Scenario Contents**:
+
 - 2 parents: Môm Astrid, Dad Leo
 - 3 kids: Zoë (520 lifetime), Max! (280 lifetime), Lila (310 lifetime)
 - 7 chores: Mix of daily, weekly, periodic, shared
@@ -634,24 +694,26 @@ async def test_shared_chore_multi_claim(hass, scenario_medium):
 - 2 bonuses, 3 penalties, 5 rewards (40-300pt range)
 
 **Usage**:
+
 ```python
 async def test_badge_maintenance_tracking(hass, scenario_full):
     """Test badge maintenance period tracking."""
     entry, name_map = scenario_full
-    
+
     # Zoë has earned Bronze Står - check maintenance
     zoe_id = name_map["Zoë"]
     bronze_badge_id = name_map["Brønze Står"]
-    
+
     coordinator = get_coordinator(hass, entry)
     badges_earned = coordinator.kids_data[zoe_id]["badges_earned"]
-    
+
     assert bronze_badge_id in badges_earned
     assert "last_awarded_date" in badges_earned[bronze_badge_id]
     assert "periods" in badges_earned[bronze_badge_id]
 ```
 
 **When to Use**:
+
 - ✅ Badge maintenance testing
 - ✅ Complex workflow tests
 - ✅ Performance testing (3 kids is moderate load)
@@ -660,6 +722,7 @@ async def test_badge_maintenance_tracking(hass, scenario_full):
 - ❌ Extreme stress testing (use storyline_max)
 
 **Notes**:
+
 - Identical to `storyline` scenario (canonical baseline)
 - Use `scenario_full` when semantic name is clearer
 - Use `storyline` when referencing "The Stârblüm Family" theme
@@ -668,21 +731,24 @@ async def test_badge_maintenance_tracking(hass, scenario_full):
 
 ## Testing Helpers (Phase 1)
 
-**Added**: 2025-01-20 (Testing Standards Maturity Initiative)  
+**Added**: 2025-01-20 (Testing Standards Maturity Initiative)
 **Purpose**: Reduce boilerplate, eliminate hardcoded values, standardize patterns
 
 ### `construct_entity_id()`
-**Type**: Function  
-**Returns**: `str` - Formatted entity ID  
+
+**Type**: Function
+**Returns**: `str` - Formatted entity ID
 
 **Purpose**: Construct entity IDs matching integration's slugification logic
 
 **Signature**:
+
 ```python
 def construct_entity_id(domain: str, kid_name: str, entity_type: str) -> str
 ```
 
 **Usage**:
+
 ```python
 # BEFORE (hardcoded, error-prone)
 points_sensor = "sensor.kc_zoe_points"  # Wrong if Zoë's name changes!
@@ -697,6 +763,7 @@ entity_id = construct_entity_id("sensor", "Sarah Jane", "lifetime_points")
 ```
 
 **When to Use**:
+
 - ✅ All entity ID construction in tests
 - ✅ Button entity lookups
 - ✅ Sensor entity lookups
@@ -705,12 +772,14 @@ entity_id = construct_entity_id("sensor", "Sarah Jane", "lifetime_points")
 ---
 
 ### `assert_entity_state()`
-**Type**: Async function  
-**Returns**: Entity state object  
+
+**Type**: Async function
+**Returns**: Entity state object
 
 **Purpose**: One-line entity state and attribute verification
 
 **Signature**:
+
 ```python
 async def assert_entity_state(
     hass: HomeAssistant,
@@ -721,6 +790,7 @@ async def assert_entity_state(
 ```
 
 **Usage**:
+
 ```python
 # BEFORE (verbose, multi-line)
 state = hass.states.get(entity_id)
@@ -730,7 +800,7 @@ assert state.attributes.get("lifetime_points") == 100
 
 # AFTER (helper - concise, clear intent)
 await assert_entity_state(
-    hass, 
+    hass,
     "sensor.kc_zoe_points",
     expected_state="50",
     expected_attrs={"lifetime_points": 100}
@@ -738,6 +808,7 @@ await assert_entity_state(
 ```
 
 **When to Use**:
+
 - ✅ Verifying sensor states
 - ✅ Checking entity attributes
 - ✅ Post-action state validation
@@ -748,17 +819,20 @@ await assert_entity_state(
 ---
 
 ### `get_kid_by_name()`
-**Type**: Function  
-**Returns**: `dict[str, Any]` - Kid data dictionary  
+
+**Type**: Function
+**Returns**: `dict[str, Any]` - Kid data dictionary
 
 **Purpose**: Name-based kid lookup from coordinator data
 
 **Signature**:
+
 ```python
 def get_kid_by_name(data: dict[str, Any], name: str) -> dict[str, Any]
 ```
 
 **Usage**:
+
 ```python
 # BEFORE (manual search, name_to_id_map dependency)
 kid_id = name_to_id_map["Zoë"]
@@ -771,6 +845,7 @@ assert kid_data["name"] == "Zoë"
 ```
 
 **When to Use**:
+
 - ✅ Looking up kids by display name
 - ✅ Tests using scenario data
 - ✅ When name_to_id_map isn't available
@@ -781,12 +856,14 @@ assert kid_data["name"] == "Zoë"
 ---
 
 ### `get_chore_by_name()`
-**Type**: Function  
-**Returns**: `dict[str, Any]` - Chore data dictionary  
+
+**Type**: Function
+**Returns**: `dict[str, Any]` - Chore data dictionary
 
 **Purpose**: Name-based chore lookup, optionally scoped to specific kid
 
 **Signature**:
+
 ```python
 def get_chore_by_name(
     data: dict[str, Any],
@@ -796,6 +873,7 @@ def get_chore_by_name(
 ```
 
 **Usage**:
+
 ```python
 # Find any chore by name
 chore_data = get_chore_by_name(coordinator.chores_data, "Feed the cåts")
@@ -811,6 +889,7 @@ chore_id = chore_data["internal_id"]
 ```
 
 **When to Use**:
+
 - ✅ Looking up chores by display name
 - ✅ Verifying chore assignment
 - ✅ Tests with multiple similar chore names
@@ -821,12 +900,14 @@ chore_id = chore_data["internal_id"]
 ---
 
 ### `get_reward_by_name()`
-**Type**: Function  
-**Returns**: `dict[str, Any]` - Reward data dictionary  
+
+**Type**: Function
+**Returns**: `dict[str, Any]` - Reward data dictionary
 
 **Purpose**: Name-based reward lookup
 
 **Signature**:
+
 ```python
 def get_reward_by_name(
     data: dict[str, Any],
@@ -836,6 +917,7 @@ def get_reward_by_name(
 ```
 
 **Usage**:
+
 ```python
 # Find reward by name
 reward_data = get_reward_by_name(coordinator.rewards_data, "Ice Créam!")
@@ -846,6 +928,7 @@ assert cost == 60
 ```
 
 **When to Use**:
+
 - ✅ Looking up rewards by display name
 - ✅ Verifying reward costs
 - ✅ Testing claim validation
@@ -856,17 +939,20 @@ assert cost == 60
 ---
 
 ### `create_test_datetime()`
-**Type**: Function  
-**Returns**: `str` - UTC ISO datetime string  
+
+**Type**: Function
+**Returns**: `str` - UTC ISO datetime string
 
 **Purpose**: Clean datetime creation with offset support
 
 **Signature**:
+
 ```python
 def create_test_datetime(days_offset: int = 0, hours_offset: int = 0) -> str
 ```
 
 **Usage**:
+
 ```python
 # BEFORE (verbose datetime manipulation)
 from datetime import datetime, timedelta, timezone
@@ -884,6 +970,7 @@ next_week = create_test_datetime(days_offset=7)
 ```
 
 **When to Use**:
+
 - ✅ Creating test timestamps
 - ✅ Future/past date calculations
 - ✅ Chore due date testing
@@ -894,17 +981,20 @@ next_week = create_test_datetime(days_offset=7)
 ---
 
 ### `make_overdue()`
-**Type**: Function  
-**Returns**: `str` - UTC ISO datetime string in the past  
+
+**Type**: Function
+**Returns**: `str` - UTC ISO datetime string in the past
 
 **Purpose**: Calculate overdue dates for testing
 
 **Signature**:
+
 ```python
 def make_overdue(base_date: str | None = None, days: int = 7) -> str
 ```
 
 **Usage**:
+
 ```python
 # Make chore overdue by 7 days (default)
 overdue_date = make_overdue()
@@ -921,6 +1011,7 @@ chore_data["due_date"] = make_overdue(days=2)  # 2 days overdue
 ```
 
 **When to Use**:
+
 - ✅ Testing overdue chore logic
 - ✅ Calendar event testing
 - ✅ Notification testing
@@ -987,12 +1078,12 @@ async def test_config_flow_init(hass, mock_config_entry):
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": "user"}
     )
-    
+
     assert result["type"] == "form"
     assert result["step_id"] == "user"
 ```
 
-**Uses**: `mock_config_entry`  
+**Uses**: `mock_config_entry`
 **Why**: Config flow needs entry before setup, no data needed
 
 ---
@@ -1003,21 +1094,21 @@ async def test_config_flow_init(hass, mock_config_entry):
 async def test_claim_approve_workflow(hass, init_integration_with_data):
     """Test basic claim and approve flow."""
     entry, name_map = init_integration_with_data
-    
+
     kid_id = name_map["Test Kid"]
     chore_id = name_map["Test Chore 1"]
-    
+
     # Claim chore
     claim_button = construct_entity_id("button", "Test Kid", "claim_chore_test_chore_1")
     await hass.services.async_call("button", "press", {"entity_id": claim_button})
-    
+
     # Verify claim
     coordinator = get_coordinator(hass, entry)
     chore_data = coordinator.chores_data[chore_id]
     assert kid_id in chore_data["claims"]
 ```
 
-**Uses**: `init_integration_with_data`, `construct_entity_id()`  
+**Uses**: `init_integration_with_data`, `construct_entity_id()`
 **Why**: Need working entities but simple data sufficient
 
 ---
@@ -1028,21 +1119,21 @@ async def test_claim_approve_workflow(hass, init_integration_with_data):
 async def test_shared_chore_coordination(hass, scenario_medium):
     """Test shared chores with multiple kids."""
     entry, name_map = scenario_medium
-    
+
     # Use helper to get kid data by name
     coordinator = get_coordinator(hass, entry)
     zoe_data = get_kid_by_name(coordinator.kids_data, "Zoë")
     max_data = get_kid_by_name(coordinator.kids_data, "Max!")
-    
+
     # Get shared chore
     sweep_data = get_chore_by_name(coordinator.chores_data, "Stär sweep")
-    
+
     # Both kids should be assigned
     assert zoe_data["internal_id"] in sweep_data["assigned_to"]
     assert max_data["internal_id"] in sweep_data["assigned_to"]
 ```
 
-**Uses**: `scenario_medium`, `get_kid_by_name()`, `get_chore_by_name()`  
+**Uses**: `scenario_medium`, `get_kid_by_name()`, `get_chore_by_name()`
 **Why**: Testing multi-kid coordination needs realistic scenario
 
 ---
@@ -1053,20 +1144,20 @@ async def test_shared_chore_coordination(hass, scenario_medium):
 async def test_badge_maintenance_tracking(hass, scenario_full):
     """Test badge maintenance period tracking."""
     entry, name_map = scenario_full
-    
+
     # Use helpers for lookups
     coordinator = get_coordinator(hass, entry)
     zoe_data = get_kid_by_name(coordinator.kids_data, "Zoë")
     badge_data = coordinator.badges_data[name_map["Brønze Står"]]
-    
+
     # Check maintenance rules
     assert badge_data.get("maintenance_daily") is not None
-    
+
     # Verify Zoë has earned it
     assert name_map["Brønze Står"] in zoe_data["badges_earned"]
 ```
 
-**Uses**: `scenario_full`, Phase 1 helpers  
+**Uses**: `scenario_full`, Phase 1 helpers
 **Why**: Badge maintenance needs complete feature coverage
 
 ---
@@ -1081,13 +1172,13 @@ async def test_add_kid_logic(mock_coordinator):
         age=10,
         interests=["reading"]
     )
-    
+
     assert kid_id in mock_coordinator.kids_data
     assert mock_coordinator.kids_data[kid_id]["name"] == "Test Kid"
     assert mock_coordinator.kids_data[kid_id]["points"] == 0
 ```
 
-**Uses**: `mock_coordinator`  
+**Uses**: `mock_coordinator`
 **Why**: Unit test doesn't need full integration, just coordinator logic
 
 ---
@@ -1103,16 +1194,16 @@ def test_chore_points_calculation(mock_coordinator):
         assigned_to=["kid1"],
         points=25
     )
-    
+
     mock_coordinator.kids_data["kid1"] = kid_data
     mock_coordinator.chores_data["chore1"] = chore_data
-    
+
     # Test points logic
     expected_new_points = kid_data["points"] + chore_data["points"]
     assert expected_new_points == 75
 ```
 
-**Uses**: `mock_coordinator`, `create_mock_kid_data()`, `create_mock_chore_data()`  
+**Uses**: `mock_coordinator`, `create_mock_kid_data()`, `create_mock_chore_data()`
 **Why**: Need specific data values not in scenarios
 
 ---
@@ -1122,6 +1213,7 @@ def test_chore_points_calculation(mock_coordinator):
 ### Issue: "Config entry not found"
 
 **Symptoms**:
+
 ```python
 KeyError: 'test_entry_id' in hass.data[DOMAIN]
 ```
@@ -1145,6 +1237,7 @@ async def test_something(hass, init_integration):
 ### Issue: "Entity not found"
 
 **Symptoms**:
+
 ```python
 assert hass.states.get("button.kc_zoe_claim_chore_feed_cats") is None
 ```
@@ -1170,6 +1263,7 @@ async def test_entities(hass, scenario_minimal):
 ### Issue: "Name not found in name_to_id_map"
 
 **Symptoms**:
+
 ```python
 KeyError: 'Zoë' in name_to_id_map
 ```
@@ -1195,6 +1289,7 @@ async def test_max(hass, scenario_medium):
 ### Issue: "Data structure is dict, not list"
 
 **Symptoms**:
+
 ```python
 TypeError: 'dict' object is not subscriptable
 ```
@@ -1221,6 +1316,7 @@ kid_data = get_kid_by_name(coordinator.kids_data, "Zoë")
 ### Issue: "Fixture not found"
 
 **Symptoms**:
+
 ```python
 fixture 'scenario_storyline' not found
 ```
@@ -1240,11 +1336,13 @@ async def test_something(hass, scenario_full):
 ```
 
 **Available Scenario Fixtures**:
+
 - `scenario_minimal` - 1 kid, 2 chores
 - `scenario_medium` - 2 kids, 4 chores, shared chores
 - `scenario_full` - 3 kids, 7 chores, all features
 
 **YAML Files** (use with `load_scenario_yaml()`, not as fixtures):
+
 - `testdata_scenario_minimal.yaml`
 - `testdata_scenario_medium.yaml`
 - `testdata_scenario_full.yaml`
@@ -1301,18 +1399,18 @@ zoe_id = name_map["Zoë"]  # Guaranteed correct
 
 ## Quick Reference: Fixture Selection Matrix
 
-| Test Type | Need Entities? | Data Complexity | Recommended Fixture |
-|-----------|---------------|-----------------|---------------------|
-| Config flow | No | None | `mock_config_entry` |
-| Options flow | No | None | `mock_config_entry` |
-| Unit test (coordinator logic) | No | Custom | `mock_coordinator` + data helpers |
-| Simple workflow | Yes | Minimal | `init_integration_with_data` |
-| Single-kid tests | Yes | Realistic | `scenario_minimal` |
-| Multi-kid coordination | Yes | Realistic | `scenario_medium` |
-| Badge maintenance | Yes | Complete | `scenario_full` |
-| Shared chores | Yes | Realistic | `scenario_medium` |
-| Performance testing | Yes | Realistic | `scenario_full` |
-| Stress testing | Yes | Extreme | Manual load `testdata_storyline_max.yaml` |
+| Test Type                     | Need Entities? | Data Complexity | Recommended Fixture                       |
+| ----------------------------- | -------------- | --------------- | ----------------------------------------- |
+| Config flow                   | No             | None            | `mock_config_entry`                       |
+| Options flow                  | No             | None            | `mock_config_entry`                       |
+| Unit test (coordinator logic) | No             | Custom          | `mock_coordinator` + data helpers         |
+| Simple workflow               | Yes            | Minimal         | `init_integration_with_data`              |
+| Single-kid tests              | Yes            | Realistic       | `scenario_minimal`                        |
+| Multi-kid coordination        | Yes            | Realistic       | `scenario_medium`                         |
+| Badge maintenance             | Yes            | Complete        | `scenario_full`                           |
+| Shared chores                 | Yes            | Realistic       | `scenario_medium`                         |
+| Performance testing           | Yes            | Realistic       | `scenario_full`                           |
+| Stress testing                | Yes            | Extreme         | Manual load `testdata_storyline_max.yaml` |
 
 ---
 
@@ -1325,6 +1423,6 @@ zoe_id = name_map["Zoë"]  # Guaranteed correct
 
 ---
 
-**Last Updated**: 2025-01-20  
-**Testing Standards Maturity Initiative**: Phase 2 Complete  
+**Last Updated**: 2025-01-20
+**Testing Standards Maturity Initiative**: Phase 2 Complete
 **Next Phase**: TEST_CREATION_TEMPLATE.md (step-by-step templates for all test types)
