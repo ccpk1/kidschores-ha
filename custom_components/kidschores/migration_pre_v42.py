@@ -33,6 +33,9 @@ class PreV42Migrator:
         coordinator: Reference to the KidsChoresDataCoordinator instance.
     """
 
+    # pylint: disable=protected-access
+    # This migration class intentionally accesses coordinator private methods and data
+
     def __init__(self, coordinator: "KidsChoresDataCoordinator") -> None:
         """Initialize the migrator with coordinator reference.
 
@@ -52,7 +55,7 @@ class PreV42Migrator:
             "Starting pre-v42 schema migrations for upgrade to modern format"
         )
 
-        # Migration order matters - datetime conversion must come first
+        # Phase 1: Schema migrations (data structure transformations)
         self._migrate_datetime_wrapper()
         self._migrate_stored_datetimes()
         self._migrate_chore_data()
@@ -62,6 +65,10 @@ class PreV42Migrator:
         self._migrate_kid_legacy_badges_to_cumulative_progress()
         self._migrate_kid_legacy_badges_to_badges_earned()
         self._migrate_legacy_point_stats()
+
+        # Phase 2: Config sync (KC 3.x entity data from config → storage)
+        const.LOGGER.info("Migrating KC 3.x config data to storage")
+        self._initialize_data_from_config()
 
         const.LOGGER.info("All pre-v42 migrations completed successfully")
 
@@ -95,7 +102,6 @@ class PreV42Migrator:
         """Wrapper to expose datetime migration as standalone step."""
         # This is a no-op in the context of run_all_migrations since datetime
         # conversion is called by _migrate_stored_datetimes
-        pass
 
     # pylint: disable=too-many-branches
     def _migrate_stored_datetimes(self) -> None:
@@ -115,19 +121,25 @@ class PreV42Migrator:
                     chore_info[const.DATA_CHORE_LAST_CLAIMED]
                 )
         # Also, migrate timestamps in pending approvals
-        for approval in self.coordinator._data.get(const.DATA_PENDING_CHORE_APPROVALS, []):
+        for approval in self.coordinator._data.get(
+            const.DATA_PENDING_CHORE_APPROVALS, []
+        ):
             if approval.get(const.DATA_CHORE_TIMESTAMP):
                 approval[const.DATA_CHORE_TIMESTAMP] = self._migrate_datetime(
                     approval[const.DATA_CHORE_TIMESTAMP]
                 )
-        for approval in self.coordinator._data.get(const.DATA_PENDING_REWARD_APPROVALS, []):
+        for approval in self.coordinator._data.get(
+            const.DATA_PENDING_REWARD_APPROVALS, []
+        ):
             if approval.get(const.DATA_CHORE_TIMESTAMP):
                 approval[const.DATA_CHORE_TIMESTAMP] = self._migrate_datetime(
                     approval[const.DATA_CHORE_TIMESTAMP]
                 )
 
         # Migrate datetime on Challenges
-        for challenge_info in self.coordinator._data.get(const.DATA_CHALLENGES, {}).values():
+        for challenge_info in self.coordinator._data.get(
+            const.DATA_CHALLENGES, {}
+        ).values():
             start_date = challenge_info.get(const.DATA_CHALLENGE_START_DATE)
             if not isinstance(start_date, str) or not start_date.strip():
                 challenge_info[const.DATA_CHALLENGE_START_DATE] = None
@@ -756,10 +768,15 @@ class PreV42Migrator:
             year_local_iso = now_local.strftime("%Y")
 
             # Helper to migrate if legacy > 0 and period is missing or zero
-            def migrate_period(period_key: str, period_id: str, legacy_value: float) -> None:
+            def migrate_period(
+                periods_dict: dict,
+                period_key: str,
+                period_id: str,
+                legacy_value: float,
+            ) -> None:
                 """Migrate a single period if legacy value exists and period is empty."""
                 if legacy_value > 0:
-                    bucket = periods.setdefault(period_key, {})
+                    bucket = periods_dict.setdefault(period_key, {})
                     entry = bucket.setdefault(
                         period_id,
                         {
@@ -777,13 +794,22 @@ class PreV42Migrator:
                         ] = legacy_value
 
             migrate_period(
-                const.DATA_KID_POINT_DATA_PERIODS_DAILY, today_local_iso, legacy_today
+                periods,
+                const.DATA_KID_POINT_DATA_PERIODS_DAILY,
+                today_local_iso,
+                legacy_today,
             )
             migrate_period(
-                const.DATA_KID_POINT_DATA_PERIODS_WEEKLY, week_local_iso, legacy_week
+                periods,
+                const.DATA_KID_POINT_DATA_PERIODS_WEEKLY,
+                week_local_iso,
+                legacy_week,
             )
             migrate_period(
-                const.DATA_KID_POINT_DATA_PERIODS_MONTHLY, month_local_iso, legacy_month
+                periods,
+                const.DATA_KID_POINT_DATA_PERIODS_MONTHLY,
+                month_local_iso,
+                legacy_month,
             )
 
             # Set yearly period points to legacy_max if > 0
@@ -821,3 +847,233 @@ class PreV42Migrator:
                 }
 
         const.LOGGER.info("Legacy point stats migration complete.")
+
+    # -------------------------------------------------------------------------------------
+    # KC 3.x Config Sync to Storage (v41→v42 Migration Compatibility)
+    # -------------------------------------------------------------------------------------
+    # These methods handle one-time migration of entity data from config_entry.options
+    # to .storage/kidschores_data when upgrading from KC 3.x (schema <42) to KC 4.x (schema 42+).
+    # NOTE: CRUD methods (_create_kid, _update_chore, etc.) remain in coordinator as they
+    # are actively used by options_flow.py for v4.2+ entity management.
+
+    def _initialize_data_from_config(self) -> None:
+        """Migrate entity data from config_entry.options to storage (KC 3.x→4.x compatibility).
+
+        This method is ONLY called once when storage_schema_version < 42.
+        For v4.2+ users, entity data is already in storage and config contains only system settings.
+        """
+        options = self.coordinator.config_entry.options
+
+        # Skip if no KC 3.x config data present (pure storage migration, no config sync needed)
+        if not options or not options.get(const.CONF_KIDS):
+            const.LOGGER.info(
+                "No KC 3.x config data - skipping config sync (already using storage-only mode)"
+            )
+            return
+
+        # Retrieve configuration dictionaries from config entry options (KC 3.x architecture)
+        config_sections = {
+            const.DATA_KIDS: options.get(const.CONF_KIDS, {}),
+            const.DATA_PARENTS: options.get(const.CONF_PARENTS, {}),
+            const.DATA_CHORES: options.get(const.CONF_CHORES, {}),
+            const.DATA_BADGES: options.get(const.CONF_BADGES, {}),
+            const.DATA_REWARDS: options.get(const.CONF_REWARDS, {}),
+            const.DATA_PENALTIES: options.get(const.CONF_PENALTIES, {}),
+            const.DATA_BONUSES: options.get(const.CONF_BONUSES, {}),
+            const.DATA_ACHIEVEMENTS: options.get(const.CONF_ACHIEVEMENTS, {}),
+            const.DATA_CHALLENGES: options.get(const.CONF_CHALLENGES, {}),
+        }
+
+        # Ensure minimal structure
+        self._ensure_minimal_structure()
+
+        # Initialize each section using private helper
+        for section_key, data_dict in config_sections.items():
+            init_func = getattr(self, f"_initialize_{section_key}", None)
+            if init_func:  # pylint: disable=using-constant-test
+                init_func(data_dict)
+            else:
+                self.coordinator._data.setdefault(section_key, data_dict)
+                const.LOGGER.warning(
+                    "WARNING: No initializer found for section '%s'", section_key
+                )
+
+        # Recalculate Badges on reload
+        self.coordinator._recalculate_all_badges()
+
+    def _ensure_minimal_structure(self) -> None:
+        """Ensure that all necessary data sections are present in storage."""
+        for key in [
+            const.DATA_KIDS,
+            const.DATA_PARENTS,
+            const.DATA_CHORES,
+            const.DATA_BADGES,
+            const.DATA_REWARDS,
+            const.DATA_PENALTIES,
+            const.DATA_BONUSES,
+            const.DATA_ACHIEVEMENTS,
+            const.DATA_CHALLENGES,
+        ]:
+            self.coordinator._data.setdefault(key, {})
+
+        for key in [
+            const.DATA_PENDING_CHORE_APPROVALS,
+            const.DATA_PENDING_REWARD_APPROVALS,
+        ]:
+            if not isinstance(self.coordinator._data.get(key), list):
+                self.coordinator._data[key] = []
+
+    # -- Entity Type Wrappers (delegate to _sync_entities) --
+
+    def _initialize_kids(self, kids_dict: dict[str, Any]) -> None:
+        """Initialize kids from config data."""
+        self._sync_entities(
+            const.DATA_KIDS,
+            kids_dict,
+            self.coordinator._create_kid,
+            self.coordinator._update_kid,
+        )
+
+    def _initialize_parents(self, parents_dict: dict[str, Any]) -> None:
+        """Initialize parents from config data."""
+        self._sync_entities(
+            const.DATA_PARENTS,
+            parents_dict,
+            self.coordinator._create_parent,
+            self.coordinator._update_parent,
+        )
+
+    def _initialize_chores(self, chores_dict: dict[str, Any]) -> None:
+        """Initialize chores from config data."""
+        self._sync_entities(
+            const.DATA_CHORES,
+            chores_dict,
+            self.coordinator._create_chore,
+            self.coordinator._update_chore,
+        )
+
+    def _initialize_badges(self, badges_dict: dict[str, Any]) -> None:
+        """Initialize badges from config data."""
+        self._sync_entities(
+            const.DATA_BADGES,
+            badges_dict,
+            self.coordinator._create_badge,
+            self.coordinator._update_badge,
+        )
+
+    def _initialize_rewards(self, rewards_dict: dict[str, Any]) -> None:
+        """Initialize rewards from config data."""
+        self._sync_entities(
+            const.DATA_REWARDS,
+            rewards_dict,
+            self.coordinator._create_reward,
+            self.coordinator._update_reward,
+        )
+
+    def _initialize_penalties(self, penalties_dict: dict[str, Any]) -> None:
+        """Initialize penalties from config data."""
+        self._sync_entities(
+            const.DATA_PENALTIES,
+            penalties_dict,
+            self.coordinator._create_penalty,
+            self.coordinator._update_penalty,
+        )
+
+    def _initialize_achievements(self, achievements_dict: dict[str, Any]) -> None:
+        """Initialize achievements from config data."""
+        self._sync_entities(
+            const.DATA_ACHIEVEMENTS,
+            achievements_dict,
+            self.coordinator._create_achievement,
+            self.coordinator._update_achievement,
+        )
+
+    def _initialize_challenges(self, challenges_dict: dict[str, Any]) -> None:
+        """Initialize challenges from config data."""
+        self._sync_entities(
+            const.DATA_CHALLENGES,
+            challenges_dict,
+            self.coordinator._create_challenge,
+            self.coordinator._update_challenge,
+        )
+
+    def _initialize_bonuses(self, bonuses_dict: dict[str, Any]) -> None:
+        """Initialize bonuses from config data."""
+        self._sync_entities(
+            const.DATA_BONUSES,
+            bonuses_dict,
+            self.coordinator._create_bonus,
+            self.coordinator._update_bonus,
+        )
+
+    def _sync_entities(
+        self,
+        section: str,
+        config_data: dict[str, Any],
+        create_method,
+        update_method,
+    ) -> None:
+        """Synchronize entities in a given data section based on config_data.
+
+        Compares config data against storage, calling create/update methods as needed.
+        This is the core sync engine for KC 3.x→4.x migration.
+        """
+        existing_ids = set(self.coordinator._data[section].keys())
+        config_ids = set(config_data.keys())
+
+        # Identify entities to remove
+        entities_to_remove = existing_ids - config_ids
+        for entity_id in entities_to_remove:
+            # Remove entity from data
+            del self.coordinator._data[section][entity_id]
+
+            # Remove entity from HA registry
+            self.coordinator._remove_entities_in_ha(entity_id)
+            if section == const.DATA_CHORES:
+                for kid_id in self.coordinator.kids_data.keys():
+                    self.coordinator._remove_kid_chore_entities(kid_id, entity_id)
+
+            # Remove deleted kids from parents list (cleanup)
+            self.coordinator._cleanup_parent_assignments()
+
+            # Remove chore approvals on chore delete
+            self.coordinator._cleanup_pending_chore_approvals()
+
+            # Remove reward approvals on reward delete
+            if section == const.DATA_REWARDS:
+                self.coordinator._cleanup_pending_reward_approvals()
+
+        # Add or update entities
+        for entity_id, entity_body in config_data.items():
+            if entity_id not in self.coordinator._data[section]:
+                create_method(entity_id, entity_body)
+            else:
+                update_method(entity_id, entity_body)
+
+        # Remove orphaned chore-related entities
+        if section == const.DATA_CHORES:
+            self.coordinator.hass.async_create_task(
+                self.coordinator._remove_orphaned_shared_chore_sensors()
+            )
+            self.coordinator.hass.async_create_task(
+                self.coordinator._remove_orphaned_kid_chore_entities()
+            )
+
+        # Remove orphaned achievement and challenges sensors
+        self.coordinator.hass.async_create_task(
+            self.coordinator._remove_orphaned_achievement_entities()
+        )
+        self.coordinator.hass.async_create_task(
+            self.coordinator._remove_orphaned_challenge_entities()
+        )
+
+        # Remove deprecated sensors
+        self.coordinator.hass.async_create_task(
+            self.coordinator.remove_deprecated_entities(
+                self.coordinator.hass, self.coordinator.config_entry
+            )
+        )
+
+        # Remove deprecated/orphaned dynamic entities
+        self.coordinator.remove_deprecated_button_entities()
+        self.coordinator.remove_deprecated_sensor_entities()
