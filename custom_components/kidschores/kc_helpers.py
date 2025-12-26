@@ -1,5 +1,41 @@
 # File: kc_helpers.py
-"""KidsChores helper functions and shared logic."""
+"""KidsChores helper functions and shared logic.
+
+## Organization Guide (Sections Below)
+
+This file is organized into logical sections for easy navigation:
+
+1. **Get Coordinator** (Line 26)
+   - Retrieves KidsChores coordinator from hass.data
+
+2. **Authorization for General Actions** (Line 47)
+   - Global authorization checks for coordinator-wide operations
+
+3. **Authorization for Kid-Specific Actions** (Line 85)
+   - Kid-level authorization checks (parent/kid role validation)
+
+4. **Parse Points Adjustment Values** (Line 140)
+   - Button entity configuration parsing for point adjustments
+
+5. **Helper Functions** (Line 160)
+   - Basic ID/name lookups without error raising (safe for optional checks)
+
+6. **Entity Lookup Helpers with Error Raising** (Line 311) 🔍
+   - ID/name lookups that raise HomeAssistantError (for services/actions)
+
+7. **KidsChores Progress & Completion Helpers** (Line 432) 🧮
+   - Badge progress, chore completion, streak calculations
+
+8. **Date & Time Helpers** (Line 602) 🕒
+   - DateTime parsing, UTC conversion, interval calculations, scheduling
+
+9. **Dashboard Translation Loaders** (Line 1417)
+   - Helper translations for dashboard UI rendering
+
+10. **Device Info Helpers** (Line 1542)
+    - Device registry and device info construction
+
+"""
 
 # pyright: reportArgumentType=false, reportAttributeAccessIssue=false, reportGeneralTypeIssues=false, reportCallIssue=false, reportReturnType=false, reportOperatorIssue=false
 
@@ -23,7 +59,7 @@ if TYPE_CHECKING:
     from .coordinator import KidsChoresDataCoordinator  # Used for type checking only
 
 
-# -------- Get Coordinator --------
+# 📍 -------- Get Coordinator --------
 def _get_kidschores_coordinator(
     hass: HomeAssistant,
 ) -> Optional[KidsChoresDataCoordinator]:
@@ -44,7 +80,7 @@ def _get_kidschores_coordinator(
     return data[const.COORDINATOR]
 
 
-# -------- Authorization for General Actions --------
+# 🔐 -------- Authorization for General Actions --------
 async def is_user_authorized_for_global_action(
     hass: HomeAssistant,
     user_id: str,
@@ -52,8 +88,9 @@ async def is_user_authorized_for_global_action(
 ) -> bool:
     """Check if the user is allowed to do a global action (penalty, reward, points adjust) that doesn't require a specific kid_id.
 
-    By default:
+    Authorization rules:
       - Admin users => authorized
+      - Registered KidsChores parents => authorized
       - Everyone else => not authorized
     """
     if not user_id:
@@ -82,7 +119,7 @@ async def is_user_authorized_for_global_action(
     return False
 
 
-# -------- Authorization for Kid-Specific Actions --------
+# 👶 -------- Authorization for Kid-Specific Actions --------
 async def is_user_authorized_for_kid(
     hass: HomeAssistant,
     user_id: str,
@@ -137,7 +174,7 @@ async def is_user_authorized_for_kid(
     return False
 
 
-# ----------- Parse Points Adjustment Values -----------
+# 📊 ----------- Parse Points Adjustment Values -----------
 def parse_points_adjust_values(points_str: str) -> list[float]:
     """Parse a multiline string into a list of float values."""
 
@@ -157,7 +194,7 @@ def parse_points_adjust_values(points_str: str) -> list[float]:
     return values
 
 
-# ------------------ Helper Functions ------------------
+# 🔍 -------- Basic Entity Lookup Helpers --------
 def get_first_kidschores_entry(hass: HomeAssistant) -> Optional[str]:
     """Retrieve the first KidsChores config entry ID."""
     domain_entries = hass.data.get(const.DOMAIN)
@@ -166,20 +203,97 @@ def get_first_kidschores_entry(hass: HomeAssistant) -> Optional[str]:
     return next(iter(domain_entries.keys()), None)
 
 
+# ────────────────────────────────────────────────────────────────
+# 🔍 Generic Entity Lookup Helper
+# Central implementation for looking up entity IDs by name across all
+# entity types. Eliminates ~80 lines of duplicate code by providing
+# a single parametrizable function for all entity lookups.
+# ────────────────────────────────────────────────────────────────
+
+
+def get_entity_id_by_name(
+    coordinator: KidsChoresDataCoordinator, entity_type: str, entity_name: str
+) -> Optional[str]:
+    """Generic entity ID lookup by name across all entity types.
+
+    Replaces duplicate get_*_id_by_name() functions with a single parametrizable
+    implementation that maps entity types to their data dictionaries and name keys.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        entity_type: The type of entity ("kid", "chore", "reward", "penalty",
+            "badge", "bonus", "parent", "achievement", "challenge").
+        entity_name: The name of the entity to look up.
+
+    Returns:
+        The internal ID (UUID) of the entity, or None if not found.
+
+    Raises:
+        ValueError: If entity_type is not recognized.
+    """
+    # Map entity type to (data dict, name key constant)
+    entity_map = {
+        const.ENTITY_TYPE_KID: (coordinator.kids_data, const.DATA_KID_NAME),
+        const.ENTITY_TYPE_CHORE: (coordinator.chores_data, const.DATA_CHORE_NAME),
+        const.ENTITY_TYPE_REWARD: (coordinator.rewards_data, const.DATA_REWARD_NAME),
+        const.ENTITY_TYPE_PENALTY: (
+            coordinator.penalties_data,
+            const.DATA_PENALTY_NAME,
+        ),
+        const.ENTITY_TYPE_BADGE: (coordinator.badges_data, const.DATA_BADGE_NAME),
+        const.ENTITY_TYPE_BONUS: (coordinator.bonuses_data, const.DATA_BONUS_NAME),
+        const.ENTITY_TYPE_PARENT: (coordinator.parents_data, const.DATA_PARENT_NAME),
+        const.ENTITY_TYPE_ACHIEVEMENT: (
+            coordinator.achievements_data,
+            const.DATA_ACHIEVEMENT_NAME,
+        ),
+        const.ENTITY_TYPE_CHALLENGE: (
+            coordinator.challenges_data,
+            const.DATA_CHALLENGE_NAME,
+        ),
+    }
+
+    if entity_type not in entity_map:
+        raise ValueError(
+            f"Unknown entity_type: {entity_type}. "
+            f"Valid options: {', '.join(entity_map.keys())}"
+        )
+
+    data_dict, name_key = entity_map[entity_type]
+    for entity_id, entity_info in data_dict.items():
+        if entity_info.get(name_key) == entity_name:
+            return entity_id
+    return None
+
+
+# Thin wrapper functions for backward compatibility and convenience
 def get_kid_id_by_name(
     coordinator: KidsChoresDataCoordinator, kid_name: str
 ) -> Optional[str]:
-    """Retrieve the kid_id for a given kid_name."""
-    for kid_id, kid_info in coordinator.kids_data.items():
-        if kid_info.get(const.DATA_KID_NAME) == kid_name:
-            return kid_id
-    return None
+    """Retrieve the kid_id for a given kid_name.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        kid_name: The name of the kid to look up.
+
+    Returns:
+        The internal ID (UUID) of the kid, or None if not found.
+    """
+    return get_entity_id_by_name(coordinator, const.ENTITY_TYPE_KID, kid_name)
 
 
 def get_kid_name_by_id(
     coordinator: KidsChoresDataCoordinator, kid_id: str
 ) -> Optional[str]:
-    """Retrieve the kid_name for a given kid_id."""
+    """Retrieve the kid_name for a given kid_id.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        kid_id: The internal ID (UUID) of the kid to look up.
+
+    Returns:
+        The name of the kid, or None if not found.
+    """
     kid_info = coordinator.kids_data.get(kid_id)
     if kid_info:
         return kid_info.get(const.DATA_KID_NAME)
@@ -189,128 +303,363 @@ def get_kid_name_by_id(
 def get_chore_id_by_name(
     coordinator: KidsChoresDataCoordinator, chore_name: str
 ) -> Optional[str]:
-    """Retrieve the chore_id for a given chore_name."""
-    for chore_id, chore_info in coordinator.chores_data.items():
-        if chore_info.get(const.DATA_CHORE_NAME) == chore_name:
-            return chore_id
-    return None
+    """Retrieve the chore_id for a given chore_name.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        chore_name: The name of the chore to look up.
+
+    Returns:
+        The internal ID (UUID) of the chore, or None if not found.
+    """
+    return get_entity_id_by_name(coordinator, const.ENTITY_TYPE_CHORE, chore_name)
 
 
 def get_reward_id_by_name(
     coordinator: KidsChoresDataCoordinator, reward_name: str
 ) -> Optional[str]:
-    """Retrieve the reward_id for a given reward_name."""
-    for reward_id, reward_info in coordinator.rewards_data.items():
-        if reward_info.get(const.DATA_REWARD_NAME) == reward_name:
-            return reward_id
-    return None
+    """Retrieve the reward_id for a given reward_name.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        reward_name: The name of the reward to look up.
+
+    Returns:
+        The internal ID (UUID) of the reward, or None if not found.
+    """
+    return get_entity_id_by_name(coordinator, const.ENTITY_TYPE_REWARD, reward_name)
 
 
 def get_penalty_id_by_name(
     coordinator: KidsChoresDataCoordinator, penalty_name: str
 ) -> Optional[str]:
-    """Retrieve the penalty_id for a given penalty_name."""
-    for penalty_id, penalty_info in coordinator.penalties_data.items():
-        if penalty_info.get(const.DATA_PENALTY_NAME) == penalty_name:
-            return penalty_id
-    return None
+    """Retrieve the penalty_id for a given penalty_name.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        penalty_name: The name of the penalty to look up.
+
+    Returns:
+        The internal ID (UUID) of the penalty, or None if not found.
+    """
+    return get_entity_id_by_name(coordinator, const.ENTITY_TYPE_PENALTY, penalty_name)
 
 
 def get_badge_id_by_name(
     coordinator: KidsChoresDataCoordinator, badge_name: str
 ) -> Optional[str]:
-    """Retrieve the badge_id for a given badge_name."""
-    for badge_id, badges_info in coordinator.badges_data.items():
-        if badges_info.get(const.DATA_BADGE_NAME) == badge_name:
-            return badge_id
-    return None
+    """Retrieve the badge_id for a given badge_name.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        badge_name: The name of the badge to look up.
+
+    Returns:
+        The internal ID (UUID) of the badge, or None if not found.
+    """
+    return get_entity_id_by_name(coordinator, const.ENTITY_TYPE_BADGE, badge_name)
 
 
 def get_bonus_id_by_name(
     coordinator: KidsChoresDataCoordinator, bonus_name: str
 ) -> Optional[str]:
-    """Retrieve the bonus_id for a given bonus_name."""
-    for bonus_id, bonus_info in coordinator.bonuses_data.items():
-        if bonus_info.get(const.DATA_BONUS_NAME) == bonus_name:
-            return bonus_id
-    return None
+    """Retrieve the bonus_id for a given bonus_name.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        bonus_name: The name of the bonus to look up.
+
+    Returns:
+        The internal ID (UUID) of the bonus, or None if not found.
+    """
+    return get_entity_id_by_name(coordinator, const.ENTITY_TYPE_BONUS, bonus_name)
 
 
-def get_friendly_label(hass, label_name: str) -> str:
-    """Retrieve the friendly name for a given label_name."""
-    registry = async_get_label_registry(hass)
-    label_entry = registry.async_get_label(label_name)
-    return label_entry.name if label_entry else label_name
+def get_parent_id_by_name(
+    coordinator: KidsChoresDataCoordinator, parent_name: str
+) -> Optional[str]:
+    """Retrieve the parent_id for a given parent_name.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        parent_name: The name of the parent to look up.
+
+    Returns:
+        The internal ID (UUID) of the parent, or None if not found.
+    """
+    return get_entity_id_by_name(coordinator, const.ENTITY_TYPE_PARENT, parent_name)
+
+
+def get_achievement_id_by_name(
+    coordinator: KidsChoresDataCoordinator, achievement_name: str
+) -> Optional[str]:
+    """Retrieve the achievement_id for a given achievement_name.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        achievement_name: The name of the achievement to look up.
+
+    Returns:
+        The internal ID (UUID) of the achievement, or None if not found.
+    """
+    return get_entity_id_by_name(
+        coordinator, const.ENTITY_TYPE_ACHIEVEMENT, achievement_name
+    )
+
+
+def get_challenge_id_by_name(
+    coordinator: KidsChoresDataCoordinator, challenge_name: str
+) -> Optional[str]:
+    """Retrieve the challenge_id for a given challenge_name.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        challenge_name: The name of the challenge to look up.
+
+    Returns:
+        The internal ID (UUID) of the challenge, or None if not found.
+    """
+    return get_entity_id_by_name(
+        coordinator, const.ENTITY_TYPE_CHALLENGE, challenge_name
+    )
+
+
+def get_friendly_label(hass: HomeAssistant, label_name: str) -> str:
+    """Retrieve the friendly name for a given label_name (synchronous cached version).
+
+    Args:
+        hass: The Home Assistant instance.
+        label_name: The label name to look up.
+
+    Returns:
+        The friendly name from the label registry, or the original label_name if not found.
+
+    Note:
+        This is a synchronous wrapper. For fresh lookups, use async_get_friendly_label().
+    """
+    try:
+        registry = async_get_label_registry(hass)
+        label_entry = registry.async_get_label(label_name)
+        return label_entry.name if label_entry else label_name
+    except Exception:  # pylint: disable=broad-except
+        # Fallback if label registry unavailable
+        return label_name
+
+
+async def async_get_friendly_label(hass: HomeAssistant, label_name: str) -> str:
+    """Asynchronously retrieve the friendly name for a given label_name.
+
+    Args:
+        hass: The Home Assistant instance.
+        label_name: The label name to look up.
+
+    Returns:
+        The friendly name from the label registry, or the original label_name if not found.
+
+    Raises:
+        No exceptions raised - returns original label_name as fallback on any error.
+    """
+    try:
+        registry = async_get_label_registry(hass)
+        label_entry = registry.async_get_label(label_name)
+        return label_entry.name if label_entry else label_name
+    except Exception:  # pylint: disable=broad-except
+        # Fallback if label registry unavailable
+        return label_name
 
 
 # ────────────────────────────────────────────────────────────────
-# 🔍 Entity Lookup Helpers with Error Raising (for Services)
+# 🎯 -------- Entity Lookup Helpers with Error Raising (for Services) --------
 # These helpers wrap the lookup functions above and raise HomeAssistantError
 # when entities are not found. This centralizes the error handling pattern
 # used throughout services.py, eliminating 40+ duplicate lookup blocks.
 # ────────────────────────────────────────────────────────────────
 
 
+def get_entity_id_or_raise(
+    coordinator: KidsChoresDataCoordinator, entity_type: str, entity_name: str
+) -> str:
+    """Get entity ID by name or raise HomeAssistantError if not found.
+
+    Generic version of all *_or_raise() functions. Centralizes error
+    handling pattern for entity lookups across services.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        entity_type: The type of entity ("kid", "chore", "reward", "penalty",
+            "badge", "bonus", "parent", "achievement", "challenge").
+        entity_name: The name of the entity to look up.
+
+    Returns:
+        The internal ID (UUID) of the entity.
+
+    Raises:
+        HomeAssistantError: If the entity is not found.
+    """
+    entity_id = get_entity_id_by_name(coordinator, entity_type, entity_name)
+    if not entity_id:
+        raise HomeAssistantError(
+            f"{entity_type.capitalize()} '{entity_name}' not found"
+        )
+    return entity_id
+
+
+# Thin wrapper functions for backward compatibility
 def get_kid_id_or_raise(coordinator: KidsChoresDataCoordinator, kid_name: str) -> str:
     """Get kid ID by name or raise HomeAssistantError if not found."""
-    kid_id = get_kid_id_by_name(coordinator, kid_name)
-    if not kid_id:
-        raise HomeAssistantError(f"Kid '{kid_name}' not found")
-    return kid_id
+    return get_entity_id_or_raise(coordinator, const.ENTITY_TYPE_KID, kid_name)
 
 
 def get_chore_id_or_raise(
     coordinator: KidsChoresDataCoordinator, chore_name: str
 ) -> str:
-    """Get chore ID by name or raise HomeAssistantError if not found."""
-    chore_id = get_chore_id_by_name(coordinator, chore_name)
-    if not chore_id:
-        raise HomeAssistantError(f"Chore '{chore_name}' not found")
-    return chore_id
+    """Get chore ID by name or raise HomeAssistantError if not found.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        chore_name: The name of the chore to look up.
+
+    Returns:
+        The internal ID (UUID) of the chore.
+
+    Raises:
+        HomeAssistantError: If the chore is not found.
+    """
+    return get_entity_id_or_raise(coordinator, const.ENTITY_TYPE_CHORE, chore_name)
 
 
 def get_reward_id_or_raise(
     coordinator: KidsChoresDataCoordinator, reward_name: str
 ) -> str:
-    """Get reward ID by name or raise HomeAssistantError if not found."""
-    reward_id = get_reward_id_by_name(coordinator, reward_name)
-    if not reward_id:
-        raise HomeAssistantError(f"Reward '{reward_name}' not found")
-    return reward_id
+    """Get reward ID by name or raise HomeAssistantError if not found.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        reward_name: The name of the reward to look up.
+
+    Returns:
+        The internal ID (UUID) of the reward.
+
+    Raises:
+        HomeAssistantError: If the reward is not found.
+    """
+    return get_entity_id_or_raise(coordinator, const.ENTITY_TYPE_REWARD, reward_name)
 
 
 def get_penalty_id_or_raise(
     coordinator: KidsChoresDataCoordinator, penalty_name: str
 ) -> str:
-    """Get penalty ID by name or raise HomeAssistantError if not found."""
-    penalty_id = get_penalty_id_by_name(coordinator, penalty_name)
-    if not penalty_id:
-        raise HomeAssistantError(f"Penalty '{penalty_name}' not found")
-    return penalty_id
+    """Get penalty ID by name or raise HomeAssistantError if not found.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        penalty_name: The name of the penalty to look up.
+
+    Returns:
+        The internal ID (UUID) of the penalty.
+
+    Raises:
+        HomeAssistantError: If the penalty is not found.
+    """
+    return get_entity_id_or_raise(coordinator, const.ENTITY_TYPE_PENALTY, penalty_name)
 
 
 def get_badge_id_or_raise(
     coordinator: KidsChoresDataCoordinator, badge_name: str
 ) -> str:
-    """Get badge ID by name or raise HomeAssistantError if not found."""
-    badge_id = get_badge_id_by_name(coordinator, badge_name)
-    if not badge_id:
-        raise HomeAssistantError(f"Badge '{badge_name}' not found")
-    return badge_id
+    """Get badge ID by name or raise HomeAssistantError if not found.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        badge_name: The name of the badge to look up.
+
+    Returns:
+        The internal ID (UUID) of the badge.
+
+    Raises:
+        HomeAssistantError: If the badge is not found.
+    """
+    return get_entity_id_or_raise(coordinator, const.ENTITY_TYPE_BADGE, badge_name)
 
 
 def get_bonus_id_or_raise(
     coordinator: KidsChoresDataCoordinator, bonus_name: str
 ) -> str:
-    """Get bonus ID by name or raise HomeAssistantError if not found."""
-    bonus_id = get_bonus_id_by_name(coordinator, bonus_name)
-    if not bonus_id:
-        raise HomeAssistantError(f"Bonus '{bonus_name}' not found")
-    return bonus_id
+    """Get bonus ID by name or raise HomeAssistantError if not found.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        bonus_name: The name of the bonus to look up.
+
+    Returns:
+        The internal ID (UUID) of the bonus.
+
+    Raises:
+        HomeAssistantError: If the bonus is not found.
+    """
+    return get_entity_id_or_raise(coordinator, const.ENTITY_TYPE_BONUS, bonus_name)
+
+
+def get_parent_id_or_raise(
+    coordinator: KidsChoresDataCoordinator, parent_name: str
+) -> str:
+    """Get parent ID by name or raise HomeAssistantError if not found.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        parent_name: The name of the parent to look up.
+
+    Returns:
+        The internal ID (UUID) of the parent.
+
+    Raises:
+        HomeAssistantError: If the parent is not found.
+    """
+    return get_entity_id_or_raise(coordinator, const.ENTITY_TYPE_PARENT, parent_name)
+
+
+def get_achievement_id_or_raise(
+    coordinator: KidsChoresDataCoordinator, achievement_name: str
+) -> str:
+    """Get achievement ID by name or raise HomeAssistantError if not found.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        achievement_name: The name of the achievement to look up.
+
+    Returns:
+        The internal ID (UUID) of the achievement.
+
+    Raises:
+        HomeAssistantError: If the achievement is not found.
+    """
+    return get_entity_id_or_raise(
+        coordinator, const.ENTITY_TYPE_ACHIEVEMENT, achievement_name
+    )
+
+
+def get_challenge_id_or_raise(
+    coordinator: KidsChoresDataCoordinator, challenge_name: str
+) -> str:
+    """Get challenge ID by name or raise HomeAssistantError if not found.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        challenge_name: The name of the challenge to look up.
+
+    Returns:
+        The internal ID (UUID) of the challenge.
+
+    Raises:
+        HomeAssistantError: If the challenge is not found.
+    """
+    return get_entity_id_or_raise(
+        coordinator, const.ENTITY_TYPE_CHALLENGE, challenge_name
+    )
 
 
 # ────────────────────────────────────────────────────────────────
-# 🧮 KidsChores Progress & Completion Helpers
+# 🧮 -------- KidsChores Progress & Completion Helpers --------
 # These helpers provide reusable logic for evaluating daily chore progress,
 # points, streaks, and completion criteria for a kid. They are used by
 # badges, achievements, challenges, and other features that need to
@@ -442,7 +791,10 @@ def get_today_chore_completion_progress(
         for chore_id in tracked_chores:
             chore_data = chores_data.get(chore_id, {})
             due_date_iso = chore_data.get(const.DATA_KID_CHORE_DATA_DUE_DATE)
-            if due_date_iso and due_date_iso[:10] == today_iso:
+            if (
+                due_date_iso
+                and due_date_iso[: const.ISO_DATE_STRING_LENGTH] == today_iso
+            ):
                 chores_due_today.append(chore_id)
         chores_to_check = chores_due_today
     else:
@@ -471,7 +823,10 @@ def get_today_chore_completion_progress(
         for chore_id in chores_to_check:
             chore_data = chores_data.get(chore_id, {})
             last_overdue_iso = chore_data.get(const.DATA_KID_CHORE_DATA_LAST_OVERDUE)
-            if last_overdue_iso and last_overdue_iso[:10] == today_iso:
+            if (
+                last_overdue_iso
+                and last_overdue_iso[: const.ISO_DATE_STRING_LENGTH] == today_iso
+            ):
                 return False, approved_count, total_count
             if chore_id in overdue_chores:
                 return False, approved_count, total_count
@@ -479,15 +834,13 @@ def get_today_chore_completion_progress(
     return True, approved_count, total_count
 
 
-# ────────────────────────────────────────────────────────────────
-# 🕒 Date & Time Helpers (Local, UTC, Parsing, Formatting, Add Interval)
+# 🕒 -------- Date & Time Helpers (Local, UTC, Parsing, Formatting, Add Interval) --------
 # These functions provide reusable, timezone-safe utilities for:
 # - Getting current date/time in local or ISO formats
 # - Parsing date or datetime strings safely
 # - Converting naive/local times to UTC
 # - Adding intervals to dates/datetimes (e.g., days, weeks, months, years)
 # - Supporting badge and chore scheduling logic
-# ────────────────────────────────────────────────────────────────
 
 
 def get_today_local_date() -> date:
@@ -728,22 +1081,6 @@ def adjust_datetime_by_interval(  # pyright: ignore[reportReturnType]
     - If require_future is True, interval will be added repeatedly until the result
       is later than reference_datetime.
     """
-    # Debug flag - set to False to disable debug logging for this function
-    DEBUG = False
-
-    if DEBUG:
-        const.LOGGER.debug(
-            "DEBUG: Add Interval To DateTime - Helper called with base_date=%s, interval_unit=%s, delta=%s, end_of_period=%s, require_future=%s, reference_datetime=%s, return_type=%s",
-            base_date,
-            interval_unit,
-            delta,
-            end_of_period,
-            require_future,
-            reference_datetime,
-            return_type,
-        )
-
-    # Handle the case where base_date is None
     if not base_date:
         const.LOGGER.error(
             "ERROR: Add Interval To DateTime - base_date is None. Cannot calculate next scheduled datetime."
@@ -774,10 +1111,14 @@ def adjust_datetime_by_interval(  # pyright: ignore[reportReturnType]
     elif interval_unit == const.TIME_UNIT_WEEKS:
         result = base_dt + timedelta(weeks=delta)
     elif interval_unit in {const.TIME_UNIT_MONTHS, const.TIME_UNIT_QUARTERS}:
-        multiplier = 1 if interval_unit == const.TIME_UNIT_MONTHS else 3
+        multiplier = (
+            const.MONTH_INTERVAL_MULTIPLIER
+            if interval_unit == const.TIME_UNIT_MONTHS
+            else const.MONTHS_PER_QUARTER
+        )
         total_months = base_dt.month - 1 + (delta * multiplier)
-        year = int(base_dt.year + total_months // 12)
-        month = int(total_months % 12 + 1)
+        year = int(base_dt.year + total_months // const.MONTHS_PER_YEAR)
+        month = int(total_months % const.MONTHS_PER_YEAR + 1)
         day = min(base_dt.day, monthrange(year, month)[1])
         result = base_dt.replace(year=year, month=month, day=day)
     elif interval_unit == const.TIME_UNIT_YEARS:
@@ -790,33 +1131,52 @@ def adjust_datetime_by_interval(  # pyright: ignore[reportReturnType]
     # Adjust result to the end of the period, if specified.
     if end_of_period:
         if end_of_period == const.PERIOD_DAY_END:
-            result = result.replace(hour=23, minute=59, second=0, microsecond=0)
+            result = result.replace(
+                hour=const.END_OF_DAY_HOUR,
+                minute=const.END_OF_DAY_MINUTE,
+                second=const.END_OF_DAY_SECOND,
+                microsecond=0,
+            )
         elif end_of_period == const.PERIOD_WEEK_END:
             # Assuming week ends on Sunday (weekday() returns 0 for Monday; Sunday is 6).
-            days_until_sunday = (6 - result.weekday()) % 7
+            days_until_sunday = (const.SUNDAY_WEEKDAY_INDEX - result.weekday()) % 7
             result = (result + timedelta(days=days_until_sunday)).replace(
-                hour=23, minute=59, second=0, microsecond=0
+                hour=const.END_OF_DAY_HOUR,
+                minute=const.END_OF_DAY_MINUTE,
+                second=const.END_OF_DAY_SECOND,
+                microsecond=0,
             )
         elif end_of_period == const.PERIOD_MONTH_END:
             last_day = monthrange(result.year, result.month)[1]
             result = result.replace(
-                day=last_day, hour=23, minute=59, second=0, microsecond=0
+                day=last_day,
+                hour=const.END_OF_DAY_HOUR,
+                minute=const.END_OF_DAY_MINUTE,
+                second=const.END_OF_DAY_SECOND,
+                microsecond=0,
             )
         elif end_of_period == const.PERIOD_QUARTER_END:
             # Calculate the last month of the current quarter.
-            last_month_of_quarter = ((result.month - 1) // 3 + 1) * 3
+            last_month_of_quarter = (
+                (result.month - 1) // const.MONTHS_PER_QUARTER + 1
+            ) * const.MONTHS_PER_QUARTER
             last_day = monthrange(result.year, last_month_of_quarter)[1]
             result = result.replace(
                 month=last_month_of_quarter,
                 day=last_day,
-                hour=23,
-                minute=59,
-                second=0,
+                hour=const.END_OF_DAY_HOUR,
+                minute=const.END_OF_DAY_MINUTE,
+                second=const.END_OF_DAY_SECOND,
                 microsecond=0,
             )
         elif end_of_period == const.PERIOD_YEAR_END:
             result = result.replace(
-                month=12, day=31, hour=23, minute=59, second=0, microsecond=0
+                month=const.LAST_MONTH_OF_YEAR,
+                day=const.LAST_DAY_OF_DECEMBER,
+                hour=const.END_OF_DAY_HOUR,
+                minute=const.END_OF_DAY_MINUTE,
+                second=const.END_OF_DAY_SECOND,
+                microsecond=0,
             )
         else:
             raise ValueError(f"Unsupported end_of_period value: {end_of_period}")
@@ -838,19 +1198,13 @@ def adjust_datetime_by_interval(  # pyright: ignore[reportReturnType]
         reference_dt_utc = dt_util.as_utc(reference_dt)
 
         # Loop until we have a future date
-        max_iterations = 1000  # Safety limit
         iteration_count = 0
 
-        while result_utc <= reference_dt_utc and iteration_count < max_iterations:
+        while (
+            result_utc <= reference_dt_utc
+            and iteration_count < const.MAX_DATE_CALCULATION_ITERATIONS
+        ):
             iteration_count += 1
-            if DEBUG:
-                const.LOGGER.debug(
-                    "DEBUG: Add Interval To DateTime - Iteration %d, result=%s <= reference=%s",
-                    iteration_count,
-                    result_utc,
-                    reference_dt_utc,
-                )
-
             previous_result = result  # Store before calculating new interval
 
             # Add the interval again
@@ -863,7 +1217,11 @@ def adjust_datetime_by_interval(  # pyright: ignore[reportReturnType]
             elif interval_unit == const.TIME_UNIT_WEEKS:
                 result = result + timedelta(weeks=delta)
             elif interval_unit in {const.TIME_UNIT_MONTHS, const.TIME_UNIT_QUARTERS}:
-                multiplier = 1 if interval_unit == const.TIME_UNIT_MONTHS else 3
+                multiplier = (
+                    const.MONTH_INTERVAL_MULTIPLIER
+                    if interval_unit == const.TIME_UNIT_MONTHS
+                    else const.MONTHS_PER_QUARTER
+                )
                 total_months = result.month - 1 + (delta * multiplier)
                 year = result.year + total_months // 12
                 month = total_months % 12 + 1
@@ -877,69 +1235,74 @@ def adjust_datetime_by_interval(  # pyright: ignore[reportReturnType]
             # Re-apply end_of_period if needed
             if end_of_period:
                 if end_of_period == const.PERIOD_DAY_END:
-                    result = result.replace(hour=23, minute=59, second=0, microsecond=0)
+                    result = result.replace(
+                        hour=const.END_OF_DAY_HOUR,
+                        minute=const.END_OF_DAY_MINUTE,
+                        second=const.END_OF_DAY_SECOND,
+                        microsecond=0,
+                    )
                 elif end_of_period == const.PERIOD_WEEK_END:
-                    days_until_sunday = (6 - result.weekday()) % 7
+                    days_until_sunday = (
+                        const.SUNDAY_WEEKDAY_INDEX - result.weekday()
+                    ) % 7
                     result = (result + timedelta(days=days_until_sunday)).replace(
-                        hour=23, minute=59, second=0, microsecond=0
+                        hour=const.END_OF_DAY_HOUR,
+                        minute=const.END_OF_DAY_MINUTE,
+                        second=const.END_OF_DAY_SECOND,
+                        microsecond=0,
                     )
                 elif end_of_period == const.PERIOD_MONTH_END:
                     last_day = monthrange(result.year, result.month)[1]
                     result = result.replace(
-                        day=last_day, hour=23, minute=59, second=0, microsecond=0
+                        day=last_day,
+                        hour=const.END_OF_DAY_HOUR,
+                        minute=const.END_OF_DAY_MINUTE,
+                        second=const.END_OF_DAY_SECOND,
+                        microsecond=0,
                     )
                 elif end_of_period == const.PERIOD_QUARTER_END:
-                    last_month_of_quarter = ((result.month - 1) // 3 + 1) * 3
+                    last_month_of_quarter = (
+                        (result.month - 1) // const.MONTHS_PER_QUARTER + 1
+                    ) * const.MONTHS_PER_QUARTER
                     last_day = monthrange(result.year, last_month_of_quarter)[1]
                     result = result.replace(
                         month=last_month_of_quarter,
                         day=last_day,
-                        hour=23,
-                        minute=59,
-                        second=0,
+                        hour=const.END_OF_DAY_HOUR,
+                        minute=const.END_OF_DAY_MINUTE,
+                        second=const.END_OF_DAY_SECOND,
                         microsecond=0,
                     )
                 elif end_of_period == const.PERIOD_YEAR_END:
                     result = result.replace(
-                        month=12, day=31, hour=23, minute=59, second=0, microsecond=0
+                        month=const.LAST_MONTH_OF_YEAR,
+                        day=const.LAST_DAY_OF_DECEMBER,
+                        hour=const.END_OF_DAY_HOUR,
+                        minute=const.END_OF_DAY_MINUTE,
+                        second=const.END_OF_DAY_SECOND,
+                        microsecond=0,
                     )
 
             # Check if we're in a loop (result didn't change)
             if result == previous_result:
-                if DEBUG:
-                    const.LOGGER.debug(
-                        "DEBUG: Add Interval To DateTime - Detected loop! Result didn't change. Adding 1 hour to break the loop."
-                    )
                 # Break the loop by adding 1 hour
                 result = result + timedelta(hours=1)
 
             result_utc = dt_util.as_utc(result)
 
-            if iteration_count >= max_iterations:
+            if iteration_count >= const.MAX_DATE_CALCULATION_ITERATIONS:
                 const.LOGGER.warning(
                     "WARN: Add Interval To DateTime - Maximum iterations (%d) reached! "
                     "Params: base_date=%s, interval_unit=%s, delta=%s, reference_datetime=%s",
-                    max_iterations,
+                    const.MAX_DATE_CALCULATION_ITERATIONS,
                     base_dt,
                     interval_unit,
                     delta,
                     reference_dt,
                 )
 
-        if DEBUG and iteration_count > 0:
-            const.LOGGER.debug(
-                "DEBUG: Add Interval To DateTime - After %d iterations, final result=%s",
-                iteration_count,
-                result,
-            )
-
     # Use format_datetime_with_return_type for consistent return formatting
     final_result = format_datetime_with_return_type(result, return_type)
-
-    if DEBUG:
-        const.LOGGER.debug(
-            "DEBUG: Add Interval To DateTime - Final result: %s", final_result
-        )
 
     return final_result
 
@@ -986,20 +1349,6 @@ def get_next_scheduled_datetime(
       - get_next_scheduled_datetime("2024-06-01", const.FREQUENCY_CUSTOM_1_YEAR, require_future=True)
           → datetime.date(2025, 6, 1)
     """
-    # Debug flag - set to False to disable debug logging for this function
-    DEBUG = False
-
-    if DEBUG:
-        const.LOGGER.debug(
-            "DEBUG: Get Next Schedule DateTime - Helper called with base_date=%s, interval_type=%s, require_future=%s, reference_datetime=%s, return_type=%s",
-            base_date,
-            interval_type,
-            require_future,
-            reference_datetime,
-            return_type,
-        )
-
-    # Handle the case where base_date is None
     if not base_date:
         const.LOGGER.error(
             "ERROR: Get Next Schedule DateTime - base_date is None. Cannot calculate next scheduled datetime."
@@ -1118,11 +1467,6 @@ def get_next_scheduled_datetime(
 
     # Calculate the initial next scheduled datetime.
     result = calculate_next_interval(base_dt)
-    if DEBUG:
-        const.LOGGER.debug(
-            "DEBUG: Get Next Schedule DateTime - After calculate_next_interval, result=%s",
-            result,
-        )
 
     # Process reference_datetime using normalize_datetime_input
     reference_dt = (
@@ -1141,29 +1485,19 @@ def get_next_scheduled_datetime(
 
     # If require_future is True, loop until result_utc is strictly after reference_dt_utc.
     if require_future:
-        max_iterations = 1000  # Safety limit
         iteration_count = 0
 
-        while result_utc <= reference_dt_utc and iteration_count < max_iterations:
+        while (
+            result_utc <= reference_dt_utc
+            and iteration_count < const.MAX_DATE_CALCULATION_ITERATIONS
+        ):
             iteration_count += 1
-            if DEBUG:
-                const.LOGGER.debug(
-                    "DEBUG: Get Next Schedule DateTime - Iteration %d, result=%s <= reference=%s",
-                    iteration_count,
-                    result_utc,
-                    reference_dt_utc,
-                )
-
             previous_result = result  # Store before calculating new result
             temp_base = result  # We keep result in local time.
             result = calculate_next_interval(temp_base)
 
             # Check if we're in a loop (result didn't change as can happen with period ends)
             if result == previous_result:
-                if DEBUG:
-                    const.LOGGER.debug(
-                        "DEBUG: Get Next Schedule DateTime - Detected loop! Result didn't change. Adding 1 hour to break the loop."
-                    )
                 # Break the loop by adding 1 hour and recalculating
                 result = adjust_datetime_by_interval(
                     result,
@@ -1176,30 +1510,18 @@ def get_next_scheduled_datetime(
 
             result_utc = dt_util.as_utc(result)
 
-            if iteration_count >= max_iterations:
+            if iteration_count >= const.MAX_DATE_CALCULATION_ITERATIONS:
                 const.LOGGER.warning(
                     "WARN: Get Next Schedule DateTime - Maximum iterations (%d) reached! "
                     "Params: base_date=%s, interval_type=%s, reference_datetime=%s",
-                    max_iterations,
+                    const.MAX_DATE_CALCULATION_ITERATIONS,
                     base_date,
                     interval_type,
                     reference_dt,
                 )
 
-        if DEBUG:
-            const.LOGGER.debug(
-                "DEBUG: Get Next Schedule DateTime - After %d iterations, final result=%s",
-                iteration_count,
-                result,
-            )
-
     # Use format_datetime_with_return_type to handle the return type formatting
     final_result = format_datetime_with_return_type(result, return_type)
-
-    if DEBUG:
-        const.LOGGER.debug(
-            "DEBUG: Get Next Schedule DateTime - Final result: %s", final_result
-        )
 
     return final_result
 
@@ -1244,20 +1566,7 @@ def get_next_applicable_day(
             >>> get_next_applicable_day(dt_input, applicable_days=[0, 2])
             2025-04-14 15:00:00-04:00
     """
-    # Debug flag - set to False to disable debug logging for this function
-    DEBUG = False
-
     local_tz = local_tz or const.DEFAULT_TIME_ZONE
-
-    if DEBUG:
-        # Debug logging for function entry
-        const.LOGGER.debug(
-            "DEBUG: HELPER Get Next Applicable Day - Helper called with dt=%s, applicable_days=%s, local_tz=%s, return_type=%s",
-            dt,
-            applicable_days,
-            local_tz,
-            return_type,
-        )
 
     # Convert dt to local time.
     local_dt = dt_util.as_local(dt)
@@ -1281,12 +1590,6 @@ def get_next_applicable_day(
 
     # Use format_datetime_with_return_type to handle the return type formatting
     final_result = format_datetime_with_return_type(dt, return_type)
-
-    if DEBUG:
-        # Debug logging for function exit
-        const.LOGGER.debug(
-            "DEBUG: HELPER Get Next Applicable Day - Final result: %s", final_result
-        )
 
     return final_result
 
@@ -1393,7 +1696,7 @@ def cleanup_period_data(
     self.async_set_updated_data(self._data)  # type: ignore[attr-defined]  # pylint: disable=protected-access
 
 
-# -------- Dashboard Translation Loaders --------
+# 📝 -------- Dashboard Translation Loaders --------
 def _read_json_file(file_path: str) -> dict:
     """Read and parse a JSON file. Synchronous helper for executor."""
     with open(file_path, encoding="utf-8") as f:
@@ -1518,7 +1821,7 @@ async def load_dashboard_translation(
     return {}
 
 
-# -------- Device Info Helpers --------
+# 📱 -------- Device Info Helpers --------
 def create_kid_device_info(kid_id: str, kid_name: str, config_entry):
     """Create device info for a kid profile.
 

@@ -593,7 +593,6 @@ def build_chore_schema(kids_dict, default=None):
 
 
 def build_chores_data(
-    hass,
     user_input: Dict[str, Any],
     kids_dict: Dict[str, Any],
     existing_chores: Dict[str, Any] = None,
@@ -604,7 +603,6 @@ def build_chores_data(
     Also validates the due date and converts assigned kid names to UUIDs.
 
     Args:
-        hass: Home Assistant instance for datetime utilities.
         user_input: Dictionary containing user inputs from the form.
         kids_dict: Dictionary mapping kid names to kid internal_ids (UUIDs).
         existing_chores: Optional dictionary of existing chores for duplicate checking.
@@ -634,8 +632,17 @@ def build_chores_data(
     if user_input.get(const.CFOF_CHORES_INPUT_DUE_DATE):
         raw_due = user_input[const.CFOF_CHORES_INPUT_DUE_DATE]
         try:
-            due_date_str = ensure_utc_datetime(hass, raw_due)
-            due_dt = dt_util.parse_datetime(due_date_str)
+            due_dt = kh.normalize_datetime_input(
+                raw_due,
+                default_tzinfo=const.DEFAULT_TIME_ZONE,
+                return_type=const.HELPER_RETURN_DATETIME_UTC,
+            )
+            # Type guard: narrow datetime | date | str | None to datetime
+            if due_dt and not isinstance(due_dt, datetime.datetime):
+                errors[const.CFOP_ERROR_DUE_DATE] = (
+                    const.TRANS_KEY_CFOF_INVALID_DUE_DATE
+                )
+                return {}, errors
             if due_dt and due_dt < dt_util.utcnow():
                 errors[const.CFOP_ERROR_DUE_DATE] = (
                     const.TRANS_KEY_CFOF_DUE_DATE_IN_PAST
@@ -2382,7 +2389,6 @@ def build_achievements_data(
 
 
 def build_challenges_data(
-    hass: HomeAssistant,
     user_input: dict,
     kids_data: dict,
     existing_challenges: dict | None = None,
@@ -2423,19 +2429,34 @@ def build_challenges_data(
         return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_DATES_REQUIRED}
 
     try:
-        # Step 1: Parse user input (local time strings) and convert to UTC-aware ISO strings
-        # This normalizes different input formats to a consistent storage format
-        start_date = ensure_utc_datetime(hass, start_date_str)
-        end_date = ensure_utc_datetime(hass, end_date_str)
+        # Normalize dates to UTC-aware datetime objects for comparison
+        start_dt = kh.normalize_datetime_input(
+            start_date_str,
+            default_tzinfo=const.DEFAULT_TIME_ZONE,
+            return_type=const.HELPER_RETURN_DATETIME_UTC,
+        )
+        end_dt = kh.normalize_datetime_input(
+            end_date_str,
+            default_tzinfo=const.DEFAULT_TIME_ZONE,
+            return_type=const.HELPER_RETURN_DATETIME_UTC,
+        )
 
-        # Step 2: Parse the UTC ISO strings back to datetime objects for comparison
-        # We need datetime objects (not strings) to perform date arithmetic
-        start_dt = dt_util.parse_datetime(start_date)
-        end_dt = dt_util.parse_datetime(end_date)
+        # Type guard: ensure both are datetime.datetime before operations
+        # (narrow from datetime | date | str | None)
+        if not isinstance(start_dt, datetime.datetime):
+            return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_INVALID_DATE}
+        if not isinstance(end_dt, datetime.datetime):
+            return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_INVALID_DATE}
 
-        # Step 3: Validate end date is after start date (chronological order required)
-        if start_dt and end_dt and end_dt <= start_dt:
+        # Validate end date is after start date (chronological order required)
+        # Now safe: both are definitely datetime.datetime
+        if end_dt <= start_dt:
             return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_END_BEFORE_START}
+
+        # Convert to ISO strings for storage
+        # Now safe: both are definitely datetime.datetime with .isoformat() method
+        start_date = start_dt.isoformat()
+        end_date = end_dt.isoformat()
 
     except (ValueError, TypeError) as ex:
         const.LOGGER.warning("Challenge date parsing error: %s", ex)
@@ -2950,27 +2971,6 @@ def _get_notify_services(hass: HomeAssistant) -> list[dict[str, str]]:
             fullname = f"{const.NOTIFY_DOMAIN}.{service_name}"
             services_list.append({"value": fullname, "label": fullname})
     return services_list
-
-
-# Ensure aware datetime objects
-def ensure_utc_datetime(hass: HomeAssistant, dt_value: Any) -> str:
-    """Convert a datetime input (or datetime string) into an ISO timezone aware string(in UTC).
-
-    If dt_value is naive, assume it is in the local timezone.
-    """
-    # Convert dt_value to a datetime object if necessary
-    if not isinstance(dt_value, datetime.datetime):
-        dt_value = dt_util.parse_datetime(dt_value)
-        if dt_value is None:
-            raise ValueError(f"Unable to parse datetime from {dt_value}")
-
-    # If the datetime is naive, assume local time using hass.config.time_zone
-    if dt_value.tzinfo is None:
-        local_tz = dt_util.get_time_zone(hass.config.time_zone)
-        dt_value = dt_value.replace(tzinfo=local_tz)
-
-    # Convert to UTC and return the ISO string
-    return dt_util.as_utc(dt_value).isoformat()
 
 
 # ----------------------------------------------------------------------------------

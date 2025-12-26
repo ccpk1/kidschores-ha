@@ -76,6 +76,18 @@ DATA_KEY_ACHIEVEMENTS: Final = "achievements"
 DATA_KEY_CHALLENGES: Final = "challenges"
 DATA_KEY_LINKED_USERS: Final = "linked_users"  # Matches STORAGE_KEY_LINKED_USERS
 
+# Entity Type Identifiers (Phase 2 Step 2 - DRY Refactoring)
+# Used in generic entity lookup functions to identify entity type
+ENTITY_TYPE_KID: Final = "kid"
+ENTITY_TYPE_CHORE: Final = "chore"
+ENTITY_TYPE_REWARD: Final = "reward"
+ENTITY_TYPE_PENALTY: Final = "penalty"
+ENTITY_TYPE_BADGE: Final = "badge"
+ENTITY_TYPE_BONUS: Final = "bonus"
+ENTITY_TYPE_PARENT: Final = "parent"
+ENTITY_TYPE_ACHIEVEMENT: Final = "achievement"
+ENTITY_TYPE_CHALLENGE: Final = "challenge"
+
 # Storage Structure Keys (Phase 3 - config_flow remediation)
 # Common keys used in storage file structure validation and diagnostics
 DATA_KEY_VERSION: Final = "version"  # Schema version key
@@ -1629,6 +1641,36 @@ HELPER_RETURN_DATETIME_LOCAL = "datetime_local"
 HELPER_RETURN_DATETIME_UTC = "datetime_utc"
 HELPER_RETURN_ISO_DATE = "iso_date"
 HELPER_RETURN_ISO_DATETIME = "iso_datetime"
+
+# ------------------------------------------------------------------------------------------------
+# DateTime Helper Safety Limits
+# ------------------------------------------------------------------------------------------------
+# Maximum number of iterations allowed in date calculation loops to prevent infinite loops
+# Used in get_next_scheduled_datetime() and add_interval_to_datetime() when require_future=True
+MAX_DATE_CALCULATION_ITERATIONS: Final = 1000
+
+# ------------------------------------------------------------------------------------------------
+# DateTime Constants (End-of-Period Values)
+# ------------------------------------------------------------------------------------------------
+# Time values for end-of-day calculations (23:59:00)
+END_OF_DAY_HOUR: Final = 23
+END_OF_DAY_MINUTE: Final = 59
+END_OF_DAY_SECOND: Final = 0
+
+# Calendar calculations
+MONTHS_PER_QUARTER: Final = 3
+MONTHS_PER_YEAR: Final = 12
+LAST_DAY_OF_DECEMBER: Final = 31
+LAST_MONTH_OF_YEAR: Final = 12
+
+# Weekday index for Sunday in Python's datetime.weekday() (Monday=0, Sunday=6)
+SUNDAY_WEEKDAY_INDEX: Final = 6
+
+# ISO date string slice length (YYYY-MM-DD = 10 characters)
+ISO_DATE_STRING_LENGTH: Final = 10
+
+# Month multiplier for interval calculations
+MONTH_INTERVAL_MULTIPLIER: Final = 1
 
 # ------------------------------------------------------------------------------------------------
 # Services

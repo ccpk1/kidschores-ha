@@ -211,7 +211,7 @@ class KidScheduleCalendar(CalendarEntity):
         gen_start = window_start
         gen_end = min(
             window_end,
-            dt_util.as_local(datetime.datetime.now() + self._calendar_duration),
+            kh.get_now_local_time() + self._calendar_duration,
         )
         current = gen_start
         local_tz = dt_util.get_time_zone(self.hass.config.time_zone)
@@ -653,18 +653,28 @@ class KidScheduleCalendar(CalendarEntity):
         if not start_str or not end_str:
             return events  # no valid date range => skip
 
-        start_dt = dt_util.parse_datetime(start_str)
-        end_dt = dt_util.parse_datetime(end_str)
-        if not start_dt or not end_dt:
+        # Parse to local timezone directly
+        local_start = kh.normalize_datetime_input(
+            start_str,
+            default_tzinfo=const.DEFAULT_TIME_ZONE,
+            return_type=const.HELPER_RETURN_DATETIME_LOCAL,
+        )
+        local_end = kh.normalize_datetime_input(
+            end_str,
+            default_tzinfo=const.DEFAULT_TIME_ZONE,
+            return_type=const.HELPER_RETURN_DATETIME_LOCAL,
+        )
+        if not local_start or not local_end:
             return events  # parsing failed => skip
-
-        # Convert to local
-        local_start = dt_util.as_local(start_dt)
-        local_end = dt_util.as_local(end_dt)
 
         # If the challenge times are midnight-based, we can treat them as all-day.
         # But let's keep it simpler => always treat as an all-day block from date(start) to date(end)+1
         # so the user sees a big multi-day block.
+        # Type guard: narrow datetime | date | str | None to datetime before comparisons and .date() calls
+        if not isinstance(local_start, datetime.datetime) or not isinstance(
+            local_end, datetime.datetime
+        ):
+            return events  # type check failed => skip
         if local_start > window_end or local_end < window_start:
             return events  # out of range
 

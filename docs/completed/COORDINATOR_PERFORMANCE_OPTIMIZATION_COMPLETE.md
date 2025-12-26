@@ -7,16 +7,24 @@
 
 ## 📊 **Executive Summary**
 
-| Category                    | Issues Identified     | Resolved | In Progress | Not Started |
-| --------------------------- | --------------------- | -------- | ----------- | ----------- |
-| **Coordinator Performance** | 5 critical + 3 medium | 1 ✅     | 0           | 7           |
-| **Sensor Performance**      | 8 critical hotspots   | 8 ✅     | 0           | 0           |
-| **Performance Testing**     | Baseline capture      | 3 ✅     | 0           | 0           |
-| **Badge Optimization**      | 5 proposed changes    | 1 ✅     | 0           | 0           |
-| **Persistence Strategy**    | Debounce vs Immediate | 1 ✅     | 0           | 0           |
-| **Total**                   | **22**                | **13**   | **0**       | **9**       |
+| Category                    | Issues Identified     | Resolved | In Progress | Deferred |
+| --------------------------- | --------------------- | -------- | ----------- | -------- |
+| **Coordinator Performance** | 5 critical + 3 medium | 1 ✅     | 0           | 7        |
+| **Sensor Performance**      | 8 critical hotspots   | 8 ✅     | 0           | 0        |
+| **Performance Testing**     | Baseline capture      | 3 ✅     | 0           | 0        |
+| **Badge Optimization**      | 5 proposed changes    | 1 ✅     | 0           | 0        |
+| **Persistence Strategy**    | Debounce vs Immediate | 1 ✅     | 0           | 0        |
+| **Total**                   | **22**                | **13**   | **0**       | **9**    |
 
-**Status**: ✅ **Phase 0, Badge Optimization Phase 1, & Persistence Strategy COMPLETE**
+**Status**: ✅ **COMPLETE - Spun off Parent Notification Concurrency as separate initiative**
+
+**Final Status**:
+- ✅ Persistence strategy complete (immediate=True as default)
+- ✅ Performance baselines captured and validated
+- ✅ Badge optimization phase complete
+- ✅ Sensor performance fully optimized
+- 📋 Remaining coordinator items deferred (see below)
+- 🎯 Parent Notification Concurrency spun off to [PARENT_NOTIFICATION_CONCURRENCY_PLAN.md](PARENT_NOTIFICATION_CONCURRENCY_PLAN.md)
 
 **Latest Completion - Persistence Strategy Phase (Dec 23, 2025)**:
 
@@ -239,7 +247,15 @@ During Phase 2 implementation (debounced persist), a critical race condition eme
 
 ---
 
-## ⚠️ **UNRESOLVED - Coordinator Performance Issues**
+## 📋 **DEFERRED - Coordinator Performance Issues**
+
+**Status**: ✅ Analyzed and catalogued. Remaining items deferred for future optimization phase.
+
+**Spun Off Initiative**: Parent Notification Concurrency (Issue #5) has been moved to a separate effort:
+- **Document**: [PARENT_NOTIFICATION_CONCURRENCY_PLAN.md](PARENT_NOTIFICATION_CONCURRENCY_PLAN.md)
+- **Status**: Design complete, awaiting implementation approval
+- **Scope**: Concurrent parent notifications + approval debouncing + claim-specific notifications
+- **Estimated Effort**: 2-2.5 hours for phases 1-2, plus broader claims architecture review
 
 **Documentation**: [docs/in-process/coordinator-remediation-supporting/COORDINATOR_CODE_REVIEW.md](in-process/coordinator-remediation-supporting/COORDINATOR_CODE_REVIEW.md#performance-analysis--optimization-opportunities)
 
@@ -250,7 +266,7 @@ During Phase 2 implementation (debounced persist), a critical race condition eme
 - **Location**: coordinator.py lines 842-855 (update), 7679-7878 (scan)
 - **Problem**: O(#chores × #kids) scan runs every update interval
 - **Impact**: Can monopolize event loop as scale increases
-- **Status**: ❌ **NOT ADDRESSED**
+- **Status**: 📋 **DEFERRED** (catalogued, ready for future phase)
 
 **Recommended Solution**:
 
@@ -303,7 +319,7 @@ Our Persistence Strategy phase analysis revealed that debounced writes create un
 - **Location**: coordinator.py lines 1198-1211, 1237-1291
 - **Problem**: Nested loops in orphan cleanup: O(#entities × #chores)
 - **Impact**: Heavy CPU work stalls event loop during migrations/cleanup
-- **Status**: ❌ **NOT ADDRESSED**
+- **Status**: 📋 **DEFERRED** (catalogued, ready for future phase)
 
 **Recommended Solution**:
 

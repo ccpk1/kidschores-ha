@@ -10,6 +10,8 @@ Key Features:
 - Storage management for persistent data handling.
 """
 
+# pylint: disable=protected-access  # Legitimate internal access to coordinator._persist()
+
 from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
@@ -95,13 +97,11 @@ async def _migrate_config_to_storage(
             const.SCHEMA_VERSION_STORAGE_ONLY,
         )
         # Clean install - set version in meta section and save
-        from datetime import datetime
-
         from homeassistant.util import dt as dt_util
 
         storage_data[const.DATA_META] = {
             const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_STORAGE_ONLY,
-            const.DATA_META_LAST_MIGRATION_DATE: datetime.now(dt_util.UTC).isoformat(),
+            const.DATA_META_LAST_MIGRATION_DATE: dt_util.utcnow().isoformat(),
             const.DATA_META_MIGRATIONS_APPLIED: [],
         }
         storage_manager.set_data(storage_data)
@@ -221,13 +221,11 @@ async def _migrate_config_to_storage(
             )
 
     # Set new schema version in meta section
-    from datetime import datetime
-
     from homeassistant.util import dt as dt_util
 
     storage_data[const.DATA_META] = {
         const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_STORAGE_ONLY,
-        const.DATA_META_LAST_MIGRATION_DATE: datetime.now(dt_util.UTC).isoformat(),
+        const.DATA_META_LAST_MIGRATION_DATE: dt_util.utcnow().isoformat(),
         const.DATA_META_MIGRATIONS_APPLIED: ["config_to_storage"],
     }
     # Remove old top-level schema_version if present
@@ -524,7 +522,7 @@ async def async_unload_entry(hass, entry):
     # Force immediate save of any pending changes before unload
     if const.DOMAIN in hass.data and entry.entry_id in hass.data[const.DOMAIN]:
         coordinator = hass.data[const.DOMAIN][entry.entry_id][const.COORDINATOR]
-        coordinator._persist(immediate=True)
+        coordinator._persist()
         const.LOGGER.debug("Forced immediate persist before unload")
 
     # Unload platforms

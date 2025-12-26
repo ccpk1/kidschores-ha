@@ -105,7 +105,7 @@ async def test_performance_baseline_with_scenario_full(
                 print(f"    Approved chore {chore_id_to_approve} for kid {kid_id}")
 
         # Test 8: Bulk operations - approve multiple chores
-        print(f"\nTest 8: Bulk chore operations (claim then approve)...")
+        print("\nTest 8: Bulk chore operations (claim then approve)...")
         if len(coordinator.kids_data) >= 2 and len(coordinator.chores_data) >= 2:
             operations_count = 0
             for kid_id in list(coordinator.kids_data.keys())[:2]:  # Just first 2 kids

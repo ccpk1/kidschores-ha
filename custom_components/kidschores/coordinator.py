@@ -4934,14 +4934,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Convert kid_name to kid_id if provided.
         kid_id = None
         if kid_name:
-            kid_id = next(
-                (
-                    kid_id
-                    for kid_id, kid_info in self.kids_data.items()
-                    if kid_info.get(const.DATA_KID_NAME) == kid_name
-                ),
-                None,
-            )
+            kid_id = kh.get_kid_id_by_name(self, kid_name)
             if kid_id is None:
                 const.LOGGER.error(
                     "ERROR: Remove Awarded Badges - Kid name '%s' not found.", kid_name
@@ -4959,14 +4952,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # If badge_name is provided, try to find its corresponding badge_id.
         if badge_name:
-            badge_id = next(
-                (
-                    bid
-                    for bid, badge_info in self.badges_data.items()
-                    if badge_info.get(const.DATA_BADGE_NAME) == badge_name
-                ),
-                None,
-            )
+            badge_id = kh.get_badge_id_by_name(self, badge_name)
             if not badge_id:
                 # If the badge isn't found, assume the actual badge was deleted but still listed in kid data
                 const.LOGGER.warning(

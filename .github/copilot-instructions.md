@@ -2,9 +2,9 @@
 
 ## 📚 Critical Documentation (Read as Needed)
 
-- **Architecture**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (Storage-only model, data separation, translation architecture)
-- **Quality Standards**: [docs/CODE_REVIEW_GUIDE.md](docs/CODE_REVIEW_GUIDE.md) (Audit framework, logging, constants)
-- **Testing**: [tests/TESTING_AGENT_INSTRUCTIONS.md](tests/TESTING_AGENT_INSTRUCTIONS.md) (Patterns, execution)
+- **Architecture**: [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md) (Storage-only model, data separation, translation architecture)
+- **Quality Standards**: [docs/CODE_REVIEW_GUIDE.md](../docs/CODE_REVIEW_GUIDE.md) (Audit framework, logging, constants)
+- **Testing**: [tests/TESTING_AGENT_INSTRUCTIONS.md](../tests/TESTING_AGENT_INSTRUCTIONS.md) (Patterns, execution)
 
 ## 🛑 Mandatory Definition of Done
 
@@ -44,7 +44,7 @@
   - `get_kid_by_name(data, name)` / `get_chore_by_name(data, name)` - Access by name not index
   - `create_test_datetime(days_offset)` - UTC datetime creation
   - `assert_entity_state(hass, entity_id, state, attrs)` - State verification
-- **Scenarios**: Use pytest fixtures (`scenario_minimal`, `scenario_medium`, `scenario_full`, `scenario_stress`) for consistent test data. All fixtures use testdata_scenario_*.yaml files and automatically load/reload entities.
+- **Scenarios**: Use pytest fixtures (`scenario_minimal`, `scenario_medium`, `scenario_full`, `scenario_stress`) for consistent test data. All fixtures use testdata*scenario*\*.yaml files and automatically load/reload entities.
 - **Test Types**:
   - **UI**: `test_config_flow.py`, `test_options_flow*.py` (options flow navigation)
   - **Business Logic**: `test_coordinator.py`, `test_services.py` (direct coordinator access)
@@ -52,7 +52,7 @@
 
 ## 🔍 Code Audit Framework (Required Before Review)
 
-When auditing new files, use [Phase 0 framework](docs/CODE_REVIEW_GUIDE.md#phase-0-repeatable-audit-framework):
+When auditing new files, use [Phase 0 framework](../docs/CODE_REVIEW_GUIDE.md):
 
 1. **Logging**: Count `const.LOGGER.*` calls, verify lazy logging (no f-strings)
 2. **User-facing strings**: Identify error messages, field labels, notifications (check for hardcoded strings)

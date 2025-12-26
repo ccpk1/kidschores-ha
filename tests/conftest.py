@@ -1379,6 +1379,152 @@ def get_reward_by_name(
     return candidates[0]
 
 
+def get_penalty_by_name(data: dict[str, Any], penalty_name: str) -> dict[str, Any]:
+    """Find penalty in coordinator data by name (avoids hardcoded indices).
+
+    Args:
+        data: Coordinator data dict (from coordinator.data)
+        penalty_name: Penalty's display name (e.g., "Late to bed", "Room messy")
+
+    Returns:
+        Penalty data dict
+
+    Raises:
+        ValueError: If penalty not found
+
+    Examples:
+        >>> penalty = get_penalty_by_name(coordinator.data, "Late to bed")
+        >>> assert penalty["points"] == -10
+    """
+    penalties = data.get(DATA_PENALTIES, {})
+    for _, penalty_data in penalties.items():
+        if penalty_data.get("name") == penalty_name:
+            return penalty_data
+    raise ValueError(f"Penalty '{penalty_name}' not found in coordinator data")
+
+
+def get_badge_by_name(data: dict[str, Any], badge_name: str) -> dict[str, Any]:
+    """Find badge in coordinator data by name (avoids hardcoded indices).
+
+    Args:
+        data: Coordinator data dict (from coordinator.data)
+        badge_name: Badge's display name (e.g., "Chore Champion", "5-Day Streak")
+
+    Returns:
+        Badge data dict
+
+    Raises:
+        ValueError: If badge not found
+
+    Examples:
+        >>> badge = get_badge_by_name(coordinator.data, "Chore Champion")
+        >>> assert badge["badge_type"] == "cumulative"
+    """
+    badges = data.get(DATA_BADGES, {})
+    for _, badge_data in badges.items():
+        if badge_data.get("name") == badge_name:
+            return badge_data
+    raise ValueError(f"Badge '{badge_name}' not found in coordinator data")
+
+
+def get_bonus_by_name(data: dict[str, Any], bonus_name: str) -> dict[str, Any]:
+    """Find bonus in coordinator data by name (avoids hardcoded indices).
+
+    Args:
+        data: Coordinator data dict (from coordinator.data)
+        bonus_name: Bonus's display name (e.g., "Good behavior", "Extra help")
+
+    Returns:
+        Bonus data dict
+
+    Raises:
+        ValueError: If bonus not found
+
+    Examples:
+        >>> bonus = get_bonus_by_name(coordinator.data, "Good behavior")
+        >>> assert bonus["points"] == 5
+    """
+    bonuses = data.get(DATA_BONUSES, {})
+    for _, bonus_data in bonuses.items():
+        if bonus_data.get("name") == bonus_name:
+            return bonus_data
+    raise ValueError(f"Bonus '{bonus_name}' not found in coordinator data")
+
+
+def get_parent_by_name(data: dict[str, Any], parent_name: str) -> dict[str, Any]:
+    """Find parent in coordinator data by name (avoids hardcoded indices).
+
+    Args:
+        data: Coordinator data dict (from coordinator.data)
+        parent_name: Parent's display name (e.g., "Mom", "Dad")
+
+    Returns:
+        Parent data dict
+
+    Raises:
+        ValueError: If parent not found
+
+    Examples:
+        >>> parent = get_parent_by_name(coordinator.data, "Mom")
+        >>> assert parent["ha_user_id"] == "user_123"
+    """
+    parents = data.get(DATA_PARENTS, {})
+    for _, parent_data in parents.items():
+        if parent_data.get("name") == parent_name:
+            return parent_data
+    raise ValueError(f"Parent '{parent_name}' not found in coordinator data")
+
+
+def get_achievement_by_name(
+    data: dict[str, Any], achievement_name: str
+) -> dict[str, Any]:
+    """Find achievement in coordinator data by name (avoids hardcoded indices).
+
+    Args:
+        data: Coordinator data dict (from coordinator.data)
+        achievement_name: Achievement's display name (e.g., "First Chore", "100 Points")
+
+    Returns:
+        Achievement data dict
+
+    Raises:
+        ValueError: If achievement not found
+
+    Examples:
+        >>> achievement = get_achievement_by_name(coordinator.data, "First Chore")
+        >>> assert achievement["target_count"] == 1
+    """
+    achievements = data.get(DATA_ACHIEVEMENTS, {})
+    for _, achievement_data in achievements.items():
+        if achievement_data.get("name") == achievement_name:
+            return achievement_data
+    raise ValueError(f"Achievement '{achievement_name}' not found in coordinator data")
+
+
+def get_challenge_by_name(data: dict[str, Any], challenge_name: str) -> dict[str, Any]:
+    """Find challenge in coordinator data by name (avoids hardcoded indices).
+
+    Args:
+        data: Coordinator data dict (from coordinator.data)
+        challenge_name: Challenge's display name (e.g., "Daily Goal", "Weekly Target")
+
+    Returns:
+        Challenge data dict
+
+    Raises:
+        ValueError: If challenge not found
+
+    Examples:
+        >>> challenge = get_challenge_by_name(coordinator.data, "Daily Goal")
+        >>> assert challenge["target_count"] == 5
+    """
+    challenges = data.get(DATA_CHALLENGES, {})
+    for _, challenge_data in challenges.items():
+        if challenge_data.get("name") == challenge_name:
+            return challenge_data
+    raise ValueError(f"Challenge '{challenge_name}' not found in coordinator data")
+
+
 def create_test_datetime(days_offset: int = 0, hours_offset: int = 0) -> str:
     """
     Create UTC ISO datetime string for testing, offset from now.

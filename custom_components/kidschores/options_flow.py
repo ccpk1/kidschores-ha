@@ -13,7 +13,6 @@ Ensures consistency and reloads the integration upon changes.
 # import-outside-toplevel: Backup operations conditionally import to avoid circular deps/performance
 
 import asyncio
-import datetime
 import uuid
 from typing import Any, Dict, Optional
 
@@ -491,7 +490,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             # Build and validate chore data
             chore_data, errors = fh.build_chores_data(
-                self.hass, user_input, kids_dict, chores_dict
+                user_input, kids_dict, chores_dict
             )
 
             if errors:
@@ -940,7 +939,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             # Use helper to build and validate challenge data
             challenge_data, errors = fh.build_challenges_data(
-                self.hass,
                 user_input,
                 coordinator.kids_data,
                 existing_challenges=coordinator.challenges_data,
@@ -1222,7 +1220,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             # Build and validate chore data using helper function
             chore_data_dict, errors = fh.build_chores_data(
-                self.hass, user_input, kids_dict, chores_for_validation
+                user_input, kids_dict, chores_for_validation
             )
 
             # Extract chore data (must be before error check to avoid E0606)
@@ -1274,13 +1272,11 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         if existing_due_str:
             try:
-                # Attempt to parse using dt_util or fallback to fromisoformat
-                parsed_date = dt_util.parse_datetime(
-                    existing_due_str
-                ) or datetime.datetime.fromisoformat(existing_due_str)
-                # Convert to the required format for DateTimeSelector
-                existing_due_date = dt_util.as_local(parsed_date).strftime(
-                    "%Y-%m-%d %H:%M:%S"
+                # Parse to ISO datetime string for display in DateTimeSelector
+                existing_due_date = kh.normalize_datetime_input(
+                    existing_due_str,
+                    default_tzinfo=const.DEFAULT_TIME_ZONE,
+                    return_type=const.HELPER_RETURN_ISO_DATETIME,
                 )
                 const.LOGGER.debug(
                     "Processed existing_due_date for DateTimeSelector: %s",
@@ -1678,7 +1674,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         # Use helper to build and validate challenge data
         challenge_data_dict, errors = fh.build_challenges_data(
-            self.hass,
             user_input,
             coordinator.kids_data,
             existing_challenges=coordinator.challenges_data,

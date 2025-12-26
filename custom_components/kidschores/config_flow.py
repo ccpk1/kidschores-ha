@@ -674,7 +674,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
             # Build and validate chore data
             chore_data, errors = fh.build_chores_data(
-                self.hass, user_input, kids_dict, self._chores_temp
+                user_input, kids_dict, self._chores_temp
             )
 
             if errors:
@@ -1149,7 +1149,6 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         if user_input is not None:
             # Use the helper to build and validate challenge data
             challenge_data, errors = fh.build_challenges_data(
-                self.hass,
                 user_input,
                 self._kids_temp,
                 existing_challenges=self._challenges_temp,

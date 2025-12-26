@@ -975,19 +975,22 @@ def async_setup_services(hass: HomeAssistant):
 
         if due_date_input:
             try:
-                # Convert the provided date
-                due_date_str = fh.ensure_utc_datetime(hass, due_date_input)
-                due_dt = dt_util.parse_datetime(due_date_str)
+                # Convert the provided date to UTC-aware datetime
+                due_dt = kh.normalize_datetime_input(
+                    due_date_input,
+                    default_tzinfo=const.DEFAULT_TIME_ZONE,
+                    return_type=const.HELPER_RETURN_DATETIME_UTC,
+                )
                 if due_dt and due_dt < dt_util.utcnow():
                     raise HomeAssistantError("Due date cannot be set in the past.")
 
-            except Exception as err:
+            except HomeAssistantError as err:
                 const.LOGGER.error(
                     "Set Chore Due Date: Invalid due date '%s': %s",
                     due_date_input,
                     err,
                 )
-                raise HomeAssistantError("Invalid due date provided.") from err
+                raise
 
             # Update the chore’s due_date:
             coordinator.set_chore_due_date(chore_id, due_dt)
@@ -995,7 +998,7 @@ def async_setup_services(hass: HomeAssistant):
                 "Set due date for chore '%s' (ID: %s) to %s",
                 chore_name,
                 chore_id,
-                due_date_str,
+                due_date_input,
             )
         else:
             # Clear the due date by setting it to None
