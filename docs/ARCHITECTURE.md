@@ -1,23 +1,23 @@
 # KidsChores Integration Architecture
 
-**Integration Version**: 0.4.0 (Current Release)
-**Storage Schema Version**: 42 (Storage-Only Mode with Meta Section)
-**Quality Scale Level**: ⭐ **Silver** (Officially Certified - December 27, 2025)
+**Integration Version**: 0.4.0+
+**Storage Schema Version**: 42 (Storage-Only Mode with Meta Section - newest for 0.4.0)
+**Quality Scale Level**: ⭐ **Silver** (Unofficially Meets Standards)
 **Date**: December 2025
 
 ---
 
-## 🎯 Silver Certification Status
+## 🎯 Silver Quality Standards
 
-This integration is officially certified at **Home Assistant Silver** quality level. See [quality_scale.yaml](../custom_components/kidschores/quality_scale.yaml) for current rule status and [AGENTS.md](../../core/AGENTS.md) for ongoing Home Assistant quality standards.
+This integration unofficially meets **Home Assistant Silver** quality level requirements. See [quality_scale.yaml](../custom_components/kidschores/quality_scale.yaml) for current rule status and [AGENTS.md](../../core/AGENTS.md) for ongoing Home Assistant quality standards.
 
 ---
 
 ## Executive Summary
 
-Starting with **KidsChores v4.0**, the integration uses a **storage-only architecture** where all entity data (kids, chores, badges, rewards, etc.) is stored exclusively in Home Assistant's persistent storage (`.storage/kidschores_data`), while configuration entries contain only system-level settings.
+Starting with **KidsChores 0.4.0+**, the integration uses a **storage-only architecture** where all entity data (kids, chores, badges, rewards, etc.) is stored exclusively in Home Assistant's persistent storage (`.storage/kidschores_data`), while configuration entries contain only system-level settings.
 
-**KidsChores v4.2** introduced the **meta section architecture** where the storage schema version is stored in a dedicated `meta` section rather than at the top level. This change:
+**Schema Version 42** is the newest schema for 0.4.0+, introducing the **meta section architecture** where the storage schema version is stored in a dedicated `meta` section rather than at the top level. This change:
 
 - ✅ Prevents test framework interference with version detection
 - ✅ Enables robust migration testing and validation
@@ -64,14 +64,14 @@ This architectural change:
     [Reload Flow]                    [Coordinator Refresh]
 ```
 
-### Schema Version 42: Storage-Only Mode with Meta Section
+### Schema Version 42: Storage-Only Mode with Meta Section (Newest for 0.4.0+)
 
-The **`meta.schema_version`** field in storage data determines the integration's operational mode:
+The **`meta.schema_version`** field in storage data determines the integration's operational mode. Schema 42 is the current and newest version for 0.4.0+:
 
-| Schema Version | Mode                   | Behavior                                                        |
-| -------------- | ---------------------- | --------------------------------------------------------------- |
-| < 42           | Legacy (KC 3.x/4.0)    | Reads entity data from `config_entry.options` or legacy storage |
-| ≥ 42           | Storage-Only (KC 4.2+) | Reads entity data exclusively from storage with meta section    |
+| Schema Version | Mode                    | Behavior                                                        |
+| -------------- | ----------------------- | --------------------------------------------------------------- |
+| < 42           | Legacy (Pre-0.4.0)      | Reads entity data from `config_entry.options` or legacy storage |
+| ≥ 42           | Storage-Only (0.4.0+)   | Reads entity data exclusively from storage with meta section    |
 
 **Key Files**:
 
@@ -140,7 +140,7 @@ KidsChores uses **two separate translation systems**:
 
 **Usage**: Standard Home Assistant translation system via `hass.localize()` and `translation_key` attributes.
 
-**Coordinator Notifications** (v4.3+): Coordinator uses `async_get_translations()` API for:
+**Coordinator Notifications** (0.4.0+): Coordinator uses `async_get_translations()` API for:
 
 - Dynamic notification messages (36 translation keys: 18 title + 18 message)
 - Test mode detection (5s vs 1800s reminder delays)
@@ -464,7 +464,7 @@ async def async_step_create_entry(self, user_input=None):
 ### Maintenance & Cleanup
 
 - **[LEGACY_CLEANUP.md](LEGACY_CLEANUP.md)** - Deprecation timeline for pre-v42 compatibility code
-- **[RELEASE_NOTES_v0.4.0.md](RELEASE_NOTES_v0.4.0.md)** - v4.0 release details and storage architecture changes
+- **[RELEASE_NOTES_v0.4.0.md](RELEASE_NOTES_v0.4.0.md)** - 0.4.0+ release details and storage architecture changes
 
 ---
 
@@ -533,7 +533,7 @@ The `_UNUSED` suffix is a **development-cycle tool** for safe rollback during ac
 
 - You're consolidating patterns (e.g., CONF*\* → FREQUENCY*\*) in active development
 - Tests confirm new pattern works but old constants might be needed for quick rollback
-- Within a single development branch/cycle (v4.0 development, for example)
+- Within a single development branch/cycle (0.4.0+ development, for example)
 - You want the flexibility to revert without full reconstruction
 
 ❌ **Do NOT use \_UNUSED when:**
@@ -568,7 +568,7 @@ The `_UNUSED` suffix is a **development-cycle tool** for safe rollback during ac
 
 3. **Include inline comment explaining replacement AND exit criteria**
    ```python
-   # Configuration Keys (Development-Only: Removed before v4.0 production release)
+   # Configuration Keys (Development-Only: Removed before 0.4.0+ production release)
    # Replaced by FREQUENCY_* and PERIOD_* patterns
    CONF_CUSTOM_1_MONTH_UNUSED = "custom_1_month"  # Use FREQUENCY_CUSTOM_1_MONTH instead. [DELETE BEFORE PROD]
    CONF_DAY_END_UNUSED = "day_end"  # Use PERIOD_DAY_END instead. [DELETE BEFORE PROD]
@@ -2789,13 +2789,14 @@ See [docs/in-process/GOLD_CERTIFICATION_ROADMAP.md](../docs/in-process/GOLD_CERT
 
 ### Backward Compatibility
 
-- ✅ All changes maintain v4.2+ storage schema (no migration required)
+- ✅ All changes maintain schema v42+ (no migration required)
 - ✅ All changes backward compatible with existing installations
 - ✅ No API changes to public helper functions
 
 ---
 
-**Document Version**: 1.4 (Updated for v0.4.0 Silver Certification)
+**Document Version**: 1.5 (Updated for 0.4.0+ unofficial Silver standards)
 **Last Updated**: December 27, 2025
-**Integration Version**: 0.4.0 (v0.4.0 release)
-**Quality Level**: Silver (Officially Certified)
+**Integration Version**: 0.4.0+ (current and Future)
+**Quality Level**: Silver (Unofficially Meets Standards)
+**Storage Schema**: v42+ (newest for 0.4.0+)
