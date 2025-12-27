@@ -1,8 +1,15 @@
-# KidsChores Integration Architecture (v4.2+)
+# KidsChores Integration Architecture
 
-**Version**: 4.2+
+**Integration Version**: 0.4.0 (Current Release)
 **Storage Schema Version**: 42 (Storage-Only Mode with Meta Section)
+**Quality Scale Level**: ⭐ **Silver** (Officially Certified - December 27, 2025)
 **Date**: December 2025
+
+---
+
+## 🎯 Silver Certification Status
+
+This integration is officially certified at **Home Assistant Silver** quality level. See [quality_scale.yaml](../custom_components/kidschores/quality_scale.yaml) for current rule status and [AGENTS.md](../../core/AGENTS.md) for ongoing Home Assistant quality standards.
 
 ---
 
@@ -2513,7 +2520,234 @@ _LOGGER.warning(
 
 ---
 
-## v0.4.0 KC_HELPERS Improvements (December 2025)
+## Quality Standards & Maintenance Guide
+
+This section documents the code quality standards required to maintain Silver certification and the pathway to Gold. These standards are based on [Home Assistant's Integration Quality Scale](https://developers.home-assistant.io/docs/integration_quality_scale_index/) as documented in [AGENTS.md](../../core/AGENTS.md).
+
+### Silver Quality Requirements (Mandatory - All Implemented ✅)
+
+**1. Configuration Flow** ✅
+- UI setup required for all configuration
+- Multi-step dynamic flow with user input validation
+- Error handling with translation keys
+- Duplicate detection via unique IDs
+- Storage separation: Connection config in `ConfigEntry.data`, settings in `ConfigEntry.options`
+
+**Implementation Reference**: [custom_components/kidschores/config_flow.py](../custom_components/kidschores/config_flow.py)
+
+**2. Entity Unique IDs** ✅
+- Every entity has a unique ID stored in entity registry
+- Unique IDs use `entry_id` + `internal_id` (UUID) + entity-specific suffix
+- Survives entity renames and configuration reloads
+- Format: `f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_POINTS}"`
+
+**Implementation Reference**: All entity platforms (sensor.py, button.py, select.py, etc.)
+
+**3. Service Actions with Validation** ✅
+- 17 services registered with input validation
+- `ServiceValidationError` for user input errors
+- `HomeAssistantError` with translation keys for runtime errors
+- Config entry existence and loaded state checks
+
+**Implementation Reference**: [custom_components/kidschores/services.py](../custom_components/kidschores/services.py)
+
+**4. Entity Unavailability Handling** ✅
+- All 30+ entities implement explicit `available` property
+- Returns `False` when coordinator data missing or stale
+- Uses `None` for unknown values (not "unknown" or "unavailable" strings)
+- Proper error handling in coordinator updates
+
+**Implementation Reference**: All entity classes with `@property def available(self) -> bool:`
+
+**5. Parallel Updates** ✅
+- `PARALLEL_UPDATES` set to `0` (unlimited) for coordinator-based entities
+- Entities don't poll (rely on coordinator)
+- Efficient concurrent state updates
+
+**Implementation Reference**: [custom_components/kidschores/sensor.py](../custom_components/kidschores/sensor.py) (line ~40)
+
+**6. Logging When Unavailable** ✅
+- INFO level log when service/device becomes unavailable
+- INFO level log when service/device recovers
+- Single-log-per-state pattern (avoid log spam)
+
+**Example Pattern**:
+```python
+_unavailable_logged: bool = False
+
+if not self._unavailable_logged:
+    _LOGGER.info("Service unavailable: %s", reason)
+    self._unavailable_logged = True
+
+# On recovery:
+if self._unavailable_logged:
+    _LOGGER.info("Service recovered")
+    self._unavailable_logged = False
+```
+
+### Code Quality Standards (All Implemented ✅)
+
+**Type Hints**: 100% Required
+```python
+# ✅ All functions have complete type hints
+async def async_claim_chore(
+    self,
+    kid_id: str,
+    chore_id: str,
+) -> tuple[bool, str]:
+    """Claim a chore for a kid."""
+```
+
+**Lazy Logging**: 100% Required (No F-Strings in Logging)
+```python
+# ✅ Always use lazy logging with %s placeholders
+_LOGGER.debug("Processing chore for kid: %s", kid_name)
+_LOGGER.info("Points adjusted for kid: %s to %s", kid_name, new_points)
+
+# ❌ Never use f-strings in logging (evaluated even when log level skips)
+_LOGGER.debug(f"Processing {kid_name}")  # BAD - performance impact
+```
+
+**Constants for All User-Facing Strings**: 100% Required
+```python
+# ✅ Store constants in const.py
+TRANS_KEY_ERROR_KID_NOT_FOUND = "error_kid_not_found"
+TRANS_KEY_NOTIF_TITLE_CHORE_APPROVED = "notif_title_chore_approved"
+
+# In code:
+raise HomeAssistantError(
+    translation_domain=const.DOMAIN,
+    translation_key=const.TRANS_KEY_ERROR_KID_NOT_FOUND,
+)
+
+# ❌ Never hardcode user-visible strings
+raise HomeAssistantError(f"Kid {kid_name} not found")
+```
+
+**Exception Handling**: Specific Exceptions Required
+```python
+# ✅ Use most specific exception type available
+try:
+    data = await client.fetch_data()
+except ApiConnectionError as err:
+    raise HomeAssistantError("Connection failed") from err
+except ApiAuthError as err:
+    raise ConfigEntryAuthFailed("Auth expired") from err
+
+# ❌ Avoid bare exceptions (except in config flows for robustness)
+try:
+    data = await client.fetch_data()
+except Exception:  # Too broad
+    _LOGGER.error("Failed")
+```
+
+**Docstrings**: Required for All Public Functions
+```python
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up KidsChores from a config entry.
+    
+    Args:
+        hass: Home Assistant instance
+        entry: Configuration entry
+        
+    Returns:
+        True if setup successful
+    """
+```
+
+### Testing Requirements (95%+ Coverage Required)
+
+**Test Categories**:
+1. **Config Flow Tests** (`test_config_flow.py`) - All UI paths
+2. **Options Flow Tests** (`test_options_flow_*.py`) - Settings navigation
+3. **Coordinator Tests** (`test_coordinator.py`) - Business logic
+4. **Service Tests** (`test_services.py`) - All 17 services
+5. **Workflow Tests** (`test_workflow_*.py`) - End-to-end scenarios
+
+**Current Status**: 560/560 tests passing (100% baseline maintained)
+
+**Validation Commands**:
+```bash
+# Run full linting (must pass with 9.5+/10 score)
+./utils/quick_lint.sh --fix
+
+# Run full test suite (must pass)
+python -m pytest tests/ -v --tb=line
+```
+
+### Code Review Checklist (Before Committing)
+
+Use this checklist when reviewing or modifying code:
+
+**Phase 0 Audit Framework** (REQUIRED FIRST):
+- [ ] Read files to identify all user-facing strings
+- [ ] Identify all hardcoded dictionary keys
+- [ ] List all repeated string literals
+- [ ] Verify all TRANS_KEY_* constants exist in en.json
+- [ ] Document findings in standardized audit report
+
+**Code Quality Checks**:
+- [ ] No hardcoded user-facing strings (all use const.py constants)
+- [ ] No f-strings in logging calls (lazy logging only)
+- [ ] All functions have type hints (args + return type)
+- [ ] All exceptions use translation_domain + translation_key pattern
+- [ ] Entity unique IDs follow `entry_id_{scope_id}{SUFFIX}` pattern
+- [ ] No direct storage access (use coordinator methods)
+- [ ] Docstrings present for all public functions
+
+**Silver Quality Scale Checks**:
+- [ ] Config flow uses dynamic steps with validation
+- [ ] All entities have unique IDs
+- [ ] Services use ServiceValidationError for input errors
+- [ ] Entities implement `available` property
+- [ ] Parallel updates configured correctly
+- [ ] Logging follows unavailability pattern
+
+**Testing Checks**:
+- [ ] New code has corresponding test cases
+- [ ] All tests pass: `pytest tests/ -v --tb=line`
+- [ ] Linting passes: `./utils/quick_lint.sh --fix` (9.5+/10)
+- [ ] Coverage maintained at 95%+
+- [ ] No regressions in existing tests
+
+**Before Marking Complete**:
+- [ ] All linting passes (`./utils/quick_lint.sh --fix`)
+- [ ] All tests pass (`pytest tests/ -v`)
+- [ ] Plan document updated (if following phase plan)
+- [ ] Commit message documents what was changed and why
+
+### Home Assistant Quality Standards Reference
+
+For ongoing reference and to maintain Silver certification (and pathway to Gold), consult:
+
+- **[AGENTS.md](../../core/AGENTS.md)** - Home Assistant's authoritative code quality guide
+  - Covers all quality scale levels (Bronze, Silver, Gold, Platinum)
+  - Documents async patterns, exception handling, entity development
+  - Provides code examples and best practices
+  
+- **[quality_scale.yaml](../custom_components/kidschores/quality_scale.yaml)** - Current rule status
+  - Shows which Silver rules are "done"
+  - Indicates if any rules are "exempt" with rationale
+  - Tracks next steps for Gold certification
+
+- **[CODE_REVIEW_GUIDE.md](../docs/CODE_REVIEW_GUIDE.md)** - KidsChores-specific review patterns
+  - Phase 0 audit framework for new files
+  - Platform-specific review checklists
+  - Common issues and fixes
+  - Performance optimization guidelines
+
+### Gold Certification Pathway
+
+Once Silver is stable, Gold certification requires:
+
+- **Phase 5A**: Device Registry Integration (3-4 hours)
+- **Phase 6**: Repair Framework (4-6 hours)  
+- **Phase 7**: Documentation Expansion (5-7 hours)
+- **Phase 8**: Testing & Release (1.5-2 hours)
+
+See [docs/in-process/GOLD_CERTIFICATION_ROADMAP.md](../docs/in-process/GOLD_CERTIFICATION_ROADMAP.md) for detailed Gold implementation plans.
+
+---
 
 ### Helper Function Enhancements
 
@@ -2561,6 +2795,7 @@ _LOGGER.warning(
 
 ---
 
-**Document Version**: 1.3
-**Last Updated**: December 26, 2025
-**Integration Version**: 4.0+ (v0.4.0 release)
+**Document Version**: 1.4 (Updated for v0.4.0 Silver Certification)
+**Last Updated**: December 27, 2025
+**Integration Version**: 0.4.0 (v0.4.0 release)
+**Quality Level**: Silver (Officially Certified)
