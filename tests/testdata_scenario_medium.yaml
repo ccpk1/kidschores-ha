@@ -26,21 +26,25 @@ chores:
     type: "daily"
     points: 10
     icon: "mdi:cat"
+    auto_approve: true
   - name: "Wåter the plänts"
     assigned_to: ["Zoë"]
     type: "daily"
     points: 10
     icon: "mdi:watering-can"
+    auto_approve: false
   - name: "Pick up Lëgo!"
     assigned_to: ["Max!"]
     type: "weekly"
     points: 15
     icon: "mdi:lego"
+    auto_approve: false
   - name: "Stär sweep"
     assigned_to: ["Zoë", "Max!"]
     type: "periodic"
     points: 20
     icon: "mdi:star"
+    auto_approve: false
 
 badges:
   - name: "Brønze Står"
@@ -126,13 +130,13 @@ rewards:
 
 progress:
   Zoë:
-    chores_completed: ["Feed the cåts", "Stär sweep"]
+    chores_completed: [] # Tests will claim/approve chores dynamically
     badges_earned: ["Dåily Dëlight"]
     points: 35
     point_stats:
       points_net_all_time: 350.0
   Max!:
-    chores_completed: ["Pick up Lëgo!"]
+    chores_completed: [] # Tests will claim/approve chores dynamically
     badges_earned: []
     points: 15
     point_stats:

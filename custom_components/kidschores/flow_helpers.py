@@ -587,6 +587,16 @@ def build_chore_schema(kids_dict, default=None):
                     const.DEFAULT_NOTIFY_ON_DISAPPROVAL,
                 ),
             ): selector.BooleanSelector(),
+            vol.Required(
+                const.CONF_CHORE_SHOW_ON_CALENDAR,
+                default=default.get(const.CONF_CHORE_SHOW_ON_CALENDAR, True),
+            ): selector.BooleanSelector(),
+            vol.Required(
+                const.CONF_CHORE_AUTO_APPROVE,
+                default=default.get(
+                    const.CONF_CHORE_AUTO_APPROVE, const.DEFAULT_CHORE_AUTO_APPROVE
+                ),
+            ): selector.BooleanSelector(),
             vol.Required(const.CONF_INTERNAL_ID, default=internal_id_default): str,
         }
     )

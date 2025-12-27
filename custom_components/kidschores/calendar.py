@@ -96,12 +96,17 @@ class KidScheduleCalendar(CalendarEntity):
 
         events: list[CalendarEvent] = []
 
-        # 1) Generate chore events
+        # 1) Generate chore events (filtered by show_on_calendar flag)
         for chore in self.coordinator.chores_data.values():
-            if self._kid_id in chore.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
-                events.extend(
-                    self._generate_events_for_chore(chore, start_date, end_date)
-                )
+            # Skip chores not assigned to this kid
+            if self._kid_id not in chore.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
+                continue
+
+            # Skip chores with show_on_calendar set to False
+            if not chore.get(const.DATA_CHORE_SHOW_ON_CALENDAR, True):
+                continue
+
+            events.extend(self._generate_events_for_chore(chore, start_date, end_date))
 
         # 2) Generate challenge events
         for challenge in self.coordinator.challenges_data.values():

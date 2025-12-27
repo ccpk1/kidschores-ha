@@ -289,6 +289,8 @@ def create_mock_chore_data(
         "notify_on_claim": True,
         "notify_on_approval": True,
         "notify_on_disapproval": True,
+        "show_on_calendar": True,
+        "auto_approve": False,
     }
 
 
@@ -881,6 +883,7 @@ async def _apply_scenario_data(
         chore_data["internal_id"] = chore_id
         chore_data["icon"] = chore.get("icon", "mdi:check")
         chore_data["recurring_frequency"] = chore.get("type", "once")
+        chore_data["auto_approve"] = chore.get("auto_approve", False)
         # pylint: disable=protected-access
         coordinator._create_chore(chore_id, chore_data)
         name_to_id_map[f"chore:{chore_name}"] = chore_id

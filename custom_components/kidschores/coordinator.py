@@ -199,6 +199,26 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.LOGGER.debug("Cleaning up legacy key: migration_key_version")
                 del self._data[const.MIGRATION_KEY_VERSION]
 
+            # Add show_on_calendar field to existing chores (new optional field, defaults to True)
+            for chore_id, chore_data in self._data.get(const.DATA_CHORES, {}).items():
+                if const.DATA_CHORE_SHOW_ON_CALENDAR not in chore_data:
+                    chore_data[const.DATA_CHORE_SHOW_ON_CALENDAR] = True
+                    const.LOGGER.debug(
+                        "Migrated chore '%s' (%s): added show_on_calendar field",
+                        chore_data.get(const.DATA_CHORE_NAME),
+                        chore_id,
+                    )
+
+            # Add auto_approve field to existing chores (new optional field, defaults to False)
+            for chore_id, chore_data in self._data.get(const.DATA_CHORES, {}).items():
+                if const.DATA_CHORE_AUTO_APPROVE not in chore_data:
+                    chore_data[const.DATA_CHORE_AUTO_APPROVE] = False
+                    const.LOGGER.debug(
+                        "Migrated chore '%s' (%s): added auto_approve field",
+                        chore_data.get(const.DATA_CHORE_NAME),
+                        chore_id,
+                    )
+
         else:
             self._data = {
                 const.DATA_KIDS: {},
@@ -1150,6 +1170,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL: chore_data.get(
                 const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL,
                 const.DEFAULT_NOTIFY_ON_DISAPPROVAL,
+            ),
+            const.DATA_CHORE_SHOW_ON_CALENDAR: chore_data.get(
+                const.DATA_CHORE_SHOW_ON_CALENDAR, const.DEFAULT_CHORE_SHOW_ON_CALENDAR
+            ),
+            const.DATA_CHORE_AUTO_APPROVE: chore_data.get(
+                const.DATA_CHORE_AUTO_APPROVE, const.DEFAULT_CHORE_AUTO_APPROVE
             ),
             const.DATA_CHORE_INTERNAL_ID: chore_id,
         }
@@ -2260,40 +2286,53 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         self._process_chore_state(kid_id, chore_id, const.CHORE_STATE_CLAIMED)
 
-        # Send a notification to the parents that a kid claimed a chore
-        if chore_info.get(const.CONF_NOTIFY_ON_CLAIM, const.DEFAULT_NOTIFY_ON_CLAIM):
-            actions = [
-                {
-                    const.NOTIFY_ACTION: f"{const.ACTION_APPROVE_CHORE}|{kid_id}|{chore_id}",
-                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_APPROVE,
-                },
-                {
-                    const.NOTIFY_ACTION: f"{const.ACTION_DISAPPROVE_CHORE}|{kid_id}|{chore_id}",
-                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE,
-                },
-                {
-                    const.NOTIFY_ACTION: f"{const.ACTION_REMIND_30}|{kid_id}|{chore_id}",
-                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_REMIND_30,
-                },
-            ]
-            # Pass extra context so the event handler can route the action.
-            extra_data = {
-                const.DATA_KID_ID: kid_id,
-                const.DATA_CHORE_ID: chore_id,
-            }
-            self.hass.async_create_task(
-                self._notify_parents_translated(
-                    kid_id,
-                    title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_CLAIMED,
-                    message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_CLAIMED,
-                    message_data={
-                        "kid_name": self.kids_data[kid_id][const.DATA_KID_NAME],
-                        "chore_name": self.chores_data[chore_id][const.DATA_CHORE_NAME],
+        # Check if auto_approve is enabled for this chore
+        auto_approve = chore_info.get(
+            const.DATA_CHORE_AUTO_APPROVE, const.DEFAULT_CHORE_AUTO_APPROVE
+        )
+
+        if auto_approve:
+            # Auto-approve the chore immediately
+            self.approve_chore("auto_approve", kid_id, chore_id)
+        else:
+            # Send a notification to the parents that a kid claimed a chore (awaiting approval)
+            if chore_info.get(
+                const.CONF_NOTIFY_ON_CLAIM, const.DEFAULT_NOTIFY_ON_CLAIM
+            ):
+                actions = [
+                    {
+                        const.NOTIFY_ACTION: f"{const.ACTION_APPROVE_CHORE}|{kid_id}|{chore_id}",
+                        const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_APPROVE,
                     },
-                    actions=actions,
-                    extra_data=extra_data,
+                    {
+                        const.NOTIFY_ACTION: f"{const.ACTION_DISAPPROVE_CHORE}|{kid_id}|{chore_id}",
+                        const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE,
+                    },
+                    {
+                        const.NOTIFY_ACTION: f"{const.ACTION_REMIND_30}|{kid_id}|{chore_id}",
+                        const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_REMIND_30,
+                    },
+                ]
+                # Pass extra context so the event handler can route the action.
+                extra_data = {
+                    const.DATA_KID_ID: kid_id,
+                    const.DATA_CHORE_ID: chore_id,
+                }
+                self.hass.async_create_task(
+                    self._notify_parents_translated(
+                        kid_id,
+                        title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_CLAIMED,
+                        message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_CLAIMED,
+                        message_data={
+                            "kid_name": self.kids_data[kid_id][const.DATA_KID_NAME],
+                            "chore_name": self.chores_data[chore_id][
+                                const.DATA_CHORE_NAME
+                            ],
+                        },
+                        actions=actions,
+                        extra_data=extra_data,
+                    )
                 )
-            )
 
         self._persist()
         self.async_set_updated_data(self._data)
