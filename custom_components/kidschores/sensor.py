@@ -584,8 +584,27 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         return attributes
 
     @property
-    def icon(self):
-        """Use the chore's custom icon if set, else fallback."""
+    def icon(self) -> str | None:
+        """Return the icon based on chore state.
+
+        Maps chore status to an appropriate Material Design Icon:
+        - pending: checkbox-blank (not started)
+        - claimed: clipboard-check (kid claims)
+        - approved: checkbox-marked-circle (parent approves)
+        - overdue: alert-circle (not done in time)
+        - fallback: chore's custom icon or default
+        """
+        state = self.native_value
+        if state == const.CHORE_STATE_PENDING:
+            return "mdi:checkbox-blank-circle-outline"
+        elif state == const.CHORE_STATE_CLAIMED:
+            return "mdi:clipboard-check-outline"
+        elif state == const.CHORE_STATE_APPROVED:
+            return "mdi:checkbox-marked-circle-auto-outline"
+        elif state == const.CHORE_STATE_OVERDUE:
+            return "mdi:alert-circle-outline"
+
+        # Fallback: use chore's custom icon or default
         chore_info = self.coordinator.chores_data.get(self._chore_id, {})
         return chore_info.get(const.DATA_CHORE_ICON, const.DEFAULT_CHORE_SENSOR_ICON)
 
@@ -650,9 +669,27 @@ class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
         return self._points_label or const.LABEL_POINTS
 
     @property
-    def icon(self):
-        """Use the points' custom icon if set, else fallback."""
-        return self._points_icon or const.DEFAULT_POINTS_ICON
+    def icon(self) -> str:
+        """Return range-based icon based on current points.
+
+        Maps point levels to icons:
+        - 0-49 points: star-outline (starting out)
+        - 50-99 points: star-half-full (making progress)
+        - 100+ points: star (achieved!)
+        - Custom config icon if set, otherwise defaults above
+        """
+        # Use custom icon if configured
+        if self._points_icon:
+            return self._points_icon
+
+        # Range-based icon selection
+        current_points = self.native_value or 0
+        if current_points >= 100:
+            return "mdi:star"
+        elif current_points >= 50:
+            return "mdi:star-half-full"
+        else:
+            return "mdi:star-outline"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

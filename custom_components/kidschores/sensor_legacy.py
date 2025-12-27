@@ -33,6 +33,7 @@ from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.helpers.entity_registry import async_get
 
 from . import const
@@ -53,6 +54,7 @@ class SystemChoreApprovalsSensor(KidsChoresCoordinatorEntity, SensorEntity):
     """
 
     _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = const.TRANS_KEY_SENSOR_CHORES_COMPLETED_TOTAL_SENSOR
 
     def __init__(
@@ -71,6 +73,9 @@ class SystemChoreApprovalsSensor(KidsChoresCoordinatorEntity, SensorEntity):
             kid_name: Display name of the kid.
         """
         super().__init__(coordinator)
+        # Enable/disable based on config option
+        show_legacy = entry.options.get(const.CONF_SHOW_LEGACY_ENTITIES, False)
+        self._attr_entity_registry_enabled_default = show_legacy
         self._kid_id = kid_id
         self._kid_name = kid_name
         self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_TOTAL_SENSOR}"
@@ -107,6 +112,7 @@ class SystemChoreApprovalsDailySensor(KidsChoresCoordinatorEntity, SensorEntity)
     """
 
     _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = const.TRANS_KEY_SENSOR_CHORES_COMPLETED_DAILY_SENSOR
 
     def __init__(
@@ -125,6 +131,9 @@ class SystemChoreApprovalsDailySensor(KidsChoresCoordinatorEntity, SensorEntity)
             kid_name: Display name of the kid.
         """
         super().__init__(coordinator)
+        # Enable/disable based on config option
+        show_legacy = entry.options.get(const.CONF_SHOW_LEGACY_ENTITIES, False)
+        self._attr_entity_registry_enabled_default = show_legacy
         self._kid_id = kid_id
         self._kid_name = kid_name
         self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_DAILY_SENSOR}"
@@ -159,6 +168,7 @@ class SystemChoreApprovalsWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity
     """
 
     _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = const.TRANS_KEY_SENSOR_CHORES_COMPLETED_WEEKLY_SENSOR
 
     def __init__(
@@ -177,6 +187,9 @@ class SystemChoreApprovalsWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity
             kid_name: Display name of the kid.
         """
         super().__init__(coordinator)
+        # Enable/disable based on config option
+        show_legacy = entry.options.get(const.CONF_SHOW_LEGACY_ENTITIES, False)
+        self._attr_entity_registry_enabled_default = show_legacy
         self._kid_id = kid_id
         self._kid_name = kid_name
         self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_WEEKLY_SENSOR}"
@@ -211,6 +224,7 @@ class SystemChoreApprovalsMonthlySensor(KidsChoresCoordinatorEntity, SensorEntit
     """
 
     _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = const.TRANS_KEY_SENSOR_CHORES_COMPLETED_MONTHLY_SENSOR
 
     def __init__(
@@ -229,6 +243,9 @@ class SystemChoreApprovalsMonthlySensor(KidsChoresCoordinatorEntity, SensorEntit
             kid_name: Display name of the kid.
         """
         super().__init__(coordinator)
+        # Enable/disable based on config option
+        show_legacy = entry.options.get(const.CONF_SHOW_LEGACY_ENTITIES, False)
+        self._attr_entity_registry_enabled_default = show_legacy
         self._kid_id = kid_id
         self._kid_name = kid_name
         self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_MONTHLY_SENSOR}"
@@ -264,6 +281,7 @@ class SystemChoresPendingApprovalSensor(KidsChoresCoordinatorEntity, SensorEntit
     """Legacy sensor listing all pending chore approvals."""
 
     _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = const.TRANS_KEY_SENSOR_PENDING_CHORES_APPROVALS_SENSOR
 
     def __init__(
@@ -276,6 +294,9 @@ class SystemChoresPendingApprovalSensor(KidsChoresCoordinatorEntity, SensorEntit
             entry: ConfigEntry for this integration instance.
         """
         super().__init__(coordinator)
+        # Enable/disable based on config option
+        show_legacy = entry.options.get(const.CONF_SHOW_LEGACY_ENTITIES, False)
+        self._attr_entity_registry_enabled_default = show_legacy
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}{const.SENSOR_KC_UID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR}"
         self._attr_icon = const.DEFAULT_PENDING_CHORE_APPROVALS_SENSOR_ICON
@@ -350,6 +371,7 @@ class SystemRewardsPendingApprovalSensor(KidsChoresCoordinatorEntity, SensorEnti
     """Legacy sensor listing all pending reward approvals."""
 
     _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = const.TRANS_KEY_SENSOR_PENDING_REWARDS_APPROVALS_SENSOR
 
     def __init__(
@@ -362,6 +384,9 @@ class SystemRewardsPendingApprovalSensor(KidsChoresCoordinatorEntity, SensorEnti
             entry: ConfigEntry for this integration instance.
         """
         super().__init__(coordinator)
+        # Enable/disable based on config option
+        show_legacy = entry.options.get(const.CONF_SHOW_LEGACY_ENTITIES, False)
+        self._attr_entity_registry_enabled_default = show_legacy
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}{const.SENSOR_KC_UID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR}"
         self._attr_icon = const.DEFAULT_PENDING_REWARD_APPROVALS_SENSOR_ICON
@@ -445,6 +470,7 @@ class KidPointsEarnedDailySensor(KidsChoresCoordinatorEntity, SensorEntity):
     """
 
     _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = const.TRANS_KEY_SENSOR_KID_POINTS_EARNED_DAILY_SENSOR
 
     def __init__(
@@ -467,6 +493,9 @@ class KidPointsEarnedDailySensor(KidsChoresCoordinatorEntity, SensorEntity):
             points_icon: Customizable icon for points display.
         """
         super().__init__(coordinator)
+        # Enable/disable based on config option
+        show_legacy = entry.options.get(const.CONF_SHOW_LEGACY_ENTITIES, False)
+        self._attr_entity_registry_enabled_default = show_legacy
         self._kid_id = kid_id
         self._kid_name = kid_name
         self._points_label = points_label
@@ -511,6 +540,7 @@ class KidPointsEarnedWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity):
     """
 
     _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = const.TRANS_KEY_SENSOR_KID_POINTS_EARNED_WEEKLY_SENSOR
 
     def __init__(
@@ -533,6 +563,9 @@ class KidPointsEarnedWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity):
             points_icon: Customizable icon for points display.
         """
         super().__init__(coordinator)
+        # Enable/disable based on config option
+        show_legacy = entry.options.get(const.CONF_SHOW_LEGACY_ENTITIES, False)
+        self._attr_entity_registry_enabled_default = show_legacy
         self._kid_id = kid_id
         self._kid_name = kid_name
         self._points_label = points_label
@@ -577,6 +610,7 @@ class KidPointsEarnedMonthlySensor(KidsChoresCoordinatorEntity, SensorEntity):
     """
 
     _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = const.TRANS_KEY_SENSOR_KID_POINTS_EARNED_MONTHLY_SENSOR
 
     def __init__(
@@ -599,6 +633,9 @@ class KidPointsEarnedMonthlySensor(KidsChoresCoordinatorEntity, SensorEntity):
             points_icon: Customizable icon for points display.
         """
         super().__init__(coordinator)
+        # Enable/disable based on config option
+        show_legacy = entry.options.get(const.CONF_SHOW_LEGACY_ENTITIES, False)
+        self._attr_entity_registry_enabled_default = show_legacy
         self._kid_id = kid_id
         self._kid_name = kid_name
         self._points_label = points_label
@@ -643,6 +680,7 @@ class KidPointsMaxEverSensor(KidsChoresCoordinatorEntity, SensorEntity):
     """
 
     _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = const.TRANS_KEY_SENSOR_KID_MAX_POINTS_EVER_SENSOR
 
     def __init__(
@@ -665,6 +703,9 @@ class KidPointsMaxEverSensor(KidsChoresCoordinatorEntity, SensorEntity):
             points_icon: Customizable icon for points display.
         """
         super().__init__(coordinator)
+        # Enable/disable based on config option
+        show_legacy = entry.options.get(const.CONF_SHOW_LEGACY_ENTITIES, False)
+        self._attr_entity_registry_enabled_default = show_legacy
         self._kid_id = kid_id
         self._kid_name = kid_name
         self._points_label = points_label
@@ -717,6 +758,7 @@ class KidChoreStreakSensor(KidsChoresCoordinatorEntity, SensorEntity):
     """
 
     _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = const.TRANS_KEY_SENSOR_KID_HIGHEST_STREAK_SENSOR
 
     def __init__(
@@ -735,6 +777,9 @@ class KidChoreStreakSensor(KidsChoresCoordinatorEntity, SensorEntity):
             kid_name: Display name of the kid.
         """
         super().__init__(coordinator)
+        # Enable/disable based on config option
+        show_legacy = entry.options.get(const.CONF_SHOW_LEGACY_ENTITIES, False)
+        self._attr_entity_registry_enabled_default = show_legacy
         self._entry = entry
         self._kid_id = kid_id
         self._kid_name = kid_name

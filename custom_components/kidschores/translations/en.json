@@ -21,6 +21,14 @@
           "points_icon": "Points Icon"
         }
       },
+      "reconfigure": {
+        "title": "Reconfigure System Settings",
+        "description": "Update system settings like points label and icon.",
+        "data": {
+          "points_label": "Points Label",
+          "points_icon": "Points Icon"
+        }
+      },
       "kid_count": {
         "title": "Number of Kids",
         "description": "How many kids do you want to manage?",
@@ -312,14 +320,22 @@
       "duplicate_name": "An item with this name already exists. Please choose a different name.",
       "invalid_date_range": "The date range is invalid. End date must be after start date.",
       "missing_required": "Required field is missing. Please provide all required information.",
-      "invalid_format": "The format is invalid. Please check your input and try again."
+      "invalid_format": "The format is invalid. Please check your input and try again.",
+      "invalid_update_interval": "Invalid update interval. Must be a positive integer.",
+      "invalid_calendar_show_period": "Invalid calendar show period. Must be a positive integer.",
+      "invalid_retention_period": "Invalid retention period. Must be a positive integer.",
+      "invalid_points_adjust_values": "Invalid points adjust values. Must be a list."
     },
     "abort": {
       "single_instance_allowed": "Only a single KidsChores instance can be configured.",
       "already_configured": "KidsChores data has been restored successfully. You can now reload the integration.",
       "file_not_found": "The selected backup file could not be found.",
       "corrupt_file": "The selected file contains invalid JSON and cannot be read.",
-      "invalid_structure": "The selected file is missing required KidsChores data structure."
+      "invalid_structure": "The selected file is missing required KidsChores data structure.",
+      "reconfigure_failed": "Reconfiguration failed. Please try again.",
+      "reconfigure_successful": "System settings updated successfully.",
+      "reconfigure_failed": "Reconfiguration failed. Please try again.",
+      "reconfigure_successful": "System settings updated successfully."
     }
   },
   "options": {

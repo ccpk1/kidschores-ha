@@ -3354,3 +3354,223 @@ def validate_backup_json(json_str: str) -> bool:
     except (TypeError, ValueError) as ex:
         const.LOGGER.debug("Unexpected error validating backup JSON: %s", ex)
         return False
+
+
+# ----------------------------------------------------------------------------------
+# SYSTEM SETTINGS CONSOLIDATION (Phase 3c)
+# ----------------------------------------------------------------------------------
+
+
+def build_all_system_settings_schema(
+    default_points_label: str | None = None,
+    default_points_icon: str | None = None,
+    default_update_interval: int | None = None,
+    default_calendar_show_period: int | None = None,
+    default_retention_daily: int | None = None,
+    default_retention_weekly: int | None = None,
+    default_retention_monthly: int | None = None,
+    default_retention_yearly: int | None = None,
+    default_points_adjust_values: list[int] | None = None,
+) -> vol.Schema:
+    """Build form schema for all 9 system settings.
+
+    Combines points schema, update interval, calendar period, retention periods,
+    and points adjust values into a single comprehensive schema.
+
+    Args:
+        default_points_label: Points label (e.g., "Points", "Stars")
+        default_points_icon: MDI icon for points
+        default_update_interval: Coordinator update interval in minutes
+        default_calendar_show_period: Calendar lookback period in days
+        default_retention_daily: Days retention for daily history
+        default_retention_weekly: Weeks retention for weekly history
+        default_retention_monthly: Months retention for monthly history
+        default_retention_yearly: Years retention for yearly history
+        default_points_adjust_values: List of point adjustment values
+
+    Returns:
+        vol.Schema with all 9 system settings fields
+    """
+    # Use defaults if not provided
+    defaults = {
+        "points_label": default_points_label or const.DEFAULT_POINTS_LABEL,
+        "points_icon": default_points_icon or const.DEFAULT_POINTS_ICON,
+        "update_interval": default_update_interval or const.DEFAULT_UPDATE_INTERVAL,
+        "calendar_show_period": default_calendar_show_period
+        or const.DEFAULT_CALENDAR_SHOW_PERIOD,
+        "retention_daily": default_retention_daily or const.DEFAULT_RETENTION_DAILY,
+        "retention_weekly": default_retention_weekly or const.DEFAULT_RETENTION_WEEKLY,
+        "retention_monthly": default_retention_monthly
+        or const.DEFAULT_RETENTION_MONTHLY,
+        "retention_yearly": default_retention_yearly or const.DEFAULT_RETENTION_YEARLY,
+        "points_adjust_values": default_points_adjust_values
+        or const.DEFAULT_POINTS_ADJUST_VALUES,
+    }
+
+    # Build combined schema from points + other settings
+    points_fields = build_points_schema(
+        default_label=defaults["points_label"],
+        default_icon=defaults["points_icon"],
+    )
+
+    # Add update interval field
+    update_interval_fields = {
+        vol.Required(
+            const.CFOF_SYSTEM_INPUT_UPDATE_INTERVAL, default=defaults["update_interval"]
+        ): cv.positive_int,
+    }
+
+    # Add calendar period field
+    calendar_fields = {
+        vol.Required(
+            const.CFOF_SYSTEM_INPUT_CALENDAR_SHOW_PERIOD,
+            default=defaults["calendar_show_period"],
+        ): cv.positive_int,
+    }
+
+    # Add retention period fields
+    retention_fields = {
+        vol.Required(
+            const.CFOF_SYSTEM_INPUT_RETENTION_DAILY, default=defaults["retention_daily"]
+        ): cv.positive_int,
+        vol.Required(
+            const.CFOF_SYSTEM_INPUT_RETENTION_WEEKLY,
+            default=defaults["retention_weekly"],
+        ): cv.positive_int,
+        vol.Required(
+            const.CFOF_SYSTEM_INPUT_RETENTION_MONTHLY,
+            default=defaults["retention_monthly"],
+        ): cv.positive_int,
+        vol.Required(
+            const.CFOF_SYSTEM_INPUT_RETENTION_YEARLY,
+            default=defaults["retention_yearly"],
+        ): cv.positive_int,
+    }
+
+    # Add points adjust values field
+    adjust_values_fields = {
+        vol.Required(
+            const.CFOF_SYSTEM_INPUT_POINTS_ADJUST_VALUES,
+            default=defaults["points_adjust_values"],
+        ): cv.ensure_list,
+    }
+
+    # Combine all fields
+    all_fields = {
+        **points_fields.schema,
+        **update_interval_fields,
+        **calendar_fields,
+        **retention_fields,
+        **adjust_values_fields,
+    }
+
+    return vol.Schema(all_fields)
+
+
+def validate_all_system_settings(user_input: dict[str, Any]) -> dict[str, str]:
+    """Validate all 9 system settings.
+
+    Validates points label/icon, update interval, calendar period,
+    retention periods, and points adjust values.
+
+    Args:
+        user_input: Form input from user
+
+    Returns:
+        dict: Errors dictionary (empty if valid)
+    """
+    errors: dict[str, str] = {}
+
+    # Validate points using existing function
+    points_errors = validate_points_inputs(user_input)
+    if points_errors:
+        errors.update(points_errors)
+
+    # Validate update interval
+    update_interval = user_input.get(const.CFOF_SYSTEM_INPUT_UPDATE_INTERVAL)
+    if update_interval is not None and not isinstance(update_interval, int):
+        try:
+            int(update_interval)
+        except (ValueError, TypeError):
+            errors[const.CFOP_ERROR_UPDATE_INTERVAL] = (
+                const.TRANS_KEY_CFOF_INVALID_UPDATE_INTERVAL
+            )
+
+    # Validate calendar show period
+    calendar_period = user_input.get(const.CFOF_SYSTEM_INPUT_CALENDAR_SHOW_PERIOD)
+    if calendar_period is not None and not isinstance(calendar_period, int):
+        try:
+            int(calendar_period)
+        except (ValueError, TypeError):
+            errors[const.CFOP_ERROR_CALENDAR_SHOW_PERIOD] = (
+                const.TRANS_KEY_CFOF_INVALID_CALENDAR_SHOW_PERIOD
+            )
+
+    # Validate retention periods (all positive ints)
+    for field, error_key in [
+        (const.CFOF_SYSTEM_INPUT_RETENTION_DAILY, const.CFOP_ERROR_RETENTION_DAILY),
+        (const.CFOF_SYSTEM_INPUT_RETENTION_WEEKLY, const.CFOP_ERROR_RETENTION_WEEKLY),
+        (const.CFOF_SYSTEM_INPUT_RETENTION_MONTHLY, const.CFOP_ERROR_RETENTION_MONTHLY),
+        (const.CFOF_SYSTEM_INPUT_RETENTION_YEARLY, const.CFOP_ERROR_RETENTION_YEARLY),
+    ]:
+        value = user_input.get(field)
+        if value is not None and not isinstance(value, int):
+            try:
+                int(value)
+            except (ValueError, TypeError):
+                errors[error_key] = const.TRANS_KEY_CFOF_INVALID_RETENTION_PERIOD
+
+    # Validate points adjust values is list
+    adjust_values = user_input.get(const.CFOF_SYSTEM_INPUT_POINTS_ADJUST_VALUES)
+    if adjust_values is not None and not isinstance(adjust_values, list):
+        errors[const.CFOP_ERROR_POINTS_ADJUST_VALUES] = (
+            const.TRANS_KEY_CFOF_INVALID_POINTS_ADJUST_VALUES
+        )
+
+    return errors
+
+
+def build_all_system_settings_data(user_input: dict[str, Any]) -> dict[str, Any]:
+    """Build 9-key system settings options dictionary from user input.
+
+    Extracts all 9 system setting values from user input and returns
+    a dictionary ready for config_entry.options.
+
+    Args:
+        user_input: Form input from user (assumed valid)
+
+    Returns:
+        dict: 9-key dictionary with system settings
+    """
+    # Build points settings using existing function
+    points_data = build_points_data(user_input)
+
+    # Extract other settings
+    settings_data = {
+        const.CONF_UPDATE_INTERVAL: user_input.get(
+            const.CFOF_SYSTEM_INPUT_UPDATE_INTERVAL, const.DEFAULT_UPDATE_INTERVAL
+        ),
+        const.CONF_CALENDAR_SHOW_PERIOD: user_input.get(
+            const.CFOF_SYSTEM_INPUT_CALENDAR_SHOW_PERIOD,
+            const.DEFAULT_CALENDAR_SHOW_PERIOD,
+        ),
+        const.CONF_RETENTION_DAILY: user_input.get(
+            const.CFOF_SYSTEM_INPUT_RETENTION_DAILY, const.DEFAULT_RETENTION_DAILY
+        ),
+        const.CONF_RETENTION_WEEKLY: user_input.get(
+            const.CFOF_SYSTEM_INPUT_RETENTION_WEEKLY, const.DEFAULT_RETENTION_WEEKLY
+        ),
+        const.CONF_RETENTION_MONTHLY: user_input.get(
+            const.CFOF_SYSTEM_INPUT_RETENTION_MONTHLY, const.DEFAULT_RETENTION_MONTHLY
+        ),
+        const.CONF_RETENTION_YEARLY: user_input.get(
+            const.CFOF_SYSTEM_INPUT_RETENTION_YEARLY, const.DEFAULT_RETENTION_YEARLY
+        ),
+        const.CONF_POINTS_ADJUST_VALUES: user_input.get(
+            const.CFOF_SYSTEM_INPUT_POINTS_ADJUST_VALUES,
+            const.DEFAULT_POINTS_ADJUST_VALUES,
+        ),
+    }
+
+    # Combine points + other settings into single dict
+    return {**points_data, **settings_data}

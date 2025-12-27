@@ -190,8 +190,13 @@ CONFIG_FLOW_STEP_PARENTS: Final = "parents"
 CONFIG_FLOW_STEP_PENALTY_COUNT: Final = "penalty_count"
 CONFIG_FLOW_STEP_PENALTIES: Final = "penalties"
 CONFIG_FLOW_STEP_POINTS: Final = "points_label"
+CONFIG_FLOW_STEP_RECONFIGURE: Final = "reconfigure"
 CONFIG_FLOW_STEP_REWARD_COUNT: Final = "reward_count"
 CONFIG_FLOW_STEP_REWARDS: Final = "rewards"
+
+# Config Flow Abort Reasons (Phase 3b)
+CONFIG_FLOW_ABORT_RECONFIGURE_FAILED: Final = "reconfigure_failed"
+CONFIG_FLOW_ABORT_RECONFIGURE_SUCCESSFUL: Final = "reconfigure_successful"
 
 # OptionsFlow Management Menus Keys
 OPTIONS_FLOW_DIC_ACHIEVEMENT: Final = "achievement"
@@ -501,6 +506,17 @@ BACKUP_TAG_PRE_MIGRATION: Final = (
     "pre-migration"  # Before schema upgrade (never deleted)
 )
 BACKUP_TAG_MANUAL: Final = "manual"  # User-initiated (never deleted)
+
+# System Settings (ConfigFlow & OptionsFlow)  Phase 3c: Consolidation
+CFOF_SYSTEM_INPUT_POINTS_LABEL: Final = "points_label"
+CFOF_SYSTEM_INPUT_POINTS_ICON: Final = "points_icon"
+CFOF_SYSTEM_INPUT_UPDATE_INTERVAL: Final = "update_interval"
+CFOF_SYSTEM_INPUT_CALENDAR_SHOW_PERIOD: Final = "calendar_show_period"
+CFOF_SYSTEM_INPUT_RETENTION_DAILY: Final = "retention_daily"
+CFOF_SYSTEM_INPUT_RETENTION_WEEKLY: Final = "retention_weekly"
+CFOF_SYSTEM_INPUT_RETENTION_MONTHLY: Final = "retention_monthly"
+CFOF_SYSTEM_INPUT_RETENTION_YEARLY: Final = "retention_yearly"
+CFOF_SYSTEM_INPUT_POINTS_ADJUST_VALUES: Final = "points_adjust_values"
 
 # Chore Custom Interval Reset Periods
 CUSTOM_INTERVAL_UNIT_OPTIONS: Final = [
@@ -1889,6 +1905,14 @@ CFOP_ERROR_UNKNOWN: Final = "unknown"
 # Phase 3 additions for config_flow remediation
 CFOP_ERROR_EMPTY_JSON: Final = "empty_json"  # Empty JSON data provided
 CFOP_ERROR_INVALID_SELECTION: Final = "invalid_selection"  # Invalid menu selection
+# Phase 3c: System Settings Consolidation
+CFOP_ERROR_UPDATE_INTERVAL: Final = "update_interval"
+CFOP_ERROR_CALENDAR_SHOW_PERIOD: Final = "calendar_show_period"
+CFOP_ERROR_RETENTION_DAILY: Final = "retention_daily"
+CFOP_ERROR_RETENTION_WEEKLY: Final = "retention_weekly"
+CFOP_ERROR_RETENTION_MONTHLY: Final = "retention_monthly"
+CFOP_ERROR_RETENTION_YEARLY: Final = "retention_yearly"
+CFOP_ERROR_POINTS_ADJUST_VALUES: Final = "points_adjust_values"
 
 
 # ------------------------------------------------------------------------------------------------
@@ -2095,6 +2119,12 @@ TRANS_KEY_CFOF_SUMMARY_KIDS: Final = "Kids: "
 TRANS_KEY_CFOF_SUMMARY_PARENTS: Final = "Parents: "
 TRANS_KEY_CFOF_SUMMARY_PENALTIES: Final = "Penalties: "
 TRANS_KEY_CFOF_SUMMARY_REWARDS: Final = "Rewards: "
+
+# Phase 3c: System Settings Translation Keys
+TRANS_KEY_CFOF_INVALID_UPDATE_INTERVAL: Final = "invalid_update_interval"
+TRANS_KEY_CFOF_INVALID_CALENDAR_SHOW_PERIOD: Final = "invalid_calendar_show_period"
+TRANS_KEY_CFOF_INVALID_RETENTION_PERIOD: Final = "invalid_retention_period"
+TRANS_KEY_CFOF_INVALID_POINTS_ADJUST_VALUES: Final = "invalid_points_adjust_values"
 
 # Flow Helpers Translation Keys
 TRANS_KEY_FLOW_HELPERS_APPLICABLE_DAYS: Final = "applicable_days"

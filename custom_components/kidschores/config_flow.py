@@ -128,7 +128,8 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                 f"📂 Use current active file: {storage_path.name}"
             )
 
-        options["start_fresh"] = "🆕 Start fresh (creates backup of existing data)"
+        start_fresh_label = "🆕 Start fresh (creates backup of existing data)"
+        options["start_fresh"] = start_fresh_label
 
         # Add discovered backups with age info
         for backup in backups:
@@ -1362,46 +1363,100 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
         # Config entry contains ONLY system settings (no entity data)
         entry_data = {}  # Keep empty - standard HA pattern
-        entry_options = {
-            # Points configuration
-            const.CONF_POINTS_LABEL: self._data.get(
-                const.CONF_POINTS_LABEL, const.DEFAULT_POINTS_LABEL
-            ),
-            const.CONF_POINTS_ICON: self._data.get(
-                const.CONF_POINTS_ICON, const.DEFAULT_POINTS_ICON
-            ),
-            # Update & Calendar settings
-            const.CONF_UPDATE_INTERVAL: self._data.get(
-                const.CONF_UPDATE_INTERVAL, const.DEFAULT_UPDATE_INTERVAL
-            ),
-            const.CONF_CALENDAR_SHOW_PERIOD: self._data.get(
-                const.CONF_CALENDAR_SHOW_PERIOD, const.DEFAULT_CALENDAR_SHOW_PERIOD
-            ),
-            # History retention periods
-            const.CONF_RETENTION_DAILY: self._data.get(
-                const.CONF_RETENTION_DAILY, const.DEFAULT_RETENTION_DAILY
-            ),
-            const.CONF_RETENTION_WEEKLY: self._data.get(
-                const.CONF_RETENTION_WEEKLY, const.DEFAULT_RETENTION_WEEKLY
-            ),
-            const.CONF_RETENTION_MONTHLY: self._data.get(
-                const.CONF_RETENTION_MONTHLY, const.DEFAULT_RETENTION_MONTHLY
-            ),
-            const.CONF_RETENTION_YEARLY: self._data.get(
-                const.CONF_RETENTION_YEARLY, const.DEFAULT_RETENTION_YEARLY
-            ),
-            # Adjustable point values
-            const.CONF_POINTS_ADJUST_VALUES: self._data.get(
-                const.CONF_POINTS_ADJUST_VALUES, const.DEFAULT_POINTS_ADJUST_VALUES
-            ),
-        }
+
+        # Build all 9 system settings using consolidated helper function
+        entry_options = fh.build_all_system_settings_data(self._data)
 
         const.LOGGER.debug(
-            "DEBUG: Creating config entry with system settings only: %s",
+            "Creating config entry with system settings only: %s",
             entry_options,
         )
         return self.async_create_entry(
             title="KidsChores", data=entry_data, options=entry_options
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:  # type: ignore[override]
+        """Handle reconfiguration (editing system settings via Configure button).
+
+        This flow allows users to update all 9 system settings via the standard
+        Home Assistant "Configure" button instead of navigating the options menu.
+        Uses consolidated flow_helpers for validation and data building.
+        """
+        entry_id = self.context.get("entry_id")
+        if not entry_id or not isinstance(entry_id, str):
+            return self.async_abort(reason=const.CONFIG_FLOW_ABORT_RECONFIGURE_FAILED)  # type: ignore[return-value]
+
+        config_entry = self.hass.config_entries.async_get_entry(entry_id)
+        if not config_entry:
+            return self.async_abort(reason=const.CONFIG_FLOW_ABORT_RECONFIGURE_FAILED)  # type: ignore[return-value]
+
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            # Validate all 9 system settings using consolidated helper
+            errors = fh.validate_all_system_settings(user_input)
+
+            if not errors:
+                # Build all 9 system settings using consolidated helper
+                all_settings_data = fh.build_all_system_settings_data(user_input)
+
+                # Update config entry options with all system settings
+                updated_options = dict(config_entry.options)
+                updated_options.update(all_settings_data)
+
+                const.LOGGER.debug(
+                    "Reconfiguring system settings: points_label=%s, update_interval=%s",
+                    all_settings_data.get(const.CONF_POINTS_LABEL),
+                    all_settings_data.get(const.CONF_UPDATE_INTERVAL),
+                )
+
+                # Update and reload integration
+                self.hass.config_entries.async_update_entry(
+                    config_entry, options=updated_options
+                )
+                await self.hass.config_entries.async_reload(config_entry.entry_id)
+
+                return self.async_abort(
+                    reason=const.CONFIG_FLOW_ABORT_RECONFIGURE_SUCCESSFUL
+                )  # type: ignore[return-value]
+
+        # Build the comprehensive schema with all 9 settings using current values
+        all_settings_schema = fh.build_all_system_settings_schema(
+            default_points_label=config_entry.options.get(
+                const.CONF_POINTS_LABEL, const.DEFAULT_POINTS_LABEL
+            ),
+            default_points_icon=config_entry.options.get(
+                const.CONF_POINTS_ICON, const.DEFAULT_POINTS_ICON
+            ),
+            default_update_interval=config_entry.options.get(
+                const.CONF_UPDATE_INTERVAL, const.DEFAULT_UPDATE_INTERVAL
+            ),
+            default_calendar_show_period=config_entry.options.get(
+                const.CONF_CALENDAR_SHOW_PERIOD, const.DEFAULT_CALENDAR_SHOW_PERIOD
+            ),
+            default_retention_daily=config_entry.options.get(
+                const.CONF_RETENTION_DAILY, const.DEFAULT_RETENTION_DAILY
+            ),
+            default_retention_weekly=config_entry.options.get(
+                const.CONF_RETENTION_WEEKLY, const.DEFAULT_RETENTION_WEEKLY
+            ),
+            default_retention_monthly=config_entry.options.get(
+                const.CONF_RETENTION_MONTHLY, const.DEFAULT_RETENTION_MONTHLY
+            ),
+            default_retention_yearly=config_entry.options.get(
+                const.CONF_RETENTION_YEARLY, const.DEFAULT_RETENTION_YEARLY
+            ),
+            default_points_adjust_values=config_entry.options.get(
+                const.CONF_POINTS_ADJUST_VALUES, const.DEFAULT_POINTS_ADJUST_VALUES
+            ),
+        )
+
+        return self.async_show_form(  # type: ignore[return-value]
+            step_id=const.CONFIG_FLOW_STEP_RECONFIGURE,
+            data_schema=all_settings_schema,
+            errors=errors,
         )
 
     @staticmethod
