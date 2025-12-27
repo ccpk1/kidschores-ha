@@ -68,10 +68,10 @@ This architectural change:
 
 The **`meta.schema_version`** field in storage data determines the integration's operational mode. Schema 42 is the current and newest version for 0.4.0+:
 
-| Schema Version | Mode                    | Behavior                                                        |
-| -------------- | ----------------------- | --------------------------------------------------------------- |
-| < 42           | Legacy (Pre-0.4.0)      | Reads entity data from `config_entry.options` or legacy storage |
-| ≥ 42           | Storage-Only (0.4.0+)   | Reads entity data exclusively from storage with meta section    |
+| Schema Version | Mode                  | Behavior                                                        |
+| -------------- | --------------------- | --------------------------------------------------------------- |
+| < 42           | Legacy (Pre-0.4.0)    | Reads entity data from `config_entry.options` or legacy storage |
+| ≥ 42           | Storage-Only (0.4.0+) | Reads entity data exclusively from storage with meta section    |
 
 **Key Files**:
 
@@ -2527,6 +2527,7 @@ This section documents the code quality standards required to maintain Silver ce
 ### Silver Quality Requirements (Mandatory - All Implemented ✅)
 
 **1. Configuration Flow** ✅
+
 - UI setup required for all configuration
 - Multi-step dynamic flow with user input validation
 - Error handling with translation keys
@@ -2536,6 +2537,7 @@ This section documents the code quality standards required to maintain Silver ce
 **Implementation Reference**: [custom_components/kidschores/config_flow.py](../custom_components/kidschores/config_flow.py)
 
 **2. Entity Unique IDs** ✅
+
 - Every entity has a unique ID stored in entity registry
 - Unique IDs use `entry_id` + `internal_id` (UUID) + entity-specific suffix
 - Survives entity renames and configuration reloads
@@ -2544,6 +2546,7 @@ This section documents the code quality standards required to maintain Silver ce
 **Implementation Reference**: All entity platforms (sensor.py, button.py, select.py, etc.)
 
 **3. Service Actions with Validation** ✅
+
 - 17 services registered with input validation
 - `ServiceValidationError` for user input errors
 - `HomeAssistantError` with translation keys for runtime errors
@@ -2552,6 +2555,7 @@ This section documents the code quality standards required to maintain Silver ce
 **Implementation Reference**: [custom_components/kidschores/services.py](../custom_components/kidschores/services.py)
 
 **4. Entity Unavailability Handling** ✅
+
 - All 30+ entities implement explicit `available` property
 - Returns `False` when coordinator data missing or stale
 - Uses `None` for unknown values (not "unknown" or "unavailable" strings)
@@ -2560,6 +2564,7 @@ This section documents the code quality standards required to maintain Silver ce
 **Implementation Reference**: All entity classes with `@property def available(self) -> bool:`
 
 **5. Parallel Updates** ✅
+
 - `PARALLEL_UPDATES` set to `0` (unlimited) for coordinator-based entities
 - Entities don't poll (rely on coordinator)
 - Efficient concurrent state updates
@@ -2567,11 +2572,13 @@ This section documents the code quality standards required to maintain Silver ce
 **Implementation Reference**: [custom_components/kidschores/sensor.py](../custom_components/kidschores/sensor.py) (line ~40)
 
 **6. Logging When Unavailable** ✅
+
 - INFO level log when service/device becomes unavailable
 - INFO level log when service/device recovers
 - Single-log-per-state pattern (avoid log spam)
 
 **Example Pattern**:
+
 ```python
 _unavailable_logged: bool = False
 
@@ -2588,6 +2595,7 @@ if self._unavailable_logged:
 ### Code Quality Standards (All Implemented ✅)
 
 **Type Hints**: 100% Required
+
 ```python
 # ✅ All functions have complete type hints
 async def async_claim_chore(
@@ -2599,6 +2607,7 @@ async def async_claim_chore(
 ```
 
 **Lazy Logging**: 100% Required (No F-Strings in Logging)
+
 ```python
 # ✅ Always use lazy logging with %s placeholders
 _LOGGER.debug("Processing chore for kid: %s", kid_name)
@@ -2609,6 +2618,7 @@ _LOGGER.debug(f"Processing {kid_name}")  # BAD - performance impact
 ```
 
 **Constants for All User-Facing Strings**: 100% Required
+
 ```python
 # ✅ Store constants in const.py
 TRANS_KEY_ERROR_KID_NOT_FOUND = "error_kid_not_found"
@@ -2625,6 +2635,7 @@ raise HomeAssistantError(f"Kid {kid_name} not found")
 ```
 
 **Exception Handling**: Specific Exceptions Required
+
 ```python
 # ✅ Use most specific exception type available
 try:
@@ -2642,14 +2653,15 @@ except Exception:  # Too broad
 ```
 
 **Docstrings**: Required for All Public Functions
+
 ```python
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up KidsChores from a config entry.
-    
+
     Args:
         hass: Home Assistant instance
         entry: Configuration entry
-        
+
     Returns:
         True if setup successful
     """
@@ -2658,6 +2670,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 ### Testing Requirements (95%+ Coverage Required)
 
 **Test Categories**:
+
 1. **Config Flow Tests** (`test_config_flow.py`) - All UI paths
 2. **Options Flow Tests** (`test_options_flow_*.py`) - Settings navigation
 3. **Coordinator Tests** (`test_coordinator.py`) - Business logic
@@ -2667,6 +2680,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 **Current Status**: 560/560 tests passing (100% baseline maintained)
 
 **Validation Commands**:
+
 ```bash
 # Run full linting (must pass with 9.5+/10 score)
 ./utils/quick_lint.sh --fix
@@ -2680,13 +2694,15 @@ python -m pytest tests/ -v --tb=line
 Use this checklist when reviewing or modifying code:
 
 **Phase 0 Audit Framework** (REQUIRED FIRST):
+
 - [ ] Read files to identify all user-facing strings
 - [ ] Identify all hardcoded dictionary keys
 - [ ] List all repeated string literals
-- [ ] Verify all TRANS_KEY_* constants exist in en.json
+- [ ] Verify all TRANS*KEY*\* constants exist in en.json
 - [ ] Document findings in standardized audit report
 
 **Code Quality Checks**:
+
 - [ ] No hardcoded user-facing strings (all use const.py constants)
 - [ ] No f-strings in logging calls (lazy logging only)
 - [ ] All functions have type hints (args + return type)
@@ -2696,6 +2712,7 @@ Use this checklist when reviewing or modifying code:
 - [ ] Docstrings present for all public functions
 
 **Silver Quality Scale Checks**:
+
 - [ ] Config flow uses dynamic steps with validation
 - [ ] All entities have unique IDs
 - [ ] Services use ServiceValidationError for input errors
@@ -2704,6 +2721,7 @@ Use this checklist when reviewing or modifying code:
 - [ ] Logging follows unavailability pattern
 
 **Testing Checks**:
+
 - [ ] New code has corresponding test cases
 - [ ] All tests pass: `pytest tests/ -v --tb=line`
 - [ ] Linting passes: `./utils/quick_lint.sh --fix` (9.5+/10)
@@ -2711,6 +2729,7 @@ Use this checklist when reviewing or modifying code:
 - [ ] No regressions in existing tests
 
 **Before Marking Complete**:
+
 - [ ] All linting passes (`./utils/quick_lint.sh --fix`)
 - [ ] All tests pass (`pytest tests/ -v`)
 - [ ] Plan document updated (if following phase plan)
@@ -2721,11 +2740,13 @@ Use this checklist when reviewing or modifying code:
 For ongoing reference and to maintain Silver certification (and pathway to Gold), consult:
 
 - **[AGENTS.md](../../core/AGENTS.md)** - Home Assistant's authoritative code quality guide
+
   - Covers all quality scale levels (Bronze, Silver, Gold, Platinum)
   - Documents async patterns, exception handling, entity development
   - Provides code examples and best practices
-  
+
 - **[quality_scale.yaml](../custom_components/kidschores/quality_scale.yaml)** - Current rule status
+
   - Shows which Silver rules are "done"
   - Indicates if any rules are "exempt" with rationale
   - Tracks next steps for Gold certification
@@ -2741,7 +2762,7 @@ For ongoing reference and to maintain Silver certification (and pathway to Gold)
 Once Silver is stable, Gold certification requires:
 
 - **Phase 5A**: Device Registry Integration (3-4 hours)
-- **Phase 6**: Repair Framework (4-6 hours)  
+- **Phase 6**: Repair Framework (4-6 hours)
 - **Phase 7**: Documentation Expansion (5-7 hours)
 - **Phase 8**: Testing & Release (1.5-2 hours)
 

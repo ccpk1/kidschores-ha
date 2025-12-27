@@ -18,6 +18,7 @@ When developing or reviewing code for KidsChores, use this guide to:
 4. **Review examples** - See code examples from KidsChores codebase
 
 **Key Documents**:
+
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - KidsChores architecture and quality standards (NEW Section: Quality Standards & Maintenance Guide)
 - **[CODE_REVIEW_GUIDE.md](CODE_REVIEW_GUIDE.md)** - Phase 0 Audit Framework and detailed review checklists
 - **[AGENTS.md](../../core/AGENTS.md)** - Home Assistant's official integration quality guidance (authoritative source)
@@ -29,14 +30,14 @@ When developing or reviewing code for KidsChores, use this guide to:
 
 ### AGENTS.md Sections → KidsChores Implementation
 
-| HA Quality Rule | AGENTS.md Section | KidsChores Status | Implementation File | ARCHITECTURE.md Ref |
-|---|---|---|---|---|
-| **Configuration Flow** | Config Flow Patterns | ✅ Done | config_flow.py | Quality Standards § 1 |
-| **Entity Unique IDs** | Unique IDs | ✅ Done | sensor.py, button.py, select.py | Quality Standards § 2 |
-| **Service Actions** | Service Registration Patterns | ✅ Done | services.py | Quality Standards § 3 |
-| **Entity Unavailability** | State Handling, Entity Availability | ✅ Done | All entity classes | Quality Standards § 4 |
-| **Parallel Updates** | Update Patterns | ✅ Done | sensor.py (line ~40) | Quality Standards § 5 |
-| **Unavailability Logging** | Unavailability Logging | ✅ Done | coordinator.py | Quality Standards § 6 |
+| HA Quality Rule            | AGENTS.md Section                   | KidsChores Status | Implementation File             | ARCHITECTURE.md Ref   |
+| -------------------------- | ----------------------------------- | ----------------- | ------------------------------- | --------------------- |
+| **Configuration Flow**     | Config Flow Patterns                | ✅ Done           | config_flow.py                  | Quality Standards § 1 |
+| **Entity Unique IDs**      | Unique IDs                          | ✅ Done           | sensor.py, button.py, select.py | Quality Standards § 2 |
+| **Service Actions**        | Service Registration Patterns       | ✅ Done           | services.py                     | Quality Standards § 3 |
+| **Entity Unavailability**  | State Handling, Entity Availability | ✅ Done           | All entity classes              | Quality Standards § 4 |
+| **Parallel Updates**       | Update Patterns                     | ✅ Done           | sensor.py (line ~40)            | Quality Standards § 5 |
+| **Unavailability Logging** | Unavailability Logging              | ✅ Done           | coordinator.py                  | Quality Standards § 6 |
 
 ---
 
@@ -47,12 +48,14 @@ When developing or reviewing code for KidsChores, use this guide to:
 **HA Guidance**: [AGENTS.md § Python Requirements - Strict Typing](../../core/AGENTS.md)
 
 **KidsChores Implementation**:
+
 - ✅ All functions have complete type hints (args + return)
 - ✅ Properties include return type hints
 - ✅ Use Python 3.10+ syntax (`str | None` not `Optional[str]`)
 - ✅ Use modern dict syntax (`dict[str, Any]` not `Dict[str, Any]`)
 
 **Example**:
+
 ```python
 async def async_claim_chore(
     self,
@@ -71,17 +74,20 @@ async def async_claim_chore(
 **HA Guidance**: [AGENTS.md § Logging](../../core/AGENTS.md)
 
 **KidsChores Implementation**:
+
 - ✅ 100% compliance - zero f-strings in logging
 - ✅ Always use `%s`, `%d` placeholders (lazy evaluation)
 - ✅ Never evaluate in log calls (performance critical)
 
 **Correct Pattern**:
+
 ```python
 _LOGGER.debug("Processing chore for kid: %s", kid_name)
 _LOGGER.info("Points adjusted for kid: %s to %s", kid_name, new_points)
 ```
 
 **Wrong Pattern** (Never use):
+
 ```python
 _LOGGER.debug(f"Processing {kid_name}")  # ❌ f-string evaluated even if log skipped
 ```
@@ -95,6 +101,7 @@ _LOGGER.debug(f"Processing {kid_name}")  # ❌ f-string evaluated even if log sk
 **HA Guidance**: [AGENTS.md § Code Quality Standards](../../core/AGENTS.md)
 
 **KidsChores Implementation**:
+
 - ✅ All user-facing strings stored in `const.py`
 - ✅ Constants follow strict naming patterns:
   - `DATA_*` - Storage data keys
@@ -106,6 +113,7 @@ _LOGGER.debug(f"Processing {kid_name}")  # ❌ f-string evaluated even if log sk
 - ✅ No hardcoded strings in error messages, labels, or notifications
 
 **Correct Pattern**:
+
 ```python
 # In const.py
 TRANS_KEY_ERROR_KID_NOT_FOUND = "error_kid_not_found"
@@ -119,6 +127,7 @@ raise HomeAssistantError(
 ```
 
 **Wrong Pattern** (Never use):
+
 ```python
 raise HomeAssistantError(f"Kid {kid_name} not found")  # ❌ Hardcoded, not translatable
 ```
@@ -132,6 +141,7 @@ raise HomeAssistantError(f"Kid {kid_name} not found")  # ❌ Hardcoded, not tran
 **HA Guidance**: [AGENTS.md § Error Handling](../../core/AGENTS.md)
 
 **KidsChores Implementation**:
+
 - ✅ Use most specific exception type available:
   - `ServiceValidationError` for user input errors
   - `HomeAssistantError` with translation_key for runtime errors
@@ -141,6 +151,7 @@ raise HomeAssistantError(f"Kid {kid_name} not found")  # ❌ Hardcoded, not tran
 - ✅ Always chain exceptions with `from err`
 
 **Correct Pattern**:
+
 ```python
 try:
     data = await client.fetch_data()
@@ -151,6 +162,7 @@ except ApiAuthError as err:
 ```
 
 **Wrong Pattern** (Never use):
+
 ```python
 try:
     value = await sensor.read_value()
@@ -167,12 +179,14 @@ except Exception:  # ❌ Too broad
 **HA Guidance**: [AGENTS.md § Documentation Standards](../../core/AGENTS.md)
 
 **KidsChores Implementation**:
+
 - ✅ All public methods have docstrings
 - ✅ Module docstrings describe purpose and entity types
 - ✅ Class docstrings explain when entities update
 - ✅ Clear, descriptive language
 
 **Example**:
+
 ```python
 """Platform for KidsChores sensor entities.
 
@@ -204,17 +218,19 @@ class KidPointsSensor(CoordinatorEntity, SensorEntity):
 **HA Guidance**: [AGENTS.md § Testing Requirements](../../core/AGENTS.md)
 
 **KidsChores Status**:
+
 - ✅ 560/560 tests passing (100% baseline)
 - ✅ 10 intentionally skipped (not counted)
 - ✅ 95%+ code coverage across all modules
 - ✅ All test categories covered:
   - Config flow tests (test_config_flow.py)
-  - Options flow tests (test_options_flow_*.py)
+  - Options flow tests (test*options_flow*\*.py)
   - Coordinator tests (test_coordinator.py)
   - Service tests (test_services.py)
-  - Workflow tests (test_workflow_*.py)
+  - Workflow tests (test*workflow*\*.py)
 
 **Test Validation Command**:
+
 ```bash
 ./utils/quick_lint.sh --fix    # Must pass with 9.5+/10
 python -m pytest tests/ -v     # Must pass 560/560
@@ -229,16 +245,19 @@ python -m pytest tests/ -v     # Must pass 560/560
 **HA Guidance**: [AGENTS.md § Code Quality Standards](../../core/AGENTS.md)
 
 **KidsChores Status**:
+
 - ✅ Current score: 9.64/10
 - ✅ Zero critical errors (Severity 4+)
 - ✅ All files pass validation
 
 **Linting Command**:
+
 ```bash
 ./utils/quick_lint.sh --fix
 ```
 
 **Output Example**:
+
 ```
 Your code has been rated at 9.64/10
 All 50 files meet quality standards
@@ -258,6 +277,7 @@ All 50 files meet quality standards
 **Standards in ARCHITECTURE.md**: [Quality Standards § 1 - Configuration Flow](ARCHITECTURE.md#1-configuration-flow-)
 
 **Key Points**:
+
 - ✅ Multi-step dynamic flow
 - ✅ User input validation
 - ✅ Translation keys for errors
@@ -273,6 +293,7 @@ All 50 files meet quality standards
 **Standards in ARCHITECTURE.md**: [Entity Class Naming Standards](ARCHITECTURE.md#entity-class-naming-standards)
 
 **Key Points**:
+
 - ✅ Every entity has unique ID
 - ✅ Has entity name enabled
 - ✅ Device info properly set
@@ -288,6 +309,7 @@ All 50 files meet quality standards
 **Standards in ARCHITECTURE.md**: [Quality Standards § 3 - Service Actions](ARCHITECTURE.md#3-service-actions-with-validation-)
 
 **Key Points**:
+
 - ✅ 17 services with validation
 - ✅ ServiceValidationError for input
 - ✅ HomeAssistantError with translation_key for runtime
@@ -303,6 +325,7 @@ All 50 files meet quality standards
 **Standards in ARCHITECTURE.md**: [Data Separation & Storage Architecture](ARCHITECTURE.md#data-separation)
 
 **Key Pattern**:
+
 ```python
 class KidsChoresDataCoordinator(DataUpdateCoordinator):
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry):
@@ -320,20 +343,24 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 ## 🔗 Quick Links to Quality References
 
 **Official HA Guidance**:
+
 - [AGENTS.md](../../core/AGENTS.md) - Authoritative source for all quality standards
 
 **KidsChores Documentation**:
+
 - [ARCHITECTURE.md](ARCHITECTURE.md) - Complete architecture + quality standards (NEW)
 - [CODE_REVIEW_GUIDE.md](CODE_REVIEW_GUIDE.md) - Phase 0 audit framework + review checklists
 - [quality_scale.yaml](../custom_components/kidschores/quality_scale.yaml) - Rule implementation status
 
 **Implementation Files**:
+
 - [const.py](../custom_components/kidschores/const.py) - All constants (2325+ lines)
 - [config_flow.py](../custom_components/kidschores/config_flow.py) - Configuration flow
 - [services.py](../custom_components/kidschores/services.py) - Service definitions
 - [coordinator.py](../custom_components/kidschores/coordinator.py) - Core business logic
 
 **Test References**:
+
 - [tests/](../tests/) - 560+ tests covering all functionality
 - [TESTING_AGENT_INSTRUCTIONS.md](../tests/TESTING_AGENT_INSTRUCTIONS.md) - Testing guidance
 
@@ -344,6 +371,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 Before submitting code, verify all items:
 
 ### Pre-Commit Checklist
+
 - [ ] Read [ARCHITECTURE.md § Quality Standards & Maintenance Guide](ARCHITECTURE.md#quality-standards--maintenance-guide)
 - [ ] Run `./utils/quick_lint.sh --fix` (must pass 9.5+/10)
 - [ ] Run `python -m pytest tests/ -v --tb=line` (must pass)
@@ -354,14 +382,16 @@ Before submitting code, verify all items:
 - [ ] All exceptions are specific (no bare Exception)
 
 ### Code Review Checklist
+
 - [ ] Exception handling uses proper types (ServiceValidationError, HomeAssistantError)
 - [ ] Entity unique IDs follow pattern: `entry_id_{scope_id}{SUFFIX}`
 - [ ] All entities implement `available` property
 - [ ] Services have proper validation and error handling
 - [ ] Translation keys reference entries in en.json
-- [ ] Config flow validation uses CFOF_* and CFOP_ERROR_* constants
+- [ ] Config flow validation uses CFOF*\* and CFOP_ERROR*\* constants
 
 ### Before Marking "Ready for Review"
+
 - [ ] All linting passes (`./utils/quick_lint.sh --fix`)
 - [ ] All tests pass (`python -m pytest tests/ -v`)
 - [ ] Coverage maintained at 95%+
@@ -373,10 +403,13 @@ Before submitting code, verify all items:
 ## 🎯 Relationship to Certification Levels
 
 ### Bronze (N/A - KidsChores targets Silver+)
+
 Not applicable (KidsChores went directly to Silver)
 
 ### Silver ✅ (Certified)
+
 **All requirements implemented and verified**:
+
 - ✅ Configuration Flow
 - ✅ Entity Unique IDs
 - ✅ Service Actions with Validation
@@ -385,7 +418,9 @@ Not applicable (KidsChores went directly to Silver)
 - ✅ Logging When Unavailable
 
 ### Gold (In Progress)
+
 **Planned phases**:
+
 - Phase 5A: Device Registry Integration (3-4h)
 - Phase 6: Repair Framework (4-6h)
 - Phase 7: Documentation Expansion (5-7h)
