@@ -759,6 +759,9 @@ def get_today_chore_completion_progress(
     Check if a required number or percentage of tracked chores have been completed (approved) today for the given kid.
     If tracked_chores is empty, use all chores for the kid.
 
+    Uses timestamp-based tracking (last_approved field) instead of the deprecated approved_chores list (removed v0.4.0).
+    A chore is considered approved today if its last_approved_time matches today's date.
+
     Args:
         kid_info: The kid's info dictionary.
         tracked_chores: List of chore IDs to check. If empty, all kid's chores are used.
@@ -777,7 +780,6 @@ def get_today_chore_completion_progress(
     """
     today_local = get_now_local_time()
     today_iso = today_local.date().isoformat()
-    approved_chores = set(kid_info.get(const.DATA_KID_APPROVED_CHORES, []))
     overdue_chores = set(kid_info.get(const.DATA_KID_OVERDUE_CHORES, []))
     chores_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
 
@@ -804,10 +806,13 @@ def get_today_chore_completion_progress(
     if total_count == 0:
         return False, 0, 0
 
-    # Count approved chores
-    approved_count = sum(
-        1 for chore_id in chores_to_check if chore_id in approved_chores
-    )
+    # Count approved chores using timestamp-based check (last_approved_time matches today)
+    approved_count = 0
+    for chore_id in chores_to_check:
+        chore_data = chores_data.get(chore_id, {})
+        last_approved = chore_data.get(const.DATA_KID_CHORE_DATA_LAST_APPROVED)
+        if last_approved and last_approved[: const.ISO_DATE_STRING_LENGTH] == today_iso:
+            approved_count += 1
 
     # Check count_required first (overrides percent_required if set)
     if count_required is not None:

@@ -67,10 +67,217 @@ class PreV42Migrator:
         self._migrate_legacy_point_stats()
 
         # Phase 2: Config sync (KC 3.x entity data from config → storage)
+        # Phase 2: Independent chores migration (populate per-kid due dates)
+        self._migrate_independent_chores()
+
+        # Phase 2b: Approval reset type migration (allow_multiple_claims_per_day → approval_reset_type)
+        self._migrate_approval_reset_type()
+
+        # Phase 2c: Timestamp-based chore tracking migration
+        # - Initialize approval_period_start for chores
+        # - Delete deprecated claimed_chores/approved_chores lists from kids
+        self._migrate_to_timestamp_tracking()
+
+        # Phase 3: Config sync (KC 3.x entity data from config → storage)
         const.LOGGER.info("Migrating KC 3.x config data to storage")
         self._initialize_data_from_config()
 
         const.LOGGER.info("All pre-v42 migrations completed successfully")
+
+    def _migrate_independent_chores(self) -> None:
+        """Migrate existing chores to independent mode with per-kid due dates.
+
+        For each INDEPENDENT chore, populate per_kid_due_dates with template values
+        for all assigned kids. SHARED chores don't need per-kid structure.
+        This is a one-time migration during upgrade to v42+ schema.
+        """
+        chores_data = self.coordinator._data.get(const.DATA_CHORES, {})
+        for _, chore_info in chores_data.items():
+            # Ensure completion_criteria is set by reading legacy shared_chore field
+            if const.DATA_CHORE_COMPLETION_CRITERIA not in chore_info:
+                # Read legacy shared_chore boolean to determine criteria
+                # Default to False (INDEPENDENT) for backward compatibility
+                shared_chore = chore_info.get(
+                    const.DATA_CHORE_SHARED_CHORE_DEPRECATED, False
+                )
+                if shared_chore:
+                    chore_info[const.DATA_CHORE_COMPLETION_CRITERIA] = (
+                        const.COMPLETION_CRITERIA_SHARED
+                    )
+                else:
+                    chore_info[const.DATA_CHORE_COMPLETION_CRITERIA] = (
+                        const.COMPLETION_CRITERIA_INDEPENDENT
+                    )
+                const.LOGGER.debug(
+                    "Migrated chore '%s' from shared_chore=%s to completion_criteria=%s",
+                    chore_info.get(const.DATA_CHORE_NAME),
+                    shared_chore,
+                    chore_info[const.DATA_CHORE_COMPLETION_CRITERIA],
+                )
+
+            # Remove legacy shared_chore field after migration
+            if const.DATA_CHORE_SHARED_CHORE_DEPRECATED in chore_info:
+                del chore_info[const.DATA_CHORE_SHARED_CHORE_DEPRECATED]
+                const.LOGGER.debug(
+                    "Removed legacy shared_chore field from chore '%s'",
+                    chore_info.get(const.DATA_CHORE_NAME),
+                )
+
+            # For SHARED chores, no per_kid_due_dates needed
+            # For INDEPENDENT chores, populate per_kid_due_dates if missing
+            if (
+                chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
+                == const.COMPLETION_CRITERIA_INDEPENDENT
+            ):
+                if const.DATA_CHORE_PER_KID_DUE_DATES not in chore_info:
+                    template_due_date = chore_info.get(const.DATA_CHORE_DUE_DATE)
+                    assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+                    chore_info[const.DATA_CHORE_PER_KID_DUE_DATES] = {
+                        kid_id: template_due_date for kid_id in assigned_kids
+                    }
+                    const.LOGGER.debug(
+                        "Migrated INDEPENDENT chore '%s' with per-kid dates",
+                        chore_info.get(const.DATA_CHORE_NAME),
+                    )
+
+    def _migrate_approval_reset_type(self) -> None:
+        """Migrate allow_multiple_claims_per_day boolean to approval_reset_type enum.
+
+        Conversion:
+        - allow_multiple_claims_per_day=True  → approval_reset_type=AT_MIDNIGHT_MULTI
+        - allow_multiple_claims_per_day=False → approval_reset_type=AT_MIDNIGHT_ONCE
+        - Missing field → approval_reset_type=AT_MIDNIGHT_ONCE (default)
+
+        After migration, the deprecated field is removed from chore data.
+        """
+        chores_data = self.coordinator._data.get(const.DATA_CHORES, {})
+        migrated_count = 0
+
+        for chore_id, chore_info in chores_data.items():
+            # Skip if already migrated (has approval_reset_type)
+            if const.DATA_CHORE_APPROVAL_RESET_TYPE in chore_info:
+                continue
+
+            # Read legacy boolean field
+            allow_multiple = chore_info.get(
+                const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY_DEPRECATED, False
+            )
+
+            # Convert to new enum value
+            if allow_multiple:
+                new_value = const.APPROVAL_RESET_AT_MIDNIGHT_MULTI
+            else:
+                new_value = const.APPROVAL_RESET_AT_MIDNIGHT_ONCE
+
+            chore_info[const.DATA_CHORE_APPROVAL_RESET_TYPE] = new_value
+            migrated_count += 1
+
+            const.LOGGER.debug(
+                "Migrated chore '%s' (%s): allow_multiple=%s → approval_reset_type=%s",
+                chore_info.get(const.DATA_CHORE_NAME),
+                chore_id,
+                allow_multiple,
+                new_value,
+            )
+
+            # Remove deprecated field after migration
+            if const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY_DEPRECATED in chore_info:
+                del chore_info[
+                    const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY_DEPRECATED
+                ]
+
+        if migrated_count > 0:
+            const.LOGGER.info(
+                "Migrated %s chores from allow_multiple_claims_per_day to approval_reset_type",
+                migrated_count,
+            )
+
+    def _migrate_to_timestamp_tracking(self) -> None:
+        """Migrate from list-based to timestamp-based chore claim/approval tracking.
+
+        This migration:
+        1. Initializes approval_period_start for INDEPENDENT chores (per-kid in kid_chore_data)
+        2. Initializes approval_period_start for SHARED chores (at chore level)
+        3. DELETES deprecated claimed_chores and approved_chores lists from kid data
+
+        The new timestamp-based system uses:
+        - last_claimed_time: When kid last claimed the chore
+        - last_approved_time: When kid's claim was last approved
+        - approval_period_start: Start of current approval window (reset changes this)
+
+        Note: The deprecated lists are deleted because v0.4.0 uses timestamp-only tracking.
+        """
+        from homeassistant.util import dt as dt_util
+
+        now_utc_iso = datetime.now(dt_util.UTC).isoformat()
+        chores_data = self.coordinator._data.get(const.DATA_CHORES, {})
+        kids_data = self.coordinator._data.get(const.DATA_KIDS, {})
+
+        # Phase 1: Initialize approval_period_start for chores
+        chores_migrated = 0
+        for chore_id, chore_info in chores_data.items():
+            completion_criteria = chore_info.get(
+                const.DATA_CHORE_COMPLETION_CRITERIA,
+                const.COMPLETION_CRITERIA_INDEPENDENT,
+            )
+
+            if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+                # INDEPENDENT chores: Initialize per-kid approval_period_start in kid_chore_data
+                assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+                for kid_id in assigned_kids:
+                    kid_info = kids_data.get(kid_id, {})
+                    kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
+                    chore_tracking = kid_chore_data.get(chore_id, {})
+
+                    # Only initialize if not already set
+                    if (
+                        const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START
+                        not in chore_tracking
+                    ):
+                        chore_tracking[
+                            const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START
+                        ] = now_utc_iso
+                        # Ensure the nested structure exists
+                        if chore_id not in kid_chore_data:
+                            kid_chore_data[chore_id] = chore_tracking
+                        if const.DATA_KID_CHORE_DATA not in kid_info:
+                            kid_info[const.DATA_KID_CHORE_DATA] = kid_chore_data
+                        chores_migrated += 1
+            else:
+                # SHARED chores: Initialize approval_period_start at chore level
+                if const.DATA_CHORE_APPROVAL_PERIOD_START not in chore_info:
+                    chore_info[const.DATA_CHORE_APPROVAL_PERIOD_START] = now_utc_iso
+                    chores_migrated += 1
+
+        # Phase 2: DELETE deprecated lists from kid data
+        kids_cleaned = 0
+        deprecated_keys = [
+            const.DATA_KID_CLAIMED_CHORES_DEPRECATED,
+            const.DATA_KID_APPROVED_CHORES_DEPRECATED,
+        ]
+
+        for kid_id, kid_info in kids_data.items():
+            removed_any = False
+            for key in deprecated_keys:
+                if key in kid_info:
+                    del kid_info[key]
+                    removed_any = True
+
+            if removed_any:
+                kids_cleaned += 1
+                const.LOGGER.debug(
+                    "Removed deprecated claim/approval lists from kid '%s' (%s)",
+                    kid_info.get(const.DATA_KID_NAME),
+                    kid_id,
+                )
+
+        if chores_migrated > 0 or kids_cleaned > 0:
+            const.LOGGER.info(
+                "Timestamp tracking migration: initialized %s chore periods, "
+                "cleaned deprecated lists from %s kids",
+                chores_migrated,
+                kids_cleaned,
+            )
 
     def _migrate_datetime(self, dt_str: str) -> str:
         """Convert a datetime string to a UTC-aware ISO string.
@@ -120,14 +327,11 @@ class PreV42Migrator:
                 chore_info[const.DATA_CHORE_LAST_CLAIMED] = self._migrate_datetime(
                     chore_info[const.DATA_CHORE_LAST_CLAIMED]
                 )
-        # Also, migrate timestamps in pending approvals
-        for approval in self.coordinator._data.get(
-            const.DATA_PENDING_CHORE_APPROVALS, []
-        ):
-            if approval.get(const.DATA_CHORE_TIMESTAMP):
-                approval[const.DATA_CHORE_TIMESTAMP] = self._migrate_datetime(
-                    approval[const.DATA_CHORE_TIMESTAMP]
-                )
+        # v0.4.0: Remove chore queue - now computed from timestamps
+        # (skip timestamp migration, just delete the key)
+        self.coordinator._data.pop(const.DATA_PENDING_CHORE_APPROVALS_DEPRECATED, None)
+
+        # Migrate timestamps in pending REWARD approvals (still queue-based)
         for approval in self.coordinator._data.get(
             const.DATA_PENDING_REWARD_APPROVALS, []
         ):
@@ -917,11 +1121,14 @@ class PreV42Migrator:
             self.coordinator._data.setdefault(key, {})
 
         for key in [
-            const.DATA_PENDING_CHORE_APPROVALS,
+            const.DATA_PENDING_CHORE_APPROVALS_DEPRECATED,
             const.DATA_PENDING_REWARD_APPROVALS,
         ]:
             if not isinstance(self.coordinator._data.get(key), list):
                 self.coordinator._data[key] = []
+
+        # v0.4.0: Remove chore queue - computed from timestamps
+        self.coordinator._data.pop(const.DATA_PENDING_CHORE_APPROVALS_DEPRECATED, None)
 
     # -- Entity Type Wrappers (delegate to _sync_entities) --
 

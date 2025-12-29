@@ -33,8 +33,8 @@ async def test_completed_chores_daily_sensor_increments_on_approval(
     stats_before = coordinator.kids_data[kid_id].get(const.DATA_KID_CHORE_STATS, {})
     initial_count = stats_before.get(const.DATA_KID_CHORE_STATS_APPROVED_TODAY, 0)
 
-    # Get an unclaimed chore assigned to Zoë (not pre-completed in YAML)
-    chore_id = name_to_id_map["chore:Wåter the plänts"]
+    # Get an unclaimed chore assigned to Zoë (not pre-completed, not auto_approve in YAML)
+    chore_id = name_to_id_map["chore:Refill Bird Fëeder"]
 
     # Mock notifications to prevent ServiceNotFound errors
     with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
@@ -66,8 +66,8 @@ async def test_completed_chores_total_sensor_attributes(
 
     # Mock notifications to prevent ServiceNotFound errors
     with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-        # Initialize stats by approving an unclaimed chore (not pre-completed in YAML)
-        chore_id = name_to_id_map["chore:Wåter the plänts"]
+        # Initialize stats by approving an unclaimed chore (not pre-completed, not auto_approve in YAML)
+        chore_id = name_to_id_map["chore:Refill Bird Fëeder"]
         parent_id = name_to_id_map["parent:Môm Astrid Stârblüm"]
         coordinator.claim_chore(kid_id, chore_id, "test_user")
         coordinator.approve_chore(parent_id, kid_id, chore_id)
@@ -280,8 +280,8 @@ async def test_completed_chores_sensors_use_new_schema(
 
     kid_id = name_to_id_map["kid:Zoë"]
 
-    # Initialize stats by approving an unclaimed chore (not pre-completed in YAML)
-    chore_id = name_to_id_map["chore:Wåter the plänts"]
+    # Initialize stats by approving an unclaimed chore (not pre-completed, not auto_approve in YAML)
+    chore_id = name_to_id_map["chore:Refill Bird Fëeder"]
     parent_id = name_to_id_map["parent:Môm Astrid Stârblüm"]
     coordinator.claim_chore(kid_id, chore_id, "test_user")
     coordinator.approve_chore(parent_id, kid_id, chore_id)

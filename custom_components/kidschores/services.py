@@ -6,6 +6,7 @@ These services allow direct actions through scripts or automations.
 Includes UI editor support with selectors for dropdowns and text inputs.
 """
 
+from datetime import datetime
 from typing import Optional
 
 import voluptuous as vol
@@ -121,6 +122,8 @@ SET_CHORE_DUE_DATE_SCHEMA = vol.Schema(
     {
         vol.Required(const.FIELD_CHORE_NAME): cv.string,
         vol.Optional(const.FIELD_DUE_DATE): vol.Any(cv.string, None),
+        vol.Optional(const.FIELD_KID_NAME): cv.string,
+        vol.Optional(const.FIELD_KID_ID): cv.string,
     }
 )
 
@@ -128,6 +131,8 @@ SKIP_CHORE_DUE_DATE_SCHEMA = vol.Schema(
     {
         vol.Optional(const.FIELD_CHORE_ID): cv.string,
         vol.Optional(const.FIELD_CHORE_NAME): cv.string,
+        vol.Optional(const.FIELD_KID_NAME): cv.string,
+        vol.Optional(const.FIELD_KID_ID): cv.string,
     }
 )
 
@@ -889,21 +894,26 @@ def async_setup_services(hass: HomeAssistant):
         for chore_info in coordinator.chores_data.values():
             chore_info[const.DATA_CHORE_STATE] = const.CHORE_STATE_PENDING
 
-        # Remove all chore approvals/claims for each kid
+        # Clear all chore tracking timestamps for each kid (v0.4.0+ timestamp-based)
         for kid_info in coordinator.kids_data.values():
-            kid_info[const.DATA_KID_CLAIMED_CHORES] = []
-            kid_info[const.DATA_KID_APPROVED_CHORES] = []
+            # Clear timestamp-based tracking data
+            kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
+            for chore_tracking in kid_chore_data.values():
+                chore_tracking.pop(const.DATA_KID_CHORE_DATA_LAST_CLAIMED, None)
+                chore_tracking.pop(const.DATA_KID_CHORE_DATA_LAST_APPROVED, None)
+                # Keep approval_period_start - it will be reset on next claim/approve cycle
+            # Clear overdue tracking
             kid_info[const.DATA_KID_OVERDUE_CHORES] = []
             kid_info[const.DATA_KID_OVERDUE_NOTIFICATIONS] = {}
 
-        # Clear the pending approvals queue
-        coordinator.data[const.DATA_PENDING_CHORE_APPROVALS] = []
+        # Chore queue removed in v0.4.0 - computed from timestamps
+        # Clearing timestamps above handles pending approvals
 
         # Persist & notify
         await coordinator.storage_manager.async_save()
         coordinator.async_set_updated_data(coordinator.data)
         const.LOGGER.info(
-            "Manually reset all chores to pending, removed claims/approvals"
+            "Manually reset all chores to pending, cleared tracking timestamps"
         )
 
     async def handle_reset_overdue_chores(call: ServiceCall) -> None:
@@ -951,7 +961,11 @@ def async_setup_services(hass: HomeAssistant):
         await coordinator.async_request_refresh()
 
     async def handle_set_chore_due_date(call: ServiceCall):
-        """Handle setting (or clearing) the due date of a chore."""
+        """Handle setting (or clearing) the due date of a chore.
+
+        For INDEPENDENT chores, optionally specify kid_id or kid_name.
+        For SHARED chores, kid_id is ignored (single due date for all kids).
+        """
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
@@ -965,6 +979,8 @@ def async_setup_services(hass: HomeAssistant):
         ]
         chore_name = call.data[const.FIELD_CHORE_NAME]
         due_date_input = call.data.get(const.FIELD_DUE_DATE)
+        kid_name = call.data.get(const.FIELD_KID_NAME)
+        kid_id = call.data.get(const.FIELD_KID_ID)
 
         # Look up the chore by name:
         try:
@@ -973,16 +989,71 @@ def async_setup_services(hass: HomeAssistant):
             const.LOGGER.warning("Set Chore Due Date: %s", err)
             raise
 
+        # If kid_name is provided, resolve it to kid_id
+        if kid_name and not kid_id:
+            try:
+                kid_id = kh.get_kid_id_or_raise(coordinator, kid_name)
+            except HomeAssistantError as err:
+                const.LOGGER.warning("Set Chore Due Date: %s", err)
+                raise
+
+        # Validate that if kid_id is provided, the chore is INDEPENDENT and kid is assigned
+        if kid_id:
+            chore_info = coordinator.chores_data.get(chore_id, {})
+            completion_criteria = chore_info.get(
+                const.DATA_CHORE_COMPLETION_CRITERIA,
+                const.COMPLETION_CRITERIA_INDEPENDENT,
+            )
+            if completion_criteria == const.COMPLETION_CRITERIA_SHARED:
+                const.LOGGER.warning(
+                    "Set Chore Due Date: Cannot specify kid_id for SHARED chore '%s'",
+                    chore_name,
+                )
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_SHARED_CHORE_KID,
+                    translation_placeholders={"chore_name": str(chore_name)},
+                )
+
+            assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+            if kid_id not in assigned_kids:
+                const.LOGGER.warning(
+                    "Set Chore Due Date: Kid '%s' not assigned to chore '%s'",
+                    kid_id,
+                    chore_name,
+                )
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_ASSIGNED,
+                    translation_placeholders={
+                        "entity": str(kid_name or kid_id),
+                        "kid": str(chore_name),
+                    },
+                )
+
         if due_date_input:
             try:
                 # Convert the provided date to UTC-aware datetime
-                due_dt = kh.normalize_datetime_input(
+                due_dt_raw = kh.normalize_datetime_input(
                     due_date_input,
-                    default_tzinfo=const.DEFAULT_TIME_ZONE,
                     return_type=const.HELPER_RETURN_DATETIME_UTC,
                 )
-                if due_dt and due_dt < dt_util.utcnow():
-                    raise HomeAssistantError("Due date cannot be set in the past.")
+                # Ensure due_dt is a datetime object (not date or str)
+                if due_dt_raw and not isinstance(due_dt_raw, datetime):
+                    raise HomeAssistantError(
+                        translation_domain=const.DOMAIN,
+                        translation_key=const.TRANS_KEY_ERROR_INVALID_DATE_FORMAT,
+                    )
+                due_dt: datetime | None = due_dt_raw  # type: ignore[assignment]
+                if (
+                    due_dt
+                    and isinstance(due_dt, datetime)
+                    and due_dt < dt_util.utcnow()
+                ):
+                    raise HomeAssistantError(
+                        translation_domain=const.DOMAIN,
+                        translation_key=const.TRANS_KEY_ERROR_DATE_IN_PAST,
+                    )
 
             except HomeAssistantError as err:
                 const.LOGGER.error(
@@ -993,7 +1064,7 @@ def async_setup_services(hass: HomeAssistant):
                 raise
 
             # Update the chore’s due_date:
-            coordinator.set_chore_due_date(chore_id, due_dt)
+            coordinator.set_chore_due_date(chore_id, due_dt, kid_id)
             const.LOGGER.info(
                 "Set due date for chore '%s' (ID: %s) to %s",
                 chore_name,
@@ -1002,7 +1073,7 @@ def async_setup_services(hass: HomeAssistant):
             )
         else:
             # Clear the due date by setting it to None
-            coordinator.set_chore_due_date(chore_id, None)
+            coordinator.set_chore_due_date(chore_id, None, kid_id)
             const.LOGGER.info(
                 "Cleared due date for chore '%s' (ID: %s)", chore_name, chore_id
             )
@@ -1010,7 +1081,11 @@ def async_setup_services(hass: HomeAssistant):
         await coordinator.async_request_refresh()
 
     async def handle_skip_chore_due_date(call: ServiceCall) -> None:
-        """Handle skipping the due date on a chore by rescheduling it to the next due date."""
+        """Handle skipping the due date on a chore by rescheduling it to the next due date.
+
+        For INDEPENDENT chores, you can optionally specify kid_name or kid_id.
+        For SHARED chores, you must not specify a kid.
+        """
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
@@ -1036,11 +1111,60 @@ def async_setup_services(hass: HomeAssistant):
 
         if not chore_id:
             raise HomeAssistantError(
-                "You must provide either a chore_id or chore_name."
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_MISSING_CHORE,
             )
 
-        coordinator.skip_chore_due_date(chore_id)
-        const.LOGGER.info("Skipped due date for chore (chore_id=%s)", chore_id)
+        # Get kid parameters (for INDEPENDENT chores only)
+        kid_name = call.data.get(const.FIELD_KID_NAME)
+        kid_id = call.data.get(const.FIELD_KID_ID)
+
+        # Resolve kid_name to kid_id if provided
+        if kid_name and not kid_id:
+            kid_id = kh.get_kid_id_or_raise(coordinator, kid_name)
+
+        # Validate kid_id (if provided)
+        if kid_id:
+            chore_info = coordinator.chores_data.get(chore_id, {})
+            completion_criteria = chore_info.get(
+                const.DATA_CHORE_COMPLETION_CRITERIA,
+                const.COMPLETION_CRITERIA_INDEPENDENT,
+            )
+            if completion_criteria == const.COMPLETION_CRITERIA_SHARED:
+                const.LOGGER.warning(
+                    "Skip Chore Due Date: Cannot specify kid_id for SHARED chore '%s'",
+                    chore_name,
+                )
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_SHARED_CHORE_KID,
+                    translation_placeholders={"chore_name": str(chore_name)},
+                )
+
+            assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+            if kid_id not in assigned_kids:
+                const.LOGGER.warning(
+                    "Skip Chore Due Date: Kid '%s' not assigned to chore '%s'",
+                    kid_id,
+                    chore_name,
+                )
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_ASSIGNED,
+                    translation_placeholders={
+                        "entity": str(kid_name or kid_id),
+                        "kid": str(chore_name),
+                    },
+                )
+
+        coordinator.skip_chore_due_date(chore_id, kid_id)
+        kid_context = f" for kid '{kid_name or kid_id}'" if kid_id else ""
+        const.LOGGER.info(
+            "Skipped due date for chore '%s' (ID: %s)%s",
+            chore_name or chore_id,
+            chore_id,
+            kid_context,
+        )
         await coordinator.async_request_refresh()
 
     # --- Register Services ---

@@ -500,13 +500,29 @@ def build_chore_schema(kids_dict, default=None):
                 default=default.get(const.CONF_ASSIGNED_KIDS, []),
             ): cv.multi_select(kid_choices),
             vol.Required(
-                const.CONF_SHARED_CHORE,
-                default=default.get(const.CONF_SHARED_CHORE, False),
-            ): selector.BooleanSelector(),
+                const.CONF_COMPLETION_CRITERIA,
+                default=default.get(
+                    const.CONF_COMPLETION_CRITERIA,
+                    const.COMPLETION_CRITERIA_INDEPENDENT,
+                ),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=const.COMPLETION_CRITERIA_OPTIONS,
+                    translation_key="completion_criteria",
+                )
+            ),
             vol.Required(
-                const.CONF_ALLOW_MULTIPLE_CLAIMS_PER_DAY,
-                default=default.get(const.CONF_ALLOW_MULTIPLE_CLAIMS_PER_DAY, False),
-            ): selector.BooleanSelector(),
+                const.CONF_APPROVAL_RESET_TYPE,
+                default=default.get(
+                    const.CONF_APPROVAL_RESET_TYPE,
+                    const.DEFAULT_APPROVAL_RESET_TYPE,
+                ),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=const.APPROVAL_RESET_TYPE_OPTIONS,
+                    translation_key=const.TRANS_KEY_FLOW_HELPERS_APPROVAL_RESET_TYPE,
+                )
+            ),
             vol.Required(
                 const.CONF_PARTIAL_ALLOWED,
                 default=default.get(const.CONF_PARTIAL_ALLOWED, False),
@@ -687,6 +703,18 @@ def build_chores_data(
         return {}, errors
 
     # Build chore data
+    completion_criteria = user_input.get(
+        const.CFOF_CHORES_INPUT_COMPLETION_CRITERIA,
+        const.COMPLETION_CRITERIA_INDEPENDENT,
+    )
+
+    # Build per_kid_due_dates for ALL chores (SHARED + INDEPENDENT)
+    # - SHARED: All kids have same date (synced with chore-level)
+    # - INDEPENDENT: Template on creation, per-kid overrides supported later
+    per_kid_due_dates: dict[str, str | None] = {}
+    for kid_id in assigned_kids_ids:
+        per_kid_due_dates[kid_id] = due_date_str  # Can be None (never overdue)
+
     chore_data = {
         const.DATA_CHORE_NAME: chore_name,
         const.DATA_CHORE_DEFAULT_POINTS: user_input.get(
@@ -695,11 +723,13 @@ def build_chores_data(
         const.DATA_CHORE_PARTIAL_ALLOWED: user_input.get(
             const.CFOF_CHORES_INPUT_PARTIAL_ALLOWED, False
         ),
-        const.DATA_CHORE_SHARED_CHORE: user_input.get(
-            const.CFOF_CHORES_INPUT_SHARED_CHORE, False
-        ),
-        const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY: user_input.get(
-            const.CFOF_CHORES_INPUT_ALLOW_MULTIPLE_CLAIMS, False
+        # Completion criteria (new canonical field)
+        const.DATA_CHORE_COMPLETION_CRITERIA: completion_criteria,
+        # Per-kid due dates for independent tracking
+        const.DATA_CHORE_PER_KID_DUE_DATES: per_kid_due_dates,
+        const.DATA_CHORE_APPROVAL_RESET_TYPE: user_input.get(
+            const.CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE,
+            const.DEFAULT_APPROVAL_RESET_TYPE,
         ),
         const.DATA_CHORE_ASSIGNED_KIDS: assigned_kids_ids,
         const.DATA_CHORE_DESCRIPTION: user_input.get(

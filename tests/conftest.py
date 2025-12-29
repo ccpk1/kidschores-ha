@@ -1,13 +1,18 @@
 """Shared fixtures for KidsChores tests."""
 
+# pylint: disable=redefined-outer-name  # Pytest fixtures redefine outer scope names
+# pylint: disable=reimported  # Some modules imported multiple times in complex fixtures
+
 import uuid
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.kidschores import const
 from custom_components.kidschores.const import (
     CONF_POINTS_ICON,
     CONF_POINTS_LABEL,
@@ -267,6 +272,7 @@ def create_mock_chore_data(
     name: str = "Test Chore",
     default_points: int | float = 10,
     assigned_kids: list[str] | None = None,
+    completion_criteria: str = "independent",
 ) -> dict[str, Any]:
     """Create mock chore data for testing."""
     chore_id = str(uuid.uuid4())
@@ -276,7 +282,6 @@ def create_mock_chore_data(
         "default_points": default_points,
         "assigned_kids": assigned_kids or [],
         "partial_allowed": False,
-        "shared_chore": False,
         "allow_multiple_claims_per_day": False,
         "description": "",
         "labels": [],
@@ -291,6 +296,7 @@ def create_mock_chore_data(
         "notify_on_disapproval": True,
         "show_on_calendar": True,
         "auto_approve": False,
+        "completion_criteria": completion_criteria,
     }
 
 
@@ -879,6 +885,7 @@ async def _apply_scenario_data(
             name=chore_name,
             default_points=chore.get("points", 10),
             assigned_kids=assigned_kid_ids,  # Pass UUIDs, not names
+            completion_criteria=chore.get("completion_criteria", "independent"),
         )
         chore_data["internal_id"] = chore_id
         chore_data["icon"] = chore.get("icon", "mdi:check")
@@ -998,12 +1005,57 @@ async def _apply_scenario_data(
                 kid_progress["point_stats"]["points_net_all_time"]
             )
 
-        # Mark chores as completed
+        # Mark chores as completed (using timestamp-based tracking v0.4.0+)
         for chore_name in kid_progress.get("chores_completed", []):
             chore_id = name_to_id_map.get(f"chore:{chore_name}")
             if chore_id:
-                if chore_id not in coordinator.kids_data[kid_id]["approved_chores"]:
-                    coordinator.kids_data[kid_id]["approved_chores"].append(chore_id)
+                chore_info = coordinator.chores_data.get(chore_id, {})
+                completion_criteria = chore_info.get(
+                    "completion_criteria", const.COMPLETION_CRITERIA_INDEPENDENT
+                )
+                now_iso = dt_util.utcnow().isoformat()
+
+                if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+                    # INDEPENDENT: Store per-kid approval_period_start in kid_chore_data
+                    if const.DATA_KID_CHORE_DATA not in coordinator.kids_data[kid_id]:
+                        coordinator.kids_data[kid_id][const.DATA_KID_CHORE_DATA] = {}
+                    kid_chore_data = coordinator.kids_data[kid_id][
+                        const.DATA_KID_CHORE_DATA
+                    ]
+                    if chore_id not in kid_chore_data:
+                        # v0.4.0+: Create COMPLETE structure with all required fields
+                        kid_chore_data[chore_id] = {
+                            const.DATA_KID_CHORE_DATA_NAME: chore_info.get(
+                                const.DATA_CHORE_NAME, ""
+                            ),
+                            const.DATA_KID_CHORE_DATA_STATE: const.CHORE_STATE_APPROVED,
+                            const.DATA_KID_CHORE_DATA_LAST_CLAIMED: None,
+                            const.DATA_KID_CHORE_DATA_LAST_APPROVED: now_iso,
+                            const.DATA_KID_CHORE_DATA_LAST_DISAPPROVED: None,
+                            const.DATA_KID_CHORE_DATA_LAST_OVERDUE: None,
+                            const.DATA_KID_CHORE_DATA_LAST_LONGEST_STREAK_ALL_TIME: None,
+                            const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START: now_iso,
+                            const.DATA_KID_CHORE_DATA_PERIODS: {
+                                const.DATA_KID_CHORE_DATA_PERIODS_DAILY: {},
+                                const.DATA_KID_CHORE_DATA_PERIODS_WEEKLY: {},
+                                const.DATA_KID_CHORE_DATA_PERIODS_MONTHLY: {},
+                                const.DATA_KID_CHORE_DATA_PERIODS_YEARLY: {},
+                                const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME: {},
+                            },
+                            const.DATA_KID_CHORE_DATA_BADGE_REFS: [],
+                        }
+                    else:
+                        # Structure exists, just update the approval fields
+                        kid_chore_data[chore_id][
+                            const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START
+                        ] = now_iso
+                        kid_chore_data[chore_id][
+                            const.DATA_KID_CHORE_DATA_LAST_APPROVED
+                        ] = now_iso
+                else:
+                    # SHARED: Store at chore level
+                    chore_info[const.DATA_CHORE_APPROVAL_PERIOD_START] = now_iso
+                    chore_info[const.DATA_CHORE_LAST_COMPLETED] = now_iso
 
         # Award badges
         for badge_name in kid_progress.get("badges_earned", []):
@@ -1149,7 +1201,7 @@ async def scenario_medium(  # pylint: disable=redefined-outer-name
 
 @pytest.fixture
 async def scenario_full(  # pylint: disable=redefined-outer-name
-    hass: HomeAssistant, init_integration: MockConfigEntry
+    hass: HomeAssistant, init_integration: MockConfigEntry, mock_hass_users: dict
 ) -> tuple[MockConfigEntry, dict[str, str]]:
     """Fixture providing full scenario loaded into coordinator.
 
@@ -1157,7 +1209,7 @@ async def scenario_full(  # pylint: disable=redefined-outer-name
         Tuple of (config_entry, name_to_id_map)
 
     Scenario Contents:
-        - 2 parents: Môm Astrid, Dad Leo
+        - 2 parents: Môm Astrid (linked to parent1), Dad Leo (linked to parent2)
         - 3 kids: Zoë (520 lifetime), Max! (280 lifetime), Lila (310 lifetime)
         - 7 chores: Mix of daily, weekly, periodic, shared
         - 5 badges: Multiple cumulative badges with multipliers
@@ -1166,7 +1218,9 @@ async def scenario_full(  # pylint: disable=redefined-outer-name
     Use for: Badge maintenance, complex workflows, performance testing
     """
     scenario_data = load_scenario_yaml("full")
-    name_to_id_map = await apply_scenario_direct(hass, init_integration, scenario_data)
+    name_to_id_map = await apply_scenario_direct(
+        hass, init_integration, scenario_data, mock_hass_users
+    )
     return init_integration, name_to_id_map
 
 
@@ -1579,3 +1633,139 @@ def make_overdue(base_date: str | None = None, days: int = 7) -> str:
         result_dt = datetime.now(timezone.utc) - timedelta(days=days)
 
     return result_dt.isoformat()
+
+
+def reset_chore_state_for_kid(
+    coordinator: "KidsChoresDataCoordinator",  # noqa: F821
+    kid_id: str,
+    chore_id: str,
+) -> None:
+    """
+    Reset chore state for a kid to PENDING with no pending claim or approval.
+
+    v0.4.0+ uses timestamp-based tracking in kid_chore_data instead of the
+    deprecated claimed_chores/approved_chores lists.
+
+    This helper clears timestamps and sets state to PENDING so the chore
+    can be claimed/approved again for testing.
+
+    Args:
+        coordinator: The KidsChores coordinator instance
+        kid_id: The kid's internal ID
+        chore_id: The chore's internal ID
+
+    Usage:
+        reset_chore_state_for_kid(coordinator, zoe_id, chore_id)
+        coordinator._persist()
+        # Now the chore can be claimed/approved again
+    """
+    from custom_components.kidschores import const
+
+    kid_info = coordinator.kids_data.get(kid_id, {})
+
+    # Initialize kid_chore_data if it doesn't exist
+    if const.DATA_KID_CHORE_DATA not in kid_info:
+        kid_info[const.DATA_KID_CHORE_DATA] = {}
+
+    kid_chore_data = kid_info[const.DATA_KID_CHORE_DATA]
+
+    # Get chore name for the entry
+    chore_info = coordinator.chores_data.get(chore_id, {})
+    chore_name = chore_info.get(const.DATA_CHORE_NAME, "")
+
+    # Create or update the chore entry with reset state
+    if chore_id not in kid_chore_data:
+        kid_chore_data[chore_id] = {
+            const.DATA_KID_CHORE_DATA_NAME: chore_name,
+            const.DATA_KID_CHORE_DATA_STATE: const.CHORE_STATE_PENDING,
+            const.DATA_KID_CHORE_DATA_LAST_CLAIMED: None,
+            const.DATA_KID_CHORE_DATA_LAST_APPROVED: None,
+            const.DATA_KID_CHORE_DATA_LAST_DISAPPROVED: None,
+            const.DATA_KID_CHORE_DATA_LAST_OVERDUE: None,
+            const.DATA_KID_CHORE_DATA_LAST_LONGEST_STREAK_ALL_TIME: None,
+            const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START: None,
+            const.DATA_KID_CHORE_DATA_PERIODS: {
+                const.DATA_KID_CHORE_DATA_PERIODS_DAILY: {},
+                const.DATA_KID_CHORE_DATA_PERIODS_WEEKLY: {},
+                const.DATA_KID_CHORE_DATA_PERIODS_MONTHLY: {},
+                const.DATA_KID_CHORE_DATA_PERIODS_YEARLY: {},
+                const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME: {},
+            },
+            const.DATA_KID_CHORE_DATA_BADGE_REFS: [],
+        }
+    else:
+        # Reset existing entry
+        kid_chore_data[chore_id][const.DATA_KID_CHORE_DATA_STATE] = (
+            const.CHORE_STATE_PENDING
+        )
+        kid_chore_data[chore_id][const.DATA_KID_CHORE_DATA_LAST_CLAIMED] = None
+        kid_chore_data[chore_id][const.DATA_KID_CHORE_DATA_LAST_APPROVED] = None
+        kid_chore_data[chore_id][const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = None
+
+
+def get_chore_state_for_kid(
+    coordinator: "KidsChoresDataCoordinator",  # noqa: F821
+    kid_id: str,
+    chore_id: str,
+) -> str:
+    """
+    Get the current chore state for a kid from the timestamp-based tracking.
+
+    v0.4.0+ uses chore_data[chore_id]["state"] instead of deprecated lists.
+
+    Args:
+        coordinator: The KidsChores coordinator instance
+        kid_id: The kid's internal ID
+        chore_id: The chore's internal ID
+
+    Returns:
+        The chore state string: "pending", "claimed", "approved", or ""
+    """
+    from custom_components.kidschores import const
+
+    kid_info = coordinator.kids_data.get(kid_id, {})
+    chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
+    chore_entry = chore_data.get(chore_id, {})
+    return chore_entry.get(const.DATA_KID_CHORE_DATA_STATE, "")
+
+
+def is_chore_claimed_for_kid(
+    coordinator: "KidsChoresDataCoordinator",  # noqa: F821
+    kid_id: str,
+    chore_id: str,
+) -> bool:
+    """Check if a chore is in 'claimed' state for a kid (v0.4.0+ timestamp-based)."""
+    from custom_components.kidschores import const
+
+    return (
+        get_chore_state_for_kid(coordinator, kid_id, chore_id)
+        == const.CHORE_STATE_CLAIMED
+    )
+
+
+def is_chore_approved_for_kid(
+    coordinator: "KidsChoresDataCoordinator",  # noqa: F821
+    kid_id: str,
+    chore_id: str,
+) -> bool:
+    """Check if a chore is in 'approved' state for a kid (v0.4.0+ timestamp-based)."""
+    from custom_components.kidschores import const
+
+    return (
+        get_chore_state_for_kid(coordinator, kid_id, chore_id)
+        == const.CHORE_STATE_APPROVED
+    )
+
+
+def is_chore_pending_for_kid(
+    coordinator: "KidsChoresDataCoordinator",  # noqa: F821
+    kid_id: str,
+    chore_id: str,
+) -> bool:
+    """Check if a chore is in 'pending' state for a kid (v0.4.0+ timestamp-based)."""
+    from custom_components.kidschores import const
+
+    return (
+        get_chore_state_for_kid(coordinator, kid_id, chore_id)
+        == const.CHORE_STATE_PENDING
+    )

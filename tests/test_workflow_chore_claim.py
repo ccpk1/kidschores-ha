@@ -43,10 +43,10 @@ async def test_chore_claim_by_kid_updates_state(
     """Test kid claims chore via service and state changes to claimed.
 
     Workflow:
-        1. Get initial chore state (should be empty or unclaimed)
+        1. Get initial chore state (should be "pending")
         2. Kid calls claim_chore service
         3. Verify chore state changes to "claimed" in coordinator
-        4. Verify chore appears in kid's claimed_chores list
+        4. Verify chore_data[chore_id]["state"] is "claimed" (v0.4.0+)
     """
     config_entry, name_to_id_map = scenario_minimal
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
@@ -54,13 +54,28 @@ async def test_chore_claim_by_kid_updates_state(
     zoe_id = name_to_id_map["kid:Zoë"]
     feed_cats_id = name_to_id_map["chore:Feed the cåts"]
 
-    # Reset chore state (scenario pre-completes "Feed the cåts")
-    if feed_cats_id in coordinator.kids_data[zoe_id].get("approved_chores", []):
-        coordinator.kids_data[zoe_id]["approved_chores"].remove(feed_cats_id)
+    # Reset chore state to pending (v0.4.0+ uses chore_data structure exclusively)
     coordinator.chores_data[feed_cats_id]["state"] = "pending"
+    if "chore_data" in coordinator.kids_data[zoe_id]:
+        if feed_cats_id in coordinator.kids_data[zoe_id]["chore_data"]:
+            coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id]["state"] = (
+                "pending"
+            )
+            coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id][
+                "last_approved"
+            ] = None
+            coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id][
+                "last_claimed"
+            ] = None
+            coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id][
+                "approval_period_start"
+            ] = None
 
-    # Get initial state
-    initial_claimed = coordinator.kids_data[zoe_id]["claimed_chores"].copy()
+    # Get initial state - verify chore_data exists and is pending
+    assert "chore_data" in coordinator.kids_data[zoe_id]
+    assert feed_cats_id in coordinator.kids_data[zoe_id]["chore_data"]
+    initial_state = coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id]["state"]
+    assert initial_state == "pending"
 
     # Mock notifications to prevent ServiceNotFound errors
     with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
@@ -73,9 +88,10 @@ async def test_chore_claim_by_kid_updates_state(
         )
         await hass.async_block_till_done()
 
-    # Verify chore in claimed list
-    assert feed_cats_id in coordinator.kids_data[zoe_id]["claimed_chores"]
-    assert len(coordinator.kids_data[zoe_id]["claimed_chores"]) > len(initial_claimed)
+    # Verify chore state is claimed (v0.4.0+ uses chore_data structure)
+    assert (
+        coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id]["state"] == "claimed"
+    )
 
 
 async def test_chore_claim_points_remain_unchanged(
@@ -142,10 +158,22 @@ async def test_kid_cannot_self_approve_chore(
     zoe_id = name_to_id_map["kid:Zoë"]
     feed_cats_id = name_to_id_map["chore:Feed the cåts"]
 
-    # Reset chore state (scenario pre-completes "Feed the cåts")
-    if feed_cats_id in coordinator.kids_data[zoe_id].get("approved_chores", []):
-        coordinator.kids_data[zoe_id]["approved_chores"].remove(feed_cats_id)
+    # Reset chore state to pending (v0.4.0+ uses chore_data structure exclusively)
     coordinator.chores_data[feed_cats_id]["state"] = "pending"
+    if "chore_data" in coordinator.kids_data[zoe_id]:
+        if feed_cats_id in coordinator.kids_data[zoe_id]["chore_data"]:
+            coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id]["state"] = (
+                "pending"
+            )
+            coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id][
+                "last_approved"
+            ] = None
+            coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id][
+                "last_claimed"
+            ] = None
+            coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id][
+                "approval_period_start"
+            ] = None
 
     # First claim the chore
     with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
@@ -178,7 +206,9 @@ async def test_kid_cannot_self_approve_chore(
             await hass.async_block_till_done()
 
     # Chore should still be claimed, not approved (auth check prevented approval)
-    assert feed_cats_id in coordinator.kids_data[zoe_id]["claimed_chores"]
+    assert (
+        coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id]["state"] == "claimed"
+    )
 
 
 async def test_parent_disapprove_resets_chore_state(
@@ -200,10 +230,22 @@ async def test_parent_disapprove_resets_chore_state(
     zoe_id = name_to_id_map["kid:Zoë"]
     feed_cats_id = name_to_id_map["chore:Feed the cåts"]
 
-    # Reset chore state (scenario pre-completes "Feed the cåts")
-    if feed_cats_id in coordinator.kids_data[zoe_id].get("approved_chores", []):
-        coordinator.kids_data[zoe_id]["approved_chores"].remove(feed_cats_id)
+    # Reset chore state to pending (v0.4.0+ uses chore_data structure exclusively)
     coordinator.chores_data[feed_cats_id]["state"] = "pending"
+    if "chore_data" in coordinator.kids_data[zoe_id]:
+        if feed_cats_id in coordinator.kids_data[zoe_id]["chore_data"]:
+            coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id]["state"] = (
+                "pending"
+            )
+            coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id][
+                "last_approved"
+            ] = None
+            coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id][
+                "last_claimed"
+            ] = None
+            coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id][
+                "approval_period_start"
+            ] = None
 
     # Kid claims chore
     with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
@@ -215,8 +257,10 @@ async def test_parent_disapprove_resets_chore_state(
         )
         await hass.async_block_till_done()
 
-    # Verify claimed
-    assert feed_cats_id in coordinator.kids_data[zoe_id]["claimed_chores"]
+    # Verify claimed (v0.4.0+ uses chore_data state)
+    assert (
+        coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id]["state"] == "claimed"
+    )
 
     # Parent disapproves
     parent_context = Context(user_id=mock_hass_users["admin"].id)
@@ -235,8 +279,10 @@ async def test_parent_disapprove_resets_chore_state(
         )
         await hass.async_block_till_done()
 
-    # Chore should be removed from claimed list
-    assert feed_cats_id not in coordinator.kids_data[zoe_id]["claimed_chores"]
+    # Chore should be reset to pending (v0.4.0+ uses chore_data state)
+    assert (
+        coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id]["state"] == "pending"
+    )
 
 
 @pytest.mark.skip(
@@ -277,10 +323,22 @@ async def test_parent_approve_awards_points(
     zoe_id = name_to_id_map["kid:Zoë"]
     feed_cats_id = name_to_id_map["chore:Feed the cåts"]
 
-    # Reset chore state (scenario pre-completes "Feed the cåts")
-    if feed_cats_id in coordinator.kids_data[zoe_id].get("approved_chores", []):
-        coordinator.kids_data[zoe_id]["approved_chores"].remove(feed_cats_id)
+    # Reset chore state to pending (v0.4.0+ uses chore_data structure exclusively)
     coordinator.chores_data[feed_cats_id]["state"] = "pending"
+    if "chore_data" in coordinator.kids_data[zoe_id]:
+        if feed_cats_id in coordinator.kids_data[zoe_id]["chore_data"]:
+            coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id]["state"] = (
+                "pending"
+            )
+            coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id][
+                "last_approved"
+            ] = None
+            coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id][
+                "last_claimed"
+            ] = None
+            coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id][
+                "approval_period_start"
+            ] = None
 
     initial_points = coordinator.kids_data[zoe_id]["points"]
 
@@ -315,8 +373,10 @@ async def test_parent_approve_awards_points(
     assert coordinator.kids_data[zoe_id]["points"] > initial_points
     assert coordinator.kids_data[zoe_id]["points"] == initial_points + 10.0
 
-    # Verify chore in approved list
-    assert feed_cats_id in coordinator.kids_data[zoe_id]["approved_chores"]
+    # Verify chore is approved (v0.4.0+ uses chore_data state)
+    assert (
+        coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id]["state"] == "approved"
+    )
 
 
 async def test_parent_approve_increments_chore_count(
@@ -329,7 +389,9 @@ async def test_parent_approve_increments_chore_count(
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
     zoe_id = name_to_id_map["kid:Zoë"]
-    initial_count = len(coordinator.kids_data[zoe_id]["approved_chores"])
+    # Count approved chores (v0.4.0+ uses chore_data state tracking)
+    chore_data = coordinator.kids_data[zoe_id].get("chore_data", {})
+    initial_count = sum(1 for c in chore_data.values() if c.get("state") == "approved")
 
     # Claim and approve Wåter the plänts
     parent_context = Context(user_id=mock_hass_users["admin"].id)
@@ -358,8 +420,9 @@ async def test_parent_approve_increments_chore_count(
         )
         await hass.async_block_till_done()
 
-    # Verify chore count increased
-    new_count = len(coordinator.kids_data[zoe_id]["approved_chores"])
+    # Verify chore count increased (v0.4.0+ uses chore_data state tracking)
+    chore_data = coordinator.kids_data[zoe_id].get("chore_data", {})
+    new_count = sum(1 for c in chore_data.values() if c.get("state") == "approved")
     assert new_count == initial_count + 1
 
 
@@ -399,10 +462,22 @@ async def test_approval_triggers_cumulative_badge(
     zoe_id = name_to_id_map["kid:Zoë"]
     feed_cats_id = name_to_id_map["chore:Feed the cåts"]
 
-    # Reset chore state (scenario pre-completes "Feed the cåts")
-    if feed_cats_id in coordinator.kids_data[zoe_id].get("approved_chores", []):
-        coordinator.kids_data[zoe_id]["approved_chores"].remove(feed_cats_id)
+    # Reset chore state to pending (v0.4.0+ uses chore_data structure exclusively)
     coordinator.chores_data[feed_cats_id]["state"] = "pending"
+    if "chore_data" in coordinator.kids_data[zoe_id]:
+        if feed_cats_id in coordinator.kids_data[zoe_id]["chore_data"]:
+            coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id]["state"] = (
+                "pending"
+            )
+            coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id][
+                "last_approved"
+            ] = None
+            coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id][
+                "last_claimed"
+            ] = None
+            coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id][
+                "approval_period_start"
+            ] = None
 
     # Set cumulative badge progress close to threshold (390)
     # Cumulative badges use baseline + cycle_points, not chore_stats
@@ -426,8 +501,11 @@ async def test_approval_triggers_cumulative_badge(
         )
         await hass.async_block_till_done()
 
-        # Check chore is claimed
-        assert feed_cats_id in coordinator.kids_data[zoe_id]["claimed_chores"]
+        # Check chore is claimed (v0.4.0+ uses chore_data state)
+        assert (
+            coordinator.kids_data[zoe_id]["chore_data"][feed_cats_id]["state"]
+            == "claimed"
+        )
 
         await hass.services.async_call(
             DOMAIN,

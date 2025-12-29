@@ -74,9 +74,12 @@ async def test_service_claim_chore_with_names(
             blocking=True,
         )
 
-        # Verify chore was claimed - chore in kid's claimed list
+        # Verify chore was claimed - state is 'claimed' (v0.4.0+ uses chore_data[chore_id]["state"])
         assert coordinator.chores_data[chore_id]["state"] == CHORE_STATE_CLAIMED
-        assert chore_id in coordinator.kids_data[kid_id]["claimed_chores"]
+        assert (
+            coordinator.kids_data[kid_id]["chore_data"][chore_id]["state"]
+            == CHORE_STATE_CLAIMED
+        )
 
 
 async def test_service_approve_chore_success(
@@ -491,9 +494,12 @@ async def test_service_disapprove_chore_success(
             blocking=True,
         )
 
-        # Verify chore returned to pending state and not in claimed list
+        # Verify chore returned to pending state (v0.4.0+ uses chore_data[chore_id]["state"])
         assert coordinator.chores_data[chore_id]["state"] == CHORE_STATE_PENDING
-        assert chore_id not in coordinator.kids_data[kid_id]["claimed_chores"]
+        assert (
+            coordinator.kids_data[kid_id]["chore_data"][chore_id]["state"]
+            == CHORE_STATE_PENDING
+        )
         assert coordinator.kids_data[kid_id]["points"] == 0.0  # No points awarded
 
 

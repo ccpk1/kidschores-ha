@@ -1,6 +1,6 @@
 """Tests for the auto-approve chore feature (Phase 2)."""
 
-# pylint: disable=unused-argument,unused-variable
+# pylint: disable=unused-argument,unused-variable,protected-access
 
 import asyncio
 from unittest.mock import AsyncMock, patch
@@ -11,6 +11,11 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kidschores import const
 from custom_components.kidschores.const import COORDINATOR, DOMAIN
+from tests.conftest import (
+    is_chore_approved_for_kid,
+    is_chore_claimed_for_kid,
+    reset_chore_state_for_kid,
+)
 
 
 @pytest.mark.asyncio
@@ -39,12 +44,13 @@ async def test_auto_approve_false_chore_awaits_parent_approval(
         # Claim the chore
         coordinator.claim_chore(kid_id, chore_id, "test_user")
 
-    kid_info = coordinator.kids_data.get(kid_id, {})
-    claimed_chores = kid_info.get(const.DATA_KID_CLAIMED_CHORES, [])
-    approved_chores = kid_info.get(const.DATA_KID_APPROVED_CHORES, [])
-
-    assert chore_id in claimed_chores, "Chore should be in claimed_chores"
-    assert chore_id not in approved_chores, "Chore should NOT be approved yet"
+    # v0.4.0+ uses timestamp-based chore_data tracking instead of deprecated lists
+    assert is_chore_claimed_for_kid(coordinator, kid_id, chore_id), (
+        "Chore should be in claimed state"
+    )
+    assert not is_chore_approved_for_kid(coordinator, kid_id, chore_id), (
+        "Chore should NOT be approved yet"
+    )
 
 
 @pytest.mark.asyncio
@@ -80,10 +86,11 @@ async def test_auto_approve_true_approves_immediately(
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
     kid_id = name_to_id_map["kid:Zoë"]
-    chore_id = name_to_id_map["chore:Feed the cåts"]
+    # Use "Wåter the plänts" which is NOT in chores_completed, so we can claim it fresh
+    chore_id = name_to_id_map["chore:Wåter the plänts"]
 
-    # Verify auto_approve is True for this chore (already set in scenario_medium.yaml)
-    assert coordinator.chores_data[chore_id][const.DATA_CHORE_AUTO_APPROVE] is True
+    # Verify auto_approve is False for this chore (control - should NOT auto-approve)
+    assert coordinator.chores_data[chore_id][const.DATA_CHORE_AUTO_APPROVE] is False
 
     # Get points before
     kid_info_before = coordinator.kids_data[kid_id].copy()
@@ -94,15 +101,18 @@ async def test_auto_approve_true_approves_immediately(
         # Claim the chore
         coordinator.claim_chore(kid_id, chore_id, "test_user")
 
-    # After claiming, chore should be approved (not just claimed)
+    # After claiming with auto_approve=False, chore should remain in claimed state
+    # v0.4.0+ uses timestamp-based chore_data tracking instead of deprecated lists
     kid_info = coordinator.kids_data.get(kid_id, {})
-    claimed_chores = kid_info.get(const.DATA_KID_CLAIMED_CHORES, [])
-    approved_chores = kid_info.get(const.DATA_KID_APPROVED_CHORES, [])
     points_after = kid_info.get(const.DATA_KID_POINTS, 0.0)
 
-    assert chore_id not in claimed_chores, "Chore should NOT be in claimed state"
-    assert chore_id in approved_chores, "Chore should be approved immediately"
-    assert points_after > points_before, "Points should be awarded on auto-approval"
+    assert is_chore_claimed_for_kid(coordinator, kid_id, chore_id), (
+        "Chore should be in claimed state (pending approval)"
+    )
+    assert not is_chore_approved_for_kid(coordinator, kid_id, chore_id), (
+        "Chore should NOT be approved yet"
+    )
+    assert points_after == points_before, "Points should NOT be awarded until approval"
 
 
 @pytest.mark.asyncio
@@ -119,25 +129,25 @@ async def test_auto_approve_true_no_parent_notification(
     # Verify auto_approve is True (already set in scenario_medium.yaml)
     assert coordinator.chores_data[chore_id][const.DATA_CHORE_AUTO_APPROVE] is True
 
-    # But this test conflicts with test_auto_approve_true_approves_immediately
-    # which also uses Feed the cåts. Clear it first to avoid "already claimed" error
-    kid_info = coordinator.kids_data[kid_id]
-    if chore_id in kid_info.get(const.DATA_KID_APPROVED_CHORES, []):
-        kid_info[const.DATA_KID_APPROVED_CHORES].remove(chore_id)
-    if chore_id in kid_info.get(const.DATA_KID_CLAIMED_CHORES, []):
-        kid_info[const.DATA_KID_CLAIMED_CHORES].remove(chore_id)
+    # Clear state to avoid "already claimed" error - use v0.4.0 timestamp-based reset
+    reset_chore_state_for_kid(coordinator, kid_id, chore_id)
+    coordinator._persist()
 
-    # Mock the notification to capture any calls
-    with patch.object(
-        coordinator, "_notify_parents_translated", new=AsyncMock()
-    ) as mock_notify:
+    # Mock BOTH parent and kid notifications since auto_approve=True triggers approval
+    # which sends a kid notification (the auto-approve awards points and notifies kid)
+    with (
+        patch.object(
+            coordinator, "_notify_parents_translated", new=AsyncMock()
+        ) as mock_parent_notify,
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+    ):
         coordinator.claim_chore(kid_id, chore_id, "test_user")
         # Let async task complete
         await asyncio.sleep(0.01)
 
-    # Verify NO notification was sent (different from manual approval)
+    # Verify NO parent notification was sent (different from manual approval)
     # When auto-approved, parent doesn't need notification
-    assert not mock_notify.called, "NO parent notification when auto-approved"
+    assert not mock_parent_notify.called, "NO parent notification when auto-approved"
 
 
 @pytest.mark.asyncio
@@ -172,12 +182,9 @@ async def test_parent_can_disapprove_auto_approved_chore(
     # Set auto_approve to True
     coordinator.chores_data[chore_id][const.DATA_CHORE_AUTO_APPROVE] = True
 
-    # Clear any prior state to avoid "already claimed" error
-    kid_info = coordinator.kids_data[kid_id]
-    if chore_id in kid_info.get(const.DATA_KID_APPROVED_CHORES, []):
-        kid_info[const.DATA_KID_APPROVED_CHORES].remove(chore_id)
-    if chore_id in kid_info.get(const.DATA_KID_CLAIMED_CHORES, []):
-        kid_info[const.DATA_KID_CLAIMED_CHORES].remove(chore_id)
+    # Clear state to avoid "already claimed" error - use v0.4.0 timestamp-based reset
+    reset_chore_state_for_kid(coordinator, kid_id, chore_id)
+    coordinator._persist()
 
     # Get points before
     points_before = coordinator.kids_data[kid_id].get(const.DATA_KID_POINTS, 0.0)

@@ -1332,8 +1332,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             const.DATA_BONUSES: self._bonuses_temp,
             const.DATA_ACHIEVEMENTS: self._achievements_temp,
             const.DATA_CHALLENGES: self._challenges_temp,
-            # Initialize runtime-only sections
-            const.DATA_PENDING_CHORE_APPROVALS: [],
+            # Chore queue removed in v0.4.0 - computed from timestamps
             const.DATA_PENDING_REWARD_APPROVALS: [],
         }
 

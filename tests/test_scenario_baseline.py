@@ -14,7 +14,11 @@ import pytest
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.kidschores.const import COORDINATOR, DOMAIN
+from custom_components.kidschores.const import (
+    CHORE_STATE_APPROVED,
+    COORDINATOR,
+    DOMAIN,
+)
 
 # ============================================================================
 # Test Group: Scenario Structure Validation
@@ -94,7 +98,7 @@ async def test_full_scenario_entity_counts(
     Expected:
         - 2 parents: Môm Astrid, Dad Leo
         - 3 kids: Zoë, Max!, Lila
-        - 7 chores: Mix of daily, weekly, periodic, shared
+        - 18 chores: Mix of daily, weekly, periodic, shared_all, shared_first, independent
         - 5 badges: Multiple cumulative with multipliers
         - 2 bonuses, 3 penalties, 5 rewards
     """
@@ -103,7 +107,7 @@ async def test_full_scenario_entity_counts(
 
     assert len(coordinator.parents_data) == 2
     assert len(coordinator.kids_data) == 3
-    assert len(coordinator.chores_data) == 7
+    assert len(coordinator.chores_data) == 18
     assert len(coordinator.badges_data) == 6
     assert len(coordinator.bonuses_data) == 2
     assert len(coordinator.penalties_data) == 3
@@ -138,7 +142,13 @@ async def test_scenario_progress_state_applied(
     zoe_data = coordinator.kids_data[zoe_id]
     assert zoe_data["points"] == 35.0
     assert zoe_data["point_stats"]["points_net_all_time"] == 350.0
-    assert len(zoe_data["approved_chores"]) >= 2
+    # Count approved chores from chore_data structure (v0.4.0+ format)
+    zoe_approved_count = sum(
+        1
+        for cd in zoe_data.get("chore_data", {}).values()
+        if cd.get("state") == CHORE_STATE_APPROVED
+    )
+    assert zoe_approved_count >= 2
     assert len(zoe_data["badges_earned"]) == 1
 
     # Verify Max!'s progress
@@ -146,7 +156,13 @@ async def test_scenario_progress_state_applied(
     max_data = coordinator.kids_data[max_id]
     assert max_data["points"] == 15.0
     assert max_data["point_stats"]["points_net_all_time"] == 180.0
-    assert len(max_data["approved_chores"]) >= 1
+    # Count approved chores from chore_data structure (v0.4.0+ format)
+    max_approved_count = sum(
+        1
+        for cd in max_data.get("chore_data", {}).values()
+        if cd.get("state") == CHORE_STATE_APPROVED
+    )
+    assert max_approved_count >= 1
     assert len(max_data["badges_earned"]) == 0
 
 

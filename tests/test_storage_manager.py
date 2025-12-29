@@ -43,13 +43,12 @@ async def test_async_initialize_creates_default_structure(
     assert const.DATA_PARENTS in data
     assert const.DATA_ACHIEVEMENTS in data
     assert const.DATA_CHALLENGES in data
-    assert const.DATA_PENDING_CHORE_APPROVALS in data
+    # Chore queue removed in v0.4.0 - computed from timestamps
     assert const.DATA_PENDING_REWARD_APPROVALS in data
     assert const.DATA_SCHEMA_VERSION in data
 
     # Verify default values
     assert data[const.DATA_KIDS] == {}
-    assert data[const.DATA_PENDING_CHORE_APPROVALS] == []
     assert data[const.DATA_SCHEMA_VERSION] == const.DEFAULT_ZERO
 
 
@@ -87,7 +86,7 @@ async def test_getter_methods_return_correct_data(
         const.DATA_BONUSES: {"bonus_1": {}},
         const.DATA_ACHIEVEMENTS: {"achievement_1": {}},
         const.DATA_CHALLENGES: {"challenge_1": {}},
-        const.DATA_PENDING_CHORE_APPROVALS: ["chore_1"],
+        # Chore queue removed in v0.4.0 - computed from timestamps
         const.DATA_PENDING_REWARD_APPROVALS: ["reward_1"],
     }
 
@@ -102,7 +101,7 @@ async def test_getter_methods_return_correct_data(
     assert storage_manager.get_bonuses() == {"bonus_1": {}}
     assert storage_manager.get_achievements() == {"achievement_1": {}}
     assert storage_manager.get_challenges() == {"challenge_1": {}}
-    assert storage_manager.get_pending_chore_approvals() == ["chore_1"]
+    # Chore queue getter removed in v0.4.0 - use coordinator.pending_chore_approvals
     assert storage_manager.get_pending_reward_approvals() == ["reward_1"]
 
 
@@ -122,7 +121,7 @@ async def test_getter_methods_return_defaults_for_missing_keys(
     assert storage_manager.get_bonuses() == {}
     assert storage_manager.get_achievements() == {}
     assert storage_manager.get_challenges() == {}
-    assert storage_manager.get_pending_chore_approvals() == []
+    # Chore queue getter removed in v0.4.0 - use coordinator.pending_chore_approvals
     assert storage_manager.get_pending_reward_approvals() == []
 
 
@@ -321,7 +320,7 @@ async def test_async_clear_data_resets_to_default_structure(
     assert data[const.DATA_CHORES] == {}
     assert data[const.DATA_BADGES] == {}
     assert data[const.DATA_REWARDS] == {}
-    assert data[const.DATA_PENDING_CHORE_APPROVALS] == []
+    # Chore queue removed in v0.4.0 - computed from timestamps
     assert data[const.DATA_PENDING_REWARD_APPROVALS] == []
 
     # Verify warning logged

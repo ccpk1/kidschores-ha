@@ -65,7 +65,7 @@ class KidsChoresStorageManager:
             const.DATA_PARENTS: {},
             const.DATA_ACHIEVEMENTS: {},
             const.DATA_CHALLENGES: {},
-            const.DATA_PENDING_CHORE_APPROVALS: [],
+            # Chore queue removed in v0.4.0 - computed from timestamps
             const.DATA_PENDING_REWARD_APPROVALS: [],
         }
 
@@ -169,9 +169,8 @@ class KidsChoresStorageManager:
         """Retrieve the challenges data."""
         return self._data.get(const.DATA_CHALLENGES, {})
 
-    def get_pending_chore_approvals(self) -> list[str]:
-        """Retrieve the pending chore approvals data."""
-        return self._data.get(const.DATA_PENDING_CHORE_APPROVALS, [])
+    # get_pending_chore_approvals removed - use coordinator.pending_chore_approvals
+    # which computes from timestamps dynamically
 
     def get_pending_reward_approvals(self) -> list[str]:
         """Retrieve the pending reward approvals data."""

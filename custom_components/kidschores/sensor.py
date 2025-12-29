@@ -1,4 +1,5 @@
 # File: sensor.py
+# pylint: disable=protected-access  # Using private coordinator methods for state checks
 """Sensors for the KidsChores integration.
 
 This file defines modern sensor entities for each Kid, Chore, Reward, and Badge.
@@ -266,7 +267,10 @@ async def async_setup_entry(
 
     # For each shared chore, add a global state sensor
     for chore_id, chore_info in coordinator.chores_data.items():
-        if chore_info.get(const.DATA_CHORE_SHARED_CHORE, False):
+        if (
+            chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
+            == const.COMPLETION_CRITERIA_SHARED
+        ):
             chore_name = kh.get_entity_name_or_log_error(
                 "chore", chore_id, chore_info, const.DATA_CHORE_NAME
             )
@@ -397,14 +401,14 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         Priority order: approved > claimed > overdue > pending.
         Always returns kid's individual status, not shared chore global state.
+        Uses timestamp-based tracking via coordinator helper methods.
         """
         kid_info = self.coordinator.kids_data.get(self._kid_id, {})
 
-        # The status of the kids chore should always be their own status.
-        # It's only global status that would show independent or in-part
-        if self._chore_id in kid_info.get(const.DATA_KID_APPROVED_CHORES, []):
+        # Use timestamp-based coordinator helpers for claim/approval status
+        if self.coordinator.is_approved_in_current_period(self._kid_id, self._chore_id):
             return const.CHORE_STATE_APPROVED
-        elif self._chore_id in kid_info.get(const.DATA_KID_CLAIMED_CHORES, []):
+        elif self.coordinator.has_pending_claim(self._kid_id, self._chore_id):
             return const.CHORE_STATE_CLAIMED
         elif self._chore_id in kid_info.get(const.DATA_KID_OVERDUE_CHORES, []):
             return const.CHORE_STATE_OVERDUE
@@ -422,7 +426,9 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         - State tracking: individual vs shared/global state differentiation
         """
         chore_info = self.coordinator.chores_data.get(self._chore_id, {})
-        shared = chore_info.get(const.DATA_CHORE_SHARED_CHORE, False)
+        completion_criteria = chore_info.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA, const.COMPLETION_CRITERIA_INDEPENDENT
+        )
         global_state = chore_info.get(const.DATA_CHORE_STATE, const.CHORE_STATE_UNKNOWN)
 
         assigned_kids_ids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
@@ -505,8 +511,9 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_PARTIAL_ALLOWED: chore_info.get(
                 const.DATA_CHORE_PARTIAL_ALLOWED, False
             ),
-            const.ATTR_ALLOW_MULTIPLE_CLAIMS_PER_DAY: chore_info.get(
-                const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY, False
+            const.ATTR_APPROVAL_RESET_TYPE: chore_info.get(
+                const.DATA_CHORE_APPROVAL_RESET_TYPE,
+                const.DEFAULT_APPROVAL_RESET_TYPE,
             ),
             const.ATTR_CHORE_POINTS_EARNED: points_earned,
             const.ATTR_CHORE_APPROVALS_COUNT: approvals_count,
@@ -517,8 +524,11 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_CHORE_HIGHEST_STREAK: highest_streak,
             const.ATTR_CHORE_LAST_LONGEST_STREAK_DATE: last_longest_streak_date,
             const.ATTR_LAST_CLAIMED: last_claimed,
+            const.ATTR_LAST_APPROVED: kid_chore_data.get(
+                const.DATA_KID_CHORE_DATA_LAST_APPROVED
+            ),
             const.ATTR_LAST_COMPLETED: last_completed,
-            const.ATTR_SHARED_CHORE: shared,
+            const.ATTR_COMPLETION_CRITERIA: completion_criteria,
             const.ATTR_GLOBAL_STATE: global_state,
             const.ATTR_DUE_DATE: chore_info.get(
                 const.DATA_CHORE_DUE_DATE, const.TRANS_KEY_DISPLAY_DUE_DATE_NOT_SET
@@ -542,14 +552,29 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 const.DATA_CHORE_CUSTOM_INTERVAL_UNIT
             )
 
-        # Show today's approvals if allowed
-        if chore_info.get(const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY, False):
+        # Show today's approvals if approval_reset_type allows multiple
+        approval_reset_type = chore_info.get(
+            const.DATA_CHORE_APPROVAL_RESET_TYPE, const.DEFAULT_APPROVAL_RESET_TYPE
+        )
+        if approval_reset_type in (
+            const.APPROVAL_RESET_AT_MIDNIGHT_MULTI,
+            const.APPROVAL_RESET_AT_DUE_DATE_MULTI,
+            const.APPROVAL_RESET_UPON_COMPLETION,
+        ):
             today_approvals = (
                 periods.get(const.DATA_KID_CHORE_DATA_PERIODS_DAILY, {})
                 .get(kh.get_today_local_date().isoformat(), {})
                 .get(const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, const.DEFAULT_ZERO)
             )
             attributes[const.ATTR_CHORE_APPROVALS_TODAY] = today_approvals
+
+        # Add can_claim and can_approve computed attributes using coordinator helpers
+        can_claim, _ = self.coordinator._can_claim_chore(self._kid_id, self._chore_id)
+        can_approve, _ = self.coordinator._can_approve_chore(
+            self._kid_id, self._chore_id
+        )
+        attributes[const.ATTR_CAN_CLAIM] = can_claim
+        attributes[const.ATTR_CAN_APPROVE] = can_approve
 
         # Add claim, approve, disapprove button entity ids to attributes for direct ui access.
         button_types = [
@@ -1435,8 +1460,9 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_PARTIAL_ALLOWED: chore_info.get(
                 const.DATA_CHORE_PARTIAL_ALLOWED, False
             ),
-            const.ATTR_ALLOW_MULTIPLE_CLAIMS_PER_DAY: chore_info.get(
-                const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY, False
+            const.ATTR_APPROVAL_RESET_TYPE: chore_info.get(
+                const.DATA_CHORE_APPROVAL_RESET_TYPE,
+                const.DEFAULT_APPROVAL_RESET_TYPE,
             ),
             const.ATTR_CHORE_APPROVALS_TODAY: total_approvals_today,
             const.ATTR_ASSIGNED_KIDS: assigned_kids_names,
@@ -2678,10 +2704,9 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         # Check if pending approvals changed - forces attribute rebuild
         # Flags are reset in extra_state_attributes after rebuild
-        # pylint: disable=protected-access  # Intentional access to change flags
         if (
-            self.coordinator._pending_chore_changed
-            or self.coordinator._pending_reward_changed
+            self.coordinator.pending_chore_changed
+            or self.coordinator.pending_reward_changed
         ):
             # Flag set - attributes will rebuild in next extra_state_attributes call
             pass
@@ -2739,6 +2764,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         - primary_group: today/this_week/other
 
         Returns None if chore name is missing (data corruption).
+        Uses timestamp-based tracking via coordinator helper methods.
         """
         chore_name = kh.get_entity_name_or_log_error(
             "chore", chore_id, chore_info, const.DATA_CHORE_NAME
@@ -2746,13 +2772,15 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         if not chore_name:
             return None
 
-        # Determine status
-        if chore_id in kid_info.get(const.DATA_KID_APPROVED_CHORES, []):
+        # Determine status using timestamp-based coordinator helpers
+        if self.coordinator.is_approved_in_current_period(self._kid_id, chore_id):
             status = const.CHORE_STATE_APPROVED
-        elif chore_id in kid_info.get(const.DATA_KID_CLAIMED_CHORES, []):
+        elif self.coordinator.has_pending_claim(self._kid_id, chore_id):
             status = const.CHORE_STATE_CLAIMED
         elif chore_id in kid_info.get(const.DATA_KID_OVERDUE_CHORES, []):
             status = const.CHORE_STATE_OVERDUE
+        elif chore_id in kid_info.get(const.DATA_KID_COMPLETED_BY_OTHER_CHORES, []):
+            status = const.CHORE_STATE_COMPLETED_BY_OTHER
         else:
             status = const.CHORE_STATE_PENDING
 
@@ -2761,8 +2789,20 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         if not isinstance(chore_labels, list):
             chore_labels = []
 
-        # Parse due date using helper function
-        due_date_str = chore_info.get(const.DATA_CHORE_DUE_DATE)
+        # Get due date based on completion_criteria:
+        # - INDEPENDENT: read from per_kid_due_dates (chore-level source of truth)
+        # - SHARED_*: read from chore-level due_date (all kids share same deadline)
+        completion_criteria = chore_info.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA,
+            const.COMPLETION_CRITERIA_INDEPENDENT,  # Default for legacy
+        )
+        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+            per_kid_due_dates = chore_info.get(const.DATA_CHORE_PER_KID_DUE_DATES, {})
+            due_date_str = per_kid_due_dates.get(self._kid_id)
+        else:
+            # SHARED_ALL, SHARED_FIRST, ALTERNATING - all kids share chore-level date
+            due_date_str = chore_info.get(const.DATA_CHORE_DUE_DATE)
+
         due_date_utc_iso = None
         due_date_local_dt = None
 
@@ -2792,6 +2832,42 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             status, due_date_local_dt, recurring_frequency
         )
 
+        # Get claimed_by and completed_by for SHARED_FIRST chores
+        claimed_by = chore_info.get(const.DATA_CHORE_CLAIMED_BY)
+        completed_by = chore_info.get(const.DATA_CHORE_COMPLETED_BY)
+        # Resolve kid IDs to names for dashboard display
+        if claimed_by:
+            claimant_info = self.coordinator.kids_data.get(claimed_by, {})
+            claimed_by = claimant_info.get(const.DATA_KID_NAME, claimed_by)
+        if completed_by:
+            completer_info = self.coordinator.kids_data.get(completed_by, {})
+            completed_by = completer_info.get(const.DATA_KID_NAME, completed_by)
+
+        # Get approval reset type
+        approval_reset_type = chore_info.get(
+            const.DATA_CHORE_APPROVAL_RESET_TYPE,
+            const.DEFAULT_APPROVAL_RESET_TYPE,
+        )
+
+        # Get timestamps from kid's chore_data
+        kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {}).get(chore_id, {})
+        last_approved = kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_APPROVED)
+        last_claimed = kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_CLAIMED)
+
+        # Get approval_period_start (INDEPENDENT uses per-kid, SHARED uses chore-level)
+        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+            approval_period_start = kid_chore_data.get(
+                const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START
+            )
+        else:
+            approval_period_start = chore_info.get(
+                const.DATA_CHORE_APPROVAL_PERIOD_START
+            )
+
+        # Compute can_claim and can_approve using coordinator helpers
+        can_claim, _ = self.coordinator._can_claim_chore(self._kid_id, chore_id)
+        can_approve, _ = self.coordinator._can_approve_chore(self._kid_id, chore_id)
+
         return {
             const.ATTR_EID: chore_eid,
             const.ATTR_NAME: chore_name,
@@ -2800,6 +2876,14 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_CHORE_DUE_DATE: due_date_utc_iso,
             const.ATTR_CHORE_IS_TODAY_AM: is_today_am,
             const.ATTR_CHORE_PRIMARY_GROUP: primary_group,
+            const.ATTR_CHORE_CLAIMED_BY: claimed_by,
+            const.ATTR_CHORE_COMPLETED_BY: completed_by,
+            const.ATTR_APPROVAL_RESET_TYPE: approval_reset_type,
+            const.ATTR_LAST_APPROVED: last_approved,
+            const.ATTR_LAST_CLAIMED: last_claimed,
+            const.ATTR_APPROVAL_PERIOD_START: approval_period_start,
+            const.ATTR_CAN_CLAIM: can_claim,
+            const.ATTR_CAN_APPROVE: can_approve,
         }
 
     def _calculate_primary_group(
@@ -2842,7 +2926,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         """Return an overall summary string. Primary consumers should use attributes."""
         # Provide a short human-readable summary
         kid_info = self.coordinator.kids_data.get(self._kid_id, {})
-        # Count chores by status using existing chore data
+        # Count chores by status using timestamp-based coordinator helpers
         chores = []
         for chore_id, chore_info in self.coordinator.chores_data.items():
             if self._kid_id not in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
@@ -2852,14 +2936,16 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             )
             if not chore_name:
                 continue
-            # Determine kid-specific status
+            # Determine kid-specific status using timestamp-based helpers
             status = const.CHORE_STATE_PENDING
-            if chore_id in kid_info.get(const.DATA_KID_APPROVED_CHORES, []):
+            if self.coordinator.is_approved_in_current_period(self._kid_id, chore_id):
                 status = const.CHORE_STATE_APPROVED
-            elif chore_id in kid_info.get(const.DATA_KID_CLAIMED_CHORES, []):
+            elif self.coordinator.has_pending_claim(self._kid_id, chore_id):
                 status = const.CHORE_STATE_CLAIMED
             elif chore_id in kid_info.get(const.DATA_KID_OVERDUE_CHORES, []):
                 status = const.CHORE_STATE_OVERDUE
+            elif chore_id in kid_info.get(const.DATA_KID_COMPLETED_BY_OTHER_CHORES, []):
+                status = const.CHORE_STATE_COMPLETED_BY_OTHER
             chores.append({"id": chore_id, "name": chore_name, "status": status})
 
         # Rewards: list name and cost
@@ -2925,14 +3011,9 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         pending_chores = []
         pending_rewards = []
 
-        # Get all pending approvals from coordinator
-        # pylint: disable=protected-access  # Accessing coordinator internal data
-        pending_chore_approvals = self.coordinator._data.get(
-            const.DATA_PENDING_CHORE_APPROVALS, []
-        )
-        pending_reward_approvals = self.coordinator._data.get(
-            const.DATA_PENDING_REWARD_APPROVALS, []
-        )
+        # Get all pending approvals from coordinator via public properties
+        pending_chore_approvals = self.coordinator.pending_chore_approvals
+        pending_reward_approvals = self.coordinator.pending_reward_approvals
 
         # Filter for this kid's pending chores
         for approval in pending_chore_approvals:
@@ -2940,6 +3021,8 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 continue
 
             chore_id = approval.get(const.DATA_CHORE_ID)
+            if not chore_id:
+                continue
             chore_info = self.coordinator.chores_data.get(chore_id, {})
             chore_name = kh.get_entity_name_or_log_error(
                 "chore", chore_id, chore_info, const.DATA_CHORE_NAME
@@ -2983,6 +3066,8 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 continue
 
             reward_id = approval.get(const.DATA_REWARD_ID)
+            if not reward_id:
+                continue
             reward_info = self.coordinator.rewards_data.get(reward_id, {})
             reward_name = kh.get_entity_name_or_log_error(
                 "reward", reward_id, reward_info, const.DATA_REWARD_NAME
@@ -3385,9 +3470,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         pending_approvals = self._build_pending_approvals(entity_registry)
 
         # Reset change flags after building attributes
-        # pylint: disable=protected-access  # Intentional flag reset after rebuild
-        self.coordinator._pending_chore_changed = False
-        self.coordinator._pending_reward_changed = False
+        self.coordinator.reset_pending_change_flags()
 
         return {
             "chores": chores_attr,

@@ -130,13 +130,13 @@ rewards:
 
 progress:
   Zoë:
-    chores_completed: [] # Tests will claim/approve chores dynamically
+    chores_completed: ["Feed the cåts", "Stär sweep"]
     badges_earned: ["Dåily Dëlight"]
     points: 35
     point_stats:
       points_net_all_time: 350.0
   Max!:
-    chores_completed: [] # Tests will claim/approve chores dynamically
+    chores_completed: ["Pick up Lëgo!"]
     badges_earned: []
     points: 15
     point_stats:

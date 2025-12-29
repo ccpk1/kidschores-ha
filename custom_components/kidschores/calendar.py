@@ -513,7 +513,15 @@ class KidScheduleCalendar(CalendarEntity):
         applicable_days = chore.get(const.DATA_CHORE_APPLICABLE_DAYS, [])
 
         # Parse chore due_date using battle-tested helper
-        due_date_str = chore.get(const.DATA_CHORE_DUE_DATE)
+        # For INDEPENDENT chores, use per-kid due date; for SHARED, use chore-level
+        completion_criteria = chore.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA, const.SENTINEL_EMPTY
+        )
+        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+            per_kid_due_dates = chore.get(const.DATA_CHORE_PER_KID_DUE_DATES, {})
+            due_date_str = per_kid_due_dates.get(self._kid_id)
+        else:
+            due_date_str = chore.get(const.DATA_CHORE_DUE_DATE)
         due_dt: datetime.datetime | None = None
         if due_date_str:
             parsed = kh.normalize_datetime_input(due_date_str)

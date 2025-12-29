@@ -407,6 +407,7 @@
           "auto_approve": "Auto-Approve when Claimed?",
           "partial_allowed": "Allow Partial Points?",
           "shared_chore": "Shared Chore?",
+          "completion_criteria": "Completion Criteria",
           "show_on_calendar": "Show on Calendar?",
           "assigned_kids": "Assigned Kids",
           "chore_description": "Description (optional)",
@@ -745,6 +746,7 @@
           "auto_approve": "Auto-Approve when Claimed?",
           "partial_allowed": "Allow Partial Points?",
           "shared_chore": "Shared Chore?",
+          "completion_criteria": "Completion Criteria",
           "show_on_calendar": "Show on Calendar?",
           "assigned_kids": "Assigned Kids",
           "chore_description": "Description (optional)",
@@ -1280,6 +1282,22 @@
         "monthly": "Monthly",
         "custom_1_year": "Custom: 1-Year Period",
         "custom_1_month": "Custom: 1-Month Period"
+      }
+    },
+    "completion_criteria": {
+      "options": {
+        "shared_all": "Shared (All kids complete together)",
+        "independent": "Independent (Each kid completes separately)",
+        "shared_first": "Shared (First to complete wins)"
+      }
+    },
+    "approval_reset_type": {
+      "options": {
+        "at_midnight_once": "At Midnight (Once per day)",
+        "at_midnight_multi": "At Midnight (Multiple per day)",
+        "at_due_date_once": "At Due Date (Once per cycle)",
+        "at_due_date_multi": "At Due Date (Multiple per cycle)",
+        "upon_completion": "Upon Completion (Unlimited)"
       }
     },
     "recurring_frequency": {
@@ -2392,6 +2410,18 @@
     "already_claimed": {
       "message": "{entity} has already been claimed"
     },
+    "chore_claimed_by_other": {
+      "message": "This chore has already been claimed by {claimed_by}"
+    },
+    "chore_already_approved": {
+      "message": "Chore already approved today. Try again after the approval reset period"
+    },
+    "chore_pending_claim": {
+      "message": "Chore has a pending claim awaiting approval or disapproval"
+    },
+    "chore_completed_by_other": {
+      "message": "This chore has already been completed by another kid this period"
+    },
     "invalid_status": {
       "message": "{entity} status is '{status}', expected '{expected}'"
     },
@@ -2400,6 +2430,27 @@
     },
     "invalid_frequency": {
       "message": "Recurring frequency '{frequency}' is not valid"
+    },
+    "chore_overdue_for_kid": {
+      "message": "Chore '{chore_name}' is overdue for '{kid_name}'"
+    },
+    "kid_not_assigned_to_chore": {
+      "message": "Kid '{kid_name}' is not assigned to chore '{chore_name}'"
+    },
+    "shared_chore_cannot_have_kid": {
+      "message": "Cannot specify kid for shared chore '{chore_name}'. Shared chores have one due date for all kids."
+    },
+    "required_field": {
+      "message": "Must provide {field}"
+    },
+    "invalid_date_format": {
+      "message": "Invalid date format. Please provide a valid date string (e.g., YYYY-MM-DD or ISO 8601 datetime)."
+    },
+    "date_in_past": {
+      "message": "Due date cannot be in the past. Please provide a future date."
+    },
+    "missing_chore": {
+      "message": "Must provide either chore ID or chore name."
     },
     "missing_field": {
       "message": "Required field '{field}' is missing from {entity}"

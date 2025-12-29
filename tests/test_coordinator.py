@@ -54,16 +54,22 @@ async def test_chore_lifecycle_complete_workflow(
         # Kid claims the chore
         coordinator.claim_chore(kid_id, chore_id, "Test User")
 
-        # Verify claimed state - chore in kid's claimed list and chore state changed
+        # Verify claimed state - chore in kid's chore_data with claimed state
         assert coordinator.chores_data[chore_id]["state"] == CHORE_STATE_CLAIMED
-        assert chore_id in coordinator.kids_data[kid_id]["claimed_chores"]
+        assert (
+            coordinator.kids_data[kid_id]["chore_data"][chore_id]["state"]
+            == CHORE_STATE_CLAIMED
+        )
 
         # Approve the chore
         coordinator.approve_chore("Test User", kid_id, chore_id)
 
-        # Verify approved state - chore in kid's approved list and points awarded
+        # Verify approved state - chore in kid's chore_data with approved state
         assert coordinator.chores_data[chore_id]["state"] == CHORE_STATE_APPROVED
-        assert chore_id in coordinator.kids_data[kid_id]["approved_chores"]
+        assert (
+            coordinator.kids_data[kid_id]["chore_data"][chore_id]["state"]
+            == CHORE_STATE_APPROVED
+        )
         assert coordinator.kids_data[kid_id]["points"] == 5.0
 
 

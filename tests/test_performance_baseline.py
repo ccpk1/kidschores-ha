@@ -12,7 +12,12 @@ from unittest.mock import AsyncMock, patch
 
 from homeassistant.core import HomeAssistant
 
-from custom_components.kidschores.const import COORDINATOR, DOMAIN
+from custom_components.kidschores.const import (
+    CHORE_STATE_APPROVED,
+    CHORE_STATE_CLAIMED,
+    COORDINATOR,
+    DOMAIN,
+)
 
 
 async def test_performance_baseline_with_scenario_full(
@@ -73,16 +78,17 @@ async def test_performance_baseline_with_scenario_full(
             # Find a claimable chore (one not already claimed/approved)
             kid_id = list(coordinator.kids_data.keys())[0]
             kid_info = coordinator.kids_data[kid_id]
-            claimed_chores = kid_info.get("claimed_chores", [])
-            approved_chores = kid_info.get("approved_chores", [])
+            chore_data = kid_info.get("chore_data", {})
 
             # Find a chore assigned to this kid that isn't already claimed/approved
             claimable_chore_id = None
             for chore_id, chore_info in coordinator.chores_data.items():
-                if (
-                    kid_id in chore_info.get("assigned_kids", [])
-                    and chore_id not in claimed_chores
-                    and chore_id not in approved_chores
+                kid_chore_state = chore_data.get(chore_id, {}).get("state")
+                if kid_id in chore_info.get(
+                    "assigned_kids", []
+                ) and kid_chore_state not in (
+                    CHORE_STATE_CLAIMED,
+                    CHORE_STATE_APPROVED,
                 ):
                     claimable_chore_id = chore_id
                     break
@@ -97,10 +103,16 @@ async def test_performance_baseline_with_scenario_full(
             # Find a claimed chore to approve
             kid_id = list(coordinator.kids_data.keys())[0]
             kid_info = coordinator.kids_data[kid_id]
-            claimed_chores = kid_info.get("claimed_chores", [])
+            chore_data = kid_info.get("chore_data", {})
 
-            if claimed_chores:
-                chore_id_to_approve = claimed_chores[0]
+            # Find a chore in claimed state
+            chore_id_to_approve = None
+            for chore_id, cd in chore_data.items():
+                if cd.get("state") == CHORE_STATE_CLAIMED:
+                    chore_id_to_approve = chore_id
+                    break
+
+            if chore_id_to_approve:
                 coordinator.approve_chore("test_user", kid_id, chore_id_to_approve)
                 print(f"    Approved chore {chore_id_to_approve} for kid {kid_id}")
 
@@ -110,15 +122,16 @@ async def test_performance_baseline_with_scenario_full(
             operations_count = 0
             for kid_id in list(coordinator.kids_data.keys())[:2]:  # Just first 2 kids
                 kid_info = coordinator.kids_data[kid_id]
-                claimed_chores = kid_info.get("claimed_chores", [])
-                approved_chores = kid_info.get("approved_chores", [])
+                chore_data = kid_info.get("chore_data", {})
 
                 # Find up to 2 chores per kid we can work with
                 for chore_id, chore_info in list(coordinator.chores_data.items())[:2]:
-                    if (
-                        kid_id in chore_info.get("assigned_kids", [])
-                        and chore_id not in claimed_chores
-                        and chore_id not in approved_chores
+                    kid_chore_state = chore_data.get(chore_id, {}).get("state")
+                    if kid_id in chore_info.get(
+                        "assigned_kids", []
+                    ) and kid_chore_state not in (
+                        CHORE_STATE_CLAIMED,
+                        CHORE_STATE_APPROVED,
                     ):
                         # Reset chore state to pending first
                         coordinator._process_chore_state(kid_id, chore_id, "pending")

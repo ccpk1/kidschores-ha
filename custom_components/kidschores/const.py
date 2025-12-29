@@ -332,7 +332,11 @@ CFOF_PARENTS_INPUT_NAME: Final = "parent_name"
 CFOF_PARENTS_INPUT_PARENT_COUNT: Final = "parent_count"
 
 # CHORES
-CFOF_CHORES_INPUT_ALLOW_MULTIPLE_CLAIMS: Final = "allow_multiple_claims_per_day"
+# DEPRECATED: Use CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE instead
+CFOF_CHORES_INPUT_ALLOW_MULTIPLE_CLAIMS_DEPRECATED: Final = (
+    "allow_multiple_claims_per_day"
+)
+CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: Final = "approval_reset_type"
 CFOF_CHORES_INPUT_APPLICABLE_DAYS: Final = "applicable_days"
 CFOF_CHORES_INPUT_ASSIGNED_KIDS: Final = "assigned_kids"
 CFOF_CHORES_INPUT_CHORE_COUNT: Final = "chore_count"
@@ -342,6 +346,7 @@ CFOF_CHORES_INPUT_DEFAULT_POINTS: Final = "default_points"
 CFOF_CHORES_INPUT_DESCRIPTION: Final = "chore_description"
 CFOF_CHORES_INPUT_DUE_DATE: Final = "due_date"
 CFOF_CHORES_INPUT_ICON: Final = "icon"
+CFOF_CHORES_INPUT_COMPLETION_CRITERIA: Final = "completion_criteria"
 CFOF_CHORES_INPUT_LABELS: Final = "chore_labels"
 CFOF_CHORES_INPUT_NAME: Final = "chore_name"
 CFOF_CHORES_INPUT_NOTIFY_ON_APPROVAL: Final = "notify_on_approval"
@@ -489,6 +494,7 @@ CONF_RETENTION_PERIODS: Final = (
 CONF_RETENTION_WEEKLY: Final = "retention_weekly"
 CONF_RETENTION_YEARLY: Final = "retention_yearly"
 CONF_SHARED_CHORE: Final = "shared_chore"
+CONF_COMPLETION_CRITERIA: Final = "completion_criteria"
 CONF_UPDATE_INTERVAL: Final = "update_interval"
 CONF_VALUE: Final = "value"
 
@@ -554,8 +560,11 @@ CONF_CHALLENGE_TARGET_VALUE: Final = "target_value"
 CONF_CHALLENGE_TYPE: Final = "type"
 
 # Chores
-CONF_ALLOW_MULTIPLE_CLAIMS_PER_DAY: Final = "allow_multiple_claims_per_day"
+CONF_ALLOW_MULTIPLE_CLAIMS_PER_DAY: Final = (
+    "allow_multiple_claims_per_day"  # DEPRECATED
+)
 CONF_APPLICABLE_DAYS: Final = "applicable_days"
+CONF_APPROVAL_RESET_TYPE: Final = "approval_reset_type"
 CONF_ASSIGNED_KIDS: Final = "assigned_kids"
 CONF_CHORE_AUTO_APPROVE: Final = "auto_approve"
 CONF_CHORE_DESCRIPTION: Final = "chore_description"
@@ -620,7 +629,7 @@ CHALLENGE_TYPE_TOTAL_WITHIN_WINDOW: Final = "total_within_window"
 # Data Keys
 # ------------------------------------------------------------------------------------------------
 # Pluralization: Use SINGULAR for single-field data (DATA_KID_NAME = "name"), PLURAL for
-# collections (DATA_KID_APPROVED_CHORES = "approved_chores", DATA_KIDS = "kids"). See
+# collections (DATA_KIDS = "kids"). See
 # ARCHITECTURE.md "Entity Plurality" (lines 926-941) for details.
 
 # GLOBAL
@@ -642,7 +651,7 @@ DATA_PROGRESS: Final = "progress"
 DATA_REWARDS: Final = "rewards"
 
 # KIDS
-DATA_KID_APPROVED_CHORES: Final = "approved_chores"
+DATA_KID_APPROVED_CHORES_DEPRECATED: Final = "approved_chores"
 DATA_KID_BADGES_EARNED_NAME: Final = "badge_name"
 DATA_KID_BADGES_EARNED_LAST_AWARDED: Final = "last_awarded_date"
 DATA_KID_BADGES_EARNED_AWARD_COUNT: Final = "award_count"
@@ -687,7 +696,8 @@ DATA_KID_BADGE_PROGRESS_TYPE: Final = "badge_type"
 # Note: Shared fields already defined above in Common Badge Progress Fields section
 
 DATA_KID_BONUS_APPLIES: Final = "bonus_applies"
-DATA_KID_CLAIMED_CHORES: Final = "claimed_chores"
+DATA_KID_CLAIMED_CHORES_DEPRECATED: Final = "claimed_chores"
+DATA_KID_COMPLETED_BY_OTHER_CHORES: Final = "completed_by_other_chores"
 
 # Kid Chore Data Structure Constants
 DATA_KID_CHORE_DATA: Final = "chore_data"
@@ -699,6 +709,9 @@ DATA_KID_CHORE_DATA_LAST_CLAIMED: Final = "last_claimed"
 DATA_KID_CHORE_DATA_LAST_DISAPPROVED: Final = "last_disapproved"
 DATA_KID_CHORE_DATA_LAST_OVERDUE: Final = "last_overdue"
 DATA_KID_CHORE_DATA_LAST_LONGEST_STREAK_ALL_TIME: Final = "last_longest_streak_all_time"
+DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START: Final = (
+    "approval_period_start"  # INDEPENDENT: per-kid period start
+)
 DATA_KID_CHORE_DATA_TOTAL_COUNT: Final = "total_count"
 DATA_KID_CHORE_DATA_TOTAL_POINTS: Final = "total_points"
 DATA_KID_CHORE_DATA_PERIODS: Final = "periods"
@@ -975,7 +988,15 @@ DATA_PARENT_NAME: Final = "name"
 DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS: Final = "use_persistent_notifications"
 
 # CHORES
-DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY: Final = "allow_multiple_claims_per_day"
+# DEPRECATED: Use DATA_CHORE_APPROVAL_RESET_TYPE instead
+# Migration: True -> AT_MIDNIGHT_MULTI, False -> AT_MIDNIGHT_ONCE
+DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY_DEPRECATED: Final = (
+    "allow_multiple_claims_per_day"
+)
+DATA_CHORE_APPROVAL_RESET_TYPE: Final = "approval_reset_type"
+DATA_CHORE_APPROVAL_PERIOD_START: Final = (
+    "approval_period_start"  # When current approval period started
+)
 DATA_CHORE_APPLICABLE_DAYS: Final = "applicable_days"
 DATA_CHORE_ASSIGNED_KIDS: Final = "assigned_kids"
 DATA_CHORE_CUSTOM_INTERVAL: Final = "custom_interval"
@@ -989,6 +1010,10 @@ DATA_CHORE_INTERNAL_ID: Final = "internal_id"
 DATA_CHORE_LABELS: Final = "chore_labels"
 DATA_CHORE_LAST_CLAIMED: Final = "last_claimed"
 DATA_CHORE_LAST_COMPLETED: Final = "last_completed"
+DATA_CHORE_CLAIMED_BY: Final = "claimed_by"  # SHARED_FIRST: Who claimed this chore
+DATA_CHORE_COMPLETED_BY: Final = (
+    "completed_by"  # SHARED_FIRST: Who completed this chore
+)
 DATA_CHORE_NAME: Final = "name"
 DATA_CHORE_NOTIFY_ON_APPROVAL: Final = "notify_on_approval"
 DATA_CHORE_NOTIFY_ON_CLAIM: Final = "notify_on_claim"
@@ -996,8 +1021,39 @@ DATA_CHORE_NOTIFY_ON_DISAPPROVAL: Final = "notify_on_disapproval"
 DATA_CHORE_AUTO_APPROVE: Final = "auto_approve"
 DATA_CHORE_PARTIAL_ALLOWED: Final = "partial_allowed"
 DATA_CHORE_RECURRING_FREQUENCY: Final = "recurring_frequency"
-DATA_CHORE_SHARED_CHORE: Final = "shared_chore"
+DATA_CHORE_SHARED_CHORE_DEPRECATED: Final = (
+    "shared_chore"  # DEPRECATED: Use completion_criteria
+)
 DATA_CHORE_SHOW_ON_CALENDAR: Final = "show_on_calendar"
+DATA_CHORE_COMPLETION_CRITERIA: Final = "completion_criteria"
+DATA_CHORE_PER_KID_DUE_DATES: Final = "per_kid_due_dates"
+
+# Completion Criteria Values
+COMPLETION_CRITERIA_SHARED: Final = "shared_all"
+COMPLETION_CRITERIA_INDEPENDENT: Final = "independent"
+COMPLETION_CRITERIA_SHARED_FIRST: Final = "shared_first"
+COMPLETION_CRITERIA_OPTIONS: Final = [
+    {"value": COMPLETION_CRITERIA_SHARED, "label": "shared_all"},
+    {"value": COMPLETION_CRITERIA_INDEPENDENT, "label": "independent"},
+    {"value": COMPLETION_CRITERIA_SHARED_FIRST, "label": "shared_first"},
+]
+
+# Approval Reset Type Values (Phase 4)
+# Controls when a chore can be claimed/approved again after completion
+APPROVAL_RESET_AT_MIDNIGHT_ONCE: Final = "at_midnight_once"
+APPROVAL_RESET_AT_MIDNIGHT_MULTI: Final = "at_midnight_multi"
+APPROVAL_RESET_AT_DUE_DATE_ONCE: Final = "at_due_date_once"
+APPROVAL_RESET_AT_DUE_DATE_MULTI: Final = "at_due_date_multi"
+APPROVAL_RESET_UPON_COMPLETION: Final = "upon_completion"
+APPROVAL_RESET_TYPE_OPTIONS: Final = [
+    {"value": APPROVAL_RESET_AT_MIDNIGHT_ONCE, "label": "at_midnight_once"},
+    {"value": APPROVAL_RESET_AT_MIDNIGHT_MULTI, "label": "at_midnight_multi"},
+    {"value": APPROVAL_RESET_AT_DUE_DATE_ONCE, "label": "at_due_date_once"},
+    {"value": APPROVAL_RESET_AT_DUE_DATE_MULTI, "label": "at_due_date_multi"},
+    {"value": APPROVAL_RESET_UPON_COMPLETION, "label": "upon_completion"},
+]
+DEFAULT_APPROVAL_RESET_TYPE: Final = APPROVAL_RESET_AT_MIDNIGHT_ONCE
+
 DATA_CHORE_STATE: Final = "state"
 DATA_CHORE_TIMESTAMP: Final = "timestamp"
 
@@ -1108,7 +1164,9 @@ DATA_CHALLENGE_TARGET_VALUE: Final = "target_value"
 DATA_CHALLENGE_TYPE: Final = "type"
 
 # Runtime Data Keys
-DATA_PENDING_CHORE_APPROVALS: Final = "pending_chore_approvals"
+# DEPRECATED (v0.4.0): Chore queue removed, computed from timestamps instead
+# Keep constant for backward-compat migration code in migration_pre_v42.py
+DATA_PENDING_CHORE_APPROVALS_DEPRECATED: Final = "pending_chore_approvals"
 DATA_PENDING_REWARD_APPROVALS: Final = "pending_reward_approvals"
 
 
@@ -1269,6 +1327,7 @@ CHORE_STATE_APPROVED = "approved"
 CHORE_STATE_APPROVED_IN_PART = "approved_in_part"
 CHORE_STATE_CLAIMED = "claimed"
 CHORE_STATE_CLAIMED_IN_PART = "claimed_in_part"
+CHORE_STATE_COMPLETED_BY_OTHER = "completed_by_other"
 CHORE_STATE_INDEPENDENT = "independent"
 CHORE_STATE_OVERDUE = "overdue"
 CHORE_STATE_PENDING = "pending"
@@ -1379,11 +1438,16 @@ ACTION_REMIND_30 = "REMIND_30"
 # ------------------------------------------------------------------------------------------------
 ATTR_ACHIEVEMENT_NAME: Final = "achievement_name"
 ATTR_ALL_EARNED_BADGES: Final = "all_earned_badges"
-ATTR_ALLOW_MULTIPLE_CLAIMS_PER_DAY: Final = "allow_multiple_claims_per_day"
+# DEPRECATED: Use ATTR_APPROVAL_RESET_TYPE instead
+ATTR_ALLOW_MULTIPLE_CLAIMS_PER_DAY_DEPRECATED: Final = "allow_multiple_claims_per_day"
+ATTR_APPROVAL_RESET_TYPE: Final = "approval_reset_type"
+ATTR_APPROVAL_PERIOD_START: Final = "approval_period_start"
 ATTR_APPLICABLE_DAYS: Final = "applicable_days"
 ATTR_AWARDED: Final = "awarded"
 ATTR_BADGE_AWARDS: Final = "awards"
 ATTR_BONUS_BUTTON_EID: Final = "bonus_button_eid"
+ATTR_CAN_APPROVE: Final = "can_approve"
+ATTR_CAN_CLAIM: Final = "can_claim"
 ATTR_ASSIGNED_KIDS: Final = "assigned_kids"
 ATTR_ASSOCIATED_ACHIEVEMENT: Final = "associated_achievement"
 ATTR_ASSOCIATED_CHALLENGE: Final = "associated_challenge"
@@ -1438,6 +1502,7 @@ ATTR_KID_NAME: Final = "kid_name"
 ATTR_KIDS_ASSIGNED: Final = "kids_assigned"
 ATTR_KIDS_EARNED: Final = "kids_earned"
 ATTR_LABELS: Final = "labels"
+ATTR_LAST_APPROVED: Final = "last_approved"
 ATTR_LAST_CLAIMED: Final = "last_claimed"
 ATTR_LAST_COMPLETED: Final = "last_completed"
 ATTR_NEXT_HIGHER_BADGE_ID: Final = "next_higher_badge_id"
@@ -1468,7 +1533,10 @@ ATTR_REWARD_DISAPPROVE_BUTTON_ENTITY_ID: Final = "disapprove_button_eid"
 ATTR_SIGN_LABEL: Final = "sign_label"
 ATTR_START_DATE: Final = "start_date"
 ATTR_STREAKS_BY_ACHIEVEMENT: Final = "streaks_by_achievement"
-ATTR_SHARED_CHORE: Final = "shared_chore"
+ATTR_COMPLETION_CRITERIA: Final = "completion_criteria"
+ATTR_SHARED_CHORE_DEPRECATED: Final = (
+    "shared_chore"  # DEPRECATED: Use ATTR_COMPLETION_CRITERIA
+)
 ATTR_TARGET: Final = "target"
 ATTR_TARGET_VALUE: Final = "target_value"
 ATTR_THRESHOLD_TYPE: Final = "threshold_type"
@@ -1479,6 +1547,8 @@ ATTR_TYPE: Final = "type"
 
 # Dashboard Helper Sensor Attributes
 ATTR_CHORES_BY_LABEL: Final = "chores_by_label"
+ATTR_CHORE_CLAIMED_BY: Final = "claimed_by"
+ATTR_CHORE_COMPLETED_BY: Final = "completed_by"
 ATTR_CHORE_DUE_DATE: Final = "due_date"
 ATTR_CHORE_IS_TODAY_AM: Final = "is_today_am"
 ATTR_CHORE_LABELS: Final = "labels"
@@ -1725,6 +1795,7 @@ FIELD_BONUS_NAME = "bonus_name"
 FIELD_CHORE_ID = "chore_id"
 FIELD_CHORE_NAME = "chore_name"
 FIELD_DUE_DATE = "due_date"
+FIELD_KID_ID = "kid_id"
 FIELD_KID_NAME = "kid_name"
 FIELD_PARENT_NAME = "parent_name"
 FIELD_PENALTY_NAME = "penalty_name"
@@ -1835,6 +1906,27 @@ TRANS_KEY_ERROR_OPERATION_FAILED: Final = (
 )
 TRANS_KEY_ERROR_CONFIGURATION: Final = (
     "configuration_error"  # Configuration error: {detail}
+)
+TRANS_KEY_ERROR_SHARED_CHORE_KID: Final = (
+    "shared_chore_cannot_have_kid"  # Cannot specify kid for SHARED chore
+)
+TRANS_KEY_ERROR_REQUIRED_FIELD: Final = "required_field"  # Must provide {field}
+TRANS_KEY_ERROR_INVALID_DATE_FORMAT: Final = (
+    "invalid_date_format"  # Invalid date format
+)
+TRANS_KEY_ERROR_DATE_IN_PAST: Final = "date_in_past"  # Due date cannot be in the past
+TRANS_KEY_ERROR_MISSING_CHORE: Final = "missing_chore"  # Must provide chore ID or name
+TRANS_KEY_ERROR_CHORE_CLAIMED_BY_OTHER: Final = (
+    "chore_claimed_by_other"  # Chore already claimed by another kid
+)
+TRANS_KEY_ERROR_CHORE_ALREADY_APPROVED: Final = (
+    "chore_already_approved"  # Chore already approved, try again after reset period
+)
+TRANS_KEY_ERROR_CHORE_PENDING_CLAIM: Final = (
+    "chore_pending_claim"  # Chore has a pending claim awaiting approval
+)
+TRANS_KEY_ERROR_CHORE_COMPLETED_BY_OTHER: Final = (
+    "chore_completed_by_other"  # SHARED_FIRST chore already completed by another kid
 )
 
 # Translation Keys for Phase 2-4 Error Migration (Action Templating)
@@ -2136,6 +2228,7 @@ TRANS_KEY_CFOF_INVALID_POINTS_ADJUST_VALUES: Final = "invalid_points_adjust_valu
 
 # Flow Helpers Translation Keys
 TRANS_KEY_FLOW_HELPERS_APPLICABLE_DAYS: Final = "applicable_days"
+TRANS_KEY_FLOW_HELPERS_APPROVAL_RESET_TYPE: Final = "approval_reset_type"
 TRANS_KEY_FLOW_HELPERS_ASSIGNED_KIDS: Final = "assigned_kids"
 TRANS_KEY_FLOW_HELPERS_ASSOCIATED_ACHIEVEMENT: Final = "associated_achievement"
 TRANS_KEY_FLOW_HELPERS_ASSOCIATED_CHALLENGE: Final = "associated_challenge"
