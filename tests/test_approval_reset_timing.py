@@ -748,7 +748,7 @@ async def test_migration_from_allow_multiple_true(
 
     # Simulate pre-migration state: has old field, no new field
     coordinator.chores_data[chore_id][
-        const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY_DEPRECATED
+        const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY_LEGACY
     ] = True
     coordinator.chores_data[chore_id].pop(const.DATA_CHORE_APPROVAL_RESET_TYPE, None)
     coordinator._persist()
@@ -766,7 +766,7 @@ async def test_migration_from_allow_multiple_true(
     )
     # Deprecated field should be removed
     assert (
-        const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY_DEPRECATED
+        const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY_LEGACY
         not in coordinator.chores_data[chore_id]
     )
 
@@ -783,7 +783,7 @@ async def test_migration_from_allow_multiple_false(
 
     # Simulate pre-migration state: has old field=False, no new field
     coordinator.chores_data[chore_id][
-        const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY_DEPRECATED
+        const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY_LEGACY
     ] = False
     coordinator.chores_data[chore_id].pop(const.DATA_CHORE_APPROVAL_RESET_TYPE, None)
     coordinator._persist()
@@ -844,7 +844,7 @@ async def test_migration_skips_already_migrated_chores(
         const.APPROVAL_RESET_UPON_COMPLETION
     )
     coordinator.chores_data[chore_id][
-        const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY_DEPRECATED
+        const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY_LEGACY
     ] = True  # This should NOT change the approval_reset_type
     coordinator._persist()
 

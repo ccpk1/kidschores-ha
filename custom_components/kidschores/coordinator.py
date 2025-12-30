@@ -153,22 +153,17 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     # All migration methods have been extracted to migration_pre_v42.py.
 
     # -------------------------------------------------------------------------------------
-    # Normalize Lists
+    # Normalize Data Structures
     # -------------------------------------------------------------------------------------
 
-    def _normalize_kid_lists(self, kid_info: dict[str, Any]) -> None:
-        """Normalize lists and ensuring they are not dict.
+    def _normalize_kid_reward_data(self, kid_info: dict[str, Any]) -> None:
+        """Ensure reward_data dict is properly initialized.
 
-        Note: The claimed_chores and approved_chores lists were removed in v0.4.0.
-        Replaced by timestamp-based tracking using last_approved and approval_period_start.
-        Chore claim/approval tracking now uses timestamp-based fields in kid_chore_data.
+        Modern reward tracking uses reward_data dict with period-based counters.
+        Legacy lists (pending_rewards, redeemed_rewards) are no longer used.
         """
-        for key in [
-            const.DATA_KID_PENDING_REWARDS,
-            const.DATA_KID_REDEEMED_REWARDS,
-        ]:
-            if not isinstance(kid_info.get(key), list):
-                kid_info[key] = []
+        if not isinstance(kid_info.get(const.DATA_KID_REWARD_DATA), dict):
+            kid_info[const.DATA_KID_REWARD_DATA] = {}
 
     # -------------------------------------------------------------------------------------
     # Periodic + First Refresh
@@ -273,14 +268,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.DATA_BONUSES: {},
                 const.DATA_ACHIEVEMENTS: {},
                 const.DATA_CHALLENGES: {},
-                # Chore queue removed in v0.4.0 - computed from timestamps
-                const.DATA_PENDING_REWARD_APPROVALS: [],
+                # Chore and reward queues now computed dynamically from timestamps
+                # Legacy fields DATA_PENDING_*_APPROVALS_DEPRECATED removed - computed from timestamps
             }
             self._data[const.DATA_SCHEMA_VERSION] = const.SCHEMA_VERSION_STORAGE_ONLY
-
-        # Reward queue still needs type check (chore queue computed from timestamps)
-        if not isinstance(self._data.get(const.DATA_PENDING_REWARD_APPROVALS), list):
-            self._data[const.DATA_PENDING_REWARD_APPROVALS] = []
 
         # Register daily/weekly/monthly resets
         async_track_time_change(
@@ -292,7 +283,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # Normalize all kids list fields
         for kid in self._data.get(const.DATA_KIDS, {}).values():
-            self._normalize_kid_lists(kid)
+            self._normalize_kid_reward_data(kid)
 
         # Initialize badge references in kid chore tracking
         self._update_chore_badge_references_for_kid()
@@ -534,25 +525,22 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 )
 
         # Remove from dictionary fields if present
-        for dict_key in [
-            const.DATA_KID_CHORE_CLAIMS_DEPRECATED,
-            const.DATA_KID_CHORE_APPROVALS_DEPRECATED,
-        ]:
-            if chore_id in kid_info.get(dict_key, {}):
-                kid_info[dict_key].pop(chore_id)
-                const.LOGGER.debug(
-                    "DEBUG: Removed Chore '%s' from Kid ID '%s' dict '%s'",
-                    chore_id,
-                    kid_id,
-                    dict_key,
-                )
+        dict_key = const.DATA_KID_CHORE_CLAIMS_LEGACY
+        if chore_id in kid_info.get(dict_key, {}):
+            kid_info[dict_key].pop(chore_id)
+            const.LOGGER.debug(
+                "DEBUG: Removed Chore '%s' from Kid ID '%s' dict '%s'",
+                chore_id,
+                kid_id,
+                dict_key,
+            )
 
         # Remove from chore streaks if present
         if (
-            const.DATA_KID_CHORE_STREAKS_DEPRECATED in kid_info
-            and chore_id in kid_info[const.DATA_KID_CHORE_STREAKS_DEPRECATED]
+            const.DATA_KID_CHORE_STREAKS_LEGACY in kid_info
+            and chore_id in kid_info[const.DATA_KID_CHORE_STREAKS_LEGACY]
         ):
-            kid_info[const.DATA_KID_CHORE_STREAKS_DEPRECATED].pop(chore_id)
+            kid_info[const.DATA_KID_CHORE_STREAKS_LEGACY].pop(chore_id)
             const.LOGGER.debug(
                 "DEBUG: Removed Chore Streak for Chore '%s' from Kid ID '%s'",
                 chore_id,
@@ -570,19 +558,18 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         out invalid chores by checking self.chores_data existence.
         """
         # No queue to clean - pending approvals computed dynamically
-        pass
 
     def _cleanup_pending_reward_approvals(self) -> None:
-        """Remove any pending reward approvals for reward IDs that no longer exist."""
+        """Remove reward_data entries for rewards that no longer exist."""
         valid_reward_ids = set(self._data.get(const.DATA_REWARDS, {}).keys())
-        old_count = len(self._data.get(const.DATA_PENDING_REWARD_APPROVALS, []))
-        self._data[const.DATA_PENDING_REWARD_APPROVALS] = [
-            approval
-            for approval in self._data.get(const.DATA_PENDING_REWARD_APPROVALS, [])
-            if approval.get(const.DATA_REWARD_ID) in valid_reward_ids
-        ]
-        new_count = len(self._data[const.DATA_PENDING_REWARD_APPROVALS])
-        if old_count != new_count:
+        cleaned = False
+        for kid_info in self.kids_data.values():
+            reward_data = kid_info.get(const.DATA_KID_REWARD_DATA, {})
+            invalid_ids = [rid for rid in reward_data if rid not in valid_reward_ids]
+            for rid in invalid_ids:
+                reward_data.pop(rid, None)
+                cleaned = True
+        if cleaned:
             self._pending_reward_changed = True
 
     def _cleanup_deleted_kid_references(self) -> None:
@@ -639,24 +626,19 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 }
 
             # Clean up dictionary fields
-            for dict_key in [
-                const.DATA_KID_CHORE_CLAIMS_DEPRECATED,
-                const.DATA_KID_CHORE_APPROVALS_DEPRECATED,
-            ]:
-                if dict_key in kid_info:
-                    kid_info[dict_key] = {
-                        chore: count
-                        for chore, count in kid_info[dict_key].items()
-                        if chore in valid_chore_ids
-                    }
+            dict_key = const.DATA_KID_CHORE_CLAIMS_LEGACY
+            if dict_key in kid_info:
+                kid_info[dict_key] = {
+                    chore: count
+                    for chore, count in kid_info[dict_key].items()
+                    if chore in valid_chore_ids
+                }
 
             # Clean up chore streaks
-            if const.DATA_KID_CHORE_STREAKS_DEPRECATED in kid_info:
-                for chore in list(
-                    kid_info[const.DATA_KID_CHORE_STREAKS_DEPRECATED].keys()
-                ):
+            if const.DATA_KID_CHORE_STREAKS_LEGACY in kid_info:
+                for chore in list(kid_info[const.DATA_KID_CHORE_STREAKS_LEGACY].keys()):
                     if chore not in valid_chore_ids:
-                        del kid_info[const.DATA_KID_CHORE_STREAKS_DEPRECATED][chore]
+                        del kid_info[const.DATA_KID_CHORE_STREAKS_LEGACY][chore]
                         const.LOGGER.debug(
                             "DEBUG: Removed Chore Streak for deleted Chore '%s'", chore
                         )
@@ -945,34 +927,15 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             # Note: claimed_chores and approved_chores lists removed in v0.4.0
             # Now using timestamp-based tracking (last_approved, approval_period_start)
             # Chore tracking now uses timestamps in kid_chore_data
-            const.DATA_KID_COMPLETED_CHORES_TODAY_DEPRECATED: kid_data.get(
-                const.DATA_KID_COMPLETED_CHORES_TODAY_DEPRECATED, const.DEFAULT_ZERO
-            ),
-            const.DATA_KID_COMPLETED_CHORES_WEEKLY_DEPRECATED: kid_data.get(
-                const.DATA_KID_COMPLETED_CHORES_WEEKLY_DEPRECATED, const.DEFAULT_ZERO
-            ),
-            const.DATA_KID_COMPLETED_CHORES_MONTHLY_DEPRECATED: kid_data.get(
-                const.DATA_KID_COMPLETED_CHORES_MONTHLY_DEPRECATED, const.DEFAULT_ZERO
-            ),
-            const.DATA_KID_COMPLETED_CHORES_TOTAL_DEPRECATED: kid_data.get(
-                const.DATA_KID_COMPLETED_CHORES_TOTAL_DEPRECATED, const.DEFAULT_ZERO
-            ),
+            # Deprecated completed_chores counters removed - using chore_stats only
             const.DATA_KID_HA_USER_ID: kid_data.get(const.DATA_KID_HA_USER_ID),
             const.DATA_KID_INTERNAL_ID: kid_id,
             const.DATA_KID_POINTS_MULTIPLIER: kid_data.get(
                 const.DATA_KID_POINTS_MULTIPLIER, const.DEFAULT_KID_POINTS_MULTIPLIER
             ),
-            const.DATA_KID_REWARD_CLAIMS: kid_data.get(
-                const.DATA_KID_REWARD_CLAIMS, {}
-            ),
-            const.DATA_KID_REWARD_APPROVALS: kid_data.get(
-                const.DATA_KID_REWARD_APPROVALS, {}
-            ),
-            const.DATA_KID_CHORE_CLAIMS_DEPRECATED: kid_data.get(
-                const.DATA_KID_CHORE_CLAIMS_DEPRECATED, {}
-            ),
-            const.DATA_KID_CHORE_APPROVALS_DEPRECATED: kid_data.get(
-                const.DATA_KID_CHORE_APPROVALS_DEPRECATED, {}
+            # Legacy reward fields (reward_claims, reward_approvals) removed - use reward_data
+            const.DATA_KID_CHORE_CLAIMS_LEGACY: kid_data.get(
+                const.DATA_KID_CHORE_CLAIMS_LEGACY, {}
             ),
             const.DATA_KID_PENALTY_APPLIES: kid_data.get(
                 const.DATA_KID_PENALTY_APPLIES, {}
@@ -980,23 +943,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.DATA_KID_BONUS_APPLIES: kid_data.get(
                 const.DATA_KID_BONUS_APPLIES, {}
             ),
-            const.DATA_KID_PENDING_REWARDS: kid_data.get(
-                const.DATA_KID_PENDING_REWARDS, []
-            ),
-            const.DATA_KID_REDEEMED_REWARDS: kid_data.get(
-                const.DATA_KID_REDEEMED_REWARDS, []
-            ),
-            const.DATA_KID_POINTS_EARNED_TODAY_DEPRECATED: kid_data.get(
-                const.DATA_KID_POINTS_EARNED_TODAY_DEPRECATED, const.DEFAULT_ZERO
-            ),
-            const.DATA_KID_POINTS_EARNED_WEEKLY_DEPRECATED: kid_data.get(
-                const.DATA_KID_POINTS_EARNED_WEEKLY_DEPRECATED, const.DEFAULT_ZERO
-            ),
-            const.DATA_KID_POINTS_EARNED_MONTHLY_DEPRECATED: kid_data.get(
-                const.DATA_KID_POINTS_EARNED_MONTHLY_DEPRECATED, const.DEFAULT_ZERO
-            ),
-            const.DATA_KID_MAX_POINTS_EVER: kid_data.get(
-                const.DATA_KID_MAX_POINTS_EVER, const.DEFAULT_ZERO
+            # Modern reward tracking (v0.5.0+) - timestamp-based with multi-claim support
+            # Legacy fields (pending_rewards, redeemed_rewards, reward_claims, reward_approvals)
+            # have been removed - all reward tracking now uses reward_data structure
+            const.DATA_KID_REWARD_DATA: kid_data.get(const.DATA_KID_REWARD_DATA, {}),
+            const.DATA_KID_MAX_POINTS_EVER_LEGACY: kid_data.get(
+                const.DATA_KID_MAX_POINTS_EVER_LEGACY, const.DEFAULT_ZERO
             ),
             const.DATA_KID_ENABLE_NOTIFICATIONS: kid_data.get(
                 const.DATA_KID_ENABLE_NOTIFICATIONS, True
@@ -1007,12 +959,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS: kid_data.get(
                 const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS, True
             ),
-            const.DATA_KID_CHORE_STREAKS_DEPRECATED: {},
+            const.DATA_KID_CHORE_STREAKS_LEGACY: {},
             const.DATA_KID_OVERDUE_CHORES: [],
             const.DATA_KID_OVERDUE_NOTIFICATIONS: {},
         }
 
-        self._normalize_kid_lists(self._data[const.DATA_KIDS][kid_id])
+        self._normalize_kid_reward_data(self._data[const.DATA_KIDS][kid_id])
 
         const.LOGGER.debug(
             "DEBUG: Kid Added - '%s', ID '%s'",
@@ -2371,8 +2323,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
     @property
     def pending_reward_approvals(self) -> list[dict[str, Any]]:
-        """Return the list of pending reward approvals."""
-        return self._data.get(const.DATA_PENDING_REWARD_APPROVALS, [])
+        """Return the list of pending reward approvals (computed from modern structure)."""
+        return self.get_pending_reward_approvals_computed()
 
     @property
     def pending_chore_changed(self) -> bool:
@@ -2441,7 +2393,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         kid_info = self.kids_data[kid_id]
 
-        self._normalize_kid_lists(kid_info)
+        self._normalize_kid_reward_data(kid_info)
 
         # Phase 4: Use timestamp-based helpers instead of deprecated lists
         # This checks: completed_by_other, pending_claim, already_approved
@@ -2902,6 +2854,107 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         kid_info = self.kids_data.get(kid_id, {})
         return kid_info.get(const.DATA_KID_CHORE_DATA, {}).get(chore_id, {})
 
+    def _get_kid_reward_data(
+        self, kid_id: str, reward_id: str, create: bool = False
+    ) -> dict[str, Any]:
+        """Get the reward data dict for a specific kid+reward combination.
+
+        Args:
+            kid_id: The kid's internal ID
+            reward_id: The reward's internal ID
+            create: If True, create the entry if it doesn't exist
+
+        Returns an empty dict if the kid or reward data doesn't exist and create=False.
+        """
+        kid_info = self.kids_data.get(kid_id, {})
+        reward_data = kid_info.setdefault(const.DATA_KID_REWARD_DATA, {})
+        if create and reward_id not in reward_data:
+            reward_data[reward_id] = {
+                const.DATA_KID_REWARD_DATA_NAME: self.rewards_data.get(
+                    reward_id, {}
+                ).get(const.DATA_REWARD_NAME, ""),
+                const.DATA_KID_REWARD_DATA_PENDING_COUNT: 0,
+                const.DATA_KID_REWARD_DATA_NOTIFICATION_IDS: [],
+                const.DATA_KID_REWARD_DATA_LAST_CLAIMED: None,
+                const.DATA_KID_REWARD_DATA_LAST_APPROVED: None,
+                const.DATA_KID_REWARD_DATA_LAST_DISAPPROVED: None,
+                const.DATA_KID_REWARD_DATA_TOTAL_CLAIMS: 0,
+                const.DATA_KID_REWARD_DATA_TOTAL_APPROVED: 0,
+                const.DATA_KID_REWARD_DATA_TOTAL_DISAPPROVED: 0,
+                const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT: 0,
+                const.DATA_KID_REWARD_DATA_PERIODS: {
+                    const.DATA_KID_REWARD_DATA_PERIODS_DAILY: {},
+                    const.DATA_KID_REWARD_DATA_PERIODS_WEEKLY: {},
+                    const.DATA_KID_REWARD_DATA_PERIODS_MONTHLY: {},
+                    const.DATA_KID_REWARD_DATA_PERIODS_YEARLY: {},
+                },
+            }
+        return reward_data.get(reward_id, {})
+
+    def _increment_reward_period_counter(
+        self,
+        reward_entry: dict[str, Any],
+        counter_key: str,
+        amount: int = 1,
+    ) -> None:
+        """Increment a period counter for a reward entry across all period buckets.
+
+        Args:
+            reward_entry: The reward_data[reward_id] dict
+            counter_key: Which counter to increment (claimed/approved/disapproved/points)
+            amount: Amount to add (default 1)
+        """
+        now = dt_util.now()  # Local time for period keys
+
+        # Get period IDs using same format as chore_data and point_data
+        daily_key = now.strftime("%Y-%m-%d")
+        weekly_key = f"{now.isocalendar()[0]}-W{now.isocalendar()[1]:02d}"
+        monthly_key = now.strftime("%Y-%m")
+        yearly_key = now.strftime("%Y")
+
+        # Ensure periods structure exists
+        periods = reward_entry.setdefault(
+            const.DATA_KID_REWARD_DATA_PERIODS,
+            {
+                const.DATA_KID_REWARD_DATA_PERIODS_DAILY: {},
+                const.DATA_KID_REWARD_DATA_PERIODS_WEEKLY: {},
+                const.DATA_KID_REWARD_DATA_PERIODS_MONTHLY: {},
+                const.DATA_KID_REWARD_DATA_PERIODS_YEARLY: {},
+            },
+        )
+
+        # Helper to get or create period entry with all counters
+        def _get_period_entry(bucket: dict, period_id: str) -> dict:
+            if period_id not in bucket:
+                bucket[period_id] = {
+                    const.DATA_KID_REWARD_DATA_PERIOD_CLAIMED: 0,
+                    const.DATA_KID_REWARD_DATA_PERIOD_APPROVED: 0,
+                    const.DATA_KID_REWARD_DATA_PERIOD_DISAPPROVED: 0,
+                    const.DATA_KID_REWARD_DATA_PERIOD_POINTS: 0,
+                }
+            return bucket[period_id]
+
+        # Increment counter in each period bucket
+        daily = periods.setdefault(const.DATA_KID_REWARD_DATA_PERIODS_DAILY, {})
+        _get_period_entry(daily, daily_key)[counter_key] = (
+            _get_period_entry(daily, daily_key).get(counter_key, 0) + amount
+        )
+
+        weekly = periods.setdefault(const.DATA_KID_REWARD_DATA_PERIODS_WEEKLY, {})
+        _get_period_entry(weekly, weekly_key)[counter_key] = (
+            _get_period_entry(weekly, weekly_key).get(counter_key, 0) + amount
+        )
+
+        monthly = periods.setdefault(const.DATA_KID_REWARD_DATA_PERIODS_MONTHLY, {})
+        _get_period_entry(monthly, monthly_key)[counter_key] = (
+            _get_period_entry(monthly, monthly_key).get(counter_key, 0) + amount
+        )
+
+        yearly = periods.setdefault(const.DATA_KID_REWARD_DATA_PERIODS_YEARLY, {})
+        _get_period_entry(yearly, yearly_key)[counter_key] = (
+            _get_period_entry(yearly, yearly_key).get(counter_key, 0) + amount
+        )
+
     def has_pending_claim(self, kid_id: str, chore_id: str) -> bool:
         """Check if a chore has a pending claim (claimed but not yet approved/disapproved).
 
@@ -2972,6 +3025,37 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                             const.DATA_CHORE_ID: chore_id,
                             const.DATA_CHORE_TIMESTAMP: chore_entry.get(
                                 const.DATA_KID_CHORE_DATA_LAST_CLAIMED, ""
+                            ),
+                        }
+                    )
+        return pending
+
+    def get_pending_reward_approvals_computed(self) -> list[dict[str, Any]]:
+        """Compute pending reward approvals dynamically from kid_reward_data.
+
+        Unlike chores (which allow only one pending claim at a time), rewards
+        support multiple pending claims via the pending_count field.
+
+        Returns:
+            List of dicts with keys: kid_id, reward_id, pending_count, timestamp
+            One entry per kid+reward combination with pending_count > 0.
+        """
+        pending: list[dict[str, Any]] = []
+        for kid_id, kid_info in self.kids_data.items():
+            reward_data = kid_info.get(const.DATA_KID_REWARD_DATA, {})
+            for reward_id, entry in reward_data.items():
+                # Skip rewards that no longer exist
+                if reward_id not in self.rewards_data:
+                    continue
+                pending_count = entry.get(const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0)
+                if pending_count > 0:
+                    pending.append(
+                        {
+                            const.DATA_KID_ID: kid_id,
+                            const.DATA_REWARD_ID: reward_id,
+                            "pending_count": pending_count,
+                            const.DATA_REWARD_TIMESTAMP: entry.get(
+                                const.DATA_KID_REWARD_DATA_LAST_CLAIMED, ""
                             ),
                         }
                     )
@@ -3238,14 +3322,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             kid_chore_data_entry[const.DATA_KID_CHORE_DATA_LAST_APPROVED] = now_iso
             # Clear the claim timestamp since it's now approved
             kid_chore_data_entry.pop(const.DATA_KID_CHORE_DATA_LAST_CLAIMED, None)
-
-            # Increment Chore Approvals (deprecated counter, kept for stats compatibility)
-            if chore_id in kid_info.get(const.DATA_KID_CHORE_APPROVALS_DEPRECATED, {}):
-                kid_info[const.DATA_KID_CHORE_APPROVALS_DEPRECATED][chore_id] += 1
-            else:
-                kid_info.setdefault(const.DATA_KID_CHORE_APPROVALS_DEPRECATED, {})[
-                    chore_id
-                ] = 1
 
             chore_info[const.DATA_CHORE_LAST_COMPLETED] = now_iso
 
@@ -3528,11 +3604,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
             # --- Handle APPROVED state ---
             elif state == const.CHORE_STATE_APPROVED:
-                # LEGACY: Deprecate in the future
-                kid_info[const.DATA_KID_COMPLETED_CHORES_TODAY_DEPRECATED] += 1
-                kid_info[const.DATA_KID_COMPLETED_CHORES_WEEKLY_DEPRECATED] += 1
-                kid_info[const.DATA_KID_COMPLETED_CHORES_MONTHLY_DEPRECATED] += 1
-                kid_info[const.DATA_KID_COMPLETED_CHORES_TOTAL_DEPRECATED] += 1
+                # Deprecated counters removed - using chore_stats only
 
                 kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_APPROVED] = now_iso
 
@@ -4057,17 +4129,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         new = old + delta_value
         kid_info[const.DATA_KID_POINTS] = new
 
-        # 3) Update legacy rolling stats
-        kid_info.setdefault(const.DATA_KID_POINTS_EARNED_TODAY_DEPRECATED, 0.0)
-        kid_info.setdefault(const.DATA_KID_POINTS_EARNED_WEEKLY_DEPRECATED, 0.0)
-        kid_info.setdefault(const.DATA_KID_POINTS_EARNED_MONTHLY_DEPRECATED, 0.0)
-        kid_info.setdefault(const.DATA_KID_MAX_POINTS_EVER, 0.0)
-        kid_info[const.DATA_KID_POINTS_EARNED_TODAY_DEPRECATED] += delta_value
-        kid_info[const.DATA_KID_POINTS_EARNED_WEEKLY_DEPRECATED] += delta_value
-        kid_info[const.DATA_KID_POINTS_EARNED_MONTHLY_DEPRECATED] += delta_value
-        kid_info[const.DATA_KID_MAX_POINTS_EVER] += delta_value
-
-        # 4) Legacy cumulative badge logic
+        # 3) Legacy cumulative badge logic
         progress = kid_info.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {})
         if delta_value > 0:
             progress.setdefault(
@@ -4358,28 +4420,30 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 },
             )
 
-        kid_info.setdefault(const.DATA_KID_PENDING_REWARDS, []).append(reward_id)
-        kid_info.setdefault(const.DATA_KID_REDEEMED_REWARDS, [])
+        # Update kid_reward_data structure
+        reward_entry = self._get_kid_reward_data(kid_id, reward_id, create=True)
+        reward_entry[const.DATA_KID_REWARD_DATA_PENDING_COUNT] = (
+            reward_entry.get(const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0) + 1
+        )
+        reward_entry[const.DATA_KID_REWARD_DATA_LAST_CLAIMED] = (
+            dt_util.utcnow().isoformat()
+        )
+        reward_entry[const.DATA_KID_REWARD_DATA_TOTAL_CLAIMS] = (
+            reward_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_CLAIMS, 0) + 1
+        )
+
+        # Update period-based tracking for claimed
+        self._increment_reward_period_counter(
+            reward_entry, const.DATA_KID_REWARD_DATA_PERIOD_CLAIMED
+        )
 
         # Generate a unique notification ID for this claim.
         notif_id = uuid.uuid4().hex
 
-        # Add to pending approvals
-        self._data[const.DATA_PENDING_REWARD_APPROVALS].append(
-            {
-                const.DATA_KID_ID: kid_id,
-                const.DATA_REWARD_ID: reward_id,
-                const.DATA_REWARD_TIMESTAMP: dt_util.utcnow().isoformat(),
-                const.DATA_REWARD_NOTIFICATION_ID: notif_id,
-            }
+        # Track notification ID for this claim
+        reward_entry.setdefault(const.DATA_KID_REWARD_DATA_NOTIFICATION_IDS, []).append(
+            notif_id
         )
-        self._pending_reward_changed = True
-
-        # increment reward_claims counter
-        if reward_id in kid_info[const.DATA_KID_REWARD_CLAIMS]:
-            kid_info[const.DATA_KID_REWARD_CLAIMS][reward_id] += 1
-        else:
-            kid_info[const.DATA_KID_REWARD_CLAIMS][reward_id] = 1
 
         # Send a notification to the parents that a kid claimed a reward
         actions = [
@@ -4451,9 +4515,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         cost = reward_info.get(const.DATA_REWARD_COST, const.DEFAULT_ZERO)
 
-        pending_count = kid_info.get(const.DATA_KID_PENDING_REWARDS, []).count(
-            reward_id
-        )
+        # Get pending_count from kid_reward_data
+        reward_entry = self._get_kid_reward_data(kid_id, reward_id, create=False)
+        pending_count = reward_entry.get(const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0)
+
         if pending_count > 0:
             if kid_info[const.DATA_KID_POINTS] < cost:
                 raise HomeAssistantError(
@@ -4472,9 +4537,63 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     kid_id, delta=-cost, source=const.POINTS_SOURCE_REWARDS
                 )
 
-            # Remove one occurrence from the kid's pending rewards list and add to redeemed.
-            kid_info[const.DATA_KID_PENDING_REWARDS].remove(reward_id)
-            kid_info.setdefault(const.DATA_KID_REDEEMED_REWARDS, []).append(reward_id)
+            # Update kid_reward_data structure
+            if reward_entry:
+                reward_entry[const.DATA_KID_REWARD_DATA_PENDING_COUNT] = max(
+                    0, reward_entry.get(const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0) - 1
+                )
+                reward_entry[const.DATA_KID_REWARD_DATA_LAST_APPROVED] = (
+                    dt_util.utcnow().isoformat()
+                )
+                reward_entry[const.DATA_KID_REWARD_DATA_TOTAL_APPROVED] = (
+                    reward_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_APPROVED, 0) + 1
+                )
+                reward_entry[const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT] = (
+                    reward_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT, 0)
+                    + cost
+                )
+
+                # Update period-based tracking for approved + points
+                self._increment_reward_period_counter(
+                    reward_entry, const.DATA_KID_REWARD_DATA_PERIOD_APPROVED
+                )
+                self._increment_reward_period_counter(
+                    reward_entry, const.DATA_KID_REWARD_DATA_PERIOD_POINTS, amount=cost
+                )
+
+                # Remove notification ID if provided
+                if notif_id:
+                    notif_ids = reward_entry.get(
+                        const.DATA_KID_REWARD_DATA_NOTIFICATION_IDS, []
+                    )
+                    if notif_id in notif_ids:
+                        notif_ids.remove(notif_id)
+
+                # Cleanup old period data using retention settings
+                kh.cleanup_period_data(
+                    self,
+                    periods_data=reward_entry.get(
+                        const.DATA_KID_REWARD_DATA_PERIODS, {}
+                    ),
+                    period_keys={
+                        "daily": const.DATA_KID_REWARD_DATA_PERIODS_DAILY,
+                        "weekly": const.DATA_KID_REWARD_DATA_PERIODS_WEEKLY,
+                        "monthly": const.DATA_KID_REWARD_DATA_PERIODS_MONTHLY,
+                        "yearly": const.DATA_KID_REWARD_DATA_PERIODS_YEARLY,
+                    },
+                    retention_daily=self.config_entry.options.get(
+                        const.CONF_RETENTION_DAILY, const.DEFAULT_RETENTION_DAILY
+                    ),
+                    retention_weekly=self.config_entry.options.get(
+                        const.CONF_RETENTION_WEEKLY, const.DEFAULT_RETENTION_WEEKLY
+                    ),
+                    retention_monthly=self.config_entry.options.get(
+                        const.CONF_RETENTION_MONTHLY, const.DEFAULT_RETENTION_MONTHLY
+                    ),
+                    retention_yearly=self.config_entry.options.get(
+                        const.CONF_RETENTION_YEARLY, const.DEFAULT_RETENTION_YEARLY
+                    ),
+                )
 
         else:
             # Direct approval (no pending claim present).
@@ -4489,30 +4608,51 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     },
                 )
             kid_info[const.DATA_KID_POINTS] -= cost
-            kid_info[const.DATA_KID_REDEEMED_REWARDS].append(reward_id)
 
-        # Remove only one matching pending reward approval from global approvals.
-        approvals = self._data.get(const.DATA_PENDING_REWARD_APPROVALS, [])
-        for i, ap in enumerate(approvals):
-            if (
-                ap.get(const.DATA_KID_ID) == kid_id
-                and ap.get(const.DATA_REWARD_ID) == reward_id
-            ):
-                # If a notification ID was passed, only remove the matching one.
-                if notif_id is not None:
-                    if ap.get(const.DATA_REWARD_NOTIFICATION_ID) == notif_id:
-                        del approvals[i]
-                        break
-                else:
-                    del approvals[i]
-                    break
-        self._pending_reward_changed = True
+            # Update kid_reward_data structure for direct approval
+            direct_entry = self._get_kid_reward_data(kid_id, reward_id, create=True)
+            direct_entry[const.DATA_KID_REWARD_DATA_LAST_APPROVED] = (
+                dt_util.utcnow().isoformat()
+            )
+            direct_entry[const.DATA_KID_REWARD_DATA_TOTAL_APPROVED] = (
+                direct_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_APPROVED, 0) + 1
+            )
+            direct_entry[const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT] = (
+                direct_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT, 0)
+                + cost
+            )
 
-        # Increment reward approval counter for the kid.
-        if reward_id in kid_info[const.DATA_KID_REWARD_APPROVALS]:
-            kid_info[const.DATA_KID_REWARD_APPROVALS][reward_id] += 1
-        else:
-            kid_info[const.DATA_KID_REWARD_APPROVALS][reward_id] = 1
+            # Update period-based tracking for approved + points
+            self._increment_reward_period_counter(
+                direct_entry, const.DATA_KID_REWARD_DATA_PERIOD_APPROVED
+            )
+            self._increment_reward_period_counter(
+                direct_entry, const.DATA_KID_REWARD_DATA_PERIOD_POINTS, amount=cost
+            )
+
+            # Cleanup old period data using retention settings
+            kh.cleanup_period_data(
+                self,
+                periods_data=direct_entry.get(const.DATA_KID_REWARD_DATA_PERIODS, {}),
+                period_keys={
+                    "daily": const.DATA_KID_REWARD_DATA_PERIODS_DAILY,
+                    "weekly": const.DATA_KID_REWARD_DATA_PERIODS_WEEKLY,
+                    "monthly": const.DATA_KID_REWARD_DATA_PERIODS_MONTHLY,
+                    "yearly": const.DATA_KID_REWARD_DATA_PERIODS_YEARLY,
+                },
+                retention_daily=self.config_entry.options.get(
+                    const.CONF_RETENTION_DAILY, const.DEFAULT_RETENTION_DAILY
+                ),
+                retention_weekly=self.config_entry.options.get(
+                    const.CONF_RETENTION_WEEKLY, const.DEFAULT_RETENTION_WEEKLY
+                ),
+                retention_monthly=self.config_entry.options.get(
+                    const.CONF_RETENTION_MONTHLY, const.DEFAULT_RETENTION_MONTHLY
+                ),
+                retention_yearly=self.config_entry.options.get(
+                    const.CONF_RETENTION_YEARLY, const.DEFAULT_RETENTION_YEARLY
+                ),
+            )
 
         # Check badges
         self._check_badges_for_kid(kid_id)
@@ -4546,21 +4686,27 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 },
             )
 
-        # Remove only one entry of each reward claim from pending approvals
-        approvals = self._data.get(const.DATA_PENDING_REWARD_APPROVALS, [])
-        for i, ap in enumerate(approvals):
-            if (
-                ap.get(const.DATA_KID_ID) == kid_id
-                and ap.get(const.DATA_REWARD_ID) == reward_id
-            ):
-                del approvals[i]
-                break
-        self._data[const.DATA_PENDING_REWARD_APPROVALS] = approvals
-        self._pending_reward_changed = True
-
         kid_info = self.kids_data.get(kid_id)
-        if kid_info and reward_id in kid_info.get(const.DATA_KID_PENDING_REWARDS, []):
-            kid_info[const.DATA_KID_PENDING_REWARDS].remove(reward_id)
+
+        # Update kid_reward_data structure
+        if kid_info:
+            reward_entry = self._get_kid_reward_data(kid_id, reward_id, create=False)
+            if reward_entry:
+                reward_entry[const.DATA_KID_REWARD_DATA_PENDING_COUNT] = max(
+                    0, reward_entry.get(const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0) - 1
+                )
+                reward_entry[const.DATA_KID_REWARD_DATA_LAST_DISAPPROVED] = (
+                    dt_util.utcnow().isoformat()
+                )
+                reward_entry[const.DATA_KID_REWARD_DATA_TOTAL_DISAPPROVED] = (
+                    reward_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_DISAPPROVED, 0)
+                    + 1
+                )
+
+                # Update period-based tracking for disapproved
+                self._increment_reward_period_counter(
+                    reward_entry, const.DATA_KID_REWARD_DATA_PERIOD_DISAPPROVED
+                )
 
         # Send a notification to the kid that reward was disapproved
         extra_data = {const.DATA_KID_ID: kid_id, const.DATA_REWARD_ID: reward_id}
@@ -5244,26 +5390,23 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     const.DEFAULT_POINTS_MULTIPLIER
                 )
 
-        # 3. Rewards (multiple)
+        # 3. Rewards (multiple) - Badge awards grant rewards directly (no claim/approval flow)
         for reward_id in to_award.get(const.AWARD_ITEMS_KEY_REWARDS, []):
             if reward_id in self.rewards_data:
-                if reward_id not in kid_info.get(const.DATA_KID_REDEEMED_REWARDS, []):
-                    kid_info.setdefault(const.DATA_KID_REDEEMED_REWARDS, []).append(
-                        reward_id
-                    )
-                    const.LOGGER.info(
-                        "INFO: Award Badge - Added reward '%s' to redeemed rewards for kid '%s'.",
-                        self.rewards_data[reward_id].get(
-                            const.DATA_REWARD_NAME, reward_id
-                        ),
-                        kid_name,
-                    )
-                kid_info.setdefault(const.DATA_KID_REWARD_APPROVALS, {})
-                kid_info[const.DATA_KID_REWARD_APPROVALS][reward_id] = (
-                    kid_info[const.DATA_KID_REWARD_APPROVALS].get(reward_id, 0) + 1
+                # Update modern reward_data tracking
+                reward_data = self._get_kid_reward_data(kid_id, reward_id)
+                reward_data[const.DATA_KID_REWARD_DATA_TOTAL_APPROVED] = (
+                    reward_data.get(const.DATA_KID_REWARD_DATA_TOTAL_APPROVED, 0) + 1
                 )
-                if reward_id in kid_info.get(const.DATA_KID_PENDING_REWARDS, []):
-                    kid_info[const.DATA_KID_PENDING_REWARDS].remove(reward_id)
+                # Increment period counter for this approval
+                self._increment_reward_period_counter(
+                    reward_data, const.DATA_KID_REWARD_DATA_PERIOD_APPROVED
+                )
+                const.LOGGER.info(
+                    "INFO: Award Badge - Granted reward '%s' to kid '%s'.",
+                    self.rewards_data[reward_id].get(const.DATA_REWARD_NAME, reward_id),
+                    kid_name,
+                )
 
         # 4. Bonuses (multiple)
         for bonus_id in to_award.get(const.AWARD_ITEMS_KEY_BONUSES, []):
@@ -7165,14 +7308,15 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     const.DATA_ACHIEVEMENT_BASELINE not in progress
                     or progress[const.DATA_ACHIEVEMENT_BASELINE] is None
                 ):
-                    progress[const.DATA_ACHIEVEMENT_BASELINE] = kid_info.get(
-                        const.DATA_KID_COMPLETED_CHORES_TOTAL_DEPRECATED,
-                        const.DEFAULT_ZERO,
+                    chore_stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
+                    progress[const.DATA_ACHIEVEMENT_BASELINE] = chore_stats.get(
+                        const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME, const.DEFAULT_ZERO
                     )
 
                 # Calculate progress as (current total minus baseline)
-                current_total = kid_info.get(
-                    const.DATA_KID_COMPLETED_CHORES_TOTAL_DEPRECATED, const.DEFAULT_ZERO
+                chore_stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
+                current_total = chore_stats.get(
+                    const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME, const.DEFAULT_ZERO
                 )
 
                 progress[const.DATA_ACHIEVEMENT_CURRENT_VALUE] = current_total
@@ -7198,14 +7342,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 today_local_iso = kh.get_today_local_iso()
 
                 # Only award bonus if not awarded today AND the kid's daily count meets the threshold.
+                chore_stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
+                daily_count = chore_stats.get(
+                    const.DATA_KID_CHORE_STATS_APPROVED_TODAY, const.DEFAULT_ZERO
+                )
                 if (
                     progress.get(const.DATA_ACHIEVEMENT_LAST_AWARDED_DATE)
                     != today_local_iso
-                    and kid_info.get(
-                        const.DATA_KID_COMPLETED_CHORES_TODAY_DEPRECATED,
-                        const.DEFAULT_ZERO,
-                    )
-                    >= target
+                    and daily_count >= target
                 ):
                     self._award_achievement(kid_id, achievement_id)
                     progress[const.DATA_ACHIEVEMENT_LAST_AWARDED_DATE] = today_local_iso
@@ -7231,9 +7375,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         if progress_for_kid is None:
             # If it doesn't exist, initialize it with baseline from the kid's current total.
             kid_info = self.kids_data.get(kid_id, {})
+            chore_stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
             progress_dict = {
-                const.DATA_ACHIEVEMENT_BASELINE: kid_info.get(
-                    const.DATA_KID_COMPLETED_CHORES_TOTAL_DEPRECATED, const.DEFAULT_ZERO
+                const.DATA_ACHIEVEMENT_BASELINE: chore_stats.get(
+                    const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME, const.DEFAULT_ZERO
                 ),
                 const.DATA_ACHIEVEMENT_CURRENT_VALUE: const.DEFAULT_ZERO,
                 const.DATA_ACHIEVEMENT_AWARDED: False,
@@ -7820,36 +7965,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
     async def _reset_chore_counts(self, frequency: str, now: datetime):
         """Reset chore counts and statuses based on the recurring frequency."""
-        # Reset counters on kids
-        for kid_info in self.kids_data.values():
-            if frequency == const.FREQUENCY_DAILY:
-                kid_info[const.DATA_KID_COMPLETED_CHORES_TODAY_DEPRECATED] = (
-                    const.DEFAULT_ZERO
-                )
-                kid_info[const.DATA_KID_POINTS_EARNED_TODAY_DEPRECATED] = (
-                    const.DEFAULT_ZERO
-                )
-            elif frequency == const.FREQUENCY_WEEKLY:
-                kid_info[const.DATA_KID_COMPLETED_CHORES_WEEKLY_DEPRECATED] = (
-                    const.DEFAULT_ZERO
-                )
-                kid_info[const.DATA_KID_POINTS_EARNED_WEEKLY_DEPRECATED] = (
-                    const.DEFAULT_ZERO
-                )
-            elif frequency == const.FREQUENCY_MONTHLY:
-                kid_info[const.DATA_KID_COMPLETED_CHORES_MONTHLY_DEPRECATED] = (
-                    const.DEFAULT_ZERO
-                )
-                kid_info[const.DATA_KID_POINTS_EARNED_MONTHLY_DEPRECATED] = (
-                    const.DEFAULT_ZERO
-                )
-            elif frequency == const.FREQUENCY_YEARLY:
-                kid_info[const.DATA_KID_COMPLETED_CHORES_YEARLY_DEPRECATED] = (
-                    const.DEFAULT_ZERO
-                )
-                kid_info[const.DATA_KID_POINTS_EARNED_YEARLY_DEPRECATED] = (
-                    const.DEFAULT_ZERO
-                )
+        # Note: Points earned tracking now handled by point_stats structure
+        # Legacy points_earned_* counters removed - no longer needed
 
         const.LOGGER.debug(
             "DEBUG: Reset Chore Counts: %s chore counts have been reset",
@@ -8205,23 +8322,19 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 )
 
     async def _reset_daily_reward_statuses(self):
-        """Reset all kids' reward states daily."""
-        # Remove from global pending reward approvals
-        self._data[const.DATA_PENDING_REWARD_APPROVALS] = []
+        """Reset all kids' daily reward tracking.
+
+        With period-based tracking (reward_data.periods), no daily reset is needed.
+        Period counters are date-keyed (e.g., '2025-12-30') and automatically
+        roll over without requiring any reset operation.
+
+        This method is kept for backward compatibility but performs no actions.
+        """
+        # Period-based tracking (reward_data.periods) uses date keys that
+        # automatically represent different time periods without reset.
         const.LOGGER.debug(
-            "DEBUG: Daily Reset - Rewards - Pending approvals reset complete"
+            "DEBUG: Daily Reset - Rewards - No-op (period-based tracking is date-keyed)"
         )
-
-        # For each kid, clear pending/approved reward lists to reflect daily reset
-        for kid_id, kid_info in self.kids_data.items():
-            kid_info[const.DATA_KID_PENDING_REWARDS] = []
-            kid_info[const.DATA_KID_REDEEMED_REWARDS] = []
-
-            const.LOGGER.debug(
-                "DEBUG: Daily Reset - Rewards - Cleared daily reward statuses for Kid ID '%s' (%s)",
-                kid_id,
-                kid_info.get(const.DATA_KID_NAME, const.TRANS_KEY_DISPLAY_UNKNOWN_KID),
-            )
 
         self._persist()
         self.async_set_updated_data(self._data)
@@ -9018,8 +9131,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     # -------------------------------------------------------------------------------------
     # Rewards: Reset
     # This function resets reward-related data for a specified kid and/or reward by
-    # clearing claims, approvals, redeemed and pending rewards, and removing associated
-    # pending reward approvals from the global data.
+    # clearing the reward_data entries which track claims, approvals, and period stats.
     # -------------------------------------------------------------------------------------
 
     def reset_rewards(
@@ -9043,55 +9155,19 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     },
                 )
 
-            kid_info[const.DATA_KID_REWARD_CLAIMS].pop(reward_id, None)
-            kid_info[const.DATA_KID_REWARD_APPROVALS].pop(reward_id, None)
-            kid_info[const.DATA_KID_REDEEMED_REWARDS] = [
-                reward
-                for reward in kid_info[const.DATA_KID_REDEEMED_REWARDS]
-                if reward != reward_id
-            ]
-            kid_info[const.DATA_KID_PENDING_REWARDS] = [
-                reward
-                for reward in kid_info[const.DATA_KID_PENDING_REWARDS]
-                if reward != reward_id
-            ]
-
-            # Remove open claims from pending approvals for this kid and reward.
-            self._data[const.DATA_PENDING_REWARD_APPROVALS] = [
-                ap
-                for ap in self._data[const.DATA_PENDING_REWARD_APPROVALS]
-                if not (
-                    ap[const.DATA_KID_ID] == kid_id
-                    and ap[const.DATA_REWARD_ID] == reward_id
-                )
-            ]
+            # Clear reward_data entry for this reward
+            reward_data = kid_info.get(const.DATA_KID_REWARD_DATA, {})
+            reward_data.pop(reward_id, None)
 
         elif reward_id:
             # Reset a specific reward for all kids
             found = False
             for kid_info in self.kids_data.values():
-                if reward_id in kid_info.get(const.DATA_KID_REWARD_CLAIMS, {}):
+                reward_data = kid_info.get(const.DATA_KID_REWARD_DATA, {})
+                if reward_id in reward_data:
                     found = True
-                    kid_info[const.DATA_KID_REWARD_CLAIMS].pop(reward_id, None)
-                if reward_id in kid_info.get(const.DATA_KID_REWARD_APPROVALS, {}):
-                    found = True
-                    kid_info[const.DATA_KID_REWARD_APPROVALS].pop(reward_id, None)
-                kid_info[const.DATA_KID_REDEEMED_REWARDS] = [
-                    reward
-                    for reward in kid_info[const.DATA_KID_REDEEMED_REWARDS]
-                    if reward != reward_id
-                ]
-                kid_info[const.DATA_KID_PENDING_REWARDS] = [
-                    reward
-                    for reward in kid_info[const.DATA_KID_PENDING_REWARDS]
-                    if reward != reward_id
-                ]
-            # Remove open claims from pending approvals for this reward (all kids).
-            self._data[const.DATA_PENDING_REWARD_APPROVALS] = [
-                ap
-                for ap in self._data[const.DATA_PENDING_REWARD_APPROVALS]
-                if ap[const.DATA_REWARD_ID] != reward_id
-            ]
+                    reward_data.pop(reward_id, None)
+
             if not found:
                 const.LOGGER.warning(
                     "WARNING: Reset Rewards - Reward '%s' not found in any kid's data.",
@@ -9114,17 +9190,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     },
                 )
 
-            kid_info[const.DATA_KID_REWARD_CLAIMS].clear()
-            kid_info[const.DATA_KID_REWARD_APPROVALS].clear()
-            kid_info[const.DATA_KID_REDEEMED_REWARDS].clear()
-            kid_info[const.DATA_KID_PENDING_REWARDS].clear()
-
-            # Remove open claims from pending approvals for that kid.
-            self._data[const.DATA_PENDING_REWARD_APPROVALS] = [
-                ap
-                for ap in self._data[const.DATA_PENDING_REWARD_APPROVALS]
-                if ap[const.DATA_KID_ID] != kid_id
-            ]
+            # Clear all reward_data for this kid
+            if const.DATA_KID_REWARD_DATA in kid_info:
+                kid_info[const.DATA_KID_REWARD_DATA].clear()
 
         else:
             # Reset all rewards for all kids
@@ -9132,13 +9200,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 "INFO: Reset Rewards - Resetting all rewards for all kids."
             )
             for kid_info in self.kids_data.values():
-                kid_info[const.DATA_KID_REWARD_CLAIMS].clear()
-                kid_info[const.DATA_KID_REWARD_APPROVALS].clear()
-                kid_info[const.DATA_KID_REDEEMED_REWARDS].clear()
-                kid_info[const.DATA_KID_PENDING_REWARDS].clear()
-
-            # Clear all pending reward approvals.
-            self._data[const.DATA_PENDING_REWARD_APPROVALS].clear()
+                # Clear all reward_data for this kid
+                if const.DATA_KID_REWARD_DATA in kid_info:
+                    kid_info[const.DATA_KID_REWARD_DATA].clear()
 
         const.LOGGER.debug(
             "DEBUG: Reset Rewards - Rewards reset completed - Kid ID '%s', Reward ID '%s'",
@@ -9549,8 +9613,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 kid_id,
             )
         elif reward_id:
-            # Check if the reward is still pending approval.
-            if reward_id not in kid_info.get(const.DATA_KID_PENDING_REWARDS, []):
+            # Check if the reward is still pending approval using modern reward_data
+            reward_data = kid_info.get(const.DATA_KID_REWARD_DATA, {}).get(
+                reward_id, {}
+            )
+            pending_count = reward_data.get(const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0)
+            if pending_count <= 0:
                 const.LOGGER.info(
                     "INFO: Notification - Reward ID '%s' is no longer pending approval for Kid ID '%s'. No reminder sent",
                     reward_id,

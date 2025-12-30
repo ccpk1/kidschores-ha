@@ -1332,8 +1332,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             const.DATA_BONUSES: self._bonuses_temp,
             const.DATA_ACHIEVEMENTS: self._achievements_temp,
             const.DATA_CHALLENGES: self._challenges_temp,
-            # Chore queue removed in v0.4.0 - computed from timestamps
-            const.DATA_PENDING_REWARD_APPROVALS: [],
+            # Legacy queues removed in v0.4.0 - computed from timestamps/reward_data
         }
 
         # Initialize storage manager and save entity data

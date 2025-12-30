@@ -542,13 +542,15 @@ async def test_service_redeem_reward_success(
             blocking=True,
         )
 
-        # Verify reward is in pending approvals
-        pending = coordinator._data.get("pending_reward_approvals", [])  # pylint: disable=protected-access
-        assert len(pending) > 0
-        assert any(
-            p.get("kid_id") == kid_id and p.get("reward_id") == reward_id
-            for p in pending
-        )
+        # Verify reward is tracked in kid_reward_data (modern structure)
+        kid_info = coordinator.kids_data.get(kid_id, {})  # pylint: disable=protected-access
+        reward_data = kid_info.get("reward_data", {}).get(reward_id, {})
+        assert reward_data.get("pending_count", 0) > 0
+        assert reward_data.get("total_claims", 0) > 0
+        assert "last_claimed" in reward_data
+        # Verify notification ID was generated for this claim
+        notif_ids = reward_data.get("notification_ids", [])
+        assert len(notif_ids) > 0
 
 
 async def test_service_disapprove_reward_success(
@@ -772,21 +774,25 @@ async def test_service_reset_rewards_all(
     hass: HomeAssistant,
     init_integration: MockConfigEntry,
 ) -> None:
-    """Test reset_rewards service resets reward claim counts."""
+    """Test reset_rewards service resets reward_data tracking."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
     with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-        # Create a kid with reward claims
+        # Create a kid with reward_data entries
         kid_id = str(uuid.uuid4())
         kid_data = create_mock_kid_data(name="Test Kid", points=50.0)
         kid_data["internal_id"] = kid_id
-        kid_data["reward_claims"] = {"reward1": 3, "reward2": 5}
+        # Use modern reward_data structure
+        kid_data["reward_data"] = {
+            "reward1": {"pending_count": 1, "total_claims": 3, "total_approvals": 2},
+            "reward2": {"pending_count": 0, "total_claims": 5, "total_approvals": 5},
+        }
         # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
         # pylint: enable=protected-access
 
-        # Verify reward claims exist
-        assert len(coordinator.kids_data[kid_id]["reward_claims"]) == 2
+        # Verify reward_data entries exist
+        assert len(coordinator.kids_data[kid_id]["reward_data"]) == 2
 
         # Reset all rewards via service (no parameters)
         await hass.services.async_call(
@@ -796,8 +802,8 @@ async def test_service_reset_rewards_all(
             blocking=True,
         )
 
-        # Verify reward claims cleared
-        assert len(coordinator.kids_data[kid_id]["reward_claims"]) == 0
+        # Verify reward_data cleared
+        assert len(coordinator.kids_data[kid_id]["reward_data"]) == 0
 
 
 async def test_service_remove_awarded_badges_all(

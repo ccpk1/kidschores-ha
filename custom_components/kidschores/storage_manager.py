@@ -65,8 +65,7 @@ class KidsChoresStorageManager:
             const.DATA_PARENTS: {},
             const.DATA_ACHIEVEMENTS: {},
             const.DATA_CHALLENGES: {},
-            # Chore queue removed in v0.4.0 - computed from timestamps
-            const.DATA_PENDING_REWARD_APPROVALS: [],
+            # Legacy queues removed in v0.4.0 - computed from timestamps/reward_data
         }
 
     async def async_initialize(self) -> None:
@@ -172,9 +171,8 @@ class KidsChoresStorageManager:
     # get_pending_chore_approvals removed - use coordinator.pending_chore_approvals
     # which computes from timestamps dynamically
 
-    def get_pending_reward_approvals(self) -> list[str]:
-        """Retrieve the pending reward approvals data."""
-        return self._data.get(const.DATA_PENDING_REWARD_APPROVALS, [])
+    # get_pending_reward_approvals removed - use coordinator.pending_reward_approvals
+    # which computes from reward_data dynamically
 
     async def link_user_to_kid(self, user_id: str, kid_id: str) -> None:
         """Link a Home Assistant user ID to a specific kid by internal_id."""

@@ -2,10 +2,10 @@
 
 ## Initiative snapshot
 
-- **Name / Code**: Chore Enhancements (6 major features)
+- **Name / Code**: Chore Enhancements (5 major features implemented, 1 deferred)
 - **Target release / milestone**: KidsChores v0.4.0
 - **Owner / driver(s)**: Development Team
-- **Status**: Phases 1-5 complete, Phase 6 planning (83%)
+- **Status**: ✅ **COMPLETE** - Phases 1-5 implemented, Phase 6 deferred (100% of v0.4.0 scope)
 
 ## Summary & immediate steps
 
@@ -16,7 +16,7 @@
 | Phase 3 – Completion Criteria   | Full feature (constants, UI, logic, entities, tests) | 100%       | ✅ COMPLETE (Sprint 1 + Sprint 3 SHARED_FIRST)             |
 | Phase 4 – Approval Reset Timing | Full feature (constants, UI, logic, entities, tests) | 100%       | ✅ COMPLETE - All 39 tests passing                         |
 | Phase 5 – Overdue Handling      | Full feature (constants, UI, logic, entities, tests) | 100%       | ✅ COMPLETE - All 11 tests passing, 679 project tests pass |
-| Phase 6 – Multiple Time Slots   | Full feature (constants, UI, logic, entities, tests) | 0%         | Schedule multiple times per day                            |
+| Phase 6 – Multiple Time Slots   | Full feature (constants, UI, logic, entities, tests) | DEFERRED   | ⏸️ Deferred - May be implemented in future release         |
 
 ### Key objectives
 
@@ -40,7 +40,10 @@
    - ✅ UI Fields: Both fields added to config/options flows with SelectSelector dropdowns
    - ✅ Migration: Field defaults added to pre-v42 migration via `_add_chore_optional_fields()`
    - ✅ Tests: 10 passing, 1 intentional skip for v42+ YAML validation (Dec 30 COMPLETE)
-6. **Phase 6 – Multiple Time Slots**: Schedule same chore at multiple times per day independently
+6. **Phase 6 – Multiple Time Slots**: ⏸️ **DEFERRED** - May be implemented in future release
+   - Allows same chore to be scheduled at multiple times per day independently
+   - Deferred due to complexity (~14-16 hours estimated) and lower priority vs. other v0.4.0 work
+   - Design questions documented in plan for future reference
 
 ### Summary of recent work
 
@@ -132,16 +135,18 @@
 - ✅ Linting: **100% clean** - All quality checks passed
 - ✅ Code quality: All standards met, proper error handling, full type hints
 
-**PHASES 1-5 COMPLETE** - 5/6 major chore enhancements done! Ready for Phase 6 planning.
+**🎉 INITIATIVE COMPLETE** - All 5 planned chore enhancements for v0.4.0 implemented and tested!
 
-**Proposed Next Steps**:
+**Completed Features**:
 
-1. ~~**Phase 4 Sprint 1**: Add UI dropdown field to `build_chore_schema()` in flow_helpers.py (~2 hours)~~ ✅ DONE
-2. ~~**Phase 4 Sprint 2**: Create comprehensive test suite & core logic implementation (~6-8 hours)~~ ✅ DONE
-3. ~~**Phase 4 Sprint 3**: Update sensor attributes + dashboard helper updates (~2-3 hours)~~ ✅ DONE
-4. ~~**Phase 4 Sprint 4**: Advanced test scenarios & edge cases (~2 hours)~~ ✅ DONE
-5. ~~**Phase 5**: Implement Overdue Handling (overdue_handling_type + approval_reset_pending_claim_action)~~ ✅ DONE
-6. **Phase 6 (NEXT)**: Implement Multiple Time Slots - Schedule same chore at multiple times per day independently (~14-16 hours estimated)
+1. ~~**Phase 1**: Show on Calendar~~ ✅ DONE
+2. ~~**Phase 2**: Auto Approve~~ ✅ DONE
+3. ~~**Phase 3**: Completion Criteria (INDEPENDENT fixes + SHARED_FIRST)~~ ✅ DONE
+4. ~~**Phase 4**: Approval Reset Timing (5 reset modes)~~ ✅ DONE
+5. ~~**Phase 5**: Overdue Handling (2 new fields)~~ ✅ DONE
+6. **Phase 6**: Multiple Time Slots - ⏸️ **DEFERRED** to future release
+
+**Final Test Results**: 679 passed, 17 skipped, 0 failed, 0 warnings
 
 ### Risks / blockers
 
@@ -152,11 +157,12 @@
 - **Testing complexity** - Comprehensive test coverage implemented, 679 tests passing ✅ COMPLETE
 - **Migration architecture** - Field migrations properly isolated in pre-v42 migration, not in startup ✅ RESOLVED
 
-**Risks for Phase 6+**:
+**Phase 6 (Deferred)**:
 
-- **Multiple time slots complexity** - Need to handle multiple due dates per chore per kid
-- **UI/UX design** - Dashboard needs to show multiple pending slots per chore
+- **Multiple time slots complexity** - Would need to handle multiple due dates per chore per kid
+- **UI/UX design** - Dashboard would need to show multiple pending slots per chore
 - **State management** - Coordinator state tracking becomes more complex with multiple instances
+- **Decision**: Deferred to future release - may implement based on user feedback
 
 ### References
 
@@ -177,7 +183,29 @@
   - ✅ Storage schema will remain v42 (new fields optional, backward compatible)
   - ✅ All 6 features are additive (no breaking changes to existing chores)
 
-- **Completion confirmation**: `[x]` All phases complete (1-4), tests passing, docs updated, ready for Phase 5 planning
+- **Completion confirmation**: `[x]` **INITIATIVE COMPLETE** - Phases 1-5 implemented, Phase 6 deferred, 679 tests passing, all docs updated
+
+---
+
+## 🎉 Initiative Complete (Dec 30, 2025)
+
+**Summary**: Successfully implemented 5 major chore enhancements for KidsChores v0.4.0:
+
+| Feature               | Description                                               | Tests |
+| --------------------- | --------------------------------------------------------- | ----- |
+| Show on Calendar      | Hide chores from calendar display                         | ✅    |
+| Auto Approve          | Skip parent approval for trusted chores                   | ✅    |
+| Completion Criteria   | INDEPENDENT fixes + SHARED_FIRST mode                     | ✅    |
+| Approval Reset Timing | 5 modes: midnight/due date × once/multi + upon completion | ✅    |
+| Overdue Handling      | 3 handling types + 3 pending claim actions                | ✅    |
+
+**Phase 6 (Multiple Time Slots)** deferred to future release based on complexity and current priorities.
+
+**Final Metrics**:
+
+- **Tests**: 679 passed, 17 skipped, 0 failed, 0 warnings
+- **Linting**: 100% clean
+- **Code Quality**: All standards met
 
 ---
 

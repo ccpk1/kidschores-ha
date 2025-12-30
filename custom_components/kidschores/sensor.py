@@ -1539,10 +1539,25 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def native_value(self) -> str:
         """Return the current reward status: 'Not Claimed', 'Claimed', or 'Approved'."""
         kid_info = self.coordinator.kids_data.get(self._kid_id, {})
-        if self._reward_id in kid_info.get(const.DATA_KID_PENDING_REWARDS, []):
+        reward_data = kid_info.get(const.DATA_KID_REWARD_DATA, {}).get(
+            self._reward_id, {}
+        )
+
+        # Check pending_count for claimed status
+        pending_count = reward_data.get(const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0)
+        if pending_count > 0:
             return const.REWARD_STATE_CLAIMED
-        if self._reward_id in kid_info.get(const.DATA_KID_REDEEMED_REWARDS, []):
-            return const.REWARD_STATE_APPROVED
+
+        # Check if approved today using last_approved timestamp
+        last_approved = reward_data.get(const.DATA_KID_REWARD_DATA_LAST_APPROVED)
+        if last_approved:
+            try:
+                approved_dt = kh.parse_datetime_to_utc(last_approved)
+                if approved_dt and approved_dt.date() == dt_util.now().date():
+                    return const.REWARD_STATE_APPROVED
+            except (ValueError, TypeError):
+                pass
+
         return const.REWARD_STATE_NOT_CLAIMED
 
     @property
@@ -1590,12 +1605,14 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_COST: reward_info.get(
                 const.DATA_REWARD_COST, const.DEFAULT_REWARD_COST
             ),
-            const.ATTR_REWARD_CLAIMS_COUNT: kid_info.get(
-                const.DATA_KID_REWARD_CLAIMS, {}
-            ).get(self._reward_id, const.DEFAULT_ZERO),
+            const.ATTR_REWARD_CLAIMS_COUNT: kid_info.get(const.DATA_KID_REWARD_DATA, {})
+            .get(self._reward_id, {})
+            .get(const.DATA_KID_REWARD_DATA_TOTAL_CLAIMS, const.DEFAULT_ZERO),
             const.ATTR_REWARD_APPROVALS_COUNT: kid_info.get(
-                const.DATA_KID_REWARD_APPROVALS, {}
-            ).get(self._reward_id, const.DEFAULT_ZERO),
+                const.DATA_KID_REWARD_DATA, {}
+            )
+            .get(self._reward_id, {})
+            .get(const.DATA_KID_REWARD_DATA_TOTAL_APPROVED, const.DEFAULT_ZERO),
             const.ATTR_LABELS: friendly_labels,
             const.ATTR_REWARD_CLAIM_BUTTON_ENTITY_ID: claim_button_eid,
             const.ATTR_REWARD_APPROVE_BUTTON_ENTITY_ID: approve_button_eid,
@@ -1773,8 +1790,12 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
                     if isinstance(progress_data, dict)
                     else const.DEFAULT_ZERO
                 )
-                current_total = self.coordinator.kids_data.get(kid_id, {}).get(
-                    const.DATA_KID_COMPLETED_CHORES_TOTAL_DEPRECATED, const.DEFAULT_ZERO
+                # Use modern chore_stats structure
+                chore_stats = self.coordinator.kids_data.get(kid_id, {}).get(
+                    const.DATA_KID_CHORE_STATS, {}
+                )
+                current_total = chore_stats.get(
+                    const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME, const.DEFAULT_ZERO
                 )
                 total_current += current_total
                 total_effective_target += baseline + target
@@ -1812,8 +1833,12 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
             total_progress = const.DEFAULT_ZERO
 
             for kid_id in assigned_kids:
-                daily = self.coordinator.kids_data.get(kid_id, {}).get(
-                    const.DATA_KID_COMPLETED_CHORES_TODAY_DEPRECATED, const.DEFAULT_ZERO
+                # Use modern chore_stats structure
+                chore_stats = self.coordinator.kids_data.get(kid_id, {}).get(
+                    const.DATA_KID_CHORE_STATS, {}
+                )
+                daily = chore_stats.get(
+                    const.DATA_KID_CHORE_STATS_APPROVED_TODAY, const.DEFAULT_ZERO
                 )
                 kid_progress = (
                     100
@@ -1882,10 +1907,12 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 achievement.get(const.DATA_ACHIEVEMENT_TYPE)
                 == const.ACHIEVEMENT_TYPE_DAILY_MIN
             ):
-                kids_progress[kid_name] = self.coordinator.kids_data.get(
-                    kid_id, {}
-                ).get(
-                    const.DATA_KID_COMPLETED_CHORES_TODAY_DEPRECATED, const.DEFAULT_ZERO
+                # Use modern chore_stats structure
+                chore_stats = self.coordinator.kids_data.get(kid_id, {}).get(
+                    const.DATA_KID_CHORE_STATS, {}
+                )
+                kids_progress[kid_name] = chore_stats.get(
+                    const.DATA_KID_CHORE_STATS_APPROVED_TODAY, const.DEFAULT_ZERO
                 )
             else:
                 kids_progress[kid_name] = const.DEFAULT_ZERO
@@ -2181,8 +2208,11 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 else const.DEFAULT_ZERO
             )
 
-            current_total = self.coordinator.kids_data.get(self._kid_id, {}).get(
-                const.DATA_KID_COMPLETED_CHORES_TODAY_DEPRECATED, const.DEFAULT_ZERO
+            chore_stats = self.coordinator.kids_data.get(self._kid_id, {}).get(
+                const.DATA_KID_CHORE_STATS, {}
+            )
+            current_total = chore_stats.get(
+                const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME, const.DEFAULT_ZERO
             )
 
             effective_target = baseline + target
@@ -2213,8 +2243,11 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
             )
 
         elif ach_type == const.ACHIEVEMENT_TYPE_DAILY_MIN:
-            daily = self.coordinator.kids_data.get(self._kid_id, {}).get(
-                const.DATA_KID_COMPLETED_CHORES_TOTAL_DEPRECATED, const.DEFAULT_ZERO
+            chore_stats = self.coordinator.kids_data.get(self._kid_id, {}).get(
+                const.DATA_KID_CHORE_STATS, {}
+            )
+            daily = chore_stats.get(
+                const.DATA_KID_CHORE_STATS_APPROVED_TODAY, const.DEFAULT_ZERO
             )
 
             percent = (
@@ -2269,8 +2302,11 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
             achievement.get(const.DATA_ACHIEVEMENT_TYPE)
             == const.ACHIEVEMENT_TYPE_DAILY_MIN
         ):
-            raw_progress = self.coordinator.kids_data.get(self._kid_id, {}).get(
-                const.DATA_KID_COMPLETED_CHORES_TODAY_DEPRECATED, const.DEFAULT_ZERO
+            chore_stats = self.coordinator.kids_data.get(self._kid_id, {}).get(
+                const.DATA_KID_CHORE_STATS, {}
+            )
+            raw_progress = chore_stats.get(
+                const.DATA_KID_CHORE_STATS_APPROVED_TODAY, const.DEFAULT_ZERO
             )
 
         associated_chore = const.SENTINEL_EMPTY
@@ -3186,13 +3222,16 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             # Get reward cost
             reward_cost = reward_info.get(const.DATA_REWARD_COST, 0)
 
-            # Get claims and approvals counts for this reward for this kid
-            # These are stored as dicts with reward_id keys and count values
-            reward_claims = kid_info.get(const.DATA_KID_REWARD_CLAIMS, {})
-            reward_approvals = kid_info.get(const.DATA_KID_REWARD_APPROVALS, {})
-
-            claims_count = reward_claims.get(reward_id, 0)
-            approvals_count = reward_approvals.get(reward_id, 0)
+            # Get claims and approvals counts from modern reward_data structure
+            reward_data_entry = kid_info.get(const.DATA_KID_REWARD_DATA, {}).get(
+                reward_id, {}
+            )
+            claims_count = reward_data_entry.get(
+                const.DATA_KID_REWARD_DATA_TOTAL_CLAIMS, 0
+            )
+            approvals_count = reward_data_entry.get(
+                const.DATA_KID_REWARD_DATA_TOTAL_APPROVED, 0
+            )
 
             rewards_attr.append(
                 {

@@ -43,14 +43,14 @@ async def test_manual_migration_converts_is_shared_to_completion_criteria(
     # STEP 2: Manually inject legacy is_shared field (simulating pre-v42 storage)
     # Modern v42+ data does NOT include shared_chore field, so we inject it
     chore_info = coordinator.chores_data[feed_cats_id]
-    chore_info[const.DATA_CHORE_SHARED_CHORE_DEPRECATED] = False  # Legacy boolean
+    chore_info[const.DATA_CHORE_SHARED_CHORE_LEGACY] = False  # Legacy boolean
 
     # Remove completion_criteria to simulate legacy state
     if const.DATA_CHORE_COMPLETION_CRITERIA in chore_info:
         del chore_info[const.DATA_CHORE_COMPLETION_CRITERIA]
 
     # Verify legacy format is now present
-    assert const.DATA_CHORE_SHARED_CHORE_DEPRECATED in chore_info
+    assert const.DATA_CHORE_SHARED_CHORE_LEGACY in chore_info
     assert const.DATA_CHORE_COMPLETION_CRITERIA not in chore_info
 
     # STEP 3: Manually invoke migration
@@ -69,7 +69,7 @@ async def test_manual_migration_converts_is_shared_to_completion_criteria(
     )
 
     # Check shared_chore field is REMOVED (Option B behavior)
-    assert const.DATA_CHORE_SHARED_CHORE_DEPRECATED not in chore_info
+    assert const.DATA_CHORE_SHARED_CHORE_LEGACY not in chore_info
 
     # Check per_kid_due_dates initialized
     assert const.DATA_CHORE_PER_KID_DUE_DATES in chore_info

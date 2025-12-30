@@ -183,10 +183,7 @@ async def test_reward_status_sensor_has_kid_name():
     coordinator.kids_data = {
         "kid_1": {
             const.DATA_KID_NAME: "Alice",
-            const.DATA_KID_PENDING_REWARDS: [],
-            const.DATA_KID_REDEEMED_REWARDS: [],
-            const.DATA_KID_REWARD_CLAIMS: {},
-            const.DATA_KID_REWARD_APPROVALS: {},
+            const.DATA_KID_REWARD_DATA: {},  # Modern structure - no legacy fields
         }
     }
     coordinator.rewards_data = {

@@ -33,7 +33,7 @@ async def test_async_initialize_creates_default_structure(
 
     data = storage_manager.data
 
-    # Verify all expected keys exist
+    # Verify all expected keys exist (modern structure - no deprecated fields)
     assert const.DATA_KIDS in data
     assert const.DATA_CHORES in data
     assert const.DATA_BADGES in data
@@ -43,8 +43,6 @@ async def test_async_initialize_creates_default_structure(
     assert const.DATA_PARENTS in data
     assert const.DATA_ACHIEVEMENTS in data
     assert const.DATA_CHALLENGES in data
-    # Chore queue removed in v0.4.0 - computed from timestamps
-    assert const.DATA_PENDING_REWARD_APPROVALS in data
     assert const.DATA_SCHEMA_VERSION in data
 
     # Verify default values
@@ -86,8 +84,7 @@ async def test_getter_methods_return_correct_data(
         const.DATA_BONUSES: {"bonus_1": {}},
         const.DATA_ACHIEVEMENTS: {"achievement_1": {}},
         const.DATA_CHALLENGES: {"challenge_1": {}},
-        # Chore queue removed in v0.4.0 - computed from timestamps
-        const.DATA_PENDING_REWARD_APPROVALS: ["reward_1"],
+        # Pending reward approvals now computed from kid reward_data
     }
 
     storage_manager.set_data(test_data)
@@ -101,8 +98,7 @@ async def test_getter_methods_return_correct_data(
     assert storage_manager.get_bonuses() == {"bonus_1": {}}
     assert storage_manager.get_achievements() == {"achievement_1": {}}
     assert storage_manager.get_challenges() == {"challenge_1": {}}
-    # Chore queue getter removed in v0.4.0 - use coordinator.pending_chore_approvals
-    assert storage_manager.get_pending_reward_approvals() == ["reward_1"]
+    # Pending reward approvals getter removed - use coordinator.get_pending_reward_approvals_computed()
 
 
 async def test_getter_methods_return_defaults_for_missing_keys(
@@ -121,8 +117,7 @@ async def test_getter_methods_return_defaults_for_missing_keys(
     assert storage_manager.get_bonuses() == {}
     assert storage_manager.get_achievements() == {}
     assert storage_manager.get_challenges() == {}
-    # Chore queue getter removed in v0.4.0 - use coordinator.pending_chore_approvals
-    assert storage_manager.get_pending_reward_approvals() == []
+    # Pending reward approvals getter removed in v0.4.0 - use coordinator computed method
 
 
 async def test_link_user_to_kid_creates_mapping(
@@ -314,14 +309,12 @@ async def test_async_clear_data_resets_to_default_structure(
     with patch.object(storage_manager, "async_save", mock_save):
         await storage_manager.async_clear_data()
 
-    # Verify data is reset
+    # Verify data is reset (modern structure - no deprecated fields)
     data = storage_manager.data
     assert data[const.DATA_KIDS] == {}
     assert data[const.DATA_CHORES] == {}
     assert data[const.DATA_BADGES] == {}
     assert data[const.DATA_REWARDS] == {}
-    # Chore queue removed in v0.4.0 - computed from timestamps
-    assert data[const.DATA_PENDING_REWARD_APPROVALS] == []
 
     # Verify warning logged
     assert "Clearing all KidsChores data" in caplog.text
@@ -518,25 +511,22 @@ async def test_custom_storage_key(hass: HomeAssistant) -> None:
     assert custom_key in storage_manager.get_storage_path()
 
 
-async def test_get_pending_reward_approvals_correct_spelling(
+async def test_pending_reward_approvals_modern_structure(
     hass: HomeAssistant,
     storage_manager: KidsChoresStorageManager,
 ) -> None:
-    """Test that the method name is correctly spelled (regression test).
+    """Test that pending reward approvals use modern structure.
 
-    This test verifies the typo fix: 'aprovals' → 'approvals'.
-    Phase 1 fix completed - method now uses correct spelling.
+    This test verifies the v0.4.0+ architecture:
+    - No get_pending_reward_approvals() method in storage manager (removed)
+    - Pending reward approvals computed from kid reward_data by coordinator
+    - Modern structure: kid["reward_data"][reward_id]["pending_count"]
     """
-    storage_manager.set_data(
-        {const.DATA_PENDING_REWARD_APPROVALS: ["reward_1", "reward_2"]}
-    )
+    # Modern structure stores pending counts in kid reward_data, not a global list
+    # The storage manager no longer has a getter method for this legacy field
+    # Coordinator.get_pending_reward_approvals_computed() is the new approach
 
-    # Method now correctly spelled: 'approvals'
-    result = storage_manager.get_pending_reward_approvals()
-
-    assert result == ["reward_1", "reward_2"]
-
-    # Verify correct spelling exists
-    assert hasattr(storage_manager, "get_pending_reward_approvals")
-    # Old typo should not exist
+    # Verify the legacy getter method no longer exists
+    assert not hasattr(storage_manager, "get_pending_reward_approvals")
+    # Verify the old typo also doesn't exist
     assert not hasattr(storage_manager, "get_pending_reward_aprovals")

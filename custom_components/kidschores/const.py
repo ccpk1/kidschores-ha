@@ -332,10 +332,6 @@ CFOF_PARENTS_INPUT_NAME: Final = "parent_name"
 CFOF_PARENTS_INPUT_PARENT_COUNT: Final = "parent_count"
 
 # CHORES
-# DEPRECATED: Use CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE instead
-CFOF_CHORES_INPUT_ALLOW_MULTIPLE_CLAIMS_DEPRECATED: Final = (
-    "allow_multiple_claims_per_day"
-)
 CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: Final = "approval_reset_type"
 CFOF_CHORES_INPUT_APPLICABLE_DAYS: Final = "applicable_days"
 CFOF_CHORES_INPUT_ASSIGNED_KIDS: Final = "assigned_kids"
@@ -657,7 +653,7 @@ DATA_PROGRESS: Final = "progress"
 DATA_REWARDS: Final = "rewards"
 
 # KIDS
-DATA_KID_APPROVED_CHORES_DEPRECATED: Final = "approved_chores"
+DATA_KID_APPROVED_CHORES_LEGACY: Final = "approved_chores"
 DATA_KID_BADGES_EARNED_NAME: Final = "badge_name"
 DATA_KID_BADGES_EARNED_LAST_AWARDED: Final = "last_awarded_date"
 DATA_KID_BADGES_EARNED_AWARD_COUNT: Final = "award_count"
@@ -702,7 +698,7 @@ DATA_KID_BADGE_PROGRESS_TYPE: Final = "badge_type"
 # Note: Shared fields already defined above in Common Badge Progress Fields section
 
 DATA_KID_BONUS_APPLIES: Final = "bonus_applies"
-DATA_KID_CLAIMED_CHORES_DEPRECATED: Final = "claimed_chores"
+DATA_KID_CLAIMED_CHORES_LEGACY: Final = "claimed_chores"
 DATA_KID_COMPLETED_BY_OTHER_CHORES: Final = "completed_by_other_chores"
 
 # Kid Chore Data Structure Constants
@@ -864,20 +860,58 @@ DATA_KID_INTERNAL_ID: Final = "internal_id"
 DATA_KID_LAST_BADGE_RESET: Final = "last_badge_reset"
 DATA_KID_LAST_CHORE_DATE: Final = "last_chore_date"
 DATA_KID_LAST_STREAK_DATE: Final = "last_date"
-DATA_KID_MAX_POINTS_EVER: Final = "max_points_ever"
-DATA_KID_MAX_STREAK: Final = "max_streak"
+DATA_KID_MAX_POINTS_EVER_LEGACY: Final = (
+    "max_points_ever"  # Legacy field - use POINT_STATS_EARNED_ALL_TIME instead
+)
+DATA_KID_MAX_STREAK_LEGACY: Final = (
+    "max_streak"  # Legacy field - use CHORE_STATS_LONGEST_STREAK_ALL_TIME instead
+)
 DATA_KID_MOBILE_NOTIFY_SERVICE: Final = "mobile_notify_service"
 DATA_KID_NAME: Final = "name"
 DATA_KID_OVERDUE_CHORES: Final = "overdue_chores"
 DATA_KID_OVERDUE_NOTIFICATIONS: Final = "overdue_notifications"
 DATA_KID_OVERALL_CHORE_STREAK: Final = "overall_chore_streak"
 DATA_KID_PENALTY_APPLIES: Final = "penalty_applies"
-DATA_KID_PENDING_REWARDS: Final = "pending_rewards"
+# Legacy reward fields (v0.4.0): Replaced by reward_data structure
+# Keep constants for backward-compat migration code in migration_pre_v42.py
+DATA_KID_PENDING_REWARDS_LEGACY: Final = "pending_rewards"
 DATA_KID_POINTS: Final = "points"
 DATA_KID_POINTS_MULTIPLIER: Final = "points_multiplier"
-DATA_KID_REDEEMED_REWARDS: Final = "redeemed_rewards"
-DATA_KID_REWARD_APPROVALS: Final = "reward_approvals"
-DATA_KID_REWARD_CLAIMS: Final = "reward_claims"
+DATA_KID_REDEEMED_REWARDS_LEGACY: Final = "redeemed_rewards"
+DATA_KID_REWARD_APPROVALS_LEGACY: Final = "reward_approvals"
+DATA_KID_REWARD_CLAIMS_LEGACY: Final = "reward_claims"
+
+# ——————————————————————————————————————————————
+# Kid Reward Data Structure Constants (Modern - v0.5.0+)
+# Supports multi-claim: kid can claim same reward multiple times before approval
+# ——————————————————————————————————————————————
+DATA_KID_REWARD_DATA: Final = "reward_data"
+DATA_KID_REWARD_DATA_NAME: Final = "name"
+DATA_KID_REWARD_DATA_PENDING_COUNT: Final = "pending_count"  # Number of pending claims
+DATA_KID_REWARD_DATA_LAST_CLAIMED: Final = "last_claimed"
+DATA_KID_REWARD_DATA_LAST_APPROVED: Final = "last_approved"
+DATA_KID_REWARD_DATA_LAST_DISAPPROVED: Final = "last_disapproved"
+DATA_KID_REWARD_DATA_TOTAL_CLAIMS: Final = "total_claims"  # All-time claim count
+DATA_KID_REWARD_DATA_TOTAL_APPROVED: Final = "total_approved"  # All-time approved count
+DATA_KID_REWARD_DATA_TOTAL_DISAPPROVED: Final = (
+    "total_disapproved"  # All-time disapproved
+)
+DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT: Final = "total_points_spent"  # All-time points
+DATA_KID_REWARD_DATA_NOTIFICATION_IDS: Final = (
+    "notification_ids"  # Notification tracking
+)
+
+# Period-based reward tracking (aligned with chore_data and point_data patterns)
+DATA_KID_REWARD_DATA_PERIODS: Final = "periods"
+DATA_KID_REWARD_DATA_PERIODS_DAILY: Final = "daily"
+DATA_KID_REWARD_DATA_PERIODS_WEEKLY: Final = "weekly"
+DATA_KID_REWARD_DATA_PERIODS_MONTHLY: Final = "monthly"
+DATA_KID_REWARD_DATA_PERIODS_YEARLY: Final = "yearly"
+DATA_KID_REWARD_DATA_PERIOD_CLAIMED: Final = "claimed"
+DATA_KID_REWARD_DATA_PERIOD_APPROVED: Final = "approved"
+DATA_KID_REWARD_DATA_PERIOD_DISAPPROVED: Final = "disapproved"
+DATA_KID_REWARD_DATA_PERIOD_POINTS: Final = "points"
+
 DATA_KID_TODAY_CHORE_APPROVALS: Final = "today_chore_approvals"
 DATA_KID_USE_PERSISTENT_NOTIFICATIONS: Final = "use_persistent_notifications"
 DATA_KID_DASHBOARD_LANGUAGE: Final = "dashboard_language"
@@ -994,11 +1028,9 @@ DATA_PARENT_NAME: Final = "name"
 DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS: Final = "use_persistent_notifications"
 
 # CHORES
-# DEPRECATED: Use DATA_CHORE_APPROVAL_RESET_TYPE instead
+# LEGACY: KC 3.x → 4.x migration only (replaced by DATA_CHORE_APPROVAL_RESET_TYPE)
 # Migration: True -> AT_MIDNIGHT_MULTI, False -> AT_MIDNIGHT_ONCE
-DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY_DEPRECATED: Final = (
-    "allow_multiple_claims_per_day"
-)
+DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY_LEGACY: Final = "allow_multiple_claims_per_day"
 DATA_CHORE_APPROVAL_RESET_TYPE: Final = "approval_reset_type"
 DATA_CHORE_APPROVAL_PERIOD_START: Final = (
     "approval_period_start"  # When current approval period started
@@ -1027,8 +1059,8 @@ DATA_CHORE_NOTIFY_ON_DISAPPROVAL: Final = "notify_on_disapproval"
 DATA_CHORE_AUTO_APPROVE: Final = "auto_approve"
 DATA_CHORE_PARTIAL_ALLOWED: Final = "partial_allowed"
 DATA_CHORE_RECURRING_FREQUENCY: Final = "recurring_frequency"
-DATA_CHORE_SHARED_CHORE_DEPRECATED: Final = (
-    "shared_chore"  # DEPRECATED: Use completion_criteria
+DATA_CHORE_SHARED_CHORE_LEGACY: Final = (
+    "shared_chore"  # LEGACY: Use completion_criteria
 )
 DATA_CHORE_SHOW_ON_CALENDAR: Final = "show_on_calendar"
 DATA_CHORE_COMPLETION_CRITERIA: Final = "completion_criteria"
@@ -1204,10 +1236,10 @@ DATA_CHALLENGE_TARGET_VALUE: Final = "target_value"
 DATA_CHALLENGE_TYPE: Final = "type"
 
 # Runtime Data Keys
-# DEPRECATED (v0.4.0): Chore queue removed, computed from timestamps instead
-# Keep constant for backward-compat migration code in migration_pre_v42.py
-DATA_PENDING_CHORE_APPROVALS_DEPRECATED: Final = "pending_chore_approvals"
-DATA_PENDING_REWARD_APPROVALS: Final = "pending_reward_approvals"
+# LEGACY (v0.4.0): Chore/reward queues removed, computed from timestamps instead
+# Keep constants for backward-compat migration code in migration_pre_v42.py
+DATA_PENDING_CHORE_APPROVALS_LEGACY: Final = "pending_chore_approvals"
+DATA_PENDING_REWARD_APPROVALS_LEGACY: Final = "pending_reward_approvals"
 
 
 # ================================================================================================
@@ -1478,8 +1510,6 @@ ACTION_REMIND_30 = "REMIND_30"
 # ------------------------------------------------------------------------------------------------
 ATTR_ACHIEVEMENT_NAME: Final = "achievement_name"
 ATTR_ALL_EARNED_BADGES: Final = "all_earned_badges"
-# DEPRECATED: Use ATTR_APPROVAL_RESET_TYPE instead
-ATTR_ALLOW_MULTIPLE_CLAIMS_PER_DAY_DEPRECATED: Final = "allow_multiple_claims_per_day"
 ATTR_APPROVAL_RESET_TYPE: Final = "approval_reset_type"
 ATTR_APPROVAL_PERIOD_START: Final = "approval_period_start"
 ATTR_APPLICABLE_DAYS: Final = "applicable_days"
@@ -1574,9 +1604,6 @@ ATTR_SIGN_LABEL: Final = "sign_label"
 ATTR_START_DATE: Final = "start_date"
 ATTR_STREAKS_BY_ACHIEVEMENT: Final = "streaks_by_achievement"
 ATTR_COMPLETION_CRITERIA: Final = "completion_criteria"
-ATTR_SHARED_CHORE_DEPRECATED: Final = (
-    "shared_chore"  # DEPRECATED: Use ATTR_COMPLETION_CRITERIA
-)
 ATTR_TARGET: Final = "target"
 ATTR_TARGET_VALUE: Final = "target_value"
 ATTR_THRESHOLD_TYPE: Final = "threshold_type"
@@ -2699,51 +2726,41 @@ REWARD_OPTION_NONE = [
 # ================================================================================================
 
 # Kid Badge Data (used in migration functions)
-DATA_KID_BADGES_DEPRECATED: Final = (
+DATA_KID_BADGES_LEGACY: Final = (
     "badges"  # Used in _migrate_kid_badges(), remove when migration dropped
 )
 
-# Kid Chore Tracking (actively used in production)
-DATA_KID_CHORE_APPROVALS_DEPRECATED = (
-    "chore_approvals"  # Used in async_approve_chore(), _create_kid()
+# Kid Chore Tracking (LEGACY: Migration only)
+DATA_KID_CHORE_APPROVALS_LEGACY: Final = "chore_approvals"  # LEGACY: Migration only - use kid_chore_data[chore_id]["periods"][period]["approved"]
+DATA_KID_CHORE_CLAIMS_LEGACY: Final = (
+    "chore_claims"  # LEGACY: Migration only - use chore_data structure
 )
-DATA_KID_CHORE_CLAIMS_DEPRECATED: Final = (
-    "chore_claims"  # Used in migration and _create_kid()
-)
-DATA_KID_CHORE_STREAKS_DEPRECATED = (
-    "chore_streaks"  # Used in _remove_chore_from_kid_data(), _create_kid()
+DATA_KID_CHORE_STREAKS_LEGACY: Final = (
+    "chore_streaks"  # LEGACY: Migration only - use chore_data structure
 )
 
-# Kid Completed Chores Counters (actively written to storage)
-DATA_KID_COMPLETED_CHORES_MONTHLY_DEPRECATED = (
-    "completed_chores_monthly"  # Written in async_approve_chore()
+# Kid Completed Chores Counters (LEGACY - migration only, use chore_stats)
+DATA_KID_COMPLETED_CHORES_MONTHLY_LEGACY = (
+    "completed_chores_monthly"  # LEGACY: Migration only
 )
-DATA_KID_COMPLETED_CHORES_TOTAL_DEPRECATED = (
-    "completed_chores_total"  # Read by sensors, written in async_approve_chore()
+DATA_KID_COMPLETED_CHORES_TOTAL_LEGACY = (
+    "completed_chores_total"  # LEGACY: Migration only
 )
-DATA_KID_COMPLETED_CHORES_TODAY_DEPRECATED = (
-    "completed_chores_today"  # Read by sensors, written in async_approve_chore()
+DATA_KID_COMPLETED_CHORES_TODAY_LEGACY = (
+    "completed_chores_today"  # LEGACY: Migration only
 )
-DATA_KID_COMPLETED_CHORES_WEEKLY_DEPRECATED = (
-    "completed_chores_weekly"  # Written in async_approve_chore()
+DATA_KID_COMPLETED_CHORES_WEEKLY_LEGACY = (
+    "completed_chores_weekly"  # LEGACY: Migration only
 )
-DATA_KID_COMPLETED_CHORES_YEARLY_DEPRECATED = (
-    "completed_chores_yearly"  # Written in reset functions
+DATA_KID_COMPLETED_CHORES_YEARLY_LEGACY = (
+    "completed_chores_yearly"  # LEGACY: Migration only
 )
 
-# Kid Points Earned Tracking (actively written to storage)
-DATA_KID_POINTS_EARNED_MONTHLY_DEPRECATED = (
-    "points_earned_monthly"  # Used in _update_kid_points_earned()
-)
-DATA_KID_POINTS_EARNED_TODAY_DEPRECATED = (
-    "points_earned_today"  # Used in _update_kid_points_earned()
-)
-DATA_KID_POINTS_EARNED_WEEKLY_DEPRECATED = (
-    "points_earned_weekly"  # Used in _update_kid_points_earned()
-)
-DATA_KID_POINTS_EARNED_YEARLY_DEPRECATED = (
-    "points_earned_yearly"  # Written in reset functions
-)
+# Kid Points Earned Tracking (LEGACY: Migration only)
+DATA_KID_POINTS_EARNED_MONTHLY_LEGACY: Final = "points_earned_monthly"  # LEGACY: Migration only - use point_stats["periods"]["monthly"]["earned"]
+DATA_KID_POINTS_EARNED_TODAY_LEGACY: Final = "points_earned_today"  # LEGACY: Migration only - use point_stats["periods"]["daily"]["earned"]
+DATA_KID_POINTS_EARNED_WEEKLY_LEGACY: Final = "points_earned_weekly"  # LEGACY: Migration only - use point_stats["periods"]["weekly"]["earned"]
+DATA_KID_POINTS_EARNED_YEARLY_LEGACY: Final = "points_earned_yearly"  # LEGACY: Migration only - use point_stats["periods"]["yearly"]["earned"]
 
 
 # ================================================================================================
