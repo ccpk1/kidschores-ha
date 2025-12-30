@@ -653,7 +653,6 @@ DATA_PROGRESS: Final = "progress"
 DATA_REWARDS: Final = "rewards"
 
 # KIDS
-DATA_KID_APPROVED_CHORES_LEGACY: Final = "approved_chores"
 DATA_KID_BADGES_EARNED_NAME: Final = "badge_name"
 DATA_KID_BADGES_EARNED_LAST_AWARDED: Final = "last_awarded_date"
 DATA_KID_BADGES_EARNED_AWARD_COUNT: Final = "award_count"
@@ -698,7 +697,6 @@ DATA_KID_BADGE_PROGRESS_TYPE: Final = "badge_type"
 # Note: Shared fields already defined above in Common Badge Progress Fields section
 
 DATA_KID_BONUS_APPLIES: Final = "bonus_applies"
-DATA_KID_CLAIMED_CHORES_LEGACY: Final = "claimed_chores"
 DATA_KID_COMPLETED_BY_OTHER_CHORES: Final = "completed_by_other_chores"
 
 # Kid Chore Data Structure Constants
@@ -860,26 +858,14 @@ DATA_KID_INTERNAL_ID: Final = "internal_id"
 DATA_KID_LAST_BADGE_RESET: Final = "last_badge_reset"
 DATA_KID_LAST_CHORE_DATE: Final = "last_chore_date"
 DATA_KID_LAST_STREAK_DATE: Final = "last_date"
-DATA_KID_MAX_POINTS_EVER_LEGACY: Final = (
-    "max_points_ever"  # Legacy field - use POINT_STATS_EARNED_ALL_TIME instead
-)
-DATA_KID_MAX_STREAK_LEGACY: Final = (
-    "max_streak"  # Legacy field - use CHORE_STATS_LONGEST_STREAK_ALL_TIME instead
-)
 DATA_KID_MOBILE_NOTIFY_SERVICE: Final = "mobile_notify_service"
 DATA_KID_NAME: Final = "name"
 DATA_KID_OVERDUE_CHORES: Final = "overdue_chores"
 DATA_KID_OVERDUE_NOTIFICATIONS: Final = "overdue_notifications"
 DATA_KID_OVERALL_CHORE_STREAK: Final = "overall_chore_streak"
 DATA_KID_PENALTY_APPLIES: Final = "penalty_applies"
-# Legacy reward fields (v0.4.0): Replaced by reward_data structure
-# Keep constants for backward-compat migration code in migration_pre_v42.py
-DATA_KID_PENDING_REWARDS_LEGACY: Final = "pending_rewards"
 DATA_KID_POINTS: Final = "points"
 DATA_KID_POINTS_MULTIPLIER: Final = "points_multiplier"
-DATA_KID_REDEEMED_REWARDS_LEGACY: Final = "redeemed_rewards"
-DATA_KID_REWARD_APPROVALS_LEGACY: Final = "reward_approvals"
-DATA_KID_REWARD_CLAIMS_LEGACY: Final = "reward_claims"
 
 # ——————————————————————————————————————————————
 # Kid Reward Data Structure Constants (Modern - v0.5.0+)
@@ -1028,9 +1014,6 @@ DATA_PARENT_NAME: Final = "name"
 DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS: Final = "use_persistent_notifications"
 
 # CHORES
-# LEGACY: KC 3.x → 4.x migration only (replaced by DATA_CHORE_APPROVAL_RESET_TYPE)
-# Migration: True -> AT_MIDNIGHT_MULTI, False -> AT_MIDNIGHT_ONCE
-DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY_LEGACY: Final = "allow_multiple_claims_per_day"
 DATA_CHORE_APPROVAL_RESET_TYPE: Final = "approval_reset_type"
 DATA_CHORE_APPROVAL_PERIOD_START: Final = (
     "approval_period_start"  # When current approval period started
@@ -1059,9 +1042,6 @@ DATA_CHORE_NOTIFY_ON_DISAPPROVAL: Final = "notify_on_disapproval"
 DATA_CHORE_AUTO_APPROVE: Final = "auto_approve"
 DATA_CHORE_PARTIAL_ALLOWED: Final = "partial_allowed"
 DATA_CHORE_RECURRING_FREQUENCY: Final = "recurring_frequency"
-DATA_CHORE_SHARED_CHORE_LEGACY: Final = (
-    "shared_chore"  # LEGACY: Use completion_criteria
-)
 DATA_CHORE_SHOW_ON_CALENDAR: Final = "show_on_calendar"
 DATA_CHORE_COMPLETION_CRITERIA: Final = "completion_criteria"
 DATA_CHORE_PER_KID_DUE_DATES: Final = "per_kid_due_dates"
@@ -2725,6 +2705,16 @@ REWARD_OPTION_NONE = [
 # DO NOT DELETE - would break current KC 4.x installations without migration.
 # ================================================================================================
 
+# Not in use at this time
+
+# ================================================================================================
+# LEGACY CONSTANTS (KC 3.x→4.x and KC 4.x→5.x migrations - one-time data conversion only)
+# These reference OLD storage keys that are replaced during migration.
+# After migration completes, these keys NO LONGER EXIST in storage.
+# Remove in KC-vNext after migration support is dropped.
+# DO NOT DELETE - would break migrations for upgrading users.
+# ================================================================================================
+
 # Kid Badge Data (used in migration functions)
 DATA_KID_BADGES_LEGACY: Final = (
     "badges"  # Used in _migrate_kid_badges(), remove when migration dropped
@@ -2762,14 +2752,31 @@ DATA_KID_POINTS_EARNED_TODAY_LEGACY: Final = "points_earned_today"  # LEGACY: Mi
 DATA_KID_POINTS_EARNED_WEEKLY_LEGACY: Final = "points_earned_weekly"  # LEGACY: Migration only - use point_stats["periods"]["weekly"]["earned"]
 DATA_KID_POINTS_EARNED_YEARLY_LEGACY: Final = "points_earned_yearly"  # LEGACY: Migration only - use point_stats["periods"]["yearly"]["earned"]
 
+# Additional Kid Legacy Fields (scattered throughout v0.4.0)
+DATA_KID_APPROVED_CHORES_LEGACY: Final = "approved_chores"  # LEGACY: Migration only
+DATA_KID_CLAIMED_CHORES_LEGACY: Final = (
+    "claimed_chores"  # LEGACY: Migration only - use chore_data structure
+)
+DATA_KID_MAX_POINTS_EVER_LEGACY: Final = (
+    "max_points_ever"  # Legacy field - use POINT_STATS_EARNED_ALL_TIME instead
+)
+DATA_KID_MAX_STREAK_LEGACY: Final = (
+    "max_streak"  # Legacy field - use CHORE_STATS_LONGEST_STREAK_ALL_TIME instead
+)
 
-# ================================================================================================
-# LEGACY CONSTANTS (KC 3.x→4.x and KC 4.x→5.x migrations - one-time data conversion only)
-# These reference OLD storage keys that are replaced during migration.
-# After migration completes, these keys NO LONGER EXIST in storage.
-# Remove in KC-vNext after migration support is dropped.
-# DO NOT DELETE - would break migrations for upgrading users.
-# ================================================================================================
+# Legacy Reward Fields (v0.4.0): Replaced by reward_data structure
+# Keep constants for backward-compat migration code in migration_pre_v42.py
+DATA_KID_PENDING_REWARDS_LEGACY: Final = "pending_rewards"
+DATA_KID_REDEEMED_REWARDS_LEGACY: Final = "redeemed_rewards"
+DATA_KID_REWARD_APPROVALS_LEGACY: Final = "reward_approvals"
+DATA_KID_REWARD_CLAIMS_LEGACY: Final = "reward_claims"
+
+# Legacy Chore Fields (v0.4.0): Replaced by new structures
+DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY_LEGACY: Final = "allow_multiple_claims_per_day"  # Migration only - replaced by DATA_CHORE_APPROVAL_RESET_TYPE
+DATA_CHORE_SHARED_CHORE_LEGACY: Final = (
+    "shared_chore"  # LEGACY: Use completion_criteria
+)
+
 
 # KC 4.x Beta Cleanup (removed in schema v42)
 # Used in coordinator._migrate_*() functions to clean up deprecated keys from KC 4.x beta
