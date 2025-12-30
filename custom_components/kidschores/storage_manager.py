@@ -76,6 +76,12 @@ class KidsChoresStorageManager:
         const.LOGGER.debug("DEBUG: KidsChoresStorageManager: Loading data from storage")
         existing_data = await self._store.async_load()
 
+        # DEBUG: Check what async_load returned
+        if existing_data:
+            const.LOGGER.debug(
+                "DEBUG: async_load() returned keys: %s", list(existing_data.keys())[:5]
+            )
+
         if existing_data is None:
             # No existing data, create a new default structure.
             const.LOGGER.info("INFO: No existing storage found. Initializing new data")

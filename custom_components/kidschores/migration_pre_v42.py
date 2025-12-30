@@ -92,6 +92,10 @@ class PreV42Migrator:
         # Phase 4: Add new optional chore fields (defaults for existing chores)
         self._add_chore_optional_fields()
 
+        # Phase 5: Clean up all legacy fields that have been migrated
+        # This removes fields that were READ during migration but are no longer needed
+        self._remove_legacy_fields()
+
         const.LOGGER.info("All pre-v42 migrations completed successfully")
 
     def _migrate_independent_chores(self) -> None:
@@ -1492,3 +1496,80 @@ class PreV42Migrator:
                 const.DATA_KID_REWARD_DATA_PERIODS_YEARLY: {},
             },
         }
+
+    def _remove_legacy_fields(self) -> None:
+        """Remove all legacy fields from data after migration is complete.
+
+        During migration, legacy fields are READ to populate new structures,
+        but they must be REMOVED from the final v42+ data to ensure clean
+        data structures and pass validation tests.
+
+        This method removes ALL legacy fields that have been superseded by
+        the new data model. Some individual migration methods already remove
+        their specific fields (e.g., shared_chore, allow_multiple_claims_per_day),
+        but this method provides comprehensive cleanup for fields that were
+        only read during aggregation migrations.
+
+        Legacy fields removed:
+        - Kids: chore_claims, chore_streaks, chore_approvals, completed_chores_*,
+                points_earned_*, pending_rewards, redeemed_rewards, reward_claims,
+                reward_approvals
+        - Top-level: pending_chore_approvals, pending_reward_approvals (if legacy format)
+
+        Fields NOT removed (still in use or not fully migrated):
+        - Kids: max_points_ever, max_streak (backward compat, used by legacy sensors)
+        - Kids: badges (already removed by _migrate_kid_legacy_badges_to_cumulative_progress)
+        - Chores: shared_chore, allow_multiple_claims_per_day (already removed inline)
+        - Badges: threshold_type, threshold_value, etc. (already removed inline)
+        """
+        kids_cleaned = 0
+        fields_removed_count = 0
+
+        # Legacy kid fields to remove after migration
+        kid_legacy_fields = [
+            # Chore tracking (migrated to chore_data and chore_stats)
+            const.DATA_KID_CHORE_CLAIMS_LEGACY,
+            const.DATA_KID_CHORE_STREAKS_LEGACY,
+            const.DATA_KID_CHORE_APPROVALS_LEGACY,
+            # Completed chores counters (migrated to chore_stats)
+            const.DATA_KID_COMPLETED_CHORES_TOTAL_LEGACY,
+            const.DATA_KID_COMPLETED_CHORES_MONTHLY_LEGACY,
+            const.DATA_KID_COMPLETED_CHORES_WEEKLY_LEGACY,
+            const.DATA_KID_COMPLETED_CHORES_TODAY_LEGACY,
+            const.DATA_KID_COMPLETED_CHORES_YEARLY_LEGACY,
+            # Points earned tracking (migrated to point_stats)
+            const.DATA_KID_POINTS_EARNED_TODAY_LEGACY,
+            const.DATA_KID_POINTS_EARNED_WEEKLY_LEGACY,
+            const.DATA_KID_POINTS_EARNED_MONTHLY_LEGACY,
+            const.DATA_KID_POINTS_EARNED_YEARLY_LEGACY,
+            # Reward tracking (migrated to reward_data)
+            const.DATA_KID_PENDING_REWARDS_LEGACY,
+            const.DATA_KID_REDEEMED_REWARDS_LEGACY,
+            const.DATA_KID_REWARD_CLAIMS_LEGACY,
+            const.DATA_KID_REWARD_APPROVALS_LEGACY,
+        ]
+
+        kids_data = self.coordinator._data.get(const.DATA_KIDS, {})
+        for kid_id, kid_info in kids_data.items():
+            removed_any = False
+            for field in kid_legacy_fields:
+                if field in kid_info:
+                    del kid_info[field]
+                    removed_any = True
+                    fields_removed_count += 1
+                    const.LOGGER.debug(
+                        "Removed legacy field '%s' from kid '%s'",
+                        field,
+                        kid_info.get(const.DATA_KID_NAME, kid_id),
+                    )
+            if removed_any:
+                kids_cleaned += 1
+
+        if kids_cleaned > 0:
+            const.LOGGER.info(
+                "Legacy field cleanup: removed %s fields from %s kids",
+                fields_removed_count,
+                kids_cleaned,
+            )
+        else:
+            const.LOGGER.debug("Legacy field cleanup: no legacy fields found to remove")

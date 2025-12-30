@@ -2145,33 +2145,49 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         if not isinstance(backups, list):
             backups = []  # Handle any unexpected return type
 
-        # Build options dict
-        options = {}
+        # Build options list for SelectSelector
+        # Start with fixed options that can be translated
+        options = []
 
         # Add cancel option first (for easy access)
-        options["cancel"] = "↩️  Cancel (return to backup menu)"
+        options.append("cancel")
 
         # Only show "use current" if file actually exists
         if storage_file_exists:
-            options["current_active"] = (
-                f"📂 Use current active file: {storage_path.name}"
-            )
+            options.append("current_active")
 
-        options["start_fresh"] = "🆕 Start fresh (creates backup of existing data)"
+        options.append("start_fresh")
 
-        # Add discovered backups with age info
+        # Add discovered backups (these use dynamic labels)
+        for backup in backups:
+            options.append(backup["filename"])
+
+        # Add paste JSON option
+        options.append("paste_json")
+
+        # Build description placeholders for dynamic backup labels
+        backup_labels = {}
         for backup in backups:
             age_str = fh.format_backup_age(backup["age_hours"])
             tag_display = backup["tag"].replace("-", " ").title()
-            label = f"⏮️  Restore [{tag_display}]: {backup['filename']} ({age_str})"
-            options[backup["filename"]] = label
+            backup_labels[backup["filename"]] = (
+                f"[{tag_display}] {backup['filename']} ({age_str})"
+            )
 
-        # Add paste JSON option
-        options["paste_json"] = "📋 Paste JSON data from diagnostics"
-
-        # Build schema
+        # Build schema using SelectSelector with translation_key
         data_schema = vol.Schema(
-            {vol.Required(const.CFOF_DATA_RECOVERY_INPUT_SELECTION): vol.In(options)}
+            {
+                vol.Required(
+                    const.CFOF_DATA_RECOVERY_INPUT_SELECTION
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=options,
+                        mode=selector.SelectSelectorMode.LIST,
+                        translation_key="data_recovery_selection",
+                        custom_value=True,  # Allow backup filenames not in translations
+                    )
+                )
+            }
         )
 
         return self.async_show_form(

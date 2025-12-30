@@ -2952,22 +2952,10 @@ def build_general_options_schema(default: Optional[dict] = None) -> vol.Schema:
             vol.Optional(const.CFOF_BACKUP_ACTION_SELECTION): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=[
-                        {
-                            "value": "",
-                            "label": const.TRANS_KEY_CFOF_BACKUP_ACTION_SELECT,
-                        },
-                        {
-                            "value": "create_backup",
-                            "label": const.TRANS_KEY_CFOF_BACKUP_ACTION_CREATE,
-                        },
-                        {
-                            "value": "view_backups",
-                            "label": const.TRANS_KEY_CFOF_BACKUP_ACTION_VIEW,
-                        },
-                        {
-                            "value": "restore_backup",
-                            "label": const.TRANS_KEY_CFOF_BACKUP_ACTION_RESTORE,
-                        },
+                        "",
+                        "create_backup",
+                        "view_backups",
+                        "restore_backup",
                     ],
                     mode=selector.SelectSelectorMode.DROPDOWN,
                     translation_key=const.TRANS_KEY_CFOF_BACKUP_ACTIONS,

@@ -944,8 +944,17 @@ async def test_data_recovery_menu_without_storage_file(
 
         assert backup_field is not None
 
-        # Access the validator's container (vol.In has .container as a list)
-        available_options = schema_dict[backup_field].container
+        # Access the SelectSelector's options
+        # The schema field might be wrapped in vol.All for validation
+        validator = schema_dict[backup_field]
+        if hasattr(validator, "validators"):
+            # It's a vol.All with multiple validators
+            selector_obj = validator.validators[0]  # First validator is SelectSelector
+        else:
+            # It's just the SelectSelector
+            selector_obj = validator
+
+        available_options = selector_obj.config.get("options", [])
 
         # Should NOT include 'current_active' since file doesn't exist
         assert "current_active" not in available_options

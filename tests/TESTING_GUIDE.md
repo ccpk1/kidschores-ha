@@ -8,6 +8,7 @@ Comprehensive technical documentation for testing the KidsChores Home Assistant 
 - [Test Organization](#test-organization)
 - [Data Loading Methods](#data-loading-methods)
 - [Test Categories](#test-categories)
+- [Migration Testing](#migration-testing)
 - [Dashboard Template Testing](#dashboard-template-testing)
 - [Test Fixtures](#test-fixtures)
 - [Testing Patterns](#testing-patterns)
@@ -51,9 +52,13 @@ tests/
 ├── test_workflow_kid_chores.py         # Kid chore workflow tests (11 tests)
 ├── test_workflow_parent_actions.py     # Parent penalty/bonus tests (11 tests)
 ├── test_workflow_kid_rewards.py        # Kid reward workflow tests (10 tests)
+├── test_migration_generic.py           # Generic v40→v42 migration tests (9 tests)
+├── test_migration_samples_validation.py # Multi-version migration validation (30 tests)
 ├── testdata_scenario_minimal.yaml      # Minimal test scenario
 ├── testdata_scenario_medium.yaml       # Medium test scenario
 ├── testdata_scenario_full.yaml         # Full test scenario
+├── migration_samples/                  # Production data samples
+│   └── kidschores_data_ad-ha           # Real-world v40 production data
 ├── README.md                           # High-level overview
 ├── TESTING_TECHNICAL_GUIDE.md          # This file
 └── TESTING_AGENT_INSTRUCTIONS.md       # AI agent guidance
@@ -61,21 +66,24 @@ tests/
 
 ### Test Count Summary
 
-**Total: 78 tests (71 passing, 7 intentionally skipped)**
+**Total: 117 tests (109 passing, 17 intentionally skipped)**
 
-| Category            | Tests | Status                   |
-| ------------------- | ----- | ------------------------ |
-| Config Flow         | 8     | ✅ All passing           |
-| Coordinator         | 12    | ✅ All passing           |
-| Options Flow        | 9     | ✅ All passing           |
-| Services            | 5     | ✅ All passing           |
-| Dashboard Templates | 17    | ✅ All passing           |
-| Kid Chore Workflow  | 11    | ✅ All passing           |
-| Parent Actions      | 11    | ✅ All passing           |
-| Kid Reward Workflow | 10    | ✅ All passing           |
-| **Skipped**         | **7** | ⏭️ Intentionally skipped |
+| Category              | Tests  | Status                   |
+| --------------------- | ------ | ------------------------ |
+| Config Flow           | 8      | ✅ All passing           |
+| Coordinator           | 12     | ✅ All passing           |
+| Options Flow          | 9      | ✅ All passing           |
+| Services              | 5      | ✅ All passing           |
+| Dashboard Templates   | 17     | ✅ All passing           |
+| Kid Chore Workflow    | 11     | ✅ All passing           |
+| Parent Actions        | 11     | ✅ All passing           |
+| Kid Reward Workflow   | 10     | ✅ All passing           |
+| **Migration Testing** | **39** | ✅ **All passing** (NEW) |
+| **Skipped**           | **17** | ⏭️ Intentionally skipped |
 
 **Skipped tests** require live Home Assistant instance or external dependencies (notification services, etc.)
+
+**New in v4.2**: Migration testing validates v40→v42 schema upgrades. See [Migration Testing](#migration-testing) section below.
 
 ---
 
@@ -447,6 +455,162 @@ async def test_parent_apply_penalty_button(hass, scenario_minimal, mock_hass_use
 **Data Loading**: Mock entity states (no coordinator needed)
 
 **See [Dashboard Template Testing](#dashboard-template-testing) section below for full details**
+
+---
+
+## Migration Testing
+
+Migration tests validate that v40 data structures are correctly upgraded to v42 schema during integration startup, ensuring no data loss and proper schema transformation.
+
+### What Gets Tested
+
+✅ **Migration Framework Tests** (`test_migration_generic.py`):
+
+- Schema version detection and upgrade
+- All entity types preserved (kids, chores, rewards, badges, etc.)
+- Modern data structures created (chore_data, point_stats, etc.)
+- Legacy fields removed after migration
+- Entity counts preserved
+- Data integrity across migration
+
+✅ **Multi-Version Validation** (`test_migration_samples_validation.py`):
+
+- v30, v31, v40-beta1 → v42 migration paths
+- Required fields present in v42 structure
+- Datetime format conversion to UTC ISO strings
+- Badge list-to-dict transformation
+- Chore assignment preservation
+- Kid points preserved
+- Badge cumulative progress initialization
+
+### Why Test Migrations?
+
+1. **Backward compatibility** - Existing installations upgrade without data loss
+2. **Schema evolution** - Complex transformations (list→dict, datetime formats) work correctly
+3. **One-time cleanup** - Legacy fields removed, not orphaned
+4. **Production validation** - Real data from production instances tested
+5. **Version diversity** - Multiple legacy versions (v30, v31, v40) supported
+
+### How to Use Migration Tests
+
+#### Test with Production Data
+
+Test any v40 KidsChores data file (from users, production backups, etc.):
+
+```bash
+# Test your v40 data file
+pytest tests/test_migration_generic.py --migration-file=path/to/your/kidschores_data -v
+
+# Example with ad-ha production data
+pytest tests/test_migration_generic.py \
+    --migration-file=tests/migration_samples/kidschores_data_ad-ha -v
+```
+
+#### Expected Output
+
+```
+test_migration_generic.py::test_multiple_files_example[tests/migration_samples/kidschores_data_ad-ha] PASSED
+```
+
+The test will:
+
+1. Load your v40 data file
+2. Run all pre-v42 migrations
+3. Validate schema version is now 42
+4. Verify all entities present
+5. Check modern structures exist
+6. Ensure legacy fields removed
+7. Verify data integrity
+
+#### Add New Test Data
+
+To add your own production data for testing:
+
+```bash
+# Copy data to migration_samples directory
+cp /path/to/your/.storage/kidschores_data tests/migration_samples/kidschores_data_myname
+
+# Run migration test
+pytest tests/test_migration_generic.py --migration-file=tests/migration_samples/kidschores_data_myname -v
+```
+
+### Generic Framework Architecture
+
+The migration framework is **reusable and extensible**:
+
+**Files**:
+
+- `utils/validate_migration.py` (658 lines) - Core validation logic, entity-agnostic
+- `test_migration_generic.py` (276 lines) - Generic test fixtures and parametrization
+- `test_migration_samples_validation.py` (445 lines) - Multi-version validation suite
+
+**How it works**:
+
+1. Load v40 data file into memory
+2. Run `migration_pre_v42._run_pre_v42_migrations()`
+3. Validate result with `MigrationValidator` class:
+   - Schema version check
+   - Required fields verification
+   - Data structure validation
+   - Legacy field cleanup verification
+   - Entity count preservation
+   - Data integrity checks
+
+**Auto-discovers** all entities without hardcoding names or IDs
+
+### Test All Migration Paths
+
+```bash
+# Run all migration tests (generic + multi-version)
+pytest tests/test_migration_generic.py tests/test_migration_samples_validation.py -v
+
+# Run only generic tests (for your data files)
+pytest tests/test_migration_generic.py -v
+
+# Run only multi-version validation (v30, v31, v40)
+pytest tests/test_migration_samples_validation.py -v
+
+# With coverage report
+pytest tests/test_migration*.py --cov=custom_components.kidschores --cov-report=term-missing
+```
+
+### Key Validation Points
+
+**Schema Version**: Confirms data was migrated to v42
+
+```python
+assert meta_section.get("schema_version") == 42
+```
+
+**Entity Preservation**: All entity types present with correct counts
+
+```python
+assert len(kids) > 0
+assert len(chores) > 0
+assert len(rewards) > 0
+# ... etc
+```
+
+**Modern Structures**: New v42 structures created
+
+```python
+assert const.DATA_CHORE_DATA in chore  # New structure
+assert const.DATA_POINT_STATS in kid   # New structure
+```
+
+**Legacy Cleanup**: Old fields removed
+
+```python
+assert const.DATA_KID_CHORE_CLAIMS_LEGACY not in kid
+assert const.DATA_KID_POINTS_EARNED_TODAY_LEGACY not in kid
+```
+
+**Data Integrity**: Data accessible and valid
+
+```python
+assert isinstance(kid[const.DATA_POINTS], (int, float))
+assert all(isinstance(timestamp, str) for timestamp in chore_timestamps)
+```
 
 ---
 

@@ -221,6 +221,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 # Update to current schema version in meta section
                 # Use module-level datetime and dt_util imports
 
+                # DEBUG: Check DEFAULT_MIGRATIONS_APPLIED value
+                const.LOGGER.debug(
+                    "DEFAULT_MIGRATIONS_APPLIED constant: %s (type: %s, len: %d)",
+                    const.DEFAULT_MIGRATIONS_APPLIED,
+                    type(const.DEFAULT_MIGRATIONS_APPLIED),
+                    len(const.DEFAULT_MIGRATIONS_APPLIED),
+                )
+
                 self._data[const.DATA_META] = {
                     const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_STORAGE_ONLY,
                     const.DATA_META_LAST_MIGRATION_DATE: datetime.now(
@@ -228,6 +236,15 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     ).isoformat(),
                     const.DATA_META_MIGRATIONS_APPLIED: const.DEFAULT_MIGRATIONS_APPLIED,
                 }
+
+                # DEBUG: Verify what got assigned
+                const.LOGGER.debug(
+                    "migrations_applied after assignment: %s (len: %d)",
+                    self._data[const.DATA_META][const.DATA_META_MIGRATIONS_APPLIED],
+                    len(
+                        self._data[const.DATA_META][const.DATA_META_MIGRATIONS_APPLIED]
+                    ),
+                )
 
                 # Remove old top-level schema_version if present (v42 → v43 migration)
                 self._data.pop(const.DATA_SCHEMA_VERSION, None)

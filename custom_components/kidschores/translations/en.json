@@ -335,8 +335,6 @@
       "corrupt_file": "The selected file contains invalid JSON and cannot be read.",
       "invalid_structure": "The selected file is missing required KidsChores data structure.",
       "reconfigure_failed": "Reconfiguration failed. Please try again.",
-      "reconfigure_successful": "System settings updated successfully.",
-      "reconfigure_failed": "Reconfiguration failed. Please try again.",
       "reconfigure_successful": "System settings updated successfully."
     }
   },
@@ -1094,21 +1092,27 @@
           "points_adjust_values": "Manual Points Adjustment Button Values",
           "update_interval": "Update Interval",
           "calendar_show_period": "Number of Days to Show in Calendar",
+          "retention_periods": "Data Retention Periods (Daily|Weekly|Monthly|Yearly)",
           "retention_daily": "Daily Data Retention (Days)",
           "retention_weekly": "Weekly Data Retention (Weeks)",
           "retention_monthly": "Monthly Data Retention (Months)",
           "retention_yearly": "Yearly Data Retention (Years)",
-          "backups_max_retained": "Maximum Backups to Retain"
+          "show_legacy_entities": "Show Extra Entities",
+          "backups_max_retained": "Maximum Backups to Retain",
+          "backup_action_selection": "Backup Actions"
         },
         "data_description": {
           "points_adjust_values": "List of values for the manual points adjustment buttons. Each value separate by '|'.",
           "update_interval": "Interval in minutes for updating the internal state of KidsChores.",
           "calendar_show_period": "Number of days in the future to show scheduled chores and challenges in the calendar.",
+          "retention_periods": "Data retention periods in format Daily|Weekly|Monthly|Yearly (e.g., '7|4|12|3'). Each value must be a positive integer.",
           "retention_daily": "Number of days of daily historical data to retain before cleanup. Minimum 1, maximum 90.",
           "retention_weekly": "Number of weeks of weekly historical data to retain before cleanup. Minimum 1, maximum 52.",
           "retention_monthly": "Number of months of monthly historical data to retain before cleanup. Minimum 1, maximum 24.",
           "retention_yearly": "Number of years of yearly historical data to retain before cleanup. Minimum 1, maximum 10.",
-          "backups_max_retained": "Maximum number of backup files to keep. Older backups will be automatically deleted. Set to 0 to disable automatic backups."
+          "show_legacy_entities": "Show extra entities like sensor and selects that are now consolidated into the dashboard helper sensor. These entities are optional for backward compatibility with existing automations.",
+          "backups_max_retained": "Maximum number of backup files to keep. Older backups will be automatically deleted. Set to 0 to disable automatic backups.",
+          "backup_action_selection": "Choose a backup management action: create a manual backup, view/restore existing backups, or return to menu."
         }
       },
       "backup_actions": {
@@ -1119,6 +1123,23 @@
         },
         "data_description": {
           "backup_action_selection": "Choose a backup management action."
+        }
+      },
+      "backup_actions_menu": {
+        "title": "Backup Actions",
+        "description": "Manage your KidsChores data backups.",
+        "data": {
+          "backup_action_selection": "Select an Action"
+        },
+        "data_description": {
+          "backup_action_selection": "Choose a backup management action: create, view, or restore backups."
+        }
+      },
+      "create_manual_backup": {
+        "title": "Create Manual Backup",
+        "description": "Create a manual backup of your current KidsChores data?",
+        "data": {
+          "confirm": "Confirm"
         }
       },
       "view_backups": {
@@ -1223,6 +1244,11 @@
       "backup_restored": "Backup restored successfully. The integration has been reloaded with the restored data."
     }
   },
+  "label": {
+    "backup_paste_json": "📋 Paste JSON data from diagnostics",
+    "backup_start_fresh": "🆕 Start fresh (creates backup of existing data)",
+    "restore_prefix": "⏮️  Restore"
+  },
   "selector": {
     "main_menu": {
       "options": {
@@ -1250,11 +1276,10 @@
     },
     "backup_actions": {
       "options": {
-        "backup_action_select": "Select backup action...",
-        "backup_action_create": "Create backup now",
-        "backup_action_view": "View & manage backups",
-        "backup_action_restore": "Restore from backup",
-        "backup_return_menu": "← Return to Backup Menu"
+        "": "Select backup action...",
+        "create_backup": "Create backup now",
+        "view_backups": "View & manage backups",
+        "restore_backup": "Restore from backup"
       }
     },
     "badge_type": {
@@ -1373,6 +1398,14 @@
         "view_backups": "View & Manage Backups",
         "create_backup": "Create Manual Backup",
         "return_to_menu": "Return to Main Menu"
+      }
+    },
+    "data_recovery_selection": {
+      "options": {
+        "cancel": "↩️  Cancel (return to backup menu)",
+        "start_fresh": "🆕 Start fresh (creates backup of existing data)",
+        "current_active": "📂 Use current active data file",
+        "paste_json": "📋 Paste JSON from data file or diagnostics"
       }
     }
   },

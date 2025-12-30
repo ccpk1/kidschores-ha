@@ -8,6 +8,18 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
+
+def pytest_addoption(parser):
+    """Add command line options for tests."""
+    parser.addoption(
+        "--migration-file",
+        action="store",
+        default=None,
+        help="Path to v40 data file to test migration (for test_migration_generic.py)",
+    )
+
+
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry

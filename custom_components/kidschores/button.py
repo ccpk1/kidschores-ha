@@ -203,6 +203,8 @@ async def async_setup_entry(
             )
 
     # Create "points adjustment" buttons for each kid (±1, ±2, ±10, etc.)
+    # IMPORTANT: Always normalize to floats for consistent entity unique IDs
+    # (restored data may have integers, options flow saves as floats)
     raw_values = coordinator.config_entry.options.get(const.CONF_POINTS_ADJUST_VALUES)
     if not raw_values:
         points_adjust_values = const.DEFAULT_POINTS_ADJUST_VALUES
@@ -224,6 +226,7 @@ async def async_setup_entry(
             )
     elif isinstance(raw_values, list):
         try:
+            # Always convert to floats for consistent unique IDs
             points_adjust_values = [float(v) for v in raw_values]
         except (ValueError, TypeError):
             points_adjust_values = const.DEFAULT_POINTS_ADJUST_VALUES

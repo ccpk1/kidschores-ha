@@ -6,9 +6,24 @@
         "title": "Bienvenido/a a KidsChores",
         "description": "Este asistente te guiará en la configuración de KidsChores."
       },
+      "data_recovery": {
+        "title": "Opciones de Recuperación de Datos",
+        "description": "Datos existentes de KidsChores encontrados en:\n{storage_path}\n\nSe encontraron {backup_count} archivos de copia de seguridad.\n\n¿Qué te gustaría hacer?",
+        "data": {
+          "backup_selection": "Seleccionar Opción"
+        }
+      },
       "points_label": {
         "title": "Etiqueta de Puntos",
         "description": "Elige una etiqueta e ícono para los puntos.",
+        "data": {
+          "points_label": "Etiqueta de Puntos",
+          "points_icon": "Ícono de Puntos"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigurar Ajustes del Sistema",
+        "description": "Actualizar ajustes del sistema como etiqueta e ícono de puntos.",
         "data": {
           "points_label": "Etiqueta de Puntos",
           "points_icon": "Ícono de Puntos"
@@ -68,8 +83,10 @@
           "internal_id": "ID Interno",
           "default_points": "Puntos Predeterminados",
           "allow_multiple_claims_per_day": "¿Permitir múltiples reclamaciones por día?",
+          "auto_approve": "¿Auto-aprobar al Reclamar?",
           "partial_allowed": "¿Permitir puntos parciales?",
           "shared_chore": "¿Tarea compartida?",
+          "show_on_calendar": "¿Mostrar en el Calendario?",
           "assigned_kids": "Niños Asignados",
           "chore_description": "Descripción (opcional)",
           "chore_labels": "Etiquetas de la Tarea",
@@ -99,22 +116,46 @@
           "badge_description": "Descripción (opcional)",
           "badge_labels": "Etiquetas de la Insignia",
           "icon": "Ícono (mdi:xxx)",
-          "threshold_value": "Valor del umbral",
-          "award_mode": "Modo de Otorgamiento",
-          "award_points": "Otorgar Puntos",
-          "award_reward": "Otorgar Recompensa",
-          "points_multiplier": "Multiplicador de Puntos",
-          "reset_periodically": "Reiniciar Periódicamente",
-          "reset_type": "Tipo de Reinicio",
-          "custom_reset_date": "Fecha de Reinicio Personalizada",
-          "reset_grace_period": "Período de Gracia (días)",
+          "target_type": "🎯 TARGET: Target Type",
+          "threshhold_value": "🎯 TARGET: Threshold Value",
           "maintenance_rules": "Puntos de Mantenimiento Mínimos",
-          "internal_id": "ID Interno"
+          "occasion_type": "🎉 Occasion Type",
+          "associated_achievement": "🏆 Associated Achievement",
+          "associated_challenge": "🏁 Associated Challenge",
+          "selected_chores": "🧹 Tracked Chores (Optional)",
+          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses, Multiplier (Optional)",
+          "award_points": "Otorgar Puntos",
+          "points_multiplier": "Multiplicador de Puntos",
+          "recurring_frequency": "🔄 MAINTENANCE CYCLE: Frequency",
+          "custom_interval": "🔄 MAINTENANCE CYCLE: Custom Interval (Required for Custom Frequency)",
+          "custom_interval_unit": "🔄 MAINTENANCE CYCLE: Custom Interval Unit (Required for Custom Frequency)",
+          "start_date": "🔄 RESET CYCLE: Start Date (Optional)",
+          "end_date": "🔄 MAINTENANCE CYCLE: End Date (Optional)",
+          "grace_period_days": "🔄 MAINTENANCE CYCLE: Grace Period in Days (Optional)"
         },
         "data_description": {
-          "custom_reset_date": "Define una fecha de reinicio personalizada si el tipo de reinicio está en Personalizado.",
-          "reset_grace_period": "Define el período de gracia, en DÍAS, en el que los niños pueden mantener su insignia si alcanzan los Puntos de Mantenimiento Mínimos.",
-          "maintenance_rules": "Puntos mínimos que se deben obtener durante el Período de Gracia para conservar la insignia."
+          "badge_name": "Enter a unique name for the badge. This name will be displayed in the system.",
+          "badge_description": "Provide a description of the badge's purpose or criteria (optional).",
+          "badge_labels": "Add labels to categorize or tag the badge (optional).",
+          "icon": "Specify an icon for the badge using Material Design Icons (e.g., mdi:star).",
+          "target_type": "Select the type of target for this badge (e.g., points or chore count).",
+          "threshhold_value": "Set the total lifetime points required to earn this badge.",
+          "maintenance_rules": "Puntos mínimos que se deben obtener durante el Período de Gracia para conservar la insignia.",
+          "occasion_type": "Choose the type of occasion for this badge (e.g., holiday, birthday).",
+          "associated_achievement": "Link this badge to an achievement for tracking.",
+          "associated_challenge": "Link this badge to a challenge for tracking.",
+          "selected_chores": "Select the chores that contribute points toward this badge. Leave blank if you want to track all assigned chores (optional).",
+          "assigned_to": "Assign this badge to specific kids for tracking.",
+          "award_items": "Select one or more from points, rewards, bonuses, or a points multiplier. All selected items will be granted or applied when the badge is earned. (optional)",
+          "award_points": "If points are a selected award, specify the number of points to apply when this badge is earned. (optional).",
+          "points_multiplier": "If multiplier is a selected award, set a multiplier for points earned while this badge is active (e.g., 1.5x).",
+          "recurring_frequency": "Enable the maintenance cycle, requiring the specified minimum points to be earned before the end of the period. (e.g., weekly, monthly).",
+          "custom_interval": "Specify the NUMBER of days, week, months, etc. for Custom Frequency (e.g., 3 if you set 3 weeks). Only applies to Custom Frequency.",
+          "custom_interval_unit": "Select the unit for the custom interval (e.g., days, weeks). Only applies to Custom Frequency.",
+          "start_date": "Set the start date (optional).",
+          "end_date": "Select the date for the end of the maintenance cycle. (optional).",
+          "grace_period_days": "Specify the number of extra days after the end of the cycle kids to meet required points before demotion. (optional)."
         }
       },
       "reward_count": {
@@ -231,6 +272,7 @@
     },
     "error": {
       "a_chore_must_be_selected": "Debe seleccionarse una tarea",
+      "badge_requires_assignment": "At least one kid must be assigned to this badge",
       "duplicate_achievement": "Ya existe un logro con este nombre",
       "duplicate_badge": "Ya existe una insignia con este nombre",
       "duplicate_challenge": "Ya existe un desafío con este nombre",
@@ -259,20 +301,41 @@
       "invalid_kid_name": "Nombre de niño/a no válido",
       "invalid_parent_count": "Cantidad de padres no válida",
       "invalid_parent_name": "Nombre de padre/madre no válido",
+      "no_kids_assigned": "At least one kid must be assigned to the chore",
       "invalid_penalty": "Penalización no válida",
       "invalid_penalty_count": "Cantidad de penalizaciones no válida",
       "invalid_penalty_name": "Nombre de penalización no válido",
       "invalid_reward": "Recompensa no válida",
       "invalid_reward_count": "Cantidad de recompensas no válida",
       "invalid_reward_name": "Nombre de recompensa no válido",
-      "invalid_start_date": "Fecha de inicio no válida.",
       "invalid_bonus": "Bonificación no válida",
       "invalid_bonus_count": "Cantidad de bonificaciones no válida",
       "invalid_bonus_name": "Nombre de bonificación no válido",
-      "start_date_in_past": "La fecha de inicio debe estar en el futuro."
+      "invalid_start_date": "Fecha de inicio no válida.",
+      "start_date_in_past": "La fecha de inicio debe estar en el futuro.",
+      "points_label_required": "La etiqueta de puntos es requerida",
+      "corrupt_file": "El archivo seleccionado contiene JSON inválido y no se puede leer.",
+      "invalid_structure": "The selected file is missing required data structure.",
+      "file_not_found": "The selected file could not be found.",
+      "invalid_selection": "Please select a valid option.",
+      "invalid_input": "The provided input is invalid. Please check your entries and try again.",
+      "duplicate_name": "An item with this name already exists. Please choose a different name.",
+      "invalid_date_range": "The date range is invalid. End date must be after start date.",
+      "missing_required": "Required field is missing. Please provide all required information.",
+      "invalid_format": "The format is invalid. Please check your input and try again.",
+      "invalid_update_interval": "Invalid update interval. Must be a positive integer.",
+      "invalid_calendar_show_period": "Invalid calendar show period. Must be a positive integer.",
+      "invalid_retention_period": "Invalid retention period. Must be a positive integer.",
+      "invalid_points_adjust_values": "Invalid points adjust values. Must be a list."
     },
     "abort": {
-      "single_instance_allowed": "Solo se puede configurar una única instancia de KidsChores."
+      "single_instance_allowed": "Solo se puede configurar una única instancia de KidsChores.",
+      "already_configured": "Los datos de KidsChores se han restaurado exitosamente. Ahora puedes recargar la integración.",
+      "file_not_found": "No se pudo encontrar el archivo de copia de seguridad seleccionado.",
+      "corrupt_file": "El archivo seleccionado contiene JSON inválido y no se puede leer.",
+      "invalid_structure": "Al archivo seleccionado le falta la estructura de datos requerida de KidsChores.",
+      "reconfigure_failed": "La reconfiguración falló. Por favor, inténtalo de nuevo.",
+      "reconfigure_successful": "Ajustes del sistema actualizados exitosamente."
     }
   },
   "options": {
@@ -339,8 +402,11 @@
           "internal_id": "ID Interno",
           "default_points": "Puntos Predeterminados",
           "allow_multiple_claims_per_day": "¿Permitir múltiples reclamaciones por día?",
+          "auto_approve": "¿Auto-aprobar al Reclamar?",
           "partial_allowed": "¿Permitir puntos parciales?",
           "shared_chore": "¿Tarea compartida?",
+          "completion_criteria": "Criterios de Finalización",
+          "show_on_calendar": "¿Mostrar en el Calendario?",
           "assigned_kids": "Niños Asignados",
           "chore_description": "Descripción (opcional)",
           "chore_labels": "Etiquetas de la Tarea",
@@ -370,22 +436,46 @@
           "badge_description": "Descripción (opcional)",
           "badge_labels": "Etiquetas de la Insignia",
           "icon": "Ícono (mdi:xxx)",
-          "threshold_value": "Valor del Umbral",
-          "award_mode": "Modo de Otorgamiento",
-          "award_points": "Puntos Otorgados",
-          "award_reward": "Recompensa Otorgada",
-          "points_multiplier": "Multiplicador de Puntos",
-          "reset_periodically": "Reiniciar Periódicamente",
-          "reset_type": "Tipo de Reinicio",
-          "custom_reset_date": "Fecha de Reinicio Personalizada",
-          "reset_grace_period": "Período de Gracia (días)",
+          "target_type": "🎯 TARGET: Target Type",
+          "threshhold_value": "🎯 TARGET: Threshold Value",
           "maintenance_rules": "Puntos de Mantenimiento Mínimos",
-          "internal_id": "ID Interno"
+          "occasion_type": "🎉 Occasion Type",
+          "associated_achievement": "🏆 Associated Achievement",
+          "associated_challenge": "🏁 Associated Challenge",
+          "selected_chores": "🧹 Tracked Chores (Optional)",
+          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses, Multiplier (Optional)",
+          "award_points": "Puntos Otorgados",
+          "points_multiplier": "Multiplicador de Puntos",
+          "recurring_frequency": "🔄 MAINTENANCE CYCLE: Frequency",
+          "custom_interval": "🔄 MAINTENANCE CYCLE: Custom Interval (Required for Custom Frequency)",
+          "custom_interval_unit": "🔄 MAINTENANCE CYCLE: Custom Interval Unit (Required for Custom Frequency)",
+          "start_date": "🔄 RESET CYCLE: Start Date (Optional)",
+          "end_date": "🔄 MAINTENANCE CYCLE: End Date (Optional)",
+          "grace_period_days": "🔄 MAINTENANCE CYCLE: Grace Period in Days (Optional)"
         },
         "data_description": {
-          "custom_reset_date": "Define una fecha de reinicio personalizada si el tipo de reinicio está configurado en Custom.",
-          "reset_grace_period": "Define el período de gracia, en DÍAS, en el que los niños pueden mantener su insignia si alcanzan los puntos de mantenimiento mínimos.",
-          "maintenance_rules": "Puntos mínimos que se deben obtener durante el período de gracia para conservar la insignia."
+          "badge_name": "Enter a unique name for the badge. This name will be displayed in the system.",
+          "badge_description": "Provide a description of the badge's purpose or criteria (optional).",
+          "badge_labels": "Add labels to categorize or tag the badge (optional).",
+          "icon": "Specify an icon for the badge using Material Design Icons (e.g., mdi:star).",
+          "target_type": "Select the type of target for this badge (e.g., points or chore count).",
+          "threshhold_value": "Set the total lifetime points required to earn this badge.",
+          "maintenance_rules": "Puntos mínimos que se deben obtener durante el período de gracia para conservar la insignia.",
+          "occasion_type": "Choose the type of occasion for this badge (e.g., holiday, birthday).",
+          "associated_achievement": "Link this badge to an achievement for tracking.",
+          "associated_challenge": "Link this badge to a challenge for tracking.",
+          "selected_chores": "Select the chores that contribute points toward this badge. Leave blank if you want to track all assigned chores (optional).",
+          "assigned_to": "Assign this badge to specific kids for tracking.",
+          "award_items": "Select one or more from points, rewards, bonuses, or a points multiplier. All selected items will be granted or applied when the badge is earned. (optional)",
+          "award_points": "If points are a selected award, specify the number of points to apply when this badge is earned. (optional).",
+          "points_multiplier": "If multiplier is a selected award, set a multiplier for points earned while this badge is active (e.g., 1.5x).",
+          "recurring_frequency": "Enable the maintenance cycle, requiring the specified minimum points to be earned before the end of the period. (e.g., weekly, monthly).",
+          "custom_interval": "Specify the NUMBER of days, week, months, etc. for Custom Frequency (e.g., 3 if you set 3 weeks). Only applies to Custom Frequency.",
+          "custom_interval_unit": "Select the unit for the custom interval (e.g., days, weeks). Only applies to Custom Frequency.",
+          "start_date": "Set the start date (optional).",
+          "end_date": "Select the date for the end of the maintenance cycle. (optional).",
+          "grace_period_days": "Specify the number of extra days after the end of the cycle kids to meet required points before demotion. (optional)."
         }
       },
       "add_badge_daily": {
@@ -396,12 +486,24 @@
           "badge_description": "Descripción (opcional)",
           "badge_labels": "Etiquetas de la Insignia",
           "icon": "Ícono (mdi:xxx)",
-          "daily_threshold_type": "Tipo de Umbral",
-          "daily_threshold": "Valor del Umbral",
-          "award_mode": "Modo de Otorgamiento",
-          "award_points": "Puntos Otorgados",
-          "award_reward": "Recompensa Otorgada",
-          "internal_id": "ID Interno"
+          "target_type": "🎯 DAILY TARGET: Target Type",
+          "threshhold_value": "🎯 DAILY TARGET: Threshold Value",
+          "selected_chores": "🧹 Tracked Chores (Optional)",
+          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses, Penalties (Optional)",
+          "award_points": "Puntos Otorgados"
+        },
+        "data_description": {
+          "badge_name": "Enter a unique name for the badge. This name will be displayed in the system.",
+          "badge_description": "Provide a description of the badge's purpose or criteria (optional).",
+          "badge_labels": "Add labels to categorize or tag the badge (optional).",
+          "icon": "Specify an icon for the badge using Material Design Icons (e.g., mdi:star).",
+          "target_type": "Select the type of daily target for this badge (e.g., points, chore count, or days).",
+          "threshhold_value": "Set the daily points, chore count, or number of days required to earn this badge. For 'Days' target types, enter 1 since the badge is evaluated daily (e.g., 1 for a one-day complete all selected chores).",
+          "selected_chores": "Select the chores that contribute points toward this badge. Leave blank if you want to track all assigned chores (optional).",
+          "assigned_to": "Assign this badge to specific kids for tracking.",
+          "award_items": "Select one or more from points, rewards, bonuses, or penalties. All selected items will be granted or applied when the badge is earned. Penalties will only be applied if the badge is not earned by the end date or reset date. (optional)",
+          "award_points": "If points are a selected award, specify the number of points to apply when this badge is earned. (optional)."
         }
       },
       "add_badge_periodic": {
@@ -412,17 +514,42 @@
           "badge_description": "Descripción (opcional)",
           "badge_labels": "Etiquetas de la Insignia",
           "icon": "Ícono (mdi:xxx)",
-          "reset_schedule": "Programa de Reinicio",
-          "start_date": "Fecha de Inicio",
-          "end_date": "Fecha de Finalización",
-          "recurrent": "Recurrente",
-          "threshold_type": "Tipo de Umbral",
-          "required_chores": "Tareas Requeridas",
-          "threshold_value": "Valor del Umbral",
-          "award_mode": "Modo de Otorgamiento",
+          "target_type": "🎯 TARGET: Target Type",
+          "threshhold_value": "🎯 TARGET: Threshold Value",
+          "maintenance_rules": "🎯 TARGET: Maintenance Points (Optional)",
+          "occasion_type": "🎉 Occasion Type",
+          "associated_achievement": "🏆 Associated Achievement",
+          "associated_challenge": "🏁 Associated Challenge",
+          "selected_chores": "🧹 Tracked Chores (Optional)",
+          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses, Penalties (Optional)",
           "award_points": "Puntos Otorgados",
-          "award_reward": "Recompensa Otorgada",
-          "internal_id": "ID Interno"
+          "recurring_frequency": "🔄 RESET CYCLE: Frequency",
+          "custom_interval": "🔄 RESET CYCLE: Custom Interval (Required for Custom Frequency)",
+          "custom_interval_unit": "🔄 RESET CYCLE: Custom Interval Unit (Required for Custom Frequency)",
+          "start_date": "Fecha de Inicio",
+          "end_date": "Fecha de Finalización"
+        },
+        "data_description": {
+          "badge_name": "Enter a unique name for the badge. This name will be displayed in the system.",
+          "badge_description": "Provide a description of the badge's purpose or criteria (optional).",
+          "badge_labels": "Add labels to categorize or tag the badge (optional).",
+          "icon": "Specify an icon for the badge using Material Design Icons (e.g., mdi:star).",
+          "target_type": "Select the type of target for this badge (e.g., points, chore count, days, or streak).",
+          "threshhold_value": "Set the total points, chore count, or number of days (such as for multi-chore completion streaks) required to earn this badge within the defined period.",
+          "maintenance_rules": "Specify the minimum points required during the reset cycle to retain the badge and its active multiplier (optional).",
+          "occasion_type": "Choose the type of occasion for this badge (e.g., holiday, birthday).",
+          "associated_achievement": "Link this badge to an achievement for tracking.",
+          "associated_challenge": "Link this badge to a challenge for tracking.",
+          "selected_chores": "Select the chores that contribute points toward this badge. Leave blank if you want to track all assigned chores (optional).",
+          "assigned_to": "Assign this badge to specific kids for tracking.",
+          "award_items": "Select one or more from points, rewards, bonuses, or penalties. All selected items will be granted or applied when the badge is earned. Penalties will only be applied if the badge is not earned by the end date or reset date. (optional)",
+          "award_points": "If points are a selected award, specify the number of points to apply when this badge is earned. (optional).",
+          "recurring_frequency": "Define the reset schedule for this badge (e.g., weekly, monthly).",
+          "custom_interval": "Specify the NUMBER of days, weeks, months, etc. for Custom Frequency (e.g., 3 if you set 3 weeks).",
+          "custom_interval_unit": "Select the unit for the custom interval (e.g., days, weeks).",
+          "start_date": "Set the start date for the reset cycle (optional).",
+          "end_date": "Set the end date for the reset cycle (optional)."
         }
       },
       "add_badge_achievement": {
@@ -434,10 +561,19 @@
           "badge_labels": "Etiquetas de la Insignia",
           "icon": "Ícono (mdi:xxx)",
           "associated_achievement": "Logro Asociado",
-          "award_mode": "Modo de Otorgamiento",
-          "award_points": "Puntos Otorgados",
-          "award_reward": "Recompensa Otorgada",
-          "internal_id": "ID Interno"
+          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses (Optional)",
+          "award_points": "Puntos Otorgados"
+        },
+        "data_description": {
+          "badge_name": "Enter a unique name for the badge. This name will be displayed in the system.",
+          "badge_description": "Provide a description of the badge's purpose or criteria (optional).",
+          "badge_labels": "Add labels to categorize or tag the badge (optional).",
+          "icon": "Specify an icon for the badge using Material Design Icons (e.g., mdi:star).",
+          "associated_achievement": "Link this badge to a specific achievement for tracking.",
+          "assigned_to": "Assign this badge to specific kids for tracking.",
+          "award_items": "Select one or more from points, rewards, or bonuses. All selected items will be granted or applied when the badge is earned. Penalties will only be applied if the badge is not earned by the end date or reset date. (optional)",
+          "award_points": "If points are a selected award, specify the number of points to apply when this badge is earned. (optional)."
         }
       },
       "add_badge_challenge": {
@@ -449,10 +585,19 @@
           "badge_labels": "Etiquetas de la Insignia",
           "icon": "Ícono (mdi:xxx)",
           "associated_challenge": "Reto Asociado",
-          "award_mode": "Modo de Otorgamiento",
-          "award_points": "Puntos Otorgados",
-          "award_reward": "Recompensa Otorgada",
-          "internal_id": "ID Interno"
+          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses (Optional)",
+          "award_points": "Puntos Otorgados"
+        },
+        "data_description": {
+          "badge_name": "Enter a unique name for the badge. This name will be displayed in the system.",
+          "badge_description": "Provide a description of the badge's purpose or criteria (optional).",
+          "badge_labels": "Add labels to categorize or tag the badge (optional).",
+          "icon": "Specify an icon for the badge using Material Design Icons (e.g., mdi:star).",
+          "associated_challenge": "Link this badge to a specific challenge for tracking.",
+          "assigned_to": "Assign this badge to specific kids for tracking.",
+          "award_items": "Select one or more from points, rewards, or bonuses. All selected items will be granted or applied when the badge is earned. Penalties will only be applied if the badge is not earned by the end date or reset date. (optional)",
+          "award_points": "If points are a selected award, specify the number of points to apply when this badge is earned. (optional)."
         }
       },
       "add_badge_special": {
@@ -463,14 +608,32 @@
           "badge_description": "Descripción (opcional)",
           "badge_labels": "Etiquetas de la Insignia",
           "icon": "Ícono (mdi:xxx)",
-          "assigned_kids": "Niños Asignados",
           "occasion_type": "Tipo de Ocasión",
-          "occasion_date": "Fecha de la Ocasión",
-          "recurrent": "Recurrente",
-          "award_mode": "Modo de Otorgamiento",
-          "award_points": "Puntos Otorgados",
-          "award_reward": "Recompensa Otorgada",
-          "internal_id": "ID Interno"
+          "end_date": "🎉 Occasion Date",
+          "recurring_frequency": "🔄 RECURRENCE: Frequency",
+          "custom_interval": "🔄 RECURRENCE: Custom Interval (Required for Custom Frequency)",
+          "custom_interval_unit": "🔄 RECURRENCE: Custom Interval Unit (Required for Custom Frequency)",
+          "start_date": "🔄 RECURRENCE: Start Date (Optional)",
+          "grace_period_days": "🔄 RECURRENCEE: Grace Period in Days (Optional)",
+          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses (Optional)",
+          "award_points": "Puntos Otorgados"
+        },
+        "data_description": {
+          "badge_name": "Enter a unique name for the badge. This name will be displayed in the system.",
+          "badge_description": "Provide a description of the badge's purpose or criteria (optional).",
+          "badge_labels": "Add labels to categorize or tag the badge (optional).",
+          "icon": "Specify an icon for the badge using Material Design Icons (e.g., mdi:star).",
+          "occasion_type": "Select the type of occasion for this badge (e.g., holiday, birthday).",
+          "end_date": "Set the date for the occasion.",
+          "recurring_frequency": "Define the reset schedule for this badge (e.g., weekly, monthly).",
+          "custom_interval": "Specify the NUMBER of days, weeks, months, etc. for Custom Frequency (e.g., 3 if you set 3 weeks).",
+          "custom_interval_unit": "Select the unit for the custom interval (e.g., days, weeks).",
+          "start_date": "Set the start date for the reset cycle (optional).",
+          "grace_period_days": "Specify the number of extra days after the end of the cycle for kids to meet required points before demotion (optional).",
+          "assigned_to": "Assign this badge to specific kids for tracking.",
+          "award_items": "Select one or more from points, rewards, or bonuses. All selected items will be granted or applied when the badge is earned. Penalties will only be applied if the badge is not earned by the end date or reset date. (optional)",
+          "award_points": "If points are a selected award, specify the number of points to apply when this badge is earned. (optional)."
         }
       },
       "add_reward": {
@@ -578,8 +741,11 @@
           "internal_id": "ID Interno",
           "default_points": "Puntos Predeterminados",
           "allow_multiple_claims_per_day": "¿Permitir múltiples reclamaciones por día?",
+          "auto_approve": "¿Auto-aprobar al Reclamar?",
           "partial_allowed": "¿Permitir puntos parciales?",
           "shared_chore": "¿Tarea compartida?",
+          "completion_criteria": "Criterios de Finalización",
+          "show_on_calendar": "¿Mostrar en el Calendario?",
           "assigned_kids": "Niños asignados",
           "chore_description": "Descripción (opcional)",
           "chore_labels": "Etiquetas de la Tarea",
@@ -594,43 +760,212 @@
           "notify_on_disapproval": "Notificar al rechazar"
         }
       },
-      "edit_badge": {
-        "title": "Editar Insignia",
-        "description": "Modifica los datos de la insignia seleccionada.",
+      "edit_badge_cumulative": {
+        "title": "Editar Insignia Acumulativa",
+        "description": "Configure the details for a cumulative badge. These badges reward kids for reaching lifetime point thresholds and support maintenance cycles to encourage ongoing performance.",
         "data": {
-          "badge_name": "Nombre de la Insignia",
-          "badge_description": "Descripción (opcional)",
-          "badge_labels": "Etiquetas de la Insignia",
-          "icon": "Ícono (mdi:xxx)",
-          "assigned_kids": "Niños asignados",
-          "occasion_type": "Tipo de ocasión",
-          "occasion_date": "Fecha de ocasión",
-          "recurrent": "Recurrente",
-          "award_mode": "Modo de otorgamiento",
-          "award_points": "Puntos otorgados",
-          "award_reward": "Recompensa otorgada",
-          "associated_challenge": "Desafío asociado",
-          "associated_achievement": "Logro asociado",
-          "reset_schedule": "Programa de reinicio",
-          "start_date": "Fecha de inicio",
-          "end_date": "Fecha de finalización",
-          "threshold_type": "Tipo de umbral",
-          "required_chores": "Tareas requeridas",
-          "threshold_value": "Valor del umbral",
-          "daily_threshold_type": "Tipo de umbral diario",
-          "daily_threshold": "Valor del umbral diario",
-          "points_multiplier": "Multiplicador de puntos",
-          "reset_periodically": "Reiniciar periódicamente",
-          "reset_type": "Periodo de reinicio",
-          "reset_grace_period": "Período de gracia de reinicio",
-          "maintenance_rules": "Reglas de mantenimiento",
-          "custom_reset_date": "Fecha de Reinicio Personalizada",
-          "internal_id": "ID Interno"
+          "badge_name": "Nombre de Insignia",
+          "badge_description": "Badge Description (Optional)",
+          "badge_labels": "Labels (Optional)",
+          "icon": "Badge Icon (mdi:xxx)",
+          "target_type": "🎯 TARGET: Target Type",
+          "threshhold_value": "🎯 TARGET: Threshold Value",
+          "maintenance_rules": "🎯 TARGET: Maintenance Points (Optional)",
+          "occasion_type": "🎉 Occasion Type",
+          "associated_achievement": "🏆 Associated Achievement",
+          "associated_challenge": "🏁 Associated Challenge",
+          "selected_chores": "🧹 Tracked Chores (Optional)",
+          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses, Multiplier (Optional)",
+          "award_points": "🎁 AWARDS: Points Awarded (Optional)",
+          "points_multiplier": "🎁 AWARDS: Points Multiplier (Default 💎 1.0x)",
+          "recurring_frequency": "🔄 MAINTENANCE CYCLE: Frequency",
+          "custom_interval": "🔄 MAINTENANCE CYCLE: Custom Interval (Required for Custom Frequency)",
+          "custom_interval_unit": "🔄 MAINTENANCE CYCLE: Custom Interval Unit (Required for Custom Frequency)",
+          "start_date": "🔄 RESET CYCLE: Start Date (Optional)",
+          "end_date": "🔄 MAINTENANCE CYCLE: End Date (Optional)",
+          "grace_period_days": "🔄 MAINTENANCE CYCLE: Grace Period in Days (Optional)"
         },
         "data_description": {
-          "custom_reset_date": "Define una fecha de reinicio personalizada si el tipo de reinicio está configurado en Custom.",
-          "reset_grace_period": "Define el período de gracia, en DÍAS, en el que los niños pueden mantener su insignia si alcanzan los puntos de mantenimiento mínimos.",
-          "maintenance_rules": "Puntos mínimos que se deben obtener durante el período de gracia para conservar la insignia."
+          "badge_name": "Enter a unique name for the badge. This name will be displayed in the system.",
+          "badge_description": "Provide a description of the badge's purpose or criteria (optional).",
+          "badge_labels": "Add labels to categorize or tag the badge (optional).",
+          "icon": "Specify an icon for the badge using Material Design Icons (e.g., mdi:star).",
+          "target_type": "Select the type of target for this badge (e.g., points or chore count).",
+          "threshhold_value": "Set the total lifetime points required to earn this badge.",
+          "maintenance_rules": "Specify the minimum points required during the maintenance cycle to retain the badge and its active multiplier (optional).",
+          "occasion_type": "Choose the type of occasion for this badge (e.g., holiday, birthday).",
+          "associated_achievement": "Link this badge to an achievement for tracking.",
+          "associated_challenge": "Link this badge to a challenge for tracking.",
+          "selected_chores": "Select the chores that contribute points toward this badge. Leave blank if you want to track all assigned chores (optional).",
+          "assigned_to": "Assign this badge to specific kids for tracking.",
+          "award_items": "Select one or more from points, rewards, bonuses, or a points multiplier. All selected items will be granted or applied when the badge is earned. (optional)",
+          "award_points": "If points are a selected award, specify the number of points to apply when this badge is earned. (optional).",
+          "points_multiplier": "If multiplier is a selected award, set a multiplier for points earned while this badge is active (e.g., 1.5x).",
+          "recurring_frequency": "Enable the maintenance cycle, requiring the specified minimum points to be earned before the end of the period. (e.g., weekly, monthly).",
+          "custom_interval": "Specify the NUMBER of days, week, months, etc. for Custom Frequency (e.g., 3 if you set 3 weeks). Only applies to Custom Frequency.",
+          "custom_interval_unit": "Select the unit for the custom interval (e.g., days, weeks). Only applies to Custom Frequency.",
+          "start_date": "Set the start date (optional).",
+          "end_date": "Select the date for the end of the maintenance cycle. (optional).",
+          "grace_period_days": "Specify the number of extra days after the end of the cycle kids to meet required points before demotion. (optional)."
+        }
+      },
+      "edit_badge_daily": {
+        "title": "Editar Insignia Diaria",
+        "description": "Configure the details for a daily badge. These badges reward kids for completing daily tasks or reaching daily thresholds.",
+        "data": {
+          "badge_name": "Nombre de Insignia",
+          "badge_description": "Badge Description (Optional)",
+          "badge_labels": "Labels (Optional)",
+          "icon": "Badge Icon (mdi:xxx)",
+          "target_type": "🎯 DAILY TARGET: Target Type",
+          "threshhold_value": "🎯 DAILY TARGET: Threshold Value",
+          "selected_chores": "🧹 Tracked Chores (Optional)",
+          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses, Penalties (Optional)",
+          "award_points": "🎁 AWARDS: Points Awarded (Optional)"
+        },
+        "data_description": {
+          "badge_name": "Enter a unique name for the badge. This name will be displayed in the system.",
+          "badge_description": "Provide a description of the badge's purpose or criteria (optional).",
+          "badge_labels": "Add labels to categorize or tag the badge (optional).",
+          "icon": "Specify an icon for the badge using Material Design Icons (e.g., mdi:star).",
+          "target_type": "Select the type of daily target for this badge (e.g., points, chore count, or days).",
+          "threshhold_value": "Set the daily points, chore count, or number of days required to earn this badge. For 'Days' target types, enter 1 since the badge is evaluated daily (e.g., 1 for a one-day complete all selected chores).",
+          "selected_chores": "Select the chores that contribute points toward this badge. Leave blank if you want to track all assigned chores (optional).",
+          "assigned_to": "Assign this badge to specific kids for tracking.",
+          "award_items": "Select one or more from points, rewards, bonuses, or penalties. All selected items will be granted or applied when the badge is earned. Penalties will only be applied if the badge is not earned by the end date or reset date. (optional)",
+          "award_points": "If points are a selected award, specify the number of points to apply when this badge is earned. (optional)."
+        }
+      },
+      "edit_badge_periodic": {
+        "title": "Editar Insignia Periódica",
+        "description": "Configure the details for a periodic badge. These badges reward kids for meeting thresholds within a defined time period and support reset cycles for ongoing performance.",
+        "data": {
+          "badge_name": "Nombre de Insignia",
+          "badge_description": "Badge Description (Optional)",
+          "badge_labels": "Labels (Optional)",
+          "icon": "Badge Icon (mdi:xxx)",
+          "target_type": "🎯 TARGET: Target Type",
+          "threshhold_value": "🎯 TARGET: Threshold Value",
+          "maintenance_rules": "🎯 TARGET: Maintenance Points (Optional)",
+          "occasion_type": "🎉 Occasion Type",
+          "associated_achievement": "🏆 Associated Achievement",
+          "associated_challenge": "🏁 Associated Challenge",
+          "selected_chores": "🧹 Tracked Chores (Optional)",
+          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses, Penalties (Optional)",
+          "award_points": "🎁 AWARDS: Points Awarded (Optional)",
+          "recurring_frequency": "🔄 RESET CYCLE: Frequency",
+          "custom_interval": "🔄 RESET CYCLE: Custom Interval (Required for Custom Frequency)",
+          "custom_interval_unit": "🔄 RESET CYCLE: Custom Interval Unit (Required for Custom Frequency)",
+          "start_date": "🔄 RESET CYCLE: Start Date (Optional)",
+          "end_date": "🔄 RESET CYCLE: End Date (Optional)"
+        },
+        "data_description": {
+          "badge_name": "Enter a unique name for the badge. This name will be displayed in the system.",
+          "badge_description": "Provide a description of the badge's purpose or criteria (optional).",
+          "badge_labels": "Add labels to categorize or tag the badge (optional).",
+          "icon": "Specify an icon for the badge using Material Design Icons (e.g., mdi:star).",
+          "target_type": "Select the type of target for this badge (e.g., points, chore count, days, or streak).",
+          "threshhold_value": "Set the total points, chore count, or number of days (such as for multi-chore completion streaks) required to earn this badge within the defined period.",
+          "maintenance_rules": "Specify the minimum points required during the reset cycle to retain the badge and its active multiplier (optional).",
+          "occasion_type": "Choose the type of occasion for this badge (e.g., holiday, birthday).",
+          "associated_achievement": "Link this badge to an achievement for tracking.",
+          "associated_challenge": "Link this badge to a challenge for tracking.",
+          "selected_chores": "Select the chores that contribute points toward this badge. Leave blank if you want to track all assigned chores (optional).",
+          "assigned_to": "Assign this badge to specific kids for tracking.",
+          "award_items": "Select one or more from points, rewards, bonuses, or penalties. All selected items will be granted or applied when the badge is earned. Penalties will only be applied if the badge is not earned by the end date or reset date. (optional)",
+          "award_points": "If points are a selected award, specify the number of points to apply when this badge is earned. (optional).",
+          "recurring_frequency": "Define the reset schedule for this badge (e.g., weekly, monthly).",
+          "custom_interval": "Specify the NUMBER of days, weeks, months, etc. for Custom Frequency (e.g., 3 if you set 3 weeks).",
+          "custom_interval_unit": "Select the unit for the custom interval (e.g., days, weeks).",
+          "start_date": "Set the start date for the reset cycle (optional).",
+          "end_date": "Set the end date for the reset cycle (optional)."
+        }
+      },
+      "edit_badge_achievement": {
+        "title": "Edit Achievement-Linked Badge",
+        "description": "Configure the details for a badge linked to an achievement. These badges reward kids for completing specific achievements.",
+        "data": {
+          "badge_name": "Nombre de Insignia",
+          "badge_description": "Badge Description (Optional)",
+          "badge_labels": "Labels (Optional)",
+          "icon": "Badge Icon (mdi:xxx)",
+          "associated_achievement": "🏆 Associated Achievement",
+          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses (Optional)",
+          "award_points": "🎁 AWARDS: Points Awarded (Optional)"
+        },
+        "data_description": {
+          "badge_name": "Enter a unique name for the badge. This name will be displayed in the system.",
+          "badge_description": "Provide a description of the badge's purpose or criteria (optional).",
+          "badge_labels": "Add labels to categorize or tag the badge (optional).",
+          "icon": "Specify an icon for the badge using Material Design Icons (e.g., mdi:star).",
+          "associated_achievement": "Link this badge to a specific achievement for tracking.",
+          "assigned_to": "Assign this badge to specific kids for tracking.",
+          "award_items": "Select one or more from points, rewards, or bonuses. All selected items will be granted or applied when the badge is earned. Penalties will only be applied if the badge is not earned by the end date or reset date. (optional)",
+          "award_points": "If points are a selected award, specify the number of points to apply when this badge is earned. (optional)."
+        }
+      },
+      "edit_badge_challenge": {
+        "title": "Edit Challenge-Linked Badge",
+        "description": "Configure the details for a badge linked to a challenge. These badges reward kids for completing specific challenges.",
+        "data": {
+          "badge_name": "Nombre de Insignia",
+          "badge_description": "Badge Description (Optional)",
+          "badge_labels": "Labels (Optional)",
+          "icon": "Badge Icon (mdi:xxx)",
+          "associated_challenge": "🏁 Associated Challenge",
+          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses (Optional)",
+          "award_points": "🎁 AWARDS: Points Awarded (Optional)"
+        },
+        "data_description": {
+          "badge_name": "Enter a unique name for the badge. This name will be displayed in the system.",
+          "badge_description": "Provide a description of the badge's purpose or criteria (optional).",
+          "badge_labels": "Add labels to categorize or tag the badge (optional).",
+          "icon": "Specify an icon for the badge using Material Design Icons (e.g., mdi:star).",
+          "associated_challenge": "Link this badge to a specific challenge for tracking.",
+          "assigned_to": "Assign this badge to specific kids for tracking.",
+          "award_items": "Select one or more from points, rewards, or bonuses. All selected items will be granted or applied when the badge is earned. Penalties will only be applied if the badge is not earned by the end date or reset date. (optional)",
+          "award_points": "If points are a selected award, specify the number of points to apply when this badge is earned. (optional)."
+        }
+      },
+      "edit_badge_special": {
+        "title": "Edit Special Occasion Badge",
+        "description": "Configure the details for a badge created for special occasions. These badges reward kids for events like birthdays or holidays.",
+        "data": {
+          "badge_name": "Nombre de Insignia",
+          "badge_description": "Badge Description (Optional)",
+          "badge_labels": "Labels (Optional)",
+          "icon": "Badge Icon (mdi:xxx)",
+          "occasion_type": "🎉 Occasion Type",
+          "end_date": "🎉 Occasion Date",
+          "recurring_frequency": "🔄 RECURRENCE: Frequency",
+          "custom_interval": "🔄 RECURRENCE: Custom Interval (Required for Custom Frequency)",
+          "custom_interval_unit": "🔄 RECURRENCE: Custom Interval Unit (Required for Custom Frequency)",
+          "start_date": "🔄 RECURRENCE: Start Date (Optional)",
+          "grace_period_days": "🔄 RECURRENCEE: Grace Period in Days (Optional)",
+          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses (Optional)",
+          "award_points": "🎁 AWARDS: Points Awarded (Optional)"
+        },
+        "data_description": {
+          "badge_name": "Enter a unique name for the badge. This name will be displayed in the system.",
+          "badge_description": "Provide a description of the badge's purpose or criteria (optional).",
+          "badge_labels": "Add labels to categorize or tag the badge (optional).",
+          "icon": "Specify an icon for the badge using Material Design Icons (e.g., mdi:star).",
+          "occasion_type": "Select the type of occasion for this badge (e.g., holiday, birthday).",
+          "end_date": "Set the date for the occasion.",
+          "recurring_frequency": "Define the reset schedule for this badge (e.g., weekly, monthly).",
+          "custom_interval": "Specify the NUMBER of days, weeks, months, etc. for Custom Frequency (e.g., 3 if you set 3 weeks).",
+          "custom_interval_unit": "Select the unit for the custom interval (e.g., days, weeks).",
+          "start_date": "Set the start date for the reset cycle (optional).",
+          "grace_period_days": "Specify the number of extra days after the end of the cycle for kids to meet required points before demotion (optional).",
+          "assigned_to": "Assign this badge to specific kids for tracking.",
+          "award_items": "Select one or more from points, rewards, or bonuses. All selected items will be granted or applied when the badge is earned. Penalties will only be applied if the badge is not earned by the end date or reset date. (optional)",
+          "award_points": "If points are a selected award, specify the number of points to apply when this badge is earned. (optional)."
         }
       },
       "edit_reward": {
@@ -756,17 +1091,99 @@
         "data": {
           "points_adjust_values": "Valores de Ajuste Manual de Puntos",
           "update_interval": "Intervalo de Actualización",
-          "calendar_show_period": "Cantidad de Días a Mostrar en el Calendario"
+          "calendar_show_period": "Cantidad de Días a Mostrar en el Calendario",
+          "retention_periods": "Períodos de Retención de Datos (Diario|Semanal|Mensual|Anual)",
+          "retention_daily": "Retención de Datos Diarios (Días)",
+          "retention_weekly": "Retención de Datos Semanales (Semanas)",
+          "retention_monthly": "Retención de Datos Mensuales (Meses)",
+          "retention_yearly": "Retención de Datos Anuales (Años)",
+          "show_legacy_entities": "Mostrar Entidades Adicionales",
+          "backups_max_retained": "Máximo de Copias de Seguridad a Conservar",
+          "backup_action_selection": "Acciones de Copia de Seguridad"
         },
         "data_description": {
           "points_adjust_values": "Lista de valores para los botones de ajuste manual de puntos. Cada valor separado por '|'.",
           "update_interval": "Intervalo (en minutos) para actualizar el estado interno de KidsChores.",
-          "calendar_show_period": "Cantidad de días a futuro para mostrar tareas y retos programados en el calendario."
+          "calendar_show_period": "Cantidad de días a futuro para mostrar tareas y retos programados en el calendario.",
+          "retention_periods": "Períodos de retención de datos en formato Diario|Semanal|Mensual|Anual (por ejemplo, '7|4|12|3'). Cada valor debe ser un número entero positivo.",
+          "retention_daily": "Número de días de datos históricos diarios a retener antes de la limpieza. Mínimo 1, máximo 90.",
+          "retention_weekly": "Número de semanas de datos históricos semanales a retener antes de la limpieza. Mínimo 1, máximo 52.",
+          "retention_monthly": "Número de meses de datos históricos mensuales a retener antes de la limpieza. Mínimo 1, máximo 24.",
+          "retention_yearly": "Número de años de datos históricos anuales a retener antes de la limpieza. Mínimo 1, máximo 10.",
+          "show_legacy_entities": "Mostrar entidades adicionales como sensores y selectores que ahora están consolidados en el sensor auxiliar del panel. Estas entidades son opcionales para mantener compatibilidad con automatizaciones existentes.",
+          "backups_max_retained": "Número máximo de archivos de copia de seguridad a conservar. Las copias más antiguas se eliminarán automáticamente. Establezca en 0 para deshabilitar las copias de seguridad automáticas.",
+          "backup_action_selection": "Elija una acción de gestión de copias de seguridad: crear una copia manual, ver/restaurar copias existentes, o volver al menú."
+        }
+      },
+      "backup_actions": {
+        "title": "Gestión de Copias de Seguridad",
+        "description": "Gestiona tus copias de seguridad de datos de KidsChores. Estado actual: {backup_count} copias de seguridad usando {storage_size} MB.",
+        "data": {
+          "backup_action_selection": "Seleccionar una Acción"
+        },
+        "data_description": {
+          "backup_action_selection": "Elija una acción de gestión de copias de seguridad."
+        }
+      },
+      "backup_actions_menu": {
+        "title": "Acciones de Copia de Seguridad",
+        "description": "Gestiona tus copias de seguridad de datos de KidsChores.",
+        "data": {
+          "backup_action_selection": "Seleccionar una Acción"
+        },
+        "data_description": {
+          "backup_action_selection": "Elija una acción de gestión de copias de seguridad: crear, ver o restaurar copias de seguridad."
+        }
+      },
+      "create_manual_backup": {
+        "title": "Crear Copia de Seguridad Manual",
+        "description": "Create a manual backup of your current KidsChores data?",
+        "data": {
+          "confirm": "Confirmar"
+        }
+      },
+      "view_backups": {
+        "title": "Ver Copias de Seguridad",
+        "description": "You have {backup_count} backup file(s). Select a backup to restore or delete.",
+        "data": {
+          "backup_selection": "Select Backup"
+        },
+        "data_description": {
+          "backup_selection": "Choose a backup to restore or delete, or return to the backup menu."
+        }
+      },
+      "create_backup_confirm": {
+        "title": "Crear Copia de Seguridad Manual",
+        "description": "Create a manual backup of your current KidsChores data?",
+        "data": {
+          "confirm": "Confirmar"
+        }
+      },
+      "create_backup_success": {
+        "title": "Backup Created",
+        "description": "Manual backup created successfully: {backup_filename}",
+        "data": {
+          "continue": "Continuar"
+        }
+      },
+      "delete_backup_confirm": {
+        "title": "Delete Backup",
+        "description": "Are you sure you want to delete this backup?\n\nFile: {backup_filename}\n\nThis action cannot be undone.",
+        "data": {
+          "confirm": "Confirm Deletion"
+        }
+      },
+      "restore_backup_confirm": {
+        "title": "Restore Backup",
+        "description": "Are you sure you want to restore this backup?\n\nFile: {backup_filename}\n\nYour current data will be backed up before restoration. The integration will reload after restoration.",
+        "data": {
+          "confirm": "Confirm Restoration"
         }
       }
     },
     "error": {
       "a_chore_must_be_selected": "Debe seleccionarse una tarea",
+      "badge_requires_assignment": "At least one kid must be assigned to this badge",
       "duplicate_achievement": "Ya existe un logro con este nombre",
       "duplicate_badge": "Ya existe una insignia con este nombre",
       "duplicate_challenge": "Ya existe un desafío con este nombre",
@@ -787,6 +1204,7 @@
       "invalid_end_date": "Fecha de fin no válida.",
       "invalid_kid_count": "Cantidad de niños no válida",
       "invalid_kid_name": "Nombre de niño/a no válido",
+      "no_kids_assigned": "At least one kid must be assigned to the chore",
       "invalid_penalty": "Penalización no válida",
       "invalid_penalty_count": "Cantidad de penalizaciones no válida",
       "invalid_bonus": "Bonificación no válida",
@@ -794,7 +1212,12 @@
       "invalid_reward": "Recompensa no válida",
       "invalid_reward_count": "Cantidad de recompensas no válida",
       "invalid_start_date": "Fecha de inicio no válida.",
-      "start_date_in_past": "La fecha de inicio debe estar en el futuro."
+      "start_date_in_past": "La fecha de inicio debe estar en el futuro.",
+      "points_label_required": "La etiqueta de puntos es requerida",
+      "corrupt_file": "El archivo seleccionado contiene JSON inválido y no se puede leer.",
+      "invalid_structure": "The selected file is missing required data structure.",
+      "file_not_found": "The selected file could not be found.",
+      "invalid_selection": "Please select a valid option."
     },
     "abort": {
       "invalid_action": "Acción no válida",
@@ -817,8 +1240,14 @@
       "no_bonus": "No hay bonificaciones configuradas. Añade una entrada primero.",
       "no_achievement": "No hay logros configurados. Añade una entrada primero.",
       "no_challenge": "No hay retos configurados. Añade una entrada primero.",
-      "setup_complete": "Configuración Completa"
+      "setup_complete": "Configuración Completa",
+      "backup_restored": "Backup restored successfully. The integration has been reloaded with the restored data."
     }
+  },
+  "label": {
+    "backup_paste_json": "📋 Paste JSON data from diagnostics",
+    "backup_start_fresh": "🆕 Start fresh (creates backup of existing data)",
+    "restore_prefix": "⏮️  Restore"
   },
   "selector": {
     "main_menu": {
@@ -843,6 +1272,22 @@
         "edit": "Editar",
         "delete": "Eliminar",
         "back": "Volver al Menú Principal"
+      }
+    },
+    "backup_actions": {
+      "options": {
+        "": "Seleccionar acción de copia de seguridad...",
+        "create_backup": "Crear copia de seguridad ahora",
+        "view_backups": "Ver y gestionar copias de seguridad",
+        "restore_backup": "Restaurar desde copia de seguridad"
+      }
+    },
+    "data_recovery_selection": {
+      "options": {
+        "cancel": "↩️  Cancelar (volver al menú de copias de seguridad)",
+        "start_fresh": "🆕 Comenzar desde cero (crea copia de seguridad de los datos existentes)",
+        "current_active": "📂 Usar archivo activo actual",
+        "paste_json": "📋 Pegar JSON desde archivo de datos o diagnósticos"
       }
     },
     "badge_type": {
@@ -870,6 +1315,36 @@
         "monthly": "Mensual",
         "custom_1_year": "Período personalizado: de 1 año",
         "custom_1_month": "Período personalizado: de 1 mes"
+      }
+    },
+    "completion_criteria": {
+      "options": {
+        "shared_all": "Shared (All kids complete together)",
+        "independent": "Independent (Each kid completes separately)",
+        "shared_first": "Shared (First to complete wins)"
+      }
+    },
+    "approval_reset_type": {
+      "options": {
+        "at_midnight_once": "At Midnight (Once per day)",
+        "at_midnight_multi": "At Midnight (Multiple per day)",
+        "at_due_date_once": "At Due Date (Once per cycle)",
+        "at_due_date_multi": "At Due Date (Multiple per cycle)",
+        "upon_completion": "Upon Completion (Unlimited)"
+      }
+    },
+    "overdue_handling_type": {
+      "options": {
+        "at_due_date": "Overdue until complete",
+        "never_overdue": "Never overdue",
+        "at_due_date_then_reset": "Overdue until complete or next reset"
+      }
+    },
+    "approval_reset_pending_claim_action": {
+      "options": {
+        "hold_pending": "Hold for parent review",
+        "clear_pending": "Clear and start fresh",
+        "auto_approve_pending": "Auto-approve at reset"
       }
     },
     "recurring_frequency": {
@@ -924,6 +1399,13 @@
       "options": {
         "points": "Puntos",
         "chore_count": "Cantidad de Tareas"
+      }
+    },
+    "backup_action_selection": {
+      "options": {
+        "view_backups": "Ver y Gestionar Copias de Seguridad",
+        "create_backup": "Crear Copia de Seguridad Manual",
+        "return_to_menu": "Return to Main Menu"
       }
     }
   },
@@ -1225,7 +1707,7 @@
   "entity": {
     "sensor": {
       "chore_status_sensor": {
-        "name": "{kid_name} - Estado - {chore_name}",
+        "name": "Estado - {chore_name}",
         "state": {
           "pending": "Pendiente",
           "approved": "Aprobada",
@@ -1345,25 +1827,30 @@
         }
       },
       "kid_points_sensor": {
-        "name": "{kid_name} - {points}"
+        "name": "{points}",
+        "state_attributes": {
+          "description": {
+            "name": "Current point balance - earn from chores, spend on rewards"
+          }
+        }
       },
       "kid_max_points_ever_sensor": {
-        "name": "{kid_name} - Máximo de Puntos Alcanzados"
+        "name": "Máximo de {points} Alcanzado"
       },
       "chores_completed_total_sensor": {
-        "name": "{kid_name} - Tareas Completadas - Total"
+        "name": "Tareas Completadas - Total"
       },
       "chores_completed_daily_sensor": {
-        "name": "{kid_name} - Tareas Completadas - Diarias"
+        "name": "Tareas Completadas - Diarias"
       },
       "chores_completed_weekly_sensor": {
-        "name": "{kid_name} - Tareas Completadas - Semanales"
+        "name": "Tareas Completadas - Semanales"
       },
       "chores_completed_monthly_sensor": {
-        "name": "{kid_name} - Tareas Completadas - Mensuales"
+        "name": "Tareas Completadas - Mensuales"
       },
       "kids_badges_sensor": {
-        "name": "{kid_name} - Insignias",
+        "name": "Insignias",
         "state_attributes": {
           "kid_name": {
             "name": "Nombre del Niño/a"
@@ -1432,9 +1919,6 @@
               "false": "No"
             }
           },
-          "threshold_type": {
-            "name": "Tipo de Umbral"
-          },
           "daily_threshold": {
             "name": "Umbral Diario"
           },
@@ -1465,10 +1949,10 @@
         "name": "Aprobaciones de Recompensas Pendientes"
       },
       "reward_claims_sensor": {
-        "name": "{kid_name} - Reclamaciones - {reward_name}"
+        "name": "Reclamaciones - {reward_name}"
       },
       "reward_approvals_sensor": {
-        "name": "{kid_name} - Aprobaciones - {reward_name}"
+        "name": "Aprobaciones - {reward_name}"
       },
       "shared_chore_global_status_sensor": {
         "name": "{chore_name} - Estado Global",
@@ -1545,7 +2029,7 @@
         }
       },
       "reward_status_sensor": {
-        "name": "{kid_name} - Estado de Recompensa - {reward_name}",
+        "name": "Estado de Recompensa - {reward_name}",
         "state": {
           "not_claimed": "No Reclamada",
           "approved": "Aprobada",
@@ -1578,13 +2062,13 @@
         }
       },
       "chore_claims_sensor": {
-        "name": "{kid_name} - Reclamaciones - {chore_name}"
+        "name": "Reclamaciones - {chore_name}"
       },
       "chore_approvals_sensor": {
-        "name": "{kid_name} - Aprobaciones - {chore_name}"
+        "name": "Aprobaciones - {chore_name}"
       },
       "penalty_applies_sensor": {
-        "name": "{kid_name} - Penalizaciones Aplicadas - {penalty_name}",
+        "name": "Penalizaciones Aplicadas - {penalty_name}",
         "state_attributes": {
           "kid_name": {
             "name": "Nombre del Niño/a"
@@ -1604,7 +2088,7 @@
         }
       },
       "bonus_applies_sensor": {
-        "name": "{kid_name} - Bonificaciones Aplicadas - {bonus_name}",
+        "name": "Bonificaciones Aplicadas - {bonus_name}",
         "state_attributes": {
           "kid_name": {
             "name": "Nombre del Niño/a"
@@ -1624,13 +2108,13 @@
         }
       },
       "kid_points_earned_daily_sensor": {
-        "name": "{kid_name} - Puntos Ganados - Diarios"
+        "name": "Puntos Ganados - Diarios"
       },
       "kid_points_earned_weekly_sensor": {
-        "name": "{kid_name} - Puntos Ganados - Semanales"
+        "name": "Puntos Ganados - Semanales"
       },
       "kid_points_earned_monthly_sensor": {
-        "name": "{kid_name} - Puntos Ganados - Mensuales"
+        "name": "Puntos Ganados - Mensuales"
       },
       "achievement_state_sensor": {
         "name": "Logro - {achievement_name}",
@@ -1718,7 +2202,7 @@
         }
       },
       "achievement_progress_sensor": {
-        "name": "{kid_name} - Progreso - {achievement_name}",
+        "name": "Progreso - {achievement_name}",
         "state_attributes": {
           "achievement_name": {
             "name": "Nombre del Logro"
@@ -1765,7 +2249,7 @@
         }
       },
       "challenge_progress_sensor": {
-        "name": "{kid_name} - Progreso - {challenge_name}",
+        "name": "Progreso - {challenge_name}",
         "state_attributes": {
           "challenge_name": {
             "name": "Nombre del Desafío"
@@ -1817,7 +2301,7 @@
         }
       },
       "kid_chores_highest_streak_sensor": {
-        "name": "{kid_name} - Mayor Racha",
+        "name": "Mayor Racha",
         "state_attributes": {
           "streaks_by_achievement": {
             "name": "Rachas por Logro"
@@ -1825,7 +2309,7 @@
         }
       },
       "chore_streak_sensor": {
-        "name": "{kid_name} - Racha - {chore_name}",
+        "name": "Racha - {chore_name}",
         "state_attributes": {
           "last_date": {
             "name": "Última Fecha"
@@ -1834,11 +2318,41 @@
             "name": "Racha Actual"
           }
         }
+      },
+      "dashboard_helper_sensor": {
+        "name": "UI Dashboard Helper"
+      }
+    },
+    "select": {
+      "chores_select": {
+        "name": "Select Chore"
+      },
+      "rewards_select": {
+        "name": "Select Reward"
+      },
+      "penalties_select": {
+        "name": "Select Penalty"
+      },
+      "bonuses_select": {
+        "name": "Select Bonus"
+      },
+      "chore_list_helper": {
+        "name": "UI Dashboard Chore List Helper"
+      }
+    },
+    "calendar": {
+      "calendar_name": {
+        "name": "Calendario"
+      }
+    },
+    "datetime": {
+      "date_helper": {
+        "name": "UI Dashboard Date Helper"
       }
     },
     "button": {
       "claim_chore_button": {
-        "name": "{kid_name} - Reclamar Tarea - {chore_name}",
+        "name": "Reclamar Tarea - {chore_name}",
         "state_attributes": {
           "labels": {
             "name": "Etiquetas"
@@ -1846,7 +2360,7 @@
         }
       },
       "approve_chore_button": {
-        "name": "{kid_name} - Aprobar Tarea - {chore_name}",
+        "name": "Aprobar Tarea - {chore_name}",
         "state_attributes": {
           "labels": {
             "name": "Etiquetas"
@@ -1854,7 +2368,7 @@
         }
       },
       "disapprove_chore_button": {
-        "name": "{kid_name} - Desaprobar Tarea - {chore_name}",
+        "name": "Desaprobar Tarea - {chore_name}",
         "state_attributes": {
           "labels": {
             "name": "Etiquetas"
@@ -1862,7 +2376,7 @@
         }
       },
       "claim_reward_button": {
-        "name": "{kid_name} - Reclamar Recompensa - {reward_name}",
+        "name": "Reclamar Recompensa - {reward_name}",
         "state_attributes": {
           "labels": {
             "name": "Etiquetas"
@@ -1870,7 +2384,7 @@
         }
       },
       "approve_reward_button": {
-        "name": "{kid_name} - Aprobar Recompensa - {reward_name}",
+        "name": "Aprobar Recompensa - {reward_name}",
         "state_attributes": {
           "labels": {
             "name": "Etiquetas"
@@ -1878,7 +2392,7 @@
         }
       },
       "disapprove_reward_button": {
-        "name": "{kid_name} - Desaprobar Recompensa - {reward_name}",
+        "name": "Desaprobar Recompensa - {reward_name}",
         "state_attributes": {
           "labels": {
             "name": "Etiquetas"
@@ -1886,7 +2400,7 @@
         }
       },
       "penalty_button": {
-        "name": "{kid_name} - Aplicar Penalización - {penalty_name}",
+        "name": "Aplicar Penalización - {penalty_name}",
         "state_attributes": {
           "labels": {
             "name": "Etiquetas"
@@ -1894,7 +2408,7 @@
         }
       },
       "bonus_button": {
-        "name": "{kid_name} - Aplicar Bonificación - {bonus_name}",
+        "name": "Aplicar Bonificación - {bonus_name}",
         "state_attributes": {
           "labels": {
             "name": "Etiquetas"
@@ -1902,8 +2416,194 @@
         }
       },
       "manual_adjustment_button": {
-        "name": "{kid_name} {sign_label} {points_label}"
+        "name": "{sign_label} {points_label}"
       }
     }
+  },
+  "display": {
+    "due_date_not_set": "No due date set",
+    "time_format_short": "{value}{unit}",
+    "time_format_medium": "{value} {unit}",
+    "time_format_long": "{value} {unit}, {remainder}"
+  },
+  "exceptions": {
+    "error_msg_no_entry_found": {
+      "message": "No matching entry found in configuration."
+    },
+    "not_authorized_action": {
+      "message": "No estás autorizado para {action} para este niño/a."
+    },
+    "not_authorized_action_global": {
+      "message": "No estás autorizado para {action}."
+    },
+    "calendar_create_not_supported": {
+      "message": "Creating events is not supported for this calendar"
+    },
+    "calendar_delete_not_supported": {
+      "message": "Deleting events is not supported for this calendar"
+    },
+    "calendar_update_not_supported": {
+      "message": "Updating events is not supported for this calendar"
+    },
+    "not_found": {
+      "message": "{entity_type} '{name}' no encontrado/a"
+    },
+    "not_assigned": {
+      "message": "{entity} not assigned to {kid}"
+    },
+    "insufficient_points": {
+      "message": "{kid} has {current} points but needs {required} points"
+    },
+    "already_claimed": {
+      "message": "{entity} has already been claimed"
+    },
+    "chore_claimed_by_other": {
+      "message": "This chore has already been claimed by {claimed_by}"
+    },
+    "chore_already_approved": {
+      "message": "Chore already approved today. Try again after the approval reset period"
+    },
+    "chore_pending_claim": {
+      "message": "Chore has a pending claim awaiting approval or disapproval"
+    },
+    "chore_completed_by_other": {
+      "message": "This chore has already been completed by another kid this period"
+    },
+    "invalid_status": {
+      "message": "{entity} status is '{status}', expected '{expected}'"
+    },
+    "entity_mismatch": {
+      "message": "{provided} does not match {expected}"
+    },
+    "invalid_frequency": {
+      "message": "Recurring frequency '{frequency}' is not valid"
+    },
+    "chore_overdue_for_kid": {
+      "message": "Chore '{chore_name}' is overdue for '{kid_name}'"
+    },
+    "kid_not_assigned_to_chore": {
+      "message": "Kid '{kid_name}' is not assigned to chore '{chore_name}'"
+    },
+    "shared_chore_cannot_have_kid": {
+      "message": "Cannot specify kid for shared chore '{chore_name}'. Shared chores have one due date for all kids."
+    },
+    "required_field": {
+      "message": "Must provide {field}"
+    },
+    "invalid_date_format": {
+      "message": "Invalid date format. Please provide a valid date string (e.g., YYYY-MM-DD or ISO 8601 datetime)."
+    },
+    "date_in_past": {
+      "message": "Due date cannot be in the past. Please provide a future date."
+    },
+    "missing_chore": {
+      "message": "Must provide either chore ID or chore name."
+    },
+    "missing_field": {
+      "message": "Required field '{field}' is missing from {entity}"
+    },
+    "invalid_date": {
+      "message": "{field} date '{date}' is invalid"
+    },
+    "date_constraint": {
+      "message": "{constraint} violation: {detail}"
+    },
+    "operation_failed": {
+      "message": "{operation} failed: {reason}"
+    },
+    "configuration_error": {
+      "message": "Configuration error: {detail}"
+    }
+  },
+  "notifications": {
+    "chore_assigned": {
+      "title": "KidsChores: New Chore",
+      "message": "New chore '{chore_name}' was assigned to you! Due: {due_date}"
+    },
+    "chore_claimed": {
+      "title": "KidsChores: Chore Claimed",
+      "message": "'{kid_name}' claimed chore '{chore_name}'"
+    },
+    "chore_approved": {
+      "title": "KidsChores: Chore Approved",
+      "message": "Chore '{chore_name}' approved! +{points} points"
+    },
+    "chore_disapproved": {
+      "title": "KidsChores: Chore Disapproved",
+      "message": "Chore '{chore_name}' was not approved"
+    },
+    "chore_overdue": {
+      "title": "KidsChores: Chore Overdue",
+      "message": "Chore '{chore_name}' is overdue! Due date was {due_date}"
+    },
+    "chore_reminder": {
+      "title": "KidsChores: Reminder for Pending Chore",
+      "message": "Reminder: Chore '{chore_name}' claimed by '{kid_name}' is waiting for approval"
+    },
+    "reward_claimed_kid": {
+      "title": "KidsChores: Reward Claimed",
+      "message": "You claimed reward '{reward_name}' for {points} points!"
+    },
+    "reward_claimed_parent": {
+      "title": "KidsChores: Reward Claimed",
+      "message": "'{kid_name}' claimed reward '{reward_name}' for {points} points"
+    },
+    "reward_approved": {
+      "title": "KidsChores: Reward Approved",
+      "message": "Reward '{reward_name}' approved!"
+    },
+    "reward_disapproved": {
+      "title": "KidsChores: Reward Disapproved",
+      "message": "Reward '{reward_name}' was not approved"
+    },
+    "reward_reminder": {
+      "title": "KidsChores: Reminder for Pending Reward",
+      "message": "Reminder: Reward '{reward_name}' claimed by '{kid_name}' is waiting for approval"
+    },
+    "badge_earned_kid": {
+      "title": "KidsChores: Badge Earned",
+      "message": "You earned the '{badge_name}' badge!"
+    },
+    "badge_earned_parent": {
+      "title": "KidsChores: Badge Earned",
+      "message": "'{kid_name}' earned the '{badge_name}' badge!"
+    },
+    "achievement_earned_kid": {
+      "title": "KidsChores: Achievement Earned",
+      "message": "You earned achievement '{achievement_name}'!"
+    },
+    "achievement_earned_parent": {
+      "title": "KidsChores: Achievement Earned",
+      "message": "'{kid_name}' earned achievement '{achievement_name}'!"
+    },
+    "challenge_completed_kid": {
+      "title": "KidsChores: Challenge Completed",
+      "message": "You completed challenge '{challenge_name}'!"
+    },
+    "challenge_completed_parent": {
+      "title": "KidsChores: Challenge Completed",
+      "message": "'{kid_name}' completed challenge '{challenge_name}'!"
+    },
+    "penalty_applied": {
+      "title": "KidsChores: Penalty Applied",
+      "message": "Penalty '{penalty_name}' applied: -{points} points"
+    },
+    "bonus_applied": {
+      "title": "KidsChores: Bonus Applied",
+      "message": "Bonus '{bonus_name}' applied: +{points} points"
+    }
+  },
+  "action_labels": {
+    "approve_chores": "aprobar tareas",
+    "disapprove_chores": "desaprobar tareas",
+    "redeem_rewards": "canjear recompensas",
+    "approve_rewards": "aprobar recompensas",
+    "disapprove_rewards": "desaprobar recompensas",
+    "apply_penalties": "aplicar penalizaciones",
+    "apply_bonuses": "aplicar bonos",
+    "reset_penalties": "reiniciar penalizaciones",
+    "reset_bonuses": "reiniciar bonos",
+    "reset_rewards": "reiniciar recompensas",
+    "remove_badges": "remove awarded badges"
   }
 }

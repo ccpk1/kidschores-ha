@@ -96,17 +96,18 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         if user_input is not None:
             selection = user_input.get(const.CFOF_DATA_RECOVERY_INPUT_SELECTION)
 
-            if selection == "start_fresh":
+            # Validate that selection is not empty
+            if not selection:
+                errors["base"] = const.CFOP_ERROR_INVALID_SELECTION
+            elif selection == "start_fresh":
                 return await self._handle_start_fresh()
-            if selection == "current_active":
+            elif selection == "current_active":
                 return await self._handle_use_current()
-            if selection == "paste_json":
+            elif selection == "paste_json":
                 return await self._handle_paste_json()
-            # Otherwise it's a backup filename - restore it
-            if selection:
+            else:
+                # It's a backup filename - delegate to handler which validates/handles it
                 return await self._handle_restore_backup(selection)
-
-            errors["base"] = const.CFOP_ERROR_INVALID_SELECTION
 
         # Build selection menu
         storage_path = Path(
@@ -119,31 +120,56 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         # Discover backups (pass None for storage_manager - not needed for discovery)
         backups = await fh.discover_backups(self.hass, None)
 
-        # Build options dict
-        options = {}
+        # Build options list for SelectSelector
+        # Start with fixed options that can be translated
+        options = []
 
         # Only show "use current" if file actually exists
         if storage_file_exists:
-            options["current_active"] = (
-                f"📂 Use current active file: {storage_path.name}"
-            )
+            options.append("current_active")
 
-        start_fresh_label = "🆕 Start fresh (creates backup of existing data)"
-        options["start_fresh"] = start_fresh_label
+        options.append("start_fresh")
 
-        # Add discovered backups with age info
+        # Add discovered backups (these use dynamic labels)
+        for backup in backups:
+            options.append(backup["filename"])
+
+        # Add paste JSON option
+        options.append("paste_json")
+
+        # Build description placeholders for dynamic backup labels
+        backup_labels = {}
         for backup in backups:
             age_str = fh.format_backup_age(backup["age_hours"])
             tag_display = backup["tag"].replace("-", " ").title()
-            label = f"⏮️  Restore [{tag_display}]: {backup['filename']} ({age_str})"
-            options[backup["filename"]] = label
+            backup_labels[backup["filename"]] = (
+                f"[{tag_display}] {backup['filename']} ({age_str})"
+            )
 
-        # Add paste JSON option
-        options["paste_json"] = "📋 Paste JSON data from diagnostics"
+        # Build schema using SelectSelector with translation_key
+        from homeassistant.helpers import selector
 
-        # Build schema
+        # Validator to ensure selection is one of the valid options
+        def validate_backup_selection(value: str) -> str:
+            """Validate that the selected value is valid."""
+            if value not in options:
+                raise vol.Invalid(f"Invalid selection: {value}")
+            return value
+
         data_schema = vol.Schema(
-            {vol.Required(const.CFOF_DATA_RECOVERY_INPUT_SELECTION): vol.In(options)}
+            {
+                vol.Required(const.CFOF_DATA_RECOVERY_INPUT_SELECTION): vol.All(
+                    selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=options,
+                            mode=selector.SelectSelectorMode.LIST,
+                            translation_key="data_recovery_selection",
+                            custom_value=True,  # Allow backup filenames not in translations
+                        )
+                    ),
+                    validate_backup_selection,
+                )
+            }
         )
 
         return self.async_show_form(
@@ -350,7 +376,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     async def async_step_paste_json_input(
         self, user_input: Optional[dict[str, Any]] = None
     ):
-        """Allow user to paste JSON data from diagnostics."""
+        """Allow user to paste JSON data from data file or diagnostics."""
         import json
         from pathlib import Path
 
