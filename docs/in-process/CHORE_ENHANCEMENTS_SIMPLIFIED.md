@@ -2,14 +2,14 @@
 
 ## Summary table
 
-| Phase | Feature               | Status          | Tests | Date    |
-| ----- | --------------------- | --------------- | ----- | ------- |
-| 1     | Show on Calendar      | ✅ COMPLETE     | 3/3   | Dec 20  |
-| 2     | Auto Approve          | ✅ COMPLETE     | 9/9   | Dec 27  |
-| 3     | Completion Criteria   | ✅ COMPLETE     | 18/18 | Dec 29  |
-| 4     | Approval Reset Timing | ✅ COMPLETE     | 39/39 | Dec 30  |
-| 5     | Overdue Handling      | ⏳ DESIGN PHASE | -     | Pending |
-| 6     | Multiple Time Slots   | 📋 FUTURE       | -     | Future  |
+| Phase | Feature               | Status         | Tests | Date   |
+| ----- | --------------------- | -------------- | ----- | ------ |
+| 1     | Show on Calendar      | ✅ COMPLETE    | 3/3   | Dec 20 |
+| 2     | Auto Approve          | ✅ COMPLETE    | 9/9   | Dec 27 |
+| 3     | Completion Criteria   | ✅ COMPLETE    | 18/18 | Dec 29 |
+| 4     | Approval Reset Timing | ✅ COMPLETE    | 39/39 | Dec 30 |
+| 5     | Overdue Handling      | 🔄 IN PROGRESS | -     | Dec 29 |
+| 6     | Multiple Time Slots   | 📋 FUTURE      | -     | Future |
 
 ---
 
@@ -100,78 +100,68 @@
 
 ---
 
-## Phase 5: Overdue Handling (DESIGN PHASE)
+## Phase 5: Overdue Handling (DESIGN COMPLETE)
 
-**Goal**: Implement 2 overdue modes controlling how overdue chores behave
+**Goal**: Implement flexible overdue handling with 2 independent configuration fields
 
-### 2 Modes to Implement
+### Design Complete (Dec 29, 2025)
 
-**HOLD_UNTIL_COMPLETE**: Chore stays on kid's list until explicitly marked complete (can be days/weeks late)
+**Two new fields for chore configuration:**
 
-**RESET_REGARDLESS**: Chore auto-resets at next reset period boundary regardless of completion
+#### Field 1: `overdue_handling_type` (3 modes)
 
-### Critical Design Questions (MUST ANSWER BEFORE IMPLEMENTATION)
+| Value                    | User Label                             | Behavior                                  |
+| ------------------------ | -------------------------------------- | ----------------------------------------- |
+| `AT_DUE_DATE`            | "Overdue until complete"               | Shows overdue, stays until kid completes  |
+| `NEVER_OVERDUE`          | "Never overdue"                        | Never shows overdue, reschedules silently |
+| `AT_DUE_DATE_THEN_RESET` | "Overdue until complete or next reset" | Shows overdue, clears at next reset       |
 
-**Before Phase 5 begins, answer these 7 questions:**
+**Default**: `AT_DUE_DATE` (current behavior)
 
-1. **RESET_REGARDLESS Auto-Reset Timing** → When/how should reset happen?
+#### Field 2: `approval_reset_pending_claim_action` (3 modes)
 
-   - Option A: At approval period boundary (RECOMMENDED)
-   - Option B: At chore-level due date
-   - Option C: At separate "reset frequency" boundary
+| Value                  | User Label               | Behavior at Reset                         |
+| ---------------------- | ------------------------ | ----------------------------------------- |
+| `HOLD_PENDING`         | "Hold for parent review" | Pending claim persists, blocks new claims |
+| `CLEAR_PENDING`        | "Clear and start fresh"  | Pending claim dropped, new instance       |
+| `AUTO_APPROVE_PENDING` | "Auto-approve at reset"  | System approves, then new instance        |
 
-2. **HOLD_UNTIL_COMPLETE Notification Frequency** → How often should we notify?
+**Default**: `CLEAR_PENDING` (current behavior)
 
-   - Option A: Once when becomes overdue (RECOMMENDED)
-   - Option B: Daily reminders while overdue
-   - Option C: Escalating reminders (increasing over time)
+### Key Design Decisions
 
-3. **Multi-Kid Overdue Behavior** → For SHARED_ALL/SHARED_FIRST chores, what happens at reset?
+- ✅ Reset timing follows `approval_reset_type` from Phase 4
+- ✅ Notify once when becomes overdue (not repeated reminders)
+- ✅ Shared chores: All kids get fresh instance at reset
+- ✅ Overdue state calculated real-time (no storage field)
+- ✅ No automatic points penalty (use existing bonus/penalty system)
+- ✅ Dashboard attributes: `is_overdue`, `days_overdue`, `overdue_handling_type`, `next_reset_time`, `pending_claim_action`
 
-   - Does reset affect completed kids or only uncompleted?
-   - Document scenarios for SHARED_ALL and SHARED_FIRST modes
+### Shared Chore Behavior
 
-4. **Overdue State Tracking** → Where should overdue state be stored?
+- **SHARED_ALL** + reset: All kids get fresh instance regardless of who completed
+- **SHARED_FIRST** + reset: All kids get fresh instance
+- **Pending claims**: Evaluated per-kid (one kid's pending doesn't affect others)
 
-   - Option A: Calculated real-time (RECOMMENDED)
-   - Option B: Cached in storage (per-kid field)
-   - Option C: Hybrid (recalculate hourly)
+**Per-Kid vs Per-Chore Application**:
 
-5. **Points and Overdue Chores** → Should points be adjusted for late completion?
+- `overdue_handling_type`: Stored at CHORE level, affects all assigned kids
+- `approval_reset_pending_claim_action`: Stored at CHORE level, but evaluated PER-KID at reset
 
-   - Option A: No penalty/bonus (RECOMMENDED)
-   - Option B: Penalty based on days overdue
-   - Option C: Configurable per chore
-   - Option D: Refer to existing penalty/bonus system
+### Implementation Steps (6 Steps)
 
-6. **Dashboard Helper Attributes** → Which dashboard attributes are essential?
+| Step | Task             | Status  | Details                                                                                                                                         |
+| ---- | ---------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | **Constants**    | ✅ DONE | Added 15 constants to const.py (enums, options, defaults, keys)                                                                                 |
+| 2    | **Translations** | ✅ DONE | Added user labels to en.json for both dropdowns                                                                                                 |
+| 3    | **Core Logic**   | ✅ DONE | Modified coordinator.py: `_check_overdue_independent`, `_check_overdue_shared`, `_reset_shared_chore_status`, `_reset_independent_chore_status` |
+| 4    | **UI Fields**    | ⬜      | Add 2 dropdowns to chore create/edit in flow_helpers.py                                                                                         |
+| 5    | **Migration**    | ⬜      | Set defaults for existing chores (AT_DUE_DATE, CLEAR_PENDING)                                                                                   |
+| 6    | **Tests**        | ⬜      | 12+ scenarios covering all mode combinations                                                                                                    |
 
-   - Select at least 5 from: `is_overdue`, `days_overdue`, `overdue_since`, `overdue_mode`, `can_reset_now`, `next_reset_time`, `notification_count`
-   - Optional nice-to-haves: `overdue_reason`, `completions_while_overdue`
+**Estimated effort**: ~8 hours remaining (Steps 4-6)
 
-7. **Interaction with Phases 3 & 4** → How should overdue modes interact with completion_criteria and approval_reset_type?
-   - Document behavior for complex scenarios (SHARED_FIRST+RESET_REGARDLESS+AT_DUE_DATE_ONCE, etc.)
-
-### Design Documents
-
-See **[PHASE5_DESIGN_QUESTIONS.md](PHASE5_DESIGN_QUESTIONS.md)** for:
-
-- Detailed explanation of each question
-- Options with pros/cons
-- Specific test scenarios
-- Interaction matrix with previous phases
-
-### Implementation Steps (After Questions Answered)
-
-1. **Update const.py** with design decisions (2-3 new constants)
-2. **Design test scenarios** based on answers
-3. **Implement core logic** in coordinator.py
-4. **Add UI field** to flow_helpers.py (dropdown: HOLD vs RESET)
-5. **Implement notifications** for overdue/reset events
-6. **Add dashboard attributes** (per Question 6 selections)
-7. **Comprehensive testing** (covering all interaction scenarios)
-
-**Estimated effort after design**: 10-12 hours
+See **[PHASE5_DESIGN_QUESTIONS.md](PHASE5_DESIGN_QUESTIONS.md)** for full design document.
 
 ---
 
@@ -193,27 +183,32 @@ See **[PHASE5_DESIGN_QUESTIONS.md](PHASE5_DESIGN_QUESTIONS.md)** for:
 | 2           | All features implemented, tested    | 9/9 tests ✅, 9.90/10 linting ✅    |
 | 3           | Bugs fixed + new mode added, tested | 18/18 tests ✅, 10.00/10 linting ✅ |
 | 4           | All 5 modes implemented, tested     | 39/39 tests ✅, 10.00/10 linting ✅ |
+| 5           | Design complete, ready for impl     | Design approved Dec 29, 2025        |
 | **Project** | **Zero regressions**                | **669/669 tests passing** ✅        |
 
 ---
 
-## Why Phase 5 is in Design Phase
+## Phase 5 Design Rationale
 
-**Phase 5 has multiple valid design options that affect implementation approach:**
+**Key design decisions for v0.4.0 schema v42:**
 
-- **Reset timing**: When overdue chore resets (period boundary? due date? separate frequency?)
-- **Multi-kid interactions**: How reset behaves for shared chores (affects all kids? only incomplete?)
-- **Points strategy**: Should late completion be penalized? (affects reward system design)
-- **Dashboard visibility**: What info should dashboard show about overdue chores?
+1. **Two independent fields** instead of complex multi-option framework:
 
-**These decisions must be made BEFORE implementation** to avoid rework.
+   - `overdue_handling_type`: Controls if/when chore shows overdue
+   - `approval_reset_pending_claim_action`: Controls what happens to pending claims at reset
 
-See [PHASE5_DESIGN_QUESTIONS.md](PHASE5_DESIGN_QUESTIONS.md) for complete analysis of all options.
+2. **Separation of concerns**: Pending claim behavior is separate from overdue handling because a kid might claim on time but parent doesn't approve before reset - that's an approval workflow issue, not the kid being late.
+
+3. **Shared chore simplicity**: At reset, all kids get fresh instance (no complex partial-completion logic).
+
+4. **Reuse Phase 4 timing**: Reset follows `approval_reset_type` boundaries (no third timing concept).
+
+See [PHASE5_DESIGN_QUESTIONS.md](PHASE5_DESIGN_QUESTIONS.md) for full design document with implementation plan.
 
 ---
 
 ## Key Documentation
 
-- [PHASE5_DESIGN_QUESTIONS.md](PHASE5_DESIGN_QUESTIONS.md) - Design questions needing answers
+- [PHASE5_DESIGN_QUESTIONS.md](PHASE5_DESIGN_QUESTIONS.md) - Complete design decisions and implementation plan
 - [ARCHITECTURE.md](../ARCHITECTURE.md) - Storage schema v42, migration patterns
 - [CODE_REVIEW_GUIDE.md](../CODE_REVIEW_GUIDE.md) - Quality standards, testing patterns

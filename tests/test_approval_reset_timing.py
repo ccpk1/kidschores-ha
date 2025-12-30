@@ -1319,8 +1319,10 @@ async def test_badge_get_today_chore_completion_progress(
     assert approved == 0
 
     # Case 2: Approved today - should return True
-    # Set last_approved to today with full timestamp
-    now_with_time = dt_util.utcnow().isoformat()
+    # Set last_approved to today with full timestamp using local time (not UTC)
+    # The helper function uses get_now_local_time() for date comparison
+    today_local = kc_helpers.get_now_local_time()
+    now_with_time = today_local.isoformat()
     kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_APPROVED] = now_with_time
     coordinator._persist()
 
@@ -1348,8 +1350,8 @@ async def test_badge_daily_completion_target(
     kid_info = coordinator.kids_data[kid_id]
     kid_chore_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
 
-    # Approve both chores today
-    now_iso = dt_util.utcnow().isoformat()
+    # Approve both chores today (use local time for "today" comparisons)
+    now_iso = dt_util.now().isoformat()
     kid_chore_data.setdefault(chore1_id, {})[
         const.DATA_KID_CHORE_DATA_LAST_APPROVED
     ] = now_iso
@@ -1379,7 +1381,7 @@ async def test_badge_completion_excludes_old_approvals(
     chore_id = name_to_id_map["chore:Feed the cåts"]
 
     # Setup: Set approval to yesterday
-    yesterday = (dt_util.utcnow() - timedelta(days=1)).isoformat()
+    yesterday = (dt_util.now() - timedelta(days=1)).isoformat()
     kid_info = coordinator.kids_data[kid_id]
     kid_chore_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {}).setdefault(
         chore_id, {}

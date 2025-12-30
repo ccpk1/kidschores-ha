@@ -257,25 +257,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.LOGGER.debug("Cleaning up legacy key: migration_key_version")
                 del self._data[const.MIGRATION_KEY_VERSION]
 
-            # Add show_on_calendar field to existing chores (new optional field, defaults to True)
-            for chore_id, chore_data in self._data.get(const.DATA_CHORES, {}).items():
-                if const.DATA_CHORE_SHOW_ON_CALENDAR not in chore_data:
-                    chore_data[const.DATA_CHORE_SHOW_ON_CALENDAR] = True
-                    const.LOGGER.debug(
-                        "Migrated chore '%s' (%s): added show_on_calendar field",
-                        chore_data.get(const.DATA_CHORE_NAME),
-                        chore_id,
-                    )
-
-            # Add auto_approve field to existing chores (new optional field, defaults to False)
-            for chore_id, chore_data in self._data.get(const.DATA_CHORES, {}).items():
-                if const.DATA_CHORE_AUTO_APPROVE not in chore_data:
-                    chore_data[const.DATA_CHORE_AUTO_APPROVE] = False
-                    const.LOGGER.debug(
-                        "Migrated chore '%s' (%s): added auto_approve field",
-                        chore_data.get(const.DATA_CHORE_NAME),
-                        chore_id,
-                    )
+            # NOTE: Field migrations (show_on_calendar, auto_approve, overdue_handling_type,
+            # approval_reset_pending_claim_action) are now handled in migration_pre_v42.py
+            # via _add_chore_optional_fields(). For v42+ data, these fields are already
+            # set by flow_helpers.py during entity creation via the UI.
 
         else:
             self._data = {
@@ -7505,7 +7490,22 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         INDEPENDENT chores allow each kid to have their own due date.
         Read from chore-level per_kid_due_dates dict (source of truth for INDEPENDENT).
         This dict is populated on chore creation, migration, and kid assignment.
+
+        Phase 5: Respects overdue_handling_type:
+        - NEVER_OVERDUE: Never marks as overdue
+        - AT_DUE_DATE: Marks overdue when past due (current behavior)
+        - AT_DUE_DATE_THEN_RESET: Marks overdue, cleared at next reset
         """
+        # Phase 5: Check overdue handling type
+        overdue_handling = chore_info.get(
+            const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
+            const.OVERDUE_HANDLING_AT_DUE_DATE,  # Default: current behavior
+        )
+
+        # NEVER_OVERDUE: Skip all overdue checking for this chore
+        if overdue_handling == const.OVERDUE_HANDLING_NEVER_OVERDUE:
+            return
+
         assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
         per_kid_due_dates = chore_info.get(const.DATA_CHORE_PER_KID_DUE_DATES, {})
 
@@ -7566,7 +7566,22 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         SHARED chores (SHARED_ALL, SHARED_FIRST, ALTERNATING) all kids share same due date.
         Read from chore-level: DATA_CHORE_DUE_DATE.
+
+        Phase 5 - Overdue Handling Type:
+        - AT_DUE_DATE: Mark overdue when due date passes (default/current behavior)
+        - NEVER_OVERDUE: Never mark this chore as overdue
+        - AT_DUE_DATE_THEN_RESET: Mark overdue, but clear at next reset cycle
         """
+        # Phase 5: Check overdue handling type
+        overdue_handling = chore_info.get(
+            const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
+            const.OVERDUE_HANDLING_AT_DUE_DATE,  # Default: current behavior
+        )
+
+        # NEVER_OVERDUE: Skip all overdue checking for this chore
+        if overdue_handling == const.OVERDUE_HANDLING_NEVER_OVERDUE:
+            return
+
         assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
         due_str = chore_info.get(const.DATA_CHORE_DUE_DATE)
 
@@ -8021,6 +8036,11 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     ) -> None:
         """Reset a SHARED chore status if due date has passed.
 
+        Phase 5 - Approval Reset Pending Claim Action:
+        - HOLD: Keep pending claim, skip reset for kids with pending claims
+        - CLEAR: Clear pending claim, reset to fresh state (default/current behavior)
+        - AUTO_APPROVE: Auto-approve pending claim, then reset to fresh state
+
         Args:
             chore_id: The chore's internal ID
             chore_info: The chore data dictionary
@@ -8040,6 +8060,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             if now_utc < due_date_utc:
                 return
 
+        # Phase 5: Get pending claim action setting
+        pending_claim_action = chore_info.get(
+            const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION,
+            const.APPROVAL_RESET_PENDING_CLAIM_CLEAR,  # Default: current behavior
+        )
+
         # If no due date or the due date has passed, then reset the chore state
         if chore_info[const.DATA_CHORE_STATE] not in [
             const.CHORE_STATE_PENDING,
@@ -8048,6 +8074,34 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             previous_state = chore_info[const.DATA_CHORE_STATE]
             for kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
                 if kid_id:
+                    # Phase 5: Handle pending claims based on action setting
+                    if self.has_pending_claim(kid_id, chore_id):
+                        if (
+                            pending_claim_action
+                            == const.APPROVAL_RESET_PENDING_CLAIM_HOLD
+                        ):
+                            # HOLD: Skip reset for this kid, leave claim pending
+                            const.LOGGER.debug(
+                                "DEBUG: Chore Reset - HOLD pending claim for Kid '%s' on Chore '%s'",
+                                kid_id,
+                                chore_id,
+                            )
+                            continue
+                        if (
+                            pending_claim_action
+                            == const.APPROVAL_RESET_PENDING_CLAIM_AUTO_APPROVE
+                        ):
+                            # AUTO_APPROVE: Approve the pending claim before reset
+                            const.LOGGER.debug(
+                                "DEBUG: Chore Reset - AUTO_APPROVE pending claim for Kid '%s' on Chore '%s'",
+                                kid_id,
+                                chore_id,
+                            )
+                            self._process_chore_state(
+                                kid_id, chore_id, const.CHORE_STATE_APPROVED
+                            )
+                        # CLEAR (default): Fall through to reset, clearing the claim
+
                     self._process_chore_state(
                         kid_id, chore_id, const.CHORE_STATE_PENDING
                     )
@@ -8066,6 +8120,11 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         For INDEPENDENT chores, each kid has their own due date.
         Only reset for kids whose due date has passed.
 
+        Phase 5 - Approval Reset Pending Claim Action:
+        - HOLD: Keep pending claim, skip reset for kids with pending claims
+        - CLEAR: Clear pending claim, reset to fresh state (default/current behavior)
+        - AUTO_APPROVE: Auto-approve pending claim, then reset to fresh state
+
         Args:
             chore_id: The chore's internal ID
             chore_info: The chore data dictionary
@@ -8073,6 +8132,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         """
         per_kid_due_dates = chore_info.get(const.DATA_CHORE_PER_KID_DUE_DATES, {})
         assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+
+        # Phase 5: Get pending claim action setting
+        pending_claim_action = chore_info.get(
+            const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION,
+            const.APPROVAL_RESET_PENDING_CLAIM_CLEAR,  # Default: current behavior
+        )
 
         for kid_id in assigned_kids:
             if not kid_id:
@@ -8105,6 +8170,31 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
             # If not already pending/overdue, reset to pending
             if kid_state not in [const.CHORE_STATE_PENDING, const.CHORE_STATE_OVERDUE]:
+                # Phase 5: Handle pending claims based on action setting
+                if self.has_pending_claim(kid_id, chore_id):
+                    if pending_claim_action == const.APPROVAL_RESET_PENDING_CLAIM_HOLD:
+                        # HOLD: Skip reset for this kid, leave claim pending
+                        const.LOGGER.debug(
+                            "DEBUG: Chore Reset - HOLD pending claim for Kid '%s' on Chore '%s'",
+                            kid_id,
+                            chore_id,
+                        )
+                        continue
+                    if (
+                        pending_claim_action
+                        == const.APPROVAL_RESET_PENDING_CLAIM_AUTO_APPROVE
+                    ):
+                        # AUTO_APPROVE: Approve the pending claim before reset
+                        const.LOGGER.debug(
+                            "DEBUG: Chore Reset - AUTO_APPROVE pending claim for Kid '%s' on Chore '%s'",
+                            kid_id,
+                            chore_id,
+                        )
+                        self._process_chore_state(
+                            kid_id, chore_id, const.CHORE_STATE_APPROVED
+                        )
+                    # CLEAR (default): Fall through to reset, clearing the claim
+
                 self._process_chore_state(kid_id, chore_id, const.CHORE_STATE_PENDING)
                 const.LOGGER.debug(
                     "DEBUG: Chore Reset - Resetting INDEPENDENT Chore '%s' for Kid '%s' from '%s' to '%s'",

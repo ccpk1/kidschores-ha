@@ -82,6 +82,9 @@ class PreV42Migrator:
         const.LOGGER.info("Migrating KC 3.x config data to storage")
         self._initialize_data_from_config()
 
+        # Phase 4: Add new optional chore fields (defaults for existing chores)
+        self._add_chore_optional_fields()
+
         const.LOGGER.info("All pre-v42 migrations completed successfully")
 
     def _migrate_independent_chores(self) -> None:
@@ -1284,3 +1287,57 @@ class PreV42Migrator:
         # Remove deprecated/orphaned dynamic entities
         self.coordinator.remove_deprecated_button_entities()
         self.coordinator.remove_deprecated_sensor_entities()
+
+    def _add_chore_optional_fields(self) -> None:
+        """Add new optional fields to existing chores during migration.
+
+        This adds default values for fields introduced in later versions:
+        - show_on_calendar (defaults to True)
+        - auto_approve (defaults to False)
+        - overdue_handling_type (defaults to AT_DUE_DATE)
+        - approval_reset_pending_claim_action (defaults to CLEAR_PENDING)
+
+        These fields are added during pre-v42 migration. For v42+ data,
+        they are already set by flow_helpers.py during entity creation.
+        """
+        chores_data = self.coordinator._data.get(const.DATA_CHORES, {})
+        for chore_id, chore_data in chores_data.items():
+            # Add show_on_calendar field (new optional field, defaults to True)
+            if const.DATA_CHORE_SHOW_ON_CALENDAR not in chore_data:
+                chore_data[const.DATA_CHORE_SHOW_ON_CALENDAR] = True
+                const.LOGGER.debug(
+                    "Migrated chore '%s' (%s): added show_on_calendar field",
+                    chore_data.get(const.DATA_CHORE_NAME),
+                    chore_id,
+                )
+
+            # Add auto_approve field (new optional field, defaults to False)
+            if const.DATA_CHORE_AUTO_APPROVE not in chore_data:
+                chore_data[const.DATA_CHORE_AUTO_APPROVE] = False
+                const.LOGGER.debug(
+                    "Migrated chore '%s' (%s): added auto_approve field",
+                    chore_data.get(const.DATA_CHORE_NAME),
+                    chore_id,
+                )
+
+            # Add overdue_handling_type field (defaults to AT_DUE_DATE)
+            if const.DATA_CHORE_OVERDUE_HANDLING_TYPE not in chore_data:
+                chore_data[const.DATA_CHORE_OVERDUE_HANDLING_TYPE] = (
+                    const.DEFAULT_OVERDUE_HANDLING_TYPE
+                )
+                const.LOGGER.debug(
+                    "Migrated chore '%s' (%s): added overdue_handling_type field",
+                    chore_data.get(const.DATA_CHORE_NAME),
+                    chore_id,
+                )
+
+            # Add approval_reset_pending_claim_action field (defaults to CLEAR_PENDING)
+            if const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION not in chore_data:
+                chore_data[const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION] = (
+                    const.DEFAULT_APPROVAL_RESET_PENDING_CLAIM_ACTION
+                )
+                const.LOGGER.debug(
+                    "Migrated chore '%s' (%s): added approval_reset_pending_claim_action",
+                    chore_data.get(const.DATA_CHORE_NAME),
+                    chore_id,
+                )

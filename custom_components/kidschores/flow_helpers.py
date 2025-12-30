@@ -523,6 +523,32 @@ def build_chore_schema(kids_dict, default=None):
                     translation_key=const.TRANS_KEY_FLOW_HELPERS_APPROVAL_RESET_TYPE,
                 )
             ),
+            # Phase 5: Overdue handling type
+            vol.Required(
+                const.CONF_OVERDUE_HANDLING_TYPE,
+                default=default.get(
+                    const.CONF_OVERDUE_HANDLING_TYPE,
+                    const.DEFAULT_OVERDUE_HANDLING_TYPE,
+                ),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=const.OVERDUE_HANDLING_TYPE_OPTIONS,
+                    translation_key=const.TRANS_KEY_FLOW_HELPERS_OVERDUE_HANDLING_TYPE,
+                )
+            ),
+            # Phase 5: Pending claim action at approval reset
+            vol.Required(
+                const.CONF_APPROVAL_RESET_PENDING_CLAIM_ACTION,
+                default=default.get(
+                    const.CONF_APPROVAL_RESET_PENDING_CLAIM_ACTION,
+                    const.DEFAULT_APPROVAL_RESET_PENDING_CLAIM_ACTION,
+                ),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=const.APPROVAL_RESET_PENDING_CLAIM_ACTION_OPTIONS,
+                    translation_key=const.TRANS_KEY_FLOW_HELPERS_APPROVAL_RESET_PENDING_CLAIM_ACTION,
+                )
+            ),
             vol.Required(
                 const.CONF_PARTIAL_ALLOWED,
                 default=default.get(const.CONF_PARTIAL_ALLOWED, False),
@@ -730,6 +756,16 @@ def build_chores_data(
         const.DATA_CHORE_APPROVAL_RESET_TYPE: user_input.get(
             const.CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE,
             const.DEFAULT_APPROVAL_RESET_TYPE,
+        ),
+        # Phase 5: Overdue handling type
+        const.DATA_CHORE_OVERDUE_HANDLING_TYPE: user_input.get(
+            const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE,
+            const.DEFAULT_OVERDUE_HANDLING_TYPE,
+        ),
+        # Phase 5: Pending claim action at approval reset
+        const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION: user_input.get(
+            const.CFOF_CHORES_INPUT_APPROVAL_RESET_PENDING_CLAIM_ACTION,
+            const.DEFAULT_APPROVAL_RESET_PENDING_CLAIM_ACTION,
         ),
         const.DATA_CHORE_ASSIGNED_KIDS: assigned_kids_ids,
         const.DATA_CHORE_DESCRIPTION: user_input.get(

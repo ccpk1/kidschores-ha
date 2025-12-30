@@ -1300,6 +1300,20 @@
         "upon_completion": "Upon Completion (Unlimited)"
       }
     },
+    "overdue_handling_type": {
+      "options": {
+        "at_due_date": "Overdue until complete",
+        "never_overdue": "Never overdue",
+        "at_due_date_then_reset": "Overdue until complete or next reset"
+      }
+    },
+    "approval_reset_pending_claim_action": {
+      "options": {
+        "hold_pending": "Hold for parent review",
+        "clear_pending": "Clear and start fresh",
+        "auto_approve_pending": "Auto-approve at reset"
+      }
+    },
     "recurring_frequency": {
       "options": {
         "none": "None",

@@ -355,6 +355,10 @@ CFOF_CHORES_INPUT_NOTIFY_ON_DISAPPROVAL: Final = "notify_on_disapproval"
 CFOF_CHORES_INPUT_PARTIAL_ALLOWED: Final = "partial_allowed"
 CFOF_CHORES_INPUT_RECURRING_FREQUENCY: Final = "recurring_frequency"
 CFOF_CHORES_INPUT_SHARED_CHORE: Final = "shared_chore"
+CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: Final = "overdue_handling_type"
+CFOF_CHORES_INPUT_APPROVAL_RESET_PENDING_CLAIM_ACTION: Final = (
+    "approval_reset_pending_claim_action"
+)
 
 # BADGES
 CFOF_BADGES_INPUT_ASSIGNED_KIDS: Final = "assigned_kids"
@@ -564,6 +568,7 @@ CONF_ALLOW_MULTIPLE_CLAIMS_PER_DAY: Final = (
     "allow_multiple_claims_per_day"  # DEPRECATED
 )
 CONF_APPLICABLE_DAYS: Final = "applicable_days"
+CONF_APPROVAL_RESET_PENDING_CLAIM_ACTION: Final = "approval_reset_pending_claim_action"
 CONF_APPROVAL_RESET_TYPE: Final = "approval_reset_type"
 CONF_ASSIGNED_KIDS: Final = "assigned_kids"
 CONF_CHORE_AUTO_APPROVE: Final = "auto_approve"
@@ -574,6 +579,7 @@ CONF_CUSTOM_INTERVAL: Final = "custom_interval"
 CONF_CUSTOM_INTERVAL_UNIT: Final = "custom_interval_unit"
 CONF_DEFAULT_POINTS: Final = "default_points"
 CONF_DUE_DATE: Final = "due_date"
+CONF_OVERDUE_HANDLING_TYPE: Final = "overdue_handling_type"
 CONF_PARTIAL_ALLOWED: Final = "partial_allowed"
 CONF_RECURRING_FREQUENCY: Final = "recurring_frequency"
 CONF_CHORE_SHOW_ON_CALENDAR: Final = "show_on_calendar"
@@ -1027,6 +1033,10 @@ DATA_CHORE_SHARED_CHORE_DEPRECATED: Final = (
 DATA_CHORE_SHOW_ON_CALENDAR: Final = "show_on_calendar"
 DATA_CHORE_COMPLETION_CRITERIA: Final = "completion_criteria"
 DATA_CHORE_PER_KID_DUE_DATES: Final = "per_kid_due_dates"
+DATA_CHORE_OVERDUE_HANDLING_TYPE: Final = "overdue_handling_type"
+DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION: Final = (
+    "approval_reset_pending_claim_action"
+)
 
 # Completion Criteria Values
 COMPLETION_CRITERIA_SHARED: Final = "shared_all"
@@ -1053,6 +1063,36 @@ APPROVAL_RESET_TYPE_OPTIONS: Final = [
     {"value": APPROVAL_RESET_UPON_COMPLETION, "label": "upon_completion"},
 ]
 DEFAULT_APPROVAL_RESET_TYPE: Final = APPROVAL_RESET_AT_MIDNIGHT_ONCE
+
+# Overdue Handling Type Values (Phase 5)
+# Controls when/if a chore shows as overdue
+OVERDUE_HANDLING_AT_DUE_DATE: Final = "at_due_date"
+OVERDUE_HANDLING_NEVER_OVERDUE: Final = "never_overdue"
+OVERDUE_HANDLING_AT_DUE_DATE_THEN_RESET: Final = "at_due_date_then_reset"
+OVERDUE_HANDLING_TYPE_OPTIONS: Final = [
+    {"value": OVERDUE_HANDLING_AT_DUE_DATE, "label": "at_due_date"},
+    {"value": OVERDUE_HANDLING_NEVER_OVERDUE, "label": "never_overdue"},
+    {
+        "value": OVERDUE_HANDLING_AT_DUE_DATE_THEN_RESET,
+        "label": "at_due_date_then_reset",
+    },
+]
+DEFAULT_OVERDUE_HANDLING_TYPE: Final = OVERDUE_HANDLING_AT_DUE_DATE
+
+# Approval Reset Pending Claim Action Values (Phase 5)
+# Controls what happens to pending (unapproved) claims at approval reset
+APPROVAL_RESET_PENDING_CLAIM_HOLD: Final = "hold_pending"
+APPROVAL_RESET_PENDING_CLAIM_CLEAR: Final = "clear_pending"
+APPROVAL_RESET_PENDING_CLAIM_AUTO_APPROVE: Final = "auto_approve_pending"
+APPROVAL_RESET_PENDING_CLAIM_ACTION_OPTIONS: Final = [
+    {"value": APPROVAL_RESET_PENDING_CLAIM_HOLD, "label": "hold_pending"},
+    {"value": APPROVAL_RESET_PENDING_CLAIM_CLEAR, "label": "clear_pending"},
+    {
+        "value": APPROVAL_RESET_PENDING_CLAIM_AUTO_APPROVE,
+        "label": "auto_approve_pending",
+    },
+]
+DEFAULT_APPROVAL_RESET_PENDING_CLAIM_ACTION: Final = APPROVAL_RESET_PENDING_CLAIM_CLEAR
 
 DATA_CHORE_STATE: Final = "state"
 DATA_CHORE_TIMESTAMP: Final = "timestamp"
@@ -2228,6 +2268,9 @@ TRANS_KEY_CFOF_INVALID_POINTS_ADJUST_VALUES: Final = "invalid_points_adjust_valu
 
 # Flow Helpers Translation Keys
 TRANS_KEY_FLOW_HELPERS_APPLICABLE_DAYS: Final = "applicable_days"
+TRANS_KEY_FLOW_HELPERS_APPROVAL_RESET_PENDING_CLAIM_ACTION: Final = (
+    "approval_reset_pending_claim_action"
+)
 TRANS_KEY_FLOW_HELPERS_APPROVAL_RESET_TYPE: Final = "approval_reset_type"
 TRANS_KEY_FLOW_HELPERS_ASSIGNED_KIDS: Final = "assigned_kids"
 TRANS_KEY_FLOW_HELPERS_ASSOCIATED_ACHIEVEMENT: Final = "associated_achievement"
@@ -2241,6 +2284,7 @@ TRANS_KEY_FLOW_HELPERS_MAIN_MENU: Final = "main_menu"
 TRANS_KEY_FLOW_HELPERS_MANAGE_ACTIONS: Final = "manage_actions"
 TRANS_KEY_FLOW_HELPERS_OCCASION_TYPE: Final = "occasion_type"
 TRANS_KEY_FLOW_HELPERS_ONE_TIME_REWARD: Final = "one_time_reward"
+TRANS_KEY_FLOW_HELPERS_OVERDUE_HANDLING_TYPE: Final = "overdue_handling_type"
 TRANS_KEY_FLOW_HELPERS_PERIOD: Final = "period"
 TRANS_KEY_FLOW_HELPERS_RECURRING_FREQUENCY: Final = "recurring_frequency"
 TRANS_KEY_FLOW_HELPERS_RESET_CRITERIA: Final = "reset_criteria"
