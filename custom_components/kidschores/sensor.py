@@ -732,17 +732,23 @@ class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
         Dynamically includes all DATA_KID_POINT_STATS fields prefixed with
         'point_stat_' for frontend access to detailed breakdowns (earned, spent,
         bonuses, penalties, sources, etc.).
+
+        Attribute order: common fields first (purpose, kid_name, friendly_name),
+        then all point_stat_* fields sorted alphabetically.
         """
         kid_info = self.coordinator.kids_data.get(self._kid_id, {})
         point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
-        attributes = {
+
+        # Common fields first (consistent ordering across sensors)
+        attributes: dict[str, Any] = {
             const.ATTR_PURPOSE: const.PURPOSE_SENSOR_POINTS,
             const.ATTR_KID_NAME: self._kid_name,
+            const.ATTR_FRIENDLY_NAME: f"{self._kid_name} {self._points_label}",
         }
         # Add all point stats as attributes, prefixed for clarity and sorted alphabetically
         for key in sorted(point_stats.keys()):
             attributes[f"point_stat_{key}"] = point_stats[key]
-        return dict(sorted(attributes.items()))
+        return attributes
 
 
 # ------------------------------------------------------------------------------------------
@@ -801,17 +807,23 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         Dynamically includes all DATA_KID_CHORE_STATS fields prefixed with
         'chore_stat_' for frontend access (approved, claimed, overdue counts, etc.).
+
+        Attribute order: common fields first (purpose, kid_name, friendly_name),
+        then all chore_stat_* fields sorted alphabetically.
         """
         kid_info = self.coordinator.kids_data.get(self._kid_id, {})
         stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
-        attributes = {
+
+        # Common fields first (consistent ordering across sensors)
+        attributes: dict[str, Any] = {
             const.ATTR_PURPOSE: const.PURPOSE_SENSOR_CHORES,
             const.ATTR_KID_NAME: self._kid_name,
+            const.ATTR_FRIENDLY_NAME: f"{self._kid_name} Chores",
         }
         # Add all chore stats as attributes, prefixed for clarity and sorted alphabetically
         for key in sorted(stats.keys()):
             attributes[f"chore_stat_{key}"] = stats[key]
-        return dict(sorted(attributes.items()))
+        return attributes
 
 
 # ------------------------------------------------------------------------------------------
@@ -917,10 +929,6 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
         )
         current_badge_name = cumulative_badge_progress_info.get(
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_NAME,
-            const.SENTINEL_NONE_TEXT,
-        )
-        highest_earned_badge_id = cumulative_badge_progress_info.get(
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_ID,
             const.SENTINEL_NONE_TEXT,
         )
         highest_earned_badge_name = cumulative_badge_progress_info.get(
@@ -1035,6 +1043,34 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
         if awards_info:
             extra_attrs[const.DATA_BADGE_AWARDS] = awards_info
 
+        # Look up SystemBadgeSensor entity IDs for current, next_higher, next_lower badges
+        # These allow the dashboard to directly reference badge definition sensors
+        badge_eid_map = [
+            (current_badge_id, const.ATTR_CURRENT_BADGE_EID),
+            (next_higher_badge_id, const.ATTR_NEXT_HIGHER_BADGE_EID),
+            (next_lower_badge_id, const.ATTR_NEXT_LOWER_BADGE_EID),
+        ]
+        badge_entity_ids = {}
+        try:
+            entity_registry = async_get(self.hass)
+            for badge_id, attr_name in badge_eid_map:
+                # Skip if badge_id is None/sentinel
+                if not badge_id or badge_id == const.SENTINEL_NONE_TEXT:
+                    badge_entity_ids[attr_name] = None
+                    continue
+                # Look up the SystemBadgeSensor entity ID (badge definition)
+                unique_id = (
+                    f"{self._entry.entry_id}_{badge_id}"
+                    f"{const.SENSOR_KC_UID_SUFFIX_BADGE_SENSOR}"
+                )
+                entity_id = entity_registry.async_get_entity_id(
+                    "sensor", const.DOMAIN, unique_id
+                )
+                badge_entity_ids[attr_name] = entity_id
+        except (KeyError, ValueError, AttributeError):
+            for _, attr_name in badge_eid_map:
+                badge_entity_ids[attr_name] = None
+
         return {
             const.ATTR_PURPOSE: const.PURPOSE_SENSOR_BADGE_HIGHEST,
             const.ATTR_KID_NAME: self._kid_name,
@@ -1042,14 +1078,23 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_ALL_EARNED_BADGES: earned_badge_list,
             const.ATTR_HIGHEST_BADGE_THRESHOLD_VALUE: highest_badge_threshold_value,
             const.ATTR_POINTS_TO_NEXT_BADGE: points_to_next_badge,
-            const.ATTR_CURRENT_BADGE_ID: current_badge_id,
+            # Current badge (highest earned or target if none earned)
             const.ATTR_CURRENT_BADGE_NAME: current_badge_name,
-            const.ATTR_HIGHEST_EARNED_BADGE_ID: highest_earned_badge_id,
+            const.ATTR_CURRENT_BADGE_EID: badge_entity_ids.get(
+                const.ATTR_CURRENT_BADGE_EID
+            ),
+            # Highest earned badge
             const.ATTR_HIGHEST_EARNED_BADGE_NAME: highest_earned_badge_name,
-            const.ATTR_NEXT_HIGHER_BADGE_ID: next_higher_badge_id,
+            # Next higher badge (goal/target)
             const.ATTR_NEXT_HIGHER_BADGE_NAME: next_higher_badge_name,
-            const.ATTR_NEXT_LOWER_BADGE_ID: next_lower_badge_id,
+            const.ATTR_NEXT_HIGHER_BADGE_EID: badge_entity_ids.get(
+                const.ATTR_NEXT_HIGHER_BADGE_EID
+            ),
+            # Next lower badge (previously earned)
             const.ATTR_NEXT_LOWER_BADGE_NAME: next_lower_badge_name,
+            const.ATTR_NEXT_LOWER_BADGE_EID: badge_entity_ids.get(
+                const.ATTR_NEXT_LOWER_BADGE_EID
+            ),
             const.ATTR_BADGE_STATUS: badge_status,
             const.DATA_KID_BADGES_EARNED_LAST_AWARDED: last_awarded_date,
             const.DATA_KID_BADGES_EARNED_AWARD_COUNT: award_count,
@@ -1144,7 +1189,7 @@ class KidBadgeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         attributes = {
             const.ATTR_PURPOSE: const.PURPOSE_SENSOR_BADGE_PROGRESS,
             const.ATTR_KID_NAME: self._kid_name,
-            const.DATA_KID_BADGE_PROGRESS_NAME: badge_progress.get(
+            const.ATTR_BADGE_NAME: badge_progress.get(
                 const.DATA_KID_BADGE_PROGRESS_NAME
             ),
             const.DATA_KID_BADGE_PROGRESS_TYPE: badge_progress.get(
@@ -1263,12 +1308,11 @@ class SystemBadgeSensor(KidsChoresCoordinatorEntity, SensorEntity):
         badge_info = self.coordinator.badges_data.get(self._badge_id, {})
         attributes: dict[str, Any] = {
             const.ATTR_PURPOSE: const.PURPOSE_SENSOR_BADGE,
+            const.ATTR_BADGE_NAME: self._badge_name,
+            const.ATTR_DESCRIPTION: badge_info.get(
+                const.DATA_BADGE_DESCRIPTION, const.SENTINEL_EMPTY
+            ),
         }
-
-        # Basic badge info
-        attributes[const.ATTR_DESCRIPTION] = badge_info.get(
-            const.DATA_BADGE_DESCRIPTION, const.SENTINEL_EMPTY
-        )
         attributes[const.ATTR_BADGE_TYPE] = badge_info.get(
             const.DATA_BADGE_TYPE, const.BADGE_TYPE_CUMULATIVE
         )

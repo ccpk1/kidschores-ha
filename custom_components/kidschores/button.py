@@ -376,6 +376,7 @@ class KidChoreClaimButton(KidsChoresCoordinatorEntity, ButtonEntity):
         attributes: dict[str, Any] = {
             const.ATTR_PURPOSE: const.PURPOSE_BUTTON_CHORE_CLAIM,
             const.ATTR_KID_NAME: self._kid_name,
+            const.ATTR_CHORE_NAME: self._chore_name,
             const.ATTR_LABELS: friendly_labels,
         }
 
@@ -500,6 +501,7 @@ class ParentChoreApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
         attributes: dict[str, Any] = {
             const.ATTR_PURPOSE: const.PURPOSE_BUTTON_CHORE_APPROVE,
             const.ATTR_KID_NAME: self._kid_name,
+            const.ATTR_CHORE_NAME: self._chore_name,
             const.ATTR_LABELS: friendly_labels,
         }
 
@@ -632,6 +634,7 @@ class ParentChoreDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
         attributes: dict[str, Any] = {
             const.ATTR_PURPOSE: const.PURPOSE_BUTTON_CHORE_DISAPPROVE,
             const.ATTR_KID_NAME: self._kid_name,
+            const.ATTR_CHORE_NAME: self._chore_name,
             const.ATTR_LABELS: friendly_labels,
         }
 
@@ -757,6 +760,7 @@ class KidRewardRedeemButton(KidsChoresCoordinatorEntity, ButtonEntity):
         attributes: dict[str, Any] = {
             const.ATTR_PURPOSE: const.PURPOSE_BUTTON_REWARD_REDEEM,
             const.ATTR_KID_NAME: self._kid_name,
+            const.ATTR_REWARD_NAME: self._reward_name,
             const.ATTR_LABELS: friendly_labels,
         }
 
@@ -881,6 +885,7 @@ class ParentRewardApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
         attributes: dict[str, Any] = {
             const.ATTR_PURPOSE: const.PURPOSE_BUTTON_REWARD_APPROVE,
             const.ATTR_KID_NAME: self._kid_name,
+            const.ATTR_REWARD_NAME: self._reward_name,
             const.ATTR_LABELS: friendly_labels,
         }
 
@@ -1013,6 +1018,7 @@ class ParentRewardDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
         attributes: dict[str, Any] = {
             const.ATTR_PURPOSE: const.PURPOSE_BUTTON_REWARD_DISAPPROVE,
             const.ATTR_KID_NAME: self._kid_name,
+            const.ATTR_REWARD_NAME: self._reward_name,
             const.ATTR_LABELS: friendly_labels,
         }
 
@@ -1147,6 +1153,7 @@ class ParentPenaltyApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
         attributes: dict[str, Any] = {
             const.ATTR_PURPOSE: const.PURPOSE_BUTTON_PENALTY_APPLY,
             const.ATTR_KID_NAME: self._kid_name,
+            const.ATTR_PENALTY_NAME: self._penalty_name,
             const.ATTR_LABELS: friendly_labels,
         }
 
@@ -1406,6 +1413,7 @@ class ParentBonusApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
         attributes: dict[str, Any] = {
             const.ATTR_PURPOSE: const.PURPOSE_BUTTON_BONUS_APPLY,
             const.ATTR_KID_NAME: self._kid_name,
+            const.ATTR_BONUS_NAME: self._bonus_name,
             const.ATTR_LABELS: friendly_labels,
         }
 

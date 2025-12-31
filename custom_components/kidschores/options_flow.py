@@ -717,6 +717,11 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 else:
                     # Add: create new badge + persist + notify listeners of new entity
                     coordinator._create_badge(internal_id, updated_badge_data)
+                    # Sync badge progress for all kids (creates progress sensors)
+                    for kid_id in coordinator.kids_data:
+                        coordinator._sync_badge_progress_for_kid(kid_id)
+                    # Recalculate badges to trigger initial evaluation
+                    coordinator._recalculate_all_badges()
                     coordinator._persist()
                     coordinator.async_update_listeners()
 
