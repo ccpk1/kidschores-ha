@@ -1869,6 +1869,9 @@
       "chores_completed_monthly_sensor": {
         "name": "Tareas Completadas - Mensuales"
       },
+      "chores_sensor": {
+        "name": "Tareas"
+      },
       "kids_badges_sensor": {
         "name": "Insignias",
         "state_attributes": {
