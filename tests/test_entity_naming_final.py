@@ -16,8 +16,8 @@ from custom_components.kidschores.button import (
 )
 from custom_components.kidschores.coordinator import KidsChoresDataCoordinator
 from custom_components.kidschores.sensor import (
-    KidBadgeHighestSensor,
     KidBadgeProgressSensor,
+    KidBadgesSensor,
     KidChoreStatusSensor,
     KidPenaltyAppliedSensor,
     KidRewardStatusSensor,
@@ -66,8 +66,8 @@ async def test_badge_sensor_has_system_device_info(mock_config_entry):
 
 
 @pytest.mark.asyncio
-async def test_kid_highest_badge_sensor_friendly_name():
-    """Test that KidHighestBadgeSensor has 'Highest Badge' in friendly name."""
+async def test_kid_badges_sensor_friendly_name():
+    """Test that KidBadgesSensor has 'Highest Badge' in friendly name."""
     mock_config_entry = MockConfigEntry(
         title="KidsChores",
         domain=const.DOMAIN,
@@ -82,7 +82,7 @@ async def test_kid_highest_badge_sensor_friendly_name():
         }
     }
 
-    sensor = KidBadgeHighestSensor(
+    sensor = KidBadgesSensor(
         coordinator=coordinator,
         entry=mock_config_entry,
         kid_id="kid_1",

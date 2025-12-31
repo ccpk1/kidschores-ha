@@ -1650,7 +1650,7 @@ class PreV42Migrator:
             periods = point_data.get(const.DATA_KID_POINT_DATA_PERIODS, {})
             for period_type in list(periods.keys()):
                 period_dict = periods.get(period_type, {})
-                for period_key, period_data in list(period_dict.items()):
+                for _, period_data in list(period_dict.items()):
                     if isinstance(period_data, dict):
                         for field_key, field_val in list(period_data.items()):
                             if isinstance(field_val, (int, float)):
@@ -1684,10 +1684,10 @@ class PreV42Migrator:
 
             # --- chore_data.*.periods.*.* points fields ---
             chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
-            for chore_id, chore_info in list(chore_data.items()):
+            for _, chore_info in list(chore_data.items()):
                 chore_periods = chore_info.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
                 for period_type, period_dict in list(chore_periods.items()):
-                    for period_key, period_values in list(period_dict.items()):
+                    for _, period_values in list(period_dict.items()):
                         if isinstance(period_values, dict):
                             points_val = period_values.get(
                                 const.DATA_KID_CHORE_DATA_PERIOD_POINTS

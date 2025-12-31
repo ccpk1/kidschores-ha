@@ -1,4 +1,8 @@
 # File: button.py
+# pyright: reportIncompatibleVariableOverride=false
+# ^ Suppresses Pylance warnings about @property overriding @cached_property from base classes.
+#   This is intentional: our entities compute dynamic values on each access,
+#   so we use @property instead of @cached_property to avoid stale cached data.
 """Buttons for KidsChores integration.
 
 Features:
@@ -369,7 +373,8 @@ class KidChoreClaimButton(KidsChoresCoordinatorEntity, ButtonEntity):
             kh.get_friendly_label(self.hass, label) for label in stored_labels
         ]
 
-        attributes = {
+        attributes: dict[str, Any] = {
+            const.ATTR_PURPOSE: const.PURPOSE_BUTTON_CHORE_CLAIM,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_LABELS: friendly_labels,
         }
@@ -492,7 +497,8 @@ class ParentChoreApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
             kh.get_friendly_label(self.hass, label) for label in stored_labels
         ]
 
-        attributes = {
+        attributes: dict[str, Any] = {
+            const.ATTR_PURPOSE: const.PURPOSE_BUTTON_CHORE_APPROVE,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_LABELS: friendly_labels,
         }
@@ -623,7 +629,8 @@ class ParentChoreDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
             kh.get_friendly_label(self.hass, label) for label in stored_labels
         ]
 
-        attributes = {
+        attributes: dict[str, Any] = {
+            const.ATTR_PURPOSE: const.PURPOSE_BUTTON_CHORE_DISAPPROVE,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_LABELS: friendly_labels,
         }
@@ -747,7 +754,8 @@ class KidRewardRedeemButton(KidsChoresCoordinatorEntity, ButtonEntity):
             kh.get_friendly_label(self.hass, label) for label in stored_labels
         ]
 
-        attributes = {
+        attributes: dict[str, Any] = {
+            const.ATTR_PURPOSE: const.PURPOSE_BUTTON_REWARD_REDEEM,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_LABELS: friendly_labels,
         }
@@ -870,7 +878,8 @@ class ParentRewardApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
             kh.get_friendly_label(self.hass, label) for label in stored_labels
         ]
 
-        attributes = {
+        attributes: dict[str, Any] = {
+            const.ATTR_PURPOSE: const.PURPOSE_BUTTON_REWARD_APPROVE,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_LABELS: friendly_labels,
         }
@@ -1001,7 +1010,8 @@ class ParentRewardDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
             kh.get_friendly_label(self.hass, label) for label in stored_labels
         ]
 
-        attributes = {
+        attributes: dict[str, Any] = {
+            const.ATTR_PURPOSE: const.PURPOSE_BUTTON_REWARD_DISAPPROVE,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_LABELS: friendly_labels,
         }
@@ -1134,7 +1144,8 @@ class ParentPenaltyApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
             kh.get_friendly_label(self.hass, label) for label in stored_labels
         ]
 
-        attributes = {
+        attributes: dict[str, Any] = {
+            const.ATTR_PURPOSE: const.PURPOSE_BUTTON_PENALTY_APPLY,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_LABELS: friendly_labels,
         }
@@ -1269,6 +1280,7 @@ class ParentPointsAdjustButton(KidsChoresCoordinatorEntity, ButtonEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
         return {
+            const.ATTR_PURPOSE: const.PURPOSE_BUTTON_POINTS_ADJUST,
             const.ATTR_KID_NAME: self._kid_name,
         }
 
@@ -1391,7 +1403,8 @@ class ParentBonusApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
             kh.get_friendly_label(self.hass, label) for label in stored_labels
         ]
 
-        attributes = {
+        attributes: dict[str, Any] = {
+            const.ATTR_PURPOSE: const.PURPOSE_BUTTON_BONUS_APPLY,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_LABELS: friendly_labels,
         }

@@ -1,5 +1,9 @@
 # File: sensor.py
 # pylint: disable=protected-access  # Using private coordinator methods for state checks
+# pyright: reportIncompatibleVariableOverride=false
+# ^ Suppresses Pylance warnings about @property overriding @cached_property from base classes.
+#   This is intentional: our sensors compute dynamic values on each access (chore status, points),
+#   so we use @property instead of @cached_property to avoid stale cached data.
 """Sensors for the KidsChores integration.
 
 This file defines modern sensor entities for each Kid, Chore, Reward, and Badge.
@@ -11,7 +15,7 @@ Sensors Defined in This File (15):
 01. KidChoreStatusSensor
 02. KidPointsSensor
 03. KidChoresSensor
-04. KidBadgeHighestSensor
+04. KidBadgesSensor
 05. KidBadgeProgressSensor
 06. KidRewardStatusSensor
 07. KidPenaltyAppliedSensor
@@ -27,17 +31,24 @@ Sensors Defined in This File (15):
 15. SystemChallengeSensor
 
 Legacy Sensors Imported from sensor_legacy.py (11):
-- KidMaxPointsEverSensor
-- KidChoreStreakSensor
-- KidPointsEarnedDailySensor
-- KidPointsEarnedWeeklySensor
-- KidPointsEarnedMonthlySensor
-- SystemChoreApprovalsSensor
-- SystemChoreApprovalsDailySensor
-- SystemChoreApprovalsWeeklySensor
-- SystemChoreApprovalsMonthlySensor
-- SystemChoresPendingApprovalSensor
-- SystemRewardsPendingApprovalSensor
+    System Chore Approval Sensors (4):
+    1. SystemChoreApprovalsSensor - Total chores completed (data in KidChoresSensor attributes)
+    2. SystemChoreApprovalsDailySensor - Daily chores completed (data in SystemChoreApprovalsSensor attributes)
+    3. SystemChoreApprovalsWeeklySensor - Weekly chores completed (data in SystemChoreApprovalsSensor attributes)
+    4. SystemChoreApprovalsMonthlySensor - Monthly chores completed (data in SystemChoreApprovalsSensor attributes)
+
+    Pending Approval Sensors (2):
+    5. SystemChoresPendingApprovalSensor - Pending chore approvals (global)
+    6. SystemRewardsPendingApprovalSensor - Pending reward approvals (global)
+
+    Kid Points Earned Sensors (4):
+    7. KidPointsEarnedDailySensor - Daily points earned (data in KidPointsSensor attributes)
+    8. KidPointsEarnedWeeklySensor - Weekly points earned (data in KidPointsSensor attributes)
+    9. KidPointsEarnedMonthlySensor - Monthly points earned (data in KidPointsSensor attributes)
+    10. KidPointsMaxEverSensor - Maximum points ever reached (data in KidPointsSensor attributes)
+
+    Streak Sensor (1):
+    11. KidChoreStreakSensor - Highest chore streak (data in KidPointsSensor attributes)
 """
 
 from datetime import datetime
@@ -120,8 +131,8 @@ async def async_setup_entry(
                 SystemChoreApprovalsMonthlySensor(coordinator, entry, kid_id, kid_name)
             )
 
-        # Kid Highest Badge
-        entities.append(KidBadgeHighestSensor(coordinator, entry, kid_id, kid_name))
+        # Kid Badges (displays highest cumulative badge)
+        entities.append(KidBadgesSensor(coordinator, entry, kid_id, kid_name))
 
         # Legacy points earned sensors (optional)
         if show_legacy_entities:
@@ -498,6 +509,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         ]
 
         attributes = {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_CHORE_STATUS,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_CHORE_NAME: self._chore_name,
             const.ATTR_DESCRIPTION: chore_info.get(
@@ -724,7 +736,7 @@ class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
         kid_info = self.coordinator.kids_data.get(self._kid_id, {})
         point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
         attributes = {
-            const.ATTR_DESCRIPTION: "Current point balance - earn from chores, spend on rewards",
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_POINTS,
             const.ATTR_KID_NAME: self._kid_name,
         }
         # Add all point stats as attributes, prefixed for clarity and sorted alphabetically
@@ -793,6 +805,7 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
         kid_info = self.coordinator.kids_data.get(self._kid_id, {})
         stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
         attributes = {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_CHORES,
             const.ATTR_KID_NAME: self._kid_name,
         }
         # Add all chore stats as attributes, prefixed for clarity and sorted alphabetically
@@ -802,7 +815,7 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
 
 # ------------------------------------------------------------------------------------------
-class KidBadgeHighestSensor(KidsChoresCoordinatorEntity, SensorEntity):
+class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
     """Sensor that returns the highest cumulative badge a kid currently has,
     and calculates how many points are needed to reach the next cumulative badge.
 
@@ -1023,6 +1036,7 @@ class KidBadgeHighestSensor(KidsChoresCoordinatorEntity, SensorEntity):
             extra_attrs[const.DATA_BADGE_AWARDS] = awards_info
 
         return {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_BADGE_HIGHEST,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_LABELS: friendly_labels,
             const.ATTR_ALL_EARNED_BADGES: earned_badge_list,
@@ -1128,6 +1142,7 @@ class KidBadgeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         # Build a dictionary with only the requested fields
         attributes = {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_BADGE_PROGRESS,
             const.ATTR_KID_NAME: self._kid_name,
             const.DATA_KID_BADGE_PROGRESS_NAME: badge_progress.get(
                 const.DATA_KID_BADGE_PROGRESS_NAME
@@ -1246,7 +1261,9 @@ class SystemBadgeSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Full badge info, including per-kid earned stats and periods."""
         badge_info = self.coordinator.badges_data.get(self._badge_id, {})
-        attributes = {}
+        attributes: dict[str, Any] = {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_BADGE,
+        }
 
         # Basic badge info
         attributes[const.ATTR_DESCRIPTION] = badge_info.get(
@@ -1438,6 +1455,7 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
             ).get(self._chore_id, const.DEFAULT_ZERO)
 
         attributes = {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_SHARED_CHORE,
             const.ATTR_CHORE_NAME: self._chore_name,
             const.ATTR_DESCRIPTION: chore_info.get(
                 const.DATA_CHORE_DESCRIPTION, const.SENTINEL_EMPTY
@@ -1591,6 +1609,7 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             pass
 
         attributes = {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_REWARD_STATUS,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_REWARD_NAME: self._reward_name,
             const.ATTR_DESCRIPTION: reward_info.get(
@@ -1696,6 +1715,7 @@ class KidPenaltyAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
             pass
 
         return {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_PENALTY_APPLIED,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_PENALTY_NAME: self._penalty_name,
             const.ATTR_DESCRIPTION: penalty_info.get(
@@ -1917,6 +1937,7 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
         ]
 
         return {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_ACHIEVEMENT,
             const.ATTR_ACHIEVEMENT_NAME: self._achievement_name,
             const.ATTR_DESCRIPTION: achievement.get(
                 const.DATA_ACHIEVEMENT_DESCRIPTION, const.SENTINEL_EMPTY
@@ -2100,6 +2121,7 @@ class SystemChallengeSensor(KidsChoresCoordinatorEntity, SensorEntity):
         ]
 
         return {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_CHALLENGE,
             const.ATTR_CHALLENGE_NAME: self._challenge_name,
             const.ATTR_DESCRIPTION: challenge.get(
                 const.DATA_CHALLENGE_DESCRIPTION, const.SENTINEL_EMPTY
@@ -2330,6 +2352,7 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         ]
 
         return {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_ACHIEVEMENT_PROGRESS,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_ACHIEVEMENT_NAME: self._achievement_name,
             const.ATTR_DESCRIPTION: achievement.get(
@@ -2523,6 +2546,7 @@ class KidChallengeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         ]
 
         return {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_CHALLENGE_PROGRESS,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_CHALLENGE_NAME: self._challenge_name,
             const.ATTR_DESCRIPTION: challenge.get(
@@ -2631,6 +2655,7 @@ class KidBonusAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
             pass
 
         return {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_BONUS_APPLIED,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_BONUS_NAME: self._bonus_name,
             const.ATTR_DESCRIPTION: bonus_info.get(
@@ -3506,6 +3531,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         self.coordinator.reset_pending_change_flags()
 
         return {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_DASHBOARD_HELPER,
             "chores": chores_attr,
             const.ATTR_CHORES_BY_LABEL: chores_by_label,
             "rewards": rewards_attr,

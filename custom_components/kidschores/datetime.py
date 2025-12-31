@@ -1,3 +1,7 @@
+# pyright: reportIncompatibleVariableOverride=false
+# ^ Suppresses Pylance warnings about @property overriding @cached_property from base classes.
+#   This is intentional: our entities compute dynamic values on each access,
+#   so we use @property instead of @cached_property to avoid stale cached data.
 """DateTime platform for KidsChores integration.
 
 Provides datetime helper entities for UI date/time selection in dashboards.
@@ -119,5 +123,6 @@ class KidDashboardHelperDateTimePicker(DateTimeEntity, RestoreEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
         return {
+            const.ATTR_PURPOSE: const.PURPOSE_DATETIME_DASHBOARD_HELPER,
             const.ATTR_KID_NAME: self._kid_name,
         }

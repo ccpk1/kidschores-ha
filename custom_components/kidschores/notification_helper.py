@@ -13,7 +13,6 @@ from __future__ import annotations
 from typing import Any, Optional
 
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
 
 from . import const
 
@@ -26,8 +25,34 @@ async def async_send_notification(
     actions: Optional[list[dict[str, str]]] = None,
     extra_data: Optional[dict[str, str]] = None,
 ) -> None:
-    """Send a notification using the specified notify service."""
+    """Send a notification using the specified notify service.
 
+    Gracefully handles missing notification services (common in fresh installs,
+    migrations, or when mobile app isn't configured yet). If the service doesn't
+    exist, logs a warning and returns without raising an exception.
+    """
+
+    # Parse service name into domain and service components
+    if const.DISPLAY_DOT not in notify_service:
+        domain = const.NOTIFY_DOMAIN
+        service = notify_service
+    else:
+        domain, service = notify_service.split(".", 1)
+
+    # Validate service exists before attempting to send
+    if not hass.services.has_service(domain, service):
+        const.LOGGER.warning(
+            "Notification service '%s.%s' not available - skipping notification. "
+            "This is normal during migration or if the mobile app/notification "
+            "integration isn't configured yet. To enable notifications, configure "
+            "the '%s' integration and set up the notification service.",
+            domain,
+            service,
+            domain,
+        )
+        return  # Gracefully skip instead of raising
+
+    # Build notification payload
     payload: dict[str, Any] = {const.NOTIFY_TITLE: title, const.NOTIFY_MESSAGE: message}
 
     if actions:
@@ -39,23 +64,19 @@ async def async_send_notification(
         data.update(extra_data)  # type: ignore[attr-defined]
 
     try:
-        if const.DISPLAY_DOT not in notify_service:
-            domain = const.NOTIFY_DOMAIN
-            service = notify_service
-        else:
-            domain, service = notify_service.split(".", 1)
         await hass.services.async_call(domain, service, payload, blocking=True)
-        const.LOGGER.debug(
-            "DEBUG: Notification sent via '%s': %s", notify_service, payload
-        )
+        const.LOGGER.debug("DEBUG: Notification sent via '%s.%s'", domain, service)
 
-    except Exception as err:
+    except Exception as err:  # pylint: disable=broad-exception-caught
+        # Broad exception allowed: This runs in fire-and-forget background tasks
+        # per AGENTS.md guidelines. We must catch all exceptions to prevent
+        # "Task exception was never retrieved" errors in logs.
         const.LOGGER.error(
-            "ERROR: Failed to send notification via '%s': %s. Payload: %s",
-            notify_service,
+            "ERROR: Unexpected error sending notification via '%s.%s': %s. Payload: %s",
+            domain,
+            service,
             err,
             payload,
         )
-        raise HomeAssistantError(
-            f"Failed to send notification via '{notify_service}': {err}"
-        ) from err
+        # Don't re-raise - log and skip gracefully to prevent task exceptions
+        # from cluttering logs during migration or service configuration issues

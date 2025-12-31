@@ -1547,6 +1547,99 @@ ATTR_DAILY_THRESHOLD: Final = "daily_threshold"
 ATTR_DEFAULT_POINTS: Final = "default_points"
 ATTR_DESCRIPTION: Final = "description"
 ATTR_PURPOSE: Final = "purpose"
+
+# PURPOSE values for sensor attributes (for translation support)
+# Main sensors (sensor.py)
+PURPOSE_SENSOR_CHORE_STATUS: Final = "Status of chore claim/approval for kid"
+PURPOSE_SENSOR_POINTS: Final = "Current point balance and point stats"
+PURPOSE_SENSOR_CHORES: Final = (
+    "All time completed chores and chore stats (total, approved, claimed, pending)"
+)
+PURPOSE_SENSOR_BADGE_HIGHEST: Final = (
+    "Highest badge earned by kid, cumulative badge cycle and other badge info"
+)
+PURPOSE_SENSOR_BADGE_PROGRESS: Final = "Percent progress toward earning badge"
+PURPOSE_SENSOR_BADGE: Final = (
+    "Count of kids who have earned this badge and badge information"
+)
+PURPOSE_SENSOR_SHARED_CHORE: Final = "Global state of shared chore"
+PURPOSE_SENSOR_REWARD_STATUS: Final = "Count of times reward claimed by kid"
+PURPOSE_SENSOR_PENALTY_APPLIED: Final = "Count of times penalty applied to kid"
+PURPOSE_SENSOR_ACHIEVEMENT: Final = (
+    "Overall percent progress of achievement across all assigned kids"
+)
+PURPOSE_SENSOR_CHALLENGE: Final = (
+    "Overall percent progress of challenge across all assigned kids"
+)
+PURPOSE_SENSOR_ACHIEVEMENT_PROGRESS: Final = (
+    "Percent progress toward earning achievement"
+)
+PURPOSE_SENSOR_CHALLENGE_PROGRESS: Final = (
+    "Percent progress toward completing challenge"
+)
+PURPOSE_SENSOR_BONUS_APPLIED: Final = "Count of times bonus applied to kid"
+PURPOSE_SENSOR_DASHBOARD_HELPER: Final = "Aggregated kid data for dashboard"
+# Legacy sensors (sensor_legacy.py)
+PURPOSE_SENSOR_CHORE_APPROVALS_ALL_TIME_EXTRA: Final = (
+    "Count of chore approvals all time (extra)"
+)
+PURPOSE_SENSOR_CHORE_APPROVALS_TODAY_EXTRA: Final = (
+    "Count of chore approvals today (extra)"
+)
+PURPOSE_SENSOR_CHORE_APPROVALS_WEEK_EXTRA: Final = (
+    "Count of chore approvals this week (extra)"
+)
+PURPOSE_SENSOR_CHORE_APPROVALS_MONTH_EXTRA: Final = (
+    "Count of chore approvals this month (extra)"
+)
+PURPOSE_SENSOR_CHORES_PENDING_APPROVAL_EXTRA: Final = (
+    "Count of chores pending approval across all kids (extra)"
+)
+PURPOSE_SENSOR_REWARDS_PENDING_APPROVAL_EXTRA: Final = (
+    "Count of rewards pending approval across all kids (extra)"
+)
+PURPOSE_SENSOR_POINTS_EARNED_TODAY_EXTRA: Final = "Points earned today by kid (extra)"
+PURPOSE_SENSOR_POINTS_EARNED_WEEK_EXTRA: Final = (
+    "Points earned this week by kid (extra)"
+)
+PURPOSE_SENSOR_POINTS_EARNED_MONTH_EXTRA: Final = (
+    "Points earned this month by kid (extra)"
+)
+PURPOSE_SENSOR_POINTS_MAX_EVER_EXTRA: Final = (
+    "Highest point balance ever reached (extra)"
+)
+PURPOSE_SENSOR_CHORE_STREAK_EXTRA: Final = (
+    "Highest chore completion streak for kid (extra)"
+)
+
+# PURPOSE values for button attributes (button.py)
+PURPOSE_BUTTON_CHORE_CLAIM: Final = "Kid claims completion of assigned chore"
+PURPOSE_BUTTON_CHORE_APPROVE: Final = "Parent approves claimed chore"
+PURPOSE_BUTTON_CHORE_DISAPPROVE: Final = "Parent disapproves claimed chore"
+PURPOSE_BUTTON_REWARD_REDEEM: Final = "Kid redeems reward using points"
+PURPOSE_BUTTON_REWARD_APPROVE: Final = "Parent approves redeemed reward"
+PURPOSE_BUTTON_REWARD_DISAPPROVE: Final = "Parent disapproves redeemed reward"
+PURPOSE_BUTTON_PENALTY_APPLY: Final = "Parent applies penalty (deducts points)"
+PURPOSE_BUTTON_POINTS_ADJUST: Final = "Parent manually adjusts kid's points"
+PURPOSE_BUTTON_BONUS_APPLY: Final = "Parent applies bonus (adds points)"
+
+# PURPOSE values for select attributes (select.py)
+PURPOSE_SELECT_CHORES: Final = "Dropdown to select chore from all available chores"
+PURPOSE_SELECT_REWARDS: Final = "Dropdown to select reward from all available rewards"
+PURPOSE_SELECT_PENALTIES: Final = (
+    "Dropdown to select penalty from all available penalties"
+)
+PURPOSE_SELECT_BONUSES: Final = "Dropdown to select bonus from all available bonuses"
+PURPOSE_SELECT_KID_CHORES: Final = "Kid's chore selection for dashboard filtering"
+
+# PURPOSE values for calendar attributes (calendar.py)
+PURPOSE_CALENDAR_SCHEDULE: Final = "Calendar showing kid's chore schedule and due dates"
+
+# PURPOSE values for datetime attributes (datetime.py)
+PURPOSE_DATETIME_DASHBOARD_HELPER: Final = (
+    "Date/time picker for dashboard date range filtering"
+)
+
 ATTR_DUE_DATE: Final = "due_date"
 ATTR_END_DATE: Final = "end_date"
 ATTR_FRIENDLY_NAME: Final = "friendly_name"

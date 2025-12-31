@@ -1,3 +1,7 @@
+# pyright: reportIncompatibleVariableOverride=false
+# ^ Suppresses Pylance warnings about @property overriding @cached_property from base classes.
+#   This is intentional: our entities compute dynamic values on each access,
+#   so we use @property instead of @cached_property to avoid stale cached data.
 """Legacy sensors for the KidsChores integration.
 
 This file contains optional legacy sensors that are maintained for backward compatibility.
@@ -100,6 +104,7 @@ class SystemChoreApprovalsSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
         return {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_CHORE_APPROVALS_ALL_TIME_EXTRA,
             const.ATTR_KID_NAME: self._kid_name,
         }
 
@@ -156,6 +161,7 @@ class SystemChoreApprovalsDailySensor(KidsChoresCoordinatorEntity, SensorEntity)
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
         return {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_CHORE_APPROVALS_TODAY_EXTRA,
             const.ATTR_KID_NAME: self._kid_name,
         }
 
@@ -212,6 +218,7 @@ class SystemChoreApprovalsWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
         return {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_CHORE_APPROVALS_WEEK_EXTRA,
             const.ATTR_KID_NAME: self._kid_name,
         }
 
@@ -268,6 +275,7 @@ class SystemChoreApprovalsMonthlySensor(KidsChoresCoordinatorEntity, SensorEntit
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
         return {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_CHORE_APPROVALS_MONTH_EXTRA,
             const.ATTR_KID_NAME: self._kid_name,
         }
 
@@ -364,7 +372,12 @@ class SystemChoresPendingApprovalSensor(KidsChoresCoordinatorEntity, SensorEntit
                 }
             )
 
-        return grouped_by_kid
+        # Add purpose at top level before returning
+        result: dict[str, Any] = {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_CHORES_PENDING_APPROVAL_EXTRA,
+        }
+        result.update(grouped_by_kid)
+        return result
 
 
 class SystemRewardsPendingApprovalSensor(KidsChoresCoordinatorEntity, SensorEntity):
@@ -454,7 +467,12 @@ class SystemRewardsPendingApprovalSensor(KidsChoresCoordinatorEntity, SensorEnti
                 }
             )
 
-        return grouped_by_kid
+        # Add purpose at top level before returning
+        result: dict[str, Any] = {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_REWARDS_PENDING_APPROVAL_EXTRA,
+        }
+        result.update(grouped_by_kid)
+        return result
 
 
 # ------------------------------------------------------------------------------------------
@@ -528,6 +546,7 @@ class KidPointsEarnedDailySensor(KidsChoresCoordinatorEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
         return {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_POINTS_EARNED_TODAY_EXTRA,
             const.ATTR_KID_NAME: self._kid_name,
         }
 
@@ -598,6 +617,7 @@ class KidPointsEarnedWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
         return {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_POINTS_EARNED_WEEK_EXTRA,
             const.ATTR_KID_NAME: self._kid_name,
         }
 
@@ -668,6 +688,7 @@ class KidPointsEarnedMonthlySensor(KidsChoresCoordinatorEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
         return {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_POINTS_EARNED_MONTH_EXTRA,
             const.ATTR_KID_NAME: self._kid_name,
         }
 
@@ -741,6 +762,7 @@ class KidPointsMaxEverSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
         return {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_POINTS_MAX_EVER_EXTRA,
             const.ATTR_KID_NAME: self._kid_name,
         }
 
@@ -825,6 +847,7 @@ class KidChoreStreakSensor(KidsChoresCoordinatorEntity, SensorEntity):
                     streaks[achievement_name] = progress_for_kid
 
         return {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_CHORE_STREAK_EXTRA,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_STREAKS_BY_ACHIEVEMENT: streaks,
         }

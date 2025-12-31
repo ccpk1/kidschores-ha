@@ -1,9 +1,14 @@
+# pyright: reportIncompatibleVariableOverride=false
+# ^ Suppresses Pylance warnings about @property overriding @cached_property from base classes.
+#   This is intentional: our entities compute dynamic values on each access,
+#   so we use @property instead of @cached_property to avoid stale cached data.
 """Calendar platform for KidsChores integration.
 
 Provides a read-only calendar view of chore due dates and schedule information.
 """
 
 import datetime
+from typing import Any
 
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.config_entries import ConfigEntry
@@ -766,5 +771,9 @@ class KidScheduleCalendar(CalendarEntity):
         return events
 
     @property
-    def extra_state_attributes(self):
-        return {const.ATTR_KID_NAME: self._kid_name}
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes."""
+        return {
+            const.ATTR_PURPOSE: const.PURPOSE_CALENDAR_SCHEDULE,
+            const.ATTR_KID_NAME: self._kid_name,
+        }

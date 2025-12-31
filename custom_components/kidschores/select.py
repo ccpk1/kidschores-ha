@@ -1,4 +1,8 @@
 # File: select.py
+# pyright: reportIncompatibleVariableOverride=false
+# ^ Suppresses Pylance warnings about @property overriding @cached_property from base classes.
+#   This is intentional: our entities compute dynamic values on each access,
+#   so we use @property instead of @cached_property to avoid stale cached data.
 """Select entities for the KidsChores integration.
 
 Allows the user to pick from all chores, all rewards, or all penalties
@@ -136,6 +140,13 @@ class SystemChoresSelect(KidsChoresSelectBase):
             for chore_id, chore_info in self.coordinator.chores_data.items()
         ]
 
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes."""
+        return {
+            const.ATTR_PURPOSE: const.PURPOSE_SELECT_CHORES,
+        }
+
 
 class SystemRewardsSelect(KidsChoresSelectBase):
     """Global select entity listing all defined rewards by name (legacy).
@@ -176,6 +187,13 @@ class SystemRewardsSelect(KidsChoresSelectBase):
             )
             for reward_id, reward_info in self.coordinator.rewards_data.items()
         ]
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes."""
+        return {
+            const.ATTR_PURPOSE: const.PURPOSE_SELECT_REWARDS,
+        }
 
 
 class SystemPenaltiesSelect(KidsChoresSelectBase):
@@ -218,6 +236,13 @@ class SystemPenaltiesSelect(KidsChoresSelectBase):
             for penalty_id, penalty_info in self.coordinator.penalties_data.items()
         ]
 
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes."""
+        return {
+            const.ATTR_PURPOSE: const.PURPOSE_SELECT_PENALTIES,
+        }
+
 
 class SystemBonusesSelect(KidsChoresSelectBase):
     """Global select entity listing all defined bonuses by name (legacy).
@@ -258,6 +283,13 @@ class SystemBonusesSelect(KidsChoresSelectBase):
             )
             for bonus_id, bonus_info in self.coordinator.bonuses_data.items()
         ]
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes."""
+        return {
+            const.ATTR_PURPOSE: const.PURPOSE_SELECT_BONUSES,
+        }
 
 
 class KidDashboardHelperChoresSelect(KidsChoresSelectBase):
@@ -324,5 +356,6 @@ class KidDashboardHelperChoresSelect(KidsChoresSelectBase):
             const.DATA_KID_NAME, f"{const.TRANS_KEY_LABEL_KID} {self._kid_id}"
         )
         return {
+            const.ATTR_PURPOSE: const.PURPOSE_SELECT_KID_CHORES,
             const.ATTR_KID_NAME: kid_name,
         }
