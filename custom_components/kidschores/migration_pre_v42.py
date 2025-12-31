@@ -96,6 +96,10 @@ class PreV42Migrator:
         # This removes fields that were READ during migration but are no longer needed
         self._remove_legacy_fields()
 
+        # Phase 6: Round all float values to standard precision
+        # Fixes Python float arithmetic drift (e.g., 27.499999999999996 → 27.5)
+        self._round_float_precision()
+
         const.LOGGER.info("All pre-v42 migrations completed successfully")
 
     def _migrate_independent_chores(self) -> None:
@@ -388,6 +392,8 @@ class PreV42Migrator:
             chore_info.setdefault(
                 const.CONF_NOTIFY_ON_DISAPPROVAL, const.DEFAULT_NOTIFY_ON_DISAPPROVAL
             )
+            # Remove legacy partial_allowed field (unused stub)
+            chore_info.pop(const.DATA_CHORE_PARTIAL_ALLOWED_LEGACY, None)
         const.LOGGER.info("Chore data migration complete.")
 
     def _migrate_kid_data(self) -> None:
@@ -960,16 +966,20 @@ class PreV42Migrator:
         for _, kid_info in self.coordinator.kids_data.items():
             # Legacy values
             legacy_today = round(
-                kid_info.get(const.DATA_KID_POINTS_EARNED_TODAY_LEGACY, 0.0), 1
+                kid_info.get(const.DATA_KID_POINTS_EARNED_TODAY_LEGACY, 0.0),
+                const.DATA_FLOAT_PRECISION,
             )
             legacy_week = round(
-                kid_info.get(const.DATA_KID_POINTS_EARNED_WEEKLY_LEGACY, 0.0), 1
+                kid_info.get(const.DATA_KID_POINTS_EARNED_WEEKLY_LEGACY, 0.0),
+                const.DATA_FLOAT_PRECISION,
             )
             legacy_month = round(
-                kid_info.get(const.DATA_KID_POINTS_EARNED_MONTHLY_LEGACY, 0.0), 1
+                kid_info.get(const.DATA_KID_POINTS_EARNED_MONTHLY_LEGACY, 0.0),
+                const.DATA_FLOAT_PRECISION,
             )
             legacy_max = round(
-                kid_info.get(const.DATA_KID_MAX_POINTS_EVER_LEGACY, 0.0), 1
+                kid_info.get(const.DATA_KID_MAX_POINTS_EVER_LEGACY, 0.0),
+                const.DATA_FLOAT_PRECISION,
             )
 
             # Get or create point_data periods
@@ -1573,3 +1583,156 @@ class PreV42Migrator:
             )
         else:
             const.LOGGER.debug("Legacy field cleanup: no legacy fields found to remove")
+
+    def _round_float_precision(self) -> None:
+        """Round all stored float values to standard precision (DATA_FLOAT_PRECISION).
+
+        Python float arithmetic can cause precision drift, e.g., 2.2 * 12.5 = 27.499999999999996
+        instead of 27.5. This migration cleans up any existing drifted values by rounding
+        to DATA_FLOAT_PRECISION (2 decimal places) for consistent storage.
+
+        Affected fields per kid:
+        - points: Current point balance
+        - points_multiplier: Point earning multiplier
+        - max_points_ever: Highest point balance ever
+        - point_stats.*: All point statistics
+        - point_data.periods.*: All period point values
+        - chore_stats.*: All chore statistics (total_points_from_chores_*)
+        - chore_data.*.periods.*: All chore period point values
+        - cumulative_badge_progress.*: baseline, cycle_points, etc.
+        """
+        precision = const.DATA_FLOAT_PRECISION
+        kids_cleaned = 0
+        values_rounded = 0
+
+        kids_data = self.coordinator._data.get(const.DATA_KIDS, {})
+        for kid_id, kid_info in kids_data.items():
+            kid_name = kid_info.get(const.DATA_KID_NAME, kid_id)
+            rounded_any = False
+
+            # --- Top-level kid float fields ---
+            for field in [
+                const.DATA_KID_POINTS,
+                const.DATA_KID_POINTS_MULTIPLIER,
+                const.DATA_KID_MAX_POINTS_EVER_LEGACY,
+            ]:
+                if field in kid_info and isinstance(kid_info[field], (int, float)):
+                    old_val = kid_info[field]
+                    new_val = round(float(old_val), precision)
+                    if old_val != new_val:
+                        kid_info[field] = new_val
+                        rounded_any = True
+                        values_rounded += 1
+
+            # --- point_stats fields ---
+            point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
+            for key, val in list(point_stats.items()):
+                if isinstance(val, (int, float)):
+                    old_val = val
+                    new_val = round(float(old_val), precision)
+                    if old_val != new_val:
+                        point_stats[key] = new_val
+                        rounded_any = True
+                        values_rounded += 1
+                elif isinstance(val, dict):
+                    # Handle nested by_source dicts
+                    for nested_key, nested_val in list(val.items()):
+                        if isinstance(nested_val, (int, float)):
+                            old_val = nested_val
+                            new_val = round(float(old_val), precision)
+                            if old_val != new_val:
+                                val[nested_key] = new_val
+                                rounded_any = True
+                                values_rounded += 1
+
+            # --- point_data.periods.*.* ---
+            point_data = kid_info.get(const.DATA_KID_POINT_DATA, {})
+            periods = point_data.get(const.DATA_KID_POINT_DATA_PERIODS, {})
+            for period_type in list(periods.keys()):
+                period_dict = periods.get(period_type, {})
+                for period_key, period_data in list(period_dict.items()):
+                    if isinstance(period_data, dict):
+                        for field_key, field_val in list(period_data.items()):
+                            if isinstance(field_val, (int, float)):
+                                old_val = field_val
+                                new_val = round(float(old_val), precision)
+                                if old_val != new_val:
+                                    period_data[field_key] = new_val
+                                    rounded_any = True
+                                    values_rounded += 1
+                            elif isinstance(field_val, dict):
+                                # by_source nested dict
+                                for nested_key, nested_val in list(field_val.items()):
+                                    if isinstance(nested_val, (int, float)):
+                                        old_val = nested_val
+                                        new_val = round(float(old_val), precision)
+                                        if old_val != new_val:
+                                            field_val[nested_key] = new_val
+                                            rounded_any = True
+                                            values_rounded += 1
+
+            # --- chore_stats fields ---
+            chore_stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
+            for key, val in list(chore_stats.items()):
+                if isinstance(val, (int, float)) and "points" in key.lower():
+                    old_val = val
+                    new_val = round(float(old_val), precision)
+                    if old_val != new_val:
+                        chore_stats[key] = new_val
+                        rounded_any = True
+                        values_rounded += 1
+
+            # --- chore_data.*.periods.*.* points fields ---
+            chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
+            for chore_id, chore_info in list(chore_data.items()):
+                chore_periods = chore_info.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
+                for period_type, period_dict in list(chore_periods.items()):
+                    for period_key, period_values in list(period_dict.items()):
+                        if isinstance(period_values, dict):
+                            points_val = period_values.get(
+                                const.DATA_KID_CHORE_DATA_PERIOD_POINTS
+                            )
+                            if points_val is not None and isinstance(
+                                points_val, (int, float)
+                            ):
+                                old_val = points_val
+                                new_val = round(float(old_val), precision)
+                                if old_val != new_val:
+                                    period_values[
+                                        const.DATA_KID_CHORE_DATA_PERIOD_POINTS
+                                    ] = new_val
+                                    rounded_any = True
+                                    values_rounded += 1
+
+            # --- cumulative_badge_progress ---
+            cumulative = kid_info.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {})
+            for field in [
+                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_BASELINE,
+                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS,
+                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_THRESHOLD,
+                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_THRESHOLD,
+                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_THRESHOLD,
+                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_POINTS_NEEDED,
+                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_THRESHOLD,
+            ]:
+                if field in cumulative and isinstance(cumulative[field], (int, float)):
+                    old_val = cumulative[field]
+                    new_val = round(float(old_val), precision)
+                    if old_val != new_val:
+                        cumulative[field] = new_val
+                        rounded_any = True
+                        values_rounded += 1
+
+            if rounded_any:
+                kids_cleaned += 1
+                const.LOGGER.debug("Rounded float precision for kid '%s'", kid_name)
+
+        if values_rounded > 0:
+            const.LOGGER.info(
+                "Float precision cleanup: rounded %s values across %s kids to %s decimal places",
+                values_rounded,
+                kids_cleaned,
+                precision,
+            )
+        else:
+            const.LOGGER.debug("Float precision cleanup: no values needed rounding")

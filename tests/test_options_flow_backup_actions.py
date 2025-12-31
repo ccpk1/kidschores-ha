@@ -117,15 +117,15 @@ async def test_backup_action_selection_visible_in_form(
     assert result.get("type") == FlowResultType.FORM
 
 
-async def test_view_backups_loads_backup_list(
+async def test_delete_backup_loads_backup_list(
     hass: HomeAssistant,  # pylint: disable=unused-argument
     init_integration: MockConfigEntry,
 ) -> None:
-    """Test viewing backups list with proper async/await handling.
+    """Test delete backup flow loads backup list with proper async/await handling.
 
     This validates the fix for discover_backups not being awaited in
-    the view_backups handler. Tests that:
-    1. view_backups action navigates correctly
+    the backup handlers. Tests that:
+    1. delete_backup action navigates correctly
     2. Backup list is discovered and loaded
     3. No async/await errors occur
     """
@@ -147,7 +147,7 @@ async def test_view_backups_loads_backup_list(
     # This should now properly await the async discover_backups call
     result = await hass.config_entries.options.async_configure(
         result.get("flow_id"),
-        user_input={CFOF_BACKUP_ACTION_SELECTION: "view_backups"},
+        user_input={CFOF_BACKUP_ACTION_SELECTION: "delete_backup"},
     )
 
     # Should either complete or show backup list form

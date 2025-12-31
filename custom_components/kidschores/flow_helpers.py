@@ -97,6 +97,32 @@ from . import const
 from . import kc_helpers as kh
 
 # ----------------------------------------------------------------------------------
+# HELPER FUNCTIONS
+# ----------------------------------------------------------------------------------
+
+
+def _build_notification_defaults(default: Dict[str, Any]) -> list[str]:
+    """Build default notification options from config.
+
+    Args:
+        default: Dictionary containing existing configuration defaults.
+
+    Returns:
+        List of selected notification option values.
+    """
+    notifications = []
+    if default.get(const.CONF_NOTIFY_ON_CLAIM, const.DEFAULT_NOTIFY_ON_CLAIM):
+        notifications.append(const.CONF_NOTIFY_ON_CLAIM)
+    if default.get(const.CONF_NOTIFY_ON_APPROVAL, const.DEFAULT_NOTIFY_ON_APPROVAL):
+        notifications.append(const.CONF_NOTIFY_ON_APPROVAL)
+    if default.get(
+        const.CONF_NOTIFY_ON_DISAPPROVAL, const.DEFAULT_NOTIFY_ON_DISAPPROVAL
+    ):
+        notifications.append(const.CONF_NOTIFY_ON_DISAPPROVAL)
+    return notifications
+
+
+# ----------------------------------------------------------------------------------
 # POINTS SCHEMA
 # ----------------------------------------------------------------------------------
 
@@ -166,7 +192,6 @@ async def build_kid_schema(
     users,
     default_kid_name=const.SENTINEL_EMPTY,
     default_ha_user_id=None,
-    internal_id=None,
     default_enable_mobile_notifications=False,
     default_mobile_notify_service=None,
     default_enable_persistent_notifications=False,
@@ -223,9 +248,6 @@ async def build_kid_schema(
                 const.CONF_ENABLE_PERSISTENT_NOTIFICATIONS,
                 default=default_enable_persistent_notifications,
             ): selector.BooleanSelector(),
-            vol.Required(
-                const.CONF_INTERNAL_ID, default=internal_id or str(uuid.uuid4())
-            ): str,
         }
     )
 
@@ -319,7 +341,6 @@ def build_parent_schema(
     default_enable_mobile_notifications=False,
     default_mobile_notify_service=None,
     default_enable_persistent_notifications=False,
-    internal_id=None,
 ):
     """Build a Voluptuous schema for adding/editing a Parent, keyed by internal_id in the dict."""
     user_options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}] + [
@@ -373,9 +394,6 @@ def build_parent_schema(
                 const.CONF_ENABLE_PERSISTENT_NOTIFICATIONS,
                 default=default_enable_persistent_notifications,
             ): selector.BooleanSelector(),
-            vol.Required(
-                const.CONF_INTERNAL_ID, default=internal_id or str(uuid.uuid4())
-            ): str,
         }
     )
 
@@ -470,7 +488,6 @@ def build_chore_schema(kids_dict, default=None):
     """
     default = default or {}
     chore_name_default = default.get(CONF_NAME, const.SENTINEL_EMPTY)
-    internal_id_default = default.get(const.CONF_INTERNAL_ID, str(uuid.uuid4()))
 
     kid_choices = {k: k for k in kids_dict}
 
@@ -481,6 +498,9 @@ def build_chore_schema(kids_dict, default=None):
                 const.CONF_CHORE_DESCRIPTION,
                 default=default.get(CONF_DESCRIPTION, const.SENTINEL_EMPTY),
             ): str,
+            vol.Optional(
+                CONF_ICON, default=default.get(CONF_ICON, const.SENTINEL_EMPTY)
+            ): selector.IconSelector(),
             vol.Optional(
                 const.CONF_CHORE_LABELS,
                 default=default.get(const.CONF_CHORE_LABELS, []),
@@ -508,7 +528,8 @@ def build_chore_schema(kids_dict, default=None):
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=const.COMPLETION_CRITERIA_OPTIONS,
-                    translation_key="completion_criteria",
+                    translation_key=const.TRANS_KEY_FLOW_HELPERS_COMPLETION_CRITERIA,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
             vol.Required(
@@ -521,22 +542,9 @@ def build_chore_schema(kids_dict, default=None):
                 selector.SelectSelectorConfig(
                     options=const.APPROVAL_RESET_TYPE_OPTIONS,
                     translation_key=const.TRANS_KEY_FLOW_HELPERS_APPROVAL_RESET_TYPE,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
-            # Phase 5: Overdue handling type
-            vol.Required(
-                const.CONF_OVERDUE_HANDLING_TYPE,
-                default=default.get(
-                    const.CONF_OVERDUE_HANDLING_TYPE,
-                    const.DEFAULT_OVERDUE_HANDLING_TYPE,
-                ),
-            ): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=const.OVERDUE_HANDLING_TYPE_OPTIONS,
-                    translation_key=const.TRANS_KEY_FLOW_HELPERS_OVERDUE_HANDLING_TYPE,
-                )
-            ),
-            # Phase 5: Pending claim action at approval reset
             vol.Required(
                 const.CONF_APPROVAL_RESET_PENDING_CLAIM_ACTION,
                 default=default.get(
@@ -547,15 +555,28 @@ def build_chore_schema(kids_dict, default=None):
                 selector.SelectSelectorConfig(
                     options=const.APPROVAL_RESET_PENDING_CLAIM_ACTION_OPTIONS,
                     translation_key=const.TRANS_KEY_FLOW_HELPERS_APPROVAL_RESET_PENDING_CLAIM_ACTION,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
             vol.Required(
-                const.CONF_PARTIAL_ALLOWED,
-                default=default.get(const.CONF_PARTIAL_ALLOWED, False),
+                const.CONF_OVERDUE_HANDLING_TYPE,
+                default=default.get(
+                    const.CONF_OVERDUE_HANDLING_TYPE,
+                    const.DEFAULT_OVERDUE_HANDLING_TYPE,
+                ),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=const.OVERDUE_HANDLING_TYPE_OPTIONS,
+                    translation_key=const.TRANS_KEY_FLOW_HELPERS_OVERDUE_HANDLING_TYPE,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            vol.Required(
+                const.CONF_CHORE_AUTO_APPROVE,
+                default=default.get(
+                    const.CONF_CHORE_AUTO_APPROVE, const.DEFAULT_CHORE_AUTO_APPROVE
+                ),
             ): selector.BooleanSelector(),
-            vol.Optional(
-                CONF_ICON, default=default.get(CONF_ICON, const.SENTINEL_EMPTY)
-            ): selector.IconSelector(),
             vol.Required(
                 const.CONF_RECURRING_FREQUENCY,
                 default=default.get(
@@ -610,36 +631,24 @@ def build_chore_schema(kids_dict, default=None):
             vol.Optional(
                 const.CONF_DUE_DATE, default=default.get(const.CONF_DUE_DATE)
             ): vol.Any(None, selector.DateTimeSelector()),
-            vol.Optional(
-                const.CONF_NOTIFY_ON_CLAIM,
-                default=default.get(
-                    const.CONF_NOTIFY_ON_CLAIM, const.DEFAULT_NOTIFY_ON_CLAIM
-                ),
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                const.CONF_NOTIFY_ON_APPROVAL,
-                default=default.get(
-                    const.CONF_NOTIFY_ON_APPROVAL, const.DEFAULT_NOTIFY_ON_APPROVAL
-                ),
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                const.CONF_NOTIFY_ON_DISAPPROVAL,
-                default=default.get(
-                    const.CONF_NOTIFY_ON_DISAPPROVAL,
-                    const.DEFAULT_NOTIFY_ON_DISAPPROVAL,
-                ),
-            ): selector.BooleanSelector(),
             vol.Required(
                 const.CONF_CHORE_SHOW_ON_CALENDAR,
                 default=default.get(const.CONF_CHORE_SHOW_ON_CALENDAR, True),
             ): selector.BooleanSelector(),
-            vol.Required(
-                const.CONF_CHORE_AUTO_APPROVE,
-                default=default.get(
-                    const.CONF_CHORE_AUTO_APPROVE, const.DEFAULT_CHORE_AUTO_APPROVE
-                ),
-            ): selector.BooleanSelector(),
-            vol.Required(const.CONF_INTERNAL_ID, default=internal_id_default): str,
+            vol.Optional(
+                const.CONF_CHORE_NOTIFICATIONS,
+                default=_build_notification_defaults(default),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        const.CONF_NOTIFY_ON_CLAIM,
+                        const.CONF_NOTIFY_ON_APPROVAL,
+                        const.CONF_NOTIFY_ON_DISAPPROVAL,
+                    ],
+                    multiple=True,
+                    translation_key=const.TRANS_KEY_FLOW_HELPERS_CHORE_NOTIFICATIONS,
+                )
+            ),
         }
     )
 
@@ -746,9 +755,6 @@ def build_chores_data(
         const.DATA_CHORE_DEFAULT_POINTS: user_input.get(
             const.CFOF_CHORES_INPUT_DEFAULT_POINTS, const.DEFAULT_POINTS
         ),
-        const.DATA_CHORE_PARTIAL_ALLOWED: user_input.get(
-            const.CFOF_CHORES_INPUT_PARTIAL_ALLOWED, False
-        ),
         # Completion criteria (new canonical field)
         const.DATA_CHORE_COMPLETION_CRITERIA: completion_criteria,
         # Per-kid due dates for independent tracking
@@ -785,17 +791,18 @@ def build_chores_data(
             const.CFOF_CHORES_INPUT_APPLICABLE_DAYS,
             const.DEFAULT_APPLICABLE_DAYS,
         ),
-        const.DATA_CHORE_NOTIFY_ON_CLAIM: user_input.get(
-            const.CFOF_CHORES_INPUT_NOTIFY_ON_CLAIM,
-            const.DEFAULT_NOTIFY_ON_CLAIM,
+        # Extract notification selections from consolidated field
+        const.DATA_CHORE_NOTIFY_ON_CLAIM: (
+            const.CONF_NOTIFY_ON_CLAIM
+            in user_input.get(const.CONF_CHORE_NOTIFICATIONS, [])
         ),
-        const.DATA_CHORE_NOTIFY_ON_APPROVAL: user_input.get(
-            const.CFOF_CHORES_INPUT_NOTIFY_ON_APPROVAL,
-            const.DEFAULT_NOTIFY_ON_APPROVAL,
+        const.DATA_CHORE_NOTIFY_ON_APPROVAL: (
+            const.CONF_NOTIFY_ON_APPROVAL
+            in user_input.get(const.CONF_CHORE_NOTIFICATIONS, [])
         ),
-        const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL: user_input.get(
-            const.CFOF_CHORES_INPUT_NOTIFY_ON_DISAPPROVAL,
-            const.DEFAULT_NOTIFY_ON_DISAPPROVAL,
+        const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL: (
+            const.CONF_NOTIFY_ON_DISAPPROVAL
+            in user_input.get(const.CONF_CHORE_NOTIFICATIONS, [])
         ),
         const.DATA_CHORE_INTERNAL_ID: internal_id,
     }
@@ -2019,7 +2026,6 @@ def build_reward_schema(default=None):
     """Build a schema for rewards, keyed by internal_id in the dict."""
     default = default or {}
     reward_name_default = default.get(CONF_NAME, const.SENTINEL_EMPTY)
-    internal_id_default = default.get(const.CONF_INTERNAL_ID, str(uuid.uuid4()))
 
     return vol.Schema(
         {
@@ -2045,7 +2051,6 @@ def build_reward_schema(default=None):
             vol.Optional(
                 CONF_ICON, default=default.get(CONF_ICON, const.SENTINEL_EMPTY)
             ): selector.IconSelector(),
-            vol.Required(const.CONF_INTERNAL_ID, default=internal_id_default): str,
         }
     )
 
@@ -2130,7 +2135,6 @@ def build_bonus_schema(default=None):
     """
     default = default or {}
     bonus_name_default = default.get(CONF_NAME, const.SENTINEL_EMPTY)
-    internal_id_default = default.get(const.CONF_INTERNAL_ID, str(uuid.uuid4()))
 
     # Display bonus points as positive for user input
     display_points = (
@@ -2162,7 +2166,6 @@ def build_bonus_schema(default=None):
             vol.Optional(
                 CONF_ICON, default=default.get(CONF_ICON, const.SENTINEL_EMPTY)
             ): selector.IconSelector(),
-            vol.Required(const.CONF_INTERNAL_ID, default=internal_id_default): str,
         }
     )
 
@@ -2249,7 +2252,6 @@ def build_penalty_schema(default=None):
     """
     default = default or {}
     penalty_name_default = default.get(CONF_NAME, const.SENTINEL_EMPTY)
-    internal_id_default = default.get(const.CONF_INTERNAL_ID, str(uuid.uuid4()))
 
     # Display penalty points as positive for user input
     display_points = (
@@ -2281,7 +2283,6 @@ def build_penalty_schema(default=None):
             vol.Optional(
                 CONF_ICON, default=default.get(CONF_ICON, const.SENTINEL_EMPTY)
             ): selector.IconSelector(),
-            vol.Required(const.CONF_INTERNAL_ID, default=internal_id_default): str,
         }
     )
 
@@ -2630,7 +2631,6 @@ def build_achievement_schema(kids_dict, chores_dict, default=None):
     """Build a schema for achievements, keyed by internal_id."""
     default = default or {}
     achievement_name_default = default.get(CONF_NAME, const.SENTINEL_EMPTY)
-    internal_id_default = default.get(const.CONF_INTERNAL_ID, str(uuid.uuid4()))
 
     kid_options = [
         {"value": kid_id, "label": kid_name} for kid_name, kid_id in kids_dict.items()
@@ -2730,7 +2730,6 @@ def build_achievement_schema(kids_dict, chores_dict, default=None):
                     step=0.1,
                 )
             ),
-            vol.Required(const.CONF_INTERNAL_ID, default=internal_id_default): str,
         }
     )
 
@@ -2744,7 +2743,6 @@ def build_challenge_schema(kids_dict, chores_dict, default=None):
     """Build a schema for challenges, keyed by internal_id."""
     default = default or {}
     challenge_name_default = default.get(CONF_NAME, const.SENTINEL_EMPTY)
-    internal_id_default = default.get(const.CONF_INTERNAL_ID, str(uuid.uuid4()))
 
     kid_options = [
         {"value": kid_id, "label": kid_name} for kid_name, kid_id in kids_dict.items()
@@ -2846,7 +2844,6 @@ def build_challenge_schema(kids_dict, chores_dict, default=None):
                 const.CONF_CHALLENGE_END_DATE,
                 default=default.get(const.CONF_CHALLENGE_END_DATE),
             ): selector.DateTimeSelector(),
-            vol.Required(const.CONF_INTERNAL_ID, default=internal_id_default): str,
         }
     )
 
@@ -2954,11 +2951,11 @@ def build_general_options_schema(default: Optional[dict] = None) -> vol.Schema:
                     options=[
                         "",
                         "create_backup",
-                        "view_backups",
+                        "delete_backup",
                         "restore_backup",
                     ],
                     mode=selector.SelectSelectorMode.DROPDOWN,
-                    translation_key=const.TRANS_KEY_CFOF_BACKUP_ACTIONS,
+                    translation_key=const.TRANS_KEY_CFOF_BACKUP_ACTIONS_MENU,
                 )
             ),
         }
@@ -3103,8 +3100,8 @@ async def cleanup_old_backups(
         max_backups: Maximum number of backups to retain per tag (0 = no limit)
 
     Behavior:
-        - Keeps newest N backups per tag
-        - Never deletes 'pre-migration' or 'manual' tagged backups
+        - Keeps newest N backups per tag (e.g., 5 manual, 5 recovery, etc.)
+        - Retention applies equally to ALL backup types
         - If max_backups is 0, no cleanup is performed (unlimited retention)
         - Logs warnings for deletion failures but continues processing
     """
@@ -3132,16 +3129,11 @@ async def cleanup_old_backups(
             "Backup cleanup: tags found: %s", list(backups_by_tag.keys())
         )
 
-        # Process each tag (including recovery and reset backups)
+        # Process each tag - retention applies to ALL tags equally
         for tag, tag_backups in backups_by_tag.items():
             const.LOGGER.debug(
                 "Processing %d backups for tag '%s'", len(tag_backups), tag
             )
-
-            # Never delete permanent backups
-            if tag in (const.BACKUP_TAG_PRE_MIGRATION, const.BACKUP_TAG_MANUAL):
-                const.LOGGER.debug("Skipping cleanup for permanent tag: %s", tag)
-                continue
 
             # Sort by timestamp (newest first) - use defensive programming for missing timestamp
             tag_backups.sort(

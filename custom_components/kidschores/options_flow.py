@@ -463,7 +463,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             default_enable_mobile_notifications=False,
             default_mobile_notify_service=None,
             default_enable_persistent_notifications=False,
-            internal_id=None,
         )
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_ADD_PARENT,
@@ -1084,7 +1083,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             default_dashboard_language=kid_data.get(
                 const.DATA_KID_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
             ),
-            internal_id=internal_id,
         )
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_EDIT_KID, data_schema=schema, errors=errors
@@ -1179,7 +1177,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             default_enable_persistent_notifications=parent_data.get(
                 const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS, True
             ),
-            internal_id=internal_id,
         )
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_EDIT_PARENT,
@@ -2015,14 +2012,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             action = user_input[const.CFOF_BACKUP_ACTION_SELECTION]
             # Skip empty/default selection
             if action and action.strip():
-                if action == "view_backups":
-                    return await self.async_step_view_backups()
-                elif action == "create_backup":
+                if action == "create_backup":
                     return await self.async_step_create_manual_backup()
+                elif action == "delete_backup":
+                    return await self.async_step_select_backup_to_delete()
                 elif action == "restore_backup":
-                    return await self.async_step_restore_from_options()
-                elif action == "return_to_settings":
-                    user_input = None  # Re-show the settings form
+                    return await self.async_step_select_backup_to_restore()
 
         if user_input is not None:
             # Get the raw text from the multiline text area.
@@ -2453,10 +2448,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             action = user_input[const.CFOF_BACKUP_ACTION_SELECTION]
 
-            if action == "view_backups":
-                return await self.async_step_view_backups()
-            elif action == "create_backup":
+            if action == "create_backup":
                 return await self.async_step_create_manual_backup()
+            elif action == "delete_backup":
+                return await self.async_step_select_backup_to_delete()
+            elif action == "restore_backup":
+                return await self.async_step_select_backup_to_restore()
             elif action == "return_to_menu":
                 return await self.async_step_init()
 
@@ -2477,12 +2474,13 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=[
-                                "view_backups",
                                 "create_backup",
+                                "delete_backup",
+                                "restore_backup",
                                 "return_to_menu",
                             ],
                             mode=selector.SelectSelectorMode.LIST,
-                            translation_key=const.TRANS_KEY_CFOF_BACKUP_ACTIONS,
+                            translation_key=const.TRANS_KEY_CFOF_BACKUP_ACTIONS_MENU,
                         )
                     )
                 }
@@ -2493,94 +2491,122 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             },
         )
 
-    async def async_step_view_backups(self, user_input=None):
-        """View and manage existing backups."""
+    async def async_step_select_backup_to_delete(self, user_input=None):
+        """Select a backup file to delete."""
         from .storage_manager import KidsChoresStorageManager
 
         storage_manager = KidsChoresStorageManager(self.hass)
 
         if user_input is not None:
-            action = user_input.get(const.CFOF_BACKUP_SELECTION)
+            selection = user_input.get(const.CFOF_BACKUP_SELECTION)
 
-            if action == "return":
+            if selection == "cancel":
                 return await self.async_step_backup_actions_menu()
-            elif action and action.startswith("delete_"):
-                # Extract backup filename and store in context
-                backup_filename = action.replace("delete_", "")
-                self._backup_to_delete = backup_filename
-                return await self.async_step_delete_backup_confirm()
-            elif action and action.startswith("restore_"):
-                # Extract backup filename and store in context
-                backup_filename = action.replace("restore_", "")
-                self._backup_to_restore = backup_filename
-                return await self.async_step_confirm_restore_backup()
 
-        # Discover all backups (must await async function)
+            # Extract backup filename from emoji-prefixed selection
+            if selection and selection.startswith("🗑️"):
+                filename = self._extract_filename_from_selection(selection)
+                if filename:
+                    self._backup_to_delete = filename
+                    return await self.async_step_delete_backup_confirm()
+
+            return await self.async_step_backup_actions_menu()
+
+        # Discover all backups
         backups = await fh.discover_backups(self.hass, storage_manager)
 
-        if not backups:
-            # No backups found
-            return self.async_show_form(
-                step_id=const.OPTIONS_FLOW_STEP_VIEW_BACKUPS,
-                data_schema=vol.Schema(
-                    {
-                        vol.Required(
-                            const.CFOF_BACKUP_SELECTION
-                        ): selector.SelectSelector(
-                            selector.SelectSelectorConfig(
-                                options=["return"],
-                                mode=selector.SelectSelectorMode.LIST,
-                            )
-                        )
-                    }
-                ),
-                description_placeholders={"backup_list": "No backups found"},
-            )
-
-        # Build backup list with actions
+        # Build backup options - EMOJI ONLY for files (no hardcoded action text)
+        # All backups can be deleted (no protected backups concept)
         backup_options = []
+
         for backup in backups:
             age_str = fh.format_backup_age(backup["age_hours"])
             size_kb = backup["size_bytes"] / 1024
             tag_display = backup["tag"].replace("-", " ").title()
 
-            # Add restore option
-            label = f"🔄 Restore: {backup['filename']} ({tag_display}, {age_str}, {size_kb:.1f} KB)"
-            backup_options.append(
-                {
-                    "value": f"restore_{backup['filename']}",
-                    "label": label,
-                }
+            # Emoji-only prefix - NO hardcoded English text
+            option = (
+                f"🗑️ [{tag_display}] {backup['filename']} ({age_str}, {size_kb:.1f} KB)"
             )
+            backup_options.append(option)
 
-            # Add delete option (skip pre-migration and manual tags)
-            if backup["tag"] not in [
-                const.BACKUP_TAG_PRE_MIGRATION,
-                const.BACKUP_TAG_MANUAL,
-            ]:
-                label = f"🗑️  Delete: {backup['filename']} ({tag_display}, {age_str})"
-                backup_options.append(
-                    {
-                        "value": f"delete_{backup['filename']}",
-                        "label": label,
-                    }
-                )
-
-        backup_options.append(
-            {
-                "value": "return",
-                "label": const.TRANS_KEY_CFOF_BACKUP_RETURN_MENU,
-            }
-        )
+        # Add cancel option (translated via translation_key)
+        backup_options.append("cancel")
 
         return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_VIEW_BACKUPS,
+            step_id=const.OPTIONS_FLOW_STEP_SELECT_BACKUP_TO_DELETE,
             data_schema=vol.Schema(
                 {
                     vol.Required(const.CFOF_BACKUP_SELECTION): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=backup_options,
                             mode=selector.SelectSelectorMode.LIST,
+                            translation_key=const.TRANS_KEY_CFOF_SELECT_BACKUP_TO_DELETE,
+                            custom_value=True,
+                        )
+                    )
+                }
+            ),
+            description_placeholders={
+                "backup_count": str(len(backups)),
+            },
+        )
+
+    async def async_step_select_backup_to_restore(self, user_input=None):
+        """Select a backup file to restore."""
+        from .storage_manager import KidsChoresStorageManager
+
+        storage_manager = KidsChoresStorageManager(self.hass)
+
+        if user_input is not None:
+            selection = user_input.get(const.CFOF_BACKUP_SELECTION)
+
+            if selection == "cancel":
+                return await self.async_step_backup_actions_menu()
+
+            # Extract backup filename from emoji-prefixed selection
+            if selection and selection.startswith("🔄"):
+                filename = self._extract_filename_from_selection(selection)
+                if filename:
+                    self._backup_to_restore = filename
+                    return await self.async_step_restore_backup_confirm()
+
+            return await self.async_step_backup_actions_menu()
+
+        # Discover all backups
+        backups = await fh.discover_backups(self.hass, storage_manager)
+
+        if not backups:
+            # No backups available - return to menu
+            return await self.async_step_backup_actions_menu()
+
+        # Build backup options - EMOJI ONLY for files (no hardcoded action text)
+        backup_options = []
+
+        for backup in backups:
+            age_str = fh.format_backup_age(backup["age_hours"])
+            size_kb = backup["size_bytes"] / 1024
+            tag_display = backup["tag"].replace("-", " ").title()
+
+            # Emoji-only prefix - NO hardcoded English text
+            option = (
+                f"🔄 [{tag_display}] {backup['filename']} ({age_str}, {size_kb:.1f} KB)"
+            )
+            backup_options.append(option)
+
+        # Add cancel option (translated via translation_key)
+        backup_options.append("cancel")
+
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_SELECT_BACKUP_TO_RESTORE,
+            data_schema=vol.Schema(
+                {
+                    vol.Required(const.CFOF_BACKUP_SELECTION): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=backup_options,
+                            mode=selector.SelectSelectorMode.LIST,
+                            translation_key=const.TRANS_KEY_CFOF_SELECT_BACKUP_TO_RESTORE,
+                            custom_value=True,
                         )
                     )
                 }
@@ -2588,14 +2614,34 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             description_placeholders={"backup_count": str(len(backups))},
         )
 
+    def _extract_filename_from_selection(self, selection: str) -> str | None:
+        """Extract backup filename from emoji-prefixed selection.
+
+        Format: "🔄 [Tag] filename.json (age, size)" or "🗑️ [Tag] filename.json (age, size)"
+        Returns: "filename.json" or None if extraction fails
+        """
+        # Remove emoji prefix (first 2-3 characters depending on emoji width)
+        if selection.startswith("🔄 ") or selection.startswith("🗑️ "):
+            display_part = selection[2:].strip()
+
+            # Extract from "[Tag] filename.json (age, size)"
+            if "] " in display_part and " (" in display_part:
+                start_idx = display_part.find("] ") + 2
+                end_idx = display_part.rfind(" (")
+                if start_idx < end_idx:
+                    return display_part[start_idx:end_idx]
+
+        # Fallback: return None (couldn't parse)
+        return None
+
     async def async_step_create_manual_backup(self, user_input=None):
         """Create a manual backup."""
         from .storage_manager import KidsChoresStorageManager
 
+        storage_manager = KidsChoresStorageManager(self.hass)
+
         if user_input is not None:
             if user_input.get("confirm"):
-                storage_manager = KidsChoresStorageManager(self.hass)
-
                 # Create manual backup
                 backup_filename = await fh.create_timestamped_backup(
                     self.hass,
@@ -2623,6 +2669,14 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             else:
                 return await self.async_step_backup_actions_menu()
 
+        # Get backup count and retention for placeholders
+        available_backups = await fh.discover_backups(self.hass, storage_manager)
+        backup_count = len(available_backups)
+        retention = self._entry_options.get(
+            const.CONF_BACKUPS_MAX_RETAINED,
+            const.DEFAULT_BACKUPS_MAX_RETAINED,
+        )
+
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_CREATE_MANUAL_BACKUP,
             data_schema=vol.Schema(
@@ -2630,7 +2684,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     vol.Required("confirm", default=False): selector.BooleanSelector(),
                 }
             ),
-            description_placeholders={},
+            description_placeholders={
+                "backup_count": str(backup_count),
+                "retention": str(retention),
+            },
         )
 
     async def async_step_delete_backup_confirm(self, user_input=None):
@@ -2639,7 +2696,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         from .storage_manager import KidsChoresStorageManager
 
-        # Get backup filename from context (set by view_backups step)
+        # Get backup filename from context (set by select_backup_to_delete step)
         backup_filename = getattr(self, "_backup_to_delete", None)
 
         if user_input is not None:
@@ -2663,9 +2720,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 else:
                     const.LOGGER.error("Invalid backup filename: %s", backup_filename)
 
-            # Clear the backup filename and return to view
+            # Clear the backup filename and return to backup menu
             self._backup_to_delete = None
-            return await self.async_step_view_backups()
+            return await self.async_step_backup_actions_menu()
 
         # Show confirmation form
         return self.async_show_form(
@@ -2678,14 +2735,14 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             description_placeholders={"backup_filename": backup_filename or "unknown"},
         )
 
-    async def async_step_confirm_restore_backup(self, user_input=None):
+    async def async_step_restore_backup_confirm(self, user_input=None):
         """Confirm backup restoration."""
         import shutil
         from pathlib import Path
 
         from .storage_manager import KidsChoresStorageManager
 
-        # Get backup filename from context (set by view_backups step)
+        # Get backup filename from context (set by select_backup_to_restore step)
         backup_filename = getattr(self, "_backup_to_restore", None)
 
         if user_input is not None:
@@ -2696,14 +2753,14 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 if not isinstance(backup_filename, str):
                     const.LOGGER.error("Invalid backup filename: %s", backup_filename)
                     self._backup_to_restore = None
-                    return await self.async_step_view_backups()
+                    return await self.async_step_backup_actions_menu()
 
                 backup_path = storage_path.parent / backup_filename
 
                 if not backup_path.exists():
                     const.LOGGER.error("Backup file not found: %s", backup_filename)
                     self._backup_to_restore = None
-                    return await self.async_step_view_backups()
+                    return await self.async_step_backup_actions_menu()
 
                 # Read and validate backup
                 try:
@@ -2715,12 +2772,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         "Failed to read backup file %s: %s", backup_filename, err
                     )
                     self._backup_to_restore = None
-                    return await self.async_step_view_backups()
+                    return await self.async_step_backup_actions_menu()
 
                 if not fh.validate_backup_json(backup_data_str):
                     const.LOGGER.error("Invalid backup file: %s", backup_filename)
                     self._backup_to_restore = None
-                    return await self.async_step_view_backups()
+                    return await self.async_step_backup_actions_menu()
 
                 try:
                     # Create safety backup of current file
@@ -2757,11 +2814,11 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         "Failed to restore backup %s: %s", backup_filename, err
                     )
                     self._backup_to_restore = None
-                    return await self.async_step_view_backups()
+                    return await self.async_step_backup_actions_menu()
             else:
-                # User cancelled - clear context and return to view
+                # User cancelled - clear context and return to backup menu
                 self._backup_to_restore = None
-                return await self.async_step_view_backups()
+                return await self.async_step_backup_actions_menu()
 
         # Show confirmation form
         return self.async_show_form(

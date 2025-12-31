@@ -91,6 +91,10 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         """Handle data recovery options when existing storage is found."""
         from pathlib import Path
 
+        # Note: We don't load translations because SelectSelector cannot
+        # dynamically translate runtime-generated options (backup file lists).
+        # Using emoji prefixes (📄) as language-neutral solution instead.
+
         errors = {}
 
         if user_input is not None:
@@ -106,7 +110,25 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             elif selection == "paste_json":
                 return await self._handle_paste_json()
             else:
-                # It's a backup filename - delegate to handler which validates/handles it
+                # It's a backup selection with emoji prefix - extract the actual filename
+                # Selection format: "📄 [Tag] filename.json (age)"
+                # Using emoji prefix because backup files are dynamic and can't use SelectSelector translation
+                emoji_prefix = "📄 "
+
+                # Extract filename from the prefixed selection
+                if selection.startswith(emoji_prefix):
+                    # Remove the emoji prefix
+                    display_part = selection[len(emoji_prefix) :].strip()
+                    # Extract filename from format "[Tag] filename.json (age)"
+                    if "] " in display_part and " (" in display_part:
+                        # Get the part between "] " and " ("
+                        start_idx = display_part.find("] ") + 2
+                        end_idx = display_part.rfind(" (")
+                        if start_idx < end_idx:
+                            filename = display_part[start_idx:end_idx]
+                            return await self._handle_restore_backup(filename)
+
+                # Fallback: treat as raw filename (shouldn't happen with new format)
                 return await self._handle_restore_backup(selection)
 
         # Build selection menu
@@ -120,8 +142,8 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         # Discover backups (pass None for storage_manager - not needed for discovery)
         backups = await fh.discover_backups(self.hass, None)
 
-        # Build options list for SelectSelector
-        # Start with fixed options that can be translated
+        # Build options list for SelectSelector (keeping original approach for fixed options)
+        # Start with fixed options that get translated via translation_key
         options = []
 
         # Only show "use current" if file actually exists
@@ -130,44 +152,35 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
         options.append("start_fresh")
 
-        # Add discovered backups (these use dynamic labels)
+        # Add discovered backups with emoji prefix
+        # Note: Using emoji (📄) instead of translated text because:
+        # 1. Backup files are dynamically generated and can't use SelectSelector translation
+        # 2. Static options (start_fresh, etc.) use SelectSelector translation system
+        # 3. Emoji provides visual distinction without requiring translation API
         for backup in backups:
-            options.append(backup["filename"])
+            age_str = fh.format_backup_age(backup["age_hours"])
+            tag_display = backup["tag"].replace("-", " ").title()
+            backup_display = f"[{tag_display}] {backup['filename']} ({age_str})"
+            emoji_option = f"📄 {backup_display}"
+            options.append(emoji_option)
 
         # Add paste JSON option
         options.append("paste_json")
 
-        # Build description placeholders for dynamic backup labels
-        backup_labels = {}
-        for backup in backups:
-            age_str = fh.format_backup_age(backup["age_hours"])
-            tag_display = backup["tag"].replace("-", " ").title()
-            backup_labels[backup["filename"]] = (
-                f"[{tag_display}] {backup['filename']} ({age_str})"
-            )
-
-        # Build schema using SelectSelector with translation_key
+        # Build schema using SelectSelector with translation_key (original working approach)
         from homeassistant.helpers import selector
-
-        # Validator to ensure selection is one of the valid options
-        def validate_backup_selection(value: str) -> str:
-            """Validate that the selected value is valid."""
-            if value not in options:
-                raise vol.Invalid(f"Invalid selection: {value}")
-            return value
 
         data_schema = vol.Schema(
             {
-                vol.Required(const.CFOF_DATA_RECOVERY_INPUT_SELECTION): vol.All(
-                    selector.SelectSelector(
-                        selector.SelectSelectorConfig(
-                            options=options,
-                            mode=selector.SelectSelectorMode.LIST,
-                            translation_key="data_recovery_selection",
-                            custom_value=True,  # Allow backup filenames not in translations
-                        )
-                    ),
-                    validate_backup_selection,
+                vol.Required(
+                    const.CFOF_DATA_RECOVERY_INPUT_SELECTION
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=options,
+                        mode=selector.SelectSelectorMode.LIST,
+                        translation_key="data_recovery_selection",
+                        custom_value=True,  # Allow backup filenames with prefixes
+                    )
                 )
             }
         )
@@ -646,7 +659,6 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             default_enable_mobile_notifications=False,
             default_mobile_notify_service=None,
             default_enable_persistent_notifications=False,
-            internal_id=None,
         )
         return self.async_show_form(
             step_id=const.CONFIG_FLOW_STEP_PARENTS,

@@ -1123,9 +1123,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.DATA_CHORE_APPROVAL_RESET_TYPE,
                 const.DEFAULT_APPROVAL_RESET_TYPE,
             ),
-            const.DATA_CHORE_PARTIAL_ALLOWED: chore_data.get(
-                const.DATA_CHORE_PARTIAL_ALLOWED, const.DEFAULT_PARTIAL_ALLOWED
-            ),
             const.DATA_CHORE_DESCRIPTION: chore_data.get(
                 const.DATA_CHORE_DESCRIPTION, const.SENTINEL_EMPTY
             ),
@@ -1226,10 +1223,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.DATA_CHORE_APPROVAL_RESET_TYPE,
                 const.DEFAULT_APPROVAL_RESET_TYPE,
             ),
-        )
-        chore_info[const.DATA_CHORE_PARTIAL_ALLOWED] = chore_data.get(
-            const.DATA_CHORE_PARTIAL_ALLOWED,
-            chore_info[const.DATA_CHORE_PARTIAL_ALLOWED],
         )
         chore_info[const.DATA_CHORE_DESCRIPTION] = chore_data.get(
             const.DATA_CHORE_DESCRIPTION, chore_info[const.DATA_CHORE_DESCRIPTION]
@@ -3587,7 +3580,11 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         ]
 
         previous_state = kid_chore_data.get(const.DATA_KID_CHORE_DATA_STATE)
-        points_awarded = round(points_awarded, 1) if points_awarded is not None else 0.0
+        points_awarded = (
+            round(points_awarded, const.DATA_FLOAT_PRECISION)
+            if points_awarded is not None
+            else 0.0
+        )
 
         # --- All-time stats update helpers ---
         chore_stats = kid_info.setdefault(const.DATA_KID_CHORE_STATS, {})
@@ -4077,7 +4074,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 if stats[const.DATA_KID_CHORE_STATS_APPROVED_WEEK]
                 else 0.0
             ),
-            2,
+            const.DATA_FLOAT_PRECISION,
         )
         now = kh.get_now_local_time()
         days_in_month = monthrange(now.year, now.month)[1]
@@ -4087,7 +4084,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 if stats[const.DATA_KID_CHORE_STATS_APPROVED_MONTH]
                 else 0.0
             ),
-            2,
+            const.DATA_FLOAT_PRECISION,
         )
 
         # --- Save back to kid_info ---
@@ -4115,7 +4112,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # 1) Sanitize delta
         try:
-            delta_value = round(float(delta), 1)
+            delta_value = round(float(delta), const.DATA_FLOAT_PRECISION)
         except (ValueError, TypeError):
             const.LOGGER.warning(
                 "WARNING: Update Kid Points - Invalid delta '%s' for Kid ID '%s'.",
@@ -4132,11 +4129,16 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # If source is chores, apply multiplier
         if source == const.POINTS_SOURCE_CHORES:
             multiplier = kid_info.get(const.DATA_KID_POINTS_MULTIPLIER, 1.0)
-            delta_value = round(delta_value * float(multiplier), 1)
+            delta_value = round(
+                delta_value * float(multiplier), const.DATA_FLOAT_PRECISION
+            )
 
         # 2) Compute new balance
         try:
-            old = round(float(kid_info.get(const.DATA_KID_POINTS, 0.0)), 1)
+            old = round(
+                float(kid_info.get(const.DATA_KID_POINTS, 0.0)),
+                const.DATA_FLOAT_PRECISION,
+            )
         except (ValueError, TypeError):
             const.LOGGER.warning(
                 "WARNING: Update Kid Points - Invalid old_points for Kid ID '%s'. Defaulting to 0.0.",
@@ -4382,14 +4384,20 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # --- Averages ---
         stats[const.DATA_KID_POINT_STATS_AVG_PER_DAY_WEEK] = (
-            round(stats[const.DATA_KID_POINT_STATS_EARNED_WEEK] / 7.0, 2)
+            round(
+                stats[const.DATA_KID_POINT_STATS_EARNED_WEEK] / 7.0,
+                const.DATA_FLOAT_PRECISION,
+            )
             if stats[const.DATA_KID_POINT_STATS_EARNED_WEEK]
             else 0.0
         )
         now = kh.get_now_local_time()
         days_in_month = monthrange(now.year, now.month)[1]
         stats[const.DATA_KID_POINT_STATS_AVG_PER_DAY_MONTH] = (
-            round(stats[const.DATA_KID_POINT_STATS_EARNED_MONTH] / days_in_month, 2)
+            round(
+                stats[const.DATA_KID_POINT_STATS_EARNED_MONTH] / days_in_month,
+                const.DATA_FLOAT_PRECISION,
+            )
             if stats[const.DATA_KID_POINT_STATS_EARNED_MONTH]
             else 0.0
         )
@@ -5131,7 +5139,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 else 0,
                 1.0,
             ),
-            2,
+            const.DATA_FLOAT_PRECISION,
         )
         progress[const.DATA_KID_BADGE_PROGRESS_CRITERIA_MET] = (
             points_cycle_count + points_today
@@ -5180,7 +5188,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 else 0,
                 1.0,
             ),
-            2,
+            const.DATA_FLOAT_PRECISION,
         )
         progress[const.DATA_KID_BADGE_PROGRESS_CRITERIA_MET] = (
             chores_cycle_count + chore_count_today
@@ -5241,7 +5249,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 else 0,
                 1.0,
             ),
-            2,
+            const.DATA_FLOAT_PRECISION,
         )
         progress[const.DATA_KID_BADGE_PROGRESS_CRITERIA_MET] = (
             days_cycle_count + (1 if criteria_met else 0)
@@ -5315,7 +5323,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 streak / threshold_value if threshold_value else 0,
                 1.0,
             ),
-            2,
+            const.DATA_FLOAT_PRECISION,
         )
         progress[const.DATA_KID_BADGE_PROGRESS_CRITERIA_MET] = streak >= threshold_value
         return progress
@@ -7095,13 +7103,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         progress = kid_info.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {})
         baseline = round(
-            float(progress.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_BASELINE, 0)), 1
+            float(progress.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_BASELINE, 0)),
+            const.DATA_FLOAT_PRECISION,
         )
         cycle_points = round(
             float(
                 progress.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS, 0)
             ),
-            1,
+            const.DATA_FLOAT_PRECISION,
         )
         total_points = baseline + cycle_points
 

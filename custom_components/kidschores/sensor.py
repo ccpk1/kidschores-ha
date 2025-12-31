@@ -508,9 +508,6 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_DEFAULT_POINTS: chore_info.get(
                 const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_ZERO
             ),
-            const.ATTR_PARTIAL_ALLOWED: chore_info.get(
-                const.DATA_CHORE_PARTIAL_ALLOWED, False
-            ),
             const.ATTR_APPROVAL_RESET_TYPE: chore_info.get(
                 const.DATA_CHORE_APPROVAL_RESET_TYPE,
                 const.DEFAULT_APPROVAL_RESET_TYPE,
@@ -1103,7 +1100,7 @@ class KidBadgeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         progress = badge_progress.get(
             const.DATA_KID_BADGE_PROGRESS_OVERALL_PROGRESS, 0.0
         )
-        return round(progress * 100, 1)
+        return round(progress * 100, const.DATA_FLOAT_PRECISION)
 
     @property
     def extra_state_attributes(self) -> dict:
@@ -1456,9 +1453,6 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
             ),
             const.ATTR_DEFAULT_POINTS: chore_info.get(
                 const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_ZERO
-            ),
-            const.ATTR_PARTIAL_ALLOWED: chore_info.get(
-                const.DATA_CHORE_PARTIAL_ALLOWED, False
             ),
             const.ATTR_APPROVAL_RESET_TYPE: chore_info.get(
                 const.DATA_CHORE_APPROVAL_RESET_TYPE,
@@ -1854,7 +1848,7 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
         else:
             percent = const.DEFAULT_ZERO
 
-        return min(100, round(percent, 1))
+        return min(100, round(percent, const.DATA_FLOAT_PRECISION))
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -2042,7 +2036,7 @@ class SystemChallengeSensor(KidsChoresCoordinatorEntity, SensorEntity):
             else const.DEFAULT_ZERO
         )
 
-        return min(100, round(percent, 1))
+        return min(100, round(percent, const.DATA_FLOAT_PRECISION))
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -2259,7 +2253,7 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         else:
             percent = const.DEFAULT_ZERO
 
-        return min(100, round(percent, 1))
+        return min(100, round(percent, const.DATA_FLOAT_PRECISION))
 
     @property
     def extra_state_attributes(self) -> dict:
@@ -2470,7 +2464,7 @@ class KidChallengeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
             else const.DEFAULT_ZERO
         )
 
-        return min(100, round(percent, 1))
+        return min(100, round(percent, const.DATA_FLOAT_PRECISION))
 
     @property
     def extra_state_attributes(self) -> dict:

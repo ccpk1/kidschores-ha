@@ -15,7 +15,7 @@ from tests.conftest import MockConfigEntry
 
 
 @pytest.mark.parametrize(
-    "backup_action", ["view_backups", "create_backup", "restore_backup"]
+    "backup_action", ["create_backup", "delete_backup", "restore_backup"]
 )
 async def test_backup_actions_all_navigation_paths(
     hass: HomeAssistant,
@@ -127,11 +127,11 @@ async def test_max_backup_retention_changes(
         assert backup_create_count == expected_new_backups, expected_msg + actual_msg
 
 
-async def test_view_backups_complete_flow(
+async def test_select_backup_to_delete_complete_flow(
     hass: HomeAssistant,
     init_integration: MockConfigEntry,
 ) -> None:
-    """Test complete view backups flow navigation."""
+    """Test complete select backup to delete flow navigation."""
     result = await hass.config_entries.options.async_init(init_integration.entry_id)
 
     # Navigate to general options
@@ -163,15 +163,15 @@ async def test_view_backups_complete_flow(
         "custom_components.kidschores.flow_helpers.discover_backups",
         new=AsyncMock(return_value=mock_backups),
     ):
-        # Select view backups
+        # Select delete backup action
         result = await hass.config_entries.options.async_configure(
             result.get("flow_id"),
-            user_input={const.CFOF_BACKUP_ACTION_SELECTION: "view_backups"},
+            user_input={const.CFOF_BACKUP_ACTION_SELECTION: "delete_backup"},
         )
 
-        # Should navigate to view_backups step without error
+        # Should navigate to select_backup_to_delete step without error
         assert result.get("type") == "form"
-        assert result.get("step_id") == "view_backups"
+        assert result.get("step_id") == "select_backup_to_delete"
 
 
 async def test_create_backup_complete_flow(
@@ -248,13 +248,13 @@ async def test_delete_backup_confirm_step_exists(
         ),
         patch("os.path.exists", return_value=True),
     ):
-        # Select view backups
+        # Select delete backup action to navigate to delete selection
         result = await hass.config_entries.options.async_configure(
             result.get("flow_id"),
-            user_input={const.CFOF_BACKUP_ACTION_SELECTION: "view_backups"},
+            user_input={const.CFOF_BACKUP_ACTION_SELECTION: "delete_backup"},
         )
 
-        # This test validates that the delete backup confirm step can be reached
+        # This test validates that the delete backup step can be reached
         # for deletable backup types and shows appropriate messaging for non-deletable ones
         msg = f"Expected form for tag {tag_type}, got {result.get('type')}"
         assert result.get("type") == "form", msg
@@ -286,21 +286,35 @@ async def test_confirm_restore_backup_step_method_exists(
     hass: HomeAssistant,
     init_integration: MockConfigEntry,
 ) -> None:
-    """Test that async_step_confirm_restore_backup method exists and is callable."""
+    """Test that async_step_restore_backup_confirm and new selection methods exist."""
     result = await hass.config_entries.options.async_init(init_integration.entry_id)
 
     # Get the flow handler from the flow manager
     flow_manager = hass.config_entries.options
     flow_handler = flow_manager._progress[result["flow_id"]]
 
-    # Verify the method exists on the handler instance
-    assert hasattr(flow_handler, "async_step_confirm_restore_backup"), (
-        "Handler missing async_step_confirm_restore_backup method"
+    # Verify the restore confirm method exists on the handler instance
+    assert hasattr(flow_handler, "async_step_restore_backup_confirm"), (
+        "Handler missing async_step_restore_backup_confirm method"
     )
 
-    # Verify it's callable
-    assert callable(getattr(flow_handler, "async_step_confirm_restore_backup")), (
-        "async_step_confirm_restore_backup exists but is not callable"
+    # Verify new selection methods exist
+    assert hasattr(flow_handler, "async_step_select_backup_to_delete"), (
+        "Handler missing async_step_select_backup_to_delete method"
+    )
+    assert hasattr(flow_handler, "async_step_select_backup_to_restore"), (
+        "Handler missing async_step_select_backup_to_restore method"
+    )
+
+    # Verify all are callable
+    assert callable(getattr(flow_handler, "async_step_restore_backup_confirm")), (
+        "async_step_restore_backup_confirm exists but is not callable"
+    )
+    assert callable(getattr(flow_handler, "async_step_select_backup_to_delete")), (
+        "async_step_select_backup_to_delete exists but is not callable"
+    )
+    assert callable(getattr(flow_handler, "async_step_select_backup_to_restore")), (
+        "async_step_select_backup_to_restore exists but is not callable"
     )
 
 
@@ -339,10 +353,11 @@ async def test_all_backup_methods_exist_on_handler(
 
     backup_methods = [
         "async_step_backup_actions_menu",
-        "async_step_view_backups",
+        "async_step_select_backup_to_delete",
+        "async_step_select_backup_to_restore",
         "async_step_create_manual_backup",
         "async_step_delete_backup_confirm",
-        "async_step_confirm_restore_backup",
+        "async_step_restore_backup_confirm",
         "async_step_restore_backup",
     ]
 
@@ -359,7 +374,7 @@ async def test_backup_deletion_cancel_flow(
     hass: HomeAssistant,
     init_integration: MockConfigEntry,
 ) -> None:
-    """Test canceling backup deletion returns to view backups."""
+    """Test canceling backup deletion returns to backup actions menu."""
     result = await hass.config_entries.options.async_init(init_integration.entry_id)
 
     # Navigate to general options
@@ -384,18 +399,16 @@ async def test_backup_deletion_cancel_flow(
         "custom_components.kidschores.flow_helpers.discover_backups",
         new=AsyncMock(return_value=mock_backups),
     ):
-        # Navigate to view backups
+        # Navigate to select backup to delete
         result = await hass.config_entries.options.async_configure(
             result.get("flow_id"),
-            user_input={const.CFOF_BACKUP_ACTION_SELECTION: "view_backups"},
+            user_input={const.CFOF_BACKUP_ACTION_SELECTION: "delete_backup"},
         )
 
-        # Simulate selecting delete option
+        # Verify we're at select_backup_to_delete step
         with patch("os.path.exists", return_value=True):
-            # In the actual flow, user would select delete option from the backup list
-            # For this test, we verify the cancel flow works by checking form navigation
             assert result.get("type") == "form"
-            assert result.get("step_id") == "view_backups"
+            assert result.get("step_id") == "select_backup_to_delete"
 
 
 async def test_backup_restore_cancel_flow(
@@ -440,11 +453,11 @@ async def test_backup_restore_cancel_flow(
         assert result.get("type") == "form"
 
 
-async def test_view_backups_no_files_scenario(
+async def test_delete_backup_no_files_scenario(
     hass: HomeAssistant,
     init_integration: MockConfigEntry,
 ) -> None:
-    """Test view backups when no backup files exist."""
+    """Test delete backup action when no backup files exist."""
     result = await hass.config_entries.options.async_init(init_integration.entry_id)
 
     # Navigate to general options
@@ -460,15 +473,15 @@ async def test_view_backups_no_files_scenario(
         "custom_components.kidschores.flow_helpers.discover_backups",
         new=AsyncMock(return_value=[]),
     ):
-        # Navigate to view backups
+        # Navigate to delete backup selection
         result = await hass.config_entries.options.async_configure(
             result.get("flow_id"),
-            user_input={const.CFOF_BACKUP_ACTION_SELECTION: "view_backups"},
+            user_input={const.CFOF_BACKUP_ACTION_SELECTION: "delete_backup"},
         )
 
-        # Should still show view_backups step with appropriate message
+        # Should show form indicating no backups available
         assert result.get("type") == "form"
-        assert result.get("step_id") == "view_backups"
+        assert result.get("step_id") == "select_backup_to_delete"
 
 
 @pytest.mark.parametrize(
@@ -515,14 +528,14 @@ async def test_backup_delete_options_by_tag_type(
         ),
         patch("os.path.exists", return_value=True),
     ):
-        # Navigate to view backups
+        # Navigate to select backup to delete
         result = await hass.config_entries.options.async_configure(
             result.get("flow_id"),
-            user_input={const.CFOF_BACKUP_ACTION_SELECTION: "view_backups"},
+            user_input={const.CFOF_BACKUP_ACTION_SELECTION: "delete_backup"},
         )
 
-        # Should reach view_backups step
+        # Should reach select_backup_to_delete step
         assert result.get("type") == "form"
-        assert result.get("step_id") == "view_backups"
+        assert result.get("step_id") == "select_backup_to_delete"
         # The actual delete option visibility logic is tested by the
         # integration's flow implementation based on tag type

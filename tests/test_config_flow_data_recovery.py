@@ -1086,9 +1086,12 @@ async def test_restore_v42_backup_no_migration_needed(
 async def test_invalid_selection_value(
     hass: HomeAssistant, mock_storage_dir: Path, storage_file: Path
 ) -> None:
-    """Test handling of invalid selection value."""
-    import voluptuous as vol
+    """Test handling of invalid selection value.
 
+    With custom_value=True in SelectSelector, invalid values are passed through
+    to the handler which treats them as backup filenames. Non-existent files
+    result in an abort with file_not_found reason.
+    """
     create_storage_file(storage_file, STORAGE_V42_MINIMAL)
 
     with patch.object(
@@ -1101,12 +1104,16 @@ async def test_invalid_selection_value(
         )
         _assert_flow(result, FlowResultType.FORM, "data_recovery")
 
-        # Voluptuous will raise error for invalid value before config flow handler
-        with pytest.raises(vol.Invalid):
-            result = await hass.config_entries.flow.async_configure(
-                _require_flow_id(result),
-                user_input={"backup_selection": "invalid_option"},
-            )
+        # With custom_value=True, invalid values are treated as backup filenames
+        # Non-existent files result in an abort with file_not_found reason
+        result = await hass.config_entries.flow.async_configure(
+            _require_flow_id(result),
+            user_input={"backup_selection": "invalid_option"},
+        )
+
+        # Should abort because "invalid_option" file doesn't exist
+        assert result.get("type") == FlowResultType.ABORT
+        assert result.get("reason") == "file_not_found"
 
 
 # ========================================================================

@@ -82,9 +82,7 @@
           "chore_name": "Chore Name",
           "internal_id": "Internal ID",
           "default_points": "Default Points",
-          "allow_multiple_claims_per_day": "Allow Multiple Claims per Day?",
           "auto_approve": "Auto-Approve when Claimed?",
-          "partial_allowed": "Allow Partial Points?",
           "shared_chore": "Shared Chore?",
           "show_on_calendar": "Show on Calendar?",
           "assigned_kids": "Assigned Kids",
@@ -396,29 +394,46 @@
       },
       "add_chore": {
         "title": "Add Chore",
-        "description": "Provide the details for the new chore.",
+        "description": "Create a new chore with points, assignments, and recurring schedule.",
         "data": {
-          "chore_name": "Chore Name",
-          "internal_id": "Internal ID",
-          "default_points": "Default Points",
-          "allow_multiple_claims_per_day": "Allow Multiple Claims per Day?",
-          "auto_approve": "Auto-Approve when Claimed?",
-          "partial_allowed": "Allow Partial Points?",
-          "shared_chore": "Shared Chore?",
-          "completion_criteria": "Completion Criteria",
-          "show_on_calendar": "Show on Calendar?",
-          "assigned_kids": "Assigned Kids",
-          "chore_description": "Description (optional)",
-          "chore_labels": "Chore Labels",
-          "icon": "Icon (mdi:xxx)",
-          "recurring_frequency": "Recurring Frequency",
-          "custom_interval": "Custom Recurring Frequency Interval (only use if Custom Recurring Frequency is set)",
-          "custom_interval_unit": "Custom Recurring Frequency Period",
-          "applicable_days": "Applicable Days",
-          "due_date": "Due Date",
-          "notify_on_claim": "Notify on Claim",
-          "notify_on_approval": "Notify on Approval",
-          "notify_on_disapproval": "Notify on Disapproval"
+          "chore_name": "📋 Chore Name",
+          "chore_description": "📋 Description (optional)",
+          "icon": "📋 Icon (mdi:xxx)",
+          "chore_labels": "📋 Labels (optional)",
+          "default_points": "💰 Points Awarded",
+          "assigned_kids": "👥 Assigned Kids",
+          "completion_criteria": "👥 Completion Type",
+          "approval_reset_type": "➡️ Completions Allowed and Reset Timing",
+          "approval_reset_pending_claim_action": "➡️ Pending Claims at Reset",
+          "overdue_handling_type": "⏰ Overdue: Handling Type",
+          "auto_approve": "✅ Auto-Approve Claims?",
+          "recurring_frequency": "🔄 Schedule: Frequency",
+          "custom_interval": "🔄 Schedule: Custom Interval (for Custom Frequency)",
+          "custom_interval_unit": "🔄 Schedule: Custom Interval Unit",
+          "applicable_days": "📅 Schedule: Applicable Days (optional)",
+          "due_date": "📅 Schedule: Due Date (optional)",
+          "show_on_calendar": "📅 Show on Calendar?",
+          "chore_notifications": "🔔 Notification Events (optional)"
+        },
+        "data_description": {
+          "chore_name": "Unique name displayed throughout the system.",
+          "chore_description": "Optional instructions or details about how to complete this chore.",
+          "icon": "Material Design Icon (e.g., mdi:broom, mdi:dishwasher).",
+          "chore_labels": "Tags to organize chores (e.g., 'kitchen', 'outdoor'). Leave blank if not needed.",
+          "default_points": "Points earned when completed.",
+          "assigned_kids": "Kids who can see and claim this chore.",
+          "completion_criteria": "How shared chores work: Independent (each kid completes separately), Shared All (all must approve), or Shared First (first approval completes chore).",
+          "approval_reset_type": "Controls when this chore resets and how many completions are allowed during that period.",
+          "approval_reset_pending_claim_action": "When this chore resets (based on Completion Reset Timing above), what happens to claims still waiting for approval?",
+          "overdue_handling_type": "What happens when due date passes: Manual review (no action), Auto-reject (deny claims), or Auto-approve (grant points anyway).",
+          "auto_approve": "When enabled, claims are instantly approved without parent review.",
+          "recurring_frequency": "How often the chore recurs: Daily, Weekly, Monthly, Yearly, Custom, or None.",
+          "custom_interval": "Number of time units between repetitions (e.g., 3 for 'every 3 weeks'). Only used with Custom frequency.",
+          "custom_interval_unit": "Time unit for custom interval (days, weeks, months). Only used with Custom frequency.",
+          "applicable_days": "Restrict chore to specific weekdays. Leave blank for all days.",
+          "due_date": "Optional deadline. Can be combined with recurring schedules.",
+          "show_on_calendar": "Display this chore on the calendar view.",
+          "chore_notifications": "When to send notifications: On claim, on approval, on rejection, or any combination."
         }
       },
       "add_badge": {
@@ -737,27 +752,45 @@
         "title": "Edit Chore",
         "description": "Modify the details of the selected chore.",
         "data": {
-          "chore_name": "Chore Name",
+          "chore_name": "📋 Chore Name",
+          "chore_description": "📋 Description (optional)",
+          "icon": "📋 Icon (mdi:xxx)",
+          "chore_labels": "📋 Labels (optional)",
           "internal_id": "Internal ID",
-          "default_points": "Default Points",
-          "allow_multiple_claims_per_day": "Allow Multiple Claims per Day?",
-          "auto_approve": "Auto-Approve when Claimed?",
-          "partial_allowed": "Allow Partial Points?",
-          "shared_chore": "Shared Chore?",
-          "completion_criteria": "Completion Criteria",
-          "show_on_calendar": "Show on Calendar?",
-          "assigned_kids": "Assigned Kids",
-          "chore_description": "Description (optional)",
-          "chore_labels": "Chore Labels",
-          "icon": "Icon (mdi:xxx)",
-          "recurring_frequency": "Recurring Frequency",
-          "custom_interval": "Custom Recurring Frequency Interval (only use if Custom Recurring Frequency is set)",
-          "custom_interval_unit": "Custom Recurring Frequency Period",
-          "applicable_days": "Applicable Days",
-          "due_date": "Due Date",
-          "notify_on_claim": "Notify on Claim",
-          "notify_on_approval": "Notify on Approval",
-          "notify_on_disapproval": "Notify on Disapproval"
+          "default_points": "💰 Points Awarded",
+          "assigned_kids": "👥 Assigned Kids",
+          "completion_criteria": "👥 Completion Type",
+          "approval_reset_type": "➡️ Completions Allowed and Reset Timing",
+          "approval_reset_pending_claim_action": "➡️ Pending Claims at Reset",
+          "overdue_handling_type": "⏰ Overdue: Handling Type",
+          "auto_approve": "✅ Auto-Approve Claims?",
+          "recurring_frequency": "🔄 Schedule: Frequency",
+          "custom_interval": "🔄 Schedule: Custom Interval (for Custom Frequency)",
+          "custom_interval_unit": "🔄 Schedule: Custom Interval Unit",
+          "applicable_days": "📅 Schedule: Applicable Days (optional)",
+          "due_date": "📅 Schedule: Due Date (optional)",
+          "show_on_calendar": "📅 Show on Calendar?",
+          "chore_notifications": "🔔 Notification Events (optional)"
+        },
+        "data_description": {
+          "chore_name": "Unique name displayed throughout the system.",
+          "chore_description": "Optional instructions or details about how to complete this chore.",
+          "icon": "Material Design Icon (e.g., mdi:broom, mdi:dishwasher).",
+          "chore_labels": "Tags to organize chores (e.g., 'kitchen', 'outdoor'). Leave blank if not needed.",
+          "default_points": "Points earned when completed.",
+          "assigned_kids": "Kids who can see and claim this chore.",
+          "completion_criteria": "How shared chores work: Independent (each kid completes separately), Shared All (all must approve), or Shared First (first approval completes chore).",
+          "approval_reset_type": "Controls when this chore resets and how many completions are allowed during that period.",
+          "approval_reset_pending_claim_action": "When this chore resets (based on Completion Reset Timing above), what happens to claims still waiting for approval?",
+          "overdue_handling_type": "What happens when due date passes: Manual review (no action), Auto-reject (deny claims), or Auto-approve (grant points anyway).",
+          "auto_approve": "When enabled, claims are instantly approved without parent review.",
+          "recurring_frequency": "How often the chore recurs: Daily, Weekly, Monthly, Yearly, Custom, or None.",
+          "custom_interval": "Number of time units between repetitions (e.g., 3 for 'every 3 weeks'). Only used with Custom frequency.",
+          "custom_interval_unit": "Time unit for custom interval (days, weeks, months). Only used with Custom frequency.",
+          "applicable_days": "Restrict chore to specific weekdays. Leave blank for all days.",
+          "due_date": "Optional deadline. Can be combined with recurring schedules.",
+          "show_on_calendar": "Display this chore on the calendar view.",
+          "chore_notifications": "When to send notifications: On claim, on approval, on rejection, or any combination."
         }
       },
       "edit_badge_cumulative": {
@@ -1112,7 +1145,7 @@
           "retention_yearly": "Number of years of yearly historical data to retain before cleanup. Minimum 1, maximum 10.",
           "show_legacy_entities": "Show extra entities like sensor and selects that are now consolidated into the dashboard helper sensor. These entities are optional for backward compatibility with existing automations.",
           "backups_max_retained": "Maximum number of backup files to keep. Older backups will be automatically deleted. Set to 0 to disable automatic backups.",
-          "backup_action_selection": "Choose a backup management action: create a manual backup, view/restore existing backups, or return to menu."
+          "backup_action_selection": "Choose a backup management action: create a manual backup, delete a backup, or restore from a backup."
         }
       },
       "backup_actions": {
@@ -1132,25 +1165,23 @@
           "backup_action_selection": "Select an Action"
         },
         "data_description": {
-          "backup_action_selection": "Choose a backup management action: create, view, or restore backups."
+          "backup_action_selection": "Choose a backup management action: create, delete, restore, or return to menu."
         }
       },
       "create_manual_backup": {
         "title": "Create Manual Backup",
-        "description": "Create a manual backup of your current KidsChores data?",
+        "description": "Create a new backup of your KidsChores data.\n\nCurrent backups: {backup_count}\nRetention setting: {retention} backups",
         "data": {
-          "confirm": "Confirm"
+          "confirm": "Confirm backup creation"
         }
       },
-      "view_backups": {
-        "title": "View Backups",
-        "description": "You have {backup_count} backup file(s). Select a backup to restore or delete.",
-        "data": {
-          "backup_selection": "Select Backup"
-        },
-        "data_description": {
-          "backup_selection": "Choose a backup to restore or delete, or return to the backup menu."
-        }
+      "select_backup_to_delete": {
+        "title": "Select Backup to Delete",
+        "description": "Choose a backup file to delete.\n\nAvailable backups: {backup_count}\n\n⚠️  Protected backups (pre-migration, manual) cannot be deleted."
+      },
+      "select_backup_to_restore": {
+        "title": "Select Backup to Restore",
+        "description": "Choose a backup file to restore.\n\nAvailable backups: {backup_count}\n\n⚠️  This will replace your current data!"
       },
       "create_backup_confirm": {
         "title": "Create Manual Backup",
@@ -1167,10 +1198,10 @@
         }
       },
       "delete_backup_confirm": {
-        "title": "Delete Backup",
-        "description": "Are you sure you want to delete this backup?\n\nFile: {backup_filename}\n\nThis action cannot be undone.",
+        "title": "Confirm Backup Deletion",
+        "description": "⚠️  You are about to permanently delete this backup:\n\n{backup_filename}\n\nThis action cannot be undone.",
         "data": {
-          "confirm": "Confirm Deletion"
+          "confirm": "Confirm deletion"
         }
       },
       "restore_backup_confirm": {
@@ -1246,8 +1277,7 @@
   },
   "label": {
     "backup_paste_json": "📋 Paste JSON data from diagnostics",
-    "backup_start_fresh": "🆕 Start fresh (creates backup of existing data)",
-    "restore_prefix": "⏮️  Restore"
+    "backup_start_fresh": "🆕 Start fresh (creates backup of existing data)"
   },
   "selector": {
     "main_menu": {
@@ -1274,12 +1304,23 @@
         "back": "Back to Main Menu"
       }
     },
-    "backup_actions": {
+    "backup_actions_menu": {
       "options": {
         "": "Select backup action...",
-        "create_backup": "Create backup now",
-        "view_backups": "View & manage backups",
-        "restore_backup": "Restore from backup"
+        "create_backup": "💾 Create backup now",
+        "delete_backup": "🗑️  Delete a backup",
+        "restore_backup": "🔄 Restore from backup",
+        "return_to_menu": "↩️  Return to main menu"
+      }
+    },
+    "select_backup_to_delete": {
+      "options": {
+        "cancel": "↩️  Cancel (return to backup menu)"
+      }
+    },
+    "select_backup_to_restore": {
+      "options": {
+        "cancel": "↩️  Cancel (return to backup menu)"
       }
     },
     "badge_type": {
@@ -1311,32 +1352,41 @@
     },
     "completion_criteria": {
       "options": {
-        "shared_all": "Shared (All kids complete together)",
-        "independent": "Independent (Each kid completes separately)",
-        "shared_first": "Shared (First to complete wins)"
+        "shared_all": "Shared with All (All kids must complete together)",
+        "independent": "Independent (Each kid completes on their own)",
+        "shared_first": "Shared with First (First completion counts)"
       }
     },
     "approval_reset_type": {
       "options": {
-        "at_midnight_once": "At Midnight (Once per day)",
-        "at_midnight_multi": "At Midnight (Multiple per day)",
-        "at_due_date_once": "At Due Date (Once per cycle)",
-        "at_due_date_multi": "At Due Date (Multiple per cycle)",
-        "upon_completion": "Upon Completion (Unlimited)"
+        "at_midnight_once": "Allow 1 completion - resets at midnight",
+        "at_midnight_multi": "Allow multiple completions - resets at midnight",
+        "at_due_date_once": "Allow 1 completion - resets at due date",
+        "at_due_date_multi": "Allow multiple completions - resets at due date",
+        "upon_completion": "Allow unlimited completions - resets after completion"
       }
     },
     "overdue_handling_type": {
       "options": {
-        "at_due_date": "Overdue until complete",
-        "never_overdue": "Never overdue",
-        "at_due_date_then_reset": "Overdue until complete or next reset"
+        "at_due_date": "Show Overdue After Due Date (Until Completion)",
+        "never_overdue": "Never Show as Overdue",
+        "at_due_date_then_reset": "Show Overdue After Due Date (Until Approval Reset)"
       }
     },
     "approval_reset_pending_claim_action": {
       "options": {
-        "hold_pending": "Hold for parent review",
-        "clear_pending": "Clear and start fresh",
-        "auto_approve_pending": "Auto-approve at reset"
+        "hold_pending": "Keep in Claim Status (Await Approval/Rejection)",
+        "clear_pending": "Clear All Pending Claims",
+        "auto_approve_pending": "Auto-Approve All Pending Claims"
+      }
+    },
+    "chore_notifications": {
+      "title": "Notifications",
+      "description": "When should notifications be sent for this chore?",
+      "options": {
+        "notify_on_claim": "Notify on Claim",
+        "notify_on_approval": "Notify on Approval",
+        "notify_on_disapproval": "Notify on Disapproval"
       }
     },
     "recurring_frequency": {
@@ -1391,13 +1441,6 @@
       "options": {
         "points": "Points",
         "chore_count": "Chore Count"
-      }
-    },
-    "backup_action_selection": {
-      "options": {
-        "view_backups": "View & Manage Backups",
-        "create_backup": "Create Manual Backup",
-        "return_to_menu": "Return to Main Menu"
       }
     },
     "data_recovery_selection": {
@@ -1790,13 +1833,6 @@
               "independent": "Independent"
             }
           },
-          "partial_allowed": {
-            "name": "Partially Allowed",
-            "state": {
-              "true": "Yes",
-              "false": "No"
-            }
-          },
           "allow_multiple_claims_per_day": {
             "name": "Allow Multiple Claims per Day",
             "state": {
@@ -2002,13 +2038,6 @@
           },
           "default_points": {
             "name": "Default Points"
-          },
-          "partial_allowed": {
-            "name": "Partially Allowed",
-            "state": {
-              "true": "Yes",
-              "false": "No"
-            }
           },
           "allow_multiple_claims_per_day": {
             "name": "Allow Multiple Claims per Day",

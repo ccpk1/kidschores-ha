@@ -82,9 +82,7 @@
           "chore_name": "Nombre de la Tarea",
           "internal_id": "ID Interno",
           "default_points": "Puntos Predeterminados",
-          "allow_multiple_claims_per_day": "¿Permitir múltiples reclamaciones por día?",
           "auto_approve": "¿Auto-aprobar al Reclamar?",
-          "partial_allowed": "¿Permitir puntos parciales?",
           "shared_chore": "¿Tarea compartida?",
           "show_on_calendar": "¿Mostrar en el Calendario?",
           "assigned_kids": "Niños Asignados",
@@ -416,9 +414,10 @@
           "custom_interval_unit": "Periodo de Frecuencia Recurrente Personalizada",
           "applicable_days": "Días aplicables",
           "due_date": "Fecha de vencimiento",
-          "notify_on_claim": "Notificar al reclamar",
-          "notify_on_approval": "Notificar al aprobar",
-          "notify_on_disapproval": "Notificar al rechazar"
+          "approval_reset_type": "Tipo de Reinicio de Aprobación",
+          "approval_reset_pending_claim_action": "Reclamaciones Pendientes en Reinicio",
+          "overdue_handling_type": "Manejo de Vencimiento",
+          "chore_notifications": "Notificaciones"
         }
       },
       "add_badge": {
@@ -737,27 +736,45 @@
         "title": "Editar Tarea",
         "description": "Modifica los datos de la tarea seleccionada.",
         "data": {
-          "chore_name": "Nombre de la Tarea",
+          "chore_name": "📋 Nombre de la Tarea",
+          "chore_description": "📋 Descripción (opcional)",
+          "icon": "📋 Ícono (mdi:xxx)",
+          "chore_labels": "📋 Etiquetas (opcional)",
           "internal_id": "ID Interno",
-          "default_points": "Puntos Predeterminados",
-          "allow_multiple_claims_per_day": "¿Permitir múltiples reclamaciones por día?",
-          "auto_approve": "¿Auto-aprobar al Reclamar?",
-          "partial_allowed": "¿Permitir puntos parciales?",
-          "shared_chore": "¿Tarea compartida?",
-          "completion_criteria": "Criterios de Finalización",
-          "show_on_calendar": "¿Mostrar en el Calendario?",
-          "assigned_kids": "Niños asignados",
-          "chore_description": "Descripción (opcional)",
-          "chore_labels": "Etiquetas de la Tarea",
-          "icon": "Ícono (mdi:xxx)",
-          "recurring_frequency": "Frecuencia recurrente",
-          "custom_interval": "Intervalo de Frecuencia Recurrente Personalizado (usar solo si se configura Frecuencia Recurrente Personalizada)",
-          "custom_interval_unit": "Periodo de Frecuencia Recurrente Personalizada",
-          "applicable_days": "Días aplicables",
-          "due_date": "Fecha de vencimiento",
-          "notify_on_claim": "Notificar al reclamar",
-          "notify_on_approval": "Notificar al aprobar",
-          "notify_on_disapproval": "Notificar al rechazar"
+          "default_points": "💰 Puntos Otorgados",
+          "assigned_kids": "👥 Niños Asignados",
+          "completion_criteria": "👥 Tipo de Finalización",
+          "approval_reset_type": "➡️ Finalizaciones Permitidas e Intervalo de Reinicio",
+          "approval_reset_pending_claim_action": "➡️ Reclamaciones Pendientes en Reinicio",
+          "overdue_handling_type": "⏰ Vencimiento: Tipo de Manejo",
+          "auto_approve": "✅ ¿Auto-aprobar Reclamaciones?",
+          "recurring_frequency": "🔄 Horario: Frecuencia",
+          "custom_interval": "🔄 Horario: Intervalo Personalizado (para Frecuencia Personalizada)",
+          "custom_interval_unit": "🔄 Horario: Unidad de Intervalo Personalizado",
+          "applicable_days": "📅 Horario: Días Aplicables (opcional)",
+          "due_date": "📅 Horario: Fecha de Vencimiento (opcional)",
+          "show_on_calendar": "📅 ¿Mostrar en el Calendario?",
+          "chore_notifications": "🔔 Eventos de Notificación (opcional)"
+        },
+        "data_description": {
+          "chore_name": "Nombre único que se muestra en todo el sistema.",
+          "chore_description": "Instrucciones opcionales o detalles sobre cómo completar esta tarea.",
+          "icon": "Icono de Material Design (por ejemplo, mdi:broom, mdi:dishwasher).",
+          "chore_labels": "Etiquetas para organizar tareas (por ejemplo, 'cocina', 'exterior'). Dejar en blanco si no es necesario.",
+          "default_points": "Puntos obtenidos cuando se completa la tarea.",
+          "assigned_kids": "Niños que pueden ver y reclamar esta tarea.",
+          "completion_criteria": "Cómo funcionan las tareas compartidas: Independiente (cada niño completa por separado), Compartida Todo (todos deben aprobar), o Compartida Primera (la primera aprobación completa la tarea).",
+          "approval_reset_type": "Controla cuándo se reinicia esta tarea y cuántas finalizaciones se permiten durante ese período.",
+          "approval_reset_pending_claim_action": "Cuando se reinicia esta tarea (basado en el Intervalo de Reinicio de Finalización anterior), ¿qué sucede con las reclamaciones que aún están esperando aprobación?",
+          "overdue_handling_type": "Qué sucede cuando pasa la fecha de vencimiento: Revisión manual (sin acción), Auto-rechazo (denegar reclamaciones), o Auto-aprobación (otorgar puntos de todas formas).",
+          "auto_approve": "Cuando está habilitado, las reclamaciones se aprueban instantáneamente sin revisión de los padres.",
+          "recurring_frequency": "Con qué frecuencia se repite la tarea: Diariamente, Semanalmente, Mensualmente, Anualmente, Personalizada, o Ninguna.",
+          "custom_interval": "Número de unidades de tiempo entre repeticiones (por ejemplo, 3 para 'cada 3 semanas'). Solo se usa con frecuencia personalizada.",
+          "custom_interval_unit": "Unidad de tiempo para intervalo personalizado (días, semanas, meses). Solo se usa con frecuencia personalizada.",
+          "applicable_days": "Restringir la tarea a días de la semana específicos. Dejar en blanco para todos los días.",
+          "due_date": "Fecha límite opcional. Se puede combinar con horarios recurrentes.",
+          "show_on_calendar": "Mostrar esta tarea en la vista de calendario.",
+          "chore_notifications": "Cuándo enviar notificaciones: Al reclamar, al aprobar, al rechazar, o cualquier combinación."
         }
       },
       "edit_badge_cumulative": {
@@ -1112,7 +1129,7 @@
           "retention_yearly": "Número de años de datos históricos anuales a retener antes de la limpieza. Mínimo 1, máximo 10.",
           "show_legacy_entities": "Mostrar entidades adicionales como sensores y selectores que ahora están consolidados en el sensor auxiliar del panel. Estas entidades son opcionales para mantener compatibilidad con automatizaciones existentes.",
           "backups_max_retained": "Número máximo de archivos de copia de seguridad a conservar. Las copias más antiguas se eliminarán automáticamente. Establezca en 0 para deshabilitar las copias de seguridad automáticas.",
-          "backup_action_selection": "Elija una acción de gestión de copias de seguridad: crear una copia manual, ver/restaurar copias existentes, o volver al menú."
+          "backup_action_selection": "Elija una acción de gestión de copias de seguridad: crear una copia manual, eliminar una copia de seguridad, o restaurar desde una copia."
         }
       },
       "backup_actions": {
@@ -1132,52 +1149,50 @@
           "backup_action_selection": "Seleccionar una Acción"
         },
         "data_description": {
-          "backup_action_selection": "Elija una acción de gestión de copias de seguridad: crear, ver o restaurar copias de seguridad."
+          "backup_action_selection": "Elija una acción de gestión de copias de seguridad: crear, eliminar, restaurar, o volver al menú."
         }
       },
       "create_manual_backup": {
         "title": "Crear Copia de Seguridad Manual",
-        "description": "Create a manual backup of your current KidsChores data?",
+        "description": "Crear una nueva copia de seguridad de tus datos de KidsChores.\n\nCopias actuales: {backup_count}\nConfiguración de retención: {retention} copias",
         "data": {
-          "confirm": "Confirmar"
+          "confirm": "Confirmar creación de copia de seguridad"
         }
       },
-      "view_backups": {
-        "title": "Ver Copias de Seguridad",
-        "description": "You have {backup_count} backup file(s). Select a backup to restore or delete.",
-        "data": {
-          "backup_selection": "Select Backup"
-        },
-        "data_description": {
-          "backup_selection": "Choose a backup to restore or delete, or return to the backup menu."
-        }
+      "select_backup_to_delete": {
+        "title": "Seleccionar Copia para Eliminar",
+        "description": "Elige un archivo de copia de seguridad para eliminar.\n\nCopias disponibles: {backup_count}\n\n⚠️  Las copias protegidas (pre-migración, manual) no se pueden eliminar."
+      },
+      "select_backup_to_restore": {
+        "title": "Seleccionar Copia para Restaurar",
+        "description": "Elige un archivo de copia de seguridad para restaurar.\n\nCopias disponibles: {backup_count}\n\n⚠️  ¡Esto reemplazará tus datos actuales!"
       },
       "create_backup_confirm": {
         "title": "Crear Copia de Seguridad Manual",
-        "description": "Create a manual backup of your current KidsChores data?",
+        "description": "¿Crear una copia de seguridad manual de tus datos actuales de KidsChores?",
         "data": {
           "confirm": "Confirmar"
         }
       },
       "create_backup_success": {
-        "title": "Backup Created",
-        "description": "Manual backup created successfully: {backup_filename}",
+        "title": "Copia de Seguridad Creada",
+        "description": "Copia de seguridad manual creada exitosamente: {backup_filename}",
         "data": {
           "continue": "Continuar"
         }
       },
       "delete_backup_confirm": {
-        "title": "Delete Backup",
-        "description": "Are you sure you want to delete this backup?\n\nFile: {backup_filename}\n\nThis action cannot be undone.",
+        "title": "Confirmar Eliminación de Copia",
+        "description": "⚠️  Estás a punto de eliminar permanentemente esta copia de seguridad:\n\n{backup_filename}\n\nEsta acción no se puede deshacer.",
         "data": {
-          "confirm": "Confirm Deletion"
+          "confirm": "Confirmar eliminación"
         }
       },
       "restore_backup_confirm": {
-        "title": "Restore Backup",
-        "description": "Are you sure you want to restore this backup?\n\nFile: {backup_filename}\n\nYour current data will be backed up before restoration. The integration will reload after restoration.",
+        "title": "Restaurar Copia de Seguridad",
+        "description": "¿Estás seguro de que deseas restaurar esta copia de seguridad?\n\nArchivo: {backup_filename}\n\nTus datos actuales se respaldarán antes de la restauración. La integración se recargará después de la restauración.",
         "data": {
-          "confirm": "Confirm Restoration"
+          "confirm": "Confirmar Restauración"
         }
       }
     },
@@ -1245,9 +1260,8 @@
     }
   },
   "label": {
-    "backup_paste_json": "📋 Paste JSON data from diagnostics",
-    "backup_start_fresh": "🆕 Start fresh (creates backup of existing data)",
-    "restore_prefix": "⏮️  Restore"
+    "backup_paste_json": "📋 Pegar datos JSON desde diagnósticos",
+    "backup_start_fresh": "🆕 Comenzar desde cero (crea copia de seguridad de los datos existentes)"
   },
   "selector": {
     "main_menu": {
@@ -1274,12 +1288,23 @@
         "back": "Volver al Menú Principal"
       }
     },
-    "backup_actions": {
+    "backup_actions_menu": {
       "options": {
         "": "Seleccionar acción de copia de seguridad...",
-        "create_backup": "Crear copia de seguridad ahora",
-        "view_backups": "Ver y gestionar copias de seguridad",
-        "restore_backup": "Restaurar desde copia de seguridad"
+        "create_backup": "💾 Crear copia de seguridad ahora",
+        "delete_backup": "🗑️  Eliminar una copia de seguridad",
+        "restore_backup": "🔄 Restaurar desde copia de seguridad",
+        "return_to_menu": "↩️  Volver al menú principal"
+      }
+    },
+    "select_backup_to_delete": {
+      "options": {
+        "cancel": "↩️  Cancelar (volver al menú de copias)"
+      }
+    },
+    "select_backup_to_restore": {
+      "options": {
+        "cancel": "↩️  Cancelar (volver al menú de copias)"
       }
     },
     "data_recovery_selection": {
@@ -1319,32 +1344,41 @@
     },
     "completion_criteria": {
       "options": {
-        "shared_all": "Shared (All kids complete together)",
-        "independent": "Independent (Each kid completes separately)",
-        "shared_first": "Shared (First to complete wins)"
+        "shared_all": "Shared with All (All kids must complete together)",
+        "independent": "Independent (Each kid completes on their own)",
+        "shared_first": "Shared with First (First completion counts)"
       }
     },
     "approval_reset_type": {
       "options": {
-        "at_midnight_once": "At Midnight (Once per day)",
-        "at_midnight_multi": "At Midnight (Multiple per day)",
-        "at_due_date_once": "At Due Date (Once per cycle)",
-        "at_due_date_multi": "At Due Date (Multiple per cycle)",
-        "upon_completion": "Upon Completion (Unlimited)"
+        "at_midnight_once": "Permitir 1 finalización - se reinicia a medianoche",
+        "at_midnight_multi": "Permitir múltiples finalizaciones - se reinicia a medianoche",
+        "at_due_date_once": "Permitir 1 finalización - se reinicia en la fecha de vencimiento",
+        "at_due_date_multi": "Permitir múltiples finalizaciones - se reinicia en la fecha de vencimiento",
+        "upon_completion": "Permitir finalizaciones ilimitadas - se reinicia después de completar"
       }
     },
     "overdue_handling_type": {
       "options": {
-        "at_due_date": "Overdue until complete",
-        "never_overdue": "Never overdue",
-        "at_due_date_then_reset": "Overdue until complete or next reset"
+        "at_due_date": "Mostrar Vencido Después de la Fecha de Vencimiento (Hasta Finalización)",
+        "never_overdue": "Nunca Mostrar como Vencido",
+        "at_due_date_then_reset": "Mostrar Vencido Después de la Fecha de Vencimiento (Hasta Reinicio de Aprobación)"
       }
     },
     "approval_reset_pending_claim_action": {
       "options": {
-        "hold_pending": "Hold for parent review",
-        "clear_pending": "Clear and start fresh",
-        "auto_approve_pending": "Auto-approve at reset"
+        "hold_pending": "Mantener en Estado de Reclamación (Esperar Aprobación/Rechazo)",
+        "clear_pending": "Limpiar Todas las Reclamaciones Pendientes",
+        "auto_approve_pending": "Aprobar Automáticamente Todas las Reclamaciones Pendientes"
+      }
+    },
+    "chore_notifications": {
+      "title": "Notificaciones",
+      "description": "¿Cuándo se deben enviar notificaciones para esta tarea?",
+      "options": {
+        "notify_on_claim": "Notificar al Reclamar",
+        "notify_on_approval": "Notificar al Aprobar",
+        "notify_on_disapproval": "Notificar al Desaprobar"
       }
     },
     "recurring_frequency": {
@@ -1399,13 +1433,6 @@
       "options": {
         "points": "Puntos",
         "chore_count": "Cantidad de Tareas"
-      }
-    },
-    "backup_action_selection": {
-      "options": {
-        "view_backups": "Ver y Gestionar Copias de Seguridad",
-        "create_backup": "Crear Copia de Seguridad Manual",
-        "return_to_menu": "Return to Main Menu"
       }
     }
   },
@@ -1790,13 +1817,6 @@
               "independent": "Independiente"
             }
           },
-          "partial_allowed": {
-            "name": "Permitido Parcialmente",
-            "state": {
-              "true": "Sí",
-              "false": "No"
-            }
-          },
           "allow_multiple_claims_per_day": {
             "name": "Permitir Múltiples Reclamaciones por Día",
             "state": {
@@ -2002,13 +2022,6 @@
           },
           "default_points": {
             "name": "Puntos Predeterminados"
-          },
-          "partial_allowed": {
-            "name": "Permitido Parcialmente",
-            "state": {
-              "true": "Sí",
-              "false": "No"
-            }
           },
           "allow_multiple_claims_per_day": {
             "name": "Permitir Múltiples Reclamaciones por Día",

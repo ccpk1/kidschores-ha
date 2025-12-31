@@ -59,6 +59,10 @@ SCHEMA_VERSION_STORAGE_ONLY: Final = (
     42  # v42: Storage-only mode (staying on v42 per 2025-12-19 decision)
 )
 
+# Float precision for stored numeric values (points, chore stats, etc.)
+# Prevents Python float arithmetic drift (e.g., 27.499999999999996 → 27.5)
+DATA_FLOAT_PRECISION: Final = 2
+
 # Storage metadata section (for future v43+)
 DATA_META: Final = "meta"
 DATA_META_SCHEMA_VERSION: Final = "schema_version"
@@ -250,7 +254,8 @@ OPTIONS_FLOW_STEP_SELECT_ENTITY: Final = "select_entity"
 
 # OptionsFlow Backup Management Steps
 OPTIONS_FLOW_STEP_BACKUP_ACTIONS: Final = "backup_actions_menu"
-OPTIONS_FLOW_STEP_VIEW_BACKUPS: Final = "view_backups"
+OPTIONS_FLOW_STEP_SELECT_BACKUP_TO_DELETE: Final = "select_backup_to_delete"
+OPTIONS_FLOW_STEP_SELECT_BACKUP_TO_RESTORE: Final = "select_backup_to_restore"
 OPTIONS_FLOW_STEP_CREATE_MANUAL_BACKUP: Final = "create_manual_backup"
 OPTIONS_FLOW_STEP_CREATE_BACKUP_CONFIRM: Final = "create_backup_confirm"
 OPTIONS_FLOW_STEP_CREATE_BACKUP_SUCCESS: Final = "create_backup_success"
@@ -348,7 +353,7 @@ CFOF_CHORES_INPUT_NAME: Final = "chore_name"
 CFOF_CHORES_INPUT_NOTIFY_ON_APPROVAL: Final = "notify_on_approval"
 CFOF_CHORES_INPUT_NOTIFY_ON_CLAIM: Final = "notify_on_claim"
 CFOF_CHORES_INPUT_NOTIFY_ON_DISAPPROVAL: Final = "notify_on_disapproval"
-CFOF_CHORES_INPUT_PARTIAL_ALLOWED: Final = "partial_allowed"
+CFOF_CHORES_INPUT_PARTIAL_ALLOWED_LEGACY: Final = "partial_allowed"
 CFOF_CHORES_INPUT_RECURRING_FREQUENCY: Final = "recurring_frequency"
 CFOF_CHORES_INPUT_SHARED_CHORE: Final = "shared_chore"
 CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: Final = "overdue_handling_type"
@@ -576,7 +581,7 @@ CONF_CUSTOM_INTERVAL_UNIT: Final = "custom_interval_unit"
 CONF_DEFAULT_POINTS: Final = "default_points"
 CONF_DUE_DATE: Final = "due_date"
 CONF_OVERDUE_HANDLING_TYPE: Final = "overdue_handling_type"
-CONF_PARTIAL_ALLOWED: Final = "partial_allowed"
+CONF_PARTIAL_ALLOWED_LEGACY: Final = "partial_allowed"
 CONF_RECURRING_FREQUENCY: Final = "recurring_frequency"
 CONF_CHORE_SHOW_ON_CALENDAR: Final = "show_on_calendar"
 
@@ -587,6 +592,7 @@ CONF_MOBILE_NOTIFY_SERVICE: Final = "mobile_notify_service"
 CONF_NOTIFY_ON_APPROVAL: Final = "notify_on_approval"
 CONF_NOTIFY_ON_CLAIM: Final = "notify_on_claim"
 CONF_NOTIFY_ON_DISAPPROVAL: Final = "notify_on_disapproval"
+CONF_CHORE_NOTIFICATIONS: Final = "chore_notifications"
 NOTIFICATION_EVENT: Final = "mobile_app_notification_action"
 
 # Sensor Settings
@@ -1040,7 +1046,7 @@ DATA_CHORE_NOTIFY_ON_APPROVAL: Final = "notify_on_approval"
 DATA_CHORE_NOTIFY_ON_CLAIM: Final = "notify_on_claim"
 DATA_CHORE_NOTIFY_ON_DISAPPROVAL: Final = "notify_on_disapproval"
 DATA_CHORE_AUTO_APPROVE: Final = "auto_approve"
-DATA_CHORE_PARTIAL_ALLOWED: Final = "partial_allowed"
+DATA_CHORE_PARTIAL_ALLOWED_LEGACY: Final = "partial_allowed"
 DATA_CHORE_RECURRING_FREQUENCY: Final = "recurring_frequency"
 DATA_CHORE_SHOW_ON_CALENDAR: Final = "show_on_calendar"
 DATA_CHORE_COMPLETION_CRITERIA: Final = "completion_criteria"
@@ -1315,7 +1321,7 @@ DEFAULT_NOTIFY_DELAY_REMINDER: Final = 24
 DEFAULT_NOTIFY_ON_APPROVAL = True
 DEFAULT_NOTIFY_ON_CLAIM = True
 DEFAULT_NOTIFY_ON_DISAPPROVAL = True
-DEFAULT_PARTIAL_ALLOWED = False
+DEFAULT_PARTIAL_ALLOWED_LEGACY = False
 DEFAULT_PENALTY_POINTS: Final = 1
 DEFAULT_PENDING_CHORES_UNIT: Final = "Pending Chores"
 DEFAULT_PENDING_REWARDS_UNIT: Final = "Pending Rewards"
@@ -1561,7 +1567,7 @@ ATTR_NEXT_LOWER_BADGE_ID: Final = "next_lower_badge_id"
 ATTR_NEXT_LOWER_BADGE_NAME: Final = "next_lower_badge_name"
 ATTR_OCCASION_DATE: Final = "occasion_date"
 ATTR_OCCASION_TYPE: Final = "occasion_type"
-ATTR_PARTIAL_ALLOWED: Final = "partial_allowed"
+ATTR_PARTIAL_ALLOWED_LEGACY: Final = "partial_allowed"
 ATTR_PENALTY_BUTTON_EID: Final = "penalty_button_eid"
 ATTR_PENALTY_NAME: Final = "penalty_name"
 ATTR_PENALTY_POINTS: Final = "penalty_points"
@@ -1871,6 +1877,9 @@ LABEL_PARENT: Final = "Parent"
 LABEL_ACHIEVEMENT: Final = "Achievement"
 LABEL_CHALLENGE: Final = "Challenge"
 
+# Backup/Restore Labels
+# (backup label constants removed - now using emoji prefixes directly)
+
 # Deprecated entity unique_id suffixes (for cleanup/migration - KC 3.x compatibility)
 DEPRECATED_SUFFIX_BADGES: Final = "_badges"
 DEPRECATED_SUFFIX_REWARD_CLAIMS: Final = "_reward_claims"
@@ -2123,12 +2132,9 @@ TRANS_KEY_CFOF_BACKUP_AGE: Final = "backup_age"
 TRANS_KEY_CFOF_RESTORE_WARNING: Final = "restore_warning"
 
 # Backup Management
-TRANS_KEY_CFOF_BACKUP_ACTIONS: Final = "backup_actions"
-TRANS_KEY_CFOF_BACKUP_ACTION_SELECT: Final = "backup_action_select"
-TRANS_KEY_CFOF_BACKUP_ACTION_CREATE: Final = "backup_action_create"
-TRANS_KEY_CFOF_BACKUP_ACTION_VIEW: Final = "backup_action_view"
-TRANS_KEY_CFOF_BACKUP_ACTION_RESTORE: Final = "backup_action_restore"
-TRANS_KEY_CFOF_BACKUP_RETURN_MENU: Final = "backup_return_menu"
+TRANS_KEY_CFOF_BACKUP_ACTIONS_MENU: Final = "backup_actions_menu"
+TRANS_KEY_CFOF_SELECT_BACKUP_TO_DELETE: Final = "select_backup_to_delete"
+TRANS_KEY_CFOF_SELECT_BACKUP_TO_RESTORE: Final = "select_backup_to_restore"
 
 # Badge Fields
 TRANS_KEY_CFOF_BADGE_ASSIGNED_TO: Final = "assigned_to"
@@ -2280,6 +2286,8 @@ TRANS_KEY_FLOW_HELPERS_APPROVAL_RESET_PENDING_CLAIM_ACTION: Final = (
 )
 TRANS_KEY_FLOW_HELPERS_APPROVAL_RESET_TYPE: Final = "approval_reset_type"
 TRANS_KEY_FLOW_HELPERS_ASSIGNED_KIDS: Final = "assigned_kids"
+TRANS_KEY_FLOW_HELPERS_CHORE_NOTIFICATIONS: Final = "chore_notifications"
+TRANS_KEY_FLOW_HELPERS_COMPLETION_CRITERIA: Final = "completion_criteria"
 TRANS_KEY_FLOW_HELPERS_ASSOCIATED_ACHIEVEMENT: Final = "associated_achievement"
 TRANS_KEY_FLOW_HELPERS_ASSOCIATED_CHALLENGE: Final = "associated_challenge"
 TRANS_KEY_FLOW_HELPERS_ASSOCIATED_KIDS: Final = "associated_kids"
