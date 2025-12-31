@@ -1885,6 +1885,9 @@
       "chores_completed_monthly_sensor": {
         "name": "Chores Completed - Monthly"
       },
+      "chores_sensor": {
+        "name": "Chores"
+      },
       "kids_badges_sensor": {
         "name": "Badges",
         "state_attributes": {
