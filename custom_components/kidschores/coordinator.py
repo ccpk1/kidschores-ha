@@ -8385,6 +8385,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.DATA_CHORE_RECURRING_FREQUENCY, const.FREQUENCY_NONE
         )
 
+        # Initialize custom frequency parameters (used only when freq == FREQUENCY_CUSTOM)
+        custom_interval: int | None = None
+        custom_unit: str | None = None
+
         # Validate custom frequency parameters
         if freq == const.FREQUENCY_CUSTOM:
             custom_interval = chore_info.get(const.DATA_CHORE_CUSTOM_INTERVAL)
@@ -8422,6 +8426,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # Calculate next due date based on frequency
         if freq == const.FREQUENCY_CUSTOM:
+            # Type narrowing: custom_unit and custom_interval are validated above
+            assert custom_unit is not None
+            assert custom_interval is not None
             next_due_utc = cast(
                 datetime,
                 kh.adjust_datetime_by_interval(
