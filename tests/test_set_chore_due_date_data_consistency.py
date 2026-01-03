@@ -7,8 +7,7 @@ This test validates that set_chore_due_date maintains proper data structure:
 
 # pylint: disable=protected-access  # Accessing _data for testing coordinator directly
 # pylint: disable=redefined-outer-name  # Pytest fixture pattern
-
-from datetime import datetime
+# pylint: disable=unused-argument  # Fixtures needed for test setup
 
 import pytest
 from homeassistant.core import HomeAssistant

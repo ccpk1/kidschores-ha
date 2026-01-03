@@ -3060,6 +3060,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_APPROVAL_PERIOD_START: approval_period_start,
             const.ATTR_CAN_CLAIM: can_claim,
             const.ATTR_CAN_APPROVE: can_approve,
+            const.ATTR_COMPLETION_CRITERIA: completion_criteria,
         }
 
     def _calculate_primary_group(
@@ -3166,6 +3167,91 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         # Minimal native value summarizing counts
         return f"chores:{len(chores)} rewards:{len(rewards)} badges:{badges_count} bonuses:{bonuses_count} penalties:{penalties_count} achievements:{achievements_count} challenges:{challenges_count}"
+
+    def _build_core_sensors(self, entity_registry) -> dict[str, str | None]:
+        """Build core sensor entity IDs for dashboard use.
+
+        Looks up entity IDs from the registry by unique ID to ensure correct
+        entity references even if users have renamed entities.
+
+        Args:
+            entity_registry: Entity registry instance from hass.
+
+        Returns:
+            dict: {
+                "points_eid": "sensor.kc_kid_name_points" or None,
+                "chores_eid": "sensor.kc_kid_name_chores" or None,
+                "badges_eid": "sensor.kc_kid_name_badges" or None
+            }
+        """
+        sensor_types = [
+            (const.SENSOR_KC_UID_SUFFIX_KID_POINTS_SENSOR, "points_eid"),
+            (const.SENSOR_KC_UID_SUFFIX_CHORES_SENSOR, "chores_eid"),
+            (const.SENSOR_KC_UID_SUFFIX_KID_HIGHEST_BADGE_SENSOR, "badges_eid"),
+        ]
+
+        core_sensors = {}
+        for suffix, key in sensor_types:
+            unique_id = f"{self._entry.entry_id}_{self._kid_id}{suffix}"
+            try:
+                entity_id = entity_registry.async_get_entity_id(
+                    "sensor", const.DOMAIN, unique_id
+                )
+                core_sensors[key] = entity_id
+            except (KeyError, ValueError, AttributeError):
+                core_sensors[key] = None
+
+        return core_sensors
+
+    def _build_dashboard_helpers(self, entity_registry) -> dict[str, str | None]:
+        """Build dashboard helper entity IDs for dashboard use.
+
+        Looks up entity IDs from the registry by unique ID to ensure correct
+        entity references even if users have renamed entities.
+
+        Args:
+            entity_registry: Entity registry instance from hass.
+
+        Returns:
+            dict: {
+                "date_helper_eid": "datetime.kc_kid_name_ui_dashboard_date_helper" or None,
+                "chore_select_eid": "select.kc_kid_name_ui_dashboard_chore_list_helper" or None
+            }
+        """
+        # Datetime helper uses SUFFIX pattern: entry_id_kid_id + SUFFIX
+        datetime_unique_id = (
+            f"{self._entry.entry_id}_{self._kid_id}"
+            f"{const.DATETIME_KC_UID_SUFFIX_DATE_HELPER}"
+        )
+
+        # Select helper uses MIDFIX pattern: entry_id + MIDFIX + kid_id
+        select_unique_id = (
+            f"{self._entry.entry_id}"
+            f"{const.SELECT_KC_UID_MIDFIX_CHORES_SELECT}"
+            f"{self._kid_id}"
+        )
+
+        dashboard_helpers = {}
+
+        # Look up datetime helper
+        try:
+            entity_id = entity_registry.async_get_entity_id(
+                "datetime", const.DOMAIN, datetime_unique_id
+            )
+            dashboard_helpers["date_helper_eid"] = entity_id
+        except (KeyError, ValueError, AttributeError):
+            dashboard_helpers["date_helper_eid"] = None
+
+        # Look up select helper
+        try:
+            entity_id = entity_registry.async_get_entity_id(
+                "select", const.DOMAIN, select_unique_id
+            )
+            dashboard_helpers["chore_select_eid"] = entity_id
+        except (KeyError, ValueError, AttributeError):
+            dashboard_helpers["chore_select_eid"] = None
+
+        return dashboard_helpers
 
     def _build_pending_approvals(self, entity_registry) -> dict:
         """Build pending approvals data with button entity IDs.
@@ -3651,6 +3737,12 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         # Reset change flags after building attributes
         self.coordinator.reset_pending_change_flags()
 
+        # Build core sensors dict (used by dashboard to avoid slug construction)
+        core_sensors = self._build_core_sensors(entity_registry)
+
+        # Build dashboard helpers dict (used by dashboard to avoid slug construction)
+        dashboard_helpers = self._build_dashboard_helpers(entity_registry)
+
         return {
             const.ATTR_PURPOSE: const.PURPOSE_SENSOR_DASHBOARD_HELPER,
             "chores": chores_attr,
@@ -3663,6 +3755,8 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             "challenges": challenges_attr,
             "points_buttons": points_buttons_attr,
             "pending_approvals": pending_approvals,
+            "core_sensors": core_sensors,
+            "dashboard_helpers": dashboard_helpers,
             const.ATTR_KID_NAME: self._kid_name,
             "ui_translations": self._ui_translations,
             "language": dashboard_language,

@@ -419,6 +419,26 @@
           "approval_reset_pending_claim_action": "Reclamaciones Pendientes en Reinicio",
           "overdue_handling_type": "Manejo de Vencimiento",
           "chore_notifications": "Notificaciones"
+        },
+        "data_description": {
+          "chore_name": "Nombre único que se muestra en todo el sistema.",
+          "chore_description": "Instrucciones opcionales o detalles sobre cómo completar esta tarea.",
+          "icon": "Ícono de Material Design (por ejemplo, mdi:broom, mdi:dishwasher).",
+          "chore_labels": "Etiquetas para organizar tareas (por ejemplo, 'cocina', 'exterior'). Dejar en blanco si no es necesario.",
+          "default_points": "Puntos obtenidos al completarse.",
+          "assigned_kids": "Niños que pueden ver y reclamar esta tarea.",
+          "completion_criteria": "Cómo funcionan las tareas compartidas: Independiente (cada niño completa por separado), Compartida Todos (todos deben aprobar), o Compartida Primero (la primera aprobación completa la tarea).",
+          "approval_reset_type": "Controla cuándo se reinicia esta tarea y cuántas finalizaciones se permiten durante ese período.",
+          "approval_reset_pending_claim_action": "Cuando esta tarea se reinicia (según el Tiempo de Reinicio de Finalización anterior), ¿qué sucede con las reclamaciones que aún esperan aprobación?",
+          "overdue_handling_type": "Acción después de la fecha de vencimiento: Ocultar estado de vencimiento, permanecer vencido hasta que se reclame, o restablecer a pendiente en el próximo ciclo de aprobación.",
+          "auto_approve": "Cuando está habilitado, las reclamaciones se aprueban instantáneamente sin revisión de los padres.",
+          "recurring_frequency": "Con qué frecuencia se repite la tarea: Diaria, Semanal, Mensual, Anual, Personalizada o Ninguna.",
+          "custom_interval": "Número de unidades de tiempo entre repeticiones (por ejemplo, 3 para 'cada 3 semanas'). Solo se usa con frecuencia Personalizada.",
+          "custom_interval_unit": "Unidad de tiempo para intervalo personalizado (días, semanas, meses). Solo se usa con frecuencia Personalizada.",
+          "applicable_days": "Restringir la tarea a días de la semana específicos. Dejar en blanco para todos los días.",
+          "due_date": "Fecha límite opcional. Se puede combinar con horarios recurrentes.",
+          "show_on_calendar": "Mostrar esta tarea en la vista de calendario.",
+          "chore_notifications": "Cuándo enviar notificaciones: Al reclamar, al aprobar, al rechazar, o cualquier combinación."
         }
       },
       "add_badge": {
@@ -767,7 +787,7 @@
           "completion_criteria": "Cómo funcionan las tareas compartidas: Independiente (cada niño completa por separado), Compartida Todo (todos deben aprobar), o Compartida Primera (la primera aprobación completa la tarea).",
           "approval_reset_type": "Controla cuándo se reinicia esta tarea y cuántas finalizaciones se permiten durante ese período.",
           "approval_reset_pending_claim_action": "Cuando se reinicia esta tarea (basado en el Intervalo de Reinicio de Finalización anterior), ¿qué sucede con las reclamaciones que aún están esperando aprobación?",
-          "overdue_handling_type": "Qué sucede cuando pasa la fecha de vencimiento: Revisión manual (sin acción), Auto-rechazo (denegar reclamaciones), o Auto-aprobación (otorgar puntos de todas formas).",
+          "overdue_handling_type": "Acción después de la fecha de vencimiento: Ocultar estado de vencimiento, permanecer vencido hasta que se reclame, o restablecer a pendiente en el próximo ciclo de aprobación.",
           "auto_approve": "Cuando está habilitado, las reclamaciones se aprueban instantáneamente sin revisión de los padres.",
           "recurring_frequency": "Con qué frecuencia se repite la tarea: Diariamente, Semanalmente, Mensualmente, Anualmente, Personalizada, o Ninguna.",
           "custom_interval": "Número de unidades de tiempo entre repeticiones (por ejemplo, 3 para 'cada 3 semanas'). Solo se usa con frecuencia personalizada.",

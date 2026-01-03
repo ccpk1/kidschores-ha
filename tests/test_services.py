@@ -1,5 +1,7 @@
 """Tests for KidsChores services."""
 
+# pylint: disable=protected-access  # Accessing _create_kid, _create_chore for testing
+
 import uuid
 from unittest.mock import AsyncMock, patch
 
@@ -31,8 +33,6 @@ from custom_components.kidschores.const import (
     SERVICE_RESET_OVERDUE_CHORES,
     SERVICE_RESET_PENALTIES,
     SERVICE_RESET_REWARDS,
-    SERVICE_SET_CHORE_DUE_DATE,
-    SERVICE_SKIP_CHORE_DUE_DATE,
 )
 
 from .conftest import create_mock_chore_data, create_mock_kid_data
@@ -948,97 +948,6 @@ async def test_service_remove_awarded_badges_all(
 
         # Verify badges removed
         assert len(coordinator.kids_data[kid_id]["badges_earned"]) == 0
-
-
-async def test_service_set_chore_due_date_success(
-    hass: HomeAssistant,
-    init_integration: MockConfigEntry,
-) -> None:
-    """Test set_chore_due_date service sets due date."""
-    coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
-
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-        # Create a kid
-        kid_id = str(uuid.uuid4())
-        kid_data = create_mock_kid_data(name="Test Kid")
-        kid_data["internal_id"] = kid_id
-        # pylint: disable=protected-access
-        coordinator._create_kid(kid_id, kid_data)
-
-        # Create a chore without due date
-        chore_id = str(uuid.uuid4())
-        chore_data = create_mock_chore_data(
-            name="Test Chore",
-            default_points=5.0,
-            assigned_kids=[kid_id],
-        )
-        chore_data["internal_id"] = chore_id
-        coordinator._create_chore(chore_id, chore_data)
-        # pylint: enable=protected-access
-
-        # Verify no due date initially
-        assert coordinator.chores_data[chore_id].get("due_date") is None
-
-        # Set due date via service (future date)
-        future_date = "2026-12-31T23:59:00+00:00"
-        await hass.services.async_call(
-            DOMAIN,
-            SERVICE_SET_CHORE_DUE_DATE,
-            {
-                ATTR_CHORE_NAME: "Test Chore",
-                "due_date": future_date,
-            },
-            blocking=True,
-        )
-
-        # Verify due date is set
-        assert coordinator.chores_data[chore_id].get("due_date") is not None
-
-
-async def test_service_skip_chore_due_date_success(
-    hass: HomeAssistant,
-    init_integration: MockConfigEntry,
-) -> None:
-    """Test skip_chore_due_date service reschedules recurring chore."""
-    coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
-
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-        # Create a kid
-        kid_id = str(uuid.uuid4())
-        kid_data = create_mock_kid_data(name="Test Kid")
-        kid_data["internal_id"] = kid_id
-        # pylint: disable=protected-access
-        coordinator._create_kid(kid_id, kid_data)
-
-        # Create a recurring chore with due date
-        chore_id = str(uuid.uuid4())
-        chore_data = create_mock_chore_data(
-            name="Weekly Chore",
-            default_points=5.0,
-            assigned_kids=[kid_id],
-        )
-        chore_data["internal_id"] = chore_id
-        chore_data["recurring_frequency"] = "weekly"
-        chore_data["due_date"] = "2025-12-25T12:00:00+00:00"
-        coordinator._create_chore(chore_id, chore_data)
-        # pylint: enable=protected-access
-
-        original_due_date = coordinator.chores_data[chore_id]["due_date"]
-
-        # Skip due date via service
-        await hass.services.async_call(
-            DOMAIN,
-            SERVICE_SKIP_CHORE_DUE_DATE,
-            {
-                ATTR_CHORE_NAME: "Weekly Chore",
-            },
-            blocking=True,
-        )
-
-        # Verify due date was rescheduled (changed from original)
-        new_due_date = coordinator.chores_data[chore_id]["due_date"]
-        assert new_due_date != original_due_date
-        assert coordinator.chores_data[chore_id]["state"] == CHORE_STATE_PENDING
 
 
 # ============================================================================

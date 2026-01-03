@@ -8,8 +8,9 @@ This test validates that:
 
 # pylint: disable=protected-access  # Accessing _data for testing coordinator directly
 # pylint: disable=redefined-outer-name  # Pytest fixture pattern
+# pylint: disable=unused-argument  # Fixtures needed for test setup
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import pytest
 from homeassistant.core import HomeAssistant

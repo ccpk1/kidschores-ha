@@ -11,11 +11,11 @@ After migration:
 
 # pylint: disable=protected-access  # Accessing _data for testing coordinator directly
 # pylint: disable=redefined-outer-name  # Pytest fixture pattern
+# pylint: disable=unused-argument  # Fixtures needed for test setup
 
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import entity_registry as er
 
 from custom_components.kidschores.const import (
     COMPLETION_CRITERIA_INDEPENDENT,
@@ -141,18 +141,21 @@ async def test_skip_chore_due_date_independent_chore_with_per_kid_due_date(
     assert "kid_1" in chore_info[DATA_CHORE_PER_KID_DUE_DATES]
 
 
-async def test_skip_chore_due_date_independent_chore_no_due_dates_fails(
+async def test_skip_chore_due_date_independent_chore_no_due_dates_noop(
     hass: HomeAssistant,
     coordinator_with_post_migration_chores: KidsChoresDataCoordinator,
 ) -> None:
-    """Test skip_chore_due_date fails for INDEPENDENT chore with no due dates."""
+    """Test skip_chore_due_date returns early for INDEPENDENT chore with no due dates."""
     coordinator = coordinator_with_post_migration_chores
 
-    # Should fail - INDEPENDENT chore with no due dates anywhere
-    with pytest.raises(
-        HomeAssistantError, match="Required field 'due_date' is missing"
-    ):
-        coordinator.skip_chore_due_date("independent_no_due_date", "kid_1")
+    # Should return early (no-op) - INDEPENDENT chore with no due dates anywhere
+    # This should not raise an exception
+    coordinator.skip_chore_due_date("independent_no_due_date", "kid_1")
+
+    # Verify chore data unchanged (no due dates should still be no due dates)
+    chore_info = coordinator.chores_data["independent_no_due_date"]
+    per_kid_due_dates = chore_info.get(DATA_CHORE_PER_KID_DUE_DATES, {})
+    assert per_kid_due_dates.get("kid_1") is None
 
 
 async def test_skip_chore_due_date_shared_chore_no_due_date_fails(

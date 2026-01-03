@@ -1,5 +1,7 @@
 """Test specific user migration data."""
 
+# pylint: disable=redefined-outer-name  # Pytest fixture pattern
+
 import json
 from pathlib import Path
 from unittest.mock import patch

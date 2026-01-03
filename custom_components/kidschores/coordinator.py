@@ -84,7 +84,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         """Run pre-v42 schema migrations if needed.
 
         Lazy-loads the migration module to avoid any cost for v42+ users.
-        All 9 migration methods are encapsulated in the PreV42Migrator class.
+        All migration methods are encapsulated in the PreV42Migrator class.
         """
         from .migration_pre_v42 import PreV42Migrator
 
@@ -1260,9 +1260,22 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.DATA_CHORE_RECURRING_FREQUENCY,
             chore_info[const.DATA_CHORE_RECURRING_FREQUENCY],
         )
-        chore_info[const.DATA_CHORE_DUE_DATE] = chore_data.get(
-            const.DATA_CHORE_DUE_DATE, chore_info[const.DATA_CHORE_DUE_DATE]
+
+        # Handle due_date based on completion criteria to avoid KeyError
+        completion_criteria = chore_info.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA,
+            const.COMPLETION_CRITERIA_INDEPENDENT,  # Legacy default
         )
+        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+            # For INDEPENDENT chores: chore-level due_date should remain None
+            # (per_kid_due_dates are authoritative)
+            chore_info[const.DATA_CHORE_DUE_DATE] = None
+        else:
+            # For SHARED chores: update chore-level due_date normally
+            chore_info[const.DATA_CHORE_DUE_DATE] = chore_data.get(
+                const.DATA_CHORE_DUE_DATE, chore_info.get(const.DATA_CHORE_DUE_DATE)
+            )
+
         chore_info[const.DATA_CHORE_LAST_COMPLETED] = chore_data.get(
             const.DATA_CHORE_LAST_COMPLETED,
             chore_info.get(const.DATA_CHORE_LAST_COMPLETED),
@@ -2448,9 +2461,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # Increment pending_count counter BEFORE _process_chore_state so has_pending_claim()
         # returns the correct value during global state computation (v0.4.0+ counter-based tracking)
-        # Note: Only set pending_count here - _update_chore_data_for_kid handles full initialization
+        # Use _update_chore_data_for_kid to ensure proper initialization
+        chore_info = self.chores_data[chore_id]
+        chore_name = chore_info.get(const.DATA_CHORE_NAME, chore_id)
+        self._update_chore_data_for_kid(kid_id, chore_id, 0.0)  # Initialize properly
         kid_chores_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
-        kid_chore_data_entry = kid_chores_data.setdefault(chore_id, {})
+        kid_chore_data_entry = kid_chores_data[chore_id]  # Now guaranteed to exist
         current_count = kid_chore_data_entry.get(
             const.DATA_KID_CHORE_DATA_PENDING_COUNT, 0
         )
@@ -2476,8 +2492,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 )
                 # Store who claimed it for display purposes
                 other_kid_info = self.kids_data.get(other_kid_id, {})
+                # Ensure proper initialization of chore data
+                self._update_chore_data_for_kid(other_kid_id, chore_id, 0.0)
                 chore_data = other_kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
-                chore_entry = chore_data.setdefault(chore_id, {})
+                chore_entry = chore_data[chore_id]  # Now guaranteed to exist
                 chore_entry[const.DATA_CHORE_CLAIMED_BY] = claiming_kid_name
                 const.LOGGER.debug(
                     "SHARED_FIRST: Set kid '%s' to completed_by_other for chore '%s' (claimed by '%s')",
@@ -2630,7 +2648,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # Decrement pending_count counter after approval (v0.4.0+ counter-based tracking)
         kid_chores_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
-        kid_chore_data_entry = kid_chores_data.setdefault(chore_id, {})
+        # Use get() to avoid overwriting existing data that _process_chore_state just created
+        kid_chore_data_entry = kid_chores_data[
+            chore_id
+        ]  # Should exist from _process_chore_state
         current_count = kid_chore_data_entry.get(
             const.DATA_KID_CHORE_DATA_PENDING_COUNT, 0
         )
@@ -2650,7 +2671,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 # Update the completed_by attribute
                 other_kid_info = self.kids_data.get(other_kid_id, {})
                 chore_data = other_kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
-                chore_entry = chore_data.setdefault(chore_id, {})
+                # Ensure proper chore data initialization
+                if chore_id not in chore_data:
+                    self._update_chore_data_for_kid(other_kid_id, chore_id, 0.0)
+                chore_entry = chore_data[chore_id]
                 chore_entry[const.DATA_CHORE_COMPLETED_BY] = completing_kid_name
                 const.LOGGER.debug(
                     "SHARED_FIRST: Updated completed_by='%s' for kid '%s' on chore '%s'",
@@ -2816,7 +2840,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Decrement pending_count for the claimant ONLY (v0.4.0+ counter-based tracking)
         # This happens regardless of completion criteria - only the kid who claimed is affected
         kid_chores_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
-        kid_chore_data_entry = kid_chores_data.setdefault(chore_id, {})
+        # Ensure proper chore data initialization
+        if chore_id not in kid_chores_data:
+            self._update_chore_data_for_kid(kid_id, chore_id, 0.0)
+        kid_chore_data_entry = kid_chores_data[chore_id]
         current_count = kid_chore_data_entry.get(
             const.DATA_KID_CHORE_DATA_PENDING_COUNT, 0
         )
@@ -3325,9 +3352,15 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         if new_state == const.CHORE_STATE_CLAIMED:
             # Update kid_chore_data with claim timestamp (v0.4.0+ timestamp-based tracking)
-            kid_chores_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
-            kid_chore_data_entry = kid_chores_data.setdefault(chore_id, {})
             now_iso = dt_util.utcnow().isoformat()
+            # Use _update_chore_data_for_kid to ensure proper initialization
+            self._update_chore_data_for_kid(
+                kid_id, chore_id, 0.0
+            )  # No points awarded for claim
+            kid_chores_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
+            kid_chore_data_entry = kid_chores_data[
+                chore_id
+            ]  # Now guaranteed to exist and be properly initialized
             kid_chore_data_entry[const.DATA_KID_CHORE_DATA_LAST_CLAIMED] = now_iso
 
             chore_info[const.DATA_CHORE_LAST_CLAIMED] = now_iso
@@ -3337,8 +3370,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         elif new_state == const.CHORE_STATE_APPROVED:
             # Update kid_chore_data with approval timestamp (v0.4.0+ timestamp-based tracking)
             now_iso = dt_util.utcnow().isoformat()
+            # Use _update_chore_data_for_kid to ensure proper initialization
+            self._update_chore_data_for_kid(kid_id, chore_id, points_awarded or 0.0)
             kid_chores_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
-            kid_chore_data_entry = kid_chores_data.setdefault(chore_id, {})
+            kid_chore_data_entry = kid_chores_data[
+                chore_id
+            ]  # Now guaranteed to exist and be properly initialized
             kid_chore_data_entry[const.DATA_KID_CHORE_DATA_LAST_APPROVED] = now_iso
             # NOTE: last_claimed is intentionally preserved after approval
             # to maintain consistent behavior with other last_* fields
@@ -3375,7 +3412,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             now_iso = dt_util.utcnow().isoformat()
             if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
                 # INDEPENDENT: Store per-kid approval_period_start in kid_chore_data
-                kid_chore_data_entry = kid_chores_data.setdefault(chore_id, {})
+                # Ensure proper chore data initialization
+                if chore_id not in kid_chores_data:
+                    self._update_chore_data_for_kid(kid_id, chore_id, 0.0)
+                kid_chore_data_entry = kid_chores_data[chore_id]
                 kid_chore_data_entry[
                     const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START
                 ] = now_iso
@@ -8980,14 +9020,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                         break
 
             if not has_any_due_date:
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_MISSING_FIELD,
-                    translation_placeholders={
-                        "field": "due_date",
-                        "entity": f"chore '{chore_info.get(const.DATA_CHORE_NAME, chore_id)}'",
-                    },
+                # No due dates to skip - return early (no-op)
+                const.LOGGER.debug(
+                    "Skip request ignored: No kids have due dates for chore %s",
+                    chore_info.get(const.DATA_CHORE_NAME, chore_id),
                 )
+                return
 
         # Apply skip logic based on completion criteria
         if criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
@@ -9003,6 +9041,19 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                             "chore_id": chore_id,
                         },
                     )
+                # Check if this specific kid has a due date to skip
+                per_kid_due_dates = chore_info.get(
+                    const.DATA_CHORE_PER_KID_DUE_DATES, {}
+                )
+                kid_due_date = per_kid_due_dates.get(kid_id)
+                if not kid_due_date:
+                    # No due date for this kid - nothing to skip
+                    const.LOGGER.debug(
+                        "Skip request ignored: Kid %s has no due date for chore %s",
+                        self.kids_data.get(kid_id, {}).get(const.DATA_KID_NAME, kid_id),
+                        chore_info.get(const.DATA_CHORE_NAME, chore_id),
+                    )
+                    return
                 # Use the per-kid reschedule method
                 self._reschedule_chore_next_due_date_for_kid(
                     chore_info, chore_id, kid_id

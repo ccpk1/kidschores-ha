@@ -302,7 +302,7 @@ def create_mock_chore_data(
         "custom_interval": None,
         "custom_interval_unit": None,
         "due_date": None,
-        "applicable_days": [0, 1, 2, 3, 4, 5, 6],
+        "applicable_days": [],  # Empty list = all days applicable
         "notify_on_claim": True,
         "notify_on_approval": True,
         "notify_on_disapproval": True,
@@ -1690,6 +1690,7 @@ def reset_chore_state_for_kid(
         kid_chore_data[chore_id] = {
             const.DATA_KID_CHORE_DATA_NAME: chore_name,
             const.DATA_KID_CHORE_DATA_STATE: const.CHORE_STATE_PENDING,
+            const.DATA_KID_CHORE_DATA_PENDING_COUNT: 0,
             const.DATA_KID_CHORE_DATA_LAST_CLAIMED: None,
             const.DATA_KID_CHORE_DATA_LAST_APPROVED: None,
             const.DATA_KID_CHORE_DATA_LAST_DISAPPROVED: None,
@@ -1710,6 +1711,7 @@ def reset_chore_state_for_kid(
         kid_chore_data[chore_id][const.DATA_KID_CHORE_DATA_STATE] = (
             const.CHORE_STATE_PENDING
         )
+        kid_chore_data[chore_id][const.DATA_KID_CHORE_DATA_PENDING_COUNT] = 0
         kid_chore_data[chore_id][const.DATA_KID_CHORE_DATA_LAST_CLAIMED] = None
         kid_chore_data[chore_id][const.DATA_KID_CHORE_DATA_LAST_APPROVED] = None
         kid_chore_data[chore_id][const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = None
