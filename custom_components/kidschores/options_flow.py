@@ -14,6 +14,7 @@ Ensures consistency and reloads the integration upon changes.
 
 import asyncio
 import uuid
+from datetime import datetime
 from typing import Any, Dict, Optional
 
 import voluptuous as vol
@@ -56,6 +57,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         self._restore_confirmed = False  # Track backup restoration confirmation
         self._backup_to_delete = None  # Track backup filename to delete
         self._backup_to_restore = None  # Track backup filename to restore
+        self._chore_being_edited: dict[str, Any] | None = (
+            None  # For per-kid date editing
+        )
 
     def _get_coordinator(self):
         """Get the coordinator from hass.data."""
@@ -1220,9 +1224,18 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 cid: cdata for cid, cdata in chores_dict.items() if cid != internal_id
             }
 
+            # Get existing per-kid due dates to preserve during edit
+            existing_per_kid_due_dates = chore_data.get(
+                const.DATA_CHORE_PER_KID_DUE_DATES, {}
+            )
+
             # Build and validate chore data using helper function
+            # Pass existing per-kid dates to preserve them for INDEPENDENT chores
             chore_data_dict, errors = fh.build_chores_data(
-                user_input, kids_dict, chores_for_validation
+                user_input,
+                kids_dict,
+                chores_for_validation,
+                existing_per_kid_due_dates,
             )
 
             # Extract chore data (must be before error check to avoid E0606)
@@ -1254,6 +1267,20 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.LOGGER.debug("Chore assignments changed, marking reload needed")
                 self._mark_reload_needed()
 
+            # For INDEPENDENT chores with assigned kids, offer per-kid date editing
+            completion_criteria = updated_chore_data.get(
+                const.DATA_CHORE_COMPLETION_CRITERIA
+            )
+            assigned_kids = updated_chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+            if (
+                completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
+                and assigned_kids
+            ):
+                # Store chore data for the per-kid dates step
+                self._chore_being_edited = updated_chore_data
+                self._chore_being_edited[const.DATA_INTERNAL_ID] = internal_id
+                return await self.async_step_edit_chore_per_kid_dates()
+
             return await self.async_step_init()
 
         # Use flow_helpers.fh.build_chore_schema, passing current kids
@@ -1272,13 +1299,69 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         existing_due_str = chore_data.get(const.DATA_CHORE_DUE_DATE)
         existing_due_date = None
 
-        if existing_due_str:
+        # For INDEPENDENT chores, check if all per-kid dates are the same
+        # If they differ, show blank (None) since the per-kid dates take precedence
+        completion_criteria = chore_data.get(const.DATA_CHORE_COMPLETION_CRITERIA)
+        per_kid_due_dates = chore_data.get(const.DATA_CHORE_PER_KID_DUE_DATES, {})
+        assigned_kids_ids = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+
+        if (
+            completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
+            and per_kid_due_dates
+            and assigned_kids_ids
+        ):
+            # Get unique non-None date values for assigned kids only
+            unique_dates = set()
+            for kid_id in assigned_kids_ids:
+                kid_date = per_kid_due_dates.get(kid_id)
+                if kid_date:
+                    unique_dates.add(kid_date)
+
+            if len(unique_dates) == 1:
+                # All assigned kids have the same date - show it
+                common_date = next(iter(unique_dates))
+                try:
+                    existing_due_date = kh.normalize_datetime_input(
+                        common_date,
+                        default_tzinfo=const.DEFAULT_TIME_ZONE,
+                        return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
+                    )
+                    const.LOGGER.debug(
+                        "INDEPENDENT chore: all kids have same date: %s",
+                        existing_due_date,
+                    )
+                except ValueError as e:
+                    const.LOGGER.error(
+                        "Failed to parse common per-kid date '%s': %s",
+                        common_date,
+                        e,
+                    )
+            elif len(unique_dates) > 1:
+                # Kids have different dates - show blank
+                const.LOGGER.debug(
+                    "INDEPENDENT chore: kids have different dates (%d unique), "
+                    "showing blank due date field",
+                    len(unique_dates),
+                )
+                existing_due_date = None
+            # If no per-kid dates yet, fall through to template date
+            elif existing_due_str:
+                try:
+                    existing_due_date = kh.normalize_datetime_input(
+                        existing_due_str,
+                        default_tzinfo=const.DEFAULT_TIME_ZONE,
+                        return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
+                    )
+                except ValueError:
+                    pass
+        elif existing_due_str:
             try:
-                # Parse to ISO datetime string for display in DateTimeSelector
+                # Parse to local datetime string for DateTimeSelector
+                # Storage is UTC ISO; display is local timezone
                 existing_due_date = kh.normalize_datetime_input(
                     existing_due_str,
                     default_tzinfo=const.DEFAULT_TIME_ZONE,
-                    return_type=const.HELPER_RETURN_ISO_DATETIME,
+                    return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
                 )
                 const.LOGGER.debug(
                     "Processed existing_due_date for DateTimeSelector: %s",
@@ -1292,7 +1375,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 )
 
         # Convert assigned_kids from internal_ids to names for display
-        assigned_kids_ids = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+        # (assigned_kids_ids already set above for per-kid date check)
         assigned_kids_names = [
             id_to_name.get(kid_id, kid_id) for kid_id in assigned_kids_ids
         ]
@@ -1309,6 +1392,247 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_EDIT_CHORE,
             data_schema=schema,
             errors=errors,
+        )
+
+    # ----- Edit Per-Kid Due Dates for INDEPENDENT Chores -----
+    async def async_step_edit_chore_per_kid_dates(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Allow editing per-kid due dates for INDEPENDENT chores.
+
+        Features:
+        - Shows template date from main form (if set) with "Apply to All" option
+        - Each kid's current due date shown as default (editable)
+        - Supports bulk application of template date to all or selected kids
+        """
+        coordinator = self._get_coordinator()
+        errors: dict[str, str] = {}
+
+        # Get chore data from stored state
+        chore_data = getattr(self, "_chore_being_edited", None)
+        if not chore_data:
+            const.LOGGER.error("Per-kid dates step called without chore data")
+            return await self.async_step_init()
+
+        internal_id = chore_data.get(const.DATA_INTERNAL_ID)
+        if not internal_id:
+            const.LOGGER.error("Per-kid dates step: missing internal_id")
+            return await self.async_step_init()
+
+        # Only allow for INDEPENDENT chores
+        completion_criteria = chore_data.get(const.DATA_CHORE_COMPLETION_CRITERIA)
+        if completion_criteria != const.COMPLETION_CRITERIA_INDEPENDENT:
+            const.LOGGER.debug(
+                "Per-kid dates step skipped - not INDEPENDENT (criteria: %s)",
+                completion_criteria,
+            )
+            return await self.async_step_init()
+
+        assigned_kids = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+        if not assigned_kids:
+            const.LOGGER.debug("Per-kid dates step skipped - no assigned kids")
+            return await self.async_step_init()
+
+        # Get fresh per-kid dates from storage (not from _chore_being_edited)
+        stored_chore = coordinator.chores_data.get(internal_id, {})
+        existing_per_kid_dates = stored_chore.get(
+            const.DATA_CHORE_PER_KID_DUE_DATES, {}
+        )
+
+        # Get template date from main form (if set)
+        # This is the date set on the main edit page
+        template_date_str = chore_data.get(const.DATA_CHORE_DUE_DATE)
+        template_date_display = None
+        if template_date_str:
+            try:
+                template_date_display = kh.normalize_datetime_input(
+                    template_date_str,
+                    default_tzinfo=const.DEFAULT_TIME_ZONE,
+                    return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
+                )
+            except (ValueError, TypeError):
+                pass
+
+        # Build name-to-id mapping for assigned kids
+        name_to_id: dict[str, str] = {}
+        for kid_id in assigned_kids:
+            kid_info = coordinator.kids_data.get(kid_id, {})
+            kid_name = kid_info.get(const.DATA_KID_NAME, kid_id)
+            name_to_id[kid_name] = kid_id
+
+        if user_input is not None:
+            # Check if "Apply to All" was selected
+            apply_template_to_all = user_input.get(
+                const.CFOF_CHORES_INPUT_APPLY_TEMPLATE_TO_ALL, False
+            )
+
+            # Process per-kid dates from user input
+            # Field keys use kid names for readability; map back to IDs for storage
+            per_kid_due_dates = {}
+            for kid_name, kid_id in name_to_id.items():
+                # If "Apply to All" is selected and we have a template date, use it
+                if apply_template_to_all and template_date_str:
+                    per_kid_due_dates[kid_id] = template_date_str
+                    const.LOGGER.debug(
+                        "Applied template date to %s: %s", kid_name, template_date_str
+                    )
+                else:
+                    # Use individual date from form
+                    date_value = user_input.get(kid_name)
+                    if date_value:
+                        # Convert to UTC datetime, then to ISO string for storage
+                        # Per quality specs: dates stored in UTC ISO format
+                        try:
+                            utc_dt = kh.normalize_datetime_input(
+                                date_value,
+                                default_tzinfo=const.DEFAULT_TIME_ZONE,
+                                return_type=const.HELPER_RETURN_DATETIME_UTC,
+                            )
+                            if utc_dt and isinstance(utc_dt, datetime):
+                                per_kid_due_dates[kid_id] = utc_dt.isoformat()
+                        except ValueError as e:
+                            const.LOGGER.warning("Invalid date for %s: %s", kid_name, e)
+                            errors[kid_name] = const.TRANS_KEY_CFOF_INVALID_DUE_DATE
+
+            # Validate: If ALL dates are cleared, check recurring frequency compatibility
+            # Only none, daily, weekly frequencies work without due dates
+            if not errors and not per_kid_due_dates:
+                stored_chore = coordinator.chores_data.get(internal_id, {})
+                recurring_frequency = stored_chore.get(
+                    const.DATA_CHORE_RECURRING_FREQUENCY, const.FREQUENCY_NONE
+                )
+                if recurring_frequency not in (
+                    const.FREQUENCY_NONE,
+                    const.FREQUENCY_DAILY,
+                    const.FREQUENCY_WEEKLY,
+                ):
+                    errors[const.CFOP_ERROR_BASE] = (
+                        const.TRANS_KEY_CFOF_DATE_REQUIRED_FOR_FREQUENCY
+                    )
+                    const.LOGGER.debug(
+                        "Cannot clear all dates: frequency '%s' requires due dates",
+                        recurring_frequency,
+                    )
+
+            if not errors:
+                # Update the chore's per_kid_due_dates in storage
+                chores_data = coordinator.chores_data
+                if internal_id in chores_data:
+                    chores_data[internal_id][const.DATA_CHORE_PER_KID_DUE_DATES] = (
+                        per_kid_due_dates
+                    )
+
+                    # ISSUE #4 FIX: Also sync each kid's chore_data due_date
+                    # This mirrors the logic in coordinator.set_chore_due_date()
+                    for kid_id, due_date_iso in per_kid_due_dates.items():
+                        if kid_id in coordinator.kids_data:
+                            kid_info = coordinator.kids_data[kid_id]
+                            kid_chore_data = kid_info.setdefault(
+                                const.DATA_KID_CHORE_DATA, {}
+                            )
+                            if internal_id in kid_chore_data:
+                                kid_chore_data[internal_id][
+                                    const.DATA_KID_CHORE_DATA_DUE_DATE
+                                ] = due_date_iso
+                            const.LOGGER.debug(
+                                "Synced kid %s chore_data due_date for %s: %s",
+                                kid_info.get(const.DATA_KID_NAME),
+                                internal_id,
+                                due_date_iso,
+                            )
+
+                    # Also handle kids whose dates were cleared (not in per_kid_due_dates)
+                    for kid_id in assigned_kids:
+                        if kid_id not in per_kid_due_dates:
+                            if kid_id in coordinator.kids_data:
+                                kid_info = coordinator.kids_data[kid_id]
+                                kid_chore_data = kid_info.get(
+                                    const.DATA_KID_CHORE_DATA, {}
+                                )
+                                if internal_id in kid_chore_data:
+                                    kid_chore_data[internal_id][
+                                        const.DATA_KID_CHORE_DATA_DUE_DATE
+                                    ] = None
+                                const.LOGGER.debug(
+                                    "Cleared kid %s chore_data due_date for %s",
+                                    kid_info.get(const.DATA_KID_NAME),
+                                    internal_id,
+                                )
+
+                    coordinator._persist()
+                    coordinator.async_update_listeners()
+                    const.LOGGER.debug(
+                        "Updated per-kid due dates for chore %s: %s",
+                        internal_id,
+                        per_kid_due_dates,
+                    )
+
+                # Clear stored state
+                self._chore_being_edited = None
+                self._mark_reload_needed()
+                return await self.async_step_init()
+
+        # Build dynamic schema with kid names as field keys (for readable labels)
+        chore_name = chore_data.get(const.DATA_CHORE_NAME, "Unknown")
+        schema_fields: dict[Any, Any] = {}
+        kid_names_list: list[str] = []
+
+        # Add "Apply template to all" checkbox if template date exists
+        if template_date_display:
+            schema_fields[
+                vol.Optional(
+                    const.CFOF_CHORES_INPUT_APPLY_TEMPLATE_TO_ALL, default=False
+                )
+            ] = selector.BooleanSelector()
+
+        for kid_name, kid_id in name_to_id.items():
+            kid_names_list.append(kid_name)
+
+            # Get existing date for this kid from storage
+            existing_date = existing_per_kid_dates.get(kid_id)
+
+            # Convert to local datetime string for DateTimeSelector display
+            # Storage is UTC ISO; display is local timezone
+            default_value = None
+            if existing_date:
+                try:
+                    default_value = kh.normalize_datetime_input(
+                        existing_date,
+                        default_tzinfo=const.DEFAULT_TIME_ZONE,
+                        return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
+                    )
+                except (ValueError, TypeError):
+                    pass
+
+            # Use kid name as field key - HA will display it as the label
+            # (field keys without translations are shown as-is)
+            schema_fields[vol.Optional(kid_name, default=default_value)] = vol.Any(
+                None, selector.DateTimeSelector()
+            )
+
+        # Build description with kid names in order
+        kid_list_text = ", ".join(kid_names_list)
+
+        # Build description placeholders
+        description_placeholders = {
+            "chore_name": chore_name,
+            "kid_names": kid_list_text,
+        }
+
+        # Add template date info if available (shows in description)
+        if template_date_display:
+            description_placeholders["template_date"] = (
+                f"\n\nTemplate date from main form: **{template_date_display}**. "
+                "Check 'Apply template date to all kids' to use this date for everyone."
+            )
+        else:
+            description_placeholders["template_date"] = ""
+
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_EDIT_CHORE_PER_KID_DATES,
+            data_schema=vol.Schema(schema_fields),
+            errors=errors,
+            description_placeholders=description_placeholders,
         )
 
     # ----- Edit Achievement-Linked Badge -----
@@ -1644,25 +1968,26 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 id_to_name.get(kid_id, kid_id) for kid_id in assigned_kids_ids
             ]
 
-            # Convert stored start/end dates to a display format (e.g. local time string)
+            # Convert stored start/end dates to selector format for display
+            start_date_display = None
+            end_date_display = None
+            if challenge_data.get(const.DATA_CHALLENGE_START_DATE):
+                start_date_display = kh.normalize_datetime_input(
+                    challenge_data[const.DATA_CHALLENGE_START_DATE],
+                    default_tzinfo=const.DEFAULT_TIME_ZONE,
+                    return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
+                )
+            if challenge_data.get(const.DATA_CHALLENGE_END_DATE):
+                end_date_display = kh.normalize_datetime_input(
+                    challenge_data[const.DATA_CHALLENGE_END_DATE],
+                    default_tzinfo=const.DEFAULT_TIME_ZONE,
+                    return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
+                )
+
             default_data = {
                 **challenge_data,
-                const.DATA_CHALLENGE_START_DATE: challenge_data.get(
-                    const.DATA_CHALLENGE_START_DATE
-                )
-                and dt_util.as_local(
-                    dt_util.parse_datetime(  # type: ignore[arg-type]
-                        challenge_data[const.DATA_CHALLENGE_START_DATE]
-                    )
-                ).strftime("%Y-%m-%d %H:%M:%S"),
-                const.DATA_CHALLENGE_END_DATE: challenge_data.get(
-                    const.DATA_CHALLENGE_END_DATE
-                )
-                and dt_util.as_local(
-                    dt_util.parse_datetime(  # type: ignore[arg-type]
-                        challenge_data[const.DATA_CHALLENGE_END_DATE]
-                    )
-                ).strftime("%Y-%m-%d %H:%M:%S"),
+                const.DATA_CHALLENGE_START_DATE: start_date_display,
+                const.DATA_CHALLENGE_END_DATE: end_date_display,
                 const.DATA_CHALLENGE_ASSIGNED_KIDS: assigned_kids_names,
             }
             schema = fh.build_challenge_schema(
@@ -1700,7 +2025,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     const.CFOP_ERROR_END_DATE: const.TRANS_KEY_CFOF_END_DATE_IN_PAST
                 }
 
-        if not errors:
+        if not errors and challenge_data_dict:
+            updated_data = challenge_data_dict[internal_id]
             coordinator.update_challenge_entity(internal_id, updated_data)
 
             new_name = user_input[const.CFOF_CHALLENGES_INPUT_NAME].strip()

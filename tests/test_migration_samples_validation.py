@@ -32,6 +32,8 @@ from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kidschores.const import (
+    COMPLETION_CRITERIA_INDEPENDENT,
+    COMPLETION_CRITERIA_SHARED,
     CONF_POINTS_ICON,
     CONF_POINTS_LABEL,
     COORDINATOR,
@@ -50,9 +52,11 @@ from custom_components.kidschores.const import (
     DATA_BADGES,
     DATA_CHORE_APPLICABLE_DAYS,
     DATA_CHORE_ASSIGNED_KIDS,
+    DATA_CHORE_COMPLETION_CRITERIA,
     DATA_CHORE_DUE_DATE,
     DATA_CHORE_LAST_CLAIMED,
     DATA_CHORE_LAST_COMPLETED,
+    DATA_CHORE_NAME,
     DATA_CHORE_NOTIFY_ON_APPROVAL,
     DATA_CHORE_NOTIFY_ON_CLAIM,
     DATA_CHORE_NOTIFY_ON_DISAPPROVAL,
@@ -363,6 +367,7 @@ async def test_migration_chore_required_fields(
         - notify_on_claim (boolean)
         - notify_on_approval (boolean)
         - notify_on_disapproval (boolean)
+        - completion_criteria (string, converted from shared_chore boolean)
     """
     sample_data = request.getfixturevalue(sample_fixture_name)
 
@@ -377,32 +382,51 @@ async def test_migration_chore_required_fields(
 
     # Validate structure for each chore
     for chore_id, chore_data in coordinator.chores_data.items():
+        chore_name = chore_data.get(DATA_CHORE_NAME, f"chore_{chore_id}")
+
         assert DATA_CHORE_APPLICABLE_DAYS in chore_data, (
-            f"Chore {chore_id} missing applicable_days"
+            f"Chore {chore_name} missing applicable_days"
         )
         assert isinstance(chore_data[DATA_CHORE_APPLICABLE_DAYS], list), (
-            f"Chore {chore_id} applicable_days not a list"
+            f"Chore {chore_name} applicable_days not a list"
         )
 
         assert DATA_CHORE_NOTIFY_ON_CLAIM in chore_data, (
-            f"Chore {chore_id} missing notify_on_claim"
+            f"Chore {chore_name} missing notify_on_claim"
         )
         assert isinstance(chore_data[DATA_CHORE_NOTIFY_ON_CLAIM], bool), (
-            f"Chore {chore_id} notify_on_claim not a boolean"
+            f"Chore {chore_name} notify_on_claim not a boolean"
         )
 
         assert DATA_CHORE_NOTIFY_ON_APPROVAL in chore_data, (
-            f"Chore {chore_id} missing notify_on_approval"
+            f"Chore {chore_name} missing notify_on_approval"
         )
         assert isinstance(chore_data[DATA_CHORE_NOTIFY_ON_APPROVAL], bool), (
-            f"Chore {chore_id} notify_on_approval not a boolean"
+            f"Chore {chore_name} notify_on_approval not a boolean"
         )
 
         assert DATA_CHORE_NOTIFY_ON_DISAPPROVAL in chore_data, (
-            f"Chore {chore_id} missing notify_on_disapproval"
+            f"Chore {chore_name} missing notify_on_disapproval"
         )
         assert isinstance(chore_data[DATA_CHORE_NOTIFY_ON_DISAPPROVAL], bool), (
-            f"Chore {chore_id} notify_on_disapproval not a boolean"
+            f"Chore {chore_name} notify_on_disapproval not a boolean"
+        )
+
+        # NEW: Test completion_criteria field conversion
+        assert DATA_CHORE_COMPLETION_CRITERIA in chore_data, (
+            f"Chore {chore_name} missing completion_criteria (should be converted from shared_chore)"
+        )
+        completion_criteria = chore_data[DATA_CHORE_COMPLETION_CRITERIA]
+        assert completion_criteria in [
+            COMPLETION_CRITERIA_SHARED,
+            COMPLETION_CRITERIA_INDEPENDENT,
+        ], (
+            f"Chore {chore_name} completion_criteria '{completion_criteria}' should be 'shared_all' or 'independent'"
+        )
+
+        # Ensure legacy shared_chore field is removed
+        assert "shared_chore" not in chore_data, (
+            f"Chore {chore_name} still has legacy 'shared_chore' field after migration"
         )
 
 

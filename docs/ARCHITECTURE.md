@@ -519,6 +519,59 @@ def _persist(self):
 
 ---
 
+## UI Architecture: Per-Kid Customization
+
+### Service Layer Exposure
+
+KidsChores uses a **layered UI approach** where advanced per-kid customizations are available through the service layer while maintaining simple defaults in the main UI:
+
+**Service Parameters** (exposed in Developer Tools):
+
+- `kid_name`/`kid_id` - Target specific kids for customization
+- Template vs. per-kid distinction for INDEPENDENT completion criteria
+
+**Example**: Set per-kid due dates for INDEPENDENT chores:
+
+```yaml
+service: kidschores.set_chore_due_date
+data:
+  chore_name: "Clean Room"
+  kid_name: "Sarah"
+  due_date: "2026-01-05 18:00:00"
+```
+
+### Options Flow Smart Preservation
+
+The options flow maintains a **template + override model**:
+
+1. **Template Date**: Default date shown in main chore edit form
+2. **Per-Kid Overrides**: Preserved during edits, customizable via dedicated step
+3. **Smart Display**: Shows common date if all kids match, blank if mixed
+
+**Implementation Pattern**:
+
+```python
+# Preserve existing customizations during edit
+existing_per_kid_due_dates = chore_data.get(const.DATA_PER_KID_DUE_DATES, {})
+chore_data = build_chores_data(user_input, existing_per_kid_due_dates=existing_per_kid_due_dates)
+```
+
+### Sensor Attribute Organization
+
+Sensors expose data in **categorized attributes** for dashboard consumption:
+
+```python
+# Identity & Meta: chore_name, chore_icon, internal_id
+# Configuration: completion_criteria, points, frequency, due_date
+# Statistics: total_claims, total_approved, points_multiplier
+# Timestamps: last_claimed, last_approved, last_disapproved, last_overdue
+# State: global_state, assignees
+```
+
+**Key Design**: Entity `icon` reflects state (checkmark/clock), `chore_icon` attribute shows identity (mdi:toothbrush).
+
+---
+
 ## Deprecation Convention: \_UNUSED Suffix (Development-Cycle Only)
 
 ### Purpose & Scope

@@ -939,6 +939,8 @@ def format_datetime_with_return_type(
             - const.HELPER_RETURN_DATE: returns the date portion as a date object
             - const.HELPER_RETURN_ISO_DATETIME: returns an ISO-formatted datetime string
             - const.HELPER_RETURN_ISO_DATE: returns an ISO-formatted date string
+            - const.HELPER_RETURN_SELECTOR_DATETIME: returns local timezone string
+              formatted for HA DateTimeSelector ("%Y-%m-%d %H:%M:%S")
 
     Returns:
         Union[datetime, date, str]: The formatted date/time value
@@ -955,6 +957,9 @@ def format_datetime_with_return_type(
         return dt_obj.isoformat()
     elif return_type == const.HELPER_RETURN_ISO_DATE:
         return dt_obj.date().isoformat()
+    elif return_type == const.HELPER_RETURN_SELECTOR_DATETIME:
+        # For HA DateTimeSelector: local timezone, "%Y-%m-%d %H:%M:%S" format
+        return dt_util.as_local(dt_obj).strftime("%Y-%m-%d %H:%M:%S")
     else:
         # Default fallback is to return the datetime object unchanged
         return dt_obj
@@ -983,6 +988,8 @@ def normalize_datetime_input(  # pyright: ignore[reportReturnType]
             - const.HELPER_RETURN_DATE: returns a date object
             - const.HELPER_RETURN_ISO_DATETIME: returns an ISO-formatted datetime string
             - const.HELPER_RETURN_ISO_DATE: returns an ISO-formatted date string
+            - const.HELPER_RETURN_SELECTOR_DATETIME: returns a local timezone string
+              formatted for HA DateTimeSelector ("%Y-%m-%d %H:%M:%S")
 
     Returns:
         Normalized datetime, date, or string representation based on return_type,

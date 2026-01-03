@@ -499,7 +499,7 @@ def build_chore_schema(kids_dict, default=None):
                 default=default.get(CONF_DESCRIPTION, const.SENTINEL_EMPTY),
             ): str,
             vol.Optional(
-                CONF_ICON, default=default.get(CONF_ICON, const.SENTINEL_EMPTY)
+                CONF_ICON, default=default.get(CONF_ICON, const.DEFAULT_CHORE_ICON)
             ): selector.IconSelector(),
             vol.Optional(
                 const.CONF_CHORE_LABELS,
@@ -657,6 +657,7 @@ def build_chores_data(
     user_input: Dict[str, Any],
     kids_dict: Dict[str, Any],
     existing_chores: Dict[str, Any] = None,
+    existing_per_kid_due_dates: Dict[str, str | None] = None,
 ) -> tuple[Dict[str, Any], Dict[str, str]]:
     """Build chore data from user input with validation.
 
@@ -667,6 +668,9 @@ def build_chores_data(
         user_input: Dictionary containing user inputs from the form.
         kids_dict: Dictionary mapping kid names to kid internal_ids (UUIDs).
         existing_chores: Optional dictionary of existing chores for duplicate checking.
+        existing_per_kid_due_dates: Optional dictionary of existing per-kid due dates
+            to preserve when editing INDEPENDENT chores. Keys are kid UUIDs, values
+            are ISO datetime strings or None. New kids use template date.
 
     Returns:
         Tuple of (chore_data_dict, errors_dict). If errors exist, chore_data will be empty.
@@ -692,24 +696,48 @@ def build_chores_data(
     due_date_str = None
     if user_input.get(const.CFOF_CHORES_INPUT_DUE_DATE):
         raw_due = user_input[const.CFOF_CHORES_INPUT_DUE_DATE]
+        const.LOGGER.debug(
+            "build_chores_data: raw_due input = %s (type: %s)",
+            raw_due,
+            type(raw_due).__name__,
+        )
         try:
             due_dt = kh.normalize_datetime_input(
                 raw_due,
                 default_tzinfo=const.DEFAULT_TIME_ZONE,
                 return_type=const.HELPER_RETURN_DATETIME_UTC,
             )
+            const.LOGGER.debug(
+                "build_chores_data: normalized due_dt = %s (type: %s)",
+                due_dt,
+                type(due_dt).__name__ if due_dt else "None",
+            )
             # Type guard: narrow datetime | date | str | None to datetime
             if due_dt and not isinstance(due_dt, datetime.datetime):
+                const.LOGGER.warning(
+                    "build_chores_data: due_dt is not datetime: %s", type(due_dt)
+                )
                 errors[const.CFOP_ERROR_DUE_DATE] = (
                     const.TRANS_KEY_CFOF_INVALID_DUE_DATE
                 )
                 return {}, errors
             if due_dt and due_dt < dt_util.utcnow():
+                const.LOGGER.warning(
+                    "build_chores_data: due_dt in past: %s < %s",
+                    due_dt,
+                    dt_util.utcnow(),
+                )
                 errors[const.CFOP_ERROR_DUE_DATE] = (
                     const.TRANS_KEY_CFOF_DUE_DATE_IN_PAST
                 )
                 return {}, errors
-        except (ValueError, TypeError, AttributeError):
+            # Store the normalized due date as ISO string
+            if due_dt:
+                due_date_str = due_dt.isoformat()
+        except (ValueError, TypeError, AttributeError) as exc:
+            const.LOGGER.warning(
+                "build_chores_data: exception parsing due date: %s", exc
+            )
             errors[const.CFOP_ERROR_DUE_DATE] = const.TRANS_KEY_CFOF_INVALID_DUE_DATE
             return {}, errors
 
@@ -745,10 +773,21 @@ def build_chores_data(
 
     # Build per_kid_due_dates for ALL chores (SHARED + INDEPENDENT)
     # - SHARED: All kids have same date (synced with chore-level)
-    # - INDEPENDENT: Template on creation, per-kid overrides supported later
+    # - INDEPENDENT: Template on creation, preserve existing per-kid overrides on edit
     per_kid_due_dates: dict[str, str | None] = {}
     for kid_id in assigned_kids_ids:
-        per_kid_due_dates[kid_id] = due_date_str  # Can be None (never overdue)
+        # For INDEPENDENT chores being edited: preserve existing per-kid dates
+        # For new kids or SHARED chores: use template date
+        if (
+            existing_per_kid_due_dates
+            and completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
+            and kid_id in existing_per_kid_due_dates
+        ):
+            # Preserve existing per-kid date (may have been set via service)
+            per_kid_due_dates[kid_id] = existing_per_kid_due_dates[kid_id]
+        else:
+            # New kid or SHARED chore: use template date
+            per_kid_due_dates[kid_id] = due_date_str  # Can be None (never overdue)
 
     chore_data = {
         const.DATA_CHORE_NAME: chore_name,
@@ -786,7 +825,14 @@ def build_chores_data(
         ),
         const.DATA_CHORE_CUSTOM_INTERVAL: custom_interval,
         const.DATA_CHORE_CUSTOM_INTERVAL_UNIT: custom_interval_unit,
-        const.DATA_CHORE_DUE_DATE: due_date_str,
+        # For INDEPENDENT chores, chore-level due_date is cleared since per_kid_due_dates
+        # are authoritative. The template value is just for UX convenience during editing.
+        # For SHARED chores, chore-level due_date is the source of truth.
+        const.DATA_CHORE_DUE_DATE: (
+            None
+            if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
+            else due_date_str
+        ),
         const.DATA_CHORE_APPLICABLE_DAYS: user_input.get(
             const.CFOF_CHORES_INPUT_APPLICABLE_DAYS,
             const.DEFAULT_APPLICABLE_DAYS,

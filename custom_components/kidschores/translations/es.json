@@ -294,6 +294,7 @@
       "invalid_chore_count": "Cantidad de tareas no válida",
       "invalid_chore_name": "Nombre de tarea no válido",
       "invalid_due_date": "Fecha de vencimiento no válida",
+      "date_required_for_frequency": "Se requiere una fecha de vencimiento para esta frecuencia de recurrencia. Borrar fechas solo funciona con frecuencia Ninguna, Diaria o Semanal.",
       "invalid_end_date": "Fecha de fin no válida.",
       "invalid_kid_count": "Cantidad de niños no válida",
       "invalid_kid_name": "Nombre de niño/a no válido",
@@ -772,9 +773,19 @@
           "custom_interval": "Número de unidades de tiempo entre repeticiones (por ejemplo, 3 para 'cada 3 semanas'). Solo se usa con frecuencia personalizada.",
           "custom_interval_unit": "Unidad de tiempo para intervalo personalizado (días, semanas, meses). Solo se usa con frecuencia personalizada.",
           "applicable_days": "Restringir la tarea a días de la semana específicos. Dejar en blanco para todos los días.",
-          "due_date": "Fecha límite opcional. Se puede combinar con horarios recurrentes.",
+          "due_date": "Fecha límite opcional. Se puede combinar con horarios recurrentes. Para tareas INDEPENDIENTES, sirve como plantilla—aparecerá una pantalla adicional para establecer fechas individuales por niño.",
           "show_on_calendar": "Mostrar esta tarea en la vista de calendario.",
           "chore_notifications": "Cuándo enviar notificaciones: Al reclamar, al aprobar, al rechazar, o cualquier combinación."
+        }
+      },
+      "edit_chore_per_kid_dates": {
+        "title": "Editar Fechas por Niño: {chore_name}",
+        "description": "Establecer fechas límite individuales para cada niño asignado. El campo de fecha en el formulario principal sirve como **plantilla** para conveniencia—úsalo para aplicar rápidamente la misma fecha a todos los niños con la casilla de abajo, o déjalo en blanco y establece las fechas individualmente aquí.\n\nSe muestran campos para: {kid_names}. Dejar en blanco si no hay fecha límite.{template_date}",
+        "data": {
+          "apply_template_to_all": "Aplicar fecha de plantilla a todos los niños"
+        },
+        "data_description": {
+          "apply_template_to_all": "Marca esta casilla para aplicar la fecha establecida en la página principal de edición de tarea a todos los niños asignados, sobrescribiendo sus fechas individuales."
         }
       },
       "edit_badge_cumulative": {
@@ -1216,6 +1227,7 @@
       "invalid_chore": "Tarea no válida",
       "invalid_chore_count": "Cantidad de tareas no válida",
       "invalid_due_date": "Fecha de vencimiento no válida",
+      "date_required_for_frequency": "Se requiere una fecha de vencimiento para esta frecuencia de recurrencia. Borrar fechas solo funciona con frecuencia Ninguna, Diaria o Semanal.",
       "invalid_end_date": "Fecha de fin no válida.",
       "invalid_kid_count": "Cantidad de niños no válida",
       "invalid_kid_name": "Nombre de niño/a no válido",
@@ -1636,7 +1648,7 @@
     },
     "set_chore_due_date": {
       "name": "Establecer/Restablecer Fecha de Vencimiento de la Tarea",
-      "description": "Establece o borra la fecha de vencimiento de una tarea. Proporciona el nombre de la tarea y, si lo deseas, una nueva fecha. Si no se proporciona fecha, se borrará la existente. No se permiten fechas en el pasado.",
+      "description": "Establece o borra la fecha de vencimiento de una tarea. Proporciona el nombre de la tarea y, si lo deseas, una nueva fecha. Si no se proporciona fecha, se borrará la existente. No se permiten fechas en el pasado. Para tareas independientes, opcionalmente proporciona un kid_name para establecer la fecha solo para ese niño/a.",
       "fields": {
         "chore_name": {
           "name": "Nombre de la Tarea",
@@ -1647,12 +1659,22 @@
           "name": "Fecha de Vencimiento",
           "description": "La nueva fecha de vencimiento de la tarea. Usa el selector de fecha/hora para elegir una fecha/hora válida (en tu zona horaria local). Déjalo vacío para borrar la fecha de vencimiento.",
           "example": "2025-03-01T23:59:00Z"
+        },
+        "kid_name": {
+          "name": "Nombre del Niño/a",
+          "description": "Para tareas independientes, especifica el niño/a para el cual establecer la fecha de vencimiento. Si se omite, establece la fecha para todos los niños/as asignados.",
+          "example": "Alice"
+        },
+        "kid_id": {
+          "name": "ID del Niño/a",
+          "description": "El ID interno del niño/a. Solo para usuarios avanzados - usa kid_name en su lugar.",
+          "example": "abc123-def456"
         }
       }
     },
     "skip_chore_due_date": {
       "name": "Saltar Fecha de Vencimiento de la Tarea",
-      "description": "Salta la fecha de vencimiento actual de una tarea recurrente. Se reprograma la fecha de vencimiento según su frecuencia y se restablece su estado a pendiente. Se eliminan reclamaciones y aprobaciones pendientes.",
+      "description": "Salta la fecha de vencimiento actual de una tarea recurrente. Se reprograma la fecha de vencimiento según su frecuencia y se restablece su estado a pendiente. Se eliminan reclamaciones y aprobaciones pendientes. Para tareas independientes, opcionalmente proporciona un kid_name para saltar solo para ese niño/a.",
       "fields": {
         "chore_id": {
           "name": "ID de la Tarea",
@@ -1663,6 +1685,16 @@
           "name": "Nombre de la Tarea",
           "description": "El nombre de la tarea a restablecer (opcional si se proporciona chore_id).",
           "example": "Lavar Platos"
+        },
+        "kid_name": {
+          "name": "Nombre del Niño/a",
+          "description": "Para tareas independientes, especifica el niño/a para el cual saltar la fecha de vencimiento. Si se omite, salta la fecha para todos los niños/as asignados.",
+          "example": "Alice"
+        },
+        "kid_id": {
+          "name": "ID del Niño/a",
+          "description": "El ID interno del niño/a. Solo para usuarios avanzados - usa kid_name en su lugar.",
+          "example": "abc123-def456"
         }
       }
     },

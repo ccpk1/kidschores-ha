@@ -1192,6 +1192,9 @@ async def test_has_pending_claim_edge_cases(
     now_iso = dt_util.utcnow().isoformat()
     kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_CLAIMED] = now_iso
     kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_APPROVED] = now_iso
+    kid_chore_data[const.DATA_KID_CHORE_DATA_PENDING_COUNT] = (
+        0  # Claimed then approved = no pending
+    )
     coordinator._persist()
     assert coordinator.has_pending_claim(kid_id, chore_id) is False
 
@@ -1199,6 +1202,7 @@ async def test_has_pending_claim_edge_cases(
     kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_CLAIMED] = now_iso
     kid_chore_data.pop(const.DATA_KID_CHORE_DATA_LAST_APPROVED, None)
     kid_chore_data.pop(const.DATA_KID_CHORE_DATA_LAST_DISAPPROVED, None)
+    kid_chore_data[const.DATA_KID_CHORE_DATA_PENDING_COUNT] = 1  # Active pending claim
     coordinator._persist()
     assert coordinator.has_pending_claim(kid_id, chore_id) is True
 

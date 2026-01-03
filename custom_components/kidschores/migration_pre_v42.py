@@ -158,6 +158,15 @@ class PreV42Migrator:
                         chore_info.get(const.DATA_CHORE_NAME),
                     )
 
+                # Clean up legacy chore-level due_date for INDEPENDENT chores
+                # The authoritative due_date is now per-kid in kid_chore_data
+                if const.DATA_CHORE_DUE_DATE in chore_info:
+                    del chore_info[const.DATA_CHORE_DUE_DATE]
+                    const.LOGGER.debug(
+                        "Removed legacy chore-level due_date from INDEPENDENT chore '%s'",
+                        chore_info.get(const.DATA_CHORE_NAME),
+                    )
+
     def _migrate_approval_reset_type(self) -> None:
         """Migrate allow_multiple_claims_per_day boolean to approval_reset_type enum.
 
@@ -491,6 +500,7 @@ class PreV42Migrator:
                     kid_info[const.DATA_KID_CHORE_DATA][chore_id] = {
                         const.DATA_KID_CHORE_DATA_NAME: chore_name,
                         const.DATA_KID_CHORE_DATA_STATE: const.CHORE_STATE_PENDING,
+                        const.DATA_KID_CHORE_DATA_PENDING_COUNT: 0,
                         const.DATA_KID_CHORE_DATA_LAST_CLAIMED: None,
                         const.DATA_KID_CHORE_DATA_LAST_APPROVED: None,
                         const.DATA_KID_CHORE_DATA_LAST_DISAPPROVED: None,
@@ -507,6 +517,11 @@ class PreV42Migrator:
                     }
 
                 kid_chore_data = kid_info[const.DATA_KID_CHORE_DATA][chore_id]
+
+                # Ensure pending_count exists for existing records (added in v42)
+                if const.DATA_KID_CHORE_DATA_PENDING_COUNT not in kid_chore_data:
+                    kid_chore_data[const.DATA_KID_CHORE_DATA_PENDING_COUNT] = 0
+
                 periods = kid_chore_data[const.DATA_KID_CHORE_DATA_PERIODS]
 
                 # --- Migrate legacy current streaks for this chore ---

@@ -294,6 +294,7 @@
       "invalid_chore_count": "Invalid chore count",
       "invalid_chore_name": "Invalid chore name",
       "invalid_due_date": "Invalid due date",
+      "date_required_for_frequency": "A due date is required for this recurring frequency. Clear dates only works with None, Daily, or Weekly frequency.",
       "invalid_end_date": "Invalid end date.",
       "invalid_kid_count": "Invalid kid count",
       "invalid_kid_name": "Invalid kid name",
@@ -788,9 +789,19 @@
           "custom_interval": "Number of time units between repetitions (e.g., 3 for 'every 3 weeks'). Only used with Custom frequency.",
           "custom_interval_unit": "Time unit for custom interval (days, weeks, months). Only used with Custom frequency.",
           "applicable_days": "Restrict chore to specific weekdays. Leave blank for all days.",
-          "due_date": "Optional deadline. Can be combined with recurring schedules.",
+          "due_date": "Optional deadline. Can be combined with recurring schedules. For INDEPENDENT chores, this serves as a template—an additional screen will appear allowing individual dates per kid.",
           "show_on_calendar": "Display this chore on the calendar view.",
           "chore_notifications": "When to send notifications: On claim, on approval, on rejection, or any combination."
+        }
+      },
+      "edit_chore_per_kid_dates": {
+        "title": "Edit Per-Kid Due Dates: {chore_name}",
+        "description": "Set individual due dates for each assigned kid. The date field on the main edit form acts as a **template** for convenience—use it to quickly apply the same date to all kids via the checkbox below, or leave it blank and set dates individually here.\n\nFields are shown for: {kid_names}. Leave blank for no deadline.{template_date}",
+        "data": {
+          "apply_template_to_all": "Apply template date to all kids"
+        },
+        "data_description": {
+          "apply_template_to_all": "Check this box to apply the date set on the main chore edit page to all assigned kids, overwriting their individual dates."
         }
       },
       "edit_badge_cumulative": {
@@ -1232,6 +1243,7 @@
       "invalid_chore": "Invalid chore",
       "invalid_chore_count": "Invalid chore count",
       "invalid_due_date": "Invalid due date",
+      "date_required_for_frequency": "A due date is required for this recurring frequency. Clear dates only works with None, Daily, or Weekly frequency.",
       "invalid_end_date": "Invalid end date.",
       "invalid_kid_count": "Invalid kid count",
       "invalid_kid_name": "Invalid kid name",
@@ -1652,7 +1664,7 @@
     },
     "set_chore_due_date": {
       "name": "Set/Reset Chore Due Date",
-      "description": "Set (or clear) the due date for a chore. Provide the chore name and, if desired, a new due date. If no due date is provided the existing due date will be cleared. The service will reject due dates set in the past.",
+      "description": "Set (or clear) the due date for a chore. Provide the chore name and, if desired, a new due date. If no due date is provided the existing due date will be cleared. The service will reject due dates set in the past. For independent chores, optionally provide a kid_name to set the due date only for that kid.",
       "fields": {
         "chore_name": {
           "name": "Chore Name",
@@ -1663,12 +1675,22 @@
           "name": "Due Date",
           "description": "The new due date for the chore. Use the date/time selector to choose a valid date and time (in your local timezone). Leave empty to clear the due date.",
           "example": "2025-03-01T23:59:00Z"
+        },
+        "kid_name": {
+          "name": "Kid Name",
+          "description": "For independent chores, specify the kid to set the due date for. If omitted, sets the due date for all assigned kids.",
+          "example": "Alice"
+        },
+        "kid_id": {
+          "name": "Kid ID",
+          "description": "The internal ID of the kid. Advanced users only - use kid_name instead.",
+          "example": "abc123-def456"
         }
       }
     },
     "skip_chore_due_date": {
       "name": "Skip Chore Due Date",
-      "description": "Skip the current due date of a recurring chore. This service immediately reschedules the chore's due date based on its recurring frequency and resets its state to pending. Any pending claims or approvals will be removed.",
+      "description": "Skip the current due date of a recurring chore. This service immediately reschedules the chore's due date based on its recurring frequency and resets its state to pending. Any pending claims or approvals will be removed. For independent chores, optionally provide a kid_name to skip only for that kid.",
       "fields": {
         "chore_id": {
           "name": "Chore ID",
@@ -1679,6 +1701,16 @@
           "name": "Chore Name",
           "description": "The name of the chore to reset (optional if chore_id is provided).",
           "example": "Wash Dishes"
+        },
+        "kid_name": {
+          "name": "Kid Name",
+          "description": "For independent chores, specify the kid to skip the due date for. If omitted, skips the due date for all assigned kids.",
+          "example": "Alice"
+        },
+        "kid_id": {
+          "name": "Kid ID",
+          "description": "The internal ID of the kid. Advanced users only - use kid_name instead.",
+          "example": "abc123-def456"
         }
       }
     },

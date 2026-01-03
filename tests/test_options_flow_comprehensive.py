@@ -773,6 +773,13 @@ async def test_options_flow_edit_chore_preserves_assigned_kids(
         },
     )
 
+    # Handle per-kid dates step if shown (for INDEPENDENT chores)
+    if result.get("step_id") == "edit_chore_per_kid_dates":
+        result = await hass.config_entries.options.async_configure(
+            result.get("flow_id"),
+            user_input={},  # Accept defaults
+        )
+
     # Should return to main menu
     assert result.get("type") == FlowResultType.FORM
     assert result.get("step_id") == OPTIONS_FLOW_STEP_INIT
@@ -1105,6 +1112,13 @@ async def test_options_flow_chore_assignment_change_removes_old_sensors(
             CFOF_CHORES_INPUT_ASSIGNED_KIDS: ["Kid2"],  # Changed from Kid1 to Kid2
         },
     )
+
+    # Handle per-kid dates step if shown (for INDEPENDENT chores)
+    if result.get("step_id") == "edit_chore_per_kid_dates":
+        result = await hass.config_entries.options.async_configure(
+            result.get("flow_id"),
+            user_input={},  # Accept defaults
+        )
 
     # Should return to main menu (triggers deferred reload because assignments changed)
     assert result.get("type") == FlowResultType.FORM

@@ -655,6 +655,99 @@ async def test_service_reset_overdue_chores_all(
         # Verify chore state reset to pending
         assert coordinator.chores_data[chore_id]["state"] == CHORE_STATE_PENDING
 
+        # Verify kid is removed from overdue list (critical assertion missing!)
+        assert chore_id not in coordinator.kids_data[kid_id].get(
+            "overdue_chores", []
+        ), "Kid should be removed from overdue list after reset"
+
+
+async def test_service_reset_overdue_chores_independent(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+) -> None:
+    """Test reset_overdue_chores service works for INDEPENDENT chores."""
+    coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
+
+    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        # Create two kids
+        kid1_id = str(uuid.uuid4())
+        kid1_data = create_mock_kid_data(name="Kid 1", points=0.0)
+        kid1_data["internal_id"] = kid1_id
+        coordinator._create_kid(kid1_id, kid1_data)
+
+        kid2_id = str(uuid.uuid4())
+        kid2_data = create_mock_kid_data(name="Kid 2", points=0.0)
+        kid2_data["internal_id"] = kid2_id
+        coordinator._create_kid(kid2_id, kid2_data)
+
+        # Create an INDEPENDENT chore with per-kid due dates
+        chore_id = str(uuid.uuid4())
+        chore_data = create_mock_chore_data(
+            name="Independent Chore",
+            default_points=5.0,
+            assigned_kids=[kid1_id, kid2_id],
+        )
+        chore_data["internal_id"] = chore_id
+        chore_data["completion_criteria"] = "independent"
+        chore_data["recurring_frequency"] = "daily"
+        chore_data["due_date"] = "2025-01-01T12:00:00+00:00"  # Template
+        chore_data["per_kid_due_dates"] = {
+            kid1_id: "2025-01-01T10:00:00+00:00",  # Kid1 overdue
+            kid2_id: "2025-01-01T14:00:00+00:00",  # Kid2 also overdue
+        }
+        coordinator._create_chore(chore_id, chore_data)
+
+        # Mark both kids as overdue for this chore
+        coordinator.kids_data[kid1_id]["overdue_chores"] = [chore_id]
+        coordinator.kids_data[kid2_id]["overdue_chores"] = [chore_id]
+
+        # Debug: Check per_kid_due_dates BEFORE reset
+        per_kid_due_dates_before = coordinator.chores_data[chore_id].get(
+            "per_kid_due_dates", {}
+        )
+        print(f"DEBUG: BEFORE reset - per_kid_due_dates: {per_kid_due_dates_before}")
+
+        # Reset overdue chores for kid1 only
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_RESET_OVERDUE_CHORES,
+            {"kid_name": "Kid 1"},
+            blocking=True,
+        )
+
+        # Verify kid1 is removed from overdue list
+        assert chore_id not in coordinator.kids_data[kid1_id].get(
+            "overdue_chores", []
+        ), "Kid 1 should be removed from overdue list after reset"
+
+        # Debug: Check what happened to both kids
+        kid1_overdue = coordinator.kids_data[kid1_id].get("overdue_chores", [])
+        kid2_overdue = coordinator.kids_data[kid2_id].get("overdue_chores", [])
+        print(f"DEBUG: After reset - Kid 1 overdue: {kid1_overdue}")
+        print(f"DEBUG: After reset - Kid 2 overdue: {kid2_overdue}")
+
+        # Check Kid 2's due date
+        per_kid_due_dates = coordinator.chores_data[chore_id].get(
+            "per_kid_due_dates", {}
+        )
+        print(f"DEBUG: AFTER reset - per_kid_due_dates: {per_kid_due_dates}")
+        kid2_due_date = per_kid_due_dates.get(kid2_id)
+        print(f"DEBUG: Kid 2 due date: {kid2_due_date}")
+        kid1_due_date = per_kid_due_dates.get(kid1_id)
+        print(f"DEBUG: Kid 1 due date: {kid1_due_date}")
+
+        # Verify kid2 is still overdue (wasn't reset)
+        assert chore_id in coordinator.kids_data[kid2_id].get("overdue_chores", []), (
+            "Kid 2 should still be overdue (wasn't reset)"
+        )
+
+        # Verify per-kid due dates were updated for kid1
+        per_kid_due_dates = coordinator.chores_data[chore_id]["per_kid_due_dates"]
+        new_kid1_due = per_kid_due_dates.get(kid1_id)
+        assert new_kid1_due != "2025-01-01T10:00:00+00:00", (
+            "Kid 1's due date should be rescheduled"
+        )
+
 
 async def test_service_reset_penalties_all(
     hass: HomeAssistant,

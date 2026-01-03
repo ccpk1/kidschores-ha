@@ -223,6 +223,11 @@ async def test_independent_multi_kid_one_claimed(
 
     # Mock notifications
     with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        # Set pending_count BEFORE _process_chore_state (it recomputes global state internally)
+        zoe_chore_data = coordinator.kids_data[zoe_id][const.DATA_KID_CHORE_DATA][
+            star_sweep_id
+        ]
+        zoe_chore_data[const.DATA_KID_CHORE_DATA_PENDING_COUNT] = 1
         # Only Zoë claims
         coordinator._process_chore_state(zoe_id, star_sweep_id, CHORE_STATE_CLAIMED)
 
@@ -362,6 +367,11 @@ async def test_shared_multi_kid_partial_claimed(
 
     # Mock notifications
     with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        # Set pending_count BEFORE _process_chore_state (it recomputes global state internally)
+        zoe_chore_data = coordinator.kids_data[zoe_id][const.DATA_KID_CHORE_DATA][
+            star_sweep_id
+        ]
+        zoe_chore_data[const.DATA_KID_CHORE_DATA_PENDING_COUNT] = 1
         # Only Zoë claims (partial)
         coordinator._process_chore_state(zoe_id, star_sweep_id, CHORE_STATE_CLAIMED)
 

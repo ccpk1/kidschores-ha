@@ -278,9 +278,10 @@ async def async_setup_entry(
 
     # For each shared chore, add a global state sensor
     for chore_id, chore_info in coordinator.chores_data.items():
-        if (
-            chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
-            == const.COMPLETION_CRITERIA_SHARED
+        completion_criteria = chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
+        if completion_criteria in (
+            const.COMPLETION_CRITERIA_SHARED,
+            const.COMPLETION_CRITERIA_SHARED_FIRST,
         ):
             chore_name = kh.get_entity_name_or_log_error(
                 "chore", chore_id, chore_info, const.DATA_CHORE_NAME
@@ -410,7 +411,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def native_value(self) -> Any:
         """Return the chore's state based on shared or individual tracking.
 
-        Priority order: approved > claimed > overdue > pending.
+        Priority order: approved > completed_by_other > claimed > overdue > pending.
         Always returns kid's individual status, not shared chore global state.
         Uses timestamp-based tracking via coordinator helper methods.
         """
@@ -419,6 +420,10 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         # Use timestamp-based coordinator helpers for claim/approval status
         if self.coordinator.is_approved_in_current_period(self._kid_id, self._chore_id):
             return const.CHORE_STATE_APPROVED
+        elif self._chore_id in kid_info.get(
+            const.DATA_KID_COMPLETED_BY_OTHER_CHORES, []
+        ):
+            return const.CHORE_STATE_COMPLETED_BY_OTHER
         elif self.coordinator.has_pending_claim(self._kid_id, self._chore_id):
             return const.CHORE_STATE_CLAIMED
         elif self._chore_id in kid_info.get(const.DATA_KID_OVERDUE_CHORES, []):
@@ -500,47 +505,48 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         last_longest_streak_date = kid_chore_data.get(
             const.DATA_KID_CHORE_DATA_LAST_LONGEST_STREAK_ALL_TIME
         )
+
+        # Collect timestamp fields
         last_claimed = kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_CLAIMED)
-        last_completed = kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_APPROVED)
+        last_approved = kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_APPROVED)
+        last_disapproved = kid_chore_data.get(
+            const.DATA_KID_CHORE_DATA_LAST_DISAPPROVED
+        )
+        last_overdue = kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_OVERDUE)
 
         stored_labels = chore_info.get(const.DATA_CHORE_LABELS, [])
         friendly_labels = [
             kh.get_friendly_label(self.hass, label) for label in stored_labels
         ]
 
+        # Build attributes dict organized by category:
+        # 1. Identity & Meta
+        # 2. Configuration
+        # 3. Statistics (counts)
+        # 4. Statistics (streaks)
+        # 5. Timestamps (last_* events)
+        # 6. State info
         attributes = {
+            # --- 1. Identity & Meta ---
             const.ATTR_PURPOSE: const.PURPOSE_SENSOR_CHORE_STATUS,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_CHORE_NAME: self._chore_name,
+            const.ATTR_CHORE_ICON: chore_info.get(
+                const.DATA_CHORE_ICON, const.DEFAULT_CHORE_SENSOR_ICON
+            ),
             const.ATTR_DESCRIPTION: chore_info.get(
                 const.DATA_CHORE_DESCRIPTION, const.SENTINEL_EMPTY
             ),
             const.ATTR_ASSIGNED_KIDS: assigned_kids_names,
             const.ATTR_LABELS: friendly_labels,
+            # --- 2. Configuration ---
             const.ATTR_DEFAULT_POINTS: chore_info.get(
                 const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_ZERO
             ),
+            const.ATTR_COMPLETION_CRITERIA: completion_criteria,
             const.ATTR_APPROVAL_RESET_TYPE: chore_info.get(
                 const.DATA_CHORE_APPROVAL_RESET_TYPE,
                 const.DEFAULT_APPROVAL_RESET_TYPE,
-            ),
-            const.ATTR_CHORE_POINTS_EARNED: points_earned,
-            const.ATTR_CHORE_APPROVALS_COUNT: approvals_count,
-            const.ATTR_CHORE_CLAIMS_COUNT: claims_count,
-            const.ATTR_CHORE_DISAPPROVED_COUNT: disapproved_count,
-            const.ATTR_CHORE_OVERDUE_COUNT: overdue_count,
-            const.ATTR_CHORE_CURRENT_STREAK: current_streak,
-            const.ATTR_CHORE_HIGHEST_STREAK: highest_streak,
-            const.ATTR_CHORE_LAST_LONGEST_STREAK_DATE: last_longest_streak_date,
-            const.ATTR_LAST_CLAIMED: last_claimed,
-            const.ATTR_LAST_APPROVED: kid_chore_data.get(
-                const.DATA_KID_CHORE_DATA_LAST_APPROVED
-            ),
-            const.ATTR_LAST_COMPLETED: last_completed,
-            const.ATTR_COMPLETION_CRITERIA: completion_criteria,
-            const.ATTR_GLOBAL_STATE: global_state,
-            const.ATTR_DUE_DATE: chore_info.get(
-                const.DATA_CHORE_DUE_DATE, const.TRANS_KEY_DISPLAY_DUE_DATE_NOT_SET
             ),
             const.ATTR_RECURRING_FREQUENCY: chore_info.get(
                 const.DATA_CHORE_RECURRING_FREQUENCY, const.SENTINEL_NONE_TEXT
@@ -548,6 +554,31 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_APPLICABLE_DAYS: chore_info.get(
                 const.DATA_CHORE_APPLICABLE_DAYS, []
             ),
+            # For INDEPENDENT chores, use per-kid due_date; for SHARED, use chore-level
+            # Return None (not translation key) when no due_date - dashboard templates
+            # use None to trigger "no_due_date" display text
+            const.ATTR_DUE_DATE: (
+                kid_chore_data.get(const.DATA_KID_CHORE_DATA_DUE_DATE)
+                if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
+                else chore_info.get(const.DATA_CHORE_DUE_DATE)
+            ),
+            # --- 3. Statistics (counts) ---
+            const.ATTR_CHORE_POINTS_EARNED: points_earned,
+            const.ATTR_CHORE_APPROVALS_COUNT: approvals_count,
+            const.ATTR_CHORE_CLAIMS_COUNT: claims_count,
+            const.ATTR_CHORE_DISAPPROVED_COUNT: disapproved_count,
+            const.ATTR_CHORE_OVERDUE_COUNT: overdue_count,
+            # --- 4. Statistics (streaks) ---
+            const.ATTR_CHORE_CURRENT_STREAK: current_streak,
+            const.ATTR_CHORE_HIGHEST_STREAK: highest_streak,
+            const.ATTR_CHORE_LAST_LONGEST_STREAK_DATE: last_longest_streak_date,
+            # --- 5. Timestamps (last_* events) ---
+            const.ATTR_LAST_CLAIMED: last_claimed,
+            const.ATTR_LAST_APPROVED: last_approved,
+            const.ATTR_LAST_DISAPPROVED: last_disapproved,
+            const.ATTR_LAST_OVERDUE: last_overdue,
+            # --- 6. State info ---
+            const.ATTR_GLOBAL_STATE: global_state,
         }
 
         if (
@@ -1423,14 +1454,17 @@ class SystemBadgeSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
 # ------------------------------------------------------------------------------------------
 class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
-    """Sensor that shows the global state of a shared chore.
+    """Sensor that shows the global state of a shared or shared_first chore.
 
-    Tracks system-wide shared chore state independent of individual kid status.
+    Tracks system-wide chore state independent of individual kid status.
+    Supports both SHARED (multiple kids can complete) and SHARED_FIRST
+    (first kid to complete wins) completion criteria.
+
     Provides comprehensive chore configuration including recurring frequency
     (daily/weekly/monthly/custom), applicable days, due dates, default points,
     partial completion settings, multiple claims per day allowance, and total
     approvals today across all assigned kids. Useful for monitoring chores that
-    multiple kids can claim simultaneously.
+    multiple kids can claim simultaneously or competitively.
     """
 
     _attr_has_entity_name = True
@@ -1470,7 +1504,14 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict:
-        """Return additional attributes for the chore."""
+        """Return additional attributes for the chore.
+
+        Attributes organized by category:
+        1. Identity & Meta - purpose, name, description, icon, assigned kids, labels
+        2. Configuration - points, completion_criteria, approval_reset, frequency, days, due_date
+        3. Statistics - today's approvals across all assigned kids
+        4. Timestamps - last_claimed, last_completed (chore-level)
+        """
         chore_info = self.coordinator.chores_data.get(self._chore_id, {})
         assigned_kids_ids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
         assigned_kids_names = [
@@ -1499,10 +1540,28 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
             ).get(self._chore_id, const.DEFAULT_ZERO)
 
         attributes = {
+            # --- 1. Identity & Meta ---
             const.ATTR_PURPOSE: const.PURPOSE_SENSOR_SHARED_CHORE,
             const.ATTR_CHORE_NAME: self._chore_name,
+            const.ATTR_CHORE_ICON: chore_info.get(
+                const.DATA_CHORE_ICON, const.DEFAULT_CHORE_SENSOR_ICON
+            ),
             const.ATTR_DESCRIPTION: chore_info.get(
                 const.DATA_CHORE_DESCRIPTION, const.SENTINEL_EMPTY
+            ),
+            const.ATTR_ASSIGNED_KIDS: assigned_kids_names,
+            const.ATTR_LABELS: friendly_labels,
+            # --- 2. Configuration ---
+            const.ATTR_DEFAULT_POINTS: chore_info.get(
+                const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_ZERO
+            ),
+            const.ATTR_COMPLETION_CRITERIA: chore_info.get(
+                const.DATA_CHORE_COMPLETION_CRITERIA,
+                const.COMPLETION_CRITERIA_INDEPENDENT,
+            ),
+            const.ATTR_APPROVAL_RESET_TYPE: chore_info.get(
+                const.DATA_CHORE_APPROVAL_RESET_TYPE,
+                const.DEFAULT_APPROVAL_RESET_TYPE,
             ),
             const.ATTR_RECURRING_FREQUENCY: chore_info.get(
                 const.DATA_CHORE_RECURRING_FREQUENCY, const.SENTINEL_NONE_TEXT
@@ -1510,20 +1569,38 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_APPLICABLE_DAYS: chore_info.get(
                 const.DATA_CHORE_APPLICABLE_DAYS, []
             ),
-            const.ATTR_DUE_DATE: chore_info.get(
-                const.DATA_CHORE_DUE_DATE, const.TRANS_KEY_DISPLAY_DUE_DATE_NOT_SET
-            ),
-            const.ATTR_DEFAULT_POINTS: chore_info.get(
-                const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_ZERO
-            ),
-            const.ATTR_APPROVAL_RESET_TYPE: chore_info.get(
-                const.DATA_CHORE_APPROVAL_RESET_TYPE,
-                const.DEFAULT_APPROVAL_RESET_TYPE,
-            ),
+            # Return None when no due_date - dashboard templates use None check
+            const.ATTR_DUE_DATE: chore_info.get(const.DATA_CHORE_DUE_DATE),
+            # --- 3. Statistics ---
             const.ATTR_CHORE_APPROVALS_TODAY: total_approvals_today,
-            const.ATTR_ASSIGNED_KIDS: assigned_kids_names,
-            const.ATTR_LABELS: friendly_labels,
+            # --- 4. Timestamps ---
+            const.ATTR_LAST_CLAIMED: chore_info.get(const.DATA_CHORE_LAST_CLAIMED),
+            const.ATTR_LAST_APPROVED: chore_info.get(const.DATA_CHORE_LAST_COMPLETED),
         }
+
+        # Add SHARED_FIRST specific attributes (who claimed/completed)
+        completion_criteria = chore_info.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA, const.COMPLETION_CRITERIA_INDEPENDENT
+        )
+        if completion_criteria == const.COMPLETION_CRITERIA_SHARED_FIRST:
+            # Get claimed_by and completed_by, resolve IDs to names
+            claimed_by_id = chore_info.get(const.DATA_CHORE_CLAIMED_BY)
+            completed_by_id = chore_info.get(const.DATA_CHORE_COMPLETED_BY)
+
+            claimed_by_name = None
+            if claimed_by_id:
+                claimant_info = self.coordinator.kids_data.get(claimed_by_id, {})
+                claimed_by_name = claimant_info.get(const.DATA_KID_NAME, claimed_by_id)
+
+            completed_by_name = None
+            if completed_by_id:
+                completer_info = self.coordinator.kids_data.get(completed_by_id, {})
+                completed_by_name = completer_info.get(
+                    const.DATA_KID_NAME, completed_by_id
+                )
+
+            attributes[const.ATTR_CHORE_CLAIMED_BY] = claimed_by_name
+            attributes[const.ATTR_CHORE_COMPLETED_BY] = completed_by_name
 
         if (
             chore_info.get(const.DATA_CHORE_RECURRING_FREQUENCY)

@@ -262,7 +262,8 @@ set_chore_due_date:
   description: >
     Set (or clear) the due date for a chore. Provide the chore name and, if desired,
     a new due date. If no due date is provided the existing due date will be cleared.
-    The service will reject due dates set in the past.
+    The service will reject due dates set in the past. For independent chores, optionally
+    provide a kid_name to set the due date only for that kid.
   fields:
     chore_name:
       name: "Chore Name"
@@ -280,6 +281,24 @@ set_chore_due_date:
       required: false
       selector:
         datetime: {}
+    kid_name:
+      name: "Kid Name"
+      description: >
+        For shared chores, specify the kid to set the due date for.
+        If omitted, sets the due date for all assigned kids.
+      example: "Alice"
+      required: false
+      selector:
+        text:
+    kid_id:
+      name: "Kid ID"
+      description: >
+        The internal ID of the kid. Advanced users only - use kid_name instead.
+      example: "abc123-def456"
+      required: false
+      advanced: true
+      selector:
+        text:
 
 skip_chore_due_date:
   name: "Skip Chore Due Date"
@@ -287,6 +306,7 @@ skip_chore_due_date:
     Skip the current due date of a recurring chore. This service immediately
     reschedules the chore's due date based on its recurring frequency and resets
     its state to pending. Any pending claims or approvals will be removed.
+    For independent chores, optionally provide a kid_name to skip only for that kid.
   fields:
     chore_id:
       name: "Chore ID"
@@ -302,6 +322,24 @@ skip_chore_due_date:
         The name of the chore to update. Optional if you provide a chore ID.
       example: "Weekly Laundry"
       required: false
+      selector:
+        text:
+    kid_name:
+      name: "Kid Name"
+      description: >
+        For shared chores, specify the kid to skip the due date for.
+        If omitted, skips the due date for all assigned kids.
+      example: "Alice"
+      required: false
+      selector:
+        text:
+    kid_id:
+      name: "Kid ID"
+      description: >
+        The internal ID of the kid. Advanced users only - use kid_name instead.
+      example: "abc123-def456"
+      required: false
+      advanced: true
       selector:
         text:
 
