@@ -288,12 +288,10 @@ rules:
       be updated correctly. Should verify device cleanup when kid deleted.
 
   entity-category:
-    status: todo
-    comment: |
-      No _attr_entity_category found in entity files.
-      Should categorize entities appropriately:
-      - Legacy sensors: EntityCategory.DIAGNOSTIC
-      - System config entities: EntityCategory.CONFIG
+    done
+    # All 11 legacy sensors in sensor_legacy.py use EntityCategory.DIAGNOSTIC
+    # Legacy sensors are categorized as diagnostic data
+    # Modern sensors remain uncategorized (acceptable - they are primary user entities)
 
   entity-device-class:
     status: todo
@@ -302,10 +300,11 @@ rules:
       Could add appropriate device classes for better HA integration.
 
   entity-disabled-by-default:
-    status: todo
-    comment: |
-      Legacy sensors in sensor_legacy.py should be disabled by default.
-      Set _attr_entity_registry_enabled_default = False for legacy entities.
+    done
+    # All 11 legacy sensors in sensor_legacy.py use:
+    #   self._attr_entity_registry_enabled_default = show_legacy
+    # Legacy entities are disabled by default unless user enables show_legacy_entities option
+    # User-controlled visibility via options flow
 
   entity-translations:
     done
@@ -315,11 +314,13 @@ rules:
     # Comprehensive translation implementation
 
   exception-translations:
-    status: todo
-    comment: |
-      services.py raises HomeAssistantError with string messages.
-      Should use translation_domain, translation_key parameters
-      for user-facing exceptions. Would enable multi-language support.
+    done
+    # 98 total uses of translation_domain + translation_key pattern:
+    # - coordinator.py: 64 uses
+    # - services.py: 22 uses
+    # - button.py: 9 uses
+    # - calendar.py: 3 uses
+    # All user-facing exceptions use translation keys for i18n support
 
   icon-translations:
     status: todo

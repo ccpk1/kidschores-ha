@@ -24,6 +24,10 @@ from . import kc_helpers as kh
 from .coordinator import KidsChoresDataCoordinator
 from .entity import KidsChoresCoordinatorEntity
 
+# Silver requirement: Parallel Updates
+# Set to 0 (unlimited) for coordinator-based entities that don't poll
+PARALLEL_UPDATES = 0
+
 
 async def async_setup_entry(
     hass: HomeAssistant,

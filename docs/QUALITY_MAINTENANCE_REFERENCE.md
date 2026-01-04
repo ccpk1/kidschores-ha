@@ -2,8 +2,8 @@
 
 **Purpose**: Cross-reference between KidsChores code quality standards and Home Assistant's official AGENTS.md guidance.
 
-**Last Updated**: December 27, 2025
-**Integration Version**: 0.4.0
+**Last Updated**: January 4, 2026
+**Integration Version**: 0.5.0
 **Quality Level**: Silver (Certified)
 
 ---
@@ -438,5 +438,5 @@ This guide is maintained alongside the ARCHITECTURE.md document. When updating:
 3. **Add examples from code** when illustrating standards
 4. **Mark completion date** when new standards are implemented
 
-**Last Updated**: December 27, 2025
+**Last Updated**: January 4, 2026
 **Maintained By**: KidsChores Development Team

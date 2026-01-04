@@ -79,6 +79,10 @@ from .sensor_legacy import (
     SystemRewardsPendingApprovalSensor,
 )
 
+# Silver requirement: Parallel Updates
+# Set to 0 (unlimited) for coordinator-based entities that don't poll
+PARALLEL_UPDATES = 0
+
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities

@@ -1,9 +1,9 @@
 # KidsChores Integration Architecture
 
-**Integration Version**: 0.4.0+
-**Storage Schema Version**: 42 (Storage-Only Mode with Meta Section - newest for 0.4.0)
+**Integration Version**: 0.5.0+
+**Storage Schema Version**: 42 (Storage-Only Mode with Meta Section)
 **Quality Scale Level**: ⭐ **Silver** (Unofficially Meets Standards)
-**Date**: December 2025
+**Date**: January 2026
 
 ---
 
@@ -15,9 +15,9 @@ This integration unofficially meets **Home Assistant Silver** quality level requ
 
 ## Executive Summary
 
-Starting with **KidsChores 0.4.0+**, the integration uses a **storage-only architecture** where all entity data (kids, chores, badges, rewards, etc.) is stored exclusively in Home Assistant's persistent storage (`.storage/kidschores_data`), while configuration entries contain only system-level settings.
+Starting with **KidsChores 0.5.0**, the integration uses a **storage-only architecture** where all entity data (kids, chores, badges, rewards, etc.) is stored exclusively in Home Assistant's persistent storage (`.storage/kidschores_data`), while configuration entries contain only system-level settings.
 
-**Schema Version 42** is the newest schema for 0.4.0+, introducing the **meta section architecture** where the storage schema version is stored in a dedicated `meta` section rather than at the top level. This change:
+**Schema Version 42** is the current schema, introducing the **meta section architecture** where the storage schema version is stored in a dedicated `meta` section rather than at the top level. This change:
 
 - ✅ Prevents test framework interference with version detection
 - ✅ Enables robust migration testing and validation
@@ -64,14 +64,14 @@ This architectural change:
     [Reload Flow]                    [Coordinator Refresh]
 ```
 
-### Schema Version 42: Storage-Only Mode with Meta Section (Newest for 0.4.0+)
+### Schema Version 42: Storage-Only Mode with Meta Section
 
-The **`meta.schema_version`** field in storage data determines the integration's operational mode. Schema 42 is the current and newest version for 0.4.0+:
+The **`meta.schema_version`** field in storage data determines the integration's operational mode. Schema 42 is the current version:
 
 | Schema Version | Mode                  | Behavior                                                        |
 | -------------- | --------------------- | --------------------------------------------------------------- |
-| < 42           | Legacy (Pre-0.4.0)    | Reads entity data from `config_entry.options` or legacy storage |
-| ≥ 42           | Storage-Only (0.4.0+) | Reads entity data exclusively from storage with meta section    |
+| < 42           | Legacy (Pre-0.5.0)    | Reads entity data from `config_entry.options` or legacy storage |
+| ≥ 42           | Storage-Only (0.5.0+) | Reads entity data exclusively from storage with meta section    |
 
 **Key Files**:
 
@@ -140,7 +140,7 @@ KidsChores uses **two separate translation systems**:
 
 **Usage**: Standard Home Assistant translation system via `hass.localize()` and `translation_key` attributes.
 
-**Coordinator Notifications** (0.4.0+): Coordinator uses `async_get_translations()` API for:
+**Coordinator Notifications** (0.5.0+): Coordinator uses `async_get_translations()` API for:
 
 - Dynamic notification messages (36 translation keys: 18 title + 18 message)
 - Test mode detection (5s vs 1800s reminder delays)
@@ -305,14 +305,14 @@ async def async_step_edit_kid(self, user_input=None):
 
 ---
 
-## Migration Path: KC 3.x → KC 4.2
+## Migration Path: Legacy → v0.5.0
 
 ### One-Time Migration (Schema Version < 42 → 42)
 
 **File**: `custom_components/kidschores/__init__.py`
 **Function**: `_migrate_config_to_storage()` (Lines 45-51)
 
-**Trigger**: Runs automatically on first load after upgrade to KC 4.2+
+**Trigger**: Runs automatically on first load after upgrade to v0.5.0+
 
 **Process**:
 
@@ -338,21 +338,21 @@ storage_schema_version = meta.get(
 )
 
 if storage_schema_version < const.SCHEMA_VERSION_STORAGE_ONLY:
-    # KC 3.x/4.0 compatibility path - migrate data
+    # Legacy compatibility path - migrate data
     const.LOGGER.info("Storage version %s < %s, running migrations", ...)
     self._migrate_stored_datetimes()
     self._migrate_chore_data()
     self._migrate_kid_data()
     # ... other migrations
 else:
-    # KC 4.2+ normal operation
+    # v0.5.0+ normal operation
     const.LOGGER.info("Storage version %s >= %s, skipping migrations", ...)
     # Storage is already at current schema version
 ```
 
 ### Backward Compatibility
 
-The integration maintains backward compatibility for KC 3.x/4.0 installations:
+The integration maintains backward compatibility for legacy installations:
 
 - **Legacy Support**: Migration system handles v30, v31, v40beta1, v41 → v42 upgrades automatically
 - **Dual Version Detection**: Code reads from both `meta.schema_version` (v42+) and top-level `schema_version` (legacy)
@@ -363,18 +363,18 @@ The integration maintains backward compatibility for KC 3.x/4.0 installations:
 
 ## Config Flow Architecture
 
-### Current Design (KC 4.0)
+### Current Design (v0.5.0)
 
-The config flow has been significantly simplified in KC 4.0 by writing entities directly to storage:
+The config flow has been significantly simplified in v0.5.0 by writing entities directly to storage:
 
-**Old Pattern (KC 3.x)**:
+**Old Pattern (Legacy)**:
 
 ```
 User Input → config_entry.options → Migration → Storage
                   (inefficient double-write)
 ```
 
-**New Pattern (KC 4.2)**:
+**New Pattern (v0.5.0)**:
 
 ```
 User Input → Storage (with meta.schema_version: 42)
@@ -429,13 +429,13 @@ async def async_step_create_entry(self, user_input=None):
 
 ### Why Config Flow Can Be Simplified
 
-**Before (KC 3.x)**: Config flow needed complex validation and merging logic because:
+**Before (Legacy)**: Config flow needed complex validation and merging logic because:
 
 - Entity data stored in `config_entry.options` (limited size)
 - Options flow had to carefully update config without breaking existing data
 - Migration code needed to reconcile config vs storage differences
 
-**After (KC 4.0)**: Config flow is much simpler because:
+**After (v0.5.0)**: Config flow is much simpler because:
 
 - ✅ Entities go directly to storage (unlimited size, no size constraints)
 - ✅ No merging needed - storage is immediately the source of truth
@@ -464,7 +464,7 @@ async def async_step_create_entry(self, user_input=None):
 ### Maintenance & Cleanup
 
 - **[LEGACY_CLEANUP.md](LEGACY_CLEANUP.md)** - Deprecation timeline for pre-v42 compatibility code
-- **[RELEASE_NOTES_v0.4.0.md](RELEASE_NOTES_v0.4.0.md)** - 0.4.0+ release details and storage architecture changes
+- **[RELEASE_NOTES_v0.5.0.md](RELEASE_NOTES_v0.5.0.md)** - v0.5.0 release details and storage architecture changes
 
 ---
 
@@ -586,7 +586,7 @@ The `_UNUSED` suffix is a **development-cycle tool** for safe rollback during ac
 
 - You're consolidating patterns (e.g., CONF*\* → FREQUENCY*\*) in active development
 - Tests confirm new pattern works but old constants might be needed for quick rollback
-- Within a single development branch/cycle (0.4.0+ development, for example)
+- Within a single development branch/cycle (v0.5.0 development, for example)
 - You want the flexibility to revert without full reconstruction
 
 ❌ **Do NOT use \_UNUSED when:**
@@ -621,7 +621,7 @@ The `_UNUSED` suffix is a **development-cycle tool** for safe rollback during ac
 
 3. **Include inline comment explaining replacement AND exit criteria**
    ```python
-   # Configuration Keys (Development-Only: Removed before 0.4.0+ production release)
+   # Configuration Keys (Development-Only: Removed before v0.5.0 production release)
    # Replaced by FREQUENCY_* and PERIOD_* patterns
    CONF_CUSTOM_1_MONTH_UNUSED = "custom_1_month"  # Use FREQUENCY_CUSTOM_1_MONTH instead. [DELETE BEFORE PROD]
    CONF_DAY_END_UNUSED = "day_end"  # Use PERIOD_DAY_END instead. [DELETE BEFORE PROD]
@@ -1268,18 +1268,18 @@ Consistency: **100%** - All platform entities (`sensor.py`, `button.py`, `select
 
 | Category          | Count     | Consistency | Last Updated |
 | ----------------- | --------- | ----------- | ------------ |
-| DATA\_\*          | 500+      | 100%        | Dec 2025     |
-| CFOF\_\*          | 150+      | 100%        | Dec 2025     |
-| TRANS*KEY_CFOF*\* | 110+      | 100%        | Dec 2025     |
-| ATTR\_\*          | 100+      | 100%        | Dec 2025     |
-| SENSOR*KC*\*      | 40+       | 100%        | Dec 2025     |
-| BUTTON*KC*\*      | 20+       | 100%        | Dec 2025     |
-| SERVICE\_\*       | 17        | 100%        | Dec 2025     |
-| OPTIONS*FLOW*\*   | 65+       | 100%        | Dec 2025     |
-| TRANS_KEY_ERROR   | 5         | 100%        | Dec 2025     |
-| ERROR_ACTION\_\*  | 11        | 100%        | Dec 2025     |
-| BADGE\_\*         | 30+       | 100%        | Dec 2025     |
-| **TOTAL**         | **1000+** | **~99%**    | **Dec 2025** |
+| DATA\_\*          | 500+      | 100%        | Jan 2026     |
+| CFOF\_\*          | 150+      | 100%        | Jan 2026     |
+| TRANS*KEY_CFOF*\* | 110+      | 100%        | Jan 2026     |
+| ATTR\_\*          | 100+      | 100%        | Jan 2026     |
+| SENSOR*KC*\*      | 40+       | 100%        | Jan 2026     |
+| BUTTON*KC*\*      | 20+       | 100%        | Jan 2026     |
+| SERVICE\_\*       | 17        | 100%        | Jan 2026     |
+| OPTIONS*FLOW*\*   | 65+       | 100%        | Jan 2026     |
+| TRANS_KEY_ERROR   | 5         | 100%        | Jan 2026     |
+| ERROR_ACTION\_\*  | 11        | 100%        | Jan 2026     |
+| BADGE\_\*         | 30+       | 100%        | Jan 2026     |
+| **TOTAL**         | **1000+** | **~99%**    | **Jan 2026** |
 
 ### Code Review Checklist for New Constants
 
@@ -1299,14 +1299,14 @@ When adding new constants, ensure:
 
 ### Storage-Only Mode Advantages
 
-**Before (KC 3.x)**:
+**Before (Legacy)**:
 
 - Config entry size: 50-200KB (limited by Home Assistant)
 - Integration reload: Must process all entity data from config
 - Options flow: Complex merging logic to avoid data loss
 - Startup time: Slow (reads + migrates large config)
 
-**After (KC 4.0)**:
+**After (v0.5.0)**:
 
 - Config entry size: < 1KB (only 9 settings)
 - Integration reload: Only processes system settings (fast)
@@ -1319,8 +1319,8 @@ When adding new constants, ensure:
 ┌──────────────────────────────────────────────────┐
 │ Integration Reload Time (with 20 kids, 50 chores)│
 ├──────────────────────────────────────────────────┤
-│ KC 3.x (config-based):     2.5s                  │
-│ KC 4.0 (storage-only):     0.3s                  │
+│ Legacy (config-based):     2.5s                  │
+│ v0.5.0 (storage-only):     0.3s                  │
 │                                                  │
 │ Improvement: 8x faster                           │
 └──────────────────────────────────────────────────┘
@@ -1334,9 +1334,9 @@ When adding new constants, ensure:
 
 **Location**: `custom_components/kidschores/kc_helpers.py` (Lines 245-390)
 
-**Version**: ✅ v0.4.0 - Complete coverage for all 9 entity types
+**Version**: ✅ v0.5.0 - Complete coverage for all 9 entity types
 
-The integration provides standardized entity lookup functions for resolving entity names to internal IDs. **All 9 entity types are now fully supported** with consistent patterns (see v0.4.0 KC_HELPERS improvements below).
+The integration provides standardized entity lookup functions for resolving entity names to internal IDs. **All 9 entity types are now fully supported** with consistent patterns.
 
 #### Basic Lookup Functions (Optional Return)
 
@@ -1834,24 +1834,24 @@ def mock_storage_data():
 
 ## Legacy Code Removal Timeline
 
-### KC 4.0 (Current)
+### v0.5.0 (Current)
 
 - ✅ Storage-only mode active
 - ✅ Migration code functional
-- ✅ Legacy `_initialize_data_from_config()` present (for KC 3.x users)
+- ✅ Legacy `_initialize_data_from_config()` present (for pre-v0.5.0 users)
 
-### KC-vNext (Future Release)
+### Future Release (TBD)
 
 - ⚠️ Deprecation warnings for users still on schema < 42
-- ⚠️ Documentation encourages upgrade to KC 4.0+
+- ⚠️ Documentation encourages upgrade to v0.5.0+
 - ⚠️ Evaluate optional deprecation of redundant sensor entities
 
-### KC-vFuture (Long-term)
+### Long-term (TBD)
 
 - ❌ Remove `_initialize_data_from_config()` method (~160 lines)
 - ❌ Remove migration constants (MIGRATION\*, \*\_LEGACY)
 - ❌ Require `meta.schema_version >= 42` for all installations
-- ❌ Breaking change: KC 3.x users must upgrade to KC 4.0+ first
+- ❌ Breaking change: Pre-v0.5.0 users must upgrade to v0.5.0+ first
 
 **Prerequisite**: Telemetry showing <1% of users on schema version < 42
 
@@ -2730,7 +2730,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 4. **Service Tests** (`test_services.py`) - All 17 services
 5. **Workflow Tests** (`test_workflow_*.py`) - End-to-end scenarios
 
-**Current Status**: 560/560 tests passing (100% baseline maintained)
+**Current Status**: 699/699 tests passing (100% baseline maintained)
 
 **Validation Commands**:
 
@@ -2869,8 +2869,8 @@ See [docs/in-process/GOLD_CERTIFICATION_ROADMAP.md](../docs/in-process/GOLD_CERT
 
 ---
 
-**Document Version**: 1.5 (Updated for 0.4.0+ unofficial Silver standards)
-**Last Updated**: December 27, 2025
-**Integration Version**: 0.4.0+ (current and Future)
+**Document Version**: 1.6 (Updated for v0.5.0 release)
+**Last Updated**: January 4, 2026
+**Integration Version**: 0.5.0+
 **Quality Level**: Silver (Unofficially Meets Standards)
-**Storage Schema**: v42+ (newest for 0.4.0+)
+**Storage Schema**: v42+

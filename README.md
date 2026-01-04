@@ -277,6 +277,17 @@ Whether you want to **encourage responsibility**, **motivate with rewards**, or 
 
 ---
 
+## 👥 Contributors
+
+KidsChores is built and maintained by:
+
+- **[@ad-ha](https://github.com/ad-ha)** – Creator & Lead Developer
+- **[@ccpk1](https://github.com/ccpk1)** – Core Contributor & Co-Maintainer
+
+Want to contribute? See the [Contributing Guide](https://github.com/ad-ha/kidschores-ha/pulls) to get started!
+
+---
+
 ## LICENSE
 
 This project is licensed under the [GPL-3.0 license](LICENSE). See the LICENSE file for details.

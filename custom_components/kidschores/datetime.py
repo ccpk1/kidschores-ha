@@ -21,6 +21,10 @@ from . import const
 from . import kc_helpers as kh
 from .coordinator import KidsChoresDataCoordinator
 
+# Silver requirement: Parallel Updates
+# Set to 1 (serialized) for entities that modify state
+PARALLEL_UPDATES = 1
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
