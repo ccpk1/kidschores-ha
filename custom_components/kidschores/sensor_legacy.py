@@ -381,7 +381,12 @@ class SystemChoresPendingApprovalSensor(KidsChoresCoordinatorEntity, SensorEntit
 
 
 class SystemRewardsPendingApprovalSensor(KidsChoresCoordinatorEntity, SensorEntity):
-    """Legacy sensor listing all pending reward approvals."""
+    """Legacy sensor listing all pending reward approvals (computed from kid reward data).
+
+    Note: Computed dynamically from kid_reward_data structure, not from deprecated
+    storage key. The reward data is stored per-kid, and pending count is calculated
+    at runtime from entries with pending_count > 0.
+    """
 
     _attr_has_entity_name = True
     _attr_entity_category = EntityCategory.DIAGNOSTIC

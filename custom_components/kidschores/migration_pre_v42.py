@@ -356,7 +356,8 @@ class PreV42Migrator:
         # (skip timestamp migration, just delete the key)
         self.coordinator._data.pop(const.DATA_PENDING_CHORE_APPROVALS_LEGACY, None)
 
-        # Migrate timestamps in pending REWARD approvals (still queue-based)
+        # Migrate timestamps in pending REWARD approvals before deletion
+        # These may contain historical approval data with timestamps that need proper format
         for approval in self.coordinator._data.get(
             const.DATA_PENDING_REWARD_APPROVALS_LEGACY, []
         ):
@@ -364,6 +365,10 @@ class PreV42Migrator:
                 approval[const.DATA_CHORE_TIMESTAMP] = self._migrate_datetime(
                     approval[const.DATA_CHORE_TIMESTAMP]
                 )
+
+        # v0.4.0: Remove reward queue - also now computed from per-kid reward_data
+        # After migration, delete the legacy key since approvals are computed dynamically
+        self.coordinator._data.pop(const.DATA_PENDING_REWARD_APPROVALS_LEGACY, None)
 
         # Migrate datetime on Challenges
         for challenge_info in self.coordinator._data.get(
@@ -500,7 +505,7 @@ class PreV42Migrator:
                     kid_info[const.DATA_KID_CHORE_DATA][chore_id] = {
                         const.DATA_KID_CHORE_DATA_NAME: chore_name,
                         const.DATA_KID_CHORE_DATA_STATE: const.CHORE_STATE_PENDING,
-                        const.DATA_KID_CHORE_DATA_PENDING_COUNT: 0,
+                        const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT: 0,
                         const.DATA_KID_CHORE_DATA_LAST_CLAIMED: None,
                         const.DATA_KID_CHORE_DATA_LAST_APPROVED: None,
                         const.DATA_KID_CHORE_DATA_LAST_DISAPPROVED: None,
@@ -518,9 +523,9 @@ class PreV42Migrator:
 
                 kid_chore_data = kid_info[const.DATA_KID_CHORE_DATA][chore_id]
 
-                # Ensure pending_count exists for existing records (added in v42)
-                if const.DATA_KID_CHORE_DATA_PENDING_COUNT not in kid_chore_data:
-                    kid_chore_data[const.DATA_KID_CHORE_DATA_PENDING_COUNT] = 0
+                # Ensure pending_claim_count exists for existing records (added in v42)
+                if const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT not in kid_chore_data:
+                    kid_chore_data[const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT] = 0
 
                 periods = kid_chore_data[const.DATA_KID_CHORE_DATA_PERIODS]
 
@@ -1536,13 +1541,13 @@ class PreV42Migrator:
         only read during aggregation migrations.
 
         Legacy fields removed:
-        - Kids: chore_claims, chore_streaks, chore_approvals, completed_chores_*,
-                points_earned_*, pending_rewards, redeemed_rewards, reward_claims,
-                reward_approvals
+        - Kids: chore_claims, chore_streaks, chore_approvals, today_chore_approvals,
+                completed_chores_*, points_earned_*, pending_rewards, redeemed_rewards,
+                reward_claims, reward_approvals
         - Top-level: pending_chore_approvals, pending_reward_approvals (if legacy format)
 
         Fields NOT removed (still in use or not fully migrated):
-        - Kids: max_points_ever, max_streak (backward compat, used by legacy sensors)
+        - Kids: max_streak (backward compat, used by legacy sensors)
         - Kids: badges (already removed by _migrate_kid_legacy_badges_to_cumulative_progress)
         - Chores: shared_chore, allow_multiple_claims_per_day (already removed inline)
         - Badges: threshold_type, threshold_value, etc. (already removed inline)
@@ -1556,6 +1561,8 @@ class PreV42Migrator:
             const.DATA_KID_CHORE_CLAIMS_LEGACY,
             const.DATA_KID_CHORE_STREAKS_LEGACY,
             const.DATA_KID_CHORE_APPROVALS_LEGACY,
+            # Chore approvals today (migrated to periods structure)
+            const.DATA_KID_TODAY_CHORE_APPROVALS_LEGACY,
             # Completed chores counters (migrated to chore_stats)
             const.DATA_KID_COMPLETED_CHORES_TOTAL_LEGACY,
             const.DATA_KID_COMPLETED_CHORES_MONTHLY_LEGACY,
@@ -1572,6 +1579,8 @@ class PreV42Migrator:
             const.DATA_KID_REDEEMED_REWARDS_LEGACY,
             const.DATA_KID_REWARD_CLAIMS_LEGACY,
             const.DATA_KID_REWARD_APPROVALS_LEGACY,
+            # Point statistics (max_points_ever migrated to point_stats.highest_balance)
+            const.DATA_KID_MAX_POINTS_EVER_LEGACY,
         ]
 
         kids_data = self.coordinator._data.get(const.DATA_KIDS, {})
@@ -1609,7 +1618,6 @@ class PreV42Migrator:
         Affected fields per kid:
         - points: Current point balance
         - points_multiplier: Point earning multiplier
-        - max_points_ever: Highest point balance ever
         - point_stats.*: All point statistics
         - point_data.periods.*: All period point values
         - chore_stats.*: All chore statistics (total_points_from_chores_*)
@@ -1629,7 +1637,6 @@ class PreV42Migrator:
             for field in [
                 const.DATA_KID_POINTS,
                 const.DATA_KID_POINTS_MULTIPLIER,
-                const.DATA_KID_MAX_POINTS_EVER_LEGACY,
             ]:
                 if field in kid_info and isinstance(kid_info[field], (int, float)):
                     old_val = kid_info[field]

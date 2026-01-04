@@ -567,15 +567,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Chore data is already cleaned above via DATA_KID_CHORE_DATA removal
         self._pending_chore_changed = True
 
-    def _cleanup_pending_chore_approvals(self) -> None:
-        """No-op: Pending chore approvals are now computed from timestamps.
-
-        This method is kept for call-site compatibility but does nothing.
-        The get_pending_chore_approvals_computed() method automatically filters
-        out invalid chores by checking self.chores_data existence.
-        """
-        # No queue to clean - pending approvals computed dynamically
-
     def _cleanup_pending_reward_approvals(self) -> None:
         """Remove reward_data entries for rewards that no longer exist."""
         valid_reward_ids = set(self._data.get(const.DATA_REWARDS, {}).keys())
@@ -964,9 +955,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             # Legacy fields (pending_rewards, redeemed_rewards, reward_claims, reward_approvals)
             # have been removed - all reward tracking now uses reward_data structure
             const.DATA_KID_REWARD_DATA: kid_data.get(const.DATA_KID_REWARD_DATA, {}),
-            const.DATA_KID_MAX_POINTS_EVER_LEGACY: kid_data.get(
-                const.DATA_KID_MAX_POINTS_EVER_LEGACY, const.DEFAULT_ZERO
-            ),
+            # NOTE: max_points_ever is removed - use point_stats.highest_balance instead
             const.DATA_KID_ENABLE_NOTIFICATIONS: kid_data.get(
                 const.DATA_KID_ENABLE_NOTIFICATIONS, True
             ),
@@ -1932,7 +1921,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Cleanup references
         self._cleanup_deleted_kid_references()
         self._cleanup_parent_assignments()
-        self._cleanup_pending_chore_approvals()
         self._cleanup_pending_reward_approvals()
 
         self._persist()
@@ -2022,7 +2010,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self._cleanup_deleted_chore_references()
         self._cleanup_deleted_chore_in_achievements()
         self._cleanup_deleted_chore_in_challenges()
-        self._cleanup_pending_chore_approvals()
 
         # Remove orphaned shared chore sensors
         self.hass.async_create_task(self._remove_orphaned_shared_chore_sensors())
@@ -2468,9 +2455,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         kid_chores_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
         kid_chore_data_entry = kid_chores_data[chore_id]  # Now guaranteed to exist
         current_count = kid_chore_data_entry.get(
-            const.DATA_KID_CHORE_DATA_PENDING_COUNT, 0
+            const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT, 0
         )
-        kid_chore_data_entry[const.DATA_KID_CHORE_DATA_PENDING_COUNT] = (
+        kid_chore_data_entry[const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT] = (
             current_count + 1
         )
 
@@ -2653,9 +2640,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             chore_id
         ]  # Should exist from _process_chore_state
         current_count = kid_chore_data_entry.get(
-            const.DATA_KID_CHORE_DATA_PENDING_COUNT, 0
+            const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT, 0
         )
-        kid_chore_data_entry[const.DATA_KID_CHORE_DATA_PENDING_COUNT] = max(
+        kid_chore_data_entry[const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT] = max(
             0, current_count - 1
         )
 
@@ -2845,9 +2832,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             self._update_chore_data_for_kid(kid_id, chore_id, 0.0)
         kid_chore_data_entry = kid_chores_data[chore_id]
         current_count = kid_chore_data_entry.get(
-            const.DATA_KID_CHORE_DATA_PENDING_COUNT, 0
+            const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT, 0
         )
-        kid_chore_data_entry[const.DATA_KID_CHORE_DATA_PENDING_COUNT] = max(
+        kid_chore_data_entry[const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT] = max(
             0, current_count - 1
         )
 
@@ -3036,14 +3023,16 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         decremented on approve/disapprove.
 
         Returns:
-            True if there's a pending claim (pending_count > 0), False otherwise.
+            True if there's a pending claim (pending_claim_count > 0), False otherwise.
         """
         kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
         if not kid_chore_data:
             return False
 
-        pending_count = kid_chore_data.get(const.DATA_KID_CHORE_DATA_PENDING_COUNT, 0)
-        return pending_count > 0
+        pending_claim_count = kid_chore_data.get(
+            const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT, 0
+        )
+        return pending_claim_count > 0
 
     def get_pending_chore_approvals_computed(self) -> list[dict[str, Any]]:
         """Compute pending chore approvals dynamically from timestamp data.
@@ -3398,13 +3387,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 if c != chore_id
             ]
 
-            # Clear last_approved timestamp to reset to pending (v0.4.0+ timestamp-based)
-            # NOTE: last_claimed is intentionally preserved for historical tracking
+            # NOTE: last_approved is intentionally NEVER removed - it's for historical
+            # tracking. Period-based approval validation uses approval_period_start
+            # to determine if approval is valid for the current period.
+            # is_approved_in_current_period() checks: last_approved >= approval_period_start
+
             kid_chores_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
-            if chore_id in kid_chores_data:
-                kid_chores_data[chore_id].pop(
-                    const.DATA_KID_CHORE_DATA_LAST_APPROVED, None
-                )
 
             # Set approval_period_start to mark the beginning of a new approval period
             # This timestamp is used to determine if a chore was already approved
@@ -3434,14 +3422,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         elif new_state == const.CHORE_STATE_COMPLETED_BY_OTHER:
             # SHARED_FIRST: This kid didn't complete the chore, another kid did
-            # Clear timestamps in kid_chore_data (v0.4.0+ timestamp-based tracking)
+            # Clear last_claimed in kid_chore_data (v0.4.0+ timestamp-based tracking)
+            # NOTE: last_approved is intentionally NEVER removed - historical tracking
             kid_chores_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
             if chore_id in kid_chores_data:
                 kid_chores_data[chore_id].pop(
                     const.DATA_KID_CHORE_DATA_LAST_CLAIMED, None
-                )
-                kid_chores_data[chore_id].pop(
-                    const.DATA_KID_CHORE_DATA_LAST_APPROVED, None
                 )
 
             # Also clear from overdue since it's been completed by someone else
@@ -3606,7 +3592,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             {
                 const.DATA_KID_CHORE_DATA_NAME: chore_name,
                 const.DATA_KID_CHORE_DATA_STATE: const.CHORE_STATE_PENDING,
-                const.DATA_KID_CHORE_DATA_PENDING_COUNT: 0,
+                const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT: 0,
                 const.DATA_KID_CHORE_DATA_LAST_CLAIMED: None,
                 const.DATA_KID_CHORE_DATA_LAST_APPROVED: None,
                 const.DATA_KID_CHORE_DATA_LAST_DISAPPROVED: None,
@@ -4240,6 +4226,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             progress[const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS] += (
                 delta_value
             )
+            progress[const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS] = round(
+                progress[const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS],
+                const.DATA_FLOAT_PRECISION,
+            )
 
         # 5) All-time and highest balance stats (handled incrementally)
         point_stats = kid_info.setdefault(const.DATA_KID_POINT_STATS, {})
@@ -4251,9 +4241,21 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         if delta_value > 0:
             point_stats[const.DATA_KID_POINT_STATS_EARNED_ALL_TIME] += delta_value
+            point_stats[const.DATA_KID_POINT_STATS_EARNED_ALL_TIME] = round(
+                point_stats[const.DATA_KID_POINT_STATS_EARNED_ALL_TIME],
+                const.DATA_FLOAT_PRECISION,
+            )
         elif delta_value < 0:
             point_stats[const.DATA_KID_POINT_STATS_SPENT_ALL_TIME] += delta_value
+            point_stats[const.DATA_KID_POINT_STATS_SPENT_ALL_TIME] = round(
+                point_stats[const.DATA_KID_POINT_STATS_SPENT_ALL_TIME],
+                const.DATA_FLOAT_PRECISION,
+            )
         point_stats[const.DATA_KID_POINT_STATS_NET_ALL_TIME] += delta_value
+        point_stats[const.DATA_KID_POINT_STATS_NET_ALL_TIME] = round(
+            point_stats[const.DATA_KID_POINT_STATS_NET_ALL_TIME],
+            const.DATA_FLOAT_PRECISION,
+        )
 
         # 6) Record into new point_data history (use same date logic as chore_data)
         periods_data = kid_info.setdefault(const.DATA_KID_POINT_DATA, {}).setdefault(
@@ -4285,8 +4287,16 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             ):
                 entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE] = {}
             entry[const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL] += delta_value
+            entry[const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL] = round(
+                entry[const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL],
+                const.DATA_FLOAT_PRECISION,
+            )
             entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE].setdefault(source, 0.0)
             entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE][source] += delta_value
+            entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE][source] = round(
+                entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE][source],
+                const.DATA_FLOAT_PRECISION,
+            )
 
         # 7) Re‑evaluate everything and persist
         # Note: Call _recalculate_point_stats_for_kid BEFORE updating all-time stats
@@ -4298,6 +4308,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         by_source_all_time = point_stats[const.DATA_KID_POINT_STATS_BY_SOURCE_ALL_TIME]
         by_source_all_time.setdefault(source, 0.0)
         by_source_all_time[source] += delta_value
+        by_source_all_time[source] = round(
+            by_source_all_time[source], const.DATA_FLOAT_PRECISION
+        )
 
         if new > point_stats[const.DATA_KID_POINT_STATS_HIGHEST_BALANCE]:
             point_stats[const.DATA_KID_POINT_STATS_HIGHEST_BALANCE] = new
@@ -4418,9 +4431,18 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             period = pts_periods.get(period_key, {})
             entry = period.get(period_id, {})
             by_source = entry.get(const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE, {})
-            earned = sum(v for v in by_source.values() if v > 0)
-            spent = sum(v for v in by_source.values() if v < 0)
-            net = entry.get(const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL, 0.0)
+            earned = round(
+                sum(v for v in by_source.values() if v > 0),
+                const.DATA_FLOAT_PRECISION,
+            )
+            spent = round(
+                sum(v for v in by_source.values() if v < 0),
+                const.DATA_FLOAT_PRECISION,
+            )
+            net = round(
+                entry.get(const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL, 0.0),
+                const.DATA_FLOAT_PRECISION,
+            )
             return earned, spent, net, by_source.copy()
 
         # Daily
@@ -4460,9 +4482,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         stats[const.DATA_KID_POINT_STATS_BY_SOURCE_YEAR] = by_source
 
         # --- All-time Net stats ---
-        stats[const.DATA_KID_POINT_STATS_NET_ALL_TIME] = (
+        stats[const.DATA_KID_POINT_STATS_NET_ALL_TIME] = round(
             stats[const.DATA_KID_POINT_STATS_EARNED_ALL_TIME]
-            + stats[const.DATA_KID_POINT_STATS_SPENT_ALL_TIME]
+            + stats[const.DATA_KID_POINT_STATS_SPENT_ALL_TIME],
+            const.DATA_FLOAT_PRECISION,
         )
 
         # --- Averages ---
@@ -8117,11 +8140,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     async def _reset_all_chore_counts(self, now: datetime):
         """Trigger resets based on the current time for all frequencies."""
         await self._handle_recurring_chore_resets(now)
-        await self._reset_daily_reward_statuses()
         await self._check_overdue_chores()
-
-        for _, kid_info in self.kids_data.items():
-            kid_info[const.DATA_KID_TODAY_CHORE_APPROVALS] = {}
+        # Legacy field DATA_KID_TODAY_CHORE_APPROVALS is no longer used - periods structure handles this
 
     async def _handle_recurring_chore_resets(self, now: datetime):
         """Handle recurring resets for daily, weekly, and monthly frequencies."""
@@ -8398,13 +8418,15 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                             self._process_chore_state(
                                 kid_id, chore_id, const.CHORE_STATE_APPROVED
                             )
-                        # CLEAR (default) or after AUTO_APPROVE: Clear pending_count
+                        # CLEAR (default) or after AUTO_APPROVE: Clear pending_claim_count
                         kid_info = self.kids_data.get(kid_id, {})
                         kid_chore_data = kid_info.get(
                             const.DATA_KID_CHORE_DATA, {}
                         ).get(chore_id, {})
                         if kid_chore_data:
-                            kid_chore_data[const.DATA_KID_CHORE_DATA_PENDING_COUNT] = 0
+                            kid_chore_data[
+                                const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT
+                            ] = 0
 
                     self._process_chore_state(
                         kid_id, chore_id, const.CHORE_STATE_PENDING
@@ -8497,9 +8519,11 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                         self._process_chore_state(
                             kid_id, chore_id, const.CHORE_STATE_APPROVED
                         )
-                    # CLEAR (default) or after AUTO_APPROVE: Clear pending_count
+                    # CLEAR (default) or after AUTO_APPROVE: Clear pending_claim_count
                     if kid_chore_data:
-                        kid_chore_data[const.DATA_KID_CHORE_DATA_PENDING_COUNT] = 0
+                        kid_chore_data[
+                            const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT
+                        ] = 0
 
                 self._process_chore_state(kid_id, chore_id, const.CHORE_STATE_PENDING)
                 const.LOGGER.debug(
@@ -8509,24 +8533,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     kid_state,
                     const.CHORE_STATE_PENDING,
                 )
-
-    async def _reset_daily_reward_statuses(self):
-        """Reset all kids' daily reward tracking.
-
-        With period-based tracking (reward_data.periods), no daily reset is needed.
-        Period counters are date-keyed (e.g., '2025-12-30') and automatically
-        roll over without requiring any reset operation.
-
-        This method is kept for backward compatibility but performs no actions.
-        """
-        # Period-based tracking (reward_data.periods) uses date keys that
-        # automatically represent different time periods without reset.
-        const.LOGGER.debug(
-            "DEBUG: Daily Reset - Rewards - No-op (period-based tracking is date-keyed)"
-        )
-
-        self._persist()
-        self.async_set_updated_data(self._data)
 
     def _calculate_next_due_date_from_info(
         self,
@@ -8669,10 +8675,20 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             )
             return
 
-        # Update all assigned kids' state to PENDING
-        for kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
-            if kid_id:
-                self._process_chore_state(kid_id, chore_id, const.CHORE_STATE_PENDING)
+        # Only reset to PENDING for UPON_COMPLETION type
+        # Other reset types (AT_MIDNIGHT_*, AT_DUE_DATE_*) stay APPROVED until scheduled reset
+        # This prevents the bug where approval_period_start > last_approved caused
+        # is_approved_in_current_period() to return False immediately after approval
+        approval_reset = chore_info.get(
+            const.DATA_CHORE_APPROVAL_RESET_TYPE,
+            const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+        )
+        if approval_reset == const.APPROVAL_RESET_UPON_COMPLETION:
+            for kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
+                if kid_id:
+                    self._process_chore_state(
+                        kid_id, chore_id, const.CHORE_STATE_PENDING
+                    )
 
         const.LOGGER.info(
             "Chore Due Date - Rescheduled (SHARED): %s, from %s to %s",
@@ -8771,8 +8787,16 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 # Ensure the parent dict is updated
                 kid_info[const.DATA_KID_CHORE_DATA] = kid_chore_data_dict
 
-        # Reset kid's chore state to PENDING (clears overdue status)
-        self._process_chore_state(kid_id, chore_id, const.CHORE_STATE_PENDING)
+        # Only reset to PENDING for UPON_COMPLETION type
+        # Other reset types (AT_MIDNIGHT_*, AT_DUE_DATE_*) stay APPROVED until scheduled reset
+        # This prevents the bug where approval_period_start > last_approved caused
+        # is_approved_in_current_period() to return False immediately after approval
+        approval_reset = chore_info.get(
+            const.DATA_CHORE_APPROVAL_RESET_TYPE,
+            const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+        )
+        if approval_reset == const.APPROVAL_RESET_UPON_COMPLETION:
+            self._process_chore_state(kid_id, chore_id, const.CHORE_STATE_PENDING)
 
         const.LOGGER.info(
             "Chore Due Date - Rescheduled (INDEPENDENT): chore %s, kid %s, from %s to %s",
@@ -8929,7 +8953,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     chore_id, {}
                 )
                 if kid_chore_data:
-                    kid_chore_data[const.DATA_KID_CHORE_DATA_PENDING_COUNT] = 0
+                    kid_chore_data[const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT] = 0
 
         const.LOGGER.info(
             "INFO: Chore Due Date - Due date set for Chore ID '%s'",

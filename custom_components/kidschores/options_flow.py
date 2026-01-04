@@ -895,7 +895,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             # Build kids name to ID mapping for options flow
             kids_name_to_id = {
                 kid[const.DATA_KID_NAME]: kid[const.DATA_KID_INTERNAL_ID]
-                for kid in coordinator.data.get(const.DATA_KIDS, [])
+                for kid in coordinator.data.get(const.DATA_KIDS, {}).values()
             }
 
             # Build achievement data with integrated validation
@@ -1874,7 +1874,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             # Build kids name to ID mapping for options flow
             kids_name_to_id = {
                 kid[const.DATA_KID_NAME]: kid[const.DATA_KID_INTERNAL_ID]
-                for kid in coordinator.data.get(const.DATA_KIDS, [])
+                for kid in coordinator.data.get(const.DATA_KIDS, {}).values()
             }
 
             # Build achievement data with integrated validation

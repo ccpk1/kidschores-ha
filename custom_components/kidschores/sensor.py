@@ -659,18 +659,9 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         - overdue: alert-circle (not done in time)
         - fallback: chore's custom icon or default
         """
-        state = self.native_value
-        if state == const.CHORE_STATE_PENDING:
-            return "mdi:checkbox-blank-circle-outline"
-        elif state == const.CHORE_STATE_CLAIMED:
-            return "mdi:clipboard-check-outline"
-        elif state == const.CHORE_STATE_APPROVED:
-            return "mdi:checkbox-marked-circle-auto-outline"
-        elif state == const.CHORE_STATE_OVERDUE:
-            return "mdi:alert-circle-outline"
+        chore_info = self.coordinator.chores_data.get(self._chore_id, {})
 
         # Fallback: use chore's custom icon or default
-        chore_info = self.coordinator.chores_data.get(self._chore_id, {})
         return chore_info.get(const.DATA_CHORE_ICON, const.DEFAULT_CHORE_SENSOR_ICON)
 
 
@@ -1532,12 +1523,22 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
             kh.get_friendly_label(self.hass, label) for label in stored_labels
         ]
 
+        # Get today's approvals from periods structure (not legacy flat field)
         total_approvals_today = const.DEFAULT_ZERO
+        today_local_iso = kh.get_today_local_date().isoformat()
+
         for kid_id in assigned_kids_ids:
             kid_data = self.coordinator.kids_data.get(kid_id, {})
-            total_approvals_today += kid_data.get(
-                const.DATA_KID_TODAY_CHORE_APPROVALS, {}
-            ).get(self._chore_id, const.DEFAULT_ZERO)
+            # Access: kid_data[DATA_KID_CHORE_DATA][chore_id][periods][daily][today_iso][approved]
+            kid_chore_data = kid_data.get(const.DATA_KID_CHORE_DATA, {}).get(
+                self._chore_id, {}
+            )
+            periods = kid_chore_data.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
+            daily_periods = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_DAILY, {})
+            today_period = daily_periods.get(today_local_iso, {})
+            total_approvals_today += today_period.get(
+                const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, const.DEFAULT_ZERO
+            )
 
         attributes = {
             # --- 1. Identity & Meta ---

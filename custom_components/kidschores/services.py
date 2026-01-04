@@ -900,8 +900,11 @@ def async_setup_services(hass: HomeAssistant):
             kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
             for chore_tracking in kid_chore_data.values():
                 chore_tracking.pop(const.DATA_KID_CHORE_DATA_LAST_CLAIMED, None)
-                chore_tracking.pop(const.DATA_KID_CHORE_DATA_LAST_APPROVED, None)
-                # Keep approval_period_start - it will be reset on next claim/approve cycle
+                # NOTE: last_approved is intentionally NEVER removed - historical tracking
+                # Clear approval_period_start to start fresh approval period
+                chore_tracking.pop(
+                    const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START, None
+                )
             # Clear overdue tracking
             kid_info[const.DATA_KID_OVERDUE_CHORES] = []
             kid_info[const.DATA_KID_OVERDUE_NOTIFICATIONS] = {}

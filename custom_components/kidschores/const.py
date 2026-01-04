@@ -354,7 +354,6 @@ CFOF_CHORES_INPUT_NAME: Final = "chore_name"
 CFOF_CHORES_INPUT_NOTIFY_ON_APPROVAL: Final = "notify_on_approval"
 CFOF_CHORES_INPUT_NOTIFY_ON_CLAIM: Final = "notify_on_claim"
 CFOF_CHORES_INPUT_NOTIFY_ON_DISAPPROVAL: Final = "notify_on_disapproval"
-CFOF_CHORES_INPUT_PARTIAL_ALLOWED_LEGACY: Final = "partial_allowed"
 CFOF_CHORES_INPUT_RECURRING_FREQUENCY: Final = "recurring_frequency"
 CFOF_CHORES_INPUT_SHARED_CHORE: Final = "shared_chore"
 CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: Final = "overdue_handling_type"
@@ -583,7 +582,6 @@ CONF_CUSTOM_INTERVAL_UNIT: Final = "custom_interval_unit"
 CONF_DEFAULT_POINTS: Final = "default_points"
 CONF_DUE_DATE: Final = "due_date"
 CONF_OVERDUE_HANDLING_TYPE: Final = "overdue_handling_type"
-CONF_PARTIAL_ALLOWED_LEGACY: Final = "partial_allowed"
 CONF_RECURRING_FREQUENCY: Final = "recurring_frequency"
 CONF_CHORE_SHOW_ON_CALENDAR: Final = "show_on_calendar"
 
@@ -710,7 +708,7 @@ DATA_KID_COMPLETED_BY_OTHER_CHORES: Final = "completed_by_other_chores"
 # Kid Chore Data Structure Constants
 DATA_KID_CHORE_DATA: Final = "chore_data"
 DATA_KID_CHORE_DATA_STATE: Final = "state"
-DATA_KID_CHORE_DATA_PENDING_COUNT: Final = "pending_count"
+DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT: Final = "pending_claim_count"
 DATA_KID_CHORE_DATA_NAME: Final = "name"
 DATA_KID_CHORE_DATA_DUE_DATE: Final = "due_date"
 DATA_KID_CHORE_DATA_LAST_APPROVED: Final = "last_approved"
@@ -907,7 +905,6 @@ DATA_KID_REWARD_DATA_PERIOD_APPROVED: Final = "approved"
 DATA_KID_REWARD_DATA_PERIOD_DISAPPROVED: Final = "disapproved"
 DATA_KID_REWARD_DATA_PERIOD_POINTS: Final = "points"
 
-DATA_KID_TODAY_CHORE_APPROVALS: Final = "today_chore_approvals"
 DATA_KID_USE_PERSISTENT_NOTIFICATIONS: Final = "use_persistent_notifications"
 DATA_KID_DASHBOARD_LANGUAGE: Final = "dashboard_language"
 
@@ -1049,7 +1046,6 @@ DATA_CHORE_NOTIFY_ON_APPROVAL: Final = "notify_on_approval"
 DATA_CHORE_NOTIFY_ON_CLAIM: Final = "notify_on_claim"
 DATA_CHORE_NOTIFY_ON_DISAPPROVAL: Final = "notify_on_disapproval"
 DATA_CHORE_AUTO_APPROVE: Final = "auto_approve"
-DATA_CHORE_PARTIAL_ALLOWED_LEGACY: Final = "partial_allowed"
 DATA_CHORE_RECURRING_FREQUENCY: Final = "recurring_frequency"
 DATA_CHORE_SHOW_ON_CALENDAR: Final = "show_on_calendar"
 DATA_CHORE_COMPLETION_CRITERIA: Final = "completion_criteria"
@@ -1224,13 +1220,6 @@ DATA_CHALLENGE_START_DATE: Final = "start_date"
 DATA_CHALLENGE_TARGET_VALUE: Final = "target_value"
 DATA_CHALLENGE_TYPE: Final = "type"
 
-# Runtime Data Keys
-# LEGACY (v0.4.0): Chore/reward queues removed, computed from timestamps instead
-# Keep constants for backward-compat migration code in migration_pre_v42.py
-DATA_PENDING_CHORE_APPROVALS_LEGACY: Final = "pending_chore_approvals"
-DATA_PENDING_REWARD_APPROVALS_LEGACY: Final = "pending_reward_approvals"
-
-
 # ================================================================================================
 # Default Icons
 # ================================================================================================
@@ -1301,7 +1290,6 @@ DEFAULT_BADGE_TARGET = {
     "type": DEFAULT_BADGE_TARGET_TYPE,
     "value": DEFAULT_BADGE_TARGET_THRESHOLD_VALUE,
 }
-DEFAULT_BADGE_THRESHOLD_VALUE_LEGACY: Final = 50
 DEFAULT_BONUS_POINTS: Final = 1
 DEFAULT_CALENDAR_SHOW_PERIOD: Final = 90
 DEFAULT_CHORE_AUTO_APPROVE: Final = False
@@ -1324,7 +1312,6 @@ DEFAULT_NOTIFY_DELAY_REMINDER: Final = 24
 DEFAULT_NOTIFY_ON_APPROVAL = True
 DEFAULT_NOTIFY_ON_CLAIM = True
 DEFAULT_NOTIFY_ON_DISAPPROVAL = True
-DEFAULT_PARTIAL_ALLOWED_LEGACY = False
 DEFAULT_PENALTY_POINTS: Final = 1
 DEFAULT_PENDING_CHORES_UNIT: Final = "Pending Chores"
 DEFAULT_PENDING_REWARDS_UNIT: Final = "Pending Rewards"
@@ -1665,7 +1652,6 @@ ATTR_NEXT_LOWER_BADGE_NAME: Final = "next_lower_badge_name"
 ATTR_NEXT_LOWER_BADGE_EID: Final = "next_lower_badge_eid"
 ATTR_OCCASION_DATE: Final = "occasion_date"
 ATTR_OCCASION_TYPE: Final = "occasion_type"
-ATTR_PARTIAL_ALLOWED_LEGACY: Final = "partial_allowed"
 ATTR_PENALTY_BUTTON_EID: Final = "penalty_button_eid"
 ATTR_PENALTY_NAME: Final = "penalty_name"
 ATTR_PENALTY_POINTS: Final = "penalty_points"
@@ -2817,12 +2803,31 @@ REWARD_OPTION_NONE = [
 # Not in use at this time
 
 # ================================================================================================
-# LEGACY CONSTANTS (KC 3.x→4.x and KC 4.x→5.x migrations - one-time data conversion only)
+# LEGACY CONSTANTS (KC 3.x→4.x migrations - one-time data conversion only)
 # These reference OLD storage keys that are replaced during migration.
 # After migration completes, these keys NO LONGER EXIST in storage.
 # Remove in KC-vNext after migration support is dropped.
 # DO NOT DELETE - would break migrations for upgrading users.
 # ================================================================================================
+
+CFOF_CHORES_INPUT_PARTIAL_ALLOWED_LEGACY: Final = "partial_allowed"
+CONF_PARTIAL_ALLOWED_LEGACY: Final = "partial_allowed"
+# Legacy/Deprecated (Development-Only: Removed before v4.0+ production release)
+# Replaced by nested periods structure (DATA_KID_CHORE_DATA_PERIODS)
+DATA_KID_TODAY_CHORE_APPROVALS_LEGACY: Final = (
+    "today_chore_approvals"  # Use periods structure instead. [DELETE BEFORE PROD]
+)
+DATA_CHORE_PARTIAL_ALLOWED_LEGACY: Final = "partial_allowed"
+# Runtime Data Keys
+# LEGACY (v0.4.0): Chore/reward queues removed, computed from timestamps instead
+# Keep constants for backward-compat migration code in migration_pre_v42.py
+DATA_PENDING_CHORE_APPROVALS_LEGACY: Final = "pending_chore_approvals"
+DATA_PENDING_REWARD_APPROVALS_LEGACY: Final = "pending_reward_approvals"
+
+DEFAULT_BADGE_THRESHOLD_VALUE_LEGACY: Final = 50
+DEFAULT_PARTIAL_ALLOWED_LEGACY = False
+ATTR_PARTIAL_ALLOWED_LEGACY: Final = "partial_allowed"
+
 
 # Kid Badge Data (used in migration functions)
 DATA_KID_BADGES_LEGACY: Final = (
