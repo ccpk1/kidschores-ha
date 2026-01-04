@@ -365,6 +365,8 @@ async def _cleanup_legacy_entities(hass: HomeAssistant, entry: ConfigEntry) -> N
         const.SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_MONTHLY_SENSOR,
         const.SENSOR_KC_UID_SUFFIX_KID_HIGHEST_STREAK_SENSOR,
         const.SENSOR_KC_UID_SUFFIX_KID_MAX_POINTS_EVER_SENSOR,
+        const.SENSOR_KC_UID_SUFFIX_PENALTY_APPLIES_SENSOR,
+        const.SENSOR_KC_UID_SUFFIX_BONUS_APPLIES_SENSOR,
     ]
 
     # Scan and remove legacy entities for this config entry

@@ -11,7 +11,7 @@ Legacy sensors are candidates for deprecation in future versions as their data i
 available as attributes on modern sensor entities, providing better data organization
 without entity clutter.
 
-Available Legacy Sensors (11 total):
+Available Legacy Sensors (13 total):
 
 System Chore Approval Sensors (4):
 1. SystemChoreApprovalsSensor - Total chores completed (data in KidChoresSensor attributes)
@@ -31,6 +31,10 @@ Kid Points Earned Sensors (4):
 
 Streak Sensor (1):
 11. KidChoreStreakSensor - Highest chore streak (data in KidPointsSensor attributes)
+
+Bonus/Penalty Application Sensors (2):
+12. KidPenaltyAppliedSensor - Penalty application count (data in dashboard helper bonuses/penalties list)
+13. KidBonusAppliedSensor - Bonus application count (data in dashboard helper bonuses/penalties list)
 """
 
 from typing import Any
@@ -861,3 +865,222 @@ class KidChoreStreakSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def icon(self) -> str:
         """Return an icon for 'highest streak'."""
         return const.DEFAULT_STREAK_ICON
+
+
+# ------------------------------------------------------------------------------------------
+# KID BONUS/PENALTY APPLICATION SENSORS (LEGACY - Data available in dashboard helper)
+# ------------------------------------------------------------------------------------------
+
+
+class KidPenaltyAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
+    """Legacy sensor tracking how many times each penalty has been applied to a kid.
+
+    NOTE: This sensor is legacy/optional. Data is now available in the dashboard helper
+    sensor's penalties attribute list. This sensor is maintained for backward compatibility.
+
+    Migration Path:
+    - Dashboard helper: penalties[].application_count
+    - Direct access: coordinator.kids_data[kid_id][DATA_KID_PENALTY_APPLIES][penalty_id]
+
+    Counts penalty applications for individual kid/penalty combinations. Provides penalty
+    metadata including points deducted, description, and button entity ID for UI integration.
+    """
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_translation_key = const.TRANS_KEY_SENSOR_PENALTY_APPLIES_SENSOR
+
+    def __init__(
+        self,
+        coordinator: KidsChoresDataCoordinator,
+        entry: ConfigEntry,
+        kid_id: str,
+        kid_name: str,
+        penalty_id: str,
+        penalty_name: str,
+    ):
+        """Initialize the sensor.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+            penalty_id: Unique identifier for the penalty.
+            penalty_name: Display name of the penalty.
+        """
+        super().__init__(coordinator)
+        # Enable/disable based on config option
+        show_legacy = entry.options.get(const.CONF_SHOW_LEGACY_ENTITIES, False)
+        self._attr_entity_registry_enabled_default = show_legacy
+        self._entry = entry
+        self._kid_id = kid_id
+        self._kid_name = kid_name
+        self._penalty_id = penalty_id
+        self._penalty_name = penalty_name
+
+        self._attr_unique_id = f"{entry.entry_id}_{kid_id}_{penalty_id}{const.SENSOR_KC_UID_SUFFIX_PENALTY_APPLIES_SENSOR}"
+        self._attr_translation_placeholders = {
+            const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
+            const.TRANS_KEY_SENSOR_ATTR_PENALTY_NAME: penalty_name,
+        }
+        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_MIDFIX_PENALTY_APPLIES_SENSOR}{penalty_name}"
+        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+
+    @property
+    def native_value(self) -> Any:
+        """Return the number of times the penalty has been applied."""
+        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        return kid_info.get(const.DATA_KID_PENALTY_APPLIES, {}).get(
+            self._penalty_id, const.DEFAULT_ZERO
+        )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Expose additional details like penalty points and description."""
+        penalty_info = self.coordinator.penalties_data.get(self._penalty_id, {})
+
+        stored_labels = penalty_info.get(const.DATA_PENALTY_LABELS, [])
+        friendly_labels = [
+            kh.get_friendly_label(self.hass, label) for label in stored_labels
+        ]
+
+        # Get the ParentPenaltyApplyButton entity_id
+        penalty_button_eid = None
+        try:
+            entity_registry = async_get(self.hass)
+            unique_id = f"{self._entry.entry_id}_{const.BUTTON_PENALTY_PREFIX}{self._kid_id}_{self._penalty_id}"
+            penalty_button_eid = entity_registry.async_get_entity_id(
+                "button", const.DOMAIN, unique_id
+            )
+        except (KeyError, ValueError, AttributeError):
+            pass
+
+        return {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_PENALTY_APPLIED,
+            const.ATTR_KID_NAME: self._kid_name,
+            const.ATTR_PENALTY_NAME: self._penalty_name,
+            const.ATTR_DESCRIPTION: penalty_info.get(
+                const.DATA_PENALTY_DESCRIPTION, const.SENTINEL_EMPTY
+            ),
+            const.ATTR_PENALTY_POINTS: penalty_info.get(
+                const.DATA_PENALTY_POINTS, const.DEFAULT_PENALTY_POINTS
+            ),
+            const.ATTR_LABELS: friendly_labels,
+            const.ATTR_PENALTY_BUTTON_EID: penalty_button_eid,
+        }
+
+    @property
+    def icon(self):
+        """Return the chore's custom icon if set, else fallback."""
+        penalty_info = self.coordinator.penalties_data.get(self._penalty_id, {})
+        return penalty_info.get(const.DATA_PENALTY_ICON, const.DEFAULT_PENALTY_ICON)
+
+
+class KidBonusAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
+    """Legacy sensor tracking how many times each bonus has been applied to a kid.
+
+    NOTE: This sensor is legacy/optional. Data is now available in the dashboard helper
+    sensor's bonuses attribute list. This sensor is maintained for backward compatibility.
+
+    Migration Path:
+    - Dashboard helper: bonuses[].application_count
+    - Direct access: coordinator.kids_data[kid_id][DATA_KID_BONUS_APPLIES][bonus_id]
+
+    Counts bonus applications for individual kid/bonus combinations. Provides bonus
+    metadata including points awarded, description, and button entity ID for UI integration.
+    """
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_translation_key = const.TRANS_KEY_SENSOR_BONUS_APPLIES_SENSOR
+
+    def __init__(
+        self,
+        coordinator: KidsChoresDataCoordinator,
+        entry: ConfigEntry,
+        kid_id: str,
+        kid_name: str,
+        bonus_id: str,
+        bonus_name: str,
+    ):
+        """Initialize the sensor.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+            bonus_id: Unique identifier for the bonus.
+            bonus_name: Display name of the bonus.
+        """
+        super().__init__(coordinator)
+        # Enable/disable based on config option
+        show_legacy = entry.options.get(const.CONF_SHOW_LEGACY_ENTITIES, False)
+        self._attr_entity_registry_enabled_default = show_legacy
+        self._entry = entry
+        self._kid_id = kid_id
+        self._kid_name = kid_name
+        self._bonus_id = bonus_id
+        self._bonus_name = bonus_name
+
+        self._attr_unique_id = f"{entry.entry_id}_{kid_id}_{bonus_id}{const.SENSOR_KC_UID_SUFFIX_BONUS_APPLIES_SENSOR}"
+        self._attr_translation_placeholders = {
+            const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
+            const.TRANS_KEY_SENSOR_ATTR_BONUS_NAME: bonus_name,
+        }
+        # Strip redundant "bonus" suffix from entity_id (bonus_name often ends with "Bonus")
+        bonus_slug = bonus_name.lower().replace(" ", "_")
+        if bonus_slug.endswith("_bonus"):
+            bonus_slug = bonus_slug[:-6]  # Remove "_bonus" suffix
+        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_MIDFIX_BONUS_APPLIES_SENSOR}{bonus_slug}"
+        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+
+    @property
+    def native_value(self) -> Any:
+        """Return the number of times the bonus has been applied."""
+        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        return kid_info.get(const.DATA_KID_BONUS_APPLIES, {}).get(
+            self._bonus_id, const.DEFAULT_ZERO
+        )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Expose additional details like bonus points and description."""
+        bonus_info = self.coordinator.bonuses_data.get(self._bonus_id, {})
+
+        stored_labels = bonus_info.get(const.DATA_BONUS_LABELS, [])
+        friendly_labels = [
+            kh.get_friendly_label(self.hass, label) for label in stored_labels
+        ]
+
+        # Get the ParentBonusApplyButton entity_id
+        bonus_button_eid = None
+        try:
+            entity_registry = async_get(self.hass)
+            unique_id = f"{self._entry.entry_id}_{const.BUTTON_BONUS_PREFIX}{self._kid_id}_{self._bonus_id}"
+            bonus_button_eid = entity_registry.async_get_entity_id(
+                "button", const.DOMAIN, unique_id
+            )
+        except (KeyError, ValueError, AttributeError):
+            pass
+
+        return {
+            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_BONUS_APPLIED,
+            const.ATTR_KID_NAME: self._kid_name,
+            const.ATTR_BONUS_NAME: self._bonus_name,
+            const.ATTR_DESCRIPTION: bonus_info.get(
+                const.DATA_BONUS_DESCRIPTION, const.SENTINEL_EMPTY
+            ),
+            const.ATTR_BONUS_POINTS: bonus_info.get(
+                const.DATA_BONUS_POINTS, const.DEFAULT_BONUS_POINTS
+            ),
+            const.ATTR_LABELS: friendly_labels,
+            const.ATTR_BONUS_BUTTON_EID: bonus_button_eid,
+        }
+
+    @property
+    def icon(self):
+        """Return the bonus's custom icon if set, else fallback."""
+        bonus_info = self.coordinator.bonuses_data.get(self._bonus_id, {})
+        return bonus_info.get(const.DATA_BONUS_ICON, const.DEFAULT_BONUS_ICON)

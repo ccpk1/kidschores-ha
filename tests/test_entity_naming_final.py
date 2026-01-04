@@ -19,10 +19,10 @@ from custom_components.kidschores.sensor import (
     KidBadgeProgressSensor,
     KidBadgesSensor,
     KidChoreStatusSensor,
-    KidPenaltyAppliedSensor,
     KidRewardStatusSensor,
     SystemBadgeSensor,
 )
+from custom_components.kidschores.sensor_legacy import KidPenaltyAppliedSensor
 from tests.conftest import MockConfigEntry
 
 
