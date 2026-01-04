@@ -283,9 +283,12 @@ async def test_completed_chores_sensors_use_new_schema(
     # Initialize stats by approving an unclaimed chore (not pre-completed, not auto_approve in YAML)
     chore_id = name_to_id_map["chore:Refill Bird Fëeder"]
     parent_id = name_to_id_map["parent:Môm Astrid Stârblüm"]
-    coordinator.claim_chore(kid_id, chore_id, "test_user")
-    coordinator.approve_chore(parent_id, kid_id, chore_id)
-    await hass.async_block_till_done()
+
+    # Mock notifications to prevent ServiceNotFound errors during teardown
+    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        coordinator.claim_chore(kid_id, chore_id, "test_user")
+        coordinator.approve_chore(parent_id, kid_id, chore_id)
+        await hass.async_block_till_done()
 
     # Verify data is in new schema location
     chore_stats = coordinator.kids_data[kid_id].get(const.DATA_KID_CHORE_STATS, {})

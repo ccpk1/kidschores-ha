@@ -12,7 +12,7 @@ the completed_by_other state, causing non-claiming kids to show "pending".
 # pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant
@@ -71,7 +71,7 @@ async def test_shared_first_claim_updates_all_sensors(
 
     # Mock notifications during testing
     with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-        with patch.object(coordinator, "_notify_overdue_chore", new=AsyncMock()):
+        with patch.object(coordinator, "_notify_overdue_chore", new=MagicMock()):
             # First check the overdue state before claiming
             await coordinator._check_overdue_chores()
             await hass.async_block_till_done()
