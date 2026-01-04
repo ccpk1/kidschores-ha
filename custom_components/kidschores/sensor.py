@@ -3480,45 +3480,69 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         # Badges assigned to this kid
         # Badge applies if: no kids assigned (applies to all) OR kid is in assigned list
-        # Exclude cumulative badges as they are a special case
+        # Note: Cumulative badges return system-level badge sensor (no kid-specific progress sensor)
+        # Other badge types return kid-specific progress sensors
         badges_attr = []
         for badge_id, badge_info in self.coordinator.badges_data.items():
             assigned_to = badge_info.get(const.DATA_BADGE_ASSIGNED_TO, [])
             if assigned_to and self._kid_id not in assigned_to:
                 continue
             badge_type = badge_info.get(const.DATA_BADGE_TYPE, const.SENTINEL_EMPTY)
-            # Skip cumulative badges (special case)
-            if badge_type == const.BADGE_TYPE_CUMULATIVE:
-                continue
             badge_name = kh.get_entity_name_or_log_error(
                 "badge", badge_id, badge_info, const.DATA_BADGE_NAME
             )
             if not badge_name:
                 continue
-            # Get BadgeProgressSensor entity_id
+
+            # For cumulative badges, return the system-level badge sensor
+            # For other types, return the kid-specific progress sensor
             badge_eid = None
             if entity_registry:
-                unique_id = f"{self._entry.entry_id}_{self._kid_id}_{badge_id}{const.SENSOR_KC_UID_SUFFIX_BADGE_PROGRESS_SENSOR}"
-                badge_eid = entity_registry.async_get_entity_id(
-                    "sensor", const.DOMAIN, unique_id
+                if badge_type == const.BADGE_TYPE_CUMULATIVE:
+                    # System badge sensor (no kid_id in unique_id)
+                    unique_id = f"{self._entry.entry_id}_{badge_id}{const.SENSOR_KC_UID_SUFFIX_BADGE_SENSOR}"
+                    badge_eid = entity_registry.async_get_entity_id(
+                        "sensor", const.DOMAIN, unique_id
+                    )
+                else:
+                    # Kid-specific progress sensor
+                    unique_id = f"{self._entry.entry_id}_{self._kid_id}_{badge_id}{const.SENSOR_KC_UID_SUFFIX_BADGE_PROGRESS_SENSOR}"
+                    badge_eid = entity_registry.async_get_entity_id(
+                        "sensor", const.DOMAIN, unique_id
+                    )
+
+            # Check if badge is earned (in badges_earned dict)
+            badges_earned = kid_info.get(const.DATA_KID_BADGES_EARNED, {})
+            is_earned = badge_id in badges_earned
+
+            # Get badge status from kid's badge progress (only for non-cumulative)
+            badge_status = const.SENTINEL_NONE
+            if badge_type != const.BADGE_TYPE_CUMULATIVE:
+                badge_progress = kid_info.get(const.DATA_KID_BADGE_PROGRESS, {}).get(
+                    badge_id, {}
                 )
-
-            # Get badge status from kid's badge progress
-            badge_progress = kid_info.get(const.DATA_KID_BADGE_PROGRESS, {}).get(
-                badge_id, {}
-            )
-            badge_status = badge_progress.get(
-                const.DATA_KID_BADGE_PROGRESS_STATUS, const.SENTINEL_NONE
-            )
-
-            badges_attr.append(
-                {
-                    const.ATTR_EID: badge_eid,
-                    const.ATTR_NAME: badge_name,
-                    const.ATTR_BADGE_TYPE: badge_type,
-                    const.ATTR_STATUS: badge_status,
-                }
-            )
+                badge_status = badge_progress.get(
+                    const.DATA_KID_BADGE_PROGRESS_STATUS, const.SENTINEL_NONE
+                )
+                badges_attr.append(
+                    {
+                        const.ATTR_EID: badge_eid,
+                        const.ATTR_NAME: badge_name,
+                        const.ATTR_BADGE_TYPE: badge_type,
+                        const.ATTR_STATUS: badge_status,
+                        const.ATTR_BADGE_EARNED: is_earned,
+                    }
+                )
+            else:
+                # Cumulative badge - no status
+                badges_attr.append(
+                    {
+                        const.ATTR_EID: badge_eid,
+                        const.ATTR_NAME: badge_name,
+                        const.ATTR_BADGE_TYPE: badge_type,
+                        const.ATTR_BADGE_EARNED: is_earned,
+                    }
+                )
 
         # Sort badges by name (alphabetically)
         badges_attr.sort(key=lambda b: b.get(const.ATTR_NAME, "").lower())

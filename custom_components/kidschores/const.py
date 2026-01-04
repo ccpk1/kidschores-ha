@@ -1699,6 +1699,7 @@ ATTR_CLAIMS: Final = "claims"
 ATTR_APPROVALS: Final = "approvals"
 ATTR_POINTS: Final = "points"
 ATTR_APPLIED: Final = "applied"
+ATTR_BADGE_EARNED: Final = "earned"
 
 # Primary Group Values
 PRIMARY_GROUP_TODAY = "today"
