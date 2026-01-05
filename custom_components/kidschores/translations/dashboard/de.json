@@ -85,6 +85,8 @@
   "no_chore_selected": "Keine Aufgabe Ausgewählt oder Status Nicht Verfügbar",
   "no_date_set": "Kein Datum Festgelegt",
   "no_due_date": "Kein Fälligkeitsdatum",
+  "no_overdue_chores": "Keine Überfalligen",
+  "no_pending_approvals": "Keine Ausstehenden Genehmigungen",
   "no_rewards": "Keine Belohnungen verfügbar.",
   "none": "Keine",
   "ok": "OK",

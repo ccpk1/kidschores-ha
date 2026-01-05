@@ -95,6 +95,8 @@
   "no_chore_selected": "Ninguna Tarea Seleccionada o Estado No Disponible",
   "no_date_set": "Sin Fecha Establecida",
   "no_due_date": "Sin Fecha de Vencimiento",
+  "no_overdue_chores": "Sin Retrasos",
+  "no_pending_approvals": "Sin Aprobaciones Pendientes",
   "no_rewards": "No hay recompensas disponibles.",
   "none": "Ninguna",
   "ok": "OK",

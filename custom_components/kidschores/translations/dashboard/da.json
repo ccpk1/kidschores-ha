@@ -85,6 +85,8 @@
   "no_chore_selected": "Ingen Opgave Valgt eller Status Utilgængelig",
   "no_date_set": "Ingen Dato Indstillet",
   "no_due_date": "Ingen Forfaldsdato",
+  "no_overdue_chores": "Ingen Forfaldne",
+  "no_pending_approvals": "Ingen Afventende Godkendelser",
   "no_rewards": "Ingen belønninger tilgængelige.",
   "none": "Ingen",
   "ok": "OK",

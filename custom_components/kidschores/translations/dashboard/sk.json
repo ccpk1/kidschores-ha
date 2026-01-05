@@ -85,6 +85,8 @@
   "no_chore_selected": "Nie je Vybratá Žiadna Úloha alebo Stav Nie je Dostupný",
   "no_date_set": "Žiadny Dátum Nenastavený",
   "no_due_date": "Bez Termínu",
+  "no_overdue_chores": "Žiadne Omeškané",
+  "no_pending_approvals": "Žiadne Čakajúce Schválenia",
   "no_rewards": "Žiadne odmeny nie sú k dispozícii.",
   "none": "Žiadne",
   "ok": "OK",

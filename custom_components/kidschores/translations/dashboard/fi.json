@@ -84,6 +84,8 @@
   "no_chore_selected": "Ei Askaretta Valittuna tai Tila Ei Saatavilla",
   "no_date_set": "Ei Päivää Asetettu",
   "no_due_date": "Ei Eräpäivää",
+  "no_overdue_chores": "Ei Myöhässä",
+  "no_pending_approvals": "Ei Odottavia Hyväksynnän Pyyntöjä",
   "no_rewards": "Ei palkintoja saatavilla.",
   "none": "Ei mitään",
   "ok": "OK",

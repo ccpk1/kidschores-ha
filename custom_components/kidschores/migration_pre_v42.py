@@ -4,9 +4,9 @@ This module handles one-time migrations from pre-v42 (legacy) data structures
 to the v42+ storage-only architecture. These migrations are only executed
 when upgrading from legacy configurations to the modern data model.
 
-DEPRECATION NOTICE: This module can be removed in KC 5.0 when the vast majority
+DEPRECATION NOTICE: This module can be removed in the future when the vast majority
 of users have upgraded past v42. The migration logic is frozen and will not be
-modified further. Modern installations (KC 4.2+) skip this module entirely via
+modified further. Modern installations (KC-v0.5.0) skip this module entirely via
 lazy import to avoid any runtime cost.
 """
 
@@ -1284,9 +1284,6 @@ class PreV42Migrator:
 
             # Remove deleted kids from parents list (cleanup)
             self.coordinator._cleanup_parent_assignments()
-
-            # Remove chore approvals on chore delete
-            self.coordinator._cleanup_pending_chore_approvals()
 
             # Remove reward approvals on reward delete
             if section == const.DATA_REWARDS:

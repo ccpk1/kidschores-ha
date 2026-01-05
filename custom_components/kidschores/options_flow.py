@@ -1278,7 +1278,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             ):
                 # Store chore data for the per-kid dates step
                 self._chore_being_edited = updated_chore_data
-                self._chore_being_edited[const.DATA_INTERNAL_ID] = internal_id
+                self._chore_being_edited[const.DATA_INTERNAL_ID] = internal_id  # type: ignore[reportOptionalSubscript]
                 return await self.async_step_edit_chore_per_kid_dates()
 
             return await self.async_step_init()

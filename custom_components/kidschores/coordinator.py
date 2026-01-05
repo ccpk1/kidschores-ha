@@ -8967,15 +8967,18 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     def skip_chore_due_date(self, chore_id: str, kid_id: Optional[str] = None) -> None:
         """Skip the current due date of a recurring chore and reschedule it.
 
+        When a due date is skipped, the chore state is reset to PENDING for all affected kids,
+        since the new due date creates a new completion period.
+
         Args:
             chore_id: Chore to skip
             kid_id: If provided for INDEPENDENT chores, skips only this kid's due date.
                    For SHARED chores, this parameter is ignored.
 
-        For SHARED chores: Reschedules the single chore-level due date.
+        For SHARED chores: Reschedules the single chore-level due date and resets state to PENDING for all kids.
         For INDEPENDENT chores:
-            - If kid_id provided: Reschedules only that kid's due date
-            - If kid_id None: Reschedules template and all per-kid due dates
+            - If kid_id provided: Reschedules only that kid's due date and resets that kid's state to PENDING
+            - If kid_id None: Reschedules template and all per-kid due dates, resets all kids' states to PENDING
         """
         chore_info = self.chores_data.get(chore_id)
         if not chore_info:
@@ -9078,12 +9081,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                         chore_info.get(const.DATA_CHORE_NAME, chore_id),
                     )
                     return
-                # Use the per-kid reschedule method
+                # Reschedule and reset chore state for this kid
                 self._reschedule_chore_next_due_date_for_kid(
                     chore_info, chore_id, kid_id
                 )
-                const.LOGGER.debug(
-                    "Skipped due date for INDEPENDENT chore %s, kid %s only",
+                # Reset chore state to PENDING for this kid
+                self._process_chore_state(kid_id, chore_id, const.CHORE_STATE_PENDING)
+                const.LOGGER.info(
+                    "Skipped due date for INDEPENDENT chore %s, kid %s - reset to PENDING",
                     chore_info.get(const.DATA_CHORE_NAME),
                     self.kids_data[kid_id].get(const.DATA_KID_NAME),
                 )
@@ -9097,15 +9102,25 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                         self._reschedule_chore_next_due_date_for_kid(
                             chore_info, chore_id, assigned_kid_id
                         )
-                const.LOGGER.debug(
-                    "Skipped due date for INDEPENDENT chore %s, all kids",
+                        # Reset chore state to PENDING for each kid
+                        self._process_chore_state(
+                            assigned_kid_id, chore_id, const.CHORE_STATE_PENDING
+                        )
+                const.LOGGER.info(
+                    "Skipped due date for INDEPENDENT chore %s, all kids - reset to PENDING",
                     chore_info.get(const.DATA_CHORE_NAME),
                 )
         else:
-            # SHARED chore: skip chore-level due date only (ignore kid_id)
+            # SHARED chore: skip chore-level due date and reset state for all kids
             self._reschedule_chore_next_due_date(chore_info)
-            const.LOGGER.debug(
-                "Skipped due date for SHARED chore %s",
+            # Reset chore state to PENDING for all assigned kids
+            for assigned_kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
+                if assigned_kid_id and assigned_kid_id in self.kids_data:
+                    self._process_chore_state(
+                        assigned_kid_id, chore_id, const.CHORE_STATE_PENDING
+                    )
+            const.LOGGER.info(
+                "Skipped due date for SHARED chore %s - reset to PENDING for all kids",
                 chore_info.get(const.DATA_CHORE_NAME),
             )
 

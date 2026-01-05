@@ -85,6 +85,8 @@
   "no_chore_selected": "Aucune Tâche Sélectionnée ou Statut Non Disponible",
   "no_date_set": "Aucune Date Définie",
   "no_due_date": "Pas de Date d'Échéance",
+  "no_overdue_chores": "Aucun Retard",
+  "no_pending_approvals": "Aucune Approbation en Attente",
   "no_rewards": "Aucune récompense disponible.",
   "none": "Aucun",
   "ok": "OK",

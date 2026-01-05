@@ -84,6 +84,8 @@
   "no_chore_selected": "Geen Taak Geselecteerd of Status Niet Beschikbaar",
   "no_date_set": "Geen Datum Ingesteld",
   "no_due_date": "Geen Vervaldatum",
+  "no_overdue_chores": "Geen Achterstallig",
+  "no_pending_approvals": "Geen Goedkeuringen in Behandeling",
   "no_rewards": "Geen beloningen beschikbaar.",
   "none": "Geen",
   "ok": "OK",

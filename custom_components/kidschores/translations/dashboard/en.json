@@ -98,6 +98,8 @@
   "no_chore_selected": "No Chore Selected or Status Unavailable",
   "no_date_set": "No Date Set",
   "no_due_date": "No Due Date",
+  "no_overdue_chores": "No Overdue",
+  "no_pending_approvals": "No Pending Approvals",
   "no_rewards": "No rewards available.",
   "none": "None",
   "ok": "OK",

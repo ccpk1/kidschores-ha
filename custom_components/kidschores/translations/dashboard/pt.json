@@ -85,6 +85,8 @@
   "no_chore_selected": "Nenhuma Tarefa Selecionada ou Estado Indisponível",
   "no_date_set": "Nenhuma Data Definida",
   "no_due_date": "Sem Data de Conclusão",
+  "no_overdue_chores": "Sem Atrasos",
+  "no_pending_approvals": "Sem Aprovações Pendentes",
   "no_rewards": "Sem recompensas disponíveis.",
   "none": "Nenhum",
   "ok": "OK",
