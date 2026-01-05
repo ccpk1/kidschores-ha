@@ -160,9 +160,15 @@ title = translations.get(const.TRANS_KEY_NOTIF_TITLE_CHORE_APPROVED, "Chore Appr
 
 #### 2. Dashboard Translations (Custom System)
 
-**Location**: `custom_components/kidschores/translations/dashboard/en.json` (and 10+ other languages)
+**Location**: `custom_components/kidschores/translations_dashboard/` directory with files named like `en_dashboard.json`, `es_dashboard.json`, etc. (10+ languages)
 **Purpose**: **Custom dashboard-specific translations** for the KidsChores Dashboard Helper sensor.
 **Important**: These are **NOT part of Home Assistant's integration translation system**. This is a custom approach unique to KidsChores.
+
+**File Naming Convention**:
+
+- Directory: `translations_dashboard/` (constant: `DASHBOARD_TRANSLATIONS_DIR`)
+- Files: `{language_code}{DASHBOARD_TRANSLATIONS_SUFFIX}.json` where suffix is `_dashboard`
+- Examples: `en_dashboard.json`, `es_dashboard.json`, `fr_dashboard.json`, `de_dashboard.json`
 
 **Why Custom?**: The dashboard helper sensor pre-computes all UI translations and exposes them via the `ui_translations` attribute. This allows:
 
@@ -179,7 +185,7 @@ title = translations.get(const.TRANS_KEY_NOTIF_TITLE_CHORE_APPROVED, "Chore Appr
 {{ ui.get('welcome', 'err-welcome') }}  {# Fallback for missing keys #}
 ```
 
-**Note**: Dashboard translations are loaded by the dashboard helper sensor (sensor.py) and are completely separate from the integration's standard `translations/en.json` file.
+**Note**: Dashboard translations are loaded by the dashboard helper sensor (sensor.py) and are completely separate from the integration's standard `translations/en.json` file. The loading functions (`get_available_dashboard_languages()` and `load_dashboard_translation()`) are in `kc_helpers.py`.
 
 ### Storage Structure
 

@@ -912,7 +912,8 @@ DATA_KID_DASHBOARD_LANGUAGE: Final = "dashboard_language"
 # Dashboard Translation Settings
 # ——————————————————————————————————————————————
 DEFAULT_DASHBOARD_LANGUAGE: Final = "en"
-DASHBOARD_TRANSLATIONS_DIR = "translations/dashboard"
+DASHBOARD_TRANSLATIONS_DIR: Final = "translations_dashboard"
+DASHBOARD_TRANSLATIONS_SUFFIX: Final = "_dashboard"  # File naming: en_dashboard.json
 
 # ——————————————————————————————————————————————
 # Kid Point History Data Structure
@@ -2017,7 +2018,6 @@ BUTTON_REWARD_PREFIX: Final = "reward_button_"
 # ------------------------------------------------------------------------------------------------
 # Errors and Warnings
 # ------------------------------------------------------------------------------------------------
-TRANS_KEY_DISPLAY_DUE_DATE_NOT_SET: Final = "display_due_date_not_set"
 
 # Translation Keys for Phase 2b: Generic Error Templates (coordinator.py remediation)
 # These 12 templates replace 41 hardcoded f-strings in coordinator.py using placeholders
@@ -2106,11 +2106,6 @@ TRANS_KEY_CFOF_INVALID_DATE_RANGE: Final = "invalid_date_range"  # Start/end dat
 TRANS_KEY_CFOF_MISSING_REQUIRED: Final = "missing_required"  # Required field missing
 TRANS_KEY_CFOF_INVALID_FORMAT: Final = "invalid_format"  # Format validation failure
 
-# Time Format Translation Keys (Phase 2b)
-# Used for consistent datetime display across UI components
-TRANS_KEY_TIME_FORMAT_SHORT: Final = "time_format_short"  # "1d 3h"
-TRANS_KEY_TIME_FORMAT_MEDIUM: Final = "time_format_medium"  # "1 day, 3 hours"
-TRANS_KEY_TIME_FORMAT_LONG: Final = "time_format_long"  # "1 day, 3 hours, 15 minutes"
 
 # Unknown States (Display Translation Keys)
 TRANS_KEY_DISPLAY_UNKNOWN_CHALLENGE: Final = "display_unknown_challenge"
@@ -2212,8 +2207,6 @@ TRANS_KEY_NO_DUE_DATE: Final = "no_due_date"
 # Data Recovery
 TRANS_KEY_CFOF_DATA_RECOVERY_TITLE: Final = "data_recovery_title"
 TRANS_KEY_CFOF_DATA_RECOVERY_DESCRIPTION: Final = "data_recovery_description"
-TRANS_KEY_CFOF_BACKUP_START_FRESH: Final = "backup_start_fresh"
-TRANS_KEY_CFOF_BACKUP_PASTE_JSON: Final = "backup_paste_json"
 TRANS_KEY_CFOF_BACKUP_CURRENT_ACTIVE: Final = "backup_current_active"
 TRANS_KEY_CFOF_BACKUP_AGE: Final = "backup_age"
 TRANS_KEY_CFOF_RESTORE_WARNING: Final = "restore_warning"

@@ -713,7 +713,8 @@
 
 **2. Dashboard Translations (Custom System - OUT OF SCOPE):**
 
-- Location: `custom_components/kidschores/translations/dashboard/*.json` (10+ languages)
+- Location: `custom_components/kidschores/translations_dashboard/` with files named `{language_code}_dashboard.json` (e.g., `en_dashboard.json`, `es_dashboard.json`)
+- **File naming**: Uses constant `DASHBOARD_TRANSLATIONS_SUFFIX = "_dashboard"` to construct filenames
 - **Important**: These are **NOT part of Home Assistant's integration translation system**
 - **Purpose**: Custom dashboard helper sensor translations exposed via `ui_translations` attribute
 - **Access**: Frontend dashboard YAML reads from sensor attributes, not HA translation system

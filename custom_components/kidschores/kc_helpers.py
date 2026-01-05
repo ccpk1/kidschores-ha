@@ -1747,8 +1747,9 @@ async def get_available_dashboard_languages(
                 data = await hass.async_add_executor_job(_read_json_file, file_path)
                 metadata = data.get("_metadata", {})
 
-                # Get language code and name from metadata
-                lang_code = metadata.get("language_code", filename[:-5])
+                # Extract language code from filename (e.g., en_dashboard.json -> en)
+                base_filename = filename[: -len(".json") - len(const.DASHBOARD_TRANSLATIONS_SUFFIX)]
+                lang_code = metadata.get("language_code", base_filename)
                 lang_name = metadata.get("language_name", lang_code.upper())
 
                 available_languages.append({"value": lang_code, "label": lang_name})
@@ -1757,8 +1758,9 @@ async def get_available_dashboard_languages(
                 const.LOGGER.warning(
                     "Error reading metadata from %s: %s", filename, err
                 )
-                # Fallback to filename-based language code
-                lang_code = filename[:-5]
+                # Fallback to filename-based language code (remove _dashboard.json suffix)
+                base_filename = filename[: -len(".json") - len(const.DASHBOARD_TRANSLATIONS_SUFFIX)]
+                lang_code = base_filename
                 available_languages.append(
                     {"value": lang_code, "label": lang_code.upper()}
                 )
@@ -1802,8 +1804,10 @@ async def load_dashboard_translation(
         )
         return {}
 
-    # Try to load the requested language
-    lang_path = os.path.join(translations_path, f"{language}.json")
+    # Try to load the requested language (with _dashboard suffix)
+    lang_path = os.path.join(
+        translations_path, f"{language}{const.DASHBOARD_TRANSLATIONS_SUFFIX}.json"
+    )
     if await hass.async_add_executor_job(os.path.exists, lang_path):
         try:
             data = await hass.async_add_executor_job(_read_json_file, lang_path)
@@ -1819,7 +1823,9 @@ async def load_dashboard_translation(
         const.LOGGER.warning(
             "Language '%s' not found, falling back to English", language
         )
-        en_path = os.path.join(translations_path, "en.json")
+        en_path = os.path.join(
+            translations_path, f"en{const.DASHBOARD_TRANSLATIONS_SUFFIX}.json"
+        )
         if await hass.async_add_executor_job(os.path.exists, en_path):
             try:
                 data = await hass.async_add_executor_job(_read_json_file, en_path)

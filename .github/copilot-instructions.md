@@ -27,7 +27,7 @@
 - **Constants**: NO hardcoded strings. Use `const.py` patterns (`DATA_*`, `CONF_*`, `TRANS_KEY_*`, `LABEL_*`).
 - **Translations**:
   - **Integration**: Use `translations/en.json` keys for exceptions/config flow (master file, no strings.json)
-  - **Dashboard**: Custom system via `translations/dashboard/*.json` (OUT OF SCOPE for standard HA translations)
+  - **Dashboard**: Custom system via `translations_dashboard/{language_code}_dashboard.json` (e.g., `en_dashboard.json`) — OUT OF SCOPE for standard HA translations
   - **Notifications**: Use `TRANS_KEY_NOTIF_TITLE_*` / `TRANS_KEY_NOTIF_MESSAGE_*` with `async_get_translations()` wrapper
 - **Logging**: Lazy logging ONLY: `const.LOGGER.debug("Val: %s", var)`. NO f-strings in logs. Use `const.LOGGER` not module-level logger.
 - **Typing**: 100% type hints required (args + return).

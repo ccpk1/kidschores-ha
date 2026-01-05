@@ -236,7 +236,7 @@ Reference [ARCHITECTURE.md](../../docs/ARCHITECTURE.md) for context.
 **Translation Architecture**:
 
 - [ ] Integration translations in `translations/en.json`
-- [ ] Dashboard translations in `translations/dashboard/en.json` (separate system)
+- [ ] Dashboard translations in `translations_dashboard/{language_code}_dashboard.json` (e.g., `en_dashboard.json`) — separate system
 - [ ] No mixing of translation systems
 
 **Report architecture violations as HIGH priority** (breaks fundamental design)
