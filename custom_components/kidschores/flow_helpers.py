@@ -223,11 +223,10 @@ async def build_kid_schema(
             vol.Optional(
                 const.CONF_DASHBOARD_LANGUAGE,
                 default=default_dashboard_language or const.DEFAULT_DASHBOARD_LANGUAGE,
-            ): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=language_options,
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                    multiple=False,
+            ): selector.LanguageSelector(
+                selector.LanguageSelectorConfig(
+                    languages=language_options,
+                    native_name=True,
                 )
             ),
             vol.Required(

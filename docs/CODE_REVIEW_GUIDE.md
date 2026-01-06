@@ -971,6 +971,69 @@ grep -n 'message=.*f"' coordinator.py
 
 ---
 
+### Language Selection Standards ⭐ NEW
+
+**✅ Language Selection Pattern**
+
+```python
+# flow_helpers.py - Building schema with language selector
+async def build_kid_schema(hass, ...):
+    """Build kid schema with language selection."""
+    # Get available languages (returns language codes only)
+    language_options = await kh.get_available_dashboard_languages(hass)
+
+    return vol.Schema({
+        # ... other fields ...
+        vol.Optional(
+            const.CONF_DASHBOARD_LANGUAGE,
+            default=default_dashboard_language or const.DEFAULT_DASHBOARD_LANGUAGE,
+        ): selector.LanguageSelector(
+            selector.LanguageSelectorConfig(
+                languages=language_options,
+                native_name=True,  # Frontend provides native language names
+            )
+        ),
+        # ... more fields ...
+    })
+```
+
+**Checklist**:
+
+- [ ] **Use LanguageSelector, not SelectSelector** - HA standard component for language selection
+- [ ] **Set native_name=True** - Frontend automatically provides native language names (e.g., "Español" for "es")
+- [ ] **Language options are codes only** - `get_available_dashboard_languages()` returns `["en", "es", "de", ...]`
+- [ ] **No hardcoded language names** - Names come from HA's `LANGUAGES` set via frontend
+- [ ] **Dynamic language detection** - Adding translation file auto-detects new language (no code changes needed)
+- [ ] **Filter against HA LANGUAGES** - Only valid language codes exposed to users
+
+**Why This Matters**:
+
+- **HA Standard**: Uses core's language infrastructure, not custom patterns
+- **Crowdin-Safe**: No metadata to translate = no corruption risk
+- **Scalable**: Add language file, system auto-detects; no hardcoding needed
+- **User Experience**: Frontend provides correct native language names automatically
+- **Maintainability**: Single source of truth (filesystem + HA's master list)
+
+**Common Language Selection Patterns to Audit**:
+
+```bash
+# Verify LanguageSelector is used, not SelectSelector
+grep -n 'LanguageSelector\|SelectSelector' flow_helpers.py
+
+# Check that language_options is passed directly to LanguageSelector
+grep -n 'languages=language_options' flow_helpers.py
+
+# Verify native_name=True is set
+grep -n 'native_name=True' flow_helpers.py
+
+# Confirm get_available_dashboard_languages returns list[str] not dicts
+grep -n 'async def get_available_dashboard_languages' kc_helpers.py
+```
+
+**Reference**: See [ARCHITECTURE.md § Language Selection Architecture](ARCHITECTURE.md#language-selection-architecture) for complete design rationale and implementation details.
+
+---
+
 ## Platform-Specific Reviews
 
 ### Sensor Platform (`sensor.py`)
@@ -1096,6 +1159,68 @@ async def async_set_value(self, value: datetime) -> None:
 - Ready for Phase 2 remediation
 
 **Gate**: Phase 0 must be **100% complete** before proceeding to code review.
+
+---
+
+### Crowdin Translation Workflow
+
+**When to use**: After Phase 0 audit confirms new user-facing strings need translations.
+
+**Process**:
+
+1. **Edit English Master Files** (in repository):
+
+   - `translations/en.json` - Integration translations
+   - `translations_custom/en_dashboard.json` - Dashboard UI translations
+   - `translations_custom/en_notifications.json` - Notification messages
+   - Only modify English masters; never edit other language files
+
+2. **Push to `l10n-staging` Branch**:
+
+   - Creates pull request with English translation changes
+   - Triggers automated `.github/workflows/translation-sync.yaml` workflow
+
+3. **Automated Crowdin Sync** (Workflow steps):
+
+   - Uploads English sources to Crowdin project
+   - Triggers Google Translate machine translation engine
+   - Pre-translates to all configured languages (10+ languages)
+   - Workflow commits translated files back to repository
+
+4. **Alternative: Manual Download**:
+   - If automated workflow fails or you need immediate translations
+   - Download directly from Crowdin project via web interface
+   - Follow same file structure and naming conventions
+
+**Key Principles**:
+
+- ✅ **Only English in Repository**: Developers edit English master files only
+- ✅ **All Other Languages from Crowdin**: Never commit non-English translations manually
+- ✅ **Automated Sync**: Workflow handles uploads and downloads automatically
+- ✅ **Single Source of Truth**: Crowdin prevents translation sync conflicts
+- ✅ **Machine Translation Bootstrap**: Google Translate MT pre-translates new strings
+
+**Translation Key Validation**:
+
+After updating English master files, verify:
+
+```bash
+# Verify all TRANS_KEY_* constants have en.json entries
+grep 'const.TRANS_KEY_' custom_components/kidschores/*.py | \
+  while read line; do
+    key=$(echo "$line" | grep -oP 'TRANS_KEY_\K[A-Z_]+')
+    grep -q "\"${key,,}\"" custom_components/kidschores/translations/en.json || \
+      echo "Missing: $key"
+  done
+```
+
+**Troubleshooting**:
+
+- **Crowdin workflow doesn't trigger**: Ensure you pushed to `l10n-staging` branch, not `master`
+- **Machine translation looks odd**: Review in Crowdin project, make corrections in en.json and re-push
+- **Missing language**: Check Crowdin project settings for language availability
+
+**Reference**: [ARCHITECTURE.md § Translation Architecture](ARCHITECTURE.md#translation-architecture-complete-reference)
 
 ---
 

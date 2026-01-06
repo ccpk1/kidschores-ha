@@ -1,9 +1,4 @@
 {
-  "_metadata": {
-    "language_code": "en",
-    "language_name": "English",
-    "version": "1.0.0"
-  },
   "chore_assigned": {
     "title": "KidsChores: New Chore",
     "message": "New chore {chore_name} was assigned to you! Due: {due_date}"

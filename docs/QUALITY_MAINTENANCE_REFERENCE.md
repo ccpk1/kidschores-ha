@@ -387,8 +387,70 @@ Before submitting code, verify all items:
 - [ ] Entity unique IDs follow pattern: `entry_id_{scope_id}{SUFFIX}`
 - [ ] All entities implement `available` property
 - [ ] Services have proper validation and error handling
-- [ ] Translation keys reference entries in en.json
+- [ ] Translation keys reference entries in en.json (master file)
 - [ ] Config flow validation uses CFOF*\* and CFOP_ERROR*\* constants
+
+### Translation Maintenance Checklist
+
+**When updating user-facing strings**:
+
+- [ ] **For English translations only**: Edit `translations/en.json`, `translations_custom/en_dashboard.json`, or `translations_custom/en_notifications.json` as appropriate
+- [ ] **Never edit other language files** - They are automatically sourced from Crowdin project
+- [ ] **Verify translation keys exist** in English master file before using in code
+- [ ] **Use constants for all translation keys** (e.g., `const.TRANS_KEY_ERROR_*`)
+- [ ] **Document new translation keys** if adding new notification types or error messages
+
+**Translation Workflow**:
+
+1. **Edit English Master**: Update translation file(s) in repository
+2. **Push to l10n-staging**: Workflow automatically triggers on changes
+3. **Crowdin Sync**: Automated workflow uploads English sources and triggers machine translation
+4. **Alternative**: Manual download from Crowdin project available if needed
+
+**Reference**: [ARCHITECTURE.md § Translation Architecture](ARCHITECTURE.md#translation-architecture-complete-reference)
+
+### Language Support Maintenance Checklist ⭐ NEW
+
+**When adding a new language to KidsChores**:
+
+- [ ] **Add dashboard translations**: Create `translations_custom/{lang_code}_dashboard.json` with all UI strings
+- [ ] **Add notification translations**: Create `translations_custom/{lang_code}_notifications.json` with all notification text
+- [ ] **Valid language code**: Ensure code is in Home Assistant's `LANGUAGES` set (HA will validate automatically)
+- [ ] **Submit to Crowdin**: Upload to project for professional translation
+- [ ] **No metadata sections**: Ensure JSON files contain ONLY translations (no `_metadata` or version info)
+- [ ] **File format**: Use standard JSON format with key-value pairs (strings only, no nested structures except notifications)
+- [ ] **Testing**: Run tests after adding language to ensure `get_available_dashboard_languages()` detects it
+- [ ] **Fallback handling**: English fallback works if new language file is missing or corrupted
+
+**Language Detection (Automatic)**:
+
+- System automatically detects new language files via filename scanning
+- No code changes required to register new languages
+- Crowdin-managed: Add translations to Crowdin, download files automatically synced
+
+**Common Language Support Patterns to Verify**:
+
+```bash
+# Verify language file exists and is valid JSON
+python -m json.tool translations_custom/es_dashboard.json > /dev/null && echo "Valid"
+
+# Test language detection (admin task, for verification)
+# Should show new language in available languages list
+
+# Ensure no hardcoded language lists anywhere
+grep -r "LANGUAGES = \[" custom_components/kidschores/ | grep -v "homeassistant.generated"
+# Should return 0 results (no hardcoded lists)
+```
+
+**Why Dynamic Language Detection Matters**:
+
+- ✅ Add language file = auto-detected (no code changes)
+- ✅ Remove language file = auto-removed (no code cleanup)
+- ✅ Crowdin-proof: No metadata to translate and corrupt
+- ✅ Single source of truth: HA's LANGUAGES set for validation
+- ✅ Zero maintenance: No constant updates or registrations needed
+
+**Reference**: [ARCHITECTURE.md § Language Selection Architecture](ARCHITECTURE.md#language-selection-architecture) for full design details.
 
 ### Before Marking "Ready for Review"
 

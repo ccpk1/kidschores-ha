@@ -1717,70 +1717,71 @@ def _read_json_file(file_path: str) -> dict:
 
 async def get_available_dashboard_languages(
     hass: HomeAssistant,
-) -> list[dict[str, str]]:
-    """Get list of available dashboard languages.
+) -> list[str]:
+    """Get list of available dashboard language codes.
 
-    Scans the translations directory and reads metadata from each JSON file.
-    Returns list of dicts with 'value' (language code) and 'label' (name).
+    Scans the translations directory for dashboard translation files and filters
+    against Home Assistant's master LANGUAGES set. Only language codes that have
+    actual translation files are returned.
+
+    Returns:
+        List of language codes (e.g., ["en", "es", "de"]).
+        If directory not found or empty, returns ["en"] as fallback.
     """
+    from homeassistant.generated.languages import LANGUAGES
+
     translations_path = os.path.join(
         os.path.dirname(__file__), const.DASHBOARD_TRANSLATIONS_DIR
     )
 
-    available_languages = []
-
     if not await hass.async_add_executor_job(os.path.exists, translations_path):
-        const.LOGGER.warning(
-            "Dashboard translations directory not found: %s", translations_path
+        const.LOGGER.debug(
+            "Dashboard translations directory not found: %s, using English only",
+            translations_path,
         )
-        return [{"value": "en", "label": "English"}]
+        return ["en"]
 
     try:
         filenames = await hass.async_add_executor_job(os.listdir, translations_path)
+        available_languages = []
+
         for filename in filenames:
-            if not filename.endswith(".json"):
+            # Only process files matching *_dashboard.json pattern
+            if not filename.endswith(f"{const.DASHBOARD_TRANSLATIONS_SUFFIX}.json"):
                 continue
 
-            file_path = os.path.join(translations_path, filename)
+            # Extract language code from filename (e.g., es_dashboard.json -> es)
+            lang_code = filename[
+                : -len(".json") - len(const.DASHBOARD_TRANSLATIONS_SUFFIX)
+            ]
 
-            try:
-                data = await hass.async_add_executor_job(_read_json_file, file_path)
-                metadata = data.get("_metadata", {})
-
-                # Extract language code from filename (e.g., en_dashboard.json -> en)
-                base_filename = filename[
-                    : -len(".json") - len(const.DASHBOARD_TRANSLATIONS_SUFFIX)
-                ]
-                lang_code = metadata.get("language_code", base_filename)
-                lang_name = metadata.get("language_name", lang_code.upper())
-
-                available_languages.append({"value": lang_code, "label": lang_name})
-
-            except (OSError, json.JSONDecodeError) as err:
-                const.LOGGER.warning(
-                    "Error reading metadata from %s: %s", filename, err
-                )
-                # Fallback to filename-based language code (remove _dashboard.json suffix)
-                base_filename = filename[
-                    : -len(".json") - len(const.DASHBOARD_TRANSLATIONS_SUFFIX)
-                ]
-                lang_code = base_filename
-                available_languages.append(
-                    {"value": lang_code, "label": lang_code.upper()}
+            # Only include if valid in Home Assistant's LANGUAGES set
+            if lang_code in LANGUAGES:
+                available_languages.append(lang_code)
+            else:
+                const.LOGGER.debug(
+                    "Ignoring unknown language code: %s (not in LANGUAGES set)",
+                    lang_code,
                 )
 
-        # Sort by label
-        available_languages.sort(key=lambda x: x["label"])
+        # Ensure English is always available
+        if "en" not in available_languages:
+            available_languages.insert(0, "en")
+        else:
+            # Ensure English is first in the list
+            available_languages.remove("en")
+            available_languages.insert(0, "en")
+
+        # Sort remaining languages (English stays first)
+        if len(available_languages) > 1:
+            available_languages = ["en"] + sorted(available_languages[1:])
+
+        const.LOGGER.debug("Available dashboard languages: %s", available_languages)
+        return available_languages
 
     except OSError as err:
         const.LOGGER.error("Error reading dashboard translations directory: %s", err)
-        return [{"value": "en", "label": "English"}]
-
-    return (
-        available_languages
-        if available_languages
-        else [{"value": "en", "label": "English"}]
-    )
+        return ["en"]
 
 
 async def load_dashboard_translation(
@@ -1796,7 +1797,6 @@ async def load_dashboard_translation(
     Returns:
         A dict with translation keys and values.
         If the requested language is not found, returns English translations.
-        Metadata (_metadata key) is excluded from the returned translations.
     """
     translations_path = os.path.join(
         os.path.dirname(__file__), const.DASHBOARD_TRANSLATIONS_DIR
@@ -1815,10 +1815,8 @@ async def load_dashboard_translation(
     if await hass.async_add_executor_job(os.path.exists, lang_path):
         try:
             data = await hass.async_add_executor_job(_read_json_file, lang_path)
-            # Exclude _metadata from translations
-            translations = {k: v for k, v in data.items() if k != "_metadata"}
             const.LOGGER.debug("Loaded %s dashboard translations", language)
-            return translations
+            return data
         except (OSError, json.JSONDecodeError) as err:
             const.LOGGER.error("Error loading %s translations: %s", language, err)
 
@@ -1833,10 +1831,8 @@ async def load_dashboard_translation(
         if await hass.async_add_executor_job(os.path.exists, en_path):
             try:
                 data = await hass.async_add_executor_job(_read_json_file, en_path)
-                # Exclude _metadata from translations
-                translations = {k: v for k, v in data.items() if k != "_metadata"}
                 const.LOGGER.debug("Loaded English dashboard translations as fallback")
-                return translations
+                return data
             except (OSError, json.JSONDecodeError) as err:
                 const.LOGGER.error("Error loading English translations: %s", err)
 
@@ -1856,7 +1852,6 @@ async def load_notification_translation(
     Returns:
         A dict with notification keys mapping to {title, message} dicts.
         If the requested language is not found, returns English translations.
-        Metadata (_metadata key) is excluded from the returned translations.
     """
     translations_path = os.path.join(
         os.path.dirname(__file__), const.CUSTOM_TRANSLATIONS_DIR
@@ -1875,10 +1870,8 @@ async def load_notification_translation(
     if await hass.async_add_executor_job(os.path.exists, lang_path):
         try:
             data = await hass.async_add_executor_job(_read_json_file, lang_path)
-            # Exclude _metadata from translations
-            translations = {k: v for k, v in data.items() if k != "_metadata"}
             const.LOGGER.debug("Loaded %s notification translations", language)
-            return translations
+            return data
         except (OSError, json.JSONDecodeError) as err:
             const.LOGGER.error(
                 "Error loading %s notification translations: %s", language, err
@@ -1895,12 +1888,10 @@ async def load_notification_translation(
         if await hass.async_add_executor_job(os.path.exists, en_path):
             try:
                 data = await hass.async_add_executor_job(_read_json_file, en_path)
-                # Exclude _metadata from translations
-                translations = {k: v for k, v in data.items() if k != "_metadata"}
                 const.LOGGER.debug(
                     "Loaded English notification translations as fallback"
                 )
-                return translations
+                return data
             except (OSError, json.JSONDecodeError) as err:
                 const.LOGGER.error(
                     "Error loading English notification translations: %s", err

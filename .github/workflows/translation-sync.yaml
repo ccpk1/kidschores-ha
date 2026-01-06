@@ -1,4 +1,4 @@
-name: L10n Sync with Crowdin
+name: l10n sync with Crowdin
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
       - "custom_components/kidschores/translations/en.json"
       - "custom_components/kidschores/translations_custom/en_dashboard.json"
       - "custom_components/kidschores/translations_custom/en_notifications.json"
-      - ".github/workflows/translation-sync.yml"
+      - ".github/workflows/translation-sync.yaml"
       - "crowdin.yml"
   workflow_dispatch:
 
@@ -58,8 +58,8 @@ jobs:
           upload_translations: false
           download_translations: true
           create_pull_request: true
-          pull_request_title: "chore(l10n): Google Translate update"
-          pull_request_body: "Automated translations via Google Translate (ID: 646964)"
+          pull_request_title: "chore(l10n): sync translations with Crowdin"
+          pull_request_body: "This is an automated sync of the latest translations from Crowdin. It includes community improvements and machine-translated pre-fills for new strings."
           pull_request_base_branch_name: l10n-staging
           pull_request_labels: "l10n, auto-translated"
         env:
