@@ -2214,7 +2214,7 @@
           "purpose": {
             "name": "Purpose",
             "state": {
-              "purpose_badges": "Tracks cumulative badge progress and cycles as well as all badges earned"
+              "purpose_badge_highest": "Highest earned badge and real-time cumulative progress, including active cycles and award history across all badge types"
             }
           },
           "kid_name": {
