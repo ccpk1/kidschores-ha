@@ -1449,7 +1449,13 @@
         "weekly": "Weekly",
         "biweekly": "Biweekly",
         "monthly": "Monthly",
-        "custom": "Custom"
+        "quarterly": "Quarterly",
+        "yearly": "Yearly",
+        "custom": "Custom",
+        "custom_1_week": "Custom: 1 Week",
+        "custom_1_month": "Custom: 1 Month",
+        "custom_1_quarter": "Custom: 1 Quarter",
+        "custom_1_year": "Custom: 1 Year"
       }
     },
     "reset_schedule": {
