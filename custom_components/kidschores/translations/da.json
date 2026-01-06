@@ -1805,13 +1805,14 @@
           "unknown": "Ukendt",
           "none": "Ingen",
           "approved_in_part": "Godkendt (delvist)",
-          "claimed_in_part": "Gør krav på (delvist)"
+          "claimed_in_part": "Gør krav på (delvist)",
+          "completed_by_other": "Udfyldt af Anden"
         },
         "state_attributes": {
           "purpose": {
             "name": "Formål",
             "state": {
-              "purpose_chore_status": "Aktuel status for denne specifikke opgave"
+              "purpose_chore_status": "Sporer status og statistik for denne specifikke opgave"
             }
           },
           "kid_name": {
@@ -1820,11 +1821,37 @@
           "chore_name": {
             "name": "Navn på opgave"
           },
-          "shared_chore": {
-            "name": "Delt opgave",
+          "chore_icon": {
+            "name": "Huslige pligter-ikon"
+          },
+          "description": {
+            "name": "Beskrivelse"
+          },
+          "assigned_kids": {
+            "name": "Tildelte børn"
+          },
+          "labels": {
+            "name": "Etiketter"
+          },
+          "default_points": {
+            "name": "Standardpoint"
+          },
+          "completion_criteria": {
+            "name": "Færdiggørelseskriterier",
             "state": {
-              "true": "Ja",
-              "false": "Ingen"
+              "independent": "Uafhængig",
+              "shared_first_only": "Delt (kun førstegangsbrugere)",
+              "shared_all_required": "Delt (alle obligatoriske)"
+            }
+          },
+          "approval_reset_type": {
+            "name": "Godkendelsesnulstillingstype",
+            "state": {
+              "at_midnight_once": "En gang om dagen",
+              "at_midnight_multi": "Flere pr. dag",
+              "at_due_date_once": "Én gang pr. forfaldsdato",
+              "at_due_date_multi": "Flere pr. forfaldsdato",
+              "upon_completion": "Ved færdiggørelse"
             }
           },
           "recurring_frequency": {
@@ -1853,23 +1880,55 @@
           "due_date": {
             "name": "Forfaldsdato"
           },
-          "default_points": {
-            "name": "Standardpoint"
+          "custom_frequency_interval": {
+            "name": "Brugerdefineret frekvensinterval"
           },
-          "description": {
-            "name": "Beskrivelse"
+          "custom_frequency_unit": {
+            "name": "Brugerdefineret frekvensenhed",
+            "state": {
+              "days": "Dage",
+              "weeks": "Uger",
+              "months": "Måneder"
+            }
           },
-          "chore_claims_count": {
-            "name": "Antal krav om huslige pligter"
+          "chore_points_earned": {
+            "name": "Optjente point"
           },
           "chore_approvals_count": {
-            "name": "Antal godkendelser af pligter"
+            "name": "Godkendelser (alle tider)"
+          },
+          "chore_claims_count": {
+            "name": "Krav (hele tiden)"
+          },
+          "chore_disapproved_count": {
+            "name": "Afvisninger (alle tider)"
+          },
+          "chore_overdue_count": {
+            "name": "Forfalden (hele tiden)"
+          },
+          "chore_approvals_today": {
+            "name": "Godkendelser i dag"
           },
           "chore_current_streak": {
-            "name": "Chore-strømsrække"
+            "name": "Nuværende række"
           },
           "chore_highest_streak": {
-            "name": "Huslige pligter højeste række"
+            "name": "Højeste række"
+          },
+          "chore_last_longest_streak_date": {
+            "name": "Dato for sidste længste serie"
+          },
+          "last_claimed": {
+            "name": "Sidst gjort krav på"
+          },
+          "last_approved": {
+            "name": "Sidst godkendt"
+          },
+          "last_disapproved": {
+            "name": "Sidst afvist"
+          },
+          "last_overdue": {
+            "name": "Sidst forfalden"
           },
           "global_state": {
             "name": "Global tilstand",
@@ -1885,32 +1944,28 @@
               "independent": "Uafhængig"
             }
           },
-          "allow_multiple_claims_per_day": {
-            "name": "Tillad flere krav pr. dag",
+          "can_claim": {
+            "name": "Kan gøre krav",
             "state": {
               "true": "Ja",
               "false": "Ingen"
             }
           },
-          "assigned_kids": {
-            "name": "Tildelte børn"
-          },
-          "custom_frequency_interval": {
-            "name": "Brugerdefineret frekvens"
-          },
-          "custom_frequency_unit": {
-            "name": "Tilpasset frekvensperiode",
+          "can_approve": {
+            "name": "Kan godkende",
             "state": {
-              "days": "Dage",
-              "weeks": "Uger",
-              "months": "Måneder"
+              "true": "Ja",
+              "false": "Ingen"
             }
           },
-          "chore_approvals_today": {
-            "name": "Godkendelser af pligter i dag"
+          "approve_button_eid": {
+            "name": "Godkend knap Enheds-ID"
           },
-          "labels": {
-            "name": "Etiketter"
+          "disapprove_button_eid": {
+            "name": "Enheds-ID for afvisningsknap"
+          },
+          "claim_button_eid": {
+            "name": "Enheds-ID for knappen \"Krav\""
           }
         }
       },
@@ -1920,11 +1975,89 @@
           "purpose": {
             "name": "Formål",
             "state": {
-              "purpose_points": "Nuværende pointbalance for barn"
+              "purpose_points": "Aktuel pointbalance med detaljeret indtjenings- og forbrugsstatistik"
             }
           },
-          "description": {
-            "name": "Nuværende pointbalance - tjen penge på pligter, brug dem på belønninger"
+          "kid_name": {
+            "name": "Barnets navn"
+          },
+          "point_stat_points_earned_today": {
+            "name": "Optjent i dag"
+          },
+          "point_stat_points_earned_week": {
+            "name": "Optjent denne uge"
+          },
+          "point_stat_points_earned_month": {
+            "name": "Optjent denne måned"
+          },
+          "point_stat_points_earned_year": {
+            "name": "Optjent i år"
+          },
+          "point_stat_points_earned_all_time": {
+            "name": "Optjent hele tiden"
+          },
+          "point_stat_points_by_source_today": {
+            "name": "Af Kilde I Dag"
+          },
+          "point_stat_points_by_source_week": {
+            "name": "Af kilde denne uge"
+          },
+          "point_stat_points_by_source_month": {
+            "name": "Efter kilde denne måned"
+          },
+          "point_stat_points_by_source_year": {
+            "name": "Efter kilde i år"
+          },
+          "point_stat_points_by_source_all_time": {
+            "name": "Af kilde hele tiden"
+          },
+          "point_stat_points_spent_today": {
+            "name": "Brugt i dag"
+          },
+          "point_stat_points_spent_week": {
+            "name": "Brugt denne uge"
+          },
+          "point_stat_points_spent_month": {
+            "name": "Brugt denne måned"
+          },
+          "point_stat_points_spent_year": {
+            "name": "Brugt i år"
+          },
+          "point_stat_points_spent_all_time": {
+            "name": "Brugt al tid"
+          },
+          "point_stat_points_net_today": {
+            "name": "Netto i dag"
+          },
+          "point_stat_points_net_week": {
+            "name": "Netto denne uge"
+          },
+          "point_stat_points_net_month": {
+            "name": "Netto denne måned"
+          },
+          "point_stat_points_net_year": {
+            "name": "Netto i år"
+          },
+          "point_stat_points_net_all_time": {
+            "name": "Netto hele tiden"
+          },
+          "point_stat_points_earning_streak_current": {
+            "name": "Nuværende indtjeningsrække"
+          },
+          "point_stat_points_earning_streak_longest": {
+            "name": "Længste indtjeningsrække"
+          },
+          "point_stat_avg_points_per_day_week": {
+            "name": "Gennemsnit pr. dag (uge)"
+          },
+          "point_stat_avg_points_per_day_month": {
+            "name": "Gennemsnit pr. dag (måned)"
+          },
+          "point_stat_avg_points_per_chore": {
+            "name": "Gennemsnit pr. opgave"
+          },
+          "point_stat_highest_balance": {
+            "name": "Højeste saldo nogensinde"
           }
         }
       },
@@ -1945,12 +2078,133 @@
       },
       "kid_chores_sensor": {
         "name": "Huslige pligter",
+        "unit_of_measurement": "Huslige pligter",
         "state_attributes": {
           "purpose": {
             "name": "Formål",
             "state": {
-              "purpose_chores": "Antal tildelte opgaver efter status"
+              "purpose_chores": "Samlet antal udførte opgaver hele tiden med detaljeret statistik"
             }
+          },
+          "kid_name": {
+            "name": "Barnets navn"
+          },
+          "chore_stat_approved_today": {
+            "name": "Godkendt i dag"
+          },
+          "chore_stat_approved_week": {
+            "name": "Godkendt denne uge"
+          },
+          "chore_stat_approved_month": {
+            "name": "Godkendt denne måned"
+          },
+          "chore_stat_approved_year": {
+            "name": "Godkendt i år"
+          },
+          "chore_stat_approved_all_time": {
+            "name": "Godkendt hele tiden"
+          },
+          "chore_stat_most_completed_chore_all_time": {
+            "name": "Mest fuldførte pligt (hele tiden)"
+          },
+          "chore_stat_most_completed_chore_week": {
+            "name": "Mest udførte pligt (uge)"
+          },
+          "chore_stat_most_completed_chore_month": {
+            "name": "Mest udførte pligter (måned)"
+          },
+          "chore_stat_most_completed_chore_year": {
+            "name": "Mest udførte pligt (år)"
+          },
+          "chore_stat_total_points_from_chores_today": {
+            "name": "Point fra dagens huslige pligter"
+          },
+          "chore_stat_total_points_from_chores_week": {
+            "name": "Point fra pligter denne uge"
+          },
+          "chore_stat_total_points_from_chores_month": {
+            "name": "Point fra huslige pligter denne måned"
+          },
+          "chore_stat_total_points_from_chores_year": {
+            "name": "Point fra pligter i år"
+          },
+          "chore_stat_total_points_from_chores_all_time": {
+            "name": "Point fra pligter hele tiden"
+          },
+          "chore_stat_overdue_today": {
+            "name": "Forfalden i dag"
+          },
+          "chore_stat_overdue_week": {
+            "name": "Forsinket denne uge"
+          },
+          "chore_stat_overdue_month": {
+            "name": "Forfaldne denne måned"
+          },
+          "chore_stat_overdue_year": {
+            "name": "Forsinket i år"
+          },
+          "chore_stat_overdue_count_all_time": {
+            "name": "Forsinket hele tiden"
+          },
+          "chore_stat_claimed_today": {
+            "name": "Anmodet i dag"
+          },
+          "chore_stat_claimed_week": {
+            "name": "Gjort krav på denne uge"
+          },
+          "chore_stat_claimed_month": {
+            "name": "Ansøgt denne måned"
+          },
+          "chore_stat_claimed_year": {
+            "name": "Ansøgt i år"
+          },
+          "chore_stat_claimed_all_time": {
+            "name": "Hævdet hele tiden"
+          },
+          "chore_stat_disapproved_today": {
+            "name": "Afvist i dag"
+          },
+          "chore_stat_disapproved_week": {
+            "name": "Afvist denne uge"
+          },
+          "chore_stat_disapproved_month": {
+            "name": "Afvist denne måned"
+          },
+          "chore_stat_disapproved_year": {
+            "name": "Afvist i år"
+          },
+          "chore_stat_disapproved_all_time": {
+            "name": "Afvist hele tiden"
+          },
+          "chore_stat_current_due_today": {
+            "name": "Forfaldsdato i dag"
+          },
+          "chore_stat_current_overdue": {
+            "name": "Nuværende forfalden"
+          },
+          "chore_stat_current_claimed": {
+            "name": "Nuværende påståede"
+          },
+          "chore_stat_current_approved": {
+            "name": "Nuværende godkendt"
+          },
+          "chore_stat_longest_streak_week": {
+            "name": "Længste række (uge)"
+          },
+          "chore_stat_longest_streak_month": {
+            "name": "Længste serie (måned)"
+          },
+          "chore_stat_longest_streak_year": {
+            "name": "Længste række (år)"
+          },
+          "chore_stat_longest_streak_all_time": {
+            "name": "Længste serie (hele tiden)"
+          },
+          "chore_stat_avg_per_day_week": {
+            "name": "Gennemsnit pr. dag (uge)"
+          },
+          "chore_stat_avg_per_day_month": {
+            "name": "Gennemsnit pr. dag (måned)"
           }
         }
       },
@@ -1960,11 +2214,14 @@
           "purpose": {
             "name": "Formål",
             "state": {
-              "purpose_badges": "Statussporing for badge-præstationer"
+              "purpose_badges": "Sporer akkumuleret badge-fremgang og -cyklusser samt alle optjente badges"
             }
           },
           "kid_name": {
             "name": "Barnets navn"
+          },
+          "labels": {
+            "name": "Etiketter"
           },
           "all_earned_badges": {
             "name": "Alle optjente badges"
@@ -1972,69 +2229,109 @@
           "highest_badge_threshold_value": {
             "name": "Højeste badgetærskel"
           },
-          "points_multiplier": {
-            "name": "Pointmultiplikator"
-          },
           "points_to_next_badge": {
             "name": "Point til næste badge"
           },
-          "labels": {
-            "name": "Etiketter"
+          "current_badge_name": {
+            "name": "Nuværende badgenavn"
+          },
+          "current_badge_eid": {
+            "name": "Nuværende badge-enheds-ID"
+          },
+          "highest_earned_badge_name": {
+            "name": "Højest optjente badgenavn"
+          },
+          "next_higher_badge_name": {
+            "name": "Næste højere badgenavn"
+          },
+          "next_higher_badge_eid": {
+            "name": "Næste højere badge-enheds-ID"
+          },
+          "next_lower_badge_name": {
+            "name": "Næste nederste badgenavn"
+          },
+          "next_lower_badge_eid": {
+            "name": "Næste lavere badge-enheds-ID"
+          },
+          "badge_status": {
+            "name": "Badgestatus"
+          },
+          "last_awarded_date": {
+            "name": "Sidste tildelingsdato"
+          },
+          "award_count": {
+            "name": "Prisantal"
+          },
+          "description": {
+            "name": "Beskrivelse"
+          },
+          "baseline_points": {
+            "name": "Basispunkter"
+          },
+          "cycle_points": {
+            "name": "Cykluspunkter"
+          },
+          "maintenance_grace_end_date": {
+            "name": "Slutdato for vedligeholdelsesfrihed"
+          },
+          "maintenance_points_required": {
+            "name": "Nødvendige vedligeholdelsespunkter"
+          },
+          "maintenance_end_date": {
+            "name": "Vedligeholdelses slutdato"
+          },
+          "maintenance_points_remaining": {
+            "name": "Resterende vedligeholdelsespunkter"
+          },
+          "reset_schedule": {
+            "name": "Nulstil tidsplan"
+          },
+          "target": {
+            "name": "Mål"
+          },
+          "awards": {
+            "name": "Priser"
           }
         }
       },
       "system_badge_sensor": {
         "name": "Badge - {badge_name}",
+        "unit_of_measurement": "børn",
         "state_attributes": {
-          "threshold_type": {
-            "name": "Tærskeltype",
+          "purpose": {
+            "name": "Formål",
             "state": {
-              "points": "Point",
-              "chore_count": "Antal pligter"
+              "purpose_badge": "Antal børn, der har fortjent dette mærke"
             }
           },
-          "points_multiplier": {
-            "name": "Pointmultiplikator"
+          "badge_name": {
+            "name": "Badgenavn"
           },
           "description": {
             "name": "Beskrivelse"
           },
-          "award_points": {
-            "name": "Tildelingspoint"
-          },
-          "award_reward": {
-            "name": "Præmiebelønning"
-          },
-          "kids_earned": {
-            "name": "Børn optjente"
+          "badge_type": {
+            "name": "Badgetype",
+            "state": {
+              "cumulative": "Kumulativ",
+              "achievement": "Præstation",
+              "challenge": "Udfordring",
+              "daily": "Daglig",
+              "periodic": "Periodisk",
+              "special": "Særlig"
+            }
           },
           "labels": {
             "name": "Etiketter"
           },
-          "threshold_value": {
-            "name": "Tærskelværdi"
+          "kids_earned": {
+            "name": "Børn optjente"
           },
-          "reset_schedule": {
-            "name": "Nulstil tidsplan"
+          "kids_assigned": {
+            "name": "Børn tildelt"
           },
-          "start_date": {
-            "name": "Startdato"
-          },
-          "end_date": {
-            "name": "Slutdato"
-          },
-          "recurrent": {
-            "name": "Tilbagevendende",
-            "state": {
-              "true": "Ja",
-              "false": "Ingen"
-            }
-          },
-          "daily_threshold": {
-            "name": "Daglig tærskel"
-          },
-          "required_chores": {
-            "name": "Obligatoriske pligter"
+          "target": {
+            "name": "Mål"
           },
           "associated_achievement": {
             "name": "Tilknyttet præstation"
@@ -2045,11 +2342,14 @@
           "occasion_type": {
             "name": "Anledningstype"
           },
-          "trigger_info": {
-            "name": "Triggerinfo"
+          "required_chores": {
+            "name": "Obligatoriske pligter"
           },
-          "occasion_date": {
-            "name": "Anledningsdato"
+          "badge_awards": {
+            "name": "Badge-priser"
+          },
+          "reset_schedule": {
+            "name": "Nulstil tidsplan"
           }
         }
       },
@@ -2082,12 +2382,6 @@
       },
       "system_rewards_pending_approval_sensor": {
         "name": "Afventer godkendelse af belønninger"
-      },
-      "reward_claims_sensor": {
-        "name": "Krav - {reward_name}"
-      },
-      "reward_approvals_sensor": {
-        "name": "Godkendelser - {reward_name}"
       },
       "system_chore_shared_state_sensor": {
         "name": "{chore_name} - Global status",
@@ -2188,12 +2482,6 @@
             "name": "Etiketter"
           }
         }
-      },
-      "chore_claims_sensor": {
-        "name": "Krav - {chore_name}"
-      },
-      "chore_approvals_sensor": {
-        "name": "Godkendelser - {chore_name}"
       },
       "kid_penalty_applied_sensor": {
         "name": "Anvendte sanktioner - {penalty_name}",
@@ -2433,17 +2721,6 @@
         "state_attributes": {
           "streaks_by_achievement": {
             "name": "Serier efter præstation"
-          }
-        }
-      },
-      "chore_streak_sensor": {
-        "name": "Stribe - {chore_name}",
-        "state_attributes": {
-          "last_date": {
-            "name": "Sidste dato"
-          },
-          "raw_streak": {
-            "name": "Nuværende række"
           }
         }
       },

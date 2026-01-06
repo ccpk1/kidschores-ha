@@ -1805,13 +1805,14 @@
           "unknown": "Inconnu",
           "none": "Aucun",
           "approved_in_part": "Approuvé (en partie)",
-          "claimed_in_part": "Revendiqué (en partie)"
+          "claimed_in_part": "Revendiqué (en partie)",
+          "completed_by_other": "Réalisé par d'autres"
         },
         "state_attributes": {
           "purpose": {
             "name": "But",
             "state": {
-              "purpose_chore_status": "État actuel de cette tâche spécifique"
+              "purpose_chore_status": "Suivi de l'état et des statistiques de cette tâche spécifique"
             }
           },
           "kid_name": {
@@ -1820,11 +1821,37 @@
           "chore_name": {
             "name": "Nom de la tâche"
           },
-          "shared_chore": {
-            "name": "Tâche partagée",
+          "chore_icon": {
+            "name": "Icône de tâche"
+          },
+          "description": {
+            "name": "Description"
+          },
+          "assigned_kids": {
+            "name": "Enfants assignés"
+          },
+          "labels": {
+            "name": "Étiquettes"
+          },
+          "default_points": {
+            "name": "Points par défaut"
+          },
+          "completion_criteria": {
+            "name": "Critères d'achèvement",
             "state": {
-              "true": "Oui",
-              "false": "Non"
+              "independent": "Indépendant",
+              "shared_first_only": "Partagé (Premier arrivé, premier servi)",
+              "shared_all_required": "Partagé (Tous requis)"
+            }
+          },
+          "approval_reset_type": {
+            "name": "Type de réinitialisation d'approbation",
+            "state": {
+              "at_midnight_once": "Une fois par jour",
+              "at_midnight_multi": "Plusieurs par jour",
+              "at_due_date_once": "Une fois par date d'échéance",
+              "at_due_date_multi": "Plusieurs par date d'échéance",
+              "upon_completion": "À l'achèvement"
             }
           },
           "recurring_frequency": {
@@ -1853,23 +1880,55 @@
           "due_date": {
             "name": "Date d'échéance"
           },
-          "default_points": {
-            "name": "Points par défaut"
+          "custom_frequency_interval": {
+            "name": "Intervalle de fréquence personnalisé"
           },
-          "description": {
-            "name": "Description"
+          "custom_frequency_unit": {
+            "name": "Unité de fréquence personnalisée",
+            "state": {
+              "days": "Jours",
+              "weeks": "Semaines",
+              "months": "Mois"
+            }
           },
-          "chore_claims_count": {
-            "name": "Nombre de réclamations de tâches ménagères"
+          "chore_points_earned": {
+            "name": "Points gagnés"
           },
           "chore_approvals_count": {
-            "name": "Le nombre d'approbations de tâches ménagères"
+            "name": "Approbations (Toutes périodes)"
+          },
+          "chore_claims_count": {
+            "name": "Réclamations (toutes périodes confondues)"
+          },
+          "chore_disapproved_count": {
+            "name": "Désapprobations (Tous temps)"
+          },
+          "chore_overdue_count": {
+            "name": "En retard (toutes périodes)"
+          },
+          "chore_approvals_today": {
+            "name": "Approbations aujourd'hui"
           },
           "chore_current_streak": {
-            "name": "Série actuelle de tâches"
+            "name": "Série actuelle"
           },
           "chore_highest_streak": {
-            "name": "Meilleure série de tâches"
+            "name": "Meilleure série"
+          },
+          "chore_last_longest_streak_date": {
+            "name": "Dernière date de la plus longue série"
+          },
+          "last_claimed": {
+            "name": "Dernière réclamation"
+          },
+          "last_approved": {
+            "name": "Dernière approbation"
+          },
+          "last_disapproved": {
+            "name": "Dernière désapprobation"
+          },
+          "last_overdue": {
+            "name": "Dernière échéance"
           },
           "global_state": {
             "name": "État mondial",
@@ -1885,32 +1944,28 @@
               "independent": "Indépendant"
             }
           },
-          "allow_multiple_claims_per_day": {
-            "name": "Autoriser plusieurs réclamations par jour",
+          "can_claim": {
+            "name": "Peut réclamer",
             "state": {
               "true": "Oui",
               "false": "Non"
             }
           },
-          "assigned_kids": {
-            "name": "Enfants assignés"
-          },
-          "custom_frequency_interval": {
-            "name": "Fréquence personnalisée"
-          },
-          "custom_frequency_unit": {
-            "name": "Période de fréquence personnalisée",
+          "can_approve": {
+            "name": "Peut approuver",
             "state": {
-              "days": "Jours",
-              "weeks": "Semaines",
-              "months": "Mois"
+              "true": "Oui",
+              "false": "Non"
             }
           },
-          "chore_approvals_today": {
-            "name": "Approbation des tâches ménagères aujourd'hui"
+          "approve_button_eid": {
+            "name": "ID de l'entité du bouton Approuver"
           },
-          "labels": {
-            "name": "Étiquettes"
+          "disapprove_button_eid": {
+            "name": "ID de l'entité du bouton de désapprobation"
+          },
+          "claim_button_eid": {
+            "name": "ID d'entité du bouton de réclamation"
           }
         }
       },
@@ -1920,11 +1975,89 @@
           "purpose": {
             "name": "But",
             "state": {
-              "purpose_points": "Solde de points actuel pour enfant"
+              "purpose_points": "Solde de points actuel avec statistiques détaillées de gains et de dépenses"
             }
           },
-          "description": {
-            "name": "Solde de points actuel - gagnez des points en effectuant des tâches ménagères, dépensez-les en récompenses"
+          "kid_name": {
+            "name": "Nom de l'enfant"
+          },
+          "point_stat_points_earned_today": {
+            "name": "Gagné aujourd'hui"
+          },
+          "point_stat_points_earned_week": {
+            "name": "Gagné cette semaine"
+          },
+          "point_stat_points_earned_month": {
+            "name": "Revenus du mois"
+          },
+          "point_stat_points_earned_year": {
+            "name": "Gagné cette année"
+          },
+          "point_stat_points_earned_all_time": {
+            "name": "Gagné tout le temps"
+          },
+          "point_stat_points_by_source_today": {
+            "name": "Par Source Aujourd'hui"
+          },
+          "point_stat_points_by_source_week": {
+            "name": "Source : This Week"
+          },
+          "point_stat_points_by_source_month": {
+            "name": "Par Source Ce mois-ci"
+          },
+          "point_stat_points_by_source_year": {
+            "name": "Par source Cette année"
+          },
+          "point_stat_points_by_source_all_time": {
+            "name": "Par Source All Time"
+          },
+          "point_stat_points_spent_today": {
+            "name": "Dépensé aujourd'hui"
+          },
+          "point_stat_points_spent_week": {
+            "name": "Dépensé cette semaine"
+          },
+          "point_stat_points_spent_month": {
+            "name": "Dépenses du mois"
+          },
+          "point_stat_points_spent_year": {
+            "name": "Dépensé cette année"
+          },
+          "point_stat_points_spent_all_time": {
+            "name": "J'ai passé tout mon temps"
+          },
+          "point_stat_points_net_today": {
+            "name": "Net Today"
+          },
+          "point_stat_points_net_week": {
+            "name": "Net cette semaine"
+          },
+          "point_stat_points_net_month": {
+            "name": "Net ce mois-ci"
+          },
+          "point_stat_points_net_year": {
+            "name": "Net cette année"
+          },
+          "point_stat_points_net_all_time": {
+            "name": "Temps net total"
+          },
+          "point_stat_points_earning_streak_current": {
+            "name": "Série de gains actuelle"
+          },
+          "point_stat_points_earning_streak_longest": {
+            "name": "Plus longue période de gains"
+          },
+          "point_stat_avg_points_per_day_week": {
+            "name": "Moyenne par jour (semaine)"
+          },
+          "point_stat_avg_points_per_day_month": {
+            "name": "Moyenne par jour (mois)"
+          },
+          "point_stat_avg_points_per_chore": {
+            "name": "Moyenne par tâche"
+          },
+          "point_stat_highest_balance": {
+            "name": "Solde le plus élevé jamais enregistré"
           }
         }
       },
@@ -1945,12 +2078,133 @@
       },
       "kid_chores_sensor": {
         "name": "Corvées",
+        "unit_of_measurement": "Corvées",
         "state_attributes": {
           "purpose": {
             "name": "But",
             "state": {
-              "purpose_chores": "Nombre de tâches assignées par statut"
+              "purpose_chores": "Nombre total de tâches ménagères effectuées au fil du temps, avec des statistiques détaillées"
             }
+          },
+          "kid_name": {
+            "name": "Nom de l'enfant"
+          },
+          "chore_stat_approved_today": {
+            "name": "Approuvé aujourd'hui"
+          },
+          "chore_stat_approved_week": {
+            "name": "Approuvé cette semaine"
+          },
+          "chore_stat_approved_month": {
+            "name": "Approuvé ce mois-ci"
+          },
+          "chore_stat_approved_year": {
+            "name": "Approuvé cette année"
+          },
+          "chore_stat_approved_all_time": {
+            "name": "Approuvé en permanence"
+          },
+          "chore_stat_most_completed_chore_all_time": {
+            "name": "Tâche la plus accomplie (depuis toujours)"
+          },
+          "chore_stat_most_completed_chore_week": {
+            "name": "Tâche la plus accomplie (semaine)"
+          },
+          "chore_stat_most_completed_chore_month": {
+            "name": "Tâche la plus accomplie (mois)"
+          },
+          "chore_stat_most_completed_chore_year": {
+            "name": "Tâche la plus accomplie (Année)"
+          },
+          "chore_stat_total_points_from_chores_today": {
+            "name": "Points tirés des tâches ménagères d'aujourd'hui"
+          },
+          "chore_stat_total_points_from_chores_week": {
+            "name": "Points obtenus grâce aux tâches ménagères cette semaine"
+          },
+          "chore_stat_total_points_from_chores_month": {
+            "name": "Points obtenus grâce aux tâches ménagères ce mois-ci"
+          },
+          "chore_stat_total_points_from_chores_year": {
+            "name": "Points obtenus grâce aux corvées cette année"
+          },
+          "chore_stat_total_points_from_chores_all_time": {
+            "name": "Points obtenus grâce aux corvées (tous temps)"
+          },
+          "chore_stat_overdue_today": {
+            "name": "En retard aujourd'hui"
+          },
+          "chore_stat_overdue_week": {
+            "name": "En retard cette semaine"
+          },
+          "chore_stat_overdue_month": {
+            "name": "En retard ce mois-ci"
+          },
+          "chore_stat_overdue_year": {
+            "name": "En retard cette année"
+          },
+          "chore_stat_overdue_count_all_time": {
+            "name": "En retard depuis toujours"
+          },
+          "chore_stat_claimed_today": {
+            "name": "Réclamé aujourd'hui"
+          },
+          "chore_stat_claimed_week": {
+            "name": "Affirmé cette semaine"
+          },
+          "chore_stat_claimed_month": {
+            "name": "Réclamé ce mois-ci"
+          },
+          "chore_stat_claimed_year": {
+            "name": "Réclamé cette année"
+          },
+          "chore_stat_claimed_all_time": {
+            "name": "Réclamé à tout moment"
+          },
+          "chore_stat_disapproved_today": {
+            "name": "Désapprouvé aujourd'hui"
+          },
+          "chore_stat_disapproved_week": {
+            "name": "Désapprouvé cette semaine"
+          },
+          "chore_stat_disapproved_month": {
+            "name": "Désapprouvé ce mois-ci"
+          },
+          "chore_stat_disapproved_year": {
+            "name": "Désapprouvé cette année"
+          },
+          "chore_stat_disapproved_all_time": {
+            "name": "Désapprouvé en permanence"
+          },
+          "chore_stat_current_due_today": {
+            "name": "Échéance actuelle aujourd'hui"
+          },
+          "chore_stat_current_overdue": {
+            "name": "En retard de paiement"
+          },
+          "chore_stat_current_claimed": {
+            "name": "Revendus actuels"
+          },
+          "chore_stat_current_approved": {
+            "name": "Approuvé en vigueur"
+          },
+          "chore_stat_longest_streak_week": {
+            "name": "Série la plus longue (semaine)"
+          },
+          "chore_stat_longest_streak_month": {
+            "name": "Série la plus longue (mois)"
+          },
+          "chore_stat_longest_streak_year": {
+            "name": "Série la plus longue (année)"
+          },
+          "chore_stat_longest_streak_all_time": {
+            "name": "Plus longue série (de tous les temps)"
+          },
+          "chore_stat_avg_per_day_week": {
+            "name": "Moyenne par jour (semaine)"
+          },
+          "chore_stat_avg_per_day_month": {
+            "name": "Moyenne par jour (mois)"
           }
         }
       },
@@ -1960,11 +2214,14 @@
           "purpose": {
             "name": "But",
             "state": {
-              "purpose_badges": "Suivi de la progression pour l'obtention des badges"
+              "purpose_badges": "Permet de suivre la progression et les cycles des badges, ainsi que tous les badges obtenus."
             }
           },
           "kid_name": {
             "name": "Nom de l'enfant"
+          },
+          "labels": {
+            "name": "Étiquettes"
           },
           "all_earned_badges": {
             "name": "Tous les badges obtenus"
@@ -1972,69 +2229,109 @@
           "highest_badge_threshold_value": {
             "name": "Seuil de badge le plus élevé"
           },
-          "points_multiplier": {
-            "name": "Multiplicateur de points"
-          },
           "points_to_next_badge": {
             "name": "Points pour le prochain badge"
           },
-          "labels": {
-            "name": "Étiquettes"
+          "current_badge_name": {
+            "name": "Nom actuel du badge"
+          },
+          "current_badge_eid": {
+            "name": "ID actuel de l'entité du badge"
+          },
+          "highest_earned_badge_name": {
+            "name": "Nom du badge le plus élevé obtenu"
+          },
+          "next_higher_badge_name": {
+            "name": "Nom du badge supérieur suivant"
+          },
+          "next_higher_badge_eid": {
+            "name": "Identifiant de l'entité de niveau supérieur suivant"
+          },
+          "next_lower_badge_name": {
+            "name": "Nom du badge inférieur suivant"
+          },
+          "next_lower_badge_eid": {
+            "name": "Identifiant de l'entité du badge inférieur suivant"
+          },
+          "badge_status": {
+            "name": "Statut du badge"
+          },
+          "last_awarded_date": {
+            "name": "Date de la dernière attribution"
+          },
+          "award_count": {
+            "name": "Nombre de récompenses"
+          },
+          "description": {
+            "name": "Description"
+          },
+          "baseline_points": {
+            "name": "Points de référence"
+          },
+          "cycle_points": {
+            "name": "Points de cycle"
+          },
+          "maintenance_grace_end_date": {
+            "name": "Date de fin de grâce pour la maintenance"
+          },
+          "maintenance_points_required": {
+            "name": "Points de maintenance requis"
+          },
+          "maintenance_end_date": {
+            "name": "Date de fin de maintenance"
+          },
+          "maintenance_points_remaining": {
+            "name": "Points de maintenance restants"
+          },
+          "reset_schedule": {
+            "name": "Réinitialiser le calendrier"
+          },
+          "target": {
+            "name": "Cible"
+          },
+          "awards": {
+            "name": "Prix"
           }
         }
       },
       "system_badge_sensor": {
         "name": "Badge - {badge_name}",
+        "unit_of_measurement": "enfants",
         "state_attributes": {
-          "threshold_type": {
-            "name": "Type de seuil",
+          "purpose": {
+            "name": "But",
             "state": {
-              "points": "Points",
-              "chore_count": "Compte des tâches"
+              "purpose_badge": "Nombre d'enfants ayant obtenu ce badge"
             }
           },
-          "points_multiplier": {
-            "name": "Multiplicateur de points"
+          "badge_name": {
+            "name": "Nom du badge"
           },
           "description": {
             "name": "Description"
           },
-          "award_points": {
-            "name": "Points d'attribution"
-          },
-          "award_reward": {
-            "name": "Prix"
-          },
-          "kids_earned": {
-            "name": "Les enfants ont gagné"
+          "badge_type": {
+            "name": "Type de badge",
+            "state": {
+              "cumulative": "Cumulatif",
+              "achievement": "Réalisation",
+              "challenge": "Défi",
+              "daily": "Tous les jours",
+              "periodic": "Périodique",
+              "special": "Spécial"
+            }
           },
           "labels": {
             "name": "Étiquettes"
           },
-          "threshold_value": {
-            "name": "Valeur seuil"
+          "kids_earned": {
+            "name": "Les enfants ont gagné"
           },
-          "reset_schedule": {
-            "name": "Réinitialiser le calendrier"
+          "kids_assigned": {
+            "name": "Enfants assignés"
           },
-          "start_date": {
-            "name": "Date de début"
-          },
-          "end_date": {
-            "name": "Date de fin"
-          },
-          "recurrent": {
-            "name": "Récurrent",
-            "state": {
-              "true": "Oui",
-              "false": "Non"
-            }
-          },
-          "daily_threshold": {
-            "name": "Seuil quotidien"
-          },
-          "required_chores": {
-            "name": "Tâches obligatoires"
+          "target": {
+            "name": "Cible"
           },
           "associated_achievement": {
             "name": "Réalisation associée"
@@ -2045,11 +2342,14 @@
           "occasion_type": {
             "name": "Type d'occasion"
           },
-          "trigger_info": {
-            "name": "Informations sur le déclencheur"
+          "required_chores": {
+            "name": "Tâches obligatoires"
           },
-          "occasion_date": {
-            "name": "Date de l'occasion"
+          "badge_awards": {
+            "name": "Récompenses pour badges"
+          },
+          "reset_schedule": {
+            "name": "Réinitialiser le calendrier"
           }
         }
       },
@@ -2082,12 +2382,6 @@
       },
       "system_rewards_pending_approval_sensor": {
         "name": "Approbation des récompenses en attente"
-      },
-      "reward_claims_sensor": {
-        "name": "Réclamations - {reward_name}"
-      },
-      "reward_approvals_sensor": {
-        "name": "Approbations - {reward_name}"
       },
       "system_chore_shared_state_sensor": {
         "name": "{chore_name} - Statut global",
@@ -2188,12 +2482,6 @@
             "name": "Étiquettes"
           }
         }
-      },
-      "chore_claims_sensor": {
-        "name": "Réclamations - {chore_name}"
-      },
-      "chore_approvals_sensor": {
-        "name": "Approbations - {chore_name}"
       },
       "kid_penalty_applied_sensor": {
         "name": "Pénalités appliquées - {penalty_name}",
@@ -2433,17 +2721,6 @@
         "state_attributes": {
           "streaks_by_achievement": {
             "name": "Séries par réussite"
-          }
-        }
-      },
-      "chore_streak_sensor": {
-        "name": "Série - {chore_name}",
-        "state_attributes": {
-          "last_date": {
-            "name": "Date limite"
-          },
-          "raw_streak": {
-            "name": "Série actuelle"
           }
         }
       },

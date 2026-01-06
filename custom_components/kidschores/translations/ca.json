@@ -1805,13 +1805,14 @@
           "unknown": "Desconegut",
           "none": "Cap",
           "approved_in_part": "Aprovat (en part)",
-          "claimed_in_part": "Reclamat (en part)"
+          "claimed_in_part": "Reclamat (en part)",
+          "completed_by_other": "Completat per altres"
         },
         "state_attributes": {
           "purpose": {
             "name": "Propòsit",
             "state": {
-              "purpose_chore_status": "Estat actual d'aquesta tasca específica"
+              "purpose_chore_status": "Fa un seguiment de l'estat i les estadístiques d'aquesta tasca específica"
             }
           },
           "kid_name": {
@@ -1820,11 +1821,37 @@
           "chore_name": {
             "name": "Nom de la tasca"
           },
-          "shared_chore": {
-            "name": "Tasca compartida",
+          "chore_icon": {
+            "name": "Icona de tasques"
+          },
+          "description": {
+            "name": "Descripció"
+          },
+          "assigned_kids": {
+            "name": "Nens assignats"
+          },
+          "labels": {
+            "name": "Etiquetes"
+          },
+          "default_points": {
+            "name": "Punts per defecte"
+          },
+          "completion_criteria": {
+            "name": "Criteris de finalització",
             "state": {
-              "true": "Sí",
-              "false": "No"
+              "independent": "Independent",
+              "shared_first_only": "Compartit (només el primer)",
+              "shared_all_required": "Compartit (tot obligatori)"
+            }
+          },
+          "approval_reset_type": {
+            "name": "Tipus de restabliment d'aprovació",
+            "state": {
+              "at_midnight_once": "Un cop al dia",
+              "at_midnight_multi": "Múltiples per dia",
+              "at_due_date_once": "Un cop per data de venciment",
+              "at_due_date_multi": "Múltiple per data de venciment",
+              "upon_completion": "En completar-se"
             }
           },
           "recurring_frequency": {
@@ -1853,23 +1880,55 @@
           "due_date": {
             "name": "Data de venciment"
           },
-          "default_points": {
-            "name": "Punts per defecte"
+          "custom_frequency_interval": {
+            "name": "Interval de freqüència personalitzat"
           },
-          "description": {
-            "name": "Descripció"
+          "custom_frequency_unit": {
+            "name": "Unitat de freqüència personalitzada",
+            "state": {
+              "days": "Dies",
+              "weeks": "Setmanes",
+              "months": "Mesos"
+            }
           },
-          "chore_claims_count": {
-            "name": "Recompte de reclamacions de tasques"
+          "chore_points_earned": {
+            "name": "Punts guanyats"
           },
           "chore_approvals_count": {
-            "name": "Recompte d'aprovacions de tasques"
+            "name": "Aprovacions (de tots els temps)"
+          },
+          "chore_claims_count": {
+            "name": "Reclamacions (de tots els temps)"
+          },
+          "chore_disapproved_count": {
+            "name": "Rebuigs (de tots els temps)"
+          },
+          "chore_overdue_count": {
+            "name": "Endarrerit (de tots els temps)"
+          },
+          "chore_approvals_today": {
+            "name": "Aprovacions avui"
           },
           "chore_current_streak": {
-            "name": "Ratxa de corrent de tasques"
+            "name": "Ratxa actual"
           },
           "chore_highest_streak": {
-            "name": "Ratxa més alta de tasques"
+            "name": "Ratxa més alta"
+          },
+          "chore_last_longest_streak_date": {
+            "name": "Última cita de la ratxa més llarga"
+          },
+          "last_claimed": {
+            "name": "Última reclamació"
+          },
+          "last_approved": {
+            "name": "Última aprovació"
+          },
+          "last_disapproved": {
+            "name": "Últim rebutjat"
+          },
+          "last_overdue": {
+            "name": "Últim venciment"
           },
           "global_state": {
             "name": "Estat global",
@@ -1885,32 +1944,28 @@
               "independent": "Independent"
             }
           },
-          "allow_multiple_claims_per_day": {
-            "name": "Permetre diverses reclamacions per dia",
+          "can_claim": {
+            "name": "Pot reclamar",
             "state": {
               "true": "Sí",
               "false": "No"
             }
           },
-          "assigned_kids": {
-            "name": "Nens assignats"
-          },
-          "custom_frequency_interval": {
-            "name": "Freqüència personalitzada"
-          },
-          "custom_frequency_unit": {
-            "name": "Període de freqüència personalitzat",
+          "can_approve": {
+            "name": "Pot aprovar",
             "state": {
-              "days": "Dies",
-              "weeks": "Setmanes",
-              "months": "Mesos"
+              "true": "Sí",
+              "false": "No"
             }
           },
-          "chore_approvals_today": {
-            "name": "Aprovacions de tasques avui"
+          "approve_button_eid": {
+            "name": "ID d'entitat del botó Aprova"
           },
-          "labels": {
-            "name": "Etiquetes"
+          "disapprove_button_eid": {
+            "name": "ID d'entitat del botó de desaprovació"
+          },
+          "claim_button_eid": {
+            "name": "ID d'entitat del botó de reclamació"
           }
         }
       },
@@ -1920,11 +1975,89 @@
           "purpose": {
             "name": "Propòsit",
             "state": {
-              "purpose_points": "Saldo de punts actual per al nen/a"
+              "purpose_points": "Saldo de punts actual amb estadístiques detallades de guanys i despeses"
             }
           },
-          "description": {
-            "name": "Saldo de punts actual: guanya amb les tasques domèstiques, gasta en recompenses"
+          "kid_name": {
+            "name": "Nom del nen/a"
+          },
+          "point_stat_points_earned_today": {
+            "name": "Guanyat avui"
+          },
+          "point_stat_points_earned_week": {
+            "name": "Guanyat aquesta setmana"
+          },
+          "point_stat_points_earned_month": {
+            "name": "Guanyat aquest mes"
+          },
+          "point_stat_points_earned_year": {
+            "name": "Guanyat aquest any"
+          },
+          "point_stat_points_earned_all_time": {
+            "name": "Guanyat de tots els temps"
+          },
+          "point_stat_points_by_source_today": {
+            "name": "Per Source Today"
+          },
+          "point_stat_points_by_source_week": {
+            "name": "Per Source This Week"
+          },
+          "point_stat_points_by_source_month": {
+            "name": "Per la font Aquest mes"
+          },
+          "point_stat_points_by_source_year": {
+            "name": "Per font aquest any"
+          },
+          "point_stat_points_by_source_all_time": {
+            "name": "Per Source All Time"
+          },
+          "point_stat_points_spent_today": {
+            "name": "Gastat avui"
+          },
+          "point_stat_points_spent_week": {
+            "name": "Passat aquesta setmana"
+          },
+          "point_stat_points_spent_month": {
+            "name": "Gastat aquest mes"
+          },
+          "point_stat_points_spent_year": {
+            "name": "Gastat aquest any"
+          },
+          "point_stat_points_spent_all_time": {
+            "name": "Passat tot el temps"
+          },
+          "point_stat_points_net_today": {
+            "name": "Net Today"
+          },
+          "point_stat_points_net_week": {
+            "name": "Xarxa aquesta setmana"
+          },
+          "point_stat_points_net_month": {
+            "name": "Net aquest mes"
+          },
+          "point_stat_points_net_year": {
+            "name": "Net aquest any"
+          },
+          "point_stat_points_net_all_time": {
+            "name": "Net de tots els temps"
+          },
+          "point_stat_points_earning_streak_current": {
+            "name": "Ratxa de guanys actual"
+          },
+          "point_stat_points_earning_streak_longest": {
+            "name": "Ratxa de guanys més llarga"
+          },
+          "point_stat_avg_points_per_day_week": {
+            "name": "Mitjana per dia (setmana)"
+          },
+          "point_stat_avg_points_per_day_month": {
+            "name": "Mitjana per dia (mes)"
+          },
+          "point_stat_avg_points_per_chore": {
+            "name": "Mitjana per tasca"
+          },
+          "point_stat_highest_balance": {
+            "name": "El saldo més alt de la història"
           }
         }
       },
@@ -1945,12 +2078,133 @@
       },
       "kid_chores_sensor": {
         "name": "Tasques domèstiques",
+        "unit_of_measurement": "Tasques domèstiques",
         "state_attributes": {
           "purpose": {
             "name": "Propòsit",
             "state": {
-              "purpose_chores": "Nombre de tasques assignades per estat"
+              "purpose_chores": "Total de tasques completades de tots els temps amb estadístiques detallades"
             }
+          },
+          "kid_name": {
+            "name": "Nom del nen/a"
+          },
+          "chore_stat_approved_today": {
+            "name": "Aprovat avui"
+          },
+          "chore_stat_approved_week": {
+            "name": "Aprovat aquesta setmana"
+          },
+          "chore_stat_approved_month": {
+            "name": "Aprovat aquest mes"
+          },
+          "chore_stat_approved_year": {
+            "name": "Aprovat aquest any"
+          },
+          "chore_stat_approved_all_time": {
+            "name": "Aprovat de sempre"
+          },
+          "chore_stat_most_completed_chore_all_time": {
+            "name": "Tasca més completada (de tots els temps)"
+          },
+          "chore_stat_most_completed_chore_week": {
+            "name": "Tasca més completada (setmana)"
+          },
+          "chore_stat_most_completed_chore_month": {
+            "name": "Tasca més completada (mes)"
+          },
+          "chore_stat_most_completed_chore_year": {
+            "name": "Tasca més completada (any)"
+          },
+          "chore_stat_total_points_from_chores_today": {
+            "name": "Punts de les tasques d'avui"
+          },
+          "chore_stat_total_points_from_chores_week": {
+            "name": "Punts de les tasques d'aquesta setmana"
+          },
+          "chore_stat_total_points_from_chores_month": {
+            "name": "Punts de les tasques d'aquest mes"
+          },
+          "chore_stat_total_points_from_chores_year": {
+            "name": "Punts de les tasques d'aquest any"
+          },
+          "chore_stat_total_points_from_chores_all_time": {
+            "name": "Punts de tasques de tots els temps"
+          },
+          "chore_stat_overdue_today": {
+            "name": "Vençut avui"
+          },
+          "chore_stat_overdue_week": {
+            "name": "Endarrerit aquesta setmana"
+          },
+          "chore_stat_overdue_month": {
+            "name": "Endarrerit aquest mes"
+          },
+          "chore_stat_overdue_year": {
+            "name": "Endarrerit aquest any"
+          },
+          "chore_stat_overdue_count_all_time": {
+            "name": "Endarrerit de tots els temps"
+          },
+          "chore_stat_claimed_today": {
+            "name": "Reclamat avui"
+          },
+          "chore_stat_claimed_week": {
+            "name": "Reclamat aquesta setmana"
+          },
+          "chore_stat_claimed_month": {
+            "name": "Reclamat aquest mes"
+          },
+          "chore_stat_claimed_year": {
+            "name": "Reclamat aquest any"
+          },
+          "chore_stat_claimed_all_time": {
+            "name": "Reclamat de tots els temps"
+          },
+          "chore_stat_disapproved_today": {
+            "name": "Rebutjat avui"
+          },
+          "chore_stat_disapproved_week": {
+            "name": "Rebutjat aquesta setmana"
+          },
+          "chore_stat_disapproved_month": {
+            "name": "Rebutjat aquest mes"
+          },
+          "chore_stat_disapproved_year": {
+            "name": "Rebutjat aquest any"
+          },
+          "chore_stat_disapproved_all_time": {
+            "name": "Rebutjat de sempre"
+          },
+          "chore_stat_current_due_today": {
+            "name": "Venciment corrent avui"
+          },
+          "chore_stat_current_overdue": {
+            "name": "Actual vençut"
+          },
+          "chore_stat_current_claimed": {
+            "name": "Reclamat actualment"
+          },
+          "chore_stat_current_approved": {
+            "name": "Aprovat actualment"
+          },
+          "chore_stat_longest_streak_week": {
+            "name": "Ratxa més llarga (setmana)"
+          },
+          "chore_stat_longest_streak_month": {
+            "name": "Ratxa més llarga (mes)"
+          },
+          "chore_stat_longest_streak_year": {
+            "name": "Ratxa més llarga (any)"
+          },
+          "chore_stat_longest_streak_all_time": {
+            "name": "Ratxa més llarga (de tots els temps)"
+          },
+          "chore_stat_avg_per_day_week": {
+            "name": "Mitjana per dia (setmana)"
+          },
+          "chore_stat_avg_per_day_month": {
+            "name": "Mitjana per dia (mes)"
           }
         }
       },
@@ -1960,11 +2214,14 @@
           "purpose": {
             "name": "Propòsit",
             "state": {
-              "purpose_badges": "Seguiment del progrés dels assoliments d'insígnies"
+              "purpose_badges": "Fa un seguiment del progrés i els cicles acumulatius de les insígnies, així com de totes les insígnies obtingudes"
             }
           },
           "kid_name": {
             "name": "Nom del nen/a"
+          },
+          "labels": {
+            "name": "Etiquetes"
           },
           "all_earned_badges": {
             "name": "Totes les insígnies guanyades"
@@ -1972,69 +2229,109 @@
           "highest_badge_threshold_value": {
             "name": "Llindar més alt de la insígnia"
           },
-          "points_multiplier": {
-            "name": "Multiplicador de punts"
-          },
           "points_to_next_badge": {
             "name": "Punts per a la següent insígnia"
           },
-          "labels": {
-            "name": "Etiquetes"
+          "current_badge_name": {
+            "name": "Nom actual de la insígnia"
+          },
+          "current_badge_eid": {
+            "name": "ID d'entitat de distintiu actual"
+          },
+          "highest_earned_badge_name": {
+            "name": "Nom de la insígnia més alta guanyada"
+          },
+          "next_higher_badge_name": {
+            "name": "Nom de la insígnia següent de nivell superior"
+          },
+          "next_higher_badge_eid": {
+            "name": "ID d'entitat de la insígnia següent de nivell superior"
+          },
+          "next_lower_badge_name": {
+            "name": "Nom de la insígnia següent"
+          },
+          "next_lower_badge_eid": {
+            "name": "ID d'entitat de la insígnia següent"
+          },
+          "badge_status": {
+            "name": "Estat de la insígnia"
+          },
+          "last_awarded_date": {
+            "name": "Data de l'última adjudicació"
+          },
+          "award_count": {
+            "name": "Recompte de premis"
+          },
+          "description": {
+            "name": "Descripció"
+          },
+          "baseline_points": {
+            "name": "Punts de referència"
+          },
+          "cycle_points": {
+            "name": "Punts de cicle"
+          },
+          "maintenance_grace_end_date": {
+            "name": "Data de finalització de la gràcia de manteniment"
+          },
+          "maintenance_points_required": {
+            "name": "Punts de manteniment necessaris"
+          },
+          "maintenance_end_date": {
+            "name": "Data de finalització del manteniment"
+          },
+          "maintenance_points_remaining": {
+            "name": "Punts de manteniment restants"
+          },
+          "reset_schedule": {
+            "name": "Restableix la programació"
+          },
+          "target": {
+            "name": "Objectiu"
+          },
+          "awards": {
+            "name": "Premis"
           }
         }
       },
       "system_badge_sensor": {
         "name": "Insígnia - {badge_name}",
+        "unit_of_measurement": "nens",
         "state_attributes": {
-          "threshold_type": {
-            "name": "Tipus de llindar",
+          "purpose": {
+            "name": "Propòsit",
             "state": {
-              "points": "Punts",
-              "chore_count": "Recompte de tasques"
+              "purpose_badge": "Nombre de nens que han obtingut aquesta insígnia"
             }
           },
-          "points_multiplier": {
-            "name": "Multiplicador de punts"
+          "badge_name": {
+            "name": "Nom de la insígnia"
           },
           "description": {
             "name": "Descripció"
           },
-          "award_points": {
-            "name": "Punts de premi"
-          },
-          "award_reward": {
-            "name": "Premi Recompensa"
-          },
-          "kids_earned": {
-            "name": "Nens guanyats"
+          "badge_type": {
+            "name": "Tipus de distintiu",
+            "state": {
+              "cumulative": "Acumulatiu",
+              "achievement": "Assoliment",
+              "challenge": "Repte",
+              "daily": "Diari",
+              "periodic": "Periòdic",
+              "special": "Especial"
+            }
           },
           "labels": {
             "name": "Etiquetes"
           },
-          "threshold_value": {
-            "name": "Valor llindar"
+          "kids_earned": {
+            "name": "Nens guanyats"
           },
-          "reset_schedule": {
-            "name": "Restableix la programació"
+          "kids_assigned": {
+            "name": "Nens assignats"
           },
-          "start_date": {
-            "name": "Data d'inici"
-          },
-          "end_date": {
-            "name": "Data de finalització"
-          },
-          "recurrent": {
-            "name": "Recurrent",
-            "state": {
-              "true": "Sí",
-              "false": "No"
-            }
-          },
-          "daily_threshold": {
-            "name": "Llindar diari"
-          },
-          "required_chores": {
-            "name": "Tasques obligatòries"
+          "target": {
+            "name": "Objectiu"
           },
           "associated_achievement": {
             "name": "Assoliment associat"
@@ -2045,11 +2342,14 @@
           "occasion_type": {
             "name": "Tipus d'ocasió"
           },
-          "trigger_info": {
-            "name": "Informació del desencadenant"
+          "required_chores": {
+            "name": "Tasques obligatòries"
           },
-          "occasion_date": {
-            "name": "Data de l'ocasió"
+          "badge_awards": {
+            "name": "Premis d'insígnies"
+          },
+          "reset_schedule": {
+            "name": "Restableix la programació"
           }
         }
       },
@@ -2082,12 +2382,6 @@
       },
       "system_rewards_pending_approval_sensor": {
         "name": "Aprovacions de recompenses pendents"
-      },
-      "reward_claims_sensor": {
-        "name": "Reclamacions - {reward_name}"
-      },
-      "reward_approvals_sensor": {
-        "name": "Aprovacions - {reward_name}"
       },
       "system_chore_shared_state_sensor": {
         "name": "{chore_name} - Estat global",
@@ -2188,12 +2482,6 @@
             "name": "Etiquetes"
           }
         }
-      },
-      "chore_claims_sensor": {
-        "name": "Reclamacions - {chore_name}"
-      },
-      "chore_approvals_sensor": {
-        "name": "Aprovacions - {chore_name}"
       },
       "kid_penalty_applied_sensor": {
         "name": "Penalitzacions aplicades - {penalty_name}",
@@ -2433,17 +2721,6 @@
         "state_attributes": {
           "streaks_by_achievement": {
             "name": "Ratxes per assoliment"
-          }
-        }
-      },
-      "chore_streak_sensor": {
-        "name": "Ratxa - {chore_name}",
-        "state_attributes": {
-          "last_date": {
-            "name": "Última data"
-          },
-          "raw_streak": {
-            "name": "Ratxa actual"
           }
         }
       },

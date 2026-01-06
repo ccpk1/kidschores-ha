@@ -1805,13 +1805,14 @@
           "unknown": "Desconocido",
           "none": "Ninguno",
           "approved_in_part": "Aprobado (parcialmente)",
-          "claimed_in_part": "Reclamado (en parte)"
+          "claimed_in_part": "Reclamado (en parte)",
+          "completed_by_other": "Completado por Otros"
         },
         "state_attributes": {
           "purpose": {
             "name": "Objetivo",
             "state": {
-              "purpose_chore_status": "Estado actual de esta tarea específica"
+              "purpose_chore_status": "Realiza un seguimiento del estado y las estadísticas de esta tarea específica"
             }
           },
           "kid_name": {
@@ -1820,11 +1821,37 @@
           "chore_name": {
             "name": "Nombre de la tarea"
           },
-          "shared_chore": {
-            "name": "Tarea compartida",
+          "chore_icon": {
+            "name": "Icono de tarea"
+          },
+          "description": {
+            "name": "Descripción"
+          },
+          "assigned_kids": {
+            "name": "Niños asignados"
+          },
+          "labels": {
+            "name": "Etiquetas"
+          },
+          "default_points": {
+            "name": "Puntos predeterminados"
+          },
+          "completion_criteria": {
+            "name": "Criterios de finalización",
             "state": {
-              "true": "Sí",
-              "false": "No"
+              "independent": "Independiente",
+              "shared_first_only": "Compartido (Solo el primero)",
+              "shared_all_required": "Compartido (Todos requeridos)"
+            }
+          },
+          "approval_reset_type": {
+            "name": "Tipo de restablecimiento de aprobación",
+            "state": {
+              "at_midnight_once": "Una vez al día",
+              "at_midnight_multi": "Múltiples por día",
+              "at_due_date_once": "Una vez por fecha de vencimiento",
+              "at_due_date_multi": "Múltiples por fecha de vencimiento",
+              "upon_completion": "Al finalizar"
             }
           },
           "recurring_frequency": {
@@ -1853,23 +1880,55 @@
           "due_date": {
             "name": "Fecha de vencimiento"
           },
-          "default_points": {
-            "name": "Puntos predeterminados"
+          "custom_frequency_interval": {
+            "name": "Intervalo de frecuencia personalizado"
           },
-          "description": {
-            "name": "Descripción"
+          "custom_frequency_unit": {
+            "name": "Unidad de frecuencia personalizada",
+            "state": {
+              "days": "Días",
+              "weeks": "Semanas",
+              "months": "Meses"
+            }
           },
-          "chore_claims_count": {
-            "name": "Recuento de reclamaciones por tareas domésticas"
+          "chore_points_earned": {
+            "name": "Puntos ganados"
           },
           "chore_approvals_count": {
-            "name": "Las aprobaciones de tareas cuentan"
+            "name": "Aprobaciones (de todos los tiempos)"
+          },
+          "chore_claims_count": {
+            "name": "Reclamaciones (de todos los tiempos)"
+          },
+          "chore_disapproved_count": {
+            "name": "Desaprobaciones (de todos los tiempos)"
+          },
+          "chore_overdue_count": {
+            "name": "Vencido (Todo el tiempo)"
+          },
+          "chore_approvals_today": {
+            "name": "Aprobaciones hoy"
           },
           "chore_current_streak": {
-            "name": "Racha actual de tareas"
+            "name": "Racha actual"
           },
           "chore_highest_streak": {
-            "name": "Tarea con la racha más alta"
+            "name": "Racha más alta"
+          },
+          "chore_last_longest_streak_date": {
+            "name": "Fecha de la última racha más larga"
+          },
+          "last_claimed": {
+            "name": "Último reclamado"
+          },
+          "last_approved": {
+            "name": "Última aprobación"
+          },
+          "last_disapproved": {
+            "name": "Último desaprobado"
+          },
+          "last_overdue": {
+            "name": "Último vencimiento"
           },
           "global_state": {
             "name": "Estado global",
@@ -1885,32 +1944,28 @@
               "independent": "Independiente"
             }
           },
-          "allow_multiple_claims_per_day": {
-            "name": "Permitir múltiples reclamaciones por día",
+          "can_claim": {
+            "name": "Puede reclamar",
             "state": {
               "true": "Sí",
               "false": "No"
             }
           },
-          "assigned_kids": {
-            "name": "Niños asignados"
-          },
-          "custom_frequency_interval": {
-            "name": "Frecuencia personalizada"
-          },
-          "custom_frequency_unit": {
-            "name": "Periodo de frecuencia personalizado",
+          "can_approve": {
+            "name": "Puede aprobar",
             "state": {
-              "days": "Días",
-              "weeks": "Semanas",
-              "months": "Meses"
+              "true": "Sí",
+              "false": "No"
             }
           },
-          "chore_approvals_today": {
-            "name": "Aprobaciones de tareas hoy"
+          "approve_button_eid": {
+            "name": "ID de entidad del botón Aprobar"
           },
-          "labels": {
-            "name": "Etiquetas"
+          "disapprove_button_eid": {
+            "name": "ID de entidad del botón Desaprobar"
+          },
+          "claim_button_eid": {
+            "name": "ID de entidad del botón de reclamación"
           }
         }
       },
@@ -1920,11 +1975,89 @@
           "purpose": {
             "name": "Objetivo",
             "state": {
-              "purpose_points": "Saldo actual de puntos para niños"
+              "purpose_points": "Saldo de puntos actual con estadísticas detalladas de ganancias y gastos"
             }
           },
-          "description": {
-            "name": "Saldo actual de puntos: gánelos con las tareas y gástelos en recompensas"
+          "kid_name": {
+            "name": "Nombre del niño"
+          },
+          "point_stat_points_earned_today": {
+            "name": "Ganado hoy"
+          },
+          "point_stat_points_earned_week": {
+            "name": "Ganado esta semana"
+          },
+          "point_stat_points_earned_month": {
+            "name": "Ganado este mes"
+          },
+          "point_stat_points_earned_year": {
+            "name": "Ganado este año"
+          },
+          "point_stat_points_earned_all_time": {
+            "name": "Ganado todo el tiempo"
+          },
+          "point_stat_points_by_source_today": {
+            "name": "Por Source Today"
+          },
+          "point_stat_points_by_source_week": {
+            "name": "Por Fuente Esta Semana"
+          },
+          "point_stat_points_by_source_month": {
+            "name": "Por fuente este mes"
+          },
+          "point_stat_points_by_source_year": {
+            "name": "Por fuente este año"
+          },
+          "point_stat_points_by_source_all_time": {
+            "name": "Por fuente Todo el tiempo"
+          },
+          "point_stat_points_spent_today": {
+            "name": "Gastado hoy"
+          },
+          "point_stat_points_spent_week": {
+            "name": "Pasado esta semana"
+          },
+          "point_stat_points_spent_month": {
+            "name": "Gastado este mes"
+          },
+          "point_stat_points_spent_year": {
+            "name": "Pasé este año"
+          },
+          "point_stat_points_spent_all_time": {
+            "name": "Pasó todo el tiempo"
+          },
+          "point_stat_points_net_today": {
+            "name": "Net Today"
+          },
+          "point_stat_points_net_week": {
+            "name": "Neto esta semana"
+          },
+          "point_stat_points_net_month": {
+            "name": "Neto este mes"
+          },
+          "point_stat_points_net_year": {
+            "name": "Neto este año"
+          },
+          "point_stat_points_net_all_time": {
+            "name": "Neto de todos los tiempos"
+          },
+          "point_stat_points_earning_streak_current": {
+            "name": "Racha de ganancias actual"
+          },
+          "point_stat_points_earning_streak_longest": {
+            "name": "La racha de ganancias más larga"
+          },
+          "point_stat_avg_points_per_day_week": {
+            "name": "Promedio por día (semana)"
+          },
+          "point_stat_avg_points_per_day_month": {
+            "name": "Promedio por día (mes)"
+          },
+          "point_stat_avg_points_per_chore": {
+            "name": "Promedio por tarea"
+          },
+          "point_stat_highest_balance": {
+            "name": "El saldo más alto de la historia"
           }
         }
       },
@@ -1945,12 +2078,133 @@
       },
       "kid_chores_sensor": {
         "name": "Quehaceres",
+        "unit_of_measurement": "Quehaceres",
         "state_attributes": {
           "purpose": {
             "name": "Objetivo",
             "state": {
-              "purpose_chores": "Recuento de tareas asignadas por estado"
+              "purpose_chores": "Total de tareas completadas en todo momento con estadísticas detalladas"
             }
+          },
+          "kid_name": {
+            "name": "Nombre del niño"
+          },
+          "chore_stat_approved_today": {
+            "name": "Aprobado hoy"
+          },
+          "chore_stat_approved_week": {
+            "name": "Aprobado esta semana"
+          },
+          "chore_stat_approved_month": {
+            "name": "Aprobado este mes"
+          },
+          "chore_stat_approved_year": {
+            "name": "Aprobado este año"
+          },
+          "chore_stat_approved_all_time": {
+            "name": "Aprobado siempre"
+          },
+          "chore_stat_most_completed_chore_all_time": {
+            "name": "La tarea más completada (de todos los tiempos)"
+          },
+          "chore_stat_most_completed_chore_week": {
+            "name": "Tarea más completada (semana)"
+          },
+          "chore_stat_most_completed_chore_month": {
+            "name": "Tarea más completada (mes)"
+          },
+          "chore_stat_most_completed_chore_year": {
+            "name": "Tarea más completada (año)"
+          },
+          "chore_stat_total_points_from_chores_today": {
+            "name": "Puntos de las tareas de hoy"
+          },
+          "chore_stat_total_points_from_chores_week": {
+            "name": "Puntos de las tareas de esta semana"
+          },
+          "chore_stat_total_points_from_chores_month": {
+            "name": "Puntos de las tareas de este mes"
+          },
+          "chore_stat_total_points_from_chores_year": {
+            "name": "Puntos de las tareas de este año"
+          },
+          "chore_stat_total_points_from_chores_all_time": {
+            "name": "Puntos de las tareas de todo el tiempo"
+          },
+          "chore_stat_overdue_today": {
+            "name": "Vencido hoy"
+          },
+          "chore_stat_overdue_week": {
+            "name": "Vencido esta semana"
+          },
+          "chore_stat_overdue_month": {
+            "name": "Vencido este mes"
+          },
+          "chore_stat_overdue_year": {
+            "name": "Atrasado este año"
+          },
+          "chore_stat_overdue_count_all_time": {
+            "name": "Vencido todo el tiempo"
+          },
+          "chore_stat_claimed_today": {
+            "name": "Reclamado hoy"
+          },
+          "chore_stat_claimed_week": {
+            "name": "Reclamado esta semana"
+          },
+          "chore_stat_claimed_month": {
+            "name": "Reclamado este mes"
+          },
+          "chore_stat_claimed_year": {
+            "name": "Reclamado este año"
+          },
+          "chore_stat_claimed_all_time": {
+            "name": "Reclamado todos los tiempos"
+          },
+          "chore_stat_disapproved_today": {
+            "name": "Desaprobado hoy"
+          },
+          "chore_stat_disapproved_week": {
+            "name": "Desaprobado esta semana"
+          },
+          "chore_stat_disapproved_month": {
+            "name": "Desaprobado este mes"
+          },
+          "chore_stat_disapproved_year": {
+            "name": "Desaprobado este año"
+          },
+          "chore_stat_disapproved_all_time": {
+            "name": "Desaprobado todo el tiempo"
+          },
+          "chore_stat_current_due_today": {
+            "name": "Corriente con vencimiento hoy"
+          },
+          "chore_stat_current_overdue": {
+            "name": "Vencido actual"
+          },
+          "chore_stat_current_claimed": {
+            "name": "Reclamación actual"
+          },
+          "chore_stat_current_approved": {
+            "name": "Aprobado actualmente"
+          },
+          "chore_stat_longest_streak_week": {
+            "name": "Racha más larga (semana)"
+          },
+          "chore_stat_longest_streak_month": {
+            "name": "Racha más larga (mes)"
+          },
+          "chore_stat_longest_streak_year": {
+            "name": "Racha más larga (año)"
+          },
+          "chore_stat_longest_streak_all_time": {
+            "name": "La racha más larga (de todos los tiempos)"
+          },
+          "chore_stat_avg_per_day_week": {
+            "name": "Promedio por día (semana)"
+          },
+          "chore_stat_avg_per_day_month": {
+            "name": "Promedio por día (mes)"
           }
         }
       },
@@ -1960,11 +2214,14 @@
           "purpose": {
             "name": "Objetivo",
             "state": {
-              "purpose_badges": "Seguimiento del progreso para los logros de insignias"
+              "purpose_badges": "Realiza un seguimiento del progreso y los ciclos de insignias acumuladas, así como de todas las insignias obtenidas."
             }
           },
           "kid_name": {
             "name": "Nombre del niño"
+          },
+          "labels": {
+            "name": "Etiquetas"
           },
           "all_earned_badges": {
             "name": "Todas las insignias obtenidas"
@@ -1972,69 +2229,109 @@
           "highest_badge_threshold_value": {
             "name": "Umbral de insignia más alto"
           },
-          "points_multiplier": {
-            "name": "Multiplicador de puntos"
-          },
           "points_to_next_badge": {
             "name": "Puntos para la siguiente insignia"
           },
-          "labels": {
-            "name": "Etiquetas"
+          "current_badge_name": {
+            "name": "Nombre de la insignia actual"
+          },
+          "current_badge_eid": {
+            "name": "ID de entidad de insignia actual"
+          },
+          "highest_earned_badge_name": {
+            "name": "Nombre de la insignia con mayor puntuación obtenida"
+          },
+          "next_higher_badge_name": {
+            "name": "Nombre de la siguiente insignia más alta"
+          },
+          "next_higher_badge_eid": {
+            "name": "Identificación de entidad de insignia superior siguiente"
+          },
+          "next_lower_badge_name": {
+            "name": "Nombre de la siguiente insignia inferior"
+          },
+          "next_lower_badge_eid": {
+            "name": "ID de entidad de la siguiente insignia inferior"
+          },
+          "badge_status": {
+            "name": "Estado de la insignia"
+          },
+          "last_awarded_date": {
+            "name": "Última fecha de adjudicación"
+          },
+          "award_count": {
+            "name": "Recuento de premios"
+          },
+          "description": {
+            "name": "Descripción"
+          },
+          "baseline_points": {
+            "name": "Puntos de referencia"
+          },
+          "cycle_points": {
+            "name": "Puntos de ciclo"
+          },
+          "maintenance_grace_end_date": {
+            "name": "Fecha de finalización del período de gracia de mantenimiento"
+          },
+          "maintenance_points_required": {
+            "name": "Puntos de mantenimiento necesarios"
+          },
+          "maintenance_end_date": {
+            "name": "Fecha de finalización del mantenimiento"
+          },
+          "maintenance_points_remaining": {
+            "name": "Puntos de mantenimiento restantes"
+          },
+          "reset_schedule": {
+            "name": "Restablecer programación"
+          },
+          "target": {
+            "name": "Objetivo"
+          },
+          "awards": {
+            "name": "Premios"
           }
         }
       },
       "system_badge_sensor": {
         "name": "Insignia - {badge_name}",
+        "unit_of_measurement": "niños",
         "state_attributes": {
-          "threshold_type": {
-            "name": "Tipo de umbral",
+          "purpose": {
+            "name": "Objetivo",
             "state": {
-              "points": "Agujas",
-              "chore_count": "Conteo de tareas"
+              "purpose_badge": "Número de niños que han obtenido esta insignia"
             }
           },
-          "points_multiplier": {
-            "name": "Multiplicador de puntos"
+          "badge_name": {
+            "name": "Nombre de la insignia"
           },
           "description": {
             "name": "Descripción"
           },
-          "award_points": {
-            "name": "Puntos de premio"
-          },
-          "award_reward": {
-            "name": "Premio Recompensa"
-          },
-          "kids_earned": {
-            "name": "Niños ganados"
+          "badge_type": {
+            "name": "Tipo de insignia",
+            "state": {
+              "cumulative": "Acumulativo",
+              "achievement": "Logro",
+              "challenge": "Desafío",
+              "daily": "A diario",
+              "periodic": "Periódico",
+              "special": "Especial"
+            }
           },
           "labels": {
             "name": "Etiquetas"
           },
-          "threshold_value": {
-            "name": "Valor umbral"
+          "kids_earned": {
+            "name": "Niños ganados"
           },
-          "reset_schedule": {
-            "name": "Restablecer programación"
+          "kids_assigned": {
+            "name": "Niños asignados"
           },
-          "start_date": {
-            "name": "Fecha de inicio"
-          },
-          "end_date": {
-            "name": "Fecha de finalización"
-          },
-          "recurrent": {
-            "name": "Recurrente",
-            "state": {
-              "true": "Sí",
-              "false": "No"
-            }
-          },
-          "daily_threshold": {
-            "name": "Umbral diario"
-          },
-          "required_chores": {
-            "name": "Tareas obligatorias"
+          "target": {
+            "name": "Objetivo"
           },
           "associated_achievement": {
             "name": "Logro asociado"
@@ -2045,11 +2342,14 @@
           "occasion_type": {
             "name": "Tipo de ocasión"
           },
-          "trigger_info": {
-            "name": "Información del disparador"
+          "required_chores": {
+            "name": "Tareas obligatorias"
           },
-          "occasion_date": {
-            "name": "Ocasión Fecha"
+          "badge_awards": {
+            "name": "Premios de insignias"
+          },
+          "reset_schedule": {
+            "name": "Restablecer programación"
           }
         }
       },
@@ -2082,12 +2382,6 @@
       },
       "system_rewards_pending_approval_sensor": {
         "name": "Aprobaciones de recompensas pendientes"
-      },
-      "reward_claims_sensor": {
-        "name": "Reclamaciones - {reward_name}"
-      },
-      "reward_approvals_sensor": {
-        "name": "Aprobaciones - {reward_name}"
       },
       "system_chore_shared_state_sensor": {
         "name": "{chore_name} - Estado global",
@@ -2188,12 +2482,6 @@
             "name": "Etiquetas"
           }
         }
-      },
-      "chore_claims_sensor": {
-        "name": "Reclamaciones - {chore_name}"
-      },
-      "chore_approvals_sensor": {
-        "name": "Aprobaciones - {chore_name}"
       },
       "kid_penalty_applied_sensor": {
         "name": "Sanciones aplicadas - {penalty_name}",
@@ -2433,17 +2721,6 @@
         "state_attributes": {
           "streaks_by_achievement": {
             "name": "Rachas por logros"
-          }
-        }
-      },
-      "chore_streak_sensor": {
-        "name": "Racha - {chore_name}",
-        "state_attributes": {
-          "last_date": {
-            "name": "Última fecha"
-          },
-          "raw_streak": {
-            "name": "Racha actual"
           }
         }
       },

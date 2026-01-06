@@ -1805,13 +1805,14 @@
           "unknown": "Okänd",
           "none": "Ingen",
           "approved_in_part": "Godkänd (delvis)",
-          "claimed_in_part": "Anspråk (delvis)"
+          "claimed_in_part": "Anspråk (delvis)",
+          "completed_by_other": "Slutförd av Annan"
         },
         "state_attributes": {
           "purpose": {
             "name": "Ändamål",
             "state": {
-              "purpose_chore_status": "Nuvarande status för denna specifika syssla"
+              "purpose_chore_status": "Spårar status och statistik för just den här sysslan"
             }
           },
           "kid_name": {
@@ -1820,11 +1821,37 @@
           "chore_name": {
             "name": "Sysslanamn"
           },
-          "shared_chore": {
-            "name": "Delad syssla",
+          "chore_icon": {
+            "name": "Syssloikon"
+          },
+          "description": {
+            "name": "Beskrivning"
+          },
+          "assigned_kids": {
+            "name": "Tilldelade barn"
+          },
+          "labels": {
+            "name": "Etiketter"
+          },
+          "default_points": {
+            "name": "Standardpoäng"
+          },
+          "completion_criteria": {
+            "name": "Slutförandekriterier",
             "state": {
-              "true": "Ja",
-              "false": "Inga"
+              "independent": "Oberoende",
+              "shared_first_only": "Delad (endast första)",
+              "shared_all_required": "Delat (alla obligatoriska)"
+            }
+          },
+          "approval_reset_type": {
+            "name": "Återställningstyp för godkännande",
+            "state": {
+              "at_midnight_once": "En gång per dag",
+              "at_midnight_multi": "Flera per dag",
+              "at_due_date_once": "En gång per förfallodatum",
+              "at_due_date_multi": "Flera per förfallodatum",
+              "upon_completion": "Vid färdigställande"
             }
           },
           "recurring_frequency": {
@@ -1853,23 +1880,55 @@
           "due_date": {
             "name": "Förfallodatum"
           },
-          "default_points": {
-            "name": "Standardpoäng"
+          "custom_frequency_interval": {
+            "name": "Anpassat frekvensintervall"
           },
-          "description": {
-            "name": "Beskrivning"
+          "custom_frequency_unit": {
+            "name": "Anpassad frekvensenhet",
+            "state": {
+              "days": "Dagar",
+              "weeks": "Veckor",
+              "months": "Månader"
+            }
           },
-          "chore_claims_count": {
-            "name": "Antal syssloranspråk"
+          "chore_points_earned": {
+            "name": "Intjänade poäng"
           },
           "chore_approvals_count": {
-            "name": "Antal godkännanden av sysslor"
+            "name": "Godkännanden (hela tiden)"
+          },
+          "chore_claims_count": {
+            "name": "Anspråk (hela tiden)"
+          },
+          "chore_disapproved_count": {
+            "name": "Avslag (alla tider)"
+          },
+          "chore_overdue_count": {
+            "name": "Försenad (Alla tider)"
+          },
+          "chore_approvals_today": {
+            "name": "Godkännanden idag"
           },
           "chore_current_streak": {
-            "name": "Chore-strömsträcka"
+            "name": "Nuvarande svit"
           },
           "chore_highest_streak": {
-            "name": "Syssla högsta svit"
+            "name": "Högsta svit"
+          },
+          "chore_last_longest_streak_date": {
+            "name": "Senaste längsta seriedatum"
+          },
+          "last_claimed": {
+            "name": "Senast begärd"
+          },
+          "last_approved": {
+            "name": "Senast godkänd"
+          },
+          "last_disapproved": {
+            "name": "Senast avvisad"
+          },
+          "last_overdue": {
+            "name": "Senast försenad"
           },
           "global_state": {
             "name": "Globalt tillstånd",
@@ -1885,32 +1944,28 @@
               "independent": "Oberoende"
             }
           },
-          "allow_multiple_claims_per_day": {
-            "name": "Tillåt flera anspråk per dag",
+          "can_claim": {
+            "name": "Kan göra anspråk",
             "state": {
               "true": "Ja",
               "false": "Inga"
             }
           },
-          "assigned_kids": {
-            "name": "Tilldelade barn"
-          },
-          "custom_frequency_interval": {
-            "name": "Anpassad frekvens"
-          },
-          "custom_frequency_unit": {
-            "name": "Anpassad frekvensperiod",
+          "can_approve": {
+            "name": "Kan godkänna",
             "state": {
-              "days": "Dagar",
-              "weeks": "Veckor",
-              "months": "Månader"
+              "true": "Ja",
+              "false": "Inga"
             }
           },
-          "chore_approvals_today": {
-            "name": "Godkännanden av sysslor idag"
+          "approve_button_eid": {
+            "name": "Godkänn-knapp Enhets-ID"
           },
-          "labels": {
-            "name": "Etiketter"
+          "disapprove_button_eid": {
+            "name": "Enhets-ID för knappen Avvisa"
+          },
+          "claim_button_eid": {
+            "name": "Enhets-ID för knappen Anspråk"
           }
         }
       },
@@ -1920,11 +1975,89 @@
           "purpose": {
             "name": "Ändamål",
             "state": {
-              "purpose_points": "Nuvarande poängsaldo för barn"
+              "purpose_points": "Aktuellt poängsaldo med detaljerad intäkts- och utgiftsstatistik"
             }
           },
-          "description": {
-            "name": "Nuvarande poängsaldo - tjäna på sysslor, spendera på belöningar"
+          "kid_name": {
+            "name": "Barnets namn"
+          },
+          "point_stat_points_earned_today": {
+            "name": "Intjänat idag"
+          },
+          "point_stat_points_earned_week": {
+            "name": "Intjänade denna vecka"
+          },
+          "point_stat_points_earned_month": {
+            "name": "Intjänade denna månad"
+          },
+          "point_stat_points_earned_year": {
+            "name": "Intjänade i år"
+          },
+          "point_stat_points_earned_all_time": {
+            "name": "Intjänade hela tiden"
+          },
+          "point_stat_points_by_source_today": {
+            "name": "Av Source Today"
+          },
+          "point_stat_points_by_source_week": {
+            "name": "Av källan denna vecka"
+          },
+          "point_stat_points_by_source_month": {
+            "name": "Enligt källa denna månad"
+          },
+          "point_stat_points_by_source_year": {
+            "name": "Enligt källa i år"
+          },
+          "point_stat_points_by_source_all_time": {
+            "name": "Av källan hela tiden"
+          },
+          "point_stat_points_spent_today": {
+            "name": "Tillbringade idag"
+          },
+          "point_stat_points_spent_week": {
+            "name": "Tillbringade denna vecka"
+          },
+          "point_stat_points_spent_month": {
+            "name": "Tillbringade denna månad"
+          },
+          "point_stat_points_spent_year": {
+            "name": "Tillbringade i år"
+          },
+          "point_stat_points_spent_all_time": {
+            "name": "Tillbringade all tid"
+          },
+          "point_stat_points_net_today": {
+            "name": "Netto idag"
+          },
+          "point_stat_points_net_week": {
+            "name": "Netto denna vecka"
+          },
+          "point_stat_points_net_month": {
+            "name": "Netto denna månad"
+          },
+          "point_stat_points_net_year": {
+            "name": "Netto i år"
+          },
+          "point_stat_points_net_all_time": {
+            "name": "Netto hela tiden"
+          },
+          "point_stat_points_earning_streak_current": {
+            "name": "Nuvarande intjäningssvit"
+          },
+          "point_stat_points_earning_streak_longest": {
+            "name": "Längsta intjäningssvit"
+          },
+          "point_stat_avg_points_per_day_week": {
+            "name": "Genomsnitt per dag (vecka)"
+          },
+          "point_stat_avg_points_per_day_month": {
+            "name": "Genomsnitt per dag (månad)"
+          },
+          "point_stat_avg_points_per_chore": {
+            "name": "Genomsnitt per syssla"
+          },
+          "point_stat_highest_balance": {
+            "name": "Högsta saldo någonsin"
           }
         }
       },
@@ -1945,12 +2078,133 @@
       },
       "kid_chores_sensor": {
         "name": "Sysslor",
+        "unit_of_measurement": "Sysslor",
         "state_attributes": {
           "purpose": {
             "name": "Ändamål",
             "state": {
-              "purpose_chores": "Antal tilldelade sysslor efter status"
+              "purpose_chores": "Totalt antal slutförda sysslor hela tiden med detaljerad statistik"
             }
+          },
+          "kid_name": {
+            "name": "Barnets namn"
+          },
+          "chore_stat_approved_today": {
+            "name": "Godkänd idag"
+          },
+          "chore_stat_approved_week": {
+            "name": "Godkänd denna vecka"
+          },
+          "chore_stat_approved_month": {
+            "name": "Godkänd denna månad"
+          },
+          "chore_stat_approved_year": {
+            "name": "Godkänd i år"
+          },
+          "chore_stat_approved_all_time": {
+            "name": "Godkänd hela tiden"
+          },
+          "chore_stat_most_completed_chore_all_time": {
+            "name": "Mest slutförda syssla (genom tiderna)"
+          },
+          "chore_stat_most_completed_chore_week": {
+            "name": "Mest slutförda syssla (vecka)"
+          },
+          "chore_stat_most_completed_chore_month": {
+            "name": "Mest slutförda sysslor (månad)"
+          },
+          "chore_stat_most_completed_chore_year": {
+            "name": "Mest slutförda syssla (år)"
+          },
+          "chore_stat_total_points_from_chores_today": {
+            "name": "Poäng från sysslor idag"
+          },
+          "chore_stat_total_points_from_chores_week": {
+            "name": "Poäng från sysslor denna vecka"
+          },
+          "chore_stat_total_points_from_chores_month": {
+            "name": "Poäng från sysslor denna månad"
+          },
+          "chore_stat_total_points_from_chores_year": {
+            "name": "Poäng från sysslor i år"
+          },
+          "chore_stat_total_points_from_chores_all_time": {
+            "name": "Poäng från sysslor hela tiden"
+          },
+          "chore_stat_overdue_today": {
+            "name": "Försenad idag"
+          },
+          "chore_stat_overdue_week": {
+            "name": "Försenad denna vecka"
+          },
+          "chore_stat_overdue_month": {
+            "name": "Försenad denna månad"
+          },
+          "chore_stat_overdue_year": {
+            "name": "Försenad i år"
+          },
+          "chore_stat_overdue_count_all_time": {
+            "name": "Försenade alla tider"
+          },
+          "chore_stat_claimed_today": {
+            "name": "Ansökt idag"
+          },
+          "chore_stat_claimed_week": {
+            "name": "Anspråk gjort denna vecka"
+          },
+          "chore_stat_claimed_month": {
+            "name": "Ansökt denna månad"
+          },
+          "chore_stat_claimed_year": {
+            "name": "Ansökt i år"
+          },
+          "chore_stat_claimed_all_time": {
+            "name": "Hävdade hela tiden"
+          },
+          "chore_stat_disapproved_today": {
+            "name": "Ej godkänd idag"
+          },
+          "chore_stat_disapproved_week": {
+            "name": "Ej godkänd denna vecka"
+          },
+          "chore_stat_disapproved_month": {
+            "name": "Ej godkänd denna månad"
+          },
+          "chore_stat_disapproved_year": {
+            "name": "Ej godkänd i år"
+          },
+          "chore_stat_disapproved_all_time": {
+            "name": "Ej godkänd hela tiden"
+          },
+          "chore_stat_current_due_today": {
+            "name": "Förfallodag idag"
+          },
+          "chore_stat_current_overdue": {
+            "name": "Nuvarande förfallet"
+          },
+          "chore_stat_current_claimed": {
+            "name": "Nuvarande anspråk"
+          },
+          "chore_stat_current_approved": {
+            "name": "Nuvarande godkänd"
+          },
+          "chore_stat_longest_streak_week": {
+            "name": "Längsta svit (vecka)"
+          },
+          "chore_stat_longest_streak_month": {
+            "name": "Längsta svit (månad)"
+          },
+          "chore_stat_longest_streak_year": {
+            "name": "Längsta svit (år)"
+          },
+          "chore_stat_longest_streak_all_time": {
+            "name": "Längsta serie (genom tiderna)"
+          },
+          "chore_stat_avg_per_day_week": {
+            "name": "Genomsnitt per dag (vecka)"
+          },
+          "chore_stat_avg_per_day_month": {
+            "name": "Genomsnitt per dag (månad)"
           }
         }
       },
@@ -1960,11 +2214,14 @@
           "purpose": {
             "name": "Ändamål",
             "state": {
-              "purpose_badges": "Framstegsspårning för märkets prestationer"
+              "purpose_badges": "Spårar ackumulerade märkenframsteg och cykler samt alla intjänade märken"
             }
           },
           "kid_name": {
             "name": "Barnets namn"
+          },
+          "labels": {
+            "name": "Etiketter"
           },
           "all_earned_badges": {
             "name": "Alla intjänade märken"
@@ -1972,69 +2229,109 @@
           "highest_badge_threshold_value": {
             "name": "Högsta tröskelvärde för märken"
           },
-          "points_multiplier": {
-            "name": "Poängmultiplikator"
-          },
           "points_to_next_badge": {
             "name": "Poäng till nästa märke"
           },
-          "labels": {
-            "name": "Etiketter"
+          "current_badge_name": {
+            "name": "Nuvarande märkesnamn"
+          },
+          "current_badge_eid": {
+            "name": "Nuvarande ID för märkets enhet"
+          },
+          "highest_earned_badge_name": {
+            "name": "Högst förtjänade märkets namn"
+          },
+          "next_higher_badge_name": {
+            "name": "Nästa högre märknamn"
+          },
+          "next_higher_badge_eid": {
+            "name": "Nästa högre märkets enhets-ID"
+          },
+          "next_lower_badge_name": {
+            "name": "Nästa lägre märkesnamn"
+          },
+          "next_lower_badge_eid": {
+            "name": "Nästa lägre märkesenhets-ID"
+          },
+          "badge_status": {
+            "name": "Märkesstatus"
+          },
+          "last_awarded_date": {
+            "name": "Senaste utdelningsdatum"
+          },
+          "award_count": {
+            "name": "Antal utmärkelser"
+          },
+          "description": {
+            "name": "Beskrivning"
+          },
+          "baseline_points": {
+            "name": "Baslinjepunkter"
+          },
+          "cycle_points": {
+            "name": "Cykelpunkter"
+          },
+          "maintenance_grace_end_date": {
+            "name": "Slutdatum för underhållsreskontra"
+          },
+          "maintenance_points_required": {
+            "name": "Nödvändiga underhållspunkter"
+          },
+          "maintenance_end_date": {
+            "name": "Slutdatum för underhåll"
+          },
+          "maintenance_points_remaining": {
+            "name": "Återstående underhållspunkter"
+          },
+          "reset_schedule": {
+            "name": "Återställ schema"
+          },
+          "target": {
+            "name": "Mål"
+          },
+          "awards": {
+            "name": "Utmärkelser"
           }
         }
       },
       "system_badge_sensor": {
         "name": "Märke - {badge_name}",
+        "unit_of_measurement": "barn",
         "state_attributes": {
-          "threshold_type": {
-            "name": "Tröskelvärdestyp",
+          "purpose": {
+            "name": "Ändamål",
             "state": {
-              "points": "Poäng",
-              "chore_count": "Antal sysslor"
+              "purpose_badge": "Antal barn som har förtjänat detta märke"
             }
           },
-          "points_multiplier": {
-            "name": "Poängmultiplikator"
+          "badge_name": {
+            "name": "Märkesnamn"
           },
           "description": {
             "name": "Beskrivning"
           },
-          "award_points": {
-            "name": "Tilldelningspoäng"
-          },
-          "award_reward": {
-            "name": "Belöning"
-          },
-          "kids_earned": {
-            "name": "Barn tjänade"
+          "badge_type": {
+            "name": "Märkestyp",
+            "state": {
+              "cumulative": "Kumulativ",
+              "achievement": "Prestation",
+              "challenge": "Utmaning",
+              "daily": "Dagligen",
+              "periodic": "Periodisk",
+              "special": "Särskild"
+            }
           },
           "labels": {
             "name": "Etiketter"
           },
-          "threshold_value": {
-            "name": "Tröskelvärde"
+          "kids_earned": {
+            "name": "Barn tjänade"
           },
-          "reset_schedule": {
-            "name": "Återställ schema"
+          "kids_assigned": {
+            "name": "Tilldelade barn"
           },
-          "start_date": {
-            "name": "Startdatum"
-          },
-          "end_date": {
-            "name": "Slutdatum"
-          },
-          "recurrent": {
-            "name": "Återkommande",
-            "state": {
-              "true": "Ja",
-              "false": "Inga"
-            }
-          },
-          "daily_threshold": {
-            "name": "Daglig tröskel"
-          },
-          "required_chores": {
-            "name": "Obligatoriska sysslor"
+          "target": {
+            "name": "Mål"
           },
           "associated_achievement": {
             "name": "Associerad prestation"
@@ -2045,11 +2342,14 @@
           "occasion_type": {
             "name": "Tillfällestyp"
           },
-          "trigger_info": {
-            "name": "Triggerinformation"
+          "required_chores": {
+            "name": "Obligatoriska sysslor"
           },
-          "occasion_date": {
-            "name": "Tillfälle Datum"
+          "badge_awards": {
+            "name": "Märkeutmärkelser"
+          },
+          "reset_schedule": {
+            "name": "Återställ schema"
           }
         }
       },
@@ -2082,12 +2382,6 @@
       },
       "system_rewards_pending_approval_sensor": {
         "name": "Väntar på godkännande av belöningar"
-      },
-      "reward_claims_sensor": {
-        "name": "Anspråk - {reward_name}"
-      },
-      "reward_approvals_sensor": {
-        "name": "Godkännanden - {reward_name}"
       },
       "system_chore_shared_state_sensor": {
         "name": "{chore_name} - Global status",
@@ -2188,12 +2482,6 @@
             "name": "Etiketter"
           }
         }
-      },
-      "chore_claims_sensor": {
-        "name": "Anspråk - {chore_name}"
-      },
-      "chore_approvals_sensor": {
-        "name": "Godkännanden - {chore_name}"
       },
       "kid_penalty_applied_sensor": {
         "name": "Tillämpade straff - {penalty_name}",
@@ -2433,17 +2721,6 @@
         "state_attributes": {
           "streaks_by_achievement": {
             "name": "Serier efter prestation"
-          }
-        }
-      },
-      "chore_streak_sensor": {
-        "name": "Sträcka - {chore_name}",
-        "state_attributes": {
-          "last_date": {
-            "name": "Sista datum"
-          },
-          "raw_streak": {
-            "name": "Nuvarande svit"
           }
         }
       },
