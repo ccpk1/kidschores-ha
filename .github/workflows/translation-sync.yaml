@@ -39,6 +39,7 @@ jobs:
           CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
 
       # STEP 2: Trigger Google Translate (MT) via Crowdin CLI
+      # This auto translate service has a cost associated with it, so it may be stopped or disabled in the future.
       - name: Trigger Google Translate
         run: |
           npm install -g @crowdin/cli

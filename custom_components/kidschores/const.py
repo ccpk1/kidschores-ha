@@ -215,6 +215,10 @@ OPTIONS_FLOW_DIC_REWARD: Final = "reward"
 
 # OptionsFlow Backup Management Menu
 OPTIONS_FLOW_RESTORE_BACKUP: Final = "restore_backup"
+OPTIONS_FLOW_BACKUP_ACTION_SELECT: Final = "select_backup_action"
+OPTIONS_FLOW_BACKUP_ACTION_CREATE: Final = "create_backup"
+OPTIONS_FLOW_BACKUP_ACTION_DELETE: Final = "delete_backup"
+OPTIONS_FLOW_BACKUP_ACTION_RESTORE: Final = "restore_backup"
 OPTIONS_FLOW_ACTIONS_ADD: Final = "add"
 OPTIONS_FLOW_ACTIONS_BACK: Final = "back"
 OPTIONS_FLOW_ACTIONS_DELETE: Final = "delete"
@@ -1489,6 +1493,107 @@ ACTION_REMIND_30 = "REMIND_30"
 
 
 # ------------------------------------------------------------------------------------------------
+# Translation Keys - Entity State Attributes
+# ------------------------------------------------------------------------------------------------
+
+# Translation keys for PURPOSE attribute values (sensor.py)
+TRANS_KEY_PURPOSE_CHORE_STATUS: Final = "purpose_chore_status"
+TRANS_KEY_PURPOSE_POINTS: Final = "purpose_points"
+TRANS_KEY_PURPOSE_CHORES: Final = "purpose_chores"
+TRANS_KEY_PURPOSE_BADGE_HIGHEST: Final = "purpose_badge_highest"
+TRANS_KEY_PURPOSE_BADGE_PROGRESS: Final = "purpose_badge_progress"
+TRANS_KEY_PURPOSE_BADGE: Final = "purpose_badge"
+TRANS_KEY_PURPOSE_SHARED_CHORE: Final = "purpose_shared_chore"
+TRANS_KEY_PURPOSE_REWARD_STATUS: Final = "purpose_reward_status"
+TRANS_KEY_PURPOSE_PENALTY_APPLIED: Final = "purpose_penalty_applied"
+TRANS_KEY_PURPOSE_ACHIEVEMENT: Final = "purpose_achievement"
+TRANS_KEY_PURPOSE_CHALLENGE: Final = "purpose_challenge"
+TRANS_KEY_PURPOSE_ACHIEVEMENT_PROGRESS: Final = "purpose_achievement_progress"
+TRANS_KEY_PURPOSE_CHALLENGE_PROGRESS: Final = "purpose_challenge_progress"
+TRANS_KEY_PURPOSE_BONUS_APPLIED: Final = "purpose_bonus_applied"
+TRANS_KEY_PURPOSE_DASHBOARD_HELPER: Final = "purpose_dashboard_helper"
+# Legacy sensor purposes (sensor_legacy.py)
+TRANS_KEY_PURPOSE_CHORE_APPROVALS_ALL_TIME_EXTRA: Final = (
+    "purpose_chore_approvals_all_time_extra"
+)
+TRANS_KEY_PURPOSE_CHORE_APPROVALS_TODAY_EXTRA: Final = (
+    "purpose_chore_approvals_today_extra"
+)
+TRANS_KEY_PURPOSE_CHORE_APPROVALS_WEEK_EXTRA: Final = (
+    "purpose_chore_approvals_week_extra"
+)
+TRANS_KEY_PURPOSE_CHORE_APPROVALS_MONTH_EXTRA: Final = (
+    "purpose_chore_approvals_month_extra"
+)
+TRANS_KEY_PURPOSE_CHORES_PENDING_APPROVAL_EXTRA: Final = (
+    "purpose_chores_pending_approval_extra"
+)
+TRANS_KEY_PURPOSE_REWARDS_PENDING_APPROVAL_EXTRA: Final = (
+    "purpose_rewards_pending_approval_extra"
+)
+TRANS_KEY_PURPOSE_POINTS_EARNED_TODAY_EXTRA: Final = "purpose_points_earned_today_extra"
+TRANS_KEY_PURPOSE_POINTS_EARNED_WEEK_EXTRA: Final = "purpose_points_earned_week_extra"
+TRANS_KEY_PURPOSE_POINTS_EARNED_MONTH_EXTRA: Final = "purpose_points_earned_month_extra"
+TRANS_KEY_PURPOSE_POINTS_MAX_EVER_EXTRA: Final = "purpose_points_max_ever_extra"
+TRANS_KEY_PURPOSE_CHORE_STREAK_EXTRA: Final = "purpose_chore_streak_extra"
+
+# Translation keys for entity state attributes (all sensor classes)
+TRANS_KEY_ATTR_PURPOSE: Final = "purpose"
+TRANS_KEY_ATTR_KID_NAME: Final = "kid_name"
+TRANS_KEY_ATTR_CHORE_NAME: Final = "chore_name"
+TRANS_KEY_ATTR_BADGE_NAME: Final = "badge_name"
+TRANS_KEY_ATTR_REWARD_NAME: Final = "reward_name"
+TRANS_KEY_ATTR_ACHIEVEMENT_NAME: Final = "achievement_name"
+TRANS_KEY_ATTR_CHALLENGE_NAME: Final = "challenge_name"
+TRANS_KEY_ATTR_BONUS_NAME: Final = "bonus_name"
+TRANS_KEY_ATTR_PENALTY_NAME: Final = "penalty_name"
+TRANS_KEY_ATTR_DESCRIPTION: Final = "description"
+
+# Dashboard Helper Sensor attributes (KidDashboardHelperSensor)
+TRANS_KEY_ATTR_CHORES: Final = "chores"
+TRANS_KEY_ATTR_CHORES_BY_LABEL: Final = "chores_by_label"
+TRANS_KEY_ATTR_REWARDS: Final = "rewards"
+TRANS_KEY_ATTR_BADGES: Final = "badges"
+TRANS_KEY_ATTR_BONUSES: Final = "bonuses"
+TRANS_KEY_ATTR_PENALTIES: Final = "penalties"
+TRANS_KEY_ATTR_ACHIEVEMENTS: Final = "achievements"
+TRANS_KEY_ATTR_CHALLENGES: Final = "challenges"
+TRANS_KEY_ATTR_POINTS_BUTTONS: Final = "points_buttons"
+TRANS_KEY_ATTR_PENDING_APPROVALS: Final = "pending_approvals"
+TRANS_KEY_ATTR_CORE_SENSORS: Final = "core_sensors"
+TRANS_KEY_ATTR_DASHBOARD_HELPERS: Final = "dashboard_helpers"
+TRANS_KEY_ATTR_UI_TRANSLATIONS: Final = "ui_translations"
+TRANS_KEY_ATTR_LANGUAGE: Final = "language"
+
+# Shared attributes across multiple sensors
+TRANS_KEY_ATTR_STATUS: Final = "status"
+TRANS_KEY_ATTR_LABELS: Final = "labels"
+TRANS_KEY_ATTR_COST: Final = "cost"
+TRANS_KEY_ATTR_POINTS: Final = "points"
+TRANS_KEY_ATTR_APPLIED: Final = "applied"
+TRANS_KEY_ATTR_CLAIMS: Final = "claims"
+TRANS_KEY_ATTR_APPROVALS: Final = "approvals"
+TRANS_KEY_ATTR_EID: Final = "eid"
+TRANS_KEY_ATTR_NAME: Final = "name"
+TRANS_KEY_ATTR_BADGE_TYPE: Final = "badge_type"
+TRANS_KEY_ATTR_BADGE_EARNED: Final = "badge_earned"
+
+# Chore-specific attributes (ChoreStatusSensor, dashboard helper chores array)
+TRANS_KEY_ATTR_CHORE_LABELS: Final = "chore_labels"
+TRANS_KEY_ATTR_CHORE_DUE_DATE: Final = "chore_due_date"
+TRANS_KEY_ATTR_CHORE_IS_TODAY_AM: Final = "chore_is_today_am"
+TRANS_KEY_ATTR_CHORE_PRIMARY_GROUP: Final = "chore_primary_group"
+TRANS_KEY_ATTR_CHORE_CLAIMED_BY: Final = "chore_claimed_by"
+TRANS_KEY_ATTR_CHORE_COMPLETED_BY: Final = "chore_completed_by"
+TRANS_KEY_ATTR_CAN_CLAIM: Final = "can_claim"
+TRANS_KEY_ATTR_CAN_APPROVE: Final = "can_approve"
+TRANS_KEY_ATTR_COMPLETION_CRITERIA: Final = "completion_criteria"
+TRANS_KEY_ATTR_LAST_APPROVED: Final = "last_approved"
+TRANS_KEY_ATTR_LAST_CLAIMED: Final = "last_claimed"
+TRANS_KEY_ATTR_APPROVAL_PERIOD_START: Final = "approval_period_start"
+
+
+# ------------------------------------------------------------------------------------------------
 # Entities Attributes
 # ------------------------------------------------------------------------------------------------
 ATTR_ACHIEVEMENT_NAME: Final = "achievement_name"
@@ -2395,24 +2500,26 @@ TRANS_KEY_FLOW_HELPERS_SELECTED_CHORE_ID: Final = "selected_chore_id"
 TRANS_KEY_FLOW_HELPERS_THRESHOLD_TYPE: Final = "threshold_type"
 
 # Sensor Translation Keys
-TRANS_KEY_SENSOR_ACHIEVEMENT_PROGRESS_SENSOR: Final = "achievement_progress_sensor"
-TRANS_KEY_SENSOR_ACHIEVEMENT_STATE_SENSOR: Final = "achievement_state_sensor"
-TRANS_KEY_SENSOR_BADGE_SENSOR: Final = "badge_sensor"
-TRANS_KEY_SENSOR_BONUS_APPLIES_SENSOR: Final = "bonus_applies_sensor"
-TRANS_KEY_SENSOR_CHALLENGE_PROGRESS_SENSOR: Final = "challenge_progress_sensor"
-TRANS_KEY_SENSOR_CHALLENGE_STATE_SENSOR: Final = "challenge_state_sensor"
-TRANS_KEY_SENSOR_CHORES_COMPLETED_DAILY_SENSOR: Final = "chores_completed_daily_sensor"
+TRANS_KEY_SENSOR_ACHIEVEMENT_PROGRESS_SENSOR: Final = "kid_achievement_progress_sensor"
+TRANS_KEY_SENSOR_ACHIEVEMENT_STATE_SENSOR: Final = "system_achievement_sensor"
+TRANS_KEY_SENSOR_BADGE_SENSOR: Final = "system_badge_sensor"
+TRANS_KEY_SENSOR_BONUS_APPLIES_SENSOR: Final = "kid_bonus_applied_sensor"
+TRANS_KEY_SENSOR_CHALLENGE_PROGRESS_SENSOR: Final = "kid_challenge_progress_sensor"
+TRANS_KEY_SENSOR_CHALLENGE_STATE_SENSOR: Final = "system_challenge_sensor"
+TRANS_KEY_SENSOR_CHORES_COMPLETED_DAILY_SENSOR: Final = (
+    "system_chore_approvals_daily_sensor"
+)
 TRANS_KEY_SENSOR_CHORES_COMPLETED_MONTHLY_SENSOR: Final = (
-    "chores_completed_monthly_sensor"
+    "system_chore_approvals_monthly_sensor"
 )
-TRANS_KEY_SENSOR_CHORES_COMPLETED_TOTAL_SENSOR: Final = "chores_completed_total_sensor"
+TRANS_KEY_SENSOR_CHORES_COMPLETED_TOTAL_SENSOR: Final = "system_chore_approvals_sensor"
 TRANS_KEY_SENSOR_CHORES_COMPLETED_WEEKLY_SENSOR: Final = (
-    "chores_completed_weekly_sensor"
+    "system_chore_approvals_weekly_sensor"
 )
-TRANS_KEY_SENSOR_CHORES_SENSOR: Final = "chores_sensor"
-TRANS_KEY_SENSOR_CHORE_STATUS_SENSOR: Final = "chore_status_sensor"
-TRANS_KEY_SENSOR_KID_HIGHEST_STREAK_SENSOR: Final = "kid_chores_highest_streak_sensor"
-TRANS_KEY_SENSOR_KID_MAX_POINTS_EVER_SENSOR: Final = "kid_max_points_ever_sensor"
+TRANS_KEY_SENSOR_CHORES_SENSOR: Final = "kid_chores_sensor"
+TRANS_KEY_SENSOR_CHORE_STATUS_SENSOR: Final = "kid_chore_status_sensor"
+TRANS_KEY_SENSOR_KID_HIGHEST_STREAK_SENSOR: Final = "kid_chore_streak_sensor"
+TRANS_KEY_SENSOR_KID_MAX_POINTS_EVER_SENSOR: Final = "kid_points_max_ever_sensor"
 TRANS_KEY_SENSOR_KID_POINTS_EARNED_DAILY_SENSOR: Final = (
     "kid_points_earned_daily_sensor"
 )
@@ -2423,17 +2530,17 @@ TRANS_KEY_SENSOR_KID_POINTS_EARNED_WEEKLY_SENSOR: Final = (
     "kid_points_earned_weekly_sensor"
 )
 TRANS_KEY_SENSOR_KID_POINTS_SENSOR: Final = "kid_points_sensor"
-TRANS_KEY_SENSOR_KIDS_HIGHEST_BADGE_SENSOR: Final = "kids_badges_sensor"
-TRANS_KEY_SENSOR_PENALTY_APPLIES_SENSOR: Final = "penalty_applies_sensor"
+TRANS_KEY_SENSOR_KIDS_HIGHEST_BADGE_SENSOR: Final = "kid_badges_sensor"
+TRANS_KEY_SENSOR_PENALTY_APPLIES_SENSOR: Final = "kid_penalty_applied_sensor"
 TRANS_KEY_SENSOR_PENDING_CHORES_APPROVALS_SENSOR: Final = (
-    "pending_chores_approvals_sensor"
+    "system_chores_pending_approval_sensor"
 )
 TRANS_KEY_SENSOR_PENDING_REWARDS_APPROVALS_SENSOR: Final = (
-    "pending_rewards_approvals_sensor"
+    "system_rewards_pending_approval_sensor"
 )
-TRANS_KEY_SENSOR_REWARD_STATUS_SENSOR: Final = "reward_status_sensor"
+TRANS_KEY_SENSOR_REWARD_STATUS_SENSOR: Final = "kid_reward_status_sensor"
 TRANS_KEY_SENSOR_SHARED_CHORE_GLOBAL_STATUS_SENSOR: Final = (
-    "shared_chore_global_status_sensor"
+    "system_chore_shared_state_sensor"
 )
 
 
@@ -2449,15 +2556,15 @@ TRANS_KEY_SENSOR_ATTR_POINTS: Final = "points"
 TRANS_KEY_SENSOR_ATTR_REWARD_NAME: Final = "reward_name"
 
 # DateTime Translation Keys
-TRANS_KEY_DATETIME_DATE_HELPER: Final = "date_helper"
+TRANS_KEY_DATETIME_DATE_HELPER: Final = "kid_dashboard_helper_datetime_picker"
 
 # Select Translation Keys
 TRANS_KEY_SELECT_BASE: Final = "kc_select_base"
-TRANS_KEY_SELECT_BONUSES: Final = "bonuses_select"
-TRANS_KEY_SELECT_CHORES: Final = "chores_select"
-TRANS_KEY_SELECT_CHORES_KID: Final = "chore_list_helper"
-TRANS_KEY_SELECT_PENALTIES: Final = "penalties_select"
-TRANS_KEY_SELECT_REWARDS: Final = "rewards_select"
+TRANS_KEY_SELECT_BONUSES: Final = "system_bonuses_select"
+TRANS_KEY_SELECT_CHORES: Final = "system_chores_select"
+TRANS_KEY_SELECT_CHORES_KID: Final = "kid_dashboard_helper_chores_select"
+TRANS_KEY_SELECT_PENALTIES: Final = "system_penalties_select"
+TRANS_KEY_SELECT_REWARDS: Final = "system_rewards_select"
 
 # Select Labels
 TRANS_KEY_SELECT_LABEL_ALL_BONUSES: Final = "select_label_all_bonuses"
@@ -2467,18 +2574,18 @@ TRANS_KEY_SELECT_LABEL_ALL_REWARDS: Final = "select_label_all_rewards"
 TRANS_KEY_SELECT_LABEL_CHORES_FOR: Final = "select_label_chores_for"
 
 # Button Translation Keys
-TRANS_KEY_BUTTON_APPROVE_CHORE_BUTTON: Final = "approve_chore_button"
-TRANS_KEY_BUTTON_APPROVE_REWARD_BUTTON: Final = "approve_reward_button"
-TRANS_KEY_BUTTON_BONUS_BUTTON: Final = "bonus_button"
-TRANS_KEY_BUTTON_CLAIM_CHORE_BUTTON: Final = "claim_chore_button"
-TRANS_KEY_BUTTON_CLAIM_REWARD_BUTTON: Final = "claim_reward_button"
+TRANS_KEY_BUTTON_APPROVE_CHORE_BUTTON: Final = "parent_chore_approve_button"
+TRANS_KEY_BUTTON_APPROVE_REWARD_BUTTON: Final = "parent_reward_approve_button"
+TRANS_KEY_BUTTON_BONUS_BUTTON: Final = "parent_bonus_apply_button"
+TRANS_KEY_BUTTON_CLAIM_CHORE_BUTTON: Final = "kid_chore_claim_button"
+TRANS_KEY_BUTTON_CLAIM_REWARD_BUTTON: Final = "kid_reward_redeem_button"
 TRANS_KEY_BUTTON_DELTA_PLUS_LABEL: Final = "+"
 TRANS_KEY_BUTTON_DELTA_MINUS_TEXT: Final = "minus_"
 TRANS_KEY_BUTTON_DELTA_PLUS_TEXT: Final = "plus_"
-TRANS_KEY_BUTTON_DISAPPROVE_CHORE_BUTTON: Final = "disapprove_chore_button"
-TRANS_KEY_BUTTON_DISAPPROVE_REWARD_BUTTON: Final = "disapprove_reward_button"
-TRANS_KEY_BUTTON_MANUAL_ADJUSTMENT_BUTTON: Final = "manual_adjustment_button"
-TRANS_KEY_BUTTON_PENALTY_BUTTON: Final = "penalty_button"
+TRANS_KEY_BUTTON_DISAPPROVE_CHORE_BUTTON: Final = "parent_chore_disapprove_button"
+TRANS_KEY_BUTTON_DISAPPROVE_REWARD_BUTTON: Final = "parent_reward_disapprove_button"
+TRANS_KEY_BUTTON_MANUAL_ADJUSTMENT_BUTTON: Final = "parent_points_adjust_button"
+TRANS_KEY_BUTTON_PENALTY_BUTTON: Final = "parent_penalty_apply_button"
 
 
 # Button Attributes Translation Keys
@@ -2491,7 +2598,7 @@ TRANS_KEY_BUTTON_ATTR_REWARD_NAME: Final = "reward_name"
 TRANS_KEY_BUTTON_ATTR_SIGN_LABEL: Final = "sign_label"
 
 # Calendar Attributes Translation Keys
-TRANS_KEY_CALENDAR_NAME: Final = "calendar_name"
+TRANS_KEY_CALENDAR_NAME: Final = "kid_schedule_calendar"
 
 # FMT Errors Translation Keys
 TRANS_KEY_FMT_ERROR_ADJUST_POINTS: Final = "adjust_points"

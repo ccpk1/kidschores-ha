@@ -538,7 +538,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         # 6. State info
         attributes = {
             # --- 1. Identity & Meta ---
-            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_CHORE_STATUS,
+            const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_CHORE_STATUS,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_CHORE_NAME: self._chore_name,
             const.ATTR_CHORE_ICON: chore_info.get(
@@ -773,7 +773,7 @@ class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         # Common fields first (consistent ordering across sensors)
         attributes: dict[str, Any] = {
-            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_POINTS,
+            const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_POINTS,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_FRIENDLY_NAME: f"{self._kid_name} {self._points_label}",
         }
@@ -848,7 +848,7 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         # Common fields first (consistent ordering across sensors)
         attributes: dict[str, Any] = {
-            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_CHORES,
+            const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_CHORES,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_FRIENDLY_NAME: f"{self._kid_name} Chores",
         }
@@ -1104,7 +1104,7 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 badge_entity_ids[attr_name] = None
 
         return {
-            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_BADGE_HIGHEST,
+            const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_BADGE_HIGHEST,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_LABELS: friendly_labels,
             const.ATTR_ALL_EARNED_BADGES: earned_badge_list,
@@ -1144,7 +1144,7 @@ class KidBadgeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
     """
 
     _attr_has_entity_name = True
-    _attr_translation_key = "badge_progress_sensor"
+    _attr_translation_key = "kid_badge_progress_sensor"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = PERCENTAGE
 
@@ -1219,7 +1219,7 @@ class KidBadgeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         # Build a dictionary with only the requested fields
         attributes = {
-            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_BADGE_PROGRESS,
+            const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_BADGE_PROGRESS,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_BADGE_NAME: badge_progress.get(
                 const.DATA_KID_BADGE_PROGRESS_NAME
@@ -1339,7 +1339,7 @@ class SystemBadgeSensor(KidsChoresCoordinatorEntity, SensorEntity):
         """Full badge info, including per-kid earned stats and periods."""
         badge_info = self.coordinator.badges_data.get(self._badge_id, {})
         attributes: dict[str, Any] = {
-            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_BADGE,
+            const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_BADGE,
             const.ATTR_BADGE_NAME: self._badge_name,
             const.ATTR_DESCRIPTION: badge_info.get(
                 const.DATA_BADGE_DESCRIPTION, const.SENTINEL_EMPTY
@@ -1552,7 +1552,7 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         attributes = {
             # --- 1. Identity & Meta ---
-            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_SHARED_CHORE,
+            const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_SHARED_CHORE,
             const.ATTR_CHORE_NAME: self._chore_name,
             const.ATTR_CHORE_ICON: chore_info.get(
                 const.DATA_CHORE_ICON, const.DEFAULT_CHORE_SENSOR_ICON
@@ -1741,7 +1741,7 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             pass
 
         attributes = {
-            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_REWARD_STATUS,
+            const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_REWARD_STATUS,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_REWARD_NAME: self._reward_name,
             const.ATTR_DESCRIPTION: reward_info.get(
@@ -1975,7 +1975,7 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
         ]
 
         return {
-            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_ACHIEVEMENT,
+            const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_ACHIEVEMENT,
             const.ATTR_ACHIEVEMENT_NAME: self._achievement_name,
             const.ATTR_DESCRIPTION: achievement.get(
                 const.DATA_ACHIEVEMENT_DESCRIPTION, const.SENTINEL_EMPTY
@@ -2159,7 +2159,7 @@ class SystemChallengeSensor(KidsChoresCoordinatorEntity, SensorEntity):
         ]
 
         return {
-            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_CHALLENGE,
+            const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_CHALLENGE,
             const.ATTR_CHALLENGE_NAME: self._challenge_name,
             const.ATTR_DESCRIPTION: challenge.get(
                 const.DATA_CHALLENGE_DESCRIPTION, const.SENTINEL_EMPTY
@@ -2390,7 +2390,7 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         ]
 
         return {
-            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_ACHIEVEMENT_PROGRESS,
+            const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_ACHIEVEMENT_PROGRESS,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_ACHIEVEMENT_NAME: self._achievement_name,
             const.ATTR_DESCRIPTION: achievement.get(
@@ -2584,7 +2584,7 @@ class KidChallengeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         ]
 
         return {
-            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_CHALLENGE_PROGRESS,
+            const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_CHALLENGE_PROGRESS,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_CHALLENGE_NAME: self._challenge_name,
             const.ATTR_DESCRIPTION: challenge.get(
@@ -2631,7 +2631,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
     """
 
     _attr_has_entity_name = True
-    _attr_translation_key = "dashboard_helper_sensor"
+    _attr_translation_key = "kid_dashboard_helper_sensor"
 
     def __init__(
         self,
@@ -3595,7 +3595,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         dashboard_helpers = self._build_dashboard_helpers(entity_registry)
 
         return {
-            const.ATTR_PURPOSE: const.PURPOSE_SENSOR_DASHBOARD_HELPER,
+            const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_DASHBOARD_HELPER,
             "chores": chores_attr,
             const.ATTR_CHORES_BY_LABEL: chores_by_label,
             "rewards": rewards_attr,

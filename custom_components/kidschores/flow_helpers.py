@@ -2991,13 +2991,16 @@ def build_general_options_schema(default: Optional[dict] = None) -> vol.Schema:
                     step=1,
                 )
             ),
-            vol.Optional(const.CFOF_BACKUP_ACTION_SELECTION): selector.SelectSelector(
+            vol.Optional(
+                const.CFOF_BACKUP_ACTION_SELECTION,
+                default=const.OPTIONS_FLOW_BACKUP_ACTION_SELECT,
+            ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=[
-                        "",
-                        "create_backup",
-                        "delete_backup",
-                        "restore_backup",
+                        const.OPTIONS_FLOW_BACKUP_ACTION_SELECT,
+                        const.OPTIONS_FLOW_BACKUP_ACTION_CREATE,
+                        const.OPTIONS_FLOW_BACKUP_ACTION_DELETE,
+                        const.OPTIONS_FLOW_BACKUP_ACTION_RESTORE,
                     ],
                     mode=selector.SelectSelectorMode.DROPDOWN,
                     translation_key=const.TRANS_KEY_CFOF_BACKUP_ACTIONS_MENU,

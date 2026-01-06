@@ -276,6 +276,8 @@ The **`meta.schema_version`** field in storage data determines the integration's
 
 KidsChores utilizes a multi-tiered translation architecture to manage standard Home Assistant (HA) integration strings alongside specialized custom notifications and dashboard elements.
 
+To support this localization, we use a professional workflow through Crowdin, supported by a granted **Open Source License**. This license enables ongoing collaboration by allowing the team to share direct links with contributors, who can then suggest improvements or provide new translations for the integration. These community-driven updates are then automatically synchronized back into the repository via our automated translation workflow.
+
 ### 1. Dual Translation Systems
 
 The integration maintains two distinct systems to balance core HA requirements with specialized functional needs.
