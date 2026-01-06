@@ -1449,14 +1449,13 @@
         "weekly": "Viikoittain",
         "biweekly": "Joka toinen viikko",
         "monthly": "Kuukausittain",
-        "custom": "Mukautettu"
-      }
-    },
-    "reset_schedule": {
-      "options": {
-        "weekly": "Viikoittain (nollautuu maanantaisin keskiyöllä)",
-        "monthly": "Kuukausittain (nollautuu kuukauden 1. päivänä keskiyöllä)",
-        "custom": "Mukautettu (määritä ajanjakso alla)"
+        "quarterly": "Neljännesvuosittain",
+        "yearly": "Vuosittain",
+        "custom": "Mukautettu",
+        "custom_1_week": "Mukautettu: 1 viikko",
+        "custom_1_month": "Mukautettu: 1 kuukausi",
+        "custom_1_quarter": "Mukautettu: 1 neljännes",
+        "custom_1_year": "Mukautettu: 1 vuosi"
       }
     },
     "occasion_type": {

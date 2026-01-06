@@ -1449,14 +1449,13 @@
         "weekly": "Varje vecka",
         "biweekly": "Som utkommer varannan vecka",
         "monthly": "Månatlig",
-        "custom": "Beställnings"
-      }
-    },
-    "reset_schedule": {
-      "options": {
-        "weekly": "Veckovis (återställs måndagar vid midnatt)",
-        "monthly": "Månadsvis (återställs den 1:a i månaden vid midnatt)",
-        "custom": "Anpassad (definiera period nedan)"
+        "quarterly": "Kvartalsvis",
+        "yearly": "Årlig",
+        "custom": "Beställnings",
+        "custom_1_week": "Anpassad: 1 vecka",
+        "custom_1_month": "Anpassad: 1 månad",
+        "custom_1_quarter": "Anpassad: 1 Kvart",
+        "custom_1_year": "Anpassad: 1 år"
       }
     },
     "occasion_type": {

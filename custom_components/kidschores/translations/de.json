@@ -1449,14 +1449,13 @@
         "weekly": "Wöchentlich",
         "biweekly": "Zweiwöchentlich",
         "monthly": "Monatlich",
-        "custom": "Brauch"
-      }
-    },
-    "reset_schedule": {
-      "options": {
-        "weekly": "Wöchentlich (wird montags um Mitternacht zurückgesetzt)",
-        "monthly": "Monatlich (wird am 1. des Monats um Mitternacht zurückgesetzt)",
-        "custom": "Benutzerdefiniert (Zeitraum unten definieren)"
+        "quarterly": "Vierteljährlich",
+        "yearly": "Jährlich",
+        "custom": "Brauch",
+        "custom_1_week": "Individuell: 1 Woche",
+        "custom_1_month": "Individuell: 1 Monat",
+        "custom_1_quarter": "Benutzerdefiniert: 1 Viertel",
+        "custom_1_year": "Kundenspezifisch: 1 Jahr"
       }
     },
     "occasion_type": {

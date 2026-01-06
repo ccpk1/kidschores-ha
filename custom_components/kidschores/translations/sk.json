@@ -1449,14 +1449,13 @@
         "weekly": "Týždenne",
         "biweekly": "Dvojtýždenne",
         "monthly": "Mesačne",
-        "custom": "Vlastné"
-      }
-    },
-    "reset_schedule": {
-      "options": {
-        "weekly": "Týždenne (resetovať v pondelok o polnoci)",
-        "monthly": "Mesačne (resetovanie 1. dňa v mesiaci o polnoci)",
-        "custom": "Vlastné (definujte obdobie nižšie)"
+        "quarterly": "Štvrťročne",
+        "yearly": "Ročne",
+        "custom": "Vlastné",
+        "custom_1_week": "Vlastné: 1 týždeň",
+        "custom_1_month": "Vlastné: 1 mesiac",
+        "custom_1_quarter": "Vlastné: 1 štvrťrok",
+        "custom_1_year": "Vlastné: 1 rok"
       }
     },
     "occasion_type": {

@@ -1449,14 +1449,13 @@
         "weekly": "Semanalmente",
         "biweekly": "Quincenal",
         "monthly": "Mensual",
-        "custom": "Costumbre"
-      }
-    },
-    "reset_schedule": {
-      "options": {
-        "weekly": "Semanal (se reinicia los lunes a medianoche)",
-        "monthly": "Mensual (se reinicia el 1 de cada mes a medianoche)",
-        "custom": "Personalizado (defina el período a continuación)"
+        "quarterly": "Trimestral",
+        "yearly": "Anual",
+        "custom": "Costumbre",
+        "custom_1_week": "Personalizado: 1 semana",
+        "custom_1_month": "Personalizado: 1 mes",
+        "custom_1_quarter": "Personalizado: 1 cuarto",
+        "custom_1_year": "Personalizado: 1 año"
       }
     },
     "occasion_type": {
