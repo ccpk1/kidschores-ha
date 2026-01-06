@@ -765,7 +765,7 @@ class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
         'point_stat_' for frontend access to detailed breakdowns (earned, spent,
         bonuses, penalties, sources, etc.).
 
-        Attribute order: common fields first (purpose, kid_name, friendly_name),
+        Attribute order: common fields first (purpose, kid_name),
         then all point_stat_* fields sorted alphabetically.
         """
         kid_info = self.coordinator.kids_data.get(self._kid_id, {})
@@ -775,11 +775,10 @@ class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
         attributes: dict[str, Any] = {
             const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_POINTS,
             const.ATTR_KID_NAME: self._kid_name,
-            const.ATTR_FRIENDLY_NAME: f"{self._kid_name} {self._points_label}",
         }
         # Add all point stats as attributes, prefixed for clarity and sorted alphabetically
         for key in sorted(point_stats.keys()):
-            attributes[f"point_stat_{key}"] = point_stats[key]
+            attributes[f"{const.ATTR_PREFIX_POINT_STAT}{key}"] = point_stats[key]
         return attributes
 
 
@@ -815,7 +814,6 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._attr_unique_id = (
             f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_CHORES_SENSOR}"
         )
-        self._attr_native_unit_of_measurement = const.DEFAULT_CHORES_UNIT
         self._attr_icon = const.DEFAULT_COMPLETED_CHORES_TOTAL_SENSOR_ICON
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_translation_placeholders = {
@@ -840,7 +838,7 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
         Dynamically includes all DATA_KID_CHORE_STATS fields prefixed with
         'chore_stat_' for frontend access (approved, claimed, overdue counts, etc.).
 
-        Attribute order: common fields first (purpose, kid_name, friendly_name),
+        Attribute order: common fields first (purpose, kid_name),
         then all chore_stat_* fields sorted alphabetically.
         """
         kid_info = self.coordinator.kids_data.get(self._kid_id, {})
@@ -850,11 +848,10 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
         attributes: dict[str, Any] = {
             const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_CHORES,
             const.ATTR_KID_NAME: self._kid_name,
-            const.ATTR_FRIENDLY_NAME: f"{self._kid_name} Chores",
         }
         # Add all chore stats as attributes, prefixed for clarity and sorted alphabetically
         for key in sorted(stats.keys()):
-            attributes[f"chore_stat_{key}"] = stats[key]
+            attributes[f"{const.ATTR_PREFIX_CHORE_STAT}{key}"] = stats[key]
         return attributes
 
 

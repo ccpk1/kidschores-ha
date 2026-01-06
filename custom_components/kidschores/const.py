@@ -1650,6 +1650,8 @@ ATTR_CUSTOM_FREQUENCY_UNIT: Final = "custom_frequency_unit"
 ATTR_DAILY_THRESHOLD: Final = "daily_threshold"
 ATTR_DEFAULT_POINTS: Final = "default_points"
 ATTR_DESCRIPTION: Final = "description"
+ATTR_PREFIX_CHORE_STAT: Final = "chore_stat_"
+ATTR_PREFIX_POINT_STAT: Final = "point_stat_"
 ATTR_PURPOSE: Final = "purpose"
 
 # PURPOSE values for sensor attributes (for translation support)

@@ -1920,11 +1920,89 @@
           "purpose": {
             "name": "Purpose",
             "state": {
-              "purpose_points": "Current point balance for kid"
+              "purpose_points": "Current point balance with detailed earning and spending statistics"
             }
           },
-          "description": {
-            "name": "Current point balance - earn from chores, spend on rewards"
+          "kid_name": {
+            "name": "Kid Name"
+          },
+          "point_stat_points_earned_today": {
+            "name": "Earned Today"
+          },
+          "point_stat_points_earned_week": {
+            "name": "Earned This Week"
+          },
+          "point_stat_points_earned_month": {
+            "name": "Earned This Month"
+          },
+          "point_stat_points_earned_year": {
+            "name": "Earned This Year"
+          },
+          "point_stat_points_earned_all_time": {
+            "name": "Earned All Time"
+          },
+          "point_stat_points_by_source_today": {
+            "name": "By Source Today"
+          },
+          "point_stat_points_by_source_week": {
+            "name": "By Source This Week"
+          },
+          "point_stat_points_by_source_month": {
+            "name": "By Source This Month"
+          },
+          "point_stat_points_by_source_year": {
+            "name": "By Source This Year"
+          },
+          "point_stat_points_by_source_all_time": {
+            "name": "By Source All Time"
+          },
+          "point_stat_points_spent_today": {
+            "name": "Spent Today"
+          },
+          "point_stat_points_spent_week": {
+            "name": "Spent This Week"
+          },
+          "point_stat_points_spent_month": {
+            "name": "Spent This Month"
+          },
+          "point_stat_points_spent_year": {
+            "name": "Spent This Year"
+          },
+          "point_stat_points_spent_all_time": {
+            "name": "Spent All Time"
+          },
+          "point_stat_points_net_today": {
+            "name": "Net Today"
+          },
+          "point_stat_points_net_week": {
+            "name": "Net This Week"
+          },
+          "point_stat_points_net_month": {
+            "name": "Net This Month"
+          },
+          "point_stat_points_net_year": {
+            "name": "Net This Year"
+          },
+          "point_stat_points_net_all_time": {
+            "name": "Net All Time"
+          },
+          "point_stat_points_earning_streak_current": {
+            "name": "Current Earning Streak"
+          },
+          "point_stat_points_earning_streak_longest": {
+            "name": "Longest Earning Streak"
+          },
+          "point_stat_avg_points_per_day_week": {
+            "name": "Average Per Day (Week)"
+          },
+          "point_stat_avg_points_per_day_month": {
+            "name": "Average Per Day (Month)"
+          },
+          "point_stat_avg_points_per_chore": {
+            "name": "Average Per Chore"
+          },
+          "point_stat_highest_balance": {
+            "name": "Highest Balance Ever"
           }
         }
       },
@@ -1945,12 +2023,133 @@
       },
       "kid_chores_sensor": {
         "name": "Chores",
+        "unit_of_measurement": "Chores",
         "state_attributes": {
           "purpose": {
             "name": "Purpose",
             "state": {
-              "purpose_chores": "Count of assigned chores by status"
+              "purpose_chores": "Total chores completed all-time with detailed statistics"
             }
+          },
+          "kid_name": {
+            "name": "Kid Name"
+          },
+          "chore_stat_approved_today": {
+            "name": "Approved Today"
+          },
+          "chore_stat_approved_week": {
+            "name": "Approved This Week"
+          },
+          "chore_stat_approved_month": {
+            "name": "Approved This Month"
+          },
+          "chore_stat_approved_year": {
+            "name": "Approved This Year"
+          },
+          "chore_stat_approved_all_time": {
+            "name": "Approved All Time"
+          },
+          "chore_stat_most_completed_chore_all_time": {
+            "name": "Most Completed Chore (All Time)"
+          },
+          "chore_stat_most_completed_chore_week": {
+            "name": "Most Completed Chore (Week)"
+          },
+          "chore_stat_most_completed_chore_month": {
+            "name": "Most Completed Chore (Month)"
+          },
+          "chore_stat_most_completed_chore_year": {
+            "name": "Most Completed Chore (Year)"
+          },
+          "chore_stat_total_points_from_chores_today": {
+            "name": "Points from Chores Today"
+          },
+          "chore_stat_total_points_from_chores_week": {
+            "name": "Points from Chores This Week"
+          },
+          "chore_stat_total_points_from_chores_month": {
+            "name": "Points from Chores This Month"
+          },
+          "chore_stat_total_points_from_chores_year": {
+            "name": "Points from Chores This Year"
+          },
+          "chore_stat_total_points_from_chores_all_time": {
+            "name": "Points from Chores All Time"
+          },
+          "chore_stat_overdue_today": {
+            "name": "Overdue Today"
+          },
+          "chore_stat_overdue_week": {
+            "name": "Overdue This Week"
+          },
+          "chore_stat_overdue_month": {
+            "name": "Overdue This Month"
+          },
+          "chore_stat_overdue_year": {
+            "name": "Overdue This Year"
+          },
+          "chore_stat_overdue_count_all_time": {
+            "name": "Overdue All Time"
+          },
+          "chore_stat_claimed_today": {
+            "name": "Claimed Today"
+          },
+          "chore_stat_claimed_week": {
+            "name": "Claimed This Week"
+          },
+          "chore_stat_claimed_month": {
+            "name": "Claimed This Month"
+          },
+          "chore_stat_claimed_year": {
+            "name": "Claimed This Year"
+          },
+          "chore_stat_claimed_all_time": {
+            "name": "Claimed All Time"
+          },
+          "chore_stat_disapproved_today": {
+            "name": "Disapproved Today"
+          },
+          "chore_stat_disapproved_week": {
+            "name": "Disapproved This Week"
+          },
+          "chore_stat_disapproved_month": {
+            "name": "Disapproved This Month"
+          },
+          "chore_stat_disapproved_year": {
+            "name": "Disapproved This Year"
+          },
+          "chore_stat_disapproved_all_time": {
+            "name": "Disapproved All Time"
+          },
+          "chore_stat_current_due_today": {
+            "name": "Current Due Today"
+          },
+          "chore_stat_current_overdue": {
+            "name": "Current Overdue"
+          },
+          "chore_stat_current_claimed": {
+            "name": "Current Claimed"
+          },
+          "chore_stat_current_approved": {
+            "name": "Current Approved"
+          },
+          "chore_stat_longest_streak_week": {
+            "name": "Longest Streak (Week)"
+          },
+          "chore_stat_longest_streak_month": {
+            "name": "Longest Streak (Month)"
+          },
+          "chore_stat_longest_streak_year": {
+            "name": "Longest Streak (Year)"
+          },
+          "chore_stat_longest_streak_all_time": {
+            "name": "Longest Streak (All Time)"
+          },
+          "chore_stat_avg_per_day_week": {
+            "name": "Average Per Day (Week)"
+          },
+          "chore_stat_avg_per_day_month": {
+            "name": "Average Per Day (Month)"
           }
         }
       },
@@ -2083,12 +2282,6 @@
       "system_rewards_pending_approval_sensor": {
         "name": "Pending Reward Approvals"
       },
-      "reward_claims_sensor": {
-        "name": "Claims - {reward_name}"
-      },
-      "reward_approvals_sensor": {
-        "name": "Approvals - {reward_name}"
-      },
       "system_chore_shared_state_sensor": {
         "name": "{chore_name} - Global Status",
         "state": {
@@ -2188,12 +2381,6 @@
             "name": "Labels"
           }
         }
-      },
-      "chore_claims_sensor": {
-        "name": "Claims - {chore_name}"
-      },
-      "chore_approvals_sensor": {
-        "name": "Approvals - {chore_name}"
       },
       "kid_penalty_applied_sensor": {
         "name": "Penalties applied - {penalty_name}",
@@ -2433,17 +2620,6 @@
         "state_attributes": {
           "streaks_by_achievement": {
             "name": "Streaks by Achievement"
-          }
-        }
-      },
-      "chore_streak_sensor": {
-        "name": "Streak - {chore_name}",
-        "state_attributes": {
-          "last_date": {
-            "name": "Last Date"
-          },
-          "raw_streak": {
-            "name": "Current Streak"
           }
         }
       },
