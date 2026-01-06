@@ -24,7 +24,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_change
-from homeassistant.helpers.translation import async_get_translations
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
@@ -9665,13 +9664,15 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             actions: Optional list of notification actions
             extra_data: Optional extra data for mobile notifications
         """
-        # Load translations using Home Assistant's API
-        translations = await async_get_translations(
-            self.hass,
-            language=self.hass.config.language,
-            category="notifications",
-            integrations={const.DOMAIN},
+        # Get kid's preferred language (or fall back to system language)
+        kid_info = self.kids_data.get(kid_id, {})
+        language = kid_info.get(
+            const.DATA_KID_DASHBOARD_LANGUAGE,
+            self.hass.config.language,
         )
+
+        # Load notification translations from custom translations directory
+        translations = await kh.load_notification_translation(self.hass, language)
 
         # Convert const key to JSON key by removing prefix
         # e.g., "notification_title_chore_assigned" -> "chore_assigned"
@@ -9679,15 +9680,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             "notification_message_", ""
         )
 
-        # Look up translations with flattened key format
-        title = translations.get(
-            f"component.{const.DOMAIN}.notifications.{json_key}.title",
-            title_key,
-        )
-        message_template = translations.get(
-            f"component.{const.DOMAIN}.notifications.{json_key}.message",
-            message_key,
-        )
+        # Look up translations from the loaded notification file
+        notification = translations.get(json_key, {})
+        title = notification.get("title", title_key)
+        message_template = notification.get("message", message_key)
 
         # Format message with placeholders
         try:
@@ -9790,13 +9786,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             actions: Optional list of notification actions
             extra_data: Optional extra data for mobile notifications
         """
-        # Load translations using Home Assistant's API
-        translations = await async_get_translations(
-            self.hass,
-            language=self.hass.config.language,
-            category="notifications",
-            integrations={const.DOMAIN},
-        )
+        # Load notification translations (parents use system language)
+        language = self.hass.config.language
+        translations = await kh.load_notification_translation(self.hass, language)
 
         # Convert const key to JSON key by removing prefix
         # e.g., "notification_title_chore_assigned" -> "chore_assigned"
@@ -9804,15 +9796,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             "notification_message_", ""
         )
 
-        # Look up translations with flattened key format
-        title = translations.get(
-            f"component.{const.DOMAIN}.notifications.{json_key}.title",
-            title_key,
-        )
-        message_template = translations.get(
-            f"component.{const.DOMAIN}.notifications.{json_key}.message",
-            message_key,
-        )
+        # Look up translations from the loaded notification file
+        notification = translations.get(json_key, {})
+        title = notification.get("title", title_key)
+        message_template = notification.get("message", message_key)
 
         # Format message with placeholders
         try:

@@ -84,7 +84,10 @@ async def test_empty_applicable_days_no_filtering(
     coordinator._persist()
 
     # Mock notifications and approve
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.approve_chore("parent", zoe_id, star_sweep_id)
 
     # Verify due date advanced without weekday snapping
@@ -141,7 +144,10 @@ async def test_single_applicable_day_snaps_to_weekday(
     coordinator._persist()
 
     # Mock notifications and approve
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.approve_chore("parent", zoe_id, star_sweep_id)
 
     # Verify due date landed on Monday
@@ -200,7 +206,10 @@ async def test_weekend_only_applicable_days(
     coordinator._persist()
 
     # Mock notifications and approve
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.approve_chore("parent", zoe_id, star_sweep_id)
 
     # Verify due date landed on a weekend day
@@ -260,7 +269,10 @@ async def test_string_based_applicable_days_conversion(
     coordinator._persist()
 
     # Mock notifications and approve
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.approve_chore("parent", zoe_id, star_sweep_id)
 
     # Verify due date landed on Monday (0) or Friday (4)
@@ -326,7 +338,10 @@ async def test_applicable_days_independent_per_kid_isolation(
     coordinator._persist()
 
     # Approve only Zoë
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.approve_chore("parent", zoe_id, star_sweep_id)
 
     # Verify Zoë's due date snapped to Tuesday

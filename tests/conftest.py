@@ -541,7 +541,10 @@ async def apply_scenario_via_options_flow(
     name_to_id_map = {}
 
     # Mock notifications during setup
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Phase 1: Add kids via options flow
         family = scenario_data.get("family", {})
         for kid in family.get("kids", []):
@@ -831,7 +834,10 @@ async def apply_scenario_direct(
     # Mock notification to prevent ServiceNotFound errors during scenario loading
     # The _notify_kid method tries to call persistent_notification.create which
     # isn't available in test environment
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         return await _apply_scenario_data(
             coordinator, scenario_data, name_to_id_map, hass, mock_users
         )

@@ -45,7 +45,10 @@ async def test_pending_approvals_structure(
 
     # Mock notifications to avoid errors
     coordinator = hass.data[const.DOMAIN][config_entry.entry_id][const.COORDINATOR]
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Claim a chore to create pending approval (using Zoë from minimal scenario)
         # Use "Wåter the plänts" which is pending (not already claimed like "Feed the cåts")
         await hass.services.async_call(
@@ -94,7 +97,10 @@ async def test_pending_approvals_updated_after_claim(
     initial_count = len(pending["chores"])
 
     # Mock notifications and claim a chore
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await hass.services.async_call(
             const.DOMAIN,
             const.SERVICE_CLAIM_CHORE,
@@ -117,7 +123,10 @@ async def test_pending_approval_cleared_on_approve(
     config_entry, _ = scenario_minimal
     coordinator = hass.data[const.DOMAIN][config_entry.entry_id][const.COORDINATOR]
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Claim a chore (use unclaimed chore)
         await hass.services.async_call(
             const.DOMAIN,

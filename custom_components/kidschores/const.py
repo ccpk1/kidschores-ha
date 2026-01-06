@@ -909,11 +909,15 @@ DATA_KID_USE_PERSISTENT_NOTIFICATIONS: Final = "use_persistent_notifications"
 DATA_KID_DASHBOARD_LANGUAGE: Final = "dashboard_language"
 
 # ——————————————————————————————————————————————
-# Dashboard Translation Settings
+# Custom Translation Settings (Dashboard & Notifications)
 # ——————————————————————————————————————————————
+CUSTOM_TRANSLATIONS_DIR: Final = "translations_custom"
 DEFAULT_DASHBOARD_LANGUAGE: Final = "en"
-DASHBOARD_TRANSLATIONS_DIR: Final = "translations_dashboard"
 DASHBOARD_TRANSLATIONS_SUFFIX: Final = "_dashboard"  # File naming: en_dashboard.json
+NOTIFICATION_TRANSLATIONS_SUFFIX: Final = "_notifications"  # File naming: en_notifications.json
+
+# Legacy alias for backward compatibility
+DASHBOARD_TRANSLATIONS_DIR: Final = CUSTOM_TRANSLATIONS_DIR
 
 # ——————————————————————————————————————————————
 # Kid Point History Data Structure
@@ -2081,7 +2085,7 @@ TRANS_KEY_ERROR_CALENDAR_DELETE_NOT_SUPPORTED: Final = "calendar_delete_not_supp
 TRANS_KEY_ERROR_CALENDAR_UPDATE_NOT_SUPPORTED: Final = "calendar_update_not_supported"
 
 # Action identifiers for use with TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION template
-# These are referenced in translations/en.json["action_labels"]
+# These values are passed directly as {action} placeholder in exception messages
 ERROR_ACTION_CLAIM_CHORES: Final = "claim_chores"
 ERROR_ACTION_APPROVE_CHORES: Final = "approve_chores"
 ERROR_ACTION_DISAPPROVE_CHORES: Final = "disapprove_chores"

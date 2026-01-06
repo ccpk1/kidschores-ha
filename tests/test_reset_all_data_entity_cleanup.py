@@ -43,7 +43,10 @@ async def test_reset_all_data_cleans_entity_registry(
     ent_reg = er.async_get(hass)
 
     # Mock notifications to prevent ServiceNotFound errors
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Step 1: Count initial entities (global select/sensor entities)
         initial_entities = er.async_entries_for_config_entry(
             ent_reg, init_integration.entry_id
@@ -164,7 +167,10 @@ async def test_reset_all_data_with_multiple_kids_no_duplicates(
     coordinator = _get_coordinator(hass, init_integration)
     ent_reg = er.async_get(hass)
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create 3 kids with 2 chores each
         kid_names = ["Alice", "Bob", "Charlie"]
         kid_ids = []

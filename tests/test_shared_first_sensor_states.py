@@ -70,7 +70,10 @@ async def test_shared_first_claim_updates_all_sensors(
     await reload_entity_platforms(hass, config_entry)
 
     # Mock notifications during testing
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         with patch.object(coordinator, "_notify_overdue_chore", new=MagicMock()):
             # First check the overdue state before claiming
             await coordinator._check_overdue_chores()
@@ -178,7 +181,10 @@ async def test_shared_first_approval_updates_all_sensors(
     # Reload entities
     await reload_entity_platforms(hass, config_entry)
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Zoë claims then gets approved
         coordinator.claim_chore(zoe_id, chore_id, mock_hass_users["kid1"].id)
         coordinator.approve_chore(mock_hass_users["parent1"].id, zoe_id, chore_id)
@@ -240,7 +246,10 @@ async def test_shared_first_disapproval_resets_sensors(
     # Reload entities
     await reload_entity_platforms(hass, config_entry)
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Zoë claims
         coordinator.claim_chore(zoe_id, chore_id, mock_hass_users["kid1"].id)
         coordinator.async_update_listeners()

@@ -416,7 +416,10 @@ async def test_independent_claims_separate(hass: HomeAssistant, scenario_full):
         pytest.skip("Test scenario must have INDEPENDENT chore with multiple kids")
 
     # Mock notifications to avoid ServiceNotFound errors
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Zoë claims chore
         coordinator.claim_chore(zoë_id, chore_found, user_name="Zoë")
 
@@ -431,7 +434,10 @@ async def test_independent_claims_separate(hass: HomeAssistant, scenario_full):
     # Approve Zoë's claim
     parent_id = name_to_id_map.get("parent:Môm Astrid Stârblüm")
     if parent_id:
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
             coordinator.approve_chore(
                 kid_id=zoë_id,
                 chore_id=chore_found,

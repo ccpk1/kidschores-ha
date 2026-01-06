@@ -67,7 +67,10 @@ async def test_daily_badge_empty_assigned_to_evaluates_for_all_kids(
         coordinator.kids_data[max_id][DATA_KID_BADGE_PROGRESS].pop(daily_badge_id, None)
 
     # Act: Mock notifications and evaluate badges
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator._check_badges_for_kid(zoe_id)
         coordinator._check_badges_for_kid(max_id)
 
@@ -118,7 +121,10 @@ async def test_daily_badge_specific_kid_only_evaluates_for_that_kid(
         coordinator.kids_data[max_id][DATA_KID_BADGE_PROGRESS].pop(daily_badge_id, None)
 
     # Act: Mock notifications and evaluate badges
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator._check_badges_for_kid(zoe_id)
         coordinator._check_badges_for_kid(max_id)
 
@@ -178,7 +184,10 @@ async def test_periodic_badge_empty_assigned_to_evaluates_for_all_kids(
         )
 
     # Act: Mock notifications and evaluate badges
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator._check_badges_for_kid(zoe_id)
         coordinator._check_badges_for_kid(max_id)
 
@@ -233,7 +242,10 @@ async def test_periodic_badge_specific_kid_only_evaluates_for_that_kid(
         )
 
     # Act: Mock notifications and evaluate badges
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator._check_badges_for_kid(zoe_id)
         coordinator._check_badges_for_kid(max_id)
 
@@ -293,7 +305,10 @@ async def test_special_occasion_badge_empty_assigned_to_evaluates_for_all_kids(
         )
 
     # Act: Mock notifications and evaluate badges
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator._check_badges_for_kid(zoe_id)
         coordinator._check_badges_for_kid(max_id)
 
@@ -348,7 +363,10 @@ async def test_special_occasion_badge_specific_kid_only_evaluates_for_that_kid(
         )
 
     # Act: Mock notifications and evaluate badges
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator._check_badges_for_kid(zoe_id)
         coordinator._check_badges_for_kid(max_id)
 

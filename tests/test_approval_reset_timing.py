@@ -122,7 +122,10 @@ async def test_at_midnight_once_blocks_same_day_reclaim(
     clear_chore_approval_state(coordinator, kid_id, chore_id)
 
     # First claim and approve
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.claim_chore(kid_id, chore_id, "test_user")
 
     assert is_chore_claimed_for_kid(coordinator, kid_id, chore_id)
@@ -201,7 +204,10 @@ async def test_at_midnight_multi_allows_same_day_reclaim(
     clear_chore_approval_state(coordinator, kid_id, chore_id)
 
     # First claim and approve
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.claim_chore(kid_id, chore_id, "test_user")
 
     # Approve
@@ -275,7 +281,10 @@ async def test_at_due_date_once_blocks_same_cycle_reclaim(
     clear_chore_approval_state(coordinator, kid_id, chore_id)
 
     # Claim and approve
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.claim_chore(kid_id, chore_id, "test_user")
 
     with patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()):
@@ -345,7 +354,10 @@ async def test_at_due_date_multi_allows_same_cycle_reclaim(
     clear_chore_approval_state(coordinator, kid_id, chore_id)
 
     # Claim and approve
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.claim_chore(kid_id, chore_id, "test_user")
 
     with patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()):
@@ -381,7 +393,10 @@ async def test_upon_completion_always_allows_claim(
 
     # Claim and approve multiple times
     for _i in range(3):
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
             # Each iteration should allow claiming
             can_claim, error_key = coordinator._can_claim_chore(kid_id, chore_id)
             assert can_claim is True, (
@@ -519,7 +534,10 @@ async def test_missing_field_defaults_to_at_midnight_once(
     clear_chore_approval_state(coordinator, kid_id, chore_id)
 
     # Claim and approve
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.claim_chore(kid_id, chore_id, "test_user")
 
     with patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()):
@@ -642,7 +660,8 @@ async def test_interaction_with_auto_approve(
 
     # Claim (auto-approves immediately)
     with (
-        patch.object(coordinator, "_notify_kid", new=AsyncMock()),
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
         patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
     ):
         coordinator.claim_chore(kid_id, chore_id, "test_user")
@@ -681,7 +700,8 @@ async def test_upon_completion_with_auto_approve(
 
     # Claim 3 times (each should auto-approve and award points)
     with (
-        patch.object(coordinator, "_notify_kid", new=AsyncMock()),
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
         patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
     ):
         for i in range(3):
@@ -820,7 +840,12 @@ async def test_new_chore_gets_default_at_midnight_once(
         const.DATA_CHORE_ICON: "mdi:test",
         const.DATA_CHORE_ASSIGNED_KIDS: [kid_id],
     }
-    coordinator._create_chore(new_chore_id, chore_data)
+    # Mock notifications to prevent ServiceNotFound errors
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
+        coordinator._create_chore(new_chore_id, chore_data)
 
     # Verify default approval_reset_type
     assert (
@@ -936,7 +961,8 @@ async def test_at_midnight_independent_per_kid_tracking(
 
     # Kid1 claims and gets approved
     with (
-        patch.object(coordinator, "_notify_kid", new=AsyncMock()),
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
         patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
     ):
         coordinator.claim_chore(kid1_id, chore_id, "test_user")
@@ -977,7 +1003,8 @@ async def test_at_midnight_shared_all_kids_same_state(
 
     # Kid1 claims and gets approved
     with (
-        patch.object(coordinator, "_notify_kid", new=AsyncMock()),
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
         patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
     ):
         coordinator.claim_chore(kid1_id, chore_id, "test_user")
@@ -1019,7 +1046,8 @@ async def test_at_midnight_shared_first_ownership(
 
     # Kid1 claims first
     with (
-        patch.object(coordinator, "_notify_kid", new=AsyncMock()),
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
         patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
     ):
         coordinator.claim_chore(kid1_id, chore_id, "test_user")
@@ -1150,7 +1178,8 @@ async def test_upon_completion_all_chore_types(
 
         # Claim and approve
         with (
-            patch.object(coordinator, "_notify_kid", new=AsyncMock()),
+            patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
             patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
         ):
             coordinator.claim_chore(kid_id, chore_id, "test_user")
@@ -1457,7 +1486,8 @@ async def test_dashboard_helper_includes_enablement_flags(
 
     # After claim + approval, should be blocked
     with (
-        patch.object(coordinator, "_notify_kid", new=AsyncMock()),
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
         patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
     ):
         coordinator.claim_chore(kid_id, chore_id, "test_user")
@@ -1493,7 +1523,8 @@ async def test_end_to_end_claim_approve_block_workflow(
 
     # Step 3: Claim
     with (
-        patch.object(coordinator, "_notify_kid", new=AsyncMock()),
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
         patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
     ):
         coordinator.claim_chore(kid_id, chore_id, "test_user")
@@ -1501,7 +1532,8 @@ async def test_end_to_end_claim_approve_block_workflow(
 
     # Step 4: Approve
     with (
-        patch.object(coordinator, "_notify_kid", new=AsyncMock()),
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
         patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
     ):
         coordinator.approve_chore("parent1", kid_id, chore_id)

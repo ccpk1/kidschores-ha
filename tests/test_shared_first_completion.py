@@ -82,7 +82,10 @@ async def test_shared_first_first_kid_can_claim(
     first_kid_name = coordinator.kids_data[first_kid_id][const.DATA_KID_NAME]
 
     # Mock notifications
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # First kid claims chore - should succeed
         await hass.services.async_call(
             DOMAIN,
@@ -122,7 +125,10 @@ async def test_shared_first_second_kid_claim_blocked(
     second_kid_name = coordinator.kids_data[second_kid_id][const.DATA_KID_NAME]
 
     # Mock notifications
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # First kid claims
         await hass.services.async_call(
             DOMAIN,
@@ -182,7 +188,10 @@ async def test_shared_first_approval_only_awards_first_kid(
 
     parent_context = Context(user_id=mock_hass_users["parent1"].id)
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # First kid claims
         await hass.services.async_call(
             DOMAIN,
@@ -240,7 +249,10 @@ async def test_shared_first_other_kids_get_completed_by_other_state(
 
     parent_context = Context(user_id=mock_hass_users["parent1"].id)
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # First kid claims and gets approved
         await hass.services.async_call(
             DOMAIN,
@@ -292,7 +304,10 @@ async def test_shared_first_disapproval_resets_all_kids(
 
     parent_context = Context(user_id=mock_hass_users["parent1"].id)
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # First kid claims and gets approved
         await hass.services.async_call(
             DOMAIN,
@@ -366,7 +381,10 @@ async def test_shared_first_reclaim_after_disapproval(
 
     parent_context = Context(user_id=mock_hass_users["parent1"].id)
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # First kid claims and gets approved
         await hass.services.async_call(
             DOMAIN,
@@ -434,7 +452,10 @@ async def test_shared_first_global_state_pending_to_claimed(
 
     # Note: Initial state might not be set, which is valid for pending state
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # First kid claims
         await hass.services.async_call(
             DOMAIN,
@@ -470,7 +491,10 @@ async def test_shared_first_global_state_claimed_to_approved(
 
     parent_context = Context(user_id=mock_hass_users["parent1"].id)
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # First kid claims
         await hass.services.async_call(
             DOMAIN,
@@ -531,7 +555,10 @@ async def test_shared_first_with_three_kids(
 
     parent_context = Context(user_id=mock_hass_users["parent1"].id)
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # First kid claims
         await hass.services.async_call(
             DOMAIN,

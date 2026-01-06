@@ -44,7 +44,10 @@ async def test_performance_baseline_with_scenario_full(
     )
     print("=" * 80)
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Test 1: Check overdue chores (O(chores × kids))
         print("\nTest 1: Overdue check scan...")
         await coordinator._check_overdue_chores()
@@ -64,8 +67,11 @@ async def test_performance_baseline_with_scenario_full(
                 f"\nTest 4: Parent notifications ({len(coordinator.parents_data)} parents)..."
             )
             first_kid_id = list(coordinator.kids_data.keys())[0]
-            await coordinator._notify_parents(
-                first_kid_id, "Test notification", "Performance baseline test"
+            await coordinator._notify_parents_translated(
+                first_kid_id,
+                "notification_title_chore_claimed",
+                "notification_message_chore_claimed",
+                message_data={"kid_name": "Test", "chore_name": "Performance Test"},
             )
 
         # Test 5: Entity cleanup
@@ -157,7 +163,7 @@ async def test_performance_baseline_with_scenario_full(
     print("  - _persist() call frequency and timing")
     print("  - _check_overdue_chores() duration (chores × kids operations)")
     print("  - _check_badges_for_kid() per-kid timing")
-    print("  - _notify_parents() sequential notification latency")
+    print("  - _notify_parents_translated() sequential notification latency")
     print("  - _remove_orphaned_kid_chore_entities() entity scan duration")
     print("  - claim_chore() timing")
     print("  - approve_chore() timing (includes point addition)")

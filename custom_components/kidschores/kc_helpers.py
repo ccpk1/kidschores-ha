@@ -1839,6 +1839,72 @@ async def load_dashboard_translation(
     return {}
 
 
+async def load_notification_translation(
+    hass: HomeAssistant,
+    language: str = "en",
+) -> dict[str, dict[str, str]]:
+    """Load notification translations for a specific language with English fallback.
+
+    Args:
+        hass: Home Assistant instance
+        language: Language code to load (e.g., 'en', 'es', 'de')
+
+    Returns:
+        A dict with notification keys mapping to {title, message} dicts.
+        If the requested language is not found, returns English translations.
+        Metadata (_metadata key) is excluded from the returned translations.
+    """
+    translations_path = os.path.join(
+        os.path.dirname(__file__), const.CUSTOM_TRANSLATIONS_DIR
+    )
+
+    if not await hass.async_add_executor_job(os.path.exists, translations_path):
+        const.LOGGER.error(
+            "Custom translations directory not found: %s", translations_path
+        )
+        return {}
+
+    # Try to load the requested language (with _notifications suffix)
+    lang_path = os.path.join(
+        translations_path, f"{language}{const.NOTIFICATION_TRANSLATIONS_SUFFIX}.json"
+    )
+    if await hass.async_add_executor_job(os.path.exists, lang_path):
+        try:
+            data = await hass.async_add_executor_job(_read_json_file, lang_path)
+            # Exclude _metadata from translations
+            translations = {k: v for k, v in data.items() if k != "_metadata"}
+            const.LOGGER.debug("Loaded %s notification translations", language)
+            return translations
+        except (OSError, json.JSONDecodeError) as err:
+            const.LOGGER.error(
+                "Error loading %s notification translations: %s", language, err
+            )
+
+    # Fall back to English if requested language not found or errored
+    if language != "en":
+        const.LOGGER.warning(
+            "Notification language '%s' not found, falling back to English", language
+        )
+        en_path = os.path.join(
+            translations_path, f"en{const.NOTIFICATION_TRANSLATIONS_SUFFIX}.json"
+        )
+        if await hass.async_add_executor_job(os.path.exists, en_path):
+            try:
+                data = await hass.async_add_executor_job(_read_json_file, en_path)
+                # Exclude _metadata from translations
+                translations = {k: v for k, v in data.items() if k != "_metadata"}
+                const.LOGGER.debug(
+                    "Loaded English notification translations as fallback"
+                )
+                return translations
+            except (OSError, json.JSONDecodeError) as err:
+                const.LOGGER.error(
+                    "Error loading English notification translations: %s", err
+                )
+
+    return {}
+
+
 # 📱 -------- Device Info Helpers --------
 def create_kid_device_info(kid_id: str, kid_name: str, config_entry):
     """Create device info for a kid profile.

@@ -46,7 +46,10 @@ async def test_service_claim_chore_with_names(
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
     # Mock notifications to prevent ServiceNotFound errors
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create a kid
         kid_id = str(uuid.uuid4())
         kid_name = "Zoë Stårblüm"
@@ -90,7 +93,10 @@ async def test_service_approve_chore_success(
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
     # Mock notifications to prevent ServiceNotFound errors
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create a kid
         kid_id = str(uuid.uuid4())
         kid_name = "Max! Stårblüm"
@@ -135,7 +141,10 @@ async def test_service_apply_bonus_and_penalty(
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
     # Mock notifications to prevent ServiceNotFound errors
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create a kid
         kid_id = str(uuid.uuid4())
         kid_data = create_mock_kid_data(name="Lila Stårblüm", points=50.0)
@@ -211,7 +220,10 @@ async def test_service_claim_chore_invalid_kid_name(
     """Test claim_chore service with invalid kid_name raises HomeAssistantError."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create a chore (no kid needed for this test)
         chore_id = str(uuid.uuid4())
         chore_data = create_mock_chore_data(
@@ -245,7 +257,10 @@ async def test_service_claim_chore_invalid_chore_name(
     """Test claim_chore service with invalid chore_name raises HomeAssistantError."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create a kid
         kid_id = str(uuid.uuid4())
         kid_data = create_mock_kid_data(name="Test Kid", points=0.0)
@@ -275,7 +290,10 @@ async def test_service_approve_chore_invalid_kid_name(
     """Test approve_chore service with invalid kid_name raises HomeAssistantError."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create a chore (no kid needed for this test)
         chore_id = str(uuid.uuid4())
         chore_data = create_mock_chore_data(
@@ -313,7 +331,10 @@ async def test_service_approve_chore_invalid_chore_name(
     """Test approve_chore service with invalid chore_name raises HomeAssistantError."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create a kid
         kid_id = str(uuid.uuid4())
         kid_data = create_mock_kid_data(name="Test Kid", points=0.0)
@@ -347,7 +368,10 @@ async def test_service_apply_bonus_invalid_kid_name(
     """Test apply_bonus service with invalid kid_name raises HomeAssistantError."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create a bonus (no kid needed for this test)
         bonus_id = str(uuid.uuid4())
         bonus_data = {
@@ -385,7 +409,10 @@ async def test_service_apply_bonus_invalid_bonus_name(
     """Test apply_bonus service with invalid bonus_name raises HomeAssistantError."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create a kid
         kid_id = str(uuid.uuid4())
         kid_data = create_mock_kid_data(name="Test Kid", points=0.0)
@@ -419,7 +446,10 @@ async def test_service_apply_penalty_invalid_penalty_name(
     """Test apply_penalty service with invalid penalty_name raises HomeAssistantError."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create a kid
         kid_id = str(uuid.uuid4())
         kid_data = create_mock_kid_data(name="Test Kid", points=50.0)
@@ -458,7 +488,10 @@ async def test_service_disapprove_chore_success(
     """Test disapprove_chore service workflow."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create a kid
         kid_id = str(uuid.uuid4())
         kid_name = "Test Kid"
@@ -510,7 +543,10 @@ async def test_service_redeem_reward_success(
     """Test redeem_reward service workflow."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create a kid with points
         kid_id = str(uuid.uuid4())
         kid_name = "Rich Kid"
@@ -560,7 +596,10 @@ async def test_service_disapprove_reward_success(
     """Test disapprove_reward service workflow."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create a kid with points
         kid_id = str(uuid.uuid4())
         kid_name = "Test Kid"
@@ -619,7 +658,10 @@ async def test_service_reset_overdue_chores_all(
     """Test reset_overdue_chores service resets all overdue chores."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create a kid
         kid_id = str(uuid.uuid4())
         kid_data = create_mock_kid_data(name="Test Kid", points=0.0)
@@ -668,7 +710,10 @@ async def test_service_reset_overdue_chores_independent(
     """Test reset_overdue_chores service works for INDEPENDENT chores."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create two kids
         kid1_id = str(uuid.uuid4())
         kid1_data = create_mock_kid_data(name="Kid 1", points=0.0)
@@ -756,7 +801,10 @@ async def test_service_reset_penalties_all(
     """Test reset_penalties service resets all kid penalties."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create a kid with applied penalty
         kid_id = str(uuid.uuid4())
         kid_data = create_mock_kid_data(name="Test Kid", points=50.0)
@@ -788,7 +836,10 @@ async def test_service_reset_bonuses_all(
     """Test reset_bonuses service resets all kid bonuses."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create a kid with applied bonus
         kid_id = str(uuid.uuid4())
         kid_data = create_mock_kid_data(name="Test Kid", points=50.0)
@@ -820,7 +871,10 @@ async def test_service_approve_reward_success(
     """Test approve_reward service deducts points."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create a kid with points
         kid_id = str(uuid.uuid4())
         kid_name = "Test Kid"
@@ -870,7 +924,10 @@ async def test_service_reset_rewards_all(
     """Test reset_rewards service resets reward_data tracking."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create a kid with reward_data entries
         kid_id = str(uuid.uuid4())
         kid_data = create_mock_kid_data(name="Test Kid", points=50.0)
@@ -906,7 +963,10 @@ async def test_service_remove_awarded_badges_all(
     """Test remove_awarded_badges service removes badges."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create badge entities first (coordinator only clears badges that exist in badges_data)
         badge1_id = str(uuid.uuid4())
         badge2_id = str(uuid.uuid4())

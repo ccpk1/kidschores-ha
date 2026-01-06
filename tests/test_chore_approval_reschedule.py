@@ -92,7 +92,10 @@ async def test_independent_recurring_approval_reschedules_per_kid(
     coordinator._persist()
 
     # Mock notifications
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Approve for Zoë only
         coordinator.approve_chore("parent", zoe_id, star_sweep_id)
 
@@ -140,7 +143,10 @@ async def test_independent_recurring_approval_advances_due_date(
     coordinator._persist()
 
     # Mock notifications
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.approve_chore("parent", zoe_id, star_sweep_id)
 
     # Verify due date advanced to the future (by ~1 day for daily)
@@ -197,7 +203,10 @@ async def test_shared_recurring_all_approved_reschedules_chore(
     coordinator._persist()
 
     # Mock notifications
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Approve first two kids - should NOT reschedule yet
         coordinator.approve_chore("parent", zoe_id, star_sweep_id)
         coordinator.approve_chore("parent", max_id, star_sweep_id)
@@ -207,7 +216,10 @@ async def test_shared_recurring_all_approved_reschedules_chore(
     # This test documents current behavior; wiki may need clarification
 
     # Mock and approve last kid
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.approve_chore("parent", lila_id, star_sweep_id)
 
     # After all kids approved, verify chore state is APPROVED
@@ -257,7 +269,10 @@ async def test_independent_nonrecurring_approval_behavior(
     coordinator._persist()
 
     # Mock notifications
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.approve_chore("parent", zoe_id, star_sweep_id)
 
     # Document current behavior: Due date should either be:
@@ -312,7 +327,10 @@ async def test_shared_nonrecurring_approval_behavior(
     coordinator._persist()
 
     # Mock notifications
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.approve_chore("parent", zoe_id, feed_cats_id)
 
     # Document current behavior

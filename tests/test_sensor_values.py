@@ -37,7 +37,10 @@ async def test_completed_chores_daily_sensor_increments_on_approval(
     chore_id = name_to_id_map["chore:Refill Bird Fëeder"]
 
     # Mock notifications to prevent ServiceNotFound errors
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Claim and approve chore
         parent_id = name_to_id_map["parent:Môm Astrid Stârblüm"]
         coordinator.claim_chore(kid_id, chore_id, "test_user")
@@ -65,7 +68,10 @@ async def test_completed_chores_total_sensor_attributes(
     kid_id = name_to_id_map["kid:Zoë"]
 
     # Mock notifications to prevent ServiceNotFound errors
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Initialize stats by approving an unclaimed chore (not pre-completed, not auto_approve in YAML)
         chore_id = name_to_id_map["chore:Refill Bird Fëeder"]
         parent_id = name_to_id_map["parent:Môm Astrid Stârblüm"]
@@ -111,8 +117,14 @@ async def test_kid_points_sensor_attributes(
     # Initialize stats by giving points (use apply_bonus)
     bonus_id = name_to_id_map["bonus:Stär Sprïnkle Bonus"]
     parent_id = name_to_id_map["parent:Môm Astrid Stârblüm"]
-    coordinator.apply_bonus(parent_id, kid_id, bonus_id)
-    await hass.async_block_till_done()
+    
+    # Mock notifications to prevent ServiceNotFound errors
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
+        coordinator.apply_bonus(parent_id, kid_id, bonus_id)
+        await hass.async_block_till_done()
 
     # Get point stats from coordinator
     point_stats = coordinator.kids_data[kid_id].get(const.DATA_KID_POINT_STATS, {})
@@ -285,7 +297,10 @@ async def test_completed_chores_sensors_use_new_schema(
     parent_id = name_to_id_map["parent:Môm Astrid Stârblüm"]
 
     # Mock notifications to prevent ServiceNotFound errors during teardown
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.claim_chore(kid_id, chore_id, "test_user")
         coordinator.approve_chore(parent_id, kid_id, chore_id)
         await hass.async_block_till_done()
@@ -330,8 +345,14 @@ async def test_points_earned_sensors_use_new_schema(
     # Initialize stats by giving points
     bonus_id = name_to_id_map["bonus:Stär Sprïnkle Bonus"]
     parent_id = name_to_id_map["parent:Môm Astrid Stârblüm"]
-    coordinator.apply_bonus(parent_id, kid_id, bonus_id)
-    await hass.async_block_till_done()
+    
+    # Mock notifications to prevent ServiceNotFound errors
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
+        coordinator.apply_bonus(parent_id, kid_id, bonus_id)
+        await hass.async_block_till_done()
 
     # Verify data is in new schema location
     point_stats = coordinator.kids_data[kid_id].get(const.DATA_KID_POINT_STATS, {})

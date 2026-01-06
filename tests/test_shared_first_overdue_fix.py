@@ -44,7 +44,10 @@ async def test_shared_first_completed_not_overdue(
     )
 
     # Mock notifications during testing
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         with patch.object(coordinator, "_notify_overdue_chore", new=MagicMock()):
             # Zoë claims the chore
             coordinator.claim_chore(zoe_id, chore_id, mock_hass_users["kid1"].id)
@@ -111,7 +114,10 @@ async def test_shared_first_pending_claim_becomes_overdue(
     )
 
     # Mock notifications during testing
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         with patch.object(coordinator, "_notify_overdue_chore", new=MagicMock()):
             # Zoë claims the chore but doesn't get approved
             coordinator.claim_chore(zoe_id, chore_id, mock_hass_users["kid1"].id)
@@ -175,7 +181,10 @@ async def test_shared_first_no_claims_all_can_be_overdue(hass, scenario_full) ->
     )
 
     # Mock notifications during testing
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         with patch.object(coordinator, "_notify_overdue_chore", new=MagicMock()):
             # No one claims the chore - run overdue check (async method)
             await coordinator._check_overdue_chores()
@@ -226,7 +235,10 @@ async def test_shared_first_persistence_across_restart(
     chore_id = name_to_id_map["chore:Täke Öut Trash"]
 
     # Mock notifications during testing
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         with patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()):
             # Zoë claims and gets approved (parent_user_id, kid_id, chore_id)
             coordinator.claim_chore(zoe_id, chore_id, mock_hass_users["kid1"].id)

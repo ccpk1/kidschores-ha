@@ -27,7 +27,10 @@ async def test_chore_lifecycle_complete_workflow(
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
     # Mock notifications to prevent ServiceNotFound errors
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create a kid
         kid_id = str(uuid.uuid4())
         kid_name = "Test Kid"
@@ -81,7 +84,10 @@ async def test_points_management_flow(
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
     # Mock notifications to prevent ServiceNotFound errors
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create a kid
         kid_id = str(uuid.uuid4())
         kid_name = "Max! Stårblüm"
@@ -147,7 +153,10 @@ async def test_reward_approval_workflow(
     coordinator = hass.data[DOMAIN][init_integration.entry_id][COORDINATOR]
 
     # Mock notifications to prevent ServiceNotFound errors
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Create a kid with points
         kid_id = str(uuid.uuid4())
         kid_data = create_mock_kid_data(name="Lila Stårblüm", points=100.0)

@@ -78,7 +78,10 @@ async def test_chore_claim_by_kid_updates_state(
     assert initial_state == "pending"
 
     # Mock notifications to prevent ServiceNotFound errors
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Kid claims chore via service
         await hass.services.async_call(
             DOMAIN,
@@ -110,7 +113,10 @@ async def test_chore_claim_points_remain_unchanged(
     initial_points = coordinator.kids_data[zoe_id]["points"]
 
     # Claim chore via service
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await hass.services.async_call(
             DOMAIN,
             "claim_chore",
@@ -176,7 +182,10 @@ async def test_kid_cannot_self_approve_chore(
             ] = None
 
     # First claim the chore
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await hass.services.async_call(
             DOMAIN,
             "claim_chore",
@@ -189,7 +198,10 @@ async def test_kid_cannot_self_approve_chore(
     kid_context = Context(user_id=mock_hass_users["kid1"].id)
 
     # Attempt approval should raise authorization error
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Try to approve as kid - should fail authorization check
         with pytest.raises(HomeAssistantError):
             await hass.services.async_call(
@@ -248,7 +260,10 @@ async def test_parent_disapprove_resets_chore_state(
             ] = None
 
     # Kid claims chore
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await hass.services.async_call(
             DOMAIN,
             "claim_chore",
@@ -265,7 +280,10 @@ async def test_parent_disapprove_resets_chore_state(
     # Parent disapproves
     parent_context = Context(user_id=mock_hass_users["admin"].id)
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await hass.services.async_call(
             DOMAIN,
             "disapprove_chore",
@@ -343,7 +361,10 @@ async def test_parent_approve_awards_points(
     initial_points = coordinator.kids_data[zoe_id]["points"]
 
     # Kid claims chore
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await hass.services.async_call(
             DOMAIN,
             "claim_chore",
@@ -355,7 +376,10 @@ async def test_parent_approve_awards_points(
     # Parent approves
     parent_context = Context(user_id=mock_hass_users["admin"].id)
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await hass.services.async_call(
             DOMAIN,
             "approve_chore",
@@ -396,7 +420,10 @@ async def test_parent_approve_increments_chore_count(
     # Claim and approve Wåter the plänts
     parent_context = Context(user_id=mock_hass_users["admin"].id)
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Claim
         await hass.services.async_call(
             DOMAIN,
@@ -492,7 +519,10 @@ async def test_approval_triggers_cumulative_badge(
     # Approve one chore (10 points) → should reach 400 and earn badge
     parent_context = Context(user_id=mock_hass_users["admin"].id)
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await hass.services.async_call(
             DOMAIN,
             "claim_chore",

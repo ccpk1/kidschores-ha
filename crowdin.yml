@@ -9,7 +9,12 @@ files:
   - source: /custom_components/kidschores/translations/en.json
     translation: /custom_components/kidschores/translations/%two_letters_code%.json
 
-  # 2. Dashboard Translations (Note the _dashboard suffix)
-  # Maps: /translations_dashboard/en_dashboard.json -> /translations_dashboard/fr_dashboard.json
-  - source: /custom_components/kidschores/translations_dashboard/en_dashboard.json
-    translation: /custom_components/kidschores/translations_dashboard/%two_letters_code%_dashboard.json
+  # 2. Dashboard Translations (custom translations directory)
+  # Maps: /translations_custom/en_dashboard.json -> /translations_custom/fr_dashboard.json
+  - source: /custom_components/kidschores/translations_custom/en_dashboard.json
+    translation: /custom_components/kidschores/translations_custom/%two_letters_code%_dashboard.json
+
+  # 3. Notification Translations (custom translations directory)
+  # Maps: /translations_custom/en_notifications.json -> /translations_custom/fr_notifications.json
+  - source: /custom_components/kidschores/translations_custom/en_notifications.json
+    translation: /custom_components/kidschores/translations_custom/%two_letters_code%_notifications.json

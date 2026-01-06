@@ -96,7 +96,10 @@ async def test_approve_advances_per_kid_due_date(
     ] = original_due_date
 
     # Set claimed state (prerequisite for approval) using coordinator method (v0.4.0+)
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.claim_chore(zoe_id, star_sweep_id, "Zoë")
 
     coordinator._persist()
@@ -105,7 +108,10 @@ async def test_approve_advances_per_kid_due_date(
     # Chore is DAILY, so should advance by +1 day
     parent_context = Context(user_id=mock_hass_users["parent1"].id)
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await hass.services.async_call(
             DOMAIN,
             "approve_chore",
@@ -189,7 +195,10 @@ async def test_disapprove_does_not_advance_due_date(
     ] = original_due_date
 
     # Set claimed state using coordinator method (v0.4.0+)
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.claim_chore(zoe_id, star_sweep_id, "Zoë")
 
     coordinator._persist()
@@ -197,7 +206,10 @@ async def test_disapprove_does_not_advance_due_date(
     # Disapprove chore (should NOT advance due date)
     parent_context = Context(user_id=mock_hass_users["parent1"].id)
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await hass.services.async_call(
             DOMAIN,
             "disapprove_chore",
@@ -313,7 +325,10 @@ async def test_multiple_kids_approve_same_day_independent_advancement(
         ] = original_due_date
 
         # Set claimed state using coordinator method (v0.4.0+)
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
             coordinator.claim_chore(kid_id, star_sweep_id, kid_names[kid_id])
 
     coordinator._persist()
@@ -321,7 +336,10 @@ async def test_multiple_kids_approve_same_day_independent_advancement(
     parent_context = Context(user_id=mock_hass_users["parent1"].id)
 
     # Approve for Zoë
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await hass.services.async_call(
             DOMAIN,
             "approve_chore",
@@ -335,7 +353,10 @@ async def test_multiple_kids_approve_same_day_independent_advancement(
         )
 
     # Approve for Max!
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await hass.services.async_call(
             DOMAIN,
             "approve_chore",
@@ -425,7 +446,10 @@ async def test_null_due_date_approval_no_crash(
     ] = None
 
     # Set claimed state using coordinator method (v0.4.0+)
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.claim_chore(zoe_id, star_sweep_id, "Zoë")
 
     coordinator._persist()
@@ -433,7 +457,10 @@ async def test_null_due_date_approval_no_crash(
     parent_context = Context(user_id=mock_hass_users["parent1"].id)
 
     # Approve chore with None due date - should not crash
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await hass.services.async_call(
             DOMAIN,
             "approve_chore",
@@ -517,7 +544,10 @@ async def test_weekly_recurrence_advances_exactly_seven_days(
     ] = original_due_date
 
     # Set claimed state using coordinator method (v0.4.0+)
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.claim_chore(zoe_id, star_sweep_id, "Zoë")
 
     coordinator._persist()
@@ -525,7 +555,10 @@ async def test_weekly_recurrence_advances_exactly_seven_days(
     parent_context = Context(user_id=mock_hass_users["parent1"].id)
 
     # Approve chore (should advance by 7 days for WEEKLY)
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await hass.services.async_call(
             DOMAIN,
             "approve_chore",

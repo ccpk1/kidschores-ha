@@ -6,7 +6,8 @@ on:
       - l10n-staging
     paths:
       - "custom_components/kidschores/translations/en.json"
-      - "custom_components/kidschores/translations_dashboard/en_dashboard.json"
+      - "custom_components/kidschores/translations_custom/en_dashboard.json"
+      - "custom_components/kidschores/translations_custom/en_notifications.json"
       - ".github/workflows/translation-sync.yml"
       - "crowdin.yml"
   workflow_dispatch:

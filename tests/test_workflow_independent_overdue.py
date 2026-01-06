@@ -120,7 +120,10 @@ async def test_independent_one_kid_overdue_others_not(
     coordinator._persist()
 
     # Mock notification to verify only Zoë notified
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()) as mock_notify:
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()) as mock_notify,
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Trigger overdue check
         await coordinator._check_overdue_chores()
 
@@ -219,7 +222,10 @@ async def test_independent_all_kids_overdue(
     coordinator._persist()
 
     # Mock notifications
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()) as mock_notify:
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()) as mock_notify,
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await coordinator._check_overdue_chores()
 
         # Verify ALL kids marked overdue
@@ -285,7 +291,10 @@ async def test_independent_null_due_date_never_overdue(
     coordinator._persist()
 
     # Mock notifications
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()) as mock_notify:
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()) as mock_notify,
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await coordinator._check_overdue_chores()
 
         # Verify NO kids marked overdue (null = no deadline)
@@ -347,7 +356,10 @@ async def test_shared_chore_all_kids_same_due_date(
     coordinator._persist()
 
     # Mock notifications
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()) as mock_notify:
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()) as mock_notify,
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await coordinator._check_overdue_chores()
 
         # Verify ALL assigned kids marked overdue (SHARED = chore-level date)
@@ -424,7 +436,10 @@ async def test_independent_overdue_clears_when_date_advances(
     coordinator._persist()
 
     # Trigger overdue check - Zoë should be marked overdue
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await coordinator._check_overdue_chores()
 
     # Verify Zoë marked overdue
@@ -439,7 +454,10 @@ async def test_independent_overdue_clears_when_date_advances(
     coordinator._persist()
 
     # Trigger overdue check again
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await coordinator._check_overdue_chores()
 
     # Verify Zoë NO LONGER overdue
@@ -512,7 +530,10 @@ async def test_independent_skip_claimed_chores(
     coordinator._persist()
 
     # Mock notifications
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()) as mock_notify:
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()) as mock_notify,
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await coordinator._check_overdue_chores()
 
         # Verify Zoë NOT marked overdue (claimed chores excluded)
@@ -592,7 +613,10 @@ async def test_independent_skip_approved_chores(
     coordinator._persist()
 
     # Mock notifications
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()) as mock_notify:
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()) as mock_notify,
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await coordinator._check_overdue_chores()
 
         # Verify Max! NOT marked overdue (approved chores excluded)
@@ -687,7 +711,10 @@ async def test_mixed_independent_and_shared_chores(
     coordinator._persist()
 
     # Mock notifications
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()) as mock_notify:
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()) as mock_notify,
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await coordinator._check_overdue_chores()
 
         # Verify INDEPENDENT uses per-kid date (Zoë only)

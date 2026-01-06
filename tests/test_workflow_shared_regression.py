@@ -68,13 +68,19 @@ async def test_shared_all_approval_uses_chore_level_due_date(
         original_chore_due_date = parser.isoparse(original_chore_due_date)
 
     # Claim chore using coordinator method (v0.4.0+ pattern)
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.claim_chore(zoe_id, shared_chore_id, "Zoë")
 
     parent_context = Context(user_id=mock_hass_users["parent1"].id)
 
     # Mock notifications to prevent ServiceNotFound errors
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await hass.services.async_call(
             DOMAIN,
             "approve_chore",
@@ -133,13 +139,19 @@ async def test_shared_first_only_first_kid_claims(
     chore_name = coordinator.chores_data[shared_first_chore_id][const.DATA_CHORE_NAME]
 
     # Claim chore using coordinator method (v0.4.0+ pattern)
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.claim_chore(zoe_id, shared_first_chore_id, "Zoë")
 
     parent_context = Context(user_id=mock_hass_users["parent1"].id)
 
     # Mock notifications to prevent ServiceNotFound errors
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await hass.services.async_call(
             DOMAIN,
             "approve_chore",
@@ -189,13 +201,19 @@ async def test_alternating_chore_approval_rotation(
     chore_name = coordinator.chores_data[alternating_chore_id][const.DATA_CHORE_NAME]
 
     # Claim for Zoë using coordinator method (v0.4.0+ pattern)
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.claim_chore(zoe_id, alternating_chore_id, "Zoë")
 
     parent_context = Context(user_id=mock_hass_users["parent1"].id)
 
     # Mock notifications to prevent ServiceNotFound errors
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await hass.services.async_call(
             DOMAIN,
             "approve_chore",
@@ -251,13 +269,19 @@ async def test_shared_disapprove_no_advancement(
         original_due_date = parser.isoparse(original_due_date)
 
     # Claim then disapprove using coordinator method (v0.4.0+ pattern)
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.claim_chore(zoe_id, shared_chore_id, "Zoë")
 
     parent_context = Context(user_id=mock_hass_users["parent1"].id)
 
     # Mock notifications to prevent ServiceNotFound errors
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await hass.services.async_call(
             DOMAIN,
             "disapprove_chore",

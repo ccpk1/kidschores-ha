@@ -140,7 +140,10 @@ async def test_true_performance_baseline(
         )
 
         # Measure coordinator operations with PERF capture
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
             # Clear previous PERF data
             perf_capture.operations.clear()
 
@@ -274,7 +277,10 @@ async def test_stress_dataset_true_performance(
         print(f"   Rewards: {len(coordinator.rewards_data)}")
 
         # Clear previous PERF data and test all major operations
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
             perf_capture.operations.clear()
 
             # Test overdue checking with full dataset
@@ -430,7 +436,10 @@ async def test_full_scenario_performance_comprehensive(
         print(f"   Rewards: {len(coordinator.rewards_data)}")
 
         # Clear previous PERF data and test key operations
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
             perf_capture.operations.clear()
 
             # Test overdue checking with actual data (REPEATED for stable baseline)
@@ -595,7 +604,10 @@ async def test_operation_timing_breakdown(
     # Test individual operations timing
     kid_id = list(coordinator.kids_data.keys())[0]  # Get first kid
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Badge processing timing
         start = time.perf_counter()
         coordinator._check_badges_for_kid(kid_id)

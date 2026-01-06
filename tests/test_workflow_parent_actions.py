@@ -47,7 +47,10 @@ async def test_parent_apply_penalty_button(
 
     parent_context = Context(user_id=mock_hass_users["parent1"].id)
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await hass.services.async_call(
             BUTTON_DOMAIN,
             SERVICE_PRESS,
@@ -98,7 +101,10 @@ async def test_penalty_decrements_points(
     # Set context and call async_press directly
     button_entity._context = parent_context
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await button_entity.async_press()
         await hass.async_block_till_done()
 
@@ -145,7 +151,10 @@ async def test_penalty_recorded_in_history(
 
     button_entity._context = parent_context
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await button_entity.async_press()
         await hass.async_block_till_done()
 
@@ -176,7 +185,10 @@ async def test_penalty_reflected_in_dashboard_helper(
     penalty_button_id = get_button_entity_id(hass, "Zoë", "penalty", "Førget Chöre")
     parent_context = Context(user_id=mock_hass_users["parent1"].id)
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await hass.services.async_call(
             BUTTON_DOMAIN,
             SERVICE_PRESS,
@@ -232,7 +244,10 @@ async def test_parent_apply_bonus_button(
 
     button_entity._context = parent_context
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await button_entity.async_press()
         await hass.async_block_till_done()
 
@@ -270,7 +285,10 @@ async def test_bonus_increments_points(
 
     button_entity._context = parent_context
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await button_entity.async_press()
         await hass.async_block_till_done()
 
@@ -313,7 +331,10 @@ async def test_bonus_recorded_in_history(
 
     button_entity._context = parent_context
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await button_entity.async_press()
         await hass.async_block_till_done()
 
@@ -355,7 +376,10 @@ async def test_bonus_reflected_in_dashboard_helper(
 
     button_entity._context = parent_context
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await button_entity.async_press()
         await hass.async_block_till_done()
 
@@ -421,7 +445,10 @@ async def test_bonus_triggers_badge_threshold(
 
     button_entity._context = parent_context
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await button_entity.async_press()
         await hass.async_block_till_done()
 
@@ -488,7 +515,10 @@ async def test_badge_multiplier_applied_after_bonus(
 
     button_entity._context = parent_context
 
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         await button_entity.async_press()
         await hass.async_block_till_done()
 

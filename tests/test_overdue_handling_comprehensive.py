@@ -136,7 +136,10 @@ async def test_never_overdue_allows_claims_anytime(
     per_kid_dates[zoë_id] = yesterday
 
     # Claim should still work
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.claim_chore(zoë_id, chore_id, user_name="Zoë")
 
     assert is_chore_claimed_for_kid(coordinator, zoë_id, chore_id), (
@@ -342,7 +345,10 @@ async def test_overdue_handling_field_preserved_on_claim(
         )
 
     # Claim the chore
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.claim_chore(zoë_id, chore_id, user_name="Zoë")
 
     # Field should still be NEVER_OVERDUE
@@ -395,7 +401,10 @@ async def test_pending_claim_action_field_preserved_on_approval(
         )
 
     # Claim and approve
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.claim_chore(zoë_id, chore_id, user_name="Zoë")
         coordinator.approve_chore(
             parent_name="Môm Astrid Stârblüm",
@@ -612,7 +621,10 @@ async def test_claimed_chore_not_marked_overdue(
         )
 
     # Claim the chore first
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator.claim_chore(zoë_id, chore_id, user_name="Zoë")
 
     # Set past due date

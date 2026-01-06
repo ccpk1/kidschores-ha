@@ -65,7 +65,10 @@ async def test_cumulative_badge_empty_assigned_to_evaluates_for_all_kids(
     coordinator.kids_data[max_id][DATA_KID_CUMULATIVE_BADGE_PROGRESS] = {}
 
     # Act: Mock notifications and evaluate badges
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator._check_badges_for_kid(zoe_id)
         coordinator._check_badges_for_kid(max_id)
 
@@ -116,7 +119,10 @@ async def test_cumulative_badge_specific_kid_only_evaluates_for_that_kid(
     coordinator.kids_data[max_id][DATA_KID_CUMULATIVE_BADGE_PROGRESS] = {}
 
     # Act: Mock notifications and evaluate badges
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         coordinator._check_badges_for_kid(zoe_id)
         coordinator._check_badges_for_kid(max_id)
 

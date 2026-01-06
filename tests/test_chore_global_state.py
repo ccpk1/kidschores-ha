@@ -100,7 +100,10 @@ async def test_single_kid_global_state_claimed(
     zoe_id = name_to_id_map["kid:Zoë"]
 
     # Mock notifications
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Process claimed state
         coordinator._process_chore_state(zoe_id, feed_cats_id, CHORE_STATE_CLAIMED)
 
@@ -130,7 +133,10 @@ async def test_single_kid_global_state_approved(
     zoe_id = name_to_id_map["kid:Zoë"]
 
     # Mock notifications
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Process approved state
         coordinator._process_chore_state(
             zoe_id, feed_cats_id, CHORE_STATE_APPROVED, points_awarded=10
@@ -222,7 +228,10 @@ async def test_independent_multi_kid_one_claimed(
         reset_chore_state_for_kid(coordinator, kid_id, star_sweep_id)
 
     # Mock notifications
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Set pending_claim_count BEFORE _process_chore_state (it recomputes global state internally)
         zoe_chore_data = coordinator.kids_data[zoe_id][const.DATA_KID_CHORE_DATA][
             star_sweep_id
@@ -264,7 +273,10 @@ async def test_independent_multi_kid_all_approved(
         reset_chore_state_for_kid(coordinator, kid_id, star_sweep_id)
 
     # Mock notifications
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # All kids approve
         for kid_id in [zoe_id, max_id, lila_id]:
             coordinator._process_chore_state(
@@ -366,7 +378,10 @@ async def test_shared_multi_kid_partial_claimed(
         reset_chore_state_for_kid(coordinator, kid_id, star_sweep_id)
 
     # Mock notifications
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Set pending_claim_count BEFORE _process_chore_state (it recomputes global state internally)
         zoe_chore_data = coordinator.kids_data[zoe_id][const.DATA_KID_CHORE_DATA][
             star_sweep_id
@@ -414,7 +429,10 @@ async def test_shared_multi_kid_all_claimed(
         reset_chore_state_for_kid(coordinator, kid_id, star_sweep_id)
 
     # Mock notifications
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # All kids claim
         for kid_id in [zoe_id, max_id, lila_id]:
             coordinator._process_chore_state(kid_id, star_sweep_id, CHORE_STATE_CLAIMED)
@@ -458,7 +476,10 @@ async def test_shared_multi_kid_partial_approved(
         reset_chore_state_for_kid(coordinator, kid_id, star_sweep_id)
 
     # Mock notifications
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Only Zoë approved (partial)
         coordinator._process_chore_state(
             zoe_id, star_sweep_id, CHORE_STATE_APPROVED, points_awarded=20
@@ -503,7 +524,10 @@ async def test_shared_multi_kid_all_approved(
         reset_chore_state_for_kid(coordinator, kid_id, star_sweep_id)
 
     # Mock notifications
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # All kids approve
         for kid_id in [zoe_id, max_id, lila_id]:
             coordinator._process_chore_state(
@@ -552,7 +576,10 @@ async def test_independent_mixed_approved_and_claimed(
         reset_chore_state_for_kid(coordinator, kid_id, star_sweep_id)
 
     # Mock notifications
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Zoë approves
         coordinator._process_chore_state(
             zoe_id, star_sweep_id, CHORE_STATE_APPROVED, points_awarded=20
@@ -600,7 +627,10 @@ async def test_shared_mixed_approved_and_claimed(
         reset_chore_state_for_kid(coordinator, kid_id, star_sweep_id)
 
     # Mock notifications
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Zoë approves
         coordinator._process_chore_state(
             zoe_id, star_sweep_id, CHORE_STATE_APPROVED, points_awarded=20

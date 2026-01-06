@@ -40,7 +40,10 @@ async def test_auto_approve_false_chore_awaits_parent_approval(
     )
 
     # Mock the notification so it doesn't try to send
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Claim the chore
         coordinator.claim_chore(kid_id, chore_id, "test_user")
 
@@ -97,7 +100,10 @@ async def test_auto_approve_true_approves_immediately(
     points_before = kid_info_before.get(const.DATA_KID_POINTS, 0.0)
 
     # Mock the notification so it doesn't send
-    with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Claim the chore
         coordinator.claim_chore(kid_id, chore_id, "test_user")
 
@@ -189,8 +195,11 @@ async def test_parent_can_disapprove_auto_approved_chore(
     # Get points before
     points_before = coordinator.kids_data[kid_id].get(const.DATA_KID_POINTS, 0.0)
 
-    # Mock notifications
-    with patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()):
+    # Mock notifications (need both for claim and disapprove)
+    with (
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+    ):
         # Claim the chore (auto-approved)
         coordinator.claim_chore(kid_id, chore_id, "test_user")
         await asyncio.sleep(0.01)  # Let async task complete
