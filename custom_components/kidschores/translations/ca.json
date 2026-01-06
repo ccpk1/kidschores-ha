@@ -1795,7 +1795,7 @@
   },
   "entity": {
     "sensor": {
-      "chore_status_sensor": {
+      "kid_chore_status_sensor": {
         "name": "Estat de les tasques - {chore_name}",
         "state": {
           "pending": "Pendent",
@@ -1808,6 +1808,12 @@
           "claimed_in_part": "Reclamat (en part)"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_chore_status": "Estat actual d'aquesta tasca específica"
+            }
+          },
           "kid_name": {
             "name": "Nom del nen/a"
           },
@@ -1911,32 +1917,52 @@
       "kid_points_sensor": {
         "name": "{points}",
         "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_points": "Saldo de punts actual per al nen/a"
+            }
+          },
           "description": {
             "name": "Saldo de punts actual: guanya amb les tasques domèstiques, gasta en recompenses"
           }
         }
       },
-      "kid_max_points_ever_sensor": {
+      "kid_points_max_ever_sensor": {
         "name": "Màxim {points} Sempre"
       },
-      "chores_completed_total_sensor": {
+      "system_chore_approvals_sensor": {
         "name": "Tasques completades - Total"
       },
-      "chores_completed_daily_sensor": {
+      "system_chore_approvals_daily_sensor": {
         "name": "Tasques completades - Diàriament"
       },
-      "chores_completed_weekly_sensor": {
+      "system_chore_approvals_weekly_sensor": {
         "name": "Tasques completades - Setmanalment"
       },
-      "chores_completed_monthly_sensor": {
+      "system_chore_approvals_monthly_sensor": {
         "name": "Tasques completades - Mensual"
       },
-      "chores_sensor": {
-        "name": "Tasques domèstiques"
+      "kid_chores_sensor": {
+        "name": "Tasques domèstiques",
+        "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_chores": "Nombre de tasques assignades per estat"
+            }
+          }
+        }
       },
-      "kids_badges_sensor": {
+      "kid_badges_sensor": {
         "name": "Insígnies",
         "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_badges": "Seguiment del progrés dels assoliments d'insígnies"
+            }
+          },
           "kid_name": {
             "name": "Nom del nen/a"
           },
@@ -1957,7 +1983,7 @@
           }
         }
       },
-      "badge_sensor": {
+      "system_badge_sensor": {
         "name": "Insígnia - {badge_name}",
         "state_attributes": {
           "threshold_type": {
@@ -2027,10 +2053,34 @@
           }
         }
       },
-      "pending_chores_approvals_sensor": {
+      "kid_badge_progress_sensor": {
+        "name": "Progrés de la insígnia - {badge_name}",
+        "state_attributes": {
+          "kid_name": {
+            "name": "Nom del nen/a"
+          },
+          "badge_name": {
+            "name": "Nom de la insígnia"
+          },
+          "progress": {
+            "name": "Progrés"
+          },
+          "target": {
+            "name": "Objectiu"
+          },
+          "earned": {
+            "name": "Guanyat",
+            "state": {
+              "true": "Sí",
+              "false": "No"
+            }
+          }
+        }
+      },
+      "system_chores_pending_approval_sensor": {
         "name": "Aprovacions de tasques pendents"
       },
-      "pending_rewards_approvals_sensor": {
+      "system_rewards_pending_approval_sensor": {
         "name": "Aprovacions de recompenses pendents"
       },
       "reward_claims_sensor": {
@@ -2039,7 +2089,7 @@
       "reward_approvals_sensor": {
         "name": "Aprovacions - {reward_name}"
       },
-      "shared_chore_global_status_sensor": {
+      "system_chore_shared_state_sensor": {
         "name": "{chore_name} - Estat global",
         "state": {
           "pending": "Pendent",
@@ -2106,7 +2156,7 @@
           }
         }
       },
-      "reward_status_sensor": {
+      "kid_reward_status_sensor": {
         "name": "Estat de la recompensa - {reward_name}",
         "state": {
           "not_claimed": "No reclamat",
@@ -2145,7 +2195,7 @@
       "chore_approvals_sensor": {
         "name": "Aprovacions - {chore_name}"
       },
-      "penalty_applies_sensor": {
+      "kid_penalty_applied_sensor": {
         "name": "Penalitzacions aplicades - {penalty_name}",
         "state_attributes": {
           "kid_name": {
@@ -2165,7 +2215,7 @@
           }
         }
       },
-      "bonus_applies_sensor": {
+      "kid_bonus_applied_sensor": {
         "name": "S'aplica la bonificació - {bonus_name}",
         "state_attributes": {
           "kid_name": {
@@ -2194,7 +2244,7 @@
       "kid_points_earned_monthly_sensor": {
         "name": "Punts guanyats - Mensualment"
       },
-      "achievement_state_sensor": {
+      "system_achievement_sensor": {
         "name": "Assoliment - {achievement_name}",
         "state_attributes": {
           "achievement_name": {
@@ -2234,7 +2284,7 @@
           }
         }
       },
-      "challenge_state_sensor": {
+      "system_challenge_sensor": {
         "name": "Repte - {challenge_name}",
         "state_attributes": {
           "challenge_name": {
@@ -2279,7 +2329,7 @@
           }
         }
       },
-      "achievement_progress_sensor": {
+      "kid_achievement_progress_sensor": {
         "name": "Progrés - {achievement_name}",
         "state_attributes": {
           "achievement_name": {
@@ -2326,7 +2376,7 @@
           }
         }
       },
-      "challenge_progress_sensor": {
+      "kid_challenge_progress_sensor": {
         "name": "Progrés - {challenge_name}",
         "state_attributes": {
           "challenge_name": {
@@ -2378,7 +2428,7 @@
           }
         }
       },
-      "kid_chores_highest_streak_sensor": {
+      "kid_chore_streak_sensor": {
         "name": "Ratxa de tasques més alta",
         "state_attributes": {
           "streaks_by_achievement": {
@@ -2397,39 +2447,95 @@
           }
         }
       },
-      "dashboard_helper_sensor": {
-        "name": "Ajudant del tauler de control de la interfície d'usuari"
+      "kid_dashboard_helper_sensor": {
+        "name": "Ajudant del tauler de control de la interfície d'usuari",
+        "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_dashboard_helper": "Agrega totes les dades infantils per al consum del tauler de control"
+            }
+          },
+          "chores": {
+            "name": "Tasques domèstiques"
+          },
+          "rewards": {
+            "name": "Recompenses"
+          },
+          "badges": {
+            "name": "Insígnies"
+          },
+          "bonuses": {
+            "name": "Bonificacions"
+          },
+          "penalties": {
+            "name": "Penalitzacions"
+          },
+          "achievements": {
+            "name": "Assoliments"
+          },
+          "challenges": {
+            "name": "Reptes"
+          },
+          "ui_translations": {
+            "name": "Traduccions d'IU"
+          },
+          "points_buttons": {
+            "name": "Botons de punts"
+          },
+          "pending_approvals": {
+            "name": "Aprovacions pendents"
+          },
+          "core_sensors": {
+            "name": "Sensors centrals"
+          },
+          "dashboard_helpers": {
+            "name": "Ajudants del tauler de control"
+          },
+          "chores_by_label": {
+            "name": "Tasques per segell discogràfic"
+          },
+          "kid_name": {
+            "name": "Nom del nen/a"
+          },
+          "language": {
+            "name": "Llengua"
+          }
+        }
       }
     },
     "select": {
-      "chores_select": {
+      "kc_select_base": {
+        "name": "Selecciona la base"
+      },
+      "system_chores_select": {
         "name": "Selecciona una tasca"
       },
-      "rewards_select": {
+      "system_rewards_select": {
         "name": "Selecciona la recompensa"
       },
-      "penalties_select": {
+      "system_penalties_select": {
         "name": "Selecciona la penalització"
       },
-      "bonuses_select": {
+      "system_bonuses_select": {
         "name": "Selecciona el bonus"
       },
-      "chore_list_helper": {
+      "kid_dashboard_helper_chores_select": {
         "name": "Ajudant de llista de tasques del tauler de control de la interfície d'usuari"
       }
     },
     "calendar": {
-      "calendar_name": {
+      "kid_schedule_calendar": {
         "name": "Calendari"
       }
     },
     "datetime": {
-      "date_helper": {
+      "kid_dashboard_helper_datetime_picker": {
         "name": "Ajudant de dates del tauler de control de la interfície d'usuari"
       }
     },
     "button": {
-      "claim_chore_button": {
+      "kid_chore_claim_button": {
         "name": "Reclamació de la tasca - {chore_name}",
         "state_attributes": {
           "labels": {
@@ -2437,7 +2543,7 @@
           }
         }
       },
-      "approve_chore_button": {
+      "parent_chore_approve_button": {
         "name": "Aprova la tasca - {chore_name}",
         "state_attributes": {
           "labels": {
@@ -2445,7 +2551,7 @@
           }
         }
       },
-      "disapprove_chore_button": {
+      "parent_chore_disapprove_button": {
         "name": "Desaprovar la tasca - {chore_name}",
         "state_attributes": {
           "labels": {
@@ -2453,7 +2559,7 @@
           }
         }
       },
-      "claim_reward_button": {
+      "kid_reward_redeem_button": {
         "name": "Reclama la recompensa - {reward_name}",
         "state_attributes": {
           "labels": {
@@ -2461,7 +2567,7 @@
           }
         }
       },
-      "approve_reward_button": {
+      "parent_reward_approve_button": {
         "name": "Aprova la recompensa - {reward_name}",
         "state_attributes": {
           "labels": {
@@ -2469,7 +2575,7 @@
           }
         }
       },
-      "disapprove_reward_button": {
+      "parent_reward_disapprove_button": {
         "name": "Recompensa desaprovada - {reward_name}",
         "state_attributes": {
           "labels": {
@@ -2477,7 +2583,7 @@
           }
         }
       },
-      "penalty_button": {
+      "parent_penalty_apply_button": {
         "name": "Aplica la penalització - {penalty_name}",
         "state_attributes": {
           "labels": {
@@ -2485,7 +2591,7 @@
           }
         }
       },
-      "bonus_button": {
+      "parent_bonus_apply_button": {
         "name": "Aplica la bonificació - {bonus_name}",
         "state_attributes": {
           "labels": {
@@ -2493,7 +2599,7 @@
           }
         }
       },
-      "manual_adjustment_button": {
+      "parent_points_adjust_button": {
         "name": "{sign_label} {points_label}"
       }
     }

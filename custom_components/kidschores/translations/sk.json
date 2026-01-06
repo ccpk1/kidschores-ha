@@ -1795,7 +1795,7 @@
   },
   "entity": {
     "sensor": {
-      "chore_status_sensor": {
+      "kid_chore_status_sensor": {
         "name": "Stav domácej úlohy - {chore_name}",
         "state": {
           "pending": "Čaká sa na spracovanie",
@@ -1808,6 +1808,12 @@
           "claimed_in_part": "Nárokované (čiastočne)"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_chore_status": "Aktuálny stav tejto konkrétnej úlohy"
+            }
+          },
           "kid_name": {
             "name": "Meno dieťaťa"
           },
@@ -1911,32 +1917,52 @@
       "kid_points_sensor": {
         "name": "{points}",
         "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_points": "Aktuálny zostatok bodov pre dieťa"
+            }
+          },
           "description": {
             "name": "Aktuálny zostatok bodov - získajte z domácich prác, míňajte na odmeny"
           }
         }
       },
-      "kid_max_points_ever_sensor": {
+      "kid_points_max_ever_sensor": {
         "name": "Maximálne {points} kedykoľvek"
       },
-      "chores_completed_total_sensor": {
+      "system_chore_approvals_sensor": {
         "name": "Dokončené domáce práce - Celkom"
       },
-      "chores_completed_daily_sensor": {
+      "system_chore_approvals_daily_sensor": {
         "name": "Dokončené domáce práce - denne"
       },
-      "chores_completed_weekly_sensor": {
+      "system_chore_approvals_weekly_sensor": {
         "name": "Dokončené domáce práce - týždenne"
       },
-      "chores_completed_monthly_sensor": {
+      "system_chore_approvals_monthly_sensor": {
         "name": "Dokončené domáce práce - mesačne"
       },
-      "chores_sensor": {
-        "name": "Domáce práce"
+      "kid_chores_sensor": {
+        "name": "Domáce práce",
+        "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_chores": "Počet pridelených domácich úloh podľa stavu"
+            }
+          }
+        }
       },
-      "kids_badges_sensor": {
+      "kid_badges_sensor": {
         "name": "Odznaky",
         "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_badges": "Sledovanie pokroku v získavaní odznakov"
+            }
+          },
           "kid_name": {
             "name": "Meno dieťaťa"
           },
@@ -1957,7 +1983,7 @@
           }
         }
       },
-      "badge_sensor": {
+      "system_badge_sensor": {
         "name": "Odznak - {badge_name}",
         "state_attributes": {
           "threshold_type": {
@@ -2027,10 +2053,34 @@
           }
         }
       },
-      "pending_chores_approvals_sensor": {
+      "kid_badge_progress_sensor": {
+        "name": "Postup pri získavaní odznaku – {badge_name}",
+        "state_attributes": {
+          "kid_name": {
+            "name": "Meno dieťaťa"
+          },
+          "badge_name": {
+            "name": "Názov odznaku"
+          },
+          "progress": {
+            "name": "Pokrok"
+          },
+          "target": {
+            "name": "Cieľ"
+          },
+          "earned": {
+            "name": "Získané",
+            "state": {
+              "true": "Áno",
+              "false": "Nie"
+            }
+          }
+        }
+      },
+      "system_chores_pending_approval_sensor": {
         "name": "Čakajúce schválenia úloh"
       },
-      "pending_rewards_approvals_sensor": {
+      "system_rewards_pending_approval_sensor": {
         "name": "Čaká sa na schválenie odmien"
       },
       "reward_claims_sensor": {
@@ -2039,7 +2089,7 @@
       "reward_approvals_sensor": {
         "name": "Schválenia - {reward_name}"
       },
-      "shared_chore_global_status_sensor": {
+      "system_chore_shared_state_sensor": {
         "name": "{chore_name} - Globálny stav",
         "state": {
           "pending": "Čaká sa na spracovanie",
@@ -2106,7 +2156,7 @@
           }
         }
       },
-      "reward_status_sensor": {
+      "kid_reward_status_sensor": {
         "name": "Stav odmeny - {reward_name}",
         "state": {
           "not_claimed": "Nenárokované",
@@ -2145,7 +2195,7 @@
       "chore_approvals_sensor": {
         "name": "Schválenia - {chore_name}"
       },
-      "penalty_applies_sensor": {
+      "kid_penalty_applied_sensor": {
         "name": "Uložené sankcie - {penalty_name}",
         "state_attributes": {
           "kid_name": {
@@ -2165,7 +2215,7 @@
           }
         }
       },
-      "bonus_applies_sensor": {
+      "kid_bonus_applied_sensor": {
         "name": "Bonus platí - {bonus_name}",
         "state_attributes": {
           "kid_name": {
@@ -2194,7 +2244,7 @@
       "kid_points_earned_monthly_sensor": {
         "name": "Získané body – mesačne"
       },
-      "achievement_state_sensor": {
+      "system_achievement_sensor": {
         "name": "Úspech - {achievement_name}",
         "state_attributes": {
           "achievement_name": {
@@ -2234,7 +2284,7 @@
           }
         }
       },
-      "challenge_state_sensor": {
+      "system_challenge_sensor": {
         "name": "Výzva - {challenge_name}",
         "state_attributes": {
           "challenge_name": {
@@ -2279,7 +2329,7 @@
           }
         }
       },
-      "achievement_progress_sensor": {
+      "kid_achievement_progress_sensor": {
         "name": "Pokrok - {achievement_name}",
         "state_attributes": {
           "achievement_name": {
@@ -2326,7 +2376,7 @@
           }
         }
       },
-      "challenge_progress_sensor": {
+      "kid_challenge_progress_sensor": {
         "name": "Pokrok - {challenge_name}",
         "state_attributes": {
           "challenge_name": {
@@ -2378,7 +2428,7 @@
           }
         }
       },
-      "kid_chores_highest_streak_sensor": {
+      "kid_chore_streak_sensor": {
         "name": "Najvyššia séria domácich prác",
         "state_attributes": {
           "streaks_by_achievement": {
@@ -2397,39 +2447,95 @@
           }
         }
       },
-      "dashboard_helper_sensor": {
-        "name": "Pomocník pre dashboard UI"
+      "kid_dashboard_helper_sensor": {
+        "name": "Pomocník pre dashboard UI",
+        "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_dashboard_helper": "Zhromažďuje všetky údaje o deťoch pre účely používania na ovládacom paneli"
+            }
+          },
+          "chores": {
+            "name": "Domáce práce"
+          },
+          "rewards": {
+            "name": "Odmeny"
+          },
+          "badges": {
+            "name": "Odznaky"
+          },
+          "bonuses": {
+            "name": "Bonusy"
+          },
+          "penalties": {
+            "name": "Tresty"
+          },
+          "achievements": {
+            "name": "Úspechy"
+          },
+          "challenges": {
+            "name": "Výzvy"
+          },
+          "ui_translations": {
+            "name": "Preklady používateľského rozhrania"
+          },
+          "points_buttons": {
+            "name": "Tlačidlá bodov"
+          },
+          "pending_approvals": {
+            "name": "Čakajúce na schválenie"
+          },
+          "core_sensors": {
+            "name": "Základné senzory"
+          },
+          "dashboard_helpers": {
+            "name": "Pomocníci pre dashboard"
+          },
+          "chores_by_label": {
+            "name": "Domáce práce podľa vydavateľstva"
+          },
+          "kid_name": {
+            "name": "Meno dieťaťa"
+          },
+          "language": {
+            "name": "Jazyk"
+          }
+        }
       }
     },
     "select": {
-      "chores_select": {
+      "kc_select_base": {
+        "name": "Vyberte základňu"
+      },
+      "system_chores_select": {
         "name": "Vyberte domácu úlohu"
       },
-      "rewards_select": {
+      "system_rewards_select": {
         "name": "Vyberte odmenu"
       },
-      "penalties_select": {
+      "system_penalties_select": {
         "name": "Vyberte trest"
       },
-      "bonuses_select": {
+      "system_bonuses_select": {
         "name": "Vyberte bonus"
       },
-      "chore_list_helper": {
+      "kid_dashboard_helper_chores_select": {
         "name": "Pomocník pre zoznam úloh na dashboarde používateľského rozhrania"
       }
     },
     "calendar": {
-      "calendar_name": {
+      "kid_schedule_calendar": {
         "name": "Kalendár"
       }
     },
     "datetime": {
-      "date_helper": {
+      "kid_dashboard_helper_datetime_picker": {
         "name": "Pomocník pre dátum na ovládacom paneli používateľského rozhrania"
       }
     },
     "button": {
-      "claim_chore_button": {
+      "kid_chore_claim_button": {
         "name": "Nárok na domácu úlohu - {chore_name}",
         "state_attributes": {
           "labels": {
@@ -2437,7 +2543,7 @@
           }
         }
       },
-      "approve_chore_button": {
+      "parent_chore_approve_button": {
         "name": "Schváliť domácu úlohu - {chore_name}",
         "state_attributes": {
           "labels": {
@@ -2445,7 +2551,7 @@
           }
         }
       },
-      "disapprove_chore_button": {
+      "parent_chore_disapprove_button": {
         "name": "Zamietnuť domácu úlohu - {chore_name}",
         "state_attributes": {
           "labels": {
@@ -2453,7 +2559,7 @@
           }
         }
       },
-      "claim_reward_button": {
+      "kid_reward_redeem_button": {
         "name": "Získajte odmenu - {reward_name}",
         "state_attributes": {
           "labels": {
@@ -2461,7 +2567,7 @@
           }
         }
       },
-      "approve_reward_button": {
+      "parent_reward_approve_button": {
         "name": "Schváliť odmenu - {reward_name}",
         "state_attributes": {
           "labels": {
@@ -2469,7 +2575,7 @@
           }
         }
       },
-      "disapprove_reward_button": {
+      "parent_reward_disapprove_button": {
         "name": "Zamietnuť odmenu - {reward_name}",
         "state_attributes": {
           "labels": {
@@ -2477,15 +2583,15 @@
           }
         }
       },
-      "penalty_button": {
-        "name": "Použiť trest - {penalty_name}",
+      "parent_penalty_apply_button": {
+        "name": "Použiť penalizáciu - {penalty_name}",
         "state_attributes": {
           "labels": {
             "name": "Štítky"
           }
         }
       },
-      "bonus_button": {
+      "parent_bonus_apply_button": {
         "name": "Použiť bonus - {bonus_name}",
         "state_attributes": {
           "labels": {
@@ -2493,7 +2599,7 @@
           }
         }
       },
-      "manual_adjustment_button": {
+      "parent_points_adjust_button": {
         "name": "{sign_label} {points_label}"
       }
     }
