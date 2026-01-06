@@ -2254,7 +2254,12 @@
             "name": "ID entity s ďalším nižším odznakom"
           },
           "badge_status": {
-            "name": "Stav odznaku"
+            "name": "Stav odznaku",
+            "state": {
+              "active": "Aktívne",
+              "grace": "Tolerančná lehota",
+              "demoted": "Znížený"
+            }
           },
           "last_awarded_date": {
             "name": "Dátum posledného udelenia"
@@ -2569,7 +2574,7 @@
           "purpose": {
             "name": "Účel",
             "state": {
-              "purpose_reward_status": "Stav uplatnenia odmeny (neuplatnená, uplatnená, schválená) s históriou uplatnenia a tlačidlami akcie"
+              "purpose_reward_status": "Stav uplatnenia odmien s históriou uplatnení a akčnými tlačidlami"
             }
           },
           "kid_name": {
@@ -2949,23 +2954,68 @@
         "name": "Vyberte bonus"
       },
       "kid_dashboard_helper_chores_select": {
-        "name": "Pomocník pre zoznam úloh na dashboarde používateľského rozhrania"
+        "name": "Pomocník pre zoznam úloh na dashboarde používateľského rozhrania",
+        "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_select_kid_chores": "Výber domácich úloh pre deti na filtrovanie na paneli úloh"
+            }
+          },
+          "kid_name": {
+            "name": "Meno dieťaťa"
+          }
+        }
       }
     },
     "calendar": {
       "kid_schedule_calendar": {
-        "name": "Kalendár"
+        "name": "Kalendár",
+        "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_calendar_schedule": "Kalendár zobrazujúci rozvrh domácich prác dieťaťa a dátumy ich splatnosti"
+            }
+          },
+          "kid_name": {
+            "name": "Meno dieťaťa"
+          }
+        }
       }
     },
     "datetime": {
       "kid_dashboard_helper_datetime_picker": {
-        "name": "Pomocník pre dátum na ovládacom paneli používateľského rozhrania"
+        "name": "Pomocník pre dátum na ovládacom paneli používateľského rozhrania",
+        "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_datetime_dashboard_helper": "Pomocník pre výber dátumu pre filtrovanie a navigáciu v používateľskom rozhraní dashboardu"
+            }
+          },
+          "kid_name": {
+            "name": "Meno dieťaťa"
+          }
+        }
       }
     },
     "button": {
       "kid_chore_claim_button": {
         "name": "Nárok na domácu úlohu - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_button_chore_claim": "Dieťa tvrdí, že splnilo pridelenú domácu úlohu"
+            }
+          },
+          "kid_name": {
+            "name": "Meno dieťaťa"
+          },
+          "chore_name": {
+            "name": "Názov úlohy"
+          },
           "labels": {
             "name": "Štítky"
           }
@@ -2974,6 +3024,18 @@
       "parent_chore_approve_button": {
         "name": "Schváliť domácu úlohu - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_button_chore_approve": "Rodič schvaľuje nárokovanú domácu úlohu"
+            }
+          },
+          "kid_name": {
+            "name": "Meno dieťaťa"
+          },
+          "chore_name": {
+            "name": "Názov úlohy"
+          },
           "labels": {
             "name": "Štítky"
           }
@@ -2982,6 +3044,18 @@
       "parent_chore_disapprove_button": {
         "name": "Zamietnuť domácu úlohu - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_button_chore_disapprove": "Rodič neschválil nárokovanú domácu úlohu"
+            }
+          },
+          "kid_name": {
+            "name": "Meno dieťaťa"
+          },
+          "chore_name": {
+            "name": "Názov úlohy"
+          },
           "labels": {
             "name": "Štítky"
           }
@@ -2990,6 +3064,18 @@
       "kid_reward_redeem_button": {
         "name": "Získajte odmenu - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_button_reward_redeem": "Dieťa si uplatní odmenu pomocou bodov"
+            }
+          },
+          "kid_name": {
+            "name": "Meno dieťaťa"
+          },
+          "reward_name": {
+            "name": "Názov odmeny"
+          },
           "labels": {
             "name": "Štítky"
           }
@@ -2998,6 +3084,18 @@
       "parent_reward_approve_button": {
         "name": "Schváliť odmenu - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_button_reward_approve": "Rodič schvaľuje uplatnenú odmenu"
+            }
+          },
+          "kid_name": {
+            "name": "Meno dieťaťa"
+          },
+          "reward_name": {
+            "name": "Názov odmeny"
+          },
           "labels": {
             "name": "Štítky"
           }
@@ -3006,6 +3104,18 @@
       "parent_reward_disapprove_button": {
         "name": "Zamietnuť odmenu - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_button_reward_disapprove": "Rodič neschválil uplatnenú odmenu"
+            }
+          },
+          "kid_name": {
+            "name": "Meno dieťaťa"
+          },
+          "reward_name": {
+            "name": "Názov odmeny"
+          },
           "labels": {
             "name": "Štítky"
           }
@@ -3014,6 +3124,18 @@
       "parent_penalty_apply_button": {
         "name": "Použiť penalizáciu - {penalty_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_button_penalty_apply": "Rodič uplatní penalizáciu (odpočíta body)"
+            }
+          },
+          "kid_name": {
+            "name": "Meno dieťaťa"
+          },
+          "penalty_name": {
+            "name": "Názov trestu"
+          },
           "labels": {
             "name": "Štítky"
           }
@@ -3022,13 +3144,36 @@
       "parent_bonus_apply_button": {
         "name": "Použiť bonus - {bonus_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_button_bonus_apply": "Rodič uplatňuje bonus (pridáva body)"
+            }
+          },
+          "kid_name": {
+            "name": "Meno dieťaťa"
+          },
+          "bonus_name": {
+            "name": "Názov bonusu"
+          },
           "labels": {
             "name": "Štítky"
           }
         }
       },
       "parent_points_adjust_button": {
-        "name": "{sign_label} {points_label}"
+        "name": "{sign_label} {points_label}",
+        "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_button_points_adjust": "Rodič manuálne upravuje body dieťaťa"
+            }
+          },
+          "kid_name": {
+            "name": "Meno dieťaťa"
+          }
+        }
       }
     }
   },

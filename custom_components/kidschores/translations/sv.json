@@ -2254,7 +2254,12 @@
             "name": "Nästa lägre märkesenhets-ID"
           },
           "badge_status": {
-            "name": "Märkesstatus"
+            "name": "Märkesstatus",
+            "state": {
+              "active": "Aktiv",
+              "grace": "Respitperiod",
+              "demoted": "Degraderad"
+            }
           },
           "last_awarded_date": {
             "name": "Senaste utdelningsdatum"
@@ -2569,7 +2574,7 @@
           "purpose": {
             "name": "Ändamål",
             "state": {
-              "purpose_reward_status": "Status för inlösen av belöningar (ej hämtad, hämtad, godkänd) med anspråkshistorik och åtgärdsknappar"
+              "purpose_reward_status": "Status för belöningsinlösen med anspråkshistorik och åtgärdsknappar"
             }
           },
           "kid_name": {
@@ -2949,23 +2954,68 @@
         "name": "Välj bonus"
       },
       "kid_dashboard_helper_chores_select": {
-        "name": "Hjälp för sysslolista för UI-instrumentpanelen"
+        "name": "Hjälp för sysslolista för UI-instrumentpanelen",
+        "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_select_kid_chores": "Barnens syssloval för instrumentpanelsfiltrering"
+            }
+          },
+          "kid_name": {
+            "name": "Barnets namn"
+          }
+        }
       }
     },
     "calendar": {
       "kid_schedule_calendar": {
-        "name": "Kalender"
+        "name": "Kalender",
+        "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_calendar_schedule": "Kalender som visar barnets sysslor och förfallodatum"
+            }
+          },
+          "kid_name": {
+            "name": "Barnets namn"
+          }
+        }
       }
     },
     "datetime": {
       "kid_dashboard_helper_datetime_picker": {
-        "name": "Datumhjälp för UI-instrumentpanel"
+        "name": "Datumhjälp för UI-instrumentpanel",
+        "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_datetime_dashboard_helper": "Datumvalshjälp för filtrering och navigering av instrumentpanelens användargränssnitt"
+            }
+          },
+          "kid_name": {
+            "name": "Barnets namn"
+          }
+        }
       }
     },
     "button": {
       "kid_chore_claim_button": {
         "name": "Hämta syssla - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_button_chore_claim": "Barnet hävdar att de har slutfört en tilldelad syssla"
+            }
+          },
+          "kid_name": {
+            "name": "Barnets namn"
+          },
+          "chore_name": {
+            "name": "Sysslanamn"
+          },
           "labels": {
             "name": "Etiketter"
           }
@@ -2974,6 +3024,18 @@
       "parent_chore_approve_button": {
         "name": "Godkänn syssla - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_button_chore_approve": "Förälder godkänner begärd syssla"
+            }
+          },
+          "kid_name": {
+            "name": "Barnets namn"
+          },
+          "chore_name": {
+            "name": "Sysslanamn"
+          },
           "labels": {
             "name": "Etiketter"
           }
@@ -2982,6 +3044,18 @@
       "parent_chore_disapprove_button": {
         "name": "Godkänn inte syssla - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_button_chore_disapprove": "Förälder ogillar påstådd syssla"
+            }
+          },
+          "kid_name": {
+            "name": "Barnets namn"
+          },
+          "chore_name": {
+            "name": "Sysslanamn"
+          },
           "labels": {
             "name": "Etiketter"
           }
@@ -2990,6 +3064,18 @@
       "kid_reward_redeem_button": {
         "name": "Hämta belöning - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_button_reward_redeem": "Barnet löser in belöning med poäng"
+            }
+          },
+          "kid_name": {
+            "name": "Barnets namn"
+          },
+          "reward_name": {
+            "name": "Belöningsnamn"
+          },
           "labels": {
             "name": "Etiketter"
           }
@@ -2998,6 +3084,18 @@
       "parent_reward_approve_button": {
         "name": "Godkänn belöning - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_button_reward_approve": "Förälder godkänner inlöst belöning"
+            }
+          },
+          "kid_name": {
+            "name": "Barnets namn"
+          },
+          "reward_name": {
+            "name": "Belöningsnamn"
+          },
           "labels": {
             "name": "Etiketter"
           }
@@ -3006,6 +3104,18 @@
       "parent_reward_disapprove_button": {
         "name": "Avvisa belöning - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_button_reward_disapprove": "Förälder ogillar inlöst belöning"
+            }
+          },
+          "kid_name": {
+            "name": "Barnets namn"
+          },
+          "reward_name": {
+            "name": "Belöningsnamn"
+          },
           "labels": {
             "name": "Etiketter"
           }
@@ -3014,6 +3124,18 @@
       "parent_penalty_apply_button": {
         "name": "Tillämpa straff - {penalty_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_button_penalty_apply": "Förälder tillämpar straff (drar av poäng)"
+            }
+          },
+          "kid_name": {
+            "name": "Barnets namn"
+          },
+          "penalty_name": {
+            "name": "Straffnamn"
+          },
           "labels": {
             "name": "Etiketter"
           }
@@ -3022,13 +3144,36 @@
       "parent_bonus_apply_button": {
         "name": "Använd bonus - {bonus_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_button_bonus_apply": "Förälder tillämpar bonus (lägger till poäng)"
+            }
+          },
+          "kid_name": {
+            "name": "Barnets namn"
+          },
+          "bonus_name": {
+            "name": "Bonusnamn"
+          },
           "labels": {
             "name": "Etiketter"
           }
         }
       },
       "parent_points_adjust_button": {
-        "name": "{sign_label} {points_label}"
+        "name": "{sign_label} {points_label}",
+        "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_button_points_adjust": "Förälder justerar barnets poäng manuellt"
+            }
+          },
+          "kid_name": {
+            "name": "Barnets namn"
+          }
+        }
       }
     }
   },

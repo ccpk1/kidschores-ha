@@ -2254,7 +2254,12 @@
             "name": "Nächstes untergeordnetes Abzeichen Entitäts-ID"
           },
           "badge_status": {
-            "name": "Abzeichenstatus"
+            "name": "Abzeichenstatus",
+            "state": {
+              "active": "Aktiv",
+              "grace": "Nachfrist",
+              "demoted": "Degradiert"
+            }
           },
           "last_awarded_date": {
             "name": "Datum der letzten Vergabe"
@@ -2569,7 +2574,7 @@
           "purpose": {
             "name": "Zweck",
             "state": {
-              "purpose_reward_status": "Prämien-Einlösungsstatus (nicht eingelöst, eingelöst, genehmigt) mit Einlösungshistorie und Aktionsschaltflächen"
+              "purpose_reward_status": "Prämien-Einlösungsstatus mit Einlösungshistorie und Aktionsschaltflächen"
             }
           },
           "kid_name": {
@@ -2949,23 +2954,68 @@
         "name": "Bonus auswählen"
       },
       "kid_dashboard_helper_chores_select": {
-        "name": "UI-Dashboard-Aufgabenlisten-Assistent"
+        "name": "UI-Dashboard-Aufgabenlisten-Assistent",
+        "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_select_kid_chores": "Auswahl der Kinderaufgaben für die Dashboard-Filterung"
+            }
+          },
+          "kid_name": {
+            "name": "Kindername"
+          }
+        }
       }
     },
     "calendar": {
       "kid_schedule_calendar": {
-        "name": "Kalender"
+        "name": "Kalender",
+        "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_calendar_schedule": "Kalender mit dem Aufgabenplan des Kindes und den Abgabeterminen"
+            }
+          },
+          "kid_name": {
+            "name": "Kindername"
+          }
+        }
       }
     },
     "datetime": {
       "kid_dashboard_helper_datetime_picker": {
-        "name": "UI-Dashboard-Datumshilfe"
+        "name": "UI-Dashboard-Datumshilfe",
+        "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_datetime_dashboard_helper": "Datumsauswahlhilfe für die Filterung und Navigation der Dashboard-Benutzeroberfläche"
+            }
+          },
+          "kid_name": {
+            "name": "Kindername"
+          }
+        }
       }
     },
     "button": {
       "kid_chore_claim_button": {
         "name": "Aufgaben übernehmen - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_button_chore_claim": "Kind behauptet, die ihm zugewiesene Aufgabe erledigt zu haben"
+            }
+          },
+          "kid_name": {
+            "name": "Kindername"
+          },
+          "chore_name": {
+            "name": "Aufgabenname"
+          },
           "labels": {
             "name": "Etiketten"
           }
@@ -2974,6 +3024,18 @@
       "parent_chore_approve_button": {
         "name": "Aufgabe genehmigen - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_button_chore_approve": "Elternteil genehmigt die beanspruchte Aufgabe"
+            }
+          },
+          "kid_name": {
+            "name": "Kindername"
+          },
+          "chore_name": {
+            "name": "Aufgabenname"
+          },
           "labels": {
             "name": "Etiketten"
           }
@@ -2982,6 +3044,18 @@
       "parent_chore_disapprove_button": {
         "name": "Aufgabe ablehnen - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_button_chore_disapprove": "Elternteil missbilligt die zugewiesene Aufgabe"
+            }
+          },
+          "kid_name": {
+            "name": "Kindername"
+          },
+          "chore_name": {
+            "name": "Aufgabenname"
+          },
           "labels": {
             "name": "Etiketten"
           }
@@ -2990,6 +3064,18 @@
       "kid_reward_redeem_button": {
         "name": "Belohnung einfordern - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_button_reward_redeem": "Kind löst Prämie mit Punkten ein"
+            }
+          },
+          "kid_name": {
+            "name": "Kindername"
+          },
+          "reward_name": {
+            "name": "Name der Belohnung"
+          },
           "labels": {
             "name": "Etiketten"
           }
@@ -2998,6 +3084,18 @@
       "parent_reward_approve_button": {
         "name": "Belohnung genehmigen - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_button_reward_approve": "Die Eltern genehmigen die Einlösung der Prämie."
+            }
+          },
+          "kid_name": {
+            "name": "Kindername"
+          },
+          "reward_name": {
+            "name": "Name der Belohnung"
+          },
           "labels": {
             "name": "Etiketten"
           }
@@ -3006,6 +3104,18 @@
       "parent_reward_disapprove_button": {
         "name": "Belohnung ablehnen - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_button_reward_disapprove": "Die Eltern sind mit der eingelösten Belohnung nicht einverstanden."
+            }
+          },
+          "kid_name": {
+            "name": "Kindername"
+          },
+          "reward_name": {
+            "name": "Name der Belohnung"
+          },
           "labels": {
             "name": "Etiketten"
           }
@@ -3014,6 +3124,18 @@
       "parent_penalty_apply_button": {
         "name": "Strafe anwenden - {penalty_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_button_penalty_apply": "Elternteil verhängt Strafe (Punkteabzug)"
+            }
+          },
+          "kid_name": {
+            "name": "Kindername"
+          },
+          "penalty_name": {
+            "name": "Strafbezeichnung"
+          },
           "labels": {
             "name": "Etiketten"
           }
@@ -3022,13 +3144,36 @@
       "parent_bonus_apply_button": {
         "name": "Bonus beantragen - {bonus_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_button_bonus_apply": "Elternteil wendet Bonus an (fügt Punkte hinzu)"
+            }
+          },
+          "kid_name": {
+            "name": "Kindername"
+          },
+          "bonus_name": {
+            "name": "Bonusname"
+          },
           "labels": {
             "name": "Etiketten"
           }
         }
       },
       "parent_points_adjust_button": {
-        "name": "{sign_label} {points_label}"
+        "name": "{sign_label} {points_label}",
+        "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_button_points_adjust": "Die Eltern passen die Punkte des Kindes manuell an."
+            }
+          },
+          "kid_name": {
+            "name": "Kindername"
+          }
+        }
       }
     }
   },

@@ -2254,7 +2254,12 @@
             "name": "Volgende lagere badge entiteits-ID"
           },
           "badge_status": {
-            "name": "Badge-status"
+            "name": "Badge-status",
+            "state": {
+              "active": "Actief",
+              "grace": "Respijtperiode",
+              "demoted": "Gedegradeerd"
+            }
           },
           "last_awarded_date": {
             "name": "Datum van laatste toekenning"
@@ -2569,7 +2574,7 @@
           "purpose": {
             "name": "Doel",
             "state": {
-              "purpose_reward_status": "Status van de beloningsverzilvering (niet geclaimd, geclaimd, goedgekeurd) met claimgeschiedenis en actieknoppen"
+              "purpose_reward_status": "Status van beloningsverzilvering met claimgeschiedenis en actieknoppen"
             }
           },
           "kid_name": {
@@ -2949,23 +2954,68 @@
         "name": "Selecteer bonus"
       },
       "kid_dashboard_helper_chores_select": {
-        "name": "UI Dashboard Takenlijst Helper"
+        "name": "UI Dashboard Takenlijst Helper",
+        "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_select_kid_chores": "Keuze van kindertaken voor filteren op het dashboard"
+            }
+          },
+          "kid_name": {
+            "name": "Naam van het kind"
+          }
+        }
       }
     },
     "calendar": {
       "kid_schedule_calendar": {
-        "name": "Kalender"
+        "name": "Kalender",
+        "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_calendar_schedule": "Kalender met het takenrooster en de deadlines voor de klusjes van de kinderen."
+            }
+          },
+          "kid_name": {
+            "name": "Naam van het kind"
+          }
+        }
       }
     },
     "datetime": {
       "kid_dashboard_helper_datetime_picker": {
-        "name": "UI Dashboard Datum Helper"
+        "name": "UI Dashboard Datum Helper",
+        "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_datetime_dashboard_helper": "Datumselectiehulpmiddel voor het filteren en navigeren in de dashboard-UI"
+            }
+          },
+          "kid_name": {
+            "name": "Naam van het kind"
+          }
+        }
       }
     },
     "button": {
       "kid_chore_claim_button": {
         "name": "Claim Chore - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_button_chore_claim": "Kind beweert dat hij/zij de toegewezen taak heeft voltooid"
+            }
+          },
+          "kid_name": {
+            "name": "Naam van het kind"
+          },
+          "chore_name": {
+            "name": "Naam van de klus"
+          },
           "labels": {
             "name": "Labels"
           }
@@ -2974,6 +3024,18 @@
       "parent_chore_approve_button": {
         "name": "Goedkeuringstaak - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_button_chore_approve": "Ouder keurt gevraagde klus goed"
+            }
+          },
+          "kid_name": {
+            "name": "Naam van het kind"
+          },
+          "chore_name": {
+            "name": "Naam van de klus"
+          },
           "labels": {
             "name": "Labels"
           }
@@ -2982,6 +3044,18 @@
       "parent_chore_disapprove_button": {
         "name": "Chore afkeuren - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_button_chore_disapprove": "Ouder keurt opgeëiste klus af"
+            }
+          },
+          "kid_name": {
+            "name": "Naam van het kind"
+          },
+          "chore_name": {
+            "name": "Naam van de klus"
+          },
           "labels": {
             "name": "Labels"
           }
@@ -2990,6 +3064,18 @@
       "kid_reward_redeem_button": {
         "name": "Claim beloning - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_button_reward_redeem": "Kind verzilvert beloning met punten"
+            }
+          },
+          "kid_name": {
+            "name": "Naam van het kind"
+          },
+          "reward_name": {
+            "name": "Naam van de beloning"
+          },
           "labels": {
             "name": "Labels"
           }
@@ -2998,6 +3084,18 @@
       "parent_reward_approve_button": {
         "name": "Beloning goedkeuren - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_button_reward_approve": "Ouder keurt ingewisselde beloning goed"
+            }
+          },
+          "kid_name": {
+            "name": "Naam van het kind"
+          },
+          "reward_name": {
+            "name": "Naam van de beloning"
+          },
           "labels": {
             "name": "Labels"
           }
@@ -3006,6 +3104,18 @@
       "parent_reward_disapprove_button": {
         "name": "Afkeuringsbeloning - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_button_reward_disapprove": "Ouder keurt ingewisselde beloning af"
+            }
+          },
+          "kid_name": {
+            "name": "Naam van het kind"
+          },
+          "reward_name": {
+            "name": "Naam van de beloning"
+          },
           "labels": {
             "name": "Labels"
           }
@@ -3014,6 +3124,18 @@
       "parent_penalty_apply_button": {
         "name": "Straf toepassen - {penalty_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_button_penalty_apply": "Ouder legt straf op (trekt punten af)"
+            }
+          },
+          "kid_name": {
+            "name": "Naam van het kind"
+          },
+          "penalty_name": {
+            "name": "Naam van de straf"
+          },
           "labels": {
             "name": "Labels"
           }
@@ -3022,13 +3144,36 @@
       "parent_bonus_apply_button": {
         "name": "Bonus aanvragen - {bonus_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_button_bonus_apply": "Ouder past bonus toe (voegt punten toe)"
+            }
+          },
+          "kid_name": {
+            "name": "Naam van het kind"
+          },
+          "bonus_name": {
+            "name": "Bonusnaam"
+          },
           "labels": {
             "name": "Labels"
           }
         }
       },
       "parent_points_adjust_button": {
-        "name": "{sign_label} {points_label}"
+        "name": "{sign_label} {points_label}",
+        "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_button_points_adjust": "Ouder past handmatig de punten van het kind aan"
+            }
+          },
+          "kid_name": {
+            "name": "Naam van het kind"
+          }
+        }
       }
     }
   },

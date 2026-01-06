@@ -2254,7 +2254,12 @@
             "name": "Neste lavere merkeenhets-ID"
           },
           "badge_status": {
-            "name": "Merkestatus"
+            "name": "Merkestatus",
+            "state": {
+              "active": "Aktiv",
+              "grace": "Nådeperiode",
+              "demoted": "Degradert"
+            }
           },
           "last_awarded_date": {
             "name": "Siste tildelingsdato"
@@ -2569,7 +2574,7 @@
           "purpose": {
             "name": "Hensikt",
             "state": {
-              "purpose_reward_status": "Status for innløsning av belønning (ikke gjort krav på, gjort krav på, godkjent) med kravhistorikk og handlingsknapper"
+              "purpose_reward_status": "Status for belønningsinnløsning med kravhistorikk og handlingsknapper"
             }
           },
           "kid_name": {
@@ -2949,23 +2954,68 @@
         "name": "Velg bonus"
       },
       "kid_dashboard_helper_chores_select": {
-        "name": "Hjelpemiddel for gjøremålsliste for brukergrensesnitt"
+        "name": "Hjelpemiddel for gjøremålsliste for brukergrensesnitt",
+        "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_select_kid_chores": "Barns gjøremålsvalg for dashbordfiltrering"
+            }
+          },
+          "kid_name": {
+            "name": "Barnenavn"
+          }
+        }
       }
     },
     "calendar": {
       "kid_schedule_calendar": {
-        "name": "Kalender"
+        "name": "Kalender",
+        "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_calendar_schedule": "Kalender som viser barnets gjøremålsplan og forfallsdatoer"
+            }
+          },
+          "kid_name": {
+            "name": "Barnenavn"
+          }
+        }
       }
     },
     "datetime": {
       "kid_dashboard_helper_datetime_picker": {
-        "name": "Datohjelper for brukergrensesnittsdashbord"
+        "name": "Datohjelper for brukergrensesnittsdashbord",
+        "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_datetime_dashboard_helper": "Datovalgshjelper for filtrering og navigering av dashbordgrensesnitt"
+            }
+          },
+          "kid_name": {
+            "name": "Barnenavn"
+          }
+        }
       }
     },
     "button": {
       "kid_chore_claim_button": {
         "name": "Krev gjøremål - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_button_chore_claim": "Barnet hevder å ha fullført tildelt gjøremål"
+            }
+          },
+          "kid_name": {
+            "name": "Barnenavn"
+          },
+          "chore_name": {
+            "name": "Navn på gjøremål"
+          },
           "labels": {
             "name": "Etiketter"
           }
@@ -2974,6 +3024,18 @@
       "parent_chore_approve_button": {
         "name": "Godkjenn gjøremål - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_button_chore_approve": "Foreldre godkjenner påstått gjøremål"
+            }
+          },
+          "kid_name": {
+            "name": "Barnenavn"
+          },
+          "chore_name": {
+            "name": "Navn på gjøremål"
+          },
           "labels": {
             "name": "Etiketter"
           }
@@ -2982,6 +3044,18 @@
       "parent_chore_disapprove_button": {
         "name": "Ikke godkjenn gjøremål - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_button_chore_disapprove": "Forelder misliker påstått gjøremål"
+            }
+          },
+          "kid_name": {
+            "name": "Barnenavn"
+          },
+          "chore_name": {
+            "name": "Navn på gjøremål"
+          },
           "labels": {
             "name": "Etiketter"
           }
@@ -2990,6 +3064,18 @@
       "kid_reward_redeem_button": {
         "name": "Krev belønning - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_button_reward_redeem": "Barnet løser inn belønning med poeng"
+            }
+          },
+          "kid_name": {
+            "name": "Barnenavn"
+          },
+          "reward_name": {
+            "name": "Belønningsnavn"
+          },
           "labels": {
             "name": "Etiketter"
           }
@@ -2998,6 +3084,18 @@
       "parent_reward_approve_button": {
         "name": "Godkjenn belønning - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_button_reward_approve": "Forelder godkjenner innløst belønning"
+            }
+          },
+          "kid_name": {
+            "name": "Barnenavn"
+          },
+          "reward_name": {
+            "name": "Belønningsnavn"
+          },
           "labels": {
             "name": "Etiketter"
           }
@@ -3006,6 +3104,18 @@
       "parent_reward_disapprove_button": {
         "name": "Avvis belønning - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_button_reward_disapprove": "Forelder avviser innløst belønning"
+            }
+          },
+          "kid_name": {
+            "name": "Barnenavn"
+          },
+          "reward_name": {
+            "name": "Belønningsnavn"
+          },
           "labels": {
             "name": "Etiketter"
           }
@@ -3014,6 +3124,18 @@
       "parent_penalty_apply_button": {
         "name": "Bruk straff - {penalty_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_button_penalty_apply": "Forelder bruker straff (trekker fra poeng)"
+            }
+          },
+          "kid_name": {
+            "name": "Barnenavn"
+          },
+          "penalty_name": {
+            "name": "Navn på straff"
+          },
           "labels": {
             "name": "Etiketter"
           }
@@ -3022,13 +3144,36 @@
       "parent_bonus_apply_button": {
         "name": "Bruk bonus - {bonus_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_button_bonus_apply": "Forelder bruker bonus (legger til poeng)"
+            }
+          },
+          "kid_name": {
+            "name": "Barnenavn"
+          },
+          "bonus_name": {
+            "name": "Bonusnavn"
+          },
           "labels": {
             "name": "Etiketter"
           }
         }
       },
       "parent_points_adjust_button": {
-        "name": "{sign_label} {points_label}"
+        "name": "{sign_label} {points_label}",
+        "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_button_points_adjust": "Foreldre justerer barnets poeng manuelt"
+            }
+          },
+          "kid_name": {
+            "name": "Barnenavn"
+          }
+        }
       }
     }
   },

@@ -2254,7 +2254,12 @@
             "name": "ID d'entitat de la insígnia següent"
           },
           "badge_status": {
-            "name": "Estat de la insígnia"
+            "name": "Estat de la insígnia",
+            "state": {
+              "active": "Actiu",
+              "grace": "Període de gràcia",
+              "demoted": "degradat"
+            }
           },
           "last_awarded_date": {
             "name": "Data de l'última adjudicació"
@@ -2569,7 +2574,7 @@
           "purpose": {
             "name": "Propòsit",
             "state": {
-              "purpose_reward_status": "Estat del bescanvi de la recompensa (no reclamada, reclamada, aprovada) amb l'historial de reclamacions i els botons d'acció"
+              "purpose_reward_status": "Estat del bescanvi de recompenses amb historial de reclamacions i botons d'acció"
             }
           },
           "kid_name": {
@@ -2949,23 +2954,68 @@
         "name": "Selecciona el bonus"
       },
       "kid_dashboard_helper_chores_select": {
-        "name": "Ajudant de llista de tasques del tauler de control de la interfície d'usuari"
+        "name": "Ajudant de llista de tasques del tauler de control de la interfície d'usuari",
+        "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_select_kid_chores": "Selecció de tasques infantils per al filtratge del tauler de control"
+            }
+          },
+          "kid_name": {
+            "name": "Nom del nen/a"
+          }
+        }
       }
     },
     "calendar": {
       "kid_schedule_calendar": {
-        "name": "Calendari"
+        "name": "Calendari",
+        "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_calendar_schedule": "Calendari que mostra l'horari de les tasques dels nens i les dates de venciment"
+            }
+          },
+          "kid_name": {
+            "name": "Nom del nen/a"
+          }
+        }
       }
     },
     "datetime": {
       "kid_dashboard_helper_datetime_picker": {
-        "name": "Ajudant de dates del tauler de control de la interfície d'usuari"
+        "name": "Ajudant de dates del tauler de control de la interfície d'usuari",
+        "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_datetime_dashboard_helper": "Assistent de selecció de dates per al filtratge i la navegació de la interfície d'usuari del tauler de control"
+            }
+          },
+          "kid_name": {
+            "name": "Nom del nen/a"
+          }
+        }
       }
     },
     "button": {
       "kid_chore_claim_button": {
         "name": "Reclamació de la tasca - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_button_chore_claim": "Un nen afirma haver acabat la tasca assignada"
+            }
+          },
+          "kid_name": {
+            "name": "Nom del nen/a"
+          },
+          "chore_name": {
+            "name": "Nom de la tasca"
+          },
           "labels": {
             "name": "Etiquetes"
           }
@@ -2974,6 +3024,18 @@
       "parent_chore_approve_button": {
         "name": "Aprova la tasca - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_button_chore_approve": "El pare o la mare aprova la tasca reclamada"
+            }
+          },
+          "kid_name": {
+            "name": "Nom del nen/a"
+          },
+          "chore_name": {
+            "name": "Nom de la tasca"
+          },
           "labels": {
             "name": "Etiquetes"
           }
@@ -2982,6 +3044,18 @@
       "parent_chore_disapprove_button": {
         "name": "Desaprovar la tasca - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_button_chore_disapprove": "El pare o la mare desaprova la tasca reclamada"
+            }
+          },
+          "kid_name": {
+            "name": "Nom del nen/a"
+          },
+          "chore_name": {
+            "name": "Nom de la tasca"
+          },
           "labels": {
             "name": "Etiquetes"
           }
@@ -2990,6 +3064,18 @@
       "kid_reward_redeem_button": {
         "name": "Reclama la recompensa - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_button_reward_redeem": "El nen bescanvia la recompensa amb punts"
+            }
+          },
+          "kid_name": {
+            "name": "Nom del nen/a"
+          },
+          "reward_name": {
+            "name": "Nom de la recompensa"
+          },
           "labels": {
             "name": "Etiquetes"
           }
@@ -2998,6 +3084,18 @@
       "parent_reward_approve_button": {
         "name": "Aprova la recompensa - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_button_reward_approve": "El pare o la mare aprova la recompensa bescanviada"
+            }
+          },
+          "kid_name": {
+            "name": "Nom del nen/a"
+          },
+          "reward_name": {
+            "name": "Nom de la recompensa"
+          },
           "labels": {
             "name": "Etiquetes"
           }
@@ -3006,6 +3104,18 @@
       "parent_reward_disapprove_button": {
         "name": "Recompensa desaprovada - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_button_reward_disapprove": "El pare o la mare no aproven la recompensa bescanviada"
+            }
+          },
+          "kid_name": {
+            "name": "Nom del nen/a"
+          },
+          "reward_name": {
+            "name": "Nom de la recompensa"
+          },
           "labels": {
             "name": "Etiquetes"
           }
@@ -3014,6 +3124,18 @@
       "parent_penalty_apply_button": {
         "name": "Aplica la penalització - {penalty_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_button_penalty_apply": "El pare aplica la penalització (resta punts)"
+            }
+          },
+          "kid_name": {
+            "name": "Nom del nen/a"
+          },
+          "penalty_name": {
+            "name": "Nom de la penalització"
+          },
           "labels": {
             "name": "Etiquetes"
           }
@@ -3022,13 +3144,36 @@
       "parent_bonus_apply_button": {
         "name": "Aplica la bonificació - {bonus_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_button_bonus_apply": "El pare aplica la bonificació (afegeix punts)"
+            }
+          },
+          "kid_name": {
+            "name": "Nom del nen/a"
+          },
+          "bonus_name": {
+            "name": "Nom de la bonificació"
+          },
           "labels": {
             "name": "Etiquetes"
           }
         }
       },
       "parent_points_adjust_button": {
-        "name": "{sign_label} {points_label}"
+        "name": "{sign_label} {points_label}",
+        "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_button_points_adjust": "El pare o la mare ajusta manualment els punts del nen/a"
+            }
+          },
+          "kid_name": {
+            "name": "Nom del nen/a"
+          }
+        }
       }
     }
   },
