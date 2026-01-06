@@ -13,15 +13,16 @@
 | ---------------------------------- | ----------------------------------------- | ---------- | ------------------------------------ |
 | Phase 1 – Critical Sensors         | Dashboard Helper, Points & Chore Status   | 100%       | **COMPLETE** ✅                      |
 | Phase 1B – Translation Key Cleanup | Standardize all entity translation keys   | 100%       | **COMPLETE** ✅ (38 keys renamed)    |
-| Phase 2 – Secondary Sensors        | Badges & Chores sensors                   | 0%         | 18+ missing attributes, gamification |
+| Phase 1C – Attribute Translation   | Complete attribute translations per sensor| 100%       | **COMPLETE** ✅ (4 sensors, 110 attrs) |
+| Phase 2 – Secondary Sensors        | Remaining sensor attribute translations   | 10%        | system_badge_sensor complete         |
 | Phase 3 – Infrastructure           | Constants, validation & testing framework | 0%         | Translation system robustness        |
 | Phase 4 – Validation & QA          | Comprehensive testing & documentation     | 0%         | Quality assurance & rollout          |
 
 1. **Key objective** – Implement comprehensive state_attributes translations for all statistical sensors, prioritizing user-visible dashboard data and core metrics (points, chores, badges) to provide human-readable attribute names instead of raw technical keys. Includes complete PURPOSE attribute translation system (label + values).
 
-2. **Summary of recent work** – Planning phase: comprehensive audit revealed 88+ missing attribute translations across 5 critical sensors, with KidDashboardHelperSensor having highest impact (40+ attributes) followed by points/chore status sensors (30+ attributes combined). Added PURPOSE value translation requirements.
+2. **Summary of recent work** – Phase 2 started (2026-01-06): Fixed `system_badge_sensor` - added `unit_of_measurement: "kids"` (since state is count of kids earned), corrected purpose text from "Badge definition and configuration" to "Number of kids who have earned this badge". Verified `kid_chore_status_sensor` is complete (no additional code fixes needed). Both sensors confirmed using proper constant patterns with no hardcoded friendly_name.
 
-3. **Next steps (short term)** – Begin Phase 1 with KidDashboardHelperSensor attribute analysis, create translation constants framework (including PURPOSE*SENSOR*_ → TRANS*KEY_PURPOSE*_ conversion), implement dashboard helper state_attributes section, validate UI translation display.
+3. **Next steps (short term)** – Continue Phase 2 with `system_chore_shared_state_sensor`, then proceed through system achievement/challenge sensors and kid progress sensors.
 
 4. **Risks / blockers** – Translation file size growth (~350 lines including purpose values), constant synchronization maintenance burden across const.py ↔ en.json ↔ sensor implementations. Performance impact assessment removed (HA standard translation system).
 
@@ -130,18 +131,60 @@
   - ✅ Translation key management: Need 85+ new constants (70+ TRANS*KEY_ATTR*_ + 15 TRANS*KEY_PURPOSE*_)
   - ✅ PURPOSE attribute: Two-level translation (attribute name + 15 purpose description values)
 
+### Phase 1C – Attribute Translation Completion
+
+- **Goal**: Complete comprehensive attribute translations for all Phase 1 critical sensors, ensuring every exposed attribute has a translated name and any enumerated values have state translations.
+
+- **Completed** (2026-01-06): Systematic sensor-by-sensor attribute translation:
+
+  **kid_chores_sensor** (29 attributes):
+  - Added `ATTR_PREFIX_CHORE_STAT` constant, 29 `chore_stat_*` attribute translations
+  - Removed hardcoded `friendly_name`, added translated `unit_of_measurement`
+  - Fixed purpose text to accurately describe sensor state
+
+  **kid_points_sensor** (27 attributes):
+  - Added `ATTR_PREFIX_POINT_STAT` constant, 27 `point_stat_*` attribute translations
+  - Removed hardcoded `friendly_name` (unit_of_measurement uses user-configured points_label)
+  - Fixed purpose text, added `kid_name` translation
+
+  **kid_badges_sensor** (23 attributes):
+  - Added 18 missing badge attributes (current/next/highest badge refs, maintenance dates, etc.)
+  - Removed orphaned `points_multiplier` (not used by sensor)
+  - Fixed purpose text
+
+  **kid_chore_status_sensor** (31 attributes):
+  - Added 16 missing attributes (timestamps, computed flags, button entity IDs)
+  - Added `completed_by_other` state, state translations for `completion_criteria` and `approval_reset_type`
+  - Reorganized attributes to match sensor code structure
+
+  **Orphan cleanup:**
+  - Removed 5 unused sensor translation keys (reward_claims_sensor, reward_approvals_sensor, chore_claims_sensor, chore_approvals_sensor, chore_streak_sensor)
+
+- **Key patterns established:**
+  - Remove `friendly_name` from extra_state_attributes (HA auto-generates)
+  - Use `unit_of_measurement` in translation for non-standard units (or keep as property for user-configured values)
+  - Attribute prefixes should be constants (`ATTR_PREFIX_*`)
+  - Purpose text should describe what the sensor state value represents
+
 ### Phase 2 – Secondary Sensors
 
-- **Goal**: Complete state_attributes translations for remaining sensors: KidBadgesSensor (10+ attributes) and KidChoresSensor (8+ attributes) to achieve 100% sensor attribute translation coverage.
+- **Goal**: Complete state_attributes translations for remaining sensors to achieve 100% sensor attribute translation coverage.
 
 - **Steps / detailed work items**
 
-  1. [ ] Analyze KidBadgesSensor attribute structure in [sensor.py](../../custom_components/kidschores/sensor.py)
-     - [ ] Document badge metadata, counts, maintenance flags
-     - [ ] Map attribute keys to user-friendly descriptions
-  2. [ ] Analyze KidChoresSensor attribute structure in [sensor.py](../../custom_components/kidschores/sensor.py)
-     - [ ] Document chore lists, status summaries, historical data
-     - [ ] Identify most user-relevant attributes
+  1. [~] System sensors attribute translations
+     - [x] `system_badge_sensor` - badge definition attributes (14 attrs, added unit_of_measurement, fixed purpose)
+     - [ ] `system_chore_shared_state_sensor` - shared chore state attributes
+     - [ ] `system_achievement_sensor` - achievement definition attributes
+     - [ ] `system_challenge_sensor` - challenge definition attributes
+  2. [ ] Kid progress sensors attribute translations
+     - [ ] `kid_badge_progress_sensor` - individual badge progress
+     - [ ] `kid_reward_status_sensor` - reward claim/approval status
+     - [ ] `kid_achievement_progress_sensor` - achievement tracking
+     - [ ] `kid_challenge_progress_sensor` - challenge participation
+  3. [ ] Legacy sensors (if needed)
+     - [ ] Verify legacy sensors have basic translations
+     - [ ] Add missing attributes as needed
   3. [ ] Create remaining translation constants in [const.py](../../custom_components/kidschores/const.py)
      - [ ] Add ~10 TRANS*KEY_ENTITY_ATTR_BADGES*\* constants
      - [ ] Add ~8 TRANS*KEY_ENTITY_ATTR_CHORES*\* constants

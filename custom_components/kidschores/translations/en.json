@@ -1805,13 +1805,14 @@
           "unknown": "Unknown",
           "none": "None",
           "approved_in_part": "Approved (in-part)",
-          "claimed_in_part": "Claimed (in-part)"
+          "claimed_in_part": "Claimed (in-part)",
+          "completed_by_other": "Completed by Other"
         },
         "state_attributes": {
           "purpose": {
             "name": "Purpose",
             "state": {
-              "purpose_chore_status": "Current status of this specific chore"
+              "purpose_chore_status": "Tracks status and statistics for this specific chore"
             }
           },
           "kid_name": {
@@ -1820,11 +1821,37 @@
           "chore_name": {
             "name": "Chore Name"
           },
-          "shared_chore": {
-            "name": "Shared Chore",
+          "chore_icon": {
+            "name": "Chore Icon"
+          },
+          "description": {
+            "name": "Description"
+          },
+          "assigned_kids": {
+            "name": "Assigned Kids"
+          },
+          "labels": {
+            "name": "Labels"
+          },
+          "default_points": {
+            "name": "Default Points"
+          },
+          "completion_criteria": {
+            "name": "Completion Criteria",
             "state": {
-              "true": "Yes",
-              "false": "No"
+              "independent": "Independent",
+              "shared_first_only": "Shared (First Only)",
+              "shared_all_required": "Shared (All Required)"
+            }
+          },
+          "approval_reset_type": {
+            "name": "Approval Reset Type",
+            "state": {
+              "at_midnight_once": "Once per Day",
+              "at_midnight_multi": "Multiple per Day",
+              "at_due_date_once": "Once per Due Date",
+              "at_due_date_multi": "Multiple per Due Date",
+              "upon_completion": "Upon Completion"
             }
           },
           "recurring_frequency": {
@@ -1853,23 +1880,55 @@
           "due_date": {
             "name": "Due Date"
           },
-          "default_points": {
-            "name": "Default Points"
+          "custom_frequency_interval": {
+            "name": "Custom Frequency Interval"
           },
-          "description": {
-            "name": "Description"
+          "custom_frequency_unit": {
+            "name": "Custom Frequency Unit",
+            "state": {
+              "days": "Days",
+              "weeks": "Weeks",
+              "months": "Months"
+            }
           },
-          "chore_claims_count": {
-            "name": "Chore Claims Count"
+          "chore_points_earned": {
+            "name": "Points Earned"
           },
           "chore_approvals_count": {
-            "name": "Chore Approvals Count"
+            "name": "Approvals (All Time)"
+          },
+          "chore_claims_count": {
+            "name": "Claims (All Time)"
+          },
+          "chore_disapproved_count": {
+            "name": "Disapprovals (All Time)"
+          },
+          "chore_overdue_count": {
+            "name": "Overdue (All Time)"
+          },
+          "chore_approvals_today": {
+            "name": "Approvals Today"
           },
           "chore_current_streak": {
-            "name": "Chore Current Streak"
+            "name": "Current Streak"
           },
           "chore_highest_streak": {
-            "name": "Chore Highest Streak"
+            "name": "Highest Streak"
+          },
+          "chore_last_longest_streak_date": {
+            "name": "Last Longest Streak Date"
+          },
+          "last_claimed": {
+            "name": "Last Claimed"
+          },
+          "last_approved": {
+            "name": "Last Approved"
+          },
+          "last_disapproved": {
+            "name": "Last Disapproved"
+          },
+          "last_overdue": {
+            "name": "Last Overdue"
           },
           "global_state": {
             "name": "Global State",
@@ -1885,32 +1944,28 @@
               "independent": "Independent"
             }
           },
-          "allow_multiple_claims_per_day": {
-            "name": "Allow Multiple Claims per Day",
+          "can_claim": {
+            "name": "Can Claim",
             "state": {
               "true": "Yes",
               "false": "No"
             }
           },
-          "assigned_kids": {
-            "name": "Assigned Kids"
-          },
-          "custom_frequency_interval": {
-            "name": "Custom Frequency"
-          },
-          "custom_frequency_unit": {
-            "name": "Custom Frequency Period",
+          "can_approve": {
+            "name": "Can Approve",
             "state": {
-              "days": "Days",
-              "weeks": "Weeks",
-              "months": "Months"
+              "true": "Yes",
+              "false": "No"
             }
           },
-          "chore_approvals_today": {
-            "name": "Chore Approvals Today"
+          "approve_button_eid": {
+            "name": "Approve Button Entity ID"
           },
-          "labels": {
-            "name": "Labels"
+          "disapprove_button_eid": {
+            "name": "Disapprove Button Entity ID"
+          },
+          "claim_button_eid": {
+            "name": "Claim Button Entity ID"
           }
         }
       },
@@ -2159,11 +2214,14 @@
           "purpose": {
             "name": "Purpose",
             "state": {
-              "purpose_badges": "Progress tracking for badge achievements"
+              "purpose_badges": "Tracks cumulative badge progress and cycles as well as all badges earned"
             }
           },
           "kid_name": {
             "name": "Kid Name"
+          },
+          "labels": {
+            "name": "Labels"
           },
           "all_earned_badges": {
             "name": "All Earned Badges"
@@ -2171,69 +2229,109 @@
           "highest_badge_threshold_value": {
             "name": "Highest Badge Threshold"
           },
-          "points_multiplier": {
-            "name": "Points Multiplier"
-          },
           "points_to_next_badge": {
             "name": "Points to Next Badge"
           },
-          "labels": {
-            "name": "Labels"
+          "current_badge_name": {
+            "name": "Current Badge Name"
+          },
+          "current_badge_eid": {
+            "name": "Current Badge Entity ID"
+          },
+          "highest_earned_badge_name": {
+            "name": "Highest Earned Badge Name"
+          },
+          "next_higher_badge_name": {
+            "name": "Next Higher Badge Name"
+          },
+          "next_higher_badge_eid": {
+            "name": "Next Higher Badge Entity ID"
+          },
+          "next_lower_badge_name": {
+            "name": "Next Lower Badge Name"
+          },
+          "next_lower_badge_eid": {
+            "name": "Next Lower Badge Entity ID"
+          },
+          "badge_status": {
+            "name": "Badge Status"
+          },
+          "last_awarded_date": {
+            "name": "Last Awarded Date"
+          },
+          "award_count": {
+            "name": "Award Count"
+          },
+          "description": {
+            "name": "Description"
+          },
+          "baseline_points": {
+            "name": "Baseline Points"
+          },
+          "cycle_points": {
+            "name": "Cycle Points"
+          },
+          "maintenance_grace_end_date": {
+            "name": "Maintenance Grace End Date"
+          },
+          "maintenance_points_required": {
+            "name": "Maintenance Points Required"
+          },
+          "maintenance_end_date": {
+            "name": "Maintenance End Date"
+          },
+          "maintenance_points_remaining": {
+            "name": "Maintenance Points Remaining"
+          },
+          "reset_schedule": {
+            "name": "Reset Schedule"
+          },
+          "target": {
+            "name": "Target"
+          },
+          "awards": {
+            "name": "Awards"
           }
         }
       },
       "system_badge_sensor": {
         "name": "Badge - {badge_name}",
+        "unit_of_measurement": "kids",
         "state_attributes": {
-          "threshold_type": {
-            "name": "Threshold Type",
+          "purpose": {
+            "name": "Purpose",
             "state": {
-              "points": "Points",
-              "chore_count": "Chore Count"
+              "purpose_badge": "Number of kids who have earned this badge"
             }
           },
-          "points_multiplier": {
-            "name": "Points Multiplier"
+          "badge_name": {
+            "name": "Badge Name"
           },
           "description": {
             "name": "Description"
           },
-          "award_points": {
-            "name": "Award Points"
-          },
-          "award_reward": {
-            "name": "Award Reward"
-          },
-          "kids_earned": {
-            "name": "Kids Earned"
+          "badge_type": {
+            "name": "Badge Type",
+            "state": {
+              "cumulative": "Cumulative",
+              "achievement": "Achievement",
+              "challenge": "Challenge",
+              "daily": "Daily",
+              "periodic": "Periodic",
+              "special": "Special"
+            }
           },
           "labels": {
             "name": "Labels"
           },
-          "threshold_value": {
-            "name": "Threshold Value"
+          "kids_earned": {
+            "name": "Kids Earned"
           },
-          "reset_schedule": {
-            "name": "Reset Schedule"
+          "kids_assigned": {
+            "name": "Kids Assigned"
           },
-          "start_date": {
-            "name": "Start Date"
-          },
-          "end_date": {
-            "name": "End Date"
-          },
-          "recurrent": {
-            "name": "Recurrent",
-            "state": {
-              "true": "Yes",
-              "false": "No"
-            }
-          },
-          "daily_threshold": {
-            "name": "Daily Threshold"
-          },
-          "required_chores": {
-            "name": "Required Chores"
+          "target": {
+            "name": "Target"
           },
           "associated_achievement": {
             "name": "Associated Achievement"
@@ -2244,11 +2342,14 @@
           "occasion_type": {
             "name": "Occasion Type"
           },
-          "trigger_info": {
-            "name": "Trigger Info"
+          "required_chores": {
+            "name": "Required Chores"
           },
-          "occasion_date": {
-            "name": "Occasion Date"
+          "badge_awards": {
+            "name": "Badge Awards"
+          },
+          "reset_schedule": {
+            "name": "Reset Schedule"
           }
         }
       },
