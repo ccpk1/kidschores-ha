@@ -1361,6 +1361,33 @@
         "special_occasion": "Speciellt tillfälle"
       }
     },
+    "target_type": {
+      "options": {
+        "points": "Poäng",
+        "points_chores": "Poäng från sysslor",
+        "chore_count": "Antal sysslor",
+        "days_all_chores": "Dagar valda sysslor slutförda",
+        "days_80pct_chores": "Dagar då 80 % av valda sysslor slutfördes",
+        "days_all_chores_no_overdue": "Dagar valda sysslor slutförda (inga försenade)",
+        "days_all_due_chores": "Valda dagar förfallna sysslor slutförda",
+        "days_80pct_due_chores": "Dagar då 80 % av valda sysslor är slutförda",
+        "days_all_due_chores_no_overdue": "Valda dagar förfallna sysslor slutförda (inga försenade)",
+        "days_min_3_chores": "Minst 3 dagars sysslor utförda",
+        "days_min_5_chores": "Minst 5 dagar avklarade sysslor",
+        "days_min_7_chores": "Minst 7 dagar avklarade sysslor",
+        "streak_all_chores": "Serie: Valda sysslor slutförda",
+        "streak_80pct_chores": "Serie: 80 % av valda sysslor slutförda",
+        "streak_all_chores_no_overdue": "Serie: Valda sysslor slutförda (inga försenade)",
+        "streak_80pct_due_chores": "Sträcka: 80 % av valda sysslor slutförda",
+        "streak_all_due_chores_no_overdue": "Serie: Valda sysslor slutförda (inga försenade)"
+      }
+    },
+    "award_items": {
+      "options": {
+        "points": "Poäng",
+        "multiplier": "Poängmultiplikator"
+      }
+    },
     "award_mode": {
       "options": {
         "award_none": "Ingen",

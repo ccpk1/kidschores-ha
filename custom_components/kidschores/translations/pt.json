@@ -1361,6 +1361,33 @@
         "special_occasion": "Ocasião Especial"
       }
     },
+    "target_type": {
+      "options": {
+        "points": "Pontos",
+        "points_chores": "Pontos obtidos com as tarefas domésticas",
+        "chore_count": "Contagem de tarefas",
+        "days_all_chores": "Dias com tarefas selecionadas concluídas",
+        "days_80pct_chores": "Dias em que 80% das tarefas selecionadas foram concluídas.",
+        "days_all_chores_no_overdue": "Dias com tarefas selecionadas concluídas (sem atrasos)",
+        "days_all_due_chores": "Dias selecionados para a conclusão das tarefas",
+        "days_80pct_due_chores": "Dias em que 80% das tarefas selecionadas foram concluídas.",
+        "days_all_due_chores_no_overdue": "Dias selecionados para entrega das tarefas concluídas (sem atrasos)",
+        "days_min_3_chores": "Dias com um mínimo de 3 tarefas concluídas",
+        "days_min_5_chores": "Dias com um mínimo de 5 tarefas concluídas",
+        "days_min_7_chores": "Dias: Mínimo de 7 tarefas concluídas",
+        "streak_all_chores": "Sequência: Tarefas selecionadas concluídas",
+        "streak_80pct_chores": "Sequência: 80% das tarefas selecionadas concluídas",
+        "streak_all_chores_no_overdue": "Sequência: Tarefas selecionadas concluídas (sem atrasos)",
+        "streak_80pct_due_chores": "Sequência: 80% das tarefas selecionadas concluídas.",
+        "streak_all_due_chores_no_overdue": "Sequência: Tarefas selecionadas concluídas (sem atrasos)"
+      }
+    },
+    "award_items": {
+      "options": {
+        "points": "Pontos",
+        "multiplier": "Multiplicador de Pontos"
+      }
+    },
     "award_mode": {
       "options": {
         "award_none": "Nenhum",

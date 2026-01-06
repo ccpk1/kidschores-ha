@@ -1361,6 +1361,33 @@
         "special_occasion": "Ocasión especial"
       }
     },
+    "target_type": {
+      "options": {
+        "points": "Agujas",
+        "points_chores": "Puntos de las tareas domésticas",
+        "chore_count": "Conteo de tareas",
+        "days_all_chores": "Días de tareas seleccionadas completadas",
+        "days_80pct_chores": "Días en que se completó el 80% de las tareas seleccionadas",
+        "days_all_chores_no_overdue": "Días de tareas seleccionadas completadas (sin retrasos)",
+        "days_all_due_chores": "Días seleccionados Fecha de entrega Tareas completadas",
+        "days_80pct_due_chores": "Días en que se completó el 80% de las tareas seleccionadas",
+        "days_all_due_chores_no_overdue": "Días seleccionados para las tareas completadas (sin atrasos)",
+        "days_min_3_chores": "Días mínimo 3 tareas completadas",
+        "days_min_5_chores": "Días mínimo 5 tareas completadas",
+        "days_min_7_chores": "Días mínimo 7 tareas completadas",
+        "streak_all_chores": "Racha: Tareas seleccionadas completadas",
+        "streak_80pct_chores": "Racha: 80% de las tareas seleccionadas completadas",
+        "streak_all_chores_no_overdue": "Racha: Tareas seleccionadas completadas (sin atrasos)",
+        "streak_80pct_due_chores": "Racha: 80% de las tareas seleccionadas pendientes completadas",
+        "streak_all_due_chores_no_overdue": "Racha: Tareas seleccionadas pendientes completadas (sin atrasos)"
+      }
+    },
+    "award_items": {
+      "options": {
+        "points": "Agujas",
+        "multiplier": "Multiplicador de puntos"
+      }
+    },
     "award_mode": {
       "options": {
         "award_none": "Ninguno",

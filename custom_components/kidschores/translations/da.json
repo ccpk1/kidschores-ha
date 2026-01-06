@@ -1361,6 +1361,33 @@
         "special_occasion": "Særlig lejlighed"
       }
     },
+    "target_type": {
+      "options": {
+        "points": "Point",
+        "points_chores": "Point fra huslige pligter",
+        "chore_count": "Antal pligter",
+        "days_all_chores": "Dage udvalgte pligter udført",
+        "days_80pct_chores": "Dage 80% af udvalgte pligter blev udført",
+        "days_all_chores_no_overdue": "Dage udvalgte pligter udført (ingen forfaldne)",
+        "days_all_due_chores": "Dage udvalgte forfaldne pligter udført",
+        "days_80pct_due_chores": "Dage 80% af udvalgte forfaldne pligter blev udført",
+        "days_all_due_chores_no_overdue": "Valgte dage forfaldne opgaver udført (ingen forfaldne)",
+        "days_min_3_chores": "Minimum 3 dage udført",
+        "days_min_5_chores": "Minimum 5 dage udført",
+        "days_min_7_chores": "Minimum 7 dage udført",
+        "streak_all_chores": "Strikke: Udvalgte opgaver udført",
+        "streak_80pct_chores": "Serie: 80% af valgte pligter udført",
+        "streak_all_chores_no_overdue": "Strikke: Udvalgte opgaver fuldført (ingen forfaldne)",
+        "streak_80pct_due_chores": "Serie: 80% af valgte opgaver afsluttet",
+        "streak_all_due_chores_no_overdue": "Strikke: Udvalgte opgaver afsluttet (ingen forfaldne)"
+      }
+    },
+    "award_items": {
+      "options": {
+        "points": "Point",
+        "multiplier": "Pointmultiplikator"
+      }
+    },
     "award_mode": {
       "options": {
         "award_none": "Ingen",

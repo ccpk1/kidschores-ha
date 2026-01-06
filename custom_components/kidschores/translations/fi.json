@@ -1361,6 +1361,33 @@
         "special_occasion": "Erikoistilaisuudet"
       }
     },
+    "target_type": {
+      "options": {
+        "points": "Pisteet",
+        "points_chores": "Pisteitä kotitöistä",
+        "chore_count": "Askareiden määrä",
+        "days_all_chores": "Valittujen askareiden valmistumispäivät",
+        "days_80pct_chores": "Päivät, jolloin 80 % valituista askareista on suoritettu",
+        "days_all_chores_no_overdue": "Valittujen askareiden valmistumispäivät (ei myöhässä olevia töitä)",
+        "days_all_due_chores": "Valitut eräpäivät Valmistuneet askareet",
+        "days_80pct_due_chores": "Päivät, jolloin 80 % valituista ansiotyötehtävistä on suoritettu",
+        "days_all_due_chores_no_overdue": "Valitut eräpäivät Valmistuneet askareet (ei myöhässä)",
+        "days_min_3_chores": "Vähintään 3 päivää suoritettuja askareita",
+        "days_min_5_chores": "Vähintään 5 päivää suoritettuja askareita",
+        "days_min_7_chores": "Vähintään 7 päivää suoritettuja askareita",
+        "streak_all_chores": "Putki: Valitut askareet suoritettu",
+        "streak_80pct_chores": "Suoritusputki: 80 % valituista askareista suoritettu",
+        "streak_all_chores_no_overdue": "Punnerrus: Valitut askareet suoritettu (ei myöhässä)",
+        "streak_80pct_due_chores": "Suoritusputki: 80 % valituista tehtävistä suoritettu",
+        "streak_all_due_chores_no_overdue": "Putki: Valitut erääntyneet tehtävät suoritettu (ei myöhässä)"
+      }
+    },
+    "award_items": {
+      "options": {
+        "points": "Pisteet",
+        "multiplier": "Pistekerroin"
+      }
+    },
     "award_mode": {
       "options": {
         "award_none": "Ei mitään",

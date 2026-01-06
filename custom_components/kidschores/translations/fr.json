@@ -1361,6 +1361,33 @@
         "special_occasion": "Occasion spéciale"
       }
     },
+    "target_type": {
+      "options": {
+        "points": "Points",
+        "points_chores": "Points obtenus grâce aux tâches ménagères",
+        "chore_count": "Compte des tâches",
+        "days_all_chores": "Jours Tâches sélectionnées terminées",
+        "days_80pct_chores": "Jours où 80 % des tâches sélectionnées sont terminées",
+        "days_all_chores_no_overdue": "Jours où les tâches sélectionnées ont été effectuées (aucune tâche en retard)",
+        "days_all_due_chores": "Jours sélectionnés Échéance Tâches terminées",
+        "days_80pct_due_chores": "Jours où 80 % des tâches ménagères sélectionnées sont terminées",
+        "days_all_due_chores_no_overdue": "Jours sélectionnés : Tâches effectuées (aucune en retard)",
+        "days_min_3_chores": "Jours Minimum 3 tâches ménagères effectuées",
+        "days_min_5_chores": "Jours Minimum 5 tâches ménagères effectuées",
+        "days_min_7_chores": "Jours minimum 7 tâches ménagères terminées",
+        "streak_all_chores": "Série : Tâches ménagères sélectionnées terminées",
+        "streak_80pct_chores": "Série : 80 % des tâches sélectionnées effectuées",
+        "streak_all_chores_no_overdue": "Série : Tâches ménagères sélectionnées terminées (aucune en retard)",
+        "streak_80pct_due_chores": "Série : 80 % des tâches ménagères sélectionnées effectuées",
+        "streak_all_due_chores_no_overdue": "Série : Tâches ménagères sélectionnées terminées (aucune en retard)"
+      }
+    },
+    "award_items": {
+      "options": {
+        "points": "Points",
+        "multiplier": "Multiplicateur de points"
+      }
+    },
     "award_mode": {
       "options": {
         "award_none": "Aucun",
