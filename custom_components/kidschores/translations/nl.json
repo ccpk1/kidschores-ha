@@ -1449,14 +1449,13 @@
         "weekly": "Wekelijks",
         "biweekly": "Tweewekelijks",
         "monthly": "Maandelijks",
-        "custom": "Aangepast"
-      }
-    },
-    "reset_schedule": {
-      "options": {
-        "weekly": "Wekelijks (reset op maandag om middernacht)",
-        "monthly": "Maandelijks (wordt gereset op de 1e van de maand om middernacht)",
-        "custom": "Aangepast (definieer de periode hieronder)"
+        "quarterly": "Driemaandelijks",
+        "yearly": "Jaarlijks",
+        "custom": "Aangepast",
+        "custom_1_week": "Op maat gemaakt: 1 week",
+        "custom_1_month": "Op maat gemaakt: 1 maand",
+        "custom_1_quarter": "Aangepast: 1 kwart",
+        "custom_1_year": "Aangepast: 1 jaar"
       }
     },
     "occasion_type": {

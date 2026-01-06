@@ -1449,14 +1449,13 @@
         "weekly": "Setmanal",
         "biweekly": "Quinzenal",
         "monthly": "Mensual",
-        "custom": "Personalitzat"
-      }
-    },
-    "reset_schedule": {
-      "options": {
-        "weekly": "Setmanal (reinicia els dilluns a mitjanit)",
-        "monthly": "Mensual (reinicialitzat el dia 1 del mes a mitjanit)",
-        "custom": "Personalitzat (defineix el període a continuació)"
+        "quarterly": "Trimestral",
+        "yearly": "Anual",
+        "custom": "Personalitzat",
+        "custom_1_week": "Personalitzat: 1 setmana",
+        "custom_1_month": "Personalitzat: 1 mes",
+        "custom_1_quarter": "Personalitzat: 1 Quart",
+        "custom_1_year": "Personalitzat: 1 any"
       }
     },
     "occasion_type": {

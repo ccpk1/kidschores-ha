@@ -1449,14 +1449,13 @@
         "weekly": "Hebdomadaire",
         "biweekly": "Bihebdomadaire",
         "monthly": "Mensuel",
-        "custom": "Coutume"
-      }
-    },
-    "reset_schedule": {
-      "options": {
-        "weekly": "Hebdomadaire (réinitialisation le lundi à minuit)",
-        "monthly": "Mensuel (réinitialisé le 1er du mois à minuit)",
-        "custom": "Personnalisé (définir la période ci-dessous)"
+        "quarterly": "Trimestriel",
+        "yearly": "Annuel",
+        "custom": "Coutume",
+        "custom_1_week": "Délai de livraison : 1 semaine",
+        "custom_1_month": "Personnalisé : 1 mois",
+        "custom_1_quarter": "Personnalisé : 1 quart",
+        "custom_1_year": "Personnalisation : 1 an"
       }
     },
     "occasion_type": {

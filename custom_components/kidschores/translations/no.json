@@ -1449,14 +1449,13 @@
         "weekly": "Ukentlig",
         "biweekly": "Annenhver uke",
         "monthly": "Månedlig",
-        "custom": "Skikk"
-      }
-    },
-    "reset_schedule": {
-      "options": {
-        "weekly": "Ukentlig (tilbakestill mandager ved midnatt)",
-        "monthly": "Månedlig (tilbakestilles den 1. i måneden ved midnatt)",
-        "custom": "Tilpasset (definer periode nedenfor)"
+        "quarterly": "Kvartalsvis",
+        "yearly": "Årlig",
+        "custom": "Skikk",
+        "custom_1_week": "Tilpasset: 1 uke",
+        "custom_1_month": "Tilpasset: 1 måned",
+        "custom_1_quarter": "Tilpasset: 1 kvartal",
+        "custom_1_year": "Tilpasset: 1 år"
       }
     },
     "occasion_type": {
