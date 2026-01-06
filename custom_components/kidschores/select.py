@@ -360,6 +360,6 @@ class KidDashboardHelperChoresSelect(KidsChoresSelectBase):
             const.DATA_KID_NAME, f"{const.TRANS_KEY_LABEL_KID} {self._kid_id}"
         )
         return {
-            const.ATTR_PURPOSE: const.PURPOSE_SELECT_KID_CHORES,
+            const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_SELECT_KID_CHORES,
             const.ATTR_KID_NAME: kid_name,
         }

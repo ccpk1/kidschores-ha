@@ -127,6 +127,6 @@ class KidDashboardHelperDateTimePicker(DateTimeEntity, RestoreEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
         return {
-            const.ATTR_PURPOSE: const.PURPOSE_DATETIME_DASHBOARD_HELPER,
+            const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_DATETIME_DASHBOARD_HELPER,
             const.ATTR_KID_NAME: self._kid_name,
         }

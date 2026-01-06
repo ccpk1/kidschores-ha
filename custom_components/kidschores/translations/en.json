@@ -2254,7 +2254,12 @@
             "name": "Next Lower Badge Entity ID"
           },
           "badge_status": {
-            "name": "Badge Status"
+            "name": "Badge Status",
+            "state": {
+              "active": "Active",
+              "grace": "Grace Period",
+              "demoted": "Demoted"
+            }
           },
           "last_awarded_date": {
             "name": "Last Awarded Date"
@@ -2569,7 +2574,7 @@
           "purpose": {
             "name": "Purpose",
             "state": {
-              "purpose_reward_status": "Reward redemption status (not claimed, claimed, approved) with claim history and action buttons"
+              "purpose_reward_status": "Reward redemption status with claim history and action buttons"
             }
           },
           "kid_name": {
@@ -2949,23 +2954,68 @@
         "name": "Select Bonus"
       },
       "kid_dashboard_helper_chores_select": {
-        "name": "UI Dashboard Chore List Helper"
+        "name": "UI Dashboard Chore List Helper",
+        "state_attributes": {
+          "purpose": {
+            "name": "Purpose",
+            "state": {
+              "purpose_select_kid_chores": "Kid's chore selection for dashboard filtering"
+            }
+          },
+          "kid_name": {
+            "name": "Kid Name"
+          }
+        }
       }
     },
     "calendar": {
       "kid_schedule_calendar": {
-        "name": "Calendar"
+        "name": "Calendar",
+        "state_attributes": {
+          "purpose": {
+            "name": "Purpose",
+            "state": {
+              "purpose_calendar_schedule": "Calendar showing kid's chore schedule and due dates"
+            }
+          },
+          "kid_name": {
+            "name": "Kid Name"
+          }
+        }
       }
     },
     "datetime": {
       "kid_dashboard_helper_datetime_picker": {
-        "name": "UI Dashboard Date Helper"
+        "name": "UI Dashboard Date Helper",
+        "state_attributes": {
+          "purpose": {
+            "name": "Purpose",
+            "state": {
+              "purpose_datetime_dashboard_helper": "Date selection helper for dashboard UI filtering and navigation"
+            }
+          },
+          "kid_name": {
+            "name": "Kid Name"
+          }
+        }
       }
     },
     "button": {
       "kid_chore_claim_button": {
         "name": "Claim Chore - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Purpose",
+            "state": {
+              "purpose_button_chore_claim": "Kid claims completion of assigned chore"
+            }
+          },
+          "kid_name": {
+            "name": "Kid Name"
+          },
+          "chore_name": {
+            "name": "Chore Name"
+          },
           "labels": {
             "name": "Labels"
           }
@@ -2974,6 +3024,18 @@
       "parent_chore_approve_button": {
         "name": "Approve Chore - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Purpose",
+            "state": {
+              "purpose_button_chore_approve": "Parent approves claimed chore"
+            }
+          },
+          "kid_name": {
+            "name": "Kid Name"
+          },
+          "chore_name": {
+            "name": "Chore Name"
+          },
           "labels": {
             "name": "Labels"
           }
@@ -2982,6 +3044,18 @@
       "parent_chore_disapprove_button": {
         "name": "Disapprove Chore - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Purpose",
+            "state": {
+              "purpose_button_chore_disapprove": "Parent disapproves claimed chore"
+            }
+          },
+          "kid_name": {
+            "name": "Kid Name"
+          },
+          "chore_name": {
+            "name": "Chore Name"
+          },
           "labels": {
             "name": "Labels"
           }
@@ -2990,6 +3064,18 @@
       "kid_reward_redeem_button": {
         "name": "Claim Reward - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Purpose",
+            "state": {
+              "purpose_button_reward_redeem": "Kid redeems reward using points"
+            }
+          },
+          "kid_name": {
+            "name": "Kid Name"
+          },
+          "reward_name": {
+            "name": "Reward Name"
+          },
           "labels": {
             "name": "Labels"
           }
@@ -2998,6 +3084,18 @@
       "parent_reward_approve_button": {
         "name": "Approve Reward - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Purpose",
+            "state": {
+              "purpose_button_reward_approve": "Parent approves redeemed reward"
+            }
+          },
+          "kid_name": {
+            "name": "Kid Name"
+          },
+          "reward_name": {
+            "name": "Reward Name"
+          },
           "labels": {
             "name": "Labels"
           }
@@ -3006,6 +3104,18 @@
       "parent_reward_disapprove_button": {
         "name": "Disapprove Reward - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Purpose",
+            "state": {
+              "purpose_button_reward_disapprove": "Parent disapproves redeemed reward"
+            }
+          },
+          "kid_name": {
+            "name": "Kid Name"
+          },
+          "reward_name": {
+            "name": "Reward Name"
+          },
           "labels": {
             "name": "Labels"
           }
@@ -3014,6 +3124,18 @@
       "parent_penalty_apply_button": {
         "name": "Apply Penalty - {penalty_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Purpose",
+            "state": {
+              "purpose_button_penalty_apply": "Parent applies penalty (deducts points)"
+            }
+          },
+          "kid_name": {
+            "name": "Kid Name"
+          },
+          "penalty_name": {
+            "name": "Penalty Name"
+          },
           "labels": {
             "name": "Labels"
           }
@@ -3022,13 +3144,36 @@
       "parent_bonus_apply_button": {
         "name": "Apply Bonus - {bonus_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Purpose",
+            "state": {
+              "purpose_button_bonus_apply": "Parent applies bonus (adds points)"
+            }
+          },
+          "kid_name": {
+            "name": "Kid Name"
+          },
+          "bonus_name": {
+            "name": "Bonus Name"
+          },
           "labels": {
             "name": "Labels"
           }
         }
       },
       "parent_points_adjust_button": {
-        "name": "{sign_label} {points_label}"
+        "name": "{sign_label} {points_label}",
+        "state_attributes": {
+          "purpose": {
+            "name": "Purpose",
+            "state": {
+              "purpose_button_points_adjust": "Parent manually adjusts kid's points"
+            }
+          },
+          "kid_name": {
+            "name": "Kid Name"
+          }
+        }
       }
     }
   },

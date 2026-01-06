@@ -1537,6 +1537,26 @@ TRANS_KEY_PURPOSE_POINTS_EARNED_MONTH_EXTRA: Final = "purpose_points_earned_mont
 TRANS_KEY_PURPOSE_POINTS_MAX_EVER_EXTRA: Final = "purpose_points_max_ever_extra"
 TRANS_KEY_PURPOSE_CHORE_STREAK_EXTRA: Final = "purpose_chore_streak_extra"
 
+# Button purpose translation keys (button.py)
+TRANS_KEY_PURPOSE_BUTTON_CHORE_CLAIM: Final = "purpose_button_chore_claim"
+TRANS_KEY_PURPOSE_BUTTON_CHORE_APPROVE: Final = "purpose_button_chore_approve"
+TRANS_KEY_PURPOSE_BUTTON_CHORE_DISAPPROVE: Final = "purpose_button_chore_disapprove"
+TRANS_KEY_PURPOSE_BUTTON_REWARD_REDEEM: Final = "purpose_button_reward_redeem"
+TRANS_KEY_PURPOSE_BUTTON_REWARD_APPROVE: Final = "purpose_button_reward_approve"
+TRANS_KEY_PURPOSE_BUTTON_REWARD_DISAPPROVE: Final = "purpose_button_reward_disapprove"
+TRANS_KEY_PURPOSE_BUTTON_PENALTY_APPLY: Final = "purpose_button_penalty_apply"
+TRANS_KEY_PURPOSE_BUTTON_POINTS_ADJUST: Final = "purpose_button_points_adjust"
+TRANS_KEY_PURPOSE_BUTTON_BONUS_APPLY: Final = "purpose_button_bonus_apply"
+
+# Select purpose translation keys (select.py)
+TRANS_KEY_PURPOSE_SELECT_KID_CHORES: Final = "purpose_select_kid_chores"
+
+# Calendar purpose translation keys (calendar.py)
+TRANS_KEY_PURPOSE_CALENDAR_SCHEDULE: Final = "purpose_calendar_schedule"
+
+# Datetime purpose translation keys (datetime.py)
+TRANS_KEY_PURPOSE_DATETIME_DASHBOARD_HELPER: Final = "purpose_datetime_dashboard_helper"
+
 # Translation keys for entity state attributes (all sensor classes)
 TRANS_KEY_ATTR_PURPOSE: Final = "purpose"
 TRANS_KEY_ATTR_KID_NAME: Final = "kid_name"
