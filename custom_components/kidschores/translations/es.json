@@ -2254,7 +2254,12 @@
             "name": "ID de entidad de la siguiente insignia inferior"
           },
           "badge_status": {
-            "name": "Estado de la insignia"
+            "name": "Estado de la insignia",
+            "state": {
+              "active": "Activo",
+              "grace": "Período de gracia",
+              "demoted": "Degradado"
+            }
           },
           "last_awarded_date": {
             "name": "Última fecha de adjudicación"
@@ -2569,7 +2574,7 @@
           "purpose": {
             "name": "Objetivo",
             "state": {
-              "purpose_reward_status": "Estado de canje de recompensa (no reclamado, reclamado, aprobado) con historial de reclamos y botones de acción"
+              "purpose_reward_status": "Estado de canje de recompensas con historial de reclamos y botones de acción"
             }
           },
           "kid_name": {
@@ -2949,23 +2954,68 @@
         "name": "Seleccionar Bono"
       },
       "kid_dashboard_helper_chores_select": {
-        "name": "Asistente de lista de tareas del panel de interfaz de usuario"
+        "name": "Asistente de lista de tareas del panel de interfaz de usuario",
+        "state_attributes": {
+          "purpose": {
+            "name": "Objetivo",
+            "state": {
+              "purpose_select_kid_chores": "Selección de tareas para niños para el filtrado del panel"
+            }
+          },
+          "kid_name": {
+            "name": "Nombre del niño"
+          }
+        }
       }
     },
     "calendar": {
       "kid_schedule_calendar": {
-        "name": "Calendario"
+        "name": "Calendario",
+        "state_attributes": {
+          "purpose": {
+            "name": "Objetivo",
+            "state": {
+              "purpose_calendar_schedule": "Calendario que muestra el cronograma de tareas de los niños y las fechas de entrega."
+            }
+          },
+          "kid_name": {
+            "name": "Nombre del niño"
+          }
+        }
       }
     },
     "datetime": {
       "kid_dashboard_helper_datetime_picker": {
-        "name": "Asistente de fecha del panel de interfaz de usuario"
+        "name": "Asistente de fecha del panel de interfaz de usuario",
+        "state_attributes": {
+          "purpose": {
+            "name": "Objetivo",
+            "state": {
+              "purpose_datetime_dashboard_helper": "Asistente de selección de fecha para el filtrado y la navegación de la interfaz de usuario del panel"
+            }
+          },
+          "kid_name": {
+            "name": "Nombre del niño"
+          }
+        }
       }
     },
     "button": {
       "kid_chore_claim_button": {
         "name": "Reclamar tarea - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Objetivo",
+            "state": {
+              "purpose_button_chore_claim": "El niño afirma haber completado la tarea asignada"
+            }
+          },
+          "kid_name": {
+            "name": "Nombre del niño"
+          },
+          "chore_name": {
+            "name": "Nombre de la tarea"
+          },
           "labels": {
             "name": "Etiquetas"
           }
@@ -2974,6 +3024,18 @@
       "parent_chore_approve_button": {
         "name": "Aprobar tarea - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Objetivo",
+            "state": {
+              "purpose_button_chore_approve": "El padre aprueba la tarea reclamada"
+            }
+          },
+          "kid_name": {
+            "name": "Nombre del niño"
+          },
+          "chore_name": {
+            "name": "Nombre de la tarea"
+          },
           "labels": {
             "name": "Etiquetas"
           }
@@ -2982,6 +3044,18 @@
       "parent_chore_disapprove_button": {
         "name": "Desaprobar tarea - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Objetivo",
+            "state": {
+              "purpose_button_chore_disapprove": "Padre desaprueba la supuesta tarea"
+            }
+          },
+          "kid_name": {
+            "name": "Nombre del niño"
+          },
+          "chore_name": {
+            "name": "Nombre de la tarea"
+          },
           "labels": {
             "name": "Etiquetas"
           }
@@ -2990,6 +3064,18 @@
       "kid_reward_redeem_button": {
         "name": "Reclamar recompensa - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Objetivo",
+            "state": {
+              "purpose_button_reward_redeem": "El niño canjea su recompensa usando puntos"
+            }
+          },
+          "kid_name": {
+            "name": "Nombre del niño"
+          },
+          "reward_name": {
+            "name": "Nombre de la recompensa"
+          },
           "labels": {
             "name": "Etiquetas"
           }
@@ -2998,6 +3084,18 @@
       "parent_reward_approve_button": {
         "name": "Aprobar recompensa - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Objetivo",
+            "state": {
+              "purpose_button_reward_approve": "El padre aprueba la recompensa canjeada"
+            }
+          },
+          "kid_name": {
+            "name": "Nombre del niño"
+          },
+          "reward_name": {
+            "name": "Nombre de la recompensa"
+          },
           "labels": {
             "name": "Etiquetas"
           }
@@ -3006,6 +3104,18 @@
       "parent_reward_disapprove_button": {
         "name": "Recompensa por desaprobar - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Objetivo",
+            "state": {
+              "purpose_button_reward_disapprove": "Los padres desaprueban la recompensa canjeada"
+            }
+          },
+          "kid_name": {
+            "name": "Nombre del niño"
+          },
+          "reward_name": {
+            "name": "Nombre de la recompensa"
+          },
           "labels": {
             "name": "Etiquetas"
           }
@@ -3014,6 +3124,18 @@
       "parent_penalty_apply_button": {
         "name": "Aplicar penalización - {penalty_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Objetivo",
+            "state": {
+              "purpose_button_penalty_apply": "El padre aplica penalización (resta puntos)"
+            }
+          },
+          "kid_name": {
+            "name": "Nombre del niño"
+          },
+          "penalty_name": {
+            "name": "Nombre de la penalización"
+          },
           "labels": {
             "name": "Etiquetas"
           }
@@ -3022,13 +3144,36 @@
       "parent_bonus_apply_button": {
         "name": "Aplicar Bono - {bonus_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Objetivo",
+            "state": {
+              "purpose_button_bonus_apply": "El padre aplica el bono (suma puntos)"
+            }
+          },
+          "kid_name": {
+            "name": "Nombre del niño"
+          },
+          "bonus_name": {
+            "name": "Nombre del bono"
+          },
           "labels": {
             "name": "Etiquetas"
           }
         }
       },
       "parent_points_adjust_button": {
-        "name": "{sign_label} {points_label}"
+        "name": "{sign_label} {points_label}",
+        "state_attributes": {
+          "purpose": {
+            "name": "Objetivo",
+            "state": {
+              "purpose_button_points_adjust": "Los padres ajustan manualmente los puntos de sus hijos"
+            }
+          },
+          "kid_name": {
+            "name": "Nombre del niño"
+          }
+        }
       }
     }
   },

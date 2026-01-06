@@ -2254,7 +2254,12 @@
             "name": "ID da entidade do crachá inferior seguinte"
           },
           "badge_status": {
-            "name": "Estado do distintivo"
+            "name": "Estado do distintivo",
+            "state": {
+              "active": "Ativo",
+              "grace": "Período de Carência",
+              "demoted": "Rebaixado"
+            }
           },
           "last_awarded_date": {
             "name": "Data da última atribuição"
@@ -2569,7 +2574,7 @@
           "purpose": {
             "name": "Finalidade",
             "state": {
-              "purpose_reward_status": "Estado do resgate da recompensa (não resgatado, resgatado, aprovado) com histórico de resgates e botões de ação."
+              "purpose_reward_status": "Estado do resgate de recompensas com histórico de pedidos e botões de ação."
             }
           },
           "kid_name": {
@@ -2949,23 +2954,68 @@
         "name": "Selecione o bónus"
       },
       "kid_dashboard_helper_chores_select": {
-        "name": "Painel de controlo da interface do utilizador - Lista de tarefas - Auxiliar"
+        "name": "Painel de controlo da interface do utilizador - Lista de tarefas - Auxiliar",
+        "state_attributes": {
+          "purpose": {
+            "name": "Finalidade",
+            "state": {
+              "purpose_select_kid_chores": "Seleção de tarefas infantis para filtragem no painel de controlo"
+            }
+          },
+          "kid_name": {
+            "name": "Nome da criança"
+          }
+        }
       }
     },
     "calendar": {
       "kid_schedule_calendar": {
-        "name": "Calendário"
+        "name": "Calendário",
+        "state_attributes": {
+          "purpose": {
+            "name": "Finalidade",
+            "state": {
+              "purpose_calendar_schedule": "Calendário que mostra a programação das tarefas da criança e os prazos de entrega."
+            }
+          },
+          "kid_name": {
+            "name": "Nome da criança"
+          }
+        }
       }
     },
     "datetime": {
       "kid_dashboard_helper_datetime_picker": {
-        "name": "Painel de controlo da interface do utilizador - Auxiliar de data"
+        "name": "Painel de controlo da interface do utilizador - Auxiliar de data",
+        "state_attributes": {
+          "purpose": {
+            "name": "Finalidade",
+            "state": {
+              "purpose_datetime_dashboard_helper": "Auxiliar de seleção de data para filtragem e navegação na interface do painel de controlo."
+            }
+          },
+          "kid_name": {
+            "name": "Nome da criança"
+          }
+        }
       }
     },
     "button": {
       "kid_chore_claim_button": {
         "name": "Reivindicar tarefa - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Finalidade",
+            "state": {
+              "purpose_button_chore_claim": "Criança alega ter concluído a tarefa atribuída."
+            }
+          },
+          "kid_name": {
+            "name": "Nome da criança"
+          },
+          "chore_name": {
+            "name": "Nome da tarefa"
+          },
           "labels": {
             "name": "Etiquetas"
           }
@@ -2974,6 +3024,18 @@
       "parent_chore_approve_button": {
         "name": "Aprovar tarefa - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Finalidade",
+            "state": {
+              "purpose_button_chore_approve": "Pai/Mãe aprova tarefa reivindicada"
+            }
+          },
+          "kid_name": {
+            "name": "Nome da criança"
+          },
+          "chore_name": {
+            "name": "Nome da tarefa"
+          },
           "labels": {
             "name": "Etiquetas"
           }
@@ -2982,6 +3044,18 @@
       "parent_chore_disapprove_button": {
         "name": "Não aprovar tarefa - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Finalidade",
+            "state": {
+              "purpose_button_chore_disapprove": "Pai desaprova tarefa alegada"
+            }
+          },
+          "kid_name": {
+            "name": "Nome da criança"
+          },
+          "chore_name": {
+            "name": "Nome da tarefa"
+          },
           "labels": {
             "name": "Etiquetas"
           }
@@ -2990,6 +3064,18 @@
       "kid_reward_redeem_button": {
         "name": "Resgatar recompensa - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Finalidade",
+            "state": {
+              "purpose_button_reward_redeem": "A criança resgata a recompensa utilizando pontos."
+            }
+          },
+          "kid_name": {
+            "name": "Nome da criança"
+          },
+          "reward_name": {
+            "name": "Nome da recompensa"
+          },
           "labels": {
             "name": "Etiquetas"
           }
@@ -2998,6 +3084,18 @@
       "parent_reward_approve_button": {
         "name": "Aprovar recompensa - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Finalidade",
+            "state": {
+              "purpose_button_reward_approve": "Os pais aprovam o resgate da recompensa."
+            }
+          },
+          "kid_name": {
+            "name": "Nome da criança"
+          },
+          "reward_name": {
+            "name": "Nome da recompensa"
+          },
           "labels": {
             "name": "Etiquetas"
           }
@@ -3006,6 +3104,18 @@
       "parent_reward_disapprove_button": {
         "name": "Reprovar recompensa - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Finalidade",
+            "state": {
+              "purpose_button_reward_disapprove": "Pai desaprova recompensa resgatada"
+            }
+          },
+          "kid_name": {
+            "name": "Nome da criança"
+          },
+          "reward_name": {
+            "name": "Nome da recompensa"
+          },
           "labels": {
             "name": "Etiquetas"
           }
@@ -3014,6 +3124,18 @@
       "parent_penalty_apply_button": {
         "name": "Aplicar penalização - {penalty_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Finalidade",
+            "state": {
+              "purpose_button_penalty_apply": "O responsável aplica a penalização (deduz pontos)."
+            }
+          },
+          "kid_name": {
+            "name": "Nome da criança"
+          },
+          "penalty_name": {
+            "name": "Nome da penalidade"
+          },
           "labels": {
             "name": "Etiquetas"
           }
@@ -3022,13 +3144,36 @@
       "parent_bonus_apply_button": {
         "name": "Aplicar Bónus - {bonus_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Finalidade",
+            "state": {
+              "purpose_button_bonus_apply": "O responsável aplica o bónus (acresce pontos)"
+            }
+          },
+          "kid_name": {
+            "name": "Nome da criança"
+          },
+          "bonus_name": {
+            "name": "Nome do bónus"
+          },
           "labels": {
             "name": "Etiquetas"
           }
         }
       },
       "parent_points_adjust_button": {
-        "name": "{sign_label} {points_label}"
+        "name": "{sign_label} {points_label}",
+        "state_attributes": {
+          "purpose": {
+            "name": "Finalidade",
+            "state": {
+              "purpose_button_points_adjust": "O pai/mãe ajusta manualmente os pontos da criança."
+            }
+          },
+          "kid_name": {
+            "name": "Nome da criança"
+          }
+        }
       }
     }
   },

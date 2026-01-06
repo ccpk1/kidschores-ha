@@ -2254,7 +2254,12 @@
             "name": "Seuraavan alemman tason arvomerkkiyksikön tunnus"
           },
           "badge_status": {
-            "name": "Merkin tila"
+            "name": "Merkin tila",
+            "state": {
+              "active": "Aktiivinen",
+              "grace": "Lisäaika",
+              "demoted": "Alennettu"
+            }
           },
           "last_awarded_date": {
             "name": "Viimeisin myöntämispäivä"
@@ -2569,7 +2574,7 @@
           "purpose": {
             "name": "Tarkoitus",
             "state": {
-              "purpose_reward_status": "Palkinnon lunastustila (ei lunastettu, lunastettu, hyväksytty) lunastushistorian ja toimintopainikkeiden kera"
+              "purpose_reward_status": "Palkintojen lunastustila lunastushistorian ja toimintopainikkeiden kera"
             }
           },
           "kid_name": {
@@ -2949,23 +2954,68 @@
         "name": "Valitse bonus"
       },
       "kid_dashboard_helper_chores_select": {
-        "name": "Käyttöliittymän kojelaudan tehtävälistan apuohjelma"
+        "name": "Käyttöliittymän kojelaudan tehtävälistan apuohjelma",
+        "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_select_kid_chores": "Lapsen askarevalintoja kojelaudan suodatusta varten"
+            }
+          },
+          "kid_name": {
+            "name": "Lapsen nimi"
+          }
+        }
       }
     },
     "calendar": {
       "kid_schedule_calendar": {
-        "name": "Kalenteri"
+        "name": "Kalenteri",
+        "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_calendar_schedule": "Kalenteri, jossa näkyy lapsen kotitöiden aikataulu ja eräpäivät"
+            }
+          },
+          "kid_name": {
+            "name": "Lapsen nimi"
+          }
+        }
       }
     },
     "datetime": {
       "kid_dashboard_helper_datetime_picker": {
-        "name": "Käyttöliittymän kojelaudan päivämääräapu"
+        "name": "Käyttöliittymän kojelaudan päivämääräapu",
+        "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_datetime_dashboard_helper": "Päivämäärän valinta-apu kojelaudan käyttöliittymän suodatukseen ja navigointiin"
+            }
+          },
+          "kid_name": {
+            "name": "Lapsen nimi"
+          }
+        }
       }
     },
     "button": {
       "kid_chore_claim_button": {
         "name": "Vaadi tehtävä - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_button_chore_claim": "Lapsi väittää tehneensä määrätyn kotitehtävän"
+            }
+          },
+          "kid_name": {
+            "name": "Lapsen nimi"
+          },
+          "chore_name": {
+            "name": "Työn nimi"
+          },
           "labels": {
             "name": "Tarrat"
           }
@@ -2974,6 +3024,18 @@
       "parent_chore_approve_button": {
         "name": "Hyväksy tehtävä - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_button_chore_approve": "Vanhempi hyväksyy väitetyn kotitehtävän"
+            }
+          },
+          "kid_name": {
+            "name": "Lapsen nimi"
+          },
+          "chore_name": {
+            "name": "Työn nimi"
+          },
           "labels": {
             "name": "Tarrat"
           }
@@ -2982,6 +3044,18 @@
       "parent_chore_disapprove_button": {
         "name": "Hylkää kotitehtävä - {chore_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_button_chore_disapprove": "Vanhempi ei hyväksy ilmoitettua kotitehtävää"
+            }
+          },
+          "kid_name": {
+            "name": "Lapsen nimi"
+          },
+          "chore_name": {
+            "name": "Työn nimi"
+          },
           "labels": {
             "name": "Tarrat"
           }
@@ -2990,6 +3064,18 @@
       "kid_reward_redeem_button": {
         "name": "Lunasta palkinto - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_button_reward_redeem": "Lapsi lunastaa palkinnon pisteillä"
+            }
+          },
+          "kid_name": {
+            "name": "Lapsen nimi"
+          },
+          "reward_name": {
+            "name": "Palkinnon nimi"
+          },
           "labels": {
             "name": "Tarrat"
           }
@@ -2998,6 +3084,18 @@
       "parent_reward_approve_button": {
         "name": "Hyväksy palkinto - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_button_reward_approve": "Vanhempi hyväksyy lunastetun palkinnon"
+            }
+          },
+          "kid_name": {
+            "name": "Lapsen nimi"
+          },
+          "reward_name": {
+            "name": "Palkinnon nimi"
+          },
           "labels": {
             "name": "Tarrat"
           }
@@ -3006,6 +3104,18 @@
       "parent_reward_disapprove_button": {
         "name": "Hylkää palkinto - {reward_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_button_reward_disapprove": "Vanhempi ei hyväksy lunastettua palkintoa"
+            }
+          },
+          "kid_name": {
+            "name": "Lapsen nimi"
+          },
+          "reward_name": {
+            "name": "Palkinnon nimi"
+          },
           "labels": {
             "name": "Tarrat"
           }
@@ -3014,6 +3124,18 @@
       "parent_penalty_apply_button": {
         "name": "Rangaistus - {penalty_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_button_penalty_apply": "Vanhempi määrää rangaistuksen (vähentää pisteitä)"
+            }
+          },
+          "kid_name": {
+            "name": "Lapsen nimi"
+          },
+          "penalty_name": {
+            "name": "Rangaistuksen nimi"
+          },
           "labels": {
             "name": "Tarrat"
           }
@@ -3022,13 +3144,36 @@
       "parent_bonus_apply_button": {
         "name": "Käytä bonusta - {bonus_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_button_bonus_apply": "Vanhempi käyttää bonusta (lisää pisteitä)"
+            }
+          },
+          "kid_name": {
+            "name": "Lapsen nimi"
+          },
+          "bonus_name": {
+            "name": "Bonusnimi"
+          },
           "labels": {
             "name": "Tarrat"
           }
         }
       },
       "parent_points_adjust_button": {
-        "name": "{sign_label} {points_label}"
+        "name": "{sign_label} {points_label}",
+        "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_button_points_adjust": "Vanhempi säätää lapsen pisteitä manuaalisesti"
+            }
+          },
+          "kid_name": {
+            "name": "Lapsen nimi"
+          }
+        }
       }
     }
   },
