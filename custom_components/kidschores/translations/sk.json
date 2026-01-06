@@ -1361,6 +1361,33 @@
         "special_occasion": "Špeciálna príležitosť"
       }
     },
+    "target_type": {
+      "options": {
+        "points": "Body",
+        "points_chores": "Body z domácich prác",
+        "chore_count": "Počet domácich úloh",
+        "days_all_chores": "Dni Vybrané dokončené domáce práce",
+        "days_80pct_chores": "Dni, kedy bolo dokončených 80 % vybraných domácich prác",
+        "days_all_chores_no_overdue": "Dni dokončenia vybraných domácich prác (bez poplatkov)",
+        "days_all_due_chores": "Vybrané dni Dokončené domáce práce",
+        "days_80pct_due_chores": "Dni, kedy bolo dokončených 80 % vybraných splatných domácich prác",
+        "days_all_due_chores_no_overdue": "Vybrané dni Dokončené domáce práce (bez po termínu)",
+        "days_min_3_chores": "Minimálne 3 dni dokončených domácich prác",
+        "days_min_5_chores": "Minimálne 5 dní dokončených domácich prác",
+        "days_min_7_chores": "Minimálny počet dokončených domácich prác: 7 dní",
+        "streak_all_chores": "Séria: Vybrané práce dokončené",
+        "streak_80pct_chores": "Séria: 80 % vybraných domácich prác dokončených",
+        "streak_all_chores_no_overdue": "Séria: Vybrané úlohy dokončené (žiadne oneskorené)",
+        "streak_80pct_due_chores": "Séria: 80 % vybraných termínovaných domácich prác dokončených",
+        "streak_all_due_chores_no_overdue": "Séria: Vybrané po termíne dokončené (žiadne oneskorené)"
+      }
+    },
+    "award_items": {
+      "options": {
+        "points": "Body",
+        "multiplier": "Násobiteľ bodov"
+      }
+    },
     "award_mode": {
       "options": {
         "award_none": "Žiadne",

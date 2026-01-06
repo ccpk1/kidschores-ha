@@ -1361,6 +1361,33 @@
         "special_occasion": "Besonderer Anlass"
       }
     },
+    "target_type": {
+      "options": {
+        "points": "Punkte",
+        "points_chores": "Punkte für Hausarbeiten",
+        "chore_count": "Aufgabenanzahl",
+        "days_all_chores": "An welchen Tagen die ausgewählten Aufgaben erledigt wurden",
+        "days_80pct_chores": "Tage, an denen 80 % der ausgewählten Aufgaben erledigt wurden",
+        "days_all_chores_no_overdue": "An welchen Tagen die ausgewählten Aufgaben erledigt wurden (keine überfälligen Aufgaben)",
+        "days_all_due_chores": "Ausgewählte Tage, an denen die Aufgaben erledigt sind",
+        "days_80pct_due_chores": "Tage, an denen 80 % der ausgewählten fälligen Aufgaben erledigt sind",
+        "days_all_due_chores_no_overdue": "Ausgewählte Tage, an denen Aufgaben fällig waren, erledigte Aufgaben (keine überfälligen Aufgaben)",
+        "days_min_3_chores": "Mindestens 3 Aufgaben pro Tag erledigt",
+        "days_min_5_chores": "Mindestens 5 Aufgaben pro Tag erledigt",
+        "days_min_7_chores": "Mindestens 7 Tage, an denen Aufgaben erledigt wurden",
+        "streak_all_chores": "Serie: Ausgewählte Aufgaben erledigt",
+        "streak_80pct_chores": "Serie: 80 % der ausgewählten Aufgaben erledigt",
+        "streak_all_chores_no_overdue": "Serie: Ausgewählte Aufgaben erledigt (keine überfälligen)",
+        "streak_80pct_due_chores": "Serie: 80 % der ausgewählten fälligen Aufgaben erledigt",
+        "streak_all_due_chores_no_overdue": "Serie: Ausgewählte fällige Aufgaben erledigt (keine überfälligen Aufgaben)"
+      }
+    },
+    "award_items": {
+      "options": {
+        "points": "Punkte",
+        "multiplier": "Punktemultiplikator"
+      }
+    },
     "award_mode": {
       "options": {
         "award_none": "Keiner",

@@ -1361,6 +1361,33 @@
         "special_occasion": "Spesiell anledning"
       }
     },
+    "target_type": {
+      "options": {
+        "points": "Poeng",
+        "points_chores": "Poeng fra husarbeid",
+        "chore_count": "Antall gjøremål",
+        "days_all_chores": "Dager utvalgte gjøremål fullført",
+        "days_80pct_chores": "Dager 80 % av valgte gjøremål fullført",
+        "days_all_chores_no_overdue": "Dager Valgte gjøremål fullført (ingen forfalte)",
+        "days_all_due_chores": "Dager Valgte forfallsoppgaver Fullført",
+        "days_80pct_due_chores": "Dager 80 % av valgte forfallsoppgaver fullført",
+        "days_all_due_chores_no_overdue": "Dager Valgte forfallsoppgaver Fullført (Ingen forfalte)",
+        "days_min_3_chores": "Minimum 3 dager fullførte gjøremål",
+        "days_min_5_chores": "Minimum 5 dager fullførte gjøremål",
+        "days_min_7_chores": "Minimum 7 dager fullførte gjøremål",
+        "streak_all_chores": "Rekke: Utvalgte gjøremål fullført",
+        "streak_80pct_chores": "Rekk: 80 % av valgte gjøremål fullført",
+        "streak_all_chores_no_overdue": "Rekke: Utvalgte gjøremål fullført (ingen forfalte)",
+        "streak_80pct_due_chores": "Rekke: 80 % av valgte gjøremål fullført",
+        "streak_all_due_chores_no_overdue": "Rekke: Utvalgte forfallsoppgaver fullført (ingen forfalte)"
+      }
+    },
+    "award_items": {
+      "options": {
+        "points": "Poeng",
+        "multiplier": "Poengmultiplikator"
+      }
+    },
     "award_mode": {
       "options": {
         "award_none": "Ingen",

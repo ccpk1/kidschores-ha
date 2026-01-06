@@ -1361,6 +1361,33 @@
         "special_occasion": "ocasió especial"
       }
     },
+    "target_type": {
+      "options": {
+        "points": "Punts",
+        "points_chores": "Punts de les tasques escolars",
+        "chore_count": "Recompte de tasques",
+        "days_all_chores": "Dies de tasques seleccionades completades",
+        "days_80pct_chores": "Dies 80% de les tasques seleccionades completades",
+        "days_all_chores_no_overdue": "Dies de tasques seleccionades completades (sense venciments)",
+        "days_all_due_chores": "Dies seleccionats Tasques vençudes completades",
+        "days_80pct_due_chores": "Dies 80% de les tasques seleccionades pendents completades",
+        "days_all_due_chores_no_overdue": "Dies seleccionats Tasques vençudes completades (sense venciments)",
+        "days_min_3_chores": "Dies mínim 3 tasques completades",
+        "days_min_5_chores": "Dies mínim 5 tasques completades",
+        "days_min_7_chores": "Dies mínim 7 tasques completades",
+        "streak_all_chores": "Ratxa: Tasques seleccionades completades",
+        "streak_80pct_chores": "Ratxa: 80% de les tasques seleccionades completades",
+        "streak_all_chores_no_overdue": "Ratxa: Tasques seleccionades completades (sense terminis)",
+        "streak_80pct_due_chores": "Ratxa: 80% de les tasques seleccionades completades",
+        "streak_all_due_chores_no_overdue": "Ratxa: Tasques seleccionades vençudes completades (sense vençudes)"
+      }
+    },
+    "award_items": {
+      "options": {
+        "points": "Punts",
+        "multiplier": "Multiplicador de punts"
+      }
+    },
     "award_mode": {
       "options": {
         "award_none": "Cap",

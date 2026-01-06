@@ -1361,6 +1361,33 @@
         "special_occasion": "Speciale gelegenheid"
       }
     },
+    "target_type": {
+      "options": {
+        "points": "Punten",
+        "points_chores": "Punten van klusjes",
+        "chore_count": "Aantal klusjes",
+        "days_all_chores": "Dagen waarop geselecteerde klusjes zijn voltooid",
+        "days_80pct_chores": "Dagen waarop 80% van de geselecteerde taken is voltooid",
+        "days_all_chores_no_overdue": "Aantal dagen waarop de geselecteerde klusjes zijn voltooid (geen achterstallige klusjes)",
+        "days_all_due_chores": "Geselecteerde dagen voor het voltooien van de taken",
+        "days_80pct_due_chores": "Dagen waarop 80% van de geselecteerde taken is voltooid",
+        "days_all_due_chores_no_overdue": "Geselecteerde dagen Voltooide taken (geen achterstallige)",
+        "days_min_3_chores": "Dagen: Minimaal 3 klusjes voltooid",
+        "days_min_5_chores": "Dagen: Minimaal 5 klusjes voltooid",
+        "days_min_7_chores": "Dagen: Minimaal 7 klusjes voltooid",
+        "streak_all_chores": "Reeks: Geselecteerde klusjes voltooid",
+        "streak_80pct_chores": "Streak: 80% van de geselecteerde taken voltooid",
+        "streak_all_chores_no_overdue": "Streak: Geselecteerde klusjes voltooid (geen achterstallige)",
+        "streak_80pct_due_chores": "Streak: 80% van de geselecteerde taken voltooid",
+        "streak_all_due_chores_no_overdue": "Streak: Geselecteerde taken voltooid (geen achterstallige)"
+      }
+    },
+    "award_items": {
+      "options": {
+        "points": "Punten",
+        "multiplier": "Puntenvermenigvuldiger"
+      }
+    },
     "award_mode": {
       "options": {
         "award_none": "Geen",
