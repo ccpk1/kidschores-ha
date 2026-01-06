@@ -1812,7 +1812,7 @@
           "purpose": {
             "name": "Ändamål",
             "state": {
-              "purpose_chore_status": "Spårar status och statistik för just den här sysslan"
+              "purpose_chore_status": "Barnspecifika sysslors livscykeltillstånd, prestandastatistik och konfigurationsmetadata"
             }
           },
           "kid_name": {
@@ -2296,12 +2296,12 @@
       },
       "system_badge_sensor": {
         "name": "Märke - {badge_name}",
-        "unit_of_measurement": "barn",
+        "unit_of_measurement": "Barn",
         "state_attributes": {
           "purpose": {
             "name": "Ändamål",
             "state": {
-              "purpose_badge": "Antal barn som har förtjänat detta märke"
+              "purpose_badge": "Antal barn som fått detta märke, med märkeskonfiguration inklusive typ, målgrupp, utmärkelser och tilldelade barn"
             }
           },
           "badge_name": {
@@ -2356,24 +2356,87 @@
       "kid_badge_progress_sensor": {
         "name": "Märkesframsteg - {badge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_badge_progress": "Procentuell märkesförlopp (0–100) som spårar slutförandet mot att erhålla detta märke, med kriteriestatus, datum och utmärkelsehistorik"
+            }
+          },
           "kid_name": {
             "name": "Barnets namn"
           },
           "badge_name": {
             "name": "Märkesnamn"
           },
-          "progress": {
-            "name": "Framsteg"
+          "badge_type": {
+            "name": "Märkestyp",
+            "state": {
+              "cumulative": "Kumulativ",
+              "achievement": "Prestation",
+              "challenge": "Utmaning",
+              "daily": "Dagligen",
+              "periodic": "Periodisk",
+              "special": "Särskild"
+            }
           },
-          "target": {
-            "name": "Mål"
+          "status": {
+            "name": "Status",
+            "state": {
+              "inactive": "Inaktiv",
+              "active": "Aktiv",
+              "completed": "Avslutad"
+            }
           },
-          "earned": {
-            "name": "Förtjänade",
+          "target_type": {
+            "name": "Måltyp",
+            "state": {
+              "chores": "Sysslor",
+              "points": "Poäng",
+              "days": "Dagar",
+              "achievement": "Prestation",
+              "challenge": "Utmaning"
+            }
+          },
+          "threshold_value": {
+            "name": "Måltröskelvärde"
+          },
+          "recurring_frequency": {
+            "name": "Återkommande frekvens",
+            "state": {
+              "none": "Ingen",
+              "daily": "Dagligen",
+              "weekly": "Varje vecka",
+              "biweekly": "Som utkommer varannan vecka",
+              "monthly": "Månatlig"
+            }
+          },
+          "start_date": {
+            "name": "Startdatum"
+          },
+          "end_date": {
+            "name": "Slutdatum"
+          },
+          "last_update_day": {
+            "name": "Senaste uppdateringsdag"
+          },
+          "overall_progress": {
+            "name": "Övergripande framsteg"
+          },
+          "criteria_met": {
+            "name": "Kriterier uppfyllda",
             "state": {
               "true": "Ja",
               "false": "Inga"
             }
+          },
+          "last_awarded": {
+            "name": "Senast utdelad"
+          },
+          "award_count": {
+            "name": "Antal utmärkelser"
+          },
+          "description": {
+            "name": "Beskrivning"
           }
         }
       },
@@ -2397,11 +2460,47 @@
           "independent": "Oberoende"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_shared_chore": "Global slutförandestatus för delade sysslor med aggregerad statistik över alla tilldelade barn"
+            }
+          },
           "chore_name": {
             "name": "Sysslanamn"
           },
+          "chore_icon": {
+            "name": "Syssloikon"
+          },
           "description": {
             "name": "Beskrivning"
+          },
+          "assigned_kids": {
+            "name": "Tilldelade barn"
+          },
+          "labels": {
+            "name": "Etiketter"
+          },
+          "default_points": {
+            "name": "Standardpoäng"
+          },
+          "completion_criteria": {
+            "name": "Slutförandekriterier",
+            "state": {
+              "independent": "Oberoende",
+              "shared_first_only": "Delad (endast första)",
+              "shared_all_required": "Delat (alla obligatoriska)"
+            }
+          },
+          "approval_reset_type": {
+            "name": "Återställningstyp för godkännande",
+            "state": {
+              "at_midnight_once": "En gång per dag",
+              "at_midnight_multi": "Flera per dag",
+              "at_due_date_once": "En gång per förfallodatum",
+              "at_due_date_multi": "Flera per förfallodatum",
+              "upon_completion": "Vid färdigställande"
+            }
           },
           "recurring_frequency": {
             "name": "Återkommande frekvens",
@@ -2429,24 +2528,31 @@
           "due_date": {
             "name": "Förfallodatum"
           },
-          "default_points": {
-            "name": "Standardpoäng"
+          "custom_frequency_interval": {
+            "name": "Anpassat frekvensintervall"
           },
-          "allow_multiple_claims_per_day": {
-            "name": "Tillåt flera anspråk per dag",
+          "custom_frequency_unit": {
+            "name": "Anpassad frekvensenhet",
             "state": {
-              "true": "Ja",
-              "false": "Inga"
+              "days": "Dagar",
+              "weeks": "Veckor",
+              "months": "Månader"
             }
           },
-          "assigned_kids": {
-            "name": "Tilldelade barn"
-          },
           "chore_approvals_today": {
-            "name": "Godkännanden av sysslor idag"
+            "name": "Godkännanden idag (alla barn)"
           },
-          "labels": {
-            "name": "Etiketter"
+          "last_claimed": {
+            "name": "Senast begärd"
+          },
+          "last_approved": {
+            "name": "Senast godkänd"
+          },
+          "chore_claimed_by": {
+            "name": "Anspråk på av"
+          },
+          "chore_completed_by": {
+            "name": "Slutförd av"
           }
         }
       },
@@ -2460,26 +2566,41 @@
           "none": "Ingen"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_reward_status": "Status för inlösen av belöningar (ej hämtad, hämtad, godkänd) med anspråkshistorik och åtgärdsknappar"
+            }
+          },
           "kid_name": {
             "name": "Barnets namn"
           },
           "reward_name": {
             "name": "Belöningsnamn"
           },
-          "reward_cost": {
-            "name": "Belöningskostnad"
-          },
           "description": {
             "name": "Beskrivning"
           },
+          "cost": {
+            "name": "Kosta"
+          },
           "reward_claims_count": {
-            "name": "Antal belöningsanspråk"
+            "name": "Totalt antal fordringar"
           },
           "reward_approvals_count": {
-            "name": "Antal godkända belöningar"
+            "name": "Totalt antal godkännanden"
           },
           "labels": {
             "name": "Etiketter"
+          },
+          "reward_claim_button_eid": {
+            "name": "Enhets-ID för knappen Anspråk"
+          },
+          "reward_approve_button_eid": {
+            "name": "Godkänn-knapp Enhets-ID"
+          },
+          "reward_disapprove_button_eid": {
+            "name": "Enhets-ID för knappen Avvisa"
           }
         }
       },
@@ -2535,6 +2656,12 @@
       "system_achievement_sensor": {
         "name": "Prestation - {achievement_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_achievement": "Procentuell prestationsutveckling (0–100) aggregerad över alla tilldelade barn, med prestationskonfiguration inklusive typ, mål, kriterier och lista över barn som uppnått den"
+            }
+          },
           "achievement_name": {
             "name": "Namn på prestation"
           },
@@ -2555,7 +2682,7 @@
           "associated_chore": {
             "name": "Associerad syssla"
           },
-          "critera": {
+          "criteria": {
             "name": "Kriterier"
           },
           "target_value": {
@@ -2575,6 +2702,12 @@
       "system_challenge_sensor": {
         "name": "Utmaning - {challenge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_challenge": "Utmaningens framsteg i procent (0–100) aggregerad över alla tilldelade barn inom datumfönstret, med utmaningskonfiguration inklusive typ, mål, kriterier, datum och lista över barn som förtjänat den."
+            }
+          },
           "challenge_name": {
             "name": "Utmaningsnamn"
           },
@@ -2594,7 +2727,7 @@
           "associated_chore": {
             "name": "Associerad syssla"
           },
-          "critera": {
+          "criteria": {
             "name": "Kriterier"
           },
           "target_value": {
@@ -2620,6 +2753,15 @@
       "kid_achievement_progress_sensor": {
         "name": "Framsteg - {achievement_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_achievement_progress": "Enskilt barns framsteg i procent (0–100) mot att uppnå denna prestation, med aktuellt antal råa framsteg och utmärkelsestatus"
+            }
+          },
+          "kid_name": {
+            "name": "Barnets namn"
+          },
           "achievement_name": {
             "name": "Namn på prestation"
           },
@@ -2640,7 +2782,7 @@
           "associated_chore": {
             "name": "Associerad syssla"
           },
-          "critera": {
+          "criteria": {
             "name": "Kriterier"
           },
           "target_value": {
@@ -2650,7 +2792,7 @@
             "name": "Belöningspoäng"
           },
           "raw_progress": {
-            "name": "Framsteg"
+            "name": "Rå framsteg"
           },
           "awarded": {
             "name": "Tilldelad",
@@ -2667,6 +2809,15 @@
       "kid_challenge_progress_sensor": {
         "name": "Framsteg - {challenge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_challenge_progress": "Enskilda barns framsteg i procent (0–100) mot att slutföra denna utmaning inom datumfönstret, med aktuellt antal råa framsteg och belöningsstatus."
+            }
+          },
+          "kid_name": {
+            "name": "Barnets namn"
+          },
           "challenge_name": {
             "name": "Utmaningsnamn"
           },
@@ -2686,7 +2837,7 @@
           "associated_chore": {
             "name": "Associerad syssla"
           },
-          "critera": {
+          "criteria": {
             "name": "Kriterier"
           },
           "target_value": {
@@ -2702,7 +2853,7 @@
             "name": "Slutdatum"
           },
           "raw_progress": {
-            "name": "Framsteg"
+            "name": "Rå framsteg"
           },
           "awarded": {
             "name": "Tilldelad",

@@ -1812,7 +1812,7 @@
           "purpose": {
             "name": "Propòsit",
             "state": {
-              "purpose_chore_status": "Fa un seguiment de l'estat i les estadístiques d'aquesta tasca específica"
+              "purpose_chore_status": "Estats del cicle de vida de les tasques específiques per a nens, estadístiques de rendiment i metadades de configuració"
             }
           },
           "kid_name": {
@@ -2296,12 +2296,12 @@
       },
       "system_badge_sensor": {
         "name": "Insígnia - {badge_name}",
-        "unit_of_measurement": "nens",
+        "unit_of_measurement": "Nens",
         "state_attributes": {
           "purpose": {
             "name": "Propòsit",
             "state": {
-              "purpose_badge": "Nombre de nens que han obtingut aquesta insígnia"
+              "purpose_badge": "Nombre de nens que han guanyat aquesta insígnia, amb la configuració de la insígnia, incloent-hi el tipus, l'objectiu, els premis i els nens assignats"
             }
           },
           "badge_name": {
@@ -2356,24 +2356,87 @@
       "kid_badge_progress_sensor": {
         "name": "Progrés de la insígnia - {badge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_badge_progress": "Percentatge de progrés de la insígnia (0-100) que fa un seguiment de la finalització per obtenir aquesta insígnia, amb l'estat dels criteris, les dates i l'historial de premis"
+            }
+          },
           "kid_name": {
             "name": "Nom del nen/a"
           },
           "badge_name": {
             "name": "Nom de la insígnia"
           },
-          "progress": {
-            "name": "Progrés"
+          "badge_type": {
+            "name": "Tipus de distintiu",
+            "state": {
+              "cumulative": "Acumulatiu",
+              "achievement": "Assoliment",
+              "challenge": "Repte",
+              "daily": "Diari",
+              "periodic": "Periòdic",
+              "special": "Especial"
+            }
           },
-          "target": {
-            "name": "Objectiu"
+          "status": {
+            "name": "Estat",
+            "state": {
+              "inactive": "Inactiu",
+              "active": "Actiu",
+              "completed": "Completat"
+            }
           },
-          "earned": {
-            "name": "Guanyat",
+          "target_type": {
+            "name": "Tipus d'objectiu",
+            "state": {
+              "chores": "Tasques domèstiques",
+              "points": "Punts",
+              "days": "Dies",
+              "achievement": "Assoliment",
+              "challenge": "Repte"
+            }
+          },
+          "threshold_value": {
+            "name": "Llindar objectiu"
+          },
+          "recurring_frequency": {
+            "name": "Freqüència recurrent",
+            "state": {
+              "none": "Cap",
+              "daily": "Diari",
+              "weekly": "Setmanal",
+              "biweekly": "Quinzenal",
+              "monthly": "Mensual"
+            }
+          },
+          "start_date": {
+            "name": "Data d'inici"
+          },
+          "end_date": {
+            "name": "Data de finalització"
+          },
+          "last_update_day": {
+            "name": "Dia de l'última actualització"
+          },
+          "overall_progress": {
+            "name": "Progrés general"
+          },
+          "criteria_met": {
+            "name": "Criteris complerts",
             "state": {
               "true": "Sí",
               "false": "No"
             }
+          },
+          "last_awarded": {
+            "name": "Últim premiat"
+          },
+          "award_count": {
+            "name": "Recompte de premis"
+          },
+          "description": {
+            "name": "Descripció"
           }
         }
       },
@@ -2397,11 +2460,47 @@
           "independent": "Independent"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_shared_chore": "Estat de finalització global per a les tasques compartides amb estadístiques agregades de tots els nens assignats"
+            }
+          },
           "chore_name": {
             "name": "Nom de la tasca"
           },
+          "chore_icon": {
+            "name": "Icona de tasques"
+          },
           "description": {
             "name": "Descripció"
+          },
+          "assigned_kids": {
+            "name": "Nens assignats"
+          },
+          "labels": {
+            "name": "Etiquetes"
+          },
+          "default_points": {
+            "name": "Punts per defecte"
+          },
+          "completion_criteria": {
+            "name": "Criteris de finalització",
+            "state": {
+              "independent": "Independent",
+              "shared_first_only": "Compartit (només el primer)",
+              "shared_all_required": "Compartit (tot obligatori)"
+            }
+          },
+          "approval_reset_type": {
+            "name": "Tipus de restabliment d'aprovació",
+            "state": {
+              "at_midnight_once": "Un cop al dia",
+              "at_midnight_multi": "Múltiples per dia",
+              "at_due_date_once": "Un cop per data de venciment",
+              "at_due_date_multi": "Múltiple per data de venciment",
+              "upon_completion": "En completar-se"
+            }
           },
           "recurring_frequency": {
             "name": "Freqüència recurrent",
@@ -2429,24 +2528,31 @@
           "due_date": {
             "name": "Data de venciment"
           },
-          "default_points": {
-            "name": "Punts per defecte"
+          "custom_frequency_interval": {
+            "name": "Interval de freqüència personalitzat"
           },
-          "allow_multiple_claims_per_day": {
-            "name": "Permetre diverses reclamacions per dia",
+          "custom_frequency_unit": {
+            "name": "Unitat de freqüència personalitzada",
             "state": {
-              "true": "Sí",
-              "false": "No"
+              "days": "Dies",
+              "weeks": "Setmanes",
+              "months": "Mesos"
             }
           },
-          "assigned_kids": {
-            "name": "Nens assignats"
-          },
           "chore_approvals_today": {
-            "name": "Aprovacions de tasques avui"
+            "name": "Aprovacions avui (tots els nens)"
           },
-          "labels": {
-            "name": "Etiquetes"
+          "last_claimed": {
+            "name": "Última reclamació"
+          },
+          "last_approved": {
+            "name": "Última aprovació"
+          },
+          "chore_claimed_by": {
+            "name": "Reclamat per"
+          },
+          "chore_completed_by": {
+            "name": "Completat per"
           }
         }
       },
@@ -2460,26 +2566,41 @@
           "none": "Cap"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_reward_status": "Estat del bescanvi de la recompensa (no reclamada, reclamada, aprovada) amb l'historial de reclamacions i els botons d'acció"
+            }
+          },
           "kid_name": {
             "name": "Nom del nen/a"
           },
           "reward_name": {
             "name": "Nom de la recompensa"
           },
-          "reward_cost": {
-            "name": "Cost de la recompensa"
-          },
           "description": {
             "name": "Descripció"
           },
+          "cost": {
+            "name": "Cost"
+          },
           "reward_claims_count": {
-            "name": "Recompte de reclamacions de recompensa"
+            "name": "Total de reclamacions"
           },
           "reward_approvals_count": {
-            "name": "Recompte d'aprovacions de recompenses"
+            "name": "Total d'aprovacions"
           },
           "labels": {
             "name": "Etiquetes"
+          },
+          "reward_claim_button_eid": {
+            "name": "ID d'entitat del botó de reclamació"
+          },
+          "reward_approve_button_eid": {
+            "name": "ID d'entitat del botó Aprova"
+          },
+          "reward_disapprove_button_eid": {
+            "name": "ID d'entitat del botó de desaprovació"
           }
         }
       },
@@ -2535,6 +2656,12 @@
       "system_achievement_sensor": {
         "name": "Assoliment - {achievement_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_achievement": "Percentatge de progrés d'assoliments (0-100) agregat per a tots els nens assignats, amb configuració d'assoliments que inclou el tipus, l'objectiu, els criteris i la llista de nens que l'han aconseguit."
+            }
+          },
           "achievement_name": {
             "name": "Nom de l'assoliment"
           },
@@ -2555,7 +2682,7 @@
           "associated_chore": {
             "name": "Tasca associada"
           },
-          "critera": {
+          "criteria": {
             "name": "Criteris"
           },
           "target_value": {
@@ -2575,6 +2702,12 @@
       "system_challenge_sensor": {
         "name": "Repte - {challenge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_challenge": "Percentatge de progrés del repte (0-100) agregat per a tots els nens assignats dins del període de temps, amb configuració del repte que inclou el tipus, l'objectiu, els criteris, les dates i la llista de nens que l'han guanyat."
+            }
+          },
           "challenge_name": {
             "name": "Nom del repte"
           },
@@ -2594,7 +2727,7 @@
           "associated_chore": {
             "name": "Tasca associada"
           },
-          "critera": {
+          "criteria": {
             "name": "Criteris"
           },
           "target_value": {
@@ -2620,6 +2753,15 @@
       "kid_achievement_progress_sensor": {
         "name": "Progrés - {achievement_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_achievement_progress": "Percentatge de progrés individual de cada nen (0-100) per aconseguir aquest assoliment, amb el recompte de progrés actual en brut i l'estat del premi"
+            }
+          },
+          "kid_name": {
+            "name": "Nom del nen/a"
+          },
           "achievement_name": {
             "name": "Nom de l'assoliment"
           },
@@ -2640,7 +2782,7 @@
           "associated_chore": {
             "name": "Tasca associada"
           },
-          "critera": {
+          "criteria": {
             "name": "Criteris"
           },
           "target_value": {
@@ -2650,7 +2792,7 @@
             "name": "Punts de recompensa"
           },
           "raw_progress": {
-            "name": "Progrés"
+            "name": "Progrés en brut"
           },
           "awarded": {
             "name": "Premiat",
@@ -2667,6 +2809,15 @@
       "kid_challenge_progress_sensor": {
         "name": "Progrés - {challenge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_challenge_progress": "Percentatge de progrés individual de cada nen (0-100) per completar aquest repte dins del període de temps, amb el recompte de progrés actual i l'estat del premi."
+            }
+          },
+          "kid_name": {
+            "name": "Nom del nen/a"
+          },
           "challenge_name": {
             "name": "Nom del repte"
           },
@@ -2686,7 +2837,7 @@
           "associated_chore": {
             "name": "Tasca associada"
           },
-          "critera": {
+          "criteria": {
             "name": "Criteris"
           },
           "target_value": {
@@ -2702,7 +2853,7 @@
             "name": "Data de finalització"
           },
           "raw_progress": {
-            "name": "Progrés"
+            "name": "Progrés en brut"
           },
           "awarded": {
             "name": "Premiat",

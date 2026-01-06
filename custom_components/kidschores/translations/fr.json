@@ -1812,7 +1812,7 @@
           "purpose": {
             "name": "But",
             "state": {
-              "purpose_chore_status": "Suivi de l'état et des statistiques de cette tâche spécifique"
+              "purpose_chore_status": "États du cycle de vie des tâches spécifiques à chaque enfant, statistiques de performance et métadonnées de configuration"
             }
           },
           "kid_name": {
@@ -2296,12 +2296,12 @@
       },
       "system_badge_sensor": {
         "name": "Badge - {badge_name}",
-        "unit_of_measurement": "enfants",
+        "unit_of_measurement": "Enfants",
         "state_attributes": {
           "purpose": {
             "name": "But",
             "state": {
-              "purpose_badge": "Nombre d'enfants ayant obtenu ce badge"
+              "purpose_badge": "Nombre d'enfants ayant obtenu ce badge, avec sa configuration (type, objectif, récompenses et enfants assignés)."
             }
           },
           "badge_name": {
@@ -2356,24 +2356,87 @@
       "kid_badge_progress_sensor": {
         "name": "Progression du badge - {badge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "But",
+            "state": {
+              "purpose_badge_progress": "Pourcentage de progression vers l'obtention de ce badge (0-100) : suivi de l'avancement vers son obtention, avec l'état des critères, les dates et l'historique des récompenses."
+            }
+          },
           "kid_name": {
             "name": "Nom de l'enfant"
           },
           "badge_name": {
             "name": "Nom du badge"
           },
-          "progress": {
-            "name": "Progrès"
+          "badge_type": {
+            "name": "Type de badge",
+            "state": {
+              "cumulative": "Cumulatif",
+              "achievement": "Réalisation",
+              "challenge": "Défi",
+              "daily": "Tous les jours",
+              "periodic": "Périodique",
+              "special": "Spécial"
+            }
           },
-          "target": {
-            "name": "Cible"
+          "status": {
+            "name": "Statut",
+            "state": {
+              "inactive": "Inactif",
+              "active": "Actif",
+              "completed": "Complété"
+            }
           },
-          "earned": {
-            "name": "Gagné",
+          "target_type": {
+            "name": "Type de cible",
+            "state": {
+              "chores": "Corvées",
+              "points": "Points",
+              "days": "Jours",
+              "achievement": "Réalisation",
+              "challenge": "Défi"
+            }
+          },
+          "threshold_value": {
+            "name": "Seuil cible"
+          },
+          "recurring_frequency": {
+            "name": "Fréquence récurrente",
+            "state": {
+              "none": "Aucun",
+              "daily": "Tous les jours",
+              "weekly": "Hebdomadaire",
+              "biweekly": "Bihebdomadaire",
+              "monthly": "Mensuel"
+            }
+          },
+          "start_date": {
+            "name": "Date de début"
+          },
+          "end_date": {
+            "name": "Date de fin"
+          },
+          "last_update_day": {
+            "name": "Dernière mise à jour"
+          },
+          "overall_progress": {
+            "name": "Progrès globaux"
+          },
+          "criteria_met": {
+            "name": "Critères remplis",
             "state": {
               "true": "Oui",
               "false": "Non"
             }
+          },
+          "last_awarded": {
+            "name": "Dernière attribution"
+          },
+          "award_count": {
+            "name": "Nombre de récompenses"
+          },
+          "description": {
+            "name": "Description"
           }
         }
       },
@@ -2397,11 +2460,47 @@
           "independent": "Indépendant"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "But",
+            "state": {
+              "purpose_shared_chore": "État d'avancement global des tâches partagées avec des statistiques agrégées pour tous les enfants assignés"
+            }
+          },
           "chore_name": {
             "name": "Nom de la tâche"
           },
+          "chore_icon": {
+            "name": "Icône de tâche"
+          },
           "description": {
             "name": "Description"
+          },
+          "assigned_kids": {
+            "name": "Enfants assignés"
+          },
+          "labels": {
+            "name": "Étiquettes"
+          },
+          "default_points": {
+            "name": "Points par défaut"
+          },
+          "completion_criteria": {
+            "name": "Critères d'achèvement",
+            "state": {
+              "independent": "Indépendant",
+              "shared_first_only": "Partagé (Premier arrivé, premier servi)",
+              "shared_all_required": "Partagé (Tous requis)"
+            }
+          },
+          "approval_reset_type": {
+            "name": "Type de réinitialisation d'approbation",
+            "state": {
+              "at_midnight_once": "Une fois par jour",
+              "at_midnight_multi": "Plusieurs par jour",
+              "at_due_date_once": "Une fois par date d'échéance",
+              "at_due_date_multi": "Plusieurs par date d'échéance",
+              "upon_completion": "À l'achèvement"
+            }
           },
           "recurring_frequency": {
             "name": "Fréquence récurrente",
@@ -2429,24 +2528,31 @@
           "due_date": {
             "name": "Date d'échéance"
           },
-          "default_points": {
-            "name": "Points par défaut"
+          "custom_frequency_interval": {
+            "name": "Intervalle de fréquence personnalisé"
           },
-          "allow_multiple_claims_per_day": {
-            "name": "Autoriser plusieurs réclamations par jour",
+          "custom_frequency_unit": {
+            "name": "Unité de fréquence personnalisée",
             "state": {
-              "true": "Oui",
-              "false": "Non"
+              "days": "Jours",
+              "weeks": "Semaines",
+              "months": "Mois"
             }
           },
-          "assigned_kids": {
-            "name": "Enfants assignés"
-          },
           "chore_approvals_today": {
-            "name": "Approbation des tâches ménagères aujourd'hui"
+            "name": "Approbations aujourd'hui (Tous les enfants)"
           },
-          "labels": {
-            "name": "Étiquettes"
+          "last_claimed": {
+            "name": "Dernière réclamation"
+          },
+          "last_approved": {
+            "name": "Dernière approbation"
+          },
+          "chore_claimed_by": {
+            "name": "Revendiqué par"
+          },
+          "chore_completed_by": {
+            "name": "Terminé par"
           }
         }
       },
@@ -2460,26 +2566,41 @@
           "none": "Aucun"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "But",
+            "state": {
+              "purpose_reward_status": "Statut de la récompense (non réclamée, réclamée, approuvée) avec historique des réclamations et boutons d'action"
+            }
+          },
           "kid_name": {
             "name": "Nom de l'enfant"
           },
           "reward_name": {
             "name": "Nom de la récompense"
           },
-          "reward_cost": {
-            "name": "Coût de la récompense"
-          },
           "description": {
             "name": "Description"
           },
+          "cost": {
+            "name": "Coût"
+          },
           "reward_claims_count": {
-            "name": "Nombre de demandes de récompense"
+            "name": "Total des sinistres"
           },
           "reward_approvals_count": {
-            "name": "Nombre d'approbations de récompenses"
+            "name": "Approbations totales"
           },
           "labels": {
             "name": "Étiquettes"
+          },
+          "reward_claim_button_eid": {
+            "name": "ID d'entité du bouton de réclamation"
+          },
+          "reward_approve_button_eid": {
+            "name": "ID de l'entité du bouton Approuver"
+          },
+          "reward_disapprove_button_eid": {
+            "name": "ID de l'entité du bouton de désapprobation"
           }
         }
       },
@@ -2535,6 +2656,12 @@
       "system_achievement_sensor": {
         "name": "Succès - {achievement_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "But",
+            "state": {
+              "purpose_achievement": "Pourcentage de progression des résultats (0-100) agrégé pour tous les élèves assignés, avec la configuration des résultats incluant le type, l'objectif, les critères et la liste des élèves qui l'ont obtenu."
+            }
+          },
           "achievement_name": {
             "name": "Nom du succès"
           },
@@ -2555,7 +2682,7 @@
           "associated_chore": {
             "name": "Tâche associée"
           },
-          "critera": {
+          "criteria": {
             "name": "Critères"
           },
           "target_value": {
@@ -2575,6 +2702,12 @@
       "system_challenge_sensor": {
         "name": "Défi - {challenge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "But",
+            "state": {
+              "purpose_challenge": "Pourcentage de progression du défi (0-100) agrégé pour tous les enfants assignés pendant la période concernée, avec la configuration du défi incluant le type, l'objectif, les critères, les dates et la liste des enfants qui l'ont atteint."
+            }
+          },
           "challenge_name": {
             "name": "Nom du défi"
           },
@@ -2594,7 +2727,7 @@
           "associated_chore": {
             "name": "Tâche associée"
           },
-          "critera": {
+          "criteria": {
             "name": "Critères"
           },
           "target_value": {
@@ -2620,6 +2753,15 @@
       "kid_achievement_progress_sensor": {
         "name": "Progression - {achievement_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "But",
+            "state": {
+              "purpose_achievement_progress": "Pourcentage de progression de chaque enfant (0-100) vers l'obtention de cette réussite, avec le nombre de points de progression bruts actuels et l'état de la récompense."
+            }
+          },
+          "kid_name": {
+            "name": "Nom de l'enfant"
+          },
           "achievement_name": {
             "name": "Nom du succès"
           },
@@ -2640,7 +2782,7 @@
           "associated_chore": {
             "name": "Tâche associée"
           },
-          "critera": {
+          "criteria": {
             "name": "Critères"
           },
           "target_value": {
@@ -2650,7 +2792,7 @@
             "name": "Points de récompense"
           },
           "raw_progress": {
-            "name": "Progrès"
+            "name": "Progrès brut"
           },
           "awarded": {
             "name": "Récompensé",
@@ -2667,6 +2809,15 @@
       "kid_challenge_progress_sensor": {
         "name": "Progression - {challenge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "But",
+            "state": {
+              "purpose_challenge_progress": "Pourcentage de progression de chaque enfant (0-100) dans la réalisation de ce défi pendant la période impartie, avec le nombre de points de progression bruts actuels et l'état de la récompense."
+            }
+          },
+          "kid_name": {
+            "name": "Nom de l'enfant"
+          },
           "challenge_name": {
             "name": "Nom du défi"
           },
@@ -2686,7 +2837,7 @@
           "associated_chore": {
             "name": "Tâche associée"
           },
-          "critera": {
+          "criteria": {
             "name": "Critères"
           },
           "target_value": {
@@ -2702,7 +2853,7 @@
             "name": "Date de fin"
           },
           "raw_progress": {
-            "name": "Progrès"
+            "name": "Progrès brut"
           },
           "awarded": {
             "name": "Récompensé",

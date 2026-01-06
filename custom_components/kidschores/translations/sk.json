@@ -1812,7 +1812,7 @@
           "purpose": {
             "name": "Účel",
             "state": {
-              "purpose_chore_status": "Sleduje stav a štatistiky pre túto konkrétnu úlohu"
+              "purpose_chore_status": "Stavy životného cyklu domácich úloh špecifických pre dieťa, štatistiky výkonu a konfiguračné metadáta"
             }
           },
           "kid_name": {
@@ -2296,12 +2296,12 @@
       },
       "system_badge_sensor": {
         "name": "Odznak - {badge_name}",
-        "unit_of_measurement": "deti",
+        "unit_of_measurement": "Deti",
         "state_attributes": {
           "purpose": {
             "name": "Účel",
             "state": {
-              "purpose_badge": "Počet detí, ktoré získali tento odznak"
+              "purpose_badge": "Počet detí, ktoré získali tento odznak, s konfiguráciou odznaku vrátane typu, cieľa, ocenení a pridelených detí"
             }
           },
           "badge_name": {
@@ -2356,24 +2356,87 @@
       "kid_badge_progress_sensor": {
         "name": "Postup pri získavaní odznaku – {badge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_badge_progress": "Percentuálny podiel postupu v získavaní odznaku (0 – 100) sledujúci splnenie úloh smerom k získaniu tohto odznaku, vrátane stavu kritérií, dátumov a histórie udeľovania"
+            }
+          },
           "kid_name": {
             "name": "Meno dieťaťa"
           },
           "badge_name": {
             "name": "Názov odznaku"
           },
-          "progress": {
-            "name": "Pokrok"
+          "badge_type": {
+            "name": "Typ odznaku",
+            "state": {
+              "cumulative": "Kumulatívne",
+              "achievement": "Úspech",
+              "challenge": "Výzva",
+              "daily": "Denne",
+              "periodic": "Periodické",
+              "special": "Špeciálne"
+            }
           },
-          "target": {
-            "name": "Cieľ"
+          "status": {
+            "name": "Stav",
+            "state": {
+              "inactive": "Neaktívne",
+              "active": "Aktívne",
+              "completed": "Dokončené"
+            }
           },
-          "earned": {
-            "name": "Získané",
+          "target_type": {
+            "name": "Typ cieľa",
+            "state": {
+              "chores": "Domáce práce",
+              "points": "Body",
+              "days": "Dni",
+              "achievement": "Úspech",
+              "challenge": "Výzva"
+            }
+          },
+          "threshold_value": {
+            "name": "Cieľový prah"
+          },
+          "recurring_frequency": {
+            "name": "Opakujúca sa frekvencia",
+            "state": {
+              "none": "Žiadne",
+              "daily": "Denne",
+              "weekly": "Týždenne",
+              "biweekly": "Dvojtýždenne",
+              "monthly": "Mesačne"
+            }
+          },
+          "start_date": {
+            "name": "Dátum začiatku"
+          },
+          "end_date": {
+            "name": "Dátum ukončenia"
+          },
+          "last_update_day": {
+            "name": "Deň poslednej aktualizácie"
+          },
+          "overall_progress": {
+            "name": "Celkový pokrok"
+          },
+          "criteria_met": {
+            "name": "Splnené kritériá",
             "state": {
               "true": "Áno",
               "false": "Nie"
             }
+          },
+          "last_awarded": {
+            "name": "Naposledy udelené"
+          },
+          "award_count": {
+            "name": "Počet ocenení"
+          },
+          "description": {
+            "name": "Popis"
           }
         }
       },
@@ -2397,11 +2460,47 @@
           "independent": "Nezávislý"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_shared_chore": "Globálny stav dokončenia zdieľaných domácich úloh so súhrnnými štatistikami pre všetky priradené deti"
+            }
+          },
           "chore_name": {
             "name": "Názov úlohy"
           },
+          "chore_icon": {
+            "name": "Ikona domácej práce"
+          },
           "description": {
             "name": "Popis"
+          },
+          "assigned_kids": {
+            "name": "Pridelené deti"
+          },
+          "labels": {
+            "name": "Štítky"
+          },
+          "default_points": {
+            "name": "Predvolené body"
+          },
+          "completion_criteria": {
+            "name": "Kritériá dokončenia",
+            "state": {
+              "independent": "Nezávislý",
+              "shared_first_only": "Zdieľané (iba prvé)",
+              "shared_all_required": "Zdieľané (všetky povinné)"
+            }
+          },
+          "approval_reset_type": {
+            "name": "Typ obnovenia schválenia",
+            "state": {
+              "at_midnight_once": "Raz za deň",
+              "at_midnight_multi": "Viacero za deň",
+              "at_due_date_once": "Raz za dátum splatnosti",
+              "at_due_date_multi": "Viacero za dátum splatnosti",
+              "upon_completion": "Po dokončení"
+            }
           },
           "recurring_frequency": {
             "name": "Opakujúca sa frekvencia",
@@ -2429,24 +2528,31 @@
           "due_date": {
             "name": "Dátum splatnosti"
           },
-          "default_points": {
-            "name": "Predvolené body"
+          "custom_frequency_interval": {
+            "name": "Vlastný frekvenčný interval"
           },
-          "allow_multiple_claims_per_day": {
-            "name": "Povoliť viacero nárokov za deň",
+          "custom_frequency_unit": {
+            "name": "Vlastná frekvenčná jednotka",
             "state": {
-              "true": "Áno",
-              "false": "Nie"
+              "days": "Dni",
+              "weeks": "Týždne",
+              "months": "Mesiace"
             }
           },
-          "assigned_kids": {
-            "name": "Pridelené deti"
-          },
           "chore_approvals_today": {
-            "name": "Schvaľovanie domácich úloh dnes"
+            "name": "Schválenia dnes (všetky deti)"
           },
-          "labels": {
-            "name": "Štítky"
+          "last_claimed": {
+            "name": "Naposledy nárokované"
+          },
+          "last_approved": {
+            "name": "Posledné schválené"
+          },
+          "chore_claimed_by": {
+            "name": "Nárokované"
+          },
+          "chore_completed_by": {
+            "name": "Dokončil/a"
           }
         }
       },
@@ -2460,26 +2566,41 @@
           "none": "Žiadne"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_reward_status": "Stav uplatnenia odmeny (neuplatnená, uplatnená, schválená) s históriou uplatnenia a tlačidlami akcie"
+            }
+          },
           "kid_name": {
             "name": "Meno dieťaťa"
           },
           "reward_name": {
             "name": "Názov odmeny"
           },
-          "reward_cost": {
-            "name": "Cena odmeny"
-          },
           "description": {
             "name": "Popis"
           },
+          "cost": {
+            "name": "Cena"
+          },
           "reward_claims_count": {
-            "name": "Počet nárokov na odmenu"
+            "name": "Celkový počet nárokov"
           },
           "reward_approvals_count": {
-            "name": "Počet schválených odmien"
+            "name": "Celkový počet schválení"
           },
           "labels": {
             "name": "Štítky"
+          },
+          "reward_claim_button_eid": {
+            "name": "ID entity tlačidla nároku"
+          },
+          "reward_approve_button_eid": {
+            "name": "ID entity tlačidla Schváliť"
+          },
+          "reward_disapprove_button_eid": {
+            "name": "ID entity tlačidla zamietnuť"
           }
         }
       },
@@ -2535,6 +2656,12 @@
       "system_achievement_sensor": {
         "name": "Úspech - {achievement_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_achievement": "Percentuálny podiel dosiahnutých výsledkov (0 – 100) súhrnne pre všetky priradené deti s konfiguráciou dosiahnutých výsledkov vrátane typu, cieľa, kritérií a zoznamu detí, ktoré ich dosiahli"
+            }
+          },
           "achievement_name": {
             "name": "Názov úspechu"
           },
@@ -2555,7 +2682,7 @@
           "associated_chore": {
             "name": "Súvisiaca práca"
           },
-          "critera": {
+          "criteria": {
             "name": "Kritériá"
           },
           "target_value": {
@@ -2575,6 +2702,12 @@
       "system_challenge_sensor": {
         "name": "Výzva - {challenge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_challenge": "Percentuálny podiel pokroku v plnení výzvy (0 – 100) súhrnne pre všetky priradené deti v rámci dátumového okna s konfiguráciou výzvy vrátane typu, cieľa, kritérií, dátumov a zoznamu detí, ktoré ju splnili"
+            }
+          },
           "challenge_name": {
             "name": "Názov výzvy"
           },
@@ -2594,7 +2727,7 @@
           "associated_chore": {
             "name": "Súvisiaca práca"
           },
-          "critera": {
+          "criteria": {
             "name": "Kritériá"
           },
           "target_value": {
@@ -2620,6 +2753,15 @@
       "kid_achievement_progress_sensor": {
         "name": "Pokrok - {achievement_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_achievement_progress": "Percentuálny podiel pokroku individuálneho dieťaťa (0 – 100) smerom k získaniu tohto úspechu, s aktuálnym počtom surových výsledkov a stavom ocenenia"
+            }
+          },
+          "kid_name": {
+            "name": "Meno dieťaťa"
+          },
           "achievement_name": {
             "name": "Názov úspechu"
           },
@@ -2640,7 +2782,7 @@
           "associated_chore": {
             "name": "Súvisiaca práca"
           },
-          "critera": {
+          "criteria": {
             "name": "Kritériá"
           },
           "target_value": {
@@ -2650,7 +2792,7 @@
             "name": "Vernostné body"
           },
           "raw_progress": {
-            "name": "Pokrok"
+            "name": "Surový pokrok"
           },
           "awarded": {
             "name": "Udelené",
@@ -2667,6 +2809,15 @@
       "kid_challenge_progress_sensor": {
         "name": "Pokrok - {challenge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Účel",
+            "state": {
+              "purpose_challenge_progress": "Percentuálny podiel pokroku individuálneho dieťaťa (0 – 100) pri plnení tejto výzvy v rámci dátumového okna s aktuálnym počtom surových výsledkov a stavom ocenení"
+            }
+          },
+          "kid_name": {
+            "name": "Meno dieťaťa"
+          },
           "challenge_name": {
             "name": "Názov výzvy"
           },
@@ -2686,7 +2837,7 @@
           "associated_chore": {
             "name": "Súvisiaca práca"
           },
-          "critera": {
+          "criteria": {
             "name": "Kritériá"
           },
           "target_value": {
@@ -2702,7 +2853,7 @@
             "name": "Dátum ukončenia"
           },
           "raw_progress": {
-            "name": "Pokrok"
+            "name": "Surový pokrok"
           },
           "awarded": {
             "name": "Udelené",

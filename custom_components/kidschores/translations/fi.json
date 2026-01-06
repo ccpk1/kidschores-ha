@@ -1812,7 +1812,7 @@
           "purpose": {
             "name": "Tarkoitus",
             "state": {
-              "purpose_chore_status": "Seuraa tämän tietyn tehtävän tilaa ja tilastoja"
+              "purpose_chore_status": "Lapsikohtaiset askareiden elinkaaren tilat, suorituskykytilastot ja määritysmetatiedot"
             }
           },
           "kid_name": {
@@ -2296,12 +2296,12 @@
       },
       "system_badge_sensor": {
         "name": "Merkki - {badge_name}",
-        "unit_of_measurement": "lapset",
+        "unit_of_measurement": "Lapset",
         "state_attributes": {
           "purpose": {
             "name": "Tarkoitus",
             "state": {
-              "purpose_badge": "Tämän ansiomerkin ansainneiden lasten määrä"
+              "purpose_badge": "Tämän ansiomerkin ansainneiden lasten lukumäärä sekä ansiomerkin kokoonpano, mukaan lukien tyyppi, kohde, palkinnot ja annetut lapset"
             }
           },
           "badge_name": {
@@ -2356,24 +2356,87 @@
       "kid_badge_progress_sensor": {
         "name": "Merkin edistyminen - {badge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_badge_progress": "Ansiomerkin edistymisprosentti (0–100) seuraa ansiomerkin valmistumista, kriteerien tila, päivämäärät ja palkintohistoria"
+            }
+          },
           "kid_name": {
             "name": "Lapsen nimi"
           },
           "badge_name": {
             "name": "Merkin nimi"
           },
-          "progress": {
-            "name": "Edistyminen"
+          "badge_type": {
+            "name": "Merkin tyyppi",
+            "state": {
+              "cumulative": "Kumulatiivinen",
+              "achievement": "Saavutus",
+              "challenge": "Haaste",
+              "daily": "Päivittäin",
+              "periodic": "Säännöllinen",
+              "special": "Erikois"
+            }
           },
-          "target": {
-            "name": "Kohde"
+          "status": {
+            "name": "Status",
+            "state": {
+              "inactive": "Passiivinen",
+              "active": "Aktiivinen",
+              "completed": "Valmis"
+            }
           },
-          "earned": {
-            "name": "Ansaittu",
+          "target_type": {
+            "name": "Kohdetyyppi",
+            "state": {
+              "chores": "Kotityöt",
+              "points": "Pisteet",
+              "days": "Päivät",
+              "achievement": "Saavutus",
+              "challenge": "Haaste"
+            }
+          },
+          "threshold_value": {
+            "name": "Tavoitekynnys"
+          },
+          "recurring_frequency": {
+            "name": "Toistuva tiheys",
+            "state": {
+              "none": "Ei mitään",
+              "daily": "Päivittäin",
+              "weekly": "Viikoittain",
+              "biweekly": "Joka toinen viikko",
+              "monthly": "Kuukausittain"
+            }
+          },
+          "start_date": {
+            "name": "Aloituspäivämäärä"
+          },
+          "end_date": {
+            "name": "Päättymispäivä"
+          },
+          "last_update_day": {
+            "name": "Viimeisin päivityspäivä"
+          },
+          "overall_progress": {
+            "name": "Kokonaisedistyminen"
+          },
+          "criteria_met": {
+            "name": "Täytetyt kriteerit",
             "state": {
               "true": "Kyllä",
               "false": "Ei"
             }
+          },
+          "last_awarded": {
+            "name": "Viimeksi palkittu"
+          },
+          "award_count": {
+            "name": "Palkintojen määrä"
+          },
+          "description": {
+            "name": "Kuvaus"
           }
         }
       },
@@ -2397,11 +2460,47 @@
           "independent": "Itsenäinen"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_shared_chore": "Jaettujen askareiden yleinen valmistumistila ja kootut tilastot kaikista määritetyistä lapsista"
+            }
+          },
           "chore_name": {
             "name": "Työn nimi"
           },
+          "chore_icon": {
+            "name": "Kotityökuvake"
+          },
           "description": {
             "name": "Kuvaus"
+          },
+          "assigned_kids": {
+            "name": "Määrätyt lapset"
+          },
+          "labels": {
+            "name": "Tarrat"
+          },
+          "default_points": {
+            "name": "Oletuspisteet"
+          },
+          "completion_criteria": {
+            "name": "Suorituskriteerit",
+            "state": {
+              "independent": "Itsenäinen",
+              "shared_first_only": "Jaettu (vain ensimmäinen)",
+              "shared_all_required": "Jaettu (kaikki pakollisia)"
+            }
+          },
+          "approval_reset_type": {
+            "name": "Hyväksynnän nollaustyyppi",
+            "state": {
+              "at_midnight_once": "Kerran päivässä",
+              "at_midnight_multi": "Useita päivässä",
+              "at_due_date_once": "Kerran eräpäivänä",
+              "at_due_date_multi": "Useita eräpäivää kohden",
+              "upon_completion": "Valmistuttuaan"
+            }
           },
           "recurring_frequency": {
             "name": "Toistuva tiheys",
@@ -2429,24 +2528,31 @@
           "due_date": {
             "name": "Eräpäivä"
           },
-          "default_points": {
-            "name": "Oletuspisteet"
+          "custom_frequency_interval": {
+            "name": "Mukautettu taajuusväli"
           },
-          "allow_multiple_claims_per_day": {
-            "name": "Salli useita korvaushakemuksia päivässä",
+          "custom_frequency_unit": {
+            "name": "Mukautettu taajuusyksikkö",
             "state": {
-              "true": "Kyllä",
-              "false": "Ei"
+              "days": "Päivät",
+              "weeks": "Viikot",
+              "months": "Kuukaudet"
             }
           },
-          "assigned_kids": {
-            "name": "Määrätyt lapset"
-          },
           "chore_approvals_today": {
-            "name": "Askareiden hyväksynnät tänään"
+            "name": "Hyväksynnät tänään (kaikki lapset)"
           },
-          "labels": {
-            "name": "Tarrat"
+          "last_claimed": {
+            "name": "Viimeksi vaadittu"
+          },
+          "last_approved": {
+            "name": "Viimeksi hyväksytty"
+          },
+          "chore_claimed_by": {
+            "name": "Vaatimuksen esittäjä"
+          },
+          "chore_completed_by": {
+            "name": "Valmistuja"
           }
         }
       },
@@ -2460,26 +2566,41 @@
           "none": "Ei mitään"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_reward_status": "Palkinnon lunastustila (ei lunastettu, lunastettu, hyväksytty) lunastushistorian ja toimintopainikkeiden kera"
+            }
+          },
           "kid_name": {
             "name": "Lapsen nimi"
           },
           "reward_name": {
             "name": "Palkinnon nimi"
           },
-          "reward_cost": {
-            "name": "Palkkion hinta"
-          },
           "description": {
             "name": "Kuvaus"
           },
+          "cost": {
+            "name": "Maksaa"
+          },
           "reward_claims_count": {
-            "name": "Palkintohakemusten määrä"
+            "name": "Korvausten kokonaismäärä"
           },
           "reward_approvals_count": {
-            "name": "Palkintojen hyväksymismäärä"
+            "name": "Hyväksyntöjen kokonaismäärä"
           },
           "labels": {
             "name": "Tarrat"
+          },
+          "reward_claim_button_eid": {
+            "name": "Vaatimuspainikkeen yksikön tunnus"
+          },
+          "reward_approve_button_eid": {
+            "name": "Hyväksyntäpainikkeen yksikön tunnus"
+          },
+          "reward_disapprove_button_eid": {
+            "name": "Hylkäämispainikkeen yksikön tunnus"
           }
         }
       },
@@ -2535,6 +2656,12 @@
       "system_achievement_sensor": {
         "name": "Saavutus - {achievement_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_achievement": "Saavutuksen edistymisprosentti (0–100) koottuna kaikkien määritettyjen lasten kesken, saavutusten kokoonpano mukaan lukien tyyppi, tavoite, kriteerit ja luettelo lapsista, jotka ovat ansainneet sen"
+            }
+          },
           "achievement_name": {
             "name": "Saavutuksen nimi"
           },
@@ -2555,7 +2682,7 @@
           "associated_chore": {
             "name": "Liittyvä kotityö"
           },
-          "critera": {
+          "criteria": {
             "name": "Kriteerit"
           },
           "target_value": {
@@ -2575,6 +2702,12 @@
       "system_challenge_sensor": {
         "name": "Haaste - {challenge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_challenge": "Haasteen edistymisprosentti (0–100) koottuna kaikkien määrättyjen lasten kesken päivämääräikkunassa, haasteen kokoonpanolla, mukaan lukien tyyppi, tavoite, kriteerit, päivämäärät ja luettelo lapsista, jotka ovat ansainneet sen"
+            }
+          },
           "challenge_name": {
             "name": "Haasteen nimi"
           },
@@ -2594,7 +2727,7 @@
           "associated_chore": {
             "name": "Liittyvä kotityö"
           },
-          "critera": {
+          "criteria": {
             "name": "Kriteerit"
           },
           "target_value": {
@@ -2620,6 +2753,15 @@
       "kid_achievement_progress_sensor": {
         "name": "Edistyminen - {achievement_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_achievement_progress": "Yksittäisen lapsen edistymisprosentti (0–100) tämän saavutuksen saavuttamisessa, nykyinen raaka edistymismäärä ja palkinnon tila"
+            }
+          },
+          "kid_name": {
+            "name": "Lapsen nimi"
+          },
           "achievement_name": {
             "name": "Saavutuksen nimi"
           },
@@ -2640,7 +2782,7 @@
           "associated_chore": {
             "name": "Liittyvä kotityö"
           },
-          "critera": {
+          "criteria": {
             "name": "Kriteerit"
           },
           "target_value": {
@@ -2650,7 +2792,7 @@
             "name": "Palkintopisteet"
           },
           "raw_progress": {
-            "name": "Edistyminen"
+            "name": "Raaka edistyminen"
           },
           "awarded": {
             "name": "Palkittu",
@@ -2667,6 +2809,15 @@
       "kid_challenge_progress_sensor": {
         "name": "Edistyminen - {challenge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_challenge_progress": "Yksittäisen lapsen edistymisprosentti (0–100) tämän haasteen suorittamisessa määräaikana, nykyinen raaka edistymismäärä ja palkintojen tila"
+            }
+          },
+          "kid_name": {
+            "name": "Lapsen nimi"
+          },
           "challenge_name": {
             "name": "Haasteen nimi"
           },
@@ -2686,7 +2837,7 @@
           "associated_chore": {
             "name": "Liittyvä kotityö"
           },
-          "critera": {
+          "criteria": {
             "name": "Kriteerit"
           },
           "target_value": {
@@ -2702,7 +2853,7 @@
             "name": "Päättymispäivä"
           },
           "raw_progress": {
-            "name": "Edistyminen"
+            "name": "Raaka edistyminen"
           },
           "awarded": {
             "name": "Palkittu",
