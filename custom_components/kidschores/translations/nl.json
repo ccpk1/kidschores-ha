@@ -1795,7 +1795,7 @@
   },
   "entity": {
     "sensor": {
-      "chore_status_sensor": {
+      "kid_chore_status_sensor": {
         "name": "Taakstatus - {chore_name}",
         "state": {
           "pending": "In behandeling",
@@ -1808,6 +1808,12 @@
           "claimed_in_part": "Geclaimd (gedeeltelijk)"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_chore_status": "Huidige status van deze specifieke taak"
+            }
+          },
           "kid_name": {
             "name": "Naam van het kind"
           },
@@ -1911,32 +1917,52 @@
       "kid_points_sensor": {
         "name": "{points}",
         "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_points": "Huidig puntensaldo voor kind"
+            }
+          },
           "description": {
             "name": "Huidig puntensaldo - verdiend met klusjes, besteed aan beloningen"
           }
         }
       },
-      "kid_max_points_ever_sensor": {
+      "kid_points_max_ever_sensor": {
         "name": "Maximum {points} ooit"
       },
-      "chores_completed_total_sensor": {
+      "system_chore_approvals_sensor": {
         "name": "Voltooide klusjes - Totaal"
       },
-      "chores_completed_daily_sensor": {
+      "system_chore_approvals_daily_sensor": {
         "name": "Voltooide klusjes - Dagelijks"
       },
-      "chores_completed_weekly_sensor": {
+      "system_chore_approvals_weekly_sensor": {
         "name": "Voltooide klusjes - Wekelijks"
       },
-      "chores_completed_monthly_sensor": {
+      "system_chore_approvals_monthly_sensor": {
         "name": "Voltooide klusjes - Maandelijks"
       },
-      "chores_sensor": {
-        "name": "Klusjes"
+      "kid_chores_sensor": {
+        "name": "Klusjes",
+        "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_chores": "Aantal toegewezen taken per status"
+            }
+          }
+        }
       },
-      "kids_badges_sensor": {
+      "kid_badges_sensor": {
         "name": "Badges",
         "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_badges": "Voortgang bijhouden voor het behalen van badges"
+            }
+          },
           "kid_name": {
             "name": "Naam van het kind"
           },
@@ -1957,7 +1983,7 @@
           }
         }
       },
-      "badge_sensor": {
+      "system_badge_sensor": {
         "name": "Badge - {badge_name}",
         "state_attributes": {
           "threshold_type": {
@@ -2027,10 +2053,34 @@
           }
         }
       },
-      "pending_chores_approvals_sensor": {
+      "kid_badge_progress_sensor": {
+        "name": "Badgevoortgang - {badge_name}",
+        "state_attributes": {
+          "kid_name": {
+            "name": "Naam van het kind"
+          },
+          "badge_name": {
+            "name": "Badgenaam"
+          },
+          "progress": {
+            "name": "Voortgang"
+          },
+          "target": {
+            "name": "Doel"
+          },
+          "earned": {
+            "name": "Verdiend",
+            "state": {
+              "true": "Ja",
+              "false": "Nee"
+            }
+          }
+        }
+      },
+      "system_chores_pending_approval_sensor": {
         "name": "In afwachting van goedkeuring van de klussen"
       },
-      "pending_rewards_approvals_sensor": {
+      "system_rewards_pending_approval_sensor": {
         "name": "In afwachting van goedkeuring van beloningen"
       },
       "reward_claims_sensor": {
@@ -2039,7 +2089,7 @@
       "reward_approvals_sensor": {
         "name": "Goedkeuringen - {reward_name}"
       },
-      "shared_chore_global_status_sensor": {
+      "system_chore_shared_state_sensor": {
         "name": "{chore_name} - Wereldwijde status",
         "state": {
           "pending": "In behandeling",
@@ -2106,7 +2156,7 @@
           }
         }
       },
-      "reward_status_sensor": {
+      "kid_reward_status_sensor": {
         "name": "Beloningsstatus - {reward_name}",
         "state": {
           "not_claimed": "Niet opgeëist",
@@ -2145,7 +2195,7 @@
       "chore_approvals_sensor": {
         "name": "Goedkeuringen - {chore_name}"
       },
-      "penalty_applies_sensor": {
+      "kid_penalty_applied_sensor": {
         "name": "Toegepaste straffen - {penalty_name}",
         "state_attributes": {
           "kid_name": {
@@ -2165,7 +2215,7 @@
           }
         }
       },
-      "bonus_applies_sensor": {
+      "kid_bonus_applied_sensor": {
         "name": "Bonus van toepassing - {bonus_name}",
         "state_attributes": {
           "kid_name": {
@@ -2194,7 +2244,7 @@
       "kid_points_earned_monthly_sensor": {
         "name": "Verdiende punten - Maandelijks"
       },
-      "achievement_state_sensor": {
+      "system_achievement_sensor": {
         "name": "Prestatie - {achievement_name}",
         "state_attributes": {
           "achievement_name": {
@@ -2234,7 +2284,7 @@
           }
         }
       },
-      "challenge_state_sensor": {
+      "system_challenge_sensor": {
         "name": "Uitdaging - {challenge_name}",
         "state_attributes": {
           "challenge_name": {
@@ -2279,7 +2329,7 @@
           }
         }
       },
-      "achievement_progress_sensor": {
+      "kid_achievement_progress_sensor": {
         "name": "Voortgang - {achievement_name}",
         "state_attributes": {
           "achievement_name": {
@@ -2326,7 +2376,7 @@
           }
         }
       },
-      "challenge_progress_sensor": {
+      "kid_challenge_progress_sensor": {
         "name": "Voortgang - {challenge_name}",
         "state_attributes": {
           "challenge_name": {
@@ -2378,7 +2428,7 @@
           }
         }
       },
-      "kid_chores_highest_streak_sensor": {
+      "kid_chore_streak_sensor": {
         "name": "Langste reeks voltooide klusjes",
         "state_attributes": {
           "streaks_by_achievement": {
@@ -2397,39 +2447,95 @@
           }
         }
       },
-      "dashboard_helper_sensor": {
-        "name": "UI Dashboard Helper"
+      "kid_dashboard_helper_sensor": {
+        "name": "UI Dashboard Helper",
+        "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_dashboard_helper": "Verzamelt alle gegevens van kinderen voor weergave op het dashboard."
+            }
+          },
+          "chores": {
+            "name": "Klusjes"
+          },
+          "rewards": {
+            "name": "Beloningen"
+          },
+          "badges": {
+            "name": "Badges"
+          },
+          "bonuses": {
+            "name": "Bonussen"
+          },
+          "penalties": {
+            "name": "Strafpunten"
+          },
+          "achievements": {
+            "name": "Prestaties"
+          },
+          "challenges": {
+            "name": "Uitdagingen"
+          },
+          "ui_translations": {
+            "name": "UI-vertalingen"
+          },
+          "points_buttons": {
+            "name": "Puntenknoppen"
+          },
+          "pending_approvals": {
+            "name": "Goedkeuringen in afwachting"
+          },
+          "core_sensors": {
+            "name": "Kernsensoren"
+          },
+          "dashboard_helpers": {
+            "name": "Dashboard Helpers"
+          },
+          "chores_by_label": {
+            "name": "Taken per label"
+          },
+          "kid_name": {
+            "name": "Naam van het kind"
+          },
+          "language": {
+            "name": "Taal"
+          }
+        }
       }
     },
     "select": {
-      "chores_select": {
+      "kc_select_base": {
+        "name": "Selecteer basis"
+      },
+      "system_chores_select": {
         "name": "Selecteer taak"
       },
-      "rewards_select": {
+      "system_rewards_select": {
         "name": "Selecteer beloning"
       },
-      "penalties_select": {
+      "system_penalties_select": {
         "name": "Selecteer straf"
       },
-      "bonuses_select": {
+      "system_bonuses_select": {
         "name": "Selecteer bonus"
       },
-      "chore_list_helper": {
+      "kid_dashboard_helper_chores_select": {
         "name": "UI Dashboard Takenlijst Helper"
       }
     },
     "calendar": {
-      "calendar_name": {
+      "kid_schedule_calendar": {
         "name": "Kalender"
       }
     },
     "datetime": {
-      "date_helper": {
+      "kid_dashboard_helper_datetime_picker": {
         "name": "UI Dashboard Datum Helper"
       }
     },
     "button": {
-      "claim_chore_button": {
+      "kid_chore_claim_button": {
         "name": "Claim Chore - {chore_name}",
         "state_attributes": {
           "labels": {
@@ -2437,7 +2543,7 @@
           }
         }
       },
-      "approve_chore_button": {
+      "parent_chore_approve_button": {
         "name": "Goedkeuringstaak - {chore_name}",
         "state_attributes": {
           "labels": {
@@ -2445,7 +2551,7 @@
           }
         }
       },
-      "disapprove_chore_button": {
+      "parent_chore_disapprove_button": {
         "name": "Chore afkeuren - {chore_name}",
         "state_attributes": {
           "labels": {
@@ -2453,7 +2559,7 @@
           }
         }
       },
-      "claim_reward_button": {
+      "kid_reward_redeem_button": {
         "name": "Claim beloning - {reward_name}",
         "state_attributes": {
           "labels": {
@@ -2461,7 +2567,7 @@
           }
         }
       },
-      "approve_reward_button": {
+      "parent_reward_approve_button": {
         "name": "Beloning goedkeuren - {reward_name}",
         "state_attributes": {
           "labels": {
@@ -2469,7 +2575,7 @@
           }
         }
       },
-      "disapprove_reward_button": {
+      "parent_reward_disapprove_button": {
         "name": "Afkeuringsbeloning - {reward_name}",
         "state_attributes": {
           "labels": {
@@ -2477,7 +2583,7 @@
           }
         }
       },
-      "penalty_button": {
+      "parent_penalty_apply_button": {
         "name": "Straf toepassen - {penalty_name}",
         "state_attributes": {
           "labels": {
@@ -2485,7 +2591,7 @@
           }
         }
       },
-      "bonus_button": {
+      "parent_bonus_apply_button": {
         "name": "Bonus aanvragen - {bonus_name}",
         "state_attributes": {
           "labels": {
@@ -2493,7 +2599,7 @@
           }
         }
       },
-      "manual_adjustment_button": {
+      "parent_points_adjust_button": {
         "name": "{sign_label} {points_label}"
       }
     }

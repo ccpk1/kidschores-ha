@@ -1795,7 +1795,7 @@
   },
   "entity": {
     "sensor": {
-      "chore_status_sensor": {
+      "kid_chore_status_sensor": {
         "name": "Status för sysslor - {chore_name}",
         "state": {
           "pending": "I avvaktan på",
@@ -1808,6 +1808,12 @@
           "claimed_in_part": "Anspråk (delvis)"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_chore_status": "Nuvarande status för denna specifika syssla"
+            }
+          },
           "kid_name": {
             "name": "Barnets namn"
           },
@@ -1911,32 +1917,52 @@
       "kid_points_sensor": {
         "name": "{points}",
         "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_points": "Nuvarande poängsaldo för barn"
+            }
+          },
           "description": {
             "name": "Nuvarande poängsaldo - tjäna på sysslor, spendera på belöningar"
           }
         }
       },
-      "kid_max_points_ever_sensor": {
+      "kid_points_max_ever_sensor": {
         "name": "Maximalt {points} någonsin"
       },
-      "chores_completed_total_sensor": {
+      "system_chore_approvals_sensor": {
         "name": "Slutförda sysslor - Totalt"
       },
-      "chores_completed_daily_sensor": {
+      "system_chore_approvals_daily_sensor": {
         "name": "Sysslor slutförda - Dagligen"
       },
-      "chores_completed_weekly_sensor": {
+      "system_chore_approvals_weekly_sensor": {
         "name": "Sysslor slutförda - Veckovis"
       },
-      "chores_completed_monthly_sensor": {
+      "system_chore_approvals_monthly_sensor": {
         "name": "Sysslor slutförda - Månadsvis"
       },
-      "chores_sensor": {
-        "name": "Sysslor"
+      "kid_chores_sensor": {
+        "name": "Sysslor",
+        "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_chores": "Antal tilldelade sysslor efter status"
+            }
+          }
+        }
       },
-      "kids_badges_sensor": {
+      "kid_badges_sensor": {
         "name": "Märken",
         "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_badges": "Framstegsspårning för märkets prestationer"
+            }
+          },
           "kid_name": {
             "name": "Barnets namn"
           },
@@ -1957,7 +1983,7 @@
           }
         }
       },
-      "badge_sensor": {
+      "system_badge_sensor": {
         "name": "Märke - {badge_name}",
         "state_attributes": {
           "threshold_type": {
@@ -2027,10 +2053,34 @@
           }
         }
       },
-      "pending_chores_approvals_sensor": {
+      "kid_badge_progress_sensor": {
+        "name": "Märkesframsteg - {badge_name}",
+        "state_attributes": {
+          "kid_name": {
+            "name": "Barnets namn"
+          },
+          "badge_name": {
+            "name": "Märkesnamn"
+          },
+          "progress": {
+            "name": "Framsteg"
+          },
+          "target": {
+            "name": "Mål"
+          },
+          "earned": {
+            "name": "Förtjänade",
+            "state": {
+              "true": "Ja",
+              "false": "Inga"
+            }
+          }
+        }
+      },
+      "system_chores_pending_approval_sensor": {
         "name": "Väntar på godkännanden av sysslor"
       },
-      "pending_rewards_approvals_sensor": {
+      "system_rewards_pending_approval_sensor": {
         "name": "Väntar på godkännande av belöningar"
       },
       "reward_claims_sensor": {
@@ -2039,7 +2089,7 @@
       "reward_approvals_sensor": {
         "name": "Godkännanden - {reward_name}"
       },
-      "shared_chore_global_status_sensor": {
+      "system_chore_shared_state_sensor": {
         "name": "{chore_name} - Global status",
         "state": {
           "pending": "I avvaktan på",
@@ -2106,7 +2156,7 @@
           }
         }
       },
-      "reward_status_sensor": {
+      "kid_reward_status_sensor": {
         "name": "Belöningsstatus - {reward_name}",
         "state": {
           "not_claimed": "Inte gjort anspråk",
@@ -2145,7 +2195,7 @@
       "chore_approvals_sensor": {
         "name": "Godkännanden - {chore_name}"
       },
-      "penalty_applies_sensor": {
+      "kid_penalty_applied_sensor": {
         "name": "Tillämpade straff - {penalty_name}",
         "state_attributes": {
           "kid_name": {
@@ -2165,7 +2215,7 @@
           }
         }
       },
-      "bonus_applies_sensor": {
+      "kid_bonus_applied_sensor": {
         "name": "Bonus gäller - {bonus_name}",
         "state_attributes": {
           "kid_name": {
@@ -2194,7 +2244,7 @@
       "kid_points_earned_monthly_sensor": {
         "name": "Intjänade poäng - Månadsvis"
       },
-      "achievement_state_sensor": {
+      "system_achievement_sensor": {
         "name": "Prestation - {achievement_name}",
         "state_attributes": {
           "achievement_name": {
@@ -2234,7 +2284,7 @@
           }
         }
       },
-      "challenge_state_sensor": {
+      "system_challenge_sensor": {
         "name": "Utmaning - {challenge_name}",
         "state_attributes": {
           "challenge_name": {
@@ -2279,7 +2329,7 @@
           }
         }
       },
-      "achievement_progress_sensor": {
+      "kid_achievement_progress_sensor": {
         "name": "Framsteg - {achievement_name}",
         "state_attributes": {
           "achievement_name": {
@@ -2326,7 +2376,7 @@
           }
         }
       },
-      "challenge_progress_sensor": {
+      "kid_challenge_progress_sensor": {
         "name": "Framsteg - {challenge_name}",
         "state_attributes": {
           "challenge_name": {
@@ -2378,7 +2428,7 @@
           }
         }
       },
-      "kid_chores_highest_streak_sensor": {
+      "kid_chore_streak_sensor": {
         "name": "Högsta syssloserie",
         "state_attributes": {
           "streaks_by_achievement": {
@@ -2397,39 +2447,95 @@
           }
         }
       },
-      "dashboard_helper_sensor": {
-        "name": "Hjälp för UI-instrumentpanel"
+      "kid_dashboard_helper_sensor": {
+        "name": "Hjälp för UI-instrumentpanel",
+        "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_dashboard_helper": "Aggregerar all barndata för instrumentpanelsanvändning"
+            }
+          },
+          "chores": {
+            "name": "Sysslor"
+          },
+          "rewards": {
+            "name": "Belöningar"
+          },
+          "badges": {
+            "name": "Märken"
+          },
+          "bonuses": {
+            "name": "Bonusar"
+          },
+          "penalties": {
+            "name": "Straffar"
+          },
+          "achievements": {
+            "name": "Prestationer"
+          },
+          "challenges": {
+            "name": "Utmaningar"
+          },
+          "ui_translations": {
+            "name": "UI-översättningar"
+          },
+          "points_buttons": {
+            "name": "Poängknappar"
+          },
+          "pending_approvals": {
+            "name": "Väntar på godkännanden"
+          },
+          "core_sensors": {
+            "name": "Kärnsensorer"
+          },
+          "dashboard_helpers": {
+            "name": "Instrumentpanelshjälpare"
+          },
+          "chores_by_label": {
+            "name": "Sysslor efter etikett"
+          },
+          "kid_name": {
+            "name": "Barnets namn"
+          },
+          "language": {
+            "name": "Språk"
+          }
+        }
       }
     },
     "select": {
-      "chores_select": {
+      "kc_select_base": {
+        "name": "Välj bas"
+      },
+      "system_chores_select": {
         "name": "Välj syssla"
       },
-      "rewards_select": {
+      "system_rewards_select": {
         "name": "Välj belöning"
       },
-      "penalties_select": {
+      "system_penalties_select": {
         "name": "Välj straff"
       },
-      "bonuses_select": {
+      "system_bonuses_select": {
         "name": "Välj bonus"
       },
-      "chore_list_helper": {
+      "kid_dashboard_helper_chores_select": {
         "name": "Hjälp för sysslolista för UI-instrumentpanelen"
       }
     },
     "calendar": {
-      "calendar_name": {
+      "kid_schedule_calendar": {
         "name": "Kalender"
       }
     },
     "datetime": {
-      "date_helper": {
+      "kid_dashboard_helper_datetime_picker": {
         "name": "Datumhjälp för UI-instrumentpanel"
       }
     },
     "button": {
-      "claim_chore_button": {
+      "kid_chore_claim_button": {
         "name": "Hämta syssla - {chore_name}",
         "state_attributes": {
           "labels": {
@@ -2437,7 +2543,7 @@
           }
         }
       },
-      "approve_chore_button": {
+      "parent_chore_approve_button": {
         "name": "Godkänn syssla - {chore_name}",
         "state_attributes": {
           "labels": {
@@ -2445,7 +2551,7 @@
           }
         }
       },
-      "disapprove_chore_button": {
+      "parent_chore_disapprove_button": {
         "name": "Godkänn inte syssla - {chore_name}",
         "state_attributes": {
           "labels": {
@@ -2453,7 +2559,7 @@
           }
         }
       },
-      "claim_reward_button": {
+      "kid_reward_redeem_button": {
         "name": "Hämta belöning - {reward_name}",
         "state_attributes": {
           "labels": {
@@ -2461,7 +2567,7 @@
           }
         }
       },
-      "approve_reward_button": {
+      "parent_reward_approve_button": {
         "name": "Godkänn belöning - {reward_name}",
         "state_attributes": {
           "labels": {
@@ -2469,7 +2575,7 @@
           }
         }
       },
-      "disapprove_reward_button": {
+      "parent_reward_disapprove_button": {
         "name": "Avvisa belöning - {reward_name}",
         "state_attributes": {
           "labels": {
@@ -2477,7 +2583,7 @@
           }
         }
       },
-      "penalty_button": {
+      "parent_penalty_apply_button": {
         "name": "Tillämpa straff - {penalty_name}",
         "state_attributes": {
           "labels": {
@@ -2485,7 +2591,7 @@
           }
         }
       },
-      "bonus_button": {
+      "parent_bonus_apply_button": {
         "name": "Använd bonus - {bonus_name}",
         "state_attributes": {
           "labels": {
@@ -2493,7 +2599,7 @@
           }
         }
       },
-      "manual_adjustment_button": {
+      "parent_points_adjust_button": {
         "name": "{sign_label} {points_label}"
       }
     }

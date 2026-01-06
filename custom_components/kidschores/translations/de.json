@@ -1795,7 +1795,7 @@
   },
   "entity": {
     "sensor": {
-      "chore_status_sensor": {
+      "kid_chore_status_sensor": {
         "name": "Aufgabenstatus - {chore_name}",
         "state": {
           "pending": "Ausstehend",
@@ -1808,6 +1808,12 @@
           "claimed_in_part": "Beansprucht (teilweise)"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_chore_status": "Aktueller Status dieser spezifischen Aufgabe"
+            }
+          },
           "kid_name": {
             "name": "Kindername"
           },
@@ -1911,32 +1917,52 @@
       "kid_points_sensor": {
         "name": "{points}",
         "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_points": "Aktueller Punktestand des Kindes"
+            }
+          },
           "description": {
             "name": "Aktueller Punktestand – durch Aufgaben sammeln, für Prämien ausgeben"
           }
         }
       },
-      "kid_max_points_ever_sensor": {
+      "kid_points_max_ever_sensor": {
         "name": "Maximal {points} Immer"
       },
-      "chores_completed_total_sensor": {
+      "system_chore_approvals_sensor": {
         "name": "Erledigte Aufgaben - Gesamt"
       },
-      "chores_completed_daily_sensor": {
+      "system_chore_approvals_daily_sensor": {
         "name": "Erledigte Aufgaben - Täglich"
       },
-      "chores_completed_weekly_sensor": {
+      "system_chore_approvals_weekly_sensor": {
         "name": "Erledigte Aufgaben - Wöchentlich"
       },
-      "chores_completed_monthly_sensor": {
+      "system_chore_approvals_monthly_sensor": {
         "name": "Erledigte Aufgaben - Monatlich"
       },
-      "chores_sensor": {
-        "name": "Hausarbeiten"
+      "kid_chores_sensor": {
+        "name": "Hausarbeiten",
+        "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_chores": "Anzahl der zugewiesenen Aufgaben nach Status"
+            }
+          }
+        }
       },
-      "kids_badges_sensor": {
+      "kid_badges_sensor": {
         "name": "Abzeichen",
         "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_badges": "Fortschrittsverfolgung für Abzeichenerfolge"
+            }
+          },
           "kid_name": {
             "name": "Kindername"
           },
@@ -1957,7 +1983,7 @@
           }
         }
       },
-      "badge_sensor": {
+      "system_badge_sensor": {
         "name": "Abzeichen - {badge_name}",
         "state_attributes": {
           "threshold_type": {
@@ -2027,10 +2053,34 @@
           }
         }
       },
-      "pending_chores_approvals_sensor": {
+      "kid_badge_progress_sensor": {
+        "name": "Abzeichen-Fortschritt - {badge_name}",
+        "state_attributes": {
+          "kid_name": {
+            "name": "Kindername"
+          },
+          "badge_name": {
+            "name": "Abzeichenname"
+          },
+          "progress": {
+            "name": "Fortschritt"
+          },
+          "target": {
+            "name": "Ziel"
+          },
+          "earned": {
+            "name": "Verdient",
+            "state": {
+              "true": "Ja",
+              "false": "NEIN"
+            }
+          }
+        }
+      },
+      "system_chores_pending_approval_sensor": {
         "name": "Ausstehende Genehmigungen für Hausarbeiten"
       },
-      "pending_rewards_approvals_sensor": {
+      "system_rewards_pending_approval_sensor": {
         "name": "Ausstehende Prämiengenehmigungen"
       },
       "reward_claims_sensor": {
@@ -2039,7 +2089,7 @@
       "reward_approvals_sensor": {
         "name": "Genehmigungen - {reward_name}"
       },
-      "shared_chore_global_status_sensor": {
+      "system_chore_shared_state_sensor": {
         "name": "{chore_name} - Globaler Status",
         "state": {
           "pending": "Ausstehend",
@@ -2106,7 +2156,7 @@
           }
         }
       },
-      "reward_status_sensor": {
+      "kid_reward_status_sensor": {
         "name": "Belohnungsstatus - {reward_name}",
         "state": {
           "not_claimed": "Nicht beansprucht",
@@ -2145,7 +2195,7 @@
       "chore_approvals_sensor": {
         "name": "Genehmigungen - {chore_name}"
       },
-      "penalty_applies_sensor": {
+      "kid_penalty_applied_sensor": {
         "name": "Strafen angewendet - {penalty_name}",
         "state_attributes": {
           "kid_name": {
@@ -2165,7 +2215,7 @@
           }
         }
       },
-      "bonus_applies_sensor": {
+      "kid_bonus_applied_sensor": {
         "name": "Bonus gilt - {bonus_name}",
         "state_attributes": {
           "kid_name": {
@@ -2194,7 +2244,7 @@
       "kid_points_earned_monthly_sensor": {
         "name": "Gesammelte Punkte – Monatlich"
       },
-      "achievement_state_sensor": {
+      "system_achievement_sensor": {
         "name": "Erfolg - {achievement_name}",
         "state_attributes": {
           "achievement_name": {
@@ -2234,7 +2284,7 @@
           }
         }
       },
-      "challenge_state_sensor": {
+      "system_challenge_sensor": {
         "name": "Herausforderung - {challenge_name}",
         "state_attributes": {
           "challenge_name": {
@@ -2279,7 +2329,7 @@
           }
         }
       },
-      "achievement_progress_sensor": {
+      "kid_achievement_progress_sensor": {
         "name": "Fortschritt - {achievement_name}",
         "state_attributes": {
           "achievement_name": {
@@ -2326,7 +2376,7 @@
           }
         }
       },
-      "challenge_progress_sensor": {
+      "kid_challenge_progress_sensor": {
         "name": "Fortschritt - {challenge_name}",
         "state_attributes": {
           "challenge_name": {
@@ -2378,7 +2428,7 @@
           }
         }
       },
-      "kid_chores_highest_streak_sensor": {
+      "kid_chore_streak_sensor": {
         "name": "Höchste Serie bei Hausarbeiten",
         "state_attributes": {
           "streaks_by_achievement": {
@@ -2397,39 +2447,95 @@
           }
         }
       },
-      "dashboard_helper_sensor": {
-        "name": "UI-Dashboard-Helfer"
+      "kid_dashboard_helper_sensor": {
+        "name": "UI-Dashboard-Helfer",
+        "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_dashboard_helper": "Fasst alle Kinderdaten zur Anzeige im Dashboard zusammen."
+            }
+          },
+          "chores": {
+            "name": "Hausarbeiten"
+          },
+          "rewards": {
+            "name": "Prämien"
+          },
+          "badges": {
+            "name": "Abzeichen"
+          },
+          "bonuses": {
+            "name": "Boni"
+          },
+          "penalties": {
+            "name": "Strafen"
+          },
+          "achievements": {
+            "name": "Erfolge"
+          },
+          "challenges": {
+            "name": "Herausforderungen"
+          },
+          "ui_translations": {
+            "name": "UI-Übersetzungen"
+          },
+          "points_buttons": {
+            "name": "Punkte-Buttons"
+          },
+          "pending_approvals": {
+            "name": "Genehmigungen ausstehend"
+          },
+          "core_sensors": {
+            "name": "Kernsensoren"
+          },
+          "dashboard_helpers": {
+            "name": "Dashboard-Helfer"
+          },
+          "chores_by_label": {
+            "name": "Aufgaben nach Label"
+          },
+          "kid_name": {
+            "name": "Kindername"
+          },
+          "language": {
+            "name": "Sprache"
+          }
+        }
       }
     },
     "select": {
-      "chores_select": {
+      "kc_select_base": {
+        "name": "Basis auswählen"
+      },
+      "system_chores_select": {
         "name": "Aufgabe auswählen"
       },
-      "rewards_select": {
+      "system_rewards_select": {
         "name": "Prämie auswählen"
       },
-      "penalties_select": {
+      "system_penalties_select": {
         "name": "Strafe auswählen"
       },
-      "bonuses_select": {
+      "system_bonuses_select": {
         "name": "Bonus auswählen"
       },
-      "chore_list_helper": {
+      "kid_dashboard_helper_chores_select": {
         "name": "UI-Dashboard-Aufgabenlisten-Assistent"
       }
     },
     "calendar": {
-      "calendar_name": {
+      "kid_schedule_calendar": {
         "name": "Kalender"
       }
     },
     "datetime": {
-      "date_helper": {
+      "kid_dashboard_helper_datetime_picker": {
         "name": "UI-Dashboard-Datumshilfe"
       }
     },
     "button": {
-      "claim_chore_button": {
+      "kid_chore_claim_button": {
         "name": "Aufgaben übernehmen - {chore_name}",
         "state_attributes": {
           "labels": {
@@ -2437,7 +2543,7 @@
           }
         }
       },
-      "approve_chore_button": {
+      "parent_chore_approve_button": {
         "name": "Aufgabe genehmigen - {chore_name}",
         "state_attributes": {
           "labels": {
@@ -2445,7 +2551,7 @@
           }
         }
       },
-      "disapprove_chore_button": {
+      "parent_chore_disapprove_button": {
         "name": "Aufgabe ablehnen - {chore_name}",
         "state_attributes": {
           "labels": {
@@ -2453,7 +2559,7 @@
           }
         }
       },
-      "claim_reward_button": {
+      "kid_reward_redeem_button": {
         "name": "Belohnung einfordern - {reward_name}",
         "state_attributes": {
           "labels": {
@@ -2461,7 +2567,7 @@
           }
         }
       },
-      "approve_reward_button": {
+      "parent_reward_approve_button": {
         "name": "Belohnung genehmigen - {reward_name}",
         "state_attributes": {
           "labels": {
@@ -2469,7 +2575,7 @@
           }
         }
       },
-      "disapprove_reward_button": {
+      "parent_reward_disapprove_button": {
         "name": "Belohnung ablehnen - {reward_name}",
         "state_attributes": {
           "labels": {
@@ -2477,7 +2583,7 @@
           }
         }
       },
-      "penalty_button": {
+      "parent_penalty_apply_button": {
         "name": "Strafe anwenden - {penalty_name}",
         "state_attributes": {
           "labels": {
@@ -2485,7 +2591,7 @@
           }
         }
       },
-      "bonus_button": {
+      "parent_bonus_apply_button": {
         "name": "Bonus beantragen - {bonus_name}",
         "state_attributes": {
           "labels": {
@@ -2493,7 +2599,7 @@
           }
         }
       },
-      "manual_adjustment_button": {
+      "parent_points_adjust_button": {
         "name": "{sign_label} {points_label}"
       }
     }

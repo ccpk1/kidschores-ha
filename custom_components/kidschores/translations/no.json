@@ -1795,7 +1795,7 @@
   },
   "entity": {
     "sensor": {
-      "chore_status_sensor": {
+      "kid_chore_status_sensor": {
         "name": "Status for gjøremål - {chore_name}",
         "state": {
           "pending": "I påvente av",
@@ -1808,6 +1808,12 @@
           "claimed_in_part": "Gjorde krav på (delvis)"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_chore_status": "Nåværende status for denne spesifikke gjøremålet"
+            }
+          },
           "kid_name": {
             "name": "Barnenavn"
           },
@@ -1911,32 +1917,52 @@
       "kid_points_sensor": {
         "name": "{points}",
         "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_points": "Nåværende poengsaldo for barnet"
+            }
+          },
           "description": {
             "name": "Nåværende poengsaldo - tjen penger på gjøremål, bruk dem på belønninger"
           }
         }
       },
-      "kid_max_points_ever_sensor": {
+      "kid_points_max_ever_sensor": {
         "name": "Maksimum {points} noensinne"
       },
-      "chores_completed_total_sensor": {
+      "system_chore_approvals_sensor": {
         "name": "Fullførte gjøremål - Totalt"
       },
-      "chores_completed_daily_sensor": {
+      "system_chore_approvals_daily_sensor": {
         "name": "Gjøremål fullført - Daglig"
       },
-      "chores_completed_weekly_sensor": {
+      "system_chore_approvals_weekly_sensor": {
         "name": "Gjøremål fullført - Ukentlig"
       },
-      "chores_completed_monthly_sensor": {
+      "system_chore_approvals_monthly_sensor": {
         "name": "Gjøremål fullført - Månedlig"
       },
-      "chores_sensor": {
-        "name": "Gjøremål"
+      "kid_chores_sensor": {
+        "name": "Gjøremål",
+        "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_chores": "Antall tildelte gjøremål etter status"
+            }
+          }
+        }
       },
-      "kids_badges_sensor": {
+      "kid_badges_sensor": {
         "name": "Merker",
         "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_badges": "Fremdriftssporing for merkeprestasjoner"
+            }
+          },
           "kid_name": {
             "name": "Barnenavn"
           },
@@ -1957,7 +1983,7 @@
           }
         }
       },
-      "badge_sensor": {
+      "system_badge_sensor": {
         "name": "Merke - {badge_name}",
         "state_attributes": {
           "threshold_type": {
@@ -2027,10 +2053,34 @@
           }
         }
       },
-      "pending_chores_approvals_sensor": {
+      "kid_badge_progress_sensor": {
+        "name": "Merkefremgang - {badge_name}",
+        "state_attributes": {
+          "kid_name": {
+            "name": "Barnenavn"
+          },
+          "badge_name": {
+            "name": "Merkenavn"
+          },
+          "progress": {
+            "name": "Framgang"
+          },
+          "target": {
+            "name": "Mål"
+          },
+          "earned": {
+            "name": "Opptjent",
+            "state": {
+              "true": "Ja",
+              "false": "Ingen"
+            }
+          }
+        }
+      },
+      "system_chores_pending_approval_sensor": {
         "name": "Venter på godkjenning av husarbeid"
       },
-      "pending_rewards_approvals_sensor": {
+      "system_rewards_pending_approval_sensor": {
         "name": "Venter på godkjenning av belønninger"
       },
       "reward_claims_sensor": {
@@ -2039,7 +2089,7 @@
       "reward_approvals_sensor": {
         "name": "Godkjenninger - {reward_name}"
       },
-      "shared_chore_global_status_sensor": {
+      "system_chore_shared_state_sensor": {
         "name": "{chore_name} – Global status",
         "state": {
           "pending": "I påvente av",
@@ -2106,7 +2156,7 @@
           }
         }
       },
-      "reward_status_sensor": {
+      "kid_reward_status_sensor": {
         "name": "Belønningsstatus - {reward_name}",
         "state": {
           "not_claimed": "Ikke gjort krav på",
@@ -2145,7 +2195,7 @@
       "chore_approvals_sensor": {
         "name": "Godkjenninger - {chore_name}"
       },
-      "penalty_applies_sensor": {
+      "kid_penalty_applied_sensor": {
         "name": "Straffer ilagt - {penalty_name}",
         "state_attributes": {
           "kid_name": {
@@ -2165,7 +2215,7 @@
           }
         }
       },
-      "bonus_applies_sensor": {
+      "kid_bonus_applied_sensor": {
         "name": "Bonus gjelder - {bonus_name}",
         "state_attributes": {
           "kid_name": {
@@ -2194,7 +2244,7 @@
       "kid_points_earned_monthly_sensor": {
         "name": "Opptjente poeng – månedlig"
       },
-      "achievement_state_sensor": {
+      "system_achievement_sensor": {
         "name": "Prestasjon - {achievement_name}",
         "state_attributes": {
           "achievement_name": {
@@ -2234,7 +2284,7 @@
           }
         }
       },
-      "challenge_state_sensor": {
+      "system_challenge_sensor": {
         "name": "Utfordring - {challenge_name}",
         "state_attributes": {
           "challenge_name": {
@@ -2279,7 +2329,7 @@
           }
         }
       },
-      "achievement_progress_sensor": {
+      "kid_achievement_progress_sensor": {
         "name": "Fremgang - {achievement_name}",
         "state_attributes": {
           "achievement_name": {
@@ -2326,7 +2376,7 @@
           }
         }
       },
-      "challenge_progress_sensor": {
+      "kid_challenge_progress_sensor": {
         "name": "Fremgang - {challenge_name}",
         "state_attributes": {
           "challenge_name": {
@@ -2378,7 +2428,7 @@
           }
         }
       },
-      "kid_chores_highest_streak_sensor": {
+      "kid_chore_streak_sensor": {
         "name": "Høyeste oppgaverekke",
         "state_attributes": {
           "streaks_by_achievement": {
@@ -2397,39 +2447,95 @@
           }
         }
       },
-      "dashboard_helper_sensor": {
-        "name": "Hjelpemiddel for brukergrensesnitt-dashbord"
+      "kid_dashboard_helper_sensor": {
+        "name": "Hjelpemiddel for brukergrensesnitt-dashbord",
+        "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_dashboard_helper": "Aggregerer alle barnedata for forbruk på dashbordet"
+            }
+          },
+          "chores": {
+            "name": "Gjøremål"
+          },
+          "rewards": {
+            "name": "Belønninger"
+          },
+          "badges": {
+            "name": "Merker"
+          },
+          "bonuses": {
+            "name": "Bonuser"
+          },
+          "penalties": {
+            "name": "Straffer"
+          },
+          "achievements": {
+            "name": "prestasjoner"
+          },
+          "challenges": {
+            "name": "Utfordringer"
+          },
+          "ui_translations": {
+            "name": "UI-oversettelser"
+          },
+          "points_buttons": {
+            "name": "Poengknapper"
+          },
+          "pending_approvals": {
+            "name": "Venter på godkjenninger"
+          },
+          "core_sensors": {
+            "name": "Kjernesensorer"
+          },
+          "dashboard_helpers": {
+            "name": "Dashbordhjelpere"
+          },
+          "chores_by_label": {
+            "name": "Gjøremål etter etikett"
+          },
+          "kid_name": {
+            "name": "Barnenavn"
+          },
+          "language": {
+            "name": "Språk"
+          }
+        }
       }
     },
     "select": {
-      "chores_select": {
+      "kc_select_base": {
+        "name": "Velg base"
+      },
+      "system_chores_select": {
         "name": "Velg gjøremål"
       },
-      "rewards_select": {
+      "system_rewards_select": {
         "name": "Velg belønning"
       },
-      "penalties_select": {
+      "system_penalties_select": {
         "name": "Velg straff"
       },
-      "bonuses_select": {
+      "system_bonuses_select": {
         "name": "Velg bonus"
       },
-      "chore_list_helper": {
+      "kid_dashboard_helper_chores_select": {
         "name": "Hjelpemiddel for gjøremålsliste for brukergrensesnitt"
       }
     },
     "calendar": {
-      "calendar_name": {
+      "kid_schedule_calendar": {
         "name": "Kalender"
       }
     },
     "datetime": {
-      "date_helper": {
+      "kid_dashboard_helper_datetime_picker": {
         "name": "Datohjelper for brukergrensesnittsdashbord"
       }
     },
     "button": {
-      "claim_chore_button": {
+      "kid_chore_claim_button": {
         "name": "Krev gjøremål - {chore_name}",
         "state_attributes": {
           "labels": {
@@ -2437,7 +2543,7 @@
           }
         }
       },
-      "approve_chore_button": {
+      "parent_chore_approve_button": {
         "name": "Godkjenn gjøremål - {chore_name}",
         "state_attributes": {
           "labels": {
@@ -2445,7 +2551,7 @@
           }
         }
       },
-      "disapprove_chore_button": {
+      "parent_chore_disapprove_button": {
         "name": "Ikke godkjenn gjøremål - {chore_name}",
         "state_attributes": {
           "labels": {
@@ -2453,7 +2559,7 @@
           }
         }
       },
-      "claim_reward_button": {
+      "kid_reward_redeem_button": {
         "name": "Krev belønning - {reward_name}",
         "state_attributes": {
           "labels": {
@@ -2461,7 +2567,7 @@
           }
         }
       },
-      "approve_reward_button": {
+      "parent_reward_approve_button": {
         "name": "Godkjenn belønning - {reward_name}",
         "state_attributes": {
           "labels": {
@@ -2469,7 +2575,7 @@
           }
         }
       },
-      "disapprove_reward_button": {
+      "parent_reward_disapprove_button": {
         "name": "Avvis belønning - {reward_name}",
         "state_attributes": {
           "labels": {
@@ -2477,7 +2583,7 @@
           }
         }
       },
-      "penalty_button": {
+      "parent_penalty_apply_button": {
         "name": "Bruk straff - {penalty_name}",
         "state_attributes": {
           "labels": {
@@ -2485,7 +2591,7 @@
           }
         }
       },
-      "bonus_button": {
+      "parent_bonus_apply_button": {
         "name": "Bruk bonus - {bonus_name}",
         "state_attributes": {
           "labels": {
@@ -2493,7 +2599,7 @@
           }
         }
       },
-      "manual_adjustment_button": {
+      "parent_points_adjust_button": {
         "name": "{sign_label} {points_label}"
       }
     }

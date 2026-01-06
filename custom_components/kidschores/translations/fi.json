@@ -1795,7 +1795,7 @@
   },
   "entity": {
     "sensor": {
-      "chore_status_sensor": {
+      "kid_chore_status_sensor": {
         "name": "Työn tila - {chore_name}",
         "state": {
           "pending": "Odottaa",
@@ -1808,6 +1808,12 @@
           "claimed_in_part": "Väitetty (osittain)"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_chore_status": "Tämän tietyn tehtävän nykytila"
+            }
+          },
           "kid_name": {
             "name": "Lapsen nimi"
           },
@@ -1911,32 +1917,52 @@
       "kid_points_sensor": {
         "name": "{points}",
         "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_points": "Lapsen nykyinen pistesaldo"
+            }
+          },
           "description": {
             "name": "Nykyinen pistesaldo - ansaitse askareista, käytä palkintoihin"
           }
         }
       },
-      "kid_max_points_ever_sensor": {
+      "kid_points_max_ever_sensor": {
         "name": "Suurin {points} koskaan"
       },
-      "chores_completed_total_sensor": {
+      "system_chore_approvals_sensor": {
         "name": "Suoritetut askareet - Yhteensä"
       },
-      "chores_completed_daily_sensor": {
+      "system_chore_approvals_daily_sensor": {
         "name": "Suoritetut askareet - Päivittäin"
       },
-      "chores_completed_weekly_sensor": {
+      "system_chore_approvals_weekly_sensor": {
         "name": "Suoritetut askareet - Viikoittain"
       },
-      "chores_completed_monthly_sensor": {
+      "system_chore_approvals_monthly_sensor": {
         "name": "Suoritetut kotityöt - Kuukausittain"
       },
-      "chores_sensor": {
-        "name": "Kotityöt"
+      "kid_chores_sensor": {
+        "name": "Kotityöt",
+        "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_chores": "Määrättyjen tehtävien määrä tilan mukaan"
+            }
+          }
+        }
       },
-      "kids_badges_sensor": {
+      "kid_badges_sensor": {
         "name": "Merkit",
         "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_badges": "Merkkien saavutusten edistymisen seuranta"
+            }
+          },
           "kid_name": {
             "name": "Lapsen nimi"
           },
@@ -1957,7 +1983,7 @@
           }
         }
       },
-      "badge_sensor": {
+      "system_badge_sensor": {
         "name": "Merkki - {badge_name}",
         "state_attributes": {
           "threshold_type": {
@@ -2027,10 +2053,34 @@
           }
         }
       },
-      "pending_chores_approvals_sensor": {
+      "kid_badge_progress_sensor": {
+        "name": "Merkin edistyminen - {badge_name}",
+        "state_attributes": {
+          "kid_name": {
+            "name": "Lapsen nimi"
+          },
+          "badge_name": {
+            "name": "Merkin nimi"
+          },
+          "progress": {
+            "name": "Edistyminen"
+          },
+          "target": {
+            "name": "Kohde"
+          },
+          "earned": {
+            "name": "Ansaittu",
+            "state": {
+              "true": "Kyllä",
+              "false": "Ei"
+            }
+          }
+        }
+      },
+      "system_chores_pending_approval_sensor": {
         "name": "Odottavat työhyväksynnät"
       },
-      "pending_rewards_approvals_sensor": {
+      "system_rewards_pending_approval_sensor": {
         "name": "Odottavat palkintojen hyväksynnät"
       },
       "reward_claims_sensor": {
@@ -2039,7 +2089,7 @@
       "reward_approvals_sensor": {
         "name": "Hyväksynnät - {reward_name}"
       },
-      "shared_chore_global_status_sensor": {
+      "system_chore_shared_state_sensor": {
         "name": "{chore_name} - Globaali tila",
         "state": {
           "pending": "Odottaa",
@@ -2106,7 +2156,7 @@
           }
         }
       },
-      "reward_status_sensor": {
+      "kid_reward_status_sensor": {
         "name": "Palkinnon tila - {reward_name}",
         "state": {
           "not_claimed": "Ei vaadittu",
@@ -2145,7 +2195,7 @@
       "chore_approvals_sensor": {
         "name": "Hyväksynnät - {chore_name}"
       },
-      "penalty_applies_sensor": {
+      "kid_penalty_applied_sensor": {
         "name": "Rangaistukset - {penalty_name}",
         "state_attributes": {
           "kid_name": {
@@ -2165,7 +2215,7 @@
           }
         }
       },
-      "bonus_applies_sensor": {
+      "kid_bonus_applied_sensor": {
         "name": "Bonus voimassa - {bonus_name}",
         "state_attributes": {
           "kid_name": {
@@ -2194,7 +2244,7 @@
       "kid_points_earned_monthly_sensor": {
         "name": "Ansaitut pisteet - Kuukausittain"
       },
-      "achievement_state_sensor": {
+      "system_achievement_sensor": {
         "name": "Saavutus - {achievement_name}",
         "state_attributes": {
           "achievement_name": {
@@ -2234,7 +2284,7 @@
           }
         }
       },
-      "challenge_state_sensor": {
+      "system_challenge_sensor": {
         "name": "Haaste - {challenge_name}",
         "state_attributes": {
           "challenge_name": {
@@ -2279,7 +2329,7 @@
           }
         }
       },
-      "achievement_progress_sensor": {
+      "kid_achievement_progress_sensor": {
         "name": "Edistyminen - {achievement_name}",
         "state_attributes": {
           "achievement_name": {
@@ -2326,7 +2376,7 @@
           }
         }
       },
-      "challenge_progress_sensor": {
+      "kid_challenge_progress_sensor": {
         "name": "Edistyminen - {challenge_name}",
         "state_attributes": {
           "challenge_name": {
@@ -2378,7 +2428,7 @@
           }
         }
       },
-      "kid_chores_highest_streak_sensor": {
+      "kid_chore_streak_sensor": {
         "name": "Korkein kotitöiden putki",
         "state_attributes": {
           "streaks_by_achievement": {
@@ -2397,39 +2447,95 @@
           }
         }
       },
-      "dashboard_helper_sensor": {
-        "name": "Käyttöliittymän kojelaudan apuohjelma"
+      "kid_dashboard_helper_sensor": {
+        "name": "Käyttöliittymän kojelaudan apuohjelma",
+        "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_dashboard_helper": "Kokoaa kaikki lasten tiedot koontinäyttöä varten"
+            }
+          },
+          "chores": {
+            "name": "Kotityöt"
+          },
+          "rewards": {
+            "name": "Palkinnot"
+          },
+          "badges": {
+            "name": "Merkit"
+          },
+          "bonuses": {
+            "name": "Bonukset"
+          },
+          "penalties": {
+            "name": "Rangaistukset"
+          },
+          "achievements": {
+            "name": "Saavutukset"
+          },
+          "challenges": {
+            "name": "Haasteet"
+          },
+          "ui_translations": {
+            "name": "Käyttöliittymäkäännökset"
+          },
+          "points_buttons": {
+            "name": "Pistepainikkeet"
+          },
+          "pending_approvals": {
+            "name": "Odottavat hyväksynnät"
+          },
+          "core_sensors": {
+            "name": "Ydinanturit"
+          },
+          "dashboard_helpers": {
+            "name": "Kojelaudan apuohjelmat"
+          },
+          "chores_by_label": {
+            "name": "Kotityöt merkin mukaan"
+          },
+          "kid_name": {
+            "name": "Lapsen nimi"
+          },
+          "language": {
+            "name": "Kieli"
+          }
+        }
       }
     },
     "select": {
-      "chores_select": {
+      "kc_select_base": {
+        "name": "Valitse tukikohta"
+      },
+      "system_chores_select": {
         "name": "Valitse tehtävä"
       },
-      "rewards_select": {
+      "system_rewards_select": {
         "name": "Valitse palkinto"
       },
-      "penalties_select": {
+      "system_penalties_select": {
         "name": "Valitse rangaistus"
       },
-      "bonuses_select": {
+      "system_bonuses_select": {
         "name": "Valitse bonus"
       },
-      "chore_list_helper": {
+      "kid_dashboard_helper_chores_select": {
         "name": "Käyttöliittymän kojelaudan tehtävälistan apuohjelma"
       }
     },
     "calendar": {
-      "calendar_name": {
+      "kid_schedule_calendar": {
         "name": "Kalenteri"
       }
     },
     "datetime": {
-      "date_helper": {
+      "kid_dashboard_helper_datetime_picker": {
         "name": "Käyttöliittymän kojelaudan päivämääräapu"
       }
     },
     "button": {
-      "claim_chore_button": {
+      "kid_chore_claim_button": {
         "name": "Vaadi tehtävä - {chore_name}",
         "state_attributes": {
           "labels": {
@@ -2437,7 +2543,7 @@
           }
         }
       },
-      "approve_chore_button": {
+      "parent_chore_approve_button": {
         "name": "Hyväksy tehtävä - {chore_name}",
         "state_attributes": {
           "labels": {
@@ -2445,7 +2551,7 @@
           }
         }
       },
-      "disapprove_chore_button": {
+      "parent_chore_disapprove_button": {
         "name": "Hylkää kotitehtävä - {chore_name}",
         "state_attributes": {
           "labels": {
@@ -2453,7 +2559,7 @@
           }
         }
       },
-      "claim_reward_button": {
+      "kid_reward_redeem_button": {
         "name": "Lunasta palkinto - {reward_name}",
         "state_attributes": {
           "labels": {
@@ -2461,7 +2567,7 @@
           }
         }
       },
-      "approve_reward_button": {
+      "parent_reward_approve_button": {
         "name": "Hyväksy palkinto - {reward_name}",
         "state_attributes": {
           "labels": {
@@ -2469,7 +2575,7 @@
           }
         }
       },
-      "disapprove_reward_button": {
+      "parent_reward_disapprove_button": {
         "name": "Hylkää palkinto - {reward_name}",
         "state_attributes": {
           "labels": {
@@ -2477,7 +2583,7 @@
           }
         }
       },
-      "penalty_button": {
+      "parent_penalty_apply_button": {
         "name": "Rangaistus - {penalty_name}",
         "state_attributes": {
           "labels": {
@@ -2485,7 +2591,7 @@
           }
         }
       },
-      "bonus_button": {
+      "parent_bonus_apply_button": {
         "name": "Käytä bonusta - {bonus_name}",
         "state_attributes": {
           "labels": {
@@ -2493,7 +2599,7 @@
           }
         }
       },
-      "manual_adjustment_button": {
+      "parent_points_adjust_button": {
         "name": "{sign_label} {points_label}"
       }
     }
