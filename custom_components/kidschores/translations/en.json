@@ -1458,13 +1458,6 @@
         "custom_1_year": "Custom: 1 Year"
       }
     },
-    "reset_schedule": {
-      "options": {
-        "weekly": "Weekly (reset Mondays at midnight)",
-        "monthly": "Monthly (reset on the 1st of the month at midnight)",
-        "custom": "Custom (define period below)"
-      }
-    },
     "occasion_type": {
       "options": {
         "birthday": "Birthday",
