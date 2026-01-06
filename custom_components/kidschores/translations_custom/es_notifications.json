@@ -1,9 +1,4 @@
 {
-  "_metadata": {
-    "language_code": "es",
-    "language_name": "Español",
-    "version": "1.0.0"
-  },
   "chore_assigned": {
     "title": "KidsChores: Nueva tarea",
     "message": "¡Se te asignó una nueva tarea {chore_name} ! Fecha de entrega: {due_date}"

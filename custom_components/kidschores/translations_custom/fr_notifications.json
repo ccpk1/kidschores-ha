@@ -1,9 +1,4 @@
 {
-  "_metadata": {
-    "language_code": "fr",
-    "language_name": "Français",
-    "version": "1.0.0"
-  },
   "chore_assigned": {
     "title": "KidsChores : Nouvelle tâche",
     "message": "Nouvelle tâche {chore_name} à accomplir ! À rendre le : {due_date}"

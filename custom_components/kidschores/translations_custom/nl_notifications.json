@@ -1,9 +1,4 @@
 {
-  "_metadata": {
-    "language_code": "nl",
-    "language_name": "Nederlands",
-    "version": "1.0.0"
-  },
   "chore_assigned": {
     "title": "KidsChores: Nieuwe klus",
     "message": "Je hebt een nieuwe taak {chore_name} toegewezen gekregen! Inleverdatum: {due_date}"

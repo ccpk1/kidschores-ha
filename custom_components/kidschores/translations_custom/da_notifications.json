@@ -1,9 +1,4 @@
 {
-  "_metadata": {
-    "language_code": "da",
-    "language_name": "Dansk",
-    "version": "1.0.0"
-  },
   "chore_assigned": {
     "title": "Børneopgaver: Ny pligt",
     "message": "Ny opgave {chore_name} er blevet tildelt dig! Forfaldsdato: {due_date}"

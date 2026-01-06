@@ -1,9 +1,4 @@
 {
-  "_metadata": {
-    "language_code": "ca",
-    "language_name": "Català",
-    "version": "1.0.0"
-  },
   "chore_assigned": {
     "title": "Tasques infantils: Nova tasca",
     "message": "Se t'ha assignat una nova tasca {chore_name} ! Data límit: {due_date}"
