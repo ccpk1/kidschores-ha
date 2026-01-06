@@ -1,0 +1,15 @@
+# Crowdin Configuration File
+# This maps your local file structure to the Crowdin project
+
+preserve_hierarchy: true
+
+files:
+  # 1. Main Integration Translations
+  # Maps: /translations/en.json -> /translations/fr.json
+  - source: /custom_components/kidschores/translations/en.json
+    translation: /custom_components/kidschores/translations/%two_letters_code%.json
+
+  # 2. Dashboard Translations (Note the _dashboard suffix)
+  # Maps: /translations_dashboard/en_dashboard.json -> /translations_dashboard/fr_dashboard.json
+  - source: /custom_components/kidschores/translations_dashboard/en_dashboard.json
+    translation: /custom_components/kidschores/translations_dashboard/%two_letters_code%_dashboard.json

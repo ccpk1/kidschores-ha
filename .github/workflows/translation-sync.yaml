@@ -1,0 +1,67 @@
+name: L10n Sync with Google Translate
+
+on:
+  push:
+    branches:
+      - l10n-staging
+    paths:
+      - "custom_components/kidschores/translations/en.json"
+      - "custom_components/kidschores/translations_dashboard/en_dashboard.json"
+      - ".github/workflows/translation-sync.yml"
+      - "crowdin.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  synchronize-with-crowdin:
+    name: Sync and Translate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # STEP 1: Upload Sources
+      - name: Upload Sources
+        uses: crowdin/github-action@v2
+        with:
+          upload_sources: true
+          upload_translations: false
+          download_translations: false
+          create_pull_request: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
+
+      # STEP 2: Trigger Google Translate (MT)
+      # We use 'mt' method and your specific Engine ID
+      - name: Trigger Google Translate
+        uses: crowdin/github-action@v2
+        with:
+          command: "pre-translate"
+          command_args: "--method mt --engine-id 646964 --apply-untranslated-strings-only"
+        env:
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
+
+      # STEP 3: Download & Create PR
+      - name: Download & Create PR
+        uses: crowdin/github-action@v2
+        with:
+          upload_sources: false
+          upload_translations: false
+          download_translations: true
+
+          create_pull_request: true
+          pull_request_title: "chore(l10n): Google Translate update"
+          pull_request_body: "Automated translations via Google Translate (ID: 646964)"
+          pull_request_base_branch_name: l10n-staging
+          pull_request_labels: "l10n, auto-translated"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
