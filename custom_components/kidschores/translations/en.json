@@ -1812,7 +1812,7 @@
           "purpose": {
             "name": "Purpose",
             "state": {
-              "purpose_chore_status": "Tracks status and statistics for this specific chore"
+              "purpose_chore_status": "Kid-specific chore lifecycle states, performance statistics, and configuration metadata"
             }
           },
           "kid_name": {
@@ -2296,12 +2296,12 @@
       },
       "system_badge_sensor": {
         "name": "Badge - {badge_name}",
-        "unit_of_measurement": "kids",
+        "unit_of_measurement": "Kids",
         "state_attributes": {
           "purpose": {
             "name": "Purpose",
             "state": {
-              "purpose_badge": "Number of kids who have earned this badge"
+              "purpose_badge": "Count of kids who earned this badge, with badge configuration including type, target, awards, and assigned kids"
             }
           },
           "badge_name": {
@@ -2356,24 +2356,87 @@
       "kid_badge_progress_sensor": {
         "name": "Badge Progress - {badge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Purpose",
+            "state": {
+              "purpose_badge_progress": "Badge progress percentage (0-100) tracking completion toward earning this badge, with criteria status, dates, and award history"
+            }
+          },
           "kid_name": {
             "name": "Kid Name"
           },
           "badge_name": {
             "name": "Badge Name"
           },
-          "progress": {
-            "name": "Progress"
+          "badge_type": {
+            "name": "Badge Type",
+            "state": {
+              "cumulative": "Cumulative",
+              "achievement": "Achievement",
+              "challenge": "Challenge",
+              "daily": "Daily",
+              "periodic": "Periodic",
+              "special": "Special"
+            }
           },
-          "target": {
-            "name": "Target"
+          "status": {
+            "name": "Status",
+            "state": {
+              "inactive": "Inactive",
+              "active": "Active",
+              "completed": "Completed"
+            }
           },
-          "earned": {
-            "name": "Earned",
+          "target_type": {
+            "name": "Target Type",
+            "state": {
+              "chores": "Chores",
+              "points": "Points",
+              "days": "Days",
+              "achievement": "Achievement",
+              "challenge": "Challenge"
+            }
+          },
+          "threshold_value": {
+            "name": "Target Threshold"
+          },
+          "recurring_frequency": {
+            "name": "Recurring Frequency",
+            "state": {
+              "none": "None",
+              "daily": "Daily",
+              "weekly": "Weekly",
+              "biweekly": "Biweekly",
+              "monthly": "Monthly"
+            }
+          },
+          "start_date": {
+            "name": "Start Date"
+          },
+          "end_date": {
+            "name": "End Date"
+          },
+          "last_update_day": {
+            "name": "Last Update Day"
+          },
+          "overall_progress": {
+            "name": "Overall Progress"
+          },
+          "criteria_met": {
+            "name": "Criteria Met",
             "state": {
               "true": "Yes",
               "false": "No"
             }
+          },
+          "last_awarded": {
+            "name": "Last Awarded"
+          },
+          "award_count": {
+            "name": "Award Count"
+          },
+          "description": {
+            "name": "Description"
           }
         }
       },
@@ -2397,11 +2460,47 @@
           "independent": "Independent"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "Purpose",
+            "state": {
+              "purpose_shared_chore": "Global completion state for shared chores with aggregate statistics across all assigned kids"
+            }
+          },
           "chore_name": {
             "name": "Chore Name"
           },
+          "chore_icon": {
+            "name": "Chore Icon"
+          },
           "description": {
             "name": "Description"
+          },
+          "assigned_kids": {
+            "name": "Assigned Kids"
+          },
+          "labels": {
+            "name": "Labels"
+          },
+          "default_points": {
+            "name": "Default Points"
+          },
+          "completion_criteria": {
+            "name": "Completion Criteria",
+            "state": {
+              "independent": "Independent",
+              "shared_first_only": "Shared (First Only)",
+              "shared_all_required": "Shared (All Required)"
+            }
+          },
+          "approval_reset_type": {
+            "name": "Approval Reset Type",
+            "state": {
+              "at_midnight_once": "Once per Day",
+              "at_midnight_multi": "Multiple per Day",
+              "at_due_date_once": "Once per Due Date",
+              "at_due_date_multi": "Multiple per Due Date",
+              "upon_completion": "Upon Completion"
+            }
           },
           "recurring_frequency": {
             "name": "Recurring Frequency",
@@ -2429,24 +2528,31 @@
           "due_date": {
             "name": "Due Date"
           },
-          "default_points": {
-            "name": "Default Points"
+          "custom_frequency_interval": {
+            "name": "Custom Frequency Interval"
           },
-          "allow_multiple_claims_per_day": {
-            "name": "Allow Multiple Claims per Day",
+          "custom_frequency_unit": {
+            "name": "Custom Frequency Unit",
             "state": {
-              "true": "Yes",
-              "false": "No"
+              "days": "Days",
+              "weeks": "Weeks",
+              "months": "Months"
             }
           },
-          "assigned_kids": {
-            "name": "Assigned Kids"
-          },
           "chore_approvals_today": {
-            "name": "Chore Approvals Today"
+            "name": "Approvals Today (All Kids)"
           },
-          "labels": {
-            "name": "Labels"
+          "last_claimed": {
+            "name": "Last Claimed"
+          },
+          "last_approved": {
+            "name": "Last Approved"
+          },
+          "chore_claimed_by": {
+            "name": "Claimed By"
+          },
+          "chore_completed_by": {
+            "name": "Completed By"
           }
         }
       },
@@ -2460,26 +2566,41 @@
           "none": "None"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "Purpose",
+            "state": {
+              "purpose_reward_status": "Reward redemption status (not claimed, claimed, approved) with claim history and action buttons"
+            }
+          },
           "kid_name": {
             "name": "Kid Name"
           },
           "reward_name": {
             "name": "Reward Name"
           },
-          "reward_cost": {
-            "name": "Reward Cost"
-          },
           "description": {
             "name": "Description"
           },
+          "cost": {
+            "name": "Cost"
+          },
           "reward_claims_count": {
-            "name": "Reward Claims Count"
+            "name": "Total Claims"
           },
           "reward_approvals_count": {
-            "name": "Reward Approvals Count"
+            "name": "Total Approvals"
           },
           "labels": {
             "name": "Labels"
+          },
+          "reward_claim_button_eid": {
+            "name": "Claim Button Entity ID"
+          },
+          "reward_approve_button_eid": {
+            "name": "Approve Button Entity ID"
+          },
+          "reward_disapprove_button_eid": {
+            "name": "Disapprove Button Entity ID"
           }
         }
       },
@@ -2535,6 +2656,12 @@
       "system_achievement_sensor": {
         "name": "Achievement - {achievement_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Purpose",
+            "state": {
+              "purpose_achievement": "Achievement progress percentage (0-100) aggregated across all assigned kids, with achievement configuration including type, target, criteria, and list of kids who earned it"
+            }
+          },
           "achievement_name": {
             "name": "Achievement Name"
           },
@@ -2555,7 +2682,7 @@
           "associated_chore": {
             "name": "Associated Chore"
           },
-          "critera": {
+          "criteria": {
             "name": "Criteria"
           },
           "target_value": {
@@ -2565,7 +2692,7 @@
             "name": "Reward Points"
           },
           "kids_earned": {
-            "name": "Earned by"
+            "name": "Earned By"
           },
           "labels": {
             "name": "Labels"
@@ -2575,6 +2702,12 @@
       "system_challenge_sensor": {
         "name": "Challenge - {challenge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Purpose",
+            "state": {
+              "purpose_challenge": "Challenge progress percentage (0-100) aggregated across all assigned kids within date window, with challenge configuration including type, target, criteria, dates, and list of kids who earned it"
+            }
+          },
           "challenge_name": {
             "name": "Challenge Name"
           },
@@ -2594,7 +2727,7 @@
           "associated_chore": {
             "name": "Associated Chore"
           },
-          "critera": {
+          "criteria": {
             "name": "Criteria"
           },
           "target_value": {
@@ -2610,7 +2743,7 @@
             "name": "End Date"
           },
           "kids_earned": {
-            "name": "Earned by"
+            "name": "Earned By"
           },
           "labels": {
             "name": "Labels"
@@ -2620,6 +2753,15 @@
       "kid_achievement_progress_sensor": {
         "name": "Progress - {achievement_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Purpose",
+            "state": {
+              "purpose_achievement_progress": "Individual kid's progress percentage (0-100) toward earning this achievement, with current raw progress count and award status"
+            }
+          },
+          "kid_name": {
+            "name": "Kid Name"
+          },
           "achievement_name": {
             "name": "Achievement Name"
           },
@@ -2640,7 +2782,7 @@
           "associated_chore": {
             "name": "Associated Chore"
           },
-          "critera": {
+          "criteria": {
             "name": "Criteria"
           },
           "target_value": {
@@ -2650,7 +2792,7 @@
             "name": "Reward Points"
           },
           "raw_progress": {
-            "name": "Progress"
+            "name": "Raw Progress"
           },
           "awarded": {
             "name": "Awarded",
@@ -2667,6 +2809,15 @@
       "kid_challenge_progress_sensor": {
         "name": "Progress - {challenge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Purpose",
+            "state": {
+              "purpose_challenge_progress": "Individual kid's progress percentage (0-100) toward completing this challenge within the date window, with current raw progress count and award status"
+            }
+          },
+          "kid_name": {
+            "name": "Kid Name"
+          },
           "challenge_name": {
             "name": "Challenge Name"
           },
@@ -2686,7 +2837,7 @@
           "associated_chore": {
             "name": "Associated Chore"
           },
-          "critera": {
+          "criteria": {
             "name": "Criteria"
           },
           "target_value": {
@@ -2702,7 +2853,7 @@
             "name": "End Date"
           },
           "raw_progress": {
-            "name": "Progress"
+            "name": "Raw Progress"
           },
           "awarded": {
             "name": "Awarded",

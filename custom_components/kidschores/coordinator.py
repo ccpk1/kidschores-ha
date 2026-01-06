@@ -2058,8 +2058,17 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self._remove_awarded_badges_by_id(badge_id=badge_id)
 
         # Phase 4: Clean up badge_progress from all kids after badge deletion
+        # Also recalculate cumulative badge progress since a cumulative badge may have been deleted
         for kid_id in self.kids_data:
             self._sync_badge_progress_for_kid(kid_id)
+            # Refresh cumulative badge progress (handles case when cumulative badge is deleted)
+            cumulative_progress = self._get_cumulative_badge_progress(kid_id)
+            self.kids_data[kid_id][const.DATA_KID_CUMULATIVE_BADGE_PROGRESS] = (
+                cumulative_progress
+            )
+
+        # Remove badge-related entities from Home Assistant registry
+        self._remove_entities_in_ha(badge_id)
 
         self._persist()
         self.async_update_listeners()
@@ -7234,7 +7243,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         )
 
         if not cumulative_badges:
-            return None, None, None, baseline, cycle_points
+            # No cumulative badges exist - reset tracking values to 0
+            # When a new cumulative badge is added, tracking will start fresh
+            return None, None, None, 0.0, 0.0
 
         highest_earned = None
         next_higher = None
