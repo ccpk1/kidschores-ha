@@ -1307,10 +1307,6 @@
       "backup_restored": "Backup restored successfully. The integration has been reloaded with the restored data."
     }
   },
-  "label": {
-    "backup_paste_json": "📋 Paste JSON data from diagnostics",
-    "backup_start_fresh": "🆕 Start fresh (creates backup of existing data)"
-  },
   "selector": {
     "main_menu": {
       "options": {
@@ -1338,7 +1334,7 @@
     },
     "backup_actions_menu": {
       "options": {
-        "select_backup_action": "Select backup action...",
+        "": "Select backup action...",
         "create_backup": "💾 Create backup now",
         "delete_backup": "🗑️  Delete a backup",
         "restore_backup": "🔄 Restore from backup",
@@ -2503,12 +2499,6 @@
         "name": "{sign_label} {points_label}"
       }
     }
-  },
-  "display": {
-    "due_date_not_set": "No due date set",
-    "time_format_short": "{value}{unit}",
-    "time_format_medium": "{value} {unit}",
-    "time_format_long": "{value} {unit}, {remainder}"
   },
   "exceptions": {
     "error_msg_no_entry_found": {
