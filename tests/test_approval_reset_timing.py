@@ -394,9 +394,9 @@ async def test_upon_completion_always_allows_claim(
     # Claim and approve multiple times
     for _i in range(3):
         with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
-    ):
+            patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        ):
             # Each iteration should allow claiming
             can_claim, error_key = coordinator._can_claim_chore(kid_id, chore_id)
             assert can_claim is True, (
@@ -1179,7 +1179,7 @@ async def test_upon_completion_all_chore_types(
         # Claim and approve
         with (
             patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
             patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
         ):
             coordinator.claim_chore(kid_id, chore_id, "test_user")

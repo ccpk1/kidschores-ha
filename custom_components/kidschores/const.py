@@ -914,7 +914,9 @@ DATA_KID_DASHBOARD_LANGUAGE: Final = "dashboard_language"
 CUSTOM_TRANSLATIONS_DIR: Final = "translations_custom"
 DEFAULT_DASHBOARD_LANGUAGE: Final = "en"
 DASHBOARD_TRANSLATIONS_SUFFIX: Final = "_dashboard"  # File naming: en_dashboard.json
-NOTIFICATION_TRANSLATIONS_SUFFIX: Final = "_notifications"  # File naming: en_notifications.json
+NOTIFICATION_TRANSLATIONS_SUFFIX: Final = (
+    "_notifications"  # File naming: en_notifications.json
+)
 
 # Legacy alias for backward compatibility
 DASHBOARD_TRANSLATIONS_DIR: Final = CUSTOM_TRANSLATIONS_DIR

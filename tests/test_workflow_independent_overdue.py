@@ -121,7 +121,9 @@ async def test_independent_one_kid_overdue_others_not(
 
     # Mock notification to verify only Zoë notified
     with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()) as mock_notify,
+        patch.object(
+            coordinator, "_notify_kid_translated", new=AsyncMock()
+        ) as mock_notify,
         patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
     ):
         # Trigger overdue check
@@ -223,7 +225,9 @@ async def test_independent_all_kids_overdue(
 
     # Mock notifications
     with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()) as mock_notify,
+        patch.object(
+            coordinator, "_notify_kid_translated", new=AsyncMock()
+        ) as mock_notify,
         patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
     ):
         await coordinator._check_overdue_chores()
@@ -292,7 +296,9 @@ async def test_independent_null_due_date_never_overdue(
 
     # Mock notifications
     with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()) as mock_notify,
+        patch.object(
+            coordinator, "_notify_kid_translated", new=AsyncMock()
+        ) as mock_notify,
         patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
     ):
         await coordinator._check_overdue_chores()
@@ -357,7 +363,9 @@ async def test_shared_chore_all_kids_same_due_date(
 
     # Mock notifications
     with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()) as mock_notify,
+        patch.object(
+            coordinator, "_notify_kid_translated", new=AsyncMock()
+        ) as mock_notify,
         patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
     ):
         await coordinator._check_overdue_chores()
@@ -531,7 +539,9 @@ async def test_independent_skip_claimed_chores(
 
     # Mock notifications
     with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()) as mock_notify,
+        patch.object(
+            coordinator, "_notify_kid_translated", new=AsyncMock()
+        ) as mock_notify,
         patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
     ):
         await coordinator._check_overdue_chores()
@@ -614,7 +624,9 @@ async def test_independent_skip_approved_chores(
 
     # Mock notifications
     with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()) as mock_notify,
+        patch.object(
+            coordinator, "_notify_kid_translated", new=AsyncMock()
+        ) as mock_notify,
         patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
     ):
         await coordinator._check_overdue_chores()
@@ -712,7 +724,9 @@ async def test_mixed_independent_and_shared_chores(
 
     # Mock notifications
     with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()) as mock_notify,
+        patch.object(
+            coordinator, "_notify_kid_translated", new=AsyncMock()
+        ) as mock_notify,
         patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
     ):
         await coordinator._check_overdue_chores()

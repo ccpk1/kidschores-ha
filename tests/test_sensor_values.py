@@ -117,7 +117,7 @@ async def test_kid_points_sensor_attributes(
     # Initialize stats by giving points (use apply_bonus)
     bonus_id = name_to_id_map["bonus:Stär Sprïnkle Bonus"]
     parent_id = name_to_id_map["parent:Môm Astrid Stârblüm"]
-    
+
     # Mock notifications to prevent ServiceNotFound errors
     with (
         patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
@@ -345,7 +345,7 @@ async def test_points_earned_sensors_use_new_schema(
     # Initialize stats by giving points
     bonus_id = name_to_id_map["bonus:Stär Sprïnkle Bonus"]
     parent_id = name_to_id_map["parent:Môm Astrid Stârblüm"]
-    
+
     # Mock notifications to prevent ServiceNotFound errors
     with (
         patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),

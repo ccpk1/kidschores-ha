@@ -169,9 +169,7 @@ async def test_skip_chore_due_date_shared_chore_no_due_date_fails(
     coordinator.chores_data["shared_chore"].pop(DATA_CHORE_DUE_DATE, None)
 
     # Should fail - SHARED chore needs chore-level due date
-    with pytest.raises(
-        HomeAssistantError, match="Required field due_date is missing"
-    ):
+    with pytest.raises(HomeAssistantError, match="Required field due_date is missing"):
         coordinator.skip_chore_due_date("shared_chore", "kid_1")
 
 

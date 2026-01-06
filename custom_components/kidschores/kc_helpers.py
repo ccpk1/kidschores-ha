@@ -1748,7 +1748,9 @@ async def get_available_dashboard_languages(
                 metadata = data.get("_metadata", {})
 
                 # Extract language code from filename (e.g., en_dashboard.json -> en)
-                base_filename = filename[: -len(".json") - len(const.DASHBOARD_TRANSLATIONS_SUFFIX)]
+                base_filename = filename[
+                    : -len(".json") - len(const.DASHBOARD_TRANSLATIONS_SUFFIX)
+                ]
                 lang_code = metadata.get("language_code", base_filename)
                 lang_name = metadata.get("language_name", lang_code.upper())
 
@@ -1759,7 +1761,9 @@ async def get_available_dashboard_languages(
                     "Error reading metadata from %s: %s", filename, err
                 )
                 # Fallback to filename-based language code (remove _dashboard.json suffix)
-                base_filename = filename[: -len(".json") - len(const.DASHBOARD_TRANSLATIONS_SUFFIX)]
+                base_filename = filename[
+                    : -len(".json") - len(const.DASHBOARD_TRANSLATIONS_SUFFIX)
+                ]
                 lang_code = base_filename
                 available_languages.append(
                     {"value": lang_code, "label": lang_code.upper()}
