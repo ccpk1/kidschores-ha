@@ -1805,13 +1805,14 @@
           "unknown": "Onbekend",
           "none": "Geen",
           "approved_in_part": "Goedgekeurd (gedeeltelijk)",
-          "claimed_in_part": "Geclaimd (gedeeltelijk)"
+          "claimed_in_part": "Geclaimd (gedeeltelijk)",
+          "completed_by_other": "Voltooid door anderen"
         },
         "state_attributes": {
           "purpose": {
             "name": "Doel",
             "state": {
-              "purpose_chore_status": "Huidige status van deze specifieke taak"
+              "purpose_chore_status": "Houdt de status en statistieken voor deze specifieke taak bij."
             }
           },
           "kid_name": {
@@ -1820,11 +1821,37 @@
           "chore_name": {
             "name": "Naam van de klus"
           },
-          "shared_chore": {
-            "name": "Gezamenlijke klus",
+          "chore_icon": {
+            "name": "Taakpictogram"
+          },
+          "description": {
+            "name": "Beschrijving"
+          },
+          "assigned_kids": {
+            "name": "Toegewezen kinderen"
+          },
+          "labels": {
+            "name": "Labels"
+          },
+          "default_points": {
+            "name": "Standaardpunten"
+          },
+          "completion_criteria": {
+            "name": "Voltooiingscriteria",
             "state": {
-              "true": "Ja",
-              "false": "Nee"
+              "independent": "Onafhankelijk",
+              "shared_first_only": "Gedeeld (alleen eerste keus)",
+              "shared_all_required": "Gedeeld (alles verplicht)"
+            }
+          },
+          "approval_reset_type": {
+            "name": "Goedkeuringsresettype",
+            "state": {
+              "at_midnight_once": "Eenmaal per dag",
+              "at_midnight_multi": "Meerdere keren per dag",
+              "at_due_date_once": "Eenmaal per vervaldatum",
+              "at_due_date_multi": "Meerdere per vervaldatum",
+              "upon_completion": "Na voltooiing"
             }
           },
           "recurring_frequency": {
@@ -1853,23 +1880,55 @@
           "due_date": {
             "name": "Deadline"
           },
-          "default_points": {
-            "name": "Standaardpunten"
+          "custom_frequency_interval": {
+            "name": "Aangepast frequentie-interval"
           },
-          "description": {
-            "name": "Beschrijving"
+          "custom_frequency_unit": {
+            "name": "Aangepaste frequentie-eenheid",
+            "state": {
+              "days": "Dagen",
+              "weeks": "Weken",
+              "months": "Maanden"
+            }
           },
-          "chore_claims_count": {
-            "name": "Aantal klachten over klusjes"
+          "chore_points_earned": {
+            "name": "Verdiende punten"
           },
           "chore_approvals_count": {
-            "name": "Goedkeuringen voor klusjes tellen mee"
+            "name": "Goedkeuringen (totaal)"
+          },
+          "chore_claims_count": {
+            "name": "Claims (totaal)"
+          },
+          "chore_disapproved_count": {
+            "name": "Afkeuringen (totaal)"
+          },
+          "chore_overdue_count": {
+            "name": "Achterstallig (altijd)"
+          },
+          "chore_approvals_today": {
+            "name": "Goedkeuringen vandaag"
           },
           "chore_current_streak": {
-            "name": "Werkzaamheden die momenteel worden uitgevoerd"
+            "name": "Huidige reeks"
           },
           "chore_highest_streak": {
-            "name": "Huiswerk Hoogste reeks"
+            "name": "Langste reeks"
+          },
+          "chore_last_longest_streak_date": {
+            "name": "Laatste langste reeks datum"
+          },
+          "last_claimed": {
+            "name": "Laatst opgeëist"
+          },
+          "last_approved": {
+            "name": "Laatst goedgekeurd"
+          },
+          "last_disapproved": {
+            "name": "Laatst afgekeurd"
+          },
+          "last_overdue": {
+            "name": "Laatst te laat"
           },
           "global_state": {
             "name": "Wereldstaat",
@@ -1885,32 +1944,28 @@
               "independent": "Onafhankelijk"
             }
           },
-          "allow_multiple_claims_per_day": {
-            "name": "Meerdere claims per dag toestaan",
+          "can_claim": {
+            "name": "Kan claimen",
             "state": {
               "true": "Ja",
               "false": "Nee"
             }
           },
-          "assigned_kids": {
-            "name": "Toegewezen kinderen"
-          },
-          "custom_frequency_interval": {
-            "name": "Aangepaste frequentie"
-          },
-          "custom_frequency_unit": {
-            "name": "Aangepaste frequentieperiode",
+          "can_approve": {
+            "name": "Kan goedkeuren",
             "state": {
-              "days": "Dagen",
-              "weeks": "Weken",
-              "months": "Maanden"
+              "true": "Ja",
+              "false": "Nee"
             }
           },
-          "chore_approvals_today": {
-            "name": "Goedkeuring van klusjes vandaag"
+          "approve_button_eid": {
+            "name": "Entiteits-ID van de knop 'Goedkeuren'"
           },
-          "labels": {
-            "name": "Labels"
+          "disapprove_button_eid": {
+            "name": "Knop 'Afkeuren' Entiteits-ID"
+          },
+          "claim_button_eid": {
+            "name": "Claim Button Entity ID"
           }
         }
       },
@@ -1920,11 +1975,89 @@
           "purpose": {
             "name": "Doel",
             "state": {
-              "purpose_points": "Huidig puntensaldo voor kind"
+              "purpose_points": "Huidig puntensaldo met gedetailleerde statistieken over verdiende en bestede punten."
             }
           },
-          "description": {
-            "name": "Huidig puntensaldo - verdiend met klusjes, besteed aan beloningen"
+          "kid_name": {
+            "name": "Naam van het kind"
+          },
+          "point_stat_points_earned_today": {
+            "name": "Vandaag verdiend"
+          },
+          "point_stat_points_earned_week": {
+            "name": "Verdiend deze week"
+          },
+          "point_stat_points_earned_month": {
+            "name": "Verdiend deze maand"
+          },
+          "point_stat_points_earned_year": {
+            "name": "Verdiend dit jaar"
+          },
+          "point_stat_points_earned_all_time": {
+            "name": "Verdiend aller tijden"
+          },
+          "point_stat_points_by_source_today": {
+            "name": "Bron vandaag"
+          },
+          "point_stat_points_by_source_week": {
+            "name": "Bron: Deze week"
+          },
+          "point_stat_points_by_source_month": {
+            "name": "Bron: Deze maand"
+          },
+          "point_stat_points_by_source_year": {
+            "name": "Bron: Dit jaar"
+          },
+          "point_stat_points_by_source_all_time": {
+            "name": "Door Bron Alle Tijden"
+          },
+          "point_stat_points_spent_today": {
+            "name": "Vandaag besteed"
+          },
+          "point_stat_points_spent_week": {
+            "name": "Wat ik deze week heb gedaan"
+          },
+          "point_stat_points_spent_month": {
+            "name": "Uitgaven deze maand"
+          },
+          "point_stat_points_spent_year": {
+            "name": "Dit jaar besteed"
+          },
+          "point_stat_points_spent_all_time": {
+            "name": "Alle tijd doorgebracht"
+          },
+          "point_stat_points_net_today": {
+            "name": "Net Today"
+          },
+          "point_stat_points_net_week": {
+            "name": "Netto deze week"
+          },
+          "point_stat_points_net_month": {
+            "name": "Netto deze maand"
+          },
+          "point_stat_points_net_year": {
+            "name": "Netto dit jaar"
+          },
+          "point_stat_points_net_all_time": {
+            "name": "Netto aller tijden"
+          },
+          "point_stat_points_earning_streak_current": {
+            "name": "Huidige winstreeks"
+          },
+          "point_stat_points_earning_streak_longest": {
+            "name": "Langste winstreeks"
+          },
+          "point_stat_avg_points_per_day_week": {
+            "name": "Gemiddelde per dag (week)"
+          },
+          "point_stat_avg_points_per_day_month": {
+            "name": "Gemiddelde per dag (maand)"
+          },
+          "point_stat_avg_points_per_chore": {
+            "name": "Gemiddeld per klus"
+          },
+          "point_stat_highest_balance": {
+            "name": "Hoogste saldo ooit"
           }
         }
       },
@@ -1945,12 +2078,133 @@
       },
       "kid_chores_sensor": {
         "name": "Klusjes",
+        "unit_of_measurement": "Klusjes",
         "state_attributes": {
           "purpose": {
             "name": "Doel",
             "state": {
-              "purpose_chores": "Aantal toegewezen taken per status"
+              "purpose_chores": "Totaal aantal voltooide klusjes in de loop der tijd, met gedetailleerde statistieken."
             }
+          },
+          "kid_name": {
+            "name": "Naam van het kind"
+          },
+          "chore_stat_approved_today": {
+            "name": "Vandaag goedgekeurd"
+          },
+          "chore_stat_approved_week": {
+            "name": "Goedgekeurd deze week"
+          },
+          "chore_stat_approved_month": {
+            "name": "Goedgekeurd deze maand"
+          },
+          "chore_stat_approved_year": {
+            "name": "Goedgekeurd dit jaar"
+          },
+          "chore_stat_approved_all_time": {
+            "name": "Altijd goedgekeurd"
+          },
+          "chore_stat_most_completed_chore_all_time": {
+            "name": "Meest voltooide klus (aller tijden)"
+          },
+          "chore_stat_most_completed_chore_week": {
+            "name": "Meest voltooide klus (week)"
+          },
+          "chore_stat_most_completed_chore_month": {
+            "name": "Meest voltooide klus (maand)"
+          },
+          "chore_stat_most_completed_chore_year": {
+            "name": "Meest voltooide klus (jaar)"
+          },
+          "chore_stat_total_points_from_chores_today": {
+            "name": "Tips van de klusjes van vandaag"
+          },
+          "chore_stat_total_points_from_chores_week": {
+            "name": "Punten die je deze week met klusjes hebt behaald"
+          },
+          "chore_stat_total_points_from_chores_month": {
+            "name": "Punten verdiend met klusjes deze maand"
+          },
+          "chore_stat_total_points_from_chores_year": {
+            "name": "Punten behaald met klusjes dit jaar"
+          },
+          "chore_stat_total_points_from_chores_all_time": {
+            "name": "Punten van Chores All Time"
+          },
+          "chore_stat_overdue_today": {
+            "name": "Vandaag te laat"
+          },
+          "chore_stat_overdue_week": {
+            "name": "Deze week te laat"
+          },
+          "chore_stat_overdue_month": {
+            "name": "Achterstallig deze maand"
+          },
+          "chore_stat_overdue_year": {
+            "name": "Dit jaar al lang geleden nodig"
+          },
+          "chore_stat_overdue_count_all_time": {
+            "name": "Altijd te laat"
+          },
+          "chore_stat_claimed_today": {
+            "name": "Vandaag geclaimd"
+          },
+          "chore_stat_claimed_week": {
+            "name": "Deze week opgeëist"
+          },
+          "chore_stat_claimed_month": {
+            "name": "Geclaimd deze maand"
+          },
+          "chore_stat_claimed_year": {
+            "name": "Geclaimd dit jaar"
+          },
+          "chore_stat_claimed_all_time": {
+            "name": "Geclaimd aller tijden"
+          },
+          "chore_stat_disapproved_today": {
+            "name": "Vandaag afgekeurd"
+          },
+          "chore_stat_disapproved_week": {
+            "name": "Deze week afgekeurd"
+          },
+          "chore_stat_disapproved_month": {
+            "name": "Deze maand afgekeurd"
+          },
+          "chore_stat_disapproved_year": {
+            "name": "Afgekeurd dit jaar"
+          },
+          "chore_stat_disapproved_all_time": {
+            "name": "Altijd afgekeurd"
+          },
+          "chore_stat_current_due_today": {
+            "name": "Betaald vandaag"
+          },
+          "chore_stat_current_overdue": {
+            "name": "Huidig achterstallig"
+          },
+          "chore_stat_current_claimed": {
+            "name": "Huidig geclaimd"
+          },
+          "chore_stat_current_approved": {
+            "name": "Momenteel goedgekeurd"
+          },
+          "chore_stat_longest_streak_week": {
+            "name": "Langste reeks (week)"
+          },
+          "chore_stat_longest_streak_month": {
+            "name": "Langste reeks (maand)"
+          },
+          "chore_stat_longest_streak_year": {
+            "name": "Langste reeks (jaar)"
+          },
+          "chore_stat_longest_streak_all_time": {
+            "name": "Langste reeks (aller tijden)"
+          },
+          "chore_stat_avg_per_day_week": {
+            "name": "Gemiddelde per dag (week)"
+          },
+          "chore_stat_avg_per_day_month": {
+            "name": "Gemiddelde per dag (maand)"
           }
         }
       },
@@ -1960,11 +2214,14 @@
           "purpose": {
             "name": "Doel",
             "state": {
-              "purpose_badges": "Voortgang bijhouden voor het behalen van badges"
+              "purpose_badges": "Houdt de cumulatieve voortgang en cycli van badges bij, evenals alle behaalde badges."
             }
           },
           "kid_name": {
             "name": "Naam van het kind"
+          },
+          "labels": {
+            "name": "Labels"
           },
           "all_earned_badges": {
             "name": "Alle verdiende badges"
@@ -1972,69 +2229,109 @@
           "highest_badge_threshold_value": {
             "name": "Hoogste badge-drempel"
           },
-          "points_multiplier": {
-            "name": "Puntenvermenigvuldiger"
-          },
           "points_to_next_badge": {
             "name": "Punten voor de volgende badge"
           },
-          "labels": {
-            "name": "Labels"
+          "current_badge_name": {
+            "name": "Huidige badgenaam"
+          },
+          "current_badge_eid": {
+            "name": "Huidige badge-entiteits-ID"
+          },
+          "highest_earned_badge_name": {
+            "name": "Naam van de hoogst behaalde badge"
+          },
+          "next_higher_badge_name": {
+            "name": "Naam van de volgende hogere badge"
+          },
+          "next_higher_badge_eid": {
+            "name": "Volgende hogere badge entiteits-ID"
+          },
+          "next_lower_badge_name": {
+            "name": "Naam van het volgende lagere badge"
+          },
+          "next_lower_badge_eid": {
+            "name": "Volgende lagere badge entiteits-ID"
+          },
+          "badge_status": {
+            "name": "Badge-status"
+          },
+          "last_awarded_date": {
+            "name": "Datum van laatste toekenning"
+          },
+          "award_count": {
+            "name": "Aantal prijzen"
+          },
+          "description": {
+            "name": "Beschrijving"
+          },
+          "baseline_points": {
+            "name": "Uitgangspunten"
+          },
+          "cycle_points": {
+            "name": "Cycluspunten"
+          },
+          "maintenance_grace_end_date": {
+            "name": "Einddatum van de onderhoudsuitstelperiode"
+          },
+          "maintenance_points_required": {
+            "name": "Benodigde onderhoudspunten"
+          },
+          "maintenance_end_date": {
+            "name": "Einddatum onderhoud"
+          },
+          "maintenance_points_remaining": {
+            "name": "Resterende onderhoudspunten"
+          },
+          "reset_schedule": {
+            "name": "Schema opnieuw instellen"
+          },
+          "target": {
+            "name": "Doel"
+          },
+          "awards": {
+            "name": "Prijzen"
           }
         }
       },
       "system_badge_sensor": {
         "name": "Badge - {badge_name}",
+        "unit_of_measurement": "kinderen",
         "state_attributes": {
-          "threshold_type": {
-            "name": "Drempeltype",
+          "purpose": {
+            "name": "Doel",
             "state": {
-              "points": "Punten",
-              "chore_count": "Aantal klusjes"
+              "purpose_badge": "Aantal kinderen dat deze badge heeft verdiend"
             }
           },
-          "points_multiplier": {
-            "name": "Puntenvermenigvuldiger"
+          "badge_name": {
+            "name": "Badgenaam"
           },
           "description": {
             "name": "Beschrijving"
           },
-          "award_points": {
-            "name": "Punten toekennen"
-          },
-          "award_reward": {
-            "name": "Prijsbeloning"
-          },
-          "kids_earned": {
-            "name": "Kinderen verdienden"
+          "badge_type": {
+            "name": "Badgetype",
+            "state": {
+              "cumulative": "Cumulatief",
+              "achievement": "Prestatie",
+              "challenge": "Uitdaging",
+              "daily": "Dagelijks",
+              "periodic": "Periodiek",
+              "special": "Speciaal"
+            }
           },
           "labels": {
             "name": "Labels"
           },
-          "threshold_value": {
-            "name": "Drempelwaarde"
+          "kids_earned": {
+            "name": "Kinderen verdienden"
           },
-          "reset_schedule": {
-            "name": "Schema opnieuw instellen"
+          "kids_assigned": {
+            "name": "Toegewezen kinderen"
           },
-          "start_date": {
-            "name": "Startdatum"
-          },
-          "end_date": {
-            "name": "Einddatum"
-          },
-          "recurrent": {
-            "name": "Terugkerend",
-            "state": {
-              "true": "Ja",
-              "false": "Nee"
-            }
-          },
-          "daily_threshold": {
-            "name": "Dagelijkse drempelwaarde"
-          },
-          "required_chores": {
-            "name": "Vereiste klusjes"
+          "target": {
+            "name": "Doel"
           },
           "associated_achievement": {
             "name": "Gerelateerde prestatie"
@@ -2045,11 +2342,14 @@
           "occasion_type": {
             "name": "Gelegenheidstype"
           },
-          "trigger_info": {
-            "name": "Triggerinformatie"
+          "required_chores": {
+            "name": "Vereiste klusjes"
           },
-          "occasion_date": {
-            "name": "Gelegenheid Datum"
+          "badge_awards": {
+            "name": "Onderscheidingen"
+          },
+          "reset_schedule": {
+            "name": "Schema opnieuw instellen"
           }
         }
       },
@@ -2082,12 +2382,6 @@
       },
       "system_rewards_pending_approval_sensor": {
         "name": "In afwachting van goedkeuring van beloningen"
-      },
-      "reward_claims_sensor": {
-        "name": "Claims - {reward_name}"
-      },
-      "reward_approvals_sensor": {
-        "name": "Goedkeuringen - {reward_name}"
       },
       "system_chore_shared_state_sensor": {
         "name": "{chore_name} - Wereldwijde status",
@@ -2188,12 +2482,6 @@
             "name": "Labels"
           }
         }
-      },
-      "chore_claims_sensor": {
-        "name": "Claims - {chore_name}"
-      },
-      "chore_approvals_sensor": {
-        "name": "Goedkeuringen - {chore_name}"
       },
       "kid_penalty_applied_sensor": {
         "name": "Toegepaste straffen - {penalty_name}",
@@ -2433,17 +2721,6 @@
         "state_attributes": {
           "streaks_by_achievement": {
             "name": "Reeksen op basis van prestaties"
-          }
-        }
-      },
-      "chore_streak_sensor": {
-        "name": "Streak - {chore_name}",
-        "state_attributes": {
-          "last_date": {
-            "name": "Laatste datum"
-          },
-          "raw_streak": {
-            "name": "Huidige reeks"
           }
         }
       },

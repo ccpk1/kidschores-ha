@@ -1805,13 +1805,14 @@
           "unknown": "Tuntematon",
           "none": "Ei mitään",
           "approved_in_part": "Hyväksytty (osittain)",
-          "claimed_in_part": "Väitetty (osittain)"
+          "claimed_in_part": "Väitetty (osittain)",
+          "completed_by_other": "Muun suorittama"
         },
         "state_attributes": {
           "purpose": {
             "name": "Tarkoitus",
             "state": {
-              "purpose_chore_status": "Tämän tietyn tehtävän nykytila"
+              "purpose_chore_status": "Seuraa tämän tietyn tehtävän tilaa ja tilastoja"
             }
           },
           "kid_name": {
@@ -1820,11 +1821,37 @@
           "chore_name": {
             "name": "Työn nimi"
           },
-          "shared_chore": {
-            "name": "Jaettu kotityö",
+          "chore_icon": {
+            "name": "Kotityökuvake"
+          },
+          "description": {
+            "name": "Kuvaus"
+          },
+          "assigned_kids": {
+            "name": "Määrätyt lapset"
+          },
+          "labels": {
+            "name": "Tarrat"
+          },
+          "default_points": {
+            "name": "Oletuspisteet"
+          },
+          "completion_criteria": {
+            "name": "Suorituskriteerit",
             "state": {
-              "true": "Kyllä",
-              "false": "Ei"
+              "independent": "Itsenäinen",
+              "shared_first_only": "Jaettu (vain ensimmäinen)",
+              "shared_all_required": "Jaettu (kaikki pakollisia)"
+            }
+          },
+          "approval_reset_type": {
+            "name": "Hyväksynnän nollaustyyppi",
+            "state": {
+              "at_midnight_once": "Kerran päivässä",
+              "at_midnight_multi": "Useita päivässä",
+              "at_due_date_once": "Kerran eräpäivänä",
+              "at_due_date_multi": "Useita eräpäivää kohden",
+              "upon_completion": "Valmistuttuaan"
             }
           },
           "recurring_frequency": {
@@ -1853,23 +1880,55 @@
           "due_date": {
             "name": "Eräpäivä"
           },
-          "default_points": {
-            "name": "Oletuspisteet"
+          "custom_frequency_interval": {
+            "name": "Mukautettu taajuusväli"
           },
-          "description": {
-            "name": "Kuvaus"
+          "custom_frequency_unit": {
+            "name": "Mukautettu taajuusyksikkö",
+            "state": {
+              "days": "Päivät",
+              "weeks": "Viikot",
+              "months": "Kuukaudet"
+            }
           },
-          "chore_claims_count": {
-            "name": "Kotitöiden korvausvaatimusten määrä"
+          "chore_points_earned": {
+            "name": "Ansaitut pisteet"
           },
           "chore_approvals_count": {
-            "name": "Työhyväksyntöjen määrä"
+            "name": "Hyväksynnät (kaikkien aikojen)"
+          },
+          "chore_claims_count": {
+            "name": "Vaatimukset (kaikkien aikojen)"
+          },
+          "chore_disapproved_count": {
+            "name": "Hylkäykset (kaikkien aikojen)"
+          },
+          "chore_overdue_count": {
+            "name": "Myöhässä (kaikkien aikojen)"
+          },
+          "chore_approvals_today": {
+            "name": "Hyväksynnät tänään"
           },
           "chore_current_streak": {
-            "name": "Askarevirtausputki"
+            "name": "Nykyinen putki"
           },
           "chore_highest_streak": {
-            "name": "Työn korkein putki"
+            "name": "Korkein putki"
+          },
+          "chore_last_longest_streak_date": {
+            "name": "Viimeisimmän pisimmän putken päivämäärä"
+          },
+          "last_claimed": {
+            "name": "Viimeksi vaadittu"
+          },
+          "last_approved": {
+            "name": "Viimeksi hyväksytty"
+          },
+          "last_disapproved": {
+            "name": "Viimeksi hylätty"
+          },
+          "last_overdue": {
+            "name": "Viimeisin myöhässä"
           },
           "global_state": {
             "name": "Globaali valtio",
@@ -1885,32 +1944,28 @@
               "independent": "Itsenäinen"
             }
           },
-          "allow_multiple_claims_per_day": {
-            "name": "Salli useita korvaushakemuksia päivässä",
+          "can_claim": {
+            "name": "Voi vaatia",
             "state": {
               "true": "Kyllä",
               "false": "Ei"
             }
           },
-          "assigned_kids": {
-            "name": "Määrätyt lapset"
-          },
-          "custom_frequency_interval": {
-            "name": "Mukautettu taajuus"
-          },
-          "custom_frequency_unit": {
-            "name": "Mukautettu tiheysjakso",
+          "can_approve": {
+            "name": "Voi hyväksyä",
             "state": {
-              "days": "Päivät",
-              "weeks": "Viikot",
-              "months": "Kuukaudet"
+              "true": "Kyllä",
+              "false": "Ei"
             }
           },
-          "chore_approvals_today": {
-            "name": "Askareiden hyväksynnät tänään"
+          "approve_button_eid": {
+            "name": "Hyväksyntäpainikkeen yksikön tunnus"
           },
-          "labels": {
-            "name": "Tarrat"
+          "disapprove_button_eid": {
+            "name": "Hylkäämispainikkeen yksikön tunnus"
+          },
+          "claim_button_eid": {
+            "name": "Vaatimuspainikkeen yksikön tunnus"
           }
         }
       },
@@ -1920,11 +1975,89 @@
           "purpose": {
             "name": "Tarkoitus",
             "state": {
-              "purpose_points": "Lapsen nykyinen pistesaldo"
+              "purpose_points": "Nykyinen pistesaldo yksityiskohtaisine ansainta- ja kulutustilastoineen"
             }
           },
-          "description": {
-            "name": "Nykyinen pistesaldo - ansaitse askareista, käytä palkintoihin"
+          "kid_name": {
+            "name": "Lapsen nimi"
+          },
+          "point_stat_points_earned_today": {
+            "name": "Ansaittu tänään"
+          },
+          "point_stat_points_earned_week": {
+            "name": "Ansaittu tällä viikolla"
+          },
+          "point_stat_points_earned_month": {
+            "name": "Ansaittu tässä kuussa"
+          },
+          "point_stat_points_earned_year": {
+            "name": "Ansaittu tänä vuonna"
+          },
+          "point_stat_points_earned_all_time": {
+            "name": "Ansaittu kaikkien aikojen"
+          },
+          "point_stat_points_by_source_today": {
+            "name": "Source Today -sivustolta"
+          },
+          "point_stat_points_by_source_week": {
+            "name": "Lähteen mukaan tällä viikolla"
+          },
+          "point_stat_points_by_source_month": {
+            "name": "Lähteen mukaan tässä kuussa"
+          },
+          "point_stat_points_by_source_year": {
+            "name": "Lähteen mukaan tänä vuonna"
+          },
+          "point_stat_points_by_source_all_time": {
+            "name": "Lähteen mukaan koko ajan"
+          },
+          "point_stat_points_spent_today": {
+            "name": "Käytetty tänään"
+          },
+          "point_stat_points_spent_week": {
+            "name": "Käytetty tällä viikolla"
+          },
+          "point_stat_points_spent_month": {
+            "name": "Käytetty tässä kuussa"
+          },
+          "point_stat_points_spent_year": {
+            "name": "Käytetty tänä vuonna"
+          },
+          "point_stat_points_spent_all_time": {
+            "name": "Käytetty koko aika"
+          },
+          "point_stat_points_net_today": {
+            "name": "Netto tänään"
+          },
+          "point_stat_points_net_week": {
+            "name": "Netto tällä viikolla"
+          },
+          "point_stat_points_net_month": {
+            "name": "Netto tässä kuussa"
+          },
+          "point_stat_points_net_year": {
+            "name": "Netto tänä vuonna"
+          },
+          "point_stat_points_net_all_time": {
+            "name": "Netto koko ajan"
+          },
+          "point_stat_points_earning_streak_current": {
+            "name": "Nykyinen ansaintaputki"
+          },
+          "point_stat_points_earning_streak_longest": {
+            "name": "Pisin ansaintaputki"
+          },
+          "point_stat_avg_points_per_day_week": {
+            "name": "Keskimäärin päivässä (viikossa)"
+          },
+          "point_stat_avg_points_per_day_month": {
+            "name": "Keskimäärin päivässä (kuukausi)"
+          },
+          "point_stat_avg_points_per_chore": {
+            "name": "Keskimäärin per työ"
+          },
+          "point_stat_highest_balance": {
+            "name": "Korkein saldo koskaan"
           }
         }
       },
@@ -1945,12 +2078,133 @@
       },
       "kid_chores_sensor": {
         "name": "Kotityöt",
+        "unit_of_measurement": "Kotityöt",
         "state_attributes": {
           "purpose": {
             "name": "Tarkoitus",
             "state": {
-              "purpose_chores": "Määrättyjen tehtävien määrä tilan mukaan"
+              "purpose_chores": "Kaikkien askareiden kokonaismäärä ja yksityiskohtaiset tilastot"
             }
+          },
+          "kid_name": {
+            "name": "Lapsen nimi"
+          },
+          "chore_stat_approved_today": {
+            "name": "Hyväksytty tänään"
+          },
+          "chore_stat_approved_week": {
+            "name": "Hyväksytty tällä viikolla"
+          },
+          "chore_stat_approved_month": {
+            "name": "Hyväksytty tässä kuussa"
+          },
+          "chore_stat_approved_year": {
+            "name": "Hyväksytty tänä vuonna"
+          },
+          "chore_stat_approved_all_time": {
+            "name": "Hyväksytty koko ajan"
+          },
+          "chore_stat_most_completed_chore_all_time": {
+            "name": "Eniten suoritettu kotitehtävä (kaikkien aikojen)"
+          },
+          "chore_stat_most_completed_chore_week": {
+            "name": "Eniten suoritettu kotityö (viikko)"
+          },
+          "chore_stat_most_completed_chore_month": {
+            "name": "Eniten suoritettu kotityö (kuukausi)"
+          },
+          "chore_stat_most_completed_chore_year": {
+            "name": "Eniten suoritettu kotityö (vuosi)"
+          },
+          "chore_stat_total_points_from_chores_today": {
+            "name": "Pisteitä kotitöistä tänään"
+          },
+          "chore_stat_total_points_from_chores_week": {
+            "name": "Pisteitä askareista tällä viikolla"
+          },
+          "chore_stat_total_points_from_chores_month": {
+            "name": "Pisteitä kotitöistä tässä kuussa"
+          },
+          "chore_stat_total_points_from_chores_year": {
+            "name": "Pisteitä kotitöistä tänä vuonna"
+          },
+          "chore_stat_total_points_from_chores_all_time": {
+            "name": "Pisteitä kotitöistä kaikkien aikojen"
+          },
+          "chore_stat_overdue_today": {
+            "name": "Tänään erääntynyt"
+          },
+          "chore_stat_overdue_week": {
+            "name": "Tällä viikolla erääntynyt"
+          },
+          "chore_stat_overdue_month": {
+            "name": "Tässä kuussa erääntyneet"
+          },
+          "chore_stat_overdue_year": {
+            "name": "Myöhässä tänä vuonna"
+          },
+          "chore_stat_overdue_count_all_time": {
+            "name": "Koko ajan myöhässä"
+          },
+          "chore_stat_claimed_today": {
+            "name": "Väitetty tänään"
+          },
+          "chore_stat_claimed_week": {
+            "name": "Väitetty tällä viikolla"
+          },
+          "chore_stat_claimed_month": {
+            "name": "Lunastettu tässä kuussa"
+          },
+          "chore_stat_claimed_year": {
+            "name": "Väitetty tänä vuonna"
+          },
+          "chore_stat_claimed_all_time": {
+            "name": "Kaikkien aikojen vaaditut"
+          },
+          "chore_stat_disapproved_today": {
+            "name": "Hylätty tänään"
+          },
+          "chore_stat_disapproved_week": {
+            "name": "Hylätty tällä viikolla"
+          },
+          "chore_stat_disapproved_month": {
+            "name": "Hylätty tässä kuussa"
+          },
+          "chore_stat_disapproved_year": {
+            "name": "Hylätty tänä vuonna"
+          },
+          "chore_stat_disapproved_all_time": {
+            "name": "Hylätty koko ajan"
+          },
+          "chore_stat_current_due_today": {
+            "name": "Erääntyvä tänään"
+          },
+          "chore_stat_current_overdue": {
+            "name": "Nykyinen erääntynyt"
+          },
+          "chore_stat_current_claimed": {
+            "name": "Nykyinen vaadittu"
+          },
+          "chore_stat_current_approved": {
+            "name": "Nykyinen hyväksytty"
+          },
+          "chore_stat_longest_streak_week": {
+            "name": "Pisin putki (viikko)"
+          },
+          "chore_stat_longest_streak_month": {
+            "name": "Pisin putki (kuukausi)"
+          },
+          "chore_stat_longest_streak_year": {
+            "name": "Pisin putki (vuosi)"
+          },
+          "chore_stat_longest_streak_all_time": {
+            "name": "Pisin putki (kaikkien aikojen)"
+          },
+          "chore_stat_avg_per_day_week": {
+            "name": "Keskimäärin päivässä (viikossa)"
+          },
+          "chore_stat_avg_per_day_month": {
+            "name": "Keskimäärin päivässä (kuukausi)"
           }
         }
       },
@@ -1960,11 +2214,14 @@
           "purpose": {
             "name": "Tarkoitus",
             "state": {
-              "purpose_badges": "Merkkien saavutusten edistymisen seuranta"
+              "purpose_badges": "Seuraa kumulatiivista merkkien edistymistä ja syklejä sekä kaikkia ansaittuja merkkejä"
             }
           },
           "kid_name": {
             "name": "Lapsen nimi"
+          },
+          "labels": {
+            "name": "Tarrat"
           },
           "all_earned_badges": {
             "name": "Kaikki ansaitut ansiomerkit"
@@ -1972,69 +2229,109 @@
           "highest_badge_threshold_value": {
             "name": "Korkein kynnysarvo ansiomerkille"
           },
-          "points_multiplier": {
-            "name": "Pistekerroin"
-          },
           "points_to_next_badge": {
             "name": "Pisteitä seuraavaan -merkkiin"
           },
-          "labels": {
-            "name": "Tarrat"
+          "current_badge_name": {
+            "name": "Nykyisen merkin nimi"
+          },
+          "current_badge_eid": {
+            "name": "Nykyisen tunnuksen yksikön tunnus"
+          },
+          "highest_earned_badge_name": {
+            "name": "Korkeimman ansaitun ansiomerkin nimi"
+          },
+          "next_higher_badge_name": {
+            "name": "Seuraavan korkeamman tason arvonimen nimi"
+          },
+          "next_higher_badge_eid": {
+            "name": "Seuraavan korkeamman tason arvomerkkiyksikön tunnus"
+          },
+          "next_lower_badge_name": {
+            "name": "Seuraavan alemman tason merkin nimi"
+          },
+          "next_lower_badge_eid": {
+            "name": "Seuraavan alemman tason arvomerkkiyksikön tunnus"
+          },
+          "badge_status": {
+            "name": "Merkin tila"
+          },
+          "last_awarded_date": {
+            "name": "Viimeisin myöntämispäivä"
+          },
+          "award_count": {
+            "name": "Palkintojen määrä"
+          },
+          "description": {
+            "name": "Kuvaus"
+          },
+          "baseline_points": {
+            "name": "Peruspisteet"
+          },
+          "cycle_points": {
+            "name": "Pyöräilypisteet"
+          },
+          "maintenance_grace_end_date": {
+            "name": "Ylläpidon lisäajan päättymispäivä"
+          },
+          "maintenance_points_required": {
+            "name": "Vaadittavat huoltopisteet"
+          },
+          "maintenance_end_date": {
+            "name": "Huollon päättymispäivä"
+          },
+          "maintenance_points_remaining": {
+            "name": "Jäljellä olevat huoltopisteet"
+          },
+          "reset_schedule": {
+            "name": "Nollaa aikataulu"
+          },
+          "target": {
+            "name": "Kohde"
+          },
+          "awards": {
+            "name": "Palkinnot"
           }
         }
       },
       "system_badge_sensor": {
         "name": "Merkki - {badge_name}",
+        "unit_of_measurement": "lapset",
         "state_attributes": {
-          "threshold_type": {
-            "name": "Kynnystyyppi",
+          "purpose": {
+            "name": "Tarkoitus",
             "state": {
-              "points": "Pisteet",
-              "chore_count": "Askareiden määrä"
+              "purpose_badge": "Tämän ansiomerkin ansainneiden lasten määrä"
             }
           },
-          "points_multiplier": {
-            "name": "Pistekerroin"
+          "badge_name": {
+            "name": "Merkin nimi"
           },
           "description": {
             "name": "Kuvaus"
           },
-          "award_points": {
-            "name": "Palkintopisteet"
-          },
-          "award_reward": {
-            "name": "Palkinto"
-          },
-          "kids_earned": {
-            "name": "Lapset ansaitsivat"
+          "badge_type": {
+            "name": "Merkin tyyppi",
+            "state": {
+              "cumulative": "Kumulatiivinen",
+              "achievement": "Saavutus",
+              "challenge": "Haaste",
+              "daily": "Päivittäin",
+              "periodic": "Säännöllinen",
+              "special": "Erikois"
+            }
           },
           "labels": {
             "name": "Tarrat"
           },
-          "threshold_value": {
-            "name": "Kynnysarvo"
+          "kids_earned": {
+            "name": "Lapset ansaitsivat"
           },
-          "reset_schedule": {
-            "name": "Nollaa aikataulu"
+          "kids_assigned": {
+            "name": "Lapset määrätty"
           },
-          "start_date": {
-            "name": "Aloituspäivämäärä"
-          },
-          "end_date": {
-            "name": "Päättymispäivä"
-          },
-          "recurrent": {
-            "name": "Toistuva",
-            "state": {
-              "true": "Kyllä",
-              "false": "Ei"
-            }
-          },
-          "daily_threshold": {
-            "name": "Päivittäinen kynnys"
-          },
-          "required_chores": {
-            "name": "Pakolliset askareet"
+          "target": {
+            "name": "Kohde"
           },
           "associated_achievement": {
             "name": "Liittyvä saavutus"
@@ -2045,11 +2342,14 @@
           "occasion_type": {
             "name": "Tilaisuuden tyyppi"
           },
-          "trigger_info": {
-            "name": "Liipaisintiedot"
+          "required_chores": {
+            "name": "Pakolliset askareet"
           },
-          "occasion_date": {
-            "name": "Tilaisuuden päivämäärä"
+          "badge_awards": {
+            "name": "Merkkipalkinnot"
+          },
+          "reset_schedule": {
+            "name": "Nollaa aikataulu"
           }
         }
       },
@@ -2082,12 +2382,6 @@
       },
       "system_rewards_pending_approval_sensor": {
         "name": "Odottavat palkintojen hyväksynnät"
-      },
-      "reward_claims_sensor": {
-        "name": "Vaatimukset - {reward_name}"
-      },
-      "reward_approvals_sensor": {
-        "name": "Hyväksynnät - {reward_name}"
       },
       "system_chore_shared_state_sensor": {
         "name": "{chore_name} - Globaali tila",
@@ -2188,12 +2482,6 @@
             "name": "Tarrat"
           }
         }
-      },
-      "chore_claims_sensor": {
-        "name": "Vaatimukset - {chore_name}"
-      },
-      "chore_approvals_sensor": {
-        "name": "Hyväksynnät - {chore_name}"
       },
       "kid_penalty_applied_sensor": {
         "name": "Rangaistukset - {penalty_name}",
@@ -2433,17 +2721,6 @@
         "state_attributes": {
           "streaks_by_achievement": {
             "name": "Saavutusputket"
-          }
-        }
-      },
-      "chore_streak_sensor": {
-        "name": "Viiru - {chore_name}",
-        "state_attributes": {
-          "last_date": {
-            "name": "Viimeinen päivämäärä"
-          },
-          "raw_streak": {
-            "name": "Nykyinen putki"
           }
         }
       },

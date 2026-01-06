@@ -1805,13 +1805,14 @@
           "unknown": "Neznámy",
           "none": "Žiadne",
           "approved_in_part": "Schválené (čiastočne)",
-          "claimed_in_part": "Nárokované (čiastočne)"
+          "claimed_in_part": "Nárokované (čiastočne)",
+          "completed_by_other": "Dokončené iným používateľom"
         },
         "state_attributes": {
           "purpose": {
             "name": "Účel",
             "state": {
-              "purpose_chore_status": "Aktuálny stav tejto konkrétnej úlohy"
+              "purpose_chore_status": "Sleduje stav a štatistiky pre túto konkrétnu úlohu"
             }
           },
           "kid_name": {
@@ -1820,11 +1821,37 @@
           "chore_name": {
             "name": "Názov úlohy"
           },
-          "shared_chore": {
-            "name": "Zdieľaná práca",
+          "chore_icon": {
+            "name": "Ikona domácej práce"
+          },
+          "description": {
+            "name": "Popis"
+          },
+          "assigned_kids": {
+            "name": "Pridelené deti"
+          },
+          "labels": {
+            "name": "Štítky"
+          },
+          "default_points": {
+            "name": "Predvolené body"
+          },
+          "completion_criteria": {
+            "name": "Kritériá dokončenia",
             "state": {
-              "true": "Áno",
-              "false": "Nie"
+              "independent": "Nezávislý",
+              "shared_first_only": "Zdieľané (iba prvé)",
+              "shared_all_required": "Zdieľané (všetky povinné)"
+            }
+          },
+          "approval_reset_type": {
+            "name": "Typ obnovenia schválenia",
+            "state": {
+              "at_midnight_once": "Raz za deň",
+              "at_midnight_multi": "Viacero za deň",
+              "at_due_date_once": "Raz za dátum splatnosti",
+              "at_due_date_multi": "Viacero za dátum splatnosti",
+              "upon_completion": "Po dokončení"
             }
           },
           "recurring_frequency": {
@@ -1853,23 +1880,55 @@
           "due_date": {
             "name": "Dátum splatnosti"
           },
-          "default_points": {
-            "name": "Predvolené body"
+          "custom_frequency_interval": {
+            "name": "Vlastný frekvenčný interval"
           },
-          "description": {
-            "name": "Popis"
+          "custom_frequency_unit": {
+            "name": "Vlastná frekvenčná jednotka",
+            "state": {
+              "days": "Dni",
+              "weeks": "Týždne",
+              "months": "Mesiace"
+            }
           },
-          "chore_claims_count": {
-            "name": "Počet nárokov na pomocné úlohy"
+          "chore_points_earned": {
+            "name": "Získané body"
           },
           "chore_approvals_count": {
-            "name": "Počet schválení úloh"
+            "name": "Schválenia (za celý čas)"
+          },
+          "chore_claims_count": {
+            "name": "Nároky (za všetky časy)"
+          },
+          "chore_disapproved_count": {
+            "name": "Zamietnutia (za všetky časy)"
+          },
+          "chore_overdue_count": {
+            "name": "Po termíne (za všetky časy)"
+          },
+          "chore_approvals_today": {
+            "name": "Schválenia dnes"
           },
           "chore_current_streak": {
-            "name": "Aktuálna séria úloh"
+            "name": "Aktuálna séria"
           },
           "chore_highest_streak": {
-            "name": "Najvyššia séria povinných úloh"
+            "name": "Najvyššia séria"
+          },
+          "chore_last_longest_streak_date": {
+            "name": "Dátum poslednej najdlhšej série"
+          },
+          "last_claimed": {
+            "name": "Naposledy nárokované"
+          },
+          "last_approved": {
+            "name": "Posledné schválené"
+          },
+          "last_disapproved": {
+            "name": "Naposledy zamietnuté"
+          },
+          "last_overdue": {
+            "name": "Posledný po termíne"
           },
           "global_state": {
             "name": "Globálny štát",
@@ -1885,32 +1944,28 @@
               "independent": "Nezávislý"
             }
           },
-          "allow_multiple_claims_per_day": {
-            "name": "Povoliť viacero nárokov za deň",
+          "can_claim": {
+            "name": "Môže si nárokovať",
             "state": {
               "true": "Áno",
               "false": "Nie"
             }
           },
-          "assigned_kids": {
-            "name": "Pridelené deti"
-          },
-          "custom_frequency_interval": {
-            "name": "Vlastná frekvencia"
-          },
-          "custom_frequency_unit": {
-            "name": "Vlastné frekvenčné obdobie",
+          "can_approve": {
+            "name": "Môže schváliť",
             "state": {
-              "days": "Dni",
-              "weeks": "Týždne",
-              "months": "Mesiace"
+              "true": "Áno",
+              "false": "Nie"
             }
           },
-          "chore_approvals_today": {
-            "name": "Schvaľovanie domácich úloh dnes"
+          "approve_button_eid": {
+            "name": "ID entity tlačidla Schváliť"
           },
-          "labels": {
-            "name": "Štítky"
+          "disapprove_button_eid": {
+            "name": "ID entity tlačidla zamietnuť"
+          },
+          "claim_button_eid": {
+            "name": "ID entity tlačidla nároku"
           }
         }
       },
@@ -1920,11 +1975,89 @@
           "purpose": {
             "name": "Účel",
             "state": {
-              "purpose_points": "Aktuálny zostatok bodov pre dieťa"
+              "purpose_points": "Aktuálny zostatok bodov s podrobnou štatistikou o získavaní a výdavkoch"
             }
           },
-          "description": {
-            "name": "Aktuálny zostatok bodov - získajte z domácich prác, míňajte na odmeny"
+          "kid_name": {
+            "name": "Meno dieťaťa"
+          },
+          "point_stat_points_earned_today": {
+            "name": "Získané dnes"
+          },
+          "point_stat_points_earned_week": {
+            "name": "Získané tento týždeň"
+          },
+          "point_stat_points_earned_month": {
+            "name": "Získané tento mesiac"
+          },
+          "point_stat_points_earned_year": {
+            "name": "Získané tento rok"
+          },
+          "point_stat_points_earned_all_time": {
+            "name": "Získané za celý čas"
+          },
+          "point_stat_points_by_source_today": {
+            "name": "Zdrojom dnes"
+          },
+          "point_stat_points_by_source_week": {
+            "name": "Podľa zdroja Tento týždeň"
+          },
+          "point_stat_points_by_source_month": {
+            "name": "Podľa zdroja Tento mesiac"
+          },
+          "point_stat_points_by_source_year": {
+            "name": "Podľa zdroja tento rok"
+          },
+          "point_stat_points_by_source_all_time": {
+            "name": "Podľa zdroja za všetky časy"
+          },
+          "point_stat_points_spent_today": {
+            "name": "Dnes utracené"
+          },
+          "point_stat_points_spent_week": {
+            "name": "Strávené tento týždeň"
+          },
+          "point_stat_points_spent_month": {
+            "name": "Výdavky tento mesiac"
+          },
+          "point_stat_points_spent_year": {
+            "name": "Výdavky tento rok"
+          },
+          "point_stat_points_spent_all_time": {
+            "name": "Strávený všetok čas"
+          },
+          "point_stat_points_net_today": {
+            "name": "Čistá dnes"
+          },
+          "point_stat_points_net_week": {
+            "name": "Čistý tento týždeň"
+          },
+          "point_stat_points_net_month": {
+            "name": "Čistá hodnota tento mesiac"
+          },
+          "point_stat_points_net_year": {
+            "name": "Čistá hodnota tento rok"
+          },
+          "point_stat_points_net_all_time": {
+            "name": "Čistý celoročný"
+          },
+          "point_stat_points_earning_streak_current": {
+            "name": "Aktuálna séria zárobkov"
+          },
+          "point_stat_points_earning_streak_longest": {
+            "name": "Najdlhšia séria zárobkov"
+          },
+          "point_stat_avg_points_per_day_week": {
+            "name": "Priemerne za deň (týždeň)"
+          },
+          "point_stat_avg_points_per_day_month": {
+            "name": "Priemerne za deň (mesiac)"
+          },
+          "point_stat_avg_points_per_chore": {
+            "name": "Priemer na domácu prácu"
+          },
+          "point_stat_highest_balance": {
+            "name": "Najvyšší zostatok vôbec"
           }
         }
       },
@@ -1945,12 +2078,133 @@
       },
       "kid_chores_sensor": {
         "name": "Domáce práce",
+        "unit_of_measurement": "Domáce práce",
         "state_attributes": {
           "purpose": {
             "name": "Účel",
             "state": {
-              "purpose_chores": "Počet pridelených domácich úloh podľa stavu"
+              "purpose_chores": "Celkový počet dokončených domácich prác za celý čas s podrobnou štatistikou"
             }
+          },
+          "kid_name": {
+            "name": "Meno dieťaťa"
+          },
+          "chore_stat_approved_today": {
+            "name": "Schválené dnes"
+          },
+          "chore_stat_approved_week": {
+            "name": "Schválené tento týždeň"
+          },
+          "chore_stat_approved_month": {
+            "name": "Schválené tento mesiac"
+          },
+          "chore_stat_approved_year": {
+            "name": "Schválené tento rok"
+          },
+          "chore_stat_approved_all_time": {
+            "name": "Schválené natrvalo"
+          },
+          "chore_stat_most_completed_chore_all_time": {
+            "name": "Najviac dokončená domáca úloha (všetkých čias)"
+          },
+          "chore_stat_most_completed_chore_week": {
+            "name": "Najviac dokončená domáca úloha (týždeň)"
+          },
+          "chore_stat_most_completed_chore_month": {
+            "name": "Najviac dokončená domáca úloha (mesiac)"
+          },
+          "chore_stat_most_completed_chore_year": {
+            "name": "Najviac dokončená domáca úloha (rok)"
+          },
+          "chore_stat_total_points_from_chores_today": {
+            "name": "Body z dnešných domácich prác"
+          },
+          "chore_stat_total_points_from_chores_week": {
+            "name": "Body z domácich prác tento týždeň"
+          },
+          "chore_stat_total_points_from_chores_month": {
+            "name": "Body za domáce práce tento mesiac"
+          },
+          "chore_stat_total_points_from_chores_year": {
+            "name": "Body za domáce práce v tomto roku"
+          },
+          "chore_stat_total_points_from_chores_all_time": {
+            "name": "Body z domácich prác všetkých čias"
+          },
+          "chore_stat_overdue_today": {
+            "name": "Dnes po termíne"
+          },
+          "chore_stat_overdue_week": {
+            "name": "Tento týždeň po termíne"
+          },
+          "chore_stat_overdue_month": {
+            "name": "Tento mesiac po termíne"
+          },
+          "chore_stat_overdue_year": {
+            "name": "Tento rok po termíne"
+          },
+          "chore_stat_overdue_count_all_time": {
+            "name": "Vždy po termíne"
+          },
+          "chore_stat_claimed_today": {
+            "name": "Nárokované dnes"
+          },
+          "chore_stat_claimed_week": {
+            "name": "Nárokované tento týždeň"
+          },
+          "chore_stat_claimed_month": {
+            "name": "Nárokované tento mesiac"
+          },
+          "chore_stat_claimed_year": {
+            "name": "Nárokované tento rok"
+          },
+          "chore_stat_claimed_all_time": {
+            "name": "Nárokované za celý čas"
+          },
+          "chore_stat_disapproved_today": {
+            "name": "Zamietnuté dnes"
+          },
+          "chore_stat_disapproved_week": {
+            "name": "Tento týždeň zamietnuté"
+          },
+          "chore_stat_disapproved_month": {
+            "name": "Zamietnuté tento mesiac"
+          },
+          "chore_stat_disapproved_year": {
+            "name": "Tento rok zamietnuté"
+          },
+          "chore_stat_disapproved_all_time": {
+            "name": "Zamietnuté za celý čas"
+          },
+          "chore_stat_current_due_today": {
+            "name": "Aktuálna splatnosť dnes"
+          },
+          "chore_stat_current_overdue": {
+            "name": "Aktuálne po splatnosti"
+          },
+          "chore_stat_current_claimed": {
+            "name": "Aktuálne nárokované"
+          },
+          "chore_stat_current_approved": {
+            "name": "Aktuálne schválené"
+          },
+          "chore_stat_longest_streak_week": {
+            "name": "Najdlhšia séria (týždeň)"
+          },
+          "chore_stat_longest_streak_month": {
+            "name": "Najdlhšia séria (mesiac)"
+          },
+          "chore_stat_longest_streak_year": {
+            "name": "Najdlhšia séria (rok)"
+          },
+          "chore_stat_longest_streak_all_time": {
+            "name": "Najdlhšia séria (všetkých čias)"
+          },
+          "chore_stat_avg_per_day_week": {
+            "name": "Priemerne za deň (týždeň)"
+          },
+          "chore_stat_avg_per_day_month": {
+            "name": "Priemerne za deň (mesiac)"
           }
         }
       },
@@ -1960,11 +2214,14 @@
           "purpose": {
             "name": "Účel",
             "state": {
-              "purpose_badges": "Sledovanie pokroku v získavaní odznakov"
+              "purpose_badges": "Sleduje kumulatívny postup a cykly odznakov, ako aj všetky získané odznaky"
             }
           },
           "kid_name": {
             "name": "Meno dieťaťa"
+          },
+          "labels": {
+            "name": "Štítky"
           },
           "all_earned_badges": {
             "name": "Všetky získané odznaky"
@@ -1972,69 +2229,109 @@
           "highest_badge_threshold_value": {
             "name": "Najvyšší prah pre odznak"
           },
-          "points_multiplier": {
-            "name": "Násobiteľ bodov"
-          },
           "points_to_next_badge": {
             "name": "Body k ďalšiemu odznaku"
           },
-          "labels": {
-            "name": "Štítky"
+          "current_badge_name": {
+            "name": "Aktuálny názov odznaku"
+          },
+          "current_badge_eid": {
+            "name": "Aktuálne ID entity odznaku"
+          },
+          "highest_earned_badge_name": {
+            "name": "Názov odznaku s najvyšším počtom získaných bodov"
+          },
+          "next_higher_badge_name": {
+            "name": "Názov ďalšieho vyššieho odznaku"
+          },
+          "next_higher_badge_eid": {
+            "name": "ID entity s ďalším vyšším odznakom"
+          },
+          "next_lower_badge_name": {
+            "name": "Názov ďalšieho nižšieho odznaku"
+          },
+          "next_lower_badge_eid": {
+            "name": "ID entity s ďalším nižším odznakom"
+          },
+          "badge_status": {
+            "name": "Stav odznaku"
+          },
+          "last_awarded_date": {
+            "name": "Dátum posledného udelenia"
+          },
+          "award_count": {
+            "name": "Počet ocenení"
+          },
+          "description": {
+            "name": "Popis"
+          },
+          "baseline_points": {
+            "name": "Východiskové body"
+          },
+          "cycle_points": {
+            "name": "Body pre cyklistov"
+          },
+          "maintenance_grace_end_date": {
+            "name": "Dátum ukončenia údržby"
+          },
+          "maintenance_points_required": {
+            "name": "Požadované body údržby"
+          },
+          "maintenance_end_date": {
+            "name": "Dátum ukončenia údržby"
+          },
+          "maintenance_points_remaining": {
+            "name": "Zostávajúce body údržby"
+          },
+          "reset_schedule": {
+            "name": "Obnoviť plán"
+          },
+          "target": {
+            "name": "Cieľ"
+          },
+          "awards": {
+            "name": "Ocenenia"
           }
         }
       },
       "system_badge_sensor": {
         "name": "Odznak - {badge_name}",
+        "unit_of_measurement": "deti",
         "state_attributes": {
-          "threshold_type": {
-            "name": "Typ prahovej hodnoty",
+          "purpose": {
+            "name": "Účel",
             "state": {
-              "points": "Body",
-              "chore_count": "Počet domácich úloh"
+              "purpose_badge": "Počet detí, ktoré získali tento odznak"
             }
           },
-          "points_multiplier": {
-            "name": "Násobiteľ bodov"
+          "badge_name": {
+            "name": "Názov odznaku"
           },
           "description": {
             "name": "Popis"
           },
-          "award_points": {
-            "name": "Body za udelenie"
-          },
-          "award_reward": {
-            "name": "Odmena za odmenu"
-          },
-          "kids_earned": {
-            "name": "Deti zarobili"
+          "badge_type": {
+            "name": "Typ odznaku",
+            "state": {
+              "cumulative": "Kumulatívne",
+              "achievement": "Úspech",
+              "challenge": "Výzva",
+              "daily": "Denne",
+              "periodic": "Periodické",
+              "special": "Špeciálne"
+            }
           },
           "labels": {
             "name": "Štítky"
           },
-          "threshold_value": {
-            "name": "Prahová hodnota"
+          "kids_earned": {
+            "name": "Deti zarobili"
           },
-          "reset_schedule": {
-            "name": "Obnoviť plán"
+          "kids_assigned": {
+            "name": "Pridelené deti"
           },
-          "start_date": {
-            "name": "Dátum začiatku"
-          },
-          "end_date": {
-            "name": "Dátum ukončenia"
-          },
-          "recurrent": {
-            "name": "Opakujúce sa",
-            "state": {
-              "true": "Áno",
-              "false": "Nie"
-            }
-          },
-          "daily_threshold": {
-            "name": "Denný prah"
-          },
-          "required_chores": {
-            "name": "Požadované domáce práce"
+          "target": {
+            "name": "Cieľ"
           },
           "associated_achievement": {
             "name": "Súvisiaci úspech"
@@ -2045,11 +2342,14 @@
           "occasion_type": {
             "name": "Typ príležitosti"
           },
-          "trigger_info": {
-            "name": "Informácie o spúšťači"
+          "required_chores": {
+            "name": "Požadované domáce práce"
           },
-          "occasion_date": {
-            "name": "Dátum príležitosti"
+          "badge_awards": {
+            "name": "Ocenenia odznakom"
+          },
+          "reset_schedule": {
+            "name": "Obnoviť plán"
           }
         }
       },
@@ -2082,12 +2382,6 @@
       },
       "system_rewards_pending_approval_sensor": {
         "name": "Čaká sa na schválenie odmien"
-      },
-      "reward_claims_sensor": {
-        "name": "Nároky - {reward_name}"
-      },
-      "reward_approvals_sensor": {
-        "name": "Schválenia - {reward_name}"
       },
       "system_chore_shared_state_sensor": {
         "name": "{chore_name} - Globálny stav",
@@ -2188,12 +2482,6 @@
             "name": "Štítky"
           }
         }
-      },
-      "chore_claims_sensor": {
-        "name": "Nároky - {chore_name}"
-      },
-      "chore_approvals_sensor": {
-        "name": "Schválenia - {chore_name}"
       },
       "kid_penalty_applied_sensor": {
         "name": "Uložené sankcie - {penalty_name}",
@@ -2433,17 +2721,6 @@
         "state_attributes": {
           "streaks_by_achievement": {
             "name": "Série podľa úspechov"
-          }
-        }
-      },
-      "chore_streak_sensor": {
-        "name": "Pruh - {chore_name}",
-        "state_attributes": {
-          "last_date": {
-            "name": "Posledný dátum"
-          },
-          "raw_streak": {
-            "name": "Aktuálna séria"
           }
         }
       },
