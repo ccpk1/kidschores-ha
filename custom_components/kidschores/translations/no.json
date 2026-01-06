@@ -1,9 +1,9 @@
 {
-  "title": "Barnearbeid",
+  "title": "KidsChores",
   "config": {
     "step": {
       "intro": {
-        "title": "Velkommen til BarneGjør-det-selv",
+        "title": "Velkommen til KidsChores",
         "description": "Denne veiviseren vil veilede deg gjennom oppsettet av KidsChores."
       },
       "data_recovery": {

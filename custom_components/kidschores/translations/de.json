@@ -1,10 +1,10 @@
 {
-  "title": "Kinderaufgaben",
+  "title": "KidsChores",
   "config": {
     "step": {
       "intro": {
         "title": "Willkommen bei KidsChore",
-        "description": "Dieser Assistent führt Sie durch die Einrichtung von KidsChore."
+        "description": "Dieser Assistent führt Sie durch die Einrichtung von KidsChores."
       },
       "data_recovery": {
         "title": "Optionen zur Datenwiederherstellung",

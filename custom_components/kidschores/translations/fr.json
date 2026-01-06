@@ -1,5 +1,5 @@
 {
-  "title": "Les tâches des enfants",
+  "title": "KidsChores",
   "config": {
     "step": {
       "intro": {
@@ -2575,7 +2575,7 @@
       "message": "Le champ obligatoire {field} est manquant dans {entity}"
     },
     "invalid_date": {
-      "message": "{field} date {date} is invalid"
+      "message": "La date {field} {date} n'est pas valide"
     },
     "date_constraint": {
       "message": "{constraint} violation : {detail}"

@@ -1,10 +1,10 @@
 {
-  "title": "Lastenkotityöt",
+  "title": "KidsChores",
   "config": {
     "step": {
       "intro": {
-        "title": "Tervetuloa KidsChoresiin",
-        "description": "Tämä ohjattu toiminto opastaa sinua KidsChoresin määrittämisessä."
+        "title": "Tervetuloa KidsChores",
+        "description": "Tämä avustaja opastaa sinua perustamalla KidsChores."
       },
       "data_recovery": {
         "title": "Tietojen palautusvaihtoehdot",

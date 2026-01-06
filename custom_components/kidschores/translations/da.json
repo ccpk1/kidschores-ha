@@ -1,10 +1,10 @@
 {
-  "title": "Børnepligter",
+  "title": "KidsChores",
   "config": {
     "step": {
       "intro": {
-        "title": "Velkommen til BørneGøremål",
-        "description": "Denne guide vil guide dig gennem opsætningen af KidsChores."
+        "title": "Velkommen til KidsChores",
+        "description": "Denne guide vil guide dig gennem opsætning af KidsChores."
       },
       "data_recovery": {
         "title": "Muligheder for datagendannelse",
