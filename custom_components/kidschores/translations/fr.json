@@ -2214,7 +2214,7 @@
           "purpose": {
             "name": "But",
             "state": {
-              "purpose_badges": "Badge le plus élevé obtenu et progression cumulative en temps réel, y compris les cycles actifs et l'historique des récompenses pour tous les types de badges."
+              "purpose_kid_badges": "Badge le plus élevé obtenu et progression cumulative en temps réel, y compris les cycles actifs et l'historique des récompenses pour tous les types de badges."
             }
           },
           "kid_name": {
