@@ -1,9 +1,4 @@
 {
-  "_metadata": {
-    "language_code": "pt",
-    "language_name": "Português",
-    "version": "1.0.0"
-  },
   "chore_assigned": {
     "title": "Tarefas para Crianças: Nova Tarefa",
     "message": "Uma nova tarefa {chore_name} foi-lhe atribuída! Data de entrega: {due_date}"

@@ -1,9 +1,4 @@
 {
-  "_metadata": {
-    "language_code": "fi",
-    "language_name": "Suomi",
-    "version": "1.0.0"
-  },
   "chore_assigned": {
     "title": "Lastenkotitehtävät: Uusi kotitehtävä",
     "message": "Sinulle on määrätty uusi tehtävä {chore_name} ! Määräaika: {due_date}"

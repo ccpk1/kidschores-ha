@@ -1,9 +1,4 @@
 {
-  "_metadata": {
-    "language_code": "de",
-    "language_name": "Deutsch",
-    "version": "1.0.0"
-  },
   "chore_assigned": {
     "title": "Kinderaufgaben: Neue Aufgabe",
     "message": "Neue Aufgabe {chore_name} wurde dir zugewiesen! Fällig: {due_date}"

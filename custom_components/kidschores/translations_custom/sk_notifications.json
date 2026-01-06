@@ -1,9 +1,4 @@
 {
-  "_metadata": {
-    "language_code": "sk",
-    "language_name": "Slovenčina",
-    "version": "1.0.0"
-  },
   "chore_assigned": {
     "title": "Detské práce: Nová práca",
     "message": "Bola vám pridelená nová úloha {chore_name} ! Termín: {due_date}"

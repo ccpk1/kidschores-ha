@@ -1,9 +1,4 @@
 {
-  "_metadata": {
-    "language_code": "no",
-    "language_name": "Norsk",
-    "version": "1.0.0"
-  },
   "chore_assigned": {
     "title": "Barneoppgaver: Ny oppgave",
     "message": "Ny gjøremål {chore_name} ble tildelt deg! Forfall: {due_date}"
