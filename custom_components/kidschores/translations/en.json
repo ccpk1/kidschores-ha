@@ -1338,7 +1338,7 @@
     },
     "backup_actions_menu": {
       "options": {
-        "": "Select backup action...",
+        "select_backup_action": "Select backup action...",
         "create_backup": "💾 Create backup now",
         "delete_backup": "🗑️  Delete a backup",
         "restore_backup": "🔄 Restore from backup",
