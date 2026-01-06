@@ -19,7 +19,6 @@ Usage:
 """
 
 # pylint: disable=import-error  # custom_components only available when running in HA context
-import asyncio
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -27,7 +26,6 @@ from typing import Any, Union
 
 # Import Home Assistant test infrastructure
 try:
-    from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.storage import Store
     from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -234,7 +232,7 @@ class MigrationValidator:
         from custom_components.kidschores.const import COORDINATOR, DOMAIN
 
         coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
-        self.v42_data = coordinator._data
+        self.v42_data = coordinator._data  # pylint: disable=protected-access
 
         # DEBUG: Log what keys are in coordinator._data
         if self.v42_data is not None:
@@ -289,7 +287,7 @@ class MigrationValidator:
         return ValidationResult(
             name="V42 Schema Check",
             passed=True,
-            message=f"Valid v42 schema with complete meta section",
+            message="Valid v42 schema with complete meta section",
             details={
                 "schema_version": schema_version,
                 "migrations_applied": len(meta.get("migrations_applied", [])),
@@ -425,9 +423,9 @@ class MigrationValidator:
                 "completed_chores_monthly",
                 "completed_chores_weekly",
             ]
-            for field in legacy:
-                if field in kid_data:
-                    legacy_fields_found.append(f"kids.{kid_id}.{field}")
+            for legacy_field in legacy:
+                if legacy_field in kid_data:
+                    legacy_fields_found.append(f"kids.{kid_id}.{legacy_field}")
 
         # Check chores for legacy fields
         chores = self.v42_data.get("chores", {})
@@ -567,7 +565,7 @@ class MigrationValidator:
         # Load v40 data
         try:
             self.load_v40_data()
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             self.results.append(
                 ValidationResult(
                     name="Load V40 Data", passed=False, message=f"Failed to load: {e}"
@@ -584,7 +582,7 @@ class MigrationValidator:
         if hass:
             try:
                 await self.migrate_with_integration(hass)
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 self.results.append(
                     ValidationResult(
                         name="Migration", passed=False, message=f"Migration failed: {e}"
@@ -647,10 +645,10 @@ class MigrationValidator:
         passed = sum(1 for r in self.results if r.passed)
         failed = len(self.results) - passed
 
-        for result in self.results:
-            print(f"\n{result}")
-            if result.details:
-                for key, value in result.details.items():
+        for res in self.results:
+            print(f"\n{res}")
+            if res.details:
+                for key, value in res.details.items():
                     if isinstance(value, (list, dict)) and len(str(value)) > 100:
                         print(f"  {key}: {type(value).__name__} (see details)")
                     else:
