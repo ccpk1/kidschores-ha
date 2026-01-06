@@ -2214,7 +2214,7 @@
           "purpose": {
             "name": "Formål",
             "state": {
-              "purpose_badges": "Sporer akkumuleret badge-fremgang og -cyklusser samt alle optjente badges"
+              "purpose_badge_highest": "Højest optjente badge og akkumuleret fremgang i realtid, inklusive aktive cyklusser og tildelingshistorik på tværs af alle badgetyper"
             }
           },
           "kid_name": {

@@ -2214,7 +2214,7 @@
           "purpose": {
             "name": "Tarkoitus",
             "state": {
-              "purpose_badges": "Seuraa kumulatiivista merkkien edistymistä ja syklejä sekä kaikkia ansaittuja merkkejä"
+              "purpose_badge_highest": "Korkein ansaittu merkki ja reaaliaikainen kumulatiivinen edistyminen, mukaan lukien aktiiviset syklit ja palkintohistoria kaikissa merkkityypeissä"
             }
           },
           "kid_name": {

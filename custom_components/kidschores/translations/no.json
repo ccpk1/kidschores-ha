@@ -2214,7 +2214,7 @@
           "purpose": {
             "name": "Hensikt",
             "state": {
-              "purpose_badges": "Sporer akkumulert merkefremgang og -sykluser, samt alle opptjente merker"
+              "purpose_badge_highest": "Høyest oppnådde merke og akkumulert fremgang i sanntid, inkludert aktive sykluser og tildelingshistorikk på tvers av alle merketyper"
             }
           },
           "kid_name": {

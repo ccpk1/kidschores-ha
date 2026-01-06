@@ -2214,7 +2214,7 @@
           "purpose": {
             "name": "Finalidade",
             "state": {
-              "purpose_badges": "Regista o progresso cumulativo das insígnias e dos seus ciclos, bem como todas as insígnias conquistadas."
+              "purpose_badge_highest": "Distintivo mais alto conquistado e progresso cumulativo em tempo real, incluindo ciclos ativos e histórico de prémios em todos os tipos de distintivo."
             }
           },
           "kid_name": {
