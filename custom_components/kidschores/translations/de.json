@@ -1812,7 +1812,7 @@
           "purpose": {
             "name": "Zweck",
             "state": {
-              "purpose_chore_status": "Verfolgt den Status und die Statistiken für diese spezifische Aufgabe."
+              "purpose_chore_status": "Kinderspezifische Aufgabenlebenszyklusphasen, Leistungsstatistiken und Konfigurationsmetadaten"
             }
           },
           "kid_name": {
@@ -2301,7 +2301,7 @@
           "purpose": {
             "name": "Zweck",
             "state": {
-              "purpose_badge": "Anzahl der Kinder, die dieses Abzeichen erhalten haben"
+              "purpose_badge": "Anzahl der Kinder, die dieses Abzeichen erhalten haben, einschließlich Abzeichenkonfiguration (Typ, Zielgruppe, Auszeichnungen und zugewiesene Kinder)."
             }
           },
           "badge_name": {
@@ -2356,24 +2356,87 @@
       "kid_badge_progress_sensor": {
         "name": "Abzeichen-Fortschritt - {badge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_badge_progress": "Fortschrittsanzeige (0-100 %) zur Verfolgung des Fortschritts beim Erwerb dieses Abzeichens, einschließlich Kriterienstatus, Daten und Vergabehistorie"
+            }
+          },
           "kid_name": {
             "name": "Kindername"
           },
           "badge_name": {
             "name": "Abzeichenname"
           },
-          "progress": {
-            "name": "Fortschritt"
+          "badge_type": {
+            "name": "Abzeichenart",
+            "state": {
+              "cumulative": "Kumulativ",
+              "achievement": "Leistung",
+              "challenge": "Herausforderung",
+              "daily": "Täglich",
+              "periodic": "Periodisch",
+              "special": "Besonders"
+            }
           },
-          "target": {
-            "name": "Ziel"
+          "status": {
+            "name": "Status",
+            "state": {
+              "inactive": "Inaktiv",
+              "active": "Aktiv",
+              "completed": "Vollendet"
+            }
           },
-          "earned": {
-            "name": "Verdient",
+          "target_type": {
+            "name": "Zieltyp",
+            "state": {
+              "chores": "Hausarbeiten",
+              "points": "Punkte",
+              "days": "Tage",
+              "achievement": "Leistung",
+              "challenge": "Herausforderung"
+            }
+          },
+          "threshold_value": {
+            "name": "Zielschwelle"
+          },
+          "recurring_frequency": {
+            "name": "Wiederkehrende Häufigkeit",
+            "state": {
+              "none": "Keiner",
+              "daily": "Täglich",
+              "weekly": "Wöchentlich",
+              "biweekly": "Zweiwöchentlich",
+              "monthly": "Monatlich"
+            }
+          },
+          "start_date": {
+            "name": "Startdatum"
+          },
+          "end_date": {
+            "name": "Enddatum"
+          },
+          "last_update_day": {
+            "name": "Letzte Aktualisierung: Tag"
+          },
+          "overall_progress": {
+            "name": "Gesamtfortschritt"
+          },
+          "criteria_met": {
+            "name": "Kriterien erfüllt",
             "state": {
               "true": "Ja",
               "false": "NEIN"
             }
+          },
+          "last_awarded": {
+            "name": "Zuletzt verliehen"
+          },
+          "award_count": {
+            "name": "Anzahl der Auszeichnungen"
+          },
+          "description": {
+            "name": "Beschreibung"
           }
         }
       },
@@ -2397,11 +2460,47 @@
           "independent": "Unabhängig"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_shared_chore": "Globaler Abschlussstatus für geteilte Aufgaben mit aggregierten Statistiken für alle zugewiesenen Kinder"
+            }
+          },
           "chore_name": {
             "name": "Aufgabenname"
           },
+          "chore_icon": {
+            "name": "Aufgaben-Symbol"
+          },
           "description": {
             "name": "Beschreibung"
+          },
+          "assigned_kids": {
+            "name": "Zugewiesene Kinder"
+          },
+          "labels": {
+            "name": "Etiketten"
+          },
+          "default_points": {
+            "name": "Standardpunkte"
+          },
+          "completion_criteria": {
+            "name": "Abschlusskriterien",
+            "state": {
+              "independent": "Unabhängig",
+              "shared_first_only": "Gemeinsam (nur beim ersten Mal)",
+              "shared_all_required": "Gemeinsam (Alle erforderlich)"
+            }
+          },
+          "approval_reset_type": {
+            "name": "Genehmigungs-Reset-Typ",
+            "state": {
+              "at_midnight_once": "Einmal pro Tag",
+              "at_midnight_multi": "Mehrere pro Tag",
+              "at_due_date_once": "Einmal pro Fälligkeitsdatum",
+              "at_due_date_multi": "Mehrere pro Fälligkeitsdatum",
+              "upon_completion": "Nach Fertigstellung"
+            }
           },
           "recurring_frequency": {
             "name": "Wiederkehrende Häufigkeit",
@@ -2429,24 +2528,31 @@
           "due_date": {
             "name": "Fälligkeitsdatum"
           },
-          "default_points": {
-            "name": "Standardpunkte"
+          "custom_frequency_interval": {
+            "name": "Benutzerdefiniertes Frequenzintervall"
           },
-          "allow_multiple_claims_per_day": {
-            "name": "Mehrere Anträge pro Tag zulassen",
+          "custom_frequency_unit": {
+            "name": "Kundenspezifische Frequenzeinheit",
             "state": {
-              "true": "Ja",
-              "false": "NEIN"
+              "days": "Tage",
+              "weeks": "Wochen",
+              "months": "Monate"
             }
           },
-          "assigned_kids": {
-            "name": "Zugewiesene Kinder"
-          },
           "chore_approvals_today": {
-            "name": "Genehmigungen für Hausarbeiten heute"
+            "name": "Genehmigungen heute (Alle Kinder)"
           },
-          "labels": {
-            "name": "Etiketten"
+          "last_claimed": {
+            "name": "Zuletzt beansprucht"
+          },
+          "last_approved": {
+            "name": "Zuletzt genehmigt"
+          },
+          "chore_claimed_by": {
+            "name": "Beansprucht von"
+          },
+          "chore_completed_by": {
+            "name": "Abgeschlossen von"
           }
         }
       },
@@ -2460,26 +2566,41 @@
           "none": "Keiner"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_reward_status": "Prämien-Einlösungsstatus (nicht eingelöst, eingelöst, genehmigt) mit Einlösungshistorie und Aktionsschaltflächen"
+            }
+          },
           "kid_name": {
             "name": "Kindername"
           },
           "reward_name": {
             "name": "Name der Belohnung"
           },
-          "reward_cost": {
-            "name": "Belohnungskosten"
-          },
           "description": {
             "name": "Beschreibung"
           },
+          "cost": {
+            "name": "Kosten"
+          },
           "reward_claims_count": {
-            "name": "Anzahl der Prämienansprüche"
+            "name": "Gesamtschäden"
           },
           "reward_approvals_count": {
-            "name": "Prämiengenehmigungen zählen"
+            "name": "Gesamtzahl der Genehmigungen"
           },
           "labels": {
             "name": "Etiketten"
+          },
+          "reward_claim_button_eid": {
+            "name": "Entitäts-ID der Schaltfläche „Anspruch erheben“"
+          },
+          "reward_approve_button_eid": {
+            "name": "Entitäts-ID der Schaltfläche „Genehmigen“"
+          },
+          "reward_disapprove_button_eid": {
+            "name": "Entitäts-ID der Schaltfläche „Ablehnen“"
           }
         }
       },
@@ -2535,6 +2656,12 @@
       "system_achievement_sensor": {
         "name": "Erfolg - {achievement_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_achievement": "Der prozentuale Fortschritt (0-100) wird über alle zugewiesenen Kinder hinweg aggregiert, wobei die Konfiguration des Erfolgs Art, Ziel, Kriterien und eine Liste der Kinder umfasst, die ihn erreicht haben."
+            }
+          },
           "achievement_name": {
             "name": "Name der Errungenschaft"
           },
@@ -2555,7 +2682,7 @@
           "associated_chore": {
             "name": "Zugehörige Aufgabe"
           },
-          "critera": {
+          "criteria": {
             "name": "Kriterien"
           },
           "target_value": {
@@ -2575,6 +2702,12 @@
       "system_challenge_sensor": {
         "name": "Herausforderung - {challenge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_challenge": "Der Fortschritt in der Herausforderung (0-100 %) wird über alle zugewiesenen Kinder innerhalb des Datumsbereichs aggregiert. Die Herausforderungskonfiguration umfasst Typ, Ziel, Kriterien, Datum und eine Liste der Kinder, die die Herausforderung erfolgreich abgeschlossen haben."
+            }
+          },
           "challenge_name": {
             "name": "Name der Herausforderung"
           },
@@ -2594,7 +2727,7 @@
           "associated_chore": {
             "name": "Zugehörige Aufgabe"
           },
-          "critera": {
+          "criteria": {
             "name": "Kriterien"
           },
           "target_value": {
@@ -2620,6 +2753,15 @@
       "kid_achievement_progress_sensor": {
         "name": "Fortschritt - {achievement_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_achievement_progress": "Prozentualer Fortschritt des einzelnen Kindes (0-100) beim Erreichen dieser Auszeichnung, mit aktuellem Rohfortschritt und Auszeichnungsstatus"
+            }
+          },
+          "kid_name": {
+            "name": "Kindername"
+          },
           "achievement_name": {
             "name": "Name der Errungenschaft"
           },
@@ -2640,7 +2782,7 @@
           "associated_chore": {
             "name": "Zugehörige Aufgabe"
           },
-          "critera": {
+          "criteria": {
             "name": "Kriterien"
           },
           "target_value": {
@@ -2650,7 +2792,7 @@
             "name": "Prämienpunkte"
           },
           "raw_progress": {
-            "name": "Fortschritt"
+            "name": "Roher Fortschritt"
           },
           "awarded": {
             "name": "Ausgezeichnet",
@@ -2667,6 +2809,15 @@
       "kid_challenge_progress_sensor": {
         "name": "Fortschritt - {challenge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_challenge_progress": "Prozentsatz des individuellen Fortschritts (0-100) des Kindes bei der Bewältigung dieser Herausforderung innerhalb des angegebenen Zeitraums, mit aktuellem Rohfortschritt und Auszeichnungsstatus"
+            }
+          },
+          "kid_name": {
+            "name": "Kindername"
+          },
           "challenge_name": {
             "name": "Name der Herausforderung"
           },
@@ -2686,7 +2837,7 @@
           "associated_chore": {
             "name": "Zugehörige Aufgabe"
           },
-          "critera": {
+          "criteria": {
             "name": "Kriterien"
           },
           "target_value": {
@@ -2702,7 +2853,7 @@
             "name": "Enddatum"
           },
           "raw_progress": {
-            "name": "Fortschritt"
+            "name": "Roher Fortschritt"
           },
           "awarded": {
             "name": "Ausgezeichnet",

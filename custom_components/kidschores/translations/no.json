@@ -1812,7 +1812,7 @@
           "purpose": {
             "name": "Hensikt",
             "state": {
-              "purpose_chore_status": "Sporer status og statistikk for denne spesifikke gjøremålet"
+              "purpose_chore_status": "Barnespesifikke livssyklustilstander for gjøremål, ytelsesstatistikk og konfigurasjonsmetadata"
             }
           },
           "kid_name": {
@@ -2296,12 +2296,12 @@
       },
       "system_badge_sensor": {
         "name": "Merke - {badge_name}",
-        "unit_of_measurement": "barn",
+        "unit_of_measurement": "Barn",
         "state_attributes": {
           "purpose": {
             "name": "Hensikt",
             "state": {
-              "purpose_badge": "Antall barn som har fått dette merket"
+              "purpose_badge": "Antall barn som har fått dette merket, med merkekonfigurasjon inkludert type, mål, priser og tildelte barn"
             }
           },
           "badge_name": {
@@ -2356,24 +2356,87 @@
       "kid_badge_progress_sensor": {
         "name": "Merkefremgang - {badge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_badge_progress": "Prosentandel for merkefremdrift (0–100) som sporer fullføring mot å oppnå dette merket, med kriteriestatus, datoer og tildelingshistorikk"
+            }
+          },
           "kid_name": {
             "name": "Barnenavn"
           },
           "badge_name": {
             "name": "Merkenavn"
           },
-          "progress": {
-            "name": "Framgang"
+          "badge_type": {
+            "name": "Merketype",
+            "state": {
+              "cumulative": "Kumulativ",
+              "achievement": "Oppnåelse",
+              "challenge": "Utfordring",
+              "daily": "Daglig",
+              "periodic": "Periodisk",
+              "special": "Spesiell"
+            }
           },
-          "target": {
-            "name": "Mål"
+          "status": {
+            "name": "Status",
+            "state": {
+              "inactive": "Inaktiv",
+              "active": "Aktiv",
+              "completed": "Fullført"
+            }
           },
-          "earned": {
-            "name": "Opptjent",
+          "target_type": {
+            "name": "Måltype",
+            "state": {
+              "chores": "Gjøremål",
+              "points": "Poeng",
+              "days": "Dager",
+              "achievement": "Oppnåelse",
+              "challenge": "Utfordring"
+            }
+          },
+          "threshold_value": {
+            "name": "Målterskel"
+          },
+          "recurring_frequency": {
+            "name": "Gjentakende frekvens",
+            "state": {
+              "none": "Ingen",
+              "daily": "Daglig",
+              "weekly": "Ukentlig",
+              "biweekly": "Annenhver uke",
+              "monthly": "Månedlig"
+            }
+          },
+          "start_date": {
+            "name": "Startdato"
+          },
+          "end_date": {
+            "name": "Sluttdato"
+          },
+          "last_update_day": {
+            "name": "Siste oppdateringsdag"
+          },
+          "overall_progress": {
+            "name": "Generell fremgang"
+          },
+          "criteria_met": {
+            "name": "Kriterier oppfylt",
             "state": {
               "true": "Ja",
               "false": "Ingen"
             }
+          },
+          "last_awarded": {
+            "name": "Sist tildelt"
+          },
+          "award_count": {
+            "name": "Antall priser"
+          },
+          "description": {
+            "name": "Beskrivelse"
           }
         }
       },
@@ -2397,11 +2460,47 @@
           "independent": "Selvstendig"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_shared_chore": "Global fullføringsstatus for delte gjøremål med samlet statistikk på tvers av alle tildelte barn"
+            }
+          },
           "chore_name": {
             "name": "Navn på gjøremål"
           },
+          "chore_icon": {
+            "name": "Gjørmål-ikon"
+          },
           "description": {
             "name": "Beskrivelse"
+          },
+          "assigned_kids": {
+            "name": "Tildelte barn"
+          },
+          "labels": {
+            "name": "Etiketter"
+          },
+          "default_points": {
+            "name": "Standardpoeng"
+          },
+          "completion_criteria": {
+            "name": "Fullføringskriterier",
+            "state": {
+              "independent": "Selvstendig",
+              "shared_first_only": "Delt (kun første)",
+              "shared_all_required": "Delt (alle obligatoriske)"
+            }
+          },
+          "approval_reset_type": {
+            "name": "Godkjenningsnullstillingstype",
+            "state": {
+              "at_midnight_once": "En gang per dag",
+              "at_midnight_multi": "Flere per dag",
+              "at_due_date_once": "Én gang per forfallsdato",
+              "at_due_date_multi": "Flere per forfallsdato",
+              "upon_completion": "Ved ferdigstillelse"
+            }
           },
           "recurring_frequency": {
             "name": "Gjentakende frekvens",
@@ -2429,24 +2528,31 @@
           "due_date": {
             "name": "Forfallsdato"
           },
-          "default_points": {
-            "name": "Standardpoeng"
+          "custom_frequency_interval": {
+            "name": "Tilpasset frekvensintervall"
           },
-          "allow_multiple_claims_per_day": {
-            "name": "Tillat flere krav per dag",
+          "custom_frequency_unit": {
+            "name": "Tilpasset frekvensenhet",
             "state": {
-              "true": "Ja",
-              "false": "Ingen"
+              "days": "Dager",
+              "weeks": "Uker",
+              "months": "Måneder"
             }
           },
-          "assigned_kids": {
-            "name": "Tildelte barn"
-          },
           "chore_approvals_today": {
-            "name": "Godkjenninger av husarbeid i dag"
+            "name": "Godkjenninger i dag (alle barn)"
           },
-          "labels": {
-            "name": "Etiketter"
+          "last_claimed": {
+            "name": "Sist gjort krav på"
+          },
+          "last_approved": {
+            "name": "Sist godkjent"
+          },
+          "chore_claimed_by": {
+            "name": "Krevd av"
+          },
+          "chore_completed_by": {
+            "name": "Fullført av"
           }
         }
       },
@@ -2460,26 +2566,41 @@
           "none": "Ingen"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_reward_status": "Status for innløsning av belønning (ikke gjort krav på, gjort krav på, godkjent) med kravhistorikk og handlingsknapper"
+            }
+          },
           "kid_name": {
             "name": "Barnenavn"
           },
           "reward_name": {
             "name": "Belønningsnavn"
           },
-          "reward_cost": {
-            "name": "Belønningskostnad"
-          },
           "description": {
             "name": "Beskrivelse"
           },
+          "cost": {
+            "name": "Koste"
+          },
           "reward_claims_count": {
-            "name": "Antall belønningskrav"
+            "name": "Totalt antall krav"
           },
           "reward_approvals_count": {
-            "name": "Antall godkjenninger av belønninger"
+            "name": "Totalt antall godkjenninger"
           },
           "labels": {
             "name": "Etiketter"
+          },
+          "reward_claim_button_eid": {
+            "name": "Enhets-ID for kravknapp"
+          },
+          "reward_approve_button_eid": {
+            "name": "Godkjenningsknapp Enhets-ID"
+          },
+          "reward_disapprove_button_eid": {
+            "name": "Enhets-ID for avvisningsknapp"
           }
         }
       },
@@ -2535,6 +2656,12 @@
       "system_achievement_sensor": {
         "name": "Prestasjon - {achievement_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_achievement": "Prosentandel av prestasjonsfremgang (0–100) samlet på tvers av alle tildelte barn, med prestasjonskonfigurasjon inkludert type, mål, kriterier og liste over barn som har oppnådd den"
+            }
+          },
           "achievement_name": {
             "name": "Navn på prestasjon"
           },
@@ -2555,7 +2682,7 @@
           "associated_chore": {
             "name": "Tilknyttet oppgave"
           },
-          "critera": {
+          "criteria": {
             "name": "Kriterier"
           },
           "target_value": {
@@ -2575,6 +2702,12 @@
       "system_challenge_sensor": {
         "name": "Utfordring - {challenge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_challenge": "Prosentandel for utfordringsfremdrift (0–100) samlet på tvers av alle tildelte barn innenfor datovinduet, med utfordringskonfigurasjon inkludert type, mål, kriterier, datoer og liste over barn som har oppnådd den"
+            }
+          },
           "challenge_name": {
             "name": "Utfordringsnavn"
           },
@@ -2594,7 +2727,7 @@
           "associated_chore": {
             "name": "Tilknyttet oppgave"
           },
-          "critera": {
+          "criteria": {
             "name": "Kriterier"
           },
           "target_value": {
@@ -2620,6 +2753,15 @@
       "kid_achievement_progress_sensor": {
         "name": "Fremgang - {achievement_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_achievement_progress": "Det enkelte barnets fremdriftsprosent (0–100) mot å oppnå denne prestasjonen, med gjeldende rå fremdriftstall og belønningsstatus"
+            }
+          },
+          "kid_name": {
+            "name": "Barnenavn"
+          },
           "achievement_name": {
             "name": "Navn på prestasjon"
           },
@@ -2640,7 +2782,7 @@
           "associated_chore": {
             "name": "Tilknyttet oppgave"
           },
-          "critera": {
+          "criteria": {
             "name": "Kriterier"
           },
           "target_value": {
@@ -2650,7 +2792,7 @@
             "name": "Belønningspoeng"
           },
           "raw_progress": {
-            "name": "Framgang"
+            "name": "Rå fremgang"
           },
           "awarded": {
             "name": "Tildelt",
@@ -2667,6 +2809,15 @@
       "kid_challenge_progress_sensor": {
         "name": "Fremgang - {challenge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Hensikt",
+            "state": {
+              "purpose_challenge_progress": "Det enkelte barnets fremdriftsprosent (0–100) i forhold til å fullføre denne utfordringen innenfor datovinduet, med gjeldende rå fremdriftstall og belønningsstatus"
+            }
+          },
+          "kid_name": {
+            "name": "Barnenavn"
+          },
           "challenge_name": {
             "name": "Utfordringsnavn"
           },
@@ -2686,7 +2837,7 @@
           "associated_chore": {
             "name": "Tilknyttet oppgave"
           },
-          "critera": {
+          "criteria": {
             "name": "Kriterier"
           },
           "target_value": {
@@ -2702,7 +2853,7 @@
             "name": "Sluttdato"
           },
           "raw_progress": {
-            "name": "Framgang"
+            "name": "Rå fremgang"
           },
           "awarded": {
             "name": "Tildelt",

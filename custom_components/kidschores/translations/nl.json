@@ -1812,7 +1812,7 @@
           "purpose": {
             "name": "Doel",
             "state": {
-              "purpose_chore_status": "Houdt de status en statistieken voor deze specifieke taak bij."
+              "purpose_chore_status": "Kindspecifieke levenscyclusstatussen van huishoudelijke taken, prestatiestatistieken en configuratiemetadata"
             }
           },
           "kid_name": {
@@ -2296,12 +2296,12 @@
       },
       "system_badge_sensor": {
         "name": "Badge - {badge_name}",
-        "unit_of_measurement": "kinderen",
+        "unit_of_measurement": "Kinderen",
         "state_attributes": {
           "purpose": {
             "name": "Doel",
             "state": {
-              "purpose_badge": "Aantal kinderen dat deze badge heeft verdiend"
+              "purpose_badge": "Aantal kinderen dat deze badge heeft verdiend, met badgeconfiguratie inclusief type, doel, beloningen en toegewezen kinderen."
             }
           },
           "badge_name": {
@@ -2356,24 +2356,87 @@
       "kid_badge_progress_sensor": {
         "name": "Badgevoortgang - {badge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_badge_progress": "Voortgangspercentage (0-100) van de badge, inclusief status van de criteria, datums en toekenningsgeschiedenis."
+            }
+          },
           "kid_name": {
             "name": "Naam van het kind"
           },
           "badge_name": {
             "name": "Badgenaam"
           },
-          "progress": {
-            "name": "Voortgang"
+          "badge_type": {
+            "name": "Badgetype",
+            "state": {
+              "cumulative": "Cumulatief",
+              "achievement": "Prestatie",
+              "challenge": "Uitdaging",
+              "daily": "Dagelijks",
+              "periodic": "Periodiek",
+              "special": "Speciaal"
+            }
           },
-          "target": {
-            "name": "Doel"
+          "status": {
+            "name": "Status",
+            "state": {
+              "inactive": "Inactief",
+              "active": "Actief",
+              "completed": "Voltooid"
+            }
           },
-          "earned": {
-            "name": "Verdiend",
+          "target_type": {
+            "name": "Doeltype",
+            "state": {
+              "chores": "Klusjes",
+              "points": "Punten",
+              "days": "Dagen",
+              "achievement": "Prestatie",
+              "challenge": "Uitdaging"
+            }
+          },
+          "threshold_value": {
+            "name": "Doeldrempel"
+          },
+          "recurring_frequency": {
+            "name": "Terugkerende frequentie",
+            "state": {
+              "none": "Geen",
+              "daily": "Dagelijks",
+              "weekly": "Wekelijks",
+              "biweekly": "Tweewekelijks",
+              "monthly": "Maandelijks"
+            }
+          },
+          "start_date": {
+            "name": "Startdatum"
+          },
+          "end_date": {
+            "name": "Einddatum"
+          },
+          "last_update_day": {
+            "name": "Laatste update dag"
+          },
+          "overall_progress": {
+            "name": "Algemene voortgang"
+          },
+          "criteria_met": {
+            "name": "Voldoet aan de criteria",
             "state": {
               "true": "Ja",
               "false": "Nee"
             }
+          },
+          "last_awarded": {
+            "name": "Laatst toegekend"
+          },
+          "award_count": {
+            "name": "Aantal prijzen"
+          },
+          "description": {
+            "name": "Beschrijving"
           }
         }
       },
@@ -2397,11 +2460,47 @@
           "independent": "Onafhankelijk"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_shared_chore": "Wereldwijde voltooiingsstatus van gedeelde klusjes met geaggregeerde statistieken voor alle toegewezen kinderen."
+            }
+          },
           "chore_name": {
             "name": "Naam van de klus"
           },
+          "chore_icon": {
+            "name": "Taakpictogram"
+          },
           "description": {
             "name": "Beschrijving"
+          },
+          "assigned_kids": {
+            "name": "Toegewezen kinderen"
+          },
+          "labels": {
+            "name": "Labels"
+          },
+          "default_points": {
+            "name": "Standaardpunten"
+          },
+          "completion_criteria": {
+            "name": "Voltooiingscriteria",
+            "state": {
+              "independent": "Onafhankelijk",
+              "shared_first_only": "Gedeeld (alleen eerste keus)",
+              "shared_all_required": "Gedeeld (alles verplicht)"
+            }
+          },
+          "approval_reset_type": {
+            "name": "Goedkeuringsresettype",
+            "state": {
+              "at_midnight_once": "Eenmaal per dag",
+              "at_midnight_multi": "Meerdere keren per dag",
+              "at_due_date_once": "Eenmaal per vervaldatum",
+              "at_due_date_multi": "Meerdere per vervaldatum",
+              "upon_completion": "Na voltooiing"
+            }
           },
           "recurring_frequency": {
             "name": "Terugkerende frequentie",
@@ -2429,24 +2528,31 @@
           "due_date": {
             "name": "Deadline"
           },
-          "default_points": {
-            "name": "Standaardpunten"
+          "custom_frequency_interval": {
+            "name": "Aangepast frequentie-interval"
           },
-          "allow_multiple_claims_per_day": {
-            "name": "Meerdere claims per dag toestaan",
+          "custom_frequency_unit": {
+            "name": "Aangepaste frequentie-eenheid",
             "state": {
-              "true": "Ja",
-              "false": "Nee"
+              "days": "Dagen",
+              "weeks": "Weken",
+              "months": "Maanden"
             }
           },
-          "assigned_kids": {
-            "name": "Toegewezen kinderen"
-          },
           "chore_approvals_today": {
-            "name": "Goedkeuring van klusjes vandaag"
+            "name": "Goedkeuringen vandaag (alle kinderen)"
           },
-          "labels": {
-            "name": "Labels"
+          "last_claimed": {
+            "name": "Laatst opgeëist"
+          },
+          "last_approved": {
+            "name": "Laatst goedgekeurd"
+          },
+          "chore_claimed_by": {
+            "name": "Geclaimd door"
+          },
+          "chore_completed_by": {
+            "name": "Voltooid door"
           }
         }
       },
@@ -2460,26 +2566,41 @@
           "none": "Geen"
         },
         "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_reward_status": "Status van de beloningsverzilvering (niet geclaimd, geclaimd, goedgekeurd) met claimgeschiedenis en actieknoppen"
+            }
+          },
           "kid_name": {
             "name": "Naam van het kind"
           },
           "reward_name": {
             "name": "Naam van de beloning"
           },
-          "reward_cost": {
-            "name": "Beloningskosten"
-          },
           "description": {
             "name": "Beschrijving"
           },
+          "cost": {
+            "name": "Kosten"
+          },
           "reward_claims_count": {
-            "name": "Aantal beloningsclaims"
+            "name": "Totale claims"
           },
           "reward_approvals_count": {
-            "name": "Goedkeuringen voor beloningen tellen mee."
+            "name": "Totaal aantal goedkeuringen"
           },
           "labels": {
             "name": "Labels"
+          },
+          "reward_claim_button_eid": {
+            "name": "Claim Button Entity ID"
+          },
+          "reward_approve_button_eid": {
+            "name": "Entiteits-ID van de knop 'Goedkeuren'"
+          },
+          "reward_disapprove_button_eid": {
+            "name": "Knop 'Afkeuren' Entiteits-ID"
           }
         }
       },
@@ -2535,6 +2656,12 @@
       "system_achievement_sensor": {
         "name": "Prestatie - {achievement_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_achievement": "Het percentage voortgang (0-100) van alle toegewezen kinderen, met specificaties zoals type, doel, criteria en een lijst van kinderen die het hebben behaald."
+            }
+          },
           "achievement_name": {
             "name": "Naam van de prestatie"
           },
@@ -2555,7 +2682,7 @@
           "associated_chore": {
             "name": "Bijbehorende taak"
           },
-          "critera": {
+          "criteria": {
             "name": "Criteria"
           },
           "target_value": {
@@ -2575,6 +2702,12 @@
       "system_challenge_sensor": {
         "name": "Uitdaging - {challenge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_challenge": "Het voortgangspercentage (0-100) van de uitdaging, geaggregeerd over alle toegewezen kinderen binnen het datumvenster, met configuratie van de uitdaging inclusief type, doel, criteria, datums en een lijst met kinderen die het hebben behaald."
+            }
+          },
           "challenge_name": {
             "name": "Uitdagingsnaam"
           },
@@ -2594,7 +2727,7 @@
           "associated_chore": {
             "name": "Bijbehorende taak"
           },
-          "critera": {
+          "criteria": {
             "name": "Criteria"
           },
           "target_value": {
@@ -2620,6 +2753,15 @@
       "kid_achievement_progress_sensor": {
         "name": "Voortgang - {achievement_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_achievement_progress": "Het voortgangspercentage (0-100) van elk individueel kind richting het behalen van deze prestatie, met de huidige voortgangsscore en de status van de prestatie."
+            }
+          },
+          "kid_name": {
+            "name": "Naam van het kind"
+          },
           "achievement_name": {
             "name": "Naam van de prestatie"
           },
@@ -2640,7 +2782,7 @@
           "associated_chore": {
             "name": "Bijbehorende taak"
           },
-          "critera": {
+          "criteria": {
             "name": "Criteria"
           },
           "target_value": {
@@ -2650,7 +2792,7 @@
             "name": "Beloningspunten"
           },
           "raw_progress": {
-            "name": "Voortgang"
+            "name": "Raw Progress"
           },
           "awarded": {
             "name": "Toegekend",
@@ -2667,6 +2809,15 @@
       "kid_challenge_progress_sensor": {
         "name": "Voortgang - {challenge_name}",
         "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_challenge_progress": "Het individuele voortgangspercentage (0-100) van het kind bij het voltooien van deze uitdaging binnen de aangegeven periode, met de huidige voortgangsscore en de status van de beloning."
+            }
+          },
+          "kid_name": {
+            "name": "Naam van het kind"
+          },
           "challenge_name": {
             "name": "Uitdagingsnaam"
           },
@@ -2686,7 +2837,7 @@
           "associated_chore": {
             "name": "Bijbehorende taak"
           },
-          "critera": {
+          "criteria": {
             "name": "Criteria"
           },
           "target_value": {
@@ -2702,7 +2853,7 @@
             "name": "Einddatum"
           },
           "raw_progress": {
-            "name": "Voortgang"
+            "name": "Raw Progress"
           },
           "awarded": {
             "name": "Toegekend",
