@@ -2214,7 +2214,7 @@
           "purpose": {
             "name": "Zweck",
             "state": {
-              "purpose_badges": "Verfolgt den kumulativen Fortschritt bei den Abzeichen und deren Zyklen sowie alle verdienten Abzeichen."
+              "purpose_badge_highest": "Höchste erreichte Auszeichnung und kumulativer Fortschritt in Echtzeit, einschließlich aktiver Zyklen und Auszeichnungshistorie über alle Auszeichnungstypen hinweg."
             }
           },
           "kid_name": {
