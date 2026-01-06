@@ -1,4 +1,4 @@
-name: L10n Sync with Google Translate
+name: L10n Sync with Crowdin
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     paths:
       - "custom_components/kidschores/translations/en.json"
       - "custom_components/kidschores/translations_dashboard/en_dashboard.json"
-      - ".github/workflows/translation-sync.yml"
+      - ".github/workflows/translation-sync.yaml"
       - "crowdin.yml"
   workflow_dispatch:
 
@@ -37,13 +37,14 @@ jobs:
           CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
           CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
 
-      # STEP 2: Trigger Google Translate (MT)
-      # We use 'mt' method and your specific Engine ID
+      # STEP 2: Trigger Google Translate (MT) via Crowdin CLI
       - name: Trigger Google Translate
-        uses: crowdin/github-action@v2
-        with:
-          command: "pre-translate"
-          command_args: "--method mt --engine-id 646964 --apply-untranslated-strings-only"
+        run: |
+          npm install -g @crowdin/cli
+          crowdin pre-translate \
+            --method mt \
+            --engine-id 646964 \
+            --apply-untranslated-strings-only
         env:
           CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
           CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
@@ -55,7 +56,6 @@ jobs:
           upload_sources: false
           upload_translations: false
           download_translations: true
-
           create_pull_request: true
           pull_request_title: "chore(l10n): Google Translate update"
           pull_request_body: "Automated translations via Google Translate (ID: 646964)"
