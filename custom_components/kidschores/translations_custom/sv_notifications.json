@@ -1,0 +1,83 @@
+{
+  "_metadata": {
+    "language_code": "sv",
+    "language_name": "Engelska",
+    "version": "1.0.0"
+  },
+  "chore_assigned": {
+    "title": "Barnsysslor: Ny syssla",
+    "message": "Ny syssla '{chore_name}' har tilldelats dig! Förfaller: {due_date}"
+  },
+  "chore_claimed": {
+    "title": "Barnsysslor: Syssla begärd",
+    "message": "'{kid_name}' tog ifrån sig syssla '{chore_name}'"
+  },
+  "chore_approved": {
+    "title": "Barnsysslor: Godkänd för sysslor",
+    "message": "Syssla '{chore_name}' godkänd! +{points} poäng"
+  },
+  "chore_disapproved": {
+    "title": "Barnsysslor: Syssla ogillad",
+    "message": "Sysslan '{chore_name}' godkändes inte"
+  },
+  "chore_overdue": {
+    "title": "Barnsysslor: Sysslor försenade",
+    "message": "Sysslan '{chore_name}' är försenad! Förfallodatum var {due_date}"
+  },
+  "chore_reminder": {
+    "title": "Barnsysslor: Påminnelse för väntande syssla",
+    "message": "Påminnelse: Sysslan '{chore_name}' som tagits på av '{kid_name}' väntar på godkännande"
+  },
+  "reward_claimed_kid": {
+    "title": "Barnsysslor: Belöning hämtad",
+    "message": "Du hämtade belöningen '{reward_name}' för {points} poäng!"
+  },
+  "reward_claimed_parent": {
+    "title": "Barnsysslor: Belöning hämtad",
+    "message": "'{kid_name}' hämtade belöning '{reward_name}' för {points} poäng"
+  },
+  "reward_approved": {
+    "title": "Barnsysslor: Belöning godkänd",
+    "message": "Belöningen '{reward_name}' godkänd!"
+  },
+  "reward_disapproved": {
+    "title": "Barnsysslor: Belöning ej godkänd",
+    "message": "Belöningen '{reward_name}' godkändes inte"
+  },
+  "reward_reminder": {
+    "title": "KidsChores: Påminnelse om väntande belöning",
+    "message": "Påminnelse: Belöningen '{reward_name}' som hämtats av '{kid_name}' väntar på godkännande"
+  },
+  "badge_earned_kid": {
+    "title": "Barnsysslor: Märke intjänat",
+    "message": "Du har fått märket '{badge_name}'!"
+  },
+  "badge_earned_parent": {
+    "title": "Barnsysslor: Märke intjänat",
+    "message": "'{kid_name}' fick märket '{badge_name}'!"
+  },
+  "achievement_earned_kid": {
+    "title": "Barnsysslor: Uppnådda prestationer",
+    "message": "Du har uppnått prestationen '{achievement_name}'!"
+  },
+  "achievement_earned_parent": {
+    "title": "Barnsysslor: Uppnådda prestationer",
+    "message": "'{kid_name}' uppnådd prestation '{achievement_name}'!"
+  },
+  "challenge_completed_kid": {
+    "title": "Barnsysslor: Utmaningen är slutförd",
+    "message": "Du har slutfört utmaningen '{challenge_name}'!"
+  },
+  "challenge_completed_parent": {
+    "title": "Barnsysslor: Utmaningen är slutförd",
+    "message": "'{kid_name}' avslutad utmaning '{challenge_name}'!"
+  },
+  "penalty_applied": {
+    "title": "Barnsysslor: Straff tillämpad",
+    "message": "Straff '{penalty_name}' tillämpad: -{points} poäng"
+  },
+  "bonus_applied": {
+    "title": "Barnsysslor: Bonus tillämpad",
+    "message": "Bonus '{bonus_name}' tillämpad: +{points} poäng"
+  }
+}
