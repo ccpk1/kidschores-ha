@@ -2214,7 +2214,7 @@
           "purpose": {
             "name": "Účel",
             "state": {
-              "purpose_badge_highest": "Najvyšší získaný odznak a kumulatívny pokrok v reálnom čase vrátane aktívnych cyklov a histórie ocenení vo všetkých typoch odznakov"
+              "purpose_badges": "Najvyšší získaný odznak a kumulatívny pokrok v reálnom čase vrátane aktívnych cyklov a histórie ocenení vo všetkých typoch odznakov"
             }
           },
           "kid_name": {

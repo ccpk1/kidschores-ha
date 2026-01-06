@@ -2214,7 +2214,7 @@
           "purpose": {
             "name": "Propòsit",
             "state": {
-              "purpose_badge_highest": "Insígnia més alta obtinguda i progrés acumulat en temps real, incloent-hi cicles actius i historial de premis en tots els tipus d'insígnia"
+              "purpose_badges": "Insígnia més alta obtinguda i progrés acumulat en temps real, incloent-hi cicles actius i historial de premis en tots els tipus d'insígnia"
             }
           },
           "kid_name": {

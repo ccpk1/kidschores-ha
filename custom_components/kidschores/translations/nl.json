@@ -2214,7 +2214,7 @@
           "purpose": {
             "name": "Doel",
             "state": {
-              "purpose_badge_highest": "Hoogst behaalde badge en realtime cumulatieve voortgang, inclusief actieve cycli en de geschiedenis van toegekende badges voor alle badgetypes."
+              "purpose_badges": "Hoogst behaalde badge en realtime cumulatieve voortgang, inclusief actieve cycli en de geschiedenis van toegekende badges voor alle badgetypes."
             }
           },
           "kid_name": {

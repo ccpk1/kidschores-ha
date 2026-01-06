@@ -866,7 +866,7 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
     """
 
     _attr_has_entity_name = True
-    _attr_translation_key = const.TRANS_KEY_SENSOR_KIDS_HIGHEST_BADGE_SENSOR
+    _attr_translation_key = const.TRANS_KEY_SENSOR_KID_BADGES_SENSOR
 
     def __init__(
         self,
@@ -888,11 +888,13 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._entry = entry
         self._kid_id = kid_id
         self._kid_name = kid_name
-        self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_HIGHEST_BADGE_SENSOR}"
+        self._attr_unique_id = (
+            f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_BADGES_SENSOR}"
+        )
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_HIGHEST_BADGE_SENSOR}"
+        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_BADGES_SENSOR}"
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
     @property
@@ -1101,7 +1103,7 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 badge_entity_ids[attr_name] = None
 
         return {
-            const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_BADGE_HIGHEST,
+            const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_KID_BADGES,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_LABELS: friendly_labels,
             const.ATTR_ALL_EARNED_BADGES: earned_badge_list,
@@ -3003,7 +3005,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         sensor_types = [
             (const.SENSOR_KC_UID_SUFFIX_KID_POINTS_SENSOR, "points_eid"),
             (const.SENSOR_KC_UID_SUFFIX_CHORES_SENSOR, "chores_eid"),
-            (const.SENSOR_KC_UID_SUFFIX_KID_HIGHEST_BADGE_SENSOR, "badges_eid"),
+            (const.SENSOR_KC_UID_SUFFIX_KID_BADGES_SENSOR, "badges_eid"),
         ]
 
         core_sensors = {}

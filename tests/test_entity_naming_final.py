@@ -90,9 +90,7 @@ async def test_kid_badges_sensor_friendly_name():
     )
 
     # Verify translation key is set correctly
-    assert (
-        sensor._attr_translation_key == const.TRANS_KEY_SENSOR_KIDS_HIGHEST_BADGE_SENSOR
-    )
+    assert sensor._attr_translation_key == const.TRANS_KEY_SENSOR_KID_BADGES_SENSOR
     # Verify entity has name attribute for friendly name translation
     assert sensor._attr_has_entity_name is True
 

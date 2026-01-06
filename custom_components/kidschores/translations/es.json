@@ -2214,7 +2214,7 @@
           "purpose": {
             "name": "Objetivo",
             "state": {
-              "purpose_badge_highest": "Insignia más alta obtenida y progreso acumulativo en tiempo real, incluidos ciclos activos e historial de premios en todos los tipos de insignias"
+              "purpose_badges": "Insignia más alta obtenida y progreso acumulativo en tiempo real, incluidos ciclos activos e historial de premios en todos los tipos de insignias"
             }
           },
           "kid_name": {

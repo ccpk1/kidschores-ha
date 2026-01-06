@@ -2214,7 +2214,7 @@
           "purpose": {
             "name": "Tarkoitus",
             "state": {
-              "purpose_badge_highest": "Korkein ansaittu merkki ja reaaliaikainen kumulatiivinen edistyminen, mukaan lukien aktiiviset syklit ja palkintohistoria kaikissa merkkityypeissä"
+              "purpose_badges": "Korkein ansaittu merkki ja reaaliaikainen kumulatiivinen edistyminen, mukaan lukien aktiiviset syklit ja palkintohistoria kaikissa merkkityypeissä"
             }
           },
           "kid_name": {
