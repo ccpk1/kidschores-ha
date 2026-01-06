@@ -1,9 +1,9 @@
 {
-  "title": "Barnsysslor",
+  "title": "KidsChores",
   "config": {
     "step": {
       "intro": {
-        "title": "Välkommen till Barnens Sysslor",
+        "title": "Välkommen till KidsChores",
         "description": "Den här guiden guidar dig genom att konfigurera KidsChores."
       },
       "data_recovery": {
