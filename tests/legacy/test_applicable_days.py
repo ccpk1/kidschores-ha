@@ -10,16 +10,14 @@ Priority: P3 MEDIUM (Affects scheduling accuracy)
 Coverage: coordinator._calculate_next_due_date_from_info, kc_helpers.get_next_applicable_day
 """
 
-# pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
-# pylint: disable=unused-argument
 
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.const import (

@@ -1,13 +1,13 @@
 """Tests for KidsChores services."""
 
-# pylint: disable=protected-access  # Accessing _create_kid, _create_chore for testing
+# Accessing _create_kid, _create_chore for testing
 
-import uuid
 from unittest.mock import AsyncMock, patch
+import uuid
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kidschores.const import (
@@ -56,7 +56,6 @@ async def test_service_claim_chore_with_names(
         kid_name = "Zoë Stårblüm"
         kid_data = create_mock_kid_data(name=kid_name, points=0.0)
         kid_data["internal_id"] = kid_id
-        # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
 
         # Create a chore (pass kid ID, not name)
@@ -103,7 +102,6 @@ async def test_service_approve_chore_success(
         kid_name = "Max! Stårblüm"
         kid_data = create_mock_kid_data(name=kid_name, points=0.0)
         kid_data["internal_id"] = kid_id
-        # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
 
         # Create and claim a chore (pass kid ID, not name)
@@ -150,7 +148,6 @@ async def test_service_apply_bonus_and_penalty(
         kid_id = str(uuid.uuid4())
         kid_data = create_mock_kid_data(name="Lila Stårblüm", points=50.0)
         kid_data["internal_id"] = kid_id
-        # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
         # pylint: enable=protected-access
 
@@ -162,7 +159,6 @@ async def test_service_apply_bonus_and_penalty(
             "points": 15.0,
             "assigned_kids": [kid_id],
         }
-        # pylint: disable=protected-access
         coordinator._data["bonuses"] = {bonus_id: bonus_data}
         # pylint: enable=protected-access
 
@@ -189,7 +185,6 @@ async def test_service_apply_bonus_and_penalty(
             "points": -5.0,
             "assigned_kids": [kid_id],
         }
-        # pylint: disable=protected-access
         coordinator._data["penalties"] = {penalty_id: penalty_data}
         # pylint: enable=protected-access
 
@@ -233,7 +228,6 @@ async def test_service_claim_chore_invalid_kid_name(
             assigned_kids=[],
         )
         chore_data["internal_id"] = chore_id
-        # pylint: disable=protected-access
         coordinator._create_chore(chore_id, chore_data)
         # pylint: enable=protected-access
 
@@ -266,7 +260,6 @@ async def test_service_claim_chore_invalid_chore_name(
         kid_id = str(uuid.uuid4())
         kid_data = create_mock_kid_data(name="Test Kid", points=0.0)
         kid_data["internal_id"] = kid_id
-        # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
         # pylint: enable=protected-access
 
@@ -303,7 +296,6 @@ async def test_service_approve_chore_invalid_kid_name(
             assigned_kids=[],
         )
         chore_data["internal_id"] = chore_id
-        # pylint: disable=protected-access
         coordinator._create_chore(chore_id, chore_data)
         # pylint: enable=protected-access
 
@@ -340,7 +332,6 @@ async def test_service_approve_chore_invalid_chore_name(
         kid_id = str(uuid.uuid4())
         kid_data = create_mock_kid_data(name="Test Kid", points=0.0)
         kid_data["internal_id"] = kid_id
-        # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
         # pylint: enable=protected-access
 
@@ -381,7 +372,6 @@ async def test_service_apply_bonus_invalid_kid_name(
             "points": 10.0,
             "assigned_kids": [],
         }
-        # pylint: disable=protected-access
         coordinator._data["bonuses"] = {bonus_id: bonus_data}
         # pylint: enable=protected-access
 
@@ -418,7 +408,6 @@ async def test_service_apply_bonus_invalid_bonus_name(
         kid_id = str(uuid.uuid4())
         kid_data = create_mock_kid_data(name="Test Kid", points=0.0)
         kid_data["internal_id"] = kid_id
-        # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
         # pylint: enable=protected-access
 
@@ -455,7 +444,6 @@ async def test_service_apply_penalty_invalid_penalty_name(
         kid_id = str(uuid.uuid4())
         kid_data = create_mock_kid_data(name="Test Kid", points=50.0)
         kid_data["internal_id"] = kid_id
-        # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
         # pylint: enable=protected-access
 
@@ -498,7 +486,6 @@ async def test_service_disapprove_chore_success(
         kid_name = "Test Kid"
         kid_data = create_mock_kid_data(name=kid_name, points=0.0)
         kid_data["internal_id"] = kid_id
-        # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
 
         # Create and claim a chore
@@ -553,7 +540,6 @@ async def test_service_redeem_reward_success(
         kid_name = "Rich Kid"
         kid_data = create_mock_kid_data(name=kid_name, points=100.0)
         kid_data["internal_id"] = kid_id
-        # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
 
         # Create a reward
@@ -580,7 +566,7 @@ async def test_service_redeem_reward_success(
         )
 
         # Verify reward is tracked in kid_reward_data (modern structure)
-        kid_info = coordinator.kids_data.get(kid_id, {})  # pylint: disable=protected-access
+        kid_info = coordinator.kids_data.get(kid_id, {})
         reward_data = kid_info.get("reward_data", {}).get(reward_id, {})
         assert reward_data.get("pending_count", 0) > 0
         assert reward_data.get("total_claims", 0) > 0
@@ -606,7 +592,6 @@ async def test_service_disapprove_reward_success(
         kid_name = "Test Kid"
         kid_data = create_mock_kid_data(name=kid_name, points=100.0)
         kid_data["internal_id"] = kid_id
-        # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
 
         # Create a reward
@@ -644,7 +629,7 @@ async def test_service_disapprove_reward_success(
         )
 
         # Verify reward removed from pending and points not deducted
-        pending = coordinator._data.get("pending_reward_approvals", [])  # pylint: disable=protected-access
+        pending = coordinator._data.get("pending_reward_approvals", [])
         assert not any(
             p.get("kid_id") == kid_id and p.get("reward_id") == reward_id
             for p in pending
@@ -671,7 +656,6 @@ async def test_service_reset_overdue_chores_all(
         kid_id = str(uuid.uuid4())
         kid_data = create_mock_kid_data(name="Test Kid", points=0.0)
         kid_data["internal_id"] = kid_id
-        # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
 
         # Create an overdue chore with recurring frequency and due date
@@ -756,10 +740,7 @@ async def test_service_reset_overdue_chores_independent(
         coordinator.kids_data[kid2_id]["overdue_chores"] = [chore_id]
 
         # Debug: Check per_kid_due_dates BEFORE reset
-        per_kid_due_dates_before = coordinator.chores_data[chore_id].get(
-            "per_kid_due_dates", {}
-        )
-        print(f"DEBUG: BEFORE reset - per_kid_due_dates: {per_kid_due_dates_before}")
+        coordinator.chores_data[chore_id].get("per_kid_due_dates", {})
 
         # Reset overdue chores for kid1 only
         await hass.services.async_call(
@@ -775,20 +756,15 @@ async def test_service_reset_overdue_chores_independent(
         ), "Kid 1 should be removed from overdue list after reset"
 
         # Debug: Check what happened to both kids
-        kid1_overdue = coordinator.kids_data[kid1_id].get("overdue_chores", [])
-        kid2_overdue = coordinator.kids_data[kid2_id].get("overdue_chores", [])
-        print(f"DEBUG: After reset - Kid 1 overdue: {kid1_overdue}")
-        print(f"DEBUG: After reset - Kid 2 overdue: {kid2_overdue}")
+        coordinator.kids_data[kid1_id].get("overdue_chores", [])
+        coordinator.kids_data[kid2_id].get("overdue_chores", [])
 
         # Check Kid 2's due date
         per_kid_due_dates = coordinator.chores_data[chore_id].get(
             "per_kid_due_dates", {}
         )
-        print(f"DEBUG: AFTER reset - per_kid_due_dates: {per_kid_due_dates}")
-        kid2_due_date = per_kid_due_dates.get(kid2_id)
-        print(f"DEBUG: Kid 2 due date: {kid2_due_date}")
-        kid1_due_date = per_kid_due_dates.get(kid1_id)
-        print(f"DEBUG: Kid 1 due date: {kid1_due_date}")
+        per_kid_due_dates.get(kid2_id)
+        per_kid_due_dates.get(kid1_id)
 
         # Verify kid2 is still overdue (wasn't reset)
         assert chore_id in coordinator.kids_data[kid2_id].get("overdue_chores", []), (
@@ -819,7 +795,6 @@ async def test_service_reset_penalties_all(
         kid_data = create_mock_kid_data(name="Test Kid", points=50.0)
         kid_data["internal_id"] = kid_id
         kid_data["penalty_applies"] = {"penalty1": {"applied_date": "2025-01-01"}}
-        # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
         # pylint: enable=protected-access
 
@@ -854,7 +829,6 @@ async def test_service_reset_bonuses_all(
         kid_data = create_mock_kid_data(name="Test Kid", points=50.0)
         kid_data["internal_id"] = kid_id
         kid_data["bonus_applies"] = {"bonus1": {"applied_date": "2025-01-01"}}
-        # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
         # pylint: enable=protected-access
 
@@ -889,7 +863,6 @@ async def test_service_approve_reward_success(
         kid_name = "Test Kid"
         kid_data = create_mock_kid_data(name=kid_name, points=100.0)
         kid_data["internal_id"] = kid_id
-        # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
 
         # Create a reward
@@ -946,7 +919,6 @@ async def test_service_reset_rewards_all(
             "reward1": {"pending_count": 1, "total_claims": 3, "total_approvals": 2},
             "reward2": {"pending_count": 0, "total_claims": 5, "total_approvals": 5},
         }
-        # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
         # pylint: enable=protected-access
 
@@ -989,7 +961,6 @@ async def test_service_remove_awarded_badges_all(
             "badge_type": "achievement",
             "internal_id": badge2_id,
         }
-        # pylint: disable=protected-access
         coordinator._create_badge(badge1_id, badge1_data)
         coordinator._create_badge(badge2_id, badge2_data)
 

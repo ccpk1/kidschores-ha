@@ -22,8 +22,7 @@ def test_build_points_schema_custom_defaults() -> None:
     custom_icon = "mdi:star"
 
     schema = fh.build_points_schema(
-        default_label=custom_label,
-        default_icon=custom_icon
+        default_label=custom_label, default_icon=custom_icon
     )
 
     # Verify schema accepts custom defaults

@@ -19,21 +19,21 @@ Usage:
 """
 
 # pylint: disable=import-error  # custom_components only available when running in HA context
-import json
 from dataclasses import dataclass, field
+import json
 from pathlib import Path
 from typing import Any, Union
 
 # Import Home Assistant test infrastructure
 try:
-    from homeassistant.core import HomeAssistant
+    from homeassistant.core import HomeAssistant  # noqa: TC002
     from homeassistant.helpers.storage import Store
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 
     HAS_HA_DEPS = True
 except ImportError:
     HAS_HA_DEPS = False
-    print(
+    print(  # noqa: T201
         "⚠️  Warning: Home Assistant dependencies not available. Some features disabled."
     )
 
@@ -113,7 +113,7 @@ class MigrationValidator:
         "badges": None,
     }
 
-    def __init__(self, data_file_path: Union[str, Path]):
+    def __init__(self, data_file_path: str | Path):
         """Initialize validator with data file path.
 
         Args:
@@ -131,7 +131,7 @@ class MigrationValidator:
         if not self.data_file.exists():
             raise FileNotFoundError(f"Data file not found: {self.data_file}")
 
-        with open(self.data_file, "r", encoding="utf-8") as f:
+        with open(self.data_file, encoding="utf-8") as f:
             data = json.load(f)
 
         # Handle both raw data and Store format
@@ -236,9 +236,9 @@ class MigrationValidator:
 
         # DEBUG: Log what keys are in coordinator._data
         if self.v42_data is not None:
-            print(f"DEBUG: Keys in coordinator._data: {list(self.v42_data.keys())}")
-            print(f"DEBUG: Number of kids: {len(self.v42_data.get('kids', {}))}")
-            print(
+            print(f"DEBUG: Keys in coordinator._data: {list(self.v42_data.keys())}")  # noqa: T201
+            print(f"DEBUG: Number of kids: {len(self.v42_data.get('kids', {}))}")  # noqa: T201
+            print(  # noqa: T201
                 f"DEBUG: Kids keys: {list(self.v42_data.get('kids', {}).keys())[:3]}..."
             )  # First 3
 
@@ -619,49 +619,49 @@ class MigrationValidator:
 
     def print_report(self) -> None:
         """Print validation report."""
-        print("\n" + "=" * 70)
-        print("MIGRATION VALIDATION REPORT")
-        print("=" * 70)
-        print(f"\nData File: {self.data_file}")
+        print("\n" + "=" * 70)  # noqa: T201
+        print("MIGRATION VALIDATION REPORT")  # noqa: T201
+        print("=" * 70)  # noqa: T201
+        print(f"\nData File: {self.data_file}")  # noqa: T201
 
         if self.before_counts:
-            print(f"\nBefore Migration: {self.before_counts.total()} entities")
-            print(f"  - Kids: {self.before_counts.kids}")
-            print(f"  - Chores: {self.before_counts.chores}")
-            print(f"  - Badges: {self.before_counts.badges}")
-            print(f"  - Rewards: {self.before_counts.rewards}")
-            print(f"  - Penalties: {self.before_counts.penalties}")
-            print(
+            print(f"\nBefore Migration: {self.before_counts.total()} entities")  # noqa: T201
+            print(f"  - Kids: {self.before_counts.kids}")  # noqa: T201
+            print(f"  - Chores: {self.before_counts.chores}")  # noqa: T201
+            print(f"  - Badges: {self.before_counts.badges}")  # noqa: T201
+            print(f"  - Rewards: {self.before_counts.rewards}")  # noqa: T201
+            print(f"  - Penalties: {self.before_counts.penalties}")  # noqa: T201
+            print(  # noqa: T201
                 f"  - Other: {self.before_counts.total() - self.before_counts.kids - self.before_counts.chores - self.before_counts.badges - self.before_counts.rewards - self.before_counts.penalties}"
             )
 
         if self.after_counts:
-            print(f"\nAfter Migration: {self.after_counts.total()} entities")
+            print(f"\nAfter Migration: {self.after_counts.total()} entities")  # noqa: T201
 
-        print("\n" + "-" * 70)
-        print("VALIDATION RESULTS")
-        print("-" * 70)
+        print("\n" + "-" * 70)  # noqa: T201
+        print("VALIDATION RESULTS")  # noqa: T201
+        print("-" * 70)  # noqa: T201
 
         passed = sum(1 for r in self.results if r.passed)
         failed = len(self.results) - passed
 
         for res in self.results:
-            print(f"\n{res}")
+            print(f"\n{res}")  # noqa: T201
             if res.details:
                 for key, value in res.details.items():
                     if isinstance(value, (list, dict)) and len(str(value)) > 100:
-                        print(f"  {key}: {type(value).__name__} (see details)")
+                        print(f"  {key}: {type(value).__name__} (see details)")  # noqa: T201
                     else:
-                        print(f"  {key}: {value}")
+                        print(f"  {key}: {value}")  # noqa: T201
 
-        print("\n" + "=" * 70)
-        print(f"SUMMARY: {passed} passed, {failed} failed")
-        print("=" * 70)
+        print("\n" + "=" * 70)  # noqa: T201
+        print(f"SUMMARY: {passed} passed, {failed} failed")  # noqa: T201
+        print("=" * 70)  # noqa: T201
 
         if failed == 0:
-            print("\n🎉 ALL VALIDATIONS PASSED! Migration successful.")
+            print("\n🎉 ALL VALIDATIONS PASSED! Migration successful.")  # noqa: T201
         else:
-            print(f"\n⚠️  {failed} validation(s) failed. Review issues above.")
+            print(f"\n⚠️  {failed} validation(s) failed. Review issues above.")  # noqa: T201
 
 
 # Standalone script usage
@@ -669,29 +669,29 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) < 2:
-        print("Usage: python validate_migration.py <path_to_v40_data_file>")
-        print("\nExample:")
-        print(
+        print("Usage: python validate_migration.py <path_to_v40_data_file>")  # noqa: T201
+        print("\nExample:")  # noqa: T201
+        print(  # noqa: T201
             "  python utils/validate_migration.py tests/migration_samples/kidschores_data_ad-ha"
         )
         sys.exit(1)
 
     data_file = sys.argv[1]
 
-    print("KidsChores Migration Validator")
-    print("Validating v40 → v42 migration")
-    print(f"Data file: {data_file}\n")
+    print("KidsChores Migration Validator")  # noqa: T201
+    print("Validating v40 → v42 migration")  # noqa: T201
+    print(f"Data file: {data_file}\n")  # noqa: T201
 
     if not HAS_HA_DEPS:
-        print("⚠️  Error: This script requires Home Assistant test dependencies.")
-        print("Install with: pip install pytest-homeassistant-custom-component")
+        print("⚠️  Error: This script requires Home Assistant test dependencies.")  # noqa: T201
+        print("Install with: pip install pytest-homeassistant-custom-component")  # noqa: T201
         sys.exit(1)
 
     # For standalone usage, we can't easily create a hass instance
     # User should use pytest integration instead
-    print("⚠️  For full migration testing, use pytest integration:")
-    print(f"  pytest tests/test_migration_generic.py --migration-file={data_file}")
-    print("\nPerforming basic file validation only...\n")
+    print("⚠️  For full migration testing, use pytest integration:")  # noqa: T201
+    print(f"  pytest tests/test_migration_generic.py --migration-file={data_file}")  # noqa: T201
+    print("\nPerforming basic file validation only...\n")  # noqa: T201
 
     validator = MigrationValidator(data_file)
 

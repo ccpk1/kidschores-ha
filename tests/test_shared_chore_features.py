@@ -12,15 +12,13 @@ Test coverage:
 Uses scenario_shared.yaml which includes 8 specialized chores for these tests.
 """
 
-# pylint: disable=protected-access, unused-argument, redefined-outer-name
-
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+import pytest
 
 from tests.helpers import (
     # Pending claim action constants
@@ -79,10 +77,7 @@ def get_kid_chore_state(
     chore_id: str,
 ) -> str:
     """Get the state of a chore for a specific kid."""
-    from tests.helpers.constants import (
-        DATA_KID_CHORE_DATA,
-        DATA_KID_CHORE_DATA_STATE,
-    )
+    from tests.helpers.constants import DATA_KID_CHORE_DATA, DATA_KID_CHORE_DATA_STATE
 
     kid_info = coordinator.kids_data.get(kid_id, {})
     kid_chore_data = kid_info.get(DATA_KID_CHORE_DATA, {})

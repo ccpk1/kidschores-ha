@@ -11,19 +11,19 @@ with incrementally complex scenarios:
 Uses real Home Assistant config flow system for integration testing.
 """
 
-# pylint: disable=protected-access  # Accessing protected members for testing
+# Accessing protected members for testing
 # pylint: disable=redefined-outer-name  # Pytest fixtures redefine names
 
 # pyright: reportTypedDictNotRequiredAccess=false
 
-import uuid
 from typing import Any
 from unittest.mock import patch
+import uuid
 
-import pytest
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+import pytest
 
 from custom_components.kidschores import const
 
@@ -839,7 +839,7 @@ async def test_fresh_start_two_parents_mixed_notifications(
 
 
 @pytest.mark.asyncio
-async def test_fresh_start_basic_family(hass: HomeAssistant) -> None:  # pylint: disable=unused-argument
+async def test_fresh_start_basic_family(hass: HomeAssistant) -> None:
     """Test 3: Fresh config flow with Star Points + 2 kids + 1 parent + 1 chore.
 
     TODO: Implement config flow with:
@@ -854,7 +854,7 @@ async def test_fresh_start_basic_family(hass: HomeAssistant) -> None:  # pylint:
 
 
 @pytest.mark.asyncio
-async def test_fresh_start_full_scenario(hass: HomeAssistant) -> None:  # pylint: disable=unused-argument
+async def test_fresh_start_full_scenario(hass: HomeAssistant) -> None:
     """Test 4: Fresh config flow with complete scenario_full setup.
 
     TODO: Implement config flow with:
@@ -1620,10 +1620,9 @@ async def _configure_chore_step(
     if custom_interval_unit is not None:
         user_input[const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT] = custom_interval_unit
 
-    result = await hass.config_entries.flow.async_configure(
+    return await hass.config_entries.flow.async_configure(
         result["flow_id"], user_input=user_input
     )
-    return result
 
 
 async def _configure_system_settings_step(

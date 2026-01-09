@@ -12,20 +12,16 @@ Uses scenario_full which provides:
 - Mix of independent, shared_all, shared_first chores
 """
 
-# pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
 from custom_components.kidschores import const
-from custom_components.kidschores.const import (
-    COORDINATOR,
-    DOMAIN,
-)
+from custom_components.kidschores.const import COORDINATOR, DOMAIN
 from tests.legacy.conftest import (
     create_test_datetime,
     get_chore_state_for_kid,
@@ -77,7 +73,7 @@ async def test_never_overdue_skips_marking(
     entry[const.DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] = yesterday
 
     # Run overdue check
-    now_utc = datetime.now(timezone.utc)
+    now_utc = datetime.now(UTC)
     coordinator._check_overdue_independent(chore_id, chore_info, now_utc)
 
     # Verify NOT overdue despite past due date
@@ -196,7 +192,7 @@ async def test_at_due_date_marks_overdue(
 
     # Run overdue check (mock notifications)
     with patch.object(coordinator, "_notify_overdue_chore", new=MagicMock()):
-        now_utc = datetime.now(timezone.utc)
+        now_utc = datetime.now(UTC)
         coordinator._check_overdue_independent(chore_id, chore_info, now_utc)
 
     # Should be marked overdue
@@ -249,7 +245,7 @@ async def test_at_due_date_not_overdue_if_future(
     per_kid_dates[zoë_id] = tomorrow
 
     # Run overdue check
-    now_utc = datetime.now(timezone.utc)
+    now_utc = datetime.now(UTC)
     coordinator._check_overdue_independent(chore_id, chore_info, now_utc)
 
     # Should NOT be overdue
@@ -467,7 +463,7 @@ async def test_never_overdue_affects_all_assigned_kids(
         per_kid_dates[kid_id] = yesterday
 
     # Run overdue check
-    now_utc = datetime.now(timezone.utc)
+    now_utc = datetime.now(UTC)
     coordinator._check_overdue_independent(chore_id, chore_info, now_utc)
 
     # None should be overdue
@@ -520,7 +516,7 @@ async def test_shared_chore_never_overdue(
 
     # Run shared overdue check
     with patch.object(coordinator, "_notify_overdue_chore", new=MagicMock()):
-        now_utc = datetime.now(timezone.utc)
+        now_utc = datetime.now(UTC)
         coordinator._check_overdue_shared(chore_id, chore_info, now_utc)
 
     # Verify no kid is marked overdue
@@ -574,7 +570,7 @@ async def test_no_due_date_skips_overdue_check(
         chore_data[chore_id].pop(const.DATA_KID_CHORE_DATA_DUE_DATE_LEGACY, None)
 
     # Run overdue check
-    now_utc = datetime.now(timezone.utc)
+    now_utc = datetime.now(UTC)
     coordinator._check_overdue_independent(chore_id, chore_info, now_utc)
 
     # Should not be overdue (no deadline = no overdue)
@@ -635,7 +631,7 @@ async def test_claimed_chore_not_marked_overdue(
 
     # Run overdue check
     with patch.object(coordinator, "_notify_overdue_chore", new=MagicMock()):
-        now_utc = datetime.now(timezone.utc)
+        now_utc = datetime.now(UTC)
         coordinator._check_overdue_independent(chore_id, chore_info, now_utc)
 
     # Should still be claimed, not overdue (claimed chores skip overdue check)

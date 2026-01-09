@@ -3,13 +3,14 @@
 # pylint: disable=redefined-outer-name  # Pytest fixtures redefine outer scope names
 # pylint: disable=reimported  # Some modules imported multiple times in complex fixtures
 
-import uuid
-from typing import TYPE_CHECKING, Any, AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, MagicMock, patch
+import uuid
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 if TYPE_CHECKING:
@@ -17,6 +18,8 @@ if TYPE_CHECKING:
 else:
     # Runtime placeholder for type checking
     KidsChoresDataCoordinator = "KidsChoresDataCoordinator"
+
+from datetime import UTC
 
 from custom_components.kidschores import const
 from custom_components.kidschores.const import (
@@ -55,8 +58,7 @@ def pytest_addoption(parser):
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations: Any) -> Any:
     """Enable custom integrations in tests."""
-    # pylint: disable=unused-argument
-    yield
+    return
 
 
 @pytest.fixture
@@ -172,7 +174,6 @@ def mock_coordinator(
     mock.challenges_data = mock_storage_data[DATA_CHALLENGES]
     mock.async_refresh = AsyncMock()
     mock.async_update_listeners = MagicMock()
-    # pylint: disable=protected-access
     mock._persist = AsyncMock()
 
     # Add test kid for calendar tests
@@ -237,7 +238,7 @@ async def init_integration(
     hass: HomeAssistant,
     mock_config_entry: MockConfigEntry,  # pylint: disable=redefined-outer-name
     mock_storage_data: dict[str, Any],  # pylint: disable=redefined-outer-name
-) -> AsyncGenerator[MockConfigEntry, None]:
+) -> AsyncGenerator[MockConfigEntry]:
     """Set up the KidsChores integration for testing with mocked storage."""
     mock_config_entry.add_to_hass(hass)
 
@@ -285,7 +286,7 @@ def create_mock_kid_data(
 
 def create_mock_chore_data(
     name: str = "Test Chore",
-    default_points: int | float = 10,
+    default_points: float = 10,
     assigned_kids: list[str] | None = None,
     completion_criteria: str = "independent",
 ) -> dict[str, Any]:
@@ -335,7 +336,7 @@ async def init_integration_with_data(
     hass: HomeAssistant,
     mock_config_entry: MockConfigEntry,  # pylint: disable=redefined-outer-name
     mock_hass_users: dict,  # pylint: disable=redefined-outer-name
-) -> AsyncGenerator[MockConfigEntry, None]:
+) -> AsyncGenerator[MockConfigEntry]:
     """Set up a fully configured KidsChores integration with sample data."""
     # Create sample kid data
     kid1_id = str(uuid.uuid4())
@@ -391,7 +392,7 @@ async def init_integration_with_data(
         assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()
 
-    yield mock_config_entry
+    return mock_config_entry
 
 
 # ============================================================================
@@ -428,7 +429,7 @@ def load_scenario_yaml(scenario_name: str) -> dict[str, Any]:
         os.path.dirname(__file__), f"testdata_scenario_{scenario_name}.yaml"
     )
 
-    with open(scenario_path, "r", encoding="utf-8") as f:
+    with open(scenario_path, encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
@@ -469,14 +470,8 @@ def dump_storage_for_debug(hass: HomeAssistant, label: str = "") -> None:
         hass: Home Assistant instance
         label: Optional label to identify this dump
     """
-    import json
 
-    data = get_storage_data(hass)
-    print(f"\n{'=' * 80}")
-    print(f"STORAGE DUMP: {label}")
-    print("=" * 80)
-    print(json.dumps(data, indent=2, default=str))
-    print("=" * 80)
+    get_storage_data(hass)
 
 
 async def reload_entity_platforms(
@@ -793,7 +788,7 @@ async def apply_scenario_via_options_flow(
                     coordinator.kids_data[kid_id]["approved_chores"].append(chore_id)
 
         # Persist changes and refresh
-        coordinator._persist()  # pylint: disable=protected-access
+        coordinator._persist()
         await coordinator.async_request_refresh()
         await hass.async_block_till_done()
 
@@ -863,7 +858,6 @@ async def _apply_scenario_data(
         if ha_user_name and mock_users and ha_user_name in mock_users:
             kid_data["ha_user_id"] = mock_users[ha_user_name].id
 
-        # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
         name_to_id_map[f"kid:{kid_name}"] = kid_id
 
@@ -887,7 +881,6 @@ async def _apply_scenario_data(
             "mobile_notify_service": "",
             "use_persistent_notifications": False,
         }
-        # pylint: disable=protected-access
         coordinator._create_parent(parent_id, parent_data)
         name_to_id_map[f"parent:{parent_name}"] = parent_id
 
@@ -924,9 +917,9 @@ async def _apply_scenario_data(
             ]
         # Handle relative due dates: "past" = yesterday, "future" = tomorrow
         if "due_date_relative" in chore:
-            from datetime import datetime, timedelta, timezone
+            from datetime import datetime, timedelta
 
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             if chore["due_date_relative"] == "past":
                 due_dt = now - timedelta(days=1)
             else:  # "future"
@@ -944,7 +937,6 @@ async def _apply_scenario_data(
                     per_kid_due_dates[kid_id] = due_dt.isoformat()
                 chore_data["per_kid_due_dates"] = per_kid_due_dates
 
-        # pylint: disable=protected-access
         coordinator._create_chore(chore_id, chore_data)
         name_to_id_map[f"chore:{chore_name}"] = chore_id
 
@@ -961,7 +953,6 @@ async def _apply_scenario_data(
             "description": bonus.get("description", ""),
             "icon": bonus.get("icon", "mdi:plus-circle"),
         }
-        # pylint: disable=protected-access
         coordinator._create_bonus(bonus_id, bonus_data)
         name_to_id_map[f"bonus:{bonus_name}"] = bonus_id
 
@@ -978,7 +969,6 @@ async def _apply_scenario_data(
             "description": penalty.get("description", ""),
             "icon": penalty.get("icon", "mdi:alert"),
         }
-        # pylint: disable=protected-access
         coordinator._create_penalty(penalty_id, penalty_data)
         name_to_id_map[f"penalty:{penalty_name}"] = penalty_id
 
@@ -989,7 +979,6 @@ async def _apply_scenario_data(
         reward_data = create_mock_reward_data(reward_name, reward["cost"])
         reward_data["internal_id"] = reward_id
         reward_data["icon"] = reward.get("icon", "mdi:gift")
-        # pylint: disable=protected-access
         coordinator._create_reward(reward_id, reward_data)
         name_to_id_map[f"reward:{reward_name}"] = reward_id
 
@@ -1027,7 +1016,6 @@ async def _apply_scenario_data(
                 "custom_interval_unit": None,
             },
         }
-        # pylint: disable=protected-access
         coordinator._create_badge(badge_id, badge_data)
         name_to_id_map[f"badge:{badge_name}"] = badge_id
 
@@ -1131,7 +1119,6 @@ async def _apply_scenario_data(
                     )
 
     # Persist and refresh
-    # pylint: disable=protected-access
     coordinator._persist()  # Not async
     await coordinator.async_request_refresh()
     await hass.async_block_till_done()
@@ -1413,15 +1400,13 @@ async def assert_entity_state(
     state = hass.states.get(entity_id)
     assert state is not None, f"Entity {entity_id} not found in state machine"
     assert state.state == expected_state, (
-        f"Entity {entity_id} state mismatch: "
-        f"expected '{expected_state}', got '{state.state}'"
+        f"Entity {entity_id} state mismatch: expected '{expected_state}', got '{state.state}'"
     )
     if expected_attrs:
         for key, value in expected_attrs.items():
             actual = state.attributes.get(key)
             assert actual == value, (
-                f"Entity {entity_id} attribute '{key}' mismatch: "
-                f"expected '{value}', got '{actual}'"
+                f"Entity {entity_id} attribute '{key}' mismatch: expected '{value}', got '{actual}'"
             )
     return state
 
@@ -1445,7 +1430,7 @@ def get_kid_by_name(data: dict[str, Any], name: str) -> dict[str, Any]:
         >>> assert kid["points"] == 100
     """
     kids = data.get(DATA_KIDS, {})
-    for _, kid_data in kids.items():
+    for kid_data in kids.values():
         if kid_data.get("name") == name:
             return kid_data
     raise ValueError(f"Kid '{name}' not found in coordinator data")
@@ -1551,7 +1536,7 @@ def get_penalty_by_name(data: dict[str, Any], penalty_name: str) -> dict[str, An
         >>> assert penalty["points"] == -10
     """
     penalties = data.get(DATA_PENALTIES, {})
-    for _, penalty_data in penalties.items():
+    for penalty_data in penalties.values():
         if penalty_data.get("name") == penalty_name:
             return penalty_data
     raise ValueError(f"Penalty '{penalty_name}' not found in coordinator data")
@@ -1575,7 +1560,7 @@ def get_badge_by_name(data: dict[str, Any], badge_name: str) -> dict[str, Any]:
         >>> assert badge["badge_type"] == "cumulative"
     """
     badges = data.get(DATA_BADGES, {})
-    for _, badge_data in badges.items():
+    for badge_data in badges.values():
         if badge_data.get("name") == badge_name:
             return badge_data
     raise ValueError(f"Badge '{badge_name}' not found in coordinator data")
@@ -1599,7 +1584,7 @@ def get_bonus_by_name(data: dict[str, Any], bonus_name: str) -> dict[str, Any]:
         >>> assert bonus["points"] == 5
     """
     bonuses = data.get(DATA_BONUSES, {})
-    for _, bonus_data in bonuses.items():
+    for bonus_data in bonuses.values():
         if bonus_data.get("name") == bonus_name:
             return bonus_data
     raise ValueError(f"Bonus '{bonus_name}' not found in coordinator data")
@@ -1623,7 +1608,7 @@ def get_parent_by_name(data: dict[str, Any], parent_name: str) -> dict[str, Any]
         >>> assert parent["ha_user_id"] == "user_123"
     """
     parents = data.get(DATA_PARENTS, {})
-    for _, parent_data in parents.items():
+    for parent_data in parents.values():
         if parent_data.get("name") == parent_name:
             return parent_data
     raise ValueError(f"Parent '{parent_name}' not found in coordinator data")
@@ -1649,7 +1634,7 @@ def get_achievement_by_name(
         >>> assert achievement["target_count"] == 1
     """
     achievements = data.get(DATA_ACHIEVEMENTS, {})
-    for _, achievement_data in achievements.items():
+    for achievement_data in achievements.values():
         if achievement_data.get("name") == achievement_name:
             return achievement_data
     raise ValueError(f"Achievement '{achievement_name}' not found in coordinator data")
@@ -1673,7 +1658,7 @@ def get_challenge_by_name(data: dict[str, Any], challenge_name: str) -> dict[str
         >>> assert challenge["target_count"] == 5
     """
     challenges = data.get(DATA_CHALLENGES, {})
-    for _, challenge_data in challenges.items():
+    for challenge_data in challenges.values():
         if challenge_data.get("name") == challenge_name:
             return challenge_data
     raise ValueError(f"Challenge '{challenge_name}' not found in coordinator data")
@@ -1695,11 +1680,9 @@ def create_test_datetime(days_offset: int = 0, hours_offset: int = 0) -> str:
         >>> future_date = create_test_datetime(days_offset=7)     # 7 days from now
         >>> soon = create_test_datetime(hours_offset=2)            # 2 hours from now
     """
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
-    test_dt = datetime.now(timezone.utc) + timedelta(
-        days=days_offset, hours=hours_offset
-    )
+    test_dt = datetime.now(UTC) + timedelta(days=days_offset, hours=hours_offset)
     return test_dt.isoformat()
 
 
@@ -1719,15 +1702,15 @@ def make_overdue(base_date: str | None = None, days: int = 7) -> str:
         >>> overdue = make_overdue(days=14)  # 14 days ago
         >>> overdue = make_overdue(base_date="2024-12-25T00:00:00+00:00", days=3)
     """
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
     if base_date:
         # Parse the base date and offset it
-        base_dt = datetime.fromisoformat(base_date.replace("Z", "+00:00"))
+        base_dt = datetime.fromisoformat(base_date)
         result_dt = base_dt - timedelta(days=days)
     else:
         # Offset from now
-        result_dt = datetime.now(timezone.utc) - timedelta(days=days)
+        result_dt = datetime.now(UTC) - timedelta(days=days)
 
     return result_dt.isoformat()
 
@@ -1916,7 +1899,7 @@ def get_dashboard_helper_sensor_id(kid_name: str) -> str:
 
 
 def get_chore_eid_from_dashboard(
-    hass: "HomeAssistant",  # noqa: F821
+    hass: "HomeAssistant",
     kid_name: str,
     chore_name: str,
 ) -> str | None:
@@ -1951,7 +1934,7 @@ def get_chore_eid_from_dashboard(
 
 
 def get_reward_eid_from_dashboard(
-    hass: "HomeAssistant",  # noqa: F821
+    hass: "HomeAssistant",
     kid_name: str,
     reward_name: str,
 ) -> str | None:
@@ -1979,7 +1962,7 @@ def get_reward_eid_from_dashboard(
 
 
 async def get_chore_button_eids(
-    hass: "HomeAssistant",  # noqa: F821
+    hass: "HomeAssistant",
     kid_name: str,
     chore_name: str,
 ) -> dict[str, str | None]:
@@ -2032,7 +2015,7 @@ async def get_chore_button_eids(
 
 
 async def get_reward_button_eids(
-    hass: "HomeAssistant",  # noqa: F821
+    hass: "HomeAssistant",
     kid_name: str,
     reward_name: str,
 ) -> dict[str, str | None]:
@@ -2075,7 +2058,7 @@ async def get_reward_button_eids(
 
 
 def get_chore_state_from_dashboard(
-    hass: "HomeAssistant",  # noqa: F821
+    hass: "HomeAssistant",
     kid_name: str,
     chore_name: str,
 ) -> str | None:
@@ -2109,7 +2092,7 @@ def get_chore_state_from_dashboard(
 
 
 def get_reward_state_from_dashboard(
-    hass: "HomeAssistant",  # noqa: F821
+    hass: "HomeAssistant",
     kid_name: str,
     reward_name: str,
 ) -> str | None:
@@ -2137,7 +2120,7 @@ def get_reward_state_from_dashboard(
 
 
 def get_chore_can_claim(
-    hass: "HomeAssistant",  # noqa: F821
+    hass: "HomeAssistant",
     kid_name: str,
     chore_name: str,
 ) -> bool | None:
@@ -2165,7 +2148,7 @@ def get_chore_can_claim(
 
 
 def get_chore_can_approve(
-    hass: "HomeAssistant",  # noqa: F821
+    hass: "HomeAssistant",
     kid_name: str,
     chore_name: str,
 ) -> bool | None:
@@ -2193,7 +2176,7 @@ def get_chore_can_approve(
 
 
 async def press_chore_button(
-    hass: "HomeAssistant",  # noqa: F821
+    hass: "HomeAssistant",
     kid_name: str,
     chore_name: str,
     button_type: str,
@@ -2227,8 +2210,7 @@ async def press_chore_button(
 
     if not button_id:
         raise ValueError(
-            f"Button entity not found for {button_type} "
-            f"(kid={kid_name}, chore={chore_name})"
+            f"Button entity not found for {button_type} (kid={kid_name}, chore={chore_name})"
         )
 
     await hass.services.async_call(
@@ -2240,7 +2222,7 @@ async def press_chore_button(
 
 
 async def press_reward_button(
-    hass: "HomeAssistant",  # noqa: F821
+    hass: "HomeAssistant",
     kid_name: str,
     reward_name: str,
     button_type: str,
@@ -2265,8 +2247,7 @@ async def press_reward_button(
 
     if not button_id:
         raise ValueError(
-            f"Button entity not found for {button_type} "
-            f"(kid={kid_name}, reward={reward_name})"
+            f"Button entity not found for {button_type} (kid={kid_name}, reward={reward_name})"
         )
 
     await hass.services.async_call(
@@ -2278,7 +2259,7 @@ async def press_reward_button(
 
 
 def list_all_chores_for_kid(
-    hass: "HomeAssistant",  # noqa: F821
+    hass: "HomeAssistant",
     kid_name: str,
 ) -> list[dict]:
     """
@@ -2300,7 +2281,7 @@ def list_all_chores_for_kid(
 
 
 def list_all_rewards_for_kid(
-    hass: "HomeAssistant",  # noqa: F821
+    hass: "HomeAssistant",
     kid_name: str,
 ) -> list[dict]:
     """

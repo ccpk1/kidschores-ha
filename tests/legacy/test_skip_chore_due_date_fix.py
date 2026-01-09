@@ -9,13 +9,13 @@ After migration:
 - INDEPENDENT chores: Delete chore-level due_date, use per-kid due dates
 """
 
-# pylint: disable=protected-access  # Accessing _data for testing coordinator directly
+# Accessing _data for testing coordinator directly
 # pylint: disable=redefined-outer-name  # Pytest fixture pattern
-# pylint: disable=unused-argument  # Fixtures needed for test setup
+# Fixtures needed for test setup
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+import pytest
 
 from custom_components.kidschores.const import (
     COMPLETION_CRITERIA_INDEPENDENT,

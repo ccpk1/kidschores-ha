@@ -5,13 +5,13 @@ This test validates that set_chore_due_date maintains proper data structure:
 - INDEPENDENT chores: Should NOT have chore-level due_date, only per-kid due dates
 """
 
-# pylint: disable=protected-access  # Accessing _data for testing coordinator directly
+# Accessing _data for testing coordinator directly
 # pylint: disable=redefined-outer-name  # Pytest fixture pattern
-# pylint: disable=unused-argument  # Fixtures needed for test setup
+# Fixtures needed for test setup
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+import pytest
 
 from custom_components.kidschores.const import (
     COMPLETION_CRITERIA_INDEPENDENT,

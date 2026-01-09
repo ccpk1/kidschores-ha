@@ -7,16 +7,14 @@ Priority: P2 SECONDARY (Shared chore regression validation)
 Coverage: 4 regression tests for SHARED approval behavior
 """
 
-# pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
-# pylint: disable=unused-argument
 
 from datetime import datetime
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from dateutil import parser
 from homeassistant.core import Context, HomeAssistant
+import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.const import (

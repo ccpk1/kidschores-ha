@@ -10,9 +10,6 @@ Validates that SHARED_FIRST chores correctly handle overdue states,
 particularly that completed chores don't show as overdue after restart.
 """
 
-# pylint: disable=protected-access
-# pylint: disable=too-many-locals
-
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

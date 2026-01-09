@@ -4,7 +4,6 @@
 Handles add/edit/delete operations with entities referenced internally by internal_id.
 Ensures consistency and reloads the integration upon changes.
 """
-# pylint: disable=protected-access,broad-exception-caught,too-many-lines
 # pylint: disable=import-outside-toplevel
 # protected-access: Options flow is tightly coupled to coordinator and needs direct access
 # to internal creation/persistence methods (_create_* and _persist).
@@ -13,19 +12,18 @@ Ensures consistency and reloads the integration upon changes.
 # import-outside-toplevel: Backup operations conditionally import to avoid circular deps/performance
 
 import asyncio
-import uuid
+import contextlib
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
+import uuid
 
-import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.helpers import selector
 from homeassistant.util import dt as dt_util
+import voluptuous as vol
 
-from . import const
-from . import flow_helpers as fh
-from . import kc_helpers as kh
+from . import const, flow_helpers as fh, kc_helpers as kh
 
 # ----------------------------------------------------------------------------------
 # INITIALIZATION & HELPERS
@@ -88,16 +86,16 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             if selection == const.OPTIONS_FLOW_POINTS:
                 return await self.async_step_manage_points()
 
-            elif selection == const.OPTIONS_FLOW_GENERAL_OPTIONS:
+            if selection == const.OPTIONS_FLOW_GENERAL_OPTIONS:
                 return await self.async_step_manage_general_options()
 
-            elif selection.startswith(const.OPTIONS_FLOW_MENU_MANAGE_PREFIX):
+            if selection.startswith(const.OPTIONS_FLOW_MENU_MANAGE_PREFIX):
                 self._entity_type = selection.replace(
                     const.OPTIONS_FLOW_MENU_MANAGE_PREFIX, const.SENTINEL_EMPTY
                 )
                 return await self.async_step_manage_entity()
 
-            elif selection == const.OPTIONS_FLOW_FINISH:
+            if selection == const.OPTIONS_FLOW_FINISH:
                 return self.async_abort(reason=const.TRANS_KEY_CFOF_SETUP_COMPLETE)
 
         main_menu = [
@@ -188,12 +186,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     self,
                     f"{const.OPTIONS_FLOW_ASYNC_STEP_ADD_PREFIX}{self._entity_type}",
                 )()
-            elif self._action in [
+            if self._action in [
                 const.OPTIONS_FLOW_ACTIONS_EDIT,
                 const.OPTIONS_FLOW_ACTIONS_DELETE,
             ]:
                 return await self.async_step_select_entity()
-            elif self._action == const.OPTIONS_FLOW_ACTIONS_BACK:
+            if self._action == const.OPTIONS_FLOW_ACTIONS_BACK:
                 return await self.async_step_init()
 
         # Define manage action choices
@@ -274,43 +272,41 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         return await self.async_step_edit_badge_cumulative(
                             default_data=badge_data
                         )
-                    elif badge_type == const.BADGE_TYPE_DAILY:
+                    if badge_type == const.BADGE_TYPE_DAILY:
                         return await self.async_step_edit_badge_daily(
                             default_data=badge_data
                         )
-                    elif badge_type == const.BADGE_TYPE_PERIODIC:
+                    if badge_type == const.BADGE_TYPE_PERIODIC:
                         return await self.async_step_edit_badge_periodic(
                             default_data=badge_data
                         )
-                    elif badge_type == const.BADGE_TYPE_ACHIEVEMENT_LINKED:
+                    if badge_type == const.BADGE_TYPE_ACHIEVEMENT_LINKED:
                         return await self.async_step_edit_badge_achievement(
                             default_data=badge_data
                         )
-                    elif badge_type == const.BADGE_TYPE_CHALLENGE_LINKED:
+                    if badge_type == const.BADGE_TYPE_CHALLENGE_LINKED:
                         return await self.async_step_edit_badge_challenge(
                             default_data=badge_data
                         )
-                    elif badge_type == const.BADGE_TYPE_SPECIAL_OCCASION:
+                    if badge_type == const.BADGE_TYPE_SPECIAL_OCCASION:
                         return await self.async_step_edit_badge_special(
                             default_data=badge_data
                         )
-                    else:
-                        const.LOGGER.error(
-                            "Unknown badge type '%s' for badge ID '%s'",
-                            badge_type,
-                            internal_id,
-                        )
-                        return self.async_abort(
-                            reason=const.TRANS_KEY_CFOF_INVALID_BADGE_TYPE
-                        )
-                else:
-                    # For other entity types, route to their specific edit step
-                    return await getattr(
-                        self,
-                        f"async_step_edit_{self._entity_type}",
-                    )()
+                    const.LOGGER.error(
+                        "Unknown badge type '%s' for badge ID '%s'",
+                        badge_type,
+                        internal_id,
+                    )
+                    return self.async_abort(
+                        reason=const.TRANS_KEY_CFOF_INVALID_BADGE_TYPE
+                    )
+                # For other entity types, route to their specific edit step
+                return await getattr(
+                    self,
+                    f"async_step_edit_{self._entity_type}",
+                )()
 
-            elif self._action == const.OPTIONS_FLOW_ACTIONS_DELETE:
+            if self._action == const.OPTIONS_FLOW_ACTIONS_DELETE:
                 # Route to the delete step for the selected entity type
                 return await getattr(
                     self,
@@ -546,19 +542,18 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             # Redirect to the appropriate step based on badge type
             if badge_type == const.BADGE_TYPE_CUMULATIVE:
                 return await self.async_step_add_badge_cumulative()
-            elif badge_type == const.BADGE_TYPE_DAILY:
+            if badge_type == const.BADGE_TYPE_DAILY:
                 return await self.async_step_add_badge_daily()
-            elif badge_type == const.BADGE_TYPE_PERIODIC:
+            if badge_type == const.BADGE_TYPE_PERIODIC:
                 return await self.async_step_add_badge_periodic()
-            elif badge_type == const.BADGE_TYPE_ACHIEVEMENT_LINKED:
+            if badge_type == const.BADGE_TYPE_ACHIEVEMENT_LINKED:
                 return await self.async_step_add_badge_achievement()
-            elif badge_type == const.BADGE_TYPE_CHALLENGE_LINKED:
+            if badge_type == const.BADGE_TYPE_CHALLENGE_LINKED:
                 return await self.async_step_add_badge_challenge()
-            elif badge_type == const.BADGE_TYPE_SPECIAL_OCCASION:
+            if badge_type == const.BADGE_TYPE_SPECIAL_OCCASION:
                 return await self.async_step_add_badge_special()
-            else:
-                # Fallback to cumulative if unknown.
-                return await self.async_step_add_badge_cumulative()
+            # Fallback to cumulative if unknown.
+            return await self.async_step_add_badge_cumulative()
 
         badge_type_options = [
             const.BADGE_TYPE_CUMULATIVE,
@@ -652,9 +647,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     # ----- Add Badge Centralized Function for All Types -----
     async def async_add_edit_badge_common(
         self,
-        user_input: Optional[Dict[str, Any]] = None,
+        user_input: dict[str, Any] | None = None,
         badge_type: str = const.BADGE_TYPE_CUMULATIVE,
-        default_data: Optional[Dict[str, Any]] = None,
+        default_data: dict[str, Any] | None = None,
         is_edit: bool = False,
     ):
         """Handle adding or editing a badge."""
@@ -668,7 +663,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         bonuses_dict = coordinator.bonuses_data
         penalties_dict = coordinator.penalties_data
 
-        errors: Dict[str, str] = {}
+        errors: dict[str, str] = {}
 
         # Determine internal_id (UUID-based primary key, persists across renames)
         if is_edit:
@@ -1312,8 +1307,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                             if utc_dt and isinstance(utc_dt, datetime):
                                 per_kid_due_dates[kid_id] = utc_dt.isoformat()
                                 const.LOGGER.debug(
-                                    "Single kid INDEPENDENT chore: applied date %s "
-                                    "directly to %s",
+                                    "Single kid INDEPENDENT chore: applied date %s directly to %s",
                                     utc_dt.isoformat(),
                                     kid_id,
                                 )
@@ -1655,14 +1649,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             # Storage is UTC ISO; display is local timezone
             default_value = None
             if existing_date:
-                try:
+                with contextlib.suppress(ValueError, TypeError):
                     default_value = kh.normalize_datetime_input(
                         existing_date,
                         default_tzinfo=const.DEFAULT_TIME_ZONE,
                         return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
                     )
-                except (ValueError, TypeError):
-                    pass
 
             # Use kid name as field key - HA will display it as the label
             # (field keys without translations are shown as-is)
@@ -2412,9 +2404,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             if action and action.strip():
                 if action == "create_backup":
                     return await self.async_step_create_manual_backup()
-                elif action == "delete_backup":
+                if action == "delete_backup":
                     return await self.async_step_select_backup_to_delete()
-                elif action == "restore_backup":
+                if action == "restore_backup":
                     return await self.async_step_select_backup_to_restore()
 
         if user_input is not None:
@@ -2624,7 +2616,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             self._mark_reload_needed()
             return await self.async_step_init()
 
-        except Exception as err:  # pylint: disable=broad-except
+        except Exception as err:
             const.LOGGER.error("Fresh start failed: %s", err)
             return self.async_abort(reason="unknown")
 
@@ -2658,7 +2650,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             self._mark_reload_needed()
             return await self.async_step_init()
 
-        except Exception as err:  # pylint: disable=broad-except
+        except Exception as err:
             const.LOGGER.error("Use current failed: %s", err)
             return self.async_abort(reason="unknown")
 
@@ -2738,7 +2730,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                 except json.JSONDecodeError:
                     errors[const.CFOP_ERROR_BASE] = "invalid_json"
-                except Exception as err:  # pylint: disable=broad-except
+                except Exception as err:
                     const.LOGGER.error("Paste JSON failed: %s", err)
                     errors[const.CFOP_ERROR_BASE] = "unknown"
 
@@ -2766,8 +2758,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     async def _handle_restore_backup_from_options(self, backup_filename: str):
         """Handle restoring from a specific backup file in options flow."""
         import json
-        import shutil
         from pathlib import Path
+        import shutil
 
         from .storage_manager import KidsChoresStorageManager
 
@@ -2837,7 +2829,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             self._mark_reload_needed()
             return await self.async_step_init()
 
-        except Exception as err:  # pylint: disable=broad-except
+        except Exception as err:
             const.LOGGER.error("Restore backup failed: %s", err)
             return self.async_abort(reason="unknown")
 
@@ -2850,11 +2842,11 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             if action == "create_backup":
                 return await self.async_step_create_manual_backup()
-            elif action == "delete_backup":
+            if action == "delete_backup":
                 return await self.async_step_select_backup_to_delete()
-            elif action == "restore_backup":
+            if action == "restore_backup":
                 return await self.async_step_select_backup_to_restore()
-            elif action == "return_to_menu":
+            if action == "return_to_menu":
                 return await self.async_step_init()
 
         # Discover backups to show count
@@ -3021,7 +3013,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         Returns: "filename.json" or None if extraction fails
         """
         # Remove emoji prefix (first 2-3 characters depending on emoji width)
-        if selection.startswith("🔄 ") or selection.startswith("🗑️ "):
+        if selection.startswith(("🔄 ", "🗑️ ")):
             display_part = selection[2:].strip()
 
             # Extract from "[Tag] filename.json (age, size)"
@@ -3063,11 +3055,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         "Manual backup created successfully: %s", backup_filename
                     )
                     return await self.async_step_backup_actions_menu()
-                else:
-                    const.LOGGER.error("Failed to create manual backup")
-                    return await self.async_step_backup_actions_menu()
-            else:
+                const.LOGGER.error("Failed to create manual backup")
                 return await self.async_step_backup_actions_menu()
+            return await self.async_step_backup_actions_menu()
 
         # Get backup count and retention for placeholders
         available_backups = await fh.discover_backups(self.hass, storage_manager)
@@ -3137,8 +3127,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_restore_backup_confirm(self, user_input=None):
         """Confirm backup restoration."""
-        import shutil
         from pathlib import Path
+        import shutil
 
         from .storage_manager import KidsChoresStorageManager
 
@@ -3167,7 +3157,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     backup_data_str = await self.hass.async_add_executor_job(
                         backup_path.read_text, "utf-8"
                     )
-                except Exception as err:  # pylint: disable=broad-except
+                except Exception as err:
                     const.LOGGER.error(
                         "Failed to read backup file %s: %s", backup_filename, err
                     )

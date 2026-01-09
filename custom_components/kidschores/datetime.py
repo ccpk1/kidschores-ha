@@ -17,8 +17,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from . import const
-from . import kc_helpers as kh
+from . import const, kc_helpers as kh
 from .coordinator import KidsChoresDataCoordinator
 
 # Silver requirement: Parallel Updates

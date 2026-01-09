@@ -44,8 +44,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.helpers.entity_registry import async_get
 
-from . import const
-from . import kc_helpers as kh
+from . import const, kc_helpers as kh
 from .coordinator import KidsChoresDataCoordinator
 from .entity import KidsChoresCoordinatorEntity
 
@@ -1031,8 +1030,7 @@ class KidBonusAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
         }
         # Strip redundant "bonus" suffix from entity_id (bonus_name often ends with "Bonus")
         bonus_slug = bonus_name.lower().replace(" ", "_")
-        if bonus_slug.endswith("_bonus"):
-            bonus_slug = bonus_slug[:-6]  # Remove "_bonus" suffix
+        bonus_slug = bonus_slug.removesuffix("_bonus")  # Remove "_bonus" suffix
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_MIDFIX_BONUS_APPLIES_SENSOR}{bonus_slug}"
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 

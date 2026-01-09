@@ -44,28 +44,31 @@ This file is organized into logical sections for easy navigation:
 
 from __future__ import annotations
 
-import json
-import os
 from calendar import monthrange
 from datetime import date, datetime, timedelta, tzinfo
-from typing import TYPE_CHECKING, Any, Iterable, Optional, Union
+import json
+import os
+from typing import TYPE_CHECKING, Any
 
-import homeassistant.util.dt as dt_util
-from homeassistant.auth.models import User
-from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.label_registry import async_get as async_get_label_registry
+import homeassistant.util.dt as dt_util
 
 from . import const
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from homeassistant.auth.models import User
+    from homeassistant.core import HomeAssistant
+
     from .coordinator import KidsChoresDataCoordinator  # Used for type checking only
 
 
 # 📍 -------- Get Coordinator --------
 def _get_kidschores_coordinator(
     hass: HomeAssistant,
-) -> Optional[KidsChoresDataCoordinator]:
+) -> KidsChoresDataCoordinator | None:
     """Retrieve KidsChores coordinator from hass.data."""
 
     domain_entries = hass.data.get(const.DOMAIN, {})
@@ -99,7 +102,7 @@ async def is_user_authorized_for_global_action(
     if not user_id:
         return False  # no user context => not authorized
 
-    user: Optional[User] = await hass.auth.async_get_user(user_id)
+    user: User | None = await hass.auth.async_get_user(user_id)
     if not user:
         const.LOGGER.warning("WARNING: %s: Invalid user ID '%s'", action, user_id)
         return False
@@ -138,7 +141,7 @@ async def is_user_authorized_for_kid(
     if not user_id:
         return False
 
-    user: Optional[User] = await hass.auth.async_get_user(user_id)
+    user: User | None = await hass.auth.async_get_user(user_id)
     if not user:
         const.LOGGER.warning("WARNING: Authorization: Invalid user ID '%s'", user_id)
         return False
@@ -148,7 +151,7 @@ async def is_user_authorized_for_kid(
         return True
 
     # Allow non-admin users if they are registered as a parent in KidsChores.
-    coordinator: Optional[KidsChoresDataCoordinator] = _get_kidschores_coordinator(hass)
+    coordinator: KidsChoresDataCoordinator | None = _get_kidschores_coordinator(hass)
     if coordinator:
         for parent in coordinator.parents_data.values():
             if parent.get(const.DATA_PARENT_HA_USER_ID) == user.id:
@@ -198,7 +201,7 @@ def parse_points_adjust_values(points_str: str) -> list[float]:
 
 
 # 🔍 -------- Basic Entity Lookup Helpers --------
-def get_first_kidschores_entry(hass: HomeAssistant) -> Optional[str]:
+def get_first_kidschores_entry(hass: HomeAssistant) -> str | None:
     """Retrieve the first KidsChores config entry ID."""
     domain_entries = hass.data.get(const.DOMAIN)
     if not domain_entries:
@@ -216,7 +219,7 @@ def get_first_kidschores_entry(hass: HomeAssistant) -> Optional[str]:
 
 def get_entity_id_by_name(
     coordinator: KidsChoresDataCoordinator, entity_type: str, entity_name: str
-) -> Optional[str]:
+) -> str | None:
     """Generic entity ID lookup by name across all entity types.
 
     Replaces duplicate get_*_id_by_name() functions with a single parametrizable
@@ -258,8 +261,7 @@ def get_entity_id_by_name(
 
     if entity_type not in entity_map:
         raise ValueError(
-            f"Unknown entity_type: {entity_type}. "
-            f"Valid options: {', '.join(entity_map.keys())}"
+            f"Unknown entity_type: {entity_type}. Valid options: {', '.join(entity_map.keys())}"
         )
 
     data_dict, name_key = entity_map[entity_type]
@@ -272,7 +274,7 @@ def get_entity_id_by_name(
 # Thin wrapper functions for backward compatibility and convenience
 def get_kid_id_by_name(
     coordinator: KidsChoresDataCoordinator, kid_name: str
-) -> Optional[str]:
+) -> str | None:
     """Retrieve the kid_id for a given kid_name.
 
     Args:
@@ -287,7 +289,7 @@ def get_kid_id_by_name(
 
 def get_kid_name_by_id(
     coordinator: KidsChoresDataCoordinator, kid_id: str
-) -> Optional[str]:
+) -> str | None:
     """Retrieve the kid_name for a given kid_id.
 
     Args:
@@ -305,7 +307,7 @@ def get_kid_name_by_id(
 
 def get_chore_id_by_name(
     coordinator: KidsChoresDataCoordinator, chore_name: str
-) -> Optional[str]:
+) -> str | None:
     """Retrieve the chore_id for a given chore_name.
 
     Args:
@@ -320,7 +322,7 @@ def get_chore_id_by_name(
 
 def get_reward_id_by_name(
     coordinator: KidsChoresDataCoordinator, reward_name: str
-) -> Optional[str]:
+) -> str | None:
     """Retrieve the reward_id for a given reward_name.
 
     Args:
@@ -335,7 +337,7 @@ def get_reward_id_by_name(
 
 def get_penalty_id_by_name(
     coordinator: KidsChoresDataCoordinator, penalty_name: str
-) -> Optional[str]:
+) -> str | None:
     """Retrieve the penalty_id for a given penalty_name.
 
     Args:
@@ -350,7 +352,7 @@ def get_penalty_id_by_name(
 
 def get_badge_id_by_name(
     coordinator: KidsChoresDataCoordinator, badge_name: str
-) -> Optional[str]:
+) -> str | None:
     """Retrieve the badge_id for a given badge_name.
 
     Args:
@@ -365,7 +367,7 @@ def get_badge_id_by_name(
 
 def get_bonus_id_by_name(
     coordinator: KidsChoresDataCoordinator, bonus_name: str
-) -> Optional[str]:
+) -> str | None:
     """Retrieve the bonus_id for a given bonus_name.
 
     Args:
@@ -380,7 +382,7 @@ def get_bonus_id_by_name(
 
 def get_parent_id_by_name(
     coordinator: KidsChoresDataCoordinator, parent_name: str
-) -> Optional[str]:
+) -> str | None:
     """Retrieve the parent_id for a given parent_name.
 
     Args:
@@ -395,7 +397,7 @@ def get_parent_id_by_name(
 
 def get_achievement_id_by_name(
     coordinator: KidsChoresDataCoordinator, achievement_name: str
-) -> Optional[str]:
+) -> str | None:
     """Retrieve the achievement_id for a given achievement_name.
 
     Args:
@@ -412,7 +414,7 @@ def get_achievement_id_by_name(
 
 def get_challenge_id_by_name(
     coordinator: KidsChoresDataCoordinator, challenge_name: str
-) -> Optional[str]:
+) -> str | None:
     """Retrieve the challenge_id for a given challenge_name.
 
     Args:
@@ -444,7 +446,7 @@ def get_friendly_label(hass: HomeAssistant, label_name: str) -> str:
         registry = async_get_label_registry(hass)
         label_entry = registry.async_get_label(label_name)
         return label_entry.name if label_entry else label_name
-    except Exception:  # pylint: disable=broad-except
+    except Exception:
         # Fallback if label registry unavailable
         return label_name
 
@@ -466,7 +468,7 @@ async def async_get_friendly_label(hass: HomeAssistant, label_name: str) -> str:
         registry = async_get_label_registry(hass)
         label_entry = registry.async_get_label(label_name)
         return label_entry.name if label_entry else label_name
-    except Exception:  # pylint: disable=broad-except
+    except Exception:
         # Fallback if label registry unavailable
         return label_name
 
@@ -852,8 +854,7 @@ def get_today_chore_and_point_progress(
             const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK, 0
         )
         streak_per_chore[chore_id] = streak_today
-        if streak_today > longest_chore_streak:
-            longest_chore_streak = streak_today
+        longest_chore_streak = max(longest_chore_streak, streak_today)
 
     # Points from all sources (if tracked in kid point_stats)
     point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
@@ -876,9 +877,9 @@ def get_today_chore_completion_progress(
     kid_info: dict,
     tracked_chores: list,
     *,
-    kid_id: Optional[str] = None,
-    all_chores: Optional[dict] = None,
-    count_required: Optional[int] = None,
+    kid_id: str | None = None,
+    all_chores: dict | None = None,
+    count_required: int | None = None,
     percent_required: float = 1.0,
     require_no_overdue: bool = False,
     only_due_today: bool = False,
@@ -1028,7 +1029,7 @@ def get_now_local_iso() -> str:
     return get_now_local_time().isoformat()
 
 
-def parse_datetime_to_utc(dt_str: str) -> Optional[datetime]:
+def parse_datetime_to_utc(dt_str: str) -> datetime | None:
     """
     Parse a datetime string, apply timezone if naive, and convert to UTC.
 
@@ -1045,7 +1046,7 @@ def parse_datetime_to_utc(dt_str: str) -> Optional[datetime]:
     )
 
 
-def parse_date_safe(date_str: str) -> Optional[date]:
+def parse_date_safe(date_str: str) -> date | None:
     """
     Safely parse a date string into a `datetime.date`.
 
@@ -1065,8 +1066,8 @@ def parse_date_safe(date_str: str) -> Optional[date]:
 
 def format_datetime_with_return_type(
     dt_obj: datetime,
-    return_type: Optional[str] = const.HELPER_RETURN_DATETIME,
-) -> Union[datetime, date, str]:
+    return_type: str | None = const.HELPER_RETURN_DATETIME,
+) -> datetime | date | str:
     """
     Format a datetime object according to the specified return_type.
 
@@ -1087,29 +1088,28 @@ def format_datetime_with_return_type(
     """
     if return_type == const.HELPER_RETURN_DATETIME:
         return dt_obj
-    elif return_type == const.HELPER_RETURN_DATETIME_UTC:
+    if return_type == const.HELPER_RETURN_DATETIME_UTC:
         return dt_util.as_utc(dt_obj)
-    elif return_type == const.HELPER_RETURN_DATETIME_LOCAL:
+    if return_type == const.HELPER_RETURN_DATETIME_LOCAL:
         return dt_util.as_local(dt_obj)
-    elif return_type == const.HELPER_RETURN_DATE:
+    if return_type == const.HELPER_RETURN_DATE:
         return dt_obj.date()
-    elif return_type == const.HELPER_RETURN_ISO_DATETIME:
+    if return_type == const.HELPER_RETURN_ISO_DATETIME:
         return dt_obj.isoformat()
-    elif return_type == const.HELPER_RETURN_ISO_DATE:
+    if return_type == const.HELPER_RETURN_ISO_DATE:
         return dt_obj.date().isoformat()
-    elif return_type == const.HELPER_RETURN_SELECTOR_DATETIME:
+    if return_type == const.HELPER_RETURN_SELECTOR_DATETIME:
         # For HA DateTimeSelector: local timezone, "%Y-%m-%d %H:%M:%S" format
         return dt_util.as_local(dt_obj).strftime("%Y-%m-%d %H:%M:%S")
-    else:
-        # Default fallback is to return the datetime object unchanged
-        return dt_obj
+    # Default fallback is to return the datetime object unchanged
+    return dt_obj
 
 
 def normalize_datetime_input(  # pyright: ignore[reportReturnType]
-    dt_input: Union[str, date, datetime],
-    default_tzinfo: Optional[tzinfo] = None,
-    return_type: Optional[str] = const.HELPER_RETURN_DATETIME,
-) -> Union[datetime, date, str, None]:
+    dt_input: str | date | datetime,
+    default_tzinfo: tzinfo | None = None,
+    return_type: str | None = const.HELPER_RETURN_DATETIME,
+) -> datetime | date | str | None:
     """
     Normalize various datetime input formats to a consistent format.
 
@@ -1190,14 +1190,14 @@ def normalize_datetime_input(  # pyright: ignore[reportReturnType]
 
 
 def adjust_datetime_by_interval(  # pyright: ignore[reportReturnType]
-    base_date: Union[str, date, datetime],
+    base_date: str | date | datetime,
     interval_unit: str,
     delta: int,
-    end_of_period: Optional[str] = None,
+    end_of_period: str | None = None,
     require_future: bool = False,
-    reference_datetime: Optional[Union[str, date, datetime]] = None,
-    return_type: Optional[str] = const.HELPER_RETURN_DATETIME,
-) -> Union[str, date, datetime]:
+    reference_datetime: str | date | datetime | None = None,
+    return_type: str | None = const.HELPER_RETURN_DATETIME,
+) -> str | date | datetime:
     """
     Add or Subtract a time interval to a date or datetime and returns the result in the desired format.
 
@@ -1454,18 +1454,16 @@ def adjust_datetime_by_interval(  # pyright: ignore[reportReturnType]
                 )
 
     # Use format_datetime_with_return_type for consistent return formatting
-    final_result = format_datetime_with_return_type(result, return_type)
-
-    return final_result
+    return format_datetime_with_return_type(result, return_type)
 
 
 def get_next_scheduled_datetime(
-    base_date: Union[str, date, datetime],
+    base_date: str | date | datetime,
     interval_type: str,
     require_future: bool = True,
-    reference_datetime: Optional[Union[str, date, datetime]] = None,
-    return_type: Optional[str] = const.HELPER_RETURN_DATETIME,
-) -> Union[date, datetime, str]:
+    reference_datetime: str | date | datetime | None = None,
+    return_type: str | None = const.HELPER_RETURN_DATETIME,
+) -> date | datetime | str:
     """
     Calculates the next scheduled datetime based on an interval type from a given start date.
 
@@ -1511,7 +1509,7 @@ def get_next_scheduled_datetime(
     local_tz = const.DEFAULT_TIME_ZONE
 
     # Use normalize_datetime_input for consistent handling of base_date
-    base_dt: Optional[Union[str, date, datetime]] = normalize_datetime_input(
+    base_dt: str | date | datetime | None = normalize_datetime_input(
         base_date, default_tzinfo=local_tz, return_type=const.HELPER_RETURN_DATETIME
     )
 
@@ -1534,7 +1532,7 @@ def get_next_scheduled_datetime(
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
-        elif interval_type in {const.FREQUENCY_WEEKLY, const.FREQUENCY_CUSTOM_1_WEEK}:
+        if interval_type in {const.FREQUENCY_WEEKLY, const.FREQUENCY_CUSTOM_1_WEEK}:
             return adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_WEEKS,
@@ -1542,7 +1540,7 @@ def get_next_scheduled_datetime(
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
-        elif interval_type == const.FREQUENCY_BIWEEKLY:
+        if interval_type == const.FREQUENCY_BIWEEKLY:
             return adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_WEEKS,
@@ -1550,7 +1548,7 @@ def get_next_scheduled_datetime(
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
-        elif interval_type in {const.FREQUENCY_MONTHLY, const.FREQUENCY_CUSTOM_1_MONTH}:
+        if interval_type in {const.FREQUENCY_MONTHLY, const.FREQUENCY_CUSTOM_1_MONTH}:
             return adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_MONTHS,
@@ -1558,7 +1556,7 @@ def get_next_scheduled_datetime(
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
-        elif interval_type == const.FREQUENCY_QUARTERLY:
+        if interval_type == const.FREQUENCY_QUARTERLY:
             return adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_QUARTERS,
@@ -1566,7 +1564,7 @@ def get_next_scheduled_datetime(
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
-        elif interval_type in {const.FREQUENCY_YEARLY, const.FREQUENCY_CUSTOM_1_YEAR}:
+        if interval_type in {const.FREQUENCY_YEARLY, const.FREQUENCY_CUSTOM_1_YEAR}:
             return adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_YEARS,
@@ -1574,7 +1572,7 @@ def get_next_scheduled_datetime(
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
-        elif interval_type == const.PERIOD_DAY_END:
+        if interval_type == const.PERIOD_DAY_END:
             return adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_DAYS,
@@ -1582,7 +1580,7 @@ def get_next_scheduled_datetime(
                 end_of_period=const.PERIOD_DAY_END,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
-        elif interval_type == const.PERIOD_WEEK_END:
+        if interval_type == const.PERIOD_WEEK_END:
             return adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_DAYS,
@@ -1590,7 +1588,7 @@ def get_next_scheduled_datetime(
                 end_of_period=const.PERIOD_WEEK_END,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
-        elif interval_type == const.PERIOD_MONTH_END:
+        if interval_type == const.PERIOD_MONTH_END:
             return adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_DAYS,
@@ -1598,7 +1596,7 @@ def get_next_scheduled_datetime(
                 end_of_period=const.PERIOD_MONTH_END,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
-        elif interval_type == const.PERIOD_QUARTER_END:
+        if interval_type == const.PERIOD_QUARTER_END:
             return adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_DAYS,
@@ -1606,7 +1604,7 @@ def get_next_scheduled_datetime(
                 end_of_period=const.PERIOD_QUARTER_END,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
-        elif interval_type == const.PERIOD_YEAR_END:
+        if interval_type == const.PERIOD_YEAR_END:
             return adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_DAYS,
@@ -1614,8 +1612,7 @@ def get_next_scheduled_datetime(
                 end_of_period=const.PERIOD_YEAR_END,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
-        else:
-            raise ValueError(f"Unsupported interval type: {interval_type}")
+        raise ValueError(f"Unsupported interval type: {interval_type}")
 
     # Calculate the initial next scheduled datetime.
     result = calculate_next_interval(base_dt)
@@ -1673,17 +1670,15 @@ def get_next_scheduled_datetime(
                 )
 
     # Use format_datetime_with_return_type to handle the return type formatting
-    final_result = format_datetime_with_return_type(result, return_type)
-
-    return final_result
+    return format_datetime_with_return_type(result, return_type)
 
 
 def get_next_applicable_day(
     dt: datetime,
     applicable_days: Iterable[int],
-    local_tz: Optional[tzinfo] = None,
-    return_type: Optional[str] = const.HELPER_RETURN_DATETIME,
-) -> Union[datetime, date, str]:
+    local_tz: tzinfo | None = None,
+    return_type: str | None = const.HELPER_RETURN_DATETIME,
+) -> datetime | date | str:
     """
     Advances the provided datetime to the next day (or same day) where the day-of-week
     (as returned by dt.weekday()) is included in the applicable_days iterable.
@@ -1741,19 +1736,17 @@ def get_next_applicable_day(
             local_dt = dt.astimezone(local_tz)
 
     # Use format_datetime_with_return_type to handle the return type formatting
-    final_result = format_datetime_with_return_type(dt, return_type)
-
-    return final_result
+    return format_datetime_with_return_type(dt, return_type)
 
 
 def cleanup_period_data(
     self,
     periods_data: dict,
     period_keys: dict,
-    retention_daily: int = None,
-    retention_weekly: int = None,
-    retention_monthly: int = None,
-    retention_yearly: int = None,
+    retention_daily: int | None = None,
+    retention_weekly: int | None = None,
+    retention_monthly: int | None = None,
+    retention_yearly: int | None = None,
 ):
     """
     Remove old period data to keep storage manageable for any period-based data (chore, point, etc).
@@ -1844,8 +1837,8 @@ def cleanup_period_data(
         if year < cutoff_yearly:
             del yearly_data[year]
 
-    self._persist()  # type: ignore[attr-defined]  # pylint: disable=protected-access
-    self.async_set_updated_data(self._data)  # type: ignore[attr-defined]  # pylint: disable=protected-access
+    self._persist()  # type: ignore[attr-defined]
+    self.async_set_updated_data(self._data)  # type: ignore[attr-defined]
 
 
 # 📝 -------- Dashboard Translation Loaders --------
@@ -1914,7 +1907,7 @@ async def get_available_dashboard_languages(
 
         # Sort remaining languages (English stays first)
         if len(available_languages) > 1:
-            available_languages = ["en"] + sorted(available_languages[1:])
+            available_languages = ["en", *sorted(available_languages[1:])]
 
         const.LOGGER.debug("Available dashboard languages: %s", available_languages)
         return available_languages

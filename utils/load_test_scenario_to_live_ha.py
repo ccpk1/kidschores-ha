@@ -48,17 +48,17 @@ async def load_scenario_to_live_instance(reset_first: bool = False):
     with open(scenario_file, encoding="utf-8") as f:
         scenario = yaml.safe_load(f)
 
-    print("🔌 Connecting to Home Assistant REST API...")
+    print("🔌 Connecting to Home Assistant REST API...")  # noqa: T201
     ha_url = "http://localhost:8123"
 
     # Get access token from user
-    print("\n🔑 You need a long-lived access token from Home Assistant.")
-    print("   Go to: http://localhost:8123/profile/security")
-    print("   Scroll down and create a 'Long-Lived Access Token'")
+    print("\n🔑 You need a long-lived access token from Home Assistant.")  # noqa: T201
+    print("   Go to: http://localhost:8123/profile/security")  # noqa: T201
+    print("   Scroll down and create a 'Long-Lived Access Token'")  # noqa: T201
     token = input("\nPaste your access token here: ").strip()
 
     if not token:
-        print("❌ No token provided")
+        print("❌ No token provided")  # noqa: T201
         return
 
     headers = {
@@ -71,20 +71,20 @@ async def load_scenario_to_live_instance(reset_first: bool = False):
         try:
             async with session.get(f"{ha_url}/api/") as resp:
                 if resp.status != 200:
-                    print(f"❌ API returned status {resp.status}")
+                    print(f"❌ API returned status {resp.status}")  # noqa: T201
                     return
         except aiohttp.ClientError:
-            print("❌ Home Assistant not running at http://localhost:8123")
-            print("   Start it first!")
+            print("❌ Home Assistant not running at http://localhost:8123")  # noqa: T201
+            print("   Start it first!")  # noqa: T201
             return
 
-        print("✅ Connected to Home Assistant")
+        print("✅ Connected to Home Assistant")  # noqa: T201
 
         # Find the KidsChores config entry
-        print("\n🔍 Finding KidsChores config entry...")
+        print("\n🔍 Finding KidsChores config entry...")  # noqa: T201
         async with session.get(f"{ha_url}/api/config/config_entries/entry") as resp:
             if resp.status != 200:
-                print("❌ Could not fetch config entries")
+                print("❌ Could not fetch config entries")  # noqa: T201
                 return
             entries = await resp.json()
 
@@ -95,26 +95,26 @@ async def load_scenario_to_live_instance(reset_first: bool = False):
                 break
 
         if not kidschores_entry:
-            print("❌ KidsChores integration not found!")
-            print(
+            print("❌ KidsChores integration not found!")  # noqa: T201
+            print(  # noqa: T201
                 "   Please add it via Settings → Integrations → Add Integration → KidsChores"
             )
             return
 
         entry_id = kidschores_entry["entry_id"]
-        print(f"✅ Found KidsChores entry: {entry_id}")
+        print(f"✅ Found KidsChores entry: {entry_id}")  # noqa: T201
 
         # Reset all data if requested
         if reset_first:
-            print("\n🗑️  Resetting all KidsChores data...")
+            print("\n🗑️  Resetting all KidsChores data...")  # noqa: T201
             async with session.post(
                 f"{ha_url}/api/services/kidschores/reset_all_data", json={}
             ) as resp:
                 if resp.status == 200:
-                    print("✅ Reset complete")
+                    print("✅ Reset complete")  # noqa: T201
                     await asyncio.sleep(2)  # Wait for reload to complete
                 else:
-                    print(f"⚠️  Reset returned status {resp.status}")
+                    print(f"⚠️  Reset returned status {resp.status}")  # noqa: T201
 
         # Helper to start and complete options flow steps
         async def add_entity_via_flow(
@@ -127,7 +127,7 @@ async def load_scenario_to_live_instance(reset_first: bool = False):
                 json={"handler": entry_id},
             ) as resp:
                 if resp.status != 200:
-                    print(f"   ❌ Failed to start flow for {entity_name}")
+                    print(f"   ❌ Failed to start flow for {entity_name}")  # noqa: T201
                     return False
                 flow_result = await resp.json()
 
@@ -139,7 +139,7 @@ async def load_scenario_to_live_instance(reset_first: bool = False):
                 json={"menu_selection": menu_selection},
             ) as resp:
                 if resp.status != 200:
-                    print(f"   ❌ Failed menu selection for {entity_name}")
+                    print(f"   ❌ Failed menu selection for {entity_name}")  # noqa: T201
                     return False
                 flow_result = await resp.json()
 
@@ -149,7 +149,7 @@ async def load_scenario_to_live_instance(reset_first: bool = False):
                 json={"manage_action": "add"},
             ) as resp:
                 if resp.status != 200:
-                    print(f"   ❌ Failed to select add action for {entity_name}")
+                    print(f"   ❌ Failed to select add action for {entity_name}")  # noqa: T201
                     return False
                 flow_result = await resp.json()
 
@@ -159,7 +159,7 @@ async def load_scenario_to_live_instance(reset_first: bool = False):
                 json=entity_data,
             ) as resp:
                 if resp.status != 200:
-                    print(f"   ❌ Failed to add {entity_name}")
+                    print(f"   ❌ Failed to add {entity_name}")  # noqa: T201
                     return False
                 flow_result = await resp.json()
 
@@ -170,29 +170,29 @@ async def load_scenario_to_live_instance(reset_first: bool = False):
             )
 
         # Add kids
-        print("\n👶 Adding kids...")
+        print("\n👶 Adding kids...")  # noqa: T201
         for kid_info in scenario["family"]["kids"]:
             kid_name = kid_info["name"]
             kid_data = {
                 "kid_name": kid_name,
             }
             if await add_entity_via_flow("manage_kid", kid_data, kid_name):
-                print(f"   ✅ {kid_name}")
+                print(f"   ✅ {kid_name}")  # noqa: T201
             await asyncio.sleep(0.5)
 
         # Add parents
-        print("\n👨 Adding parents...")
+        print("\n👨 Adding parents...")  # noqa: T201
         for parent_info in scenario["family"]["parents"]:
             parent_name = parent_info["name"]
             parent_data = {
                 "parent_name": parent_name,
             }
             if await add_entity_via_flow("manage_parent", parent_data, parent_name):
-                print(f"   ✅ {parent_name}")
+                print(f"   ✅ {parent_name}")  # noqa: T201
             await asyncio.sleep(0.5)
 
         # Add chores
-        print("\n🧹 Adding chores...")
+        print("\n🧹 Adding chores...")  # noqa: T201
         for chore_info in scenario["chores"]:
             chore_name = chore_info["name"]
             chore_data = {
@@ -202,14 +202,14 @@ async def load_scenario_to_live_instance(reset_first: bool = False):
                 "icon": chore_info.get("icon", "mdi:broom"),
             }
             if await add_entity_via_flow("manage_chore", chore_data, chore_name):
-                print(f"   ✅ {chore_name}")
+                print(f"   ✅ {chore_name}")  # noqa: T201
             await asyncio.sleep(0.5)
 
         # Add badges (skip for now - they require badge type selection first)
-        print("\n🏆 Skipping badges (requires badge type selection, complex flow)")
+        print("\n🏆 Skipping badges (requires badge type selection, complex flow)")  # noqa: T201
 
         # Add rewards
-        print("\n🎁 Adding rewards...")
+        print("\n🎁 Adding rewards...")  # noqa: T201
         for reward_info in scenario.get("rewards", []):
             reward_name = reward_info["name"]
             reward_data = {
@@ -218,11 +218,11 @@ async def load_scenario_to_live_instance(reset_first: bool = False):
                 "icon": reward_info.get("icon", "mdi:gift"),
             }
             if await add_entity_via_flow("manage_reward", reward_data, reward_name):
-                print(f"   ✅ {reward_name}")
+                print(f"   ✅ {reward_name}")  # noqa: T201
             await asyncio.sleep(0.5)
 
         # Add bonuses
-        print("\n✨ Adding bonuses...")
+        print("\n✨ Adding bonuses...")  # noqa: T201
         for bonus_info in scenario.get("bonuses", []):
             bonus_name = bonus_info["name"]
             bonus_data = {
@@ -232,11 +232,11 @@ async def load_scenario_to_live_instance(reset_first: bool = False):
                 "icon": bonus_info.get("icon", "mdi:sparkles"),
             }
             if await add_entity_via_flow("manage_bonus", bonus_data, bonus_name):
-                print(f"   ✅ {bonus_name}")
+                print(f"   ✅ {bonus_name}")  # noqa: T201
             await asyncio.sleep(0.5)
 
         # Add penalties
-        print("\n⚠️  Adding penalties...")
+        print("\n⚠️  Adding penalties...")  # noqa: T201
         for penalty_info in scenario.get("penalties", []):
             penalty_name = penalty_info["name"]
             # Penalties use positive values in the form (system stores as negative)
@@ -248,20 +248,20 @@ async def load_scenario_to_live_instance(reset_first: bool = False):
                 "icon": penalty_info.get("icon", "mdi:alert"),
             }
             if await add_entity_via_flow("manage_penalty", penalty_data, penalty_name):
-                print(f"   ✅ {penalty_name}")
+                print(f"   ✅ {penalty_name}")  # noqa: T201
             await asyncio.sleep(0.5)
 
-        print("\n🎉 All entities loaded via options flow!")
-        print("\n📊 Summary:")
-        print(f"  👶 {len(scenario['family']['kids'])} kids")
-        print(f"  👨 {len(scenario['family']['parents'])} parents")
-        print(f"  🧹 {len(scenario['chores'])} chores")
-        print(f"  🏆 {len(scenario.get('badges', []))} badges (skipped)")
-        print(f"  🎁 {len(scenario.get('rewards', []))} rewards")
-        print(f"  ✨ {len(scenario.get('bonuses', []))} bonuses")
-        print(f"  ⚠️  {len(scenario.get('penalties', []))} penalties")
-        print("\n✅ Check Home Assistant - all entities should be visible now!")
-        print("   View them in Settings → Integrations → KidsChores")
+        print("\n🎉 All entities loaded via options flow!")  # noqa: T201
+        print("\n📊 Summary:")  # noqa: T201
+        print(f"  👶 {len(scenario['family']['kids'])} kids")  # noqa: T201
+        print(f"  👨 {len(scenario['family']['parents'])} parents")  # noqa: T201
+        print(f"  🧹 {len(scenario['chores'])} chores")  # noqa: T201
+        print(f"  🏆 {len(scenario.get('badges', []))} badges (skipped)")  # noqa: T201
+        print(f"  🎁 {len(scenario.get('rewards', []))} rewards")  # noqa: T201
+        print(f"  ✨ {len(scenario.get('bonuses', []))} bonuses")  # noqa: T201
+        print(f"  ⚠️  {len(scenario.get('penalties', []))} penalties")  # noqa: T201
+        print("\n✅ Check Home Assistant - all entities should be visible now!")  # noqa: T201
+        print("   View them in Settings → Integrations → KidsChores")  # noqa: T201
 
 
 if __name__ == "__main__":

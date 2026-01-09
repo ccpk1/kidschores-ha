@@ -1,12 +1,10 @@
 """Tests for the auto-approve chore feature (Phase 2)."""
 
-# pylint: disable=unused-argument,unused-variable,protected-access
-
 import asyncio
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kidschores import const
@@ -231,7 +229,7 @@ async def test_multiple_chores_different_auto_approve_settings(
     config_entry, name_to_id_map = scenario_medium
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    kid_id = name_to_id_map["kid:Max!"]
+    name_to_id_map["kid:Max!"]
 
     # Set different auto_approve values for different chores
     chores_list = list(coordinator.chores_data.keys())

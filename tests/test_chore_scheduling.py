@@ -15,15 +15,13 @@ Test Organization:
 - TestFrequencyEffects: Verify once vs daily/weekly behavior
 """
 
-# pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
-# pylint: disable=unused-argument
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
 from custom_components.kidschores import kc_helpers as kh
 from tests.helpers import (
@@ -129,7 +127,7 @@ def set_chore_due_date_to_past(
     from homeassistant.util import dt as dt_util
 
     # Calculate past due date
-    past_date = datetime.now(timezone.utc) - timedelta(days=days_ago)
+    past_date = datetime.now(UTC) - timedelta(days=days_ago)
     past_date = past_date.replace(hour=17, minute=0, second=0, microsecond=0)
     past_date_iso = dt_util.as_utc(past_date).isoformat()
 
@@ -339,7 +337,7 @@ class TestDueDateLoading:
         due_date = get_kid_due_date(coordinator, zoe_id, chore_id)
 
         assert due_date is not None, "Due date should be set"
-        now_utc = datetime.now(timezone.utc)
+        now_utc = datetime.now(UTC)
         assert due_date > now_utc, f"Due date {due_date} should be in the future"
 
     @pytest.mark.asyncio
@@ -361,7 +359,7 @@ class TestDueDateLoading:
         due_date = get_kid_due_date(coordinator, zoe_id, chore_id)
 
         assert due_date is not None, "Due date should be set"
-        now_utc = datetime.now(timezone.utc)
+        now_utc = datetime.now(UTC)
         assert due_date < now_utc, f"Due date {due_date} should be in the past"
 
     @pytest.mark.asyncio

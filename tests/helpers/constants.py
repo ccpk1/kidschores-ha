@@ -3,6 +3,17 @@
 This module re-exports all constants from the integration for use in tests.
 Import from here, not directly from custom_components.kidschores.const.
 
+⚠️  IMPORTANT: DO NOT REMOVE "UNUSED" IMPORTS ⚠️
+This is a re-export module. All imports are intentionally used by test files
+via `from tests.helpers import CONSTANT_NAME`. They appear unused here but are
+critical for the test suite. The file is protected by pyproject.toml
+per-file-ignores:
+  - F401: Prevents removal of "unused" imports
+  - I001: Prevents isort from reordering sections
+
+The imports are organized by logical sections with comment headers. DO NOT
+allow any auto-formatter or linter to reorder them.
+
 =============================================================================
 QUICK REFERENCE
 =============================================================================
@@ -23,7 +34,6 @@ GLOBAL STATE ATTRIBUTE (ATTR_GLOBAL_STATE on chore status sensor):
 =============================================================================
 """
 
-# ruff: noqa: F401
 # pylint: disable=unused-import
 
 from custom_components.kidschores.const import (

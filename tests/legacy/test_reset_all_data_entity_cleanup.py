@@ -6,14 +6,14 @@ This test validates that calling reset_all_data:
 3. Allows re-adding kids/chores without _2 suffix on entity IDs
 """
 
-# pylint: disable=protected-access  # Accessing internal methods for testing
+# Accessing internal methods for testing
 
-import uuid
 from unittest.mock import AsyncMock, patch
+import uuid
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kidschores.const import (
@@ -53,8 +53,6 @@ async def test_reset_all_data_cleans_entity_registry(
         )
         initial_entity_count = len(initial_entities)
         assert initial_entity_count > 0, "Should have global entities (select/sensor)"
-
-        print(f"\n✓ Integration has {initial_entity_count} global entities")
 
         # Step 2: Add a kid and chore to populate coordinator data
         kid_id = str(uuid.uuid4())
@@ -101,8 +99,6 @@ async def test_reset_all_data_cleans_entity_registry(
         assert len(coordinator.kids_data) == 1, "Coordinator should have 1 kid"
         assert len(coordinator.chores_data) == 1, "Coordinator should have 1 chore"
 
-        print("✓ Added kid and chore to coordinator")
-
         # Step 4: Call reset_all_data service
         await hass.services.async_call(
             DOMAIN,
@@ -126,13 +122,9 @@ async def test_reset_all_data_cleans_entity_registry(
             f"{[e.entity_id for e in entities_after_reset]}"
         )
 
-        print("✓ Entity registry cleaned and global entities recreated after reload")
-
         # Step 7: Verify storage is cleared
         assert len(coordinator.kids_data) == 0, "Kids data should be empty"
         assert len(coordinator.chores_data) == 0, "Chores data should be empty"
-
-        print("✓ Storage cleared")
 
         # Step 8: Re-add the same kid and chore
         coordinator._create_kid(kid_id, kid_data)
@@ -150,11 +142,6 @@ async def test_reset_all_data_cleans_entity_registry(
 
         assert len(entity_ids_with_suffixes) == 0, (
             f"Should NOT find any _2 suffixes. Found: {entity_ids_with_suffixes}"
-        )
-
-        print(f"✓ Recreated {len(final_entities)} entities, none with _2 suffix")
-        print(
-            f"✓ Entity count matches: initial={initial_entity_count}, final={len(final_entities)}"
         )
 
 
@@ -222,7 +209,6 @@ async def test_reset_all_data_with_multiple_kids_no_duplicates(
             ent_reg, init_integration.entry_id
         )
         initial_count = len(initial_entities)
-        print(f"\n✓ Created {initial_count} entities for 3 kids")
 
         # Reset all data
         await hass.services.async_call(
@@ -241,7 +227,6 @@ async def test_reset_all_data_with_multiple_kids_no_duplicates(
             f"After reset+reload, should have {initial_count} global entities, "
             f"found {len(entities_after_reset)}"
         )
-        print(f"✓ Removed all {initial_count} entity registry entries")
 
         # Re-add all kids and chores
         for idx, kid_name in enumerate(kid_names):
@@ -294,9 +279,4 @@ async def test_reset_all_data_with_multiple_kids_no_duplicates(
 
         assert len(entity_ids_with_suffixes) == 0, (
             f"Found entities with _2 suffix (should be none): {entity_ids_with_suffixes}"
-        )
-
-        print(f"✓ Recreated {len(final_entities)} entities, all without _2 suffix")
-        print(
-            f"✓ Entity count matches: initial={initial_count}, final={len(final_entities)}"
         )

@@ -12,15 +12,15 @@ Test Strategy:
     so migration should add it as empty list [].
 """
 
-# pylint: disable=protected-access  # Accessing coordinator._data for migration testing
+# Accessing coordinator._data for migration testing
 
 import json
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kidschores.const import (

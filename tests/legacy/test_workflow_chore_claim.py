@@ -16,19 +16,16 @@ Test Organization:
 NOTE: Tests use services directly instead of button entities to avoid entity lifecycle timing issues.
 """
 
-# pylint: disable=protected-access  # Accessing coordinator internals for testing
+# Accessing coordinator internals for testing
 
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import Context, HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.kidschores.const import (
-    COORDINATOR,
-    DOMAIN,
-)
+from custom_components.kidschores.const import COORDINATOR, DOMAIN
 
 # ============================================================================
 # Test Group: Basic Claim Workflow
@@ -38,7 +35,7 @@ from custom_components.kidschores.const import (
 async def test_chore_claim_by_kid_updates_state(
     hass: HomeAssistant,
     scenario_minimal: tuple[MockConfigEntry, dict[str, str]],
-    mock_hass_users: dict,  # pylint: disable=unused-argument
+    mock_hass_users: dict,
 ) -> None:
     """Test kid claims chore via service and state changes to claimed.
 
@@ -100,7 +97,7 @@ async def test_chore_claim_by_kid_updates_state(
 async def test_chore_claim_points_remain_unchanged(
     hass: HomeAssistant,
     scenario_minimal: tuple[MockConfigEntry, dict[str, str]],
-    mock_hass_users: dict,  # pylint: disable=unused-argument
+    mock_hass_users: dict,
 ) -> None:
     """Test kid points unchanged after claiming chore (approval needed).
 
@@ -133,9 +130,9 @@ async def test_chore_claim_points_remain_unchanged(
     reason="Requires button entity - test entity state not coordinator logic"
 )
 async def test_chore_claim_button_updates_timestamp(
-    hass: HomeAssistant,  # pylint: disable=unused-argument
-    scenario_minimal: tuple[MockConfigEntry, dict[str, str]],  # pylint: disable=unused-argument
-    mock_hass_users: dict,  # pylint: disable=unused-argument
+    hass: HomeAssistant,
+    scenario_minimal: tuple[MockConfigEntry, dict[str, str]],
+    mock_hass_users: dict,
 ) -> None:
     """Test button entity state shows last pressed timestamp.
 
@@ -307,9 +304,9 @@ async def test_parent_disapprove_resets_chore_state(
     reason="Coordinator doesn't track disapproved_count in chore_states - stat tracking TBD"
 )
 async def test_disapproved_chore_shows_stat(
-    hass: HomeAssistant,  # pylint: disable=unused-argument
-    scenario_minimal: tuple[MockConfigEntry, dict[str, str]],  # pylint: disable=unused-argument
-    mock_hass_users: dict,  # pylint: disable=unused-argument
+    hass: HomeAssistant,
+    scenario_minimal: tuple[MockConfigEntry, dict[str, str]],
+    mock_hass_users: dict,
 ) -> None:
     """Test disapproval increments disapproved_count stat.
 
@@ -457,9 +454,9 @@ async def test_parent_approve_increments_chore_count(
     reason="Dashboard helper sensor requires entity platform reload after scenario loading"
 )
 async def test_approved_chore_appears_in_dashboard_helper(
-    hass: HomeAssistant,  # pylint: disable=unused-argument
-    scenario_minimal: tuple[MockConfigEntry, dict[str, str]],  # pylint: disable=unused-argument
-    mock_hass_users: dict,  # pylint: disable=unused-argument
+    hass: HomeAssistant,
+    scenario_minimal: tuple[MockConfigEntry, dict[str, str]],
+    mock_hass_users: dict,
 ) -> None:
     """Test approved chore reflected in dashboard helper sensor.
 
@@ -564,19 +561,11 @@ async def test_approval_triggers_cumulative_badge(
     assert total_points >= 400.0, f"Expected >= 400, got {total_points}"
 
     # Debug: Check cumulative badge progress
-    cumulative_progress = coordinator._get_cumulative_badge_progress(zoe_id)  # pylint: disable=protected-access
-    print(f"DEBUG cumulative_progress: {cumulative_progress}")
-    print(
-        f"DEBUG current_badge_id: {cumulative_progress.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_ID)}"
-    )
-    print(
-        f"DEBUG highest_earned_badge_id: {cumulative_progress.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_ID)}"
-    )
+    cumulative_progress = coordinator._get_cumulative_badge_progress(zoe_id)
 
     # Verify badge was awarded (dict with badge_id as key)
     badges_earned = coordinator.kids_data[zoe_id]["badges_earned"]
     bronze_star_badge = name_to_id_map["badge:Brønze Står"]
-    print(f"DEBUG bronze_star_badge: {bronze_star_badge}")
     assert bronze_star_badge in badges_earned, (
         f"Badge {bronze_star_badge} not found in {badges_earned}"
     )
@@ -585,7 +574,7 @@ async def test_approval_triggers_cumulative_badge(
 async def test_badge_award_applies_multiplier(
     hass: HomeAssistant,
     scenario_minimal: tuple[MockConfigEntry, dict[str, str]],
-    mock_hass_users: dict,  # pylint: disable=unused-argument
+    mock_hass_users: dict,
 ) -> None:
     """Test badge award includes points_multiplier field.
 
@@ -611,7 +600,6 @@ async def test_badge_award_applies_multiplier(
     }
     coordinator.kids_data[zoe_id]["badges_earned"][bronze_star_badge] = badge_entry
 
-    # pylint: disable=protected-access
     coordinator._persist()
     await coordinator.async_request_refresh()
     await hass.async_block_till_done()
@@ -633,8 +621,8 @@ async def test_badge_award_applies_multiplier(
     reason="Dashboard helper sensor requires entity platform reload after scenario loading"
 )
 async def test_badge_award_reflected_in_dashboard(
-    hass: HomeAssistant,  # pylint: disable=unused-argument
-    scenario_medium: tuple[MockConfigEntry, dict[str, str]],  # pylint: disable=unused-argument
+    hass: HomeAssistant,
+    scenario_medium: tuple[MockConfigEntry, dict[str, str]],
 ) -> None:
     """Test earned badges appear in dashboard helper sensor.
 

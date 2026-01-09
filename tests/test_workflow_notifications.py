@@ -17,23 +17,25 @@ Notification System:
 - _notify_parents_translated() - Uses kid's dashboard_language for translations
 """
 
-# pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
-# pylint: disable=unused-argument  # hass fixture required for HA test setup
+# hass fixture required for HA test setup
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import patch
 
 import pytest
-from homeassistant.core import HomeAssistant
 
 from custom_components.kidschores import const
-from custom_components.kidschores.coordinator import KidsChoresDataCoordinator
 from tests.helpers.setup import SetupResult, setup_from_yaml
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+
+    from custom_components.kidschores.coordinator import KidsChoresDataCoordinator
 
 # =============================================================================
 # FIXTURES
@@ -47,7 +49,7 @@ def register_mock_notify_services(hass: HomeAssistant) -> None:
     mobile_notify_service field, enabling true end-to-end notification testing.
     """
 
-    async def mock_notify_service(call):  # noqa: ARG001
+    async def mock_notify_service(call):
         """Mock notify service handler."""
 
     # Register mock notify services that match what's in the YAML scenario

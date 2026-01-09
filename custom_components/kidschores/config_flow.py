@@ -4,16 +4,15 @@
 Ensures that all add/edit/delete operations reference entities via internal_id for consistency.
 """
 
+from typing import Any
 import uuid
-from typing import Any, Dict, Optional
 
-import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.util import dt as dt_util
+import voluptuous as vol
 
-from . import const
-from . import flow_helpers as fh
+from . import const, flow_helpers as fh
 from .options_flow import KidsChoresOptionsFlowHandler
 
 # Pylint disable for valid config flow architectural patterns:
@@ -21,7 +20,6 @@ from .options_flow import KidsChoresOptionsFlowHandler
 # - too-many-instance-attributes: Config flows track state across multiple steps
 # - too-many-public-methods: Each config step requires its own method
 # - abstract-method: is_matching is not required for config flows in current HA versions
-# pylint: disable=too-many-lines,too-many-instance-attributes,too-many-public-methods,abstract-method
 
 
 class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
@@ -62,7 +60,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         self._penalty_index: int = 0
         self._bonus_index: int = 0
 
-    async def async_step_user(self, user_input: Optional[dict[str, Any]] = None):
+    async def async_step_user(self, user_input: dict[str, Any] | None = None):
         """Start the config flow with an intro step."""
 
         # Check if there's an existing KidsChores entry
@@ -73,7 +71,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         # This allows users to restore from backup, paste JSON, or start fresh
         return await self.async_step_data_recovery()
 
-    async def async_step_intro(self, user_input: Optional[dict[str, Any]] = None):
+    async def async_step_intro(self, user_input: dict[str, Any] | None = None):
         """Intro / welcome step. Press Next to continue."""
         if user_input is not None:
             return await self.async_step_points_label()
@@ -85,9 +83,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     # DATA RECOVERY
     # --------------------------------------------------------------------------
-    async def async_step_data_recovery(
-        self, user_input: Optional[dict[str, Any]] = None
-    ):
+    async def async_step_data_recovery(self, user_input: dict[str, Any] | None = None):
         """Handle data recovery options when existing storage is found."""
         from pathlib import Path
 
@@ -223,7 +219,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             # Continue to intro (standard setup)
             return await self.async_step_intro()
 
-        except Exception as err:  # pylint: disable=broad-except
+        except Exception as err:
             const.LOGGER.error("Fresh start failed: %s", err)
             return self.async_abort(reason=const.TRANS_KEY_CFOP_ERROR_UNKNOWN)
 
@@ -293,15 +289,15 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                 data={},  # Empty - integration will load from storage file
             )
 
-        except Exception as err:  # pylint: disable=broad-except
+        except Exception as err:
             const.LOGGER.error("Use current failed: %s", err)
             return self.async_abort(reason=const.TRANS_KEY_CFOP_ERROR_UNKNOWN)
 
     async def _handle_restore_backup(self, backup_filename: str):
         """Handle restoring from a specific backup file."""
         import json
-        import shutil
         from pathlib import Path
+        import shutil
 
         from .storage_manager import KidsChoresStorageManager
 
@@ -378,7 +374,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                 data={},  # Empty - integration will load from restored storage file
             )
 
-        except Exception as err:  # pylint: disable=broad-except
+        except Exception as err:
             const.LOGGER.error("Restore backup failed: %s", err)
             return self.async_abort(reason=const.TRANS_KEY_CFOP_ERROR_UNKNOWN)
 
@@ -387,7 +383,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         return await self.async_step_paste_json_input()
 
     async def async_step_paste_json_input(
-        self, user_input: Optional[dict[str, Any]] = None
+        self, user_input: dict[str, Any] | None = None
     ):
         """Allow user to paste JSON data from data file or diagnostics."""
         import json
@@ -466,7 +462,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                 except json.JSONDecodeError as err:
                     const.LOGGER.error("Invalid JSON pasted: %s", err)
                     errors["base"] = const.CFOP_ERROR_INVALID_JSON
-                except Exception as err:  # pylint: disable=broad-except
+                except Exception as err:
                     const.LOGGER.error("Failed to process pasted JSON: %s", err)
                     errors["base"] = const.CFOP_ERROR_UNKNOWN
 
@@ -486,9 +482,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             },
         )
 
-    async def async_step_points_label(
-        self, user_input: Optional[dict[str, Any]] = None
-    ):
+    async def async_step_points_label(self, user_input: dict[str, Any] | None = None):
         """Let the user define a custom label for points."""
         errors = {}
 
@@ -516,7 +510,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     # KIDS
     # --------------------------------------------------------------------------
-    async def async_step_kid_count(self, user_input: Optional[dict[str, Any]] = None):
+    async def async_step_kid_count(self, user_input: dict[str, Any] | None = None):
         """Ask how many kids to define initially."""
         errors = {}
         if user_input is not None:
@@ -538,7 +532,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             step_id=const.CONFIG_FLOW_STEP_KID_COUNT, data_schema=schema, errors=errors
         )
 
-    async def async_step_kids(self, user_input: Optional[dict[str, Any]] = None):
+    async def async_step_kids(self, user_input: dict[str, Any] | None = None):
         """Collect each kid's info using internal_id as the primary key."""
         errors = {}
         if user_input is not None:
@@ -580,9 +574,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     # PARENTS
     # --------------------------------------------------------------------------
-    async def async_step_parent_count(
-        self, user_input: Optional[dict[str, Any]] = None
-    ):
+    async def async_step_parent_count(self, user_input: dict[str, Any] | None = None):
         """Ask how many parents to define initially."""
         errors = {}
         if user_input is not None:
@@ -614,7 +606,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             errors=errors,
         )
 
-    async def async_step_parents(self, user_input: Optional[dict[str, Any]] = None):
+    async def async_step_parents(self, user_input: dict[str, Any] | None = None):
         """Collect each parent's info using internal_id as the primary key.
 
         Store in self._parents_temp as a dict keyed by internal_id.
@@ -669,7 +661,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     # CHORES
     # --------------------------------------------------------------------------
-    async def async_step_chore_count(self, user_input: Optional[dict[str, Any]] = None):
+    async def async_step_chore_count(self, user_input: dict[str, Any] | None = None):
         """Ask how many chores to define."""
         errors = {}
         if user_input is not None:
@@ -697,7 +689,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             errors=errors,
         )
 
-    async def async_step_chores(self, user_input: Optional[dict[str, Any]] = None):
+    async def async_step_chores(self, user_input: dict[str, Any] | None = None):
         """Collect chore details using internal_id as the primary key.
 
         Store in self._chores_temp as a dict keyed by internal_id.
@@ -756,7 +748,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     # BADGES
     # --------------------------------------------------------------------------
-    async def async_step_badge_count(self, user_input: Optional[dict[str, Any]] = None):
+    async def async_step_badge_count(self, user_input: dict[str, Any] | None = None):
         """Ask how many badges to define."""
         errors = {}
         if user_input is not None:
@@ -784,7 +776,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             errors=errors,
         )
 
-    async def async_step_badges(self, user_input: Optional[dict[str, Any]] = None):
+    async def async_step_badges(self, user_input: dict[str, Any] | None = None):
         """Collect badge details using internal_id as the primary key."""
         return await self.async_add_badge_common(
             user_input=user_input,
@@ -793,12 +785,12 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
     async def async_add_badge_common(
         self,
-        user_input: Optional[Dict[str, Any]] = None,
+        user_input: dict[str, Any] | None = None,
         badge_type: str = const.BADGE_TYPE_CUMULATIVE,
-        default_data: Optional[Dict[str, Any]] = None,
+        default_data: dict[str, Any] | None = None,
     ):
         """Handle adding a badge in the config flow."""
-        errors: Dict[str, str] = {}
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             # --- Validate Inputs ---
@@ -863,9 +855,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     # REWARDS
     # --------------------------------------------------------------------------
-    async def async_step_reward_count(
-        self, user_input: Optional[dict[str, Any]] = None
-    ):
+    async def async_step_reward_count(self, user_input: dict[str, Any] | None = None):
         """Ask how many rewards to define."""
         errors = {}
         if user_input is not None:
@@ -897,7 +887,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             errors=errors,
         )
 
-    async def async_step_rewards(self, user_input: Optional[dict[str, Any]] = None):
+    async def async_step_rewards(self, user_input: dict[str, Any] | None = None):
         """Collect reward details using internal_id as the primary key.
 
         Store in self._rewards_temp as a dict keyed by internal_id.
@@ -929,9 +919,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     # PENALTIES
     # --------------------------------------------------------------------------
-    async def async_step_penalty_count(
-        self, user_input: Optional[dict[str, Any]] = None
-    ):
+    async def async_step_penalty_count(self, user_input: dict[str, Any] | None = None):
         """Ask how many penalties to define."""
         errors = {}
         if user_input is not None:
@@ -963,7 +951,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             errors=errors,
         )
 
-    async def async_step_penalties(self, user_input: Optional[dict[str, Any]] = None):
+    async def async_step_penalties(self, user_input: dict[str, Any] | None = None):
         """Collect penalty details using internal_id as the primary key.
 
         Store in self._penalties_temp as a dict keyed by internal_id.
@@ -1001,7 +989,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     # BONUSES
     # --------------------------------------------------------------------------
-    async def async_step_bonus_count(self, user_input: Optional[dict[str, Any]] = None):
+    async def async_step_bonus_count(self, user_input: dict[str, Any] | None = None):
         """Ask how many bonuses to define."""
         errors = {}
         if user_input is not None:
@@ -1031,7 +1019,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             errors=errors,
         )
 
-    async def async_step_bonuses(self, user_input: Optional[dict[str, Any]] = None):
+    async def async_step_bonuses(self, user_input: dict[str, Any] | None = None):
         """Collect bonus details using internal_id as the primary key.
 
         Store in self._bonuses_temp as a dict keyed by internal_id.
@@ -1068,7 +1056,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # ACHIEVEMENTS
     # --------------------------------------------------------------------------
     async def async_step_achievement_count(
-        self, user_input: Optional[dict[str, Any]] = None
+        self, user_input: dict[str, Any] | None = None
     ):
         """Ask how many achievements to define initially."""
         errors = {}
@@ -1100,9 +1088,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             errors=errors,
         )
 
-    async def async_step_achievements(
-        self, user_input: Optional[dict[str, Any]] = None
-    ):
+    async def async_step_achievements(self, user_input: dict[str, Any] | None = None):
         """Collect each achievement's details using internal_id as the key."""
         errors = {}
 
@@ -1150,7 +1136,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # CHALLENGES
     # --------------------------------------------------------------------------
     async def async_step_challenge_count(
-        self, user_input: Optional[dict[str, Any]] = None
+        self, user_input: dict[str, Any] | None = None
     ):
         """Ask how many challenges to define initially."""
         errors = {}
@@ -1182,7 +1168,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             errors=errors,
         )
 
-    async def async_step_challenges(self, user_input: Optional[dict[str, Any]] = None):
+    async def async_step_challenges(self, user_input: dict[str, Any] | None = None):
         """Collect each challenge's details using internal_id as the key."""
         errors = {}
         if user_input is not None:
@@ -1252,7 +1238,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     # FINISH
     # --------------------------------------------------------------------------
-    async def async_step_finish(self, user_input: Optional[dict[str, Any]] = None):
+    async def async_step_finish(self, user_input: dict[str, Any] | None = None):
         """Finalize summary and create the config entry."""
         if user_input is not None:
             return await self._create_entry()

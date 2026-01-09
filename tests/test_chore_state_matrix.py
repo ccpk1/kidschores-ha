@@ -15,15 +15,13 @@ Test Organization:
 - TestGlobalStateConsistency: Verify global always reflects aggregate
 """
 
-# pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
-# pylint: disable=unused-argument
 
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
 from tests.helpers import (
     # Chore states

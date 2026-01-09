@@ -2,10 +2,10 @@
 
 from datetime import datetime, timedelta
 
-import pytest
 from homeassistant.components.datetime import DOMAIN as DATETIME_DOMAIN
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+import pytest
 
 from custom_components.kidschores import const
 

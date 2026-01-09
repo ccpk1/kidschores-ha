@@ -1,18 +1,15 @@
 """Test INDEPENDENT mode overdue checking branching logic (Phase 3 Sprint 1, Step 1.9)."""
 
-# pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
 
+from datetime import UTC
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
 from custom_components.kidschores import const
-from custom_components.kidschores.const import (
-    COORDINATOR,
-    DOMAIN,
-)
+from custom_components.kidschores.const import COORDINATOR, DOMAIN
 from tests.legacy.conftest import (
     create_test_datetime,
     is_chore_approved_for_kid,
@@ -103,39 +100,19 @@ async def test_independent_different_due_dates_per_kid(
 
     # Fast-forward past Zoë's due date (but before Max!'s)
     # Need actual datetime for dt_util.utcnow() mock, not ISO string
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
-    two_days_from_now_dt = datetime.now(timezone.utc) + timedelta(days=2)
+    two_days_from_now_dt = datetime.now(UTC) + timedelta(days=2)
 
     # Debug: Print state before overdue check
-    print("\n=== DEBUG BEFORE OVERDUE CHECK ===")
-    print(f"Mock time: {two_days_from_now_dt.isoformat()}")
-    print(f"tomorrow var: {tomorrow}")
-    print(f"next_week var: {next_week}")
     chore_info = coordinator._data[const.DATA_CHORES].get(chore_found, {})
-    print(f"Chore '{chore_info.get('name')}' ID: {chore_found}")
-    print(
-        f"Chore per_kid_due_dates: {chore_info.get(const.DATA_CHORE_PER_KID_DUE_DATES, {})}"
-    )
-    print(f"Chore assigned_kids: {chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])}")
-    print(
-        f"Chore completion_criteria: {chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA, 'MISSING')}"
-    )
-    for kid_id, kid_name in [(zoë_id, "Zoë"), (max_id, "Max!")]:
+    for kid_id, _kid_name in [(zoë_id, "Zoë"), (max_id, "Max!")]:
         kid_chore_data = (
             coordinator._data[const.DATA_KIDS]
             .get(kid_id, {})
             .get(const.DATA_KID_CHORE_DATA, {})
             .get(chore_found, {})
         )
-        print(f"Kid {kid_name} ID: {kid_id}")
-        print(
-            f"Kid {kid_name} last_approved: {kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_APPROVED, 'None')}"
-        )
-        print(
-            f"Kid {kid_name} last_claimed: {kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_CLAIMED, 'None')}"
-        )
-    print("=== END DEBUG ===\n")
 
     # Add debug logging to coordinator
     import logging
@@ -149,13 +126,8 @@ async def test_independent_different_due_dates_per_kid(
         await coordinator._check_overdue_chores()
 
     # Debug: Print state after overdue check
-    print("\n=== DEBUG AFTER OVERDUE CHECK ===")
-    for kid_id, kid_name in [(zoë_id, "Zoë"), (max_id, "Max!")]:
-        kid_data = coordinator._data[const.DATA_KIDS].get(kid_id, {})
-        print(
-            f"Kid {kid_name} overdue_chores: {kid_data.get(const.DATA_KID_OVERDUE_CHORES, [])}"
-        )
-    print("=== END DEBUG ===\n")
+    for kid_id, _kid_name in [(zoë_id, "Zoë"), (max_id, "Max!")]:
+        coordinator._data[const.DATA_KIDS].get(kid_id, {})
 
     # Verify: Zoë is overdue, Max! is NOT
     zoë_overdue = coordinator._data[const.DATA_KIDS][zoë_id].get(
@@ -240,9 +212,9 @@ async def test_independent_overdue_one_kid_not_all(
 
     # Run overdue check (now is tomorrow - after Zoë, before Max!)
     # Need actual datetime for dt_util.utcnow() mock
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
-    now_is_tomorrow_dt = datetime.now(timezone.utc) + timedelta(days=1)
+    now_is_tomorrow_dt = datetime.now(UTC) + timedelta(days=1)
     with patch("homeassistant.util.dt.utcnow", return_value=now_is_tomorrow_dt):
         await coordinator._check_overdue_chores()
 
@@ -366,9 +338,9 @@ async def test_fallback_to_chore_level_due_date(hass: HomeAssistant, scenario_mi
     coordinator._data[const.DATA_KIDS][zoë_id][const.DATA_KID_OVERDUE_CHORES] = []
 
     # Fast-forward past template date (need datetime object for dt_util.utcnow() mock)
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
-    now_is_two_weeks_dt = datetime.now(timezone.utc) + timedelta(days=14)
+    now_is_two_weeks_dt = datetime.now(UTC) + timedelta(days=14)
 
     with patch("homeassistant.util.dt.utcnow", return_value=now_is_two_weeks_dt):
         await coordinator._check_overdue_chores()
@@ -435,9 +407,9 @@ async def test_independent_claims_separate(hass: HomeAssistant, scenario_full):
     parent_id = name_to_id_map.get("parent:Môm Astrid Stârblüm")
     if parent_id:
         with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
-    ):
+            patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        ):
             coordinator.approve_chore(
                 kid_id=zoë_id,
                 chore_id=chore_found,

@@ -27,10 +27,9 @@ Usage:
 
 import argparse
 import json
+from pathlib import Path
 import subprocess
 import sys
-from pathlib import Path
-from typing import List, Tuple
 
 # ANSI color codes
 RED = "\033[91m"
@@ -76,7 +75,7 @@ ACCEPTABLE_CODES = {
 }
 
 
-def run_command(cmd: List[str], capture_output: bool = True) -> Tuple[int, str, str]:
+def run_command(cmd: list[str], capture_output: bool = True) -> tuple[int, str, str]:
     """Run a command and return exit code, stdout, stderr."""
     result = subprocess.run(
         cmd,
@@ -88,14 +87,14 @@ def run_command(cmd: List[str], capture_output: bool = True) -> Tuple[int, str, 
     return result.returncode, result.stdout, result.stderr
 
 
-def check_pylint_batch(file_paths: List[str], label: str) -> Tuple[bool, List[str]]:
+def check_pylint_batch(file_paths: list[str], label: str) -> tuple[bool, list[str]]:
     """Check pylint for critical errors on multiple files at once (MUCH faster)."""
     if not file_paths:
         return True, []
 
-    print(f"{BLUE}Checking pylint ({label}):{RESET} {len(file_paths)} files")
+    print(f"{BLUE}Checking pylint ({label}):{RESET} {len(file_paths)} files")  # noqa: T201
 
-    _returncode, stdout, _ = run_command(["pylint"] + file_paths)
+    _returncode, stdout, _ = run_command(["pylint", *file_paths])
 
     # Parse pylint output for critical errors
     # Format: "path/file.py:123:4: W0718: Message (error-name)"
@@ -109,31 +108,31 @@ def check_pylint_batch(file_paths: List[str], label: str) -> Tuple[bool, List[st
                 break
 
     if critical_issues:
-        print(f"{RED}✗ CRITICAL ISSUES FOUND (must fix or suppress):{RESET}")
+        print(f"{RED}✗ CRITICAL ISSUES FOUND (must fix or suppress):{RESET}")  # noqa: T201
         for issue in critical_issues:
-            print(f"  {RED}{issue}{RESET}")
+            print(f"  {RED}{issue}{RESET}")  # noqa: T201
         return False, critical_issues
 
     # Show score if no critical issues
     for line in stdout.splitlines():
         if "rated at" in line:
-            print(f"{GREEN}✓ {line.strip()}{RESET}")
+            print(f"{GREEN}✓ {line.strip()}{RESET}")  # noqa: T201
 
     return True, []
 
 
-def check_pylint(file_path: str) -> Tuple[bool, List[str]]:
+def check_pylint(file_path: str) -> tuple[bool, list[str]]:
     """Check pylint for critical errors (single file - kept for compatibility)."""
     return check_pylint_batch([file_path], Path(file_path).name)
 
 
-def check_type_errors(file_path: str) -> Tuple[bool, List[str]]:
+def check_type_errors(file_path: str) -> tuple[bool, list[str]]:
     """Check for type errors using pyright (Pylance backend)."""
-    print(f"{BLUE}Checking type errors (Pylance/Pyright):{RESET} {file_path}")
+    print(f"{BLUE}Checking type errors (Pylance/Pyright):{RESET} {file_path}")  # noqa: T201
 
     # Skip type checking for kc_helpers.py - uses intentionally flexible return types
     if "kc_helpers.py" in file_path:
-        print(
+        print(  # noqa: T201
             f"{YELLOW}⚠ Skipping type check for kc_helpers.py (flexible return types by design){RESET}"
         )
         return True, []
@@ -141,11 +140,11 @@ def check_type_errors(file_path: str) -> Tuple[bool, List[str]]:
     # Check if pyright is installed
     returncode, _, _ = run_command(["which", "pyright"], capture_output=True)
     if returncode != 0:
-        print(f"{YELLOW}⚠ Pyright not installed - type checking skipped{RESET}")
-        print(
+        print(f"{YELLOW}⚠ Pyright not installed - type checking skipped{RESET}")  # noqa: T201
+        print(  # noqa: T201
             f"{YELLOW}  For type errors, check VS Code Problems panel (Pylance extension){RESET}"
         )
-        print(f"{YELLOW}  Or install: npm install -g pyright{RESET}")
+        print(f"{YELLOW}  Or install: npm install -g pyright{RESET}")  # noqa: T201
         return True, []
 
     # Run pyright with JSON output
@@ -180,24 +179,24 @@ def check_type_errors(file_path: str) -> Tuple[bool, List[str]]:
                 errors.append(line)
 
     if errors:
-        print(f"{RED}✗ TYPE ERRORS FOUND:{RESET}")
+        print(f"{RED}✗ TYPE ERRORS FOUND:{RESET}")  # noqa: T201
         for error in errors[:10]:
-            print(f"  {RED}{error}{RESET}")
+            print(f"  {RED}{error}{RESET}")  # noqa: T201
         if len(errors) > 10:
-            print(f"  {YELLOW}... and {len(errors) - 10} more{RESET}")
+            print(f"  {YELLOW}... and {len(errors) - 10} more{RESET}")  # noqa: T201
         return False, errors
 
-    print(
+    print(  # noqa: T201
         f"{GREEN}✓ No type errors (or check VS Code Problems panel for Pylance errors){RESET}"
     )
     return True, []
 
 
-def check_trailing_whitespace(file_path: str) -> Tuple[bool, List[int]]:
+def check_trailing_whitespace(file_path: str) -> tuple[bool, list[int]]:
     """Check for trailing whitespace."""
-    print(f"{BLUE}Checking trailing whitespace:{RESET} {file_path}")
+    print(f"{BLUE}Checking trailing whitespace:{RESET} {file_path}")  # noqa: T201
 
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         lines = f.readlines()
 
     issues = []
@@ -206,21 +205,21 @@ def check_trailing_whitespace(file_path: str) -> Tuple[bool, List[int]]:
             issues.append(i)
 
     if issues:
-        print(
+        print(  # noqa: T201
             f"{YELLOW}⚠ Trailing whitespace on {len(issues)} lines:{RESET} {issues[:10]}"
         )
-        print(f"{BLUE}  Auto-fix with:{RESET} sed -i 's/[[:space:]]*$//' {file_path}")
+        print(f"{BLUE}  Auto-fix with:{RESET} sed -i 's/[[:space:]]*$//' {file_path}")  # noqa: T201
         return False, issues
 
-    print(f"{GREEN}✓ No trailing whitespace{RESET}")
+    print(f"{GREEN}✓ No trailing whitespace{RESET}")  # noqa: T201
     return True, []
 
 
-def check_long_lines(file_path: str, max_length: int = 100) -> Tuple[bool, List[int]]:
+def check_long_lines(file_path: str, max_length: int = 100) -> tuple[bool, list[int]]:
     """Check for lines exceeding max length."""
-    print(f"{BLUE}Checking line length (max {max_length}):{RESET} {file_path}")
+    print(f"{BLUE}Checking line length (max {max_length}):{RESET} {file_path}")  # noqa: T201
 
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         lines = f.readlines()
 
     long_lines = []
@@ -229,27 +228,27 @@ def check_long_lines(file_path: str, max_length: int = 100) -> Tuple[bool, List[
             long_lines.append(i)
 
     if long_lines:
-        print(
+        print(  # noqa: T201
             f"{YELLOW}⚠ {len(long_lines)} lines exceed {max_length} characters (acceptable if improves readability){RESET}"
         )
-        print(f"  Lines: {long_lines[:10]}")
+        print(f"  Lines: {long_lines[:10]}")  # noqa: T201
         if len(long_lines) > 10:
-            print(f"  ... and {len(long_lines) - 10} more")
-        print(
+            print(f"  ... and {len(long_lines) - 10} more")  # noqa: T201
+        print(  # noqa: T201
             f"{BLUE}💡 Per testing instructions: Long lines acceptable if they improve readability{RESET}"
         )
-        print(f"{BLUE}ℹ️  This is WARNING only - does not cause failure{RESET}")
+        print(f"{BLUE}ℹ️  This is WARNING only - does not cause failure{RESET}")  # noqa: T201
         return True, long_lines  # Not critical, just warning
 
-    print(f"{GREEN}✓ All lines within {max_length} characters{RESET}")
+    print(f"{GREEN}✓ All lines within {max_length} characters{RESET}")  # noqa: T201
     return True, []
 
 
 def check_file(file_path: str, check_types: bool = False) -> bool:
     """Run all checks on a file. Returns True if all pass."""
-    print(f"\n{BOLD}{'=' * 80}{RESET}")
-    print(f"{BOLD}Checking: {file_path}{RESET}")
-    print(f"{BOLD}{'=' * 80}{RESET}\n")
+    print(f"\n{BOLD}{'=' * 80}{RESET}")  # noqa: T201
+    print(f"{BOLD}Checking: {file_path}{RESET}")  # noqa: T201
+    print(f"{BOLD}{'=' * 80}{RESET}\n")  # noqa: T201
 
     all_passed = True
 
@@ -268,7 +267,7 @@ def check_file(file_path: str, check_types: bool = False) -> bool:
     # 4. Long lines (warning only)
     check_long_lines(file_path)
 
-    print()
+    print()  # noqa: T201
     return all_passed
 
 
@@ -335,13 +334,13 @@ def main():
         test_files = list((project_root / "tests").glob("test_*.py"))
         files_to_check = integration_files + [str(f) for f in test_files]
 
-    print(f"{BOLD}{BLUE}KidsChores Linting Check{RESET}")
-    print(f"{BLUE}Checking {len(files_to_check)} file(s){RESET}")
+    print(f"{BOLD}{BLUE}KidsChores Linting Check{RESET}")  # noqa: T201
+    print(f"{BLUE}Checking {len(files_to_check)} file(s){RESET}")  # noqa: T201
     if args.types:
-        print(f"{YELLOW}Type checking enabled (slower){RESET}")
+        print(f"{YELLOW}Type checking enabled (slower){RESET}")  # noqa: T201
     else:
-        print(f"{YELLOW}Type checking disabled (use --types to enable){RESET}")
-    print()
+        print(f"{YELLOW}Type checking disabled (use --types to enable){RESET}")  # noqa: T201
+    print()  # noqa: T201
 
     check_types = args.types
     all_passed = True
@@ -355,27 +354,27 @@ def main():
             full_path = Path(file_path)
 
         if not full_path.exists():
-            print(f"{RED}✗ File not found: {file_path}{RESET}")
+            print(f"{RED}✗ File not found: {file_path}{RESET}")  # noqa: T201
             continue
 
         absolute_paths.append(str(full_path))
 
     # OPTIMIZATION: Run pylint on all files at once (10x faster)
-    print(f"{BOLD}{'=' * 80}{RESET}")
-    print(f"{BOLD}Step 1: Pylint Check (batched for speed){RESET}")
-    print(f"{BOLD}{'=' * 80}{RESET}\n")
+    print(f"{BOLD}{'=' * 80}{RESET}")  # noqa: T201
+    print(f"{BOLD}Step 1: Pylint Check (batched for speed){RESET}")  # noqa: T201
+    print(f"{BOLD}{'=' * 80}{RESET}\n")  # noqa: T201
 
     passed, _ = check_pylint_batch(absolute_paths, "all files")
     all_passed = all_passed and passed
 
     # Type checking and other checks (if enabled)
     if check_types or args.file:
-        print(f"\n{BOLD}{'=' * 80}{RESET}")
-        print(f"{BOLD}Step 2: Individual File Checks{RESET}")
-        print(f"{BOLD}{'=' * 80}{RESET}\n")
+        print(f"\n{BOLD}{'=' * 80}{RESET}")  # noqa: T201
+        print(f"{BOLD}Step 2: Individual File Checks{RESET}")  # noqa: T201
+        print(f"{BOLD}{'=' * 80}{RESET}\n")  # noqa: T201
 
         for file_path in absolute_paths:
-            print(f"{BLUE}Checking:{RESET} {file_path}")
+            print(f"{BLUE}Checking:{RESET} {file_path}")  # noqa: T201
 
             # Type errors (if enabled)
             if check_types:
@@ -385,12 +384,12 @@ def main():
             # Quick checks
             check_trailing_whitespace(file_path)
             check_long_lines(file_path)
-            print()
+            print()  # noqa: T201
     else:
         # Just quick checks without type checking
-        print(f"\n{BOLD}{'=' * 80}{RESET}")
-        print(f"{BOLD}Step 2: Quick Checks (whitespace, line length){RESET}")
-        print(f"{BOLD}{'=' * 80}{RESET}\n")
+        print(f"\n{BOLD}{'=' * 80}{RESET}")  # noqa: T201
+        print(f"{BOLD}Step 2: Quick Checks (whitespace, line length){RESET}")  # noqa: T201
+        print(f"{BOLD}{'=' * 80}{RESET}\n")  # noqa: T201
 
         for file_path in absolute_paths:
             check_trailing_whitespace(file_path)
@@ -402,32 +401,32 @@ def main():
             total_long_lines += len(long_lines)
 
         if total_long_lines > 0:
-            print(
+            print(  # noqa: T201
                 f"{YELLOW}⚠ Total {total_long_lines} lines exceed 100 chars (acceptable){RESET}"
             )
 
     # Final summary
-    print(f"\n{BOLD}{'=' * 80}{RESET}")
+    print(f"\n{BOLD}{'=' * 80}{RESET}")  # noqa: T201
     if all_passed:
-        print(f"{BOLD}{GREEN}✓ ALL CHECKS PASSED - READY TO COMMIT{RESET}")
-        print(f"{GREEN}All {len(absolute_paths)} files meet quality standards{RESET}")
+        print(f"{BOLD}{GREEN}✓ ALL CHECKS PASSED - READY TO COMMIT{RESET}")  # noqa: T201
+        print(f"{GREEN}All {len(absolute_paths)} files meet quality standards{RESET}")  # noqa: T201
         if not check_types:
-            print(
+            print(  # noqa: T201
                 f"{YELLOW}ℹ️  Type checking was disabled (use --types for full check){RESET}"
             )
         return 0
 
-    print(f"{BOLD}{RED}✗ SOME CHECKS FAILED{RESET}")
-    print(f"{RED}Fix critical issues before committing{RESET}")
-    print(f"\n{YELLOW}Quick fixes:{RESET}")
-    print("  • Trailing whitespace: ./utils/quick_lint.sh --fix")
-    print("  • Remove unused imports/variables")
-    print("  • Suppress intentional unused: # pylint: disable=unused-variable")
-    print(f"\n{BLUE}💡 Suppressing False Positives:{RESET}")
-    print("  • Type errors (flexible return types): # type: ignore[return-value]")
-    print("  • Pylint false positives: # pylint: disable=<code>  # Reason")
-    print("  • Module-level (after docstring): # pylint: disable=protected-access")
-    print(
+    print(f"{BOLD}{RED}✗ SOME CHECKS FAILED{RESET}")  # noqa: T201
+    print(f"{RED}Fix critical issues before committing{RESET}")  # noqa: T201
+    print(f"\n{YELLOW}Quick fixes:{RESET}")  # noqa: T201
+    print("  • Trailing whitespace: ./utils/quick_lint.sh --fix")  # noqa: T201
+    print("  • Remove unused imports/variables")  # noqa: T201
+    print("  • Suppress intentional unused: # pylint: disable=unused-variable")  # noqa: T201
+    print(f"\n{BLUE}💡 Suppressing False Positives:{RESET}")  # noqa: T201
+    print("  • Type errors (flexible return types): # type: ignore[return-value]")  # noqa: T201
+    print("  • Pylint false positives: # pylint: disable=<code>  # Reason")  # noqa: T201
+    print("  • Module-level (after docstring): # pylint: disable=protected-access")  # noqa: T201
+    print(  # noqa: T201
         f"\n{YELLOW}ℹ️  Note: Line length and severity 2 warnings are acceptable{RESET}"
     )
     return 1

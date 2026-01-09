@@ -20,19 +20,17 @@ SKIPPED: Functionality now covered by modern tests in test_workflow_notification
 - TestNotificationLanguage::test_notification_uses_kid_language_not_system
 """
 
-# pylint: disable=protected-access,redefined-outer-name,unused-argument
-
 import json
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
+from custom_components.kidschores import const
+
 pytestmark = pytest.mark.skip(
     reason="Functionality covered by modern tests in test_workflow_notifications.py"
 )
-
-from custom_components.kidschores import const
 
 
 def load_notification_translations(language: str) -> dict:
@@ -56,7 +54,7 @@ def load_notification_translations(language: str) -> dict:
     if not translation_file.exists():
         raise FileNotFoundError(f"Translation file not found: {translation_file}")
 
-    with open(translation_file, "r", encoding="utf-8") as f:
+    with open(translation_file, encoding="utf-8") as f:
         return json.load(f)
 
 

@@ -16,8 +16,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
-from . import const
-from . import kc_helpers as kh
+from . import const, kc_helpers as kh
 
 # Silver requirement: Parallel Updates
 # Set to 0 (unlimited) for coordinator-based entities that don't poll

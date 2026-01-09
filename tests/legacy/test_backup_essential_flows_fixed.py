@@ -2,13 +2,13 @@
 
 Tests backup functionality to ensure UnknownStep errors don't occur.
 """
-# pylint: disable=protected-access  # Accessing _progress for testing
+# Accessing _progress for testing
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
 from custom_components.kidschores import const
 from tests.legacy.conftest import MockConfigEntry
@@ -52,7 +52,7 @@ async def test_backup_actions_all_navigation_paths(
 
 
 @pytest.mark.parametrize(
-    "max_backups_change,current_backups,expected_new_backups",
+    ("max_backups_change", "current_backups", "expected_new_backups"),
     [
         (3, 5, 0),  # Decrease: 5 -> 3, no new backups on reload (1 per session only)
         (7, 4, 0),  # Increase: 4 -> 7, no new backups on reload (1 per session only)
@@ -88,7 +88,7 @@ async def test_max_backup_retention_changes(
 
     backup_create_count = 0
 
-    def mock_create_backup(*args, **kwargs):  # pylint: disable=unused-argument
+    def mock_create_backup(*args, **kwargs):
         nonlocal backup_create_count
         backup_create_count += 1
         return f"test_backup_{backup_create_count}"
@@ -98,7 +98,7 @@ async def test_max_backup_retention_changes(
         {
             "filename": f"kidschores_data_2024-01-{i + 1:02d}_10-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime(2024, 1, i + 1, 10, 0, 0, tzinfo=timezone.utc),
+            "timestamp": datetime(2024, 1, i + 1, 10, 0, 0, tzinfo=UTC),
             "age_hours": float(24 * i),
             "size_bytes": 1024,
         }
@@ -146,14 +146,14 @@ async def test_select_backup_to_delete_complete_flow(
         {
             "filename": "kidschores_data_2024-01-01_10-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime(2024, 1, 1, 10, 0, 0, tzinfo=timezone.utc),
+            "timestamp": datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC),
             "age_hours": 24.0,
             "size_bytes": 1024,
         },
         {
             "filename": "kidschores_data_2024-01-02_10-00-00_manual",
             "tag": "manual",
-            "timestamp": datetime(2024, 1, 2, 10, 0, 0, tzinfo=timezone.utc),
+            "timestamp": datetime(2024, 1, 2, 10, 0, 0, tzinfo=UTC),
             "age_hours": 12.0,
             "size_bytes": 2048,
         },
@@ -205,7 +205,7 @@ async def test_create_backup_complete_flow(
 
 
 @pytest.mark.parametrize(
-    "tag_type,should_allow_delete",
+    ("tag_type", "should_allow_delete"),
     [
         (const.BACKUP_TAG_RECOVERY, True),  # Can delete recovery backups
         (const.BACKUP_TAG_RESET, True),  # Can delete reset backups
@@ -217,7 +217,7 @@ async def test_delete_backup_confirm_step_exists(
     hass: HomeAssistant,
     init_integration: MockConfigEntry,
     tag_type: str,
-    should_allow_delete: bool,  # pylint: disable=unused-argument
+    should_allow_delete: bool,
 ) -> None:
     """Test that delete backup confirm step can be reached for appropriate backup types."""
     result = await hass.config_entries.options.async_init(init_integration.entry_id)
@@ -235,7 +235,7 @@ async def test_delete_backup_confirm_step_exists(
         {
             "filename": f"kidschores_data_2024-01-01_10-00-00_{tag_type}",
             "tag": tag_type,
-            "timestamp": datetime(2024, 1, 1, 10, 0, 0, tzinfo=timezone.utc),
+            "timestamp": datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC),
             "age_hours": 24.5,  # Mock age
             "size_bytes": 1024,  # Mock size
         }
@@ -277,7 +277,7 @@ async def test_delete_backup_confirm_step_method_exists(
     )
 
     # Verify it's callable
-    assert callable(getattr(flow_handler, "async_step_delete_backup_confirm")), (
+    assert callable(flow_handler.async_step_delete_backup_confirm), (
         "async_step_delete_backup_confirm exists but is not callable"
     )
 
@@ -307,13 +307,13 @@ async def test_confirm_restore_backup_step_method_exists(
     )
 
     # Verify all are callable
-    assert callable(getattr(flow_handler, "async_step_restore_backup_confirm")), (
+    assert callable(flow_handler.async_step_restore_backup_confirm), (
         "async_step_restore_backup_confirm exists but is not callable"
     )
-    assert callable(getattr(flow_handler, "async_step_select_backup_to_delete")), (
+    assert callable(flow_handler.async_step_select_backup_to_delete), (
         "async_step_select_backup_to_delete exists but is not callable"
     )
-    assert callable(getattr(flow_handler, "async_step_select_backup_to_restore")), (
+    assert callable(flow_handler.async_step_select_backup_to_restore), (
         "async_step_select_backup_to_restore exists but is not callable"
     )
 
@@ -335,7 +335,7 @@ async def test_backup_actions_menu_step_method_exists(
     )
 
     # Verify it's callable
-    assert callable(getattr(flow_handler, "async_step_backup_actions_menu")), (
+    assert callable(flow_handler.async_step_backup_actions_menu), (
         "async_step_backup_actions_menu exists but is not callable"
     )
 
@@ -389,7 +389,7 @@ async def test_backup_deletion_cancel_flow(
         {
             "filename": "kidschores_data_2024-01-01_10-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime(2024, 1, 1, 10, 0, 0, tzinfo=timezone.utc),
+            "timestamp": datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC),
             "age_hours": 24.0,
             "size_bytes": 1024,
         }
@@ -430,7 +430,7 @@ async def test_backup_restore_cancel_flow(
         {
             "filename": "kidschores_data_2024-01-01_10-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime(2024, 1, 1, 10, 0, 0, tzinfo=timezone.utc),
+            "timestamp": datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC),
             "age_hours": 24.0,
             "size_bytes": 1024,
         }
@@ -485,7 +485,7 @@ async def test_delete_backup_no_files_scenario(
 
 
 @pytest.mark.parametrize(
-    "tag_type,should_show_delete",
+    ("tag_type", "should_show_delete"),
     [
         (const.BACKUP_TAG_RECOVERY, True),  # Can delete recovery backups
         (const.BACKUP_TAG_RESET, True),  # Can delete reset backups
@@ -497,7 +497,7 @@ async def test_backup_delete_options_by_tag_type(
     hass: HomeAssistant,
     init_integration: MockConfigEntry,
     tag_type: str,
-    should_show_delete: bool,  # pylint: disable=unused-argument
+    should_show_delete: bool,
 ) -> None:
     """Test that delete options are shown/hidden appropriately by backup tag type."""
     result = await hass.config_entries.options.async_init(init_integration.entry_id)
@@ -515,7 +515,7 @@ async def test_backup_delete_options_by_tag_type(
         {
             "filename": f"kidschores_data_2024-01-01_10-00-00_{tag_type}",
             "tag": tag_type,
-            "timestamp": datetime(2024, 1, 1, 10, 0, 0, tzinfo=timezone.utc),
+            "timestamp": datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC),
             "age_hours": 24.0,
             "size_bytes": 1024,
         }

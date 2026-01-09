@@ -1,7 +1,7 @@
 """Tests for KidsChores coordinator."""
 
-import uuid
 from unittest.mock import AsyncMock, patch
+import uuid
 
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -36,7 +36,6 @@ async def test_chore_lifecycle_complete_workflow(
         kid_name = "Test Kid"
         kid_data = create_mock_kid_data(name=kid_name, points=0.0)
         kid_data["internal_id"] = kid_id
-        # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
 
         # Create a chore assigned to the kid (pass kid ID, not name)
@@ -93,7 +92,6 @@ async def test_points_management_flow(
         kid_name = "Max! Stårblüm"
         kid_data = create_mock_kid_data(name=kid_name, points=0.0)
         kid_data["internal_id"] = kid_id
-        # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
 
         # Create and approve a chore for points
@@ -120,7 +118,6 @@ async def test_points_management_flow(
             "points": -5.0,
             "assigned_kids": [kid_id],
         }
-        # pylint: disable=protected-access
         coordinator._data["penalties"] = {penalty_id: penalty_data}
         # pylint: enable=protected-access
         coordinator.apply_penalty("Test User", kid_id, penalty_id)
@@ -136,7 +133,6 @@ async def test_points_management_flow(
             "points": 15.0,
             "assigned_kids": [kid_id],
         }
-        # pylint: disable=protected-access
         coordinator._data["bonuses"] = {bonus_id: bonus_data}
         # pylint: enable=protected-access
         coordinator.apply_bonus("Test User", kid_id, bonus_id)
@@ -161,7 +157,6 @@ async def test_reward_approval_workflow(
         kid_id = str(uuid.uuid4())
         kid_data = create_mock_kid_data(name="Lila Stårblüm", points=100.0)
         kid_data["internal_id"] = kid_id
-        # pylint: disable=protected-access
         coordinator._create_kid(kid_id, kid_data)
 
         # Create a reward
@@ -214,7 +209,6 @@ async def test_kid_device_name_updates_immediately(
     kid_id = str(uuid.uuid4())
     kid_data = create_mock_kid_data(name="Zoe", points=0.0)
     kid_data["internal_id"] = kid_id
-    # pylint: disable=protected-access
     coordinator._create_kid(kid_id, kid_data)
     # pylint: enable=protected-access
 
@@ -272,7 +266,6 @@ async def test_config_entry_title_updates_device_names(
     kid2_id = str(uuid.uuid4())
     kid2_data = create_mock_kid_data(name="Bob", points=0.0)
     kid2_data["internal_id"] = kid2_id
-    # pylint: disable=protected-access
     coordinator._create_kid(kid1_id, kid1_data)
     coordinator._create_kid(kid2_id, kid2_data)
     # pylint: enable=protected-access
@@ -311,10 +304,10 @@ async def test_config_entry_title_updates_device_names(
     device1 = device_registry.async_get_device(identifiers={(DOMAIN, kid1_id)})
     device2 = device_registry.async_get_device(identifiers={(DOMAIN, kid2_id)})
 
-    assert "Alice (Family Chores)" == device1.name, (
+    assert device1.name == "Alice (Family Chores)", (
         f"Device 1 name should be 'Alice (Family Chores)', got: {device1.name}"
     )
-    assert "Bob (Family Chores)" == device2.name, (
+    assert device2.name == "Bob (Family Chores)", (
         f"Device 2 name should be 'Bob (Family Chores)', got: {device2.name}"
     )
     assert "KidsChores" not in device1.name, "Old title should not be in device1 name"

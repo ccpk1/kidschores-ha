@@ -24,14 +24,15 @@ YAML-based setup:
 """
 
 from dataclasses import dataclass, field
+from datetime import UTC
 from pathlib import Path
 from typing import Any
 
-import yaml
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry, ConfigFlowResult
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+import yaml
 
 from custom_components.kidschores import const
 from custom_components.kidschores.coordinator import KidsChoresDataCoordinator
@@ -356,9 +357,9 @@ async def _configure_chore_step(
     due_dt = None
     if "due_date_relative" in chore_config:
         # Simple format: "past" (yesterday) or "future" (tomorrow)
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if chore_config["due_date_relative"] == "past":
             due_dt = now - timedelta(days=1)
         else:  # "future"
@@ -369,13 +370,13 @@ async def _configure_chore_step(
         due_date_val = chore_config["due_date"]
         # Handle relative format: "+1d17:00" (future) or "-3d17:00" (past)
         if isinstance(due_date_val, str) and due_date_val[0] in "+-":
+            from datetime import datetime, timedelta
             import re
-            from datetime import datetime, timedelta, timezone
 
             match = re.match(r"([+-])(\d+)d(\d{2}):(\d{2})", due_date_val)
             if match:
                 sign, days, hour, minute = match.groups()
-                now = datetime.now(timezone.utc)
+                now = datetime.now(UTC)
                 delta = timedelta(days=int(days))
                 due_dt = now + delta if sign == "+" else now - delta
                 due_dt = due_dt.replace(
@@ -383,7 +384,7 @@ async def _configure_chore_step(
                 )
             else:
                 # Static date string - parse it
-                from datetime import datetime, timezone
+                from datetime import datetime
 
                 try:
                     due_dt = datetime.fromisoformat(due_date_val)
@@ -391,7 +392,7 @@ async def _configure_chore_step(
                     due_dt = None
         else:
             # Static date string - parse it
-            from datetime import datetime, timezone
+            from datetime import datetime
 
             try:
                 if isinstance(due_date_val, str):
@@ -403,9 +404,9 @@ async def _configure_chore_step(
 
     # If we have a due_dt, check if it's in the past and adjust
     if due_dt is not None:
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if due_dt < now:
             # Past due date - adjust to 1 week from now, keeping same time
             original_dt = due_dt
@@ -415,11 +416,6 @@ async def _configure_chore_step(
                 minute=original_dt.minute,
                 second=0,
                 microsecond=0,
-            )
-            print(
-                f"⚠️  WARNING: Chore '{chore_config['name']}' has past due date "
-                f"{original_dt.isoformat()}. Adjusted to {due_dt.isoformat()} "
-                f"(1 week from now) for config flow validation."
             )
         user_input[const.CFOF_CHORES_INPUT_DUE_DATE] = due_dt.isoformat()
     if "custom_interval" in chore_config:
@@ -439,7 +435,7 @@ async def _configure_chore_step(
 async def _skip_remaining_counts(
     hass: HomeAssistant,
     result: ConfigFlowResult,
-    start_step: str,  # pylint: disable=unused-argument
+    start_step: str,
 ) -> ConfigFlowResult:
     """Skip all remaining count steps from the given start step to FINISH.
 

@@ -159,7 +159,7 @@ async def test_retention_periods_consolidated_field_display(
     assert data_schema is not None
 
     # Verify CONF_RETENTION_PERIODS field exists in schema
-    field_keys = [str(field) for field in data_schema.schema.keys()]
+    field_keys = [str(field) for field in data_schema.schema]
     assert any(CONF_RETENTION_PERIODS in str(key) for key in field_keys)
 
 

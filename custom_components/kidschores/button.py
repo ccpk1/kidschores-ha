@@ -23,8 +23,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import const
-from . import kc_helpers as kh
+from . import const, kc_helpers as kh
 from .coordinator import KidsChoresDataCoordinator
 from .entity import KidsChoresCoordinatorEntity
 
@@ -1182,7 +1181,7 @@ class ParentPointsAdjustButton(KidsChoresCoordinatorEntity, ButtonEntity):
         entry: ConfigEntry,
         kid_id: str,
         kid_name: str,
-        delta: int | float,
+        delta: float,
         points_label: str,
     ):
         """Initialize the points adjust buttons.
@@ -1343,8 +1342,7 @@ class ParentBonusApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
         }
         # Strip redundant "bonus" suffix from entity_id (bonus_name often ends with "Bonus")
         bonus_slug = bonus_name.lower().replace(" ", "_")
-        if bonus_slug.endswith("_bonus"):
-            bonus_slug = bonus_slug[:-6]  # Remove "_bonus" suffix
+        bonus_slug = bonus_slug.removesuffix("_bonus")  # Remove "_bonus" suffix
         self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_BONUS}{bonus_slug}"
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 

@@ -11,15 +11,15 @@ removed in v0.5.0+. Overdue state is now tracked via DATA_KID_CHORE_DATA_STATE.
 See test_chore_state_matrix.py for modern state-based tests.
 """
 
-# pylint: disable=protected-access  # Accessing coordinator._check_overdue_chores()
+# Accessing coordinator._check_overdue_chores()
 # pylint: disable=redefined-outer-name  # Pytest fixtures redefine names
-# pylint: disable=unused-argument  # Fixtures needed for test setup
+# Fixtures needed for test setup
 # pylint: disable=unused-variable  # name_to_id_map unpacking
 
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.const import (

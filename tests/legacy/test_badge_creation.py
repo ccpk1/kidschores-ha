@@ -57,7 +57,7 @@ from custom_components.kidschores.const import (
     OPTIONS_FLOW_STEP_MANAGE_ENTITY,
 )
 
-# pylint: disable=protected-access  # Accessing coordinator internals for testing
+# Accessing coordinator internals for testing
 
 
 class TestBadgeCreation:
@@ -512,7 +512,9 @@ class TestBadgeCreation:
         )
 
         # Validate each created badge's data and entity
-        for badge_id, test_case in zip(created_badge_ids, badge_test_cases):
+        for badge_id, test_case in zip(
+            created_badge_ids, badge_test_cases, strict=False
+        ):
             badge_data = final_badges[badge_id]
 
             # Common assertions for all badge types

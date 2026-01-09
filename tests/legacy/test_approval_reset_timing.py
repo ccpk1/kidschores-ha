@@ -15,16 +15,14 @@ Also tests:
 - Interaction with completion_criteria modes
 """
 
-# pylint: disable=unused-argument,unused-variable,protected-access
-
 import asyncio
-import uuid
 from datetime import timedelta
 from unittest.mock import AsyncMock, patch
+import uuid
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kidschores import const

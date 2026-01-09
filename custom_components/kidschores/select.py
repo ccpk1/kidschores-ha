@@ -12,17 +12,19 @@ user wishes to select a chore/reward/penalty dynamically.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.select import SelectEntity
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import const
-from . import kc_helpers as kh
-from .coordinator import KidsChoresDataCoordinator
+from . import const, kc_helpers as kh
 from .entity import KidsChoresCoordinatorEntity
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+    from .coordinator import KidsChoresDataCoordinator
 
 # Silver requirement: Parallel Updates
 # Set to 0 (unlimited) for coordinator-based entities that don't poll
@@ -55,7 +57,7 @@ async def async_setup_entry(
         )
 
     # Kid-specific dashboard helper selects
-    for kid_id in coordinator.kids_data.keys():
+    for kid_id in coordinator.kids_data:
         selects.append(KidDashboardHelperChoresSelect(coordinator, entry, kid_id))
 
     async_add_entities(selects)
@@ -81,10 +83,10 @@ class KidsChoresSelectBase(KidsChoresCoordinatorEntity, SelectEntity):
         """
         super().__init__(coordinator)
         self._entry = entry
-        self._selected_option: Optional[str] = None
+        self._selected_option: str | None = None
 
     @property
-    def current_option(self) -> Optional[str]:
+    def current_option(self) -> str | None:
         """Return the currently selected option (chore/reward/penalty name)."""
         return self._selected_option
 

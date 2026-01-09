@@ -5,16 +5,15 @@ navigate the config flow and create entities.
 """
 
 # pylint: disable=redefined-outer-name
-# pylint: disable=protected-access
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
 from tests.helpers import (
-    setup_scenario,
+    SetupResult,
     setup_minimal_scenario,
     setup_multi_kid_scenario,
-    SetupResult,
+    setup_scenario,
 )
 
 

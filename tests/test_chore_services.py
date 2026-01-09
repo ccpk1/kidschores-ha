@@ -16,16 +16,14 @@ correctly (treated as independent instead of shared).
 See tests/AGENT_TEST_CREATION_INSTRUCTIONS.md for patterns used.
 """
 
-# pylint: disable=protected-access, unused-argument, redefined-outer-name
-
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.util import dt as dt_util
+import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.const import (
@@ -124,7 +122,7 @@ def set_chore_due_date_to_past(
     This helper sets due dates to the past so overdue checks can be triggered.
     Handles both INDEPENDENT (per-kid) and SHARED (chore-level) due dates.
     """
-    past_date = datetime.now(timezone.utc) - timedelta(days=days_ago)
+    past_date = datetime.now(UTC) - timedelta(days=days_ago)
     past_date = past_date.replace(hour=17, minute=0, second=0, microsecond=0)
     past_date_iso = dt_util.as_utc(past_date).isoformat()
 
@@ -355,7 +353,7 @@ class TestSetChoreDueDateService:
         chore_id = setup_chore_services_scenario.chore_ids["Independent Daily Task"]
 
         # Set new due date
-        new_due_date = datetime.now(timezone.utc) + timedelta(days=3)
+        new_due_date = datetime.now(UTC) + timedelta(days=3)
         new_due_date = new_due_date.replace(hour=18, minute=0, second=0, microsecond=0)
 
         coordinator.set_chore_due_date(chore_id, new_due_date)
@@ -384,7 +382,7 @@ class TestSetChoreDueDateService:
         bob_original = get_kid_due_date_for_chore(coordinator, chore_id, bob_id)
 
         # Set new due date for Alice only
-        new_due_date = datetime.now(timezone.utc) + timedelta(days=5)
+        new_due_date = datetime.now(UTC) + timedelta(days=5)
         new_due_date = new_due_date.replace(hour=18, minute=0, second=0, microsecond=0)
 
         coordinator.set_chore_due_date(chore_id, new_due_date, kid_id=alice_id)
@@ -414,7 +412,7 @@ class TestSetChoreDueDateService:
         )
 
         # Set new due date
-        new_due_date = datetime.now(timezone.utc) + timedelta(days=2)
+        new_due_date = datetime.now(UTC) + timedelta(days=2)
         new_due_date = new_due_date.replace(hour=19, minute=0, second=0, microsecond=0)
 
         coordinator.set_chore_due_date(chore_id, new_due_date)
@@ -455,7 +453,7 @@ class TestSetChoreDueDateService:
         )
 
         # Set new due date
-        new_due_date = datetime.now(timezone.utc) + timedelta(days=4)
+        new_due_date = datetime.now(UTC) + timedelta(days=4)
         new_due_date = new_due_date.replace(hour=20, minute=0, second=0, microsecond=0)
 
         coordinator.set_chore_due_date(chore_id, new_due_date)
@@ -484,7 +482,7 @@ class TestSetChoreDueDateService:
         alice_id = setup_chore_services_scenario.kid_ids["Alice"]
         chore_id = setup_chore_services_scenario.chore_ids["Shared First Daily Task"]
 
-        new_due_date = datetime.now(timezone.utc) + timedelta(days=4)
+        new_due_date = datetime.now(UTC) + timedelta(days=4)
 
         # This SHOULD raise an error because shared_first uses chore-level due date
         # If it doesn't raise, the bug is that shared_first is being treated as independent
@@ -697,9 +695,7 @@ class TestResetOverdueChoresService:
         new_due = get_kid_due_date_for_chore(coordinator, chore_id, alice_id)
         if new_due:
             new_due_dt = datetime.fromisoformat(new_due)
-            assert new_due_dt > datetime.now(timezone.utc), (
-                "New due date should be in future"
-            )
+            assert new_due_dt > datetime.now(UTC), "New due date should be in future"
 
 
 # ============================================================================
@@ -818,7 +814,7 @@ class TestServiceHandlerValidation:
 
         # For now, just verify the coordinator handles it correctly
         # The service handler check is in services.py handle_set_chore_due_date
-        new_due_date = datetime.now(timezone.utc) + timedelta(days=2)
+        new_due_date = datetime.now(UTC) + timedelta(days=2)
 
         # Coordinator should update chore-level date (shared chore ignores kid_id)
         coordinator.set_chore_due_date(chore_id, new_due_date, kid_id=kid_id)

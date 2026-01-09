@@ -10,20 +10,23 @@ Key Features:
 - Storage management for persistent data handling.
 """
 
-# pylint: disable=protected-access  # Legitimate internal access to coordinator._persist()
+# Legitimate internal access to coordinator._persist()
 
 from __future__ import annotations
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from typing import TYPE_CHECKING
+
 from homeassistant.exceptions import ConfigEntryNotReady
 
-from . import const
-from . import flow_helpers as fh
+from . import const, flow_helpers as fh
 from .coordinator import KidsChoresDataCoordinator
 from .notification_action_handler import async_handle_notification_action
 from .services import async_setup_services, async_unload_services
 from .storage_manager import KidsChoresStorageManager
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
 
 
 async def _update_all_kid_device_names(hass: HomeAssistant, entry: ConfigEntry) -> None:

@@ -1,5 +1,5 @@
 # File: sensor.py
-# pylint: disable=protected-access  # Using private coordinator methods for state checks
+# Using private coordinator methods for state checks
 # pyright: reportIncompatibleVariableOverride=false
 # ^ Suppresses Pylance warnings about @property overriding @cached_property from base classes.
 #   This is intentional: our sensors compute dynamic values on each access (chore status, points),
@@ -63,8 +63,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_registry import async_get
 from homeassistant.util import dt as dt_util
 
-from . import const
-from . import kc_helpers as kh
+from . import const, kc_helpers as kh
 from .coordinator import KidsChoresDataCoordinator
 from .entity import KidsChoresCoordinatorEntity
 from .sensor_legacy import (
@@ -430,16 +429,13 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         # Use timestamp-based coordinator helpers for claim/approval status
         if self.coordinator.is_approved_in_current_period(self._kid_id, self._chore_id):
             return const.CHORE_STATE_APPROVED
-        elif self._chore_id in kid_info.get(
-            const.DATA_KID_COMPLETED_BY_OTHER_CHORES, []
-        ):
+        if self._chore_id in kid_info.get(const.DATA_KID_COMPLETED_BY_OTHER_CHORES, []):
             return const.CHORE_STATE_COMPLETED_BY_OTHER
-        elif self.coordinator.has_pending_claim(self._kid_id, self._chore_id):
+        if self.coordinator.has_pending_claim(self._kid_id, self._chore_id):
             return const.CHORE_STATE_CLAIMED
-        elif self.coordinator.is_overdue(self._kid_id, self._chore_id):
+        if self.coordinator.is_overdue(self._kid_id, self._chore_id):
             return const.CHORE_STATE_OVERDUE
-        else:
-            return const.CHORE_STATE_PENDING
+        return const.CHORE_STATE_PENDING
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -752,10 +748,9 @@ class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
         current_points = self.native_value or 0
         if current_points >= 100:
             return "mdi:star"
-        elif current_points >= 50:
+        if current_points >= 50:
             return "mdi:star-half-full"
-        else:
-            return "mdi:star-outline"
+        return "mdi:star-outline"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -904,11 +899,10 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
         cumulative_badge_progress_info = kid_info.get(
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {}
         )
-        highest_badge_name = cumulative_badge_progress_info.get(
+        return cumulative_badge_progress_info.get(
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_NAME,
             const.SENTINEL_NONE_TEXT,
         )
-        return highest_badge_name
 
     @property
     def icon(self):
@@ -922,10 +916,7 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.SENTINEL_NONE_TEXT,
         )
         highest_badge_info = self.coordinator.badges_data.get(highest_badge_id, {})
-        highest_badge_icon = highest_badge_info.get(
-            const.DATA_BADGE_ICON, const.DEFAULT_TROPHY_ICON
-        )
-        return highest_badge_icon
+        return highest_badge_info.get(const.DATA_BADGE_ICON, const.DEFAULT_TROPHY_ICON)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -1090,10 +1081,7 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
                     badge_entity_ids[attr_name] = None
                     continue
                 # Look up the SystemBadgeSensor entity ID (badge definition)
-                unique_id = (
-                    f"{self._entry.entry_id}_{badge_id}"
-                    f"{const.SENSOR_KC_UID_SUFFIX_BADGE_SENSOR}"
-                )
+                unique_id = f"{self._entry.entry_id}_{badge_id}{const.SENSOR_KC_UID_SUFFIX_BADGE_SENSOR}"
                 entity_id = entity_registry.async_get_entity_id(
                     "sensor", const.DOMAIN, unique_id
                 )
@@ -1739,7 +1727,7 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         except (KeyError, ValueError, AttributeError):
             pass
 
-        attributes = {
+        return {
             const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_REWARD_STATUS,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_REWARD_NAME: self._reward_name,
@@ -1762,8 +1750,6 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_REWARD_APPROVE_BUTTON_ENTITY_ID: approve_button_eid,
             const.ATTR_REWARD_DISAPPROVE_BUTTON_ENTITY_ID: disapprove_button_eid,
         }
-
-        return attributes
 
     @property
     def icon(self) -> str:
@@ -2734,7 +2720,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         # Get next Monday in local time and set to 7am
         next_monday = cast(
-            datetime,
+            "datetime",
             kh.get_next_applicable_day(
                 dt_util.utcnow(),
                 applicable_days=[0],
@@ -3037,17 +3023,10 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             }
         """
         # Datetime helper uses SUFFIX pattern: entry_id_kid_id + SUFFIX
-        datetime_unique_id = (
-            f"{self._entry.entry_id}_{self._kid_id}"
-            f"{const.DATETIME_KC_UID_SUFFIX_DATE_HELPER}"
-        )
+        datetime_unique_id = f"{self._entry.entry_id}_{self._kid_id}{const.DATETIME_KC_UID_SUFFIX_DATE_HELPER}"
 
         # Select helper uses MIDFIX pattern: entry_id + MIDFIX + kid_id
-        select_unique_id = (
-            f"{self._entry.entry_id}"
-            f"{const.SELECT_KC_UID_MIDFIX_CHORES_SELECT}"
-            f"{self._kid_id}"
-        )
+        select_unique_id = f"{self._entry.entry_id}{const.SELECT_KC_UID_MIDFIX_CHORES_SELECT}{self._kid_id}"
 
         dashboard_helpers = {}
 

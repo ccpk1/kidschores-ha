@@ -10,14 +10,12 @@ Priority: P2 HIGH (Potential bug in Use Case 5.4)
 Coverage: coordinator.approve_chore() and _reschedule_* methods
 """
 
-# pylint: disable=protected-access,redefined-outer-name,unused-argument,fixme
-
 from datetime import timedelta
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.const import (
@@ -34,10 +32,7 @@ from custom_components.kidschores.const import (
     FREQUENCY_NONE,
 )
 from custom_components.kidschores.migration_pre_v50 import PreV50Migrator
-from tests.legacy.conftest import (
-    is_chore_approved_for_kid,
-    reset_chore_state_for_kid,
-)
+from tests.legacy.conftest import is_chore_approved_for_kid, reset_chore_state_for_kid
 
 # ============================================================================
 # Test: Recurring INDEPENDENT Approval - Per-Kid Rescheduling

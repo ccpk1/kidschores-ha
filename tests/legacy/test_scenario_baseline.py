@@ -10,15 +10,11 @@ Test Organization:
     - Dashboard Helper Validation: Sensor attributes populated correctly
 """
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.kidschores.const import (
-    CHORE_STATE_APPROVED,
-    COORDINATOR,
-    DOMAIN,
-)
+from custom_components.kidschores.const import CHORE_STATE_APPROVED, COORDINATOR, DOMAIN
 
 # ============================================================================
 # Test Group: Scenario Structure Validation
@@ -267,7 +263,7 @@ async def test_dashboard_helper_sensor_exists(
 )
 async def test_dashboard_helper_chores_attribute(
     hass: HomeAssistant,
-    scenario_minimal: tuple[MockConfigEntry, dict[str, str]],  # pylint: disable=unused-argument
+    scenario_minimal: tuple[MockConfigEntry, dict[str, str]],
 ) -> None:
     """Test dashboard helper chores attribute populated.
 
@@ -301,7 +297,7 @@ async def test_dashboard_helper_chores_attribute(
 )
 async def test_dashboard_helper_ui_translations(
     hass: HomeAssistant,
-    scenario_minimal: tuple[MockConfigEntry, dict[str, str]],  # pylint: disable=unused-argument
+    scenario_minimal: tuple[MockConfigEntry, dict[str, str]],
 ) -> None:
     """Test dashboard helper ui_translations dict loaded.
 

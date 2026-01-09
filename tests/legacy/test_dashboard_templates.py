@@ -5,14 +5,14 @@ with integration data, ensuring frontend compatibility.
 """
 
 # pylint: disable=redefined-outer-name  # pytest fixtures redefine names
-# pylint: disable=unused-argument  # fixtures needed for test setup
+# fixtures needed for test setup
 
 from datetime import timedelta
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.template import Template
 from homeassistant.util import dt as dt_util
+import pytest
 
 
 @pytest.fixture

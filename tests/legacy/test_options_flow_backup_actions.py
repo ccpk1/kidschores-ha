@@ -10,13 +10,13 @@ This test suite validates all backup-related functionality in the options flow:
 
 # pylint: disable=redefined-outer-name  # Pytest fixtures shadow names
 
+from datetime import UTC, datetime, timedelta
 import json
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kidschores.const import (
@@ -34,12 +34,12 @@ from custom_components.kidschores.const import (
 # Test data: sample backup files
 def create_mock_backup(
     tag: str,
-    timestamp: str = None,
+    timestamp: str | None = None,
     days_ago: int = 0,
 ) -> dict:
     """Create a mock backup file dict."""
     if timestamp is None:
-        now = datetime.now(timezone.utc) - timedelta(days=days_ago)
+        now = datetime.now(UTC) - timedelta(days=days_ago)
         timestamp = now.isoformat()
 
     filename = f"kidschores_data_{days_ago}d_{tag}.json"
@@ -77,7 +77,7 @@ def mock_backups_storage(tmp_path: Path) -> Path:
 
 
 async def test_backup_action_selection_visible_in_form(
-    hass: HomeAssistant,  # pylint: disable=unused-argument
+    hass: HomeAssistant,
     init_integration: MockConfigEntry,
 ) -> None:
     """Test that backup action selection field is visible in general options.
@@ -118,7 +118,7 @@ async def test_backup_action_selection_visible_in_form(
 
 
 async def test_delete_backup_loads_backup_list(
-    hass: HomeAssistant,  # pylint: disable=unused-argument
+    hass: HomeAssistant,
     init_integration: MockConfigEntry,
 ) -> None:
     """Test delete backup flow loads backup list with proper async/await handling.
@@ -160,7 +160,7 @@ async def test_delete_backup_loads_backup_list(
 
 
 async def test_backup_cleanup_recovery_tags(
-    hass: HomeAssistant,  # pylint: disable=unused-argument
+    hass: HomeAssistant,
 ) -> None:
     """Test backup cleanup properly handles recovery tag backups.
 
@@ -179,7 +179,7 @@ async def test_backup_cleanup_recovery_tags(
 
 
 async def test_backup_cleanup_reset_tags(
-    hass: HomeAssistant,  # pylint: disable=unused-argument
+    hass: HomeAssistant,
 ) -> None:
     """Test backup cleanup properly handles reset tag backups.
 
@@ -195,7 +195,7 @@ async def test_backup_cleanup_reset_tags(
 
 
 async def test_backup_cleanup_respects_max_retained(
-    hass: HomeAssistant,  # pylint: disable=unused-argument
+    hass: HomeAssistant,
 ) -> None:
     """Test backup cleanup respects max_backups_retained per tag.
 
@@ -211,7 +211,7 @@ async def test_backup_cleanup_respects_max_retained(
 
 
 async def test_restore_backup_from_options_validates_backup_list(
-    hass: HomeAssistant,  # pylint: disable=unused-argument
+    hass: HomeAssistant,
     init_integration: MockConfigEntry,
 ) -> None:
     """Test restore backup validates backup list type.
@@ -244,7 +244,7 @@ async def test_restore_backup_from_options_validates_backup_list(
 
 
 async def test_backup_action_selection_all_options_available(
-    hass: HomeAssistant,  # pylint: disable=unused-argument
+    hass: HomeAssistant,
     init_integration: MockConfigEntry,
 ) -> None:
     """Test all backup action options are available in selection.
@@ -273,7 +273,7 @@ async def test_backup_action_selection_all_options_available(
 
 
 @pytest.mark.parametrize(
-    "backup_tag,days_ago",
+    ("backup_tag", "days_ago"),
     [
         (BACKUP_TAG_RECOVERY, 0),
         (BACKUP_TAG_RECOVERY, 5),
@@ -283,7 +283,7 @@ async def test_backup_action_selection_all_options_available(
     ],
 )
 async def test_backup_file_creation_with_tags(
-    hass: HomeAssistant,  # pylint: disable=unused-argument
+    hass: HomeAssistant,
     backup_tag: str,
     days_ago: int,
 ) -> None:
@@ -305,7 +305,7 @@ async def test_backup_file_creation_with_tags(
 
 
 async def test_backup_cleanup_mixed_tags(
-    hass: HomeAssistant,  # pylint: disable=unused-argument
+    hass: HomeAssistant,
 ) -> None:
     """Test backup cleanup with mixed tag types.
 

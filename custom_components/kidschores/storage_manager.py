@@ -8,12 +8,14 @@ badges, rewards, penalties, and their statuses.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
 from . import const
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
 
 
 class KidsChoresStorageManager:

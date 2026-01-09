@@ -4,8 +4,7 @@ Tests validate that config flow and options flow use the same centralized
 helper functions for parents configuration, ensuring consistency.
 """
 
-from custom_components.kidschores import const
-from custom_components.kidschores import flow_helpers as fh
+from custom_components.kidschores import const, flow_helpers as fh
 
 
 def test_build_parents_data_with_all_values() -> None:

@@ -83,24 +83,22 @@ import datetime
 import json
 import os
 import shutil
+from typing import Any
 import uuid
-from typing import Any, Dict, Optional, Tuple
 
-import voluptuous as vol
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers import selector
+from homeassistant.helpers import config_validation as cv, selector
 from homeassistant.util import dt as dt_util
+import voluptuous as vol
 
-from . import const
-from . import kc_helpers as kh
+from . import const, kc_helpers as kh
 
 # ----------------------------------------------------------------------------------
 # HELPER FUNCTIONS
 # ----------------------------------------------------------------------------------
 
 
-def _build_notification_defaults(default: Dict[str, Any]) -> list[str]:
+def _build_notification_defaults(default: dict[str, Any]) -> list[str]:
     """Build default notification options from config.
 
     Args:
@@ -147,7 +145,7 @@ def build_points_schema(
     )
 
 
-def build_points_data(user_input: Dict[str, Any]) -> Dict[str, Any]:
+def build_points_data(user_input: dict[str, Any]) -> dict[str, Any]:
     """Build points configuration data from user input.
 
     Converts form input (CONF_* keys) to system settings format.
@@ -168,7 +166,7 @@ def build_points_data(user_input: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def validate_points_inputs(user_input: Dict[str, Any]) -> Dict[str, str]:
+def validate_points_inputs(user_input: dict[str, Any]) -> dict[str, str]:
     """Validate points configuration inputs.
 
     Args:
@@ -208,8 +206,9 @@ async def build_kid_schema(
         {"value": user.id, "label": user.name} for user in users
     ]
     notify_options = [
-        {"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}
-    ] + _get_notify_services(hass)
+        {"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE},
+        *_get_notify_services(hass),
+    ]
 
     # Get available dashboard languages
     language_options = await kh.get_available_dashboard_languages(hass)
@@ -259,9 +258,10 @@ async def build_kid_schema(
 
 
 def build_kids_data(
-    user_input: Dict[str, Any],
-    existing_kids: Dict[str, Any] = None,  # pylint: disable=unused-argument  # Reserved for API consistency with validate_kids_inputs
-) -> Dict[str, Any]:
+    user_input: dict[str, Any],
+    existing_kids: dict[str, Any]
+    | None = None,  # Reserved for API consistency with validate_kids_inputs
+) -> dict[str, Any]:
     """Build kid data from user input.
 
     Converts form input (CFOF_* keys) to storage format (DATA_* keys).
@@ -305,8 +305,8 @@ def build_kids_data(
 
 
 def validate_kids_inputs(
-    user_input: Dict[str, Any], existing_kids: Dict[str, Any] = None
-) -> Dict[str, str]:
+    user_input: dict[str, Any], existing_kids: dict[str, Any] | None = None
+) -> dict[str, str]:
     """Validate kid configuration inputs.
 
     Args:
@@ -360,8 +360,9 @@ def build_parent_schema(
         {"value": kid_id, "label": kid_name} for kid_name, kid_id in kids_dict.items()
     ]
     notify_options = [
-        {"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}
-    ] + _get_notify_services(hass)
+        {"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE},
+        *_get_notify_services(hass),
+    ]
 
     return vol.Schema(
         {
@@ -411,9 +412,10 @@ def build_parent_schema(
 
 
 def build_parents_data(
-    user_input: Dict[str, Any],
-    existing_parents: Dict[str, Any] = None,  # pylint: disable=unused-argument  # Reserved for API consistency with validate_parents_inputs
-) -> Dict[str, Any]:
+    user_input: dict[str, Any],
+    existing_parents: dict[str, Any]
+    | None = None,  # Reserved for API consistency with validate_parents_inputs
+) -> dict[str, Any]:
     """Build parent data from user input.
 
     Converts form input (CFOF_* keys) to storage format (DATA_* keys).
@@ -457,8 +459,8 @@ def build_parents_data(
 
 
 def validate_parents_inputs(
-    user_input: Dict[str, Any], existing_parents: Dict[str, Any] = None
-) -> Dict[str, str]:
+    user_input: dict[str, Any], existing_parents: dict[str, Any] | None = None
+) -> dict[str, str]:
     """Validate parent configuration inputs.
 
     Args:
@@ -692,11 +694,11 @@ def build_chore_schema(kids_dict, default=None):
 
 
 def build_chores_data(
-    user_input: Dict[str, Any],
-    kids_dict: Dict[str, Any],
-    existing_chores: Dict[str, Any] = None,
-    existing_per_kid_due_dates: Dict[str, str | None] = None,
-) -> tuple[Dict[str, Any], Dict[str, str]]:
+    user_input: dict[str, Any],
+    kids_dict: dict[str, Any],
+    existing_chores: dict[str, Any] | None = None,
+    existing_per_kid_due_dates: dict[str, str | None] | None = None,
+) -> tuple[dict[str, Any], dict[str, str]]:
     """Build chore data from user input with validation.
 
     Converts form input (CFOF_* keys) to storage format (DATA_* keys).
@@ -947,10 +949,10 @@ def build_chores_data(
 
 # --- Consolidated Build Function ---
 def build_badge_common_data(
-    user_input: Dict[str, Any],
+    user_input: dict[str, Any],
     internal_id: str,  # Pass internal_id explicitly
     badge_type: str = const.BADGE_TYPE_CUMULATIVE,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Build the badge data dictionary, including common fields and selected components.
 
@@ -1155,14 +1157,14 @@ def build_badge_common_data(
 
 
 def validate_badge_common_inputs(
-    user_input: Dict[str, Any],
-    internal_id: Optional[str],
-    existing_badges: Optional[Dict[str, Any]] = None,
-    rewards_dict: Optional[Dict[str, Any]] = None,
-    bonuses_dict: Optional[Dict[str, Any]] = None,
-    penalties_dict: Optional[Dict[str, Any]] = None,
+    user_input: dict[str, Any],
+    internal_id: str | None,
+    existing_badges: dict[str, Any] | None = None,
+    rewards_dict: dict[str, Any] | None = None,
+    bonuses_dict: dict[str, Any] | None = None,
+    penalties_dict: dict[str, Any] | None = None,
     badge_type: str = const.BADGE_TYPE_CUMULATIVE,
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Validate common badge inputs and selected component inputs.
 
@@ -1176,7 +1178,7 @@ def validate_badge_common_inputs(
     Returns:
         A dictionary of validation errors {field_key: error_message}.
     """
-    errors: Dict[str, str] = {}
+    errors: dict[str, str] = {}
     existing_badges = existing_badges or {}
 
     rewards_dict = rewards_dict or {}
@@ -1364,17 +1366,17 @@ def validate_badge_common_inputs(
             if rewards_dict:
                 award_items_valid_values += [
                     f"{const.AWARD_ITEMS_PREFIX_REWARD}{reward_id}"
-                    for reward_id in rewards_dict.keys()
+                    for reward_id in rewards_dict
                 ]
             if bonuses_dict:
                 award_items_valid_values += [
                     f"{const.AWARD_ITEMS_PREFIX_BONUS}{bonus_id}"
-                    for bonus_id in bonuses_dict.keys()
+                    for bonus_id in bonuses_dict
                 ]
             if penalties_dict:
                 award_items_valid_values += [
                     f"{const.AWARD_ITEMS_PREFIX_PENALTY}{penalty_id}"
-                    for penalty_id in penalties_dict.keys()
+                    for penalty_id in penalties_dict
                 ]
 
         # 1. POINTS: logic
@@ -1490,16 +1492,16 @@ def validate_badge_common_inputs(
 
 
 def build_badge_common_schema(
-    default: Optional[Dict[str, Any]] = None,
-    kids_dict: Optional[Dict[str, Any]] = None,
-    chores_dict: Optional[Dict[str, Any]] = None,
-    rewards_dict: Optional[Dict[str, Any]] = None,
-    challenges_dict: Optional[Dict[str, Any]] = None,
-    achievements_dict: Optional[Dict[str, Any]] = None,
-    bonuses_dict: Optional[Dict[str, Any]] = None,
-    penalties_dict: Optional[Dict[str, Any]] = None,
+    default: dict[str, Any] | None = None,
+    kids_dict: dict[str, Any] | None = None,
+    chores_dict: dict[str, Any] | None = None,
+    rewards_dict: dict[str, Any] | None = None,
+    challenges_dict: dict[str, Any] | None = None,
+    achievements_dict: dict[str, Any] | None = None,
+    bonuses_dict: dict[str, Any] | None = None,
+    penalties_dict: dict[str, Any] | None = None,
     badge_type: str = const.BADGE_TYPE_CUMULATIVE,
-) -> Dict[vol.Marker, Any]:
+) -> dict[vol.Marker, Any]:
     """
     Build a Voluptuous schema for badge configuration, including common fields
     and selected components.
@@ -2193,9 +2195,10 @@ def build_reward_schema(default=None):
 
 
 def build_rewards_data(
-    user_input: Dict[str, Any],
-    existing_rewards: Dict[str, Any] = None,  # pylint: disable=unused-argument  # Reserved for API consistency with validate_rewards_inputs
-) -> Dict[str, Any]:
+    user_input: dict[str, Any],
+    existing_rewards: dict[str, Any]
+    | None = None,  # Reserved for API consistency with validate_rewards_inputs
+) -> dict[str, Any]:
     """Build reward data from user input.
 
     Converts form input (CFOF_* keys) to storage format (DATA_* keys).
@@ -2229,8 +2232,8 @@ def build_rewards_data(
 
 
 def validate_rewards_inputs(
-    user_input: Dict[str, Any], existing_rewards: Dict[str, Any] = None
-) -> Dict[str, str]:
+    user_input: dict[str, Any], existing_rewards: dict[str, Any] | None = None
+) -> dict[str, str]:
     """Validate reward configuration inputs.
 
     Args:
@@ -2311,9 +2314,10 @@ def build_bonus_schema(default=None):
 
 
 def build_bonuses_data(
-    user_input: Dict[str, Any],
-    existing_bonuses: Dict[str, Any] = None,  # pylint: disable=unused-argument  # Reserved for API consistency with validate_bonuses_inputs
-) -> Dict[str, Any]:
+    user_input: dict[str, Any],
+    existing_bonuses: dict[str, Any]
+    | None = None,  # Reserved for API consistency with validate_bonuses_inputs
+) -> dict[str, Any]:
     """Build bonus data from user input.
 
     Converts form input (CFOF_* keys) to storage format (DATA_* keys).
@@ -2349,8 +2353,8 @@ def build_bonuses_data(
 
 
 def validate_bonuses_inputs(
-    user_input: Dict[str, Any], existing_bonuses: Dict[str, Any] = None
-) -> Dict[str, str]:
+    user_input: dict[str, Any], existing_bonuses: dict[str, Any] | None = None
+) -> dict[str, str]:
     """Validate bonus configuration inputs.
 
     Args:
@@ -2435,9 +2439,10 @@ def build_penalty_schema(default=None):
 
 
 def build_penalties_data(
-    user_input: Dict[str, Any],
-    existing_penalties: Dict[str, Any] = None,  # pylint: disable=unused-argument  # Reserved for API consistency with validate_penalties_inputs
-) -> Dict[str, Any]:
+    user_input: dict[str, Any],
+    existing_penalties: dict[str, Any]
+    | None = None,  # Reserved for API consistency with validate_penalties_inputs
+) -> dict[str, Any]:
     """Build penalty data from user input.
 
     Converts form input (CFOF_* keys) to storage format (DATA_* keys).
@@ -2473,8 +2478,8 @@ def build_penalties_data(
 
 
 def validate_penalties_inputs(
-    user_input: Dict[str, Any], existing_penalties: Dict[str, Any] = None
-) -> Dict[str, str]:
+    user_input: dict[str, Any], existing_penalties: dict[str, Any] | None = None
+) -> dict[str, str]:
     """Validate penalty configuration inputs.
 
     Args:
@@ -2509,10 +2514,10 @@ def validate_penalties_inputs(
 
 
 def build_achievements_data(
-    user_input: Dict[str, Any],
-    existing_achievements: Dict[str, Any] = None,
-    kids_name_to_id: Dict[str, str] = None,
-) -> Tuple[Dict[str, Any], Dict[str, str]]:
+    user_input: dict[str, Any],
+    existing_achievements: dict[str, Any] | None = None,
+    kids_name_to_id: dict[str, str] | None = None,
+) -> tuple[dict[str, Any], dict[str, str]]:
     """Build achievement data from user input with integrated validation.
 
     This uses the complex pattern (returns tuple) because achievements have
@@ -2617,7 +2622,7 @@ def build_challenges_data(
     kids_data: dict,
     existing_challenges: dict | None = None,
     current_id: str | None = None,
-) -> Tuple[dict | None, dict]:
+) -> tuple[dict | None, dict]:
     """Build challenge data dict from user input with integrated validation.
 
     Returns: (data_dict, errors_dict) tuple
@@ -3022,7 +3027,7 @@ def build_challenge_schema(kids_dict, chores_dict, default=None):
 # ----------------------------------------------------------------------------------
 
 
-def build_general_options_schema(default: Optional[dict] = None) -> vol.Schema:
+def build_general_options_schema(default: dict | None = None) -> vol.Schema:
     """Build schema for general options including points adjust values and update interval."""
     default = default or {}
     current_values = default.get(const.CFOF_SYSTEM_INPUT_POINTS_ADJUST_VALUES)
@@ -3203,7 +3208,7 @@ def _get_notify_services(hass: HomeAssistant) -> list[dict[str, str]]:
     services_list = []
     all_services = hass.services.async_services()
     if const.NOTIFY_DOMAIN in all_services:
-        for service_name in all_services[const.NOTIFY_DOMAIN].keys():
+        for service_name in all_services[const.NOTIFY_DOMAIN]:
             fullname = f"{const.NOTIFY_DOMAIN}.{service_name}"
             services_list.append({"value": fullname, "label": fullname})
     return services_list
@@ -3265,7 +3270,7 @@ async def create_timestamped_backup(
 async def cleanup_old_backups(
     hass: HomeAssistant,
     storage_manager,
-    max_backups: int,  # pylint: disable=unused-argument
+    max_backups: int,
 ) -> None:
     """Delete old backups beyond max_backups limit per tag.
 
@@ -3342,7 +3347,7 @@ async def cleanup_old_backups(
         const.LOGGER.error("Failed during backup cleanup: %s", ex)
 
 
-async def discover_backups(hass: HomeAssistant, storage_manager) -> list[dict]:  # pylint: disable=unused-argument
+async def discover_backups(hass: HomeAssistant, storage_manager) -> list[dict]:
     """Scan .storage/ directory for backup files and return metadata list.
 
     Args:
@@ -3402,7 +3407,7 @@ async def discover_backups(hass: HomeAssistant, storage_manager) -> list[dict]: 
                 timestamp_str_clean = f"{date_part} {time_part_clean}"
                 timestamp = datetime.datetime.strptime(
                     timestamp_str_clean, "%Y-%m-%d %H:%M:%S"
-                ).replace(tzinfo=datetime.timezone.utc)
+                ).replace(tzinfo=datetime.UTC)
 
                 # Calculate age
                 age_hours = (dt_util.utcnow() - timestamp).total_seconds() / 3600

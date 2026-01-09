@@ -10,14 +10,12 @@ Tests approval workflow for INDEPENDENT chores with per-kid due dates:
 Priority: P1 CRITICAL (user "especially interested in approval resets")
 """
 
-# pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
-# pylint: disable=unused-argument
 
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import Context, HomeAssistant
+import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.const import (
@@ -29,8 +27,8 @@ from custom_components.kidschores.const import (
 )
 from custom_components.kidschores.migration_pre_v50 import PreV50Migrator
 from tests.legacy.conftest import (
-    create_test_datetime,  # is_chore_* helpers not used here
-)
+    create_test_datetime,
+)  # is_chore_* helpers not used here
 
 
 @pytest.mark.skip(

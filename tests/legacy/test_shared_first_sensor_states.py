@@ -9,20 +9,16 @@ This catches the bug where the sensor's native_value wasn't checking for
 the completed_by_other state, causing non-claiming kids to show "pending".
 """
 
-# pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.util import slugify
+import pytest
 
 from custom_components.kidschores import const
-from tests.legacy.conftest import (
-    create_test_datetime,
-    reload_entity_platforms,
-)
+from tests.legacy.conftest import create_test_datetime, reload_entity_platforms
 
 
 @pytest.mark.asyncio
@@ -97,7 +93,7 @@ async def test_shared_first_claim_updates_all_sensors(
 
             # Verify coordinator data directly first (sanity check)
             chore_info = coordinator.chores_data[chore_id]
-            _zoe_info = coordinator.kids_data[zoe_id]  # noqa: F841
+            _zoe_info = coordinator.kids_data[zoe_id]
             max_info = coordinator.kids_data[max_id]
             lila_info = coordinator.kids_data[lila_id]
 
@@ -164,8 +160,8 @@ async def test_shared_first_approval_updates_all_sensors(
 
     # Get kids
     zoe_id = name_to_id_map["kid:Zoë"]
-    _max_id = name_to_id_map["kid:Max!"]  # noqa: F841
-    _lila_id = name_to_id_map["kid:Lila"]  # noqa: F841
+    _max_id = name_to_id_map["kid:Max!"]
+    _lila_id = name_to_id_map["kid:Lila"]
 
     # Get SHARED_FIRST chore
     chore_id = name_to_id_map["chore:Täke Öut Trash"]
@@ -231,7 +227,7 @@ async def test_shared_first_disapproval_resets_sensors(
 
     # Get kids
     zoe_id = name_to_id_map["kid:Zoë"]
-    _max_id = name_to_id_map["kid:Max!"]  # noqa: F841
+    _max_id = name_to_id_map["kid:Max!"]
 
     # Get SHARED_FIRST chore
     chore_id = name_to_id_map["chore:Täke Öut Trash"]

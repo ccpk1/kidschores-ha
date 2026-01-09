@@ -5,8 +5,6 @@ Validates that badge_progress is proactively initialized when badges are assigne
 to kids, ensuring KidBadgeSensor entities are always created.
 """
 
-# pylint: disable=protected-access
-
 from typing import Any
 
 from homeassistant.core import HomeAssistant

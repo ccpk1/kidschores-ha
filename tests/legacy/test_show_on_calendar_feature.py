@@ -9,18 +9,17 @@ Test Strategy:
     - Test migration logic for existing chores
 """
 
-# pylint: disable=protected-access  # Accessing _persist for testing
-# pylint: disable=too-many-locals  # Test functions need many variables for setup
-# pylint: disable=unused-argument  # hass_client required by fixture pattern
+# Accessing _persist for testing
+# hass_client required by fixture pattern
 
 from datetime import datetime
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
-import pytest
 from freezegun import freeze_time
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.typing import ClientSessionGenerator
 

@@ -78,8 +78,9 @@ def test_bonus_button_suffix_stripping() -> None:
         entity_slug = slugified_name
 
         # Strip redundant _bonus suffix if present
-        if entity_slug.endswith("_bonus"):
-            entity_slug = entity_slug[:-6]  # Remove last 6 chars: "_bonus"
+        entity_slug = entity_slug.removesuffix(
+            "_bonus"
+        )  # Remove last 6 chars: "_bonus"
 
         entity_id = f"{const.BUTTON_KC_PREFIX}{kid_slug}{const.BUTTON_KC_EID_MIDFIX_BONUS}{entity_slug}"
 

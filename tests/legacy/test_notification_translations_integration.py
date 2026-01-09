@@ -14,14 +14,14 @@ not config flow setup (see test_config_flow_fresh_start.py for that).
 
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
 from custom_components.kidschores import const
 
 
-def load_notification_translations() -> Dict[str, Any]:
+def load_notification_translations() -> dict[str, Any]:
     """Load notification translations from JSON file dynamically.
 
     Returns:
@@ -38,7 +38,7 @@ def load_notification_translations() -> Dict[str, Any]:
     if not translations_path.exists():
         raise FileNotFoundError(f"Translation file not found: {translations_path}")
 
-    with open(translations_path, "r", encoding="utf-8") as f:
+    with open(translations_path, encoding="utf-8") as f:
         translations = json.load(f)
 
     if "actions" not in translations:
@@ -47,7 +47,7 @@ def load_notification_translations() -> Dict[str, Any]:
     return translations["actions"]
 
 
-def get_expected_action_titles() -> Dict[str, str]:
+def get_expected_action_titles() -> dict[str, str]:
     """Get expected action button titles from translation file.
 
     Returns:

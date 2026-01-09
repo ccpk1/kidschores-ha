@@ -13,17 +13,17 @@ Priority: P1 CRITICAL
 Coverage: Options flow per-kid dates step, timezone handling, storage format
 """
 
-# pylint: disable=protected-access  # Accessing coordinator._persist for testing
+# Accessing coordinator._persist for testing
 # pylint: disable=redefined-outer-name  # Pytest fixtures redefine names
-# pylint: disable=unused-argument  # Fixtures needed for test setup
+# Fixtures needed for test setup
 # pylint: disable=unused-variable  # name_to_id_map unpacking
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-import pytest
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kidschores import const
@@ -125,11 +125,10 @@ async def _navigate_to_edit_chore(
         result.get("flow_id"),
         user_input={OPTIONS_FLOW_INPUT_MANAGE_ACTION: OPTIONS_FLOW_ACTIONS_EDIT},
     )
-    result = await hass.config_entries.options.async_configure(
+    return await hass.config_entries.options.async_configure(
         result.get("flow_id"),
         user_input={OPTIONS_FLOW_INPUT_ENTITY_NAME: chore_name},
     )
-    return result
 
 
 # =============================================================================
@@ -176,7 +175,7 @@ async def test_edit_independent_chore_shows_per_kid_dates_step(
     # Verify form has fields for all 3 kids
     data_schema = result.get("data_schema")
     assert data_schema is not None
-    schema_keys = [str(k) for k in data_schema.schema.keys()]
+    schema_keys = [str(k) for k in data_schema.schema]
     assert any("Zoë" in key for key in schema_keys)
     assert any("Max!" in key for key in schema_keys)
     assert any("Lila" in key for key in schema_keys)
@@ -276,7 +275,7 @@ async def test_per_kid_dates_saved_in_utc(
         parsed = datetime.fromisoformat(zoe_date)
         assert parsed.tzinfo is not None  # Must be timezone-aware
         # Should be normalized to UTC
-        assert parsed.tzinfo == timezone.utc or parsed.utcoffset().total_seconds() == 0
+        assert parsed.tzinfo == UTC or parsed.utcoffset().total_seconds() == 0
 
 
 # =============================================================================

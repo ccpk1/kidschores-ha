@@ -11,18 +11,17 @@ Can be run as:
 - python tests/test_datetime_helpers_comprehensive.py
 """
 
-# pylint: disable=protected-access  # Accessing internal helpers for testing
+# Accessing internal helpers for testing
 # pylint: disable=redefined-outer-name  # Pytest fixtures shadow names
-# pylint: disable=unused-argument  # Some test fixtures required for setup
+# Some test fixtures required for setup
 
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-import pytest
 from homeassistant.util import dt as dt_util
+import pytest
 
-from custom_components.kidschores import const
-from custom_components.kidschores import kc_helpers as kh
+from custom_components.kidschores import const, kc_helpers as kh
 
 # ============================================================================
 # Test Fixtures

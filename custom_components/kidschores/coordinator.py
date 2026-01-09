@@ -9,15 +9,14 @@ Manages entities primarily using internal_id for consistency.
 # Pylint suppressions for valid coordinator architectural patterns:
 # - too-many-lines: Complex coordinators legitimately need comprehensive logic
 # - too-many-public-methods: Each service/feature requires its own public method
-# pylint: disable=too-many-lines,too-many-public-methods
 
 import asyncio
-import sys
-import time
-import uuid
 from calendar import monthrange
 from datetime import date, datetime, timedelta
-from typing import Any, Optional, cast
+import sys
+import time
+from typing import Any, cast
+import uuid
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -27,8 +26,7 @@ from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from . import const
-from . import kc_helpers as kh
+from . import const, kc_helpers as kh
 from .notification_helper import async_send_notification
 from .storage_manager import KidsChoresStorageManager
 
@@ -97,7 +95,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         INDEPENDENT chores they're assigned to.
         """
         chores_data = self._data.get(const.DATA_CHORES, {})
-        for _, chore_info in chores_data.items():
+        for chore_info in chores_data.values():
             # Only process INDEPENDENT chores
             if (
                 chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
@@ -127,7 +125,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         Template due date remains unchanged; only per-kid entry is deleted.
         """
         chores_data = self._data.get(const.DATA_CHORES, {})
-        for _, chore_info in chores_data.items():
+        for chore_info in chores_data.values():
             # Only process INDEPENDENT chores
             if (
                 chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
@@ -178,7 +176,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             self.async_update_listeners()
 
             return self._data
-        except Exception as err:  # pylint: disable=broad-exception-caught
+        except Exception as err:
             raise UpdateFailed(f"Error updating KidsChores data: {err}") from err
 
     async def async_config_entry_first_refresh(self):
@@ -305,7 +303,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self._update_chore_badge_references_for_kid()
 
         # Initialize chore and point stats
-        for kid_id, _ in self.kids_data.items():
+        for kid_id in self.kids_data:
             self._recalculate_chore_stats_for_kid(kid_id)
             self._recalculate_point_stats_for_kid(kid_id)
 
@@ -404,7 +402,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             entity_kid_id = None
             entity_chore_id = None
 
-            for chore_id in self.chores_data.keys():
+            for chore_id in self.chores_data:
                 if chore_id in core:
                     # Found chore_id, now extract kid_id
                     parts = core.split(f"_{chore_id}")
@@ -711,7 +709,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     entity_entry.unique_id,
                 )
 
-    # pylint: disable=too-many-locals,too-many-branches
     def remove_deprecated_button_entities(self) -> None:
         """Remove dynamic button entities that are not present in the current configuration."""
         ent_reg = er.async_get(self.hass)
@@ -731,8 +728,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # --- Reward Buttons ---
         # For each kid and reward, add expected unique IDs for reward claim, approve, and disapprove buttons.
-        for kid_id in self.kids_data.keys():
-            for reward_id in self.rewards_data.keys():
+        for kid_id in self.kids_data:
+            for reward_id in self.rewards_data:
                 # The reward claim button might be built with a dedicated prefix:
                 uid_claim = f"{self.config_entry.entry_id}_{const.BUTTON_REWARD_PREFIX}{kid_id}_{reward_id}"
                 uid_approve = f"{self.config_entry.entry_id}_{kid_id}_{reward_id}{const.BUTTON_KC_UID_SUFFIX_APPROVE_REWARD}"
@@ -740,14 +737,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 allowed_uids.update({uid_claim, uid_approve, uid_disapprove})
 
         # --- Penalty Buttons ---
-        for kid_id in self.kids_data.keys():
-            for penalty_id in self.penalties_data.keys():
+        for kid_id in self.kids_data:
+            for penalty_id in self.penalties_data:
                 uid = f"{self.config_entry.entry_id}_{const.BUTTON_PENALTY_PREFIX}{kid_id}_{penalty_id}"
                 allowed_uids.add(uid)
 
         # --- Bonus Buttons ---
-        for kid_id in self.kids_data.keys():
-            for bonus_id in self.bonuses_data.keys():
+        for kid_id in self.kids_data:
+            for bonus_id in self.bonuses_data:
                 uid = f"{self.config_entry.entry_id}_{const.BUTTON_BONUS_PREFIX}{kid_id}_{bonus_id}"
                 allowed_uids.add(uid)
 
@@ -768,7 +765,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         else:
             points_adjust_values = const.DEFAULT_POINTS_ADJUST_VALUES
 
-        for kid_id in self.kids_data.keys():
+        for kid_id in self.kids_data:
             for delta in points_adjust_values:
                 uid = f"{self.config_entry.entry_id}_{kid_id}{const.BUTTON_KC_UID_MIDFIX_ADJUST_POINTS}{delta}"
                 allowed_uids.add(uid)
@@ -813,17 +810,17 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 allowed_uids.add(uid)
 
         # --- Reward Status Sensors ---
-        for reward_id in self.rewards_data.keys():
-            for kid_id in self.kids_data.keys():
+        for reward_id in self.rewards_data:
+            for kid_id in self.kids_data:
                 uid = f"{self.config_entry.entry_id}_{kid_id}_{reward_id}{const.SENSOR_KC_UID_SUFFIX_REWARD_STATUS_SENSOR}"
                 allowed_uids.add(uid)
 
         # --- Penalty/Bonus Apply Sensors ---
-        for kid_id in self.kids_data.keys():
-            for penalty_id in self.penalties_data.keys():
+        for kid_id in self.kids_data:
+            for penalty_id in self.penalties_data:
                 uid = f"{self.config_entry.entry_id}_{kid_id}_{penalty_id}{const.SENSOR_KC_UID_SUFFIX_PENALTY_APPLIES_SENSOR}"
                 allowed_uids.add(uid)
-            for bonus_id in self.bonuses_data.keys():
+            for bonus_id in self.bonuses_data:
                 uid = f"{self.config_entry.entry_id}_{kid_id}_{bonus_id}{const.SENSOR_KC_UID_SUFFIX_BONUS_APPLIES_SENSOR}"
                 allowed_uids.add(uid)
 
@@ -841,7 +838,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # --- Kid-specific sensors (not dynamic based on chores/rewards) ---
         # These are created once per kid and don't need validation against dynamic data
-        for kid_id in self.kids_data.keys():
+        for kid_id in self.kids_data:
             # Standard kid sensors
             allowed_uids.add(
                 f"{self.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_POINTS_SENSOR}"
@@ -2277,7 +2274,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     # Chores: Claim, Approve, Disapprove, Compute Global State for Shared Chores
     # -------------------------------------------------------------------------------------
 
-    def claim_chore(self, kid_id: str, chore_id: str, user_name: str):  # pylint: disable=unused-argument
+    def claim_chore(self, kid_id: str, chore_id: str, user_name: str):
         """Kid claims chore => state=claimed; parent must then approve."""
         perf_start = time.perf_counter()
         if chore_id not in self.chores_data:
@@ -2414,45 +2411,42 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         if auto_approve:
             # Auto-approve the chore immediately
             self.approve_chore("auto_approve", kid_id, chore_id)
-        else:
-            # Send a notification to the parents that a kid claimed a chore (awaiting approval)
-            if chore_info.get(
-                const.DATA_CHORE_NOTIFY_ON_CLAIM, const.DEFAULT_NOTIFY_ON_CLAIM
-            ):
-                actions = [
-                    {
-                        const.NOTIFY_ACTION: f"{const.ACTION_APPROVE_CHORE}|{kid_id}|{chore_id}",
-                        const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_APPROVE,
+        # Send a notification to the parents that a kid claimed a chore (awaiting approval)
+        elif chore_info.get(
+            const.DATA_CHORE_NOTIFY_ON_CLAIM, const.DEFAULT_NOTIFY_ON_CLAIM
+        ):
+            actions = [
+                {
+                    const.NOTIFY_ACTION: f"{const.ACTION_APPROVE_CHORE}|{kid_id}|{chore_id}",
+                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_APPROVE,
+                },
+                {
+                    const.NOTIFY_ACTION: f"{const.ACTION_DISAPPROVE_CHORE}|{kid_id}|{chore_id}",
+                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE,
+                },
+                {
+                    const.NOTIFY_ACTION: f"{const.ACTION_REMIND_30}|{kid_id}|{chore_id}",
+                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_REMIND_30,
+                },
+            ]
+            # Pass extra context so the event handler can route the action.
+            extra_data = {
+                const.DATA_KID_ID: kid_id,
+                const.DATA_CHORE_ID: chore_id,
+            }
+            self.hass.async_create_task(
+                self._notify_parents_translated(
+                    kid_id,
+                    title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_CLAIMED,
+                    message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_CLAIMED,
+                    message_data={
+                        "kid_name": self.kids_data[kid_id][const.DATA_KID_NAME],
+                        "chore_name": self.chores_data[chore_id][const.DATA_CHORE_NAME],
                     },
-                    {
-                        const.NOTIFY_ACTION: f"{const.ACTION_DISAPPROVE_CHORE}|{kid_id}|{chore_id}",
-                        const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE,
-                    },
-                    {
-                        const.NOTIFY_ACTION: f"{const.ACTION_REMIND_30}|{kid_id}|{chore_id}",
-                        const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_REMIND_30,
-                    },
-                ]
-                # Pass extra context so the event handler can route the action.
-                extra_data = {
-                    const.DATA_KID_ID: kid_id,
-                    const.DATA_CHORE_ID: chore_id,
-                }
-                self.hass.async_create_task(
-                    self._notify_parents_translated(
-                        kid_id,
-                        title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_CLAIMED,
-                        message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_CLAIMED,
-                        message_data={
-                            "kid_name": self.kids_data[kid_id][const.DATA_KID_NAME],
-                            "chore_name": self.chores_data[chore_id][
-                                const.DATA_CHORE_NAME
-                            ],
-                        },
-                        actions=actions,
-                        extra_data=extra_data,
-                    )
+                    actions=actions,
+                    extra_data=extra_data,
                 )
+            )
 
         self._persist()
         self.async_set_updated_data(self._data)
@@ -2465,13 +2459,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             chore_id,
         )
 
-    # pylint: disable=too-many-locals,too-many-branches,unused-argument
     def approve_chore(
         self,
         parent_name: str,  # Reserved for future feature
         kid_id: str,
         chore_id: str,
-        points_awarded: Optional[float] = None,  # Reserved for future feature
+        points_awarded: float | None = None,  # Reserved for future feature
     ):
         """Approve a chore for kid_id if assigned."""
         perf_start = time.perf_counter()
@@ -2587,7 +2580,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # Manage Achievements
         today_local = kh.get_today_local_date()
-        for _, achievement_info in self.achievements_data.items():
+        for achievement_info in self.achievements_data.values():
             if (
                 achievement_info.get(const.DATA_ACHIEVEMENT_TYPE)
                 == const.ACHIEVEMENT_TYPE_STREAK
@@ -2611,7 +2604,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # Manage Challenges
         today_local_iso = kh.get_today_local_iso()
-        for _, challenge_info in self.challenges_data.items():
+        for challenge_info in self.challenges_data.values():
             challenge_type = challenge_info.get(const.DATA_CHALLENGE_TYPE)
 
             if challenge_type == const.CHALLENGE_TYPE_TOTAL_WITHIN_WINDOW:
@@ -2720,7 +2713,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             default_points,
         )
 
-    def disapprove_chore(self, parent_name: str, kid_id: str, chore_id: str):  # pylint: disable=unused-argument
+    def disapprove_chore(self, parent_name: str, kid_id: str, chore_id: str):
         """Disapprove a chore for kid_id."""
         chore_info = self.chores_data.get(chore_id)
         if not chore_info:
@@ -3058,9 +3051,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             # INDEPENDENT: Period start is per-kid in kid_chore_data
             kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
             return kid_chore_data.get(const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START)
-        else:
-            # SHARED/SHARED_FIRST/etc.: Period start is at chore level
-            return chore_info.get(const.DATA_CHORE_APPROVAL_PERIOD_START)
+        # SHARED/SHARED_FIRST/etc.: Period start is at chore level
+        return chore_info.get(const.DATA_CHORE_APPROVAL_PERIOD_START)
 
     def is_approved_in_current_period(self, kid_id: str, chore_id: str) -> bool:
         """Check if a chore is already approved in the current approval period.
@@ -3204,14 +3196,13 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     # assigned are in the same state.
     # -------------------------------------------------------------------------------------
 
-    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     def _process_chore_state(
         self,
         kid_id: str,
         chore_id: str,
         new_state: str,
         *,
-        points_awarded: Optional[float] = None,
+        points_awarded: float | None = None,
         reset_approval_period: bool = False,
     ) -> None:
         """Centralized function to update a chore's state for a given kid.
@@ -3411,29 +3402,23 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                         count_overdue += 1
                     else:
                         count_pending += 1
+                # For non-SHARED_FIRST: original priority (overdue checked first)
+                elif self.is_overdue(kid_id_iter, chore_id):
+                    count_overdue += 1
+                elif self.is_approved_in_current_period(kid_id_iter, chore_id):
+                    count_approved += 1
+                elif self.has_pending_claim(kid_id_iter, chore_id):
+                    count_claimed += 1
+                elif chore_id in kid_info_iter.get(
+                    const.DATA_KID_COMPLETED_BY_OTHER_CHORES, []
+                ):
+                    count_completed_by_other += 1
                 else:
-                    # For non-SHARED_FIRST: original priority (overdue checked first)
-                    if self.is_overdue(kid_id_iter, chore_id):
-                        count_overdue += 1
-                    elif self.is_approved_in_current_period(kid_id_iter, chore_id):
-                        count_approved += 1
-                    elif self.has_pending_claim(kid_id_iter, chore_id):
-                        count_claimed += 1
-                    elif chore_id in kid_info_iter.get(
-                        const.DATA_KID_COMPLETED_BY_OTHER_CHORES, []
-                    ):
-                        count_completed_by_other += 1
-                    else:
-                        count_pending += 1
+                    count_pending += 1
             total = len(assigned_kids)
 
             # If all kids are in the same state, update the chore state to new state 1:1
-            if (
-                count_pending == total
-                or count_claimed == total
-                or count_approved == total
-                or count_overdue == total
-            ):
+            if total in (count_pending, count_claimed, count_approved, count_overdue):
                 chore_info[const.DATA_CHORE_STATE] = new_state
 
             # For SHARED_FIRST chores, global state follows the single claimant's state
@@ -3490,14 +3475,13 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 chore_info[const.DATA_CHORE_STATE],
             )
 
-    # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-branches,too-many-statements
     def _update_chore_data_for_kid(
         self,
         kid_id: str,
         chore_id: str,
         points_awarded: float,
-        state: Optional[str] = None,
-        due_date: Optional[str] = None,
+        state: str | None = None,
+        due_date: str | None = None,
     ):
         """
         Update a kid's chore data when a state change or completion occurs.
@@ -3778,7 +3762,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # --- Update kid_chore_stats after all per-chore updates ---
         self._recalculate_chore_stats_for_kid(kid_id)
 
-    # pylint: disable=too-many-locals,too-many-statements
     def _recalculate_chore_stats_for_kid(self, kid_id: str):
         """Aggregate and update all kid_chore_stats for a given kid.
 
@@ -4247,8 +4230,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             by_source_all_time[source], const.DATA_FLOAT_PRECISION
         )
 
-        if new > point_stats[const.DATA_KID_POINT_STATS_HIGHEST_BALANCE]:
-            point_stats[const.DATA_KID_POINT_STATS_HIGHEST_BALANCE] = new
+        point_stats[const.DATA_KID_POINT_STATS_HIGHEST_BALANCE] = max(
+            point_stats[const.DATA_KID_POINT_STATS_HIGHEST_BALANCE], new
+        )
         kh.cleanup_period_data(
             self,
             periods_data=periods_data,
@@ -4450,7 +4434,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     # Rewards: Redeem, Approve, Disapprove
     # -------------------------------------------------------------------------------------
 
-    def redeem_reward(self, parent_name: str, kid_id: str, reward_id: str):  # pylint: disable=unused-argument
+    def redeem_reward(self, parent_name: str, kid_id: str, reward_id: str):
         """Kid claims a reward => mark as pending approval (no deduction yet)."""
         reward_info = self.rewards_data.get(reward_id)
         if not reward_info:
@@ -4549,12 +4533,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self._persist()
         self.async_set_updated_data(self._data)
 
-    def approve_reward(  # pylint: disable=unused-argument
+    def approve_reward(
         self,
         parent_name: str,  # Reserved for future feature
         kid_id: str,
         reward_id: str,
-        notif_id: Optional[str] = None,
+        notif_id: str | None = None,
     ):
         """Parent approves the reward => deduct points."""
         kid_info = self.kids_data.get(kid_id)
@@ -4738,7 +4722,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self._persist()
         self.async_set_updated_data(self._data)
 
-    def disapprove_reward(self, parent_name: str, kid_id: str, reward_id: str):  # pylint: disable=unused-argument
+    def disapprove_reward(self, parent_name: str, kid_id: str, reward_id: str):
         """Disapprove a reward for kid_id."""
 
         reward_info = self.rewards_data.get(reward_id)
@@ -5138,7 +5122,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Badge does not include tracked chores component, return empty list
         return []
 
-    def _handle_badge_target_points(  # pylint: disable=unused-argument
+    def _handle_badge_target_points(
         self,
         kid_info,
         badge_info,  # Reserved for future feature
@@ -5187,7 +5171,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         ) >= threshold_value
         return progress
 
-    def _handle_badge_target_chore_count(  # pylint: disable=unused-argument
+    def _handle_badge_target_chore_count(
         self,
         kid_info,
         badge_info,  # Reserved for future feature
@@ -5236,7 +5220,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         ) >= threshold_value
         return progress
 
-    def _handle_badge_target_daily_completion(  # pylint: disable=unused-argument
+    def _handle_badge_target_daily_completion(
         self,
         kid_info,
         badge_info,  # Reserved for future feature
@@ -5300,7 +5284,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         ) >= threshold_value
         return progress
 
-    def _handle_badge_target_streak(  # pylint: disable=unused-argument
+    def _handle_badge_target_streak(
         self,
         kid_info,
         badge_info,  # Reserved for future feature
@@ -5730,7 +5714,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                                     Default is False which excludes them since they are currently points only
         """
         # Clear existing badge references
-        for kid_id, kid_info in self.kids_data.items():
+        for _kid_id, kid_info in self.kids_data.items():
             if const.DATA_KID_CHORE_DATA not in kid_info:
                 continue
 
@@ -5782,7 +5766,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     # If neither is provided, it globally removes all awarded badges from all kids.
     # -------------------------------------------------------------------------------------
     def remove_awarded_badges(
-        self, kid_name: Optional[str] = None, badge_name: Optional[str] = None
+        self, kid_name: str | None = None, badge_name: str | None = None
     ) -> None:
         """Remove awarded badges based on provided kid_name and badge_name."""
         # Convert kid_name to kid_id if provided.
@@ -5850,7 +5834,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self._remove_awarded_badges_by_id(kid_id, badge_id)
 
     def _remove_awarded_badges_by_id(
-        self, kid_id: Optional[str] = None, badge_id: Optional[str] = None
+        self, kid_id: str | None = None, badge_id: str | None = None
     ) -> None:
         """Removes awarded badges based on provided kid_id and badge_id."""
 
@@ -6050,7 +6034,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         const.LOGGER.info("Recalculate All Badges - Starting Recalculation")
 
         # Re-evaluate badge criteria for each kid.
-        for kid_id in self.kids_data.keys():
+        for kid_id in self.kids_data:
             self._check_badges_for_kid(kid_id)
 
         self._persist()
@@ -6394,8 +6378,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                             )
 
                             # If new start date is in the past, use today
-                            if new_start_date_iso < today_local_iso:
-                                new_start_date_iso = today_local_iso
+                            new_start_date_iso = max(
+                                new_start_date_iso, today_local_iso
+                            )
                         else:
                             # Fallback to today if date parsing fails
                             new_start_date_iso = today_local_iso
@@ -6979,9 +6964,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # If the base date is in the future, use it as the reference date so the next schedule is in the future of that date.
         # As an example if on June 5th I create a badge and give it an end date of July 7th and chooose frequency of Period End,
         # then the expectation would be a next scheduled date of Sept 30th, not June 30th.
-        reference_datetime_iso = (
-            base_date_iso if base_date_iso > today_local_iso else today_local_iso
-        )
+        reference_datetime_iso = max(today_local_iso, base_date_iso)
 
         # Initialize the variables for the next maintenance end date and grace end date
         next_end = None
@@ -7132,7 +7115,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
     def _get_cumulative_badge_levels(
         self, kid_id: str
-    ) -> tuple[Optional[dict], Optional[dict], Optional[dict], float, float]:
+    ) -> tuple[dict | None, dict | None, dict | None, float, float]:
         """
         Determines the highest earned cumulative badge for a kid, and the next higher/lower badge tiers.
 
@@ -7185,7 +7168,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         next_lower = None
         previous_badge_info = None
 
-        for badge_id, badge_info in cumulative_badges:
+        for _badge_id, badge_info in cumulative_badges:
             threshold = float(
                 badge_info.get(const.DATA_BADGE_TARGET, {}).get(
                     const.DATA_BADGE_TARGET_THRESHOLD_VALUE, 0
@@ -7213,7 +7196,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     # Penalties: Apply
     # -------------------------------------------------------------------------------------
 
-    def apply_penalty(self, parent_name: str, kid_id: str, penalty_id: str):  # pylint: disable=unused-argument
+    def apply_penalty(self, parent_name: str, kid_id: str, penalty_id: str):
         """Apply penalty => negative points to reduce kid's points."""
         penalty_info = self.penalties_data.get(penalty_id)
         if not penalty_info:
@@ -7270,7 +7253,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     # Bonuses: Apply
     # -------------------------------------------------------------------------
 
-    def apply_bonus(self, parent_name: str, kid_id: str, bonus_id: str):  # pylint: disable=unused-argument
+    def apply_bonus(self, parent_name: str, kid_id: str, bonus_id: str):
         """Apply bonus => positive points to increase kid's points."""
         bonus_info = self.bonuses_data.get(bonus_id)
         if not bonus_info:
@@ -7689,7 +7672,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             return
 
         # If yesterday was the last update, increment the streak
-        elif last_date == today - timedelta(days=1):
+        if last_date == today - timedelta(days=1):
             progress[const.DATA_KID_CURRENT_STREAK] += 1
 
         # Reset to 1 if not done yesterday
@@ -8598,7 +8581,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             assert custom_unit is not None
             assert custom_interval is not None
             next_due_utc = cast(
-                datetime,
+                "datetime",
                 kh.adjust_datetime_by_interval(
                     base_date=current_due_utc,
                     interval_unit=custom_unit,
@@ -8609,7 +8592,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             )
         else:
             next_due_utc = cast(
-                datetime,
+                "datetime",
                 kh.get_next_scheduled_datetime(
                     base_date=current_due_utc,
                     interval_type=freq,
@@ -8622,7 +8605,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Snap to applicable weekday if configured
         if applicable_days:
             next_due_local = cast(
-                datetime,
+                "datetime",
                 kh.get_next_applicable_day(
                     next_due_utc,
                     applicable_days=applicable_days,
@@ -8791,8 +8774,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     def set_chore_due_date(
         self,
         chore_id: str,
-        due_date: Optional[datetime],
-        kid_id: Optional[str] = None,
+        due_date: datetime | None,
+        kid_id: str | None = None,
     ) -> None:
         """Set the due date of a chore.
 
@@ -8935,7 +8918,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self.async_set_updated_data(self._data)
 
     # Skip Chore Due Date
-    def skip_chore_due_date(self, chore_id: str, kid_id: Optional[str] = None) -> None:
+    def skip_chore_due_date(self, chore_id: str, kid_id: str | None = None) -> None:
         """Skip the current due date of a recurring chore and reschedule it.
 
         When a due date is skipped, the chore state is reset to PENDING for all affected kids,
@@ -9003,10 +8986,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
             has_any_due_date = False
             for assigned_kid_id in assigned_kids:
-                if (
-                    assigned_kid_id in per_kid_due_dates
-                    and per_kid_due_dates[assigned_kid_id]
-                ):
+                if per_kid_due_dates.get(assigned_kid_id):
                     has_any_due_date = True
                     break
                 # Also check kid's chore data for due date
@@ -9155,7 +9135,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
     # Reset Overdue Chores
     def reset_overdue_chores(
-        self, chore_id: Optional[str] = None, kid_id: Optional[str] = None
+        self, chore_id: str | None = None, kid_id: str | None = None
     ) -> None:
         """Reset overdue chore(s) to Pending state and reschedule.
 
@@ -9248,7 +9228,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                             )
         else:
             # Global reset: Reset all overdue chores for all kids
-            for kid_id_iter, kid_info in self.kids_data.items():
+            for kid_id_iter, _kid_info in self.kids_data.items():
                 for chore_id, chore_info in self.chores_data.items():
                     if kid_id_iter in chore_info.get(
                         const.DATA_CHORE_ASSIGNED_KIDS, []
@@ -9290,7 +9270,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     # -------------------------------------------------------------------------------------
 
     def reset_penalties(
-        self, kid_id: Optional[str] = None, penalty_id: Optional[str] = None
+        self, kid_id: str | None = None, penalty_id: str | None = None
     ) -> None:
         """Reset penalties based on provided kid_id and penalty_id."""
 
@@ -9380,7 +9360,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     # -------------------------------------------------------------------------------------
 
     def reset_bonuses(
-        self, kid_id: Optional[str] = None, bonus_id: Optional[str] = None
+        self, kid_id: str | None = None, bonus_id: str | None = None
     ) -> None:
         """Reset bonuses based on provided kid_id and bonus_id."""
 
@@ -9472,7 +9452,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     # -------------------------------------------------------------------------------------
 
     def reset_rewards(
-        self, kid_id: Optional[str] = None, reward_id: Optional[str] = None
+        self, kid_id: str | None = None, reward_id: str | None = None
     ) -> None:
         """Reset rewards based on provided kid_id and reward_id."""
 
@@ -9556,7 +9536,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
     async def send_kc_notification(
         self,
-        user_id: Optional[str],
+        user_id: str | None,
         title: str,
         message: str,
         notification_id: str,
@@ -9613,7 +9593,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 },
                 blocking=True,
             )
-        except Exception as err:  # pylint: disable=broad-exception-caught
+        except Exception as err:
             const.LOGGER.warning(
                 "WARNING: Notification - Failed to send notification to '%s': %s. Fallback to persistent notification",
                 user_id,
@@ -9635,8 +9615,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         kid_id: str,
         title: str,
         message: str,
-        actions: Optional[list[dict[str, str]]] = None,
-        extra_data: Optional[dict] = None,
+        actions: list[dict[str, str]] | None = None,
+        extra_data: dict | None = None,
     ) -> None:
         """Notify a kid using their configured notification settings."""
 
@@ -9686,9 +9666,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         kid_id: str,
         title_key: str,
         message_key: str,
-        message_data: Optional[dict[str, Any]] = None,
-        actions: Optional[list[dict[str, str]]] = None,
-        extra_data: Optional[dict] = None,
+        message_data: dict[str, Any] | None = None,
+        actions: list[dict[str, str]] | None = None,
+        extra_data: dict | None = None,
     ) -> None:
         """Notify a kid using translated title and message.
 
@@ -9772,8 +9752,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         kid_id: str,
         title: str,
         message: str,
-        actions: Optional[list[dict[str, str]]] = None,
-        extra_data: Optional[dict] = None,
+        actions: list[dict[str, str]] | None = None,
+        extra_data: dict | None = None,
     ) -> None:
         """Notify all parents associated with a kid using their settings."""
         # PERF: Measure parent notification latency (sequential vs concurrent)
@@ -9840,9 +9820,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         kid_id: str,
         title_key: str,
         message_key: str,
-        message_data: Optional[dict[str, Any]] = None,
-        actions: Optional[list[dict[str, str]]] = None,
-        extra_data: Optional[dict] = None,
+        message_data: dict[str, Any] | None = None,
+        actions: list[dict[str, str]] | None = None,
+        extra_data: dict | None = None,
     ) -> None:
         """Notify parents using translated title and message.
 
@@ -9927,8 +9907,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         kid_id: str,
         minutes: int,
         *,
-        chore_id: Optional[str] = None,
-        reward_id: Optional[str] = None,
+        chore_id: str | None = None,
+        reward_id: str | None = None,
     ) -> None:
         """
         Wait for the specified number of minutes and then resend the parent's

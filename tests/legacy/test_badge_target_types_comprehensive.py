@@ -18,8 +18,8 @@ Uses scenario_full for comprehensive test data with 3 kids, 7 chores.
 
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kidschores.const import (
@@ -70,8 +70,6 @@ from custom_components.kidschores.const import (
 )
 from custom_components.kidschores.kc_helpers import get_today_local_iso
 
-# pylint: disable=protected-access,redefined-outer-name
-
 
 @pytest.fixture
 def test_badge_id() -> str:
@@ -118,18 +116,20 @@ class TestPointsTargetTypes:
         coordinator._manage_badge_maintenance(zoe_id)
 
         # Now set test values (simulate prior points)
-        coordinator.kids_data[zoe_id][DATA_KID_BADGE_PROGRESS][test_badge_id].update({
-            DATA_KID_BADGE_PROGRESS_POINTS_CYCLE_COUNT: 20,  # Prior cycle: 20
-            DATA_KID_BADGE_PROGRESS_POINTS_TODAY: 15,  # Today: 15
-            DATA_KID_BADGE_PROGRESS_LAST_UPDATE_DAY: today_iso,
-            DATA_KID_BADGE_PROGRESS_STATUS: BADGE_STATE_IN_PROGRESS,
-        })
+        coordinator.kids_data[zoe_id][DATA_KID_BADGE_PROGRESS][test_badge_id].update(
+            {
+                DATA_KID_BADGE_PROGRESS_POINTS_CYCLE_COUNT: 20,  # Prior cycle: 20
+                DATA_KID_BADGE_PROGRESS_POINTS_TODAY: 15,  # Today: 15
+                DATA_KID_BADGE_PROGRESS_LAST_UPDATE_DAY: today_iso,
+                DATA_KID_BADGE_PROGRESS_STATUS: BADGE_STATE_IN_PROGRESS,
+            }
+        )
 
         # Act: Evaluate badges (mocked notifications)
         with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
-    ):
+            patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        ):
             coordinator._check_badges_for_kid(zoe_id)
 
         # Assert: Progress reflects total points (20 + today's actual points)
@@ -185,9 +185,9 @@ class TestPointsTargetTypes:
 
         # Act: Evaluate badges
         with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
-    ):
+            patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        ):
             coordinator._check_badges_for_kid(zoe_id)
 
         # Assert: Progress tracks chore-only points
@@ -237,18 +237,20 @@ class TestChoreCountTargetType:
         coordinator._manage_badge_maintenance(zoe_id)
 
         # Now set test values
-        coordinator.kids_data[zoe_id][DATA_KID_BADGE_PROGRESS][test_badge_id].update({
-            DATA_KID_BADGE_PROGRESS_CHORES_CYCLE_COUNT: 10,  # Prior: 10 chores
-            DATA_KID_BADGE_PROGRESS_CHORES_TODAY: 3,  # Today: 3 chores
-            DATA_KID_BADGE_PROGRESS_LAST_UPDATE_DAY: today_iso,
-            DATA_KID_BADGE_PROGRESS_STATUS: BADGE_STATE_IN_PROGRESS,
-        })
+        coordinator.kids_data[zoe_id][DATA_KID_BADGE_PROGRESS][test_badge_id].update(
+            {
+                DATA_KID_BADGE_PROGRESS_CHORES_CYCLE_COUNT: 10,  # Prior: 10 chores
+                DATA_KID_BADGE_PROGRESS_CHORES_TODAY: 3,  # Today: 3 chores
+                DATA_KID_BADGE_PROGRESS_LAST_UPDATE_DAY: today_iso,
+                DATA_KID_BADGE_PROGRESS_STATUS: BADGE_STATE_IN_PROGRESS,
+            }
+        )
 
         # Act: Evaluate badges
         with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
-    ):
+            patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        ):
             coordinator._check_badges_for_kid(zoe_id)
 
         # Assert: Chore count accumulated correctly
@@ -305,9 +307,9 @@ class TestDailyCompletionTargetTypes:
 
         # Act: Evaluate badges
         with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
-    ):
+            patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        ):
             coordinator._check_badges_for_kid(zoe_id)
 
         # Assert: Progress uses DAYS_* fields
@@ -351,9 +353,9 @@ class TestDailyCompletionTargetTypes:
 
         # Act
         with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
-    ):
+            patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        ):
             coordinator._check_badges_for_kid(zoe_id)
 
         # Assert: Uses same DAYS_* fields with different criteria
@@ -392,9 +394,9 @@ class TestDailyCompletionTargetTypes:
 
         # Act
         with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
-    ):
+            patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        ):
             coordinator._check_badges_for_kid(zoe_id)
 
         # Assert: TODAY_COMPLETED depends on overdue check
@@ -432,9 +434,9 @@ class TestDailyCompletionTargetTypes:
 
         # Act
         with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
-    ):
+            patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        ):
             coordinator._check_badges_for_kid(zoe_id)
 
         # Assert: Completion based on due-today filter
@@ -472,9 +474,9 @@ class TestDailyCompletionTargetTypes:
 
         # Act
         with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
-    ):
+            patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        ):
             coordinator._check_badges_for_kid(zoe_id)
 
         # Assert
@@ -512,9 +514,9 @@ class TestDailyCompletionTargetTypes:
 
         # Act
         with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
-    ):
+            patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        ):
             coordinator._check_badges_for_kid(zoe_id)
 
         # Assert
@@ -552,9 +554,9 @@ class TestDailyCompletionTargetTypes:
 
         # Act
         with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
-    ):
+            patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        ):
             coordinator._check_badges_for_kid(zoe_id)
 
         # Assert: TODAY_COMPLETED only true if >=3 chores done
@@ -592,9 +594,9 @@ class TestDailyCompletionTargetTypes:
 
         # Act
         with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
-    ):
+            patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        ):
             coordinator._check_badges_for_kid(zoe_id)
 
         # Assert
@@ -632,9 +634,9 @@ class TestDailyCompletionTargetTypes:
 
         # Act
         with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
-    ):
+            patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        ):
             coordinator._check_badges_for_kid(zoe_id)
 
         # Assert
@@ -677,9 +679,9 @@ class TestStreakTargetTypes:
 
         # Act
         with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
-    ):
+            patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        ):
             coordinator._check_badges_for_kid(zoe_id)
 
         # Assert: Uses DAYS_CYCLE_COUNT as streak
@@ -722,9 +724,9 @@ class TestStreakTargetTypes:
 
         # Act
         with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
-    ):
+            patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        ):
             coordinator._check_badges_for_kid(zoe_id)
 
         # Assert
@@ -762,9 +764,9 @@ class TestStreakTargetTypes:
 
         # Act
         with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
-    ):
+            patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        ):
             coordinator._check_badges_for_kid(zoe_id)
 
         # Assert: Streak breaks if TODAY_COMPLETED=False
@@ -802,9 +804,9 @@ class TestStreakTargetTypes:
 
         # Act
         with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
-    ):
+            patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        ):
             coordinator._check_badges_for_kid(zoe_id)
 
         # Assert
@@ -842,9 +844,9 @@ class TestStreakTargetTypes:
 
         # Act
         with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
-    ):
+            patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        ):
             coordinator._check_badges_for_kid(zoe_id)
 
         # Assert
@@ -891,18 +893,20 @@ class TestDayRolloverLogic:
         coordinator._manage_badge_maintenance(zoe_id)
 
         # Now set test values
-        coordinator.kids_data[zoe_id][DATA_KID_BADGE_PROGRESS][test_badge_id].update({
-            DATA_KID_BADGE_PROGRESS_POINTS_CYCLE_COUNT: 30,
-            DATA_KID_BADGE_PROGRESS_POINTS_TODAY: 15,  # Yesterday's points
-            DATA_KID_BADGE_PROGRESS_LAST_UPDATE_DAY: yesterday_iso,  # Yesterday
-            DATA_KID_BADGE_PROGRESS_STATUS: BADGE_STATE_IN_PROGRESS,
-        })
+        coordinator.kids_data[zoe_id][DATA_KID_BADGE_PROGRESS][test_badge_id].update(
+            {
+                DATA_KID_BADGE_PROGRESS_POINTS_CYCLE_COUNT: 30,
+                DATA_KID_BADGE_PROGRESS_POINTS_TODAY: 15,  # Yesterday's points
+                DATA_KID_BADGE_PROGRESS_LAST_UPDATE_DAY: yesterday_iso,  # Yesterday
+                DATA_KID_BADGE_PROGRESS_STATUS: BADGE_STATE_IN_PROGRESS,
+            }
+        )
 
         # Act: Evaluate (should trigger rollover)
         with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
-    ):
+            patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        ):
             coordinator._check_badges_for_kid(zoe_id)
 
         # Assert: Rollover occurred
@@ -948,19 +952,21 @@ class TestDayRolloverLogic:
         coordinator._manage_badge_maintenance(zoe_id)
 
         # Now set test values
-        coordinator.kids_data[zoe_id][DATA_KID_BADGE_PROGRESS][test_badge_id].update({
-            DATA_KID_BADGE_PROGRESS_DAYS_CYCLE_COUNT: 3,
-            DATA_KID_BADGE_PROGRESS_TODAY_COMPLETED: True,  # Yesterday was completed
-            DATA_KID_BADGE_PROGRESS_DAYS_COMPLETED: {yesterday_iso: True},
-            DATA_KID_BADGE_PROGRESS_LAST_UPDATE_DAY: yesterday_iso,
-            DATA_KID_BADGE_PROGRESS_STATUS: BADGE_STATE_IN_PROGRESS,
-        })
+        coordinator.kids_data[zoe_id][DATA_KID_BADGE_PROGRESS][test_badge_id].update(
+            {
+                DATA_KID_BADGE_PROGRESS_DAYS_CYCLE_COUNT: 3,
+                DATA_KID_BADGE_PROGRESS_TODAY_COMPLETED: True,  # Yesterday was completed
+                DATA_KID_BADGE_PROGRESS_DAYS_COMPLETED: {yesterday_iso: True},
+                DATA_KID_BADGE_PROGRESS_LAST_UPDATE_DAY: yesterday_iso,
+                DATA_KID_BADGE_PROGRESS_STATUS: BADGE_STATE_IN_PROGRESS,
+            }
+        )
 
         # Act
         with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
-    ):
+            patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        ):
             coordinator._check_badges_for_kid(zoe_id)
 
         # Assert: Day count incremented
@@ -1006,14 +1012,16 @@ class TestBadgeAwardingLogic:
         coordinator._manage_badge_maintenance(zoe_id)
 
         # Now set test values
-        coordinator.kids_data[zoe_id][DATA_KID_BADGE_PROGRESS][test_badge_id].update({
-            DATA_KID_BADGE_PROGRESS_STATUS: BADGE_STATE_IN_PROGRESS,
-        })
+        coordinator.kids_data[zoe_id][DATA_KID_BADGE_PROGRESS][test_badge_id].update(
+            {
+                DATA_KID_BADGE_PROGRESS_STATUS: BADGE_STATE_IN_PROGRESS,
+            }
+        )
 
         # Act: Mock _award_badge to track call
         with (
             patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
             patch.object(coordinator, "_award_badge", new=AsyncMock()) as mock_award,
         ):
             coordinator._check_badges_for_kid(zoe_id)
@@ -1058,15 +1066,17 @@ class TestBadgeAwardingLogic:
         coordinator._manage_badge_maintenance(zoe_id)
 
         # Now set test values
-        coordinator.kids_data[zoe_id][DATA_KID_BADGE_PROGRESS][test_badge_id].update({
-            DATA_KID_BADGE_PROGRESS_STATUS: BADGE_STATE_EARNED,  # Already earned
-            DATA_KID_BADGE_PROGRESS_CRITERIA_MET: True,
-        })
+        coordinator.kids_data[zoe_id][DATA_KID_BADGE_PROGRESS][test_badge_id].update(
+            {
+                DATA_KID_BADGE_PROGRESS_STATUS: BADGE_STATE_EARNED,  # Already earned
+                DATA_KID_BADGE_PROGRESS_CRITERIA_MET: True,
+            }
+        )
 
         # Act: Mock _award_badge
         with (
             patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
             patch.object(coordinator, "_award_badge", new=AsyncMock()) as mock_award,
         ):
             coordinator._check_badges_for_kid(zoe_id)

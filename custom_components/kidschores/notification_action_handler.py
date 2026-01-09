@@ -1,11 +1,15 @@
 # File: notification_action_handler.py
 """Handle notification actions from HA companion notifications."""
 
+from typing import TYPE_CHECKING
+
 from homeassistant.core import Event, HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
 from . import const
-from .coordinator import KidsChoresDataCoordinator
+
+if TYPE_CHECKING:
+    from .coordinator import KidsChoresDataCoordinator
 
 
 async def async_handle_notification_action(hass: HomeAssistant, event: Event) -> None:

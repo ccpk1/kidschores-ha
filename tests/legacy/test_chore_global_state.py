@@ -9,14 +9,12 @@ Priority: P1 CRITICAL (Core Option B validation)
 Coverage: coordinator._process_chore_state() global state logic (lines 2962-3020)
 """
 
-# pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
-# pylint: disable=unused-argument
 
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.const import (

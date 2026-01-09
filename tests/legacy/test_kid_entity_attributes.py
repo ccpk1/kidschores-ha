@@ -1,9 +1,8 @@
 """Test that all kid entities have kid_name attribute and display entity information."""
 
-import pytest
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import device_registry as dr, entity_registry as er
+import pytest
 
 from custom_components.kidschores import const
 
@@ -44,23 +43,17 @@ async def test_all_kid_entities_have_kid_name_attribute(
             continue
 
         # Include entities that belong to a kid
-        if entry.entity_id.startswith("sensor.kc_") or entry.entity_id.startswith(
-            "button.kc_"
+        if (
+            entry.entity_id.startswith("sensor.kc_")
+            or entry.entity_id.startswith("button.kc_")
+            or entry.entity_id.startswith("calendar.kc_")
+            or entry.entity_id.startswith("datetime.kc_")
+            or (
+                entry.entity_id.startswith("select.kc_")
+                and "_ui_dashboard_chore_list_helper" in entry.entity_id
+            )
         ):
             kid_entities.append(entry)
-        elif entry.entity_id.startswith("calendar.kc_") or entry.entity_id.startswith(
-            "datetime.kc_"
-        ):
-            kid_entities.append(entry)
-        elif (
-            entry.entity_id.startswith("select.kc_")
-            and "_ui_dashboard_chore_list_helper" in entry.entity_id
-        ):
-            kid_entities.append(entry)
-
-    print(f"\n{'=' * 80}")
-    print(f"TESTING {len(kid_entities)} KID ENTITIES FOR kid_name ATTRIBUTE")
-    print(f"{'=' * 80}\n")
 
     # Track results
     entities_with_kid_name = []
@@ -73,47 +66,29 @@ async def test_all_kid_entities_have_kid_name_attribute(
             continue
 
         # Get device info
-        device_name = "Unknown"
         if entry.device_id:
             device = device_reg.async_get(entry.device_id)
             if device:
-                device_name = device.name or "Unknown"
+                pass
 
         # Extract entity info
         entity_id = entry.entity_id
-        friendly_name = state.attributes.get("friendly_name", "Unknown")
+        state.attributes.get("friendly_name", "Unknown")
         kid_name_attr = state.attributes.get(const.ATTR_KID_NAME)
 
         # Display entity info
-        print(f"Entity: {entity_id}")
-        print(f"  Device Name:    {device_name}")
-        print(f"  Friendly Name:  {friendly_name}")
-        print(f"  kid_name attr:  {kid_name_attr}")
 
         # Track if kid_name exists
         if kid_name_attr:
             entities_with_kid_name.append(entity_id)
-            print("  ✅ Has kid_name attribute")
         else:
             entities_without_kid_name.append(entity_id)
-            print("  ❌ MISSING kid_name attribute")
-
-        print()
 
     # Summary
-    print(f"{'=' * 80}")
-    print("SUMMARY")
-    print(f"{'=' * 80}")
-    print(f"Total kid entities checked: {len(kid_entities)}")
-    print(f"Entities WITH kid_name:     {len(entities_with_kid_name)}")
-    print(f"Entities WITHOUT kid_name:  {len(entities_without_kid_name)}")
 
     if entities_without_kid_name:
-        print("\n❌ MISSING kid_name attribute:")
         for entity_id in entities_without_kid_name:
-            print(f"  - {entity_id}")
-
-    print(f"{'=' * 80}\n")
+            pass
 
     # Assert all kid entities have kid_name attribute
     assert len(entities_without_kid_name) == 0, (
@@ -150,19 +125,6 @@ async def test_specific_friendly_names(hass: HomeAssistant, scenario_medium) -> 
         "Datetime entity should have kid_name attribute"
     )
 
-    print(f"\n{'=' * 80}")
-    print("SPECIFIC FRIENDLY NAME CHECKS")
-    print(f"{'=' * 80}")
-    print(
-        f"✅ Dashboard Helper: {dashboard_helper.attributes.get('friendly_name', 'Unknown')}"
-    )
-    print(f"✅ Date Helper: {date_helper.attributes.get('friendly_name', 'Unknown')}")
-    print(
-        f"✅ Date Helper kid_name: {date_helper.attributes.get(const.ATTR_KID_NAME, 'Unknown')}"
-    )
-    print("✅ Date Helper has NO kid_id attribute")
-    print(f"{'=' * 80}\n")
-
 
 async def test_chore_status_friendly_name(hass: HomeAssistant, scenario_medium) -> None:
     """Verify chore status sensors have 'Chore Status' in friendly name."""
@@ -179,22 +141,13 @@ async def test_chore_status_friendly_name(hass: HomeAssistant, scenario_medium) 
         and "_chore_status_" in entry.entity_id
     ]
 
-    print(f"\n{'=' * 80}")
-    print(f"CHORE STATUS SENSOR NAME CHECKS ({len(chore_status_sensors)} found)")
-    print(f"{'=' * 80}")
-
     for entry in chore_status_sensors:
         state = hass.states.get(entry.entity_id)
         if state:
             friendly_name = state.attributes.get("friendly_name", "Unknown")
-            print(f"{entry.entity_id}")
-            print(f"  Friendly Name: {friendly_name}")
 
             # Verify 'Chore Status' appears in friendly name
             assert "Chore Status" in friendly_name, (
                 f"Chore status sensor {entry.entity_id} should have 'Chore Status' "
                 f"in friendly name, got: {friendly_name}"
             )
-            print("  ✅ Contains 'Chore Status'")
-
-    print(f"{'=' * 80}\n")

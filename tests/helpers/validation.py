@@ -20,13 +20,14 @@ Usage:
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from homeassistant.core import HomeAssistant
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
-from tests.helpers.workflows import WorkflowResult
+    from homeassistant.core import HomeAssistant
 
+    from tests.helpers.workflows import WorkflowResult
 
 # =============================================================================
 # BASIC ENTITY ASSERTIONS
@@ -98,8 +99,7 @@ def assert_state_equals(
 
     if state.state != expected_state:
         msg = message or (
-            f"State mismatch for {entity_id}: "
-            f"expected '{expected_state}', got '{state.state}'"
+            f"State mismatch for {entity_id}: expected '{expected_state}', got '{state.state}'"
         )
         raise AssertionError(msg)
 
@@ -185,8 +185,7 @@ def assert_state_in(
 
     if state.state not in valid_states:
         msg = message or (
-            f"State '{state.state}' for {entity_id} "
-            f"not in valid states: {valid_states}"
+            f"State '{state.state}' for {entity_id} not in valid states: {valid_states}"
         )
         raise AssertionError(msg)
 
@@ -309,15 +308,13 @@ def assert_state_transition(
     """
     if result.state_before != expected_before:
         msg = message or (
-            f"State before mismatch: expected '{expected_before}', "
-            f"got '{result.state_before}'"
+            f"State before mismatch: expected '{expected_before}', got '{result.state_before}'"
         )
         raise AssertionError(msg)
 
     if result.state_after != expected_after:
         msg = message or (
-            f"State after mismatch: expected '{expected_after}', "
-            f"got '{result.state_after}'"
+            f"State after mismatch: expected '{expected_after}', got '{result.state_after}'"
         )
         raise AssertionError(msg)
 

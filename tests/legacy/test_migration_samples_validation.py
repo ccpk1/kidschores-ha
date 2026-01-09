@@ -18,17 +18,17 @@ Migration Philosophy:
     integrity, not data completeness.
 """
 
-# pylint: disable=protected-access  # Accessing _data for migration validation
+# Accessing _data for migration validation
 # pylint: disable=redefined-outer-name  # Pytest fixture pattern
 
 import json
-import re
 from pathlib import Path
+import re
 from typing import Any
 from unittest.mock import patch
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kidschores.const import (

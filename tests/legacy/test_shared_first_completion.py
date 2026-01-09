@@ -8,16 +8,14 @@ Tests the "first kid to claim wins" behavior where:
 5. Global state tracks SHARED_FIRST correctly
 """
 
-# pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
-# pylint: disable=unused-argument
 
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import Context, HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.const import (
@@ -32,10 +30,7 @@ from custom_components.kidschores.const import (
     DATA_KID_POINTS,
     DOMAIN,
 )
-from tests.legacy.conftest import (
-    is_chore_approved_for_kid,
-    is_chore_claimed_for_kid,
-)
+from tests.legacy.conftest import is_chore_approved_for_kid, is_chore_claimed_for_kid
 
 
 def get_shared_first_chore(

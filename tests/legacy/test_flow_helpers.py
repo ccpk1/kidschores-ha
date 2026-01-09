@@ -1,7 +1,7 @@
 """Tests for flow_helpers.py backup functionality."""
 
 # pylint: disable=redefined-outer-name  # Pytest fixtures
-# pylint: disable=unused-argument  # Mock fixtures in test signatures
+# Mock fixtures in test signatures
 
 import datetime
 import json
@@ -63,7 +63,7 @@ async def test_create_timestamped_backup_success(
     """Test successful backup creation."""
     # Setup
     mock_utcnow.return_value = datetime.datetime(
-        2024, 12, 18, 15, 30, 45, tzinfo=datetime.timezone.utc
+        2024, 12, 18, 15, 30, 45, tzinfo=datetime.UTC
     )
 
     # Execute - create_timestamped_backup is now async
@@ -88,7 +88,7 @@ async def test_create_timestamped_backup_all_tags(
 ):
     """Test backup creation with all tag types."""
     mock_utcnow.return_value = datetime.datetime(
-        2024, 12, 18, 10, 0, 0, tzinfo=datetime.timezone.utc
+        2024, 12, 18, 10, 0, 0, tzinfo=datetime.UTC
     )
 
     tags = ["recovery", "removal", "reset", "pre-migration", "manual"]
@@ -137,45 +137,35 @@ async def test_cleanup_old_backups_respects_max_limit(
         {
             "filename": "kidschores_data_2024-12-18_15-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 15, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 15, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 1,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_14-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 14, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 14, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 2,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_13-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 13, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 13, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 3,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_12-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 12, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 12, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 4,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_11-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 11, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 11, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 5,
             "size_bytes": 1000,
         },
@@ -206,36 +196,28 @@ async def test_cleanup_old_backups_never_deletes_permanent_tags(
         {
             "filename": "kidschores_data_2024-12-18_15-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 15, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 15, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 1,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_10-00-00_pre-migration",
             "tag": "pre-migration",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 10, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 10, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 6,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_09-00-00_manual",
             "tag": "manual",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 9, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 9, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 7,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_08-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 8, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 8, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 8,
             "size_bytes": 1000,
         },
@@ -260,9 +242,7 @@ async def test_cleanup_old_backups_disabled_when_zero(
         {
             "filename": "kidschores_data_2024-12-18_15-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 15, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 15, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 1,
             "size_bytes": 1000,
         }
@@ -286,27 +266,21 @@ async def test_cleanup_old_backups_continues_on_error(
         {
             "filename": "kidschores_data_2024-12-18_15-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 15, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 15, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 1,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_14-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 14, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 14, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 2,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_13-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 13, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 13, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 3,
             "size_bytes": 1000,
         },
@@ -335,45 +309,35 @@ async def test_cleanup_old_backups_handles_non_integer_max_backups(
         {
             "filename": "kidschores_data_2024-12-18_15-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 15, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 15, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 1,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_14-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 14, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 14, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 2,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_13-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 13, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 13, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 3,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_12-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 12, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 12, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 4,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_11-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 11, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 11, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 5,
             "size_bytes": 1000,
         },

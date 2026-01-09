@@ -7,8 +7,7 @@ with temporary directories for better integration coverage.
 
 # pyright: reportTypedDictNotRequiredAccess=false  # Pylance: ConfigFlowResult optional keys tested deliberately
 # pylint: disable=redefined-outer-name  # Pytest fixtures shadow names
-# pylint: disable=unused-argument  # Some test fixtures used for setup only
-# pylint: disable=too-many-lines  # Test file with comprehensive scenarios
+# Some test fixtures used for setup only
 # pylint: disable=import-outside-toplevel  # Lazy imports for test flow scenarios
 
 import json
@@ -16,10 +15,10 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
-import pytest
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult, FlowResultType
+import pytest
 
 from custom_components.kidschores.const import (
     BACKUP_TAG_MANUAL,

@@ -23,9 +23,7 @@ Usage:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
-
-from homeassistant.core import Context, HomeAssistant
+from typing import TYPE_CHECKING, Any
 
 from tests.helpers.constants import (
     ATTR_CHORE_APPROVE_BUTTON_ENTITY_ID,
@@ -39,6 +37,8 @@ from tests.helpers.constants import (
     ATTR_REWARD_CLAIM_BUTTON_ENTITY_ID,
 )
 
+if TYPE_CHECKING:
+    from homeassistant.core import Context, HomeAssistant
 
 # =============================================================================
 # RESULT DATACLASS
@@ -141,7 +141,9 @@ def get_kid_points(hass: HomeAssistant, kid_slug: str) -> float:
 # =============================================================================
 
 
-def find_chore(dashboard_attrs: dict[str, Any], chore_name: str) -> dict[str, Any] | None:
+def find_chore(
+    dashboard_attrs: dict[str, Any], chore_name: str
+) -> dict[str, Any] | None:
     """Find chore by display name in dashboard helper's chores list.
 
     Args:
@@ -159,7 +161,9 @@ def find_chore(dashboard_attrs: dict[str, Any], chore_name: str) -> dict[str, An
     return None
 
 
-def find_reward(dashboard_attrs: dict[str, Any], reward_name: str) -> dict[str, Any] | None:
+def find_reward(
+    dashboard_attrs: dict[str, Any], reward_name: str
+) -> dict[str, Any] | None:
     """Find reward by display name in dashboard helper's rewards list.
 
     Args:
@@ -177,7 +181,9 @@ def find_reward(dashboard_attrs: dict[str, Any], reward_name: str) -> dict[str, 
     return None
 
 
-def find_bonus(dashboard_attrs: dict[str, Any], bonus_name: str) -> dict[str, Any] | None:
+def find_bonus(
+    dashboard_attrs: dict[str, Any], bonus_name: str
+) -> dict[str, Any] | None:
     """Find bonus by display name in dashboard helper's bonuses list.
 
     NOTE: The eid returned is a BUTTON entity, not a sensor.
@@ -197,7 +203,9 @@ def find_bonus(dashboard_attrs: dict[str, Any], bonus_name: str) -> dict[str, An
     return None
 
 
-def find_penalty(dashboard_attrs: dict[str, Any], penalty_name: str) -> dict[str, Any] | None:
+def find_penalty(
+    dashboard_attrs: dict[str, Any], penalty_name: str
+) -> dict[str, Any] | None:
     """Find penalty by display name in dashboard helper's penalties list.
 
     NOTE: The eid returned is a BUTTON entity, not a sensor.
@@ -301,7 +309,7 @@ async def press_button(
         )
         await hass.async_block_till_done()
         return True
-    except Exception:  # pylint: disable=broad-except
+    except Exception:
         return False
 
 
@@ -382,7 +390,7 @@ async def claim_chore(
 
         result.points_after = get_kid_points(hass, kid_slug)
 
-    except Exception as ex:  # pylint: disable=broad-except
+    except Exception as ex:
         result.success = False
         result.error = str(ex)
 
@@ -452,7 +460,7 @@ async def approve_chore(
 
         result.points_after = get_kid_points(hass, kid_slug)
 
-    except Exception as ex:  # pylint: disable=broad-except
+    except Exception as ex:
         result.success = False
         result.error = str(ex)
 
@@ -522,7 +530,7 @@ async def disapprove_chore(
 
         result.points_after = get_kid_points(hass, kid_slug)
 
-    except Exception as ex:  # pylint: disable=broad-except
+    except Exception as ex:
         result.success = False
         result.error = str(ex)
 
@@ -593,7 +601,7 @@ async def claim_reward(
 
         result.points_after = get_kid_points(hass, kid_slug)
 
-    except Exception as ex:  # pylint: disable=broad-except
+    except Exception as ex:
         result.success = False
         result.error = str(ex)
 
@@ -659,7 +667,7 @@ async def approve_reward(
 
         result.points_after = get_kid_points(hass, kid_slug)
 
-    except Exception as ex:  # pylint: disable=broad-except
+    except Exception as ex:
         result.success = False
         result.error = str(ex)
 
@@ -714,7 +722,7 @@ async def apply_bonus(
 
         result.points_after = get_kid_points(hass, kid_slug)
 
-    except Exception as ex:  # pylint: disable=broad-except
+    except Exception as ex:
         result.success = False
         result.error = str(ex)
 
@@ -764,7 +772,7 @@ async def apply_penalty(
 
         result.points_after = get_kid_points(hass, kid_slug)
 
-    except Exception as ex:  # pylint: disable=broad-except
+    except Exception as ex:
         result.success = False
         result.error = str(ex)
 

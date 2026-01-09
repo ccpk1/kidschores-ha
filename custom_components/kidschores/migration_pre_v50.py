@@ -10,17 +10,15 @@ modified further. Modern installations (KC-v0.5.0+) skip this module entirely vi
 lazy import to avoid any runtime cost.
 """
 
-import random
 from collections import Counter
 from datetime import datetime
+import random
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from . import const
-from . import flow_helpers as fh
-from . import kc_helpers as kh
+from . import const, flow_helpers as fh, kc_helpers as kh
 from .storage_manager import KidsChoresStorageManager
 
 if TYPE_CHECKING:
@@ -139,7 +137,7 @@ async def migrate_config_to_storage(
             const.LOGGER.info("INFO: Created pre-migration backup: %s", backup_name)
         else:
             const.LOGGER.warning("WARNING: No data available for pre-migration backup")
-    except Exception as err:  # pylint: disable=broad-exception-caught
+    except Exception as err:
         const.LOGGER.warning("WARNING: Failed to create pre-migration backup: %s", err)
 
     # Define fields that should NOT be migrated from config (relational/runtime fields)
@@ -299,7 +297,6 @@ class PreV50Migrator:
         coordinator: Reference to the KidsChoresDataCoordinator instance.
     """
 
-    # pylint: disable=protected-access
     # This migration class intentionally accesses coordinator private methods and data
 
     def __init__(self, coordinator: "KidsChoresDataCoordinator") -> None:
@@ -390,7 +387,7 @@ class PreV50Migrator:
         This is a one-time migration during upgrade to v42+ schema.
         """
         chores_data = self.coordinator._data.get(const.DATA_CHORES, {})
-        for _, chore_info in chores_data.items():
+        for chore_info in chores_data.values():
             # Ensure completion_criteria is set by reading legacy shared_chore field
             if const.DATA_CHORE_COMPLETION_CRITERIA not in chore_info:
                 # Read legacy shared_chore boolean to determine criteria
@@ -430,9 +427,9 @@ class PreV50Migrator:
                 if const.DATA_CHORE_PER_KID_DUE_DATES not in chore_info:
                     template_due_date = chore_info.get(const.DATA_CHORE_DUE_DATE)
                     assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
-                    chore_info[const.DATA_CHORE_PER_KID_DUE_DATES] = {
-                        kid_id: template_due_date for kid_id in assigned_kids
-                    }
+                    chore_info[const.DATA_CHORE_PER_KID_DUE_DATES] = dict.fromkeys(
+                        assigned_kids, template_due_date
+                    )
                     const.LOGGER.debug(
                         "Migrated INDEPENDENT chore '%s' with per-kid dates",
                         chore_info.get(const.DATA_CHORE_NAME),
@@ -548,11 +545,10 @@ class PreV50Migrator:
                         if const.DATA_KID_CHORE_DATA not in kid_info:
                             kid_info[const.DATA_KID_CHORE_DATA] = kid_chore_data
                         chores_migrated += 1
-            else:
-                # SHARED chores: Initialize approval_period_start at chore level
-                if const.DATA_CHORE_APPROVAL_PERIOD_START not in chore_info:
-                    chore_info[const.DATA_CHORE_APPROVAL_PERIOD_START] = now_utc_iso
-                    chores_migrated += 1
+            # SHARED chores: Initialize approval_period_start at chore level
+            elif const.DATA_CHORE_APPROVAL_PERIOD_START not in chore_info:
+                chore_info[const.DATA_CHORE_APPROVAL_PERIOD_START] = now_utc_iso
+                chores_migrated += 1
 
         # Phase 2: DELETE deprecated lists from kid data
         kids_cleaned = 0
@@ -600,8 +596,7 @@ class PreV50Migrator:
             dt_obj_utc = kh.parse_datetime_to_utc(dt_str)
             if dt_obj_utc:
                 return dt_obj_utc.isoformat()
-            else:
-                raise ValueError("Parsed datetime is None")
+            raise ValueError("Parsed datetime is None")
         except (ValueError, TypeError, AttributeError) as err:
             const.LOGGER.warning(
                 "WARNING: Migrate DateTime - Error migrating datetime '%s': %s",
@@ -615,7 +610,6 @@ class PreV50Migrator:
         # This is a no-op in the context of run_all_migrations since datetime
         # conversion is called by _migrate_stored_datetimes
 
-    # pylint: disable=too-many-branches
     def _migrate_stored_datetimes(self) -> None:
         """Walk through stored data and convert known datetime fields to UTC-aware ISO strings."""
         # For each chore, migrate due_date, last_completed, and last_claimed
@@ -712,7 +706,6 @@ class PreV50Migrator:
             "INFO: Kid data migration complete. Migrated %s kids.", migrated_count
         )
 
-    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     def _migrate_legacy_kid_chore_data_and_streaks(self) -> None:
         """Migrate legacy streak and stats data to the new kid chores structure (period-based).
 
@@ -728,7 +721,7 @@ class PreV50Migrator:
             last_longest_streak_date = None
 
             # Find the max streak and last date across all chores for this kid
-            for chore_id, legacy_streak in legacy_streaks.items():
+            for _chore_id, legacy_streak in legacy_streaks.items():
                 max_streak = legacy_streak.get(const.DATA_KID_MAX_STREAK_LEGACY, 0)
                 if max_streak > legacy_max:
                     legacy_max = max_streak
@@ -762,7 +755,7 @@ class PreV50Migrator:
             # Migrate all-time claimed count from legacy (use max of any chore's claims or completed_chores_total)
             all_claims = [
                 kid_info.get(const.DATA_KID_CHORE_CLAIMS_LEGACY, {}).get(chore_id, 0)
-                for chore_id in self.coordinator.chores_data.keys()
+                for chore_id in self.coordinator.chores_data
             ]
             all_claims.append(
                 kid_info.get(const.DATA_KID_COMPLETED_CHORES_TOTAL_LEGACY, 0)
@@ -963,7 +956,6 @@ class PreV50Migrator:
                 all_time_data[const.DATA_KID_CHORE_DATA_PERIOD_APPROVED] = approvals
                 all_time_data[const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED] = claims
 
-    # pylint: disable=too-many-branches,too-many-statements
     def _migrate_badges(self) -> None:
         """Migrate legacy badges into cumulative badges and ensure all required fields exist.
 
@@ -994,7 +986,7 @@ class PreV50Migrator:
         average_points = (total_points / count) if count > 0 else const.DEFAULT_POINTS
 
         # Process each badge.
-        for _, badge_info in badges_dict.items():
+        for badge_info in badges_dict.values():
             # --- Legacy migration logic ---
             if badge_info.get(const.DATA_BADGE_TYPE) == const.BADGE_TYPE_CUMULATIVE:
                 # If the badge is already moved to cumulative, skip legacy migration.
@@ -1157,7 +1149,7 @@ class PreV50Migrator:
         (by points threshold) from their legacy earned badges list.
         Also set their cumulative cycle points to their current points balance to avoid losing progress.
         """
-        for _, kid_info in self.coordinator.kids_data.items():
+        for kid_info in self.coordinator.kids_data.values():
             legacy_badge_names = kid_info.get(const.DATA_KID_BADGES_LEGACY, [])
             if not legacy_badge_names:
                 continue
@@ -1261,10 +1253,9 @@ class PreV50Migrator:
         self.coordinator._persist()
         self.coordinator.async_set_updated_data(self.coordinator._data)
 
-    # pylint: disable=too-many-locals
     def _migrate_legacy_point_stats(self) -> None:
         """Migrate legacy rolling point stats into the new point_data period structure for each kid."""
-        for _, kid_info in self.coordinator.kids_data.items():
+        for kid_info in self.coordinator.kids_data.values():
             # Legacy values
             legacy_today = round(
                 kid_info.get(const.DATA_KID_POINTS_EARNED_TODAY_LEGACY, 0.0),
@@ -1560,7 +1551,7 @@ class PreV50Migrator:
             # Remove entity from HA registry
             self.coordinator._remove_entities_in_ha(entity_id)
             if section == const.DATA_CHORES:
-                for kid_id in self.coordinator.kids_data.keys():
+                for kid_id in self.coordinator.kids_data:
                     self.coordinator._remove_kid_chore_entities(kid_id, entity_id)
 
             # Remove deleted kids from parents list (cleanup)
@@ -1986,7 +1977,7 @@ class PreV50Migrator:
             chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
             for _, chore_info in list(chore_data.items()):
                 chore_periods = chore_info.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
-                for period_type, period_dict in list(chore_periods.items()):
+                for _period_type, period_dict in list(chore_periods.items()):
                     for _, period_values in list(period_dict.items()):
                         if isinstance(period_values, dict):
                             points_val = period_values.get(
@@ -2057,7 +2048,7 @@ class PreV50Migrator:
         cleaned_count = 0
         kids_affected = 0
 
-        for _, kid_info in kids_data.items():
+        for kid_info in kids_data.values():
             kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
             kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
             kid_had_cleanup = False

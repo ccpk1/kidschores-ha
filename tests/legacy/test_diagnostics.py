@@ -5,14 +5,14 @@ Validates byte-for-byte compatibility with storage file for paste recovery.
 """
 
 # pylint: disable=redefined-outer-name  # Pytest fixtures shadow names
-# pylint: disable=unused-argument  # Some fixtures needed for setup only
+# Some fixtures needed for setup only
 
 from unittest.mock import MagicMock
 
-import pytest
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntry
+import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.diagnostics import (
@@ -220,4 +220,3 @@ async def test_diagnostics_simplicity():
     # - Single line return for config entry diagnostics
     # - Minimal processing for device diagnostics
     # - No custom data structures or transformations
-    pass

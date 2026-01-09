@@ -1,5 +1,4 @@
 # File: const.py
-# pylint: disable=too-many-lines  # Constants module requires 2300+ lines for complete integration config
 """Constants for the KidsChores integration.
 
 This file centralizes configuration keys, defaults, labels, domain names,
@@ -11,13 +10,13 @@ services, and options flow.
 import logging
 from typing import Final
 
-import homeassistant.util.dt as dt_util
 from homeassistant.const import Platform
+import homeassistant.util.dt as dt_util
 
 
 def set_default_timezone(hass):
     """Set the default timezone based on the Home Assistant configuration."""
-    global DEFAULT_TIME_ZONE  # pylint: disable=global-statement
+    global DEFAULT_TIME_ZONE  # noqa: PLW0603
     DEFAULT_TIME_ZONE = dt_util.get_time_zone(hass.config.time_zone)
 
 
@@ -50,7 +49,7 @@ STORAGE_VERSION: Final = 1
 
 # Default timezone (set once hass is available)
 # pylint: disable=invalid-name
-DEFAULT_TIME_ZONE = None  # noqa: N816
+DEFAULT_TIME_ZONE = None
 
 # Schema version for config→storage migration
 DATA_SCHEMA_VERSION: Final = "schema_version"

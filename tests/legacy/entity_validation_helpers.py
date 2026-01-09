@@ -13,11 +13,15 @@ No need to pass domain as an argument.
 
 from __future__ import annotations
 
-from homeassistant.core import HomeAssistant
+from typing import TYPE_CHECKING
+
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import slugify
 
 from custom_components.kidschores.const import DOMAIN
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
 
 
 def count_entities_by_platform(

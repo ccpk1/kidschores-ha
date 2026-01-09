@@ -21,18 +21,17 @@ Test Coverage:
     - Edge cases: multiple chores, timezones, boundaries
 """
 
-# pylint: disable=protected-access  # Accessing _persist for testing
-# pylint: disable=too-many-locals  # Test functions need many variables for setup
-# pylint: disable=unused-argument  # hass_client required by fixture pattern
+# Accessing _persist for testing
+# hass_client required by fixture pattern
 
-from datetime import timedelta, timezone
+from datetime import UTC, timedelta
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
-import pytest
 from freezegun import freeze_time
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.typing import ClientSessionGenerator
 
@@ -163,8 +162,8 @@ async def test_non_recurring_chore_with_due_date_midnight(
     duration = event.end - event.start
     assert duration == timedelta(hours=1), f"Expected 1 hour duration, got {duration}"
     # Start should match the stored due_date in UTC terms (2025-01-25 05:00:00 UTC)
-    expected_start_utc = datetime(2025, 1, 25, 5, 0, 0, tzinfo=timezone.utc)
-    assert event.start.astimezone(timezone.utc) == expected_start_utc
+    expected_start_utc = datetime(2025, 1, 25, 5, 0, 0, tzinfo=UTC)
+    assert event.start.astimezone(UTC) == expected_start_utc
 
 
 # ============================================================================

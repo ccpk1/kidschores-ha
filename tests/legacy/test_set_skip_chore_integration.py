@@ -6,15 +6,15 @@ This test validates that:
 3. Both services work together without data consistency issues
 """
 
-# pylint: disable=protected-access  # Accessing _data for testing coordinator directly
+# Accessing _data for testing coordinator directly
 # pylint: disable=redefined-outer-name  # Pytest fixture pattern
-# pylint: disable=unused-argument  # Fixtures needed for test setup
+# Fixtures needed for test setup
 
 from datetime import timedelta
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+import pytest
 
 from custom_components.kidschores.const import (
     COMPLETION_CRITERIA_INDEPENDENT,
@@ -142,7 +142,10 @@ async def test_set_and_skip_independent_chore_integration(
     kid_chore_data = coordinator.kids_data["kid_1"][DATA_KID_CHORE_DATA][
         "independent_chore"
     ]
-    assert kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] == initial_due_date.isoformat()
+    assert (
+        kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE_LEGACY]
+        == initial_due_date.isoformat()
+    )
 
     # 2. Skip the due date (should work without error using per-kid due_date)
     coordinator.skip_chore_due_date("independent_chore", "kid_1")

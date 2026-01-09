@@ -1,8 +1,8 @@
 """Tests for legacy sensor toggle functionality."""
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
+import pytest
 
 from custom_components.kidschores import const
 
@@ -11,8 +11,8 @@ pytestmark = pytest.mark.usefixtures("init_integration")
 
 async def test_legacy_sensors_created_when_enabled(
     hass: HomeAssistant,
-    mock_config_entry,  # pylint: disable=unused-argument
-    mock_coordinator,  # pylint: disable=unused-argument
+    mock_config_entry,
+    mock_coordinator,
 ):
     """Test that legacy sensors are created when show_legacy_entities is True."""
     # The mock_config_entry fixture has show_legacy_entities = True by default
@@ -86,15 +86,14 @@ async def test_legacy_sensors_not_created_when_disabled(hass: HomeAssistant):
                 legacy_sensors.append(entity.entity_id)
 
     assert len(legacy_sensors) == 0, (
-        f"Expected 0 legacy sensors when disabled, "
-        f"found {len(legacy_sensors)}: {legacy_sensors}"
+        f"Expected 0 legacy sensors when disabled, found {len(legacy_sensors)}: {legacy_sensors}"
     )
 
 
 async def test_legacy_sensors_removed_when_option_changed(
     hass: HomeAssistant,
     mock_config_entry,
-    init_integration,  # pylint: disable=unused-argument
+    init_integration,
 ):
     """Test that legacy sensors are removed when show_legacy_entities changes from True to False."""
     entity_registry = er.async_get(hass)

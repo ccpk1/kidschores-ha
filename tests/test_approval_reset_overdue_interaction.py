@@ -12,16 +12,14 @@ Question answered: What happens to chores in different states when midnight rese
 See tests/AGENT_TEST_CREATION_INSTRUCTIONS.md for patterns used.
 """
 
-# pylint: disable=protected-access, unused-argument, redefined-outer-name
-
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.util import dt as dt_util
+import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.const import (
@@ -83,7 +81,7 @@ def set_chore_due_date_to_past(
 
     This is a copy of the helper from test_chore_scheduling.py.
     """
-    past_date = datetime.now(timezone.utc) - timedelta(days=days_ago)
+    past_date = datetime.now(UTC) - timedelta(days=days_ago)
     past_date = past_date.replace(hour=17, minute=0, second=0, microsecond=0)
     past_date_iso = dt_util.as_utc(past_date).isoformat()
 
@@ -131,7 +129,7 @@ def set_chore_due_date_to_future(
     days_ahead: int = 1,
 ) -> datetime:
     """Set chore due date to the future."""
-    future_date = datetime.now(timezone.utc) + timedelta(days=days_ahead)
+    future_date = datetime.now(UTC) + timedelta(days=days_ahead)
     future_date = future_date.replace(hour=17, minute=0, second=0, microsecond=0)
     future_date_iso = dt_util.as_utc(future_date).isoformat()
 

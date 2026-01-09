@@ -1,5 +1,4 @@
 # File: services.py
-# pylint: disable=too-many-lines  # Service registration module with 17 handlers
 """Defines custom services for the KidsChores integration.
 
 These services allow direct actions through scripts or automations.
@@ -7,19 +6,18 @@ Includes UI editor support with selectors for dropdowns and text inputs.
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import TYPE_CHECKING
 
-import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import config_validation as cv, entity_registry as er
 from homeassistant.util import dt as dt_util
+import voluptuous as vol
 
-from . import const
-from . import flow_helpers as fh
-from . import kc_helpers as kh
-from .coordinator import KidsChoresDataCoordinator
+from . import const, flow_helpers as fh, kc_helpers as kh
+
+if TYPE_CHECKING:
+    from .coordinator import KidsChoresDataCoordinator
 
 # --- Service Schemas ---
 
@@ -845,7 +843,7 @@ def async_setup_services(hass: HomeAssistant):
                 const.LOGGER.info("Created pre-reset backup: %s", backup_name)
             else:
                 const.LOGGER.warning("No data available to include in pre-reset backup")
-        except Exception as err:  # pylint: disable=broad-exception-caught
+        except Exception as err:
             const.LOGGER.warning("Failed to create pre-reset backup: %s", err)
 
         # Step 2: Clean up entity registry BEFORE clearing storage
@@ -920,7 +918,7 @@ def async_setup_services(hass: HomeAssistant):
             const.LOGGER.warning("Reset Overdue Chores: %s", err)
             raise
 
-        kid_id: Optional[str] = None
+        kid_id: str | None = None
         try:
             if kid_name:
                 kid_id = kh.get_kid_id_or_raise(coordinator, kid_name)

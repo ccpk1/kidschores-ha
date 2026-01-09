@@ -24,8 +24,6 @@ from custom_components.kidschores.const import (
     DOMAIN,
 )
 
-# pylint: disable=protected-access,redefined-outer-name
-
 
 async def test_daily_badge_empty_assigned_to_evaluates_for_all_kids(
     hass: HomeAssistant,

@@ -1,0 +1,54 @@
+{
+  "python.defaultInterpreterPath": "/home/vscode/.local/ha-venv/bin/python3",
+
+  // Ruff configuration (replaces pylint)
+  "[python]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "always",
+      "source.organizeImports": "explicit"
+    },
+    "editor.defaultFormatter": "charliermarsh.ruff"
+  },
+
+  // Ruff extension settings (native language server, not ruff-lsp)
+  "ruff.enable": true,
+  "ruff.organizeImports": true,
+  "ruff.fixAll": true,
+  "ruff.lint.enable": true,
+
+  // Disable pylint (we're using ruff now)
+  "python.linting.enabled": false,
+  "python.linting.pylintEnabled": false,
+
+  // Python language server settings
+  "python.analysis.diagnosticMode": "workspace",
+  "python.analysis.autoImportCompletions": true,
+
+  // Test configuration
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": ["tests", "-v"],
+
+  // File associations
+  "files.associations": {
+    "*.yaml": "home-assistant"
+  },
+
+  // Exclude from file watcher
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/**": true,
+    "**/.pytest_cache/**": true,
+    "**/__pycache__/**": true,
+    "**/.ruff_cache/**": true,
+    "**/.mypy_cache/**": true
+  },
+
+  // Editor settings
+  "editor.rulers": [100],
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true
+}

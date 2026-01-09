@@ -4,14 +4,14 @@ Tests storage manager methods that are not fully covered by integration tests,
 including error handling, user linking features, and data clearing operations.
 """
 
-# pylint: disable=protected-access  # Accessing _store, _data, _storage_key for testing
+# Accessing _store, _data, _storage_key for testing
 # pylint: disable=redefined-outer-name  # Pytest fixtures redefine names
-# pylint: disable=unused-argument  # Test fixtures may be unused in simple tests
+# Test fixtures may be unused in simple tests
 
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.storage_manager import KidsChoresStorageManager

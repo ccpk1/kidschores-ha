@@ -1,6 +1,6 @@
 """Test entity naming consistency - badges, rewards, buttons, and friendly names."""
 
-# pylint: disable=protected-access,redefined-outer-name  # Pytest fixtures
+# Pytest fixtures
 
 from unittest.mock import AsyncMock
 
