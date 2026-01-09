@@ -16,16 +16,16 @@ correctly (treated as independent instead of shared).
 See tests/AGENT_TEST_CREATION_INSTRUCTIONS.md for patterns used.
 """
 
-# pylint: disable=protected-access, unused-argument, redefined-outer-name
+
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.util import dt as dt_util
+import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.const import (
@@ -89,18 +89,14 @@ def get_chore_due_date(coordinator: Any, chore_id: str) -> str | None:
     return chore_info.get(DATA_CHORE_DUE_DATE)
 
 
-def get_kid_due_date_for_chore(
-    coordinator: Any, chore_id: str, kid_id: str
-) -> str | None:
+def get_kid_due_date_for_chore(coordinator: Any, chore_id: str, kid_id: str) -> str | None:
     """Get per-kid due date (for independent chores)."""
     chore_info = coordinator.chores_data.get(chore_id, {})
     per_kid_due_dates = chore_info.get(DATA_CHORE_PER_KID_DUE_DATES, {})
     return per_kid_due_dates.get(kid_id)
 
 
-def get_kid_chore_data_due_date(
-    coordinator: Any, kid_id: str, chore_id: str
-) -> str | None:
+def get_kid_chore_data_due_date(coordinator: Any, kid_id: str, chore_id: str) -> str | None:
     """Get due date from kid's chore data."""
     kid_info = coordinator.kids_data.get(kid_id, {})
     kid_chore_data = kid_info.get(DATA_KID_CHORE_DATA, {}).get(chore_id, {})
@@ -124,7 +120,7 @@ def set_chore_due_date_to_past(
     This helper sets due dates to the past so overdue checks can be triggered.
     Handles both INDEPENDENT (per-kid) and SHARED (chore-level) due dates.
     """
-    past_date = datetime.now(timezone.utc) - timedelta(days=days_ago)
+    past_date = datetime.now(UTC) - timedelta(days=days_ago)
     past_date = past_date.replace(hour=17, minute=0, second=0, microsecond=0)
     past_date_iso = dt_util.as_utc(past_date).isoformat()
 
@@ -145,9 +141,7 @@ def set_chore_due_date_to_past(
             kid_chore_data = kid_info.get(DATA_KID_CHORE_DATA, {}).get(chore_id, {})
             if kid_chore_data:
                 kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] = past_date_iso
-                kid_chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = (
-                    period_start_iso
-                )
+                kid_chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = period_start_iso
         else:
             for assigned_kid_id in chore_info.get(DATA_CHORE_ASSIGNED_KIDS, []):
                 per_kid_due_dates[assigned_kid_id] = past_date_iso
@@ -155,9 +149,7 @@ def set_chore_due_date_to_past(
                 kid_chore_data = kid_info.get(DATA_KID_CHORE_DATA, {}).get(chore_id, {})
                 if kid_chore_data:
                     kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] = past_date_iso
-                    kid_chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = (
-                        period_start_iso
-                    )
+                    kid_chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = period_start_iso
     else:
         # SHARED or SHARED_FIRST - use chore-level due date
         chore_info[DATA_CHORE_DUE_DATE] = past_date_iso
@@ -210,14 +202,8 @@ class TestClaimChoreService:
             coordinator.claim_chore(alice_id, chore_id, "Alice")
 
         # Alice is claimed, Bob is still pending
-        assert (
-            get_kid_state_for_chore(coordinator, alice_id, chore_id)
-            == CHORE_STATE_CLAIMED
-        )
-        assert (
-            get_kid_state_for_chore(coordinator, bob_id, chore_id)
-            == CHORE_STATE_PENDING
-        )
+        assert get_kid_state_for_chore(coordinator, alice_id, chore_id) == CHORE_STATE_CLAIMED
+        assert get_kid_state_for_chore(coordinator, bob_id, chore_id) == CHORE_STATE_PENDING
 
     @pytest.mark.asyncio
     async def test_claim_shared_first_chore(
@@ -236,14 +222,10 @@ class TestClaimChoreService:
             coordinator.claim_chore(alice_id, chore_id, "Alice")
 
         # Alice is claimed
-        assert (
-            get_kid_state_for_chore(coordinator, alice_id, chore_id)
-            == CHORE_STATE_CLAIMED
-        )
+        assert get_kid_state_for_chore(coordinator, alice_id, chore_id) == CHORE_STATE_CLAIMED
         # For shared_first, Bob becomes completed_by_other (missed out) when Alice claims first
         assert (
-            get_kid_state_for_chore(coordinator, bob_id, chore_id)
-            == CHORE_STATE_COMPLETED_BY_OTHER
+            get_kid_state_for_chore(coordinator, bob_id, chore_id) == CHORE_STATE_COMPLETED_BY_OTHER
         )
 
 
@@ -274,10 +256,7 @@ class TestApproveDisapproveChoreService:
             coordinator.approve_chore("Mom", kid_id, chore_id)
 
         # Verify approved and points awarded
-        assert (
-            get_kid_state_for_chore(coordinator, kid_id, chore_id)
-            == CHORE_STATE_APPROVED
-        )
+        assert get_kid_state_for_chore(coordinator, kid_id, chore_id) == CHORE_STATE_APPROVED
         assert get_kid_points(coordinator, kid_id) == initial_points + 10.0  # 10 points
 
     @pytest.mark.asyncio
@@ -297,10 +276,7 @@ class TestApproveDisapproveChoreService:
             coordinator.disapprove_chore("Mom", kid_id, chore_id)
 
         # Verify back to pending
-        assert (
-            get_kid_state_for_chore(coordinator, kid_id, chore_id)
-            == CHORE_STATE_PENDING
-        )
+        assert get_kid_state_for_chore(coordinator, kid_id, chore_id) == CHORE_STATE_PENDING
 
     @pytest.mark.asyncio
     async def test_approve_shared_first_marks_others_completed_by_other(
@@ -320,13 +296,9 @@ class TestApproveDisapproveChoreService:
             coordinator.approve_chore("Mom", alice_id, chore_id)
 
         # Alice is approved, Bob is completed_by_other
+        assert get_kid_state_for_chore(coordinator, alice_id, chore_id) == CHORE_STATE_APPROVED
         assert (
-            get_kid_state_for_chore(coordinator, alice_id, chore_id)
-            == CHORE_STATE_APPROVED
-        )
-        assert (
-            get_kid_state_for_chore(coordinator, bob_id, chore_id)
-            == CHORE_STATE_COMPLETED_BY_OTHER
+            get_kid_state_for_chore(coordinator, bob_id, chore_id) == CHORE_STATE_COMPLETED_BY_OTHER
         )
 
 
@@ -355,7 +327,7 @@ class TestSetChoreDueDateService:
         chore_id = setup_chore_services_scenario.chore_ids["Independent Daily Task"]
 
         # Set new due date
-        new_due_date = datetime.now(timezone.utc) + timedelta(days=3)
+        new_due_date = datetime.now(UTC) + timedelta(days=3)
         new_due_date = new_due_date.replace(hour=18, minute=0, second=0, microsecond=0)
 
         coordinator.set_chore_due_date(chore_id, new_due_date)
@@ -384,7 +356,7 @@ class TestSetChoreDueDateService:
         bob_original = get_kid_due_date_for_chore(coordinator, chore_id, bob_id)
 
         # Set new due date for Alice only
-        new_due_date = datetime.now(timezone.utc) + timedelta(days=5)
+        new_due_date = datetime.now(UTC) + timedelta(days=5)
         new_due_date = new_due_date.replace(hour=18, minute=0, second=0, microsecond=0)
 
         coordinator.set_chore_due_date(chore_id, new_due_date, kid_id=alice_id)
@@ -409,12 +381,10 @@ class TestSetChoreDueDateService:
 
         # Verify completion criteria
         chore_info = coordinator.chores_data.get(chore_id, {})
-        assert (
-            chore_info.get(DATA_CHORE_COMPLETION_CRITERIA) == COMPLETION_CRITERIA_SHARED
-        )
+        assert chore_info.get(DATA_CHORE_COMPLETION_CRITERIA) == COMPLETION_CRITERIA_SHARED
 
         # Set new due date
-        new_due_date = datetime.now(timezone.utc) + timedelta(days=2)
+        new_due_date = datetime.now(UTC) + timedelta(days=2)
         new_due_date = new_due_date.replace(hour=19, minute=0, second=0, microsecond=0)
 
         coordinator.set_chore_due_date(chore_id, new_due_date)
@@ -422,9 +392,7 @@ class TestSetChoreDueDateService:
         # Verify chore-level due date was updated
         chore_due = get_chore_due_date(coordinator, chore_id)
         expected_iso = dt_util.as_utc(new_due_date).isoformat()
-        assert chore_due == expected_iso, (
-            f"Shared chore due date not updated: {chore_due}"
-        )
+        assert chore_due == expected_iso, f"Shared chore due date not updated: {chore_due}"
 
     @pytest.mark.asyncio
     async def test_set_due_date_shared_first_chore(
@@ -443,19 +411,14 @@ class TestSetChoreDueDateService:
 
         # Verify completion criteria is shared_first
         chore_info = coordinator.chores_data.get(chore_id, {})
-        assert (
-            chore_info.get(DATA_CHORE_COMPLETION_CRITERIA)
-            == COMPLETION_CRITERIA_SHARED_FIRST
-        )
+        assert chore_info.get(DATA_CHORE_COMPLETION_CRITERIA) == COMPLETION_CRITERIA_SHARED_FIRST
 
         # Get original chore-level due date
         original_due = get_chore_due_date(coordinator, chore_id)
-        assert original_due is not None, (
-            "Shared_first chore should have chore-level due date"
-        )
+        assert original_due is not None, "Shared_first chore should have chore-level due date"
 
         # Set new due date
-        new_due_date = datetime.now(timezone.utc) + timedelta(days=4)
+        new_due_date = datetime.now(UTC) + timedelta(days=4)
         new_due_date = new_due_date.replace(hour=20, minute=0, second=0, microsecond=0)
 
         coordinator.set_chore_due_date(chore_id, new_due_date)
@@ -484,7 +447,7 @@ class TestSetChoreDueDateService:
         alice_id = setup_chore_services_scenario.kid_ids["Alice"]
         chore_id = setup_chore_services_scenario.chore_ids["Shared First Daily Task"]
 
-        new_due_date = datetime.now(timezone.utc) + timedelta(days=4)
+        new_due_date = datetime.now(UTC) + timedelta(days=4)
 
         # This SHOULD raise an error because shared_first uses chore-level due date
         # If it doesn't raise, the bug is that shared_first is being treated as independent
@@ -526,9 +489,7 @@ class TestSetChoreDueDateService:
 
         # Verify cleared
         chore_due = get_chore_due_date(coordinator, chore_id)
-        assert chore_due is None, (
-            f"shared_first chore due date not cleared: {chore_due}"
-        )
+        assert chore_due is None, f"shared_first chore due date not cleared: {chore_due}"
 
 
 # ============================================================================
@@ -628,16 +589,11 @@ class TestSkipChoreDueDateService:
 
         # Verify completion criteria is shared_first
         chore_info = coordinator.chores_data.get(chore_id, {})
-        assert (
-            chore_info.get(DATA_CHORE_COMPLETION_CRITERIA)
-            == COMPLETION_CRITERIA_SHARED_FIRST
-        )
+        assert chore_info.get(DATA_CHORE_COMPLETION_CRITERIA) == COMPLETION_CRITERIA_SHARED_FIRST
 
         # Get original chore-level due date
         original_due = get_chore_due_date(coordinator, chore_id)
-        assert original_due is not None, (
-            "shared_first chore should have chore-level due date"
-        )
+        assert original_due is not None, "shared_first chore should have chore-level due date"
 
         # Skip the due date
         coordinator.skip_chore_due_date(chore_id)
@@ -682,24 +638,17 @@ class TestResetOverdueChoresService:
 
         # Verify overdue
         assert coordinator.is_overdue(alice_id, chore_id), "Chore should be overdue"
-        assert (
-            get_kid_state_for_chore(coordinator, alice_id, chore_id)
-            == CHORE_STATE_OVERDUE
-        )
+        assert get_kid_state_for_chore(coordinator, alice_id, chore_id) == CHORE_STATE_OVERDUE
 
         # Reset
         coordinator.reset_overdue_chores(chore_id, alice_id)
 
         # Verify reset to pending and rescheduled
-        assert not coordinator.is_overdue(alice_id, chore_id), (
-            "Chore should no longer be overdue"
-        )
+        assert not coordinator.is_overdue(alice_id, chore_id), "Chore should no longer be overdue"
         new_due = get_kid_due_date_for_chore(coordinator, chore_id, alice_id)
         if new_due:
             new_due_dt = datetime.fromisoformat(new_due)
-            assert new_due_dt > datetime.now(timezone.utc), (
-                "New due date should be in future"
-            )
+            assert new_due_dt > datetime.now(UTC), "New due date should be in future"
 
 
 # ============================================================================
@@ -724,13 +673,9 @@ class TestResetAllChoresService:
         coordinator = setup_chore_services_scenario.coordinator
         alice_id = setup_chore_services_scenario.kid_ids["Alice"]
         bob_id = setup_chore_services_scenario.kid_ids["Bob"]
-        independent_chore = setup_chore_services_scenario.chore_ids[
-            "Independent Daily Task"
-        ]
+        independent_chore = setup_chore_services_scenario.chore_ids["Independent Daily Task"]
         shared_chore = setup_chore_services_scenario.chore_ids["Shared All Daily Task"]
-        shared_first_chore = setup_chore_services_scenario.chore_ids[
-            "Shared First Daily Task"
-        ]
+        shared_first_chore = setup_chore_services_scenario.chore_ids["Shared First Daily Task"]
 
         # Set up various states
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
@@ -744,13 +689,9 @@ class TestResetAllChoresService:
 
         # Verify non-pending states before reset
         assert (
-            get_kid_state_for_chore(coordinator, alice_id, independent_chore)
-            == CHORE_STATE_CLAIMED
+            get_kid_state_for_chore(coordinator, alice_id, independent_chore) == CHORE_STATE_CLAIMED
         )
-        assert (
-            get_kid_state_for_chore(coordinator, alice_id, shared_chore)
-            == CHORE_STATE_APPROVED
-        )
+        assert get_kid_state_for_chore(coordinator, alice_id, shared_chore) == CHORE_STATE_APPROVED
 
         # Call the reset_all_chores service via hass.services.async_call
         # The service is registered under the kidschores domain
@@ -764,28 +705,19 @@ class TestResetAllChoresService:
 
         # All should be pending
         assert (
-            get_kid_state_for_chore(coordinator, alice_id, independent_chore)
-            == CHORE_STATE_PENDING
+            get_kid_state_for_chore(coordinator, alice_id, independent_chore) == CHORE_STATE_PENDING
         )
         assert (
-            get_kid_state_for_chore(coordinator, bob_id, independent_chore)
-            == CHORE_STATE_PENDING
+            get_kid_state_for_chore(coordinator, bob_id, independent_chore) == CHORE_STATE_PENDING
         )
-        assert (
-            get_kid_state_for_chore(coordinator, alice_id, shared_chore)
-            == CHORE_STATE_PENDING
-        )
-        assert (
-            get_kid_state_for_chore(coordinator, bob_id, shared_chore)
-            == CHORE_STATE_PENDING
-        )
+        assert get_kid_state_for_chore(coordinator, alice_id, shared_chore) == CHORE_STATE_PENDING
+        assert get_kid_state_for_chore(coordinator, bob_id, shared_chore) == CHORE_STATE_PENDING
         assert (
             get_kid_state_for_chore(coordinator, alice_id, shared_first_chore)
             == CHORE_STATE_PENDING
         )
         assert (
-            get_kid_state_for_chore(coordinator, bob_id, shared_first_chore)
-            == CHORE_STATE_PENDING
+            get_kid_state_for_chore(coordinator, bob_id, shared_first_chore) == CHORE_STATE_PENDING
         )
 
 
@@ -818,7 +750,7 @@ class TestServiceHandlerValidation:
 
         # For now, just verify the coordinator handles it correctly
         # The service handler check is in services.py handle_set_chore_due_date
-        new_due_date = datetime.now(timezone.utc) + timedelta(days=2)
+        new_due_date = datetime.now(UTC) + timedelta(days=2)
 
         # Coordinator should update chore-level date (shared chore ignores kid_id)
         coordinator.set_chore_due_date(chore_id, new_due_date, kid_id=kid_id)

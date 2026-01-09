@@ -20,19 +20,17 @@ SKIPPED: Functionality now covered by modern tests in test_workflow_notification
 - TestNotificationLanguage::test_notification_uses_kid_language_not_system
 """
 
-# pylint: disable=protected-access,redefined-outer-name,unused-argument
-
 import json
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
+from custom_components.kidschores import const
+
 pytestmark = pytest.mark.skip(
     reason="Functionality covered by modern tests in test_workflow_notifications.py"
 )
-
-from custom_components.kidschores import const
 
 
 def load_notification_translations(language: str) -> dict:
@@ -56,7 +54,7 @@ def load_notification_translations(language: str) -> dict:
     if not translation_file.exists():
         raise FileNotFoundError(f"Translation file not found: {translation_file}")
 
-    with open(translation_file, "r", encoding="utf-8") as f:
+    with open(translation_file, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -115,38 +113,30 @@ async def test_notification_action_translations_english(
     # === CRITICAL SETUP: Configure notification prerequisites ===
 
     # 1. Set kid's HA user ID (links HA user to kidschores kid profile)
-    coordinator._data[const.DATA_KIDS][kid_id][const.DATA_KID_HA_USER_ID] = (
-        mock_hass_users["kid1"].id
-    )
+    coordinator._data[const.DATA_KIDS][kid_id][const.DATA_KID_HA_USER_ID] = mock_hass_users[
+        "kid1"
+    ].id
 
     # 2. Set kid's language to English
     coordinator._data[const.DATA_KIDS][kid_id][const.DATA_KID_DASHBOARD_LANGUAGE] = "en"
 
     # 3. Configure parent with associated kid
-    coordinator._data[const.DATA_PARENTS][parent_id][
-        const.DATA_PARENT_ASSOCIATED_KIDS
-    ] = [kid_id]
+    coordinator._data[const.DATA_PARENTS][parent_id][const.DATA_PARENT_ASSOCIATED_KIDS] = [kid_id]
 
     # 4. Enable notifications for parent
-    coordinator._data[const.DATA_PARENTS][parent_id][
-        const.DATA_PARENT_ENABLE_NOTIFICATIONS
-    ] = True
+    coordinator._data[const.DATA_PARENTS][parent_id][const.DATA_PARENT_ENABLE_NOTIFICATIONS] = True
 
     # 5. Set mobile notification service for parent
     coordinator._data[const.DATA_PARENTS][parent_id][
         const.CONF_ENABLE_MOBILE_NOTIFICATIONS_LEGACY
     ] = True
-    coordinator._data[const.DATA_PARENTS][parent_id][
-        const.CONF_MOBILE_NOTIFY_SERVICE_LEGACY
-    ] = "notify.notify"
+    coordinator._data[const.DATA_PARENTS][parent_id][const.CONF_MOBILE_NOTIFY_SERVICE_LEGACY] = (
+        "notify.notify"
+    )
 
     # 6. Ensure chore is NOT auto-approve and has notify_on_claim enabled
-    coordinator._data[const.DATA_CHORES][chore_id][const.DATA_CHORE_AUTO_APPROVE] = (
-        False
-    )
-    coordinator._data[const.DATA_CHORES][chore_id][const.DATA_CHORE_NOTIFY_ON_CLAIM] = (
-        True
-    )
+    coordinator._data[const.DATA_CHORES][chore_id][const.DATA_CHORE_AUTO_APPROVE] = False
+    coordinator._data[const.DATA_CHORES][chore_id][const.DATA_CHORE_NOTIFY_ON_CLAIM] = True
 
     # Persist all changes
     coordinator._persist()
@@ -241,38 +231,30 @@ async def test_notification_action_translations_slovak(
     # === CRITICAL SETUP ===
 
     # 1. Set kid's HA user ID
-    coordinator._data[const.DATA_KIDS][kid_id][const.DATA_KID_HA_USER_ID] = (
-        mock_hass_users["kid1"].id
-    )
+    coordinator._data[const.DATA_KIDS][kid_id][const.DATA_KID_HA_USER_ID] = mock_hass_users[
+        "kid1"
+    ].id
 
     # 2. Set kid's language to SLOVAK
     coordinator._data[const.DATA_KIDS][kid_id][const.DATA_KID_DASHBOARD_LANGUAGE] = "sk"
 
     # 3. Configure parent with associated kid
-    coordinator._data[const.DATA_PARENTS][parent_id][
-        const.DATA_PARENT_ASSOCIATED_KIDS
-    ] = [kid_id]
+    coordinator._data[const.DATA_PARENTS][parent_id][const.DATA_PARENT_ASSOCIATED_KIDS] = [kid_id]
 
     # 4. Enable notifications for parent
-    coordinator._data[const.DATA_PARENTS][parent_id][
-        const.DATA_PARENT_ENABLE_NOTIFICATIONS
-    ] = True
+    coordinator._data[const.DATA_PARENTS][parent_id][const.DATA_PARENT_ENABLE_NOTIFICATIONS] = True
 
     # 5. Set mobile notification service for parent
     coordinator._data[const.DATA_PARENTS][parent_id][
         const.CONF_ENABLE_MOBILE_NOTIFICATIONS_LEGACY
     ] = True
-    coordinator._data[const.DATA_PARENTS][parent_id][
-        const.CONF_MOBILE_NOTIFY_SERVICE_LEGACY
-    ] = "notify.notify"
+    coordinator._data[const.DATA_PARENTS][parent_id][const.CONF_MOBILE_NOTIFY_SERVICE_LEGACY] = (
+        "notify.notify"
+    )
 
     # 6. Ensure chore is NOT auto-approve and has notify_on_claim enabled
-    coordinator._data[const.DATA_CHORES][chore_id][const.DATA_CHORE_AUTO_APPROVE] = (
-        False
-    )
-    coordinator._data[const.DATA_CHORES][chore_id][const.DATA_CHORE_NOTIFY_ON_CLAIM] = (
-        True
-    )
+    coordinator._data[const.DATA_CHORES][chore_id][const.DATA_CHORE_AUTO_APPROVE] = False
+    coordinator._data[const.DATA_CHORES][chore_id][const.DATA_CHORE_NOTIFY_ON_CLAIM] = True
 
     # Persist all changes
     coordinator._persist()
@@ -361,32 +343,24 @@ async def test_notification_uses_kid_language_not_system_language(
     chore_id = name_to_id_map["chore:Garage Cleanup"]
 
     # Configure kid with SLOVAK language (different from system)
-    coordinator._data[const.DATA_KIDS][kid_id][const.DATA_KID_HA_USER_ID] = (
-        mock_hass_users["kid1"].id
-    )
+    coordinator._data[const.DATA_KIDS][kid_id][const.DATA_KID_HA_USER_ID] = mock_hass_users[
+        "kid1"
+    ].id
     coordinator._data[const.DATA_KIDS][kid_id][const.DATA_KID_DASHBOARD_LANGUAGE] = "sk"
 
     # Configure parent
-    coordinator._data[const.DATA_PARENTS][parent_id][
-        const.DATA_PARENT_ASSOCIATED_KIDS
-    ] = [kid_id]
-    coordinator._data[const.DATA_PARENTS][parent_id][
-        const.DATA_PARENT_ENABLE_NOTIFICATIONS
-    ] = True
+    coordinator._data[const.DATA_PARENTS][parent_id][const.DATA_PARENT_ASSOCIATED_KIDS] = [kid_id]
+    coordinator._data[const.DATA_PARENTS][parent_id][const.DATA_PARENT_ENABLE_NOTIFICATIONS] = True
     coordinator._data[const.DATA_PARENTS][parent_id][
         const.CONF_ENABLE_MOBILE_NOTIFICATIONS_LEGACY
     ] = True
-    coordinator._data[const.DATA_PARENTS][parent_id][
-        const.CONF_MOBILE_NOTIFY_SERVICE_LEGACY
-    ] = "notify.notify"
+    coordinator._data[const.DATA_PARENTS][parent_id][const.CONF_MOBILE_NOTIFY_SERVICE_LEGACY] = (
+        "notify.notify"
+    )
 
     # Configure chore
-    coordinator._data[const.DATA_CHORES][chore_id][const.DATA_CHORE_AUTO_APPROVE] = (
-        False
-    )
-    coordinator._data[const.DATA_CHORES][chore_id][const.DATA_CHORE_NOTIFY_ON_CLAIM] = (
-        True
-    )
+    coordinator._data[const.DATA_CHORES][chore_id][const.DATA_CHORE_AUTO_APPROVE] = False
+    coordinator._data[const.DATA_CHORES][chore_id][const.DATA_CHORE_NOTIFY_ON_CLAIM] = True
 
     coordinator._persist()
 

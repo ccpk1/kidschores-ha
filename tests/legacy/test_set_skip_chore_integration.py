@@ -6,15 +6,15 @@ This test validates that:
 3. Both services work together without data consistency issues
 """
 
-# pylint: disable=protected-access  # Accessing _data for testing coordinator directly
+# Accessing _data for testing coordinator directly
 # pylint: disable=redefined-outer-name  # Pytest fixture pattern
-# pylint: disable=unused-argument  # Fixtures needed for test setup
+# Fixtures needed for test setup
 
 from datetime import timedelta
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+import pytest
 
 from custom_components.kidschores.const import (
     COMPLETION_CRITERIA_INDEPENDENT,
@@ -97,9 +97,7 @@ async def test_set_and_skip_shared_chore_integration(
     coordinator = coordinator_with_clean_post_migration_chores
 
     # 1. Set due date for SHARED chore
-    initial_due_date = dt_util.utcnow().replace(
-        hour=10, minute=0, second=0, microsecond=0
-    )
+    initial_due_date = dt_util.utcnow().replace(hour=10, minute=0, second=0, microsecond=0)
     coordinator.set_chore_due_date("shared_chore", initial_due_date)
 
     # Verify SHARED chore has chore-level due_date (correct structure)
@@ -124,24 +122,17 @@ async def test_set_and_skip_independent_chore_integration(
     coordinator = coordinator_with_clean_post_migration_chores
 
     # 1. Set due date for INDEPENDENT chore (specific kid)
-    initial_due_date = dt_util.utcnow().replace(
-        hour=14, minute=0, second=0, microsecond=0
-    )
+    initial_due_date = dt_util.utcnow().replace(hour=14, minute=0, second=0, microsecond=0)
     coordinator.set_chore_due_date("independent_chore", initial_due_date, "kid_1")
 
     # Verify INDEPENDENT chore has correct structure (no chore-level due_date)
     chore_info = coordinator.chores_data["independent_chore"]
     assert DATA_CHORE_DUE_DATE not in chore_info  # Should NOT have chore-level due_date
     assert DATA_CHORE_PER_KID_DUE_DATES in chore_info
-    assert (
-        chore_info[DATA_CHORE_PER_KID_DUE_DATES]["kid_1"]
-        == initial_due_date.isoformat()
-    )
+    assert chore_info[DATA_CHORE_PER_KID_DUE_DATES]["kid_1"] == initial_due_date.isoformat()
 
     # Kid's chore data should also be updated
-    kid_chore_data = coordinator.kids_data["kid_1"][DATA_KID_CHORE_DATA][
-        "independent_chore"
-    ]
+    kid_chore_data = coordinator.kids_data["kid_1"][DATA_KID_CHORE_DATA]["independent_chore"]
     assert kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] == initial_due_date.isoformat()
 
     # 2. Skip the due date (should work without error using per-kid due_date)
@@ -163,9 +154,7 @@ async def test_data_structure_consistency_after_multiple_operations(
     coordinator = coordinator_with_clean_post_migration_chores
 
     # Multiple operations on SHARED chore
-    shared_due_date = dt_util.utcnow().replace(
-        hour=9, minute=0, second=0, microsecond=0
-    )
+    shared_due_date = dt_util.utcnow().replace(hour=9, minute=0, second=0, microsecond=0)
     coordinator.set_chore_due_date("shared_chore", shared_due_date)
     coordinator.skip_chore_due_date("shared_chore", "kid_1")
     coordinator.set_chore_due_date("shared_chore", shared_due_date + timedelta(hours=1))
@@ -176,9 +165,7 @@ async def test_data_structure_consistency_after_multiple_operations(
     assert DATA_CHORE_DUE_DATE in shared_chore_info
 
     # Multiple operations on INDEPENDENT chore
-    independent_due_date = dt_util.utcnow().replace(
-        hour=15, minute=0, second=0, microsecond=0
-    )
+    independent_due_date = dt_util.utcnow().replace(hour=15, minute=0, second=0, microsecond=0)
     coordinator.set_chore_due_date("independent_chore", independent_due_date, "kid_1")
     coordinator.skip_chore_due_date("independent_chore", "kid_1")
     coordinator.set_chore_due_date(

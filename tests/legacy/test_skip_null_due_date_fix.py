@@ -1,11 +1,10 @@
 """Test skip service behavior when due date is null for a kid in independent chore."""
 
-# pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
 
-import pytest
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+import pytest
 
 from custom_components.kidschores import const
 

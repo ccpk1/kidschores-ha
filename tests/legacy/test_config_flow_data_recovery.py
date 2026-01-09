@@ -7,8 +7,7 @@ with temporary directories for better integration coverage.
 
 # pyright: reportTypedDictNotRequiredAccess=false  # Pylance: ConfigFlowResult optional keys tested deliberately
 # pylint: disable=redefined-outer-name  # Pytest fixtures shadow names
-# pylint: disable=unused-argument  # Some test fixtures used for setup only
-# pylint: disable=too-many-lines  # Test file with comprehensive scenarios
+# Some test fixtures used for setup only
 # pylint: disable=import-outside-toplevel  # Lazy imports for test flow scenarios
 
 import json
@@ -16,16 +15,12 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
-import pytest
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult, FlowResultType
+import pytest
 
-from custom_components.kidschores.const import (
-    BACKUP_TAG_MANUAL,
-    BACKUP_TAG_RECOVERY,
-    DOMAIN,
-)
+from custom_components.kidschores.const import BACKUP_TAG_MANUAL, BACKUP_TAG_RECOVERY, DOMAIN
 
 
 def _assert_flow(
@@ -289,9 +284,7 @@ def create_storage_file(path: Path, content: dict | str) -> None:
         path.write_text(content)
 
 
-def create_backup_file(
-    storage_dir: Path, tag: str, timestamp: str, content: dict
-) -> Path:
+def create_backup_file(storage_dir: Path, tag: str, timestamp: str, content: dict) -> Path:
     """Create a backup file in .storage directory.
 
     Follows naming convention: kidschores_data_YYYY-MM-DD_HH-MM-SS_<tag>
@@ -315,9 +308,7 @@ async def test_data_recovery_step_with_existing_storage(
 
     # Mock hass.config.path to properly construct paths
     base_path = mock_storage_dir.parent
-    with patch.object(
-        hass.config, "path", side_effect=lambda *args: str(Path(base_path, *args))
-    ):
+    with patch.object(hass.config, "path", side_effect=lambda *args: str(Path(base_path, *args))):
         result = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": config_entries.SOURCE_USER}
         )
@@ -342,9 +333,7 @@ async def test_normal_flow_without_existing_storage(
     # Store calls hass.config.path('.storage', 'kidschores_data')
     # We want it to point to our temp dir structure, but storage file doesn't exist
     base_path = mock_storage_dir.parent
-    with patch.object(
-        hass.config, "path", side_effect=lambda *args: str(Path(base_path, *args))
-    ):
+    with patch.object(hass.config, "path", side_effect=lambda *args: str(Path(base_path, *args))):
         result = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": config_entries.SOURCE_USER}
         )
@@ -353,9 +342,7 @@ async def test_normal_flow_without_existing_storage(
     _assert_flow(result, FlowResultType.FORM, "data_recovery")
 
     # Continue to start fresh to reach intro
-    with patch.object(
-        hass.config, "path", side_effect=lambda *args: str(Path(base_path, *args))
-    ):
+    with patch.object(hass.config, "path", side_effect=lambda *args: str(Path(base_path, *args))):
         flow_id = _require_flow_id(result)
         result = await hass.config_entries.flow.async_configure(
             flow_id, user_input={"backup_selection": "start_fresh"}
@@ -375,9 +362,7 @@ async def test_start_fresh_creates_backup_and_deletes_storage(
     create_storage_file(storage_file, STORAGE_V42_MINIMAL)
 
     base_path = mock_storage_dir.parent
-    with patch.object(
-        hass.config, "path", side_effect=lambda *args: str(Path(base_path, *args))
-    ):
+    with patch.object(hass.config, "path", side_effect=lambda *args: str(Path(base_path, *args))):
         # Start data recovery flow
         result = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": config_entries.SOURCE_USER}
@@ -396,9 +381,7 @@ async def test_start_fresh_creates_backup_and_deletes_storage(
     assert not storage_file.exists()
 
     # Recovery backup should exist in .storage directory (same as original)
-    backup_files = list(
-        mock_storage_dir.glob(f"kidschores_data_*_{BACKUP_TAG_RECOVERY}")
-    )
+    backup_files = list(mock_storage_dir.glob(f"kidschores_data_*_{BACKUP_TAG_RECOVERY}"))
     assert len(backup_files) >= 1, f"No backup files found in {mock_storage_dir}"
 
     # Verify backup content matches original (stored file format)
@@ -416,9 +399,7 @@ async def test_start_fresh_handles_missing_file_gracefully(
     create_storage_file(storage_file, STORAGE_V42_MINIMAL)
 
     base_path = mock_storage_dir.parent
-    with patch.object(
-        hass.config, "path", side_effect=lambda *args: str(Path(base_path, *args))
-    ):
+    with patch.object(hass.config, "path", side_effect=lambda *args: str(Path(base_path, *args))):
         result = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": config_entries.SOURCE_USER}
         )
@@ -455,9 +436,7 @@ async def test_use_current_creates_entry_immediately(
     create_storage_file(storage_file, STORAGE_V42_MINIMAL)
 
     base_path = mock_storage_dir.parent
-    with patch.object(
-        hass.config, "path", side_effect=lambda *args: str(Path(base_path, *args))
-    ):
+    with patch.object(hass.config, "path", side_effect=lambda *args: str(Path(base_path, *args))):
         result = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": config_entries.SOURCE_USER}
         )
@@ -488,9 +467,7 @@ async def test_use_current_detects_corrupt_json(
     create_storage_file(storage_file, STORAGE_CORRUPT_JSON)
 
     base_path = mock_storage_dir.parent
-    with patch.object(
-        hass.config, "path", side_effect=lambda *args: str(Path(base_path, *args))
-    ):
+    with patch.object(hass.config, "path", side_effect=lambda *args: str(Path(base_path, *args))):
         result = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": config_entries.SOURCE_USER}
         )
@@ -682,9 +659,7 @@ async def test_restore_handles_missing_backup_file(
 
 
 @pytest.mark.asyncio
-async def test_paste_json_shows_input_form(
-    hass: HomeAssistant, mock_storage_dir: Path
-) -> None:
+async def test_paste_json_shows_input_form(hass: HomeAssistant, mock_storage_dir: Path) -> None:
     """Test paste JSON option shows text input form."""
     with patch.object(
         hass.config,
@@ -783,9 +758,7 @@ async def test_paste_json_with_raw_v41_data(
 
 
 @pytest.mark.asyncio
-async def test_paste_json_with_empty_input(
-    hass: HomeAssistant, mock_storage_dir: Path
-) -> None:
+async def test_paste_json_with_empty_input(hass: HomeAssistant, mock_storage_dir: Path) -> None:
     """Test pasting empty JSON shows error."""
     with patch.object(
         hass.config,
@@ -810,9 +783,7 @@ async def test_paste_json_with_empty_input(
 
 
 @pytest.mark.asyncio
-async def test_paste_json_with_invalid_json(
-    hass: HomeAssistant, mock_storage_dir: Path
-) -> None:
+async def test_paste_json_with_invalid_json(hass: HomeAssistant, mock_storage_dir: Path) -> None:
     """Test pasting invalid JSON shows error."""
     with patch.object(
         hass.config,
@@ -1201,9 +1172,7 @@ async def test_restore_backup_creates_kid_entities(
     # All verifications should pass
     assert kid_results["sensors"], f"Sensor validation failed: {kid_results['details']}"
     assert kid_results["buttons"], f"Button validation failed: {kid_results['details']}"
-    assert kid_results["calendar"], (
-        f"Calendar validation failed: {kid_results['details']}"
-    )
+    assert kid_results["calendar"], f"Calendar validation failed: {kid_results['details']}"
     assert kid_results["select"], f"Select validation failed: {kid_results['details']}"
 
     # Verify platform counts

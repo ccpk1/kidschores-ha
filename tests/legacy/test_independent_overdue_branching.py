@@ -1,18 +1,15 @@
 """Test INDEPENDENT mode overdue checking branching logic (Phase 3 Sprint 1, Step 1.9)."""
 
-# pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
 
+from datetime import UTC
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
 from custom_components.kidschores import const
-from custom_components.kidschores.const import (
-    COORDINATOR,
-    DOMAIN,
-)
+from custom_components.kidschores.const import COORDINATOR, DOMAIN
 from tests.legacy.conftest import (
     create_test_datetime,
     is_chore_approved_for_kid,
@@ -24,9 +21,7 @@ from tests.legacy.conftest import (
     reason="Test architecture requires rewrite - direct _data manipulation bypasses state sync"
 )
 @pytest.mark.asyncio
-async def test_independent_different_due_dates_per_kid(
-    hass: HomeAssistant, scenario_full
-):
+async def test_independent_different_due_dates_per_kid(hass: HomeAssistant, scenario_full):
     """Test INDEPENDENT mode with different due dates per kid.
 
     Verifies that per-kid due dates are checked independently.
@@ -54,9 +49,7 @@ async def test_independent_different_due_dates_per_kid(
             break
 
     if not chore_found:
-        pytest.skip(
-            "Test scenario must have INDEPENDENT chore assigned to multiple kids"
-        )
+        pytest.skip("Test scenario must have INDEPENDENT chore assigned to multiple kids")
 
     chore_info = coordinator._data[const.DATA_CHORES][chore_found]
 
@@ -103,39 +96,19 @@ async def test_independent_different_due_dates_per_kid(
 
     # Fast-forward past Zoë's due date (but before Max!'s)
     # Need actual datetime for dt_util.utcnow() mock, not ISO string
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
-    two_days_from_now_dt = datetime.now(timezone.utc) + timedelta(days=2)
+    two_days_from_now_dt = datetime.now(UTC) + timedelta(days=2)
 
     # Debug: Print state before overdue check
-    print("\n=== DEBUG BEFORE OVERDUE CHECK ===")
-    print(f"Mock time: {two_days_from_now_dt.isoformat()}")
-    print(f"tomorrow var: {tomorrow}")
-    print(f"next_week var: {next_week}")
     chore_info = coordinator._data[const.DATA_CHORES].get(chore_found, {})
-    print(f"Chore '{chore_info.get('name')}' ID: {chore_found}")
-    print(
-        f"Chore per_kid_due_dates: {chore_info.get(const.DATA_CHORE_PER_KID_DUE_DATES, {})}"
-    )
-    print(f"Chore assigned_kids: {chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])}")
-    print(
-        f"Chore completion_criteria: {chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA, 'MISSING')}"
-    )
-    for kid_id, kid_name in [(zoë_id, "Zoë"), (max_id, "Max!")]:
+    for kid_id, _kid_name in [(zoë_id, "Zoë"), (max_id, "Max!")]:
         kid_chore_data = (
             coordinator._data[const.DATA_KIDS]
             .get(kid_id, {})
             .get(const.DATA_KID_CHORE_DATA, {})
             .get(chore_found, {})
         )
-        print(f"Kid {kid_name} ID: {kid_id}")
-        print(
-            f"Kid {kid_name} last_approved: {kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_APPROVED, 'None')}"
-        )
-        print(
-            f"Kid {kid_name} last_claimed: {kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_CLAIMED, 'None')}"
-        )
-    print("=== END DEBUG ===\n")
 
     # Add debug logging to coordinator
     import logging
@@ -149,21 +122,12 @@ async def test_independent_different_due_dates_per_kid(
         await coordinator._check_overdue_chores()
 
     # Debug: Print state after overdue check
-    print("\n=== DEBUG AFTER OVERDUE CHECK ===")
-    for kid_id, kid_name in [(zoë_id, "Zoë"), (max_id, "Max!")]:
-        kid_data = coordinator._data[const.DATA_KIDS].get(kid_id, {})
-        print(
-            f"Kid {kid_name} overdue_chores: {kid_data.get(const.DATA_KID_OVERDUE_CHORES, [])}"
-        )
-    print("=== END DEBUG ===\n")
+    for kid_id, _kid_name in [(zoë_id, "Zoë"), (max_id, "Max!")]:
+        coordinator._data[const.DATA_KIDS].get(kid_id, {})
 
     # Verify: Zoë is overdue, Max! is NOT
-    zoë_overdue = coordinator._data[const.DATA_KIDS][zoë_id].get(
-        const.DATA_KID_OVERDUE_CHORES, []
-    )
-    max_overdue = coordinator._data[const.DATA_KIDS][max_id].get(
-        const.DATA_KID_OVERDUE_CHORES, []
-    )
+    zoë_overdue = coordinator._data[const.DATA_KIDS][zoë_id].get(const.DATA_KID_OVERDUE_CHORES, [])
+    max_overdue = coordinator._data[const.DATA_KIDS][max_id].get(const.DATA_KID_OVERDUE_CHORES, [])
 
     assert chore_found in zoë_overdue, (
         f"Zoë should be overdue (due {tomorrow}, now {two_days_from_now_dt})"
@@ -174,9 +138,7 @@ async def test_independent_different_due_dates_per_kid(
 
 
 @pytest.mark.asyncio
-async def test_independent_overdue_one_kid_not_all(
-    hass: HomeAssistant, scenario_medium
-):
+async def test_independent_overdue_one_kid_not_all(hass: HomeAssistant, scenario_medium):
     """Test that overdue affects only specific kid, not all assigned kids.
 
     Verifies that marking one INDEPENDENT kid overdue doesn't automatically
@@ -240,19 +202,15 @@ async def test_independent_overdue_one_kid_not_all(
 
     # Run overdue check (now is tomorrow - after Zoë, before Max!)
     # Need actual datetime for dt_util.utcnow() mock
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
-    now_is_tomorrow_dt = datetime.now(timezone.utc) + timedelta(days=1)
+    now_is_tomorrow_dt = datetime.now(UTC) + timedelta(days=1)
     with patch("homeassistant.util.dt.utcnow", return_value=now_is_tomorrow_dt):
         await coordinator._check_overdue_chores()
 
     # Verify only Zoë and Max! are overdue
-    zoë_overdue = coordinator._data[const.DATA_KIDS][zoë_id].get(
-        const.DATA_KID_OVERDUE_CHORES, []
-    )
-    max_overdue = coordinator._data[const.DATA_KIDS][max_id].get(
-        const.DATA_KID_OVERDUE_CHORES, []
-    )
+    zoë_overdue = coordinator._data[const.DATA_KIDS][zoë_id].get(const.DATA_KID_OVERDUE_CHORES, [])
+    max_overdue = coordinator._data[const.DATA_KIDS][max_id].get(const.DATA_KID_OVERDUE_CHORES, [])
     lila_overdue = coordinator._data[const.DATA_KIDS][lila_id].get(
         const.DATA_KID_OVERDUE_CHORES, []
     )
@@ -263,9 +221,7 @@ async def test_independent_overdue_one_kid_not_all(
 
 
 @pytest.mark.asyncio
-async def test_migration_populates_per_kid_due_dates(
-    hass: HomeAssistant, scenario_minimal
-):
+async def test_migration_populates_per_kid_due_dates(hass: HomeAssistant, scenario_minimal):
     """Test migration copies chore-level due dates to all assigned kids.
 
     Simulates a chore created before per-kid structure existed.
@@ -316,9 +272,7 @@ async def test_migration_populates_per_kid_due_dates(
 
     # Verify all assigned kids inherited the template
     for kid_id in assigned_kids:
-        assert kid_id in per_kid_dates, (
-            f"Migration should populate per-kid date for kid {kid_id}"
-        )
+        assert kid_id in per_kid_dates, f"Migration should populate per-kid date for kid {kid_id}"
         assert per_kid_dates[kid_id] == chore_template_date, (
             f"Kid {kid_id} should inherit template date {chore_template_date}"
         )
@@ -366,21 +320,17 @@ async def test_fallback_to_chore_level_due_date(hass: HomeAssistant, scenario_mi
     coordinator._data[const.DATA_KIDS][zoë_id][const.DATA_KID_OVERDUE_CHORES] = []
 
     # Fast-forward past template date (need datetime object for dt_util.utcnow() mock)
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
-    now_is_two_weeks_dt = datetime.now(timezone.utc) + timedelta(days=14)
+    now_is_two_weeks_dt = datetime.now(UTC) + timedelta(days=14)
 
     with patch("homeassistant.util.dt.utcnow", return_value=now_is_two_weeks_dt):
         await coordinator._check_overdue_chores()
 
     # Verify fallback worked - Zoë should be marked overdue using template
-    zoë_overdue = coordinator._data[const.DATA_KIDS][zoë_id].get(
-        const.DATA_KID_OVERDUE_CHORES, []
-    )
+    zoë_overdue = coordinator._data[const.DATA_KIDS][zoë_id].get(const.DATA_KID_OVERDUE_CHORES, [])
 
-    assert chore_found in zoë_overdue, (
-        "Fallback to chore-level due date should mark kid overdue"
-    )
+    assert chore_found in zoë_overdue, "Fallback to chore-level due date should mark kid overdue"
 
 
 @pytest.mark.skip(
@@ -435,9 +385,9 @@ async def test_independent_claims_separate(hass: HomeAssistant, scenario_full):
     parent_id = name_to_id_map.get("parent:Môm Astrid Stârblüm")
     if parent_id:
         with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
-    ):
+            patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
+            patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        ):
             coordinator.approve_chore(
                 kid_id=zoë_id,
                 chore_id=chore_found,
@@ -446,9 +396,7 @@ async def test_independent_claims_separate(hass: HomeAssistant, scenario_full):
             )
 
     # Verify Zoë approved, Max! still pending (using v0.4.0 state model)
-    assert is_chore_approved_for_kid(coordinator, zoë_id, chore_found), (
-        "Zoë should be approved"
-    )
+    assert is_chore_approved_for_kid(coordinator, zoë_id, chore_found), "Zoë should be approved"
     assert not is_chore_approved_for_kid(coordinator, max_id, chore_found), (
         "Max! should NOT be approved (independent state)"
     )

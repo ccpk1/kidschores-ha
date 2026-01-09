@@ -13,17 +13,17 @@ Priority: P1 CRITICAL
 Coverage: Options flow per-kid dates step, timezone handling, storage format
 """
 
-# pylint: disable=protected-access  # Accessing coordinator._persist for testing
+# Accessing coordinator._persist for testing
 # pylint: disable=redefined-outer-name  # Pytest fixtures redefine names
-# pylint: disable=unused-argument  # Fixtures needed for test setup
+# Fixtures needed for test setup
 # pylint: disable=unused-variable  # name_to_id_map unpacking
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-import pytest
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kidschores import const
@@ -125,11 +125,10 @@ async def _navigate_to_edit_chore(
         result.get("flow_id"),
         user_input={OPTIONS_FLOW_INPUT_MANAGE_ACTION: OPTIONS_FLOW_ACTIONS_EDIT},
     )
-    result = await hass.config_entries.options.async_configure(
+    return await hass.config_entries.options.async_configure(
         result.get("flow_id"),
         user_input={OPTIONS_FLOW_INPUT_ENTITY_NAME: chore_name},
     )
-    return result
 
 
 # =============================================================================
@@ -176,7 +175,7 @@ async def test_edit_independent_chore_shows_per_kid_dates_step(
     # Verify form has fields for all 3 kids
     data_schema = result.get("data_schema")
     assert data_schema is not None
-    schema_keys = [str(k) for k in data_schema.schema.keys()]
+    schema_keys = [str(k) for k in data_schema.schema]
     assert any("Zoë" in key for key in schema_keys)
     assert any("Max!" in key for key in schema_keys)
     assert any("Lila" in key for key in schema_keys)
@@ -200,9 +199,7 @@ async def test_edit_shared_chore_skips_per_kid_dates_step(
     config_entry, name_to_id_map = scenario_full
 
     # Navigate to edit chore form for shared chore
-    result = await _navigate_to_edit_chore(
-        hass, config_entry.entry_id, "Family Dinner Prep"
-    )
+    result = await _navigate_to_edit_chore(hass, config_entry.entry_id, "Family Dinner Prep")
     assert result.get("step_id") == OPTIONS_FLOW_STEP_EDIT_CHORE
 
     # Submit edit form - should go directly to init (no per-kid dates)
@@ -276,7 +273,7 @@ async def test_per_kid_dates_saved_in_utc(
         parsed = datetime.fromisoformat(zoe_date)
         assert parsed.tzinfo is not None  # Must be timezone-aware
         # Should be normalized to UTC
-        assert parsed.tzinfo == timezone.utc or parsed.utcoffset().total_seconds() == 0
+        assert parsed.tzinfo == UTC or parsed.utcoffset().total_seconds() == 0
 
 
 # =============================================================================
@@ -320,9 +317,7 @@ async def test_cancel_per_kid_dates_preserves_chore(
     )
 
     # Chore should have new name and points (saved before per-kid dates)
-    assert (
-        coordinator.chores_data[star_sweep_id][DATA_CHORE_NAME] == "Modified Chore Name"
-    )
+    assert coordinator.chores_data[star_sweep_id][DATA_CHORE_NAME] == "Modified Chore Name"
     assert coordinator.chores_data[star_sweep_id][const.DATA_CHORE_DEFAULT_POINTS] == 50
 
 
@@ -377,9 +372,7 @@ async def test_different_dates_for_each_kid(
     )
 
     # Verify all dates stored
-    per_kid_dates = coordinator.chores_data[star_sweep_id].get(
-        DATA_CHORE_PER_KID_DUE_DATES, {}
-    )
+    per_kid_dates = coordinator.chores_data[star_sweep_id].get(DATA_CHORE_PER_KID_DUE_DATES, {})
 
     # All 3 kids should have dates
     assert len(per_kid_dates) == 3
@@ -453,9 +446,7 @@ async def test_existing_per_kid_dates_shown_in_form(
     )
 
     # Zoë's date should still be there
-    per_kid_dates = coordinator.chores_data[star_sweep_id].get(
-        DATA_CHORE_PER_KID_DUE_DATES, {}
-    )
+    per_kid_dates = coordinator.chores_data[star_sweep_id].get(DATA_CHORE_PER_KID_DUE_DATES, {})
     assert zoe_id in per_kid_dates
     assert per_kid_dates[zoe_id] is not None
 
@@ -507,9 +498,7 @@ async def test_clear_per_kid_date(
     )
 
     # Verify date was set
-    per_kid_dates = coordinator.chores_data[star_sweep_id].get(
-        DATA_CHORE_PER_KID_DUE_DATES, {}
-    )
+    per_kid_dates = coordinator.chores_data[star_sweep_id].get(DATA_CHORE_PER_KID_DUE_DATES, {})
     assert per_kid_dates.get(zoe_id) is not None
 
     # Now clear the date
@@ -530,9 +519,7 @@ async def test_clear_per_kid_date(
     )
 
     # Date should be cleared
-    per_kid_dates = coordinator.chores_data[star_sweep_id].get(
-        DATA_CHORE_PER_KID_DUE_DATES, {}
-    )
+    per_kid_dates = coordinator.chores_data[star_sweep_id].get(DATA_CHORE_PER_KID_DUE_DATES, {})
     assert per_kid_dates.get(zoe_id) is None
 
 
@@ -571,9 +558,7 @@ async def test_new_kid_assignment_gets_template_date(
     max_id = name_to_id_map["kid:Max!"]
 
     # Navigate to edit
-    result = await _navigate_to_edit_chore(
-        hass, config_entry.entry_id, "Ørgänize Bookshelf"
-    )
+    result = await _navigate_to_edit_chore(hass, config_entry.entry_id, "Ørgänize Bookshelf")
 
     # Add Max! to the chore
     result = await hass.config_entries.options.async_configure(
@@ -596,9 +581,7 @@ async def test_new_kid_assignment_gets_template_date(
     )
 
     # Max! should now be in per_kid_due_dates
-    per_kid_dates = coordinator.chores_data[organize_id].get(
-        DATA_CHORE_PER_KID_DUE_DATES, {}
-    )
+    per_kid_dates = coordinator.chores_data[organize_id].get(DATA_CHORE_PER_KID_DUE_DATES, {})
     assert max_id in per_kid_dates
 
 
@@ -684,9 +667,7 @@ async def test_per_kid_date_roundtrip_utc_to_local_display(
     per_kid_dates_after = chore_info_after.get(DATA_CHORE_PER_KID_DUE_DATES, {})
     stored_date_str_after = per_kid_dates_after.get(zoe_id)
 
-    assert stored_date_str_after is not None, (
-        "Date should still be stored for Zoë after re-edit"
-    )
+    assert stored_date_str_after is not None, "Date should still be stored for Zoë after re-edit"
 
     # Parse the stored date and verify it represents the same date we set
     stored_dt_after = datetime.fromisoformat(stored_date_str_after)

@@ -8,16 +8,14 @@ Tests the "first kid to claim wins" behavior where:
 5. Global state tracks SHARED_FIRST correctly
 """
 
-# pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
-# pylint: disable=unused-argument
 
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import Context, HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.const import (
@@ -32,10 +30,7 @@ from custom_components.kidschores.const import (
     DATA_KID_POINTS,
     DOMAIN,
 )
-from tests.legacy.conftest import (
-    is_chore_approved_for_kid,
-    is_chore_claimed_for_kid,
-)
+from tests.legacy.conftest import is_chore_approved_for_kid, is_chore_claimed_for_kid
 
 
 def get_shared_first_chore(
@@ -51,10 +46,7 @@ def get_shared_first_chore(
         Tuple of (chore_id, list of assigned kid_ids) or None if not found
     """
     for chore_id, chore_info in coordinator.chores_data.items():
-        if (
-            chore_info.get(DATA_CHORE_COMPLETION_CRITERIA)
-            == COMPLETION_CRITERIA_SHARED_FIRST
-        ):
+        if chore_info.get(DATA_CHORE_COMPLETION_CRITERIA) == COMPLETION_CRITERIA_SHARED_FIRST:
             assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
             if len(assigned_kids) >= 2:
                 return chore_id, assigned_kids
@@ -148,8 +140,7 @@ async def test_shared_first_second_kid_claim_blocked(
 
     # Verify error message mentions the chore is already claimed
     assert (
-        "already claimed" in str(exc_info.value).lower()
-        or "claimed" in str(exc_info.value).lower()
+        "already claimed" in str(exc_info.value).lower() or "claimed" in str(exc_info.value).lower()
     ), f"Error should mention chore is already claimed, got: {exc_info.value}"
 
     # Verify second kid does NOT have chore in claimed state
@@ -179,12 +170,8 @@ async def test_shared_first_approval_only_awards_first_kid(
     first_kid_name = coordinator.kids_data[first_kid_id][const.DATA_KID_NAME]
 
     # Record initial points
-    first_kid_initial_points = coordinator.kids_data[first_kid_id].get(
-        DATA_KID_POINTS, 0
-    )
-    second_kid_initial_points = coordinator.kids_data[second_kid_id].get(
-        DATA_KID_POINTS, 0
-    )
+    first_kid_initial_points = coordinator.kids_data[first_kid_id].get(DATA_KID_POINTS, 0)
+    second_kid_initial_points = coordinator.kids_data[second_kid_id].get(DATA_KID_POINTS, 0)
 
     parent_context = Context(user_id=mock_hass_users["parent1"].id)
 
@@ -220,9 +207,7 @@ async def test_shared_first_approval_only_awards_first_kid(
     )
 
     # Verify second kid did NOT get points
-    second_kid_final_points = coordinator.kids_data[second_kid_id].get(
-        DATA_KID_POINTS, 0
-    )
+    second_kid_final_points = coordinator.kids_data[second_kid_id].get(DATA_KID_POINTS, 0)
     assert second_kid_final_points == second_kid_initial_points, (
         f"Second kid should NOT have gained points: {second_kid_initial_points} -> {second_kid_final_points}"
     )

@@ -15,15 +15,13 @@ Test Organization:
 - TestFrequencyEffects: Verify once vs daily/weekly behavior
 """
 
-# pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
-# pylint: disable=unused-argument
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
 from custom_components.kidschores import kc_helpers as kh
 from tests.helpers import (
@@ -129,7 +127,7 @@ def set_chore_due_date_to_past(
     from homeassistant.util import dt as dt_util
 
     # Calculate past due date
-    past_date = datetime.now(timezone.utc) - timedelta(days=days_ago)
+    past_date = datetime.now(UTC) - timedelta(days=days_ago)
     past_date = past_date.replace(hour=17, minute=0, second=0, microsecond=0)
     past_date_iso = dt_util.as_utc(past_date).isoformat()
 
@@ -155,9 +153,7 @@ def set_chore_due_date_to_past(
             kid_chore_data = kid_info.get(DATA_KID_CHORE_DATA, {}).get(chore_id, {})
             if kid_chore_data:
                 kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] = past_date_iso
-                kid_chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = (
-                    period_start_iso
-                )
+                kid_chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = period_start_iso
         else:
             # All assigned kids
             for assigned_kid_id in chore_info.get(DATA_CHORE_ASSIGNED_KIDS, []):
@@ -166,9 +162,7 @@ def set_chore_due_date_to_past(
                 kid_chore_data = kid_info.get(DATA_KID_CHORE_DATA, {}).get(chore_id, {})
                 if kid_chore_data:
                     kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] = past_date_iso
-                    kid_chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = (
-                        period_start_iso
-                    )
+                    kid_chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = period_start_iso
     else:
         # SHARED: due date and approval_period_start are at chore level
         chore_info[DATA_CHORE_DUE_DATE] = past_date_iso
@@ -339,7 +333,7 @@ class TestDueDateLoading:
         due_date = get_kid_due_date(coordinator, zoe_id, chore_id)
 
         assert due_date is not None, "Due date should be set"
-        now_utc = datetime.now(timezone.utc)
+        now_utc = datetime.now(UTC)
         assert due_date > now_utc, f"Due date {due_date} should be in the future"
 
     @pytest.mark.asyncio
@@ -361,7 +355,7 @@ class TestDueDateLoading:
         due_date = get_kid_due_date(coordinator, zoe_id, chore_id)
 
         assert due_date is not None, "Due date should be set"
-        now_utc = datetime.now(timezone.utc)
+        now_utc = datetime.now(UTC)
         assert due_date < now_utc, f"Due date {due_date} should be in the past"
 
     @pytest.mark.asyncio
@@ -736,10 +730,7 @@ class TestApprovalResetAtMidnightOnce:
         chore_info = coordinator.chores_data.get(chore_id, {})
 
         # Verify chore has correct reset type
-        assert (
-            chore_info.get(DATA_CHORE_APPROVAL_RESET_TYPE)
-            == APPROVAL_RESET_AT_MIDNIGHT_ONCE
-        )
+        assert chore_info.get(DATA_CHORE_APPROVAL_RESET_TYPE) == APPROVAL_RESET_AT_MIDNIGHT_ONCE
 
         # Get due date before approval
         due_date_before = get_kid_due_date(coordinator, zoe_id, chore_id)
@@ -822,10 +813,7 @@ class TestApprovalResetAtMidnightMulti:
         chore_info = coordinator.chores_data.get(chore_id, {})
 
         # Verify chore has correct reset type
-        assert (
-            chore_info.get(DATA_CHORE_APPROVAL_RESET_TYPE)
-            == APPROVAL_RESET_AT_MIDNIGHT_MULTI
-        )
+        assert chore_info.get(DATA_CHORE_APPROVAL_RESET_TYPE) == APPROVAL_RESET_AT_MIDNIGHT_MULTI
 
         # First claim and approve
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
@@ -861,10 +849,7 @@ class TestApprovalResetUponCompletion:
         chore_info = coordinator.chores_data.get(chore_id, {})
 
         # Verify chore has correct reset type
-        assert (
-            chore_info.get(DATA_CHORE_APPROVAL_RESET_TYPE)
-            == APPROVAL_RESET_UPON_COMPLETION
-        )
+        assert chore_info.get(DATA_CHORE_APPROVAL_RESET_TYPE) == APPROVAL_RESET_UPON_COMPLETION
 
         # Get due date before approval
         due_date_before = get_kid_due_date(coordinator, zoe_id, chore_id)
@@ -903,9 +888,7 @@ class TestApprovalResetUponCompletion:
 
         # State should be PENDING (not APPROVED) because UPON_COMPLETION resets immediately
         state = get_kid_chore_state(coordinator, zoe_id, chore_id)
-        assert state == CHORE_STATE_PENDING, (
-            f"UPON_COMPLETION should reset to PENDING, got {state}"
-        )
+        assert state == CHORE_STATE_PENDING, f"UPON_COMPLETION should reset to PENDING, got {state}"
 
 
 class TestApprovalResetAtDueDateOnce:
@@ -932,10 +915,7 @@ class TestApprovalResetAtDueDateOnce:
         chore_info = coordinator.chores_data.get(chore_id, {})
 
         # Verify chore has correct reset type
-        assert (
-            chore_info.get(DATA_CHORE_APPROVAL_RESET_TYPE)
-            == APPROVAL_RESET_AT_DUE_DATE_ONCE
-        )
+        assert chore_info.get(DATA_CHORE_APPROVAL_RESET_TYPE) == APPROVAL_RESET_AT_DUE_DATE_ONCE
 
         # Get due date before approval
         due_date_before = get_kid_due_date(coordinator, zoe_id, chore_id)
@@ -1244,9 +1224,7 @@ class TestIsOverdueHelper:
 
         # Verify is_overdue returns False (not an error)
         result = coordinator.is_overdue(zoe_id, fake_chore_id)
-        assert result is False, (
-            "is_overdue() should return False for non-existent chore"
-        )
+        assert result is False, "is_overdue() should return False for non-existent chore"
 
 
 # =============================================================================
@@ -1622,9 +1600,7 @@ class TestPendingClaimEdgeCases:
         zoe_id = scheduling_scenario.kid_ids["Zoë"]
         chore_map = scheduling_scenario.chore_ids
 
-        _chore_id = chore_map[
-            "Pending Auto Approve"
-        ]  # Keep for clarity, intentionally unused
+        _chore_id = chore_map["Pending Auto Approve"]  # Keep for clarity, intentionally unused
 
         # Get points before (no claim, no approval)
         kid_info = coordinator.kids_data.get(zoe_id, {})

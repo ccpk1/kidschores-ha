@@ -24,8 +24,6 @@ from custom_components.kidschores.const import (
     DOMAIN,
 )
 
-# pylint: disable=protected-access,redefined-outer-name
-
 
 async def test_daily_badge_empty_assigned_to_evaluates_for_all_kids(
     hass: HomeAssistant,
@@ -132,9 +130,7 @@ async def test_daily_badge_specific_kid_only_evaluates_for_that_kid(
     zoe_progress = coordinator.kids_data[zoe_id].get(DATA_KID_BADGE_PROGRESS, {})
     max_progress = coordinator.kids_data[max_id].get(DATA_KID_BADGE_PROGRESS, {})
 
-    assert daily_badge_id in zoe_progress, (
-        "Zoë should have daily badge progress (assigned to her)"
-    )
+    assert daily_badge_id in zoe_progress, "Zoë should have daily badge progress (assigned to her)"
     assert daily_badge_id not in max_progress, (
         "Max should NOT have daily badge progress (not assigned)"
     )
@@ -175,13 +171,9 @@ async def test_periodic_badge_empty_assigned_to_evaluates_for_all_kids(
 
     # Clear existing progress
     if DATA_KID_BADGE_PROGRESS in coordinator.kids_data[zoe_id]:
-        coordinator.kids_data[zoe_id][DATA_KID_BADGE_PROGRESS].pop(
-            periodic_badge_id, None
-        )
+        coordinator.kids_data[zoe_id][DATA_KID_BADGE_PROGRESS].pop(periodic_badge_id, None)
     if DATA_KID_BADGE_PROGRESS in coordinator.kids_data[max_id]:
-        coordinator.kids_data[max_id][DATA_KID_BADGE_PROGRESS].pop(
-            periodic_badge_id, None
-        )
+        coordinator.kids_data[max_id][DATA_KID_BADGE_PROGRESS].pop(periodic_badge_id, None)
 
     # Act: Mock notifications and evaluate badges
     with (
@@ -233,13 +225,9 @@ async def test_periodic_badge_specific_kid_only_evaluates_for_that_kid(
 
     # Clear existing progress
     if DATA_KID_BADGE_PROGRESS in coordinator.kids_data[zoe_id]:
-        coordinator.kids_data[zoe_id][DATA_KID_BADGE_PROGRESS].pop(
-            periodic_badge_id, None
-        )
+        coordinator.kids_data[zoe_id][DATA_KID_BADGE_PROGRESS].pop(periodic_badge_id, None)
     if DATA_KID_BADGE_PROGRESS in coordinator.kids_data[max_id]:
-        coordinator.kids_data[max_id][DATA_KID_BADGE_PROGRESS].pop(
-            periodic_badge_id, None
-        )
+        coordinator.kids_data[max_id][DATA_KID_BADGE_PROGRESS].pop(periodic_badge_id, None)
 
     # Act: Mock notifications and evaluate badges
     with (
@@ -296,13 +284,9 @@ async def test_special_occasion_badge_empty_assigned_to_evaluates_for_all_kids(
 
     # Clear existing progress
     if DATA_KID_BADGE_PROGRESS in coordinator.kids_data[zoe_id]:
-        coordinator.kids_data[zoe_id][DATA_KID_BADGE_PROGRESS].pop(
-            special_badge_id, None
-        )
+        coordinator.kids_data[zoe_id][DATA_KID_BADGE_PROGRESS].pop(special_badge_id, None)
     if DATA_KID_BADGE_PROGRESS in coordinator.kids_data[max_id]:
-        coordinator.kids_data[max_id][DATA_KID_BADGE_PROGRESS].pop(
-            special_badge_id, None
-        )
+        coordinator.kids_data[max_id][DATA_KID_BADGE_PROGRESS].pop(special_badge_id, None)
 
     # Act: Mock notifications and evaluate badges
     with (
@@ -354,13 +338,9 @@ async def test_special_occasion_badge_specific_kid_only_evaluates_for_that_kid(
 
     # Clear existing progress
     if DATA_KID_BADGE_PROGRESS in coordinator.kids_data[zoe_id]:
-        coordinator.kids_data[zoe_id][DATA_KID_BADGE_PROGRESS].pop(
-            special_badge_id, None
-        )
+        coordinator.kids_data[zoe_id][DATA_KID_BADGE_PROGRESS].pop(special_badge_id, None)
     if DATA_KID_BADGE_PROGRESS in coordinator.kids_data[max_id]:
-        coordinator.kids_data[max_id][DATA_KID_BADGE_PROGRESS].pop(
-            special_badge_id, None
-        )
+        coordinator.kids_data[max_id][DATA_KID_BADGE_PROGRESS].pop(special_badge_id, None)
 
     # Act: Mock notifications and evaluate badges
     with (

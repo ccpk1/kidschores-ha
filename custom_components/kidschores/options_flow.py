@@ -4,7 +4,6 @@
 Handles add/edit/delete operations with entities referenced internally by internal_id.
 Ensures consistency and reloads the integration upon changes.
 """
-# pylint: disable=protected-access,broad-exception-caught,too-many-lines
 # pylint: disable=import-outside-toplevel
 # protected-access: Options flow is tightly coupled to coordinator and needs direct access
 # to internal creation/persistence methods (_create_* and _persist).
@@ -13,19 +12,18 @@ Ensures consistency and reloads the integration upon changes.
 # import-outside-toplevel: Backup operations conditionally import to avoid circular deps/performance
 
 import asyncio
-import uuid
+import contextlib
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
+import uuid
 
-import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.helpers import selector
 from homeassistant.util import dt as dt_util
+import voluptuous as vol
 
-from . import const
-from . import flow_helpers as fh
-from . import kc_helpers as kh
+from . import const, flow_helpers as fh, kc_helpers as kh
 
 # ----------------------------------------------------------------------------------
 # INITIALIZATION & HELPERS
@@ -53,16 +51,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         self._restore_confirmed = False  # Track backup restoration confirmation
         self._backup_to_delete = None  # Track backup filename to delete
         self._backup_to_restore = None  # Track backup filename to restore
-        self._chore_being_edited: dict[str, Any] | None = (
-            None  # For per-kid date editing
-        )
+        self._chore_being_edited: dict[str, Any] | None = None  # For per-kid date editing
         self._chore_template_date_raw: Any = None  # Template date for per-kid helper
 
     def _get_coordinator(self):
         """Get the coordinator from hass.data."""
-        return self.hass.data[const.DOMAIN][self.config_entry.entry_id][
-            const.COORDINATOR
-        ]
+        return self.hass.data[const.DOMAIN][self.config_entry.entry_id][const.COORDINATOR]
 
     # ----------------------------------------------------------------------------------
     # MAIN MENU
@@ -88,16 +82,16 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             if selection == const.OPTIONS_FLOW_POINTS:
                 return await self.async_step_manage_points()
 
-            elif selection == const.OPTIONS_FLOW_GENERAL_OPTIONS:
+            if selection == const.OPTIONS_FLOW_GENERAL_OPTIONS:
                 return await self.async_step_manage_general_options()
 
-            elif selection.startswith(const.OPTIONS_FLOW_MENU_MANAGE_PREFIX):
+            if selection.startswith(const.OPTIONS_FLOW_MENU_MANAGE_PREFIX):
                 self._entity_type = selection.replace(
                     const.OPTIONS_FLOW_MENU_MANAGE_PREFIX, const.SENTINEL_EMPTY
                 )
                 return await self.async_step_manage_entity()
 
-            elif selection == const.OPTIONS_FLOW_FINISH:
+            if selection == const.OPTIONS_FLOW_FINISH:
                 return self.async_abort(reason=const.TRANS_KEY_CFOF_SETUP_COMPLETE)
 
         main_menu = [
@@ -119,9 +113,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_INIT,
             data_schema=vol.Schema(
                 {
-                    vol.Required(
-                        const.OPTIONS_FLOW_INPUT_MENU_SELECTION
-                    ): selector.SelectSelector(
+                    vol.Required(const.OPTIONS_FLOW_INPUT_MENU_SELECTION): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=main_menu,
                             mode=selector.SelectSelectorMode.LIST,
@@ -157,12 +149,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 return await self.async_step_init()
 
         # Get existing values from entry options
-        current_label = self._entry_options.get(
-            const.CONF_POINTS_LABEL, const.DEFAULT_POINTS_LABEL
-        )
-        current_icon = self._entry_options.get(
-            const.CONF_POINTS_ICON, const.DEFAULT_POINTS_ICON
-        )
+        current_label = self._entry_options.get(const.CONF_POINTS_LABEL, const.DEFAULT_POINTS_LABEL)
+        current_icon = self._entry_options.get(const.CONF_POINTS_ICON, const.DEFAULT_POINTS_ICON)
 
         # Build the form
         points_schema = fh.build_points_schema(
@@ -188,12 +176,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     self,
                     f"{const.OPTIONS_FLOW_ASYNC_STEP_ADD_PREFIX}{self._entity_type}",
                 )()
-            elif self._action in [
+            if self._action in [
                 const.OPTIONS_FLOW_ACTIONS_EDIT,
                 const.OPTIONS_FLOW_ACTIONS_DELETE,
             ]:
                 return await self.async_step_select_entity()
-            elif self._action == const.OPTIONS_FLOW_ACTIONS_BACK:
+            if self._action == const.OPTIONS_FLOW_ACTIONS_BACK:
                 return await self.async_step_init()
 
         # Define manage action choices
@@ -208,9 +196,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_MANAGE_ENTITY,
             data_schema=vol.Schema(
                 {
-                    vol.Required(
-                        const.OPTIONS_FLOW_INPUT_MANAGE_ACTION
-                    ): selector.SelectSelector(
+                    vol.Required(const.OPTIONS_FLOW_INPUT_MANAGE_ACTION): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=manage_action_choices,
                             mode=selector.SelectSelectorMode.LIST,
@@ -242,9 +228,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         ]
 
         if user_input is not None:
-            selected_name = _ensure_str(
-                user_input[const.OPTIONS_FLOW_INPUT_ENTITY_NAME]
-            )
+            selected_name = _ensure_str(user_input[const.OPTIONS_FLOW_INPUT_ENTITY_NAME])
             internal_id = next(
                 (
                     eid
@@ -271,46 +255,30 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                     # Route to the correct edit function based on badge type
                     if badge_type == const.BADGE_TYPE_CUMULATIVE:
-                        return await self.async_step_edit_badge_cumulative(
-                            default_data=badge_data
-                        )
-                    elif badge_type == const.BADGE_TYPE_DAILY:
-                        return await self.async_step_edit_badge_daily(
-                            default_data=badge_data
-                        )
-                    elif badge_type == const.BADGE_TYPE_PERIODIC:
-                        return await self.async_step_edit_badge_periodic(
-                            default_data=badge_data
-                        )
-                    elif badge_type == const.BADGE_TYPE_ACHIEVEMENT_LINKED:
-                        return await self.async_step_edit_badge_achievement(
-                            default_data=badge_data
-                        )
-                    elif badge_type == const.BADGE_TYPE_CHALLENGE_LINKED:
-                        return await self.async_step_edit_badge_challenge(
-                            default_data=badge_data
-                        )
-                    elif badge_type == const.BADGE_TYPE_SPECIAL_OCCASION:
-                        return await self.async_step_edit_badge_special(
-                            default_data=badge_data
-                        )
-                    else:
-                        const.LOGGER.error(
-                            "Unknown badge type '%s' for badge ID '%s'",
-                            badge_type,
-                            internal_id,
-                        )
-                        return self.async_abort(
-                            reason=const.TRANS_KEY_CFOF_INVALID_BADGE_TYPE
-                        )
-                else:
-                    # For other entity types, route to their specific edit step
-                    return await getattr(
-                        self,
-                        f"async_step_edit_{self._entity_type}",
-                    )()
+                        return await self.async_step_edit_badge_cumulative(default_data=badge_data)
+                    if badge_type == const.BADGE_TYPE_DAILY:
+                        return await self.async_step_edit_badge_daily(default_data=badge_data)
+                    if badge_type == const.BADGE_TYPE_PERIODIC:
+                        return await self.async_step_edit_badge_periodic(default_data=badge_data)
+                    if badge_type == const.BADGE_TYPE_ACHIEVEMENT_LINKED:
+                        return await self.async_step_edit_badge_achievement(default_data=badge_data)
+                    if badge_type == const.BADGE_TYPE_CHALLENGE_LINKED:
+                        return await self.async_step_edit_badge_challenge(default_data=badge_data)
+                    if badge_type == const.BADGE_TYPE_SPECIAL_OCCASION:
+                        return await self.async_step_edit_badge_special(default_data=badge_data)
+                    const.LOGGER.error(
+                        "Unknown badge type '%s' for badge ID '%s'",
+                        badge_type,
+                        internal_id,
+                    )
+                    return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_BADGE_TYPE)
+                # For other entity types, route to their specific edit step
+                return await getattr(
+                    self,
+                    f"async_step_edit_{self._entity_type}",
+                )()
 
-            elif self._action == const.OPTIONS_FLOW_ACTIONS_DELETE:
+            if self._action == const.OPTIONS_FLOW_ACTIONS_DELETE:
                 # Route to the delete step for the selected entity type
                 return await getattr(
                     self,
@@ -326,9 +294,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_SELECT_ENTITY,
             data_schema=vol.Schema(
                 {
-                    vol.Required(
-                        const.OPTIONS_FLOW_INPUT_ENTITY_NAME
-                    ): selector.SelectSelector(
+                    vol.Required(const.OPTIONS_FLOW_INPUT_ENTITY_NAME): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=entity_names,
                             mode=selector.SelectSelectorMode.DROPDOWN,
@@ -442,9 +408,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 coordinator._persist()
                 coordinator.async_update_listeners()
 
-                const.LOGGER.debug(
-                    "Added Parent '%s' with ID: %s", parent_name, internal_id
-                )
+                const.LOGGER.debug("Added Parent '%s' with ID: %s", parent_name, internal_id)
                 return await self.async_step_init()
 
         # Retrieve HA users and existing kids for linking
@@ -484,14 +448,11 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             # Build kids_dict for name→UUID conversion
             kids_dict = {
-                data[const.DATA_KID_NAME]: eid
-                for eid, data in coordinator.kids_data.items()
+                data[const.DATA_KID_NAME]: eid for eid, data in coordinator.kids_data.items()
             }
 
             # Build and validate chore data
-            chore_data, errors = fh.build_chores_data(
-                user_input, kids_dict, chores_dict
-            )
+            chore_data, errors = fh.build_chores_data(user_input, kids_dict, chores_dict)
 
             if errors:
                 schema = fh.build_chore_schema(kids_dict, default=user_input)
@@ -522,10 +483,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             return await self.async_step_init()
 
         # Use flow_helpers.build_chore_schema, passing current kids
-        kids_dict = {
-            data[const.DATA_KID_NAME]: eid
-            for eid, data in coordinator.kids_data.items()
-        }
+        kids_dict = {data[const.DATA_KID_NAME]: eid for eid, data in coordinator.kids_data.items()}
         schema = fh.build_chore_schema(kids_dict)
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_ADD_CHORE, data_schema=schema, errors=errors
@@ -546,19 +504,18 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             # Redirect to the appropriate step based on badge type
             if badge_type == const.BADGE_TYPE_CUMULATIVE:
                 return await self.async_step_add_badge_cumulative()
-            elif badge_type == const.BADGE_TYPE_DAILY:
+            if badge_type == const.BADGE_TYPE_DAILY:
                 return await self.async_step_add_badge_daily()
-            elif badge_type == const.BADGE_TYPE_PERIODIC:
+            if badge_type == const.BADGE_TYPE_PERIODIC:
                 return await self.async_step_add_badge_periodic()
-            elif badge_type == const.BADGE_TYPE_ACHIEVEMENT_LINKED:
+            if badge_type == const.BADGE_TYPE_ACHIEVEMENT_LINKED:
                 return await self.async_step_add_badge_achievement()
-            elif badge_type == const.BADGE_TYPE_CHALLENGE_LINKED:
+            if badge_type == const.BADGE_TYPE_CHALLENGE_LINKED:
                 return await self.async_step_add_badge_challenge()
-            elif badge_type == const.BADGE_TYPE_SPECIAL_OCCASION:
+            if badge_type == const.BADGE_TYPE_SPECIAL_OCCASION:
                 return await self.async_step_add_badge_special()
-            else:
-                # Fallback to cumulative if unknown.
-                return await self.async_step_add_badge_cumulative()
+            # Fallback to cumulative if unknown.
+            return await self.async_step_add_badge_cumulative()
 
         badge_type_options = [
             const.BADGE_TYPE_CUMULATIVE,
@@ -579,9 +536,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 )
             }
         )
-        return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_ADD_BADGE, data_schema=schema
-        )
+        return self.async_show_form(step_id=const.OPTIONS_FLOW_STEP_ADD_BADGE, data_schema=schema)
 
     # ----- Add Achievement-Linked Badge -----
     async def async_step_add_badge_achievement(self, user_input=None):
@@ -652,9 +607,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     # ----- Add Badge Centralized Function for All Types -----
     async def async_add_edit_badge_common(
         self,
-        user_input: Optional[Dict[str, Any]] = None,
+        user_input: dict[str, Any] | None = None,
         badge_type: str = const.BADGE_TYPE_CUMULATIVE,
-        default_data: Optional[Dict[str, Any]] = None,
+        default_data: dict[str, Any] | None = None,
         is_edit: bool = False,
     ):
         """Handle adding or editing a badge."""
@@ -668,7 +623,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         bonuses_dict = coordinator.bonuses_data
         penalties_dict = coordinator.penalties_data
 
-        errors: Dict[str, str] = {}
+        errors: dict[str, str] = {}
 
         # Determine internal_id (UUID-based primary key, persists across renames)
         if is_edit:
@@ -792,9 +747,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 coordinator.async_update_listeners()
 
                 reward_name = new_reward_data[const.DATA_REWARD_NAME]
-                const.LOGGER.debug(
-                    "Added Reward '%s' with ID: %s", reward_name, internal_id
-                )
+                const.LOGGER.debug("Added Reward '%s' with ID: %s", reward_name, internal_id)
                 self._mark_reload_needed()
                 return await self.async_step_init()
 
@@ -829,9 +782,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 coordinator.async_update_listeners()
 
                 bonus_name = user_input[const.CFOF_BONUSES_INPUT_NAME].strip()
-                const.LOGGER.debug(
-                    "Added Bonus '%s' with ID: %s", bonus_name, internal_id
-                )
+                const.LOGGER.debug("Added Bonus '%s' with ID: %s", bonus_name, internal_id)
                 self._mark_reload_needed()
                 return await self.async_step_init()
 
@@ -864,9 +815,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 coordinator.async_update_listeners()
 
                 penalty_name = user_input[const.CFOF_PENALTIES_INPUT_NAME].strip()
-                const.LOGGER.debug(
-                    "Added Penalty '%s' with ID: %s", penalty_name, internal_id
-                )
+                const.LOGGER.debug("Added Penalty '%s' with ID: %s", penalty_name, internal_id)
                 self._mark_reload_needed()
                 return await self.async_step_init()
 
@@ -907,9 +856,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 coordinator._persist()
                 coordinator.async_update_listeners()
 
-                achievement_name = user_input[
-                    const.CFOF_ACHIEVEMENTS_INPUT_NAME
-                ].strip()
+                achievement_name = user_input[const.CFOF_ACHIEVEMENTS_INPUT_NAME].strip()
                 const.LOGGER.debug(
                     "Added Achievement '%s' with ID: %s",
                     achievement_name,
@@ -953,24 +900,16 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             if not errors and challenge_data:
                 # Additional validation for options flow: dates must be in the future
                 internal_id = list(challenge_data.keys())[0]
-                start_date_str = challenge_data[internal_id][
-                    const.DATA_CHALLENGE_START_DATE
-                ]
-                end_date_str = challenge_data[internal_id][
-                    const.DATA_CHALLENGE_END_DATE
-                ]
+                start_date_str = challenge_data[internal_id][const.DATA_CHALLENGE_START_DATE]
+                end_date_str = challenge_data[internal_id][const.DATA_CHALLENGE_END_DATE]
 
                 start_dt = dt_util.parse_datetime(start_date_str)
                 end_dt = dt_util.parse_datetime(end_date_str)
 
                 if start_dt and start_dt < dt_util.utcnow():
-                    errors = {
-                        const.CFOP_ERROR_START_DATE: const.TRANS_KEY_CFOF_START_DATE_IN_PAST
-                    }
+                    errors = {const.CFOP_ERROR_START_DATE: const.TRANS_KEY_CFOF_START_DATE_IN_PAST}
                 elif end_dt and end_dt <= dt_util.utcnow():
-                    errors = {
-                        const.CFOP_ERROR_END_DATE: const.TRANS_KEY_CFOF_END_DATE_IN_PAST
-                    }
+                    errors = {const.CFOP_ERROR_END_DATE: const.TRANS_KEY_CFOF_END_DATE_IN_PAST}
 
             if not errors and challenge_data:
                 internal_id = list(challenge_data.keys())[0]
@@ -987,10 +926,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 self._mark_reload_needed()
                 return await self.async_step_init()
 
-        kids_dict = {
-            data[const.DATA_KID_NAME]: eid
-            for eid, data in coordinator.kids_data.items()
-        }
+        kids_dict = {data[const.DATA_KID_NAME]: eid for eid, data in coordinator.kids_data.items()}
         challenge_schema = fh.build_challenge_schema(
             kids_dict=kids_dict, chores_dict=chores_dict, default=user_input
         )
@@ -1022,15 +958,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         if user_input is not None:
             new_name = user_input[const.CFOF_KIDS_INPUT_KID_NAME].strip()
-            ha_user_id = (
-                user_input.get(const.CFOF_KIDS_INPUT_HA_USER) or const.SENTINEL_EMPTY
-            )
+            ha_user_id = user_input.get(const.CFOF_KIDS_INPUT_HA_USER) or const.SENTINEL_EMPTY
             enable_notifications = user_input.get(
                 const.CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS, True
             )
             mobile_notify_service = (
-                user_input.get(const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE)
-                or const.SENTINEL_EMPTY
+                user_input.get(const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE) or const.SENTINEL_EMPTY
             )
             use_persistent = user_input.get(
                 const.CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
@@ -1043,9 +976,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             # Validate name is not empty
             if not new_name:
-                errors[const.CFOP_ERROR_KID_NAME] = (
-                    const.TRANS_KEY_CFOF_INVALID_KID_NAME
-                )
+                errors[const.CFOP_ERROR_KID_NAME] = const.TRANS_KEY_CFOF_INVALID_KID_NAME
             # Check for duplicate names excluding current kid
             elif any(
                 data[const.DATA_KID_NAME] == new_name and eid != internal_id
@@ -1080,9 +1011,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             default_enable_mobile_notifications=kid_data.get(
                 const.DATA_KID_ENABLE_NOTIFICATIONS, True
             ),
-            default_mobile_notify_service=kid_data.get(
-                const.DATA_KID_MOBILE_NOTIFY_SERVICE
-            ),
+            default_mobile_notify_service=kid_data.get(const.DATA_KID_MOBILE_NOTIFY_SERVICE),
             default_enable_persistent_notifications=kid_data.get(
                 const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS, True
             ),
@@ -1111,12 +1040,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         if user_input is not None:
             new_name = user_input[const.CFOF_PARENTS_INPUT_NAME].strip()
-            ha_user_id = (
-                user_input.get(const.CFOF_PARENTS_INPUT_HA_USER) or const.SENTINEL_EMPTY
-            )
-            associated_kids = user_input.get(
-                const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS, []
-            )
+            ha_user_id = user_input.get(const.CFOF_PARENTS_INPUT_HA_USER) or const.SENTINEL_EMPTY
+            associated_kids = user_input.get(const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS, [])
             enable_notifications = user_input.get(
                 const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS, True
             )
@@ -1130,17 +1055,13 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             # Validate name is not empty
             if not new_name:
-                errors[const.CFOP_ERROR_PARENT_NAME] = (
-                    const.TRANS_KEY_CFOF_INVALID_PARENT_NAME
-                )
+                errors[const.CFOP_ERROR_PARENT_NAME] = const.TRANS_KEY_CFOF_INVALID_PARENT_NAME
             # Check for duplicate names excluding current parent
             elif any(
                 data[const.DATA_PARENT_NAME] == new_name and eid != internal_id
                 for eid, data in parents_dict.items()
             ):
-                errors[const.CFOP_ERROR_PARENT_NAME] = (
-                    const.TRANS_KEY_CFOF_DUPLICATE_PARENT
-                )
+                errors[const.CFOP_ERROR_PARENT_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_PARENT
             else:
                 updated_parent_data = {
                     const.DATA_PARENT_NAME: new_name,
@@ -1153,9 +1074,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                 coordinator.update_parent_entity(internal_id, updated_parent_data)
 
-                const.LOGGER.debug(
-                    "Edited Parent '%s' with ID: %s", new_name, internal_id
-                )
+                const.LOGGER.debug("Edited Parent '%s' with ID: %s", new_name, internal_id)
                 return await self.async_step_init()
 
         # Retrieve HA users and existing kids for linking
@@ -1171,15 +1090,11 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             kids_dict=kids_dict,
             default_parent_name=parent_data[const.DATA_PARENT_NAME],
             default_ha_user_id=parent_data.get(const.DATA_PARENT_HA_USER_ID),
-            default_associated_kids=parent_data.get(
-                const.DATA_PARENT_ASSOCIATED_KIDS, []
-            ),
+            default_associated_kids=parent_data.get(const.DATA_PARENT_ASSOCIATED_KIDS, []),
             default_enable_mobile_notifications=parent_data.get(
                 const.DATA_PARENT_ENABLE_NOTIFICATIONS, True
             ),
-            default_mobile_notify_service=parent_data.get(
-                const.DATA_PARENT_MOBILE_NOTIFY_SERVICE
-            ),
+            default_mobile_notify_service=parent_data.get(const.DATA_PARENT_MOBILE_NOTIFY_SERVICE),
             default_enable_persistent_notifications=parent_data.get(
                 const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS, True
             ),
@@ -1208,8 +1123,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             # Build kids_dict for name→UUID conversion
             kids_dict = {
-                data[const.DATA_KID_NAME]: eid
-                for eid, data in coordinator.kids_data.items()
+                data[const.DATA_KID_NAME]: eid for eid, data in coordinator.kids_data.items()
             }
 
             # Add internal_id for validation
@@ -1222,9 +1136,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             }
 
             # Get existing per-kid due dates to preserve during edit
-            existing_per_kid_due_dates = chore_data.get(
-                const.DATA_CHORE_PER_KID_DUE_DATES, {}
-            )
+            existing_per_kid_due_dates = chore_data.get(const.DATA_CHORE_PER_KID_DUE_DATES, {})
 
             # Build and validate chore data using helper function
             # Pass existing per-kid dates to preserve them for INDEPENDENT chores
@@ -1249,9 +1161,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 )
 
             # Update chore and check if assigned kids changed
-            assignments_changed = coordinator.update_chore_entity(
-                internal_id, updated_chore_data
-            )
+            assignments_changed = coordinator.update_chore_entity(internal_id, updated_chore_data)
 
             new_name = updated_chore_data.get(
                 const.DATA_CHORE_NAME,
@@ -1265,26 +1175,17 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 self._mark_reload_needed()
 
             # For INDEPENDENT chores with assigned kids, handle per-kid date editing
-            completion_criteria = updated_chore_data.get(
-                const.DATA_CHORE_COMPLETION_CRITERIA
-            )
+            completion_criteria = updated_chore_data.get(const.DATA_CHORE_COMPLETION_CRITERIA)
             assigned_kids = updated_chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
-            if (
-                completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
-                and assigned_kids
-            ):
+            if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT and assigned_kids:
                 # Check if user explicitly cleared the date via checkbox
-                clear_due_date = user_input.get(
-                    const.CFOF_CHORES_INPUT_CLEAR_DUE_DATE, False
-                )
+                clear_due_date = user_input.get(const.CFOF_CHORES_INPUT_CLEAR_DUE_DATE, False)
 
                 # Capture the raw user-entered date BEFORE build_chores_data clears it
                 # (build_chores_data sets due_date to None for INDEPENDENT chores)
                 # If clear checkbox is selected, don't pass template date to helper
                 raw_template_date = (
-                    None
-                    if clear_due_date
-                    else user_input.get(const.CFOF_CHORES_INPUT_DUE_DATE)
+                    None if clear_due_date else user_input.get(const.CFOF_CHORES_INPUT_DUE_DATE)
                 )
 
                 # Single kid optimization: skip per-kid popup if only one kid
@@ -1312,21 +1213,16 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                             if utc_dt and isinstance(utc_dt, datetime):
                                 per_kid_due_dates[kid_id] = utc_dt.isoformat()
                                 const.LOGGER.debug(
-                                    "Single kid INDEPENDENT chore: applied date %s "
-                                    "directly to %s",
+                                    "Single kid INDEPENDENT chore: applied date %s directly to %s",
                                     utc_dt.isoformat(),
                                     kid_id,
                                 )
                         except ValueError as e:
-                            const.LOGGER.warning(
-                                "Failed to parse date for single kid: %s", e
-                            )
+                            const.LOGGER.warning("Failed to parse date for single kid: %s", e)
                     # else: date was blank, preserve existing per-kid date (already done)
 
                     # Update per_kid_due_dates in chore data (single source of truth)
-                    updated_chore_data[const.DATA_CHORE_PER_KID_DUE_DATES] = (
-                        per_kid_due_dates
-                    )
+                    updated_chore_data[const.DATA_CHORE_PER_KID_DUE_DATES] = per_kid_due_dates
 
                     # Update storage and skip per-kid dates step
                     coordinator.update_chore_entity(internal_id, updated_chore_data)
@@ -1346,16 +1242,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             return await self.async_step_init()
 
         # Use flow_helpers.fh.build_chore_schema, passing current kids
-        kids_dict = {
-            data[const.DATA_KID_NAME]: eid
-            for eid, data in coordinator.kids_data.items()
-        }
+        kids_dict = {data[const.DATA_KID_NAME]: eid for eid, data in coordinator.kids_data.items()}
 
         # Create reverse mapping from internal_id to name
-        id_to_name = {
-            eid: data[const.DATA_KID_NAME]
-            for eid, data in coordinator.kids_data.items()
-        }
+        id_to_name = {eid: data[const.DATA_KID_NAME] for eid, data in coordinator.kids_data.items()}
 
         # Convert stored string to datetime for DateTimeSelector
         existing_due_str = chore_data.get(const.DATA_CHORE_DUE_DATE)
@@ -1367,10 +1257,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         per_kid_due_dates = chore_data.get(const.DATA_CHORE_PER_KID_DUE_DATES, {})
         assigned_kids_ids = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
 
-        if (
-            completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
-            and assigned_kids_ids
-        ):
+        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT and assigned_kids_ids:
             # Get all date values for assigned kids (including None)
             # Use a set to check uniqueness, treating None as a distinct value
             all_kid_dates = set()
@@ -1400,9 +1287,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         )
                 else:
                     # All kids have None - show blank
-                    const.LOGGER.debug(
-                        "INDEPENDENT chore: all kids have no date, showing blank"
-                    )
+                    const.LOGGER.debug("INDEPENDENT chore: all kids have no date, showing blank")
                     existing_due_date = None
             else:
                 # Kids have different dates (including mix of dates and None) - show blank
@@ -1434,9 +1319,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         # Convert assigned_kids from internal_ids to names for display
         # (assigned_kids_ids already set above for per-kid date check)
-        assigned_kids_names = [
-            id_to_name.get(kid_id, kid_id) for kid_id in assigned_kids_ids
-        ]
+        assigned_kids_names = [id_to_name.get(kid_id, kid_id) for kid_id in assigned_kids_ids]
 
         schema = fh.build_chore_schema(
             kids_dict,
@@ -1493,9 +1376,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         # Get fresh per-kid dates from storage (not from _chore_being_edited)
         stored_chore = coordinator.chores_data.get(internal_id, {})
-        existing_per_kid_dates = stored_chore.get(
-            const.DATA_CHORE_PER_KID_DUE_DATES, {}
-        )
+        existing_per_kid_dates = stored_chore.get(const.DATA_CHORE_PER_KID_DUE_DATES, {})
 
         # Get template date from main form (if set)
         # Use the raw template date stored before build_chores_data cleared it
@@ -1583,9 +1464,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     const.FREQUENCY_DAILY,
                     const.FREQUENCY_WEEKLY,
                 ):
-                    errors[const.CFOP_ERROR_BASE] = (
-                        const.TRANS_KEY_CFOF_DATE_REQUIRED_FOR_FREQUENCY
-                    )
+                    errors[const.CFOP_ERROR_BASE] = const.TRANS_KEY_CFOF_DATE_REQUIRED_FOR_FREQUENCY
                     const.LOGGER.debug(
                         "Cannot clear all dates: frequency '%s' requires due dates",
                         recurring_frequency,
@@ -1595,18 +1474,14 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 # Update the chore's per_kid_due_dates in storage (single source of truth)
                 chores_data = coordinator.chores_data
                 if internal_id in chores_data:
-                    chores_data[internal_id][const.DATA_CHORE_PER_KID_DUE_DATES] = (
-                        per_kid_due_dates
-                    )
+                    chores_data[internal_id][const.DATA_CHORE_PER_KID_DUE_DATES] = per_kid_due_dates
 
                     # Handle kids whose dates were cleared (not in per_kid_due_dates)
                     for kid_id in assigned_kids:
                         if kid_id not in per_kid_due_dates:
                             if kid_id in coordinator.kids_data:
                                 kid_info = coordinator.kids_data[kid_id]
-                                kid_chore_data = kid_info.get(
-                                    const.DATA_KID_CHORE_DATA, {}
-                                )
+                                kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
                                 if internal_id in kid_chore_data:
                                     # LEGACY: Clear kid_chore_data for backward compat (migration support only)
                                     kid_chore_data[internal_id][
@@ -1640,9 +1515,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         # Add "Apply template to all" checkbox if template date exists
         if template_date_display:
             schema_fields[
-                vol.Optional(
-                    const.CFOF_CHORES_INPUT_APPLY_TEMPLATE_TO_ALL, default=False
-                )
+                vol.Optional(const.CFOF_CHORES_INPUT_APPLY_TEMPLATE_TO_ALL, default=False)
             ] = selector.BooleanSelector()
 
         for kid_name, kid_id in name_to_id.items():
@@ -1655,14 +1528,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             # Storage is UTC ISO; display is local timezone
             default_value = None
             if existing_date:
-                try:
+                with contextlib.suppress(ValueError, TypeError):
                     default_value = kh.normalize_datetime_input(
                         existing_date,
                         default_tzinfo=const.DEFAULT_TIME_ZONE,
                         return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
                     )
-                except (ValueError, TypeError):
-                    pass
 
             # Use kid name as field key - HA will display it as the label
             # (field keys without translations are shown as-is)
@@ -1673,9 +1544,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             # Add clear checkbox for this kid if they have an existing date
             if existing_date:
                 clear_field_name = f"clear_{kid_name}"
-                schema_fields[
-                    vol.Optional(clear_field_name, default=False, description="🗑️")
-                ] = selector.BooleanSelector()
+                schema_fields[vol.Optional(clear_field_name, default=False, description="🗑️")] = (
+                    selector.BooleanSelector()
+                )
 
         # Build description with kid names in order
         kid_list_text = ", ".join(kid_names_list)
@@ -1703,9 +1574,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         )
 
     # ----- Edit Achievement-Linked Badge -----
-    async def async_step_edit_badge_achievement(
-        self, user_input=None, default_data=None
-    ):
+    async def async_step_edit_badge_achievement(self, user_input=None, default_data=None):
         """Handle editing an achievement-linked badge."""
         return await self.async_add_edit_badge_common(
             user_input=user_input,
@@ -1725,9 +1594,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         )
 
     # ----- Edit Cumulative Badge -----
-    async def async_step_edit_badge_cumulative(
-        self, user_input=None, default_data=None
-    ):
+    async def async_step_edit_badge_cumulative(self, user_input=None, default_data=None):
         """Handle editing a cumulative badge."""
         return await self.async_add_edit_badge_common(
             user_input=user_input,
@@ -1802,9 +1669,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 coordinator.update_reward_entity(internal_id, updated_reward_data)
 
                 new_name = updated_reward_data[const.DATA_REWARD_NAME]
-                const.LOGGER.debug(
-                    "Edited Reward '%s' with ID: %s", new_name, internal_id
-                )
+                const.LOGGER.debug("Edited Reward '%s' with ID: %s", new_name, internal_id)
                 self._mark_reload_needed()
                 return await self.async_step_init()
 
@@ -1846,9 +1711,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                 coordinator.update_penalty_entity(internal_id, updated_penalty_data)
 
-                const.LOGGER.debug(
-                    "Edited Penalty '%s' with ID: %s", new_name, internal_id
-                )
+                const.LOGGER.debug("Edited Penalty '%s' with ID: %s", new_name, internal_id)
                 self._mark_reload_needed()
                 return await self.async_step_init()
 
@@ -1895,17 +1758,13 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                 coordinator.update_bonus_entity(internal_id, updated_bonus_data)
 
-                const.LOGGER.debug(
-                    "Edited Bonus '%s' with ID: %s", new_name, internal_id
-                )
+                const.LOGGER.debug("Edited Bonus '%s' with ID: %s", new_name, internal_id)
                 self._mark_reload_needed()
                 return await self.async_step_init()
 
         # Prepare data for schema (convert points to positive for display)
         display_data = dict(bonus_data)
-        display_data[const.CFOF_BONUSES_INPUT_POINTS] = abs(
-            display_data[const.DATA_BONUS_POINTS]
-        )
+        display_data[const.CFOF_BONUSES_INPUT_POINTS] = abs(display_data[const.DATA_BONUS_POINTS])
         schema = fh.build_bonus_schema(default=display_data)
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_EDIT_BONUS,
@@ -1923,9 +1782,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
         if not internal_id or internal_id not in achievements_dict:
-            const.LOGGER.error(
-                "Edit Achievement - Invalid Internal ID '%s'", internal_id
-            )
+            const.LOGGER.error("Edit Achievement - Invalid Internal ID '%s'", internal_id)
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_ACHIEVEMENT)
 
         achievement_data = achievements_dict[internal_id]
@@ -1933,9 +1790,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             # Check for duplicate names excluding current achievement
             achievements_except_current = {
-                eid: data
-                for eid, data in achievements_dict.items()
-                if eid != internal_id
+                eid: data for eid, data in achievements_dict.items() if eid != internal_id
             }
 
             # Build kids name to ID mapping for options flow
@@ -1952,9 +1807,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             if not errors:
                 _, updated_achievement_data = next(iter(achievement_data_dict.items()))
 
-                coordinator.update_achievement_entity(
-                    internal_id, updated_achievement_data
-                )
+                coordinator.update_achievement_entity(internal_id, updated_achievement_data)
 
                 new_name = user_input[const.CFOF_ACHIEVEMENTS_INPUT_NAME].strip()
                 const.LOGGER.debug(
@@ -1978,12 +1831,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         }
 
         # Convert assigned_kids from internal_ids to names for display
-        assigned_kids_ids = achievement_data.get(
-            const.DATA_ACHIEVEMENT_ASSIGNED_KIDS, []
-        )
-        assigned_kids_names = [
-            id_to_name.get(kid_id, kid_id) for kid_id in assigned_kids_ids
-        ]
+        assigned_kids_ids = achievement_data.get(const.DATA_ACHIEVEMENT_ASSIGNED_KIDS, [])
+        assigned_kids_names = [id_to_name.get(kid_id, kid_id) for kid_id in assigned_kids_ids]
 
         achievement_schema = fh.build_achievement_schema(
             kids_dict=kids_dict,
@@ -2016,24 +1865,18 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         if user_input is None:
             kids_dict = {
-                data[const.DATA_KID_NAME]: kid_id
-                for kid_id, data in coordinator.kids_data.items()
+                data[const.DATA_KID_NAME]: kid_id for kid_id, data in coordinator.kids_data.items()
             }
             chores_dict = coordinator.chores_data
 
             # Create reverse mapping from internal_id to name
             id_to_name = {
-                kid_id: data[const.DATA_KID_NAME]
-                for kid_id, data in coordinator.kids_data.items()
+                kid_id: data[const.DATA_KID_NAME] for kid_id, data in coordinator.kids_data.items()
             }
 
             # Convert assigned_kids from internal_ids to names for display
-            assigned_kids_ids = challenge_data.get(
-                const.DATA_CHALLENGE_ASSIGNED_KIDS, []
-            )
-            assigned_kids_names = [
-                id_to_name.get(kid_id, kid_id) for kid_id in assigned_kids_ids
-            ]
+            assigned_kids_ids = challenge_data.get(const.DATA_CHALLENGE_ASSIGNED_KIDS, [])
+            assigned_kids_names = [id_to_name.get(kid_id, kid_id) for kid_id in assigned_kids_ids]
 
             # Convert stored start/end dates to selector format for display
             start_date_display = None
@@ -2084,13 +1927,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             end_dt = dt_util.parse_datetime(end_date_str)
 
             if start_dt and start_dt < dt_util.utcnow():
-                errors = {
-                    const.CFOP_ERROR_START_DATE: const.TRANS_KEY_CFOF_START_DATE_IN_PAST
-                }
+                errors = {const.CFOP_ERROR_START_DATE: const.TRANS_KEY_CFOF_START_DATE_IN_PAST}
             elif end_dt and end_dt <= dt_util.utcnow():
-                errors = {
-                    const.CFOP_ERROR_END_DATE: const.TRANS_KEY_CFOF_END_DATE_IN_PAST
-                }
+                errors = {const.CFOP_ERROR_END_DATE: const.TRANS_KEY_CFOF_END_DATE_IN_PAST}
 
         if not errors and challenge_data_dict:
             updated_data = challenge_data_dict[internal_id]
@@ -2148,9 +1987,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_DELETE_KID,
             data_schema=vol.Schema({}),
-            description_placeholders={
-                const.OPTIONS_FLOW_PLACEHOLDER_KID_NAME: kid_name
-            },
+            description_placeholders={const.OPTIONS_FLOW_PLACEHOLDER_KID_NAME: kid_name},
         )
 
     # --- Parents ---
@@ -2170,17 +2007,13 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             coordinator.delete_parent_entity(internal_id)
 
-            const.LOGGER.debug(
-                "Deleted Parent '%s' with ID: %s", parent_name, internal_id
-            )
+            const.LOGGER.debug("Deleted Parent '%s' with ID: %s", parent_name, internal_id)
             return await self.async_step_init()
 
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_DELETE_PARENT,
             data_schema=vol.Schema({}),
-            description_placeholders={
-                const.OPTIONS_FLOW_PLACEHOLDER_PARENT_NAME: parent_name
-            },
+            description_placeholders={const.OPTIONS_FLOW_PLACEHOLDER_PARENT_NAME: parent_name},
         )
 
     # --- Chores ---
@@ -2200,17 +2033,13 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             coordinator.delete_chore_entity(internal_id)
 
-            const.LOGGER.debug(
-                "Deleted Chore '%s' with ID: %s", chore_name, internal_id
-            )
+            const.LOGGER.debug("Deleted Chore '%s' with ID: %s", chore_name, internal_id)
             return await self.async_step_init()
 
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_DELETE_CHORE,
             data_schema=vol.Schema({}),
-            description_placeholders={
-                const.OPTIONS_FLOW_PLACEHOLDER_CHORE_NAME: chore_name
-            },
+            description_placeholders={const.OPTIONS_FLOW_PLACEHOLDER_CHORE_NAME: chore_name},
         )
 
     # --- Badges ---
@@ -2230,17 +2059,13 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             coordinator.delete_badge_entity(internal_id)
 
-            const.LOGGER.debug(
-                "Deleted Badge '%s' with ID: %s", badge_name, internal_id
-            )
+            const.LOGGER.debug("Deleted Badge '%s' with ID: %s", badge_name, internal_id)
             return await self.async_step_init()
 
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_DELETE_BADGE,
             data_schema=vol.Schema({}),
-            description_placeholders={
-                const.OPTIONS_FLOW_PLACEHOLDER_BADGE_NAME: badge_name
-            },
+            description_placeholders={const.OPTIONS_FLOW_PLACEHOLDER_BADGE_NAME: badge_name},
         )
 
     # --- Rewards ---
@@ -2260,17 +2085,13 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             coordinator.delete_reward_entity(internal_id)
 
-            const.LOGGER.debug(
-                "Deleted Reward '%s' with ID: %s", reward_name, internal_id
-            )
+            const.LOGGER.debug("Deleted Reward '%s' with ID: %s", reward_name, internal_id)
             return await self.async_step_init()
 
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_DELETE_REWARD,
             data_schema=vol.Schema({}),
-            description_placeholders={
-                const.OPTIONS_FLOW_PLACEHOLDER_REWARD_NAME: reward_name
-            },
+            description_placeholders={const.OPTIONS_FLOW_PLACEHOLDER_REWARD_NAME: reward_name},
         )
 
     # --- Penalties ---
@@ -2290,17 +2111,13 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             coordinator.delete_penalty_entity(internal_id)
 
-            const.LOGGER.debug(
-                "Deleted Penalty '%s' with ID: %s", penalty_name, internal_id
-            )
+            const.LOGGER.debug("Deleted Penalty '%s' with ID: %s", penalty_name, internal_id)
             return await self.async_step_init()
 
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_DELETE_PENALTY,
             data_schema=vol.Schema({}),
-            description_placeholders={
-                const.OPTIONS_FLOW_PLACEHOLDER_PENALTY_NAME: penalty_name
-            },
+            description_placeholders={const.OPTIONS_FLOW_PLACEHOLDER_PENALTY_NAME: penalty_name},
         )
 
     # --- Achievements ---
@@ -2312,9 +2129,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
 
         if not internal_id or internal_id not in achievements_dict:
-            const.LOGGER.error(
-                "Delete Achievement - Invalid Internal ID '%s'", internal_id
-            )
+            const.LOGGER.error("Delete Achievement - Invalid Internal ID '%s'", internal_id)
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_ACHIEVEMENT)
 
         achievement_name = achievements_dict[internal_id][const.DATA_ACHIEVEMENT_NAME]
@@ -2346,9 +2161,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
 
         if not internal_id or internal_id not in challenges_dict:
-            const.LOGGER.error(
-                "Delete Challenge - Invalid Internal ID '%s'", internal_id
-            )
+            const.LOGGER.error("Delete Challenge - Invalid Internal ID '%s'", internal_id)
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_CHALLENGE)
 
         challenge_name = challenges_dict[internal_id][const.DATA_CHALLENGE_NAME]
@@ -2356,9 +2169,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             coordinator.delete_challenge_entity(internal_id)
 
-            const.LOGGER.debug(
-                "Deleted Challenge '%s' with ID: %s", challenge_name, internal_id
-            )
+            const.LOGGER.debug("Deleted Challenge '%s' with ID: %s", challenge_name, internal_id)
             return await self.async_step_init()
 
         return self.async_show_form(
@@ -2386,17 +2197,13 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             coordinator.delete_bonus_entity(internal_id)
 
-            const.LOGGER.debug(
-                "Deleted Bonus '%s' with ID: %s", bonus_name, internal_id
-            )
+            const.LOGGER.debug("Deleted Bonus '%s' with ID: %s", bonus_name, internal_id)
             return await self.async_step_init()
 
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_DELETE_BONUS,
             data_schema=vol.Schema({}),
-            description_placeholders={
-                const.OPTIONS_FLOW_PLACEHOLDER_BONUS_NAME: bonus_name
-            },
+            description_placeholders={const.OPTIONS_FLOW_PLACEHOLDER_BONUS_NAME: bonus_name},
         )
 
     # ----------------------------------------------------------------------------------
@@ -2412,9 +2219,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             if action and action.strip():
                 if action == "create_backup":
                     return await self.async_step_create_manual_backup()
-                elif action == "delete_backup":
+                if action == "delete_backup":
                     return await self.async_step_select_backup_to_delete()
-                elif action == "restore_backup":
+                if action == "restore_backup":
                     return await self.async_step_select_backup_to_restore()
 
         if user_input is not None:
@@ -2439,14 +2246,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.CFOF_SYSTEM_INPUT_CALENDAR_SHOW_PERIOD
             )
             # Parse consolidated retention periods
-            retention_str = user_input.get(
-                const.CFOF_SYSTEM_INPUT_RETENTION_PERIODS, ""
-            ).strip()
+            retention_str = user_input.get(const.CFOF_SYSTEM_INPUT_RETENTION_PERIODS, "").strip()
             if retention_str:
                 try:
-                    daily, weekly, monthly, yearly = fh.parse_retention_periods(
-                        retention_str
-                    )
+                    daily, weekly, monthly, yearly = fh.parse_retention_periods(retention_str)
                     self._entry_options[const.CONF_RETENTION_DAILY] = daily
                     self._entry_options[const.CONF_RETENTION_WEEKLY] = weekly
                     self._entry_options[const.CONF_RETENTION_MONTHLY] = monthly
@@ -2454,9 +2257,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 except ValueError as err:
                     const.LOGGER.error("Failed to parse retention periods: %s", err)
                     # Use defaults if parsing fails
-                    self._entry_options[const.CONF_RETENTION_DAILY] = (
-                        const.DEFAULT_RETENTION_DAILY
-                    )
+                    self._entry_options[const.CONF_RETENTION_DAILY] = const.DEFAULT_RETENTION_DAILY
                     self._entry_options[const.CONF_RETENTION_WEEKLY] = (
                         const.DEFAULT_RETENTION_WEEKLY
                     )
@@ -2531,9 +2332,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         # Build selection menu
         storage_path = Path(self.hass.config.path(".storage", const.STORAGE_KEY))
-        storage_file_exists = await self.hass.async_add_executor_job(
-            storage_path.exists
-        )
+        storage_file_exists = await self.hass.async_add_executor_job(storage_path.exists)
 
         # Discover backups (pass None for storage_manager - not needed for discovery)
         backups = await fh.discover_backups(self.hass, None)
@@ -2565,16 +2364,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         for backup in backups:
             age_str = fh.format_backup_age(backup["age_hours"])
             tag_display = backup["tag"].replace("-", " ").title()
-            backup_labels[backup["filename"]] = (
-                f"[{tag_display}] {backup['filename']} ({age_str})"
-            )
+            backup_labels[backup["filename"]] = f"[{tag_display}] {backup['filename']} ({age_str})"
 
         # Build schema using SelectSelector with translation_key
         data_schema = vol.Schema(
             {
-                vol.Required(
-                    const.CFOF_DATA_RECOVERY_INPUT_SELECTION
-                ): selector.SelectSelector(
+                vol.Required(const.CFOF_DATA_RECOVERY_INPUT_SELECTION): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=options,
                         mode=selector.SelectSelectorMode.LIST,
@@ -2612,9 +2407,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     self.hass, storage_manager, const.BACKUP_TAG_RECOVERY
                 )
                 if backup_name:
-                    const.LOGGER.info(
-                        "Created safety backup before fresh start: %s", backup_name
-                    )
+                    const.LOGGER.info("Created safety backup before fresh start: %s", backup_name)
 
                 # Delete active file
                 await self.hass.async_add_executor_job(os.remove, str(storage_path))
@@ -2624,7 +2417,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             self._mark_reload_needed()
             return await self.async_step_init()
 
-        except Exception as err:  # pylint: disable=broad-except
+        except Exception as err:
             const.LOGGER.error("Fresh start failed: %s", err)
             return self.async_abort(reason="unknown")
 
@@ -2641,9 +2434,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 return self.async_abort(reason="file_not_found")
 
             # Validate JSON
-            data_str = await self.hass.async_add_executor_job(
-                storage_path.read_text, "utf-8"
-            )
+            data_str = await self.hass.async_add_executor_job(storage_path.read_text, "utf-8")
 
             try:
                 json.loads(data_str)  # Parse to validate
@@ -2658,7 +2449,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             self._mark_reload_needed()
             return await self.async_step_init()
 
-        except Exception as err:  # pylint: disable=broad-except
+        except Exception as err:
             const.LOGGER.error("Use current failed: %s", err)
             return self.async_abort(reason="unknown")
 
@@ -2670,9 +2461,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         errors = {}
 
         if user_input is not None:
-            json_text = user_input.get(
-                const.CFOF_DATA_RECOVERY_INPUT_JSON_DATA, ""
-            ).strip()
+            json_text = user_input.get(const.CFOF_DATA_RECOVERY_INPUT_JSON_DATA, "").strip()
 
             if not json_text:
                 errors[const.CFOP_ERROR_BASE] = "empty_json"
@@ -2710,9 +2499,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         }
 
                         # Write to storage file
-                        storage_path = Path(
-                            self.hass.config.path(".storage", const.STORAGE_KEY)
-                        )
+                        storage_path = Path(self.hass.config.path(".storage", const.STORAGE_KEY))
 
                         # Write wrapped data to storage (directory created by HA/test fixtures)
                         await self.hass.async_add_executor_job(
@@ -2728,9 +2515,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                         storage_manager = KidsChoresStorageManager(self.hass)
                         max_backups = const.DEFAULT_BACKUPS_MAX_RETAINED
-                        await fh.cleanup_old_backups(
-                            self.hass, storage_manager, max_backups
-                        )
+                        await fh.cleanup_old_backups(self.hass, storage_manager, max_backups)
 
                         # Reload and return to init
                         self._mark_reload_needed()
@@ -2738,7 +2523,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                 except json.JSONDecodeError:
                     errors[const.CFOP_ERROR_BASE] = "invalid_json"
-                except Exception as err:  # pylint: disable=broad-except
+                except Exception as err:
                     const.LOGGER.error("Paste JSON failed: %s", err)
                     errors[const.CFOP_ERROR_BASE] = "unknown"
 
@@ -2746,9 +2531,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_PASTE_JSON_RESTORE,
             data_schema=vol.Schema(
                 {
-                    vol.Required(
-                        const.CFOF_DATA_RECOVERY_INPUT_JSON_DATA
-                    ): selector.TextSelector(
+                    vol.Required(const.CFOF_DATA_RECOVERY_INPUT_JSON_DATA): selector.TextSelector(
                         selector.TextSelectorConfig(
                             multiline=True,
                             type=selector.TextSelectorType.PASSWORD,
@@ -2766,8 +2549,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     async def _handle_restore_backup_from_options(self, backup_filename: str):
         """Handle restoring from a specific backup file in options flow."""
         import json
-        import shutil
         from pathlib import Path
+        import shutil
 
         from .storage_manager import KidsChoresStorageManager
 
@@ -2781,9 +2564,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 return self.async_abort(reason="file_not_found")
 
             # Read and validate backup
-            backup_data_str = await self.hass.async_add_executor_job(
-                backup_path.read_text, "utf-8"
-            )
+            backup_data_str = await self.hass.async_add_executor_job(backup_path.read_text, "utf-8")
 
             try:
                 json.loads(backup_data_str)  # Validate parseable JSON
@@ -2793,9 +2574,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             # Validate structure
             if not fh.validate_backup_json(backup_data_str):
-                const.LOGGER.error(
-                    "Backup file missing required keys: %s", backup_filename
-                )
+                const.LOGGER.error("Backup file missing required keys: %s", backup_filename)
                 return self.async_abort(reason="invalid_structure")
 
             # Create safety backup of current file if it exists
@@ -2806,9 +2585,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     self.hass, storage_manager, const.BACKUP_TAG_RECOVERY
                 )
                 if safety_backup:
-                    const.LOGGER.info(
-                        "Created safety backup before restore: %s", safety_backup
-                    )
+                    const.LOGGER.info("Created safety backup before restore: %s", safety_backup)
 
             # Parse backup data
             backup_data = json.loads(backup_data_str)
@@ -2837,7 +2614,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             self._mark_reload_needed()
             return await self.async_step_init()
 
-        except Exception as err:  # pylint: disable=broad-except
+        except Exception as err:
             const.LOGGER.error("Restore backup failed: %s", err)
             return self.async_abort(reason="unknown")
 
@@ -2850,11 +2627,11 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             if action == "create_backup":
                 return await self.async_step_create_manual_backup()
-            elif action == "delete_backup":
+            if action == "delete_backup":
                 return await self.async_step_select_backup_to_delete()
-            elif action == "restore_backup":
+            if action == "restore_backup":
                 return await self.async_step_select_backup_to_restore()
-            elif action == "return_to_menu":
+            if action == "return_to_menu":
                 return await self.async_step_init()
 
         # Discover backups to show count
@@ -2869,9 +2646,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_BACKUP_ACTIONS,
             data_schema=vol.Schema(
                 {
-                    vol.Required(
-                        const.CFOF_BACKUP_ACTION_SELECTION
-                    ): selector.SelectSelector(
+                    vol.Required(const.CFOF_BACKUP_ACTION_SELECTION): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=[
                                 "create_backup",
@@ -2925,9 +2700,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             tag_display = backup["tag"].replace("-", " ").title()
 
             # Emoji-only prefix - NO hardcoded English text
-            option = (
-                f"🗑️ [{tag_display}] {backup['filename']} ({age_str}, {size_kb:.1f} KB)"
-            )
+            option = f"🗑️ [{tag_display}] {backup['filename']} ({age_str}, {size_kb:.1f} KB)"
             backup_options.append(option)
 
         # Add cancel option (translated via translation_key)
@@ -2989,9 +2762,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             tag_display = backup["tag"].replace("-", " ").title()
 
             # Emoji-only prefix - NO hardcoded English text
-            option = (
-                f"🔄 [{tag_display}] {backup['filename']} ({age_str}, {size_kb:.1f} KB)"
-            )
+            option = f"🔄 [{tag_display}] {backup['filename']} ({age_str}, {size_kb:.1f} KB)"
             backup_options.append(option)
 
         # Add cancel option (translated via translation_key)
@@ -3021,7 +2792,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         Returns: "filename.json" or None if extraction fails
         """
         # Remove emoji prefix (first 2-3 characters depending on emoji width)
-        if selection.startswith("🔄 ") or selection.startswith("🗑️ "):
+        if selection.startswith(("🔄 ", "🗑️ ")):
             display_part = selection[2:].strip()
 
             # Extract from "[Tag] filename.json (age, size)"
@@ -3059,15 +2830,11 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     await fh.cleanup_old_backups(self.hass, storage_manager, retention)
 
                     # Show success message and return to backup menu
-                    const.LOGGER.info(
-                        "Manual backup created successfully: %s", backup_filename
-                    )
+                    const.LOGGER.info("Manual backup created successfully: %s", backup_filename)
                     return await self.async_step_backup_actions_menu()
-                else:
-                    const.LOGGER.error("Failed to create manual backup")
-                    return await self.async_step_backup_actions_menu()
-            else:
+                const.LOGGER.error("Failed to create manual backup")
                 return await self.async_step_backup_actions_menu()
+            return await self.async_step_backup_actions_menu()
 
         # Get backup count and retention for placeholders
         available_backups = await fh.discover_backups(self.hass, storage_manager)
@@ -3137,8 +2904,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_restore_backup_confirm(self, user_input=None):
         """Confirm backup restoration."""
-        import shutil
         from pathlib import Path
+        import shutil
 
         from .storage_manager import KidsChoresStorageManager
 
@@ -3167,10 +2934,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     backup_data_str = await self.hass.async_add_executor_job(
                         backup_path.read_text, "utf-8"
                     )
-                except Exception as err:  # pylint: disable=broad-except
-                    const.LOGGER.error(
-                        "Failed to read backup file %s: %s", backup_filename, err
-                    )
+                except Exception as err:
+                    const.LOGGER.error("Failed to read backup file %s: %s", backup_filename, err)
                     self._backup_to_restore = None
                     return await self.async_step_backup_actions_menu()
 
@@ -3189,9 +2954,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     const.LOGGER.info("Created safety backup: %s", safety_backup)
 
                     # Restore backup
-                    await self.hass.async_add_executor_job(
-                        shutil.copy2, backup_path, storage_path
-                    )
+                    await self.hass.async_add_executor_job(shutil.copy2, backup_path, storage_path)
                     const.LOGGER.info("Restored backup: %s", backup_filename)
 
                     # Cleanup old backups
@@ -3203,16 +2966,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                     # Clear context and reload integration to pick up restored data
                     self._backup_to_restore = None
-                    await self.hass.config_entries.async_reload(
-                        self.config_entry.entry_id
-                    )
+                    await self.hass.config_entries.async_reload(self.config_entry.entry_id)
 
                     return self.async_abort(reason="backup_restored")
 
                 except Exception as err:
-                    const.LOGGER.error(
-                        "Failed to restore backup %s: %s", backup_filename, err
-                    )
+                    const.LOGGER.error("Failed to restore backup %s: %s", backup_filename, err)
                     self._backup_to_restore = None
                     return await self.async_step_backup_actions_menu()
             else:

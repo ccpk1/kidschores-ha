@@ -18,8 +18,8 @@ For legacy tests using direct coordinator manipulation, see tests/legacy/conftes
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kidschores.const import DOMAIN
@@ -38,10 +38,10 @@ pytest_plugins = "pytest_homeassistant_custom_component"
 
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(
-    enable_custom_integrations: Any,  # noqa: ARG001  # Required fixture dependency
+    enable_custom_integrations: Any,  # Required fixture dependency
 ) -> Any:
     """Enable custom integrations in all tests."""
-    yield
+    return
 
 
 # ---------------------------------------------------------------------------

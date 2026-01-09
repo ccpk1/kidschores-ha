@@ -21,13 +21,13 @@ def test_points_button_entity_id_pattern() -> None:
     for delta in positive_values:
         # Simulate what the button __init__ does
         sign_text = f"plus_{str(delta).replace('.', '_')}"
-        entity_id = f"{const.BUTTON_KC_PREFIX}{kid_slug}{const.BUTTON_KC_EID_SUFFIX_POINTS}_{sign_text}"
+        entity_id = (
+            f"{const.BUTTON_KC_PREFIX}{kid_slug}{const.BUTTON_KC_EID_SUFFIX_POINTS}_{sign_text}"
+        )
 
         # Verify correct pattern
         assert "_points_plus_" in entity_id, f"Expected _points_plus_ in {entity_id}"
-        assert not entity_id.endswith("_points"), (
-            f"Should not end with _points: {entity_id}"
-        )
+        assert not entity_id.endswith("_points"), f"Should not end with _points: {entity_id}"
 
         # Verify format matches expected
         expected = f"button.kc_{kid_slug}_points_plus_{str(delta).replace('.', '_')}"
@@ -38,18 +38,16 @@ def test_points_button_entity_id_pattern() -> None:
     for delta in negative_values:
         # Simulate what the button __init__ does
         sign_text = f"minus_{str(abs(delta)).replace('.', '_')}"
-        entity_id = f"{const.BUTTON_KC_PREFIX}{kid_slug}{const.BUTTON_KC_EID_SUFFIX_POINTS}_{sign_text}"
+        entity_id = (
+            f"{const.BUTTON_KC_PREFIX}{kid_slug}{const.BUTTON_KC_EID_SUFFIX_POINTS}_{sign_text}"
+        )
 
         # Verify correct pattern
         assert "_points_minus_" in entity_id, f"Expected _points_minus_ in {entity_id}"
-        assert not entity_id.endswith("_points"), (
-            f"Should not end with _points: {entity_id}"
-        )
+        assert not entity_id.endswith("_points"), f"Should not end with _points: {entity_id}"
 
         # Verify format matches expected
-        expected = (
-            f"button.kc_{kid_slug}_points_minus_{str(abs(delta)).replace('.', '_')}"
-        )
+        expected = f"button.kc_{kid_slug}_points_minus_{str(abs(delta)).replace('.', '_')}"
         assert entity_id == expected, f"Expected {expected}, got {entity_id}"
 
 
@@ -78,10 +76,11 @@ def test_bonus_button_suffix_stripping() -> None:
         entity_slug = slugified_name
 
         # Strip redundant _bonus suffix if present
-        if entity_slug.endswith("_bonus"):
-            entity_slug = entity_slug[:-6]  # Remove last 6 chars: "_bonus"
+        entity_slug = entity_slug.removesuffix("_bonus")  # Remove last 6 chars: "_bonus"
 
-        entity_id = f"{const.BUTTON_KC_PREFIX}{kid_slug}{const.BUTTON_KC_EID_MIDFIX_BONUS}{entity_slug}"
+        entity_id = (
+            f"{const.BUTTON_KC_PREFIX}{kid_slug}{const.BUTTON_KC_EID_MIDFIX_BONUS}{entity_slug}"
+        )
 
         # Verify no duplicate _bonus suffix
         parts = entity_id.split("_bonus_")

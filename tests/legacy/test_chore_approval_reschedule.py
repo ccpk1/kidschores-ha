@@ -10,14 +10,13 @@ Priority: P2 HIGH (Potential bug in Use Case 5.4)
 Coverage: coordinator.approve_chore() and _reschedule_* methods
 """
 
-# pylint: disable=protected-access,redefined-outer-name,unused-argument,fixme
 
 from datetime import timedelta
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.const import (
@@ -34,10 +33,7 @@ from custom_components.kidschores.const import (
     FREQUENCY_NONE,
 )
 from custom_components.kidschores.migration_pre_v50 import PreV50Migrator
-from tests.legacy.conftest import (
-    is_chore_approved_for_kid,
-    reset_chore_state_for_kid,
-)
+from tests.legacy.conftest import is_chore_approved_for_kid, reset_chore_state_for_kid
 
 # ============================================================================
 # Test: Recurring INDEPENDENT Approval - Per-Kid Rescheduling
@@ -73,10 +69,7 @@ async def test_independent_recurring_approval_reschedules_per_kid(
     chore_info = coordinator.chores_data[star_sweep_id]
 
     # Verify it's INDEPENDENT and recurring
-    assert (
-        chore_info.get(DATA_CHORE_COMPLETION_CRITERIA)
-        == COMPLETION_CRITERIA_INDEPENDENT
-    )
+    assert chore_info.get(DATA_CHORE_COMPLETION_CRITERIA) == COMPLETION_CRITERIA_INDEPENDENT
     assert chore_info.get(DATA_CHORE_RECURRING_FREQUENCY) == FREQUENCY_DAILY
 
     # Set initial due dates for kids
@@ -108,9 +101,7 @@ async def test_independent_recurring_approval_reschedules_per_kid(
     assert zoe_new_due != original_due, "Zoë's due date should have changed"
 
     # Verify Max's due date is unchanged
-    assert per_kid_due_dates.get(max_id) == max_original_due, (
-        "Max's due date should be unchanged"
-    )
+    assert per_kid_due_dates.get(max_id) == max_original_due, "Max's due date should be unchanged"
 
 
 @pytest.mark.skip(

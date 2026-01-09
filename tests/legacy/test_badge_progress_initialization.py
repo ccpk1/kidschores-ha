@@ -5,7 +5,6 @@ Validates that badge_progress is proactively initialized when badges are assigne
 to kids, ensuring KidBadgeSensor entities are always created.
 """
 
-# pylint: disable=protected-access
 
 from typing import Any
 
@@ -42,9 +41,7 @@ def test_badge_progress_initialized_on_assignment(
 
     # Initial state: badge not assigned, badge_progress should not exist
     zoe_progress = coordinator.kids_data[zoe_id].get(DATA_KID_BADGE_PROGRESS, {})
-    assert wizard_badge_id not in zoe_progress, (
-        "Badge progress should not exist before assignment"
-    )
+    assert wizard_badge_id not in zoe_progress, "Badge progress should not exist before assignment"
 
     # Assign badge to Zoë via direct data modification
     coordinator._data[DATA_BADGES][wizard_badge_id][DATA_BADGE_ASSIGNED_TO] = [zoe_id]

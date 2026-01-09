@@ -12,15 +12,15 @@ Test coverage:
 Uses scenario_shared.yaml which includes 8 specialized chores for these tests.
 """
 
-# pylint: disable=protected-access, unused-argument, redefined-outer-name
+
 
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+import pytest
 
 from tests.helpers import (
     # Pending claim action constants
@@ -59,13 +59,9 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture
-async def shared_scenario(
-    hass: HomeAssistant, mock_hass_users: dict[str, Any]
-) -> SetupResult:
+async def shared_scenario(hass: HomeAssistant, mock_hass_users: dict[str, Any]) -> SetupResult:
     """Load the shared chore scenario with auto-approve and pending claim chores."""
-    return await setup_from_yaml(
-        hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml"
-    )
+    return await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
 
 
 # =============================================================================
@@ -79,10 +75,7 @@ def get_kid_chore_state(
     chore_id: str,
 ) -> str:
     """Get the state of a chore for a specific kid."""
-    from tests.helpers.constants import (
-        DATA_KID_CHORE_DATA,
-        DATA_KID_CHORE_DATA_STATE,
-    )
+    from tests.helpers.constants import DATA_KID_CHORE_DATA, DATA_KID_CHORE_DATA_STATE
 
     kid_info = coordinator.kids_data.get(kid_id, {})
     kid_chore_data = kid_info.get(DATA_KID_CHORE_DATA, {})
@@ -153,9 +146,7 @@ class TestSharedAllAutoApprove:
 
         # Verify chore configuration
         chore_info = coordinator.chores_data.get(chore_id, {})
-        assert (
-            chore_info.get(DATA_CHORE_COMPLETION_CRITERIA) == COMPLETION_CRITERIA_SHARED
-        )
+        assert chore_info.get(DATA_CHORE_COMPLETION_CRITERIA) == COMPLETION_CRITERIA_SHARED
 
         # Get points before
         points_before = get_kid_points(coordinator, zoe_id)
@@ -232,15 +223,9 @@ class TestSharedAllAutoApprove:
             coordinator.claim_chore(lila_id, chore_id, "Lila")
 
         # All should have APPROVED state
-        assert (
-            get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_APPROVED
-        )
-        assert (
-            get_kid_chore_state(coordinator, max_id, chore_id) == CHORE_STATE_APPROVED
-        )
-        assert (
-            get_kid_chore_state(coordinator, lila_id, chore_id) == CHORE_STATE_APPROVED
-        )
+        assert get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_APPROVED
+        assert get_kid_chore_state(coordinator, max_id, chore_id) == CHORE_STATE_APPROVED
+        assert get_kid_chore_state(coordinator, lila_id, chore_id) == CHORE_STATE_APPROVED
 
         # All should have received points
         assert get_kid_points(coordinator, zoe_id) == zoe_before + 12.0
@@ -275,10 +260,7 @@ class TestSharedFirstAutoApprove:
 
         # Verify chore configuration
         chore_info = coordinator.chores_data.get(chore_id, {})
-        assert (
-            chore_info.get(DATA_CHORE_COMPLETION_CRITERIA)
-            == COMPLETION_CRITERIA_SHARED_FIRST
-        )
+        assert chore_info.get(DATA_CHORE_COMPLETION_CRITERIA) == COMPLETION_CRITERIA_SHARED_FIRST
 
         # Get points before
         points_before = get_kid_points(coordinator, zoe_id)
@@ -315,9 +297,7 @@ class TestSharedFirstAutoApprove:
             coordinator.claim_chore(zoe_id, chore_id, "Zoë")
 
         # Zoë should be APPROVED
-        assert (
-            get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_APPROVED
-        )
+        assert get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_APPROVED
 
         # Max and Lila should be COMPLETED_BY_OTHER
         max_state = get_kid_chore_state(coordinator, max_id, chore_id)
@@ -568,10 +548,7 @@ class TestSharedFirstPendingClaimHold:
 
         # Verify states before reset
         assert get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_CLAIMED
-        assert (
-            get_kid_chore_state(coordinator, max_id, chore_id)
-            == CHORE_STATE_COMPLETED_BY_OTHER
-        )
+        assert get_kid_chore_state(coordinator, max_id, chore_id) == CHORE_STATE_COMPLETED_BY_OTHER
 
         # Trigger reset (HOLD chores are exempt from due date check)
         await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])

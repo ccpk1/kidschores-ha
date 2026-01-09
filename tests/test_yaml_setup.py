@@ -4,16 +4,14 @@ These tests verify that the setup_from_yaml() helper correctly loads
 scenario definitions and configures the integration through the config flow.
 """
 
-# pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
 
 from typing import Any
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
 from tests.helpers.setup import setup_from_yaml
-
 
 # Note: mock_hass_users fixture is provided by conftest.py
 # It creates real HA users via hass.auth.async_create_user()

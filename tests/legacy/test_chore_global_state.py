@@ -9,14 +9,12 @@ Priority: P1 CRITICAL (Core Option B validation)
 Coverage: coordinator._process_chore_state() global state logic (lines 2962-3020)
 """
 
-# pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
-# pylint: disable=unused-argument
 
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.const import (
@@ -177,10 +175,7 @@ async def test_independent_multi_kid_all_pending(
 
     # Verify INDEPENDENT and multi-assignment
     chore_info = coordinator.chores_data[star_sweep_id]
-    assert (
-        chore_info.get(DATA_CHORE_COMPLETION_CRITERIA)
-        == COMPLETION_CRITERIA_INDEPENDENT
-    )
+    assert chore_info.get(DATA_CHORE_COMPLETION_CRITERIA) == COMPLETION_CRITERIA_INDEPENDENT
     assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
     assert len(assigned_kids) >= 3, "Stär sweep should be assigned to 3 kids"
 
@@ -218,10 +213,7 @@ async def test_independent_multi_kid_one_claimed(
     lila_id = name_to_id_map["kid:Lila"]
 
     chore_info = coordinator.chores_data[star_sweep_id]
-    assert (
-        chore_info.get(DATA_CHORE_COMPLETION_CRITERIA)
-        == COMPLETION_CRITERIA_INDEPENDENT
-    )
+    assert chore_info.get(DATA_CHORE_COMPLETION_CRITERIA) == COMPLETION_CRITERIA_INDEPENDENT
 
     # Clear all states to pending
     for kid_id in [zoe_id, max_id, lila_id]:
@@ -233,9 +225,7 @@ async def test_independent_multi_kid_one_claimed(
         patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
     ):
         # Set pending_claim_count BEFORE _process_chore_state (it recomputes global state internally)
-        zoe_chore_data = coordinator.kids_data[zoe_id][const.DATA_KID_CHORE_DATA][
-            star_sweep_id
-        ]
+        zoe_chore_data = coordinator.kids_data[zoe_id][const.DATA_KID_CHORE_DATA][star_sweep_id]
         zoe_chore_data[const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT] = 1
         # Only Zoë claims
         coordinator._process_chore_state(zoe_id, star_sweep_id, CHORE_STATE_CLAIMED)
@@ -335,9 +325,7 @@ async def test_shared_multi_kid_none_claimed(
         reset_chore_state_for_kid(coordinator, kid_id, shared_chore_id)
 
     # Process pending for first kid
-    coordinator._process_chore_state(
-        assigned_kids[0], shared_chore_id, CHORE_STATE_PENDING
-    )
+    coordinator._process_chore_state(assigned_kids[0], shared_chore_id, CHORE_STATE_PENDING)
 
     # Verify: all pending → global state = pending
     assert chore_info[DATA_CHORE_STATE] == CHORE_STATE_PENDING
@@ -383,9 +371,7 @@ async def test_shared_multi_kid_partial_claimed(
         patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
     ):
         # Set pending_claim_count BEFORE _process_chore_state (it recomputes global state internally)
-        zoe_chore_data = coordinator.kids_data[zoe_id][const.DATA_KID_CHORE_DATA][
-            star_sweep_id
-        ]
+        zoe_chore_data = coordinator.kids_data[zoe_id][const.DATA_KID_CHORE_DATA][star_sweep_id]
         zoe_chore_data[const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT] = 1
         # Only Zoë claims (partial)
         coordinator._process_chore_state(zoe_id, star_sweep_id, CHORE_STATE_CLAIMED)
@@ -566,10 +552,7 @@ async def test_independent_mixed_approved_and_claimed(
     lila_id = name_to_id_map["kid:Lila"]
 
     chore_info = coordinator.chores_data[star_sweep_id]
-    assert (
-        chore_info.get(DATA_CHORE_COMPLETION_CRITERIA)
-        == COMPLETION_CRITERIA_INDEPENDENT
-    )
+    assert chore_info.get(DATA_CHORE_COMPLETION_CRITERIA) == COMPLETION_CRITERIA_INDEPENDENT
 
     # Clear all states
     for kid_id in [zoe_id, max_id, lila_id]:

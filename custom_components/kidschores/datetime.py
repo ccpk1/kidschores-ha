@@ -17,8 +17,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from . import const
-from . import kc_helpers as kh
+from . import const, kc_helpers as kh
 from .coordinator import KidsChoresDataCoordinator
 
 # Silver requirement: Parallel Updates
@@ -39,9 +38,7 @@ async def async_setup_entry(
     entities = []
     for kid_id, kid_info in coordinator.kids_data.items():
         kid_name = kid_info.get(const.DATA_KID_NAME, f"Kid {kid_id}")
-        entities.append(
-            KidDashboardHelperDateTimePicker(coordinator, entry, kid_id, kid_name)
-        )
+        entities.append(KidDashboardHelperDateTimePicker(coordinator, entry, kid_id, kid_name))
 
     async_add_entities(entities)
 
@@ -73,16 +70,12 @@ class KidDashboardHelperDateTimePicker(DateTimeEntity, RestoreEntity):
         self._attr_unique_id = (
             f"{entry.entry_id}_{kid_id}{const.DATETIME_KC_UID_SUFFIX_DATE_HELPER}"
         )
-        self._attr_translation_placeholders = {
-            const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
-        }
+        self._attr_translation_placeholders = {const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name}
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
         # Default to tomorrow at noon
         default_time = dt_util.now() + timedelta(days=1)
-        self._attr_native_value = default_time.replace(
-            hour=12, minute=0, second=0, microsecond=0
-        )
+        self._attr_native_value = default_time.replace(hour=12, minute=0, second=0, microsecond=0)
 
         # Generate entity_id following integration pattern
         self.entity_id = (

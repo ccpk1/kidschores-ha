@@ -10,11 +10,12 @@ All texts and labels are referenced from constants.
 
 from __future__ import annotations
 
-from typing import Any, Optional
-
-from homeassistant.core import HomeAssistant
+from typing import TYPE_CHECKING, Any
 
 from . import const
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
 
 
 async def async_send_notification(
@@ -22,8 +23,8 @@ async def async_send_notification(
     notify_service: str,
     title: str,
     message: str,
-    actions: Optional[list[dict[str, str]]] = None,
-    extra_data: Optional[dict[str, str]] = None,
+    actions: list[dict[str, str]] | None = None,
+    extra_data: dict[str, str] | None = None,
 ) -> None:
     """Send a notification using the specified notify service.
 
@@ -77,7 +78,7 @@ async def async_send_notification(
         await hass.services.async_call(domain, service, payload, blocking=True)
         const.LOGGER.debug("DEBUG: Notification sent via '%s.%s'", domain, service)
 
-    except Exception as err:  # pylint: disable=broad-exception-caught
+    except Exception as err:
         # Broad exception allowed: This runs in fire-and-forget background tasks
         # per AGENTS.md guidelines. We must catch all exceptions to prevent
         # "Task exception was never retrieved" errors in logs.

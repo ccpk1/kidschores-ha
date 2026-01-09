@@ -10,8 +10,6 @@ Validates that SHARED_FIRST chores correctly handle overdue states,
 particularly that completed chores don't show as overdue after restart.
 """
 
-# pylint: disable=protected-access
-# pylint: disable=too-many-locals
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -27,9 +25,7 @@ pytestmark = pytest.mark.skip(
 
 
 @pytest.mark.asyncio
-async def test_shared_first_completed_not_overdue(
-    hass, scenario_full, mock_hass_users
-) -> None:
+async def test_shared_first_completed_not_overdue(hass, scenario_full, mock_hass_users) -> None:
     """Test that completed SHARED_FIRST chores don't show as overdue for anyone.
 
     Scenario: Zoë claims and gets approved for "Täke Öut Trash".
@@ -48,9 +44,7 @@ async def test_shared_first_completed_not_overdue(
 
     # Set chore due date to yesterday (overdue)
     yesterday = create_test_datetime(days_offset=-1)
-    coordinator._data[const.DATA_CHORES][chore_id][const.DATA_CHORE_DUE_DATE] = (
-        yesterday
-    )
+    coordinator._data[const.DATA_CHORES][chore_id][const.DATA_CHORE_DUE_DATE] = yesterday
 
     # Mock notifications during testing
     with (
@@ -118,9 +112,7 @@ async def test_shared_first_pending_claim_becomes_overdue(
 
     # Set chore due date to yesterday (overdue)
     yesterday = create_test_datetime(days_offset=-1)
-    coordinator._data[const.DATA_CHORES][chore_id][const.DATA_CHORE_DUE_DATE] = (
-        yesterday
-    )
+    coordinator._data[const.DATA_CHORES][chore_id][const.DATA_CHORE_DUE_DATE] = yesterday
 
     # Mock notifications during testing
     with (
@@ -150,12 +142,12 @@ async def test_shared_first_pending_claim_becomes_overdue(
             )
 
             # Verify Max! and Lila are in completed_by_other state
-            assert chore_id in max_info.get(
-                const.DATA_KID_COMPLETED_BY_OTHER_CHORES, []
-            ), "Max! should be in completed_by_other list"
-            assert chore_id in lila_info.get(
-                const.DATA_KID_COMPLETED_BY_OTHER_CHORES, []
-            ), "Lila should be in completed_by_other list"
+            assert chore_id in max_info.get(const.DATA_KID_COMPLETED_BY_OTHER_CHORES, []), (
+                "Max! should be in completed_by_other list"
+            )
+            assert chore_id in lila_info.get(const.DATA_KID_COMPLETED_BY_OTHER_CHORES, []), (
+                "Lila should be in completed_by_other list"
+            )
 
             # Verify global chore state is claimed (claim wins over overdue for SHARED_FIRST)
             # The last_overdue timestamp tracks that overdue occurred, but claim takes priority
@@ -186,9 +178,7 @@ async def test_shared_first_no_claims_all_can_be_overdue(hass, scenario_full) ->
 
     # Set chore due date to yesterday (overdue)
     yesterday = create_test_datetime(days_offset=-1)
-    coordinator._data[const.DATA_CHORES][chore_id][const.DATA_CHORE_DUE_DATE] = (
-        yesterday
-    )
+    coordinator._data[const.DATA_CHORES][chore_id][const.DATA_CHORE_DUE_DATE] = yesterday
 
     # Mock notifications during testing
     with (
@@ -298,9 +288,7 @@ async def test_shared_first_persistence_across_restart(
 
             # Check Lila's state still completed_by_other after refresh
             lila_chore_data_after = coordinator._get_kid_chore_data(lila_id, chore_id)
-            lila_state_after = lila_chore_data_after.get(
-                const.DATA_KID_CHORE_DATA_STATE
-            )
+            lila_state_after = lila_chore_data_after.get(const.DATA_KID_CHORE_DATA_STATE)
             assert lila_state_after == const.CHORE_STATE_COMPLETED_BY_OTHER, (
                 f"Lila's state should remain completed_by_other after refresh, "
                 f"got: {lila_state_after}"
@@ -308,9 +296,7 @@ async def test_shared_first_persistence_across_restart(
 
             # Global chore state should remain approved
             chore_info_after = coordinator.chores_data[chore_id]
-            assert (
-                chore_info_after[const.DATA_CHORE_STATE] == const.CHORE_STATE_APPROVED
-            ), (
+            assert chore_info_after[const.DATA_CHORE_STATE] == const.CHORE_STATE_APPROVED, (
                 f"Global state should remain approved after refresh, "
                 f"got: {chore_info_after[const.DATA_CHORE_STATE]}"
             )

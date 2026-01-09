@@ -83,24 +83,22 @@ import datetime
 import json
 import os
 import shutil
+from typing import Any
 import uuid
-from typing import Any, Dict, Optional, Tuple
 
-import voluptuous as vol
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers import selector
+from homeassistant.helpers import config_validation as cv, selector
 from homeassistant.util import dt as dt_util
+import voluptuous as vol
 
-from . import const
-from . import kc_helpers as kh
+from . import const, kc_helpers as kh
 
 # ----------------------------------------------------------------------------------
 # HELPER FUNCTIONS
 # ----------------------------------------------------------------------------------
 
 
-def _build_notification_defaults(default: Dict[str, Any]) -> list[str]:
+def _build_notification_defaults(default: dict[str, Any]) -> list[str]:
     """Build default notification options from config.
 
     Args:
@@ -110,13 +108,9 @@ def _build_notification_defaults(default: Dict[str, Any]) -> list[str]:
         List of selected notification option values.
     """
     notifications = []
-    if default.get(
-        const.CFOF_CHORES_INPUT_NOTIFY_ON_CLAIM, const.DEFAULT_NOTIFY_ON_CLAIM
-    ):
+    if default.get(const.CFOF_CHORES_INPUT_NOTIFY_ON_CLAIM, const.DEFAULT_NOTIFY_ON_CLAIM):
         notifications.append(const.DATA_CHORE_NOTIFY_ON_CLAIM)
-    if default.get(
-        const.CFOF_CHORES_INPUT_NOTIFY_ON_APPROVAL, const.DEFAULT_NOTIFY_ON_APPROVAL
-    ):
+    if default.get(const.CFOF_CHORES_INPUT_NOTIFY_ON_APPROVAL, const.DEFAULT_NOTIFY_ON_APPROVAL):
         notifications.append(const.DATA_CHORE_NOTIFY_ON_APPROVAL)
     if default.get(
         const.CFOF_CHORES_INPUT_NOTIFY_ON_DISAPPROVAL,
@@ -137,9 +131,7 @@ def build_points_schema(
     """Build a schema for points label & icon."""
     return vol.Schema(
         {
-            vol.Required(
-                const.CFOF_SYSTEM_INPUT_POINTS_LABEL, default=default_label
-            ): str,
+            vol.Required(const.CFOF_SYSTEM_INPUT_POINTS_LABEL, default=default_label): str,
             vol.Optional(
                 const.CFOF_SYSTEM_INPUT_POINTS_ICON, default=default_icon
             ): selector.IconSelector(),
@@ -147,7 +139,7 @@ def build_points_schema(
     )
 
 
-def build_points_data(user_input: Dict[str, Any]) -> Dict[str, Any]:
+def build_points_data(user_input: dict[str, Any]) -> dict[str, Any]:
     """Build points configuration data from user input.
 
     Converts form input (CONF_* keys) to system settings format.
@@ -168,7 +160,7 @@ def build_points_data(user_input: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def validate_points_inputs(user_input: Dict[str, Any]) -> Dict[str, str]:
+def validate_points_inputs(user_input: dict[str, Any]) -> dict[str, str]:
     """Validate points configuration inputs.
 
     Args:
@@ -207,9 +199,7 @@ async def build_kid_schema(
     user_options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}] + [
         {"value": user.id, "label": user.name} for user in users
     ]
-    notify_options = [
-        {"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}
-    ] + _get_notify_services(hass)
+    notify_options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}, *_get_notify_services(hass)]
 
     # Get available dashboard languages
     language_options = await kh.get_available_dashboard_languages(hass)
@@ -259,9 +249,9 @@ async def build_kid_schema(
 
 
 def build_kids_data(
-    user_input: Dict[str, Any],
-    existing_kids: Dict[str, Any] = None,  # pylint: disable=unused-argument  # Reserved for API consistency with validate_kids_inputs
-) -> Dict[str, Any]:
+    user_input: dict[str, Any],
+    existing_kids: dict[str, Any] | None = None,  # Reserved for API consistency with validate_kids_inputs
+) -> dict[str, Any]:
     """Build kid data from user input.
 
     Converts form input (CFOF_* keys) to storage format (DATA_* keys).
@@ -281,12 +271,9 @@ def build_kids_data(
         const.CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS, True
     )
     notify_service = (
-        user_input.get(const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE)
-        or const.SENTINEL_EMPTY
+        user_input.get(const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE) or const.SENTINEL_EMPTY
     )
-    enable_persist = user_input.get(
-        const.CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
-    )
+    enable_persist = user_input.get(const.CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True)
     dashboard_language = user_input.get(
         const.CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
     )
@@ -305,8 +292,8 @@ def build_kids_data(
 
 
 def validate_kids_inputs(
-    user_input: Dict[str, Any], existing_kids: Dict[str, Any] = None
-) -> Dict[str, str]:
+    user_input: dict[str, Any], existing_kids: dict[str, Any] | None = None
+) -> dict[str, str]:
     """Validate kid configuration inputs.
 
     Args:
@@ -327,10 +314,7 @@ def validate_kids_inputs(
 
     # Check for duplicate names
     if existing_kids:
-        if any(
-            kid_data[const.DATA_KID_NAME] == kid_name
-            for kid_data in existing_kids.values()
-        ):
+        if any(kid_data[const.DATA_KID_NAME] == kid_name for kid_data in existing_kids.values()):
             errors[const.CFOP_ERROR_KID_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_KID
 
     return errors
@@ -356,18 +340,12 @@ def build_parent_schema(
     user_options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}] + [
         {"value": user.id, "label": user.name} for user in users
     ]
-    kid_options = [
-        {"value": kid_id, "label": kid_name} for kid_name, kid_id in kids_dict.items()
-    ]
-    notify_options = [
-        {"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}
-    ] + _get_notify_services(hass)
+    kid_options = [{"value": kid_id, "label": kid_name} for kid_name, kid_id in kids_dict.items()]
+    notify_options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}, *_get_notify_services(hass)]
 
     return vol.Schema(
         {
-            vol.Required(
-                const.CFOF_PARENTS_INPUT_NAME, default=default_parent_name
-            ): str,
+            vol.Required(const.CFOF_PARENTS_INPUT_NAME, default=default_parent_name): str,
             vol.Optional(
                 const.CFOF_PARENTS_INPUT_HA_USER,
                 default=default_ha_user_id or const.SENTINEL_EMPTY,
@@ -411,9 +389,9 @@ def build_parent_schema(
 
 
 def build_parents_data(
-    user_input: Dict[str, Any],
-    existing_parents: Dict[str, Any] = None,  # pylint: disable=unused-argument  # Reserved for API consistency with validate_parents_inputs
-) -> Dict[str, Any]:
+    user_input: dict[str, Any],
+    existing_parents: dict[str, Any] | None = None,  # Reserved for API consistency with validate_parents_inputs
+) -> dict[str, Any]:
     """Build parent data from user input.
 
     Converts form input (CFOF_* keys) to storage format (DATA_* keys).
@@ -428,20 +406,15 @@ def build_parents_data(
     parent_name = user_input.get(const.CFOF_PARENTS_INPUT_NAME, "").strip()
     internal_id = user_input.get(const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4()))
 
-    ha_user_id = (
-        user_input.get(const.CFOF_PARENTS_INPUT_HA_USER) or const.SENTINEL_EMPTY
-    )
+    ha_user_id = user_input.get(const.CFOF_PARENTS_INPUT_HA_USER) or const.SENTINEL_EMPTY
     associated_kids = user_input.get(const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS, [])
     enable_mobile_notifications = user_input.get(
         const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS, True
     )
     notify_service = (
-        user_input.get(const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE)
-        or const.SENTINEL_EMPTY
+        user_input.get(const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE) or const.SENTINEL_EMPTY
     )
-    enable_persist = user_input.get(
-        const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
-    )
+    enable_persist = user_input.get(const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True)
 
     return {
         internal_id: {
@@ -457,8 +430,8 @@ def build_parents_data(
 
 
 def validate_parents_inputs(
-    user_input: Dict[str, Any], existing_parents: Dict[str, Any] = None
-) -> Dict[str, str]:
+    user_input: dict[str, Any], existing_parents: dict[str, Any] | None = None
+) -> dict[str, str]:
     """Validate parent configuration inputs.
 
     Args:
@@ -526,9 +499,7 @@ def build_chore_schema(kids_dict, default=None):
         ): selector.LabelSelector(selector.LabelSelectorConfig(multiple=True)),
         vol.Required(
             const.CFOF_CHORES_INPUT_DEFAULT_POINTS,
-            default=default.get(
-                const.CFOF_CHORES_INPUT_DEFAULT_POINTS, const.DEFAULT_POINTS
-            ),
+            default=default.get(const.CFOF_CHORES_INPUT_DEFAULT_POINTS, const.DEFAULT_POINTS),
         ): selector.NumberSelector(
             selector.NumberSelectorConfig(
                 mode=selector.NumberSelectorMode.BOX,
@@ -601,9 +572,7 @@ def build_chore_schema(kids_dict, default=None):
         ): selector.BooleanSelector(),
         vol.Required(
             const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY,
-            default=default.get(
-                const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY, const.FREQUENCY_NONE
-            ),
+            default=default.get(const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY, const.FREQUENCY_NONE),
         ): selector.SelectSelector(
             selector.SelectSelectorConfig(
                 options=const.FREQUENCY_OPTIONS,
@@ -616,9 +585,7 @@ def build_chore_schema(kids_dict, default=None):
         ): vol.Any(
             None,
             selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    mode=selector.NumberSelectorMode.BOX, min=1, step=1
-                )
+                selector.NumberSelectorConfig(mode=selector.NumberSelectorMode.BOX, min=1, step=1)
             ),
         ),
         vol.Optional(
@@ -644,8 +611,7 @@ def build_chore_schema(kids_dict, default=None):
         ): selector.SelectSelector(
             selector.SelectSelectorConfig(
                 options=[
-                    {"value": key, "label": label}
-                    for key, label in const.WEEKDAY_OPTIONS.items()
+                    {"value": key, "label": label} for key, label in const.WEEKDAY_OPTIONS.items()
                 ],
                 multiple=True,
                 translation_key=const.TRANS_KEY_FLOW_HELPERS_APPLICABLE_DAYS,
@@ -659,9 +625,9 @@ def build_chore_schema(kids_dict, default=None):
 
     # Add "Clear due date" checkbox only when there's an existing date
     if existing_due_date:
-        schema_fields[
-            vol.Optional(const.CFOF_CHORES_INPUT_CLEAR_DUE_DATE, default=False)
-        ] = selector.BooleanSelector()
+        schema_fields[vol.Optional(const.CFOF_CHORES_INPUT_CLEAR_DUE_DATE, default=False)] = (
+            selector.BooleanSelector()
+        )
 
     # Add remaining fields
     schema_fields[
@@ -692,11 +658,11 @@ def build_chore_schema(kids_dict, default=None):
 
 
 def build_chores_data(
-    user_input: Dict[str, Any],
-    kids_dict: Dict[str, Any],
-    existing_chores: Dict[str, Any] = None,
-    existing_per_kid_due_dates: Dict[str, str | None] = None,
-) -> tuple[Dict[str, Any], Dict[str, str]]:
+    user_input: dict[str, Any],
+    kids_dict: dict[str, Any],
+    existing_chores: dict[str, Any] | None = None,
+    existing_per_kid_due_dates: dict[str, str | None] | None = None,
+) -> tuple[dict[str, Any], dict[str, str]]:
     """Build chore data from user input with validation.
 
     Converts form input (CFOF_* keys) to storage format (DATA_* keys).
@@ -724,8 +690,7 @@ def build_chores_data(
 
     # Check for duplicate names
     if existing_chores and any(
-        chore_data[const.DATA_CHORE_NAME] == chore_name
-        for chore_data in existing_chores.values()
+        chore_data[const.DATA_CHORE_NAME] == chore_name for chore_data in existing_chores.values()
     ):
         errors[const.CFOP_ERROR_CHORE_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_CHORE
         return {}, errors
@@ -759,12 +724,8 @@ def build_chores_data(
             )
             # Type guard: narrow datetime | date | str | None to datetime
             if due_dt and not isinstance(due_dt, datetime.datetime):
-                const.LOGGER.warning(
-                    "build_chores_data: due_dt is not datetime: %s", type(due_dt)
-                )
-                errors[const.CFOP_ERROR_DUE_DATE] = (
-                    const.TRANS_KEY_CFOF_INVALID_DUE_DATE
-                )
+                const.LOGGER.warning("build_chores_data: due_dt is not datetime: %s", type(due_dt))
+                errors[const.CFOP_ERROR_DUE_DATE] = const.TRANS_KEY_CFOF_INVALID_DUE_DATE
                 return {}, errors
             if due_dt and due_dt < dt_util.utcnow():
                 const.LOGGER.warning(
@@ -772,32 +733,23 @@ def build_chores_data(
                     due_dt,
                     dt_util.utcnow(),
                 )
-                errors[const.CFOP_ERROR_DUE_DATE] = (
-                    const.TRANS_KEY_CFOF_DUE_DATE_IN_PAST
-                )
+                errors[const.CFOP_ERROR_DUE_DATE] = const.TRANS_KEY_CFOF_DUE_DATE_IN_PAST
                 return {}, errors
             # Store the normalized due date as ISO string
             if due_dt:
                 due_date_str = due_dt.isoformat()
         except (ValueError, TypeError, AttributeError) as exc:
-            const.LOGGER.warning(
-                "build_chores_data: exception parsing due date: %s", exc
-            )
+            const.LOGGER.warning("build_chores_data: exception parsing due date: %s", exc)
             errors[const.CFOP_ERROR_DUE_DATE] = const.TRANS_KEY_CFOF_INVALID_DUE_DATE
             return {}, errors
 
     # Clean up custom interval fields if not using custom frequency
-    if (
-        user_input.get(const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY)
-        != const.FREQUENCY_CUSTOM
-    ):
+    if user_input.get(const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY) != const.FREQUENCY_CUSTOM:
         custom_interval = None
         custom_interval_unit = None
     else:
         custom_interval = user_input.get(const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL)
-        custom_interval_unit = user_input.get(
-            const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT
-        )
+        custom_interval_unit = user_input.get(const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT)
 
     # Convert assigned kid names to UUIDs
     assigned_kids_names = user_input.get(const.CFOF_CHORES_INPUT_ASSIGNED_KIDS, [])
@@ -901,9 +853,7 @@ def build_chores_data(
         # are authoritative. The template value is just for UX convenience during editing.
         # For SHARED chores, chore-level due_date is the source of truth.
         const.DATA_CHORE_DUE_DATE: (
-            None
-            if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
-            else due_date_str
+            None if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT else due_date_str
         ),
         const.DATA_CHORE_APPLICABLE_DAYS: user_input.get(
             const.CFOF_CHORES_INPUT_APPLICABLE_DAYS,
@@ -947,10 +897,10 @@ def build_chores_data(
 
 # --- Consolidated Build Function ---
 def build_badge_common_data(
-    user_input: Dict[str, Any],
+    user_input: dict[str, Any],
     internal_id: str,  # Pass internal_id explicitly
     badge_type: str = const.BADGE_TYPE_CUMULATIVE,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Build the badge data dictionary, including common fields and selected components.
 
@@ -966,9 +916,7 @@ def build_badge_common_data(
     # --- Set include_ flags based on badge type ---
     include_target = badge_type in const.INCLUDE_TARGET_BADGE_TYPES
     include_special_occasion = badge_type in const.INCLUDE_SPECIAL_OCCASION_BADGE_TYPES
-    include_achievement_linked = (
-        badge_type in const.INCLUDE_ACHIEVEMENT_LINKED_BADGE_TYPES
-    )
+    include_achievement_linked = badge_type in const.INCLUDE_ACHIEVEMENT_LINKED_BADGE_TYPES
     include_challenge_linked = badge_type in const.INCLUDE_CHALLENGE_LINKED_BADGE_TYPES
     include_tracked_chores = badge_type in const.INCLUDE_TRACKED_CHORES_BADGE_TYPES
     include_assigned_to = badge_type in const.INCLUDE_ASSIGNED_TO_BADGE_TYPES
@@ -1027,9 +975,7 @@ def build_badge_common_data(
 
     # --- Special Occasion Component ---
     if include_special_occasion:
-        occasion_type = user_input.get(
-            const.CFOF_BADGES_INPUT_OCCASION_TYPE, const.SENTINEL_EMPTY
-        )
+        occasion_type = user_input.get(const.CFOF_BADGES_INPUT_OCCASION_TYPE, const.SENTINEL_EMPTY)
         badge_data[const.DATA_BADGE_SPECIAL_OCCASION_TYPE] = occasion_type
 
     # --- Achievement-Linked Component ---
@@ -1066,9 +1012,7 @@ def build_badge_common_data(
         assigned = user_input.get(const.CFOF_BADGES_INPUT_ASSIGNED_TO, [])
         if not isinstance(assigned, list):
             assigned = [assigned] if assigned else []
-        assigned = [
-            kid_id for kid_id in assigned if kid_id and kid_id != const.SENTINEL_EMPTY
-        ]
+        assigned = [kid_id for kid_id in assigned if kid_id and kid_id != const.SENTINEL_EMPTY]
         badge_data[const.DATA_BADGE_ASSIGNED_TO] = assigned
 
     # --- Awards Component ---
@@ -1084,9 +1028,7 @@ def build_badge_common_data(
             const.LOGGER.warning(
                 "Could not parse award points value '%s'. Using default.", points_input
             )
-        multiplier = user_input.get(
-            const.CFOF_BADGES_INPUT_POINTS_MULTIPLIER, const.SENTINEL_NONE
-        )
+        multiplier = user_input.get(const.CFOF_BADGES_INPUT_POINTS_MULTIPLIER, const.SENTINEL_NONE)
 
         # --- Unified Award Items ---
         award_items = user_input.get(const.CFOF_BADGES_INPUT_AWARD_ITEMS, [])
@@ -1105,9 +1047,7 @@ def build_badge_common_data(
             const.CFOF_BADGES_INPUT_RESET_SCHEDULE_RECURRING_FREQUENCY,
             const.FREQUENCY_WEEKLY,  # Default mode if not provided
         )
-        start_date = user_input.get(
-            const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE, None
-        )
+        start_date = user_input.get(const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE, None)
         end_date = user_input.get(const.CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE, None)
         grace_period_days = user_input.get(
             const.CFOF_BADGES_INPUT_RESET_SCHEDULE_GRACE_PERIOD_DAYS,
@@ -1130,9 +1070,7 @@ def build_badge_common_data(
             start_date = user_input.get(
                 const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE
             )  # Get raw
-            end_date = user_input.get(
-                const.CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE
-            )  # Get raw
+            end_date = user_input.get(const.CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE)  # Get raw
             # Clean empty strings to None
             start_date = None if start_date in (None, "") else start_date
             end_date = None if end_date in (None, "") else end_date
@@ -1155,14 +1093,14 @@ def build_badge_common_data(
 
 
 def validate_badge_common_inputs(
-    user_input: Dict[str, Any],
-    internal_id: Optional[str],
-    existing_badges: Optional[Dict[str, Any]] = None,
-    rewards_dict: Optional[Dict[str, Any]] = None,
-    bonuses_dict: Optional[Dict[str, Any]] = None,
-    penalties_dict: Optional[Dict[str, Any]] = None,
+    user_input: dict[str, Any],
+    internal_id: str | None,
+    existing_badges: dict[str, Any] | None = None,
+    rewards_dict: dict[str, Any] | None = None,
+    bonuses_dict: dict[str, Any] | None = None,
+    penalties_dict: dict[str, Any] | None = None,
     badge_type: str = const.BADGE_TYPE_CUMULATIVE,
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Validate common badge inputs and selected component inputs.
 
@@ -1176,7 +1114,7 @@ def validate_badge_common_inputs(
     Returns:
         A dictionary of validation errors {field_key: error_message}.
     """
-    errors: Dict[str, str] = {}
+    errors: dict[str, str] = {}
     existing_badges = existing_badges or {}
 
     rewards_dict = rewards_dict or {}
@@ -1186,9 +1124,7 @@ def validate_badge_common_inputs(
     # --- Set include_ flags based on badge type ---
     include_target = badge_type in const.INCLUDE_TARGET_BADGE_TYPES
     include_special_occasion = badge_type in const.INCLUDE_SPECIAL_OCCASION_BADGE_TYPES
-    include_achievement_linked = (
-        badge_type in const.INCLUDE_ACHIEVEMENT_LINKED_BADGE_TYPES
-    )
+    include_achievement_linked = badge_type in const.INCLUDE_ACHIEVEMENT_LINKED_BADGE_TYPES
     include_challenge_linked = badge_type in const.INCLUDE_CHALLENGE_LINKED_BADGE_TYPES
     include_tracked_chores = badge_type in const.INCLUDE_TRACKED_CHORES_BADGE_TYPES
     include_assigned_to = badge_type in const.INCLUDE_ASSIGNED_TO_BADGE_TYPES
@@ -1218,10 +1154,7 @@ def validate_badge_common_inputs(
     for badge_id, badge_info in existing_badges.items():
         if badge_id == internal_id:
             continue  # Skip the badge being edited
-        if (
-            badge_info.get(const.DATA_BADGE_NAME, "").strip().lower()
-            == badge_name.lower()
-        ):
+        if badge_info.get(const.DATA_BADGE_NAME, "").strip().lower() == badge_name.lower():
             errors[const.CFOF_BADGES_INPUT_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_BADGE
             break
     # --- End Common Validation ---
@@ -1244,9 +1177,7 @@ def validate_badge_common_inputs(
             )
 
             # Validate threshold value
-            target_threshold = user_input.get(
-                const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE
-            )
+            target_threshold = user_input.get(const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE)
 
             if target_threshold is None or str(target_threshold).strip() == "":
                 errors[const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = (
@@ -1265,18 +1196,14 @@ def validate_badge_common_inputs(
                     )
 
             # Validate maintenance rules
-            maintenance_rules = user_input.get(
-                const.CFOF_BADGES_INPUT_MAINTENANCE_RULES
-            )
+            maintenance_rules = user_input.get(const.CFOF_BADGES_INPUT_MAINTENANCE_RULES)
             if maintenance_rules is None or maintenance_rules < 0:
                 errors[const.CFOF_BADGES_INPUT_MAINTENANCE_RULES] = (
                     const.TRANS_KEY_CFOF_INVALID_MAINTENANCE_RULES
                 )
         else:
             # Regular badge validation
-            target_threshold = user_input.get(
-                const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE
-            )
+            target_threshold = user_input.get(const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE)
 
             if target_threshold is None or str(target_threshold).strip() == "":
                 errors[const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = (
@@ -1301,9 +1228,7 @@ def validate_badge_common_inputs(
 
     # --- Special Occasion Validation ---
     if include_special_occasion:
-        occasion_type = user_input.get(
-            const.CFOF_BADGES_INPUT_OCCASION_TYPE, const.SENTINEL_EMPTY
-        )
+        occasion_type = user_input.get(const.CFOF_BADGES_INPUT_OCCASION_TYPE, const.SENTINEL_EMPTY)
         if not occasion_type or occasion_type == const.SENTINEL_EMPTY:
             errors[const.CFOF_BADGES_INPUT_OCCASION_TYPE] = (
                 const.TRANS_KEY_CFOF_ERROR_BADGE_OCCASION_TYPE_REQUIRED
@@ -1364,24 +1289,22 @@ def validate_badge_common_inputs(
             if rewards_dict:
                 award_items_valid_values += [
                     f"{const.AWARD_ITEMS_PREFIX_REWARD}{reward_id}"
-                    for reward_id in rewards_dict.keys()
+                    for reward_id in rewards_dict
                 ]
             if bonuses_dict:
                 award_items_valid_values += [
                     f"{const.AWARD_ITEMS_PREFIX_BONUS}{bonus_id}"
-                    for bonus_id in bonuses_dict.keys()
+                    for bonus_id in bonuses_dict
                 ]
             if penalties_dict:
                 award_items_valid_values += [
                     f"{const.AWARD_ITEMS_PREFIX_PENALTY}{penalty_id}"
-                    for penalty_id in penalties_dict.keys()
+                    for penalty_id in penalties_dict
                 ]
 
         # 1. POINTS: logic
         if const.AWARD_ITEMS_KEY_POINTS in award_items:
-            points = user_input.get(
-                const.CFOF_BADGES_INPUT_AWARD_POINTS, const.DEFAULT_ZERO
-            )
+            points = user_input.get(const.CFOF_BADGES_INPUT_AWARD_POINTS, const.DEFAULT_ZERO)
             try:
                 if float(points) <= const.DEFAULT_ZERO:
                     errors[const.CFOF_BADGES_INPUT_AWARD_POINTS] = (
@@ -1479,8 +1402,8 @@ def validate_badge_common_inputs(
 
         # Special occasion is just a periodic badge that has a start and end date of the same day.
         if is_special_occasion:
-            user_input[const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE] = (
-                user_input.get(const.CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE)
+            user_input[const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE] = user_input.get(
+                const.CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE
             )
 
     return errors
@@ -1490,16 +1413,16 @@ def validate_badge_common_inputs(
 
 
 def build_badge_common_schema(
-    default: Optional[Dict[str, Any]] = None,
-    kids_dict: Optional[Dict[str, Any]] = None,
-    chores_dict: Optional[Dict[str, Any]] = None,
-    rewards_dict: Optional[Dict[str, Any]] = None,
-    challenges_dict: Optional[Dict[str, Any]] = None,
-    achievements_dict: Optional[Dict[str, Any]] = None,
-    bonuses_dict: Optional[Dict[str, Any]] = None,
-    penalties_dict: Optional[Dict[str, Any]] = None,
+    default: dict[str, Any] | None = None,
+    kids_dict: dict[str, Any] | None = None,
+    chores_dict: dict[str, Any] | None = None,
+    rewards_dict: dict[str, Any] | None = None,
+    challenges_dict: dict[str, Any] | None = None,
+    achievements_dict: dict[str, Any] | None = None,
+    bonuses_dict: dict[str, Any] | None = None,
+    penalties_dict: dict[str, Any] | None = None,
     badge_type: str = const.BADGE_TYPE_CUMULATIVE,
-) -> Dict[vol.Marker, Any]:
+) -> dict[vol.Marker, Any]:
     """
     Build a Voluptuous schema for badge configuration, including common fields
     and selected components.
@@ -1537,9 +1460,7 @@ def build_badge_common_schema(
     # --- Set include_ flags based on badge type ---
     include_target = badge_type in const.INCLUDE_TARGET_BADGE_TYPES
     include_special_occasion = badge_type in const.INCLUDE_SPECIAL_OCCASION_BADGE_TYPES
-    include_achievement_linked = (
-        badge_type in const.INCLUDE_ACHIEVEMENT_LINKED_BADGE_TYPES
-    )
+    include_achievement_linked = badge_type in const.INCLUDE_ACHIEVEMENT_LINKED_BADGE_TYPES
     include_challenge_linked = badge_type in const.INCLUDE_CHALLENGE_LINKED_BADGE_TYPES
     include_tracked_chores = badge_type in const.INCLUDE_TRACKED_CHORES_BADGE_TYPES
     include_assigned_to = badge_type in const.INCLUDE_ASSIGNED_TO_BADGE_TYPES
@@ -1552,9 +1473,7 @@ def build_badge_common_schema(
     is_daily = badge_type == const.BADGE_TYPE_DAILY
     is_special_occasion = badge_type == const.BADGE_TYPE_SPECIAL_OCCASION
 
-    const.LOGGER.debug(
-        "Build Badge Common Schema - Badge Data Passed to Schema: %s", default
-    )
+    const.LOGGER.debug("Build Badge Common Schema - Badge Data Passed to Schema: %s", default)
 
     # --- Start Common Schema ---
     # See Special Notes above for explanation of default usage rational
@@ -1584,9 +1503,7 @@ def build_badge_common_schema(
             ): selector.LabelSelector(selector.LabelSelectorConfig(multiple=True)),
             vol.Optional(
                 const.CFOF_BADGES_INPUT_ICON,
-                default=default.get(
-                    const.CFOF_BADGES_INPUT_ICON, const.DEFAULT_BADGE_ICON
-                ),
+                default=default.get(const.CFOF_BADGES_INPUT_ICON, const.DEFAULT_BADGE_ICON),
             ): selector.IconSelector(),
         }
     )
@@ -1733,14 +1650,10 @@ def build_badge_common_schema(
 
     # --- Achievement-Linked Component Schema ---
     if include_achievement_linked:
-        achievement_options = [
-            {"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}
-        ] + [
+        achievement_options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}] + [
             {
                 "value": achievement_id,
-                "label": achievement.get(
-                    const.DATA_ACHIEVEMENT_NAME, const.SENTINEL_NONE_TEXT
-                ),
+                "label": achievement.get(const.DATA_ACHIEVEMENT_NAME, const.SENTINEL_NONE_TEXT),
             }
             for achievement_id, achievement in achievements_dict.items()
         ]
@@ -1765,14 +1678,10 @@ def build_badge_common_schema(
 
     # --- Challenge-Linked Component Schema ---
     if include_challenge_linked:
-        challenge_options = [
-            {"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}
-        ] + [
+        challenge_options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}] + [
             {
                 "value": challenge_id,
-                "label": challenge.get(
-                    const.DATA_CHALLENGE_NAME, const.SENTINEL_NONE_TEXT
-                ),
+                "label": challenge.get(const.DATA_CHALLENGE_NAME, const.SENTINEL_NONE_TEXT),
             }
             for challenge_id, challenge in challenges_dict.items()
         ]
@@ -1815,9 +1724,7 @@ def build_badge_common_schema(
             {
                 vol.Optional(
                     const.CFOF_BADGES_INPUT_SELECTED_CHORES,
-                    default=default_selected
-                    if isinstance(default_selected, list)
-                    else [],
+                    default=default_selected if isinstance(default_selected, list) else [],
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=options,
@@ -1847,9 +1754,7 @@ def build_badge_common_schema(
             {
                 vol.Optional(
                     const.CFOF_BADGES_INPUT_ASSIGNED_TO,
-                    default=default_assigned
-                    if isinstance(default_assigned, list)
-                    else [],
+                    default=default_assigned if isinstance(default_assigned, list) else [],
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=options,
@@ -1915,18 +1820,14 @@ def build_badge_common_schema(
 
         default_award_items = default.get(
             const.CFOF_BADGES_INPUT_AWARD_ITEMS,
-            default.get(const.DATA_BADGE_AWARDS, {}).get(
-                const.DATA_BADGE_AWARDS_AWARD_ITEMS, []
-            ),
+            default.get(const.DATA_BADGE_AWARDS, {}).get(const.DATA_BADGE_AWARDS_AWARD_ITEMS, []),
         )
 
         schema_fields.update(
             {
                 vol.Optional(
                     const.CFOF_BADGES_INPUT_AWARD_ITEMS,
-                    default=default_award_items
-                    if isinstance(default_award_items, list)
-                    else [],
+                    default=default_award_items if isinstance(default_award_items, list) else [],
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=award_items_options,
@@ -1963,9 +1864,7 @@ def build_badge_common_schema(
                         )
                     ),
                     vol.Coerce(float),  # Coerce the input to a float
-                    vol.Range(
-                        min=0.0
-                    ),  # Ensure the value is greater than or equal to zero
+                    vol.Range(min=0.0),  # Ensure the value is greater than or equal to zero
                 ),
             }
         )
@@ -2159,14 +2058,10 @@ def build_reward_schema(default=None):
 
     return vol.Schema(
         {
-            vol.Required(
-                const.CFOF_REWARDS_INPUT_NAME, default=reward_name_default
-            ): str,
+            vol.Required(const.CFOF_REWARDS_INPUT_NAME, default=reward_name_default): str,
             vol.Optional(
                 const.CFOF_REWARDS_INPUT_DESCRIPTION,
-                default=default.get(
-                    const.DATA_REWARD_DESCRIPTION, const.SENTINEL_EMPTY
-                ),
+                default=default.get(const.DATA_REWARD_DESCRIPTION, const.SENTINEL_EMPTY),
             ): str,
             vol.Optional(
                 const.CFOF_REWARDS_INPUT_LABELS,
@@ -2174,9 +2069,7 @@ def build_reward_schema(default=None):
             ): selector.LabelSelector(selector.LabelSelectorConfig(multiple=True)),
             vol.Required(
                 const.CFOF_REWARDS_INPUT_COST,
-                default=default.get(
-                    const.CFOF_REWARDS_INPUT_COST, const.DEFAULT_REWARD_COST
-                ),
+                default=default.get(const.CFOF_REWARDS_INPUT_COST, const.DEFAULT_REWARD_COST),
             ): selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     mode=selector.NumberSelectorMode.BOX,
@@ -2193,9 +2086,9 @@ def build_reward_schema(default=None):
 
 
 def build_rewards_data(
-    user_input: Dict[str, Any],
-    existing_rewards: Dict[str, Any] = None,  # pylint: disable=unused-argument  # Reserved for API consistency with validate_rewards_inputs
-) -> Dict[str, Any]:
+    user_input: dict[str, Any],
+    existing_rewards: dict[str, Any] | None = None,  # Reserved for API consistency with validate_rewards_inputs
+) -> dict[str, Any]:
     """Build reward data from user input.
 
     Converts form input (CFOF_* keys) to storage format (DATA_* keys).
@@ -2217,9 +2110,7 @@ def build_rewards_data(
             const.DATA_REWARD_DESCRIPTION: user_input.get(
                 const.CFOF_REWARDS_INPUT_DESCRIPTION, const.SENTINEL_EMPTY
             ),
-            const.DATA_REWARD_LABELS: user_input.get(
-                const.CFOF_REWARDS_INPUT_LABELS, []
-            ),
+            const.DATA_REWARD_LABELS: user_input.get(const.CFOF_REWARDS_INPUT_LABELS, []),
             const.DATA_REWARD_ICON: user_input.get(
                 const.CFOF_REWARDS_INPUT_ICON, const.DEFAULT_REWARD_ICON
             ),
@@ -2229,8 +2120,8 @@ def build_rewards_data(
 
 
 def validate_rewards_inputs(
-    user_input: Dict[str, Any], existing_rewards: Dict[str, Any] = None
-) -> Dict[str, str]:
+    user_input: dict[str, Any], existing_rewards: dict[str, Any] | None = None
+) -> dict[str, str]:
     """Validate reward configuration inputs.
 
     Args:
@@ -2282,9 +2173,7 @@ def build_bonus_schema(default=None):
 
     return vol.Schema(
         {
-            vol.Required(
-                const.CFOF_BONUSES_INPUT_NAME, default=bonus_name_default
-            ): str,
+            vol.Required(const.CFOF_BONUSES_INPUT_NAME, default=bonus_name_default): str,
             vol.Optional(
                 const.CFOF_BONUSES_INPUT_DESCRIPTION,
                 default=default.get(const.DATA_BONUS_DESCRIPTION, const.SENTINEL_EMPTY),
@@ -2311,9 +2200,9 @@ def build_bonus_schema(default=None):
 
 
 def build_bonuses_data(
-    user_input: Dict[str, Any],
-    existing_bonuses: Dict[str, Any] = None,  # pylint: disable=unused-argument  # Reserved for API consistency with validate_bonuses_inputs
-) -> Dict[str, Any]:
+    user_input: dict[str, Any],
+    existing_bonuses: dict[str, Any] | None = None,  # Reserved for API consistency with validate_bonuses_inputs
+) -> dict[str, Any]:
     """Build bonus data from user input.
 
     Converts form input (CFOF_* keys) to storage format (DATA_* keys).
@@ -2336,9 +2225,7 @@ def build_bonuses_data(
             const.DATA_BONUS_DESCRIPTION: user_input.get(
                 const.CFOF_BONUSES_INPUT_DESCRIPTION, const.SENTINEL_EMPTY
             ),
-            const.DATA_BONUS_LABELS: user_input.get(
-                const.CFOF_BONUSES_INPUT_LABELS, []
-            ),
+            const.DATA_BONUS_LABELS: user_input.get(const.CFOF_BONUSES_INPUT_LABELS, []),
             const.DATA_BONUS_POINTS: abs(bonus_points),  # Ensure positive
             const.DATA_BONUS_ICON: user_input.get(
                 const.CFOF_BONUSES_INPUT_ICON, const.DEFAULT_BONUS_ICON
@@ -2349,8 +2236,8 @@ def build_bonuses_data(
 
 
 def validate_bonuses_inputs(
-    user_input: Dict[str, Any], existing_bonuses: Dict[str, Any] = None
-) -> Dict[str, str]:
+    user_input: dict[str, Any], existing_bonuses: dict[str, Any] | None = None
+) -> dict[str, str]:
     """Validate bonus configuration inputs.
 
     Args:
@@ -2395,23 +2282,17 @@ def build_penalty_schema(default=None):
 
     # Display penalty points as positive for user input
     display_points = (
-        abs(
-            default.get(const.CFOF_PENALTIES_INPUT_POINTS, const.DEFAULT_PENALTY_POINTS)
-        )
+        abs(default.get(const.CFOF_PENALTIES_INPUT_POINTS, const.DEFAULT_PENALTY_POINTS))
         if default
         else const.DEFAULT_PENALTY_POINTS
     )
 
     return vol.Schema(
         {
-            vol.Required(
-                const.CFOF_PENALTIES_INPUT_NAME, default=penalty_name_default
-            ): str,
+            vol.Required(const.CFOF_PENALTIES_INPUT_NAME, default=penalty_name_default): str,
             vol.Optional(
                 const.CFOF_PENALTIES_INPUT_DESCRIPTION,
-                default=default.get(
-                    const.DATA_PENALTY_DESCRIPTION, const.SENTINEL_EMPTY
-                ),
+                default=default.get(const.DATA_PENALTY_DESCRIPTION, const.SENTINEL_EMPTY),
             ): str,
             vol.Optional(
                 const.CFOF_PENALTIES_INPUT_LABELS,
@@ -2435,9 +2316,9 @@ def build_penalty_schema(default=None):
 
 
 def build_penalties_data(
-    user_input: Dict[str, Any],
-    existing_penalties: Dict[str, Any] = None,  # pylint: disable=unused-argument  # Reserved for API consistency with validate_penalties_inputs
-) -> Dict[str, Any]:
+    user_input: dict[str, Any],
+    existing_penalties: dict[str, Any] | None = None,  # Reserved for API consistency with validate_penalties_inputs
+) -> dict[str, Any]:
     """Build penalty data from user input.
 
     Converts form input (CFOF_* keys) to storage format (DATA_* keys).
@@ -2460,9 +2341,7 @@ def build_penalties_data(
             const.DATA_PENALTY_DESCRIPTION: user_input.get(
                 const.CFOF_PENALTIES_INPUT_DESCRIPTION, const.SENTINEL_EMPTY
             ),
-            const.DATA_PENALTY_LABELS: user_input.get(
-                const.CFOF_PENALTIES_INPUT_LABELS, []
-            ),
+            const.DATA_PENALTY_LABELS: user_input.get(const.CFOF_PENALTIES_INPUT_LABELS, []),
             const.DATA_PENALTY_POINTS: -abs(penalty_points),  # Ensure negative
             const.DATA_PENALTY_ICON: user_input.get(
                 const.CFOF_PENALTIES_INPUT_ICON, const.DEFAULT_PENALTY_ICON
@@ -2473,8 +2352,8 @@ def build_penalties_data(
 
 
 def validate_penalties_inputs(
-    user_input: Dict[str, Any], existing_penalties: Dict[str, Any] = None
-) -> Dict[str, str]:
+    user_input: dict[str, Any], existing_penalties: dict[str, Any] | None = None
+) -> dict[str, str]:
     """Validate penalty configuration inputs.
 
     Args:
@@ -2490,9 +2369,7 @@ def validate_penalties_inputs(
 
     # Validate name is not empty
     if not penalty_name:
-        errors[const.CFOP_ERROR_PENALTY_NAME] = (
-            const.TRANS_KEY_CFOF_INVALID_PENALTY_NAME
-        )
+        errors[const.CFOP_ERROR_PENALTY_NAME] = const.TRANS_KEY_CFOF_INVALID_PENALTY_NAME
         return errors
 
     # Check for duplicate names
@@ -2501,18 +2378,16 @@ def validate_penalties_inputs(
             penalty_data[const.DATA_PENALTY_NAME] == penalty_name
             for penalty_data in existing_penalties.values()
         ):
-            errors[const.CFOP_ERROR_PENALTY_NAME] = (
-                const.TRANS_KEY_CFOF_DUPLICATE_PENALTY
-            )
+            errors[const.CFOP_ERROR_PENALTY_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_PENALTY
 
     return errors
 
 
 def build_achievements_data(
-    user_input: Dict[str, Any],
-    existing_achievements: Dict[str, Any] = None,
-    kids_name_to_id: Dict[str, str] = None,
-) -> Tuple[Dict[str, Any], Dict[str, str]]:
+    user_input: dict[str, Any],
+    existing_achievements: dict[str, Any] | None = None,
+    kids_name_to_id: dict[str, str] | None = None,
+) -> tuple[dict[str, Any], dict[str, str]]:
     """Build achievement data from user input with integrated validation.
 
     This uses the complex pattern (returns tuple) because achievements have
@@ -2531,9 +2406,7 @@ def build_achievements_data(
 
     # Validate name is not empty
     if not achievement_name:
-        errors[const.CFOP_ERROR_ACHIEVEMENT_NAME] = (
-            const.TRANS_KEY_CFOF_INVALID_ACHIEVEMENT_NAME
-        )
+        errors[const.CFOP_ERROR_ACHIEVEMENT_NAME] = const.TRANS_KEY_CFOF_INVALID_ACHIEVEMENT_NAME
         return {}, errors
 
     # Check for duplicate names
@@ -2542,9 +2415,7 @@ def build_achievements_data(
             achievement_data[const.DATA_ACHIEVEMENT_NAME] == achievement_name
             for achievement_data in existing_achievements.values()
         ):
-            errors[const.CFOP_ERROR_ACHIEVEMENT_NAME] = (
-                const.TRANS_KEY_CFOF_DUPLICATE_ACHIEVEMENT
-            )
+            errors[const.CFOP_ERROR_ACHIEVEMENT_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_ACHIEVEMENT
             return {}, errors
 
     # Type-specific validation: streak type requires chore selection
@@ -2555,9 +2426,7 @@ def build_achievements_data(
         chore_id = user_input.get(const.CFOF_ACHIEVEMENTS_INPUT_SELECTED_CHORE_ID)
         # Validate that a chore was actually selected (not None or placeholder)
         if not chore_id or chore_id == const.SENTINEL_NONE_TEXT:
-            errors[const.CFOP_ERROR_SELECT_CHORE_ID] = (
-                const.TRANS_KEY_CFOF_CHORE_MUST_BE_SELECTED
-            )
+            errors[const.CFOP_ERROR_SELECT_CHORE_ID] = const.TRANS_KEY_CFOF_CHORE_MUST_BE_SELECTED
             return {}, errors
         final_chore_id = chore_id
     else:
@@ -2585,9 +2454,7 @@ def build_achievements_data(
             const.DATA_ACHIEVEMENT_DESCRIPTION: user_input.get(
                 const.CFOF_ACHIEVEMENTS_INPUT_DESCRIPTION, const.SENTINEL_EMPTY
             ),
-            const.DATA_ACHIEVEMENT_LABELS: user_input.get(
-                const.CFOF_ACHIEVEMENTS_INPUT_LABELS, []
-            ),
+            const.DATA_ACHIEVEMENT_LABELS: user_input.get(const.CFOF_ACHIEVEMENTS_INPUT_LABELS, []),
             const.DATA_ACHIEVEMENT_ICON: user_input.get(
                 const.CFOF_ACHIEVEMENTS_INPUT_ICON,
                 const.DEFAULT_ACHIEVEMENTS_ICON,
@@ -2617,7 +2484,7 @@ def build_challenges_data(
     kids_data: dict,
     existing_challenges: dict | None = None,
     current_id: str | None = None,
-) -> Tuple[dict | None, dict]:
+) -> tuple[dict | None, dict]:
     """Build challenge data dict from user input with integrated validation.
 
     Returns: (data_dict, errors_dict) tuple
@@ -2639,10 +2506,7 @@ def build_challenges_data(
     if existing_challenges:
         for chal_id, chal_data in existing_challenges.items():
             if chal_id != current_id:  # Skip the current challenge when editing
-                if (
-                    chal_data.get(const.DATA_CHALLENGE_NAME, "").lower()
-                    == challenge_name.lower()
-                ):
+                if chal_data.get(const.DATA_CHALLENGE_NAME, "").lower() == challenge_name.lower():
                     return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_NAME_DUPLICATE}
 
     # Validate dates
@@ -2688,9 +2552,7 @@ def build_challenges_data(
 
     # Validate target value
     try:
-        target_value = float(
-            user_input.get(const.CFOF_CHALLENGES_INPUT_TARGET_VALUE, 0)
-        )
+        target_value = float(user_input.get(const.CFOF_CHALLENGES_INPUT_TARGET_VALUE, 0))
         if target_value <= 0:
             return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_TARGET_INVALID}
     except (ValueError, TypeError):
@@ -2698,9 +2560,7 @@ def build_challenges_data(
 
     # Validate reward points
     try:
-        reward_points = float(
-            user_input.get(const.CFOF_CHALLENGES_INPUT_REWARD_POINTS, 0)
-        )
+        reward_points = float(user_input.get(const.CFOF_CHALLENGES_INPUT_REWARD_POINTS, 0))
         if reward_points < 0:
             return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_POINTS_NEGATIVE}
     except (ValueError, TypeError):
@@ -2731,9 +2591,7 @@ def build_challenges_data(
     internal_id = current_id or str(uuid.uuid4())
 
     # Get challenge type and associated chore
-    _type = user_input.get(
-        const.CFOF_CHALLENGES_INPUT_TYPE, const.CHALLENGE_TYPE_DAILY_MIN
-    )
+    _type = user_input.get(const.CFOF_CHALLENGES_INPUT_TYPE, const.CHALLENGE_TYPE_DAILY_MIN)
 
     # Build the challenge data dict
     challenge_data = {
@@ -2742,9 +2600,7 @@ def build_challenges_data(
             const.DATA_CHALLENGE_DESCRIPTION: user_input.get(
                 const.CFOF_CHALLENGES_INPUT_DESCRIPTION, const.SENTINEL_EMPTY
             ).strip(),
-            const.DATA_CHALLENGE_LABELS: user_input.get(
-                const.CFOF_CHALLENGES_INPUT_LABELS, []
-            ),
+            const.DATA_CHALLENGE_LABELS: user_input.get(const.CFOF_CHALLENGES_INPUT_LABELS, []),
             const.DATA_CHALLENGE_ICON: user_input.get(
                 const.CFOF_CHALLENGES_INPUT_ICON,
                 const.DEFAULT_CHALLENGES_ICON,
@@ -2777,13 +2633,9 @@ def build_challenges_data(
 def build_achievement_schema(kids_dict, chores_dict, default=None):
     """Build a schema for achievements, keyed by internal_id."""
     default = default or {}
-    achievement_name_default = default.get(
-        const.DATA_ACHIEVEMENT_NAME, const.SENTINEL_EMPTY
-    )
+    achievement_name_default = default.get(const.DATA_ACHIEVEMENT_NAME, const.SENTINEL_EMPTY)
 
-    kid_options = [
-        {"value": kid_id, "label": kid_name} for kid_name, kid_id in kids_dict.items()
-    ]
+    kid_options = [{"value": kid_id, "label": kid_name} for kid_name, kid_id in kids_dict.items()]
 
     chore_options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}]
     for chore_id, chore_data in chores_dict.items():
@@ -2798,23 +2650,17 @@ def build_achievement_schema(kids_dict, chores_dict, default=None):
     ]:
         pass
 
-    default_criteria = default.get(
-        const.CFOF_ACHIEVEMENTS_INPUT_CRITERIA, const.SENTINEL_EMPTY
-    )
+    default_criteria = default.get(const.CFOF_ACHIEVEMENTS_INPUT_CRITERIA, const.SENTINEL_EMPTY)
     default_assigned_kids = default.get(const.CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS, [])
     if not isinstance(default_assigned_kids, list):
         default_assigned_kids = [default_assigned_kids]
 
     return vol.Schema(
         {
-            vol.Required(
-                const.CFOF_ACHIEVEMENTS_INPUT_NAME, default=achievement_name_default
-            ): str,
+            vol.Required(const.CFOF_ACHIEVEMENTS_INPUT_NAME, default=achievement_name_default): str,
             vol.Optional(
                 const.CFOF_ACHIEVEMENTS_INPUT_DESCRIPTION,
-                default=default.get(
-                    const.DATA_ACHIEVEMENT_DESCRIPTION, const.SENTINEL_EMPTY
-                ),
+                default=default.get(const.DATA_ACHIEVEMENT_DESCRIPTION, const.SENTINEL_EMPTY),
             ): str,
             vol.Optional(
                 const.CFOF_ACHIEVEMENTS_INPUT_LABELS,
@@ -2857,9 +2703,7 @@ def build_achievement_schema(kids_dict, chores_dict, default=None):
                 )
             ),
             # For non-streak achievements the user can type criteria freely:
-            vol.Optional(
-                const.CFOF_ACHIEVEMENTS_INPUT_CRITERIA, default=default_criteria
-            ): str,
+            vol.Optional(const.CFOF_ACHIEVEMENTS_INPUT_CRITERIA, default=default_criteria): str,
             vol.Required(
                 const.CFOF_ACHIEVEMENTS_INPUT_TARGET_VALUE,
                 default=default.get(
@@ -2898,13 +2742,9 @@ def build_achievement_schema(kids_dict, chores_dict, default=None):
 def build_challenge_schema(kids_dict, chores_dict, default=None):
     """Build a schema for challenges, keyed by internal_id."""
     default = default or {}
-    challenge_name_default = default.get(
-        const.DATA_CHALLENGE_NAME, const.SENTINEL_EMPTY
-    )
+    challenge_name_default = default.get(const.DATA_CHALLENGE_NAME, const.SENTINEL_EMPTY)
 
-    kid_options = [
-        {"value": kid_id, "label": kid_name} for kid_name, kid_id in kids_dict.items()
-    ]
+    kid_options = [{"value": kid_id, "label": kid_name} for kid_name, kid_id in kids_dict.items()]
 
     chore_options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}]
     for chore_id, chore_data in chores_dict.items():
@@ -2918,23 +2758,17 @@ def build_challenge_schema(kids_dict, chores_dict, default=None):
     if default_selected_chore not in available_values:
         default_selected_chore = ""
 
-    default_criteria = default.get(
-        const.CFOF_CHALLENGES_INPUT_CRITERIA, const.SENTINEL_EMPTY
-    )
+    default_criteria = default.get(const.CFOF_CHALLENGES_INPUT_CRITERIA, const.SENTINEL_EMPTY)
     default_assigned_kids = default.get(const.CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS, [])
     if not isinstance(default_assigned_kids, list):
         default_assigned_kids = [default_assigned_kids]
 
     return vol.Schema(
         {
-            vol.Required(
-                const.CFOF_CHALLENGES_INPUT_NAME, default=challenge_name_default
-            ): str,
+            vol.Required(const.CFOF_CHALLENGES_INPUT_NAME, default=challenge_name_default): str,
             vol.Optional(
                 const.CFOF_CHALLENGES_INPUT_DESCRIPTION,
-                default=default.get(
-                    const.DATA_CHALLENGE_DESCRIPTION, const.SENTINEL_EMPTY
-                ),
+                default=default.get(const.DATA_CHALLENGE_DESCRIPTION, const.SENTINEL_EMPTY),
             ): str,
             vol.Optional(
                 const.CFOF_CHALLENGES_INPUT_LABELS,
@@ -2976,9 +2810,7 @@ def build_challenge_schema(kids_dict, chores_dict, default=None):
                 )
             ),
             # For non-streak achievements the user can type criteria freely:
-            vol.Optional(
-                const.CFOF_CHALLENGES_INPUT_CRITERIA, default=default_criteria
-            ): str,
+            vol.Optional(const.CFOF_CHALLENGES_INPUT_CRITERIA, default=default_criteria): str,
             vol.Required(
                 const.CFOF_CHALLENGES_INPUT_TARGET_VALUE,
                 default=default.get(
@@ -3022,16 +2854,14 @@ def build_challenge_schema(kids_dict, chores_dict, default=None):
 # ----------------------------------------------------------------------------------
 
 
-def build_general_options_schema(default: Optional[dict] = None) -> vol.Schema:
+def build_general_options_schema(default: dict | None = None) -> vol.Schema:
     """Build schema for general options including points adjust values and update interval."""
     default = default or {}
     current_values = default.get(const.CFOF_SYSTEM_INPUT_POINTS_ADJUST_VALUES)
     if current_values and isinstance(current_values, list):
         default_points_str = "|".join(str(v) for v in current_values)
     else:
-        default_points_str = "|".join(
-            str(v) for v in const.DEFAULT_POINTS_ADJUST_VALUES
-        )
+        default_points_str = "|".join(str(v) for v in const.DEFAULT_POINTS_ADJUST_VALUES)
 
     default_interval = default.get(
         const.CFOF_SYSTEM_INPUT_UPDATE_INTERVAL, const.DEFAULT_UPDATE_INTERVAL
@@ -3172,9 +3002,7 @@ def parse_retention_periods(retention_str: str) -> tuple[int, int, int, int]:
     try:
         parts = [p.strip() for p in retention_str.split("|")]
         if len(parts) != 4:
-            raise ValueError(
-                f"Expected 4 values (Daily|Weekly|Monthly|Yearly), got {len(parts)}"
-            )
+            raise ValueError(f"Expected 4 values (Daily|Weekly|Monthly|Yearly), got {len(parts)}")
 
         daily, weekly, monthly, yearly = [int(p) for p in parts]
 
@@ -3203,7 +3031,7 @@ def _get_notify_services(hass: HomeAssistant) -> list[dict[str, str]]:
     services_list = []
     all_services = hass.services.async_services()
     if const.NOTIFY_DOMAIN in all_services:
-        for service_name in all_services[const.NOTIFY_DOMAIN].keys():
+        for service_name in all_services[const.NOTIFY_DOMAIN]:
             fullname = f"{const.NOTIFY_DOMAIN}.{service_name}"
             services_list.append({"value": fullname, "label": fullname})
     return services_list
@@ -3214,9 +3042,7 @@ def _get_notify_services(hass: HomeAssistant) -> list[dict[str, str]]:
 # ----------------------------------------------------------------------------------
 
 
-async def create_timestamped_backup(
-    hass: HomeAssistant, storage_manager, tag: str
-) -> str | None:
+async def create_timestamped_backup(hass: HomeAssistant, storage_manager, tag: str) -> str | None:
     """Create a timestamped backup file with specified tag.
 
     Args:
@@ -3246,9 +3072,7 @@ async def create_timestamped_backup(
 
         # Ensure .storage directory exists (non-blocking)
         storage_dir = hass.config.path(".storage")
-        await hass.async_add_executor_job(
-            lambda: os.makedirs(storage_dir, exist_ok=True)
-        )
+        await hass.async_add_executor_job(lambda: os.makedirs(storage_dir, exist_ok=True))
 
         # Copy file to backup location (non-blocking)
         backup_path = hass.config.path(".storage", filename)
@@ -3265,7 +3089,7 @@ async def create_timestamped_backup(
 async def cleanup_old_backups(
     hass: HomeAssistant,
     storage_manager,
-    max_backups: int,  # pylint: disable=unused-argument
+    max_backups: int,
 ) -> None:
     """Delete old backups beyond max_backups limit per tag.
 
@@ -3300,15 +3124,11 @@ async def cleanup_old_backups(
                 backups_by_tag[tag] = []
             backups_by_tag[tag].append(backup)
 
-        const.LOGGER.debug(
-            "Backup cleanup: tags found: %s", list(backups_by_tag.keys())
-        )
+        const.LOGGER.debug("Backup cleanup: tags found: %s", list(backups_by_tag.keys()))
 
         # Process each tag - retention applies to ALL tags equally
         for tag, tag_backups in backups_by_tag.items():
-            const.LOGGER.debug(
-                "Processing %d backups for tag '%s'", len(tag_backups), tag
-            )
+            const.LOGGER.debug("Processing %d backups for tag '%s'", len(tag_backups), tag)
 
             # Sort by timestamp (newest first) - use defensive programming for missing timestamp
             tag_backups.sort(
@@ -3330,19 +3150,15 @@ async def cleanup_old_backups(
                 try:
                     backup_path = hass.config.path(".storage", backup["filename"])
                     await hass.async_add_executor_job(os.remove, backup_path)
-                    const.LOGGER.info(
-                        "Cleaned up old %s backup: %s", tag, backup["filename"]
-                    )
+                    const.LOGGER.info("Cleaned up old %s backup: %s", tag, backup["filename"])
                 except OSError as ex:
-                    const.LOGGER.warning(
-                        "Failed to delete backup %s: %s", backup["filename"], ex
-                    )
+                    const.LOGGER.warning("Failed to delete backup %s: %s", backup["filename"], ex)
 
     except (OSError, ValueError) as ex:
         const.LOGGER.error("Failed during backup cleanup: %s", ex)
 
 
-async def discover_backups(hass: HomeAssistant, storage_manager) -> list[dict]:  # pylint: disable=unused-argument
+async def discover_backups(hass: HomeAssistant, storage_manager) -> list[dict]:
     """Scan .storage/ directory for backup files and return metadata list.
 
     Args:
@@ -3402,16 +3218,14 @@ async def discover_backups(hass: HomeAssistant, storage_manager) -> list[dict]: 
                 timestamp_str_clean = f"{date_part} {time_part_clean}"
                 timestamp = datetime.datetime.strptime(
                     timestamp_str_clean, "%Y-%m-%d %H:%M:%S"
-                ).replace(tzinfo=datetime.timezone.utc)
+                ).replace(tzinfo=datetime.UTC)
 
                 # Calculate age
                 age_hours = (dt_util.utcnow() - timestamp).total_seconds() / 3600
 
                 # Get file size (non-blocking)
                 file_path = os.path.join(storage_dir, filename)
-                size_bytes = await hass.async_add_executor_job(
-                    os.path.getsize, file_path
-                )
+                size_bytes = await hass.async_add_executor_job(os.path.getsize, file_path)
 
                 backups_list.append(
                     {
@@ -3627,15 +3441,12 @@ def build_all_system_settings_schema(
         "points_label": default_points_label or const.DEFAULT_POINTS_LABEL,
         "points_icon": default_points_icon or const.DEFAULT_POINTS_ICON,
         "update_interval": default_update_interval or const.DEFAULT_UPDATE_INTERVAL,
-        "calendar_show_period": default_calendar_show_period
-        or const.DEFAULT_CALENDAR_SHOW_PERIOD,
+        "calendar_show_period": default_calendar_show_period or const.DEFAULT_CALENDAR_SHOW_PERIOD,
         "retention_daily": default_retention_daily or const.DEFAULT_RETENTION_DAILY,
         "retention_weekly": default_retention_weekly or const.DEFAULT_RETENTION_WEEKLY,
-        "retention_monthly": default_retention_monthly
-        or const.DEFAULT_RETENTION_MONTHLY,
+        "retention_monthly": default_retention_monthly or const.DEFAULT_RETENTION_MONTHLY,
         "retention_yearly": default_retention_yearly or const.DEFAULT_RETENTION_YEARLY,
-        "points_adjust_values": default_points_adjust_values
-        or const.DEFAULT_POINTS_ADJUST_VALUES,
+        "points_adjust_values": default_points_adjust_values or const.DEFAULT_POINTS_ADJUST_VALUES,
     }
 
     # Build combined schema from points + other settings
@@ -3723,9 +3534,7 @@ def validate_all_system_settings(user_input: dict[str, Any]) -> dict[str, str]:
         try:
             int(update_interval)
         except (ValueError, TypeError):
-            errors[const.CFOP_ERROR_UPDATE_INTERVAL] = (
-                const.TRANS_KEY_CFOF_INVALID_UPDATE_INTERVAL
-            )
+            errors[const.CFOP_ERROR_UPDATE_INTERVAL] = const.TRANS_KEY_CFOF_INVALID_UPDATE_INTERVAL
 
     # Validate calendar show period
     calendar_period = user_input.get(const.CFOF_SYSTEM_INPUT_CALENDAR_SHOW_PERIOD)

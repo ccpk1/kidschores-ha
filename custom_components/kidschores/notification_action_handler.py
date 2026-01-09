@@ -1,11 +1,15 @@
 # File: notification_action_handler.py
 """Handle notification actions from HA companion notifications."""
 
+from typing import TYPE_CHECKING
+
 from homeassistant.core import Event, HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
 from . import const
-from .coordinator import KidsChoresDataCoordinator
+
+if TYPE_CHECKING:
+    from .coordinator import KidsChoresDataCoordinator
 
 
 async def async_handle_notification_action(hass: HomeAssistant, event: Event) -> None:
@@ -26,9 +30,7 @@ async def async_handle_notification_action(hass: HomeAssistant, event: Event) ->
     # Decide what to expect based on the base action.
     if base_action in (const.ACTION_APPROVE_REWARD, const.ACTION_DISAPPROVE_REWARD):
         if len(parts) < 3:
-            const.LOGGER.error(
-                "ERROR: Not enough context in reward action field: %s", action_field
-            )
+            const.LOGGER.error("ERROR: Not enough context in reward action field: %s", action_field)
             return
         kid_id = parts[1]
         reward_id = parts[2]
@@ -40,9 +42,7 @@ async def async_handle_notification_action(hass: HomeAssistant, event: Event) ->
         const.ACTION_REMIND_30,
     ):
         if len(parts) < 3:
-            const.LOGGER.error(
-                "ERROR: Not enough context in chore action field: %s", action_field
-            )
+            const.LOGGER.error("ERROR: Not enough context in chore action field: %s", action_field)
             return
         kid_id = parts[1]
         chore_id = parts[2]
@@ -51,14 +51,10 @@ async def async_handle_notification_action(hass: HomeAssistant, event: Event) ->
         return
 
     # Parent name may be provided in the event data or use a default.
-    parent_name = event.data.get(
-        const.NOTIFY_PARENT_NAME, const.NOTIFY_DEFAULT_PARENT_NAME
-    )
+    parent_name = event.data.get(const.NOTIFY_PARENT_NAME, const.NOTIFY_DEFAULT_PARENT_NAME)
 
     if not kid_id or not base_action:
-        const.LOGGER.error(
-            "ERROR: Notification action event missing required data: %s", event.data
-        )
+        const.LOGGER.error("ERROR: Notification action event missing required data: %s", event.data)
         return
 
     # Additional validation for chore/reward actions
@@ -77,9 +73,7 @@ async def async_handle_notification_action(hass: HomeAssistant, event: Event) ->
         const.LOGGER.error("ERROR: KidsChores data not found")
         return
     entry_id = next(iter(domain_data))
-    coordinator: KidsChoresDataCoordinator = domain_data[entry_id].get(
-        const.COORDINATOR
-    )
+    coordinator: KidsChoresDataCoordinator = domain_data[entry_id].get(const.COORDINATOR)
     if not coordinator:
         const.LOGGER.error("ERROR: KidsChores coordinator not found")
         return
@@ -122,10 +116,6 @@ async def async_handle_notification_action(hass: HomeAssistant, event: Event) ->
                 minutes=const.DEFAULT_REMINDER_DELAY,
             )
         else:
-            const.LOGGER.error(
-                "ERROR: Received unknown notification action: %s", base_action
-            )
+            const.LOGGER.error("ERROR: Received unknown notification action: %s", base_action)
     except HomeAssistantError as err:
-        const.LOGGER.error(
-            "ERROR: Failed processing notification action %s: %s", base_action, err
-        )
+        const.LOGGER.error("ERROR: Failed processing notification action %s: %s", base_action, err)

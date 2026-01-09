@@ -1,12 +1,11 @@
 """Tests for the auto-approve chore feature (Phase 2)."""
 
-# pylint: disable=unused-argument,unused-variable,protected-access
 
 import asyncio
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kidschores import const
@@ -34,10 +33,7 @@ async def test_auto_approve_false_chore_awaits_parent_approval(
     chore_info = coordinator.chores_data.get(chore_id, {})
 
     # Verify auto_approve is False
-    assert (
-        chore_info.get(const.DATA_CHORE_AUTO_APPROVE, const.DEFAULT_CHORE_AUTO_APPROVE)
-        is False
-    )
+    assert chore_info.get(const.DATA_CHORE_AUTO_APPROVE, const.DEFAULT_CHORE_AUTO_APPROVE) is False
 
     # Mock the notification so it doesn't try to send
     with (
@@ -69,9 +65,7 @@ async def test_auto_approve_false_sends_parent_notification(
     chore_id = name_to_id_map["chore:Wåter the plänts"]
 
     # Mock the notification to capture it
-    with patch.object(
-        coordinator, "_notify_parents_translated", new=AsyncMock()
-    ) as mock_notify:
+    with patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()) as mock_notify:
         coordinator.claim_chore(kid_id, chore_id, "test_user")
         # Let async task complete
         await asyncio.sleep(0.01)
@@ -203,19 +197,13 @@ async def test_parent_can_disapprove_auto_approved_chore(
         # Claim the chore (auto-approved)
         coordinator.claim_chore(kid_id, chore_id, "test_user")
         await asyncio.sleep(0.01)  # Let async task complete
-        points_after_claim = coordinator.kids_data[kid_id].get(
-            const.DATA_KID_POINTS, 0.0
-        )
-        assert points_after_claim > points_before, (
-            "Points should be awarded on auto-approval"
-        )
+        points_after_claim = coordinator.kids_data[kid_id].get(const.DATA_KID_POINTS, 0.0)
+        assert points_after_claim > points_before, "Points should be awarded on auto-approval"
 
         # Parent disapproves (removes points)
         coordinator.disapprove_chore("parent1", kid_id, chore_id)
         await asyncio.sleep(0.01)  # Let async task complete
-        points_after_disapprove = coordinator.kids_data[kid_id].get(
-            const.DATA_KID_POINTS, 0.0
-        )
+        points_after_disapprove = coordinator.kids_data[kid_id].get(const.DATA_KID_POINTS, 0.0)
 
     # Points should be back to original or less (depending on implementation)
     assert points_after_disapprove <= points_after_claim, (
@@ -231,7 +219,7 @@ async def test_multiple_chores_different_auto_approve_settings(
     config_entry, name_to_id_map = scenario_medium
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    kid_id = name_to_id_map["kid:Max!"]
+    name_to_id_map["kid:Max!"]
 
     # Set different auto_approve values for different chores
     chores_list = list(coordinator.chores_data.keys())
@@ -244,12 +232,8 @@ async def test_multiple_chores_different_auto_approve_settings(
         coordinator.chores_data[chore_2_id][const.DATA_CHORE_AUTO_APPROVE] = False
 
         # Verify they have different settings
-        assert (
-            coordinator.chores_data[chore_1_id][const.DATA_CHORE_AUTO_APPROVE] is True
-        )
-        assert (
-            coordinator.chores_data[chore_2_id][const.DATA_CHORE_AUTO_APPROVE] is False
-        )
+        assert coordinator.chores_data[chore_1_id][const.DATA_CHORE_AUTO_APPROVE] is True
+        assert coordinator.chores_data[chore_2_id][const.DATA_CHORE_AUTO_APPROVE] is False
 
 
 @pytest.mark.asyncio

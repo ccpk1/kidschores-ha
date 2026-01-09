@@ -6,10 +6,10 @@ Validates that fresh installations (KC 4.0) write entities directly to
 Uses scenario_minimal fixture (testdata_scenario_minimal.yaml) character names (Zoë, Môm Astrid, "Feed the cåts").
 """
 
-# pylint: disable=protected-access  # Accessing internal methods for testing
+# Accessing internal methods for testing
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
 from custom_components.kidschores.const import (
     COORDINATOR,

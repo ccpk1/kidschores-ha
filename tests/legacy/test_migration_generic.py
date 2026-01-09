@@ -24,23 +24,20 @@ NOTE: The sample files in tests/migration_samples/ are:
 """
 
 # pylint: disable=redefined-outer-name
-# pylint: disable=protected-access
-# pylint: disable=unused-argument
 
 # Import our reusable validation framework
-import sys
 from pathlib import Path
-from typing import Union
+import sys
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils.validate_migration import MigrationValidator
 
 
 @pytest.fixture
-def migration_file(request) -> Union[Path, None]:
+def migration_file(request) -> Path | None:
     """Get migration file path from command line."""
     file_path = request.config.getoption("--migration-file")
     if file_path:
@@ -49,7 +46,7 @@ def migration_file(request) -> Union[Path, None]:
 
 
 @pytest.fixture
-def validator(migration_file) -> Union[MigrationValidator, None]:
+def validator(migration_file) -> MigrationValidator | None:
     """Create validator instance for the specified file."""
     if not migration_file:
         pytest.skip("No --migration-file specified")
@@ -90,16 +87,10 @@ async def test_generic_migration_v40_to_v42(
     failed_results = [r for r in results if not r.passed]
 
     if failed_results:
-        failure_messages = "\n".join(
-            [f"  - {r.name}: {r.message}" for r in failed_results]
-        )
-        pytest.fail(
-            f"\n❌ {len(failed_results)} validation(s) failed:\n{failure_messages}"
-        )
+        failure_messages = "\n".join([f"  - {r.name}: {r.message}" for r in failed_results])
+        pytest.fail(f"\n❌ {len(failed_results)} validation(s) failed:\n{failure_messages}")
 
     # Success message
-    print(f"\n✅ All {len(results)} validations passed!")
-    print(f"✅ Migration validated for {validator.data_file.name}")
 
 
 @pytest.mark.asyncio
@@ -224,9 +215,7 @@ async def test_generic_zero_data_loss(
 
     # Data size should be similar (allow for structure changes)
     # If we lost data, size would drop significantly
-    data_loss_percent = (
-        abs(before_data_points - after_data_points) / before_data_points * 100
-    )
+    data_loss_percent = abs(before_data_points - after_data_points) / before_data_points * 100
 
     assert data_loss_percent < 10, (
         f"Significant data loss detected: {data_loss_percent:.1f}% size change. "
@@ -279,4 +268,3 @@ async def test_multiple_files_example(
         f"Validation failed for {file_path.name}: {[r.message for r in failed_results]}"
     )
 
-    print(f"✅ {file_path.name}: All validations passed")

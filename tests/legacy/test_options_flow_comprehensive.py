@@ -744,20 +744,11 @@ async def test_options_flow_edit_chore_preserves_assigned_kids(
             break
 
     assert assigned_kids_field is not None, (
-        f"assigned_kids field not found in schema. "
-        f"Keys: {[str(k) for k in schema_dict.keys()]}"
+        f"assigned_kids field not found in schema. Keys: {[str(k) for k in schema_dict]}"
     )
 
     # The default should contain "Max! Stårblüm" (the name), not the internal_id
     default_value = assigned_kids_field.default()
-    print(f"DEBUG: Default value for assigned_kids: {default_value}")
-    print(f"DEBUG: Type: {type(default_value)}")
-    print(
-        f"DEBUG: Chore data keys: {list(coordinator.chores_data.get(chore_id, {}).keys())}"
-    )
-    print(
-        f"DEBUG: Assigned kids in storage: {coordinator.chores_data.get(chore_id, {}).get('assigned_kids', [])}"
-    )
 
     assert "Max! Stårblüm" in default_value, (
         f"Expected 'Max! Stårblüm' in assigned_kids default, got: {default_value}"

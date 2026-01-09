@@ -5,14 +5,14 @@ Validates byte-for-byte compatibility with storage file for paste recovery.
 """
 
 # pylint: disable=redefined-outer-name  # Pytest fixtures shadow names
-# pylint: disable=unused-argument  # Some fixtures needed for setup only
+# Some fixtures needed for setup only
 
 from unittest.mock import MagicMock
 
-import pytest
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntry
+import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.diagnostics import (
@@ -160,9 +160,7 @@ async def test_device_diagnostics_returns_kid_data(
     mock_hass, mock_config_entry, mock_device_entry, mock_coordinator
 ):
     """Test device diagnostics returns kid-specific data."""
-    result = await async_get_device_diagnostics(
-        mock_hass, mock_config_entry, mock_device_entry
-    )
+    result = await async_get_device_diagnostics(mock_hass, mock_config_entry, mock_device_entry)
 
     # Verify structure
     assert "kid_id" in result
@@ -174,9 +172,7 @@ async def test_device_diagnostics_returns_kid_data(
     assert result["kid_data"][const.DATA_KID_POINTS] == 100
 
 
-async def test_device_diagnostics_missing_kid_id(
-    mock_hass, mock_config_entry, mock_coordinator
-):
+async def test_device_diagnostics_missing_kid_id(mock_hass, mock_config_entry, mock_coordinator):
     """Test device diagnostics error when kid_id cannot be determined."""
     # Create device with no identifiers
     device = MagicMock(spec=DeviceEntry)
@@ -189,9 +185,7 @@ async def test_device_diagnostics_missing_kid_id(
     assert "Could not determine kid_id" in result["error"]
 
 
-async def test_device_diagnostics_kid_not_found(
-    mock_hass, mock_config_entry, mock_coordinator
-):
+async def test_device_diagnostics_kid_not_found(mock_hass, mock_config_entry, mock_coordinator):
     """Test device diagnostics error when kid data not found."""
     # Create device with non-existent kid_id
     device = MagicMock(spec=DeviceEntry)
@@ -220,4 +214,3 @@ async def test_diagnostics_simplicity():
     # - Single line return for config entry diagnostics
     # - Minimal processing for device diagnostics
     # - No custom data structures or transformations
-    pass

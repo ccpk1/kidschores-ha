@@ -5,13 +5,13 @@ This test validates that set_chore_due_date maintains proper data structure:
 - INDEPENDENT chores: Should NOT have chore-level due_date, only per-kid due dates
 """
 
-# pylint: disable=protected-access  # Accessing _data for testing coordinator directly
+# Accessing _data for testing coordinator directly
 # pylint: disable=redefined-outer-name  # Pytest fixture pattern
-# pylint: disable=unused-argument  # Fixtures needed for test setup
+# Fixtures needed for test setup
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+import pytest
 
 from custom_components.kidschores.const import (
     COMPLETION_CRITERIA_INDEPENDENT,
@@ -131,20 +131,14 @@ async def test_set_chore_due_date_independent_chore_correctly_avoids_chore_level
     coordinator.set_chore_due_date("independent_chore", new_due_date, "kid_1")
 
     # CORRECT: set_chore_due_date should NOT add chore-level due_date for INDEPENDENT chores
-    assert (
-        DATA_CHORE_DUE_DATE not in chore_info
-    )  # Should maintain post-migration structure
+    assert DATA_CHORE_DUE_DATE not in chore_info  # Should maintain post-migration structure
 
     # But it should correctly update per-kid structures
     assert DATA_CHORE_PER_KID_DUE_DATES in chore_info
     assert chore_info[DATA_CHORE_PER_KID_DUE_DATES]["kid_1"] == new_due_date.isoformat()
 
-    kid_chore_data = coordinator.kids_data["kid_1"][DATA_KID_CHORE_DATA][
-        "independent_chore"
-    ]
-    assert (
-        kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] == new_due_date.isoformat()
-    )
+    kid_chore_data = coordinator.kids_data["kid_1"][DATA_KID_CHORE_DATA]["independent_chore"]
+    assert kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] == new_due_date.isoformat()
 
 
 async def test_set_chore_due_date_independent_all_kids_correctly_avoids_chore_level_due_date(
@@ -161,11 +155,7 @@ async def test_set_chore_due_date_independent_all_kids_correctly_avoids_chore_le
 
     # Set due date for all kids (kid_id=None)
     new_due_date = dt_util.utcnow().replace(hour=17, minute=0, second=0, microsecond=0)
-    coordinator.set_chore_due_date(
-        "independent_chore", new_due_date
-    )  # No kid_id = all kids
+    coordinator.set_chore_due_date("independent_chore", new_due_date)  # No kid_id = all kids
 
     # CORRECT: set_chore_due_date should NOT add chore-level due_date for INDEPENDENT chores
-    assert (
-        DATA_CHORE_DUE_DATE not in chore_info
-    )  # Should maintain post-migration structure
+    assert DATA_CHORE_DUE_DATE not in chore_info  # Should maintain post-migration structure

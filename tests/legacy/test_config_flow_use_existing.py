@@ -6,10 +6,10 @@ import json
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+import pytest
 
 from custom_components.kidschores import const
 
@@ -34,9 +34,7 @@ async def test_config_flow_use_existing_v40beta1(
     storage_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Load v40beta1 sample (already in wrapped format)
-    sample_path = (
-        Path(__file__).parent / "migration_samples" / "kidschores_data_40beta1"
-    )
+    sample_path = Path(__file__).parent / "migration_samples" / "kidschores_data_40beta1"
     v40beta1_data = json.loads(sample_path.read_text())
 
     # Write wrapped data (v40beta1 already has wrapper)
@@ -136,9 +134,7 @@ async def test_config_flow_use_existing_already_wrapped(
     storage_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Load v40beta1 sample (already in wrapped format)
-    sample_path = (
-        Path(__file__).parent / "migration_samples" / "kidschores_data_40beta1"
-    )
+    sample_path = Path(__file__).parent / "migration_samples" / "kidschores_data_40beta1"
     wrapped_data = json.loads(sample_path.read_text())
 
     # Write the already-wrapped data

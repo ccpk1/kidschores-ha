@@ -5,14 +5,14 @@ with integration data, ensuring frontend compatibility.
 """
 
 # pylint: disable=redefined-outer-name  # pytest fixtures redefine names
-# pylint: disable=unused-argument  # fixtures needed for test setup
+# fixtures needed for test setup
 
 from datetime import timedelta
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.template import Template
 from homeassistant.util import dt as dt_util
+import pytest
 
 
 @pytest.fixture
@@ -106,9 +106,7 @@ async def dashboard_entities(hass: HomeAssistant, kid_slug: str):
             "badge_status": "active",
             "cycle_points": 100,
             "maintenance_end_date": (dt_util.now() + timedelta(days=7)).isoformat(),
-            "maintenance_grace_end_date": (
-                dt_util.now() + timedelta(days=14)
-            ).isoformat(),
+            "maintenance_grace_end_date": (dt_util.now() + timedelta(days=14)).isoformat(),
             "maintenance_points_required": 100,
             "maintenance_points_remaining": 50,
             "last_awarded_date": (dt_util.now() - timedelta(days=30)).isoformat(),
@@ -240,9 +238,7 @@ class TestDashboardWelcomeCard:
         assert "3" in result  # today's completed
         assert "err-" not in result  # No missing translation errors
 
-    async def test_welcome_card_handles_missing_data(
-        self, hass: HomeAssistant, kid_name: str
-    ):
+    async def test_welcome_card_handles_missing_data(self, hass: HomeAssistant, kid_name: str):
         """Test welcome card gracefully handles missing entities."""
         # Don't set up entities - test default handling
         template_str = (
@@ -521,9 +517,7 @@ class TestDashboardFilters:
 class TestDashboardComplexScenarios:
     """Test complex multi-entity scenarios."""
 
-    async def test_empty_chore_list(
-        self, hass: HomeAssistant, kid_name: str, kid_slug: str
-    ):
+    async def test_empty_chore_list(self, hass: HomeAssistant, kid_name: str, kid_slug: str):
         """Test dashboard handles empty chore lists gracefully."""
         # Set up helper with empty chore list
         hass.states.async_set(
@@ -939,9 +933,7 @@ SKIP_RENDER:{{ skip_render }}
         result = template.async_render()
 
         # Verify rendering completed
-        assert "SKIP_RENDER:False" in result, (
-            f"Template rendering failed. Output: {result}"
-        )
+        assert "SKIP_RENDER:False" in result, f"Template rendering failed. Output: {result}"
 
         # Verify buttons were collected
         assert "CHORE_BUTTONS:2" in result, (
@@ -955,21 +947,17 @@ SKIP_RENDER:{{ skip_render }}
         assert "RENDERED_GROUP:" in result, f"No groups rendered. Output: {result}"
 
         # Verify mushroom-template-card entries exist
+        assert "CARD:button.kc_alice_approve_dishes|custom:mushroom-template-card" in result, (
+            f"Approve chore card not rendered. Output: {result}"
+        )
+        assert "CARD:button.kc_alice_disapprove_dishes|custom:mushroom-template-card" in result, (
+            f"Disapprove chore card not rendered. Output: {result}"
+        )
+        assert "CARD:button.kc_alice_approve_ice_cream|custom:mushroom-template-card" in result, (
+            f"Approve reward card not rendered. Output: {result}"
+        )
         assert (
-            "CARD:button.kc_alice_approve_dishes|custom:mushroom-template-card"
-            in result
-        ), f"Approve chore card not rendered. Output: {result}"
-        assert (
-            "CARD:button.kc_alice_disapprove_dishes|custom:mushroom-template-card"
-            in result
-        ), f"Disapprove chore card not rendered. Output: {result}"
-        assert (
-            "CARD:button.kc_alice_approve_ice_cream|custom:mushroom-template-card"
-            in result
-        ), f"Approve reward card not rendered. Output: {result}"
-        assert (
-            "CARD:button.kc_alice_disapprove_ice_cream|custom:mushroom-template-card"
-            in result
+            "CARD:button.kc_alice_disapprove_ice_cream|custom:mushroom-template-card" in result
         ), f"Disapprove reward card not rendered. Output: {result}"
 
 

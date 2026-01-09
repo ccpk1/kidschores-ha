@@ -8,12 +8,14 @@ badges, rewards, penalties, and their statuses.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
 from . import const
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
 
 
 class KidsChoresStorageManager:
@@ -22,9 +24,7 @@ class KidsChoresStorageManager:
     Utilizes internal_id as the primary key for all entities.
     """
 
-    def __init__(
-        self, hass: HomeAssistant, storage_key: str = const.STORAGE_KEY
-    ) -> None:
+    def __init__(self, hass: HomeAssistant, storage_key: str = const.STORAGE_KEY) -> None:
         """Initialize the storage manager.
 
         Args:
@@ -50,9 +50,7 @@ class KidsChoresStorageManager:
         return {
             const.DATA_META: {
                 const.DATA_META_SCHEMA_VERSION: const.DEFAULT_ZERO,  # Will be set by migration
-                const.DATA_META_LAST_MIGRATION_DATE: datetime.now(
-                    dt_util.UTC
-                ).isoformat(),
+                const.DATA_META_LAST_MIGRATION_DATE: datetime.now(dt_util.UTC).isoformat(),
                 const.DATA_META_MIGRATIONS_APPLIED: [],
             },
             const.DATA_SCHEMA_VERSION: const.DEFAULT_ZERO,  # Top-level schema version for backward compatibility
@@ -238,9 +236,7 @@ class KidsChoresStorageManager:
     async def async_clear_data(self) -> None:
         """Clear all stored data and reset to default structure."""
 
-        const.LOGGER.warning(
-            "WARNING: Clearing all KidsChores data and resetting storage"
-        )
+        const.LOGGER.warning("WARNING: Clearing all KidsChores data and resetting storage")
         # Completely clear any existing data.
         self._data.clear()
 

@@ -12,17 +12,19 @@ user wishes to select a chore/reward/penalty dynamically.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.select import SelectEntity
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import const
-from . import kc_helpers as kh
-from .coordinator import KidsChoresDataCoordinator
+from . import const, kc_helpers as kh
 from .entity import KidsChoresCoordinatorEntity
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+    from .coordinator import KidsChoresDataCoordinator
 
 # Silver requirement: Parallel Updates
 # Set to 0 (unlimited) for coordinator-based entities that don't poll
@@ -55,7 +57,7 @@ async def async_setup_entry(
         )
 
     # Kid-specific dashboard helper selects
-    for kid_id in coordinator.kids_data.keys():
+    for kid_id in coordinator.kids_data:
         selects.append(KidDashboardHelperChoresSelect(coordinator, entry, kid_id))
 
     async_add_entities(selects)
@@ -81,10 +83,10 @@ class KidsChoresSelectBase(KidsChoresCoordinatorEntity, SelectEntity):
         """
         super().__init__(coordinator)
         self._entry = entry
-        self._selected_option: Optional[str] = None
+        self._selected_option: str | None = None
 
     @property
-    def current_option(self) -> Optional[str]:
+    def current_option(self) -> str | None:
         """Return the currently selected option (chore/reward/penalty name)."""
         return self._selected_option
 
@@ -122,15 +124,9 @@ class SystemChoresSelect(KidsChoresSelectBase):
             entry: ConfigEntry for this integration instance.
         """
         super().__init__(coordinator, entry)
-        self._attr_unique_id = (
-            f"{entry.entry_id}{const.SELECT_KC_UID_SUFFIX_CHORES_SELECT}"
-        )
-        self._attr_name = (
-            f"{const.KIDSCHORES_TITLE}: {const.TRANS_KEY_SELECT_LABEL_ALL_CHORES}"
-        )
-        self.entity_id = (
-            f"{const.SELECT_KC_PREFIX}{const.SELECT_KC_EID_SUFFIX_ALL_CHORES}"
-        )
+        self._attr_unique_id = f"{entry.entry_id}{const.SELECT_KC_UID_SUFFIX_CHORES_SELECT}"
+        self._attr_name = f"{const.KIDSCHORES_TITLE}: {const.TRANS_KEY_SELECT_LABEL_ALL_CHORES}"
+        self.entity_id = f"{const.SELECT_KC_PREFIX}{const.SELECT_KC_EID_SUFFIX_ALL_CHORES}"
         self._attr_device_info = kh.create_system_device_info(entry)
 
     @property
@@ -170,15 +166,9 @@ class SystemRewardsSelect(KidsChoresSelectBase):
             entry: ConfigEntry for this integration instance.
         """
         super().__init__(coordinator, entry)
-        self._attr_unique_id = (
-            f"{entry.entry_id}{const.SELECT_KC_UID_SUFFIX_REWARDS_SELECT}"
-        )
-        self._attr_name = (
-            f"{const.KIDSCHORES_TITLE}: {const.TRANS_KEY_SELECT_LABEL_ALL_REWARDS}"
-        )
-        self.entity_id = (
-            f"{const.SELECT_KC_PREFIX}{const.SELECT_KC_EID_SUFFIX_ALL_REWARDS}"
-        )
+        self._attr_unique_id = f"{entry.entry_id}{const.SELECT_KC_UID_SUFFIX_REWARDS_SELECT}"
+        self._attr_name = f"{const.KIDSCHORES_TITLE}: {const.TRANS_KEY_SELECT_LABEL_ALL_REWARDS}"
+        self.entity_id = f"{const.SELECT_KC_PREFIX}{const.SELECT_KC_EID_SUFFIX_ALL_REWARDS}"
         self._attr_device_info = kh.create_system_device_info(entry)
 
     @property
@@ -218,15 +208,9 @@ class SystemPenaltiesSelect(KidsChoresSelectBase):
             entry: ConfigEntry for this integration instance.
         """
         super().__init__(coordinator, entry)
-        self._attr_unique_id = (
-            f"{entry.entry_id}{const.SELECT_KC_UID_SUFFIX_PENALTIES_SELECT}"
-        )
-        self._attr_name = (
-            f"{const.KIDSCHORES_TITLE}: {const.TRANS_KEY_SELECT_LABEL_ALL_PENALTIES}"
-        )
-        self.entity_id = (
-            f"{const.SELECT_KC_PREFIX}{const.SELECT_KC_EID_SUFFIX_ALL_PENALTIES}"
-        )
+        self._attr_unique_id = f"{entry.entry_id}{const.SELECT_KC_UID_SUFFIX_PENALTIES_SELECT}"
+        self._attr_name = f"{const.KIDSCHORES_TITLE}: {const.TRANS_KEY_SELECT_LABEL_ALL_PENALTIES}"
+        self.entity_id = f"{const.SELECT_KC_PREFIX}{const.SELECT_KC_EID_SUFFIX_ALL_PENALTIES}"
         self._attr_device_info = kh.create_system_device_info(entry)
 
     @property
@@ -266,15 +250,9 @@ class SystemBonusesSelect(KidsChoresSelectBase):
             entry: ConfigEntry for this integration instance.
         """
         super().__init__(coordinator, entry)
-        self._attr_unique_id = (
-            f"{entry.entry_id}{const.SELECT_KC_UID_SUFFIX_BONUSES_SELECT}"
-        )
-        self._attr_name = (
-            f"{const.KIDSCHORES_TITLE}: {const.TRANS_KEY_SELECT_LABEL_ALL_BONUSES}"
-        )
-        self.entity_id = (
-            f"{const.SELECT_KC_PREFIX}{const.SELECT_KC_EID_SUFFIX_ALL_BONUSES}"
-        )
+        self._attr_unique_id = f"{entry.entry_id}{const.SELECT_KC_UID_SUFFIX_BONUSES_SELECT}"
+        self._attr_name = f"{const.KIDSCHORES_TITLE}: {const.TRANS_KEY_SELECT_LABEL_ALL_BONUSES}"
+        self.entity_id = f"{const.SELECT_KC_PREFIX}{const.SELECT_KC_EID_SUFFIX_ALL_BONUSES}"
         self._attr_device_info = kh.create_system_device_info(entry)
 
     @property
@@ -307,9 +285,7 @@ class KidDashboardHelperChoresSelect(KidsChoresSelectBase):
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SELECT_CHORES_KID
 
-    def __init__(
-        self, coordinator: KidsChoresDataCoordinator, entry: ConfigEntry, kid_id: str
-    ):
+    def __init__(self, coordinator: KidsChoresDataCoordinator, entry: ConfigEntry, kid_id: str):
         """Initialize the KidDashboardHelperChoresSelect.
 
         Args:
@@ -322,12 +298,8 @@ class KidDashboardHelperChoresSelect(KidsChoresSelectBase):
         kid_name = coordinator.kids_data.get(kid_id, {}).get(
             const.DATA_KID_NAME, f"{const.TRANS_KEY_LABEL_KID} {kid_id}"
         )
-        self._attr_unique_id = (
-            f"{entry.entry_id}{const.SELECT_KC_UID_MIDFIX_CHORES_SELECT}{kid_id}"
-        )
-        self._attr_translation_placeholders = {
-            const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
-        }
+        self._attr_unique_id = f"{entry.entry_id}{const.SELECT_KC_UID_MIDFIX_CHORES_SELECT}{kid_id}"
+        self._attr_translation_placeholders = {const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name}
         self.entity_id = (
             f"{const.SELECT_KC_PREFIX}{kid_name}{const.SELECT_KC_EID_SUFFIX_CHORE_LIST}"
         )
@@ -356,9 +328,7 @@ class KidDashboardHelperChoresSelect(KidsChoresSelectBase):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
         kid_info = self.coordinator.kids_data.get(self._kid_id, {})
-        kid_name = kid_info.get(
-            const.DATA_KID_NAME, f"{const.TRANS_KEY_LABEL_KID} {self._kid_id}"
-        )
+        kid_name = kid_info.get(const.DATA_KID_NAME, f"{const.TRANS_KEY_LABEL_KID} {self._kid_id}")
         return {
             const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_SELECT_KID_CHORES,
             const.ATTR_KID_NAME: kid_name,

@@ -10,16 +10,14 @@ Priority: P3 MEDIUM (Affects scheduling accuracy)
 Coverage: coordinator._calculate_next_due_date_from_info, kc_helpers.get_next_applicable_day
 """
 
-# pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
-# pylint: disable=unused-argument
 
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.const import (
@@ -158,9 +156,7 @@ async def test_single_applicable_day_snaps_to_weekday(
     assert new_due_str is not None, "Due date should be set"
     new_due = dt_util.parse_datetime(new_due_str)
     assert new_due is not None
-    assert new_due.weekday() == 0, (
-        f"New due date should be Monday, got weekday {new_due.weekday()}"
-    )
+    assert new_due.weekday() == 0, f"New due date should be Monday, got weekday {new_due.weekday()}"
 
 
 # ============================================================================
@@ -223,9 +219,7 @@ async def test_weekend_only_applicable_days(
     assert new_due_str is not None, "Due date should be set"
     new_due = dt_util.parse_datetime(new_due_str)
     assert new_due is not None
-    assert new_due.weekday() in [5, 6], (
-        f"Due should be weekend, got weekday {new_due.weekday()}"
-    )
+    assert new_due.weekday() in [5, 6], f"Due should be weekend, got weekday {new_due.weekday()}"
 
 
 # ============================================================================
@@ -328,10 +322,7 @@ async def test_applicable_days_independent_per_kid_isolation(
     # Configure Tuesday-only (weekday 1)
     chore_info[DATA_CHORE_APPLICABLE_DAYS] = [1]  # Tuesday
     chore_info[DATA_CHORE_RECURRING_FREQUENCY] = FREQUENCY_DAILY
-    assert (
-        chore_info.get(DATA_CHORE_COMPLETION_CRITERIA)
-        == COMPLETION_CRITERIA_INDEPENDENT
-    )
+    assert chore_info.get(DATA_CHORE_COMPLETION_CRITERIA) == COMPLETION_CRITERIA_INDEPENDENT
 
     # Set different initial due dates for each kid
     monday = dt_util.utcnow().replace(hour=12, minute=0, second=0, microsecond=0)
@@ -361,9 +352,7 @@ async def test_applicable_days_independent_per_kid_isolation(
     assert zoe_due_str is not None
     zoe_due = dt_util.parse_datetime(zoe_due_str)
     assert zoe_due is not None
-    assert zoe_due.weekday() == 1, (
-        f"Zoë should have Tuesday, got weekday {zoe_due.weekday()}"
-    )
+    assert zoe_due.weekday() == 1, f"Zoë should have Tuesday, got weekday {zoe_due.weekday()}"
 
     # Verify Max's due date is unchanged (still past Monday)
     max_due_str = per_kid_due_dates.get(max_id)
@@ -424,9 +413,7 @@ async def test_get_next_applicable_day_advances_to_next(
 
     # Should advance to Monday (6 days later)
     assert result.weekday() == 0  # Monday  # type: ignore[reportAttributeAccessIssue]
-    assert (
-        result > tuesday
-    )  # Must be in the future  # type: ignore[reportOperatorIssue]
+    assert result > tuesday  # Must be in the future  # type: ignore[reportOperatorIssue]
 
 
 @pytest.mark.asyncio
@@ -455,9 +442,7 @@ async def test_get_next_applicable_day_weekend_skip(
     )  # Still Friday
 
     # Saturday input, weekdays only
-    saturday = datetime(
-        2025, 1, 11, 12, 0, tzinfo=dt_util.UTC
-    )  # 2025-01-11 is Saturday
+    saturday = datetime(2025, 1, 11, 12, 0, tzinfo=dt_util.UTC)  # 2025-01-11 is Saturday
     assert saturday.weekday() == 5
 
     result = kh.get_next_applicable_day(
@@ -508,9 +493,7 @@ async def test_calculate_next_due_date_with_applicable_days(
 
     # Result should be Thursday (next applicable day after daily advance)
     assert result is not None
-    assert result.weekday() == 3, (
-        f"Expected Thursday (3), got weekday {result.weekday()}"
-    )
+    assert result.weekday() == 3, f"Expected Thursday (3), got weekday {result.weekday()}"
     assert result > monday
 
 
@@ -547,9 +530,7 @@ async def test_weekly_frequency_with_applicable_days_override(
     # Weekly advance from Monday → next Monday
     # Then snap to Wednesday
     assert result is not None
-    assert result.weekday() == 2, (
-        f"Expected Wednesday (2), got weekday {result.weekday()}"
-    )
+    assert result.weekday() == 2, f"Expected Wednesday (2), got weekday {result.weekday()}"
     assert result > monday
 
 
@@ -590,7 +571,5 @@ async def test_all_days_applicable_no_snapping(
 
     # Daily advance should go to Tuesday (next day), no snapping needed
     assert result is not None
-    assert result.weekday() == 1, (
-        f"Expected Tuesday (1), got weekday {result.weekday()}"
-    )
+    assert result.weekday() == 1, f"Expected Tuesday (1), got weekday {result.weekday()}"
     assert (result - monday).days >= 1  # At least 1 day advance

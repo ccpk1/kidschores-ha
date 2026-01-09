@@ -5,12 +5,13 @@ ensuring the new schema (DATA_KID_CHORE_STATS, DATA_KID_POINT_STATS) provides
 accurate data to sensor entities.
 """
 
-# pylint: disable=protected-access  # Accessing _notify_kid for mocking in tests
+# Accessing _notify_kid for mocking in tests
 
+from datetime import UTC
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.const import COORDINATOR, DOMAIN
@@ -268,7 +269,7 @@ async def test_challenge_sensor_reads_from_new_schema(
 
 
 @pytest.mark.parametrize(
-    "sensor_type,stats_key",
+    ("sensor_type", "stats_key"),
     [
         ("daily", const.DATA_KID_CHORE_STATS_APPROVED_TODAY),
         ("weekly", const.DATA_KID_CHORE_STATS_APPROVED_WEEK),
@@ -278,7 +279,7 @@ async def test_challenge_sensor_reads_from_new_schema(
 async def test_completed_chores_sensors_use_new_schema(
     hass: HomeAssistant,
     scenario_full: tuple,
-    sensor_type: str,  # pylint: disable=unused-argument  # Used in test parameterization
+    sensor_type: str,  # Used in test parameterization
     stats_key: str,
 ) -> None:
     """Test SystemChoreApprovals sensors read from DATA_KID_CHORE_STATS dict.
@@ -307,9 +308,7 @@ async def test_completed_chores_sensors_use_new_schema(
 
     # Verify data is in new schema location
     chore_stats = coordinator.kids_data[kid_id].get(const.DATA_KID_CHORE_STATS, {})
-    assert stats_key in chore_stats, (
-        f"{stats_key} should be present in chore_stats (new schema)"
-    )
+    assert stats_key in chore_stats, f"{stats_key} should be present in chore_stats (new schema)"
 
     # Verify it's a valid count
     value = chore_stats.get(stats_key, 0)
@@ -318,7 +317,7 @@ async def test_completed_chores_sensors_use_new_schema(
 
 
 @pytest.mark.parametrize(
-    "sensor_type,stats_key",
+    ("sensor_type", "stats_key"),
     [
         ("daily", const.DATA_KID_POINT_STATS_NET_TODAY),
         ("weekly", const.DATA_KID_POINT_STATS_NET_WEEK),
@@ -328,7 +327,7 @@ async def test_completed_chores_sensors_use_new_schema(
 async def test_points_earned_sensors_use_new_schema(
     hass: HomeAssistant,
     scenario_full: tuple,
-    sensor_type: str,  # pylint: disable=unused-argument  # Used in test parameterization
+    sensor_type: str,  # Used in test parameterization
     stats_key: str,
 ) -> None:
     """Test PointsEarned sensors read from DATA_KID_POINT_STATS dict.
@@ -356,9 +355,7 @@ async def test_points_earned_sensors_use_new_schema(
 
     # Verify data is in new schema location
     point_stats = coordinator.kids_data[kid_id].get(const.DATA_KID_POINT_STATS, {})
-    assert stats_key in point_stats, (
-        f"{stats_key} should be present in point_stats (new schema)"
-    )
+    assert stats_key in point_stats, f"{stats_key} should be present in point_stats (new schema)"
 
     # Verify it's a valid points value
     value = point_stats.get(stats_key, 0)
@@ -435,7 +432,7 @@ async def test_helper_get_chore_by_name_demonstration(
 
 
 async def test_helper_create_test_datetime_demonstration(
-    hass: HomeAssistant,  # pylint: disable=unused-argument
+    hass: HomeAssistant,
 ) -> None:
     """Demonstrate create_test_datetime() helper - UTC datetime creation.
 
@@ -446,7 +443,7 @@ async def test_helper_create_test_datetime_demonstration(
     AFTER (new helper):
         overdue_date = create_test_datetime(days_offset=-7)
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from tests.legacy.conftest import create_test_datetime
 
@@ -463,7 +460,7 @@ async def test_helper_create_test_datetime_demonstration(
     assert "+" in overdue_date or "Z" in overdue_date
 
     # Verify date is approximately 7 days ago (within reason)
-    parsed = datetime.fromisoformat(overdue_date.replace("Z", "+00:00"))
-    now = datetime.now(timezone.utc)
+    parsed = datetime.fromisoformat(overdue_date)
+    now = datetime.now(UTC)
     diff_days = (now - parsed).days
     assert 6 <= diff_days <= 8, "Overdue date should be ~7 days ago"

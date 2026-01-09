@@ -57,7 +57,7 @@ from custom_components.kidschores.const import (
     OPTIONS_FLOW_STEP_MANAGE_ENTITY,
 )
 
-# pylint: disable=protected-access  # Accessing coordinator internals for testing
+# Accessing coordinator internals for testing
 
 
 class TestBadgeCreation:
@@ -139,8 +139,7 @@ class TestBadgeCreation:
         assert new_badge[DATA_BADGE_ICON] == "mdi:star-outline"
         # Award points may be stored in awards structure
         assert (
-            new_badge.get("awards", {}).get(DATA_BADGE_AWARDS_POINT_MULTIPLIER)
-            is not None
+            new_badge.get("awards", {}).get(DATA_BADGE_AWARDS_POINT_MULTIPLIER) is not None
             or new_badge.get("awards", {}).get("award_points") is not None
         )
 
@@ -237,16 +236,11 @@ class TestBadgeCreation:
                 bronze_star_badge = badge_data
                 break
 
-        assert bronze_star_badge is not None, (
-            "Minimal scenario should include Brønze Står badge"
-        )
+        assert bronze_star_badge is not None, "Minimal scenario should include Brønze Står badge"
         assert bronze_star_badge[DATA_BADGE_TYPE] == BADGE_TYPE_CUMULATIVE
         # Check nested target structure
         assert DATA_BADGE_TARGET in bronze_star_badge
-        assert (
-            bronze_star_badge[DATA_BADGE_TARGET][DATA_BADGE_TARGET_THRESHOLD_VALUE]
-            == 400
-        )
+        assert bronze_star_badge[DATA_BADGE_TARGET][DATA_BADGE_TARGET_THRESHOLD_VALUE] == 400
         assert bronze_star_badge[DATA_BADGE_ICON] == "mdi:star"
 
         # Act: Create additional badge via options flow
@@ -477,9 +471,7 @@ class TestBadgeCreation:
             coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
             # Wait for coordinator to update
-            await asyncio.sleep(
-                0.3
-            )  # Allow time for data propagation and storage flush
+            await asyncio.sleep(0.3)  # Allow time for data propagation and storage flush
             await coordinator.async_refresh()
             await hass.async_block_till_done()
 
@@ -512,15 +504,13 @@ class TestBadgeCreation:
         )
 
         # Validate each created badge's data and entity
-        for badge_id, test_case in zip(created_badge_ids, badge_test_cases):
+        for badge_id, test_case in zip(created_badge_ids, badge_test_cases, strict=False):
             badge_data = final_badges[badge_id]
 
             # Common assertions for all badge types
             assert badge_data[DATA_BADGE_NAME] == test_case["name"]
             assert badge_data[DATA_BADGE_TYPE] == test_case["type"]
-            assert (
-                badge_data[DATA_BADGE_ICON] == test_case["data"][CFOF_BADGES_INPUT_ICON]
-            )
+            assert badge_data[DATA_BADGE_ICON] == test_case["data"][CFOF_BADGES_INPUT_ICON]
 
             # Type-specific assertions
             if test_case["type"] == BADGE_TYPE_CUMULATIVE:
@@ -530,9 +520,7 @@ class TestBadgeCreation:
                 )
                 if CFOF_BADGES_INPUT_POINTS_MULTIPLIER in test_case["data"]:
                     assert (
-                        badge_data[DATA_BADGE_AWARDS][
-                            DATA_BADGE_AWARDS_POINT_MULTIPLIER
-                        ]
+                        badge_data[DATA_BADGE_AWARDS][DATA_BADGE_AWARDS_POINT_MULTIPLIER]
                         == (test_case["data"][CFOF_BADGES_INPUT_POINTS_MULTIPLIER])
                     )
                 if CFOF_BADGES_INPUT_MAINTENANCE_RULES in test_case["data"]:
@@ -546,10 +534,7 @@ class TestBadgeCreation:
                     badge_data[DATA_BADGE_TARGET][DATA_BADGE_TARGET_THRESHOLD_VALUE]
                     == (test_case["data"][CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE])
                 )
-                if (
-                    CFOF_BADGES_INPUT_RESET_SCHEDULE_RECURRING_FREQUENCY
-                    in test_case["data"]
-                ):
+                if CFOF_BADGES_INPUT_RESET_SCHEDULE_RECURRING_FREQUENCY in test_case["data"]:
                     expected_frequency = test_case["data"][
                         CFOF_BADGES_INPUT_RESET_SCHEDULE_RECURRING_FREQUENCY
                     ]
@@ -593,10 +578,9 @@ class TestBadgeCreation:
                 )
 
             elif test_case["type"] == BADGE_TYPE_SPECIAL_OCCASION:
-                assert (
-                    badge_data[DATA_BADGE_TARGET][DATA_BADGE_TARGET_THRESHOLD_VALUE]
-                    == 1
-                ), "Special occasion badges force threshold to 1"
+                assert badge_data[DATA_BADGE_TARGET][DATA_BADGE_TARGET_THRESHOLD_VALUE] == 1, (
+                    "Special occasion badges force threshold to 1"
+                )
                 assert (
                     badge_data[DATA_BADGE_SPECIAL_OCCASION_TYPE]
                     == test_case["data"][CFOF_BADGES_INPUT_OCCASION_TYPE]
@@ -616,9 +600,7 @@ class TestBadgeCreation:
         # Assert: Kid badge sensor exists and is updated
         kid_badge_entity_id = "sensor.kc_zoe_badges"  # Normalized entity ID
         kid_badge_state = hass.states.get(kid_badge_entity_id)
-        assert kid_badge_state is not None, (
-            f"Kid badge sensor {kid_badge_entity_id} should exist"
-        )
+        assert kid_badge_state is not None, f"Kid badge sensor {kid_badge_entity_id} should exist"
 
         # Note: Individual badge entities and kid badge progress validation
         # completed above in the per-badge validation loop

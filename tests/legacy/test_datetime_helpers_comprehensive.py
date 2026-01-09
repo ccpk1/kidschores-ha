@@ -11,18 +11,17 @@ Can be run as:
 - python tests/test_datetime_helpers_comprehensive.py
 """
 
-# pylint: disable=protected-access  # Accessing internal helpers for testing
+# Accessing internal helpers for testing
 # pylint: disable=redefined-outer-name  # Pytest fixtures shadow names
-# pylint: disable=unused-argument  # Some test fixtures required for setup
+# Some test fixtures required for setup
 
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-import pytest
 from homeassistant.util import dt as dt_util
+import pytest
 
-from custom_components.kidschores import const
-from custom_components.kidschores import kc_helpers as kh
+from custom_components.kidschores import const, kc_helpers as kh
 
 # ============================================================================
 # Test Fixtures
@@ -108,9 +107,7 @@ def sample_date_strings():
 # ============================================================================
 
 
-def assert_datetime_equal(
-    dt1: datetime, dt2: datetime, tolerance_seconds: int = 1
-) -> None:
+def assert_datetime_equal(dt1: datetime, dt2: datetime, tolerance_seconds: int = 1) -> None:
     """Compare two datetimes with tolerance for microseconds/sub-second differences."""
     if dt1 is None or dt2 is None:
         assert dt1 == dt2, f"One datetime is None: {dt1} vs {dt2}"
@@ -280,9 +277,7 @@ class TestDateTimeFormatting:
     def test_format_datetime_return_unchanged(self, sample_datetimes):
         """Test HELPER_RETURN_DATETIME returns datetime unchanged."""
         input_dt = sample_datetimes["regular_date"]
-        result = kh.format_datetime_with_return_type(
-            input_dt, const.HELPER_RETURN_DATETIME
-        )
+        result = kh.format_datetime_with_return_type(input_dt, const.HELPER_RETURN_DATETIME)
 
         assert result is input_dt  # Should be same object
         assert isinstance(result, datetime)
@@ -290,9 +285,7 @@ class TestDateTimeFormatting:
     def test_format_datetime_return_utc(self, sample_datetimes):
         """Test HELPER_RETURN_DATETIME_UTC converts to UTC."""
         input_dt = sample_datetimes["regular_date"]
-        result = kh.format_datetime_with_return_type(
-            input_dt, const.HELPER_RETURN_DATETIME_UTC
-        )
+        result = kh.format_datetime_with_return_type(input_dt, const.HELPER_RETURN_DATETIME_UTC)
 
         assert isinstance(result, datetime)
         assert_timezone_aware(result, ZoneInfo("UTC"))
@@ -300,9 +293,7 @@ class TestDateTimeFormatting:
     def test_format_datetime_return_local(self, mock_timezone, sample_datetimes):
         """Test HELPER_RETURN_DATETIME_LOCAL converts to local."""
         input_dt = sample_datetimes["regular_date"]
-        result = kh.format_datetime_with_return_type(
-            input_dt, const.HELPER_RETURN_DATETIME_LOCAL
-        )
+        result = kh.format_datetime_with_return_type(input_dt, const.HELPER_RETURN_DATETIME_LOCAL)
 
         assert isinstance(result, datetime)
         assert_timezone_aware(result)
@@ -319,9 +310,7 @@ class TestDateTimeFormatting:
     def test_format_datetime_return_iso_datetime(self, sample_datetimes):
         """Test HELPER_RETURN_ISO_DATETIME returns ISO string."""
         input_dt = sample_datetimes["regular_date"]
-        result = kh.format_datetime_with_return_type(
-            input_dt, const.HELPER_RETURN_ISO_DATETIME
-        )
+        result = kh.format_datetime_with_return_type(input_dt, const.HELPER_RETURN_ISO_DATETIME)
 
         assert isinstance(result, str)
         assert "T" in result  # ISO datetime format includes T separator
@@ -333,9 +322,7 @@ class TestDateTimeFormatting:
     def test_format_datetime_return_iso_date(self, sample_datetimes):
         """Test HELPER_RETURN_ISO_DATE returns date ISO string."""
         input_dt = sample_datetimes["regular_date"]
-        result = kh.format_datetime_with_return_type(
-            input_dt, const.HELPER_RETURN_ISO_DATE
-        )
+        result = kh.format_datetime_with_return_type(input_dt, const.HELPER_RETURN_ISO_DATE)
 
         assert isinstance(result, str)
         assert result == input_dt.date().isoformat()
@@ -352,9 +339,7 @@ class TestNormalizeDatetimeInput:
 
     def test_normalize_string_iso_date(self, mock_timezone):
         """Test normalizing ISO date string."""
-        result = kh.normalize_datetime_input(
-            "2025-06-15", return_type=const.HELPER_RETURN_DATETIME
-        )
+        result = kh.normalize_datetime_input("2025-06-15", return_type=const.HELPER_RETURN_DATETIME)
 
         assert isinstance(result, datetime)
         assert_timezone_aware(result)
@@ -376,9 +361,7 @@ class TestNormalizeDatetimeInput:
     def test_normalize_date_object(self, mock_timezone):
         """Test normalizing date object to datetime."""
         input_date = date(2025, 6, 15)
-        result = kh.normalize_datetime_input(
-            input_date, return_type=const.HELPER_RETURN_DATETIME
-        )
+        result = kh.normalize_datetime_input(input_date, return_type=const.HELPER_RETURN_DATETIME)
 
         assert isinstance(result, datetime)
         assert_timezone_aware(result)
@@ -387,9 +370,7 @@ class TestNormalizeDatetimeInput:
     def test_normalize_datetime_naive(self, mock_timezone):
         """Test normalizing naive datetime applies timezone."""
         naive_dt = datetime(2025, 6, 15, 14, 30, 0)
-        result = kh.normalize_datetime_input(
-            naive_dt, return_type=const.HELPER_RETURN_DATETIME
-        )
+        result = kh.normalize_datetime_input(naive_dt, return_type=const.HELPER_RETURN_DATETIME)
 
         assert isinstance(result, datetime)
         assert_timezone_aware(result)
@@ -398,9 +379,7 @@ class TestNormalizeDatetimeInput:
     def test_normalize_datetime_aware(self, mock_timezone):
         """Test normalizing aware datetime preserves timezone."""
         aware_dt = datetime(2025, 6, 15, 14, 30, 0, tzinfo=ZoneInfo("America/New_York"))
-        result = kh.normalize_datetime_input(
-            aware_dt, return_type=const.HELPER_RETURN_DATETIME
-        )
+        result = kh.normalize_datetime_input(aware_dt, return_type=const.HELPER_RETURN_DATETIME)
 
         assert isinstance(result, datetime)
         assert_timezone_aware(result)
@@ -410,14 +389,10 @@ class TestNormalizeDatetimeInput:
         input_str = "2025-06-15T14:30:00"
 
         # Test each return type
-        result_dt = kh.normalize_datetime_input(
-            input_str, return_type=const.HELPER_RETURN_DATETIME
-        )
+        result_dt = kh.normalize_datetime_input(input_str, return_type=const.HELPER_RETURN_DATETIME)
         assert isinstance(result_dt, datetime)
 
-        result_date = kh.normalize_datetime_input(
-            input_str, return_type=const.HELPER_RETURN_DATE
-        )
+        result_date = kh.normalize_datetime_input(input_str, return_type=const.HELPER_RETURN_DATE)
         assert isinstance(result_date, date)
         assert not isinstance(result_date, datetime)
 
@@ -552,9 +527,7 @@ class TestEdgeCases:
         leap_date = datetime(2024, 2, 29, 12, 0, 0, tzinfo=mock_timezone)
 
         # Verify parsing
-        result = kh.normalize_datetime_input(
-            "2024-02-29", return_type=const.HELPER_RETURN_DATETIME
-        )
+        result = kh.normalize_datetime_input("2024-02-29", return_type=const.HELPER_RETURN_DATETIME)
         assert result.month == 2
         assert result.day == 29
 

@@ -12,16 +12,16 @@ Question answered: What happens to chores in different states when midnight rese
 See tests/AGENT_TEST_CREATION_INSTRUCTIONS.md for patterns used.
 """
 
-# pylint: disable=protected-access, unused-argument, redefined-outer-name
+
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.util import dt as dt_util
+import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.const import (
@@ -68,9 +68,7 @@ async def setup_at_due_date_scenario(
 def get_kid_state_for_chore(coordinator: Any, kid_id: str, chore_id: str) -> str:
     """Get the current chore state for a specific kid."""
     kid_chore_data = coordinator._get_kid_chore_data(kid_id, chore_id)
-    return kid_chore_data.get(
-        const.DATA_KID_CHORE_DATA_STATE, const.CHORE_STATE_PENDING
-    )
+    return kid_chore_data.get(const.DATA_KID_CHORE_DATA_STATE, const.CHORE_STATE_PENDING)
 
 
 def set_chore_due_date_to_past(
@@ -83,7 +81,7 @@ def set_chore_due_date_to_past(
 
     This is a copy of the helper from test_chore_scheduling.py.
     """
-    past_date = datetime.now(timezone.utc) - timedelta(days=days_ago)
+    past_date = datetime.now(UTC) - timedelta(days=days_ago)
     past_date = past_date.replace(hour=17, minute=0, second=0, microsecond=0)
     past_date_iso = dt_util.as_utc(past_date).isoformat()
 
@@ -104,9 +102,7 @@ def set_chore_due_date_to_past(
             kid_chore_data = kid_info.get(DATA_KID_CHORE_DATA, {}).get(chore_id, {})
             if kid_chore_data:
                 kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] = past_date_iso
-                kid_chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = (
-                    period_start_iso
-                )
+                kid_chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = period_start_iso
         else:
             for assigned_kid_id in chore_info.get(DATA_CHORE_ASSIGNED_KIDS, []):
                 per_kid_due_dates[assigned_kid_id] = past_date_iso
@@ -114,9 +110,7 @@ def set_chore_due_date_to_past(
                 kid_chore_data = kid_info.get(DATA_KID_CHORE_DATA, {}).get(chore_id, {})
                 if kid_chore_data:
                     kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] = past_date_iso
-                    kid_chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = (
-                        period_start_iso
-                    )
+                    kid_chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = period_start_iso
     else:
         chore_info[DATA_CHORE_DUE_DATE] = past_date_iso
         chore_info[DATA_CHORE_APPROVAL_PERIOD_START] = period_start_iso
@@ -131,7 +125,7 @@ def set_chore_due_date_to_future(
     days_ahead: int = 1,
 ) -> datetime:
     """Set chore due date to the future."""
-    future_date = datetime.now(timezone.utc) + timedelta(days=days_ahead)
+    future_date = datetime.now(UTC) + timedelta(days=days_ahead)
     future_date = future_date.replace(hour=17, minute=0, second=0, microsecond=0)
     future_date_iso = dt_util.as_utc(future_date).isoformat()
 
@@ -430,9 +424,7 @@ class TestOverdueResetValidation:
         )
 
         # Verify validation rejected the combination
-        assert errors, (
-            "Expected validation to reject AT_DUE_DATE_ONCE + AT_DUE_DATE_THEN_RESET"
-        )
+        assert errors, "Expected validation to reject AT_DUE_DATE_ONCE + AT_DUE_DATE_THEN_RESET"
         assert const.CFOP_ERROR_OVERDUE_RESET_COMBO in errors, (
             f"Expected error key {const.CFOP_ERROR_OVERDUE_RESET_COMBO}, got {errors}"
         )
@@ -476,9 +468,7 @@ class TestOverdueResetValidation:
             existing_chores={},
         )
 
-        assert errors, (
-            "Expected validation to reject UPON_COMPLETION + AT_DUE_DATE_THEN_RESET"
-        )
+        assert errors, "Expected validation to reject UPON_COMPLETION + AT_DUE_DATE_THEN_RESET"
         assert const.CFOP_ERROR_OVERDUE_RESET_COMBO in errors
 
     @pytest.mark.asyncio
@@ -520,9 +510,7 @@ class TestOverdueResetValidation:
             existing_chores={},
         )
 
-        assert not errors, (
-            f"Expected no validation errors for valid combination, got {errors}"
-        )
+        assert not errors, f"Expected no validation errors for valid combination, got {errors}"
         assert chore_data, "Expected chore_data to be returned for valid combination"
 
     @pytest.mark.asyncio
@@ -564,7 +552,5 @@ class TestOverdueResetValidation:
             existing_chores={},
         )
 
-        assert not errors, (
-            f"Expected no validation errors for valid combination, got {errors}"
-        )
+        assert not errors, f"Expected no validation errors for valid combination, got {errors}"
         assert chore_data, "Expected chore_data to be returned for valid combination"

@@ -14,14 +14,14 @@ not config flow setup (see test_config_flow_fresh_start.py for that).
 
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
 from custom_components.kidschores import const
 
 
-def load_notification_translations() -> Dict[str, Any]:
+def load_notification_translations() -> dict[str, Any]:
     """Load notification translations from JSON file dynamically.
 
     Returns:
@@ -38,7 +38,7 @@ def load_notification_translations() -> Dict[str, Any]:
     if not translations_path.exists():
         raise FileNotFoundError(f"Translation file not found: {translations_path}")
 
-    with open(translations_path, "r", encoding="utf-8") as f:
+    with open(translations_path, encoding="utf-8") as f:
         translations = json.load(f)
 
     if "actions" not in translations:
@@ -47,7 +47,7 @@ def load_notification_translations() -> Dict[str, Any]:
     return translations["actions"]
 
 
-def get_expected_action_titles() -> Dict[str, str]:
+def get_expected_action_titles() -> dict[str, str]:
     """Get expected action button titles from translation file.
 
     Returns:
@@ -57,12 +57,8 @@ def get_expected_action_titles() -> Dict[str, str]:
 
     return {
         const.TRANS_KEY_NOTIF_ACTION_APPROVE: actions.get("approve", "err-approve"),
-        const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE: actions.get(
-            "disapprove", "err-disapprove"
-        ),
-        const.TRANS_KEY_NOTIF_ACTION_REMIND_30: actions.get(
-            "remind_30", "err-remind_30"
-        ),
+        const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE: actions.get("disapprove", "err-disapprove"),
+        const.TRANS_KEY_NOTIF_ACTION_REMIND_30: actions.get("remind_30", "err-remind_30"),
     }
 
 
@@ -97,13 +93,9 @@ async def test_action_disapprove_translation_loaded() -> None:
     assert const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE in expected_titles
 
     disapprove_title = expected_titles[const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE]
-    assert disapprove_title != "err-disapprove", (
-        "Translation missing for 'disapprove' action"
-    )
+    assert disapprove_title != "err-disapprove", "Translation missing for 'disapprove' action"
     assert len(disapprove_title) > 0, "Empty translation for 'disapprove' action"
-    assert disapprove_title != "disapprove", (
-        "Translation should be more than just the key"
-    )
+    assert disapprove_title != "disapprove", "Translation should be more than just the key"
 
 
 @pytest.mark.asyncio

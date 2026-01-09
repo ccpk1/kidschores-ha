@@ -11,12 +11,11 @@ Test Organization:
     - Bonus-Triggered Badge Awards: Threshold crossing, multiplier application
 """
 
-# pylint: disable=protected-access  # Accessing _context for testing
+# Accessing _context for testing
 
 from unittest.mock import AsyncMock, patch
 
-from homeassistant.components.button.const import DOMAIN as BUTTON_DOMAIN
-from homeassistant.components.button.const import SERVICE_PRESS
+from homeassistant.components.button.const import DOMAIN as BUTTON_DOMAIN, SERVICE_PRESS
 from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import Context, HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -109,11 +108,7 @@ async def test_penalty_decrements_points(
         await hass.async_block_till_done()
 
     # DEBUG: Check what happened
-    final_points = coordinator.kids_data[zoe_id]["points"]
-    print(f"Final points: {final_points} (expected: {initial_points - 5.0})")
-    print(
-        f"Penalty applies: {coordinator.kids_data[zoe_id].get('penalty_applies', {})}"
-    )
+    coordinator.kids_data[zoe_id]["points"]
 
     # Verify points decreased by 5
     assert coordinator.kids_data[zoe_id]["points"] == initial_points - 5.0
@@ -132,9 +127,7 @@ async def test_penalty_recorded_in_history(
     penalty_id = name_to_id_map["penalty:Førget Chöre"]
 
     # Get initial penalty count
-    initial_count = (
-        coordinator.kids_data[zoe_id].get("penalty_applies", {}).get(penalty_id, 0)
-    )
+    initial_count = coordinator.kids_data[zoe_id].get("penalty_applies", {}).get(penalty_id, 0)
 
     # Apply penalty using direct entity method call
     penalty_button_id = get_button_entity_id(hass, "Zoë", "penalty", "Førget Chöre")

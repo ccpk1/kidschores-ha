@@ -10,20 +10,23 @@ Key Features:
 - Storage management for persistent data handling.
 """
 
-# pylint: disable=protected-access  # Legitimate internal access to coordinator._persist()
+# Legitimate internal access to coordinator._persist()
 
 from __future__ import annotations
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from typing import TYPE_CHECKING
+
 from homeassistant.exceptions import ConfigEntryNotReady
 
-from . import const
-from . import flow_helpers as fh
+from . import const, flow_helpers as fh
 from .coordinator import KidsChoresDataCoordinator
 from .notification_action_handler import async_handle_notification_action
 from .services import async_setup_services, async_unload_services
 from .storage_manager import KidsChoresStorageManager
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
 
 
 async def _update_all_kid_device_names(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -121,9 +124,7 @@ async def _cleanup_legacy_entities(hass: HomeAssistant, entry: ConfigEntry) -> N
 
     # Scan and remove legacy entities for this config entry
     removed_count = 0
-    for entity_entry in er.async_entries_for_config_entry(
-        entity_registry, entry.entry_id
-    ):
+    for entity_entry in er.async_entries_for_config_entry(entity_registry, entry.entry_id):
         if entity_entry.domain == "sensor":
             for suffix in legacy_suffixes:
                 if entity_entry.unique_id.endswith(suffix):
@@ -175,9 +176,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Create safety backup only on true first startup (not on reloads)
     # Use a persistent flag across reloads to prevent duplicate backups
-    startup_backup_key = (
-        f"{const.DOMAIN}{const.RUNTIME_KEY_STARTUP_BACKUP_CREATED}{entry.entry_id}"
-    )
+    startup_backup_key = f"{const.DOMAIN}{const.RUNTIME_KEY_STARTUP_BACKUP_CREATED}{entry.entry_id}"
 
     # Check if we've already created a startup backup for this entry in this HA session
     if not hass.data.get(startup_backup_key, False):
@@ -194,18 +193,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 backup_name,
             )
         else:
-            const.LOGGER.warning(
-                "Failed to create startup backup - continuing with setup"
-            )
+            const.LOGGER.warning("Failed to create startup backup - continuing with setup")
     else:
         const.LOGGER.debug("Skipping startup backup on settings reload")
 
     # Always cleanup old backups based on current retention setting
     # This ensures changes to max_backups are applied immediately
     max_backups = int(
-        entry.options.get(
-            const.CONF_BACKUPS_MAX_RETAINED, const.DEFAULT_BACKUPS_MAX_RETAINED
-        )
+        entry.options.get(const.CONF_BACKUPS_MAX_RETAINED, const.DEFAULT_BACKUPS_MAX_RETAINED)
     )
     await fh.cleanup_old_backups(hass, storage_manager, max_backups)
 
@@ -308,9 +303,9 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
     # Safely check if data exists before attempting to access it
     if const.DOMAIN in hass.data and entry.entry_id in hass.data[const.DOMAIN]:
-        storage_manager: KidsChoresStorageManager = hass.data[const.DOMAIN][
-            entry.entry_id
-        ][const.STORAGE_MANAGER]
+        storage_manager: KidsChoresStorageManager = hass.data[const.DOMAIN][entry.entry_id][
+            const.STORAGE_MANAGER
+        ]
 
         # Create backup before deletion (allows data recovery on re-add)
         backup_name = await fh.create_timestamped_backup(
@@ -328,10 +323,6 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
         # Delete active storage file
         await storage_manager.async_delete_storage()
-        const.LOGGER.info(
-            "KidsChores storage file deleted for entry: %s", entry.entry_id
-        )
+        const.LOGGER.info("KidsChores storage file deleted for entry: %s", entry.entry_id)
     else:
-        const.LOGGER.info(
-            "No storage data found for entry %s - nothing to remove", entry.entry_id
-        )
+        const.LOGGER.info("No storage data found for entry %s - nothing to remove", entry.entry_id)

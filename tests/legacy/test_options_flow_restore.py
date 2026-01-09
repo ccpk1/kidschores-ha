@@ -13,9 +13,9 @@ general options menu for existing users. Tests cover:
 import json
 from unittest.mock import patch
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kidschores.const import (
@@ -266,9 +266,7 @@ async def test_options_flow_paste_json_with_diagnostic_format(
     with patch("asyncio.sleep"):  # Speed up test
         result = await hass.config_entries.options.async_configure(
             result.get("flow_id"),
-            user_input={
-                CFOF_DATA_RECOVERY_INPUT_JSON_DATA: json.dumps(diagnostic_json)
-            },
+            user_input={CFOF_DATA_RECOVERY_INPUT_JSON_DATA: json.dumps(diagnostic_json)},
         )
 
     # Should return to init after successful import

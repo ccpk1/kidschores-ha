@@ -44,8 +44,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.helpers.entity_registry import async_get
 
-from . import const
-from . import kc_helpers as kh
+from . import const, kc_helpers as kh
 from .coordinator import KidsChoresDataCoordinator
 from .entity import KidsChoresCoordinatorEntity
 
@@ -86,12 +85,12 @@ class SystemChoreApprovalsSensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._attr_entity_registry_enabled_default = show_legacy
         self._kid_id = kid_id
         self._kid_name = kid_name
-        self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_TOTAL_SENSOR}"
+        self._attr_unique_id = (
+            f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_TOTAL_SENSOR}"
+        )
         self._attr_native_unit_of_measurement = const.DEFAULT_CHORES_UNIT
         self._attr_icon = const.DEFAULT_COMPLETED_CHORES_TOTAL_SENSOR_ICON
-        self._attr_translation_placeholders = {
-            const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
-        }
+        self._attr_translation_placeholders = {const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name}
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_TOTAL_SENSOR}"
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
@@ -100,9 +99,7 @@ class SystemChoreApprovalsSensor(KidsChoresCoordinatorEntity, SensorEntity):
         """Return the total number of chores completed by the kid."""
         kid_info = self.coordinator.kids_data.get(self._kid_id, {})
         stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
-        return stats.get(
-            const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME, const.DEFAULT_ZERO
-        )
+        return stats.get(const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME, const.DEFAULT_ZERO)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -145,12 +142,12 @@ class SystemChoreApprovalsDailySensor(KidsChoresCoordinatorEntity, SensorEntity)
         self._attr_entity_registry_enabled_default = show_legacy
         self._kid_id = kid_id
         self._kid_name = kid_name
-        self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_DAILY_SENSOR}"
+        self._attr_unique_id = (
+            f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_DAILY_SENSOR}"
+        )
         self._attr_native_unit_of_measurement = const.DEFAULT_CHORES_UNIT
         self._attr_icon = const.DEFAULT_COMPLETED_CHORES_DAILY_SENSOR_ICON
-        self._attr_translation_placeholders = {
-            const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
-        }
+        self._attr_translation_placeholders = {const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name}
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_DAILY_SENSOR}"
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
@@ -202,12 +199,12 @@ class SystemChoreApprovalsWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity
         self._attr_entity_registry_enabled_default = show_legacy
         self._kid_id = kid_id
         self._kid_name = kid_name
-        self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_WEEKLY_SENSOR}"
+        self._attr_unique_id = (
+            f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_WEEKLY_SENSOR}"
+        )
         self._attr_native_unit_of_measurement = const.DEFAULT_CHORES_UNIT
         self._attr_icon = const.DEFAULT_COMPLETED_CHORES_WEEKLY_SENSOR_ICON
-        self._attr_translation_placeholders = {
-            const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
-        }
+        self._attr_translation_placeholders = {const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name}
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_WEEKLY_SENSOR}"
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
@@ -259,12 +256,12 @@ class SystemChoreApprovalsMonthlySensor(KidsChoresCoordinatorEntity, SensorEntit
         self._attr_entity_registry_enabled_default = show_legacy
         self._kid_id = kid_id
         self._kid_name = kid_name
-        self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_MONTHLY_SENSOR}"
+        self._attr_unique_id = (
+            f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_MONTHLY_SENSOR}"
+        )
         self._attr_native_unit_of_measurement = const.DEFAULT_CHORES_UNIT
         self._attr_icon = const.DEFAULT_COMPLETED_CHORES_MONTHLY_SENSOR_ICON
-        self._attr_translation_placeholders = {
-            const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
-        }
+        self._attr_translation_placeholders = {const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name}
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_MONTHLY_SENSOR}"
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
@@ -296,9 +293,7 @@ class SystemChoresPendingApprovalSensor(KidsChoresCoordinatorEntity, SensorEntit
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = const.TRANS_KEY_SENSOR_PENDING_CHORES_APPROVALS_SENSOR
 
-    def __init__(
-        self, coordinator: KidsChoresDataCoordinator, entry: ConfigEntry
-    ) -> None:
+    def __init__(self, coordinator: KidsChoresDataCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor.
 
         Args:
@@ -310,10 +305,14 @@ class SystemChoresPendingApprovalSensor(KidsChoresCoordinatorEntity, SensorEntit
         show_legacy = entry.options.get(const.CONF_SHOW_LEGACY_ENTITIES, False)
         self._attr_entity_registry_enabled_default = show_legacy
         self._entry = entry
-        self._attr_unique_id = f"{entry.entry_id}{const.SENSOR_KC_UID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR}"
+        self._attr_unique_id = (
+            f"{entry.entry_id}{const.SENSOR_KC_UID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR}"
+        )
         self._attr_icon = const.DEFAULT_PENDING_CHORE_APPROVALS_SENSOR_ICON
         self._attr_native_unit_of_measurement = const.DEFAULT_PENDING_CHORES_UNIT
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{const.SENSOR_KC_EID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR}"
+        self.entity_id = (
+            f"{const.SENSOR_KC_PREFIX}{const.SENSOR_KC_EID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR}"
+        )
         self._attr_device_info = kh.create_system_device_info(entry)
 
     @property
@@ -396,9 +395,7 @@ class SystemRewardsPendingApprovalSensor(KidsChoresCoordinatorEntity, SensorEnti
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = const.TRANS_KEY_SENSOR_PENDING_REWARDS_APPROVALS_SENSOR
 
-    def __init__(
-        self, coordinator: KidsChoresDataCoordinator, entry: ConfigEntry
-    ) -> None:
+    def __init__(self, coordinator: KidsChoresDataCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor.
 
         Args:
@@ -410,10 +407,14 @@ class SystemRewardsPendingApprovalSensor(KidsChoresCoordinatorEntity, SensorEnti
         show_legacy = entry.options.get(const.CONF_SHOW_LEGACY_ENTITIES, False)
         self._attr_entity_registry_enabled_default = show_legacy
         self._entry = entry
-        self._attr_unique_id = f"{entry.entry_id}{const.SENSOR_KC_UID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR}"
+        self._attr_unique_id = (
+            f"{entry.entry_id}{const.SENSOR_KC_UID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR}"
+        )
         self._attr_icon = const.DEFAULT_PENDING_REWARD_APPROVALS_SENSOR_ICON
         self._attr_native_unit_of_measurement = const.DEFAULT_PENDING_REWARDS_UNIT
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{const.SENSOR_KC_EID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR}"
+        self.entity_id = (
+            f"{const.SENSOR_KC_PREFIX}{const.SENSOR_KC_EID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR}"
+        )
         self._attr_device_info = kh.create_system_device_info(entry)
 
     @property
@@ -527,7 +528,9 @@ class KidPointsEarnedDailySensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._kid_name = kid_name
         self._points_label = points_label
         self._points_icon = points_icon
-        self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_DAILY_SENSOR}"
+        self._attr_unique_id = (
+            f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_DAILY_SENSOR}"
+        )
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
         }
@@ -598,7 +601,9 @@ class KidPointsEarnedWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._kid_name = kid_name
         self._points_label = points_label
         self._points_icon = points_icon
-        self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_WEEKLY_SENSOR}"
+        self._attr_unique_id = (
+            f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_WEEKLY_SENSOR}"
+        )
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
         }
@@ -740,7 +745,9 @@ class KidPointsMaxEverSensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._kid_name = kid_name
         self._points_label = points_label
         self._points_icon = points_icon
-        self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_MAX_POINTS_EVER_SENSOR}"
+        self._attr_unique_id = (
+            f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_MAX_POINTS_EVER_SENSOR}"
+        )
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
             const.TRANS_KEY_SENSOR_ATTR_POINTS: points_label,
@@ -753,9 +760,7 @@ class KidPointsMaxEverSensor(KidsChoresCoordinatorEntity, SensorEntity):
         """Return the highest points total the kid has ever reached."""
         kid_info = self.coordinator.kids_data.get(self._kid_id, {})
         point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
-        return point_stats.get(
-            const.DATA_KID_POINT_STATS_HIGHEST_BALANCE, const.DEFAULT_ZERO
-        )
+        return point_stats.get(const.DATA_KID_POINT_STATS_HIGHEST_BALANCE, const.DEFAULT_ZERO)
 
     @property
     def icon(self) -> str:
@@ -814,7 +819,9 @@ class KidChoreStreakSensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._entry = entry
         self._kid_id = kid_id
         self._kid_name = kid_name
-        self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_HIGHEST_STREAK_SENSOR}"
+        self._attr_unique_id = (
+            f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_HIGHEST_STREAK_SENSOR}"
+        )
         # No unit of measurement - streak is a count, not a duration
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
@@ -836,16 +843,13 @@ class KidChoreStreakSensor(KidsChoresCoordinatorEntity, SensorEntity):
         """Return extra attributes including individual streaks per achievement."""
         streaks: dict[str, int] = {}
         for achievement in self.coordinator.achievements_data.values():
-            if (
-                achievement.get(const.DATA_ACHIEVEMENT_TYPE)
-                == const.ACHIEVEMENT_TYPE_STREAK
-            ):
+            if achievement.get(const.DATA_ACHIEVEMENT_TYPE) == const.ACHIEVEMENT_TYPE_STREAK:
                 achievement_name = achievement.get(
                     const.DATA_ACHIEVEMENT_NAME, const.DISPLAY_UNKNOWN
                 )
-                progress_for_kid = achievement.get(
-                    const.DATA_ACHIEVEMENT_PROGRESS, {}
-                ).get(self._kid_id)
+                progress_for_kid = achievement.get(const.DATA_ACHIEVEMENT_PROGRESS, {}).get(
+                    self._kid_id
+                )
 
                 if isinstance(progress_for_kid, dict):
                     streaks[achievement_name] = progress_for_kid.get(
@@ -941,9 +945,7 @@ class KidPenaltyAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
         penalty_info = self.coordinator.penalties_data.get(self._penalty_id, {})
 
         stored_labels = penalty_info.get(const.DATA_PENALTY_LABELS, [])
-        friendly_labels = [
-            kh.get_friendly_label(self.hass, label) for label in stored_labels
-        ]
+        friendly_labels = [kh.get_friendly_label(self.hass, label) for label in stored_labels]
 
         # Get the ParentPenaltyApplyButton entity_id
         penalty_button_eid = None
@@ -1024,15 +1026,16 @@ class KidBonusAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._bonus_id = bonus_id
         self._bonus_name = bonus_name
 
-        self._attr_unique_id = f"{entry.entry_id}_{kid_id}_{bonus_id}{const.SENSOR_KC_UID_SUFFIX_BONUS_APPLIES_SENSOR}"
+        self._attr_unique_id = (
+            f"{entry.entry_id}_{kid_id}_{bonus_id}{const.SENSOR_KC_UID_SUFFIX_BONUS_APPLIES_SENSOR}"
+        )
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
             const.TRANS_KEY_SENSOR_ATTR_BONUS_NAME: bonus_name,
         }
         # Strip redundant "bonus" suffix from entity_id (bonus_name often ends with "Bonus")
         bonus_slug = bonus_name.lower().replace(" ", "_")
-        if bonus_slug.endswith("_bonus"):
-            bonus_slug = bonus_slug[:-6]  # Remove "_bonus" suffix
+        bonus_slug = bonus_slug.removesuffix("_bonus")  # Remove "_bonus" suffix
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_MIDFIX_BONUS_APPLIES_SENSOR}{bonus_slug}"
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
@@ -1050,15 +1053,15 @@ class KidBonusAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
         bonus_info = self.coordinator.bonuses_data.get(self._bonus_id, {})
 
         stored_labels = bonus_info.get(const.DATA_BONUS_LABELS, [])
-        friendly_labels = [
-            kh.get_friendly_label(self.hass, label) for label in stored_labels
-        ]
+        friendly_labels = [kh.get_friendly_label(self.hass, label) for label in stored_labels]
 
         # Get the ParentBonusApplyButton entity_id
         bonus_button_eid = None
         try:
             entity_registry = async_get(self.hass)
-            unique_id = f"{self._entry.entry_id}_{const.BUTTON_BONUS_PREFIX}{self._kid_id}_{self._bonus_id}"
+            unique_id = (
+                f"{self._entry.entry_id}_{const.BUTTON_BONUS_PREFIX}{self._kid_id}_{self._bonus_id}"
+            )
             bonus_button_eid = entity_registry.async_get_entity_id(
                 "button", const.DOMAIN, unique_id
             )

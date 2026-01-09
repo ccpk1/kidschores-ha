@@ -4,7 +4,7 @@ Test all backup-related dropdown forms to verify Spanish translations work corre
 This helps validate whether the emoji prefix approach provides proper Spanish support.
 """
 
-# pylint: disable=broad-exception-caught  # Tests use broad catches to show diagnostic output
+# Tests use broad catches to show diagnostic output
 
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
@@ -27,9 +27,7 @@ async def test_spanish_backup_actions_menu(
     # Navigate to general options where backup dropdown is accessible
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
-        user_input={
-            const.OPTIONS_FLOW_INPUT_MENU_SELECTION: const.OPTIONS_FLOW_GENERAL_OPTIONS
-        },
+        user_input={const.OPTIONS_FLOW_INPUT_MENU_SELECTION: const.OPTIONS_FLOW_GENERAL_OPTIONS},
     )
 
     # Verify we're in the general options step
@@ -38,11 +36,10 @@ async def test_spanish_backup_actions_menu(
 
     # Get the schema to inspect form fields
     schema = result["data_schema"]
-    print(f"Schema fields: {list(schema.schema.keys())}")
 
     # Debug each field to understand the structure
     for key, field_validator in schema.schema.items():
-        print(f"Field key: {key}, type: {type(field_validator)}")
+        pass
 
     # Find backup field - should be backup_action_selection
     backup_field_key = None
@@ -50,7 +47,6 @@ async def test_spanish_backup_actions_menu(
 
     for key, field_validator in schema.schema.items():
         if "backup" in str(key).lower():
-            print(f"Found backup field by schema key: {key}")
             backup_field_key = key
 
             # Extract the actual field name from Required/Optional wrapper
@@ -61,81 +57,47 @@ async def test_spanish_backup_actions_menu(
                     break
 
     if backup_field_key:
-        print(f"Found backup field: {backup_field_key}")
-        print(f"Found backup selector: {backup_selector}")
-        print(f"Backup selector type: {type(backup_selector)}")
 
         if backup_selector:
-            print(f"Backup selector dir: {dir(backup_selector)}")
+            pass
 
         # Inspect the selector to see if it uses translation_key or explicit options
         if backup_selector and hasattr(backup_selector, "config"):
             selector_config = backup_selector.config
-            print(f"Selector config type: {type(selector_config)}")
-            print(
-                f"Selector config keys: {list(selector_config.keys()) if isinstance(selector_config, dict) else 'Not a dict'}"
-            )
 
             # This should print the actual configuration
-            print("=== BACKUP SELECTOR CONFIG CONTENT ===")
-            print(f"Full selector config: {selector_config}")
 
             if isinstance(selector_config, dict):
                 # Check for translation_key (Spanish-compatible approach)
                 if "translation_key" in selector_config:
-                    print(
-                        f"✅ Uses translation_key: {selector_config['translation_key']}"
-                    )
-                    print("✅ This means Spanish translations should work!")
+                    pass
 
                 # Check for explicit options (emoji approach - may not be Spanish-compatible)
-                elif "options" in selector_config and selector_config["options"]:
-                    print(
-                        f"⚠️  Uses explicit options: {len(selector_config['options'])} items"
-                    )
-                    print(f"\nBackup actions menu options (with Spanish language set):")
-                    for i, option in enumerate(selector_config["options"]):
-                        print(f"  Option {i}: {option}")
+                elif selector_config.get("options"):
+                    for _i, option in enumerate(selector_config["options"]):
                         if isinstance(option, dict):
                             if "value" in option and "label" in option:
-                                print(
-                                    f"    Value: {option['value']}, Label: {option['label']}"
-                                )
                                 # Check if label contains emojis
                                 label = option["label"]
-                                has_emoji = any(ord(char) > 127 for char in label[:10])
-                                print(f"    Has emoji: {has_emoji}")
+                                any(ord(char) > 127 for char in label[:10])
                             else:
-                                print(f"    Dict keys: {list(option.keys())}")
+                                pass
                         else:
-                            print(f"    Option type: {type(option)}")
+                            pass
                 else:
-                    print("❌ No translation_key or options found in config")
+                    pass
 
-            print("=== END CONFIG ANALYSIS ===")
 
             # Summary and recommendations
-            print("\n=== SPANISH LANGUAGE ANALYSIS ===")
             if isinstance(selector_config, dict):
-                if "translation_key" in selector_config:
-                    print(
-                        "✅ RESULT: Uses translation_key - Spanish users will see translated text"
-                    )
-                elif "options" in selector_config:
-                    print(
-                        "⚠️  RESULT: Uses explicit options - Spanish users see emojis but may lack Spanish labels"
-                    )
-                    print(
-                        "💡 RECOMMENDATION: Consider translation_key approach for better internationalization"
-                    )
+                if "translation_key" in selector_config or "options" in selector_config:
+                    pass
                 else:
-                    print(
-                        "❓ RESULT: Unknown configuration - unable to determine Spanish compatibility"
-                    )
+                    pass
         else:
-            print("No backup selector found or no config attribute")
+            pass
     else:
-        print("Backup action selection not found in schema!")
+        pass
 
 
 async def test_spanish_backup_create_flow(
@@ -150,9 +112,7 @@ async def test_spanish_backup_create_flow(
     # Navigate to general options
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
-        user_input={
-            const.OPTIONS_FLOW_INPUT_MENU_SELECTION: const.OPTIONS_FLOW_GENERAL_OPTIONS
-        },
+        user_input={const.OPTIONS_FLOW_INPUT_MENU_SELECTION: const.OPTIONS_FLOW_GENERAL_OPTIONS},
     )
 
     # Try to navigate to backup creation (if available)
@@ -161,15 +121,12 @@ async def test_spanish_backup_create_flow(
             result["flow_id"], user_input={"backup_action_selection": "create_backup"}
         )
 
-        print(f"Create backup result type: {result['type']}")
-        print(f"Create backup step_id: {result.get('step_id', 'No step_id')}")
 
         if result["type"] == FlowResultType.FORM:
-            schema = result["data_schema"]
-            print(f"Create backup form fields: {list(schema.schema.keys())}")
+            result["data_schema"]
 
-    except Exception as e:
-        print(f"Could not navigate to create backup: {e}")
+    except Exception:
+        pass
 
 
 async def test_spanish_backup_restore_flow(
@@ -184,9 +141,7 @@ async def test_spanish_backup_restore_flow(
     # Navigate to general options
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
-        user_input={
-            const.OPTIONS_FLOW_INPUT_MENU_SELECTION: const.OPTIONS_FLOW_GENERAL_OPTIONS
-        },
+        user_input={const.OPTIONS_FLOW_INPUT_MENU_SELECTION: const.OPTIONS_FLOW_GENERAL_OPTIONS},
     )
 
     # Try to navigate to backup restore (if available)
@@ -195,12 +150,9 @@ async def test_spanish_backup_restore_flow(
             result["flow_id"], user_input={"backup_action_selection": "restore_backup"}
         )
 
-        print(f"Restore backup result type: {result['type']}")
-        print(f"Restore backup step_id: {result.get('step_id', 'No step_id')}")
 
         if result["type"] == FlowResultType.FORM:
-            schema = result["data_schema"]
-            print(f"Restore backup form fields: {list(schema.schema.keys())}")
+            result["data_schema"]
 
-    except Exception as e:
-        print(f"Could not navigate to restore backup: {e}")
+    except Exception:
+        pass

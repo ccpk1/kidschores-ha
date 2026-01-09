@@ -138,17 +138,13 @@ class TestTranslationFilesExist:
         """At least one non-English notification translation should exist."""
         languages = get_available_notification_languages()
         non_english = [lang for lang in languages if lang != "en"]
-        assert len(non_english) > 0, (
-            "Expected at least one non-English notification translation"
-        )
+        assert len(non_english) > 0, "Expected at least one non-English notification translation"
 
     def test_at_least_one_other_language_dashboard(self) -> None:
         """At least one non-English dashboard translation should exist."""
         languages = get_available_dashboard_languages()
         non_english = [lang for lang in languages if lang != "en"]
-        assert len(non_english) > 0, (
-            "Expected at least one non-English dashboard translation"
-        )
+        assert len(non_english) > 0, "Expected at least one non-English dashboard translation"
 
 
 class TestNotificationTranslationStructure:
@@ -247,9 +243,7 @@ class TestMultiLanguageNotifications:
 
         for key in ["approve", "disapprove", "remind_30"]:
             if key in actions:
-                assert len(actions[key]) > 0, (
-                    f"{language}: Empty translation for '{key}'"
-                )
+                assert len(actions[key]) > 0, f"{language}: Empty translation for '{key}'"
 
 
 class TestMultiLanguageDashboard:
@@ -294,9 +288,7 @@ class TestTranslationQuality:
 
         # Should contain spaces or be properly capitalized words
         approve = actions.get("approve", "")
-        assert approve[0].isupper() or " " in approve, (
-            f"Expected readable text, got: {approve}"
-        )
+        assert approve[0].isupper() or " " in approve, f"Expected readable text, got: {approve}"
 
     @pytest.mark.parametrize("language", get_available_notification_languages())
     def test_no_untranslated_placeholders(self, language: str) -> None:

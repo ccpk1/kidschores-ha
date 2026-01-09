@@ -6,9 +6,9 @@
 # pylint: disable=wrong-import-position  # sys.path modification required before HA imports
 
 import asyncio
+from pathlib import Path
 import sys
 import uuid
-from pathlib import Path
 
 import yaml
 
@@ -28,14 +28,14 @@ async def load_scenario_to_running_instance():  # pylint: disable=too-many-local
     with open(scenario_file, encoding="utf-8") as f:
         scenario = yaml.safe_load(f)
 
-    print("� Starting/Connecting to Home Assistant instance...")
+    print("� Starting/Connecting to Home Assistant instance...")  # noqa: T201
 
     # Get/start the HA instance
     hass = await async_from_config_dir("/workspaces/core/config")
 
     # Start Home Assistant if not running
     if hass.state.name != "running":
-        print("⏳ Starting Home Assistant...")
+        print("⏳ Starting Home Assistant...")  # noqa: T201
         start_event = asyncio.Event()
 
         def on_started(event):  # pylint: disable=unused-argument
@@ -48,9 +48,9 @@ async def load_scenario_to_running_instance():  # pylint: disable=too-many-local
 
         # Wait for it to finish starting
         await start_event.wait()
-        print("✅ Home Assistant started successfully")
+        print("✅ Home Assistant started successfully")  # noqa: T201
     else:
-        print("✅ Connected to running Home Assistant")
+        print("✅ Connected to running Home Assistant")  # noqa: T201
 
     # Get the KidsChores coordinator
     DOMAIN = "kidschores"
@@ -59,7 +59,7 @@ async def load_scenario_to_running_instance():  # pylint: disable=too-many-local
     entries = hass.config_entries.async_entries(DOMAIN)
 
     if not entries:
-        print("🔧 No KidsChores config entry found, creating one...")
+        print("🔧 No KidsChores config entry found, creating one...")  # noqa: T201
 
         # Start the config flow
         result = await hass.config_entries.flow.async_init(
@@ -75,32 +75,32 @@ async def load_scenario_to_running_instance():  # pylint: disable=too-many-local
         # Get the created entry
         entries = hass.config_entries.async_entries(DOMAIN)
         if not entries:
-            print("❌ Failed to create config entry")
+            print("❌ Failed to create config entry")  # noqa: T201
             return
 
-        print("✅ Created KidsChores config entry")
+        print("✅ Created KidsChores config entry")  # noqa: T201
 
     entry = entries[0]
 
     # Wait for the integration to be loaded
     if DOMAIN not in hass.data or entry.entry_id not in hass.data[DOMAIN]:
-        print("⏳ Waiting for integration to load...")
+        print("⏳ Waiting for integration to load...")  # noqa: T201
         await asyncio.sleep(2)
 
     if DOMAIN not in hass.data or entry.entry_id not in hass.data[DOMAIN]:
-        print("❌ KidsChores integration failed to load")
+        print("❌ KidsChores integration failed to load")  # noqa: T201
         return
 
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
 
-    print(f"✅ Found KidsChores coordinator for entry: {entry.title}")
+    print(f"✅ Found KidsChores coordinator for entry: {entry.title}")  # noqa: T201
 
     # Track IDs for relationships
     kid_name_to_id = {}
     badge_name_to_id = {}
 
     # Clear existing data
-    print("\n🗑️  Clearing existing data...")
+    print("\n🗑️  Clearing existing data...")  # noqa: T201
     coordinator.kids_data.clear()
     coordinator.parents_data.clear()
     coordinator.chores_data.clear()
@@ -110,7 +110,7 @@ async def load_scenario_to_running_instance():  # pylint: disable=too-many-local
     coordinator.penalties_data.clear()
 
     # Create kids
-    print("\n👶 Loading kids...")
+    print("\n👶 Loading kids...")  # noqa: T201
     for kid_info in scenario["family"]["kids"]:
         kid_id = str(uuid.uuid4())
         kid_name = kid_info["name"]
@@ -146,10 +146,10 @@ async def load_scenario_to_running_instance():  # pylint: disable=too-many-local
 
         # Use coordinator's internal method to create kid
         coordinator._create_kid(kid_id, kid_data)
-        print(f"  ✓ {kid_name}: {kid_data['points']} points")
+        print(f"  ✓ {kid_name}: {kid_data['points']} points")  # noqa: T201
 
     # Create parents
-    print("\n👨 Loading parents...")
+    print("\n👨 Loading parents...")  # noqa: T201
     for parent_info in scenario["family"]["parents"]:
         parent_id = str(uuid.uuid4())
         parent_data = {
@@ -162,10 +162,10 @@ async def load_scenario_to_running_instance():  # pylint: disable=too-many-local
             "dashboard_language": "en",
         }
         coordinator._create_parent(parent_id, parent_data)
-        print(f"  ✓ {parent_info['name']}")
+        print(f"  ✓ {parent_info['name']}")  # noqa: T201
 
     # Create badges first (needed for kid badge relationships)
-    print("\n🏆 Loading badges...")
+    print("\n🏆 Loading badges...")  # noqa: T201
     for badge_info in scenario.get("badges", []):
         badge_id = str(uuid.uuid4())
         badge_name = badge_info["name"]
@@ -185,7 +185,7 @@ async def load_scenario_to_running_instance():  # pylint: disable=too-many-local
             "demote_on_fail": maintenance.get("demote_on_fail", False),
         }
         coordinator._create_badge(badge_id, badge_data)
-        print(f"  ✓ {badge_name} ({badge_info.get('type', 'cumulative')})")
+        print(f"  ✓ {badge_name} ({badge_info.get('type', 'cumulative')})")  # noqa: T201
 
     # Add earned badges to kids
     for kid_name, progress in scenario.get("progress", {}).items():
@@ -203,7 +203,7 @@ async def load_scenario_to_running_instance():  # pylint: disable=too-many-local
                     }
 
     # Create chores
-    print("\n🧹 Loading chores...")
+    print("\n🧹 Loading chores...")  # noqa: T201
     for chore_info in scenario["chores"]:
         chore_id = str(uuid.uuid4())
         assigned_kid_ids = [
@@ -235,10 +235,10 @@ async def load_scenario_to_running_instance():  # pylint: disable=too-many-local
         }
         coordinator._create_chore(chore_id, chore_data)
         assigned_names = ", ".join(chore_info.get("assigned_to", []))
-        print(f"  ✓ {chore_info['name']} → {assigned_names}")
+        print(f"  ✓ {chore_info['name']} → {assigned_names}")  # noqa: T201
 
     # Create rewards
-    print("\n🎁 Loading rewards...")
+    print("\n🎁 Loading rewards...")  # noqa: T201
     for reward_info in scenario.get("rewards", []):
         reward_id = str(uuid.uuid4())
         reward_data = {
@@ -250,10 +250,10 @@ async def load_scenario_to_running_instance():  # pylint: disable=too-many-local
             "icon": reward_info.get("icon", "mdi:gift"),
         }
         coordinator._create_reward(reward_id, reward_data)
-        print(f"  ✓ {reward_info['name']} ({reward_info.get('cost', 50)} points)")
+        print(f"  ✓ {reward_info['name']} ({reward_info.get('cost', 50)} points)")  # noqa: T201
 
     # Create bonuses
-    print("\n✨ Loading bonuses...")
+    print("\n✨ Loading bonuses...")  # noqa: T201
     for bonus_info in scenario.get("bonuses", []):
         bonus_id = str(uuid.uuid4())
         bonus_data = {
@@ -265,10 +265,10 @@ async def load_scenario_to_running_instance():  # pylint: disable=too-many-local
             "assigned_kids": list(kid_name_to_id.values()),
         }
         coordinator._create_bonus(bonus_id, bonus_data)
-        print(f"  ✓ {bonus_info['name']} ({bonus_info.get('points', 10)} points)")
+        print(f"  ✓ {bonus_info['name']} ({bonus_info.get('points', 10)} points)")  # noqa: T201
 
     # Create penalties
-    print("\n⚠️  Loading penalties...")
+    print("\n⚠️  Loading penalties...")  # noqa: T201
     for penalty_info in scenario.get("penalties", []):
         penalty_id = str(uuid.uuid4())
         penalty_data = {
@@ -280,26 +280,26 @@ async def load_scenario_to_running_instance():  # pylint: disable=too-many-local
             "assigned_kids": list(kid_name_to_id.values()),
         }
         coordinator._create_penalty(penalty_id, penalty_data)
-        print(f"  ✓ {penalty_info['name']} ({penalty_info.get('points', -5)} points)")
+        print(f"  ✓ {penalty_info['name']} ({penalty_info.get('points', -5)} points)")  # noqa: T201
 
     # Persist the data
-    print("\n💾 Persisting data to storage...")
+    print("\n💾 Persisting data to storage...")  # noqa: T201
     await coordinator._persist()
 
     # Trigger coordinator update to refresh entities
-    print("🔄 Refreshing coordinator...")
+    print("🔄 Refreshing coordinator...")  # noqa: T201
     await coordinator.async_refresh()
 
-    print("\n✅ Successfully loaded scenario data!")
-    print("\n📊 Summary:")
-    print(f"  👶 {len(coordinator.kids_data)} kids")
-    print(f"  👨 {len(coordinator.parents_data)} parents")
-    print(f"  🧹 {len(coordinator.chores_data)} chores")
-    print(f"  🏆 {len(coordinator.badges_data)} badges")
-    print(f"  🎁 {len(coordinator.rewards_data)} rewards")
-    print(f"  ✨ {len(coordinator.bonuses_data)} bonuses")
-    print(f"  ⚠️  {len(coordinator.penalties_data)} penalties")
-    print("\n🎉 Data is now live in Home Assistant!")
+    print("\n✅ Successfully loaded scenario data!")  # noqa: T201
+    print("\n📊 Summary:")  # noqa: T201
+    print(f"  👶 {len(coordinator.kids_data)} kids")  # noqa: T201
+    print(f"  👨 {len(coordinator.parents_data)} parents")  # noqa: T201
+    print(f"  🧹 {len(coordinator.chores_data)} chores")  # noqa: T201
+    print(f"  🏆 {len(coordinator.badges_data)} badges")  # noqa: T201
+    print(f"  🎁 {len(coordinator.rewards_data)} rewards")  # noqa: T201
+    print(f"  ✨ {len(coordinator.bonuses_data)} bonuses")  # noqa: T201
+    print(f"  ⚠️  {len(coordinator.penalties_data)} penalties")  # noqa: T201
+    print("\n🎉 Data is now live in Home Assistant!")  # noqa: T201
 
 
 if __name__ == "__main__":

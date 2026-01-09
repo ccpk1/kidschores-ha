@@ -44,28 +44,31 @@ This file is organized into logical sections for easy navigation:
 
 from __future__ import annotations
 
-import json
-import os
 from calendar import monthrange
 from datetime import date, datetime, timedelta, tzinfo
-from typing import TYPE_CHECKING, Any, Iterable, Optional, Union
+import json
+import os
+from typing import TYPE_CHECKING, Any
 
-import homeassistant.util.dt as dt_util
-from homeassistant.auth.models import User
-from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.label_registry import async_get as async_get_label_registry
+import homeassistant.util.dt as dt_util
 
 from . import const
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from homeassistant.auth.models import User
+    from homeassistant.core import HomeAssistant
+
     from .coordinator import KidsChoresDataCoordinator  # Used for type checking only
 
 
 # 📍 -------- Get Coordinator --------
 def _get_kidschores_coordinator(
     hass: HomeAssistant,
-) -> Optional[KidsChoresDataCoordinator]:
+) -> KidsChoresDataCoordinator | None:
     """Retrieve KidsChores coordinator from hass.data."""
 
     domain_entries = hass.data.get(const.DOMAIN, {})
@@ -99,7 +102,7 @@ async def is_user_authorized_for_global_action(
     if not user_id:
         return False  # no user context => not authorized
 
-    user: Optional[User] = await hass.auth.async_get_user(user_id)
+    user: User | None = await hass.auth.async_get_user(user_id)
     if not user:
         const.LOGGER.warning("WARNING: %s: Invalid user ID '%s'", action, user_id)
         return False
@@ -138,7 +141,7 @@ async def is_user_authorized_for_kid(
     if not user_id:
         return False
 
-    user: Optional[User] = await hass.auth.async_get_user(user_id)
+    user: User | None = await hass.auth.async_get_user(user_id)
     if not user:
         const.LOGGER.warning("WARNING: Authorization: Invalid user ID '%s'", user_id)
         return False
@@ -148,7 +151,7 @@ async def is_user_authorized_for_kid(
         return True
 
     # Allow non-admin users if they are registered as a parent in KidsChores.
-    coordinator: Optional[KidsChoresDataCoordinator] = _get_kidschores_coordinator(hass)
+    coordinator: KidsChoresDataCoordinator | None = _get_kidschores_coordinator(hass)
     if coordinator:
         for parent in coordinator.parents_data.values():
             if parent.get(const.DATA_PARENT_HA_USER_ID) == user.id:
@@ -191,14 +194,12 @@ def parse_points_adjust_values(points_str: str) -> list[float]:
             value = float(part.replace(",", "."))
             values.append(value)
         except ValueError:
-            const.LOGGER.error(
-                "ERROR: Invalid number '%s' in points adjust values", part
-            )
+            const.LOGGER.error("ERROR: Invalid number '%s' in points adjust values", part)
     return values
 
 
 # 🔍 -------- Basic Entity Lookup Helpers --------
-def get_first_kidschores_entry(hass: HomeAssistant) -> Optional[str]:
+def get_first_kidschores_entry(hass: HomeAssistant) -> str | None:
     """Retrieve the first KidsChores config entry ID."""
     domain_entries = hass.data.get(const.DOMAIN)
     if not domain_entries:
@@ -216,7 +217,7 @@ def get_first_kidschores_entry(hass: HomeAssistant) -> Optional[str]:
 
 def get_entity_id_by_name(
     coordinator: KidsChoresDataCoordinator, entity_type: str, entity_name: str
-) -> Optional[str]:
+) -> str | None:
     """Generic entity ID lookup by name across all entity types.
 
     Replaces duplicate get_*_id_by_name() functions with a single parametrizable
@@ -258,8 +259,7 @@ def get_entity_id_by_name(
 
     if entity_type not in entity_map:
         raise ValueError(
-            f"Unknown entity_type: {entity_type}. "
-            f"Valid options: {', '.join(entity_map.keys())}"
+            f"Unknown entity_type: {entity_type}. Valid options: {', '.join(entity_map.keys())}"
         )
 
     data_dict, name_key = entity_map[entity_type]
@@ -270,9 +270,7 @@ def get_entity_id_by_name(
 
 
 # Thin wrapper functions for backward compatibility and convenience
-def get_kid_id_by_name(
-    coordinator: KidsChoresDataCoordinator, kid_name: str
-) -> Optional[str]:
+def get_kid_id_by_name(coordinator: KidsChoresDataCoordinator, kid_name: str) -> str | None:
     """Retrieve the kid_id for a given kid_name.
 
     Args:
@@ -285,9 +283,7 @@ def get_kid_id_by_name(
     return get_entity_id_by_name(coordinator, const.ENTITY_TYPE_KID, kid_name)
 
 
-def get_kid_name_by_id(
-    coordinator: KidsChoresDataCoordinator, kid_id: str
-) -> Optional[str]:
+def get_kid_name_by_id(coordinator: KidsChoresDataCoordinator, kid_id: str) -> str | None:
     """Retrieve the kid_name for a given kid_id.
 
     Args:
@@ -303,9 +299,7 @@ def get_kid_name_by_id(
     return None
 
 
-def get_chore_id_by_name(
-    coordinator: KidsChoresDataCoordinator, chore_name: str
-) -> Optional[str]:
+def get_chore_id_by_name(coordinator: KidsChoresDataCoordinator, chore_name: str) -> str | None:
     """Retrieve the chore_id for a given chore_name.
 
     Args:
@@ -318,9 +312,7 @@ def get_chore_id_by_name(
     return get_entity_id_by_name(coordinator, const.ENTITY_TYPE_CHORE, chore_name)
 
 
-def get_reward_id_by_name(
-    coordinator: KidsChoresDataCoordinator, reward_name: str
-) -> Optional[str]:
+def get_reward_id_by_name(coordinator: KidsChoresDataCoordinator, reward_name: str) -> str | None:
     """Retrieve the reward_id for a given reward_name.
 
     Args:
@@ -333,9 +325,7 @@ def get_reward_id_by_name(
     return get_entity_id_by_name(coordinator, const.ENTITY_TYPE_REWARD, reward_name)
 
 
-def get_penalty_id_by_name(
-    coordinator: KidsChoresDataCoordinator, penalty_name: str
-) -> Optional[str]:
+def get_penalty_id_by_name(coordinator: KidsChoresDataCoordinator, penalty_name: str) -> str | None:
     """Retrieve the penalty_id for a given penalty_name.
 
     Args:
@@ -348,9 +338,7 @@ def get_penalty_id_by_name(
     return get_entity_id_by_name(coordinator, const.ENTITY_TYPE_PENALTY, penalty_name)
 
 
-def get_badge_id_by_name(
-    coordinator: KidsChoresDataCoordinator, badge_name: str
-) -> Optional[str]:
+def get_badge_id_by_name(coordinator: KidsChoresDataCoordinator, badge_name: str) -> str | None:
     """Retrieve the badge_id for a given badge_name.
 
     Args:
@@ -363,9 +351,7 @@ def get_badge_id_by_name(
     return get_entity_id_by_name(coordinator, const.ENTITY_TYPE_BADGE, badge_name)
 
 
-def get_bonus_id_by_name(
-    coordinator: KidsChoresDataCoordinator, bonus_name: str
-) -> Optional[str]:
+def get_bonus_id_by_name(coordinator: KidsChoresDataCoordinator, bonus_name: str) -> str | None:
     """Retrieve the bonus_id for a given bonus_name.
 
     Args:
@@ -378,9 +364,7 @@ def get_bonus_id_by_name(
     return get_entity_id_by_name(coordinator, const.ENTITY_TYPE_BONUS, bonus_name)
 
 
-def get_parent_id_by_name(
-    coordinator: KidsChoresDataCoordinator, parent_name: str
-) -> Optional[str]:
+def get_parent_id_by_name(coordinator: KidsChoresDataCoordinator, parent_name: str) -> str | None:
     """Retrieve the parent_id for a given parent_name.
 
     Args:
@@ -395,7 +379,7 @@ def get_parent_id_by_name(
 
 def get_achievement_id_by_name(
     coordinator: KidsChoresDataCoordinator, achievement_name: str
-) -> Optional[str]:
+) -> str | None:
     """Retrieve the achievement_id for a given achievement_name.
 
     Args:
@@ -405,14 +389,12 @@ def get_achievement_id_by_name(
     Returns:
         The internal ID (UUID) of the achievement, or None if not found.
     """
-    return get_entity_id_by_name(
-        coordinator, const.ENTITY_TYPE_ACHIEVEMENT, achievement_name
-    )
+    return get_entity_id_by_name(coordinator, const.ENTITY_TYPE_ACHIEVEMENT, achievement_name)
 
 
 def get_challenge_id_by_name(
     coordinator: KidsChoresDataCoordinator, challenge_name: str
-) -> Optional[str]:
+) -> str | None:
     """Retrieve the challenge_id for a given challenge_name.
 
     Args:
@@ -422,9 +404,7 @@ def get_challenge_id_by_name(
     Returns:
         The internal ID (UUID) of the challenge, or None if not found.
     """
-    return get_entity_id_by_name(
-        coordinator, const.ENTITY_TYPE_CHALLENGE, challenge_name
-    )
+    return get_entity_id_by_name(coordinator, const.ENTITY_TYPE_CHALLENGE, challenge_name)
 
 
 def get_friendly_label(hass: HomeAssistant, label_name: str) -> str:
@@ -444,7 +424,7 @@ def get_friendly_label(hass: HomeAssistant, label_name: str) -> str:
         registry = async_get_label_registry(hass)
         label_entry = registry.async_get_label(label_name)
         return label_entry.name if label_entry else label_name
-    except Exception:  # pylint: disable=broad-except
+    except Exception:
         # Fallback if label registry unavailable
         return label_name
 
@@ -466,7 +446,7 @@ async def async_get_friendly_label(hass: HomeAssistant, label_name: str) -> str:
         registry = async_get_label_registry(hass)
         label_entry = registry.async_get_label(label_name)
         return label_entry.name if label_entry else label_name
-    except Exception:  # pylint: disable=broad-except
+    except Exception:
         # Fallback if label registry unavailable
         return label_name
 
@@ -479,9 +459,7 @@ async def async_get_friendly_label(hass: HomeAssistant, label_name: str) -> str:
 # ────────────────────────────────────────────────────────────────
 
 
-def build_default_chore_data(
-    chore_id: str, chore_data: dict[str, Any]
-) -> dict[str, Any]:
+def build_default_chore_data(chore_id: str, chore_data: dict[str, Any]) -> dict[str, Any]:
     """Build a complete chore data structure with all fields initialized.
 
     This is the SINGLE SOURCE OF TRUTH for chore field initialization.
@@ -505,13 +483,9 @@ def build_default_chore_data(
     return {
         # Core identification
         const.DATA_CHORE_INTERNAL_ID: chore_id,
-        const.DATA_CHORE_NAME: chore_data.get(
-            const.DATA_CHORE_NAME, const.SENTINEL_EMPTY
-        ),
+        const.DATA_CHORE_NAME: chore_data.get(const.DATA_CHORE_NAME, const.SENTINEL_EMPTY),
         # State - always starts as PENDING
-        const.DATA_CHORE_STATE: chore_data.get(
-            const.DATA_CHORE_STATE, const.CHORE_STATE_PENDING
-        ),
+        const.DATA_CHORE_STATE: chore_data.get(const.DATA_CHORE_STATE, const.CHORE_STATE_PENDING),
         # Points and configuration
         const.DATA_CHORE_DEFAULT_POINTS: chore_data.get(
             const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_POINTS
@@ -533,9 +507,7 @@ def build_default_chore_data(
             const.DATA_CHORE_DESCRIPTION, const.SENTINEL_EMPTY
         ),
         const.DATA_CHORE_LABELS: chore_data.get(const.DATA_CHORE_LABELS, []),
-        const.DATA_CHORE_ICON: chore_data.get(
-            const.DATA_CHORE_ICON, const.DEFAULT_ICON
-        ),
+        const.DATA_CHORE_ICON: chore_data.get(const.DATA_CHORE_ICON, const.DEFAULT_ICON),
         # Assignment
         const.DATA_CHORE_ASSIGNED_KIDS: assigned_kids_ids,
         # Scheduling - recurring frequency and custom interval
@@ -543,27 +515,17 @@ def build_default_chore_data(
             const.DATA_CHORE_RECURRING_FREQUENCY, const.FREQUENCY_NONE
         ),
         const.DATA_CHORE_CUSTOM_INTERVAL: (
-            chore_data.get(const.DATA_CHORE_CUSTOM_INTERVAL)
-            if is_custom_frequency
-            else None
+            chore_data.get(const.DATA_CHORE_CUSTOM_INTERVAL) if is_custom_frequency else None
         ),
         const.DATA_CHORE_CUSTOM_INTERVAL_UNIT: (
-            chore_data.get(const.DATA_CHORE_CUSTOM_INTERVAL_UNIT)
-            if is_custom_frequency
-            else None
+            chore_data.get(const.DATA_CHORE_CUSTOM_INTERVAL_UNIT) if is_custom_frequency else None
         ),
         # Due dates
         const.DATA_CHORE_DUE_DATE: chore_data.get(const.DATA_CHORE_DUE_DATE),
-        const.DATA_CHORE_PER_KID_DUE_DATES: chore_data.get(
-            const.DATA_CHORE_PER_KID_DUE_DATES, {}
-        ),
-        const.DATA_CHORE_APPLICABLE_DAYS: chore_data.get(
-            const.DATA_CHORE_APPLICABLE_DAYS, []
-        ),
+        const.DATA_CHORE_PER_KID_DUE_DATES: chore_data.get(const.DATA_CHORE_PER_KID_DUE_DATES, {}),
+        const.DATA_CHORE_APPLICABLE_DAYS: chore_data.get(const.DATA_CHORE_APPLICABLE_DAYS, []),
         # Runtime tracking fields (initially None/empty)
-        const.DATA_CHORE_LAST_COMPLETED: chore_data.get(
-            const.DATA_CHORE_LAST_COMPLETED
-        ),
+        const.DATA_CHORE_LAST_COMPLETED: chore_data.get(const.DATA_CHORE_LAST_COMPLETED),
         const.DATA_CHORE_LAST_CLAIMED: chore_data.get(const.DATA_CHORE_LAST_CLAIMED),
         const.DATA_CHORE_APPROVAL_PERIOD_START: chore_data.get(
             const.DATA_CHORE_APPROVAL_PERIOD_START
@@ -624,9 +586,7 @@ def get_entity_id_or_raise(
     """
     entity_id = get_entity_id_by_name(coordinator, entity_type, entity_name)
     if not entity_id:
-        raise HomeAssistantError(
-            f"{entity_type.capitalize()} '{entity_name}' not found"
-        )
+        raise HomeAssistantError(f"{entity_type.capitalize()} '{entity_name}' not found")
     return entity_id
 
 
@@ -636,9 +596,7 @@ def get_kid_id_or_raise(coordinator: KidsChoresDataCoordinator, kid_name: str) -
     return get_entity_id_or_raise(coordinator, const.ENTITY_TYPE_KID, kid_name)
 
 
-def get_chore_id_or_raise(
-    coordinator: KidsChoresDataCoordinator, chore_name: str
-) -> str:
+def get_chore_id_or_raise(coordinator: KidsChoresDataCoordinator, chore_name: str) -> str:
     """Get chore ID by name or raise HomeAssistantError if not found.
 
     Args:
@@ -654,9 +612,7 @@ def get_chore_id_or_raise(
     return get_entity_id_or_raise(coordinator, const.ENTITY_TYPE_CHORE, chore_name)
 
 
-def get_reward_id_or_raise(
-    coordinator: KidsChoresDataCoordinator, reward_name: str
-) -> str:
+def get_reward_id_or_raise(coordinator: KidsChoresDataCoordinator, reward_name: str) -> str:
     """Get reward ID by name or raise HomeAssistantError if not found.
 
     Args:
@@ -672,9 +628,7 @@ def get_reward_id_or_raise(
     return get_entity_id_or_raise(coordinator, const.ENTITY_TYPE_REWARD, reward_name)
 
 
-def get_penalty_id_or_raise(
-    coordinator: KidsChoresDataCoordinator, penalty_name: str
-) -> str:
+def get_penalty_id_or_raise(coordinator: KidsChoresDataCoordinator, penalty_name: str) -> str:
     """Get penalty ID by name or raise HomeAssistantError if not found.
 
     Args:
@@ -690,9 +644,7 @@ def get_penalty_id_or_raise(
     return get_entity_id_or_raise(coordinator, const.ENTITY_TYPE_PENALTY, penalty_name)
 
 
-def get_badge_id_or_raise(
-    coordinator: KidsChoresDataCoordinator, badge_name: str
-) -> str:
+def get_badge_id_or_raise(coordinator: KidsChoresDataCoordinator, badge_name: str) -> str:
     """Get badge ID by name or raise HomeAssistantError if not found.
 
     Args:
@@ -708,9 +660,7 @@ def get_badge_id_or_raise(
     return get_entity_id_or_raise(coordinator, const.ENTITY_TYPE_BADGE, badge_name)
 
 
-def get_bonus_id_or_raise(
-    coordinator: KidsChoresDataCoordinator, bonus_name: str
-) -> str:
+def get_bonus_id_or_raise(coordinator: KidsChoresDataCoordinator, bonus_name: str) -> str:
     """Get bonus ID by name or raise HomeAssistantError if not found.
 
     Args:
@@ -726,9 +676,7 @@ def get_bonus_id_or_raise(
     return get_entity_id_or_raise(coordinator, const.ENTITY_TYPE_BONUS, bonus_name)
 
 
-def get_parent_id_or_raise(
-    coordinator: KidsChoresDataCoordinator, parent_name: str
-) -> str:
+def get_parent_id_or_raise(coordinator: KidsChoresDataCoordinator, parent_name: str) -> str:
     """Get parent ID by name or raise HomeAssistantError if not found.
 
     Args:
@@ -759,14 +707,10 @@ def get_achievement_id_or_raise(
     Raises:
         HomeAssistantError: If the achievement is not found.
     """
-    return get_entity_id_or_raise(
-        coordinator, const.ENTITY_TYPE_ACHIEVEMENT, achievement_name
-    )
+    return get_entity_id_or_raise(coordinator, const.ENTITY_TYPE_ACHIEVEMENT, achievement_name)
 
 
-def get_challenge_id_or_raise(
-    coordinator: KidsChoresDataCoordinator, challenge_name: str
-) -> str:
+def get_challenge_id_or_raise(coordinator: KidsChoresDataCoordinator, challenge_name: str) -> str:
     """Get challenge ID by name or raise HomeAssistantError if not found.
 
     Args:
@@ -779,9 +723,7 @@ def get_challenge_id_or_raise(
     Raises:
         HomeAssistantError: If the challenge is not found.
     """
-    return get_entity_id_or_raise(
-        coordinator, const.ENTITY_TYPE_CHALLENGE, challenge_name
-    )
+    return get_entity_id_or_raise(coordinator, const.ENTITY_TYPE_CHALLENGE, challenge_name)
 
 
 # ────────────────────────────────────────────────────────────────
@@ -852,8 +794,7 @@ def get_today_chore_and_point_progress(
             const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK, 0
         )
         streak_per_chore[chore_id] = streak_today
-        if streak_today > longest_chore_streak:
-            longest_chore_streak = streak_today
+        longest_chore_streak = max(longest_chore_streak, streak_today)
 
     # Points from all sources (if tracked in kid point_stats)
     point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
@@ -876,9 +817,9 @@ def get_today_chore_completion_progress(
     kid_info: dict,
     tracked_chores: list,
     *,
-    kid_id: Optional[str] = None,
-    all_chores: Optional[dict] = None,
-    count_required: Optional[int] = None,
+    kid_id: str | None = None,
+    all_chores: dict | None = None,
+    count_required: int | None = None,
     percent_required: float = 1.0,
     require_no_overdue: bool = False,
     only_due_today: bool = False,
@@ -930,10 +871,7 @@ def get_today_chore_completion_progress(
                 # For independent chores, read from per_kid_due_dates
                 per_kid_dates = chore_info.get(const.DATA_CHORE_PER_KID_DUE_DATES, {})
                 due_date_iso = per_kid_dates.get(kid_id)
-                if (
-                    due_date_iso
-                    and due_date_iso[: const.ISO_DATE_STRING_LENGTH] == today_iso
-                ):
+                if due_date_iso and due_date_iso[: const.ISO_DATE_STRING_LENGTH] == today_iso:
                     chores_due_today.append(chore_id)
             chores_to_check = chores_due_today
     else:
@@ -970,10 +908,7 @@ def get_today_chore_completion_progress(
                 return False, approved_count, total_count
             # Also check if it was marked overdue today (for daily achievements)
             last_overdue_iso = chore_data.get(const.DATA_KID_CHORE_DATA_LAST_OVERDUE)
-            if (
-                last_overdue_iso
-                and last_overdue_iso[: const.ISO_DATE_STRING_LENGTH] == today_iso
-            ):
+            if last_overdue_iso and last_overdue_iso[: const.ISO_DATE_STRING_LENGTH] == today_iso:
                 return False, approved_count, total_count
 
     return True, approved_count, total_count
@@ -1028,7 +963,7 @@ def get_now_local_iso() -> str:
     return get_now_local_time().isoformat()
 
 
-def parse_datetime_to_utc(dt_str: str) -> Optional[datetime]:
+def parse_datetime_to_utc(dt_str: str) -> datetime | None:
     """
     Parse a datetime string, apply timezone if naive, and convert to UTC.
 
@@ -1045,7 +980,7 @@ def parse_datetime_to_utc(dt_str: str) -> Optional[datetime]:
     )
 
 
-def parse_date_safe(date_str: str) -> Optional[date]:
+def parse_date_safe(date_str: str) -> date | None:
     """
     Safely parse a date string into a `datetime.date`.
 
@@ -1065,8 +1000,8 @@ def parse_date_safe(date_str: str) -> Optional[date]:
 
 def format_datetime_with_return_type(
     dt_obj: datetime,
-    return_type: Optional[str] = const.HELPER_RETURN_DATETIME,
-) -> Union[datetime, date, str]:
+    return_type: str | None = const.HELPER_RETURN_DATETIME,
+) -> datetime | date | str:
     """
     Format a datetime object according to the specified return_type.
 
@@ -1087,29 +1022,28 @@ def format_datetime_with_return_type(
     """
     if return_type == const.HELPER_RETURN_DATETIME:
         return dt_obj
-    elif return_type == const.HELPER_RETURN_DATETIME_UTC:
+    if return_type == const.HELPER_RETURN_DATETIME_UTC:
         return dt_util.as_utc(dt_obj)
-    elif return_type == const.HELPER_RETURN_DATETIME_LOCAL:
+    if return_type == const.HELPER_RETURN_DATETIME_LOCAL:
         return dt_util.as_local(dt_obj)
-    elif return_type == const.HELPER_RETURN_DATE:
+    if return_type == const.HELPER_RETURN_DATE:
         return dt_obj.date()
-    elif return_type == const.HELPER_RETURN_ISO_DATETIME:
+    if return_type == const.HELPER_RETURN_ISO_DATETIME:
         return dt_obj.isoformat()
-    elif return_type == const.HELPER_RETURN_ISO_DATE:
+    if return_type == const.HELPER_RETURN_ISO_DATE:
         return dt_obj.date().isoformat()
-    elif return_type == const.HELPER_RETURN_SELECTOR_DATETIME:
+    if return_type == const.HELPER_RETURN_SELECTOR_DATETIME:
         # For HA DateTimeSelector: local timezone, "%Y-%m-%d %H:%M:%S" format
         return dt_util.as_local(dt_obj).strftime("%Y-%m-%d %H:%M:%S")
-    else:
-        # Default fallback is to return the datetime object unchanged
-        return dt_obj
+    # Default fallback is to return the datetime object unchanged
+    return dt_obj
 
 
 def normalize_datetime_input(  # pyright: ignore[reportReturnType]
-    dt_input: Union[str, date, datetime],
-    default_tzinfo: Optional[tzinfo] = None,
-    return_type: Optional[str] = const.HELPER_RETURN_DATETIME,
-) -> Union[datetime, date, str, None]:
+    dt_input: str | date | datetime,
+    default_tzinfo: tzinfo | None = None,
+    return_type: str | None = const.HELPER_RETURN_DATETIME,
+) -> datetime | date | str | None:
     """
     Normalize various datetime input formats to a consistent format.
 
@@ -1190,14 +1124,14 @@ def normalize_datetime_input(  # pyright: ignore[reportReturnType]
 
 
 def adjust_datetime_by_interval(  # pyright: ignore[reportReturnType]
-    base_date: Union[str, date, datetime],
+    base_date: str | date | datetime,
     interval_unit: str,
     delta: int,
-    end_of_period: Optional[str] = None,
+    end_of_period: str | None = None,
     require_future: bool = False,
-    reference_datetime: Optional[Union[str, date, datetime]] = None,
-    return_type: Optional[str] = const.HELPER_RETURN_DATETIME,
-) -> Union[str, date, datetime]:
+    reference_datetime: str | date | datetime | None = None,
+    return_type: str | None = const.HELPER_RETURN_DATETIME,
+) -> str | date | datetime:
     """
     Add or Subtract a time interval to a date or datetime and returns the result in the desired format.
 
@@ -1248,9 +1182,7 @@ def adjust_datetime_by_interval(  # pyright: ignore[reportReturnType]
     )
 
     if base_dt is None:
-        const.LOGGER.error(
-            "ERROR: Add Interval To DateTime - Could not parse base_date."
-        )
+        const.LOGGER.error("ERROR: Add Interval To DateTime - Could not parse base_date.")
         return None
 
     # Calculate the basic interval addition.
@@ -1394,9 +1326,7 @@ def adjust_datetime_by_interval(  # pyright: ignore[reportReturnType]
                         microsecond=0,
                     )
                 elif end_of_period == const.PERIOD_WEEK_END:
-                    days_until_sunday = (
-                        const.SUNDAY_WEEKDAY_INDEX - result.weekday()
-                    ) % 7
+                    days_until_sunday = (const.SUNDAY_WEEKDAY_INDEX - result.weekday()) % 7
                     result = (result + timedelta(days=days_until_sunday)).replace(
                         hour=const.END_OF_DAY_HOUR,
                         minute=const.END_OF_DAY_MINUTE,
@@ -1454,18 +1384,17 @@ def adjust_datetime_by_interval(  # pyright: ignore[reportReturnType]
                 )
 
     # Use format_datetime_with_return_type for consistent return formatting
-    final_result = format_datetime_with_return_type(result, return_type)
+    return format_datetime_with_return_type(result, return_type)
 
-    return final_result
 
 
 def get_next_scheduled_datetime(
-    base_date: Union[str, date, datetime],
+    base_date: str | date | datetime,
     interval_type: str,
     require_future: bool = True,
-    reference_datetime: Optional[Union[str, date, datetime]] = None,
-    return_type: Optional[str] = const.HELPER_RETURN_DATETIME,
-) -> Union[date, datetime, str]:
+    reference_datetime: str | date | datetime | None = None,
+    return_type: str | None = const.HELPER_RETURN_DATETIME,
+) -> date | datetime | str:
     """
     Calculates the next scheduled datetime based on an interval type from a given start date.
 
@@ -1511,14 +1440,12 @@ def get_next_scheduled_datetime(
     local_tz = const.DEFAULT_TIME_ZONE
 
     # Use normalize_datetime_input for consistent handling of base_date
-    base_dt: Optional[Union[str, date, datetime]] = normalize_datetime_input(
+    base_dt: str | date | datetime | None = normalize_datetime_input(
         base_date, default_tzinfo=local_tz, return_type=const.HELPER_RETURN_DATETIME
     )
 
     if base_dt is None:
-        const.LOGGER.error(
-            "ERROR: Get Next Schedule DateTime - Could not parse base_date."
-        )
+        const.LOGGER.error("ERROR: Get Next Schedule DateTime - Could not parse base_date.")
         return None
 
     # Internal function to calculate the next interval.
@@ -1534,7 +1461,7 @@ def get_next_scheduled_datetime(
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
-        elif interval_type in {const.FREQUENCY_WEEKLY, const.FREQUENCY_CUSTOM_1_WEEK}:
+        if interval_type in {const.FREQUENCY_WEEKLY, const.FREQUENCY_CUSTOM_1_WEEK}:
             return adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_WEEKS,
@@ -1542,7 +1469,7 @@ def get_next_scheduled_datetime(
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
-        elif interval_type == const.FREQUENCY_BIWEEKLY:
+        if interval_type == const.FREQUENCY_BIWEEKLY:
             return adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_WEEKS,
@@ -1550,7 +1477,7 @@ def get_next_scheduled_datetime(
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
-        elif interval_type in {const.FREQUENCY_MONTHLY, const.FREQUENCY_CUSTOM_1_MONTH}:
+        if interval_type in {const.FREQUENCY_MONTHLY, const.FREQUENCY_CUSTOM_1_MONTH}:
             return adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_MONTHS,
@@ -1558,7 +1485,7 @@ def get_next_scheduled_datetime(
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
-        elif interval_type == const.FREQUENCY_QUARTERLY:
+        if interval_type == const.FREQUENCY_QUARTERLY:
             return adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_QUARTERS,
@@ -1566,7 +1493,7 @@ def get_next_scheduled_datetime(
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
-        elif interval_type in {const.FREQUENCY_YEARLY, const.FREQUENCY_CUSTOM_1_YEAR}:
+        if interval_type in {const.FREQUENCY_YEARLY, const.FREQUENCY_CUSTOM_1_YEAR}:
             return adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_YEARS,
@@ -1574,7 +1501,7 @@ def get_next_scheduled_datetime(
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
-        elif interval_type == const.PERIOD_DAY_END:
+        if interval_type == const.PERIOD_DAY_END:
             return adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_DAYS,
@@ -1582,7 +1509,7 @@ def get_next_scheduled_datetime(
                 end_of_period=const.PERIOD_DAY_END,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
-        elif interval_type == const.PERIOD_WEEK_END:
+        if interval_type == const.PERIOD_WEEK_END:
             return adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_DAYS,
@@ -1590,7 +1517,7 @@ def get_next_scheduled_datetime(
                 end_of_period=const.PERIOD_WEEK_END,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
-        elif interval_type == const.PERIOD_MONTH_END:
+        if interval_type == const.PERIOD_MONTH_END:
             return adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_DAYS,
@@ -1598,7 +1525,7 @@ def get_next_scheduled_datetime(
                 end_of_period=const.PERIOD_MONTH_END,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
-        elif interval_type == const.PERIOD_QUARTER_END:
+        if interval_type == const.PERIOD_QUARTER_END:
             return adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_DAYS,
@@ -1606,7 +1533,7 @@ def get_next_scheduled_datetime(
                 end_of_period=const.PERIOD_QUARTER_END,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
-        elif interval_type == const.PERIOD_YEAR_END:
+        if interval_type == const.PERIOD_YEAR_END:
             return adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_DAYS,
@@ -1614,8 +1541,7 @@ def get_next_scheduled_datetime(
                 end_of_period=const.PERIOD_YEAR_END,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
-        else:
-            raise ValueError(f"Unsupported interval type: {interval_type}")
+        raise ValueError(f"Unsupported interval type: {interval_type}")
 
     # Calculate the initial next scheduled datetime.
     result = calculate_next_interval(base_dt)
@@ -1673,17 +1599,16 @@ def get_next_scheduled_datetime(
                 )
 
     # Use format_datetime_with_return_type to handle the return type formatting
-    final_result = format_datetime_with_return_type(result, return_type)
+    return format_datetime_with_return_type(result, return_type)
 
-    return final_result
 
 
 def get_next_applicable_day(
     dt: datetime,
     applicable_days: Iterable[int],
-    local_tz: Optional[tzinfo] = None,
-    return_type: Optional[str] = const.HELPER_RETURN_DATETIME,
-) -> Union[datetime, date, str]:
+    local_tz: tzinfo | None = None,
+    return_type: str | None = const.HELPER_RETURN_DATETIME,
+) -> datetime | date | str:
     """
     Advances the provided datetime to the next day (or same day) where the day-of-week
     (as returned by dt.weekday()) is included in the applicable_days iterable.
@@ -1741,19 +1666,18 @@ def get_next_applicable_day(
             local_dt = dt.astimezone(local_tz)
 
     # Use format_datetime_with_return_type to handle the return type formatting
-    final_result = format_datetime_with_return_type(dt, return_type)
+    return format_datetime_with_return_type(dt, return_type)
 
-    return final_result
 
 
 def cleanup_period_data(
     self,
     periods_data: dict,
     period_keys: dict,
-    retention_daily: int = None,
-    retention_weekly: int = None,
-    retention_monthly: int = None,
-    retention_yearly: int = None,
+    retention_daily: int | None = None,
+    retention_weekly: int | None = None,
+    retention_monthly: int | None = None,
+    retention_yearly: int | None = None,
 ):
     """
     Remove old period data to keep storage manageable for any period-based data (chore, point, etc).
@@ -1776,24 +1700,16 @@ def cleanup_period_data(
 
     # Use provided values or fall back to defaults
     retention_daily = (
-        retention_daily
-        if retention_daily is not None
-        else const.DEFAULT_RETENTION_DAILY
+        retention_daily if retention_daily is not None else const.DEFAULT_RETENTION_DAILY
     )
     retention_weekly = (
-        retention_weekly
-        if retention_weekly is not None
-        else const.DEFAULT_RETENTION_WEEKLY
+        retention_weekly if retention_weekly is not None else const.DEFAULT_RETENTION_WEEKLY
     )
     retention_monthly = (
-        retention_monthly
-        if retention_monthly is not None
-        else const.DEFAULT_RETENTION_MONTHLY
+        retention_monthly if retention_monthly is not None else const.DEFAULT_RETENTION_MONTHLY
     )
     retention_yearly = (
-        retention_yearly
-        if retention_yearly is not None
-        else const.DEFAULT_RETENTION_YEARLY
+        retention_yearly if retention_yearly is not None else const.DEFAULT_RETENTION_YEARLY
     )
 
     # Daily: keep configured days
@@ -1844,8 +1760,8 @@ def cleanup_period_data(
         if year < cutoff_yearly:
             del yearly_data[year]
 
-    self._persist()  # type: ignore[attr-defined]  # pylint: disable=protected-access
-    self.async_set_updated_data(self._data)  # type: ignore[attr-defined]  # pylint: disable=protected-access
+    self._persist()  # type: ignore[attr-defined]
+    self.async_set_updated_data(self._data)  # type: ignore[attr-defined]
 
 
 # 📝 -------- Dashboard Translation Loaders --------
@@ -1870,9 +1786,7 @@ async def get_available_dashboard_languages(
     """
     from homeassistant.generated.languages import LANGUAGES
 
-    translations_path = os.path.join(
-        os.path.dirname(__file__), const.DASHBOARD_TRANSLATIONS_DIR
-    )
+    translations_path = os.path.join(os.path.dirname(__file__), const.DASHBOARD_TRANSLATIONS_DIR)
 
     if not await hass.async_add_executor_job(os.path.exists, translations_path):
         const.LOGGER.debug(
@@ -1891,9 +1805,7 @@ async def get_available_dashboard_languages(
                 continue
 
             # Extract language code from filename (e.g., es_dashboard.json -> es)
-            lang_code = filename[
-                : -len(".json") - len(const.DASHBOARD_TRANSLATIONS_SUFFIX)
-            ]
+            lang_code = filename[: -len(".json") - len(const.DASHBOARD_TRANSLATIONS_SUFFIX)]
 
             # Only include if valid in Home Assistant's LANGUAGES set
             if lang_code in LANGUAGES:
@@ -1914,7 +1826,7 @@ async def get_available_dashboard_languages(
 
         # Sort remaining languages (English stays first)
         if len(available_languages) > 1:
-            available_languages = ["en"] + sorted(available_languages[1:])
+            available_languages = ["en", *sorted(available_languages[1:])]
 
         const.LOGGER.debug("Available dashboard languages: %s", available_languages)
         return available_languages
@@ -1938,14 +1850,10 @@ async def load_dashboard_translation(
         A dict with translation keys and values.
         If the requested language is not found, returns English translations.
     """
-    translations_path = os.path.join(
-        os.path.dirname(__file__), const.DASHBOARD_TRANSLATIONS_DIR
-    )
+    translations_path = os.path.join(os.path.dirname(__file__), const.DASHBOARD_TRANSLATIONS_DIR)
 
     if not await hass.async_add_executor_job(os.path.exists, translations_path):
-        const.LOGGER.error(
-            "Dashboard translations directory not found: %s", translations_path
-        )
+        const.LOGGER.error("Dashboard translations directory not found: %s", translations_path)
         return {}
 
     # Try to load the requested language (with _dashboard suffix)
@@ -1962,12 +1870,8 @@ async def load_dashboard_translation(
 
     # Fall back to English if requested language not found or errored
     if language != "en":
-        const.LOGGER.warning(
-            "Language '%s' not found, falling back to English", language
-        )
-        en_path = os.path.join(
-            translations_path, f"en{const.DASHBOARD_TRANSLATIONS_SUFFIX}.json"
-        )
+        const.LOGGER.warning("Language '%s' not found, falling back to English", language)
+        en_path = os.path.join(translations_path, f"en{const.DASHBOARD_TRANSLATIONS_SUFFIX}.json")
         if await hass.async_add_executor_job(os.path.exists, en_path):
             try:
                 data = await hass.async_add_executor_job(_read_json_file, en_path)
@@ -1997,14 +1901,10 @@ async def load_notification_translation(
     if not language:
         language = "en"
 
-    translations_path = os.path.join(
-        os.path.dirname(__file__), const.CUSTOM_TRANSLATIONS_DIR
-    )
+    translations_path = os.path.join(os.path.dirname(__file__), const.CUSTOM_TRANSLATIONS_DIR)
 
     if not await hass.async_add_executor_job(os.path.exists, translations_path):
-        const.LOGGER.error(
-            "Custom translations directory not found: %s", translations_path
-        )
+        const.LOGGER.error("Custom translations directory not found: %s", translations_path)
         return {}
 
     # Try to load the requested language (with _notifications suffix)
@@ -2017,9 +1917,7 @@ async def load_notification_translation(
             const.LOGGER.debug("Loaded %s notification translations", language)
             return data
         except (OSError, json.JSONDecodeError) as err:
-            const.LOGGER.error(
-                "Error loading %s notification translations: %s", language, err
-            )
+            const.LOGGER.error("Error loading %s notification translations: %s", language, err)
 
     # Fall back to English if requested language not found or errored
     if language != "en":
@@ -2032,14 +1930,10 @@ async def load_notification_translation(
         if await hass.async_add_executor_job(os.path.exists, en_path):
             try:
                 data = await hass.async_add_executor_job(_read_json_file, en_path)
-                const.LOGGER.debug(
-                    "Loaded English notification translations as fallback"
-                )
+                const.LOGGER.debug("Loaded English notification translations as fallback")
                 return data
             except (OSError, json.JSONDecodeError) as err:
-                const.LOGGER.error(
-                    "Error loading English notification translations: %s", err
-                )
+                const.LOGGER.error("Error loading English notification translations: %s", err)
     else:
         # If we get here, English was requested but file not found
         const.LOGGER.error(
@@ -2147,8 +2041,6 @@ def get_entity_id_from_unique_id(hass: HomeAssistant, unique_id: str) -> str | N
             if entity.unique_id == unique_id:
                 return entity.entity_id
     except (KeyError, ValueError, AttributeError, RuntimeError) as ex:
-        const.LOGGER.debug(
-            "Entity registry lookup failed for unique_id %s: %s", unique_id, ex
-        )
+        const.LOGGER.debug("Entity registry lookup failed for unique_id %s: %s", unique_id, ex)
 
     return None

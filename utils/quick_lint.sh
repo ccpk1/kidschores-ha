@@ -1,36 +1,51 @@
 #!/bin/bash
-# Quick lint check - run after every change
-# OPTIMIZED: Batches pylint for 10x speed improvement!
+# Quick lint check - run after every change using ruff
 # Usage: ./utils/quick_lint.sh [--fix]
 
 cd "$(dirname "$0")/.." || exit 1
 
-# Auto-fix trailing whitespace if --fix flag is provided
-if [[ "$1" == "--fix" ]]; then
-    echo "🔧 Auto-fixing trailing whitespace..."
-    find custom_components/kidschores -name "*.py" -exec sed -i 's/[[:space:]]*$//' {} +
-    find tests -name "*.py" -exec sed -i 's/[[:space:]]*$//' {} +
-    echo "✓ Trailing whitespace fixed"
-    echo ""
-fi
-
-# Run the comprehensive linting check on both integration and tests
-echo "🔍 Running comprehensive lint check..."
+echo "🔍 Running ruff linting..."
 echo ""
-python utils/lint_check.py
 
-exit_code=$?
+if [[ "$1" == "--fix" ]]; then
+    # Auto-fix issues with ruff
+    echo "🔧 Running ruff check with auto-fix..."
+    ruff check --fix custom_components/kidschores tests
+    ruff_check_exit=$?
 
-if [ $exit_code -eq 0 ]; then
     echo ""
-    echo "✅ Ready to commit!"
+    echo "🔧 Running ruff format..."
+    ruff format custom_components/kidschores tests
+    ruff_format_exit=$?
+
+    if [ $ruff_check_exit -eq 0 ] && [ $ruff_format_exit -eq 0 ]; then
+        echo ""
+        echo "✅ All auto-fixes applied! Verify changes and commit."
+        exit 0
+    else
+        echo ""
+        echo "⚠️ Some issues remain after auto-fix. Review output above."
+        exit 1
+    fi
 else
-    echo ""
-    echo "❌ Fix issues before committing"
-    echo ""
-    echo "Quick fixes:"
-    echo "  ./utils/quick_lint.sh --fix    # Auto-fix trailing whitespace"
-    echo "  # Then manually fix remaining issues"
-fi
+    # Check only (no auto-fix)
+    echo "Running ruff check (read-only)..."
+    ruff check custom_components/kidschores tests
+    ruff_check_exit=$?
 
-exit $exit_code
+    echo ""
+    echo "Checking code formatting..."
+    ruff format --check custom_components/kidschores tests
+    ruff_format_exit=$?
+
+    if [ $ruff_check_exit -eq 0 ] && [ $ruff_format_exit -eq 0 ]; then
+        echo ""
+        echo "✅ All checks passed! Ready to commit."
+        exit 0
+    else
+        echo ""
+        echo "❌ Linting issues found. Run with --fix to auto-correct:"
+        echo "  ./utils/quick_lint.sh --fix"
+        exit 1
+    fi
+fi

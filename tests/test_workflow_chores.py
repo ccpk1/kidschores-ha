@@ -15,19 +15,17 @@ Coordinator API Reference:
 - disapprove_chore(parent_name, kid_id, chore_id)
 """
 
-# pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
-# pylint: disable=unused-argument  # hass fixture required for HA test setup
+# hass fixture required for HA test setup
 
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
 from custom_components.kidschores import const
-from tests.helpers.setup import setup_from_yaml, SetupResult
-
+from tests.helpers.setup import SetupResult, setup_from_yaml
 
 # =============================================================================
 # FIXTURES
@@ -268,8 +266,14 @@ class TestSharedFirstChores:
         assert get_kid_chore_state(coordinator, zoe_id, chore_id) == const.CHORE_STATE_CLAIMED
 
         # Max and Lila should immediately be completed_by_other
-        assert get_kid_chore_state(coordinator, max_id, chore_id) == const.CHORE_STATE_COMPLETED_BY_OTHER
-        assert get_kid_chore_state(coordinator, lila_id, chore_id) == const.CHORE_STATE_COMPLETED_BY_OTHER
+        assert (
+            get_kid_chore_state(coordinator, max_id, chore_id)
+            == const.CHORE_STATE_COMPLETED_BY_OTHER
+        )
+        assert (
+            get_kid_chore_state(coordinator, lila_id, chore_id)
+            == const.CHORE_STATE_COMPLETED_BY_OTHER
+        )
 
     @pytest.mark.asyncio
     async def test_approve_grants_points_to_claimer_only(
@@ -298,10 +302,16 @@ class TestSharedFirstChores:
         assert get_kid_points(coordinator, zoe_id) == initial_zoe_points + 5.0
 
         # Max and Lila remain completed_by_other, no points
-        assert get_kid_chore_state(coordinator, max_id, chore_id) == const.CHORE_STATE_COMPLETED_BY_OTHER
+        assert (
+            get_kid_chore_state(coordinator, max_id, chore_id)
+            == const.CHORE_STATE_COMPLETED_BY_OTHER
+        )
         assert get_kid_points(coordinator, max_id) == initial_max_points
 
-        assert get_kid_chore_state(coordinator, lila_id, chore_id) == const.CHORE_STATE_COMPLETED_BY_OTHER
+        assert (
+            get_kid_chore_state(coordinator, lila_id, chore_id)
+            == const.CHORE_STATE_COMPLETED_BY_OTHER
+        )
         assert get_kid_points(coordinator, lila_id) == initial_lila_points
 
     @pytest.mark.asyncio
@@ -319,7 +329,10 @@ class TestSharedFirstChores:
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             # Zoë claims (Max becomes completed_by_other)
             coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            assert get_kid_chore_state(coordinator, max_id, chore_id) == const.CHORE_STATE_COMPLETED_BY_OTHER
+            assert (
+                get_kid_chore_state(coordinator, max_id, chore_id)
+                == const.CHORE_STATE_COMPLETED_BY_OTHER
+            )
 
             # Disapprove Zoë
             coordinator.disapprove_chore("Mom", zoe_id, chore_id)

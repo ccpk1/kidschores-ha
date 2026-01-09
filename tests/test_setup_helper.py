@@ -5,23 +5,20 @@ navigate the config flow and create entities.
 """
 
 # pylint: disable=redefined-outer-name
-# pylint: disable=protected-access
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
 from tests.helpers import (
-    setup_scenario,
+    SetupResult,
     setup_minimal_scenario,
     setup_multi_kid_scenario,
-    SetupResult,
+    setup_scenario,
 )
 
 
 @pytest.mark.asyncio
-async def test_setup_minimal_scenario(
-    hass: HomeAssistant, mock_hass_users: dict
-) -> None:
+async def test_setup_minimal_scenario(hass: HomeAssistant, mock_hass_users: dict) -> None:
     """Test setup_minimal_scenario creates 1 kid, 1 parent, 1 chore."""
     result = await setup_minimal_scenario(hass, mock_hass_users)
 
@@ -46,9 +43,7 @@ async def test_setup_minimal_scenario(
 
 
 @pytest.mark.asyncio
-async def test_setup_scenario_custom_config(
-    hass: HomeAssistant, mock_hass_users: dict
-) -> None:
+async def test_setup_scenario_custom_config(hass: HomeAssistant, mock_hass_users: dict) -> None:
     """Test setup_scenario with custom configuration."""
     result = await setup_scenario(
         hass,
@@ -102,9 +97,7 @@ async def test_setup_scenario_custom_config(
 
 
 @pytest.mark.asyncio
-async def test_setup_multi_kid_scenario(
-    hass: HomeAssistant, mock_hass_users: dict
-) -> None:
+async def test_setup_multi_kid_scenario(hass: HomeAssistant, mock_hass_users: dict) -> None:
     """Test setup_multi_kid_scenario creates multiple kids with shared chore."""
     result = await setup_multi_kid_scenario(
         hass,
@@ -125,9 +118,7 @@ async def test_setup_multi_kid_scenario(
 
 
 @pytest.mark.asyncio
-async def test_setup_scenario_no_chores(
-    hass: HomeAssistant, mock_hass_users: dict
-) -> None:
+async def test_setup_scenario_no_chores(hass: HomeAssistant, mock_hass_users: dict) -> None:
     """Test setup_scenario works with no chores configured."""
     result = await setup_scenario(
         hass,
@@ -146,9 +137,7 @@ async def test_setup_scenario_no_chores(
 
 
 @pytest.mark.asyncio
-async def test_setup_scenario_no_parents(
-    hass: HomeAssistant, mock_hass_users: dict
-) -> None:
+async def test_setup_scenario_no_parents(hass: HomeAssistant, mock_hass_users: dict) -> None:
     """Test setup_scenario works with no parents configured."""
     result = await setup_scenario(
         hass,
@@ -156,9 +145,7 @@ async def test_setup_scenario_no_parents(
         {
             "kids": [{"name": "Orphan Kid", "ha_user": "kid1"}],
             # No parents
-            "chores": [
-                {"name": "Self Chore", "assigned_to": ["Orphan Kid"], "points": 5}
-            ],
+            "chores": [{"name": "Self Chore", "assigned_to": ["Orphan Kid"], "points": 5}],
         },
     )
 

@@ -1,5 +1,4 @@
 # File: services.py
-# pylint: disable=too-many-lines  # Service registration module with 17 handlers
 """Defines custom services for the KidsChores integration.
 
 These services allow direct actions through scripts or automations.
@@ -7,19 +6,18 @@ Includes UI editor support with selectors for dropdowns and text inputs.
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import TYPE_CHECKING
 
-import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import config_validation as cv, entity_registry as er
 from homeassistant.util import dt as dt_util
+import voluptuous as vol
 
-from . import const
-from . import flow_helpers as fh
-from . import kc_helpers as kh
-from .coordinator import KidsChoresDataCoordinator
+from . import const, flow_helpers as fh, kc_helpers as kh
+
+if TYPE_CHECKING:
+    from .coordinator import KidsChoresDataCoordinator
 
 # --- Service Schemas ---
 
@@ -144,9 +142,7 @@ def async_setup_services(hass: HomeAssistant):
         """Handle claiming a chore."""
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
-            const.LOGGER.warning(
-                "Claim Chore: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
-            )
+            const.LOGGER.warning("Claim Chore: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND)
             return
 
         coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
@@ -166,9 +162,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Check if user is authorized
         if user_id and not await kh.is_user_authorized_for_kid(hass, user_id, kid_id):
-            const.LOGGER.warning(
-                "Claim Chore: %s", const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION
-            )
+            const.LOGGER.warning("Claim Chore: %s", const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION)
             raise HomeAssistantError(
                 translation_domain=const.DOMAIN,
                 translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION,
@@ -176,9 +170,7 @@ def async_setup_services(hass: HomeAssistant):
             )
 
         # Process chore claim
-        coordinator.claim_chore(
-            kid_id=kid_id, chore_id=chore_id, user_name=f"user:{user_id}"
-        )
+        coordinator.claim_chore(kid_id=kid_id, chore_id=chore_id, user_name=f"user:{user_id}")
 
         const.LOGGER.info(
             "Chore '%s' claimed by kid '%s' by user '%s'",
@@ -193,9 +185,7 @@ def async_setup_services(hass: HomeAssistant):
         entry_id = kh.get_first_kidschores_entry(hass)
 
         if not entry_id:
-            const.LOGGER.warning(
-                "Approve Chore: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
-            )
+            const.LOGGER.warning("Approve Chore: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND)
             return
 
         coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
@@ -219,9 +209,7 @@ def async_setup_services(hass: HomeAssistant):
         if user_id and not await kh.is_user_authorized_for_global_action(
             hass, user_id, const.SERVICE_APPROVE_CHORE
         ):
-            const.LOGGER.warning(
-                "Approve Chore: %s", const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION
-            )
+            const.LOGGER.warning("Approve Chore: %s", const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION)
             raise HomeAssistantError(
                 translation_domain=const.DOMAIN,
                 translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION,
@@ -283,9 +271,7 @@ def async_setup_services(hass: HomeAssistant):
             raise HomeAssistantError(
                 translation_domain=const.DOMAIN,
                 translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION,
-                translation_placeholders={
-                    "action": const.ERROR_ACTION_DISAPPROVE_CHORES
-                },
+                translation_placeholders={"action": const.ERROR_ACTION_DISAPPROVE_CHORES},
             )
 
         # Disapprove the chore
@@ -306,9 +292,7 @@ def async_setup_services(hass: HomeAssistant):
         """Handle redeeming a reward (claiming without deduction)."""
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
-            const.LOGGER.warning(
-                "Redeem Reward: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
-            )
+            const.LOGGER.warning("Redeem Reward: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND)
             return
 
         coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
@@ -329,9 +313,7 @@ def async_setup_services(hass: HomeAssistant):
         # Check if user is authorized
         user_id = call.context.user_id
         if user_id and not await kh.is_user_authorized_for_kid(hass, user_id, kid_id):
-            const.LOGGER.warning(
-                "Redeem Reward: %s", const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION
-            )
+            const.LOGGER.warning("Redeem Reward: %s", const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION)
             raise HomeAssistantError(
                 translation_domain=const.DOMAIN,
                 translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION,
@@ -365,9 +347,7 @@ def async_setup_services(hass: HomeAssistant):
         if kid_info[const.DATA_KID_POINTS] < reward_info.get(
             const.DATA_REWARD_COST, const.DEFAULT_ZERO
         ):
-            const.LOGGER.warning(
-                "Redeem Reward: %s", const.TRANS_KEY_ERROR_INSUFFICIENT_POINTS
-            )
+            const.LOGGER.warning("Redeem Reward: %s", const.TRANS_KEY_ERROR_INSUFFICIENT_POINTS)
             raise HomeAssistantError(
                 translation_domain=const.DOMAIN,
                 translation_key=const.TRANS_KEY_ERROR_INSUFFICIENT_POINTS,
@@ -379,9 +359,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Process reward claim without deduction
         try:
-            coordinator.redeem_reward(
-                parent_name=parent_name, kid_id=kid_id, reward_id=reward_id
-            )
+            coordinator.redeem_reward(parent_name=parent_name, kid_id=kid_id, reward_id=reward_id)
             const.LOGGER.info(
                 "Reward '%s' claimed by kid '%s' and pending approval by parent '%s'",
                 reward_name,
@@ -396,9 +374,7 @@ def async_setup_services(hass: HomeAssistant):
         """Handle approving a reward claimed by a kid."""
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
-            const.LOGGER.warning(
-                "Approve Reward: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
-            )
+            const.LOGGER.warning("Approve Reward: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND)
             return
 
         coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
@@ -421,9 +397,7 @@ def async_setup_services(hass: HomeAssistant):
         if user_id and not await kh.is_user_authorized_for_global_action(
             hass, user_id, const.SERVICE_APPROVE_REWARD
         ):
-            const.LOGGER.warning(
-                "Approve Reward: %s", const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION
-            )
+            const.LOGGER.warning("Approve Reward: %s", const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION)
             raise HomeAssistantError(
                 translation_domain=const.DOMAIN,
                 translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION,
@@ -432,9 +406,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Approve reward redemption and deduct points
         try:
-            coordinator.approve_reward(
-                parent_name=parent_name, kid_id=kid_id, reward_id=reward_id
-            )
+            coordinator.approve_reward(parent_name=parent_name, kid_id=kid_id, reward_id=reward_id)
             const.LOGGER.info(
                 "Reward '%s' approved for kid '%s' by parent '%s'",
                 reward_name,
@@ -481,9 +453,7 @@ def async_setup_services(hass: HomeAssistant):
             raise HomeAssistantError(
                 translation_domain=const.DOMAIN,
                 translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION,
-                translation_placeholders={
-                    "action": const.ERROR_ACTION_DISAPPROVE_REWARDS
-                },
+                translation_placeholders={"action": const.ERROR_ACTION_DISAPPROVE_REWARDS},
             )
 
         # Disapprove the reward
@@ -504,9 +474,7 @@ def async_setup_services(hass: HomeAssistant):
         """Handle applying a penalty."""
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
-            const.LOGGER.warning(
-                "Apply Penalty: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
-            )
+            const.LOGGER.warning("Apply Penalty: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND)
             return
 
         coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
@@ -529,9 +497,7 @@ def async_setup_services(hass: HomeAssistant):
         if user_id and not await kh.is_user_authorized_for_global_action(
             hass, user_id, const.SERVICE_APPLY_PENALTY
         ):
-            const.LOGGER.warning(
-                "Apply Penalty: %s", const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION
-            )
+            const.LOGGER.warning("Apply Penalty: %s", const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION)
             raise HomeAssistantError(
                 translation_domain=const.DOMAIN,
                 translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION,
@@ -540,9 +506,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Apply penalty
         try:
-            coordinator.apply_penalty(
-                parent_name=parent_name, kid_id=kid_id, penalty_id=penalty_id
-            )
+            coordinator.apply_penalty(parent_name=parent_name, kid_id=kid_id, penalty_id=penalty_id)
             const.LOGGER.info(
                 "Penalty '%s' applied for kid '%s' by parent '%s'",
                 penalty_name,
@@ -557,9 +521,7 @@ def async_setup_services(hass: HomeAssistant):
         """Handle resetting penalties."""
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
-            const.LOGGER.warning(
-                "Reset Penalties: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
-            )
+            const.LOGGER.warning("Reset Penalties: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND)
             return
 
         coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
@@ -604,9 +566,7 @@ def async_setup_services(hass: HomeAssistant):
         elif penalty_id is None:
             const.LOGGER.info("Resetting all penalties for kid '%s'.", kid_name)
         else:
-            const.LOGGER.info(
-                "Resetting penalty '%s' for kid '%s'.", penalty_name, kid_name
-            )
+            const.LOGGER.info("Resetting penalty '%s' for kid '%s'.", penalty_name, kid_name)
 
         # Reset penalties
         coordinator.reset_penalties(kid_id=kid_id, penalty_id=penalty_id)
@@ -616,9 +576,7 @@ def async_setup_services(hass: HomeAssistant):
         """Handle resetting bonuses."""
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
-            const.LOGGER.warning(
-                "Reset Bonuses: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
-            )
+            const.LOGGER.warning("Reset Bonuses: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND)
             return
 
         coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
@@ -662,9 +620,7 @@ def async_setup_services(hass: HomeAssistant):
         elif bonus_id is None:
             const.LOGGER.info("Resetting all bonuses for kid '%s'.", kid_name)
         else:
-            const.LOGGER.info(
-                "Resetting bonus '%s' for kid '%s'.", bonus_name, kid_name
-            )
+            const.LOGGER.info("Resetting bonus '%s' for kid '%s'.", bonus_name, kid_name)
 
         # Reset bonuses
         coordinator.reset_bonuses(kid_id=kid_id, bonus_id=bonus_id)
@@ -674,9 +630,7 @@ def async_setup_services(hass: HomeAssistant):
         """Handle resetting rewards counts."""
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
-            const.LOGGER.warning(
-                "Reset Rewards: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
-            )
+            const.LOGGER.warning("Reset Rewards: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND)
             return
 
         coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
@@ -720,9 +674,7 @@ def async_setup_services(hass: HomeAssistant):
         elif reward_id is None:
             const.LOGGER.info("Resetting all rewards for kid '%s'.", kid_name)
         else:
-            const.LOGGER.info(
-                "Resetting reward '%s' for kid '%s'.", reward_name, kid_name
-            )
+            const.LOGGER.info("Resetting reward '%s' for kid '%s'.", reward_name, kid_name)
 
         # Reset rewards
         coordinator.reset_rewards(kid_id=kid_id, reward_id=reward_id)
@@ -775,9 +727,7 @@ def async_setup_services(hass: HomeAssistant):
         """Handle applying a bonus."""
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
-            const.LOGGER.warning(
-                "Apply Bonus: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
-            )
+            const.LOGGER.warning("Apply Bonus: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND)
             return
 
         coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
@@ -809,9 +759,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Apply bonus
         try:
-            coordinator.apply_bonus(
-                parent_name=parent_name, kid_id=kid_id, bonus_id=bonus_id
-            )
+            coordinator.apply_bonus(parent_name=parent_name, kid_id=kid_id, bonus_id=bonus_id)
             const.LOGGER.info(
                 "Bonus '%s' applied for kid '%s' by parent '%s'",
                 bonus_name,
@@ -845,7 +793,7 @@ def async_setup_services(hass: HomeAssistant):
                 const.LOGGER.info("Created pre-reset backup: %s", backup_name)
             else:
                 const.LOGGER.warning("No data available to include in pre-reset backup")
-        except Exception as err:  # pylint: disable=broad-exception-caught
+        except Exception as err:
             const.LOGGER.warning("Failed to create pre-reset backup: %s", err)
 
         # Step 2: Clean up entity registry BEFORE clearing storage
@@ -920,7 +868,7 @@ def async_setup_services(hass: HomeAssistant):
             const.LOGGER.warning("Reset Overdue Chores: %s", err)
             raise
 
-        kid_id: Optional[str] = None
+        kid_id: str | None = None
         try:
             if kid_name:
                 kid_id = kh.get_kid_id_or_raise(coordinator, kid_name)
@@ -930,9 +878,7 @@ def async_setup_services(hass: HomeAssistant):
 
         coordinator.reset_overdue_chores(chore_id=chore_id, kid_id=kid_id)
 
-        const.LOGGER.info(
-            "Reset overdue chores (chore_id=%s, kid_id=%s)", chore_id, kid_id
-        )
+        const.LOGGER.info("Reset overdue chores (chore_id=%s, kid_id=%s)", chore_id, kid_id)
 
         await coordinator.async_request_refresh()
 
@@ -1027,11 +973,7 @@ def async_setup_services(hass: HomeAssistant):
                         translation_key=const.TRANS_KEY_ERROR_INVALID_DATE_FORMAT,
                     )
                 due_dt: datetime | None = due_dt_raw  # type: ignore[assignment]
-                if (
-                    due_dt
-                    and isinstance(due_dt, datetime)
-                    and due_dt < dt_util.utcnow()
-                ):
+                if due_dt and isinstance(due_dt, datetime) and due_dt < dt_util.utcnow():
                     raise HomeAssistantError(
                         translation_domain=const.DOMAIN,
                         translation_key=const.TRANS_KEY_ERROR_DATE_IN_PAST,
@@ -1056,9 +998,7 @@ def async_setup_services(hass: HomeAssistant):
         else:
             # Clear the due date by setting it to None
             coordinator.set_chore_due_date(chore_id, None, kid_id)
-            const.LOGGER.info(
-                "Cleared due date for chore '%s' (ID: %s)", chore_name, chore_id
-            )
+            const.LOGGER.info("Cleared due date for chore '%s' (ID: %s)", chore_name, chore_id)
 
         await coordinator.async_request_refresh()
 

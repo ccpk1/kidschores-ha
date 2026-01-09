@@ -11,19 +11,19 @@ with incrementally complex scenarios:
 Uses real Home Assistant config flow system for integration testing.
 """
 
-# pylint: disable=protected-access  # Accessing protected members for testing
+# Accessing protected members for testing
 # pylint: disable=redefined-outer-name  # Pytest fixtures redefine names
 
 # pyright: reportTypedDictNotRequiredAccess=false
 
-import uuid
 from typing import Any
 from unittest.mock import patch
+import uuid
 
-import pytest
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+import pytest
 
 from custom_components.kidschores import const
 
@@ -336,9 +336,7 @@ async def test_fresh_start_points_and_kid(hass: HomeAssistant, mock_hass_users) 
 
 
 @pytest.mark.asyncio
-async def test_fresh_start_kid_with_notify_services(
-    hass: HomeAssistant, mock_hass_users
-) -> None:
+async def test_fresh_start_kid_with_notify_services(hass: HomeAssistant, mock_hass_users) -> None:
     """Test 2b: Fresh config flow with kid configured with actual notify services.
 
     Tests the same scenario as test_fresh_start_points_and_kid but with
@@ -348,9 +346,7 @@ async def test_fresh_start_kid_with_notify_services(
     # Set up mock notify services for the test
     async def async_register_notify_services():
         """Register mock notify services for testing."""
-        hass.services.async_register(
-            "notify", "mobile_app_test_phone", lambda call: None
-        )
+        hass.services.async_register("notify", "mobile_app_test_phone", lambda call: None)
         hass.services.async_register("notify", "persistent", lambda call: None)
 
     await async_register_notify_services()
@@ -510,9 +506,7 @@ async def test_fresh_start_with_parent_no_notifications(
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], user_input={"backup_selection": "start_fresh"}
         )
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], user_input={}
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], user_input={})
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input={
@@ -547,12 +541,8 @@ async def test_fresh_start_with_parent_no_notifications(
         # Step 7: Configure parent with HA user but no notifications
         # Extract the kid ID using the working pattern from test_fresh_start_with_parents
         data_schema = _require_data_schema(result)
-        associated_kids_field = data_schema.schema.get(
-            const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS
-        )
-        assert associated_kids_field is not None, (
-            "associated_kids field not found in schema"
-        )
+        associated_kids_field = data_schema.schema.get(const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS)
+        assert associated_kids_field is not None, "associated_kids field not found in schema"
 
         kid_options = associated_kids_field.config["options"]
         assert len(kid_options) == 1, f"Expected 1 kid option, got {len(kid_options)}"
@@ -564,9 +554,7 @@ async def test_fresh_start_with_parent_no_notifications(
             user_input={
                 const.CFOF_PARENTS_INPUT_NAME: "Môm Astrid Stârblüm",
                 const.CFOF_PARENTS_INPUT_HA_USER: mock_hass_users["parent1"].id,
-                const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: [
-                    kid_id
-                ],  # Use the extracted kid ID
+                const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: [kid_id],  # Use the extracted kid ID
                 const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: False,
                 const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: const.SENTINEL_EMPTY,
                 const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: False,
@@ -619,9 +607,7 @@ async def test_fresh_start_with_parent_no_notifications(
             assert result["step_id"] == next_step
 
         # Final step: finish
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], user_input={}
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], user_input={})
 
         # Verify completion
         assert result["type"] == FlowResultType.CREATE_ENTRY
@@ -659,9 +645,7 @@ async def test_fresh_start_with_parent_with_notifications(
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], user_input={"backup_selection": "start_fresh"}
         )
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], user_input={}
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], user_input={})
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input={
@@ -711,9 +695,7 @@ async def test_fresh_start_with_parent_with_notifications(
         result = await _skip_all_entity_steps(hass, result)
 
         # Final step
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], user_input={}
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], user_input={})
 
         # Verify completion
         assert result["type"] == FlowResultType.CREATE_ENTRY
@@ -740,9 +722,7 @@ async def test_fresh_start_two_parents_mixed_notifications(
     - Both parents have HA user IDs
     """
     # Set up mock notify services
-    hass.services.async_register(
-        "notify", "mobile_app_parent2_phone", lambda call: None
-    )
+    hass.services.async_register("notify", "mobile_app_parent2_phone", lambda call: None)
 
     # Mock setup to prevent actual integration loading during config flow
     with patch("custom_components.kidschores.async_setup_entry", return_value=True):
@@ -753,9 +733,7 @@ async def test_fresh_start_two_parents_mixed_notifications(
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], user_input={"backup_selection": "start_fresh"}
         )
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], user_input={}
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], user_input={})
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input={
@@ -799,9 +777,7 @@ async def test_fresh_start_two_parents_mixed_notifications(
             enable_persistent_notifications=False,
         )
         assert result["type"] == FlowResultType.FORM
-        assert (
-            result["step_id"] == const.CONFIG_FLOW_STEP_PARENTS
-        )  # Still on parents step
+        assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENTS  # Still on parents step
 
         # Step 8: Configure second parent (with notifications) using helper
         kid_ids = _extract_kid_ids_from_schema(result)  # Re-extract for second parent
@@ -822,9 +798,7 @@ async def test_fresh_start_two_parents_mixed_notifications(
         result = await _skip_all_entity_steps(hass, result)
 
         # Final step
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], user_input={}
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], user_input={})
 
         # Verify completion
         assert result["type"] == FlowResultType.CREATE_ENTRY
@@ -839,7 +813,7 @@ async def test_fresh_start_two_parents_mixed_notifications(
 
 
 @pytest.mark.asyncio
-async def test_fresh_start_basic_family(hass: HomeAssistant) -> None:  # pylint: disable=unused-argument
+async def test_fresh_start_basic_family(hass: HomeAssistant) -> None:
     """Test 3: Fresh config flow with Star Points + 2 kids + 1 parent + 1 chore.
 
     TODO: Implement config flow with:
@@ -854,7 +828,7 @@ async def test_fresh_start_basic_family(hass: HomeAssistant) -> None:  # pylint:
 
 
 @pytest.mark.asyncio
-async def test_fresh_start_full_scenario(hass: HomeAssistant) -> None:  # pylint: disable=unused-argument
+async def test_fresh_start_full_scenario(hass: HomeAssistant) -> None:
     """Test 4: Fresh config flow with complete scenario_full setup.
 
     TODO: Implement config flow with:
@@ -1009,9 +983,7 @@ async def _configure_multiple_kids_step(
             kid_name=kid_config["name"],
             kid_ha_user_key=kid_config["ha_user_name"],
             dashboard_language=kid_config.get("dashboard_language", "en"),
-            enable_mobile_notifications=kid_config.get(
-                "enable_mobile_notifications", False
-            ),
+            enable_mobile_notifications=kid_config.get("enable_mobile_notifications", False),
             mobile_notify_service=kid_config.get("mobile_notify_service", ""),
             enable_persistent_notifications=kid_config.get(
                 "enable_persistent_notifications", False
@@ -1094,9 +1066,7 @@ async def _configure_multiple_parents_step(
         # Map associated kid names to their internal IDs
         associated_kid_names = parent_config.get("associated_kid_names", [])
         associated_kid_ids = [
-            kid_name_to_id_map[name]
-            for name in associated_kid_names
-            if name in kid_name_to_id_map
+            kid_name_to_id_map[name] for name in associated_kid_names if name in kid_name_to_id_map
         ]
 
         # Configure this parent
@@ -1107,9 +1077,7 @@ async def _configure_multiple_parents_step(
             associated_kid_ids,
             parent_name=parent_config["name"],
             parent_ha_user_key=parent_config["ha_user_name"],
-            enable_mobile_notifications=parent_config.get(
-                "enable_mobile_notifications", False
-            ),
+            enable_mobile_notifications=parent_config.get("enable_mobile_notifications", False),
             mobile_notify_service=parent_config.get("mobile_notify_service", ""),
             enable_persistent_notifications=parent_config.get(
                 "enable_persistent_notifications", False
@@ -1327,12 +1295,8 @@ def _extract_kid_ids_from_schema(result: Any) -> list[str]:
         List of kid internal IDs available in the form
     """
     data_schema = _require_data_schema(result)
-    associated_kids_field = data_schema.schema.get(
-        const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS
-    )
-    assert associated_kids_field is not None, (
-        "associated_kids field not found in schema"
-    )
+    associated_kids_field = data_schema.schema.get(const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS)
+    assert associated_kids_field is not None, "associated_kids field not found in schema"
 
     kid_options = associated_kids_field.config["options"]
     return [option["value"] for option in kid_options]
@@ -1368,9 +1332,7 @@ async def test_fresh_start_with_parents(hass: HomeAssistant, mock_hass_users):
         assert result["step_id"] == const.CONFIG_FLOW_STEP_INTRO
 
         # Skip intro
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], user_input={}
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], user_input={})
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == const.CONFIG_FLOW_STEP_POINTS
 
@@ -1418,29 +1380,21 @@ async def test_fresh_start_with_parents(hass: HomeAssistant, mock_hass_users):
         data_schema = _require_data_schema(result)
 
         # Find the associated_kids field schema - the key is the string constant
-        associated_kids_field = data_schema.schema.get(
-            const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS
-        )
-        assert associated_kids_field is not None, (
-            "associated_kids field not found in schema"
-        )
+        associated_kids_field = data_schema.schema.get(const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS)
+        assert associated_kids_field is not None, "associated_kids field not found in schema"
 
         # Extract the available kid options - these are dicts with "value" and "label"
         kid_options = associated_kids_field.config["options"]  # SelectSelector options
         assert len(kid_options) == 1, f"Expected 1 kid option, got {len(kid_options)}"
 
         # Get the kid ID from the first (and only) option
-        kid_id = kid_options[0][
-            "value"
-        ]  # Extract value from {"value": kid_id, "label": kid_name}
+        kid_id = kid_options[0]["value"]  # Extract value from {"value": kid_id, "label": kid_name}
 
         # Now configure the parent associated with this kid
         parent_input = {
             const.CFOF_PARENTS_INPUT_NAME: "Jane Parent",
             const.CFOF_PARENTS_INPUT_HA_USER: parent_user.id,
-            const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: [
-                kid_id
-            ],  # Use the captured kid ID
+            const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: [kid_id],  # Use the captured kid ID
             const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: True,
             const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: "notify.mobile_app_jane_phone",  # Include notify. prefix
             const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: True,
@@ -1497,9 +1451,7 @@ async def test_fresh_start_with_parents(hass: HomeAssistant, mock_hass_users):
             assert result["step_id"] == next_step
 
         # Final step
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], user_input={}
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], user_input={})
 
         # Verify completion
         assert result["type"] == FlowResultType.CREATE_ENTRY
@@ -1620,10 +1572,9 @@ async def _configure_chore_step(
     if custom_interval_unit is not None:
         user_input[const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT] = custom_interval_unit
 
-    result = await hass.config_entries.flow.async_configure(
+    return await hass.config_entries.flow.async_configure(
         result["flow_id"], user_input=user_input
     )
-    return result
 
 
 async def _configure_system_settings_step(
@@ -1689,9 +1640,7 @@ async def _configure_family_step(
     assert result["step_id"] == const.CONFIG_FLOW_STEP_INTRO
 
     # Skip intro
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={}
-    )
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], user_input={})
     assert result["step_id"] == const.CONFIG_FLOW_STEP_POINTS
 
     # Configure system settings
@@ -1704,8 +1653,7 @@ async def _configure_family_step(
 
     # Configure multiple kids
     kid_configs = [
-        {"name": kid_name, "ha_user_name": f"kid{i + 1}"}
-        for i, kid_name in enumerate(kid_names)
+        {"name": kid_name, "ha_user_name": f"kid{i + 1}"} for i, kid_name in enumerate(kid_names)
     ]
     result, kid_name_to_id_map = await _configure_multiple_kids_step(
         hass, result, mock_hass_users, kid_configs
@@ -1964,9 +1912,7 @@ async def test_fresh_start_with_single_chore(
     assert config_entry.options[const.CONF_POINTS_ICON] == "mdi:star"
 
 
-async def test_fresh_start_with_all_scenario_chores(
-    hass: HomeAssistant, mock_hass_users
-) -> None:
+async def test_fresh_start_with_all_scenario_chores(hass: HomeAssistant, mock_hass_users) -> None:
     """Test fresh start config flow with all 18 chores from scenario_full.yaml."""
     # TEMP: Use simpler approach until family step is fixed
     result = await hass.config_entries.flow.async_init(
@@ -1975,9 +1921,7 @@ async def test_fresh_start_with_all_scenario_chores(
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], user_input={"backup_selection": "start_fresh"}
     )
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={}
-    )
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], user_input={})
 
     # Use existing helper to setup the full family (3 kids + 1 parent)
     result, _ = await _setup_full_family_scenario(
@@ -2197,9 +2141,7 @@ async def test_fresh_start_with_all_scenario_chores(
 
     for chore_name in expected_chore_names:
         chore_key = f"chore:{chore_name}"
-        assert chore_key in chore_name_to_id_map, (
-            f"Missing chore mapping for {chore_name}"
-        )
+        assert chore_key in chore_name_to_id_map, f"Missing chore mapping for {chore_name}"
         chore_id = chore_name_to_id_map[chore_key]
         assert len(chore_id) == 36  # UUID length
 
@@ -2242,9 +2184,7 @@ async def test_fresh_start_with_all_scenario_chores(
 @pytest.mark.skip(
     reason="Legacy test expects buggy behavior - due date should NOT reschedule on approval (bug fixed)"
 )
-async def test_chore_claim_approve_workflow(
-    hass: HomeAssistant, mock_hass_users
-) -> None:
+async def test_chore_claim_approve_workflow(hass: HomeAssistant, mock_hass_users) -> None:
     """Test chore workflow: claim -> disapprove -> claim -> approve.
 
     Reuses the setup from test_fresh_start_with_all_scenario_chores,
@@ -2291,9 +2231,7 @@ async def test_chore_claim_approve_workflow(
     assert chore_state is not None, f"Chore sensor {chore_eid} not found"
     claim_button_eid = chore_state.attributes[ATTR_CHORE_CLAIM_BUTTON_ENTITY_ID]
     approve_button_eid = chore_state.attributes[ATTR_CHORE_APPROVE_BUTTON_ENTITY_ID]
-    disapprove_button_eid = chore_state.attributes[
-        ATTR_CHORE_DISAPPROVE_BUTTON_ENTITY_ID
-    ]
+    disapprove_button_eid = chore_state.attributes[ATTR_CHORE_DISAPPROVE_BUTTON_ENTITY_ID]
 
     # Record initial values for comparison
     chore_points_value = chore_state.attributes[ATTR_DEFAULT_POINTS]
@@ -2393,9 +2331,7 @@ async def test_chore_claim_approve_workflow(
         "After disapprove: expected PENDING"
     )
     # For single-kid chores, global_state equals the kid's state (PENDING)
-    after_disapprove_global = chore_state_after_disapprove.attributes.get(
-        ATTR_GLOBAL_STATE
-    )
+    after_disapprove_global = chore_state_after_disapprove.attributes.get(ATTR_GLOBAL_STATE)
     assert after_disapprove_global == CHORE_STATE_PENDING, (
         f"After disapprove: global_state should be PENDING for single-kid chore, got: {after_disapprove_global}"
     )
@@ -2417,9 +2353,7 @@ async def test_chore_claim_approve_workflow(
         "After second claim: expected CLAIMED"
     )
     # For single-kid chores, global_state equals the kid's state (CLAIMED)
-    after_second_claim_global = chore_state_after_second_claim.attributes.get(
-        ATTR_GLOBAL_STATE
-    )
+    after_second_claim_global = chore_state_after_second_claim.attributes.get(ATTR_GLOBAL_STATE)
     assert after_second_claim_global == CHORE_STATE_CLAIMED, (
         f"After second claim: global_state should be CLAIMED for single-kid chore, got: {after_second_claim_global}"
     )

@@ -10,14 +10,12 @@ Tests approval workflow for INDEPENDENT chores with per-kid due dates:
 Priority: P1 CRITICAL (user "especially interested in approval resets")
 """
 
-# pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
-# pylint: disable=unused-argument
 
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import Context, HomeAssistant
+import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.const import (
@@ -28,9 +26,7 @@ from custom_components.kidschores.const import (
     DOMAIN,
 )
 from custom_components.kidschores.migration_pre_v50 import PreV50Migrator
-from tests.legacy.conftest import (
-    create_test_datetime,  # is_chore_* helpers not used here
-)
+from tests.legacy.conftest import create_test_datetime  # is_chore_* helpers not used here
 
 
 @pytest.mark.skip(
@@ -61,9 +57,7 @@ async def test_approve_advances_per_kid_due_date(
 
     # Set chore's template due date (required for recurrence calculation)
     original_due_date = create_test_datetime(days_offset=0)
-    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_DUE_DATE] = (
-        original_due_date
-    )
+    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_DUE_DATE] = original_due_date
 
     # Ensure chore_data structure exists with complete initialization
     # ALWAYS reset to PENDING since scenario may have set to APPROVED via chores_completed
@@ -92,9 +86,9 @@ async def test_approve_advances_per_kid_due_date(
     # Set Zoë's due date to today
     original_due_date = create_test_datetime(days_offset=0)
     # Set canonical source (per_kid_due_dates on chore)
-    coordinator.chores_data[star_sweep_id].setdefault(
-        const.DATA_CHORE_PER_KID_DUE_DATES, {}
-    )[zoe_id] = original_due_date
+    coordinator.chores_data[star_sweep_id].setdefault(const.DATA_CHORE_PER_KID_DUE_DATES, {})[
+        zoe_id
+    ] = original_due_date
     # Set derived/cached source (chore_data on kid)
     coordinator.kids_data[zoe_id][DATA_KID_CHORE_DATA][star_sweep_id][
         DATA_KID_CHORE_DATA_DUE_DATE_LEGACY
@@ -228,9 +222,9 @@ async def test_disapprove_does_not_advance_due_date(
         )
 
     # Verify due date unchanged
-    current_due_date = coordinator.kids_data[zoe_id][DATA_KID_CHORE_DATA][
-        star_sweep_id
-    ][DATA_KID_CHORE_DATA_DUE_DATE_LEGACY]
+    current_due_date = coordinator.kids_data[zoe_id][DATA_KID_CHORE_DATA][star_sweep_id][
+        DATA_KID_CHORE_DATA_DUE_DATE_LEGACY
+    ]
 
     assert current_due_date == original_due_date
 
@@ -253,8 +247,7 @@ async def test_shared_approve_advances_chore_level_due_date(
     shared_chores = [
         chore_id
         for chore_id, chore_info in coordinator.chores_data.items()
-        if chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
-        == const.COMPLETION_CRITERIA_SHARED
+        if chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA) == const.COMPLETION_CRITERIA_SHARED
     ]
 
     if not shared_chores:
@@ -318,15 +311,13 @@ async def test_multiple_kids_approve_same_day_independent_advancement(
     # Set both kids' due dates to today
     original_due_date = create_test_datetime(days_offset=0)
     # Ensure per_kid_due_dates exists
-    coordinator.chores_data[star_sweep_id].setdefault(
-        const.DATA_CHORE_PER_KID_DUE_DATES, {}
-    )
+    coordinator.chores_data[star_sweep_id].setdefault(const.DATA_CHORE_PER_KID_DUE_DATES, {})
     kid_names = {zoe_id: "Zoë", max_id: "Max!"}
     for kid_id in [zoe_id, max_id]:
         # Set canonical source (per_kid_due_dates on chore)
-        coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][
-            kid_id
-        ] = original_due_date
+        coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][kid_id] = (
+            original_due_date
+        )
         # Set derived/cached source (chore_data on kid)
         coordinator.kids_data[kid_id][DATA_KID_CHORE_DATA][star_sweep_id][
             DATA_KID_CHORE_DATA_DUE_DATE_LEGACY
@@ -483,9 +474,9 @@ async def test_null_due_date_approval_no_crash(
 
     # Verify no crash (test passes if we reach here)
     # Due date should remain None
-    current_due_date = coordinator.kids_data[zoe_id][DATA_KID_CHORE_DATA][
-        star_sweep_id
-    ][DATA_KID_CHORE_DATA_DUE_DATE_LEGACY]
+    current_due_date = coordinator.kids_data[zoe_id][DATA_KID_CHORE_DATA][star_sweep_id][
+        DATA_KID_CHORE_DATA_DUE_DATE_LEGACY
+    ]
     assert current_due_date is None
 
 
@@ -546,9 +537,9 @@ async def test_weekly_recurrence_advances_exactly_seven_days(
     # Set original due date
     original_due_date = create_test_datetime(days_offset=0)
     # Set canonical source (per_kid_due_dates on chore)
-    coordinator.chores_data[star_sweep_id].setdefault(
-        const.DATA_CHORE_PER_KID_DUE_DATES, {}
-    )[zoe_id] = original_due_date
+    coordinator.chores_data[star_sweep_id].setdefault(const.DATA_CHORE_PER_KID_DUE_DATES, {})[
+        zoe_id
+    ] = original_due_date
     # Set derived/cached source (chore_data on kid)
     coordinator.kids_data[zoe_id][DATA_KID_CHORE_DATA][star_sweep_id][
         DATA_KID_CHORE_DATA_DUE_DATE_LEGACY

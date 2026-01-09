@@ -1,7 +1,7 @@
 """Tests for flow_helpers.py backup functionality."""
 
 # pylint: disable=redefined-outer-name  # Pytest fixtures
-# pylint: disable=unused-argument  # Mock fixtures in test signatures
+# Mock fixtures in test signatures
 
 import datetime
 import json
@@ -40,9 +40,7 @@ def mock_storage_manager():
 def mock_hass():
     """Create mock Home Assistant instance."""
     hass = MagicMock()
-    hass.config.path.side_effect = lambda *args: os.path.join(
-        "/mock/.storage", *args[1:]
-    )
+    hass.config.path.side_effect = lambda *args: os.path.join("/mock/.storage", *args[1:])
     # Mock async_add_executor_job to return the result directly (simulating async execution)
     hass.async_add_executor_job = AsyncMock(side_effect=lambda func, *args: func(*args))
     return hass
@@ -62,14 +60,10 @@ async def test_create_timestamped_backup_success(
 ):
     """Test successful backup creation."""
     # Setup
-    mock_utcnow.return_value = datetime.datetime(
-        2024, 12, 18, 15, 30, 45, tzinfo=datetime.timezone.utc
-    )
+    mock_utcnow.return_value = datetime.datetime(2024, 12, 18, 15, 30, 45, tzinfo=datetime.UTC)
 
     # Execute - create_timestamped_backup is now async
-    filename = await create_timestamped_backup(
-        mock_hass, mock_storage_manager, "recovery"
-    )
+    filename = await create_timestamped_backup(mock_hass, mock_storage_manager, "recovery")
 
     # Verify
     assert filename == "kidschores_data_2024-12-18_15-30-45_recovery"
@@ -87,9 +81,7 @@ async def test_create_timestamped_backup_all_tags(
     mock_makedirs, mock_exists, mock_copy, mock_utcnow, mock_hass, mock_storage_manager
 ):
     """Test backup creation with all tag types."""
-    mock_utcnow.return_value = datetime.datetime(
-        2024, 12, 18, 10, 0, 0, tzinfo=datetime.timezone.utc
-    )
+    mock_utcnow.return_value = datetime.datetime(2024, 12, 18, 10, 0, 0, tzinfo=datetime.UTC)
 
     tags = ["recovery", "removal", "reset", "pre-migration", "manual"]
 
@@ -100,13 +92,9 @@ async def test_create_timestamped_backup_all_tags(
 
 
 @patch("builtins.open", side_effect=OSError("Disk full"))
-async def test_create_timestamped_backup_write_failure(
-    mock_file, mock_hass, mock_storage_manager
-):
+async def test_create_timestamped_backup_write_failure(mock_file, mock_hass, mock_storage_manager):
     """Test backup creation handles write failures gracefully."""
-    filename = await create_timestamped_backup(
-        mock_hass, mock_storage_manager, "recovery"
-    )
+    filename = await create_timestamped_backup(mock_hass, mock_storage_manager, "recovery")
 
     assert filename is None
 
@@ -137,45 +125,35 @@ async def test_cleanup_old_backups_respects_max_limit(
         {
             "filename": "kidschores_data_2024-12-18_15-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 15, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 15, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 1,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_14-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 14, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 14, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 2,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_13-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 13, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 13, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 3,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_12-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 12, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 12, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 4,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_11-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 11, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 11, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 5,
             "size_bytes": 1000,
         },
@@ -187,12 +165,8 @@ async def test_cleanup_old_backups_respects_max_limit(
     # Verify: Deleted oldest 2
     assert mock_remove.call_count == 2
     deleted_files = [call.args[0] for call in mock_remove.call_args_list]
-    assert (
-        "/mock/.storage/kidschores_data_2024-12-18_12-00-00_recovery" in deleted_files
-    )
-    assert (
-        "/mock/.storage/kidschores_data_2024-12-18_11-00-00_recovery" in deleted_files
-    )
+    assert "/mock/.storage/kidschores_data_2024-12-18_12-00-00_recovery" in deleted_files
+    assert "/mock/.storage/kidschores_data_2024-12-18_11-00-00_recovery" in deleted_files
 
 
 @patch("custom_components.kidschores.flow_helpers.discover_backups")
@@ -206,36 +180,28 @@ async def test_cleanup_old_backups_never_deletes_permanent_tags(
         {
             "filename": "kidschores_data_2024-12-18_15-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 15, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 15, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 1,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_10-00-00_pre-migration",
             "tag": "pre-migration",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 10, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 10, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 6,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_09-00-00_manual",
             "tag": "manual",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 9, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 9, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 7,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_08-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 8, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 8, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 8,
             "size_bytes": 1000,
         },
@@ -260,9 +226,7 @@ async def test_cleanup_old_backups_disabled_when_zero(
         {
             "filename": "kidschores_data_2024-12-18_15-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 15, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 15, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 1,
             "size_bytes": 1000,
         }
@@ -286,27 +250,21 @@ async def test_cleanup_old_backups_continues_on_error(
         {
             "filename": "kidschores_data_2024-12-18_15-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 15, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 15, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 1,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_14-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 14, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 14, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 2,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_13-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 13, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 13, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 3,
             "size_bytes": 1000,
         },
@@ -335,45 +293,35 @@ async def test_cleanup_old_backups_handles_non_integer_max_backups(
         {
             "filename": "kidschores_data_2024-12-18_15-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 15, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 15, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 1,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_14-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 14, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 14, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 2,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_13-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 13, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 13, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 3,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_12-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 12, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 12, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 4,
             "size_bytes": 1000,
         },
         {
             "filename": "kidschores_data_2024-12-18_11-00-00_recovery",
             "tag": "recovery",
-            "timestamp": datetime.datetime(
-                2024, 12, 18, 11, 0, 0, tzinfo=datetime.timezone.utc
-            ),
+            "timestamp": datetime.datetime(2024, 12, 18, 11, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 5,
             "size_bytes": 1000,
         },
@@ -386,12 +334,8 @@ async def test_cleanup_old_backups_handles_non_integer_max_backups(
     # Verify: Correctly interpreted "3" as integer and deleted oldest 2
     assert mock_remove.call_count == 2
     deleted_files = [call.args[0] for call in mock_remove.call_args_list]
-    assert (
-        "/mock/.storage/kidschores_data_2024-12-18_12-00-00_recovery" in deleted_files
-    )
-    assert (
-        "/mock/.storage/kidschores_data_2024-12-18_11-00-00_recovery" in deleted_files
-    )
+    assert "/mock/.storage/kidschores_data_2024-12-18_12-00-00_recovery" in deleted_files
+    assert "/mock/.storage/kidschores_data_2024-12-18_11-00-00_recovery" in deleted_files
 
     # Reset mock for second test with float
     mock_remove.reset_mock()

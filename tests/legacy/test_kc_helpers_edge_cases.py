@@ -7,24 +7,22 @@ Tests for:
 - Datetime boundary handling in adjust_datetime_by_interval
 """
 
-# pylint: disable=protected-access  # Testing internal helpers
-# pylint: disable=unused-argument  # Pytest fixtures required for setup
+# Testing internal helpers
+# Pytest fixtures required for setup
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-import pytest
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
+import pytest
 
-from custom_components.kidschores import const
-from custom_components.kidschores import kc_helpers as kh
+from custom_components.kidschores import const, kc_helpers as kh
 
 
 class TestEntityLookupHelpers:
     """Test entity lookup functions with edge cases."""
 
-    async def test_lookup_existing_entity(
-        self, hass: HomeAssistant, scenario_minimal
-    ) -> None:
+    async def test_lookup_existing_entity(self, hass: HomeAssistant, scenario_minimal) -> None:
         """Should find existing entity by name."""
         config_entry, name_to_id_map = scenario_minimal
         coordinator = hass.data["kidschores"][config_entry.entry_id]["coordinator"]
@@ -55,7 +53,7 @@ class TestEntityLookupHelpers:
         config_entry, _ = scenario_minimal
         coordinator = hass.data["kidschores"][config_entry.entry_id]["coordinator"]
 
-        with pytest.raises(Exception):  # HomeAssistantError
+        with pytest.raises(HomeAssistantError):
             kh.get_kid_id_or_raise(coordinator, "NonexistentKid")
 
 
@@ -91,36 +89,32 @@ class TestAuthorizationHelpers:
 class TestDatetimeBoundaryHandling:
     """Test datetime handling in adjust_datetime_by_interval."""
 
-    async def test_month_end_transition(
-        self, hass: HomeAssistant, scenario_minimal
-    ) -> None:
+    async def test_month_end_transition(self, hass: HomeAssistant, scenario_minimal) -> None:
         """Should handle month-end boundary correctly."""
-        jan_31 = datetime(2025, 1, 31, 12, 0, 0, tzinfo=timezone.utc)
+        jan_31 = datetime(2025, 1, 31, 12, 0, 0, tzinfo=UTC)
 
         result = kh.adjust_datetime_by_interval(jan_31, const.TIME_UNIT_MONTHS, 1)
 
         # Adding 1 month from Jan 31 should give Feb 28 (or 29 in leap year)
         assert result is not None
         assert isinstance(result, datetime)
-        assert result.tzinfo == timezone.utc
+        assert result.tzinfo == UTC
 
     async def test_year_transition(self, hass: HomeAssistant, scenario_minimal) -> None:
         """Should handle year boundary correctly."""
-        dec_31 = datetime(2024, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+        dec_31 = datetime(2024, 12, 31, 23, 59, 59, tzinfo=UTC)
 
         result = kh.adjust_datetime_by_interval(dec_31, const.TIME_UNIT_YEARS, 1)
 
         assert result is not None
         assert isinstance(result, datetime)
-        assert result.tzinfo == timezone.utc
+        assert result.tzinfo == UTC
 
 
 class TestProgressCalculation:
     """Test progress calculation helpers."""
 
-    async def test_progress_with_scenario_data(
-        self, hass: HomeAssistant, scenario_minimal
-    ) -> None:
+    async def test_progress_with_scenario_data(self, hass: HomeAssistant, scenario_minimal) -> None:
         """Should calculate progress safely."""
         config_entry, name_to_id_map = scenario_minimal
         kid_id = name_to_id_map["kid:Zoë"]

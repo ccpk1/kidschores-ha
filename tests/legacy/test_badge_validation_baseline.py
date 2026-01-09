@@ -50,7 +50,7 @@ async def test_assigned_to_empty_list_valid(
     errors = validate_badge_common_inputs(
         user_input=badge_input,
         internal_id=None,
-        existing_badges=coordinator._data[DATA_BADGES],  # pylint: disable=protected-access
+        existing_badges=coordinator._data[DATA_BADGES],
         badge_type=BADGE_TYPE_CUMULATIVE,
     )
 
@@ -85,7 +85,7 @@ async def test_assigned_to_valid_kid_ids(
     errors = validate_badge_common_inputs(
         user_input=badge_input,
         internal_id=None,
-        existing_badges=coordinator._data[DATA_BADGES],  # pylint: disable=protected-access
+        existing_badges=coordinator._data[DATA_BADGES],
         badge_type=BADGE_TYPE_CUMULATIVE,
     )
 

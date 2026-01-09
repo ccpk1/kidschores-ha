@@ -17,23 +17,25 @@ Notification System:
 - _notify_parents_translated() - Uses kid's dashboard_language for translations
 """
 
-# pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
-# pylint: disable=unused-argument  # hass fixture required for HA test setup
+# hass fixture required for HA test setup
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import patch
 
 import pytest
-from homeassistant.core import HomeAssistant
 
 from custom_components.kidschores import const
-from custom_components.kidschores.coordinator import KidsChoresDataCoordinator
 from tests.helpers.setup import SetupResult, setup_from_yaml
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+
+    from custom_components.kidschores.coordinator import KidsChoresDataCoordinator
 
 # =============================================================================
 # FIXTURES
@@ -47,7 +49,7 @@ def register_mock_notify_services(hass: HomeAssistant) -> None:
     mobile_notify_service field, enabling true end-to-end notification testing.
     """
 
-    async def mock_notify_service(call):  # noqa: ARG001
+    async def mock_notify_service(call):
         """Mock notify service handler."""
 
     # Register mock notify services that match what's in the YAML scenario
@@ -143,14 +145,12 @@ def enable_parent_notifications(
     ] = True
 
     # Set a mock notify service
-    coordinator._data[const.DATA_PARENTS][parent_id][
-        const.CONF_MOBILE_NOTIFY_SERVICE_LEGACY
-    ] = "notify.notify"
+    coordinator._data[const.DATA_PARENTS][parent_id][const.CONF_MOBILE_NOTIFY_SERVICE_LEGACY] = (
+        "notify.notify"
+    )
 
     # Ensure enable_notifications is also set
-    coordinator._data[const.DATA_PARENTS][parent_id][
-        const.DATA_PARENT_ENABLE_NOTIFICATIONS
-    ] = True
+    coordinator._data[const.DATA_PARENTS][parent_id][const.DATA_PARENT_ENABLE_NOTIFICATIONS] = True
 
     # Persist changes
     coordinator._persist()
@@ -231,8 +231,7 @@ class TestChoreClaimNotifications:
             "Notifications should be enabled through config flow"
         )
         assert (
-            parent_data.get(const.CONF_MOBILE_NOTIFY_SERVICE_LEGACY)
-            == "notify.mobile_app_mom"
+            parent_data.get(const.CONF_MOBILE_NOTIFY_SERVICE_LEGACY) == "notify.mobile_app_mom"
         ), "Mobile notify service should be set through config flow"
 
         # Verify mock service exists
@@ -293,9 +292,7 @@ class TestChoreClaimNotifications:
 
         # Actions should include approve, disapprove, remind
         action_titles = capture.get_action_titles()
-        assert len(action_titles) >= 2, (
-            f"Expected at least 2 action buttons, got: {action_titles}"
-        )
+        assert len(action_titles) >= 2, f"Expected at least 2 action buttons, got: {action_titles}"
 
     @pytest.mark.asyncio
     async def test_auto_approve_chore_no_parent_notification(
@@ -347,9 +344,7 @@ class TestNotificationLanguage:
         chore_id = scenario_notifications.chore_ids["Feed the cat"]
 
         # Verify kid is configured for English
-        kid_lang = coordinator._data[const.DATA_KIDS][kid_id].get(
-            const.DATA_KID_DASHBOARD_LANGUAGE
-        )
+        kid_lang = coordinator._data[const.DATA_KIDS][kid_id].get(const.DATA_KID_DASHBOARD_LANGUAGE)
         assert kid_lang == "en", f"Expected kid language 'en', got '{kid_lang}'"
 
         # Notifications enabled through config flow (mock services registered by fixture)
@@ -387,9 +382,7 @@ class TestNotificationLanguage:
         chore_id = scenario_notifications.chore_ids["Clean room"]
 
         # Verify kid is configured for Slovak
-        kid_lang = coordinator._data[const.DATA_KIDS][kid_id].get(
-            const.DATA_KID_DASHBOARD_LANGUAGE
-        )
+        kid_lang = coordinator._data[const.DATA_KIDS][kid_id].get(const.DATA_KID_DASHBOARD_LANGUAGE)
         assert kid_lang == "sk", f"Expected kid language 'sk', got '{kid_lang}'"
 
         # Notifications enabled through config flow (mock services registered by fixture)
@@ -505,9 +498,7 @@ class TestNotificationActions:
             assert not title.startswith("notif_action_"), (
                 f"Action title is raw key, not translated: {title}"
             )
-            assert not title.startswith("err-"), (
-                f"Action title is error fallback: {title}"
-            )
+            assert not title.startswith("err-"), f"Action title is error fallback: {title}"
             # Should be actual words, not snake_case keys
             assert "_" not in title or " " in title, (
                 f"Action title looks like a key, not translated text: {title}"

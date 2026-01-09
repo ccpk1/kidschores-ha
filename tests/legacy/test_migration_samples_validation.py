@@ -18,17 +18,17 @@ Migration Philosophy:
     integrity, not data completeness.
 """
 
-# pylint: disable=protected-access  # Accessing _data for migration validation
+# Accessing _data for migration validation
 # pylint: disable=redefined-outer-name  # Pytest fixture pattern
 
 import json
-import re
 from pathlib import Path
+import re
 from typing import Any
 from unittest.mock import patch
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kidschores.const import (
@@ -105,9 +105,7 @@ def migration_sample_v31() -> dict[str, Any]:
 @pytest.fixture
 def migration_sample_v40beta1() -> dict[str, Any]:
     """Load kidschores_data_40beta1 sample file (KC 4.0 beta data)."""
-    sample_path = (
-        Path(__file__).parent / "migration_samples" / "kidschores_data_40beta1"
-    )
+    sample_path = Path(__file__).parent / "migration_samples" / "kidschores_data_40beta1"
     with open(sample_path, encoding="utf-8") as f:
         raw_data = json.load(f)
     return raw_data["data"]
@@ -234,10 +232,7 @@ async def test_migration_schema_version_updated(
 
     # Verify schema version updated to v43 in meta section
     assert DATA_META in coordinator._data
-    assert (
-        coordinator._data[DATA_META][DATA_META_SCHEMA_VERSION]
-        == SCHEMA_VERSION_STORAGE_ONLY
-    )
+    assert coordinator._data[DATA_META][DATA_META_SCHEMA_VERSION] == SCHEMA_VERSION_STORAGE_ONLY
     # Verify old top-level schema_version removed
     assert DATA_SCHEMA_VERSION not in coordinator._data
 
@@ -469,9 +464,7 @@ async def test_migration_badge_required_fields(
     for badge_id, badge_data in coordinator.badges_data.items():
         # Type field
         assert DATA_BADGE_TYPE in badge_data, f"Badge {badge_id} missing type"
-        assert isinstance(badge_data[DATA_BADGE_TYPE], str), (
-            f"Badge {badge_id} type not a string"
-        )
+        assert isinstance(badge_data[DATA_BADGE_TYPE], str), f"Badge {badge_id} type not a string"
 
         # Target structure
         assert DATA_BADGE_TARGET in badge_data, f"Badge {badge_id} missing target"
@@ -501,25 +494,19 @@ async def test_migration_badge_required_fields(
         )
 
         # Reset schedule structure
-        assert DATA_BADGE_RESET_SCHEDULE in badge_data, (
-            f"Badge {badge_id} missing reset_schedule"
-        )
+        assert DATA_BADGE_RESET_SCHEDULE in badge_data, f"Badge {badge_id} missing reset_schedule"
         assert isinstance(badge_data[DATA_BADGE_RESET_SCHEDULE], dict), (
             f"Badge {badge_id} reset_schedule not a dict"
         )
         assert (
-            DATA_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY
-            in badge_data[DATA_BADGE_RESET_SCHEDULE]
+            DATA_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY in badge_data[DATA_BADGE_RESET_SCHEDULE]
         ), f"Badge {badge_id} reset_schedule missing recurring_frequency"
         assert (
-            DATA_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS
-            in badge_data[DATA_BADGE_RESET_SCHEDULE]
+            DATA_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS in badge_data[DATA_BADGE_RESET_SCHEDULE]
         ), f"Badge {badge_id} reset_schedule missing grace_period_days"
 
         # Assigned to list
-        assert DATA_BADGE_ASSIGNED_TO in badge_data, (
-            f"Badge {badge_id} missing assigned_to"
-        )
+        assert DATA_BADGE_ASSIGNED_TO in badge_data, f"Badge {badge_id} missing assigned_to"
         assert isinstance(badge_data[DATA_BADGE_ASSIGNED_TO], list), (
             f"Badge {badge_id} assigned_to not a list"
         )
@@ -557,9 +544,7 @@ async def test_migration_kid_points_preserved(
 
     # Validate points preserved for each kid
     for kid_id, pre_points in pre_migration_points.items():
-        assert kid_id in coordinator.kids_data, (
-            f"Kid {kid_id} not found after migration"
-        )
+        assert kid_id in coordinator.kids_data, f"Kid {kid_id} not found after migration"
         post_points = coordinator.kids_data[kid_id].get(DATA_KID_POINTS, 0.0)
         assert abs(post_points - pre_points) < 0.01, (
             f"Kid {kid_id} points changed: {pre_points} -> {post_points}"
@@ -593,12 +578,8 @@ async def test_migration_chore_assignments_preserved(
 
     # Validate assignments preserved for each chore
     for chore_id, pre_kids in pre_migration_assignments.items():
-        assert chore_id in coordinator.chores_data, (
-            f"Chore {chore_id} not found after migration"
-        )
-        post_kids = set(
-            coordinator.chores_data[chore_id].get(DATA_CHORE_ASSIGNED_KIDS, [])
-        )
+        assert chore_id in coordinator.chores_data, f"Chore {chore_id} not found after migration"
+        post_kids = set(coordinator.chores_data[chore_id].get(DATA_CHORE_ASSIGNED_KIDS, []))
         assert post_kids == pre_kids, (
             f"Chore {chore_id} assignments changed: {pre_kids} -> {post_kids}"
         )
@@ -633,9 +614,7 @@ async def test_migration_datetime_format(
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
     # UTC-aware ISO format regex (microseconds optional)
-    utc_iso_pattern = re.compile(
-        r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?[+-]\d{2}:\d{2}$"
-    )
+    utc_iso_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?[+-]\d{2}:\d{2}$")
 
     # Check chore datetime fields
     for chore_id, chore_data in coordinator.chores_data.items():

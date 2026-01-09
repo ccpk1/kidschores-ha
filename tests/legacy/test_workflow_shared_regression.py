@@ -7,16 +7,14 @@ Priority: P2 SECONDARY (Shared chore regression validation)
 Coverage: 4 regression tests for SHARED approval behavior
 """
 
-# pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
-# pylint: disable=unused-argument
 
 from datetime import datetime
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from dateutil import parser
 from homeassistant.core import Context, HomeAssistant
+import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.const import (
@@ -27,9 +25,7 @@ from custom_components.kidschores.const import (
     DOMAIN,
 )
 from custom_components.kidschores.migration_pre_v50 import PreV50Migrator
-from tests.legacy.conftest import (
-    is_chore_claimed_for_kid,  # pylint: disable=unused-import
-)
+from tests.legacy.conftest import is_chore_claimed_for_kid  # pylint: disable=unused-import
 
 
 @pytest.mark.asyncio
@@ -60,9 +56,7 @@ async def test_shared_all_approval_uses_chore_level_due_date(
         pytest.skip("No SHARED chores in scenario_full - Phase 3 test pending")
 
     zoe_id = name_to_id_map["kid:Zoë"]
-    original_chore_due_date = coordinator.chores_data[shared_chore_id].get(
-        DATA_CHORE_DUE_DATE
-    )
+    original_chore_due_date = coordinator.chores_data[shared_chore_id].get(DATA_CHORE_DUE_DATE)
 
     # Parse if string
     if isinstance(original_chore_due_date, str):
@@ -87,9 +81,7 @@ async def test_shared_all_approval_uses_chore_level_due_date(
             "approve_chore",
             {
                 "kid_name": "Zoë",
-                "chore_name": coordinator.chores_data[shared_chore_id][
-                    const.DATA_CHORE_NAME
-                ],
+                "chore_name": coordinator.chores_data[shared_chore_id][const.DATA_CHORE_NAME],
                 "parent_name": "Môm Astrid Stârblüm",
             },
             blocking=True,
@@ -98,9 +90,7 @@ async def test_shared_all_approval_uses_chore_level_due_date(
 
     # For SHARED chores, verify chore-level due date may have advanced
     # (or remained same depending on recurrence logic)
-    new_chore_due_date = coordinator.chores_data[shared_chore_id].get(
-        DATA_CHORE_DUE_DATE
-    )
+    new_chore_due_date = coordinator.chores_data[shared_chore_id].get(DATA_CHORE_DUE_DATE)
     if isinstance(new_chore_due_date, str):
         new_chore_due_date = parser.isoparse(new_chore_due_date)
 
@@ -262,9 +252,7 @@ async def test_shared_disapprove_no_advancement(
 
     zoe_id = name_to_id_map["kid:Zoë"]
     chore_name = coordinator.chores_data[shared_chore_id][const.DATA_CHORE_NAME]
-    original_due_date = coordinator.chores_data[shared_chore_id].get(
-        DATA_CHORE_DUE_DATE
-    )
+    original_due_date = coordinator.chores_data[shared_chore_id].get(DATA_CHORE_DUE_DATE)
 
     if isinstance(original_due_date, str):
         original_due_date = parser.isoparse(original_due_date)

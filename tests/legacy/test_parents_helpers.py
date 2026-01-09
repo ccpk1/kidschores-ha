@@ -4,8 +4,7 @@ Tests validate that config flow and options flow use the same centralized
 helper functions for parents configuration, ensuring consistency.
 """
 
-from custom_components.kidschores import const
-from custom_components.kidschores import flow_helpers as fh
+from custom_components.kidschores import const, flow_helpers as fh
 
 
 def test_build_parents_data_with_all_values() -> None:
@@ -63,9 +62,7 @@ def test_build_parents_data_with_defaults() -> None:
     assert parent_data[const.DATA_PARENT_ASSOCIATED_KIDS] == []
     assert parent_data[const.DATA_PARENT_ENABLE_NOTIFICATIONS] is True  # Default
     assert parent_data[const.DATA_PARENT_MOBILE_NOTIFY_SERVICE] == const.SENTINEL_EMPTY
-    assert (
-        parent_data[const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS] is True
-    )  # Default
+    assert parent_data[const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS] is True  # Default
 
 
 def test_build_parents_data_strips_whitespace_from_name() -> None:
@@ -113,9 +110,7 @@ def test_validate_parents_inputs_empty_name() -> None:
     errors = fh.validate_parents_inputs(user_input)
 
     assert const.CFOP_ERROR_PARENT_NAME in errors
-    assert (
-        errors[const.CFOP_ERROR_PARENT_NAME] == const.TRANS_KEY_CFOF_INVALID_PARENT_NAME
-    )
+    assert errors[const.CFOP_ERROR_PARENT_NAME] == const.TRANS_KEY_CFOF_INVALID_PARENT_NAME
 
 
 def test_validate_parents_inputs_whitespace_only_name() -> None:
@@ -127,9 +122,7 @@ def test_validate_parents_inputs_whitespace_only_name() -> None:
     errors = fh.validate_parents_inputs(user_input)
 
     assert const.CFOP_ERROR_PARENT_NAME in errors
-    assert (
-        errors[const.CFOP_ERROR_PARENT_NAME] == const.TRANS_KEY_CFOF_INVALID_PARENT_NAME
-    )
+    assert errors[const.CFOP_ERROR_PARENT_NAME] == const.TRANS_KEY_CFOF_INVALID_PARENT_NAME
 
 
 def test_validate_parents_inputs_missing_name() -> None:
@@ -139,9 +132,7 @@ def test_validate_parents_inputs_missing_name() -> None:
     errors = fh.validate_parents_inputs(user_input)
 
     assert const.CFOP_ERROR_PARENT_NAME in errors
-    assert (
-        errors[const.CFOP_ERROR_PARENT_NAME] == const.TRANS_KEY_CFOF_INVALID_PARENT_NAME
-    )
+    assert errors[const.CFOP_ERROR_PARENT_NAME] == const.TRANS_KEY_CFOF_INVALID_PARENT_NAME
 
 
 def test_validate_parents_inputs_duplicate_name() -> None:

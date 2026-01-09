@@ -13,11 +13,15 @@ No need to pass domain as an argument.
 
 from __future__ import annotations
 
-from homeassistant.core import HomeAssistant
+from typing import TYPE_CHECKING
+
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import slugify
 
 from custom_components.kidschores.const import DOMAIN
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
 
 
 def count_entities_by_platform(
@@ -120,9 +124,7 @@ def verify_kid_entities(
                 unique_id = entity_id_parts[1]
                 # Calendar entity is just "kc_zoe" without trailing underscore
                 # Other entities are "kc_zoe_*" with trailing underscore
-                prefix_match = unique_id.startswith(
-                    prefix
-                ) or unique_id == prefix.rstrip("_")
+                prefix_match = unique_id.startswith(prefix) or unique_id == prefix.rstrip("_")
                 if prefix_match:
                     if entity.domain == "sensor":
                         sensor_count += 1

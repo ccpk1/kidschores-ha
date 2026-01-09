@@ -15,15 +15,13 @@ Test Organization:
 - TestGlobalStateConsistency: Verify global always reflects aggregate
 """
 
-# pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
-# pylint: disable=unused-argument
 
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
 from tests.helpers import (
     # Chore states
@@ -324,9 +322,7 @@ class TestStateMatrixSharedFirst:
         # All kids should be pending
         assert get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_PENDING
         assert get_kid_chore_state(coordinator, max_id, chore_id) == CHORE_STATE_PENDING
-        assert (
-            get_kid_chore_state(coordinator, lila_id, chore_id) == CHORE_STATE_PENDING
-        )
+        assert get_kid_chore_state(coordinator, lila_id, chore_id) == CHORE_STATE_PENDING
 
         # Global state should be pending
         assert get_global_chore_state(coordinator, chore_id) == CHORE_STATE_PENDING
@@ -432,9 +428,7 @@ class TestStateMatrixSharedAll:
         # All kids should be pending
         assert get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_PENDING
         assert get_kid_chore_state(coordinator, max_id, chore_id) == CHORE_STATE_PENDING
-        assert (
-            get_kid_chore_state(coordinator, lila_id, chore_id) == CHORE_STATE_PENDING
-        )
+        assert get_kid_chore_state(coordinator, lila_id, chore_id) == CHORE_STATE_PENDING
 
         # Global state should be pending
         assert get_global_chore_state(coordinator, chore_id) == CHORE_STATE_PENDING
@@ -457,9 +451,7 @@ class TestStateMatrixSharedAll:
         assert has_pending_claim(coordinator, zoe_id, chore_id) is True
 
         # Global state should be claimed_in_part (not all claimed yet)
-        assert (
-            get_global_chore_state(coordinator, chore_id) == CHORE_STATE_CLAIMED_IN_PART
-        )
+        assert get_global_chore_state(coordinator, chore_id) == CHORE_STATE_CLAIMED_IN_PART
 
     @pytest.mark.asyncio
     async def test_all_kids_claim_shows_claimed(
@@ -513,10 +505,7 @@ class TestStateMatrixSharedAll:
         assert coordinator.is_approved_in_current_period(zoe_id, chore_id) is True
 
         # Global state should be approved_in_part
-        assert (
-            get_global_chore_state(coordinator, chore_id)
-            == CHORE_STATE_APPROVED_IN_PART
-        )
+        assert get_global_chore_state(coordinator, chore_id) == CHORE_STATE_APPROVED_IN_PART
 
     @pytest.mark.asyncio
     async def test_all_kids_approved_shows_approved(
@@ -579,10 +568,7 @@ class TestStateMatrixSharedAll:
         # - Lila: pending
 
         # Global state should be approved_in_part (there's at least one approval)
-        assert (
-            get_global_chore_state(coordinator, chore_id)
-            == CHORE_STATE_APPROVED_IN_PART
-        )
+        assert get_global_chore_state(coordinator, chore_id) == CHORE_STATE_APPROVED_IN_PART
 
 
 # =============================================================================
@@ -686,16 +672,10 @@ class TestGlobalStateConsistency:
 
             # Zoë approved
             coordinator.approve_chore("Mom", zoe_id, chore_id)
-            assert (
-                get_global_chore_state(coordinator, chore_id)
-                == CHORE_STATE_APPROVED_IN_PART
-            )
+            assert get_global_chore_state(coordinator, chore_id) == CHORE_STATE_APPROVED_IN_PART
 
             # Max disapproved - only Max should reset, Zoë stays approved
             coordinator.disapprove_chore("Mom", max_id, chore_id)
 
         # Max is now pending, Zoë is still approved = approved_in_part
-        assert (
-            get_global_chore_state(coordinator, chore_id)
-            == CHORE_STATE_APPROVED_IN_PART
-        )
+        assert get_global_chore_state(coordinator, chore_id) == CHORE_STATE_APPROVED_IN_PART

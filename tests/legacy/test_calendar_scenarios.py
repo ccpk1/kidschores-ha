@@ -21,18 +21,17 @@ Test Coverage:
     - Edge cases: multiple chores, timezones, boundaries
 """
 
-# pylint: disable=protected-access  # Accessing _persist for testing
-# pylint: disable=too-many-locals  # Test functions need many variables for setup
-# pylint: disable=unused-argument  # hass_client required by fixture pattern
+# Accessing _persist for testing
+# hass_client required by fixture pattern
 
-from datetime import timedelta, timezone
+from datetime import UTC, timedelta
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
-import pytest
 from freezegun import freeze_time
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.typing import ClientSessionGenerator
 
@@ -85,9 +84,7 @@ async def test_non_recurring_chore_with_due_date_datetime(
     # Get calendar entity and fetch events directly (avoids HTTP auth issues in tests)
     from datetime import datetime  # pylint: disable=import-outside-toplevel
 
-    calendar_entity = hass.data["entity_components"]["calendar"].get_entity(
-        "calendar.kc_zoe"
-    )
+    calendar_entity = hass.data["entity_components"]["calendar"].get_entity("calendar.kc_zoe")
     assert calendar_entity is not None, "Calendar entity not found"
 
     # Fetch events for January 2025
@@ -97,9 +94,7 @@ async def test_non_recurring_chore_with_due_date_datetime(
 
     # Find the Homework event (scenario_minimal has 2 daily recurring chores, so filter)
     homework_events = [e for e in calendar_events if e.summary == "Homework"]
-    assert len(homework_events) == 1, (
-        f"Expected 1 Homework event, got {len(homework_events)}"
-    )
+    assert len(homework_events) == 1, f"Expected 1 Homework event, got {len(homework_events)}"
 
     event = homework_events[0]
     assert event.summary == "Homework"
@@ -141,9 +136,7 @@ async def test_non_recurring_chore_with_due_date_midnight(
     # Get calendar entity and fetch events directly
     from datetime import datetime  # pylint: disable=import-outside-toplevel
 
-    calendar_entity = hass.data["entity_components"]["calendar"].get_entity(
-        "calendar.kc_zoe"
-    )
+    calendar_entity = hass.data["entity_components"]["calendar"].get_entity("calendar.kc_zoe")
     assert calendar_entity is not None
 
     start_dt = datetime(2025, 1, 1, 0, 0, 0, tzinfo=TEST_TZ)
@@ -163,8 +156,8 @@ async def test_non_recurring_chore_with_due_date_midnight(
     duration = event.end - event.start
     assert duration == timedelta(hours=1), f"Expected 1 hour duration, got {duration}"
     # Start should match the stored due_date in UTC terms (2025-01-25 05:00:00 UTC)
-    expected_start_utc = datetime(2025, 1, 25, 5, 0, 0, tzinfo=timezone.utc)
-    assert event.start.astimezone(timezone.utc) == expected_start_utc
+    expected_start_utc = datetime(2025, 1, 25, 5, 0, 0, tzinfo=UTC)
+    assert event.start.astimezone(UTC) == expected_start_utc
 
 
 # ============================================================================
@@ -202,9 +195,7 @@ async def test_daily_recurring_with_due_date(
     # Get calendar entity and fetch events directly
     from datetime import datetime  # pylint: disable=import-outside-toplevel
 
-    calendar_entity = hass.data["entity_components"]["calendar"].get_entity(
-        "calendar.kc_zoe"
-    )
+    calendar_entity = hass.data["entity_components"]["calendar"].get_entity("calendar.kc_zoe")
     assert calendar_entity is not None
 
     start_dt = datetime(2025, 1, 1, 0, 0, 0, tzinfo=TEST_TZ)
@@ -252,9 +243,7 @@ async def test_daily_recurring_without_due_date_all_days(
     # Get calendar entity and fetch events for 1 week (Jan 15-21)
     from datetime import datetime  # pylint: disable=import-outside-toplevel
 
-    calendar_entity = hass.data["entity_components"]["calendar"].get_entity(
-        "calendar.kc_zoe"
-    )
+    calendar_entity = hass.data["entity_components"]["calendar"].get_entity("calendar.kc_zoe")
     assert calendar_entity is not None
 
     start_dt = datetime(2025, 1, 15, 0, 0, 0, tzinfo=TEST_TZ)
@@ -308,9 +297,7 @@ async def test_daily_recurring_without_due_date_applicable_days(
     # Get calendar entity and fetch events for 2 weeks (Jan 13-26: Mon to Sun)
     from datetime import datetime  # pylint: disable=import-outside-toplevel
 
-    calendar_entity = hass.data["entity_components"]["calendar"].get_entity(
-        "calendar.kc_zoe"
-    )
+    calendar_entity = hass.data["entity_components"]["calendar"].get_entity("calendar.kc_zoe")
     assert calendar_entity is not None
 
     start_dt = datetime(2025, 1, 13, 0, 0, 0, tzinfo=TEST_TZ)
@@ -363,9 +350,7 @@ async def test_weekly_recurring_with_due_date(
     # Get calendar entity and fetch events directly
     from datetime import datetime  # pylint: disable=import-outside-toplevel
 
-    calendar_entity = hass.data["entity_components"]["calendar"].get_entity(
-        "calendar.kc_zoe"
-    )
+    calendar_entity = hass.data["entity_components"]["calendar"].get_entity("calendar.kc_zoe")
     assert calendar_entity is not None
 
     start_dt = datetime(2025, 1, 1, 0, 0, 0, tzinfo=TEST_TZ)
@@ -378,9 +363,7 @@ async def test_weekly_recurring_with_due_date(
 
     event = report_events[0]
     # Block should start 7 days before due date (all-day event for weekly block)
-    assert (
-        event.start_datetime_local.date().isoformat() == "2025-01-19"
-    )  # 7 days before Jan 26
+    assert event.start_datetime_local.date().isoformat() == "2025-01-19"  # 7 days before Jan 26
     assert (
         event.end_datetime_local.date().isoformat() == "2025-01-27"
     )  # Due date + 1 (exclusive end)

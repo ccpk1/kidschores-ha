@@ -15,16 +15,15 @@ Also tests:
 - Interaction with completion_criteria modes
 """
 
-# pylint: disable=unused-argument,unused-variable,protected-access
 
 import asyncio
-import uuid
 from datetime import timedelta
 from unittest.mock import AsyncMock, patch
+import uuid
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kidschores import const
@@ -46,9 +45,7 @@ def set_chore_approval_reset_type(coordinator, chore_id: str, reset_type: str) -
     coordinator._persist()
 
 
-def set_approval_period_start(
-    coordinator, kid_id: str, chore_id: str, timestamp: str
-) -> None:
+def set_approval_period_start(coordinator, kid_id: str, chore_id: str, timestamp: str) -> None:
     """Set the approval_period_start timestamp for a chore (handles INDEPENDENT mode)."""
     chore_info = coordinator.chores_data.get(chore_id, {})
     completion_criteria = chore_info.get(
@@ -58,9 +55,7 @@ def set_approval_period_start(
     if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
         # Store in kid_chore_data for INDEPENDENT chores
         kid_info = coordinator.kids_data.get(kid_id, {})
-        kid_chore_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {}).setdefault(
-            chore_id, {}
-        )
+        kid_chore_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {}).setdefault(chore_id, {})
         kid_chore_data[const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = timestamp
     else:
         # Store at chore level for SHARED chores
@@ -72,9 +67,7 @@ def set_approval_period_start(
 def set_last_approved(coordinator, kid_id: str, chore_id: str, timestamp: str) -> None:
     """Set the last_approved timestamp for a kid+chore."""
     kid_info = coordinator.kids_data.setdefault(kid_id, {})
-    kid_chore_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {}).setdefault(
-        chore_id, {}
-    )
+    kid_chore_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {}).setdefault(chore_id, {})
     kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_APPROVED] = timestamp
     kid_chore_data[const.DATA_KID_CHORE_DATA_STATE] = const.CHORE_STATE_APPROVED
     coordinator._persist()
@@ -116,9 +109,7 @@ async def test_at_midnight_once_blocks_same_day_reclaim(
     chore_id = name_to_id_map["chore:Wåter the plänts"]
 
     # Setup: Set approval_reset_type to AT_MIDNIGHT_ONCE
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE)
     clear_chore_approval_state(coordinator, kid_id, chore_id)
 
     # First claim and approve
@@ -158,16 +149,12 @@ async def test_at_midnight_once_allows_next_day_claim(
     chore_id = name_to_id_map["chore:Wåter the plänts"]
 
     # Setup: Set approval_reset_type to AT_MIDNIGHT_ONCE
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE)
     clear_chore_approval_state(coordinator, kid_id, chore_id)
 
     # Simulate approval happened yesterday
     yesterday = (dt_util.utcnow() - timedelta(days=1)).isoformat()
-    today_midnight = (
-        dt_util.utcnow().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
-    )
+    today_midnight = dt_util.utcnow().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
 
     set_last_approved(coordinator, kid_id, chore_id, yesterday)
     set_approval_period_start(coordinator, kid_id, chore_id, today_midnight)
@@ -198,9 +185,7 @@ async def test_at_midnight_multi_allows_same_day_reclaim(
     chore_id = name_to_id_map["chore:Wåter the plänts"]
 
     # Setup: Set approval_reset_type to AT_MIDNIGHT_MULTI
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_MULTI
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_MULTI)
     clear_chore_approval_state(coordinator, kid_id, chore_id)
 
     # First claim and approve
@@ -235,17 +220,13 @@ async def test_at_midnight_multi_resets_at_midnight(
     chore_id = name_to_id_map["chore:Wåter the plänts"]
 
     # Setup
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_MULTI
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_MULTI)
 
     # Simulate approval yesterday at 11pm, period_start today at midnight
     yesterday_11pm = (
         dt_util.utcnow().replace(hour=23, minute=0, second=0) - timedelta(days=1)
     ).isoformat()
-    today_midnight = (
-        dt_util.utcnow().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
-    )
+    today_midnight = dt_util.utcnow().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
 
     set_last_approved(coordinator, kid_id, chore_id, yesterday_11pm)
     set_approval_period_start(coordinator, kid_id, chore_id, today_midnight)
@@ -275,9 +256,7 @@ async def test_at_due_date_once_blocks_same_cycle_reclaim(
     chore_id = name_to_id_map["chore:Wåter the plänts"]
 
     # Setup: Set approval_reset_type to AT_DUE_DATE_ONCE
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_AT_DUE_DATE_ONCE
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_AT_DUE_DATE_ONCE)
     clear_chore_approval_state(coordinator, kid_id, chore_id)
 
     # Claim and approve
@@ -312,9 +291,7 @@ async def test_at_due_date_once_allows_after_due_date_reset(
     chore_id = name_to_id_map["chore:Wåter the plänts"]
 
     # Setup
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_AT_DUE_DATE_ONCE
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_AT_DUE_DATE_ONCE)
 
     # Simulate: approval was 3 days ago, but period_start is now (due date passed)
     three_days_ago = (dt_util.utcnow() - timedelta(days=3)).isoformat()
@@ -348,9 +325,7 @@ async def test_at_due_date_multi_allows_same_cycle_reclaim(
     chore_id = name_to_id_map["chore:Wåter the plänts"]
 
     # Setup
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_AT_DUE_DATE_MULTI
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_AT_DUE_DATE_MULTI)
     clear_chore_approval_state(coordinator, kid_id, chore_id)
 
     # Claim and approve
@@ -386,9 +361,7 @@ async def test_upon_completion_always_allows_claim(
     chore_id = name_to_id_map["chore:Wåter the plänts"]
 
     # Setup
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_UPON_COMPLETION
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_UPON_COMPLETION)
     clear_chore_approval_state(coordinator, kid_id, chore_id)
 
     # Claim and approve multiple times
@@ -422,9 +395,7 @@ async def test_upon_completion_ignores_period_start(
     chore_id = name_to_id_map["chore:Wåter the plänts"]
 
     # Setup
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_UPON_COMPLETION
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_UPON_COMPLETION)
 
     # Set recent approval (just now)
     now = dt_util.utcnow().isoformat()
@@ -454,9 +425,7 @@ async def test_midnight_boundary_crossing(
     chore_id = name_to_id_map["chore:Wåter the plänts"]
 
     # Setup: AT_MIDNIGHT_ONCE mode
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE)
 
     # Simulate: approved at 11:59pm yesterday
     yesterday_1159pm = (
@@ -464,9 +433,7 @@ async def test_midnight_boundary_crossing(
     ).isoformat()
 
     # Period start is today at midnight
-    today_midnight = (
-        dt_util.utcnow().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
-    )
+    today_midnight = dt_util.utcnow().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
 
     set_last_approved(coordinator, kid_id, chore_id, yesterday_1159pm)
     set_approval_period_start(coordinator, kid_id, chore_id, today_midnight)
@@ -491,9 +458,7 @@ async def test_due_date_boundary_crossing(
     chore_id = name_to_id_map["chore:Wåter the plänts"]
 
     # Setup: AT_DUE_DATE_ONCE mode
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_AT_DUE_DATE_ONCE
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_AT_DUE_DATE_ONCE)
 
     # Simulate: approved 1 week ago, due date just passed (period_start is now)
     one_week_ago = (dt_util.utcnow() - timedelta(days=7)).isoformat()
@@ -579,9 +544,7 @@ async def test_period_start_set_on_reset(
     chore_id = name_to_id_map["chore:Wåter the plänts"]
 
     # Setup
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE)
 
     # Clear any existing period start
     clear_chore_approval_state(coordinator, kid_id, chore_id)
@@ -596,9 +559,7 @@ async def test_period_start_set_on_reset(
     period_start_after = coordinator._get_approval_period_start(kid_id, chore_id)
 
     # Period start should now be set (non-None)
-    assert period_start_after is not None, (
-        "approval_period_start should be set on state reset"
-    )
+    assert period_start_after is not None, "approval_period_start should be set on state reset"
 
 
 @pytest.mark.asyncio
@@ -617,9 +578,7 @@ async def test_independent_chore_per_kid_period_start(
     coordinator.chores_data[chore_id][const.DATA_CHORE_COMPLETION_CRITERIA] = (
         const.COMPLETION_CRITERIA_INDEPENDENT
     )
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE)
 
     # Set different period_start times for each kid
     time1 = (dt_util.utcnow() - timedelta(hours=2)).isoformat()
@@ -657,9 +616,7 @@ async def test_interaction_with_auto_approve(
     assert coordinator.chores_data[chore_id].get(const.DATA_CHORE_AUTO_APPROVE) is True
 
     # Setup: AT_MIDNIGHT_ONCE mode
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE)
     clear_chore_approval_state(coordinator, kid_id, chore_id)
 
     # Claim (auto-approves immediately)
@@ -691,9 +648,7 @@ async def test_upon_completion_with_auto_approve(
     chore_id = name_to_id_map["chore:Feed the cåts"]  # Has auto_approve=True
 
     # Setup: UPON_COMPLETION mode
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_UPON_COMPLETION
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_UPON_COMPLETION)
     clear_chore_approval_state(coordinator, kid_id, chore_id)
 
     # Get initial points
@@ -711,9 +666,7 @@ async def test_upon_completion_with_auto_approve(
         for i in range(3):
             # Verify claim is allowed
             can_claim, error = coordinator._can_claim_chore(kid_id, chore_id)
-            assert can_claim is True, (
-                f"UPON_COMPLETION should allow claim {i + 1}, error={error}"
-            )
+            assert can_claim is True, f"UPON_COMPLETION should allow claim {i + 1}, error={error}"
 
             # claim_chore is a sync method, calls approve_chore synchronously when auto_approve=True
             coordinator.claim_chore(kid_id, chore_id, "test_user")
@@ -771,9 +724,7 @@ async def test_migration_from_allow_multiple_true(
     chore_id = name_to_id_map["chore:Feed the cåts"]
 
     # Simulate pre-migration state: has old field, no new field
-    coordinator.chores_data[chore_id][
-        const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY_LEGACY
-    ] = True
+    coordinator.chores_data[chore_id][const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY_LEGACY] = True
     coordinator.chores_data[chore_id].pop(const.DATA_CHORE_APPROVAL_RESET_TYPE, None)
     coordinator._persist()
 
@@ -806,9 +757,7 @@ async def test_migration_from_allow_multiple_false(
     chore_id = name_to_id_map["chore:Feed the cåts"]
 
     # Simulate pre-migration state: has old field=False, no new field
-    coordinator.chores_data[chore_id][
-        const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY_LEGACY
-    ] = False
+    coordinator.chores_data[chore_id][const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY_LEGACY] = False
     coordinator.chores_data[chore_id].pop(const.DATA_CHORE_APPROVAL_RESET_TYPE, None)
     coordinator._persist()
 
@@ -872,9 +821,9 @@ async def test_migration_skips_already_migrated_chores(
     coordinator.chores_data[chore_id][const.DATA_CHORE_APPROVAL_RESET_TYPE] = (
         const.APPROVAL_RESET_UPON_COMPLETION
     )
-    coordinator.chores_data[chore_id][
-        const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY_LEGACY
-    ] = True  # This should NOT change the approval_reset_type
+    coordinator.chores_data[chore_id][const.DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY_LEGACY] = (
+        True  # This should NOT change the approval_reset_type
+    )
     coordinator._persist()
 
     # Run migration
@@ -903,9 +852,7 @@ async def test_migration_initializes_approval_period_start(
 
     # Clear any existing period_start
     kid_chore_data = (
-        coordinator.kids_data[kid_id]
-        .get(const.DATA_KID_CHORE_DATA, {})
-        .get(chore_id, {})
+        coordinator.kids_data[kid_id].get(const.DATA_KID_CHORE_DATA, {}).get(chore_id, {})
     )
     kid_chore_data.pop(const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START, None)
     coordinator._persist()
@@ -932,9 +879,7 @@ def set_chore_completion_criteria(
     """Set the completion_criteria for a chore."""
     coordinator.chores_data[chore_id][const.DATA_CHORE_COMPLETION_CRITERIA] = criteria
     if assigned_kids:
-        coordinator.chores_data[chore_id][const.DATA_CHORE_ASSIGNED_KIDS] = (
-            assigned_kids
-        )
+        coordinator.chores_data[chore_id][const.DATA_CHORE_ASSIGNED_KIDS] = assigned_kids
     coordinator._persist()
 
 
@@ -957,9 +902,7 @@ async def test_at_midnight_independent_per_kid_tracking(
         const.COMPLETION_CRITERIA_INDEPENDENT,
         [kid1_id, kid2_id],
     )
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE)
     clear_chore_approval_state(coordinator, kid1_id, chore_id)
     clear_chore_approval_state(coordinator, kid2_id, chore_id)
 
@@ -999,9 +942,7 @@ async def test_at_midnight_shared_all_kids_same_state(
     set_chore_completion_criteria(
         coordinator, chore_id, const.COMPLETION_CRITERIA_SHARED, [kid1_id, kid2_id]
     )
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE)
     clear_chore_approval_state(coordinator, kid1_id, chore_id)
     clear_chore_approval_state(coordinator, kid2_id, chore_id)
 
@@ -1042,9 +983,7 @@ async def test_at_midnight_shared_first_ownership(
         const.COMPLETION_CRITERIA_SHARED_FIRST,
         [kid1_id, kid2_id],
     )
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE)
     clear_chore_approval_state(coordinator, kid1_id, chore_id)
     clear_chore_approval_state(coordinator, kid2_id, chore_id)
 
@@ -1087,9 +1026,7 @@ async def test_at_due_date_independent_per_kid_due_dates(
         const.COMPLETION_CRITERIA_INDEPENDENT,
         [kid1_id, kid2_id],
     )
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_AT_DUE_DATE_ONCE
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_AT_DUE_DATE_ONCE)
     clear_chore_approval_state(coordinator, kid1_id, chore_id)
     clear_chore_approval_state(coordinator, kid2_id, chore_id)
 
@@ -1135,9 +1072,7 @@ async def test_at_due_date_shared_chore_level(
     set_chore_completion_criteria(
         coordinator, chore_id, const.COMPLETION_CRITERIA_SHARED, [kid1_id, kid2_id]
     )
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_AT_DUE_DATE_ONCE
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_AT_DUE_DATE_ONCE)
 
     # Set chore-level due date
     tomorrow = (dt_util.now() + timedelta(days=1)).isoformat()
@@ -1175,9 +1110,7 @@ async def test_upon_completion_all_chore_types(
         const.COMPLETION_CRITERIA_SHARED_FIRST,
     ]:
         set_chore_completion_criteria(coordinator, chore_id, criteria, [kid_id])
-        set_chore_approval_reset_type(
-            coordinator, chore_id, const.APPROVAL_RESET_UPON_COMPLETION
-        )
+        set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_UPON_COMPLETION)
         clear_chore_approval_state(coordinator, kid_id, chore_id)
 
         # Claim and approve
@@ -1235,9 +1168,7 @@ async def test_has_pending_claim_edge_cases(
     kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_CLAIMED] = now_iso
     kid_chore_data.pop(const.DATA_KID_CHORE_DATA_LAST_APPROVED, None)
     kid_chore_data.pop(const.DATA_KID_CHORE_DATA_LAST_DISAPPROVED, None)
-    kid_chore_data[const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT] = (
-        1  # Active pending claim
-    )
+    kid_chore_data[const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT] = 1  # Active pending claim
     coordinator._persist()
     assert coordinator.has_pending_claim(kid_id, chore_id) is True
 
@@ -1254,9 +1185,7 @@ async def test_is_approved_in_current_period_edge_cases(
     chore_id = name_to_id_map["chore:Feed the cåts"]
 
     clear_chore_approval_state(coordinator, kid_id, chore_id)
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE)
 
     # Case 1: No approval at all
     assert coordinator.is_approved_in_current_period(kid_id, chore_id) is False
@@ -1343,17 +1272,13 @@ async def test_badge_get_today_chore_completion_progress(
     _today_iso = dt_util.now().date().isoformat()  # Kept for context
 
     kid_info = coordinator.kids_data[kid_id]
-    kid_chore_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {}).setdefault(
-        chore_id, {}
-    )
+    kid_chore_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {}).setdefault(chore_id, {})
 
     # Case 1: No approval - should return False
     kid_chore_data.pop(const.DATA_KID_CHORE_DATA_LAST_APPROVED, None)
     coordinator._persist()
 
-    met, approved, total = kc_helpers.get_today_chore_completion_progress(
-        kid_info, [chore_id]
-    )
+    met, approved, total = kc_helpers.get_today_chore_completion_progress(kid_info, [chore_id])
     assert met is False, "Should not be met with no approvals"
     assert approved == 0
 
@@ -1391,12 +1316,8 @@ async def test_badge_daily_completion_target(
 
     # Approve both chores today (use local time for "today" comparisons)
     now_iso = dt_util.now().isoformat()
-    kid_chore_data.setdefault(chore1_id, {})[
-        const.DATA_KID_CHORE_DATA_LAST_APPROVED
-    ] = now_iso
-    kid_chore_data.setdefault(chore2_id, {})[
-        const.DATA_KID_CHORE_DATA_LAST_APPROVED
-    ] = now_iso
+    kid_chore_data.setdefault(chore1_id, {})[const.DATA_KID_CHORE_DATA_LAST_APPROVED] = now_iso
+    kid_chore_data.setdefault(chore2_id, {})[const.DATA_KID_CHORE_DATA_LAST_APPROVED] = now_iso
     coordinator._persist()
 
     # Test count_required=2
@@ -1422,9 +1343,7 @@ async def test_badge_completion_excludes_old_approvals(
     # Setup: Set approval to yesterday
     yesterday = (dt_util.now() - timedelta(days=1)).isoformat()
     kid_info = coordinator.kids_data[kid_id]
-    kid_chore_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {}).setdefault(
-        chore_id, {}
-    )
+    kid_chore_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {}).setdefault(chore_id, {})
     kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_APPROVED] = yesterday
     coordinator._persist()
 
@@ -1452,14 +1371,10 @@ async def test_sensor_attributes_reflect_approval_reset_state(
     chore_id = name_to_id_map["chore:Feed the cåts"]
 
     # Set a specific approval_reset_type
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_AT_DUE_DATE_MULTI
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_AT_DUE_DATE_MULTI)
 
     # Verify the chore data has the correct value
-    stored_type = coordinator.chores_data[chore_id].get(
-        const.DATA_CHORE_APPROVAL_RESET_TYPE
-    )
+    stored_type = coordinator.chores_data[chore_id].get(const.DATA_CHORE_APPROVAL_RESET_TYPE)
     assert stored_type == const.APPROVAL_RESET_AT_DUE_DATE_MULTI
 
     # Sensor attributes should reflect this when queried
@@ -1479,9 +1394,7 @@ async def test_dashboard_helper_includes_enablement_flags(
 
     # Setup: Clear state
     clear_chore_approval_state(coordinator, kid_id, chore_id)
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE)
 
     # _can_claim_chore should return (True, None) for fresh state
     can_claim, error = coordinator._can_claim_chore(kid_id, chore_id)
@@ -1517,9 +1430,7 @@ async def test_end_to_end_claim_approve_block_workflow(
 
     # Step 1: Setup fresh state
     clear_chore_approval_state(coordinator, kid_id, chore_id)
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_AT_MIDNIGHT_ONCE)
 
     # Step 2: Can claim initially
     can_claim, _ = coordinator._can_claim_chore(kid_id, chore_id)
@@ -1568,21 +1479,15 @@ async def test_options_flow_preserves_approval_reset_type(
     chore_id = name_to_id_map["chore:Feed the cåts"]
 
     # Set to non-default value
-    set_chore_approval_reset_type(
-        coordinator, chore_id, const.APPROVAL_RESET_UPON_COMPLETION
-    )
+    set_chore_approval_reset_type(coordinator, chore_id, const.APPROVAL_RESET_UPON_COMPLETION)
 
     # Simulate an update that doesn't touch approval_reset_type
-    original_type = coordinator.chores_data[chore_id].get(
-        const.DATA_CHORE_APPROVAL_RESET_TYPE
-    )
+    original_type = coordinator.chores_data[chore_id].get(const.DATA_CHORE_APPROVAL_RESET_TYPE)
 
     # Update another field
     coordinator.chores_data[chore_id][const.DATA_CHORE_DESCRIPTION] = "Updated desc"
     coordinator._persist()
 
     # Verify approval_reset_type was preserved
-    preserved_type = coordinator.chores_data[chore_id].get(
-        const.DATA_CHORE_APPROVAL_RESET_TYPE
-    )
+    preserved_type = coordinator.chores_data[chore_id].get(const.DATA_CHORE_APPROVAL_RESET_TYPE)
     assert preserved_type == original_type == const.APPROVAL_RESET_UPON_COMPLETION

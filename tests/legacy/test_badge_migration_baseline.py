@@ -12,15 +12,15 @@ Test Strategy:
     so migration should add it as empty list [].
 """
 
-# pylint: disable=protected-access  # Accessing coordinator._data for migration testing
+# Accessing coordinator._data for migration testing
 
 import json
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kidschores.const import (
@@ -99,14 +99,10 @@ async def test_migration_adds_assigned_to_field_as_empty_list(
         "homeassistant.helpers.storage.Store.async_load",
         return_value=sample_data,
     ):
-        assert await hass.config_entries.async_setup(
-            mock_config_entry_for_migration.entry_id
-        )
+        assert await hass.config_entries.async_setup(mock_config_entry_for_migration.entry_id)
         await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][mock_config_entry_for_migration.entry_id][
-        COORDINATOR
-    ]
+    coordinator = hass.data[DOMAIN][mock_config_entry_for_migration.entry_id][COORDINATOR]
 
     # Verify all badges now have assigned_to field as empty list
     for badge_id, badge_data in coordinator._data[DATA_BADGES].items():

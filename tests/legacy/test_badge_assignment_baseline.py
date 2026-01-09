@@ -23,8 +23,6 @@ from custom_components.kidschores.const import (
     DOMAIN,
 )
 
-# pylint: disable=protected-access,redefined-outer-name
-
 
 async def test_cumulative_badge_empty_assigned_to_evaluates_for_all_kids(
     hass: HomeAssistant,
@@ -73,12 +71,8 @@ async def test_cumulative_badge_empty_assigned_to_evaluates_for_all_kids(
         coordinator._check_badges_for_kid(max_id)
 
     # Assert: Both kids have progress (explicitly assigned to both)
-    zoe_progress = coordinator.kids_data[zoe_id].get(
-        DATA_KID_CUMULATIVE_BADGE_PROGRESS, {}
-    )
-    max_progress = coordinator.kids_data[max_id].get(
-        DATA_KID_CUMULATIVE_BADGE_PROGRESS, {}
-    )
+    zoe_progress = coordinator.kids_data[zoe_id].get(DATA_KID_CUMULATIVE_BADGE_PROGRESS, {})
+    max_progress = coordinator.kids_data[max_id].get(DATA_KID_CUMULATIVE_BADGE_PROGRESS, {})
 
     assert bool(zoe_progress), "Zoë should have badge progress (explicitly assigned)"
     assert bool(max_progress), "Max should have badge progress (explicitly assigned)"
@@ -110,9 +104,7 @@ async def test_cumulative_badge_specific_kid_only_evaluates_for_that_kid(
         return
 
     # Assign badge ONLY to Zoë
-    coordinator._data[DATA_BADGES][cumulative_badge_id][DATA_BADGE_ASSIGNED_TO] = [
-        zoe_id
-    ]
+    coordinator._data[DATA_BADGES][cumulative_badge_id][DATA_BADGE_ASSIGNED_TO] = [zoe_id]
 
     # Clear existing progress
     coordinator.kids_data[zoe_id][DATA_KID_CUMULATIVE_BADGE_PROGRESS] = {}
@@ -127,12 +119,8 @@ async def test_cumulative_badge_specific_kid_only_evaluates_for_that_kid(
         coordinator._check_badges_for_kid(max_id)
 
     # Assert: Only Zoë has progress
-    zoe_progress = coordinator.kids_data[zoe_id].get(
-        DATA_KID_CUMULATIVE_BADGE_PROGRESS, {}
-    )
-    max_progress = coordinator.kids_data[max_id].get(
-        DATA_KID_CUMULATIVE_BADGE_PROGRESS, {}
-    )
+    zoe_progress = coordinator.kids_data[zoe_id].get(DATA_KID_CUMULATIVE_BADGE_PROGRESS, {})
+    max_progress = coordinator.kids_data[max_id].get(DATA_KID_CUMULATIVE_BADGE_PROGRESS, {})
 
     assert bool(zoe_progress), "Zoë should have progress (assigned to her)"
     assert not max_progress, "Max should NOT have progress (not assigned to him)"

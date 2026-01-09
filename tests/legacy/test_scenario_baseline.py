@@ -10,15 +10,11 @@ Test Organization:
     - Dashboard Helper Validation: Sensor attributes populated correctly
 """
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.kidschores.const import (
-    CHORE_STATE_APPROVED,
-    COORDINATOR,
-    DOMAIN,
-)
+from custom_components.kidschores.const import CHORE_STATE_APPROVED, COORDINATOR, DOMAIN
 
 # ============================================================================
 # Test Group: Scenario Structure Validation
@@ -249,25 +245,19 @@ async def test_dashboard_helper_sensor_exists(
     dashboard_helper_id = f"sensor.kc_{kid_slug}_ui_dashboard_helper"
 
     state = hass.states.get(dashboard_helper_id)
-    assert state is not None, (
-        f"Dashboard helper sensor {dashboard_helper_id} should exist"
-    )
+    assert state is not None, f"Dashboard helper sensor {dashboard_helper_id} should exist"
     assert state.state is not None, "Dashboard helper sensor state should not be None"
 
     # Validate key attributes exist
-    assert "ui_translations" in state.attributes, (
-        "Should have ui_translations attribute"
-    )
+    assert "ui_translations" in state.attributes, "Should have ui_translations attribute"
     assert "chores" in state.attributes, "Should have chores attribute"
     assert "rewards" in state.attributes, "Should have rewards attribute"
 
 
-@pytest.mark.skip(
-    reason="Dashboard helper requires entity platform reload after scenario loading"
-)
+@pytest.mark.skip(reason="Dashboard helper requires entity platform reload after scenario loading")
 async def test_dashboard_helper_chores_attribute(
     hass: HomeAssistant,
-    scenario_minimal: tuple[MockConfigEntry, dict[str, str]],  # pylint: disable=unused-argument
+    scenario_minimal: tuple[MockConfigEntry, dict[str, str]],
 ) -> None:
     """Test dashboard helper chores attribute populated.
 
@@ -296,12 +286,10 @@ async def test_dashboard_helper_chores_attribute(
         assert "status" in chore
 
 
-@pytest.mark.skip(
-    reason="Dashboard helper requires entity platform reload after scenario loading"
-)
+@pytest.mark.skip(reason="Dashboard helper requires entity platform reload after scenario loading")
 async def test_dashboard_helper_ui_translations(
     hass: HomeAssistant,
-    scenario_minimal: tuple[MockConfigEntry, dict[str, str]],  # pylint: disable=unused-argument
+    scenario_minimal: tuple[MockConfigEntry, dict[str, str]],
 ) -> None:
     """Test dashboard helper ui_translations dict loaded.
 

@@ -9,18 +9,17 @@ Test Strategy:
     - Test migration logic for existing chores
 """
 
-# pylint: disable=protected-access  # Accessing _persist for testing
-# pylint: disable=too-many-locals  # Test functions need many variables for setup
-# pylint: disable=unused-argument  # hass_client required by fixture pattern
+# Accessing _persist for testing
+# hass_client required by fixture pattern
 
 from datetime import datetime
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
-import pytest
 from freezegun import freeze_time
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.typing import ClientSessionGenerator
 
@@ -78,9 +77,7 @@ async def test_calendar_filters_chores_by_show_on_calendar(
     await reload_entity_platforms(hass, config_entry)
 
     # Get calendar entity
-    calendar_entity = hass.data["entity_components"]["calendar"].get_entity(
-        "calendar.kc_zoe"
-    )
+    calendar_entity = hass.data["entity_components"]["calendar"].get_entity("calendar.kc_zoe")
     assert calendar_entity is not None
 
     # Fetch events for January 2025
@@ -125,9 +122,7 @@ async def test_calendar_includes_chores_with_missing_show_on_calendar_field(
     await reload_entity_platforms(hass, config_entry)
 
     # Get calendar entity
-    calendar_entity = hass.data["entity_components"]["calendar"].get_entity(
-        "calendar.kc_zoe"
-    )
+    calendar_entity = hass.data["entity_components"]["calendar"].get_entity("calendar.kc_zoe")
     assert calendar_entity is not None
 
     # Fetch events
@@ -137,9 +132,7 @@ async def test_calendar_includes_chores_with_missing_show_on_calendar_field(
 
     # Legacy chore should appear (defaults to True)
     legacy_events = [e for e in calendar_events if e.summary == "Legacy Chore"]
-    assert len(legacy_events) == 1, (
-        "Legacy chore without show_on_calendar field should appear"
-    )
+    assert len(legacy_events) == 1, "Legacy chore without show_on_calendar field should appear"
 
 
 async def test_migration_adds_show_on_calendar_to_existing_chores(

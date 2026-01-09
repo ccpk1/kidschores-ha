@@ -11,15 +11,15 @@ removed in v0.5.0+. Overdue state is now tracked via DATA_KID_CHORE_DATA_STATE.
 See test_chore_state_matrix.py for modern state-based tests.
 """
 
-# pylint: disable=protected-access  # Accessing coordinator._check_overdue_chores()
+# Accessing coordinator._check_overdue_chores()
 # pylint: disable=redefined-outer-name  # Pytest fixtures redefine names
-# pylint: disable=unused-argument  # Fixtures needed for test setup
+# Fixtures needed for test setup
 # pylint: disable=unused-variable  # name_to_id_map unpacking
 
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.const import (
@@ -118,42 +118,34 @@ async def test_independent_one_kid_overdue_others_not(
         coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES] = {}
 
     # Zoë: overdue (2 days ago)
-    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][
-        zoe_id
-    ] = create_test_datetime(days_offset=-2)
+    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][zoe_id] = (
+        create_test_datetime(days_offset=-2)
+    )
 
     # Max!: future (tomorrow)
-    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][
-        max_id
-    ] = create_test_datetime(days_offset=1)
+    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][max_id] = (
+        create_test_datetime(days_offset=1)
+    )
 
     # Lila: future (5 days from now)
-    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][
-        lila_id
-    ] = create_test_datetime(days_offset=5)
+    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][lila_id] = (
+        create_test_datetime(days_offset=5)
+    )
 
     coordinator._persist()
 
     # Mock notification to verify only Zoë notified
     with (
-        patch.object(
-            coordinator, "_notify_kid_translated", new=AsyncMock()
-        ) as mock_notify,
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()) as mock_notify,
         patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
     ):
         # Trigger overdue check
         await coordinator._check_overdue_chores()
 
         # Verify only Zoë marked overdue
-        assert star_sweep_id in coordinator.kids_data[zoe_id].get(
-            DATA_KID_OVERDUE_CHORES, []
-        )
-        assert star_sweep_id not in coordinator.kids_data[max_id].get(
-            DATA_KID_OVERDUE_CHORES, []
-        )
-        assert star_sweep_id not in coordinator.kids_data[lila_id].get(
-            DATA_KID_OVERDUE_CHORES, []
-        )
+        assert star_sweep_id in coordinator.kids_data[zoe_id].get(DATA_KID_OVERDUE_CHORES, [])
+        assert star_sweep_id not in coordinator.kids_data[max_id].get(DATA_KID_OVERDUE_CHORES, [])
+        assert star_sweep_id not in coordinator.kids_data[lila_id].get(DATA_KID_OVERDUE_CHORES, [])
 
         # Verify notification sent to Zoë only
         assert mock_notify.call_count == 1
@@ -192,9 +184,7 @@ async def test_independent_all_kids_overdue(
         if DATA_KID_CHORE_DATA not in coordinator.kids_data[kid_id]:
             coordinator.kids_data[kid_id][DATA_KID_CHORE_DATA] = {}
         if star_sweep_id not in coordinator.kids_data[kid_id][DATA_KID_CHORE_DATA]:
-            star_sweep_name = coordinator.chores_data[star_sweep_id][
-                const.DATA_CHORE_NAME
-            ]
+            star_sweep_name = coordinator.chores_data[star_sweep_id][const.DATA_CHORE_NAME]
             coordinator.kids_data[kid_id][DATA_KID_CHORE_DATA][star_sweep_id] = {
                 const.DATA_KID_CHORE_DATA_NAME: star_sweep_name,
                 const.DATA_KID_CHORE_DATA_STATE: const.CHORE_STATE_PENDING,
@@ -224,39 +214,31 @@ async def test_independent_all_kids_overdue(
     if const.DATA_CHORE_PER_KID_DUE_DATES not in coordinator.chores_data[star_sweep_id]:
         coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES] = {}
 
-    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][
-        zoe_id
-    ] = create_test_datetime(days_offset=-1)
+    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][zoe_id] = (
+        create_test_datetime(days_offset=-1)
+    )
 
-    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][
-        max_id
-    ] = create_test_datetime(days_offset=-2)
+    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][max_id] = (
+        create_test_datetime(days_offset=-2)
+    )
 
-    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][
-        lila_id
-    ] = create_test_datetime(days_offset=-3)
+    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][lila_id] = (
+        create_test_datetime(days_offset=-3)
+    )
 
     coordinator._persist()
 
     # Mock notifications
     with (
-        patch.object(
-            coordinator, "_notify_kid_translated", new=AsyncMock()
-        ) as mock_notify,
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()) as mock_notify,
         patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
     ):
         await coordinator._check_overdue_chores()
 
         # Verify ALL kids marked overdue
-        assert star_sweep_id in coordinator.kids_data[zoe_id].get(
-            DATA_KID_OVERDUE_CHORES, []
-        )
-        assert star_sweep_id in coordinator.kids_data[max_id].get(
-            DATA_KID_OVERDUE_CHORES, []
-        )
-        assert star_sweep_id in coordinator.kids_data[lila_id].get(
-            DATA_KID_OVERDUE_CHORES, []
-        )
+        assert star_sweep_id in coordinator.kids_data[zoe_id].get(DATA_KID_OVERDUE_CHORES, [])
+        assert star_sweep_id in coordinator.kids_data[max_id].get(DATA_KID_OVERDUE_CHORES, [])
+        assert star_sweep_id in coordinator.kids_data[lila_id].get(DATA_KID_OVERDUE_CHORES, [])
 
         # Verify 3 notifications sent (one per kid)
         assert mock_notify.call_count == 3
@@ -297,37 +279,23 @@ async def test_independent_null_due_date_never_overdue(
     if const.DATA_CHORE_PER_KID_DUE_DATES not in coordinator.chores_data[star_sweep_id]:
         coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES] = {}
 
-    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][
-        zoe_id
-    ] = None
-    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][
-        max_id
-    ] = None
-    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][
-        lila_id
-    ] = None
+    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][zoe_id] = None
+    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][max_id] = None
+    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][lila_id] = None
 
     coordinator._persist()
 
     # Mock notifications
     with (
-        patch.object(
-            coordinator, "_notify_kid_translated", new=AsyncMock()
-        ) as mock_notify,
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()) as mock_notify,
         patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
     ):
         await coordinator._check_overdue_chores()
 
         # Verify NO kids marked overdue (null = no deadline)
-        assert star_sweep_id not in coordinator.kids_data[zoe_id].get(
-            DATA_KID_OVERDUE_CHORES, []
-        )
-        assert star_sweep_id not in coordinator.kids_data[max_id].get(
-            DATA_KID_OVERDUE_CHORES, []
-        )
-        assert star_sweep_id not in coordinator.kids_data[lila_id].get(
-            DATA_KID_OVERDUE_CHORES, []
-        )
+        assert star_sweep_id not in coordinator.kids_data[zoe_id].get(DATA_KID_OVERDUE_CHORES, [])
+        assert star_sweep_id not in coordinator.kids_data[max_id].get(DATA_KID_OVERDUE_CHORES, [])
+        assert star_sweep_id not in coordinator.kids_data[lila_id].get(DATA_KID_OVERDUE_CHORES, [])
 
         # Verify zero notifications
         assert mock_notify.call_count == 0
@@ -371,25 +339,21 @@ async def test_shared_chore_all_kids_same_due_date(
         pytest.skip("SHARED chore must have at least 2 assigned kids")
 
     # Set chore-level due date to past (overdue)
-    coordinator.chores_data[shared_chore_id][DATA_CHORE_DUE_DATE] = (
-        create_test_datetime(days_offset=-1)
+    coordinator.chores_data[shared_chore_id][DATA_CHORE_DUE_DATE] = create_test_datetime(
+        days_offset=-1
     )
     coordinator._persist()
 
     # Mock notifications
     with (
-        patch.object(
-            coordinator, "_notify_kid_translated", new=AsyncMock()
-        ) as mock_notify,
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()) as mock_notify,
         patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
     ):
         await coordinator._check_overdue_chores()
 
         # Verify ALL assigned kids marked overdue (SHARED = chore-level date)
         for kid_id in assigned_kids:
-            overdue_list = coordinator.kids_data[kid_id].get(
-                DATA_KID_OVERDUE_CHORES, []
-            )
+            overdue_list = coordinator.kids_data[kid_id].get(DATA_KID_OVERDUE_CHORES, [])
             assert shared_chore_id in overdue_list
 
         # Verify notifications sent to ALL assigned kids
@@ -453,9 +417,9 @@ async def test_independent_overdue_clears_when_date_advances(
     # Set Zoë's due date to past (overdue) in chore-level per_kid_due_dates
     if const.DATA_CHORE_PER_KID_DUE_DATES not in coordinator.chores_data[star_sweep_id]:
         coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES] = {}
-    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][
-        zoe_id
-    ] = create_test_datetime(days_offset=-2)
+    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][zoe_id] = (
+        create_test_datetime(days_offset=-2)
+    )
     coordinator._persist()
 
     # Trigger overdue check - Zoë should be marked overdue
@@ -466,14 +430,12 @@ async def test_independent_overdue_clears_when_date_advances(
         await coordinator._check_overdue_chores()
 
     # Verify Zoë marked overdue
-    assert star_sweep_id in coordinator.kids_data[zoe_id].get(
-        DATA_KID_OVERDUE_CHORES, []
-    )
+    assert star_sweep_id in coordinator.kids_data[zoe_id].get(DATA_KID_OVERDUE_CHORES, [])
 
     # Update Zoë's due date to future (no longer overdue) in chore-level per_kid_due_dates
-    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][
-        zoe_id
-    ] = create_test_datetime(days_offset=1)
+    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][zoe_id] = (
+        create_test_datetime(days_offset=1)
+    )
     coordinator._persist()
 
     # Trigger overdue check again
@@ -484,9 +446,7 @@ async def test_independent_overdue_clears_when_date_advances(
         await coordinator._check_overdue_chores()
 
     # Verify Zoë NO LONGER overdue
-    assert star_sweep_id not in coordinator.kids_data[zoe_id].get(
-        DATA_KID_OVERDUE_CHORES, []
-    )
+    assert star_sweep_id not in coordinator.kids_data[zoe_id].get(DATA_KID_OVERDUE_CHORES, [])
 
 
 @pytest.mark.asyncio
@@ -537,9 +497,9 @@ async def test_independent_skip_claimed_chores(
     # Set Zoë's due date to past (would be overdue) in chore-level per_kid_due_dates
     if const.DATA_CHORE_PER_KID_DUE_DATES not in coordinator.chores_data[star_sweep_id]:
         coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES] = {}
-    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][
-        zoe_id
-    ] = create_test_datetime(days_offset=-2)
+    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][zoe_id] = (
+        create_test_datetime(days_offset=-2)
+    )
 
     # Mark chore as claimed by Zoë (v0.4.0+ timestamp-based tracking)
     if const.DATA_KID_CHORE_DATA not in coordinator.kids_data[zoe_id]:
@@ -554,17 +514,13 @@ async def test_independent_skip_claimed_chores(
 
     # Mock notifications
     with (
-        patch.object(
-            coordinator, "_notify_kid_translated", new=AsyncMock()
-        ) as mock_notify,
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()) as mock_notify,
         patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
     ):
         await coordinator._check_overdue_chores()
 
         # Verify Zoë NOT marked overdue (claimed chores excluded)
-        assert star_sweep_id not in coordinator.kids_data[zoe_id].get(
-            DATA_KID_OVERDUE_CHORES, []
-        )
+        assert star_sweep_id not in coordinator.kids_data[zoe_id].get(DATA_KID_OVERDUE_CHORES, [])
 
         # Verify no notification sent
         assert mock_notify.call_count == 0
@@ -618,9 +574,9 @@ async def test_independent_skip_approved_chores(
     # Set Max!'s due date to past (would be overdue) in chore-level per_kid_due_dates
     if const.DATA_CHORE_PER_KID_DUE_DATES not in coordinator.chores_data[star_sweep_id]:
         coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES] = {}
-    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][
-        max_id
-    ] = create_test_datetime(days_offset=-2)
+    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][max_id] = (
+        create_test_datetime(days_offset=-2)
+    )
 
     # Mark chore as approved for Max! (v0.4.0+ timestamp-based tracking)
     if const.DATA_KID_CHORE_DATA not in coordinator.kids_data[max_id]:
@@ -639,17 +595,13 @@ async def test_independent_skip_approved_chores(
 
     # Mock notifications
     with (
-        patch.object(
-            coordinator, "_notify_kid_translated", new=AsyncMock()
-        ) as mock_notify,
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()) as mock_notify,
         patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
     ):
         await coordinator._check_overdue_chores()
 
         # Verify Max! NOT marked overdue (approved chores excluded)
-        assert star_sweep_id not in coordinator.kids_data[max_id].get(
-            DATA_KID_OVERDUE_CHORES, []
-        )
+        assert star_sweep_id not in coordinator.kids_data[max_id].get(DATA_KID_OVERDUE_CHORES, [])
 
         # Verify no notification sent
         assert mock_notify.call_count == 0
@@ -715,9 +667,7 @@ async def test_mixed_independent_and_shared_chores(
     # v0.4.0: Use timestamp-based chore_data instead of deprecated lists
     if DATA_KID_CHORE_DATA in coordinator.kids_data[zoe_id]:
         if star_sweep_id in coordinator.kids_data[zoe_id][DATA_KID_CHORE_DATA]:
-            chore_entry = coordinator.kids_data[zoe_id][DATA_KID_CHORE_DATA][
-                star_sweep_id
-            ]
+            chore_entry = coordinator.kids_data[zoe_id][DATA_KID_CHORE_DATA][star_sweep_id]
             # Clear timestamps to indicate not claimed/approved
             chore_entry[const.DATA_KID_CHORE_DATA_LAST_CLAIMED] = None
             chore_entry[const.DATA_KID_CHORE_DATA_LAST_APPROVED] = None
@@ -726,39 +676,33 @@ async def test_mixed_independent_and_shared_chores(
     # Set INDEPENDENT chore overdue for Zoë only (per-kid date in chore-level structure)
     if const.DATA_CHORE_PER_KID_DUE_DATES not in coordinator.chores_data[star_sweep_id]:
         coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES] = {}
-    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][
-        zoe_id
-    ] = create_test_datetime(days_offset=-1)
+    coordinator.chores_data[star_sweep_id][const.DATA_CHORE_PER_KID_DUE_DATES][zoe_id] = (
+        create_test_datetime(days_offset=-1)
+    )
 
     # Set SHARED chore overdue (chore-level date affects all)
-    coordinator.chores_data[shared_chore_id][DATA_CHORE_DUE_DATE] = (
-        create_test_datetime(days_offset=-1)
+    coordinator.chores_data[shared_chore_id][DATA_CHORE_DUE_DATE] = create_test_datetime(
+        days_offset=-1
     )
 
     coordinator._persist()
 
     # Mock notifications
     with (
-        patch.object(
-            coordinator, "_notify_kid_translated", new=AsyncMock()
-        ) as mock_notify,
+        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()) as mock_notify,
         patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
     ):
         await coordinator._check_overdue_chores()
 
         # Verify INDEPENDENT uses per-kid date (Zoë only)
-        assert star_sweep_id in coordinator.kids_data[zoe_id].get(
-            DATA_KID_OVERDUE_CHORES, []
-        )
+        assert star_sweep_id in coordinator.kids_data[zoe_id].get(DATA_KID_OVERDUE_CHORES, [])
 
         # Verify SHARED uses chore-level date (all assigned kids)
         shared_assigned_kids = coordinator.chores_data[shared_chore_id].get(
             const.DATA_CHORE_ASSIGNED_KIDS, []
         )
         for kid_id in shared_assigned_kids:
-            assert shared_chore_id in coordinator.kids_data[kid_id].get(
-                DATA_KID_OVERDUE_CHORES, []
-            )
+            assert shared_chore_id in coordinator.kids_data[kid_id].get(DATA_KID_OVERDUE_CHORES, [])
 
         # Verify notifications sent (1 for Zoë's INDEPENDENT + N for SHARED kids)
         expected_count = 1 + len(shared_assigned_kids)

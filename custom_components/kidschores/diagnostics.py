@@ -5,14 +5,16 @@ The diagnostics JSON returns raw storage data - byte-for-byte identical to
 the kidschores_data file for direct paste during data recovery.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntry
 
 from . import const
-from .coordinator import KidsChoresDataCoordinator
+
+if TYPE_CHECKING:
+    from .coordinator import KidsChoresDataCoordinator
 
 
 async def async_get_config_entry_diagnostics(

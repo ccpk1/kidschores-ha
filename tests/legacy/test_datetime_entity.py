@@ -2,27 +2,23 @@
 
 from datetime import datetime, timedelta
 
-import pytest
 from homeassistant.components.datetime import DOMAIN as DATETIME_DOMAIN
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+import pytest
 
 from custom_components.kidschores import const
 
 
 @pytest.mark.asyncio
-async def test_datetime_entity_created_for_each_kid(
-    hass: HomeAssistant, scenario_medium
-) -> None:
+async def test_datetime_entity_created_for_each_kid(hass: HomeAssistant, scenario_medium) -> None:
     """Test that datetime helper entities are created for each kid."""
     config_entry, _ = scenario_medium  # Fixture sets up integration with kids
 
     # Reload datetime platform to create entities with scenario data
     await hass.config_entries.async_unload_platforms(config_entry, [DATETIME_DOMAIN])
     await hass.async_block_till_done()
-    await hass.config_entries.async_forward_entry_setups(
-        config_entry, [DATETIME_DOMAIN]
-    )
+    await hass.config_entries.async_forward_entry_setups(config_entry, [DATETIME_DOMAIN])
     await hass.async_block_till_done()
     await hass.async_block_till_done()  # Extra wait for entity registration
 
@@ -35,19 +31,13 @@ async def test_datetime_entity_created_for_each_kid(
 
     # Verify friendly names (includes device name prefix from create_kid_device_info)
     assert "Zoë" in zoe_datetime.attributes.get("friendly_name", "")
-    assert "UI Dashboard Date Helper" in zoe_datetime.attributes.get(
-        "friendly_name", ""
-    )
+    assert "UI Dashboard Date Helper" in zoe_datetime.attributes.get("friendly_name", "")
     assert "Max!" in max_datetime.attributes.get("friendly_name", "")
-    assert "UI Dashboard Date Helper" in max_datetime.attributes.get(
-        "friendly_name", ""
-    )
+    assert "UI Dashboard Date Helper" in max_datetime.attributes.get("friendly_name", "")
 
 
 @pytest.mark.asyncio
-async def test_datetime_entity_has_device_info(
-    hass: HomeAssistant, scenario_medium
-) -> None:
+async def test_datetime_entity_has_device_info(hass: HomeAssistant, scenario_medium) -> None:
     """Test that datetime entities are properly grouped under kid devices."""
     from homeassistant.helpers import entity_registry as er
 
@@ -56,42 +46,32 @@ async def test_datetime_entity_has_device_info(
     # Reload datetime platform to create entities with scenario data
     await hass.config_entries.async_unload_platforms(config_entry, [DATETIME_DOMAIN])
     await hass.async_block_till_done()
-    await hass.config_entries.async_forward_entry_setups(
-        config_entry, [DATETIME_DOMAIN]
-    )
+    await hass.config_entries.async_forward_entry_setups(config_entry, [DATETIME_DOMAIN])
     await hass.async_block_till_done()
 
     # Get entity registry
     entity_registry = er.async_get(hass)
 
     # Check Zoë's datetime entity (slugified name: ë → e)
-    zoe_datetime_entry = entity_registry.async_get(
-        "datetime.kc_zoe_ui_dashboard_date_helper"
-    )
+    zoe_datetime_entry = entity_registry.async_get("datetime.kc_zoe_ui_dashboard_date_helper")
     assert zoe_datetime_entry is not None
     assert zoe_datetime_entry.device_id is not None
 
     # Check Max's datetime entity
-    max_datetime_entry = entity_registry.async_get(
-        "datetime.kc_max_ui_dashboard_date_helper"
-    )
+    max_datetime_entry = entity_registry.async_get("datetime.kc_max_ui_dashboard_date_helper")
     assert max_datetime_entry is not None
     assert max_datetime_entry.device_id is not None
 
 
 @pytest.mark.asyncio
-async def test_datetime_entity_default_value(
-    hass: HomeAssistant, scenario_medium
-) -> None:
+async def test_datetime_entity_default_value(hass: HomeAssistant, scenario_medium) -> None:
     """Test that datetime entity has correct default value (tomorrow at noon)."""
     config_entry, _ = scenario_medium  # Fixture sets up integration with kids
 
     # Reload datetime platform to create entities with scenario data
     await hass.config_entries.async_unload_platforms(config_entry, [DATETIME_DOMAIN])
     await hass.async_block_till_done()
-    await hass.config_entries.async_forward_entry_setups(
-        config_entry, [DATETIME_DOMAIN]
-    )
+    await hass.config_entries.async_forward_entry_setups(config_entry, [DATETIME_DOMAIN])
     await hass.async_block_till_done()
 
     # Get datetime entity state (slugified name: ë → e)
@@ -104,9 +84,7 @@ async def test_datetime_entity_default_value(
 
     # Should be approximately tomorrow at noon (within a few seconds tolerance)
     now = dt_util.now()
-    expected = (now + timedelta(days=1)).replace(
-        hour=12, minute=0, second=0, microsecond=0
-    )
+    expected = (now + timedelta(days=1)).replace(hour=12, minute=0, second=0, microsecond=0)
 
     # Allow 5 second tolerance for test execution time
     time_diff = abs((state_value - expected).total_seconds())
@@ -121,9 +99,7 @@ async def test_datetime_entity_set_value(hass: HomeAssistant, scenario_medium) -
     # Reload datetime platform to create entities with scenario data
     await hass.config_entries.async_unload_platforms(config_entry, [DATETIME_DOMAIN])
     await hass.async_block_till_done()
-    await hass.config_entries.async_forward_entry_setups(
-        config_entry, [DATETIME_DOMAIN]
-    )
+    await hass.config_entries.async_forward_entry_setups(config_entry, [DATETIME_DOMAIN])
     await hass.async_block_till_done()
 
     # Create a specific datetime to set
@@ -149,18 +125,14 @@ async def test_datetime_entity_set_value(hass: HomeAssistant, scenario_medium) -
 
 
 @pytest.mark.asyncio
-async def test_datetime_entity_extra_attributes(
-    hass: HomeAssistant, scenario_medium
-) -> None:
+async def test_datetime_entity_extra_attributes(hass: HomeAssistant, scenario_medium) -> None:
     """Test that datetime entity includes kid_id and kid_name attributes."""
     config_entry, _ = scenario_medium  # Fixture sets up integration with kids
 
     # Reload datetime platform to create entities with scenario data
     await hass.config_entries.async_unload_platforms(config_entry, [DATETIME_DOMAIN])
     await hass.async_block_till_done()
-    await hass.config_entries.async_forward_entry_setups(
-        config_entry, [DATETIME_DOMAIN]
-    )
+    await hass.config_entries.async_forward_entry_setups(config_entry, [DATETIME_DOMAIN])
     await hass.async_block_till_done()
 
     # Get datetime entity (slugified name: ë → e)

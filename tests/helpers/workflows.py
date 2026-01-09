@@ -23,9 +23,7 @@ Usage:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
-
-from homeassistant.core import Context, HomeAssistant
+from typing import TYPE_CHECKING, Any
 
 from tests.helpers.constants import (
     ATTR_CHORE_APPROVE_BUTTON_ENTITY_ID,
@@ -39,6 +37,8 @@ from tests.helpers.constants import (
     ATTR_REWARD_CLAIM_BUTTON_ENTITY_ID,
 )
 
+if TYPE_CHECKING:
+    from homeassistant.core import Context, HomeAssistant
 
 # =============================================================================
 # RESULT DATACLASS
@@ -80,10 +80,7 @@ class WorkflowResult:
     @property
     def due_date_advanced(self) -> bool:
         """Whether due date changed."""
-        return (
-            self.due_date_before != self.due_date_after
-            and self.due_date_after is not None
-        )
+        return self.due_date_before != self.due_date_after and self.due_date_after is not None
 
 
 # =============================================================================
@@ -301,7 +298,7 @@ async def press_button(
         )
         await hass.async_block_till_done()
         return True
-    except Exception:  # pylint: disable=broad-except
+    except Exception:
         return False
 
 
@@ -382,7 +379,7 @@ async def claim_chore(
 
         result.points_after = get_kid_points(hass, kid_slug)
 
-    except Exception as ex:  # pylint: disable=broad-except
+    except Exception as ex:
         result.success = False
         result.error = str(ex)
 
@@ -452,7 +449,7 @@ async def approve_chore(
 
         result.points_after = get_kid_points(hass, kid_slug)
 
-    except Exception as ex:  # pylint: disable=broad-except
+    except Exception as ex:
         result.success = False
         result.error = str(ex)
 
@@ -522,7 +519,7 @@ async def disapprove_chore(
 
         result.points_after = get_kid_points(hass, kid_slug)
 
-    except Exception as ex:  # pylint: disable=broad-except
+    except Exception as ex:
         result.success = False
         result.error = str(ex)
 
@@ -593,7 +590,7 @@ async def claim_reward(
 
         result.points_after = get_kid_points(hass, kid_slug)
 
-    except Exception as ex:  # pylint: disable=broad-except
+    except Exception as ex:
         result.success = False
         result.error = str(ex)
 
@@ -659,7 +656,7 @@ async def approve_reward(
 
         result.points_after = get_kid_points(hass, kid_slug)
 
-    except Exception as ex:  # pylint: disable=broad-except
+    except Exception as ex:
         result.success = False
         result.error = str(ex)
 
@@ -714,7 +711,7 @@ async def apply_bonus(
 
         result.points_after = get_kid_points(hass, kid_slug)
 
-    except Exception as ex:  # pylint: disable=broad-except
+    except Exception as ex:
         result.success = False
         result.error = str(ex)
 
@@ -764,7 +761,7 @@ async def apply_penalty(
 
         result.points_after = get_kid_points(hass, kid_slug)
 
-    except Exception as ex:  # pylint: disable=broad-except
+    except Exception as ex:
         result.success = False
         result.error = str(ex)
 
