@@ -162,7 +162,7 @@ from custom_components.kidschores.const import (
     # DATA KEYS - KID CHORE DATA
     # =========================================================================
     DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START,
-    DATA_KID_CHORE_DATA_DUE_DATE,
+    DATA_KID_CHORE_DATA_DUE_DATE_LEGACY,
     DATA_KID_CHORE_DATA_LAST_APPROVED,
     DATA_KID_CHORE_DATA_LAST_CLAIMED,
     DATA_KID_CHORE_DATA_LAST_DISAPPROVED,

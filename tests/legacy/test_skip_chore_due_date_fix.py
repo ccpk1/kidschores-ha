@@ -26,7 +26,7 @@ from custom_components.kidschores.const import (
     DATA_CHORE_PER_KID_DUE_DATES,
     DATA_CHORE_RECURRING_FREQUENCY,
     DATA_KID_CHORE_DATA,
-    DATA_KID_CHORE_DATA_DUE_DATE,
+    DATA_KID_CHORE_DATA_DUE_DATE_LEGACY,
     DOMAIN,
     FREQUENCY_DAILY,
     SCHEMA_VERSION_STORAGE_ONLY,
@@ -53,10 +53,10 @@ async def coordinator_with_post_migration_chores(
                 "points": 100.0,
                 DATA_KID_CHORE_DATA: {
                     "shared_chore": {
-                        DATA_KID_CHORE_DATA_DUE_DATE: "2026-01-05T10:00:00+00:00"
+                        DATA_KID_CHORE_DATA_DUE_DATE_LEGACY: "2026-01-05T10:00:00+00:00"
                     },
                     "independent_chore": {
-                        DATA_KID_CHORE_DATA_DUE_DATE: "2026-01-05T12:00:00+00:00"
+                        DATA_KID_CHORE_DATA_DUE_DATE_LEGACY: "2026-01-05T12:00:00+00:00"
                     },
                     "independent_no_due_date": {
                         # No due date in kid's data
@@ -190,4 +190,4 @@ async def test_skip_chore_due_date_independent_with_kid_chore_data_due_date(
     kid_chore_data = coordinator.kids_data["kid_1"][DATA_KID_CHORE_DATA][
         "independent_chore"
     ]
-    assert DATA_KID_CHORE_DATA_DUE_DATE in kid_chore_data
+    assert DATA_KID_CHORE_DATA_DUE_DATE_LEGACY in kid_chore_data

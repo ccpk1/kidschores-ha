@@ -1,12 +1,12 @@
-"""Migration logic for pre-v42 schema data.
+"""Migration logic for pre-v50 schema data.
 
-This module handles one-time migrations from pre-v42 (legacy) data structures
-to the v42+ storage-only architecture. These migrations are only executed
+This module handles one-time migrations from pre-v50 (legacy) data structures
+to the v50+ storage-only architecture. These migrations are only executed
 when upgrading from legacy configurations to the modern data model.
 
 DEPRECATION NOTICE: This module can be removed in the future when the vast majority
-of users have upgraded past v42. The migration logic is frozen and will not be
-modified further. Modern installations (KC-v0.5.0) skip this module entirely via
+of users have upgraded past v50. The migration logic is frozen and will not be
+modified further. Modern installations (KC-v0.5.0+) skip this module entirely via
 lazy import to avoid any runtime cost.
 """
 
@@ -283,15 +283,15 @@ async def migrate_config_to_storage(
 
 
 # ================================================================================================
-# Coordinator Data Migrations (run AFTER coordinator init, when storage schema < 42)
+# Coordinator Data Migrations (run AFTER coordinator init, when storage schema < 50)
 # ================================================================================================
 
 
-class PreV42Migrator:
-    """Handles all pre-v42 schema migrations.
+class PreV50Migrator:
+    """Handles all pre-v50 schema migrations.
 
     This class encapsulates the legacy migration logic that transforms
-    pre-v42 data structures to the modern storage-only v42+ format.
+    pre-v50 data structures to the modern storage-only v50+ format.
     All migrations are one-time operations executed on first coordinator startup
     for users upgrading from older versions.
 
@@ -311,14 +311,14 @@ class PreV42Migrator:
         self.coordinator = coordinator
 
     def run_all_migrations(self) -> None:
-        """Execute all pre-v42 migrations in the correct order.
+        """Execute all pre-v50 migrations in the correct order.
 
         Migrations are run sequentially with proper error handling and logging.
         Each migration is idempotent - it can be run multiple times without
         causing data corruption or duplication.
         """
         const.LOGGER.info(
-            "Starting pre-v42 schema migrations for upgrade to modern format"
+            "Starting pre-v50 schema migrations for upgrade to modern format"
         )
 
         # Phase 1: Schema migrations (data structure transformations)
@@ -365,17 +365,25 @@ class PreV42Migrator:
         # Fixes Python float arithmetic drift (e.g., 27.499999999999996 → 27.5)
         self._round_float_precision()
 
-        # Phase 7: Clean up orphaned/deprecated dynamic entities
+        # Phase 7: v50 cleanup - Remove legacy due_date fields from kid-level chore_data
+        # for independent chores (single source of truth is now chore_info[per_kid_due_dates])
+        storage_version = self.coordinator._data.get(const.DATA_META, {}).get(
+            const.DATA_META_SCHEMA_VERSION, 42
+        )
+        if storage_version < 50:
+            self._cleanup_kid_chore_data_due_dates_v50()
+
+        # Phase 8: Clean up orphaned/deprecated dynamic entities
         # This is called unconditionally because _initialize_data_from_config() only
         # calls this for KC 3.x config migrations, leaving storage-only users with
         # orphaned entities from previous versions (e.g., integer-delta buttons).
         self.coordinator.remove_deprecated_button_entities()
         self.coordinator.remove_deprecated_sensor_entities()
 
-        const.LOGGER.info("All pre-v42 migrations completed successfully")
+        const.LOGGER.info("All pre-v50 migrations completed successfully")
 
     def _migrate_independent_chores(self) -> None:
-        """Migrate existing chores to independent mode with per-kid due dates.
+        """Populate per_kid_due_dates for all INDEPENDENT chores (one-time migration).
 
         For each INDEPENDENT chore, populate per_kid_due_dates with template values
         for all assigned kids. SHARED chores don't need per-kid structure.
@@ -2028,3 +2036,67 @@ class PreV42Migrator:
             )
         else:
             const.LOGGER.debug("Float precision cleanup: no values needed rounding")
+
+    def _cleanup_kid_chore_data_due_dates_v50(self) -> None:
+        """Remove legacy due_date fields from kid-level chore_data for independent chores (v50 migration).
+
+        In v50, the single source of truth for independent chore due dates is
+        chore_info[per_kid_due_dates][kid_id]. The kid-level chore_data[chore_id][due_date]
+        field is now deprecated and should be removed during migration.
+
+        This migration:
+        1. Iterates all kids and their chore_data entries
+        2. Checks if the chore is INDEPENDENT (completion_criteria)
+        3. Removes the due_date field from kid-level chore_data if present
+
+        SHARED chores don't have per-kid due dates, so they're skipped.
+        """
+        kids_data = self.coordinator._data.get(const.DATA_KIDS, {})
+        chores_data = self.coordinator._data.get(const.DATA_CHORES, {})
+
+        cleaned_count = 0
+        kids_affected = 0
+
+        for _, kid_info in kids_data.items():
+            kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
+            kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
+            kid_had_cleanup = False
+
+            for chore_id in list(kid_chore_data.keys()):
+                # Get chore info to check completion criteria
+                chore_info = chores_data.get(chore_id, {})
+                completion_criteria = chore_info.get(
+                    const.DATA_CHORE_COMPLETION_CRITERIA
+                )
+
+                # Only clean up INDEPENDENT chores (SHARED chores don't have per-kid dates)
+                if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+                    # Check if legacy due_date field exists in kid-level chore_data
+                    if (
+                        const.DATA_KID_CHORE_DATA_DUE_DATE_LEGACY
+                        in kid_chore_data[chore_id]
+                    ):
+                        del kid_chore_data[chore_id][
+                            const.DATA_KID_CHORE_DATA_DUE_DATE_LEGACY
+                        ]
+                        cleaned_count += 1
+                        kid_had_cleanup = True
+                        const.LOGGER.debug(
+                            "Removed legacy due_date from kid '%s' chore_data for chore '%s'",
+                            kid_name,
+                            chore_info.get(const.DATA_CHORE_NAME, chore_id),
+                        )
+
+            if kid_had_cleanup:
+                kids_affected += 1
+
+        if cleaned_count > 0:
+            const.LOGGER.info(
+                "v50 cleanup: Removed %s legacy due_date fields from kid-level chore_data across %s kids",
+                cleaned_count,
+                kids_affected,
+            )
+        else:
+            const.LOGGER.debug(
+                "v50 cleanup: No legacy due_date fields found in kid-level chore_data"
+            )

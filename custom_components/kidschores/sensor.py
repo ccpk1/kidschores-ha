@@ -564,11 +564,11 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_APPLICABLE_DAYS: chore_info.get(
                 const.DATA_CHORE_APPLICABLE_DAYS, []
             ),
-            # For INDEPENDENT chores, use per-kid due_date; for SHARED, use chore-level
+            # For INDEPENDENT chores, use per_kid_due_dates; for SHARED, use chore-level
             # Return None (not translation key) when no due_date - dashboard templates
             # use None to trigger "no_due_date" display text
             const.ATTR_DUE_DATE: (
-                kid_chore_data.get(const.DATA_KID_CHORE_DATA_DUE_DATE)
+                chore_info.get(const.DATA_CHORE_PER_KID_DUE_DATES, {}).get(self._kid_id)
                 if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
                 else chore_info.get(const.DATA_CHORE_DUE_DATE)
             ),

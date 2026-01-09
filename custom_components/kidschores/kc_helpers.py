@@ -876,6 +876,8 @@ def get_today_chore_completion_progress(
     kid_info: dict,
     tracked_chores: list,
     *,
+    kid_id: Optional[str] = None,
+    all_chores: Optional[dict] = None,
     count_required: Optional[int] = None,
     percent_required: float = 1.0,
     require_no_overdue: bool = False,
@@ -891,6 +893,8 @@ def get_today_chore_completion_progress(
     Args:
         kid_info: The kid's info dictionary.
         tracked_chores: List of chore IDs to check. If empty, all kid's chores are used.
+        kid_id: The kid's internal ID (required if only_due_today is True).
+        all_chores: Dict of all chores (required if only_due_today is True).
         count_required: Minimum number of chores that must be completed today (overrides percent_required if set).
         percent_required: Float between 0 and 1.0 (e.g., 0.8 for 80%). Default is 1.0 (all required).
         require_no_overdue: If True, only return True if none of the tracked chores went overdue today.
@@ -901,7 +905,8 @@ def get_today_chore_completion_progress(
 
     Example:
         criteria_met, approved_count, total_count = self._get_today_chore_completion_progress(
-            kid_info, tracked_chores, count_required=3, percent_required=0.8, require_no_overdue=True, only_due_today=True
+            kid_info, tracked_chores, kid_id=kid_id, all_chores=coordinator.chores_data,
+            count_required=3, percent_required=0.8, require_no_overdue=True, only_due_today=True
         )
     """
     today_local = get_now_local_time()
@@ -914,16 +919,23 @@ def get_today_chore_completion_progress(
 
     # Filter chores if only_due_today is set
     if only_due_today:
-        chores_due_today = []
-        for chore_id in tracked_chores:
-            chore_data = chores_data.get(chore_id, {})
-            due_date_iso = chore_data.get(const.DATA_KID_CHORE_DATA_DUE_DATE)
-            if (
-                due_date_iso
-                and due_date_iso[: const.ISO_DATE_STRING_LENGTH] == today_iso
-            ):
-                chores_due_today.append(chore_id)
-        chores_to_check = chores_due_today
+        if not kid_id or not all_chores:
+            # Cannot filter by due date without kid_id and all_chores
+            chores_to_check = tracked_chores
+        else:
+            chores_due_today = []
+            for chore_id in tracked_chores:
+                # Get chore info from all chores to access per_kid_due_dates
+                chore_info = all_chores.get(chore_id, {})
+                # For independent chores, read from per_kid_due_dates
+                per_kid_dates = chore_info.get(const.DATA_CHORE_PER_KID_DUE_DATES, {})
+                due_date_iso = per_kid_dates.get(kid_id)
+                if (
+                    due_date_iso
+                    and due_date_iso[: const.ISO_DATE_STRING_LENGTH] == today_iso
+                ):
+                    chores_due_today.append(chore_id)
+            chores_to_check = chores_due_today
     else:
         chores_to_check = tracked_chores
 

@@ -53,10 +53,10 @@ async def test_direct_storage_creates_one_parent_one_kid_one_chore(
     # Verify coordinator loaded the data from storage
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    # Check schema version is 42 (storage-only mode) - stored in meta section
+    # Check schema version is 42+ (storage-only mode) - stored in meta section
     meta = coordinator.data.get(DATA_META, {})
     assert meta.get(DATA_META_SCHEMA_VERSION) == SCHEMA_VERSION_STORAGE_ONLY
-    assert SCHEMA_VERSION_STORAGE_ONLY == 42
+    assert SCHEMA_VERSION_STORAGE_ONLY >= 42
 
     # Verify exactly 1 parent from storyline
     parents = coordinator.data[DATA_PARENTS]

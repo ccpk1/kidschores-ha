@@ -55,7 +55,7 @@ DEFAULT_TIME_ZONE = None  # noqa: N816
 # Schema version for config→storage migration
 DATA_SCHEMA_VERSION: Final = "schema_version"
 SCHEMA_VERSION_STORAGE_ONLY: Final = (
-    42  # v42: Storage-only mode (staying on v42 per 2025-12-19 decision)
+    43  # v50: Storage-only mode aligns with v0.5.0 (schemas 43-49 skipped)
 )
 
 # Float precision for stored numeric values (points, chore stats, etc.)
@@ -634,7 +634,7 @@ DATA_KID_CHORE_DATA: Final = "chore_data"
 DATA_KID_CHORE_DATA_STATE: Final = "state"
 DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT: Final = "pending_claim_count"
 DATA_KID_CHORE_DATA_NAME: Final = "name"
-DATA_KID_CHORE_DATA_DUE_DATE: Final = "due_date"
+# due_date moved to LEGACY section - use per_kid_due_dates at chore level instead
 DATA_KID_CHORE_DATA_LAST_APPROVED: Final = "last_approved"
 DATA_KID_CHORE_DATA_LAST_CLAIMED: Final = "last_claimed"
 DATA_KID_CHORE_DATA_LAST_DISAPPROVED: Final = "last_disapproved"
@@ -3040,6 +3040,12 @@ DATA_KID_REWARD_CLAIMS_LEGACY: Final = "reward_claims"
 DATA_CHORE_ALLOW_MULTIPLE_CLAIMS_PER_DAY_LEGACY: Final = "allow_multiple_claims_per_day"  # Migration only - replaced by DATA_CHORE_APPROVAL_RESET_TYPE
 DATA_CHORE_SHARED_CHORE_LEGACY: Final = (
     "shared_chore"  # LEGACY: Use completion_criteria
+)
+
+# Kid Chore Data Due Date (v0.5.0): Replaced by per_kid_due_dates at chore level
+# Schema v50 migration removes this field from kid_chore_data
+DATA_KID_CHORE_DATA_DUE_DATE_LEGACY: Final = (
+    "due_date"  # LEGACY: Use chore_info[per_kid_due_dates][kid_id] instead
 )
 
 

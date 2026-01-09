@@ -34,7 +34,7 @@ from custom_components.kidschores.const import (
     FREQUENCY_DAILY,
     FREQUENCY_WEEKLY,
 )
-from custom_components.kidschores.migration_pre_v42 import PreV42Migrator
+from custom_components.kidschores.migration_pre_v50 import PreV50Migrator
 from tests.legacy.conftest import reset_chore_state_for_kid
 
 # ============================================================================
@@ -55,7 +55,7 @@ async def test_empty_applicable_days_no_filtering(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -95,7 +95,7 @@ async def test_empty_applicable_days_no_filtering(
     new_due_str = per_kid_due_dates.get(zoe_id)
     assert new_due_str is not None, "Due date should be set"
     new_due = dt_util.parse_datetime(new_due_str)
-    assert new_due > dt_util.utcnow(), "New due date should be in the future"
+    assert new_due > dt_util.utcnow(), "New due date should be in the future"  # type: ignore[reportOptionalOperand]
 
 
 # ============================================================================
@@ -119,7 +119,7 @@ async def test_single_applicable_day_snaps_to_weekday(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -184,7 +184,7 @@ async def test_weekend_only_applicable_days(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -249,7 +249,7 @@ async def test_string_based_applicable_days_conversion(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -315,7 +315,7 @@ async def test_applicable_days_independent_per_kid_isolation(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -397,8 +397,8 @@ async def test_get_next_applicable_day_same_day(
     )
 
     # Should return same day since Monday is in applicable list
-    assert result.weekday() == 0
-    assert result.date() == monday.date()
+    assert result.weekday() == 0  # type: ignore[reportAttributeAccessIssue]
+    assert result.date() == monday.date()  # type: ignore[reportAttributeAccessIssue]
 
 
 @pytest.mark.asyncio
@@ -423,8 +423,10 @@ async def test_get_next_applicable_day_advances_to_next(
     )
 
     # Should advance to Monday (6 days later)
-    assert result.weekday() == 0  # Monday
-    assert result > tuesday  # Must be in the future
+    assert result.weekday() == 0  # Monday  # type: ignore[reportAttributeAccessIssue]
+    assert (
+        result > tuesday
+    )  # Must be in the future  # type: ignore[reportOperatorIssue]
 
 
 @pytest.mark.asyncio
@@ -448,7 +450,9 @@ async def test_get_next_applicable_day_weekend_skip(
         applicable_days=[0, 1, 2, 3, 4],  # Mon-Fri
         return_type=const.HELPER_RETURN_DATETIME,
     )
-    assert result.weekday() == 4  # Still Friday
+    assert (
+        result.weekday() == 4  # type: ignore[reportAttributeAccessIssue]
+    )  # Still Friday
 
     # Saturday input, weekdays only
     saturday = datetime(
@@ -461,8 +465,10 @@ async def test_get_next_applicable_day_weekend_skip(
         applicable_days=[0, 1, 2, 3, 4],  # Mon-Fri
         return_type=const.HELPER_RETURN_DATETIME,
     )
-    assert result.weekday() == 0  # Advances to Monday
-    assert result > saturday
+    assert (
+        result.weekday() == 0  # type: ignore[reportAttributeAccessIssue]
+    )  # Advances to Monday
+    assert result > saturday  # type: ignore[reportOperatorIssue]
 
 
 # ============================================================================

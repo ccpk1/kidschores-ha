@@ -78,14 +78,14 @@ async def test_independent_different_due_dates_per_kid(
         .setdefault(const.DATA_KID_CHORE_DATA, {})
         .setdefault(chore_found, {})
     )
-    zoë_chore_data[const.DATA_KID_CHORE_DATA_DUE_DATE] = tomorrow
+    zoë_chore_data[const.DATA_KID_CHORE_DATA_DUE_DATE_LEGACY_LEGACY] = tomorrow
 
     max_chore_data = (
         coordinator._data[const.DATA_KIDS][max_id]
         .setdefault(const.DATA_KID_CHORE_DATA, {})
         .setdefault(chore_found, {})
     )
-    max_chore_data[const.DATA_KID_CHORE_DATA_DUE_DATE] = next_week
+    max_chore_data[const.DATA_KID_CHORE_DATA_DUE_DATE_LEGACY_LEGACY] = next_week
 
     # Clear any existing approved/claimed status for this chore (fixture may pre-populate)
     # The overdue check skips chores where all assigned kids have claimed or approved
@@ -232,7 +232,7 @@ async def test_independent_overdue_one_kid_not_all(
             .setdefault(const.DATA_KID_CHORE_DATA, {})
             .setdefault(chore_found, {})
         )
-        kid_chore_data[const.DATA_KID_CHORE_DATA_DUE_DATE] = due_date
+        kid_chore_data[const.DATA_KID_CHORE_DATA_DUE_DATE_LEGACY_LEGACY] = due_date
 
     # Clear any existing overdue state
     for kid_id in [zoë_id, max_id, lila_id]:

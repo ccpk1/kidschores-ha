@@ -778,9 +778,9 @@ async def test_migration_from_allow_multiple_true(
     coordinator._persist()
 
     # Run migration
-    from custom_components.kidschores.migration_pre_v42 import PreV42Migrator
+    from custom_components.kidschores.migration_pre_v50 import PreV50Migrator
 
-    migration_mgr = PreV42Migrator(coordinator)
+    migration_mgr = PreV50Migrator(coordinator)
     migration_mgr._migrate_approval_reset_type()
 
     # Verify migration result
@@ -813,9 +813,9 @@ async def test_migration_from_allow_multiple_false(
     coordinator._persist()
 
     # Run migration
-    from custom_components.kidschores.migration_pre_v42 import PreV42Migrator
+    from custom_components.kidschores.migration_pre_v50 import PreV50Migrator
 
-    migration_mgr = PreV42Migrator(coordinator)
+    migration_mgr = PreV50Migrator(coordinator)
     migration_mgr._migrate_approval_reset_type()
 
     # Verify migration result
@@ -878,9 +878,9 @@ async def test_migration_skips_already_migrated_chores(
     coordinator._persist()
 
     # Run migration
-    from custom_components.kidschores.migration_pre_v42 import PreV42Migrator
+    from custom_components.kidschores.migration_pre_v50 import PreV50Migrator
 
-    migration_mgr = PreV42Migrator(coordinator)
+    migration_mgr = PreV50Migrator(coordinator)
     migration_mgr._migrate_approval_reset_type()
 
     # Verify UPON_COMPLETION was preserved (not overwritten to AT_MIDNIGHT_MULTI)
@@ -911,9 +911,9 @@ async def test_migration_initializes_approval_period_start(
     coordinator._persist()
 
     # Run timestamp migration
-    from custom_components.kidschores.migration_pre_v42 import PreV42Migrator
+    from custom_components.kidschores.migration_pre_v50 import PreV50Migrator
 
-    migration_mgr = PreV42Migrator(coordinator)
+    migration_mgr = PreV50Migrator(coordinator)
     migration_mgr._migrate_to_timestamp_tracking()
 
     # The migration may or may not initialize period_start depending on implementation
@@ -1102,14 +1102,14 @@ async def test_at_due_date_independent_per_kid_due_dates(
         .setdefault(const.DATA_KID_CHORE_DATA, {})
         .setdefault(chore_id, {})
     )
-    kid1_chore[const.DATA_KID_CHORE_DATA_DUE_DATE] = tomorrow
+    kid1_chore[const.DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] = tomorrow
 
     kid2_chore = (
         coordinator.kids_data[kid2_id]
         .setdefault(const.DATA_KID_CHORE_DATA, {})
         .setdefault(chore_id, {})
     )
-    kid2_chore[const.DATA_KID_CHORE_DATA_DUE_DATE] = day_after
+    kid2_chore[const.DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] = day_after
     coordinator._persist()
 
     # Both kids can claim initially

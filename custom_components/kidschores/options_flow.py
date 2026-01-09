@@ -1323,21 +1323,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                             )
                     # else: date was blank, preserve existing per-kid date (already done)
 
-                    # Update per_kid_due_dates in chore data
+                    # Update per_kid_due_dates in chore data (single source of truth)
                     updated_chore_data[const.DATA_CHORE_PER_KID_DUE_DATES] = (
                         per_kid_due_dates
                     )
-
-                    # Also sync kid's chore_data due_date
-                    if kid_id in coordinator.kids_data:
-                        kid_info = coordinator.kids_data[kid_id]
-                        kid_chore_data = kid_info.setdefault(
-                            const.DATA_KID_CHORE_DATA, {}
-                        )
-                        if internal_id in kid_chore_data:
-                            kid_chore_data[internal_id][
-                                const.DATA_KID_CHORE_DATA_DUE_DATE
-                            ] = per_kid_due_dates.get(kid_id)
 
                     # Update storage and skip per-kid dates step
                     coordinator.update_chore_entity(internal_id, updated_chore_data)
@@ -1603,33 +1592,14 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     )
 
             if not errors:
-                # Update the chore's per_kid_due_dates in storage
+                # Update the chore's per_kid_due_dates in storage (single source of truth)
                 chores_data = coordinator.chores_data
                 if internal_id in chores_data:
                     chores_data[internal_id][const.DATA_CHORE_PER_KID_DUE_DATES] = (
                         per_kid_due_dates
                     )
 
-                    # ISSUE #4 FIX: Also sync each kid's chore_data due_date
-                    # This mirrors the logic in coordinator.set_chore_due_date()
-                    for kid_id, due_date_iso in per_kid_due_dates.items():
-                        if kid_id in coordinator.kids_data:
-                            kid_info = coordinator.kids_data[kid_id]
-                            kid_chore_data = kid_info.setdefault(
-                                const.DATA_KID_CHORE_DATA, {}
-                            )
-                            if internal_id in kid_chore_data:
-                                kid_chore_data[internal_id][
-                                    const.DATA_KID_CHORE_DATA_DUE_DATE
-                                ] = due_date_iso
-                            const.LOGGER.debug(
-                                "Synced kid %s chore_data due_date for %s: %s",
-                                kid_info.get(const.DATA_KID_NAME),
-                                internal_id,
-                                due_date_iso,
-                            )
-
-                    # Also handle kids whose dates were cleared (not in per_kid_due_dates)
+                    # Handle kids whose dates were cleared (not in per_kid_due_dates)
                     for kid_id in assigned_kids:
                         if kid_id not in per_kid_due_dates:
                             if kid_id in coordinator.kids_data:
@@ -1638,8 +1608,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                                     const.DATA_KID_CHORE_DATA, {}
                                 )
                                 if internal_id in kid_chore_data:
+                                    # LEGACY: Clear kid_chore_data for backward compat (migration support only)
                                     kid_chore_data[internal_id][
-                                        const.DATA_KID_CHORE_DATA_DUE_DATE
+                                        const.DATA_KID_CHORE_DATA_DUE_DATE_LEGACY
                                     ] = None
                                 const.LOGGER.debug(
                                     "Cleared kid %s chore_data due_date for %s",

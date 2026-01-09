@@ -74,7 +74,7 @@ async def test_never_overdue_skips_marking(
     zoë_data = coordinator._data[const.DATA_KIDS].get(zoë_id, {})
     chore_data = zoë_data.setdefault(const.DATA_KID_CHORE_DATA, {})
     entry = chore_data.setdefault(chore_id, {})
-    entry[const.DATA_KID_CHORE_DATA_DUE_DATE] = yesterday
+    entry[const.DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] = yesterday
 
     # Run overdue check
     now_utc = datetime.now(timezone.utc)
@@ -571,7 +571,7 @@ async def test_no_due_date_skips_overdue_check(
     zoë_data = coordinator._data[const.DATA_KIDS].get(zoë_id, {})
     chore_data = zoë_data.get(const.DATA_KID_CHORE_DATA, {})
     if chore_id in chore_data:
-        chore_data[chore_id].pop(const.DATA_KID_CHORE_DATA_DUE_DATE, None)
+        chore_data[chore_id].pop(const.DATA_KID_CHORE_DATA_DUE_DATE_LEGACY, None)
 
     # Run overdue check
     now_utc = datetime.now(timezone.utc)

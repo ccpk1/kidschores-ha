@@ -24,10 +24,10 @@ from custom_components.kidschores.const import (
     COORDINATOR,
     DATA_KID_CHORE_DATA,
     DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START,
-    DATA_KID_CHORE_DATA_DUE_DATE,
+    DATA_KID_CHORE_DATA_DUE_DATE_LEGACY,
     DOMAIN,
 )
-from custom_components.kidschores.migration_pre_v42 import PreV42Migrator
+from custom_components.kidschores.migration_pre_v50 import PreV50Migrator
 from tests.legacy.conftest import (
     create_test_datetime,  # is_chore_* helpers not used here
 )
@@ -51,7 +51,7 @@ async def test_approve_advances_per_kid_due_date(
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
     # Manual migration
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -97,7 +97,7 @@ async def test_approve_advances_per_kid_due_date(
     )[zoe_id] = original_due_date
     # Set derived/cached source (chore_data on kid)
     coordinator.kids_data[zoe_id][DATA_KID_CHORE_DATA][star_sweep_id][
-        DATA_KID_CHORE_DATA_DUE_DATE
+        DATA_KID_CHORE_DATA_DUE_DATE_LEGACY
     ] = original_due_date
 
     # Set claimed state (prerequisite for approval) using coordinator method (v0.4.0+)
@@ -131,7 +131,7 @@ async def test_approve_advances_per_kid_due_date(
 
     # Verify Zoë's due date advanced by +1 day (DAILY recurrence)
     new_due_date = coordinator.kids_data[zoe_id][DATA_KID_CHORE_DATA][star_sweep_id][
-        DATA_KID_CHORE_DATA_DUE_DATE
+        DATA_KID_CHORE_DATA_DUE_DATE_LEGACY
     ]
 
     assert new_due_date is not None
@@ -161,7 +161,7 @@ async def test_disapprove_does_not_advance_due_date(
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
     # Manual migration
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -196,7 +196,7 @@ async def test_disapprove_does_not_advance_due_date(
     # Set Zoë's due date
     original_due_date = create_test_datetime(days_offset=0)
     coordinator.kids_data[zoe_id][DATA_KID_CHORE_DATA][star_sweep_id][
-        DATA_KID_CHORE_DATA_DUE_DATE
+        DATA_KID_CHORE_DATA_DUE_DATE_LEGACY
     ] = original_due_date
 
     # Set claimed state using coordinator method (v0.4.0+)
@@ -230,7 +230,7 @@ async def test_disapprove_does_not_advance_due_date(
     # Verify due date unchanged
     current_due_date = coordinator.kids_data[zoe_id][DATA_KID_CHORE_DATA][
         star_sweep_id
-    ][DATA_KID_CHORE_DATA_DUE_DATE]
+    ][DATA_KID_CHORE_DATA_DUE_DATE_LEGACY]
 
     assert current_due_date == original_due_date
 
@@ -281,7 +281,7 @@ async def test_multiple_kids_approve_same_day_independent_advancement(
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
     # Manual migration
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -329,7 +329,7 @@ async def test_multiple_kids_approve_same_day_independent_advancement(
         ] = original_due_date
         # Set derived/cached source (chore_data on kid)
         coordinator.kids_data[kid_id][DATA_KID_CHORE_DATA][star_sweep_id][
-            DATA_KID_CHORE_DATA_DUE_DATE
+            DATA_KID_CHORE_DATA_DUE_DATE_LEGACY
         ] = original_due_date
 
         # Set claimed state using coordinator method (v0.4.0+)
@@ -379,10 +379,10 @@ async def test_multiple_kids_approve_same_day_independent_advancement(
 
     # Verify BOTH kids' due dates advanced independently (DAILY = +1 day)
     zoe_due_date = coordinator.kids_data[zoe_id][DATA_KID_CHORE_DATA][star_sweep_id][
-        DATA_KID_CHORE_DATA_DUE_DATE
+        DATA_KID_CHORE_DATA_DUE_DATE_LEGACY
     ]
     max_due_date = coordinator.kids_data[max_id][DATA_KID_CHORE_DATA][star_sweep_id][
-        DATA_KID_CHORE_DATA_DUE_DATE
+        DATA_KID_CHORE_DATA_DUE_DATE_LEGACY
     ]
 
     assert zoe_due_date is not None
@@ -416,7 +416,7 @@ async def test_null_due_date_approval_no_crash(
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
     # Manual migration
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -450,7 +450,7 @@ async def test_null_due_date_approval_no_crash(
 
     # Set due date to None explicitly
     coordinator.kids_data[zoe_id][DATA_KID_CHORE_DATA][star_sweep_id][
-        DATA_KID_CHORE_DATA_DUE_DATE
+        DATA_KID_CHORE_DATA_DUE_DATE_LEGACY
     ] = None
 
     # Set claimed state using coordinator method (v0.4.0+)
@@ -485,7 +485,7 @@ async def test_null_due_date_approval_no_crash(
     # Due date should remain None
     current_due_date = coordinator.kids_data[zoe_id][DATA_KID_CHORE_DATA][
         star_sweep_id
-    ][DATA_KID_CHORE_DATA_DUE_DATE]
+    ][DATA_KID_CHORE_DATA_DUE_DATE_LEGACY]
     assert current_due_date is None
 
 
@@ -506,7 +506,7 @@ async def test_weekly_recurrence_advances_exactly_seven_days(
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
     # Manual migration
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -551,7 +551,7 @@ async def test_weekly_recurrence_advances_exactly_seven_days(
     )[zoe_id] = original_due_date
     # Set derived/cached source (chore_data on kid)
     coordinator.kids_data[zoe_id][DATA_KID_CHORE_DATA][star_sweep_id][
-        DATA_KID_CHORE_DATA_DUE_DATE
+        DATA_KID_CHORE_DATA_DUE_DATE_LEGACY
     ] = original_due_date
 
     # Set claimed state using coordinator method (v0.4.0+)
@@ -584,7 +584,7 @@ async def test_weekly_recurrence_advances_exactly_seven_days(
 
     # Verify due date advanced by exactly 7 days
     new_due_date = coordinator.kids_data[zoe_id][DATA_KID_CHORE_DATA][star_sweep_id][
-        DATA_KID_CHORE_DATA_DUE_DATE
+        DATA_KID_CHORE_DATA_DUE_DATE_LEGACY
     ]
 
     assert new_due_date is not None

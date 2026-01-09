@@ -25,7 +25,7 @@ from custom_components.kidschores.const import (
     DATA_CHORE_PER_KID_DUE_DATES,
     DATA_CHORE_RECURRING_FREQUENCY,
     DATA_KID_CHORE_DATA,
-    DATA_KID_CHORE_DATA_DUE_DATE,
+    DATA_KID_CHORE_DATA_DUE_DATE_LEGACY,
     DOMAIN,
     FREQUENCY_DAILY,
     SCHEMA_VERSION_STORAGE_ONLY,
@@ -142,7 +142,7 @@ async def test_set_and_skip_independent_chore_integration(
     kid_chore_data = coordinator.kids_data["kid_1"][DATA_KID_CHORE_DATA][
         "independent_chore"
     ]
-    assert kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE] == initial_due_date.isoformat()
+    assert kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] == initial_due_date.isoformat()
 
     # 2. Skip the due date (should work without error using per-kid due_date)
     coordinator.skip_chore_due_date("independent_chore", "kid_1")

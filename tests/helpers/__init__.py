@@ -91,7 +91,7 @@ from tests.helpers.constants import (
     # Data keys - kid chore data
     DATA_KID_CHORE_DATA,
     DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START,
-    DATA_KID_CHORE_DATA_DUE_DATE,
+    DATA_KID_CHORE_DATA_DUE_DATE_LEGACY,
     DATA_KID_CHORE_DATA_STATE,
     DATA_KID_COMPLETED_BY_OTHER_CHORES,
     DATA_KID_NAME,
@@ -230,7 +230,7 @@ __all__ = [
     # Constants - Kid chore data keys
     "DATA_KID_CHORE_DATA",
     "DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START",
-    "DATA_KID_CHORE_DATA_DUE_DATE",
+    "DATA_KID_CHORE_DATA_DUE_DATE_LEGACY",
     "DATA_KID_CHORE_DATA_STATE",
     "DATA_KID_COMPLETED_BY_OTHER_CHORES",
     # Constants - Chore field keys

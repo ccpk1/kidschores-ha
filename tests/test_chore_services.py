@@ -44,7 +44,7 @@ from custom_components.kidschores.const import (
     DATA_CHORE_PER_KID_DUE_DATES,
     DATA_KID_CHORE_DATA,
     DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START,
-    DATA_KID_CHORE_DATA_DUE_DATE,
+    DATA_KID_CHORE_DATA_DUE_DATE_LEGACY,
     DATA_KID_CHORE_DATA_STATE,
     DATA_KID_POINTS,
 )
@@ -104,7 +104,7 @@ def get_kid_chore_data_due_date(
     """Get due date from kid's chore data."""
     kid_info = coordinator.kids_data.get(kid_id, {})
     kid_chore_data = kid_info.get(DATA_KID_CHORE_DATA, {}).get(chore_id, {})
-    return kid_chore_data.get(DATA_KID_CHORE_DATA_DUE_DATE)
+    return kid_chore_data.get(DATA_KID_CHORE_DATA_DUE_DATE_LEGACY)
 
 
 def get_kid_points(coordinator: Any, kid_id: str) -> float:
@@ -144,7 +144,7 @@ def set_chore_due_date_to_past(
             kid_info = coordinator.kids_data.get(kid_id, {})
             kid_chore_data = kid_info.get(DATA_KID_CHORE_DATA, {}).get(chore_id, {})
             if kid_chore_data:
-                kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE] = past_date_iso
+                kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] = past_date_iso
                 kid_chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = (
                     period_start_iso
                 )
@@ -154,7 +154,7 @@ def set_chore_due_date_to_past(
                 kid_info = coordinator.kids_data.get(assigned_kid_id, {})
                 kid_chore_data = kid_info.get(DATA_KID_CHORE_DATA, {}).get(chore_id, {})
                 if kid_chore_data:
-                    kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE] = past_date_iso
+                    kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] = past_date_iso
                     kid_chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = (
                         period_start_iso
                     )

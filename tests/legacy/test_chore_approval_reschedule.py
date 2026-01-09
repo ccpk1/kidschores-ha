@@ -33,7 +33,7 @@ from custom_components.kidschores.const import (
     FREQUENCY_DAILY,
     FREQUENCY_NONE,
 )
-from custom_components.kidschores.migration_pre_v42 import PreV42Migrator
+from custom_components.kidschores.migration_pre_v50 import PreV50Migrator
 from tests.legacy.conftest import (
     is_chore_approved_for_kid,
     reset_chore_state_for_kid,
@@ -61,7 +61,7 @@ async def test_independent_recurring_approval_reschedules_per_kid(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -129,7 +129,7 @@ async def test_independent_recurring_approval_advances_due_date(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -181,7 +181,7 @@ async def test_shared_recurring_all_approved_reschedules_chore(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -251,7 +251,7 @@ async def test_independent_nonrecurring_approval_behavior(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -309,7 +309,7 @@ async def test_shared_nonrecurring_approval_behavior(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 

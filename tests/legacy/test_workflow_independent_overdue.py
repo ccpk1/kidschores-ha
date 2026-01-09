@@ -11,19 +11,6 @@ removed in v0.5.0+. Overdue state is now tracked via DATA_KID_CHORE_DATA_STATE.
 See test_chore_state_matrix.py for modern state-based tests.
 """
 
-import pytest
-
-pytestmark = pytest.mark.skip(
-    reason="DEPRECATED: Tests list-based overdue tracking removed in v0.5.0. "
-    "Use coordinator.is_overdue() and state-based tracking instead. "
-    "See Phase 5 of CHORE_WORKFLOW_TESTING plan for modern tests."
-)
-
-pytestmark = pytest.mark.skip(
-    reason="DEPRECATED: Tests list-based overdue tracking removed in v0.5.0. "
-    "Use coordinator.is_overdue() and state-based tracking instead."
-)
-
 # pylint: disable=protected-access  # Accessing coordinator._check_overdue_chores()
 # pylint: disable=redefined-outer-name  # Pytest fixtures redefine names
 # pylint: disable=unused-argument  # Fixtures needed for test setup
@@ -31,6 +18,7 @@ pytestmark = pytest.mark.skip(
 
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from homeassistant.core import HomeAssistant
 
 from custom_components.kidschores import const
@@ -43,8 +31,19 @@ from custom_components.kidschores.const import (
     DATA_KID_OVERDUE_CHORES,
     DOMAIN,
 )
-from custom_components.kidschores.migration_pre_v42 import PreV42Migrator
+from custom_components.kidschores.migration_pre_v50 import PreV50Migrator
 from tests.legacy.conftest import create_test_datetime
+
+pytestmark = pytest.mark.skip(
+    reason="DEPRECATED: Tests list-based overdue tracking removed in v0.5.0. "
+    "Use coordinator.is_overdue() and state-based tracking instead. "
+    "See Phase 5 of CHORE_WORKFLOW_TESTING plan for modern tests."
+)
+
+pytestmark = pytest.mark.skip(
+    reason="DEPRECATED: Tests list-based overdue tracking removed in v0.5.0. "
+    "Use coordinator.is_overdue() and state-based tracking instead."
+)
 
 
 @pytest.mark.asyncio
@@ -63,7 +62,7 @@ async def test_independent_one_kid_overdue_others_not(
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
     # Manual migration: Convert is_shared → completion_criteria
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -178,7 +177,7 @@ async def test_independent_all_kids_overdue(
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
     # Manual migration
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -277,7 +276,7 @@ async def test_independent_null_due_date_never_overdue(
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
     # Manual migration
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -349,7 +348,7 @@ async def test_shared_chore_all_kids_same_due_date(
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
     # Manual migration (converts INDEPENDENT chores, leaves SHARED alone)
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -411,7 +410,7 @@ async def test_independent_overdue_clears_when_date_advances(
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
     # Manual migration
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -504,7 +503,7 @@ async def test_independent_skip_claimed_chores(
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
     # Manual migration
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -585,7 +584,7 @@ async def test_independent_skip_approved_chores(
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
     # Manual migration
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -670,7 +669,7 @@ async def test_mixed_independent_and_shared_chores(
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
     # Manual migration
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 

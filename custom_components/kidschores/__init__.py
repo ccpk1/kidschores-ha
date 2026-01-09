@@ -169,7 +169,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # PHASE 2: Migrate entity data from config to storage (one-time hand-off) - LEGACY MIGRATION
     # This must happen BEFORE coordinator initialization to ensure coordinator
     # loads from storage-only mode (schema_version >= 42)
-    from .migration_pre_v42 import migrate_config_to_storage
+    from .migration_pre_v50 import migrate_config_to_storage
 
     await migrate_config_to_storage(hass, entry, storage_manager)
 

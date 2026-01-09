@@ -1360,7 +1360,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         # Write all entity data directly to storage BEFORE creating config entry
         # This implements the KC 4.0 storage-only architecture from day one
         storage_data = {
-            const.DATA_SCHEMA_VERSION: const.SCHEMA_VERSION_STORAGE_ONLY,  # Set to 42 immediately
+            const.DATA_SCHEMA_VERSION: const.SCHEMA_VERSION_STORAGE_ONLY,
             const.DATA_KIDS: self._kids_temp,
             const.DATA_PARENTS: self._parents_temp,
             const.DATA_CHORES: self._chores_temp,

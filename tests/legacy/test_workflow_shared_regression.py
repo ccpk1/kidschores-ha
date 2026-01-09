@@ -17,7 +17,6 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from dateutil import parser
 from homeassistant.core import Context, HomeAssistant
-from homeassistant.util import dt as dt_util  # pylint: disable=unused-import
 
 from custom_components.kidschores import const
 from custom_components.kidschores.const import (
@@ -27,8 +26,10 @@ from custom_components.kidschores.const import (
     DATA_CHORE_DUE_DATE,
     DOMAIN,
 )
-from custom_components.kidschores.migration_pre_v42 import PreV42Migrator
-from tests.legacy.conftest import is_chore_claimed_for_kid  # pylint: disable=unused-import
+from custom_components.kidschores.migration_pre_v50 import PreV50Migrator
+from tests.legacy.conftest import (
+    is_chore_claimed_for_kid,  # pylint: disable=unused-import
+)
 
 
 @pytest.mark.asyncio
@@ -43,7 +44,7 @@ async def test_shared_all_approval_uses_chore_level_due_date(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -121,7 +122,7 @@ async def test_shared_first_only_first_kid_claims(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -182,7 +183,7 @@ async def test_alternating_chore_approval_rotation(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -245,7 +246,7 @@ async def test_shared_disapprove_no_advancement(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 

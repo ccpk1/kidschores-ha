@@ -33,7 +33,7 @@ from custom_components.kidschores.const import (
     DATA_CHORE_STATE,
     DOMAIN,
 )
-from custom_components.kidschores.migration_pre_v42 import PreV42Migrator
+from custom_components.kidschores.migration_pre_v50 import PreV50Migrator
 from tests.legacy.conftest import reset_chore_state_for_kid
 
 # ============================================================================
@@ -55,7 +55,7 @@ async def test_single_kid_global_state_pending(
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
     # Migrate to use completion_criteria
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -92,7 +92,7 @@ async def test_single_kid_global_state_claimed(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -125,7 +125,7 @@ async def test_single_kid_global_state_approved(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -165,7 +165,7 @@ async def test_independent_multi_kid_all_pending(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -208,7 +208,7 @@ async def test_independent_multi_kid_one_claimed(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -257,7 +257,7 @@ async def test_independent_multi_kid_all_approved(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -305,7 +305,7 @@ async def test_shared_multi_kid_none_claimed(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -356,7 +356,7 @@ async def test_shared_multi_kid_partial_claimed(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -407,7 +407,7 @@ async def test_shared_multi_kid_all_claimed(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -454,7 +454,7 @@ async def test_shared_multi_kid_partial_approved(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -502,7 +502,7 @@ async def test_shared_multi_kid_all_approved(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -556,7 +556,7 @@ async def test_independent_mixed_approved_and_claimed(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 
@@ -605,7 +605,7 @@ async def test_shared_mixed_approved_and_claimed(
     config_entry, name_to_id_map = scenario_full
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    migrator = PreV42Migrator(coordinator)
+    migrator = PreV50Migrator(coordinator)
     migrator._migrate_independent_chores()
     coordinator._persist()
 

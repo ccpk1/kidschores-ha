@@ -79,15 +79,15 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     # Migrate Data and Converters
     # -------------------------------------------------------------------------------------
 
-    def _run_pre_v42_migrations(self) -> None:
-        """Run pre-v42 schema migrations if needed.
+    def _run_pre_v50_migrations(self) -> None:
+        """Run pre-v50 schema migrations if needed.
 
-        Lazy-loads the migration module to avoid any cost for v42+ users.
-        All migration methods are encapsulated in the PreV42Migrator class.
+        Lazy-loads the migration module to avoid any cost for v50+ users.
+        All migration methods are encapsulated in the PreV50Migrator class.
         """
-        from .migration_pre_v42 import PreV42Migrator
+        from .migration_pre_v50 import PreV50Migrator
 
-        migrator = PreV42Migrator(self)
+        migrator = PreV50Migrator(self)
         migrator.run_all_migrations()
 
     def _assign_kid_to_independent_chores(self, kid_id: str) -> None:
@@ -146,10 +146,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 )
 
     # Note: Migration methods (_migrate_datetime, _migrate_stored_datetimes, etc.)
-    # have been extracted to migration_pre_v42.py and are no longer defined here.
-    # They are now methods of the PreV42Migrator class.
+    # have been extracted to migration_pre_v50.py and are no longer defined here.
+    # They are now methods of the PreV50Migrator class.
     # This section previously contained 781 lines of migration code.
-    # All migration methods have been extracted to migration_pre_v42.py.
+    # All migration methods have been extracted to migration_pre_v50.py.
 
     # -------------------------------------------------------------------------------------
     # Normalize Data Structures
@@ -202,7 +202,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         if stored_data:
             self._data = stored_data
 
-            # Get schema version from meta section (v43+) or top-level (v42-)
+            # Get schema version from meta section (v50+) or top-level (v42-)
             meta = self._data.get(const.DATA_META, {})
             storage_schema_version = meta.get(
                 const.DATA_META_SCHEMA_VERSION,
@@ -211,11 +211,11 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
             if storage_schema_version < const.SCHEMA_VERSION_STORAGE_ONLY:
                 const.LOGGER.info(
-                    "INFO: Storage schema version %s < %s, running pre-v42 migrations",
+                    "INFO: Storage schema version %s < %s, running pre-v50 migrations",
                     storage_schema_version,
                     const.SCHEMA_VERSION_STORAGE_ONLY,
                 )
-                self._run_pre_v42_migrations()
+                self._run_pre_v50_migrations()
 
                 # Update to current schema version in meta section
                 # Use module-level datetime and dt_util imports
@@ -245,7 +245,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     ),
                 )
 
-                # Remove old top-level schema_version if present (v42 → v43 migration)
+                # Remove old top-level schema_version if present (v42 → v50 migration)
                 self._data.pop(const.DATA_SCHEMA_VERSION, None)
 
                 const.LOGGER.info(
@@ -269,8 +269,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 del self._data[const.MIGRATION_KEY_VERSION]
 
             # NOTE: Field migrations (show_on_calendar, auto_approve, overdue_handling_type,
-            # approval_reset_pending_claim_action) are now handled in migration_pre_v42.py
-            # via _add_chore_optional_fields(). For v42+ data, these fields are already
+            # approval_reset_pending_claim_action) are now handled in migration_pre_v50.py
+            # via _add_chore_optional_fields(). For v50+ data, these fields are already
             # set by flow_helpers.py during entity creation via the UI.
 
         else:
@@ -294,7 +294,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             self.hass, self._reset_all_chore_counts, **const.DEFAULT_DAILY_RESET_TIME
         )
 
-        # Note: KC 3.x config sync is now handled by _run_pre_v42_migrations() above
+        # Note: KC 3.x config sync is now handled by _run_pre_v50_migrations() above
         # (called when storage_schema_version < 42). No separate config sync needed here.
 
         # Normalize all kids list fields
@@ -315,14 +315,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     # -------------------------------------------------------------------------------------
     # Data Initialization from Config
     # -------------------------------------------------------------------------------------
-    # NOTE: KC 3.x config sync code (~175 lines) has been extracted to migration_pre_v42.py
+    # NOTE: KC 3.x config sync code (~175 lines) has been extracted to migration_pre_v50.py
     # This includes:
     # - _initialize_data_from_config() - Main config sync wrapper
     # - _ensure_minimal_structure() - Data structure initialization
     # - _initialize_kids/parents/chores/etc() - Entity type wrappers (9 methods)
     # - _sync_entities() - Core sync engine comparing config vs storage
     #
-    # These methods are ONLY used for v41→v42 migration (KC 3.x→4.x upgrade).
+    # These methods are ONLY used for v41→v50 migration (KC 3.x→4.x+ upgrade).
     # For v4.2+ users, entity data is already in storage; config contains only system settings.
     #
     # CRUD methods (_create_kid, _update_chore, etc.) remain below as they are actively
@@ -3748,7 +3748,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # Update due date if provided
         if due_date is not None:
-            kid_chore_data[const.DATA_KID_CHORE_DATA_DUE_DATE] = due_date
+            # LEGACY: Write to kid_chore_data for backward compat (migration support only)
+            kid_chore_data[const.DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] = due_date
 
         # Clean up old period data to keep storage manageable
         kh.cleanup_period_data(
@@ -5250,10 +5251,13 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         min_count=None,
     ):
         """Handle daily completion-based badge targets (all, percent, due, no overdue, min N)."""
+        kid_id = kid_info.get(const.DATA_KID_INTERNAL_ID)
         criteria_met, approved_count, total_count = (
             kh.get_today_chore_completion_progress(
                 kid_info,
                 tracked_chores,
+                kid_id=kid_id,
+                all_chores=self.chores_data,
                 percent_required=percent_required,
                 require_no_overdue=require_no_overdue,
                 only_due_today=only_due_today,
@@ -5314,10 +5318,13 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         Uses the same fields as daily completion, but interprets DAYS_CYCLE_COUNT as the current streak.
         """
+        kid_id = kid_info.get(const.DATA_KID_INTERNAL_ID)
         criteria_met, approved_count, total_count = (
             kh.get_today_chore_completion_progress(
                 kid_info,
                 tracked_chores,
+                kid_id=kid_id,
+                all_chores=self.chores_data,
                 percent_required=percent_required,
                 require_no_overdue=require_no_overdue,
                 only_due_today=only_due_today,
@@ -8703,6 +8710,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         Note: After migration, this method reads ONLY from DATA_CHORE_PER_KID_DUE_DATES.
         The migration populates per_kid_due_dates from the chore template (including None).
         """
+        # Get kid info for logging
+        kid_info = self.kids_data.get(kid_id, {})
+
         # Get per-kid current due date from canonical source (per_kid_due_dates ONLY)
         per_kid_due_dates = chore_info.get(const.DATA_CHORE_PER_KID_DUE_DATES, {})
         current_due_str = per_kid_due_dates.get(kid_id)
@@ -8721,15 +8731,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             if kid_id in per_kid_due_dates:
                 del per_kid_due_dates[kid_id]
             chore_info[const.DATA_CHORE_PER_KID_DUE_DATES] = per_kid_due_dates
-
-            # Clear kid's chore data due date if it exists
-            kid_info = self.kids_data.get(kid_id, {})
-            if kid_info:
-                kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {}).get(
-                    chore_id, {}
-                )
-                if kid_chore_data:
-                    kid_chore_data[const.DATA_KID_CHORE_DATA_DUE_DATE] = None
             return
 
         # Parse current due date that exists
@@ -8745,14 +8746,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             if kid_id in per_kid_due_dates:
                 del per_kid_due_dates[kid_id]
             chore_info[const.DATA_CHORE_PER_KID_DUE_DATES] = per_kid_due_dates
-
-            kid_info = self.kids_data.get(kid_id, {})
-            if kid_info:
-                kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {}).get(
-                    chore_id, {}
-                )
-                if kid_chore_data:
-                    kid_chore_data[const.DATA_KID_CHORE_DATA_DUE_DATE] = None
             return
 
         # Use consolidation helper for calculation
@@ -8767,20 +8760,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             )
             return
 
-        # Update per-kid storage
+        # Update per-kid storage (single source of truth)
         per_kid_due_dates[kid_id] = next_due_utc.isoformat()
         chore_info[const.DATA_CHORE_PER_KID_DUE_DATES] = per_kid_due_dates
-
-        # Update kid's chore data if it exists (ensure structure exists before updating)
-        kid_info = self.kids_data.get(kid_id, {})
-        if kid_info:
-            kid_chore_data_dict = kid_info.get(const.DATA_KID_CHORE_DATA, {})
-            if chore_id in kid_chore_data_dict:
-                kid_chore_data_dict[chore_id][const.DATA_KID_CHORE_DATA_DUE_DATE] = (
-                    next_due_utc.isoformat()
-                )
-                # Ensure the parent dict is updated
-                kid_info[const.DATA_KID_CHORE_DATA] = kid_chore_data_dict
 
         # Only reset to PENDING for UPON_COMPLETION type
         # Other reset types (AT_MIDNIGHT_*, AT_DUE_DATE_*) stay APPROVED until scheduled reset
@@ -8867,7 +8849,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     },
                 ) from err
 
-        # For INDEPENDENT chores: Update per-kid due dates (respects post-migration structure)
+        # For INDEPENDENT chores: Update per-kid due dates (single source of truth)
         elif criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
             if kid_id:
                 # Update only the specified kid's due date
@@ -8880,18 +8862,13 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                             "chore_id": chore_id,
                         },
                     )
+                # Update per-kid due dates dict
+                per_kid_due_dates = chore_info.setdefault(
+                    const.DATA_CHORE_PER_KID_DUE_DATES, {}
+                )
+                per_kid_due_dates[kid_id] = new_due_date_iso
                 if kid_id in self.kids_data:
                     kid_info = self.kids_data[kid_id]
-                    chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
-                    if chore_id in chore_data:
-                        chore_data[chore_id][const.DATA_KID_CHORE_DATA_DUE_DATE] = (
-                            new_due_date_iso
-                        )
-                    # Also update per-kid due dates dict
-                    per_kid_due_dates = chore_info.setdefault(
-                        const.DATA_CHORE_PER_KID_DUE_DATES, {}
-                    )
-                    per_kid_due_dates[kid_id] = new_due_date_iso
                     const.LOGGER.debug(
                         "Set due date for INDEPENDENT chore %s, kid %s only: %s",
                         chore_info.get(const.DATA_CHORE_NAME),
@@ -8900,17 +8877,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     )
             else:
                 # Update all assigned kids' due dates
-                for assigned_kid_id in chore_info.get(
-                    const.DATA_CHORE_ASSIGNED_KIDS, []
-                ):
-                    if assigned_kid_id and assigned_kid_id in self.kids_data:
-                        kid_info = self.kids_data[assigned_kid_id]
-                        chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
-                        if chore_id in chore_data:
-                            chore_data[chore_id][const.DATA_KID_CHORE_DATA_DUE_DATE] = (
-                                new_due_date_iso
-                            )
-                # Also update per-kid due dates dict
                 per_kid_due_dates = chore_info.setdefault(
                     const.DATA_CHORE_PER_KID_DUE_DATES, {}
                 )
@@ -9048,8 +9014,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     kid_chore_data = self.kids_data[assigned_kid_id].get(
                         const.DATA_KID_CHORE_DATA, {}
                     )
+                    # LEGACY: Check kid_chore_data for backward compat (migration support only)
                     if chore_id in kid_chore_data and kid_chore_data[chore_id].get(
-                        const.DATA_KID_CHORE_DATA_DUE_DATE
+                        const.DATA_KID_CHORE_DATA_DUE_DATE_LEGACY
                     ):
                         has_any_due_date = True
                         break
