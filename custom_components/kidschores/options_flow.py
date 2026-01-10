@@ -435,6 +435,17 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                 # Add to coordinator
                 coordinator._create_parent(internal_id, new_parent_data)
+
+                # Create shadow kid if chore assignment is enabled
+                if new_parent_data.get(const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT, False):
+                    shadow_kid_id = coordinator._create_shadow_kid_for_parent(
+                        internal_id, new_parent_data
+                    )
+                    # Link shadow kid to parent
+                    coordinator._data[const.DATA_PARENTS][internal_id][
+                        const.DATA_PARENT_LINKED_SHADOW_KID_ID
+                    ] = shadow_kid_id
+
                 coordinator._persist()
                 coordinator.async_update_listeners()
 
@@ -450,7 +461,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             for kid_id, kid_data in coordinator.kids_data.items()
         }
 
-        parent_schema = fh.build_parent_schema(
+        parent_schema = await fh.build_parent_schema(
             self.hass,
             users=users,
             kids_dict=kids_dict,
@@ -460,6 +471,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             default_enable_mobile_notifications=False,
             default_mobile_notify_service=None,
             default_enable_persistent_notifications=False,
+            default_dashboard_language=None,
+            default_allow_chore_assignment=False,
+            default_enable_chore_workflow=False,
+            default_enable_gamification=False,
         )
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_ADD_PARENT,
@@ -1122,6 +1137,20 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             use_persistent = user_input.get(
                 const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
             )
+            # New parent chore capability fields
+            dashboard_language = user_input.get(
+                const.CFOF_PARENTS_INPUT_DASHBOARD_LANGUAGE,
+                const.DEFAULT_DASHBOARD_LANGUAGE,
+            )
+            allow_chore_assignment = user_input.get(
+                const.CFOF_PARENTS_INPUT_ALLOW_CHORE_ASSIGNMENT, False
+            )
+            enable_chore_workflow = user_input.get(
+                const.CFOF_PARENTS_INPUT_ENABLE_CHORE_WORKFLOW, False
+            )
+            enable_gamification = user_input.get(
+                const.CFOF_PARENTS_INPUT_ENABLE_GAMIFICATION, False
+            )
 
             # Validate name is not empty
             if not new_name:
@@ -1144,7 +1173,36 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     const.DATA_PARENT_ENABLE_NOTIFICATIONS: enable_notifications,
                     const.DATA_PARENT_MOBILE_NOTIFY_SERVICE: mobile_notify_service,
                     const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS: use_persistent,
+                    const.DATA_PARENT_DASHBOARD_LANGUAGE: dashboard_language,
+                    const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT: allow_chore_assignment,
+                    const.DATA_PARENT_ENABLE_CHORE_WORKFLOW: enable_chore_workflow,
+                    const.DATA_PARENT_ENABLE_GAMIFICATION: enable_gamification,
                 }
+
+                # Handle shadow kid creation/deletion based on allow_chore_assignment
+                was_enabled = parent_data.get(
+                    const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT, False
+                )
+                existing_shadow_kid_id = parent_data.get(
+                    const.DATA_PARENT_LINKED_SHADOW_KID_ID
+                )
+
+                if allow_chore_assignment and not was_enabled:
+                    # Enabling chore assignment - create shadow kid
+                    shadow_kid_id = coordinator._create_shadow_kid_for_parent(
+                        internal_id, {**parent_data, **updated_parent_data}
+                    )
+                    updated_parent_data[const.DATA_PARENT_LINKED_SHADOW_KID_ID] = (
+                        shadow_kid_id
+                    )
+                elif (
+                    not allow_chore_assignment
+                    and was_enabled
+                    and existing_shadow_kid_id
+                ):
+                    # Disabling chore assignment - delete shadow kid
+                    coordinator._delete_shadow_kid(existing_shadow_kid_id)
+                    updated_parent_data[const.DATA_PARENT_LINKED_SHADOW_KID_ID] = None
 
                 coordinator.update_parent_entity(internal_id, updated_parent_data)
 
@@ -1160,7 +1218,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             for kid_id, kid_data in coordinator.kids_data.items()
         }
 
-        parent_schema = fh.build_parent_schema(
+        parent_schema = await fh.build_parent_schema(
             self.hass,
             users=users,
             kids_dict=kids_dict,
@@ -1177,6 +1235,18 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             ),
             default_enable_persistent_notifications=parent_data.get(
                 const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS, True
+            ),
+            default_dashboard_language=parent_data.get(
+                const.DATA_PARENT_DASHBOARD_LANGUAGE
+            ),
+            default_allow_chore_assignment=parent_data.get(
+                const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT, False
+            ),
+            default_enable_chore_workflow=parent_data.get(
+                const.DATA_PARENT_ENABLE_CHORE_WORKFLOW, False
+            ),
+            default_enable_gamification=parent_data.get(
+                const.DATA_PARENT_ENABLE_GAMIFICATION, False
             ),
         )
         return self.async_show_form(

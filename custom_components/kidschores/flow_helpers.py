@@ -341,7 +341,7 @@ def validate_kids_inputs(
 # ----------------------------------------------------------------------------------
 
 
-def build_parent_schema(
+async def build_parent_schema(
     hass,
     users,
     kids_dict,
@@ -351,6 +351,10 @@ def build_parent_schema(
     default_enable_mobile_notifications=False,
     default_mobile_notify_service=None,
     default_enable_persistent_notifications=False,
+    default_dashboard_language=None,
+    default_allow_chore_assignment=False,
+    default_enable_chore_workflow=False,
+    default_enable_gamification=False,
 ):
     """Build a Voluptuous schema for adding/editing a Parent, keyed by internal_id in the dict."""
     user_options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}] + [
@@ -363,6 +367,9 @@ def build_parent_schema(
         {"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE},
         *_get_notify_services(hass),
     ]
+
+    # Get available dashboard languages
+    language_options = await kh.get_available_dashboard_languages(hass)
 
     return vol.Schema(
         {
@@ -406,6 +413,29 @@ def build_parent_schema(
             vol.Required(
                 const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS,
                 default=default_enable_persistent_notifications,
+            ): selector.BooleanSelector(),
+            # Dashboard language
+            vol.Optional(
+                const.CFOF_PARENTS_INPUT_DASHBOARD_LANGUAGE,
+                default=default_dashboard_language or const.DEFAULT_DASHBOARD_LANGUAGE,
+            ): selector.LanguageSelector(
+                selector.LanguageSelectorConfig(
+                    languages=language_options,
+                    native_name=True,
+                )
+            ),
+            # Parent chore capability options
+            vol.Optional(
+                const.CFOF_PARENTS_INPUT_ALLOW_CHORE_ASSIGNMENT,
+                default=default_allow_chore_assignment,
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                const.CFOF_PARENTS_INPUT_ENABLE_CHORE_WORKFLOW,
+                default=default_enable_chore_workflow,
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                const.CFOF_PARENTS_INPUT_ENABLE_GAMIFICATION,
+                default=default_enable_gamification,
             ): selector.BooleanSelector(),
         }
     )
@@ -454,6 +484,22 @@ def build_parents_data(
             const.DATA_PARENT_MOBILE_NOTIFY_SERVICE: notify_service,
             const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS: enable_persist,
             const.DATA_PARENT_INTERNAL_ID: internal_id,
+            # Dashboard language
+            const.DATA_PARENT_DASHBOARD_LANGUAGE: user_input.get(
+                const.CFOF_PARENTS_INPUT_DASHBOARD_LANGUAGE,
+                const.DEFAULT_DASHBOARD_LANGUAGE,
+            ),
+            # Parent chore capability flags
+            const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT: user_input.get(
+                const.CFOF_PARENTS_INPUT_ALLOW_CHORE_ASSIGNMENT, False
+            ),
+            const.DATA_PARENT_ENABLE_CHORE_WORKFLOW: user_input.get(
+                const.CFOF_PARENTS_INPUT_ENABLE_CHORE_WORKFLOW, False
+            ),
+            const.DATA_PARENT_ENABLE_GAMIFICATION: user_input.get(
+                const.CFOF_PARENTS_INPUT_ENABLE_GAMIFICATION, False
+            ),
+            const.DATA_PARENT_LINKED_SHADOW_KID_ID: None,  # Set when shadow kid created
         }
     }
 

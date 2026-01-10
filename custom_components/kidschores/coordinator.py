@@ -1021,6 +1021,25 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS, True
             ),
             const.DATA_PARENT_INTERNAL_ID: parent_id,
+            # Parent chore capability fields (v0.6.0+)
+            const.DATA_PARENT_DASHBOARD_LANGUAGE: parent_data.get(
+                const.DATA_PARENT_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
+            ),
+            const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT: parent_data.get(
+                const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT,
+                const.DEFAULT_PARENT_ALLOW_CHORE_ASSIGNMENT,
+            ),
+            const.DATA_PARENT_ENABLE_CHORE_WORKFLOW: parent_data.get(
+                const.DATA_PARENT_ENABLE_CHORE_WORKFLOW,
+                const.DEFAULT_PARENT_ENABLE_CHORE_WORKFLOW,
+            ),
+            const.DATA_PARENT_ENABLE_GAMIFICATION: parent_data.get(
+                const.DATA_PARENT_ENABLE_GAMIFICATION,
+                const.DEFAULT_PARENT_ENABLE_GAMIFICATION,
+            ),
+            const.DATA_PARENT_LINKED_SHADOW_KID_ID: parent_data.get(
+                const.DATA_PARENT_LINKED_SHADOW_KID_ID
+            ),
         }
         const.LOGGER.debug(
             "DEBUG: Parent Added - '%s', ID '%s'",
@@ -1063,12 +1082,132 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS,
             parent_info.get(const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS, True),
         )
+        # Parent chore capability fields (v0.6.0+)
+        parent_info[const.DATA_PARENT_DASHBOARD_LANGUAGE] = parent_data.get(
+            const.DATA_PARENT_DASHBOARD_LANGUAGE,
+            parent_info.get(
+                const.DATA_PARENT_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
+            ),
+        )
+        parent_info[const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT] = parent_data.get(
+            const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT,
+            parent_info.get(
+                const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT,
+                const.DEFAULT_PARENT_ALLOW_CHORE_ASSIGNMENT,
+            ),
+        )
+        parent_info[const.DATA_PARENT_ENABLE_CHORE_WORKFLOW] = parent_data.get(
+            const.DATA_PARENT_ENABLE_CHORE_WORKFLOW,
+            parent_info.get(
+                const.DATA_PARENT_ENABLE_CHORE_WORKFLOW,
+                const.DEFAULT_PARENT_ENABLE_CHORE_WORKFLOW,
+            ),
+        )
+        parent_info[const.DATA_PARENT_ENABLE_GAMIFICATION] = parent_data.get(
+            const.DATA_PARENT_ENABLE_GAMIFICATION,
+            parent_info.get(
+                const.DATA_PARENT_ENABLE_GAMIFICATION,
+                const.DEFAULT_PARENT_ENABLE_GAMIFICATION,
+            ),
+        )
+        # Shadow kid link is managed separately, not updated via parent form
+        # (use _link_shadow_kid_to_parent / _unlink_shadow_kid_from_parent)
 
         const.LOGGER.debug(
             "DEBUG: Parent Updated - '%s', ID '%s'",
             parent_info[const.DATA_PARENT_NAME],
             parent_id,
         )
+
+    def _create_shadow_kid_for_parent(
+        self, parent_id: str, parent_info: dict[str, Any]
+    ) -> str:
+        """Create a shadow kid entity for a parent who enables chore assignment.
+
+        Shadow kids are special kid entities that:
+        - Use the parent's name and dashboard language
+        - Are marked with is_shadow_kid=True
+        - Link back to the parent via linked_parent_id
+        - Have notifications disabled (parent handles their own notifications)
+        - Inherit gamification setting from parent
+
+        Args:
+            parent_id: The internal ID of the parent.
+            parent_info: The parent's data dictionary.
+
+        Returns:
+            The internal_id of the newly created shadow kid.
+        """
+        shadow_kid_id = str(uuid.uuid4())
+
+        # Create shadow kid with minimal data - reuses existing kid infrastructure
+        shadow_kid_data = {
+            const.DATA_KID_NAME: parent_info.get(
+                const.DATA_PARENT_NAME, const.SENTINEL_EMPTY
+            ),
+            const.DATA_KID_HA_USER_ID: parent_info.get(
+                const.DATA_PARENT_HA_USER_ID, const.SENTINEL_EMPTY
+            ),
+            const.DATA_KID_ENABLE_NOTIFICATIONS: False,  # Parent handles notifications
+            const.DATA_KID_MOBILE_NOTIFY_SERVICE: const.SENTINEL_EMPTY,
+            const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS: False,
+            const.DATA_KID_DASHBOARD_LANGUAGE: parent_info.get(
+                const.DATA_PARENT_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
+            ),
+            const.DATA_KID_INTERNAL_ID: shadow_kid_id,
+            # Shadow kid markers (v0.6.0+)
+            const.DATA_KID_IS_SHADOW: True,
+            const.DATA_KID_LINKED_PARENT_ID: parent_id,
+        }
+
+        # Use existing _create_kid to set up all standard kid fields
+        self._create_kid(shadow_kid_id, shadow_kid_data)
+
+        # Add shadow kid markers (after _create_kid, which doesn't know about them)
+        self._data[const.DATA_KIDS][shadow_kid_id][const.DATA_KID_IS_SHADOW] = True
+        self._data[const.DATA_KIDS][shadow_kid_id][const.DATA_KID_LINKED_PARENT_ID] = (
+            parent_id
+        )
+
+        const.LOGGER.info(
+            "Created shadow kid '%s' (ID: %s) for parent '%s' (ID: %s)",
+            parent_info.get(const.DATA_PARENT_NAME),
+            shadow_kid_id,
+            parent_info.get(const.DATA_PARENT_NAME),
+            parent_id,
+        )
+
+        return shadow_kid_id
+
+    def _delete_shadow_kid(self, shadow_kid_id: str) -> None:
+        """Delete a shadow kid entity.
+
+        This should be called when a parent disables chore assignment.
+        Removes the shadow kid from the kids data structure.
+
+        Args:
+            shadow_kid_id: The internal ID of the shadow kid to delete.
+        """
+        if shadow_kid_id not in self._data[const.DATA_KIDS]:
+            const.LOGGER.warning(
+                "Attempted to delete non-existent shadow kid: %s", shadow_kid_id
+            )
+            return
+
+        kid_info = self._data[const.DATA_KIDS][shadow_kid_id]
+        kid_name = kid_info.get(const.DATA_KID_NAME, shadow_kid_id)
+
+        # Verify this is actually a shadow kid
+        if not kid_info.get(const.DATA_KID_IS_SHADOW, False):
+            const.LOGGER.error(
+                "Attempted to delete non-shadow kid '%s' as shadow kid", kid_name
+            )
+            return
+
+        # Remove from kids data
+        del self._data[const.DATA_KIDS][shadow_kid_id]
+
+        const.LOGGER.info("Deleted shadow kid '%s' (ID: %s)", kid_name, shadow_kid_id)
 
     # -- Chores
     def _create_chore(self, chore_id: str, chore_data: dict[str, Any]):

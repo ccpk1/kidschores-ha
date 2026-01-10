@@ -641,7 +641,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
         users = await self.hass.auth.async_get_users()
 
-        parent_schema = fh.build_parent_schema(
+        parent_schema = await fh.build_parent_schema(
             self.hass,
             users=users,
             kids_dict=kids_dict,
@@ -651,6 +651,10 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             default_enable_mobile_notifications=False,
             default_mobile_notify_service=None,
             default_enable_persistent_notifications=False,
+            default_dashboard_language=None,
+            default_allow_chore_assignment=False,
+            default_enable_chore_workflow=False,
+            default_enable_gamification=False,
         )
         return self.async_show_form(
             step_id=const.CONFIG_FLOW_STEP_PARENTS,
