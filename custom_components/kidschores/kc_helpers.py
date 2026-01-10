@@ -305,6 +305,104 @@ def get_kid_name_by_id(
     return None
 
 
+# ------------------------------------------------------------------------------
+# Shadow Kid Helpers (Parent Chore Capabilities)
+# ------------------------------------------------------------------------------
+
+
+def is_shadow_kid(coordinator: KidsChoresDataCoordinator, kid_id: str) -> bool:
+    """Check if a kid is a shadow kid (linked to a parent).
+
+    Shadow kids are created when a parent enables chore assignment. They
+    represent the parent's profile in the chore tracking system.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        kid_id: The internal ID (UUID) of the kid to check.
+
+    Returns:
+        True if the kid is a shadow kid, False otherwise.
+    """
+    kid_info = coordinator.kids_data.get(kid_id, {})
+    return kid_info.get(const.DATA_KID_IS_SHADOW, False)
+
+
+def get_parent_for_shadow_kid(
+    coordinator: KidsChoresDataCoordinator, kid_id: str
+) -> dict[str, Any] | None:
+    """Get the parent data for a shadow kid.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        kid_id: The internal ID (UUID) of the shadow kid.
+
+    Returns:
+        The parent's data dictionary, or None if not a shadow kid or parent not found.
+    """
+    kid_info = coordinator.kids_data.get(kid_id, {})
+    parent_id = kid_info.get(const.DATA_KID_LINKED_PARENT_ID)
+    if parent_id:
+        return coordinator.parents_data.get(parent_id)
+    return None
+
+
+def should_create_workflow_buttons(
+    coordinator: KidsChoresDataCoordinator, kid_id: str
+) -> bool:
+    """Determine if claim/disapprove buttons should be created for a kid.
+
+    Workflow buttons (Claim, Disapprove) are created for:
+    - Regular kids (always have full workflow)
+    - Shadow kids with enable_chore_workflow=True
+
+    They are NOT created for:
+    - Shadow kids with enable_chore_workflow=False (approval-only mode)
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        kid_id: The internal ID (UUID) of the kid.
+
+    Returns:
+        True if workflow buttons should be created, False otherwise.
+    """
+    if not is_shadow_kid(coordinator, kid_id):
+        return True  # Regular kids always get workflow buttons
+
+    parent_data = get_parent_for_shadow_kid(coordinator, kid_id)
+    if parent_data:
+        return parent_data.get(const.DATA_PARENT_ENABLE_CHORE_WORKFLOW, False)
+    return False
+
+
+def should_create_gamification_entities(
+    coordinator: KidsChoresDataCoordinator, kid_id: str
+) -> bool:
+    """Determine if gamification entities should be created for a kid.
+
+    Gamification entities (points sensors, badge progress, reward/bonus/penalty
+    buttons, points adjust buttons) are created for:
+    - Regular kids (always have gamification)
+    - Shadow kids with enable_gamification=True
+
+    They are NOT created for:
+    - Shadow kids with enable_gamification=False
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        kid_id: The internal ID (UUID) of the kid.
+
+    Returns:
+        True if gamification entities should be created, False otherwise.
+    """
+    if not is_shadow_kid(coordinator, kid_id):
+        return True  # Regular kids always get gamification
+
+    parent_data = get_parent_for_shadow_kid(coordinator, kid_id)
+    if parent_data:
+        return parent_data.get(const.DATA_PARENT_ENABLE_GAMIFICATION, False)
+    return False
+
+
 def get_chore_id_by_name(
     coordinator: KidsChoresDataCoordinator, chore_name: str
 ) -> str | None:

@@ -68,19 +68,28 @@ async def async_setup_entry(
                 kh.get_kid_name_by_id(coordinator, kid_id)
                 or f"{const.TRANS_KEY_LABEL_KID} {kid_id}"
             )
-            # Claim Button
-            entities.append(
-                KidChoreClaimButton(
-                    coordinator=coordinator,
-                    entry=entry,
-                    kid_id=kid_id,
-                    kid_name=kid_name,
-                    chore_id=chore_id,
-                    chore_name=chore_name,
-                    icon=chore_claim_icon,
-                )
+
+            # Determine if this is a shadow kid with workflow disabled
+            # Shadow kids without workflow get approval-only mode
+            create_workflow_buttons = kh.should_create_workflow_buttons(
+                coordinator, kid_id
             )
-            # Approve Button
+
+            # Claim Button - only for regular kids or shadow kids with workflow
+            if create_workflow_buttons:
+                entities.append(
+                    KidChoreClaimButton(
+                        coordinator=coordinator,
+                        entry=entry,
+                        kid_id=kid_id,
+                        kid_name=kid_name,
+                        chore_id=chore_id,
+                        chore_name=chore_name,
+                        icon=chore_claim_icon,
+                    )
+                )
+
+            # Approve Button - always created (all kids can have chores approved)
             entities.append(
                 ParentChoreApproveButton(
                     coordinator=coordinator,
@@ -92,20 +101,27 @@ async def async_setup_entry(
                     icon=chore_approve_icon,
                 )
             )
-            # Disapprove Button
-            entities.append(
-                ParentChoreDisapproveButton(
-                    coordinator=coordinator,
-                    entry=entry,
-                    kid_id=kid_id,
-                    kid_name=kid_name,
-                    chore_id=chore_id,
-                    chore_name=chore_name,
+
+            # Disapprove Button - only for regular kids or shadow kids with workflow
+            if create_workflow_buttons:
+                entities.append(
+                    ParentChoreDisapproveButton(
+                        coordinator=coordinator,
+                        entry=entry,
+                        kid_id=kid_id,
+                        kid_name=kid_name,
+                        chore_id=chore_id,
+                        chore_name=chore_name,
+                    )
                 )
-            )
 
     # Create reward buttons (Redeem, Approve & Disapprove)
+    # Only for regular kids or shadow kids with gamification enabled
     for kid_id, kid_info in coordinator.kids_data.items():
+        # Skip shadow kids without gamification
+        if not kh.should_create_gamification_entities(coordinator, kid_id):
+            continue
+
         kid_name = kid_info.get(
             const.DATA_KID_NAME, f"{const.TRANS_KEY_LABEL_KID} {kid_id}"
         )
@@ -162,7 +178,12 @@ async def async_setup_entry(
             )
 
     # Create penalty buttons
+    # Only for regular kids or shadow kids with gamification enabled
     for kid_id, kid_info in coordinator.kids_data.items():
+        # Skip shadow kids without gamification
+        if not kh.should_create_gamification_entities(coordinator, kid_id):
+            continue
+
         kid_name = kid_info.get(
             const.DATA_KID_NAME, f"{const.TRANS_KEY_LABEL_KID} {kid_id}"
         )
@@ -187,7 +208,12 @@ async def async_setup_entry(
             )
 
     # Create bonus buttons
+    # Only for regular kids or shadow kids with gamification enabled
     for kid_id, kid_info in coordinator.kids_data.items():
+        # Skip shadow kids without gamification
+        if not kh.should_create_gamification_entities(coordinator, kid_id):
+            continue
+
         kid_name = kid_info.get(
             const.DATA_KID_NAME, f"{const.TRANS_KEY_LABEL_KID} {kid_id}"
         )
@@ -244,7 +270,12 @@ async def async_setup_entry(
         points_adjust_values = const.DEFAULT_POINTS_ADJUST_VALUES
 
     # Create a points adjust button for each kid and each delta value
+    # Only for regular kids or shadow kids with gamification enabled
     for kid_id, kid_info in coordinator.kids_data.items():
+        # Skip shadow kids without gamification
+        if not kh.should_create_gamification_entities(coordinator, kid_id):
+            continue
+
         kid_name = kid_info.get(
             const.DATA_KID_NAME, f"{const.TRANS_KEY_LABEL_KID} {kid_id}"
         )
