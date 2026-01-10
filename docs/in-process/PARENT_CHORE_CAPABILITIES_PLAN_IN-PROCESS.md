@@ -711,7 +711,7 @@ Chore Assignment (NEW)
                  pass
      ```
 
-  3. **Update dashboard helper sensor** (Status: Not started)
+  3. **Update dashboard helper sensor** (Status: ✅ Complete)
      
      Expose `is_shadow_kid` and `gamification_enabled` attributes:
      ```python

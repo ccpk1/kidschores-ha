@@ -3589,6 +3589,26 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         # Build dashboard helpers dict (used by dashboard to avoid slug construction)
         dashboard_helpers = self._build_dashboard_helpers(entity_registry)
 
+        # Shadow kid capability attributes for dashboard conditional rendering
+        is_shadow = kid_info.get(const.DATA_KID_IS_SHADOW, False)
+        gamification_enabled = True
+        workflow_enabled = True
+
+        if is_shadow:
+            # Get parent data to check capability flags
+            parent_data = kh.get_parent_for_shadow_kid(self.coordinator, self._kid_id)
+            if parent_data:
+                gamification_enabled = parent_data.get(
+                    const.DATA_PARENT_ENABLE_GAMIFICATION, False
+                )
+                workflow_enabled = parent_data.get(
+                    const.DATA_PARENT_ENABLE_CHORE_WORKFLOW, False
+                )
+            else:
+                # Defensive: shadow kid without parent data - disable extras
+                gamification_enabled = False
+                workflow_enabled = False
+
         return {
             const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_DASHBOARD_HELPER,
             "chores": chores_attr,
@@ -3606,6 +3626,9 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_KID_NAME: self._kid_name,
             "ui_translations": self._ui_translations,
             "language": dashboard_language,
+            "is_shadow_kid": is_shadow,
+            "gamification_enabled": gamification_enabled,
+            "workflow_enabled": workflow_enabled,
         }
 
     @property
