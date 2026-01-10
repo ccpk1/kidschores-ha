@@ -61,9 +61,7 @@ from tests.helpers import (
 @pytest.fixture
 def adha_backup_data() -> dict:
     """Load kidschores_data-adha backup file."""
-    sample_path = (
-        Path(__file__).parent / "legacy" / "migration_samples" / "kidschores_data-adha"
-    )
+    sample_path = Path(__file__).parent / "migration_samples" / "kidschores_data-adha"
     with open(sample_path, encoding="utf-8") as f:
         raw_data = json.load(f)
     return raw_data["data"]  # Return just the data section

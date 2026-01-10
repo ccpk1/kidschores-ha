@@ -101,15 +101,99 @@ from custom_components.kidschores.const import (
     BUTTON_KC_UID_SUFFIX_APPROVE,
     BUTTON_KC_UID_SUFFIX_CLAIM,
     BUTTON_KC_UID_SUFFIX_DISAPPROVE,
-    CFOF_CHORES_INPUT_ASSIGNED_KIDS,
-    CFOF_CHORES_INPUT_COMPLETION_CRITERIA,
-    CFOF_CHORES_INPUT_DEFAULT_POINTS,
     # =========================================================================
-    # CONFIG FLOW FIELD NAMES
+    # CONFIG/OPTIONS FLOW FIELD NAMES - Kids
+    # =========================================================================
+    CFOF_KIDS_INPUT_KID_NAME,
+    CFOF_KIDS_INPUT_HA_USER,
+    CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE,
+    CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS,
+    CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE,
+    CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS,
+    # =========================================================================
+    # CONFIG/OPTIONS FLOW FIELD NAMES - Parents
+    # =========================================================================
+    CFOF_PARENTS_INPUT_NAME,
+    CFOF_PARENTS_INPUT_HA_USER,
+    CFOF_PARENTS_INPUT_ASSOCIATED_KIDS,
+    CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS,
+    CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE,
+    CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS,
+    # =========================================================================
+    # CONFIG/OPTIONS FLOW FIELD NAMES - Chores
     # =========================================================================
     CFOF_CHORES_INPUT_NAME,
-    CFOF_KIDS_INPUT_KID_NAME,
-    CFOF_PARENTS_INPUT_NAME,
+    CFOF_CHORES_INPUT_DEFAULT_POINTS,
+    CFOF_CHORES_INPUT_ICON,
+    CFOF_CHORES_INPUT_DESCRIPTION,
+    CFOF_CHORES_INPUT_ASSIGNED_KIDS,
+    CFOF_CHORES_INPUT_RECURRING_FREQUENCY,
+    CFOF_CHORES_INPUT_COMPLETION_CRITERIA,
+    # =========================================================================
+    # CONFIG/OPTIONS FLOW FIELD NAMES - Rewards
+    # =========================================================================
+    CFOF_REWARDS_INPUT_NAME,
+    CFOF_REWARDS_INPUT_COST,
+    CFOF_REWARDS_INPUT_ICON,
+    CFOF_REWARDS_INPUT_DESCRIPTION,
+    # =========================================================================
+    # CONFIG/OPTIONS FLOW FIELD NAMES - Penalties
+    # =========================================================================
+    CFOF_PENALTIES_INPUT_NAME,
+    CFOF_PENALTIES_INPUT_POINTS,
+    CFOF_PENALTIES_INPUT_ICON,
+    CFOF_PENALTIES_INPUT_DESCRIPTION,
+    # =========================================================================
+    # CONFIG/OPTIONS FLOW FIELD NAMES - Bonuses
+    # =========================================================================
+    CFOF_BONUSES_INPUT_NAME,
+    CFOF_BONUSES_INPUT_POINTS,
+    CFOF_BONUSES_INPUT_ICON,
+    CFOF_BONUSES_INPUT_DESCRIPTION,
+    # =========================================================================
+    # CONFIG/OPTIONS FLOW FIELD NAMES - Badges
+    # =========================================================================
+    CFOF_BADGES_INPUT_NAME,
+    CFOF_BADGES_INPUT_ICON,
+    CFOF_BADGES_INPUT_ASSIGNED_TO,
+    CFOF_BADGES_INPUT_AWARD_POINTS,
+    CFOF_BADGES_INPUT_START_DATE,
+    CFOF_BADGES_INPUT_END_DATE,
+    CFOF_BADGES_INPUT_TARGET_TYPE,
+    CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE,
+    # =========================================================================
+    # OPTIONS FLOW NAVIGATION CONSTANTS
+    # =========================================================================
+    OPTIONS_FLOW_STEP_INIT,
+    OPTIONS_FLOW_STEP_MANAGE_ENTITY,
+    OPTIONS_FLOW_STEP_ADD_KID,
+    OPTIONS_FLOW_STEP_ADD_PARENT,
+    OPTIONS_FLOW_STEP_ADD_CHORE,
+    OPTIONS_FLOW_STEP_ADD_REWARD,
+    OPTIONS_FLOW_STEP_ADD_PENALTY,
+    OPTIONS_FLOW_STEP_ADD_BONUS,
+    OPTIONS_FLOW_INPUT_MENU_SELECTION,
+    OPTIONS_FLOW_INPUT_MANAGE_ACTION,
+    OPTIONS_FLOW_KIDS,
+    OPTIONS_FLOW_PARENTS,
+    OPTIONS_FLOW_CHORES,
+    OPTIONS_FLOW_REWARDS,
+    OPTIONS_FLOW_PENALTIES,
+    OPTIONS_FLOW_BONUSES,
+    OPTIONS_FLOW_ACTIONS_ADD,
+    OPTIONS_FLOW_ACTIONS_BACK,
+    # =========================================================================
+    # SYSTEM CONFIG CONSTANTS
+    # =========================================================================
+    CONF_POINTS_LABEL,
+    CONF_POINTS_ICON,
+    CONF_UPDATE_INTERVAL,
+    SCHEMA_VERSION_STORAGE_ONLY,
+    # =========================================================================
+    # BADGE CONSTANTS
+    # =========================================================================
+    BADGE_TYPE_CUMULATIVE,
+    BADGE_TARGET_THRESHOLD_TYPE_CHORE_COUNT,
     # =========================================================================
     # CHORE STATES
     # =========================================================================

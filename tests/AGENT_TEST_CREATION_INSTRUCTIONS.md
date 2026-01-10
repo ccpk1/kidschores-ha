@@ -1,10 +1,94 @@
 # Agent Test Creation Instructions
 
-**Purpose**: Guide for creating modern KidsChores tests using YAML scenarios, the setup helper, and the dashboard helper sensor as single source of truth.
+**Purpose**: Technical guide for writing new KidsChores tests using YAML scenarios and modern test patterns.
+
+> **⚠️ Terminal Requirement**: Run test commands in actual terminal sessions for proper output capture.
 
 ---
 
-## Overview: Modern Test Architecture
+## Critical Expectations: Research Before Implementation
+
+**DO NOT use trial-and-error.** Before writing any test:
+
+### 1. Understand the Flow Architecture
+
+- **Read source code FIRST**: Know what step IDs a flow returns, what methods are called, what data structures are used
+- **Check return values**: Options flows return to `async_step_init()` after entity add, not `manage_entity` (example: [options_flow.py](../custom_components/kidschores/options_flow.py) line 397)
+- **Understand data flow**: After options flow changes, integration reloads → old coordinator references become stale
+
+### 2. Use Established Patterns
+
+- **Check existing tests**: Search for similar tests to see established patterns before inventing your own
+- **Coordinator access**: Use `hass.data[DOMAIN][entry.entry_id][COORDINATOR]` (NOT `config_entry.runtime_data`)
+- **Field names**: Check `flow_helpers.py` for exact field names expected by schema builders (e.g., `type` not `recurring_frequency`, `assigned_to` not `assigned_kids`)
+
+### 3. Pre-Implementation Checklist
+
+Before writing each test file:
+
+- [ ] Read relevant source files (coordinator.py, flow_helpers.py, options_flow.py)
+- [ ] Identify the exact flow step sequence and return values
+- [ ] Check existing tests for coordinator access patterns
+- [ ] Verify field names match what the schemas expect
+- [ ] Understand reload behavior and stale reference risks
+
+### 4. Leverage Existing Infrastructure
+
+- **Constants**: Import from `tests.helpers` (not `const.py`)
+- **Helper functions**: Use `flow_test_helpers.py` builders like `build_chore_form_data()`
+- **Scenarios**: Use pre-built YAML scenarios from the Stårblüm Family
+
+---
+
+## The Stårblüm Family Test Universe
+
+All tests follow the magical **Stårblüm Family**. Unless specifically testing edge cases (like stress scenarios with 25 parents and 100s of chores), all test data **must** come from the existing scenario files.
+
+### Meet the Family
+
+**Parents**:
+
+- **Môm Astrid Stårblüm** (`@Astrid`) - The family organizer who approves chores and rewards
+- **Dad Leo Stårblüm** (`@Leo`) - The fun parent who creates bonus opportunities
+
+**Kids**:
+
+- **Zoë Stårblüm** (Age 8, avatar: `mdi:star-face`) - The responsible oldest, loves earning badges
+- **Max! Stårblüm** (Age 6, avatar: `mdi:rocket`) - The energetic middle child, always claiming chores
+- **Lila Stårblüm** (Age 8, avatar: `mdi:flower`) - The creative twin, motivated by rewards
+
+### Why Special Characters?
+
+All names include special characters (`å`, `ï`, `ë`, `ø`, `@`, `!`) to ensure robust Unicode handling. This validates international family support.
+
+### Available Scenarios
+
+| Scenario                      | Description                                      | Use Case                    |
+| ----------------------------- | ------------------------------------------------ | --------------------------- |
+| `scenario_minimal.yaml`       | Zoë's first week (1 kid, 5 chores)               | Simple tests, basic flows   |
+| `scenario_shared.yaml`        | Multi-kid coordination (3 kids, 8 shared chores) | Shared chore testing        |
+| `scenario_full.yaml`          | Complete family with all features                | Complex integration tests   |
+| `scenario_notifications.yaml` | Notification-focused setup                       | Notification workflow tests |
+| `scenario_scheduling.yaml`    | Recurring chore patterns                         | Scheduling tests            |
+
+**Rule**: Find entity names, chore names, and family data from `tests/scenarios/` files. Do NOT invent new names unless testing stress/edge cases.
+
+---
+
+## When to Write New Tests
+
+Write new tests when adding:
+
+- **New features** - Coordinator methods, entity platforms, services
+- **New workflows** - User interaction patterns, business logic paths
+- **Edge cases** - Error conditions, boundary conditions, validation paths
+- **Performance scenarios** - Load testing, stress testing
+
+For **validating existing code changes**, see `AGENT_TEST_VALIDATION_GUIDE.md`.
+
+---
+
+## Test Creation Architecture
 
 ```
 tests/
@@ -108,9 +192,55 @@ config_entry = result.config_entry
 
 ## Rule 2: Two Testing Approaches
 
-### Approach A: Direct Coordinator API (Simpler, Faster)
+### Approach A: Service Calls via Dashboard Helper (PREFERRED)
 
-Use for testing business logic without UI interaction:
+**This is the expected approach.** It provides true end-to-end testing that mirrors real user interaction through Home Assistant entities:
+
+```python
+from homeassistant.core import Context
+
+async def test_claim_via_button(hass, scenario_minimal, mock_hass_users):
+    # Get dashboard helper - the single source of truth for entity IDs
+    helper_state = hass.states.get("sensor.kc_zoe_ui_dashboard_helper")
+    helper_attrs = helper_state.attributes
+
+    # Find chore in helper (use Stårblüm family names from scenarios)
+    chore = next(c for c in helper_attrs["chores"] if c["name"] == "Make bed")
+    chore_sensor_eid = chore["eid"]
+
+    # Get button ID from chore sensor attributes
+    chore_state = hass.states.get(chore_sensor_eid)
+    claim_button_eid = chore_state.attributes[ATTR_CHORE_CLAIM_BUTTON_ENTITY_ID]
+
+    # Press button with user context (simulates real user action)
+    kid_context = Context(user_id=mock_hass_users["kid1"].id)
+    await hass.services.async_call(
+        "button", "press",
+        {"entity_id": claim_button_eid},
+        blocking=True, context=kid_context,
+    )
+    await hass.async_block_till_done()
+
+    # Verify via sensor state (what the user sees in the UI)
+    chore_state = hass.states.get(chore_sensor_eid)
+    assert chore_state.state == CHORE_STATE_CLAIMED
+```
+
+**Why preferred:**
+
+- Tests the full integration path from UI to coordinator to entity state
+- Validates that sensors, buttons, and states work together correctly
+- Catches integration issues that direct API calls would miss
+- Mirrors actual user experience
+
+### Approach B: Direct Coordinator API (Acceptable Fallback)
+
+Use **only** when testing:
+
+- Core business logic not exposed through UI entities
+- Internal data structures and calculations
+- Performance-critical paths where service call overhead matters
+- Coordinator-specific edge cases
 
 ```python
 async def test_claim_changes_state(hass, scenario_minimal):
@@ -118,7 +248,7 @@ async def test_claim_changes_state(hass, scenario_minimal):
     kid_id = scenario_minimal.kid_ids["Zoë"]
     chore_id = scenario_minimal.chore_ids["Make bed"]
 
-    # Use coordinator API directly
+    # Use coordinator API directly (fallback for non-UI testing)
     coordinator.claim_chore(kid_id, chore_id, "Zoë")
 
     # Read state from coordinator data
@@ -129,39 +259,11 @@ async def test_claim_changes_state(hass, scenario_minimal):
     assert state == CHORE_STATE_CLAIMED
 ```
 
-### Approach B: Service Calls via Dashboard Helper (Full Integration)
+**When to use:**
 
-Use for testing complete end-to-end flows through HA entities:
-
-```python
-from homeassistant.core import Context
-
-async def test_claim_via_button(hass, scenario_minimal, mock_hass_users):
-    # Get dashboard helper
-    helper_state = hass.states.get("sensor.kc_zoe_ui_dashboard_helper")
-    helper_attrs = helper_state.attributes
-
-    # Find chore in helper
-    chore = next(c for c in helper_attrs["chores"] if c["name"] == "Make bed")
-    chore_sensor_eid = chore["eid"]
-
-    # Get button ID from chore sensor
-    chore_state = hass.states.get(chore_sensor_eid)
-    claim_button_eid = chore_state.attributes[ATTR_CHORE_CLAIM_BUTTON_ENTITY_ID]
-
-    # Press button with user context
-    kid_context = Context(user_id=mock_hass_users["kid1"].id)
-    await hass.services.async_call(
-        "button", "press",
-        {"entity_id": claim_button_eid},
-        blocking=True, context=kid_context,
-    )
-    await hass.async_block_till_done()
-
-    # Verify via sensor state
-    chore_state = hass.states.get(chore_sensor_eid)
-    assert chore_state.state == CHORE_STATE_CLAIMED
-```
+- Testing internal calculations (point multipliers, badge progress)
+- Validating data structures not directly visible in UI
+- Testing coordinator methods that have no button/service equivalent
 
 ---
 
@@ -415,6 +517,67 @@ class TestChoreWorkflow:
 | `COMPLETION_CRITERIA_SHARED_FIRST` | First to claim wins, others blocked   |
 | `COMPLETION_CRITERIA_SHARED`       | All assigned kids must complete       |
 
+---
+
+## Test File Structure Template
+
+```python
+"""Test module for [feature description]."""
+
+# pylint: disable=protected-access  # Testing internal methods
+# pylint: disable=redefined-outer-name  # Pytest fixtures
+# pylint: disable=unused-argument  # Fixtures needed for setup
+
+from typing import Any
+from unittest.mock import AsyncMock, patch
+
+import pytest
+from homeassistant.core import HomeAssistant
+
+from tests.helpers import (
+    # Import needed constants and helpers
+    CHORE_STATE_PENDING, CHORE_STATE_CLAIMED,
+    setup_from_yaml, SetupResult,
+)
+
+
+@pytest.fixture
+async def scenario_for_feature(
+    hass: HomeAssistant,
+    mock_hass_users: dict[str, Any],
+) -> SetupResult:
+    """Load scenario optimized for this feature."""
+    return await setup_from_yaml(
+        hass, mock_hass_users,
+        "tests/scenarios/scenario_minimal.yaml",  # Choose appropriate scenario
+    )
+
+
+class TestFeatureName:
+    """Test class for [feature description]."""
+
+    async def test_specific_behavior(
+        self,
+        hass: HomeAssistant,
+        scenario_for_feature: SetupResult,
+    ) -> None:
+        """Test that [specific behavior] works correctly."""
+        # Setup
+        coordinator = scenario_for_feature.coordinator
+
+        # Test implementation
+        # ...
+
+        # Assertions
+        assert expected == actual
+```
+
+---
+
+_For test validation after code changes, see `AGENT_TEST_VALIDATION_GUIDE.md`._
+_For scenario selection, see `SCENARIOS.md`._
+_For family background, see `README.md`._
+
 ### Sensor Attributes
 
 | Constant                                 | Description                      |
@@ -432,9 +595,12 @@ class TestChoreWorkflow:
 
 ## Golden Rules
 
-1. **Import from `tests.helpers`** - never from `const.py` directly
-2. **Use YAML scenarios** - create reusable test data via `setup_from_yaml()`
-3. **Get entity IDs from dashboard helper** - never construct them manually
-4. **Use SetupResult** - access `coordinator`, `kid_ids`, `chore_ids` by name
-5. **Mock notifications** - `patch.object(coordinator, "_notify_kid", new=AsyncMock())`
-6. **Pass user context** - service calls need `context=Context(user_id=...)`
+1. **Research before implementation** - read source code, check existing tests, understand flow architecture
+2. **Prefer service calls over direct API** - end-to-end tests via dashboard helper and buttons
+3. **Import from `tests.helpers`** - never from `const.py` directly
+4. **Use Stårblüm Family scenarios** - reusable test data via `setup_from_yaml()`, don't invent new names
+5. **Get entity IDs from dashboard helper** - never construct them manually
+6. **Use SetupResult** - access `coordinator`, `kid_ids`, `chore_ids` by name
+7. **Mock notifications** - `patch.object(coordinator, "_notify_kid", new=AsyncMock())`
+8. **Pass user context** - service calls need `context=Context(user_id=...)`
+9. **Get fresh coordinator after reload** - use `hass.data[DOMAIN][entry_id][COORDINATOR]` pattern

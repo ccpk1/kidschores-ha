@@ -1,4 +1,18 @@
-"""Tests for KidsChores options flow."""
+"""Tests for KidsChores options flow.
+
+Legacy tests superseded by modern test_options_flow_entity_crud.py which uses:
+- Full config flow setup via setup_from_yaml()
+- Dashboard helper as single source of truth
+- Stårblüm Family test scenarios
+"""
+
+# ruff: noqa: E402 - imports after pytestmark required for skip pattern
+
+import pytest
+
+pytestmark = pytest.mark.skip(
+    reason="Superseded by tests/test_options_flow_entity_crud.py (modern patterns)"
+)
 
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType

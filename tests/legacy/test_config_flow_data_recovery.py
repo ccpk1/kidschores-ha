@@ -1,5 +1,7 @@
 """Test config flow data recovery functionality for KidsChores integration.
 
+NOTE: These tests have been CONVERTED to modern format in tests/test_config_flow_error_scenarios.py
+
 This test suite validates the data recovery step in the config flow, which appears
 when an existing storage file is detected. Tests use real file system operations
 with temporary directories for better integration coverage.
@@ -306,6 +308,9 @@ def create_backup_file(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(
+    reason="Converted to modern format in tests/test_config_flow_error_scenarios.py"
+)
 async def test_data_recovery_step_with_existing_storage(
     hass: HomeAssistant, mock_storage_dir: Path, storage_file: Path
 ) -> None:
@@ -331,6 +336,9 @@ async def test_data_recovery_step_with_existing_storage(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(
+    reason="Converted to modern format in tests/test_config_flow_error_scenarios.py"
+)
 async def test_normal_flow_without_existing_storage(
     hass: HomeAssistant, mock_storage_dir: Path, storage_file: Path
 ) -> None:
@@ -367,6 +375,9 @@ async def test_normal_flow_without_existing_storage(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(
+    reason="Converted to modern format in tests/test_config_flow_error_scenarios.py"
+)
 async def test_start_fresh_creates_backup_and_deletes_storage(
     hass: HomeAssistant, mock_storage_dir: Path, storage_file: Path
 ) -> None:
@@ -407,6 +418,9 @@ async def test_start_fresh_creates_backup_and_deletes_storage(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(
+    reason="Converted to modern format in tests/test_config_flow_error_scenarios.py"
+)
 async def test_start_fresh_handles_missing_file_gracefully(
     hass: HomeAssistant, mock_storage_dir: Path, storage_file: Path
 ) -> None:
@@ -439,6 +453,9 @@ async def test_start_fresh_handles_missing_file_gracefully(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(
+    reason="Converted to modern format in tests/test_config_flow_error_scenarios.py"
+)
 async def test_use_current_creates_entry_immediately(
     hass: HomeAssistant, mock_storage_dir: Path, storage_file: Path
 ) -> None:
@@ -480,6 +497,9 @@ async def test_use_current_creates_entry_immediately(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(
+    reason="Converted to modern format in tests/test_config_flow_error_scenarios.py"
+)
 async def test_use_current_detects_corrupt_json(
     hass: HomeAssistant, mock_storage_dir: Path, storage_file: Path
 ) -> None:
@@ -504,6 +524,9 @@ async def test_use_current_detects_corrupt_json(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(
+    reason="Converted to modern format in tests/test_config_flow_error_scenarios.py"
+)
 async def test_use_current_detects_invalid_structure(
     hass: HomeAssistant, mock_storage_dir: Path, storage_file: Path
 ) -> None:
@@ -534,6 +557,9 @@ async def test_use_current_detects_invalid_structure(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(
+    reason="Converted to modern format in tests/test_config_flow_error_scenarios.py"
+)
 async def test_restore_from_backup_creates_entry_immediately(
     hass: HomeAssistant, mock_storage_dir: Path, storage_file: Path
 ) -> None:
@@ -599,6 +625,9 @@ async def test_restore_from_backup_creates_entry_immediately(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(
+    reason="Converted to modern format in tests/test_config_flow_error_scenarios.py"
+)
 async def test_restore_from_backup_validates_backup_file(
     hass: HomeAssistant, mock_storage_dir: Path, storage_file: Path
 ) -> None:
@@ -634,6 +663,9 @@ async def test_restore_from_backup_validates_backup_file(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(
+    reason="Converted to modern format in tests/test_config_flow_error_scenarios.py"
+)
 async def test_restore_handles_missing_backup_file(
     hass: HomeAssistant, mock_storage_dir: Path, storage_file: Path
 ) -> None:
@@ -681,6 +713,9 @@ async def test_restore_handles_missing_backup_file(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(
+    reason="Converted to modern format in tests/test_config_flow_error_scenarios.py"
+)
 async def test_paste_json_shows_input_form(
     hass: HomeAssistant, mock_storage_dir: Path
 ) -> None:
@@ -782,6 +817,9 @@ async def test_paste_json_with_raw_v41_data(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(
+    reason="Converted to modern format in tests/test_config_flow_error_scenarios.py"
+)
 async def test_paste_json_with_empty_input(
     hass: HomeAssistant, mock_storage_dir: Path
 ) -> None:
@@ -809,6 +847,9 @@ async def test_paste_json_with_empty_input(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(
+    reason="Converted to modern format in tests/test_config_flow_error_scenarios.py"
+)
 async def test_paste_json_with_invalid_json(
     hass: HomeAssistant, mock_storage_dir: Path
 ) -> None:
@@ -836,6 +877,9 @@ async def test_paste_json_with_invalid_json(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(
+    reason="Converted to modern format in tests/test_config_flow_error_scenarios.py"
+)
 async def test_paste_json_with_invalid_structure(
     hass: HomeAssistant, mock_storage_dir: Path
 ) -> None:
@@ -863,6 +907,9 @@ async def test_paste_json_with_invalid_structure(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(
+    reason="Converted to modern format in tests/test_config_flow_error_scenarios.py"
+)
 async def test_paste_json_with_diagnostic_format(
     hass: HomeAssistant, mock_storage_dir: Path, storage_file: Path
 ) -> None:
@@ -911,6 +958,9 @@ async def test_paste_json_with_diagnostic_format(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(
+    reason="Converted to modern format in tests/test_config_flow_error_scenarios.py"
+)
 async def test_data_recovery_menu_without_storage_file(
     hass: HomeAssistant, mock_storage_dir: Path
 ) -> None:
@@ -1082,6 +1132,9 @@ async def test_restore_v42_backup_no_migration_needed(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(
+    reason="Converted to modern format in tests/test_config_flow_error_scenarios.py"
+)
 async def test_invalid_selection_value(
     hass: HomeAssistant, mock_storage_dir: Path, storage_file: Path
 ) -> None:
@@ -1123,6 +1176,9 @@ async def test_invalid_selection_value(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(
+    reason="Converted to modern format in tests/test_config_flow_error_scenarios.py"
+)
 async def test_restore_backup_creates_kid_entities(
     hass: HomeAssistant, mock_storage_dir: Path, storage_file: Path
 ) -> None:

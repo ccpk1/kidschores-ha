@@ -5,6 +5,7 @@ from unittest.mock import patch
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kidschores.const import (
@@ -15,6 +16,9 @@ from custom_components.kidschores.const import (
 )
 
 
+@pytest.mark.skip(
+    reason="Duplicated by test_config_flow_fresh_start.py comprehensive tests"
+)
 async def test_form_user_flow_success(hass: HomeAssistant) -> None:
     """Test successful user config flow."""
     result = await hass.config_entries.flow.async_init(
@@ -60,6 +64,9 @@ async def test_form_user_flow_success(hass: HomeAssistant) -> None:
     assert len(mock_setup_entry.mock_calls) == 0
 
 
+@pytest.mark.skip(
+    reason="Duplicated by test_config_flow_fresh_start.py comprehensive tests"
+)
 async def test_form_user_flow_default_values(hass: HomeAssistant) -> None:
     """Test user config flow with default values."""
     result = await hass.config_entries.flow.async_init(
@@ -98,6 +105,9 @@ async def test_form_user_flow_default_values(hass: HomeAssistant) -> None:
     assert result_points.get("type") == FlowResultType.FORM
 
 
+@pytest.mark.skip(
+    reason="Duplicated by test_config_flow_fresh_start.py comprehensive tests"
+)
 async def test_form_cannot_connect(hass: HomeAssistant) -> None:
     """Test we handle cannot connect error."""
     result = await hass.config_entries.flow.async_init(
@@ -136,6 +146,9 @@ async def test_form_cannot_connect(hass: HomeAssistant) -> None:
     assert result2.get("type") == FlowResultType.FORM
 
 
+@pytest.mark.skip(
+    reason="Duplicated by test_config_flow_fresh_start.py comprehensive tests"
+)
 async def test_form_already_configured(hass: HomeAssistant) -> None:
     """Test we abort if already configured."""
     entry = MockConfigEntry(
@@ -158,6 +171,9 @@ async def test_form_already_configured(hass: HomeAssistant) -> None:
     assert result.get("reason") == "single_instance_allowed"
 
 
+@pytest.mark.skip(
+    reason="Duplicated by test_config_flow_fresh_start.py comprehensive tests"
+)
 async def test_form_user_flow_custom_labels(hass: HomeAssistant) -> None:
     """Test config flow with custom labels and icons."""
     result = await hass.config_entries.flow.async_init(
@@ -196,6 +212,9 @@ async def test_form_user_flow_custom_labels(hass: HomeAssistant) -> None:
     assert result_points.get("type") == FlowResultType.FORM
 
 
+@pytest.mark.skip(
+    reason="Duplicated by test_config_flow_fresh_start.py comprehensive tests"
+)
 async def test_form_empty_label_uses_default(hass: HomeAssistant) -> None:
     """Test that empty label falls back to default."""
     result = await hass.config_entries.flow.async_init(
@@ -234,6 +253,9 @@ async def test_form_empty_label_uses_default(hass: HomeAssistant) -> None:
     assert result_points.get("type") == FlowResultType.FORM
 
 
+@pytest.mark.skip(
+    reason="Duplicated by test_config_flow_fresh_start.py comprehensive tests"
+)
 async def test_form_schema_version_set(hass: HomeAssistant) -> None:
     """Test that schema version is correctly set in config data."""
     result = await hass.config_entries.flow.async_init(
