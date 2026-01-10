@@ -114,13 +114,20 @@ async def async_setup_entry(
         if not kid_name:
             continue
 
-        # Points counter sensor
-        entities.append(
-            KidPointsSensor(
-                coordinator, entry, kid_id, kid_name, points_label, points_icon
-            )
+        # Check if this kid should have gamification entities (shadow kids may not)
+        create_gamification = kh.should_create_gamification_entities(
+            coordinator, kid_id
         )
-        # Chores sensor with all stats (like points sensor)
+
+        # Points counter sensor (gamification)
+        if create_gamification:
+            entities.append(
+                KidPointsSensor(
+                    coordinator, entry, kid_id, kid_name, points_label, points_icon
+                )
+            )
+
+        # Chores sensor with all stats (always created - not gamification)
         entities.append(KidChoresSensor(coordinator, entry, kid_id, kid_name))
 
         # Legacy chore completion sensors (optional)
@@ -138,8 +145,9 @@ async def async_setup_entry(
                 SystemChoreApprovalsMonthlySensor(coordinator, entry, kid_id, kid_name)
             )
 
-        # Kid Badges (displays highest cumulative badge)
-        entities.append(KidBadgesSensor(coordinator, entry, kid_id, kid_name))
+        # Kid Badges (displays highest cumulative badge) - gamification
+        if create_gamification:
+            entities.append(KidBadgesSensor(coordinator, entry, kid_id, kid_name))
 
         # Legacy points earned sensors (optional)
         if show_legacy_entities:
@@ -200,62 +208,68 @@ async def async_setup_entry(
                     )
                 )
 
-        # KidBadgeProgressSensor Progress per Kid for each non-cumulative badge
-        badge_progress_data = kid_info.get(const.DATA_KID_BADGE_PROGRESS, {})
-        for badge_id, progress_info in badge_progress_data.items():
-            badge_type = progress_info.get(const.DATA_KID_BADGE_PROGRESS_TYPE)
-            if badge_type != const.BADGE_TYPE_CUMULATIVE:
-                badge_name = kh.get_entity_name_or_log_error(
-                    "badge", badge_id, progress_info, const.DATA_KID_BADGE_PROGRESS_NAME
-                )
-                if not badge_name:
-                    continue
-                entities.append(
-                    KidBadgeProgressSensor(
-                        coordinator, entry, kid_id, kid_name, badge_id, badge_name
+        # KidBadgeProgressSensor Progress per Kid for each non-cumulative badge (gamification)
+        if create_gamification:
+            badge_progress_data = kid_info.get(const.DATA_KID_BADGE_PROGRESS, {})
+            for badge_id, progress_info in badge_progress_data.items():
+                badge_type = progress_info.get(const.DATA_KID_BADGE_PROGRESS_TYPE)
+                if badge_type != const.BADGE_TYPE_CUMULATIVE:
+                    badge_name = kh.get_entity_name_or_log_error(
+                        "badge",
+                        badge_id,
+                        progress_info,
+                        const.DATA_KID_BADGE_PROGRESS_NAME,
                     )
-                )
+                    if not badge_name:
+                        continue
+                    entities.append(
+                        KidBadgeProgressSensor(
+                            coordinator, entry, kid_id, kid_name, badge_id, badge_name
+                        )
+                    )
 
-        # Achivement Progress per Kid
-        for achievement_id, achievement in coordinator.achievements_data.items():
-            if kid_id in achievement.get(const.DATA_ACHIEVEMENT_ASSIGNED_KIDS, []):
-                achievement_name = kh.get_entity_name_or_log_error(
-                    "achievement",
-                    achievement_id,
-                    achievement,
-                    const.DATA_ACHIEVEMENT_NAME,
-                )
-                if not achievement_name:
-                    continue
-                entities.append(
-                    KidAchievementProgressSensor(
-                        coordinator,
-                        entry,
-                        kid_id,
-                        kid_name,
+        # Achievement Progress per Kid (gamification)
+        if create_gamification:
+            for achievement_id, achievement in coordinator.achievements_data.items():
+                if kid_id in achievement.get(const.DATA_ACHIEVEMENT_ASSIGNED_KIDS, []):
+                    achievement_name = kh.get_entity_name_or_log_error(
+                        "achievement",
                         achievement_id,
-                        achievement_name,
+                        achievement,
+                        const.DATA_ACHIEVEMENT_NAME,
                     )
-                )
+                    if not achievement_name:
+                        continue
+                    entities.append(
+                        KidAchievementProgressSensor(
+                            coordinator,
+                            entry,
+                            kid_id,
+                            kid_name,
+                            achievement_id,
+                            achievement_name,
+                        )
+                    )
 
-        # Challenge Progress per Kid
-        for challenge_id, challenge in coordinator.challenges_data.items():
-            if kid_id in challenge.get(const.DATA_CHALLENGE_ASSIGNED_KIDS, []):
-                challenge_name = kh.get_entity_name_or_log_error(
-                    "challenge", challenge_id, challenge, const.DATA_CHALLENGE_NAME
-                )
-                if not challenge_name:
-                    continue
-                entities.append(
-                    KidChallengeProgressSensor(
-                        coordinator,
-                        entry,
-                        kid_id,
-                        kid_name,
-                        challenge_id,
-                        challenge_name,
+        # Challenge Progress per Kid (gamification)
+        if create_gamification:
+            for challenge_id, challenge in coordinator.challenges_data.items():
+                if kid_id in challenge.get(const.DATA_CHALLENGE_ASSIGNED_KIDS, []):
+                    challenge_name = kh.get_entity_name_or_log_error(
+                        "challenge", challenge_id, challenge, const.DATA_CHALLENGE_NAME
                     )
-                )
+                    if not challenge_name:
+                        continue
+                    entities.append(
+                        KidChallengeProgressSensor(
+                            coordinator,
+                            entry,
+                            kid_id,
+                            kid_name,
+                            challenge_id,
+                            challenge_name,
+                        )
+                    )
 
         # Highest Streak Sensor per Kid
         # Legacy streak sensor (optional)
