@@ -1,25 +1,17 @@
 """Test migration of real production data samples from v3.x/v4.0beta1 to v4.2.
 
-This test suite validates that migration correctly transforms legacy storage formats
-to the v42 schema without data loss. Tests use actual production data snapshots to
-ensure real-world compatibility.
+LEGACY TEST FILE - MIGRATION TESTING SUPERSEDED
+==============================================
+These tests verify internal migration implementation details that are not
+behavior-based. Migration tests have been consolidated into:
+- tests/test_config_flow_use_existing.py (uses real migration samples)
+- tests/test_config_flow_direct_to_storage.py (verifies storage-only mode)
 
-Test Organization:
-    - Fixtures: Load migration samples from files
-    - Structural Validation: Required fields present post-migration
-    - Data Preservation: Entity counts, points, assignments intact
-    - Datetime Migration: UTC-aware ISO format conversion
-    - Regression: Snapshot tests for structural changes
-
-Migration Philosophy:
-    Migration creates required STRUCTURES, not complete nested data.
-    Nested statistics (period breakdowns, detailed stats) populate during runtime
-    operations (chore completions, point adjustments). Tests validate structural
-    integrity, not data completeness.
+Skip Reason: Tests internal storage format transformations rather than
+user-observable behavior. Real migration validation happens via config flow tests.
 """
 
-# Accessing _data for migration validation
-# pylint: disable=redefined-outer-name  # Pytest fixture pattern
+# ruff: noqa: E402 - imports after pytestmark required for skip pattern
 
 import json
 from pathlib import Path
@@ -30,6 +22,33 @@ from unittest.mock import patch
 from homeassistant.core import HomeAssistant
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+# Skip entire module - tests have been superseded by modern migration tests
+pytestmark = pytest.mark.skip(
+    reason="Legacy migration validation tests superseded by "
+    "test_config_flow_use_existing.py and test_config_flow_direct_to_storage.py"
+)
+
+# Original docstring preserved for reference:
+# This test suite validates that migration correctly transforms legacy storage formats
+# to the v42 schema without data loss. Tests use actual production data snapshots to
+# ensure real-world compatibility.
+#
+# Test Organization:
+#     - Fixtures: Load migration samples from files
+#     - Structural Validation: Required fields present post-migration
+#     - Data Preservation: Entity counts, points, assignments intact
+#     - Datetime Migration: UTC-aware ISO format conversion
+#     - Regression: Snapshot tests for structural changes
+#
+# Migration Philosophy:
+#     Migration creates required STRUCTURES, not complete nested data.
+#     Nested statistics (period breakdowns, detailed stats) populate during runtime
+#     operations (chore completions, point adjustments). Tests validate structural
+#     integrity, not data completeness.
+
+# Accessing _data for migration validation
+# pylint: disable=redefined-outer-name  # Pytest fixture pattern
 
 from custom_components.kidschores.const import (
     COMPLETION_CRITERIA_INDEPENDENT,

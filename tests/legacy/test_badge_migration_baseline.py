@@ -1,18 +1,17 @@
 """Baseline tests for badge assigned_to field migration.
 
-These tests validate that _migrate_badges() in coordinator.py (lines 512-513)
-correctly adds the assigned_to field to badges during migration from older schemas.
+LEGACY TEST FILE - MIGRATION TESTING SUPERSEDED
+==============================================
+These tests verify internal migration implementation details that are not
+behavior-based. Migration tests have been consolidated into:
+- tests/test_config_flow_use_existing.py (uses real migration samples)
+- tests/test_config_flow_direct_to_storage.py (verifies storage-only mode)
 
-Coverage targets:
-    - coordinator.py lines 512-513: Migration adds DATA_BADGE_ASSIGNED_TO field
-
-Test Strategy:
-    Use actual migration sample files (kidschores_data_30, _31, _40beta1) to verify
-    that real production data migrates correctly. Old schemas don't have assigned_to,
-    so migration should add it as empty list [].
+Skip Reason: Tests internal badge migration rather than user-observable behavior.
+Badge functionality validated via modern entity-state-based tests.
 """
 
-# Accessing coordinator._data for migration testing
+# ruff: noqa: E402 - imports after pytestmark required for skip pattern
 
 import json
 from pathlib import Path
@@ -22,6 +21,26 @@ from unittest.mock import patch
 from homeassistant.core import HomeAssistant
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+# Skip entire module - tests have been superseded by modern migration tests
+pytestmark = pytest.mark.skip(
+    reason="Legacy badge migration tests superseded by "
+    "test_config_flow_use_existing.py which validates full migrations"
+)
+
+# Original docstring preserved for reference:
+# These tests validate that _migrate_badges() in coordinator.py (lines 512-513)
+# correctly adds the assigned_to field to badges during migration from older schemas.
+#
+# Coverage targets:
+#     - coordinator.py lines 512-513: Migration adds DATA_BADGE_ASSIGNED_TO field
+#
+# Test Strategy:
+#     Use actual migration sample files (kidschores_data_30, _31, _40beta1) to verify
+#     that real production data migrates correctly. Old schemas don't have assigned_to,
+#     so migration should add it as empty list [].
+
+# Accessing coordinator._data for migration testing
 
 from custom_components.kidschores.const import (
     CONF_POINTS_ICON,

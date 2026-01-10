@@ -1,7 +1,4 @@
-"""Test config flow with existing kidschores_data file.
-
-NOTE: These tests have been MIGRATED to tests/test_config_flow_use_existing.py
-"""
+"""Test config flow with existing kidschores_data file."""
 
 # pylint: disable=redefined-outer-name  # Pytest fixture pattern
 
@@ -27,7 +24,6 @@ def mock_setup_entry() -> AsyncMock:
         yield mock_setup
 
 
-@pytest.mark.skip(reason="Migrated to tests/test_config_flow_use_existing.py")
 async def test_config_flow_use_existing_v40beta1(
     hass: HomeAssistant,
     mock_setup_entry: AsyncMock,
@@ -82,7 +78,6 @@ async def test_config_flow_use_existing_v40beta1(
     assert len(stored_data["data"]["kids"]) > 0
 
 
-@pytest.mark.skip(reason="Migrated to tests/test_config_flow_use_existing.py")
 async def test_config_flow_use_existing_v30(
     hass: HomeAssistant,
     mock_setup_entry: AsyncMock,
@@ -131,7 +126,6 @@ async def test_config_flow_use_existing_v30(
     assert stored_data["version"] == 1
 
 
-@pytest.mark.skip(reason="Migrated to tests/test_config_flow_use_existing.py")
 async def test_config_flow_use_existing_already_wrapped(
     hass: HomeAssistant,
     mock_setup_entry: AsyncMock,

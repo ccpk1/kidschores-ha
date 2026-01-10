@@ -1,5 +1,7 @@
 """Test config flow direct-to-storage functionality.
 
+NOTE: This test has been MIGRATED to tests/test_config_flow_direct_to_storage.py
+
 Validates that fresh installations (KC 4.0) write entities directly to
 .storage/kidschores_data with schema_version 42, bypassing migration.
 
@@ -24,6 +26,7 @@ from custom_components.kidschores.const import (
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(reason="Migrated to tests/test_config_flow_direct_to_storage.py")
 async def test_direct_storage_creates_one_parent_one_kid_one_chore(
     hass: HomeAssistant, scenario_minimal
 ) -> None:
