@@ -2675,9 +2675,22 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_POINTS
         )
 
+        # Phase 4: Check if gamification is enabled for shadow kids
+        # Regular kids always get points; shadow kids only if gamification enabled
+        enable_gamification = True  # Default for regular kids
+        if kh.is_shadow_kid(self, kid_id):
+            parent_data = kh.get_parent_for_shadow_kid(self, kid_id)
+            if parent_data:
+                enable_gamification = parent_data.get(
+                    const.DATA_PARENT_ENABLE_GAMIFICATION, False
+                )
+
+        # Award points only if gamification is enabled
+        points_to_award = default_points if enable_gamification else 0.0
+
         # Note - multiplier will be added in the _update_kid_points method called from _process_chore_state
         self._process_chore_state(
-            kid_id, chore_id, const.CHORE_STATE_APPROVED, points_awarded=default_points
+            kid_id, chore_id, const.CHORE_STATE_APPROVED, points_awarded=points_to_award
         )
 
         # Decrement pending_count counter after approval (v0.4.0+ counter-based tracking)
