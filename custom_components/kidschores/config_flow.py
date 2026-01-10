@@ -619,11 +619,29 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             if not errors:
                 # Build and store parent data
                 parent_data = fh.build_parents_data(user_input, self._parents_temp)
-                self._parents_temp.update(parent_data)
 
-                # Get internal_id and name for logging
+                # Get internal_id and parent info
                 internal_id = list(parent_data.keys())[0]
-                parent_name = parent_data[internal_id][const.DATA_PARENT_NAME]
+                parent_info = parent_data[internal_id]
+                parent_name = parent_info[const.DATA_PARENT_NAME]
+
+                # Create shadow kid if chore assignment is enabled
+                if parent_info.get(const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT, False):
+                    shadow_kid_id, shadow_kid_data = fh.build_shadow_kid_data(
+                        internal_id, parent_info
+                    )
+                    # Add shadow kid to kids temp so it appears in chore assignment
+                    self._kids_temp[shadow_kid_id] = shadow_kid_data
+                    # Link shadow kid to parent
+                    parent_info[const.DATA_PARENT_LINKED_SHADOW_KID_ID] = shadow_kid_id
+                    const.LOGGER.debug(
+                        "DEBUG: Created shadow kid '%s' (ID: %s) for parent '%s'",
+                        shadow_kid_data[const.DATA_KID_NAME],
+                        shadow_kid_id,
+                        parent_name,
+                    )
+
+                self._parents_temp.update(parent_data)
                 const.LOGGER.debug(
                     "DEBUG: Added Parent: %s with ID: %s", parent_name, internal_id
                 )

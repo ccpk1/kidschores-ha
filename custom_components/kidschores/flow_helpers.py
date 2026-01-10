@@ -536,6 +536,49 @@ def validate_parents_inputs(
     return errors
 
 
+def build_shadow_kid_data(
+    parent_id: str, parent_data: dict[str, Any]
+) -> tuple[str, dict[str, Any]]:
+    """Build shadow kid data from parent data.
+
+    Creates the data structure for a shadow kid that represents a parent
+    who can be assigned chores. Shadow kids inherit name, HA user, and
+    dashboard language from their parent.
+
+    This function is shared between config_flow (initial setup) and
+    coordinator (options flow updates) to ensure consistent shadow kid
+    creation.
+
+    Args:
+        parent_id: The internal ID of the parent.
+        parent_data: The parent's data dictionary (DATA_* keys).
+
+    Returns:
+        Tuple of (shadow_kid_id, shadow_kid_data) where shadow_kid_data
+        is in storage format (DATA_* keys) with shadow kid markers.
+    """
+    shadow_kid_id = str(uuid.uuid4())
+
+    return shadow_kid_id, {
+        const.DATA_KID_NAME: parent_data.get(
+            const.DATA_PARENT_NAME, const.SENTINEL_EMPTY
+        ),
+        const.DATA_KID_HA_USER_ID: parent_data.get(
+            const.DATA_PARENT_HA_USER_ID, const.SENTINEL_EMPTY
+        ),
+        const.DATA_KID_ENABLE_NOTIFICATIONS: False,  # Parent handles notifications
+        const.DATA_KID_MOBILE_NOTIFY_SERVICE: const.SENTINEL_EMPTY,
+        const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS: False,
+        const.DATA_KID_DASHBOARD_LANGUAGE: parent_data.get(
+            const.DATA_PARENT_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
+        ),
+        const.DATA_KID_INTERNAL_ID: shadow_kid_id,
+        # Shadow kid markers (v0.6.0+)
+        const.DATA_KID_IS_SHADOW: True,
+        const.DATA_KID_LINKED_PARENT_ID: parent_id,
+    }
+
+
 # ----------------------------------------------------------------------------------
 # CHORES SCHEMA (Pattern 2: Complex - Integrated validation with tuple return)
 # ----------------------------------------------------------------------------------

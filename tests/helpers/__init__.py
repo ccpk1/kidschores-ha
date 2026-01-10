@@ -94,10 +94,18 @@ from tests.helpers.constants import (
     DATA_KID_CHORE_DATA_DUE_DATE_LEGACY,
     DATA_KID_CHORE_DATA_STATE,
     DATA_KID_COMPLETED_BY_OTHER_CHORES,
+    DATA_KID_IS_SHADOW,
+    DATA_KID_LINKED_PARENT_ID,
     DATA_KID_NAME,
     DATA_KID_POINTS,
     # Data keys - top level
     DATA_KIDS,
+    # Data keys - parent fields (shadow kid support)
+    DATA_PARENT_ALLOW_CHORE_ASSIGNMENT,
+    DATA_PARENT_ENABLE_CHORE_WORKFLOW,
+    DATA_PARENT_ENABLE_GAMIFICATION,
+    DATA_PARENT_LINKED_SHADOW_KID_ID,
+    DATA_PARENT_NAME,
     DATA_REWARDS,
     DOMAIN,
     # Frequencies
@@ -114,8 +122,10 @@ from tests.helpers.constants import (
     REWARD_STATE_CLAIMED,
     REWARD_STATE_NOT_CLAIMED,
     REWARD_STATE_VALUES,
+    SENSOR_KC_EID_SUFFIX_UI_DASHBOARD_HELPER,
     # Translation keys (for error assertions)
     TRANS_KEY_ERROR_CHORE_ALREADY_APPROVED,
+    construct_entity_id,
 )
 from tests.helpers.setup import (
     SetupResult,
@@ -242,8 +252,16 @@ __all__ = [
     "DATA_KID_CHORE_DATA_DUE_DATE_LEGACY",
     "DATA_KID_CHORE_DATA_STATE",
     "DATA_KID_COMPLETED_BY_OTHER_CHORES",
+    "DATA_KID_IS_SHADOW",
+    "DATA_KID_LINKED_PARENT_ID",
     "DATA_KID_NAME",
     "DATA_KID_POINTS",
+    # Constants - Parent shadow kid support
+    "DATA_PARENT_ALLOW_CHORE_ASSIGNMENT",
+    "DATA_PARENT_ENABLE_CHORE_WORKFLOW",
+    "DATA_PARENT_ENABLE_GAMIFICATION",
+    "DATA_PARENT_LINKED_SHADOW_KID_ID",
+    "DATA_PARENT_NAME",
     "DATA_REWARDS",
     "DOMAIN",
     # Constants - Frequencies
@@ -259,6 +277,7 @@ __all__ = [
     "REWARD_STATE_CLAIMED",
     "REWARD_STATE_NOT_CLAIMED",
     "REWARD_STATE_VALUES",
+    "SENSOR_KC_EID_SUFFIX_UI_DASHBOARD_HELPER",
     # Constants - Translation keys
     "TRANS_KEY_ERROR_CHORE_ALREADY_APPROVED",
     # Setup
@@ -287,6 +306,8 @@ __all__ = [
     "assert_workflow_success",
     "claim_chore",
     "claim_reward",
+    # Utility functions
+    "construct_entity_id",
     "count_entities_by_kid",
     # Validation - Counting
     "count_entities_by_platform",

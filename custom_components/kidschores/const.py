@@ -1873,7 +1873,7 @@ SENSOR_KC_EID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR: Final = (
 )
 # Sensor Entity ID Midfix and Suffix for UI Dashboard Helper
 SENSOR_KC_EID_MIDFIX_UI_DASHBOARD: Final = "_ui_dashboard_"
-SENSOR_KC_EID_SUFFIX_UI_DASHBOARD_HELPER: Final = "helper"
+SENSOR_KC_EID_SUFFIX_UI_DASHBOARD_HELPER: Final = "_ui_dashboard_helper"
 
 # ------------------------------------------------------------------------------------------------
 # Selects

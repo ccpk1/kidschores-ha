@@ -2660,7 +2660,6 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._attr_unique_id = f"{entry.entry_id}_{kid_id}_ui_dashboard_helper"
         self.entity_id = (
             f"{const.SENSOR_KC_PREFIX}{kid_name}"
-            f"{const.SENSOR_KC_EID_MIDFIX_UI_DASHBOARD}"
             f"{const.SENSOR_KC_EID_SUFFIX_UI_DASHBOARD_HELPER}"
         )
         self._attr_translation_placeholders = {
@@ -3592,7 +3591,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         # Shadow kid capability attributes for dashboard conditional rendering
         is_shadow = kid_info.get(const.DATA_KID_IS_SHADOW, False)
         gamification_enabled = True
-        workflow_enabled = True
+        chore_workflow_enabled = True
 
         if is_shadow:
             # Get parent data to check capability flags
@@ -3601,13 +3600,13 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 gamification_enabled = parent_data.get(
                     const.DATA_PARENT_ENABLE_GAMIFICATION, False
                 )
-                workflow_enabled = parent_data.get(
+                chore_workflow_enabled = parent_data.get(
                     const.DATA_PARENT_ENABLE_CHORE_WORKFLOW, False
                 )
             else:
                 # Defensive: shadow kid without parent data - disable extras
                 gamification_enabled = False
-                workflow_enabled = False
+                chore_workflow_enabled = False
 
         return {
             const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_DASHBOARD_HELPER,
@@ -3628,7 +3627,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             "language": dashboard_language,
             "is_shadow_kid": is_shadow,
             "gamification_enabled": gamification_enabled,
-            "workflow_enabled": workflow_enabled,
+            "chore_workflow_enabled": chore_workflow_enabled,
         }
 
     @property

@@ -182,12 +182,22 @@ from custom_components.kidschores.const import (
     DATA_KID_COMPLETED_BY_OTHER_CHORES,
     DATA_KID_HA_USER_ID,
     DATA_KID_INTERNAL_ID,
+    DATA_KID_IS_SHADOW,
+    DATA_KID_LINKED_PARENT_ID,
     DATA_KID_NAME,
     DATA_KID_OVERDUE_CHORES,
     DATA_KID_POINT_STATS,
     DATA_KID_POINTS,
     DATA_KID_REWARD_DATA,
     DATA_KIDS,
+    # =========================================================================
+    # DATA KEYS - PARENT FIELDS (Shadow Kid Support)
+    # =========================================================================
+    DATA_PARENT_ALLOW_CHORE_ASSIGNMENT,
+    DATA_PARENT_ENABLE_CHORE_WORKFLOW,
+    DATA_PARENT_ENABLE_GAMIFICATION,
+    DATA_PARENT_LINKED_SHADOW_KID_ID,
+    DATA_PARENT_NAME,
     DATA_PARENTS,
     DATA_PENALTIES,
     # =========================================================================
@@ -238,6 +248,28 @@ from custom_components.kidschores.const import (
     # =========================================================================
     TRANS_KEY_ERROR_CHORE_ALREADY_APPROVED,
 )
+
+
+def construct_entity_id(platform: str, kid_name: str, suffix: str) -> str:
+    """Construct entity ID for a kid's entity.
+
+    Args:
+        platform: Entity platform ("sensor", "button", etc.)
+        kid_name: Kid's display name
+        suffix: Entity suffix constant
+
+    Returns:
+        Full entity ID string like "sensor.kc_sarah_points"
+
+    Example:
+        construct_entity_id("sensor", "Sarah", SENSOR_KC_EID_SUFFIX_UI_DASHBOARD_HELPER)
+        # Returns: "sensor.kc_sarah_ui_dashboard_helper"
+    """
+    from homeassistant.util import slugify
+
+    kid_slug = slugify(kid_name)
+    return f"{platform}.kc_{kid_slug}{suffix}"
+
 
 # =============================================================================
 # CONVENIENCE LISTS

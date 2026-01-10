@@ -221,6 +221,9 @@ async def _configure_parent_step(
             - enable_mobile_notifications: bool (default: False)
             - mobile_notify_service: str (default: "")
             - enable_persistent_notifications: bool (default: False)
+            - allow_chore_assignment: bool (default: False) - creates shadow kid
+            - enable_chore_workflow: bool (default: False) - shadow kid claim/disapprove
+            - enable_gamification: bool (default: False) - shadow kid points/badges
         kid_name_to_id: Map of kid names to their UUIDs
 
     Returns:
@@ -250,6 +253,16 @@ async def _configure_parent_step(
             const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: mobile_service,
             const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: parent_config.get(
                 "enable_persistent_notifications", False
+            ),
+            # Parent chore assignment fields (shadow kid support)
+            const.CFOF_PARENTS_INPUT_ALLOW_CHORE_ASSIGNMENT: parent_config.get(
+                "allow_chore_assignment", False
+            ),
+            const.CFOF_PARENTS_INPUT_ENABLE_CHORE_WORKFLOW: parent_config.get(
+                "enable_chore_workflow", False
+            ),
+            const.CFOF_PARENTS_INPUT_ENABLE_GAMIFICATION: parent_config.get(
+                "enable_gamification", False
             ),
         },
     )

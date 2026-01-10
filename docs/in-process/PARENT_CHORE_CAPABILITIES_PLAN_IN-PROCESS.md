@@ -9,25 +9,26 @@
 
 ## Summary & immediate steps
 
-| Phase / Step | Description | % complete | Quick notes |
-|--------------|-------------|------------|-------------|
-| Phase 1 – Data Model | Add parent capability flags + shadow kid constants | 100% | ✅ Complete |
-| Phase 2 – Shadow Kid Creation | Parent form checkboxes + auto-create shadow kid | 100% | ✅ Complete |
-| Phase 3 – Button Logic | Conditional button creation based on flags | 100% | ✅ Complete |
-| Phase 4 – Gamification Toggle | Skip points/badges when disabled | 100% | ✅ Complete (4.3 dashboard helper done) |
-| Phase 4.5 – Config Flow Fix | Shadow kid creation in initial setup | 100% | ✅ Complete (shared build_shadow_kid_data) |
-| Phase 5 – Edge Cases | Notifications, language, deletion cascade | 0% | Critical for UX |
-| Phase 6 – Testing | Comprehensive test coverage | 75% | ✅ test_parent_shadow_kid.py (18 tests), ✅ test_shadow_kid_buttons.py (4 tests, anti-patterns fixed) |
+| Phase / Step                  | Description                                        | % complete | Quick notes                                                                                           |
+| ----------------------------- | -------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------- |
+| Phase 1 – Data Model          | Add parent capability flags + shadow kid constants | 100%       | ✅ Complete                                                                                           |
+| Phase 2 – Shadow Kid Creation | Parent form checkboxes + auto-create shadow kid    | 100%       | ✅ Complete                                                                                           |
+| Phase 3 – Button Logic        | Conditional button creation based on flags         | 100%       | ✅ Complete                                                                                           |
+| Phase 4 – Gamification Toggle | Skip points/badges when disabled                   | 100%       | ✅ Complete (4.3 dashboard helper done)                                                               |
+| Phase 4.5 – Config Flow Fix   | Shadow kid creation in initial setup               | 100%       | ✅ Complete (shared build_shadow_kid_data)                                                            |
+| Phase 5 – Edge Cases          | Notifications, language, deletion cascade          | 0%         | Critical for UX                                                                                       |
+| Phase 6 – Testing             | Comprehensive test coverage                        | 75%        | ✅ test_parent_shadow_kid.py (18 tests), ✅ test_shadow_kid_buttons.py (4 tests, anti-patterns fixed) |
 
 1. **Key objective** – Enable parents to have chores assigned to them by creating a "shadow kid" profile when they opt-in. By default, shadow kids get ONLY an Approve button (one-click PENDING→APPROVED). Optionally enable full claim/disapprove workflow and/or gamification (points/badges).
 
 2. **Summary of recent work**
+
    - **Phase 1-4.5 complete**: All constants, shadow kid creation, button logic, gamification toggle, dashboard helper, config flow fix
    - **Phase 4.3 dashboard helper COMPLETE**: Added 3 new attributes to dashboard helper sensor:
      - `is_shadow_kid` (bool) - Identifies shadow kid vs regular kid
      - `chore_workflow_enabled` (bool) - Exposes parent's enable_chore_workflow flag (controls claim/disapprove button visibility)
      - `gamification_enabled` (bool) - Exposes parent's enable_gamification flag (controls points/badges/rewards visibility)
-   - **Entity ID construction bug fixed**: Corrected `SENSOR_KC_EID_SUFFIX_UI_DASHBOARD_HELPER` constant from "helper" to "_ui_dashboard_helper" for proper entity ID generation
+   - **Entity ID construction bug fixed**: Corrected `SENSOR_KC_EID_SUFFIX_UI_DASHBOARD_HELPER` constant from "helper" to "\_ui_dashboard_helper" for proper entity ID generation
    - **Phase 6 testing in progress**: Created `tests/scenarios/scenario_parent_shadow_kids.yaml` and `tests/test_parent_shadow_kid.py` (18/18 tests passing)
    - Test file includes 18 tests across 5 test classes:
      - `TestShadowKidCreation` (2 tests) - creation when flag enabled/disabled
@@ -38,17 +39,20 @@
    - 927 tests passing (up from 910), linting clean
 
 3. **Next steps (short term)**
+
    - Continue Phase 6: Create test_shadow_kid_buttons.py for conditional button creation
    - Phase 6: Create test_shadow_kid_gamification.py for points/badges toggle
    - Phase 5 edge cases: notification handling, deletion cascade
 
 4. **Risks / blockers**
+
    - Name collision between parent and existing kid names
    - Notification duplication if shadow kid notifications not disabled
    - Dashboard helper sensor exposure for shadow kids
    - Edit flow complexity when toggling capabilities on/off
 
 5. **References**
+
    - Agent testing instructions: `tests/TESTING_AGENT_INSTRUCTIONS.md`
    - Architecture overview: `docs/ARCHITECTURE.md`
    - Code review guide: `docs/CODE_REVIEW_GUIDE.md`
@@ -74,44 +78,45 @@
 
 **ALWAYS CREATED** for shadow kids:
 
-| Entity Type | Entity Name | Behavior | Notes |
-|-------------|-------------|----------|---------|
-| **Sensors** | | | |
-| | `sensor.kc_<parent>_chores` | Shows chore counts | Same as regular kids |
-| | `sensor.kc_<parent>_chore_status` | Shows chore states | Same as regular kids |
-| | `sensor.kc_<parent>_ui_dashboard_helper` | Dashboard data | Exposes `is_shadow_kid=True` |
-| **Buttons** | | | |
-| | `button.kc_approve_<parent>_<chore>` | One-click approve | PENDING→APPROVED |
-| **Calendar** | | | |
-| | `calendar.kc_<parent>_chores` | Due date tracking | Same as regular kids |
-| **Datetime** | | | |
-| | `datetime.kc_<parent>_<chore>_due` | Chore due dates | Same as regular kids |
+| Entity Type  | Entity Name                              | Behavior           | Notes                        |
+| ------------ | ---------------------------------------- | ------------------ | ---------------------------- |
+| **Sensors**  |                                          |                    |                              |
+|              | `sensor.kc_<parent>_chores`              | Shows chore counts | Same as regular kids         |
+|              | `sensor.kc_<parent>_chore_status`        | Shows chore states | Same as regular kids         |
+|              | `sensor.kc_<parent>_ui_dashboard_helper` | Dashboard data     | Exposes `is_shadow_kid=True` |
+| **Buttons**  |                                          |                    |                              |
+|              | `button.kc_approve_<parent>_<chore>`     | One-click approve  | PENDING→APPROVED             |
+| **Calendar** |                                          |                    |                              |
+|              | `calendar.kc_<parent>_chores`            | Due date tracking  | Same as regular kids         |
+| **Datetime** |                                          |                    |                              |
+|              | `datetime.kc_<parent>_<chore>_due`       | Chore due dates    | Same as regular kids         |
 
 **NEVER CREATED** for shadow kids (Tier 1 only):
 
-| Entity Type | Why Skipped | Impact |
-|-------------|-------------|--------|
-| `button.kc_claim_<parent>_<chore>` | Approval-only workflow | Parent uses approve button directly |
-| `button.kc_disapprove_<parent>_<chore>` | No rejection needed | Chore stays PENDING if not approved |
-| `sensor.kc_<parent>_points` | No gamification | Would show 0 points, confusing |
-| `sensor.kc_<parent>_badges_*` | No gamification | Would show empty badges |
-| `button.kc_<parent>_bonus_*` | No gamification | Can't apply bonuses without points |
-| `button.kc_<parent>_penalty_*` | No gamification | Can't apply penalties without points |
-| `button.kc_<parent>_reward_*` | No gamification | Can't redeem rewards without points |
-| `button.kc_<parent>_points_adjust_*` | No gamification | Manual point adjustment not needed |
-| `select.kc_<parent>_*` | No legacy features | Shadow kids start fresh, no legacy selects |
+| Entity Type                             | Why Skipped            | Impact                                     |
+| --------------------------------------- | ---------------------- | ------------------------------------------ |
+| `button.kc_claim_<parent>_<chore>`      | Approval-only workflow | Parent uses approve button directly        |
+| `button.kc_disapprove_<parent>_<chore>` | No rejection needed    | Chore stays PENDING if not approved        |
+| `sensor.kc_<parent>_points`             | No gamification        | Would show 0 points, confusing             |
+| `sensor.kc_<parent>_badges_*`           | No gamification        | Would show empty badges                    |
+| `button.kc_<parent>_bonus_*`            | No gamification        | Can't apply bonuses without points         |
+| `button.kc_<parent>_penalty_*`          | No gamification        | Can't apply penalties without points       |
+| `button.kc_<parent>_reward_*`           | No gamification        | Can't redeem rewards without points        |
+| `button.kc_<parent>_points_adjust_*`    | No gamification        | Manual point adjustment not needed         |
+| `select.kc_<parent>_*`                  | No legacy features     | Shadow kids start fresh, no legacy selects |
 
 #### Tier 2: Workflow Enabled (+enable_chore_workflow=True)
 
 **ADDS these entities** (in addition to Tier 1):
 
-| Entity Type | Entity Name | Behavior | Notes |
-|-------------|-------------|----------|---------|
-| **Buttons** | | | |
-| | `button.kc_claim_<parent>_<chore>` | Claim chore (PENDING→CLAIMED) | Parent can "check off" before approval |
-| | `button.kc_disapprove_<parent>_<chore>` | Reject claim (CLAIMED→PENDING) | Parent can un-claim if needed |
+| Entity Type | Entity Name                             | Behavior                       | Notes                                  |
+| ----------- | --------------------------------------- | ------------------------------ | -------------------------------------- |
+| **Buttons** |                                         |                                |                                        |
+|             | `button.kc_claim_<parent>_<chore>`      | Claim chore (PENDING→CLAIMED)  | Parent can "check off" before approval |
+|             | `button.kc_disapprove_<parent>_<chore>` | Reject claim (CLAIMED→PENDING) | Parent can un-claim if needed          |
 
 **Workflow change**:
+
 - Without workflow: PENDING → Approve → APPROVED
 - With workflow: PENDING → Claim → CLAIMED → Approve/Disapprove → APPROVED/PENDING
 
@@ -119,23 +124,24 @@
 
 **ADDS these entities** (in addition to previous tiers):
 
-| Entity Type | Entity Name | Behavior | Notes |
-|-------------|-------------|----------|---------|
-| **Sensors** | | | |
-| | `sensor.kc_<parent>_points` | Current point balance | Same calculation as regular kids |
-| | `sensor.kc_<parent>_badges` | Earned badges count | Badge system applies normally |
-| | `sensor.kc_<parent>_badge_progress_*` | Per-badge progress | One sensor per badge type |
-| | `sensor.kc_<parent>_achievement_progress_*` | Per-achievement progress | Achievement tracking |
-| | `sensor.kc_<parent>_challenge_progress_*` | Per-challenge progress | Challenge participation |
-| | `sensor.kc_<parent>_reward_status_*` | Per-reward claim status | Can redeem rewards |
-| **Buttons** | | | |
-| | `button.kc_<parent>_bonus_<bonus_id>` | Apply bonus points | Parent can earn bonuses |
-| | `button.kc_<parent>_penalty_<penalty_id>` | Apply penalty points | Parent can receive penalties |
-| | `button.kc_<parent>_reward_<reward_id>` | Redeem reward | Parent can spend points |
-| | `button.kc_<parent>_points_adjust_plus_*` | Manual point adjustment | Add points manually |
-| | `button.kc_<parent>_points_adjust_minus_*` | Manual point adjustment | Subtract points manually |
+| Entity Type | Entity Name                                 | Behavior                 | Notes                            |
+| ----------- | ------------------------------------------- | ------------------------ | -------------------------------- |
+| **Sensors** |                                             |                          |                                  |
+|             | `sensor.kc_<parent>_points`                 | Current point balance    | Same calculation as regular kids |
+|             | `sensor.kc_<parent>_badges`                 | Earned badges count      | Badge system applies normally    |
+|             | `sensor.kc_<parent>_badge_progress_*`       | Per-badge progress       | One sensor per badge type        |
+|             | `sensor.kc_<parent>_achievement_progress_*` | Per-achievement progress | Achievement tracking             |
+|             | `sensor.kc_<parent>_challenge_progress_*`   | Per-challenge progress   | Challenge participation          |
+|             | `sensor.kc_<parent>_reward_status_*`        | Per-reward claim status  | Can redeem rewards               |
+| **Buttons** |                                             |                          |                                  |
+|             | `button.kc_<parent>_bonus_<bonus_id>`       | Apply bonus points       | Parent can earn bonuses          |
+|             | `button.kc_<parent>_penalty_<penalty_id>`   | Apply penalty points     | Parent can receive penalties     |
+|             | `button.kc_<parent>_reward_<reward_id>`     | Redeem reward            | Parent can spend points          |
+|             | `button.kc_<parent>_points_adjust_plus_*`   | Manual point adjustment  | Add points manually              |
+|             | `button.kc_<parent>_points_adjust_minus_*`  | Manual point adjustment  | Subtract points manually         |
 
 **Gamification behavior**:
+
 - Points awarded on chore approval (same calculation as kids)
 - Badge progress tracked (streaks, completion counts, etc.)
 - Achievement progress tracked (same criteria as kids)
@@ -148,10 +154,10 @@
 
 All entities from Tiers 1+2+3 above, plus:
 
-| Entity Type | Entity Name | Notes |
-|-------------|-------------|-------|
-| **Legacy Sensors** | `sensor.kc_<kid>_*_legacy` | Migration compatibility |
-| **Select Entities** | `select.kc_<kid>_*` | If any legacy selectors exist |
+| Entity Type         | Entity Name                | Notes                         |
+| ------------------- | -------------------------- | ----------------------------- |
+| **Legacy Sensors**  | `sensor.kc_<kid>_*_legacy` | Migration compatibility       |
+| **Select Entities** | `select.kc_<kid>_*`        | If any legacy selectors exist |
 
 ### Parent Form UI (Target)
 
@@ -193,6 +199,7 @@ Chore Assignment (NEW)
 - **Steps / detailed work items**
 
   1. **Add parent capability constants to const.py** (Status: ✅ Complete)
+
      ```python
      # Parent capability flags (stored on parent entity)
      DATA_PARENT_ALLOW_CHORE_ASSIGNMENT: Final = "allow_chore_assignment"
@@ -218,6 +225,7 @@ Chore Assignment (NEW)
      ```
 
   2. **Add translation keys to const.py** (Status: ✅ Complete)
+
      ```python
      TRANS_KEY_CFOF_ALLOW_CHORE_ASSIGNMENT: Final = "allow_chore_assignment"
      TRANS_KEY_CFOF_ALLOW_CHORE_ASSIGNMENT_DESC: Final = "allow_chore_assignment_description"
@@ -258,6 +266,7 @@ Chore Assignment (NEW)
      ```
 
 - **Key issues**
+
   - None anticipated for this phase
 
 - **Estimated LOC**: ~50 lines (includes parent language field)
@@ -273,6 +282,7 @@ Chore Assignment (NEW)
   1. **Update `build_parent_schema()` in flow_helpers.py** (Status: Not started)
 
      Add three new boolean selectors to parent schema:
+
      ```python
      def build_parent_schema(
          hass,
@@ -323,6 +333,7 @@ Chore Assignment (NEW)
   2. **Update `build_parents_data()` in flow_helpers.py** (Status: Not started)
 
      Extract and store new flags in parent data:
+
      ```python
      def build_parents_data(user_input, parents_dict, existing_id=None):
          # ... existing code ...
@@ -422,6 +433,7 @@ Chore Assignment (NEW)
   4. **Update `async_step_add_parent()` in options_flow.py** (Status: Not started)
 
      After parent validation passes, check if shadow kid should be created:
+
      ```python
      # In async_step_add_parent, after validation:
      if not errors:
@@ -456,6 +468,7 @@ Chore Assignment (NEW)
   5. **Update `async_step_edit_parent()` in options_flow.py** (Status: Not started)
 
      Handle toggling of checkboxes:
+
      ```python
      # Scenarios to handle:
      # 1. allow_chore_assignment: False → True = Create shadow kid
@@ -479,6 +492,7 @@ Chore Assignment (NEW)
      ```
 
 - **Key issues**
+
   - **Name collision**: Parent name conflicts with existing kid name
     - Solution: Validate and show error, require rename
   - **Edit flow complexity**: Toggling `allow_chore_assignment` on/off
@@ -562,6 +576,7 @@ Chore Assignment (NEW)
   2. **Update button entity creation in button.py** (Status: Not started)
 
      Modify the chore button creation loop (~lines 56-108):
+
      ```python
      for chore_id, chore_info in coordinator.chores_data.items():
          assigned_kids_ids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
@@ -617,6 +632,7 @@ Chore Assignment (NEW)
   3. **Update bonus/penalty/reward button creation** (Status: Not started)
 
      These should also respect gamification flag:
+
      ```python
      # For bonus buttons (~line 170)
      for kid_id in coordinator.kids_data:
@@ -631,6 +647,7 @@ Chore Assignment (NEW)
      ```
 
 - **Key issues**
+
   - **Button entity unique IDs**: Must remain stable when workflow flag is toggled
     - Approve button always exists → stable UID
     - Claim/Disapprove buttons appear/disappear → UID based on kid+chore, not flag
@@ -650,6 +667,7 @@ Chore Assignment (NEW)
   1. **Update `approve_chore()` in coordinator.py** (Status: Not started)
 
      Check gamification flag before awarding points:
+
      ```python
      def approve_chore(self, parent_name: str, kid_id: str, chore_id: str,
                        points_awarded: float | None = None):
@@ -683,6 +701,7 @@ Chore Assignment (NEW)
   2. **Update sensor entity creation in sensor.py** (Status: Not started)
 
      Skip gamification sensors for shadow kids without gamification:
+
      ```python
      # Per-kid sensor creation loop
      for kid_id, kid_info in coordinator.kids_data.items():
@@ -725,14 +744,15 @@ Chore Assignment (NEW)
 
      **New Attributes Added** (4 total):
 
-     | Attribute | Type | Purpose | Shadow Kid Value | Regular Kid Value |
-     |-----------|------|---------|------------------|-------------------|
-     | `is_shadow_kid` | bool | Identify shadow kid | `True` | `False` |
-     | `workflow_enabled` | bool | Expose parent's workflow flag | From `enable_chore_workflow` | Always `True` |
-     | `gamification_enabled` | bool | Expose parent's gamification flag | From `enable_gamification` | Always `True` |
-     | `linked_parent_name` | str\|None | Parent's display name | Parent's name | `None` |
+     | Attribute              | Type      | Purpose                           | Shadow Kid Value             | Regular Kid Value |
+     | ---------------------- | --------- | --------------------------------- | ---------------------------- | ----------------- |
+     | `is_shadow_kid`        | bool      | Identify shadow kid               | `True`                       | `False`           |
+     | `workflow_enabled`     | bool      | Expose parent's workflow flag     | From `enable_chore_workflow` | Always `True`     |
+     | `gamification_enabled` | bool      | Expose parent's gamification flag | From `enable_gamification`   | Always `True`     |
+     | `linked_parent_name`   | str\|None | Parent's display name             | Parent's name                | `None`            |
 
      **Dashboard Integration Use Cases**:
+
      - `is_shadow_kid=True` → Show "(Parent)" indicator in UI
      - `workflow_enabled=False` → Only show Approve button (hide Claim/Disapprove)
      - `workflow_enabled=True` → Show all three buttons (Claim, Approve, Disapprove)
@@ -741,6 +761,7 @@ Chore Assignment (NEW)
      - `linked_parent_name` → Display parent's name or "(You)" in kid selector
 
      **Implementation**: `custom_components/kidschores/sensor.py` (~L1092+)
+
      ```python
      @property
      def extra_state_attributes(self) -> dict[str, Any]:
@@ -772,11 +793,13 @@ Chore Assignment (NEW)
      ```
 
      **Testing**: `tests/test_parent_shadow_kid.py::TestDataIntegrity::test_dashboard_helper_exposes_shadow_kid_capabilities`
+
      - Verifies all 4 attributes present for shadow kid (Dad with workflow=False, gamification=True)
      - Verifies regular kid has correct values (Sarah: is_shadow_kid=False, workflow/gamification both True, linked_parent_name=None)
      - Uses scenario: Dad (shadow kid) vs Sarah (regular kid)
 
 - **Key issues**
+
   - **Points history**: If gamification is toggled on later, history starts from 0
     - Acceptable behavior for MVP
   - **Badge progress**: Disabled kids don't accumulate badge progress
@@ -799,10 +822,12 @@ Chore Assignment (NEW)
      **Solution**: Shadow kids have `enable_notifications=False` by default
 
      **Verification needed in coordinator.py**:
+
      - `_notify_kid_translated()` checks `DATA_KID_ENABLE_NOTIFICATIONS` → ✓ Already respects this
      - `_notify_parents_translated()` sends to associated parents → Parent still gets notified
 
      **Additional consideration**: When shadow kid completes chore, should parent get "chore claimed" notification?
+
      - Current: Parent notified when ANY kid claims chore they supervise
      - Shadow kid: Parent IS the kid, so notification is self-referential
      - **Decision**: Skip "approval needed" notification for shadow kids since parent = claimer
@@ -824,12 +849,14 @@ Chore Assignment (NEW)
      **Solution**: Add `dashboard_language` field to parent schema
 
      **Implementation**:
+
      1. Add `DATA_PARENT_DASHBOARD_LANGUAGE` and `CFOF_PARENTS_INPUT_DASHBOARD_LANGUAGE` constants
      2. Add `LanguageSelector` to parent form (same pattern as kid form)
      3. Shadow kid inherits parent's language setting
      4. Update existing parent edit flow to pass current language as default
 
      **Already implemented in**: Phase 2 schema updates and shadow kid creation:
+
      ```python
      const.DATA_KID_DASHBOARD_LANGUAGE: parent_data.get(
          const.DATA_PARENT_DASHBOARD_LANGUAGE, self.hass.config.language
@@ -841,6 +868,7 @@ Chore Assignment (NEW)
      **Problem**: Deleting parent should delete shadow kid
 
      **Implementation in coordinator.py** `delete_parent_entity()`:
+
      ```python
      def delete_parent_entity(self, parent_id: str) -> None:
          """Delete a parent entity and cascade to shadow kid if exists."""
@@ -867,6 +895,7 @@ Chore Assignment (NEW)
      **Problem**: Prevent direct deletion of shadow kids (must delete via parent)
 
      **Implementation in coordinator.py** `delete_kid_entity()`:
+
      ```python
      def delete_kid_entity(self, kid_id: str, *, cascade_from_parent: bool = False) -> None:
          """Delete a kid entity."""
@@ -890,11 +919,13 @@ Chore Assignment (NEW)
      **Problem**: When parent presses Approve button for their shadow kid's chore, authorization must pass
 
      **Current flow**:
+
      1. Parent presses Approve button → `ParentChoreApproveButton.async_press()`
      2. Authorization check: `is_user_authorized_for_global_action(user_id, SERVICE_APPROVE_CHORE)`
      3. Approval proceeds: `coordinator.approve_chore(parent_name, kid_id, chore_id)`
 
      **Shadow kid's `ha_user_id` = Parent's `ha_user_id`**
+
      - When parent is logged in, their user_id matches shadow kid's ha_user_id
      - Authorization should pass because parent is authorized for approve action
 
@@ -911,6 +942,7 @@ Chore Assignment (NEW)
      **Verification**: Test that shadow kids appear in chore assignment options (no code change expected)
 
 - **Key issues**
+
   - **Self-notification loop**: Parent completing their own chore shouldn't notify themselves
     - Solution: Skip "approval needed" notification for shadow kids
   - **Hide shadow kids from regular kid list?**: In kid management UI
@@ -930,6 +962,7 @@ Chore Assignment (NEW)
   1. **Test file: test_parent_chore_capabilities.py** (Status: Not started)
 
      Test cases:
+
      - Parent creation with `allow_chore_assignment=True` creates shadow kid
      - Parent creation with `allow_chore_assignment=False` does NOT create shadow kid
      - Shadow kid has correct attributes (is_shadow=True, linked_parent_id, etc.)
@@ -944,6 +977,7 @@ Chore Assignment (NEW)
   2. **Test file: test_shadow_kid_buttons.py** (Status: ✅ Complete)
 
      Test cases: (All implemented and passing)
+
      - Shadow kid with workflow=False: only Approve button created
      - Shadow kid with workflow=True: Claim, Approve, Disapprove buttons created
      - Regular kid: always has all three buttons
@@ -951,6 +985,7 @@ Chore Assignment (NEW)
      - Toggle workflow flag → entity reload creates/removes buttons
 
      **Completion Notes:**
+
      - All 4 tests implemented using Dashboard Helper pattern (Rules 3 & 4 compliance)
      - Anti-pattern violations fixed: Removed direct coordinator access helper functions
      - Tests refactored to use entity registry validation and proper YAML scenario setup
@@ -959,6 +994,7 @@ Chore Assignment (NEW)
   3. **Test file: test_shadow_kid_gamification.py** (Status: Not started)
 
      Test cases:
+
      - Shadow kid with gamification=False: no points awarded on approval
      - Shadow kid with gamification=True: points awarded on approval
      - Gamification=False: no badge/achievement/challenge progress
@@ -968,11 +1004,13 @@ Chore Assignment (NEW)
   4. **Test file: test_shadow_kid_notifications.py** (Status: Not started)
 
      Test cases:
+
      - Shadow kid does not receive notifications (notifications disabled)
      - Parent notification not sent for shadow kid's own chore claim
      - Other parent notifications work normally
 
 - **Key issues**
+
   - Need test fixtures for parent with shadow kid
   - Need mock for entity platform reload
 
@@ -983,6 +1021,7 @@ Chore Assignment (NEW)
 ## Testing & validation
 
 - **Tests to execute**:
+
   1. All existing tests pass (regression): `python -m pytest tests/ -v`
   2. New parent capability tests: `python -m pytest tests/test_parent_chore_capabilities.py -v`
   3. New shadow kid button tests: `python -m pytest tests/test_shadow_kid_buttons.py -v`
@@ -1028,15 +1067,15 @@ Chore Assignment (NEW)
 
 ## LOC Summary
 
-| Phase | Estimated Lines |
-|-------|-----------------|
-| Phase 1 – Data Model | ~50 |
-| Phase 2 – Shadow Kid Creation | ~140 |
-| Phase 3 – Button Logic | ~80 |
-| Phase 4 – Gamification Toggle | ~100 |
-| Phase 5 – Edge Cases | ~50 |
-| Phase 6 – Testing | ~300 |
-| **Total** | **~720** |
+| Phase                         | Estimated Lines |
+| ----------------------------- | --------------- |
+| Phase 1 – Data Model          | ~50             |
+| Phase 2 – Shadow Kid Creation | ~140            |
+| Phase 3 – Button Logic        | ~80             |
+| Phase 4 – Gamification Toggle | ~100            |
+| Phase 5 – Edge Cases          | ~50             |
+| Phase 6 – Testing             | ~300            |
+| **Total**                     | **~720**        |
 
 ---
 

@@ -26,7 +26,7 @@ from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from . import const, kc_helpers as kh
+from . import const, flow_helpers as fh, kc_helpers as kh
 from .notification_helper import async_send_notification
 from .storage_manager import KidsChoresStorageManager
 
@@ -1131,6 +1131,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         - Have notifications disabled (parent handles their own notifications)
         - Inherit gamification setting from parent
 
+        Uses shared build_shadow_kid_data() from flow_helpers for consistency
+        between config flow and options flow shadow kid creation.
+
         Args:
             parent_id: The internal ID of the parent.
             parent_info: The parent's data dictionary.
@@ -1138,27 +1141,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         Returns:
             The internal_id of the newly created shadow kid.
         """
-        shadow_kid_id = str(uuid.uuid4())
-
-        # Create shadow kid with minimal data - reuses existing kid infrastructure
-        shadow_kid_data = {
-            const.DATA_KID_NAME: parent_info.get(
-                const.DATA_PARENT_NAME, const.SENTINEL_EMPTY
-            ),
-            const.DATA_KID_HA_USER_ID: parent_info.get(
-                const.DATA_PARENT_HA_USER_ID, const.SENTINEL_EMPTY
-            ),
-            const.DATA_KID_ENABLE_NOTIFICATIONS: False,  # Parent handles notifications
-            const.DATA_KID_MOBILE_NOTIFY_SERVICE: const.SENTINEL_EMPTY,
-            const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS: False,
-            const.DATA_KID_DASHBOARD_LANGUAGE: parent_info.get(
-                const.DATA_PARENT_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
-            ),
-            const.DATA_KID_INTERNAL_ID: shadow_kid_id,
-            # Shadow kid markers (v0.6.0+)
-            const.DATA_KID_IS_SHADOW: True,
-            const.DATA_KID_LINKED_PARENT_ID: parent_id,
-        }
+        # Use shared function for consistent shadow kid data structure
+        shadow_kid_id, shadow_kid_data = fh.build_shadow_kid_data(
+            parent_id, parent_info
+        )
 
         # Use existing _create_kid to set up all standard kid fields
         self._create_kid(shadow_kid_id, shadow_kid_data)
