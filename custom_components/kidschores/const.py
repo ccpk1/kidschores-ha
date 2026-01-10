@@ -328,6 +328,12 @@ CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: Final = "mobile_notify_service"
 CFOF_PARENTS_INPUT_NAME: Final = "parent_name"
 CFOF_PARENTS_INPUT_PARENT_COUNT: Final = "parent_count"
 
+# Parent Chore Capability Options
+CFOF_PARENTS_INPUT_ALLOW_CHORE_ASSIGNMENT: Final = "allow_chore_assignment"
+CFOF_PARENTS_INPUT_ENABLE_CHORE_WORKFLOW: Final = "enable_chore_workflow"
+CFOF_PARENTS_INPUT_ENABLE_GAMIFICATION: Final = "enable_gamification"
+CFOF_PARENTS_INPUT_DASHBOARD_LANGUAGE: Final = "dashboard_language"
+
 # CHORES
 CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: Final = "approval_reset_type"
 CFOF_CHORES_INPUT_APPLICABLE_DAYS: Final = "applicable_days"
@@ -948,6 +954,17 @@ DATA_PARENT_INTERNAL_ID: Final = "internal_id"
 DATA_PARENT_MOBILE_NOTIFY_SERVICE: Final = "mobile_notify_service"
 DATA_PARENT_NAME: Final = "name"
 DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS: Final = "use_persistent_notifications"
+
+# Parent Chore Capabilities (stored on parent entity)
+DATA_PARENT_ALLOW_CHORE_ASSIGNMENT: Final = "allow_chore_assignment"
+DATA_PARENT_ENABLE_CHORE_WORKFLOW: Final = "enable_chore_workflow"
+DATA_PARENT_ENABLE_GAMIFICATION: Final = "enable_gamification"
+DATA_PARENT_LINKED_SHADOW_KID_ID: Final = "linked_shadow_kid_id"
+DATA_PARENT_DASHBOARD_LANGUAGE: Final = "dashboard_language"
+
+# Shadow Kid Markers (stored on kid entity)
+DATA_KID_IS_SHADOW: Final = "is_shadow_kid"
+DATA_KID_LINKED_PARENT_ID: Final = "linked_parent_id"
 
 # CHORES
 DATA_CHORE_APPROVAL_RESET_TYPE: Final = "approval_reset_type"
@@ -2212,6 +2229,11 @@ DEFAULT_PARENT_APPROVAL_REQUIRED: Final = (
 )
 DEFAULT_HA_USERNAME_LINK_ENABLED: Final = True  # Enable linking kids to HA usernames
 
+# Parent Chore Capability Defaults
+DEFAULT_PARENT_ALLOW_CHORE_ASSIGNMENT: Final = False
+DEFAULT_PARENT_ENABLE_CHORE_WORKFLOW: Final = False
+DEFAULT_PARENT_ENABLE_GAMIFICATION: Final = False
+
 
 # ------------------------------------------------------------------------------------------------
 # Calendar Attributes
@@ -2383,6 +2405,20 @@ TRANS_KEY_CFOF_INVALID_KID_NAME: Final = "invalid_kid_name"
 TRANS_KEY_CFOF_INVALID_PARENT: Final = "invalid_parent"
 TRANS_KEY_CFOF_INVALID_PARENT_COUNT: Final = "invalid_parent_count"
 TRANS_KEY_CFOF_INVALID_PARENT_NAME: Final = "invalid_parent_name"
+
+# Parent Chore Capability Translation Keys
+TRANS_KEY_CFOF_ALLOW_CHORE_ASSIGNMENT: Final = "allow_chore_assignment"
+TRANS_KEY_CFOF_ALLOW_CHORE_ASSIGNMENT_DESC: Final = "allow_chore_assignment_description"
+TRANS_KEY_CFOF_ENABLE_CHORE_WORKFLOW: Final = "enable_chore_workflow"
+TRANS_KEY_CFOF_ENABLE_CHORE_WORKFLOW_DESC: Final = "enable_chore_workflow_description"
+TRANS_KEY_CFOF_ENABLE_GAMIFICATION: Final = "enable_gamification"
+TRANS_KEY_CFOF_ENABLE_GAMIFICATION_DESC: Final = "enable_gamification_description"
+TRANS_KEY_CFOF_PARENT_DASHBOARD_LANGUAGE: Final = "parent_dashboard_language"
+TRANS_KEY_CFOF_PARENT_DASHBOARD_LANGUAGE_DESC: Final = (
+    "parent_dashboard_language_description"
+)
+TRANS_KEY_CFOF_SHADOW_KID_NAME_CONFLICT: Final = "shadow_kid_name_conflict"
+
 TRANS_KEY_CFOF_INVALID_PENALTY: Final = "invalid_penalty"
 TRANS_KEY_CFOF_INVALID_PENALTY_COUNT: Final = "invalid_penalty_count"
 TRANS_KEY_CFOF_INVALID_PENALTY_NAME: Final = "invalid_penalty_name"

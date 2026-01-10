@@ -300,6 +300,7 @@
       "duplicate_penalty": "A penalty with this name already exists",
       "duplicate_reward": "A reward with this name already exists",
       "duplicate_bonus": "A bonus with this name already exists",
+      "shadow_kid_name_conflict": "A kid with the parent's name already exists. Cannot create chore assignment profile.",
       "due_date_in_past": "Due date must be in the future.",
       "end_date_in_past": "End Date must be in the future.",
       "end_date_not_after_start_date": "End date must be later than start date",
@@ -411,7 +412,17 @@
           "enable_mobile_notifications": "Enable Mobile Notifications",
           "mobile_notify_service": "Notify Service",
           "enable_persistent_notifications": "Enable Persistent Notifications",
+          "dashboard_language": "Dashboard Language",
+          "allow_chore_assignment": "Allow Chores to be Assigned to Me",
+          "enable_chore_workflow": "Enable Chore Workflow",
+          "enable_gamification": "Enable Gamification",
           "internal_id": "Internal ID"
+        },
+        "data_description": {
+          "allow_chore_assignment": "Creates a profile so tasks can be assigned to you. By default, only an Approve button is shown for one-click completion.",
+          "enable_chore_workflow": "Adds Claim and Disapprove buttons for full workflow (claim → approve/disapprove).",
+          "enable_gamification": "Track points, badges, and rewards for your completed chores.",
+          "dashboard_language": "Language used for your chore dashboard and notifications."
         }
       },
       "add_chore": {
@@ -767,7 +778,17 @@
           "enable_mobile_notifications": "Enable Mobile Notifications",
           "mobile_notify_service": "Notify Service",
           "enable_persistent_notifications": "Enable Persistent Notifications",
+          "dashboard_language": "Dashboard Language",
+          "allow_chore_assignment": "Allow Chores to be Assigned to Me",
+          "enable_chore_workflow": "Enable Chore Workflow",
+          "enable_gamification": "Enable Gamification",
           "internal_id": "Internal ID"
+        },
+        "data_description": {
+          "allow_chore_assignment": "Creates a profile so tasks can be assigned to you. By default, only an Approve button is shown for one-click completion.",
+          "enable_chore_workflow": "Adds Claim and Disapprove buttons for full workflow (claim → approve/disapprove).",
+          "enable_gamification": "Track points, badges, and rewards for your completed chores.",
+          "dashboard_language": "Language used for your chore dashboard and notifications."
         }
       },
       "edit_chore": {
@@ -1258,6 +1279,7 @@
       "duplicate_penalty": "A penalty with this name already exists",
       "duplicate_reward": "A reward with this name already exists",
       "duplicate_bonus": "A bonus with this name already exists",
+      "shadow_kid_name_conflict": "A kid with the parent's name already exists. Cannot create chore assignment profile.",
       "due_date_in_past": "Due date must be in the future.",
       "end_date_in_past": "End Date must be in the future.",
       "end_date_not_after_start_date": "End date must be later than start date",
