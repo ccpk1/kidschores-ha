@@ -149,8 +149,8 @@ async def async_setup_entry(
         if create_gamification:
             entities.append(KidBadgesSensor(coordinator, entry, kid_id, kid_name))
 
-        # Legacy points earned sensors (optional)
-        if show_legacy_entities:
+        # Legacy points earned sensors (optional, gamification only)
+        if show_legacy_entities and create_gamification:
             # Points obtained per Kid during the day
             entities.append(
                 KidPointsEarnedDailySensor(
@@ -172,16 +172,16 @@ async def async_setup_entry(
                 )
             )
 
-        # Legacy maximum points sensor (optional)
-        if show_legacy_entities:
+        # Legacy maximum points sensor (optional, gamification only)
+        if show_legacy_entities and create_gamification:
             entities.append(
                 KidPointsMaxEverSensor(
                     coordinator, entry, kid_id, kid_name, points_label, points_icon
                 )
             )
 
-        # Legacy penalty/bonus applied sensors (optional)
-        if show_legacy_entities:
+        # Legacy penalty/bonus applied sensors (optional, gamification only)
+        if show_legacy_entities and create_gamification:
             # Penalty Applies
             for penalty_id, penalty_info in coordinator.penalties_data.items():
                 penalty_name = kh.get_entity_name_or_log_error(
@@ -315,7 +315,7 @@ async def async_setup_entry(
                 SystemChoreSharedStateSensor(coordinator, entry, chore_id, chore_name)
             )
 
-    # For each Reward, add a KidRewardStatusSensor
+    # For each Reward, add a KidRewardStatusSensor (gamification)
     for reward_id, reward_info in coordinator.rewards_data.items():
         reward_name = kh.get_entity_name_or_log_error(
             "reward", reward_id, reward_info, const.DATA_REWARD_NAME
@@ -323,8 +323,11 @@ async def async_setup_entry(
         if not reward_name:
             continue
 
-        # For each kid, create the reward status sensor
+        # For each kid with gamification enabled, create the reward status sensor
         for kid_id, kid_info in coordinator.kids_data.items():
+            # Skip shadow kids without gamification
+            if not kh.should_create_gamification_entities(coordinator, kid_id):
+                continue
             kid_name = kh.get_entity_name_or_log_error(
                 "kid", kid_id, kid_info, const.DATA_KID_NAME
             )
