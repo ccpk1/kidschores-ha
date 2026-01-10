@@ -12,7 +12,7 @@
 | Phase / Step | Description | % complete | Quick notes |
 |--------------|-------------|------------|-------------|
 | Phase 1 – Data Model | Add parent capability flags + shadow kid constants | 100% | ✅ Complete |
-| Phase 2 – Shadow Kid Creation | Parent form checkboxes + auto-create shadow kid | 0% | Core feature |
+| Phase 2 – Shadow Kid Creation | Parent form checkboxes + auto-create shadow kid | 100% | ✅ Complete |
 | Phase 3 – Button Logic | Conditional button creation based on flags | 0% | Approval-only default |
 | Phase 4 – Gamification Toggle | Skip points/badges when disabled | 0% | Optional feature |
 | Phase 5 – Edge Cases | Notifications, language, deletion cascade | 0% | Critical for UX |
