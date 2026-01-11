@@ -91,7 +91,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         # dynamically translate runtime-generated options (backup file lists).
         # Using emoji prefixes (📄) as language-neutral solution instead.
 
-        errors = {}
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             selection = user_input.get(const.CFOF_DATA_RECOVERY_INPUT_SELECTION)
@@ -389,7 +389,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         import json
         from pathlib import Path
 
-        errors = {}
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             json_text = user_input.get(
@@ -484,7 +484,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
     async def async_step_points_label(self, user_input: dict[str, Any] | None = None):
         """Let the user define a custom label for points."""
-        errors = {}
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             # Validate inputs
@@ -512,7 +512,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     async def async_step_kid_count(self, user_input: dict[str, Any] | None = None):
         """Ask how many kids to define initially."""
-        errors = {}
+        errors: dict[str, str] = {}
         if user_input is not None:
             try:
                 self._kid_count = int(user_input[const.CFOF_KIDS_INPUT_KID_COUNT])
@@ -534,7 +534,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
     async def async_step_kids(self, user_input: dict[str, Any] | None = None):
         """Collect each kid's info using internal_id as the primary key."""
-        errors = {}
+        errors: dict[str, str] = {}
         if user_input is not None:
             # Validate inputs
             errors = fh.validate_kids_inputs(user_input, self._kids_temp)
@@ -576,7 +576,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     async def async_step_parent_count(self, user_input: dict[str, Any] | None = None):
         """Ask how many parents to define initially."""
-        errors = {}
+        errors: dict[str, str] = {}
         if user_input is not None:
             try:
                 self._parents_count = int(
@@ -611,7 +611,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
         Store in self._parents_temp as a dict keyed by internal_id.
         """
-        errors = {}
+        errors: dict[str, str] = {}
         if user_input is not None:
             # Validate inputs
             errors = fh.validate_parents_inputs(user_input, self._parents_temp)
@@ -685,7 +685,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     async def async_step_chore_count(self, user_input: dict[str, Any] | None = None):
         """Ask how many chores to define."""
-        errors = {}
+        errors: dict[str, str] = {}
         if user_input is not None:
             try:
                 self._chore_count = int(user_input[const.CFOF_CHORES_INPUT_CHORE_COUNT])
@@ -716,7 +716,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
         Store in self._chores_temp as a dict keyed by internal_id.
         """
-        errors = {}
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             # Build kids_dict for name→UUID conversion
@@ -772,7 +772,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     async def async_step_badge_count(self, user_input: dict[str, Any] | None = None):
         """Ask how many badges to define."""
-        errors = {}
+        errors: dict[str, str] = {}
         if user_input is not None:
             try:
                 self._badge_count = int(user_input[const.CFOF_BADGES_INPUT_BADGE_COUNT])
@@ -879,7 +879,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     async def async_step_reward_count(self, user_input: dict[str, Any] | None = None):
         """Ask how many rewards to define."""
-        errors = {}
+        errors: dict[str, str] = {}
         if user_input is not None:
             try:
                 self._reward_count = int(
@@ -914,7 +914,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
         Store in self._rewards_temp as a dict keyed by internal_id.
         """
-        errors = {}
+        errors: dict[str, str] = {}
         if user_input is not None:
             errors = fh.validate_rewards_inputs(user_input, self._rewards_temp)
             if not errors:
@@ -943,7 +943,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     async def async_step_penalty_count(self, user_input: dict[str, Any] | None = None):
         """Ask how many penalties to define."""
-        errors = {}
+        errors: dict[str, str] = {}
         if user_input is not None:
             try:
                 self._penalty_count = int(
@@ -978,7 +978,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
         Store in self._penalties_temp as a dict keyed by internal_id.
         """
-        errors = {}
+        errors: dict[str, str] = {}
         if user_input is not None:
             # Validate inputs
             errors = fh.validate_penalties_inputs(user_input, self._penalties_temp)
@@ -1013,7 +1013,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     async def async_step_bonus_count(self, user_input: dict[str, Any] | None = None):
         """Ask how many bonuses to define."""
-        errors = {}
+        errors: dict[str, str] = {}
         if user_input is not None:
             try:
                 self._bonus_count = int(
@@ -1046,7 +1046,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
         Store in self._bonuses_temp as a dict keyed by internal_id.
         """
-        errors = {}
+        errors: dict[str, str] = {}
         if user_input is not None:
             # Validate inputs
             errors = fh.validate_bonuses_inputs(user_input, self._bonuses_temp)
@@ -1081,7 +1081,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ):
         """Ask how many achievements to define initially."""
-        errors = {}
+        errors: dict[str, str] = {}
         if user_input is not None:
             try:
                 self._achievement_count = int(
@@ -1112,7 +1112,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
     async def async_step_achievements(self, user_input: dict[str, Any] | None = None):
         """Collect each achievement's details using internal_id as the key."""
-        errors = {}
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             # Build achievement data with integrated validation
@@ -1161,7 +1161,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ):
         """Ask how many challenges to define initially."""
-        errors = {}
+        errors: dict[str, str] = {}
         if user_input is not None:
             try:
                 self._challenge_count = int(
@@ -1192,7 +1192,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
     async def async_step_challenges(self, user_input: dict[str, Any] | None = None):
         """Collect each challenge's details using internal_id as the key."""
-        errors = {}
+        errors: dict[str, str] = {}
         if user_input is not None:
             # Use the helper to build and validate challenge data
             challenge_data, errors = fh.build_challenges_data(
@@ -1406,7 +1406,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         )
 
         # Config entry contains ONLY system settings (no entity data)
-        entry_data = {}  # Keep empty - standard HA pattern
+        entry_data: dict[str, Any] = {}  # Keep empty - standard HA pattern
 
         # Build all 9 system settings using consolidated helper function
         entry_options = fh.build_all_system_settings_data(self._data)
@@ -1421,7 +1421,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:  # type: ignore[override]
+    ) -> config_entries.FlowResult:
         """Handle reconfiguration (editing system settings via Configure button).
 
         This flow allows users to update all 9 system settings via the standard

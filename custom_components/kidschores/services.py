@@ -56,7 +56,7 @@ CLAIM_CHORE_SCHEMA = vol.Schema(_KID_CHORE_BASE)
 
 APPROVE_CHORE_SCHEMA = vol.Schema(
     {
-        **_PARENT_KID_CHORE_BASE,
+        **_PARENT_KID_CHORE_BASE,  # type: ignore[misc]
         vol.Optional(const.FIELD_POINTS_AWARDED): vol.Coerce(float),
     }
 )

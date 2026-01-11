@@ -1171,9 +1171,11 @@ class PreV50Migrator:
                 if not badge_id:
                     continue
                 badge_info = self.coordinator.badges_data[badge_id]
-                points = float(
-                    badge_info.get(const.DATA_BADGE_TARGET, {}).get(
-                        const.DATA_BADGE_TARGET_THRESHOLD_VALUE, 0
+                points = int(
+                    float(
+                        badge_info.get(const.DATA_BADGE_TARGET, {}).get(
+                            const.DATA_BADGE_TARGET_THRESHOLD_VALUE, 0
+                        )
                     )
                 )
                 if points > highest_points:

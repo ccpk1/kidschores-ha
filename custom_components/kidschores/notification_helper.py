@@ -58,11 +58,11 @@ async def async_send_notification(
 
     if actions:
         data = payload.setdefault(const.NOTIFY_DATA, {})
-        data[const.NOTIFY_ACTIONS] = actions  # type: ignore[index]
+        data[const.NOTIFY_ACTIONS] = actions
 
     if extra_data:
         data = payload.setdefault(const.NOTIFY_DATA, {})
-        data.update(extra_data)  # type: ignore[attr-defined]
+        data.update(extra_data)
 
     # Log full payload for debugging (useful for testing translations)
     const.LOGGER.debug(

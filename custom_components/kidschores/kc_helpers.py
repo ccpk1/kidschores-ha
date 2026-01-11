@@ -48,7 +48,7 @@ from calendar import monthrange
 from datetime import date, datetime, timedelta, tzinfo
 import json
 import os
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.label_registry import async_get as async_get_label_registry
@@ -1137,11 +1137,13 @@ def parse_datetime_to_utc(dt_str: str) -> datetime | None:
     Example:
         "2025-04-07T14:30:00" → datetime.datetime(2025, 4, 7, 19, 30, tzinfo=UTC)
     """
-    return normalize_datetime_input(
+    result = normalize_datetime_input(
         dt_str,
         default_tzinfo=const.DEFAULT_TIME_ZONE,
         return_type=const.HELPER_RETURN_DATETIME_UTC,
     )
+    # Return type is guaranteed to be datetime | None by return_type constant
+    return cast("datetime | None", result)
 
 
 def parse_date_safe(date_str: str) -> date | None:
@@ -1247,8 +1249,8 @@ def normalize_datetime_input(  # pyright: ignore[reportReturnType]
     # Set default timezone if not specified
     tz_info = default_tzinfo or const.DEFAULT_TIME_ZONE
 
-    # Initialize result variable
-    result = None
+    # Initialize result variable with broader type to accommodate all branches
+    result: datetime | date | None = None
 
     # Handle string inputs
     if isinstance(dt_input, str):
@@ -1295,7 +1297,7 @@ def adjust_datetime_by_interval(  # pyright: ignore[reportReturnType]
     require_future: bool = False,
     reference_datetime: str | date | datetime | None = None,
     return_type: str | None = const.HELPER_RETURN_DATETIME,
-) -> str | date | datetime:
+) -> str | date | datetime | None:
     """
     Add or Subtract a time interval to a date or datetime and returns the result in the desired format.
 
@@ -1350,6 +1352,9 @@ def adjust_datetime_by_interval(  # pyright: ignore[reportReturnType]
             "ERROR: Add Interval To DateTime - Could not parse base_date."
         )
         return None
+
+    # Type guard: normalize_datetime_input with HELPER_RETURN_DATETIME returns datetime
+    base_dt = cast("datetime", base_dt)
 
     # Calculate the basic interval addition.
     if interval_unit == const.TIME_UNIT_MINUTES:
@@ -1434,13 +1439,15 @@ def adjust_datetime_by_interval(  # pyright: ignore[reportReturnType]
     # Handle require_future logic
     if require_future:
         # Process reference_datetime using normalize_datetime_input
-        reference_dt = (
+        # Use provided reference_datetime or current time if None
+        ref_dt_input = reference_datetime or get_now_local_time()
+        reference_dt: datetime = cast(
+            "datetime",
             normalize_datetime_input(
-                reference_datetime,
+                ref_dt_input,
                 default_tzinfo=local_tz,
                 return_type=const.HELPER_RETURN_DATETIME,
-            )
-            or get_now_local_time()
+            ),
         )
 
         # Convert to UTC for consistent comparison
@@ -1561,7 +1568,7 @@ def get_next_scheduled_datetime(
     require_future: bool = True,
     reference_datetime: str | date | datetime | None = None,
     return_type: str | None = const.HELPER_RETURN_DATETIME,
-) -> date | datetime | str:
+) -> date | datetime | str | None:
     """
     Calculates the next scheduled datetime based on an interval type from a given start date.
 
@@ -1607,8 +1614,11 @@ def get_next_scheduled_datetime(
     local_tz = const.DEFAULT_TIME_ZONE
 
     # Use normalize_datetime_input for consistent handling of base_date
-    base_dt: str | date | datetime | None = normalize_datetime_input(
-        base_date, default_tzinfo=local_tz, return_type=const.HELPER_RETURN_DATETIME
+    base_dt: datetime | None = cast(
+        "datetime | None",
+        normalize_datetime_input(
+            base_date, default_tzinfo=local_tz, return_type=const.HELPER_RETURN_DATETIME
+        ),
     )
 
     if base_dt is None:
@@ -1623,106 +1633,119 @@ def get_next_scheduled_datetime(
         Calculate the next datetime based on the interval type using add_interval_to_datetime.
         """
         if interval_type in {const.FREQUENCY_DAILY}:
-            return adjust_datetime_by_interval(
+            result = adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_DAYS,
                 1,
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
+            return cast("datetime", result)
         if interval_type in {const.FREQUENCY_WEEKLY, const.FREQUENCY_CUSTOM_1_WEEK}:
-            return adjust_datetime_by_interval(
+            result = adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_WEEKS,
                 1,
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
+            return cast("datetime", result)
         if interval_type == const.FREQUENCY_BIWEEKLY:
-            return adjust_datetime_by_interval(
+            result = adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_WEEKS,
                 2,
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
+            return cast("datetime", result)
         if interval_type in {const.FREQUENCY_MONTHLY, const.FREQUENCY_CUSTOM_1_MONTH}:
-            return adjust_datetime_by_interval(
+            result = adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_MONTHS,
                 1,
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
+            return cast("datetime", result)
         if interval_type == const.FREQUENCY_QUARTERLY:
-            return adjust_datetime_by_interval(
+            result = adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_QUARTERS,
                 1,
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
+            return cast("datetime", result)
         if interval_type in {const.FREQUENCY_YEARLY, const.FREQUENCY_CUSTOM_1_YEAR}:
-            return adjust_datetime_by_interval(
+            result = adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_YEARS,
                 1,
                 end_of_period=None,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
+            return cast("datetime", result)
         if interval_type == const.PERIOD_DAY_END:
-            return adjust_datetime_by_interval(
+            result = adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_DAYS,
                 0,
                 end_of_period=const.PERIOD_DAY_END,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
+            return cast("datetime", result)
         if interval_type == const.PERIOD_WEEK_END:
-            return adjust_datetime_by_interval(
+            result = adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_DAYS,
                 0,
                 end_of_period=const.PERIOD_WEEK_END,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
+            return cast("datetime", result)
         if interval_type == const.PERIOD_MONTH_END:
-            return adjust_datetime_by_interval(
+            result = adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_DAYS,
                 0,
                 end_of_period=const.PERIOD_MONTH_END,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
+            return cast("datetime", result)
         if interval_type == const.PERIOD_QUARTER_END:
-            return adjust_datetime_by_interval(
+            result = adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_DAYS,
                 0,
                 end_of_period=const.PERIOD_QUARTER_END,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
+            return cast("datetime", result)
         if interval_type == const.PERIOD_YEAR_END:
-            return adjust_datetime_by_interval(
+            result = adjust_datetime_by_interval(
                 base_dt,
                 const.TIME_UNIT_DAYS,
                 0,
                 end_of_period=const.PERIOD_YEAR_END,
                 return_type=const.HELPER_RETURN_DATETIME,
             )
+            return cast("datetime", result)
         raise ValueError(f"Unsupported interval type: {interval_type}")
 
     # Calculate the initial next scheduled datetime.
     result = calculate_next_interval(base_dt)
 
     # Process reference_datetime using normalize_datetime_input
-    reference_dt = (
+    # Use provided reference_datetime or current time if None
+    ref_dt_input = reference_datetime or get_now_local_time()
+    reference_dt: datetime = cast(
+        "datetime",
         normalize_datetime_input(
-            reference_datetime,
+            ref_dt_input,
             default_tzinfo=local_tz,
             return_type=const.HELPER_RETURN_DATETIME,
-        )
-        or get_now_local_time()
+        ),
     )
 
     # Convert a copy of result and reference_dt to UTC for future comparison.
@@ -1746,13 +1769,15 @@ def get_next_scheduled_datetime(
             # Check if we're in a loop (result didn't change as can happen with period ends)
             if result == previous_result:
                 # Break the loop by adding 1 hour and recalculating
-                result = adjust_datetime_by_interval(
+                temp_result = adjust_datetime_by_interval(
                     result,
                     const.TIME_UNIT_HOURS,
                     1,
                     end_of_period=None,
                     return_type=const.HELPER_RETURN_DATETIME,
                 )
+                # Result type is guaranteed to be datetime with HELPER_RETURN_DATETIME
+                result = cast("datetime", temp_result)
                 result = calculate_next_interval(result)
 
             result_utc = dt_util.as_utc(result)
@@ -1908,7 +1933,8 @@ def cleanup_period_data(
         require_future=False,
         return_type=const.HELPER_RETURN_DATETIME,
     )
-    cutoff_weekly = cutoff_date.strftime("%Y-W%V")
+    # Return type is guaranteed to be datetime with HELPER_RETURN_DATETIME
+    cutoff_weekly = cast("datetime", cutoff_date).strftime("%Y-W%V")
     weekly_data = periods_data.get(period_keys["weekly"], {})
     for week in list(weekly_data.keys()):
         if week < cutoff_weekly:
@@ -1922,7 +1948,8 @@ def cleanup_period_data(
         require_future=False,
         return_type=const.HELPER_RETURN_DATETIME,
     )
-    cutoff_monthly = cutoff_date.strftime("%Y-%m")
+    # Return type is guaranteed to be datetime with HELPER_RETURN_DATETIME
+    cutoff_monthly = cast("datetime", cutoff_date).strftime("%Y-%m")
     monthly_data = periods_data.get(period_keys["monthly"], {})
     for month in list(monthly_data.keys()):
         if month < cutoff_monthly:
@@ -1935,8 +1962,8 @@ def cleanup_period_data(
         if year < cutoff_yearly:
             del yearly_data[year]
 
-    self._persist()  # type: ignore[attr-defined]
-    self.async_set_updated_data(self._data)  # type: ignore[attr-defined]
+    self._persist()
+    self.async_set_updated_data(self._data)
 
 
 # 📝 -------- Dashboard Translation Loaders --------

@@ -99,7 +99,7 @@ async def async_setup_entry(
     )
     points_icon = entry.options.get(const.CONF_POINTS_ICON, const.DEFAULT_POINTS_ICON)
     show_legacy_entities = entry.options.get(const.CONF_SHOW_LEGACY_ENTITIES, False)
-    entities = []
+    entities: list[SensorEntity] = []
 
     # Legacy pending approval sensors (optional)
     if show_legacy_entities:
@@ -1089,7 +1089,7 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
             (next_higher_badge_id, const.ATTR_NEXT_HIGHER_BADGE_EID),
             (next_lower_badge_id, const.ATTR_NEXT_LOWER_BADGE_EID),
         ]
-        badge_entity_ids = {}
+        badge_entity_ids: dict[str, str | None] = {}
         try:
             entity_registry = async_get(self.hass)
             for badge_id, attr_name in badge_eid_map:
@@ -2668,7 +2668,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
 
         # Translations cache - loaded async on entity add
-        self._ui_translations = {}
+        self._ui_translations: dict[str, Any] = {}
         self._current_language = const.DEFAULT_DASHBOARD_LANGUAGE
 
     async def async_added_to_hass(self) -> None:
@@ -3466,7 +3466,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             )
 
         # Sort achievements by name (alphabetically)
-        achievements_attr.sort(key=lambda a: a.get(const.ATTR_NAME, "").lower())
+        achievements_attr.sort(key=lambda a: (a.get(const.ATTR_NAME) or "").lower())
 
         # Challenges assigned to this kid
         challenges_attr = []
@@ -3495,7 +3495,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             )
 
         # Sort challenges by name (alphabetically)
-        challenges_attr.sort(key=lambda c: c.get(const.ATTR_NAME, "").lower())
+        challenges_attr.sort(key=lambda c: (c.get(const.ATTR_NAME) or "").lower())
 
         # Point adjustment buttons for this kid
         # NOTE: This section MUST iterate entity_registry because we need to find ALL buttons
@@ -3529,7 +3529,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
                         }
                     )
             # Sort by delta value (negatives first, then positives, all ascending)
-            temp_buttons.sort(key=lambda x: x["delta"])
+            temp_buttons.sort(key=lambda x: cast("int", x["delta"]))
             # Remove the delta key used for sorting
             points_buttons_attr = [
                 {"eid": btn["eid"], "name": btn["name"]} for btn in temp_buttons
@@ -3543,7 +3543,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         # Build chores_by_label dictionary
         # Group chores by label, with entity IDs sorted by due date
-        chores_by_label = {}
+        chores_by_label: dict[str, Any] = {}
         for chore in chores_attr:
             labels = chore.get(const.ATTR_CHORE_LABELS, [])
             chore_eid = chore.get(const.ATTR_EID)

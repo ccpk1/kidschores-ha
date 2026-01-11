@@ -45,7 +45,7 @@ async def async_setup_entry(
         const.CONF_POINTS_LABEL, const.DEFAULT_POINTS_LABEL
     )
 
-    entities = []
+    entities: list[ButtonEntity] = []
 
     # Create buttons for chores (Claim, Approve & Disapprove)
     for chore_id, chore_info in coordinator.chores_data.items():

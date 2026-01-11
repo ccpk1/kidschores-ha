@@ -196,7 +196,6 @@ from tests.helpers.constants import (
     REWARD_STATE_VALUES,
     SCHEMA_VERSION_STORAGE_ONLY,
     SENSOR_KC_EID_SUFFIX_UI_DASHBOARD_HELPER,
->>>>>>> 20260109-beta2-fixes
     # Translation keys (for error assertions)
     TRANS_KEY_ERROR_CHORE_ALREADY_APPROVED,
     construct_entity_id,
@@ -423,11 +422,8 @@ __all__ = [
     "REWARD_STATE_CLAIMED",
     "REWARD_STATE_NOT_CLAIMED",
     "REWARD_STATE_VALUES",
-<<<<<<< HEAD
-    "SENSOR_KC_EID_SUFFIX_UI_DASHBOARD_HELPER",
-=======
     "SCHEMA_VERSION_STORAGE_ONLY",
->>>>>>> 20260109-beta2-fixes
+    "SENSOR_KC_EID_SUFFIX_UI_DASHBOARD_HELPER",
     # Constants - Translation keys
     "TRANS_KEY_ERROR_CHORE_ALREADY_APPROVED",
     # Setup

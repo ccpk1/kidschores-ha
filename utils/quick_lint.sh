@@ -18,7 +18,12 @@ if [[ "$1" == "--fix" ]]; then
     ruff format custom_components/kidschores tests
     ruff_format_exit=$?
 
-    if [ $ruff_check_exit -eq 0 ] && [ $ruff_format_exit -eq 0 ]; then
+    echo ""
+    echo "🔍 Running mypy type checking..."
+    mypy custom_components/kidschores
+    mypy_exit=$?
+
+    if [ $ruff_check_exit -eq 0 ] && [ $ruff_format_exit -eq 0 ] && [ $mypy_exit -eq 0 ]; then
         echo ""
         echo "✅ All auto-fixes applied! Verify changes and commit."
         exit 0
@@ -38,7 +43,12 @@ else
     ruff format --check custom_components/kidschores tests
     ruff_format_exit=$?
 
-    if [ $ruff_check_exit -eq 0 ] && [ $ruff_format_exit -eq 0 ]; then
+    echo ""
+    echo "🔍 Running mypy type checking..."
+    mypy custom_components/kidschores
+    mypy_exit=$?
+
+    if [ $ruff_check_exit -eq 0 ] && [ $ruff_format_exit -eq 0 ] && [ $mypy_exit -eq 0 ]; then
         echo ""
         echo "✅ All checks passed! Ready to commit."
         exit 0

@@ -14,7 +14,7 @@ Ensures consistency and reloads the integration upon changes.
 import asyncio
 import contextlib
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 import uuid
 
 from homeassistant import config_entries
@@ -43,14 +43,14 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
     def __init__(self, _config_entry: config_entries.ConfigEntry):
         """Initialize the options flow."""
-        self._entry_options = {}
+        self._entry_options: dict[str, Any] = {}
         self._action = None
         self._entity_type = None
         self._reload_needed = False  # Track if reload is needed
         self._delete_confirmed = False  # Track backup deletion confirmation
         self._restore_confirmed = False  # Track backup restoration confirmation
-        self._backup_to_delete = None  # Track backup filename to delete
-        self._backup_to_restore = None  # Track backup filename to restore
+        self._backup_to_delete: str | None = None  # Track backup filename to delete
+        self._backup_to_restore: str | None = None  # Track backup filename to restore
         self._chore_being_edited: dict[str, Any] | None = (
             None  # For per-kid date editing
         )
@@ -132,7 +132,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_manage_points(self, user_input=None):
         """Let user edit the points label/icon after initial setup."""
-        errors = {}
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             # Validate inputs
@@ -217,8 +217,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     )
                 }
             ),
-            description_placeholders={  # type: ignore[arg-type]
-                const.OPTIONS_FLOW_PLACEHOLDER_ENTITY_TYPE: self._entity_type
+            description_placeholders={
+                const.OPTIONS_FLOW_PLACEHOLDER_ENTITY_TYPE: self._entity_type or ""
             },
         )
 
@@ -256,7 +256,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_ENTITY)
 
             # Store internal_id in context for later use
-            self.context[  # type: ignore[typeddict-unknown-key]
+            cast("dict[str, Any]", self.context)[
                 const.OPTIONS_FLOW_INPUT_INTERNAL_ID
             ] = internal_id
 
@@ -333,10 +333,13 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     )
                 }
             ),
-            description_placeholders={  # type: ignore[arg-type]
-                const.OPTIONS_FLOW_PLACEHOLDER_ENTITY_TYPE: self._entity_type,
-                const.OPTIONS_FLOW_PLACEHOLDER_ACTION: self._action,
-            },
+            description_placeholders=cast(
+                "dict[str, str]",
+                {
+                    const.OPTIONS_FLOW_PLACEHOLDER_ENTITY_TYPE: self._entity_type,
+                    const.OPTIONS_FLOW_PLACEHOLDER_ACTION: self._action,
+                },
+            ),
         )
 
     def _get_entity_dict(self):
@@ -354,8 +357,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             const.OPTIONS_FLOW_DIC_ACHIEVEMENT: const.DATA_ACHIEVEMENTS,
             const.OPTIONS_FLOW_DIC_CHALLENGE: const.DATA_CHALLENGES,
         }
-        key = entity_type_to_data.get(self._entity_type)  # type: ignore[assignment]
-        if key is None:
+        key = entity_type_to_data.get(self._entity_type or "", "")
+        if not key:
             const.LOGGER.error(
                 "Unknown entity type '%s'. Cannot retrieve entity dictionary",
                 self._entity_type,
@@ -370,7 +373,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_add_kid(self, user_input=None):
         """Add a new kid."""
         coordinator = self._get_coordinator()
-        errors = {}
+        errors: dict[str, str] = {}
         kids_dict = coordinator.kids_data
 
         if user_input is not None:
@@ -417,7 +420,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_add_parent(self, user_input=None):
         """Add a new parent."""
         coordinator = self._get_coordinator()
-        errors = {}
+        errors: dict[str, str] = {}
         parents_dict = coordinator.parents_data
 
         if user_input is not None:
@@ -489,7 +492,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_add_chore(self, user_input=None):
         """Add a new chore."""
         coordinator = self._get_coordinator()
-        errors = {}
+        errors: dict[str, str] = {}
         chores_dict = coordinator.chores_data
 
         if user_input is not None:
@@ -550,9 +553,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         """Entry point to add a new badge."""
         if user_input is not None:
             badge_type = user_input[const.CFOF_BADGES_INPUT_TYPE]
-            self.context[  # type: ignore[typeddict-unknown-key]
-                const.CFOF_BADGES_INPUT_TYPE
-            ] = badge_type
+            cast("dict[str, Any]", self.context)[const.CFOF_BADGES_INPUT_TYPE] = (
+                badge_type
+            )
 
             # Redirect to the appropriate step based on badge type
             if badge_type == const.BADGE_TYPE_CUMULATIVE:
@@ -683,7 +686,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         # Determine internal_id (UUID-based primary key, persists across renames)
         if is_edit:
             # Edit mode: retrieve internal_id from context (set when user selected badge to edit)
-            internal_id = self.context.get(const.CFOF_GLOBAL_INPUT_INTERNAL_ID)
+            # Cast from context dict which returns object type
+            internal_id: str | None = cast(
+                "str | None", self.context.get(const.CFOF_GLOBAL_INPUT_INTERNAL_ID)
+            )
             # Validate that the badge still exists (defensive: could have been deleted by another process)
             if not internal_id or internal_id not in badges_dict:
                 const.LOGGER.error("Invalid Internal ID for editing badge.")
@@ -692,7 +698,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             # Add mode: generate new UUID and store in context for form resubmissions
             # Context persists across form validation errors (same internal_id on retry)
             internal_id = str(uuid.uuid4())
-            self.context[  # type: ignore[typeddict-unknown-key]
+            # Cast context to dict[str, Any] since HA's ConfigFlowContext doesn't allow arbitrary keys
+            # but we need to store internal_id for form resubmission across validation errors
+            cast("dict[str, Any]", self.context)[
                 const.CFOF_GLOBAL_INPUT_INTERNAL_ID
             ] = internal_id
 
@@ -787,7 +795,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_add_reward(self, user_input=None):
         """Add a new reward."""
         coordinator = self._get_coordinator()
-        errors = {}
+        errors: dict[str, str] = {}
         rewards_dict = coordinator.rewards_data
 
         if user_input is not None:
@@ -822,7 +830,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_add_bonus(self, user_input=None):
         """Add a new bonus."""
         coordinator = self._get_coordinator()
-        errors = {}
+        errors: dict[str, str] = {}
         bonuses_dict = coordinator.bonuses_data
 
         if user_input is not None:
@@ -857,7 +865,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_add_penalty(self, user_input=None):
         """Add a new penalty."""
         coordinator = self._get_coordinator()
-        errors = {}
+        errors: dict[str, str] = {}
         penalties_dict = coordinator.penalties_data
 
         if user_input is not None:
@@ -894,7 +902,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_add_achievement(self, user_input=None):
         """Add a new achievement."""
         coordinator = self._get_coordinator()
-        errors = {}
+        errors: dict[str, str] = {}
         achievements_dict = coordinator.achievements_data
         chores_dict = coordinator.chores_data
 
@@ -948,7 +956,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_add_challenge(self, user_input=None):
         """Add a new challenge."""
         coordinator = self._get_coordinator()
-        errors = {}
+        errors: dict[str, str] = {}
         chores_dict = coordinator.chores_data
 
         if user_input is not None:
@@ -1020,7 +1028,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         """Edit an existing kid."""
         coordinator = self._get_coordinator()
 
-        errors = {}
+        errors: dict[str, str] = {}
         kids_dict = coordinator.kids_data
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
 
@@ -1109,7 +1117,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_edit_parent(self, user_input=None):
         """Edit an existing parent."""
         coordinator = self._get_coordinator()
-        errors = {}
+        errors: dict[str, str] = {}
         parents_dict = coordinator.parents_data
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
 
@@ -1260,9 +1268,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_edit_chore(self, user_input=None):
         """Edit an existing chore."""
         coordinator = self._get_coordinator()
-        errors = {}
+        errors: dict[str, str] = {}
         chores_dict = coordinator.chores_data
-        internal_id = self.context.get(const.DATA_INTERNAL_ID)
+        internal_id = cast("str | None", self.context.get(const.DATA_INTERNAL_ID))
 
         if not internal_id or internal_id not in chores_dict:
             const.LOGGER.error("Edit Chore - Invalid Internal ID '%s'", internal_id)
@@ -1402,7 +1410,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 # Multiple kids: show per-kid dates step
                 # Store chore data AND the raw template date for the per-kid dates step
                 self._chore_being_edited = updated_chore_data
-                self._chore_being_edited[const.DATA_INTERNAL_ID] = internal_id  # type: ignore[reportOptionalSubscript]
+                self._chore_being_edited[const.DATA_INTERNAL_ID] = internal_id
                 # Store template date separately since build_chores_data cleared it
                 self._chore_template_date_raw = raw_template_date
                 return await self.async_step_edit_chore_per_kid_dates()
@@ -1601,7 +1609,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             # Process per-kid dates from user input
             # Field keys use kid names for readability; map back to IDs for storage
-            per_kid_due_dates = {}
+            per_kid_due_dates: dict[str, str | None] = {}
             for kid_name, kid_id in name_to_id.items():
                 # Check if user wants to clear this kid's date
                 clear_field_name = f"clear_{kid_name}"
@@ -1833,7 +1841,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_edit_reward(self, user_input=None):
         """Edit an existing reward."""
         coordinator = self._get_coordinator()
-        errors = {}
+        errors: dict[str, str] = {}
         rewards_dict = coordinator.rewards_data
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
 
@@ -1882,7 +1890,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_edit_penalty(self, user_input=None):
         """Edit an existing penalty."""
         coordinator = self._get_coordinator()
-        errors = {}
+        errors: dict[str, str] = {}
         penalties_dict = coordinator.penalties_data
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
 
@@ -1931,7 +1939,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_edit_bonus(self, user_input=None):
         """Edit an existing bonus."""
         coordinator = self._get_coordinator()
-        errors = {}
+        errors: dict[str, str] = {}
         bonuses_dict = coordinator.bonuses_data
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
 
@@ -1980,7 +1988,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_edit_achievement(self, user_input=None):
         """Edit an existing achievement."""
         coordinator = self._get_coordinator()
-        errors = {}
+        errors: dict[str, str] = {}
         achievements_dict = coordinator.achievements_data
 
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
@@ -2066,9 +2074,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_edit_challenge(self, user_input=None):
         """Edit an existing challenge."""
         coordinator = self._get_coordinator()
-        errors = {}
+        errors: dict[str, str] = {}
         challenges_dict = coordinator.challenges_data
-        internal_id = self.context.get(const.DATA_INTERNAL_ID)
+        internal_id = cast("str | None", self.context.get(const.DATA_INTERNAL_ID))
 
         if not internal_id or internal_id not in challenges_dict:
             const.LOGGER.error("Edit Challenge - Invalid Internal ID '%s'", internal_id)
@@ -2571,7 +2579,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         """Handle restore options from general options menu (same as config flow)."""
         from pathlib import Path
 
-        errors = {}
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             selection = user_input.get(const.CFOF_DATA_RECOVERY_INPUT_SELECTION)
@@ -2729,7 +2737,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         import json
         from pathlib import Path
 
-        errors = {}
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             json_text = user_input.get(
@@ -2969,6 +2977,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             if selection and selection.startswith("🗑️"):
                 filename = self._extract_filename_from_selection(selection)
                 if filename:
+                    assert filename is not None  # Type narrowing for mypy
                     self._backup_to_delete = filename
                     return await self.async_step_delete_backup_confirm()
 
@@ -3030,6 +3039,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             if selection and selection.startswith("🔄"):
                 filename = self._extract_filename_from_selection(selection)
                 if filename:
+                    assert filename is not None  # Type narrowing for mypy
                     self._backup_to_restore = filename
                     return await self.async_step_restore_backup_confirm()
 

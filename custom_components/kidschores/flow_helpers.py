@@ -83,7 +83,7 @@ import datetime
 import json
 import os
 import shutil
-from typing import Any
+from typing import Any, cast
 import uuid
 
 from homeassistant.core import HomeAssistant
@@ -244,7 +244,7 @@ async def build_kid_schema(
                 default=default_mobile_notify_service or const.SENTINEL_EMPTY,
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=notify_options,
+                    options=cast("list[selector.SelectOptionDict]", notify_options),
                     mode=selector.SelectSelectorMode.DROPDOWN,
                     multiple=False,
                 )
@@ -391,7 +391,7 @@ async def build_parent_schema(
                 default=default_associated_kids or [],
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=kid_options,
+                    options=cast("list[selector.SelectOptionDict]", kid_options),
                     translation_key=const.TRANS_KEY_FLOW_HELPERS_ASSOCIATED_KIDS,
                     multiple=True,
                 )
@@ -405,7 +405,7 @@ async def build_parent_schema(
                 default=default_mobile_notify_service or const.SENTINEL_EMPTY,
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=notify_options,
+                    options=cast("list[selector.SelectOptionDict]", notify_options),
                     mode=selector.SelectSelectorMode.DROPDOWN,
                     multiple=False,
                 )
@@ -639,7 +639,9 @@ def build_chore_schema(kids_dict, default=None):
             ),
         ): selector.SelectSelector(
             selector.SelectSelectorConfig(
-                options=const.COMPLETION_CRITERIA_OPTIONS,
+                options=cast(
+                    "list[selector.SelectOptionDict]", const.COMPLETION_CRITERIA_OPTIONS
+                ),
                 translation_key=const.TRANS_KEY_FLOW_HELPERS_COMPLETION_CRITERIA,
                 mode=selector.SelectSelectorMode.DROPDOWN,
             )
@@ -652,7 +654,9 @@ def build_chore_schema(kids_dict, default=None):
             ),
         ): selector.SelectSelector(
             selector.SelectSelectorConfig(
-                options=const.APPROVAL_RESET_TYPE_OPTIONS,
+                options=cast(
+                    "list[selector.SelectOptionDict]", const.APPROVAL_RESET_TYPE_OPTIONS
+                ),
                 translation_key=const.TRANS_KEY_FLOW_HELPERS_APPROVAL_RESET_TYPE,
                 mode=selector.SelectSelectorMode.DROPDOWN,
             )
@@ -665,7 +669,10 @@ def build_chore_schema(kids_dict, default=None):
             ),
         ): selector.SelectSelector(
             selector.SelectSelectorConfig(
-                options=const.APPROVAL_RESET_PENDING_CLAIM_ACTION_OPTIONS,
+                options=cast(
+                    "list[selector.SelectOptionDict]",
+                    const.APPROVAL_RESET_PENDING_CLAIM_ACTION_OPTIONS,
+                ),
                 translation_key=const.TRANS_KEY_FLOW_HELPERS_APPROVAL_RESET_PENDING_CLAIM_ACTION,
                 mode=selector.SelectSelectorMode.DROPDOWN,
             )
@@ -678,7 +685,10 @@ def build_chore_schema(kids_dict, default=None):
             ),
         ): selector.SelectSelector(
             selector.SelectSelectorConfig(
-                options=const.OVERDUE_HANDLING_TYPE_OPTIONS,
+                options=cast(
+                    "list[selector.SelectOptionDict]",
+                    const.OVERDUE_HANDLING_TYPE_OPTIONS,
+                ),
                 translation_key=const.TRANS_KEY_FLOW_HELPERS_OVERDUE_HANDLING_TYPE,
                 mode=selector.SelectSelectorMode.DROPDOWN,
             )
@@ -734,10 +744,13 @@ def build_chore_schema(kids_dict, default=None):
             ),
         ): selector.SelectSelector(
             selector.SelectSelectorConfig(
-                options=[
-                    {"value": key, "label": label}
-                    for key, label in const.WEEKDAY_OPTIONS.items()
-                ],
+                options=cast(
+                    "list[selector.SelectOptionDict]",
+                    [
+                        {"value": key, "label": label}
+                        for key, label in const.WEEKDAY_OPTIONS.items()
+                    ],
+                ),
                 multiple=True,
                 translation_key=const.TRANS_KEY_FLOW_HELPERS_APPLICABLE_DAYS,
             )
@@ -1742,7 +1755,9 @@ def build_badge_common_schema(
                         default=default_target_type,
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
-                            options=target_type_options,
+                            options=cast(
+                                "list[selector.SelectOptionDict]", target_type_options
+                            ),
                             mode=selector.SelectSelectorMode.DROPDOWN,
                             translation_key=const.TRANS_KEY_CFOF_BADGE_TARGET_TYPE,
                         )
@@ -1911,7 +1926,7 @@ def build_badge_common_schema(
                     else [],
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=options,
+                        options=cast("list[selector.SelectOptionDict]", options),
                         multiple=True,
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         translation_key=const.TRANS_KEY_CFOF_BADGE_SELECTED_CHORES,
@@ -1943,7 +1958,7 @@ def build_badge_common_schema(
                     else [],
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=options,
+                        options=cast("list[selector.SelectOptionDict]", options),
                         multiple=True,
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         translation_key=const.TRANS_KEY_CFOF_BADGE_ASSIGNED_TO,
@@ -2020,7 +2035,9 @@ def build_badge_common_schema(
                     else [],
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=award_items_options,
+                        options=cast(
+                            "list[selector.SelectOptionDict]", award_items_options
+                        ),
                         multiple=True,
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         translation_key=const.TRANS_KEY_CFOF_BADGE_AWARD_ITEMS,
@@ -2152,7 +2169,10 @@ def build_badge_common_schema(
                         default=default_recurring_frequency,
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
-                            options=const.BADGE_RESET_SCHEDULE_OPTIONS,
+                            options=cast(
+                                "list[selector.SelectOptionDict]",
+                                const.BADGE_RESET_SCHEDULE_OPTIONS,
+                            ),
                             mode=selector.SelectSelectorMode.DROPDOWN,
                             translation_key=const.TRANS_KEY_CFOF_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY,
                         )
@@ -2721,7 +2741,7 @@ def build_challenges_data(
     This uses the COMPLEX pattern (integrated validation) because challenges
     have date validation that requires checking relationships between fields.
     """
-    errors = {}
+    errors: dict[str, str] = {}
 
     # Validate required fields
     if not user_input.get(const.CFOF_CHALLENGES_INPUT_NAME, "").strip():
@@ -2923,7 +2943,7 @@ def build_achievement_schema(kids_dict, chores_dict, default=None):
                 default=default_assigned_kids,
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=kid_options,
+                    options=cast("list[selector.SelectOptionDict]", kid_options),
                     translation_key=const.TRANS_KEY_FLOW_HELPERS_ASSIGNED_KIDS,
                     multiple=True,
                 )
@@ -2935,7 +2955,10 @@ def build_achievement_schema(kids_dict, chores_dict, default=None):
                 ),
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=const.ACHIEVEMENT_TYPE_OPTIONS,
+                    options=cast(
+                        "list[selector.SelectOptionDict]",
+                        const.ACHIEVEMENT_TYPE_OPTIONS,
+                    ),
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
@@ -2945,7 +2968,7 @@ def build_achievement_schema(kids_dict, chores_dict, default=None):
                 default=default_selected_chore,
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=chore_options,
+                    options=cast("list[selector.SelectOptionDict]", chore_options),
                     mode=selector.SelectSelectorMode.DROPDOWN,
                     multiple=False,
                 )
@@ -3042,7 +3065,7 @@ def build_challenge_schema(kids_dict, chores_dict, default=None):
                 const.CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS, default=default_assigned_kids
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=kid_options,
+                    options=cast("list[selector.SelectOptionDict]", kid_options),
                     translation_key=const.TRANS_KEY_FLOW_HELPERS_ASSIGNED_KIDS,
                     multiple=True,
                 )
@@ -3054,7 +3077,9 @@ def build_challenge_schema(kids_dict, chores_dict, default=None):
                 ),
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=const.CHALLENGE_TYPE_OPTIONS,
+                    options=cast(
+                        "list[selector.SelectOptionDict]", const.CHALLENGE_TYPE_OPTIONS
+                    ),
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
@@ -3064,7 +3089,7 @@ def build_challenge_schema(kids_dict, chores_dict, default=None):
                 default=default_selected_chore,
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=chore_options,
+                    options=cast("list[selector.SelectOptionDict]", chore_options),
                     mode=selector.SelectSelectorMode.DROPDOWN,
                     multiple=False,
                 )
@@ -3454,7 +3479,7 @@ async def discover_backups(hass: HomeAssistant, storage_manager) -> list[dict]:
     File naming format: kidschores_data_YYYY-MM-DD_HH-MM-SS_<tag>
     Invalid filenames are skipped with debug log.
     """
-    backups_list = []
+    backups_list: list[dict[str, Any]] = []
     storage_dir = hass.config.path(".storage")
 
     try:
@@ -3525,7 +3550,9 @@ async def discover_backups(hass: HomeAssistant, storage_manager) -> list[dict]:
         const.LOGGER.error("Failed to scan storage directory: %s", ex)
 
     # Sort by timestamp (newest first)
-    backups_list.sort(key=lambda b: b["timestamp"], reverse=True)
+    backups_list.sort(
+        key=lambda b: cast("datetime.datetime", b["timestamp"]), reverse=True
+    )
     return backups_list
 
 

@@ -37,6 +37,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     Manages data primarily using internal_id for entities.
     """
 
+    config_entry: ConfigEntry  # Override base class to enforce non-None
+
     def __init__(
         self,
         hass: HomeAssistant,
@@ -4957,7 +4959,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 kid_assigned_chores.append(chore_id)
 
         # Mapping of target_type to handler and parameters
-        target_type_handlers = {
+        target_type_handlers: dict[str, tuple[Any, dict[str, Any]]] = {
             const.BADGE_TARGET_THRESHOLD_TYPE_POINTS: (
                 self._handle_badge_target_points,
                 {},
@@ -5691,7 +5693,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self, award_items, rewards_dict, bonuses_dict, penalties_dict
     ):
         """Process award_items and return dicts of items to award or penalize."""
-        to_award = {
+        to_award: dict[str, list[str]] = {
             const.AWARD_ITEMS_KEY_REWARDS: [],
             const.AWARD_ITEMS_KEY_BONUSES: [],
         }
@@ -6505,9 +6507,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                             duration = (end_dt_utc - start_dt_utc).days
 
                             # Set new start date by subtracting the same duration from new end date
+                            # Cast ensures new_end_date_iso is str | date | datetime (not None)
                             new_start_date_iso = str(
                                 kh.adjust_datetime_by_interval(
-                                    new_end_date_iso,
+                                    cast("str | date | datetime", new_end_date_iso),
                                     interval_unit=const.TIME_UNIT_DAYS,
                                     delta=-duration,
                                     require_future=False,  # Allow past dates for calculation
@@ -6771,7 +6774,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                             if is_daily or is_custom_1_day:
                                 # This is special case where if you set a daily badge, you don't want it to get scheduled with
                                 # tomorrow as the end date.
-                                new_end_date_iso = today_local_iso
+                                new_end_date_iso: str | date | None = today_local_iso
                             elif recurring_frequency == const.FREQUENCY_CUSTOM:
                                 # Handle other custom frequencies
                                 custom_interval = reset_schedule.get(
@@ -7105,7 +7108,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         reference_datetime_iso = max(today_local_iso, base_date_iso)
 
         # Initialize the variables for the next maintenance end date and grace end date
-        next_end = None
+        next_end: str | date | None = None
         next_grace = None
 
         # First-Time Assignment:
@@ -7149,8 +7152,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 )
 
             # Compute the grace period end date by adding the grace period (in days) to the maintenance end date
+            # Cast ensures next_end is str | date (not None) for the interval calculation
             next_grace = kh.adjust_datetime_by_interval(
-                next_end,
+                cast("str | date", next_end),
                 const.TIME_UNIT_DAYS,
                 grace_days,
                 require_future=True,
