@@ -336,8 +336,9 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             if storage_path.exists():
                 # Create storage manager only for safety backup creation
                 storage_manager = KidsChoresStorageManager(self.hass)
+                # Note: config_entry not available yet in config flow, settings will be defaults
                 safety_backup = await fh.create_timestamped_backup(
-                    self.hass, storage_manager, const.BACKUP_TAG_RECOVERY
+                    self.hass, storage_manager, const.BACKUP_TAG_RECOVERY, None
                 )
                 if safety_backup:
                     const.LOGGER.info(
@@ -362,16 +363,41 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
             const.LOGGER.info("Restored backup: %s", backup_filename)
 
+            # Extract and validate config_entry_settings if present
+            options = {}
+            if const.DATA_CONFIG_ENTRY_SETTINGS in backup_data:
+                settings = backup_data[const.DATA_CONFIG_ENTRY_SETTINGS]
+                validated = fh._validate_config_entry_settings(settings)
+
+                if validated:
+                    # Merge with defaults for any missing keys
+                    options = {
+                        key: validated.get(key, default)
+                        for key, default in const.DEFAULT_SYSTEM_SETTINGS.items()
+                    }
+                    const.LOGGER.info(
+                        "Restored %d system settings from backup", len(validated)
+                    )
+                else:
+                    const.LOGGER.info(
+                        "No valid system settings in backup, using defaults"
+                    )
+            else:
+                const.LOGGER.info(
+                    "Backup does not contain system settings, using defaults"
+                )
+
             # Cleanup old backups
             storage_manager = KidsChoresStorageManager(self.hass)
             max_backups = const.DEFAULT_BACKUPS_MAX_RETAINED
             await fh.cleanup_old_backups(self.hass, storage_manager, max_backups)
 
-            # Backup successfully restored - create config entry immediately
+            # Backup successfully restored - create config entry with settings
             # No need to collect kids/chores/points since they were in the backup
             return self.async_create_entry(
                 title="KidsChores",
                 data={},  # Empty - integration will load from restored storage file
+                options=options,  # Apply restored settings (or defaults)
             )
 
         except Exception as err:
@@ -853,10 +879,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         badge_schema_data = user_input if user_input else default_data or {}
         schema_fields = fh.build_badge_common_schema(
             default=badge_schema_data,
-            kids_dict={
-                kid_data[const.DATA_KID_NAME]: kid_id
-                for kid_id, kid_data in self._kids_temp.items()
-            },
+            kids_dict=self._kids_temp,
             chores_dict=self._chores_temp,
             rewards_dict=self._rewards_temp,
             achievements_dict=self._achievements_temp,

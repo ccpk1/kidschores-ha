@@ -20,9 +20,7 @@
 3. **Next steps (short term)** – Outline the immediate actions.
 4. **Risks / blockers** – Highlight dependencies, outstanding bugs, or required approvals.
 5. **References** – Link to key resources:
-   - Agent testing instructions (`tests/TESTING_AGENT_INSTRUCTIONS.md`)
-   - Architecture overview (`docs/ARCHITECTURE.md` or similar)
-   - Other relevant READMEs, RFCs, or tooling guides.
+   - Add document links that support the effort. Example ARCHITECHTURE.md
 6. **Decisions & completion check**
    - **Decisions captured**: _List any key architectural or process decisions made for this initiative._
    - **Completion confirmation**: `[ ]` All follow-up items completed (architecture updates, cleanup, documentation, etc.) before requesting owner approval to mark initiative done.

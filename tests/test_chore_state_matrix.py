@@ -315,7 +315,7 @@ class TestStateMatrixSharedFirst:
         """All kids start in PENDING state for shared_first chore."""
         coordinator = scenario_shared.coordinator
         zoe_id = scenario_shared.kid_ids["Zoë"]
-        max_id = scenario_shared.kid_ids["Max"]
+        max_id = scenario_shared.kid_ids["Max!"]
         lila_id = scenario_shared.kid_ids["Lila"]
         chore_id = scenario_shared.chore_ids["Take out trash"]  # shared_first
 
@@ -338,7 +338,7 @@ class TestStateMatrixSharedFirst:
         """First kid to claim gets CLAIMED state, others get COMPLETED_BY_OTHER."""
         coordinator = scenario_shared.coordinator
         zoe_id = scenario_shared.kid_ids["Zoë"]
-        max_id = scenario_shared.kid_ids["Max"]
+        max_id = scenario_shared.kid_ids["Max!"]
         lila_id = scenario_shared.kid_ids["Lila"]
         chore_id = scenario_shared.chore_ids["Take out trash"]
 
@@ -363,7 +363,7 @@ class TestStateMatrixSharedFirst:
         """Approving the first claimer sets global state to APPROVED."""
         coordinator = scenario_shared.coordinator
         zoe_id = scenario_shared.kid_ids["Zoë"]
-        max_id = scenario_shared.kid_ids["Max"]
+        max_id = scenario_shared.kid_ids["Max!"]
         lila_id = scenario_shared.kid_ids["Lila"]
         chore_id = scenario_shared.chore_ids["Take out trash"]
 
@@ -390,7 +390,7 @@ class TestStateMatrixSharedFirst:
         """Disapproving the claimer resets all kids back to PENDING."""
         coordinator = scenario_shared.coordinator
         zoe_id = scenario_shared.kid_ids["Zoë"]
-        max_id = scenario_shared.kid_ids["Max"]
+        max_id = scenario_shared.kid_ids["Max!"]
         lila_id = scenario_shared.kid_ids["Lila"]
         chore_id = scenario_shared.chore_ids["Take out trash"]
 
@@ -423,7 +423,7 @@ class TestStateMatrixSharedAll:
         """All kids start in PENDING state for shared_all chore."""
         coordinator = scenario_shared.coordinator
         zoe_id = scenario_shared.kid_ids["Zoë"]
-        max_id = scenario_shared.kid_ids["Max"]
+        max_id = scenario_shared.kid_ids["Max!"]
         lila_id = scenario_shared.kid_ids["Lila"]
         chore_id = scenario_shared.chore_ids["Family dinner cleanup"]  # shared_all
 
@@ -468,13 +468,13 @@ class TestStateMatrixSharedAll:
         """When all kids claim, global state becomes CLAIMED."""
         coordinator = scenario_shared.coordinator
         zoe_id = scenario_shared.kid_ids["Zoë"]
-        max_id = scenario_shared.kid_ids["Max"]
+        max_id = scenario_shared.kid_ids["Max!"]
         lila_id = scenario_shared.kid_ids["Lila"]
         chore_id = scenario_shared.chore_ids["Family dinner cleanup"]
 
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            coordinator.claim_chore(max_id, chore_id, "Max")
+            coordinator.claim_chore(max_id, chore_id, "Max!")
             coordinator.claim_chore(lila_id, chore_id, "Lila")
 
         # All should have pending claims
@@ -494,14 +494,14 @@ class TestStateMatrixSharedAll:
         """When one kid is approved, global state becomes APPROVED_IN_PART."""
         coordinator = scenario_shared.coordinator
         zoe_id = scenario_shared.kid_ids["Zoë"]
-        max_id = scenario_shared.kid_ids["Max"]
+        max_id = scenario_shared.kid_ids["Max!"]
         lila_id = scenario_shared.kid_ids["Lila"]
         chore_id = scenario_shared.chore_ids["Family dinner cleanup"]
 
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             # All claim
             coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            coordinator.claim_chore(max_id, chore_id, "Max")
+            coordinator.claim_chore(max_id, chore_id, "Max!")
             coordinator.claim_chore(lila_id, chore_id, "Lila")
 
             # Only Zoë approved
@@ -525,14 +525,14 @@ class TestStateMatrixSharedAll:
         """When all kids are approved, global state becomes APPROVED."""
         coordinator = scenario_shared.coordinator
         zoe_id = scenario_shared.kid_ids["Zoë"]
-        max_id = scenario_shared.kid_ids["Max"]
+        max_id = scenario_shared.kid_ids["Max!"]
         lila_id = scenario_shared.kid_ids["Lila"]
         chore_id = scenario_shared.chore_ids["Family dinner cleanup"]
 
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             # All claim
             coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            coordinator.claim_chore(max_id, chore_id, "Max")
+            coordinator.claim_chore(max_id, chore_id, "Max!")
             coordinator.claim_chore(lila_id, chore_id, "Lila")
 
             # All approved
@@ -557,7 +557,7 @@ class TestStateMatrixSharedAll:
         """Mixed states: some claimed, some approved - approved_in_part wins."""
         coordinator = scenario_shared.coordinator
         zoe_id = scenario_shared.kid_ids["Zoë"]
-        max_id = scenario_shared.kid_ids["Max"]
+        max_id = scenario_shared.kid_ids["Max!"]
         _lila_id = scenario_shared.kid_ids["Lila"]  # Lila stays pending (no action)
         chore_id = scenario_shared.chore_ids["Family dinner cleanup"]
 
@@ -567,7 +567,7 @@ class TestStateMatrixSharedAll:
             coordinator.approve_chore("Mom", zoe_id, chore_id)
 
             # Max claims but not approved yet
-            coordinator.claim_chore(max_id, chore_id, "Max")
+            coordinator.claim_chore(max_id, chore_id, "Max!")
 
             # Lila hasn't claimed (pending)
 
@@ -612,7 +612,7 @@ class TestGlobalStateConsistency:
         """Global state updates correctly after each claim/approve action."""
         coordinator = scenario_shared.coordinator
         zoe_id = scenario_shared.kid_ids["Zoë"]
-        max_id = scenario_shared.kid_ids["Max"]
+        max_id = scenario_shared.kid_ids["Max!"]
         chore_id = scenario_shared.chore_ids["Walk the dog"]  # shared_all, 2 kids
 
         global_states_observed = []
@@ -630,7 +630,7 @@ class TestGlobalStateConsistency:
             )
 
             # Max claims
-            coordinator.claim_chore(max_id, chore_id, "Max")
+            coordinator.claim_chore(max_id, chore_id, "Max!")
             global_states_observed.append(
                 ("max_claim", get_global_chore_state(coordinator, chore_id))
             )
@@ -673,13 +673,13 @@ class TestGlobalStateConsistency:
         """
         coordinator = scenario_shared.coordinator
         zoe_id = scenario_shared.kid_ids["Zoë"]
-        max_id = scenario_shared.kid_ids["Max"]
+        max_id = scenario_shared.kid_ids["Max!"]
         chore_id = scenario_shared.chore_ids["Walk the dog"]  # shared_all, 2 kids
 
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             # Both claim
             coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            coordinator.claim_chore(max_id, chore_id, "Max")
+            coordinator.claim_chore(max_id, chore_id, "Max!")
             assert get_global_chore_state(coordinator, chore_id) == CHORE_STATE_CLAIMED
 
             # Zoë approved
@@ -697,3 +697,126 @@ class TestGlobalStateConsistency:
             get_global_chore_state(coordinator, chore_id)
             == CHORE_STATE_APPROVED_IN_PART
         )
+
+
+# =============================================================================
+# GLOBAL STATE: SINGLE KID EXPLICIT VALIDATION
+# =============================================================================
+
+
+class TestGlobalStateSingleKid:
+    """Tests that verify single-kid chore global state always matches per-kid state.
+
+    Legacy coverage: test_single_kid_global_state_pending, test_single_kid_global_state_claimed,
+    test_single_kid_global_state_approved from test_chore_global_state.py.
+
+    For single-kid chores, global state should always be a 1:1 mirror of per-kid state.
+    """
+
+    @pytest.mark.asyncio
+    async def test_single_kid_global_equals_per_kid_pending(
+        self,
+        hass: HomeAssistant,
+        scenario_minimal: SetupResult,
+    ) -> None:
+        """Single-kid chore: global state = pending when kid is pending.
+
+        Legacy: test_single_kid_global_state_pending
+        Validates 1:1 relationship between per-kid and global state.
+        """
+        coordinator = scenario_minimal.coordinator
+        kid_id = scenario_minimal.kid_ids["Zoë"]
+        chore_id = scenario_minimal.chore_ids["Make bed"]
+
+        # Verify single assignment (scenario_minimal has 1 kid, 5 chores)
+        per_kid = get_kid_chore_state(coordinator, kid_id, chore_id)
+        global_state = get_global_chore_state(coordinator, chore_id)
+
+        assert per_kid == CHORE_STATE_PENDING
+        assert global_state == CHORE_STATE_PENDING
+        assert per_kid == global_state, "Single-kid: global should mirror per-kid"
+
+    @pytest.mark.asyncio
+    async def test_single_kid_global_equals_per_kid_claimed(
+        self,
+        hass: HomeAssistant,
+        scenario_minimal: SetupResult,
+    ) -> None:
+        """Single-kid chore: global state = claimed when kid claims.
+
+        Legacy: test_single_kid_global_state_claimed
+        """
+        coordinator = scenario_minimal.coordinator
+        kid_id = scenario_minimal.kid_ids["Zoë"]
+        chore_id = scenario_minimal.chore_ids["Make bed"]
+
+        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+
+        per_kid = get_kid_chore_state(coordinator, kid_id, chore_id)
+        global_state = get_global_chore_state(coordinator, chore_id)
+
+        assert per_kid == CHORE_STATE_CLAIMED
+        assert global_state == CHORE_STATE_CLAIMED
+        assert per_kid == global_state, "Single-kid: global should mirror per-kid"
+
+    @pytest.mark.asyncio
+    async def test_single_kid_global_equals_per_kid_approved(
+        self,
+        hass: HomeAssistant,
+        scenario_minimal: SetupResult,
+    ) -> None:
+        """Single-kid chore: global state = approved when kid is approved.
+
+        Legacy: test_single_kid_global_state_approved
+        """
+        coordinator = scenario_minimal.coordinator
+        kid_id = scenario_minimal.kid_ids["Zoë"]
+        chore_id = scenario_minimal.chore_ids["Make bed"]
+
+        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            coordinator.approve_chore("Mom", kid_id, chore_id)
+
+        per_kid = get_kid_chore_state(coordinator, kid_id, chore_id)
+        global_state = get_global_chore_state(coordinator, chore_id)
+
+        assert per_kid == CHORE_STATE_APPROVED
+        assert global_state == CHORE_STATE_APPROVED
+        assert per_kid == global_state, "Single-kid: global should mirror per-kid"
+
+    @pytest.mark.asyncio
+    async def test_single_kid_full_state_cycle_maintains_1_to_1(
+        self,
+        hass: HomeAssistant,
+        scenario_minimal: SetupResult,
+    ) -> None:
+        """Single-kid: global state mirrors per-kid through entire cycle.
+
+        Combines test_single_kid_global_state_* into comprehensive validation.
+        """
+        coordinator = scenario_minimal.coordinator
+        kid_id = scenario_minimal.kid_ids["Zoë"]
+        chore_id = scenario_minimal.chore_ids["Make bed"]
+
+        states_captured: list[tuple[str, str, str]] = []
+
+        def capture_states(step: str) -> None:
+            per_kid = get_kid_chore_state(coordinator, kid_id, chore_id)
+            global_s = get_global_chore_state(coordinator, chore_id)
+            states_captured.append((step, per_kid, global_s))
+
+        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+            capture_states("initial")
+            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            capture_states("claimed")
+            coordinator.approve_chore("Mom", kid_id, chore_id)
+            capture_states("approved")
+            coordinator.disapprove_chore("Mom", kid_id, chore_id)
+            capture_states("disapproved")
+
+        # Verify 1:1 at each step
+        for step, per_kid, global_state in states_captured:
+            assert per_kid == global_state, (
+                f"Step '{step}': per_kid={per_kid}, global={global_state}"
+            )

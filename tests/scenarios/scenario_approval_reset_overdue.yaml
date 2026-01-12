@@ -15,7 +15,7 @@ system:
   update_interval: 5
 
 kids:
-  - name: TestKid
+  - name: "Zoë"
     ha_user: "kid1"
     points: 100
     dashboard_language: "en"
@@ -24,14 +24,14 @@ kids:
     enable_persistent_notifications: false
 
 parents:
-  - name: Parent
+  - name: "Môm Astrid Stârblüm"
     ha_user: "parent1"
 
 chores:
   # Main test chore with AT_MIDNIGHT_ONCE + AT_DUE_DATE_THEN_RESET
   # Shows overdue from due date until midnight, then resets to pending
   - name: "AtDueDateOnce Reset Chore"
-    assigned_to: ["TestKid"]
+    assigned_to: ["Zoë"]
     points: 10.0
     icon: "mdi:broom"
     recurring_frequency: "daily"
@@ -43,7 +43,7 @@ chores:
 
   # Comparison chore with default settings (AT_MIDNIGHT_ONCE + AT_DUE_DATE)
   - name: "Default Settings Chore"
-    assigned_to: ["TestKid"]
+    assigned_to: ["Zoë"]
     points: 5.0
     icon: "mdi:home"
     recurring_frequency: "daily"
@@ -53,7 +53,7 @@ chores:
 
   # SHARED variant for comparison
   - name: "Shared AtDueDateOnce Chore"
-    assigned_to: ["TestKid"]
+    assigned_to: ["Zoë"]
     points: 15.0
     icon: "mdi:account-group"
     recurring_frequency: "daily"

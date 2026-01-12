@@ -11,7 +11,11 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 import pytest
 
-from custom_components.kidschores import const
+from tests.helpers import (
+    CFOF_DATA_RECOVERY_INPUT_SELECTION,
+    CONFIG_FLOW_STEP_DATA_RECOVERY,
+    DOMAIN,
+)
 
 
 @pytest.fixture
@@ -44,18 +48,18 @@ async def test_config_flow_use_existing_v40beta1(
 
     # Start config flow
     result = await hass.config_entries.flow.async_init(
-        const.DOMAIN,
+        DOMAIN,
         context={"source": config_entries.SOURCE_USER},
     )
 
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == const.CONFIG_FLOW_STEP_DATA_RECOVERY
+    assert result["step_id"] == CONFIG_FLOW_STEP_DATA_RECOVERY
 
     # Select "use current active file"
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         user_input={
-            const.CFOF_DATA_RECOVERY_INPUT_SELECTION: "current_active",
+            CFOF_DATA_RECOVERY_INPUT_SELECTION: "current_active",
         },
     )
 
@@ -96,18 +100,18 @@ async def test_config_flow_use_existing_v30(
 
     # Start config flow
     result = await hass.config_entries.flow.async_init(
-        const.DOMAIN,
+        DOMAIN,
         context={"source": config_entries.SOURCE_USER},
     )
 
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == const.CONFIG_FLOW_STEP_DATA_RECOVERY
+    assert result["step_id"] == CONFIG_FLOW_STEP_DATA_RECOVERY
 
     # Select "use current active file"
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         user_input={
-            const.CFOF_DATA_RECOVERY_INPUT_SELECTION: "current_active",
+            CFOF_DATA_RECOVERY_INPUT_SELECTION: "current_active",
         },
     )
 
@@ -146,18 +150,18 @@ async def test_config_flow_use_existing_already_wrapped(
 
     # Start config flow
     result = await hass.config_entries.flow.async_init(
-        const.DOMAIN,
+        DOMAIN,
         context={"source": config_entries.SOURCE_USER},
     )
 
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == const.CONFIG_FLOW_STEP_DATA_RECOVERY
+    assert result["step_id"] == CONFIG_FLOW_STEP_DATA_RECOVERY
 
     # Select "use current active file"
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         user_input={
-            const.CFOF_DATA_RECOVERY_INPUT_SELECTION: "current_active",
+            CFOF_DATA_RECOVERY_INPUT_SELECTION: "current_active",
         },
     )
 

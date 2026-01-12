@@ -24,7 +24,7 @@ kids:
     mobile_notify_service: ""
     enable_persistent_notifications: false
 
-  - name: "Max"
+  - name: "Max!"
     ha_user: "kid2"
     dashboard_language: "en"
     enable_mobile_notifications: false
@@ -40,9 +40,9 @@ kids:
 
 # Parents (1 parent can approve all)
 parents:
-  - name: "Mom"
+  - name: "Môm Astrid Stârblüm"
     ha_user: "parent1"
-    kids: ["Zoë", "Max", "Lila"]
+    kids: ["Zoë", "Max!", "Lila"]
     enable_mobile_notifications: false
     mobile_notify_service: ""
     enable_persistent_notifications: false
@@ -55,7 +55,7 @@ chores:
 
   # Test: 3-kid shared_all daily
   - name: "Family dinner cleanup"
-    assigned_to: ["Zoë", "Max", "Lila"]
+    assigned_to: ["Zoë", "Max!", "Lila"]
     points: 10.0
     icon: "mdi:silverware-fork-knife"
     completion_criteria: "shared_all"
@@ -64,7 +64,7 @@ chores:
 
   # Test: 2-kid shared_all daily (subset)
   - name: "Walk the dog"
-    assigned_to: ["Zoë", "Max"]
+    assigned_to: ["Zoë", "Max!"]
     points: 8.0
     icon: "mdi:dog"
     completion_criteria: "shared_all"
@@ -73,7 +73,7 @@ chores:
 
   # Test: 3-kid shared_all weekly
   - name: "Weekend yard work"
-    assigned_to: ["Zoë", "Max", "Lila"]
+    assigned_to: ["Zoë", "Max!", "Lila"]
     points: 20.0
     icon: "mdi:tree"
     completion_criteria: "shared_all"
@@ -82,7 +82,7 @@ chores:
 
   # Test: 2-kid shared_all weekly (different pair)
   - name: "Clean bathroom"
-    assigned_to: ["Max", "Lila"]
+    assigned_to: ["Max!", "Lila"]
     points: 15.0
     icon: "mdi:shower"
     completion_criteria: "shared_all"
@@ -95,7 +95,7 @@ chores:
 
   # Test: 3-kid shared_first daily (race condition)
   - name: "Take out trash"
-    assigned_to: ["Zoë", "Max", "Lila"]
+    assigned_to: ["Zoë", "Max!", "Lila"]
     points: 5.0
     icon: "mdi:delete"
     completion_criteria: "shared_first"
@@ -113,7 +113,7 @@ chores:
 
   # Test: 3-kid shared_first weekly
   - name: "Wash the car"
-    assigned_to: ["Zoë", "Max", "Lila"]
+    assigned_to: ["Zoë", "Max!", "Lila"]
     points: 25.0
     icon: "mdi:car-wash"
     completion_criteria: "shared_first"
@@ -122,7 +122,7 @@ chores:
 
   # Test: 2-kid shared_first weekly (different pair)
   - name: "Organize garage"
-    assigned_to: ["Zoë", "Max"]
+    assigned_to: ["Zoë", "Max!"]
     points: 30.0
     icon: "mdi:garage"
     completion_criteria: "shared_first"
@@ -135,7 +135,7 @@ chores:
 
   # Test: shared_all with auto_approve=true
   - name: "Shared All Auto Approve"
-    assigned_to: ["Zoë", "Max", "Lila"]
+    assigned_to: ["Zoë", "Max!", "Lila"]
     points: 12.0
     icon: "mdi:check-all"
     completion_criteria: "shared_all"
@@ -145,7 +145,7 @@ chores:
 
   # Test: shared_all with pending_claim_action=hold_pending
   - name: "Shared All Pending Hold"
-    assigned_to: ["Zoë", "Max"]
+    assigned_to: ["Zoë", "Max!"]
     points: 10.0
     icon: "mdi:hand-back-left"
     completion_criteria: "shared_all"
@@ -158,7 +158,7 @@ chores:
 
   # Test: shared_all with pending_claim_action=clear_pending
   - name: "Shared All Pending Clear"
-    assigned_to: ["Zoë", "Max"]
+    assigned_to: ["Zoë", "Max!"]
     points: 10.0
     icon: "mdi:eraser"
     completion_criteria: "shared_all"
@@ -171,7 +171,7 @@ chores:
 
   # Test: shared_all with pending_claim_action=auto_approve_pending
   - name: "Shared All Pending Auto Approve"
-    assigned_to: ["Zoë", "Max"]
+    assigned_to: ["Zoë", "Max!"]
     points: 10.0
     icon: "mdi:check-decagram"
     completion_criteria: "shared_all"
@@ -188,7 +188,7 @@ chores:
 
   # Test: shared_first with auto_approve=true
   - name: "Shared First Auto Approve"
-    assigned_to: ["Zoë", "Max", "Lila"]
+    assigned_to: ["Zoë", "Max!", "Lila"]
     points: 15.0
     icon: "mdi:flash-auto"
     completion_criteria: "shared_first"
@@ -198,7 +198,7 @@ chores:
 
   # Test: shared_first with pending_claim_action=hold_pending
   - name: "Shared First Pending Hold"
-    assigned_to: ["Zoë", "Max"]
+    assigned_to: ["Zoë", "Max!"]
     points: 10.0
     icon: "mdi:hand-back-left-outline"
     completion_criteria: "shared_first"
@@ -211,7 +211,7 @@ chores:
 
   # Test: shared_first with pending_claim_action=clear_pending
   - name: "Shared First Pending Clear"
-    assigned_to: ["Zoë", "Max"]
+    assigned_to: ["Zoë", "Max!"]
     points: 10.0
     icon: "mdi:eraser-variant"
     completion_criteria: "shared_first"
@@ -224,7 +224,7 @@ chores:
 
   # Test: shared_first with pending_claim_action=auto_approve_pending
   - name: "Shared First Pending Auto Approve"
-    assigned_to: ["Zoë", "Max"]
+    assigned_to: ["Zoë", "Max!"]
     points: 10.0
     icon: "mdi:check-decagram-outline"
     completion_criteria: "shared_first"
@@ -265,4 +265,3 @@ chores:
 #   - Zoë: 7 chores (all except Clean bathroom)
 #   - Max: 7 chores (all except Get the mail)
 #   - Lila: 6 chores (all except Walk the dog, Organize garage)
-

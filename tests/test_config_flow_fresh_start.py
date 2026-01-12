@@ -25,7 +25,126 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 import pytest
 
-from custom_components.kidschores import const
+from tests.helpers import (
+    # Badge types
+    CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT,
+    CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS,
+    CFOF_ACHIEVEMENTS_INPUT_DESCRIPTION,
+    CFOF_ACHIEVEMENTS_INPUT_ICON,
+    CFOF_ACHIEVEMENTS_INPUT_NAME,
+    CFOF_ACHIEVEMENTS_INPUT_REWARD_POINTS,
+    CFOF_ACHIEVEMENTS_INPUT_TARGET_VALUE,
+    CFOF_ACHIEVEMENTS_INPUT_TYPE,
+    # Config flow field names - Badges
+    CFOF_BADGES_INPUT_ASSIGNED_TO,
+    CFOF_BADGES_INPUT_AWARD_POINTS,
+    CFOF_BADGES_INPUT_BADGE_COUNT,
+    CFOF_BADGES_INPUT_ICON,
+    CFOF_BADGES_INPUT_NAME,
+    CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE,
+    CFOF_BONUSES_INPUT_BONUS_COUNT,
+    CFOF_BONUSES_INPUT_DESCRIPTION,
+    CFOF_BONUSES_INPUT_ICON,
+    CFOF_BONUSES_INPUT_NAME,
+    CFOF_BONUSES_INPUT_POINTS,
+    # Config flow field names - Challenges
+    CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS,
+    CFOF_CHALLENGES_INPUT_CHALLENGE_COUNT,
+    CFOF_CHALLENGES_INPUT_DESCRIPTION,
+    CFOF_CHALLENGES_INPUT_END_DATE,
+    CFOF_CHALLENGES_INPUT_ICON,
+    CFOF_CHALLENGES_INPUT_NAME,
+    CFOF_CHALLENGES_INPUT_REWARD_POINTS,
+    CFOF_CHALLENGES_INPUT_START_DATE,
+    CFOF_CHALLENGES_INPUT_TARGET_VALUE,
+    CFOF_CHALLENGES_INPUT_TYPE,
+    # Config flow field names - Chores
+    CFOF_CHORES_INPUT_APPLICABLE_DAYS,
+    CFOF_CHORES_INPUT_APPROVAL_RESET_PENDING_CLAIM_ACTION,
+    CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE,
+    CFOF_CHORES_INPUT_ASSIGNED_KIDS,
+    CFOF_CHORES_INPUT_AUTO_APPROVE,
+    CFOF_CHORES_INPUT_CHORE_COUNT,
+    CFOF_CHORES_INPUT_COMPLETION_CRITERIA,
+    CFOF_CHORES_INPUT_CUSTOM_INTERVAL,
+    CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT,
+    CFOF_CHORES_INPUT_DEFAULT_POINTS,
+    CFOF_CHORES_INPUT_DESCRIPTION,
+    CFOF_CHORES_INPUT_DUE_DATE,
+    CFOF_CHORES_INPUT_ICON,
+    CFOF_CHORES_INPUT_LABELS,
+    CFOF_CHORES_INPUT_NAME,
+    CFOF_CHORES_INPUT_NOTIFICATIONS,
+    CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE,
+    CFOF_CHORES_INPUT_RECURRING_FREQUENCY,
+    CFOF_CHORES_INPUT_SHOW_ON_CALENDAR,
+    # Config flow field names - Kids
+    CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE,
+    CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS,
+    CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS,
+    CFOF_KIDS_INPUT_HA_USER,
+    CFOF_KIDS_INPUT_KID_COUNT,
+    CFOF_KIDS_INPUT_KID_NAME,
+    CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE,
+    # Config flow field names - Parents
+    CFOF_PARENTS_INPUT_ASSOCIATED_KIDS,
+    CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS,
+    CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS,
+    CFOF_PARENTS_INPUT_HA_USER,
+    CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE,
+    CFOF_PARENTS_INPUT_NAME,
+    CFOF_PARENTS_INPUT_PARENT_COUNT,
+    # Config flow field names - Penalties
+    CFOF_PENALTIES_INPUT_DESCRIPTION,
+    CFOF_PENALTIES_INPUT_ICON,
+    CFOF_PENALTIES_INPUT_NAME,
+    CFOF_PENALTIES_INPUT_PENALTY_COUNT,
+    CFOF_PENALTIES_INPUT_POINTS,
+    # Config flow field names - Rewards
+    CFOF_REWARDS_INPUT_COST,
+    CFOF_REWARDS_INPUT_DESCRIPTION,
+    CFOF_REWARDS_INPUT_ICON,
+    CFOF_REWARDS_INPUT_NAME,
+    CFOF_REWARDS_INPUT_REWARD_COUNT,
+    # Config flow field names - System
+    CFOF_SYSTEM_INPUT_POINTS_ICON,
+    CFOF_SYSTEM_INPUT_POINTS_LABEL,
+    # System config constants
+    CONF_POINTS_ICON,
+    CONF_POINTS_LABEL,
+    CONF_UPDATE_INTERVAL,
+    # Config flow step IDs
+    CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT,
+    CONFIG_FLOW_STEP_ACHIEVEMENTS,
+    CONFIG_FLOW_STEP_BADGE_COUNT,
+    CONFIG_FLOW_STEP_BADGES,
+    CONFIG_FLOW_STEP_BONUS_COUNT,
+    CONFIG_FLOW_STEP_BONUSES,
+    CONFIG_FLOW_STEP_CHALLENGE_COUNT,
+    CONFIG_FLOW_STEP_CHALLENGES,
+    CONFIG_FLOW_STEP_CHORE_COUNT,
+    CONFIG_FLOW_STEP_CHORES,
+    CONFIG_FLOW_STEP_DATA_RECOVERY,
+    CONFIG_FLOW_STEP_FINISH,
+    CONFIG_FLOW_STEP_INTRO,
+    CONFIG_FLOW_STEP_KID_COUNT,
+    CONFIG_FLOW_STEP_KIDS,
+    CONFIG_FLOW_STEP_PARENT_COUNT,
+    CONFIG_FLOW_STEP_PARENTS,
+    CONFIG_FLOW_STEP_PENALTIES,
+    CONFIG_FLOW_STEP_PENALTY_COUNT,
+    CONFIG_FLOW_STEP_POINTS,
+    CONFIG_FLOW_STEP_REWARD_COUNT,
+    CONFIG_FLOW_STEP_REWARDS,
+    # Defaults
+    DEFAULT_APPROVAL_RESET_PENDING_CLAIM_ACTION,
+    DEFAULT_APPROVAL_RESET_TYPE,
+    DEFAULT_OVERDUE_HANDLING_TYPE,
+    # Domain
+    DOMAIN,
+    # Sentinel values
+    SENTINEL_EMPTY,
+)
 
 
 @pytest.mark.asyncio
@@ -46,10 +165,10 @@ async def test_fresh_start_points_only(hass: HomeAssistant) -> None:
     with patch("custom_components.kidschores.async_setup_entry", return_value=True):
         # Step 1: Start fresh config flow
         result = await hass.config_entries.flow.async_init(
-            const.DOMAIN, context={"source": config_entries.SOURCE_USER}
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_DATA_RECOVERY
+        assert result["step_id"] == CONFIG_FLOW_STEP_DATA_RECOVERY
 
         # Step 2: Choose "start fresh"
         result = await hass.config_entries.flow.async_configure(
@@ -57,7 +176,7 @@ async def test_fresh_start_points_only(hass: HomeAssistant) -> None:
             user_input={"backup_selection": "start_fresh"},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_INTRO
+        assert result["step_id"] == CONFIG_FLOW_STEP_INTRO
 
         # Step 3: Pass intro step (empty form)
         result = await hass.config_entries.flow.async_configure(
@@ -65,83 +184,83 @@ async def test_fresh_start_points_only(hass: HomeAssistant) -> None:
             user_input={},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_POINTS
+        assert result["step_id"] == CONFIG_FLOW_STEP_POINTS
 
         # Step 4: Set Star Points theme
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input={
-                const.CFOF_SYSTEM_INPUT_POINTS_LABEL: "Star Points",
-                const.CFOF_SYSTEM_INPUT_POINTS_ICON: "mdi:star",
+                CFOF_SYSTEM_INPUT_POINTS_LABEL: "Star Points",
+                CFOF_SYSTEM_INPUT_POINTS_ICON: "mdi:star",
             },
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_KID_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_KID_COUNT
 
         # Step 5-13: Set all entity counts to 0
         # Kid count = 0 (skips parent_count, goes to chore_count)
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_KIDS_INPUT_KID_COUNT: 0},
+            user_input={CFOF_KIDS_INPUT_KID_COUNT: 0},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_CHORE_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_CHORE_COUNT
 
         # Chore count = 0
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_CHORES_INPUT_CHORE_COUNT: 0},
+            user_input={CFOF_CHORES_INPUT_CHORE_COUNT: 0},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_BADGE_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_BADGE_COUNT
 
         # Badge count = 0
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_BADGES_INPUT_BADGE_COUNT: 0},
+            user_input={CFOF_BADGES_INPUT_BADGE_COUNT: 0},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_REWARD_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_REWARD_COUNT
 
         # Reward count = 0
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_REWARDS_INPUT_REWARD_COUNT: 0},
+            user_input={CFOF_REWARDS_INPUT_REWARD_COUNT: 0},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_PENALTY_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_PENALTY_COUNT
 
         # Penalty count = 0
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_PENALTIES_INPUT_PENALTY_COUNT: 0},
+            user_input={CFOF_PENALTIES_INPUT_PENALTY_COUNT: 0},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_BONUS_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_BONUS_COUNT
 
         # Bonus count = 0
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_BONUSES_INPUT_BONUS_COUNT: 0},
+            user_input={CFOF_BONUSES_INPUT_BONUS_COUNT: 0},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT
 
         # Achievement count = 0
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT: 0},
+            user_input={CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT: 0},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_CHALLENGE_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_CHALLENGE_COUNT
 
         # Challenge count = 0
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_CHALLENGES_INPUT_CHALLENGE_COUNT: 0},
+            user_input={CFOF_CHALLENGES_INPUT_CHALLENGE_COUNT: 0},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_FINISH
+        assert result["step_id"] == CONFIG_FLOW_STEP_FINISH
 
         # Final step: finish (empty form)
         result = await hass.config_entries.flow.async_configure(
@@ -156,15 +275,15 @@ async def test_fresh_start_points_only(hass: HomeAssistant) -> None:
         # Verify config entry was created with Star Points settings
         config_entry = result["result"]
         assert config_entry.title == "KidsChores"
-        assert config_entry.domain == const.DOMAIN
+        assert config_entry.domain == DOMAIN
 
         # Verify system settings in options (storage-only mode v0.5.0+)
-        assert config_entry.options[const.CONF_POINTS_LABEL] == "Star Points"
-        assert config_entry.options[const.CONF_POINTS_ICON] == "mdi:star"
-        assert config_entry.options[const.CONF_UPDATE_INTERVAL] == 5  # Default
+        assert config_entry.options[CONF_POINTS_LABEL] == "Star Points"
+        assert config_entry.options[CONF_POINTS_ICON] == "mdi:star"
+        assert config_entry.options[CONF_UPDATE_INTERVAL] == 5  # Default
 
         # Verify integration was set up
-        entries = hass.config_entries.async_entries(const.DOMAIN)
+        entries = hass.config_entries.async_entries(DOMAIN)
         assert len(entries) == 1
         assert entries[0].entry_id == config_entry.entry_id
 
@@ -180,10 +299,10 @@ async def test_fresh_start_points_and_kid(hass: HomeAssistant, mock_hass_users) 
     with patch("custom_components.kidschores.async_setup_entry", return_value=True):
         # Step 1: Start fresh config flow
         result = await hass.config_entries.flow.async_init(
-            const.DOMAIN, context={"source": config_entries.SOURCE_USER}
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_DATA_RECOVERY
+        assert result["step_id"] == CONFIG_FLOW_STEP_DATA_RECOVERY
 
         # Step 2: Choose "start fresh"
         result = await hass.config_entries.flow.async_configure(
@@ -191,7 +310,7 @@ async def test_fresh_start_points_and_kid(hass: HomeAssistant, mock_hass_users) 
             user_input={"backup_selection": "start_fresh"},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_INTRO
+        assert result["step_id"] == CONFIG_FLOW_STEP_INTRO
 
         # Step 3: Pass intro step (empty form)
         result = await hass.config_entries.flow.async_configure(
@@ -199,26 +318,26 @@ async def test_fresh_start_points_and_kid(hass: HomeAssistant, mock_hass_users) 
             user_input={},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_POINTS
+        assert result["step_id"] == CONFIG_FLOW_STEP_POINTS
 
         # Step 4: Configure Star Points theme
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input={
-                const.CFOF_SYSTEM_INPUT_POINTS_LABEL: "Star Points",
-                const.CFOF_SYSTEM_INPUT_POINTS_ICON: "mdi:star",
+                CFOF_SYSTEM_INPUT_POINTS_LABEL: "Star Points",
+                CFOF_SYSTEM_INPUT_POINTS_ICON: "mdi:star",
             },
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_KID_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_KID_COUNT
 
         # Step 5: Set kid count = 1
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_KIDS_INPUT_KID_COUNT: 1},
+            user_input={CFOF_KIDS_INPUT_KID_COUNT: 1},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_KIDS
+        assert result["step_id"] == CONFIG_FLOW_STEP_KIDS
 
         # Step 6: Configure the one kid with HA user and notifications
         result = await _configure_kid_step(
@@ -233,71 +352,71 @@ async def test_fresh_start_points_and_kid(hass: HomeAssistant, mock_hass_users) 
             enable_persistent_notifications=True,
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENT_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_PARENT_COUNT
 
         # Step 7: Parent count = 0
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_PARENTS_INPUT_PARENT_COUNT: 0},
+            user_input={CFOF_PARENTS_INPUT_PARENT_COUNT: 0},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_CHORE_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_CHORE_COUNT
 
         # Step 8: Chore count = 0
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_CHORES_INPUT_CHORE_COUNT: 0},
+            user_input={CFOF_CHORES_INPUT_CHORE_COUNT: 0},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_BADGE_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_BADGE_COUNT
 
         # Step 9: Badge count = 0
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_BADGES_INPUT_BADGE_COUNT: 0},
+            user_input={CFOF_BADGES_INPUT_BADGE_COUNT: 0},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_REWARD_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_REWARD_COUNT
 
         # Step 10: Reward count = 0
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_REWARDS_INPUT_REWARD_COUNT: 0},
+            user_input={CFOF_REWARDS_INPUT_REWARD_COUNT: 0},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_PENALTY_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_PENALTY_COUNT
 
         # Step 11: Penalty count = 0
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_PENALTIES_INPUT_PENALTY_COUNT: 0},
+            user_input={CFOF_PENALTIES_INPUT_PENALTY_COUNT: 0},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_BONUS_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_BONUS_COUNT
 
         # Step 12: Bonus count = 0
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_BONUSES_INPUT_BONUS_COUNT: 0},
+            user_input={CFOF_BONUSES_INPUT_BONUS_COUNT: 0},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT
 
         # Step 13: Achievement count = 0
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT: 0},
+            user_input={CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT: 0},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_CHALLENGE_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_CHALLENGE_COUNT
 
         # Step 14: Challenge count = 0
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_CHALLENGES_INPUT_CHALLENGE_COUNT: 0},
+            user_input={CFOF_CHALLENGES_INPUT_CHALLENGE_COUNT: 0},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_FINISH
+        assert result["step_id"] == CONFIG_FLOW_STEP_FINISH
 
         # Step 15: Final step - finish
         result = await hass.config_entries.flow.async_configure(
@@ -312,14 +431,14 @@ async def test_fresh_start_points_and_kid(hass: HomeAssistant, mock_hass_users) 
         # Verify config entry created correctly
         config_entry = result["result"]
         assert config_entry.title == "KidsChores"
-        assert config_entry.domain == const.DOMAIN
+        assert config_entry.domain == DOMAIN
 
         # Verify Star Points theme in system settings
-        assert config_entry.options[const.CONF_POINTS_LABEL] == "Star Points"
-        assert config_entry.options[const.CONF_POINTS_ICON] == "mdi:star"
+        assert config_entry.options[CONF_POINTS_LABEL] == "Star Points"
+        assert config_entry.options[CONF_POINTS_ICON] == "mdi:star"
 
         # Verify integration was set up and storage has properly configured kid
-        entries = hass.config_entries.async_entries(const.DOMAIN)
+        entries = hass.config_entries.async_entries(DOMAIN)
         assert len(entries) == 1
 
         # Since the integration setup is mocked, we can't check storage directly,
@@ -359,10 +478,10 @@ async def test_fresh_start_kid_with_notify_services(
     with patch("custom_components.kidschores.async_setup_entry", return_value=True):
         # Step 1: Start fresh config flow
         result = await hass.config_entries.flow.async_init(
-            const.DOMAIN, context={"source": config_entries.SOURCE_USER}
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_DATA_RECOVERY
+        assert result["step_id"] == CONFIG_FLOW_STEP_DATA_RECOVERY
 
         # Step 2: Choose "start fresh"
         result = await hass.config_entries.flow.async_configure(
@@ -370,7 +489,7 @@ async def test_fresh_start_kid_with_notify_services(
             user_input={"backup_selection": "start_fresh"},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_INTRO
+        assert result["step_id"] == CONFIG_FLOW_STEP_INTRO
 
         # Step 3: Pass intro step (empty form)
         result = await hass.config_entries.flow.async_configure(
@@ -378,26 +497,26 @@ async def test_fresh_start_kid_with_notify_services(
             user_input={},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_POINTS
+        assert result["step_id"] == CONFIG_FLOW_STEP_POINTS
 
         # Step 4: Configure Star Points theme
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input={
-                const.CFOF_SYSTEM_INPUT_POINTS_LABEL: "Star Points",
-                const.CFOF_SYSTEM_INPUT_POINTS_ICON: "mdi:star",
+                CFOF_SYSTEM_INPUT_POINTS_LABEL: "Star Points",
+                CFOF_SYSTEM_INPUT_POINTS_ICON: "mdi:star",
             },
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_KID_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_KID_COUNT
 
         # Step 5: Set kid count = 1
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_KIDS_INPUT_KID_COUNT: 1},
+            user_input={CFOF_KIDS_INPUT_KID_COUNT: 1},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_KIDS
+        assert result["step_id"] == CONFIG_FLOW_STEP_KIDS
 
         # Step 6: Configure kid with real mobile notify service
         result = await _configure_kid_step(
@@ -412,56 +531,56 @@ async def test_fresh_start_kid_with_notify_services(
             enable_persistent_notifications=True,
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENT_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_PARENT_COUNT
 
         # Step 7-14: Set all other entity counts to 0 (same as basic test)
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_PARENTS_INPUT_PARENT_COUNT: 0},
+            user_input={CFOF_PARENTS_INPUT_PARENT_COUNT: 0},
         )
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_CHORE_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_CHORE_COUNT
 
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_CHORES_INPUT_CHORE_COUNT: 0},
+            user_input={CFOF_CHORES_INPUT_CHORE_COUNT: 0},
         )
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_BADGE_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_BADGE_COUNT
 
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_BADGES_INPUT_BADGE_COUNT: 0},
+            user_input={CFOF_BADGES_INPUT_BADGE_COUNT: 0},
         )
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_REWARD_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_REWARD_COUNT
 
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_REWARDS_INPUT_REWARD_COUNT: 0},
+            user_input={CFOF_REWARDS_INPUT_REWARD_COUNT: 0},
         )
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_PENALTY_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_PENALTY_COUNT
 
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_PENALTIES_INPUT_PENALTY_COUNT: 0},
+            user_input={CFOF_PENALTIES_INPUT_PENALTY_COUNT: 0},
         )
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_BONUS_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_BONUS_COUNT
 
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_BONUSES_INPUT_BONUS_COUNT: 0},
+            user_input={CFOF_BONUSES_INPUT_BONUS_COUNT: 0},
         )
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT
 
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT: 0},
+            user_input={CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT: 0},
         )
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_CHALLENGE_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_CHALLENGE_COUNT
 
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_CHALLENGES_INPUT_CHALLENGE_COUNT: 0},
+            user_input={CFOF_CHALLENGES_INPUT_CHALLENGE_COUNT: 0},
         )
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_FINISH
+        assert result["step_id"] == CONFIG_FLOW_STEP_FINISH
 
         # Final step: finish
         result = await hass.config_entries.flow.async_configure(
@@ -475,11 +594,11 @@ async def test_fresh_start_kid_with_notify_services(
 
         # Verify config entry created correctly with Star Points
         config_entry = result["result"]
-        assert config_entry.options[const.CONF_POINTS_LABEL] == "Star Points"
-        assert config_entry.options[const.CONF_POINTS_ICON] == "mdi:star"
+        assert config_entry.options[CONF_POINTS_LABEL] == "Star Points"
+        assert config_entry.options[CONF_POINTS_ICON] == "mdi:star"
 
         # Verify integration setup succeeded
-        entries = hass.config_entries.async_entries(const.DOMAIN)
+        entries = hass.config_entries.async_entries(DOMAIN)
         assert len(entries) == 1
 
         # In a real scenario, the kid would be configured with:
@@ -505,7 +624,7 @@ async def test_fresh_start_with_parent_no_notifications(
     with patch("custom_components.kidschores.async_setup_entry", return_value=True):
         # Steps 1-5: Same as other tests (fresh start, intro, points, kid count=1, kid config)
         result = await hass.config_entries.flow.async_init(
-            const.DOMAIN, context={"source": config_entries.SOURCE_USER}
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
         )
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], user_input={"backup_selection": "start_fresh"}
@@ -516,12 +635,12 @@ async def test_fresh_start_with_parent_no_notifications(
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input={
-                const.CFOF_SYSTEM_INPUT_POINTS_LABEL: "Star Points",
-                const.CFOF_SYSTEM_INPUT_POINTS_ICON: "mdi:star",
+                CFOF_SYSTEM_INPUT_POINTS_LABEL: "Star Points",
+                CFOF_SYSTEM_INPUT_POINTS_ICON: "mdi:star",
             },
         )
         result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], user_input={const.CFOF_KIDS_INPUT_KID_COUNT: 1}
+            result["flow_id"], user_input={CFOF_KIDS_INPUT_KID_COUNT: 1}
         )
         result = await _configure_kid_step(
             hass,
@@ -534,21 +653,21 @@ async def test_fresh_start_with_parent_no_notifications(
             mobile_notify_service="",
             enable_persistent_notifications=False,
         )
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENT_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_PARENT_COUNT
 
         # Step 6: Set parent count = 1
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_PARENTS_INPUT_PARENT_COUNT: 1},
+            user_input={CFOF_PARENTS_INPUT_PARENT_COUNT: 1},
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENTS
+        assert result["step_id"] == CONFIG_FLOW_STEP_PARENTS
 
         # Step 7: Configure parent with HA user but no notifications
         # Extract the kid ID using the working pattern from test_fresh_start_with_parents
         data_schema = _require_data_schema(result)
         associated_kids_field = data_schema.schema.get(
-            const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS
+            CFOF_PARENTS_INPUT_ASSOCIATED_KIDS
         )
         assert associated_kids_field is not None, (
             "associated_kids field not found in schema"
@@ -562,55 +681,55 @@ async def test_fresh_start_with_parent_no_notifications(
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input={
-                const.CFOF_PARENTS_INPUT_NAME: "Môm Astrid Stârblüm",
-                const.CFOF_PARENTS_INPUT_HA_USER: mock_hass_users["parent1"].id,
-                const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: [
+                CFOF_PARENTS_INPUT_NAME: "Môm Astrid Stârblüm",
+                CFOF_PARENTS_INPUT_HA_USER: mock_hass_users["parent1"].id,
+                CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: [
                     kid_id
                 ],  # Use the extracted kid ID
-                const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: False,
-                const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: const.SENTINEL_EMPTY,
-                const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: False,
+                CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: False,
+                CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: SENTINEL_EMPTY,
+                CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: False,
             },
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_CHORE_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_CHORE_COUNT
 
         # Steps 8-15: Set all other entity counts to 0 and finish
         for _, input_key, next_step in [
             (
-                const.CONFIG_FLOW_STEP_CHORE_COUNT,
-                const.CFOF_CHORES_INPUT_CHORE_COUNT,
-                const.CONFIG_FLOW_STEP_BADGE_COUNT,
+                CONFIG_FLOW_STEP_CHORE_COUNT,
+                CFOF_CHORES_INPUT_CHORE_COUNT,
+                CONFIG_FLOW_STEP_BADGE_COUNT,
             ),
             (
-                const.CONFIG_FLOW_STEP_BADGE_COUNT,
-                const.CFOF_BADGES_INPUT_BADGE_COUNT,
-                const.CONFIG_FLOW_STEP_REWARD_COUNT,
+                CONFIG_FLOW_STEP_BADGE_COUNT,
+                CFOF_BADGES_INPUT_BADGE_COUNT,
+                CONFIG_FLOW_STEP_REWARD_COUNT,
             ),
             (
-                const.CONFIG_FLOW_STEP_REWARD_COUNT,
-                const.CFOF_REWARDS_INPUT_REWARD_COUNT,
-                const.CONFIG_FLOW_STEP_PENALTY_COUNT,
+                CONFIG_FLOW_STEP_REWARD_COUNT,
+                CFOF_REWARDS_INPUT_REWARD_COUNT,
+                CONFIG_FLOW_STEP_PENALTY_COUNT,
             ),
             (
-                const.CONFIG_FLOW_STEP_PENALTY_COUNT,
-                const.CFOF_PENALTIES_INPUT_PENALTY_COUNT,
-                const.CONFIG_FLOW_STEP_BONUS_COUNT,
+                CONFIG_FLOW_STEP_PENALTY_COUNT,
+                CFOF_PENALTIES_INPUT_PENALTY_COUNT,
+                CONFIG_FLOW_STEP_BONUS_COUNT,
             ),
             (
-                const.CONFIG_FLOW_STEP_BONUS_COUNT,
-                const.CFOF_BONUSES_INPUT_BONUS_COUNT,
-                const.CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT,
+                CONFIG_FLOW_STEP_BONUS_COUNT,
+                CFOF_BONUSES_INPUT_BONUS_COUNT,
+                CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT,
             ),
             (
-                const.CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT,
-                const.CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT,
-                const.CONFIG_FLOW_STEP_CHALLENGE_COUNT,
+                CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT,
+                CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT,
+                CONFIG_FLOW_STEP_CHALLENGE_COUNT,
             ),
             (
-                const.CONFIG_FLOW_STEP_CHALLENGE_COUNT,
-                const.CFOF_CHALLENGES_INPUT_CHALLENGE_COUNT,
-                const.CONFIG_FLOW_STEP_FINISH,
+                CONFIG_FLOW_STEP_CHALLENGE_COUNT,
+                CFOF_CHALLENGES_INPUT_CHALLENGE_COUNT,
+                CONFIG_FLOW_STEP_FINISH,
             ),
         ]:
             result = await hass.config_entries.flow.async_configure(
@@ -627,10 +746,10 @@ async def test_fresh_start_with_parent_no_notifications(
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == "KidsChores"
         config_entry = result["result"]
-        assert config_entry.options[const.CONF_POINTS_LABEL] == "Star Points"
+        assert config_entry.options[CONF_POINTS_LABEL] == "Star Points"
 
         # Verify integration setup
-        entries = hass.config_entries.async_entries(const.DOMAIN)
+        entries = hass.config_entries.async_entries(DOMAIN)
         assert len(entries) == 1
 
 
@@ -654,7 +773,7 @@ async def test_fresh_start_with_parent_with_notifications(
     with patch("custom_components.kidschores.async_setup_entry", return_value=True):
         # Steps 1-5: Same setup as previous test
         result = await hass.config_entries.flow.async_init(
-            const.DOMAIN, context={"source": config_entries.SOURCE_USER}
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
         )
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], user_input={"backup_selection": "start_fresh"}
@@ -665,12 +784,12 @@ async def test_fresh_start_with_parent_with_notifications(
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input={
-                const.CFOF_SYSTEM_INPUT_POINTS_LABEL: "Star Points",
-                const.CFOF_SYSTEM_INPUT_POINTS_ICON: "mdi:star",
+                CFOF_SYSTEM_INPUT_POINTS_LABEL: "Star Points",
+                CFOF_SYSTEM_INPUT_POINTS_ICON: "mdi:star",
             },
         )
         result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], user_input={const.CFOF_KIDS_INPUT_KID_COUNT: 1}
+            result["flow_id"], user_input={CFOF_KIDS_INPUT_KID_COUNT: 1}
         )
         result = await _configure_kid_step(
             hass,
@@ -683,14 +802,14 @@ async def test_fresh_start_with_parent_with_notifications(
             mobile_notify_service="",
             enable_persistent_notifications=True,
         )
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENT_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_PARENT_COUNT
 
         # Step 6: Set parent count = 1
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_PARENTS_INPUT_PARENT_COUNT: 1},
+            user_input={CFOF_PARENTS_INPUT_PARENT_COUNT: 1},
         )
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENTS
+        assert result["step_id"] == CONFIG_FLOW_STEP_PARENTS
 
         # Step 7: Configure parent with notifications enabled using helper
         kid_ids = _extract_kid_ids_from_schema(result)
@@ -705,7 +824,7 @@ async def test_fresh_start_with_parent_with_notifications(
             mobile_notify_service="notify.mobile_app_parent_phone",
             enable_persistent_notifications=True,
         )
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_CHORE_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_CHORE_COUNT
 
         # Skip all other entity steps using helper
         result = await _skip_all_entity_steps(hass, result)
@@ -718,7 +837,7 @@ async def test_fresh_start_with_parent_with_notifications(
         # Verify completion
         assert result["type"] == FlowResultType.CREATE_ENTRY
         config_entry = result["result"]
-        assert config_entry.options[const.CONF_POINTS_LABEL] == "Star Points"
+        assert config_entry.options[CONF_POINTS_LABEL] == "Star Points"
 
         # In a real scenario, the parent would be configured with:
         # - Name: "Parent Two"
@@ -748,7 +867,7 @@ async def test_fresh_start_two_parents_mixed_notifications(
     with patch("custom_components.kidschores.async_setup_entry", return_value=True):
         # Steps 1-5: Basic setup
         result = await hass.config_entries.flow.async_init(
-            const.DOMAIN, context={"source": config_entries.SOURCE_USER}
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
         )
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], user_input={"backup_selection": "start_fresh"}
@@ -759,12 +878,12 @@ async def test_fresh_start_two_parents_mixed_notifications(
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input={
-                const.CFOF_SYSTEM_INPUT_POINTS_LABEL: "Star Points",
-                const.CFOF_SYSTEM_INPUT_POINTS_ICON: "mdi:star",
+                CFOF_SYSTEM_INPUT_POINTS_LABEL: "Star Points",
+                CFOF_SYSTEM_INPUT_POINTS_ICON: "mdi:star",
             },
         )
         result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], user_input={const.CFOF_KIDS_INPUT_KID_COUNT: 1}
+            result["flow_id"], user_input={CFOF_KIDS_INPUT_KID_COUNT: 1}
         )
         result = await _configure_kid_step(
             hass,
@@ -777,14 +896,14 @@ async def test_fresh_start_two_parents_mixed_notifications(
             mobile_notify_service="",
             enable_persistent_notifications=False,
         )
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENT_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_PARENT_COUNT
 
         # Step 6: Set parent count = 2
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={const.CFOF_PARENTS_INPUT_PARENT_COUNT: 2},
+            user_input={CFOF_PARENTS_INPUT_PARENT_COUNT: 2},
         )
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENTS
+        assert result["step_id"] == CONFIG_FLOW_STEP_PARENTS
 
         # Step 7: Configure first parent (no notifications) using helper
         kid_ids = _extract_kid_ids_from_schema(result)
@@ -799,9 +918,7 @@ async def test_fresh_start_two_parents_mixed_notifications(
             enable_persistent_notifications=False,
         )
         assert result["type"] == FlowResultType.FORM
-        assert (
-            result["step_id"] == const.CONFIG_FLOW_STEP_PARENTS
-        )  # Still on parents step
+        assert result["step_id"] == CONFIG_FLOW_STEP_PARENTS  # Still on parents step
 
         # Step 8: Configure second parent (with notifications) using helper
         kid_ids = _extract_kid_ids_from_schema(result)  # Re-extract for second parent
@@ -816,7 +933,7 @@ async def test_fresh_start_two_parents_mixed_notifications(
             mobile_notify_service="notify.mobile_app_parent2_phone",
             enable_persistent_notifications=True,
         )
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_CHORE_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_CHORE_COUNT
 
         # Skip all other entity steps using helper
         result = await _skip_all_entity_steps(hass, result)
@@ -829,8 +946,8 @@ async def test_fresh_start_two_parents_mixed_notifications(
         # Verify completion
         assert result["type"] == FlowResultType.CREATE_ENTRY
         config_entry = result["result"]
-        assert config_entry.options[const.CONF_POINTS_LABEL] == "Star Points"
-        assert config_entry.options[const.CONF_POINTS_ICON] == "mdi:star"
+        assert config_entry.options[CONF_POINTS_LABEL] == "Star Points"
+        assert config_entry.options[CONF_POINTS_ICON] == "mdi:star"
 
         # In a real scenario:
         # Kid "Lila" - HA user: kid3, notifications: mobile disabled, persistent disabled
@@ -905,12 +1022,12 @@ async def _configure_kid_step(
     return await hass.config_entries.flow.async_configure(
         result["flow_id"],
         user_input={
-            const.CFOF_KIDS_INPUT_KID_NAME: kid_name,
-            const.CFOF_KIDS_INPUT_HA_USER: mock_hass_users[kid_ha_user_key].id,
-            const.CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE: dashboard_language,
-            const.CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: enable_mobile_notifications,
-            const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: mobile_notify_service,
-            const.CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: enable_persistent_notifications,
+            CFOF_KIDS_INPUT_KID_NAME: kid_name,
+            CFOF_KIDS_INPUT_HA_USER: mock_hass_users[kid_ha_user_key].id,
+            CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE: dashboard_language,
+            CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: enable_mobile_notifications,
+            CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: mobile_notify_service,
+            CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: enable_persistent_notifications,
         },
     )
 
@@ -946,14 +1063,14 @@ async def _configure_parent_step(
     return await hass.config_entries.flow.async_configure(
         result["flow_id"],
         user_input={
-            const.CFOF_PARENTS_INPUT_NAME: parent_name,
-            const.CFOF_PARENTS_INPUT_HA_USER: mock_hass_users[parent_ha_user_key].id,
-            const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: associated_kid_ids,
-            const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: enable_mobile_notifications,
-            const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: mobile_notify_service
+            CFOF_PARENTS_INPUT_NAME: parent_name,
+            CFOF_PARENTS_INPUT_HA_USER: mock_hass_users[parent_ha_user_key].id,
+            CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: associated_kid_ids,
+            CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: enable_mobile_notifications,
+            CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: mobile_notify_service
             if enable_mobile_notifications
-            else const.SENTINEL_EMPTY,
-            const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: enable_persistent_notifications,
+            else SENTINEL_EMPTY,
+            CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: enable_persistent_notifications,
         },
     )
 
@@ -1022,7 +1139,7 @@ async def _configure_multiple_kids_step(
         if i < len(kid_configs) - 1:
             # Still more kids to configure - result should be on KIDS step again
             assert result["type"] == FlowResultType.FORM
-            assert result["step_id"] == const.CONFIG_FLOW_STEP_KIDS
+            assert result["step_id"] == CONFIG_FLOW_STEP_KIDS
 
             # After each kid is configured, the config flow advances to the next kid
             # but we can't easily extract the ID here. Store name mapping for now.
@@ -1031,7 +1148,7 @@ async def _configure_multiple_kids_step(
         else:
             # Last kid - result should advance to parent count step
             assert result["type"] == FlowResultType.FORM
-            assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENT_COUNT
+            assert result["step_id"] == CONFIG_FLOW_STEP_PARENT_COUNT
 
             # Extract all real kid IDs from parent step schema and map to names
             actual_kid_ids = _extract_kid_ids_from_schema(result)
@@ -1119,11 +1236,11 @@ async def _configure_multiple_parents_step(
         if i < len(parent_configs) - 1:
             # Still more parents to configure
             assert result["type"] == FlowResultType.FORM
-            assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENTS
+            assert result["step_id"] == CONFIG_FLOW_STEP_PARENTS
         else:
             # Last parent - result should advance to chore count step
             assert result["type"] == FlowResultType.FORM
-            assert result["step_id"] == const.CONFIG_FLOW_STEP_CHORE_COUNT
+            assert result["step_id"] == CONFIG_FLOW_STEP_CHORE_COUNT
 
     return result
 
@@ -1163,17 +1280,17 @@ async def _setup_full_family_scenario(
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         user_input={
-            const.CFOF_SYSTEM_INPUT_POINTS_LABEL: points_label,
-            const.CFOF_SYSTEM_INPUT_POINTS_ICON: points_icon,
+            CFOF_SYSTEM_INPUT_POINTS_LABEL: points_label,
+            CFOF_SYSTEM_INPUT_POINTS_ICON: points_icon,
         },
     )
-    assert result["step_id"] == const.CONFIG_FLOW_STEP_KID_COUNT
+    assert result["step_id"] == CONFIG_FLOW_STEP_KID_COUNT
 
     # Step 2: Set kid count = 3
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={const.CFOF_KIDS_INPUT_KID_COUNT: 3}
+        result["flow_id"], user_input={CFOF_KIDS_INPUT_KID_COUNT: 3}
     )
-    assert result["step_id"] == const.CONFIG_FLOW_STEP_KIDS
+    assert result["step_id"] == CONFIG_FLOW_STEP_KIDS
 
     # Step 3: Configure 3 kids individually (proven working pattern)
     result = await _configure_kid_step(
@@ -1209,13 +1326,13 @@ async def _setup_full_family_scenario(
         mobile_notify_service="",
         enable_persistent_notifications=False,
     )
-    assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENT_COUNT
+    assert result["step_id"] == CONFIG_FLOW_STEP_PARENT_COUNT
 
     # Step 4: Set parent count = 2
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={const.CFOF_PARENTS_INPUT_PARENT_COUNT: 2}
+        result["flow_id"], user_input={CFOF_PARENTS_INPUT_PARENT_COUNT: 2}
     )
-    assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENTS
+    assert result["step_id"] == CONFIG_FLOW_STEP_PARENTS
 
     # Step 5: Extract kid IDs from schema (proven working pattern)
     kid_ids = _extract_kid_ids_from_schema(result)
@@ -1245,7 +1362,7 @@ async def _setup_full_family_scenario(
         enable_mobile_notifications=False,
         enable_persistent_notifications=True,
     )
-    assert result["step_id"] == const.CONFIG_FLOW_STEP_CHORE_COUNT
+    assert result["step_id"] == CONFIG_FLOW_STEP_CHORE_COUNT
 
     # Create name to ID mapping for return (kid order: Zoë=0, Max!=1, Lila=2)
     kid_name_to_id_map = {
@@ -1274,39 +1391,39 @@ async def _skip_all_entity_steps(hass: HomeAssistant, result: Any) -> Any:
     """
     for _, input_key, next_step in [
         (
-            const.CONFIG_FLOW_STEP_CHORE_COUNT,
-            const.CFOF_CHORES_INPUT_CHORE_COUNT,
-            const.CONFIG_FLOW_STEP_BADGE_COUNT,
+            CONFIG_FLOW_STEP_CHORE_COUNT,
+            CFOF_CHORES_INPUT_CHORE_COUNT,
+            CONFIG_FLOW_STEP_BADGE_COUNT,
         ),
         (
-            const.CONFIG_FLOW_STEP_BADGE_COUNT,
-            const.CFOF_BADGES_INPUT_BADGE_COUNT,
-            const.CONFIG_FLOW_STEP_REWARD_COUNT,
+            CONFIG_FLOW_STEP_BADGE_COUNT,
+            CFOF_BADGES_INPUT_BADGE_COUNT,
+            CONFIG_FLOW_STEP_REWARD_COUNT,
         ),
         (
-            const.CONFIG_FLOW_STEP_REWARD_COUNT,
-            const.CFOF_REWARDS_INPUT_REWARD_COUNT,
-            const.CONFIG_FLOW_STEP_PENALTY_COUNT,
+            CONFIG_FLOW_STEP_REWARD_COUNT,
+            CFOF_REWARDS_INPUT_REWARD_COUNT,
+            CONFIG_FLOW_STEP_PENALTY_COUNT,
         ),
         (
-            const.CONFIG_FLOW_STEP_PENALTY_COUNT,
-            const.CFOF_PENALTIES_INPUT_PENALTY_COUNT,
-            const.CONFIG_FLOW_STEP_BONUS_COUNT,
+            CONFIG_FLOW_STEP_PENALTY_COUNT,
+            CFOF_PENALTIES_INPUT_PENALTY_COUNT,
+            CONFIG_FLOW_STEP_BONUS_COUNT,
         ),
         (
-            const.CONFIG_FLOW_STEP_BONUS_COUNT,
-            const.CFOF_BONUSES_INPUT_BONUS_COUNT,
-            const.CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT,
+            CONFIG_FLOW_STEP_BONUS_COUNT,
+            CFOF_BONUSES_INPUT_BONUS_COUNT,
+            CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT,
         ),
         (
-            const.CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT,
-            const.CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT,
-            const.CONFIG_FLOW_STEP_CHALLENGE_COUNT,
+            CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT,
+            CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT,
+            CONFIG_FLOW_STEP_CHALLENGE_COUNT,
         ),
         (
-            const.CONFIG_FLOW_STEP_CHALLENGE_COUNT,
-            const.CFOF_CHALLENGES_INPUT_CHALLENGE_COUNT,
-            const.CONFIG_FLOW_STEP_FINISH,
+            CONFIG_FLOW_STEP_CHALLENGE_COUNT,
+            CFOF_CHALLENGES_INPUT_CHALLENGE_COUNT,
+            CONFIG_FLOW_STEP_FINISH,
         ),
     ]:
         result = await hass.config_entries.flow.async_configure(
@@ -1327,15 +1444,34 @@ def _extract_kid_ids_from_schema(result: Any) -> list[str]:
         List of kid internal IDs available in the form
     """
     data_schema = _require_data_schema(result)
-    associated_kids_field = data_schema.schema.get(
-        const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS
-    )
+    associated_kids_field = data_schema.schema.get(CFOF_PARENTS_INPUT_ASSOCIATED_KIDS)
     assert associated_kids_field is not None, (
         "associated_kids field not found in schema"
     )
 
     kid_options = associated_kids_field.config["options"]
     return [option["value"] for option in kid_options]
+
+
+def _extract_kid_ids_from_badge_schema(result: Any) -> list[str]:
+    """Extract kid IDs from the badge schema's assigned_to field.
+
+    Args:
+        result: Config flow result containing badge data schema
+
+    Returns:
+        List of kid internal IDs available for badge assignment
+    """
+    data_schema = _require_data_schema(result)
+    assigned_to_field = data_schema.schema.get(CFOF_BADGES_INPUT_ASSIGNED_TO)
+    if assigned_to_field is None:
+        return []
+
+    kid_options = assigned_to_field.config["options"]
+    # Filter out sentinel values like SENTINEL_EMPTY
+    return [
+        option["value"] for option in kid_options if option["value"] != SENTINEL_EMPTY
+    ]
 
 
 @pytest.mark.asyncio
@@ -1355,42 +1491,42 @@ async def test_fresh_start_with_parents(hass: HomeAssistant, mock_hass_users):
     # Mock setup to prevent actual integration loading during config flow
     with patch("custom_components.kidschores.async_setup_entry", return_value=True):
         result = await hass.config_entries.flow.async_init(
-            const.DOMAIN, context={"source": config_entries.SOURCE_USER}
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_DATA_RECOVERY
+        assert result["step_id"] == CONFIG_FLOW_STEP_DATA_RECOVERY
 
         # Skip data recovery
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], user_input={"backup_selection": "start_fresh"}
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_INTRO
+        assert result["step_id"] == CONFIG_FLOW_STEP_INTRO
 
         # Skip intro
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], user_input={}
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_POINTS
+        assert result["step_id"] == CONFIG_FLOW_STEP_POINTS
 
         # Configure points system
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input={
-                const.CFOF_SYSTEM_INPUT_POINTS_LABEL: "Star Points",
-                const.CFOF_SYSTEM_INPUT_POINTS_ICON: "mdi:star",
+                CFOF_SYSTEM_INPUT_POINTS_LABEL: "Star Points",
+                CFOF_SYSTEM_INPUT_POINTS_ICON: "mdi:star",
             },
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_KID_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_KID_COUNT
 
         # Configure 1 kid
         result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], user_input={const.CFOF_KIDS_INPUT_KID_COUNT: 1}
+            result["flow_id"], user_input={CFOF_KIDS_INPUT_KID_COUNT: 1}
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_KIDS
+        assert result["step_id"] == CONFIG_FLOW_STEP_KIDS
 
         # Create a kid first
         result = await _configure_kid_step(
@@ -1405,21 +1541,21 @@ async def test_fresh_start_with_parents(hass: HomeAssistant, mock_hass_users):
             enable_persistent_notifications=False,
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENT_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_PARENT_COUNT
 
         # Configure 1 parent
         result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], user_input={const.CFOF_PARENTS_INPUT_PARENT_COUNT: 1}
+            result["flow_id"], user_input={CFOF_PARENTS_INPUT_PARENT_COUNT: 1}
         )
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENTS
+        assert result["step_id"] == CONFIG_FLOW_STEP_PARENTS
 
         # Extract the kid ID from the parent form schema options for associated_kids field
         data_schema = _require_data_schema(result)
 
         # Find the associated_kids field schema - the key is the string constant
         associated_kids_field = data_schema.schema.get(
-            const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS
+            CFOF_PARENTS_INPUT_ASSOCIATED_KIDS
         )
         assert associated_kids_field is not None, (
             "associated_kids field not found in schema"
@@ -1436,14 +1572,12 @@ async def test_fresh_start_with_parents(hass: HomeAssistant, mock_hass_users):
 
         # Now configure the parent associated with this kid
         parent_input = {
-            const.CFOF_PARENTS_INPUT_NAME: "Jane Parent",
-            const.CFOF_PARENTS_INPUT_HA_USER: parent_user.id,
-            const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: [
-                kid_id
-            ],  # Use the captured kid ID
-            const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: True,
-            const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: "notify.mobile_app_jane_phone",  # Include notify. prefix
-            const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: True,
+            CFOF_PARENTS_INPUT_NAME: "Jane Parent",
+            CFOF_PARENTS_INPUT_HA_USER: parent_user.id,
+            CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: [kid_id],  # Use the captured kid ID
+            CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: True,
+            CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: "notify.mobile_app_jane_phone",  # Include notify. prefix
+            CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: True,
         }
 
         result = await hass.config_entries.flow.async_configure(
@@ -1451,44 +1585,44 @@ async def test_fresh_start_with_parents(hass: HomeAssistant, mock_hass_users):
         )
         assert result["type"] == FlowResultType.FORM
         # Should move to entities setup - let's see what the next step is
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_CHORE_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_CHORE_COUNT
 
         # Skip all remaining entity steps
         for _, input_key, next_step in [
             (
-                const.CONFIG_FLOW_STEP_CHORE_COUNT,
-                const.CFOF_CHORES_INPUT_CHORE_COUNT,
-                const.CONFIG_FLOW_STEP_BADGE_COUNT,
+                CONFIG_FLOW_STEP_CHORE_COUNT,
+                CFOF_CHORES_INPUT_CHORE_COUNT,
+                CONFIG_FLOW_STEP_BADGE_COUNT,
             ),
             (
-                const.CONFIG_FLOW_STEP_BADGE_COUNT,
-                const.CFOF_BADGES_INPUT_BADGE_COUNT,
-                const.CONFIG_FLOW_STEP_REWARD_COUNT,
+                CONFIG_FLOW_STEP_BADGE_COUNT,
+                CFOF_BADGES_INPUT_BADGE_COUNT,
+                CONFIG_FLOW_STEP_REWARD_COUNT,
             ),
             (
-                const.CONFIG_FLOW_STEP_REWARD_COUNT,
-                const.CFOF_REWARDS_INPUT_REWARD_COUNT,
-                const.CONFIG_FLOW_STEP_PENALTY_COUNT,
+                CONFIG_FLOW_STEP_REWARD_COUNT,
+                CFOF_REWARDS_INPUT_REWARD_COUNT,
+                CONFIG_FLOW_STEP_PENALTY_COUNT,
             ),
             (
-                const.CONFIG_FLOW_STEP_PENALTY_COUNT,
-                const.CFOF_PENALTIES_INPUT_PENALTY_COUNT,
-                const.CONFIG_FLOW_STEP_BONUS_COUNT,
+                CONFIG_FLOW_STEP_PENALTY_COUNT,
+                CFOF_PENALTIES_INPUT_PENALTY_COUNT,
+                CONFIG_FLOW_STEP_BONUS_COUNT,
             ),
             (
-                const.CONFIG_FLOW_STEP_BONUS_COUNT,
-                const.CFOF_BONUSES_INPUT_BONUS_COUNT,
-                const.CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT,
+                CONFIG_FLOW_STEP_BONUS_COUNT,
+                CFOF_BONUSES_INPUT_BONUS_COUNT,
+                CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT,
             ),
             (
-                const.CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT,
-                const.CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT,
-                const.CONFIG_FLOW_STEP_CHALLENGE_COUNT,
+                CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT,
+                CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT,
+                CONFIG_FLOW_STEP_CHALLENGE_COUNT,
             ),
             (
-                const.CONFIG_FLOW_STEP_CHALLENGE_COUNT,
-                const.CFOF_CHALLENGES_INPUT_CHALLENGE_COUNT,
-                const.CONFIG_FLOW_STEP_FINISH,
+                CONFIG_FLOW_STEP_CHALLENGE_COUNT,
+                CFOF_CHALLENGES_INPUT_CHALLENGE_COUNT,
+                CONFIG_FLOW_STEP_FINISH,
             ),
         ]:
             result = await hass.config_entries.flow.async_configure(
@@ -1508,11 +1642,11 @@ async def test_fresh_start_with_parents(hass: HomeAssistant, mock_hass_users):
         # Verify config entry created correctly
         config_entry = result["result"]
         assert config_entry.title == "KidsChores"
-        assert config_entry.domain == const.DOMAIN
+        assert config_entry.domain == DOMAIN
 
         # Verify Star Points theme in system settings
-        assert config_entry.options[const.CONF_POINTS_LABEL] == "Star Points"
-        assert config_entry.options[const.CONF_POINTS_ICON] == "mdi:star"
+        assert config_entry.options[CONF_POINTS_LABEL] == "Star Points"
+        assert config_entry.options[CONF_POINTS_ICON] == "mdi:star"
 
         # Config entry created successfully - coordinator contains family data
 
@@ -1540,9 +1674,9 @@ async def _configure_chore_step(
     due_date: str | None = None,
     custom_interval: int | None = None,
     custom_interval_unit: str | None = None,
-    approval_reset_type: str = const.DEFAULT_APPROVAL_RESET_TYPE,
-    approval_reset_pending_claim_action: str = const.DEFAULT_APPROVAL_RESET_PENDING_CLAIM_ACTION,
-    overdue_handling_type: str = const.DEFAULT_OVERDUE_HANDLING_TYPE,
+    approval_reset_type: str = DEFAULT_APPROVAL_RESET_TYPE,
+    approval_reset_pending_claim_action: str = DEFAULT_APPROVAL_RESET_PENDING_CLAIM_ACTION,
+    overdue_handling_type: str = DEFAULT_OVERDUE_HANDLING_TYPE,
 ) -> Any:
     """Configure a single chore step during config flow.
 
@@ -1595,30 +1729,30 @@ async def _configure_chore_step(
 
     # Configure this chore
     user_input = {
-        const.CFOF_CHORES_INPUT_NAME: chore_name,
-        const.CFOF_CHORES_INPUT_ASSIGNED_KIDS: assigned_kid_names,
-        const.CFOF_CHORES_INPUT_DEFAULT_POINTS: points,
-        const.CFOF_CHORES_INPUT_DESCRIPTION: description,
-        const.CFOF_CHORES_INPUT_ICON: icon,
-        const.CFOF_CHORES_INPUT_COMPLETION_CRITERIA: completion_criteria,
-        const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY: recurring_frequency,
-        const.CFOF_CHORES_INPUT_AUTO_APPROVE: auto_approve,
-        const.CFOF_CHORES_INPUT_SHOW_ON_CALENDAR: show_on_calendar,
-        const.CFOF_CHORES_INPUT_LABELS: labels or [],
-        const.CFOF_CHORES_INPUT_APPLICABLE_DAYS: applicable_days,
-        const.CFOF_CHORES_INPUT_NOTIFICATIONS: chore_notifications,
-        const.CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: approval_reset_type,
-        const.CFOF_CHORES_INPUT_APPROVAL_RESET_PENDING_CLAIM_ACTION: approval_reset_pending_claim_action,
-        const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: overdue_handling_type,
+        CFOF_CHORES_INPUT_NAME: chore_name,
+        CFOF_CHORES_INPUT_ASSIGNED_KIDS: assigned_kid_names,
+        CFOF_CHORES_INPUT_DEFAULT_POINTS: points,
+        CFOF_CHORES_INPUT_DESCRIPTION: description,
+        CFOF_CHORES_INPUT_ICON: icon,
+        CFOF_CHORES_INPUT_COMPLETION_CRITERIA: completion_criteria,
+        CFOF_CHORES_INPUT_RECURRING_FREQUENCY: recurring_frequency,
+        CFOF_CHORES_INPUT_AUTO_APPROVE: auto_approve,
+        CFOF_CHORES_INPUT_SHOW_ON_CALENDAR: show_on_calendar,
+        CFOF_CHORES_INPUT_LABELS: labels or [],
+        CFOF_CHORES_INPUT_APPLICABLE_DAYS: applicable_days,
+        CFOF_CHORES_INPUT_NOTIFICATIONS: chore_notifications,
+        CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: approval_reset_type,
+        CFOF_CHORES_INPUT_APPROVAL_RESET_PENDING_CLAIM_ACTION: approval_reset_pending_claim_action,
+        CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: overdue_handling_type,
     }
 
     # Add optional fields if provided
     if due_date is not None:
-        user_input[const.CFOF_CHORES_INPUT_DUE_DATE] = due_date
+        user_input[CFOF_CHORES_INPUT_DUE_DATE] = due_date
     if custom_interval is not None:
-        user_input[const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL] = custom_interval
+        user_input[CFOF_CHORES_INPUT_CUSTOM_INTERVAL] = custom_interval
     if custom_interval_unit is not None:
-        user_input[const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT] = custom_interval_unit
+        user_input[CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT] = custom_interval_unit
 
     return await hass.config_entries.flow.async_configure(
         result["flow_id"], user_input=user_input
@@ -1642,16 +1776,16 @@ async def _configure_system_settings_step(
     Returns:
         Updated config flow result at KID_COUNT step
     """
-    assert result["step_id"] == const.CONFIG_FLOW_STEP_POINTS
+    assert result["step_id"] == CONFIG_FLOW_STEP_POINTS
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         user_input={
-            const.CFOF_SYSTEM_INPUT_POINTS_LABEL: points_label,
-            const.CFOF_SYSTEM_INPUT_POINTS_ICON: points_icon,
+            CFOF_SYSTEM_INPUT_POINTS_LABEL: points_label,
+            CFOF_SYSTEM_INPUT_POINTS_ICON: points_icon,
         },
     )
-    assert result["step_id"] == const.CONFIG_FLOW_STEP_KID_COUNT
+    assert result["step_id"] == CONFIG_FLOW_STEP_KID_COUNT
     return result
 
 
@@ -1676,22 +1810,22 @@ async def _configure_family_step(
     """
     # Start config flow
     result = await hass.config_entries.flow.async_init(
-        const.DOMAIN, context={"source": config_entries.SOURCE_USER}
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == const.CONFIG_FLOW_STEP_DATA_RECOVERY
+    assert result["step_id"] == CONFIG_FLOW_STEP_DATA_RECOVERY
 
     # Skip data recovery (fresh start)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], user_input={"backup_selection": "start_fresh"}
     )
-    assert result["step_id"] == const.CONFIG_FLOW_STEP_INTRO
+    assert result["step_id"] == CONFIG_FLOW_STEP_INTRO
 
     # Skip intro
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], user_input={}
     )
-    assert result["step_id"] == const.CONFIG_FLOW_STEP_POINTS
+    assert result["step_id"] == CONFIG_FLOW_STEP_POINTS
 
     # Configure system settings
     result = await _configure_system_settings_step(
@@ -1720,12 +1854,12 @@ async def _configure_family_step(
         parent_name=parent_name,
         parent_ha_user_key="parent1",
         enable_mobile_notifications=False,
-        mobile_notify_service=const.SENTINEL_EMPTY,
+        mobile_notify_service=SENTINEL_EMPTY,
         enable_persistent_notifications=False,
     )
 
     # Should be at chore count step
-    assert result["step_id"] == const.CONFIG_FLOW_STEP_CHORE_COUNT
+    assert result["step_id"] == CONFIG_FLOW_STEP_CHORE_COUNT
 
     return result, kid_name_to_id_map
 
@@ -1790,17 +1924,17 @@ async def _configure_multiple_chores_step(
     # Set chore count
     chore_count = len(chore_configs)
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={const.CFOF_CHORES_INPUT_CHORE_COUNT: chore_count}
+        result["flow_id"], user_input={CFOF_CHORES_INPUT_CHORE_COUNT: chore_count}
     )
 
     if chore_count == 0:
         # Skip to badge count step
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_BADGE_COUNT
+        assert result["step_id"] == CONFIG_FLOW_STEP_BADGE_COUNT
         return result, name_to_id_map
 
     # Configure each chore
     for i, chore_config in enumerate(chore_configs):
-        assert result["step_id"] == const.CONFIG_FLOW_STEP_CHORES
+        assert result["step_id"] == CONFIG_FLOW_STEP_CHORES
 
         # Map YAML fields to config flow parameters
         chore_type = chore_config.get("type", "daily")
@@ -1833,14 +1967,14 @@ async def _configure_multiple_chores_step(
             custom_interval=custom_interval,
             custom_interval_unit=custom_interval_unit,
             approval_reset_type=chore_config.get(
-                "approval_reset_type", const.DEFAULT_APPROVAL_RESET_TYPE
+                "approval_reset_type", DEFAULT_APPROVAL_RESET_TYPE
             ),
             approval_reset_pending_claim_action=chore_config.get(
                 "approval_reset_pending_claim_action",
-                const.DEFAULT_APPROVAL_RESET_PENDING_CLAIM_ACTION,
+                DEFAULT_APPROVAL_RESET_PENDING_CLAIM_ACTION,
             ),
             overdue_handling_type=chore_config.get(
-                "overdue_handling_type", const.DEFAULT_OVERDUE_HANDLING_TYPE
+                "overdue_handling_type", DEFAULT_OVERDUE_HANDLING_TYPE
             ),
         )
 
@@ -1851,11 +1985,11 @@ async def _configure_multiple_chores_step(
         if i < len(chore_configs) - 1:
             # Still more chores to configure
             assert result["type"] == FlowResultType.FORM
-            assert result["step_id"] == const.CONFIG_FLOW_STEP_CHORES
+            assert result["step_id"] == CONFIG_FLOW_STEP_CHORES
         else:
             # Last chore - should go to badge count
             assert result["type"] == FlowResultType.FORM
-            assert result["step_id"] == const.CONFIG_FLOW_STEP_BADGE_COUNT
+            assert result["step_id"] == CONFIG_FLOW_STEP_BADGE_COUNT
 
     return result, name_to_id_map
 
@@ -1865,6 +1999,908 @@ async def _configure_multiple_chores_step(
 # - test_fresh_start_challenges_and_achievements: Focus on advanced features
 # - test_fresh_start_error_handling: Test validation and error paths
 # - test_fresh_start_different_themes: Test various points labels/icons
+
+
+# ==============================================================================
+# ENTITY CONFIGURATION HELPERS (Badges, Rewards, Penalties, Bonuses, Achievements, Challenges)
+# ==============================================================================
+
+
+async def _configure_badge_step(
+    hass: HomeAssistant,
+    result: Any,
+    badge_name: str,
+    badge_icon: str = "mdi:medal",
+    target_threshold_value: int = 10,
+    award_points: int = 0,
+    assigned_to: list[str] | None = None,
+) -> Any:
+    """Configure a single cumulative badge in config flow.
+
+    Args:
+        hass: Home Assistant instance
+        result: Current config flow result (should be on BADGES step)
+        badge_name: Name of the badge
+        badge_icon: MDI icon (default: mdi:medal)
+        target_threshold_value: Threshold for earning badge (default: 10)
+        award_points: Bonus points when badge earned (default: 0)
+        assigned_to: List of kid IDs to assign badge to (default: all kids)
+
+    Returns:
+        Updated config flow result
+
+    Note:
+        For cumulative badges, target_type is NOT included in schema
+        (cumulative badges always use points-based threshold).
+    """
+    assert result["step_id"] == CONFIG_FLOW_STEP_BADGES
+
+    form_data = {
+        CFOF_BADGES_INPUT_NAME: badge_name,
+        CFOF_BADGES_INPUT_ICON: badge_icon,
+        CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE: target_threshold_value,
+        CFOF_BADGES_INPUT_AWARD_POINTS: award_points,
+    }
+
+    if assigned_to is not None:
+        form_data[CFOF_BADGES_INPUT_ASSIGNED_TO] = assigned_to
+
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input=form_data
+    )
+
+
+async def _configure_reward_step(
+    hass: HomeAssistant,
+    result: Any,
+    reward_name: str,
+    reward_cost: int = 50,
+    reward_icon: str = "mdi:gift",
+    reward_description: str = "",
+) -> Any:
+    """Configure a single reward in config flow.
+
+    Args:
+        hass: Home Assistant instance
+        result: Current config flow result (should be on REWARDS step)
+        reward_name: Name of the reward
+        reward_cost: Point cost to claim reward (default: 50)
+        reward_icon: MDI icon (default: mdi:gift)
+        reward_description: Optional description
+
+    Returns:
+        Updated config flow result
+    """
+    assert result["step_id"] == CONFIG_FLOW_STEP_REWARDS
+
+    form_data = {
+        CFOF_REWARDS_INPUT_NAME: reward_name,
+        CFOF_REWARDS_INPUT_COST: reward_cost,
+        CFOF_REWARDS_INPUT_ICON: reward_icon,
+        CFOF_REWARDS_INPUT_DESCRIPTION: reward_description,
+    }
+
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input=form_data
+    )
+
+
+async def _configure_penalty_step(
+    hass: HomeAssistant,
+    result: Any,
+    penalty_name: str,
+    penalty_points: int = 5,
+    penalty_icon: str = "mdi:alert",
+    penalty_description: str = "",
+) -> Any:
+    """Configure a single penalty in config flow.
+
+    Args:
+        hass: Home Assistant instance
+        result: Current config flow result (should be on PENALTIES step)
+        penalty_name: Name of the penalty
+        penalty_points: Points deducted when applied (default: 5)
+        penalty_icon: MDI icon (default: mdi:alert)
+        penalty_description: Optional description
+
+    Returns:
+        Updated config flow result
+    """
+    assert result["step_id"] == CONFIG_FLOW_STEP_PENALTIES
+
+    form_data = {
+        CFOF_PENALTIES_INPUT_NAME: penalty_name,
+        CFOF_PENALTIES_INPUT_POINTS: penalty_points,
+        CFOF_PENALTIES_INPUT_ICON: penalty_icon,
+        CFOF_PENALTIES_INPUT_DESCRIPTION: penalty_description,
+    }
+
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input=form_data
+    )
+
+
+async def _configure_bonus_step(
+    hass: HomeAssistant,
+    result: Any,
+    bonus_name: str,
+    bonus_points: int = 10,
+    bonus_icon: str = "mdi:star",
+    bonus_description: str = "",
+) -> Any:
+    """Configure a single bonus in config flow.
+
+    Args:
+        hass: Home Assistant instance
+        result: Current config flow result (should be on BONUSES step)
+        bonus_name: Name of the bonus
+        bonus_points: Points awarded when applied (default: 10)
+        bonus_icon: MDI icon (default: mdi:star)
+        bonus_description: Optional description
+
+    Returns:
+        Updated config flow result
+    """
+    assert result["step_id"] == CONFIG_FLOW_STEP_BONUSES
+
+    form_data = {
+        CFOF_BONUSES_INPUT_NAME: bonus_name,
+        CFOF_BONUSES_INPUT_POINTS: bonus_points,
+        CFOF_BONUSES_INPUT_ICON: bonus_icon,
+        CFOF_BONUSES_INPUT_DESCRIPTION: bonus_description,
+    }
+
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input=form_data
+    )
+
+
+async def _configure_achievement_step(
+    hass: HomeAssistant,
+    result: Any,
+    achievement_name: str,
+    achievement_type: str = "chore_total",
+    target_value: int = 10,
+    reward_points: int = 50,
+    achievement_icon: str = "mdi:trophy",
+    achievement_description: str = "",
+    assigned_to: list[str] | None = None,
+) -> Any:
+    """Configure a single achievement in config flow.
+
+    Args:
+        hass: Home Assistant instance
+        result: Current config flow result (should be on ACHIEVEMENTS step)
+        achievement_name: Name of the achievement
+        achievement_type: Type (chore_total, chore_streak, daily_minimum)
+        target_value: Target to reach for achievement
+        reward_points: Points awarded when achieved
+        achievement_icon: MDI icon (default: mdi:trophy)
+        achievement_description: Optional description
+        assigned_to: List of kid IDs (default: all kids)
+
+    Returns:
+        Updated config flow result
+    """
+    assert result["step_id"] == CONFIG_FLOW_STEP_ACHIEVEMENTS
+
+    form_data = {
+        CFOF_ACHIEVEMENTS_INPUT_NAME: achievement_name,
+        CFOF_ACHIEVEMENTS_INPUT_TYPE: achievement_type,
+        CFOF_ACHIEVEMENTS_INPUT_TARGET_VALUE: target_value,
+        CFOF_ACHIEVEMENTS_INPUT_REWARD_POINTS: reward_points,
+        CFOF_ACHIEVEMENTS_INPUT_ICON: achievement_icon,
+        CFOF_ACHIEVEMENTS_INPUT_DESCRIPTION: achievement_description,
+    }
+
+    if assigned_to is not None:
+        form_data[CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS] = assigned_to
+
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input=form_data
+    )
+
+
+async def _configure_challenge_step(
+    hass: HomeAssistant,
+    result: Any,
+    challenge_name: str,
+    challenge_type: str = "total_within_window",
+    target_value: int = 5,
+    reward_points: int = 100,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    challenge_icon: str = "mdi:flag",
+    challenge_description: str = "",
+    assigned_to: list[str] | None = None,
+) -> Any:
+    """Configure a single challenge in config flow.
+
+    Args:
+        hass: Home Assistant instance
+        result: Current config flow result (should be on CHALLENGES step)
+        challenge_name: Name of the challenge
+        challenge_type: Type (total_within_window, daily_minimum)
+        target_value: Target to reach for challenge
+        reward_points: Points awarded when completed
+        start_date: ISO format start date (required)
+        end_date: ISO format end date (required)
+        challenge_icon: MDI icon (default: mdi:flag)
+        challenge_description: Optional description
+        assigned_to: List of kid IDs (default: all kids)
+
+    Returns:
+        Updated config flow result
+    """
+    assert result["step_id"] == CONFIG_FLOW_STEP_CHALLENGES
+
+    form_data = {
+        CFOF_CHALLENGES_INPUT_NAME: challenge_name,
+        CFOF_CHALLENGES_INPUT_TYPE: challenge_type,
+        CFOF_CHALLENGES_INPUT_TARGET_VALUE: target_value,
+        CFOF_CHALLENGES_INPUT_REWARD_POINTS: reward_points,
+        CFOF_CHALLENGES_INPUT_START_DATE: start_date,
+        CFOF_CHALLENGES_INPUT_END_DATE: end_date,
+        CFOF_CHALLENGES_INPUT_ICON: challenge_icon,
+        CFOF_CHALLENGES_INPUT_DESCRIPTION: challenge_description,
+    }
+
+    if assigned_to is not None:
+        form_data[CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS] = assigned_to
+
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input=form_data
+    )
+
+
+async def _complete_remaining_entity_counts(
+    hass: HomeAssistant,
+    result: Any,
+    skip_badges: bool = False,
+    skip_rewards: bool = False,
+    skip_penalties: bool = False,
+    skip_bonuses: bool = False,
+    skip_achievements: bool = False,
+    skip_challenges: bool = False,
+) -> Any:
+    """Complete remaining entity count steps with 0 to finish config flow.
+
+    Args:
+        hass: Home Assistant instance
+        result: Current config flow result
+        skip_*: If True, skip that entity type (already configured)
+
+    Returns:
+        Final config flow result (should be CREATE_ENTRY)
+    """
+    if not skip_badges:
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_BADGES_INPUT_BADGE_COUNT: 0}
+        )
+    if not skip_rewards:
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_REWARDS_INPUT_REWARD_COUNT: 0}
+        )
+    if not skip_penalties:
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_PENALTIES_INPUT_PENALTY_COUNT: 0}
+        )
+    if not skip_bonuses:
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_BONUSES_INPUT_BONUS_COUNT: 0}
+        )
+    if not skip_achievements:
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT: 0},
+        )
+    if not skip_challenges:
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CFOF_CHALLENGES_INPUT_CHALLENGE_COUNT: 0},
+        )
+
+    # Final finish step
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={}
+    )
+
+
+# ==============================================================================
+# PHASE 1 TESTS: Config Flow Entity Add Tests (Badges, Rewards, Penalties, Bonuses, Achievements, Challenges)
+# ==============================================================================
+
+
+@pytest.mark.asyncio
+async def test_fresh_start_with_badge(
+    hass: HomeAssistant,
+    mock_hass_users: dict[str, Any],
+) -> None:
+    """Test fresh start config flow with family + single cumulative badge.
+
+    This test validates:
+    1. Complete family setup (1 kid, 0 parents)
+    2. Skip chores (count=0)
+    3. Single cumulative badge configuration
+    4. Badge data stored correctly in config entry
+    """
+    with patch("custom_components.kidschores.async_setup_entry", return_value=True):
+        # Step 1: Start config flow
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={"backup_selection": "start_fresh"}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={},  # Skip intro
+        )
+
+        # Step 2: Set Star Points theme
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={
+                CFOF_SYSTEM_INPUT_POINTS_LABEL: "Star Points",
+                CFOF_SYSTEM_INPUT_POINTS_ICON: "mdi:star",
+            },
+        )
+
+        # Step 3: Add 1 kid
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_KIDS_INPUT_KID_COUNT: 1}
+        )
+        result = await _configure_kid_step(
+            hass,
+            result,
+            mock_hass_users,
+            kid_name="Test Kid",
+            kid_ha_user_key="kid1",
+        )
+        assert result["step_id"] == CONFIG_FLOW_STEP_PARENT_COUNT
+
+        # Step 4: 0 parents
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_PARENTS_INPUT_PARENT_COUNT: 0}
+        )
+        assert result["step_id"] == CONFIG_FLOW_STEP_CHORE_COUNT
+
+        # Step 5: 0 chores
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_CHORES_INPUT_CHORE_COUNT: 0}
+        )
+        assert result["step_id"] == CONFIG_FLOW_STEP_BADGE_COUNT
+
+        # Step 6: 1 badge
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_BADGES_INPUT_BADGE_COUNT: 1}
+        )
+        assert result["step_id"] == CONFIG_FLOW_STEP_BADGES
+
+        # Extract kid IDs from the badge schema to assign badge
+        kid_ids = _extract_kid_ids_from_badge_schema(result)
+        assert len(kid_ids) > 0, "No kids available for badge assignment"
+
+        # Step 7: Configure badge
+        result = await _configure_badge_step(
+            hass,
+            result,
+            badge_name="Chore Champion",
+            badge_icon="mdi:medal",
+            target_threshold_value=10,
+            award_points=25,
+            assigned_to=kid_ids,  # Assign to all available kids
+        )
+        assert result["step_id"] == CONFIG_FLOW_STEP_REWARD_COUNT, (
+            f"Expected reward_count but got {result['step_id']}. Errors: {result.get('errors')}"
+        )
+
+        # Complete remaining steps
+        result = await _complete_remaining_entity_counts(hass, result, skip_badges=True)
+
+        # Verify completion
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert result["title"] == "KidsChores"
+
+
+@pytest.mark.asyncio
+async def test_fresh_start_with_reward(
+    hass: HomeAssistant,
+    mock_hass_users: dict[str, Any],
+) -> None:
+    """Test fresh start config flow with family + single reward.
+
+    This test validates:
+    1. Complete family setup (1 kid, 0 parents)
+    2. Skip chores and badges (count=0)
+    3. Single reward configuration
+    4. Reward data stored correctly in config entry
+    """
+    with patch("custom_components.kidschores.async_setup_entry", return_value=True):
+        # Start config flow and set up family
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={"backup_selection": "start_fresh"}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={},  # Skip intro
+        )
+
+        # Set Star Points theme
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={
+                CFOF_SYSTEM_INPUT_POINTS_LABEL: "Star Points",
+                CFOF_SYSTEM_INPUT_POINTS_ICON: "mdi:star",
+            },
+        )
+
+        # Add 1 kid
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_KIDS_INPUT_KID_COUNT: 1}
+        )
+        result = await _configure_kid_step(
+            hass,
+            result,
+            mock_hass_users,
+            kid_name="Test Kid",
+            kid_ha_user_key="kid1",
+        )
+
+        # 0 parents
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_PARENTS_INPUT_PARENT_COUNT: 0}
+        )
+
+        # 0 chores
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_CHORES_INPUT_CHORE_COUNT: 0}
+        )
+
+        # 0 badges
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_BADGES_INPUT_BADGE_COUNT: 0}
+        )
+        assert result["step_id"] == CONFIG_FLOW_STEP_REWARD_COUNT
+
+        # 1 reward
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_REWARDS_INPUT_REWARD_COUNT: 1}
+        )
+        assert result["step_id"] == CONFIG_FLOW_STEP_REWARDS
+
+        # Configure reward
+        result = await _configure_reward_step(
+            hass,
+            result,
+            reward_name="Extra Screen Time",
+            reward_cost=100,
+            reward_icon="mdi:television",
+            reward_description="30 minutes of extra screen time",
+        )
+        assert result["step_id"] == CONFIG_FLOW_STEP_PENALTY_COUNT
+
+        # Complete remaining steps
+        result = await _complete_remaining_entity_counts(
+            hass, result, skip_badges=True, skip_rewards=True
+        )
+
+        # Verify completion
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert result["title"] == "KidsChores"
+
+
+@pytest.mark.asyncio
+async def test_fresh_start_with_penalty(
+    hass: HomeAssistant,
+    mock_hass_users: dict[str, Any],
+) -> None:
+    """Test fresh start config flow with family + single penalty.
+
+    This test validates:
+    1. Complete family setup (1 kid, 0 parents)
+    2. Skip chores, badges, rewards (count=0)
+    3. Single penalty configuration
+    4. Penalty data stored correctly in config entry
+    """
+    with patch("custom_components.kidschores.async_setup_entry", return_value=True):
+        # Start config flow and set up family
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={"backup_selection": "start_fresh"}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={},  # Skip intro
+        )
+
+        # Set Star Points theme
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={
+                CFOF_SYSTEM_INPUT_POINTS_LABEL: "Star Points",
+                CFOF_SYSTEM_INPUT_POINTS_ICON: "mdi:star",
+            },
+        )
+
+        # Add 1 kid
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_KIDS_INPUT_KID_COUNT: 1}
+        )
+        result = await _configure_kid_step(
+            hass,
+            result,
+            mock_hass_users,
+            kid_name="Test Kid",
+            kid_ha_user_key="kid1",
+        )
+
+        # 0 parents
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_PARENTS_INPUT_PARENT_COUNT: 0}
+        )
+
+        # 0 chores, badges, rewards
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_CHORES_INPUT_CHORE_COUNT: 0}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_BADGES_INPUT_BADGE_COUNT: 0}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_REWARDS_INPUT_REWARD_COUNT: 0}
+        )
+        assert result["step_id"] == CONFIG_FLOW_STEP_PENALTY_COUNT
+
+        # 1 penalty
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_PENALTIES_INPUT_PENALTY_COUNT: 1}
+        )
+        assert result["step_id"] == CONFIG_FLOW_STEP_PENALTIES
+
+        # Configure penalty
+        result = await _configure_penalty_step(
+            hass,
+            result,
+            penalty_name="Screen Time Loss",
+            penalty_points=15,
+            penalty_icon="mdi:television-off",
+            penalty_description="Lost screen time for misbehavior",
+        )
+        assert result["step_id"] == CONFIG_FLOW_STEP_BONUS_COUNT
+
+        # Complete remaining steps
+        result = await _complete_remaining_entity_counts(
+            hass, result, skip_badges=True, skip_rewards=True, skip_penalties=True
+        )
+
+        # Verify completion
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert result["title"] == "KidsChores"
+
+
+@pytest.mark.asyncio
+async def test_fresh_start_with_bonus(
+    hass: HomeAssistant,
+    mock_hass_users: dict[str, Any],
+) -> None:
+    """Test fresh start config flow with family + single bonus.
+
+    This test validates:
+    1. Complete family setup (1 kid, 0 parents)
+    2. Skip chores, badges, rewards, penalties (count=0)
+    3. Single bonus configuration
+    4. Bonus data stored correctly in config entry
+    """
+    with patch("custom_components.kidschores.async_setup_entry", return_value=True):
+        # Start config flow and set up family
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={"backup_selection": "start_fresh"}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={},  # Skip intro
+        )
+
+        # Set Star Points theme
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={
+                CFOF_SYSTEM_INPUT_POINTS_LABEL: "Star Points",
+                CFOF_SYSTEM_INPUT_POINTS_ICON: "mdi:star",
+            },
+        )
+
+        # Add 1 kid
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_KIDS_INPUT_KID_COUNT: 1}
+        )
+        result = await _configure_kid_step(
+            hass,
+            result,
+            mock_hass_users,
+            kid_name="Test Kid",
+            kid_ha_user_key="kid1",
+        )
+
+        # 0 parents
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_PARENTS_INPUT_PARENT_COUNT: 0}
+        )
+
+        # 0 chores, badges, rewards, penalties
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_CHORES_INPUT_CHORE_COUNT: 0}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_BADGES_INPUT_BADGE_COUNT: 0}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_REWARDS_INPUT_REWARD_COUNT: 0}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_PENALTIES_INPUT_PENALTY_COUNT: 0}
+        )
+        assert result["step_id"] == CONFIG_FLOW_STEP_BONUS_COUNT
+
+        # 1 bonus
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_BONUSES_INPUT_BONUS_COUNT: 1}
+        )
+        assert result["step_id"] == CONFIG_FLOW_STEP_BONUSES
+
+        # Configure bonus
+        result = await _configure_bonus_step(
+            hass,
+            result,
+            bonus_name="Helping Others",
+            bonus_points=20,
+            bonus_icon="mdi:heart",
+            bonus_description="Extra points for helping siblings",
+        )
+        assert result["step_id"] == CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT
+
+        # Complete remaining steps
+        result = await _complete_remaining_entity_counts(
+            hass,
+            result,
+            skip_badges=True,
+            skip_rewards=True,
+            skip_penalties=True,
+            skip_bonuses=True,
+        )
+
+        # Verify completion
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert result["title"] == "KidsChores"
+
+
+@pytest.mark.asyncio
+async def test_fresh_start_with_achievement(
+    hass: HomeAssistant,
+    mock_hass_users: dict[str, Any],
+) -> None:
+    """Test fresh start config flow with family + single achievement.
+
+    This test validates:
+    1. Complete family setup (1 kid, 0 parents)
+    2. Skip chores, badges, rewards, penalties, bonuses (count=0)
+    3. Single achievement configuration
+    4. Achievement data stored correctly in config entry
+    """
+    with patch("custom_components.kidschores.async_setup_entry", return_value=True):
+        # Start config flow and set up family
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={"backup_selection": "start_fresh"}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={},  # Skip intro
+        )
+
+        # Set Star Points theme
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={
+                CFOF_SYSTEM_INPUT_POINTS_LABEL: "Star Points",
+                CFOF_SYSTEM_INPUT_POINTS_ICON: "mdi:star",
+            },
+        )
+
+        # Add 1 kid
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_KIDS_INPUT_KID_COUNT: 1}
+        )
+        result = await _configure_kid_step(
+            hass,
+            result,
+            mock_hass_users,
+            kid_name="Test Kid",
+            kid_ha_user_key="kid1",
+        )
+
+        # 0 parents
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_PARENTS_INPUT_PARENT_COUNT: 0}
+        )
+
+        # 0 chores, badges, rewards, penalties, bonuses
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_CHORES_INPUT_CHORE_COUNT: 0}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_BADGES_INPUT_BADGE_COUNT: 0}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_REWARDS_INPUT_REWARD_COUNT: 0}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_PENALTIES_INPUT_PENALTY_COUNT: 0}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_BONUSES_INPUT_BONUS_COUNT: 0}
+        )
+        assert result["step_id"] == CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT
+
+        # 1 achievement
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT: 1},
+        )
+        assert result["step_id"] == CONFIG_FLOW_STEP_ACHIEVEMENTS
+
+        # Configure achievement
+        result = await _configure_achievement_step(
+            hass,
+            result,
+            achievement_name="First Steps",
+            achievement_type="chore_total",
+            target_value=5,
+            reward_points=50,
+            achievement_icon="mdi:trophy",
+            achievement_description="Complete your first 5 chores",
+        )
+        assert result["step_id"] == CONFIG_FLOW_STEP_CHALLENGE_COUNT
+
+        # Complete remaining steps
+        result = await _complete_remaining_entity_counts(
+            hass,
+            result,
+            skip_badges=True,
+            skip_rewards=True,
+            skip_penalties=True,
+            skip_bonuses=True,
+            skip_achievements=True,
+        )
+
+        # Verify completion
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert result["title"] == "KidsChores"
+
+
+@pytest.mark.asyncio
+async def test_fresh_start_with_challenge(
+    hass: HomeAssistant,
+    mock_hass_users: dict[str, Any],
+) -> None:
+    """Test fresh start config flow with family + single challenge.
+
+    This test validates:
+    1. Complete family setup (1 kid, 0 parents)
+    2. Skip chores, badges, rewards, penalties, bonuses, achievements (count=0)
+    3. Single challenge configuration with future dates
+    4. Challenge data stored correctly in config entry
+    """
+    import datetime
+
+    from homeassistant.util import dt as dt_util
+
+    with patch("custom_components.kidschores.async_setup_entry", return_value=True):
+        # Start config flow and set up family
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={"backup_selection": "start_fresh"}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={},  # Skip intro
+        )
+
+        # Set Star Points theme
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={
+                CFOF_SYSTEM_INPUT_POINTS_LABEL: "Star Points",
+                CFOF_SYSTEM_INPUT_POINTS_ICON: "mdi:star",
+            },
+        )
+
+        # Add 1 kid
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_KIDS_INPUT_KID_COUNT: 1}
+        )
+        result = await _configure_kid_step(
+            hass,
+            result,
+            mock_hass_users,
+            kid_name="Test Kid",
+            kid_ha_user_key="kid1",
+        )
+
+        # 0 parents
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_PARENTS_INPUT_PARENT_COUNT: 0}
+        )
+
+        # 0 chores, badges, rewards, penalties, bonuses, achievements
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_CHORES_INPUT_CHORE_COUNT: 0}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_BADGES_INPUT_BADGE_COUNT: 0}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_REWARDS_INPUT_REWARD_COUNT: 0}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_PENALTIES_INPUT_PENALTY_COUNT: 0}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CFOF_BONUSES_INPUT_BONUS_COUNT: 0}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT: 0},
+        )
+        assert result["step_id"] == CONFIG_FLOW_STEP_CHALLENGE_COUNT
+
+        # 1 challenge
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CFOF_CHALLENGES_INPUT_CHALLENGE_COUNT: 1},
+        )
+        assert result["step_id"] == CONFIG_FLOW_STEP_CHALLENGES
+
+        # Configure challenge with future dates
+        now = dt_util.utcnow()
+        start_date = (now + datetime.timedelta(days=1)).isoformat()
+        end_date = (now + datetime.timedelta(days=7)).isoformat()
+
+        result = await _configure_challenge_step(
+            hass,
+            result,
+            challenge_name="Weekend Warrior",
+            challenge_type="total_within_window",
+            target_value=10,
+            reward_points=150,
+            start_date=start_date,
+            end_date=end_date,
+            challenge_icon="mdi:flag-checkered",
+            challenge_description="Complete 10 chores this week",
+        )
+        assert result["step_id"] == CONFIG_FLOW_STEP_FINISH
+
+        # Final finish step
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={}
+        )
+
+        # Verify completion
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert result["title"] == "KidsChores"
 
 
 async def test_fresh_start_with_single_chore(
@@ -1881,7 +2917,7 @@ async def test_fresh_start_with_single_chore(
     """
     # Step 1: Start config flow and navigate to points step
     result = await hass.config_entries.flow.async_init(
-        const.DOMAIN, context={"source": config_entries.SOURCE_USER}
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], user_input={"backup_selection": "start_fresh"}
@@ -1899,7 +2935,7 @@ async def test_fresh_start_with_single_chore(
         points_label="Star Points",
         points_icon="mdi:star",
     )
-    assert result["step_id"] == const.CONFIG_FLOW_STEP_CHORE_COUNT
+    assert result["step_id"] == CONFIG_FLOW_STEP_CHORE_COUNT
 
     # Step 3: Configure single chore "Feed the cåts" (matches first chore in scenario_full.yaml)
     result, chore_name_to_id_map = await _configure_multiple_chores_step(
@@ -1920,7 +2956,7 @@ async def test_fresh_start_with_single_chore(
 
     # Should proceed to badge count step
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == const.CONFIG_FLOW_STEP_BADGE_COUNT
+    assert result["step_id"] == CONFIG_FLOW_STEP_BADGE_COUNT
 
     # Verify chore was mapped correctly
     assert "chore:Feed the cåts" in chore_name_to_id_map
@@ -1929,23 +2965,23 @@ async def test_fresh_start_with_single_chore(
 
     # Complete remaining steps with 0 counts to finish config flow
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={const.CFOF_BADGES_INPUT_BADGE_COUNT: 0}
+        result["flow_id"], user_input={CFOF_BADGES_INPUT_BADGE_COUNT: 0}
     )
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={const.CFOF_REWARDS_INPUT_REWARD_COUNT: 0}
+        result["flow_id"], user_input={CFOF_REWARDS_INPUT_REWARD_COUNT: 0}
     )
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={const.CFOF_PENALTIES_INPUT_PENALTY_COUNT: 0}
+        result["flow_id"], user_input={CFOF_PENALTIES_INPUT_PENALTY_COUNT: 0}
     )
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={const.CFOF_BONUSES_INPUT_BONUS_COUNT: 0}
+        result["flow_id"], user_input={CFOF_BONUSES_INPUT_BONUS_COUNT: 0}
     )
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
-        user_input={const.CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT: 0},
+        user_input={CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT: 0},
     )
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={const.CFOF_CHALLENGES_INPUT_CHALLENGE_COUNT: 0}
+        result["flow_id"], user_input={CFOF_CHALLENGES_INPUT_CHALLENGE_COUNT: 0}
     )
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
@@ -1958,9 +2994,9 @@ async def test_fresh_start_with_single_chore(
 
     # Verify the config entry was created
     config_entry = result["result"]
-    assert config_entry.domain == const.DOMAIN
-    assert config_entry.options[const.CONF_POINTS_LABEL] == "Star Points"
-    assert config_entry.options[const.CONF_POINTS_ICON] == "mdi:star"
+    assert config_entry.domain == DOMAIN
+    assert config_entry.options[CONF_POINTS_LABEL] == "Star Points"
+    assert config_entry.options[CONF_POINTS_ICON] == "mdi:star"
 
 
 async def test_fresh_start_with_all_scenario_chores(
@@ -1969,7 +3005,7 @@ async def test_fresh_start_with_all_scenario_chores(
     """Test fresh start config flow with all 18 chores from scenario_full.yaml."""
     # TEMP: Use simpler approach until family step is fixed
     result = await hass.config_entries.flow.async_init(
-        const.DOMAIN, context={"source": config_entries.SOURCE_USER}
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], user_input={"backup_selection": "start_fresh"}
@@ -1986,7 +3022,7 @@ async def test_fresh_start_with_all_scenario_chores(
         points_label="Star Points",
         points_icon="mdi:star",
     )
-    assert result["step_id"] == const.CONFIG_FLOW_STEP_CHORE_COUNT
+    assert result["step_id"] == CONFIG_FLOW_STEP_CHORE_COUNT
 
     # Configure all 18 chores from scenario_full.yaml
     all_scenario_chores = [
@@ -2167,7 +3203,7 @@ async def test_fresh_start_with_all_scenario_chores(
 
     # Should proceed to badge count step
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == const.CONFIG_FLOW_STEP_BADGE_COUNT
+    assert result["step_id"] == CONFIG_FLOW_STEP_BADGE_COUNT
 
     # Verify all 18 chores were mapped correctly
     assert len(chore_name_to_id_map) == 18  # Just the 18 chores
@@ -2204,23 +3240,23 @@ async def test_fresh_start_with_all_scenario_chores(
 
     # Complete remaining steps with 0 counts to finish config flow
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={const.CFOF_BADGES_INPUT_BADGE_COUNT: 0}
+        result["flow_id"], user_input={CFOF_BADGES_INPUT_BADGE_COUNT: 0}
     )
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={const.CFOF_REWARDS_INPUT_REWARD_COUNT: 0}
+        result["flow_id"], user_input={CFOF_REWARDS_INPUT_REWARD_COUNT: 0}
     )
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={const.CFOF_PENALTIES_INPUT_PENALTY_COUNT: 0}
+        result["flow_id"], user_input={CFOF_PENALTIES_INPUT_PENALTY_COUNT: 0}
     )
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={const.CFOF_BONUSES_INPUT_BONUS_COUNT: 0}
+        result["flow_id"], user_input={CFOF_BONUSES_INPUT_BONUS_COUNT: 0}
     )
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
-        user_input={const.CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT: 0},
+        user_input={CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT: 0},
     )
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={const.CFOF_CHALLENGES_INPUT_CHALLENGE_COUNT: 0}
+        result["flow_id"], user_input={CFOF_CHALLENGES_INPUT_CHALLENGE_COUNT: 0}
     )
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
@@ -2233,9 +3269,9 @@ async def test_fresh_start_with_all_scenario_chores(
 
     # Verify the config entry was created with correct settings
     config_entry = result["result"]
-    assert config_entry.domain == const.DOMAIN
-    assert config_entry.options[const.CONF_POINTS_LABEL] == "Star Points"
-    assert config_entry.options[const.CONF_POINTS_ICON] == "mdi:star"
+    assert config_entry.domain == DOMAIN
+    assert config_entry.options[CONF_POINTS_LABEL] == "Star Points"
+    assert config_entry.options[CONF_POINTS_ICON] == "mdi:star"
 
 
 @pytest.mark.skip(

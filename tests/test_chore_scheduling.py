@@ -1,4 +1,4 @@
-"""Chore scheduling tests - due dates, overdue detection, and frequency behavior. CLS
+"""Chore scheduling tests - due dates, overdue detection, and frequency behavior.
 
 This module tests:
 1. Due date loading from YAML scenario (with relative past/future dates)
@@ -13,11 +13,65 @@ Test Organization:
 - TestDueDateLoading: Verify due dates load correctly from YAML
 - TestOverdueDetection: Verify overdue state based on due date and handling type
 - TestFrequencyEffects: Verify once vs daily/weekly behavior
+
+===============================================================================
+REFERENCE: Approval Reset Types (5 options)
+===============================================================================
+Controls WHEN a chore becomes available again after completion/approval.
+
+  APPROVAL_RESET_AT_MIDNIGHT_ONCE ("at_midnight_once")
+    - Chore resets at midnight, can only be completed ONCE per day
+    - After approval, cannot claim again until after midnight
+
+  APPROVAL_RESET_AT_MIDNIGHT_MULTI ("at_midnight_multi")
+    - Chore resets at midnight, can be completed MULTIPLE times per day
+    - After approval, can claim again immediately (until midnight)
+
+  APPROVAL_RESET_AT_DUE_DATE_ONCE ("at_due_date_once")
+    - Chore resets when due date passes, can only be completed ONCE per cycle
+    - After approval, cannot claim again until after due date passes
+
+  APPROVAL_RESET_AT_DUE_DATE_MULTI ("at_due_date_multi")
+    - Chore resets when due date passes, can be completed MULTIPLE times per cycle
+    - After approval, can claim again immediately (until due date)
+
+  APPROVAL_RESET_UPON_COMPLETION ("upon_completion")
+    - Chore resets immediately after approval (continuous availability)
+    - After approval, can claim again immediately
+
+Coordinator method: _reset_daily_chore_statuses(target_freqs: list[str])
+  - Called by scheduled tasks to reset chore states based on approval_reset_type
+  - Handles both AT_MIDNIGHT_* and AT_DUE_DATE_* reset types
+
+===============================================================================
+REFERENCE: Overdue Handling Types (3 options)
+===============================================================================
+Controls HOW overdue status is handled when due date passes.
+
+  OVERDUE_HANDLING_AT_DUE_DATE ("at_due_date")
+    - Chore becomes OVERDUE when due date passes (standard behavior)
+    - Stays overdue until claimed/approved or manually reset
+
+  OVERDUE_HANDLING_NEVER_OVERDUE ("never_overdue")
+    - Chore NEVER gets marked overdue, even if past due date
+    - Useful for optional/flexible tasks
+
+  OVERDUE_HANDLING_AT_DUE_DATE_THEN_RESET ("at_due_date_then_reset")
+    - Chore becomes OVERDUE at due date
+    - AUTOMATICALLY resets to PENDING at next approval reset cycle
+    - The reset happens in _reset_daily_chore_statuses() or
+      _reset_independent_chore_status() / _reset_shared_chore_status()
+    - When should_clear_overdue=True, OVERDUE state is NOT skipped during reset
+
+Coordinator method: _check_overdue_chores()
+  - Checks all chores and marks them OVERDUE based on overdue_handling_type
+  - Does NOT reset chores - that's handled by the reset methods above
+===============================================================================
 """
 
 # pylint: disable=redefined-outer-name
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from homeassistant.core import HomeAssistant
@@ -43,6 +97,7 @@ from tests.helpers import (
     # Completion criteria
     COMPLETION_CRITERIA_INDEPENDENT,
     COMPLETION_CRITERIA_SHARED,
+    DATA_CHORE_APPLICABLE_DAYS,
     DATA_CHORE_APPROVAL_PERIOD_START,
     DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION,
     DATA_CHORE_APPROVAL_RESET_TYPE,
@@ -668,17 +723,17 @@ class TestChoreConfigurationVerification:
             )
 
     @pytest.mark.asyncio
-    async def test_scenario_has_14_chores(
+    async def test_scenario_has_18_chores(
         self,
         hass: HomeAssistant,
         scheduling_scenario: SetupResult,
     ) -> None:
-        """Test: Scheduling scenario has exactly 14 chores."""
+        """Test: Scheduling scenario has exactly 18 chores."""
         coordinator = scheduling_scenario.coordinator
         chore_map = scheduling_scenario.chore_ids
 
-        assert len(chore_map) == 14, f"Expected 14 chores, got {len(chore_map)}"
-        assert len(coordinator.chores_data) == 14
+        assert len(chore_map) == 18, f"Expected 18 chores, got {len(chore_map)}"
+        assert len(coordinator.chores_data) == 18
 
     @pytest.mark.asyncio
     async def test_all_chores_assigned_to_zoe(
@@ -981,6 +1036,134 @@ class TestApprovalResetAtDueDateOnce:
         )
 
 
+class TestApprovalResetAtDueDateMulti:
+    """Test AT_DUE_DATE_MULTI approval reset behavior.
+
+    Expected behavior:
+    - MULTIPLE approvals allowed until due date passes
+    - Due date should NOT change on approval (multi-claim within same period)
+    - After each approval, chore resets to PENDING for another claim
+    - When due date passes, reset happens (via midnight check or due date trigger)
+    """
+
+    @pytest.mark.asyncio
+    async def test_at_due_date_multi_allows_multiple_approvals(
+        self,
+        hass: HomeAssistant,
+        scheduling_scenario: SetupResult,
+    ) -> None:
+        """Test: AT_DUE_DATE_MULTI allows multiple claim-approve cycles in same period."""
+        coordinator = scheduling_scenario.coordinator
+        zoe_id = scheduling_scenario.kid_ids["Zoë"]
+        chore_map = scheduling_scenario.chore_ids
+
+        chore_id = chore_map["Reset Due Date Multi"]
+        chore_info = coordinator.chores_data.get(chore_id, {})
+
+        # Verify chore has correct reset type
+        assert (
+            chore_info.get(DATA_CHORE_APPROVAL_RESET_TYPE)
+            == APPROVAL_RESET_AT_DUE_DATE_MULTI
+        )
+
+        # First claim and approve
+        coordinator.claim_chore(zoe_id, chore_id, "Test User")
+        coordinator.approve_chore("parent", zoe_id, chore_id)
+
+        # MULTI should allow another claim immediately
+        # _can_claim_chore should return True for MULTI types
+        can_claim, _ = coordinator._can_claim_chore(zoe_id, chore_id)
+        assert can_claim, "AT_DUE_DATE_MULTI should allow re-claim after approval"
+
+        # Second claim and approve should work
+        coordinator.claim_chore(zoe_id, chore_id, "Test User")
+        coordinator.approve_chore("parent", zoe_id, chore_id)
+
+        # Verify can still claim again (multi allows unlimited before due date)
+        can_claim, _ = coordinator._can_claim_chore(zoe_id, chore_id)
+        assert can_claim, "AT_DUE_DATE_MULTI should allow another re-claim"
+
+    @pytest.mark.asyncio
+    async def test_at_due_date_multi_due_date_unchanged_on_approval(
+        self,
+        hass: HomeAssistant,
+        scheduling_scenario: SetupResult,
+    ) -> None:
+        """Test: AT_DUE_DATE_MULTI should NOT reschedule due date on approval."""
+        coordinator = scheduling_scenario.coordinator
+        zoe_id = scheduling_scenario.kid_ids["Zoë"]
+        chore_map = scheduling_scenario.chore_ids
+
+        chore_id = chore_map["Reset Due Date Multi"]
+
+        # Get due date before approval
+        due_date_before = get_kid_due_date(coordinator, zoe_id, chore_id)
+        assert due_date_before is not None, "Chore should have a due date"
+
+        # First approval
+        coordinator.claim_chore(zoe_id, chore_id, "Test User")
+        coordinator.approve_chore("parent", zoe_id, chore_id)
+
+        # Due date should remain unchanged
+        due_date_after_first = get_kid_due_date(coordinator, zoe_id, chore_id)
+        assert due_date_after_first == due_date_before, (
+            f"AT_DUE_DATE_MULTI: Due date should NOT change on first approval. "
+            f"Before: {due_date_before}, After: {due_date_after_first}"
+        )
+
+        # Second approval
+        coordinator.claim_chore(zoe_id, chore_id, "Test User")
+        coordinator.approve_chore("parent", zoe_id, chore_id)
+
+        # Due date should still remain unchanged
+        due_date_after_second = get_kid_due_date(coordinator, zoe_id, chore_id)
+        assert due_date_after_second == due_date_before, (
+            f"AT_DUE_DATE_MULTI: Due date should NOT change on second approval. "
+            f"Before: {due_date_before}, After: {due_date_after_second}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_at_due_date_multi_tracks_approval_count(
+        self,
+        hass: HomeAssistant,
+        scheduling_scenario: SetupResult,
+    ) -> None:
+        """Test: AT_DUE_DATE_MULTI allows multiple approvals in sequence."""
+        coordinator = scheduling_scenario.coordinator
+        zoe_id = scheduling_scenario.kid_ids["Zoë"]
+        chore_map = scheduling_scenario.chore_ids
+
+        chore_id = chore_map["Reset Due Date Multi"]
+
+        # Track points earned to verify multiple approvals work
+        initial_points = coordinator.kids_data[zoe_id].get(DATA_KID_POINTS, 0)
+
+        # First approval
+        coordinator.claim_chore(zoe_id, chore_id, "Test User")
+        coordinator.approve_chore("parent", zoe_id, chore_id)
+
+        points_after_first = coordinator.kids_data[zoe_id].get(DATA_KID_POINTS, 0)
+        assert points_after_first > initial_points, "First approval should grant points"
+
+        # Second approval
+        coordinator.claim_chore(zoe_id, chore_id, "Test User")
+        coordinator.approve_chore("parent", zoe_id, chore_id)
+
+        points_after_second = coordinator.kids_data[zoe_id].get(DATA_KID_POINTS, 0)
+        assert points_after_second > points_after_first, (
+            "Second approval should grant additional points"
+        )
+
+        # Third approval - verify unlimited approvals
+        coordinator.claim_chore(zoe_id, chore_id, "Test User")
+        coordinator.approve_chore("parent", zoe_id, chore_id)
+
+        points_after_third = coordinator.kids_data[zoe_id].get(DATA_KID_POINTS, 0)
+        assert points_after_third > points_after_second, (
+            "Third approval should grant additional points"
+        )
+
+
 # =============================================================================
 # PHASE 5: OVERDUE HANDLING TESTS
 # Tests for overdue_handling_type: at_due_date, never_overdue, at_due_date_then_reset
@@ -1135,6 +1318,85 @@ class TestOverdueThenReset:
         # Verify is_overdue helper returns True
         assert coordinator.is_overdue(zoe_id, chore_id), (
             "is_overdue() should return True for OVERDUE state"
+        )
+
+    @pytest.mark.asyncio
+    async def test_at_due_date_then_reset_resets_after_overdue_window(
+        self,
+        hass: HomeAssistant,
+        scheduling_scenario: SetupResult,
+    ) -> None:
+        """Test: at_due_date_then_reset chore resets to PENDING after overdue window.
+
+        The THEN_RESET behavior means when the approval reset cycle runs,
+        the OVERDUE state is cleared and chore returns to PENDING.
+
+        Key mechanism: _reset_daily_chore_statuses() checks overdue_handling_type
+        and when it's AT_DUE_DATE_THEN_RESET, the OVERDUE state is NOT skipped
+        during reset (should_clear_overdue = True).
+        """
+        coordinator = scheduling_scenario.coordinator
+        zoe_id = scheduling_scenario.kid_ids["Zoë"]
+        chore_map = scheduling_scenario.chore_ids
+
+        chore_id = chore_map["Overdue Then Reset"]
+
+        # Set due date to past to trigger overdue
+        set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
+
+        # Run overdue check - should become overdue
+        await coordinator._check_overdue_chores()
+
+        # Verify chore is overdue
+        kid_chore_data = coordinator._get_kid_chore_data(zoe_id, chore_id)
+        assert kid_chore_data.get(DATA_KID_CHORE_DATA_STATE) == CHORE_STATE_OVERDUE
+
+        # Run the daily reset - this is what clears AT_DUE_DATE_THEN_RESET chores
+        # The reset method checks overdue_handling_type and clears OVERDUE state
+        await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
+
+        # After reset, the chore should be back to PENDING
+        kid_chore_data = coordinator._get_kid_chore_data(zoe_id, chore_id)
+        current_state = kid_chore_data.get(DATA_KID_CHORE_DATA_STATE)
+
+        assert current_state == CHORE_STATE_PENDING, (
+            f"at_due_date_then_reset should reset to PENDING after window, got {current_state}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_at_due_date_then_reset_preserves_overdue_before_reset(
+        self,
+        hass: HomeAssistant,
+        scheduling_scenario: SetupResult,
+    ) -> None:
+        """Test: at_due_date_then_reset maintains OVERDUE until reset trigger.
+
+        The chore stays overdue and is visible as such until the reset mechanism runs.
+        """
+        coordinator = scheduling_scenario.coordinator
+        zoe_id = scheduling_scenario.kid_ids["Zoë"]
+        chore_map = scheduling_scenario.chore_ids
+
+        chore_id = chore_map["Overdue Then Reset"]
+
+        # Set due date to past
+        set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=2)
+
+        # Run overdue check
+        await coordinator._check_overdue_chores()
+
+        # Verify chore is marked overdue
+        assert coordinator.is_overdue(zoe_id, chore_id), (
+            "Chore should be marked overdue before reset"
+        )
+
+        # Without running reset, chore should stay overdue
+        # Run overdue check again (simulates time passing but no reset)
+        await coordinator._check_overdue_chores()
+
+        # Still overdue
+        assert coordinator.is_overdue(zoe_id, chore_id), (
+            "Chore should remain overdue until explicit reset"
         )
 
 
@@ -1638,4 +1900,716 @@ class TestPendingClaimEdgeCases:
         assert points_after == points_before, (
             f"Unclaimed chore should NOT award points on reset. "
             f"Before: {points_before}, After: {points_after}"
+        )
+
+
+# =============================================================================
+# PHASE 7: APPLICABLE DAYS TESTS
+# Tests for weekday filtering on due date calculations
+# =============================================================================
+
+
+class TestApplicableDays:
+    """Tests for applicable_days weekday filtering.
+
+    Applicable days limits which days of the week a chore can be completed.
+    When a chore is approved with applicable_days set, the next due date
+    should snap to the next applicable day rather than just advancing by frequency.
+
+    Key behaviors:
+    - Empty list = all days applicable (no filtering)
+    - Weekday-only = Mon-Fri (skip Sat/Sun)
+    - Weekend-only = Sat-Sun (skip Mon-Fri)
+    - Specific days = only those days
+    """
+
+    @pytest.mark.asyncio
+    async def test_applicable_days_loaded_from_yaml(
+        self,
+        hass: HomeAssistant,
+        scheduling_scenario: SetupResult,
+    ) -> None:
+        """Test: Applicable days are loaded correctly from YAML scenario."""
+        coordinator = scheduling_scenario.coordinator
+        chore_map = scheduling_scenario.chore_ids
+
+        # Weekday-only chore
+        weekday_id = chore_map["Weekday Only Task"]
+        weekday_info = coordinator.chores_data.get(weekday_id, {})
+        weekday_days = weekday_info.get(DATA_CHORE_APPLICABLE_DAYS, [])
+
+        assert weekday_days == ["mon", "tue", "wed", "thu", "fri"], (
+            f"Weekday chore should have Mon-Fri, got {weekday_days}"
+        )
+
+        # Weekend-only chore
+        weekend_id = chore_map["Weekend Only Task"]
+        weekend_info = coordinator.chores_data.get(weekend_id, {})
+        weekend_days = weekend_info.get(DATA_CHORE_APPLICABLE_DAYS, [])
+
+        assert weekend_days == ["sat", "sun"], (
+            f"Weekend chore should have Sat-Sun, got {weekend_days}"
+        )
+
+        # MWF chore
+        mwf_id = chore_map["MWF Task"]
+        mwf_info = coordinator.chores_data.get(mwf_id, {})
+        mwf_days = mwf_info.get(DATA_CHORE_APPLICABLE_DAYS, [])
+
+        assert mwf_days == ["mon", "wed", "fri"], (
+            f"MWF chore should have Mon/Wed/Fri, got {mwf_days}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_empty_applicable_days_defaults_to_all_days(
+        self,
+        hass: HomeAssistant,
+        scheduling_scenario: SetupResult,
+    ) -> None:
+        """Test: Empty/missing applicable_days defaults to all 7 days (no filtering)."""
+        coordinator = scheduling_scenario.coordinator
+        chore_map = scheduling_scenario.chore_ids
+
+        # Use a chore WITHOUT applicable_days set in YAML
+        # System should default to all 7 days (which means no filtering)
+        chore_id = chore_map["Reset Upon Completion"]
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        applicable_days = chore_info.get(DATA_CHORE_APPLICABLE_DAYS, [])
+
+        # System defaults to all 7 days when not specified
+        all_days = {"mon", "tue", "wed", "thu", "fri", "sat", "sun"}
+        assert set(applicable_days) == all_days, (
+            f"Chore without applicable_days should default to all 7 days, got {applicable_days}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_applicable_days_affects_next_due_date(
+        self,
+        hass: HomeAssistant,
+        scheduling_scenario: SetupResult,
+    ) -> None:
+        """Test: Upon completion, next due date respects applicable_days."""
+        coordinator = scheduling_scenario.coordinator
+        zoe_id = scheduling_scenario.kid_ids["Zoë"]
+        chore_map = scheduling_scenario.chore_ids
+
+        # Use MWF chore (Mon/Wed/Fri only)
+        chore_id = chore_map["MWF Task"]
+
+        # Claim and approve
+        coordinator.claim_chore(zoe_id, chore_id, "Test User")
+        coordinator.approve_chore("parent", zoe_id, chore_id)
+
+        # Get the new due date
+        new_due_date = get_kid_due_date(coordinator, zoe_id, chore_id)
+        assert new_due_date is not None, "Should have a new due date after approval"
+
+        # Verify the due date falls on an applicable day (Mon=0, Wed=2, Fri=4)
+        applicable_weekdays = {0, 2, 4}  # Mon, Wed, Fri
+        assert new_due_date.weekday() in applicable_weekdays, (
+            f"MWF Task due date should fall on Mon/Wed/Fri, but got "
+            f"weekday {new_due_date.weekday()} ({new_due_date})"
+        )
+
+
+# ============================================================================
+# SECTION 8: MULTI-WEEK SCHEDULING TESTS
+# Tests for biweekly and monthly frequency edge cases
+# ============================================================================
+
+
+class TestMultiWeekScheduling:
+    """Tests for multi-week scheduling frequencies (biweekly, monthly).
+
+    Multi-week chores have longer intervals between due dates:
+    - Biweekly: 14 days between due dates
+    - Monthly: ~30 days, handling month boundaries
+
+    Uses entity state as source of truth per AGENT_TEST_CREATION_INSTRUCTIONS.md.
+    """
+
+    @pytest.mark.asyncio
+    async def test_biweekly_chore_reschedules_14_days(
+        self,
+        hass: HomeAssistant,
+        scheduling_scenario: SetupResult,
+    ) -> None:
+        """Test: Biweekly chore reschedules 14 days after approval."""
+        coordinator = scheduling_scenario.coordinator
+        zoe_id = scheduling_scenario.kid_ids["Zoë"]
+        chore_map = scheduling_scenario.chore_ids
+
+        chore_id = chore_map["Biweekly Task"]
+
+        # Get chore entity ID from dashboard helper (Rule 3: Dashboard Helper is source)
+        helper_eid = "sensor.kc_zoe_ui_dashboard_helper"
+        helper_state = hass.states.get(helper_eid)
+        assert helper_state is not None, "Dashboard helper should exist"
+
+        # Find Biweekly Task in chores list
+        chores = helper_state.attributes.get("chores", [])
+        biweekly_chore = next(
+            (c for c in chores if c.get("name") == "Biweekly Task"), None
+        )
+        assert biweekly_chore is not None, "Biweekly Task should be in chores list"
+        chore_eid = biweekly_chore["eid"]
+
+        # Get initial due date from entity state
+        chore_state = hass.states.get(chore_eid)
+        assert chore_state is not None, "Chore entity should exist"
+        initial_due_str = chore_state.attributes.get("due_date")
+        assert initial_due_str is not None, "Should have initial due date"
+        initial_due_date = kh.parse_datetime_to_utc(initial_due_str)
+
+        # Claim and approve
+        coordinator.claim_chore(zoe_id, chore_id, "Test User")
+        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await hass.async_block_till_done()
+
+        # Get new due date from entity state (refreshed)
+        chore_state = hass.states.get(chore_eid)
+        assert chore_state is not None, "Chore entity should still exist"
+        new_due_str = chore_state.attributes.get("due_date")
+        assert new_due_str is not None, "Should have new due date after approval"
+        new_due_date = kh.parse_datetime_to_utc(new_due_str)
+        assert new_due_date is not None, "New due date should parse"
+        assert initial_due_date is not None, "Initial due date should parse"
+
+        # Calculate the difference
+        date_diff = new_due_date - initial_due_date
+        expected_days = 14  # Biweekly = 14 days
+
+        assert date_diff.days == expected_days, (
+            f"Biweekly chore should reschedule {expected_days} days ahead, "
+            f"but got {date_diff.days} days (from {initial_due_date} to {new_due_date})"
+        )
+
+    @pytest.mark.asyncio
+    async def test_monthly_chore_reschedules_approximately_30_days(
+        self,
+        hass: HomeAssistant,
+        scheduling_scenario: SetupResult,
+    ) -> None:
+        """Test: Monthly chore reschedules approximately 30 days after approval.
+
+        Monthly scheduling can vary slightly based on month length (28-31 days).
+        We verify it's in the expected range.
+
+        Uses entity state as source of truth per AGENT_TEST_CREATION_INSTRUCTIONS.md.
+        """
+        coordinator = scheduling_scenario.coordinator
+        zoe_id = scheduling_scenario.kid_ids["Zoë"]
+        chore_map = scheduling_scenario.chore_ids
+
+        chore_id = chore_map["Monthly Task"]
+
+        # Get chore entity ID from dashboard helper (Rule 3: Dashboard Helper is source)
+        helper_eid = "sensor.kc_zoe_ui_dashboard_helper"
+        helper_state = hass.states.get(helper_eid)
+        assert helper_state is not None, "Dashboard helper should exist"
+
+        # Find Monthly Task in chores list
+        chores = helper_state.attributes.get("chores", [])
+        monthly_chore = next(
+            (c for c in chores if c.get("name") == "Monthly Task"), None
+        )
+        assert monthly_chore is not None, "Monthly Task should be in chores list"
+        chore_eid = monthly_chore["eid"]
+
+        # Get initial due date from entity state
+        chore_state = hass.states.get(chore_eid)
+        assert chore_state is not None, "Chore entity should exist"
+        initial_due_str = chore_state.attributes.get("due_date")
+        assert initial_due_str is not None, "Should have initial due date"
+        initial_due_date = kh.parse_datetime_to_utc(initial_due_str)
+
+        # Claim and approve
+        coordinator.claim_chore(zoe_id, chore_id, "Test User")
+        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await hass.async_block_till_done()
+
+        # Get new due date from entity state (refreshed)
+        chore_state = hass.states.get(chore_eid)
+        assert chore_state is not None, "Chore entity should still exist"
+        new_due_str = chore_state.attributes.get("due_date")
+        assert new_due_str is not None, "Should have new due date after approval"
+        new_due_date = kh.parse_datetime_to_utc(new_due_str)
+        assert new_due_date is not None, "New due date should parse"
+        assert initial_due_date is not None, "Initial due date should parse"
+
+        # Calculate the difference
+        date_diff = new_due_date - initial_due_date
+
+        # Monthly adds 28-31 days, PLUS applicable_days snapping can add up to 6 more days
+        # (e.g., if monthly lands on Tuesday but chore only runs on Monday, it snaps forward)
+        # Total range: 28-37 days
+        assert 28 <= date_diff.days <= 37, (
+            f"Monthly chore should reschedule 28-37 days ahead "
+            f"(28-31 base + up to 6 for applicable_days snapping), "
+            f"but got {date_diff.days} days (from {initial_due_date} to {new_due_date})"
+        )
+
+
+# =============================================================================
+# TEST CLASS: Time Boundary Crossing Scenarios
+# =============================================================================
+
+
+class TestTimeBoundaryCrossing:
+    """Test approval reset behavior across time boundaries (midnight, due date).
+
+    These tests verify that approval reset logic correctly handles:
+    - Approval period transitions at midnight
+    - Due date boundary crossing for AT_DUE_DATE_* modes
+    - Period start tracking accuracy
+
+    Migrated from legacy test_approval_reset_timing.py - behavior extraction only.
+    """
+
+    @pytest.mark.asyncio
+    async def test_at_midnight_once_allows_claim_after_midnight(
+        self,
+        hass: HomeAssistant,
+        scheduling_scenario: SetupResult,
+    ) -> None:
+        """Test: AT_MIDNIGHT_ONCE allows new claim after midnight boundary.
+
+        Behavior: If approval happened yesterday but period_start is today,
+        the chore should be claimable again (new approval period).
+        """
+        coordinator = scheduling_scenario.coordinator
+        zoe_id = scheduling_scenario.kid_ids["Zoë"]
+        chore_map = scheduling_scenario.chore_ids
+
+        chore_id = chore_map["Reset Midnight Once"]
+        chore_info = coordinator.chores_data.get(chore_id, {})
+
+        # Verify chore has correct reset type
+        assert (
+            chore_info.get(DATA_CHORE_APPROVAL_RESET_TYPE)
+            == APPROVAL_RESET_AT_MIDNIGHT_ONCE
+        )
+
+        # Simulate: approval was yesterday, period_start is today (midnight passed)
+        yesterday = (datetime.now(UTC).replace(hour=12) - timedelta(days=1)).isoformat()
+        today_midnight = (
+            datetime.now(UTC)
+            .replace(hour=0, minute=0, second=0, microsecond=0)
+            .isoformat()
+        )
+
+        # Set last_approved to yesterday via kid_chore_data
+        kid_data = coordinator.kids_data.setdefault(zoe_id, {})
+        chore_data = kid_data.setdefault(DATA_KID_CHORE_DATA, {}).setdefault(
+            chore_id, {}
+        )
+        chore_data["last_approved"] = yesterday
+        chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = today_midnight
+        chore_data[DATA_KID_CHORE_DATA_STATE] = CHORE_STATE_PENDING
+        coordinator._persist()
+
+        # Approval was before period_start → not approved in current period
+        assert not coordinator.is_approved_in_current_period(zoe_id, chore_id), (
+            "Approval from yesterday should not count in today's period"
+        )
+
+        # Should be allowed to claim (new period)
+        can_claim, error_key = coordinator._can_claim_chore(zoe_id, chore_id)
+        assert can_claim, "Should be able to claim after midnight boundary"
+        assert error_key is None
+
+    @pytest.mark.asyncio
+    async def test_at_midnight_multi_period_resets_at_midnight(
+        self,
+        hass: HomeAssistant,
+        scheduling_scenario: SetupResult,
+    ) -> None:
+        """Test: AT_MIDNIGHT_MULTI period resets at midnight for fresh approval tracking.
+
+        Behavior: Even with MULTI mode, the approval count resets at midnight.
+        Approvals from before period_start don't count in the new period.
+        """
+        coordinator = scheduling_scenario.coordinator
+        zoe_id = scheduling_scenario.kid_ids["Zoë"]
+        chore_map = scheduling_scenario.chore_ids
+
+        chore_id = chore_map["Reset Midnight Multi"]
+
+        # Simulate: approval was yesterday at 11pm, period_start is today at midnight
+        yesterday_11pm = (
+            datetime.now(UTC).replace(hour=23, minute=0, second=0) - timedelta(days=1)
+        ).isoformat()
+        today_midnight = (
+            datetime.now(UTC)
+            .replace(hour=0, minute=0, second=0, microsecond=0)
+            .isoformat()
+        )
+
+        # Set up state
+        kid_data = coordinator.kids_data.setdefault(zoe_id, {})
+        chore_data = kid_data.setdefault(DATA_KID_CHORE_DATA, {}).setdefault(
+            chore_id, {}
+        )
+        chore_data["last_approved"] = yesterday_11pm
+        chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = today_midnight
+        chore_data[DATA_KID_CHORE_DATA_STATE] = CHORE_STATE_PENDING
+        coordinator._persist()
+
+        # Approval was before period_start → not in current period
+        assert not coordinator.is_approved_in_current_period(zoe_id, chore_id), (
+            "Approval from before midnight should not count in today's period"
+        )
+
+        # Should be claimable (new period)
+        can_claim, _ = coordinator._can_claim_chore(zoe_id, chore_id)
+        assert can_claim, "Should be claimable after midnight reset"
+
+    @pytest.mark.asyncio
+    async def test_at_due_date_once_allows_claim_after_due_date_passes(
+        self,
+        hass: HomeAssistant,
+        scheduling_scenario: SetupResult,
+    ) -> None:
+        """Test: AT_DUE_DATE_ONCE allows new claim after due date boundary.
+
+        Behavior: If approval happened before the last due date reset,
+        the chore should be claimable again (new cycle).
+        """
+        coordinator = scheduling_scenario.coordinator
+        zoe_id = scheduling_scenario.kid_ids["Zoë"]
+        chore_map = scheduling_scenario.chore_ids
+
+        chore_id = chore_map["Reset Due Date Once"]
+
+        # Simulate: approval was 3 days ago, period_start is now (due date passed)
+        three_days_ago = (datetime.now(UTC) - timedelta(days=3)).isoformat()
+        now = datetime.now(UTC).isoformat()
+
+        # Set up state
+        kid_data = coordinator.kids_data.setdefault(zoe_id, {})
+        chore_data = kid_data.setdefault(DATA_KID_CHORE_DATA, {}).setdefault(
+            chore_id, {}
+        )
+        chore_data["last_approved"] = three_days_ago
+        chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = now
+        chore_data[DATA_KID_CHORE_DATA_STATE] = CHORE_STATE_PENDING
+        coordinator._persist()
+
+        # Approval was before period_start → not in current period
+        assert not coordinator.is_approved_in_current_period(zoe_id, chore_id), (
+            "Old approval should not count after due date passed"
+        )
+
+        # Should be claimable
+        can_claim, _ = coordinator._can_claim_chore(zoe_id, chore_id)
+        assert can_claim, "Should be claimable after due date boundary"
+
+    @pytest.mark.asyncio
+    async def test_upon_completion_ignores_period_start_entirely(
+        self,
+        hass: HomeAssistant,
+        scheduling_scenario: SetupResult,
+    ) -> None:
+        """Test: UPON_COMPLETION mode ignores period_start for claim decisions.
+
+        Behavior: UPON_COMPLETION always allows re-claiming regardless of
+        when the last approval was or what period_start says.
+        """
+        coordinator = scheduling_scenario.coordinator
+        zoe_id = scheduling_scenario.kid_ids["Zoë"]
+        chore_map = scheduling_scenario.chore_ids
+
+        chore_id = chore_map["Reset Upon Completion"]
+
+        # Claim and approve
+        coordinator.claim_chore(zoe_id, chore_id, "Test User")
+        coordinator.approve_chore("parent", zoe_id, chore_id)
+
+        # UPON_COMPLETION should reset to PENDING immediately
+        state = get_kid_chore_state(coordinator, zoe_id, chore_id)
+        assert state == CHORE_STATE_PENDING, (
+            "UPON_COMPLETION should reset state to PENDING after approval"
+        )
+
+        # Should be immediately claimable again
+        can_claim, _ = coordinator._can_claim_chore(zoe_id, chore_id)
+        assert can_claim, "UPON_COMPLETION should always allow re-claim"
+
+
+# =============================================================================
+# TEST CLASS: Shared Chore Approval Reset Scenarios
+# =============================================================================
+
+
+@pytest.fixture
+async def shared_scenario(
+    hass: HomeAssistant,
+    mock_hass_users: dict[str, Any],
+) -> SetupResult:
+    """Load shared chore scenario for multi-kid approval reset tests."""
+    return await setup_from_yaml(
+        hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml"
+    )
+
+
+class TestSharedChoreApprovalReset:
+    """Test approval reset behavior for shared chores across multiple kids.
+
+    Shared chores have different approval tracking than independent chores:
+    - SHARED_ALL: All assigned kids must complete before chore is done
+    - SHARED_FIRST: First kid to claim owns it, others can't claim
+
+    Approval period tracking for shared chores is at the CHORE level,
+    not the per-kid level like independent chores.
+    """
+
+    @pytest.mark.asyncio
+    async def test_shared_all_midnight_once_per_kid_tracking(
+        self,
+        hass: HomeAssistant,
+        shared_scenario: SetupResult,
+    ) -> None:
+        """Test: SHARED_ALL with AT_MIDNIGHT_ONCE tracks each kid independently.
+
+        Behavior: Each kid can claim and be approved once per period.
+        The chore is fully complete only when ALL kids are approved.
+        """
+        coordinator = shared_scenario.coordinator
+        zoe_id = shared_scenario.kid_ids["Zoë"]
+        max_id = shared_scenario.kid_ids["Max!"]
+        chore_map = shared_scenario.chore_ids
+
+        chore_id = chore_map["Shared All Pending Clear"]
+        chore_info = coordinator.chores_data.get(chore_id, {})
+
+        # Verify setup
+        assert (
+            chore_info.get(DATA_CHORE_COMPLETION_CRITERIA) == COMPLETION_CRITERIA_SHARED
+        )
+        assert (
+            chore_info.get(DATA_CHORE_APPROVAL_RESET_TYPE)
+            == APPROVAL_RESET_AT_MIDNIGHT_ONCE
+        )
+
+        # Zoë claims and gets approved
+        coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+        coordinator.approve_chore("parent", zoe_id, chore_id)
+
+        # Zoë is now approved for this period
+        assert coordinator.is_approved_in_current_period(zoe_id, chore_id), (
+            "Zoë should be approved in current period"
+        )
+
+        # Zoë cannot claim again (ONCE mode)
+        can_claim_zoe, _ = coordinator._can_claim_chore(zoe_id, chore_id)
+        assert not can_claim_zoe, "Zoë should not be able to claim again (ONCE mode)"
+
+        # Max can still claim (independent per-kid tracking for SHARED_ALL)
+        can_claim_max, _ = coordinator._can_claim_chore(max_id, chore_id)
+        assert can_claim_max, "Max should be able to claim (independent tracking)"
+
+    @pytest.mark.asyncio
+    async def test_shared_first_midnight_once_blocks_all_kids_after_first(
+        self,
+        hass: HomeAssistant,
+        shared_scenario: SetupResult,
+    ) -> None:
+        """Test: SHARED_FIRST with AT_MIDNIGHT_ONCE blocks all kids after first approval.
+
+        Behavior: Once first kid claims and is approved, NO other kid can claim
+        until the next approval period (midnight reset).
+
+        Note: This chore (Shared First Pending Hold) is only assigned to Zoë & Max.
+        """
+        coordinator = shared_scenario.coordinator
+        zoe_id = shared_scenario.kid_ids["Zoë"]
+        max_id = shared_scenario.kid_ids["Max!"]
+        chore_map = shared_scenario.chore_ids
+
+        chore_id = chore_map["Shared First Pending Hold"]
+        chore_info = coordinator.chores_data.get(chore_id, {})
+
+        # Verify setup
+        assert chore_info.get(DATA_CHORE_COMPLETION_CRITERIA) == "shared_first"
+        assert (
+            chore_info.get(DATA_CHORE_APPROVAL_RESET_TYPE)
+            == APPROVAL_RESET_AT_MIDNIGHT_ONCE
+        )
+
+        # Max can claim before anyone has claimed
+        can_claim_max_before, _ = coordinator._can_claim_chore(max_id, chore_id)
+        assert can_claim_max_before, "Max can claim before anyone claims"
+
+        # Zoë claims first
+        coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+
+        # Max is now blocked from claiming (shared_first - first claimer wins)
+        can_claim_max, _ = coordinator._can_claim_chore(max_id, chore_id)
+        assert not can_claim_max, "Max blocked (Zoë claimed first)"
+
+        # Approve Zoë
+        coordinator.approve_chore("parent", zoe_id, chore_id)
+
+        # After approval, still blocked (ONCE mode, same period)
+        can_claim_max, _ = coordinator._can_claim_chore(max_id, chore_id)
+        assert not can_claim_max, "Max still blocked (ONCE mode, same period)"
+
+    @pytest.mark.asyncio
+    async def test_shared_all_uses_chore_level_period_start(
+        self,
+        hass: HomeAssistant,
+        shared_scenario: SetupResult,
+    ) -> None:
+        """Test: SHARED chores track approval period consistently across all kids.
+
+        Behavior: For shared chores with completion_criteria='shared_all',
+        when one kid completes and gets approved, the approval tracking
+        should be consistent for determining period boundaries.
+        """
+        coordinator = shared_scenario.coordinator
+        zoe_id = shared_scenario.kid_ids["Zoë"]
+        max_id = shared_scenario.kid_ids["Max!"]
+        chore_map = shared_scenario.chore_ids
+
+        chore_id = chore_map["Shared All Pending Clear"]
+
+        # Claim and approve Zoë to trigger approval tracking
+        coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+        coordinator.approve_chore("parent", zoe_id, chore_id)
+
+        # Verify Zoë is approved in current period
+        zoe_approved = coordinator.is_approved_in_current_period(zoe_id, chore_id)
+        assert zoe_approved, "Zoë should be approved in current period"
+
+        # For SHARED_ALL chores, Max can still complete (he hasn't yet)
+        # Check Max's can_claim state (should be able to claim since it's SHARED_ALL)
+        max_can_claim, _ = coordinator._can_claim_chore(max_id, chore_id)
+        # SHARED_ALL: all kids must complete, so Max should be able to claim
+        assert max_can_claim, "Max should still be able to claim SHARED_ALL chore"
+
+
+class TestPendingClaimActionBehavior:
+    """Test pending claim action behavior at reset boundaries.
+
+    Covers the 3 pending_claim_action values:
+    - clear_pending: Claimed chore reverts to PENDING state at reset
+    - hold_pending: Claimed chore remains in CLAIMED state after reset
+    - auto_approve_pending: Claimed chore is auto-approved at reset (awards points)
+
+    These tests verify behavior when a chore is CLAIMED (not yet approved)
+    and the approval reset period triggers.
+    """
+
+    @pytest.fixture
+    async def scheduling_scenario(
+        self, hass: HomeAssistant, mock_hass_users: dict[str, Any]
+    ) -> SetupResult:
+        """Load scheduling scenario with all pending claim action types."""
+        return await setup_from_yaml(
+            hass,
+            mock_hass_users,
+            "tests/scenarios/scenario_scheduling.yaml",
+        )
+
+    @pytest.mark.asyncio
+    async def test_clear_pending_reverts_claimed_to_pending(
+        self, hass: HomeAssistant, scheduling_scenario: SetupResult
+    ) -> None:
+        """Test clear_pending: claimed chore reverts to PENDING at reset."""
+        coordinator = scheduling_scenario.coordinator
+        zoe_id = scheduling_scenario.kid_ids["Zoë"]
+        chore_map = scheduling_scenario.chore_ids
+
+        chore_id = chore_map["Pending Clear"]
+
+        # Set due date to past so reset will trigger
+        set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
+
+        # Claim but don't approve
+        coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+
+        # Verify chore is CLAIMED
+        state_before = get_kid_chore_state(coordinator, zoe_id, chore_id)
+        assert state_before == CHORE_STATE_CLAIMED
+
+        # Trigger reset (simulating midnight reset for daily chores)
+        # The reset method checks approval_reset_pending_claim_action
+        await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
+
+        # After reset with clear_pending, chore should be PENDING
+        state_after = get_kid_chore_state(coordinator, zoe_id, chore_id)
+        assert state_after == CHORE_STATE_PENDING, (
+            "clear_pending should revert CLAIMED to PENDING at reset"
+        )
+
+    @pytest.mark.asyncio
+    async def test_hold_pending_retains_claimed_after_reset(
+        self, hass: HomeAssistant, scheduling_scenario: SetupResult
+    ) -> None:
+        """Test hold_pending: claimed chore stays CLAIMED after reset."""
+        coordinator = scheduling_scenario.coordinator
+        zoe_id = scheduling_scenario.kid_ids["Zoë"]
+        chore_map = scheduling_scenario.chore_ids
+
+        chore_id = chore_map["Pending Hold"]
+
+        # Set due date to past so reset would normally trigger
+        set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
+
+        # Claim but don't approve
+        coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+
+        # Verify chore is CLAIMED
+        state_before = get_kid_chore_state(coordinator, zoe_id, chore_id)
+        assert state_before == CHORE_STATE_CLAIMED
+
+        # Trigger reset (simulating midnight reset for daily chores)
+        # The reset method checks approval_reset_pending_claim_action
+        await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
+
+        # After reset with hold_pending, chore should still be CLAIMED
+        state_after = get_kid_chore_state(coordinator, zoe_id, chore_id)
+        assert state_after == CHORE_STATE_CLAIMED, (
+            "hold_pending should keep CLAIMED status after reset"
+        )
+
+    @pytest.mark.asyncio
+    async def test_auto_approve_pending_approves_and_awards_points(
+        self, hass: HomeAssistant, scheduling_scenario: SetupResult
+    ) -> None:
+        """Test auto_approve_pending: claimed chore is approved and awards points."""
+        coordinator = scheduling_scenario.coordinator
+        zoe_id = scheduling_scenario.kid_ids["Zoë"]
+        chore_map = scheduling_scenario.chore_ids
+
+        chore_id = chore_map["Pending Auto Approve"]
+
+        # Get initial points using existing pattern from this file
+        zoe_points_before = coordinator.kids_data[zoe_id].get(DATA_KID_POINTS, 0)
+
+        # Get chore points for later comparison (before setting due date to past)
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        chore_points = chore_info.get(DATA_CHORE_DEFAULT_POINTS, 0)
+
+        # Set due date to past so reset will trigger
+        set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
+
+        # Claim but don't approve
+        coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+
+        # Verify chore is CLAIMED and points unchanged
+        state_before = get_kid_chore_state(coordinator, zoe_id, chore_id)
+        assert state_before == CHORE_STATE_CLAIMED
+        assert (
+            coordinator.kids_data[zoe_id].get(DATA_KID_POINTS, 0) == zoe_points_before
+        )
+
+        # Trigger reset (simulating midnight reset for daily chores)
+        # The reset method checks approval_reset_pending_claim_action
+        await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
+
+        # After reset with auto_approve_pending, points should be awarded
+        zoe_points_after = coordinator.kids_data[zoe_id].get(DATA_KID_POINTS, 0)
+        assert zoe_points_after == zoe_points_before + chore_points, (
+            "auto_approve_pending should award points at reset"
         )

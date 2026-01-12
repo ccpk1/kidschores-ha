@@ -14,7 +14,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 import pytest
 
-from custom_components.kidschores.const import DOMAIN
+from tests.helpers import DOMAIN
 
 
 def create_temp_storage_file(storage_path: Path, content: str | dict[str, Any]) -> None:

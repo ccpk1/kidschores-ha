@@ -11,7 +11,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 import pytest
 
-from custom_components.kidschores.const import (
+from tests.helpers import (
     DATA_CHORES,
     DATA_KIDS,
     DATA_PARENTS,
@@ -70,9 +70,9 @@ async def test_direct_storage_creates_one_parent_one_kid_one_chore(
     # Verify parent from storyline
     parents = coordinator.data[DATA_PARENTS]
     assert len(parents) >= 1
-    parent_id = scenario_minimal.parent_ids["Mom"]
+    parent_id = scenario_minimal.parent_ids["Môm Astrid Stârblüm"]
     assert parent_id in parents
-    assert parents[parent_id]["name"] == "Mom"
+    assert parents[parent_id]["name"] == "Môm Astrid Stârblüm"
 
     # Verify kid from storyline
     kids = coordinator.data[DATA_KIDS]

@@ -25,17 +25,17 @@ kids:
     ha_user: "kid1"
     dashboard_language: "en"
 
-  - name: "Max"
+  - name: "Max!"
     ha_user: "kid2"
     dashboard_language: "sk"
 
 parents:
   # Notifications enabled through config flow - mock services registered by fixture
-  - name: "Mom"
+  - name: "Môm Astrid Stârblüm"
     ha_user: "parent1"
-    associated_kids: ["Zoë", "Max"]
+    associated_kids: ["Zoë", "Max!"]
     enable_mobile_notifications: true
-    mobile_notify_service: "notify.mobile_app_mom"
+    mobile_notify_service: "notify.mobile_app_mom_astrid_starblum"
 
 chores:
   - name: "Feed the cat"
@@ -47,7 +47,7 @@ chores:
     notify_on_claim: true
 
   - name: "Clean room"
-    assigned_to: ["Max"]
+    assigned_to: ["Max!"]
     points: 10.0
     frequency: "daily"
     completion_criteria: "independent"
@@ -55,7 +55,7 @@ chores:
     notify_on_claim: true
 
   - name: "Walk the dog"
-    assigned_to: ["Zoë", "Max"]
+    assigned_to: ["Zoë", "Max!"]
     points: 8.0
     frequency: "daily"
     completion_criteria: "shared_first"

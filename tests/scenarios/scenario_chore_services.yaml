@@ -18,14 +18,14 @@ system:
 
 # Kids (2 kids for easier verification)
 kids:
-  - name: "Alice"
+  - name: "Zoë"
     ha_user: "kid1"
     dashboard_language: "en"
     enable_mobile_notifications: false
     mobile_notify_service: ""
     enable_persistent_notifications: false
 
-  - name: "Bob"
+  - name: "Max!"
     ha_user: "kid2"
     dashboard_language: "en"
     enable_mobile_notifications: false
@@ -34,9 +34,9 @@ kids:
 
 # Parents (1 parent can approve all)
 parents:
-  - name: "Mom"
+  - name: "Môm Astrid Stârblüm"
     ha_user: "parent1"
-    kids: ["Alice", "Bob"]
+    kids: ["Zoë", "Max!"]
     enable_mobile_notifications: false
     mobile_notify_service: ""
     enable_persistent_notifications: false
@@ -48,7 +48,7 @@ chores:
   # ==========================================================================
 
   - name: "Independent Daily Task"
-    assigned_to: ["Alice", "Bob"]
+    assigned_to: ["Zoë", "Max!"]
     points: 10.0
     icon: "mdi:account"
     completion_criteria: "independent"
@@ -57,7 +57,7 @@ chores:
     due_date: "+1d17:00"
 
   - name: "Independent Weekly Task"
-    assigned_to: ["Alice", "Bob"]
+    assigned_to: ["Zoë", "Max!"]
     points: 20.0
     icon: "mdi:calendar-week"
     completion_criteria: "independent"
@@ -70,7 +70,7 @@ chores:
   # ==========================================================================
 
   - name: "Shared All Daily Task"
-    assigned_to: ["Alice", "Bob"]
+    assigned_to: ["Zoë", "Max!"]
     points: 15.0
     icon: "mdi:account-group"
     completion_criteria: "shared_all"
@@ -79,7 +79,7 @@ chores:
     due_date: "+1d17:00"
 
   - name: "Shared All Weekly Task"
-    assigned_to: ["Alice", "Bob"]
+    assigned_to: ["Zoë", "Max!"]
     points: 30.0
     icon: "mdi:calendar-month"
     completion_criteria: "shared_all"
@@ -92,7 +92,7 @@ chores:
   # ==========================================================================
 
   - name: "Shared First Daily Task"
-    assigned_to: ["Alice", "Bob"]
+    assigned_to: ["Zoë", "Max!"]
     points: 8.0
     icon: "mdi:trophy"
     completion_criteria: "shared_first"
@@ -101,7 +101,7 @@ chores:
     due_date: "+1d17:00"
 
   - name: "Shared First Weekly Task"
-    assigned_to: ["Alice", "Bob"]
+    assigned_to: ["Zoë", "Max!"]
     points: 25.0
     icon: "mdi:medal"
     completion_criteria: "shared_first"

@@ -32,6 +32,25 @@ pytest_plugins = "pytest_homeassistant_custom_component"
 
 
 # ---------------------------------------------------------------------------
+# Pytest command-line options
+# ---------------------------------------------------------------------------
+
+
+def pytest_addoption(parser):
+    """Add custom command-line options for test suite.
+
+    Options:
+    - --migration-file: Path to migration data file for generic migration tests
+    """
+    parser.addoption(
+        "--migration-file",
+        action="store",
+        default=None,
+        help="Path to migration data file for generic migration tests",
+    )
+
+
+# ---------------------------------------------------------------------------
 # Autouse fixtures
 # ---------------------------------------------------------------------------
 
@@ -53,51 +72,41 @@ def auto_enable_custom_integrations(
 async def mock_hass_users(hass: HomeAssistant) -> dict[str, Any]:
     """Create mock Home Assistant users for testing.
 
-    User keys match ha_user_name values expected in test YAML files:
-    - parent1, parent2: Parent users (can approve chores)
-    - kid1, kid2, kid3: Kid users (can claim chores)
+    User keys match ha_user values expected in test YAML files:
     - admin: System admin
+    - parent1-parent25: Parent users (can approve chores)
+    - kid1-kid100: Kid users (can claim chores)
+
+    Supports scenarios from minimal (3 kids) to stress (100 kids, 25 parents).
 
     Usage in tests:
         from homeassistant.core import Context
         kid_context = Context(user_id=mock_hass_users["kid1"].id)
         parent_context = Context(user_id=mock_hass_users["parent1"].id)
     """
-    admin_user = await hass.auth.async_create_user(
+    users: dict[str, Any] = {}
+
+    # Admin user
+    users["admin"] = await hass.auth.async_create_user(
         "Admin User",
         group_ids=["system-admin"],
     )
 
-    parent1_user = await hass.auth.async_create_user(
-        "Parent One",
-        group_ids=["system-users"],
-    )
-    parent2_user = await hass.auth.async_create_user(
-        "Parent Two",
-        group_ids=["system-users"],
-    )
+    # Create 25 parent users (covers stress scenario)
+    for i in range(1, 26):
+        users[f"parent{i}"] = await hass.auth.async_create_user(
+            f"Parent {i}",
+            group_ids=["system-users"],
+        )
 
-    kid1_user = await hass.auth.async_create_user(
-        "Kid One",
-        group_ids=["system-users"],
-    )
-    kid2_user = await hass.auth.async_create_user(
-        "Kid Two",
-        group_ids=["system-users"],
-    )
-    kid3_user = await hass.auth.async_create_user(
-        "Kid Three",
-        group_ids=["system-users"],
-    )
+    # Create 100 kid users (covers stress scenario)
+    for i in range(1, 101):
+        users[f"kid{i}"] = await hass.auth.async_create_user(
+            f"Kid {i}",
+            group_ids=["system-users"],
+        )
 
-    return {
-        "admin": admin_user,
-        "parent1": parent1_user,
-        "parent2": parent2_user,
-        "kid1": kid1_user,
-        "kid2": kid2_user,
-        "kid3": kid3_user,
-    }
+    return users
 
 
 # ---------------------------------------------------------------------------

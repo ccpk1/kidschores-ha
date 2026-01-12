@@ -25,8 +25,7 @@ from unittest.mock import AsyncMock, patch
 from homeassistant.util import dt as dt_util
 import pytest
 
-from custom_components.kidschores import const
-from custom_components.kidschores.const import (
+from tests.helpers import (
     CHORE_STATE_APPROVED,
     CHORE_STATE_CLAIMED,
     CHORE_STATE_COMPLETED_BY_OTHER,
@@ -39,12 +38,15 @@ from custom_components.kidschores.const import (
     DATA_CHORE_ASSIGNED_KIDS,
     DATA_CHORE_COMPLETION_CRITERIA,
     DATA_CHORE_DUE_DATE,
+    DATA_CHORE_NAME,
     DATA_CHORE_PER_KID_DUE_DATES,
     DATA_KID_CHORE_DATA,
     DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START,
     DATA_KID_CHORE_DATA_DUE_DATE_LEGACY,
     DATA_KID_CHORE_DATA_STATE,
     DATA_KID_POINTS,
+    DOMAIN,
+    SERVICE_RESET_ALL_CHORES,
 )
 from tests.helpers.setup import SetupResult, setup_from_yaml
 
@@ -180,12 +182,12 @@ class TestClaimChoreService:
     ) -> None:
         """Test claiming an independent chore."""
         coordinator = setup_chore_services_scenario.coordinator
-        kid_id = setup_chore_services_scenario.kid_ids["Alice"]
+        kid_id = setup_chore_services_scenario.kid_ids["Zoë"]
         chore_id = setup_chore_services_scenario.chore_ids["Independent Daily Task"]
 
         # Claim the chore
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Alice")
+            coordinator.claim_chore(kid_id, chore_id, "Zoë")
 
         # Verify state
         state = get_kid_state_for_chore(coordinator, kid_id, chore_id)
@@ -199,21 +201,21 @@ class TestClaimChoreService:
     ) -> None:
         """Test claiming a shared_all chore - only claiming kid's state changes."""
         coordinator = setup_chore_services_scenario.coordinator
-        alice_id = setup_chore_services_scenario.kid_ids["Alice"]
-        bob_id = setup_chore_services_scenario.kid_ids["Bob"]
+        zoe_id = setup_chore_services_scenario.kid_ids["Zoë"]
+        max_id = setup_chore_services_scenario.kid_ids["Max!"]
         chore_id = setup_chore_services_scenario.chore_ids["Shared All Daily Task"]
 
-        # Alice claims
+        # Zoë claims
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(alice_id, chore_id, "Alice")
+            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
 
-        # Alice is claimed, Bob is still pending
+        # Zoë is claimed, Max is still pending
         assert (
-            get_kid_state_for_chore(coordinator, alice_id, chore_id)
+            get_kid_state_for_chore(coordinator, zoe_id, chore_id)
             == CHORE_STATE_CLAIMED
         )
         assert (
-            get_kid_state_for_chore(coordinator, bob_id, chore_id)
+            get_kid_state_for_chore(coordinator, max_id, chore_id)
             == CHORE_STATE_PENDING
         )
 
@@ -225,22 +227,22 @@ class TestClaimChoreService:
     ) -> None:
         """Test claiming a shared_first chore - only first claimant matters."""
         coordinator = setup_chore_services_scenario.coordinator
-        alice_id = setup_chore_services_scenario.kid_ids["Alice"]
-        bob_id = setup_chore_services_scenario.kid_ids["Bob"]
+        zoe_id = setup_chore_services_scenario.kid_ids["Zoë"]
+        max_id = setup_chore_services_scenario.kid_ids["Max!"]
         chore_id = setup_chore_services_scenario.chore_ids["Shared First Daily Task"]
 
-        # Alice claims first
+        # Zoë claims first
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(alice_id, chore_id, "Alice")
+            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
 
-        # Alice is claimed
+        # Zoë is claimed
         assert (
-            get_kid_state_for_chore(coordinator, alice_id, chore_id)
+            get_kid_state_for_chore(coordinator, zoe_id, chore_id)
             == CHORE_STATE_CLAIMED
         )
-        # For shared_first, Bob becomes completed_by_other (missed out) when Alice claims first
+        # For shared_first, Max becomes completed_by_other (missed out) when Zoë claims first
         assert (
-            get_kid_state_for_chore(coordinator, bob_id, chore_id)
+            get_kid_state_for_chore(coordinator, max_id, chore_id)
             == CHORE_STATE_COMPLETED_BY_OTHER
         )
 
@@ -261,14 +263,14 @@ class TestApproveDisapproveChoreService:
     ) -> None:
         """Test approving an independent chore awards points."""
         coordinator = setup_chore_services_scenario.coordinator
-        kid_id = setup_chore_services_scenario.kid_ids["Alice"]
+        kid_id = setup_chore_services_scenario.kid_ids["Zoë"]
         chore_id = setup_chore_services_scenario.chore_ids["Independent Daily Task"]
 
         initial_points = get_kid_points(coordinator, kid_id)
 
         # Claim and approve
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Alice")
+            coordinator.claim_chore(kid_id, chore_id, "Zoë")
             coordinator.approve_chore("Mom", kid_id, chore_id)
 
         # Verify approved and points awarded
@@ -286,12 +288,12 @@ class TestApproveDisapproveChoreService:
     ) -> None:
         """Test disapproving a claimed chore returns to pending."""
         coordinator = setup_chore_services_scenario.coordinator
-        kid_id = setup_chore_services_scenario.kid_ids["Alice"]
+        kid_id = setup_chore_services_scenario.kid_ids["Zoë"]
         chore_id = setup_chore_services_scenario.chore_ids["Independent Daily Task"]
 
         # Claim and disapprove
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Alice")
+            coordinator.claim_chore(kid_id, chore_id, "Zoë")
             coordinator.disapprove_chore("Mom", kid_id, chore_id)
 
         # Verify back to pending
@@ -308,22 +310,22 @@ class TestApproveDisapproveChoreService:
     ) -> None:
         """Test approving shared_first chore marks other kids as completed_by_other."""
         coordinator = setup_chore_services_scenario.coordinator
-        alice_id = setup_chore_services_scenario.kid_ids["Alice"]
-        bob_id = setup_chore_services_scenario.kid_ids["Bob"]
+        zoe_id = setup_chore_services_scenario.kid_ids["Zoë"]
+        max_id = setup_chore_services_scenario.kid_ids["Max!"]
         chore_id = setup_chore_services_scenario.chore_ids["Shared First Daily Task"]
 
-        # Alice claims and gets approved
+        # Zoë claims and gets approved
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(alice_id, chore_id, "Alice")
-            coordinator.approve_chore("Mom", alice_id, chore_id)
+            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+            coordinator.approve_chore("Mom", zoe_id, chore_id)
 
-        # Alice is approved, Bob is completed_by_other
+        # Zoë is approved, Max is completed_by_other
         assert (
-            get_kid_state_for_chore(coordinator, alice_id, chore_id)
+            get_kid_state_for_chore(coordinator, zoe_id, chore_id)
             == CHORE_STATE_APPROVED
         )
         assert (
-            get_kid_state_for_chore(coordinator, bob_id, chore_id)
+            get_kid_state_for_chore(coordinator, max_id, chore_id)
             == CHORE_STATE_COMPLETED_BY_OTHER
         )
 
@@ -348,8 +350,8 @@ class TestSetChoreDueDateService:
     ) -> None:
         """Test setting due date for independent chore updates all kids."""
         coordinator = setup_chore_services_scenario.coordinator
-        alice_id = setup_chore_services_scenario.kid_ids["Alice"]
-        bob_id = setup_chore_services_scenario.kid_ids["Bob"]
+        zoe_id = setup_chore_services_scenario.kid_ids["Zoë"]
+        max_id = setup_chore_services_scenario.kid_ids["Max!"]
         chore_id = setup_chore_services_scenario.chore_ids["Independent Daily Task"]
 
         # Set new due date
@@ -359,12 +361,12 @@ class TestSetChoreDueDateService:
         coordinator.set_chore_due_date(chore_id, new_due_date)
 
         # Verify per-kid due dates were updated
-        alice_due = get_kid_due_date_for_chore(coordinator, chore_id, alice_id)
-        bob_due = get_kid_due_date_for_chore(coordinator, chore_id, bob_id)
+        zoe_due = get_kid_due_date_for_chore(coordinator, chore_id, zoe_id)
+        max_due = get_kid_due_date_for_chore(coordinator, chore_id, max_id)
 
         expected_iso = dt_util.as_utc(new_due_date).isoformat()
-        assert alice_due == expected_iso, f"Alice due date not updated: {alice_due}"
-        assert bob_due == expected_iso, f"Bob due date not updated: {bob_due}"
+        assert zoe_due == expected_iso, f"Zoë due date not updated: {zoe_due}"
+        assert max_due == expected_iso, f"Max due date not updated: {max_due}"
 
     @pytest.mark.asyncio
     async def test_set_due_date_independent_chore_single_kid(
@@ -374,26 +376,26 @@ class TestSetChoreDueDateService:
     ) -> None:
         """Test setting due date for independent chore for single kid."""
         coordinator = setup_chore_services_scenario.coordinator
-        alice_id = setup_chore_services_scenario.kid_ids["Alice"]
-        bob_id = setup_chore_services_scenario.kid_ids["Bob"]
+        zoe_id = setup_chore_services_scenario.kid_ids["Zoë"]
+        max_id = setup_chore_services_scenario.kid_ids["Max!"]
         chore_id = setup_chore_services_scenario.chore_ids["Independent Daily Task"]
 
-        # Get Bob's original due date
-        bob_original = get_kid_due_date_for_chore(coordinator, chore_id, bob_id)
+        # Get Max's original due date
+        max_original = get_kid_due_date_for_chore(coordinator, chore_id, max_id)
 
-        # Set new due date for Alice only
+        # Set new due date for Zoë only
         new_due_date = datetime.now(UTC) + timedelta(days=5)
         new_due_date = new_due_date.replace(hour=18, minute=0, second=0, microsecond=0)
 
-        coordinator.set_chore_due_date(chore_id, new_due_date, kid_id=alice_id)
+        coordinator.set_chore_due_date(chore_id, new_due_date, kid_id=zoe_id)
 
-        # Alice updated, Bob unchanged
-        alice_due = get_kid_due_date_for_chore(coordinator, chore_id, alice_id)
-        bob_due = get_kid_due_date_for_chore(coordinator, chore_id, bob_id)
+        # Zoë updated, Max unchanged
+        zoe_due = get_kid_due_date_for_chore(coordinator, chore_id, zoe_id)
+        max_due = get_kid_due_date_for_chore(coordinator, chore_id, max_id)
 
         expected_iso = dt_util.as_utc(new_due_date).isoformat()
-        assert alice_due == expected_iso, f"Alice due date not updated: {alice_due}"
-        assert bob_due == bob_original, f"Bob due date should be unchanged: {bob_due}"
+        assert zoe_due == expected_iso, f"Zoë due date not updated: {zoe_due}"
+        assert max_due == max_original, f"Max due date should be unchanged: {max_due}"
 
     @pytest.mark.asyncio
     async def test_set_due_date_shared_all_chore(
@@ -479,7 +481,7 @@ class TestSetChoreDueDateService:
         Passing kid_id should raise an error.
         """
         coordinator = setup_chore_services_scenario.coordinator
-        alice_id = setup_chore_services_scenario.kid_ids["Alice"]
+        zoe_id = setup_chore_services_scenario.kid_ids["Zoë"]
         chore_id = setup_chore_services_scenario.chore_ids["Shared First Daily Task"]
 
         new_due_date = datetime.now(UTC) + timedelta(days=4)
@@ -491,7 +493,7 @@ class TestSetChoreDueDateService:
 
         # For now, verify the behavior (which may need fixing)
         # The coordinator should handle shared_first like shared for due dates
-        coordinator.set_chore_due_date(chore_id, new_due_date, kid_id=alice_id)
+        coordinator.set_chore_due_date(chore_id, new_due_date, kid_id=zoe_id)
 
         # Check if chore-level due date was updated (correct behavior)
         # or if per-kid due date was created (bug behavior)
@@ -545,23 +547,23 @@ class TestSkipChoreDueDateService:
     ) -> None:
         """Test skipping due date for independent chore reschedules all kids."""
         coordinator = setup_chore_services_scenario.coordinator
-        alice_id = setup_chore_services_scenario.kid_ids["Alice"]
-        bob_id = setup_chore_services_scenario.kid_ids["Bob"]
+        zoe_id = setup_chore_services_scenario.kid_ids["Zoë"]
+        max_id = setup_chore_services_scenario.kid_ids["Max!"]
         chore_id = setup_chore_services_scenario.chore_ids["Independent Daily Task"]
 
         # Get original due dates
-        alice_original = get_kid_due_date_for_chore(coordinator, chore_id, alice_id)
-        bob_original = get_kid_due_date_for_chore(coordinator, chore_id, bob_id)
+        zoe_original = get_kid_due_date_for_chore(coordinator, chore_id, zoe_id)
+        max_original = get_kid_due_date_for_chore(coordinator, chore_id, max_id)
 
         # Skip the due date
         coordinator.skip_chore_due_date(chore_id)
 
         # Both should be rescheduled (different from original)
-        alice_new = get_kid_due_date_for_chore(coordinator, chore_id, alice_id)
-        bob_new = get_kid_due_date_for_chore(coordinator, chore_id, bob_id)
+        zoe_new = get_kid_due_date_for_chore(coordinator, chore_id, zoe_id)
+        max_new = get_kid_due_date_for_chore(coordinator, chore_id, max_id)
 
-        assert alice_new != alice_original, "Alice due date should be rescheduled"
-        assert bob_new != bob_original, "Bob due date should be rescheduled"
+        assert zoe_new != zoe_original, "Zoë due date should be rescheduled"
+        assert max_new != max_original, "Max due date should be rescheduled"
 
     @pytest.mark.asyncio
     async def test_skip_due_date_independent_chore_single_kid(
@@ -571,23 +573,23 @@ class TestSkipChoreDueDateService:
     ) -> None:
         """Test skipping due date for independent chore for single kid."""
         coordinator = setup_chore_services_scenario.coordinator
-        alice_id = setup_chore_services_scenario.kid_ids["Alice"]
-        bob_id = setup_chore_services_scenario.kid_ids["Bob"]
+        zoe_id = setup_chore_services_scenario.kid_ids["Zoë"]
+        max_id = setup_chore_services_scenario.kid_ids["Max!"]
         chore_id = setup_chore_services_scenario.chore_ids["Independent Daily Task"]
 
         # Get original due dates
-        alice_original = get_kid_due_date_for_chore(coordinator, chore_id, alice_id)
-        bob_original = get_kid_due_date_for_chore(coordinator, chore_id, bob_id)
+        zoe_original = get_kid_due_date_for_chore(coordinator, chore_id, zoe_id)
+        max_original = get_kid_due_date_for_chore(coordinator, chore_id, max_id)
 
-        # Skip for Alice only
-        coordinator.skip_chore_due_date(chore_id, kid_id=alice_id)
+        # Skip for Zoë only
+        coordinator.skip_chore_due_date(chore_id, kid_id=zoe_id)
 
-        # Alice rescheduled, Bob unchanged
-        alice_new = get_kid_due_date_for_chore(coordinator, chore_id, alice_id)
-        bob_new = get_kid_due_date_for_chore(coordinator, chore_id, bob_id)
+        # Zoë rescheduled, Max unchanged
+        zoe_new = get_kid_due_date_for_chore(coordinator, chore_id, zoe_id)
+        max_new = get_kid_due_date_for_chore(coordinator, chore_id, max_id)
 
-        assert alice_new != alice_original, "Alice due date should be rescheduled"
-        assert bob_new == bob_original, "Bob due date should be unchanged"
+        assert zoe_new != zoe_original, "Zoë due date should be rescheduled"
+        assert max_new == max_original, "Max due date should be unchanged"
 
     @pytest.mark.asyncio
     async def test_skip_due_date_shared_all_chore(
@@ -668,31 +670,31 @@ class TestResetOverdueChoresService:
     ) -> None:
         """Test resetting overdue independent chore."""
         coordinator = setup_chore_services_scenario.coordinator
-        alice_id = setup_chore_services_scenario.kid_ids["Alice"]
+        zoe_id = setup_chore_services_scenario.kid_ids["Zoë"]
         chore_id = setup_chore_services_scenario.chore_ids["Independent Daily Task"]
 
         # Set due date to past
-        set_chore_due_date_to_past(coordinator, chore_id, kid_id=alice_id)
+        set_chore_due_date_to_past(coordinator, chore_id, kid_id=zoe_id)
 
         # Trigger overdue check to mark as overdue
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             await coordinator._check_overdue_chores()
 
         # Verify overdue
-        assert coordinator.is_overdue(alice_id, chore_id), "Chore should be overdue"
+        assert coordinator.is_overdue(zoe_id, chore_id), "Chore should be overdue"
         assert (
-            get_kid_state_for_chore(coordinator, alice_id, chore_id)
+            get_kid_state_for_chore(coordinator, zoe_id, chore_id)
             == CHORE_STATE_OVERDUE
         )
 
         # Reset
-        coordinator.reset_overdue_chores(chore_id, alice_id)
+        coordinator.reset_overdue_chores(chore_id, zoe_id)
 
         # Verify reset to pending and rescheduled
-        assert not coordinator.is_overdue(alice_id, chore_id), (
+        assert not coordinator.is_overdue(zoe_id, chore_id), (
             "Chore should no longer be overdue"
         )
-        new_due = get_kid_due_date_for_chore(coordinator, chore_id, alice_id)
+        new_due = get_kid_due_date_for_chore(coordinator, chore_id, zoe_id)
         if new_due:
             new_due_dt = datetime.fromisoformat(new_due)
             assert new_due_dt > datetime.now(UTC), "New due date should be in future"
@@ -718,8 +720,8 @@ class TestResetAllChoresService:
         This test replicates the service logic to test the data transformation directly.
         """
         coordinator = setup_chore_services_scenario.coordinator
-        alice_id = setup_chore_services_scenario.kid_ids["Alice"]
-        bob_id = setup_chore_services_scenario.kid_ids["Bob"]
+        zoe_id = setup_chore_services_scenario.kid_ids["Zoë"]
+        max_id = setup_chore_services_scenario.kid_ids["Max!"]
         independent_chore = setup_chore_services_scenario.chore_ids[
             "Independent Daily Task"
         ]
@@ -730,29 +732,29 @@ class TestResetAllChoresService:
 
         # Set up various states
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            # Claim independent for Alice
-            coordinator.claim_chore(alice_id, independent_chore, "Alice")
-            # Claim and approve shared for Alice
-            coordinator.claim_chore(alice_id, shared_chore, "Alice")
-            coordinator.approve_chore("Mom", alice_id, shared_chore)
-            # Claim shared_first for Bob (Alice becomes completed_by_other)
-            coordinator.claim_chore(bob_id, shared_first_chore, "Bob")
+            # Claim independent for Zoë
+            coordinator.claim_chore(zoe_id, independent_chore, "Zoë")
+            # Claim and approve shared for Zoë
+            coordinator.claim_chore(zoe_id, shared_chore, "Zoë")
+            coordinator.approve_chore("Mom", zoe_id, shared_chore)
+            # Claim shared_first for Max (Zoë becomes completed_by_other)
+            coordinator.claim_chore(max_id, shared_first_chore, "Max!")
 
         # Verify non-pending states before reset
         assert (
-            get_kid_state_for_chore(coordinator, alice_id, independent_chore)
+            get_kid_state_for_chore(coordinator, zoe_id, independent_chore)
             == CHORE_STATE_CLAIMED
         )
         assert (
-            get_kid_state_for_chore(coordinator, alice_id, shared_chore)
+            get_kid_state_for_chore(coordinator, zoe_id, shared_chore)
             == CHORE_STATE_APPROVED
         )
 
         # Call the reset_all_chores service via hass.services.async_call
         # The service is registered under the kidschores domain
         await hass.services.async_call(
-            const.DOMAIN,
-            const.SERVICE_RESET_ALL_CHORES,
+            DOMAIN,
+            SERVICE_RESET_ALL_CHORES,
             {},
             blocking=True,
         )
@@ -760,27 +762,27 @@ class TestResetAllChoresService:
 
         # All should be pending
         assert (
-            get_kid_state_for_chore(coordinator, alice_id, independent_chore)
+            get_kid_state_for_chore(coordinator, zoe_id, independent_chore)
             == CHORE_STATE_PENDING
         )
         assert (
-            get_kid_state_for_chore(coordinator, bob_id, independent_chore)
+            get_kid_state_for_chore(coordinator, max_id, independent_chore)
             == CHORE_STATE_PENDING
         )
         assert (
-            get_kid_state_for_chore(coordinator, alice_id, shared_chore)
+            get_kid_state_for_chore(coordinator, zoe_id, shared_chore)
             == CHORE_STATE_PENDING
         )
         assert (
-            get_kid_state_for_chore(coordinator, bob_id, shared_chore)
+            get_kid_state_for_chore(coordinator, max_id, shared_chore)
             == CHORE_STATE_PENDING
         )
         assert (
-            get_kid_state_for_chore(coordinator, alice_id, shared_first_chore)
+            get_kid_state_for_chore(coordinator, zoe_id, shared_first_chore)
             == CHORE_STATE_PENDING
         )
         assert (
-            get_kid_state_for_chore(coordinator, bob_id, shared_first_chore)
+            get_kid_state_for_chore(coordinator, max_id, shared_first_chore)
             == CHORE_STATE_PENDING
         )
 
@@ -801,12 +803,12 @@ class TestServiceHandlerValidation:
     ) -> None:
         """Test that set_chore_due_date service rejects kid_id for shared chores."""
         coordinator = setup_chore_services_scenario.coordinator
-        kid_id = setup_chore_services_scenario.kid_ids["Alice"]
+        kid_id = setup_chore_services_scenario.kid_ids["Zoë"]
         chore_id = setup_chore_services_scenario.chore_ids["Shared All Daily Task"]
 
         # Get chore info (name used for documentation, not in test)
         chore_info = coordinator.chores_data.get(chore_id, {})
-        _chore_name = chore_info.get(const.DATA_CHORE_NAME)
+        _chore_name = chore_info.get(DATA_CHORE_NAME)
 
         # Service call with kid_name for shared chore should be rejected
         # (This tests the service handler, not the coordinator)
@@ -831,7 +833,7 @@ class TestServiceHandlerValidation:
     ) -> None:
         """Test that skip_chore_due_date service rejects kid_id for shared chores."""
         coordinator = setup_chore_services_scenario.coordinator
-        kid_id = setup_chore_services_scenario.kid_ids["Alice"]
+        kid_id = setup_chore_services_scenario.kid_ids["Zoë"]
         chore_id = setup_chore_services_scenario.chore_ids["Shared All Daily Task"]
 
         original_due = get_chore_due_date(coordinator, chore_id)
@@ -841,3 +843,409 @@ class TestServiceHandlerValidation:
 
         new_due = get_chore_due_date(coordinator, chore_id)
         assert new_due != original_due, "Shared chore should be rescheduled"
+
+
+# ============================================================================
+# TEST CLASS: Data Structure Consistency (set_chore_due_date)
+# ============================================================================
+
+
+class TestSetDueDateDataStructureConsistency:
+    """Test set_chore_due_date maintains correct data structure for SHARED vs INDEPENDENT.
+
+    Post-migration data structure requirements:
+    - SHARED chores: Use chore-level due_date field
+    - INDEPENDENT chores: Use per_kid_due_dates dict, NO chore-level due_date
+
+    These tests validate the fix where set_chore_due_date was incorrectly
+    adding chore-level due_date to INDEPENDENT chores.
+    """
+
+    @pytest.mark.asyncio
+    async def test_set_due_date_shared_adds_chore_level_due_date(
+        self,
+        hass: HomeAssistant,
+        setup_chore_services_scenario: SetupResult,
+    ) -> None:
+        """Test set_chore_due_date adds chore-level due_date for SHARED chores."""
+        coordinator = setup_chore_services_scenario.coordinator
+        chore_id = setup_chore_services_scenario.chore_ids["Shared All Daily Task"]
+
+        # Verify this is a SHARED chore
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        assert (
+            chore_info.get(DATA_CHORE_COMPLETION_CRITERIA) == COMPLETION_CRITERIA_SHARED
+        )
+
+        # Remove chore-level due_date to test adding it fresh
+        chore_info.pop(DATA_CHORE_DUE_DATE, None)
+        assert DATA_CHORE_DUE_DATE not in chore_info
+
+        # Set due date
+        new_due_date = datetime.now(UTC) + timedelta(days=2)
+        new_due_date = new_due_date.replace(hour=15, minute=0, second=0, microsecond=0)
+        coordinator.set_chore_due_date(chore_id, new_due_date)
+
+        # Verify chore-level due_date was added (correct for SHARED)
+        assert DATA_CHORE_DUE_DATE in chore_info, (
+            "SHARED chore should have chore-level due_date"
+        )
+        expected_iso = dt_util.as_utc(new_due_date).isoformat()
+        assert chore_info[DATA_CHORE_DUE_DATE] == expected_iso
+
+    @pytest.mark.asyncio
+    async def test_set_due_date_independent_avoids_chore_level_due_date(
+        self,
+        hass: HomeAssistant,
+        setup_chore_services_scenario: SetupResult,
+    ) -> None:
+        """Test set_chore_due_date does NOT add chore-level due_date for INDEPENDENT.
+
+        CRITICAL: INDEPENDENT chores should NEVER have chore-level due_date.
+        They use per_kid_due_dates instead.
+        """
+        coordinator = setup_chore_services_scenario.coordinator
+        zoe_id = setup_chore_services_scenario.kid_ids["Zoë"]
+        chore_id = setup_chore_services_scenario.chore_ids["Independent Daily Task"]
+
+        # Verify this is an INDEPENDENT chore
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        assert (
+            chore_info.get(DATA_CHORE_COMPLETION_CRITERIA)
+            == COMPLETION_CRITERIA_INDEPENDENT
+        )
+
+        # Ensure no chore-level due_date exists (post-migration state)
+        chore_info.pop(DATA_CHORE_DUE_DATE, None)
+
+        # Set due date for specific kid
+        new_due_date = datetime.now(UTC) + timedelta(days=3)
+        new_due_date = new_due_date.replace(hour=16, minute=0, second=0, microsecond=0)
+        coordinator.set_chore_due_date(chore_id, new_due_date, kid_id=zoe_id)
+
+        # Verify chore-level due_date was NOT added (correct for INDEPENDENT)
+        assert DATA_CHORE_DUE_DATE not in chore_info, (
+            "INDEPENDENT chore should NOT have chore-level due_date after "
+            "set_chore_due_date - BUG: data structure consistency violated"
+        )
+
+        # Verify per_kid_due_dates was updated correctly
+        per_kid_due_dates = chore_info.get(DATA_CHORE_PER_KID_DUE_DATES, {})
+        expected_iso = dt_util.as_utc(new_due_date).isoformat()
+        assert per_kid_due_dates.get(zoe_id) == expected_iso, (
+            "per_kid_due_dates should be updated for INDEPENDENT chore"
+        )
+
+    @pytest.mark.asyncio
+    async def test_set_due_date_independent_all_kids_avoids_chore_level(
+        self,
+        hass: HomeAssistant,
+        setup_chore_services_scenario: SetupResult,
+    ) -> None:
+        """Test set_chore_due_date for all kids still avoids chore-level for INDEPENDENT."""
+        coordinator = setup_chore_services_scenario.coordinator
+        zoe_id = setup_chore_services_scenario.kid_ids["Zoë"]
+        max_id = setup_chore_services_scenario.kid_ids["Max!"]
+        chore_id = setup_chore_services_scenario.chore_ids["Independent Daily Task"]
+
+        chore_info = coordinator.chores_data.get(chore_id, {})
+
+        # Remove chore-level due_date (post-migration state)
+        chore_info.pop(DATA_CHORE_DUE_DATE, None)
+
+        # Set due date for ALL kids (no kid_id parameter)
+        new_due_date = datetime.now(UTC) + timedelta(days=4)
+        new_due_date = new_due_date.replace(hour=17, minute=0, second=0, microsecond=0)
+        coordinator.set_chore_due_date(chore_id, new_due_date)
+
+        # Verify NO chore-level due_date even when setting for all kids
+        assert DATA_CHORE_DUE_DATE not in chore_info, (
+            "INDEPENDENT chore should NOT have chore-level due_date even when "
+            "setting due date for all kids - use per_kid_due_dates instead"
+        )
+
+        # Verify both kids have per_kid_due_dates set
+        per_kid_due_dates = chore_info.get(DATA_CHORE_PER_KID_DUE_DATES, {})
+        expected_iso = dt_util.as_utc(new_due_date).isoformat()
+        assert per_kid_due_dates.get(zoe_id) == expected_iso
+        assert per_kid_due_dates.get(max_id) == expected_iso
+
+
+# ============================================================================
+# TEST CLASS: Skip Due Date Null Handling
+# ============================================================================
+
+
+class TestSkipDueDateNullHandling:
+    """Test skip_chore_due_date behavior with null/missing due dates.
+
+    These tests validate the fix where skip service would crash or behave
+    incorrectly when due dates were null or missing.
+    """
+
+    @pytest.mark.asyncio
+    async def test_skip_ignores_null_due_date_independent(
+        self,
+        hass: HomeAssistant,
+        setup_chore_services_scenario: SetupResult,
+    ) -> None:
+        """Test skip_chore_due_date is a no-op when kid's due date is null.
+
+        Bug reproduction:
+        1. Set per_kid_due_dates[kid_id] = None (cleared)
+        2. Call skip_chore_due_date
+        3. Should be a no-op (not crash or delete the kid entry)
+        """
+        coordinator = setup_chore_services_scenario.coordinator
+        zoe_id = setup_chore_services_scenario.kid_ids["Zoë"]
+        chore_id = setup_chore_services_scenario.chore_ids["Independent Daily Task"]
+
+        chore_info = coordinator.chores_data.get(chore_id, {})
+
+        # Set Zoë's due date to None (cleared)
+        per_kid_due_dates = chore_info.setdefault(DATA_CHORE_PER_KID_DUE_DATES, {})
+        per_kid_due_dates[zoe_id] = None
+
+        # Call skip - should be a no-op, not crash
+        coordinator.skip_chore_due_date(chore_id, kid_id=zoe_id)
+
+        # Verify kid entry still exists with None value (not deleted)
+        assert zoe_id in chore_info[DATA_CHORE_PER_KID_DUE_DATES], (
+            "Kid entry should not be deleted when skip called with null due date"
+        )
+        assert chore_info[DATA_CHORE_PER_KID_DUE_DATES][zoe_id] is None, (
+            "Due date should remain None after skip (no-op)"
+        )
+
+    @pytest.mark.asyncio
+    async def test_skip_works_with_valid_due_date(
+        self,
+        hass: HomeAssistant,
+        setup_chore_services_scenario: SetupResult,
+    ) -> None:
+        """Test skip_chore_due_date advances due date when valid date exists."""
+        coordinator = setup_chore_services_scenario.coordinator
+        zoe_id = setup_chore_services_scenario.kid_ids["Zoë"]
+        chore_id = setup_chore_services_scenario.chore_ids["Independent Daily Task"]
+
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        per_kid_due_dates = chore_info.setdefault(DATA_CHORE_PER_KID_DUE_DATES, {})
+
+        # Set a valid due date
+        original_date = "2026-01-10T12:00:00+00:00"
+        per_kid_due_dates[zoe_id] = original_date
+
+        # Call skip - should advance the date
+        coordinator.skip_chore_due_date(chore_id, kid_id=zoe_id)
+
+        # Verify due date was advanced
+        new_date = per_kid_due_dates.get(zoe_id)
+        assert new_date is not None, "Due date should not be None after skip"
+        assert new_date != original_date, "Due date should be advanced after skip"
+
+    @pytest.mark.asyncio
+    async def test_skip_independent_no_due_dates_noop(
+        self,
+        hass: HomeAssistant,
+        setup_chore_services_scenario: SetupResult,
+    ) -> None:
+        """Test skip_chore_due_date is a no-op when no due dates exist at all."""
+        coordinator = setup_chore_services_scenario.coordinator
+        zoe_id = setup_chore_services_scenario.kid_ids["Zoë"]
+        chore_id = setup_chore_services_scenario.chore_ids["Independent Daily Task"]
+
+        chore_info = coordinator.chores_data.get(chore_id, {})
+
+        # Clear all due dates
+        chore_info[DATA_CHORE_PER_KID_DUE_DATES] = {}
+
+        # Also clear kid's chore data due date
+        kid_info = coordinator.kids_data.get(zoe_id, {})
+        kid_chore_data = kid_info.get(DATA_KID_CHORE_DATA, {}).get(chore_id, {})
+        kid_chore_data.pop(DATA_KID_CHORE_DATA_DUE_DATE_LEGACY, None)
+
+        # Call skip - should be a no-op (not crash)
+        coordinator.skip_chore_due_date(chore_id, kid_id=zoe_id)
+
+        # Verify no changes (still empty)
+        per_kid_due_dates = chore_info.get(DATA_CHORE_PER_KID_DUE_DATES, {})
+        assert per_kid_due_dates.get(zoe_id) is None, (
+            "No due date should be created when skipping with no existing date"
+        )
+
+
+# ============================================================================
+# TEST CLASS: Skip Due Date Fallback to Kid Chore Data
+# ============================================================================
+
+
+class TestSkipDueDateKidChoreDataFallback:
+    """Test skip_chore_due_date validates existence from kid's chore_data.
+
+    When per_kid_due_dates is empty, the skip validation checks if ANY kid
+    has a due date in their chore_data (for migration support). However,
+    when skipping for a specific kid, only per_kid_due_dates is used as the
+    authoritative source - kid_chore_data is for backward compatibility only.
+    """
+
+    @pytest.mark.asyncio
+    async def test_skip_validates_against_kid_chore_data_for_any_due_date(
+        self,
+        hass: HomeAssistant,
+        setup_chore_services_scenario: SetupResult,
+    ) -> None:
+        """Test skip validation passes when kid's chore_data has due date.
+
+        The skip validation checks if ANY assigned kid has a due date,
+        including in their kid_chore_data. This is for migration support.
+        However, the actual skip operation uses per_kid_due_dates only.
+        """
+        coordinator = setup_chore_services_scenario.coordinator
+        zoe_id = setup_chore_services_scenario.kid_ids["Zoë"]
+        chore_id = setup_chore_services_scenario.chore_ids["Independent Daily Task"]
+
+        chore_info = coordinator.chores_data.get(chore_id, {})
+
+        # Clear per_kid_due_dates for Zoë (but leave Max's)
+        per_kid_due_dates = chore_info.setdefault(DATA_CHORE_PER_KID_DUE_DATES, {})
+        per_kid_due_dates[zoe_id] = None  # Clear Zoë's date
+
+        # Set due date in kid's chore_data (for backward compat validation)
+        kid_info = coordinator.kids_data.get(zoe_id, {})
+        kid_chore_data = kid_info.setdefault(DATA_KID_CHORE_DATA, {}).setdefault(
+            chore_id, {}
+        )
+        kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] = (
+            "2026-01-15T14:00:00+00:00"
+        )
+
+        # Call skip for Zoë - should be no-op since per_kid_due_dates[zoe_id] is None
+        # (the kid_chore_data is only used for existence validation, not as skip source)
+        coordinator.skip_chore_due_date(chore_id, kid_id=zoe_id)
+
+        # Zoë's per_kid_due_dates should still be None (no skip occurred)
+        assert per_kid_due_dates.get(zoe_id) is None, (
+            "Skip should be no-op when per_kid_due_dates is None for the specific kid"
+        )
+
+
+# ============================================================================
+# TEST CLASS: Set + Skip Service Integration
+# ============================================================================
+
+
+class TestSetSkipServiceIntegration:
+    """Test set_chore_due_date and skip_chore_due_date work together correctly.
+
+    These tests validate that using set followed by skip maintains
+    correct data structure consistency.
+    """
+
+    @pytest.mark.asyncio
+    async def test_set_then_skip_shared_maintains_structure(
+        self,
+        hass: HomeAssistant,
+        setup_chore_services_scenario: SetupResult,
+    ) -> None:
+        """Test set then skip for SHARED chore maintains chore-level due_date."""
+        coordinator = setup_chore_services_scenario.coordinator
+        chore_id = setup_chore_services_scenario.chore_ids["Shared All Daily Task"]
+
+        chore_info = coordinator.chores_data.get(chore_id, {})
+
+        # 1. Set due date
+        initial_due = datetime.now(UTC) + timedelta(days=1)
+        initial_due = initial_due.replace(hour=10, minute=0, second=0, microsecond=0)
+        coordinator.set_chore_due_date(chore_id, initial_due)
+
+        # Verify SHARED chore has chore-level due_date
+        assert DATA_CHORE_DUE_DATE in chore_info
+        initial_iso = chore_info[DATA_CHORE_DUE_DATE]
+
+        # 2. Skip the due date
+        coordinator.skip_chore_due_date(chore_id)
+
+        # Verify structure maintained and date advanced
+        assert DATA_CHORE_DUE_DATE in chore_info, (
+            "SHARED chore should still have chore-level due_date after skip"
+        )
+        new_iso = chore_info[DATA_CHORE_DUE_DATE]
+        assert new_iso != initial_iso, "Due date should be advanced after skip"
+
+    @pytest.mark.asyncio
+    async def test_set_then_skip_independent_maintains_structure(
+        self,
+        hass: HomeAssistant,
+        setup_chore_services_scenario: SetupResult,
+    ) -> None:
+        """Test set then skip for INDEPENDENT chore maintains per_kid_due_dates."""
+        coordinator = setup_chore_services_scenario.coordinator
+        zoe_id = setup_chore_services_scenario.kid_ids["Zoë"]
+        chore_id = setup_chore_services_scenario.chore_ids["Independent Daily Task"]
+
+        chore_info = coordinator.chores_data.get(chore_id, {})
+
+        # Remove any chore-level due_date (post-migration state)
+        chore_info.pop(DATA_CHORE_DUE_DATE, None)
+
+        # 1. Set due date for Zoë
+        initial_due = datetime.now(UTC) + timedelta(days=2)
+        initial_due = initial_due.replace(hour=14, minute=0, second=0, microsecond=0)
+        coordinator.set_chore_due_date(chore_id, initial_due, kid_id=zoe_id)
+
+        # Verify structure
+        assert DATA_CHORE_DUE_DATE not in chore_info, (
+            "INDEPENDENT chore should NOT have chore-level due_date"
+        )
+        per_kid_due_dates = chore_info.get(DATA_CHORE_PER_KID_DUE_DATES, {})
+        initial_iso = per_kid_due_dates.get(zoe_id)
+        assert initial_iso is not None
+
+        # 2. Skip for Zoë
+        coordinator.skip_chore_due_date(chore_id, kid_id=zoe_id)
+
+        # Verify structure maintained and date advanced
+        assert DATA_CHORE_DUE_DATE not in chore_info, (
+            "INDEPENDENT chore should NOT have chore-level due_date after skip"
+        )
+        new_iso = per_kid_due_dates.get(zoe_id)
+        assert new_iso != initial_iso, "Per-kid due date should be advanced after skip"
+
+    @pytest.mark.asyncio
+    async def test_set_then_skip_shared_first_maintains_structure(
+        self,
+        hass: HomeAssistant,
+        setup_chore_services_scenario: SetupResult,
+    ) -> None:
+        """Test set then skip for SHARED_FIRST maintains chore-level due_date."""
+        coordinator = setup_chore_services_scenario.coordinator
+        chore_id = setup_chore_services_scenario.chore_ids["Shared First Daily Task"]
+
+        chore_info = coordinator.chores_data.get(chore_id, {})
+
+        # Verify this is SHARED_FIRST
+        assert (
+            chore_info.get(DATA_CHORE_COMPLETION_CRITERIA)
+            == COMPLETION_CRITERIA_SHARED_FIRST
+        )
+
+        # 1. Set due date
+        initial_due = datetime.now(UTC) + timedelta(days=1)
+        initial_due = initial_due.replace(hour=18, minute=0, second=0, microsecond=0)
+        coordinator.set_chore_due_date(chore_id, initial_due)
+
+        # Verify SHARED_FIRST chore has chore-level due_date (like SHARED)
+        assert DATA_CHORE_DUE_DATE in chore_info, (
+            "SHARED_FIRST chore should have chore-level due_date"
+        )
+        initial_iso = chore_info[DATA_CHORE_DUE_DATE]
+
+        # 2. Skip the due date
+        coordinator.skip_chore_due_date(chore_id)
+
+        # Verify structure maintained
+        assert DATA_CHORE_DUE_DATE in chore_info, (
+            "SHARED_FIRST chore should still have chore-level due_date after skip"
+        )
+        new_iso = chore_info[DATA_CHORE_DUE_DATE]
+        assert new_iso != initial_iso, "Due date should be advanced after skip"

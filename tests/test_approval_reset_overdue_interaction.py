@@ -181,7 +181,7 @@ class TestApprovalResetOverdueInteraction:
         Expected: Chore resets to PENDING for next period.
         """
         coordinator = setup_at_due_date_scenario.coordinator
-        kid_id = setup_at_due_date_scenario.kid_ids["TestKid"]
+        kid_id = setup_at_due_date_scenario.kid_ids["Zoë"]
         chore_id = setup_at_due_date_scenario.chore_ids["AtDueDateOnce Reset Chore"]
 
         # Approve the chore (kid claims and parent approves)
@@ -220,7 +220,7 @@ class TestApprovalResetOverdueInteraction:
         Expected: Chore marked OVERDUE.
         """
         coordinator = setup_at_due_date_scenario.coordinator
-        kid_id = setup_at_due_date_scenario.kid_ids["TestKid"]
+        kid_id = setup_at_due_date_scenario.kid_ids["Zoë"]
         chore_id = setup_at_due_date_scenario.chore_ids["AtDueDateOnce Reset Chore"]
 
         # Verify initial pending state (no claim)
@@ -253,7 +253,7 @@ class TestApprovalResetOverdueInteraction:
         Expected: Pending claim is cleared, then marked OVERDUE, then reset at next cycle.
         """
         coordinator = setup_at_due_date_scenario.coordinator
-        kid_id = setup_at_due_date_scenario.kid_ids["TestKid"]
+        kid_id = setup_at_due_date_scenario.kid_ids["Zoë"]
         chore_id = setup_at_due_date_scenario.chore_ids["AtDueDateOnce Reset Chore"]
 
         # Claim the chore
@@ -297,7 +297,7 @@ class TestApprovalResetOverdueInteraction:
         Expected: OVERDUE status cleared, reset to PENDING.
         """
         coordinator = setup_at_due_date_scenario.coordinator
-        kid_id = setup_at_due_date_scenario.kid_ids["TestKid"]
+        kid_id = setup_at_due_date_scenario.kid_ids["Zoë"]
         chore_id = setup_at_due_date_scenario.chore_ids["AtDueDateOnce Reset Chore"]
 
         # Set due date to past and mark overdue
@@ -333,7 +333,7 @@ class TestApprovalResetOverdueInteraction:
         Expected: No overdue marking, no reset triggered.
         """
         coordinator = setup_at_due_date_scenario.coordinator
-        kid_id = setup_at_due_date_scenario.kid_ids["TestKid"]
+        kid_id = setup_at_due_date_scenario.kid_ids["Zoë"]
         chore_id = setup_at_due_date_scenario.chore_ids["AtDueDateOnce Reset Chore"]
 
         # Approve the chore
@@ -396,7 +396,7 @@ class TestOverdueResetValidation:
         # Create minimal chore input with invalid combination
         user_input = {
             const.CFOF_CHORES_INPUT_NAME: "Test Chore",
-            const.CFOF_CHORES_INPUT_ASSIGNED_KIDS: ["TestKid"],
+            const.CFOF_CHORES_INPUT_ASSIGNED_KIDS: ["Zoë"],
             const.CFOF_CHORES_INPUT_DEFAULT_POINTS: 10.0,
             const.CFOF_CHORES_INPUT_ICON: "mdi:check",
             const.CFOF_CHORES_INPUT_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_INDEPENDENT,
@@ -418,7 +418,7 @@ class TestOverdueResetValidation:
         }
 
         # Create kids_dict mapping name to UUID (like coordinator does)
-        kids_dict = {"TestKid": "kid_001"}
+        kids_dict = {"Zoë": "kid_001"}
 
         # Validate using build_chores_data (the validation function)
         _chore_data, errors = fh.build_chores_data(
@@ -445,7 +445,7 @@ class TestOverdueResetValidation:
 
         user_input = {
             const.CFOF_CHORES_INPUT_NAME: "Test Chore",
-            const.CFOF_CHORES_INPUT_ASSIGNED_KIDS: ["TestKid"],
+            const.CFOF_CHORES_INPUT_ASSIGNED_KIDS: ["Zoë"],
             const.CFOF_CHORES_INPUT_DEFAULT_POINTS: 10.0,
             const.CFOF_CHORES_INPUT_ICON: "mdi:check",
             const.CFOF_CHORES_INPUT_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_INDEPENDENT,
@@ -466,7 +466,7 @@ class TestOverdueResetValidation:
             const.CFOF_CHORES_INPUT_NOTIFICATIONS: [],
         }
 
-        kids_dict = {"TestKid": "kid_001"}
+        kids_dict = {"Zoë": "kid_001"}
 
         _chore_data, errors = fh.build_chores_data(
             user_input=user_input,
@@ -489,7 +489,7 @@ class TestOverdueResetValidation:
 
         user_input = {
             const.CFOF_CHORES_INPUT_NAME: "Test Chore",
-            const.CFOF_CHORES_INPUT_ASSIGNED_KIDS: ["TestKid"],
+            const.CFOF_CHORES_INPUT_ASSIGNED_KIDS: ["Zoë"],
             const.CFOF_CHORES_INPUT_DEFAULT_POINTS: 10.0,
             const.CFOF_CHORES_INPUT_ICON: "mdi:check",
             const.CFOF_CHORES_INPUT_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_INDEPENDENT,
@@ -510,7 +510,7 @@ class TestOverdueResetValidation:
             const.CFOF_CHORES_INPUT_NOTIFICATIONS: [],
         }
 
-        kids_dict = {"TestKid": "kid_001"}
+        kids_dict = {"Zoë": "kid_001"}
 
         chore_data, errors = fh.build_chores_data(
             user_input=user_input,
@@ -533,7 +533,7 @@ class TestOverdueResetValidation:
 
         user_input = {
             const.CFOF_CHORES_INPUT_NAME: "Test Chore",
-            const.CFOF_CHORES_INPUT_ASSIGNED_KIDS: ["TestKid"],
+            const.CFOF_CHORES_INPUT_ASSIGNED_KIDS: ["Zoë"],
             const.CFOF_CHORES_INPUT_DEFAULT_POINTS: 10.0,
             const.CFOF_CHORES_INPUT_ICON: "mdi:check",
             const.CFOF_CHORES_INPUT_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_INDEPENDENT,
@@ -554,7 +554,7 @@ class TestOverdueResetValidation:
             const.CFOF_CHORES_INPUT_NOTIFICATIONS: [],
         }
 
-        kids_dict = {"TestKid": "kid_001"}
+        kids_dict = {"Zoë": "kid_001"}
 
         chore_data, errors = fh.build_chores_data(
             user_input=user_input,

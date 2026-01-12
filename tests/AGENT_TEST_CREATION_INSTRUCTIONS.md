@@ -112,6 +112,55 @@ tests/
 
 ---
 
+### Type Checking Tests
+
+**Important**: Test files are excluded from standard `./utils/quick_lint.sh` and `pylint` checks. You must explicitly run type checking on test files:
+
+```bash
+# Check test files for type errors (not caught by regular linting)
+mypy tests/
+
+# Or check a specific test file
+mypy tests/test_datetime_edge_cases.py
+```
+
+This catches errors like:
+
+- Passing `None` to functions expecting `str`
+- Accessing attributes that don't exist on types
+- Type mismatches in function arguments
+
+**Always run `mypy tests/` before submitting test files.**
+
+#### Type: ignore Comments - Placement Matters
+
+When adding `# type: ignore` comments, **placement is critical** because formatters can cause duplication:
+
+**❌ Problematic (inline on continuation lines):**
+
+```python
+result = await hass.config_entries.options.async_configure(
+    result.get("flow_id"),  # type: ignore[arg-type]  ← Risky: can duplicate if file reformats
+    user_input={...},
+)
+```
+
+**✅ Better (on code line, not continuation):**
+
+```python
+flow_id = result.get("flow_id")  # type: ignore[arg-type]
+result = await hass.config_entries.options.async_configure(
+    flow_id,
+    user_input={...},
+)
+```
+
+**Why**: When formatters run on save, inline comments on continuation lines can duplicate or misalign, causing `# type: ignore` to appear twice on the same line. Refactoring into separate statements prevents this issue entirely.
+
+**For edge case tests** (intentionally passing wrong types), use the refactored pattern above rather than inline comments.
+
+---
+
 ## Rule 0: Import from tests.helpers, NOT const.py
 
 ✅ **CORRECT** - Import from tests.helpers:

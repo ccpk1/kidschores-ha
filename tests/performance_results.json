@@ -1,0 +1,164 @@
+{
+  "test_medium_stress_performance": [
+    {
+      "badge_duration_ms": 11488.27,
+      "overdue_duration_ms": 0.17,
+      "persist_queue_us": 107.7,
+      "entity_count": 510,
+      "kids_count": 19,
+      "chores_count": 19,
+      "badges_count": 5,
+      "parents_count": 5,
+      "rewards_count": 2,
+      "timestamp": "2026-01-12T21:17:37.433208",
+      "test_name": "test_medium_stress_performance"
+    },
+    {
+      "badge_duration_ms": 11519.39,
+      "overdue_duration_ms": 0.24,
+      "persist_queue_us": 127.8,
+      "entity_count": 510,
+      "kids_count": 19,
+      "chores_count": 19,
+      "badges_count": 5,
+      "parents_count": 5,
+      "rewards_count": 2,
+      "timestamp": "2026-01-12T21:21:49.287379",
+      "test_name": "test_medium_stress_performance"
+    },
+    {
+      "badge_duration_ms": 528.11,
+      "overdue_duration_ms": 0.16,
+      "persist_queue_us": 76.9,
+      "entity_count": 510,
+      "kids_count": 19,
+      "chores_count": 19,
+      "badges_count": 5,
+      "parents_count": 5,
+      "rewards_count": 2,
+      "timestamp": "2026-01-12T21:27:33.531699",
+      "test_name": "test_medium_stress_performance"
+    },
+    {
+      "badge_duration_ms": 531.34,
+      "overdue_duration_ms": 0.16,
+      "persist_queue_us": 86.3,
+      "entity_count": 510,
+      "kids_count": 19,
+      "chores_count": 19,
+      "badges_count": 5,
+      "parents_count": 5,
+      "rewards_count": 2,
+      "timestamp": "2026-01-12T21:28:58.982940",
+      "test_name": "test_medium_stress_performance"
+    },
+    {
+      "badge_duration_ms": 187.64,
+      "overdue_duration_ms": 0.06,
+      "persist_queue_us": 15.1,
+      "entity_count": 510,
+      "kids_count": 19,
+      "chores_count": 19,
+      "badges_count": 5,
+      "parents_count": 5,
+      "rewards_count": 2,
+      "timestamp": "2026-01-12T21:31:04.944485",
+      "test_name": "test_medium_stress_performance"
+    },
+    {
+      "badge_duration_ms": 194.7,
+      "overdue_duration_ms": 0.06,
+      "persist_queue_us": 24.4,
+      "entity_count": 510,
+      "kids_count": 19,
+      "chores_count": 19,
+      "badges_count": 5,
+      "parents_count": 5,
+      "rewards_count": 2,
+      "timestamp": "2026-01-12T21:45:45.827429",
+      "test_name": "test_medium_stress_performance"
+    }
+  ],
+  "scenario_stress": [
+    {
+      "badge_duration_ms": 180.94,
+      "overdue_duration_ms": 0.05,
+      "persist_queue_us": 15.3,
+      "entity_count": 510,
+      "kids_count": 19,
+      "chores_count": 19,
+      "badges_count": 5,
+      "parents_count": 5,
+      "rewards_count": 2,
+      "timestamp": "2026-01-12T21:58:07.308076",
+      "scenario": "scenario_stress"
+    },
+    {
+      "badge_duration_ms": 180.85,
+      "overdue_duration_ms": 0.05,
+      "persist_queue_us": 15.5,
+      "entity_count": 510,
+      "kids_count": 19,
+      "chores_count": 19,
+      "badges_count": 5,
+      "parents_count": 5,
+      "rewards_count": 2,
+      "timestamp": "2026-01-12T21:58:16.500536",
+      "scenario": "scenario_stress"
+    },
+    {
+      "badge_duration_ms": 181.5,
+      "overdue_duration_ms": 0.06,
+      "persist_queue_us": 17.0,
+      "entity_count": 510,
+      "kids_count": 19,
+      "chores_count": 19,
+      "badges_count": 5,
+      "parents_count": 5,
+      "rewards_count": 2,
+      "timestamp": "2026-01-12T21:59:49.917303",
+      "scenario": "scenario_stress"
+    },
+    {
+      "badge_duration_ms": 546.57,
+      "overdue_duration_ms": 0.15,
+      "persist_queue_us": 65.3,
+      "entity_count": 510,
+      "kids_count": 19,
+      "chores_count": 19,
+      "badges_count": 5,
+      "parents_count": 5,
+      "rewards_count": 2,
+      "timestamp": "2026-01-12T22:17:46.865045",
+      "scenario": "scenario_stress"
+    },
+    {
+      "badge_duration_ms": 528.67,
+      "overdue_duration_ms": 0.16,
+      "persist_queue_us": 69.7,
+      "entity_count": 510,
+      "kids_count": 19,
+      "chores_count": 19,
+      "badges_count": 5,
+      "parents_count": 5,
+      "rewards_count": 2,
+      "timestamp": "2026-01-12T22:20:39.127779",
+      "scenario": "scenario_stress"
+    }
+  ],
+  "scenario_full": [
+    {
+      "badge_duration_ms": 13.14,
+      "overdue_duration_ms": 0.06,
+      "persist_queue_us": 14.8,
+      "entity_count": 236,
+      "kids_count": 3,
+      "chores_count": 18,
+      "badges_count": 2,
+      "parents_count": 2,
+      "rewards_count": 3,
+      "timestamp": "2026-01-12T21:58:28.931652",
+      "scenario": "scenario_full"
+    }
+  ]
+}

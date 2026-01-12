@@ -36,9 +36,16 @@ async def async_get_config_entry_diagnostics(
         const.COORDINATOR
     ]
 
-    # Return raw storage data - no transformation needed
-    # Coordinator's migration logic handles all schema differences on load
-    return coordinator.storage_manager.data
+    # Get base storage data
+    diagnostics_data = dict(coordinator.storage_manager.data)
+
+    # Add config_entry_settings section for complete backup/restore
+    diagnostics_data[const.DATA_CONFIG_ENTRY_SETTINGS] = {
+        key: entry.options.get(key, default)
+        for key, default in const.DEFAULT_SYSTEM_SETTINGS.items()
+    }
+
+    return diagnostics_data
 
 
 async def async_get_device_diagnostics(

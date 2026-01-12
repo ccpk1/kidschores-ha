@@ -22,7 +22,13 @@ from typing import Any
 
 import pytest
 
+# Import const for tests that verify constant existence in source module
 from custom_components.kidschores import const
+from tests.helpers import (
+    TRANS_KEY_NOTIF_ACTION_APPROVE,
+    TRANS_KEY_NOTIF_ACTION_DISAPPROVE,
+    TRANS_KEY_NOTIF_ACTION_REMIND_30,
+)
 
 # =============================================================================
 # HELPER FUNCTIONS
@@ -196,7 +202,7 @@ class TestNotificationActionConstants:
     def test_approve_constant_maps_to_file(self) -> None:
         """TRANS_KEY_NOTIF_ACTION_APPROVE must map to translation."""
         assert hasattr(const, "TRANS_KEY_NOTIF_ACTION_APPROVE")
-        assert const.TRANS_KEY_NOTIF_ACTION_APPROVE == "notif_action_approve"
+        assert TRANS_KEY_NOTIF_ACTION_APPROVE == "notif_action_approve"
 
         translations = load_notification_translations("en")
         actions = translations.get("actions", {})
@@ -206,7 +212,7 @@ class TestNotificationActionConstants:
     def test_disapprove_constant_maps_to_file(self) -> None:
         """TRANS_KEY_NOTIF_ACTION_DISAPPROVE must map to translation."""
         assert hasattr(const, "TRANS_KEY_NOTIF_ACTION_DISAPPROVE")
-        assert const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE == "notif_action_disapprove"
+        assert TRANS_KEY_NOTIF_ACTION_DISAPPROVE == "notif_action_disapprove"
 
         translations = load_notification_translations("en")
         actions = translations.get("actions", {})
@@ -216,7 +222,7 @@ class TestNotificationActionConstants:
     def test_remind_constant_maps_to_file(self) -> None:
         """TRANS_KEY_NOTIF_ACTION_REMIND_30 must map to translation."""
         assert hasattr(const, "TRANS_KEY_NOTIF_ACTION_REMIND_30")
-        assert const.TRANS_KEY_NOTIF_ACTION_REMIND_30 == "notif_action_remind_30"
+        assert TRANS_KEY_NOTIF_ACTION_REMIND_30 == "notif_action_remind_30"
 
         translations = load_notification_translations("en")
         actions = translations.get("actions", {})

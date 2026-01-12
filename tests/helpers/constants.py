@@ -102,9 +102,36 @@ from custom_components.kidschores.const import (
     BUTTON_KC_UID_SUFFIX_CLAIM,
     BUTTON_KC_UID_SUFFIX_DISAPPROVE,
     # =========================================================================
+    # CONFIG FLOW STEP IDS
+    # =========================================================================
+    CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT,
+    CONFIG_FLOW_STEP_ACHIEVEMENTS,
+    CONFIG_FLOW_STEP_BADGE_COUNT,
+    CONFIG_FLOW_STEP_BADGES,
+    CONFIG_FLOW_STEP_BONUS_COUNT,
+    CONFIG_FLOW_STEP_BONUSES,
+    CONFIG_FLOW_STEP_CHALLENGE_COUNT,
+    CONFIG_FLOW_STEP_CHALLENGES,
+    CONFIG_FLOW_STEP_CHORE_COUNT,
+    CONFIG_FLOW_STEP_CHORES,
+    CONFIG_FLOW_STEP_DATA_RECOVERY,
+    CONFIG_FLOW_STEP_FINISH,
+    CONFIG_FLOW_STEP_INTRO,
+    CONFIG_FLOW_STEP_KID_COUNT,
+    CONFIG_FLOW_STEP_KIDS,
+    CONFIG_FLOW_STEP_PARENT_COUNT,
+    CONFIG_FLOW_STEP_PARENTS,
+    CONFIG_FLOW_STEP_PENALTY_COUNT,
+    CONFIG_FLOW_STEP_PENALTIES,
+    CONFIG_FLOW_STEP_POINTS,
+    CONFIG_FLOW_STEP_RECONFIGURE,
+    CONFIG_FLOW_STEP_REWARD_COUNT,
+    CONFIG_FLOW_STEP_REWARDS,
+    # =========================================================================
     # CONFIG/OPTIONS FLOW FIELD NAMES - Kids
     # =========================================================================
     CFOF_KIDS_INPUT_KID_NAME,
+    CFOF_KIDS_INPUT_KID_COUNT,
     CFOF_KIDS_INPUT_HA_USER,
     CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE,
     CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS,
@@ -114,6 +141,7 @@ from custom_components.kidschores.const import (
     # CONFIG/OPTIONS FLOW FIELD NAMES - Parents
     # =========================================================================
     CFOF_PARENTS_INPUT_NAME,
+    CFOF_PARENTS_INPUT_PARENT_COUNT,
     CFOF_PARENTS_INPUT_HA_USER,
     CFOF_PARENTS_INPUT_ASSOCIATED_KIDS,
     CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS,
@@ -123,16 +151,29 @@ from custom_components.kidschores.const import (
     # CONFIG/OPTIONS FLOW FIELD NAMES - Chores
     # =========================================================================
     CFOF_CHORES_INPUT_NAME,
+    CFOF_CHORES_INPUT_CHORE_COUNT,
     CFOF_CHORES_INPUT_DEFAULT_POINTS,
     CFOF_CHORES_INPUT_ICON,
     CFOF_CHORES_INPUT_DESCRIPTION,
     CFOF_CHORES_INPUT_ASSIGNED_KIDS,
     CFOF_CHORES_INPUT_RECURRING_FREQUENCY,
     CFOF_CHORES_INPUT_COMPLETION_CRITERIA,
+    CFOF_CHORES_INPUT_APPLICABLE_DAYS,
+    CFOF_CHORES_INPUT_APPROVAL_RESET_PENDING_CLAIM_ACTION,
+    CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE,
+    CFOF_CHORES_INPUT_AUTO_APPROVE,
+    CFOF_CHORES_INPUT_CUSTOM_INTERVAL,
+    CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT,
+    CFOF_CHORES_INPUT_DUE_DATE,
+    CFOF_CHORES_INPUT_LABELS,
+    CFOF_CHORES_INPUT_NOTIFICATIONS,
+    CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE,
+    CFOF_CHORES_INPUT_SHOW_ON_CALENDAR,
     # =========================================================================
     # CONFIG/OPTIONS FLOW FIELD NAMES - Rewards
     # =========================================================================
     CFOF_REWARDS_INPUT_NAME,
+    CFOF_REWARDS_INPUT_REWARD_COUNT,
     CFOF_REWARDS_INPUT_COST,
     CFOF_REWARDS_INPUT_ICON,
     CFOF_REWARDS_INPUT_DESCRIPTION,
@@ -140,6 +181,7 @@ from custom_components.kidschores.const import (
     # CONFIG/OPTIONS FLOW FIELD NAMES - Penalties
     # =========================================================================
     CFOF_PENALTIES_INPUT_NAME,
+    CFOF_PENALTIES_INPUT_PENALTY_COUNT,
     CFOF_PENALTIES_INPUT_POINTS,
     CFOF_PENALTIES_INPUT_ICON,
     CFOF_PENALTIES_INPUT_DESCRIPTION,
@@ -147,20 +189,70 @@ from custom_components.kidschores.const import (
     # CONFIG/OPTIONS FLOW FIELD NAMES - Bonuses
     # =========================================================================
     CFOF_BONUSES_INPUT_NAME,
+    CFOF_BONUSES_INPUT_BONUS_COUNT,
     CFOF_BONUSES_INPUT_POINTS,
     CFOF_BONUSES_INPUT_ICON,
     CFOF_BONUSES_INPUT_DESCRIPTION,
     # =========================================================================
     # CONFIG/OPTIONS FLOW FIELD NAMES - Badges
     # =========================================================================
-    CFOF_BADGES_INPUT_NAME,
-    CFOF_BADGES_INPUT_ICON,
     CFOF_BADGES_INPUT_ASSIGNED_TO,
+    CFOF_BADGES_INPUT_AWARD_ITEMS,
     CFOF_BADGES_INPUT_AWARD_POINTS,
-    CFOF_BADGES_INPUT_START_DATE,
+    CFOF_BADGES_INPUT_BADGE_COUNT,
     CFOF_BADGES_INPUT_END_DATE,
-    CFOF_BADGES_INPUT_TARGET_TYPE,
+    CFOF_BADGES_INPUT_ICON,
+    CFOF_BADGES_INPUT_NAME,
+    CFOF_BADGES_INPUT_OCCASION_TYPE,
+    CFOF_BADGES_INPUT_SELECTED_CHORES,
+    CFOF_BADGES_INPUT_START_DATE,
     CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE,
+    CFOF_BADGES_INPUT_TARGET_TYPE,
+    CFOF_BADGES_INPUT_TYPE,
+    # =========================================================================
+    # CONFIG/OPTIONS FLOW FIELD NAMES - Achievements
+    # =========================================================================
+    CFOF_ACHIEVEMENTS_INPUT_NAME,
+    CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT,
+    CFOF_ACHIEVEMENTS_INPUT_ICON,
+    CFOF_ACHIEVEMENTS_INPUT_DESCRIPTION,
+    CFOF_ACHIEVEMENTS_INPUT_TYPE,
+    CFOF_ACHIEVEMENTS_INPUT_TARGET_VALUE,
+    CFOF_ACHIEVEMENTS_INPUT_REWARD_POINTS,
+    CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS,
+    # =========================================================================
+    # CONFIG/OPTIONS FLOW FIELD NAMES - Challenges
+    # =========================================================================
+    CFOF_CHALLENGES_INPUT_NAME,
+    CFOF_CHALLENGES_INPUT_CHALLENGE_COUNT,
+    CFOF_CHALLENGES_INPUT_ICON,
+    CFOF_CHALLENGES_INPUT_DESCRIPTION,
+    CFOF_CHALLENGES_INPUT_TYPE,
+    CFOF_CHALLENGES_INPUT_TARGET_VALUE,
+    CFOF_CHALLENGES_INPUT_REWARD_POINTS,
+    CFOF_CHALLENGES_INPUT_START_DATE,
+    CFOF_CHALLENGES_INPUT_END_DATE,
+    CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS,
+    # =========================================================================
+    # CONFIG/OPTIONS FLOW FIELD NAMES - System Settings
+    # =========================================================================
+    CFOF_SYSTEM_INPUT_POINTS_LABEL,
+    CFOF_SYSTEM_INPUT_POINTS_ICON,
+    CFOF_SYSTEM_INPUT_UPDATE_INTERVAL,
+    CFOF_SYSTEM_INPUT_CALENDAR_SHOW_PERIOD,
+    CFOF_SYSTEM_INPUT_RETENTION_DAILY,
+    CFOF_SYSTEM_INPUT_RETENTION_WEEKLY,
+    CFOF_SYSTEM_INPUT_RETENTION_MONTHLY,
+    CFOF_SYSTEM_INPUT_RETENTION_YEARLY,
+    CFOF_SYSTEM_INPUT_POINTS_ADJUST_VALUES,
+    CFOF_SYSTEM_INPUT_RETENTION_PERIODS,
+    CFOF_SYSTEM_INPUT_SHOW_LEGACY_ENTITIES,
+    CFOF_SYSTEM_INPUT_BACKUPS_MAX_RETAINED,
+    # =========================================================================
+    # CONFIG/OPTIONS FLOW FIELD NAMES - Data Recovery
+    # =========================================================================
+    CFOF_DATA_RECOVERY_INPUT_SELECTION,
+    CFOF_DATA_RECOVERY_INPUT_JSON_DATA,
     # =========================================================================
     # OPTIONS FLOW NAVIGATION CONSTANTS
     # =========================================================================
@@ -172,6 +264,9 @@ from custom_components.kidschores.const import (
     OPTIONS_FLOW_STEP_ADD_REWARD,
     OPTIONS_FLOW_STEP_ADD_PENALTY,
     OPTIONS_FLOW_STEP_ADD_BONUS,
+    OPTIONS_FLOW_STEP_ADD_BADGE,
+    OPTIONS_FLOW_STEP_ADD_ACHIEVEMENT,
+    OPTIONS_FLOW_STEP_ADD_CHALLENGE,
     OPTIONS_FLOW_INPUT_MENU_SELECTION,
     OPTIONS_FLOW_INPUT_MANAGE_ACTION,
     OPTIONS_FLOW_KIDS,
@@ -180,20 +275,44 @@ from custom_components.kidschores.const import (
     OPTIONS_FLOW_REWARDS,
     OPTIONS_FLOW_PENALTIES,
     OPTIONS_FLOW_BONUSES,
+    OPTIONS_FLOW_BADGES,
+    OPTIONS_FLOW_ACHIEVEMENTS,
+    OPTIONS_FLOW_CHALLENGES,
     OPTIONS_FLOW_ACTIONS_ADD,
     OPTIONS_FLOW_ACTIONS_BACK,
+    OPTIONS_FLOW_GENERAL_OPTIONS,
+    # =========================================================================
+    # CONFIG/OPTIONS FLOW FIELD NAMES - Backup
+    # =========================================================================
+    CFOF_BACKUP_ACTION_SELECTION,
+    CFOF_BACKUP_SELECTION,
     # =========================================================================
     # SYSTEM CONFIG CONSTANTS
     # =========================================================================
     CONF_POINTS_LABEL,
     CONF_POINTS_ICON,
     CONF_UPDATE_INTERVAL,
+    CONF_BACKUPS_MAX_RETAINED,
     SCHEMA_VERSION_STORAGE_ONLY,
+    # =========================================================================
+    # BACKUP CONSTANTS
+    # =========================================================================
+    BACKUP_TAG_MANUAL,
+    BACKUP_TAG_RECOVERY,
+    BACKUP_TAG_RESET,
+    # =========================================================================
+    # ACTION CONSTANTS
+    # =========================================================================
+    ACTION_APPROVE_CHORE,
     # =========================================================================
     # BADGE CONSTANTS
     # =========================================================================
-    BADGE_TYPE_CUMULATIVE,
     BADGE_TARGET_THRESHOLD_TYPE_CHORE_COUNT,
+    BADGE_TARGET_THRESHOLD_TYPE_POINTS,
+    BADGE_TYPE_CUMULATIVE,
+    BADGE_TYPE_DAILY,
+    BADGE_TYPE_PERIODIC,
+    BADGE_TYPE_SPECIAL_OCCASION,
     # =========================================================================
     # CHORE STATES
     # =========================================================================
@@ -244,14 +363,18 @@ from custom_components.kidschores.const import (
     DATA_CHORE_OVERDUE_HANDLING_TYPE,
     DATA_CHORE_PER_KID_DUE_DATES,
     DATA_CHORE_RECURRING_FREQUENCY,
+    DATA_CHORE_SHOW_ON_CALENDAR,
     DATA_CHORE_STATE,
     DATA_CHORE_TIMESTAMP,
     DATA_CHORES,
     # =========================================================================
     # DATA KEYS - KID FIELDS
     # =========================================================================
+    DATA_KID_BADGE_PROGRESS,
     DATA_KID_BADGES_EARNED,
     DATA_KID_CHORE_DATA,
+    DATA_KID_CUMULATIVE_BADGE_PROGRESS,
+    DATA_KID_DASHBOARD_LANGUAGE,
     # =========================================================================
     # DATA KEYS - KID CHORE DATA
     # =========================================================================
@@ -280,6 +403,7 @@ from custom_components.kidschores.const import (
     DATA_PARENT_ALLOW_CHORE_ASSIGNMENT,
     DATA_PARENT_ENABLE_CHORE_WORKFLOW,
     DATA_PARENT_ENABLE_GAMIFICATION,
+    DATA_PARENT_ENABLE_NOTIFICATIONS,
     DATA_PARENT_LINKED_SHADOW_KID_ID,
     DATA_PARENT_NAME,
     DATA_PARENTS,
@@ -300,6 +424,8 @@ from custom_components.kidschores.const import (
     DEFAULT_APPROVAL_RESET_PENDING_CLAIM_ACTION,
     DEFAULT_APPROVAL_RESET_TYPE,
     DEFAULT_OVERDUE_HANDLING_TYPE,
+    DEFAULT_POINTS_ICON,
+    DEFAULT_POINTS_LABEL,
     DEFAULT_REWARD_COST,
     DEFAULT_ZERO,
     DOMAIN,
@@ -322,6 +448,21 @@ from custom_components.kidschores.const import (
     REWARD_STATE_APPROVED,
     REWARD_STATE_CLAIMED,
     REWARD_STATE_NOT_CLAIMED,
+    # =========================================================================
+    # SENTINEL VALUES
+    # =========================================================================
+    SENTINEL_EMPTY,
+    SENTINEL_NONE,
+    SENTINEL_NONE_TEXT,
+    # =========================================================================
+    # TRANSLATION KEYS - NOTIFICATIONS
+    # =========================================================================
+    TRANS_KEY_NOTIF_ACTION_APPROVE,
+    TRANS_KEY_NOTIF_ACTION_DISAPPROVE,
+    TRANS_KEY_NOTIF_ACTION_REMIND_30,
+    # =========================================================================
+    # SENSOR ENTITY ID COMPONENTS
+    # =========================================================================
     SENSOR_KC_EID_MIDFIX_CHORE_STATUS_SENSOR,
     SENSOR_KC_EID_SUFFIX_UI_DASHBOARD_HELPER,
     SENSOR_KC_PREFIX,
@@ -331,6 +472,15 @@ from custom_components.kidschores.const import (
     # TRANSLATION KEYS (for error assertions)
     # =========================================================================
     TRANS_KEY_ERROR_CHORE_ALREADY_APPROVED,
+    # =========================================================================
+    # SERVICE NAMES
+    # =========================================================================
+    SERVICE_RESET_ALL_CHORES,
+    # =========================================================================
+    # LEGACY CONF KEYS (for migration tests)
+    # =========================================================================
+    CONF_ENABLE_MOBILE_NOTIFICATIONS_LEGACY,
+    CONF_MOBILE_NOTIFY_SERVICE_LEGACY,
 )
 
 

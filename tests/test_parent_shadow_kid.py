@@ -137,7 +137,7 @@ class TestShadowKidCreation:
         coordinator = shadow_kid_scenario.coordinator
 
         # Find Dad (who has allow_chore_assignment=True)
-        dad_id, dad_data = get_parent_by_name(coordinator, "Dad")
+        dad_id, dad_data = get_parent_by_name(coordinator, "Dad Leo")
 
         # Verify Dad has linked_shadow_kid_id
         shadow_kid_id = dad_data.get(DATA_PARENT_LINKED_SHADOW_KID_ID)
@@ -157,7 +157,7 @@ class TestShadowKidCreation:
         coordinator = shadow_kid_scenario.coordinator
 
         # Find Mom (who has allow_chore_assignment=False)
-        mom_id, mom_data = get_parent_by_name(coordinator, "Mom")
+        mom_id, mom_data = get_parent_by_name(coordinator, "Môm Astrid Stârblüm")
 
         # Verify Mom does NOT have linked_shadow_kid_id
         shadow_kid_id = mom_data.get(DATA_PARENT_LINKED_SHADOW_KID_ID)
@@ -183,7 +183,7 @@ class TestShadowKidAttributes:
         """Shadow kid has is_shadow_kid=True marker."""
         coordinator = shadow_kid_scenario.coordinator
 
-        dad_id, dad_data = get_parent_by_name(coordinator, "Dad")
+        dad_id, dad_data = get_parent_by_name(coordinator, "Dad Leo")
         shadow_kid_id = dad_data.get(DATA_PARENT_LINKED_SHADOW_KID_ID)
         assert shadow_kid_id is not None
         shadow_kid_data = coordinator.kids_data.get(shadow_kid_id)
@@ -198,7 +198,7 @@ class TestShadowKidAttributes:
         """Shadow kid has linked_parent_id pointing to parent."""
         coordinator = shadow_kid_scenario.coordinator
 
-        dad_id, dad_data = get_parent_by_name(coordinator, "Dad")
+        dad_id, dad_data = get_parent_by_name(coordinator, "Dad Leo")
         shadow_kid_id = dad_data.get(DATA_PARENT_LINKED_SHADOW_KID_ID)
         assert shadow_kid_id is not None, "Dad should have shadow kid"
         shadow_kid_data = coordinator.kids_data.get(shadow_kid_id)
@@ -213,13 +213,13 @@ class TestShadowKidAttributes:
         """Shadow kid name matches parent name."""
         coordinator = shadow_kid_scenario.coordinator
 
-        dad_id, dad_data = get_parent_by_name(coordinator, "Dad")
+        dad_id, dad_data = get_parent_by_name(coordinator, "Dad Leo")
         shadow_kid_id = dad_data.get(DATA_PARENT_LINKED_SHADOW_KID_ID)
         assert shadow_kid_id is not None, "Dad should have shadow kid"
         shadow_kid_data = coordinator.kids_data.get(shadow_kid_id)
 
         assert shadow_kid_data is not None
-        assert shadow_kid_data.get(DATA_KID_NAME) == "Dad"
+        assert shadow_kid_data.get(DATA_KID_NAME) == "Dad Leo"
 
     async def test_shadow_kid_has_initial_zero_points(
         self,
@@ -228,7 +228,7 @@ class TestShadowKidAttributes:
         """Shadow kid starts with zero points."""
         coordinator = shadow_kid_scenario.coordinator
 
-        dad_id, dad_data = get_parent_by_name(coordinator, "Dad")
+        dad_id, dad_data = get_parent_by_name(coordinator, "Dad Leo")
         shadow_kid_id = dad_data.get(DATA_PARENT_LINKED_SHADOW_KID_ID)
         assert shadow_kid_id is not None, "Dad should have shadow kid"
         shadow_kid_data = coordinator.kids_data.get(shadow_kid_id)
@@ -243,7 +243,7 @@ class TestShadowKidAttributes:
         """Parent configuration flags are stored correctly."""
         coordinator = shadow_kid_scenario.coordinator
 
-        dad_id, dad_data = get_parent_by_name(coordinator, "Dad")
+        dad_id, dad_data = get_parent_by_name(coordinator, "Dad Leo")
 
         # Verify Dad's configuration flags
         assert dad_data.get(DATA_PARENT_ALLOW_CHORE_ASSIGNMENT) is True
@@ -251,7 +251,7 @@ class TestShadowKidAttributes:
         assert dad_data.get(DATA_PARENT_ENABLE_GAMIFICATION) is True
 
         # Verify Mom's configuration (all disabled/default)
-        mom_id, mom_data = get_parent_by_name(coordinator, "Mom")
+        mom_id, mom_data = get_parent_by_name(coordinator, "Môm Astrid Stârblüm")
         assert mom_data.get(DATA_PARENT_ALLOW_CHORE_ASSIGNMENT) is False
 
 
@@ -271,7 +271,7 @@ class TestShadowKidChoreAssignment:
         coordinator = shadow_kid_scenario.coordinator
 
         # Find Dad's shadow kid
-        dad_id, dad_data = get_parent_by_name(coordinator, "Dad")
+        dad_id, dad_data = get_parent_by_name(coordinator, "Dad Leo")
         shadow_kid_id = dad_data.get(DATA_PARENT_LINKED_SHADOW_KID_ID)
 
         # Verify shadow kid is in kids_data
@@ -288,7 +288,7 @@ class TestShadowKidChoreAssignment:
         chore_id, chore_data = get_chore_by_name(coordinator, "Mow lawn")
 
         # Get Dad's shadow kid
-        dad_id, dad_data = get_parent_by_name(coordinator, "Dad")
+        dad_id, dad_data = get_parent_by_name(coordinator, "Dad Leo")
         shadow_kid_id = dad_data.get(DATA_PARENT_LINKED_SHADOW_KID_ID)
 
         # Verify assignment
@@ -307,7 +307,7 @@ class TestShadowKidChoreAssignment:
         chore_id, chore_data = get_chore_by_name(coordinator, "Make bed")
 
         # Get Sarah's kid id
-        sarah_id, sarah_data = get_kid_by_name(coordinator, "Sarah")
+        sarah_id, sarah_data = get_kid_by_name(coordinator, "Zoë")
 
         # Verify assignment
         assigned_kids = chore_data.get(DATA_CHORE_ASSIGNED_KIDS, [])
@@ -325,9 +325,9 @@ class TestShadowKidChoreAssignment:
         chore_id, chore_data = get_chore_by_name(coordinator, "Take out trash")
 
         # Get Dad's shadow kid and Sarah
-        dad_id, dad_data = get_parent_by_name(coordinator, "Dad")
+        dad_id, dad_data = get_parent_by_name(coordinator, "Dad Leo")
         shadow_kid_id = dad_data.get(DATA_PARENT_LINKED_SHADOW_KID_ID)
-        sarah_id, sarah_data = get_kid_by_name(coordinator, "Sarah")
+        sarah_id, sarah_data = get_kid_by_name(coordinator, "Zoë")
 
         # Verify assignment
         assigned_kids = chore_data.get(DATA_CHORE_ASSIGNED_KIDS, [])
@@ -343,7 +343,7 @@ class TestShadowKidChoreAssignment:
         coordinator = shadow_kid_scenario.coordinator
 
         # Get Dad's shadow kid
-        dad_id, dad_data = get_parent_by_name(coordinator, "Dad")
+        dad_id, dad_data = get_parent_by_name(coordinator, "Dad Leo")
         shadow_kid_id = dad_data.get(DATA_PARENT_LINKED_SHADOW_KID_ID)
         assert shadow_kid_id is not None, "Dad should have shadow kid"
         shadow_kid_data = coordinator.kids_data.get(shadow_kid_id)
@@ -369,7 +369,7 @@ class TestRegularKidDistinction:
         """Regular kid is NOT marked as shadow kid."""
         coordinator = shadow_kid_scenario.coordinator
 
-        sarah_id, sarah_data = get_kid_by_name(coordinator, "Sarah")
+        sarah_id, sarah_data = get_kid_by_name(coordinator, "Zoë")
 
         # Verify Sarah is NOT a shadow kid
         assert sarah_data.get(DATA_KID_IS_SHADOW) is not True
@@ -381,7 +381,7 @@ class TestRegularKidDistinction:
         """Regular kid does NOT have linked_parent_id."""
         coordinator = shadow_kid_scenario.coordinator
 
-        sarah_id, sarah_data = get_kid_by_name(coordinator, "Sarah")
+        sarah_id, sarah_data = get_kid_by_name(coordinator, "Zoë")
 
         # Verify Sarah has no linked parent
         assert sarah_data.get(DATA_KID_LINKED_PARENT_ID) is None
@@ -423,7 +423,7 @@ class TestDataIntegrity:
         """Verify parent -> shadow kid and shadow kid -> parent links match."""
         coordinator = shadow_kid_scenario.coordinator
 
-        dad_id, dad_data = get_parent_by_name(coordinator, "Dad")
+        dad_id, dad_data = get_parent_by_name(coordinator, "Dad Leo")
         shadow_kid_id = dad_data.get(DATA_PARENT_LINKED_SHADOW_KID_ID)
         assert shadow_kid_id is not None, "Dad should have shadow kid"
         shadow_kid_data = coordinator.kids_data.get(shadow_kid_id)
@@ -442,7 +442,7 @@ class TestDataIntegrity:
         coordinator = shadow_kid_scenario.coordinator
 
         # Get Dad's shadow kid
-        dad_id, dad_data = get_parent_by_name(coordinator, "Dad")
+        dad_id, dad_data = get_parent_by_name(coordinator, "Dad Leo")
         shadow_kid_id = dad_data.get(DATA_PARENT_LINKED_SHADOW_KID_ID)
         assert shadow_kid_id is not None, "Dad should have shadow kid"
 
@@ -472,7 +472,7 @@ class TestDataIntegrity:
 
         # Verify regular kid does NOT have these flags set
         sarah_dashboard_eid = construct_entity_id(
-            "sensor", "Sarah", SENSOR_KC_EID_SUFFIX_UI_DASHBOARD_HELPER
+            "sensor", "Zoë", SENSOR_KC_EID_SUFFIX_UI_DASHBOARD_HELPER
         )
         sarah_state = hass.states.get(sarah_dashboard_eid)
         assert sarah_state is not None, "Sarah's dashboard helper should exist"

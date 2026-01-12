@@ -61,7 +61,7 @@ async def shadow_kid_scenario(
     - Dad: allow_chore_assignment=True, enable_chore_workflow=False
            Shadow kid with ONLY Approve button
     - Mom: allow_chore_assignment=False (no shadow kid)
-    - Sarah: regular kid (all buttons)
+    - Zoë: regular kid (all buttons)
     - Chores: "Mow lawn" (Dad only), "Make bed" (Sarah only),
               "Take out trash" (Dad + Sarah)
     """
@@ -98,7 +98,7 @@ class TestShadowKidApprovalOnlyButtons:
     ) -> None:
         """Shadow kid with workflow=False has ONLY Approve button."""
         # Get Dad's dashboard helper (Rule 3: Dashboard Helper as Single Source of Truth)
-        helper_state = hass.states.get("sensor.kc_dad_ui_dashboard_helper")
+        helper_state = hass.states.get("sensor.kc_dad_leo_ui_dashboard_helper")
         assert helper_state is not None, "Dad's dashboard helper should exist"
 
         helper_attrs = helper_state.attributes
@@ -154,7 +154,7 @@ class TestShadowKidApprovalOnlyButtons:
     ) -> None:
         """Approve button transitions chore from PENDING to APPROVED."""
         # Get Dad's dashboard helper (Rule 3: Dashboard Helper as Single Source of Truth)
-        helper_state = hass.states.get("sensor.kc_dad_ui_dashboard_helper")
+        helper_state = hass.states.get("sensor.kc_dad_leo_ui_dashboard_helper")
         assert helper_state is not None, "Dashboard helper should exist"
 
         # Get chores from dashboard helper
@@ -210,7 +210,7 @@ async def shadow_kid_workflow_scenario(
     - Dad: allow_chore_assignment=True, enable_chore_workflow=True
            Creates shadow kid with full workflow (claim/disapprove enabled)
     - Mom: allow_chore_assignment=False (no shadow kid)
-    - Sarah: regular kid
+    - Zoë: regular kid
     - Chores: "Mow lawn" (Dad only), "Make bed" (Sarah only),
               "Take out trash" (Dad + Sarah)
     """
@@ -228,7 +228,7 @@ async def test_shadow_kid_with_workflow_enabled_has_all_buttons(
 ) -> None:
     """Shadow kid with workflow=True has Claim, Approve, Disapprove buttons."""
     # Get Dad's dashboard helper (Dad is the shadow kid with workflow enabled)
-    helper_state = hass.states.get("sensor.kc_dad_ui_dashboard_helper")
+    helper_state = hass.states.get("sensor.kc_dad_leo_ui_dashboard_helper")
     assert helper_state is not None, "Dad's dashboard helper should exist"
 
     helper_attrs = helper_state.attributes
@@ -305,7 +305,7 @@ class TestButtonCountValidation:
     ) -> None:
         """Shadow kid with workflow=False has fewer buttons than regular kid."""
         # Get Dad's dashboard helper (Rule 3: Dashboard Helper as Single Source of Truth)
-        dad_helper_state = hass.states.get("sensor.kc_dad_ui_dashboard_helper")
+        dad_helper_state = hass.states.get("sensor.kc_dad_leo_ui_dashboard_helper")
         assert dad_helper_state is not None, "Dad's dashboard helper should exist"
         assert dad_helper_state.attributes.get("is_shadow_kid") is True, (
             "Dad should be a shadow kid"
@@ -315,7 +315,7 @@ class TestButtonCountValidation:
         )
 
         # Get Sarah's dashboard helper (Rule 3: Dashboard Helper as Single Source of Truth)
-        sarah_helper_state = hass.states.get("sensor.kc_sarah_ui_dashboard_helper")
+        sarah_helper_state = hass.states.get("sensor.kc_zoe_ui_dashboard_helper")
         assert sarah_helper_state is not None, "Sarah's dashboard helper should exist"
         assert sarah_helper_state.attributes.get("is_shadow_kid") is False, (
             "Sarah should be a regular kid"
@@ -338,12 +338,12 @@ class TestButtonCountValidation:
             )
         ]
 
-        # Count CHORE button entities for Sarah (regular kid)
-        sarah_buttons = [
+        # Count CHORE button entities for Zoë (regular kid)
+        zoe_buttons = [
             entry
             for entry in entity_registry.entities.values()
             if entry.domain == BUTTON_DOMAIN
-            and "sarah" in entry.entity_id.lower()
+            and "zoe" in entry.entity_id.lower()
             and any(
                 button_type in entry.entity_id
                 for button_type in [
@@ -356,10 +356,10 @@ class TestButtonCountValidation:
 
         # Dad should have fewer buttons than Sarah
         # Dad: 1 Approve button per chore (2 chores = 2 buttons)
-        # Sarah: 3 buttons per chore (2 chores = 6 buttons)
-        assert len(dad_buttons) < len(sarah_buttons), (
+        # Zoë: 3 buttons per chore (2 chores = 6 buttons)
+        assert len(dad_buttons) < len(zoe_buttons), (
             f"Shadow kid (workflow=False) should have fewer buttons. "
-            f"Dad: {len(dad_buttons)}, Sarah: {len(sarah_buttons)}"
+            f"Dad: {len(dad_buttons)}, Zoë: {len(zoe_buttons)}"
         )
 
         # Specific counts based on scenario:
@@ -369,6 +369,6 @@ class TestButtonCountValidation:
         )
 
         # Sarah has "Make bed" (3 buttons) + "Take out trash" (3 buttons) = 6 buttons
-        assert len(sarah_buttons) == 6, (
-            f"Expected 6 buttons for Sarah, got {len(sarah_buttons)}"
+        assert len(zoe_buttons) == 6, (
+            f"Expected 6 buttons for Sarah, got {len(zoe_buttons)}"
         )

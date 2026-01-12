@@ -40,7 +40,7 @@ kids:
 
 # Parents (1 parent)
 parents:
-  - name: "Test Parent"
+  - name: "Môm Astrid Stârblüm"
     ha_user: "parent1"
     kids: ["Zoë"]
     enable_mobile_notifications: false
@@ -240,6 +240,7 @@ chores:
     due_date: "+7d17:00"
 
   # Test: Monthly chore - Different reschedule interval
+  # Uses upon_completion so due date reschedules on approval (like biweekly)
   - name: "Monthly Task"
     assigned_to: ["Zoë"]
     points: 25.0
@@ -247,10 +248,10 @@ chores:
     completion_criteria: "independent"
     recurring_frequency: "monthly"
     auto_approve: false
-    approval_reset_type: "at_due_date_once"
+    approval_reset_type: "upon_completion"
     overdue_handling_type: "at_due_date"
     approval_reset_pending_claim_action: "clear_pending"
-    # Due date: End of month
+    # Due date: 14 days out for initial setup
     due_date: "+14d17:00"
 
   # Test: Weekly chore with past due date - Overdue + weekly reschedule
@@ -268,11 +269,80 @@ chores:
     # Due date: Future for config flow (tests set past via coordinator)
     due_date: "+1d17:00"
 
+  # ---------------------------------------------------------------------------
+  # SECTION 5: MULTI-WEEK SCHEDULING (1 chore)
+  # Tests for biweekly frequency edge cases
+  # ---------------------------------------------------------------------------
+
+  # Test: Biweekly chore - 14-day reschedule interval
+  - name: "Biweekly Task"
+    assigned_to: ["Zoë"]
+    points: 20.0
+    icon: "mdi:calendar-multiselect"
+    completion_criteria: "independent"
+    recurring_frequency: "biweekly"
+    auto_approve: false
+    approval_reset_type: "upon_completion"
+    overdue_handling_type: "at_due_date"
+    approval_reset_pending_claim_action: "clear_pending"
+    # Due date: 2 weeks out
+    due_date: "+14d17:00"
+
+  # ---------------------------------------------------------------------------
+  # SECTION 6: APPLICABLE DAYS (3 chores)
+  # Tests for weekday filtering on due date calculations
+  # ---------------------------------------------------------------------------
+
+  # Test: Weekday-only chore (Mon-Fri)
+  - name: "Weekday Only Task"
+    assigned_to: ["Zoë"]
+    points: 10.0
+    icon: "mdi:briefcase"
+    completion_criteria: "independent"
+    recurring_frequency: "daily"
+    auto_approve: false
+    approval_reset_type: "upon_completion"
+    overdue_handling_type: "at_due_date"
+    approval_reset_pending_claim_action: "clear_pending"
+    due_date: "+1d17:00"
+    applicable_days: ["mon", "tue", "wed", "thu", "fri"]
+
+  # Test: Weekend-only chore (Sat-Sun)
+  - name: "Weekend Only Task"
+    assigned_to: ["Zoë"]
+    points: 15.0
+    icon: "mdi:home"
+    completion_criteria: "independent"
+    recurring_frequency: "daily"
+    auto_approve: false
+    approval_reset_type: "upon_completion"
+    overdue_handling_type: "at_due_date"
+    approval_reset_pending_claim_action: "clear_pending"
+    due_date: "+1d17:00"
+    applicable_days: ["sat", "sun"]
+
+  # Test: Specific days only (Mon, Wed, Fri)
+  - name: "MWF Task"
+    assigned_to: ["Zoë"]
+    points: 10.0
+    icon: "mdi:calendar-star"
+    completion_criteria: "independent"
+    recurring_frequency: "daily"
+    auto_approve: false
+    approval_reset_type: "upon_completion"
+    overdue_handling_type: "at_due_date"
+    approval_reset_pending_claim_action: "clear_pending"
+    due_date: "+1d17:00"
+    applicable_days: ["mon", "wed", "fri"]
+
 # Minimal badges for config flow completion (scheduling tests don't use badges)
 badges:
   - name: "Placeholder"
+    type: "cumulative"
     icon: "mdi:star"
-    points: 100
+    assigned_to: ["Zoë"]
+    target_threshold_value: 10
+    award_points: 0
     description: "Placeholder badge for config flow"
 
 # No bonuses, penalties, rewards needed for scheduling tests

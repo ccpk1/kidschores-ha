@@ -82,10 +82,12 @@ validation logic becomes complex enough to warrant it.
 import datetime
 import json
 import os
+from pathlib import Path
 import shutil
 from typing import Any, cast
 import uuid
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv, selector
 from homeassistant.util import dt as dt_util
@@ -3333,8 +3335,65 @@ def _get_notify_services(hass: HomeAssistant) -> list[dict[str, str]]:
 # ----------------------------------------------------------------------------------
 
 
+def _augment_backup_with_settings(
+    backup_data: dict[str, Any],
+    config_entry_options: dict[str, Any],
+) -> dict[str, Any]:
+    """Add config_entry_settings to backup data.
+
+    Args:
+        backup_data: Existing storage data with "version" and "data" keys
+        config_entry_options: The config_entry.options dict
+
+    Returns:
+        Augmented backup data with config_entry_settings section
+    """
+    # Extract only the 9 system settings
+    settings = {
+        key: config_entry_options.get(key, default)
+        for key, default in const.DEFAULT_SYSTEM_SETTINGS.items()
+    }
+
+    # Add to backup data (non-destructive)
+    augmented = dict(backup_data)
+    augmented[const.DATA_CONFIG_ENTRY_SETTINGS] = settings
+    return augmented
+
+
+def _validate_config_entry_settings(settings: dict[str, Any]) -> dict[str, Any]:
+    """Validate config_entry_settings from backup.
+
+    Returns only valid key-value pairs. Invalid entries logged and skipped.
+    Missing keys NOT added (caller merges with defaults).
+
+    Args:
+        settings: Settings dict from backup file
+
+    Returns:
+        Dictionary with only valid settings
+    """
+    valid = {}
+    for key, default_val in const.DEFAULT_SYSTEM_SETTINGS.items():
+        if key in settings:
+            value = settings[key]
+            # Type-check against default value's type
+            if type(value) is type(default_val):
+                valid[key] = value
+            else:
+                const.LOGGER.warning(
+                    "Invalid type for %s: expected %s, got %s",
+                    key,
+                    type(default_val).__name__,
+                    type(value).__name__,
+                )
+    return valid
+
+
 async def create_timestamped_backup(
-    hass: HomeAssistant, storage_manager, tag: str
+    hass: HomeAssistant,
+    storage_manager,
+    tag: str,
+    config_entry: ConfigEntry | None = None,
 ) -> str | None:
     """Create a timestamped backup file with specified tag.
 
@@ -3342,6 +3401,7 @@ async def create_timestamped_backup(
         hass: Home Assistant instance
         storage_manager: Storage manager instance
         tag: Backup tag (e.g., 'recovery', 'removal', 'reset', 'pre-migration', 'manual')
+        config_entry: Optional config entry to capture settings from
 
     Returns:
         Filename of created backup (e.g., 'kidschores_data_2025-12-18_14-30-22_removal')
@@ -3372,6 +3432,35 @@ async def create_timestamped_backup(
         # Copy file to backup location (non-blocking)
         backup_path = hass.config.path(".storage", filename)
         await hass.async_add_executor_job(shutil.copy2, storage_path, backup_path)
+
+        # Augment backup with config_entry settings if provided
+        if config_entry:
+            try:
+                # Read backup file
+                backup_str = await hass.async_add_executor_job(
+                    lambda: Path(backup_path).read_text(encoding="utf-8")
+                )
+                backup_data = json.loads(backup_str)
+
+                # Augment with settings (convert MappingProxyType to dict)
+                augmented = _augment_backup_with_settings(
+                    backup_data, dict(config_entry.options)
+                )
+
+                # Write augmented version back
+                await hass.async_add_executor_job(
+                    lambda: Path(backup_path).write_text(
+                        json.dumps(augmented, indent=2), encoding="utf-8"
+                    )
+                )
+                const.LOGGER.debug(
+                    "Augmented backup %s with config_entry settings", filename
+                )
+            except (OSError, ValueError, KeyError) as ex:
+                const.LOGGER.warning(
+                    "Failed to augment backup with settings: %s (backup still valid)",
+                    ex,
+                )
 
         const.LOGGER.debug("Created backup: %s", filename)
         return filename

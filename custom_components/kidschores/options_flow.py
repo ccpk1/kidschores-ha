@@ -3119,6 +3119,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     self.hass,
                     storage_manager,
                     const.BACKUP_TAG_MANUAL,
+                    self.config_entry,
                 )
 
                 if backup_filename:
@@ -3250,11 +3251,14 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     return await self.async_step_backup_actions_menu()
 
                 try:
+                    import json
+
                     # Create safety backup of current file
                     safety_backup = await fh.create_timestamped_backup(
                         self.hass,
                         storage_manager,
                         const.BACKUP_TAG_RECOVERY,
+                        self.config_entry,
                     )
                     const.LOGGER.info("Created safety backup: %s", safety_backup)
 
@@ -3263,6 +3267,39 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         shutil.copy2, backup_path, storage_path
                     )
                     const.LOGGER.info("Restored backup: %s", backup_filename)
+
+                    # Extract and apply config_entry_settings if present
+                    backup_data_str = await self.hass.async_add_executor_job(
+                        backup_path.read_text, "utf-8"
+                    )
+                    backup_data = json.loads(backup_data_str)
+
+                    if const.DATA_CONFIG_ENTRY_SETTINGS in backup_data:
+                        settings = backup_data[const.DATA_CONFIG_ENTRY_SETTINGS]
+                        validated = fh._validate_config_entry_settings(settings)
+
+                        if validated:
+                            # Merge with defaults for any missing keys
+                            new_options = {
+                                key: validated.get(key, default)
+                                for key, default in const.DEFAULT_SYSTEM_SETTINGS.items()
+                            }
+                            # Update config entry with restored settings
+                            self.hass.config_entries.async_update_entry(
+                                self.config_entry, options=new_options
+                            )
+                            const.LOGGER.info(
+                                "Restored %d system settings from backup",
+                                len(validated),
+                            )
+                        else:
+                            const.LOGGER.info(
+                                "No valid system settings in backup, keeping current settings"
+                            )
+                    else:
+                        const.LOGGER.info(
+                            "Backup does not contain system settings, keeping current settings"
+                        )
 
                     # Cleanup old backups
                     retention = self._entry_options.get(

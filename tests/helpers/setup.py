@@ -25,7 +25,9 @@ YAML-based setup:
 
 from dataclasses import dataclass, field
 from datetime import UTC
+import logging
 from pathlib import Path
+import re
 from typing import Any
 
 from homeassistant import config_entries
@@ -36,6 +38,12 @@ import yaml
 
 from custom_components.kidschores import const
 from custom_components.kidschores.coordinator import KidsChoresDataCoordinator
+from tests.flow_test_helpers import FlowTestHelper
+
+_LOGGER = logging.getLogger(__name__)
+
+# Valid ha_user patterns: kid1-kid999, parent1-parent999
+_VALID_HA_USER_PATTERN = re.compile(r"^(kid|parent)\d+$")
 
 # =============================================================================
 # DATACLASSES
@@ -60,6 +68,12 @@ class SetupResult:
     kid_ids: dict[str, str] = field(default_factory=dict)
     parent_ids: dict[str, str] = field(default_factory=dict)
     chore_ids: dict[str, str] = field(default_factory=dict)
+    reward_ids: dict[str, str] = field(default_factory=dict)
+    penalty_ids: dict[str, str] = field(default_factory=dict)
+    bonus_ids: dict[str, str] = field(default_factory=dict)
+    badge_ids: dict[str, str] = field(default_factory=dict)
+    achievement_ids: dict[str, str] = field(default_factory=dict)
+    challenge_ids: dict[str, str] = field(default_factory=dict)
     final_result: ConfigFlowResult | None = None
 
 
@@ -445,6 +459,304 @@ async def _configure_chore_step(
     )
 
 
+async def _configure_reward_step(
+    hass: HomeAssistant,
+    result: ConfigFlowResult,
+    reward_config: dict[str, Any],
+    kid_name_to_id: dict[str, str],
+) -> ConfigFlowResult:
+    """Configure reward step using FlowTestHelper converter.
+
+    Args:
+        hass: Home Assistant instance
+        result: Current flow result on REWARDS step
+        reward_config: Dict with reward fields (name, cost, icon, etc)
+        kid_name_to_id: Mapping from kid names to internal_ids
+
+    Returns:
+        Updated flow result
+    """
+    # Translate kid names to IDs in assigned_to field
+    reward_config = reward_config.copy()
+    if "assigned_to" in reward_config:
+        names = reward_config["assigned_to"]
+        reward_config["assigned_to"] = [
+            kid_name_to_id[name] for name in names if name in kid_name_to_id
+        ]
+
+    form_data = FlowTestHelper.build_reward_form_data(reward_config)
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input=form_data
+    )
+
+
+async def _configure_penalty_step(
+    hass: HomeAssistant,
+    result: ConfigFlowResult,
+    penalty_config: dict[str, Any],
+    kid_name_to_id: dict[str, str],
+) -> ConfigFlowResult:
+    """Configure penalty step using FlowTestHelper converter.
+
+    Args:
+        hass: Home Assistant instance
+        result: Current flow result on PENALTIES step
+        penalty_config: Dict with penalty fields (name, points, icon, etc)
+        kid_name_to_id: Mapping from kid names to internal_ids
+
+    Returns:
+        Updated flow result
+    """
+    # Translate kid names to IDs in assigned_to field
+    penalty_config = penalty_config.copy()
+    if "assigned_to" in penalty_config:
+        names = penalty_config["assigned_to"]
+        penalty_config["assigned_to"] = [
+            kid_name_to_id[name] for name in names if name in kid_name_to_id
+        ]
+
+    form_data = FlowTestHelper.build_penalty_form_data(penalty_config)
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input=form_data
+    )
+
+
+async def _configure_bonus_step(
+    hass: HomeAssistant,
+    result: ConfigFlowResult,
+    bonus_config: dict[str, Any],
+    kid_name_to_id: dict[str, str],
+) -> ConfigFlowResult:
+    """Configure bonus step using FlowTestHelper converter.
+
+    Args:
+        hass: Home Assistant instance
+        result: Current flow result on BONUSES step
+        bonus_config: Dict with bonus fields (name, points, icon, etc)
+        kid_name_to_id: Mapping from kid names to internal_ids
+
+    Returns:
+        Updated flow result
+    """
+    # Translate kid names to IDs in assigned_to field
+    bonus_config = bonus_config.copy()
+    if "assigned_to" in bonus_config:
+        names = bonus_config["assigned_to"]
+        bonus_config["assigned_to"] = [
+            kid_name_to_id[name] for name in names if name in kid_name_to_id
+        ]
+
+    form_data = FlowTestHelper.build_bonus_form_data(bonus_config)
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input=form_data
+    )
+
+
+async def _configure_badge_step(
+    hass: HomeAssistant,
+    result: ConfigFlowResult,
+    badge_config: dict[str, Any],
+    kid_name_to_id: dict[str, str],
+) -> ConfigFlowResult:
+    """Configure badge step using FlowTestHelper converter.
+
+    Args:
+        hass: Home Assistant instance
+        result: Current flow result on BADGES step
+        badge_config: Dict with badge fields (name, type, assigned_to, etc)
+        kid_name_to_id: Mapping of kid names to UUIDs for translation
+
+    Returns:
+        Updated flow result
+    """
+    # Translate kid names to IDs in assigned_to field
+    badge_config = badge_config.copy()
+    if "assigned_to" in badge_config:
+        names = badge_config["assigned_to"]
+        badge_config["assigned_to"] = [
+            kid_name_to_id[name] for name in names if name in kid_name_to_id
+        ]
+
+    form_data = FlowTestHelper.build_badge_form_data(badge_config)
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input=form_data
+    )
+
+
+async def _add_badge_via_options_flow(
+    hass: HomeAssistant,
+    entry_id: str,
+    badge_config: dict[str, Any],
+    kid_name_to_id: dict[str, str],
+) -> None:
+    """Add a badge via options flow (supports all badge types).
+
+    Badge flow has 4 steps:
+    1. Navigate to badges menu
+    2. Select "Add" action
+    3. Select badge type
+    4. Submit badge details
+
+    Args:
+        hass: Home Assistant instance
+        entry_id: Config entry ID
+        badge_config: Dict with badge fields (name, type, assigned_to, etc)
+        kid_name_to_id: Mapping of kid names to UUIDs for translation
+    """
+    from homeassistant.data_entry_flow import FlowResultType
+
+    # Translate kid names to IDs in assigned_to field
+    badge_config = badge_config.copy()
+    if "assigned_to" in badge_config:
+        names = badge_config["assigned_to"]
+        badge_config["assigned_to"] = [
+            kid_name_to_id[name] for name in names if name in kid_name_to_id
+        ]
+
+    badge_type = badge_config.get("type", const.BADGE_TYPE_CUMULATIVE)
+    badge_name = badge_config.get("name", "Unknown")
+
+    # Step 1: Start options flow and navigate to badges menu
+    result = await hass.config_entries.options.async_init(entry_id)
+    assert result.get("type") == FlowResultType.FORM, (
+        f"Badge '{badge_name}' Step 1 failed: expected FORM, got {result.get('type')}"
+    )
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={const.OPTIONS_FLOW_INPUT_MENU_SELECTION: const.OPTIONS_FLOW_BADGES},
+    )
+    assert result.get("type") == FlowResultType.FORM, (
+        f"Badge '{badge_name}' Step 1b failed: expected FORM, got {result}"
+    )
+
+    # Step 2: Select "Add" action
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            const.OPTIONS_FLOW_INPUT_MANAGE_ACTION: const.OPTIONS_FLOW_ACTIONS_ADD
+        },
+    )
+    assert result.get("type") == FlowResultType.FORM, (
+        f"Badge '{badge_name}' Step 2 failed: expected FORM, got {result}"
+    )
+
+    # Step 3: Select badge type
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={const.CFOF_BADGES_INPUT_TYPE: badge_type},
+    )
+    assert result.get("type") == FlowResultType.FORM, (
+        f"Badge '{badge_name}' Step 3 failed: expected FORM, got {result}"
+    )
+
+    # Step 4: Submit badge details using FlowTestHelper
+    form_data = FlowTestHelper.build_badge_form_data(badge_config)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input=form_data,
+    )
+    # After successful add, should return to init menu
+    assert result.get("type") == FlowResultType.FORM, (
+        f"Badge '{badge_name}' Step 4 failed: expected FORM, got {result}"
+    )
+    assert result.get("step_id") == const.OPTIONS_FLOW_STEP_INIT, (
+        f"Badge '{badge_name}' Step 4 failed: expected init, got {result.get('step_id')}"
+    )
+
+
+async def _configure_achievement_step(
+    hass: HomeAssistant,
+    result: ConfigFlowResult,
+    achievement_config: dict[str, Any],
+    kid_name_to_id: dict[str, str],
+) -> ConfigFlowResult:
+    """Configure achievement step using FlowTestHelper converter.
+
+    Args:
+        hass: Home Assistant instance
+        result: Current flow result on ACHIEVEMENTS step
+        achievement_config: Dict with achievement fields (name, type, assigned_kids, etc)
+        kid_name_to_id: Mapping from kid names to internal_ids
+
+    Returns:
+        Updated flow result
+    """
+    # Translate kid names to IDs in assigned_to field
+    achievement_config = achievement_config.copy()
+    if "assigned_to" in achievement_config:
+        names = achievement_config["assigned_to"]
+        achievement_config["assigned_to"] = [
+            kid_name_to_id[name] for name in names if name in kid_name_to_id
+        ]
+
+    form_data = FlowTestHelper.build_achievement_form_data(achievement_config)
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input=form_data
+    )
+
+
+async def _configure_challenge_step(
+    hass: HomeAssistant,
+    result: ConfigFlowResult,
+    challenge_config: dict[str, Any],
+    kid_name_to_id: dict[str, str],
+) -> ConfigFlowResult:
+    """Configure challenge step using FlowTestHelper converter.
+
+    Args:
+        hass: Home Assistant instance
+        result: Current flow result on CHALLENGES step
+        challenge_config: Dict with challenge fields (name, type, assigned_kids, etc)
+        kid_name_to_id: Mapping from kid names to internal_ids
+
+    Returns:
+        Updated flow result
+    """
+    # Translate kid names to IDs in assigned_to field
+    challenge_config = challenge_config.copy()
+    if "assigned_to" in challenge_config:
+        names = challenge_config["assigned_to"]
+        challenge_config["assigned_to"] = [
+            kid_name_to_id[name] for name in names if name in kid_name_to_id
+        ]
+
+    # Adjust dates if they're in the past (same pattern as chore due dates)
+    from datetime import datetime, timedelta
+
+    now = datetime.now(UTC)
+    for date_field in ["start_date", "end_date"]:
+        if date_field in challenge_config:
+            date_str = challenge_config[date_field]
+            if isinstance(date_str, str):
+                try:
+                    date_dt = datetime.fromisoformat(date_str)
+                    if date_dt < now:
+                        # Past date - adjust to 1 week from now, keeping same time
+                        adjusted_dt = now + timedelta(weeks=1)
+                        adjusted_dt = adjusted_dt.replace(
+                            hour=date_dt.hour,
+                            minute=date_dt.minute,
+                            second=0,
+                            microsecond=0,
+                        )
+                        challenge_config[date_field] = adjusted_dt.isoformat()
+                        const.LOGGER.warning(
+                            "Challenge '%s' %s was in the past (%s), adjusted to %s",
+                            challenge_config.get("name", "Unknown"),
+                            date_field,
+                            date_str,
+                            challenge_config[date_field],
+                        )
+                except (ValueError, TypeError):
+                    pass  # Invalid date format - let validator catch it
+
+    form_data = FlowTestHelper.build_challenge_form_data(challenge_config)
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input=form_data
+    )
+
+
 async def _skip_remaining_counts(
     hass: HomeAssistant,
     result: ConfigFlowResult,
@@ -559,11 +871,23 @@ async def setup_scenario(
     kids_config = scenario.get("kids", [])
     parents_config = scenario.get("parents", [])
     chores_config = scenario.get("chores", [])
+    badges_config = scenario.get("badges", [])
+    rewards_config = scenario.get("rewards", [])
+    penalties_config = scenario.get("penalties", [])
+    bonuses_config = scenario.get("bonuses", [])
+    achievements_config = scenario.get("achievements", [])
+    challenges_config = scenario.get("challenges", [])
     points_config = scenario.get("points", {})
 
     kid_name_to_id: dict[str, str] = {}
     parent_name_to_id: dict[str, str] = {}
     chore_name_to_id: dict[str, str] = {}
+    badge_name_to_id: dict[str, str] = {}
+    reward_name_to_id: dict[str, str] = {}
+    penalty_name_to_id: dict[str, str] = {}
+    bonus_name_to_id: dict[str, str] = {}
+    achievement_name_to_id: dict[str, str] = {}
+    challenge_name_to_id: dict[str, str] = {}
 
     # -----------------------------------------------------------------
     # Start config flow
@@ -681,12 +1005,144 @@ async def setup_scenario(
         assert result.get("step_id") == const.CONFIG_FLOW_STEP_BADGE_COUNT
 
     # -----------------------------------------------------------------
-    # Skip remaining steps (badges, rewards, penalties, bonuses, etc.)
+    # Configure badges - SKIP in config flow (only cumulative badges work)
+    # Badges will be added via options flow after setup completes
     # -----------------------------------------------------------------
-    result = await _skip_remaining_counts(
-        hass, result, const.CONFIG_FLOW_STEP_BADGE_COUNT
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={const.CFOF_BADGES_INPUT_BADGE_COUNT: 0},
     )
-    assert result.get("step_id") == const.CONFIG_FLOW_STEP_FINISH
+    assert result.get("step_id") == const.CONFIG_FLOW_STEP_REWARD_COUNT
+
+    # -----------------------------------------------------------------
+    # Configure rewards
+    # -----------------------------------------------------------------
+    reward_count = len(rewards_config)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={const.CFOF_REWARDS_INPUT_REWARD_COUNT: reward_count},
+    )
+
+    if reward_count > 0:
+        assert result.get("step_id") == const.CONFIG_FLOW_STEP_REWARDS
+
+        for i, reward_config in enumerate(rewards_config):
+            result = await _configure_reward_step(
+                hass, result, reward_config, kid_name_to_id
+            )
+
+            if i < reward_count - 1:
+                # More rewards to configure
+                assert result.get("step_id") == const.CONFIG_FLOW_STEP_REWARDS
+            else:
+                # Last reward - should advance to penalty count
+                assert result.get("step_id") == const.CONFIG_FLOW_STEP_PENALTY_COUNT
+    else:
+        assert result.get("step_id") == const.CONFIG_FLOW_STEP_PENALTY_COUNT
+
+    # -----------------------------------------------------------------
+    # Configure penalties
+    # -----------------------------------------------------------------
+    penalty_count = len(penalties_config)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={const.CFOF_PENALTIES_INPUT_PENALTY_COUNT: penalty_count},
+    )
+
+    if penalty_count > 0:
+        assert result.get("step_id") == const.CONFIG_FLOW_STEP_PENALTIES
+
+        for i, penalty_config in enumerate(penalties_config):
+            result = await _configure_penalty_step(
+                hass, result, penalty_config, kid_name_to_id
+            )
+
+            if i < penalty_count - 1:
+                # More penalties to configure
+                assert result.get("step_id") == const.CONFIG_FLOW_STEP_PENALTIES
+            else:
+                # Last penalty - should advance to bonus count
+                assert result.get("step_id") == const.CONFIG_FLOW_STEP_BONUS_COUNT
+    else:
+        assert result.get("step_id") == const.CONFIG_FLOW_STEP_BONUS_COUNT
+
+    # -----------------------------------------------------------------
+    # Configure bonuses
+    # -----------------------------------------------------------------
+    bonus_count = len(bonuses_config)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={const.CFOF_BONUSES_INPUT_BONUS_COUNT: bonus_count},
+    )
+
+    if bonus_count > 0:
+        assert result.get("step_id") == const.CONFIG_FLOW_STEP_BONUSES
+
+        for i, bonus_config in enumerate(bonuses_config):
+            result = await _configure_bonus_step(
+                hass, result, bonus_config, kid_name_to_id
+            )
+
+            if i < bonus_count - 1:
+                # More bonuses to configure
+                assert result.get("step_id") == const.CONFIG_FLOW_STEP_BONUSES
+            else:
+                # Last bonus - should advance to achievement count
+                assert result.get("step_id") == const.CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT
+    else:
+        assert result.get("step_id") == const.CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT
+
+    # -----------------------------------------------------------------
+    # Configure achievements
+    # -----------------------------------------------------------------
+    achievement_count = len(achievements_config)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={const.CFOF_ACHIEVEMENTS_INPUT_ACHIEVEMENT_COUNT: achievement_count},
+    )
+
+    if achievement_count > 0:
+        assert result.get("step_id") == const.CONFIG_FLOW_STEP_ACHIEVEMENTS
+
+        for i, achievement_config in enumerate(achievements_config):
+            result = await _configure_achievement_step(
+                hass, result, achievement_config, kid_name_to_id
+            )
+
+            if i < achievement_count - 1:
+                # More achievements to configure
+                assert result.get("step_id") == const.CONFIG_FLOW_STEP_ACHIEVEMENTS
+            else:
+                # Last achievement - should advance to challenge count
+                assert result.get("step_id") == const.CONFIG_FLOW_STEP_CHALLENGE_COUNT
+    else:
+        assert result.get("step_id") == const.CONFIG_FLOW_STEP_CHALLENGE_COUNT
+
+    # -----------------------------------------------------------------
+    # Configure challenges
+    # -----------------------------------------------------------------
+    challenge_count = len(challenges_config)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={const.CFOF_CHALLENGES_INPUT_CHALLENGE_COUNT: challenge_count},
+    )
+
+    if challenge_count > 0:
+        assert result.get("step_id") == const.CONFIG_FLOW_STEP_CHALLENGES
+
+        for i, challenge_config in enumerate(challenges_config):
+            result = await _configure_challenge_step(
+                hass, result, challenge_config, kid_name_to_id
+            )
+
+            if i < challenge_count - 1:
+                # More challenges to configure
+                assert result.get("step_id") == const.CONFIG_FLOW_STEP_CHALLENGES
+            else:
+                # Last challenge - should advance to finish
+                assert result.get("step_id") == const.CONFIG_FLOW_STEP_FINISH
+    else:
+        assert result.get("step_id") == const.CONFIG_FLOW_STEP_FINISH
 
     # -----------------------------------------------------------------
     # Finish config flow
@@ -709,6 +1165,20 @@ async def setup_scenario(
     coordinator = hass.data[const.DOMAIN][config_entry.entry_id][const.COORDINATOR]
 
     # -------------------------------------------------------------------------
+    # Add badges via options flow (supports all badge types)
+    # Config flow only supports cumulative badges, so we add all via options
+    # -------------------------------------------------------------------------
+    if badges_config:
+        for badge_config in badges_config:
+            await _add_badge_via_options_flow(
+                hass, config_entry.entry_id, badge_config, kid_name_to_id
+            )
+        await hass.async_block_till_done()
+        # Refresh coordinator to pick up new badges
+        await coordinator.async_refresh()
+        await hass.async_block_till_done()
+
+    # -------------------------------------------------------------------------
     # Map names to IDs from coordinator data
     # -------------------------------------------------------------------------
     # Update kid IDs from coordinator (they should match but let's be sure)
@@ -729,12 +1199,54 @@ async def setup_scenario(
         if chore_name:
             chore_name_to_id[chore_name] = chore_id
 
+    # Map badge names to IDs
+    for badge_id, badge_data in coordinator.badges_data.items():
+        badge_name = badge_data.get(const.DATA_BADGE_NAME)
+        if badge_name:
+            badge_name_to_id[badge_name] = badge_id
+
+    # Map reward names to IDs
+    for reward_id, reward_data in coordinator.rewards_data.items():
+        reward_name = reward_data.get(const.DATA_REWARD_NAME)
+        if reward_name:
+            reward_name_to_id[reward_name] = reward_id
+
+    # Map penalty names to IDs
+    for penalty_id, penalty_data in coordinator.penalties_data.items():
+        penalty_name = penalty_data.get(const.DATA_PENALTY_NAME)
+        if penalty_name:
+            penalty_name_to_id[penalty_name] = penalty_id
+
+    # Map bonus names to IDs
+    for bonus_id, bonus_data in coordinator.bonuses_data.items():
+        bonus_name = bonus_data.get(const.DATA_BONUS_NAME)
+        if bonus_name:
+            bonus_name_to_id[bonus_name] = bonus_id
+
+    # Map achievement names to IDs
+    for achievement_id, achievement_data in coordinator.achievements_data.items():
+        achievement_name = achievement_data.get(const.DATA_ACHIEVEMENT_NAME)
+        if achievement_name:
+            achievement_name_to_id[achievement_name] = achievement_id
+
+    # Map challenge names to IDs
+    for challenge_id, challenge_data in coordinator.challenges_data.items():
+        challenge_name = challenge_data.get(const.DATA_CHALLENGE_NAME)
+        if challenge_name:
+            challenge_name_to_id[challenge_name] = challenge_id
+
     return SetupResult(
         config_entry=config_entry,
         coordinator=coordinator,
         kid_ids=kid_name_to_id,
         parent_ids=parent_name_to_id,
         chore_ids=chore_name_to_id,
+        badge_ids=badge_name_to_id,
+        reward_ids=reward_name_to_id,
+        penalty_ids=penalty_name_to_id,
+        bonus_ids=bonus_name_to_id,
+        achievement_ids=achievement_name_to_id,
+        challenge_ids=challenge_name_to_id,
         final_result=result,
     )
 
@@ -833,6 +1345,47 @@ async def setup_multi_kid_scenario(
 # =============================================================================
 
 
+def _validate_ha_user_fields(scenario: dict[str, Any]) -> None:
+    """Validate that ha_user fields use standardized keys.
+
+    ha_user must match pattern: kid1, kid2, ..., parent1, parent2, ...
+    These keys correspond to entries in the mock_hass_users fixture.
+
+    The 'name' field can contain any Unicode characters - only ha_user is restricted.
+
+    Raises:
+        ValueError: If invalid ha_user values are found, with detailed error message.
+    """
+    invalid_entries: list[str] = []
+
+    # Check kids
+    for kid in scenario.get("kids", []):
+        ha_user = kid.get("ha_user", "")
+        if not _VALID_HA_USER_PATTERN.match(ha_user):
+            invalid_entries.append(
+                f"Kid '{kid.get('name', 'unknown')}' has invalid ha_user: '{ha_user}'"
+            )
+
+    # Check parents
+    for parent in scenario.get("parents", []):
+        ha_user = parent.get("ha_user", "")
+        if not _VALID_HA_USER_PATTERN.match(ha_user):
+            invalid_entries.append(
+                f"Parent '{parent.get('name', 'unknown')}' has invalid ha_user: '{ha_user}'"
+            )
+
+    if invalid_entries:
+        error_msg = (
+            "Scenario YAML has invalid ha_user values. "
+            "ha_user must use standardized keys like 'kid1', 'kid2', 'parent1', 'parent2' "
+            "(matching mock_hass_users fixture keys). "
+            "The 'name' field can contain any characters.\n\n"
+            "Invalid entries:\n" + "\n".join(f"  - {e}" for e in invalid_entries)
+        )
+        _LOGGER.error(error_msg)
+        raise ValueError(error_msg)
+
+
 def _transform_yaml_to_scenario(yaml_data: dict[str, Any]) -> dict[str, Any]:
     """Transform YAML data to setup_scenario() format.
 
@@ -892,6 +1445,39 @@ def _transform_yaml_to_scenario(yaml_data: dict[str, Any]) -> dict[str, Any]:
     chores = yaml_data.get("chores", [])
     if chores:
         scenario["chores"] = chores
+
+    # Badges: direct passthrough (keys already match)
+    badges = yaml_data.get("badges", [])
+    if badges:
+        scenario["badges"] = badges
+
+    # Rewards: direct passthrough (keys already match)
+    rewards = yaml_data.get("rewards", [])
+    if rewards:
+        scenario["rewards"] = rewards
+
+    # Penalties: direct passthrough (keys already match)
+    penalties = yaml_data.get("penalties", [])
+    if penalties:
+        scenario["penalties"] = penalties
+
+    # Bonuses: direct passthrough (keys already match)
+    bonuses = yaml_data.get("bonuses", [])
+    if bonuses:
+        scenario["bonuses"] = bonuses
+
+    # Achievements: direct passthrough (keys already match)
+    achievements = yaml_data.get("achievements", [])
+    if achievements:
+        scenario["achievements"] = achievements
+
+    # Challenges: direct passthrough (keys already match)
+    challenges = yaml_data.get("challenges", [])
+    if challenges:
+        scenario["challenges"] = challenges
+
+    # Validate ha_user fields use standardized keys
+    _validate_ha_user_fields(scenario)
 
     return scenario
 

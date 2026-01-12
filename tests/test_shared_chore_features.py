@@ -176,7 +176,7 @@ class TestSharedAllAutoApprove:
         """Test: Second kid can also claim and get auto-approved (shared_all)."""
         coordinator = shared_scenario.coordinator
         zoe_id = shared_scenario.kid_ids["Zoë"]
-        max_id = shared_scenario.kid_ids["Max"]
+        max_id = shared_scenario.kid_ids["Max!"]
         chore_map = shared_scenario.chore_ids
 
         chore_id = chore_map["Shared All Auto Approve"]
@@ -209,7 +209,7 @@ class TestSharedAllAutoApprove:
         """Test: All assigned kids can get points from shared_all auto-approve."""
         coordinator = shared_scenario.coordinator
         zoe_id = shared_scenario.kid_ids["Zoë"]
-        max_id = shared_scenario.kid_ids["Max"]
+        max_id = shared_scenario.kid_ids["Max!"]
         lila_id = shared_scenario.kid_ids["Lila"]
         chore_map = shared_scenario.chore_ids
 
@@ -299,7 +299,7 @@ class TestSharedFirstAutoApprove:
         """Test: Other kids get completed_by_other when first kid claims."""
         coordinator = shared_scenario.coordinator
         zoe_id = shared_scenario.kid_ids["Zoë"]
-        max_id = shared_scenario.kid_ids["Max"]
+        max_id = shared_scenario.kid_ids["Max!"]
         lila_id = shared_scenario.kid_ids["Lila"]
         chore_map = shared_scenario.chore_ids
 
@@ -329,7 +329,7 @@ class TestSharedFirstAutoApprove:
         """Test: Only the winning kid gets points in shared_first auto-approve."""
         coordinator = shared_scenario.coordinator
         zoe_id = shared_scenario.kid_ids["Zoë"]
-        max_id = shared_scenario.kid_ids["Max"]
+        max_id = shared_scenario.kid_ids["Max!"]
         chore_map = shared_scenario.chore_ids
 
         chore_id = chore_map["Shared First Auto Approve"]
@@ -364,7 +364,7 @@ class TestSharedAllPendingClaimHold:
         """Test: HOLD action retains all kids' claims after reset."""
         coordinator = shared_scenario.coordinator
         zoe_id = shared_scenario.kid_ids["Zoë"]
-        max_id = shared_scenario.kid_ids["Max"]
+        max_id = shared_scenario.kid_ids["Max!"]
         chore_map = shared_scenario.chore_ids
 
         chore_id = chore_map["Shared All Pending Hold"]
@@ -404,7 +404,7 @@ class TestSharedAllPendingClaimClear:
         """Test: CLEAR action resets all kids' claims to PENDING."""
         coordinator = shared_scenario.coordinator
         zoe_id = shared_scenario.kid_ids["Zoë"]
-        max_id = shared_scenario.kid_ids["Max"]
+        max_id = shared_scenario.kid_ids["Max!"]
         chore_map = shared_scenario.chore_ids
 
         chore_id = chore_map["Shared All Pending Clear"]
@@ -439,7 +439,7 @@ class TestSharedAllPendingClaimClear:
         """Test: CLEAR action does NOT award points."""
         coordinator = shared_scenario.coordinator
         zoe_id = shared_scenario.kid_ids["Zoë"]
-        max_id = shared_scenario.kid_ids["Max"]
+        max_id = shared_scenario.kid_ids["Max!"]
         chore_map = shared_scenario.chore_ids
 
         chore_id = chore_map["Shared All Pending Clear"]
@@ -473,7 +473,7 @@ class TestSharedAllPendingClaimAutoApprove:
         """Test: AUTO_APPROVE action awards points to all kids with pending claims."""
         coordinator = shared_scenario.coordinator
         zoe_id = shared_scenario.kid_ids["Zoë"]
-        max_id = shared_scenario.kid_ids["Max"]
+        max_id = shared_scenario.kid_ids["Max!"]
         chore_map = shared_scenario.chore_ids
 
         chore_id = chore_map["Shared All Pending Auto Approve"]
@@ -511,7 +511,7 @@ class TestSharedAllPendingClaimAutoApprove:
         """Test: AUTO_APPROVE action approves then resets to PENDING."""
         coordinator = shared_scenario.coordinator
         zoe_id = shared_scenario.kid_ids["Zoë"]
-        max_id = shared_scenario.kid_ids["Max"]
+        max_id = shared_scenario.kid_ids["Max!"]
         chore_map = shared_scenario.chore_ids
 
         chore_id = chore_map["Shared All Pending Auto Approve"]
@@ -546,7 +546,7 @@ class TestSharedFirstPendingClaimHold:
         """Test: HOLD action retains the claimer's claim after reset."""
         coordinator = shared_scenario.coordinator
         zoe_id = shared_scenario.kid_ids["Zoë"]
-        max_id = shared_scenario.kid_ids["Max"]
+        max_id = shared_scenario.kid_ids["Max!"]
         chore_map = shared_scenario.chore_ids
 
         chore_id = chore_map["Shared First Pending Hold"]
@@ -587,7 +587,7 @@ class TestSharedFirstPendingClaimClear:
         """Test: CLEAR action resets everyone to PENDING (new race)."""
         coordinator = shared_scenario.coordinator
         zoe_id = shared_scenario.kid_ids["Zoë"]
-        max_id = shared_scenario.kid_ids["Max"]
+        max_id = shared_scenario.kid_ids["Max!"]
         chore_map = shared_scenario.chore_ids
 
         chore_id = chore_map["Shared First Pending Clear"]
@@ -623,7 +623,7 @@ class TestSharedFirstPendingClaimAutoApprove:
         """Test: AUTO_APPROVE action awards points only to the claimer."""
         coordinator = shared_scenario.coordinator
         zoe_id = shared_scenario.kid_ids["Zoë"]
-        max_id = shared_scenario.kid_ids["Max"]
+        max_id = shared_scenario.kid_ids["Max!"]
         chore_map = shared_scenario.chore_ids
 
         chore_id = chore_map["Shared First Pending Auto Approve"]
@@ -660,7 +660,7 @@ class TestSharedFirstPendingClaimAutoApprove:
         """Test: AUTO_APPROVE action approves claimer then resets all to PENDING."""
         coordinator = shared_scenario.coordinator
         zoe_id = shared_scenario.kid_ids["Zoë"]
-        max_id = shared_scenario.kid_ids["Max"]
+        max_id = shared_scenario.kid_ids["Max!"]
         chore_map = shared_scenario.chore_ids
 
         chore_id = chore_map["Shared First Pending Auto Approve"]
@@ -673,5 +673,242 @@ class TestSharedFirstPendingClaimAutoApprove:
         await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
 
         # Both should be PENDING after reset (new race begins)
+        assert get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_PENDING
+        assert get_kid_chore_state(coordinator, max_id, chore_id) == CHORE_STATE_PENDING
+
+
+# =============================================================================
+# SHARED_FIRST EDGE CASE TESTS
+# =============================================================================
+
+
+class TestSharedFirstEdgeCases:
+    """Tests for shared_first edge cases from legacy test coverage.
+
+    These tests cover scenarios that aren't fully addressed by the auto-approve
+    and pending claim action tests above:
+    - Reclaim after disapproval (new race begins)
+    - Global chore state transitions
+    - Sensor consistency across kids
+    """
+
+    @pytest.mark.asyncio
+    async def test_shared_first_reclaim_after_disapproval(
+        self,
+        hass: HomeAssistant,
+        shared_scenario: SetupResult,
+    ) -> None:
+        """Test: After disapproval, ANY kid can claim (new race begins).
+
+        Legacy: test_shared_first_reclaim_after_disapproval
+        When a shared_first chore is disapproved, all kids reset to pending.
+        This means the chore becomes a new race - a different kid can win.
+        """
+        coordinator = shared_scenario.coordinator
+        zoe_id = shared_scenario.kid_ids["Zoë"]
+        max_id = shared_scenario.kid_ids["Max!"]
+        chore_map = shared_scenario.chore_ids
+
+        # Use a non-auto-approve shared_first chore
+        chore_id = chore_map["Shared First Pending Clear"]
+
+        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+            # Zoë claims first (Max becomes completed_by_other)
+            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+
+            assert (
+                get_kid_chore_state(coordinator, zoe_id, chore_id)
+                == CHORE_STATE_CLAIMED
+            )
+            assert (
+                get_kid_chore_state(coordinator, max_id, chore_id)
+                == CHORE_STATE_COMPLETED_BY_OTHER
+            )
+
+            # Parent disapproves Zoë - this resets all kids
+            coordinator.disapprove_chore("Mom", zoe_id, chore_id)
+
+            # Both should be reset to PENDING
+            assert (
+                get_kid_chore_state(coordinator, zoe_id, chore_id)
+                == CHORE_STATE_PENDING
+            )
+            assert (
+                get_kid_chore_state(coordinator, max_id, chore_id)
+                == CHORE_STATE_PENDING
+            )
+
+            # NOW: Max can claim (new race!)
+            coordinator.claim_chore(max_id, chore_id, "Max")
+
+            # Max should be CLAIMED, Zoë should be COMPLETED_BY_OTHER
+            assert (
+                get_kid_chore_state(coordinator, max_id, chore_id)
+                == CHORE_STATE_CLAIMED
+            )
+            assert (
+                get_kid_chore_state(coordinator, zoe_id, chore_id)
+                == CHORE_STATE_COMPLETED_BY_OTHER
+            )
+
+    @pytest.mark.asyncio
+    async def test_shared_first_global_state_pending_to_claimed(
+        self,
+        hass: HomeAssistant,
+        shared_scenario: SetupResult,
+    ) -> None:
+        """Test: Global chore state transitions from pending to claimed.
+
+        Legacy: test_shared_first_global_state_pending_to_claimed
+        The chore's global state (DATA_CHORE_STATE) tracks overall status.
+        """
+        from tests.helpers.constants import DATA_CHORE_STATE
+
+        coordinator = shared_scenario.coordinator
+        zoe_id = shared_scenario.kid_ids["Zoë"]
+        chore_map = shared_scenario.chore_ids
+
+        chore_id = chore_map["Shared First Pending Clear"]
+        chore_info = coordinator.chores_data.get(chore_id, {})
+
+        # Initial global state (may be None/pending)
+        initial_state = chore_info.get(DATA_CHORE_STATE)
+
+        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+            # First kid claims
+            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+
+        # Global state should now be CLAIMED
+        claimed_state = coordinator.chores_data[chore_id].get(DATA_CHORE_STATE)
+        assert claimed_state == CHORE_STATE_CLAIMED, (
+            f"Global state should be 'claimed' after first kid claims, "
+            f"was: {initial_state}, now: {claimed_state}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_shared_first_global_state_claimed_to_approved(
+        self,
+        hass: HomeAssistant,
+        shared_scenario: SetupResult,
+    ) -> None:
+        """Test: Global chore state transitions from claimed to approved.
+
+        Legacy: test_shared_first_global_state_claimed_to_approved
+        """
+        from tests.helpers.constants import DATA_CHORE_STATE
+
+        coordinator = shared_scenario.coordinator
+        zoe_id = shared_scenario.kid_ids["Zoë"]
+        chore_map = shared_scenario.chore_ids
+
+        chore_id = chore_map["Shared First Pending Clear"]
+
+        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+            # First kid claims
+            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+
+            # Verify claimed state
+            claimed_state = coordinator.chores_data[chore_id].get(DATA_CHORE_STATE)
+            assert claimed_state == CHORE_STATE_CLAIMED
+
+            # Parent approves
+            coordinator.approve_chore("Mom", zoe_id, chore_id)
+
+        # Global state should now be APPROVED
+        approved_state = coordinator.chores_data[chore_id].get(DATA_CHORE_STATE)
+        assert approved_state == CHORE_STATE_APPROVED, (
+            f"Global state should be 'approved', got: {approved_state}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_shared_first_with_three_kids_blocked_claims(
+        self,
+        hass: HomeAssistant,
+        shared_scenario: SetupResult,
+    ) -> None:
+        """Test: Three-kid shared_first - second and third kids blocked.
+
+        Legacy: test_shared_first_with_three_kids
+        When one kid claims, all other kids immediately get completed_by_other.
+        """
+        coordinator = shared_scenario.coordinator
+        zoe_id = shared_scenario.kid_ids["Zoë"]
+        max_id = shared_scenario.kid_ids["Max!"]
+        lila_id = shared_scenario.kid_ids["Lila"]
+        chore_map = shared_scenario.chore_ids
+
+        # Use auto-approve chore (3 kids assigned)
+        chore_id = chore_map["Shared First Auto Approve"]
+
+        # Get initial points
+        zoe_before = get_kid_points(coordinator, zoe_id)
+        max_before = get_kid_points(coordinator, max_id)
+        lila_before = get_kid_points(coordinator, lila_id)
+
+        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+            # Zoë claims first (auto-approved)
+            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+
+        # Zoë should be APPROVED (auto-approve chore)
+        assert (
+            get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_APPROVED
+        )
+        assert get_kid_points(coordinator, zoe_id) == zoe_before + 15.0
+
+        # Max and Lila should be COMPLETED_BY_OTHER with NO points
+        assert (
+            get_kid_chore_state(coordinator, max_id, chore_id)
+            == CHORE_STATE_COMPLETED_BY_OTHER
+        )
+        assert (
+            get_kid_chore_state(coordinator, lila_id, chore_id)
+            == CHORE_STATE_COMPLETED_BY_OTHER
+        )
+        assert get_kid_points(coordinator, max_id) == max_before  # No points
+        assert get_kid_points(coordinator, lila_id) == lila_before  # No points
+
+    @pytest.mark.asyncio
+    async def test_shared_first_disapproval_clears_completed_by_other(
+        self,
+        hass: HomeAssistant,
+        shared_scenario: SetupResult,
+    ) -> None:
+        """Test: Disapproval clears completed_by_other state for all kids.
+
+        Legacy: test_shared_first_disapproval_resets_all_kids
+        When the claimer is disapproved, ALL kids (including those in
+        completed_by_other state) should reset to pending.
+        """
+        from tests.helpers.constants import DATA_KID_COMPLETED_BY_OTHER_CHORES
+
+        coordinator = shared_scenario.coordinator
+        zoe_id = shared_scenario.kid_ids["Zoë"]
+        max_id = shared_scenario.kid_ids["Max!"]
+        chore_map = shared_scenario.chore_ids
+
+        chore_id = chore_map["Shared First Pending Clear"]
+
+        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+            # Zoë claims (Max becomes completed_by_other)
+            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+
+            # Verify Max is in completed_by_other
+            max_completed_by_other = coordinator.kids_data[max_id].get(
+                DATA_KID_COMPLETED_BY_OTHER_CHORES, []
+            )
+            assert chore_id in max_completed_by_other
+
+            # Disapprove Zoë
+            coordinator.disapprove_chore("Mom", zoe_id, chore_id)
+
+        # Max should no longer have chore in completed_by_other
+        max_completed_by_other = coordinator.kids_data[max_id].get(
+            DATA_KID_COMPLETED_BY_OTHER_CHORES, []
+        )
+        assert chore_id not in max_completed_by_other, (
+            "Chore should be removed from completed_by_other after disapproval"
+        )
+
+        # Both should be PENDING
         assert get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_PENDING
         assert get_kid_chore_state(coordinator, max_id, chore_id) == CHORE_STATE_PENDING

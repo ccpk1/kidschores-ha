@@ -189,7 +189,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[startup_backup_key] = True
 
         backup_name = await fh.create_timestamped_backup(
-            hass, storage_manager, const.BACKUP_TAG_RECOVERY
+            hass, storage_manager, const.BACKUP_TAG_RECOVERY, entry
         )
         if backup_name:
             const.LOGGER.info(

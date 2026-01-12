@@ -6,6 +6,7 @@ Replaces legacy test_options_flow*.py tests with focused, reusable patterns.
 
 # pyright: reportTypedDictNotRequiredAccess=false
 
+import datetime
 from typing import Any
 from unittest.mock import patch
 
@@ -15,6 +16,13 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from tests.helpers import (
+    BADGE_TYPE_CUMULATIVE,
+    CFOF_BADGES_INPUT_ASSIGNED_TO,
+    CFOF_BADGES_INPUT_AWARD_POINTS,
+    CFOF_BADGES_INPUT_ICON,
+    CFOF_BADGES_INPUT_NAME,
+    CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE,
+    CFOF_BADGES_INPUT_TYPE,
     CFOF_CHORES_INPUT_NAME,
     CFOF_KIDS_INPUT_KID_NAME,
     CONF_POINTS_ICON,
@@ -22,15 +30,22 @@ from tests.helpers import (
     CONF_UPDATE_INTERVAL,
     COORDINATOR,
     DOMAIN,
+    OPTIONS_FLOW_ACHIEVEMENTS,
+    OPTIONS_FLOW_ACTIONS_ADD,
     OPTIONS_FLOW_ACTIONS_BACK,
+    OPTIONS_FLOW_BADGES,
     OPTIONS_FLOW_BONUSES,
+    OPTIONS_FLOW_CHALLENGES,
     OPTIONS_FLOW_CHORES,
     OPTIONS_FLOW_INPUT_MANAGE_ACTION,
+    OPTIONS_FLOW_INPUT_MENU_SELECTION,
     OPTIONS_FLOW_KIDS,
     OPTIONS_FLOW_PARENTS,
     OPTIONS_FLOW_PENALTIES,
     OPTIONS_FLOW_REWARDS,
+    OPTIONS_FLOW_STEP_ADD_ACHIEVEMENT,
     OPTIONS_FLOW_STEP_ADD_BONUS,
+    OPTIONS_FLOW_STEP_ADD_CHALLENGE,
     OPTIONS_FLOW_STEP_ADD_CHORE,
     OPTIONS_FLOW_STEP_ADD_KID,
     OPTIONS_FLOW_STEP_ADD_PARENT,
@@ -387,6 +402,152 @@ async def test_add_bonus_via_options_flow(
     coordinator = init_integration_with_coordinator.coordinator
     bonus_names = [b["name"] for b in coordinator.bonuses_data.values()]
     assert "Extra Effort" in bonus_names
+
+
+async def test_add_badge_via_options_flow(
+    hass: HomeAssistant,
+    init_integration_with_coordinator: SetupResult,
+) -> None:
+    """Test adding a badge via options flow."""
+    config_entry = init_integration_with_coordinator.config_entry
+    coordinator = init_integration_with_coordinator.coordinator
+
+    # Get existing kid ID for assignment
+    kid_id = next(iter(coordinator.kids_data.keys()))
+
+    # Badge flow requires 2 steps: type selection, then details
+    # Step 1: Navigate to badges menu
+    result = await hass.config_entries.options.async_init(config_entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={OPTIONS_FLOW_INPUT_MENU_SELECTION: OPTIONS_FLOW_BADGES},
+    )
+
+    # Step 2: Select "Add" action
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={OPTIONS_FLOW_INPUT_MANAGE_ACTION: OPTIONS_FLOW_ACTIONS_ADD},
+    )
+
+    # Step 3: Select badge type (cumulative)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={CFOF_BADGES_INPUT_TYPE: BADGE_TYPE_CUMULATIVE},
+    )
+
+    # Step 4: Provide badge details
+    # Cumulative badge schema does NOT include target_type field
+    # Only includes: name, icon, assigned_to, award_points, target_threshold_value
+    badge_data = {
+        CFOF_BADGES_INPUT_NAME: "Chore Champion",
+        CFOF_BADGES_INPUT_ICON: "mdi:medal",
+        CFOF_BADGES_INPUT_ASSIGNED_TO: [kid_id],
+        CFOF_BADGES_INPUT_AWARD_POINTS: 25,
+        CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE: 100,
+    }
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input=badge_data,
+    )
+
+    # Options flow returns to init step after successful add
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == OPTIONS_FLOW_STEP_INIT
+
+    # Verify badge was created via coordinator
+    badge_names = [b["name"] for b in coordinator.badges_data.values()]
+    assert "Chore Champion" in badge_names
+
+
+async def test_add_achievement_via_options_flow(
+    hass: HomeAssistant,
+    init_integration_with_coordinator: SetupResult,
+) -> None:
+    """Test adding an achievement via options flow."""
+    config_entry = init_integration_with_coordinator.config_entry
+    coordinator = init_integration_with_coordinator.coordinator
+
+    # Get existing kid ID for assignment
+    kid_id = next(iter(coordinator.kids_data.keys()))
+
+    yaml_achievement = {
+        "name": "First Ten Chores",
+        "icon": "mdi:trophy",
+        "description": "Complete 10 chores",
+        "type": "chore_total",  # Valid types: chore_total, chore_streak, daily_minimum
+        "target_value": 10,
+        "reward_points": 50,
+        "assigned_to": [kid_id],
+    }
+
+    form_data = FlowTestHelper.build_achievement_form_data(yaml_achievement)
+
+    result = await FlowTestHelper.add_entity_via_options_flow(
+        hass,
+        config_entry.entry_id,
+        OPTIONS_FLOW_ACHIEVEMENTS,
+        OPTIONS_FLOW_STEP_ADD_ACHIEVEMENT,
+        form_data,
+    )
+
+    # Options flow returns to init step after successful add
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == OPTIONS_FLOW_STEP_INIT
+
+    # Verify achievement was created via coordinator
+    achievement_names = [a["name"] for a in coordinator.achievements_data.values()]
+    assert "First Ten Chores" in achievement_names
+
+
+async def test_add_challenge_via_options_flow(
+    hass: HomeAssistant,
+    init_integration_with_coordinator: SetupResult,
+) -> None:
+    """Test adding a challenge via options flow."""
+    from homeassistant.util import dt as dt_util
+
+    config_entry = init_integration_with_coordinator.config_entry
+    coordinator = init_integration_with_coordinator.coordinator
+
+    # Get existing kid ID for assignment (options flow schema uses IDs as values)
+    kid_id = next(iter(coordinator.kids_data.keys()))
+
+    # Calculate future dates (options flow validates dates must be in future)
+    now = dt_util.utcnow()
+    start_date = (now + datetime.timedelta(days=1)).isoformat()
+    end_date = (now + datetime.timedelta(days=3)).isoformat()
+
+    yaml_challenge = {
+        "name": "Weekend Warrior",
+        "icon": "mdi:flag",
+        "description": "Complete 5 chores this weekend",
+        "type": "total_within_window",  # Valid types: total_within_window, daily_minimum
+        "target_value": 5,
+        "reward_points": 100,
+        "start_date": start_date,
+        "end_date": end_date,
+        "assigned_to": [
+            kid_id
+        ],  # Options flow schema expects kid IDs as selector values
+    }
+
+    form_data = FlowTestHelper.build_challenge_form_data(yaml_challenge)
+
+    result = await FlowTestHelper.add_entity_via_options_flow(
+        hass,
+        config_entry.entry_id,
+        OPTIONS_FLOW_CHALLENGES,
+        OPTIONS_FLOW_STEP_ADD_CHALLENGE,
+        form_data,
+    )
+
+    # Options flow returns to init step after successful add
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == OPTIONS_FLOW_STEP_INIT
+
+    # Verify challenge was created via coordinator
+    challenge_names = [c["name"] for c in coordinator.challenges_data.values()]
+    assert "Weekend Warrior" in challenge_names
 
 
 # =========================================================================

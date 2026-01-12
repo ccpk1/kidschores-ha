@@ -25,14 +25,14 @@ system:
   points_icon: "mdi:star-outline"
 
 kids:
-  - name: "TestKid1"
+  - name: "Zoë"
     ha_user: "kid1"
     dashboard_language: "en"
     enable_mobile_notifications: false
     mobile_notify_service: ""
     enable_persistent_notifications: false
 
-  - name: "TestKid2"
+  - name: "Max!"
     ha_user: "kid2"
     dashboard_language: "en"
     enable_mobile_notifications: false
@@ -40,9 +40,9 @@ kids:
     enable_persistent_notifications: false
 
 parents:
-  - name: "TestParent"
+  - name: "Môm Astrid Stârblüm"
     ha_user: "parent1"
-    kids: ["TestKid1", "TestKid2"]
+    kids: ["Zoë", "Max!"]
     enable_mobile_notifications: false
     mobile_notify_service: ""
     enable_persistent_notifications: false
@@ -51,7 +51,7 @@ chores:
   # Test: INDEPENDENT chore with frequency="none", no due_date
   # Each kid has their own instance - approval reset affects only that kid
   - name: "No Due Date Independent"
-    assigned_to: ["TestKid1", "TestKid2"]
+    assigned_to: ["Zoë", "Max!"]
     points: 10.0
     icon: "mdi:checkbox-marked"
     completion_criteria: "independent"
@@ -63,7 +63,7 @@ chores:
   # Test: SHARED_FIRST chore with frequency="none", no due_date
   # First to claim wins, others blocked - reset clears winner
   - name: "No Due Date Shared First"
-    assigned_to: ["TestKid1", "TestKid2"]
+    assigned_to: ["Zoë", "Max!"]
     points: 15.0
     icon: "mdi:account-star"
     completion_criteria: "shared_first"
@@ -75,7 +75,7 @@ chores:
   # Test: SHARED_ALL chore with frequency="none", no due_date
   # All kids must complete - reset affects all kids
   - name: "No Due Date Shared All"
-    assigned_to: ["TestKid1", "TestKid2"]
+    assigned_to: ["Zoë", "Max!"]
     points: 20.0
     icon: "mdi:account-group"
     completion_criteria: "shared_all"

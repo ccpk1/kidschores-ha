@@ -22,22 +22,44 @@ from homeassistant.core import HomeAssistant
 
 from tests.helpers import (
     # Badge constants
-    BADGE_TARGET_THRESHOLD_TYPE_CHORE_COUNT,
     BADGE_TYPE_CUMULATIVE,
+    BADGE_TYPE_DAILY,
+    BADGE_TYPE_PERIODIC,
+    BADGE_TYPE_SPECIAL_OCCASION,
+    # Config/Options flow field names - Achievements
+    CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS,
+    CFOF_ACHIEVEMENTS_INPUT_DESCRIPTION,
+    CFOF_ACHIEVEMENTS_INPUT_ICON,
+    CFOF_ACHIEVEMENTS_INPUT_NAME,
+    CFOF_ACHIEVEMENTS_INPUT_REWARD_POINTS,
+    CFOF_ACHIEVEMENTS_INPUT_TARGET_VALUE,
+    CFOF_ACHIEVEMENTS_INPUT_TYPE,
     # Config/Options flow field names - Badges
     CFOF_BADGES_INPUT_ASSIGNED_TO,
+    CFOF_BADGES_INPUT_AWARD_ITEMS,
     CFOF_BADGES_INPUT_AWARD_POINTS,
     CFOF_BADGES_INPUT_END_DATE,
     CFOF_BADGES_INPUT_ICON,
     CFOF_BADGES_INPUT_NAME,
+    CFOF_BADGES_INPUT_OCCASION_TYPE,
+    CFOF_BADGES_INPUT_SELECTED_CHORES,
     CFOF_BADGES_INPUT_START_DATE,
     CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE,
     CFOF_BADGES_INPUT_TARGET_TYPE,
-    # Config/Options flow field names - Bonuses
     CFOF_BONUSES_INPUT_DESCRIPTION,
     CFOF_BONUSES_INPUT_ICON,
     CFOF_BONUSES_INPUT_NAME,
     CFOF_BONUSES_INPUT_POINTS,
+    # Config/Options flow field names - Challenges
+    CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS,
+    CFOF_CHALLENGES_INPUT_DESCRIPTION,
+    CFOF_CHALLENGES_INPUT_END_DATE,
+    CFOF_CHALLENGES_INPUT_ICON,
+    CFOF_CHALLENGES_INPUT_NAME,
+    CFOF_CHALLENGES_INPUT_REWARD_POINTS,
+    CFOF_CHALLENGES_INPUT_START_DATE,
+    CFOF_CHALLENGES_INPUT_TARGET_VALUE,
+    CFOF_CHALLENGES_INPUT_TYPE,
     # Config/Options flow field names - Chores
     CFOF_CHORES_INPUT_ASSIGNED_KIDS,
     CFOF_CHORES_INPUT_COMPLETION_CRITERIA,
@@ -237,26 +259,106 @@ class FlowTestHelper:
         Returns:
             Dictionary suitable for flow.async_configure() user_input
         """
-        badge_type = yaml_badge.get("badge_type", BADGE_TYPE_CUMULATIVE)
+        # YAML uses "type", converter maps to badge_type internally
+        badge_type = yaml_badge.get("type", BADGE_TYPE_CUMULATIVE)
+
+        # Build award_items list based on what's provided
+        award_items: list[str] = []
+        award_points = yaml_badge.get("award_points", 0)
+        if award_points and float(award_points) > 0:
+            award_items.append("points")  # AWARD_ITEMS_KEY_POINTS
+
         form_data = {
             CFOF_BADGES_INPUT_NAME: yaml_badge["name"],
             CFOF_BADGES_INPUT_ICON: yaml_badge.get("icon", "mdi:medal"),
             CFOF_BADGES_INPUT_ASSIGNED_TO: yaml_badge.get("assigned_to", []),
-            CFOF_BADGES_INPUT_AWARD_POINTS: yaml_badge.get("award_points", 0),
+            CFOF_BADGES_INPUT_AWARD_POINTS: float(award_points),
+            CFOF_BADGES_INPUT_AWARD_ITEMS: award_items,
         }
 
         if badge_type == BADGE_TYPE_CUMULATIVE:
+            # For cumulative badges: only target_threshold_value, NO target_type
             form_data[CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = yaml_badge.get(
                 "target_threshold_value", 10
             )
+            # Note: target_type is NOT in schema for cumulative badges
+        elif badge_type in (BADGE_TYPE_PERIODIC, BADGE_TYPE_DAILY):
+            # Periodic/Daily badges have target_type and threshold
             form_data[CFOF_BADGES_INPUT_TARGET_TYPE] = yaml_badge.get(
-                "target_type", BADGE_TARGET_THRESHOLD_TYPE_CHORE_COUNT
+                "target_type", "chore_count"
             )
-        else:  # periodic
-            form_data[CFOF_BADGES_INPUT_START_DATE] = yaml_badge.get("start_date")
-            form_data[CFOF_BADGES_INPUT_END_DATE] = yaml_badge.get("end_date")
+            form_data[CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = yaml_badge.get(
+                "target_threshold_value", 10
+            )
+            # Optional: tracked chores (specific chores to track)
+            if "selected_chores" in yaml_badge:
+                form_data[CFOF_BADGES_INPUT_SELECTED_CHORES] = yaml_badge.get(
+                    "selected_chores", []
+                )
+            # Optional: date range for periodic badges
+            if "start_date" in yaml_badge:
+                form_data[CFOF_BADGES_INPUT_START_DATE] = yaml_badge.get("start_date")
+            if "end_date" in yaml_badge:
+                form_data[CFOF_BADGES_INPUT_END_DATE] = yaml_badge.get("end_date")
+        elif badge_type == BADGE_TYPE_SPECIAL_OCCASION:
+            # Special occasion badges have occasion_type
+            form_data[CFOF_BADGES_INPUT_OCCASION_TYPE] = yaml_badge.get(
+                "occasion_type", "birthday"
+            )
 
         return form_data
+
+    @staticmethod
+    def build_achievement_form_data(yaml_achievement: dict[str, Any]) -> dict[str, Any]:
+        """Convert YAML achievement data to flow form input.
+
+        Args:
+            yaml_achievement: Achievement data from scenario YAML file
+
+        Returns:
+            Dictionary suitable for flow.async_configure() user_input
+        """
+        return {
+            CFOF_ACHIEVEMENTS_INPUT_NAME: yaml_achievement["name"],
+            CFOF_ACHIEVEMENTS_INPUT_ICON: yaml_achievement.get("icon", "mdi:trophy"),
+            CFOF_ACHIEVEMENTS_INPUT_DESCRIPTION: yaml_achievement.get(
+                "description", ""
+            ),
+            CFOF_ACHIEVEMENTS_INPUT_TYPE: yaml_achievement.get("type", "chore_count"),
+            CFOF_ACHIEVEMENTS_INPUT_TARGET_VALUE: yaml_achievement.get(
+                "target_value", 10
+            ),
+            CFOF_ACHIEVEMENTS_INPUT_REWARD_POINTS: yaml_achievement.get(
+                "reward_points", 50
+            ),
+            CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS: yaml_achievement.get(
+                "assigned_to", []
+            ),
+        }
+
+    @staticmethod
+    def build_challenge_form_data(yaml_challenge: dict[str, Any]) -> dict[str, Any]:
+        """Convert YAML challenge data to flow form input.
+
+        Args:
+            yaml_challenge: Challenge data from scenario YAML file
+
+        Returns:
+            Dictionary suitable for flow.async_configure() user_input
+        """
+        return {
+            CFOF_CHALLENGES_INPUT_NAME: yaml_challenge["name"],
+            CFOF_CHALLENGES_INPUT_ICON: yaml_challenge.get("icon", "mdi:flag"),
+            CFOF_CHALLENGES_INPUT_DESCRIPTION: yaml_challenge.get("description", ""),
+            CFOF_CHALLENGES_INPUT_TYPE: yaml_challenge.get("type", "daily_minimum"),
+            CFOF_CHALLENGES_INPUT_TARGET_VALUE: yaml_challenge.get("target_value", 5),
+            CFOF_CHALLENGES_INPUT_REWARD_POINTS: yaml_challenge.get(
+                "reward_points", 100
+            ),
+            CFOF_CHALLENGES_INPUT_START_DATE: yaml_challenge.get("start_date"),
+            CFOF_CHALLENGES_INPUT_END_DATE: yaml_challenge.get("end_date"),
+            CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS: yaml_challenge.get("assigned_to", []),
+        }
 
     # =========================================================================
     # Entity Verification Helpers

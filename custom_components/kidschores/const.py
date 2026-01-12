@@ -78,6 +78,7 @@ DATA_KEY_BADGES: Final = "badges"
 DATA_KEY_ACHIEVEMENTS: Final = "achievements"
 DATA_KEY_CHALLENGES: Final = "challenges"
 DATA_KEY_LINKED_USERS: Final = "linked_users"  # Matches STORAGE_KEY_LINKED_USERS
+DATA_CONFIG_ENTRY_SETTINGS: Final = "config_entry_settings"  # Backup/restore key
 
 # Entity Type Identifiers (Phase 2 Step 2 - DRY Refactoring)
 # Used in generic entity lookup functions to identify entity type
@@ -1276,6 +1277,19 @@ DEFAULT_YEAR_END_MINUTE: Final = 59
 DEFAULT_YEAR_END_MONTH: Final = 12
 DEFAULT_YEAR_END_SECOND: Final = 0
 DEFAULT_ZERO: Final = 0
+
+# System Settings Defaults (for backup/restore validation)
+DEFAULT_SYSTEM_SETTINGS: Final = {
+    CONF_POINTS_LABEL: DEFAULT_POINTS_LABEL,
+    CONF_POINTS_ICON: DEFAULT_POINTS_ICON,
+    CONF_UPDATE_INTERVAL: DEFAULT_UPDATE_INTERVAL,
+    CONF_CALENDAR_SHOW_PERIOD: DEFAULT_CALENDAR_SHOW_PERIOD,
+    CONF_RETENTION_DAILY: DEFAULT_RETENTION_DAILY,
+    CONF_RETENTION_WEEKLY: DEFAULT_RETENTION_WEEKLY,
+    CONF_RETENTION_MONTHLY: DEFAULT_RETENTION_MONTHLY,
+    CONF_RETENTION_YEARLY: DEFAULT_RETENTION_YEARLY,
+    CONF_POINTS_ADJUST_VALUES: DEFAULT_POINTS_ADJUST_VALUES,
+}
 
 
 # ------------------------------------------------------------------------------------------------

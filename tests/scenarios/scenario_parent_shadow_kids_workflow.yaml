@@ -18,7 +18,7 @@ system:
 
 # Kids (1 regular kid)
 kids:
-  - name: "Sarah"
+  - name: "Zoë"
     ha_user: "kid1"
     dashboard_language: "en"
     enable_mobile_notifications: false
@@ -27,10 +27,10 @@ kids:
 
 # Parents (2 parents - one with shadow kid capability + workflow)
 parents:
-  # Dad opts into chore assignment + workflow - creates shadow kid "Dad" with full workflow
-  - name: "Dad"
+  # Dad opts into chore assignment + workflow - creates shadow kid "Dad Leo" with full workflow
+  - name: "Dad Leo"
     ha_user: "parent1"
-    kids: ["Sarah"]
+    kids: ["Zoë"]
     enable_mobile_notifications: false
     mobile_notify_service: ""
     enable_persistent_notifications: false
@@ -40,9 +40,9 @@ parents:
     enable_gamification: true # Dad earns points
 
   # Mom does NOT opt into chore assignment - no shadow kid
-  - name: "Mom"
+  - name: "Môm Astrid Stârblüm"
     ha_user: "parent2"
-    kids: ["Sarah"]
+    kids: ["Zoë"]
     enable_mobile_notifications: false
     mobile_notify_service: ""
     enable_persistent_notifications: false
@@ -52,7 +52,7 @@ parents:
 chores:
   # Chore assigned ONLY to Dad's shadow kid
   - name: "Mow lawn"
-    assigned_to: ["Dad"]
+    assigned_to: ["Dad Leo"]
     points: 25.0
     icon: "mdi:grass"
     completion_criteria: "independent"
@@ -61,7 +61,7 @@ chores:
 
   # Chore assigned to regular kid Sarah
   - name: "Make bed"
-    assigned_to: ["Sarah"]
+    assigned_to: ["Zoë"]
     points: 5.0
     icon: "mdi:bed"
     completion_criteria: "independent"
@@ -70,7 +70,7 @@ chores:
 
   # Shared chore: both Dad (shadow) and Sarah
   - name: "Take out trash"
-    assigned_to: ["Dad", "Sarah"]
+    assigned_to: ["Dad Leo", "Zoë"]
     points: 10.0
     icon: "mdi:trash-can"
     completion_criteria: "shared_first"

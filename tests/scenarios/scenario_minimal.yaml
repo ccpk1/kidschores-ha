@@ -3,8 +3,8 @@
 # Quick setup for simple tests. 1 kid, 1 parent, 5 varied chores.
 #
 # Contents:
-#   - 1 parent: Mom
-#   - 1 kid: Zoë
+#   - 1 parent: Môm Astrid Stârblüm (Stårblüm family standard)
+#   - 1 kid: Zoë (Stårblüm family standard)
 #   - 5 chores: mix of frequencies and one auto-approve
 #
 # Use case: Fast smoke tests, single-kid workflows, basic validation
@@ -26,7 +26,7 @@ kids:
 
 # Parents (1 parent)
 parents:
-  - name: "Mom"
+  - name: "Môm Astrid Stârblüm"
     ha_user: "parent1"
     kids: ["Zoë"]
     enable_mobile_notifications: false

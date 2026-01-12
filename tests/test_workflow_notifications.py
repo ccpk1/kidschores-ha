@@ -29,7 +29,15 @@ from unittest.mock import patch
 
 import pytest
 
-from custom_components.kidschores import const
+from tests.helpers import (
+    ACTION_APPROVE_CHORE,
+    CONF_ENABLE_MOBILE_NOTIFICATIONS_LEGACY,
+    CONF_MOBILE_NOTIFY_SERVICE_LEGACY,
+    DATA_KID_DASHBOARD_LANGUAGE,
+    DATA_KIDS,
+    DATA_PARENT_ENABLE_NOTIFICATIONS,
+    DATA_PARENTS,
+)
 from tests.helpers.setup import SetupResult, setup_from_yaml
 
 if TYPE_CHECKING:
@@ -53,7 +61,9 @@ def register_mock_notify_services(hass: HomeAssistant) -> None:
         """Mock notify service handler."""
 
     # Register mock notify services that match what's in the YAML scenario
-    hass.services.async_register("notify", "mobile_app_mom", mock_notify_service)
+    hass.services.async_register(
+        "notify", "mobile_app_mom_astrid_starblum", mock_notify_service
+    )
     hass.services.async_register("notify", "mobile_app_zoe", mock_notify_service)
     hass.services.async_register("notify", "mobile_app_max", mock_notify_service)
 
@@ -140,19 +150,17 @@ def enable_parent_notifications(
         parent_id: Internal ID of the parent to enable notifications for
     """
     # Enable mobile notifications
-    coordinator._data[const.DATA_PARENTS][parent_id][
-        const.CONF_ENABLE_MOBILE_NOTIFICATIONS_LEGACY
+    coordinator._data[DATA_PARENTS][parent_id][
+        CONF_ENABLE_MOBILE_NOTIFICATIONS_LEGACY
     ] = True
 
     # Set a mock notify service
-    coordinator._data[const.DATA_PARENTS][parent_id][
-        const.CONF_MOBILE_NOTIFY_SERVICE_LEGACY
-    ] = "notify.notify"
+    coordinator._data[DATA_PARENTS][parent_id][CONF_MOBILE_NOTIFY_SERVICE_LEGACY] = (
+        "notify.notify"
+    )
 
     # Ensure enable_notifications is also set
-    coordinator._data[const.DATA_PARENTS][parent_id][
-        const.DATA_PARENT_ENABLE_NOTIFICATIONS
-    ] = True
+    coordinator._data[DATA_PARENTS][parent_id][DATA_PARENT_ENABLE_NOTIFICATIONS] = True
 
     # Persist changes
     coordinator._persist()
@@ -223,24 +231,24 @@ class TestChoreClaimNotifications:
         and the config flow accepted the notification settings.
         """
         coordinator = scenario_notifications.coordinator
-        parent_id = scenario_notifications.parent_ids["Mom"]
+        parent_id = scenario_notifications.parent_ids["Môm Astrid Stârblüm"]
 
         # Get parent data from coordinator
-        parent_data = coordinator._data[const.DATA_PARENTS][parent_id]
+        parent_data = coordinator._data[DATA_PARENTS][parent_id]
 
         # Verify notifications were enabled through config flow
-        assert parent_data.get(const.DATA_PARENT_ENABLE_NOTIFICATIONS) is True, (
+        assert parent_data.get(DATA_PARENT_ENABLE_NOTIFICATIONS) is True, (
             "Notifications should be enabled through config flow"
         )
         assert (
-            parent_data.get(const.CONF_MOBILE_NOTIFY_SERVICE_LEGACY)
-            == "notify.mobile_app_mom"
+            parent_data.get(CONF_MOBILE_NOTIFY_SERVICE_LEGACY)
+            == "notify.mobile_app_mom_astrid_starblum"
         ), "Mobile notify service should be set through config flow"
 
         # Verify mock service exists
         all_services = hass.services.async_services()
         assert "notify" in all_services, "Notify domain should exist"
-        assert "mobile_app_mom" in all_services["notify"], (
+        assert "mobile_app_mom_astrid_starblum" in all_services["notify"], (
             "Mock notify service should be registered"
         )
 
@@ -349,9 +357,7 @@ class TestNotificationLanguage:
         chore_id = scenario_notifications.chore_ids["Feed the cat"]
 
         # Verify kid is configured for English
-        kid_lang = coordinator._data[const.DATA_KIDS][kid_id].get(
-            const.DATA_KID_DASHBOARD_LANGUAGE
-        )
+        kid_lang = coordinator._data[DATA_KIDS][kid_id].get(DATA_KID_DASHBOARD_LANGUAGE)
         assert kid_lang == "en", f"Expected kid language 'en', got '{kid_lang}'"
 
         # Notifications enabled through config flow (mock services registered by fixture)
@@ -385,13 +391,11 @@ class TestNotificationLanguage:
     ) -> None:
         """Kid with dashboard_language='sk' triggers Slovak action buttons."""
         coordinator = scenario_notifications.coordinator
-        kid_id = scenario_notifications.kid_ids["Max"]  # Slovak language
+        kid_id = scenario_notifications.kid_ids["Max!"]  # Slovak language
         chore_id = scenario_notifications.chore_ids["Clean room"]
 
         # Verify kid is configured for Slovak
-        kid_lang = coordinator._data[const.DATA_KIDS][kid_id].get(
-            const.DATA_KID_DASHBOARD_LANGUAGE
-        )
+        kid_lang = coordinator._data[DATA_KIDS][kid_id].get(DATA_KID_DASHBOARD_LANGUAGE)
         assert kid_lang == "sk", f"Expected kid language 'sk', got '{kid_lang}'"
 
         # Notifications enabled through config flow (mock services registered by fixture)
@@ -401,7 +405,7 @@ class TestNotificationLanguage:
             "custom_components.kidschores.coordinator.async_send_notification",
             new=capture.capture,
         ):
-            coordinator.claim_chore(kid_id, chore_id, "Max")
+            coordinator.claim_chore(kid_id, chore_id, "Max!")
             await hass.async_block_till_done()
 
         # Get expected Slovak action titles
@@ -433,7 +437,7 @@ class TestNotificationLanguage:
         assert hass.config.language == "en", "Test expects HA system to be English"
 
         # Claim chore for Slovak kid
-        kid_id = scenario_notifications.kid_ids["Max"]  # Slovak
+        kid_id = scenario_notifications.kid_ids["Max!"]  # Slovak
         chore_id = scenario_notifications.chore_ids["Clean room"]
 
         # Notifications enabled through config flow (mock services registered by fixture)
@@ -443,7 +447,7 @@ class TestNotificationLanguage:
             "custom_components.kidschores.coordinator.async_send_notification",
             new=capture.capture,
         ):
-            coordinator.claim_chore(kid_id, chore_id, "Max")
+            coordinator.claim_chore(kid_id, chore_id, "Max!")
             await hass.async_block_till_done()
 
         # Actions should NOT be English (system language)
@@ -550,5 +554,5 @@ class TestNotificationActions:
         # Action identifiers should contain approve and disapprove action types
         action_text = " ".join(action_ids)
         assert "approve" in action_text.lower() or any(
-            const.ACTION_APPROVE_CHORE in aid for aid in action_ids
+            ACTION_APPROVE_CHORE in aid for aid in action_ids
         ), f"No approve action found in actions: {action_ids}"
