@@ -1,0 +1,7 @@
+feat: add kid undo claim feature for chores and rewards
+
+Kids can now undo their own claims via the disapproval button without tracking
+disapproval stats, while parent/admin disapproval continues to track stats normally.
+Button logic detects user type via ha_user_id matching. Includes comprehensive test
+suite (test_kid_undo_claim.py) with 6 scenarios covering undo behavior, stat validation,
+SHARED_FIRST chores, and multiple undos. Silent operation (no notifications).

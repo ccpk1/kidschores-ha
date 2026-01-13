@@ -25,6 +25,9 @@ See individual modules for full documentation:
 - validation.py: Entity state and count validation
 """
 
+# ruff: noqa: F401
+# ^ Suppresses unused import warnings - this file intentionally re-exports for tests
+
 # Re-export from setup
 # Re-export from constants
 from tests.helpers.constants import (
@@ -89,6 +92,7 @@ from tests.helpers.constants import (
     CFOF_BADGES_INPUT_BADGE_COUNT,
     CFOF_BADGES_INPUT_END_DATE,
     CFOF_BADGES_INPUT_ICON,
+    CFOF_BADGES_INPUT_MAINTENANCE_RULES,
     CFOF_BADGES_INPUT_NAME,
     CFOF_BADGES_INPUT_OCCASION_TYPE,
     CFOF_BADGES_INPUT_SELECTED_CHORES,
@@ -253,7 +257,12 @@ from tests.helpers.constants import (
     DATA_KID_CHORE_DATA,
     DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START,
     DATA_KID_CHORE_DATA_DUE_DATE_LEGACY,
+    DATA_KID_CHORE_DATA_LAST_APPROVED,
+    DATA_KID_CHORE_DATA_LAST_CLAIMED,
+    DATA_KID_CHORE_DATA_LAST_DISAPPROVED,
+    DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT,
     DATA_KID_CHORE_DATA_STATE,
+    DATA_KID_CHORE_STATS,
     DATA_KID_COMPLETED_BY_OTHER_CHORES,
     DATA_KID_CUMULATIVE_BADGE_PROGRESS,
     DATA_KID_DASHBOARD_LANGUAGE,
@@ -261,6 +270,8 @@ from tests.helpers.constants import (
     DATA_KID_LINKED_PARENT_ID,
     DATA_KID_NAME,
     DATA_KID_POINTS,
+    DATA_KID_REWARD_DATA,
+    DATA_KID_REWARD_DATA_PENDING_COUNT,
     DATA_KIDS,
     # Data keys - parent fields (shadow kid support)
     DATA_PARENT_ALLOW_CHORE_ASSIGNMENT,
@@ -434,6 +445,7 @@ __all__ = [
     "CFOF_BADGES_INPUT_AWARD_POINTS",
     "CFOF_BADGES_INPUT_END_DATE",
     "CFOF_BADGES_INPUT_ICON",
+    "CFOF_BADGES_INPUT_MAINTENANCE_RULES",
     # Config/Options Flow Constants - Badges
     "CFOF_BADGES_INPUT_NAME",
     "CFOF_BADGES_INPUT_OCCASION_TYPE",

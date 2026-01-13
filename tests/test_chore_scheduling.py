@@ -1966,20 +1966,19 @@ class TestApplicableDays:
         hass: HomeAssistant,
         scheduling_scenario: SetupResult,
     ) -> None:
-        """Test: Empty/missing applicable_days defaults to all 7 days (no filtering)."""
+        """Test: Empty/missing applicable_days means no filtering (all days valid)."""
         coordinator = scheduling_scenario.coordinator
         chore_map = scheduling_scenario.chore_ids
 
         # Use a chore WITHOUT applicable_days set in YAML
-        # System should default to all 7 days (which means no filtering)
+        # System should store empty list (meaning no filtering - all days valid)
         chore_id = chore_map["Reset Upon Completion"]
         chore_info = coordinator.chores_data.get(chore_id, {})
         applicable_days = chore_info.get(DATA_CHORE_APPLICABLE_DAYS, [])
 
-        # System defaults to all 7 days when not specified
-        all_days = {"mon", "tue", "wed", "thu", "fri", "sat", "sun"}
-        assert set(applicable_days) == all_days, (
-            f"Chore without applicable_days should default to all 7 days, got {applicable_days}"
+        # Empty list means "no restriction" = all days valid
+        assert applicable_days == [], (
+            f"Chore without applicable_days should store empty list, got {applicable_days}"
         )
 
     @pytest.mark.asyncio

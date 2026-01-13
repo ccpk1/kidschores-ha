@@ -144,6 +144,45 @@
       "rewards_count": 2,
       "timestamp": "2026-01-12T22:20:39.127779",
       "scenario": "scenario_stress"
+    },
+    {
+      "badge_duration_ms": 549.99,
+      "overdue_duration_ms": 0.15,
+      "persist_queue_us": 73.1,
+      "entity_count": 510,
+      "kids_count": 19,
+      "chores_count": 19,
+      "badges_count": 5,
+      "parents_count": 5,
+      "rewards_count": 2,
+      "timestamp": "2026-01-13T01:47:14.767455",
+      "scenario": "scenario_stress"
+    },
+    {
+      "badge_duration_ms": 547.32,
+      "overdue_duration_ms": 0.2,
+      "persist_queue_us": 89.8,
+      "entity_count": 510,
+      "kids_count": 19,
+      "chores_count": 19,
+      "badges_count": 5,
+      "parents_count": 5,
+      "rewards_count": 2,
+      "timestamp": "2026-01-13T01:55:17.108998",
+      "scenario": "scenario_stress"
+    },
+    {
+      "badge_duration_ms": 10016.76,
+      "overdue_duration_ms": 0.28,
+      "persist_queue_us": 5195.6,
+      "entity_count": 510,
+      "kids_count": 19,
+      "chores_count": 19,
+      "badges_count": 5,
+      "parents_count": 5,
+      "rewards_count": 2,
+      "timestamp": "2026-01-13T02:37:09.288114",
+      "scenario": "scenario_stress"
     }
   ],
   "scenario_full": [

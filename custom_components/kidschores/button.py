@@ -614,31 +614,54 @@ class ParentChoreDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
                 )
 
             user_id = self._context.user_id if self._context else None
-            if user_id and not await kh.is_user_authorized_for_global_action(
-                self.hass, user_id, const.SERVICE_DISAPPROVE_CHORE
-            ):
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION_GLOBAL,
-                    translation_placeholders={
-                        "action": const.ERROR_ACTION_DISAPPROVE_CHORES
-                    },
+
+            # Check if user is the kid (for undo) or a parent/admin (for disapproval)
+            kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+            kid_ha_user_id = kid_info.get(const.DATA_KID_HA_USER_ID)
+            is_kid = user_id and kid_ha_user_id and user_id == kid_ha_user_id
+
+            if is_kid:
+                # Kid undo: Remove own claim without stat tracking
+                self.coordinator.undo_chore_claim(
+                    kid_id=self._kid_id,
+                    chore_id=self._chore_id,
                 )
+                const.LOGGER.info(
+                    "INFO: Chore '%s' undo by Kid '%s' (claim removed)",
+                    self._chore_name,
+                    self._kid_name,
+                )
+            else:
+                # Parent/admin disapproval: Requires authorization and tracks stats
+                if user_id and not await kh.is_user_authorized_for_global_action(
+                    self.hass, user_id, const.SERVICE_DISAPPROVE_CHORE
+                ):
+                    raise HomeAssistantError(
+                        translation_domain=const.DOMAIN,
+                        translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION_GLOBAL,
+                        translation_placeholders={
+                            "action": const.ERROR_ACTION_DISAPPROVE_CHORES
+                        },
+                    )
 
-            user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
-            parent_name = (user_obj.name if user_obj else None) or const.DISPLAY_UNKNOWN
+                user_obj = (
+                    await self.hass.auth.async_get_user(user_id) if user_id else None
+                )
+                parent_name = (
+                    user_obj.name if user_obj else None
+                ) or const.DISPLAY_UNKNOWN
 
-            self.coordinator.disapprove_chore(
-                parent_name=parent_name,
-                kid_id=self._kid_id,
-                chore_id=self._chore_id,
-            )
-            const.LOGGER.info(
-                "INFO: Chore '%s' disapproved for Kid '%s' by parent '%s'",
-                self._chore_name,
-                self._kid_name,
-                parent_name,
-            )
+                self.coordinator.disapprove_chore(
+                    parent_name=parent_name,
+                    kid_id=self._kid_id,
+                    chore_id=self._chore_id,
+                )
+                const.LOGGER.info(
+                    "INFO: Chore '%s' disapproved for Kid '%s' by parent '%s'",
+                    self._chore_name,
+                    self._kid_name,
+                    parent_name,
+                )
             await self.coordinator.async_request_refresh()
 
         except HomeAssistantError as e:
@@ -998,31 +1021,54 @@ class ParentRewardDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
                 )
 
             user_id = self._context.user_id if self._context else None
-            if user_id and not await kh.is_user_authorized_for_global_action(
-                self.hass, user_id, const.SERVICE_DISAPPROVE_REWARD
-            ):
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION_GLOBAL,
-                    translation_placeholders={
-                        "action": const.ERROR_ACTION_DISAPPROVE_REWARDS
-                    },
+
+            # Check if user is the kid (for undo) or a parent/admin (for disapproval)
+            kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+            kid_ha_user_id = kid_info.get(const.DATA_KID_HA_USER_ID)
+            is_kid = user_id and kid_ha_user_id and user_id == kid_ha_user_id
+
+            if is_kid:
+                # Kid undo: Remove own reward claim without stat tracking
+                self.coordinator.undo_reward_claim(
+                    kid_id=self._kid_id,
+                    reward_id=self._reward_id,
                 )
+                const.LOGGER.info(
+                    "INFO: Reward '%s' undo by Kid '%s' (claim removed)",
+                    self._reward_name,
+                    self._kid_name,
+                )
+            else:
+                # Parent/admin disapproval: Requires authorization and tracks stats
+                if user_id and not await kh.is_user_authorized_for_global_action(
+                    self.hass, user_id, const.SERVICE_DISAPPROVE_REWARD
+                ):
+                    raise HomeAssistantError(
+                        translation_domain=const.DOMAIN,
+                        translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION_GLOBAL,
+                        translation_placeholders={
+                            "action": const.ERROR_ACTION_DISAPPROVE_REWARDS
+                        },
+                    )
 
-            user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
-            parent_name = (user_obj.name if user_obj else None) or const.DISPLAY_UNKNOWN
+                user_obj = (
+                    await self.hass.auth.async_get_user(user_id) if user_id else None
+                )
+                parent_name = (
+                    user_obj.name if user_obj else None
+                ) or const.DISPLAY_UNKNOWN
 
-            self.coordinator.disapprove_reward(
-                parent_name=parent_name,
-                kid_id=self._kid_id,
-                reward_id=self._reward_id,
-            )
-            const.LOGGER.info(
-                "INFO: Reward '%s' disapproved for Kid '%s' by Parent '%s'",
-                self._reward_name,
-                self._kid_name,
-                parent_name,
-            )
+                self.coordinator.disapprove_reward(
+                    parent_name=parent_name,
+                    kid_id=self._kid_id,
+                    reward_id=self._reward_id,
+                )
+                const.LOGGER.info(
+                    "INFO: Reward '%s' disapproved for Kid '%s' by Parent '%s'",
+                    self._reward_name,
+                    self._kid_name,
+                    parent_name,
+                )
             await self.coordinator.async_request_refresh()
 
         except HomeAssistantError as e:

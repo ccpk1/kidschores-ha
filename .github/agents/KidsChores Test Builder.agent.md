@@ -39,7 +39,7 @@ Before writing ANY test:
 # Find existing similar tests
 grep -r "test_.*chore\|test_.*reward\|test_.*config" tests/ | head -5
 
-# Review test patterns
+# Review test patterns (examples)
 cat tests/test_workflow_chores.py | head -50
 cat tests/test_config_flow.py | head -50
 
@@ -48,6 +48,7 @@ cat tests/helpers/__init__.py | grep "^from"
 ```
 
 **Checklist**:
+
 - [ ] Found 2-3 similar existing tests
 - [ ] Understand test structure and fixtures used
 - [ ] Identified which Stårblüm Family scenario to use
@@ -58,27 +59,27 @@ cat tests/helpers/__init__.py | grep "^from"
 
 Ask these questions:
 
-| Question | Answer | Implication |
-|----------|--------|------------|
-| What's being tested? | Feature/workflow/edge case | Determines test approach |
-| Is it UI interaction? | Yes = service-based (Rule 2A) | Use dashboard helper + buttons |
-| Is it business logic? | Yes = direct API (Rule 2B) | Use coordinator directly |
-| New feature or validation? | Validation = follow AGENT_TEST_VALIDATION_GUIDE | Don't create new test |
-| How complex? | 1-2 scenarios = minimal/shared | Use existing scenario YAML |
-| How complex? | Multi-scenario = custom | Create custom scenario YAML |
+| Question                   | Answer                                          | Implication                    |
+| -------------------------- | ----------------------------------------------- | ------------------------------ |
+| What's being tested?       | Feature/workflow/edge case                      | Determines test approach       |
+| Is it UI interaction?      | Yes = service-based (Rule 2A)                   | Use dashboard helper + buttons |
+| Is it business logic?      | Yes = direct API (Rule 2B)                      | Use coordinator directly       |
+| New feature or validation? | Validation = follow AGENT_TEST_VALIDATION_GUIDE | Don't create new test          |
+| How complex?               | 1-2 scenarios = minimal/shared                  | Use existing scenario YAML     |
+| How complex?               | Multi-scenario = custom                         | Create custom scenario YAML    |
 
 ### 3. Choose Stårblüm Family Scenario
 
 Use per AGENT_TEST_CREATION_INSTRUCTIONS.md:
 
-| Scenario | Use When |
-|----------|----------|
-| `scenario_minimal.yaml` | Simple tests, basic flows (1 kid, 1 parent, 5 chores) |
-| `scenario_shared.yaml` | Multi-kid coordination, shared chores (3 kids, 2 parents) |
-| `scenario_full.yaml` | Complex integration, all features (3 kids, all features) |
-| `scenario_notifications.yaml` | Notification workflows (Notification-focused) |
-| `scenario_scheduling.yaml` | Recurring chore patterns (Scheduling tests) |
-| Custom scenario | Edge cases, stress tests, special conditions |
+| Scenario                      | Use When                                                  |
+| ----------------------------- | --------------------------------------------------------- |
+| `scenario_minimal.yaml`       | Simple tests, basic flows (1 kid, 1 parent, 5 chores)     |
+| `scenario_shared.yaml`        | Multi-kid coordination, shared chores (3 kids, 2 parents) |
+| `scenario_full.yaml`          | Complex integration, all features (3 kids, all features)  |
+| `scenario_notifications.yaml` | Notification workflows (Notification-focused)             |
+| `scenario_scheduling.yaml`    | Recurring chore patterns (Scheduling tests)               |
+| Custom scenario               | Edge cases, stress tests, special conditions              |
 
 **Rule**: Use existing scenarios unless testing edge cases or stress scenarios.
 
@@ -87,6 +88,7 @@ Use per AGENT_TEST_CREATION_INSTRUCTIONS.md:
 Create file: `tests/test_[FEATURE].py`
 
 **Structure**:
+
 ```python
 """[Feature] tests."""
 
@@ -188,11 +190,13 @@ pytest tests/ -v --tb=line
 ```
 
 **Type hints required**:
+
 - All function parameters
 - All function return types
 - All variable assignments (when not obvious)
 
 **Type ignore placement** (CRITICAL):
+
 ```python
 # ✅ CORRECT - on non-continuation line
 flow_id = result.get("flow_id")  # type: ignore[arg-type]
@@ -210,39 +214,41 @@ result = await hass.config_entries.options.async_configure(
 
 ## Critical Rules (From AGENT_TEST_CREATION_INSTRUCTIONS.md)
 
-| Rule | What | Example |
-|------|------|---------|
-| **Rule 0** | Import from `tests.helpers`, NOT `const.py` | `from tests.helpers import CHORE_STATE_PENDING` ✓ |
-| **Rule 1** | Use YAML scenarios + `setup_from_yaml()` | `scenario_minimal` fixture ✓ |
-| **Rule 2** | Service-based preferred, direct API fallback | Use dashboard helper first ✓ |
-| **Rule 3** | Dashboard helper is source of truth | Extract entity IDs from helper ✓ |
-| **Rule 4** | Get button IDs from chore sensor attributes | Don't manually construct IDs ✓ |
-| **Rule 5** | Service calls need user context | `Context(user_id=...)` ✓ |
-| **Rule 6** | Use coordinator properties for data access | `coordinator.kids_data.get(kid_id)` ✓ |
+| Rule       | What                                         | Example                                           |
+| ---------- | -------------------------------------------- | ------------------------------------------------- |
+| **Rule 0** | Import from `tests.helpers`, NOT `const.py`  | `from tests.helpers import CHORE_STATE_PENDING` ✓ |
+| **Rule 1** | Use YAML scenarios + `setup_from_yaml()`     | `scenario_minimal` fixture ✓                      |
+| **Rule 2** | Service-based preferred, direct API fallback | Use dashboard helper first ✓                      |
+| **Rule 3** | Dashboard helper is source of truth          | Extract entity IDs from helper ✓                  |
+| **Rule 4** | Get button IDs from chore sensor attributes  | Don't manually construct IDs ✓                    |
+| **Rule 5** | Service calls need user context              | `Context(user_id=...)` ✓                          |
+| **Rule 6** | Use coordinator properties for data access   | `coordinator.kids_data.get(kid_id)` ✓             |
 
 ## Test Naming Conventions
 
-| Test Type | File Name | Class Name | Method Name |
-|-----------|-----------|-----------|------------|
-| Workflow tests | `test_workflow_[area].py` | `Test[Feature]` | `test_[verb]_[noun]` |
-| Config flow | `test_config_flow_[area].py` | `TestConfigFlow` | `test_[step]_[scenario]` |
-| Service tests | `test_[service]_service.py` | `Test[Service]Service` | `test_[action]_[expectation]` |
-| Edge cases | `test_[area]_edge_cases.py` | `Test[Area]EdgeCases` | `test_[edge_case]` |
+| Test Type      | File Name                    | Class Name             | Method Name                   |
+| -------------- | ---------------------------- | ---------------------- | ----------------------------- |
+| Workflow tests | `test_workflow_[area].py`    | `Test[Feature]`        | `test_[verb]_[noun]`          |
+| Config flow    | `test_config_flow_[area].py` | `TestConfigFlow`       | `test_[step]_[scenario]`      |
+| Service tests  | `test_[service]_service.py`  | `Test[Service]Service` | `test_[action]_[expectation]` |
+| Edge cases     | `test_[area]_edge_cases.py`  | `Test[Area]EdgeCases`  | `test_[edge_case]`            |
 
 Examples:
+
 - `test_workflow_chores.py` → `TestChoreWorkflow` → `test_claim_changes_state()`
 - `test_config_flow_options.py` → `TestConfigFlow` → `test_step_init_valid_input()`
 - `test_chore_service.py` → `TestChoreService` → `test_create_chore_success()`
 
 ## Boundaries
 
-| ✅ CAN | ❌ CANNOT |
-|--------|----------|
-| Create test files in `tests/` | Modify existing test patterns |
-| Use existing test fixtures | Invent new Stårblüm Family members |
-| Add custom scenarios (edge cases) | Skip type checking |
-| Import from `tests.helpers` | Import directly from `const.py` |
-| Use `mypy tests/` | Skip validation |
-| Follow Rules 1-6 exactly | Deviate from patterns |
+| ✅ CAN                            | ❌ CANNOT                       |
+| --------------------------------- | ------------------------------- |
+| Create test files in `tests/`     | Modify existing test patterns   |
+| Use existing test fixtures        | Invent new Stårblüm Family      |
+| Add custom scenarios (edge cases) | Skip type checking              |
+| Import from `tests.helpers`       | Import directly from `const.py` |
+| Use `mypy tests/`                 | Skip validation                 |
+| Follow Rules 1-6 exactly          | Deviate from patterns           |
 
+**Important**: If there is justification to deviate from established patterns, request permission and give rationale.
 **Success = test file created + passes + mypy clean + follows Rules 1-6**

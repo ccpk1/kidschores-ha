@@ -40,6 +40,7 @@ from tests.helpers import (
     CFOF_BADGES_INPUT_AWARD_POINTS,
     CFOF_BADGES_INPUT_END_DATE,
     CFOF_BADGES_INPUT_ICON,
+    CFOF_BADGES_INPUT_MAINTENANCE_RULES,
     CFOF_BADGES_INPUT_NAME,
     CFOF_BADGES_INPUT_OCCASION_TYPE,
     CFOF_BADGES_INPUT_SELECTED_CHORES,
@@ -277,9 +278,13 @@ class FlowTestHelper:
         }
 
         if badge_type == BADGE_TYPE_CUMULATIVE:
-            # For cumulative badges: only target_threshold_value, NO target_type
+            # For cumulative badges: target_threshold_value and maintenance_rules
             form_data[CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = yaml_badge.get(
                 "target_threshold_value", 10
+            )
+            # Maintenance rules required by validation (default 0 = no maintenance)
+            form_data[CFOF_BADGES_INPUT_MAINTENANCE_RULES] = yaml_badge.get(
+                "maintenance_rules", 0
             )
             # Note: target_type is NOT in schema for cumulative badges
         elif badge_type in (BADGE_TYPE_PERIODIC, BADGE_TYPE_DAILY):

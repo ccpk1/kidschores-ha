@@ -341,14 +341,9 @@ async def _configure_chore_step(
     Returns:
         Updated flow result
     """
-    # Determine applicable days
     recurring_freq = chore_config.get("recurring_frequency", "daily")
-    applicable_days = chore_config.get("applicable_days")
-    if applicable_days is None:
-        if recurring_freq == "daily":
-            applicable_days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
-        else:
-            applicable_days = ["mon"]
+    # applicable_days: if not specified, means "any day" (no restriction)
+    applicable_days = chore_config.get("applicable_days", [])
 
     user_input = {
         const.CFOF_CHORES_INPUT_NAME: chore_config["name"],
@@ -1173,8 +1168,11 @@ async def setup_scenario(
             await _add_badge_via_options_flow(
                 hass, config_entry.entry_id, badge_config, kid_name_to_id
             )
+            await hass.async_block_till_done()
         await hass.async_block_till_done()
-        # Refresh coordinator to pick up new badges
+        # IMPORTANT: Get fresh coordinator reference after badge adds
+        # Each badge add triggers a config entry reload, creating a new coordinator
+        coordinator = hass.data[const.DOMAIN][config_entry.entry_id][const.COORDINATOR]
         await coordinator.async_refresh()
         await hass.async_block_till_done()
 

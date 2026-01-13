@@ -2932,6 +2932,89 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self._persist()
         self.async_set_updated_data(self._data)
 
+    def undo_chore_claim(self, kid_id: str, chore_id: str):
+        """Allow kid to undo their own chore claim (no stat tracking).
+
+        This method provides a way for kids to remove their claim on a chore
+        without it counting as a disapproval. Similar to disapprove_chore but:
+        - Does NOT track disapproval stats (skip_stats=True)
+        - Does NOT send notifications (silent undo)
+        - Only resets the kid who is undoing (not all kids for SHARED_FIRST)
+
+        Args:
+            kid_id: The kid's internal ID
+            chore_id: The chore's internal ID
+
+        Raises:
+            HomeAssistantError: If kid or chore not found
+        """
+        chore_info = self.chores_data.get(chore_id)
+        if not chore_info:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_CHORE,
+                    "name": chore_id,
+                },
+            )
+
+        kid_info = self.kids_data.get(kid_id)
+        if not kid_info:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_KID,
+                    "name": kid_id,
+                },
+            )
+
+        # Decrement pending_count for the kid (v0.4.0+ counter-based tracking)
+        kid_chores_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
+        # Ensure proper chore data initialization
+        if chore_id not in kid_chores_data:
+            self._update_chore_data_for_kid(kid_id, chore_id, 0.0)
+        kid_chore_data_entry = kid_chores_data[chore_id]
+        current_count = kid_chore_data_entry.get(
+            const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT, 0
+        )
+        kid_chore_data_entry[const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT] = max(
+            0, current_count - 1
+        )
+
+        # SHARED_FIRST: For kid undo, reset ALL kids to pending (same as disapproval)
+        # This maintains fairness - if one kid undoes, everyone gets another chance
+        completion_criteria = chore_info.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA, const.SENTINEL_EMPTY
+        )
+        if completion_criteria == const.COMPLETION_CRITERIA_SHARED_FIRST:
+            const.LOGGER.info(
+                "SHARED_FIRST: Kid undo - resetting all kids to pending for chore '%s'",
+                chore_info.get(const.DATA_CHORE_NAME),
+            )
+            for other_kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
+                # Use skip_stats=True to prevent stat tracking for all kids
+                self._process_chore_state(
+                    other_kid_id, chore_id, const.CHORE_STATE_PENDING, skip_stats=True
+                )
+                # Clear claimed_by/completed_by attributes
+                other_kid_info = self.kids_data.get(other_kid_id, {})
+                chore_data = other_kid_info.get(const.DATA_KID_CHORE_DATA, {})
+                if chore_id in chore_data:
+                    chore_data[chore_id].pop(const.DATA_CHORE_CLAIMED_BY, None)
+                    chore_data[chore_id].pop(const.DATA_CHORE_COMPLETED_BY, None)
+        else:
+            # Normal behavior: only reset the kid who is undoing, skip stats
+            self._process_chore_state(
+                kid_id, chore_id, const.CHORE_STATE_PENDING, skip_stats=True
+            )
+
+        # No notification sent (silent undo)
+
+        self._persist()
+        self.async_set_updated_data(self._data)
+
     def update_chore_state(self, chore_id: str, state: str):
         """Manually override a chore's state."""
         chore_info = self.chores_data.get(chore_id)
@@ -3344,6 +3427,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         *,
         points_awarded: float | None = None,
         reset_approval_period: bool = False,
+        skip_stats: bool = False,
     ) -> None:
         """Centralized function to update a chore's state for a given kid.
 
@@ -3355,6 +3439,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             reset_approval_period: If True and new_state is PENDING, sets a new
                 approval_period_start. Should be True for scheduled resets (midnight,
                 due date) but False for disapproval (which only affects one kid's claim).
+            skip_stats: If True, skip disapproval stat tracking (for kid undo).
         """
 
         # Add a flag to control debug messages
@@ -3402,6 +3487,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             points_awarded=actual_points,
             state=new_state,
             due_date=due_date,
+            skip_stats=skip_stats,
         )
 
         # Clear overdue notification tracking when transitioning out of overdue state.
@@ -3620,8 +3706,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         kid_id: str,
         chore_id: str,
         points_awarded: float,
+        *,
         state: str | None = None,
         due_date: str | None = None,
+        skip_stats: bool = False,
     ):
         """
         Update a kid's chore data when a state change or completion occurs.
@@ -3632,6 +3720,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             points_awarded: Points awarded for this chore
             state: New chore state (if state is changing)
             due_date: New due date (if due date is changing)
+            skip_stats: If True, skip disapproval stat tracking (for kid undo).
         """
         kid_info = self.kids_data.get(kid_id)
         if not kid_info:
@@ -3853,22 +3942,25 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 state == const.CHORE_STATE_PENDING
                 and previous_state == const.CHORE_STATE_CLAIMED
             ):
-                kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_DISAPPROVED] = now_iso
-                daily_data = periods_data[
-                    const.DATA_KID_CHORE_DATA_PERIODS_DAILY
-                ].setdefault(today_local_iso, period_default.copy())
-                for key, val in period_default.items():
-                    daily_data.setdefault(key, val)
-                first_disapproved_today = (
-                    daily_data.get(const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED, 0) < 1
-                )
-                if first_disapproved_today:
-                    daily_data[const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED] = 1
-                    update_periods(
-                        {const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED: 1},
-                        period_keys[1:],  # skip daily
+                # Only track disapproval stats if skip_stats is False (parent/admin disapproval)
+                if not skip_stats:
+                    kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_DISAPPROVED] = now_iso
+                    daily_data = periods_data[
+                        const.DATA_KID_CHORE_DATA_PERIODS_DAILY
+                    ].setdefault(today_local_iso, period_default.copy())
+                    for key, val in period_default.items():
+                        daily_data.setdefault(key, val)
+                    first_disapproved_today = (
+                        daily_data.get(const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED, 0)
+                        < 1
                     )
-                    inc_stat(const.DATA_KID_CHORE_STATS_DISAPPROVED_ALL_TIME, 1)
+                    if first_disapproved_today:
+                        daily_data[const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED] = 1
+                        update_periods(
+                            {const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED: 1},
+                            period_keys[1:],  # skip daily
+                        )
+                        inc_stat(const.DATA_KID_CHORE_STATS_DISAPPROVED_ALL_TIME, 1)
 
         # Update due date if provided
         if due_date is not None:
@@ -4909,6 +5001,58 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 extra_data=extra_data,
             )
         )
+
+        self._persist()
+        self.async_set_updated_data(self._data)
+
+    def undo_reward_claim(self, kid_id: str, reward_id: str):
+        """Allow kid to undo their own reward claim (no stat tracking).
+
+        This method provides a way for kids to remove their pending reward claim
+        without it counting as a disapproval. Similar to disapprove_reward but:
+        - Does NOT track disapproval stats (no last_disapproved, no counters)
+        - Does NOT send notifications (silent undo)
+        - Only decrements pending_count
+
+        Args:
+            kid_id: The kid's internal ID
+            reward_id: The reward's internal ID
+
+        Raises:
+            HomeAssistantError: If kid or reward not found
+        """
+        reward_info = self.rewards_data.get(reward_id)
+        if not reward_info:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_REWARD,
+                    "name": reward_id,
+                },
+            )
+
+        kid_info = self.kids_data.get(kid_id)
+        if not kid_info:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_KID,
+                    "name": kid_id,
+                },
+            )
+
+        # Update kid_reward_data structure - only decrement pending_count
+        # Do NOT update last_disapproved, total_disapproved, or period counters
+        reward_entry = self._get_kid_reward_data(kid_id, reward_id, create=False)
+        if reward_entry:
+            reward_entry[const.DATA_KID_REWARD_DATA_PENDING_COUNT] = max(
+                0, reward_entry.get(const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0) - 1
+            )
+            # Explicitly skip stat tracking - no last_disapproved, no total_disapproved, no period updates
+
+        # No notification sent (silent undo)
 
         self._persist()
         self.async_set_updated_data(self._data)
