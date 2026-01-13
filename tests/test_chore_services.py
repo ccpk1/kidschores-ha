@@ -1104,9 +1104,7 @@ class TestSkipDueDateKidChoreDataFallback:
 
         # Set due date in kid's chore_data (for backward compat validation)
         kid_info = coordinator.kids_data.get(zoe_id, {})
-        kid_chore_data = kid_info.setdefault(DATA_KID_CHORE_DATA, {}).setdefault(
-            chore_id, {}
-        )
+        _ = kid_info.setdefault(DATA_KID_CHORE_DATA, {}).setdefault(chore_id, {})
 
         # Call skip for Zoë - should be no-op since per_kid_due_dates[zoe_id] is None
         # (modern coordinator only reads from per_kid_due_dates, not kid_chore_data)

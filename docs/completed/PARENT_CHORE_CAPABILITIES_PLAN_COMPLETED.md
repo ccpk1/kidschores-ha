@@ -9,15 +9,15 @@
 
 ## Summary & immediate steps
 
-| Phase / Step                  | Description                                        | % complete | Quick notes                                                                    |
-| ----------------------------- | -------------------------------------------------- | ---------- | ------------------------------------------------------------------------------ |
-| Phase 1 – Data Model          | Add parent capability flags + shadow kid constants | 100%       | ✅ Complete                                                                    |
-| Phase 2 – Shadow Kid Creation | Parent form checkboxes + auto-create shadow kid    | 100%       | ✅ Complete                                                                    |
-| Phase 3 – Button Logic        | Conditional button creation based on flags         | 100%       | ✅ Complete                                                                    |
-| Phase 4 – Gamification Toggle | Skip points/badges when disabled                   | 100%       | ✅ Complete (4.3 dashboard helper done)                                        |
-| Phase 4.5 – Config Flow Fix   | Shadow kid creation in initial setup               | 100%       | ✅ Complete (shared build_shadow_kid_data)                                     |
-| Phase 5 – Edge Cases          | Notifications, language, deletion cascade          | 100%       | ✅ Complete (notifications, language, deletion cascade, shadow kid protection) |
-| Phase 6 – Testing             | Comprehensive test coverage                        | 100%       | ✅ 22 shadow kid tests + 4 button tests = 26 tests total                       |
+| Phase / Step                  | Description                                        | % complete | Quick notes                                                                                           |
+| ----------------------------- | -------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------- |
+| Phase 1 – Data Model          | Add parent capability flags + shadow kid constants | 100%       | ✅ Complete                                                                                           |
+| Phase 2 – Shadow Kid Creation | Parent form checkboxes + auto-create shadow kid    | 100%       | ✅ Complete                                                                                           |
+| Phase 3 – Button Logic        | Conditional button creation based on flags         | 100%       | ✅ Complete                                                                                           |
+| Phase 4 – Gamification Toggle | Skip points/badges when disabled                   | 100%       | ✅ Complete (4.3 dashboard helper done)                                                               |
+| Phase 4.5 – Config Flow Fix   | Shadow kid creation in initial setup               | 100%       | ✅ Complete (shared build_shadow_kid_data)                                                            |
+| Phase 5 – Edge Cases          | Notifications, language, deletion cascade          | 100%       | ✅ Complete (notifications, language, deletion cascade, shadow kid protection)                        |
+| Phase 6 – Testing             | Comprehensive test coverage                        | 100%       | ✅ 22 shadow kid tests + 4 button tests = 26 tests total                                              |
 
 1. **Key objective** – Enable parents to have chores assigned to them by creating a "shadow kid" profile when they opt-in. By default, shadow kids get ONLY an Approve button (one-click PENDING→APPROVED). Optionally enable full claim/disapprove workflow and/or gamification (points/badges).
 

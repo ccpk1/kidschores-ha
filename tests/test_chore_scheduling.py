@@ -2609,3 +2609,157 @@ class TestPendingClaimActionBehavior:
         assert zoe_points_after == zoe_points_before + chore_points, (
             "auto_approve_pending should award points at reset"
         )
+
+
+# =============================================================================
+# TEST CLASS: Edge Cases - Approval Reset Types
+# =============================================================================
+
+
+class TestApprovalResetEdgeCases:
+    """Test edge cases and error conditions for approval reset types."""
+
+    @pytest.mark.asyncio
+    async def test_at_due_date_reset_without_due_date_once(
+        self,
+        hass: HomeAssistant,
+        scheduling_scenario: SetupResult,
+    ) -> None:
+        """Test: AT_DUE_DATE_ONCE reset type without due date should never reset.
+
+        Edge case: If a chore is configured with APPROVAL_RESET_AT_DUE_DATE_ONCE
+        but has no due date set, the chore should never reset and can only be
+        completed once ever (until manually reset or due date is added).
+        """
+        coordinator = scheduling_scenario.coordinator
+        zoe_id = scheduling_scenario.kid_ids["Zoë"]
+
+        # Create test chore with AT_DUE_DATE_ONCE but no due date
+        chore_id = await coordinator.create_chore(
+            name="No Due Date Reset Test",
+            assigned_kids=[zoe_id],
+            points=10.0,
+            icon="mdi:test-tube",
+            completion_criteria=COMPLETION_CRITERIA_INDEPENDENT,
+            recurring_frequency=FREQUENCY_DAILY,
+            auto_approve=False,
+            approval_reset_type=APPROVAL_RESET_AT_DUE_DATE_ONCE,
+            overdue_handling_type=OVERDUE_HANDLING_AT_DUE_DATE,
+            approval_reset_pending_claim_action=APPROVAL_RESET_PENDING_CLAIM_CLEAR,
+            # NOTE: No due_date parameter provided
+        )
+
+        # Verify no due date is set
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        assert chore_info.get(DATA_CHORE_DUE_DATE) is None, (
+            "Chore should have no due date"
+        )
+
+        # Initial state should be pending
+        assert get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_PENDING
+
+        # Should be able to claim initially
+        can_claim, _ = coordinator._can_claim_chore(zoe_id, chore_id)
+        assert can_claim, "Should be able to claim chore initially"
+
+        # Claim and approve the chore
+        result = await coordinator.claim_chore(zoe_id, chore_id)
+        assert result.success, f"Claim should succeed: {result.error_message}"
+
+        result = await coordinator.approve_chore(zoe_id, chore_id)
+        assert result.success, f"Approve should succeed: {result.error_message}"
+
+        assert (
+            get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_APPROVED
+        )
+
+        # Trigger daily reset (this should NOT reset the chore due to no due date)
+        await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
+
+        # State should remain APPROVED (not reset to PENDING)
+        assert (
+            get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_APPROVED
+        )
+
+        # Should NOT be able to claim again
+        can_claim, error_key = coordinator._can_claim_chore(zoe_id, chore_id)
+        assert not can_claim, (
+            "Should not be able to claim chore again without due date reset"
+        )
+        assert error_key == TRANS_KEY_ERROR_CHORE_ALREADY_APPROVED
+
+        # Should NOT be able to approve again
+        can_approve, error_key = coordinator._can_approve_chore(zoe_id, chore_id)
+        assert not can_approve, (
+            "Should not be able to approve chore again without due date reset"
+        )
+        assert error_key == TRANS_KEY_ERROR_CHORE_ALREADY_APPROVED
+
+    @pytest.mark.asyncio
+    async def test_at_due_date_reset_without_due_date_multi(
+        self,
+        hass: HomeAssistant,
+        scheduling_scenario: SetupResult,
+    ) -> None:
+        """Test: AT_DUE_DATE_MULTI reset type without due date allows multiple claims.
+
+        Edge case: If a chore is configured with APPROVAL_RESET_AT_DUE_DATE_MULTI
+        but has no due date set, the chore should allow multiple claims/approvals
+        immediately (acting like UPON_COMPLETION reset type).
+        """
+        coordinator = scheduling_scenario.coordinator
+        zoe_id = scheduling_scenario.kid_ids["Zoë"]
+
+        # Create test chore with AT_DUE_DATE_MULTI but no due date
+        chore_id = await coordinator.create_chore(
+            name="No Due Date Multi Test",
+            assigned_kids=[zoe_id],
+            points=5.0,
+            icon="mdi:test-tube",
+            completion_criteria=COMPLETION_CRITERIA_INDEPENDENT,
+            recurring_frequency=FREQUENCY_DAILY,
+            auto_approve=False,
+            approval_reset_type=APPROVAL_RESET_AT_DUE_DATE_MULTI,
+            overdue_handling_type=OVERDUE_HANDLING_AT_DUE_DATE,
+            approval_reset_pending_claim_action=APPROVAL_RESET_PENDING_CLAIM_CLEAR,
+            # NOTE: No due_date parameter provided
+        )
+
+        # Verify no due date is set
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        assert chore_info.get(DATA_CHORE_DUE_DATE) is None, (
+            "Chore should have no due date"
+        )
+
+        # Should allow multiple claims/approvals even without due date
+        for attempt in range(1, 4):  # Test 3 consecutive approvals
+            # Should be able to claim
+            can_claim, error_key = coordinator._can_claim_chore(zoe_id, chore_id)
+            assert can_claim, (
+                f"Attempt {attempt}: Should be able to claim chore (error: {error_key})"
+            )
+
+            # Claim and approve
+            result = await coordinator.claim_chore(zoe_id, chore_id)
+            assert result.success, (
+                f"Attempt {attempt}: Claim should succeed: {result.error_message}"
+            )
+
+            result = await coordinator.approve_chore(zoe_id, chore_id)
+            assert result.success, (
+                f"Attempt {attempt}: Approve should succeed: {result.error_message}"
+            )
+
+            assert (
+                get_kid_chore_state(coordinator, zoe_id, chore_id)
+                == CHORE_STATE_APPROVED
+            )
+
+        # After multiple approvals, trigger reset should not change behavior
+        await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
+
+        # Should still be able to claim again (MULTI allows multiple claims)
+        can_claim, error_key = coordinator._can_claim_chore(zoe_id, chore_id)
+        assert can_claim, (
+            f"After reset: Should still be able to claim chore (error: {error_key})"
+        )

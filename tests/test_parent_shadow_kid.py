@@ -22,6 +22,10 @@ This module tests the parent-as-kid functionality via shadow kid profiles:
    - enable_chore_workflow controls claim/approve buttons
    - enable_gamification controls points/badges
 
+5. Deletion behaviors:
+   - Deleting shadow kid directly disables parent's allow_chore_assignment
+   - Deleting parent cascades to delete linked shadow kid
+
 See tests/AGENT_TEST_CREATION_INSTRUCTIONS.md for patterns used.
 """
 
@@ -486,4 +490,191 @@ class TestDataIntegrity:
         )
         assert sarah_attrs.get("gamification_enabled") is True, (
             "Regular kids always have gamification"
+        )
+
+
+# ============================================================================
+# DELETION TESTS
+# ============================================================================
+
+
+class TestShadowKidDeletion:
+    """Test deletion behaviors for shadow kids and their linked parents.
+
+    Tests verify:
+    1. Direct shadow kid deletion disables parent's allow_chore_assignment
+    2. Parent deletion cascades to delete linked shadow kid
+    3. Regular kid deletion is unaffected by shadow kid logic
+    """
+
+    async def test_delete_shadow_kid_disables_parent_chore_assignment(
+        self,
+        hass: HomeAssistant,
+        shadow_kid_scenario: SetupResult,
+    ) -> None:
+        """Deleting shadow kid directly should disable parent's chore assignment.
+
+        Expected behavior:
+        1. Find Dad's shadow kid
+        2. Delete shadow kid via coordinator.delete_kid_entity()
+        3. Parent's allow_chore_assignment should be False
+        4. Parent's linked_shadow_kid_id should be None
+        5. Shadow kid should no longer exist in kids_data
+        """
+        coordinator = shadow_kid_scenario.coordinator
+
+        # Find Dad and his shadow kid
+        dad_id, dad_data = get_parent_by_name(coordinator, "Dad Leo")
+        shadow_kid_id = dad_data.get(DATA_PARENT_LINKED_SHADOW_KID_ID)
+        assert shadow_kid_id is not None, "Dad should have a shadow kid"
+        assert shadow_kid_id in coordinator.kids_data, "Shadow kid should exist"
+
+        # Verify initial state
+        assert dad_data.get(DATA_PARENT_ALLOW_CHORE_ASSIGNMENT) is True
+
+        # Delete the shadow kid directly
+        coordinator.delete_kid_entity(shadow_kid_id)
+
+        # Refresh parent data
+        _, updated_dad_data = get_parent_by_name(coordinator, "Dad Leo")
+
+        # Verify: Parent's chore assignment flag disabled
+        assert updated_dad_data.get(DATA_PARENT_ALLOW_CHORE_ASSIGNMENT) is False, (
+            "Parent's allow_chore_assignment should be disabled after shadow kid deletion"
+        )
+
+        # Verify: Parent's link cleared
+        assert updated_dad_data.get(DATA_PARENT_LINKED_SHADOW_KID_ID) is None, (
+            "Parent's linked_shadow_kid_id should be None after shadow kid deletion"
+        )
+
+        # Verify: Shadow kid removed from kids_data
+        assert shadow_kid_id not in coordinator.kids_data, (
+            "Shadow kid should be removed from kids_data"
+        )
+
+    async def test_delete_parent_cascades_to_shadow_kid(
+        self,
+        hass: HomeAssistant,
+        shadow_kid_scenario: SetupResult,
+    ) -> None:
+        """Deleting parent with shadow kid should cascade delete the shadow kid.
+
+        Expected behavior:
+        1. Find Dad and his shadow kid
+        2. Delete parent via coordinator.delete_parent_entity()
+        3. Shadow kid should also be deleted
+        4. Parent should no longer exist
+        """
+        coordinator = shadow_kid_scenario.coordinator
+
+        # Find Dad and his shadow kid
+        dad_id, dad_data = get_parent_by_name(coordinator, "Dad Leo")
+        shadow_kid_id = dad_data.get(DATA_PARENT_LINKED_SHADOW_KID_ID)
+        assert shadow_kid_id is not None, "Dad should have a shadow kid"
+        assert shadow_kid_id in coordinator.kids_data, "Shadow kid should exist"
+        assert dad_id in coordinator.parents_data, "Dad should exist"
+
+        # Delete the parent
+        coordinator.delete_parent_entity(dad_id)
+
+        # Verify: Parent removed
+        assert dad_id not in coordinator.parents_data, (
+            "Parent should be removed from parents_data"
+        )
+
+        # Verify: Shadow kid cascade deleted
+        assert shadow_kid_id not in coordinator.kids_data, (
+            "Shadow kid should be cascade deleted when parent is deleted"
+        )
+
+    async def test_delete_parent_without_shadow_kid(
+        self,
+        hass: HomeAssistant,
+        shadow_kid_scenario: SetupResult,
+    ) -> None:
+        """Deleting parent without shadow kid should work normally.
+
+        Expected behavior:
+        1. Find Mom (no shadow kid)
+        2. Delete parent via coordinator.delete_parent_entity()
+        3. Parent should be deleted
+        4. No cascade effects
+        """
+        coordinator = shadow_kid_scenario.coordinator
+
+        # Find Mom (no shadow kid)
+        mom_id, mom_data = get_parent_by_name(coordinator, "Môm Astrid Stârblüm")
+        assert mom_data.get(DATA_PARENT_LINKED_SHADOW_KID_ID) is None, (
+            "Mom should not have a shadow kid"
+        )
+        assert mom_id in coordinator.parents_data, "Mom should exist"
+
+        # Count kids before deletion
+        kids_count_before = len(coordinator.kids_data)
+
+        # Delete the parent
+        coordinator.delete_parent_entity(mom_id)
+
+        # Verify: Parent removed
+        assert mom_id not in coordinator.parents_data, (
+            "Parent should be removed from parents_data"
+        )
+
+        # Verify: No kids affected
+        assert len(coordinator.kids_data) == kids_count_before, (
+            "No kids should be affected when deleting parent without shadow kid"
+        )
+
+    async def test_delete_regular_kid_unaffected_by_shadow_logic(
+        self,
+        hass: HomeAssistant,
+        shadow_kid_scenario: SetupResult,
+    ) -> None:
+        """Deleting regular kid should work normally without shadow kid logic.
+
+        Expected behavior:
+        1. Find Zoë (regular kid)
+        2. Delete kid via coordinator.delete_kid_entity()
+        3. Kid should be deleted
+        4. Parents unaffected
+        """
+        coordinator = shadow_kid_scenario.coordinator
+
+        # Find Zoë (regular kid)
+        zoe_id, zoe_data = get_kid_by_name(coordinator, "Zoë")
+        assert zoe_data.get(DATA_KID_IS_SHADOW, False) is False, (
+            "Zoë should not be a shadow kid"
+        )
+        assert zoe_id in coordinator.kids_data, "Zoë should exist"
+
+        # Count parents before deletion
+        parents_count_before = len(coordinator.parents_data)
+
+        # Find Dad's shadow kid (should remain after Zoë deletion)
+        dad_id, dad_data = get_parent_by_name(coordinator, "Dad Leo")
+        shadow_kid_id = dad_data.get(DATA_PARENT_LINKED_SHADOW_KID_ID)
+
+        # Delete the regular kid
+        coordinator.delete_kid_entity(zoe_id)
+
+        # Verify: Kid removed
+        assert zoe_id not in coordinator.kids_data, (
+            "Regular kid should be removed from kids_data"
+        )
+
+        # Verify: Parents unaffected
+        assert len(coordinator.parents_data) == parents_count_before, (
+            "No parents should be affected when deleting regular kid"
+        )
+
+        # Verify: Shadow kid still exists
+        assert shadow_kid_id in coordinator.kids_data, (
+            "Shadow kid should not be affected by regular kid deletion"
+        )
+
+        # Verify: Dad's allow_chore_assignment still True
+        _, updated_dad = get_parent_by_name(coordinator, "Dad Leo")
+        assert updated_dad.get(DATA_PARENT_ALLOW_CHORE_ASSIGNMENT) is True, (
+            "Dad's allow_chore_assignment should remain True"
         )

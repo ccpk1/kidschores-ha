@@ -1951,6 +1951,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     def delete_kid_entity(self, kid_id: str) -> None:
         """Delete kid from storage and cleanup references.
 
+        For shadow kids (parent-linked profiles), this disables the parent's
+        chore assignment flag and uses the existing shadow kid cleanup flow.
+
         Args:
             kid_id: Internal ID of the kid to delete
         """
@@ -1964,7 +1967,32 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 },
             )
 
-        kid_name = self._data[const.DATA_KIDS][kid_id].get(const.DATA_KID_NAME, kid_id)
+        kid_info = self._data[const.DATA_KIDS][kid_id]
+        kid_name = kid_info.get(const.DATA_KID_NAME, kid_id)
+
+        # Shadow kid handling: disable parent flag and use existing cleanup
+        if kid_info.get(const.DATA_KID_IS_SHADOW, False):
+            parent_id = kid_info.get(const.DATA_KID_LINKED_PARENT_ID)
+            if parent_id and parent_id in self._data.get(const.DATA_PARENTS, {}):
+                # Disable chore assignment on parent and clear link
+                self._data[const.DATA_PARENTS][parent_id][
+                    const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT
+                ] = False
+                self._data[const.DATA_PARENTS][parent_id][
+                    const.DATA_PARENT_LINKED_SHADOW_KID_ID
+                ] = None
+            # Use existing shadow kid cleanup (removes kid + entities)
+            self._delete_shadow_kid(kid_id)
+            self._persist()
+            self.async_update_listeners()
+            const.LOGGER.info(
+                "INFO: Deleted shadow kid '%s' (ID: %s) via parent flag disable",
+                kid_name,
+                kid_id,
+            )
+            return  # Done - don't continue to normal kid deletion
+
+        # Normal kid deletion continues below
         del self._data[const.DATA_KIDS][kid_id]
 
         # Remove HA entities
@@ -1995,7 +2023,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self.async_update_listeners()
 
     def delete_parent_entity(self, parent_id: str) -> None:
-        """Delete parent from storage."""
+        """Delete parent from storage.
+
+        Cascades deletion to any linked shadow kid before removing the parent.
+        """
         if parent_id not in self._data.get(const.DATA_PARENTS, {}):
             raise HomeAssistantError(
                 translation_domain=const.DOMAIN,
@@ -2006,9 +2037,17 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 },
             )
 
-        parent_name = self._data[const.DATA_PARENTS][parent_id].get(
-            const.DATA_PARENT_NAME, parent_id
-        )
+        parent_data = self._data[const.DATA_PARENTS][parent_id]
+        parent_name = parent_data.get(const.DATA_PARENT_NAME, parent_id)
+
+        # Cascade delete shadow kid if exists
+        shadow_kid_id = parent_data.get(const.DATA_PARENT_LINKED_SHADOW_KID_ID)
+        if shadow_kid_id:
+            self._delete_shadow_kid(shadow_kid_id)
+            const.LOGGER.info(
+                "INFO: Cascade deleted shadow kid for parent '%s'", parent_name
+            )
+
         del self._data[const.DATA_PARENTS][parent_id]
 
         self._persist()
