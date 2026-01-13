@@ -42,7 +42,6 @@ from tests.helpers import (
     DATA_CHORE_PER_KID_DUE_DATES,
     DATA_KID_CHORE_DATA,
     DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START,
-    DATA_KID_CHORE_DATA_DUE_DATE_LEGACY,
     DATA_KID_CHORE_DATA_STATE,
     DATA_KID_POINTS,
     DOMAIN,
@@ -102,9 +101,9 @@ def get_kid_chore_data_due_date(
     coordinator: Any, kid_id: str, chore_id: str
 ) -> str | None:
     """Get due date from kid's chore data."""
-    kid_info = coordinator.kids_data.get(kid_id, {})
-    kid_chore_data = kid_info.get(DATA_KID_CHORE_DATA, {}).get(chore_id, {})
-    return kid_chore_data.get(DATA_KID_CHORE_DATA_DUE_DATE_LEGACY)
+    chore_info = coordinator._data.get("chores", {}).get(chore_id, {})
+    per_kid_due_dates = chore_info.get(DATA_CHORE_PER_KID_DUE_DATES, {})
+    return per_kid_due_dates.get(kid_id)
 
 
 def get_kid_points(coordinator: Any, kid_id: str) -> float:
@@ -144,7 +143,6 @@ def set_chore_due_date_to_past(
             kid_info = coordinator.kids_data.get(kid_id, {})
             kid_chore_data = kid_info.get(DATA_KID_CHORE_DATA, {}).get(chore_id, {})
             if kid_chore_data:
-                kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] = past_date_iso
                 kid_chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = (
                     period_start_iso
                 )
@@ -154,7 +152,6 @@ def set_chore_due_date_to_past(
                 kid_info = coordinator.kids_data.get(assigned_kid_id, {})
                 kid_chore_data = kid_info.get(DATA_KID_CHORE_DATA, {}).get(chore_id, {})
                 if kid_chore_data:
-                    kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] = past_date_iso
                     kid_chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = (
                         period_start_iso
                     )
@@ -1059,11 +1056,6 @@ class TestSkipDueDateNullHandling:
         # Clear all due dates
         chore_info[DATA_CHORE_PER_KID_DUE_DATES] = {}
 
-        # Also clear kid's chore data due date
-        kid_info = coordinator.kids_data.get(zoe_id, {})
-        kid_chore_data = kid_info.get(DATA_KID_CHORE_DATA, {}).get(chore_id, {})
-        kid_chore_data.pop(DATA_KID_CHORE_DATA_DUE_DATE_LEGACY, None)
-
         # Call skip - should be a no-op (not crash)
         coordinator.skip_chore_due_date(chore_id, kid_id=zoe_id)
 
@@ -1115,12 +1107,9 @@ class TestSkipDueDateKidChoreDataFallback:
         kid_chore_data = kid_info.setdefault(DATA_KID_CHORE_DATA, {}).setdefault(
             chore_id, {}
         )
-        kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] = (
-            "2026-01-15T14:00:00+00:00"
-        )
 
         # Call skip for Zoë - should be no-op since per_kid_due_dates[zoe_id] is None
-        # (the kid_chore_data is only used for existence validation, not as skip source)
+        # (modern coordinator only reads from per_kid_due_dates, not kid_chore_data)
         coordinator.skip_chore_due_date(chore_id, kid_id=zoe_id)
 
         # Zoë's per_kid_due_dates should still be None (no skip occurred)

@@ -10134,6 +10134,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     ) -> None:
         """Notify parents using translated title and message.
 
+        Each parent receives notifications in their own preferred language.
+
         Args:
             kid_id: The internal ID of the kid (to find associated parents)
             title_key: Translation key for the notification title
@@ -10142,72 +10144,140 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             actions: Optional list of notification actions
             extra_data: Optional extra data for mobile notifications
         """
-        # Load notification translations using kid's language
-        # (parent likely speaks same language as their child)
-        kid_info = self.kids_data.get(kid_id, {})
-        language = kid_info.get(
-            const.DATA_KID_DASHBOARD_LANGUAGE,
-            self.hass.config.language,
-        )
-        const.LOGGER.debug(
-            "Parent notification: kid_id=%s, language=%s, title_key=%s",
-            kid_id,
-            language,
-            title_key,
-        )
-        translations = await kh.load_notification_translation(self.hass, language)
-        const.LOGGER.debug(
-            "Parent notification translations loaded: %d keys, language=%s",
-            len(translations),
-            language,
-        )
+        # PERF: Measure parent notification latency
+        perf_start = time.perf_counter()
+        parent_count = 0
 
-        # Convert const key to JSON key by removing prefix
-        # e.g., "notification_title_chore_assigned" -> "chore_assigned"
-        json_key = title_key.replace("notification_title_", "").replace(
-            "notification_message_", ""
-        )
+        # Notify each parent in their own language
+        for parent_id, parent_info in self.parents_data.items():
+            if kid_id not in parent_info.get(const.DATA_PARENT_ASSOCIATED_KIDS, []):
+                continue
+            if not parent_info.get(const.DATA_PARENT_ENABLE_NOTIFICATIONS, True):
+                const.LOGGER.debug(
+                    "DEBUG: Notification - Notifications disabled for Parent ID '%s'",
+                    parent_id,
+                )
+                continue
 
-        # Look up translations from the loaded notification file
-        notification = translations.get(json_key, {})
-        title = notification.get("title", title_key)
-        message_template = notification.get("message", message_key)
-
-        # Format message with placeholders
-        try:
-            message = message_template.format(**(message_data or {}))
-        except KeyError as err:
-            const.LOGGER.warning(
-                "Missing placeholder %s for notification '%s'",
-                err,
-                json_key,
+            # Use parent's language preference (fallback to kid's language, then system language)
+            parent_language = parent_info.get(
+                const.DATA_PARENT_DASHBOARD_LANGUAGE,
+                self.kids_data.get(kid_id, {}).get(
+                    const.DATA_KID_DASHBOARD_LANGUAGE,
+                    self.hass.config.language,
+                ),
             )
-            message = message_template  # Use template without formatting
 
-        # Translate action button titles
-        translated_actions = None
-        if actions:
-            # Get action translations from the "actions" section
-            action_translations = translations.get("actions", {})
-            translated_actions = []
-            for action in actions:
-                translated_action = action.copy()
-                action_title_key = action.get(const.NOTIFY_TITLE, "")
-                # Convert "notif_action_approve" -> "approve"
-                action_key = action_title_key.replace("notif_action_", "")
-                # Look up translation, fallback to key
-                translated_title = action_translations.get(action_key, action_title_key)
-                translated_action[const.NOTIFY_TITLE] = translated_title
-                translated_actions.append(translated_action)
             const.LOGGER.debug(
-                "Translated action buttons: %s -> %s",
-                [a.get(const.NOTIFY_TITLE) for a in actions],
-                [a.get(const.NOTIFY_TITLE) for a in translated_actions],
+                "Parent notification: kid_id=%s, parent_id=%s, language=%s, title_key=%s",
+                kid_id,
+                parent_id,
+                parent_language,
+                title_key,
             )
 
-        # Call original notification method
-        await self._notify_parents(
-            kid_id, title, message, translated_actions, extra_data
+            # Load notification translations for this parent's language
+            translations = await kh.load_notification_translation(
+                self.hass, parent_language
+            )
+            const.LOGGER.debug(
+                "Parent notification translations loaded: %d keys, language=%s",
+                len(translations),
+                parent_language,
+            )
+
+            # Convert const key to JSON key by removing prefix
+            # e.g., "notification_title_chore_assigned" -> "chore_assigned"
+            json_key = title_key.replace("notification_title_", "").replace(
+                "notification_message_", ""
+            )
+
+            # Look up translations from the loaded notification file
+            notification = translations.get(json_key, {})
+            title = notification.get("title", title_key)
+            message_template = notification.get("message", message_key)
+
+            # Format message with placeholders
+            try:
+                message = message_template.format(**(message_data or {}))
+            except KeyError as err:
+                const.LOGGER.warning(
+                    "Missing placeholder %s for notification '%s'",
+                    err,
+                    json_key,
+                )
+                message = message_template  # Use template without formatting
+
+            # Translate action button titles
+            translated_actions = None
+            if actions:
+                # Get action translations from the "actions" section
+                action_translations = translations.get("actions", {})
+                translated_actions = []
+                for action in actions:
+                    translated_action = action.copy()
+                    action_title_key = action.get(const.NOTIFY_TITLE, "")
+                    # Convert "notif_action_approve" -> "approve"
+                    action_key = action_title_key.replace("notif_action_", "")
+                    # Look up translation, fallback to key
+                    translated_title = action_translations.get(
+                        action_key, action_title_key
+                    )
+                    translated_action[const.NOTIFY_TITLE] = translated_title
+                    translated_actions.append(translated_action)
+                const.LOGGER.debug(
+                    "Translated action buttons for parent %s: %s -> %s",
+                    parent_id,
+                    [a.get(const.NOTIFY_TITLE) for a in actions],
+                    [a.get(const.NOTIFY_TITLE) for a in translated_actions],
+                )
+
+            # Send notification to this specific parent
+            mobile_enabled = parent_info.get(
+                const.DATA_PARENT_ENABLE_NOTIFICATIONS, True
+            )
+            persistent_enabled = parent_info.get(
+                const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS, True
+            )
+            mobile_notify_service = parent_info.get(
+                const.DATA_PARENT_MOBILE_NOTIFY_SERVICE, const.SENTINEL_EMPTY
+            )
+
+            if mobile_enabled and mobile_notify_service:
+                parent_count += 1
+                await async_send_notification(
+                    self.hass,
+                    mobile_notify_service,
+                    title,
+                    message,
+                    actions=translated_actions,
+                    extra_data=extra_data,
+                )
+            elif persistent_enabled:
+                parent_count += 1
+                await self.hass.services.async_call(
+                    const.NOTIFY_PERSISTENT_NOTIFICATION,
+                    const.NOTIFY_CREATE,
+                    {
+                        const.NOTIFY_TITLE: title,
+                        const.NOTIFY_MESSAGE: message,
+                        const.NOTIFY_NOTIFICATION_ID: f"parent_{parent_id}",
+                    },
+                    blocking=True,
+                )
+            else:
+                const.LOGGER.debug(
+                    "DEBUG: Notification - No notification method configured for Parent ID '%s'",
+                    parent_id,
+                )
+
+        # PERF: Log parent notification latency
+        perf_duration = time.perf_counter() - perf_start
+        const.LOGGER.debug(
+            "PERF: _notify_parents_translated() sent %d notifications in %.3fs (avg %.3fs/parent)",
+            parent_count,
+            perf_duration,
+            perf_duration / parent_count if parent_count > 0 else 0,
         )
 
     async def remind_in_minutes(

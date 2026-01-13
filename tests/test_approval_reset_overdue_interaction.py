@@ -32,7 +32,6 @@ from custom_components.kidschores.const import (
     DATA_CHORE_PER_KID_DUE_DATES,
     DATA_KID_CHORE_DATA,
     DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START,
-    DATA_KID_CHORE_DATA_DUE_DATE_LEGACY,
 )
 from tests.helpers.setup import SetupResult, setup_from_yaml
 
@@ -101,7 +100,6 @@ def set_chore_due_date_to_past(
             kid_info = coordinator.kids_data.get(kid_id, {})
             kid_chore_data = kid_info.get(DATA_KID_CHORE_DATA, {}).get(chore_id, {})
             if kid_chore_data:
-                kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] = past_date_iso
                 kid_chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = (
                     period_start_iso
                 )
@@ -111,7 +109,6 @@ def set_chore_due_date_to_past(
                 kid_info = coordinator.kids_data.get(assigned_kid_id, {})
                 kid_chore_data = kid_info.get(DATA_KID_CHORE_DATA, {}).get(chore_id, {})
                 if kid_chore_data:
-                    kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] = past_date_iso
                     kid_chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = (
                         period_start_iso
                     )

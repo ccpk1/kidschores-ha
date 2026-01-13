@@ -112,7 +112,6 @@ from tests.helpers import (
     DATA_CHORE_RECURRING_FREQUENCY,
     DATA_KID_CHORE_DATA,
     DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START,
-    DATA_KID_CHORE_DATA_DUE_DATE_LEGACY,
     DATA_KID_CHORE_DATA_STATE,
     # Data keys - kid
     DATA_KID_NAME,
@@ -207,7 +206,6 @@ def set_chore_due_date_to_past(
             kid_info = coordinator.kids_data.get(kid_id, {})
             kid_chore_data = kid_info.get(DATA_KID_CHORE_DATA, {}).get(chore_id, {})
             if kid_chore_data:
-                kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] = past_date_iso
                 kid_chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = (
                     period_start_iso
                 )
@@ -218,7 +216,6 @@ def set_chore_due_date_to_past(
                 kid_info = coordinator.kids_data.get(assigned_kid_id, {})
                 kid_chore_data = kid_info.get(DATA_KID_CHORE_DATA, {}).get(chore_id, {})
                 if kid_chore_data:
-                    kid_chore_data[DATA_KID_CHORE_DATA_DUE_DATE_LEGACY] = past_date_iso
                     kid_chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = (
                         period_start_iso
                     )

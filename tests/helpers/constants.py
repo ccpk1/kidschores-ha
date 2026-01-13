@@ -388,7 +388,6 @@ from custom_components.kidschores.const import (
     # DATA KEYS - KID CHORE DATA
     # =========================================================================
     DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START,
-    DATA_KID_CHORE_DATA_DUE_DATE_LEGACY,
     DATA_KID_CHORE_DATA_LAST_APPROVED,
     DATA_KID_CHORE_DATA_LAST_CLAIMED,
     DATA_KID_CHORE_DATA_LAST_DISAPPROVED,
@@ -413,9 +412,11 @@ from custom_components.kidschores.const import (
     # DATA KEYS - PARENT FIELDS (Shadow Kid Support)
     # =========================================================================
     DATA_PARENT_ALLOW_CHORE_ASSIGNMENT,
+    DATA_PARENT_DASHBOARD_LANGUAGE,
     DATA_PARENT_ENABLE_CHORE_WORKFLOW,
     DATA_PARENT_ENABLE_GAMIFICATION,
     DATA_PARENT_ENABLE_NOTIFICATIONS,
+    DATA_PARENT_MOBILE_NOTIFY_SERVICE,
     DATA_PARENT_HA_USER_ID,
     DATA_PARENT_LINKED_SHADOW_KID_ID,
     DATA_PARENT_NAME,
@@ -493,8 +494,6 @@ from custom_components.kidschores.const import (
     # =========================================================================
     # LEGACY CONF KEYS (for migration tests)
     # =========================================================================
-    CONF_ENABLE_MOBILE_NOTIFICATIONS_LEGACY,
-    CONF_MOBILE_NOTIFY_SERVICE_LEGACY,
 )
 
 

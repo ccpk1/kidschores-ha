@@ -31,11 +31,11 @@ import pytest
 
 from tests.helpers import (
     ACTION_APPROVE_CHORE,
-    CONF_ENABLE_MOBILE_NOTIFICATIONS_LEGACY,
-    CONF_MOBILE_NOTIFY_SERVICE_LEGACY,
     DATA_KID_DASHBOARD_LANGUAGE,
     DATA_KIDS,
+    DATA_PARENT_DASHBOARD_LANGUAGE,
     DATA_PARENT_ENABLE_NOTIFICATIONS,
+    DATA_PARENT_MOBILE_NOTIFY_SERVICE,
     DATA_PARENTS,
 )
 from tests.helpers.setup import SetupResult, setup_from_yaml
@@ -150,12 +150,10 @@ def enable_parent_notifications(
         parent_id: Internal ID of the parent to enable notifications for
     """
     # Enable mobile notifications
-    coordinator._data[DATA_PARENTS][parent_id][
-        CONF_ENABLE_MOBILE_NOTIFICATIONS_LEGACY
-    ] = True
+    coordinator._data[DATA_PARENTS][parent_id][DATA_PARENT_ENABLE_NOTIFICATIONS] = True
 
     # Set a mock notify service
-    coordinator._data[DATA_PARENTS][parent_id][CONF_MOBILE_NOTIFY_SERVICE_LEGACY] = (
+    coordinator._data[DATA_PARENTS][parent_id][DATA_PARENT_MOBILE_NOTIFY_SERVICE] = (
         "notify.notify"
     )
 
@@ -241,7 +239,7 @@ class TestChoreClaimNotifications:
             "Notifications should be enabled through config flow"
         )
         assert (
-            parent_data.get(CONF_MOBILE_NOTIFY_SERVICE_LEGACY)
+            parent_data.get(DATA_PARENT_MOBILE_NOTIFY_SERVICE)
             == "notify.mobile_app_mom_astrid_starblum"
         ), "Mobile notify service should be set through config flow"
 
@@ -384,20 +382,29 @@ class TestNotificationLanguage:
         )
 
     @pytest.mark.asyncio
-    async def test_slovak_kid_gets_slovak_actions(
+    async def test_parent_gets_parent_language_not_kid_language(
         self,
         hass: HomeAssistant,
         scenario_notifications: SetupResult,
     ) -> None:
-        """Kid with dashboard_language='sk' triggers Slovak action buttons."""
+        """Parent notifications use parent's language, not kid's language."""
         coordinator = scenario_notifications.coordinator
-        kid_id = scenario_notifications.kid_ids["Max!"]  # Slovak language
+        kid_id = scenario_notifications.kid_ids["Max!"]  # Slovak language kid
         chore_id = scenario_notifications.chore_ids["Clean room"]
 
         # Verify kid is configured for Slovak
         kid_lang = coordinator._data[DATA_KIDS][kid_id].get(DATA_KID_DASHBOARD_LANGUAGE)
         assert kid_lang == "sk", f"Expected kid language 'sk', got '{kid_lang}'"
 
+        # Verify parent is configured for English
+        parent_id = list(coordinator._data[DATA_PARENTS].keys())[0]  # Get first parent
+        parent_lang = coordinator._data[DATA_PARENTS][parent_id].get(
+            DATA_PARENT_DASHBOARD_LANGUAGE
+        )
+        assert parent_lang == "en", (
+            f"Expected parent language 'en', got '{parent_lang}'"
+        )
+
         # Notifications enabled through config flow (mock services registered by fixture)
         capture = NotificationCapture()
 
@@ -408,37 +415,46 @@ class TestNotificationLanguage:
             coordinator.claim_chore(kid_id, chore_id, "Max!")
             await hass.async_block_till_done()
 
-        # Get expected Slovak action titles
+        # Get expected English action titles (parent's language, not kid's)
         try:
-            expected_actions = get_action_titles("sk")
+            expected_actions = get_action_titles("en")
             expected_titles = set(expected_actions.values())
         except FileNotFoundError:
-            pytest.skip("Slovak translations not available")
+            pytest.skip("English translations not available")
 
-        # Verify action buttons are in Slovak
+        # Verify action buttons are in English (parent's language)
         actual_titles = capture.get_action_titles()
 
-        # At least one expected Slovak title should appear
+        # At least one expected English title should appear
         matching = actual_titles & expected_titles
         assert len(matching) > 0, (
-            f"Expected Slovak action titles {expected_titles}, but got {actual_titles}"
+            f"Expected English action titles (parent's language) {expected_titles}, but got {actual_titles}"
         )
 
     @pytest.mark.asyncio
-    async def test_notification_uses_kid_language_not_system(
+    async def test_notification_uses_parent_language_not_system(
         self,
         hass: HomeAssistant,
         scenario_notifications: SetupResult,
     ) -> None:
-        """Parent notifications use kid's language, not HA system language."""
+        """Parent notifications use parent's language, not HA system language."""
         coordinator = scenario_notifications.coordinator
 
         # Verify HA system language is English (default)
         assert hass.config.language == "en", "Test expects HA system to be English"
 
-        # Claim chore for Slovak kid
+        # Claim chore for Slovak kid, but parent should get English notification
         kid_id = scenario_notifications.kid_ids["Max!"]  # Slovak
         chore_id = scenario_notifications.chore_ids["Clean room"]
+
+        # Verify parent is configured for English (same as system in this case)
+        parent_id = list(coordinator._data[DATA_PARENTS].keys())[0]  # Get first parent
+        parent_lang = coordinator._data[DATA_PARENTS][parent_id].get(
+            DATA_PARENT_DASHBOARD_LANGUAGE
+        )
+        assert parent_lang == "en", (
+            f"Expected parent language 'en', got '{parent_lang}'"
+        )
 
         # Notifications enabled through config flow (mock services registered by fixture)
         capture = NotificationCapture()
@@ -450,8 +466,8 @@ class TestNotificationLanguage:
             coordinator.claim_chore(kid_id, chore_id, "Max!")
             await hass.async_block_till_done()
 
-        # Actions should NOT be English (system language)
-        # They should be Slovak (kid's language)
+        # Actions should be English (parent's language)
+        # They should NOT be Slovak (kid's language)
         try:
             english_actions = get_action_titles("en")
             english_titles = set(english_actions.values())
@@ -463,15 +479,15 @@ class TestNotificationLanguage:
 
         actual_titles = capture.get_action_titles()
 
-        # Verify Slovak titles are used, not English
+        # Verify English titles are used (parent's language), not Slovak
         english_match = actual_titles & english_titles
         slovak_match = actual_titles & slovak_titles
 
-        # If languages have different translations, Slovak should match
+        # If languages have different translations, English should match
         if english_titles != slovak_titles:
-            assert len(slovak_match) > len(english_match), (
-                f"Expected Slovak titles (kid's language), not English (system). "
-                f"Got: {actual_titles}, Slovak: {slovak_titles}, English: {english_titles}"
+            assert len(english_match) > len(slovak_match), (
+                f"Expected English titles (parent's language), not Slovak (kid's language). "
+                f"Got: {actual_titles}, English: {english_titles}, Slovak: {slovak_titles}"
             )
 
 
