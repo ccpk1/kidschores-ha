@@ -6,7 +6,7 @@ This module provides reusable utilities for both config flow and options flow te
 3. Common flow navigation patterns
 
 Usage:
-    from tests.flow_test_helpers import FlowTestHelper
+    from tests.helpers.flow_test_helpers import FlowTestHelper
 
     # Convert YAML kid to form data
     form_data = FlowTestHelper.build_kid_form_data(yaml_kid)

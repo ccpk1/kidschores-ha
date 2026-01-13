@@ -38,7 +38,7 @@ import yaml
 
 from custom_components.kidschores import const
 from custom_components.kidschores.coordinator import KidsChoresDataCoordinator
-from tests.flow_test_helpers import FlowTestHelper
+from tests.helpers.flow_test_helpers import FlowTestHelper
 
 _LOGGER = logging.getLogger(__name__)
 

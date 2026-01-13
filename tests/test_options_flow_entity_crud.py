@@ -57,7 +57,7 @@ from tests.helpers import (
 )
 from tests.helpers.setup import SetupResult
 
-from .flow_test_helpers import FlowTestHelper
+from tests.helpers.flow_test_helpers import FlowTestHelper
 
 # =========================================================================
 # Fixtures
