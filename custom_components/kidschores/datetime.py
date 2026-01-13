@@ -75,7 +75,9 @@ class KidDashboardHelperDateTimePicker(DateTimeEntity, RestoreEntity):
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, entry
+        )
 
         # Default to tomorrow at noon
         default_time = dt_util.now() + timedelta(days=1)

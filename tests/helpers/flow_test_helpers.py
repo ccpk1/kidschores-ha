@@ -77,7 +77,10 @@ from tests.helpers import (
     CFOF_KIDS_INPUT_KID_NAME,
     CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE,
     # Config/Options flow field names - Parents
+    CFOF_PARENTS_INPUT_ALLOW_CHORE_ASSIGNMENT,
     CFOF_PARENTS_INPUT_ASSOCIATED_KIDS,
+    CFOF_PARENTS_INPUT_ENABLE_CHORE_WORKFLOW,
+    CFOF_PARENTS_INPUT_ENABLE_GAMIFICATION,
     CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS,
     CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS,
     CFOF_PARENTS_INPUT_HA_USER,
@@ -98,8 +101,12 @@ from tests.helpers import (
     DOMAIN,
     # Options flow navigation constants
     OPTIONS_FLOW_ACTIONS_ADD,
+    OPTIONS_FLOW_ACTIONS_EDIT,
+    OPTIONS_FLOW_INPUT_ENTITY_NAME,
     OPTIONS_FLOW_INPUT_MANAGE_ACTION,
     OPTIONS_FLOW_INPUT_MENU_SELECTION,
+    # Sentinel values
+    SENTINEL_NO_SELECTION,
 )
 
 
@@ -120,18 +127,24 @@ class FlowTestHelper:
         Returns:
             Dictionary suitable for flow.async_configure() user_input
         """
+        # Convert empty string to sentinel (HA SelectSelector issue)
+        ha_user = yaml_kid.get("ha_user_name", SENTINEL_NO_SELECTION)
+        if ha_user == "":
+            ha_user = SENTINEL_NO_SELECTION
+        # Convert empty mobile_notify_service to sentinel
+        notify_service = yaml_kid.get("mobile_notify_service", SENTINEL_NO_SELECTION)
+        if notify_service == "":
+            notify_service = SENTINEL_NO_SELECTION
         return {
             CFOF_KIDS_INPUT_KID_NAME: yaml_kid["name"],
-            CFOF_KIDS_INPUT_HA_USER: yaml_kid.get("ha_user_name", ""),
+            CFOF_KIDS_INPUT_HA_USER: ha_user,
             CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE: yaml_kid.get(
                 "dashboard_language", "en"
             ),
             CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: yaml_kid.get(
                 "enable_mobile_notifications", False
             ),
-            CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: yaml_kid.get(
-                "mobile_notify_service", ""
-            ),
+            CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: notify_service,
             CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: yaml_kid.get(
                 "enable_persistent_notifications", False
             ),
@@ -147,18 +160,33 @@ class FlowTestHelper:
         Returns:
             Dictionary suitable for flow.async_configure() user_input
         """
+        # Convert empty string to sentinel (HA SelectSelector issue)
+        ha_user = yaml_parent.get("ha_user_name", SENTINEL_NO_SELECTION)
+        if ha_user == "":
+            ha_user = SENTINEL_NO_SELECTION
+        # Convert empty mobile_notify_service to sentinel
+        notify_service = yaml_parent.get("mobile_notify_service", SENTINEL_NO_SELECTION)
+        if notify_service == "":
+            notify_service = SENTINEL_NO_SELECTION
         return {
             CFOF_PARENTS_INPUT_NAME: yaml_parent["name"],
-            CFOF_PARENTS_INPUT_HA_USER: yaml_parent.get("ha_user_name", ""),
+            CFOF_PARENTS_INPUT_HA_USER: ha_user,
             CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: yaml_parent.get("associated_kids", []),
             CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: yaml_parent.get(
                 "enable_mobile_notifications", False
             ),
-            CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: yaml_parent.get(
-                "mobile_notify_service", ""
-            ),
+            CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: notify_service,
             CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: yaml_parent.get(
                 "enable_persistent_notifications", False
+            ),
+            CFOF_PARENTS_INPUT_ALLOW_CHORE_ASSIGNMENT: yaml_parent.get(
+                "allow_chore_assignment", False
+            ),
+            CFOF_PARENTS_INPUT_ENABLE_CHORE_WORKFLOW: yaml_parent.get(
+                "enable_chore_workflow", False
+            ),
+            CFOF_PARENTS_INPUT_ENABLE_GAMIFICATION: yaml_parent.get(
+                "enable_gamification", False
             ),
         }
 
@@ -527,6 +555,49 @@ class FlowTestHelper:
         # Submit form data
         return await hass.config_entries.options.async_configure(
             add_result["flow_id"],
+            user_input=form_data,
+        )
+
+    @staticmethod
+    async def edit_entity_via_options_flow(
+        hass: HomeAssistant,
+        entry_id: str,
+        menu_type: str,
+        entity_name: str,
+        form_data: dict[str, Any],
+    ) -> ConfigFlowResult:
+        """Edit an entity via the options flow.
+
+        Args:
+            hass: Home Assistant instance
+            entry_id: Config entry ID
+            menu_type: Menu type constant (OPTIONS_FLOW_PARENTS, etc.)
+            entity_name: Name of the entity to edit
+            form_data: Updated form data for the entity
+
+        Returns:
+            Final flow result
+        """
+        # Navigate to entity menu
+        menu_result = await FlowTestHelper.navigate_to_entity_menu(
+            hass, entry_id, menu_type
+        )
+
+        # Select "Edit" action
+        edit_action_result = await hass.config_entries.options.async_configure(
+            menu_result["flow_id"],
+            user_input={OPTIONS_FLOW_INPUT_MANAGE_ACTION: OPTIONS_FLOW_ACTIONS_EDIT},
+        )
+
+        # Select entity by name
+        select_result = await hass.config_entries.options.async_configure(
+            edit_action_result["flow_id"],
+            user_input={OPTIONS_FLOW_INPUT_ENTITY_NAME: entity_name},
+        )
+
+        # Submit updated form data
+        return await hass.config_entries.options.async_configure(
+            select_result["flow_id"],
             user_input=form_data,
         )
 

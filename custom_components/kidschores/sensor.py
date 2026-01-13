@@ -431,7 +431,9 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
             const.TRANS_KEY_SENSOR_ATTR_CHORE_NAME: chore_name,
         }
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, entry
+        )
 
     @property
     def native_value(self) -> Any:
@@ -734,7 +736,9 @@ class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_POINTS: self._points_label,
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_POINTS_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, entry
+        )
 
     @property
     def native_value(self) -> Any:
@@ -832,7 +836,9 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_CHORES_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, entry
+        )
 
     @property
     def native_value(self) -> Any:
@@ -907,7 +913,9 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_BADGES_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, entry
+        )
 
     @property
     def native_value(self) -> str:
@@ -1183,7 +1191,9 @@ class KidBadgeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_BADGE_NAME: badge_name,
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_MIDFIX_BADGE_PROGRESS_SENSOR}{badge_name}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, entry
+        )
 
     @property
     def native_value(self) -> float:
@@ -1681,7 +1691,9 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_REWARD_NAME: reward_name,
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_MIDFIX_REWARD_STATUS_SENSOR}{reward_name}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, entry
+        )
 
     @property
     def native_value(self) -> str:
@@ -2235,7 +2247,9 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_ACHIEVEMENT_NAME: achievement_name,
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_MIDFIX_ACHIEVEMENT_PROGRESS_SENSOR}{achievement_name}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, entry
+        )
 
     @property
     def native_value(self) -> float:
@@ -2468,7 +2482,9 @@ class KidChallengeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_CHALLENGE_NAME: challenge_name,
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_MIDFIX_CHALLENGE_PROGRESS_SENSOR}{challenge_name}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, entry
+        )
 
     @property
     def native_value(self) -> float:
@@ -2665,7 +2681,9 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, entry
+        )
 
         # Translations cache - loaded async on entity add
         self._ui_translations: dict[str, Any] = {}

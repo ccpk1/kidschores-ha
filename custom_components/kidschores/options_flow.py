@@ -377,8 +377,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         kids_dict = coordinator.kids_data
 
         if user_input is not None:
-            # Validate inputs
-            errors = fh.validate_kids_inputs(user_input, kids_dict)
+            # Validate inputs (check against both existing kids and parents)
+            parents_dict = coordinator.parents_data
+            errors = fh.validate_kids_inputs(user_input, kids_dict, parents_dict)
 
             if not errors:
                 # Build kid data
@@ -424,8 +425,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         parents_dict = coordinator.parents_data
 
         if user_input is not None:
-            # Validate inputs
-            errors = fh.validate_parents_inputs(user_input, parents_dict)
+            # Validate inputs (check against both existing parents and kids)
+            kids_dict = coordinator.kids_data
+            errors = fh.validate_parents_inputs(user_input, parents_dict, kids_dict)
 
             if not errors:
                 # Build parent data
@@ -451,6 +453,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                 coordinator._persist()
                 coordinator.async_update_listeners()
+                self._mark_reload_needed()
 
                 const.LOGGER.debug(
                     "Added Parent '%s' with ID: %s", parent_name, internal_id
@@ -1040,15 +1043,25 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         if user_input is not None:
             new_name = user_input[const.CFOF_KIDS_INPUT_KID_NAME].strip()
+            ha_user_id = user_input.get(const.CFOF_KIDS_INPUT_HA_USER, "")
+            # Convert sentinel back to empty string for storage
             ha_user_id = (
-                user_input.get(const.CFOF_KIDS_INPUT_HA_USER) or const.SENTINEL_EMPTY
+                ""
+                if ha_user_id in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
+                else ha_user_id
             )
             enable_notifications = user_input.get(
                 const.CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS, True
             )
+            mobile_notify_service = user_input.get(
+                const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE, ""
+            )
+            # Convert sentinel back to empty string for storage
             mobile_notify_service = (
-                user_input.get(const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE)
-                or const.SENTINEL_EMPTY
+                ""
+                if mobile_notify_service
+                in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
+                else mobile_notify_service
             )
             use_persistent = user_input.get(
                 const.CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
@@ -1129,8 +1142,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         if user_input is not None:
             new_name = user_input[const.CFOF_PARENTS_INPUT_NAME].strip()
+            ha_user_id = user_input.get(const.CFOF_PARENTS_INPUT_HA_USER, "")
+            # Convert sentinel back to empty string for storage
             ha_user_id = (
-                user_input.get(const.CFOF_PARENTS_INPUT_HA_USER) or const.SENTINEL_EMPTY
+                ""
+                if ha_user_id in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
+                else ha_user_id
             )
             associated_kids = user_input.get(
                 const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS, []
@@ -1138,9 +1155,15 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             enable_notifications = user_input.get(
                 const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS, True
             )
+            mobile_notify_service = user_input.get(
+                const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE, ""
+            )
+            # Convert sentinel back to empty string for storage
             mobile_notify_service = (
-                user_input.get(const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE)
-                or const.SENTINEL_EMPTY
+                ""
+                if mobile_notify_service
+                in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
+                else mobile_notify_service
             )
             use_persistent = user_input.get(
                 const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
@@ -1173,7 +1196,24 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 errors[const.CFOP_ERROR_PARENT_NAME] = (
                     const.TRANS_KEY_CFOF_DUPLICATE_PARENT
                 )
-            else:
+            # When enabling chore assignment, check if parent name conflicts with kid names
+            # (shadow kid would have same name as existing kid)
+            elif allow_chore_assignment and not parent_data.get(
+                const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT, False
+            ):
+                # Only check when ENABLING chore assignment (not already enabled)
+                existing_kid_names = {
+                    data.get(const.DATA_KID_NAME, "").lower()
+                    for data in coordinator.kids_data.values()
+                    # Exclude shadow kids - they'll be replaced anyway
+                    if not data.get(const.DATA_KID_IS_SHADOW, False)
+                }
+                if new_name.lower() in existing_kid_names:
+                    errors[const.CFOP_ERROR_PARENT_NAME] = (
+                        const.TRANS_KEY_CFOF_DUPLICATE_NAME
+                    )
+
+            if not errors:
                 updated_parent_data = {
                     const.DATA_PARENT_NAME: new_name,
                     const.DATA_PARENT_HA_USER_ID: ha_user_id,
@@ -1213,6 +1253,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     updated_parent_data[const.DATA_PARENT_LINKED_SHADOW_KID_ID] = None
 
                 coordinator.update_parent_entity(internal_id, updated_parent_data)
+                self._mark_reload_needed()
 
                 const.LOGGER.debug(
                     "Edited Parent '%s' with ID: %s", new_name, internal_id
@@ -1410,6 +1451,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 # Multiple kids: show per-kid dates step
                 # Store chore data AND the raw template date for the per-kid dates step
                 self._chore_being_edited = updated_chore_data
+                # Type guard: updated_chore_data is always dict from chore_data_dict.get()
+                assert self._chore_being_edited is not None
                 self._chore_being_edited[const.DATA_INTERNAL_ID] = internal_id
                 # Store template date separately since build_chores_data cleared it
                 self._chore_template_date_raw = raw_template_date

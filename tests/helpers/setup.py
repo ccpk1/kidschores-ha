@@ -206,8 +206,9 @@ async def _configure_kid_step(
                 "enable_mobile_notifications", False
             ),
             const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: kid_config.get(
-                "mobile_notify_service", ""
-            ),
+                "mobile_notify_service"
+            )
+            or const.SENTINEL_NO_SELECTION,
             const.CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: kid_config.get(
                 "enable_persistent_notifications", False
             ),
@@ -251,9 +252,11 @@ async def _configure_parent_step(
 
     # Mobile notify service handling
     enable_mobile = parent_config.get("enable_mobile_notifications", False)
-    mobile_service = parent_config.get("mobile_notify_service", "")
+    mobile_service = (
+        parent_config.get("mobile_notify_service") or const.SENTINEL_NO_SELECTION
+    )
     if not enable_mobile:
-        mobile_service = const.SENTINEL_EMPTY
+        mobile_service = const.SENTINEL_NO_SELECTION
 
     return await hass.config_entries.flow.async_configure(
         result["flow_id"],
@@ -1232,6 +1235,15 @@ async def setup_scenario(
         challenge_name = challenge_data.get(const.DATA_CHALLENGE_NAME)
         if challenge_name:
             challenge_name_to_id[challenge_name] = challenge_id
+
+    # -------------------------------------------------------------------------
+    # CRITICAL: Refresh coordinator to update sensor states with button entity IDs
+    # After all platforms are set up, sensors need to re-write their state
+    # to include button entity IDs that may have been registered after sensors.
+    # Without this, sensor attributes may have None for button entity IDs.
+    # -------------------------------------------------------------------------
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
 
     return SetupResult(
         config_entry=config_entry,

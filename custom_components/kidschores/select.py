@@ -333,7 +333,9 @@ class KidDashboardHelperChoresSelect(KidsChoresSelectBase):
         self.entity_id = (
             f"{const.SELECT_KC_PREFIX}{kid_name}{const.SELECT_KC_EID_SUFFIX_CHORE_LIST}"
         )
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, entry
+        )
 
     @property
     def options(self) -> list[str]:

@@ -147,6 +147,9 @@ from custom_components.kidschores.const import (
     CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS,
     CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE,
     CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS,
+    CFOF_PARENTS_INPUT_ALLOW_CHORE_ASSIGNMENT,
+    CFOF_PARENTS_INPUT_ENABLE_CHORE_WORKFLOW,
+    CFOF_PARENTS_INPUT_ENABLE_GAMIFICATION,
     # =========================================================================
     # CONFIG/OPTIONS FLOW FIELD NAMES - Chores
     # =========================================================================
@@ -259,8 +262,11 @@ from custom_components.kidschores.const import (
     # =========================================================================
     OPTIONS_FLOW_STEP_INIT,
     OPTIONS_FLOW_STEP_MANAGE_ENTITY,
+    OPTIONS_FLOW_STEP_SELECT_ENTITY,
     OPTIONS_FLOW_STEP_ADD_KID,
+    OPTIONS_FLOW_STEP_EDIT_KID,
     OPTIONS_FLOW_STEP_ADD_PARENT,
+    OPTIONS_FLOW_STEP_EDIT_PARENT,
     OPTIONS_FLOW_STEP_ADD_CHORE,
     OPTIONS_FLOW_STEP_ADD_REWARD,
     OPTIONS_FLOW_STEP_ADD_PENALTY,
@@ -281,6 +287,8 @@ from custom_components.kidschores.const import (
     OPTIONS_FLOW_CHALLENGES,
     OPTIONS_FLOW_ACTIONS_ADD,
     OPTIONS_FLOW_ACTIONS_BACK,
+    OPTIONS_FLOW_ACTIONS_EDIT,
+    OPTIONS_FLOW_INPUT_ENTITY_NAME,
     OPTIONS_FLOW_GENERAL_OPTIONS,
     # =========================================================================
     # CONFIG/OPTIONS FLOW FIELD NAMES - Backup
@@ -408,6 +416,7 @@ from custom_components.kidschores.const import (
     DATA_PARENT_ENABLE_CHORE_WORKFLOW,
     DATA_PARENT_ENABLE_GAMIFICATION,
     DATA_PARENT_ENABLE_NOTIFICATIONS,
+    DATA_PARENT_HA_USER_ID,
     DATA_PARENT_LINKED_SHADOW_KID_ID,
     DATA_PARENT_NAME,
     DATA_PARENTS,
@@ -458,6 +467,7 @@ from custom_components.kidschores.const import (
     SENTINEL_EMPTY,
     SENTINEL_NONE,
     SENTINEL_NONE_TEXT,
+    SENTINEL_NO_SELECTION,
     # =========================================================================
     # TRANSLATION KEYS - NOTIFICATIONS
     # =========================================================================

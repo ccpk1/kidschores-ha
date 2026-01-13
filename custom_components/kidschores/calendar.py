@@ -80,8 +80,8 @@ class KidScheduleCalendar(CalendarEntity):
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }
         self.entity_id = f"{const.CALENDAR_KC_PREFIX}{kid_name}"
-        self._attr_device_info = kh.create_kid_device_info(
-            kid_id, kid_name, config_entry
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, config_entry
         )
 
     async def async_get_events(

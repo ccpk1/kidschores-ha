@@ -27,6 +27,7 @@ See scenario_parent_shadow_kids.yaml for test data configuration.
 
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.button import DOMAIN as BUTTON_DOMAIN, SERVICE_PRESS
@@ -65,11 +66,14 @@ async def shadow_kid_scenario(
     - Chores: "Mow lawn" (Dad only), "Make bed" (Sarah only),
               "Take out trash" (Dad + Sarah)
     """
-    return await setup_from_yaml(
+    result = await setup_from_yaml(
         hass,
         mock_hass_users,
         "tests/scenarios/scenario_parent_shadow_kids.yaml",
     )
+    # Ensure all entities are fully created before tests run
+    await hass.async_block_till_done()
+    return result
 
 
 # ============================================================================
@@ -98,9 +102,18 @@ class TestShadowKidApprovalOnlyButtons:
     ) -> None:
         """Shadow kid with workflow=False has ONLY Approve button."""
         # Get Dad's dashboard helper (Rule 3: Dashboard Helper as Single Source of Truth)
-        helper_state = hass.states.get("sensor.kc_dad_leo_ui_dashboard_helper")
-        assert helper_state is not None, "Dad's dashboard helper should exist"
+        # Wait for dashboard helper to be fully populated
+        helper_state = None
+        for _ in range(10):  # Retry up to 10 times
+            helper_state = hass.states.get("sensor.kc_dad_leo_ui_dashboard_helper")
+            if helper_state and helper_state.attributes.get("chores"):
+                break
+            await hass.async_block_till_done()
+            import asyncio
 
+            await asyncio.sleep(0.1)
+
+        assert helper_state is not None, "Dad's dashboard helper should exist"
         helper_attrs = helper_state.attributes
 
         # Verify Dad is a shadow kid with workflow disabled
@@ -134,6 +147,8 @@ class TestShadowKidApprovalOnlyButtons:
         assert approve_button_id is not None, (
             "Approve button should exist for shadow kid with workflow disabled"
         )
+        # Ensure button entity is fully created before checking its state
+        await hass.async_block_till_done()
         assert hass.states.get(approve_button_id) is not None
 
         # Verify Claim button DOES NOT EXIST (no claim for approval-only mode)
@@ -154,7 +169,15 @@ class TestShadowKidApprovalOnlyButtons:
     ) -> None:
         """Approve button transitions chore from PENDING to APPROVED."""
         # Get Dad's dashboard helper (Rule 3: Dashboard Helper as Single Source of Truth)
-        helper_state = hass.states.get("sensor.kc_dad_leo_ui_dashboard_helper")
+        # Wait for dashboard helper to be fully populated
+        helper_state = None
+        for _ in range(10):  # Retry up to 10 times
+            helper_state = hass.states.get("sensor.kc_dad_leo_ui_dashboard_helper")
+            if helper_state and helper_state.attributes.get("chores"):
+                break
+            await hass.async_block_till_done()
+            await asyncio.sleep(0.1)
+
         assert helper_state is not None, "Dashboard helper should exist"
 
         # Get chores from dashboard helper
@@ -171,12 +194,19 @@ class TestShadowKidApprovalOnlyButtons:
         approve_button_id = chore_state.attributes.get(
             ATTR_CHORE_APPROVE_BUTTON_ENTITY_ID
         )
-        assert approve_button_id is not None, "Approve button should exist"
+        assert approve_button_id is not None, (
+            f"Approve button should exist. Sensor attributes: {chore_state.attributes}"
+        )
 
         # Initial state should be "pending" (chore just assigned)
         initial_state = hass.states.get(chore_status_sensor)
-        assert initial_state is not None
-        assert initial_state.state == "pending"
+        assert initial_state is not None, (
+            f"Chore sensor {chore_status_sensor} should exist"
+        )
+        assert initial_state.state == "pending", (
+            f"Initial chore state should be 'pending' but was '{initial_state.state}'. "
+            f"This may indicate test isolation issues - each test should get fresh state."
+        )
 
         # Press Approve button
         await hass.services.async_call(
@@ -214,11 +244,14 @@ async def shadow_kid_workflow_scenario(
     - Chores: "Mow lawn" (Dad only), "Make bed" (Sarah only),
               "Take out trash" (Dad + Sarah)
     """
-    return await setup_from_yaml(
+    result = await setup_from_yaml(
         hass,
         mock_hass_users,
         "tests/scenarios/scenario_parent_shadow_kids_workflow.yaml",
     )
+    # Ensure all entities are fully created before tests run
+    await hass.async_block_till_done()
+    return result
 
 
 async def test_shadow_kid_with_workflow_enabled_has_all_buttons(
@@ -228,9 +261,16 @@ async def test_shadow_kid_with_workflow_enabled_has_all_buttons(
 ) -> None:
     """Shadow kid with workflow=True has Claim, Approve, Disapprove buttons."""
     # Get Dad's dashboard helper (Dad is the shadow kid with workflow enabled)
-    helper_state = hass.states.get("sensor.kc_dad_leo_ui_dashboard_helper")
-    assert helper_state is not None, "Dad's dashboard helper should exist"
+    # Wait for dashboard helper to be fully populated
+    helper_state = None
+    for _ in range(10):  # Retry up to 10 times
+        helper_state = hass.states.get("sensor.kc_dad_leo_ui_dashboard_helper")
+        if helper_state and helper_state.attributes.get("chores"):
+            break
+        await hass.async_block_till_done()
+        await asyncio.sleep(0.1)
 
+    assert helper_state is not None, "Dad's dashboard helper should exist"
     helper_attrs = helper_state.attributes
 
     # Verify Dad is a shadow kid with workflow enabled
@@ -305,7 +345,15 @@ class TestButtonCountValidation:
     ) -> None:
         """Shadow kid with workflow=False has fewer buttons than regular kid."""
         # Get Dad's dashboard helper (Rule 3: Dashboard Helper as Single Source of Truth)
-        dad_helper_state = hass.states.get("sensor.kc_dad_leo_ui_dashboard_helper")
+        # Wait for dashboard helper to be fully populated
+        dad_helper_state = None
+        for _ in range(10):  # Retry up to 10 times
+            dad_helper_state = hass.states.get("sensor.kc_dad_leo_ui_dashboard_helper")
+            if dad_helper_state and dad_helper_state.attributes.get("chores"):
+                break
+            await hass.async_block_till_done()
+            await asyncio.sleep(0.1)
+
         assert dad_helper_state is not None, "Dad's dashboard helper should exist"
         assert dad_helper_state.attributes.get("is_shadow_kid") is True, (
             "Dad should be a shadow kid"

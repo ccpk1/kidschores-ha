@@ -562,8 +562,10 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         """Collect each kid's info using internal_id as the primary key."""
         errors: dict[str, str] = {}
         if user_input is not None:
-            # Validate inputs
-            errors = fh.validate_kids_inputs(user_input, self._kids_temp)
+            # Validate inputs (check against both existing kids and parents)
+            errors = fh.validate_kids_inputs(
+                user_input, self._kids_temp, self._parents_temp
+            )
 
             if not errors:
                 # Build and store kid data
@@ -639,8 +641,10 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         """
         errors: dict[str, str] = {}
         if user_input is not None:
-            # Validate inputs
-            errors = fh.validate_parents_inputs(user_input, self._parents_temp)
+            # Validate inputs (check against both existing parents and kids)
+            errors = fh.validate_parents_inputs(
+                user_input, self._parents_temp, self._kids_temp
+            )
 
             if not errors:
                 # Build and store parent data

@@ -92,7 +92,9 @@ class SystemChoreApprovalsSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_TOTAL_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, entry
+        )
 
     @property
     def native_value(self) -> int:
@@ -151,7 +153,9 @@ class SystemChoreApprovalsDailySensor(KidsChoresCoordinatorEntity, SensorEntity)
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_DAILY_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, entry
+        )
 
     @property
     def native_value(self) -> int:
@@ -208,7 +212,9 @@ class SystemChoreApprovalsWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_WEEKLY_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, entry
+        )
 
     @property
     def native_value(self) -> int:
@@ -265,7 +271,9 @@ class SystemChoreApprovalsMonthlySensor(KidsChoresCoordinatorEntity, SensorEntit
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_MONTHLY_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, entry
+        )
 
     @property
     def native_value(self) -> int:
@@ -531,7 +539,9 @@ class KidPointsEarnedDailySensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_POINTS_EARNED_DAILY_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, entry
+        )
 
     @property
     def native_value(self) -> int:
@@ -602,7 +612,9 @@ class KidPointsEarnedWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_POINTS_EARNED_WEEKLY_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, entry
+        )
 
     @property
     def native_value(self) -> int:
@@ -673,7 +685,9 @@ class KidPointsEarnedMonthlySensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_POINTS_EARNED_MONTHLY_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, entry
+        )
 
     @property
     def native_value(self) -> int:
@@ -745,7 +759,9 @@ class KidPointsMaxEverSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_POINTS: points_label,
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_MAX_POINTS_EARNED_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, entry
+        )
 
     @property
     def native_value(self) -> int:
@@ -819,7 +835,9 @@ class KidChoreStreakSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_HIGHEST_STREAK_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, entry
+        )
 
     @property
     def native_value(self) -> int:
@@ -924,7 +942,9 @@ class KidPenaltyAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_PENALTY_NAME: penalty_name,
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_MIDFIX_PENALTY_APPLIES_SENSOR}{penalty_name}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, entry
+        )
 
     @property
     def native_value(self) -> Any:
@@ -1032,7 +1052,9 @@ class KidBonusAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
         bonus_slug = bonus_name.lower().replace(" ", "_")
         bonus_slug = bonus_slug.removesuffix("_bonus")  # Remove "_bonus" suffix
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_MIDFIX_BONUS_APPLIES_SENSOR}{bonus_slug}"
-        self._attr_device_info = kh.create_kid_device_info(kid_id, kid_name, entry)
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, entry
+        )
 
     @property
     def native_value(self) -> Any:

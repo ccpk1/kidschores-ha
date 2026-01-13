@@ -158,6 +158,9 @@ PERIOD_YEAR_END: Final = "year_end"
 SENTINEL_EMPTY: Final = ""
 SENTINEL_NONE: Final = None
 SENTINEL_NONE_TEXT: Final = "None"
+SENTINEL_NO_SELECTION: Final = (
+    "__none__"  # Non-empty sentinel for SelectSelector "None" option
+)
 
 # Display Values
 DISPLAY_DOT: Final = "."
@@ -2189,6 +2192,9 @@ TRANS_KEY_CFOF_DUPLICATE_NAME: Final = "duplicate_name"  # Name already exists
 TRANS_KEY_CFOF_INVALID_DATE_RANGE: Final = "invalid_date_range"  # Start/end date issues
 TRANS_KEY_CFOF_MISSING_REQUIRED: Final = "missing_required"  # Required field missing
 TRANS_KEY_CFOF_INVALID_FORMAT: Final = "invalid_format"  # Format validation failure
+TRANS_KEY_CFOF_CHORE_OPTIONS_REQUIRE_ASSIGNMENT: Final = (
+    "chore_options_require_assignment"  # Workflow/gamification need chore_assignment
+)
 
 
 # Unknown States (Display Translation Keys)
@@ -2219,6 +2225,9 @@ CFOP_ERROR_PENALTY_NAME: Final = "penalty_name"
 CFOP_ERROR_REWARD_NAME: Final = "reward_name"
 CFOP_ERROR_SELECT_CHORE_ID: Final = "selected_chore_id"
 CFOP_ERROR_START_DATE: Final = "start_date"
+CFOP_ERROR_CHORE_OPTIONS: Final = (
+    "chore_options"  # Workflow/gamification without assignment
+)
 # Additional error keys used by config_flow.py abort() calls
 CFOP_ERROR_INVALID_STRUCTURE: Final = "invalid_structure"
 CFOP_ERROR_UNKNOWN: Final = "unknown"
@@ -2432,7 +2441,6 @@ TRANS_KEY_CFOF_PARENT_DASHBOARD_LANGUAGE: Final = "parent_dashboard_language"
 TRANS_KEY_CFOF_PARENT_DASHBOARD_LANGUAGE_DESC: Final = (
     "parent_dashboard_language_description"
 )
-TRANS_KEY_CFOF_SHADOW_KID_NAME_CONFLICT: Final = "shadow_kid_name_conflict"
 
 TRANS_KEY_CFOF_INVALID_PENALTY: Final = "invalid_penalty"
 TRANS_KEY_CFOF_INVALID_PENALTY_COUNT: Final = "invalid_penalty_count"

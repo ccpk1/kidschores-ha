@@ -1112,8 +1112,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.DEFAULT_PARENT_ENABLE_GAMIFICATION,
             ),
         )
-        # Shadow kid link is managed separately, not updated via parent form
-        # (use _link_shadow_kid_to_parent / _unlink_shadow_kid_from_parent)
+        # Update shadow kid link if provided (set by options_flow when toggling
+        # allow_chore_assignment)
+        if const.DATA_PARENT_LINKED_SHADOW_KID_ID in parent_data:
+            parent_info[const.DATA_PARENT_LINKED_SHADOW_KID_ID] = parent_data.get(
+                const.DATA_PARENT_LINKED_SHADOW_KID_ID
+            )
 
         const.LOGGER.debug(
             "DEBUG: Parent Updated - '%s', ID '%s'",
@@ -1171,7 +1175,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         """Delete a shadow kid entity.
 
         This should be called when a parent disables chore assignment.
-        Removes the shadow kid from the kids data structure.
+        Removes the shadow kid from the kids data structure and cleans up
+        all associated Home Assistant entities.
 
         Args:
             shadow_kid_id: The internal ID of the shadow kid to delete.
@@ -1194,6 +1199,23 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # Remove from kids data
         del self._data[const.DATA_KIDS][shadow_kid_id]
+
+        # Remove all HA entities associated with this shadow kid
+        # (reuses same cleanup logic as regular kid deletion)
+        self._remove_entities_in_ha(shadow_kid_id)
+
+        # Remove the device from the device registry
+        from homeassistant.helpers import device_registry as dr
+
+        dev_reg = dr.async_get(self.hass)
+        device = dev_reg.async_get_device(identifiers={(const.DOMAIN, shadow_kid_id)})
+        if device:
+            dev_reg.async_remove_device(device.id)
+            const.LOGGER.debug(
+                "Removed device for shadow kid '%s' (device_id: %s)",
+                kid_name,
+                device.id,
+            )
 
         const.LOGGER.info("Deleted shadow kid '%s' (ID: %s)", kid_name, shadow_kid_id)
 

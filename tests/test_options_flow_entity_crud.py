@@ -55,9 +55,8 @@ from tests.helpers import (
     OPTIONS_FLOW_STEP_MANAGE_ENTITY,
     SCHEMA_VERSION_STORAGE_ONLY,
 )
-from tests.helpers.setup import SetupResult
-
 from tests.helpers.flow_test_helpers import FlowTestHelper
+from tests.helpers.setup import SetupResult
 
 # =========================================================================
 # Fixtures

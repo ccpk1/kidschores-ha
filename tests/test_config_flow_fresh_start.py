@@ -229,7 +229,7 @@ async def test_fresh_start_points_and_kid(hass: HomeAssistant, mock_hass_users) 
             kid_ha_user_key="kid1",
             dashboard_language="en",
             enable_mobile_notifications=True,
-            mobile_notify_service="",  # No real notify services in test
+            mobile_notify_service=const.SENTINEL_NO_SELECTION,  # No real notify services in test
             enable_persistent_notifications=True,
         )
         assert result["type"] == FlowResultType.FORM
@@ -531,7 +531,6 @@ async def test_fresh_start_with_parent_no_notifications(
             kid_ha_user_key="kid1",
             dashboard_language="en",
             enable_mobile_notifications=False,
-            mobile_notify_service="",
             enable_persistent_notifications=False,
         )
         assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENT_COUNT
@@ -568,7 +567,7 @@ async def test_fresh_start_with_parent_no_notifications(
                     kid_id
                 ],  # Use the extracted kid ID
                 const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: False,
-                const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: const.SENTINEL_EMPTY,
+                const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: const.SENTINEL_NO_SELECTION,
                 const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: False,
             },
         )
@@ -680,7 +679,6 @@ async def test_fresh_start_with_parent_with_notifications(
             kid_ha_user_key="kid2",
             dashboard_language="en",
             enable_mobile_notifications=False,
-            mobile_notify_service="",
             enable_persistent_notifications=True,
         )
         assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENT_COUNT
@@ -774,7 +772,7 @@ async def test_fresh_start_two_parents_mixed_notifications(
             kid_ha_user_key="kid3",
             dashboard_language="en",
             enable_mobile_notifications=True,
-            mobile_notify_service="",
+            mobile_notify_service=const.SENTINEL_NO_SELECTION,
             enable_persistent_notifications=False,
         )
         assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENT_COUNT
@@ -854,7 +852,7 @@ async def _configure_kid_step(
     kid_ha_user_key: str,
     dashboard_language: str = "en",
     enable_mobile_notifications: bool = False,
-    mobile_notify_service: str = "",
+    mobile_notify_service: str = const.SENTINEL_NO_SELECTION,
     enable_persistent_notifications: bool = False,
 ) -> Any:
     """Configure a single kid in the config flow.
@@ -895,7 +893,7 @@ async def _configure_parent_step(
     parent_name: str,
     parent_ha_user_key: str,
     enable_mobile_notifications: bool = False,
-    mobile_notify_service: str = "",
+    mobile_notify_service: str = const.SENTINEL_NO_SELECTION,
     enable_persistent_notifications: bool = False,
 ) -> Any:
     """Configure a single parent in the config flow.
@@ -923,7 +921,7 @@ async def _configure_parent_step(
             const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: enable_mobile_notifications,
             const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: mobile_notify_service
             if enable_mobile_notifications
-            else const.SENTINEL_EMPTY,
+            else const.SENTINEL_NO_SELECTION,
             const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: enable_persistent_notifications,
         },
     )
@@ -1155,7 +1153,6 @@ async def _setup_full_family_scenario(
         kid_ha_user_key="kid1",
         dashboard_language="en",
         enable_mobile_notifications=False,
-        mobile_notify_service="",
         enable_persistent_notifications=True,
     )
     result = await _configure_kid_step(
@@ -1166,7 +1163,6 @@ async def _setup_full_family_scenario(
         kid_ha_user_key="kid2",
         dashboard_language="es",
         enable_mobile_notifications=False,
-        mobile_notify_service="",
         enable_persistent_notifications=True,
     )
     result = await _configure_kid_step(
@@ -1177,7 +1173,6 @@ async def _setup_full_family_scenario(
         kid_ha_user_key="kid3",
         dashboard_language="en",
         enable_mobile_notifications=False,
-        mobile_notify_service="",
         enable_persistent_notifications=False,
     )
     assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENT_COUNT
@@ -1200,7 +1195,6 @@ async def _setup_full_family_scenario(
         parent_name="Môm Astrid Stârblüm",
         parent_ha_user_key="parent1",
         enable_mobile_notifications=False,
-        mobile_notify_service="",
         enable_persistent_notifications=True,
     )
 
@@ -1372,7 +1366,6 @@ async def test_fresh_start_with_parents(hass: HomeAssistant, mock_hass_users):
             kid_ha_user_key="kid1",
             dashboard_language="en",
             enable_mobile_notifications=False,
-            mobile_notify_service="",
             enable_persistent_notifications=False,
         )
         assert result["type"] == FlowResultType.FORM

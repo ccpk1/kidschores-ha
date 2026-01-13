@@ -204,23 +204,29 @@ async def build_kid_schema(
     default_dashboard_language=None,
 ):
     """Build a Voluptuous schema for adding/editing a Kid, keyed by internal_id in the dict."""
-    user_options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}] + [
-        {"value": user.id, "label": user.name} for user in users
-    ]
+    # Use SENTINEL_NO_SELECTION for "None" option - empty string doesn't work reliably
+    user_options = [
+        {"value": const.SENTINEL_NO_SELECTION, "label": const.LABEL_NONE}
+    ] + [{"value": user.id, "label": user.name} for user in users]
     notify_options = [
-        {"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE},
+        {"value": const.SENTINEL_NO_SELECTION, "label": const.LABEL_NONE},
         *_get_notify_services(hass),
     ]
 
     # Get available dashboard languages
     language_options = await kh.get_available_dashboard_languages(hass)
 
+    # Convert empty/None ha_user_id to sentinel for form default
+    ha_user_default = (
+        default_ha_user_id if default_ha_user_id else const.SENTINEL_NO_SELECTION
+    )
+
     return vol.Schema(
         {
             vol.Required(const.CFOF_KIDS_INPUT_KID_NAME, default=default_kid_name): str,
             vol.Optional(
                 const.CFOF_KIDS_INPUT_HA_USER,
-                default=default_ha_user_id or const.SENTINEL_EMPTY,
+                default=ha_user_default,
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=user_options,
@@ -243,7 +249,7 @@ async def build_kid_schema(
             ): selector.BooleanSelector(),
             vol.Optional(
                 const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE,
-                default=default_mobile_notify_service or const.SENTINEL_EMPTY,
+                default=default_mobile_notify_service or const.SENTINEL_NO_SELECTION,
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=cast("list[selector.SelectOptionDict]", notify_options),
@@ -278,13 +284,22 @@ def build_kids_data(
     kid_name = user_input.get(const.CFOF_KIDS_INPUT_KID_NAME, "").strip()
     internal_id = user_input.get(const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4()))
 
-    ha_user_id = user_input.get(const.CFOF_KIDS_INPUT_HA_USER) or const.SENTINEL_EMPTY
+    ha_user_id = user_input.get(const.CFOF_KIDS_INPUT_HA_USER, "")
+    # Convert sentinel back to empty string for storage
+    ha_user_id = (
+        ""
+        if ha_user_id in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
+        else ha_user_id
+    )
     enable_mobile_notifications = user_input.get(
         const.CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS, True
     )
+    notify_service = user_input.get(const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE, "")
+    # Convert sentinel back to empty string for storage
     notify_service = (
-        user_input.get(const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE)
-        or const.SENTINEL_EMPTY
+        ""
+        if notify_service in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
+        else notify_service
     )
     enable_persist = user_input.get(
         const.CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
@@ -307,13 +322,16 @@ def build_kids_data(
 
 
 def validate_kids_inputs(
-    user_input: dict[str, Any], existing_kids: dict[str, Any] | None = None
+    user_input: dict[str, Any],
+    existing_kids: dict[str, Any] | None = None,
+    existing_parents: dict[str, Any] | None = None,
 ) -> dict[str, str]:
     """Validate kid configuration inputs.
 
     Args:
         user_input: Dictionary containing user inputs from the form.
         existing_kids: Optional dictionary of existing kids for duplicate checking.
+        existing_parents: Optional dictionary of existing parents for cross-validation.
 
     Returns:
         Dictionary of errors (empty if validation passes).
@@ -334,6 +352,16 @@ def validate_kids_inputs(
             for kid_data in existing_kids.values()
         ):
             errors[const.CFOP_ERROR_KID_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_KID
+
+    # Check for conflicts with shadow kid parents only (allow_chore_assignment=True)
+    # Regular parents without allow_chore_assignment don't create kid-like entities
+    if existing_parents:
+        if any(
+            parent_data[const.DATA_PARENT_NAME] == kid_name
+            for parent_data in existing_parents.values()
+            if parent_data.get(const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT, False)
+        ):
+            errors[const.CFOP_ERROR_KID_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_NAME
 
     return errors
 
@@ -359,19 +387,25 @@ async def build_parent_schema(
     default_enable_gamification=False,
 ):
     """Build a Voluptuous schema for adding/editing a Parent, keyed by internal_id in the dict."""
-    user_options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}] + [
-        {"value": user.id, "label": user.name} for user in users
-    ]
+    # Use SENTINEL_NO_SELECTION for "None" option - empty string doesn't work reliably
+    user_options = [
+        {"value": const.SENTINEL_NO_SELECTION, "label": const.LABEL_NONE}
+    ] + [{"value": user.id, "label": user.name} for user in users]
     kid_options = [
         {"value": kid_id, "label": kid_name} for kid_name, kid_id in kids_dict.items()
     ]
     notify_options = [
-        {"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE},
+        {"value": const.SENTINEL_NO_SELECTION, "label": const.LABEL_NONE},
         *_get_notify_services(hass),
     ]
 
     # Get available dashboard languages
     language_options = await kh.get_available_dashboard_languages(hass)
+
+    # Convert empty/None ha_user_id to sentinel for form default
+    ha_user_default = (
+        default_ha_user_id if default_ha_user_id else const.SENTINEL_NO_SELECTION
+    )
 
     return vol.Schema(
         {
@@ -380,7 +414,7 @@ async def build_parent_schema(
             ): str,
             vol.Optional(
                 const.CFOF_PARENTS_INPUT_HA_USER,
-                default=default_ha_user_id or const.SENTINEL_EMPTY,
+                default=ha_user_default,
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=user_options,
@@ -404,7 +438,7 @@ async def build_parent_schema(
             ): selector.BooleanSelector(),
             vol.Optional(
                 const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE,
-                default=default_mobile_notify_service or const.SENTINEL_EMPTY,
+                default=default_mobile_notify_service or const.SENTINEL_NO_SELECTION,
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=cast("list[selector.SelectOptionDict]", notify_options),
@@ -462,16 +496,23 @@ def build_parents_data(
     parent_name = user_input.get(const.CFOF_PARENTS_INPUT_NAME, "").strip()
     internal_id = user_input.get(const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4()))
 
+    ha_user_id = user_input.get(const.CFOF_PARENTS_INPUT_HA_USER, "")
+    # Convert sentinel back to empty string for storage
     ha_user_id = (
-        user_input.get(const.CFOF_PARENTS_INPUT_HA_USER) or const.SENTINEL_EMPTY
+        ""
+        if ha_user_id in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
+        else ha_user_id
     )
     associated_kids = user_input.get(const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS, [])
     enable_mobile_notifications = user_input.get(
         const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS, True
     )
+    notify_service = user_input.get(const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE, "")
+    # Convert sentinel back to empty string for storage
     notify_service = (
-        user_input.get(const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE)
-        or const.SENTINEL_EMPTY
+        ""
+        if notify_service in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
+        else notify_service
     )
     enable_persist = user_input.get(
         const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
@@ -507,13 +548,16 @@ def build_parents_data(
 
 
 def validate_parents_inputs(
-    user_input: dict[str, Any], existing_parents: dict[str, Any] | None = None
+    user_input: dict[str, Any],
+    existing_parents: dict[str, Any] | None = None,
+    existing_kids: dict[str, Any] | None = None,
 ) -> dict[str, str]:
     """Validate parent configuration inputs.
 
     Args:
         user_input: Dictionary containing user inputs from the form.
         existing_parents: Optional dictionary of existing parents for duplicate checking.
+        existing_kids: Optional dictionary of existing kids for cross-validation.
 
     Returns:
         Dictionary of errors (empty if validation passes).
@@ -534,6 +578,30 @@ def validate_parents_inputs(
             for parent_data in existing_parents.values()
         ):
             errors[const.CFOP_ERROR_PARENT_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_PARENT
+
+    # Check for conflicts with existing kids only if allow_chore_assignment is enabled
+    # (when allow_chore_assignment=True, a shadow kid entity will be created with this name)
+    allow_chore_assignment = user_input.get(
+        const.CFOF_PARENTS_INPUT_ALLOW_CHORE_ASSIGNMENT, False
+    )
+    if allow_chore_assignment and existing_kids:
+        if any(
+            kid_data[const.DATA_KID_NAME] == parent_name
+            for kid_data in existing_kids.values()
+        ):
+            errors[const.CFOP_ERROR_PARENT_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_NAME
+
+    # Validate that workflow/gamification options require allow_chore_assignment
+    enable_chore_workflow = user_input.get(
+        const.CFOF_PARENTS_INPUT_ENABLE_CHORE_WORKFLOW, False
+    )
+    enable_gamification = user_input.get(
+        const.CFOF_PARENTS_INPUT_ENABLE_GAMIFICATION, False
+    )
+    if (enable_chore_workflow or enable_gamification) and not allow_chore_assignment:
+        errors[const.CFOP_ERROR_CHORE_OPTIONS] = (
+            const.TRANS_KEY_CFOF_CHORE_OPTIONS_REQUIRE_ASSIGNMENT
+        )
 
     return errors
 
@@ -1143,12 +1211,24 @@ def build_badge_common_data(
         achievement_id = user_input.get(
             const.CFOF_BADGES_INPUT_ASSOCIATED_ACHIEVEMENT, const.SENTINEL_EMPTY
         )
+        # Convert sentinel back to empty string for storage
+        achievement_id = (
+            ""
+            if achievement_id in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
+            else achievement_id
+        )
         badge_data[const.DATA_BADGE_ASSOCIATED_ACHIEVEMENT] = achievement_id
 
     # --- Challenge-Linked Component ---
     if include_challenge_linked:
         challenge_id = user_input.get(
             const.CFOF_BADGES_INPUT_ASSOCIATED_CHALLENGE, const.SENTINEL_EMPTY
+        )
+        # Convert sentinel back to empty string for storage
+        challenge_id = (
+            ""
+            if challenge_id in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
+            else challenge_id
         )
         badge_data[const.DATA_BADGE_ASSOCIATED_CHALLENGE] = challenge_id
 
@@ -1420,7 +1500,10 @@ def validate_badge_common_inputs(
         achievement_id = user_input.get(
             const.CFOF_BADGES_INPUT_ASSOCIATED_ACHIEVEMENT, const.SENTINEL_EMPTY
         )
-        if not achievement_id or achievement_id == const.SENTINEL_EMPTY:
+        if not achievement_id or achievement_id in (
+            const.SENTINEL_EMPTY,
+            const.SENTINEL_NO_SELECTION,
+        ):
             errors[const.CFOF_BADGES_INPUT_ASSOCIATED_ACHIEVEMENT] = (
                 const.TRANS_KEY_CFOF_ERROR_BADGE_ACHIEVEMENT_REQUIRED
             )
@@ -1430,7 +1513,10 @@ def validate_badge_common_inputs(
         challenge_id = user_input.get(
             const.CFOF_BADGES_INPUT_ASSOCIATED_CHALLENGE, const.SENTINEL_EMPTY
         )
-        if not challenge_id or challenge_id == const.SENTINEL_EMPTY:
+        if not challenge_id or challenge_id in (
+            const.SENTINEL_EMPTY,
+            const.SENTINEL_NO_SELECTION,
+        ):
             errors[const.CFOF_BADGES_INPUT_ASSOCIATED_CHALLENGE] = (
                 const.TRANS_KEY_CFOF_ERROR_BADGE_CHALLENGE_REQUIRED
             )
@@ -1842,7 +1928,7 @@ def build_badge_common_schema(
     # --- Achievement-Linked Component Schema ---
     if include_achievement_linked:
         achievement_options = [
-            {"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}
+            {"value": const.SENTINEL_NO_SELECTION, "label": const.LABEL_NONE}
         ] + [
             {
                 "value": achievement_id,
@@ -1852,9 +1938,13 @@ def build_badge_common_schema(
             }
             for achievement_id, achievement in achievements_dict.items()
         ]
-        default_achievement = default.get(
+        # Convert empty string to sentinel for form default
+        stored_achievement = default.get(
             const.CFOF_BADGES_INPUT_ASSOCIATED_ACHIEVEMENT,
-            default.get(const.DATA_BADGE_ASSOCIATED_ACHIEVEMENT, const.SENTINEL_EMPTY),
+            default.get(const.DATA_BADGE_ASSOCIATED_ACHIEVEMENT, ""),
+        )
+        default_achievement = (
+            stored_achievement if stored_achievement else const.SENTINEL_NO_SELECTION
         )
         schema_fields.update(
             {
@@ -1874,7 +1964,7 @@ def build_badge_common_schema(
     # --- Challenge-Linked Component Schema ---
     if include_challenge_linked:
         challenge_options = [
-            {"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}
+            {"value": const.SENTINEL_NO_SELECTION, "label": const.LABEL_NONE}
         ] + [
             {
                 "value": challenge_id,
@@ -1884,9 +1974,13 @@ def build_badge_common_schema(
             }
             for challenge_id, challenge in challenges_dict.items()
         ]
-        default_challenge = default.get(
+        # Convert empty string to sentinel for form default
+        stored_challenge = default.get(
             const.CFOF_BADGES_INPUT_ASSOCIATED_CHALLENGE,
-            default.get(const.DATA_BADGE_ASSOCIATED_CHALLENGE, const.SENTINEL_EMPTY),
+            default.get(const.DATA_BADGE_ASSOCIATED_CHALLENGE, ""),
+        )
+        default_challenge = (
+            stored_challenge if stored_challenge else const.SENTINEL_NO_SELECTION
         )
         schema_fields.update(
             {
