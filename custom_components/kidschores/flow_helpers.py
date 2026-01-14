@@ -189,6 +189,123 @@ def validate_points_inputs(user_input: dict[str, Any]) -> dict[str, str]:
 
 
 # ----------------------------------------------------------------------------------
+# DAILY_MULTI VALIDATION FUNCTIONS (CFE-2026-001)
+# ----------------------------------------------------------------------------------
+
+
+def validate_chore_frequency_reset_combination(
+    recurring_frequency: str,
+    approval_reset_type: str,
+) -> dict[str, str]:
+    """Validate frequency and reset type combination.
+
+    Args:
+        recurring_frequency: The chore's recurring frequency.
+        approval_reset_type: The chore's approval reset type.
+
+    Returns:
+        Dictionary of errors (empty if validation passes).
+        Key is error field (CFOP_ERROR_*), value is translation key.
+    """
+    errors: dict[str, str] = {}
+
+    if recurring_frequency == const.FREQUENCY_DAILY_MULTI:
+        # DAILY_MULTI incompatible with AT_MIDNIGHT_* reset types
+        # Rationale: DAILY_MULTI needs immediate slot advancement, but
+        # AT_MIDNIGHT_* keeps chore APPROVED until midnight (blocks slots)
+        incompatible_reset_types = {
+            const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+            const.APPROVAL_RESET_AT_MIDNIGHT_MULTI,
+        }
+        if approval_reset_type in incompatible_reset_types:
+            errors[const.CFOP_ERROR_DAILY_MULTI_RESET] = (
+                const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_REQUIRES_COMPATIBLE_RESET
+            )
+
+    return errors
+
+
+def validate_daily_multi_kids(
+    recurring_frequency: str,
+    completion_criteria: str,
+    assigned_kids: list[str],
+) -> dict[str, str]:
+    """Validate DAILY_MULTI kid assignment rules.
+
+    Args:
+        recurring_frequency: The chore's recurring frequency.
+        completion_criteria: The chore's completion criteria.
+        assigned_kids: List of assigned kid IDs or names.
+
+    Returns:
+        Dictionary of errors (empty if validation passes).
+        Key is error field (CFOP_ERROR_*), value is translation key.
+    """
+    errors: dict[str, str] = {}
+
+    if recurring_frequency == const.FREQUENCY_DAILY_MULTI:
+        # DAILY_MULTI + INDEPENDENT requires single kid
+        # Rationale: Multiple kids with INDEPENDENT have per-kid dates,
+        # but DAILY_MULTI means "same times for everyone" - conceptual conflict
+        if (
+            completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
+            and len(assigned_kids) > 1
+        ):
+            errors[const.CFOP_ERROR_DAILY_MULTI_KIDS] = (
+                const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_INDEPENDENT_MULTI_KIDS
+            )
+
+    return errors
+
+
+def validate_daily_multi_times(times_str: str) -> dict[str, str]:
+    """Validate daily multi times format.
+
+    Args:
+        times_str: Pipe-separated time string (e.g., "08:00|17:00").
+
+    Returns:
+        Dictionary of errors (empty if validation passes).
+        Key is error field ("base"), value is translation key.
+
+    Validation rules:
+        - Must have at least 2 times
+        - Must have at most 6 times
+        - Each time must be in HH:MM format (24-hour)
+        - Hours must be 0-23, minutes must be 0-59
+    """
+    errors: dict[str, str] = {}
+
+    if not times_str or not times_str.strip():
+        errors["base"] = const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_REQUIRED
+        return errors
+
+    # Split and clean entries
+    entries = [t.strip() for t in times_str.split("|") if t.strip()]
+
+    # Validate count
+    if len(entries) < 2:
+        errors["base"] = const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_TOO_FEW
+        return errors
+
+    if len(entries) > 6:
+        errors["base"] = const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_TOO_MANY
+        return errors
+
+    # Validate format of each entry
+    import re
+
+    time_pattern = re.compile(r"^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$")
+
+    for entry in entries:
+        if not time_pattern.match(entry):
+            errors["base"] = const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_INVALID_FORMAT
+            return errors
+
+    return errors
+
+
+# ----------------------------------------------------------------------------------
 # KIDS SCHEMA (Pattern 1: Simple - Separate validate/build)
 # ----------------------------------------------------------------------------------
 
@@ -961,9 +1078,10 @@ def build_chores_data(
             return {}, errors
 
     # Clean up custom interval fields if not using custom frequency
-    if (
-        user_input.get(const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY)
-        != const.FREQUENCY_CUSTOM
+    recurring_freq = user_input.get(const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY)
+    if recurring_freq not in (
+        const.FREQUENCY_CUSTOM,
+        const.FREQUENCY_CUSTOM_FROM_COMPLETE,
     ):
         custom_interval = None
         custom_interval_unit = None
@@ -1006,11 +1124,54 @@ def build_chores_data(
             )
             return {}, errors
 
-    # Build chore data
+    # CFE-2026-001: Validate FREQUENCY_DAILY_MULTI compatibility
+    recurring_frequency = user_input.get(
+        const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY, const.SENTINEL_EMPTY
+    )
     completion_criteria = user_input.get(
         const.CFOF_CHORES_INPUT_COMPLETION_CRITERIA,
         const.COMPLETION_CRITERIA_INDEPENDENT,
     )
+
+    if recurring_frequency == const.FREQUENCY_DAILY_MULTI:
+        # DAILY_MULTI incompatible with AT_MIDNIGHT_* reset types
+        # Rationale: DAILY_MULTI needs immediate slot advancement, but
+        # AT_MIDNIGHT_* keeps chore APPROVED until midnight (blocks slots)
+        incompatible_reset_types = {
+            const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+            const.APPROVAL_RESET_AT_MIDNIGHT_MULTI,
+        }
+        if approval_reset in incompatible_reset_types:
+            errors[const.CFOP_ERROR_DAILY_MULTI_RESET] = (
+                const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_REQUIRES_COMPATIBLE_RESET
+            )
+            return {}, errors
+
+        # DAILY_MULTI + INDEPENDENT requires single kid
+        # Rationale: Multiple kids with INDEPENDENT have per-kid dates,
+        # but DAILY_MULTI means "same times for everyone" - conceptual conflict
+        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+            # Convert assigned kid names to UUIDs first (need count check)
+            assigned_kids_names = user_input.get(
+                const.CFOF_CHORES_INPUT_ASSIGNED_KIDS, []
+            )
+            if len(assigned_kids_names) > 1:
+                errors[const.CFOP_ERROR_DAILY_MULTI_KIDS] = (
+                    const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_INDEPENDENT_MULTI_KIDS
+                )
+                return {}, errors
+
+        # DAILY_MULTI requires due_date to be set
+        # Rationale: The times string defines daily availability windows,
+        # but the due_date determines when scheduling begins. Without it,
+        # the chore never auto-schedules.
+        if not due_date_str:
+            errors[const.CFOP_ERROR_DAILY_MULTI_DUE_DATE] = (
+                const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_DUE_DATE_REQUIRED
+            )
+            return {}, errors
+
+    # Build chore data (completion_criteria already extracted above)
 
     # Build per_kid_due_dates for ALL chores (SHARED + INDEPENDENT)
     # - SHARED: All kids have same date (synced with chore-level)

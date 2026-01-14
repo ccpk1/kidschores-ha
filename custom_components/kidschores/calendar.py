@@ -488,6 +488,75 @@ class KidScheduleCalendar(CalendarEntity):
             self._add_event_if_overlaps(events, e, window_start, window_end)
             current += step
 
+    def _generate_recurring_daily_multi_with_due_date(
+        self,
+        events: list[CalendarEvent],
+        summary: str,
+        description: str,
+        chore: dict,
+        window_start: datetime.datetime,
+        window_end: datetime.datetime,
+    ) -> None:
+        """Generate calendar events for DAILY_MULTI frequency chore.
+
+        CFE-2026-001 Feature 2: Creates separate events for each time slot.
+        For example, "Feed pets" at 08:00 and 17:00 shows as two events per day.
+
+        Args:
+            events: List to append events to
+            summary: Chore name
+            description: Chore description
+            chore: Full chore dict with daily_multi_times field
+            window_start: Start of calendar window
+            window_end: End of calendar window
+        """
+        times_str = chore.get(const.DATA_CHORE_DAILY_MULTI_TIMES, "")
+        if not times_str:
+            return
+
+        # Generate events for each day in the window
+        current_date = window_start.date()
+        end_date = window_end.date()
+        event_duration = datetime.timedelta(minutes=15)
+
+        while current_date <= end_date:
+            # Parse time slots for this day
+            time_slots = kh.parse_daily_multi_times(
+                times_str,
+                reference_date=current_date,
+                timezone_info=const.DEFAULT_TIME_ZONE,
+            )
+
+            if not time_slots:
+                current_date += datetime.timedelta(days=1)
+                continue
+
+            # Create event for each time slot
+            for slot_local in time_slots:
+                slot_utc = dt_util.as_utc(slot_local)
+                slot_end = slot_utc + event_duration
+
+                # Add time-of-day indicator to summary
+                hour = slot_local.hour
+                if hour < 12:
+                    time_label = "Morning"
+                elif hour < 17:
+                    time_label = "Afternoon"
+                else:
+                    time_label = "Evening"
+
+                event_summary = f"{summary} ({time_label})"
+
+                e = CalendarEvent(
+                    summary=event_summary,
+                    start=slot_utc,
+                    end=slot_end,
+                    description=description,
+                )
+                self._add_event_if_overlaps(events, e, window_start, window_end)
+
+            current_date += datetime.timedelta(days=1)
+
     def _generate_events_for_chore(
         self,
         chore: dict,
@@ -590,6 +659,16 @@ class KidScheduleCalendar(CalendarEntity):
                     window_start,
                     window_end,
                 )
+            elif recurring == const.FREQUENCY_DAILY_MULTI:
+                # CFE-2026-001 Feature 2: Multiple times per day
+                self._generate_recurring_daily_multi_with_due_date(
+                    events,
+                    summary,
+                    description,
+                    chore,
+                    window_start,
+                    window_end,
+                )
             return events
 
         # --- Recurring chores without a due_date => next 3 months
@@ -645,6 +724,17 @@ class KidScheduleCalendar(CalendarEntity):
                 unit,
                 gen_start,
                 cutoff,
+                window_start,
+                window_end,
+            )
+        elif recurring == const.FREQUENCY_DAILY_MULTI:
+            # CFE-2026-001 Feature 2: Multiple times per day (without due_date)
+            # Use the same handler - it generates events for each day in window
+            self._generate_recurring_daily_multi_with_due_date(
+                events,
+                summary,
+                description,
+                chore,
                 window_start,
                 window_end,
             )

@@ -170,6 +170,7 @@ from custom_components.kidschores.const import (
     CFOF_CHORES_INPUT_AUTO_APPROVE,
     CFOF_CHORES_INPUT_CUSTOM_INTERVAL,
     CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT,
+    CFOF_CHORES_INPUT_DAILY_MULTI_TIMES,
     CFOF_CHORES_INPUT_DUE_DATE,
     CFOF_CHORES_INPUT_LABELS,
     CFOF_CHORES_INPUT_NOTIFICATIONS,
@@ -277,6 +278,7 @@ from custom_components.kidschores.const import (
     OPTIONS_FLOW_STEP_ADD_BADGE,
     OPTIONS_FLOW_STEP_ADD_ACHIEVEMENT,
     OPTIONS_FLOW_STEP_ADD_CHALLENGE,
+    OPTIONS_FLOW_STEP_CHORES_DAILY_MULTI,
     OPTIONS_FLOW_INPUT_MENU_SELECTION,
     OPTIONS_FLOW_INPUT_MANAGE_ACTION,
     OPTIONS_FLOW_KIDS,
@@ -365,6 +367,7 @@ from custom_components.kidschores.const import (
     DATA_CHORE_COMPLETION_CRITERIA,
     DATA_CHORE_CUSTOM_INTERVAL,
     DATA_CHORE_CUSTOM_INTERVAL_UNIT,
+    DATA_CHORE_DAILY_MULTI_TIMES,
     DATA_CHORE_DEFAULT_POINTS,
     DATA_CHORE_DESCRIPTION,
     DATA_CHORE_DUE_DATE,
@@ -449,10 +452,20 @@ from custom_components.kidschores.const import (
     # =========================================================================
     # FREQUENCIES
     # =========================================================================
+    FREQUENCY_CUSTOM,
+    FREQUENCY_CUSTOM_FROM_COMPLETE,
     FREQUENCY_DAILY,
+    FREQUENCY_DAILY_MULTI,
     FREQUENCY_MONTHLY,
     FREQUENCY_NONE,
     FREQUENCY_WEEKLY,
+    # =========================================================================
+    # TIME UNITS
+    # =========================================================================
+    TIME_UNIT_DAYS,
+    TIME_UNIT_HOURS,
+    TIME_UNIT_MONTHS,
+    TIME_UNIT_WEEKS,
     # =========================================================================
     # OVERDUE HANDLING TYPES
     # =========================================================================

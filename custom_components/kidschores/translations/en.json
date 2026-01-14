@@ -865,6 +865,16 @@
           "apply_template_to_all": "Check this box to apply the date set on the main chore edit page to all assigned kids, overwriting their individual dates."
         }
       },
+      "chores_daily_multi": {
+        "title": "Set Daily Times: {chore_name}",
+        "description": "Enter the times when this chore should be available each day. Use 24-hour format (HH:MM) separated by | (pipe).\n\n**Example:** 07:00|12:00|18:00 for morning, midday, and evening.\n\n**Requirements:**\n- Minimum 2 times, maximum 6 times\n- Times must be in 24-hour format (00:00 to 23:59)\n- Separate multiple times with | (pipe character)\n\n**Note:** If you set a due date on the main form, only the date portion is used. The times you enter below will determine when the chore is available each day.",
+        "data": {
+          "daily_multi_times": "Daily Times"
+        },
+        "data_description": {
+          "daily_multi_times": "Enter 2-6 times in 24-hour format separated by | (pipe). Example: 08:00|17:00 for morning and evening."
+        }
+      },
       "edit_badge_cumulative": {
         "title": "Edit Cumulative Badge",
         "description": "Configure the details for a cumulative badge. These badges reward kids for reaching lifetime point thresholds and support maintenance cycles to encourage ongoing performance.",
@@ -1321,7 +1331,14 @@
       "corrupt_file": "The selected file contains invalid JSON and cannot be read.",
       "invalid_structure": "The selected file is missing required data structure.",
       "file_not_found": "The selected file could not be found.",
-      "invalid_selection": "Please select a valid option."
+      "invalid_selection": "Please select a valid option.",
+      "error_daily_multi_requires_compatible_reset": "'Multiple times per day' frequency incompatible with Midnight reset types because they only reset approvals once at midnight.",
+      "error_daily_multi_independent_multi_kids": "'Multiple times per day' frequency with INDEPENDENT completion requires exactly one kid. For multiple kids, use SHARED completion criteria.",
+      "error_daily_multi_times_required": "Times list is required for 'Multiple times per day' frequency.",
+      "error_daily_multi_times_invalid_format": "Invalid time format. Use 24-hour format (HH:MM) separated by | (e.g., 08:00|17:00).",
+      "error_daily_multi_times_too_few": "At least 2 times are required for 'Multiple times per day' frequency. For a single time, use regular 'Daily' frequency.",
+      "error_daily_multi_times_too_many": "Maximum 6 times allowed per day for 'Multiple times per day' frequency.",
+      "error_daily_multi_due_date_required": "'Multiple times per day' frequency requires a due date to be set. The date determines when scheduling starts and the times determine availability windows each day."
     },
     "abort": {
       "invalid_action": "Invalid Action",
@@ -1487,12 +1504,14 @@
       "options": {
         "none": "None",
         "daily": "Daily",
+        "daily_multi": "Daily - Multiple times per day",
         "weekly": "Weekly",
         "biweekly": "Biweekly",
         "monthly": "Monthly",
         "quarterly": "Quarterly",
         "yearly": "Yearly",
         "custom": "Custom",
+        "custom_from_complete": "Custom (reschedule from completion date)",
         "custom_1_week": "Custom: 1 Week",
         "custom_1_month": "Custom: 1 Month",
         "custom_1_quarter": "Custom: 1 Quarter",
@@ -1508,6 +1527,7 @@
     },
     "custom_interval_unit": {
       "options": {
+        "hours": "Hours",
         "days": "Days",
         "weeks": "Weeks",
         "months": "Months"

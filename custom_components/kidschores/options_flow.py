@@ -524,6 +524,26 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             chore_name = new_chore_data[const.DATA_CHORE_NAME]
             due_date_str = new_chore_data[const.DATA_CHORE_DUE_DATE]
 
+            # CFE-2026-001: Check if DAILY_MULTI needs times collection
+            recurring_frequency = new_chore_data.get(
+                const.DATA_CHORE_RECURRING_FREQUENCY
+            )
+            if recurring_frequency == const.FREQUENCY_DAILY_MULTI:
+                # Create chore first, then route to daily_multi times helper
+                coordinator._create_chore(internal_id, new_chore_data)
+                coordinator._persist()
+                coordinator.async_update_listeners()
+
+                # Store chore data for helper step
+                self._chore_being_edited = new_chore_data
+                self._chore_being_edited[const.DATA_INTERNAL_ID] = internal_id
+
+                const.LOGGER.debug(
+                    "Added DAILY_MULTI Chore '%s' - routing to times helper",
+                    chore_name,
+                )
+                return await self.async_step_chores_daily_multi()
+
             # Add to coordinator
             coordinator._create_chore(internal_id, new_chore_data)
             coordinator._persist()
@@ -1458,6 +1478,30 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 self._chore_template_date_raw = raw_template_date
                 return await self.async_step_edit_chore_per_kid_dates()
 
+            # CFE-2026-001: Check if DAILY_MULTI needs times collection/update
+            recurring_frequency = updated_chore_data.get(
+                const.DATA_CHORE_RECURRING_FREQUENCY
+            )
+            existing_times = updated_chore_data.get(
+                const.DATA_CHORE_DAILY_MULTI_TIMES, ""
+            )
+            if (
+                recurring_frequency == const.FREQUENCY_DAILY_MULTI
+                and not existing_times
+            ):
+                # DAILY_MULTI selected but no times yet - route to helper
+                coordinator.update_chore_entity(internal_id, updated_chore_data)
+                coordinator._persist()
+                coordinator.async_update_listeners()
+
+                self._chore_being_edited = updated_chore_data
+                self._chore_being_edited[const.DATA_INTERNAL_ID] = internal_id
+
+                const.LOGGER.debug(
+                    "Edited chore to DAILY_MULTI - routing to times helper"
+                )
+                return await self.async_step_chores_daily_multi()
+
             return await self.async_step_init()
 
         # Use flow_helpers.fh.build_chore_schema, passing current kids
@@ -1813,6 +1857,92 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             data_schema=vol.Schema(schema_fields),
             errors=errors,
             description_placeholders=description_placeholders,
+        )
+
+    # ----- Daily Multi Times Helper Step -----
+    async def async_step_chores_daily_multi(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Collect daily time slots for FREQUENCY_DAILY_MULTI chores.
+
+        CFE-2026-001 Feature 2: Helper form to collect pipe-separated times.
+        Pattern follows edit_chore_per_kid_dates helper.
+
+        Features:
+        - Shows chore name in title
+        - Collects pipe-separated times (e.g., "08:00|17:00")
+        - Validates format, count (2-6 times), and range
+        - Stores validated times in chore data
+        """
+        coordinator = self._get_coordinator()
+        errors: dict[str, str] = {}
+
+        # Get chore data from stored state
+        chore_data = getattr(self, "_chore_being_edited", None)
+        if not chore_data:
+            const.LOGGER.error("Daily multi times step called without chore data")
+            return await self.async_step_init()
+
+        internal_id = chore_data.get(const.DATA_INTERNAL_ID)
+        if not internal_id:
+            const.LOGGER.error("Daily multi times step: missing internal_id")
+            return await self.async_step_init()
+
+        chore_name = chore_data.get(const.DATA_CHORE_NAME, "Unknown")
+
+        if user_input is not None:
+            times_str = user_input.get(
+                const.CFOF_CHORES_INPUT_DAILY_MULTI_TIMES, ""
+            ).strip()
+
+            # Validate the times string
+            is_valid, error_key = kh.validate_daily_multi_times(times_str)
+
+            if not is_valid and error_key:
+                errors[const.CFOF_CHORES_INPUT_DAILY_MULTI_TIMES] = error_key
+            else:
+                # Valid - store times in chore data and persist
+                chore_data[const.DATA_CHORE_DAILY_MULTI_TIMES] = times_str
+
+                # Update storage
+                coordinator.update_chore_entity(internal_id, chore_data)
+                coordinator._persist()
+                coordinator.async_update_listeners()
+
+                const.LOGGER.info(
+                    "Set daily multi times for chore '%s': %s",
+                    chore_name,
+                    times_str,
+                )
+
+                self._mark_reload_needed()
+                # Clear temp state
+                self._chore_being_edited = None
+                return await self.async_step_init()
+
+        # Get existing times if editing
+        existing_times = chore_data.get(const.DATA_CHORE_DAILY_MULTI_TIMES, "")
+
+        # Build form schema
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    const.CFOF_CHORES_INPUT_DAILY_MULTI_TIMES,
+                    default=existing_times,
+                ): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.TEXT,
+                        multiline=False,
+                    )
+                ),
+            }
+        )
+
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_CHORES_DAILY_MULTI,
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={"chore_name": chore_name},
         )
 
     # ----- Edit Achievement-Linked Badge -----

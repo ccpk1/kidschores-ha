@@ -139,7 +139,9 @@ FREQUENCY_CUSTOM_1_MONTH: Final = "custom_1_month"
 FREQUENCY_CUSTOM_1_QUARTER: Final = "custom_1_quarter"
 FREQUENCY_CUSTOM_1_WEEK: Final = "custom_1_week"
 FREQUENCY_CUSTOM_1_YEAR: Final = "custom_1_year"
+FREQUENCY_CUSTOM_FROM_COMPLETE: Final = "custom_from_complete"  # CFE-2026-001 F1
 FREQUENCY_DAILY: Final = "daily"
+FREQUENCY_DAILY_MULTI: Final = "daily_multi"  # CFE-2026-001 F2
 FREQUENCY_MONTHLY: Final = "monthly"
 FREQUENCY_NONE: Final = "none"
 FREQUENCY_QUARTERLY: Final = "quarterly"
@@ -301,6 +303,9 @@ OPTIONS_FLOW_STEP_DELETE_PARENT: Final = "delete_parent"
 OPTIONS_FLOW_STEP_DELETE_PENALTY: Final = "delete_penalty"
 OPTIONS_FLOW_STEP_DELETE_REWARD: Final = "delete_reward"
 
+# CFE-2026-001: Daily Multi Times Helper Step
+OPTIONS_FLOW_STEP_CHORES_DAILY_MULTI: Final = "chores_daily_multi"
+
 # ConfigFlow & OptionsFlow User Input Fields
 
 # GLOBAL
@@ -358,6 +363,7 @@ CFOF_CHORES_INPUT_NOTIFY_ON_APPROVAL: Final = "notify_on_approval"
 CFOF_CHORES_INPUT_NOTIFY_ON_CLAIM: Final = "notify_on_claim"
 CFOF_CHORES_INPUT_NOTIFY_ON_DISAPPROVAL: Final = "notify_on_disapproval"
 CFOF_CHORES_INPUT_RECURRING_FREQUENCY: Final = "recurring_frequency"
+CFOF_CHORES_INPUT_DAILY_MULTI_TIMES: Final = "daily_multi_times"  # CFE-2026-001 F2
 CFOF_CHORES_INPUT_SHARED_CHORE: Final = "shared_chore"
 CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: Final = "overdue_handling_type"
 CFOF_CHORES_INPUT_APPROVAL_RESET_PENDING_CLAIM_ACTION: Final = (
@@ -535,6 +541,7 @@ CFOF_SYSTEM_INPUT_BACKUPS_MAX_RETAINED: Final = "backups_max_retained"
 # Chore Custom Interval Reset Periods
 CUSTOM_INTERVAL_UNIT_OPTIONS: Final = [
     SENTINEL_EMPTY,
+    TIME_UNIT_HOURS,  # CFE-2026-001 F3
     TIME_UNIT_DAYS,
     TIME_UNIT_WEEKS,
     TIME_UNIT_MONTHS,
@@ -999,6 +1006,7 @@ DATA_CHORE_NOTIFY_ON_CLAIM: Final = "notify_on_claim"
 DATA_CHORE_NOTIFY_ON_DISAPPROVAL: Final = "notify_on_disapproval"
 DATA_CHORE_AUTO_APPROVE: Final = "auto_approve"
 DATA_CHORE_RECURRING_FREQUENCY: Final = "recurring_frequency"
+DATA_CHORE_DAILY_MULTI_TIMES: Final = "daily_multi_times"  # CFE-2026-001 F2
 DATA_CHORE_SHOW_ON_CALENDAR: Final = "show_on_calendar"
 DATA_CHORE_COMPLETION_CRITERIA: Final = "completion_criteria"
 DATA_CHORE_PER_KID_DUE_DATES: Final = "per_kid_due_dates"
@@ -2253,6 +2261,10 @@ CFOP_ERROR_RETENTION_WEEKLY: Final = "retention_weekly"
 CFOP_ERROR_RETENTION_MONTHLY: Final = "retention_monthly"
 CFOP_ERROR_RETENTION_YEARLY: Final = "retention_yearly"
 CFOP_ERROR_POINTS_ADJUST_VALUES: Final = "points_adjust_values"
+# CFE-2026-001: Daily Multi validation error keys
+CFOP_ERROR_DAILY_MULTI_RESET: Final = "recurring_frequency"  # Uses frequency field
+CFOP_ERROR_DAILY_MULTI_KIDS: Final = "assigned_kids"  # Uses assigned_kids field
+CFOP_ERROR_DAILY_MULTI_DUE_DATE: Final = "due_date"  # Uses due_date field
 
 
 # ------------------------------------------------------------------------------------------------
@@ -2392,6 +2404,28 @@ TRANS_KEY_CFOF_ERROR_POINTS_MULTIPLIER_REQUIRED: Final = (
     "error_points_multiplier_required"
 )
 TRANS_KEY_CFOF_ERROR_THRESHOLD_REQUIRED: Final = "error_threshold_required"
+# CFE-2026-001 Error Keys
+TRANS_KEY_CFOF_ERROR_DAILY_MULTI_REQUIRES_COMPATIBLE_RESET: Final = (
+    "error_daily_multi_requires_compatible_reset"
+)
+TRANS_KEY_CFOF_ERROR_DAILY_MULTI_INDEPENDENT_MULTI_KIDS: Final = (
+    "error_daily_multi_independent_multi_kids"
+)
+TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_REQUIRED: Final = (
+    "error_daily_multi_times_required"
+)
+TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_INVALID_FORMAT: Final = (
+    "error_daily_multi_times_invalid_format"
+)
+TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_TOO_FEW: Final = (
+    "error_daily_multi_times_too_few"
+)
+TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_TOO_MANY: Final = (
+    "error_daily_multi_times_too_many"
+)
+TRANS_KEY_CFOF_ERROR_DAILY_MULTI_DUE_DATE_REQUIRED: Final = (
+    "error_daily_multi_due_date_required"
+)
 TRANS_KEY_CFOF_INVALID_ACHIEVEMENT: Final = "invalid_achievement"
 TRANS_KEY_CFOF_INVALID_ACHIEVEMENT_COUNT: Final = "invalid_achievement_count"
 TRANS_KEY_CFOF_INVALID_ACHIEVEMENT_NAME: Final = "invalid_achievement_name"
@@ -2650,10 +2684,12 @@ NOTIFY_TITLE = "title"
 FREQUENCY_OPTIONS = [
     FREQUENCY_NONE,
     FREQUENCY_DAILY,
+    FREQUENCY_DAILY_MULTI,  # CFE-2026-001 F2
     FREQUENCY_WEEKLY,
     FREQUENCY_BIWEEKLY,
     FREQUENCY_MONTHLY,
     FREQUENCY_CUSTOM,
+    FREQUENCY_CUSTOM_FROM_COMPLETE,  # CFE-2026-001 F1
 ]
 
 # Weekday Options

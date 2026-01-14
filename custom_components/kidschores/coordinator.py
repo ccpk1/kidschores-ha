@@ -1354,7 +1354,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             ),
         )
 
-        if chore_info[const.DATA_CHORE_RECURRING_FREQUENCY] == const.FREQUENCY_CUSTOM:
+        if chore_info[const.DATA_CHORE_RECURRING_FREQUENCY] in (
+            const.FREQUENCY_CUSTOM,
+            const.FREQUENCY_CUSTOM_FROM_COMPLETE,
+        ):
             chore_info[const.DATA_CHORE_CUSTOM_INTERVAL] = chore_data.get(
                 const.DATA_CHORE_CUSTOM_INTERVAL
             )
@@ -1364,6 +1367,19 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         else:
             chore_info[const.DATA_CHORE_CUSTOM_INTERVAL] = None
             chore_info[const.DATA_CHORE_CUSTOM_INTERVAL_UNIT] = None
+
+        # CFE-2026-001: Handle DAILY_MULTI times field
+        if (
+            chore_info[const.DATA_CHORE_RECURRING_FREQUENCY]
+            == const.FREQUENCY_DAILY_MULTI
+        ):
+            chore_info[const.DATA_CHORE_DAILY_MULTI_TIMES] = chore_data.get(
+                const.DATA_CHORE_DAILY_MULTI_TIMES,
+                chore_info.get(const.DATA_CHORE_DAILY_MULTI_TIMES, ""),
+            )
+        else:
+            # Clear times if frequency changed away from DAILY_MULTI
+            chore_info[const.DATA_CHORE_DAILY_MULTI_TIMES] = None
 
         # Component 8: Handle completion_criteria changes (INDEPENDENT ↔ SHARED)
         old_criteria = chore_info.get(
@@ -3016,6 +3032,30 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             and approval_reset_type == const.APPROVAL_RESET_UPON_COMPLETION
         ):
             self._reschedule_chore_next_due_date_for_kid(chore_info, chore_id, kid_id)
+
+        # CFE-2026-002: For SHARED chores with UPON_COMPLETION, check if all kids approved
+        # and reschedule chore-level due date immediately
+        completion_criteria = chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
+        if (
+            completion_criteria
+            in (
+                const.COMPLETION_CRITERIA_SHARED,
+                const.COMPLETION_CRITERIA_SHARED_FIRST,
+            )
+            and approval_reset_type == const.APPROVAL_RESET_UPON_COMPLETION
+        ):
+            # Check if all assigned kids have approved in current period
+            assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+            all_approved = all(
+                self.is_approved_in_current_period(kid, chore_id)
+                for kid in assigned_kids
+            )
+            if all_approved:
+                const.LOGGER.debug(
+                    "CFE-2026-002: All kids approved SHARED chore '%s', rescheduling immediately",
+                    chore_info.get(const.DATA_CHORE_NAME),
+                )
+                self._reschedule_chore_next_due_date(chore_info)
 
         # Send a notification to the kid that chore was approved
         if chore_info.get(
@@ -8996,10 +9036,79 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     const.CHORE_STATE_PENDING,
                 )
 
+    def _calculate_next_multi_daily_due(
+        self,
+        chore_info: dict[str, Any],
+        current_due_utc: datetime,
+    ) -> datetime | None:
+        """Calculate next due datetime for DAILY_MULTI frequency.
+
+        CFE-2026-001 Feature 2: Multiple times per day scheduling.
+
+        Args:
+            chore_info: Chore data containing daily_multi_times
+            current_due_utc: Current due datetime (UTC)
+
+        Returns:
+            Next due datetime (UTC) - same day if before last slot,
+            next day's first slot if past all slots today
+        """
+        times_str = chore_info.get(const.DATA_CHORE_DAILY_MULTI_TIMES, "")
+        if not times_str:
+            const.LOGGER.warning(
+                "DAILY_MULTI frequency missing times string for chore: %s",
+                chore_info.get(const.DATA_CHORE_NAME),
+            )
+            return None
+
+        # Convert current due to local timezone for date reference
+        current_local = dt_util.as_local(current_due_utc)
+        current_date = current_local.date()
+
+        # Parse times with timezone awareness (returns local-aware datetimes)
+        time_slots_local = kh.parse_daily_multi_times(
+            times_str,
+            reference_date=current_date,
+            timezone_info=const.DEFAULT_TIME_ZONE,
+        )
+
+        if not time_slots_local:
+            const.LOGGER.warning(
+                "DAILY_MULTI frequency has no valid times for chore: %s",
+                chore_info.get(const.DATA_CHORE_NAME),
+            )
+            return None
+
+        # Convert time slots to UTC for comparison
+        time_slots_utc = [dt_util.as_utc(dt) for dt in time_slots_local]
+        current_utc = dt_util.utcnow()
+
+        # Find next available slot (must be strictly after current time)
+        for slot_utc in time_slots_utc:
+            if slot_utc > current_utc:
+                return slot_utc
+
+        # Past all slots today, wrap to first slot tomorrow
+        tomorrow_date = current_date + timedelta(days=1)
+        tomorrow_slots = kh.parse_daily_multi_times(
+            times_str,
+            reference_date=tomorrow_date,
+            timezone_info=const.DEFAULT_TIME_ZONE,
+        )
+        if tomorrow_slots:
+            return dt_util.as_utc(tomorrow_slots[0])
+
+        const.LOGGER.warning(
+            "DAILY_MULTI failed to calculate next slot for chore: %s",
+            chore_info.get(const.DATA_CHORE_NAME),
+        )
+        return None
+
     def _calculate_next_due_date_from_info(
         self,
         current_due_utc: datetime | None,
         chore_info: dict[str, Any],
+        completion_timestamp: datetime | None = None,
     ) -> datetime | None:
         """Calculate next due date for a chore based on frequency (pure calculation helper).
 
@@ -9008,6 +9117,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         Args:
             current_due_utc: Current due date (UTC datetime, can be None)
             chore_info: Chore data dict containing frequency and configuration
+            completion_timestamp: Optional completion timestamp (UTC) for
+                FREQUENCY_CUSTOM_FROM_COMPLETE mode. If provided, rescheduling
+                uses this as base instead of current_due_utc.
 
         Returns:
             datetime: Next due date (UTC) or None if calculation failed
@@ -9016,15 +9128,17 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.DATA_CHORE_RECURRING_FREQUENCY, const.FREQUENCY_NONE
         )
 
-        # Initialize custom frequency parameters (used only when freq == FREQUENCY_CUSTOM)
+        # Initialize custom frequency parameters (used for FREQUENCY_CUSTOM and
+        # FREQUENCY_CUSTOM_FROM_COMPLETE)
         custom_interval: int | None = None
         custom_unit: str | None = None
 
-        # Validate custom frequency parameters
-        if freq == const.FREQUENCY_CUSTOM:
+        # Validate custom frequency parameters for CUSTOM frequencies
+        if freq in (const.FREQUENCY_CUSTOM, const.FREQUENCY_CUSTOM_FROM_COMPLETE):
             custom_interval = chore_info.get(const.DATA_CHORE_CUSTOM_INTERVAL)
             custom_unit = chore_info.get(const.DATA_CHORE_CUSTOM_INTERVAL_UNIT)
             if custom_interval is None or custom_unit not in [
+                const.TIME_UNIT_HOURS,  # CFE-2026-001: Support hours unit
                 const.TIME_UNIT_DAYS,
                 const.TIME_UNIT_WEEKS,
                 const.TIME_UNIT_MONTHS,
@@ -9057,6 +9171,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # Calculate next due date based on frequency
         if freq == const.FREQUENCY_CUSTOM:
+            # FREQUENCY_CUSTOM: Always reschedule from current due date
             # Type narrowing: custom_unit and custom_interval are validated above
             assert custom_unit is not None
             assert custom_interval is not None
@@ -9070,6 +9185,38 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     return_type=const.HELPER_RETURN_DATETIME,
                 ),
             )
+        elif freq == const.FREQUENCY_CUSTOM_FROM_COMPLETE:
+            # CFE-2026-001 Feature 1: Reschedule from completion timestamp
+            # Use completion_timestamp if available, fallback to current_due_utc
+            # This allows intervals like "every 3 days from when they actually completed"
+            assert custom_unit is not None
+            assert custom_interval is not None
+            base_date = (
+                completion_timestamp if completion_timestamp else current_due_utc
+            )
+            if base_date is None:
+                const.LOGGER.warning(
+                    "Consolidation Helper - No base date for CUSTOM_FROM_COMPLETE: %s",
+                    chore_info.get(const.DATA_CHORE_NAME),
+                )
+                return None
+            next_due_utc = cast(
+                "datetime",
+                kh.adjust_datetime_by_interval(
+                    base_date=base_date,
+                    interval_unit=custom_unit,
+                    delta=custom_interval,
+                    require_future=True,
+                    return_type=const.HELPER_RETURN_DATETIME,
+                ),
+            )
+        elif freq == const.FREQUENCY_DAILY_MULTI:
+            # CFE-2026-001 Feature 2: Multiple times per day
+            # Use dedicated helper for slot-based scheduling
+            result = self._calculate_next_multi_daily_due(chore_info, current_due_utc)
+            if result is None:
+                return None
+            next_due_utc = result
         else:
             next_due_utc = cast(
                 "datetime",
@@ -9115,9 +9262,16 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             )
             return
 
+        # CFE-2026-001: Extract completion timestamp for CUSTOM_FROM_COMPLETE
+        # For SHARED chores, use chore-level last_completed
+        completion_utc: datetime | None = None
+        last_completed_str = chore_info.get(const.DATA_CHORE_LAST_COMPLETED)
+        if last_completed_str:
+            completion_utc = kh.parse_datetime_to_utc(last_completed_str)
+
         # Use consolidation helper for calculation
         next_due_utc = self._calculate_next_due_date_from_info(
-            original_due_utc, chore_info
+            original_due_utc, chore_info, completion_timestamp=completion_utc
         )
         if not next_due_utc:
             const.LOGGER.warning(
@@ -9211,9 +9365,17 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             chore_info[const.DATA_CHORE_PER_KID_DUE_DATES] = per_kid_due_dates
             return
 
+        # CFE-2026-001: Extract per-kid completion timestamp for CUSTOM_FROM_COMPLETE
+        # For INDEPENDENT chores, use per-kid last_approved from kid_chore_data
+        completion_utc: datetime | None = None
+        kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {}).get(chore_id, {})
+        last_approved_str = kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_APPROVED)
+        if last_approved_str:
+            completion_utc = kh.parse_datetime_to_utc(last_approved_str)
+
         # Use consolidation helper for calculation
         next_due_utc = self._calculate_next_due_date_from_info(
-            original_due_utc, chore_info
+            original_due_utc, chore_info, completion_timestamp=completion_utc
         )
         if not next_due_utc:
             const.LOGGER.warning(

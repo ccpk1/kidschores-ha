@@ -32,13 +32,20 @@ from tests.helpers import (
     COMPLETION_CRITERIA_SHARED,
     COMPLETION_CRITERIA_SHARED_FIRST,
     DATA_CHORE_COMPLETION_CRITERIA,
+    DATA_CHORE_CUSTOM_INTERVAL,
+    DATA_CHORE_CUSTOM_INTERVAL_UNIT,
+    DATA_CHORE_DAILY_MULTI_TIMES,
     DATA_CHORE_DUE_DATE,
     DATA_CHORE_RECURRING_FREQUENCY,
     DATA_KID_CHORE_DATA,
     DATA_KID_CHORE_DATA_STATE,
     DATA_KID_POINTS,
+    FREQUENCY_CUSTOM,
+    FREQUENCY_CUSTOM_FROM_COMPLETE,
     FREQUENCY_DAILY,
+    FREQUENCY_DAILY_MULTI,
     FREQUENCY_NONE,
+    TIME_UNIT_HOURS,
 )
 from tests.helpers.setup import SetupResult, setup_from_yaml
 
@@ -83,6 +90,22 @@ async def scenario_approval_reset_no_due_date(
         hass,
         mock_hass_users,
         "tests/scenarios/scenario_approval_reset_no_due_date.yaml",
+    )
+
+
+@pytest.fixture
+async def scenario_enhanced_frequencies(
+    hass: HomeAssistant,
+    mock_hass_users: dict[str, Any],
+) -> SetupResult:
+    """Load enhanced frequencies scenario for Phase 5 tests.
+
+    Contains chores with DAILY_MULTI, CUSTOM_FROM_COMPLETE, and CUSTOM hours.
+    """
+    return await setup_from_yaml(
+        hass,
+        mock_hass_users,
+        "tests/scenarios/scenario_enhanced_frequencies.yaml",
     )
 
 
@@ -981,4 +1004,178 @@ class TestWorkflowResetIntegration:
         points_after_reset = get_kid_points(coordinator, kid_id)
         assert points_after_reset == points_after_approval, (
             "Reset should not affect point balance"
+        )
+
+
+# =============================================================================
+# Enhanced Frequency Workflow Tests (CFE-2026-001, CFE-2026-002, CFE-2026-003)
+# =============================================================================
+
+
+class TestEnhancedFrequencyWorkflows:
+    """Integration/workflow tests for Phase 5 enhanced frequency features.
+
+    Tests the complete workflow for:
+    - DAILY_MULTI: Multiple time slots per day
+    - CUSTOM_FROM_COMPLETE: Reschedule from completion date
+    - CUSTOM hours: Sub-daily intervals in hours
+
+    These tests use the enhanced_frequencies scenario which contains chores
+    configured with the Phase 5 frequency enhancements.
+    """
+
+    @pytest.mark.asyncio
+    async def test_wf_01_daily_multi_claim_approve_workflow(
+        self,
+        hass: HomeAssistant,
+        scenario_enhanced_frequencies: SetupResult,
+    ) -> None:
+        """WF-01: DAILY_MULTI chore claim/approve workflow.
+
+        Tests that a DAILY_MULTI chore can be claimed and approved,
+        verifying the complete workflow operates correctly.
+        """
+        coordinator = scenario_enhanced_frequencies.coordinator
+        kid_id = scenario_enhanced_frequencies.kid_ids["Zoë"]
+        chore_id = scenario_enhanced_frequencies.chore_ids["Daily Multi Single Kid"]
+
+        # Verify this is a DAILY_MULTI chore with correct configuration
+        chore = coordinator.chores_data.get(chore_id, {})
+        assert chore.get(DATA_CHORE_RECURRING_FREQUENCY) == FREQUENCY_DAILY_MULTI
+        assert chore.get(DATA_CHORE_DAILY_MULTI_TIMES) == "09:00|21:00"
+
+        # Initial state should be PENDING
+        assert get_kid_chore_state(coordinator, kid_id, chore_id) == CHORE_STATE_PENDING
+
+        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+            # Claim the chore
+            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            assert (
+                get_kid_chore_state(coordinator, kid_id, chore_id)
+                == CHORE_STATE_CLAIMED
+            )
+
+            # Approve the chore
+            coordinator.approve_chore("Môm Astrid Stârblüm", kid_id, chore_id)
+
+        # After approval, state should change (APPROVED or PENDING based on reset)
+        final_state = get_kid_chore_state(coordinator, kid_id, chore_id)
+        assert final_state in [CHORE_STATE_APPROVED, CHORE_STATE_PENDING]
+
+    @pytest.mark.asyncio
+    async def test_wf_02_custom_from_complete_claim_approve_workflow(
+        self,
+        hass: HomeAssistant,
+        scenario_enhanced_frequencies: SetupResult,
+    ) -> None:
+        """WF-02: CUSTOM_FROM_COMPLETE chore claim/approve workflow.
+
+        Tests that a CUSTOM_FROM_COMPLETE chore can be claimed and approved,
+        verifying the frequency type is handled correctly.
+        """
+        coordinator = scenario_enhanced_frequencies.coordinator
+        kid_id = scenario_enhanced_frequencies.kid_ids["Zoë"]
+        chore_id = scenario_enhanced_frequencies.chore_ids[
+            "Custom From Complete Single"
+        ]
+
+        # Verify this is a CUSTOM_FROM_COMPLETE chore
+        chore = coordinator.chores_data.get(chore_id, {})
+        assert (
+            chore.get(DATA_CHORE_RECURRING_FREQUENCY) == FREQUENCY_CUSTOM_FROM_COMPLETE
+        )
+        assert chore.get(DATA_CHORE_CUSTOM_INTERVAL) == 5
+
+        # Initial state should be PENDING
+        assert get_kid_chore_state(coordinator, kid_id, chore_id) == CHORE_STATE_PENDING
+
+        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+            # Claim the chore
+            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            assert (
+                get_kid_chore_state(coordinator, kid_id, chore_id)
+                == CHORE_STATE_CLAIMED
+            )
+
+            # Approve the chore
+            coordinator.approve_chore("Môm Astrid Stârblüm", kid_id, chore_id)
+
+        # After approval with UPON_COMPLETION reset, should be PENDING
+        final_state = get_kid_chore_state(coordinator, kid_id, chore_id)
+        assert final_state == CHORE_STATE_PENDING
+
+    @pytest.mark.asyncio
+    async def test_wf_03_custom_hours_claim_approve_workflow(
+        self,
+        hass: HomeAssistant,
+        scenario_enhanced_frequencies: SetupResult,
+    ) -> None:
+        """WF-03: CUSTOM hours interval claim/approve workflow.
+
+        Tests that a CUSTOM frequency chore with hours unit can be
+        claimed and approved, verifying hourly intervals work correctly.
+        """
+        coordinator = scenario_enhanced_frequencies.coordinator
+        kid_id = scenario_enhanced_frequencies.kid_ids["Zoë"]
+        chore_id = scenario_enhanced_frequencies.chore_ids[
+            "Custom Hours 8h Cross Midnight"
+        ]
+
+        # Verify this is a CUSTOM chore with hours unit
+        chore = coordinator.chores_data.get(chore_id, {})
+        assert chore.get(DATA_CHORE_RECURRING_FREQUENCY) == FREQUENCY_CUSTOM
+        assert chore.get(DATA_CHORE_CUSTOM_INTERVAL_UNIT) == TIME_UNIT_HOURS
+        assert chore.get(DATA_CHORE_CUSTOM_INTERVAL) == 8
+
+        # Initial state should be PENDING
+        assert get_kid_chore_state(coordinator, kid_id, chore_id) == CHORE_STATE_PENDING
+
+        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+            # Claim the chore
+            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            assert (
+                get_kid_chore_state(coordinator, kid_id, chore_id)
+                == CHORE_STATE_CLAIMED
+            )
+
+            # Approve the chore
+            coordinator.approve_chore("Môm Astrid Stârblüm", kid_id, chore_id)
+
+        # After approval, state should change
+        final_state = get_kid_chore_state(coordinator, kid_id, chore_id)
+        assert final_state in [CHORE_STATE_APPROVED, CHORE_STATE_PENDING]
+
+    @pytest.mark.asyncio
+    async def test_wf_04_existing_daily_not_affected(
+        self,
+        hass: HomeAssistant,
+        scenario_minimal: SetupResult,
+    ) -> None:
+        """WF-04: Regression test - standard DAILY chores unchanged.
+
+        Verify that existing DAILY frequency chores still work correctly
+        after Phase 5 enhancements. This is a regression test to ensure
+        backwards compatibility with baseline chore types.
+        """
+        coordinator = scenario_minimal.coordinator
+        kid_id = scenario_minimal.kid_ids["Zoë"]
+        chore_id = scenario_minimal.chore_ids["Make bed"]  # DAILY chore
+
+        # Verify this is indeed a DAILY chore
+        chore = coordinator.chores_data.get(chore_id, {})
+        assert chore.get(DATA_CHORE_RECURRING_FREQUENCY) == FREQUENCY_DAILY
+
+        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+            # Standard workflow: claim -> approve
+            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            assert (
+                get_kid_chore_state(coordinator, kid_id, chore_id)
+                == CHORE_STATE_CLAIMED
+            )
+
+            coordinator.approve_chore("Mom", kid_id, chore_id)
+
+        # Should be APPROVED (standard behavior)
+        assert (
+            get_kid_chore_state(coordinator, kid_id, chore_id) == CHORE_STATE_APPROVED
         )

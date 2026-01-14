@@ -45,7 +45,7 @@ This file is organized into logical sections for easy navigation:
 from __future__ import annotations
 
 from calendar import monthrange
-from datetime import date, datetime, timedelta, tzinfo
+from datetime import date, datetime, time, timedelta, tzinfo
 import json
 import os
 from typing import TYPE_CHECKING, Any, cast
@@ -597,9 +597,12 @@ def build_default_chore_data(
     # Extract assigned_kids - these should already be UUIDs from flow helpers
     assigned_kids_ids = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
 
-    # Handle custom interval fields - only set if frequency is CUSTOM
-    is_custom_frequency = (
-        chore_data.get(const.DATA_CHORE_RECURRING_FREQUENCY) == const.FREQUENCY_CUSTOM
+    # Handle custom interval fields - only set if frequency uses custom intervals
+    # CFE-2026-001: Include CUSTOM_FROM_COMPLETE (uses interval for post-completion
+    # rescheduling)
+    is_custom_frequency = chore_data.get(const.DATA_CHORE_RECURRING_FREQUENCY) in (
+        const.FREQUENCY_CUSTOM,
+        const.FREQUENCY_CUSTOM_FROM_COMPLETE,
     )
 
     return {
@@ -1125,6 +1128,141 @@ def get_now_local_iso() -> str:
         "2025-04-07T14:30:00-05:00"
     """
     return get_now_local_time().isoformat()
+
+
+def parse_daily_multi_times(
+    times_str: str,
+    reference_date: str | date | datetime | None = None,
+    timezone_info: tzinfo | None = None,
+) -> list[datetime]:
+    """Parse pipe-separated time strings into timezone-aware datetime objects.
+
+    CFE-2026-001 Feature 2: Parses time slot strings for FREQUENCY_DAILY_MULTI.
+
+    Args:
+        times_str: Pipe-separated times in HH:MM format (e.g., "08:00|12:00|18:00")
+        reference_date: Date to combine with times (defaults to today)
+        timezone_info: Timezone for the times (defaults to const.DEFAULT_TIME_ZONE)
+
+    Returns:
+        List of timezone-aware datetime objects sorted chronologically.
+        Empty list if parsing fails or no valid times found.
+
+    Example:
+        >>> parse_daily_multi_times("08:00|17:00")
+        [datetime(2026, 1, 14, 8, 0, tzinfo=...), datetime(2026, 1, 14, 17, 0, tzinfo=...)]
+    """
+    if not times_str or not isinstance(times_str, str):
+        return []
+
+    # Default to today's date if no reference provided
+    if reference_date is None:
+        base_date = get_today_local_date()
+    elif isinstance(reference_date, datetime):
+        base_date = reference_date.date()
+    elif isinstance(reference_date, date):
+        base_date = reference_date
+    else:
+        # Try to parse string date
+        parsed = parse_date_safe(reference_date)
+        base_date = parsed if parsed else get_today_local_date()
+
+    # Default to system timezone if none provided
+    tz_info = timezone_info or const.DEFAULT_TIME_ZONE
+
+    result: list[datetime] = []
+    for time_part in times_str.split("|"):
+        time_part = time_part.strip()
+        if not time_part:
+            continue
+
+        try:
+            hour_str, minute_str = time_part.split(":")
+            hour = int(hour_str)
+            minute = int(minute_str)
+
+            # Validate hour/minute ranges
+            if not (0 <= hour <= 23 and 0 <= minute <= 59):
+                const.LOGGER.warning(
+                    "Invalid time value in daily_multi_times: %s (out of range)",
+                    time_part,
+                )
+                continue
+
+            time_obj = time(hour, minute)
+
+            # Combine date + time and apply timezone
+            dt_local = datetime.combine(base_date, time_obj)
+            dt_with_tz = dt_local.replace(tzinfo=tz_info)
+
+            result.append(dt_with_tz)
+        except (ValueError, AttributeError) as exc:
+            const.LOGGER.warning(
+                "Invalid time format in daily_multi_times: %s (expected HH:MM): %s",
+                time_part,
+                exc,
+            )
+            continue
+
+    return sorted(result)
+
+
+def validate_daily_multi_times(times_str: str) -> tuple[bool, str | None]:
+    """Validate pipe-separated time string format for DAILY_MULTI frequency.
+
+    CFE-2026-001 Feature 2: Validates time slot strings before storage.
+
+    Args:
+        times_str: Pipe-separated times in HH:MM format (e.g., "08:00|12:00|18:00")
+
+    Returns:
+        Tuple of (is_valid, error_translation_key).
+        If valid, returns (True, None).
+        If invalid, returns (False, translation_key_for_error).
+    """
+    if not times_str or not isinstance(times_str, str):
+        return False, const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_REQUIRED
+
+    times_str = times_str.strip()
+    if not times_str:
+        return False, const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_REQUIRED
+
+    # Parse and validate each time slot
+    valid_times: list[str] = []
+    for time_part in times_str.split("|"):
+        time_part = time_part.strip()
+        if not time_part:
+            continue
+
+        # Check format: must be HH:MM
+        if ":" not in time_part:
+            return False, const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_INVALID_FORMAT
+
+        try:
+            hour_str, minute_str = time_part.split(":")
+            hour = int(hour_str)
+            minute = int(minute_str)
+
+            # Validate ranges
+            if not (0 <= hour <= 23 and 0 <= minute <= 59):
+                return (
+                    False,
+                    const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_INVALID_FORMAT,
+                )
+
+            valid_times.append(time_part)
+        except (ValueError, AttributeError):
+            return False, const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_INVALID_FORMAT
+
+    # Check minimum (2 times required)
+    if len(valid_times) < 2:
+        return False, const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_TOO_FEW
+
+    # Check maximum (6 times allowed)
+    if len(valid_times) > 6:
+        return False, const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_TOO_MANY
+
+    return True, None
 
 
 def parse_datetime_to_utc(dt_str: str) -> datetime | None:

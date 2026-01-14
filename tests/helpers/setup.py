@@ -451,6 +451,9 @@ async def _configure_chore_step(
         user_input[const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT] = chore_config[
             "custom_interval_unit"
         ]
+    # NOTE: daily_multi_times is NOT supported in config_flow schema.
+    # It's handled via options_flow helper step (async_step_chores_daily_multi).
+    # Post-setup injection happens in setup_scenario() after all chores are created.
 
     return await hass.config_entries.flow.async_configure(
         result["flow_id"], user_input=user_input
@@ -1199,6 +1202,27 @@ async def setup_scenario(
         chore_name = chore_data.get(const.DATA_CHORE_NAME)
         if chore_name:
             chore_name_to_id[chore_name] = chore_id
+
+    # -------------------------------------------------------------------------
+    # CFE-2026-001 F2: Post-setup injection of daily_multi_times
+    # The config_flow doesn't support daily_multi_times in its schema (it's
+    # handled via options_flow helper step). For test scenarios, we inject
+    # this field directly into coordinator chore data after setup.
+    # -------------------------------------------------------------------------
+    chores_config = scenario.get("chores", [])
+    for chore_config in chores_config:
+        if "daily_multi_times" in chore_config:
+            chore_name = chore_config.get("name")
+            if chore_name and chore_name in chore_name_to_id:
+                chore_id = chore_name_to_id[chore_name]
+                chore_data = coordinator.chores_data.get(chore_id)
+                if chore_data:
+                    chore_data[const.DATA_CHORE_DAILY_MULTI_TIMES] = chore_config[
+                        "daily_multi_times"
+                    ]
+    # Persist after any daily_multi_times injections
+    if any("daily_multi_times" in c for c in chores_config):
+        coordinator._persist()
 
     # Map badge names to IDs
     for badge_id, badge_data in coordinator.badges_data.items():
