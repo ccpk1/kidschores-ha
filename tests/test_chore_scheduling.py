@@ -2634,25 +2634,17 @@ class TestApprovalResetEdgeCases:
         coordinator = scheduling_scenario.coordinator
         zoe_id = scheduling_scenario.kid_ids["Zoë"]
 
-        # Create test chore with AT_DUE_DATE_ONCE but no due date
-        chore_id = await coordinator.create_chore(
-            name="No Due Date Reset Test",
-            assigned_kids=[zoe_id],
-            points=10.0,
-            icon="mdi:test-tube",
-            completion_criteria=COMPLETION_CRITERIA_INDEPENDENT,
-            recurring_frequency=FREQUENCY_DAILY,
-            auto_approve=False,
-            approval_reset_type=APPROVAL_RESET_AT_DUE_DATE_ONCE,
-            overdue_handling_type=OVERDUE_HANDLING_AT_DUE_DATE,
-            approval_reset_pending_claim_action=APPROVAL_RESET_PENDING_CLAIM_CLEAR,
-            # NOTE: No due_date parameter provided
-        )
+        # Use existing chore with AT_DUE_DATE_ONCE reset type
+        chore_id = scheduling_scenario.chore_ids["Reset Due Date Once"]
 
-        # Verify no due date is set
+        # Clear the due date using the proper service method to simulate edge case
+        coordinator.set_chore_due_date(chore_id, None, kid_id=zoe_id)
+
+        # Verify no due date is set (for INDEPENDENT chores, check per-kid due dates)
         chore_info = coordinator.chores_data.get(chore_id, {})
-        assert chore_info.get(DATA_CHORE_DUE_DATE) is None, (
-            "Chore should have no due date"
+        per_kid_dues = chore_info.get(DATA_CHORE_PER_KID_DUE_DATES, {})
+        assert per_kid_dues.get(zoe_id) is None, (
+            "Chore should have no due date for this kid"
         )
 
         # Initial state should be pending
@@ -2663,11 +2655,10 @@ class TestApprovalResetEdgeCases:
         assert can_claim, "Should be able to claim chore initially"
 
         # Claim and approve the chore
-        result = await coordinator.claim_chore(zoe_id, chore_id)
-        assert result.success, f"Claim should succeed: {result.error_message}"
+        coordinator.claim_chore(zoe_id, chore_id, "Test User")
+        assert get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_CLAIMED
 
-        result = await coordinator.approve_chore(zoe_id, chore_id)
-        assert result.success, f"Approve should succeed: {result.error_message}"
+        coordinator.approve_chore("Parent", zoe_id, chore_id)
 
         assert (
             get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_APPROVED
@@ -2710,25 +2701,17 @@ class TestApprovalResetEdgeCases:
         coordinator = scheduling_scenario.coordinator
         zoe_id = scheduling_scenario.kid_ids["Zoë"]
 
-        # Create test chore with AT_DUE_DATE_MULTI but no due date
-        chore_id = await coordinator.create_chore(
-            name="No Due Date Multi Test",
-            assigned_kids=[zoe_id],
-            points=5.0,
-            icon="mdi:test-tube",
-            completion_criteria=COMPLETION_CRITERIA_INDEPENDENT,
-            recurring_frequency=FREQUENCY_DAILY,
-            auto_approve=False,
-            approval_reset_type=APPROVAL_RESET_AT_DUE_DATE_MULTI,
-            overdue_handling_type=OVERDUE_HANDLING_AT_DUE_DATE,
-            approval_reset_pending_claim_action=APPROVAL_RESET_PENDING_CLAIM_CLEAR,
-            # NOTE: No due_date parameter provided
-        )
+        # Use existing chore with AT_DUE_DATE_MULTI reset type
+        chore_id = scheduling_scenario.chore_ids["Reset Due Date Multi"]
 
-        # Verify no due date is set
+        # Clear the due date using the proper service method to simulate edge case
+        coordinator.set_chore_due_date(chore_id, None, kid_id=zoe_id)
+
+        # Verify no due date is set (for INDEPENDENT chores, check per-kid due dates)
         chore_info = coordinator.chores_data.get(chore_id, {})
-        assert chore_info.get(DATA_CHORE_DUE_DATE) is None, (
-            "Chore should have no due date"
+        per_kid_dues = chore_info.get(DATA_CHORE_PER_KID_DUE_DATES, {})
+        assert per_kid_dues.get(zoe_id) is None, (
+            "Chore should have no due date for this kid"
         )
 
         # Should allow multiple claims/approvals even without due date
@@ -2740,15 +2723,13 @@ class TestApprovalResetEdgeCases:
             )
 
             # Claim and approve
-            result = await coordinator.claim_chore(zoe_id, chore_id)
-            assert result.success, (
-                f"Attempt {attempt}: Claim should succeed: {result.error_message}"
-            )
+            coordinator.claim_chore(zoe_id, chore_id, "Test User")
+            assert (
+                get_kid_chore_state(coordinator, zoe_id, chore_id)
+                == CHORE_STATE_CLAIMED
+            ), f"Attempt {attempt}: Should be claimed after claim_chore"
 
-            result = await coordinator.approve_chore(zoe_id, chore_id)
-            assert result.success, (
-                f"Attempt {attempt}: Approve should succeed: {result.error_message}"
-            )
+            coordinator.approve_chore("Parent", zoe_id, chore_id)
 
             assert (
                 get_kid_chore_state(coordinator, zoe_id, chore_id)

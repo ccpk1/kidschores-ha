@@ -372,6 +372,33 @@ async def async_setup_entry(
             SystemChallengeSensor(coordinator, entry, challenge_id, challenge_name)
         )
 
+    # Collect unique dashboard languages in use across all kids and parents
+    languages_in_use: set[str] = set()
+    for kid_info in coordinator.kids_data.values():
+        lang = kid_info.get(
+            const.DATA_KID_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
+        )
+        languages_in_use.add(lang)
+    for parent_info in coordinator.parents_data.values():
+        lang = parent_info.get(
+            const.DATA_PARENT_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
+        )
+        languages_in_use.add(lang)
+
+    # Ensure at least English exists (fallback)
+    if not languages_in_use:
+        languages_in_use.add(const.DEFAULT_DASHBOARD_LANGUAGE)
+
+    # Register the async_add_entities callback on coordinator for dynamic sensor creation
+    # This enables creating new translation sensors when a kid changes to a new language
+    coordinator.register_translation_sensor_callback(async_add_entities)
+
+    # Create one translation sensor per unique language
+    # Track created sensors on coordinator for lifecycle management
+    for lang_code in languages_in_use:
+        entities.append(SystemDashboardTranslationSensor(coordinator, entry, lang_code))
+        coordinator.mark_translation_sensor_created(lang_code)
+
     # Dashboard helper sensors: Created last to ensure all referenced entities exist
     # This prevents entity ID lookup failures during initial setup
     for kid_id, kid_data in coordinator.kids_data.items():
@@ -381,7 +408,13 @@ async def async_setup_entry(
         if not kid_name:
             continue
         entities.append(
-            KidDashboardHelperSensor(coordinator, entry, kid_id, kid_name, points_label)
+            KidDashboardHelperSensor(
+                coordinator,
+                entry,
+                kid_id,
+                kid_name,
+                points_label,
+            )
         )
 
     async_add_entities(entities)
@@ -604,6 +637,15 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_LAST_OVERDUE: last_overdue,
             # --- 6. State info ---
             const.ATTR_GLOBAL_STATE: global_state,
+            # --- 7. Shared chore claim/completion tracking ---
+            # For SHARED_FIRST chores: who claimed/completed this chore
+            # For SHARED_ALL: may contain list of kid_ids who completed
+            # For INDEPENDENT: typically None (each kid tracked separately)
+            const.ATTR_CLAIMED_BY: chore_info.get(const.DATA_CHORE_CLAIMED_BY),
+            const.ATTR_COMPLETED_BY: chore_info.get(const.DATA_CHORE_COMPLETED_BY),
+            const.ATTR_APPROVAL_PERIOD_START: chore_info.get(
+                const.DATA_CHORE_APPROVAL_PERIOD_START
+            ),
         }
 
         if (
@@ -2634,15 +2676,94 @@ class KidChallengeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
 
 # ------------------------------------------------------------------------------------------
+class SystemDashboardTranslationSensor(KidsChoresCoordinatorEntity, SensorEntity):
+    """System-level sensor providing dashboard UI translations for a specific language.
+
+    Created once per language in use across all kids and parents. Provides the
+    `ui_translations` dict attribute containing all 40+ localization keys for
+    the KidsChores dashboard. Multiple kids using the same language share one
+    translation sensor, reducing overall attribute storage.
+
+    Entity ID format: sensor.kc_ui_dashboard_lang_{language_code}
+    Example: sensor.kc_ui_dashboard_lang_en, sensor.kc_ui_dashboard_lang_es
+    """
+
+    _attr_has_entity_name = True
+    _attr_translation_key = const.TRANS_KEY_SENSOR_DASHBOARD_TRANSLATION
+
+    def __init__(
+        self,
+        coordinator: KidsChoresDataCoordinator,
+        entry: ConfigEntry,
+        language_code: str,
+    ):
+        """Initialize the translation sensor.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: ConfigEntry for this integration instance.
+            language_code: ISO language code (e.g., 'en', 'es', 'de').
+        """
+        super().__init__(coordinator)
+        self._entry = entry
+        self._language_code = language_code
+        self._attr_unique_id = f"{entry.entry_id}_{language_code}{const.SENSOR_KC_UID_SUFFIX_DASHBOARD_LANG}"
+        self.entity_id = (
+            f"{const.SENSOR_KC_PREFIX}"
+            f"{const.SENSOR_KC_EID_PREFIX_DASHBOARD_LANG}{language_code}"
+        )
+        self._attr_translation_placeholders = {
+            const.TRANS_KEY_ATTR_LANGUAGE: language_code,
+        }
+        self._attr_device_info = kh.create_system_device_info(entry)
+
+        # Translations cache - loaded async on entity add
+        self._ui_translations: dict[str, Any] = {}
+
+    async def async_added_to_hass(self) -> None:
+        """Load translations when entity is added to hass."""
+        await super().async_added_to_hass()
+        self._ui_translations = await kh.load_dashboard_translation(
+            self.hass, self._language_code
+        )
+
+    @property
+    def native_value(self) -> str:
+        """Return the language code as the sensor state."""
+        return self._language_code
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the ui_translations dict for dashboard consumption.
+
+        Dashboard templates read this via:
+        state_attr('sensor.kc_ui_dashboard_lang_en', 'ui_translations')
+        """
+        return {
+            const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_DASHBOARD_TRANSLATION,
+            "ui_translations": self._ui_translations,
+            const.TRANS_KEY_ATTR_LANGUAGE: self._language_code,
+        }
+
+    @property
+    def icon(self) -> str:
+        """Return a translation/language icon."""
+        return "mdi:translate"
+
+
+# ------------------------------------------------------------------------------------------
 class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
     """Aggregated dashboard helper sensor for a kid.
 
     Provides a consolidated view of all kid-related entities including chores,
     rewards, badges, bonuses, penalties, achievements, challenges, and point buttons.
     Serves pre-sorted and pre-filtered entity lists to optimize dashboard template
-    rendering performance. Also provides ui_translations dictionary containing all
-    40+ localization keys from backend integration JSON for multilingual dashboard
-    support without requiring language-specific YAML variants.
+    rendering performance.
+
+    Translations are delegated to system-level translation sensors
+    (sensor.kc_ui_dashboard_lang_{code}). This sensor provides a `translation_sensor`
+    attribute pointing to the appropriate translation sensor entity ID based on the
+    kid's configured dashboard language.
 
     This sensor is the single source of truth for the KidsChores dashboard,
     eliminating expensive frontend list iterations and sorting operations.
@@ -2667,6 +2788,9 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             kid_id: Unique identifier for the kid.
             kid_name: Display name of the kid.
             points_label: Customizable label for points currency (e.g., 'Points', 'Stars').
+
+        Note: Translation sensor entity ID is computed dynamically based on kid's
+        current dashboard language, allowing automatic updates when language changes.
         """
         super().__init__(coordinator)
         self._entry = entry
@@ -2685,37 +2809,38 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             self.coordinator, kid_id, kid_name, entry
         )
 
-        # Translations cache - loaded async on entity add
-        self._ui_translations: dict[str, Any] = {}
-        self._current_language = const.DEFAULT_DASHBOARD_LANGUAGE
+    def _get_translation_sensor_eid(self) -> str:
+        """Get the translation sensor entity ID for this kid's current language.
 
-    async def async_added_to_hass(self) -> None:
-        """Load translations when entity is added to hass."""
-        await super().async_added_to_hass()
+        Dynamically computed based on kid's dashboard_language setting.
+        If the translation sensor doesn't exist yet (new language), triggers
+        creation via coordinator.ensure_translation_sensor_exists().
 
-        # Load translations for the current language
+        Returns:
+            Entity ID of the translation sensor (e.g., 'sensor.kc_ui_dashboard_lang_en')
+        """
         kid_info = self.coordinator.kids_data.get(self._kid_id, {})
-        dashboard_language = kid_info.get(
+        lang_code = kid_info.get(
             const.DATA_KID_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
         )
 
-        self._ui_translations = await kh.load_dashboard_translation(
-            self.hass, dashboard_language
-        )
-        self._current_language = dashboard_language
+        # Check if sensor exists; if not, schedule async creation
+        if not self.coordinator.is_translation_sensor_created(lang_code):
+            # Create new sensor asynchronously - entity will update on next cycle
+            self.hass.async_create_task(
+                self.coordinator.ensure_translation_sensor_exists(lang_code)
+            )
+            # Return expected entity ID (sensor will exist shortly)
+            return self.coordinator.get_translation_sensor_eid(lang_code)
+
+        return self.coordinator.get_translation_sensor_eid(lang_code)
 
     def _handle_coordinator_update(self) -> None:
-        """Handle updated data from the coordinator."""
-        # Check if language has changed
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
-        dashboard_language = kid_info.get(
-            const.DATA_KID_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
-        )
+        """Handle updated data from the coordinator.
 
-        # If language changed, schedule async translation reload
-        if dashboard_language != self._current_language:
-            self.hass.async_create_task(self._async_reload_translations())
-
+        Checks if pending approvals changed to force attribute rebuild.
+        Translation handling is now delegated to the system-level translation sensor.
+        """
         # Check if pending approvals changed - forces attribute rebuild
         # Flags are reset in extra_state_attributes after rebuild
         if (
@@ -2726,19 +2851,6 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             pass
 
         super()._handle_coordinator_update()
-
-    async def _async_reload_translations(self) -> None:
-        """Reload translations asynchronously."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
-        dashboard_language = kid_info.get(
-            const.DATA_KID_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
-        )
-
-        self._ui_translations = await kh.load_dashboard_translation(
-            self.hass, dashboard_language
-        )
-        self._current_language = dashboard_language
-        self.async_write_ha_state()
 
     def _get_next_monday_7am_local(self) -> datetime:
         """Calculate the next Monday at 7:00 AM local time.
@@ -2766,16 +2878,20 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def _calculate_chore_attributes(
         self, chore_id: str, chore_info: dict, kid_info: dict, chore_eid
     ) -> dict | None:
-        """Calculate all attributes for a single chore.
+        """Calculate minimal attributes for a single chore in dashboard helper.
 
-        Returns a dictionary with chore attributes including:
-        - eid: entity_id
-        - name: chore name
-        - status: pending/claimed/approved/overdue
-        - labels: list of label strings
-        - due_date: UTC ISO 8601 string
-        - is_today_am: boolean or None
-        - primary_group: today/this_week/other
+        Returns a dictionary with only the essential chore attributes needed for
+        dashboard list rendering and sorting. Additional attributes (due_date,
+        can_claim, can_approve, timestamps, etc.) should be fetched from the
+        chore status sensor via state_attr(chore.eid, 'attribute_name').
+
+        Minimal fields (6 total):
+        - eid: entity_id (for fetching additional attributes from chore sensor)
+        - name: chore name (for display)
+        - status: pending/claimed/approved/overdue (for status coloring)
+        - labels: list of label strings (for label filtering)
+        - primary_group: today/this_week/other (for grouping)
+        - is_today_am: boolean or None (for AM/PM sorting)
 
         Returns None if chore name is missing (data corruption).
         Uses timestamp-based tracking via coordinator helper methods.
@@ -2803,7 +2919,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         if not isinstance(chore_labels, list):
             chore_labels = []
 
-        # Get due date based on completion_criteria:
+        # Get due date for primary_group and is_today_am calculation
         # - INDEPENDENT: read from per_kid_due_dates (chore-level source of truth)
         # - SHARED_*: read from chore-level due_date (all kids share same deadline)
         completion_criteria = chore_info.get(
@@ -2817,15 +2933,10 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             # SHARED_ALL, SHARED_FIRST, ALTERNATING - all kids share chore-level date
             due_date_str = chore_info.get(const.DATA_CHORE_DUE_DATE)
 
-        due_date_utc_iso = None
         due_date_local_dt = None
-
         if due_date_str:
             due_date_utc = kh.parse_datetime_to_utc(due_date_str)
             if due_date_utc:
-                due_date_utc_iso = kh.format_datetime_with_return_type(
-                    due_date_utc, const.HELPER_RETURN_ISO_DATETIME
-                )
                 # Get datetime object for local calculations
                 due_date_local_dt = kh.format_datetime_with_return_type(
                     due_date_utc, const.HELPER_RETURN_DATETIME_LOCAL
@@ -2840,65 +2951,21 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             elif due_date_local_dt.date() == today_local:
                 is_today_am = False
 
-        # Calculate primary_group
+        # Calculate primary_group for dashboard grouping
         recurring_frequency = chore_info.get(const.DATA_CHORE_RECURRING_FREQUENCY) or ""
         primary_group = self._calculate_primary_group(
             status, due_date_local_dt, recurring_frequency
         )
 
-        # Get claimed_by and completed_by for SHARED_FIRST chores
-        claimed_by = chore_info.get(const.DATA_CHORE_CLAIMED_BY)
-        completed_by = chore_info.get(const.DATA_CHORE_COMPLETED_BY)
-        # Resolve kid IDs to names for dashboard display
-        if claimed_by:
-            claimant_info = self.coordinator.kids_data.get(claimed_by, {})
-            claimed_by = claimant_info.get(const.DATA_KID_NAME, claimed_by)
-        if completed_by:
-            completer_info = self.coordinator.kids_data.get(completed_by, {})
-            completed_by = completer_info.get(const.DATA_KID_NAME, completed_by)
-
-        # Get approval reset type
-        approval_reset_type = chore_info.get(
-            const.DATA_CHORE_APPROVAL_RESET_TYPE,
-            const.DEFAULT_APPROVAL_RESET_TYPE,
-        )
-
-        # Get timestamps from kid's chore_data
-        kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {}).get(chore_id, {})
-        last_approved = kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_APPROVED)
-        last_claimed = kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_CLAIMED)
-
-        # Get approval_period_start (INDEPENDENT uses per-kid, SHARED uses chore-level)
-        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
-            approval_period_start = kid_chore_data.get(
-                const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START
-            )
-        else:
-            approval_period_start = chore_info.get(
-                const.DATA_CHORE_APPROVAL_PERIOD_START
-            )
-
-        # Compute can_claim and can_approve using coordinator helpers
-        can_claim, _ = self.coordinator._can_claim_chore(self._kid_id, chore_id)
-        can_approve, _ = self.coordinator._can_approve_chore(self._kid_id, chore_id)
-
+        # Return only the 6 minimal fields needed for dashboard list rendering
+        # All other attributes are available via state_attr(chore.eid, 'attr_name')
         return {
             const.ATTR_EID: chore_eid,
             const.ATTR_NAME: chore_name,
             const.ATTR_STATUS: status,
             const.ATTR_CHORE_LABELS: chore_labels,
-            const.ATTR_CHORE_DUE_DATE: due_date_utc_iso,
-            const.ATTR_CHORE_IS_TODAY_AM: is_today_am,
             const.ATTR_CHORE_PRIMARY_GROUP: primary_group,
-            const.ATTR_CHORE_CLAIMED_BY: claimed_by,
-            const.ATTR_CHORE_COMPLETED_BY: completed_by,
-            const.ATTR_APPROVAL_RESET_TYPE: approval_reset_type,
-            const.ATTR_LAST_APPROVED: last_approved,
-            const.ATTR_LAST_CLAIMED: last_claimed,
-            const.ATTR_APPROVAL_PERIOD_START: approval_period_start,
-            const.ATTR_CAN_CLAIM: can_claim,
-            const.ATTR_CAN_APPROVE: can_approve,
-            const.ATTR_COMPLETION_CRITERIA: completion_criteria,
+            const.ATTR_CHORE_IS_TODAY_AM: is_today_am,
         }
 
     def _calculate_primary_group(
@@ -3641,7 +3708,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             "core_sensors": core_sensors,
             "dashboard_helpers": dashboard_helpers,
             const.ATTR_KID_NAME: self._kid_name,
-            "ui_translations": self._ui_translations,
+            const.ATTR_TRANSLATION_SENSOR: self._get_translation_sensor_eid(),
             "language": dashboard_language,
             "is_shadow_kid": is_shadow,
             "gamification_enabled": gamification_enabled,

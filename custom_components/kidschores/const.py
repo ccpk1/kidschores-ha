@@ -1466,6 +1466,7 @@ TRANS_KEY_PURPOSE_ACHIEVEMENT_PROGRESS: Final = "purpose_achievement_progress"
 TRANS_KEY_PURPOSE_CHALLENGE_PROGRESS: Final = "purpose_challenge_progress"
 TRANS_KEY_PURPOSE_BONUS_APPLIED: Final = "purpose_bonus_applied"
 TRANS_KEY_PURPOSE_DASHBOARD_HELPER: Final = "purpose_dashboard_helper"
+TRANS_KEY_PURPOSE_DASHBOARD_TRANSLATION: Final = "purpose_dashboard_translation"
 # Legacy sensor purposes (sensor_legacy.py)
 TRANS_KEY_PURPOSE_CHORE_APPROVALS_ALL_TIME_EXTRA: Final = (
     "purpose_chore_approvals_all_time_extra"
@@ -1580,6 +1581,8 @@ ATTR_BADGE_AWARDS: Final = "awards"
 ATTR_BONUS_BUTTON_EID: Final = "bonus_button_eid"
 ATTR_CAN_APPROVE: Final = "can_approve"
 ATTR_CAN_CLAIM: Final = "can_claim"
+ATTR_CLAIMED_BY: Final = "claimed_by"
+ATTR_COMPLETED_BY: Final = "completed_by"
 ATTR_ASSIGNED_KIDS: Final = "assigned_kids"
 ATTR_ASSOCIATED_ACHIEVEMENT: Final = "associated_achievement"
 ATTR_ASSOCIATED_CHALLENGE: Final = "associated_challenge"
@@ -1892,6 +1895,13 @@ SENSOR_KC_EID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR: Final = (
 # Sensor Entity ID Midfix and Suffix for UI Dashboard Helper
 SENSOR_KC_EID_MIDFIX_UI_DASHBOARD: Final = "_ui_dashboard_"
 SENSOR_KC_EID_SUFFIX_UI_DASHBOARD_HELPER: Final = "_ui_dashboard_helper"
+
+# System-level dashboard translation sensor (one per language in use)
+SENSOR_KC_EID_PREFIX_DASHBOARD_LANG: Final = "ui_dashboard_lang_"
+SENSOR_KC_UID_SUFFIX_DASHBOARD_LANG: Final = "_dashboard_lang"
+
+# Translation sensor pointer attribute (on dashboard helper)
+ATTR_TRANSLATION_SENSOR: Final = "translation_sensor"
 
 # ------------------------------------------------------------------------------------------------
 # Selects
@@ -2546,6 +2556,7 @@ TRANS_KEY_SENSOR_REWARD_STATUS_SENSOR: Final = "kid_reward_status_sensor"
 TRANS_KEY_SENSOR_SHARED_CHORE_GLOBAL_STATUS_SENSOR: Final = (
     "system_chore_shared_state_sensor"
 )
+TRANS_KEY_SENSOR_DASHBOARD_TRANSLATION: Final = "system_dashboard_translation_sensor"
 
 
 # Sensor Attributes Translation Keys

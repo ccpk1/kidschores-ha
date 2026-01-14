@@ -1,7 +1,12 @@
-feat: add kid undo claim feature for chores and rewards
+feat: add system-level translation sensors for dashboard scalability
 
-Kids can now undo their own claims via the disapproval button without tracking
-disapproval stats, while parent/admin disapproval continues to track stats normally.
-Button logic detects user type via ha_user_id matching. Includes comprehensive test
-suite (test_kid_undo_claim.py) with 6 scenarios covering undo behavior, stat validation,
-SHARED_FIRST chores, and multiple undos. Silent operation (no notifications).
+Implements hybrid solution (Option 1A + 3) to solve 16KB attribute limit:
+
+- Add SystemDashboardTranslationSensor (sensor.kc_ui_dashboard_lang_{code})
+- Reduce dashboard helper chore attributes from 16 to 6 fields
+- Add translation_sensor pointer attribute to dashboard helper
+- Add claimed_by, completed_by, approval_period_start to chore sensors
+- Implement dynamic translation sensor lifecycle (create/cleanup)
+- Update dashboard YAML with 16 translation init points
+
+Result: Dashboard helper reduced from 17KB to ~4.5KB, supports 100+ chores

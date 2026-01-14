@@ -295,10 +295,33 @@ These systems handle content requiring specific per-kid customization or fronten
 
 - **Notification System**: Managed via `translations_custom/en_notifications.json` for chore, reward, and challenge updates.
 - **Dashboard System**: Managed via `translations_custom/en_dashboard.json` for the Kid Dashboard UI.
-- **Dashboard Helper Sensor**: Pre-computes all UI translations and exposes them via the `ui_translations` attribute.
-- **Performance Optimization**: Pre-computation allows the frontend dashboard YAML to access translations without backend calls or expensive template lookups.
 
-### 2. Crowdin Management Strategy
+### 2. Dashboard Translation Sensor Architecture
+
+The dashboard translation system uses **system-level translation sensors** to efficiently serve localized UI strings to the dashboard frontend.
+
+#### System-Level Translation Sensors
+
+- **Entity Pattern**: `sensor.kc_ui_dashboard_lang_{code}` (e.g., `sensor.kc_ui_dashboard_lang_en`, `sensor.kc_ui_dashboard_lang_es`)
+- **One Sensor Per Language**: Created dynamically based on languages used by kids and parents
+- **Attributes**: Exposes `ui_translations` dict with 40+ localized UI strings, plus `language` and `purpose` metadata
+- **Size**: Each translation sensor is ~5-6KB (well under HA's 16KB attribute limit)
+
+#### Dashboard Helper Pointer Pattern
+
+- **Dashboard Helper Attribute**: Each kid's `sensor.kc_<kid>_ui_dashboard_helper` includes a `translation_sensor` attribute
+- **Indirection**: Dashboard helper returns a pointer (e.g., `"sensor.kc_ui_dashboard_lang_en"`) instead of embedding translations
+- **Lookup Pattern**: Dashboard YAML fetches translations via `state_attr(translation_sensor, 'ui_translations')`
+- **Size Benefit**: Reduces dashboard helper size by ~4.7KB (99% reduction in translation overhead)
+
+#### Lifecycle Management
+
+- **Dynamic Creation**: Translation sensors are created on-demand when a kid or parent selects a new language
+- **Automatic Cleanup**: When the last user of a language is deleted, the corresponding translation sensor is removed
+- **Coordinator Tracking**: `coordinator._translation_sensors_created` tracks which language sensors exist
+- **Callback Pattern**: `sensor.py` registers `async_add_entities` callback for dynamic sensor creation
+
+### 3. Crowdin Management Strategy
 
 All translation files follow a unified, automated synchronization workflow.
 
@@ -306,15 +329,15 @@ All translation files follow a unified, automated synchronization workflow.
 - **Automated Sync**: A GitHub Action triggers on pushes to the `l10n-staging` branch to upload English sources and download non-English translations from Crowdin.
 - **Read-Only Localizations**: All non-English files are considered read-only artifacts sourced exclusively from the Crowdin project.
 
-### 3. Language Selection Architecture
+### 4. Language Selection Architecture
 
-The architecture provide per-kid dashboard language selection using standard Home Assistant infrastructure.
+The architecture provides per-kid and per-parent dashboard language selection using standard Home Assistant infrastructure.
 
 - **Dynamic Detection**: The system scans the `translations_custom/` directory, extracting language codes from filenames (e.g., `es_dashboard.json` → `es`).
 - **Validation**: Detected codes are filtered against the Home Assistant `LANGUAGES` set to ensure they are valid.
 - **Native UI Selection**: The `LanguageSelector` component is used with `native_name=True`, allowing the frontend to automatically display native language names like "Español".
-- **Translation Loading**: Selected language files are loaded with an automatic fallback to English if the file is missing or if loading fails.
-- **Defensive Loading**: The loading process filters out legacy metadata to ensure a clean translation dictionary for the sensor.
+- **Translation Sensor Loading**: When a language is selected, the system calls `coordinator.ensure_translation_sensor_exists()` to create the sensor if needed.
+- **Fallback Handling**: Missing translation files fall back to English; missing keys show `err-*` prefixed strings for debugging.
 
 ---
 

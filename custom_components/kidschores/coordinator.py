@@ -75,6 +75,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self._persist_task: asyncio.Task | None = None
         self._persist_debounce_seconds = 5
 
+        # Translation sensor lifecycle management
+        # Tracks which language codes have translation sensors created
+        self._translation_sensors_created: set[str] = set()
+        # Callback for dynamically adding new translation sensors
+        self._sensor_add_entities_callback: Any = None
+
     # -------------------------------------------------------------------------------------
     # Migrate Data and Converters
     # -------------------------------------------------------------------------------------
@@ -1983,6 +1989,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 ] = None
             # Use existing shadow kid cleanup (removes kid + entities)
             self._delete_shadow_kid(kid_id)
+            # Cleanup unused translation sensors (if language no longer needed)
+            self.cleanup_unused_translation_sensors()
             self._persist()
             self.async_update_listeners()
             const.LOGGER.info(
@@ -2002,6 +2010,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self._cleanup_deleted_kid_references()
         self._cleanup_parent_assignments()
         self._cleanup_pending_reward_approvals()
+
+        # Cleanup unused translation sensors (if language no longer needed)
+        self.cleanup_unused_translation_sensors()
 
         self._persist()
         self.async_update_listeners()
@@ -2049,6 +2060,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             )
 
         del self._data[const.DATA_PARENTS][parent_id]
+
+        # Cleanup unused translation sensors (if language no longer needed)
+        self.cleanup_unused_translation_sensors()
 
         self._persist()
         self.async_update_listeners()
@@ -2457,6 +2471,125 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         """
         self._pending_chore_changed = False
         self._pending_reward_changed = False
+
+    # -------------------------------------------------------------------------------------
+    # Translation Sensor Lifecycle Management
+    # -------------------------------------------------------------------------------------
+
+    def register_translation_sensor_callback(self, async_add_entities) -> None:
+        """Register the callback for dynamically adding translation sensors.
+
+        Called by sensor.py during async_setup_entry to enable dynamic sensor creation.
+        """
+        self._sensor_add_entities_callback = async_add_entities
+
+    def mark_translation_sensor_created(self, lang_code: str) -> None:
+        """Mark that a translation sensor for this language has been created."""
+        self._translation_sensors_created.add(lang_code)
+
+    def is_translation_sensor_created(self, lang_code: str) -> bool:
+        """Check if a translation sensor exists for the given language code."""
+        return lang_code in self._translation_sensors_created
+
+    def get_translation_sensor_eid(self, lang_code: str) -> str:
+        """Get the entity ID for a translation sensor given a language code.
+
+        Returns the entity ID whether or not the sensor exists yet.
+        Format: sensor.kc_ui_dashboard_lang_{code}
+        """
+        return (
+            f"{const.SENSOR_KC_PREFIX}"
+            f"{const.SENSOR_KC_EID_PREFIX_DASHBOARD_LANG}{lang_code}"
+        )
+
+    async def ensure_translation_sensor_exists(self, lang_code: str) -> str:
+        """Ensure a translation sensor exists for the given language code.
+
+        If the sensor doesn't exist, creates it dynamically using the stored
+        async_add_entities callback. Returns the entity ID.
+
+        This is called when a kid's dashboard language changes to a new language
+        that doesn't have a translation sensor yet.
+        """
+        # Import here to avoid circular dependency
+        from .sensor import SystemDashboardTranslationSensor
+
+        eid = self.get_translation_sensor_eid(lang_code)
+
+        # If sensor already exists, just return the entity ID
+        if lang_code in self._translation_sensors_created:
+            return eid
+
+        # If no callback registered (shouldn't happen), log warning and return
+        if self._sensor_add_entities_callback is None:
+            const.LOGGER.warning(
+                "Cannot create translation sensor for '%s': no callback registered",
+                lang_code,
+            )
+            # Fallback to English if available, otherwise just return the expected EID
+            if const.DEFAULT_DASHBOARD_LANGUAGE in self._translation_sensors_created:
+                return self.get_translation_sensor_eid(const.DEFAULT_DASHBOARD_LANGUAGE)
+            return eid
+
+        # Create the new translation sensor
+        const.LOGGER.info(
+            "Creating translation sensor for newly-used language: %s", lang_code
+        )
+        new_sensor = SystemDashboardTranslationSensor(
+            self, self.config_entry, lang_code
+        )
+        self._sensor_add_entities_callback([new_sensor])
+        self._translation_sensors_created.add(lang_code)
+
+        return eid
+
+    def get_languages_in_use(self) -> set[str]:
+        """Get all unique dashboard languages currently in use by kids and parents.
+
+        Used to determine which translation sensors are needed.
+        """
+        languages: set[str] = set()
+        for kid_info in self.kids_data.values():
+            lang = kid_info.get(
+                const.DATA_KID_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
+            )
+            languages.add(lang)
+        for parent_info in self.parents_data.values():
+            lang = parent_info.get(
+                const.DATA_PARENT_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
+            )
+            languages.add(lang)
+        # Always include English as fallback
+        languages.add(const.DEFAULT_DASHBOARD_LANGUAGE)
+        return languages
+
+    def cleanup_unused_translation_sensors(self) -> None:
+        """Remove translation sensors for languages no longer in use.
+
+        This is an optimization to avoid keeping unused sensors in memory.
+        Called when a kid/parent is deleted or their language is changed.
+
+        Note: Entity removal is handled via entity registry; we just update tracking.
+        """
+        languages_in_use = self.get_languages_in_use()
+        unused_languages = self._translation_sensors_created - languages_in_use
+
+        if not unused_languages:
+            return
+
+        # Get entity registry and remove unused translation sensors
+        entity_registry = er.async_get(self.hass)
+        for lang_code in unused_languages:
+            eid = self.get_translation_sensor_eid(lang_code)
+            entity_entry = entity_registry.async_get(eid)
+            if entity_entry:
+                const.LOGGER.info(
+                    "Removing unused translation sensor: %s (language: %s)",
+                    eid,
+                    lang_code,
+                )
+                entity_registry.async_remove(eid)
+            self._translation_sensors_created.discard(lang_code)
 
     # -------------------------------------------------------------------------------------
     # Chores: Claim, Approve, Disapprove, Compute Global State for Shared Chores

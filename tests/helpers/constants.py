@@ -65,6 +65,8 @@ from custom_components.kidschores.const import (
     ATTR_CHORE_DISAPPROVE_BUTTON_ENTITY_ID,
     ATTR_CHORE_HIGHEST_STREAK,
     ATTR_CHORE_POINTS_EARNED,
+    ATTR_CLAIMED_BY,
+    ATTR_COMPLETED_BY,
     ATTR_COMPLETION_CRITERIA,
     ATTR_COST,
     # =========================================================================
@@ -87,6 +89,7 @@ from custom_components.kidschores.const import (
     ATTR_LAST_APPROVED,
     ATTR_LAST_CLAIMED,
     ATTR_RECURRING_FREQUENCY,
+    ATTR_TRANSLATION_SENSOR,
     # =========================================================================
     # SENSOR ATTRIBUTES - Reward Status Sensor
     # =========================================================================
@@ -479,6 +482,7 @@ from custom_components.kidschores.const import (
     # SENSOR ENTITY ID COMPONENTS
     # =========================================================================
     SENSOR_KC_EID_MIDFIX_CHORE_STATUS_SENSOR,
+    SENSOR_KC_EID_PREFIX_DASHBOARD_LANG,
     SENSOR_KC_EID_SUFFIX_UI_DASHBOARD_HELPER,
     SENSOR_KC_PREFIX,
     SENSOR_KC_UID_SUFFIX_CHORE_STATUS_SENSOR,

@@ -45,7 +45,11 @@
           "ha_user": "Home Assistant User",
           "enable_mobile_notifications": "Enable Mobile Notifications",
           "mobile_notify_service": "Notify Service",
-          "enable_persistent_notifications": "Enable Persistent Notifications"
+          "enable_persistent_notifications": "Enable Persistent Notifications",
+          "dashboard_language": "Language"
+        },
+        "data_description": {
+          "dashboard_language": "Language used for your chore dashboard and notifications."
         }
       },
       "parent_count": {
@@ -65,7 +69,11 @@
           "enable_mobile_notifications": "Enable Mobile Notifications",
           "mobile_notify_service": "Notify Service",
           "enable_persistent_notifications": "Enable Persistent Notifications",
+          "dashboard_language": "Language",
           "internal_id": "Internal ID"
+        },
+        "data_description": {
+          "dashboard_language": "Language used for your chore dashboard and notifications."
         }
       },
       "chore_count": {
@@ -400,7 +408,11 @@
           "enable_mobile_notifications": "Enable Mobile Notifications",
           "mobile_notify_service": "Notify Service",
           "enable_persistent_notifications": "Enable Persistent Notifications",
+          "dashboard_language": "Language",
           "internal_id": "Internal ID"
+        },
+        "data_description": {
+          "dashboard_language": "Language used for your chore dashboard and notifications."
         }
       },
       "add_parent": {
@@ -766,7 +778,11 @@
           "enable_mobile_notifications": "Enable Mobile Notifications",
           "mobile_notify_service": "Notify Service",
           "enable_persistent_notifications": "Enable Persistent Notifications",
+          "dashboard_language": "Language",
           "internal_id": "Internal ID"
+        },
+        "data_description": {
+          "dashboard_language": "Language used for your chore dashboard and notifications."
         }
       },
       "edit_parent": {
@@ -2931,6 +2947,23 @@
           }
         }
       },
+      "system_dashboard_translation_sensor": {
+        "name": "Dashboard Translations ({language})",
+        "state_attributes": {
+          "purpose": {
+            "name": "Purpose",
+            "state": {
+              "purpose_dashboard_translation": "Provides localized UI translations for dashboard display"
+            }
+          },
+          "ui_translations": {
+            "name": "UI Translations"
+          },
+          "language": {
+            "name": "Language"
+          }
+        }
+      },
       "kid_dashboard_helper_sensor": {
         "name": "UI Dashboard Helper",
         "state_attributes": {
@@ -2984,6 +3017,9 @@
           },
           "language": {
             "name": "Language"
+          },
+          "translation_sensor": {
+            "name": "Translation Sensor"
           }
         }
       }
