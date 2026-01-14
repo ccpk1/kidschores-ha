@@ -524,10 +524,132 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             chore_name = new_chore_data[const.DATA_CHORE_NAME]
             due_date_str = new_chore_data[const.DATA_CHORE_DUE_DATE]
 
-            # CFE-2026-001: Check if DAILY_MULTI needs times collection
+            # Get completion criteria and assigned kids for routing logic
+            completion_criteria = new_chore_data.get(
+                const.DATA_CHORE_COMPLETION_CRITERIA
+            )
+            assigned_kids = new_chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
             recurring_frequency = new_chore_data.get(
                 const.DATA_CHORE_RECURRING_FREQUENCY
             )
+
+            # For INDEPENDENT chores with assigned kids, handle per-kid details
+            # (mirrors edit_chore logic for consistency)
+            if (
+                completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
+                and assigned_kids
+            ):
+                # Capture template values from user input before they're cleared
+                clear_due_date = user_input.get(
+                    const.CFOF_CHORES_INPUT_CLEAR_DUE_DATE, False
+                )
+                raw_template_date = (
+                    None
+                    if clear_due_date
+                    else user_input.get(const.CFOF_CHORES_INPUT_DUE_DATE)
+                )
+                template_applicable_days = user_input.get(
+                    const.CFOF_CHORES_INPUT_APPLICABLE_DAYS, []
+                )
+                template_daily_multi_times = user_input.get(
+                    const.CFOF_CHORES_INPUT_DAILY_MULTI_TIMES, ""
+                )
+
+                # Single kid optimization: apply values directly, skip helper
+                if len(assigned_kids) == 1:
+                    kid_id = assigned_kids[0]
+                    per_kid_due_dates: dict[str, str | None] = {}
+
+                    if clear_due_date:
+                        per_kid_due_dates[kid_id] = None
+                    elif raw_template_date:
+                        try:
+                            utc_dt = kh.normalize_datetime_input(
+                                raw_template_date,
+                                default_tzinfo=const.DEFAULT_TIME_ZONE,
+                                return_type=const.HELPER_RETURN_DATETIME_UTC,
+                            )
+                            if utc_dt and isinstance(utc_dt, datetime):
+                                per_kid_due_dates[kid_id] = utc_dt.isoformat()
+                        except ValueError as e:
+                            const.LOGGER.warning(
+                                "Failed to parse date for single kid: %s", e
+                            )
+
+                    if per_kid_due_dates:
+                        new_chore_data[const.DATA_CHORE_PER_KID_DUE_DATES] = (
+                            per_kid_due_dates
+                        )
+
+                    # Apply template applicable_days to single kid
+                    if template_applicable_days:
+                        weekday_keys = list(const.WEEKDAY_OPTIONS.keys())
+                        days_as_strings = [
+                            d for d in template_applicable_days if d in weekday_keys
+                        ]
+                        new_chore_data[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS] = {
+                            kid_id: days_as_strings
+                        }
+                        new_chore_data[const.DATA_CHORE_APPLICABLE_DAYS] = None
+
+                    # Apply daily_multi_times to single kid (if DAILY_MULTI)
+                    if (
+                        recurring_frequency == const.FREQUENCY_DAILY_MULTI
+                        and template_daily_multi_times
+                    ):
+                        new_chore_data[const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES] = {
+                            kid_id: template_daily_multi_times
+                        }
+                        new_chore_data[const.DATA_CHORE_DAILY_MULTI_TIMES] = None
+
+                    # Create chore first
+                    coordinator._create_chore(internal_id, new_chore_data)
+                    coordinator._persist()
+                    coordinator.async_update_listeners()
+
+                    # CFE-2026-001 FIX: Single-kid DAILY_MULTI without times
+                    # needs to route to times helper (main form doesn't have times field)
+                    if (
+                        recurring_frequency == const.FREQUENCY_DAILY_MULTI
+                        and not template_daily_multi_times
+                    ):
+                        self._chore_being_edited = new_chore_data
+                        new_chore_data[const.DATA_INTERNAL_ID] = internal_id
+                        const.LOGGER.debug(
+                            "Added single-kid INDEPENDENT DAILY_MULTI Chore '%s' "
+                            "- routing to times helper",
+                            chore_name,
+                        )
+                        return await self.async_step_chores_daily_multi()
+
+                    const.LOGGER.debug(
+                        "Added single-kid INDEPENDENT Chore '%s' with ID: %s",
+                        chore_name,
+                        internal_id,
+                    )
+                    self._mark_reload_needed()
+                    return await self.async_step_init()
+
+                # Multiple kids: create chore, then show per-kid details helper
+                coordinator._create_chore(internal_id, new_chore_data)
+                coordinator._persist()
+                coordinator.async_update_listeners()
+
+                # Store chore data and template values for helper form
+                new_chore_data[const.DATA_INTERNAL_ID] = internal_id
+                self._chore_being_edited = new_chore_data
+                self._chore_template_date_raw = raw_template_date
+                self._chore_template_applicable_days = template_applicable_days
+                self._chore_template_daily_multi_times = template_daily_multi_times
+
+                const.LOGGER.debug(
+                    "Added multi-kid INDEPENDENT Chore '%s' - routing to per-kid helper",
+                    chore_name,
+                )
+                return await self.async_step_edit_chore_per_kid_details()
+
+            # CFE-2026-001: Check if DAILY_MULTI needs times collection
+            # (non-INDEPENDENT chores with DAILY_MULTI frequency)
             if recurring_frequency == const.FREQUENCY_DAILY_MULTI:
                 # Create chore first, then route to daily_multi times helper
                 coordinator._create_chore(internal_id, new_chore_data)
@@ -535,8 +657,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 coordinator.async_update_listeners()
 
                 # Store chore data for helper step
+                new_chore_data[const.DATA_INTERNAL_ID] = internal_id
                 self._chore_being_edited = new_chore_data
-                self._chore_being_edited[const.DATA_INTERNAL_ID] = internal_id
 
                 const.LOGGER.debug(
                     "Added DAILY_MULTI Chore '%s' - routing to times helper",
@@ -544,7 +666,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 )
                 return await self.async_step_chores_daily_multi()
 
-            # Add to coordinator
+            # Standard chore creation (SHARED/SHARED_FIRST or no special handling)
             coordinator._create_chore(internal_id, new_chore_data)
             coordinator._persist()
             coordinator.async_update_listeners()
@@ -1421,6 +1543,14 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     else user_input.get(const.CFOF_CHORES_INPUT_DUE_DATE)
                 )
 
+                # PKAD-2026-001: Capture template applicable_days and daily_multi_times
+                template_applicable_days = user_input.get(
+                    const.CFOF_CHORES_INPUT_APPLICABLE_DAYS, []
+                )
+                template_daily_multi_times = user_input.get(
+                    const.CFOF_CHORES_INPUT_DAILY_MULTI_TIMES, ""
+                )
+
                 # Single kid optimization: skip per-kid popup if only one kid
                 if len(assigned_kids) == 1:
                     kid_id = assigned_kids[0]
@@ -1461,22 +1591,72 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         per_kid_due_dates
                     )
 
-                    # Update storage and skip per-kid dates step
+                    # PKAD-2026-001: Apply template applicable_days to single kid
+                    if template_applicable_days:
+                        weekday_keys = list(const.WEEKDAY_OPTIONS.keys())
+                        days_as_ints = [
+                            weekday_keys.index(d)
+                            for d in template_applicable_days
+                            if d in weekday_keys
+                        ]
+                        updated_chore_data[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS] = {
+                            kid_id: days_as_ints
+                        }
+                        # Clear chore-level (per-kid is now source of truth)
+                        updated_chore_data[const.DATA_CHORE_APPLICABLE_DAYS] = None
+
+                    # PKAD-2026-001: Apply daily_multi_times to single kid (if DAILY_MULTI)
+                    recurring_freq = updated_chore_data.get(
+                        const.DATA_CHORE_RECURRING_FREQUENCY
+                    )
+                    if (
+                        recurring_freq == const.FREQUENCY_DAILY_MULTI
+                        and template_daily_multi_times
+                    ):
+                        updated_chore_data[
+                            const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES
+                        ] = {kid_id: template_daily_multi_times}
+                        # Clear chore-level (per-kid is now source of truth)
+                        updated_chore_data[const.DATA_CHORE_DAILY_MULTI_TIMES] = None
+
+                    # Update storage first
                     coordinator.update_chore_entity(internal_id, updated_chore_data)
                     coordinator._persist()
                     coordinator.async_update_listeners()
+
+                    # CFE-2026-001 FIX: Single-kid DAILY_MULTI without times
+                    # needs to route to times helper (check per-kid times too)
+                    existing_per_kid_times = updated_chore_data.get(
+                        const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES, {}
+                    )
+                    kid_has_times = existing_per_kid_times.get(kid_id)
+                    if (
+                        recurring_freq == const.FREQUENCY_DAILY_MULTI
+                        and not template_daily_multi_times
+                        and not kid_has_times
+                    ):
+                        updated_chore_data[const.DATA_INTERNAL_ID] = internal_id
+                        self._chore_being_edited = updated_chore_data
+                        const.LOGGER.debug(
+                            "Edited single-kid INDEPENDENT chore to DAILY_MULTI "
+                            "- routing to times helper"
+                        )
+                        return await self.async_step_chores_daily_multi()
+
                     self._mark_reload_needed()
                     return await self.async_step_init()
 
-                # Multiple kids: show per-kid dates step
-                # Store chore data AND the raw template date for the per-kid dates step
+                # Multiple kids: show unified per-kid details step (PKAD-2026-001)
+                # Store chore data AND template values for the helper form
                 self._chore_being_edited = updated_chore_data
                 # Type guard: updated_chore_data is always dict from chore_data_dict.get()
                 assert self._chore_being_edited is not None
                 self._chore_being_edited[const.DATA_INTERNAL_ID] = internal_id
-                # Store template date separately since build_chores_data cleared it
+                # Store template values (cleared by build_chores_data for INDEPENDENT)
                 self._chore_template_date_raw = raw_template_date
-                return await self.async_step_edit_chore_per_kid_dates()
+                self._chore_template_applicable_days = template_applicable_days
+                self._chore_template_daily_multi_times = template_daily_multi_times
+                return await self.async_step_edit_chore_per_kid_details()
 
             # CFE-2026-001: Check if DAILY_MULTI needs times collection/update
             recurring_frequency = updated_chore_data.get(
@@ -1494,8 +1674,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 coordinator._persist()
                 coordinator.async_update_listeners()
 
+                updated_chore_data[const.DATA_INTERNAL_ID] = internal_id
                 self._chore_being_edited = updated_chore_data
-                self._chore_being_edited[const.DATA_INTERNAL_ID] = internal_id
 
                 const.LOGGER.debug(
                     "Edited chore to DAILY_MULTI - routing to times helper"
@@ -1699,7 +1879,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             per_kid_due_dates: dict[str, str | None] = {}
             for kid_name, kid_id in name_to_id.items():
                 # Check if user wants to clear this kid's date
-                clear_field_name = f"clear_{kid_name}"
+                clear_field_name = f"clear_due_date_{kid_name}"
                 clear_this_kid = user_input.get(clear_field_name, False)
 
                 # If "Apply to All" is selected and we have a template date, use it
@@ -1829,7 +2009,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             # Add clear checkbox for this kid if they have an existing date
             if existing_date:
-                clear_field_name = f"clear_{kid_name}"
+                clear_field_name = f"clear_due_date_{kid_name}"
                 schema_fields[
                     vol.Optional(clear_field_name, default=False, description="🗑️")
                 ] = selector.BooleanSelector()
@@ -1857,6 +2037,342 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             data_schema=vol.Schema(schema_fields),
             errors=errors,
             description_placeholders=description_placeholders,
+        )
+
+    # ----- PKAD-2026-001: Unified Per-Kid Details Helper -----
+    async def async_step_edit_chore_per_kid_details(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Unified helper: per-kid days + times + due dates with templating.
+
+        PKAD-2026-001: Consolidates configuration for INDEPENDENT chores.
+
+        Features:
+        - Applicable days multi-select per kid (always shown for INDEPENDENT)
+        - Daily multi times text input per kid (if frequency = DAILY_MULTI)
+        - Due date picker per kid (existing functionality)
+        - Template section with "Apply to All" buttons
+        - Pre-populates from main form values
+        """
+        coordinator = self._get_coordinator()
+        errors: dict[str, str] = {}
+
+        # Get chore data from stored state
+        chore_data = getattr(self, "_chore_being_edited", None)
+        if not chore_data:
+            const.LOGGER.error("Per-kid details step called without chore data")
+            return await self.async_step_init()
+
+        internal_id = chore_data.get(const.DATA_INTERNAL_ID)
+        if not internal_id:
+            const.LOGGER.error("Per-kid details step: missing internal_id")
+            return await self.async_step_init()
+
+        # Only for INDEPENDENT chores
+        completion_criteria = chore_data.get(const.DATA_CHORE_COMPLETION_CRITERIA)
+        if completion_criteria != const.COMPLETION_CRITERIA_INDEPENDENT:
+            const.LOGGER.debug(
+                "Per-kid details step skipped - not INDEPENDENT (criteria: %s)",
+                completion_criteria,
+            )
+            return await self.async_step_init()
+
+        assigned_kids = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+        if not assigned_kids:
+            const.LOGGER.debug("Per-kid details step skipped - no assigned kids")
+            return await self.async_step_init()
+
+        # Get frequency to determine if DAILY_MULTI times are needed
+        recurring_frequency = chore_data.get(
+            const.DATA_CHORE_RECURRING_FREQUENCY, const.FREQUENCY_NONE
+        )
+        is_daily_multi = recurring_frequency == const.FREQUENCY_DAILY_MULTI
+
+        # Get template values from stored state (set before routing here)
+        template_applicable_days = getattr(self, "_chore_template_applicable_days", [])
+        template_daily_multi_times = getattr(
+            self, "_chore_template_daily_multi_times", ""
+        )
+        raw_template_date = getattr(self, "_chore_template_date_raw", None)
+
+        # Convert template date to display format
+        template_date_str = None
+        template_date_display = None
+        if raw_template_date:
+            with contextlib.suppress(ValueError, TypeError):
+                utc_dt = kh.normalize_datetime_input(
+                    raw_template_date,
+                    default_tzinfo=const.DEFAULT_TIME_ZONE,
+                    return_type=const.HELPER_RETURN_DATETIME_UTC,
+                )
+                if utc_dt and isinstance(utc_dt, datetime):
+                    template_date_str = utc_dt.isoformat()
+                template_date_display = kh.normalize_datetime_input(
+                    raw_template_date,
+                    default_tzinfo=const.DEFAULT_TIME_ZONE,
+                    return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
+                )
+
+        # Build name-to-id mapping for assigned kids
+        name_to_id: dict[str, str] = {}
+        for kid_id in assigned_kids:
+            kid_info = coordinator.kids_data.get(kid_id, {})
+            kid_name = kid_info.get(const.DATA_KID_NAME, kid_id)
+            name_to_id[kid_name] = kid_id
+
+        # Get existing per-kid data from storage
+        stored_chore = coordinator.chores_data.get(internal_id, {})
+        existing_per_kid_days = stored_chore.get(
+            const.DATA_CHORE_PER_KID_APPLICABLE_DAYS, {}
+        )
+        existing_per_kid_times = stored_chore.get(
+            const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES, {}
+        )
+        existing_per_kid_dates = stored_chore.get(
+            const.DATA_CHORE_PER_KID_DUE_DATES, {}
+        )
+
+        if user_input is not None:
+            # Process "Apply to All" actions
+            apply_days_to_all = user_input.get(
+                const.CFOF_CHORES_INPUT_APPLY_DAYS_TO_ALL, False
+            )
+            apply_times_to_all = user_input.get(
+                const.CFOF_CHORES_INPUT_APPLY_TIMES_TO_ALL, False
+            )
+            apply_date_to_all = user_input.get(
+                const.CFOF_CHORES_INPUT_APPLY_TEMPLATE_TO_ALL, False
+            )
+
+            per_kid_applicable_days: dict[str, list[int]] = {}
+            per_kid_daily_multi_times: dict[str, str] = {}
+            per_kid_due_dates: dict[str, str | None] = {}
+
+            for kid_name, kid_id in name_to_id.items():
+                # Process applicable days
+                if apply_days_to_all and template_applicable_days:
+                    # Convert string day keys to integers for storage
+                    per_kid_applicable_days[kid_id] = [
+                        list(const.WEEKDAY_OPTIONS.keys()).index(d)
+                        for d in template_applicable_days
+                        if d in const.WEEKDAY_OPTIONS
+                    ]
+                else:
+                    days_field = f"applicable_days_{kid_name}"
+                    raw_days = user_input.get(days_field, [])
+                    # Convert string day keys (mon, tue...) to integers (0-6)
+                    per_kid_applicable_days[kid_id] = [
+                        list(const.WEEKDAY_OPTIONS.keys()).index(d)
+                        for d in raw_days
+                        if d in const.WEEKDAY_OPTIONS
+                    ]
+
+                # Process daily multi times (if applicable)
+                if is_daily_multi:
+                    if apply_times_to_all and template_daily_multi_times:
+                        per_kid_daily_multi_times[kid_id] = template_daily_multi_times
+                    else:
+                        times_field = f"daily_multi_times_{kid_name}"
+                        per_kid_daily_multi_times[kid_id] = user_input.get(
+                            times_field, ""
+                        )
+
+                # Process due dates
+                clear_field_name = f"clear_due_date_{kid_name}"
+                clear_this_kid = user_input.get(clear_field_name, False)
+
+                if apply_date_to_all and template_date_str:
+                    per_kid_due_dates[kid_id] = template_date_str
+                elif clear_this_kid:
+                    per_kid_due_dates[kid_id] = None
+                else:
+                    date_value = user_input.get(f"due_date_{kid_name}")
+                    if date_value:
+                        with contextlib.suppress(ValueError, TypeError):
+                            utc_dt = kh.normalize_datetime_input(
+                                date_value,
+                                default_tzinfo=const.DEFAULT_TIME_ZONE,
+                                return_type=const.HELPER_RETURN_DATETIME_UTC,
+                            )
+                            if utc_dt and isinstance(utc_dt, datetime):
+                                per_kid_due_dates[kid_id] = utc_dt.isoformat()
+                    else:
+                        # Preserve existing date if field left blank
+                        per_kid_due_dates[kid_id] = existing_per_kid_dates.get(kid_id)
+
+            # Validate per-kid structures
+            is_valid_days, days_error = fh.validate_per_kid_applicable_days(
+                per_kid_applicable_days
+            )
+            if not is_valid_days and days_error:
+                errors[const.CFOP_ERROR_BASE] = days_error
+
+            if is_daily_multi and not errors:
+                is_valid_times, times_error = fh.validate_per_kid_daily_multi_times(
+                    per_kid_daily_multi_times, recurring_frequency
+                )
+                if not is_valid_times and times_error:
+                    errors[const.CFOP_ERROR_BASE] = times_error
+
+            if not errors:
+                # Store per-kid data in chore
+                chore_data[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS] = (
+                    per_kid_applicable_days
+                )
+                chore_data[const.DATA_CHORE_PER_KID_DUE_DATES] = per_kid_due_dates
+
+                if is_daily_multi:
+                    chore_data[const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES] = (
+                        per_kid_daily_multi_times
+                    )
+
+                # PKAD-2026-001: For INDEPENDENT chores, clear chore-level fields
+                # (per-kid structures are now the single source of truth)
+                chore_data[const.DATA_CHORE_APPLICABLE_DAYS] = None
+                chore_data[const.DATA_CHORE_DUE_DATE] = None
+                if is_daily_multi:
+                    chore_data[const.DATA_CHORE_DAILY_MULTI_TIMES] = None
+
+                # Update storage
+                coordinator.update_chore_entity(internal_id, chore_data)
+                coordinator._persist()
+                coordinator.async_update_listeners()
+
+                const.LOGGER.debug(
+                    "Updated per-kid details for chore %s: days=%s, dates=%s",
+                    internal_id,
+                    per_kid_applicable_days,
+                    per_kid_due_dates,
+                )
+
+                # Clear stored state
+                self._chore_being_edited = None
+                self._chore_template_date_raw = None
+                self._chore_template_applicable_days = None
+                self._chore_template_daily_multi_times = None
+                self._mark_reload_needed()
+                return await self.async_step_init()
+
+        # Build form schema
+        schema_fields: dict[Any, Any] = {}
+        kid_names_list: list[str] = []
+
+        # Template section - "Apply to All" checkboxes
+        if template_applicable_days:
+            schema_fields[
+                vol.Optional(const.CFOF_CHORES_INPUT_APPLY_DAYS_TO_ALL, default=False)
+            ] = selector.BooleanSelector()
+
+        if is_daily_multi and template_daily_multi_times:
+            schema_fields[
+                vol.Optional(const.CFOF_CHORES_INPUT_APPLY_TIMES_TO_ALL, default=False)
+            ] = selector.BooleanSelector()
+
+        if template_date_display:
+            schema_fields[
+                vol.Optional(
+                    const.CFOF_CHORES_INPUT_APPLY_TEMPLATE_TO_ALL, default=False
+                )
+            ] = selector.BooleanSelector()
+
+        # Per-kid fields
+        for kid_name, kid_id in name_to_id.items():
+            kid_names_list.append(kid_name)
+
+            # Applicable days multi-select
+            # Convert stored integers back to string keys for selector default
+            existing_days_ints = existing_per_kid_days.get(kid_id, [])
+            weekday_keys = list(const.WEEKDAY_OPTIONS.keys())
+            default_days = [
+                weekday_keys[i]
+                for i in existing_days_ints
+                if 0 <= i < len(weekday_keys)
+            ]
+            # If no existing per-kid days, use template
+            if not default_days and template_applicable_days:
+                default_days = template_applicable_days
+
+            schema_fields[
+                vol.Optional(f"applicable_days_{kid_name}", default=default_days)
+            ] = selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=cast(
+                        "list[selector.SelectOptionDict]",
+                        [
+                            {"value": key, "label": f"{kid_name}: {label}"}
+                            for key, label in const.WEEKDAY_OPTIONS.items()
+                        ],
+                    ),
+                    multiple=True,
+                )
+            )
+
+            # Daily multi times text input (conditional on DAILY_MULTI)
+            if is_daily_multi:
+                default_times = existing_per_kid_times.get(
+                    kid_id, template_daily_multi_times
+                )
+                schema_fields[
+                    vol.Optional(f"daily_multi_times_{kid_name}", default=default_times)
+                ] = selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.TEXT,
+                        multiline=False,
+                    )
+                )
+
+            # Due date picker
+            existing_date = existing_per_kid_dates.get(kid_id)
+            default_date_value = None
+            if existing_date:
+                with contextlib.suppress(ValueError, TypeError):
+                    default_date_value = kh.normalize_datetime_input(
+                        existing_date,
+                        default_tzinfo=const.DEFAULT_TIME_ZONE,
+                        return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
+                    )
+
+            schema_fields[
+                vol.Optional(f"due_date_{kid_name}", default=default_date_value)
+            ] = vol.Any(None, selector.DateTimeSelector())
+
+            # Add clear checkbox if date exists
+            if existing_date:
+                schema_fields[
+                    vol.Optional(f"clear_due_date_{kid_name}", default=False)
+                ] = selector.BooleanSelector()
+
+        # Build description placeholders
+        chore_name = chore_data.get(const.DATA_CHORE_NAME, "Unknown")
+        kid_list_text = ", ".join(kid_names_list)
+
+        # Build template info section for description
+        template_info_parts: list[str] = []
+        if template_applicable_days:
+            days_display = ", ".join(
+                const.WEEKDAY_OPTIONS.get(d) or d for d in template_applicable_days
+            )
+            template_info_parts.append(f"**Template days:** {days_display}")
+        if is_daily_multi and template_daily_multi_times:
+            template_info_parts.append(
+                f"**Template times:** {template_daily_multi_times}"
+            )
+        if template_date_display:
+            template_info_parts.append(f"**Template date:** {template_date_display}")
+
+        template_info = ""
+        if template_info_parts:
+            template_info = "\n\n" + "\n".join(template_info_parts)
+
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_EDIT_CHORE_PER_KID_DETAILS,
+            data_schema=vol.Schema(schema_fields),
+            errors=errors,
+            description_placeholders={
+                "chore_name": chore_name,
+                "kid_names": kid_list_text,
+                "template_info": template_info,
+            },
         )
 
     # ----- Daily Multi Times Helper Step -----

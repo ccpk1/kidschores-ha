@@ -345,6 +345,10 @@ async def _configure_chore_step(
         Updated flow result
     """
     recurring_freq = chore_config.get("recurring_frequency", "daily")
+    # CFE-2026-001 F2: daily_multi is NOT supported in config_flow schema.
+    # Use 'daily' as placeholder - frequency will be injected post-setup.
+    if recurring_freq == const.FREQUENCY_DAILY_MULTI:
+        recurring_freq = const.FREQUENCY_DAILY
     # applicable_days: if not specified, means "any day" (no restriction)
     applicable_days = chore_config.get("applicable_days", [])
 
@@ -1204,24 +1208,38 @@ async def setup_scenario(
             chore_name_to_id[chore_name] = chore_id
 
     # -------------------------------------------------------------------------
-    # CFE-2026-001 F2: Post-setup injection of daily_multi_times
-    # The config_flow doesn't support daily_multi_times in its schema (it's
+    # CFE-2026-001 F2: Post-setup injection of daily_multi frequency and times
+    # The config_flow doesn't support daily_multi in its schema (it's
     # handled via options_flow helper step). For test scenarios, we inject
-    # this field directly into coordinator chore data after setup.
+    # both the frequency and times directly into coordinator chore data.
     # -------------------------------------------------------------------------
     chores_config = scenario.get("chores", [])
     for chore_config in chores_config:
+        chore_name = chore_config.get("name")
+        if not chore_name or chore_name not in chore_name_to_id:
+            continue
+        chore_id = chore_name_to_id[chore_name]
+        chore_data = coordinator.chores_data.get(chore_id)
+        if not chore_data:
+            continue
+
+        # Inject daily_multi frequency if specified
+        if chore_config.get("recurring_frequency") == const.FREQUENCY_DAILY_MULTI:
+            chore_data[const.DATA_CHORE_RECURRING_FREQUENCY] = (
+                const.FREQUENCY_DAILY_MULTI
+            )
+
+        # Inject daily_multi_times if specified
         if "daily_multi_times" in chore_config:
-            chore_name = chore_config.get("name")
-            if chore_name and chore_name in chore_name_to_id:
-                chore_id = chore_name_to_id[chore_name]
-                chore_data = coordinator.chores_data.get(chore_id)
-                if chore_data:
-                    chore_data[const.DATA_CHORE_DAILY_MULTI_TIMES] = chore_config[
-                        "daily_multi_times"
-                    ]
-    # Persist after any daily_multi_times injections
-    if any("daily_multi_times" in c for c in chores_config):
+            chore_data[const.DATA_CHORE_DAILY_MULTI_TIMES] = chore_config[
+                "daily_multi_times"
+            ]
+    # Persist after any daily_multi injections
+    if any(
+        c.get("recurring_frequency") == const.FREQUENCY_DAILY_MULTI
+        or "daily_multi_times" in c
+        for c in chores_config
+    ):
         coordinator._persist()
 
     # Map badge names to IDs

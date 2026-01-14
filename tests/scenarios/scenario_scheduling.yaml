@@ -161,7 +161,7 @@ chores:
     # Due date: Future for config flow (tests set past via coordinator)
     due_date: "+1d17:00"
 
-  # Test: at_due_date_then_reset - Shows OVERDUE briefly, then auto-resets
+  # Test: at_due_date_clear_at_approval_reset - Shows OVERDUE briefly, then auto-resets
   # NOTE: Due date set to future during setup; tests set to past via coordinator
   - name: "Overdue Then Reset"
     assigned_to: ["Zoë"]
@@ -171,7 +171,7 @@ chores:
     recurring_frequency: "daily"
     auto_approve: false
     approval_reset_type: "at_midnight_once"
-    overdue_handling_type: "at_due_date_then_reset"
+    overdue_handling_type: "at_due_date_clear_at_approval_reset"
     approval_reset_pending_claim_action: "clear_pending"
     # Due date: Future for config flow (tests set past via coordinator)
     due_date: "+1d17:00"
@@ -362,7 +362,7 @@ rewards: []
 # Section 2 - Overdue Handling Types (3 chores):
 #   - Overdue At Due Date (at_due_date, past due)
 #   - Overdue Never (never_overdue, past due)
-#   - Overdue Then Reset (at_due_date_then_reset, past due)
+#   - Overdue Then Reset (at_due_date_clear_at_approval_reset, past due)
 #
 # Section 3 - Pending Claim Actions (3 chores):
 #   - Pending Hold (hold_pending)

@@ -288,6 +288,9 @@ OPTIONS_FLOW_STEP_EDIT_BONUS: Final = "edit_bonus"
 OPTIONS_FLOW_STEP_EDIT_CHALLENGE: Final = "edit_challenge"
 OPTIONS_FLOW_STEP_EDIT_CHORE: Final = "edit_chore"
 OPTIONS_FLOW_STEP_EDIT_CHORE_PER_KID_DATES: Final = "edit_chore_per_kid_dates"
+OPTIONS_FLOW_STEP_EDIT_CHORE_PER_KID_DETAILS: Final = (
+    "edit_chore_per_kid_details"  # PKAD-2026-001
+)
 OPTIONS_FLOW_STEP_EDIT_KID: Final = "edit_kid"
 OPTIONS_FLOW_STEP_EDIT_PARENT: Final = "edit_parent"
 OPTIONS_FLOW_STEP_EDIT_PENALTY: Final = "edit_penalty"
@@ -370,6 +373,8 @@ CFOF_CHORES_INPUT_APPROVAL_RESET_PENDING_CLAIM_ACTION: Final = (
     "approval_reset_pending_claim_action"
 )
 CFOF_CHORES_INPUT_APPLY_TEMPLATE_TO_ALL: Final = "apply_template_to_all"
+CFOF_CHORES_INPUT_APPLY_DAYS_TO_ALL: Final = "apply_days_to_all"  # PKAD-2026-001
+CFOF_CHORES_INPUT_APPLY_TIMES_TO_ALL: Final = "apply_times_to_all"  # PKAD-2026-001
 CFOF_CHORES_INPUT_AUTO_APPROVE: Final = "auto_approve"
 CFOF_CHORES_INPUT_SHOW_ON_CALENDAR: Final = "show_on_calendar"
 CFOF_CHORES_INPUT_NOTIFICATIONS: Final = "chore_notifications"
@@ -1010,6 +1015,10 @@ DATA_CHORE_DAILY_MULTI_TIMES: Final = "daily_multi_times"  # CFE-2026-001 F2
 DATA_CHORE_SHOW_ON_CALENDAR: Final = "show_on_calendar"
 DATA_CHORE_COMPLETION_CRITERIA: Final = "completion_criteria"
 DATA_CHORE_PER_KID_DUE_DATES: Final = "per_kid_due_dates"
+DATA_CHORE_PER_KID_APPLICABLE_DAYS: Final = "per_kid_applicable_days"  # PKAD-2026-001
+DATA_CHORE_PER_KID_DAILY_MULTI_TIMES: Final = (
+    "per_kid_daily_multi_times"  # PKAD-2026-001
+)
 DATA_CHORE_OVERDUE_HANDLING_TYPE: Final = "overdue_handling_type"
 DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION: Final = (
     "approval_reset_pending_claim_action"
@@ -1045,16 +1054,27 @@ DEFAULT_APPROVAL_RESET_TYPE: Final = APPROVAL_RESET_AT_MIDNIGHT_ONCE
 # Controls when/if a chore shows as overdue
 OVERDUE_HANDLING_AT_DUE_DATE: Final = "at_due_date"
 OVERDUE_HANDLING_NEVER_OVERDUE: Final = "never_overdue"
-OVERDUE_HANDLING_AT_DUE_DATE_THEN_RESET: Final = "at_due_date_then_reset"
+OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET: Final = (
+    "at_due_date_clear_at_approval_reset"
+)
+OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE: Final = (
+    "at_due_date_clear_immediate_on_late"
+)
 OVERDUE_HANDLING_TYPE_OPTIONS: Final = [
     {"value": OVERDUE_HANDLING_AT_DUE_DATE, "label": "at_due_date"},
     {"value": OVERDUE_HANDLING_NEVER_OVERDUE, "label": "never_overdue"},
     {
-        "value": OVERDUE_HANDLING_AT_DUE_DATE_THEN_RESET,
-        "label": "at_due_date_then_reset",
+        "value": OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET,
+        "label": "at_due_date_clear_at_approval_reset",
+    },
+    {
+        "value": OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE,
+        "label": "at_due_date_clear_immediate_on_late",
     },
 ]
-DEFAULT_OVERDUE_HANDLING_TYPE: Final = OVERDUE_HANDLING_AT_DUE_DATE
+DEFAULT_OVERDUE_HANDLING_TYPE: Final = (
+    OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE
+)
 
 # Approval Reset Pending Claim Action Values (Phase 5)
 # Controls what happens to pending (unapproved) claims at approval reset
@@ -1783,6 +1803,8 @@ ATTR_TYPE: Final = "type"
 
 # Dashboard Helper Sensor Attributes
 ATTR_CHORES_BY_LABEL: Final = "chores_by_label"
+ATTR_CHORE_ASSIGNED_DAYS: Final = "assigned_days"
+ATTR_CHORE_ASSIGNED_DAYS_RAW: Final = "assigned_days_raw"
 ATTR_CHORE_CLAIMED_BY: Final = "claimed_by"
 ATTR_CHORE_COMPLETED_BY: Final = "completed_by"
 ATTR_CHORE_DUE_DATE: Final = "due_date"
@@ -2265,6 +2287,9 @@ CFOP_ERROR_POINTS_ADJUST_VALUES: Final = "points_adjust_values"
 CFOP_ERROR_DAILY_MULTI_RESET: Final = "recurring_frequency"  # Uses frequency field
 CFOP_ERROR_DAILY_MULTI_KIDS: Final = "assigned_kids"  # Uses assigned_kids field
 CFOP_ERROR_DAILY_MULTI_DUE_DATE: Final = "due_date"  # Uses due_date field
+CFOP_ERROR_AT_DUE_DATE_RESET_REQUIRES_DUE_DATE: Final = (
+    "due_date"  # AT_DUE_DATE_* reset types require due date
+)
 
 
 # ------------------------------------------------------------------------------------------------
@@ -2425,6 +2450,16 @@ TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_TOO_MANY: Final = (
 )
 TRANS_KEY_CFOF_ERROR_DAILY_MULTI_DUE_DATE_REQUIRED: Final = (
     "error_daily_multi_due_date_required"
+)
+TRANS_KEY_CFOF_ERROR_AT_DUE_DATE_RESET_REQUIRES_DUE_DATE: Final = (
+    "error_at_due_date_reset_requires_due_date"
+)
+# PKAD-2026-001 Error Keys
+TRANS_KEY_CFOF_ERROR_PER_KID_APPLICABLE_DAYS_INVALID: Final = (
+    "error_per_kid_applicable_days_invalid"
+)
+TRANS_KEY_CFOF_ERROR_PER_KID_DAILY_MULTI_TIMES_INVALID: Final = (
+    "error_per_kid_daily_multi_times_invalid"
 )
 TRANS_KEY_CFOF_INVALID_ACHIEVEMENT: Final = "invalid_achievement"
 TRANS_KEY_CFOF_INVALID_ACHIEVEMENT_COUNT: Final = "invalid_achievement_count"
@@ -2690,6 +2725,18 @@ FREQUENCY_OPTIONS = [
     FREQUENCY_MONTHLY,
     FREQUENCY_CUSTOM,
     FREQUENCY_CUSTOM_FROM_COMPLETE,  # CFE-2026-001 F1
+]
+
+# Frequency options for config flow (excludes DAILY_MULTI which requires helper step)
+# DAILY_MULTI is available in Options flow after initial setup
+FREQUENCY_OPTIONS_CONFIG_FLOW = [
+    FREQUENCY_NONE,
+    FREQUENCY_DAILY,
+    FREQUENCY_WEEKLY,
+    FREQUENCY_BIWEEKLY,
+    FREQUENCY_MONTHLY,
+    FREQUENCY_CUSTOM,
+    FREQUENCY_CUSTOM_FROM_COMPLETE,
 ]
 
 # Weekday Options

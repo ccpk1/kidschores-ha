@@ -56,7 +56,7 @@ Controls HOW overdue status is handled when due date passes.
     - Chore NEVER gets marked overdue, even if past due date
     - Useful for optional/flexible tasks
 
-  OVERDUE_HANDLING_AT_DUE_DATE_THEN_RESET ("at_due_date_then_reset")
+  OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET ("at_due_date_clear_at_approval_reset")
     - Chore becomes OVERDUE at due date
     - AUTOMATICALLY resets to PENDING at next approval reset cycle
     - The reset happens in _reset_daily_chore_statuses() or
@@ -122,7 +122,7 @@ from tests.helpers import (
     FREQUENCY_WEEKLY,
     # Overdue handling types
     OVERDUE_HANDLING_AT_DUE_DATE,
-    OVERDUE_HANDLING_AT_DUE_DATE_THEN_RESET,
+    OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET,
     OVERDUE_HANDLING_NEVER_OVERDUE,
     # Translation keys
     TRANS_KEY_ERROR_CHORE_ALREADY_APPROVED,
@@ -684,7 +684,7 @@ class TestChoreConfigurationVerification:
         expected = {
             "Overdue At Due Date": OVERDUE_HANDLING_AT_DUE_DATE,
             "Overdue Never": OVERDUE_HANDLING_NEVER_OVERDUE,
-            "Overdue Then Reset": OVERDUE_HANDLING_AT_DUE_DATE_THEN_RESET,
+            "Overdue Then Reset": OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET,
         }
 
         for chore_name, expected_type in expected.items():
@@ -1291,11 +1291,11 @@ class TestOverdueThenReset:
 
         chore_id = chore_map["Overdue Then Reset"]
 
-        # Verify chore has at_due_date_then_reset setting
+        # Verify chore has at_due_date_clear_at_approval_reset setting
         chore_info = coordinator.chores_data.get(chore_id, {})
         overdue_type = chore_info.get(DATA_CHORE_OVERDUE_HANDLING_TYPE)
-        assert overdue_type == OVERDUE_HANDLING_AT_DUE_DATE_THEN_RESET, (
-            f"Test chore should have at_due_date_then_reset handling, got {overdue_type}"
+        assert overdue_type == OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET, (
+            f"Test chore should have at_due_date_clear_at_approval_reset handling, got {overdue_type}"
         )
 
         # Set due date to past (config flow rejects past dates)

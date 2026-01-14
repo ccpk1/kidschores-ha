@@ -229,6 +229,7 @@ def validate_daily_multi_kids(
     recurring_frequency: str,
     completion_criteria: str,
     assigned_kids: list[str],
+    per_kid_times: dict[str, str] | None = None,
 ) -> dict[str, str]:
     """Validate DAILY_MULTI kid assignment rules.
 
@@ -236,26 +237,107 @@ def validate_daily_multi_kids(
         recurring_frequency: The chore's recurring frequency.
         completion_criteria: The chore's completion criteria.
         assigned_kids: List of assigned kid IDs or names.
+        per_kid_times: Per-kid times dict (if provided, allows multi-kids).
 
     Returns:
         Dictionary of errors (empty if validation passes).
         Key is error field (CFOP_ERROR_*), value is translation key.
+
+    PKAD-2026-001: Now allows DAILY_MULTI + INDEPENDENT + multi-kids
+    when per_kid_times is provided (each kid has own time slots).
     """
     errors: dict[str, str] = {}
 
     if recurring_frequency == const.FREQUENCY_DAILY_MULTI:
-        # DAILY_MULTI + INDEPENDENT requires single kid
-        # Rationale: Multiple kids with INDEPENDENT have per-kid dates,
-        # but DAILY_MULTI means "same times for everyone" - conceptual conflict
+        # DAILY_MULTI + INDEPENDENT: allowed if per_kid_times exists
+        # (each kid gets their own time slots)
         if (
             completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
             and len(assigned_kids) > 1
+            and not per_kid_times
         ):
             errors[const.CFOP_ERROR_DAILY_MULTI_KIDS] = (
                 const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_INDEPENDENT_MULTI_KIDS
             )
 
     return errors
+
+
+def validate_per_kid_applicable_days(
+    per_kid_days: dict[str, list[int]],
+) -> tuple[bool, str | None]:
+    """Validate per-kid applicable days structure.
+
+    Args:
+        per_kid_days: {kid_id: [0, 3], ...} where 0=Mon, 6=Sun
+
+    Returns:
+        Tuple of (is_valid, error_key_or_none)
+
+    Validation Rules (PKAD-2026-001):
+    - Empty dict allowed (use chore-level defaults)
+    - Each kid value must be list of integers (0-6)
+    - Empty list = all days applicable (valid)
+    - No duplicate days in single kid's list
+    """
+    if not per_kid_days:
+        return (True, None)  # Empty = use defaults
+
+    for _kid_id, days in per_kid_days.items():
+        if not isinstance(days, list):
+            return (False, const.TRANS_KEY_CFOF_ERROR_PER_KID_APPLICABLE_DAYS_INVALID)
+
+        if not days:
+            continue  # Empty list = all days (valid)
+
+        for day in days:
+            if not isinstance(day, int) or day < 0 or day > 6:
+                return (
+                    False,
+                    const.TRANS_KEY_CFOF_ERROR_PER_KID_APPLICABLE_DAYS_INVALID,
+                )
+
+        # Check for duplicates
+        if len(days) != len(set(days)):
+            return (False, const.TRANS_KEY_CFOF_ERROR_PER_KID_APPLICABLE_DAYS_INVALID)
+
+    return (True, None)
+
+
+def validate_per_kid_daily_multi_times(
+    per_kid_times: dict[str, str],
+    frequency: str,
+) -> tuple[bool, str | None]:
+    """Validate per-kid daily multi-times (only for DAILY_MULTI frequency).
+
+    Args:
+        per_kid_times: {kid_id: "08:00|17:00", ...}
+        frequency: Chore recurring frequency
+
+    Returns:
+        Tuple of (is_valid, error_key_or_none)
+
+    Note (PKAD-2026-001): Reuses existing validate_daily_multi_times() for format validation.
+    """
+    if frequency != const.FREQUENCY_DAILY_MULTI:
+        return (True, None)  # Not applicable
+
+    if not per_kid_times:
+        return (True, None)  # Empty = use chore-level times
+
+    for _kid_id, times_str in per_kid_times.items():
+        if not times_str or not times_str.strip():
+            continue  # Empty = use chore-level default
+
+        # Reuse existing validation
+        errors = validate_daily_multi_times(times_str)
+        if errors:
+            return (
+                False,
+                const.TRANS_KEY_CFOF_ERROR_PER_KID_DAILY_MULTI_TIMES_INVALID,
+            )
+
+    return (True, None)
 
 
 def validate_daily_multi_times(times_str: str) -> dict[str, str]:
@@ -771,13 +853,25 @@ def build_shadow_kid_data(
 # ----------------------------------------------------------------------------------
 
 
-def build_chore_schema(kids_dict, default=None):
+def build_chore_schema(
+    kids_dict: dict[str, str],
+    default: dict[str, Any] | None = None,
+    frequency_options: list[str] | None = None,
+) -> vol.Schema:
     """Build a schema for chores, referencing existing kids by name.
 
     Uses internal_id for entity management.
     Dynamically adds "clear due date" checkbox when editing with existing date.
+
+    Args:
+        kids_dict: Mapping of kid names to internal IDs.
+        default: Default values for form fields (edit mode).
+        frequency_options: List of frequency options to show. Defaults to
+            const.FREQUENCY_OPTIONS (all frequencies). Config flow should pass
+            const.FREQUENCY_OPTIONS_CONFIG_FLOW to exclude DAILY_MULTI.
     """
     default = default or {}
+    frequency_options = frequency_options or const.FREQUENCY_OPTIONS
     chore_name_default = default.get(const.DATA_CHORE_NAME, const.SENTINEL_EMPTY)
 
     kid_choices = {k: k for k in kids_dict}
@@ -894,7 +988,7 @@ def build_chore_schema(kids_dict, default=None):
             ),
         ): selector.SelectSelector(
             selector.SelectSelectorConfig(
-                options=const.FREQUENCY_OPTIONS,
+                options=frequency_options,
                 translation_key=const.TRANS_KEY_FLOW_HELPERS_RECURRING_FREQUENCY,
             )
         ),
@@ -925,10 +1019,10 @@ def build_chore_schema(kids_dict, default=None):
         ),
         vol.Optional(
             const.CFOF_CHORES_INPUT_APPLICABLE_DAYS,
-            default=default.get(
-                const.CFOF_CHORES_INPUT_APPLICABLE_DAYS,
-                const.DEFAULT_APPLICABLE_DAYS,
-            ),
+            # Use `or` to handle both missing keys AND None values
+            # Storage may have null when per_kid_applicable_days is source of truth
+            default=default.get(const.CFOF_CHORES_INPUT_APPLICABLE_DAYS)
+            or const.DEFAULT_APPLICABLE_DAYS,
         ): selector.SelectSelector(
             selector.SelectSelectorConfig(
                 options=cast(
@@ -1102,7 +1196,7 @@ def build_chores_data(
         errors[const.CFOP_ERROR_ASSIGNED_KIDS] = const.TRANS_KEY_CFOF_NO_KIDS_ASSIGNED
         return {}, errors
 
-    # Validate AT_DUE_DATE_THEN_RESET only works with AT_MIDNIGHT_* reset types
+    # Validate AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET only works with AT_MIDNIGHT_* reset types
     overdue_handling = user_input.get(
         const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE,
         const.DEFAULT_OVERDUE_HANDLING_TYPE,
@@ -1111,12 +1205,13 @@ def build_chores_data(
         const.CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE,
         const.DEFAULT_APPROVAL_RESET_TYPE,
     )
-    if overdue_handling == const.OVERDUE_HANDLING_AT_DUE_DATE_THEN_RESET:
-        # AT_DUE_DATE_THEN_RESET only makes sense with midnight resets
-        # where the reset time is AFTER the due date
+    if overdue_handling == const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET:
+        # AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET requires a reset type that will
+        # actually trigger - midnight resets OR upon_completion (immediate reset)
         valid_reset_types = {
             const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
             const.APPROVAL_RESET_AT_MIDNIGHT_MULTI,
+            const.APPROVAL_RESET_UPON_COMPLETION,
         }
         if approval_reset not in valid_reset_types:
             errors[const.CFOP_ERROR_OVERDUE_RESET_COMBO] = (
@@ -1147,27 +1242,41 @@ def build_chores_data(
             )
             return {}, errors
 
-        # DAILY_MULTI + INDEPENDENT requires single kid
-        # Rationale: Multiple kids with INDEPENDENT have per-kid dates,
-        # but DAILY_MULTI means "same times for everyone" - conceptual conflict
-        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
-            # Convert assigned kid names to UUIDs first (need count check)
-            assigned_kids_names = user_input.get(
-                const.CFOF_CHORES_INPUT_ASSIGNED_KIDS, []
-            )
-            if len(assigned_kids_names) > 1:
-                errors[const.CFOP_ERROR_DAILY_MULTI_KIDS] = (
-                    const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_INDEPENDENT_MULTI_KIDS
-                )
-                return {}, errors
+        # PKAD-2026-001: DAILY_MULTI + INDEPENDENT + multi-kids is NOW ALLOWED
+        # Per-kid times can be configured in the unified helper form.
+        # The old restriction was: "same times for everyone" - but we now
+        # support per_kid_daily_multi_times where each kid has own times.
 
         # DAILY_MULTI requires due_date to be set
         # Rationale: The times string defines daily availability windows,
         # but the due_date determines when scheduling begins. Without it,
         # the chore never auto-schedules.
-        if not due_date_str:
+        # EXCEPTION: INDEPENDENT multi-kid chores set per-kid dates in helper
+        is_independent_multikid_daily_multi = (
+            completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
+            and len(assigned_kids_ids) >= 2
+        )
+        if not due_date_str and not is_independent_multikid_daily_multi:
             errors[const.CFOP_ERROR_DAILY_MULTI_DUE_DATE] = (
                 const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_DUE_DATE_REQUIRED
+            )
+            return {}, errors
+
+    # Validate AT_DUE_DATE_* reset types require due_date
+    # Rationale: Reset logic (_reset_shared_chore_status, _reset_independent_chore_status)
+    # returns early if no due_date - chore never resets, stays APPROVED forever
+    # Exception: Independent multi-kid chores (per-kid dates set in helper or Configure)
+    is_independent_multikid = (
+        completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
+        and len(assigned_kids_ids) >= 2
+    )
+    if approval_reset in (
+        const.APPROVAL_RESET_AT_DUE_DATE_ONCE,
+        const.APPROVAL_RESET_AT_DUE_DATE_MULTI,
+    ):
+        if not due_date_str and not is_independent_multikid:
+            errors[const.CFOP_ERROR_AT_DUE_DATE_RESET_REQUIRES_DUE_DATE] = (
+                const.TRANS_KEY_CFOF_ERROR_AT_DUE_DATE_RESET_REQUIRES_DUE_DATE
             )
             return {}, errors
 

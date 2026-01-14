@@ -1421,6 +1421,18 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.DATA_CHORE_PER_KID_DUE_DATES
             ]
 
+        # PKAD-2026-001: Update per_kid_applicable_days if provided (from flow)
+        if const.DATA_CHORE_PER_KID_APPLICABLE_DAYS in chore_data:
+            chore_info[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS] = chore_data[
+                const.DATA_CHORE_PER_KID_APPLICABLE_DAYS
+            ]
+
+        # PKAD-2026-001: Update per_kid_daily_multi_times if provided (from flow)
+        if const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES in chore_data:
+            chore_info[const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES] = chore_data[
+                const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES
+            ]
+
         const.LOGGER.debug(
             "DEBUG: Chore Updated - '%s', ID '%s'",
             chore_info[const.DATA_CHORE_NAME],
@@ -1444,12 +1456,35 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         - Remove per_kid_due_dates (no longer needed)
         - Keep chore-level due_date as the single source of truth
         - The chore-level due_date already exists (template), no change needed
+
+        PKAD-2026-001 Q4: Use first kid's applicable_days for chore-level
         """
         chore_name = chore_info.get(const.DATA_CHORE_NAME, chore_id)
         const.LOGGER.debug(
             "DEBUG: Converting chore '%s' from INDEPENDENT to SHARED mode",
             chore_name,
         )
+
+        # PKAD-2026-001: Preserve first kid's applicable_days as chore-level
+        assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+        per_kid_days = chore_info.get(const.DATA_CHORE_PER_KID_APPLICABLE_DAYS, {})
+        if assigned_kids and assigned_kids[0] in per_kid_days:
+            chore_info[const.DATA_CHORE_APPLICABLE_DAYS] = per_kid_days[
+                assigned_kids[0]
+            ]
+            chore_data[const.DATA_CHORE_APPLICABLE_DAYS] = per_kid_days[
+                assigned_kids[0]
+            ]
+
+        # PKAD-2026-001: Preserve first kid's daily_multi_times as chore-level
+        per_kid_times = chore_info.get(const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES, {})
+        if assigned_kids and assigned_kids[0] in per_kid_times:
+            chore_info[const.DATA_CHORE_DAILY_MULTI_TIMES] = per_kid_times[
+                assigned_kids[0]
+            ]
+            chore_data[const.DATA_CHORE_DAILY_MULTI_TIMES] = per_kid_times[
+                assigned_kids[0]
+            ]
 
         # Clear per_kid_due_dates - no longer needed in SHARED mode
         if const.DATA_CHORE_PER_KID_DUE_DATES in chore_info:
@@ -1459,8 +1494,20 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         if const.DATA_CHORE_PER_KID_DUE_DATES in chore_data:
             del chore_data[const.DATA_CHORE_PER_KID_DUE_DATES]
 
+        # PKAD-2026-001: Clear per_kid_applicable_days - no longer needed
+        if const.DATA_CHORE_PER_KID_APPLICABLE_DAYS in chore_info:
+            del chore_info[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS]
+        if const.DATA_CHORE_PER_KID_APPLICABLE_DAYS in chore_data:
+            del chore_data[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS]
+
+        # PKAD-2026-001: Clear per_kid_daily_multi_times - no longer needed
+        if const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES in chore_info:
+            del chore_info[const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES]
+        if const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES in chore_data:
+            del chore_data[const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES]
+
         const.LOGGER.debug(
-            "DEBUG: Chore '%s' converted to SHARED - per_kid_due_dates removed",
+            "DEBUG: Chore '%s' converted to SHARED - per_kid data removed",
             chore_name,
         )
 
@@ -1478,6 +1525,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         - Populate per_kid_due_dates from the chore-level template due_date
         - Each assigned kid gets the same initial due date (from template)
         - Future rescheduling will handle per-kid due dates independently
+
+        PKAD-2026-001: Also populate per_kid_applicable_days and per_kid_daily_multi_times
+        from chore-level values, then clear chore-level fields.
         """
         chore_name = chore_info.get(const.DATA_CHORE_NAME, chore_id)
         const.LOGGER.debug(
@@ -1508,11 +1558,56 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Also update chore_data so the later update loop doesn't overwrite
         chore_data[const.DATA_CHORE_PER_KID_DUE_DATES] = per_kid_due_dates
 
+        # PKAD-2026-001: Populate per_kid_applicable_days from chore-level
+        template_applicable_days = chore_data.get(
+            const.DATA_CHORE_APPLICABLE_DAYS,
+            chore_info.get(const.DATA_CHORE_APPLICABLE_DAYS, []),
+        )
+        if template_applicable_days:
+            per_kid_applicable_days: dict[str, list[int]] = {}
+            for kid_id in assigned_kids:
+                # Ensure we store as list of integers
+                if template_applicable_days and isinstance(
+                    next(iter(template_applicable_days), None), str
+                ):
+                    order = list(const.WEEKDAY_OPTIONS.keys())
+                    per_kid_applicable_days[kid_id] = [
+                        order.index(d.lower())
+                        for d in template_applicable_days
+                        if d.lower() in order
+                    ]
+                else:
+                    per_kid_applicable_days[kid_id] = list(template_applicable_days)
+            chore_info[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS] = (
+                per_kid_applicable_days
+            )
+            chore_data[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS] = (
+                per_kid_applicable_days
+            )
+            # Clear chore-level (per-kid is now source of truth)
+            chore_info[const.DATA_CHORE_APPLICABLE_DAYS] = None
+            chore_data[const.DATA_CHORE_APPLICABLE_DAYS] = None
+
+        # PKAD-2026-001: Populate per_kid_daily_multi_times from chore-level
+        template_daily_times = chore_data.get(
+            const.DATA_CHORE_DAILY_MULTI_TIMES,
+            chore_info.get(const.DATA_CHORE_DAILY_MULTI_TIMES, ""),
+        )
+        if template_daily_times:
+            per_kid_daily_times: dict[str, str] = {}
+            for kid_id in assigned_kids:
+                per_kid_daily_times[kid_id] = template_daily_times
+            chore_info[const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES] = per_kid_daily_times
+            chore_data[const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES] = per_kid_daily_times
+            # Clear chore-level (per-kid is now source of truth)
+            chore_info[const.DATA_CHORE_DAILY_MULTI_TIMES] = None
+            chore_data[const.DATA_CHORE_DAILY_MULTI_TIMES] = None
+
         const.LOGGER.debug(
-            "DEBUG: Chore '%s' converted to INDEPENDENT - per_kid_due_dates "
+            "DEBUG: Chore '%s' converted to INDEPENDENT - per_kid data "
             "populated from template for %d kids",
             chore_name,
-            len(per_kid_due_dates),
+            len(assigned_kids),
         )
 
     # -- Badges
@@ -3023,13 +3118,31 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # For INDEPENDENT chores with UPON_COMPLETION reset type, reschedule per-kid due date after approval
         # Other reset types (at_midnight_*, at_due_date_*) should NOT reschedule on approval
+        # UNLESS overdue_handling is immediate_on_late AND approval is late
         approval_reset_type = chore_info.get(
             const.DATA_CHORE_APPROVAL_RESET_TYPE, const.DEFAULT_APPROVAL_RESET_TYPE
         )
+        overdue_handling = chore_info.get(
+            const.DATA_CHORE_OVERDUE_HANDLING_TYPE, const.DEFAULT_OVERDUE_HANDLING_TYPE
+        )
+
+        # Check if this is a late approval (after reset boundary passed)
+        is_late_approval = self._is_approval_after_reset_boundary(chore_info, kid_id)
+
+        # Determine if immediate reschedule is needed
+        should_reschedule_immediately = (
+            approval_reset_type == const.APPROVAL_RESET_UPON_COMPLETION
+            or (
+                overdue_handling
+                == const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE
+                and is_late_approval
+            )
+        )
+
         if (
             chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
             == const.COMPLETION_CRITERIA_INDEPENDENT
-            and approval_reset_type == const.APPROVAL_RESET_UPON_COMPLETION
+            and should_reschedule_immediately
         ):
             self._reschedule_chore_next_due_date_for_kid(chore_info, chore_id, kid_id)
 
@@ -3042,7 +3155,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.COMPLETION_CRITERIA_SHARED,
                 const.COMPLETION_CRITERIA_SHARED_FIRST,
             )
-            and approval_reset_type == const.APPROVAL_RESET_UPON_COMPLETION
+            and should_reschedule_immediately
         ):
             # Check if all assigned kids have approved in current period
             assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
@@ -8833,19 +8946,20 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.APPROVAL_RESET_PENDING_CLAIM_CLEAR,  # Default: current behavior
         )
 
-        # Check if AT_DUE_DATE_THEN_RESET should clear overdue status
+        # Check if AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET should clear overdue status
         # This only applies with AT_MIDNIGHT_* reset types (validated in flow_helpers)
         overdue_handling = chore_info.get(
             const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
             const.OVERDUE_HANDLING_AT_DUE_DATE,
         )
         should_clear_overdue = (
-            overdue_handling == const.OVERDUE_HANDLING_AT_DUE_DATE_THEN_RESET
+            overdue_handling
+            == const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET
         )
 
         # Determine which states should be reset
         # Default: Reset anything that's not PENDING or OVERDUE
-        # With AT_DUE_DATE_THEN_RESET: Also reset OVERDUE to PENDING
+        # With AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET: Also reset OVERDUE to PENDING
         states_to_skip = [const.CHORE_STATE_PENDING]
         if not should_clear_overdue:
             states_to_skip.append(const.CHORE_STATE_OVERDUE)
@@ -8938,19 +9052,20 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.APPROVAL_RESET_PENDING_CLAIM_CLEAR,  # Default: current behavior
         )
 
-        # Check if AT_DUE_DATE_THEN_RESET should clear overdue status
+        # Check if AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET should clear overdue status
         # This only applies with AT_MIDNIGHT_* reset types (validated in flow_helpers)
         overdue_handling = chore_info.get(
             const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
             const.OVERDUE_HANDLING_AT_DUE_DATE,
         )
         should_clear_overdue = (
-            overdue_handling == const.OVERDUE_HANDLING_AT_DUE_DATE_THEN_RESET
+            overdue_handling
+            == const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET
         )
 
         # Determine which states should be skipped
         # Default: Skip PENDING or OVERDUE
-        # With AT_DUE_DATE_THEN_RESET: Only skip PENDING (reset OVERDUE to PENDING)
+        # With AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET: Only skip PENDING (reset OVERDUE to PENDING)
         states_to_skip = [const.CHORE_STATE_PENDING]
         if not should_clear_overdue:
             states_to_skip.append(const.CHORE_STATE_OVERDUE)
@@ -9295,11 +9410,22 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Other reset types (AT_MIDNIGHT_*, AT_DUE_DATE_*) stay APPROVED until scheduled reset
         # This prevents the bug where approval_period_start > last_approved caused
         # is_approved_in_current_period() to return False immediately after approval
+        # EXCEPTION: immediate_on_late option also resets to PENDING when triggered
         approval_reset = chore_info.get(
             const.DATA_CHORE_APPROVAL_RESET_TYPE,
             const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
         )
-        if approval_reset == const.APPROVAL_RESET_UPON_COMPLETION:
+        overdue_handling = chore_info.get(
+            const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
+            const.DEFAULT_OVERDUE_HANDLING_TYPE,
+        )
+        # Reset to PENDING for UPON_COMPLETION or immediate-on-late option
+        should_reset_state = (
+            approval_reset == const.APPROVAL_RESET_UPON_COMPLETION
+            or overdue_handling
+            == const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE
+        )
+        if should_reset_state:
             for kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
                 if kid_id:
                     self._process_chore_state(
@@ -9373,9 +9499,28 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         if last_approved_str:
             completion_utc = kh.parse_datetime_to_utc(last_approved_str)
 
-        # Use consolidation helper for calculation
+        # PKAD-2026-001: For INDEPENDENT chores, inject per-kid applicable_days
+        # and daily_multi_times into a copy of chore_info before calculation.
+        # This allows the helper to use per-kid values instead of chore-level.
+        chore_info_for_calc = chore_info.copy()
+
+        per_kid_applicable_days = chore_info.get(
+            const.DATA_CHORE_PER_KID_APPLICABLE_DAYS, {}
+        )
+        if kid_id in per_kid_applicable_days:
+            chore_info_for_calc[const.DATA_CHORE_APPLICABLE_DAYS] = (
+                per_kid_applicable_days[kid_id]
+            )
+
+        per_kid_times = chore_info.get(const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES, {})
+        if kid_id in per_kid_times:
+            chore_info_for_calc[const.DATA_CHORE_DAILY_MULTI_TIMES] = per_kid_times[
+                kid_id
+            ]
+
+        # Use consolidation helper with per-kid overrides
         next_due_utc = self._calculate_next_due_date_from_info(
-            original_due_utc, chore_info, completion_timestamp=completion_utc
+            original_due_utc, chore_info_for_calc, completion_timestamp=completion_utc
         )
         if not next_due_utc:
             const.LOGGER.warning(
@@ -9393,11 +9538,22 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Other reset types (AT_MIDNIGHT_*, AT_DUE_DATE_*) stay APPROVED until scheduled reset
         # This prevents the bug where approval_period_start > last_approved caused
         # is_approved_in_current_period() to return False immediately after approval
+        # EXCEPTION: immediate_on_late option also resets to PENDING when triggered
         approval_reset = chore_info.get(
             const.DATA_CHORE_APPROVAL_RESET_TYPE,
             const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
         )
-        if approval_reset == const.APPROVAL_RESET_UPON_COMPLETION:
+        overdue_handling = chore_info.get(
+            const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
+            const.DEFAULT_OVERDUE_HANDLING_TYPE,
+        )
+        # Reset to PENDING for UPON_COMPLETION or immediate-on-late option
+        should_reset_state = (
+            approval_reset == const.APPROVAL_RESET_UPON_COMPLETION
+            or overdue_handling
+            == const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE
+        )
+        if should_reset_state:
             self._process_chore_state(
                 kid_id, chore_id, const.CHORE_STATE_PENDING, reset_approval_period=True
             )
@@ -9411,6 +9567,78 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             else "None",
             dt_util.as_local(next_due_utc).isoformat() if next_due_utc else "None",
         )
+
+    def _is_approval_after_reset_boundary(
+        self, chore_info: dict[str, Any], kid_id: str
+    ) -> bool:
+        """Check if approval is happening after the reset boundary has passed.
+
+        For AT_MIDNIGHT types: Due date must be before last midnight
+        For AT_DUE_DATE types: Current time must be past the due date
+
+        Returns True if "late", False otherwise.
+        """
+        approval_reset_type = chore_info.get(
+            const.DATA_CHORE_APPROVAL_RESET_TYPE, const.DEFAULT_APPROVAL_RESET_TYPE
+        )
+
+        now_utc = dt_util.utcnow()
+
+        # AT_MIDNIGHT types: Check if due date was before last midnight
+        if approval_reset_type in (
+            const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+            const.APPROVAL_RESET_AT_MIDNIGHT_MULTI,
+        ):
+            # Get due date (per-kid for INDEPENDENT, chore-level for SHARED)
+            completion_criteria = chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
+            if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+                per_kid_due_dates = chore_info.get(
+                    const.DATA_CHORE_PER_KID_DUE_DATES, {}
+                )
+                due_date_str = per_kid_due_dates.get(kid_id)
+            else:
+                due_date_str = chore_info.get(const.DATA_CHORE_DUE_DATE)
+
+            if not due_date_str:
+                return False
+
+            due_date = kh.parse_datetime_to_utc(due_date_str)
+            if not due_date:
+                return False
+
+            # Calculate last midnight in local time, convert to UTC
+            local_now = dt_util.as_local(now_utc)
+            last_midnight_local = local_now.replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+            last_midnight_utc = dt_util.as_utc(last_midnight_local)
+
+            return due_date < last_midnight_utc
+
+        # AT_DUE_DATE types: Check if past the due date
+        if approval_reset_type in (
+            const.APPROVAL_RESET_AT_DUE_DATE_ONCE,
+            const.APPROVAL_RESET_AT_DUE_DATE_MULTI,
+        ):
+            completion_criteria = chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
+            if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+                per_kid_due_dates = chore_info.get(
+                    const.DATA_CHORE_PER_KID_DUE_DATES, {}
+                )
+                due_date_str = per_kid_due_dates.get(kid_id)
+            else:
+                due_date_str = chore_info.get(const.DATA_CHORE_DUE_DATE)
+
+            if not due_date_str:
+                return False
+
+            due_date = kh.parse_datetime_to_utc(due_date_str)
+            if not due_date:
+                return False
+
+            return now_utc > due_date
+
+        return False
 
     # Set Chore Due Date
     def set_chore_due_date(

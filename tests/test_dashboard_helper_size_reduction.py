@@ -282,9 +282,9 @@ class TestTranslationSensorArchitecture:
 
 
 class TestMinimalChoreAttributes:
-    """CHORE-* tests: Validate minimal 6-field chore structure."""
+    """CHORE-* tests: Validate minimal 8-field chore structure."""
 
-    # The 6 fields we expect to keep
+    # The 8 fields we expect to keep (PKAD-2026-001 added assigned_days, assigned_days_raw)
     EXPECTED_CHORE_FIELDS = {
         "eid",
         "name",
@@ -292,6 +292,8 @@ class TestMinimalChoreAttributes:
         "labels",
         "primary_group",
         "is_today_am",
+        "assigned_days",
+        "assigned_days_raw",
     }
 
     # Fields that should be REMOVED (fetch from chore sensor instead)

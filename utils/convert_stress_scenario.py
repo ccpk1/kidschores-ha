@@ -97,7 +97,7 @@ FIELD_MAPPINGS = {
 
 
 def convert_entity(
-    entity: dict, valid_fields: set, field_mappings: dict = None
+    entity: dict, valid_fields: set, field_mappings: dict | None = None
 ) -> dict:
     """Convert a single entity, only keeping valid fields."""
     if field_mappings is None:
@@ -136,10 +136,7 @@ def convert_chore(chore: dict, all_kid_names: list[str]) -> dict:
         result["icon"] = chore["icon"]
 
     # Completion criteria
-    if "completion_criteria" in chore:
-        result["completion_criteria"] = chore["completion_criteria"]
-    else:
-        result["completion_criteria"] = "independent"
+    result["completion_criteria"] = chore.get("completion_criteria", "independent")
 
     # Recurring frequency - handle legacy recurrence structure
     if "recurrence" in chore:
@@ -337,11 +334,9 @@ def convert_scenario_stress():
     )
     output_path = Path("/workspaces/kidschores-ha/tests/scenarios/scenario_stress.yaml")
 
-    print(f"Loading legacy scenario from: {legacy_path}")
     with open(legacy_path, encoding="utf-8") as f:
         legacy_data = yaml.safe_load(f)
 
-    print("Converting structure using scenario_full.yaml template...")
 
     modern_data = {}
     all_kid_names = []
@@ -355,7 +350,6 @@ def convert_scenario_stress():
                 all_kid_names.append(modern_kid["name"])
             modern_kids.append(modern_kid)
         modern_data["kids"] = modern_kids
-        print(f"  ✓ Converted {len(modern_kids)} kids")
 
     # Convert parents
     if "family" in legacy_data and "parents" in legacy_data["family"]:
@@ -367,7 +361,6 @@ def convert_scenario_stress():
                 modern_parent["kids"] = all_kid_names
             modern_parents.append(modern_parent)
         modern_data["parents"] = modern_parents
-        print(f"  ✓ Converted {len(modern_parents)} parents")
 
     # Convert chores with special handling
     if "chores" in legacy_data:
@@ -376,7 +369,6 @@ def convert_scenario_stress():
             modern_chore = convert_chore(chore, all_kid_names)
             modern_chores.append(modern_chore)
         modern_data["chores"] = modern_chores
-        print(f"  ✓ Converted {len(modern_chores)} chores")
 
     # Convert badges with special handling
     if "badges" in legacy_data:
@@ -385,7 +377,6 @@ def convert_scenario_stress():
             modern_badge = convert_badge(badge, all_kid_names)
             modern_badges.append(modern_badge)
         modern_data["badges"] = modern_badges
-        print(f"  ✓ Converted {len(modern_badges)} badges")
 
     # Convert rewards
     if "rewards" in legacy_data:
@@ -394,7 +385,6 @@ def convert_scenario_stress():
             modern_reward = convert_entity(reward, VALID_REWARD_FIELDS)
             modern_rewards.append(modern_reward)
         modern_data["rewards"] = modern_rewards
-        print(f"  ✓ Converted {len(modern_rewards)} rewards")
 
     # Convert penalties
     if "penalties" in legacy_data:
@@ -403,7 +393,6 @@ def convert_scenario_stress():
             modern_penalty = convert_entity(penalty, VALID_PENALTY_FIELDS)
             modern_penalties.append(modern_penalty)
         modern_data["penalties"] = modern_penalties
-        print(f"  ✓ Converted {len(modern_penalties)} penalties")
 
     # Convert bonuses
     if "bonuses" in legacy_data:
@@ -412,20 +401,10 @@ def convert_scenario_stress():
             modern_bonus = convert_entity(bonus, VALID_BONUS_FIELDS)
             modern_bonuses.append(modern_bonus)
         modern_data["bonuses"] = modern_bonuses
-        print(f"  ✓ Converted {len(modern_bonuses)} bonuses")
 
     # Write output with proper formatting
-    print(f"\nWriting modern scenario to: {output_path}")
     write_yaml_with_proper_indent(modern_data, output_path)
 
-    print("\n✅ Conversion complete!")
-    print(f"   Kids: {len(modern_data.get('kids', []))}")
-    print(f"   Parents: {len(modern_data.get('parents', []))}")
-    print(f"   Chores: {len(modern_data.get('chores', []))}")
-    print(f"   Badges: {len(modern_data.get('badges', []))}")
-    print(f"   Rewards: {len(modern_data.get('rewards', []))}")
-    print(f"   Penalties: {len(modern_data.get('penalties', []))}")
-    print(f"   Bonuses: {len(modern_data.get('bonuses', []))}")
 
 
 if __name__ == "__main__":

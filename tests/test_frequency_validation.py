@@ -27,6 +27,7 @@ from tests.helpers import (
     APPROVAL_RESET_AT_MIDNIGHT_MULTI,
     APPROVAL_RESET_AT_MIDNIGHT_ONCE,
     APPROVAL_RESET_UPON_COMPLETION,
+    CFOF_CHORES_INPUT_NAME,
     COMPLETION_CRITERIA_INDEPENDENT,
     COMPLETION_CRITERIA_SHARED,
     FREQUENCY_DAILY_MULTI,
@@ -49,6 +50,19 @@ async def scenario_minimal(
         hass,
         mock_hass_users,
         "tests/scenarios/scenario_minimal.yaml",
+    )
+
+
+@pytest.fixture
+async def scenario_shared(
+    hass: HomeAssistant,
+    mock_hass_users: dict[str, Any],
+) -> SetupResult:
+    """Load shared scenario for multi-kid validation tests."""
+    return await setup_from_yaml(
+        hass,
+        mock_hass_users,
+        "tests/scenarios/scenario_shared.yaml",
     )
 
 
@@ -444,3 +458,134 @@ class TestValidationEdgeCases:
         """Late night times (23:30) are valid."""
         errors = flow_helpers.validate_daily_multi_times("06:45|23:30")
         assert errors == {}
+
+
+# =============================================================================
+# TEST CLASS: AT_DUE_DATE Reset Type Due Date Requirement Validation
+# =============================================================================
+
+
+class TestAtDueDateResetRequiresDueDate:
+    """Test validation that AT_DUE_DATE_* reset types require due dates.
+
+    Test Scenarios:
+    - Shared chores: Must have due date (no exception)
+    - Independent 1-kid: Must have due date (no exception)
+    - Independent 2+ kids: May skip due date (per-kid dates set in helper/Configure)
+    """
+
+    @pytest.mark.asyncio
+    async def test_shared_at_due_date_once_requires_due_date(
+        self,
+        hass: HomeAssistant,
+        scenario_minimal: SetupResult,
+    ) -> None:
+        """SHARED + AT_DUE_DATE_ONCE without due date → error."""
+        zoe_id = scenario_minimal.kid_ids["Zoë"]
+
+        user_input = {
+            CFOF_CHORES_INPUT_NAME: "Test Chore",
+            const.CFOF_CHORES_INPUT_ASSIGNED_KIDS: ["Zoë"],
+            const.CFOF_CHORES_INPUT_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_SHARED,
+            const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY: const.FREQUENCY_WEEKLY,
+            const.CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: const.APPROVAL_RESET_AT_DUE_DATE_ONCE,
+            const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: const.OVERDUE_HANDLING_AT_DUE_DATE,
+            # No due_date provided
+        }
+
+        kids_dict = {"Zoë": zoe_id}
+        chore_data, errors = flow_helpers.build_chores_data(user_input, kids_dict)
+
+        assert const.CFOP_ERROR_AT_DUE_DATE_RESET_REQUIRES_DUE_DATE in errors
+        assert chore_data == {}
+
+    @pytest.mark.asyncio
+    async def test_independent_single_kid_at_due_date_multi_requires_due_date(
+        self,
+        hass: HomeAssistant,
+        scenario_minimal: SetupResult,
+    ) -> None:
+        """INDEPENDENT (1 kid) + AT_DUE_DATE_MULTI without due date → error."""
+        zoe_id = scenario_minimal.kid_ids["Zoë"]
+
+        user_input = {
+            CFOF_CHORES_INPUT_NAME: "Test Chore",
+            const.CFOF_CHORES_INPUT_ASSIGNED_KIDS: ["Zoë"],
+            const.CFOF_CHORES_INPUT_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_INDEPENDENT,
+            const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY: const.FREQUENCY_WEEKLY,
+            const.CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: const.APPROVAL_RESET_AT_DUE_DATE_MULTI,
+            const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: const.OVERDUE_HANDLING_AT_DUE_DATE,
+            # No due_date provided
+        }
+
+        kids_dict = {"Zoë": zoe_id}
+        chore_data, errors = flow_helpers.build_chores_data(user_input, kids_dict)
+
+        assert const.CFOP_ERROR_AT_DUE_DATE_RESET_REQUIRES_DUE_DATE in errors
+        assert chore_data == {}
+
+    @pytest.mark.asyncio
+    async def test_independent_multikid_at_due_date_once_allows_missing_due_date(
+        self,
+        hass: HomeAssistant,
+        scenario_shared: SetupResult,
+    ) -> None:
+        """INDEPENDENT (2+ kids) + AT_DUE_DATE_ONCE without due date → allowed.
+
+        Exception: Per-kid due dates will be set in helper step or via Configure.
+        """
+        kid_ids = scenario_shared.kid_ids
+        zoe_id = kid_ids["Zoë"]
+        max_id = kid_ids["Max!"]
+
+        user_input = {
+            CFOF_CHORES_INPUT_NAME: "Test Chore",
+            const.CFOF_CHORES_INPUT_ASSIGNED_KIDS: ["Zoë", "Max!"],
+            const.CFOF_CHORES_INPUT_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_INDEPENDENT,
+            const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY: const.FREQUENCY_WEEKLY,
+            const.CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: const.APPROVAL_RESET_AT_DUE_DATE_ONCE,
+            const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: const.OVERDUE_HANDLING_AT_DUE_DATE,
+            # No due_date provided - should be allowed for Independent multi-kid
+        }
+
+        kids_dict = {"Zoë": zoe_id, "Max!": max_id}
+        chore_data, errors = flow_helpers.build_chores_data(user_input, kids_dict)
+
+        # Should NOT have validation error
+        assert const.CFOP_ERROR_AT_DUE_DATE_RESET_REQUIRES_DUE_DATE not in errors
+        # Chore data should be built successfully
+        assert chore_data != {}
+        chore_dict = next(iter(chore_data.values()))
+        assert chore_dict[const.DATA_CHORE_NAME] == "Test Chore"
+
+    @pytest.mark.asyncio
+    async def test_independent_multikid_at_due_date_multi_allows_missing_due_date(
+        self,
+        hass: HomeAssistant,
+        scenario_shared: SetupResult,
+    ) -> None:
+        """INDEPENDENT (2+ kids) + AT_DUE_DATE_MULTI without due date → allowed."""
+
+        kid_ids = scenario_shared.kid_ids
+        zoe_id = kid_ids["Zoë"]
+        max_id = kid_ids["Max!"]
+
+        user_input = {
+            CFOF_CHORES_INPUT_NAME: "Test Chore",
+            const.CFOF_CHORES_INPUT_ASSIGNED_KIDS: ["Zoë", "Max!"],
+            const.CFOF_CHORES_INPUT_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_INDEPENDENT,
+            const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY: const.FREQUENCY_WEEKLY,
+            const.CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: const.APPROVAL_RESET_AT_DUE_DATE_MULTI,
+            const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: const.OVERDUE_HANDLING_AT_DUE_DATE,
+            # No due_date provided - should be allowed for Independent multi-kid
+        }
+
+        kids_dict = {"Zoë": zoe_id, "Max!": max_id}
+        chore_data, errors = flow_helpers.build_chores_data(user_input, kids_dict)
+
+        # Should NOT have validation error
+        assert const.CFOP_ERROR_AT_DUE_DATE_RESET_REQUIRES_DUE_DATE not in errors
+        # Chore data should be built successfully
+        assert chore_data != {}
+        chore_dict = next(iter(chore_data.values()))
+        assert chore_dict[const.DATA_CHORE_NAME] == "Test Chore"

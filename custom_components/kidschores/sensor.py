@@ -2875,6 +2875,53 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         )
         return next_monday.replace(hour=7, minute=0, second=0, microsecond=0)
 
+    def _format_applicable_days(self, days: list[str] | list[int]) -> str:
+        """Format weekday list as human-readable string.
+
+        PKAD-2026-001: Formats applicable days for dashboard display.
+        Handles both string formats (["mon", "tue"]) and integer formats ([0, 1]).
+
+        Args:
+            days: List of weekday strings ["mon", "tue"] or integers [0, 1]
+
+        Returns:
+            Formatted string like "Mon, Tue" or "All days" if empty
+        """
+        if not days:
+            return "All days"  # Empty = all days applicable
+
+        # Map string keys to display names
+        str_to_name = {
+            "mon": "Mon",
+            "tue": "Tue",
+            "wed": "Wed",
+            "thu": "Thu",
+            "fri": "Fri",
+            "sat": "Sat",
+            "sun": "Sun",
+        }
+        # Integer index to display names (legacy support)
+        int_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+        try:
+            result = []
+            for d in days:
+                if isinstance(d, str) and d in str_to_name:
+                    result.append(str_to_name[d])
+                elif isinstance(d, int) and 0 <= d <= 6:
+                    result.append(int_names[d])
+            # Sort by weekday order (Mon=0 to Sun=6)
+            order = list(str_to_name.keys())
+            result.sort(
+                key=lambda x: order.index(x.lower()) if x.lower() in order else 7
+            )
+            return ", ".join(result) if result else "All days"
+        except (IndexError, TypeError, ValueError):
+            const.LOGGER.warning(
+                "Invalid applicable_days format: %s, returning 'All days'", days
+            )
+            return "All days"
+
     def _calculate_chore_attributes(
         self, chore_id: str, chore_info: dict, kid_info: dict, chore_eid
     ) -> dict | None:
@@ -2957,7 +3004,20 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             status, due_date_local_dt, recurring_frequency
         )
 
-        # Return only the 6 minimal fields needed for dashboard list rendering
+        # PKAD-2026-001: Get per-kid applicable days for dashboard display
+        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+            per_kid_days = chore_info.get(const.DATA_CHORE_PER_KID_APPLICABLE_DAYS, {})
+            kid_days = per_kid_days.get(
+                self._kid_id,
+                chore_info.get(const.DATA_CHORE_APPLICABLE_DAYS, []),
+            )
+        else:
+            # SHARED chores: use chore-level
+            kid_days = chore_info.get(const.DATA_CHORE_APPLICABLE_DAYS, [])
+
+        assigned_days_display = self._format_applicable_days(kid_days)
+
+        # Return only the 8 minimal fields needed for dashboard list rendering
         # All other attributes are available via state_attr(chore.eid, 'attr_name')
         return {
             const.ATTR_EID: chore_eid,
@@ -2966,6 +3026,8 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_CHORE_LABELS: chore_labels,
             const.ATTR_CHORE_PRIMARY_GROUP: primary_group,
             const.ATTR_CHORE_IS_TODAY_AM: is_today_am,
+            const.ATTR_CHORE_ASSIGNED_DAYS: assigned_days_display,
+            const.ATTR_CHORE_ASSIGNED_DAYS_RAW: kid_days,
         }
 
     def _calculate_primary_group(

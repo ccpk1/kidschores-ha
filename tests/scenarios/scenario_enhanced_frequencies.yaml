@@ -210,19 +210,55 @@ chores:
     overdue_handling_type: "at_due_date"
     approval_reset_pending_claim_action: "clear_pending"
     due_date: "+1d17:00"
+
+  # ---------------------------------------------------------------------------
+  # SHARED_FIRST VARIANTS (Added for due date service tests)
+  # Tests set_chore_due_date / skip_chore_due_date with SHARED_FIRST
+  # ---------------------------------------------------------------------------
+
+  # EF-10: SHARED_FIRST + DAILY_MULTI
+  - name: "Shared First Daily Multi"
+    assigned_to: ["Zoë", "Max!"]
+    points: 6.0
+    icon: "mdi:clock-check"
+    completion_criteria: "shared_first"
+    recurring_frequency: "daily_multi"
+    daily_multi_times: "08:00|17:00"
+    auto_approve: false
+    approval_reset_type: "upon_completion"
+    overdue_handling_type: "at_due_date"
+    approval_reset_pending_claim_action: "clear_pending"
+    due_date: "+0d08:00"
+
+  # EF-11: SHARED_FIRST + CUSTOM_FROM_COMPLETE
+  - name: "Shared First Custom From Complete"
+    assigned_to: ["Zoë", "Max!"]
+    points: 12.0
+    icon: "mdi:calendar-arrow-right"
+    completion_criteria: "shared_first"
+    recurring_frequency: "custom_from_complete"
+    custom_interval: 5
+    custom_interval_unit: "days"
+    auto_approve: false
+    approval_reset_type: "upon_completion"
+    overdue_handling_type: "at_due_date"
+    approval_reset_pending_claim_action: "clear_pending"
+    due_date: "+2d15:00"
 # =============================================================================
 # CHORE SUMMARY BY FEATURE
 # =============================================================================
 #
-# F1: CUSTOM_FROM_COMPLETE (3 chores)
+# F1: CUSTOM_FROM_COMPLETE (4 chores)
 #   - EF-01: "Custom From Complete SHARED" - shared, upon_completion, 10 days
 #   - EF-02: "Custom From Complete INDEPENDENT" - independent, at_due_date_once, 7 days
 #   - EF-03: "Custom From Complete Single" - single kid, upon_completion, 5 days
+#   - EF-11: "Shared First Custom From Complete" - shared_first, upon_completion, 5 days
 #
-# F2: DAILY_MULTI (3 chores)
+# F2: DAILY_MULTI (4 chores)
 #   - EF-04: "Daily Multi Morning Evening" - 2 times (07:00|18:00), upon_completion
 #   - EF-05: "Daily Multi Three Times" - 3 times (08:00|12:00|17:00), at_due_date_multi
 #   - EF-06: "Daily Multi Single Kid" - single kid, 2 times (09:00|21:00)
+#   - EF-10: "Shared First Daily Multi" - shared_first, 2 times (08:00|17:00)
 #
 # F3: CUSTOM HOURS (2 chores)
 #   - EF-07: "Custom Hours 4h" - 4 hours, shared, upon_completion
@@ -231,4 +267,4 @@ chores:
 # REGRESSION (1 chore)
 #   - EF-09: "Existing Daily Regression" - standard daily frequency
 #
-# Total: 9 chores
+# Total: 11 chores

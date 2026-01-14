@@ -399,7 +399,7 @@ class TestOverdueResetValidation:
             const.CFOF_CHORES_INPUT_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_INDEPENDENT,
             const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY: const.FREQUENCY_DAILY,
             const.CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: const.APPROVAL_RESET_AT_DUE_DATE_ONCE,
-            const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: const.OVERDUE_HANDLING_AT_DUE_DATE_THEN_RESET,
+            const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET,
             const.CFOF_CHORES_INPUT_APPROVAL_RESET_PENDING_CLAIM_ACTION: const.DEFAULT_APPROVAL_RESET_PENDING_CLAIM_ACTION,
             const.CFOF_CHORES_INPUT_AUTO_APPROVE: False,
             const.CFOF_CHORES_INPUT_SHOW_ON_CALENDAR: True,
@@ -433,11 +433,15 @@ class TestOverdueResetValidation:
         )
 
     @pytest.mark.asyncio
-    async def test_upon_completion_with_then_reset_rejected(
+    async def test_upon_completion_with_clear_at_approval_reset_accepted(
         self,
         hass: HomeAssistant,
     ) -> None:
-        """Test that UPON_COMPLETION + AT_DUE_DATE_THEN_RESET is rejected."""
+        """Test that UPON_COMPLETION + AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET is accepted.
+
+        This combination is valid because UPON_COMPLETION provides immediate reset
+        on approval, which effectively clears the overdue status immediately.
+        """
         from custom_components.kidschores import flow_helpers as fh
 
         user_input = {
@@ -448,7 +452,7 @@ class TestOverdueResetValidation:
             const.CFOF_CHORES_INPUT_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_INDEPENDENT,
             const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY: const.FREQUENCY_DAILY,
             const.CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: const.APPROVAL_RESET_UPON_COMPLETION,
-            const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: const.OVERDUE_HANDLING_AT_DUE_DATE_THEN_RESET,
+            const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET,
             const.CFOF_CHORES_INPUT_APPROVAL_RESET_PENDING_CLAIM_ACTION: const.DEFAULT_APPROVAL_RESET_PENDING_CLAIM_ACTION,
             const.CFOF_CHORES_INPUT_AUTO_APPROVE: False,
             const.CFOF_CHORES_INPUT_SHOW_ON_CALENDAR: True,
@@ -465,16 +469,15 @@ class TestOverdueResetValidation:
 
         kids_dict = {"Zoë": "kid_001"}
 
-        _chore_data, errors = fh.build_chores_data(
+        chore_data, errors = fh.build_chores_data(
             user_input=user_input,
             kids_dict=kids_dict,
             existing_chores={},
         )
 
-        assert errors, (
-            "Expected validation to reject UPON_COMPLETION + AT_DUE_DATE_THEN_RESET"
-        )
-        assert const.CFOP_ERROR_OVERDUE_RESET_COMBO in errors
+        # Should be accepted - UPON_COMPLETION provides immediate reset
+        assert not errors, f"Expected no errors, got {errors}"
+        assert chore_data, "Expected valid chore data"
 
     @pytest.mark.asyncio
     async def test_at_midnight_once_with_then_reset_accepted(
@@ -492,7 +495,7 @@ class TestOverdueResetValidation:
             const.CFOF_CHORES_INPUT_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_INDEPENDENT,
             const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY: const.FREQUENCY_DAILY,
             const.CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
-            const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: const.OVERDUE_HANDLING_AT_DUE_DATE_THEN_RESET,
+            const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET,
             const.CFOF_CHORES_INPUT_APPROVAL_RESET_PENDING_CLAIM_ACTION: const.DEFAULT_APPROVAL_RESET_PENDING_CLAIM_ACTION,
             const.CFOF_CHORES_INPUT_AUTO_APPROVE: False,
             const.CFOF_CHORES_INPUT_SHOW_ON_CALENDAR: True,
@@ -536,7 +539,7 @@ class TestOverdueResetValidation:
             const.CFOF_CHORES_INPUT_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_INDEPENDENT,
             const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY: const.FREQUENCY_DAILY,
             const.CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: const.APPROVAL_RESET_AT_MIDNIGHT_MULTI,
-            const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: const.OVERDUE_HANDLING_AT_DUE_DATE_THEN_RESET,
+            const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET,
             const.CFOF_CHORES_INPUT_APPROVAL_RESET_PENDING_CLAIM_ACTION: const.DEFAULT_APPROVAL_RESET_PENDING_CLAIM_ACTION,
             const.CFOF_CHORES_INPUT_AUTO_APPROVE: False,
             const.CFOF_CHORES_INPUT_SHOW_ON_CALENDAR: True,

@@ -176,6 +176,10 @@ from custom_components.kidschores.const import (
     CFOF_CHORES_INPUT_NOTIFICATIONS,
     CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE,
     CFOF_CHORES_INPUT_SHOW_ON_CALENDAR,
+    # Per-kid helper template checkboxes (PKAD-2026-001)
+    CFOF_CHORES_INPUT_APPLY_TEMPLATE_TO_ALL,
+    CFOF_CHORES_INPUT_APPLY_DAYS_TO_ALL,
+    CFOF_CHORES_INPUT_APPLY_TIMES_TO_ALL,
     # =========================================================================
     # CONFIG/OPTIONS FLOW FIELD NAMES - Rewards
     # =========================================================================
@@ -279,6 +283,10 @@ from custom_components.kidschores.const import (
     OPTIONS_FLOW_STEP_ADD_ACHIEVEMENT,
     OPTIONS_FLOW_STEP_ADD_CHALLENGE,
     OPTIONS_FLOW_STEP_CHORES_DAILY_MULTI,
+    # Per-kid helper step IDs (PKAD-2026-001)
+    OPTIONS_FLOW_STEP_EDIT_CHORE_PER_KID_DATES,
+    OPTIONS_FLOW_STEP_EDIT_CHORE_PER_KID_DETAILS,
+    OPTIONS_FLOW_STEP_EDIT_CHORE,
     OPTIONS_FLOW_INPUT_MENU_SELECTION,
     OPTIONS_FLOW_INPUT_MANAGE_ACTION,
     OPTIONS_FLOW_KIDS,
@@ -376,6 +384,8 @@ from custom_components.kidschores.const import (
     DATA_CHORE_LABELS,
     DATA_CHORE_NAME,
     DATA_CHORE_OVERDUE_HANDLING_TYPE,
+    DATA_CHORE_PER_KID_APPLICABLE_DAYS,
+    DATA_CHORE_PER_KID_DAILY_MULTI_TIMES,
     DATA_CHORE_PER_KID_DUE_DATES,
     DATA_CHORE_RECURRING_FREQUENCY,
     DATA_CHORE_SHOW_ON_CALENDAR,
@@ -470,7 +480,8 @@ from custom_components.kidschores.const import (
     # OVERDUE HANDLING TYPES
     # =========================================================================
     OVERDUE_HANDLING_AT_DUE_DATE,
-    OVERDUE_HANDLING_AT_DUE_DATE_THEN_RESET,
+    OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET,
+    OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE,
     OVERDUE_HANDLING_NEVER_OVERDUE,
     # =========================================================================
     # REWARD STATES

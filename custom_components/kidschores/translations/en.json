@@ -41,7 +41,6 @@
         "description": "Enter the name for each kid.",
         "data": {
           "kid_name": "Kid Name",
-          "internal_id": "Internal ID",
           "ha_user": "Home Assistant User",
           "enable_mobile_notifications": "Enable Mobile Notifications",
           "mobile_notify_service": "Notify Service",
@@ -69,8 +68,7 @@
           "enable_mobile_notifications": "Enable Mobile Notifications",
           "mobile_notify_service": "Notify Service",
           "enable_persistent_notifications": "Enable Persistent Notifications",
-          "dashboard_language": "Language",
-          "internal_id": "Internal ID"
+          "dashboard_language": "Language"
         },
         "data_description": {
           "dashboard_language": "Language used for your chore dashboard and notifications."
@@ -93,10 +91,10 @@
           "chore_labels": "📋 Labels (optional)",
           "default_points": "💰 Points Awarded",
           "assigned_kids": "👥 Assigned Kids",
-          "completion_criteria": "👥 Completion Type",
-          "approval_reset_type": "➡️ Completions Allowed and Reset Timing",
-          "approval_reset_pending_claim_action": "➡️ Pending Claims at Reset",
-          "overdue_handling_type": "⏰ Overdue: Handling Type",
+          "completion_criteria": "👥 Completion Criteria",
+          "approval_reset_type": "➡️ Completions Allowed and Approval Reset Timing",
+          "approval_reset_pending_claim_action": "➡️ Pending Claims Handling at Approval Reset",
+          "overdue_handling_type": "⏰ Overdue: Handling",
           "auto_approve": "✅ Auto-Approve Claims?",
           "recurring_frequency": "🔄 Schedule: Frequency",
           "custom_interval": "🔄 Schedule: Custom Interval (for Custom Frequency)",
@@ -115,13 +113,13 @@
           "assigned_kids": "Kids who can see and claim this chore.",
           "completion_criteria": "Independent (each kid completes separately), Shared All (all must complete), or Shared First (first to claim blocks others).",
           "approval_reset_type": "Controls when this chore resets and how many completions are allowed during that period.",
-          "approval_reset_pending_claim_action": "When this chore resets (based on Completion Reset Timing above), what happens to claims still waiting for approval?",
+          "approval_reset_pending_claim_action": "This is what happens to claims still waiting for approval when the approval reset occurs.",
           "overdue_handling_type": "Action after due date: Hide overdue status, remain overdue until claimed, or reset to pending at next approval cycle.",
           "auto_approve": "When enabled, claims are instantly approved without parent review.",
           "recurring_frequency": "How often the chore recurs: Daily, Weekly, Monthly, Yearly, Custom, or None.",
           "custom_interval": "Number of time units between repetitions (e.g., 3 for 'every 3 weeks'). Only used with Custom frequency.",
           "custom_interval_unit": "Time unit for custom interval (days, weeks, months). Only used with Custom frequency.",
-          "applicable_days": "Restrict chore to specific weekdays. Leave blank for all days.",
+          "applicable_days": "Leave blank for all days. ONLY Select specific days to restrict.",
           "due_date": "Optional deadline. Can be combined with recurring schedules.",
           "show_on_calendar": "Display this chore on the calendar view.",
           "chore_notifications": "When to send notifications: On claim, on approval, on rejection, or any combination."
@@ -448,10 +446,10 @@
           "chore_labels": "📋 Labels (optional)",
           "default_points": "💰 Points Awarded",
           "assigned_kids": "👥 Assigned Kids",
-          "completion_criteria": "👥 Completion Type",
+          "completion_criteria": "👥 Completion Criteria",
           "approval_reset_type": "➡️ Completions Allowed and Approval Reset Timing",
           "approval_reset_pending_claim_action": "➡️ Pending Claims Handling at Approval Reset",
-          "overdue_handling_type": "⏰ Overdue: Handling Type",
+          "overdue_handling_type": "⏰ Overdue: Handling",
           "auto_approve": "✅ Auto-Approve Claims?",
           "recurring_frequency": "🔄 Schedule: Frequency",
           "custom_interval": "🔄 Schedule: Custom Interval (for Custom Frequency)",
@@ -470,14 +468,14 @@
           "assigned_kids": "Kids who can see and claim this chore.",
           "completion_criteria": "Independent (each kid completes separately), Shared All (all must complete), or Shared First (first to claim blocks others).",
           "approval_reset_type": "Controls when this chore approval resets and how many completions are allowed during that period.",
-          "approval_reset_pending_claim_action": "When the approval of this chore resets (based on Approval Reset Timing above), what happens to claims still waiting for approval?",
+          "approval_reset_pending_claim_action": "This is what happens to claims still waiting for approval when the approval reset occurs.",
           "overdue_handling_type": "Action after due date: Hide overdue status, remain overdue until claimed, or reset to pending at next approval cycle.",
           "auto_approve": "When enabled, claims are instantly approved without parent review.",
-          "recurring_frequency": "How often the chore recurs: Daily, Weekly, Monthly, Yearly, Custom, or None.",
+          "recurring_frequency": "How often the chore recurs: Daily, Weekly, Monthly, Yearly, Custom, or None. If you select 'Daily - Multiple times per day', an additional screen will appear to configure the specific times.",
           "custom_interval": "Number of time units between repetitions (e.g., 3 for 'every 3 weeks'). Only used with Custom frequency.",
           "custom_interval_unit": "Time unit for custom interval (days, weeks, months). Only used with Custom frequency.",
-          "applicable_days": "Restrict chore to specific weekdays. Leave blank for all days.",
-          "due_date": "Optional deadline. Can be combined with recurring schedules.",
+          "applicable_days": "Leave blank for all days. ONLY Select specific days to restrict.",
+          "due_date": "Optional deadline. Can be combined with recurring schedules. For INDEPENDENT chores, this serves as a template—an additional screen will appear allowing individual dates per kid.",
           "show_on_calendar": "Display this chore on the calendar view.",
           "chore_notifications": "When to send notifications: On claim, on approval, on rejection, or any combination."
         }
@@ -819,10 +817,10 @@
           "internal_id": "Internal ID",
           "default_points": "💰 Points Awarded",
           "assigned_kids": "👥 Assigned Kids",
-          "completion_criteria": "👥 Completion Type",
+          "completion_criteria": "👥 Completion Criteria",
           "approval_reset_type": "➡️ Completions Allowed and Approval Reset Timing",
-          "approval_reset_pending_claim_action": "➡️ Pending Claims Handling at ApprovalReset",
-          "overdue_handling_type": "⏰ Overdue: Handling Type",
+          "approval_reset_pending_claim_action": "➡️ Pending Claims Handling at Approval Reset",
+          "overdue_handling_type": "⏰ Overdue: Handling",
           "auto_approve": "✅ Auto-Approve Claims?",
           "recurring_frequency": "🔄 Schedule: Frequency",
           "custom_interval": "🔄 Schedule: Custom Interval (for Custom Frequency)",
@@ -845,10 +843,10 @@
           "approval_reset_pending_claim_action": "When the approval of this chore resets (based on Approval Reset Timing above), what happens to claims still waiting for approval?",
           "overdue_handling_type": "Action after due date: Hide overdue status, remain overdue until claimed, or reset to pending at next approval cycle.",
           "auto_approve": "When enabled, claims are instantly approved without parent review.",
-          "recurring_frequency": "How often the chore recurs: Daily, Weekly, Monthly, Yearly, Custom, or None.",
+          "recurring_frequency": "How often the chore recurs: Daily, Weekly, Monthly, Yearly, Custom, or None. If you select 'Daily - Multiple times per day', an additional screen will appear to configure the specific times.",
           "custom_interval": "Number of time units between repetitions (e.g., 3 for 'every 3 weeks'). Only used with Custom frequency.",
           "custom_interval_unit": "Time unit for custom interval (days, weeks, months). Only used with Custom frequency.",
-          "applicable_days": "Restrict chore to specific weekdays. Leave blank for all days.",
+          "applicable_days": "Leave blank for all days. ONLY Select specific days to restrict.",
           "due_date": "Optional deadline. Can be combined with recurring schedules. For INDEPENDENT chores, this serves as a template—an additional screen will appear allowing individual dates per kid.",
           "clear_due_date": "Check this box to remove the due date from this chore.",
           "show_on_calendar": "Display this chore on the calendar view.",
@@ -873,6 +871,20 @@
         },
         "data_description": {
           "daily_multi_times": "Enter 2-6 times in 24-hour format separated by | (pipe). Example: 08:00|17:00 for morning and evening."
+        }
+      },
+      "edit_chore_per_kid_details": {
+        "title": "Per-Kid Schedule: {chore_name}",
+        "description": "Configure individual schedule settings for each kid assigned to this chore. The main form values act as **templates**—use the checkboxes to apply them to all kids, or customize each kid's settings individually.\n\n**Note:** Not all fields below apply to every chore. The form dynamically shows relevant options based on completion mode, frequency, and whether due dates are set.\n\n**Daily (Multi) Times format:** If shown, enter 2-6 times in 24-hour format separated by | (pipe). Example: 08:00|17:00\n\nKids: {kid_names}{template_info}",
+        "data": {
+          "apply_days_to_all": "Apply template days to all kids",
+          "apply_times_to_all": "Apply template times to all kids",
+          "apply_template_to_all": "Apply template date to all kids"
+        },
+        "data_description": {
+          "apply_days_to_all": "Check to use the applicable days from the main form for all assigned kids.",
+          "apply_times_to_all": "Check to use the daily times from the main form for all assigned kids.",
+          "apply_template_to_all": "Check to apply the date set on the main chore form to all assigned kids."
         }
       },
       "edit_badge_cumulative": {
@@ -1333,12 +1345,15 @@
       "file_not_found": "The selected file could not be found.",
       "invalid_selection": "Please select a valid option.",
       "error_daily_multi_requires_compatible_reset": "'Multiple times per day' frequency incompatible with Midnight reset types because they only reset approvals once at midnight.",
-      "error_daily_multi_independent_multi_kids": "'Multiple times per day' frequency with INDEPENDENT completion requires exactly one kid. For multiple kids, use SHARED completion criteria.",
+      "error_daily_multi_independent_multi_kids": "'Multiple times per day' frequency with INDEPENDENT completion requires exactly one kid, unless per-kid times are configured. Configure different times for each kid in the per-kid settings.",
       "error_daily_multi_times_required": "Times list is required for 'Multiple times per day' frequency.",
       "error_daily_multi_times_invalid_format": "Invalid time format. Use 24-hour format (HH:MM) separated by | (e.g., 08:00|17:00).",
       "error_daily_multi_times_too_few": "At least 2 times are required for 'Multiple times per day' frequency. For a single time, use regular 'Daily' frequency.",
       "error_daily_multi_times_too_many": "Maximum 6 times allowed per day for 'Multiple times per day' frequency.",
-      "error_daily_multi_due_date_required": "'Multiple times per day' frequency requires a due date to be set. The date determines when scheduling starts and the times determine availability windows each day."
+      "error_daily_multi_due_date_required": "'Multiple times per day' frequency requires a due date to be set. The date determines when scheduling starts and the times determine availability windows each day.",
+      "error_at_due_date_reset_requires_due_date": "'At Due Date' approval reset types (Once or Multi) require a due date to be set. Without a due date, the approval reset will never trigger and the chore will remain approved indefinitely.",
+      "error_per_kid_applicable_days_invalid": "Invalid applicable days format for one or more kids. Days must be integers 0-6 (Monday-Sunday) with no duplicates.",
+      "error_per_kid_daily_multi_times_invalid": "Invalid daily times format for one or more kids. Use 24-hour format separated by | (e.g., 08:00|17:00)."
     },
     "abort": {
       "invalid_action": "Invalid Action",
@@ -1465,32 +1480,33 @@
     },
     "completion_criteria": {
       "options": {
-        "shared_all": "Shared with All (All kids must complete together)",
+        "shared_all": "Shared All (All kids must complete together)",
         "independent": "Independent (Each kid completes on their own)",
-        "shared_first": "Shared with First (First completion counts)"
+        "shared_first": "Shared First (First completion counts)"
       }
     },
     "approval_reset_type": {
       "options": {
-        "at_midnight_once": "Allow 1 completion - resets at midnight",
-        "at_midnight_multi": "Allow multiple completions - resets at midnight",
-        "at_due_date_once": "Allow 1 completion - resets at due date",
-        "at_due_date_multi": "Allow multiple completions - resets at due date",
-        "upon_completion": "Allow unlimited completions - resets after completion"
+        "at_midnight_once": "Once per day - Resets at midnight",
+        "at_midnight_multi": "Multiple times per day - Resets at midnight",
+        "at_due_date_once": "Once per period - Resets at due date",
+        "at_due_date_multi": "Multiple times per period - Resets at due date",
+        "upon_completion": "Unlimited completions - Resets after completion"
       }
     },
     "overdue_handling_type": {
       "options": {
-        "at_due_date": "Show Overdue After Due Date (Until Completion)",
-        "never_overdue": "Never Show as Overdue",
-        "at_due_date_then_reset": "Show Overdue After Due Date (Until Approval Reset)"
+        "at_due_date": "Overdue Until Complete",
+        "never_overdue": "Never Overdue",
+        "at_due_date_clear_at_approval_reset": "Overdue Until Approval Reset",
+        "at_due_date_clear_immediate_on_late": "Overdue Until Complete (Clear Late Approvals Immediately)"
       }
     },
     "approval_reset_pending_claim_action": {
       "options": {
-        "hold_pending": "Keep in Claim Status (Await Approval/Rejection)",
-        "clear_pending": "Clear All Pending Claims",
-        "auto_approve_pending": "Auto-Approve All Pending Claims"
+        "hold_pending": "Hold Claim Status (Await Approval/Rejection)",
+        "clear_pending": "Clear Pending Claims",
+        "auto_approve_pending": "Auto-Approve Pending Claims"
       }
     },
     "chore_notifications": {
@@ -1504,14 +1520,14 @@
       "options": {
         "none": "None",
         "daily": "Daily",
-        "daily_multi": "Daily - Multiple times per day",
+        "daily_multi": "Daily (Multiple times per day)",
         "weekly": "Weekly",
         "biweekly": "Biweekly",
         "monthly": "Monthly",
         "quarterly": "Quarterly",
         "yearly": "Yearly",
         "custom": "Custom",
-        "custom_from_complete": "Custom (reschedule from completion date)",
+        "custom_from_complete": "Custom (Reschedule from completion date)",
         "custom_1_week": "Custom: 1 Week",
         "custom_1_month": "Custom: 1 Month",
         "custom_1_quarter": "Custom: 1 Quarter",
@@ -1927,17 +1943,17 @@
             "name": "Completion Criteria",
             "state": {
               "independent": "Independent",
-              "shared_first_only": "Shared (First Only)",
-              "shared_all_required": "Shared (All Required)"
+              "shared_first_only": "Shared (First)",
+              "shared_all_required": "Shared (All)"
             }
           },
           "approval_reset_type": {
             "name": "Approval Reset Type",
             "state": {
-              "at_midnight_once": "Once per Day",
-              "at_midnight_multi": "Multiple per Day",
-              "at_due_date_once": "Once per Due Date",
-              "at_due_date_multi": "Multiple per Due Date",
+              "at_midnight_once": "At Midnight (Once)",
+              "at_midnight_multi": "At Midnight (Multi)",
+              "at_due_date_once": "At Due Date (Once)",
+              "at_due_date_multi": "At Due Date (Multi)",
               "upon_completion": "Upon Completion"
             }
           },
@@ -1946,10 +1962,18 @@
             "state": {
               "none": "None",
               "daily": "Daily",
+              "daily_multi": "Daily (Multiple times per day)",
               "weekly": "Weekly",
               "biweekly": "Biweekly",
               "monthly": "Monthly",
-              "custom": "Custom"
+              "quarterly": "Quarterly",
+              "yearly": "Yearly",
+              "custom": "Custom",
+              "custom_from_complete": "Custom (Reschedule from completion date)",
+              "custom_1_week": "Custom: 1 Week",
+              "custom_1_month": "Custom: 1 Month",
+              "custom_1_quarter": "Custom: 1 Quarter",
+              "custom_1_year": "Custom: 1 Year"
             }
           },
           "applicable_days": {
@@ -2587,10 +2611,10 @@
           "approval_reset_type": {
             "name": "Approval Reset Type",
             "state": {
-              "at_midnight_once": "Once per Day",
-              "at_midnight_multi": "Multiple per Day",
-              "at_due_date_once": "Once per Due Date",
-              "at_due_date_multi": "Multiple per Due Date",
+              "at_midnight_once": "At Midnight (Once)",
+              "at_midnight_multi": "At Midnight (Multi)",
+              "at_due_date_once": "At Due Date (Once)",
+              "at_due_date_multi": "At Due Date (Multi)",
               "upon_completion": "Upon Completion"
             }
           },

@@ -765,7 +765,11 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                 default_data = user_input.copy()
                 return self.async_show_form(
                     step_id=const.CONFIG_FLOW_STEP_CHORES,
-                    data_schema=fh.build_chore_schema(kids_dict, default_data),
+                    data_schema=fh.build_chore_schema(
+                        kids_dict,
+                        default_data,
+                        frequency_options=const.FREQUENCY_OPTIONS_CONFIG_FLOW,
+                    ),
                     errors=errors,
                 )
 
@@ -785,12 +789,17 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             return await self.async_step_chores()
 
         # Use flow_helpers.build_chore_schema, passing the current kids
+        # Config flow uses restricted frequency options (excludes DAILY_MULTI)
         kids_dict = {
             kid_data[const.DATA_KID_NAME]: kid_id
             for kid_id, kid_data in self._kids_temp.items()
         }
         default_data = {}
-        chore_schema = fh.build_chore_schema(kids_dict, default_data)
+        chore_schema = fh.build_chore_schema(
+            kids_dict,
+            default_data,
+            frequency_options=const.FREQUENCY_OPTIONS_CONFIG_FLOW,
+        )
         return self.async_show_form(
             step_id=const.CONFIG_FLOW_STEP_CHORES,
             data_schema=chore_schema,

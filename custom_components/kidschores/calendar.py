@@ -188,6 +188,33 @@ class KidScheduleCalendar(CalendarEntity):
         if self._event_overlaps_window(event, window_start, window_end):
             events.append(event)
 
+    def _get_applicable_days_for_kid(self, chore: dict) -> list[int]:
+        """Get applicable days for this calendar's kid.
+
+        PKAD-2026-001: For INDEPENDENT chores, use per_kid_applicable_days.
+        For SHARED chores, use chore-level applicable_days.
+        Empty list = all days applicable (fallback behavior preserved).
+
+        Args:
+            chore: Chore data dict
+
+        Returns:
+            List of weekday integers (0=Mon...6=Sun), or empty for all days
+        """
+        completion_criteria = chore.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA, const.SENTINEL_EMPTY
+        )
+
+        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+            per_kid_days = chore.get(const.DATA_CHORE_PER_KID_APPLICABLE_DAYS, {})
+            if self._kid_id in per_kid_days:
+                return per_kid_days[self._kid_id]
+            # Fallback to chore-level (backward compat for un-migrated data)
+            return chore.get(const.DATA_CHORE_APPLICABLE_DAYS, [])
+
+        # SHARED chores: use chore-level
+        return chore.get(const.DATA_CHORE_APPLICABLE_DAYS, [])
+
     def _generate_non_recurring_with_due_date(
         self,
         events: list[CalendarEvent],
@@ -587,7 +614,8 @@ class KidScheduleCalendar(CalendarEntity):
         recurring = chore.get(
             const.DATA_CHORE_RECURRING_FREQUENCY, const.FREQUENCY_NONE
         )
-        applicable_days = chore.get(const.DATA_CHORE_APPLICABLE_DAYS, [])
+        # PKAD-2026-001: Use per-kid applicable_days for INDEPENDENT chores
+        applicable_days = self._get_applicable_days_for_kid(chore)
 
         # Parse chore due_date using battle-tested helper
         # For INDEPENDENT chores, use per-kid due date; for SHARED, use chore-level

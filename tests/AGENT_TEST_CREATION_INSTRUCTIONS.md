@@ -241,7 +241,7 @@ config_entry = result.config_entry
 
 ## Rule 2: Two Testing Approaches
 
-### Approach A: Service Calls via Dashboard Helper (PREFERRED)
+### Approach A: Service Calls via Dashboard Helper (REQUIRED unless explicit permission to deviate)
 
 **This is the expected approach.** It provides true end-to-end testing that mirrors real user interaction through Home Assistant entities:
 
@@ -282,7 +282,7 @@ async def test_claim_via_button(hass, scenario_minimal, mock_hass_users):
 - Catches integration issues that direct API calls would miss
 - Mirrors actual user experience
 
-### Approach B: Direct Coordinator API (Acceptable Fallback)
+### Approach B: Direct Coordinator API (Requires explicit permission)
 
 Use **only** when testing:
 
@@ -313,6 +313,49 @@ async def test_claim_changes_state(hass, scenario_minimal):
 - Testing internal calculations (point multipliers, badge progress)
 - Validating data structures not directly visible in UI
 - Testing coordinator methods that have no button/service equivalent
+
+---
+
+## Rule 2.1: Data Injection Requires Permission
+
+> **⚠️ CRITICAL**: Direct data injection into coordinator bypassing config/options flow **requires explicit permission**.
+
+**What is data injection?**
+
+Directly modifying coordinator data structures instead of going through the config flow or options flow:
+
+```python
+# ❌ DATA INJECTION - Requires permission
+chore_info[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS] = {
+    zoe_id: ["mon", "wed"],
+    max_id: ["tue", "thu"],
+}
+
+# ✅ PROPER APPROACH - Goes through flow
+result = await hass.config_entries.options.async_configure(
+    flow_id, user_input={...}
+)
+```
+
+**Why this matters:**
+
+Data injection can use **different formats** than real user input, causing tests to pass while production fails:
+
+- UI selector returns `["mon", "tue"]` (strings)
+- Code might expect `[0, 1]` (integers)
+- Injecting integers makes tests pass, but real users see errors
+
+**When data injection IS allowed (with permission):**
+
+- Testing internal coordinator logic not exposed through UI
+- Setting up complex state that would require many flow steps
+- Testing edge cases impossible to reach through normal flows
+
+**Requirements for data injection:**
+
+1. Add comment: `# DATA INJECTION: [justification] - approved by [person/date]`
+2. Use **exact same data formats** as real flow would produce
+3. Verify format by checking `flow_helpers.py` or actual selector output
 
 ---
 

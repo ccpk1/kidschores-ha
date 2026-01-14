@@ -333,6 +333,9 @@ class PreV50Migrator:
         # Phase 2: Independent chores migration (populate per-kid due dates)
         self._migrate_independent_chores()
 
+        # Phase 2a: Per-kid applicable days migration (PKAD-2026-001)
+        self._migrate_per_kid_applicable_days()
+
         # Phase 2b: Approval reset type migration (allow_multiple_claims_per_day → approval_reset_type)
         self._migrate_approval_reset_type()
 
@@ -443,6 +446,59 @@ class PreV50Migrator:
                         "Removed legacy chore-level due_date from INDEPENDENT chore '%s'",
                         chore_info.get(const.DATA_CHORE_NAME),
                     )
+
+    def _migrate_per_kid_applicable_days(self) -> None:
+        """Populate per_kid_applicable_days for INDEPENDENT chores (one-time migration).
+
+        For each INDEPENDENT chore with chore-level applicable_days:
+        1. Create per_kid_applicable_days with same value for all assigned kids
+        2. Clear chore-level applicable_days to None
+
+        Empty list means "all days applicable" (not "never scheduled").
+        SHARED chores keep chore-level applicable_days unchanged.
+
+        PKAD-2026-001: Per-kid applicable days feature migration.
+        """
+        chores_data = self.coordinator._data.get(const.DATA_CHORES, {})
+        migrated_count = 0
+
+        for _chore_id, chore_info in chores_data.items():
+            # Only INDEPENDENT chores need per-kid migration
+            if (
+                chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
+                != const.COMPLETION_CRITERIA_INDEPENDENT
+            ):
+                continue
+
+            # Skip if per_kid_applicable_days already exists
+            if const.DATA_CHORE_PER_KID_APPLICABLE_DAYS in chore_info:
+                continue
+
+            # Get template from chore-level applicable_days
+            template_days = chore_info.get(const.DATA_CHORE_APPLICABLE_DAYS, [])
+            assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+
+            # Populate per-kid structure (copy list for each kid)
+            chore_info[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS] = {
+                kid_id: template_days[:] if template_days else []
+                for kid_id in assigned_kids
+            }
+
+            # Clear chore-level applicable_days (single source of truth)
+            if const.DATA_CHORE_APPLICABLE_DAYS in chore_info:
+                del chore_info[const.DATA_CHORE_APPLICABLE_DAYS]
+
+            migrated_count += 1
+            const.LOGGER.debug(
+                "Migrated INDEPENDENT chore '%s' with per-kid applicable_days",
+                chore_info.get(const.DATA_CHORE_NAME),
+            )
+
+        if migrated_count > 0:
+            const.LOGGER.info(
+                "Migrated %d INDEPENDENT chores to per-kid applicable_days",
+                migrated_count,
+            )
 
     def _migrate_approval_reset_type(self) -> None:
         """Migrate allow_multiple_claims_per_day boolean to approval_reset_type enum.
@@ -1639,6 +1695,23 @@ class PreV50Migrator:
                     "Migrated chore '%s' (%s): added overdue_handling_type field",
                     chore_data.get(const.DATA_CHORE_NAME),
                     chore_id,
+                )
+
+            # Migrate old overdue_handling_type value string (v0.5.0 rename)
+            # "at_due_date_then_reset" → "at_due_date_clear_at_approval_reset"
+            if (
+                chore_data.get(const.DATA_CHORE_OVERDUE_HANDLING_TYPE)
+                == "at_due_date_then_reset"
+            ):
+                chore_data[const.DATA_CHORE_OVERDUE_HANDLING_TYPE] = (
+                    const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET
+                )
+                const.LOGGER.debug(
+                    "Migrated chore '%s' (%s): updated overdue_handling_type "
+                    "from 'at_due_date_then_reset' to '%s'",
+                    chore_data.get(const.DATA_CHORE_NAME),
+                    chore_id,
+                    const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET,
                 )
 
             # Add approval_reset_pending_claim_action field (defaults to CLEAR_PENDING)
