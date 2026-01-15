@@ -87,7 +87,7 @@ def parse_iso_datetime(iso_str: str | None) -> datetime | None:
     """Parse ISO datetime string to datetime object."""
     if not iso_str:
         return None
-    return datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+    return datetime.fromisoformat(iso_str)
 
 
 def get_daily_multi_times(coordinator: Any, chore_id: str) -> str:
@@ -555,8 +555,9 @@ class TestCustomFromCompleteDueDateServices:
         initial_due = get_chore_due_date(coordinator, chore_id)
         assert initial_due is not None, "Scenario should have initial due date set"
 
-        # Record now before skip
-        now_before_skip = datetime.now(UTC)
+        # Parse initial due date for comparison
+        initial_dt = parse_iso_datetime(initial_due)
+        assert initial_dt is not None, "Initial due date should be parseable"
 
         # Skip to next occurrence
         coordinator.skip_chore_due_date(chore_id)
@@ -570,11 +571,12 @@ class TestCustomFromCompleteDueDateServices:
         new_dt = parse_iso_datetime(new_due)
         assert new_dt is not None
 
-        # New due should be ~10 days from now (the custom_interval)
-        expected_min = now_before_skip + timedelta(days=9)
-        expected_max = now_before_skip + timedelta(days=11)
+        # New due should be initial_due + 10 days (the custom_interval)
+        # Skip adds interval to the CURRENT due date, not to "now"
+        expected_min = initial_dt + timedelta(days=9)
+        expected_max = initial_dt + timedelta(days=11)
         assert expected_min <= new_dt <= expected_max, (
-            f"Expected due date ~10 days from now ({expected_min} - {expected_max}), "
+            f"Expected due date ~10 days from initial ({expected_min} - {expected_max}), "
             f"got {new_dt}"
         )
 

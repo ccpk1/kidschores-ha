@@ -1,6 +1,5 @@
 # Chore Configuration Guide
 
-**Target Audience**: Intermediate users (60% of users)
 **Prerequisites**: Completed [Quick Start Guide](Chore-Quick-Start.md)
 **Time to Read**: 15-20 minutes
 
@@ -57,7 +56,7 @@ When you create or edit a chore, you'll see fields organized into four sections:
 
 - One-time → **[None](#none)**
 - Daily (once) → **[Daily](#daily)**
-- Daily (multiple times) → **[Daily Multi](#daily-multi)** (requires per-kid setup)
+- Daily (multiple times) → **[Daily Multi](#daily-multi)**
 - Weekly → **[Weekly](#weekly)**
 - Every 2 weeks → **[Biweekly](#biweekly)**
 - Monthly → **[Monthly](#monthly)**
@@ -75,7 +74,10 @@ When you create or edit a chore, you'll see fields organized into four sections:
 
 ### Step 4: Configure Other Settings
 
-- Choose [pending claim action](#pending-claim-handling) (default: Clear Pending)
+- **Choose [pending claim action](#pending-claim-action)** (default: Clear Pending):
+  - **Clear Pending**: Kid's claim cleared at reset if not approved (no credit, teaches deadlines)
+  - **Hold Claim Status**: Claim retained until approved, but may lose next cycle opportunity
+  - **Approve Automatically**: Auto-approves claimed chores at reset (low supervision, high trust)
 - **Choose [overdue handling](#overdue-handling)** (default: Clear Overdue Immediately When Approved Late):
   - **Default (Option 1)**: "Clear Overdue Immediately When Approved Late" for maximum flexibility
   - **Option 2**: "Clear Overdue at Next Scheduled Reset" (AT_MIDNIGHT only) - hidden misses

@@ -208,12 +208,11 @@ class TestImmediateOnLateAtMidnightMulti:
             coordinator, chore_id, APPROVAL_RESET_AT_MIDNIGHT_MULTI
         )
 
-        # Set due date to yesterday 5PM (before last midnight = late)
-        yesterday_5pm = datetime.now(UTC) - timedelta(days=1)
-        yesterday_5pm = yesterday_5pm.replace(
-            hour=17, minute=0, second=0, microsecond=0
-        )
-        set_chore_due_date_directly(coordinator, chore_id, yesterday_5pm, kid_id=kid_id)
+        # Set due date to 2 days ago (definitively before local midnight = late)
+        # Use 2 days ago to ensure it's before midnight in any timezone
+        two_days_ago = datetime.now(UTC) - timedelta(days=2)
+        two_days_ago = two_days_ago.replace(hour=17, minute=0, second=0, microsecond=0)
+        set_chore_due_date_directly(coordinator, chore_id, two_days_ago, kid_id=kid_id)
 
         original_due_date = get_chore_due_date(coordinator, chore_id, kid_id)
 
@@ -382,11 +381,12 @@ class TestImmediateOnLateIndependent:
         chore_info[DATA_CHORE_COMPLETION_CRITERIA] = COMPLETION_CRITERIA_INDEPENDENT
         chore_info[DATA_CHORE_ASSIGNED_KIDS] = [zoe_id, max_id]
 
-        # Set both kids' due dates to yesterday (late)
-        yesterday = datetime.now(UTC) - timedelta(days=1)
-        yesterday = yesterday.replace(hour=17, minute=0, second=0, microsecond=0)
-        set_chore_due_date_directly(coordinator, chore_id, yesterday, kid_id=zoe_id)
-        set_chore_due_date_directly(coordinator, chore_id, yesterday, kid_id=max_id)
+        # Set both kids' due dates to 2 days ago (definitively late)
+        # Use 2 days ago to ensure it's before midnight in any timezone
+        two_days_ago = datetime.now(UTC) - timedelta(days=2)
+        two_days_ago = two_days_ago.replace(hour=17, minute=0, second=0, microsecond=0)
+        set_chore_due_date_directly(coordinator, chore_id, two_days_ago, kid_id=zoe_id)
+        set_chore_due_date_directly(coordinator, chore_id, two_days_ago, kid_id=max_id)
 
         # Zoë claims and approves late
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
@@ -456,10 +456,11 @@ class TestImmediateOnLateShared:
         chore_info[DATA_CHORE_COMPLETION_CRITERIA] = COMPLETION_CRITERIA_SHARED
         chore_info[DATA_CHORE_ASSIGNED_KIDS] = [zoe_id, max_id]
 
-        # Set due date to yesterday (late)
-        yesterday = datetime.now(UTC) - timedelta(days=1)
-        yesterday = yesterday.replace(hour=17, minute=0, second=0, microsecond=0)
-        set_chore_due_date_directly(coordinator, chore_id, yesterday)
+        # Set due date to 2 days ago (definitively late)
+        # Use 2 days ago to ensure it's before midnight in any timezone
+        two_days_ago = datetime.now(UTC) - timedelta(days=2)
+        two_days_ago = two_days_ago.replace(hour=17, minute=0, second=0, microsecond=0)
+        set_chore_due_date_directly(coordinator, chore_id, two_days_ago)
 
         original_due_date = get_chore_due_date(coordinator, chore_id)
 
@@ -611,7 +612,13 @@ class TestIsApprovalAfterResetBoundary:
         hass: HomeAssistant,
         scenario_approval_reset: SetupResult,
     ) -> None:
-        """Test that due date YESTERDAY is considered late (after last midnight)."""
+        """Test that due date BEFORE last midnight is considered late.
+
+        Note: The reset boundary uses LOCAL time midnight. A due date is "late"
+        if it occurred before the last local midnight, regardless of UTC time.
+        To ensure the due date is definitely "before midnight", we set it to
+        2 days ago which is definitely before yesterday's midnight.
+        """
         coordinator = scenario_approval_reset.coordinator
         kid_id = scenario_approval_reset.kid_ids["Zoë"]
         chore_id = scenario_approval_reset.chore_ids["AtDueDateOnce Reset Chore"]
@@ -620,14 +627,14 @@ class TestIsApprovalAfterResetBoundary:
         chore_info = coordinator.chores_data.get(chore_id, {})
         chore_info[DATA_CHORE_APPROVAL_RESET_TYPE] = APPROVAL_RESET_AT_MIDNIGHT_MULTI
 
-        # Set due date to yesterday (late - midnight has passed)
-        yesterday = datetime.now(UTC) - timedelta(days=1)
-        yesterday = yesterday.replace(hour=17, minute=0, second=0, microsecond=0)
-        set_chore_due_date_directly(coordinator, chore_id, yesterday, kid_id=kid_id)
+        # Set due date to 2 days ago - definitely before last midnight in any timezone
+        two_days_ago = datetime.now(UTC) - timedelta(days=2)
+        two_days_ago = two_days_ago.replace(hour=12, minute=0, second=0, microsecond=0)
+        set_chore_due_date_directly(coordinator, chore_id, two_days_ago, kid_id=kid_id)
 
         # Check boundary
         is_late = coordinator._is_approval_after_reset_boundary(chore_info, kid_id)
-        assert is_late, "Due date yesterday should be late"
+        assert is_late, "Due date 2 days ago should be late (before last midnight)"
 
     @pytest.mark.asyncio
     async def test_due_date_type_before_due_not_late(
