@@ -20,25 +20,19 @@ kids:
   - name: "Zoë"
     ha_user: "kid1"
     dashboard_language: "en" # English
-    enable_mobile_notifications: false
     mobile_notify_service: ""
-    enable_persistent_notifications: false
 
   - name: "Lila"
     ha_user: "kid2"
     dashboard_language: "es" # Spanish!
-    enable_mobile_notifications: false
     mobile_notify_service: ""
-    enable_persistent_notifications: false
 
 # Parents (1 parent)
 parents:
   - name: "Môm Astrid Stârblüm"
     ha_user: "parent1"
     kids: ["Zoë", "Lila"]
-    enable_mobile_notifications: false
     mobile_notify_service: ""
-    enable_persistent_notifications: false
 
 # Chores (5 chores - assigned to both kids)
 chores:

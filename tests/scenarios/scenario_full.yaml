@@ -21,53 +21,39 @@ system:
 #   - name (required): Display name
 #   - ha_user (required): Key in mock_hass_users fixture ("kid1", "kid2", "kid3")
 #   - dashboard_language: Language code (default: "en")
-#   - enable_mobile_notifications: bool (default: false)
 #   - mobile_notify_service: str (default: "")
-#   - enable_persistent_notifications: bool (default: false)
 kids:
   - name: "Zoë"
     ha_user: "kid1"
     dashboard_language: "en"
-    enable_mobile_notifications: false
     mobile_notify_service: ""
-    enable_persistent_notifications: false
 
   - name: "Max!"
     ha_user: "kid2"
     dashboard_language: "en"
-    enable_mobile_notifications: false
     mobile_notify_service: ""
-    enable_persistent_notifications: false
 
   - name: "Lila"
     ha_user: "kid3"
     dashboard_language: "en"
-    enable_mobile_notifications: false
     mobile_notify_service: ""
-    enable_persistent_notifications: false
 
 # Parents (maps to PARENT_COUNT + PARENTS steps)
 # Keys map to _configure_parent_step() parameters:
 #   - name (required): Display name
 #   - ha_user (required): Key in mock_hass_users fixture ("parent1", "parent2")
 #   - kids: List of kid names to associate (default: all kids)
-#   - enable_mobile_notifications: bool (default: false)
 #   - mobile_notify_service: str (default: "")
-#   - enable_persistent_notifications: bool (default: false)
 parents:
   - name: "Môm Astrid Stârblüm"
     ha_user: "parent1"
     kids: ["Zoë", "Max!", "Lila"] # All kids
-    enable_mobile_notifications: false
     mobile_notify_service: ""
-    enable_persistent_notifications: false
 
   - name: "Dad Leo"
     ha_user: "parent2"
     kids: ["Zoë", "Max!", "Lila"] # All kids
-    enable_mobile_notifications: false
     mobile_notify_service: ""
-    enable_persistent_notifications: false
 
 # Chores (maps to CHORE_COUNT + CHORES steps)
 # Keys map to _configure_chore_step() parameters:

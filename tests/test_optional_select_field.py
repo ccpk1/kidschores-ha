@@ -93,8 +93,6 @@ class TestOptionalSelectFieldValidation:
         # Build test input
         test_input = {
             const.CFOF_PARENTS_INPUT_NAME: "Test Parent",
-            const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: False,
-            const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: False,
         }
 
         # Add HA user field unless testing missing key
@@ -149,8 +147,6 @@ class TestOptionalSelectFieldValidation:
             test_input = {
                 const.CFOF_PARENTS_INPUT_NAME: "Test Parent",
                 const.CFOF_PARENTS_INPUT_HA_USER: value,
-                const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: False,
-                const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: False,
             }
             try:
                 validated = schema(test_input)

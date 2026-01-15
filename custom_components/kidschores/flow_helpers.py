@@ -397,18 +397,23 @@ async def build_kid_schema(
     users,
     default_kid_name=const.SENTINEL_EMPTY,
     default_ha_user_id=None,
-    default_enable_mobile_notifications=False,
     default_mobile_notify_service=None,
-    default_enable_persistent_notifications=False,
     default_dashboard_language=None,
+    default_enable_due_date_reminders=True,
 ):
-    """Build a Voluptuous schema for adding/editing a Kid, keyed by internal_id in the dict."""
+    """Build a Voluptuous schema for adding/editing a Kid.
+
+    Notification configuration simplified to single service selector:
+    - Service selected = notifications enabled to that service
+    - None selected = notifications disabled
+    """
     # Use SENTINEL_NO_SELECTION for "None" option - empty string doesn't work reliably
     user_options = [
         {"value": const.SENTINEL_NO_SELECTION, "label": const.LABEL_NONE}
     ] + [{"value": user.id, "label": user.name} for user in users]
+    # Notification service options: None = disabled, service = enabled
     notify_options = [
-        {"value": const.SENTINEL_NO_SELECTION, "label": const.LABEL_NONE},
+        {"value": const.SENTINEL_NO_SELECTION, "label": const.LABEL_DISABLED},
         *_get_notify_services(hass),
     ]
 
@@ -442,10 +447,7 @@ async def build_kid_schema(
                     native_name=True,
                 )
             ),
-            vol.Required(
-                const.CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS,
-                default=default_enable_mobile_notifications,
-            ): selector.BooleanSelector(),
+            # Single notification service selector (None = disabled, service = enabled)
             vol.Optional(
                 const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE,
                 default=default_mobile_notify_service or const.SENTINEL_NO_SELECTION,
@@ -456,9 +458,10 @@ async def build_kid_schema(
                     multiple=False,
                 )
             ),
-            vol.Required(
-                const.CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS,
-                default=default_enable_persistent_notifications,
+            # Due date reminder toggle (v0.5.0+)
+            vol.Optional(
+                const.CFOF_KIDS_INPUT_ENABLE_DUE_DATE_REMINDERS,
+                default=default_enable_due_date_reminders,
             ): selector.BooleanSelector(),
         }
     )
@@ -472,6 +475,7 @@ def build_kids_data(
     """Build kid data from user input.
 
     Converts form input (CFOF_* keys) to storage format (DATA_* keys).
+    Notification configuration is simplified: service selected = enabled, none = disabled.
 
     Args:
         user_input: Dictionary containing user inputs from the form.
@@ -490,9 +494,6 @@ def build_kids_data(
         if ha_user_id in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
         else ha_user_id
     )
-    enable_mobile_notifications = user_input.get(
-        const.CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS, True
-    )
     notify_service = user_input.get(const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE, "")
     # Convert sentinel back to empty string for storage
     notify_service = (
@@ -500,21 +501,25 @@ def build_kids_data(
         if notify_service in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
         else notify_service
     )
-    enable_persist = user_input.get(
-        const.CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
-    )
+    # Derive enable_notifications from service presence (service selected = enabled)
+    enable_notifications = bool(notify_service)
     dashboard_language = user_input.get(
         const.CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
+    )
+    # Due date reminders toggle (v0.5.0+) - defaults to True
+    enable_due_date_reminders = user_input.get(
+        const.CFOF_KIDS_INPUT_ENABLE_DUE_DATE_REMINDERS, True
     )
 
     return {
         internal_id: {
             const.DATA_KID_NAME: kid_name,
             const.DATA_KID_HA_USER_ID: ha_user_id,
-            const.DATA_KID_ENABLE_NOTIFICATIONS: enable_mobile_notifications,
+            const.DATA_KID_ENABLE_NOTIFICATIONS: enable_notifications,
             const.DATA_KID_MOBILE_NOTIFY_SERVICE: notify_service,
-            const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS: enable_persist,
+            const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS: False,  # Deprecated - always False
             const.DATA_KID_DASHBOARD_LANGUAGE: dashboard_language,
+            const.DATA_KID_ENABLE_DUE_DATE_REMINDERS: enable_due_date_reminders,
             const.DATA_KID_INTERNAL_ID: internal_id,
         }
     }
@@ -577,15 +582,18 @@ async def build_parent_schema(
     default_parent_name=const.SENTINEL_EMPTY,
     default_ha_user_id=None,
     default_associated_kids=None,
-    default_enable_mobile_notifications=False,
     default_mobile_notify_service=None,
-    default_enable_persistent_notifications=False,
     default_dashboard_language=None,
     default_allow_chore_assignment=False,
     default_enable_chore_workflow=False,
     default_enable_gamification=False,
 ):
-    """Build a Voluptuous schema for adding/editing a Parent, keyed by internal_id in the dict."""
+    """Build a Voluptuous schema for adding/editing a Parent.
+
+    Notification configuration simplified to single service selector:
+    - Service selected = notifications enabled to that service
+    - None selected = notifications disabled
+    """
     # Use SENTINEL_NO_SELECTION for "None" option - empty string doesn't work reliably
     user_options = [
         {"value": const.SENTINEL_NO_SELECTION, "label": const.LABEL_NONE}
@@ -593,8 +601,9 @@ async def build_parent_schema(
     kid_options = [
         {"value": kid_id, "label": kid_name} for kid_name, kid_id in kids_dict.items()
     ]
+    # Notification service options: None = disabled, service = enabled
     notify_options = [
-        {"value": const.SENTINEL_NO_SELECTION, "label": const.LABEL_NONE},
+        {"value": const.SENTINEL_NO_SELECTION, "label": const.LABEL_DISABLED},
         *_get_notify_services(hass),
     ]
 
@@ -631,10 +640,7 @@ async def build_parent_schema(
                     multiple=True,
                 )
             ),
-            vol.Required(
-                const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS,
-                default=default_enable_mobile_notifications,
-            ): selector.BooleanSelector(),
+            # Single notification service selector (None = disabled, service = enabled)
             vol.Optional(
                 const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE,
                 default=default_mobile_notify_service or const.SENTINEL_NO_SELECTION,
@@ -645,10 +651,6 @@ async def build_parent_schema(
                     multiple=False,
                 )
             ),
-            vol.Required(
-                const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS,
-                default=default_enable_persistent_notifications,
-            ): selector.BooleanSelector(),
             # Dashboard language
             vol.Optional(
                 const.CFOF_PARENTS_INPUT_DASHBOARD_LANGUAGE,
@@ -684,6 +686,7 @@ def build_parents_data(
     """Build parent data from user input.
 
     Converts form input (CFOF_* keys) to storage format (DATA_* keys).
+    Notification configuration is simplified: service selected = enabled, none = disabled.
 
     Args:
         user_input: Dictionary containing user inputs from the form.
@@ -703,9 +706,6 @@ def build_parents_data(
         else ha_user_id
     )
     associated_kids = user_input.get(const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS, [])
-    enable_mobile_notifications = user_input.get(
-        const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS, True
-    )
     notify_service = user_input.get(const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE, "")
     # Convert sentinel back to empty string for storage
     notify_service = (
@@ -713,18 +713,17 @@ def build_parents_data(
         if notify_service in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
         else notify_service
     )
-    enable_persist = user_input.get(
-        const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
-    )
+    # Derive enable_notifications from service presence (service selected = enabled)
+    enable_notifications = bool(notify_service)
 
     return {
         internal_id: {
             const.DATA_PARENT_NAME: parent_name,
             const.DATA_PARENT_HA_USER_ID: ha_user_id,
             const.DATA_PARENT_ASSOCIATED_KIDS: associated_kids,
-            const.DATA_PARENT_ENABLE_NOTIFICATIONS: enable_mobile_notifications,
+            const.DATA_PARENT_ENABLE_NOTIFICATIONS: enable_notifications,
             const.DATA_PARENT_MOBILE_NOTIFY_SERVICE: notify_service,
-            const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS: enable_persist,
+            const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS: False,  # Deprecated - always False
             const.DATA_PARENT_INTERNAL_ID: internal_id,
             # Dashboard language
             const.DATA_PARENT_DASHBOARD_LANGUAGE: user_input.get(

@@ -521,9 +521,6 @@ Sunday 8:00 PM - Due date passes → Approval resets to PENDING, new week starts
 - **Weekly chore (multiple allowed)**: At Due Date Multi
 - **Flexible anytime tasks**: Upon Completion
 
-> [!TIP]
-> For more detailed reset behavior explanations and edge cases, see [Approval & Reset Reference](Chore-Approval-Reset-Reference.md).
-
 ---
 
 ## Pending Claim Action
@@ -1250,7 +1247,6 @@ Points: 15
 **Mastered the basics?** Continue learning:
 
 - **[Advanced Features Guide](Chore-Advanced-Features.md)** - Per-kid customization, custom intervals, complex scheduling
-- **[Approval & Reset Reference](Chore-Approval-Reset-Reference.md)** - Deep dive on reset behaviors, edge cases, troubleshooting
 - **[Tips & Tricks](Tips-&-Tricks-Automations-with-KidsChores.md)** - Automations, dashboard examples, advanced use cases
 
 **Questions?** Check the [FAQ](FAQ.md) or join the community discussion.

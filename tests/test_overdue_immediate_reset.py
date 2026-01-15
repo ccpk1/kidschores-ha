@@ -219,7 +219,7 @@ class TestImmediateOnLateAtMidnightMulti:
         # Claim and approve the chore (late approval)
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             coordinator.claim_chore(kid_id, chore_id, "Test User")
-            coordinator.approve_chore("Parent", kid_id, chore_id)
+            await coordinator.approve_chore("Parent", kid_id, chore_id)
 
         # Verify immediate reset: state should be PENDING
         state = get_kid_state_for_chore(coordinator, kid_id, chore_id)
@@ -272,7 +272,7 @@ class TestImmediateOnLateAtMidnightMulti:
         # Claim and approve the chore (on-time approval)
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             coordinator.claim_chore(kid_id, chore_id, "Test User")
-            coordinator.approve_chore("Parent", kid_id, chore_id)
+            await coordinator.approve_chore("Parent", kid_id, chore_id)
 
         # Verify state is APPROVED (not reset)
         state = get_kid_state_for_chore(coordinator, kid_id, chore_id)
@@ -325,7 +325,7 @@ class TestImmediateOnLateAtDueDateMulti:
         # Claim and approve the chore (late approval)
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             coordinator.claim_chore(kid_id, chore_id, "Test User")
-            coordinator.approve_chore("Parent", kid_id, chore_id)
+            await coordinator.approve_chore("Parent", kid_id, chore_id)
 
         # Verify immediate reset
         state = get_kid_state_for_chore(coordinator, kid_id, chore_id)
@@ -391,7 +391,7 @@ class TestImmediateOnLateIndependent:
         # Zoë claims and approves late
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             coordinator.claim_chore(zoe_id, chore_id, "Test User")
-            coordinator.approve_chore("Parent", zoe_id, chore_id)
+            await coordinator.approve_chore("Parent", zoe_id, chore_id)
 
         # Verify Zoë reset, Max unchanged
         zoe_state = get_kid_state_for_chore(coordinator, zoe_id, chore_id)
@@ -406,7 +406,7 @@ class TestImmediateOnLateIndependent:
         # Max claims and approves late
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             coordinator.claim_chore(max_id, chore_id, "Test User")
-            coordinator.approve_chore("Parent", max_id, chore_id)
+            await coordinator.approve_chore("Parent", max_id, chore_id)
 
         # Verify Max also reset
         max_state = get_kid_state_for_chore(coordinator, max_id, chore_id)
@@ -467,7 +467,7 @@ class TestImmediateOnLateShared:
         # Zoë claims and approves (first kid)
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             coordinator.claim_chore(zoe_id, chore_id, "Test User")
-            coordinator.approve_chore("Parent", zoe_id, chore_id)
+            await coordinator.approve_chore("Parent", zoe_id, chore_id)
 
         # Verify Zoë is approved but chore hasn't reset yet
         zoe_state = get_kid_state_for_chore(coordinator, zoe_id, chore_id)
@@ -484,7 +484,7 @@ class TestImmediateOnLateShared:
         # Max claims and approves (second/last kid)
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             coordinator.claim_chore(max_id, chore_id, "Test User")
-            coordinator.approve_chore("Parent", max_id, chore_id)
+            await coordinator.approve_chore("Parent", max_id, chore_id)
 
         # Now chore should have reset
         zoe_state = get_kid_state_for_chore(coordinator, zoe_id, chore_id)
@@ -534,7 +534,7 @@ class TestRegressionExistingOptions:
         # Claim and approve
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             coordinator.claim_chore(kid_id, chore_id, "Test User")
-            coordinator.approve_chore("Parent", kid_id, chore_id)
+            await coordinator.approve_chore("Parent", kid_id, chore_id)
 
         # Verify stays APPROVED (does NOT reset immediately)
         state = get_kid_state_for_chore(coordinator, kid_id, chore_id)
@@ -566,7 +566,7 @@ class TestRegressionExistingOptions:
         # Claim and approve
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             coordinator.claim_chore(kid_id, chore_id, "Test User")
-            coordinator.approve_chore("Parent", kid_id, chore_id)
+            await coordinator.approve_chore("Parent", kid_id, chore_id)
 
         # Verify resets immediately (UPON_COMPLETION behavior)
         state = get_kid_state_for_chore(coordinator, kid_id, chore_id)

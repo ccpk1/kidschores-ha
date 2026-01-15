@@ -500,7 +500,7 @@ class ParentChoreApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
             parent_name = (user_obj.name if user_obj else None) or const.DISPLAY_UNKNOWN
 
-            self.coordinator.approve_chore(
+            await self.coordinator.approve_chore(
                 parent_name=parent_name,
                 kid_id=self._kid_id,
                 chore_id=self._chore_id,
@@ -911,7 +911,7 @@ class ParentRewardApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
             parent_name = (user_obj.name if user_obj else None) or const.DISPLAY_UNKNOWN
 
             # Approve the reward
-            self.coordinator.approve_reward(
+            await self.coordinator.approve_reward(
                 parent_name=parent_name,
                 kid_id=self._kid_id,
                 reward_id=self._reward_id,

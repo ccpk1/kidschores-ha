@@ -42,12 +42,11 @@
         "data": {
           "kid_name": "Kid Name",
           "ha_user": "Home Assistant User",
-          "enable_mobile_notifications": "Enable Mobile Notifications",
-          "mobile_notify_service": "Notify Service",
-          "enable_persistent_notifications": "Enable Persistent Notifications",
+          "mobile_notify_service": "Notifications",
           "dashboard_language": "Language"
         },
         "data_description": {
+          "mobile_notify_service": "Select a notification service to enable notifications for this kid, or leave empty to disable.",
           "dashboard_language": "Language used for your chore dashboard and notifications."
         }
       },
@@ -65,12 +64,11 @@
           "parent_name": "Parent Name",
           "ha_user_id": "Home Assistant User",
           "associated_kids": "Associated Kids",
-          "enable_mobile_notifications": "Enable Mobile Notifications",
-          "mobile_notify_service": "Notify Service",
-          "enable_persistent_notifications": "Enable Persistent Notifications",
+          "mobile_notify_service": "Notifications",
           "dashboard_language": "Language"
         },
         "data_description": {
+          "mobile_notify_service": "Select a notification service to enable notifications for this parent, or leave empty to disable.",
           "dashboard_language": "Language used for your chore dashboard and notifications."
         }
       },
@@ -403,13 +401,14 @@
         "data": {
           "kid_name": "Kid Name",
           "ha_user": "Home Assistant User",
-          "enable_mobile_notifications": "Enable Mobile Notifications",
-          "mobile_notify_service": "Notify Service",
-          "enable_persistent_notifications": "Enable Persistent Notifications",
+          "mobile_notify_service": "Notifications",
+          "enable_due_date_reminders": "Due Date Reminders",
           "dashboard_language": "Language",
           "internal_id": "Internal ID"
         },
         "data_description": {
+          "mobile_notify_service": "Select a notification service to enable notifications for this kid, or leave empty to disable.",
+          "enable_due_date_reminders": "Send reminder notifications when chores are due within 30 minutes.",
           "dashboard_language": "Language used for your chore dashboard and notifications."
         }
       },
@@ -420,9 +419,7 @@
           "parent_name": "Parent Name",
           "ha_user_id": "Home Assistant User",
           "associated_kids": "Associated Kids",
-          "enable_mobile_notifications": "Enable Mobile Notifications",
-          "mobile_notify_service": "Notify Service",
-          "enable_persistent_notifications": "Enable Persistent Notifications",
+          "mobile_notify_service": "Notifications",
           "dashboard_language": "Language",
           "allow_chore_assignment": "Allow Chores to be Assigned to Me",
           "enable_chore_workflow": "Enable Chore Workflow",
@@ -430,6 +427,7 @@
           "internal_id": "Internal ID"
         },
         "data_description": {
+          "mobile_notify_service": "Select a notification service to enable notifications for this parent, or leave empty to disable.",
           "allow_chore_assignment": "Creates a profile so tasks can be assigned to you. By default, only an Approve button is shown for one-click completion.",
           "enable_chore_workflow": "Adds Claim and Disapprove buttons for full workflow (claim → approve/disapprove).",
           "enable_gamification": "Track points, badges, and rewards for your completed chores.",
@@ -773,14 +771,15 @@
         "data": {
           "kid_name": "Kid Name",
           "ha_user": "Home Assistant User",
-          "enable_mobile_notifications": "Enable Mobile Notifications",
-          "mobile_notify_service": "Notify Service",
-          "enable_persistent_notifications": "Enable Persistent Notifications",
+          "mobile_notify_service": "Notifications",
           "dashboard_language": "Language",
+          "enable_due_date_reminders": "Due Date Reminders",
           "internal_id": "Internal ID"
         },
         "data_description": {
-          "dashboard_language": "Language used for your chore dashboard and notifications."
+          "mobile_notify_service": "Select a notification service to enable notifications for this kid, or leave empty to disable.",
+          "dashboard_language": "Language used for your chore dashboard and notifications.",
+          "enable_due_date_reminders": "Send reminder notifications when chores are due within 30 minutes."
         }
       },
       "edit_parent": {
@@ -790,9 +789,7 @@
           "parent_name": "Parent Name",
           "ha_user_id": "Home Assistant User",
           "associated_kids": "Associated Kids",
-          "enable_mobile_notifications": "Enable Mobile Notifications",
-          "mobile_notify_service": "Notify Service",
-          "enable_persistent_notifications": "Enable Persistent Notifications",
+          "mobile_notify_service": "Notifications",
           "dashboard_language": "Language",
           "allow_chore_assignment": "Allow Chores to be Assigned to Me",
           "enable_chore_workflow": "Enable Chore Workflow",
@@ -800,6 +797,7 @@
           "internal_id": "Internal ID"
         },
         "data_description": {
+          "mobile_notify_service": "Select a notification service to enable notifications for this parent, or leave empty to disable.",
           "allow_chore_assignment": "Creates a profile so tasks can be assigned to you. By default, only an Approve button is shown for one-click completion.",
           "enable_chore_workflow": "Adds Claim and Disapprove buttons for full workflow (claim → approve/disapprove).",
           "enable_gamification": "Track points, badges, and rewards for your completed chores.",

@@ -13,9 +13,7 @@ def test_build_parents_data_with_all_values() -> None:
         const.CFOF_PARENTS_INPUT_NAME: "Mom",
         const.CFOF_PARENTS_INPUT_HA_USER: "user_456",
         const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: ["kid-1", "kid-2"],
-        const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: True,
         const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: "mobile_app_iphone",
-        const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: True,
         const.CFOF_GLOBAL_INPUT_INTERNAL_ID: "test-parent-id-456",
     }
 
@@ -26,9 +24,11 @@ def test_build_parents_data_with_all_values() -> None:
     assert parent_data[const.DATA_PARENT_NAME] == "Mom"
     assert parent_data[const.DATA_PARENT_HA_USER_ID] == "user_456"
     assert parent_data[const.DATA_PARENT_ASSOCIATED_KIDS] == ["kid-1", "kid-2"]
+    # With service set, notifications are enabled
     assert parent_data[const.DATA_PARENT_ENABLE_NOTIFICATIONS] is True
     assert parent_data[const.DATA_PARENT_MOBILE_NOTIFY_SERVICE] == "mobile_app_iphone"
-    assert parent_data[const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS] is True
+    # Persistent notifications are deprecated, always False
+    assert parent_data[const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS] is False
     assert parent_data[const.DATA_PARENT_INTERNAL_ID] == "test-parent-id-456"
 
 
@@ -60,11 +60,11 @@ def test_build_parents_data_with_defaults() -> None:
     assert parent_data[const.DATA_PARENT_NAME] == "Grandma"
     assert parent_data[const.DATA_PARENT_HA_USER_ID] == const.SENTINEL_EMPTY
     assert parent_data[const.DATA_PARENT_ASSOCIATED_KIDS] == []
-    assert parent_data[const.DATA_PARENT_ENABLE_NOTIFICATIONS] is True  # Default
+    # Without service set, notifications are disabled
+    assert parent_data[const.DATA_PARENT_ENABLE_NOTIFICATIONS] is False
     assert parent_data[const.DATA_PARENT_MOBILE_NOTIFY_SERVICE] == const.SENTINEL_EMPTY
-    assert (
-        parent_data[const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS] is True
-    )  # Default
+    # Persistent notifications are deprecated, always False
+    assert parent_data[const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS] is False
 
 
 def test_build_parents_data_strips_whitespace_from_name() -> None:

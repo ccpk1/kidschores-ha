@@ -71,8 +71,6 @@ from tests.helpers import (
     CFOF_CHORES_INPUT_RECURRING_FREQUENCY,
     # Config/Options flow field names - Kids
     CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE,
-    CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS,
-    CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS,
     CFOF_KIDS_INPUT_HA_USER,
     CFOF_KIDS_INPUT_KID_NAME,
     CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE,
@@ -81,8 +79,6 @@ from tests.helpers import (
     CFOF_PARENTS_INPUT_ASSOCIATED_KIDS,
     CFOF_PARENTS_INPUT_ENABLE_CHORE_WORKFLOW,
     CFOF_PARENTS_INPUT_ENABLE_GAMIFICATION,
-    CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS,
-    CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS,
     CFOF_PARENTS_INPUT_HA_USER,
     CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE,
     CFOF_PARENTS_INPUT_NAME,
@@ -141,13 +137,7 @@ class FlowTestHelper:
             CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE: yaml_kid.get(
                 "dashboard_language", "en"
             ),
-            CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: yaml_kid.get(
-                "enable_mobile_notifications", False
-            ),
             CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: notify_service,
-            CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: yaml_kid.get(
-                "enable_persistent_notifications", False
-            ),
         }
 
     @staticmethod
@@ -172,13 +162,7 @@ class FlowTestHelper:
             CFOF_PARENTS_INPUT_NAME: yaml_parent["name"],
             CFOF_PARENTS_INPUT_HA_USER: ha_user,
             CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: yaml_parent.get("associated_kids", []),
-            CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: yaml_parent.get(
-                "enable_mobile_notifications", False
-            ),
             CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: notify_service,
-            CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: yaml_parent.get(
-                "enable_persistent_notifications", False
-            ),
             CFOF_PARENTS_INPUT_ALLOW_CHORE_ASSIGNMENT: yaml_parent.get(
                 "allow_chore_assignment", False
             ),

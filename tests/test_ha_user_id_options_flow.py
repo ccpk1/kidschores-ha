@@ -14,8 +14,6 @@ import pytest
 from tests.helpers import (
     # Kid form constants
     CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE,
-    CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS,
-    CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS,
     CFOF_KIDS_INPUT_HA_USER,
     CFOF_KIDS_INPUT_KID_NAME,
     CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE,
@@ -24,8 +22,6 @@ from tests.helpers import (
     CFOF_PARENTS_INPUT_ASSOCIATED_KIDS,
     CFOF_PARENTS_INPUT_ENABLE_CHORE_WORKFLOW,
     CFOF_PARENTS_INPUT_ENABLE_GAMIFICATION,
-    CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS,
-    CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS,
     CFOF_PARENTS_INPUT_HA_USER,
     CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE,
     CFOF_PARENTS_INPUT_NAME,
@@ -117,9 +113,7 @@ class TestHaUserIdClearing:
                     CFOF_KIDS_INPUT_KID_NAME: "Zoë",
                     CFOF_KIDS_INPUT_HA_USER: test_ha_user.id,  # Set a user ID
                     CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE: "en",
-                    CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: False,
                     CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: SENTINEL_NO_SELECTION,
-                    CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: False,
                 },
             )
         assert result.get("type") == FlowResultType.FORM
@@ -157,9 +151,7 @@ class TestHaUserIdClearing:
                     CFOF_KIDS_INPUT_KID_NAME: "Zoë",
                     CFOF_KIDS_INPUT_HA_USER: SENTINEL_NO_SELECTION,  # Clear the user ID
                     CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE: "en",
-                    CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: False,
                     CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: SENTINEL_NO_SELECTION,
-                    CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: False,
                 },
             )
         assert result.get("type") == FlowResultType.FORM
@@ -217,9 +209,7 @@ class TestHaUserIdClearing:
                     CFOF_PARENTS_INPUT_NAME: parent_name,
                     CFOF_PARENTS_INPUT_HA_USER: test_ha_user.id,  # Set a user ID
                     CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: [],
-                    CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: False,
                     CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: SENTINEL_NO_SELECTION,
-                    CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: False,
                     CFOF_PARENTS_INPUT_ALLOW_CHORE_ASSIGNMENT: False,
                     CFOF_PARENTS_INPUT_ENABLE_CHORE_WORKFLOW: False,
                     CFOF_PARENTS_INPUT_ENABLE_GAMIFICATION: False,
@@ -258,9 +248,7 @@ class TestHaUserIdClearing:
                     CFOF_PARENTS_INPUT_NAME: parent_name,
                     CFOF_PARENTS_INPUT_HA_USER: SENTINEL_NO_SELECTION,  # Clear the user ID
                     CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: [],
-                    CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: False,
                     CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: SENTINEL_NO_SELECTION,
-                    CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: False,
                     CFOF_PARENTS_INPUT_ALLOW_CHORE_ASSIGNMENT: False,
                     CFOF_PARENTS_INPUT_ENABLE_CHORE_WORKFLOW: False,
                     CFOF_PARENTS_INPUT_ENABLE_GAMIFICATION: False,

@@ -65,6 +65,12 @@ if TYPE_CHECKING:
     from .coordinator import KidsChoresDataCoordinator  # Used for type checking only
 
 
+# Module-level translation cache for performance (v0.5.0+)
+# Key format: f"{language}_{translation_type}" where translation_type is "dashboard" or "notification"
+# This avoids repeated file I/O when sending notifications to multiple parents with same language
+_translation_cache: dict[str, dict[str, Any]] = {}
+
+
 # 📍 -------- Get Coordinator --------
 def _get_kidschores_coordinator(
     hass: HomeAssistant,
@@ -2241,6 +2247,9 @@ async def load_notification_translation(
 ) -> dict[str, dict[str, str]]:
     """Load notification translations for a specific language with English fallback.
 
+    Uses module-level caching to avoid repeated file I/O when sending
+    notifications to multiple parents with the same language preference (v0.5.0+).
+
     Args:
         hass: Home Assistant instance
         language: Language code to load (e.g., 'en', 'es', 'de')
@@ -2252,6 +2261,14 @@ async def load_notification_translation(
     # Normalize language: default to English if empty/None
     if not language:
         language = "en"
+
+    # Check cache first (v0.5.0+ performance improvement)
+    cache_key = f"{language}_notification"
+    if cache_key in _translation_cache:
+        const.LOGGER.debug(
+            "Notification translations for '%s' loaded from cache", language
+        )
+        return _translation_cache[cache_key]
 
     translations_path = os.path.join(
         os.path.dirname(__file__), const.CUSTOM_TRANSLATIONS_DIR
@@ -2271,6 +2288,8 @@ async def load_notification_translation(
         try:
             data = await hass.async_add_executor_job(_read_json_file, lang_path)
             const.LOGGER.debug("Loaded %s notification translations", language)
+            # Cache the loaded translations
+            _translation_cache[cache_key] = data
             return data
         except (OSError, json.JSONDecodeError) as err:
             const.LOGGER.error(
@@ -2282,6 +2301,12 @@ async def load_notification_translation(
         const.LOGGER.warning(
             "Notification language '%s' not found, falling back to English", language
         )
+        # Check if English is already cached
+        en_cache_key = "en_notification"
+        if en_cache_key in _translation_cache:
+            const.LOGGER.debug("English notification translations loaded from cache")
+            return _translation_cache[en_cache_key]
+
         en_path = os.path.join(
             translations_path, f"en{const.NOTIFICATION_TRANSLATIONS_SUFFIX}.json"
         )
@@ -2291,6 +2316,8 @@ async def load_notification_translation(
                 const.LOGGER.debug(
                     "Loaded English notification translations as fallback"
                 )
+                # Cache English translations
+                _translation_cache[en_cache_key] = data
                 return data
             except (OSError, json.JSONDecodeError) as err:
                 const.LOGGER.error(
@@ -2307,6 +2334,16 @@ async def load_notification_translation(
         )
 
     return {}
+
+
+def clear_translation_cache() -> None:
+    """Clear the translation cache.
+
+    Useful for testing or when translation files are updated.
+    Call this when reloading the integration or during test teardown.
+    """
+    _translation_cache.clear()
+    const.LOGGER.debug("Translation cache cleared")
 
 
 # 📱 -------- Device Info Helpers --------

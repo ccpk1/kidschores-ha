@@ -12,9 +12,7 @@ def test_build_kids_data_with_all_values() -> None:
     user_input = {
         const.CFOF_KIDS_INPUT_KID_NAME: "Zoë",
         const.CFOF_KIDS_INPUT_HA_USER: "user_123",
-        const.CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: True,
         const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: "mobile_app_phone",
-        const.CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: True,
         const.CFOF_GLOBAL_INPUT_INTERNAL_ID: "test-kid-id-123",
     }
 
@@ -24,9 +22,11 @@ def test_build_kids_data_with_all_values() -> None:
     kid_data = result["test-kid-id-123"]
     assert kid_data[const.DATA_KID_NAME] == "Zoë"
     assert kid_data[const.DATA_KID_HA_USER_ID] == "user_123"
+    # With service set, notifications are enabled
     assert kid_data[const.DATA_KID_ENABLE_NOTIFICATIONS] is True
     assert kid_data[const.DATA_KID_MOBILE_NOTIFY_SERVICE] == "mobile_app_phone"
-    assert kid_data[const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS] is True
+    # Persistent notifications are deprecated, always False
+    assert kid_data[const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS] is False
     assert kid_data[const.DATA_KID_INTERNAL_ID] == "test-kid-id-123"
 
 
@@ -57,9 +57,11 @@ def test_build_kids_data_with_defaults() -> None:
     kid_data = result["alex-id"]
     assert kid_data[const.DATA_KID_NAME] == "Alex"
     assert kid_data[const.DATA_KID_HA_USER_ID] == const.SENTINEL_EMPTY
-    assert kid_data[const.DATA_KID_ENABLE_NOTIFICATIONS] is True  # Default
+    # Without service set, notifications are disabled
+    assert kid_data[const.DATA_KID_ENABLE_NOTIFICATIONS] is False
     assert kid_data[const.DATA_KID_MOBILE_NOTIFY_SERVICE] == const.SENTINEL_EMPTY
-    assert kid_data[const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS] is True  # Default
+    # Persistent notifications are deprecated, always False
+    assert kid_data[const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS] is False
 
 
 def test_build_kids_data_strips_whitespace_from_name() -> None:

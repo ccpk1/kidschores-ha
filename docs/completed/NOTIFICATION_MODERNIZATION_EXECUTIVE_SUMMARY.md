@@ -1,9 +1,14 @@
 # Notification System Modernization - Executive Summary
 
+> ⚠️ **SUPERSEDED**: This document has been replaced by the reality-checked plan:
+> **[NOTIFICATION_IMPROVEMENTS_REALISTIC_IN-PROCESS.md](./NOTIFICATION_IMPROVEMENTS_REALISTIC_IN-PROCESS.md)**
+> The original plan was over-engineered for the actual use case (25-50 msgs/day).
+> See the new plan for the right-sized solution (7-10 hours vs 24-32 hours).
+
 **Document**: Strategic Analysis & Recommendations
 **Date**: January 15, 2026
-**Status**: Strategic Planning Complete
-**Next Step**: Implementation Planning
+**Status**: ~~Strategic Planning Complete~~ SUPERSEDED
+**Next Step**: ~~Implementation Planning~~ See realistic plan
 
 ---
 

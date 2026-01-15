@@ -34,7 +34,6 @@ parents:
   - name: "Môm Astrid Stârblüm"
     ha_user: "parent1"
     associated_kids: ["Zoë", "Max!"]
-    enable_mobile_notifications: true
     mobile_notify_service: "notify.mobile_app_mom_astrid_starblum"
 
 chores:

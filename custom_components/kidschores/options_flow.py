@@ -406,9 +406,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             users=users,
             default_kid_name=const.SENTINEL_EMPTY,
             default_ha_user_id=None,
-            default_enable_mobile_notifications=False,
             default_mobile_notify_service=None,
-            default_enable_persistent_notifications=False,
         )
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_ADD_KID, data_schema=schema, errors=errors
@@ -474,9 +472,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             default_parent_name=const.SENTINEL_EMPTY,
             default_ha_user_id=None,
             default_associated_kids=[],
-            default_enable_mobile_notifications=False,
             default_mobile_notify_service=None,
-            default_enable_persistent_notifications=False,
             default_dashboard_language=None,
             default_allow_chore_assignment=False,
             default_enable_chore_workflow=False,
@@ -1192,9 +1188,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 if ha_user_id in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
                 else ha_user_id
             )
-            enable_notifications = user_input.get(
-                const.CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS, True
-            )
             mobile_notify_service = user_input.get(
                 const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE, ""
             )
@@ -1205,13 +1198,17 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
                 else mobile_notify_service
             )
-            use_persistent = user_input.get(
-                const.CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
-            )
+            # Derive enable_notifications from service presence
+            enable_notifications = bool(mobile_notify_service)
 
             dashboard_language = user_input.get(
                 const.CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE,
                 const.DEFAULT_DASHBOARD_LANGUAGE,
+            )
+
+            # Due date reminders toggle (v0.5.0+)
+            enable_due_date_reminders = user_input.get(
+                const.CFOF_KIDS_INPUT_ENABLE_DUE_DATE_REMINDERS, True
             )
 
             # Validate name is not empty
@@ -1232,8 +1229,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     const.DATA_KID_HA_USER_ID: ha_user_id,
                     const.DATA_KID_ENABLE_NOTIFICATIONS: enable_notifications,
                     const.DATA_KID_MOBILE_NOTIFY_SERVICE: mobile_notify_service,
-                    const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS: use_persistent,
+                    const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS: False,  # Deprecated
                     const.DATA_KID_DASHBOARD_LANGUAGE: dashboard_language,
+                    const.DATA_KID_ENABLE_DUE_DATE_REMINDERS: enable_due_date_reminders,
                 }
 
                 # Update via coordinator
@@ -1250,17 +1248,14 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             users=users,
             default_kid_name=kid_data[const.DATA_KID_NAME],
             default_ha_user_id=kid_data.get(const.DATA_KID_HA_USER_ID),
-            default_enable_mobile_notifications=kid_data.get(
-                const.DATA_KID_ENABLE_NOTIFICATIONS, True
-            ),
             default_mobile_notify_service=kid_data.get(
                 const.DATA_KID_MOBILE_NOTIFY_SERVICE
             ),
-            default_enable_persistent_notifications=kid_data.get(
-                const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS, True
-            ),
             default_dashboard_language=kid_data.get(
                 const.DATA_KID_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
+            ),
+            default_enable_due_date_reminders=kid_data.get(
+                const.DATA_KID_ENABLE_DUE_DATE_REMINDERS, True
             ),
         )
         return self.async_show_form(
@@ -1294,9 +1289,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             associated_kids = user_input.get(
                 const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS, []
             )
-            enable_notifications = user_input.get(
-                const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS, True
-            )
             mobile_notify_service = user_input.get(
                 const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE, ""
             )
@@ -1307,9 +1299,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
                 else mobile_notify_service
             )
-            use_persistent = user_input.get(
-                const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS, True
-            )
+            # Derive enable_notifications from service presence
+            enable_notifications = bool(mobile_notify_service)
             # New parent chore capability fields
             dashboard_language = user_input.get(
                 const.CFOF_PARENTS_INPUT_DASHBOARD_LANGUAGE,
@@ -1362,7 +1353,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     const.DATA_PARENT_ASSOCIATED_KIDS: associated_kids,
                     const.DATA_PARENT_ENABLE_NOTIFICATIONS: enable_notifications,
                     const.DATA_PARENT_MOBILE_NOTIFY_SERVICE: mobile_notify_service,
-                    const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS: use_persistent,
+                    const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS: False,  # Deprecated
                     const.DATA_PARENT_DASHBOARD_LANGUAGE: dashboard_language,
                     const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT: allow_chore_assignment,
                     const.DATA_PARENT_ENABLE_CHORE_WORKFLOW: enable_chore_workflow,
@@ -1418,14 +1409,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             default_associated_kids=parent_data.get(
                 const.DATA_PARENT_ASSOCIATED_KIDS, []
             ),
-            default_enable_mobile_notifications=parent_data.get(
-                const.DATA_PARENT_ENABLE_NOTIFICATIONS, True
-            ),
             default_mobile_notify_service=parent_data.get(
                 const.DATA_PARENT_MOBILE_NOTIFY_SERVICE
-            ),
-            default_enable_persistent_notifications=parent_data.get(
-                const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS, True
             ),
             default_dashboard_language=parent_data.get(
                 const.DATA_PARENT_DASHBOARD_LANGUAGE

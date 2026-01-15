@@ -84,6 +84,13 @@ Tier 3: Tips & Troubleshooting
 
 **Current Status**: **Phases 1-4 complete**. Core Guide (1,262 lines), Advanced Features (1,045 lines), and Approval Reference (1,100+ lines across 4 docs) all finished and test-verified. **Phase 5 (Navigation) is next** - updating sidebar navigation and cross-linking between guides.
 
+**Old Wiki Status**: `Chore-Status-and-Recurrence-Handling.md` (195 lines) in `kidschores-ha.wiki/` is the **OLD documentation** that will be deprecated in Phase 5. Content has been incorporated into:
+
+- **Phase 2**: Core Guide covers basic lifecycle and scheduling
+- **Phase 3**: Advanced Features covers per-kid customization
+- **Phase 4**: Approval Reference covers reset behaviors and state handling
+- **Technical Reference**: Global state handling section added (v0.5.0)
+
 ---
 
 ## Detailed Phase Breakdown

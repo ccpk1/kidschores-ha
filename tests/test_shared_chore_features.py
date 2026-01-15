@@ -812,7 +812,7 @@ class TestSharedFirstEdgeCases:
             assert claimed_state == CHORE_STATE_CLAIMED
 
             # Parent approves
-            coordinator.approve_chore("Mom", zoe_id, chore_id)
+            await coordinator.approve_chore("Mom", zoe_id, chore_id)
 
         # Global state should now be APPROVED
         approved_state = coordinator.chores_data[chore_id].get(DATA_CHORE_STATE)

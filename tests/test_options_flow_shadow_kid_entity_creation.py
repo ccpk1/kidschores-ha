@@ -93,8 +93,6 @@ class TestShadowKidEntityCreation:
             "name": "Test Parent",
             "icon": "mdi:account-tie",
             "ha_user_name": "",
-            "enable_mobile_notifications": False,
-            "enable_persistent_notifications": False,
             "allow_chore_assignment": True,  # This should create shadow kid
             "enable_chore_workflow": True,
             "enable_gamification": False,
@@ -196,8 +194,6 @@ class TestShadowKidEntityCreation:
             "name": "Test Parent",
             "icon": "mdi:account-tie",
             "ha_user_name": "",
-            "enable_mobile_notifications": False,
-            "enable_persistent_notifications": False,
             "allow_chore_assignment": False,  # Initially disabled
             "enable_chore_workflow": False,
             "enable_gamification": False,
@@ -299,8 +295,6 @@ class TestShadowKidEntityCreation:
             "name": existing_kid_name,  # Same as existing kid!
             "icon": "mdi:account-tie",
             "ha_user_name": "",
-            "enable_mobile_notifications": False,
-            "enable_persistent_notifications": False,
             "allow_chore_assignment": False,  # No chore assignment = no conflict
             "enable_chore_workflow": False,
             "enable_gamification": False,
@@ -400,8 +394,6 @@ class TestShadowKidEntityCreation:
             "name": "Test Parent",
             "icon": "mdi:account-tie",
             "ha_user_name": "",
-            "enable_mobile_notifications": False,
-            "enable_persistent_notifications": False,
             "allow_chore_assignment": True,
             "enable_chore_workflow": True,
             "enable_gamification": False,
@@ -559,8 +551,6 @@ class TestShadowKidNameConflicts:
             "name": "ParentTest",
             "icon": "mdi:account-tie",
             "ha_user_name": "",
-            "enable_mobile_notifications": False,
-            "enable_persistent_notifications": False,
             "allow_chore_assignment": True,  # This creates a shadow kid
             "enable_chore_workflow": True,
             "enable_gamification": False,

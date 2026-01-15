@@ -19,6 +19,10 @@
     "title": "KidsChores: Chore Overdue",
     "message": "Chore {chore_name} is overdue! Due date was {due_date}"
   },
+  "chore_due_soon": {
+    "title": "⏰ Chore Due Soon!",
+    "message": "{chore_name} is due in {minutes} minutes (+{points}pts)"
+  },
   "chore_reminder": {
     "title": "KidsChores: Reminder for Pending Chore",
     "message": "Reminder: Chore {chore_name} claimed by {kid_name} is waiting for approval"
@@ -75,9 +79,27 @@
     "title": "KidsChores: Bonus Applied",
     "message": "Bonus {bonus_name} applied: +{points} points"
   },
+  "pending_chores": {
+    "title": "KidsChores: {kid_name}",
+    "message": "{count} chores pending (latest: {latest_chore} +{points}pts)"
+  },
+  "status_update": {
+    "title": "✅ KidsChores",
+    "message": "Status updated"
+  },
+  "chore_approved_status": {
+    "title": "✅ KidsChores",
+    "message": "{chore_name} approved by {parent_name}"
+  },
+  "reward_approved_status": {
+    "title": "✅ KidsChores",
+    "message": "{reward_name} reward approved"
+  },
   "actions": {
     "approve": "Approve",
     "disapprove": "Disapprove",
-    "remind_30": "Remind in 30 min"
+    "remind_30": "Remind in 30 min",
+    "approve_latest": "✅ Approve Latest",
+    "review_all": "👀 Review All"
   }
 }

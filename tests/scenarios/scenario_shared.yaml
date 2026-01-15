@@ -20,32 +20,24 @@ kids:
   - name: "Zoë"
     ha_user: "kid1"
     dashboard_language: "en"
-    enable_mobile_notifications: false
     mobile_notify_service: ""
-    enable_persistent_notifications: false
 
   - name: "Max!"
     ha_user: "kid2"
     dashboard_language: "en"
-    enable_mobile_notifications: false
     mobile_notify_service: ""
-    enable_persistent_notifications: false
 
   - name: "Lila"
     ha_user: "kid3"
     dashboard_language: "en"
-    enable_mobile_notifications: false
     mobile_notify_service: ""
-    enable_persistent_notifications: false
 
 # Parents (1 parent can approve all)
 parents:
   - name: "Môm Astrid Stârblüm"
     ha_user: "parent1"
     kids: ["Zoë", "Max!", "Lila"]
-    enable_mobile_notifications: false
     mobile_notify_service: ""
-    enable_persistent_notifications: false
 
 # Chores (8 shared chores)
 chores:

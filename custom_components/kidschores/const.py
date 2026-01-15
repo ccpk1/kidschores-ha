@@ -325,6 +325,7 @@ CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: Final = "enable_mobile_notification
 CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: Final = (
     "enable_persistent_notifications"
 )
+CFOF_KIDS_INPUT_ENABLE_DUE_DATE_REMINDERS: Final = "enable_due_date_reminders"
 CFOF_KIDS_INPUT_HA_USER: Final = "ha_user"
 CFOF_KIDS_INPUT_KID_COUNT: Final = "kid_count"
 CFOF_KIDS_INPUT_KID_NAME: Final = "kid_name"
@@ -804,6 +805,7 @@ DATA_KID_CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_GRACE_END_DATE = (
     "maintenance_grace_end_date"
 )
 DATA_KID_CURRENT_STREAK: Final = "current_streak"
+DATA_KID_ENABLE_DUE_DATE_REMINDERS: Final = "enable_due_date_reminders"
 DATA_KID_ENABLE_NOTIFICATIONS: Final = "enable_notifications"
 DATA_KID_HA_USER_ID: Final = "ha_user_id"
 DATA_KID_ID: Final = "kid_id"
@@ -1403,6 +1405,7 @@ TRANS_KEY_NOTIF_TITLE_CHORE_APPROVED: Final = "notification_title_chore_approved
 TRANS_KEY_NOTIF_TITLE_CHORE_DISAPPROVED: Final = "notification_title_chore_disapproved"
 TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE: Final = "notification_title_chore_overdue"
 TRANS_KEY_NOTIF_TITLE_CHORE_REMINDER: Final = "notification_title_chore_reminder"
+TRANS_KEY_NOTIF_TITLE_CHORE_DUE_SOON: Final = "notification_title_chore_due_soon"
 
 TRANS_KEY_NOTIF_TITLE_REWARD_CLAIMED: Final = "notification_title_reward_claimed"
 TRANS_KEY_NOTIF_TITLE_REWARD_APPROVED: Final = "notification_title_reward_approved"
@@ -1431,6 +1434,7 @@ TRANS_KEY_NOTIF_MESSAGE_CHORE_DISAPPROVED: Final = (
 )
 TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE: Final = "notification_message_chore_overdue"
 TRANS_KEY_NOTIF_MESSAGE_CHORE_REMINDER: Final = "notification_message_chore_reminder"
+TRANS_KEY_NOTIF_MESSAGE_CHORE_DUE_SOON: Final = "notification_message_chore_due_soon"
 
 TRANS_KEY_NOTIF_MESSAGE_REWARD_CLAIMED_KID: Final = (
     "notification_message_reward_claimed_kid"
@@ -1465,6 +1469,19 @@ TRANS_KEY_NOTIF_MESSAGE_CHALLENGE_COMPLETED_PARENT: Final = (
 
 TRANS_KEY_NOTIF_MESSAGE_PENALTY_APPLIED: Final = "notification_message_penalty_applied"
 TRANS_KEY_NOTIF_MESSAGE_BONUS_APPLIED: Final = "notification_message_bonus_applied"
+
+# Tag-based aggregated notification keys (v0.5.0+)
+TRANS_KEY_NOTIF_TITLE_PENDING_CHORES: Final = "notification_title_pending_chores"
+TRANS_KEY_NOTIF_MESSAGE_PENDING_CHORES: Final = "notification_message_pending_chores"
+TRANS_KEY_NOTIF_TITLE_STATUS_UPDATE: Final = "notification_title_status_update"
+TRANS_KEY_NOTIF_MESSAGE_CHORE_APPROVED_STATUS: Final = (
+    "notification_message_chore_approved_status"
+)
+TRANS_KEY_NOTIF_MESSAGE_REWARD_APPROVED_STATUS: Final = (
+    "notification_message_reward_approved_status"
+)
+TRANS_KEY_NOTIF_ACTION_APPROVE_LATEST: Final = "notif_action_approve_latest"
+TRANS_KEY_NOTIF_ACTION_REVIEW_ALL: Final = "notif_action_review_all"
 
 # Action identifiers
 ACTION_APPROVE_CHORE = "APPROVE_CHORE"
@@ -2078,6 +2095,7 @@ LABEL_BADGES: Final = "Badges"
 LABEL_COMPLETED_DAILY: Final = "Daily Completed Chores"
 LABEL_COMPLETED_MONTHLY: Final = "Monthly Completed Chores"
 LABEL_COMPLETED_WEEKLY: Final = "Weekly Completed Chores"
+LABEL_DISABLED: Final = "Disabled"
 LABEL_NONE: Final = ""
 LABEL_POINTS: Final = "Points"
 
@@ -2709,6 +2727,15 @@ NOTIFY_NOTIFICATION_ID = "notification_id"
 NOTIFY_PARENT_NAME = "parent_name"
 NOTIFY_PERSISTENT_NOTIFICATION = "persistent_notification"
 NOTIFY_TITLE = "title"
+
+# Notification Tag System (v0.5.0+)
+# Tags enable smart notification replacement: same tag = replace in-place, no stacking
+NOTIFY_TAG = "tag"
+NOTIFY_TAG_PREFIX = "kidschores"
+NOTIFY_TAG_TYPE_PENDING = "pending"  # Pending chore approvals
+NOTIFY_TAG_TYPE_REWARDS = "rewards"  # Reward claims pending
+NOTIFY_TAG_TYPE_SYSTEM = "system"  # System notifications (achievements, etc.)
+NOTIFY_TAG_TYPE_STATUS = "status"  # Status update replacements
 
 
 # ------------------------------------------------------------------------------------------------

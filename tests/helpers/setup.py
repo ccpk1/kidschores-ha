@@ -187,9 +187,7 @@ async def _configure_kid_step(
             - name: Kid name (required)
             - ha_user: Key in mock_hass_users (required)
             - dashboard_language: Language code (default: "en")
-            - enable_mobile_notifications: bool (default: False)
-            - mobile_notify_service: str (default: "")
-            - enable_persistent_notifications: bool (default: False)
+            - mobile_notify_service: str (default: "") - set to enable notifications
 
     Returns:
         Updated flow result
@@ -202,16 +200,10 @@ async def _configure_kid_step(
             const.CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE: kid_config.get(
                 "dashboard_language", "en"
             ),
-            const.CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: kid_config.get(
-                "enable_mobile_notifications", False
-            ),
             const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: kid_config.get(
                 "mobile_notify_service"
             )
             or const.SENTINEL_NO_SELECTION,
-            const.CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: kid_config.get(
-                "enable_persistent_notifications", False
-            ),
         },
     )
 
@@ -233,9 +225,7 @@ async def _configure_parent_step(
             - name: Parent name (required)
             - ha_user: Key in mock_hass_users (required)
             - kids: List of kid names to associate (default: all)
-            - enable_mobile_notifications: bool (default: False)
-            - mobile_notify_service: str (default: "")
-            - enable_persistent_notifications: bool (default: False)
+            - mobile_notify_service: str (default: "") - set to enable notifications
             - allow_chore_assignment: bool (default: False) - creates shadow kid
             - enable_chore_workflow: bool (default: False) - shadow kid claim/disapprove
             - enable_gamification: bool (default: False) - shadow kid points/badges
@@ -250,13 +240,10 @@ async def _configure_parent_step(
         kid_name_to_id[name] for name in associated_kid_names if name in kid_name_to_id
     ]
 
-    # Mobile notify service handling
-    enable_mobile = parent_config.get("enable_mobile_notifications", False)
+    # Mobile notify service handling - service presence enables notifications
     mobile_service = (
         parent_config.get("mobile_notify_service") or const.SENTINEL_NO_SELECTION
     )
-    if not enable_mobile:
-        mobile_service = const.SENTINEL_NO_SELECTION
 
     return await hass.config_entries.flow.async_configure(
         result["flow_id"],
@@ -266,11 +253,7 @@ async def _configure_parent_step(
                 parent_config["ha_user"]
             ].id,
             const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: associated_kid_ids,
-            const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: enable_mobile,
             const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: mobile_service,
-            const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: parent_config.get(
-                "enable_persistent_notifications", False
-            ),
             # Parent chore assignment fields (shadow kid support)
             const.CFOF_PARENTS_INPUT_ALLOW_CHORE_ASSIGNMENT: parent_config.get(
                 "allow_chore_assignment", False

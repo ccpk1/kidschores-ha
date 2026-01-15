@@ -6,6 +6,11 @@ It supports sending notifications via Home Assistant’s notify services (HA Com
 and includes an optional payload of actions. For actionable notifications, you must encode extra
 context (like kid_id and chore_id) directly into the action string.
 All texts and labels are referenced from constants.
+
+Tag System (v0.5.0+):
+Tags enable smart notification replacement - sending with the same tag replaces the
+previous notification instead of stacking. Use build_notification_tag() to create
+consistent tags for aggregated notifications.
 """
 
 from __future__ import annotations
@@ -16,6 +21,30 @@ from . import const
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
+
+
+def build_notification_tag(tag_type: str, identifier: str = "") -> str:
+    """Build a notification tag string for smart replacement.
+
+    Tags allow subsequent notifications with the same tag to replace previous ones
+    instead of stacking, reducing notification spam.
+
+    Args:
+        tag_type: Type of notification (pending, rewards, system, status).
+                  Use const.NOTIFY_TAG_TYPE_* constants.
+        identifier: Optional identifier (usually kid_id) to make tag unique per entity.
+
+    Returns:
+        Tag string in format: kidschores-{tag_type}-{identifier}
+        or kidschores-{tag_type} if no identifier provided.
+
+    Example:
+        build_notification_tag(const.NOTIFY_TAG_TYPE_PENDING, kid_id)
+        -> "kidschores-pending-abc123"
+    """
+    if identifier:
+        return f"{const.NOTIFY_TAG_PREFIX}-{tag_type}-{identifier}"
+    return f"{const.NOTIFY_TAG_PREFIX}-{tag_type}"
 
 
 async def async_send_notification(

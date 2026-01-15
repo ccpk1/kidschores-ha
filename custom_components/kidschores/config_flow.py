@@ -591,9 +591,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             users=users,
             default_kid_name=const.SENTINEL_EMPTY,
             default_ha_user_id=None,
-            default_enable_mobile_notifications=False,
             default_mobile_notify_service=None,
-            default_enable_persistent_notifications=False,
         )
         return self.async_show_form(
             step_id=const.CONFIG_FLOW_STEP_KIDS, data_schema=kid_schema, errors=errors
@@ -696,9 +694,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             default_parent_name=const.SENTINEL_EMPTY,
             default_ha_user_id=None,
             default_associated_kids=[],
-            default_enable_mobile_notifications=False,
             default_mobile_notify_service=None,
-            default_enable_persistent_notifications=False,
             default_dashboard_language=None,
             default_allow_chore_assignment=False,
             default_enable_chore_workflow=False,

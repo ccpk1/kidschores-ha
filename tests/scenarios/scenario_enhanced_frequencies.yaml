@@ -29,32 +29,24 @@ kids:
   - name: "Zoë"
     ha_user: "kid1"
     dashboard_language: "en"
-    enable_mobile_notifications: false
     mobile_notify_service: ""
-    enable_persistent_notifications: false
 
   - name: "Max!"
     ha_user: "kid2"
     dashboard_language: "en"
-    enable_mobile_notifications: false
     mobile_notify_service: ""
-    enable_persistent_notifications: false
 
 # Parents (2 parents)
 parents:
   - name: "Môm Astrid Stârblüm"
     ha_user: "parent1"
     kids: ["Zoë", "Max!"]
-    enable_mobile_notifications: false
     mobile_notify_service: ""
-    enable_persistent_notifications: false
 
   - name: "Dad Leo Stårblüm"
     ha_user: "parent2"
     kids: ["Zoë", "Max!"]
-    enable_mobile_notifications: false
     mobile_notify_service: ""
-    enable_persistent_notifications: false
 
 # =============================================================================
 # CHORES: Enhanced Frequency Features

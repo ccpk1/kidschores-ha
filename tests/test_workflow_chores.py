@@ -191,7 +191,7 @@ class TestIndependentChores:
             coordinator.claim_chore(kid_id, chore_id, "Zoë")
 
             # Approve the chore (API: parent_name, kid_id, chore_id)
-            coordinator.approve_chore("Mom", kid_id, chore_id)
+            await coordinator.approve_chore("Mom", kid_id, chore_id)
 
         # Points should increase by chore value (5 points)
         final_points = get_kid_points(coordinator, kid_id)
@@ -351,7 +351,7 @@ class TestSharedFirstChores:
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             # Zoë claims and gets approved
             coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            coordinator.approve_chore("Mom", zoe_id, chore_id)
+            await coordinator.approve_chore("Mom", zoe_id, chore_id)
 
         # Zoë should be approved with points
         assert (
@@ -436,14 +436,14 @@ class TestSharedAllChores:
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             # Zoë claims and gets approved
             coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            coordinator.approve_chore("Mom", zoe_id, chore_id)
+            await coordinator.approve_chore("Mom", zoe_id, chore_id)
 
             # Zoë gets points immediately
             assert get_kid_points(coordinator, zoe_id) == initial_zoe + 8.0
 
             # Max claims and gets approved
             coordinator.claim_chore(max_id, chore_id, "Max")
-            coordinator.approve_chore("Mom", max_id, chore_id)
+            await coordinator.approve_chore("Mom", max_id, chore_id)
 
             # Max gets points
             assert get_kid_points(coordinator, max_id) == initial_max + 8.0
@@ -470,15 +470,15 @@ class TestSharedAllChores:
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             # All three claim and get approved one by one
             coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            coordinator.approve_chore("Mom", zoe_id, chore_id)
+            await coordinator.approve_chore("Mom", zoe_id, chore_id)
             assert get_kid_points(coordinator, zoe_id) == initial_zoe + 10.0
 
             coordinator.claim_chore(max_id, chore_id, "Max")
-            coordinator.approve_chore("Mom", max_id, chore_id)
+            await coordinator.approve_chore("Mom", max_id, chore_id)
             assert get_kid_points(coordinator, max_id) == initial_max + 10.0
 
             coordinator.claim_chore(lila_id, chore_id, "Lila")
-            coordinator.approve_chore("Mom", lila_id, chore_id)
+            await coordinator.approve_chore("Mom", lila_id, chore_id)
             assert get_kid_points(coordinator, lila_id) == initial_lila + 10.0
 
     @pytest.mark.asyncio
@@ -499,7 +499,7 @@ class TestSharedAllChores:
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             # Only Zoë completes the chore
             coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            coordinator.approve_chore("Mom", zoe_id, chore_id)
+            await coordinator.approve_chore("Mom", zoe_id, chore_id)
 
         # Zoë is approved
         assert (
@@ -558,7 +558,7 @@ class TestApprovalResetNoDueDate:
                 == CHORE_STATE_CLAIMED
             )
 
-            coordinator.approve_chore("TestParent", kid1_id, chore_id)
+            await coordinator.approve_chore("TestParent", kid1_id, chore_id)
             assert (
                 get_kid_chore_state(coordinator, kid1_id, chore_id)
                 == CHORE_STATE_APPROVED
@@ -625,7 +625,7 @@ class TestApprovalResetNoDueDate:
             )
 
             # Kid1 gets approved
-            coordinator.approve_chore("TestParent", kid1_id, chore_id)
+            await coordinator.approve_chore("TestParent", kid1_id, chore_id)
             assert (
                 get_kid_chore_state(coordinator, kid1_id, chore_id)
                 == CHORE_STATE_APPROVED
@@ -675,7 +675,7 @@ class TestApprovalResetNoDueDate:
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             # Kid1 claims and gets approved
             coordinator.claim_chore(kid1_id, chore_id, "Zoë")
-            coordinator.approve_chore("TestParent", kid1_id, chore_id)
+            await coordinator.approve_chore("TestParent", kid1_id, chore_id)
             assert (
                 get_kid_chore_state(coordinator, kid1_id, chore_id)
                 == CHORE_STATE_APPROVED
@@ -684,7 +684,7 @@ class TestApprovalResetNoDueDate:
 
             # Kid2 claims and gets approved
             coordinator.claim_chore(kid2_id, chore_id, "Max!")
-            coordinator.approve_chore("TestParent", kid2_id, chore_id)
+            await coordinator.approve_chore("TestParent", kid2_id, chore_id)
             assert (
                 get_kid_chore_state(coordinator, kid2_id, chore_id)
                 == CHORE_STATE_APPROVED
@@ -827,7 +827,7 @@ class TestWorkflowIntegrationEdgeCases:
 
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            coordinator.approve_chore("Mom", kid_id, chore_id)
+            await coordinator.approve_chore("Mom", kid_id, chore_id)
 
         # Get final approval count
         kid_info = coordinator.kids_data.get(kid_id, {})
@@ -896,7 +896,7 @@ class TestWorkflowIntegrationEdgeCases:
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             coordinator.claim_chore(kid_id, chore_id, "Zoë")
             # Approval uses default points (5) - points_awarded param is reserved
-            coordinator.approve_chore("Mom", kid_id, chore_id)
+            await coordinator.approve_chore("Mom", kid_id, chore_id)
 
         final_points = get_kid_points(coordinator, kid_id)
         assert final_points == initial_points + 5.0, (
@@ -930,7 +930,7 @@ class TestWorkflowResetIntegration:
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             # Complete the workflow: claim -> approve
             coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            coordinator.approve_chore("Mom", kid_id, chore_id)
+            await coordinator.approve_chore("Mom", kid_id, chore_id)
 
             # Verify approved
             assert (
@@ -990,7 +990,7 @@ class TestWorkflowResetIntegration:
 
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            coordinator.approve_chore("Mom", kid_id, chore_id)
+            await coordinator.approve_chore("Mom", kid_id, chore_id)
 
         # Record points after approval
         points_after_approval = get_kid_points(coordinator, kid_id)
@@ -1056,7 +1056,7 @@ class TestEnhancedFrequencyWorkflows:
             )
 
             # Approve the chore
-            coordinator.approve_chore("Môm Astrid Stârblüm", kid_id, chore_id)
+            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_id, chore_id)
 
         # After approval, state should change (APPROVED or PENDING based on reset)
         final_state = get_kid_chore_state(coordinator, kid_id, chore_id)
@@ -1098,7 +1098,7 @@ class TestEnhancedFrequencyWorkflows:
             )
 
             # Approve the chore
-            coordinator.approve_chore("Môm Astrid Stârblüm", kid_id, chore_id)
+            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_id, chore_id)
 
         # After approval with UPON_COMPLETION reset, should be PENDING
         final_state = get_kid_chore_state(coordinator, kid_id, chore_id)
@@ -1139,7 +1139,7 @@ class TestEnhancedFrequencyWorkflows:
             )
 
             # Approve the chore
-            coordinator.approve_chore("Môm Astrid Stârblüm", kid_id, chore_id)
+            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_id, chore_id)
 
         # After approval, state should change
         final_state = get_kid_chore_state(coordinator, kid_id, chore_id)
@@ -1173,7 +1173,7 @@ class TestEnhancedFrequencyWorkflows:
                 == CHORE_STATE_CLAIMED
             )
 
-            coordinator.approve_chore("Mom", kid_id, chore_id)
+            await coordinator.approve_chore("Mom", kid_id, chore_id)
 
         # Should be APPROVED (standard behavior)
         assert (

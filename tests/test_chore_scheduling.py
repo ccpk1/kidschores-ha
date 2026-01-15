@@ -797,7 +797,7 @@ class TestApprovalResetAtMidnightOnce:
 
         # Claim and approve the chore
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
-        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await coordinator.approve_chore("parent", zoe_id, chore_id)
 
         # Verify state is APPROVED
         state = get_kid_chore_state(coordinator, zoe_id, chore_id)
@@ -828,7 +828,7 @@ class TestApprovalResetAtMidnightOnce:
 
         # First claim and approve
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
-        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await coordinator.approve_chore("parent", zoe_id, chore_id)
 
         # Verify state is APPROVED
         state = get_kid_chore_state(coordinator, zoe_id, chore_id)
@@ -879,7 +879,7 @@ class TestApprovalResetAtMidnightMulti:
 
         # First claim and approve
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
-        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await coordinator.approve_chore("parent", zoe_id, chore_id)
 
         # MULTI should allow another claim immediately
         # _can_claim_chore should return True for MULTI types
@@ -922,7 +922,7 @@ class TestApprovalResetUponCompletion:
 
         # Claim and approve the chore
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
-        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await coordinator.approve_chore("parent", zoe_id, chore_id)
 
         # Get due date after approval
         due_date_after = get_kid_due_date(coordinator, zoe_id, chore_id)
@@ -949,7 +949,7 @@ class TestApprovalResetUponCompletion:
 
         # Claim and approve the chore
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
-        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await coordinator.approve_chore("parent", zoe_id, chore_id)
 
         # State should be PENDING (not APPROVED) because UPON_COMPLETION resets immediately
         state = get_kid_chore_state(coordinator, zoe_id, chore_id)
@@ -993,7 +993,7 @@ class TestApprovalResetAtDueDateOnce:
 
         # Claim and approve the chore
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
-        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await coordinator.approve_chore("parent", zoe_id, chore_id)
 
         # Verify state is APPROVED
         state = get_kid_chore_state(coordinator, zoe_id, chore_id)
@@ -1023,7 +1023,7 @@ class TestApprovalResetAtDueDateOnce:
 
         # First claim and approve
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
-        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await coordinator.approve_chore("parent", zoe_id, chore_id)
 
         # Verify cannot approve again
         can_approve, error_key = coordinator._can_approve_chore(zoe_id, chore_id)
@@ -1065,7 +1065,7 @@ class TestApprovalResetAtDueDateMulti:
 
         # First claim and approve
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
-        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await coordinator.approve_chore("parent", zoe_id, chore_id)
 
         # MULTI should allow another claim immediately
         # _can_claim_chore should return True for MULTI types
@@ -1074,7 +1074,7 @@ class TestApprovalResetAtDueDateMulti:
 
         # Second claim and approve should work
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
-        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await coordinator.approve_chore("parent", zoe_id, chore_id)
 
         # Verify can still claim again (multi allows unlimited before due date)
         can_claim, _ = coordinator._can_claim_chore(zoe_id, chore_id)
@@ -1099,7 +1099,7 @@ class TestApprovalResetAtDueDateMulti:
 
         # First approval
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
-        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await coordinator.approve_chore("parent", zoe_id, chore_id)
 
         # Due date should remain unchanged
         due_date_after_first = get_kid_due_date(coordinator, zoe_id, chore_id)
@@ -1110,7 +1110,7 @@ class TestApprovalResetAtDueDateMulti:
 
         # Second approval
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
-        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await coordinator.approve_chore("parent", zoe_id, chore_id)
 
         # Due date should still remain unchanged
         due_date_after_second = get_kid_due_date(coordinator, zoe_id, chore_id)
@@ -1137,14 +1137,14 @@ class TestApprovalResetAtDueDateMulti:
 
         # First approval
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
-        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await coordinator.approve_chore("parent", zoe_id, chore_id)
 
         points_after_first = coordinator.kids_data[zoe_id].get(DATA_KID_POINTS, 0)
         assert points_after_first > initial_points, "First approval should grant points"
 
         # Second approval
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
-        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await coordinator.approve_chore("parent", zoe_id, chore_id)
 
         points_after_second = coordinator.kids_data[zoe_id].get(DATA_KID_POINTS, 0)
         assert points_after_second > points_after_first, (
@@ -1153,7 +1153,7 @@ class TestApprovalResetAtDueDateMulti:
 
         # Third approval - verify unlimited approvals
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
-        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await coordinator.approve_chore("parent", zoe_id, chore_id)
 
         points_after_third = coordinator.kids_data[zoe_id].get(DATA_KID_POINTS, 0)
         assert points_after_third > points_after_second, (
@@ -1845,7 +1845,7 @@ class TestPendingClaimEdgeCases:
 
         # Claim and approve the chore normally
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
-        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await coordinator.approve_chore("parent", zoe_id, chore_id)
 
         # Verify state is APPROVED
         state_before = get_kid_chore_state(coordinator, zoe_id, chore_id)
@@ -1994,7 +1994,7 @@ class TestApplicableDays:
 
         # Claim and approve
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
-        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await coordinator.approve_chore("parent", zoe_id, chore_id)
 
         # Get the new due date
         new_due_date = get_kid_due_date(coordinator, zoe_id, chore_id)
@@ -2059,7 +2059,7 @@ class TestMultiWeekScheduling:
 
         # Claim and approve
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
-        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await coordinator.approve_chore("parent", zoe_id, chore_id)
         await hass.async_block_till_done()
 
         # Get new due date from entity state (refreshed)
@@ -2121,7 +2121,7 @@ class TestMultiWeekScheduling:
 
         # Claim and approve
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
-        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await coordinator.approve_chore("parent", zoe_id, chore_id)
         await hass.async_block_till_done()
 
         # Get new due date from entity state (refreshed)
@@ -2319,7 +2319,7 @@ class TestTimeBoundaryCrossing:
 
         # Claim and approve
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
-        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await coordinator.approve_chore("parent", zoe_id, chore_id)
 
         # UPON_COMPLETION should reset to PENDING immediately
         state = get_kid_chore_state(coordinator, zoe_id, chore_id)
@@ -2389,7 +2389,7 @@ class TestSharedChoreApprovalReset:
 
         # Zoë claims and gets approved
         coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await coordinator.approve_chore("parent", zoe_id, chore_id)
 
         # Zoë is now approved for this period
         assert coordinator.is_approved_in_current_period(zoe_id, chore_id), (
@@ -2444,7 +2444,7 @@ class TestSharedChoreApprovalReset:
         assert not can_claim_max, "Max blocked (Zoë claimed first)"
 
         # Approve Zoë
-        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await coordinator.approve_chore("parent", zoe_id, chore_id)
 
         # After approval, still blocked (ONCE mode, same period)
         can_claim_max, _ = coordinator._can_claim_chore(max_id, chore_id)
@@ -2471,7 +2471,7 @@ class TestSharedChoreApprovalReset:
 
         # Claim and approve Zoë to trigger approval tracking
         coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-        coordinator.approve_chore("parent", zoe_id, chore_id)
+        await coordinator.approve_chore("parent", zoe_id, chore_id)
 
         # Verify Zoë is approved in current period
         zoe_approved = coordinator.is_approved_in_current_period(zoe_id, chore_id)
@@ -2658,7 +2658,7 @@ class TestApprovalResetEdgeCases:
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
         assert get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_CLAIMED
 
-        coordinator.approve_chore("Parent", zoe_id, chore_id)
+        await coordinator.approve_chore("Parent", zoe_id, chore_id)
 
         assert (
             get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_APPROVED
@@ -2729,7 +2729,7 @@ class TestApprovalResetEdgeCases:
                 == CHORE_STATE_CLAIMED
             ), f"Attempt {attempt}: Should be claimed after claim_chore"
 
-            coordinator.approve_chore("Parent", zoe_id, chore_id)
+            await coordinator.approve_chore("Parent", zoe_id, chore_id)
 
             assert (
                 get_kid_chore_state(coordinator, zoe_id, chore_id)

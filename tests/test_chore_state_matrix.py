@@ -215,7 +215,7 @@ class TestStateMatrixIndependent:
 
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            coordinator.approve_chore("Mom", kid_id, chore_id)
+            await coordinator.approve_chore("Mom", kid_id, chore_id)
 
         per_kid_state = get_kid_chore_state(coordinator, kid_id, chore_id)
         global_state = get_global_chore_state(coordinator, chore_id)
@@ -278,7 +278,7 @@ class TestStateMatrixIndependent:
             )
 
             # Approve
-            coordinator.approve_chore("Mom", kid_id, chore_id)
+            await coordinator.approve_chore("Mom", kid_id, chore_id)
             states_observed.append(
                 {
                     "step": "after_approve",
@@ -369,7 +369,7 @@ class TestStateMatrixSharedFirst:
 
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            coordinator.approve_chore("Mom", zoe_id, chore_id)
+            await coordinator.approve_chore("Mom", zoe_id, chore_id)
 
         # Zoë should be approved
         assert coordinator.is_approved_in_current_period(zoe_id, chore_id) is True
@@ -505,7 +505,7 @@ class TestStateMatrixSharedAll:
             coordinator.claim_chore(lila_id, chore_id, "Lila")
 
             # Only Zoë approved
-            coordinator.approve_chore("Mom", zoe_id, chore_id)
+            await coordinator.approve_chore("Mom", zoe_id, chore_id)
 
         # Zoë should be approved
         assert coordinator.is_approved_in_current_period(zoe_id, chore_id) is True
@@ -536,9 +536,9 @@ class TestStateMatrixSharedAll:
             coordinator.claim_chore(lila_id, chore_id, "Lila")
 
             # All approved
-            coordinator.approve_chore("Mom", zoe_id, chore_id)
-            coordinator.approve_chore("Mom", max_id, chore_id)
-            coordinator.approve_chore("Mom", lila_id, chore_id)
+            await coordinator.approve_chore("Mom", zoe_id, chore_id)
+            await coordinator.approve_chore("Mom", max_id, chore_id)
+            await coordinator.approve_chore("Mom", lila_id, chore_id)
 
         # All should be approved
         assert coordinator.is_approved_in_current_period(zoe_id, chore_id) is True
@@ -564,7 +564,7 @@ class TestStateMatrixSharedAll:
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             # Zoë claims and gets approved
             coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            coordinator.approve_chore("Mom", zoe_id, chore_id)
+            await coordinator.approve_chore("Mom", zoe_id, chore_id)
 
             # Max claims but not approved yet
             coordinator.claim_chore(max_id, chore_id, "Max!")
@@ -624,13 +624,13 @@ class TestGlobalStateConsistency:
             )
 
             # Zoë approved
-            coordinator.approve_chore("Mom", zoe_id, chore_id)
+            await coordinator.approve_chore("Mom", zoe_id, chore_id)
             global_states_observed.append(
                 ("zoe_approve", get_global_chore_state(coordinator, chore_id))
             )
 
             # Max approved
-            coordinator.approve_chore("Mom", max_id, chore_id)
+            await coordinator.approve_chore("Mom", max_id, chore_id)
             global_states_observed.append(
                 ("max_approve", get_global_chore_state(coordinator, chore_id))
             )
@@ -671,7 +671,7 @@ class TestGlobalStateConsistency:
             assert get_global_chore_state(coordinator, chore_id) == CHORE_STATE_CLAIMED
 
             # Zoë approved
-            coordinator.approve_chore("Mom", zoe_id, chore_id)
+            await coordinator.approve_chore("Mom", zoe_id, chore_id)
             assert (
                 get_global_chore_state(coordinator, chore_id)
                 == CHORE_STATE_APPROVED_IN_PART

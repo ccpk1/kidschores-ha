@@ -228,9 +228,7 @@ async def test_fresh_start_points_and_kid(hass: HomeAssistant, mock_hass_users) 
             kid_name="Zoë",
             kid_ha_user_key="kid1",
             dashboard_language="en",
-            enable_mobile_notifications=True,
             mobile_notify_service=const.SENTINEL_NO_SELECTION,  # No real notify services in test
-            enable_persistent_notifications=True,
         )
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENT_COUNT
@@ -407,9 +405,7 @@ async def test_fresh_start_kid_with_notify_services(
             kid_name="Zoë",
             kid_ha_user_key="kid1",
             dashboard_language="en",
-            enable_mobile_notifications=True,
             mobile_notify_service="notify.mobile_app_test_phone",
-            enable_persistent_notifications=True,
         )
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENT_COUNT
@@ -530,8 +526,6 @@ async def test_fresh_start_with_parent_no_notifications(
             kid_name="Zoë",
             kid_ha_user_key="kid1",
             dashboard_language="en",
-            enable_mobile_notifications=False,
-            enable_persistent_notifications=False,
         )
         assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENT_COUNT
 
@@ -566,9 +560,7 @@ async def test_fresh_start_with_parent_no_notifications(
                 const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: [
                     kid_id
                 ],  # Use the extracted kid ID
-                const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: False,
                 const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: const.SENTINEL_NO_SELECTION,
-                const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: False,
             },
         )
         assert result["type"] == FlowResultType.FORM
@@ -678,8 +670,6 @@ async def test_fresh_start_with_parent_with_notifications(
             kid_name="Max!",
             kid_ha_user_key="kid2",
             dashboard_language="en",
-            enable_mobile_notifications=False,
-            enable_persistent_notifications=True,
         )
         assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENT_COUNT
 
@@ -699,9 +689,7 @@ async def test_fresh_start_with_parent_with_notifications(
             associated_kid_ids=kid_ids,
             parent_name="Dad Leo",
             parent_ha_user_key="parent2",
-            enable_mobile_notifications=True,
             mobile_notify_service="notify.mobile_app_parent_phone",
-            enable_persistent_notifications=True,
         )
         assert result["step_id"] == const.CONFIG_FLOW_STEP_CHORE_COUNT
 
@@ -771,9 +759,7 @@ async def test_fresh_start_two_parents_mixed_notifications(
             kid_name="Lila",
             kid_ha_user_key="kid3",
             dashboard_language="en",
-            enable_mobile_notifications=True,
             mobile_notify_service=const.SENTINEL_NO_SELECTION,
-            enable_persistent_notifications=False,
         )
         assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENT_COUNT
 
@@ -793,8 +779,6 @@ async def test_fresh_start_two_parents_mixed_notifications(
             associated_kid_ids=kid_ids,
             parent_name="Môm Astrid Stârblüm",
             parent_ha_user_key="parent1",
-            enable_mobile_notifications=False,
-            enable_persistent_notifications=False,
         )
         assert result["type"] == FlowResultType.FORM
         assert (
@@ -810,9 +794,7 @@ async def test_fresh_start_two_parents_mixed_notifications(
             associated_kid_ids=kid_ids,
             parent_name="Dad Leo",
             parent_ha_user_key="parent2",
-            enable_mobile_notifications=True,
             mobile_notify_service="notify.mobile_app_parent2_phone",
-            enable_persistent_notifications=True,
         )
         assert result["step_id"] == const.CONFIG_FLOW_STEP_CHORE_COUNT
 
@@ -851,9 +833,7 @@ async def _configure_kid_step(
     kid_name: str,
     kid_ha_user_key: str,
     dashboard_language: str = "en",
-    enable_mobile_notifications: bool = False,
     mobile_notify_service: str = const.SENTINEL_NO_SELECTION,
-    enable_persistent_notifications: bool = False,
 ) -> Any:
     """Configure a single kid in the config flow.
 
@@ -864,9 +844,7 @@ async def _configure_kid_step(
         kid_name: Name for the kid (e.g., "Zoë", "Max!", "Lila")
         kid_ha_user_key: Key in mock_hass_users (e.g., "kid1", "kid2", "kid3")
         dashboard_language: Dashboard language code (default: "en")
-        enable_mobile_notifications: Whether to enable mobile notifications
-        mobile_notify_service: Mobile notify service name (if mobile notifications enabled)
-        enable_persistent_notifications: Whether to enable persistent notifications
+        mobile_notify_service: Notify service (set to enable notifications)
 
     Returns:
         Updated config flow result after kid configuration
@@ -877,9 +855,7 @@ async def _configure_kid_step(
             const.CFOF_KIDS_INPUT_KID_NAME: kid_name,
             const.CFOF_KIDS_INPUT_HA_USER: mock_hass_users[kid_ha_user_key].id,
             const.CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE: dashboard_language,
-            const.CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: enable_mobile_notifications,
             const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: mobile_notify_service,
-            const.CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: enable_persistent_notifications,
         },
     )
 
@@ -892,9 +868,7 @@ async def _configure_parent_step(
     *,
     parent_name: str,
     parent_ha_user_key: str,
-    enable_mobile_notifications: bool = False,
     mobile_notify_service: str = const.SENTINEL_NO_SELECTION,
-    enable_persistent_notifications: bool = False,
 ) -> Any:
     """Configure a single parent in the config flow.
 
@@ -905,9 +879,7 @@ async def _configure_parent_step(
         associated_kid_ids: List of kid internal IDs to associate with this parent
         parent_name: Name for the parent (e.g., "Môm Astrid Stârblüm", "Dad Leo")
         parent_ha_user_key: Key in mock_hass_users (e.g., "parent1", "parent2")
-        enable_mobile_notifications: Whether to enable mobile notifications
-        mobile_notify_service: Mobile notify service name (if mobile notifications enabled)
-        enable_persistent_notifications: Whether to enable persistent notifications
+        mobile_notify_service: Notify service (set to enable notifications)
 
     Returns:
         Updated config flow result after parent configuration
@@ -918,11 +890,7 @@ async def _configure_parent_step(
             const.CFOF_PARENTS_INPUT_NAME: parent_name,
             const.CFOF_PARENTS_INPUT_HA_USER: mock_hass_users[parent_ha_user_key].id,
             const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: associated_kid_ids,
-            const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: enable_mobile_notifications,
-            const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: mobile_notify_service
-            if enable_mobile_notifications
-            else const.SENTINEL_NO_SELECTION,
-            const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: enable_persistent_notifications,
+            const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: mobile_notify_service,
         },
     )
 
@@ -948,9 +916,7 @@ async def _configure_multiple_kids_step(
             - name: Kid name (e.g., "Zoë", "Max!", "Lila")
             - ha_user_name: Key in mock_hass_users (e.g., "kid1", "kid2", "kid3")
             - dashboard_language: Dashboard language code (default: "en")
-            - enable_mobile_notifications: Whether to enable mobile notifications (default: False)
-            - mobile_notify_service: Mobile notify service name (default: "")
-            - enable_persistent_notifications: Whether to enable persistent notifications (default: False)
+            - mobile_notify_service: Notify service name (set to enable notifications)
 
     Returns:
         Tuple of (final_result, name_to_id_map)
@@ -961,9 +927,9 @@ async def _configure_multiple_kids_step(
         result, kid_ids = await _configure_multiple_kids_step(
             hass, result, mock_hass_users,
             [
-                {"name": "Zoë", "ha_user_name": "kid1", "enable_mobile_notifications": True, "mobile_notify_service": "notify.mobile_app_zoe"},
+                {"name": "Zoë", "ha_user_name": "kid1", "mobile_notify_service": "notify.mobile_app_zoe"},
                 {"name": "Max!", "ha_user_name": "kid2", "dashboard_language": "es"},
-                {"name": "Lila", "ha_user_name": "kid3", "enable_persistent_notifications": True},
+                {"name": "Lila", "ha_user_name": "kid3"},
             ]
         )
     """
@@ -978,13 +944,7 @@ async def _configure_multiple_kids_step(
             kid_name=kid_config["name"],
             kid_ha_user_key=kid_config["ha_user_name"],
             dashboard_language=kid_config.get("dashboard_language", "en"),
-            enable_mobile_notifications=kid_config.get(
-                "enable_mobile_notifications", False
-            ),
             mobile_notify_service=kid_config.get("mobile_notify_service", ""),
-            enable_persistent_notifications=kid_config.get(
-                "enable_persistent_notifications", False
-            ),
         )
 
         # Extract the kid's internal ID from the config flow result
@@ -1030,9 +990,7 @@ async def _configure_multiple_parents_step(
             - name: Parent name (e.g., "Môm Astrid Stârblüm", "Dad Leo")
             - ha_user_name: Key in mock_hass_users (e.g., "parent1", "parent2")
             - associated_kid_names: List of kid names to associate (default: [])
-            - enable_mobile_notifications: Whether to enable mobile notifications (default: False)
-            - mobile_notify_service: Mobile notify service name (default: "")
-            - enable_persistent_notifications: Whether to enable persistent notifications (default: False)
+            - mobile_notify_service: Notify service name (set to enable notifications)
         kid_name_to_id_map: Map of kid names to internal UUIDs from _configure_multiple_kids_step
 
     Returns:
@@ -1046,14 +1004,12 @@ async def _configure_multiple_parents_step(
                     "name": "Môm Astrid Stârblüm",
                     "ha_user_name": "parent1",
                     "associated_kid_names": ["Zoë", "Lila"],
-                    "enable_mobile_notifications": True,
                     "mobile_notify_service": "notify.mobile_app_mom"
                 },
                 {
                     "name": "Dad Leo",
                     "ha_user_name": "parent2",
                     "associated_kid_names": ["Max!", "Lila"],
-                    "enable_persistent_notifications": True
                 },
             ],
             kid_ids
@@ -1076,13 +1032,7 @@ async def _configure_multiple_parents_step(
             associated_kid_ids,
             parent_name=parent_config["name"],
             parent_ha_user_key=parent_config["ha_user_name"],
-            enable_mobile_notifications=parent_config.get(
-                "enable_mobile_notifications", False
-            ),
             mobile_notify_service=parent_config.get("mobile_notify_service", ""),
-            enable_persistent_notifications=parent_config.get(
-                "enable_persistent_notifications", False
-            ),
         )
 
         if i < len(parent_configs) - 1:
@@ -1152,8 +1102,6 @@ async def _setup_full_family_scenario(
         kid_name="Zoë",
         kid_ha_user_key="kid1",
         dashboard_language="en",
-        enable_mobile_notifications=False,
-        enable_persistent_notifications=True,
     )
     result = await _configure_kid_step(
         hass,
@@ -1162,8 +1110,6 @@ async def _setup_full_family_scenario(
         kid_name="Max!",
         kid_ha_user_key="kid2",
         dashboard_language="es",
-        enable_mobile_notifications=False,
-        enable_persistent_notifications=True,
     )
     result = await _configure_kid_step(
         hass,
@@ -1172,8 +1118,6 @@ async def _setup_full_family_scenario(
         kid_name="Lila",
         kid_ha_user_key="kid3",
         dashboard_language="en",
-        enable_mobile_notifications=False,
-        enable_persistent_notifications=False,
     )
     assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENT_COUNT
 
@@ -1194,8 +1138,6 @@ async def _setup_full_family_scenario(
         associated_kid_ids=[kid_ids[0], kid_ids[2]],  # Zoë, Lila
         parent_name="Môm Astrid Stârblüm",
         parent_ha_user_key="parent1",
-        enable_mobile_notifications=False,
-        enable_persistent_notifications=True,
     )
 
     # Configure second parent
@@ -1207,8 +1149,6 @@ async def _setup_full_family_scenario(
         associated_kid_ids=[kid_ids[1], kid_ids[2]],  # Max!, Lila
         parent_name="Dad Leo",
         parent_ha_user_key="parent2",
-        enable_mobile_notifications=False,
-        enable_persistent_notifications=True,
     )
     assert result["step_id"] == const.CONFIG_FLOW_STEP_CHORE_COUNT
 
@@ -1365,8 +1305,6 @@ async def test_fresh_start_with_parents(hass: HomeAssistant, mock_hass_users):
             kid_name="Alex",
             kid_ha_user_key="kid1",
             dashboard_language="en",
-            enable_mobile_notifications=False,
-            enable_persistent_notifications=False,
         )
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == const.CONFIG_FLOW_STEP_PARENT_COUNT
@@ -1405,9 +1343,7 @@ async def test_fresh_start_with_parents(hass: HomeAssistant, mock_hass_users):
             const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: [
                 kid_id
             ],  # Use the captured kid ID
-            const.CFOF_PARENTS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: True,
             const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: "notify.mobile_app_jane_phone",  # Include notify. prefix
-            const.CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: True,
         }
 
         result = await hass.config_entries.flow.async_configure(
@@ -1683,9 +1619,7 @@ async def _configure_family_step(
         associated_kid_ids=kid_ids,
         parent_name=parent_name,
         parent_ha_user_key="parent1",
-        enable_mobile_notifications=False,
         mobile_notify_service=const.SENTINEL_EMPTY,
-        enable_persistent_notifications=False,
     )
 
     # Should be at chore count step

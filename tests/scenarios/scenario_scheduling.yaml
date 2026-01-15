@@ -34,18 +34,14 @@ kids:
   - name: "Zoë"
     ha_user: "kid1"
     dashboard_language: "en"
-    enable_mobile_notifications: false
     mobile_notify_service: ""
-    enable_persistent_notifications: false
 
 # Parents (1 parent)
 parents:
   - name: "Môm Astrid Stârblüm"
     ha_user: "parent1"
     kids: ["Zoë"]
-    enable_mobile_notifications: false
     mobile_notify_service: ""
-    enable_persistent_notifications: false
 
 # =============================================================================
 # CHORES: Organized by approval_reset_type for Phase 4 testing

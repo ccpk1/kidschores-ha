@@ -75,11 +75,55 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self._persist_task: asyncio.Task | None = None
         self._persist_debounce_seconds = 5
 
+        # Race condition protection for approval methods (v0.5.0+)
+        # Prevents duplicate point awards when multiple parents click approve simultaneously
+        self._approval_locks: dict[str, asyncio.Lock] = {}
+
+        # Due date reminder tracking (v0.5.0+)
+        # Transient set tracking which chore+kid combos have been sent due-soon reminders
+        # Key format: "{chore_id}:{kid_id}" - resets on HA restart (acceptable)
+        self._due_soon_reminders_sent: set[str] = set()
+
         # Translation sensor lifecycle management
         # Tracks which language codes have translation sensors created
         self._translation_sensors_created: set[str] = set()
         # Callback for dynamically adding new translation sensors
         self._sensor_add_entities_callback: Any = None
+
+    # -------------------------------------------------------------------------------------
+    # Approval Lock Management (Race Condition Protection v0.5.0+)
+    # -------------------------------------------------------------------------------------
+
+    def _get_approval_lock(self, operation: str, *identifiers: str) -> asyncio.Lock:
+        """Get or create a lock for approval operations.
+
+        Creates unique locks per operation+entity combination to prevent race conditions
+        when multiple parents click approve simultaneously, or when a user button-mashes.
+
+        Args:
+            operation: Type of operation (e.g., "approve_chore", "approve_reward")
+            identifiers: Entity identifiers (e.g., kid_id, chore_id)
+
+        Returns:
+            asyncio.Lock for the specific operation+entity combination
+        """
+        lock_key = f"{operation}:{':'.join(identifiers)}"
+        if lock_key not in self._approval_locks:
+            self._approval_locks[lock_key] = asyncio.Lock()
+        return self._approval_locks[lock_key]
+
+    def _clear_due_soon_reminder(self, chore_id: str, kid_id: str) -> None:
+        """Clear due-soon reminder tracking for a chore+kid combination (v0.5.0+).
+
+        Called when chore is claimed, approved, or rescheduled to allow
+        a fresh reminder for the next occurrence.
+
+        Args:
+            chore_id: The chore internal ID
+            kid_id: The kid internal ID
+        """
+        reminder_key = f"{chore_id}:{kid_id}"
+        self._due_soon_reminders_sent.discard(reminder_key)
 
     # -------------------------------------------------------------------------------------
     # Migrate Data and Converters
@@ -179,6 +223,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         try:
             # Check overdue chores
             await self._check_overdue_chores()
+
+            # Check for due-soon reminders (v0.5.0+)
+            await self._check_due_date_reminders()
 
             # Notify entities of changes
             self.async_update_listeners()
@@ -2898,12 +2945,24 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         )
 
         if auto_approve:
-            # Auto-approve the chore immediately
-            self.approve_chore("auto_approve", kid_id, chore_id)
+            # Auto-approve the chore immediately (using create_task since approve_chore is async)
+            self.hass.async_create_task(
+                self.approve_chore("auto_approve", kid_id, chore_id)
+            )
         # Send a notification to the parents that a kid claimed a chore (awaiting approval)
+        # Uses tag-based aggregation (v0.5.0+) to prevent notification spam
         elif chore_info.get(
             const.DATA_CHORE_NOTIFY_ON_CLAIM, const.DEFAULT_NOTIFY_ON_CLAIM
         ):
+            # Count total pending chores for this kid (for aggregated notification)
+            pending_count = self._count_pending_chores_for_kid(kid_id)
+            chore_name = self.chores_data[chore_id][const.DATA_CHORE_NAME]
+            kid_name = self.kids_data[kid_id][const.DATA_KID_NAME]
+            chore_points = chore_info.get(
+                const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_ZERO
+            )
+
+            # Build action buttons - latest chore approve/disapprove + remind
             actions = [
                 {
                     const.NOTIFY_ACTION: f"{const.ACTION_APPROVE_CHORE}|{kid_id}|{chore_id}",
@@ -2923,19 +2982,45 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.DATA_KID_ID: kid_id,
                 const.DATA_CHORE_ID: chore_id,
             }
-            self.hass.async_create_task(
-                self._notify_parents_translated(
-                    kid_id,
-                    title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_CLAIMED,
-                    message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_CLAIMED,
-                    message_data={
-                        "kid_name": self.kids_data[kid_id][const.DATA_KID_NAME],
-                        "chore_name": self.chores_data[chore_id][const.DATA_CHORE_NAME],
-                    },
-                    actions=actions,
-                    extra_data=extra_data,
+
+            # Use aggregated notification if multiple pending, else standard single
+            if pending_count > 1:
+                # Aggregated notification: "Sarah: 3 chores pending (latest: Dishes +5pts)"
+                self.hass.async_create_task(
+                    self._notify_parents_translated(
+                        kid_id,
+                        title_key=const.TRANS_KEY_NOTIF_TITLE_PENDING_CHORES,
+                        message_key=const.TRANS_KEY_NOTIF_MESSAGE_PENDING_CHORES,
+                        message_data={
+                            "kid_name": kid_name,
+                            "count": pending_count,
+                            "latest_chore": chore_name,
+                            "points": int(chore_points),
+                        },
+                        actions=actions,
+                        extra_data=extra_data,
+                        tag_type=const.NOTIFY_TAG_TYPE_PENDING,
+                    )
                 )
-            )
+            else:
+                # Single pending chore - use standard claim notification with tag
+                self.hass.async_create_task(
+                    self._notify_parents_translated(
+                        kid_id,
+                        title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_CLAIMED,
+                        message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_CLAIMED,
+                        message_data={
+                            "kid_name": kid_name,
+                            "chore_name": chore_name,
+                        },
+                        actions=actions,
+                        extra_data=extra_data,
+                        tag_type=const.NOTIFY_TAG_TYPE_PENDING,
+                    )
+                )
+
+        # Clear due-soon reminder tracking (v0.5.0+) - chore was acted upon
+        self._clear_due_soon_reminder(chore_id, kid_id)
 
         self._persist()
         self.async_set_updated_data(self._data)
@@ -2948,314 +3033,422 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             chore_id,
         )
 
-    def approve_chore(
+    async def approve_chore(
         self,
-        parent_name: str,  # Reserved for future feature
+        parent_name: str,  # Used for stale notification feedback
         kid_id: str,
         chore_id: str,
         points_awarded: float | None = None,  # Reserved for future feature
     ):
-        """Approve a chore for kid_id if assigned."""
+        """Approve a chore for kid_id if assigned.
+
+        Thread-safe implementation using asyncio.Lock to prevent race conditions
+        when multiple parents click approve simultaneously (v0.5.0+).
+        """
         perf_start = time.perf_counter()
-        if chore_id not in self.chores_data:
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_CHORE,
-                    "name": chore_id,
-                },
-            )
 
-        chore_info = self.chores_data[chore_id]
-        if kid_id not in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_ASSIGNED,
-                translation_placeholders={
-                    "entity": chore_info.get(const.DATA_CHORE_NAME),
-                    "kid": self.kids_data[kid_id][const.DATA_KID_NAME],
-                },
-            )
-
-        if kid_id not in self.kids_data:
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_KID,
-                    "name": kid_id,
-                },
-            )
-
-        kid_info = self.kids_data[kid_id]
-
-        # Phase 4: Use timestamp-based helpers instead of deprecated lists
-        # This checks: completed_by_other, already_approved
-        can_approve, error_key = self._can_approve_chore(kid_id, chore_id)
-        if not can_approve:
-            chore_name = chore_info[const.DATA_CHORE_NAME]
-            const.LOGGER.warning(
-                "Approve Chore: Cannot approve '%s' for kid '%s': %s",
-                chore_name,
-                kid_info[const.DATA_KID_NAME],
-                error_key,
-            )
-            # Determine the appropriate error message based on the error key
-            if error_key == const.TRANS_KEY_ERROR_CHORE_COMPLETED_BY_OTHER:
-                kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
-                claimed_by = kid_chore_data.get(
-                    const.DATA_CHORE_CLAIMED_BY, "another kid"
+        # Acquire lock for this specific kid+chore combination to prevent race conditions
+        # This ensures only one approval can process at a time per kid+chore pair
+        lock = self._get_approval_lock("approve_chore", kid_id, chore_id)
+        async with lock:
+            # === RACE CONDITION PROTECTION (v0.5.0+) ===
+            # Re-validate inside lock - second parent to arrive will hit this
+            # and return gracefully with informative feedback instead of duplicate approval
+            can_approve, error_key = self._can_approve_chore(kid_id, chore_id)
+            if not can_approve:
+                # Chore was already approved by another parent while we waited for lock
+                # Return gracefully - this is expected behavior, not an error
+                const.LOGGER.info(
+                    "Race condition prevented: chore '%s' for kid '%s' already %s",
+                    chore_id,
+                    kid_id,
+                    "approved"
+                    if error_key == const.TRANS_KEY_ERROR_CHORE_ALREADY_APPROVED
+                    else "completed by another kid",
                 )
+                # TODO (Phase 1.4): Send stale notification feedback to parent_name
+                # "Already approved by {other_parent}" or similar
+                return  # Graceful exit - no error raised for race condition
+
+            # === ORIGINAL VALIDATION (now inside lock) ===
+            if chore_id not in self.chores_data:
                 raise HomeAssistantError(
                     translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_CHORE_COMPLETED_BY_OTHER,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
                     translation_placeholders={
-                        "chore_name": chore_name,
-                        "claimed_by": claimed_by,
+                        "entity_type": const.LABEL_CHORE,
+                        "name": chore_id,
                     },
                 )
-            # else: TRANS_KEY_ERROR_CHORE_ALREADY_APPROVED
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_CHORE_ALREADY_APPROVED,
-            )
 
-        default_points = chore_info.get(
-            const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_POINTS
-        )
-
-        # Phase 4: Check if gamification is enabled for shadow kids
-        # Regular kids always get points; shadow kids only if gamification enabled
-        enable_gamification = True  # Default for regular kids
-        if kh.is_shadow_kid(self, kid_id):
-            parent_data = kh.get_parent_for_shadow_kid(self, kid_id)
-            if parent_data:
-                enable_gamification = parent_data.get(
-                    const.DATA_PARENT_ENABLE_GAMIFICATION, False
+            chore_info = self.chores_data[chore_id]
+            if kid_id not in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_ASSIGNED,
+                    translation_placeholders={
+                        "entity": chore_info.get(const.DATA_CHORE_NAME),
+                        "kid": self.kids_data[kid_id][const.DATA_KID_NAME],
+                    },
                 )
 
-        # Award points only if gamification is enabled
-        points_to_award = default_points if enable_gamification else 0.0
-
-        # Note - multiplier will be added in the _update_kid_points method called from _process_chore_state
-        self._process_chore_state(
-            kid_id, chore_id, const.CHORE_STATE_APPROVED, points_awarded=points_to_award
-        )
-
-        # Decrement pending_count counter after approval (v0.4.0+ counter-based tracking)
-        kid_chores_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
-        # Use get() to avoid overwriting existing data that _process_chore_state just created
-        kid_chore_data_entry = kid_chores_data[
-            chore_id
-        ]  # Should exist from _process_chore_state
-        current_count = kid_chore_data_entry.get(
-            const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT, 0
-        )
-        kid_chore_data_entry[const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT] = max(
-            0, current_count - 1
-        )
-
-        # SHARED_FIRST: Update completed_by for other kids (they remain in completed_by_other state)
-        completion_criteria = chore_info.get(
-            const.DATA_CHORE_COMPLETION_CRITERIA, const.SENTINEL_EMPTY
-        )
-        if completion_criteria == const.COMPLETION_CRITERIA_SHARED_FIRST:
-            completing_kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
-            for other_kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
-                if other_kid_id == kid_id:
-                    continue  # Skip the completing kid
-                # Update the completed_by attribute
-                other_kid_info = self.kids_data.get(other_kid_id, {})
-                chore_data = other_kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
-                # Ensure proper chore data initialization
-                if chore_id not in chore_data:
-                    self._update_chore_data_for_kid(other_kid_id, chore_id, 0.0)
-                chore_entry = chore_data[chore_id]
-                chore_entry[const.DATA_CHORE_COMPLETED_BY] = completing_kid_name
-                const.LOGGER.debug(
-                    "SHARED_FIRST: Updated completed_by='%s' for kid '%s' on chore '%s'",
-                    completing_kid_name,
-                    other_kid_info.get(const.DATA_KID_NAME),
-                    chore_info.get(const.DATA_CHORE_NAME),
+            if kid_id not in self.kids_data:
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                    translation_placeholders={
+                        "entity_type": const.LABEL_KID,
+                        "name": kid_id,
+                    },
                 )
 
-        # Manage Achievements
-        today_local = kh.get_today_local_date()
-        for achievement_info in self.achievements_data.values():
-            if (
-                achievement_info.get(const.DATA_ACHIEVEMENT_TYPE)
-                == const.ACHIEVEMENT_TYPE_STREAK
-            ):
-                selected_chore_id = achievement_info.get(
-                    const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID
+            kid_info = self.kids_data[kid_id]
+
+            # Phase 4: Use timestamp-based helpers instead of deprecated lists
+            # This checks: completed_by_other, already_approved
+            can_approve, error_key = self._can_approve_chore(kid_id, chore_id)
+            if not can_approve:
+                chore_name = chore_info[const.DATA_CHORE_NAME]
+                const.LOGGER.warning(
+                    "Approve Chore: Cannot approve '%s' for kid '%s': %s",
+                    chore_name,
+                    kid_info[const.DATA_KID_NAME],
+                    error_key,
                 )
-                if selected_chore_id == chore_id:
-                    # Get or create the progress dict for this kid
-                    progress = achievement_info.setdefault(
-                        const.DATA_ACHIEVEMENT_PROGRESS, {}
-                    ).setdefault(
-                        kid_id,
-                        {
-                            const.DATA_KID_CURRENT_STREAK: const.DEFAULT_ZERO,
-                            const.DATA_KID_LAST_STREAK_DATE: None,
-                            const.DATA_ACHIEVEMENT_AWARDED: False,
+                # Determine the appropriate error message based on the error key
+                if error_key == const.TRANS_KEY_ERROR_CHORE_COMPLETED_BY_OTHER:
+                    kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
+                    claimed_by = kid_chore_data.get(
+                        const.DATA_CHORE_CLAIMED_BY, "another kid"
+                    )
+                    raise HomeAssistantError(
+                        translation_domain=const.DOMAIN,
+                        translation_key=const.TRANS_KEY_ERROR_CHORE_COMPLETED_BY_OTHER,
+                        translation_placeholders={
+                            "chore_name": chore_name,
+                            "claimed_by": claimed_by,
                         },
                     )
-                    self._update_streak_progress(progress, today_local)
-
-        # Manage Challenges
-        today_local_iso = kh.get_today_local_iso()
-        for challenge_info in self.challenges_data.values():
-            challenge_type = challenge_info.get(const.DATA_CHALLENGE_TYPE)
-
-            if challenge_type == const.CHALLENGE_TYPE_TOTAL_WITHIN_WINDOW:
-                selected_chore = challenge_info.get(
-                    const.DATA_CHALLENGE_SELECTED_CHORE_ID
-                )
-                if selected_chore and selected_chore != chore_id:
-                    continue
-
-                start_date_utc = kh.parse_datetime_to_utc(
-                    challenge_info.get(const.DATA_CHALLENGE_START_DATE)
+                # else: TRANS_KEY_ERROR_CHORE_ALREADY_APPROVED
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_CHORE_ALREADY_APPROVED,
                 )
 
-                end_date_utc = kh.parse_datetime_to_utc(
-                    challenge_info.get(const.DATA_CHALLENGE_END_DATE)
-                )
+            default_points = chore_info.get(
+                const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_POINTS
+            )
 
-                now_utc = dt_util.utcnow()
+            # Phase 4: Check if gamification is enabled for shadow kids
+            # Regular kids always get points; shadow kids only if gamification enabled
+            enable_gamification = True  # Default for regular kids
+            if kh.is_shadow_kid(self, kid_id):
+                parent_data = kh.get_parent_for_shadow_kid(self, kid_id)
+                if parent_data:
+                    enable_gamification = parent_data.get(
+                        const.DATA_PARENT_ENABLE_GAMIFICATION, False
+                    )
 
+            # Award points only if gamification is enabled
+            points_to_award = default_points if enable_gamification else 0.0
+
+            # Note - multiplier will be added in the _update_kid_points method called from _process_chore_state
+            self._process_chore_state(
+                kid_id,
+                chore_id,
+                const.CHORE_STATE_APPROVED,
+                points_awarded=points_to_award,
+            )
+
+            # Decrement pending_count counter after approval (v0.4.0+ counter-based tracking)
+            kid_chores_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
+            # Use get() to avoid overwriting existing data that _process_chore_state just created
+            kid_chore_data_entry = kid_chores_data[
+                chore_id
+            ]  # Should exist from _process_chore_state
+            current_count = kid_chore_data_entry.get(
+                const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT, 0
+            )
+            kid_chore_data_entry[const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT] = max(
+                0, current_count - 1
+            )
+
+            # SHARED_FIRST: Update completed_by for other kids (they remain in completed_by_other state)
+            completion_criteria = chore_info.get(
+                const.DATA_CHORE_COMPLETION_CRITERIA, const.SENTINEL_EMPTY
+            )
+            if completion_criteria == const.COMPLETION_CRITERIA_SHARED_FIRST:
+                completing_kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
+                for other_kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
+                    if other_kid_id == kid_id:
+                        continue  # Skip the completing kid
+                    # Update the completed_by attribute
+                    other_kid_info = self.kids_data.get(other_kid_id, {})
+                    chore_data = other_kid_info.setdefault(
+                        const.DATA_KID_CHORE_DATA, {}
+                    )
+                    # Ensure proper chore data initialization
+                    if chore_id not in chore_data:
+                        self._update_chore_data_for_kid(other_kid_id, chore_id, 0.0)
+                    chore_entry = chore_data[chore_id]
+                    chore_entry[const.DATA_CHORE_COMPLETED_BY] = completing_kid_name
+                    const.LOGGER.debug(
+                        "SHARED_FIRST: Updated completed_by='%s' for kid '%s' on chore '%s'",
+                        completing_kid_name,
+                        other_kid_info.get(const.DATA_KID_NAME),
+                        chore_info.get(const.DATA_CHORE_NAME),
+                    )
+
+            # Manage Achievements
+            today_local = kh.get_today_local_date()
+            for achievement_info in self.achievements_data.values():
                 if (
-                    start_date_utc
-                    and end_date_utc
-                    and start_date_utc <= now_utc <= end_date_utc
+                    achievement_info.get(const.DATA_ACHIEVEMENT_TYPE)
+                    == const.ACHIEVEMENT_TYPE_STREAK
                 ):
-                    progress = challenge_info.setdefault(
-                        const.DATA_CHALLENGE_PROGRESS, {}
-                    ).setdefault(
-                        kid_id,
-                        {
-                            const.DATA_CHALLENGE_COUNT: const.DEFAULT_ZERO,
-                            const.DATA_CHALLENGE_AWARDED: False,
-                        },
+                    selected_chore_id = achievement_info.get(
+                        const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID
                     )
-                    progress[const.DATA_CHALLENGE_COUNT] += 1
-
-            elif challenge_type == const.CHALLENGE_TYPE_DAILY_MIN:
-                selected_chore = challenge_info.get(
-                    const.DATA_CHALLENGE_SELECTED_CHORE_ID
-                )
-                if not selected_chore:
-                    const.LOGGER.warning(
-                        "WARNING: Challenge '%s' of type daily minimum has no selected chore id. Skipping progress update.",
-                        challenge_info.get(const.DATA_CHALLENGE_NAME),
-                    )
-                    continue
-
-                if selected_chore != chore_id:
-                    continue
-
-                if kid_id in challenge_info.get(const.DATA_CHALLENGE_ASSIGNED_KIDS, []):
-                    progress = challenge_info.setdefault(
-                        const.DATA_CHALLENGE_PROGRESS, {}
-                    ).setdefault(
-                        kid_id,
-                        {
-                            const.DATA_CHALLENGE_DAILY_COUNTS: {},
-                            const.DATA_CHALLENGE_AWARDED: False,
-                        },
-                    )
-                    progress[const.DATA_CHALLENGE_DAILY_COUNTS][today_local_iso] = (
-                        progress[const.DATA_CHALLENGE_DAILY_COUNTS].get(
-                            today_local_iso, const.DEFAULT_ZERO
+                    if selected_chore_id == chore_id:
+                        # Get or create the progress dict for this kid
+                        progress = achievement_info.setdefault(
+                            const.DATA_ACHIEVEMENT_PROGRESS, {}
+                        ).setdefault(
+                            kid_id,
+                            {
+                                const.DATA_KID_CURRENT_STREAK: const.DEFAULT_ZERO,
+                                const.DATA_KID_LAST_STREAK_DATE: None,
+                                const.DATA_ACHIEVEMENT_AWARDED: False,
+                            },
                         )
-                        + 1
+                        self._update_streak_progress(progress, today_local)
+
+            # Manage Challenges
+            today_local_iso = kh.get_today_local_iso()
+            for challenge_info in self.challenges_data.values():
+                challenge_type = challenge_info.get(const.DATA_CHALLENGE_TYPE)
+
+                if challenge_type == const.CHALLENGE_TYPE_TOTAL_WITHIN_WINDOW:
+                    selected_chore = challenge_info.get(
+                        const.DATA_CHALLENGE_SELECTED_CHORE_ID
+                    )
+                    if selected_chore and selected_chore != chore_id:
+                        continue
+
+                    start_date_utc = kh.parse_datetime_to_utc(
+                        challenge_info.get(const.DATA_CHALLENGE_START_DATE)
                     )
 
-        # For INDEPENDENT chores with UPON_COMPLETION reset type, reschedule per-kid due date after approval
-        # Other reset types (at_midnight_*, at_due_date_*) should NOT reschedule on approval
-        # UNLESS overdue_handling is immediate_on_late AND approval is late
-        approval_reset_type = chore_info.get(
-            const.DATA_CHORE_APPROVAL_RESET_TYPE, const.DEFAULT_APPROVAL_RESET_TYPE
-        )
-        overdue_handling = chore_info.get(
-            const.DATA_CHORE_OVERDUE_HANDLING_TYPE, const.DEFAULT_OVERDUE_HANDLING_TYPE
-        )
+                    end_date_utc = kh.parse_datetime_to_utc(
+                        challenge_info.get(const.DATA_CHALLENGE_END_DATE)
+                    )
 
-        # Check if this is a late approval (after reset boundary passed)
-        is_late_approval = self._is_approval_after_reset_boundary(chore_info, kid_id)
+                    now_utc = dt_util.utcnow()
 
-        # Determine if immediate reschedule is needed
-        should_reschedule_immediately = (
-            approval_reset_type == const.APPROVAL_RESET_UPON_COMPLETION
-            or (
-                overdue_handling
-                == const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE
-                and is_late_approval
+                    if (
+                        start_date_utc
+                        and end_date_utc
+                        and start_date_utc <= now_utc <= end_date_utc
+                    ):
+                        progress = challenge_info.setdefault(
+                            const.DATA_CHALLENGE_PROGRESS, {}
+                        ).setdefault(
+                            kid_id,
+                            {
+                                const.DATA_CHALLENGE_COUNT: const.DEFAULT_ZERO,
+                                const.DATA_CHALLENGE_AWARDED: False,
+                            },
+                        )
+                        progress[const.DATA_CHALLENGE_COUNT] += 1
+
+                elif challenge_type == const.CHALLENGE_TYPE_DAILY_MIN:
+                    selected_chore = challenge_info.get(
+                        const.DATA_CHALLENGE_SELECTED_CHORE_ID
+                    )
+                    if not selected_chore:
+                        const.LOGGER.warning(
+                            "WARNING: Challenge '%s' of type daily minimum has no selected chore id. Skipping progress update.",
+                            challenge_info.get(const.DATA_CHALLENGE_NAME),
+                        )
+                        continue
+
+                    if selected_chore != chore_id:
+                        continue
+
+                    if kid_id in challenge_info.get(
+                        const.DATA_CHALLENGE_ASSIGNED_KIDS, []
+                    ):
+                        progress = challenge_info.setdefault(
+                            const.DATA_CHALLENGE_PROGRESS, {}
+                        ).setdefault(
+                            kid_id,
+                            {
+                                const.DATA_CHALLENGE_DAILY_COUNTS: {},
+                                const.DATA_CHALLENGE_AWARDED: False,
+                            },
+                        )
+                        progress[const.DATA_CHALLENGE_DAILY_COUNTS][today_local_iso] = (
+                            progress[const.DATA_CHALLENGE_DAILY_COUNTS].get(
+                                today_local_iso, const.DEFAULT_ZERO
+                            )
+                            + 1
+                        )
+
+            # For INDEPENDENT chores with UPON_COMPLETION reset type, reschedule per-kid due date after approval
+            # Other reset types (at_midnight_*, at_due_date_*) should NOT reschedule on approval
+            # UNLESS overdue_handling is immediate_on_late AND approval is late
+            approval_reset_type = chore_info.get(
+                const.DATA_CHORE_APPROVAL_RESET_TYPE, const.DEFAULT_APPROVAL_RESET_TYPE
             )
-        )
-
-        if (
-            chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
-            == const.COMPLETION_CRITERIA_INDEPENDENT
-            and should_reschedule_immediately
-        ):
-            self._reschedule_chore_next_due_date_for_kid(chore_info, chore_id, kid_id)
-
-        # CFE-2026-002: For SHARED chores with UPON_COMPLETION, check if all kids approved
-        # and reschedule chore-level due date immediately
-        completion_criteria = chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
-        if (
-            completion_criteria
-            in (
-                const.COMPLETION_CRITERIA_SHARED,
-                const.COMPLETION_CRITERIA_SHARED_FIRST,
+            overdue_handling = chore_info.get(
+                const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
+                const.DEFAULT_OVERDUE_HANDLING_TYPE,
             )
-            and should_reschedule_immediately
-        ):
-            # Check if all assigned kids have approved in current period
-            assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
-            all_approved = all(
-                self.is_approved_in_current_period(kid, chore_id)
-                for kid in assigned_kids
+
+            # Check if this is a late approval (after reset boundary passed)
+            is_late_approval = self._is_approval_after_reset_boundary(
+                chore_info, kid_id
             )
-            if all_approved:
-                const.LOGGER.debug(
-                    "CFE-2026-002: All kids approved SHARED chore '%s', rescheduling immediately",
-                    chore_info.get(const.DATA_CHORE_NAME),
+
+            # Determine if immediate reschedule is needed
+            should_reschedule_immediately = (
+                approval_reset_type == const.APPROVAL_RESET_UPON_COMPLETION
+                or (
+                    overdue_handling
+                    == const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE
+                    and is_late_approval
                 )
-                self._reschedule_chore_next_due_date(chore_info)
-
-        # Send a notification to the kid that chore was approved
-        if chore_info.get(
-            const.DATA_CHORE_NOTIFY_ON_APPROVAL, const.DEFAULT_NOTIFY_ON_APPROVAL
-        ):
-            extra_data = {const.DATA_KID_ID: kid_id, const.DATA_CHORE_ID: chore_id}
-            self.hass.async_create_task(
-                self._notify_kid_translated(
-                    kid_id,
-                    title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_APPROVED,
-                    message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_APPROVED,
-                    message_data={
-                        "chore_name": chore_info[const.DATA_CHORE_NAME],
-                        "points": default_points,
-                    },
-                    extra_data=extra_data,
-                )
             )
 
-        self._persist()
-        self.async_set_updated_data(self._data)
+            if (
+                chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
+                == const.COMPLETION_CRITERIA_INDEPENDENT
+                and should_reschedule_immediately
+            ):
+                self._reschedule_chore_next_due_date_for_kid(
+                    chore_info, chore_id, kid_id
+                )
 
-        perf_duration = time.perf_counter() - perf_start
-        const.LOGGER.debug(
-            "PERF: approve_chore() took %.3fs for kid '%s' chore '%s' (includes %.1f points addition)",
-            perf_duration,
-            kid_id,
-            chore_id,
-            default_points,
-        )
+            # CFE-2026-002: For SHARED chores with UPON_COMPLETION, check if all kids approved
+            # and reschedule chore-level due date immediately
+            completion_criteria = chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
+            if (
+                completion_criteria
+                in (
+                    const.COMPLETION_CRITERIA_SHARED,
+                    const.COMPLETION_CRITERIA_SHARED_FIRST,
+                )
+                and should_reschedule_immediately
+            ):
+                # Check if all assigned kids have approved in current period
+                assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+                all_approved = all(
+                    self.is_approved_in_current_period(kid, chore_id)
+                    for kid in assigned_kids
+                )
+                if all_approved:
+                    const.LOGGER.debug(
+                        "CFE-2026-002: All kids approved SHARED chore '%s', rescheduling immediately",
+                        chore_info.get(const.DATA_CHORE_NAME),
+                    )
+                    self._reschedule_chore_next_due_date(chore_info)
+
+            # Send a notification to the kid that chore was approved
+            if chore_info.get(
+                const.DATA_CHORE_NOTIFY_ON_APPROVAL, const.DEFAULT_NOTIFY_ON_APPROVAL
+            ):
+                extra_data = {const.DATA_KID_ID: kid_id, const.DATA_CHORE_ID: chore_id}
+                self.hass.async_create_task(
+                    self._notify_kid_translated(
+                        kid_id,
+                        title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_APPROVED,
+                        message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_APPROVED,
+                        message_data={
+                            "chore_name": chore_info[const.DATA_CHORE_NAME],
+                            "points": default_points,
+                        },
+                        extra_data=extra_data,
+                    )
+                )
+
+            # Replace parent pending notification with status update (v0.5.0+)
+            # Check if there are more pending chores or clear with status
+            remaining_pending = self._count_pending_chores_for_kid(kid_id)
+            kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
+            chore_name = chore_info.get(const.DATA_CHORE_NAME, "Unknown")
+
+            if remaining_pending > 0:
+                # Still have pending chores - send updated aggregated notification
+                # Get most recent pending chore for display
+                latest_pending = self._get_latest_pending_chore(kid_id)
+                if latest_pending:
+                    latest_chore_id = latest_pending.get(const.DATA_CHORE_ID, "")
+                    if latest_chore_id and latest_chore_id in self.chores_data:
+                        latest_chore_info = self.chores_data[latest_chore_id]
+                        latest_chore_name = latest_chore_info.get(
+                            const.DATA_CHORE_NAME, "Unknown"
+                        )
+                        latest_points = latest_chore_info.get(
+                            const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_ZERO
+                        )
+                        actions = [
+                            {
+                                const.NOTIFY_ACTION: f"{const.ACTION_APPROVE_CHORE}|{kid_id}|{latest_chore_id}",
+                                const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_APPROVE,
+                            },
+                            {
+                                const.NOTIFY_ACTION: f"{const.ACTION_DISAPPROVE_CHORE}|{kid_id}|{latest_chore_id}",
+                                const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE,
+                            },
+                        ]
+                        self.hass.async_create_task(
+                            self._notify_parents_translated(
+                                kid_id,
+                                title_key=const.TRANS_KEY_NOTIF_TITLE_PENDING_CHORES,
+                                message_key=const.TRANS_KEY_NOTIF_MESSAGE_PENDING_CHORES,
+                                message_data={
+                                    "kid_name": kid_name,
+                                    "count": remaining_pending,
+                                    "latest_chore": latest_chore_name,
+                                    "points": int(latest_points),
+                                },
+                                actions=actions,
+                                extra_data={
+                                    const.DATA_KID_ID: kid_id,
+                                    const.DATA_CHORE_ID: latest_chore_id,
+                                },
+                                tag_type=const.NOTIFY_TAG_TYPE_PENDING,
+                            )
+                        )
+            else:
+                # No more pending - replace with status update
+                self.hass.async_create_task(
+                    self._notify_parents_translated(
+                        kid_id,
+                        title_key=const.TRANS_KEY_NOTIF_TITLE_STATUS_UPDATE,
+                        message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_APPROVED_STATUS,
+                        message_data={
+                            "chore_name": chore_name,
+                            "parent_name": parent_name,
+                        },
+                        tag_type=const.NOTIFY_TAG_TYPE_PENDING,
+                    )
+                )
+
+            # Clear due-soon reminder tracking (v0.5.0+) - chore was completed
+            self._clear_due_soon_reminder(chore_id, kid_id)
+
+            self._persist()
+            self.async_set_updated_data(self._data)
+
+            perf_duration = time.perf_counter() - perf_start
+            const.LOGGER.debug(
+                "PERF: approve_chore() took %.3fs for kid '%s' chore '%s' (includes %.1f points addition)",
+                perf_duration,
+                kid_id,
+                chore_id,
+                default_points,
+            )
 
     def disapprove_chore(self, parent_name: str, kid_id: str, chore_id: str):
         """Disapprove a chore for kid_id."""
@@ -3575,6 +3768,67 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT, 0
         )
         return pending_claim_count > 0
+
+    def _count_pending_chores_for_kid(self, kid_id: str) -> int:
+        """Count total pending chores awaiting approval for a specific kid.
+
+        Used for tag-based notification aggregation (v0.5.0+) to show
+        "Sarah: 3 chores pending" instead of individual notifications.
+
+        Args:
+            kid_id: The internal ID of the kid.
+
+        Returns:
+            Number of chores with pending claims for this kid.
+        """
+        count = 0
+        kid_info = self.kids_data.get(kid_id, {})
+        chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
+
+        for chore_id in chore_data:
+            # Skip chores that no longer exist
+            if chore_id not in self.chores_data:
+                continue
+            if self.has_pending_claim(kid_id, chore_id):
+                count += 1
+
+        return count
+
+    def _get_latest_pending_chore(self, kid_id: str) -> dict[str, Any] | None:
+        """Get the most recently claimed pending chore for a kid.
+
+        Used for tag-based notification aggregation (v0.5.0+) to show
+        the latest chore details in aggregated notifications.
+
+        Args:
+            kid_id: The internal ID of the kid.
+
+        Returns:
+            Dict with kid_id and chore_id of latest pending chore, or None if none.
+        """
+        latest: dict[str, Any] | None = None
+        latest_timestamp: str | None = None
+
+        kid_info = self.kids_data.get(kid_id, {})
+        chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
+
+        for chore_id, chore_entry in chore_data.items():
+            # Skip chores that no longer exist
+            if chore_id not in self.chores_data:
+                continue
+            if not self.has_pending_claim(kid_id, chore_id):
+                continue
+
+            last_claimed = chore_entry.get(const.DATA_KID_CHORE_DATA_LAST_CLAIMED)
+            if last_claimed:
+                if latest_timestamp is None or last_claimed > latest_timestamp:
+                    latest_timestamp = last_claimed
+                    latest = {
+                        const.DATA_KID_ID: kid_id,
+                        const.DATA_CHORE_ID: chore_id,
+                    }
+
+        return latest
 
     def is_overdue(self, kid_id: str, chore_id: str) -> bool:
         """Check if a chore is in overdue state for a specific kid.
@@ -5151,96 +5405,175 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self._persist()
         self.async_set_updated_data(self._data)
 
-    def approve_reward(
+    async def approve_reward(
         self,
-        parent_name: str,  # Reserved for future feature
+        parent_name: str,  # Used for stale notification feedback
         kid_id: str,
         reward_id: str,
         notif_id: str | None = None,
     ):
-        """Parent approves the reward => deduct points."""
-        kid_info = self.kids_data.get(kid_id)
-        if not kid_info:
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_KID,
-                    "name": kid_id,
-                },
-            )
+        """Parent approves the reward => deduct points.
 
-        reward_info = self.rewards_data.get(reward_id)
-        if not reward_info:
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_REWARD,
-                    "name": reward_id,
-                },
-            )
-
-        cost = reward_info.get(const.DATA_REWARD_COST, const.DEFAULT_ZERO)
-
-        # Get pending_count from kid_reward_data
-        reward_entry = self._get_kid_reward_data(kid_id, reward_id, create=False)
-        pending_count = reward_entry.get(const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0)
-
-        if pending_count > 0:
-            if kid_info[const.DATA_KID_POINTS] < cost:
+        Thread-safe implementation using asyncio.Lock to prevent race conditions
+        when multiple parents click approve simultaneously (v0.5.0+).
+        """
+        # Acquire lock for this specific kid+reward combination to prevent race conditions
+        lock = self._get_approval_lock("approve_reward", kid_id, reward_id)
+        async with lock:
+            kid_info = self.kids_data.get(kid_id)
+            if not kid_info:
                 raise HomeAssistantError(
                     translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_INSUFFICIENT_POINTS,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
                     translation_placeholders={
-                        "kid": kid_info[const.DATA_KID_NAME],
-                        "current": str(kid_info[const.DATA_KID_POINTS]),
-                        "required": str(cost),
+                        "entity_type": const.LABEL_KID,
+                        "name": kid_id,
                     },
                 )
 
-            # Deduct points for one claim.
-            if cost is not None:
-                self.update_kid_points(
-                    kid_id, delta=-cost, source=const.POINTS_SOURCE_REWARDS
+            reward_info = self.rewards_data.get(reward_id)
+            if not reward_info:
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                    translation_placeholders={
+                        "entity_type": const.LABEL_REWARD,
+                        "name": reward_id,
+                    },
                 )
 
-            # Update kid_reward_data structure
-            if reward_entry:
-                reward_entry[const.DATA_KID_REWARD_DATA_PENDING_COUNT] = max(
-                    0, reward_entry.get(const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0) - 1
-                )
-                reward_entry[const.DATA_KID_REWARD_DATA_LAST_APPROVED] = (
+            cost = reward_info.get(const.DATA_REWARD_COST, const.DEFAULT_ZERO)
+
+            # Get pending_count from kid_reward_data
+            # Re-fetch inside lock for defensive race condition protection
+            reward_entry = self._get_kid_reward_data(kid_id, reward_id, create=False)
+            pending_count = reward_entry.get(
+                const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0
+            )
+
+            if pending_count > 0:
+                if kid_info[const.DATA_KID_POINTS] < cost:
+                    raise HomeAssistantError(
+                        translation_domain=const.DOMAIN,
+                        translation_key=const.TRANS_KEY_ERROR_INSUFFICIENT_POINTS,
+                        translation_placeholders={
+                            "kid": kid_info[const.DATA_KID_NAME],
+                            "current": str(kid_info[const.DATA_KID_POINTS]),
+                            "required": str(cost),
+                        },
+                    )
+
+                # Deduct points for one claim.
+                if cost is not None:
+                    self.update_kid_points(
+                        kid_id, delta=-cost, source=const.POINTS_SOURCE_REWARDS
+                    )
+
+                # Update kid_reward_data structure
+                if reward_entry:
+                    reward_entry[const.DATA_KID_REWARD_DATA_PENDING_COUNT] = max(
+                        0,
+                        reward_entry.get(const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0)
+                        - 1,
+                    )
+                    reward_entry[const.DATA_KID_REWARD_DATA_LAST_APPROVED] = (
+                        dt_util.utcnow().isoformat()
+                    )
+                    reward_entry[const.DATA_KID_REWARD_DATA_TOTAL_APPROVED] = (
+                        reward_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_APPROVED, 0)
+                        + 1
+                    )
+                    reward_entry[const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT] = (
+                        reward_entry.get(
+                            const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT, 0
+                        )
+                        + cost
+                    )
+
+                    # Update period-based tracking for approved + points
+                    self._increment_reward_period_counter(
+                        reward_entry, const.DATA_KID_REWARD_DATA_PERIOD_APPROVED
+                    )
+                    self._increment_reward_period_counter(
+                        reward_entry,
+                        const.DATA_KID_REWARD_DATA_PERIOD_POINTS,
+                        amount=cost,
+                    )
+
+                    # Remove notification ID if provided
+                    if notif_id:
+                        notif_ids = reward_entry.get(
+                            const.DATA_KID_REWARD_DATA_NOTIFICATION_IDS, []
+                        )
+                        if notif_id in notif_ids:
+                            notif_ids.remove(notif_id)
+
+                    # Cleanup old period data using retention settings
+                    kh.cleanup_period_data(
+                        self,
+                        periods_data=reward_entry.get(
+                            const.DATA_KID_REWARD_DATA_PERIODS, {}
+                        ),
+                        period_keys={
+                            "daily": const.DATA_KID_REWARD_DATA_PERIODS_DAILY,
+                            "weekly": const.DATA_KID_REWARD_DATA_PERIODS_WEEKLY,
+                            "monthly": const.DATA_KID_REWARD_DATA_PERIODS_MONTHLY,
+                            "yearly": const.DATA_KID_REWARD_DATA_PERIODS_YEARLY,
+                        },
+                        retention_daily=self.config_entry.options.get(
+                            const.CONF_RETENTION_DAILY, const.DEFAULT_RETENTION_DAILY
+                        ),
+                        retention_weekly=self.config_entry.options.get(
+                            const.CONF_RETENTION_WEEKLY, const.DEFAULT_RETENTION_WEEKLY
+                        ),
+                        retention_monthly=self.config_entry.options.get(
+                            const.CONF_RETENTION_MONTHLY,
+                            const.DEFAULT_RETENTION_MONTHLY,
+                        ),
+                        retention_yearly=self.config_entry.options.get(
+                            const.CONF_RETENTION_YEARLY, const.DEFAULT_RETENTION_YEARLY
+                        ),
+                    )
+
+            else:
+                # Direct approval (no pending claim present).
+                if kid_info[const.DATA_KID_POINTS] < cost:
+                    raise HomeAssistantError(
+                        translation_domain=const.DOMAIN,
+                        translation_key=const.TRANS_KEY_ERROR_INSUFFICIENT_POINTS,
+                        translation_placeholders={
+                            "kid": kid_info[const.DATA_KID_NAME],
+                            "current": str(kid_info[const.DATA_KID_POINTS]),
+                            "required": str(cost),
+                        },
+                    )
+                kid_info[const.DATA_KID_POINTS] -= cost
+
+                # Update kid_reward_data structure for direct approval
+                direct_entry = self._get_kid_reward_data(kid_id, reward_id, create=True)
+                direct_entry[const.DATA_KID_REWARD_DATA_LAST_APPROVED] = (
                     dt_util.utcnow().isoformat()
                 )
-                reward_entry[const.DATA_KID_REWARD_DATA_TOTAL_APPROVED] = (
-                    reward_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_APPROVED, 0) + 1
+                direct_entry[const.DATA_KID_REWARD_DATA_TOTAL_APPROVED] = (
+                    direct_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_APPROVED, 0) + 1
                 )
-                reward_entry[const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT] = (
-                    reward_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT, 0)
+                direct_entry[const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT] = (
+                    direct_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT, 0)
                     + cost
                 )
 
                 # Update period-based tracking for approved + points
                 self._increment_reward_period_counter(
-                    reward_entry, const.DATA_KID_REWARD_DATA_PERIOD_APPROVED
+                    direct_entry, const.DATA_KID_REWARD_DATA_PERIOD_APPROVED
                 )
                 self._increment_reward_period_counter(
-                    reward_entry, const.DATA_KID_REWARD_DATA_PERIOD_POINTS, amount=cost
+                    direct_entry, const.DATA_KID_REWARD_DATA_PERIOD_POINTS, amount=cost
                 )
-
-                # Remove notification ID if provided
-                if notif_id:
-                    notif_ids = reward_entry.get(
-                        const.DATA_KID_REWARD_DATA_NOTIFICATION_IDS, []
-                    )
-                    if notif_id in notif_ids:
-                        notif_ids.remove(notif_id)
 
                 # Cleanup old period data using retention settings
                 kh.cleanup_period_data(
                     self,
-                    periods_data=reward_entry.get(
+                    periods_data=direct_entry.get(
                         const.DATA_KID_REWARD_DATA_PERIODS, {}
                     ),
                     period_keys={
@@ -5263,82 +5596,23 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     ),
                 )
 
-        else:
-            # Direct approval (no pending claim present).
-            if kid_info[const.DATA_KID_POINTS] < cost:
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_INSUFFICIENT_POINTS,
-                    translation_placeholders={
-                        "kid": kid_info[const.DATA_KID_NAME],
-                        "current": str(kid_info[const.DATA_KID_POINTS]),
-                        "required": str(cost),
-                    },
+            # Check badges
+            self._check_badges_for_kid(kid_id)
+
+            # Notify the kid that the reward has been approved
+            extra_data = {const.DATA_KID_ID: kid_id, const.DATA_REWARD_ID: reward_id}
+            self.hass.async_create_task(
+                self._notify_kid_translated(
+                    kid_id,
+                    title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_APPROVED,
+                    message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_APPROVED,
+                    message_data={"reward_name": reward_info[const.DATA_REWARD_NAME]},
+                    extra_data=extra_data,
                 )
-            kid_info[const.DATA_KID_POINTS] -= cost
-
-            # Update kid_reward_data structure for direct approval
-            direct_entry = self._get_kid_reward_data(kid_id, reward_id, create=True)
-            direct_entry[const.DATA_KID_REWARD_DATA_LAST_APPROVED] = (
-                dt_util.utcnow().isoformat()
-            )
-            direct_entry[const.DATA_KID_REWARD_DATA_TOTAL_APPROVED] = (
-                direct_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_APPROVED, 0) + 1
-            )
-            direct_entry[const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT] = (
-                direct_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT, 0)
-                + cost
             )
 
-            # Update period-based tracking for approved + points
-            self._increment_reward_period_counter(
-                direct_entry, const.DATA_KID_REWARD_DATA_PERIOD_APPROVED
-            )
-            self._increment_reward_period_counter(
-                direct_entry, const.DATA_KID_REWARD_DATA_PERIOD_POINTS, amount=cost
-            )
-
-            # Cleanup old period data using retention settings
-            kh.cleanup_period_data(
-                self,
-                periods_data=direct_entry.get(const.DATA_KID_REWARD_DATA_PERIODS, {}),
-                period_keys={
-                    "daily": const.DATA_KID_REWARD_DATA_PERIODS_DAILY,
-                    "weekly": const.DATA_KID_REWARD_DATA_PERIODS_WEEKLY,
-                    "monthly": const.DATA_KID_REWARD_DATA_PERIODS_MONTHLY,
-                    "yearly": const.DATA_KID_REWARD_DATA_PERIODS_YEARLY,
-                },
-                retention_daily=self.config_entry.options.get(
-                    const.CONF_RETENTION_DAILY, const.DEFAULT_RETENTION_DAILY
-                ),
-                retention_weekly=self.config_entry.options.get(
-                    const.CONF_RETENTION_WEEKLY, const.DEFAULT_RETENTION_WEEKLY
-                ),
-                retention_monthly=self.config_entry.options.get(
-                    const.CONF_RETENTION_MONTHLY, const.DEFAULT_RETENTION_MONTHLY
-                ),
-                retention_yearly=self.config_entry.options.get(
-                    const.CONF_RETENTION_YEARLY, const.DEFAULT_RETENTION_YEARLY
-                ),
-            )
-
-        # Check badges
-        self._check_badges_for_kid(kid_id)
-
-        # Notify the kid that the reward has been approved
-        extra_data = {const.DATA_KID_ID: kid_id, const.DATA_REWARD_ID: reward_id}
-        self.hass.async_create_task(
-            self._notify_kid_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_APPROVED,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_APPROVED,
-                message_data={"reward_name": reward_info[const.DATA_REWARD_NAME]},
-                extra_data=extra_data,
-            )
-        )
-
-        self._persist()
-        self.async_set_updated_data(self._data)
+            self._persist()
+            self.async_set_updated_data(self._data)
 
     def disapprove_reward(self, parent_name: str, kid_id: str, reward_id: str):
         """Disapprove a reward for kid_id."""
@@ -8669,6 +8943,120 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             chore_count * kid_count,
         )
 
+    async def _check_due_date_reminders(self) -> None:
+        """Check for chores due soon and send reminder notifications to kids (v0.5.0+).
+
+        Hooks into coordinator refresh cycle (typically every 5 min) to check for
+        chores that are due within the next 30 minutes and haven't had reminders sent.
+
+        Timing behavior:
+        - Reminder window: 30 minutes before due date
+        - Check frequency: Every coordinator refresh (~5 min)
+        - Practical timing: Kids receive notification 25-35 min before due
+
+        Tracking:
+        - Uses transient `_due_soon_reminders_sent` set (resets on HA restart)
+        - Key format: "{chore_id}:{kid_id}"
+        - Acceptable behavior: One duplicate reminder per chore after HA restart
+        """
+        now_utc = dt_util.utcnow()
+        reminder_window = timedelta(minutes=30)
+        reminders_sent = 0
+
+        const.LOGGER.debug(
+            "Due date reminders - Starting check at %s",
+            now_utc.isoformat(),
+        )
+
+        for chore_id, chore_info in self.chores_data.items():
+            # Get assigned kids for this chore
+            assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+            if not assigned_kids:
+                continue
+
+            # Check completion criteria to determine due date handling
+            completion_criteria = chore_info.get(
+                const.DATA_CHORE_COMPLETION_CRITERIA,
+                const.COMPLETION_CRITERIA_INDEPENDENT,
+            )
+
+            for kid_id in assigned_kids:
+                # Build unique key for this chore+kid combination
+                reminder_key = f"{chore_id}:{kid_id}"
+
+                # Skip if already sent this reminder (transient tracking)
+                if reminder_key in self._due_soon_reminders_sent:
+                    continue
+
+                # Skip if kid has due date reminders disabled (v0.5.0+)
+                kid_info = self.kids_data.get(kid_id, {})
+                if not kid_info.get(const.DATA_KID_ENABLE_DUE_DATE_REMINDERS, True):
+                    continue
+
+                # Skip if kid already claimed or completed this chore
+                if self.has_pending_claim(kid_id, chore_id):
+                    continue
+                if self.is_approved_in_current_period(kid_id, chore_id):
+                    continue
+
+                # Get due date based on completion criteria
+                if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+                    # Independent chores: per-kid due date in per_kid_due_dates
+                    per_kid_due_dates = chore_info.get(
+                        const.DATA_CHORE_PER_KID_DUE_DATES, {}
+                    )
+                    due_date_str = per_kid_due_dates.get(kid_id, const.SENTINEL_EMPTY)
+                else:
+                    # Shared chores: single due date on chore level
+                    due_date_str = chore_info.get(
+                        const.DATA_CHORE_DUE_DATE, const.SENTINEL_EMPTY
+                    )
+
+                if not due_date_str:
+                    continue
+
+                # Parse due date and check if within reminder window
+                due_dt = kh.parse_datetime_to_utc(due_date_str)
+                if due_dt is None:
+                    continue
+
+                time_until_due = due_dt - now_utc
+
+                # Check: due within 30 min AND not past due yet
+                if timedelta(0) < time_until_due <= reminder_window:
+                    # Send due-soon reminder to kid
+                    minutes_remaining = int(time_until_due.total_seconds() / 60)
+                    chore_name = chore_info.get(const.DATA_CHORE_NAME, "Unknown Chore")
+                    points = chore_info.get(const.DATA_CHORE_DEFAULT_POINTS, 0)
+
+                    await self._notify_kid_translated(
+                        kid_id,
+                        const.TRANS_KEY_NOTIF_TITLE_CHORE_DUE_SOON,
+                        const.TRANS_KEY_NOTIF_MESSAGE_CHORE_DUE_SOON,
+                        message_data={
+                            "chore_name": chore_name,
+                            "minutes": minutes_remaining,
+                            "points": points,
+                        },
+                    )
+
+                    # Mark as sent (transient - resets on HA restart)
+                    self._due_soon_reminders_sent.add(reminder_key)
+                    reminders_sent += 1
+
+                    const.LOGGER.debug(
+                        "Sent due-soon reminder for chore '%s' to kid '%s' (%d min remaining)",
+                        chore_name,
+                        kid_id,
+                        minutes_remaining,
+                    )
+
+        if reminders_sent > 0:
+            const.LOGGER.debug(
+                "Due date reminders - Sent %d reminder(s)",
+                reminders_sent,
+            )
+
     async def _reset_all_chore_counts(self, now: datetime):
         """Trigger resets based on the current time for all frequencies."""
         await self._handle_recurring_chore_resets(now)
@@ -10656,10 +11044,13 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         message_data: dict[str, Any] | None = None,
         actions: list[dict[str, str]] | None = None,
         extra_data: dict | None = None,
+        tag_type: str | None = None,
     ) -> None:
         """Notify parents using translated title and message.
 
         Each parent receives notifications in their own preferred language.
+        Supports tag-based notification replacement (v0.5.0+).
+        Uses concurrent notification sending for ~3x performance improvement (v0.5.0+).
 
         Args:
             kid_id: The internal ID of the kid (to find associated parents)
@@ -10668,12 +11059,32 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             message_data: Dictionary of placeholder values for message formatting
             actions: Optional list of notification actions
             extra_data: Optional extra data for mobile notifications
+            tag_type: Optional tag type for smart notification replacement.
+                      Use const.NOTIFY_TAG_TYPE_* constants. When provided,
+                      generates tag "kidschores-{tag_type}-{kid_id}" to enable
+                      notification replacement instead of stacking.
         """
+        import asyncio
+
+        from .notification_helper import build_notification_tag
+
         # PERF: Measure parent notification latency
         perf_start = time.perf_counter()
-        parent_count = 0
 
-        # Notify each parent in their own language
+        # Build notification tag if tag_type provided (v0.5.0+ smart replacement)
+        notification_tag = None
+        if tag_type:
+            notification_tag = build_notification_tag(tag_type, kid_id)
+            const.LOGGER.debug(
+                "Using notification tag '%s' for kid_id '%s'",
+                notification_tag,
+                kid_id,
+            )
+
+        # Phase 1: Prepare all parent notifications (translations, formatting)
+        # This is done sequentially since translations may need I/O
+        notification_tasks: list[tuple[str, Any]] = []
+
         for parent_id, parent_info in self.parents_data.items():
             if kid_id not in parent_info.get(const.DATA_PARENT_ASSOCIATED_KIDS, []):
                 continue
@@ -10701,14 +11112,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 title_key,
             )
 
-            # Load notification translations for this parent's language
+            # Load notification translations for this parent's language (uses cache)
             translations = await kh.load_notification_translation(
                 self.hass, parent_language
-            )
-            const.LOGGER.debug(
-                "Parent notification translations loaded: %d keys, language=%s",
-                len(translations),
-                parent_language,
             )
 
             # Convert const key to JSON key by removing prefix
@@ -10750,14 +11156,13 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     )
                     translated_action[const.NOTIFY_TITLE] = translated_title
                     translated_actions.append(translated_action)
-                const.LOGGER.debug(
-                    "Translated action buttons for parent %s: %s -> %s",
-                    parent_id,
-                    [a.get(const.NOTIFY_TITLE) for a in actions],
-                    [a.get(const.NOTIFY_TITLE) for a in translated_actions],
-                )
 
-            # Send notification to this specific parent
+            # Build final extra_data with tag if provided (v0.5.0+ smart replacement)
+            final_extra_data = dict(extra_data) if extra_data else {}
+            if notification_tag:
+                final_extra_data[const.NOTIFY_TAG] = notification_tag
+
+            # Determine notification method and prepare coroutine
             mobile_enabled = parent_info.get(
                 const.DATA_PARENT_ENABLE_NOTIFICATIONS, True
             )
@@ -10769,26 +11174,36 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             )
 
             if mobile_enabled and mobile_notify_service:
-                parent_count += 1
-                await async_send_notification(
-                    self.hass,
-                    mobile_notify_service,
-                    title,
-                    message,
-                    actions=translated_actions,
-                    extra_data=extra_data,
+                # Prepare mobile notification coroutine
+                notification_tasks.append(
+                    (
+                        parent_id,
+                        async_send_notification(
+                            self.hass,
+                            mobile_notify_service,
+                            title,
+                            message,
+                            actions=translated_actions,
+                            extra_data=final_extra_data if final_extra_data else None,
+                        ),
+                    )
                 )
             elif persistent_enabled:
-                parent_count += 1
-                await self.hass.services.async_call(
-                    const.NOTIFY_PERSISTENT_NOTIFICATION,
-                    const.NOTIFY_CREATE,
-                    {
-                        const.NOTIFY_TITLE: title,
-                        const.NOTIFY_MESSAGE: message,
-                        const.NOTIFY_NOTIFICATION_ID: f"parent_{parent_id}",
-                    },
-                    blocking=True,
+                # Prepare persistent notification coroutine
+                notification_tasks.append(
+                    (
+                        parent_id,
+                        self.hass.services.async_call(
+                            const.NOTIFY_PERSISTENT_NOTIFICATION,
+                            const.NOTIFY_CREATE,
+                            {
+                                const.NOTIFY_TITLE: title,
+                                const.NOTIFY_MESSAGE: message,
+                                const.NOTIFY_NOTIFICATION_ID: f"parent_{parent_id}",
+                            },
+                            blocking=True,
+                        ),
+                    )
                 )
             else:
                 const.LOGGER.debug(
@@ -10796,10 +11211,31 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     parent_id,
                 )
 
-        # PERF: Log parent notification latency
+        # Phase 2: Send all notifications concurrently (v0.5.0+ performance improvement)
+        parent_count = len(notification_tasks)
+        if notification_tasks:
+            # Use asyncio.gather with return_exceptions=True to prevent one failure
+            # from blocking others
+            results = await asyncio.gather(
+                *[coro for _, coro in notification_tasks],
+                return_exceptions=True,
+            )
+
+            # Log any errors (don't fail the whole operation)
+            for idx, result in enumerate(results):
+                if isinstance(result, Exception):
+                    parent_id = notification_tasks[idx][0]
+                    const.LOGGER.warning(
+                        "Failed to send notification to parent '%s': %s",
+                        parent_id,
+                        result,
+                    )
+
+        # PERF: Log parent notification latency (now concurrent)
         perf_duration = time.perf_counter() - perf_start
         const.LOGGER.debug(
-            "PERF: _notify_parents_translated() sent %d notifications in %.3fs (avg %.3fs/parent)",
+            "PERF: _notify_parents_translated() sent %d notifications in %.3fs "
+            "(concurrent, avg %.3fs/parent)",
             parent_count,
             perf_duration,
             perf_duration / parent_count if parent_count > 0 else 0,

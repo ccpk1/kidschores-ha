@@ -184,7 +184,7 @@ class TestApprovalResetOverdueInteraction:
         # Approve the chore (kid claims and parent approves)
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             coordinator.claim_chore(kid_id, chore_id, "Test User")
-            coordinator.approve_chore("Parent", kid_id, chore_id)
+            await coordinator.approve_chore("Parent", kid_id, chore_id)
 
         # Verify approved state
         assert coordinator.is_approved_in_current_period(kid_id, chore_id)
@@ -336,7 +336,7 @@ class TestApprovalResetOverdueInteraction:
         # Approve the chore
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             coordinator.claim_chore(kid_id, chore_id, "Test User")
-            coordinator.approve_chore("Parent", kid_id, chore_id)
+            await coordinator.approve_chore("Parent", kid_id, chore_id)
 
         # Set due date to the future
         set_chore_due_date_to_future(coordinator, chore_id, kid_id=kid_id)

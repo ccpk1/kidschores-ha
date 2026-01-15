@@ -561,7 +561,7 @@ def verify_entity_state(
 def get_all_entity_states(
     hass: HomeAssistant,
     entity_ids: list[str],
-) -> dict[str, str]:
+) -> dict[str, str | None]:
     """Get states for multiple entities.
 
     Args:

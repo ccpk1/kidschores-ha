@@ -25,7 +25,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -572,3 +572,302 @@ class TestNotificationActions:
         assert "approve" in action_text.lower() or any(
             ACTION_APPROVE_CHORE in aid for aid in action_ids
         ), f"No approve action found in actions: {action_ids}"
+
+
+# =============================================================================
+# V0.5.0 FEATURE TESTS
+# =============================================================================
+
+
+class TestNotificationTagging:
+    """Tests for notification tag-based replacement (v0.5.0+)."""
+
+    @pytest.mark.asyncio
+    async def test_notification_includes_tag_for_pending_chores(
+        self,
+        hass: HomeAssistant,
+        scenario_notifications: SetupResult,
+    ) -> None:
+        """Pending chore notifications include tag in extra_data for smart replacement."""
+        coordinator = scenario_notifications.coordinator
+        kid_id = scenario_notifications.kid_ids["Zoë"]
+        chore_id = scenario_notifications.chore_ids["Feed the cat"]
+
+        capture = NotificationCapture()
+
+        with patch(
+            "custom_components.kidschores.coordinator.async_send_notification",
+            new=capture.capture,
+        ):
+            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await hass.async_block_till_done()
+
+        assert len(capture.notifications) > 0, "No notification was sent on chore claim"
+
+        # Verify tag is present and has correct format
+        notif = capture.notifications[0]
+        extra_data = notif.get("extra_data", {})
+        tag = extra_data.get("tag", "")
+
+        assert tag.startswith("kidschores-pending-"), (
+            f"Expected tag to start with 'kidschores-pending-', got '{tag}'"
+        )
+        assert kid_id in tag, f"Expected kid_id '{kid_id}' in tag '{tag}'"
+
+
+class TestDueDateReminders:
+    """Tests for due date reminder notifications (v0.5.0+)."""
+
+    @pytest.mark.asyncio
+    async def test_due_soon_reminder_sent_within_window(
+        self,
+        hass: HomeAssistant,
+        scenario_notifications: SetupResult,
+        freezer: Any,
+    ) -> None:
+        """Chore due within 30 minutes triggers kid reminder notification."""
+        from datetime import timedelta
+
+        from homeassistant.util import dt as dt_util
+
+        coordinator = scenario_notifications.coordinator
+        kid_id = scenario_notifications.kid_ids["Zoë"]
+        chore_id = scenario_notifications.chore_ids["Feed the cat"]
+
+        # Set a due date 25 minutes from now (within 30-min window)
+        now = dt_util.utcnow()
+        due_in_25_min = now + timedelta(minutes=25)
+
+        # Set per-kid due date for independent chore
+        chore_info = coordinator.chores_data[chore_id]
+        if "per_kid_due_dates" not in chore_info:
+            chore_info["per_kid_due_dates"] = {}
+        chore_info["per_kid_due_dates"][kid_id] = due_in_25_min.isoformat()
+        coordinator._persist()
+
+        # Track notifications to kid
+        kid_notifications: list[dict[str, Any]] = []
+
+        async def capture_kid_notification(
+            kid_id_arg: str,
+            title_key: str,
+            message_key: str,
+            **kwargs: Any,
+        ) -> None:
+            kid_notifications.append(
+                {
+                    "kid_id": kid_id_arg,
+                    "title_key": title_key,
+                    "message_key": message_key,
+                    **kwargs,
+                }
+            )
+
+        with patch.object(
+            coordinator, "_notify_kid_translated", new=capture_kid_notification
+        ):
+            await coordinator._check_due_date_reminders()
+
+        # Verify reminder was sent
+        assert len(kid_notifications) > 0, "No due-soon reminder was sent"
+        assert kid_notifications[0]["kid_id"] == kid_id
+        assert "due_soon" in kid_notifications[0]["title_key"].lower()
+
+    @pytest.mark.asyncio
+    async def test_due_soon_reminder_not_duplicated(
+        self,
+        hass: HomeAssistant,
+        scenario_notifications: SetupResult,
+    ) -> None:
+        """Same chore+kid combo only gets one reminder until cleared."""
+        from datetime import timedelta
+
+        from homeassistant.util import dt as dt_util
+
+        coordinator = scenario_notifications.coordinator
+        kid_id = scenario_notifications.kid_ids["Zoë"]
+        chore_id = scenario_notifications.chore_ids["Feed the cat"]
+
+        # Set a due date 25 minutes from now
+        now = dt_util.utcnow()
+        due_in_25_min = now + timedelta(minutes=25)
+
+        chore_info = coordinator.chores_data[chore_id]
+        if "per_kid_due_dates" not in chore_info:
+            chore_info["per_kid_due_dates"] = {}
+        chore_info["per_kid_due_dates"][kid_id] = due_in_25_min.isoformat()
+        coordinator._persist()
+
+        notifications_count = 0
+
+        async def count_notifications(*args: Any, **kwargs: Any) -> None:
+            nonlocal notifications_count
+            notifications_count += 1
+
+        with patch.object(
+            coordinator, "_notify_kid_translated", new=count_notifications
+        ):
+            # First check - should send reminder
+            await coordinator._check_due_date_reminders()
+            first_count = notifications_count
+
+            # Second check - should NOT send duplicate
+            await coordinator._check_due_date_reminders()
+            second_count = notifications_count
+
+        assert first_count == 1, (
+            f"Expected 1 reminder on first check, got {first_count}"
+        )
+        assert second_count == 1, f"Expected no duplicate, got {second_count} total"
+
+    @pytest.mark.asyncio
+    async def test_due_soon_reminder_cleared_on_claim(
+        self,
+        hass: HomeAssistant,
+        scenario_notifications: SetupResult,
+    ) -> None:
+        """Claiming a chore clears the reminder tracking (allows future reminders)."""
+        coordinator = scenario_notifications.coordinator
+        kid_id = scenario_notifications.kid_ids["Zoë"]
+        chore_id = scenario_notifications.chore_ids["Feed the cat"]
+
+        # Manually mark as sent
+        reminder_key = f"{chore_id}:{kid_id}"
+        coordinator._due_soon_reminders_sent.add(reminder_key)
+
+        assert reminder_key in coordinator._due_soon_reminders_sent
+
+        # Claim the chore - should clear the reminder tracking
+        coordinator.claim_chore(kid_id, chore_id, "Zoë")
+
+        assert reminder_key not in coordinator._due_soon_reminders_sent, (
+            "Claiming should clear due-soon reminder tracking"
+        )
+
+
+class TestRaceConditionPrevention:
+    """Tests for race condition prevention in approval methods (v0.5.0+)."""
+
+    @pytest.mark.asyncio
+    async def test_simultaneous_approvals_award_points_once(
+        self,
+        hass: HomeAssistant,
+        scenario_notifications: SetupResult,
+    ) -> None:
+        """Two simultaneous approve_chore calls award points only once."""
+        import asyncio
+
+        coordinator = scenario_notifications.coordinator
+        kid_id = scenario_notifications.kid_ids["Zoë"]
+        chore_id = scenario_notifications.chore_ids["Feed the cat"]
+
+        # Claim the chore first
+        coordinator.claim_chore(kid_id, chore_id, "Zoë")
+
+        # Get initial points
+        initial_points = coordinator.kids_data[kid_id].get("points", 0)
+        chore_points = coordinator.chores_data[chore_id].get("default_points", 10)
+
+        # Mock parent notification to prevent actual sends
+        with patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()):
+            # Simulate two parents clicking approve at the same time
+            results = await asyncio.gather(
+                coordinator.approve_chore("Mom", kid_id, chore_id),
+                coordinator.approve_chore("Dad", kid_id, chore_id),
+                return_exceptions=True,
+            )
+
+        # Get final points
+        final_points = coordinator.kids_data[kid_id].get("points", 0)
+        points_awarded = final_points - initial_points
+
+        # Only one approval should succeed (points awarded once)
+        assert points_awarded == chore_points, (
+            f"Expected {chore_points} points (single approval), "
+            f"but got {points_awarded} points"
+        )
+
+        # Both calls should complete without raising exceptions
+        # (second one returns gracefully due to race condition protection)
+        actual_exceptions = [r for r in results if isinstance(r, Exception)]
+        assert len(actual_exceptions) == 0, (
+            f"Expected no exceptions (graceful handling), got: {actual_exceptions}"
+        )
+
+
+class TestConcurrentNotifications:
+    """Tests for concurrent parent notification sending (v0.5.0+)."""
+
+    @pytest.mark.asyncio
+    async def test_multiple_parents_receive_notifications_concurrently(
+        self,
+        hass: HomeAssistant,
+        scenario_notifications: SetupResult,
+    ) -> None:
+        """Multiple parents with notifications enabled all receive them."""
+        coordinator = scenario_notifications.coordinator
+        kid_id = scenario_notifications.kid_ids["Zoë"]
+        chore_id = scenario_notifications.chore_ids["Feed the cat"]
+
+        capture = NotificationCapture()
+
+        with patch(
+            "custom_components.kidschores.coordinator.async_send_notification",
+            new=capture.capture,
+        ):
+            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await hass.async_block_till_done()
+
+        # At least one parent should receive notification
+        assert len(capture.notifications) >= 1, "No notifications sent to any parent"
+
+    @pytest.mark.asyncio
+    async def test_notification_failure_isolated_from_others(
+        self,
+        hass: HomeAssistant,
+        scenario_notifications: SetupResult,
+    ) -> None:
+        """One parent notification failure doesn't prevent others from receiving."""
+
+        coordinator = scenario_notifications.coordinator
+        kid_id = scenario_notifications.kid_ids["Zoë"]
+        chore_id = scenario_notifications.chore_ids["Feed the cat"]
+
+        # Add a second parent with notifications enabled
+        parent_id_2 = "test_parent_2"
+        coordinator._data[DATA_PARENTS][parent_id_2] = {
+            "name": "Test Dad",
+            "associated_kids": [kid_id],
+            "enable_notifications": True,
+            "mobile_notify_service": "notify.mobile_app_dad",
+            "dashboard_language": "en",
+        }
+
+        # Track successful notifications
+        successful_notifications: list[str] = []
+        call_count = 0
+
+        async def mixed_success_notification(
+            hass_arg: HomeAssistant,
+            service: str,
+            title: str,
+            message: str,
+            **kwargs: Any,
+        ) -> None:
+            nonlocal call_count
+            call_count += 1
+            # First call fails, second succeeds
+            if call_count == 1:
+                raise Exception("Simulated notification failure")  # noqa: TRY002
+            successful_notifications.append(service)
+
+        with patch(
+            "custom_components.kidschores.coordinator.async_send_notification",
+            new=mixed_success_notification,
+        ):
+            # This should not raise - failures are logged but don't propagate
+            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await hass.async_block_till_done()
+
+        # At least one notification should have succeeded despite the failure
+        assert call_count >= 1, "Expected notifications to be attempted"

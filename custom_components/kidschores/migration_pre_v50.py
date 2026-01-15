@@ -373,6 +373,10 @@ class PreV50Migrator:
         if storage_version < 50:
             self._cleanup_kid_chore_data_due_dates_v50()
 
+        # Phase 7a: v50 notification simplification - Migrate 3-field notification config
+        # to single service selector (service presence = enabled, empty = disabled)
+        self._simplify_notification_config_v50()
+
         # Phase 8: Clean up orphaned/deprecated dynamic entities
         # This is called unconditionally because _initialize_data_from_config() only
         # calls this for KC 3.x config migrations, leaving storage-only users with
@@ -2166,3 +2170,112 @@ class PreV50Migrator:
             const.LOGGER.debug(
                 "v50 cleanup: No legacy due_date fields found in kid-level chore_data"
             )
+
+    def _simplify_notification_config_v50(self) -> None:
+        """Migrate notification config from 3-field to single service selector (v50).
+
+        Old config structure (3 fields):
+        - enable_notifications: bool (master switch)
+        - mobile_notify_service: str (service name)
+        - use_persistent_notifications: bool (deprecated fallback)
+
+        New config structure (1 field):
+        - mobile_notify_service: str (empty = disabled, service = enabled)
+
+        Migration logic:
+        - If enable_notifications is True AND mobile_notify_service is set → keep service
+        - If enable_notifications is False OR no service → set service to empty
+        - Always set use_persistent_notifications to False (deprecated)
+        """
+        kids_data = self.coordinator._data.get(const.DATA_KIDS, {})
+        parents_data = self.coordinator._data.get(const.DATA_PARENTS, {})
+
+        kids_migrated = 0
+        parents_migrated = 0
+
+        # Migrate kids
+        for _kid_id, kid_info in kids_data.items():
+            migrated = False
+            kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
+
+            # Get current notification config
+            enable_notifications = kid_info.get(
+                const.DATA_KID_ENABLE_NOTIFICATIONS, True
+            )
+            mobile_service = kid_info.get(const.DATA_KID_MOBILE_NOTIFY_SERVICE, "")
+            use_persistent = kid_info.get(
+                const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS, False
+            )
+
+            # Migration logic: service presence = enabled
+            if not enable_notifications:
+                # Master switch off - clear service
+                if mobile_service:
+                    kid_info[const.DATA_KID_MOBILE_NOTIFY_SERVICE] = ""
+                    kid_info[const.DATA_KID_ENABLE_NOTIFICATIONS] = False
+                    migrated = True
+                    const.LOGGER.debug(
+                        "Cleared notify service for kid '%s' (notifications disabled)",
+                        kid_name,
+                    )
+            else:
+                # Master switch on - derive from service presence
+                kid_info[const.DATA_KID_ENABLE_NOTIFICATIONS] = bool(mobile_service)
+
+            # Always set use_persistent_notifications to False (deprecated)
+            if use_persistent:
+                kid_info[const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS] = False
+                migrated = True
+
+            if migrated:
+                kids_migrated += 1
+
+        # Migrate parents
+        for _parent_id, parent_info in parents_data.items():
+            migrated = False
+            parent_name = parent_info.get(const.DATA_PARENT_NAME, "Unknown")
+
+            # Get current notification config
+            enable_notifications = parent_info.get(
+                const.DATA_PARENT_ENABLE_NOTIFICATIONS, True
+            )
+            mobile_service = parent_info.get(
+                const.DATA_PARENT_MOBILE_NOTIFY_SERVICE, ""
+            )
+            use_persistent = parent_info.get(
+                const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS, False
+            )
+
+            # Migration logic: service presence = enabled
+            if not enable_notifications:
+                # Master switch off - clear service
+                if mobile_service:
+                    parent_info[const.DATA_PARENT_MOBILE_NOTIFY_SERVICE] = ""
+                    parent_info[const.DATA_PARENT_ENABLE_NOTIFICATIONS] = False
+                    migrated = True
+                    const.LOGGER.debug(
+                        "Cleared notify service for parent '%s' (notifications disabled)",
+                        parent_name,
+                    )
+            else:
+                # Master switch on - derive from service presence
+                parent_info[const.DATA_PARENT_ENABLE_NOTIFICATIONS] = bool(
+                    mobile_service
+                )
+
+            # Always set use_persistent_notifications to False (deprecated)
+            if use_persistent:
+                parent_info[const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS] = False
+                migrated = True
+
+            if migrated:
+                parents_migrated += 1
+
+        if kids_migrated > 0 or parents_migrated > 0:
+            const.LOGGER.info(
+                "v50 notification simplification: migrated %s kids, %s parents",
+                kids_migrated,
+                parents_migrated,
+            )
+        else:
+            const.LOGGER.debug("v50 notification simplification: no migration needed")

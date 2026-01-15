@@ -91,7 +91,7 @@ async def async_handle_notification_action(hass: HomeAssistant, event: Event) ->
     try:
         if base_action == const.ACTION_APPROVE_CHORE:
             # chore_id is guaranteed to be str by validation above
-            coordinator.approve_chore(
+            await coordinator.approve_chore(
                 parent_name=parent_name,
                 kid_id=kid_id,
                 chore_id=chore_id,  # type: ignore[arg-type]
@@ -105,7 +105,7 @@ async def async_handle_notification_action(hass: HomeAssistant, event: Event) ->
             )
         elif base_action == const.ACTION_APPROVE_REWARD:
             # reward_id is guaranteed to be str by validation above
-            coordinator.approve_reward(
+            await coordinator.approve_reward(
                 parent_name=parent_name,
                 kid_id=kid_id,
                 reward_id=reward_id,  # type: ignore[arg-type]

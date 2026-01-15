@@ -102,7 +102,9 @@ async def test_performance_baseline_with_scenario_full(
                     break
 
             if chore_id_to_approve:
-                coordinator.approve_chore("test_user", kid_id, chore_id_to_approve)
+                await coordinator.approve_chore(
+                    "test_user", kid_id, chore_id_to_approve
+                )
 
         # Test 8: Bulk operations - approve multiple chores
         if len(coordinator.kids_data) >= 2 and len(coordinator.chores_data) >= 2:
@@ -125,7 +127,7 @@ async def test_performance_baseline_with_scenario_full(
                         # Claim it
                         coordinator.claim_chore(kid_id, chore_id, "test_user")
                         # Approve it
-                        coordinator.approve_chore("test_user", kid_id, chore_id)
+                        await coordinator.approve_chore("test_user", kid_id, chore_id)
                         operations_count += 2
                         if (
                             operations_count >= 6

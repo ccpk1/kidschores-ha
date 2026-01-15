@@ -1,11 +1,20 @@
 # Notification System Modernization - Strategic Plan
 
-**Initiative Code**: NOTIF-MOD-v1
-**Target Release**: v0.6.0
-**Owner**: Development Team
-**Status**: Planning
-**Created**: January 15, 2026
-**Quality Target**: Silver+ (Performance, reliability, maintainability)
+> ⚠️ **SUPERSEDED**: This document has been replaced by the reality-checked plan:  
+> **[NOTIFICATION_IMPROVEMENTS_REALISTIC_IN-PROCESS.md](./NOTIFICATION_IMPROVEMENTS_REALISTIC_IN-PROCESS.md)**  
+> 
+> **Why?** This original plan was over-engineered for the actual use case:
+> - Actual volume: 25-50 notifications/day (not enterprise scale)
+> - Priority queues, rate limiting, batching: unnecessary complexity
+> - 24-32 hour estimate → reduced to 7-10 hours with realistic scope
+> 
+> The new plan delivers the same real value (concurrent delivery, race condition fix, 
+> translation caching) without inventing features we don't need.
+
+**Initiative Code**: NOTIF-MOD-v1  
+**Target Release**: v0.6.0  
+**Owner**: Development Team  
+**Status**: ~~Planning~~ SUPERSEDED  
 
 ---
 

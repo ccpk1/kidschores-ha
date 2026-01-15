@@ -228,7 +228,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Approve chore and assign points
         try:
-            coordinator.approve_chore(
+            await coordinator.approve_chore(
                 parent_name=parent_name,
                 kid_id=kid_id,
                 chore_id=chore_id,
@@ -430,7 +430,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Approve reward redemption and deduct points
         try:
-            coordinator.approve_reward(
+            await coordinator.approve_reward(
                 parent_name=parent_name, kid_id=kid_id, reward_id=reward_id
             )
             const.LOGGER.info(

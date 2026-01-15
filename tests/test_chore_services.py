@@ -268,7 +268,7 @@ class TestApproveDisapproveChoreService:
         # Claim and approve
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            coordinator.approve_chore("Mom", kid_id, chore_id)
+            await coordinator.approve_chore("Mom", kid_id, chore_id)
 
         # Verify approved and points awarded
         assert (
@@ -314,7 +314,7 @@ class TestApproveDisapproveChoreService:
         # Zoë claims and gets approved
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
             coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            coordinator.approve_chore("Mom", zoe_id, chore_id)
+            await coordinator.approve_chore("Mom", zoe_id, chore_id)
 
         # Zoë is approved, Max is completed_by_other
         assert (
@@ -733,7 +733,7 @@ class TestResetAllChoresService:
             coordinator.claim_chore(zoe_id, independent_chore, "Zoë")
             # Claim and approve shared for Zoë
             coordinator.claim_chore(zoe_id, shared_chore, "Zoë")
-            coordinator.approve_chore("Mom", zoe_id, shared_chore)
+            await coordinator.approve_chore("Mom", zoe_id, shared_chore)
             # Claim shared_first for Max (Zoë becomes completed_by_other)
             coordinator.claim_chore(max_id, shared_first_chore, "Max!")
 

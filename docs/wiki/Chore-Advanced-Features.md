@@ -26,7 +26,6 @@ This guide covers advanced features for users who need per-kid customization, mu
 **Related Documentation**:
 
 - [Chore Configuration Guide](Chore-Configuration-Guide.md) - Basic setup
-- [Chore Approval Reset Reference](Chore-Approval-Reset-Reference.md) - Reset behaviors
 
 ---
 

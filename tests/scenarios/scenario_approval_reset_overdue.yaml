@@ -19,9 +19,7 @@ kids:
     ha_user: "kid1"
     points: 100
     dashboard_language: "en"
-    enable_mobile_notifications: false
     mobile_notify_service: ""
-    enable_persistent_notifications: false
 
 parents:
   - name: "Môm Astrid Stârblüm"
