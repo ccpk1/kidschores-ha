@@ -3,6 +3,11 @@
 **Target Audience**: Developers, Automation Creators, Dashboard Builders
 **Prerequisites**: Basic Home Assistant automation knowledge, Jinja2 templating
 **Covers**: Entity reference, state mapping, Jinja templates, JSON attributes
+**Version**: v0.5.0+ (Silver Quality, Storage Architecture)
+**Last Updated**: January 2026
+
+> [!IMPORTANT]
+> This reference reflects the **actual implementation** in sensor.py. All entity IDs, attribute names, and sensors documented here have been verified against the codebase. Previous versions contained hypothetical naming conventions that do not exist in the integration.
 
 ---
 
@@ -24,10 +29,11 @@ All KidsChores entities follow the pattern: `<platform>.kc_<kid_slug>_<purpose>`
 
 ```yaml
 Examples:
-  button.kc_sarah_feed_dog_claim      # Sarah's claim button for "Feed Dog"
-  button.kc_sarah_feed_dog_approve    # Parent approve button for Sarah's "Feed Dog"
-  sensor.kc_sarah_points              # Sarah's total points
-  sensor.kc_sarah_chores_available    # Sarah's chore availability sensor
+  button.kc_sarah_feed_dog_claim         # Sarah's claim button for "Feed Dog"
+  button.kc_sarah_feed_dog_approve       # Parent approve button for Sarah's "Feed Dog"
+  sensor.kc_sarah_points                 # Sarah's total points
+  sensor.kc_sarah_ui_dashboard_helper    # Sarah's dashboard helper (chore lists, stats)
+  sensor.kc_sarah_feed_dog               # Individual chore status sensor
 ```
 
 ---
@@ -41,7 +47,7 @@ Examples:
 ```yaml
 # Claim buttons (kid presses to claim chore)
 button.kc_<kid>_<chore>_claim
-  state: "2026-01-15T14:30:00+00:00"  # Last pressed timestamp
+  state: "2026-01-15T14:30:00+00:00"  # Last pressed timestamp (HA core managed)
   attributes:
     friendly_name: "Sarah Feed Dog - Claim"
     icon: "mdi:hand-extended"
@@ -49,12 +55,14 @@ button.kc_<kid>_<chore>_claim
 
 # Approve buttons (parent presses to approve claimed chore)
 button.kc_<kid>_<chore>_approve
-  state: "2026-01-15T15:45:00+00:00"  # Last pressed timestamp
+  state: "2026-01-15T15:45:00+00:00"  # Last pressed timestamp (HA core managed)
   attributes:
     friendly_name: "Sarah Feed Dog - Approve"
     icon: "mdi:check-circle"
     device_class: null
 ```
+
+> [!IMPORTANT] > **Button entities are stateless triggers** - They do not maintain persistent state beyond the last press timestamp (managed by Home Assistant core). Chore state is tracked by the chore sensor (`sensor.kc_<kid>_<chore>`), not the button entities.
 
 ### Bulk Action Buttons (v0.5.0+)
 
@@ -89,38 +97,37 @@ sensor.kc_<kid>_points
     friendly_name: "Sarah Points"
     icon: "mdi:star"
     unit_of_measurement: "points"
-    points_today: 25
-    points_this_week: 85
-    points_this_month: 150
-    total_points_all_time: 850
+    point_stat_points_earned_today: 25
+    point_stat_points_earned_week: 85
+    point_stat_points_earned_month: 150
+    point_stat_points_earned_all_time: 850
 ```
 
-**Chore Availability**:
+**Dashboard Helper** (Chore Lists and Stats):
+
+> [!NOTE]
+> The Dashboard Helper sensor (`sensor.kc_<kid>_ui_dashboard_helper`) provides pre-sorted chore lists and aggregated stats optimized for dashboard templates. Individual chore sensors provide detailed per-chore attributes.
 
 ```yaml
-sensor.kc_<kid>_chores_available
-  state: 3                            # Number of available chores
+sensor.kc_<kid>_ui_dashboard_helper
+  state: "<kid> has 3 chores available"  # Human-readable summary
   attributes:
-    friendly_name: "Sarah Chores Available"
-    icon: "mdi:format-list-checks"
-    unit_of_measurement: "chores"
-    total_chores: 5
-    available_count: 3
-    claimed_count: 1
-    overdue_count: 1
-    completed_today: 2
-    completion_streak: 4
-    chores:                           # List of all chores with details
-      - name: "Feed Dog"
-        status: "available"
-        points: 10
-        due_date: "2026-01-15T18:00:00+00:00"
-        last_completed: null
-      - name: "Make Bed"
+    friendly_name: "Sarah Dashboard Helper"
+    icon: "mdi:view-dashboard"
+    chores:                           # Pre-sorted list of chores
+      - eid: "sensor.kc_sarah_feed_dog"  # Entity ID for full attributes
+        name: "Feed Dog"
+        status: "pending"              # pending/claimed/approved/overdue
+        labels: ["daily", "pets"]
+        primary_group: "today"         # today/this_week/other
+        is_today_am: true              # AM chore indicator
+      - eid: "sensor.kc_sarah_make_bed"
+        name: "Make Bed"
         status: "claimed"
-        points: 5
-        claimed_at: "2026-01-15T07:30:00+00:00"
-        due_date: null
+        labels: ["morning"]
+        primary_group: "today"
+        is_today_am: true
+    # Additional lists: rewards, badges, bonuses, penalties, achievements, challenges
 ```
 
 ### Individual Chore Sensors
@@ -133,40 +140,38 @@ sensor.kc_<kid>_<chore>
   attributes:
     friendly_name: "Sarah Feed Dog"
     icon: "mdi:dog"
-    points: 10
-    completion_mode: "independent"
-    frequency: "daily"
+    default_points: 10
+    completion_criteria: "independent"  # independent/shared/shared_first
+    recurring_frequency: "daily"        # daily/weekly/monthly/custom/none
+    approval_reset_type: "at_due_date" # at_due_date/start_of_next_period
     due_date: "2026-01-15T18:00:00+00:00"
-    claimed_at: "2026-01-15T14:30:00+00:00"
-    last_completed: "2026-01-14T17:45:00+00:00"
-    completion_count: 12
-    global_state: "claimed"           # For SHARED chores
+    last_claimed: "2026-01-15T14:30:00+00:00"
+    last_approved: "2026-01-14T17:45:00+00:00"
+    chore_approvals_count: 12
+    global_state: "claimed"            # For SHARED chores only
     applicable_days: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
-    recurrence_pattern: "daily"
-    reset_type: "at_due_date"
-    overdue_handling: "clear_immediately"
-    pending_claim_action: "clear_pending"
 ```
 
-### System-Wide Chore Sensors
+### System Shared Chore Sensors
 
-**Global Statistics**:
+**Shared Chore Global State**:
+
+For SHARED chores (shared, shared_first), a system-level sensor tracks the global state:
 
 ```yaml
-sensor.kc_global_chore_stats
-  state: 15                           # Total active chores
+sensor.kc_system_<chore>_shared_state
+  state: "claimed"                    # Global state across all kids
   attributes:
-    friendly_name: "KidsChores Global Stats"
-    icon: "mdi:chart-line"
-    total_chores: 15
-    active_chores: 12
-    completed_today: 8
-    overdue_chores: 2
-    claimed_pending_approval: 3
-    total_points_awarded_today: 95
-    most_active_kid: "Sarah"
-    completion_rate: 0.73
+    friendly_name: "Family Cleanup Shared State"
+    icon: "mdi:account-group"
+    chore_name: "Family Cleanup"
+    completion_criteria: "shared_first"
+    assigned_kids: ["Sarah", "Alex"]
+    claimed_by: "Sarah"               # Who claimed (shared_first)
 ```
+
+> [!TIP]
+> System sensors use the prefix `sensor.kc_system_<name>` to distinguish from kid-specific sensors.
 
 ---
 
@@ -197,8 +202,8 @@ sensor.kc_global_chore_stats
 # Kid's total points
 {{ states('sensor.kc_sarah_points') }}
 
-# Number of available chores
-{{ states('sensor.kc_sarah_chores_available') }}
+# Dashboard helper summary
+{{ states('sensor.kc_sarah_ui_dashboard_helper') }}
 
 # Specific chore status
 {{ states('sensor.kc_sarah_feed_dog') }}
@@ -213,13 +218,13 @@ sensor.kc_global_chore_stats
 
 ```jinja2
 # Points earned today
-{{ state_attr('sensor.kc_sarah_points', 'points_today') }}
+{{ state_attr('sensor.kc_sarah_points', 'point_stat_points_earned_today') }}
 
 # Due date for specific chore
 {{ state_attr('sensor.kc_sarah_feed_dog', 'due_date') }}
 
-# Completion streak
-{{ state_attr('sensor.kc_sarah_chores_available', 'completion_streak') }}
+# Chore completion criteria
+{{ state_attr('sensor.kc_sarah_feed_dog', 'completion_criteria') }}
 
 # Global state for SHARED chores
 {{ state_attr('sensor.kc_sarah_clean_kitchen', 'global_state') }}
@@ -230,26 +235,26 @@ sensor.kc_global_chore_stats
 **Access Chore List Data**:
 
 ```jinja2
-# Get all available chores for Sarah
-{% set chores = state_attr('sensor.kc_sarah_chores_available', 'chores') %}
-{% for chore in chores if chore.status == 'available' %}
-  - {{ chore.name }}: {{ chore.points }} points
+# Get all chores for Sarah from dashboard helper
+{% set chores = state_attr('sensor.kc_sarah_ui_dashboard_helper', 'chores') %}
+{% for chore in chores if chore.status == 'pending' %}
+  - {{ chore.name }} ({{ state_attr(chore.eid, 'default_points') }} points)
 {% endfor %}
 
 # Find overdue chores
-{% set overdue = state_attr('sensor.kc_sarah_chores_available', 'chores')
-   | selectattr('status', 'equalto', 'overdue') | list %}
+{% set chores = state_attr('sensor.kc_sarah_ui_dashboard_helper', 'chores') %}
+{% set overdue = chores | selectattr('status', 'equalto', 'overdue') | list %}
 {% if overdue|length > 0 %}
   Sarah has {{ overdue|length }} overdue chores
 {% endif %}
 
 # Check specific chore details from list
-{% set chores = state_attr('sensor.kc_sarah_chores_available', 'chores') %}
+{% set chores = state_attr('sensor.kc_sarah_ui_dashboard_helper', 'chores') %}
 {% set feed_dog = chores | selectattr('name', 'equalto', 'Feed Dog') | first %}
 {% if feed_dog %}
   Feed Dog status: {{ feed_dog.status }}
-  Points: {{ feed_dog.points }}
-  Due: {{ feed_dog.due_date }}
+  Points: {{ state_attr(feed_dog.eid, 'default_points') }}
+  Due: {{ state_attr(feed_dog.eid, 'due_date') }}
 {% endif %}
 ```
 
@@ -259,10 +264,12 @@ sensor.kc_global_chore_stats
 
 ```jinja2
 # Check if kid has any claimed chores
-{{ state_attr('sensor.kc_sarah_chores_available', 'claimed_count') > 0 }}
+{% set chores = state_attr('sensor.kc_sarah_ui_dashboard_helper', 'chores') %}
+{{ chores | selectattr('status', 'equalto', 'claimed') | list | length > 0 }}
 
 # Check if any chores are overdue
-{{ state_attr('sensor.kc_sarah_chores_available', 'overdue_count') > 0 }}
+{% set chores = state_attr('sensor.kc_sarah_ui_dashboard_helper', 'chores') %}
+{{ chores | selectattr('status', 'equalto', 'overdue') | list | length > 0 }}
 
 # Multi-kid comparison
 {% set sarah_points = states('sensor.kc_sarah_points') | int %}
@@ -284,21 +291,22 @@ sensor.kc_global_chore_stats
 **Show Kid's Status**:
 
 ```yaml
-# Card showing available chores count
+# Card showing dashboard helper (summary view)
 - type: entity
-  entity: sensor.kc_sarah_chores_available
-  name: "Chores Available"
-  icon: mdi:format-list-checks
+  entity: sensor.kc_sarah_ui_dashboard_helper
+  name: "Sarah's Dashboard"
+  icon: mdi:view-dashboard
 
-# Template card showing points and streak
+# Template card showing points and badge status
 - type: custom:mushroom-template-card
   primary: "Sarah: {{ states('sensor.kc_sarah_points') }} points"
-  secondary: "{{ state_attr('sensor.kc_sarah_chores_available', 'completion_streak') }} day streak"
+  secondary: "{{ state_attr('sensor.kc_sarah_badges', 'current_badge_name') }} badge"
   icon: mdi:star
   icon_color: >
-    {% if state_attr('sensor.kc_sarah_chores_available', 'completion_streak') > 5 %}
+    {% set points = states('sensor.kc_sarah_points') | int %}
+    {% if points > 100 %}
       green
-    {% elif state_attr('sensor.kc_sarah_chores_available', 'completion_streak') > 2 %}
+    {% elif state_attr('sensor.kc_sarah_badges', 'award_count') > 2 %}
       orange
     {% else %}
       red
@@ -332,14 +340,16 @@ automation:
     condition:
       - condition: template
         value_template: >
-          {{ state_attr('sensor.kc_sarah_chores_available', 'overdue_count') > 0 }}
+          {% set chores = state_attr('sensor.kc_sarah_ui_dashboard_helper', 'chores') %}
+          {{ chores | selectattr('status', 'equalto', 'overdue') | list | length > 0 }}
     action:
       - service: notify.sarah_device
         data:
           title: "Overdue Chores"
           message: >
-            You have {{ state_attr('sensor.kc_sarah_chores_available', 'overdue_count') }}
-            overdue chores. Please complete them!
+            {% set chores = state_attr('sensor.kc_sarah_ui_dashboard_helper', 'chores') %}
+            {% set overdue = chores | selectattr('status', 'equalto', 'overdue') | list %}
+            You have {{ overdue | length }} overdue chores. Please complete them!
 ```
 
 ### Point-Based Rewards
@@ -356,7 +366,7 @@ automation:
     condition:
       - condition: template
         value_template: >
-          {{ state_attr('sensor.kc_sarah_points', 'points_this_week') >= 100 }}
+          {{ state_attr('sensor.kc_sarah_points', 'point_stat_points_earned_week') | int(0) >= 100 }}
     action:
       - service: notify.family_group
         data:

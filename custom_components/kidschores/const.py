@@ -294,6 +294,7 @@ OPTIONS_FLOW_STEP_EDIT_CHORE_PER_KID_DETAILS: Final = (
     "edit_chore_per_kid_details"  # PKAD-2026-001
 )
 OPTIONS_FLOW_STEP_EDIT_KID: Final = "edit_kid"
+OPTIONS_FLOW_STEP_EDIT_KID_SHADOW: Final = "edit_kid_shadow"
 OPTIONS_FLOW_STEP_EDIT_PARENT: Final = "edit_parent"
 OPTIONS_FLOW_STEP_EDIT_PENALTY: Final = "edit_penalty"
 OPTIONS_FLOW_STEP_EDIT_REWARD: Final = "edit_reward"

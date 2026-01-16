@@ -767,7 +767,7 @@
       },
       "edit_kid": {
         "title": "Edit Kid",
-        "description": "Modify the details of the selected kid. ⚠️ This kid is linked to parent '{parent_name}'. Changing the name will break the name-matching requirement for unlinking via service.",
+        "description": "Modify the details of the selected kid.",
         "data": {
           "kid_name": "Kid Name",
           "ha_user": "Home Assistant User",
@@ -777,8 +777,25 @@
           "internal_id": "Internal ID"
         },
         "data_description": {
-          "kid_name": "⚠️ This is a shadow kid linked to parent '{parent_name}'. Changing this name will break the service unlinking feature, which requires matching names.",
-          "mobile_notify_service": "⚠️ Shadow kid notifications: Parent '{parent_name}' already receives notifications for supervised chores. Enabling here will create duplicate notifications. Useful for 30-minute due date reminders or if using different notification services.",
+          "mobile_notify_service": "Select a notification service to enable notifications for this kid.",
+          "dashboard_language": "Language used for your chore dashboard and notifications.",
+          "enable_due_date_reminders": "Send reminder notifications when chores are due within 30 minutes."
+        }
+      },
+      "edit_kid_shadow": {
+        "title": "Edit Shadow Kid",
+        "description": "Modify the details of the selected shadow kid. ⚠️ This kid is linked to a parent. Changing the name will break the name-matching requirement for unlinking via service.",
+        "data": {
+          "kid_name": "Kid Name",
+          "ha_user": "Home Assistant User",
+          "mobile_notify_service": "Notifications",
+          "dashboard_language": "Language",
+          "enable_due_date_reminders": "Due Date Reminders",
+          "internal_id": "Internal ID"
+        },
+        "data_description": {
+          "kid_name": "⚠️ This shadow kid is linked to a parent. Changing this name will break the service unlinking feature, which requires matching names.",
+          "mobile_notify_service": "⚠️ Shadow kid notifications: The linked parent already receives notifications for supervised chores. Enabling here will create duplicate notifications. Useful for 30-minute due date reminders or if using different notification services.",
           "dashboard_language": "Language used for your chore dashboard and notifications.",
           "enable_due_date_reminders": "Send reminder notifications when chores are due within 30 minutes."
         }

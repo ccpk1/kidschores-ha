@@ -64,14 +64,20 @@
 
 ### Assigned To Component
 
-| Field             | Input Constant                  | Data Constant            | Type      | Required | Default | Validation                         |
-| ----------------- | ------------------------------- | ------------------------ | --------- | -------- | ------- | ---------------------------------- |
-| **Assigned Kids** | `CFOF_BADGES_INPUT_ASSIGNED_TO` | `DATA_BADGE_ASSIGNED_TO` | list[str] | ❌ No    | `[]`    | Kid internal_ids, empty = all kids |
+| Field             | Input Constant                  | Data Constant            | Type      | Required | Validation                           |
+| ----------------- | ------------------------------- | ------------------------ | --------- | -------- | ------------------------------------ |
+| **Assigned Kids** | `CFOF_BADGES_INPUT_ASSIGNED_TO` | `DATA_BADGE_ASSIGNED_TO` | list[str] | **Yes**  | Must have at least 1 kid internal_id |
 
 **Behavior**:
 
-- Empty list: Badge available to all kids
-- Specific kids: Only assigned kids can earn/track this badge
+- **Mandatory selection**: Integration will not allow badge creation without at least 1 kid assigned
+- **No global default**: There is no "Apply to All" toggle or empty list default
+- **To make badge global**: Must manually select every kid in the system
+- **Un-assignment**: Removing a kid from badge assignments immediately deletes their progress data via `_sync_badge_progress_for_kid`
+- **Use cases**:
+  - Age-appropriate badges (different rank tiers per age group)
+  - Individual progression paths
+  - Themed badge sets per kid
 
 ### Awards Component
 

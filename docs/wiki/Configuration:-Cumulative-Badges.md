@@ -83,13 +83,19 @@ Navigate to: **Settings** → **Devices & Services** → **KidsChores** → **Co
 
 ---
 
-### Assigned Kids (Optional)
+### Assigned Kids (Required)
 
-| Field             | Required | Default          | Description                     |
-| ----------------- | -------- | ---------------- | ------------------------------- |
-| **Assigned Kids** | ❌ No    | Empty (all kids) | Restrict badge to specific kids |
+| Field             | Required | Description                                           |
+| ----------------- | -------- | ----------------------------------------------------- |
+| **Assigned Kids** | **Yes**  | Kids who can earn this badge. Must select at least 1. |
 
-**Leave empty** to make badge available to all kids.
+**Assignment Behavior**:
+
+- **Mandatory Selection**: You MUST explicitly select which kids can earn this badge
+- **No Global Default**: There is no "Apply to All" toggle — to make a badge available to all kids, you must manually select each kid
+- **Un-Assignment**: If you edit a badge and uncheck a kid, the system immediately removes that badge's progress data from their profile
+
+> [!IMPORTANT] > **Assignments are Required**: Badge assignments require explicit selection. The integration will not allow you to create a badge without assigning it to at least one kid.
 
 **Use kid assignment** for themed badge sets:
 

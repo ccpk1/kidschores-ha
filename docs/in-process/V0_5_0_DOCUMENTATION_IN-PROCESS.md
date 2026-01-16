@@ -52,8 +52,20 @@
    - [DOCUMENTATION_MVP_OUTLINE.md](DOCUMENTATION_MVP_OUTLINE.md) - Detailed content planning
    - [ARCHITECTURE.md](../ARCHITECTURE.md) - System architecture reference
    - [DEVELOPMENT_STANDARDS.md](../DEVELOPMENT_STANDARDS.md) - Naming conventions
+   - **Badge Documentation** (complete set):
+     - [Badge-Gamification.md](../wiki/Badge-Gamification.md) - Badge system overview (ranks vs missions)
+     - [Configuration:-Cumulative-Badges.md](../wiki/Configuration:-Cumulative-Badges.md) - Cumulative badges setup (411 lines) ✅ COMPLETE
+     - [Badge-Cumulative-Advanced.md](../wiki/Badge-Cumulative-Advanced.md) - Advanced cumulative mechanics (RPG leveling)
+     - [Badge-Periodic-Advanced.md](../wiki/Badge-Periodic-Advanced.md) - Advanced periodic mechanics (missions/contracts)
+     - [Technical-Reference:-Badge-Entities-Detail.md](../wiki/Technical-Reference:-Badge-Entities-Detail.md) - Badge sensor entities
+   - **Technical References**:
+     - [Technical-Reference:-Configuration-Detail.md](../wiki/Technical-Reference:-Configuration-Detail.md) - Config/Options flow deep dive
+     - [Technical-Reference:-Chore-Detail.md](../wiki/Technical-Reference:-Chore-Detail.md) - Chore logic engines and entities
+     - [Chore-Technical-Reference.md](../wiki/Chore-Technical-Reference.md) - Chore entity reference (corrected v0.5.0)
    - **Current production wiki**: `kidschores-ha.wiki/` (22 files, 1,806 lines) - cloned GitHub wiki
-   - **Staging area**: `docs/wiki/` (5 files currently, 2,957 lines)
+   - **Staging area**: `docs/wiki/` (9+ files currently, ~4,600 lines)
+     - Research documents: RESEARCH_CUMULATIVE_BADGES.md (449 lines), RESEARCH_PERIODIC_BADGES.md (574 lines)
+     - User guides: Configuration:-Cumulative-Badges.md (411 lines), Configuration:-Periodic-Badges.md (578 lines)
 6. **Decisions & completion check**
    - **Decisions captured**:
      - ✅ Entity-type organization (mirrors user experience)
@@ -196,45 +208,67 @@
    - **Dependencies**: None
    - **File**: `docs/wiki/Configuration:-Points-System.md`
 
-5. [ ] **Badges.md** (~400 lines, 12 hours) ⚠️ **BLOCKED**
+5. [x] **Configuration:-Cumulative-Badges.md** (411 lines, 8 hours) ✅ COMPLETE
 
-   - **BLOCKER**: Code research required before writing
-   - Badge System Overview (what changed in v0.5.0)
-   - Creating Badges (config_flow.py - RESEARCH NEEDED)
-   - How Badges Are Earned (points vs chores logic)
-   - Badge Effects (points multiplier)
-   - Badge Maintenance (coordinator.py - RESEARCH NEEDED)
-   - Badge Progress Tracking (dashboard helper attributes)
-   - Badge Entities Created (3 sensor types)
-   - Badge Examples (keep from old wiki: Bronze/Silver/Gold, Gamer, Star Collector)
-   - Managing Badges (activate/deactivate, remove)
-   - **Status**: Blocked on research
-   - **Dependencies**: Badge code research task (see Key Issues)
-   - **Files to research**:
-     - `custom_components/kidschores/config_flow.py` - Badge configuration
-     - `custom_components/kidschores/coordinator.py` - Badge logic and maintenance
-     - `custom_components/kidschores/sensor.py` - Badge sensors (already documented in Technical Reference)
-
-6. [ ] **Points-System.md** (~200 lines, 4 hours)
-   - Points System Overview
-   - Configuring Points (label, icon, system settings)
-   - Earning Points (chores, badge multipliers, bonuses)
-   - Spending Points (rewards)
-   - Losing Points (penalties, reward claims)
-   - Points Tracking (sensor.kc\_{kid}\_points, history)
-   - **Status**: Not started
+   - ✅ Badge System Overview (cumulative = lifetime points tracking)
+   - ✅ Creating Cumulative Badges (config flow + options flow)
+   - ✅ Configuration Fields (5 tables: Basic Info, Target, Assigned Kids, Awards, Maintenance Cycle)
+   - ✅ How Cumulative Badges Work (earning, demotion/requalification, award frequency)
+   - ✅ Cumulative Badge Progress Sensor (complete attribute reference)
+   - ✅ Badge Series Examples (4 examples: Bronze/Silver/Gold, Beginner/Pro/Legend, Star Collector, VIP Status)
+   - ✅ Managing Cumulative Badges (edit and delete workflows)
+   - ✅ Troubleshooting (5 issues with solutions)
+   - **Status**: ✅ COMPLETE (2025-01-16)
    - **Dependencies**: None
+   - **File**: `docs/wiki/Configuration:-Cumulative-Badges.md`
+   - **References**: Badge-Gamification.md, Badge-Cumulative-Advanced.md, Technical-Reference:-Badge-Entities-Detail.md
+
+6. [x] **Configuration:-Periodic-Badges.md** (578 lines, 8 hours) ✅ COMPLETE
+
+   - ✅ Badge System Overview (periodic = time-bound missions, no multipliers, auto-reset)
+   - ✅ Daily vs Periodic comparison table
+   - ✅ Creating Periodic Badges (config flow + options flow)
+   - ✅ Configuration Fields (7 tables: Basic Info, Target Settings, Tracked Chores, Assigned Kids, Awards, Reset Schedule)
+   - ✅ Target Type Guide (19 types organized into 5 categories: Points, Count, Days, Streaks)
+   - ✅ How Periodic Badges Work (earning, cycle resets, penalty triggers, strict mode warnings)
+   - ✅ Periodic Badge Progress Sensor (complete attribute reference with state values)
+   - ✅ 4 Mission Examples: Week of Clean (daily habit), Perfect Attendance (strict mode), Dishwasher King (tracked chores), No Sass Contract (penalty enforcement)
+   - ✅ Managing Periodic Badges (edit and delete workflows)
+   - ✅ Troubleshooting (5 issues: strict mode failures, duplicate penalties, progress tracking, shared first conflict, reset day)
+   - **Status**: ✅ COMPLETE (2025-01-16)
+   - **Research**: RESEARCH_PERIODIC_BADGES.md (574 lines - comprehensive field inventory)
+   - **Dependencies**: None
+   - **File**: `docs/wiki/Configuration:-Periodic-Badges.md`
+   - **References**: Badge-Gamification.md, Badge-Periodic-Advanced.md, Technical-Reference:-Badge-Entities-Detail.md
 
 **Key issues**:
 
-- **Badge Code Research Task** (BLOCKER for Badges.md):
-  - Investigate config_flow.py badge creation flow
-  - Document badge configuration parameters
-  - Understand badge maintenance system in coordinator.py
-  - Verify dashboard helper badge attributes
-  - Understand activation/deactivation logic
-  - Document "highest badge earned" calculation
-  - Estimated: 4 hours research + documentation
+- **Cumulative Badge Documentation** ✅ RESOLVED (2025-01-16)
+
+  - Configuration:-Cumulative-Badges.md created (411 lines)
+  - All configuration fields documented with code verification
+  - Badge lifecycle (earning, maintenance, demotion, requalification) explained
+  - 4 badge series examples with realistic thresholds
+  - Cross-referenced with Badge-Cumulative-Advanced.md and Technical-Reference:-Badge-Entities-Detail.md
+
+- **Periodic Badge Documentation** ✅ RESOLVED (2025-01-16):
+
+  - Configuration:-Periodic-Badges.md created (578 lines)
+  - RESEARCH_PERIODIC_BADGES.md created (574 lines - comprehensive field inventory)
+  - 19 target types documented with categorization (Points, Count, Days, Streaks)
+  - Daily vs Periodic comparison table included
+  - Tracked chores filtering explained (periodic/daily exclusive feature)
+  - Penalty auto-application behavior documented with warnings
+  - 4 mission examples with realistic configurations: Week of Clean, Perfect Attendance, Dishwasher King, No Sass Contract
+  - Strict mode warnings prominently featured throughout
+  - Cross-referenced with Badge-Periodic-Advanced.md, Badge-Gamification.md, and Technical-Reference:-Badge-Entities-Detail.md
+
+- **Phase 2 Badge Documentation** ✅ COMPLETE (2025-01-16):
+  - Can leverage Badge-Periodic-Advanced.md for mechanics
+  - Can leverage Badge-Gamification.md for type comparison
+  - Follow same structure as Configuration:-Cumulative-Badges.md
+  - Focus on tracked chores, target types, penalties, strict mode
+  - Estimated: 8 hours
 
 ---
 

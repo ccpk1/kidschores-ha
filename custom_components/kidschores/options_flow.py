@@ -1244,20 +1244,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         # Retrieve HA users for linking
         users = await self.hass.auth.async_get_users()
 
-        # Check if this is a shadow kid to show warning
+        # Check if this is a shadow kid to show appropriate warnings
         is_shadow_kid = kid_data.get(const.DATA_KID_IS_SHADOW, False)
-        description_placeholders = {}
-
-        if is_shadow_kid:
-            # Get parent name for warning message
-            parent_id = kid_data.get(const.DATA_KID_LINKED_PARENT_ID)
-            if parent_id and parent_id in coordinator.parents_data:
-                parent_name = coordinator.parents_data[parent_id].get(
-                    const.DATA_PARENT_NAME, ""
-                )
-                description_placeholders = {
-                    "parent_name": parent_name,
-                }
 
         schema = await fh.build_kid_schema(
             self.hass,
@@ -1274,12 +1262,29 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.DATA_KID_ENABLE_DUE_DATE_REMINDERS, True
             ),
         )
+
+        # Use different step_id for shadow kids (shows appropriate warnings)
+        if is_shadow_kid:
+            return self.async_show_form(
+                step_id=const.OPTIONS_FLOW_STEP_EDIT_KID_SHADOW,
+                data_schema=schema,
+                errors=errors,
+            )
+
+        # Regular kid (no warnings)
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_EDIT_KID,
             data_schema=schema,
             errors=errors,
-            description_placeholders=description_placeholders,
         )
+
+    async def async_step_edit_kid_shadow(self, user_input=None):
+        """Edit a shadow kid - delegates to edit_kid handler.
+
+        Shadow kids use a different translation key to show warnings,
+        but the processing logic is identical to regular kids.
+        """
+        return await self.async_step_edit_kid(user_input)
 
     # --- Parents ---
 
