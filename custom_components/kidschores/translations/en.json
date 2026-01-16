@@ -428,7 +428,7 @@
         },
         "data_description": {
           "mobile_notify_service": "Select a notification service to enable notifications for this parent, or leave empty to disable.",
-          "allow_chore_assignment": "Creates a profile so tasks can be assigned to you. By default, only an Approve button is shown for one-click completion.",
+          "allow_chore_assignment": "Creates a profile so tasks can be assigned to you. By default, only an Approve button is shown for one-click completion. Note: Unchecking preserves the kid profile with '_unlinked' suffix for manual cleanup.",
           "enable_chore_workflow": "Adds Claim and Disapprove buttons for full workflow (claim → approve/disapprove).",
           "enable_gamification": "Track points, badges, and rewards for your completed chores.",
           "dashboard_language": "Language used for your chore dashboard and notifications."
@@ -767,7 +767,7 @@
       },
       "edit_kid": {
         "title": "Edit Kid",
-        "description": "Modify the details of the selected kid.",
+        "description": "Modify the details of the selected kid. ⚠️ This kid is linked to parent '{parent_name}'. Changing the name will break the name-matching requirement for unlinking via service.",
         "data": {
           "kid_name": "Kid Name",
           "ha_user": "Home Assistant User",
@@ -777,7 +777,8 @@
           "internal_id": "Internal ID"
         },
         "data_description": {
-          "mobile_notify_service": "Select a notification service to enable notifications for this kid, or leave empty to disable.",
+          "kid_name": "⚠️ This is a shadow kid linked to parent '{parent_name}'. Changing this name will break the service unlinking feature, which requires matching names.",
+          "mobile_notify_service": "⚠️ Shadow kid notifications: Parent '{parent_name}' already receives notifications for supervised chores. Enabling here will create duplicate notifications. Useful for 30-minute due date reminders or if using different notification services.",
           "dashboard_language": "Language used for your chore dashboard and notifications.",
           "enable_due_date_reminders": "Send reminder notifications when chores are due within 30 minutes."
         }
@@ -798,7 +799,7 @@
         },
         "data_description": {
           "mobile_notify_service": "Select a notification service to enable notifications for this parent, or leave empty to disable.",
-          "allow_chore_assignment": "Creates a profile so tasks can be assigned to you. By default, only an Approve button is shown for one-click completion.",
+          "allow_chore_assignment": "Creates a profile so tasks can be assigned to you. By default, only an Approve button is shown for one-click completion. Note: Unchecking preserves the kid profile with '_unlinked' suffix for manual cleanup.",
           "enable_chore_workflow": "Adds Claim and Disapprove buttons for full workflow (claim → approve/disapprove).",
           "enable_gamification": "Track points, badges, and rewards for your completed chores.",
           "dashboard_language": "Language used for your chore dashboard and notifications."
@@ -1580,6 +1581,20 @@
     }
   },
   "services": {
+    "manage_shadow_link": {
+      "name": "Manage parent shadow kid link",
+      "description": "Link or unlink an existing kid profile to/from a parent. Requires kid and parent to have matching names. Unlinking preserves all data and renames kid with '_unlinked' suffix.",
+      "fields": {
+        "name": {
+          "name": "Name",
+          "description": "Name that matches BOTH the parent and kid (case-insensitive)"
+        },
+        "action": {
+          "name": "Action",
+          "description": "Link connects kid to parent as shadow. Unlink disconnects and renames kid."
+        }
+      }
+    },
     "claim_chore": {
       "name": "Claim Chore",
       "description": "A kid claims a chore, marking it as 'claimed' for parental approval.",
@@ -2698,23 +2713,98 @@
           "cost": {
             "name": "Cost"
           },
-          "reward_claims_count": {
-            "name": "Total Claims"
+          "pending_claims": {
+            "name": "Pending Claims"
           },
-          "reward_approvals_count": {
-            "name": "Total Approvals"
+          "last_claimed": {
+            "name": "Last Claimed"
+          },
+          "last_approved": {
+            "name": "Last Approved"
+          },
+          "last_disapproved": {
+            "name": "Last Disapproved"
+          },
+          "claimed_today": {
+            "name": "Claims Today"
+          },
+          "claimed_week": {
+            "name": "Claims This Week"
+          },
+          "claimed_month": {
+            "name": "Claims This Month"
+          },
+          "claimed_year": {
+            "name": "Claims This Year"
+          },
+          "claimed_all_time": {
+            "name": "Claims All Time"
+          },
+          "approved_today": {
+            "name": "Approved Today"
+          },
+          "approved_week": {
+            "name": "Approved This Week"
+          },
+          "approved_month": {
+            "name": "Approved This Month"
+          },
+          "approved_year": {
+            "name": "Approved This Year"
+          },
+          "approved_all_time": {
+            "name": "Approved All Time"
+          },
+          "disapproved_today": {
+            "name": "Disapproved Today"
+          },
+          "disapproved_week": {
+            "name": "Disapproved This Week"
+          },
+          "disapproved_month": {
+            "name": "Disapproved This Month"
+          },
+          "disapproved_year": {
+            "name": "Disapproved This Year"
+          },
+          "disapproved_all_time": {
+            "name": "Disapproved All Time"
+          },
+          "points_spent_today": {
+            "name": "Points Spent Today"
+          },
+          "points_spent_week": {
+            "name": "Points Spent This Week"
+          },
+          "points_spent_month": {
+            "name": "Points Spent This Month"
+          },
+          "points_spent_year": {
+            "name": "Points Spent This Year"
+          },
+          "points_spent_all_time": {
+            "name": "Points Spent All Time"
+          },
+          "approval_rate": {
+            "name": "Approval Rate (%)"
+          },
+          "claim_rate_week": {
+            "name": "Avg Claims Per Day (Week)"
+          },
+          "claim_rate_month": {
+            "name": "Avg Claims Per Day (Month)"
+          },
+          "claim_button_eid": {
+            "name": "Claim Button Entity ID"
+          },
+          "approve_button_eid": {
+            "name": "Approve Button Entity ID"
+          },
+          "disapprove_button_eid": {
+            "name": "Disapprove Button Entity ID"
           },
           "labels": {
             "name": "Labels"
-          },
-          "reward_claim_button_eid": {
-            "name": "Claim Button Entity ID"
-          },
-          "reward_approve_button_eid": {
-            "name": "Approve Button Entity ID"
-          },
-          "reward_disapprove_button_eid": {
-            "name": "Disapprove Button Entity ID"
           }
         }
       },
@@ -3307,6 +3397,21 @@
     }
   },
   "exceptions": {
+    "kid_not_found_by_name": {
+      "message": "No kid found with name '{name}'"
+    },
+    "parent_not_found_by_name": {
+      "message": "No parent found with name '{name}'"
+    },
+    "kid_already_shadow": {
+      "message": "Kid '{name}' is already linked to a parent"
+    },
+    "kid_not_shadow": {
+      "message": "Kid '{name}' is not linked to any parent"
+    },
+    "parent_has_different_shadow": {
+      "message": "Parent '{name}' is already linked to a different kid"
+    },
     "error_msg_no_entry_found": {
       "message": "No matching entry found in configuration."
     },

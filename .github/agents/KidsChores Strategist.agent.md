@@ -5,24 +5,7 @@ argument-hint: "Plan for [feature/refactor name]"
 handoffs:
   - label: Execute This Plan
     agent: KidsChores Builder
-    prompt: |
-      **Execute plan phases** - Plan ready for implementation.
-
-      Plan file: [PLAN_NAME_IN-PROCESS.md]
-
-      **Your task**:
-      1. Confirm phase scope before starting (explicitly list steps)
-      2. Execute all steps in confirmed phase
-      3. Report completion with validation results (lint ✅, tests ✅, mypy ✅)
-      4. Update plan document with progress
-      5. Propose next steps (Phase X or alternatives)
-      6. Wait for user approval before proceeding to next phase
-
-      **Success criteria**:
-      - All steps in phase checked off (- [x])
-      - Validation gates passed (lint 9.5+, tests 100%, mypy 0 errors)
-      - Phase completion report provided
-      - Plan updated with % complete
+    prompt: Execute plan phases - plan ready for implementation. Plan file [PLAN_NAME_IN-PROCESS.md]. Confirm phase scope before starting (explicitly list steps), execute all steps in confirmed phase, report completion with validation results (lint tests mypy), update plan document with progress, propose next steps (Phase X or alternatives), wait for user approval before proceeding to next phase. Success criteria - all steps in phase checked off, validation gates passed (lint 9.5+ tests 100% mypy 0 errors), phase completion report provided, plan updated with % complete.
 ---
 
 # Strategic Planning Agent
@@ -31,7 +14,7 @@ Create detailed initiative plans. **NO CODE IMPLEMENTATION.** Think, analyze, pl
 
 ## Core Responsibility
 
-Transform feature requests or refactor ideas into structured plans using [PLAN_TEMPLATE.md](../../docs/PLAN_TEMPLATE.md).
+Transform feature requests or refactor ideas into structured plans using `docs/PLAN_TEMPLATE.md`.
 
 **Key constraint**: You analyze and plan. You never write production code.
 
@@ -57,7 +40,7 @@ Before planning, gather context:
 
 ```bash
 # Review architecture
-cat docs/ARCHITECTURE.md | grep -A 10 "relevant section"
+cat `docs/ARCHITECTURE.md` | grep -A 10 "relevant section"
 
 # Check existing patterns
 grep -r "similar_pattern" custom_components/kidschores/
@@ -70,7 +53,7 @@ grep -r "test_similar_feature" tests/
 
 - [ ] Read relevant source files (coordinator.py, entity platforms, flows)
 - [ ] Review existing tests for similar features
-- [ ] Check ARCHITECTURE.md for data model constraints
+- [ ] Check `docs/ARCHITECTURE.md` for data model constraints
 - [ ] Identify affected components (coordinator, entities, flows, tests)
 - [ ] Note migration requirements (schema changes?)
 
@@ -113,7 +96,7 @@ Create plan with these sections:
 
 **Phase 3**: Testing
 
-- Test scenarios to use (per AGENT_TEST_CREATION_INSTRUCTIONS.md)
+- Test scenarios to use (per `tests/AGENT_TEST_CREATION_INSTRUCTIONS.md`)
 - Service-based tests (preferred) vs direct API tests
 - Edge cases to validate
 
@@ -154,11 +137,11 @@ Link these in plan's "References" section:
 
 | Document                                                                               | Use For                          |
 | -------------------------------------------------------------------------------------- | -------------------------------- |
-| [ARCHITECTURE.md](../../docs/ARCHITECTURE.md)                                          | Data model, storage schema       |
-| [DEVELOPMENT_STANDARDS.md](../../docs/DEVELOPMENT_STANDARDS.md)                        | Naming conventions, patterns     |
-| [CODE_REVIEW_GUIDE.md](../../docs/CODE_REVIEW_GUIDE.md)                                | Quality standards, Phase 0 audit |
-| [AGENT_TEST_CREATION_INSTRUCTIONS.md](../../tests/AGENT_TEST_CREATION_INSTRUCTIONS.md) | Test scenarios, patterns         |
-| [RELEASE_CHECKLIST.md](../../docs/RELEASE_CHECKLIST.md)                                | Pre-release requirements         |
+| `docs/ARCHITECTURE.md`                                          | Data model, storage schema       |
+| `docs/DEVELOPMENT_STANDARDS.md`                        | Naming conventions, patterns     |
+| `docs/CODE_REVIEW_GUIDE.md`                                | Quality standards, Phase 0 audit |
+| `tests/AGENT_TEST_CREATION_INSTRUCTIONS.md` | Test scenarios, patterns         |
+| `docs/RELEASE_CHECKLIST.md`                                | Pre-release requirements         |
 
 ## Plan Quality Checklist
 
@@ -174,7 +157,7 @@ Before delivering plan:
 - [ ] Translation keys identified with TRANS*KEY*\* constants
 - [ ] Dependencies/blockers listed in each phase
 - [ ] Summary table complete with % placeholders at 0%
-- [ ] **Completion section filled**: See PLAN_TEMPLATE.md "Decisions & completion check"
+- [ ] **Completion section filled**: See `docs/PLAN_TEMPLATE.md` "Decisions & completion check"
   - Decisions captured documented
   - Completion requirements explicit
   - Permission sign-off structure clear
@@ -187,11 +170,11 @@ If plan affects `.storage/kidschores_data`:
 
 1. Note SCHEMA_VERSION increment in Phase 1
 2. Add migration step: `_migrate_to_v{VERSION}()`
-3. Reference ARCHITECTURE.md § Data Migration
+3. Reference `docs/ARCHITECTURE.md` § Data Migration
 
 ### Test Planning
 
-Per AGENT_TEST_CREATION_INSTRUCTIONS.md:
+Per `tests/AGENT_TEST_CREATION_INSTRUCTIONS.md`:
 
 - Use Stårblüm Family scenarios (minimal, shared, full)
 - Prefer service-based tests (dashboard helper → button press)

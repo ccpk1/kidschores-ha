@@ -834,9 +834,13 @@ def build_shadow_kid_data(
         const.DATA_KID_HA_USER_ID: parent_data.get(
             const.DATA_PARENT_HA_USER_ID, const.SENTINEL_EMPTY
         ),
-        const.DATA_KID_ENABLE_NOTIFICATIONS: False,  # Parent handles notifications
+        # Notifications disabled by default (parent usually handles these)
+        # but editable via "Manage Kids" if parent wants kid-specific notifications
+        const.DATA_KID_ENABLE_NOTIFICATIONS: False,
         const.DATA_KID_MOBILE_NOTIFY_SERVICE: const.SENTINEL_EMPTY,
         const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS: False,
+        # Due date reminders default enabled (can be toggled in edit)
+        const.DATA_KID_ENABLE_DUE_DATE_REMINDERS: True,
         const.DATA_KID_DASHBOARD_LANGUAGE: parent_data.get(
             const.DATA_PARENT_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
         ),

@@ -167,6 +167,8 @@ SENTINEL_NO_SELECTION: Final = (
 # Display Values
 DISPLAY_DOT: Final = "."
 DISPLAY_UNKNOWN: Final = "Unknown"
+DISPLAY_UNNAMED_CHORE: Final = "Unnamed Chore"
+DISPLAY_UNNAMED_KID: Final = "A kid"
 
 # Occasion Types
 OCCASION_BIRTHDAY: Final = "birthday"
@@ -1003,10 +1005,8 @@ DATA_CHORE_INTERNAL_ID: Final = "internal_id"
 DATA_CHORE_LABELS: Final = "chore_labels"
 DATA_CHORE_LAST_CLAIMED: Final = "last_claimed"
 DATA_CHORE_LAST_COMPLETED: Final = "last_completed"
-DATA_CHORE_CLAIMED_BY: Final = "claimed_by"  # SHARED_FIRST: Who claimed this chore
-DATA_CHORE_COMPLETED_BY: Final = (
-    "completed_by"  # SHARED_FIRST: Who completed this chore
-)
+DATA_CHORE_CLAIMED_BY: Final = "claimed_by"  # Current period: who claimed (str for INDEPENDENT/SHARED_FIRST, list[str] for SHARED_ALL)
+DATA_CHORE_COMPLETED_BY: Final = "completed_by"  # Current period: who completed (str for INDEPENDENT/SHARED_FIRST, list[str] for SHARED_ALL)
 DATA_CHORE_NAME: Final = "name"
 DATA_CHORE_NOTIFY_ON_APPROVAL: Final = "notify_on_approval"
 DATA_CHORE_NOTIFY_ON_CLAIM: Final = "notify_on_claim"
@@ -1806,6 +1806,35 @@ ATTR_REWARD_POINTS: Final = "reward_points"
 ATTR_REWARD_APPROVE_BUTTON_ENTITY_ID: Final = "approve_button_eid"
 ATTR_REWARD_CLAIM_BUTTON_ENTITY_ID: Final = "claim_button_eid"
 ATTR_REWARD_DISAPPROVE_BUTTON_ENTITY_ID: Final = "disapprove_button_eid"
+
+# Reward Status Sensor Attributes - Period Stats
+ATTR_REWARD_PENDING_CLAIMS: Final = "pending_claims"
+ATTR_REWARD_LAST_CLAIMED: Final = "last_claimed"
+ATTR_REWARD_LAST_APPROVED: Final = "last_approved"
+ATTR_REWARD_LAST_DISAPPROVED: Final = "last_disapproved"
+ATTR_REWARD_CLAIMED_TODAY: Final = "claimed_today"
+ATTR_REWARD_CLAIMED_WEEK: Final = "claimed_week"
+ATTR_REWARD_CLAIMED_MONTH: Final = "claimed_month"
+ATTR_REWARD_CLAIMED_YEAR: Final = "claimed_year"
+ATTR_REWARD_CLAIMED_ALL_TIME: Final = "claimed_all_time"
+ATTR_REWARD_APPROVED_TODAY: Final = "approved_today"
+ATTR_REWARD_APPROVED_WEEK: Final = "approved_week"
+ATTR_REWARD_APPROVED_MONTH: Final = "approved_month"
+ATTR_REWARD_APPROVED_YEAR: Final = "approved_year"
+ATTR_REWARD_APPROVED_ALL_TIME: Final = "approved_all_time"
+ATTR_REWARD_DISAPPROVED_TODAY: Final = "disapproved_today"
+ATTR_REWARD_DISAPPROVED_WEEK: Final = "disapproved_week"
+ATTR_REWARD_DISAPPROVED_MONTH: Final = "disapproved_month"
+ATTR_REWARD_DISAPPROVED_YEAR: Final = "disapproved_year"
+ATTR_REWARD_DISAPPROVED_ALL_TIME: Final = "disapproved_all_time"
+ATTR_REWARD_POINTS_SPENT_TODAY: Final = "points_spent_today"
+ATTR_REWARD_POINTS_SPENT_WEEK: Final = "points_spent_week"
+ATTR_REWARD_POINTS_SPENT_MONTH: Final = "points_spent_month"
+ATTR_REWARD_POINTS_SPENT_YEAR: Final = "points_spent_year"
+ATTR_REWARD_POINTS_SPENT_ALL_TIME: Final = "points_spent_all_time"
+ATTR_REWARD_APPROVAL_RATE: Final = "approval_rate"
+ATTR_REWARD_CLAIM_RATE_WEEK: Final = "claim_rate_week"
+ATTR_REWARD_CLAIM_RATE_MONTH: Final = "claim_rate_month"
 ATTR_SIGN_LABEL: Final = "sign_label"
 ATTR_START_DATE: Final = "start_date"
 ATTR_STREAKS_BY_ACHIEVEMENT: Final = "streaks_by_achievement"
@@ -2070,6 +2099,7 @@ SERVICE_RESET_PENALTIES: Final = "reset_penalties"
 SERVICE_RESET_REWARDS: Final = "reset_rewards"
 SERVICE_SET_CHORE_DUE_DATE: Final = "set_chore_due_date"
 SERVICE_SKIP_CHORE_DUE_DATE: Final = "skip_chore_due_date"
+SERVICE_MANAGE_SHADOW_LINK: Final = "manage_shadow_link"
 
 
 # ------------------------------------------------------------------------------------------------
@@ -2086,6 +2116,12 @@ FIELD_PARENT_NAME = "parent_name"
 FIELD_PENALTY_NAME = "penalty_name"
 FIELD_POINTS_AWARDED = "points_awarded"
 FIELD_REWARD_NAME = "reward_name"
+FIELD_NAME = "name"
+FIELD_ACTION = "action"
+
+# Action values for manage_shadow_link service
+ACTION_LINK: Final = "link"
+ACTION_UNLINK: Final = "unlink"
 
 
 # ------------------------------------------------------------------------------------------------
@@ -2224,6 +2260,13 @@ TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION_GLOBAL: Final = "not_authorized_action_glo
 TRANS_KEY_ERROR_CALENDAR_CREATE_NOT_SUPPORTED: Final = "calendar_create_not_supported"
 TRANS_KEY_ERROR_CALENDAR_DELETE_NOT_SUPPORTED: Final = "calendar_delete_not_supported"
 TRANS_KEY_ERROR_CALENDAR_UPDATE_NOT_SUPPORTED: Final = "calendar_update_not_supported"
+
+# Shadow kid link service error keys
+TRANS_KEY_ERROR_KID_NOT_FOUND_BY_NAME: Final = "kid_not_found_by_name"
+TRANS_KEY_ERROR_PARENT_NOT_FOUND_BY_NAME: Final = "parent_not_found_by_name"
+TRANS_KEY_ERROR_KID_ALREADY_SHADOW: Final = "kid_already_shadow"
+TRANS_KEY_ERROR_KID_NOT_SHADOW: Final = "kid_not_shadow"
+TRANS_KEY_ERROR_PARENT_HAS_DIFFERENT_SHADOW: Final = "parent_has_different_shadow"
 
 # Action identifiers for use with TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION template
 # These values are passed directly as {action} placeholder in exception messages

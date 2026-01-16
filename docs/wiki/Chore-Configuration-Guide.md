@@ -162,6 +162,8 @@ Chore: "Make Your Bed" (Daily frequency, At Midnight Once reset)
 - Alice makes bed at 8:00 AM and claims chore → Parent approves claim → She earns 10 points → Approval resets at configured period (midnight)
 - Bob makes bed at 8:30 AM and claims chore → Parent approves claim → He earns 10 points → Approval resets at configured period (midnight)
 - Neither completion affects the other
+
+Note: Kids can press the Disapprove button while chore is Claimed to undo their claim (not tracked as disapproval).
 ```
 
 **Best For**:

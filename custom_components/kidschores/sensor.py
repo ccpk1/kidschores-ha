@@ -489,6 +489,23 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             return const.CHORE_STATE_OVERDUE
         return const.CHORE_STATE_PENDING
 
+    @staticmethod
+    def _format_claimed_completed_by(value: str | list[str] | None) -> str | None:
+        """Format claimed_by or completed_by value for display.
+
+        Args:
+            value: The value from kid_chore_data (str for INDEPENDENT/SHARED_FIRST,
+                   list[str] for SHARED_ALL, or None)
+
+        Returns:
+            Formatted string (comma-separated if list) or None
+        """
+        if value is None:
+            return None
+        if isinstance(value, list):
+            return ", ".join(value) if value else None
+        return value
+
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Include points, description, etc. Uses new per-chore data where possible.
@@ -500,6 +517,19 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         - State tracking: individual vs shared/global state differentiation
         """
         chore_info = self.coordinator.chores_data.get(self._chore_id, {})
+        completion_criteria = chore_info.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA, const.COMPLETION_CRITERIA_INDEPENDENT
+        )
+        global_state = chore_info.get(const.DATA_CHORE_STATE, const.CHORE_STATE_UNKNOWN)
+
+        assigned_kids_ids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+        assigned_kids_names = [
+            kh.get_kid_name_by_id(self.coordinator, k_id)
+            or f"{const.TRANS_KEY_LABEL_KID} {k_id}"
+            for k_id in assigned_kids_ids
+        ]
+
+        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
         completion_criteria = chore_info.get(
             const.DATA_CHORE_COMPLETION_CRITERIA, const.COMPLETION_CRITERIA_INDEPENDENT
         )
@@ -609,8 +639,14 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_RECURRING_FREQUENCY: chore_info.get(
                 const.DATA_CHORE_RECURRING_FREQUENCY, const.SENTINEL_NONE_TEXT
             ),
-            const.ATTR_APPLICABLE_DAYS: chore_info.get(
-                const.DATA_CHORE_APPLICABLE_DAYS, []
+            # For INDEPENDENT chores, use per_kid_applicable_days; for SHARED, use chore-level
+            # Empty list [] means all days are applicable
+            const.ATTR_APPLICABLE_DAYS: (
+                chore_info.get(const.DATA_CHORE_PER_KID_APPLICABLE_DAYS, {}).get(
+                    self._kid_id, chore_info.get(const.DATA_CHORE_APPLICABLE_DAYS, [])
+                )
+                if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
+                else chore_info.get(const.DATA_CHORE_APPLICABLE_DAYS, [])
             ),
             # For INDEPENDENT chores, use per_kid_due_dates; for SHARED, use chore-level
             # Return None (not translation key) when no due_date - dashboard templates
@@ -637,14 +673,19 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_LAST_OVERDUE: last_overdue,
             # --- 6. State info ---
             const.ATTR_GLOBAL_STATE: global_state,
-            # --- 7. Shared chore claim/completion tracking ---
-            # For SHARED_FIRST chores: who claimed/completed this chore
-            # For SHARED_ALL: may contain list of kid_ids who completed
-            # For INDEPENDENT: typically None (each kid tracked separately)
-            const.ATTR_CLAIMED_BY: chore_info.get(const.DATA_CHORE_CLAIMED_BY),
-            const.ATTR_COMPLETED_BY: chore_info.get(const.DATA_CHORE_COMPLETED_BY),
-            const.ATTR_APPROVAL_PERIOD_START: chore_info.get(
-                const.DATA_CHORE_APPROVAL_PERIOD_START
+            # --- 7. Chore claim/completion tracking (all chore types) ---
+            # INDEPENDENT: kid's own name
+            # SHARED_FIRST: winner's name (stored in other kids' data)
+            # SHARED_ALL: list of kid names (converted to comma-separated string)
+            const.ATTR_CLAIMED_BY: self._format_claimed_completed_by(
+                kid_chore_data.get(const.DATA_CHORE_CLAIMED_BY)
+            ),
+            const.ATTR_COMPLETED_BY: self._format_claimed_completed_by(
+                kid_chore_data.get(const.DATA_CHORE_COMPLETED_BY)
+            ),
+            # Use coordinator helper to correctly handle INDEPENDENT (per-kid) vs SHARED (chore-level)
+            const.ATTR_APPROVAL_PERIOD_START: self.coordinator._get_approval_period_start(
+                self._kid_id, self._chore_id
             ),
         }
 
@@ -1764,14 +1805,106 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict:
-        """Provide extra attributes about the reward."""
+        """Provide comprehensive reward statistics as attributes.
+
+        Returns period-based claims, approvals, disapprovals, points spent,
+        timestamps, and calculated rates for dashboard and automation use.
+        """
         reward_info = self.coordinator.rewards_data.get(self._reward_id, {})
         kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        reward_data = kid_info.get(const.DATA_KID_REWARD_DATA, {}).get(
+            self._reward_id, {}
+        )
 
         stored_labels = reward_info.get(const.DATA_REWARD_LABELS, [])
         friendly_labels = [
             kh.get_friendly_label(self.hass, label) for label in stored_labels
         ]
+
+        # Get current period keys
+        now_local = kh.get_now_local_time()
+        today_local_iso = kh.get_today_local_date().isoformat()
+        week_local_iso = now_local.strftime("%Y-W%V")
+        month_local_iso = now_local.strftime("%Y-%m")
+        year_local_iso = now_local.strftime("%Y")
+
+        # Get period data
+        periods = reward_data.get(const.DATA_KID_REWARD_DATA_PERIODS, {})
+        daily = periods.get(const.DATA_KID_REWARD_DATA_PERIODS_DAILY, {})
+        weekly = periods.get(const.DATA_KID_REWARD_DATA_PERIODS_WEEKLY, {})
+        monthly = periods.get(const.DATA_KID_REWARD_DATA_PERIODS_MONTHLY, {})
+        yearly = periods.get(const.DATA_KID_REWARD_DATA_PERIODS_YEARLY, {})
+
+        # Calculate period stats
+        today_stats = daily.get(today_local_iso, {})
+        week_stats = weekly.get(week_local_iso, {})
+        month_stats = monthly.get(month_local_iso, {})
+        year_stats = yearly.get(year_local_iso, {})
+
+        claimed_today = today_stats.get(const.DATA_KID_REWARD_DATA_PERIOD_CLAIMED, 0)
+        claimed_week = week_stats.get(const.DATA_KID_REWARD_DATA_PERIOD_CLAIMED, 0)
+        claimed_month = month_stats.get(const.DATA_KID_REWARD_DATA_PERIOD_CLAIMED, 0)
+        claimed_year = year_stats.get(const.DATA_KID_REWARD_DATA_PERIOD_CLAIMED, 0)
+        claimed_all_time = reward_data.get(
+            const.DATA_KID_REWARD_DATA_TOTAL_CLAIMS, const.DEFAULT_ZERO
+        )
+
+        approved_today = today_stats.get(const.DATA_KID_REWARD_DATA_PERIOD_APPROVED, 0)
+        approved_week = week_stats.get(const.DATA_KID_REWARD_DATA_PERIOD_APPROVED, 0)
+        approved_month = month_stats.get(const.DATA_KID_REWARD_DATA_PERIOD_APPROVED, 0)
+        approved_year = year_stats.get(const.DATA_KID_REWARD_DATA_PERIOD_APPROVED, 0)
+        approved_all_time = reward_data.get(
+            const.DATA_KID_REWARD_DATA_TOTAL_APPROVED, const.DEFAULT_ZERO
+        )
+
+        disapproved_today = today_stats.get(
+            const.DATA_KID_REWARD_DATA_PERIOD_DISAPPROVED, 0
+        )
+        disapproved_week = week_stats.get(
+            const.DATA_KID_REWARD_DATA_PERIOD_DISAPPROVED, 0
+        )
+        disapproved_month = month_stats.get(
+            const.DATA_KID_REWARD_DATA_PERIOD_DISAPPROVED, 0
+        )
+        disapproved_year = year_stats.get(
+            const.DATA_KID_REWARD_DATA_PERIOD_DISAPPROVED, 0
+        )
+        disapproved_all_time = reward_data.get(
+            const.DATA_KID_REWARD_DATA_TOTAL_DISAPPROVED, const.DEFAULT_ZERO
+        )
+
+        points_spent_today = today_stats.get(
+            const.DATA_KID_REWARD_DATA_PERIOD_POINTS, 0
+        )
+        points_spent_week = week_stats.get(const.DATA_KID_REWARD_DATA_PERIOD_POINTS, 0)
+        points_spent_month = month_stats.get(
+            const.DATA_KID_REWARD_DATA_PERIOD_POINTS, 0
+        )
+        points_spent_year = year_stats.get(const.DATA_KID_REWARD_DATA_PERIOD_POINTS, 0)
+        points_spent_all_time = reward_data.get(
+            const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT, const.DEFAULT_ZERO
+        )
+
+        # Calculate rates
+        approval_rate = (
+            round((approved_all_time / claimed_all_time) * 100, 1)
+            if claimed_all_time > 0
+            else 0.0
+        )
+
+        # Calculate claim rate per day (week = 7 days, month = 30 days average)
+        claim_rate_week = round(claimed_week / 7, 2) if claimed_week > 0 else 0.0
+        claim_rate_month = round(claimed_month / 30, 2) if claimed_month > 0 else 0.0
+
+        # Get timestamps
+        last_claimed = reward_data.get(const.DATA_KID_REWARD_DATA_LAST_CLAIMED)
+        last_approved = reward_data.get(const.DATA_KID_REWARD_DATA_LAST_APPROVED)
+        last_disapproved = reward_data.get(const.DATA_KID_REWARD_DATA_LAST_DISAPPROVED)
+
+        # Get pending claims count
+        pending_claims = reward_data.get(
+            const.DATA_KID_REWARD_DATA_PENDING_COUNT, const.DEFAULT_ZERO
+        )
 
         # Get claim, approve, and disapprove button entity IDs
         claim_button_eid = None
@@ -1798,7 +1931,9 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         except (KeyError, ValueError, AttributeError):
             pass
 
+        # Return attributes in logical order: common, status, timestamps, periods, rates, buttons, labels
         return {
+            # Common fields
             const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_REWARD_STATUS,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_REWARD_NAME: self._reward_name,
@@ -1808,18 +1943,46 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_COST: reward_info.get(
                 const.DATA_REWARD_COST, const.DEFAULT_REWARD_COST
             ),
-            const.ATTR_REWARD_CLAIMS_COUNT: kid_info.get(const.DATA_KID_REWARD_DATA, {})
-            .get(self._reward_id, {})
-            .get(const.DATA_KID_REWARD_DATA_TOTAL_CLAIMS, const.DEFAULT_ZERO),
-            const.ATTR_REWARD_APPROVALS_COUNT: kid_info.get(
-                const.DATA_KID_REWARD_DATA, {}
-            )
-            .get(self._reward_id, {})
-            .get(const.DATA_KID_REWARD_DATA_TOTAL_APPROVED, const.DEFAULT_ZERO),
-            const.ATTR_LABELS: friendly_labels,
+            # Status tracking
+            const.ATTR_REWARD_PENDING_CLAIMS: pending_claims,
+            # Timestamps
+            const.ATTR_REWARD_LAST_CLAIMED: last_claimed,
+            const.ATTR_REWARD_LAST_APPROVED: last_approved,
+            const.ATTR_REWARD_LAST_DISAPPROVED: last_disapproved,
+            # Claims by period
+            const.ATTR_REWARD_CLAIMED_TODAY: claimed_today,
+            const.ATTR_REWARD_CLAIMED_WEEK: claimed_week,
+            const.ATTR_REWARD_CLAIMED_MONTH: claimed_month,
+            const.ATTR_REWARD_CLAIMED_YEAR: claimed_year,
+            const.ATTR_REWARD_CLAIMED_ALL_TIME: claimed_all_time,
+            # Approvals by period
+            const.ATTR_REWARD_APPROVED_TODAY: approved_today,
+            const.ATTR_REWARD_APPROVED_WEEK: approved_week,
+            const.ATTR_REWARD_APPROVED_MONTH: approved_month,
+            const.ATTR_REWARD_APPROVED_YEAR: approved_year,
+            const.ATTR_REWARD_APPROVED_ALL_TIME: approved_all_time,
+            # Disapprovals by period
+            const.ATTR_REWARD_DISAPPROVED_TODAY: disapproved_today,
+            const.ATTR_REWARD_DISAPPROVED_WEEK: disapproved_week,
+            const.ATTR_REWARD_DISAPPROVED_MONTH: disapproved_month,
+            const.ATTR_REWARD_DISAPPROVED_YEAR: disapproved_year,
+            const.ATTR_REWARD_DISAPPROVED_ALL_TIME: disapproved_all_time,
+            # Points spent by period
+            const.ATTR_REWARD_POINTS_SPENT_TODAY: points_spent_today,
+            const.ATTR_REWARD_POINTS_SPENT_WEEK: points_spent_week,
+            const.ATTR_REWARD_POINTS_SPENT_MONTH: points_spent_month,
+            const.ATTR_REWARD_POINTS_SPENT_YEAR: points_spent_year,
+            const.ATTR_REWARD_POINTS_SPENT_ALL_TIME: points_spent_all_time,
+            # Calculated rates
+            const.ATTR_REWARD_APPROVAL_RATE: approval_rate,
+            const.ATTR_REWARD_CLAIM_RATE_WEEK: claim_rate_week,
+            const.ATTR_REWARD_CLAIM_RATE_MONTH: claim_rate_month,
+            # Button entity IDs
             const.ATTR_REWARD_CLAIM_BUTTON_ENTITY_ID: claim_button_eid,
             const.ATTR_REWARD_APPROVE_BUTTON_ENTITY_ID: approve_button_eid,
             const.ATTR_REWARD_DISAPPROVE_BUTTON_ENTITY_ID: disapprove_button_eid,
+            # Labels
+            const.ATTR_LABELS: friendly_labels,
         }
 
     @property
@@ -2875,53 +3038,6 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         )
         return next_monday.replace(hour=7, minute=0, second=0, microsecond=0)
 
-    def _format_applicable_days(self, days: list[str] | list[int]) -> str:
-        """Format weekday list as human-readable string.
-
-        PKAD-2026-001: Formats applicable days for dashboard display.
-        Handles both string formats (["mon", "tue"]) and integer formats ([0, 1]).
-
-        Args:
-            days: List of weekday strings ["mon", "tue"] or integers [0, 1]
-
-        Returns:
-            Formatted string like "Mon, Tue" or "All days" if empty
-        """
-        if not days:
-            return "All days"  # Empty = all days applicable
-
-        # Map string keys to display names
-        str_to_name = {
-            "mon": "Mon",
-            "tue": "Tue",
-            "wed": "Wed",
-            "thu": "Thu",
-            "fri": "Fri",
-            "sat": "Sat",
-            "sun": "Sun",
-        }
-        # Integer index to display names (legacy support)
-        int_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-
-        try:
-            result = []
-            for d in days:
-                if isinstance(d, str) and d in str_to_name:
-                    result.append(str_to_name[d])
-                elif isinstance(d, int) and 0 <= d <= 6:
-                    result.append(int_names[d])
-            # Sort by weekday order (Mon=0 to Sun=6)
-            order = list(str_to_name.keys())
-            result.sort(
-                key=lambda x: order.index(x.lower()) if x.lower() in order else 7
-            )
-            return ", ".join(result) if result else "All days"
-        except (IndexError, TypeError, ValueError):
-            const.LOGGER.warning(
-                "Invalid applicable_days format: %s, returning 'All days'", days
-            )
-            return "All days"
-
     def _calculate_chore_attributes(
         self, chore_id: str, chore_info: dict, kid_info: dict, chore_eid
     ) -> dict | None:
@@ -3004,20 +3120,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             status, due_date_local_dt, recurring_frequency
         )
 
-        # PKAD-2026-001: Get per-kid applicable days for dashboard display
-        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
-            per_kid_days = chore_info.get(const.DATA_CHORE_PER_KID_APPLICABLE_DAYS, {})
-            kid_days = per_kid_days.get(
-                self._kid_id,
-                chore_info.get(const.DATA_CHORE_APPLICABLE_DAYS, []),
-            )
-        else:
-            # SHARED chores: use chore-level
-            kid_days = chore_info.get(const.DATA_CHORE_APPLICABLE_DAYS, [])
-
-        assigned_days_display = self._format_applicable_days(kid_days)
-
-        # Return only the 8 minimal fields needed for dashboard list rendering
+        # Return only the 6 minimal fields needed for dashboard list rendering
         # All other attributes are available via state_attr(chore.eid, 'attr_name')
         return {
             const.ATTR_EID: chore_eid,
@@ -3026,8 +3129,6 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_CHORE_LABELS: chore_labels,
             const.ATTR_CHORE_PRIMARY_GROUP: primary_group,
             const.ATTR_CHORE_IS_TODAY_AM: is_today_am,
-            const.ATTR_CHORE_ASSIGNED_DAYS: assigned_days_display,
-            const.ATTR_CHORE_ASSIGNED_DAYS_RAW: kid_days,
         }
 
     def _calculate_primary_group(
@@ -3044,6 +3145,10 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         # Check due date if available
         if due_date_local and isinstance(due_date_local, datetime):
             today_local = kh.get_today_local_date()
+
+            # Past due dates -> today group (catches claimed/approved chores that were overdue)
+            if due_date_local.date() < today_local:
+                return const.PRIMARY_GROUP_TODAY
 
             # Due today -> today group
             if due_date_local.date() == today_local:

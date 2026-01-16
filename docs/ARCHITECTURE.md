@@ -387,3 +387,53 @@ The integration maintains backward compatibility for legacy installations:
 - **Migration Testing**: Comprehensive test suite validates all migration paths (see MIGRATION_TESTING_PLAN.md)
 
 ---
+
+## Shadow Kid Linking
+
+The `kidschores.manage_shadow_link` service provides programmatic control over shadow kid relationships, enabling data-preserving workflows for existing kid profiles.
+
+### Core Concept
+
+**Shadow Kids** are special kid entities created when a parent enables `allow_chore_assignment`. They share the parent's name and serve as a chore assignment target while preserving separate point tracking. The linking service allows converting existing regular kids into shadow kids without losing data.
+
+### Service Operations
+
+**Link Operation** (`action: link`):
+
+- Requires exact name match between existing parent and kid (case-insensitive)
+- Validates neither entity is already in a shadow relationship
+- Converts kid to shadow profile: sets `is_shadow_kid: true`, `linked_parent_id`, updates parent's `linked_shadow_kid_id`
+- Preserves all kid data: points, history, chores, badges, achievements
+- Inherits parent's workflow/gamification settings
+
+**Unlink Operation** (`action: unlink`):
+
+- Removes shadow relationship markers from both entities
+- Renames kid with `_unlinked` suffix to prevent name conflicts
+- Preserves all kid data as regular kid profile
+- Updates device registry immediately (no reload required)
+- Parent's `allow_chore_assignment` remains enabled but `linked_shadow_kid_id` cleared
+
+### Notification Behavior
+
+Shadow kids are created with `enable_notifications: false` by default to avoid duplicate notifications (parent receives supervised chore notifications). This setting is configurable via "Manage Kids" options flow to enable features like 30-minute due date reminders or separate notification services.
+
+### Usage Pattern
+
+```yaml
+# Convert existing kid "Sarah" to shadow kid for parent "Sarah"
+service: kidschores.manage_shadow_link
+data:
+  name: "Sarah"
+  action: "link"
+
+# Unlink shadow kid (creates regular kid "Sarah_unlinked")
+service: kidschores.manage_shadow_link
+data:
+  name: "Sarah"
+  action: "unlink"
+```
+
+**Implementation**: `services.py` lines 1169-1309, `coordinator.py` lines 1238-1310
+
+---

@@ -55,13 +55,13 @@ Dense attribute data instead of hundreds of separate entities.
 
 - `button.kc_<kid>_chore_claim_<chore>` - Kid claims chore
 - `button.kc_<kid>_chore_approval_<chore>` - Parent approves
-- `button.kc_<kid>_chore_disapproval_<chore>` - Parent disapproves
+- `button.kc_<kid>_chore_disapproval_<chore>` - Parent disapproves (also works as undo for kids in Claimed status)
 
 **Reward Buttons** (per kid, per reward):
 
 - `button.kc_<kid>_reward_claim_<reward>` - Kid redeems reward
 - `button.kc_<kid>_reward_approval_<reward>` - Parent approves redemption
-- `button.kc_<kid>_reward_disapproval_<reward>` - Parent disapproves redemption
+- `button.kc_<kid>_reward_disapproval_<reward>` - Parent disapproves redemption (also works as undo for kids in Claimed status)
 
 **Bonus/Penalty Buttons** (per kid, per item):
 

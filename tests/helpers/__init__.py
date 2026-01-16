@@ -364,6 +364,7 @@ from tests.helpers.constants import (
     SENTINEL_NONE,
     SENTINEL_NONE_TEXT,
     # Service names
+    SERVICE_MANAGE_SHADOW_LINK,
     SERVICE_RESET_ALL_CHORES,
     # Time units
     TIME_UNIT_DAYS,

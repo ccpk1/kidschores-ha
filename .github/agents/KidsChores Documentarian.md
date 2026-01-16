@@ -58,8 +58,8 @@ Documentation is "executable" when a user can follow it without guessing.
 | Document                                                                                           | Use For                              |
 | -------------------------------------------------------------------------------------------------- | ------------------------------------ |
 | [Wiki Home](https://github.com/ad-ha/kidschores-ha/wiki)                                           | Primary user guides and tutorials    |
-| [ARCHITECTURE.md](https://www.google.com/search?q=../../docs/ARCHITECTURE.md)                      | Understanding entity relationships   |
-| [en.json](https://www.google.com/search?q=../../custom_components/kidschores/translations/en.json) | Ensuring UI terminology matches docs |
+| `docs/ARCHITECTURE.md`                      | Understanding entity relationships   |
+| `custom_components/kidschores/translations/en.json` | Ensuring UI terminology matches docs |
 
 ## Documentation Quality Checklist
 

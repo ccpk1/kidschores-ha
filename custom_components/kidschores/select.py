@@ -343,17 +343,24 @@ class KidDashboardHelperChoresSelect(KidsChoresSelectBase):
 
         Filters coordinator.chores_data to include only chores where kid_id is in
         the assigned_kids list. Prepends 'None' option for clearing selection.
+        Returns chore names sorted alphabetically for consistent ordering.
         """
-        # Start with a "None" entry
-        options = [const.SENTINEL_NONE_TEXT]
+        # Collect chore names for this kid
+        chore_names = []
         for chore_id, chore_info in self.coordinator.chores_data.items():
             if self._kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
-                options.append(
-                    chore_info.get(
-                        const.DATA_CHORE_NAME,
-                        f"{const.TRANS_KEY_LABEL_CHORE} {chore_id}",
-                    )
+                chore_name = chore_info.get(
+                    const.DATA_CHORE_NAME,
+                    f"{const.TRANS_KEY_LABEL_CHORE} {chore_id}",
                 )
+                chore_names.append(chore_name)
+
+        # Sort alphabetically (case-insensitive)
+        chore_names.sort(key=str.lower)
+
+        # Start with a "None" entry and add sorted chores
+        options = [const.SENTINEL_NONE_TEXT]
+        options.extend(chore_names)
         return options
 
     @property

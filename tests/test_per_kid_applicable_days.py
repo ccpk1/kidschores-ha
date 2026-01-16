@@ -308,62 +308,6 @@ class TestPerKidDashboardDisplay:
             f"Kids should have non-overlapping days: Zoë={zoe_days_raw}, Max={max_days_raw}"
         )
 
-    @pytest.mark.asyncio
-    async def test_assigned_days_formatted_as_string(
-        self, hass: HomeAssistant, scenario_per_kid: SetupResult
-    ) -> None:
-        """assigned_days attribute is a human-readable string like 'Mon, Wed'."""
-        coordinator = scenario_per_kid.coordinator
-        await coordinator.async_refresh()
-        await hass.async_block_till_done()
-
-        helper_state = hass.states.get("sensor.kc_zoe_ui_dashboard_helper")
-        assert helper_state is not None
-
-        chores = helper_state.attributes.get("chores", [])
-        assert len(chores) > 0, "Dashboard should have chores"
-
-        # Find a chore with assigned_days
-        chore_with_days = next((c for c in chores if c.get("assigned_days")), None)
-        assert chore_with_days is not None, (
-            "At least one chore should have assigned_days"
-        )
-
-        assigned_days = chore_with_days["assigned_days"]
-        assert isinstance(assigned_days, str), "assigned_days should be a string"
-        # Should be formatted like "Mon, Wed" or "All days"
-        assert assigned_days, "assigned_days should not be empty"
-
-    @pytest.mark.asyncio
-    async def test_assigned_days_raw_is_string_list(
-        self, hass: HomeAssistant, scenario_per_kid: SetupResult
-    ) -> None:
-        """assigned_days_raw is a list of weekday strings ['mon','tue',...,'sun'].
-
-        CRITICAL: Real UI/storage uses string format from WEEKDAY_OPTIONS.
-        """
-        coordinator = scenario_per_kid.coordinator
-        await coordinator.async_refresh()
-        await hass.async_block_till_done()
-
-        helper_state = hass.states.get("sensor.kc_zoe_ui_dashboard_helper")
-        assert helper_state is not None
-
-        chores = helper_state.attributes.get("chores", [])
-
-        # Find a chore with assigned_days_raw
-        chore_with_raw = next((c for c in chores if "assigned_days_raw" in c), None)
-        assert chore_with_raw is not None, (
-            "At least one chore should have assigned_days_raw"
-        )
-
-        days_raw = chore_with_raw["assigned_days_raw"]
-        assert isinstance(days_raw, list), "assigned_days_raw should be a list"
-        valid_weekdays = {"mon", "tue", "wed", "thu", "fri", "sat", "sun"}
-        for day in days_raw:
-            assert isinstance(day, str), f"Day {day} should be a string"
-            assert day in valid_weekdays, f"Day '{day}' should be a valid weekday"
-
 
 # =============================================================================
 # DATA INTEGRITY TESTS

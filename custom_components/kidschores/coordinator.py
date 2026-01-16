@@ -20,7 +20,7 @@ import uuid
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -344,7 +344,17 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # Register daily/weekly/monthly resets
         async_track_time_change(
-            self.hass, self._reset_all_chore_counts, **const.DEFAULT_DAILY_RESET_TIME
+            self.hass,
+            self._handle_recurring_chore_resets,
+            **const.DEFAULT_DAILY_RESET_TIME,
+        )
+        async_track_time_change(
+            self.hass, self._check_overdue_chores, **const.DEFAULT_DAILY_RESET_TIME
+        )
+        async_track_time_change(
+            self.hass,
+            self._bump_past_datetime_helpers,
+            **const.DEFAULT_DAILY_RESET_TIME,
         )
 
         # Note: KC 3.x config sync is now handled by _run_pre_v50_migrations() above
@@ -1187,7 +1197,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         - Use the parent's name and dashboard language
         - Are marked with is_shadow_kid=True
         - Link back to the parent via linked_parent_id
-        - Have notifications disabled (parent handles their own notifications)
+        - Have notifications disabled by default (editable via Manage Kids)
         - Inherit gamification setting from parent
 
         Uses shared build_shadow_kid_data() from flow_helpers for consistency
@@ -1216,6 +1226,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         const.LOGGER.info(
             "Created shadow kid '%s' (ID: %s) for parent '%s' (ID: %s)",
+            shadow_kid_id,
             parent_info.get(const.DATA_PARENT_NAME),
             shadow_kid_id,
             parent_info.get(const.DATA_PARENT_NAME),
@@ -1224,53 +1235,80 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         return shadow_kid_id
 
-    def _delete_shadow_kid(self, shadow_kid_id: str) -> None:
-        """Delete a shadow kid entity.
+    def _unlink_shadow_kid(self, shadow_kid_id: str) -> None:
+        """Unlink a shadow kid from parent, converting to regular kid.
 
-        This should be called when a parent disables chore assignment.
-        Removes the shadow kid from the kids data structure and cleans up
-        all associated Home Assistant entities.
+        This preserves all kid data (points, history, badges, etc.) while
+        removing the shadow link. The kid is renamed with '_unlinked' suffix
+        to prevent name conflicts with the parent.
+
+        Used when:
+        - Parent unchecks "Allow Chores" in options flow
+        - Service call to unlink shadow kid
 
         Args:
-            shadow_kid_id: The internal ID of the shadow kid to delete.
+            shadow_kid_id: The internal ID of the shadow kid to unlink.
+
+        Raises:
+            ServiceValidationError: If kid not found or not a shadow kid.
         """
         if shadow_kid_id not in self._data[const.DATA_KIDS]:
             const.LOGGER.warning(
-                "Attempted to delete non-existent shadow kid: %s", shadow_kid_id
+                "Attempted to unlink non-existent shadow kid: %s", shadow_kid_id
             )
-            return
+            raise ServiceValidationError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_KID,
+                    "name": shadow_kid_id,
+                },
+            )
 
         kid_info = self._data[const.DATA_KIDS][shadow_kid_id]
         kid_name = kid_info.get(const.DATA_KID_NAME, shadow_kid_id)
 
         # Verify this is actually a shadow kid
         if not kid_info.get(const.DATA_KID_IS_SHADOW, False):
-            const.LOGGER.error(
-                "Attempted to delete non-shadow kid '%s' as shadow kid", kid_name
+            const.LOGGER.error("Attempted to unlink non-shadow kid '%s'", kid_name)
+            raise ServiceValidationError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_KID_NOT_SHADOW,
+                translation_placeholders={"name": kid_name},
             )
-            return
 
-        # Remove from kids data
-        del self._data[const.DATA_KIDS][shadow_kid_id]
-
-        # Remove all HA entities associated with this shadow kid
-        # (reuses same cleanup logic as regular kid deletion)
-        self._remove_entities_in_ha(shadow_kid_id)
-
-        # Remove the device from the device registry
-        from homeassistant.helpers import device_registry as dr
-
-        dev_reg = dr.async_get(self.hass)
-        device = dev_reg.async_get_device(identifiers={(const.DOMAIN, shadow_kid_id)})
-        if device:
-            dev_reg.async_remove_device(device.id)
+        # Get linked parent to clear their reference
+        parent_id = kid_info.get(const.DATA_KID_LINKED_PARENT_ID)
+        if parent_id and parent_id in self._data.get(const.DATA_PARENTS, {}):
+            # Clear parent's link to this shadow kid
+            self._data[const.DATA_PARENTS][parent_id][
+                const.DATA_PARENT_LINKED_SHADOW_KID_ID
+            ] = None
             const.LOGGER.debug(
-                "Removed device for shadow kid '%s' (device_id: %s)",
+                "Cleared parent '%s' link to shadow kid '%s'",
+                self._data[const.DATA_PARENTS][parent_id].get(
+                    const.DATA_PARENT_NAME, parent_id
+                ),
                 kid_name,
-                device.id,
             )
 
-        const.LOGGER.info("Deleted shadow kid '%s' (ID: %s)", kid_name, shadow_kid_id)
+        # Rename kid with _unlinked suffix to prevent conflicts
+        new_name = f"{kid_name}_unlinked"
+
+        # Remove shadow kid markers (convert to regular kid)
+        kid_info[const.DATA_KID_IS_SHADOW] = False
+        kid_info[const.DATA_KID_LINKED_PARENT_ID] = None
+        kid_info[const.DATA_KID_NAME] = new_name
+
+        # Update device registry to reflect new name immediately
+        self._update_kid_device_name(shadow_kid_id, new_name)
+
+        const.LOGGER.info(
+            "Unlinked shadow kid '%s' → '%s' (ID: %s), preserved all data",
+            kid_name,
+            new_name,
+            shadow_kid_id,
+        )
 
     # -- Chores
     def _create_chore(self, chore_id: str, chore_data: dict[str, Any]):
@@ -2145,8 +2183,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 self._data[const.DATA_PARENTS][parent_id][
                     const.DATA_PARENT_LINKED_SHADOW_KID_ID
                 ] = None
-            # Use existing shadow kid cleanup (removes kid + entities)
-            self._delete_shadow_kid(kid_id)
+            # Unlink shadow kid (preserves kid + entities)
+            self._unlink_shadow_kid(kid_id)
             # Cleanup unused translation sensors (if language no longer needed)
             self.cleanup_unused_translation_sensors()
             self._persist()
@@ -2209,12 +2247,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         parent_data = self._data[const.DATA_PARENTS][parent_id]
         parent_name = parent_data.get(const.DATA_PARENT_NAME, parent_id)
 
-        # Cascade delete shadow kid if exists
+        # Cascade unlink shadow kid if exists (preserves data)
         shadow_kid_id = parent_data.get(const.DATA_PARENT_LINKED_SHADOW_KID_ID)
         if shadow_kid_id:
-            self._delete_shadow_kid(shadow_kid_id)
+            self._unlink_shadow_kid(shadow_kid_id)
             const.LOGGER.info(
-                "INFO: Cascade deleted shadow kid for parent '%s'", parent_name
+                "INFO: Cascade unlinked shadow kid for parent '%s'", parent_name
             )
 
         del self._data[const.DATA_PARENTS][parent_id]
@@ -2810,6 +2848,115 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     # Chores: Claim, Approve, Disapprove, Compute Global State for Shared Chores
     # -------------------------------------------------------------------------------------
 
+    def _set_chore_claimed_completed_by(
+        self, chore_id: str, kid_id: str, field_name: str, kid_name: str
+    ) -> None:
+        """Set claimed_by or completed_by field for a chore based on completion criteria.
+
+        Args:
+            chore_id: The chore's internal ID
+            kid_id: The kid who claimed/completed the chore
+            field_name: Either DATA_CHORE_CLAIMED_BY or DATA_CHORE_COMPLETED_BY
+            kid_name: Display name of the kid
+        """
+        chore_info = self.chores_data.get(chore_id)
+        if not chore_info:
+            return
+
+        completion_criteria = chore_info.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA, const.SENTINEL_EMPTY
+        )
+
+        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+            # INDEPENDENT: Store kid's own name in their kid_chore_data
+            kid_info = self.kids_data.get(kid_id)
+            if not kid_info:
+                return
+            kid_chores_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
+            if chore_id not in kid_chores_data:
+                self._update_chore_data_for_kid(kid_id, chore_id, 0.0)
+            kid_chores_data[chore_id][field_name] = kid_name
+            const.LOGGER.debug(
+                "INDEPENDENT: Set %s='%s' for kid '%s' on chore '%s'",
+                field_name,
+                kid_name,
+                kid_name,
+                chore_info.get(const.DATA_CHORE_NAME),
+            )
+
+        elif completion_criteria == const.COMPLETION_CRITERIA_SHARED_FIRST:
+            # SHARED_FIRST: Store in other kids' data (not the claiming/completing kid)
+            for other_kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
+                if other_kid_id == kid_id:
+                    continue  # Skip the claiming/completing kid
+                other_kid_info = self.kids_data.get(other_kid_id, {})
+                self._update_chore_data_for_kid(other_kid_id, chore_id, 0.0)
+                chore_data = other_kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
+                chore_entry = chore_data[chore_id]
+                chore_entry[field_name] = kid_name
+                const.LOGGER.debug(
+                    "SHARED_FIRST: Set %s='%s' in kid '%s' data for chore '%s'",
+                    field_name,
+                    kid_name,
+                    other_kid_info.get(const.DATA_KID_NAME),
+                    chore_info.get(const.DATA_CHORE_NAME),
+                )
+
+        elif completion_criteria == const.COMPLETION_CRITERIA_SHARED:
+            # SHARED_ALL: Append to list in all kids' data
+            for assigned_kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
+                assigned_kid_info = self.kids_data.get(assigned_kid_id, {})
+                assigned_kid_chore_data = assigned_kid_info.setdefault(
+                    const.DATA_KID_CHORE_DATA, {}
+                )
+                if chore_id not in assigned_kid_chore_data:
+                    self._update_chore_data_for_kid(assigned_kid_id, chore_id, 0.0)
+                chore_entry = assigned_kid_chore_data[chore_id]
+
+                # Initialize as list if not present or if it's not a list
+                if field_name not in chore_entry or not isinstance(
+                    chore_entry[field_name], list
+                ):
+                    chore_entry[field_name] = []
+
+                # Append kid's name if not already in list
+                if kid_name not in chore_entry[field_name]:
+                    chore_entry[field_name].append(kid_name)
+
+            const.LOGGER.debug(
+                "SHARED_ALL: Added '%s' to %s list for chore '%s'",
+                kid_name,
+                field_name,
+                chore_info.get(const.DATA_CHORE_NAME),
+            )
+
+    def _clear_chore_claimed_completed_by(
+        self, chore_id: str, kid_ids: list[str] | None = None
+    ) -> None:
+        """Clear claimed_by and completed_by fields for specified kids.
+
+        Args:
+            chore_id: The chore's internal ID
+            kid_ids: List of kid IDs to clear fields for. If None, clears for all assigned kids.
+        """
+        chore_info = self.chores_data.get(chore_id)
+        if not chore_info:
+            return
+
+        # If no specific kids provided, clear for all assigned kids
+        kids_to_clear = (
+            kid_ids
+            if kid_ids is not None
+            else chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+        )
+
+        for kid_id in kids_to_clear:
+            kid_info = self.kids_data.get(kid_id, {})
+            chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
+            if chore_id in chore_data:
+                chore_data[chore_id].pop(const.DATA_CHORE_CLAIMED_BY, None)
+                chore_data[chore_id].pop(const.DATA_CHORE_COMPLETED_BY, None)
+
     def claim_chore(self, kid_id: str, chore_id: str, user_name: str):
         """Kid claims chore => state=claimed; parent must then approve."""
         perf_start = time.perf_counter()
@@ -2911,32 +3058,22 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         self._process_chore_state(kid_id, chore_id, const.CHORE_STATE_CLAIMED)
 
-        # SHARED_FIRST: Set all other assigned kids to completed_by_other
+        # Set claimed_by for ALL chore types (helper handles INDEPENDENT/SHARED_FIRST/SHARED)
+        claiming_kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
+        self._set_chore_claimed_completed_by(
+            chore_id, kid_id, const.DATA_CHORE_CLAIMED_BY, claiming_kid_name
+        )
+
+        # For SHARED_FIRST, also set other kids to completed_by_other state
         completion_criteria = chore_info.get(
             const.DATA_CHORE_COMPLETION_CRITERIA, const.SENTINEL_EMPTY
         )
         if completion_criteria == const.COMPLETION_CRITERIA_SHARED_FIRST:
-            claiming_kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
             for other_kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
                 if other_kid_id == kid_id:
-                    continue  # Skip the claiming kid
-                # Set other kids to completed_by_other state using _process_chore_state
-                # This properly updates their lists and recomputes global state
+                    continue
                 self._process_chore_state(
                     other_kid_id, chore_id, const.CHORE_STATE_COMPLETED_BY_OTHER
-                )
-                # Store who claimed it for display purposes
-                other_kid_info = self.kids_data.get(other_kid_id, {})
-                # Ensure proper initialization of chore data
-                self._update_chore_data_for_kid(other_kid_id, chore_id, 0.0)
-                chore_data = other_kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
-                chore_entry = chore_data[chore_id]  # Now guaranteed to exist
-                chore_entry[const.DATA_CHORE_CLAIMED_BY] = claiming_kid_name
-                const.LOGGER.debug(
-                    "SHARED_FIRST: Set kid '%s' to completed_by_other for chore '%s' (claimed by '%s')",
-                    other_kid_info.get(const.DATA_KID_NAME),
-                    chore_info.get(const.DATA_CHORE_NAME),
-                    claiming_kid_name,
                 )
 
         # Check if auto_approve is enabled for this chore
@@ -3173,12 +3310,29 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 0, current_count - 1
             )
 
-            # SHARED_FIRST: Update completed_by for other kids (they remain in completed_by_other state)
+            # Set completed_by for ALL chore types
             completion_criteria = chore_info.get(
                 const.DATA_CHORE_COMPLETION_CRITERIA, const.SENTINEL_EMPTY
             )
-            if completion_criteria == const.COMPLETION_CRITERIA_SHARED_FIRST:
-                completing_kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
+            completing_kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
+
+            if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+                # INDEPENDENT: Store completing kid's own name in their kid_chore_data
+                kid_chores_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
+                if chore_id not in kid_chores_data:
+                    self._update_chore_data_for_kid(kid_id, chore_id, 0.0)
+                kid_chores_data[chore_id][const.DATA_CHORE_COMPLETED_BY] = (
+                    completing_kid_name
+                )
+                const.LOGGER.debug(
+                    "INDEPENDENT: Set completed_by='%s' for kid '%s' on chore '%s'",
+                    completing_kid_name,
+                    completing_kid_name,
+                    chore_info.get(const.DATA_CHORE_NAME),
+                )
+
+            elif completion_criteria == const.COMPLETION_CRITERIA_SHARED_FIRST:
+                # SHARED_FIRST: Update completed_by for other kids (they remain in completed_by_other state)
                 for other_kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
                     if other_kid_id == kid_id:
                         continue  # Skip the completing kid
@@ -3198,6 +3352,44 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                         other_kid_info.get(const.DATA_KID_NAME),
                         chore_info.get(const.DATA_CHORE_NAME),
                     )
+
+            elif completion_criteria == const.COMPLETION_CRITERIA_SHARED:
+                # SHARED_ALL: Append to list of completing kids in each kid's own kid_chore_data
+                for assigned_kid_id in chore_info.get(
+                    const.DATA_CHORE_ASSIGNED_KIDS, []
+                ):
+                    assigned_kid_info = self.kids_data.get(assigned_kid_id, {})
+                    assigned_kid_chore_data = assigned_kid_info.setdefault(
+                        const.DATA_KID_CHORE_DATA, {}
+                    )
+                    # Ensure proper initialization
+                    if chore_id not in assigned_kid_chore_data:
+                        self._update_chore_data_for_kid(assigned_kid_id, chore_id, 0.0)
+                    chore_entry = assigned_kid_chore_data[chore_id]
+
+                    # Initialize as list if not present or if it's not a list
+                    if (
+                        const.DATA_CHORE_COMPLETED_BY not in chore_entry
+                        or not isinstance(
+                            chore_entry[const.DATA_CHORE_COMPLETED_BY], list
+                        )
+                    ):
+                        chore_entry[const.DATA_CHORE_COMPLETED_BY] = []
+
+                    # Append completing kid's name if not already in list
+                    if (
+                        completing_kid_name
+                        not in chore_entry[const.DATA_CHORE_COMPLETED_BY]
+                    ):
+                        chore_entry[const.DATA_CHORE_COMPLETED_BY].append(
+                            completing_kid_name
+                        )
+
+                const.LOGGER.debug(
+                    "SHARED_ALL: Added '%s' to completed_by list for chore '%s'",
+                    completing_kid_name,
+                    chore_info.get(const.DATA_CHORE_NAME),
+                )
 
             # Manage Achievements
             today_local = kh.get_today_local_date()
@@ -3501,12 +3693,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 self._process_chore_state(
                     other_kid_id, chore_id, const.CHORE_STATE_PENDING
                 )
-                # Clear claimed_by/completed_by attributes
-                other_kid_info = self.kids_data.get(other_kid_id, {})
-                chore_data = other_kid_info.get(const.DATA_KID_CHORE_DATA, {})
-                if chore_id in chore_data:
-                    chore_data[chore_id].pop(const.DATA_CHORE_CLAIMED_BY, None)
-                    chore_data[chore_id].pop(const.DATA_CHORE_COMPLETED_BY, None)
+            # Clear claimed_by/completed_by for all assigned kids
+            self._clear_chore_claimed_completed_by(chore_id)
         else:
             # Normal behavior: only reset the disapproved kid
             self._process_chore_state(kid_id, chore_id, const.CHORE_STATE_PENDING)
@@ -4209,6 +4397,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 else:
                     # SHARED/SHARED_FIRST: Store at chore level
                     chore_info[const.DATA_CHORE_APPROVAL_PERIOD_START] = now_iso
+
+                # Clear claimed_by and completed_by for all assigned kids
+                # These fields represent current approval period state, not historical
+                self._clear_chore_claimed_completed_by(chore_id)
 
             # Queue filter removed - pending approvals now computed from timestamps
             self._pending_chore_changed = True
@@ -8868,10 +9060,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE,
                     message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE,
                     message_data={
-                        "chore_name": chore_info.get("name", "Unnamed Chore"),
+                        "chore_name": chore_info.get(
+                            const.DATA_CHORE_NAME, const.DISPLAY_UNNAMED_CHORE
+                        ),
                         "due_date": due_date_utc.isoformat()
                         if due_date_utc
-                        else "Unknown",
+                        else const.DISPLAY_UNKNOWN,
                     },
                     extra_data=extra_data,
                 )
@@ -8882,17 +9076,19 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE,
                     message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE,
                     message_data={
-                        "chore_name": chore_info.get("name", "Unnamed Chore"),
+                        "chore_name": chore_info.get(
+                            const.DATA_CHORE_NAME, const.DISPLAY_UNNAMED_CHORE
+                        ),
                         "due_date": due_date_utc.isoformat()
                         if due_date_utc
-                        else "Unknown",
+                        else const.DISPLAY_UNKNOWN,
                     },
                     actions=actions,
                     extra_data=extra_data,
                 )
             )
 
-    async def _check_overdue_chores(self):
+    async def _check_overdue_chores(self, now: datetime | None = None):
         """Check and mark overdue chores if due date is passed.
 
         Branching logic based on completion criteria:
@@ -9057,11 +9253,51 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 reminders_sent,
             )
 
-    async def _reset_all_chore_counts(self, now: datetime):
-        """Trigger resets based on the current time for all frequencies."""
-        await self._handle_recurring_chore_resets(now)
-        await self._check_overdue_chores()
-        # Legacy field DATA_KID_TODAY_CHORE_APPROVALS is no longer used - periods structure handles this
+    async def _bump_past_datetime_helpers(self, now: datetime) -> None:
+        """Advance all datetime helpers to tomorrow at 9 AM.
+
+        Called during midnight processing to advance date/time pickers
+        to the next day at 9 AM, regardless of current value.
+        """
+        if not self.hass:
+            return
+
+        # Get entity registry to find datetime helper entities by unique_id pattern
+        entity_registry = er.async_get(self.hass)
+
+        # Find all datetime helper entities using unique_id pattern
+        for kid_id, kid_info in self.kids_data.items():
+            kid_name = kid_info.get(const.DATA_KID_NAME, f"Kid {kid_id}")
+
+            # Construct unique_id pattern (matches datetime.py)
+            expected_unique_id = f"{self.config_entry.entry_id}_{kid_id}{const.DATETIME_KC_UID_SUFFIX_DATE_HELPER}"
+
+            # Find entity by unique_id
+            entity_entry = entity_registry.async_get_entity_id(
+                "datetime", const.DOMAIN, expected_unique_id
+            )
+
+            if not entity_entry:
+                continue
+
+            # Set to tomorrow at 9 AM local time
+            tomorrow = dt_util.now() + timedelta(days=1)
+            tomorrow_9am = tomorrow.replace(hour=9, minute=0, second=0, microsecond=0)
+
+            await self.hass.services.async_call(
+                "datetime",
+                "set_datetime",
+                {
+                    "entity_id": entity_entry,
+                    "datetime": tomorrow_9am.isoformat(),
+                },
+                blocking=False,
+            )
+            const.LOGGER.debug(
+                "Advanced datetime helper for %s to %s",
+                kid_name,
+                tomorrow_9am.isoformat(),
+            )
 
     async def _handle_recurring_chore_resets(self, now: datetime):
         """Handle recurring resets for daily, weekly, and monthly frequencies."""
@@ -11315,9 +11551,11 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_REMINDER,
                 message_data={
                     "chore_name": chore_info.get(
-                        const.DATA_CHORE_NAME, "Unnamed Chore"
+                        const.DATA_CHORE_NAME, const.DISPLAY_UNNAMED_CHORE
                     ),
-                    "kid_name": kid_info.get(const.DATA_KID_NAME, "A kid"),
+                    "kid_name": kid_info.get(
+                        const.DATA_KID_NAME, const.DISPLAY_UNNAMED_KID
+                    ),
                 },
                 actions=actions,
                 extra_data=extra_data,

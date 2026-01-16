@@ -514,6 +514,7 @@ from custom_components.kidschores.const import (
     # =========================================================================
     # SERVICE NAMES
     # =========================================================================
+    SERVICE_MANAGE_SHADOW_LINK,
     SERVICE_RESET_ALL_CHORES,
     # =========================================================================
     # LEGACY CONF KEYS (for migration tests)

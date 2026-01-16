@@ -1243,6 +1243,22 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         # Retrieve HA users for linking
         users = await self.hass.auth.async_get_users()
+
+        # Check if this is a shadow kid to show warning
+        is_shadow_kid = kid_data.get(const.DATA_KID_IS_SHADOW, False)
+        description_placeholders = {}
+
+        if is_shadow_kid:
+            # Get parent name for warning message
+            parent_id = kid_data.get(const.DATA_KID_LINKED_PARENT_ID)
+            if parent_id and parent_id in coordinator.parents_data:
+                parent_name = coordinator.parents_data[parent_id].get(
+                    const.DATA_PARENT_NAME, ""
+                )
+                description_placeholders = {
+                    "parent_name": parent_name,
+                }
+
         schema = await fh.build_kid_schema(
             self.hass,
             users=users,
@@ -1259,7 +1275,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             ),
         )
         return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_EDIT_KID, data_schema=schema, errors=errors
+            step_id=const.OPTIONS_FLOW_STEP_EDIT_KID,
+            data_schema=schema,
+            errors=errors,
+            description_placeholders=description_placeholders,
         )
 
     # --- Parents ---
@@ -1381,8 +1400,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     and was_enabled
                     and existing_shadow_kid_id
                 ):
-                    # Disabling chore assignment - delete shadow kid
-                    coordinator._delete_shadow_kid(existing_shadow_kid_id)
+                    # Disabling chore assignment - unlink shadow kid (preserves data)
+                    coordinator._unlink_shadow_kid(existing_shadow_kid_id)
                     updated_parent_data[const.DATA_PARENT_LINKED_SHADOW_KID_ID] = None
 
                 coordinator.update_parent_entity(internal_id, updated_parent_data)

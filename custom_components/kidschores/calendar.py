@@ -293,97 +293,74 @@ class KidScheduleCalendar(CalendarEntity):
             )
             self._add_event_if_overlaps(events, e, window_start, window_end)
 
-    def _generate_recurring_weekly_with_due_date(
+    def _generate_recurring_with_due_date(
         self,
         events: list[CalendarEvent],
         summary: str,
         description: str,
         due_dt: datetime.datetime,
-        window_start: datetime.datetime,
-        window_end: datetime.datetime,
-    ) -> None:
-        """Generate event for weekly recurring chore with due date."""
-        start_event = due_dt - datetime.timedelta(weeks=1)
-        end_event = due_dt
-        if start_event < window_end and end_event > window_start:
-            e = CalendarEvent(
-                summary=summary,
-                start=start_event.date(),
-                end=(end_event.date() + datetime.timedelta(days=1)),
-                description=description,
-            )
-            self._add_event_if_overlaps(events, e, window_start, window_end)
-
-    def _generate_recurring_biweekly_with_due_date(
-        self,
-        events: list[CalendarEvent],
-        summary: str,
-        description: str,
-        due_dt: datetime.datetime,
-        window_start: datetime.datetime,
-        window_end: datetime.datetime,
-    ) -> None:
-        """Generate event for biweekly recurring chore with due date."""
-        start_event = due_dt - datetime.timedelta(weeks=2)
-        end_event = due_dt
-        if start_event < window_end and end_event > window_start:
-            e = CalendarEvent(
-                summary=summary,
-                start=start_event.date(),
-                end=(end_event.date() + datetime.timedelta(days=1)),
-                description=description,
-            )
-            self._add_event_if_overlaps(events, e, window_start, window_end)
-
-    def _generate_recurring_monthly_with_due_date(
-        self,
-        events: list[CalendarEvent],
-        summary: str,
-        description: str,
-        due_dt: datetime.datetime,
-        window_start: datetime.datetime,
-        window_end: datetime.datetime,
-    ) -> None:
-        """Generate event for monthly recurring chore with due date."""
-        first_day = due_dt.replace(day=1)
-        if first_day < window_end and due_dt > window_start:
-            e = CalendarEvent(
-                summary=summary,
-                start=first_day.date(),
-                end=(due_dt.date() + datetime.timedelta(days=1)),
-                description=description,
-            )
-            self._add_event_if_overlaps(events, e, window_start, window_end)
-
-    def _generate_recurring_custom_with_due_date(
-        self,
-        events: list[CalendarEvent],
-        summary: str,
-        description: str,
-        due_dt: datetime.datetime,
+        recurring: str,
         interval: int,
         unit: str,
         window_start: datetime.datetime,
         window_end: datetime.datetime,
     ) -> None:
-        """Generate event for custom interval recurring chore with due date."""
-        if unit == const.TIME_UNIT_DAYS:
-            start_event = due_dt - datetime.timedelta(days=interval)
-        elif unit == const.TIME_UNIT_WEEKS:
-            start_event = due_dt - datetime.timedelta(weeks=interval)
-        elif unit == const.TIME_UNIT_MONTHS:
-            start_event = due_dt - datetime.timedelta(days=30 * interval)
-        else:
-            start_event = due_dt
+        """Generate recurring 1-hour events for chore with due date.
 
-        if start_event < window_end and due_dt > window_start:
-            e = CalendarEvent(
-                summary=summary,
-                start=start_event.date(),
-                end=(due_dt.date() + datetime.timedelta(days=1)),
-                description=description,
-            )
-            self._add_event_if_overlaps(events, e, window_start, window_end)
+        Unified handler for weekly, biweekly, monthly, and custom intervals.
+        Creates multiple 1-hour timed events using proven scheduling helpers.
+        """
+        const.LOGGER.debug(
+            "Calendar: Creating recurring 1-hour events for '%s' starting at %s",
+            summary,
+            due_dt,
+        )
+
+        # Generate recurring events up to window_end
+        current_due = due_dt
+        max_iterations = 100  # Safety limit
+        iteration = 0
+
+        while current_due <= window_end and iteration < max_iterations:
+            iteration += 1
+
+            # Create 1-hour event at this occurrence
+            if window_start <= current_due <= window_end:
+                e = CalendarEvent(
+                    summary=summary,
+                    start=current_due,
+                    end=current_due + datetime.timedelta(hours=1),
+                    description=description,
+                )
+                self._add_event_if_overlaps(events, e, window_start, window_end)
+
+            # Calculate next occurrence using proven helper
+            if recurring in (
+                const.FREQUENCY_CUSTOM,
+                const.FREQUENCY_CUSTOM_FROM_COMPLETE,
+            ):
+                # Use adjust_datetime_by_interval for custom intervals
+                # Note: CUSTOM_FROM_COMPLETE uses same interval logic for calendar forecasting
+                next_due = kh.adjust_datetime_by_interval(
+                    base_date=current_due,
+                    interval_unit=unit,
+                    delta=interval,
+                    require_future=True,
+                    return_type=const.HELPER_RETURN_DATETIME,
+                )
+            else:
+                # Use get_next_scheduled_datetime for standard frequencies
+                next_due = kh.get_next_scheduled_datetime(
+                    base_date=current_due,
+                    interval_type=recurring,
+                    require_future=True,
+                    return_type=const.HELPER_RETURN_DATETIME,
+                )
+
+            if next_due is None or not isinstance(next_due, datetime.datetime):
+                break
+
+            current_due = next_due
 
     def _generate_recurring_daily_without_due_date(
         self,
@@ -618,13 +595,14 @@ class KidScheduleCalendar(CalendarEntity):
         applicable_days = self._get_applicable_days_for_kid(chore)
 
         # Parse chore due_date using battle-tested helper
-        # For INDEPENDENT chores, use per-kid due date; for SHARED, use chore-level
+        # For INDEPENDENT chores, use per-kid due date only; for SHARED, use chore-level
         completion_criteria = chore.get(
             const.DATA_CHORE_COMPLETION_CRITERIA, const.SENTINEL_EMPTY
         )
         if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
             per_kid_due_dates = chore.get(const.DATA_CHORE_PER_KID_DUE_DATES, {})
             due_date_str = per_kid_due_dates.get(self._kid_id)
+            # No fallback - INDEPENDENT chores must have per-kid due dates
         else:
             due_date_str = chore.get(const.DATA_CHORE_DUE_DATE)
         due_dt: datetime.datetime | None = None
@@ -652,36 +630,44 @@ class KidScheduleCalendar(CalendarEntity):
 
         # --- Recurring chores with a due_date ---
         if due_dt:
+            const.LOGGER.debug(
+                "Calendar: Chore '%s' (recurring=%s) has due_date %s",
+                summary,
+                recurring,
+                due_dt,
+            )
             cutoff = min(due_dt, window_end)
             if cutoff < window_start:
+                const.LOGGER.debug(
+                    "Calendar: Due date cutoff outside window, skipping '%s'", summary
+                )
                 return events
 
             if recurring == const.FREQUENCY_DAILY:
                 self._generate_recurring_daily_with_due_date(
                     events, summary, description, due_dt, window_start, window_end
                 )
-            elif recurring == const.FREQUENCY_WEEKLY:
-                self._generate_recurring_weekly_with_due_date(
-                    events, summary, description, due_dt, window_start, window_end
+            elif recurring in (
+                const.FREQUENCY_WEEKLY,
+                const.FREQUENCY_BIWEEKLY,
+                const.FREQUENCY_MONTHLY,
+                const.FREQUENCY_CUSTOM,
+                const.FREQUENCY_CUSTOM_FROM_COMPLETE,
+            ):
+                # All intervals > 1 day with due_date create recurring 1-hour timed events
+                const.LOGGER.debug(
+                    "Calendar: Using unified recurring 1-hour handler for '%s'", summary
                 )
-            elif recurring == const.FREQUENCY_BIWEEKLY:
-                self._generate_recurring_biweekly_with_due_date(
-                    events, summary, description, due_dt, window_start, window_end
-                )
-            elif recurring == const.FREQUENCY_MONTHLY:
-                self._generate_recurring_monthly_with_due_date(
-                    events, summary, description, due_dt, window_start, window_end
-                )
-            elif recurring == const.FREQUENCY_CUSTOM:
                 interval = chore.get(const.DATA_CHORE_CUSTOM_INTERVAL, 1)
                 unit = chore.get(
                     const.DATA_CHORE_CUSTOM_INTERVAL_UNIT, const.TIME_UNIT_DAYS
                 )
-                self._generate_recurring_custom_with_due_date(
+                self._generate_recurring_with_due_date(
                     events,
                     summary,
                     description,
                     due_dt,
+                    recurring,
                     interval,
                     unit,
                     window_start,

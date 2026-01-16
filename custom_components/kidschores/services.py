@@ -134,6 +134,15 @@ SKIP_CHORE_DUE_DATE_SCHEMA = vol.Schema(
     }
 )
 
+MANAGE_SHADOW_LINK_SCHEMA = vol.Schema(
+    {
+        vol.Required(const.FIELD_NAME): cv.string,
+        vol.Required(const.FIELD_ACTION): vol.In(
+            [const.ACTION_LINK, const.ACTION_UNLINK]
+        ),
+    }
+)
+
 
 def async_setup_services(hass: HomeAssistant):
     """Register KidsChores services."""
@@ -1157,6 +1166,134 @@ def async_setup_services(hass: HomeAssistant):
         await coordinator.async_request_refresh()
 
     # --- Register Services ---
+    async def handle_manage_shadow_link(call: ServiceCall):
+        """Handle linking or unlinking a shadow kid."""
+        entry_id = kh.get_first_kidschores_entry(hass)
+        if not entry_id:
+            const.LOGGER.warning(
+                "Manage Shadow Link: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
+            )
+            return
+
+        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
+            const.COORDINATOR
+        ]
+        name = call.data[const.FIELD_NAME]
+        action = call.data[const.FIELD_ACTION]
+
+        # Resolve name to IDs (case-insensitive)
+        kid_id = kh.get_kid_id_by_name(coordinator, name)
+        parent_id = kh.get_parent_id_by_name(coordinator, name)
+
+        if action == const.ACTION_LINK:
+            # LINK: Validate kid and parent exist with matching names
+            if not kid_id:
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_KID_NOT_FOUND_BY_NAME,
+                    translation_placeholders={"name": name},
+                )
+            if not parent_id:
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_PARENT_NOT_FOUND_BY_NAME,
+                    translation_placeholders={"name": name},
+                )
+
+            kid_info = coordinator.kids_data.get(kid_id)
+            parent_info = coordinator.parents_data.get(parent_id)
+
+            if not kid_info or not parent_info:
+                const.LOGGER.error(
+                    "Data mismatch: kid_id=%s, parent_id=%s", kid_id, parent_id
+                )
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND,
+                )
+
+            # Validate kid is not already a shadow kid
+            if kid_info.get(const.DATA_KID_IS_SHADOW, False):
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_KID_ALREADY_SHADOW,
+                    translation_placeholders={"name": name},
+                )
+
+            # Validate parent doesn't already have a different shadow kid
+            existing_shadow_id = parent_info.get(const.DATA_PARENT_LINKED_SHADOW_KID_ID)
+            if existing_shadow_id and existing_shadow_id != kid_id:
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_PARENT_HAS_DIFFERENT_SHADOW,
+                    translation_placeholders={"name": name},
+                )
+
+            # Link: Update kid to shadow status
+            coordinator._update_kid(
+                kid_id,
+                {
+                    const.DATA_KID_IS_SHADOW: True,
+                    const.DATA_KID_LINKED_PARENT_ID: parent_id,
+                },
+            )
+
+            # Link: Update parent (enable chore assignment, keep existing settings)
+            coordinator._update_parent(
+                parent_id,
+                {
+                    const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT: True,
+                    const.DATA_PARENT_LINKED_SHADOW_KID_ID: kid_id,
+                    # Keep existing workflow/gamification settings or use defaults
+                    const.DATA_PARENT_ENABLE_CHORE_WORKFLOW: parent_info.get(
+                        const.DATA_PARENT_ENABLE_CHORE_WORKFLOW,
+                        const.DEFAULT_PARENT_ENABLE_CHORE_WORKFLOW,
+                    ),
+                    const.DATA_PARENT_ENABLE_GAMIFICATION: parent_info.get(
+                        const.DATA_PARENT_ENABLE_GAMIFICATION,
+                        const.DEFAULT_PARENT_ENABLE_GAMIFICATION,
+                    ),
+                },
+            )
+
+            const.LOGGER.info("Linked kid '%s' to parent '%s' as shadow", name, name)
+
+        elif action == const.ACTION_UNLINK:
+            # UNLINK: Validate kid exists
+            if not kid_id:
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_KID_NOT_FOUND_BY_NAME,
+                    translation_placeholders={"name": name},
+                )
+
+            kid_info = coordinator.kids_data.get(kid_id)
+            if not kid_info:
+                const.LOGGER.error("Data mismatch: kid_id=%s", kid_id)
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND,
+                )
+
+            # Validate kid IS a shadow kid
+            if not kid_info.get(const.DATA_KID_IS_SHADOW, False):
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_KID_NOT_SHADOW,
+                    translation_placeholders={"name": name},
+                )
+
+            # Use coordinator helper (reusable code)
+            coordinator._unlink_shadow_kid(kid_id)
+
+            const.LOGGER.info(
+                "Unlinked shadow kid '%s' (renamed to '%s_unlinked')", name, name
+            )
+
+        # Persist and refresh
+        coordinator._persist()
+        await coordinator.async_request_refresh()
+
     hass.services.async_register(
         const.DOMAIN,
         const.SERVICE_CLAIM_CHORE,
@@ -1269,6 +1406,13 @@ def async_setup_services(hass: HomeAssistant):
         schema=APPLY_BONUS_SCHEMA,
     )
 
+    hass.services.async_register(
+        const.DOMAIN,
+        const.SERVICE_MANAGE_SHADOW_LINK,
+        handle_manage_shadow_link,
+        schema=MANAGE_SHADOW_LINK_SCHEMA,
+    )
+
     const.LOGGER.info("KidsChores services have been registered successfully")
 
 
@@ -1278,6 +1422,7 @@ async def async_unload_services(hass: HomeAssistant):
         const.SERVICE_CLAIM_CHORE,
         const.SERVICE_APPROVE_CHORE,
         const.SERVICE_DISAPPROVE_CHORE,
+        const.SERVICE_MANAGE_SHADOW_LINK,
         const.SERVICE_REDEEM_REWARD,
         const.SERVICE_DISAPPROVE_REWARD,
         const.SERVICE_APPLY_PENALTY,

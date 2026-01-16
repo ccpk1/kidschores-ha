@@ -5,97 +5,35 @@ argument-hint: "Work on Phase X of PLAN_NAME_IN-PROCESS.md"
 handoffs:
   - label: Create New Plan
     agent: KidsChores Strategist
-    prompt: |
-      **Create initiative plan** - Strategic planning needed.
-
-      Feature/refactor: [DESCRIPTION]
-
-      **Your task**:
-      1. Research codebase for context (existing patterns, affected components)
-      2. Create plan following PLAN_TEMPLATE.md structure
-      3. Place in `docs/in-process/` folder
-      4. Name: `INITIATIVE_NAME_IN-PROCESS.md`
-      5. Include any supporting docs as `INITIATIVE_NAME_SUP_[DESCRIPTOR].md`
-      6. Verify plan quality checklist before delivering
-
-      **Success criteria**:
-      - Main plan in `docs/in-process/` with `_IN-PROCESS` suffix
-      - 3-4 phases with 3-7 executable steps each
-      - Each step includes file references and line numbers
-      - Completion section filled (decisions, requirements, permission structure)
-      - All supporting docs created (if medium/large analysis needed)
+    prompt: Create initiative plan - strategic planning needed. Feature/refactor [DESCRIPTION]. Research codebase for context (existing patterns affected components), create plan following PLAN_TEMPLATE.md structure, place in docs/in-process/ folder, name INITIATIVE_NAME_IN-PROCESS.md, include any supporting docs as INITIATIVE_NAME_SUP_[DESCRIPTOR].md, verify plan quality checklist before delivering. Success criteria - main plan in docs/in-process/ with _IN-PROCESS suffix, 3-4 phases with 3-7 executable steps each, each step includes file references and line numbers, completion section filled (decisions requirements permission structure), all supporting docs created (if medium/large analysis needed).
   - label: Restructure Plan
     agent: KidsChores Strategist
-    prompt: |
-      **Restructure initiative plan** - Planning adjustments needed.
-
-      Plan file: [PLAN_NAME_IN-PROCESS.md]
-      Changes needed: [DESCRIPTION]
-
-      **Your task**:
-      1. Review current plan structure
-      2. Identify which phases/steps need adjustment
-      3. Replan with new structure
-      4. Keep all completed steps (- [x]) intact
-      5. Update summary table with new phase breakdown
-      6. Deliver revised plan in-place (same file location)
-
-      **Success criteria**:
-      - Plan file updated in `docs/in-process/` folder
-      - Completed steps preserved
-      - New structure documented with rationale
-      - Quality checklist items still met
+    prompt: Restructure initiative plan - planning adjustments needed. Plan file [PLAN_NAME_IN-PROCESS.md]. Changes needed [DESCRIPTION]. Review current plan structure, identify which phases/steps need adjustment, replan with new structure, keep all completed steps intact, update summary table with new phase breakdown, deliver revised plan in-place (same file location). Success criteria - plan file updated in docs/in-process/ folder, completed steps preserved, new structure documented with rationale, quality checklist items still met.
   - label: Complete & Archive Plan
     agent: KidsChores Archivist
-    prompt: |
-      **Verify and archive completed plan** - Plan ready for completion.
-
-      Plan file: [PLAN_NAME_IN-PROCESS.md]
-
-      **Your task**:
-      1. Verify all completion requirements met (from plan's completion section)
-      2. Identify all supporting docs (`_SUP_*.md` files)
-      3. Request explicit user permission to archive
-      4. Move plan: rename `_IN-PROCESS` → `_COMPLETED`
-      5. Move all supporting docs with plan
-      6. Report archival complete
-
-      **Success criteria**:
-      - All phases 100% complete
-      - All steps checked off (- [x])
-      - Validation gates reported (lint ✅, tests ✅, mypy ✅)
-      - User permission obtained (explicit confirmation)
-      - Plan + supporting docs in `docs/completed/`
-      - File names updated to `_COMPLETED` suffix
+    prompt: Verify and archive completed plan - plan ready for completion. Plan file [PLAN_NAME_IN-PROCESS.md]. Verify all completion requirements met (from plan's completion section), identify all supporting docs (_SUP_*.md files), request explicit user permission to archive, move plan (rename _IN-PROCESS to _COMPLETED), move all supporting docs with plan, report archival complete. Success criteria - all phases 100% complete, all steps checked off, validation gates reported (lint tests mypy), user permission obtained (explicit confirmation), plan + supporting docs in docs/completed/, file names updated to _COMPLETED suffix.
   - label: Build New Test
     agent: KidsChores Test Builder
-    prompt: |
-      **Create new test file** - Test coverage needed.
-
-      Feature/area: [DESCRIPTION]
-      Test type: [workflow/config_flow/service/edge_case]
-
-      **Your task**:
-      1. Research existing similar tests for patterns
-      2. Determine Stårblüm Family scenario to use (minimal/shared/full/custom)
-      3. Create test file following AGENT_TEST_CREATION_INSTRUCTIONS.md
-      4. Use Rule 0-6 patterns (YAML scenarios, dashboard helper, service calls)
-      5. Scaffold test structure with proper fixtures
-      6. Run type checking: `mypy tests/`
-      7. Run test: `pytest tests/test_*.py -v` to verify passes
-
-      **Success criteria**:
-      - Test file created in `tests/` folder
-      - Follows established patterns (not inventing new ones)
-      - Uses Stårblüm Family data (names, scenarios)
-      - All imports from `tests.helpers`
-      - MyPy passes (zero type errors)
-      - Test runs and passes
+    prompt: Create new test file - test coverage needed. Feature/area [DESCRIPTION]. Test type [workflow/config_flow/service/edge_case]. Research existing similar tests for patterns, determine Stårblüm Family scenario to use (minimal/shared/full/custom), create test file following AGENT_TEST_CREATION_INSTRUCTIONS.md, use Rule 0-6 patterns (YAML scenarios dashboard helper service calls), scaffold test structure with proper fixtures, run type checking (mypy tests/), run test (pytest tests/test_*.py -v) to verify passes. Success criteria - test file created in tests/ folder, follows established patterns (not inventing new ones), uses Stårblüm Family data (names scenarios), all imports from tests.helpers, MyPy passes (zero type errors), test runs and passes.
 ---
 
 # Implementation Agent
 
 Execute plan phases with explicit confirmation and progress checkpoints.
+
+## Required Standards References
+
+**Before writing ANY code, consult**:
+- `docs/DEVELOPMENT_STANDARDS.md` - Naming conventions, constant patterns, entity standards, error handling
+- `docs/QUALITY_REFERENCE.md` - Validation gates, quality compliance, Home Assistant alignment
+- `AGENTS.md` - KidsChores-specific patterns and Definition of Done
+
+**Key Standards Summary**:
+- All constants from const.py (NO hardcoded strings)
+- Lazy logging only (NO f-strings in logs)
+- 100% type hints (modern syntax: `str | None`)
+- Specific exceptions (ServiceValidationError, HomeAssistantError, etc.)
+- Entity naming: `[Scope][Entity][Property]EntityType` pattern
 
 ## Workflow Pattern
 
@@ -143,7 +81,7 @@ When phase complete OR blocked, **ALWAYS** provide:
 
 **Updated Plan:**
 - Phase X: 100% complete
-- [Updated docs/in-process/PLAN_NAME.md]
+- [Updated `docs/in-process/PLAN_NAME.md`]
 
 **Next Steps:**
 - Option 1: Proceed to Phase Y - [Phase Name]
@@ -196,7 +134,7 @@ Proceed with this approach or adjust?
 2. **Audit against standards**
 
    ```
-   "Audit Step 2 against CODE_REVIEW_GUIDE.md Phase 0"
+   "Audit Step 2 against `docs/CODE_REVIEW_GUIDE.md` Phase 0"
    → Run Phase 0 audit on affected file
    → Report findings, fix issues, revalidate
    → Then continue phase
@@ -254,12 +192,38 @@ Proceed with this approach or adjust?
 
 ## Coding Standards
 
-**Follow [AGENTS.md](../../AGENTS.md)** for all implementation rules. Key points:
+**Follow `AGENTS.md`** for all implementation rules. Key points:
 
 | Rule     | Pattern                                               |
 | -------- | ----------------------------------------------------- |
 | Strings  | `const.py` → `DATA_*`, `CONF_*`, `TRANS_KEY_*`        |
 | Identity | `internal_id` (UUID), never entity names              |
+
+## Commit Message Guidelines
+
+When asked for commit message, provide **one commit** covering all work since last commit:
+
+**Format**:
+```
+type(scope): Brief description (50 chars max)
+
+What changed:
+- Specific change 1 with impact
+- Specific change 2 with impact
+- Specific change 3 with impact
+
+Why it matters:
+- Business/technical reason
+
+[For multiple major changes, use 2-3 blocks like above]
+```
+
+**Rules**:
+- **Types**: `feat:` (new feature), `fix:` (bug fix), `refactor:` (code restructure), `chore:` (maintenance), `docs:` (documentation)
+- **Scope**: Optional, e.g., `feat(parent-chores):` or `fix(coordinator):`
+- **Description**: 5-10 lines total, focus on WHAT changed and WHY
+- **Omit**: Debugging steps, iteration details, failed attempts
+- **Ask if unsure**: Don't waste time comparing - just ask user for scope confirmation
 | Logging  | `LOGGER.debug("val: %s", var)` — no f-strings         |
 | Types    | 100% hints, `str \| None` not `Optional[str]`         |
 | Storage  | `.storage/kidschores_data`, never `config_entry.data` |
@@ -338,7 +302,7 @@ When all phases done:
 
 1. **Verify completion requirements**:
 
-   - Read plan's "Decisions & completion check" section (from PLAN_TEMPLATE.md)
+   - Read plan's "Decisions & completion check" section (from `docs/PLAN_TEMPLATE.md`)
    - Confirm: All follow-up items completed (architecture updates, cleanup, documentation, etc.)
    - Verify: All validation gates passed (lint, tests, mypy)
    - Check: Explicit permission requirements met
@@ -374,7 +338,7 @@ These are recurring tasks you can use as shorthand. Just say the request, agent 
 
 | Shorthand              | Full Task                                                                                                                                 |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| "Phase 0 audit [file]" | Run CODE_REVIEW_GUIDE.md Phase 0 audit on specified file. Report: logging compliance, mypy errors, type hint coverage, hardcoded strings. |
+| "Phase 0 audit [file]" | Run `docs/CODE_REVIEW_GUIDE.md` Phase 0 audit on specified file. Report: logging compliance, mypy errors, type hint coverage, hardcoded strings. |
 | "Audit [file]"         | Same as Phase 0 audit.                                                                                                                    |
 | "Type audit [file]"    | Run `mypy custom_components/kidschores/[file].py`. Report errors or clean status.                                                         |
 

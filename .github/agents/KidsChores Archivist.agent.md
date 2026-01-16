@@ -5,24 +5,7 @@ argument-hint: "Complete plan [PLAN_NAME_IN-PROCESS.md]"
 handoffs:
   - label: Incomplete - Return to Builder
     agent: KidsChores Builder
-    prompt: |
-      **Plan not ready for archival** - Completion requirements not met.
-
-      Plan file: [PLAN_NAME_IN-PROCESS.md]
-      Blocker: [MISSING REQUIREMENT]
-
-      **Your task**:
-      1. Review Archivist feedback on blocking issues
-      2. Complete outstanding follow-up items
-      3. Ensure all validation gates passed (lint, tests, mypy)
-      4. Verify completion checklist fully satisfied
-      5. Report when ready for archival
-      6. Hand off to Archivist again
-
-      **Success criteria**:
-      - All completion checklist items satisfied
-      - No outstanding follow-up items
-      - User can grant final permission
+    prompt: Plan not ready for archival - completion requirements not met. Plan file [PLAN_NAME_IN-PROCESS.md]. Blocker [MISSING REQUIREMENT]. Review Archivist feedback on blocking issues, complete outstanding follow-up items, ensure all validation gates passed (lint tests mypy), verify completion checklist fully satisfied, report when ready for archival, then hand off to Archivist again. Success criteria - all completion checklist items satisfied, no outstanding follow-up items, user can grant final permission.
 ---
 
 # Plan Completion & Archival Agent
