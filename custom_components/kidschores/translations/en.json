@@ -3410,7 +3410,7 @@
   },
   "exceptions": {
     "kid_not_found_by_name": {
-      "message": "No kid found with name '{name}'"
+      "message": "No kid found with name {name}"
     },
     "parent_not_found_by_name": {
       "message": "No parent found with name {name}"
@@ -3422,7 +3422,7 @@
       "message": "Kid {name} is not linked to any parent"
     },
     "parent_has_different_shadow": {
-      "message": "Parent '{name}' is already linked to a different kid"
+      "message": "Parent {name} is already linked to a different kid"
     },
     "error_msg_no_entry_found": {
       "message": "No matching entry found in configuration."
