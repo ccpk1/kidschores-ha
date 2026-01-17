@@ -145,7 +145,7 @@
           "associated_achievement": "🏆 Povezani dosežek",
           "associated_challenge": "🏁 Povezani izziv",
           "selected_chores": "🧹 Sledena opravila (neobvezno)",
-          "assigned_to": "🧒 Dodeljeni otroci (neobvezno)",
+          "assigned_to": "🧒 Dodeljeni otroci",
           "award_items": "🎁 NAGRADE: Izberite točke, nagrade, bonuse, množitelj (neobvezno)",
           "award_points": "🎁 NAGRADE: Dodeljene točke (neobvezno)",
           "points_multiplier": "🎁 NAGRADE: Množitelj točk (privzeto 💎 1,0x)",
@@ -498,7 +498,7 @@
           "associated_achievement": "🏆 Povezani dosežek",
           "associated_challenge": "🏁 Povezani izziv",
           "selected_chores": "🧹 Sledena opravila (neobvezno)",
-          "assigned_to": "🧒 Dodeljeni otroci (neobvezno)",
+          "assigned_to": "🧒 Dodeljeni otroci",
           "award_items": "🎁 NAGRADE: Izberite točke, nagrade, bonuse, množitelj (neobvezno)",
           "award_points": "🎁 NAGRADE: Dodeljene točke (neobvezno)",
           "points_multiplier": "🎁 NAGRADE: Množitelj točk (privzeto 💎 1,0x)",
@@ -520,7 +520,7 @@
           "occasion_type": "Izberite vrsto priložnosti za to značko (npr. praznik, rojstni dan).",
           "associated_achievement": "Povežite to značko z dosežkom za sledenje.",
           "associated_challenge": "Povežite to značko z izzivom za sledenje.",
-          "selected_chores": "Izberite opravila, ki prispevajo k tej znački. Če želite spremljati vsa dodeljena opravila, pustite polje prazno (neobvezno).",
+          "selected_chores": "Izberite opravila, ki prispevajo k tej znački. Pustite prazno, če želite spremljati vsa dodeljena opravila (neobvezno).",
           "assigned_to": "To značko dodelite določenim otrokom za sledenje.",
           "award_items": "Izberite eno ali več točk, nagrad, bonusov ali množitelja točk. Vsi izbrani elementi bodo dodeljeni ali uporabljeni, ko bo značka pridobljena. (neobvezno)",
           "award_points": "Če so točke izbrana nagrada, navedite število točk, ki se uporabijo ob pridobitvi te značke. (neobvezno).",
@@ -544,7 +544,7 @@
           "target_type": "🎯 DNEVNI CILJ: Vrsta cilja",
           "threshold_value": "🎯 DNEVNI CILJ: Mejna vrednost",
           "selected_chores": "🧹 Sledena opravila (neobvezno)",
-          "assigned_to": "🧒 Dodeljeni otroci (neobvezno)",
+          "assigned_to": "🧒 Dodeljeni otroci",
           "award_items": "🎁 NAGRADE: Izberite točke, nagrade, bonuse, kazni (neobvezno)",
           "award_points": "🎁 NAGRADE: Dodeljene točke (neobvezno)"
         },
@@ -576,7 +576,7 @@
           "associated_achievement": "🏆 Povezani dosežek",
           "associated_challenge": "🏁 Povezani izziv",
           "selected_chores": "🧹 Sledena opravila (neobvezno)",
-          "assigned_to": "🧒 Dodeljeni otroci (neobvezno)",
+          "assigned_to": "🧒 Dodeljeni otroci",
           "award_items": "🎁 NAGRADE: Izberite točke, nagrade, bonuse, kazni (neobvezno)",
           "award_points": "🎁 NAGRADE: Dodeljene točke (neobvezno)",
           "recurring_frequency": "🔄 CIKEL PONASTAVITVE: Frekvenca",
@@ -616,7 +616,7 @@
           "badge_labels": "Oznake (neobvezno)",
           "icon": "Ikona značke (mdi:xxx)",
           "associated_achievement": "🏆 Povezani dosežek",
-          "assigned_to": "🧒 Dodeljeni otroci (neobvezno)",
+          "assigned_to": "🧒 Dodeljeni otroci",
           "award_items": "🎁 NAGRADE: Izberite točke, nagrade, bonuse (neobvezno)",
           "award_points": "🎁 NAGRADE: Dodeljene točke (neobvezno)"
         },
@@ -640,7 +640,7 @@
           "badge_labels": "Oznake (neobvezno)",
           "icon": "Ikona značke (mdi:xxx)",
           "associated_challenge": "🏁 Povezani izziv",
-          "assigned_to": "🧒 Dodeljeni otroci (neobvezno)",
+          "assigned_to": "🧒 Dodeljeni otroci",
           "award_items": "🎁 NAGRADE: Izberite točke, nagrade, bonuse (neobvezno)",
           "award_points": "🎁 NAGRADE: Dodeljene točke (neobvezno)"
         },
@@ -670,7 +670,7 @@
           "custom_interval_unit": "🔄 PONAVLJANJE: Enota intervala po meri (obvezno za frekvenco po meri)",
           "start_date": "🔄 PONAVLJANJE: Začetni datum (neobvezno)",
           "grace_period_days": "🔄 PONAVLJANJE: Obdobje odloga v dnevih (neobvezno)",
-          "assigned_to": "🧒 Dodeljeni otroci (neobvezno)",
+          "assigned_to": "🧒 Dodeljeni otroci",
           "award_items": "🎁 NAGRADE: Izberite točke, nagrade, bonuse (neobvezno)",
           "award_points": "🎁 NAGRADE: Dodeljene točke (neobvezno)"
         },
@@ -912,7 +912,7 @@
           "associated_achievement": "🏆 Povezani dosežek",
           "associated_challenge": "🏁 Povezani izziv",
           "selected_chores": "🧹 Sledena opravila (neobvezno)",
-          "assigned_to": "🧒 Dodeljeni otroci (neobvezno)",
+          "assigned_to": "🧒 Dodeljeni otroci",
           "award_items": "🎁 NAGRADE: Izberite točke, nagrade, bonuse, množitelj (neobvezno)",
           "award_points": "🎁 NAGRADE: Dodeljene točke (neobvezno)",
           "points_multiplier": "🎁 NAGRADE: Množitelj točk (privzeto 💎 1,0x)",
@@ -958,7 +958,7 @@
           "target_type": "🎯 DNEVNI CILJ: Vrsta cilja",
           "threshold_value": "🎯 DNEVNI CILJ: Mejna vrednost",
           "selected_chores": "🧹 Sledena opravila (neobvezno)",
-          "assigned_to": "🧒 Dodeljeni otroci (neobvezno)",
+          "assigned_to": "🧒 Dodeljeni otroci",
           "award_items": "🎁 NAGRADE: Izberite točke, nagrade, bonuse, kazni (neobvezno)",
           "award_points": "🎁 NAGRADE: Dodeljene točke (neobvezno)"
         },
@@ -990,7 +990,7 @@
           "associated_achievement": "🏆 Povezani dosežek",
           "associated_challenge": "🏁 Povezani izziv",
           "selected_chores": "🧹 Sledena opravila (neobvezno)",
-          "assigned_to": "🧒 Dodeljeni otroci (neobvezno)",
+          "assigned_to": "🧒 Dodeljeni otroci",
           "award_items": "🎁 NAGRADE: Izberite točke, nagrade, bonuse, kazni (neobvezno)",
           "award_points": "🎁 NAGRADE: Dodeljene točke (neobvezno)",
           "recurring_frequency": "🔄 CIKEL PONASTAVITVE: Frekvenca",
@@ -1030,7 +1030,7 @@
           "badge_labels": "Oznake (neobvezno)",
           "icon": "Ikona značke (mdi:xxx)",
           "associated_achievement": "🏆 Povezani dosežek",
-          "assigned_to": "🧒 Dodeljeni otroci (neobvezno)",
+          "assigned_to": "🧒 Dodeljeni otroci",
           "award_items": "🎁 NAGRADE: Izberite točke, nagrade, bonuse (neobvezno)",
           "award_points": "🎁 NAGRADE: Dodeljene točke (neobvezno)"
         },
@@ -1054,7 +1054,7 @@
           "badge_labels": "Oznake (neobvezno)",
           "icon": "Ikona značke (mdi:xxx)",
           "associated_challenge": "🏁 Povezani izziv",
-          "assigned_to": "🧒 Dodeljeni otroci (neobvezno)",
+          "assigned_to": "🧒 Dodeljeni otroci",
           "award_items": "🎁 NAGRADE: Izberite točke, nagrade, bonuse (neobvezno)",
           "award_points": "🎁 NAGRADE: Dodeljene točke (neobvezno)"
         },
@@ -1084,7 +1084,7 @@
           "custom_interval_unit": "🔄 PONAVLJANJE: Enota intervala po meri (obvezno za frekvenco po meri)",
           "start_date": "🔄 PONAVLJANJE: Začetni datum (neobvezno)",
           "grace_period_days": "🔄 PONAVLJANJE: Obdobje odloga v dnevih (neobvezno)",
-          "assigned_to": "🧒 Dodeljeni otroci (neobvezno)",
+          "assigned_to": "🧒 Dodeljeni otroci",
           "award_items": "🎁 NAGRADE: Izberite točke, nagrade, bonuse (neobvezno)",
           "award_points": "🎁 NAGRADE: Dodeljene točke (neobvezno)"
         },
@@ -1523,7 +1523,8 @@
       "options": {
         "notify_on_claim": "Obvesti o zahtevku",
         "notify_on_approval": "Obvesti o odobritvi",
-        "notify_on_disapproval": "Obvesti o zavrnitvi"
+        "notify_on_disapproval": "Obvesti o zavrnitvi",
+        "notify_on_reminder": "Obvesti 30 minut pred rokom"
       }
     },
     "recurring_frequency": {
@@ -3409,19 +3410,19 @@
   },
   "exceptions": {
     "kid_not_found_by_name": {
-      "message": "Ni najdenega otroka z imenom '{name}'"
+      "message": "Ni najdenega otroka z imenom {name}"
     },
     "parent_not_found_by_name": {
-      "message": "Ni najdenega starša z imenom '{name}'"
+      "message": "Ni najdenega starša z imenom {name}"
     },
     "kid_already_shadow": {
-      "message": "Otrok '{name}' je že povezan s staršem"
+      "message": "Otrok {name} je že povezan s staršem"
     },
     "kid_not_shadow": {
-      "message": "Otrok '{name}' ni povezan z nobenim staršem"
+      "message": "Otrok {name} ni povezan z nobenim staršem"
     },
     "parent_has_different_shadow": {
-      "message": "Starš '{name}' je že povezan z drugim otrokom"
+      "message": "Starš {name} je že povezan z drugim otrokom"
     },
     "error_msg_no_entry_found": {
       "message": "V konfiguraciji ni bilo mogoče najti ustreznega vnosa."
