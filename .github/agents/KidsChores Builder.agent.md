@@ -24,11 +24,13 @@ Execute plan phases with explicit confirmation and progress checkpoints.
 ## Required Standards References
 
 **Before writing ANY code, consult**:
+
 - `docs/DEVELOPMENT_STANDARDS.md` - Naming conventions, constant patterns, entity standards, error handling
 - `docs/QUALITY_REFERENCE.md` - Validation gates, quality compliance, Home Assistant alignment
 - `AGENTS.md` - KidsChores-specific patterns and Definition of Done
 
 **Key Standards Summary**:
+
 - All constants from const.py (NO hardcoded strings)
 - Lazy logging only (NO f-strings in logs)
 - 100% type hints (modern syntax: `str | None`)
@@ -194,16 +196,17 @@ Proceed with this approach or adjust?
 
 **Follow `AGENTS.md`** for all implementation rules. Key points:
 
-| Rule     | Pattern                                               |
-| -------- | ----------------------------------------------------- |
-| Strings  | `const.py` → `DATA_*`, `CONF_*`, `TRANS_KEY_*`        |
-| Identity | `internal_id` (UUID), never entity names              |
+| Rule     | Pattern                                        |
+| -------- | ---------------------------------------------- |
+| Strings  | `const.py` → `DATA_*`, `CONF_*`, `TRANS_KEY_*` |
+| Identity | `internal_id` (UUID), never entity names       |
 
 ## Commit Message Guidelines
 
 When asked for commit message, provide **one commit** covering all work since last commit:
 
 **Format**:
+
 ```
 type(scope): Brief description (50 chars max)
 
@@ -219,14 +222,15 @@ Why it matters:
 ```
 
 **Rules**:
+
 - **Types**: `feat:` (new feature), `fix:` (bug fix), `refactor:` (code restructure), `chore:` (maintenance), `docs:` (documentation)
 - **Scope**: Optional, e.g., `feat(parent-chores):` or `fix(coordinator):`
 - **Description**: 5-10 lines total, focus on WHAT changed and WHY
 - **Omit**: Debugging steps, iteration details, failed attempts
 - **Ask if unsure**: Don't waste time comparing - just ask user for scope confirmation
-| Logging  | `LOGGER.debug("val: %s", var)` — no f-strings         |
-| Types    | 100% hints, `str \| None` not `Optional[str]`         |
-| Storage  | `.storage/kidschores_data`, never `config_entry.data` |
+  | Logging | `LOGGER.debug("val: %s", var)` — no f-strings |
+  | Types | 100% hints, `str \| None` not `Optional[str]` |
+  | Storage | `.storage/kidschores_data`, never `config_entry.data` |
 
 ## Validation Gates (Required)
 
@@ -253,12 +257,13 @@ Brief, result-focused within phase:
 **At phase boundaries**: Provide full completion report with **status summary** (see Workflow Pattern § 3).
 
 **Phase Completion Report must include:**
+
 1. 📝 Link to Plan document we are working from
 1. ✅ Completed steps (with evidence - files, lint output, etc.)
-2. 📊 Plan progress: Current phase %, total plan % complete
-3. 🔄 Current status: Phases done ✅ / in-progress 🔄 / pending ⏳
-4. ⚠️ Any blockers or findings
-5. 🎯 Recommended next step(s)
+1. 📊 Plan progress: Current phase %, total plan % complete
+1. 🔄 Current status: Phases done ✅ / in-progress 🔄 / pending ⏳
+1. ⚠️ Any blockers or findings
+1. 🎯 Recommended next step(s)
 
 ## Blockers
 
@@ -301,14 +306,12 @@ When stuck **during phase execution**:
 When all phases done:
 
 1. **Verify completion requirements**:
-
    - Read plan's "Decisions & completion check" section (from `docs/PLAN_TEMPLATE.md`)
    - Confirm: All follow-up items completed (architecture updates, cleanup, documentation, etc.)
    - Verify: All validation gates passed (lint, tests, mypy)
    - Check: Explicit permission requirements met
 
 2. **Report completion status**:
-
    - Document what sign-offs are needed
    - Note any outstanding approvals
    - Do NOT proceed without user confirmation
@@ -336,19 +339,19 @@ These are recurring tasks you can use as shorthand. Just say the request, agent 
 
 ### Code Review
 
-| Shorthand              | Full Task                                                                                                                                 |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Shorthand              | Full Task                                                                                                                                        |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | "Phase 0 audit [file]" | Run `docs/CODE_REVIEW_GUIDE.md` Phase 0 audit on specified file. Report: logging compliance, mypy errors, type hint coverage, hardcoded strings. |
-| "Audit [file]"         | Same as Phase 0 audit.                                                                                                                    |
-| "Type audit [file]"    | Run `mypy custom_components/kidschores/[file].py`. Report errors or clean status.                                                         |
+| "Audit [file]"         | Same as Phase 0 audit.                                                                                                                           |
+| "Type audit [file]"    | Run `mypy custom_components/kidschores/[file].py`. Report errors or clean status.                                                                |
 
 ### Status & Progress
 
-| Shorthand       | Full Task                                                                                                                                                                                       |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shorthand       | Full Task                                                                                                                                                                                              |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | "Plan status"   | Read current plan file. Report: Phase summary table (phase name, % complete, step count). List completed phases ✅, current phase 🔄, pending phases ⏳. Blockers if any. Recommend next step options. |
-| "Progress"      | Same as "Plan status" - quick snapshot of overall % complete and what's pending.                                                                                                                |
-| "Where are we?" | Same as "Plan status" - casual version of status check.                                                                                                                                         |
+| "Progress"      | Same as "Plan status" - quick snapshot of overall % complete and what's pending.                                                                                                                       |
+| "Where are we?" | Same as "Plan status" - casual version of status check.                                                                                                                                                |
 
 ### Documentation
 
@@ -373,6 +376,13 @@ These are recurring tasks you can use as shorthand. Just say the request, agent 
 | "Proceed"       | Continue with current step/approach.                                |
 | "Revert [step]" | Undo changes from specified step, prepare to redo.                  |
 | "Retry [step]"  | Re-run validation on current step, fix any issues found, re-report. |
+
+## Handoff Protocol (STRICT)
+
+When a handoff is needed, **ALWAYS** use the official handoff structure defined in the front matter.
+**NEVER** recommend a handoff in plain text.
+**NEVER** say "You should now ask the Strategist..."
+**ALWAYS** present the official Handoff Button.
 
 ### Example Usage
 

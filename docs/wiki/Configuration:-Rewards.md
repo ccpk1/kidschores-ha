@@ -68,7 +68,7 @@ The reward sensor tracks comprehensive claim history and statistics:
 > Use these attributes in dashboards for reward analytics (e.g., most popular rewards, approval rates, spending trends).
 
 > [!NOTE]
-> See [Technical Reference: Entities & States](Technical-Reference:-Entities-&-States) for full entity list and details.
+> See [Technical Reference: Entities & States](Technical:-Entities-States.md) for full entity list and details.
 
 ---
 
@@ -105,7 +105,7 @@ Kid and parent notifications are sent when rewards are claimed, approved, or dis
 - [Configuration: Kids and Parents](Configuration:-Kids-and-Parents) - Set up kids to claim rewards
 - [Configuration: Points System](Configuration:-Points-System) - Configure point earning and spending rules
 - [Chore Configuration Guide](Chore-Configuration-Guide) - How kids earn points
-- [Technical Reference: Entities & States](Technical-Reference:-Entities-&-States) - Complete entity details
+- [Technical Reference: Entities & States](Technical:-Entities-States.md) - Complete entity details
 - [Dashboard: Auto-Populating UI](Dashboard:-Auto-Populating-UI) - Display rewards in dashboard
 
 ---

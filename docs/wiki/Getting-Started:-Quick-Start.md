@@ -32,7 +32,7 @@ All other fields are optional. Click **Submit** to continue.
 
 > **Navigation**: **Settings** → **Devices & Services** → **Integrations** → **KidsChores** → **Configure** → **Manage Kid** → **Add Kid**
 
-For complete kid configuration options (icons, Home Assistant user linking, notifications, etc.), see [Kids and Parents Guide](Kids-and-Parents.md).
+For complete kid configuration options (icons, Home Assistant user linking, notifications, etc.), see [Kids and Parents Guide](Configuration:-Kids-Parents.md).
 
 ---
 
@@ -52,7 +52,7 @@ All other fields are optional. Click **Submit** to continue.
 
 > **Navigation**: **Settings** → **Devices & Services** → **Integrations** → **KidsChores** → **Configure** → **Manage Parent** → **Add Parent**
 
-For complete parent configuration options, see [Kids and Parents Guide](Kids-and-Parents.md).
+For complete parent configuration options, see [Kids and Parents Guide](Configuration:-Kids-Parents.md).
 
 ---
 
@@ -74,7 +74,7 @@ All other fields can use default values. Click **Submit** to continue.
 
 > **Navigation**: **Settings** → **Devices & Services** → **Integrations** → **KidsChores** → **Configure** → **Manage Chore** → **Add Chore**
 
-For complete chore configuration options (recurrence patterns, approval settings, overdue handling, etc.), see [Chores Guide](Chores.md).
+For complete chore configuration options (recurrence patterns, approval settings, overdue handling, etc.), see [Chores Guide](Configuration:-Chores.md).
 
 ---
 
@@ -90,7 +90,7 @@ Search for "sarah" to see the entities created:
 - **Chore status sensor** (`sensor.kc_sarah_chore_status_make_bed`): Shows chore state (`pending`, `claimed`, `approved`, `overdue`) and statistics
 - **Chore buttons**: Claim, approve, and disapprove buttons
 
-For a complete list of all entity types, see [Entities Overview](Entities-Overview.md).
+For a complete list of all entity types, see [Entities Overview](Technical:-Entities-States.md).
 
 ### Understanding the Workflow
 
@@ -157,14 +157,14 @@ Instead of using Developer Tools, you'll want a user-friendly dashboard for ever
 
 **This integration handles all the backend work** - it creates all the entities you need (sensors, buttons, etc.) so you can display them however you like. You have complete creative freedom to:
 
-- Build custom Lovelace cards using the entities from [Entities Overview](Entities-Overview.md)
+- Build custom Lovelace cards using the entities from [Entities Overview](Technical:-Entities-States.md)
 - Create your own dashboard layouts that match your family's needs
 - Use any Home Assistant dashboard features (conditional cards, badges, graphs, etc.)
 - Integrate with other integrations and automations
 
-**However, the quickest way to see everything** is to use the [**Auto-Populating Dashboard**](Dashboard:-Auto-Populating-UI.md). This pre-built UI automatically displays all your kids, chores, rewards, and badges with no manual entity configuration - just add the dashboard YAML and it works immediately.
+**However, the quickest way to see everything** is to use the [**Auto-Populating Dashboard**](Advanced:-Dashboard.md). This pre-built UI automatically displays all your kids, chores, rewards, and badges with no manual entity configuration - just add the dashboard YAML and it works immediately.
 
-See the [Dashboard Wiki](Dashboard:-Auto-Populating-UI.md) for installation instructions, or explore the [Entities Overview](Entities-Overview.md) to build your own custom interface.
+See the [Dashboard Wiki](Advanced:-Dashboard.md) for installation instructions, or explore the [Entities Overview](Technical:-Entities-States.md) to build your own custom interface.
 
 ---
 
@@ -172,12 +172,12 @@ See the [Dashboard Wiki](Dashboard:-Auto-Populating-UI.md) for installation inst
 
 Now that you understand the basics, explore:
 
-- **[Kids and Parents Guide](Kids-and-Parents.md)** - User management, notifications, multi-parent approvals
-- **[Chores Guide](Chores.md)** - Recurrence patterns, approval settings, overdue handling, shared chores
-- **[Entities Overview](Entities-Overview.md)** - Complete list of all sensors and buttons created
-- **[Rewards Guide](Rewards.md)** - Let kids spend their points
-- **[Badges Guide](Badges.md)** - Set up milestone achievements
-- **[Auto-Populating Dashboard](Dashboard:-Auto-Populating-UI.md)** - Pre-built dashboard UI
+- **[Kids and Parents Guide](Configuration:-Kids-Parents.md)** - User management, notifications, multi-parent approvals
+- **[Chores Guide](Configuration:-Chores.md)** - Recurrence patterns, approval settings, overdue handling, shared chores
+- **[Entities Overview](Technical:-Entities-States.md)** - Complete list of all sensors and buttons created
+- **[Rewards Guide](Configuration:-Rewards.md)** - Let kids spend their points
+- **[Badges Guide](Configuration:-Badges-Cumulative.md)** - Set up milestone achievements
+- **[Auto-Populating Dashboard](Advanced:-Dashboard.md)** - Pre-built dashboard UI
 
 ---
 

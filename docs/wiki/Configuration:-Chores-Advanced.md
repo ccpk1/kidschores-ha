@@ -1,7 +1,7 @@
 # Chore Advanced Features
 
 **Target Audience**: Power Users
-**Prerequisites**: Understanding of [Core Configuration](Chore-Configuration-Guide.md)
+**Prerequisites**: Understanding of [Core Configuration](Configuration:-Chores.md)
 **Covers**: Per-kid customization, daily multi-times, custom scheduling
 
 ---
@@ -19,13 +19,13 @@ This guide covers advanced features for users who need per-kid customization, mu
 **When You Don't Need This**:
 
 - All kids do chores the same way → Use basic configuration
-- Standard daily/weekly/monthly scheduling → Use [Core Configuration Guide](Chore-Configuration-Guide.md)
+- Standard daily/weekly/monthly scheduling → Use [Core Configuration Guide](Configuration:-Chores.md)
 
 > [!IMPORTANT] > **Per-Kid Schedule Helper**: The per-kid customization form appears automatically when you create an INDEPENDENT chore with **2 or more kids** assigned. Single-kid INDEPENDENT chores use the main form (data is stored the same way internally).
 
 **Related Documentation**:
 
-- [Chore Configuration Guide](Chore-Configuration-Guide.md) - Basic setup
+- [Chore Configuration Guide](Configuration:-Chores.md) - Basic setup
 
 ---
 
@@ -40,7 +40,6 @@ Schedule based on custom intervals (every 3 days, every 2 weeks, every 90 days).
 **Two Types**:
 
 1. **Custom (calendar-based)**: Recurs at fixed intervals regardless of completion
-
    - Example: Every Tuesday, every 2 weeks on Sunday
 
 2. **Custom from completion**: Next recurrence calculated from completion date
@@ -318,8 +317,8 @@ This guide covers advanced chore features that enable sophisticated scheduling a
 
 **Prerequisites Check**:
 
-- ✅ You understand [completion modes](Chore-Configuration-Guide.md#completion-modes) (INDEPENDENT, SHARED_ALL, SHARED_FIRST)
-- ✅ You know how [scheduling works](Chore-Configuration-Guide.md#scheduling--recurrence) (frequency, applicable days)
+- ✅ You understand [completion modes](Configuration:-Chores.md#completion-modes) (INDEPENDENT, SHARED_ALL, SHARED_FIRST)
+- ✅ You know how [scheduling works](Configuration:-Chores.md#scheduling--recurrence) (frequency, applicable days)
 - ✅ You're comfortable with basic chore configuration
 
 **Important**: Most features in this guide **require INDEPENDENT completion mode** (per-kid applicable days, per-kid due dates) because they need individual tracking per kid. However, **daily multi-times works with all completion modes** - SHARED chores can have multiple time slots per day.
@@ -336,7 +335,7 @@ This guide covers advanced chore features that enable sophisticated scheduling a
 
 **Ready to Implement?**
 
-- Review [Core Configuration Guide](Chore-Configuration-Guide.md) if you need basics refresher
+- Review [Core Configuration Guide](Configuration:-Chores.md) if you need basics refresher
 - Test your schedule for a week before committing long-term
 - Use dashboard calendar view to visualize complex schedules
 

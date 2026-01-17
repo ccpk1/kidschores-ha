@@ -629,11 +629,11 @@ CUSTOM_INTERVAL_UNIT_MONTHS = "months"
 
 ## Related Documentation
 
-- **[Badge-Gamification.md](Badge-Gamification.md)** - Badge system overview (ranks vs missions)
-- **[Badge-Periodic-Advanced.md](Badge-Periodic-Advanced.md)** - Advanced periodic mechanics (strict mode, shared chore conflicts, penalties)
-- **[Badge-Cumulative-Advanced.md](Badge-Cumulative-Advanced.md)** - Cumulative rank mechanics (for comparison)
-- **[Technical-Reference:-Badge-Entities-Detail.md](Technical-Reference:-Badge-Entities-Detail.md)** - Badge sensor entities
-- **[Technical-Reference:-Configuration-Detail.md](Technical-Reference:-Configuration-Detail.md)** - Config/Options flow architecture
+- **[Badge-Gamification.md](Advanced:-Badges-Overview.md)** - Badge system overview (ranks vs missions)
+- **[Badge-Periodic-Advanced.md](Advanced:-Badges-Periodic.md)** - Advanced periodic mechanics (strict mode, shared chore conflicts, penalties)
+- **[Badge-Cumulative-Advanced.md](Advanced:-Badges-Cumulative.md)** - Cumulative rank mechanics (for comparison)
+- **[Technical-Reference:-Badge-Entities-Detail.md](Technical:-Badge-Entities.md)** - Badge sensor entities
+- **[Technical-Reference:-Configuration-Detail.md](Technical:-Configuration.md)** - Config/Options flow architecture
 
 ---
 

@@ -123,3 +123,10 @@ Before archiving, verify:
 | Rename `_IN-PROCESS` to `_COMPLETED` | Approve requirements (user only) |
 
 **Success = verified completion + permission obtained + plan archived**
+
+## Handoff Protocol (STRICT)
+
+When a handoff is needed, **ALWAYS** use the official handoff structure defined in the front matter.
+**NEVER** recommend a handoff in plain text.
+**NEVER** say "You should now ask the Strategist..."
+**ALWAYS** present the official Handoff Button.

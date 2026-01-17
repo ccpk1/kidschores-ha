@@ -237,7 +237,7 @@ Manual +10 button → Kid gets exactly 10 (no multiplier)
 - [Chore Configuration Guide](Chore-Configuration-Guide) - Primary way to earn points
 - [Configuration: Rewards](Configuration:-Rewards) - Primary way to spend points
 - [Configuration: Badges](Configuration:-Badges) - Points multipliers (coming soon)
-- [Technical Reference: Entities & States](Technical-Reference:-Entities-&-States) - Complete entity details
+- [Technical Reference: Entities & States](Technical:-Entities-States.md) - Complete entity details
 
 ---
 

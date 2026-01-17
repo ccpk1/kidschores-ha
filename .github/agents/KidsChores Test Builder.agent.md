@@ -121,3 +121,10 @@ pytest tests/ -v --tb=line      # No regressions
 - Import directly from const.py
 - Modify existing test infrastructure
 - Create new family members (use Zoë, Max, Lila, Mom, Dad)
+
+## Handoff Protocol (STRICT)
+
+When a handoff is needed, **ALWAYS** use the official handoff structure defined in the front matter.
+**NEVER** recommend a handoff in plain text.
+**NEVER** say "You should now ask the Strategist..."
+**ALWAYS** present the official Handoff Button.

@@ -322,6 +322,10 @@ from custom_components.kidschores.const import (
     # ACTION CONSTANTS
     # =========================================================================
     ACTION_APPROVE_CHORE,
+    ACTION_APPROVE_REWARD,
+    ACTION_DISAPPROVE_CHORE,
+    ACTION_DISAPPROVE_REWARD,
+    ACTION_REMIND_30,
     # =========================================================================
     # BADGE CONSTANTS
     # =========================================================================
@@ -498,6 +502,15 @@ from custom_components.kidschores.const import (
     TRANS_KEY_NOTIF_ACTION_APPROVE,
     TRANS_KEY_NOTIF_ACTION_DISAPPROVE,
     TRANS_KEY_NOTIF_ACTION_REMIND_30,
+    # =========================================================================
+    # NOTIFICATION DATA KEYS
+    # =========================================================================
+    DATA_CHORE_ID,
+    DATA_KID_ID,
+    DATA_REWARD_ID,
+    NOTIFY_ACTION,
+    NOTIFY_NOTIFICATION_ID,
+    NOTIFY_TITLE,
     # =========================================================================
     # SENSOR ENTITY ID COMPONENTS
     # =========================================================================

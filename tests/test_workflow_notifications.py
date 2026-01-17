@@ -604,14 +604,15 @@ class TestNotificationTagging:
 
         assert len(capture.notifications) > 0, "No notification was sent on chore claim"
 
-        # Verify tag is present and has correct format
+        # Verify tag is present and has correct format: kidschores-status-{chore_id}-{kid_id}
         notif = capture.notifications[0]
         extra_data = notif.get("extra_data", {})
         tag = extra_data.get("tag", "")
 
-        assert tag.startswith("kidschores-pending-"), (
-            f"Expected tag to start with 'kidschores-pending-', got '{tag}'"
+        assert tag.startswith("kidschores-status-"), (
+            f"Expected tag to start with 'kidschores-status-', got '{tag}'"
         )
+        assert chore_id in tag, f"Expected chore_id '{chore_id}' in tag '{tag}'"
         assert kid_id in tag, f"Expected kid_id '{kid_id}' in tag '{tag}'"
 
 

@@ -135,13 +135,13 @@ Each step must be:
 
 Link these in plan's "References" section:
 
-| Document                                                                               | Use For                          |
-| -------------------------------------------------------------------------------------- | -------------------------------- |
-| `docs/ARCHITECTURE.md`                                          | Data model, storage schema       |
-| `docs/DEVELOPMENT_STANDARDS.md`                        | Naming conventions, patterns     |
-| `docs/CODE_REVIEW_GUIDE.md`                                | Quality standards, Phase 0 audit |
+| Document                                    | Use For                          |
+| ------------------------------------------- | -------------------------------- |
+| `docs/ARCHITECTURE.md`                      | Data model, storage schema       |
+| `docs/DEVELOPMENT_STANDARDS.md`             | Naming conventions, patterns     |
+| `docs/CODE_REVIEW_GUIDE.md`                 | Quality standards, Phase 0 audit |
 | `tests/AGENT_TEST_CREATION_INSTRUCTIONS.md` | Test scenarios, patterns         |
-| `docs/RELEASE_CHECKLIST.md`                                | Pre-release requirements         |
+| `docs/RELEASE_CHECKLIST.md`                 | Pre-release requirements         |
 
 ## Plan Quality Checklist
 
@@ -211,3 +211,10 @@ Plans should be:
 **When user asks to implement**: Hand off to **KidsChores Plan Agent**
 
 **Your success metric**: Implementer can execute plan without additional research
+
+## Handoff Protocol (STRICT)
+
+When a handoff is needed, **ALWAYS** use the official handoff structure defined in the front matter.
+**NEVER** recommend a handoff in plain text.
+**NEVER** say "You should now ask the Strategist..."
+**ALWAYS** present the official Handoff Button.

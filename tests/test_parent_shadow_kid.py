@@ -519,7 +519,7 @@ class TestShadowKidDeletion:
         2. Delete shadow kid via coordinator.delete_kid_entity()
         3. Parent's allow_chore_assignment should be False
         4. Parent's linked_shadow_kid_id should be None
-        5. Shadow kid should no longer exist in kids_data
+        5. Shadow kid should be UNLINKED (not deleted) to preserve data
         """
         coordinator = shadow_kid_scenario.coordinator
 
@@ -548,9 +548,20 @@ class TestShadowKidDeletion:
             "Parent's linked_shadow_kid_id should be None after shadow kid deletion"
         )
 
-        # Verify: Shadow kid removed from kids_data
-        assert shadow_kid_id not in coordinator.kids_data, (
-            "Shadow kid should be removed from kids_data"
+        # Verify: Shadow kid UNLINKED (not deleted) - data preserved
+        # The unlink behavior preserves the kid to avoid data loss on accidental toggle
+        assert shadow_kid_id in coordinator.kids_data, (
+            "Shadow kid should be preserved (unlinked, not deleted)"
+        )
+        unlinked_kid_data = coordinator.kids_data[shadow_kid_id]
+        assert unlinked_kid_data.get("is_shadow_kid") is False, (
+            "Shadow kid should be converted to regular kid"
+        )
+        assert "_unlinked" in unlinked_kid_data.get("name", ""), (
+            "Unlinked kid name should have _unlinked suffix"
+        )
+        assert unlinked_kid_data.get("linked_parent_id") is None, (
+            "Unlinked kid should have no parent link"
         )
 
     async def test_delete_parent_cascades_to_shadow_kid(
@@ -558,12 +569,12 @@ class TestShadowKidDeletion:
         hass: HomeAssistant,
         shadow_kid_scenario: SetupResult,
     ) -> None:
-        """Deleting parent with shadow kid should cascade delete the shadow kid.
+        """Deleting parent with shadow kid should cascade UNLINK the shadow kid.
 
         Expected behavior:
         1. Find Dad and his shadow kid
         2. Delete parent via coordinator.delete_parent_entity()
-        3. Shadow kid should also be deleted
+        3. Shadow kid should be UNLINKED (not deleted) to preserve data
         4. Parent should no longer exist
         """
         coordinator = shadow_kid_scenario.coordinator
@@ -583,9 +594,20 @@ class TestShadowKidDeletion:
             "Parent should be removed from parents_data"
         )
 
-        # Verify: Shadow kid cascade deleted
-        assert shadow_kid_id not in coordinator.kids_data, (
-            "Shadow kid should be cascade deleted when parent is deleted"
+        # Verify: Shadow kid cascade UNLINKED (not deleted) - data preserved
+        # The unlink behavior preserves the kid to avoid data loss
+        assert shadow_kid_id in coordinator.kids_data, (
+            "Shadow kid should be preserved (unlinked, not deleted)"
+        )
+        unlinked_kid_data = coordinator.kids_data[shadow_kid_id]
+        assert unlinked_kid_data.get("is_shadow_kid") is False, (
+            "Shadow kid should be converted to regular kid"
+        )
+        assert "_unlinked" in unlinked_kid_data.get("name", ""), (
+            "Unlinked kid name should have _unlinked suffix"
+        )
+        assert unlinked_kid_data.get("linked_parent_id") is None, (
+            "Unlinked kid should have no parent link"
         )
 
     async def test_delete_parent_without_shadow_kid(

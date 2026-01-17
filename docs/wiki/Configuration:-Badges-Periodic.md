@@ -3,7 +3,7 @@
 **Version**: v0.5.0+
 **Last Updated**: January 2026
 **Tier**: Configuration Guide
-**Related**: [Badge Gamification](Badge-Gamification.md) | [Badge Periodic Advanced](Badge-Periodic-Advanced.md) | [Badge Entities Detail](Technical-Reference:-Badge-Entities-Detail.md)
+**Related**: [Badge Gamification](Advanced:-Badges-Overview.md) | [Badge Periodic Advanced](Advanced:-Badges-Periodic.md) | [Badge Entities Detail](Technical:-Badge-Entities.md)
 
 ---
 
@@ -169,7 +169,7 @@ Periodic and daily badges share most configuration fields. Daily badges omit the
 - Use for accountability contracts ("No Sass Contract" with privilege loss)
 
 > [!CAUTION]
-> Penalties can frustrate kids if overused. Balance consequences with achievable goals. See [Badge Periodic Advanced](Badge-Periodic-Advanced.md#contract-penalty-patterns) for best practices.
+> Penalties can frustrate kids if overused. Balance consequences with achievable goals. See [Badge Periodic Advanced](Advanced:-Badges-Periodic.md#contract-penalty-patterns) for best practices.
 
 ---
 
@@ -631,7 +631,7 @@ Don't configure penalty in both locations.
 
 **Cause**: Badge configured to track shared chore, but sibling completed it first (chore now claimed).
 
-**Solution**: See [Badge Periodic Advanced: Shared First Conflict Trap](Badge-Periodic-Advanced.md#the-shared-first-conflict-trap) for detailed explanation and workarounds:
+**Solution**: See [Badge Periodic Advanced: Shared First Conflict Trap](Advanced:-Badges-Periodic.md#the-shared-first-conflict-trap) for detailed explanation and workarounds:
 
 - Use "minimum X chores" target types (counts ANY chore, not specific ones)
 - Don't filter badges to shared chores if fairness is concern
@@ -659,7 +659,7 @@ Don't configure penalty in both locations.
 
 ### Conceptual
 
-- **[Badge Gamification](Badge-Gamification.md)** - Badge system overview (ranks vs missions)
+- **[Badge Gamification](Advanced:-Badges-Overview.md)** - Badge system overview (ranks vs missions)
 - **[Getting Started: Badges](Getting-Started:-Your-First-Badges.md)** - Badge creation walkthrough
 
 ### Configuration
@@ -668,18 +668,18 @@ Don't configure penalty in both locations.
 
 ### Advanced
 
-- **[Badge Periodic Advanced](Badge-Periodic-Advanced.md)** - Advanced mechanics (scope filtering, strict mode, penalty patterns, shared conflicts)
-- **[Badge Cumulative Advanced](Badge-Cumulative-Advanced.md)** - Multiplier engine (for comparison)
+- **[Badge Periodic Advanced](Advanced:-Badges-Periodic.md)** - Advanced mechanics (scope filtering, strict mode, penalty patterns, shared conflicts)
+- **[Badge Cumulative Advanced](Advanced:-Badges-Cumulative.md)** - Multiplier engine (for comparison)
 
 ### Technical
 
-- **[Technical Reference: Badge Entities Detail](Technical-Reference:-Badge-Entities-Detail.md)** - Sensor entity attributes
-- **[Technical Reference: Configuration Detail](Technical-Reference:-Configuration-Detail.md)** - Config/options flow architecture
+- **[Technical Reference: Badge Entities Detail](Technical:-Badge-Entities.md)** - Sensor entity attributes
+- **[Technical Reference: Configuration Detail](Technical:-Configuration.md)** - Config/options flow architecture
 
 ---
 
 **Next Steps**:
 
-- Create your first periodic badge: [Getting Started: Badges](Getting-Started:-Your-First-Badges.md)
-- Understand advanced tactics: [Badge Periodic Advanced](Badge-Periodic-Advanced.md)
-- Combine with cumulative ranks: [Badge Gamification](Badge-Gamification.md)
+- Create your first periodic badge: [Getting Started: Badges](Getting-Started:-Scenarios.md)
+- Understand advanced tactics: [Badge Periodic Advanced](Advanced:-Badges-Periodic.md)
+- Combine with cumulative ranks: [Badge Gamification](Advanced:-Badges-Overview.md)

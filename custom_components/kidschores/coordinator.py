@@ -27,7 +27,12 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from . import const, flow_helpers as fh, kc_helpers as kh
-from .notification_helper import async_send_notification
+from .notification_helper import (
+    async_send_notification,
+    build_chore_actions,
+    build_extra_data,
+    build_reward_actions,
+)
 from .storage_manager import KidsChoresStorageManager
 
 
@@ -1226,7 +1231,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         const.LOGGER.info(
             "Created shadow kid '%s' (ID: %s) for parent '%s' (ID: %s)",
-            shadow_kid_id,
             parent_info.get(const.DATA_PARENT_NAME),
             shadow_kid_id,
             parent_info.get(const.DATA_PARENT_NAME),
@@ -3099,26 +3103,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_ZERO
             )
 
-            # Build action buttons - latest chore approve/disapprove + remind
-            actions = [
-                {
-                    const.NOTIFY_ACTION: f"{const.ACTION_APPROVE_CHORE}|{kid_id}|{chore_id}",
-                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_APPROVE,
-                },
-                {
-                    const.NOTIFY_ACTION: f"{const.ACTION_DISAPPROVE_CHORE}|{kid_id}|{chore_id}",
-                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE,
-                },
-                {
-                    const.NOTIFY_ACTION: f"{const.ACTION_REMIND_30}|{kid_id}|{chore_id}",
-                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_REMIND_30,
-                },
-            ]
-            # Pass extra context so the event handler can route the action.
-            extra_data = {
-                const.DATA_KID_ID: kid_id,
-                const.DATA_CHORE_ID: chore_id,
-            }
+            # Build action buttons using helper (DRY refactor v0.5.0+)
+            actions = build_chore_actions(kid_id, chore_id)
+            extra_data = build_extra_data(kid_id, chore_id=chore_id)
 
             # Use aggregated notification if multiple pending, else standard single
             if pending_count > 1:
@@ -3136,7 +3123,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                         },
                         actions=actions,
                         extra_data=extra_data,
-                        tag_type=const.NOTIFY_TAG_TYPE_PENDING,
+                        tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+                        tag_identifiers=(chore_id, kid_id),
                     )
                 )
             else:
@@ -3152,7 +3140,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                         },
                         actions=actions,
                         extra_data=extra_data,
-                        tag_type=const.NOTIFY_TAG_TYPE_PENDING,
+                        tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+                        tag_identifiers=(chore_id, kid_id),
                     )
                 )
 
@@ -3583,16 +3572,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                         latest_points = latest_chore_info.get(
                             const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_ZERO
                         )
-                        actions = [
-                            {
-                                const.NOTIFY_ACTION: f"{const.ACTION_APPROVE_CHORE}|{kid_id}|{latest_chore_id}",
-                                const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_APPROVE,
-                            },
-                            {
-                                const.NOTIFY_ACTION: f"{const.ACTION_DISAPPROVE_CHORE}|{kid_id}|{latest_chore_id}",
-                                const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE,
-                            },
-                        ]
+                        # Use helpers for action buttons (DRY refactor v0.5.0+)
+                        actions = build_chore_actions(kid_id, latest_chore_id)
                         self.hass.async_create_task(
                             self._notify_parents_translated(
                                 kid_id,
@@ -3605,27 +3586,20 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                                     "points": int(latest_points),
                                 },
                                 actions=actions,
-                                extra_data={
-                                    const.DATA_KID_ID: kid_id,
-                                    const.DATA_CHORE_ID: latest_chore_id,
-                                },
-                                tag_type=const.NOTIFY_TAG_TYPE_PENDING,
+                                extra_data=build_extra_data(
+                                    kid_id, chore_id=latest_chore_id
+                                ),
+                                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+                                tag_identifiers=(latest_chore_id, kid_id),
                             )
                         )
-            else:
-                # No more pending - replace with status update
-                self.hass.async_create_task(
-                    self._notify_parents_translated(
-                        kid_id,
-                        title_key=const.TRANS_KEY_NOTIF_TITLE_STATUS_UPDATE,
-                        message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_APPROVED_STATUS,
-                        message_data={
-                            "chore_name": chore_name,
-                            "parent_name": parent_name,
-                        },
-                        tag_type=const.NOTIFY_TAG_TYPE_PENDING,
-                    )
+
+            # Clear the approved chore's notification (v0.5.0+ - handles dashboard approvals)
+            self.hass.async_create_task(
+                self.clear_notification_for_parents(
+                    kid_id, const.NOTIFY_TAG_TYPE_STATUS, chore_id
                 )
+            )
 
             # Clear due-soon reminder tracking (v0.5.0+) - chore was completed
             self._clear_due_soon_reminder(chore_id, kid_id)
@@ -3713,6 +3687,52 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     extra_data=extra_data,
                 )
             )
+
+        # Send notification to parents about disapproval with updated pending count
+        remaining_pending = self._count_pending_chores_for_kid(kid_id)
+        kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
+
+        if remaining_pending > 0:
+            # Still have pending chores - send updated aggregated notification
+            latest_pending = self._get_latest_pending_chore(kid_id)
+            if latest_pending:
+                latest_chore_id = latest_pending.get(const.DATA_CHORE_ID, "")
+                if latest_chore_id and latest_chore_id in self.chores_data:
+                    latest_chore_info = self.chores_data[latest_chore_id]
+                    latest_chore_name = latest_chore_info.get(
+                        const.DATA_CHORE_NAME, "Unknown"
+                    )
+                    latest_points = latest_chore_info.get(
+                        const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_ZERO
+                    )
+                    # Use helpers for action buttons (DRY refactor v0.5.0+)
+                    actions = build_chore_actions(kid_id, latest_chore_id)
+                    self.hass.async_create_task(
+                        self._notify_parents_translated(
+                            kid_id,
+                            title_key=const.TRANS_KEY_NOTIF_TITLE_PENDING_CHORES,
+                            message_key=const.TRANS_KEY_NOTIF_MESSAGE_PENDING_CHORES,
+                            message_data={
+                                "kid_name": kid_name,
+                                "count": remaining_pending,
+                                "latest_chore": latest_chore_name,
+                                "points": int(latest_points),
+                            },
+                            actions=actions,
+                            extra_data=build_extra_data(
+                                kid_id, chore_id=latest_chore_id
+                            ),
+                            tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+                            tag_identifiers=(latest_chore_id, kid_id),
+                        )
+                    )
+
+        # Clear the disapproved chore's notification (v0.5.0+ - handles dashboard disapprovals)
+        self.hass.async_create_task(
+            self.clear_notification_for_parents(
+                kid_id, const.NOTIFY_TAG_TYPE_STATUS, chore_id
+            )
+        )
 
         self._persist()
         self.async_set_updated_data(self._data)
@@ -5559,26 +5579,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             notif_id
         )
 
-        # Send a notification to the parents that a kid claimed a reward
-        actions = [
-            {
-                const.NOTIFY_ACTION: f"{const.ACTION_APPROVE_REWARD}|{kid_id}|{reward_id}|{notif_id}",
-                const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_APPROVE,
-            },
-            {
-                const.NOTIFY_ACTION: f"{const.ACTION_DISAPPROVE_REWARD}|{kid_id}|{reward_id}|{notif_id}",
-                const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE,
-            },
-            {
-                const.NOTIFY_ACTION: f"{const.ACTION_REMIND_30}|{kid_id}|{reward_id}|{notif_id}",
-                const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_REMIND_30,
-            },
-        ]
-        extra_data = {
-            const.DATA_KID_ID: kid_id,
-            const.DATA_REWARD_ID: reward_id,
-            const.DATA_REWARD_NOTIFICATION_ID: notif_id,
-        }
+        # Send a notification to the parents using helpers (DRY refactor v0.5.0+)
+        actions = build_reward_actions(kid_id, reward_id, notif_id)
+        extra_data = build_extra_data(kid_id, reward_id=reward_id, notif_id=notif_id)
         self.hass.async_create_task(
             self._notify_parents_translated(
                 kid_id,
@@ -5591,6 +5594,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 },
                 actions=actions,
                 extra_data=extra_data,
+                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+                tag_identifiers=(reward_id, kid_id),
             )
         )
 
@@ -5803,6 +5808,15 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 )
             )
 
+            # Clear the original claim notification from parents' devices (v0.5.0+)
+            self.hass.async_create_task(
+                self.clear_notification_for_parents(
+                    kid_id,
+                    const.NOTIFY_TAG_TYPE_STATUS,
+                    reward_id,
+                )
+            )
+
             self._persist()
             self.async_set_updated_data(self._data)
 
@@ -5851,6 +5865,15 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_DISAPPROVED,
                 message_data={"reward_name": reward_info[const.DATA_REWARD_NAME]},
                 extra_data=extra_data,
+            )
+        )
+
+        # Clear the original claim notification from parents' devices (v0.5.0+)
+        self.hass.async_create_task(
+            self.clear_notification_for_parents(
+                kid_id,
+                const.NOTIFY_TAG_TYPE_STATUS,
+                reward_id,
             )
         )
 
@@ -9038,22 +9061,15 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             kid_info[const.DATA_KID_OVERDUE_NOTIFICATIONS][chore_id] = (
                 now_utc.isoformat()
             )
-            extra_data = {const.DATA_KID_ID: kid_id, const.DATA_CHORE_ID: chore_id}
-            actions = [
-                {
-                    const.NOTIFY_ACTION: f"{const.ACTION_APPROVE_CHORE}|{kid_id}|{chore_id}",
-                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_APPROVE,
-                },
-                {
-                    const.NOTIFY_ACTION: f"{const.ACTION_DISAPPROVE_CHORE}|{kid_id}|{chore_id}",
-                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE,
-                },
-                {
-                    const.NOTIFY_ACTION: f"{const.ACTION_REMIND_30}|{kid_id}|{chore_id}",
-                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_REMIND_30,
-                },
-            ]
+            # Overdue notifications for KIDS include a Claim button (v0.5.0+)
+            # Overdue notifications for PARENTS are informational only (no action buttons)
+            # Approve/Disapprove only make sense for claimed chores awaiting approval
+            from .notification_helper import build_claim_action
 
+            # Get kid's language for date formatting
+            kid_language = kid_info.get(
+                const.DATA_KID_DASHBOARD_LANGUAGE, self.hass.config.language
+            )
             self.hass.async_create_task(
                 self._notify_kid_translated(
                     kid_id,
@@ -9063,13 +9079,15 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                         "chore_name": chore_info.get(
                             const.DATA_CHORE_NAME, const.DISPLAY_UNNAMED_CHORE
                         ),
-                        "due_date": due_date_utc.isoformat()
-                        if due_date_utc
-                        else const.DISPLAY_UNKNOWN,
+                        "due_date": kh.format_short_datetime(
+                            due_date_utc, language=kid_language
+                        ),
                     },
-                    extra_data=extra_data,
+                    actions=build_claim_action(kid_id, chore_id),
                 )
             )
+            # Use system language for date formatting (parent-specific formatting
+            # would require restructuring the notification loop)
             self.hass.async_create_task(
                 self._notify_parents_translated(
                     kid_id,
@@ -9079,12 +9097,13 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                         "chore_name": chore_info.get(
                             const.DATA_CHORE_NAME, const.DISPLAY_UNNAMED_CHORE
                         ),
-                        "due_date": due_date_utc.isoformat()
-                        if due_date_utc
-                        else const.DISPLAY_UNKNOWN,
+                        "due_date": kh.format_short_datetime(
+                            due_date_utc, language=self.hass.config.language
+                        ),
                     },
-                    actions=actions,
-                    extra_data=extra_data,
+                    # No actions - informational only (chore not claimed yet)
+                    tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+                    tag_identifiers=(chore_id, kid_id),
                 )
             )
 
@@ -11281,6 +11300,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         actions: list[dict[str, str]] | None = None,
         extra_data: dict | None = None,
         tag_type: str | None = None,
+        tag_identifiers: tuple[str, ...] | None = None,
     ) -> None:
         """Notify parents using translated title and message.
 
@@ -11296,9 +11316,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             actions: Optional list of notification actions
             extra_data: Optional extra data for mobile notifications
             tag_type: Optional tag type for smart notification replacement.
-                      Use const.NOTIFY_TAG_TYPE_* constants. When provided,
-                      generates tag "kidschores-{tag_type}-{kid_id}" to enable
-                      notification replacement instead of stacking.
+                      Use const.NOTIFY_TAG_TYPE_* constants.
+            tag_identifiers: Optional tuple of identifiers for tag uniqueness.
+                            When provided, generates tag "kidschores-{tag_type}-{id1}-{id2}".
+                            If None, defaults to (kid_id,) for backwards compatibility.
         """
         import asyncio
 
@@ -11310,11 +11331,13 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Build notification tag if tag_type provided (v0.5.0+ smart replacement)
         notification_tag = None
         if tag_type:
-            notification_tag = build_notification_tag(tag_type, kid_id)
+            # Use provided identifiers or default to kid_id for backwards compatibility
+            identifiers = tag_identifiers if tag_identifiers else (kid_id,)
+            notification_tag = build_notification_tag(tag_type, *identifiers)
             const.LOGGER.debug(
-                "Using notification tag '%s' for kid_id '%s'",
+                "Using notification tag '%s' for identifiers %s",
                 notification_tag,
-                kid_id,
+                identifiers,
             )
 
         # Phase 1: Prepare all parent notifications (translations, formatting)
@@ -11477,6 +11500,81 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             perf_duration / parent_count if parent_count > 0 else 0,
         )
 
+    async def clear_notification_for_parents(
+        self,
+        kid_id: str,
+        tag_type: str,
+        entity_id: str,
+    ) -> None:
+        """Clear a notification for all parents of a kid.
+
+        Sends "clear_notification" message to each parent's notification service
+        with the appropriate tag. This allows dashboard approvals to dismiss
+        stale mobile notifications.
+
+        Args:
+            kid_id: The internal ID of the kid (to find associated parents)
+            tag_type: Tag type constant (e.g., NOTIFY_TAG_TYPE_STATUS)
+            entity_id: The chore/reward ID to include in the tag
+        """
+        import asyncio
+
+        from .notification_helper import build_notification_tag
+
+        # Build the tag for this entity
+        notification_tag = build_notification_tag(tag_type, entity_id, kid_id)
+
+        const.LOGGER.debug(
+            "Clearing notification with tag '%s' for kid '%s'",
+            notification_tag,
+            kid_id,
+        )
+
+        # Build clear tasks for all parents associated with this kid
+        clear_tasks: list[tuple[str, Any]] = []
+
+        for parent_id, parent_info in self.parents_data.items():
+            # Skip parents not associated with this kid
+            if kid_id not in parent_info.get(const.DATA_PARENT_ASSOCIATED_KIDS, []):
+                continue
+
+            # Get notification service (mobile app)
+            notify_service = parent_info.get(const.DATA_PARENT_MOBILE_NOTIFY_SERVICE)
+            if not notify_service:
+                continue
+
+            # Build clear notification call
+            service_data = {
+                "message": "clear_notification",
+                "data": {"tag": notification_tag},
+            }
+            coro = self.hass.services.async_call(
+                "notify",
+                notify_service,
+                service_data,
+            )
+            clear_tasks.append((parent_id, coro))
+
+        # Execute all clears concurrently
+        if clear_tasks:
+            results = await asyncio.gather(
+                *[coro for _, coro in clear_tasks],
+                return_exceptions=True,
+            )
+            for idx, result in enumerate(results):
+                if isinstance(result, Exception):
+                    parent_id = clear_tasks[idx][0]
+                    const.LOGGER.warning(
+                        "Failed to clear notification for parent '%s': %s",
+                        parent_id,
+                        result,
+                    )
+        else:
+            const.LOGGER.debug(
+                "No parents with notification service found for kid '%s'",
+                kid_id,
+            )
+
     async def remind_in_minutes(
         self,
         kid_id: str,
@@ -11519,32 +11617,40 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     chore_id,
                 )
                 return
-            # Only resend if the chore is still in a pending-like state.
-            if chore_info.get(const.DATA_CHORE_STATE) not in [
-                const.CHORE_STATE_PENDING,
-                const.CHORE_STATE_CLAIMED,
-                const.CHORE_STATE_OVERDUE,
-            ]:
-                const.LOGGER.info(
-                    "INFO: Notification - Chore ID '%s' is no longer pending approval. No reminder sent",
+
+            # Check if reminders are enabled for this chore (per-chore setting)
+            if not chore_info.get(
+                const.DATA_CHORE_NOTIFY_ON_REMINDER, const.DEFAULT_NOTIFY_ON_REMINDER
+            ):
+                const.LOGGER.debug(
+                    "DEBUG: Notification - Reminders disabled for Chore ID '%s'. Skipping reminder",
                     chore_id,
                 )
                 return
-            actions = [
-                {
-                    const.NOTIFY_ACTION: f"{const.ACTION_APPROVE_CHORE}|{kid_id}|{chore_id}",
-                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_APPROVE,
-                },
-                {
-                    const.NOTIFY_ACTION: f"{const.ACTION_DISAPPROVE_CHORE}|{kid_id}|{chore_id}",
-                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE,
-                },
-                {
-                    const.NOTIFY_ACTION: f"{const.ACTION_REMIND_30}|{kid_id}|{chore_id}",
-                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_REMIND_30,
-                },
-            ]
-            extra_data = {const.DATA_KID_ID: kid_id, const.DATA_CHORE_ID: chore_id}
+
+            # Get the PER-KID chore state (not the shared chore state)
+            kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
+            current_state = kid_chore_data.get(const.DATA_KID_CHORE_DATA_STATE)
+
+            # Only resend if the chore is still in a state that needs parent action:
+            # - PENDING: Kid hasn't claimed yet (might need reminder about it)
+            # - OVERDUE: Past due date, parent should review
+            # Do NOT send for: claimed, approved, approved_in_part, completed_by_other
+            if current_state not in [
+                const.CHORE_STATE_PENDING,
+                const.CHORE_STATE_OVERDUE,
+            ]:
+                const.LOGGER.info(
+                    "INFO: Notification - Chore ID '%s' for Kid ID '%s' is in state '%s'. No reminder sent",
+                    chore_id,
+                    kid_id,
+                    current_state,
+                )
+                return
+
+            # Use helpers for action buttons (DRY refactor v0.5.0+)
+            actions = build_chore_actions(kid_id, chore_id)
+            extra_data = build_extra_data(kid_id, chore_id=chore_id)
             await self._notify_parents_translated(
                 kid_id,
                 title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_REMINDER,
@@ -11559,6 +11665,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 },
                 actions=actions,
                 extra_data=extra_data,
+                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+                tag_identifiers=(chore_id, kid_id),
             )
             const.LOGGER.info(
                 "INFO: Notification - Resent reminder for Chore ID '%s' for Kid ID '%s'",
@@ -11578,21 +11686,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     kid_id,
                 )
                 return
-            actions = [
-                {
-                    const.NOTIFY_ACTION: f"{const.ACTION_APPROVE_REWARD}|{kid_id}|{reward_id}",
-                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_APPROVE,
-                },
-                {
-                    const.NOTIFY_ACTION: f"{const.ACTION_DISAPPROVE_REWARD}|{kid_id}|{reward_id}",
-                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE,
-                },
-                {
-                    const.NOTIFY_ACTION: f"{const.ACTION_REMIND_30}|{kid_id}|{reward_id}",
-                    const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_REMIND_30,
-                },
-            ]
-            extra_data = {const.DATA_KID_ID: kid_id, const.DATA_REWARD_ID: reward_id}
+            # Use helpers for action buttons (DRY refactor v0.5.0+)
+            actions = build_reward_actions(kid_id, reward_id)
+            extra_data = build_extra_data(kid_id, reward_id=reward_id)
             reward_info = self.rewards_data.get(reward_id, {})
             reward_name = reward_info.get(const.DATA_REWARD_NAME, "the reward")
             await self._notify_parents_translated(
@@ -11605,6 +11701,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 },
                 actions=actions,
                 extra_data=extra_data,
+                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+                tag_identifiers=(reward_id, kid_id),
             )
             const.LOGGER.info(
                 "INFO: Notification - Resent reminder for Reward ID '%s' for Kid ID '%s'",

@@ -16,15 +16,15 @@ This guide covers configuring kids (children in your household) and parents (adu
 
 ### Kid Configuration Fields
 
-| Field                         | Type     | Required | Default  | Description                                             |
-| ----------------------------- | -------- | -------- | -------- | ------------------------------------------------------- |
-| **Kid Name**                  | Text     | ✅       | -        | Display name. Must be unique. Used in entity IDs.       |
-| **Home Assistant User**       | Select   | ○        | None     | Link to HA user for access restrictions                 |
-| **Mobile Notify Service**     | Select   | ○        | Disabled | Notification service (e.g., `notify.mobile_app_*`).     |
-| **Language**                  | Language | ○        | English  | UI language for dashboard helper and notifications.     |
-| **Enable Due Date Reminders** | Toggle   | ○        | ✅ True  | Send notifications 30 min before unclaimed chore is due |
+| Field                     | Type     | Required | Default  | Description                                         |
+| ------------------------- | -------- | -------- | -------- | --------------------------------------------------- |
+| **Kid Name**              | Text     | ✅       | -        | Display name. Must be unique. Used in entity IDs.   |
+| **Home Assistant User**   | Select   | ○        | None     | Link to HA user for access restrictions             |
+| **Mobile Notify Service** | Select   | ○        | Disabled | Notification service (e.g., `notify.mobile_app_*`). |
+| **Language**              | Language | ○        | English  | UI language for dashboard helper and notifications. |
 
-> [!TIP] > **Notifications**: Due date reminders as well as other chore notifications require both **Mobile Notify Service** to be set.
+> [!TIP]
+> **Notifications**: Chore notifications require **Mobile Notify Service** to be set. Notification preferences (due date reminders, overdue alerts, etc.) are configured per-chore in the chore configuration form.
 
 > [!TIP] > Shadow kid profiles for parents have the same configurable settings but notifications are disabled by default to prevent duplicates—parents already receive chore notifications. Parents may re-enable and use to suit their needs, just be aware of potential duplicates.
 
@@ -41,7 +41,7 @@ Each kid gets a device with entities including:
 - **Bonus/penalty buttons** - Per bonus/penalty
 - **`calendar.kc_<kid>`** - Due dates
 
-**Full Details**: See [Technical Reference: Entities & States](Technical-Reference:-Entities-&-States) for complete entity list and attributes.
+**Full Details**: See [Technical Reference: Entities & States](Technical:-Entities-States.md) for complete entity list and attributes.
 
 ### Managing Kids
 
@@ -170,7 +170,7 @@ When **Allow Chore Assignment** is enabled, a **shadow kid** is created, allowin
 ## Related Documentation
 
 - [Quick Start Guide](Quick-Start-Guide) - First-time setup
-- [Technical Reference: Entities & States](Technical-Reference:-Entities-&-States) - Complete entity details
+- [Technical Reference: Entities & States](Technical:-Entities-States.md) - Complete entity details
 - [Service: Shadow Kid Linking User Guide](Service:-Shadow-Kid-Linking-User-Guide) - Advanced shadow kid management
 - [Dashboard: Auto-Populating UI](Dashboard:-Auto-Populating-UI) - Dashboard helper usage
 

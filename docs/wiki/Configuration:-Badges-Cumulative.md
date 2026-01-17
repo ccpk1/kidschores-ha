@@ -1,7 +1,7 @@
 # Configuration: Cumulative Badges
 
 **Target Audience**: All Users
-**Prerequisites**: [Points System configured](Configuration:-Points-System.md), Kids created
+**Prerequisites**: [Points System configured](Configuration:-Points.md), Kids created
 **Covers**: Creating and configuring cumulative badges for lifetime achievement tracking
 
 ---
@@ -420,10 +420,10 @@ VIP Badge:
 
 ## Related Documentation
 
-- [Points System](Configuration:-Points-System.md) - Understanding points earning and spending
-- [Chores Configuration](Chore-Configuration-Guide.md) - How kids earn points from chores
+- [Points System](Configuration:-Points.md) - Understanding points earning and spending
+- [Chores Configuration](Configuration:-Chores.md) - How kids earn points from chores
 - [Rewards Configuration](Configuration:-Rewards.md) - How kids spend points on rewards
-- [Technical Reference](Technical-Reference:-Entities-&-States.md) - Complete entity and attribute details
+- [Technical Reference](Technical:-Entities-States.md) - Complete entity and attribute details
 
 ---
 

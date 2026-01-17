@@ -2,7 +2,8 @@
 
 Get KidsChores up and running in your Home Assistant instance. This guide covers fresh installations for v0.5.0+.
 
-> [!TIP] > **Upgrading from v0.3.x or v0.4.x?** See [Backup and Restore Reference](Backup-and-Restore-Reference.md) for migration guidance.
+> [!TIP]
+> **Upgrading from v0.3.x or v0.4.x?** See [Backup and Restore Reference](Getting-Started:-Backup-Restore.md) for migration guidance.
 
 ---
 
@@ -30,7 +31,6 @@ HACS provides automatic updates and easier management of custom integrations.
    In Home Assistant, go to **HACS** from the sidebar.
 
 3. **Install KidsChores**
-
    - Search for **"KidsChores"** in HACS
    - Click on the KidsChores integration
    - Click **"Download"** or **"Install"**
@@ -104,7 +104,7 @@ When you first add the KidsChores integration, the **Data Recovery Options** dia
 
 **Other options** (for advanced scenarios):
 
-- If you have an existing backup or data file, see [Backup and Restore Reference](Backup-and-Restore-Reference.md) for guidance on using these recovery options
+- If you have an existing backup or data file, see [Backup and Restore Reference](Getting-Started:-Backup-Restore.md) for guidance on using these recovery options
 
 > [!TIP] > **Keep it simple!** The configuration wizard only requires setting up your **Points System**. We strongly recommend starting there, then reviewing the guides before adding kids, parents, and chores. Adding 20 chores during initial setup wastes time - add them one at a time as you learn the system.
 
@@ -121,10 +121,10 @@ This name appears throughout the integration (sensors, notifications, dashboards
 
 You _can_ add kids, parents, and chores during setup, but we recommend new user skip or add minimal items in these steps initially:
 
-- Review the [Quick Start Guide](Quick-Start-Guide.md) first
+- Review the [Quick Start Guide](Getting-Started:-Quick-Start.md) first
 - Understand the workflow before creating entities
 - Add them one at a time through Options Flow after reviewing relevant guides:
-  - **[Kids and Parents Guide](Kids-and-Parents.md)** - Learn about user management
+  - **[Kids and Parents Guide](Configuration:-Kids-Parents.md)** - Learn about user management
   - **[Chores Guide](Chores.md)** - Understand chore configuration options
 
 **To skip**: Simply click **"Submit"** without filling in optional fields, or close the wizard after completing Points setup.
@@ -140,22 +140,22 @@ After completing setup, verify the integration loaded successfully:
 You should see **KidsChores** listed with a checkmark.
 
 > [!NOTE]
-> To view specific sensors and entities created, see the [Entities Overview](Entities-Overview.md) guide.
+> To view specific sensors and entities created, see the [Entities Overview](Technical:-Entities-States.md) guide.
 
 ---
 
 ## Next Steps
 
-**Start here**: **[Quick Start Guide](Quick-Start-Guide.md)** - Walk through creating your first kid, parent, and chore with a complete workflow demonstration.
+**Start here**: **[Quick Start Guide](Getting-Started:-Quick-Start.md)** - Walk through creating your first kid, parent, and chore with a complete workflow demonstration.
 
 After completing the Quick Start, explore:
 
-- **[Kids and Parents Guide](Kids-and-Parents.md)** - User management and parent approvals
+- **[Kids and Parents Guide](Configuration:-Kids-Parents.md)** - User management and parent approvals
 - **[Chores Guide](Chores.md)** - Chore configuration and scheduling options
 - **[Rewards Guide](Rewards.md)** - Create a reward redemption system
 - **[Badges Guide](Badges.md)** - Set up badges to motivate kids with milestones
-- **[Entities Overview](Entities-Overview.md)** - Understand all entities created
-- **[Services Reference](Services-Reference.md)** - Automate with KidsChores services
+- **[Entities Overview](Technical:-Entities-States.md)** - Understand all entities created
+- **[Services Reference](Services:-Reference.md)** - Automate with KidsChores services
 
 ---
 
@@ -178,7 +178,7 @@ The conguration setting allow you to manage all aspectes of the integration:
 
 ### Backup Your Configuration
 
-See [Backup and Restore Reference](Backup-and-Restore-Reference.md) for:
+See [Backup and Restore Reference](Getting-Started:-Backup-Restore.md) for:
 
 - Backing up your KidsChores data
 - Migrating between Home Assistant instances

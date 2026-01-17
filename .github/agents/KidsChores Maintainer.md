@@ -139,6 +139,13 @@ Perform the following checks based on task type:
 - **"Check compliance"**: strict audit of a file against Coding Standards.
 - **"Where is [variable] used?"**: Grep codebase and explain the usage pattern.
 
+## Handoff Protocol (STRICT)
+
+When a handoff is needed, **ALWAYS** use the official handoff structure defined in the front matter.
+**NEVER** recommend a handoff in plain text.
+**NEVER** say "You should now ask the Strategist..."
+**ALWAYS** present the official Handoff Button.
+
 ## Commit Message Guidelines
 
 When asked for commit message, provide **one commit** covering all work since last commit:

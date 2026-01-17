@@ -369,6 +369,7 @@ CFOF_CHORES_INPUT_NAME: Final = "chore_name"
 CFOF_CHORES_INPUT_NOTIFY_ON_APPROVAL: Final = "notify_on_approval"
 CFOF_CHORES_INPUT_NOTIFY_ON_CLAIM: Final = "notify_on_claim"
 CFOF_CHORES_INPUT_NOTIFY_ON_DISAPPROVAL: Final = "notify_on_disapproval"
+CFOF_CHORES_INPUT_NOTIFY_ON_REMINDER: Final = "notify_on_reminder"
 CFOF_CHORES_INPUT_RECURRING_FREQUENCY: Final = "recurring_frequency"
 CFOF_CHORES_INPUT_DAILY_MULTI_TIMES: Final = "daily_multi_times"  # CFE-2026-001 F2
 CFOF_CHORES_INPUT_SHARED_CHORE: Final = "shared_chore"
@@ -1012,6 +1013,7 @@ DATA_CHORE_NAME: Final = "name"
 DATA_CHORE_NOTIFY_ON_APPROVAL: Final = "notify_on_approval"
 DATA_CHORE_NOTIFY_ON_CLAIM: Final = "notify_on_claim"
 DATA_CHORE_NOTIFY_ON_DISAPPROVAL: Final = "notify_on_disapproval"
+DATA_CHORE_NOTIFY_ON_REMINDER: Final = "notify_on_reminder"
 DATA_CHORE_AUTO_APPROVE: Final = "auto_approve"
 DATA_CHORE_RECURRING_FREQUENCY: Final = "recurring_frequency"
 DATA_CHORE_DAILY_MULTI_TIMES: Final = "daily_multi_times"  # CFE-2026-001 F2
@@ -1295,6 +1297,7 @@ DEFAULT_NOTIFY_DELAY_REMINDER: Final = 24
 DEFAULT_NOTIFY_ON_APPROVAL = True
 DEFAULT_NOTIFY_ON_CLAIM = True
 DEFAULT_NOTIFY_ON_DISAPPROVAL = True
+DEFAULT_NOTIFY_ON_REMINDER = True
 DEFAULT_PENALTY_POINTS: Final = 1
 DEFAULT_PENDING_CHORES_UNIT: Final = "Pending Chores"
 DEFAULT_PENDING_REWARDS_UNIT: Final = "Pending Rewards"
@@ -1478,15 +1481,20 @@ TRANS_KEY_NOTIF_TITLE_STATUS_UPDATE: Final = "notification_title_status_update"
 TRANS_KEY_NOTIF_MESSAGE_CHORE_APPROVED_STATUS: Final = (
     "notification_message_chore_approved_status"
 )
+TRANS_KEY_NOTIF_MESSAGE_CHORE_DISAPPROVED_STATUS: Final = (
+    "notification_message_chore_disapproved_status"
+)
 TRANS_KEY_NOTIF_MESSAGE_REWARD_APPROVED_STATUS: Final = (
     "notification_message_reward_approved_status"
 )
 TRANS_KEY_NOTIF_ACTION_APPROVE_LATEST: Final = "notif_action_approve_latest"
 TRANS_KEY_NOTIF_ACTION_REVIEW_ALL: Final = "notif_action_review_all"
+TRANS_KEY_NOTIF_ACTION_CLAIM: Final = "notif_action_claim"
 
 # Action identifiers
 ACTION_APPROVE_CHORE = "APPROVE_CHORE"
 ACTION_APPROVE_REWARD = "APPROVE_REWARD"
+ACTION_CLAIM_CHORE = "CLAIM_CHORE"
 ACTION_DISAPPROVE_CHORE = "DISAPPROVE_CHORE"
 ACTION_DISAPPROVE_REWARD = "DISAPPROVE_REWARD"
 ACTION_REMIND_30 = "REMIND_30"

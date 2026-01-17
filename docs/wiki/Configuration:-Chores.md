@@ -1,10 +1,10 @@
 # Chore Configuration Guide
 
-**Prerequisites**: Completed [Quick Start Guide](Chore-Quick-Start.md)
+**Prerequisites**: Completed [Quick Start Guide](Getting-Started:-Quick-Start.md)
 **Time to Read**: 15-20 minutes
 
 > [!NOTE]
-> This guide covers the core configuration options you'll use for most chores. For advanced features like per-kid schedules and custom intervals, see [Advanced Features Guide](Chore-Advanced-Features.md).
+> This guide covers the core configuration options you'll use for most chores. For advanced features like per-kid schedules and custom intervals, see [Advanced Features Guide](Configuration:-Chores-Advanced.md).
 
 ---
 
@@ -500,12 +500,10 @@ Sunday 8:00 PM - Due date passes → Approval resets to PENDING, new week starts
 **Start with these questions**:
 
 1. **Should this chore be done once or multiple times?**
-
    - Once → Use "Once" reset type
    - Multiple → Use "Multi" or "Upon Completion"
 
 2. **When should it reset?**
-
    - Daily → Use "At Midnight"
    - Weekly/Monthly → Use "At Due Date"
    - Anytime/Flexible → Use "Upon Completion"
@@ -1022,7 +1020,7 @@ Chore: "Do Dishes"
 **Result**: Chore alternates between kids by day of week. Alice can only claim Mon/Wed/Fri, Bob can only claim Tue/Thu/Sat/Sun.
 
 > [!TIP]
-> Per-kid applicable days (available through **Settings → Configure** after initial setup) are perfect for rotating schedules or age-based responsibilities. See [Advanced Features](Chore-Advanced-Features.md#per-kid-applicable-days) for details.
+> Per-kid applicable days (available through **Settings → Configure** after initial setup) are perfect for rotating schedules or age-based responsibilities. See [Advanced Features](Configuration:-Chores-Advanced.md#per-kid-applicable-days) for details.
 
 ---
 
@@ -1080,16 +1078,22 @@ Chore: "Turn in Homework"
 
 **Default**: Checked (notifications enabled)
 
+> [!TIP]
+> Notification preferences (due date reminders, overdue alerts, etc.) are configured per-chore in the chore configuration form. Each chore can have different notification settings to reduce notification noise while keeping important alerts active.
+
 **Notification Types**:
 
+- **Due Date Reminders**: 30 minutes before chore becomes due (requires Mobile Notify Service set in kid configuration)
+- **Overdue Alerts**: When chore passes due date without completion
 - **Claim**: Kid claims chore
 - **Approval**: Parent approves chore
 - **Disapproval**: Parent rejects chore (with reason)
 
 **When to Uncheck**:
 
-- Reducing notification noise
+- Reducing notification noise for low-priority chores
 - Self-managed chores (kids check dashboard themselves)
+- Chores without due dates (no due date reminder needed)
 
 ---
 
@@ -1248,7 +1252,7 @@ Points: 15
 
 **Mastered the basics?** Continue learning:
 
-- **[Advanced Features Guide](Chore-Advanced-Features.md)** - Per-kid customization, custom intervals, complex scheduling
+- **[Advanced Features Guide](Configuration:-Chores-Advanced.md)** - Per-kid customization, custom intervals, complex scheduling
 - **[Tips & Tricks](Tips-&-Tricks-Automations-with-KidsChores.md)** - Automations, dashboard examples, advanced use cases
 
 **Questions?** Check the [FAQ](FAQ.md) or join the community discussion.

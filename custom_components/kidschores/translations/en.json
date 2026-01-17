@@ -1529,7 +1529,8 @@
       "options": {
         "notify_on_claim": "Notify on Claim",
         "notify_on_approval": "Notify on Approval",
-        "notify_on_disapproval": "Notify on Disapproval"
+        "notify_on_disapproval": "Notify on Disapproval",
+        "notify_on_reminder": "Notify on Reminder"
       }
     },
     "recurring_frequency": {
@@ -3418,13 +3419,13 @@
       "message": "No kid found with name '{name}'"
     },
     "parent_not_found_by_name": {
-      "message": "No parent found with name '{name}'"
+      "message": "No parent found with name {name}"
     },
     "kid_already_shadow": {
-      "message": "Kid '{name}' is already linked to a parent"
+      "message": "Kid {name} is already linked to a parent"
     },
     "kid_not_shadow": {
-      "message": "Kid '{name}' is not linked to any parent"
+      "message": "Kid {name} is not linked to any parent"
     },
     "parent_has_different_shadow": {
       "message": "Parent '{name}' is already linked to a different kid"

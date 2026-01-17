@@ -123,6 +123,11 @@ def _build_notification_defaults(default: dict[str, Any]) -> list[str]:
         const.DEFAULT_NOTIFY_ON_DISAPPROVAL,
     ):
         notifications.append(const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL)
+    if default.get(
+        const.CFOF_CHORES_INPUT_NOTIFY_ON_REMINDER,
+        const.DEFAULT_NOTIFY_ON_REMINDER,
+    ):
+        notifications.append(const.DATA_CHORE_NOTIFY_ON_REMINDER)
     return notifications
 
 
@@ -1070,6 +1075,7 @@ def build_chore_schema(
                 const.DATA_CHORE_NOTIFY_ON_CLAIM,
                 const.DATA_CHORE_NOTIFY_ON_APPROVAL,
                 const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL,
+                const.DATA_CHORE_NOTIFY_ON_REMINDER,
             ],
             multiple=True,
             translation_key=const.TRANS_KEY_FLOW_HELPERS_CHORE_NOTIFICATIONS,
@@ -1367,6 +1373,10 @@ def build_chores_data(
         ),
         const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL: (
             const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL
+            in user_input.get(const.CFOF_CHORES_INPUT_NOTIFICATIONS, [])
+        ),
+        const.DATA_CHORE_NOTIFY_ON_REMINDER: (
+            const.DATA_CHORE_NOTIFY_ON_REMINDER
             in user_input.get(const.CFOF_CHORES_INPUT_NOTIFICATIONS, [])
         ),
         # Calendar and auto-approve settings

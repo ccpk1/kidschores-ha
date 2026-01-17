@@ -688,6 +688,10 @@ def build_default_chore_data(
             const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL,
             const.DEFAULT_NOTIFY_ON_DISAPPROVAL,
         ),
+        const.DATA_CHORE_NOTIFY_ON_REMINDER: chore_data.get(
+            const.DATA_CHORE_NOTIFY_ON_REMINDER,
+            const.DEFAULT_NOTIFY_ON_REMINDER,
+        ),
         # Calendar and features
         const.DATA_CHORE_SHOW_ON_CALENDAR: chore_data.get(
             const.DATA_CHORE_SHOW_ON_CALENDAR, const.DEFAULT_CHORE_SHOW_ON_CALENDAR
@@ -1306,6 +1310,46 @@ def parse_date_safe(date_str: str) -> date | None:
         return dt_util.parse_date(date_str)
     except (ValueError, TypeError, AttributeError):
         return None
+
+
+def format_short_datetime(
+    dt_obj: datetime | None,
+    language: str = "en",
+    include_time: bool = True,
+) -> str:
+    """
+    Format a datetime object into a user-friendly short format for notifications.
+
+    Converts to local timezone and formats as:
+    - "Jan 16, 3:00 PM" (English with time)
+    - "Jan 16" (English without time)
+    - Localized equivalents for other languages
+
+    Args:
+        dt_obj: The datetime object to format (UTC or timezone-aware)
+        language: Language code for localization (default: "en")
+        include_time: Whether to include time component (default: True)
+
+    Returns:
+        Formatted string, or "Unknown" if dt_obj is None.
+    """
+    if dt_obj is None:
+        return const.DISPLAY_UNKNOWN
+
+    # Convert to local timezone
+    local_dt = dt_util.as_local(dt_obj)
+
+    # Format based on language and time inclusion
+    # Using strftime for consistent cross-platform behavior
+    if include_time:
+        # Format: "Jan 16, 3:00 PM" (12-hour) or locale-appropriate
+        if language in ("en", "en-US", "en-GB"):
+            return local_dt.strftime("%b %d, %I:%M %p").replace(" 0", " ")
+        # For other languages, use 24-hour format which is more universal
+        return local_dt.strftime("%b %d, %H:%M")
+
+    # Date only: "Jan 16"
+    return local_dt.strftime("%b %d")
 
 
 def format_datetime_with_return_type(

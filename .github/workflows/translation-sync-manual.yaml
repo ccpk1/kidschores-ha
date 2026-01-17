@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        description: 'Branch to sync translations for (leave empty for current branch)'
+        description: "Branch to sync translations for (leave empty for current branch)"
         required: false
-        default: ''
+        default: ""
 
 permissions:
   contents: write

@@ -241,11 +241,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
     # Listen for notification actions from the companion app.
+    # Wrapped in async_on_unload to ensure cleanup when integration is unloaded.
     async def handle_notification_event(event):
         """Handle notification action events."""
         await async_handle_notification_action(hass, event)
 
-    hass.bus.async_listen(const.NOTIFICATION_EVENT, handle_notification_event)
+    entry.async_on_unload(
+        hass.bus.async_listen(const.NOTIFICATION_EVENT, handle_notification_event)
+    )
 
     const.LOGGER.info("INFO: KidsChores setup complete for entry: %s", entry.entry_id)
     return True

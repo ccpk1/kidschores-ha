@@ -445,34 +445,42 @@ class TestShadowKidEntityCreation:
         coordinator_after_edit = await FlowTestHelper.get_coordinator(hass)
         assert coordinator_after_edit is not None, "Coordinator should exist after edit"
 
-        # Verify shadow kid removed from parent
+        # Verify shadow kid link removed from parent
         parent_data = coordinator_after_edit.parents_data[parent_id]
         assert parent_data.get(DATA_PARENT_LINKED_SHADOW_KID_ID) is None, (
             "Shadow kid link should be removed from parent"
         )
 
-        # Verify shadow kid deleted from coordinator
-        assert shadow_kid_id not in coordinator_after_edit.kids_data, (
-            "Shadow kid should be deleted from coordinator"
+        # Verify shadow kid UNLINKED (not deleted) - data preserved with _unlinked suffix
+        # The new unlink behavior preserves the kid to avoid data loss on accidental toggle
+        assert shadow_kid_id in coordinator_after_edit.kids_data, (
+            "Shadow kid should be preserved (unlinked, not deleted)"
+        )
+        unlinked_kid_data = coordinator_after_edit.kids_data[shadow_kid_id]
+        assert unlinked_kid_data.get("is_shadow_kid") is False, (
+            "Shadow kid should be converted to regular kid"
+        )
+        assert "_unlinked" in unlinked_kid_data.get("name", ""), (
+            "Unlinked kid name should have _unlinked suffix"
+        )
+        assert unlinked_kid_data.get("linked_parent_id") is None, (
+            "Unlinked kid should have no parent link"
         )
 
-        # CRITICAL TEST: Verify shadow kid entities are removed
-        remaining_shadow_entities = [
+        # Entities remain but are renamed with the kid - verify they still exist
+        remaining_entities = [
             e
             for e in entity_registry.entities.values()
             if e.platform == DOMAIN and shadow_kid_id in e.unique_id
         ]
+        # Entities should still exist for the unlinked kid
+        assert len(remaining_entities) > 0, "Unlinked kid entities should be preserved"
 
-        assert len(remaining_shadow_entities) == 0, (
-            f"All shadow kid entities should be removed, "
-            f"found {len(remaining_shadow_entities)} remaining"
-        )
-
-        # Verify shadow kid device is removed
-        shadow_device = device_registry.async_get_device(
+        # Verify kid device still exists (renamed)
+        kid_device = device_registry.async_get_device(
             identifiers={(DOMAIN, shadow_kid_id)}
         )
-        assert shadow_device is None, "Shadow kid device should be removed"
+        assert kid_device is not None, "Unlinked kid device should be preserved"
 
 
 class TestShadowKidNameConflicts:
