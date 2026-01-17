@@ -915,7 +915,14 @@ def build_chore_schema(
         vol.Required(
             const.CFOF_CHORES_INPUT_ASSIGNED_KIDS,
             default=default.get(const.CFOF_CHORES_INPUT_ASSIGNED_KIDS, []),
-        ): cv.multi_select(kid_choices),
+        ): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=list(kid_choices.keys()),
+                multiple=True,
+                mode=selector.SelectSelectorMode.DROPDOWN,
+                translation_key=const.TRANS_KEY_FLOW_HELPERS_ASSIGNED_KIDS,
+            )
+        ),
         vol.Required(
             const.CFOF_CHORES_INPUT_COMPLETION_CRITERIA,
             default=default.get(

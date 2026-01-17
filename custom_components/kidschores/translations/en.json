@@ -520,7 +520,7 @@
           "occasion_type": "Choose the type of occasion for this badge (e.g., holiday, birthday).",
           "associated_achievement": "Link this badge to an achievement for tracking.",
           "associated_challenge": "Link this badge to a challenge for tracking.",
-          "selected_chores": "Select the chores that contribute points toward this badge. Leave blank if you want to track all assigned chores (optional).",
+          "selected_chores": "Select the chores that contribute points toward this badge. Leave blank to track all assigned chores (optional).",
           "assigned_to": "Assign this badge to specific kids for tracking.",
           "award_items": "Select one or more from points, rewards, bonuses, or a points multiplier. All selected items will be granted or applied when the badge is earned. (optional)",
           "award_points": "If points are a selected award, specify the number of points to apply when this badge is earned. (optional).",
