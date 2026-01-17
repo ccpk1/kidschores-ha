@@ -41,11 +41,13 @@
         "description": "Ange namnet för varje barn.",
         "data": {
           "kid_name": "Barnets namn",
-          "internal_id": "Internt ID",
           "ha_user": "Hemassistent-användare",
-          "enable_mobile_notifications": "Aktivera mobilaviseringar",
-          "mobile_notify_service": "Meddela tjänsten",
-          "enable_persistent_notifications": "Aktivera beständiga aviseringar"
+          "mobile_notify_service": "Aviseringar",
+          "dashboard_language": "Språk"
+        },
+        "data_description": {
+          "mobile_notify_service": "Välj en aviseringstjänst för att aktivera aviseringar för det här barnet, eller lämna tomt för att inaktivera.",
+          "dashboard_language": "Språk som används för din syssloöversikt och dina aviseringar."
         }
       },
       "parent_count": {
@@ -62,10 +64,12 @@
           "parent_name": "Föräldernamn",
           "ha_user_id": "Hemassistent-användare",
           "associated_kids": "Associerade barn",
-          "enable_mobile_notifications": "Aktivera mobilaviseringar",
-          "mobile_notify_service": "Meddela tjänsten",
-          "enable_persistent_notifications": "Aktivera beständiga aviseringar",
-          "internal_id": "Internt ID"
+          "mobile_notify_service": "Aviseringar",
+          "dashboard_language": "Språk"
+        },
+        "data_description": {
+          "mobile_notify_service": "Välj en aviseringstjänst för att aktivera aviseringar för den här föräldern, eller lämna tomt för att inaktivera.",
+          "dashboard_language": "Språk som används för din syssloöversikt och dina aviseringar."
         }
       },
       "chore_count": {
@@ -85,10 +89,10 @@
           "chore_labels": "📋 Etiketter (valfritt)",
           "default_points": "💰 Poäng tilldelade",
           "assigned_kids": "👥 Tilldelade barn",
-          "completion_criteria": "👥 Slutförandetyp",
-          "approval_reset_type": "➡️ Tillåtna slutföranden och återställning av tidtagning",
-          "approval_reset_pending_claim_action": "➡️ Väntande anspråk vid återställning",
-          "overdue_handling_type": "⏰ Försenad: Hanteringstyp",
+          "completion_criteria": "👥 Slutförandekriterier",
+          "approval_reset_type": "➡️ Tillåtna slutföranden och återställning av godkännandetidpunkt",
+          "approval_reset_pending_claim_action": "➡️ Hantering av väntande reklamationer vid godkännande Återställ",
+          "overdue_handling_type": "⏰ Försenad: Hantering",
           "auto_approve": "✅ Godkänna anspråk automatiskt?",
           "recurring_frequency": "🔄 Schema: Frekvens",
           "custom_interval": "🔄 Schema: Anpassat intervall (för anpassad frekvens)",
@@ -105,15 +109,15 @@
           "chore_labels": "Taggar för att organisera sysslor (t.ex. 'kök', 'utomhus'). Lämna tomt om det inte behövs.",
           "default_points": "Poäng intjänade när de är klara.",
           "assigned_kids": "Barn som kan se och göra anspråk på den här sysslan.",
-          "completion_criteria": "Så här fungerar delade sysslor: Oberoende (varje barn slutför sysslan separat), Delat med alla (alla måste godkänna) eller Delat först (första godkännandet slutför sysslan).",
+          "completion_criteria": "Oberoende (varje barn slutför separat), Delat med alla (alla måste slutföra) eller Delat först (först att göra anspråk på block för andra).",
           "approval_reset_type": "Styr när den här sysslan återställs och hur många slutföranden som är tillåtna under den perioden.",
-          "approval_reset_pending_claim_action": "När den här uppgiften återställs (baserat på tidpunkten för återställning av slutförande ovan), vad händer med anspråk som fortfarande väntar på godkännande?",
+          "approval_reset_pending_claim_action": "Detta är vad som händer med anspråk som fortfarande väntar på godkännande när godkännandet återställs.",
           "overdue_handling_type": "Åtgärd efter förfallodatum: Dölj förfallet status, förbli förfallet tills det görs anspråk på det eller återställ till väntande vid nästa godkännandecykel.",
           "auto_approve": "När det är aktiverat godkänns anspråk omedelbart utan överordnad granskning.",
           "recurring_frequency": "Hur ofta sysslan återkommer: Dagligen, Veckovis, Månadsvis, Årligen, Anpassad eller Ingen.",
           "custom_interval": "Antal tidsenheter mellan repetitioner (t.ex. 3 för 'var 3:e vecka'). Används endast med anpassad frekvens.",
           "custom_interval_unit": "Tidsenhet för anpassat intervall (dagar, veckor, månader). Används endast med anpassad frekvens.",
-          "applicable_days": "Begränsa sysslan till specifika veckodagar. Lämna tomt för alla dagar.",
+          "applicable_days": "Lämna tomt för alla dagar. ENDAST Välj specifika dagar att begränsa.",
           "due_date": "Valfri deadline. Kan kombineras med återkommande scheman.",
           "show_on_calendar": "Visa den här uppgiften i kalendervyn.",
           "chore_notifications": "När aviseringar ska skickas: Vid anspråk, vid godkännande, vid avslag eller någon kombination."
@@ -300,6 +304,7 @@
       "duplicate_penalty": "Ett straff med detta namn finns redan",
       "duplicate_reward": "En belöning med detta namn finns redan",
       "duplicate_bonus": "En bonus med detta namn finns redan",
+      "shadow_kid_name_conflict": "Det går inte att aktivera tilldelning av sysslor: ett barn med ditt namn finns redan. Byt namn på det befintliga barnet först.",
       "due_date_in_past": "Förfallodatumet måste vara i framtiden.",
       "end_date_in_past": "Slutdatumet måste vara i framtiden.",
       "end_date_not_after_start_date": "Slutdatumet måste vara senare än startdatumet",
@@ -343,6 +348,7 @@
       "invalid_date_range": "Datumintervallet är ogiltigt. Slutdatumet måste infalla efter startdatumet.",
       "missing_required": "Obligatoriskt fält saknas. Vänligen ange all obligatorisk information.",
       "invalid_format": "Formatet är ogiltigt. Kontrollera din inmatning och försök igen.",
+      "chore_options_require_assignment": "Alternativ för sysslor och gamification kräver att \"Tillåt att sysslor tilldelas mig\" först är aktiverat.",
       "invalid_update_interval": "Ogiltigt uppdateringsintervall. Måste vara ett positivt heltal.",
       "invalid_calendar_show_period": "Ogiltig kalendervisningsperiod. Måste vara ett positivt heltal.",
       "invalid_retention_period": "Ogiltig lagringsperiod. Måste vara ett positivt heltal.",
@@ -395,10 +401,15 @@
         "data": {
           "kid_name": "Barnets namn",
           "ha_user": "Hemassistent-användare",
-          "enable_mobile_notifications": "Aktivera mobilaviseringar",
-          "mobile_notify_service": "Meddela tjänsten",
-          "enable_persistent_notifications": "Aktivera beständiga aviseringar",
+          "mobile_notify_service": "Aviseringar",
+          "enable_due_date_reminders": "Påminnelser om förfallodatum",
+          "dashboard_language": "Språk",
           "internal_id": "Internt ID"
+        },
+        "data_description": {
+          "mobile_notify_service": "Välj en aviseringstjänst för att aktivera aviseringar för det här barnet, eller lämna tomt för att inaktivera.",
+          "enable_due_date_reminders": "Skicka påminnelser när sysslor ska vara klara inom 30 minuter.",
+          "dashboard_language": "Språk som används för din syssloöversikt och dina aviseringar."
         }
       },
       "add_parent": {
@@ -408,10 +419,19 @@
           "parent_name": "Föräldernamn",
           "ha_user_id": "Hemassistent-användare",
           "associated_kids": "Associerade barn",
-          "enable_mobile_notifications": "Aktivera mobilaviseringar",
-          "mobile_notify_service": "Meddela tjänsten",
-          "enable_persistent_notifications": "Aktivera beständiga aviseringar",
+          "mobile_notify_service": "Aviseringar",
+          "dashboard_language": "Språk",
+          "allow_chore_assignment": "Tillåt att sysslor tilldelas mig",
+          "enable_chore_workflow": "Aktivera arbetsflöde för sysslor",
+          "enable_gamification": "Aktivera gamification",
           "internal_id": "Internt ID"
+        },
+        "data_description": {
+          "mobile_notify_service": "Välj en aviseringstjänst för att aktivera aviseringar för den här föräldern, eller lämna tomt för att inaktivera.",
+          "allow_chore_assignment": "Skapar en profil så att uppgifter kan tilldelas dig. Som standard visas bara en Godkänn-knapp för slutförande med ett klick. Obs: Om du avmarkerar rutan bevaras barnprofilen med suffixet '_unlinked' för manuell rensning.",
+          "enable_chore_workflow": "Lägger till knappar för att göra anspråk och avvisa för hela arbetsflödet (göra anspråk → godkänn/avvisa).",
+          "enable_gamification": "Spåra poäng, märken och belöningar för dina slutförda sysslor.",
+          "dashboard_language": "Språk som används för din syssloöversikt och dina aviseringar."
         }
       },
       "add_chore": {
@@ -424,10 +444,10 @@
           "chore_labels": "📋 Etiketter (valfritt)",
           "default_points": "💰 Poäng tilldelade",
           "assigned_kids": "👥 Tilldelade barn",
-          "completion_criteria": "👥 Slutförandetyp",
-          "approval_reset_type": "➡️ Tillåtna slutföranden och återställning av tidtagning",
-          "approval_reset_pending_claim_action": "➡️ Väntande anspråk vid återställning",
-          "overdue_handling_type": "⏰ Försenad: Hanteringstyp",
+          "completion_criteria": "👥 Slutförandekriterier",
+          "approval_reset_type": "➡️ Tillåtna slutföranden och återställning av godkännandetidpunkt",
+          "approval_reset_pending_claim_action": "➡️ Hantering av väntande reklamationer vid godkännande Återställ",
+          "overdue_handling_type": "⏰ Försenad: Hantering",
           "auto_approve": "✅ Godkänna anspråk automatiskt?",
           "recurring_frequency": "🔄 Schema: Frekvens",
           "custom_interval": "🔄 Schema: Anpassat intervall (för anpassad frekvens)",
@@ -444,16 +464,16 @@
           "chore_labels": "Taggar för att organisera sysslor (t.ex. 'kök', 'utomhus'). Lämna tomt om det inte behövs.",
           "default_points": "Poäng intjänade när de är klara.",
           "assigned_kids": "Barn som kan se och göra anspråk på den här sysslan.",
-          "completion_criteria": "Så här fungerar delade sysslor: Oberoende (varje barn slutför sysslan separat), Delat med alla (alla måste godkänna) eller Delat först (första godkännandet slutför sysslan).",
-          "approval_reset_type": "Styr när den här sysslan återställs och hur många slutföranden som är tillåtna under den perioden.",
-          "approval_reset_pending_claim_action": "När den här uppgiften återställs (baserat på tidpunkten för återställning av slutförande ovan), vad händer med anspråk som fortfarande väntar på godkännande?",
+          "completion_criteria": "Oberoende (varje barn slutför separat), Delat med alla (alla måste slutföra) eller Delat först (först att göra anspråk på block för andra).",
+          "approval_reset_type": "Styr när godkännandet av denna syssla återställs och hur många slutföranden som är tillåtna under den perioden.",
+          "approval_reset_pending_claim_action": "Detta är vad som händer med anspråk som fortfarande väntar på godkännande när godkännandet återställs.",
           "overdue_handling_type": "Åtgärd efter förfallodatum: Dölj förfallet status, förbli förfallet tills det görs anspråk på det eller återställ till väntande vid nästa godkännandecykel.",
           "auto_approve": "När det är aktiverat godkänns anspråk omedelbart utan överordnad granskning.",
-          "recurring_frequency": "Hur ofta sysslan återkommer: Dagligen, Veckovis, Månadsvis, Årligen, Anpassad eller Ingen.",
+          "recurring_frequency": "Hur ofta sysslan återkommer: Dagligen, Veckovis, Månadsvis, Årligen, Anpassad eller Ingen. Om du väljer \"Dagligen - Flera gånger per dag\" visas en ytterligare skärm för att konfigurera de specifika tiderna.",
           "custom_interval": "Antal tidsenheter mellan repetitioner (t.ex. 3 för 'var 3:e vecka'). Används endast med anpassad frekvens.",
           "custom_interval_unit": "Tidsenhet för anpassat intervall (dagar, veckor, månader). Används endast med anpassad frekvens.",
-          "applicable_days": "Begränsa sysslan till specifika veckodagar. Lämna tomt för alla dagar.",
-          "due_date": "Valfri deadline. Kan kombineras med återkommande scheman.",
+          "applicable_days": "Lämna tomt för alla dagar. ENDAST Välj specifika dagar att begränsa.",
+          "due_date": "Valfri deadline. Kan kombineras med återkommande scheman. För SJÄLVSTÄNDIGA sysslor fungerar detta som en mall – en ytterligare skärm visas som tillåter individuella datum per barn.",
           "show_on_calendar": "Visa den här uppgiften i kalendervyn.",
           "chore_notifications": "När aviseringar ska skickas: Vid anspråk, vid godkännande, vid avslag eller någon kombination."
         }
@@ -751,10 +771,33 @@
         "data": {
           "kid_name": "Barnets namn",
           "ha_user": "Hemassistent-användare",
-          "enable_mobile_notifications": "Aktivera mobilaviseringar",
-          "mobile_notify_service": "Meddela tjänsten",
-          "enable_persistent_notifications": "Aktivera beständiga aviseringar",
+          "mobile_notify_service": "Aviseringar",
+          "dashboard_language": "Språk",
+          "enable_due_date_reminders": "Påminnelser om förfallodatum",
           "internal_id": "Internt ID"
+        },
+        "data_description": {
+          "mobile_notify_service": "Välj en aviseringstjänst för att aktivera aviseringar för det här barnet.",
+          "dashboard_language": "Språk som används för din syssloöversikt och dina aviseringar.",
+          "enable_due_date_reminders": "Skicka påminnelser när sysslor ska vara klara inom 30 minuter."
+        }
+      },
+      "edit_kid_shadow": {
+        "title": "Redigera skuggbarn",
+        "description": "Ändra informationen om det valda skuggbarnet. ⚠️ Det här barnet är länkat till en förälder. Om namnet ändras bryts kravet på namnmatchning för att ta bort länken via tjänsten.",
+        "data": {
+          "kid_name": "Barnets namn",
+          "ha_user": "Hemassistent-användare",
+          "mobile_notify_service": "Aviseringar",
+          "dashboard_language": "Språk",
+          "enable_due_date_reminders": "Påminnelser om förfallodatum",
+          "internal_id": "Internt ID"
+        },
+        "data_description": {
+          "kid_name": "⚠️ Detta skuggbarn är länkat till en förälder. Om du ändrar detta namn kommer funktionen för att koppla bort tjänsten att sluta fungera, vilket kräver matchande namn.",
+          "mobile_notify_service": "⚠️ Skuggaviseringar för barn: Den länkade föräldern får redan aviseringar för övervakade sysslor. Om du aktiverar här skapas dubbletter aviseringar. Användbart för påminnelser om 30-minuters förfallodatum eller om du använder olika aviseringstjänster.",
+          "dashboard_language": "Språk som används för din syssloöversikt och dina aviseringar.",
+          "enable_due_date_reminders": "Skicka påminnelser när sysslor ska vara klara inom 30 minuter."
         }
       },
       "edit_parent": {
@@ -764,10 +807,19 @@
           "parent_name": "Föräldernamn",
           "ha_user_id": "Hemassistent-användare",
           "associated_kids": "Associerade barn",
-          "enable_mobile_notifications": "Aktivera mobilaviseringar",
-          "mobile_notify_service": "Meddela tjänsten",
-          "enable_persistent_notifications": "Aktivera beständiga aviseringar",
+          "mobile_notify_service": "Aviseringar",
+          "dashboard_language": "Språk",
+          "allow_chore_assignment": "Tillåt att sysslor tilldelas mig",
+          "enable_chore_workflow": "Aktivera arbetsflöde för sysslor",
+          "enable_gamification": "Aktivera gamification",
           "internal_id": "Internt ID"
+        },
+        "data_description": {
+          "mobile_notify_service": "Välj en aviseringstjänst för att aktivera aviseringar för den här föräldern, eller lämna tomt för att inaktivera.",
+          "allow_chore_assignment": "Skapar en profil så att uppgifter kan tilldelas dig. Som standard visas bara en Godkänn-knapp för slutförande med ett klick. Obs: Om du avmarkerar rutan bevaras barnprofilen med suffixet '_unlinked' för manuell rensning.",
+          "enable_chore_workflow": "Lägger till knappar för att göra anspråk och avvisa för hela arbetsflödet (göra anspråk → godkänn/avvisa).",
+          "enable_gamification": "Spåra poäng, märken och belöningar för dina slutförda sysslor.",
+          "dashboard_language": "Språk som används för din syssloöversikt och dina aviseringar."
         }
       },
       "edit_chore": {
@@ -781,10 +833,10 @@
           "internal_id": "Internt ID",
           "default_points": "💰 Poäng tilldelade",
           "assigned_kids": "👥 Tilldelade barn",
-          "completion_criteria": "👥 Slutförandetyp",
-          "approval_reset_type": "➡️ Tillåtna slutföranden och återställning av tidtagning",
-          "approval_reset_pending_claim_action": "➡️ Väntande anspråk vid återställning",
-          "overdue_handling_type": "⏰ Försenad: Hanteringstyp",
+          "completion_criteria": "👥 Slutförandekriterier",
+          "approval_reset_type": "➡️ Tillåtna slutföranden och återställning av godkännandetidpunkt",
+          "approval_reset_pending_claim_action": "➡️ Hantering av väntande reklamationer vid godkännande Återställ",
+          "overdue_handling_type": "⏰ Försenad: Hantering",
           "auto_approve": "✅ Godkänna anspråk automatiskt?",
           "recurring_frequency": "🔄 Schema: Frekvens",
           "custom_interval": "🔄 Schema: Anpassat intervall (för anpassad frekvens)",
@@ -802,15 +854,15 @@
           "chore_labels": "Taggar för att organisera sysslor (t.ex. 'kök', 'utomhus'). Lämna tomt om det inte behövs.",
           "default_points": "Poäng intjänade när de är klara.",
           "assigned_kids": "Barn som kan se och göra anspråk på den här sysslan.",
-          "completion_criteria": "Så här fungerar delade sysslor: Oberoende (varje barn slutför sysslan separat), Delat med alla (alla måste godkänna) eller Delat först (första godkännandet slutför sysslan).",
-          "approval_reset_type": "Styr när den här sysslan återställs och hur många slutföranden som är tillåtna under den perioden.",
-          "approval_reset_pending_claim_action": "När den här uppgiften återställs (baserat på tidpunkten för återställning av slutförande ovan), vad händer med anspråk som fortfarande väntar på godkännande?",
+          "completion_criteria": "Oberoende (varje barn slutför separat), Delat med alla (alla måste slutföra) eller Delat först (först att göra anspråk på block för andra).",
+          "approval_reset_type": "Styr när godkännandet av denna syssla återställs och hur många slutföranden som är tillåtna under den perioden.",
+          "approval_reset_pending_claim_action": "När godkännandet av denna uppgift återställs (baserat på tidpunkten för återställning av godkännande ovan), vad händer med anspråk som fortfarande väntar på godkännande?",
           "overdue_handling_type": "Åtgärd efter förfallodatum: Dölj förfallet status, förbli förfallet tills det görs anspråk på det eller återställ till väntande vid nästa godkännandecykel.",
           "auto_approve": "När det är aktiverat godkänns anspråk omedelbart utan överordnad granskning.",
-          "recurring_frequency": "Hur ofta sysslan återkommer: Dagligen, Veckovis, Månadsvis, Årligen, Anpassad eller Ingen.",
+          "recurring_frequency": "Hur ofta sysslan återkommer: Dagligen, Veckovis, Månadsvis, Årligen, Anpassad eller Ingen. Om du väljer \"Dagligen - Flera gånger per dag\" visas en ytterligare skärm för att konfigurera de specifika tiderna.",
           "custom_interval": "Antal tidsenheter mellan repetitioner (t.ex. 3 för 'var 3:e vecka'). Används endast med anpassad frekvens.",
           "custom_interval_unit": "Tidsenhet för anpassat intervall (dagar, veckor, månader). Används endast med anpassad frekvens.",
-          "applicable_days": "Begränsa sysslan till specifika veckodagar. Lämna tomt för alla dagar.",
+          "applicable_days": "Lämna tomt för alla dagar. ENDAST Välj specifika dagar att begränsa.",
           "due_date": "Valfri deadline. Kan kombineras med återkommande scheman. För SJÄLVSTÄNDIGA sysslor fungerar detta som en mall – en ytterligare skärm visas som tillåter individuella datum per barn.",
           "clear_due_date": "Markera den här rutan för att ta bort förfallodatumet från den här sysslan.",
           "show_on_calendar": "Visa den här uppgiften i kalendervyn.",
@@ -825,6 +877,30 @@
         },
         "data_description": {
           "apply_template_to_all": "Markera den här rutan för att tillämpa datumet som angetts på huvudsidan för sysslor på alla tilldelade barn och skriva över deras individuella datum."
+        }
+      },
+      "chores_daily_multi": {
+        "title": "Ställ in dagliga tider: {chore_name}",
+        "description": "Ange de tider då denna syssla ska vara tillgänglig varje dag. Använd 24-timmarsformat (TT:MM) avgränsat med | (strecktecken).\n\n**Exempel:** 07:00|12:00|18:00 för morgon, middag och kväll.\n\n**Krav:**\n- Minst 2 gånger, högst 6 gånger\n- Tiderna måste vara i 24-timmarsformat (00:00 till 23:59)\n- Avgränsa flera tider med | (strecktecken)\n\n**Obs:** Om du anger ett förfallodatum i huvudformuläret används endast datumdelen. De tider du anger nedan avgör när sysslan är tillgänglig varje dag.",
+        "data": {
+          "daily_multi_times": "Dagliga tider"
+        },
+        "data_description": {
+          "daily_multi_times": "Ange 2–6 gånger i 24-timmarsformat, separerade med | (pipettecken). Exempel: 08:00|17:00 för morgon och kväll."
+        }
+      },
+      "edit_chore_per_kid_details": {
+        "title": "Schema per barn: {chore_name}",
+        "description": "Konfigurera individuella schemainställningar för varje barn som är tilldelat denna syssla. De huvudsakliga formulärvärdena fungerar som **mallar** – använd kryssrutorna för att tillämpa dem på alla barn, eller anpassa varje barns inställningar individuellt.\n\n**Obs:** Inte alla fält nedan gäller för varje syssla. Formuläret visar dynamiskt relevanta alternativ baserat på slutförandeläge, frekvens och om förfallodatum är inställda.\n\n**Dagligt (flera) tidformat:** Om visas, ange 2–6 tider i 24-timmarsformat separerade med | (pipettecken). Exempel: 08:00|17:00\n\nBarn: {kid_names}{template_info}",
+        "data": {
+          "apply_days_to_all": "Tillämpa malldagar för alla barn",
+          "apply_times_to_all": "Använd malltider för alla barn",
+          "apply_template_to_all": "Använd malldatum för alla barn"
+        },
+        "data_description": {
+          "apply_days_to_all": "Markera rutan för att använda tillämpliga dagar från huvudformuläret för alla tilldelade barn.",
+          "apply_times_to_all": "Markera om du vill använda de dagliga tiderna från huvudformuläret för alla tilldelade barn.",
+          "apply_template_to_all": "Markera om du vill tillämpa datumet som angetts på huvudsyssloformuläret på alla tilldelade barn."
         }
       },
       "edit_badge_cumulative": {
@@ -1283,7 +1359,17 @@
       "corrupt_file": "Den valda filen innehåller ogiltig JSON och kan inte läsas.",
       "invalid_structure": "Den valda filen saknar nödvändig datastruktur.",
       "file_not_found": "Den valda filen kunde inte hittas.",
-      "invalid_selection": "Välj ett giltigt alternativ."
+      "invalid_selection": "Välj ett giltigt alternativ.",
+      "error_daily_multi_requires_compatible_reset": "Frekvensen \"Flera gånger per dag\" är inte kompatibel med återställningstyperna vid midnatt eftersom de bara återställer godkännanden en gång vid midnatt.",
+      "error_daily_multi_independent_multi_kids": "Frekvensen 'Flera gånger per dag' med OBEROENDE slutförande kräver exakt ett barn, såvida inte tider per barn har konfigurerats. Konfigurera olika tider för varje barn i inställningarna per barn.",
+      "error_daily_multi_times_required": "Tidslista krävs för frekvensen 'Flera gånger per dag'.",
+      "error_daily_multi_times_invalid_format": "Ogiltigt tidsformat. Använd 24-timmarsformat (TT:MM) avgränsat med | (t.ex. 08:00|17:00).",
+      "error_daily_multi_times_too_few": "Minst 2 gånger krävs för frekvensen 'Flera gånger per dag'. För en enskild tid, använd vanlig frekvens 'Daglig'.",
+      "error_daily_multi_times_too_many": "Maximalt 6 gånger tillåtet per dag för frekvensen 'Flera gånger per dag'.",
+      "error_daily_multi_due_date_required": "Frekvensen \"Flera gånger per dag\" kräver att ett förfallodatum anges. Datumet avgör när schemaläggningen startar och tiderna avgör tillgänglighetsfönstren varje dag.",
+      "error_at_due_date_reset_requires_due_date": "Godkännandeåterställningstyperna \"Vid förfallodatum\" (en gång eller flera gånger) kräver att ett förfallodatum anges. Utan ett förfallodatum kommer återställningen av godkännandet aldrig att utlösas och sysslan förblir godkänd på obestämd tid.",
+      "error_per_kid_applicable_days_invalid": "Ogiltigt tillämpligt dagsformat för ett eller flera barn. Dagarna måste vara heltal 0–6 (måndag–söndag) utan dubbletter.",
+      "error_per_kid_daily_multi_times_invalid": "Ogiltigt dagligt tidsformat för ett eller flera barn. Använd 24-timmarsformat avgränsat med | (t.ex. 08:00|17:00)."
     },
     "abort": {
       "invalid_action": "Ogiltig åtgärd",
@@ -1410,32 +1496,33 @@
     },
     "completion_criteria": {
       "options": {
-        "shared_all": "Delas med alla (alla barn måste slutföra tillsammans)",
+        "shared_all": "Delat alla (Alla barn måste slutföra tillsammans)",
         "independent": "Självständigt (Varje barn gör sitt jobb själv)",
-        "shared_first": "Delas med First (första slutförandet räknas)"
+        "shared_first": "Delad först (första slutförandet räknas)"
       }
     },
     "approval_reset_type": {
       "options": {
-        "at_midnight_once": "Tillåt 1 slutförande - återställs vid midnatt",
-        "at_midnight_multi": "Tillåt flera slutföranden – återställs vid midnatt",
-        "at_due_date_once": "Tillåt 1 slutförande - återställs vid förfallodatum",
-        "at_due_date_multi": "Tillåt flera kompletteringar – återställs vid förfallodatum",
-        "upon_completion": "Tillåt obegränsat antal kompletteringar - återställs efter slutförande"
+        "at_midnight_once": "En gång per dag - Återställs vid midnatt",
+        "at_midnight_multi": "Flera gånger per dag - Återställs vid midnatt",
+        "at_due_date_once": "En gång per period - Återställs vid förfallodatum",
+        "at_due_date_multi": "Flera gånger per period - Återställs vid förfallodatum",
+        "upon_completion": "Obegränsade slutföranden - Återställs efter slutförande"
       }
     },
     "overdue_handling_type": {
       "options": {
-        "at_due_date": "Visa förfallna efter förfallodatum (tills slutförande)",
-        "never_overdue": "Visa aldrig som försenad",
-        "at_due_date_then_reset": "Visa förfallna efter förfallodatum (tills godkännande återställs)"
+        "at_due_date": "Försenad tills klar",
+        "never_overdue": "Aldrig försenad",
+        "at_due_date_clear_at_approval_reset": "Försenad till godkännande Återställ",
+        "at_due_date_clear_immediate_on_late": "Försenad tills klar (Avklara sena godkännanden omedelbart)"
       }
     },
     "approval_reset_pending_claim_action": {
       "options": {
-        "hold_pending": "Behåll statusen för anspråk (väntar på godkännande/avslag)",
-        "clear_pending": "Rensa alla väntande anspråk",
-        "auto_approve_pending": "Godkänn alla väntande anspråk automatiskt"
+        "hold_pending": "Status för spärrkrav (väntar på godkännande/avslag)",
+        "clear_pending": "Rensa väntande anspråk",
+        "auto_approve_pending": "Godkänn väntande anspråk automatiskt"
       }
     },
     "chore_notifications": {
@@ -1449,12 +1536,14 @@
       "options": {
         "none": "Ingen",
         "daily": "Dagligen",
+        "daily_multi": "Dagligen (flera gånger per dag)",
         "weekly": "Varje vecka",
         "biweekly": "Som utkommer varannan vecka",
         "monthly": "Månatlig",
         "quarterly": "Kvartalsvis",
         "yearly": "Årlig",
         "custom": "Beställnings",
+        "custom_from_complete": "Anpassad (Omplanera från slutdatum)",
         "custom_1_week": "Anpassad: 1 vecka",
         "custom_1_month": "Anpassad: 1 månad",
         "custom_1_quarter": "Anpassad: 1 Kvart",
@@ -1470,6 +1559,7 @@
     },
     "custom_interval_unit": {
       "options": {
+        "hours": "Timmar",
         "days": "Dagar",
         "weeks": "Veckor",
         "months": "Månader"
@@ -1508,6 +1598,20 @@
     }
   },
   "services": {
+    "manage_shadow_link": {
+      "name": "Hantera föräldraskugga-barnlänk",
+      "description": "Länka eller ta bort länken mellan en befintlig barnprofil och en förälder. Kräver att både barnet och föräldern har matchande namn. Om du tar bort länken bevaras all data och barnet byter namn med suffixet '_unlinked'.",
+      "fields": {
+        "name": {
+          "name": "Namn",
+          "description": "Namn som matchar BÅDE föräldern och barnet (skiftlägeskänsligt)"
+        },
+        "action": {
+          "name": "Handling",
+          "description": "Länk kopplar barnet till föräldern som skugga. Avlänkning kopplar bort och byter namn på barnet."
+        }
+      }
+    },
     "claim_chore": {
       "name": "Ansök om syssla",
       "description": "Ett barn gör anspråk på en syssla och markerar den som \"gjord\" för föräldrarnas godkännande.",
@@ -1869,17 +1973,17 @@
             "name": "Slutförandekriterier",
             "state": {
               "independent": "Oberoende",
-              "shared_first_only": "Delad (endast första)",
-              "shared_all_required": "Delat (alla obligatoriska)"
+              "shared_first_only": "Delad (först)",
+              "shared_all_required": "Delad (alla)"
             }
           },
           "approval_reset_type": {
             "name": "Återställningstyp för godkännande",
             "state": {
-              "at_midnight_once": "En gång per dag",
-              "at_midnight_multi": "Flera per dag",
-              "at_due_date_once": "En gång per förfallodatum",
-              "at_due_date_multi": "Flera per förfallodatum",
+              "at_midnight_once": "Vid midnatt (en gång)",
+              "at_midnight_multi": "Vid midnatt (flera)",
+              "at_due_date_once": "Vid förfallodatum (en gång)",
+              "at_due_date_multi": "Vid förfallodatum (flera)",
               "upon_completion": "Vid färdigställande"
             }
           },
@@ -1888,10 +1992,18 @@
             "state": {
               "none": "Ingen",
               "daily": "Dagligen",
+              "daily_multi": "Dagligen (flera gånger per dag)",
               "weekly": "Varje vecka",
               "biweekly": "Som utkommer varannan vecka",
               "monthly": "Månatlig",
-              "custom": "Beställnings"
+              "quarterly": "Kvartalsvis",
+              "yearly": "Årlig",
+              "custom": "Beställnings",
+              "custom_from_complete": "Anpassad (Omplanera från slutdatum)",
+              "custom_1_week": "Anpassad: 1 vecka",
+              "custom_1_month": "Anpassad: 1 månad",
+              "custom_1_quarter": "Anpassad: 1 Kvart",
+              "custom_1_year": "Anpassad: 1 år"
             }
           },
           "applicable_days": {
@@ -2529,10 +2641,10 @@
           "approval_reset_type": {
             "name": "Återställningstyp för godkännande",
             "state": {
-              "at_midnight_once": "En gång per dag",
-              "at_midnight_multi": "Flera per dag",
-              "at_due_date_once": "En gång per förfallodatum",
-              "at_due_date_multi": "Flera per förfallodatum",
+              "at_midnight_once": "Vid midnatt (en gång)",
+              "at_midnight_multi": "Vid midnatt (flera)",
+              "at_due_date_once": "Vid förfallodatum (en gång)",
+              "at_due_date_multi": "Vid förfallodatum (flera)",
               "upon_completion": "Vid färdigställande"
             }
           },
@@ -2618,23 +2730,98 @@
           "cost": {
             "name": "Kosta"
           },
-          "reward_claims_count": {
-            "name": "Totalt antal fordringar"
+          "pending_claims": {
+            "name": "Väntande anspråk"
           },
-          "reward_approvals_count": {
-            "name": "Totalt antal godkännanden"
+          "last_claimed": {
+            "name": "Senast begärd"
+          },
+          "last_approved": {
+            "name": "Senast godkänd"
+          },
+          "last_disapproved": {
+            "name": "Senast avvisad"
+          },
+          "claimed_today": {
+            "name": "Anspråk idag"
+          },
+          "claimed_week": {
+            "name": "Anspråk denna vecka"
+          },
+          "claimed_month": {
+            "name": "Anspråk denna månad"
+          },
+          "claimed_year": {
+            "name": "Årets anspråk"
+          },
+          "claimed_all_time": {
+            "name": "Anspråk hela tiden"
+          },
+          "approved_today": {
+            "name": "Godkänd idag"
+          },
+          "approved_week": {
+            "name": "Godkänd denna vecka"
+          },
+          "approved_month": {
+            "name": "Godkänd denna månad"
+          },
+          "approved_year": {
+            "name": "Godkänd i år"
+          },
+          "approved_all_time": {
+            "name": "Godkänd hela tiden"
+          },
+          "disapproved_today": {
+            "name": "Ej godkänd idag"
+          },
+          "disapproved_week": {
+            "name": "Ej godkänd denna vecka"
+          },
+          "disapproved_month": {
+            "name": "Ej godkänd denna månad"
+          },
+          "disapproved_year": {
+            "name": "Ej godkänd i år"
+          },
+          "disapproved_all_time": {
+            "name": "Ej godkänd hela tiden"
+          },
+          "points_spent_today": {
+            "name": "Poäng spenderade idag"
+          },
+          "points_spent_week": {
+            "name": "Poäng spenderade denna vecka"
+          },
+          "points_spent_month": {
+            "name": "Poäng spenderade denna månad"
+          },
+          "points_spent_year": {
+            "name": "Poäng spenderade i år"
+          },
+          "points_spent_all_time": {
+            "name": "Poäng spenderade hela tiden"
+          },
+          "approval_rate": {
+            "name": "Godkännandegrad (%)"
+          },
+          "claim_rate_week": {
+            "name": "Genomsnittliga anspråk per dag (vecka)"
+          },
+          "claim_rate_month": {
+            "name": "Genomsnittliga anspråk per dag (månad)"
+          },
+          "claim_button_eid": {
+            "name": "Enhets-ID för knappen Anspråk"
+          },
+          "approve_button_eid": {
+            "name": "Godkänn-knapp Enhets-ID"
+          },
+          "disapprove_button_eid": {
+            "name": "Enhets-ID för knappen Avvisa"
           },
           "labels": {
             "name": "Etiketter"
-          },
-          "reward_claim_button_eid": {
-            "name": "Enhets-ID för knappen Anspråk"
-          },
-          "reward_approve_button_eid": {
-            "name": "Godkänn-knapp Enhets-ID"
-          },
-          "reward_disapprove_button_eid": {
-            "name": "Enhets-ID för knappen Avvisa"
           }
         }
       },
@@ -2909,6 +3096,23 @@
           }
         }
       },
+      "system_dashboard_translation_sensor": {
+        "name": "Översättningar av instrumentpanelen ({language})",
+        "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_dashboard_translation": "Tillhandahåller lokaliserade UI-översättningar för instrumentpanelsvisning"
+            }
+          },
+          "ui_translations": {
+            "name": "UI-översättningar"
+          },
+          "language": {
+            "name": "Språk"
+          }
+        }
+      },
       "kid_dashboard_helper_sensor": {
         "name": "Hjälp för UI-instrumentpanel",
         "state_attributes": {
@@ -2962,6 +3166,9 @@
           },
           "language": {
             "name": "Språk"
+          },
+          "translation_sensor": {
+            "name": "Översättningssensor"
           }
         }
       }
@@ -3207,6 +3414,21 @@
     }
   },
   "exceptions": {
+    "kid_not_found_by_name": {
+      "message": "Inget barn hittades med namnet '{name}'"
+    },
+    "parent_not_found_by_name": {
+      "message": "Ingen förälder hittades med namnet '{name}'"
+    },
+    "kid_already_shadow": {
+      "message": "Barnet '{name}' är redan länkat till en förälder"
+    },
+    "kid_not_shadow": {
+      "message": "Barnet '{name}' är inte kopplat till någon förälder"
+    },
+    "parent_has_different_shadow": {
+      "message": "Föräldern '{name}' är redan länkad till ett annat barn"
+    },
     "error_msg_no_entry_found": {
       "message": "Ingen matchande post hittades i konfigurationen."
     },

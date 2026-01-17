@@ -19,6 +19,10 @@
     "title": "Kinderaufgaben: Überfällige Aufgabe",
     "message": "Aufgabe {chore_name} ist überfällig! Fälligkeitsdatum war {due_date}"
   },
+  "chore_due_soon": {
+    "title": "⏰ Aufgabe bald fällig!",
+    "message": "{chore_name} ist in {minutes} Minuten fällig (+{points}Punkte)"
+  },
   "chore_reminder": {
     "title": "Kinderaufgaben: Erinnerung an anstehende Aufgaben",
     "message": "Hinweis: Die von {kid_name} beanspruchte Aufgabe {chore_name} wartet auf Genehmigung"
@@ -75,9 +79,32 @@
     "title": "KidsChore's: Bonus angewendet",
     "message": "Bonus {bonus_name} angewendet: +{points} Punkte"
   },
+  "pending_chores": {
+    "title": "KidsChores: {kid_name}",
+    "message": "{count} ausstehende Aufgaben (zuletzt: {latest_chore} +{points}Punkte)"
+  },
+  "status_update": {
+    "title": "✅ Kinderaufgaben",
+    "message": "Status aktualisiert"
+  },
+  "chore_approved_status": {
+    "title": "✅ Kinderaufgaben",
+    "message": "{chore_name} genehmigt von {parent_name}"
+  },
+  "chore_disapproved_status": {
+    "title": "❌ Kinderaufgaben",
+    "message": "{chore_name} abgelehnt von {parent_name}"
+  },
+  "reward_approved_status": {
+    "title": "✅ Kinderaufgaben",
+    "message": "{reward_name} Belohnung genehmigt"
+  },
   "actions": {
     "approve": "Genehmigen",
     "disapprove": "Missbilligen",
-    "remind_30": "Erinnere in 30 Minuten"
+    "remind_30": "Erinnere in 30 Minuten",
+    "approve_latest": "✅ Neueste Version genehmigen",
+    "review_all": "👀 Alle ansehen",
+    "claim": "✋ Jetzt beanspruchen"
   }
 }

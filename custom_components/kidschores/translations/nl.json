@@ -41,11 +41,13 @@
         "description": "Vul de naam van elk kind in.",
         "data": {
           "kid_name": "Naam van het kind",
-          "internal_id": "Interne ID",
           "ha_user": "Home Assistant-gebruiker",
-          "enable_mobile_notifications": "Schakel mobiele meldingen in",
-          "mobile_notify_service": "Meld de service",
-          "enable_persistent_notifications": "Permanente meldingen inschakelen"
+          "mobile_notify_service": "Meldingen",
+          "dashboard_language": "Taal"
+        },
+        "data_description": {
+          "mobile_notify_service": "Selecteer een notificatieservice om meldingen voor dit kind in te schakelen, of laat het veld leeg om meldingen uit te schakelen.",
+          "dashboard_language": "De taal die wordt gebruikt voor je takenoverzicht en meldingen."
         }
       },
       "parent_count": {
@@ -62,10 +64,12 @@
           "parent_name": "Naam van de ouder",
           "ha_user_id": "Home Assistant-gebruiker",
           "associated_kids": "Associated Kids",
-          "enable_mobile_notifications": "Schakel mobiele meldingen in",
-          "mobile_notify_service": "Meld de service",
-          "enable_persistent_notifications": "Permanente meldingen inschakelen",
-          "internal_id": "Interne ID"
+          "mobile_notify_service": "Meldingen",
+          "dashboard_language": "Taal"
+        },
+        "data_description": {
+          "mobile_notify_service": "Selecteer een notificatieservice om meldingen voor deze ouder in te schakelen, of laat het veld leeg om meldingen uit te schakelen.",
+          "dashboard_language": "De taal die wordt gebruikt voor je takenoverzicht en meldingen."
         }
       },
       "chore_count": {
@@ -85,10 +89,10 @@
           "chore_labels": "📋 Etiketten (optioneel)",
           "default_points": "💰 Toegekende punten",
           "assigned_kids": "👥 Toegewezen kinderen",
-          "completion_criteria": "👥 Voltooiingstype",
-          "approval_reset_type": "➡️ Voltooiingen toegestaan en tijdslimiet resetten",
-          "approval_reset_pending_claim_action": "➡️ Lopende claims bij Reset",
-          "overdue_handling_type": "⏰ Te laat: Afhandelingstype",
+          "completion_criteria": "👥 Voltooiingscriteria",
+          "approval_reset_type": "➡️ Voltooiingen toegestaan en goedkeuringstijd opnieuw instellen",
+          "approval_reset_pending_claim_action": "➡️ Afhandeling van openstaande claims bij goedkeuring reset",
+          "overdue_handling_type": "⏰ Te laat: Afhandeling",
           "auto_approve": "✅ Claims automatisch goedkeuren?",
           "recurring_frequency": "🔄 Schema: Frequentie",
           "custom_interval": "🔄 Planning: Aangepast interval (voor aangepaste frequentie)",
@@ -105,15 +109,15 @@
           "chore_labels": "Labels om klusjes te organiseren (bijv. 'keuken', 'buiten'). Laat leeg als dit niet nodig is.",
           "default_points": "Punten worden verdiend na voltooiing.",
           "assigned_kids": "Kinderen die dit klusje kunnen zien en op zich nemen.",
-          "completion_criteria": "Hoe werkt het delen van klusjes: Onafhankelijk (elk kind voert het apart uit), Gezamenlijk (iedereen moet goedkeuren) of Gezamenlijk eerst (degene die als eerste goedkeurt, mag het klusje doen).",
+          "completion_criteria": "Onafhankelijk (elk kind vult de opdracht apart in), Gezamenlijk (iedereen moet de opdracht voltooien) of Gezamenlijk eerst (wie het eerst komt, blokkeert anderen).",
           "approval_reset_type": "Hiermee wordt bepaald wanneer deze taak opnieuw begint en hoeveel keer deze in die periode mag worden voltooid.",
-          "approval_reset_pending_claim_action": "Wat gebeurt er met declaraties die nog wachten op goedkeuring wanneer deze taak wordt gereset (op basis van de hierboven vermelde reset-tijd voor voltooiing)?",
+          "approval_reset_pending_claim_action": "Dit is wat er gebeurt met aanvragen die nog wachten op goedkeuring wanneer de goedkeuringsperiode wordt gereset.",
           "overdue_handling_type": "Actie na de vervaldatum: De status 'te laat' verbergen, 'te laat' laten staan totdat het item is opgeëist, of de status terugzetten naar 'in behandeling' tijdens de volgende goedkeuringsronde.",
           "auto_approve": "Indien ingeschakeld, worden aanvragen direct goedgekeurd zonder tussenkomst van de ouders.",
           "recurring_frequency": "Hoe vaak de taak terugkeert: Dagelijks, Wekelijks, Maandelijks, Jaarlijks, Op aanvraag of Geen.",
           "custom_interval": "Aantal tijdseenheden tussen herhalingen (bijv. 3 voor 'elke 3 weken'). Alleen te gebruiken met een aangepaste frequentie.",
           "custom_interval_unit": "Tijdseenheid voor een aangepast interval (dagen, weken, maanden). Alleen te gebruiken met een aangepaste frequentie.",
-          "applicable_days": "Beperk de taak tot specifieke weekdagen. Laat dit veld leeg voor alle dagen.",
+          "applicable_days": "Laat alle dagen leeg. Selecteer ALLEEN specifieke dagen waarop u beperkingen wilt instellen.",
           "due_date": "Optionele deadline. Kan gecombineerd worden met terugkerende schema's.",
           "show_on_calendar": "Toon deze taak in de kalenderweergave.",
           "chore_notifications": "Wanneer moeten meldingen worden verzonden: Bij een aanvraag, bij goedkeuring, bij afwijzing, of een combinatie hiervan."
@@ -300,6 +304,7 @@
       "duplicate_penalty": "Er bestaat al een straf met deze naam.",
       "duplicate_reward": "Er bestaat al een beloning met deze naam.",
       "duplicate_bonus": "Er bestaat al een bonus met deze naam.",
+      "shadow_kid_name_conflict": "Het is niet mogelijk om een taak toe te wijzen: er bestaat al een kind met uw naam. Hernoem eerst het bestaande kind.",
       "due_date_in_past": "De uiterste inleverdatum moet in de toekomst liggen.",
       "end_date_in_past": "De einddatum moet in de toekomst liggen.",
       "end_date_not_after_start_date": "De einddatum moet later zijn dan de startdatum.",
@@ -343,6 +348,7 @@
       "invalid_date_range": "Het datumbereik is ongeldig. De einddatum moet na de startdatum liggen.",
       "missing_required": "Een verplicht veld ontbreekt. Vul alle vereiste gegevens in.",
       "invalid_format": "Het formaat is ongeldig. Controleer uw invoer en probeer het opnieuw.",
+      "chore_options_require_assignment": "Voor de workflow van huishoudelijke taken en de gamificatie-opties moet eerst 'Taken aan mij toewijzen' zijn ingeschakeld.",
       "invalid_update_interval": "Ongeldig update-interval. Moet een positief geheel getal zijn.",
       "invalid_calendar_show_period": "Ongeldige kalenderweergaveperiode. Moet een positief geheel getal zijn.",
       "invalid_retention_period": "Ongeldige bewaartermijn. Moet een positief geheel getal zijn.",
@@ -395,10 +401,15 @@
         "data": {
           "kid_name": "Naam van het kind",
           "ha_user": "Home Assistant-gebruiker",
-          "enable_mobile_notifications": "Schakel mobiele meldingen in",
-          "mobile_notify_service": "Meld de service",
-          "enable_persistent_notifications": "Permanente meldingen inschakelen",
+          "mobile_notify_service": "Meldingen",
+          "enable_due_date_reminders": "Herinneringen voor de vervaldatum",
+          "dashboard_language": "Taal",
           "internal_id": "Interne ID"
+        },
+        "data_description": {
+          "mobile_notify_service": "Selecteer een notificatieservice om meldingen voor dit kind in te schakelen, of laat het veld leeg om meldingen uit te schakelen.",
+          "enable_due_date_reminders": "Verstuur herinneringsmeldingen wanneer klusjes binnen 30 minuten gedaan moeten worden.",
+          "dashboard_language": "De taal die wordt gebruikt voor je takenoverzicht en meldingen."
         }
       },
       "add_parent": {
@@ -408,10 +419,19 @@
           "parent_name": "Naam van de ouder",
           "ha_user_id": "Home Assistant-gebruiker",
           "associated_kids": "Associated Kids",
-          "enable_mobile_notifications": "Schakel mobiele meldingen in",
-          "mobile_notify_service": "Meld de service",
-          "enable_persistent_notifications": "Permanente meldingen inschakelen",
+          "mobile_notify_service": "Meldingen",
+          "dashboard_language": "Taal",
+          "allow_chore_assignment": "Sta toe dat er taken aan mij worden toegewezen",
+          "enable_chore_workflow": "Schakel de taakworkflow in",
+          "enable_gamification": "Schakel gamificatie in",
           "internal_id": "Interne ID"
+        },
+        "data_description": {
+          "mobile_notify_service": "Selecteer een notificatieservice om meldingen voor deze ouder in te schakelen, of laat het veld leeg om meldingen uit te schakelen.",
+          "allow_chore_assignment": "Hiermee wordt een profiel aangemaakt zodat taken aan u kunnen worden toegewezen. Standaard wordt alleen een knop 'Goedkeuren' weergegeven voor voltooiing met één klik. Opmerking: Als u dit uitschakelt, blijft het kinderprofiel met het achtervoegsel '_unlinked' behouden voor handmatige verwijdering.",
+          "enable_chore_workflow": "Voegt knoppen 'Accepteren' en 'Afwijzen' toe voor een volledige workflow (accepteren → goedkeuren/afwijzen).",
+          "enable_gamification": "Houd bij hoeveel punten, badges en beloningen je verdient voor voltooide klusjes.",
+          "dashboard_language": "De taal die wordt gebruikt voor je takenoverzicht en meldingen."
         }
       },
       "add_chore": {
@@ -424,10 +444,10 @@
           "chore_labels": "📋 Etiketten (optioneel)",
           "default_points": "💰 Toegekende punten",
           "assigned_kids": "👥 Toegewezen kinderen",
-          "completion_criteria": "👥 Voltooiingstype",
-          "approval_reset_type": "➡️ Voltooiingen toegestaan en tijdslimiet resetten",
-          "approval_reset_pending_claim_action": "➡️ Lopende claims bij Reset",
-          "overdue_handling_type": "⏰ Te laat: Afhandelingstype",
+          "completion_criteria": "👥 Voltooiingscriteria",
+          "approval_reset_type": "➡️ Voltooiingen toegestaan en goedkeuringstijd opnieuw instellen",
+          "approval_reset_pending_claim_action": "➡️ Afhandeling van openstaande claims bij goedkeuring reset",
+          "overdue_handling_type": "⏰ Te laat: Afhandeling",
           "auto_approve": "✅ Claims automatisch goedkeuren?",
           "recurring_frequency": "🔄 Schema: Frequentie",
           "custom_interval": "🔄 Planning: Aangepast interval (voor aangepaste frequentie)",
@@ -444,16 +464,16 @@
           "chore_labels": "Labels om klusjes te organiseren (bijv. 'keuken', 'buiten'). Laat leeg als dit niet nodig is.",
           "default_points": "Punten worden verdiend na voltooiing.",
           "assigned_kids": "Kinderen die dit klusje kunnen zien en op zich nemen.",
-          "completion_criteria": "Hoe werkt het delen van klusjes: Onafhankelijk (elk kind voert het apart uit), Gezamenlijk (iedereen moet het goedkeuren) of Gezamenlijk eerst (degene die het eerst goedkeurt, mag het klusje doen).",
-          "approval_reset_type": "Hiermee wordt bepaald wanneer deze taak opnieuw begint en hoeveel keer deze in die periode mag worden voltooid.",
-          "approval_reset_pending_claim_action": "Wat gebeurt er met declaraties die nog wachten op goedkeuring wanneer deze taak wordt gereset (op basis van de hierboven vermelde reset-tijd voor voltooiing)?",
+          "completion_criteria": "Onafhankelijk (elk kind vult de opdracht apart in), Gezamenlijk (iedereen moet de opdracht voltooien) of Gezamenlijk eerst (wie het eerst komt, blokkeert anderen).",
+          "approval_reset_type": "Hiermee wordt bepaald wanneer de goedkeuring van deze taak opnieuw begint en hoeveel taken er in die periode mogen worden voltooid.",
+          "approval_reset_pending_claim_action": "Dit is wat er gebeurt met aanvragen die nog wachten op goedkeuring wanneer de goedkeuringsperiode wordt gereset.",
           "overdue_handling_type": "Actie na de vervaldatum: De status 'te laat' verbergen, 'te laat' laten staan totdat het item is opgeëist, of de status terugzetten naar 'in behandeling' tijdens de volgende goedkeuringsronde.",
           "auto_approve": "Indien ingeschakeld, worden aanvragen direct goedgekeurd zonder tussenkomst van de ouders.",
-          "recurring_frequency": "Hoe vaak de taak terugkeert: Dagelijks, Wekelijks, Maandelijks, Jaarlijks, Op aanvraag of Geen.",
+          "recurring_frequency": "Hoe vaak de taak moet worden uitgevoerd: Dagelijks, Wekelijks, Maandelijks, Jaarlijks, Aangepast of Geen. Als u 'Dagelijks - Meerdere keren per dag' selecteert, verschijnt er een extra scherm om de specifieke tijden in te stellen.",
           "custom_interval": "Aantal tijdseenheden tussen herhalingen (bijv. 3 voor 'elke 3 weken'). Alleen te gebruiken met een aangepaste frequentie.",
           "custom_interval_unit": "Tijdseenheid voor een aangepast interval (dagen, weken, maanden). Alleen te gebruiken met een aangepaste frequentie.",
-          "applicable_days": "Beperk de taak tot specifieke weekdagen. Laat dit veld leeg voor alle dagen.",
-          "due_date": "Optionele deadline. Kan gecombineerd worden met terugkerende schema's.",
+          "applicable_days": "Laat alle dagen leeg. Selecteer ALLEEN specifieke dagen waarop u beperkingen wilt instellen.",
+          "due_date": "Optionele deadline. Kan gecombineerd worden met terugkerende schema's. Voor zelfstandige klusjes dient dit als sjabloon: er verschijnt een extra scherm waarop je per kind een aparte datum kunt instellen.",
           "show_on_calendar": "Toon deze taak in de kalenderweergave.",
           "chore_notifications": "Wanneer moeten meldingen worden verzonden: Bij een aanvraag, bij goedkeuring, bij afwijzing, of een combinatie hiervan."
         }
@@ -751,10 +771,33 @@
         "data": {
           "kid_name": "Naam van het kind",
           "ha_user": "Home Assistant-gebruiker",
-          "enable_mobile_notifications": "Schakel mobiele meldingen in",
-          "mobile_notify_service": "Meld de service",
-          "enable_persistent_notifications": "Permanente meldingen inschakelen",
+          "mobile_notify_service": "Meldingen",
+          "dashboard_language": "Taal",
+          "enable_due_date_reminders": "Herinneringen voor de vervaldatum",
           "internal_id": "Interne ID"
+        },
+        "data_description": {
+          "mobile_notify_service": "Selecteer een notificatieservice om meldingen voor dit kind in te schakelen.",
+          "dashboard_language": "De taal die wordt gebruikt voor je takenoverzicht en meldingen.",
+          "enable_due_date_reminders": "Verstuur herinneringsmeldingen wanneer klusjes binnen 30 minuten gedaan moeten worden."
+        }
+      },
+      "edit_kid_shadow": {
+        "title": "Bewerk Schaduwkind",
+        "description": "Wijzig de gegevens van het geselecteerde schaduwkind. ⚠️ Dit kind is gekoppeld aan een ouder. Het wijzigen van de naam zorgt ervoor dat niet langer aan de naamvereiste voor het ontkoppelen via de service wordt voldaan.",
+        "data": {
+          "kid_name": "Naam van het kind",
+          "ha_user": "Home Assistant-gebruiker",
+          "mobile_notify_service": "Meldingen",
+          "dashboard_language": "Taal",
+          "enable_due_date_reminders": "Herinneringen voor de vervaldatum",
+          "internal_id": "Interne ID"
+        },
+        "data_description": {
+          "kid_name": "⚠️ Dit schaduwkind is gekoppeld aan een ouder. Het wijzigen van deze naam zal de functie voor het ontkoppelen van de service, die vereist dat de namen overeenkomen, onbruikbaar maken.",
+          "mobile_notify_service": "⚠️ Schaduwmeldingen voor kinderen: De gekoppelde ouder ontvangt al meldingen voor begeleide klusjes. Als u dit hier inschakelt, worden er dubbele meldingen gegenereerd. Handig voor herinneringen met een deadline van 30 minuten of als u verschillende notificatieservices gebruikt.",
+          "dashboard_language": "De taal die wordt gebruikt voor je takenoverzicht en meldingen.",
+          "enable_due_date_reminders": "Verstuur herinneringsmeldingen wanneer klusjes binnen 30 minuten gedaan moeten worden."
         }
       },
       "edit_parent": {
@@ -764,10 +807,19 @@
           "parent_name": "Naam van de ouder",
           "ha_user_id": "Home Assistant-gebruiker",
           "associated_kids": "Associated Kids",
-          "enable_mobile_notifications": "Schakel mobiele meldingen in",
-          "mobile_notify_service": "Meld de service",
-          "enable_persistent_notifications": "Permanente meldingen inschakelen",
+          "mobile_notify_service": "Meldingen",
+          "dashboard_language": "Taal",
+          "allow_chore_assignment": "Sta toe dat er taken aan mij worden toegewezen",
+          "enable_chore_workflow": "Schakel de taakworkflow in",
+          "enable_gamification": "Schakel gamificatie in",
           "internal_id": "Interne ID"
+        },
+        "data_description": {
+          "mobile_notify_service": "Selecteer een notificatieservice om meldingen voor deze ouder in te schakelen, of laat het veld leeg om meldingen uit te schakelen.",
+          "allow_chore_assignment": "Hiermee wordt een profiel aangemaakt zodat taken aan u kunnen worden toegewezen. Standaard wordt alleen een knop 'Goedkeuren' weergegeven voor voltooiing met één klik. Opmerking: Als u dit uitschakelt, blijft het kinderprofiel met het achtervoegsel '_unlinked' behouden voor handmatige verwijdering.",
+          "enable_chore_workflow": "Voegt knoppen 'Accepteren' en 'Afwijzen' toe voor een volledige workflow (accepteren → goedkeuren/afwijzen).",
+          "enable_gamification": "Houd bij hoeveel punten, badges en beloningen je verdient voor voltooide klusjes.",
+          "dashboard_language": "De taal die wordt gebruikt voor je takenoverzicht en meldingen."
         }
       },
       "edit_chore": {
@@ -781,10 +833,10 @@
           "internal_id": "Interne ID",
           "default_points": "💰 Toegekende punten",
           "assigned_kids": "👥 Toegewezen kinderen",
-          "completion_criteria": "👥 Voltooiingstype",
-          "approval_reset_type": "➡️ Voltooiingen toegestaan en tijdslimiet resetten",
-          "approval_reset_pending_claim_action": "➡️ Lopende claims bij Reset",
-          "overdue_handling_type": "⏰ Te laat: Afhandelingstype",
+          "completion_criteria": "👥 Voltooiingscriteria",
+          "approval_reset_type": "➡️ Voltooiingen toegestaan en goedkeuringstijd opnieuw instellen",
+          "approval_reset_pending_claim_action": "➡️ Afhandeling van openstaande claims bij goedkeuring reset",
+          "overdue_handling_type": "⏰ Te laat: Afhandeling",
           "auto_approve": "✅ Claims automatisch goedkeuren?",
           "recurring_frequency": "🔄 Schema: Frequentie",
           "custom_interval": "🔄 Planning: Aangepast interval (voor aangepaste frequentie)",
@@ -802,15 +854,15 @@
           "chore_labels": "Labels om klusjes te organiseren (bijv. 'keuken', 'buiten'). Laat leeg als dit niet nodig is.",
           "default_points": "Punten worden verdiend na voltooiing.",
           "assigned_kids": "Kinderen die dit klusje kunnen zien en op zich nemen.",
-          "completion_criteria": "Hoe werkt het delen van klusjes: Onafhankelijk (elk kind voert het apart uit), Gezamenlijk (iedereen moet het goedkeuren) of Gezamenlijk eerst (degene die het eerst goedkeurt, mag het klusje doen).",
-          "approval_reset_type": "Hiermee wordt bepaald wanneer deze taak opnieuw begint en hoeveel keer deze in die periode mag worden voltooid.",
-          "approval_reset_pending_claim_action": "Wat gebeurt er met declaraties die nog wachten op goedkeuring wanneer deze taak wordt gereset (op basis van de hierboven vermelde reset-tijd voor voltooiing)?",
+          "completion_criteria": "Onafhankelijk (elk kind vult de opdracht apart in), Gezamenlijk (iedereen moet de opdracht voltooien) of Gezamenlijk eerst (wie het eerst komt, blokkeert anderen).",
+          "approval_reset_type": "Hiermee wordt bepaald wanneer de goedkeuring van deze taak opnieuw begint en hoeveel taken er in die periode mogen worden voltooid.",
+          "approval_reset_pending_claim_action": "Wat gebeurt er met declaraties die nog wachten op goedkeuring wanneer de goedkeuring van deze taak wordt gereset (op basis van de hierboven beschreven timing van de goedkeuringsreset)?",
           "overdue_handling_type": "Actie na de vervaldatum: De status 'te laat' verbergen, 'te laat' laten staan totdat het item is opgeëist, of de status terugzetten naar 'in behandeling' tijdens de volgende goedkeuringsronde.",
           "auto_approve": "Indien ingeschakeld, worden aanvragen direct goedgekeurd zonder tussenkomst van de ouders.",
-          "recurring_frequency": "Hoe vaak de taak terugkeert: Dagelijks, Wekelijks, Maandelijks, Jaarlijks, Op aanvraag of Geen.",
+          "recurring_frequency": "Hoe vaak de taak moet worden uitgevoerd: Dagelijks, Wekelijks, Maandelijks, Jaarlijks, Aangepast of Geen. Als u 'Dagelijks - Meerdere keren per dag' selecteert, verschijnt er een extra scherm om de specifieke tijden in te stellen.",
           "custom_interval": "Aantal tijdseenheden tussen herhalingen (bijv. 3 voor 'elke 3 weken'). Alleen te gebruiken met een aangepaste frequentie.",
           "custom_interval_unit": "Tijdseenheid voor een aangepast interval (dagen, weken, maanden). Alleen te gebruiken met een aangepaste frequentie.",
-          "applicable_days": "Beperk de taak tot specifieke weekdagen. Laat dit veld leeg voor alle dagen.",
+          "applicable_days": "Laat alle dagen leeg. Selecteer ALLEEN specifieke dagen waarop u beperkingen wilt instellen.",
           "due_date": "Optionele deadline. Kan gecombineerd worden met terugkerende schema's. Voor zelfstandige klusjes dient dit als sjabloon: er verschijnt een extra scherm waarop je per kind een aparte datum kunt instellen.",
           "clear_due_date": "Vink dit vakje aan om de deadline voor deze taak te verwijderen.",
           "show_on_calendar": "Toon deze taak in de kalenderweergave.",
@@ -825,6 +877,30 @@
         },
         "data_description": {
           "apply_template_to_all": "Vink dit vakje aan om de datum die is ingesteld op de hoofdpagina voor het bewerken van taken toe te passen op alle toegewezen kinderen, waarbij hun individuele datums worden overschreven."
+        }
+      },
+      "chores_daily_multi": {
+        "title": "Stel dagelijkse tijden in: {chore_name}",
+        "description": "Voer de tijden in waarop deze taak elke dag beschikbaar moet zijn. Gebruik de 24-uursnotatie (HH:MM), gescheiden door een | (pipe).\n\n**Voorbeeld:** 07:00|12:00|18:00 voor ochtend, middag en avond.\n\n**Vereisten:**\n- Minimaal 2 tijden, maximaal 6 tijden\n- Tijden moeten in 24-uursnotatie zijn (00:00 tot 23:59)\n- Scheid meerdere tijden met een | (pipe)\n\n**Opmerking:** Als u een einddatum instelt op het hoofdformulier, wordt alleen het datumgedeelte gebruikt. De tijden die u hieronder invoert, bepalen wanneer de taak elke dag beschikbaar is.",
+        "data": {
+          "daily_multi_times": "Daily Times"
+        },
+        "data_description": {
+          "daily_multi_times": "Voer 2 tot 6 tijden in in 24-uursformaat, gescheiden door een | (pipe). Voorbeeld: 08:00|17:00 voor ochtend en avond."
+        }
+      },
+      "edit_chore_per_kid_details": {
+        "title": "Schema per kind: {chore_name}",
+        "description": "Configureer individuele schema-instellingen voor elk kind dat aan deze taak is toegewezen. De hoofdvelden fungeren als **sjablonen** – gebruik de selectievakjes om ze op alle kinderen toe te passen, of pas de instellingen voor elk kind afzonderlijk aan.\n\n**Opmerking:** Niet alle onderstaande velden zijn van toepassing op elke taak. Het formulier toont dynamisch relevante opties op basis van de voltooiingsmodus, frequentie en of er vervaldatums zijn ingesteld.\n\n**Dagelijkse (meerdere) tijden:** Voer, indien weergegeven, 2-6 tijden in in 24-uursformaat, gescheiden door | (pipe). Voorbeeld: 08:00|17:00\n\nKinderen: {kid_names}{template_info}",
+        "data": {
+          "apply_days_to_all": "Pas de sjabloondagen toe op alle kinderen.",
+          "apply_times_to_all": "Pas de sjabloontijden toe op alle kinderen.",
+          "apply_template_to_all": "Pas de sjabloondatum toe op alle kinderen."
+        },
+        "data_description": {
+          "apply_days_to_all": "Vink aan welke dagen van toepassing zijn op het hoofdformulier voor alle toegewezen kinderen.",
+          "apply_times_to_all": "Vink aan dat de dagelijkse tijden uit het hoofdformulier voor alle toegewezen kinderen moeten worden gebruikt.",
+          "apply_template_to_all": "Vink aan of de datum die op het hoofdtakenformulier staat vermeld, van toepassing is op alle toegewezen kinderen."
         }
       },
       "edit_badge_cumulative": {
@@ -1283,7 +1359,17 @@
       "corrupt_file": "Het geselecteerde bestand bevat ongeldige JSON en kan niet worden gelezen.",
       "invalid_structure": "Het geselecteerde bestand mist de vereiste gegevensstructuur.",
       "file_not_found": "Het geselecteerde bestand kon niet worden gevonden.",
-      "invalid_selection": "Selecteer een geldige optie."
+      "invalid_selection": "Selecteer een geldige optie.",
+      "error_daily_multi_requires_compatible_reset": "De frequentie 'Meerdere keren per dag' is niet compatibel met resettypen die om middernacht worden gereset, omdat deze goedkeuringen slechts één keer om middernacht resetten.",
+      "error_daily_multi_independent_multi_kids": "Bij een frequentie van 'Meerdere keren per dag' met onafhankelijke voltooiing is precies één kind vereist, tenzij er per kind verschillende tijden zijn ingesteld. Stel in de instellingen per kind verschillende tijden in voor elk kind.",
+      "error_daily_multi_times_required": "Een lijst met tijden is vereist voor de frequentie 'Meerdere keren per dag'.",
+      "error_daily_multi_times_invalid_format": "Ongeldige tijdnotatie. Gebruik de 24-uursnotatie (HH:MM) gescheiden door | (bijv. 08:00|17:00).",
+      "error_daily_multi_times_too_few": "Voor een frequentie van 'Meerdere keren per dag' zijn minimaal 2 keer vereist. Voor een eenmalige frequentie gebruikt u de normale frequentie 'Dagelijks'.",
+      "error_daily_multi_times_too_many": "Maximaal 6 keer per dag toegestaan voor de frequentie 'Meerdere keren per dag'.",
+      "error_daily_multi_due_date_required": "De frequentie 'Meerdere keren per dag' vereist dat er een einddatum wordt ingesteld. De datum bepaalt wanneer de planning begint en de tijden bepalen de beschikbaarheidsvensters per dag.",
+      "error_at_due_date_reset_requires_due_date": "Voor goedkeuringsresettypen 'Op vervaldatum' (eenmalig of meervoudig) moet een vervaldatum worden ingesteld. Zonder vervaldatum wordt de goedkeuring nooit gereset en blijft de taak voor onbepaalde tijd goedgekeurd.",
+      "error_per_kid_applicable_days_invalid": "Ongeldig formaat voor de toepasselijke dagen voor een of meer kinderen. Dagen moeten gehele getallen van 0-6 zijn (maandag-zondag) zonder duplicaten.",
+      "error_per_kid_daily_multi_times_invalid": "Ongeldig dagformaat voor één of meer kinderen. Gebruik het 24-uursformaat, gescheiden door | (bijv. 08:00|17:00)."
     },
     "abort": {
       "invalid_action": "Ongeldige actie",
@@ -1410,32 +1496,33 @@
     },
     "completion_criteria": {
       "options": {
-        "shared_all": "Gezamenlijk met iedereen (Alle kinderen moeten dit samen invullen)",
+        "shared_all": "Gezamenlijk (Alle kinderen moeten dit samen doen)",
         "independent": "Zelfstandig (Elk kind maakt deze opdracht zelfstandig af)",
-        "shared_first": "Gedeeld met First (Eerste voltooiing telt mee)"
+        "shared_first": "Gedeelde eerste plaats (Eerste voltooiing telt)"
       }
     },
     "approval_reset_type": {
       "options": {
-        "at_midnight_once": "Sta 1 voltooiing toe - wordt om middernacht gereset",
-        "at_midnight_multi": "Meerdere voltooiingen toegestaan - wordt om middernacht gereset",
-        "at_due_date_once": "Sta 1 voltooiing toe - wordt gereset op de vervaldatum.",
-        "at_due_date_multi": "Meerdere inlevermomenten toegestaan - wordt gereset op de vervaldatum.",
-        "upon_completion": "Onbeperkt aantal voltooiingen toegestaan - wordt gereset na voltooiing"
+        "at_midnight_once": "Eenmaal per dag - Wordt om middernacht gereset",
+        "at_midnight_multi": "Meerdere keren per dag - Wordt om middernacht gereset",
+        "at_due_date_once": "Eenmaal per periode - Wordt gereset op de vervaldatum",
+        "at_due_date_multi": "Meerdere keren per periode - Wordt gereset op de vervaldatum",
+        "upon_completion": "Onbeperkt aantal voltooiingen - Wordt gereset na voltooiing"
       }
     },
     "overdue_handling_type": {
       "options": {
-        "at_due_date": "Toon achterstallige opdrachten na de uiterste inleverdatum (totdat ze zijn voltooid)",
-        "never_overdue": "Nooit als te laat geregistreerd verschijnen",
-        "at_due_date_then_reset": "Toon achterstallige betalingen na de vervaldatum (totdat de goedkeuring opnieuw is ingesteld)"
+        "at_due_date": "Te laat tot voltooiing",
+        "never_overdue": "Nooit te laat",
+        "at_due_date_clear_at_approval_reset": "Te laat tot goedkeuring opnieuw ingesteld",
+        "at_due_date_clear_immediate_on_late": "Te laat tot voltooiing (Verwerk te late goedkeuringen onmiddellijk)"
       }
     },
     "approval_reset_pending_claim_action": {
       "options": {
-        "hold_pending": "Behoud de aanvraagstatus (wachtend op goedkeuring/afwijzing).",
-        "clear_pending": "Alle openstaande vorderingen wissen",
-        "auto_approve_pending": "Alle lopende claims automatisch goedkeuren"
+        "hold_pending": "Status van de claim in behandeling (Wachten op goedkeuring/afwijzing)",
+        "clear_pending": "Openstaande vorderingen wissen",
+        "auto_approve_pending": "Lopende claims automatisch goedkeuren"
       }
     },
     "chore_notifications": {
@@ -1449,12 +1536,14 @@
       "options": {
         "none": "Geen",
         "daily": "Dagelijks",
+        "daily_multi": "Dagelijks (meerdere keren per dag)",
         "weekly": "Wekelijks",
         "biweekly": "Tweewekelijks",
         "monthly": "Maandelijks",
         "quarterly": "Driemaandelijks",
         "yearly": "Jaarlijks",
         "custom": "Aangepast",
+        "custom_from_complete": "Aangepast (Verplaatsen van de voltooiingsdatum)",
         "custom_1_week": "Op maat gemaakt: 1 week",
         "custom_1_month": "Op maat gemaakt: 1 maand",
         "custom_1_quarter": "Aangepast: 1 kwart",
@@ -1470,6 +1559,7 @@
     },
     "custom_interval_unit": {
       "options": {
+        "hours": "Uren",
         "days": "Dagen",
         "weeks": "Weken",
         "months": "Maanden"
@@ -1508,6 +1598,20 @@
     }
   },
   "services": {
+    "manage_shadow_link": {
+      "name": "Beheer de Shadow Kid-link van een ouder",
+      "description": "Koppel of ontkoppel een bestaand kinderprofiel aan/van een ouder. Hiervoor moeten het kind en de ouder dezelfde naam hebben. Bij het ontkoppelen blijven alle gegevens behouden en wordt de naam van het kind gewijzigd met het achtervoegsel '_unlinked'.",
+      "fields": {
+        "name": {
+          "name": "Naam",
+          "description": "Een naam die zowel voor de ouder als voor het kind geldt (hoofdlettergevoeligheid speelt geen rol)."
+        },
+        "action": {
+          "name": "Actie",
+          "description": "Link verbindt kind met ouder als schaduw. Unlink verbreekt de verbinding en geeft kind een andere naam."
+        }
+      }
+    },
     "claim_chore": {
       "name": "Claim taak",
       "description": "Een kind neemt een klusje op zich en markeert dit als 'opgenomen' zodat de ouders het kunnen goedkeuren.",
@@ -1869,17 +1973,17 @@
             "name": "Voltooiingscriteria",
             "state": {
               "independent": "Onafhankelijk",
-              "shared_first_only": "Gedeeld (alleen eerste keus)",
-              "shared_all_required": "Gedeeld (alles verplicht)"
+              "shared_first_only": "Gedeeld (eerste)",
+              "shared_all_required": "Gedeeld (alles)"
             }
           },
           "approval_reset_type": {
             "name": "Goedkeuringsresettype",
             "state": {
-              "at_midnight_once": "Eenmaal per dag",
-              "at_midnight_multi": "Meerdere keren per dag",
-              "at_due_date_once": "Eenmaal per vervaldatum",
-              "at_due_date_multi": "Meerdere per vervaldatum",
+              "at_midnight_once": "Om middernacht (eenmaal)",
+              "at_midnight_multi": "Om middernacht (Multi)",
+              "at_due_date_once": "Op de vervaldatum (eenmalig)",
+              "at_due_date_multi": "Op de vervaldatum (meerdere)",
               "upon_completion": "Na voltooiing"
             }
           },
@@ -1888,10 +1992,18 @@
             "state": {
               "none": "Geen",
               "daily": "Dagelijks",
+              "daily_multi": "Dagelijks (meerdere keren per dag)",
               "weekly": "Wekelijks",
               "biweekly": "Tweewekelijks",
               "monthly": "Maandelijks",
-              "custom": "Aangepast"
+              "quarterly": "Driemaandelijks",
+              "yearly": "Jaarlijks",
+              "custom": "Aangepast",
+              "custom_from_complete": "Aangepast (Verplaatsen van de voltooiingsdatum)",
+              "custom_1_week": "Op maat gemaakt: 1 week",
+              "custom_1_month": "Op maat gemaakt: 1 maand",
+              "custom_1_quarter": "Aangepast: 1 kwart",
+              "custom_1_year": "Aangepast: 1 jaar"
             }
           },
           "applicable_days": {
@@ -2529,10 +2641,10 @@
           "approval_reset_type": {
             "name": "Goedkeuringsresettype",
             "state": {
-              "at_midnight_once": "Eenmaal per dag",
-              "at_midnight_multi": "Meerdere keren per dag",
-              "at_due_date_once": "Eenmaal per vervaldatum",
-              "at_due_date_multi": "Meerdere per vervaldatum",
+              "at_midnight_once": "Om middernacht (eenmaal)",
+              "at_midnight_multi": "Om middernacht (Multi)",
+              "at_due_date_once": "Op de vervaldatum (eenmalig)",
+              "at_due_date_multi": "Op de vervaldatum (meerdere)",
               "upon_completion": "Na voltooiing"
             }
           },
@@ -2618,23 +2730,98 @@
           "cost": {
             "name": "Kosten"
           },
-          "reward_claims_count": {
-            "name": "Totale claims"
+          "pending_claims": {
+            "name": "Lopende vorderingen"
           },
-          "reward_approvals_count": {
-            "name": "Totaal aantal goedkeuringen"
+          "last_claimed": {
+            "name": "Laatst opgeëist"
+          },
+          "last_approved": {
+            "name": "Laatst goedgekeurd"
+          },
+          "last_disapproved": {
+            "name": "Laatst afgekeurd"
+          },
+          "claimed_today": {
+            "name": "Claims vandaag"
+          },
+          "claimed_week": {
+            "name": "Claims deze week"
+          },
+          "claimed_month": {
+            "name": "Claims deze maand"
+          },
+          "claimed_year": {
+            "name": "Claims dit jaar"
+          },
+          "claimed_all_time": {
+            "name": "Claims aller tijden"
+          },
+          "approved_today": {
+            "name": "Vandaag goedgekeurd"
+          },
+          "approved_week": {
+            "name": "Goedgekeurd deze week"
+          },
+          "approved_month": {
+            "name": "Goedgekeurd deze maand"
+          },
+          "approved_year": {
+            "name": "Goedgekeurd dit jaar"
+          },
+          "approved_all_time": {
+            "name": "Altijd goedgekeurd"
+          },
+          "disapproved_today": {
+            "name": "Vandaag afgekeurd"
+          },
+          "disapproved_week": {
+            "name": "Deze week afgekeurd"
+          },
+          "disapproved_month": {
+            "name": "Deze maand afgekeurd"
+          },
+          "disapproved_year": {
+            "name": "Afgekeurd dit jaar"
+          },
+          "disapproved_all_time": {
+            "name": "Altijd afgekeurd"
+          },
+          "points_spent_today": {
+            "name": "Vandaag bestede punten"
+          },
+          "points_spent_week": {
+            "name": "Deze week bestede punten"
+          },
+          "points_spent_month": {
+            "name": "Deze maand bestede punten"
+          },
+          "points_spent_year": {
+            "name": "Dit jaar bestede punten"
+          },
+          "points_spent_all_time": {
+            "name": "Bestede punten in totaal"
+          },
+          "approval_rate": {
+            "name": "Goedkeuringspercentage (%)"
+          },
+          "claim_rate_week": {
+            "name": "Gemiddeld aantal claims per dag (week)"
+          },
+          "claim_rate_month": {
+            "name": "Gemiddeld aantal claims per dag (maand)"
+          },
+          "claim_button_eid": {
+            "name": "Claim Button Entity ID"
+          },
+          "approve_button_eid": {
+            "name": "Entiteits-ID van de knop 'Goedkeuren'"
+          },
+          "disapprove_button_eid": {
+            "name": "Knop 'Afkeuren' Entiteits-ID"
           },
           "labels": {
             "name": "Labels"
-          },
-          "reward_claim_button_eid": {
-            "name": "Claim Button Entity ID"
-          },
-          "reward_approve_button_eid": {
-            "name": "Entiteits-ID van de knop 'Goedkeuren'"
-          },
-          "reward_disapprove_button_eid": {
-            "name": "Knop 'Afkeuren' Entiteits-ID"
           }
         }
       },
@@ -2909,6 +3096,23 @@
           }
         }
       },
+      "system_dashboard_translation_sensor": {
+        "name": "Dashboardvertalingen ({language})",
+        "state_attributes": {
+          "purpose": {
+            "name": "Doel",
+            "state": {
+              "purpose_dashboard_translation": "Biedt gelokaliseerde UI-vertalingen voor de weergave van het dashboard."
+            }
+          },
+          "ui_translations": {
+            "name": "UI-vertalingen"
+          },
+          "language": {
+            "name": "Taal"
+          }
+        }
+      },
       "kid_dashboard_helper_sensor": {
         "name": "UI Dashboard Helper",
         "state_attributes": {
@@ -2962,6 +3166,9 @@
           },
           "language": {
             "name": "Taal"
+          },
+          "translation_sensor": {
+            "name": "Vertalingssensor"
           }
         }
       }
@@ -3207,6 +3414,21 @@
     }
   },
   "exceptions": {
+    "kid_not_found_by_name": {
+      "message": "Geen kind gevonden met de naam '{name}'"
+    },
+    "parent_not_found_by_name": {
+      "message": "Geen ouder gevonden met de naam '{name}'"
+    },
+    "kid_already_shadow": {
+      "message": "Kind '{name}' is al gekoppeld aan een ouder"
+    },
+    "kid_not_shadow": {
+      "message": "Kind '{name}' is niet gekoppeld aan een ouder"
+    },
+    "parent_has_different_shadow": {
+      "message": "Ouder '{name}' is al gekoppeld aan een ander kind"
+    },
     "error_msg_no_entry_found": {
       "message": "Geen overeenkomende vermelding gevonden in de configuratie."
     },

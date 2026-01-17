@@ -1,0 +1,110 @@
+{
+  "chore_assigned": {
+    "title": "Otroška opravila: Novo opravilo",
+    "message": "Dodeljena vam je bila nova naloga {chore_name} ! Rok: {due_date}"
+  },
+  "chore_claimed": {
+    "title": "Otroška opravila: Zahtevana opravila",
+    "message": "{kid_name} prevzeta opravilna naloga {chore_name}"
+  },
+  "chore_approved": {
+    "title": "Otroška opravila: Odobreno opravilo",
+    "message": "Naloga {chore_name} odobrena! +{points} točk"
+  },
+  "chore_disapproved": {
+    "title": "Otroška opravila: Opravilo zavrnjeno",
+    "message": "Naloga {chore_name} ni bila odobrena"
+  },
+  "chore_overdue": {
+    "title": "Otroška opravila: Hišna opravila so zamujena",
+    "message": "Naloga {chore_name} je zapadla! Datum zapadlosti je bil {due_date}"
+  },
+  "chore_due_soon": {
+    "title": "⏰ Kmalu za oddajo!",
+    "message": "{chore_name} je predviden čez {minutes} minut (+{points}točk)"
+  },
+  "chore_reminder": {
+    "title": "Otroška opravila: Opomnik za čakajoča opravila",
+    "message": "Opomnik: Naloga {chore_name} , ki jo je zahteval uporabnik {kid_name} , čaka na odobritev"
+  },
+  "reward_claimed_kid": {
+    "title": "Otroška opravila: Zahtevana nagrada",
+    "message": "Prevzel/a si nagrado {reward_name} za {points} točk!"
+  },
+  "reward_claimed_parent": {
+    "title": "Otroška opravila: Zahtevana nagrada",
+    "message": "{kid_name} prevzel nagrado {reward_name} za {points} točk"
+  },
+  "reward_approved": {
+    "title": "Otroška opravila: Nagrada odobrena",
+    "message": "Nagrada {reward_name} odobrena!"
+  },
+  "reward_disapproved": {
+    "title": "Otroška opravila: Nagrada zavrnjena",
+    "message": "Nagrada {reward_name} ni bila odobrena"
+  },
+  "reward_reminder": {
+    "title": "Otroška opravila: Opomnik za čakajočo nagrado",
+    "message": "Opomnik: Nagrada {reward_name} , ki jo je zahteval uporabnik {kid_name} , čaka na odobritev"
+  },
+  "badge_earned_kid": {
+    "title": "Otroška opravila: Značka prislužena",
+    "message": "Prislužili ste si značko {badge_name} !"
+  },
+  "badge_earned_parent": {
+    "title": "Otroška opravila: Značka prislužena",
+    "message": "{kid_name} si je prislužil/a značko {badge_name} !"
+  },
+  "achievement_earned_kid": {
+    "title": "Otroška opravila: Dosežen dosežek",
+    "message": "Prislužili ste si dosežek {achievement_name}!"
+  },
+  "achievement_earned_parent": {
+    "title": "Otroška opravila: Dosežen dosežek",
+    "message": "{kid_name} dosežen dosežek {achievement_name}!"
+  },
+  "challenge_completed_kid": {
+    "title": "Otroška opravila: Izziv zaključen",
+    "message": "Končal/a si izziv {challenge_name}!"
+  },
+  "challenge_completed_parent": {
+    "title": "Otroška opravila: Izziv zaključen",
+    "message": "{kid_name} izziv zaključen {challenge_name}!"
+  },
+  "penalty_applied": {
+    "title": "Otroška opravila: Uporabljena kazen",
+    "message": "Kazen {penalty_name} uporabljena: -{points} točk"
+  },
+  "bonus_applied": {
+    "title": "Otroška opravila: Bonus je bil uporabljen",
+    "message": "Bonus {bonus_name} uporabljen: +{points} točk"
+  },
+  "pending_chores": {
+    "title": "Otroška opravila: {kid_name}",
+    "message": "{count} čakajočih opravil (zadnja: {latest_chore} +{points}točk)"
+  },
+  "status_update": {
+    "title": "✅ Otroška opravila",
+    "message": "Stanje posodobljeno"
+  },
+  "chore_approved_status": {
+    "title": "✅ Otroška opravila",
+    "message": "{chore_name} odobril/a {parent_name}"
+  },
+  "chore_disapproved_status": {
+    "title": "❌ Otroška opravila",
+    "message": "{chore_name} zavrnjeno s strani {parent_name}"
+  },
+  "reward_approved_status": {
+    "title": "✅ Otroška opravila",
+    "message": "{reward_name} nagrada odobrena"
+  },
+  "actions": {
+    "approve": "Odobritev",
+    "disapprove": "Ne odobri",
+    "remind_30": "Opomni čez 30 minut",
+    "approve_latest": "✅ Odobri najnovejše",
+    "review_all": "👀 Preglej vse",
+    "claim": "✋ Zahtevajte zdaj"
+  }
+}
