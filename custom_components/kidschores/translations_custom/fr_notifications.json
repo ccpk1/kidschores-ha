@@ -19,6 +19,10 @@
     "title": "KidsChores : Tâches ménagères en retard",
     "message": "La tâche {chore_name} est en retard ! La date limite était le {due_date}"
   },
+  "chore_due_soon": {
+    "title": "⏰ Tâches à rendre bientôt !",
+    "message": "{chore_name} est dû dans {minutes} minutes (+{points}pts)"
+  },
   "chore_reminder": {
     "title": "KidsChores : Rappel pour les tâches ménagères en attente",
     "message": "Rappel : La tâche {chore_name} demandée par {kid_name} est en attente d’approbation"
@@ -75,9 +79,32 @@
     "title": "KidsChores : Bonus appliqué",
     "message": "Bonus {bonus_name} appliqué : +{points} points"
   },
+  "pending_chores": {
+    "title": "Tâches des enfants : {kid_name}",
+    "message": "{count} tâches en attente (dernières : {latest_chore} +{points}pts)"
+  },
+  "status_update": {
+    "title": "✅ Les tâches des enfants",
+    "message": "Statut mis à jour"
+  },
+  "chore_approved_status": {
+    "title": "✅ Les tâches des enfants",
+    "message": "{chore_name} approuvé par {parent_name}"
+  },
+  "chore_disapproved_status": {
+    "title": "❌ Tâches ménagères des enfants",
+    "message": "{chore_name} désapprouvé par {parent_name}"
+  },
+  "reward_approved_status": {
+    "title": "✅ Les tâches des enfants",
+    "message": "{reward_name} Récompense approuvée"
+  },
   "actions": {
     "approve": "Approuver",
     "disapprove": "Désapprouver",
-    "remind_30": "Rappel dans 30 min"
+    "remind_30": "Rappel dans 30 min",
+    "approve_latest": "✅ Approuver les dernières modifications",
+    "review_all": "👀 Tout examiner",
+    "claim": "✋ Réclamez maintenant"
   }
 }

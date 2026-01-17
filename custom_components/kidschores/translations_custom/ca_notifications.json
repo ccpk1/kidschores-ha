@@ -19,6 +19,10 @@
     "title": "Tasques infantils: Tasca pendent",
     "message": "La tasca {chore_name} està endarrerida! La data de venciment era {due_date}"
   },
+  "chore_due_soon": {
+    "title": "⏰ Tasques pendents aviat!",
+    "message": "{chore_name} s'ha d'entregar en {minutes} minuts (+{points}pts)"
+  },
   "chore_reminder": {
     "title": "KidsChores: Recordatori per a tasques pendents",
     "message": "Recordatori: La tasca {chore_name} reclamada per {kid_name} està pendent d'aprovació."
@@ -75,9 +79,32 @@
     "title": "Tasques infantils: Bonificació aplicada",
     "message": "Bonus {bonus_name} aplicat: +{points} punts"
   },
+  "pending_chores": {
+    "title": "Tasques infantils: {kid_name}",
+    "message": "{count} tasques pendents (últimes: {latest_chore} +{points}pts)"
+  },
+  "status_update": {
+    "title": "✅ Tasques infantils",
+    "message": "Estat actualitzat"
+  },
+  "chore_approved_status": {
+    "title": "✅ Tasques infantils",
+    "message": "{chore_name} aprovat per {parent_name}"
+  },
+  "chore_disapproved_status": {
+    "title": "❌ Tasques domèstiques infantils",
+    "message": "{chore_name} rebutjat per {parent_name}"
+  },
+  "reward_approved_status": {
+    "title": "✅ Tasques infantils",
+    "message": "{reward_name} recompensa aprovada"
+  },
   "actions": {
     "approve": "Aprova",
     "disapprove": "Rebutjar",
-    "remind_30": "Recorda en 30 minuts"
+    "remind_30": "Recorda en 30 minuts",
+    "approve_latest": "✅ Aprova l'última versió",
+    "review_all": "👀 Revisa-ho tot",
+    "claim": "✋ Reclama ara"
   }
 }

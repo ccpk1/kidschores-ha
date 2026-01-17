@@ -41,11 +41,13 @@
         "description": "Indtast navnet på hvert barn.",
         "data": {
           "kid_name": "Barnets navn",
-          "internal_id": "Internt ID",
           "ha_user": "Hjemmeassistent-bruger",
-          "enable_mobile_notifications": "Aktivér mobilnotifikationer",
-          "mobile_notify_service": "Underret tjenesten",
-          "enable_persistent_notifications": "Aktivér vedvarende notifikationer"
+          "mobile_notify_service": "Notifikationer",
+          "dashboard_language": "Sprog"
+        },
+        "data_description": {
+          "mobile_notify_service": "Vælg en notifikationstjeneste for at aktivere notifikationer for dette barn, eller lad feltet stå tomt for at deaktivere.",
+          "dashboard_language": "Sprog, der bruges til dit jobdashboard og dine notifikationer."
         }
       },
       "parent_count": {
@@ -62,10 +64,12 @@
           "parent_name": "Forældernavn",
           "ha_user_id": "Hjemmeassistent-bruger",
           "associated_kids": "Tilknyttede børn",
-          "enable_mobile_notifications": "Aktivér mobilnotifikationer",
-          "mobile_notify_service": "Underret tjenesten",
-          "enable_persistent_notifications": "Aktivér vedvarende notifikationer",
-          "internal_id": "Internt ID"
+          "mobile_notify_service": "Notifikationer",
+          "dashboard_language": "Sprog"
+        },
+        "data_description": {
+          "mobile_notify_service": "Vælg en notifikationstjeneste for at aktivere notifikationer for denne forælder, eller lad feltet stå tomt for at deaktivere.",
+          "dashboard_language": "Sprog, der bruges til dit jobdashboard og dine notifikationer."
         }
       },
       "chore_count": {
@@ -85,10 +89,10 @@
           "chore_labels": "📋 Etiketter (valgfrit)",
           "default_points": "💰 Tildelte point",
           "assigned_kids": "👥 Tildelte børn",
-          "completion_criteria": "👥 Fuldførelsestype",
-          "approval_reset_type": "➡️ Tilladte fuldførelser og nulstilling af timing",
-          "approval_reset_pending_claim_action": "➡️ Afventende krav ved nulstilling",
-          "overdue_handling_type": "⏰ Forfalden: Håndteringstype",
+          "completion_criteria": "👥 Færdiggørelseskriterier",
+          "approval_reset_type": "➡️ Tilladte færdiggørelser og nulstilling af godkendelsestidspunkt",
+          "approval_reset_pending_claim_action": "➡️ Afventende behandling af krav ved godkendelse Nulstil",
+          "overdue_handling_type": "⏰ Forsinket: Håndtering",
           "auto_approve": "✅ Automatisk godkendelse af krav?",
           "recurring_frequency": "🔄 Tidsplan: Hyppighed",
           "custom_interval": "🔄 Tidsplan: Brugerdefineret interval (for brugerdefineret frekvens)",
@@ -105,15 +109,15 @@
           "chore_labels": "Tags til at organisere pligter (f.eks. 'køkken', 'udendørs'). Lad være med at skrive et tomt felt, hvis det ikke er nødvendigt.",
           "default_points": "Point optjent når det er gennemført.",
           "assigned_kids": "Børn der kan se og gøre krav på denne opgave.",
-          "completion_criteria": "Sådan fungerer delte pligter: Uafhængig (hvert barn udfører opgaven separat), Delt med alle (alle skal godkende) eller Delt først (første godkendelse fuldfører opgaven).",
+          "completion_criteria": "Uafhængig (hvert barn gennemfører opgaven separat), Delt alle (alle skal gennemføre opgaven) eller Delt først (først til at gøre krav på blokke for andre).",
           "approval_reset_type": "Styrer, hvornår denne opgave nulstilles, og hvor mange fuldførelser der er tilladt i den periode.",
-          "approval_reset_pending_claim_action": "Når denne opgave nulstilles (baseret på tidspunktet for nulstilling af færdiggørelse ovenfor), hvad sker der så med krav, der stadig venter på godkendelse?",
+          "approval_reset_pending_claim_action": "Dette er, hvad der sker med krav, der stadig venter på godkendelse, når godkendelsen nulstilles.",
           "overdue_handling_type": "Handling efter forfaldsdato: Skjul status for forfalden, forbliv forfalden indtil den er gjort krav på, eller nulstil til afventer ved næste godkendelsescyklus.",
           "auto_approve": "Når det er aktiveret, godkendes krav øjeblikkeligt uden gennemgang fra forældre.",
           "recurring_frequency": "Hvor ofte opgaven gentages: Dagligt, Ugentligt, Månedligt, Årligt, Brugerdefineret eller Ingen.",
           "custom_interval": "Antal tidsenheder mellem gentagelser (f.eks. 3 for 'hver 3. uge'). Bruges kun med brugerdefineret frekvens.",
           "custom_interval_unit": "Tidsenhed for brugerdefineret interval (dage, uger, måneder). Bruges kun med brugerdefineret frekvens.",
-          "applicable_days": "Begræns opgaven til bestemte ugedage. Lad feltet stå tomt for alle dage.",
+          "applicable_days": "Lad feltet stå tomt for alle dage. Vælg KUN specifikke dage, der skal begrænses.",
           "due_date": "Valgfri deadline. Kan kombineres med tilbagevendende tidsplaner.",
           "show_on_calendar": "Vis denne opgave i kalendervisningen.",
           "chore_notifications": "Hvornår skal notifikationer sendes: Ved krav, ved godkendelse, ved afvisning eller enhver kombination."
@@ -300,6 +304,7 @@
       "duplicate_penalty": "Der findes allerede en straf med dette navn",
       "duplicate_reward": "Der findes allerede en belønning med dette navn",
       "duplicate_bonus": "Der findes allerede en bonus med dette navn",
+      "shadow_kid_name_conflict": "Kan ikke aktivere opgavetildeling: et barn med dit navn findes allerede. Omdøb venligst det eksisterende barn først.",
       "due_date_in_past": "Forfaldsdatoen skal være i fremtiden.",
       "end_date_in_past": "Slutdatoen skal være i fremtiden.",
       "end_date_not_after_start_date": "Slutdatoen skal være senere end startdatoen",
@@ -343,6 +348,7 @@
       "invalid_date_range": "Datointervallet er ugyldigt. Slutdatoen skal være efter startdatoen.",
       "missing_required": "Obligatorisk felt mangler. Angiv venligst alle nødvendige oplysninger.",
       "invalid_format": "Formatet er ugyldigt. Kontroller venligst din indtastning, og prøv igen.",
+      "chore_options_require_assignment": "Indstillinger for opgaver og gamification kræver, at \"Tillad, at opgaver tildeles mig\" først er aktiveret.",
       "invalid_update_interval": "Ugyldigt opdateringsinterval. Skal være et positivt heltal.",
       "invalid_calendar_show_period": "Ugyldig kalendervisningsperiode. Skal være et positivt heltal.",
       "invalid_retention_period": "Ugyldig opbevaringsperiode. Skal være et positivt heltal.",
@@ -395,10 +401,15 @@
         "data": {
           "kid_name": "Barnets navn",
           "ha_user": "Hjemmeassistent-bruger",
-          "enable_mobile_notifications": "Aktivér mobilnotifikationer",
-          "mobile_notify_service": "Underret tjenesten",
-          "enable_persistent_notifications": "Aktivér vedvarende notifikationer",
+          "mobile_notify_service": "Notifikationer",
+          "enable_due_date_reminders": "Påmindelser om forfaldsdatoer",
+          "dashboard_language": "Sprog",
           "internal_id": "Internt ID"
+        },
+        "data_description": {
+          "mobile_notify_service": "Vælg en notifikationstjeneste for at aktivere notifikationer for dette barn, eller lad feltet stå tomt for at deaktivere.",
+          "enable_due_date_reminders": "Send påmindelser, når pligter skal udføres inden for 30 minutter.",
+          "dashboard_language": "Sprog, der bruges til dit jobdashboard og dine notifikationer."
         }
       },
       "add_parent": {
@@ -408,10 +419,19 @@
           "parent_name": "Forældernavn",
           "ha_user_id": "Hjemmeassistent-bruger",
           "associated_kids": "Tilknyttede børn",
-          "enable_mobile_notifications": "Aktivér mobilnotifikationer",
-          "mobile_notify_service": "Underret tjenesten",
-          "enable_persistent_notifications": "Aktivér vedvarende notifikationer",
+          "mobile_notify_service": "Notifikationer",
+          "dashboard_language": "Sprog",
+          "allow_chore_assignment": "Tillad at pligter tildeles mig",
+          "enable_chore_workflow": "Aktivér arbejdsgang for pligter",
+          "enable_gamification": "Aktivér gamification",
           "internal_id": "Internt ID"
+        },
+        "data_description": {
+          "mobile_notify_service": "Vælg en notifikationstjeneste for at aktivere notifikationer for denne forælder, eller lad feltet stå tomt for at deaktivere.",
+          "allow_chore_assignment": "Opretter en profil, så du kan få tildelt opgaver. Som standard vises kun en Godkend-knap, der kan fuldføres med et enkelt klik. Bemærk: Hvis du fjerner markeringen, bevares børneprofilen med suffikset '_unlinked' til manuel oprydning.",
+          "enable_chore_workflow": "Tilføjer knapperne Gør krav og Afvis til den fulde arbejdsgang (gør krav → godkend/afvis).",
+          "enable_gamification": "Spor point, badges og belønninger for dine udførte pligter.",
+          "dashboard_language": "Sprog, der bruges til dit jobdashboard og dine notifikationer."
         }
       },
       "add_chore": {
@@ -424,10 +444,10 @@
           "chore_labels": "📋 Etiketter (valgfrit)",
           "default_points": "💰 Tildelte point",
           "assigned_kids": "👥 Tildelte børn",
-          "completion_criteria": "👥 Fuldførelsestype",
-          "approval_reset_type": "➡️ Tilladte fuldførelser og nulstilling af timing",
-          "approval_reset_pending_claim_action": "➡️ Afventende krav ved nulstilling",
-          "overdue_handling_type": "⏰ Forfalden: Håndteringstype",
+          "completion_criteria": "👥 Færdiggørelseskriterier",
+          "approval_reset_type": "➡️ Tilladte færdiggørelser og nulstilling af godkendelsestidspunkt",
+          "approval_reset_pending_claim_action": "➡️ Afventende behandling af krav ved godkendelse Nulstil",
+          "overdue_handling_type": "⏰ Forsinket: Håndtering",
           "auto_approve": "✅ Automatisk godkendelse af krav?",
           "recurring_frequency": "🔄 Tidsplan: Hyppighed",
           "custom_interval": "🔄 Tidsplan: Brugerdefineret interval (for brugerdefineret frekvens)",
@@ -444,16 +464,16 @@
           "chore_labels": "Tags til at organisere pligter (f.eks. 'køkken', 'udendørs'). Lad være med at skrive et tomt felt, hvis det ikke er nødvendigt.",
           "default_points": "Point optjent når det er gennemført.",
           "assigned_kids": "Børn der kan se og gøre krav på denne opgave.",
-          "completion_criteria": "Sådan fungerer delte pligter: Uafhængig (hvert barn udfører opgaven separat), Delt med alle (alle skal godkende) eller Delt først (første godkendelse fuldfører opgaven).",
-          "approval_reset_type": "Styrer, hvornår denne opgave nulstilles, og hvor mange fuldførelser der er tilladt i den periode.",
-          "approval_reset_pending_claim_action": "Når denne opgave nulstilles (baseret på tidspunktet for nulstilling af færdiggørelse ovenfor), hvad sker der så med krav, der stadig venter på godkendelse?",
+          "completion_criteria": "Uafhængig (hvert barn gennemfører opgaven separat), Delt alle (alle skal gennemføre opgaven) eller Delt først (først til at gøre krav på blokke for andre).",
+          "approval_reset_type": "Styrer, hvornår denne godkendelse af opgaven nulstilles, og hvor mange fuldførelser der er tilladt i den periode.",
+          "approval_reset_pending_claim_action": "Dette er, hvad der sker med krav, der stadig venter på godkendelse, når godkendelsen nulstilles.",
           "overdue_handling_type": "Handling efter forfaldsdato: Skjul status for forfalden, forbliv forfalden indtil den er gjort krav på, eller nulstil til afventer ved næste godkendelsescyklus.",
           "auto_approve": "Når det er aktiveret, godkendes krav øjeblikkeligt uden gennemgang fra forældre.",
-          "recurring_frequency": "Hvor ofte opgaven gentages: Dagligt, Ugentligt, Månedligt, Årligt, Brugerdefineret eller Ingen.",
+          "recurring_frequency": "Hvor ofte opgaven gentages: Dagligt, Ugentligt, Månedligt, Årligt, Brugerdefineret eller Ingen. Hvis du vælger 'Dagligt - Flere gange om dagen', vises en ekstra skærm til at konfigurere de specifikke tidspunkter.",
           "custom_interval": "Antal tidsenheder mellem gentagelser (f.eks. 3 for 'hver 3. uge'). Bruges kun med brugerdefineret frekvens.",
           "custom_interval_unit": "Tidsenhed for brugerdefineret interval (dage, uger, måneder). Bruges kun med brugerdefineret frekvens.",
-          "applicable_days": "Begræns opgaven til bestemte ugedage. Lad feltet stå tomt for alle dage.",
-          "due_date": "Valgfri deadline. Kan kombineres med tilbagevendende tidsplaner.",
+          "applicable_days": "Lad feltet stå tomt for alle dage. Vælg KUN specifikke dage, der skal begrænses.",
+          "due_date": "Valgfri deadline. Kan kombineres med tilbagevendende skemaer. For SELVSTÆNDIGE pligter fungerer dette som en skabelon - en ekstra skærm vises, der tillader individuelle datoer pr. barn.",
           "show_on_calendar": "Vis denne opgave i kalendervisningen.",
           "chore_notifications": "Hvornår skal notifikationer sendes: Ved krav, ved godkendelse, ved afvisning eller enhver kombination."
         }
@@ -751,10 +771,33 @@
         "data": {
           "kid_name": "Barnets navn",
           "ha_user": "Hjemmeassistent-bruger",
-          "enable_mobile_notifications": "Aktivér mobilnotifikationer",
-          "mobile_notify_service": "Underret tjenesten",
-          "enable_persistent_notifications": "Aktivér vedvarende notifikationer",
+          "mobile_notify_service": "Notifikationer",
+          "dashboard_language": "Sprog",
+          "enable_due_date_reminders": "Påmindelser om forfaldsdatoer",
           "internal_id": "Internt ID"
+        },
+        "data_description": {
+          "mobile_notify_service": "Vælg en notifikationstjeneste for at aktivere notifikationer for dette barn.",
+          "dashboard_language": "Sprog, der bruges til dit jobdashboard og dine notifikationer.",
+          "enable_due_date_reminders": "Send påmindelser, når pligter skal udføres inden for 30 minutter."
+        }
+      },
+      "edit_kid_shadow": {
+        "title": "Rediger skyggebarn",
+        "description": "Rediger oplysningerne for det valgte skyggebarn. ⚠️ Dette barn er knyttet til en forælder. Ændring af navnet vil bryde kravet om navnematchning for at fjerne tilknytningen via tjenesten.",
+        "data": {
+          "kid_name": "Barnets navn",
+          "ha_user": "Hjemmeassistent-bruger",
+          "mobile_notify_service": "Notifikationer",
+          "dashboard_language": "Sprog",
+          "enable_due_date_reminders": "Påmindelser om forfaldsdatoer",
+          "internal_id": "Internt ID"
+        },
+        "data_description": {
+          "kid_name": "⚠️ Dette skyggebarn er knyttet til en forælder. Ændring af dette navn vil afbryde funktionen til at fjerne tilknytning til tjenesten, som kræver matchende navne.",
+          "mobile_notify_service": "⚠️ Skyggenotifikationer for børn: Den tilknyttede forælder modtager allerede notifikationer om overvågede pligter. Aktivering her vil oprette dubletter af notifikationer. Nyttigt til påmindelser om forfaldsdatoer inden for 30 minutter eller hvis du bruger forskellige notifikationstjenester.",
+          "dashboard_language": "Sprog, der bruges til dit jobdashboard og dine notifikationer.",
+          "enable_due_date_reminders": "Send påmindelser, når pligter skal udføres inden for 30 minutter."
         }
       },
       "edit_parent": {
@@ -764,10 +807,19 @@
           "parent_name": "Forældernavn",
           "ha_user_id": "Hjemmeassistent-bruger",
           "associated_kids": "Tilknyttede børn",
-          "enable_mobile_notifications": "Aktivér mobilnotifikationer",
-          "mobile_notify_service": "Underret tjenesten",
-          "enable_persistent_notifications": "Aktivér vedvarende notifikationer",
+          "mobile_notify_service": "Notifikationer",
+          "dashboard_language": "Sprog",
+          "allow_chore_assignment": "Tillad at pligter tildeles mig",
+          "enable_chore_workflow": "Aktivér arbejdsgang for pligter",
+          "enable_gamification": "Aktivér gamification",
           "internal_id": "Internt ID"
+        },
+        "data_description": {
+          "mobile_notify_service": "Vælg en notifikationstjeneste for at aktivere notifikationer for denne forælder, eller lad feltet stå tomt for at deaktivere.",
+          "allow_chore_assignment": "Opretter en profil, så du kan få tildelt opgaver. Som standard vises kun en Godkend-knap, der kan fuldføres med et enkelt klik. Bemærk: Hvis du fjerner markeringen, bevares børneprofilen med suffikset '_unlinked' til manuel oprydning.",
+          "enable_chore_workflow": "Tilføjer knapperne Gør krav og Afvis til den fulde arbejdsgang (gør krav → godkend/afvis).",
+          "enable_gamification": "Spor point, badges og belønninger for dine udførte pligter.",
+          "dashboard_language": "Sprog, der bruges til dit jobdashboard og dine notifikationer."
         }
       },
       "edit_chore": {
@@ -781,10 +833,10 @@
           "internal_id": "Internt ID",
           "default_points": "💰 Tildelte point",
           "assigned_kids": "👥 Tildelte børn",
-          "completion_criteria": "👥 Fuldførelsestype",
-          "approval_reset_type": "➡️ Tilladte fuldførelser og nulstilling af timing",
-          "approval_reset_pending_claim_action": "➡️ Afventende krav ved nulstilling",
-          "overdue_handling_type": "⏰ Forfalden: Håndteringstype",
+          "completion_criteria": "👥 Færdiggørelseskriterier",
+          "approval_reset_type": "➡️ Tilladte færdiggørelser og nulstilling af godkendelsestidspunkt",
+          "approval_reset_pending_claim_action": "➡️ Afventende behandling af krav ved godkendelse Nulstil",
+          "overdue_handling_type": "⏰ Forsinket: Håndtering",
           "auto_approve": "✅ Automatisk godkendelse af krav?",
           "recurring_frequency": "🔄 Tidsplan: Hyppighed",
           "custom_interval": "🔄 Tidsplan: Brugerdefineret interval (for brugerdefineret frekvens)",
@@ -802,15 +854,15 @@
           "chore_labels": "Tags til at organisere pligter (f.eks. 'køkken', 'udendørs'). Lad være med at skrive et tomt felt, hvis det ikke er nødvendigt.",
           "default_points": "Point optjent når det er gennemført.",
           "assigned_kids": "Børn der kan se og gøre krav på denne opgave.",
-          "completion_criteria": "Sådan fungerer delte pligter: Uafhængig (hvert barn udfører opgaven separat), Delt med alle (alle skal godkende) eller Delt først (første godkendelse fuldfører opgaven).",
-          "approval_reset_type": "Styrer, hvornår denne opgave nulstilles, og hvor mange fuldførelser der er tilladt i den periode.",
-          "approval_reset_pending_claim_action": "Når denne opgave nulstilles (baseret på tidspunktet for nulstilling af færdiggørelse ovenfor), hvad sker der så med krav, der stadig venter på godkendelse?",
+          "completion_criteria": "Uafhængig (hvert barn gennemfører opgaven separat), Delt alle (alle skal gennemføre opgaven) eller Delt først (først til at gøre krav på blokke for andre).",
+          "approval_reset_type": "Styrer, hvornår denne godkendelse af opgaven nulstilles, og hvor mange fuldførelser der er tilladt i den periode.",
+          "approval_reset_pending_claim_action": "Når godkendelsen af denne opgave nulstilles (baseret på ovenstående tidspunkt for nulstilling af godkendelse), hvad sker der så med krav, der stadig venter på godkendelse?",
           "overdue_handling_type": "Handling efter forfaldsdato: Skjul status for forfalden, forbliv forfalden indtil den er gjort krav på, eller nulstil til afventer ved næste godkendelsescyklus.",
           "auto_approve": "Når det er aktiveret, godkendes krav øjeblikkeligt uden gennemgang fra forældre.",
-          "recurring_frequency": "Hvor ofte opgaven gentages: Dagligt, Ugentligt, Månedligt, Årligt, Brugerdefineret eller Ingen.",
+          "recurring_frequency": "Hvor ofte opgaven gentages: Dagligt, Ugentligt, Månedligt, Årligt, Brugerdefineret eller Ingen. Hvis du vælger 'Dagligt - Flere gange om dagen', vises en ekstra skærm til at konfigurere de specifikke tidspunkter.",
           "custom_interval": "Antal tidsenheder mellem gentagelser (f.eks. 3 for 'hver 3. uge'). Bruges kun med brugerdefineret frekvens.",
           "custom_interval_unit": "Tidsenhed for brugerdefineret interval (dage, uger, måneder). Bruges kun med brugerdefineret frekvens.",
-          "applicable_days": "Begræns opgaven til bestemte ugedage. Lad feltet stå tomt for alle dage.",
+          "applicable_days": "Lad feltet stå tomt for alle dage. Vælg KUN specifikke dage, der skal begrænses.",
           "due_date": "Valgfri deadline. Kan kombineres med tilbagevendende skemaer. For SELVSTÆNDIGE pligter fungerer dette som en skabelon - en ekstra skærm vises, der tillader individuelle datoer pr. barn.",
           "clear_due_date": "Markér dette felt for at fjerne forfaldsdatoen fra denne opgave.",
           "show_on_calendar": "Vis denne opgave i kalendervisningen.",
@@ -825,6 +877,30 @@
         },
         "data_description": {
           "apply_template_to_all": "Markér dette felt for at anvende den dato, der er angivet på hovedsiden for redigering af opgaver, på alle tildelte børn og overskrive deres individuelle datoer."
+        }
+      },
+      "chores_daily_multi": {
+        "title": "Indstil daglige tidspunkter: {chore_name}",
+        "description": "Indtast de tidspunkter, hvor denne opgave skal være tilgængelig hver dag. Brug 24-timers format (TT:MM) adskilt af | (pipe).\n\n**Eksempel:** 07:00|12:00|18:00 for morgen, middag og aften.\n\n**Krav:**\n- Minimum 2 gange, maksimum 6 gange\n- Tidspunkter skal være i 24-timers format (00:00 til 23:59)\n- Adskil flere gange med | (pipe)\n\n**Bemærk:** Hvis du angiver en forfaldsdato i hovedformularen, bruges kun datodelen. De tidspunkter, du indtaster nedenfor, bestemmer, hvornår opgaven er tilgængelig hver dag.",
+        "data": {
+          "daily_multi_times": "Daglige tider"
+        },
+        "data_description": {
+          "daily_multi_times": "Indtast 2-6 gange i 24-timers format adskilt af | (pipe). Eksempel: 08:00|17:00 for morgen og aften."
+        }
+      },
+      "edit_chore_per_kid_details": {
+        "title": "Tidsplan pr. barn: {chore_name}",
+        "description": "Konfigurer individuelle tidsplanindstillinger for hvert barn, der er tildelt denne opgave. De primære formularværdier fungerer som **skabeloner** – brug afkrydsningsfelterne til at anvende dem på alle børn, eller tilpas hvert barns indstillinger individuelt.\n\n**Bemærk:** Ikke alle felter nedenfor gælder for alle opgaver. Formularen viser dynamisk relevante muligheder baseret på fuldførelsestilstand, hyppighed og om der er angivet forfaldsdatoer.\n\n**Dagligt (flere) tidspunktformat:** Hvis det vises, skal du indtaste 2-6 tidspunkter i 24-timers format adskilt af | (pipe). Eksempel: 08:00|17:00\n\nBørn: {kid_names}{template_info}",
+        "data": {
+          "apply_days_to_all": "Anvend skabelondage på alle børn",
+          "apply_times_to_all": "Anvend skabelontider på alle børn",
+          "apply_template_to_all": "Anvend skabelondato på alle børn"
+        },
+        "data_description": {
+          "apply_days_to_all": "Markér for at bruge de relevante dage fra hovedformularen for alle tildelte børn.",
+          "apply_times_to_all": "Markér for at bruge de daglige tider fra hovedformularen for alle tildelte børn.",
+          "apply_template_to_all": "Markér for at anvende den dato, der er angivet på hovedskemaet for pligter, på alle tildelte børn."
         }
       },
       "edit_badge_cumulative": {
@@ -1283,7 +1359,17 @@
       "corrupt_file": "Den valgte fil indeholder ugyldig JSON og kan ikke læses.",
       "invalid_structure": "Den valgte fil mangler den nødvendige datastruktur.",
       "file_not_found": "Den valgte fil kunne ikke findes.",
-      "invalid_selection": "Vælg venligst en gyldig mulighed."
+      "invalid_selection": "Vælg venligst en gyldig mulighed.",
+      "error_daily_multi_requires_compatible_reset": "Frekvensen 'Flere gange om dagen' er ikke kompatibel med nulstillingstyperne ved midnat, fordi de kun nulstiller godkendelser én gang ved midnat.",
+      "error_daily_multi_independent_multi_kids": "Hyppigheden 'Flere gange om dagen' med UAFHÆNGIG fuldførelse kræver præcis ét barn, medmindre der er konfigureret tidspunkter pr. barn. Konfigurer forskellige tidspunkter for hvert barn i indstillingerne pr. barn.",
+      "error_daily_multi_times_required": "Tidsliste er påkrævet for hyppigheden 'Flere gange om dagen'.",
+      "error_daily_multi_times_invalid_format": "Ugyldigt tidsformat. Brug 24-timers format (TT:MM) adskilt af | (f.eks. 08:00|17:00).",
+      "error_daily_multi_times_too_few": "Mindst 2 gange er påkrævet for frekvensen 'Flere gange om dagen'. For en enkelt gang skal du bruge den normale frekvens 'Daglig'.",
+      "error_daily_multi_times_too_many": "Maksimalt 6 gange tilladt pr. dag for frekvensen 'Flere gange pr. dag'.",
+      "error_daily_multi_due_date_required": "Hyppigheden 'Flere gange om dagen' kræver, at der angives en forfaldsdato. Datoen bestemmer, hvornår planlægningen starter, og tidspunkterne bestemmer tilgængelighedsvinduerne hver dag.",
+      "error_at_due_date_reset_requires_due_date": "Godkendelsesnulstillingstyperne 'Ved forfaldsdato' (Én gang eller Flere gange) kræver, at der angives en forfaldsdato. Uden en forfaldsdato udløses nulstillingen af godkendelsen aldrig, og opgaven forbliver godkendt på ubestemt tid.",
+      "error_per_kid_applicable_days_invalid": "Ugyldigt gældende dagsformat for et eller flere børn. Dage skal være heltal 0-6 (mandag-søndag) uden dubletter.",
+      "error_per_kid_daily_multi_times_invalid": "Ugyldigt dagligt tidsformat for et eller flere børn. Brug 24-timers format adskilt af | (f.eks. 08:00|17:00)."
     },
     "abort": {
       "invalid_action": "Ugyldig handling",
@@ -1410,32 +1496,33 @@
     },
     "completion_criteria": {
       "options": {
-        "shared_all": "Delt med alle (Alle børn skal gennemføre sammen)",
+        "shared_all": "Delt alle (Alle børn skal gennemføre sammen)",
         "independent": "Selvstændig (hvert barn klarer opgaven selv)",
-        "shared_first": "Delt med First (første fuldførelse tæller)"
+        "shared_first": "Delt først (første fuldførelse tæller)"
       }
     },
     "approval_reset_type": {
       "options": {
-        "at_midnight_once": "Tillad 1 fuldførelse - nulstilles ved midnat",
-        "at_midnight_multi": "Tillad flere fuldførelser - nulstilles ved midnat",
-        "at_due_date_once": "Tillad 1 fuldførelse - nulstilles ved forfaldsdatoen",
-        "at_due_date_multi": "Tillad flere fuldførelser - nulstilles ved forfaldsdatoen",
-        "upon_completion": "Tillad ubegrænsede færdiggørelser - nulstilles efter færdiggørelse"
+        "at_midnight_once": "En gang om dagen - Nulstilles ved midnat",
+        "at_midnight_multi": "Flere gange om dagen - Nulstilles ved midnat",
+        "at_due_date_once": "Én gang pr. periode - Nulstilles ved forfaldsdatoen",
+        "at_due_date_multi": "Flere gange pr. periode - Nulstilles ved forfaldsdatoen",
+        "upon_completion": "Ubegrænsede færdiggørelser - Nulstilles efter færdiggørelse"
       }
     },
     "overdue_handling_type": {
       "options": {
-        "at_due_date": "Vis forfalden efter forfaldsdato (indtil færdiggørelse)",
-        "never_overdue": "Vis aldrig som forfalden",
-        "at_due_date_then_reset": "Vis forfalden efter forfaldsdato (indtil godkendelse nulstilles)"
+        "at_due_date": "Forsinket indtil færdig",
+        "never_overdue": "Aldrig for sent",
+        "at_due_date_clear_at_approval_reset": "Forfalden indtil godkendelse Nulstil",
+        "at_due_date_clear_immediate_on_late": "Forsinket indtil færdig (Fjern forsinkede godkendelser med det samme)"
       }
     },
     "approval_reset_pending_claim_action": {
       "options": {
-        "hold_pending": "Bevar kravstatus (afvent godkendelse/afvisning)",
-        "clear_pending": "Ryd alle ventende krav",
-        "auto_approve_pending": "Godkend alle ventende krav automatisk"
+        "hold_pending": "Status for tilbageholdelse af krav (afventer godkendelse/afvisning)",
+        "clear_pending": "Ryd ventende krav",
+        "auto_approve_pending": "Automatisk godkendelse af ventende krav"
       }
     },
     "chore_notifications": {
@@ -1449,12 +1536,14 @@
       "options": {
         "none": "Ingen",
         "daily": "Daglig",
+        "daily_multi": "Dagligt (flere gange om dagen)",
         "weekly": "Ugentlig",
         "biweekly": "Hver anden uge",
         "monthly": "Månedlig",
         "quarterly": "Kvartalsvis",
         "yearly": "Årligt",
         "custom": "Skik",
+        "custom_from_complete": "Brugerdefineret (Omplanlæg fra færdiggørelsesdato)",
         "custom_1_week": "Tilpasset: 1 uge",
         "custom_1_month": "Tilpasset: 1 måned",
         "custom_1_quarter": "Brugerdefineret: 1 kvarter",
@@ -1470,6 +1559,7 @@
     },
     "custom_interval_unit": {
       "options": {
+        "hours": "Timer",
         "days": "Dage",
         "weeks": "Uger",
         "months": "Måneder"
@@ -1508,6 +1598,20 @@
     }
   },
   "services": {
+    "manage_shadow_link": {
+      "name": "Administrer forælder-skygge-barn-link",
+      "description": "Forbind eller fjern linket til en eksisterende børneprofil til/fra en forælder. Kræver, at barnet og forælderen har matchende navne. Fjernelse af linket bevarer alle data og omdøber barnet med suffikset '_unlinked'.",
+      "fields": {
+        "name": {
+          "name": "Navn",
+          "description": "Navn der matcher BÅDE forælder og barn (ikke forskellig fra store og små bogstaver)"
+        },
+        "action": {
+          "name": "Handling",
+          "description": "Link forbinder barnet med forælderen som skygge. Fjern linket frakobler og omdøber barnet."
+        }
+      }
+    },
     "claim_chore": {
       "name": "Gør krav på pligt",
       "description": "Et barn gør krav på en pligt og markerer den som 'gjort' til forældrenes godkendelse.",
@@ -1869,17 +1973,17 @@
             "name": "Færdiggørelseskriterier",
             "state": {
               "independent": "Uafhængig",
-              "shared_first_only": "Delt (kun førstegangsbrugere)",
-              "shared_all_required": "Delt (alle obligatoriske)"
+              "shared_first_only": "Delt (først)",
+              "shared_all_required": "Delt (alle)"
             }
           },
           "approval_reset_type": {
             "name": "Godkendelsesnulstillingstype",
             "state": {
-              "at_midnight_once": "En gang om dagen",
-              "at_midnight_multi": "Flere pr. dag",
-              "at_due_date_once": "Én gang pr. forfaldsdato",
-              "at_due_date_multi": "Flere pr. forfaldsdato",
+              "at_midnight_once": "Ved midnat (én gang)",
+              "at_midnight_multi": "Ved midnat (flere)",
+              "at_due_date_once": "Ved forfaldsdato (én gang)",
+              "at_due_date_multi": "Ved forfaldsdato (flere)",
               "upon_completion": "Ved færdiggørelse"
             }
           },
@@ -1888,10 +1992,18 @@
             "state": {
               "none": "Ingen",
               "daily": "Daglig",
+              "daily_multi": "Dagligt (flere gange om dagen)",
               "weekly": "Ugentlig",
               "biweekly": "Hver anden uge",
               "monthly": "Månedlig",
-              "custom": "Skik"
+              "quarterly": "Kvartalsvis",
+              "yearly": "Årligt",
+              "custom": "Skik",
+              "custom_from_complete": "Brugerdefineret (Omplanlæg fra færdiggørelsesdato)",
+              "custom_1_week": "Tilpasset: 1 uge",
+              "custom_1_month": "Tilpasset: 1 måned",
+              "custom_1_quarter": "Brugerdefineret: 1 kvarter",
+              "custom_1_year": "Tilpasset: 1 år"
             }
           },
           "applicable_days": {
@@ -2529,10 +2641,10 @@
           "approval_reset_type": {
             "name": "Godkendelsesnulstillingstype",
             "state": {
-              "at_midnight_once": "En gang om dagen",
-              "at_midnight_multi": "Flere pr. dag",
-              "at_due_date_once": "Én gang pr. forfaldsdato",
-              "at_due_date_multi": "Flere pr. forfaldsdato",
+              "at_midnight_once": "Ved midnat (én gang)",
+              "at_midnight_multi": "Ved midnat (flere)",
+              "at_due_date_once": "Ved forfaldsdato (én gang)",
+              "at_due_date_multi": "Ved forfaldsdato (flere)",
               "upon_completion": "Ved færdiggørelse"
             }
           },
@@ -2618,23 +2730,98 @@
           "cost": {
             "name": "Koste"
           },
-          "reward_claims_count": {
-            "name": "Samlede krav"
+          "pending_claims": {
+            "name": "Afventende krav"
           },
-          "reward_approvals_count": {
-            "name": "Samlede godkendelser"
+          "last_claimed": {
+            "name": "Sidst gjort krav på"
+          },
+          "last_approved": {
+            "name": "Sidst godkendt"
+          },
+          "last_disapproved": {
+            "name": "Sidst afvist"
+          },
+          "claimed_today": {
+            "name": "Krav i dag"
+          },
+          "claimed_week": {
+            "name": "Krav denne uge"
+          },
+          "claimed_month": {
+            "name": "Krav denne måned"
+          },
+          "claimed_year": {
+            "name": "Krav i år"
+          },
+          "claimed_all_time": {
+            "name": "Krav hele tiden"
+          },
+          "approved_today": {
+            "name": "Godkendt i dag"
+          },
+          "approved_week": {
+            "name": "Godkendt denne uge"
+          },
+          "approved_month": {
+            "name": "Godkendt denne måned"
+          },
+          "approved_year": {
+            "name": "Godkendt i år"
+          },
+          "approved_all_time": {
+            "name": "Godkendt hele tiden"
+          },
+          "disapproved_today": {
+            "name": "Afvist i dag"
+          },
+          "disapproved_week": {
+            "name": "Afvist denne uge"
+          },
+          "disapproved_month": {
+            "name": "Afvist denne måned"
+          },
+          "disapproved_year": {
+            "name": "Afvist i år"
+          },
+          "disapproved_all_time": {
+            "name": "Afvist hele tiden"
+          },
+          "points_spent_today": {
+            "name": "Point brugt i dag"
+          },
+          "points_spent_week": {
+            "name": "Point brugt i denne uge"
+          },
+          "points_spent_month": {
+            "name": "Point brugt denne måned"
+          },
+          "points_spent_year": {
+            "name": "Point brugt i år"
+          },
+          "points_spent_all_time": {
+            "name": "Point brugt hele tiden"
+          },
+          "approval_rate": {
+            "name": "Godkendelsesprocent (%)"
+          },
+          "claim_rate_week": {
+            "name": "Gennemsnitlige krav pr. dag (uge)"
+          },
+          "claim_rate_month": {
+            "name": "Gennemsnitlige krav pr. dag (måned)"
+          },
+          "claim_button_eid": {
+            "name": "Enheds-ID for knappen \"Krav\""
+          },
+          "approve_button_eid": {
+            "name": "Godkend knap Enheds-ID"
+          },
+          "disapprove_button_eid": {
+            "name": "Enheds-ID for afvisningsknap"
           },
           "labels": {
             "name": "Etiketter"
-          },
-          "reward_claim_button_eid": {
-            "name": "Enheds-ID for knappen \"Krav\""
-          },
-          "reward_approve_button_eid": {
-            "name": "Godkend knap Enheds-ID"
-          },
-          "reward_disapprove_button_eid": {
-            "name": "Enheds-ID for afvisningsknap"
           }
         }
       },
@@ -2909,6 +3096,23 @@
           }
         }
       },
+      "system_dashboard_translation_sensor": {
+        "name": "Dashboard-oversættelser ({language})",
+        "state_attributes": {
+          "purpose": {
+            "name": "Formål",
+            "state": {
+              "purpose_dashboard_translation": "Tilbyder lokaliserede brugergrænsefladeoversættelser til dashboardvisning"
+            }
+          },
+          "ui_translations": {
+            "name": "UI-oversættelser"
+          },
+          "language": {
+            "name": "Sprog"
+          }
+        }
+      },
       "kid_dashboard_helper_sensor": {
         "name": "Hjælper til brugergrænsefladedashboard",
         "state_attributes": {
@@ -2962,6 +3166,9 @@
           },
           "language": {
             "name": "Sprog"
+          },
+          "translation_sensor": {
+            "name": "Oversættelsessensor"
           }
         }
       }
@@ -3207,6 +3414,21 @@
     }
   },
   "exceptions": {
+    "kid_not_found_by_name": {
+      "message": "Intet barn fundet med navnet '{name}'"
+    },
+    "parent_not_found_by_name": {
+      "message": "Ingen forælder fundet med navnet '{name}'"
+    },
+    "kid_already_shadow": {
+      "message": "Barnet '{name}' er allerede knyttet til en forælder"
+    },
+    "kid_not_shadow": {
+      "message": "Barnet '{name}' er ikke knyttet til nogen forælder"
+    },
+    "parent_has_different_shadow": {
+      "message": "Forælderen '{name}' er allerede knyttet til et andet barn"
+    },
     "error_msg_no_entry_found": {
       "message": "Ingen matchende post fundet i konfigurationen."
     },

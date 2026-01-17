@@ -41,11 +41,13 @@
         "description": "Introduïu el nom de cada nen/a.",
         "data": {
           "kid_name": "Nom del nen/a",
-          "internal_id": "ID intern",
           "ha_user": "Usuari de l'Assistent de la Llar",
-          "enable_mobile_notifications": "Activa les notificacions mòbils",
-          "mobile_notify_service": "Notificar al servei",
-          "enable_persistent_notifications": "Activa les notificacions persistents"
+          "mobile_notify_service": "Notificacions",
+          "dashboard_language": "Llengua"
+        },
+        "data_description": {
+          "mobile_notify_service": "Seleccioneu un servei de notificacions per activar les notificacions per a aquest nen o deixeu-ho en blanc per desactivar-les.",
+          "dashboard_language": "Idioma utilitzat per al tauler de control i les notificacions de les tasques."
         }
       },
       "parent_count": {
@@ -62,10 +64,12 @@
           "parent_name": "Nom del pare/mare",
           "ha_user_id": "Usuari de l'Assistent de la Llar",
           "associated_kids": "Nens associats",
-          "enable_mobile_notifications": "Activa les notificacions mòbils",
-          "mobile_notify_service": "Notificar al servei",
-          "enable_persistent_notifications": "Activa les notificacions persistents",
-          "internal_id": "ID intern"
+          "mobile_notify_service": "Notificacions",
+          "dashboard_language": "Llengua"
+        },
+        "data_description": {
+          "mobile_notify_service": "Seleccioneu un servei de notificacions per activar les notificacions per a aquest pare o deixeu-ho en blanc per desactivar-les.",
+          "dashboard_language": "Idioma utilitzat per al tauler de control i les notificacions de les tasques."
         }
       },
       "chore_count": {
@@ -85,10 +89,10 @@
           "chore_labels": "📋 Etiquetes (opcional)",
           "default_points": "💰 Punts atorgats",
           "assigned_kids": "👥 Nens assignats",
-          "completion_criteria": "👥 Tipus de finalització",
-          "approval_reset_type": "➡️ Finalitzacions permeses i restabliment del temps",
-          "approval_reset_pending_claim_action": "➡️ Reclamacions pendents en reiniciar",
-          "overdue_handling_type": "⏰ Vençut: Tipus de gestió",
+          "completion_criteria": "👥 Criteris de finalització",
+          "approval_reset_type": "➡️ Finalitzacions permeses i temps de restabliment de l'aprovació",
+          "approval_reset_pending_claim_action": "➡️ Gestió de reclamacions pendents en el moment de l'aprovació. Restabliment",
+          "overdue_handling_type": "⏰ Endarrerit: Tractament",
           "auto_approve": "✅ Aprovació automàtica de reclamacions?",
           "recurring_frequency": "🔄 Horari: Freqüència",
           "custom_interval": "🔄 Programació: Interval personalitzat (per a la freqüència personalitzada)",
@@ -105,15 +109,15 @@
           "chore_labels": "Etiquetes per organitzar les tasques (per exemple, \"cuina\", \"exterior\"). Deixeu-ho en blanc si no és necessari.",
           "default_points": "Punts guanyats en completar-se.",
           "assigned_kids": "Nens que poden veure i reclamar aquesta tasca.",
-          "completion_criteria": "Com funcionen les tasques compartides: Independent (cada nen les completa per separat), Compartides totes (tots han d'aprovar) o Compartides primer (la primera aprovació completa la tasca).",
+          "completion_criteria": "Independent (cada nen ho completa per separat), Compartit Tot (tots ho han de completar) o Compartit Primer (el primer a reclamar els blocs dels altres).",
           "approval_reset_type": "Controla quan es reinicia aquesta tasca i quantes finalitzacions es permeten durant aquest període.",
-          "approval_reset_pending_claim_action": "Quan aquesta tasca es reinicia (segons el temps de reinici de la finalització anterior), què passa amb les reclamacions que encara estan pendents d'aprovació?",
+          "approval_reset_pending_claim_action": "Això és el que passa amb les reclamacions que encara estan pendents d'aprovació quan es produeix el restabliment de l'aprovació.",
           "overdue_handling_type": "Acció després de la data de venciment: Amaga l'estat de venciment, mantén el venciment fins que es reclama o restableix-lo a pendent en el següent cicle d'aprovació.",
           "auto_approve": "Quan estan habilitades, les reclamacions s'aproven instantàniament sense la revisió dels pares.",
           "recurring_frequency": "Freqüència amb què es repeteix la tasca: Diàriament, Setmanalment, Mensualment, Anualment, Personalitzada o Cap.",
           "custom_interval": "Nombre d'unitats de temps entre repeticions (per exemple, 3 per a \"cada 3 setmanes\"). Només s'utilitza amb la freqüència personalitzada.",
           "custom_interval_unit": "Unitat de temps per a l'interval personalitzat (dies, setmanes, mesos). Només s'utilitza amb la freqüència personalitzada.",
-          "applicable_days": "Restringeix la tasca a dies feiners específics. Deixa en blanc per a tots els dies.",
+          "applicable_days": "Deixeu-ho en blanc per a tots els dies. NOMÉS Seleccioneu els dies específics per restringir.",
           "due_date": "Data límit opcional. Es pot combinar amb programacions recurrents.",
           "show_on_calendar": "Mostra aquesta tasca a la vista de calendari.",
           "chore_notifications": "Quan enviar notificacions: En cas de reclamació, aprovació, rebuig o qualsevol combinació."
@@ -300,6 +304,7 @@
       "duplicate_penalty": "Ja existeix una penalització amb aquest nom",
       "duplicate_reward": "Ja existeix una recompensa amb aquest nom",
       "duplicate_bonus": "Ja existeix un bonus amb aquest nom",
+      "shadow_kid_name_conflict": "No es pot activar l'assignació de tasques: ja existeix un nen amb el vostre nom. Primer canvieu el nom del nen existent.",
       "due_date_in_past": "La data de venciment ha de ser en el futur.",
       "end_date_in_past": "La data de finalització ha de ser en el futur.",
       "end_date_not_after_start_date": "La data de finalització ha de ser posterior a la data d'inici",
@@ -343,6 +348,7 @@
       "invalid_date_range": "L'interval de dates no és vàlid. La data de finalització ha de ser posterior a la data d'inici.",
       "missing_required": "Falta un camp obligatori. Si us plau, proporcioneu tota la informació necessària.",
       "invalid_format": "El format no és vàlid. Si us plau, reviseu les dades introduïdes i torneu-ho a intentar.",
+      "chore_options_require_assignment": "El flux de treball de les tasques i les opcions de gamificació requereixen que primer estigui activada l'opció \"Permet que se m'assignin tasques\".",
       "invalid_update_interval": "Interval d'actualització no vàlid. Ha de ser un enter positiu.",
       "invalid_calendar_show_period": "Període de visualització del calendari no vàlid. Ha de ser un nombre enter positiu.",
       "invalid_retention_period": "Període de retenció no vàlid. Ha de ser un nombre enter positiu.",
@@ -395,10 +401,15 @@
         "data": {
           "kid_name": "Nom del nen/a",
           "ha_user": "Usuari de l'Assistent de la Llar",
-          "enable_mobile_notifications": "Activa les notificacions mòbils",
-          "mobile_notify_service": "Notificar al servei",
-          "enable_persistent_notifications": "Activa les notificacions persistents",
+          "mobile_notify_service": "Notificacions",
+          "enable_due_date_reminders": "Recordatoris de dates de venciment",
+          "dashboard_language": "Llengua",
           "internal_id": "ID intern"
+        },
+        "data_description": {
+          "mobile_notify_service": "Seleccioneu un servei de notificacions per activar les notificacions per a aquest nen o deixeu-ho en blanc per desactivar-les.",
+          "enable_due_date_reminders": "Envia notificacions de recordatori quan les tasques s'hagin de lliurar en un termini de 30 minuts.",
+          "dashboard_language": "Idioma utilitzat per al tauler de control i les notificacions de les tasques."
         }
       },
       "add_parent": {
@@ -408,10 +419,19 @@
           "parent_name": "Nom del pare/mare",
           "ha_user_id": "Usuari de l'Assistent de la Llar",
           "associated_kids": "Nens associats",
-          "enable_mobile_notifications": "Activa les notificacions mòbils",
-          "mobile_notify_service": "Notificar al servei",
-          "enable_persistent_notifications": "Activa les notificacions persistents",
+          "mobile_notify_service": "Notificacions",
+          "dashboard_language": "Llengua",
+          "allow_chore_assignment": "Permet que m'assignin tasques",
+          "enable_chore_workflow": "Activa el flux de treball de les tasques",
+          "enable_gamification": "Activa la gamificació",
           "internal_id": "ID intern"
+        },
+        "data_description": {
+          "mobile_notify_service": "Seleccioneu un servei de notificacions per activar les notificacions per a aquest pare o deixeu-ho en blanc per desactivar-les.",
+          "allow_chore_assignment": "Crea un perfil perquè se us puguin assignar tasques. Per defecte, només es mostra un botó Aprova per completar-les amb un sol clic. Nota: Si desmarqueu aquesta opció, es conserva el perfil infantil amb el sufix \"_unlinked\" per a la neteja manual.",
+          "enable_chore_workflow": "Afegeix els botons Reclama i Rebutja per al flux de treball complet (reclama → aprova/rebutja).",
+          "enable_gamification": "Fes un seguiment dels punts, les insígnies i les recompenses per les tasques completades.",
+          "dashboard_language": "Idioma utilitzat per al tauler de control i les notificacions de les tasques."
         }
       },
       "add_chore": {
@@ -424,10 +444,10 @@
           "chore_labels": "📋 Etiquetes (opcional)",
           "default_points": "💰 Punts atorgats",
           "assigned_kids": "👥 Nens assignats",
-          "completion_criteria": "👥 Tipus de finalització",
-          "approval_reset_type": "➡️ Finalitzacions permeses i restabliment del temps",
-          "approval_reset_pending_claim_action": "➡️ Reclamacions pendents en reiniciar",
-          "overdue_handling_type": "⏰ Vençut: Tipus de gestió",
+          "completion_criteria": "👥 Criteris de finalització",
+          "approval_reset_type": "➡️ Finalitzacions permeses i temps de restabliment de l'aprovació",
+          "approval_reset_pending_claim_action": "➡️ Gestió de reclamacions pendents en el moment de l'aprovació. Restabliment",
+          "overdue_handling_type": "⏰ Endarrerit: Tractament",
           "auto_approve": "✅ Aprovació automàtica de reclamacions?",
           "recurring_frequency": "🔄 Horari: Freqüència",
           "custom_interval": "🔄 Programació: Interval personalitzat (per a la freqüència personalitzada)",
@@ -444,16 +464,16 @@
           "chore_labels": "Etiquetes per organitzar les tasques (per exemple, \"cuina\", \"exterior\"). Deixeu-ho en blanc si no és necessari.",
           "default_points": "Punts guanyats en completar-se.",
           "assigned_kids": "Nens que poden veure i reclamar aquesta tasca.",
-          "completion_criteria": "Com funcionen les tasques compartides: Independent (cada nen les completa per separat), Compartides totes (tots han d'aprovar) o Compartides primer (la primera aprovació completa la tasca).",
-          "approval_reset_type": "Controla quan es reinicia aquesta tasca i quantes finalitzacions es permeten durant aquest període.",
-          "approval_reset_pending_claim_action": "Quan aquesta tasca es reinicia (segons el temps de reinici de la finalització anterior), què passa amb les reclamacions que encara estan pendents d'aprovació?",
+          "completion_criteria": "Independent (cada nen ho completa per separat), Compartit Tot (tots ho han de completar) o Compartit Primer (el primer a reclamar els blocs dels altres).",
+          "approval_reset_type": "Controla quan es restableix l'aprovació d'aquesta tasca i quantes finalitzacions es permeten durant aquest període.",
+          "approval_reset_pending_claim_action": "Això és el que passa amb les reclamacions que encara estan pendents d'aprovació quan es produeix el restabliment de l'aprovació.",
           "overdue_handling_type": "Acció després de la data de venciment: Amaga l'estat de venciment, mantén el venciment fins que es reclama o restableix-lo a pendent en el següent cicle d'aprovació.",
           "auto_approve": "Quan estan habilitades, les reclamacions s'aproven instantàniament sense la revisió dels pares.",
-          "recurring_frequency": "Freqüència amb què es repeteix la tasca: Diàriament, Setmanalment, Mensualment, Anualment, Personalitzada o Cap.",
+          "recurring_frequency": "Freqüència amb què es repeteix la tasca: Diàriament, Setmanalment, Mensualment, Anualment, Personalitzat o Cap. Si seleccioneu \"Diàriament: diverses vegades al dia\", apareixerà una pantalla addicional per configurar les hores específiques.",
           "custom_interval": "Nombre d'unitats de temps entre repeticions (per exemple, 3 per a \"cada 3 setmanes\"). Només s'utilitza amb la freqüència personalitzada.",
           "custom_interval_unit": "Unitat de temps per a l'interval personalitzat (dies, setmanes, mesos). Només s'utilitza amb la freqüència personalitzada.",
-          "applicable_days": "Restringeix la tasca a dies feiners específics. Deixa en blanc per a tots els dies.",
-          "due_date": "Data límit opcional. Es pot combinar amb programacions recurrents.",
+          "applicable_days": "Deixeu-ho en blanc per a tots els dies. NOMÉS Seleccioneu els dies específics per restringir.",
+          "due_date": "Data límit opcional. Es pot combinar amb horaris recurrents. Per a tasques INDEPENDENTS, això serveix com a plantilla: apareixerà una pantalla addicional que permetrà dates individuals per nen.",
           "show_on_calendar": "Mostra aquesta tasca a la vista de calendari.",
           "chore_notifications": "Quan enviar notificacions: En cas de reclamació, aprovació, rebuig o qualsevol combinació."
         }
@@ -751,10 +771,33 @@
         "data": {
           "kid_name": "Nom del nen/a",
           "ha_user": "Usuari de l'Assistent de la Llar",
-          "enable_mobile_notifications": "Activa les notificacions mòbils",
-          "mobile_notify_service": "Notificar al servei",
-          "enable_persistent_notifications": "Activa les notificacions persistents",
+          "mobile_notify_service": "Notificacions",
+          "dashboard_language": "Llengua",
+          "enable_due_date_reminders": "Recordatoris de dates de venciment",
           "internal_id": "ID intern"
+        },
+        "data_description": {
+          "mobile_notify_service": "Selecciona un servei de notificacions per activar les notificacions per a aquest nen/a.",
+          "dashboard_language": "Idioma utilitzat per al tauler de control i les notificacions de les tasques.",
+          "enable_due_date_reminders": "Envia notificacions de recordatori quan les tasques s'hagin de lliurar en un termini de 30 minuts."
+        }
+      },
+      "edit_kid_shadow": {
+        "title": "Edita el nen de l'ombra",
+        "description": "Modifiqueu els detalls del nen ombra seleccionat. ⚠️ Aquest nen està vinculat a un pare o mare. Canviar el nom incomplirà el requisit de coincidència de noms per desenllaçar mitjançant el servei.",
+        "data": {
+          "kid_name": "Nom del nen/a",
+          "ha_user": "Usuari de l'Assistent de la Llar",
+          "mobile_notify_service": "Notificacions",
+          "dashboard_language": "Llengua",
+          "enable_due_date_reminders": "Recordatoris de dates de venciment",
+          "internal_id": "ID intern"
+        },
+        "data_description": {
+          "kid_name": "⚠️ Aquest fill de l'ombra està vinculat a un pare o mare. Canviar aquest nom trencarà la funció de desvinculació del servei, que requereix noms coincidents.",
+          "mobile_notify_service": "⚠️ Notificacions del nen supervisat: El pare o la mare vinculat ja rep notificacions de les tasques supervisades. Si s'activa aquesta opció, es crearan notificacions duplicades. Útil per a recordatoris de dates de venciment de 30 minuts o si s'utilitzen serveis de notificacions diferents.",
+          "dashboard_language": "Idioma utilitzat per al tauler de control i les notificacions de les tasques.",
+          "enable_due_date_reminders": "Envia notificacions de recordatori quan les tasques s'hagin de lliurar en un termini de 30 minuts."
         }
       },
       "edit_parent": {
@@ -764,10 +807,19 @@
           "parent_name": "Nom del pare/mare",
           "ha_user_id": "Usuari de l'Assistent de la Llar",
           "associated_kids": "Nens associats",
-          "enable_mobile_notifications": "Activa les notificacions mòbils",
-          "mobile_notify_service": "Notificar al servei",
-          "enable_persistent_notifications": "Activa les notificacions persistents",
+          "mobile_notify_service": "Notificacions",
+          "dashboard_language": "Llengua",
+          "allow_chore_assignment": "Permet que m'assignin tasques",
+          "enable_chore_workflow": "Activa el flux de treball de les tasques",
+          "enable_gamification": "Activa la gamificació",
           "internal_id": "ID intern"
+        },
+        "data_description": {
+          "mobile_notify_service": "Seleccioneu un servei de notificacions per activar les notificacions per a aquest pare o deixeu-ho en blanc per desactivar-les.",
+          "allow_chore_assignment": "Crea un perfil perquè se us puguin assignar tasques. Per defecte, només es mostra un botó Aprova per completar-les amb un sol clic. Nota: Si desmarqueu aquesta opció, es conserva el perfil infantil amb el sufix \"_unlinked\" per a la neteja manual.",
+          "enable_chore_workflow": "Afegeix els botons Reclama i Rebutja per al flux de treball complet (reclama → aprova/rebutja).",
+          "enable_gamification": "Fes un seguiment dels punts, les insígnies i les recompenses per les tasques completades.",
+          "dashboard_language": "Idioma utilitzat per al tauler de control i les notificacions de les tasques."
         }
       },
       "edit_chore": {
@@ -781,10 +833,10 @@
           "internal_id": "ID intern",
           "default_points": "💰 Punts atorgats",
           "assigned_kids": "👥 Nens assignats",
-          "completion_criteria": "👥 Tipus de finalització",
-          "approval_reset_type": "➡️ Finalitzacions permeses i restabliment del temps",
-          "approval_reset_pending_claim_action": "➡️ Reclamacions pendents en reiniciar",
-          "overdue_handling_type": "⏰ Vençut: Tipus de gestió",
+          "completion_criteria": "👥 Criteris de finalització",
+          "approval_reset_type": "➡️ Finalitzacions permeses i temps de restabliment de l'aprovació",
+          "approval_reset_pending_claim_action": "➡️ Gestió de reclamacions pendents en el moment de l'aprovació. Restabliment",
+          "overdue_handling_type": "⏰ Endarrerit: Tractament",
           "auto_approve": "✅ Aprovació automàtica de reclamacions?",
           "recurring_frequency": "🔄 Horari: Freqüència",
           "custom_interval": "🔄 Programació: Interval personalitzat (per a la freqüència personalitzada)",
@@ -802,15 +854,15 @@
           "chore_labels": "Etiquetes per organitzar les tasques (per exemple, \"cuina\", \"exterior\"). Deixeu-ho en blanc si no és necessari.",
           "default_points": "Punts guanyats en completar-se.",
           "assigned_kids": "Nens que poden veure i reclamar aquesta tasca.",
-          "completion_criteria": "Com funcionen les tasques compartides: Independent (cada nen les completa per separat), Compartides totes (tots han d'aprovar) o Compartides primer (la primera aprovació completa la tasca).",
-          "approval_reset_type": "Controla quan es reinicia aquesta tasca i quantes finalitzacions es permeten durant aquest període.",
-          "approval_reset_pending_claim_action": "Quan aquesta tasca es reinicia (segons el temps de reinici de la finalització anterior), què passa amb les reclamacions que encara estan pendents d'aprovació?",
+          "completion_criteria": "Independent (cada nen ho completa per separat), Compartit Tot (tots ho han de completar) o Compartit Primer (el primer a reclamar els blocs dels altres).",
+          "approval_reset_type": "Controla quan es restableix l'aprovació d'aquesta tasca i quantes finalitzacions es permeten durant aquest període.",
+          "approval_reset_pending_claim_action": "Quan l'aprovació d'aquesta tasca es restableix (segons el Temps de restabliment de l'aprovació anterior), què passa amb les reclamacions que encara estan pendents d'aprovació?",
           "overdue_handling_type": "Acció després de la data de venciment: Amaga l'estat de venciment, mantén el venciment fins que es reclama o restableix-lo a pendent en el següent cicle d'aprovació.",
           "auto_approve": "Quan estan habilitades, les reclamacions s'aproven instantàniament sense la revisió dels pares.",
-          "recurring_frequency": "Freqüència amb què es repeteix la tasca: Diàriament, Setmanalment, Mensualment, Anualment, Personalitzada o Cap.",
+          "recurring_frequency": "Freqüència amb què es repeteix la tasca: Diàriament, Setmanalment, Mensualment, Anualment, Personalitzat o Cap. Si seleccioneu \"Diàriament: diverses vegades al dia\", apareixerà una pantalla addicional per configurar les hores específiques.",
           "custom_interval": "Nombre d'unitats de temps entre repeticions (per exemple, 3 per a \"cada 3 setmanes\"). Només s'utilitza amb la freqüència personalitzada.",
           "custom_interval_unit": "Unitat de temps per a l'interval personalitzat (dies, setmanes, mesos). Només s'utilitza amb la freqüència personalitzada.",
-          "applicable_days": "Restringeix la tasca a dies feiners específics. Deixa en blanc per a tots els dies.",
+          "applicable_days": "Deixeu-ho en blanc per a tots els dies. NOMÉS Seleccioneu els dies específics per restringir.",
           "due_date": "Data límit opcional. Es pot combinar amb horaris recurrents. Per a tasques INDEPENDENTS, això serveix com a plantilla: apareixerà una pantalla addicional que permetrà dates individuals per nen.",
           "clear_due_date": "Marqueu aquesta casella per eliminar la data de venciment d'aquesta tasca.",
           "show_on_calendar": "Mostra aquesta tasca a la vista de calendari.",
@@ -825,6 +877,30 @@
         },
         "data_description": {
           "apply_template_to_all": "Marqueu aquesta casella per aplicar la data definida a la pàgina principal d'edició de tasques a tots els nens assignats, sobreescrivint les seves dates individuals."
+        }
+      },
+      "chores_daily_multi": {
+        "title": "Estableix els horaris diaris: {chore_name}",
+        "description": "Introduïu les hores en què aquesta tasca hauria d'estar disponible cada dia. Utilitzeu el format de 24 hores (HH:MM) separats per | (barra vertical).\n\n**Exemple:** 07:00|12:00|18:00 per al matí, el migdia i el vespre.\n\n**Requisits:**\n- Mínim 2 vegades, màxim 6 vegades\n- Les hores han de ser en format de 24 hores (de 00:00 a 23:59)\n- Separeu diverses vegades amb | (barra vertical)\n\n**Nota:** Si definiu una data de venciment al formulari principal, només s'utilitza la part de la data. Les hores que introduïu a continuació determinaran quan la tasca estarà disponible cada dia.",
+        "data": {
+          "daily_multi_times": "Horaris diaris"
+        },
+        "data_description": {
+          "daily_multi_times": "Introduïu de 2 a 6 vegades en format de 24 hores separats per | (barra vertical). Exemple: 08:00|17:00 per al matí i el vespre."
+        }
+      },
+      "edit_chore_per_kid_details": {
+        "title": "Horari per nen: {chore_name}",
+        "description": "Configureu la configuració de la programació individual per a cada nen assignat a aquesta tasca. Els valors principals del formulari actuen com a **plantilles**: utilitzeu les caselles de selecció per aplicar-los a tots els nens o personalitzeu la configuració de cada nen individualment.\n\n**Nota:** No tots els camps següents s'apliquen a totes les tasques. El formulari mostra dinàmicament les opcions rellevants en funció del mode de finalització, la freqüència i si hi ha dates de venciment definides.\n\n**Format d'hores diàries (múltiples):** Si es mostra, introduïu de 2 a 6 hores en format de 24 hores separades per | (barra vertical). Exemple: 08:00|17:00\n\nNens: {kid_names}{template_info}",
+        "data": {
+          "apply_days_to_all": "Aplica els dies de plantilla a tots els nens",
+          "apply_times_to_all": "Aplica els horaris de plantilla a tots els nens",
+          "apply_template_to_all": "Aplica la data de la plantilla a tots els nens"
+        },
+        "data_description": {
+          "apply_days_to_all": "Marqueu aquesta casella per utilitzar els dies aplicables del formulari principal per a tots els nens assignats.",
+          "apply_times_to_all": "Marqueu aquesta casella per utilitzar els horaris diaris del formulari principal per a tots els nens assignats.",
+          "apply_template_to_all": "Marqueu aquesta casella per aplicar la data establerta al formulari de tasca principal a tots els nens assignats."
         }
       },
       "edit_badge_cumulative": {
@@ -1283,7 +1359,17 @@
       "corrupt_file": "El fitxer seleccionat conté un JSON no vàlid i no es pot llegir.",
       "invalid_structure": "Al fitxer seleccionat li falta l'estructura de dades necessària.",
       "file_not_found": "No s'ha pogut trobar el fitxer seleccionat.",
-      "invalid_selection": "Si us plau, seleccioneu una opció vàlida."
+      "invalid_selection": "Si us plau, seleccioneu una opció vàlida.",
+      "error_daily_multi_requires_compatible_reset": "La freqüència de \"Diverses vegades al dia\" és incompatible amb els tipus de restabliment de mitjanit perquè només restableixen les aprovacions una vegada a mitjanit.",
+      "error_daily_multi_independent_multi_kids": "La freqüència de \"Diverses vegades al dia\" amb una finalització INDEPENDENT requereix exactament un nen, tret que es configuren horaris per nen. Configureu horaris diferents per a cada nen a la configuració per nen.",
+      "error_daily_multi_times_required": "Cal una llista d'hores per a la freqüència \"Diverses vegades al dia\".",
+      "error_daily_multi_times_invalid_format": "Format d'hora no vàlid. Feu servir el format de 24 hores (HH:MM) separats per | (p. ex., 08:00|17:00).",
+      "error_daily_multi_times_too_few": "Calen com a mínim 2 vegades per a la freqüència \"Diverses vegades al dia\". Per a una sola vegada, utilitzeu la freqüència \"Diària\" habitual.",
+      "error_daily_multi_times_too_many": "Màxim de 6 vegades per dia per a la freqüència \"Diverses vegades per dia\".",
+      "error_daily_multi_due_date_required": "La freqüència de \"Diverses vegades al dia\" requereix que s'estableixi una data de venciment. La data determina quan comença la programació i els horaris determinen les finestres de disponibilitat cada dia.",
+      "error_at_due_date_reset_requires_due_date": "Els tipus de restabliment d'aprovació \"A la data de venciment\" (Una o Múltiple) requereixen que s'estableixi una data de venciment. Sense una data de venciment, el restabliment d'aprovació no s'activarà mai i la tasca romandrà aprovada indefinidament.",
+      "error_per_kid_applicable_days_invalid": "Format de dies aplicable no vàlid per a un o més fills. Els dies han de ser nombres enters del 0 al 6 (de dilluns a diumenge) sense duplicats.",
+      "error_per_kid_daily_multi_times_invalid": "Format d'hora diària no vàlid per a un o més nens. Utilitzeu el format de 24 hores separat per | (p. ex., 08:00|17:00)."
     },
     "abort": {
       "invalid_action": "Acció no vàlida",
@@ -1410,32 +1496,33 @@
     },
     "completion_criteria": {
       "options": {
-        "shared_all": "Compartit amb tothom (tots els nens han de completar-ho junts)",
+        "shared_all": "Compartir tot (tots els nens han de completar junts)",
         "independent": "Independent (cada nen ho completa sol)",
-        "shared_first": "Compartit amb First (la primera finalització compta)"
+        "shared_first": "Primer compartit (recompte de la primera finalització)"
       }
     },
     "approval_reset_type": {
       "options": {
-        "at_midnight_once": "Permet 1 finalització - es reinicia a mitjanit",
-        "at_midnight_multi": "Permet múltiples finalitzacions: es reinicia a mitjanit",
-        "at_due_date_once": "Permet 1 finalització: es reinicia a la data de venciment",
-        "at_due_date_multi": "Permet múltiples finalitzacions: es reinicia a la data de venciment",
-        "upon_completion": "Permetre un nombre il·limitat de finalitzacions: es reinicia després de la finalització"
+        "at_midnight_once": "Un cop al dia: es reinicia a mitjanit",
+        "at_midnight_multi": "Diverses vegades al dia: es reinicia a mitjanit",
+        "at_due_date_once": "Un cop per període: es reinicia a la data de venciment",
+        "at_due_date_multi": "Diverses vegades per període: es reinicia a la data de venciment",
+        "upon_completion": "Finalitzacions il·limitades: es reinicia després de la finalització"
       }
     },
     "overdue_handling_type": {
       "options": {
-        "at_due_date": "Mostra els vençuts després de la data de venciment (fins a la finalització)",
-        "never_overdue": "No es mostra mai com a vençut",
-        "at_due_date_then_reset": "Mostra els vençuts després de la data de venciment (fins al restabliment de l'aprovació)"
+        "at_due_date": "Endarrerit fins a completar-se",
+        "never_overdue": "Mai endarrerit",
+        "at_due_date_clear_at_approval_reset": "Endarrerit fins a restabliment d'aprovació",
+        "at_due_date_clear_immediate_on_late": "Endarrerit fins a completar-se (esborrar les aprovacions tardanes immediatament)"
       }
     },
     "approval_reset_pending_claim_action": {
       "options": {
-        "hold_pending": "Mantenir en estat de reclamació (espera d'aprovació/rebuig)",
-        "clear_pending": "Esborra totes les reclamacions pendents",
-        "auto_approve_pending": "Aprova automàticament totes les reclamacions pendents"
+        "hold_pending": "Estat de la reclamació en espera (espera d'aprovació/rebuig)",
+        "clear_pending": "Esborra les reclamacions pendents",
+        "auto_approve_pending": "Aprova automàticament les reclamacions pendents"
       }
     },
     "chore_notifications": {
@@ -1449,12 +1536,14 @@
       "options": {
         "none": "Cap",
         "daily": "Diari",
+        "daily_multi": "Diàriament (diverses vegades al dia)",
         "weekly": "Setmanal",
         "biweekly": "Quinzenal",
         "monthly": "Mensual",
         "quarterly": "Trimestral",
         "yearly": "Anual",
         "custom": "Personalitzat",
+        "custom_from_complete": "Personalitzat (Reprogramar a partir de la data de finalització)",
         "custom_1_week": "Personalitzat: 1 setmana",
         "custom_1_month": "Personalitzat: 1 mes",
         "custom_1_quarter": "Personalitzat: 1 Quart",
@@ -1470,6 +1559,7 @@
     },
     "custom_interval_unit": {
       "options": {
+        "hours": "Hores",
         "days": "Dies",
         "weeks": "Setmanes",
         "months": "Mesos"
@@ -1508,6 +1598,20 @@
     }
   },
   "services": {
+    "manage_shadow_link": {
+      "name": "Gestiona l'enllaç del fill ombra del pare/mare",
+      "description": "Enllaça o desenllaça un perfil infantil existent a/d'un pare. Cal que el nen i el pare tinguin noms coincidents. En desenllaçar, es conserven totes les dades i es canvia el nom del nen amb el sufix \"_unlinked\".",
+      "fields": {
+        "name": {
+          "name": "Nom",
+          "description": "Nom que coincideixi AMBDUOS amb el pare i el fill (sense distingir entre majúscules i minúscules)"
+        },
+        "action": {
+          "name": "Acció",
+          "description": "L'enllaç connecta el nen al pare com a ombra. El desenllaç desconnecta i canvia el nom del nen."
+        }
+      }
+    },
     "claim_chore": {
       "name": "Tasca de reclamació",
       "description": "Un nen reclama una tasca i la marca com a \"reclamada\" per a l'aprovació dels pares.",
@@ -1869,17 +1973,17 @@
             "name": "Criteris de finalització",
             "state": {
               "independent": "Independent",
-              "shared_first_only": "Compartit (només el primer)",
-              "shared_all_required": "Compartit (tot obligatori)"
+              "shared_first_only": "Compartit (Primer)",
+              "shared_all_required": "Compartit (Tot)"
             }
           },
           "approval_reset_type": {
             "name": "Tipus de restabliment d'aprovació",
             "state": {
-              "at_midnight_once": "Un cop al dia",
-              "at_midnight_multi": "Múltiples per dia",
-              "at_due_date_once": "Un cop per data de venciment",
-              "at_due_date_multi": "Múltiple per data de venciment",
+              "at_midnight_once": "A mitjanit (una vegada)",
+              "at_midnight_multi": "A mitjanit (Multi)",
+              "at_due_date_once": "A la data de venciment (una vegada)",
+              "at_due_date_multi": "A la data de venciment (múltiple)",
               "upon_completion": "En completar-se"
             }
           },
@@ -1888,10 +1992,18 @@
             "state": {
               "none": "Cap",
               "daily": "Diari",
+              "daily_multi": "Diàriament (diverses vegades al dia)",
               "weekly": "Setmanal",
               "biweekly": "Quinzenal",
               "monthly": "Mensual",
-              "custom": "Personalitzat"
+              "quarterly": "Trimestral",
+              "yearly": "Anual",
+              "custom": "Personalitzat",
+              "custom_from_complete": "Personalitzat (Reprogramar a partir de la data de finalització)",
+              "custom_1_week": "Personalitzat: 1 setmana",
+              "custom_1_month": "Personalitzat: 1 mes",
+              "custom_1_quarter": "Personalitzat: 1 Quart",
+              "custom_1_year": "Personalitzat: 1 any"
             }
           },
           "applicable_days": {
@@ -2529,10 +2641,10 @@
           "approval_reset_type": {
             "name": "Tipus de restabliment d'aprovació",
             "state": {
-              "at_midnight_once": "Un cop al dia",
-              "at_midnight_multi": "Múltiples per dia",
-              "at_due_date_once": "Un cop per data de venciment",
-              "at_due_date_multi": "Múltiple per data de venciment",
+              "at_midnight_once": "A mitjanit (una vegada)",
+              "at_midnight_multi": "A mitjanit (Multi)",
+              "at_due_date_once": "A la data de venciment (una vegada)",
+              "at_due_date_multi": "A la data de venciment (múltiple)",
               "upon_completion": "En completar-se"
             }
           },
@@ -2618,23 +2730,98 @@
           "cost": {
             "name": "Cost"
           },
-          "reward_claims_count": {
-            "name": "Total de reclamacions"
+          "pending_claims": {
+            "name": "Reclamacions pendents"
           },
-          "reward_approvals_count": {
-            "name": "Total d'aprovacions"
+          "last_claimed": {
+            "name": "Última reclamació"
+          },
+          "last_approved": {
+            "name": "Última aprovació"
+          },
+          "last_disapproved": {
+            "name": "Últim rebutjat"
+          },
+          "claimed_today": {
+            "name": "Reclamacions d'avui"
+          },
+          "claimed_week": {
+            "name": "Reclamacions d'aquesta setmana"
+          },
+          "claimed_month": {
+            "name": "Reclamacions d'aquest mes"
+          },
+          "claimed_year": {
+            "name": "Reclamacions d'aquest any"
+          },
+          "claimed_all_time": {
+            "name": "Reclamacions de tots els temps"
+          },
+          "approved_today": {
+            "name": "Aprovat avui"
+          },
+          "approved_week": {
+            "name": "Aprovat aquesta setmana"
+          },
+          "approved_month": {
+            "name": "Aprovat aquest mes"
+          },
+          "approved_year": {
+            "name": "Aprovat aquest any"
+          },
+          "approved_all_time": {
+            "name": "Aprovat de sempre"
+          },
+          "disapproved_today": {
+            "name": "Rebutjat avui"
+          },
+          "disapproved_week": {
+            "name": "Rebutjat aquesta setmana"
+          },
+          "disapproved_month": {
+            "name": "Rebutjat aquest mes"
+          },
+          "disapproved_year": {
+            "name": "Rebutjat aquest any"
+          },
+          "disapproved_all_time": {
+            "name": "Rebutjat de sempre"
+          },
+          "points_spent_today": {
+            "name": "Punts gastats avui"
+          },
+          "points_spent_week": {
+            "name": "Punts gastats aquesta setmana"
+          },
+          "points_spent_month": {
+            "name": "Punts gastats aquest mes"
+          },
+          "points_spent_year": {
+            "name": "Punts gastats aquest any"
+          },
+          "points_spent_all_time": {
+            "name": "Punts gastats tot el temps"
+          },
+          "approval_rate": {
+            "name": "Taxa d'aprovació (%)"
+          },
+          "claim_rate_week": {
+            "name": "Mitjana de reclamacions per dia (setmana)"
+          },
+          "claim_rate_month": {
+            "name": "Mitjana de reclamacions per dia (mes)"
+          },
+          "claim_button_eid": {
+            "name": "ID d'entitat del botó de reclamació"
+          },
+          "approve_button_eid": {
+            "name": "ID d'entitat del botó Aprova"
+          },
+          "disapprove_button_eid": {
+            "name": "ID d'entitat del botó de desaprovació"
           },
           "labels": {
             "name": "Etiquetes"
-          },
-          "reward_claim_button_eid": {
-            "name": "ID d'entitat del botó de reclamació"
-          },
-          "reward_approve_button_eid": {
-            "name": "ID d'entitat del botó Aprova"
-          },
-          "reward_disapprove_button_eid": {
-            "name": "ID d'entitat del botó de desaprovació"
           }
         }
       },
@@ -2909,6 +3096,23 @@
           }
         }
       },
+      "system_dashboard_translation_sensor": {
+        "name": "Traduccions del tauler de control ({language})",
+        "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_dashboard_translation": "Proporciona traduccions localitzades de la interfície d'usuari per a la visualització del tauler de control"
+            }
+          },
+          "ui_translations": {
+            "name": "Traduccions d'IU"
+          },
+          "language": {
+            "name": "Llengua"
+          }
+        }
+      },
       "kid_dashboard_helper_sensor": {
         "name": "Ajudant del tauler de control de la interfície d'usuari",
         "state_attributes": {
@@ -2962,6 +3166,9 @@
           },
           "language": {
             "name": "Llengua"
+          },
+          "translation_sensor": {
+            "name": "Sensor de traducció"
           }
         }
       }
@@ -3207,6 +3414,21 @@
     }
   },
   "exceptions": {
+    "kid_not_found_by_name": {
+      "message": "No s'ha trobat cap nen amb el nom '{name}'"
+    },
+    "parent_not_found_by_name": {
+      "message": "No s'ha trobat cap pare amb el nom '{name}'"
+    },
+    "kid_already_shadow": {
+      "message": "El nen '{name}' ja està vinculat a un pare"
+    },
+    "kid_not_shadow": {
+      "message": "El nen '{name}' no està vinculat a cap pare"
+    },
+    "parent_has_different_shadow": {
+      "message": "El pare '{name}' ja està vinculat a un altre fill"
+    },
     "error_msg_no_entry_found": {
       "message": "No s'ha trobat cap entrada coincident a la configuració."
     },

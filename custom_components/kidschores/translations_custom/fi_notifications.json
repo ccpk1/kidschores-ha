@@ -19,6 +19,10 @@
     "title": "KidsChores: Kotiapu myöhässä",
     "message": "Kotityö {chore_name} on myöhässä! Määräpäivä oli {due_date}"
   },
+  "chore_due_soon": {
+    "title": "⏰ Pian erääntyy kotityö!",
+    "message": "{chore_name} erääntyy {minutes} minuutin kuluttua (+{points}pistettä)"
+  },
   "chore_reminder": {
     "title": "KidsChores: Muistutus odottavista kotitöistä",
     "message": "Muistutus: Työ {chore_name} , jonka {kid_name} on lunastanut, odottaa hyväksyntää."
@@ -75,9 +79,32 @@
     "title": "Lastenkotitehtävät: Bonus käytetty",
     "message": "Bonus {bonus_name} käytetty: +{points} pistettä"
   },
+  "pending_chores": {
+    "title": "Lasten askareita: {kid_name}",
+    "message": "{count} odottavaa tehtävää (viimeisin: {latest_chore} +{points}pistettä)"
+  },
+  "status_update": {
+    "title": "✅ Lasten kotityöt",
+    "message": "Tila päivitetty"
+  },
+  "chore_approved_status": {
+    "title": "✅ Lasten kotityöt",
+    "message": "{chore_name} hyväksynyt {parent_name}"
+  },
+  "chore_disapproved_status": {
+    "title": "❌ Lasten kotityöt",
+    "message": "{chore_name} hylkäsi {parent_name}"
+  },
+  "reward_approved_status": {
+    "title": "✅ Lasten kotityöt",
+    "message": "{reward_name} palkinto hyväksytty"
+  },
   "actions": {
     "approve": "Hyväksyä",
     "disapprove": "Hylkää",
-    "remind_30": "Muistutus 30 minuutin kuluttua"
+    "remind_30": "Muistutus 30 minuutin kuluttua",
+    "approve_latest": "✅ Hyväksy viimeisimmät",
+    "review_all": "👀 Arvostele kaikki",
+    "claim": "✋ Lunasta nyt"
   }
 }
