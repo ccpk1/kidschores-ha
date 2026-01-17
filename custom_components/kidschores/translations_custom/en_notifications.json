@@ -91,6 +91,10 @@
     "title": "✅ KidsChores",
     "message": "{chore_name} approved by {parent_name}"
   },
+  "chore_disapproved_status": {
+    "title": "❌ KidsChores",
+    "message": "{chore_name} disapproved by {parent_name}"
+  },
   "reward_approved_status": {
     "title": "✅ KidsChores",
     "message": "{reward_name} reward approved"
@@ -100,6 +104,7 @@
     "disapprove": "Disapprove",
     "remind_30": "Remind in 30 min",
     "approve_latest": "✅ Approve Latest",
-    "review_all": "👀 Review All"
+    "review_all": "👀 Review All",
+    "claim": "✋ Claim Now"
   }
 }
