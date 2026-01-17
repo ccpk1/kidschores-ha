@@ -145,7 +145,7 @@
           "associated_achievement": "🏆 Assoliment associat",
           "associated_challenge": "🏁 Repte associat",
           "selected_chores": "🧹 Tasques domèstiques controlades (opcional)",
-          "assigned_to": "🧒 Nens assignats (opcional)",
+          "assigned_to": "🧒 Nens assignats",
           "award_items": "🎁 PREMIS: Punts seleccionats, recompenses, bonificacions, multiplicador (opcional)",
           "award_points": "🎁 PREMIS: Punts atorgats (opcional)",
           "points_multiplier": "🎁 PREMIS: Multiplicador de punts (per defecte 💎 1.0x)",
@@ -498,7 +498,7 @@
           "associated_achievement": "🏆 Assoliment associat",
           "associated_challenge": "🏁 Repte associat",
           "selected_chores": "🧹 Tasques domèstiques controlades (opcional)",
-          "assigned_to": "🧒 Nens assignats (opcional)",
+          "assigned_to": "🧒 Nens assignats",
           "award_items": "🎁 PREMIS: Punts seleccionats, recompenses, bonificacions, multiplicador (opcional)",
           "award_points": "🎁 PREMIS: Punts atorgats (opcional)",
           "points_multiplier": "🎁 PREMIS: Multiplicador de punts (per defecte 💎 1.0x)",
@@ -520,7 +520,7 @@
           "occasion_type": "Trieu el tipus d'ocasió per a aquesta insígnia (per exemple, vacances, aniversari).",
           "associated_achievement": "Enllaça aquesta insígnia a un assoliment per fer-ne un seguiment.",
           "associated_challenge": "Enllaça aquesta insígnia a un repte per al seguiment.",
-          "selected_chores": "Seleccioneu les tasques que contribueixen a obtenir punts per a aquesta insígnia. Deixeu-ho en blanc si voleu fer un seguiment de totes les tasques assignades (opcional).",
+          "selected_chores": "Seleccioneu les tasques que contribueixen a obtenir punts per a aquesta insígnia. Deixeu-ho en blanc per fer un seguiment de totes les tasques assignades (opcional).",
           "assigned_to": "Assigna aquesta insígnia a nens específics per al seguiment.",
           "award_items": "Seleccioneu un o més dels següents punts, recompenses, bonificacions o un multiplicador de punts. Tots els elements seleccionats s'atorgaran o s'aplicaran quan s'obtingui la insígnia. (opcional)",
           "award_points": "Si els punts són un premi seleccionat, especifiqueu el nombre de punts que s'aplicaran quan s'obtingui aquesta insígnia (opcional).",
@@ -544,7 +544,7 @@
           "target_type": "🎯 OBJECTIU DIARI: Tipus d'objectiu",
           "threshold_value": "🎯 OBJECTIU DIARI: Valor llindar",
           "selected_chores": "🧹 Tasques domèstiques controlades (opcional)",
-          "assigned_to": "🧒 Nens assignats (opcional)",
+          "assigned_to": "🧒 Nens assignats",
           "award_items": "🎁 PREMIS: Punts seleccionats, recompenses, bonificacions i penalitzacions (opcional)",
           "award_points": "🎁 PREMIS: Punts atorgats (opcional)"
         },
@@ -576,7 +576,7 @@
           "associated_achievement": "🏆 Assoliment associat",
           "associated_challenge": "🏁 Repte associat",
           "selected_chores": "🧹 Tasques domèstiques controlades (opcional)",
-          "assigned_to": "🧒 Nens assignats (opcional)",
+          "assigned_to": "🧒 Nens assignats",
           "award_items": "🎁 PREMIS: Punts seleccionats, recompenses, bonificacions i penalitzacions (opcional)",
           "award_points": "🎁 PREMIS: Punts atorgats (opcional)",
           "recurring_frequency": "🔄 CICLE DE REINICI: Freqüència",
@@ -616,7 +616,7 @@
           "badge_labels": "Etiquetes (opcional)",
           "icon": "Icona de distintiu (mdi:xxx)",
           "associated_achievement": "🏆 Assoliment associat",
-          "assigned_to": "🧒 Nens assignats (opcional)",
+          "assigned_to": "🧒 Nens assignats",
           "award_items": "🎁 PREMIS: Punts seleccionats, recompenses i bonificacions (opcional)",
           "award_points": "🎁 PREMIS: Punts atorgats (opcional)"
         },
@@ -640,7 +640,7 @@
           "badge_labels": "Etiquetes (opcional)",
           "icon": "Icona de distintiu (mdi:xxx)",
           "associated_challenge": "🏁 Repte associat",
-          "assigned_to": "🧒 Nens assignats (opcional)",
+          "assigned_to": "🧒 Nens assignats",
           "award_items": "🎁 PREMIS: Punts seleccionats, recompenses i bonificacions (opcional)",
           "award_points": "🎁 PREMIS: Punts atorgats (opcional)"
         },
@@ -670,7 +670,7 @@
           "custom_interval_unit": "🔄 RECURRÈNCIA: Unitat d'interval personalitzada (obligatòria per a la freqüència personalitzada)",
           "start_date": "🔄 RECURRÈNCIA: Data d'inici (opcional)",
           "grace_period_days": "🔄 RECURRÈNCIA: Període de gràcia en dies (opcional)",
-          "assigned_to": "🧒 Nens assignats (opcional)",
+          "assigned_to": "🧒 Nens assignats",
           "award_items": "🎁 PREMIS: Punts seleccionats, recompenses i bonificacions (opcional)",
           "award_points": "🎁 PREMIS: Punts atorgats (opcional)"
         },
@@ -912,7 +912,7 @@
           "associated_achievement": "🏆 Assoliment associat",
           "associated_challenge": "🏁 Repte associat",
           "selected_chores": "🧹 Tasques domèstiques controlades (opcional)",
-          "assigned_to": "🧒 Nens assignats (opcional)",
+          "assigned_to": "🧒 Nens assignats",
           "award_items": "🎁 PREMIS: Punts seleccionats, recompenses, bonificacions, multiplicador (opcional)",
           "award_points": "🎁 PREMIS: Punts atorgats (opcional)",
           "points_multiplier": "🎁 PREMIS: Multiplicador de punts (per defecte 💎 1.0x)",
@@ -958,7 +958,7 @@
           "target_type": "🎯 OBJECTIU DIARI: Tipus d'objectiu",
           "threshold_value": "🎯 OBJECTIU DIARI: Valor llindar",
           "selected_chores": "🧹 Tasques domèstiques controlades (opcional)",
-          "assigned_to": "🧒 Nens assignats (opcional)",
+          "assigned_to": "🧒 Nens assignats",
           "award_items": "🎁 PREMIS: Punts seleccionats, recompenses, bonificacions i penalitzacions (opcional)",
           "award_points": "🎁 PREMIS: Punts atorgats (opcional)"
         },
@@ -990,7 +990,7 @@
           "associated_achievement": "🏆 Assoliment associat",
           "associated_challenge": "🏁 Repte associat",
           "selected_chores": "🧹 Tasques domèstiques controlades (opcional)",
-          "assigned_to": "🧒 Nens assignats (opcional)",
+          "assigned_to": "🧒 Nens assignats",
           "award_items": "🎁 PREMIS: Punts seleccionats, recompenses, bonificacions i penalitzacions (opcional)",
           "award_points": "🎁 PREMIS: Punts atorgats (opcional)",
           "recurring_frequency": "🔄 CICLE DE REINICI: Freqüència",
@@ -1030,7 +1030,7 @@
           "badge_labels": "Etiquetes (opcional)",
           "icon": "Icona de distintiu (mdi:xxx)",
           "associated_achievement": "🏆 Assoliment associat",
-          "assigned_to": "🧒 Nens assignats (opcional)",
+          "assigned_to": "🧒 Nens assignats",
           "award_items": "🎁 PREMIS: Punts seleccionats, recompenses i bonificacions (opcional)",
           "award_points": "🎁 PREMIS: Punts atorgats (opcional)"
         },
@@ -1054,7 +1054,7 @@
           "badge_labels": "Etiquetes (opcional)",
           "icon": "Icona de distintiu (mdi:xxx)",
           "associated_challenge": "🏁 Repte associat",
-          "assigned_to": "🧒 Nens assignats (opcional)",
+          "assigned_to": "🧒 Nens assignats",
           "award_items": "🎁 PREMIS: Punts seleccionats, recompenses i bonificacions (opcional)",
           "award_points": "🎁 PREMIS: Punts atorgats (opcional)"
         },
@@ -1084,7 +1084,7 @@
           "custom_interval_unit": "🔄 RECURRÈNCIA: Unitat d'interval personalitzada (obligatòria per a la freqüència personalitzada)",
           "start_date": "🔄 RECURRÈNCIA: Data d'inici (opcional)",
           "grace_period_days": "🔄 RECURRÈNCIA: Període de gràcia en dies (opcional)",
-          "assigned_to": "🧒 Nens assignats (opcional)",
+          "assigned_to": "🧒 Nens assignats",
           "award_items": "🎁 PREMIS: Punts seleccionats, recompenses i bonificacions (opcional)",
           "award_points": "🎁 PREMIS: Punts atorgats (opcional)"
         },
@@ -1523,7 +1523,8 @@
       "options": {
         "notify_on_claim": "Notificar sobre la reclamació",
         "notify_on_approval": "Notificar en cas d'aprovació",
-        "notify_on_disapproval": "Notificar en cas de desaprovació"
+        "notify_on_disapproval": "Notificar en cas de desaprovació",
+        "notify_on_reminder": "Avisar 30 minuts abans de la data límit"
       }
     },
     "recurring_frequency": {
@@ -3409,19 +3410,19 @@
   },
   "exceptions": {
     "kid_not_found_by_name": {
-      "message": "No s'ha trobat cap nen amb el nom '{name}'"
+      "message": "No s'ha trobat cap nen amb el nom {name}"
     },
     "parent_not_found_by_name": {
-      "message": "No s'ha trobat cap pare amb el nom '{name}'"
+      "message": "No s'ha trobat cap pare amb el nom {name}"
     },
     "kid_already_shadow": {
-      "message": "El nen '{name}' ja està vinculat a un pare"
+      "message": "El nen {name} ja està vinculat a un pare o mare"
     },
     "kid_not_shadow": {
-      "message": "El nen '{name}' no està vinculat a cap pare"
+      "message": "El nen {name} no està vinculat a cap pare."
     },
     "parent_has_different_shadow": {
-      "message": "El pare '{name}' ja està vinculat a un altre fill"
+      "message": "El pare {name} ja està vinculat a un altre fill/a"
     },
     "error_msg_no_entry_found": {
       "message": "No s'ha trobat cap entrada coincident a la configuració."

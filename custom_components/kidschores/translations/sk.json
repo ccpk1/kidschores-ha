@@ -145,7 +145,7 @@
           "associated_achievement": "🏆 Súvisiaci úspech",
           "associated_challenge": "🏁 Súvisiaca výzva",
           "selected_chores": "🧹 Sledované domáce práce (voliteľné)",
-          "assigned_to": "🧒 Pridelené deti (voliteľné)",
+          "assigned_to": "🧒 Pridelené deti",
           "award_items": "🎁 ODMENY: Vyberte si body, odmeny, bonusy, multiplikátor (voliteľné)",
           "award_points": "🎁 OCENENIA: Udelené body (voliteľné)",
           "points_multiplier": "🎁 ODMENY: Násobiteľ bodov (predvolený 💎 1,0x)",
@@ -498,7 +498,7 @@
           "associated_achievement": "🏆 Súvisiaci úspech",
           "associated_challenge": "🏁 Súvisiaca výzva",
           "selected_chores": "🧹 Sledované domáce práce (voliteľné)",
-          "assigned_to": "🧒 Pridelené deti (voliteľné)",
+          "assigned_to": "🧒 Pridelené deti",
           "award_items": "🎁 ODMENY: Vyberte si body, odmeny, bonusy, multiplikátor (voliteľné)",
           "award_points": "🎁 OCENENIA: Udelené body (voliteľné)",
           "points_multiplier": "🎁 ODMENY: Násobiteľ bodov (predvolený 💎 1,0x)",
@@ -544,7 +544,7 @@
           "target_type": "🎯 DENNÝ CIEĽ: Typ cieľa",
           "threshold_value": "🎯 DENNÝ CIEĽ: Prahová hodnota",
           "selected_chores": "🧹 Sledované domáce práce (voliteľné)",
-          "assigned_to": "🧒 Pridelené deti (voliteľné)",
+          "assigned_to": "🧒 Pridelené deti",
           "award_items": "🎁 ODMENY: Vyberte si body, odmeny, bonusy, sankcie (voliteľné)",
           "award_points": "🎁 OCENENIA: Udelené body (voliteľné)"
         },
@@ -576,7 +576,7 @@
           "associated_achievement": "🏆 Súvisiaci úspech",
           "associated_challenge": "🏁 Súvisiaca výzva",
           "selected_chores": "🧹 Sledované domáce práce (voliteľné)",
-          "assigned_to": "🧒 Pridelené deti (voliteľné)",
+          "assigned_to": "🧒 Pridelené deti",
           "award_items": "🎁 ODMENY: Vyberte si body, odmeny, bonusy, sankcie (voliteľné)",
           "award_points": "🎁 OCENENIA: Udelené body (voliteľné)",
           "recurring_frequency": "🔄 CYKLUS RESETU: Frekvencia",
@@ -616,7 +616,7 @@
           "badge_labels": "Štítky (voliteľné)",
           "icon": "Ikona odznaku (mdi:xxx)",
           "associated_achievement": "🏆 Súvisiaci úspech",
-          "assigned_to": "🧒 Pridelené deti (voliteľné)",
+          "assigned_to": "🧒 Pridelené deti",
           "award_items": "🎁 ODMENY: Vyberte si body, odmeny, bonusy (voliteľné)",
           "award_points": "🎁 OCENENIA: Udelené body (voliteľné)"
         },
@@ -640,7 +640,7 @@
           "badge_labels": "Štítky (voliteľné)",
           "icon": "Ikona odznaku (mdi:xxx)",
           "associated_challenge": "🏁 Súvisiaca výzva",
-          "assigned_to": "🧒 Pridelené deti (voliteľné)",
+          "assigned_to": "🧒 Pridelené deti",
           "award_items": "🎁 ODMENY: Vyberte si body, odmeny, bonusy (voliteľné)",
           "award_points": "🎁 OCENENIA: Udelené body (voliteľné)"
         },
@@ -670,7 +670,7 @@
           "custom_interval_unit": "🔄 OPAKOVANIE: Vlastná intervalová jednotka (povinné pre vlastnú frekvenciu)",
           "start_date": "🔄 OPAKOVANIE: Dátum začiatku (voliteľné)",
           "grace_period_days": "🔄 OPAKOVANIE: Tolerančná lehota v dňoch (voliteľné)",
-          "assigned_to": "🧒 Pridelené deti (voliteľné)",
+          "assigned_to": "🧒 Pridelené deti",
           "award_items": "🎁 ODMENY: Vyberte si body, odmeny, bonusy (voliteľné)",
           "award_points": "🎁 OCENENIA: Udelené body (voliteľné)"
         },
@@ -912,7 +912,7 @@
           "associated_achievement": "🏆 Súvisiaci úspech",
           "associated_challenge": "🏁 Súvisiaca výzva",
           "selected_chores": "🧹 Sledované domáce práce (voliteľné)",
-          "assigned_to": "🧒 Pridelené deti (voliteľné)",
+          "assigned_to": "🧒 Pridelené deti",
           "award_items": "🎁 ODMENY: Vyberte si body, odmeny, bonusy, multiplikátor (voliteľné)",
           "award_points": "🎁 OCENENIA: Udelené body (voliteľné)",
           "points_multiplier": "🎁 ODMENY: Násobiteľ bodov (predvolený 💎 1,0x)",
@@ -958,7 +958,7 @@
           "target_type": "🎯 DENNÝ CIEĽ: Typ cieľa",
           "threshold_value": "🎯 DENNÝ CIEĽ: Prahová hodnota",
           "selected_chores": "🧹 Sledované domáce práce (voliteľné)",
-          "assigned_to": "🧒 Pridelené deti (voliteľné)",
+          "assigned_to": "🧒 Pridelené deti",
           "award_items": "🎁 ODMENY: Vyberte si body, odmeny, bonusy, sankcie (voliteľné)",
           "award_points": "🎁 OCENENIA: Udelené body (voliteľné)"
         },
@@ -990,7 +990,7 @@
           "associated_achievement": "🏆 Súvisiaci úspech",
           "associated_challenge": "🏁 Súvisiaca výzva",
           "selected_chores": "🧹 Sledované domáce práce (voliteľné)",
-          "assigned_to": "🧒 Pridelené deti (voliteľné)",
+          "assigned_to": "🧒 Pridelené deti",
           "award_items": "🎁 ODMENY: Vyberte si body, odmeny, bonusy, sankcie (voliteľné)",
           "award_points": "🎁 OCENENIA: Udelené body (voliteľné)",
           "recurring_frequency": "🔄 CYKLUS RESETU: Frekvencia",
@@ -1030,7 +1030,7 @@
           "badge_labels": "Štítky (voliteľné)",
           "icon": "Ikona odznaku (mdi:xxx)",
           "associated_achievement": "🏆 Súvisiaci úspech",
-          "assigned_to": "🧒 Pridelené deti (voliteľné)",
+          "assigned_to": "🧒 Pridelené deti",
           "award_items": "🎁 ODMENY: Vyberte si body, odmeny, bonusy (voliteľné)",
           "award_points": "🎁 OCENENIA: Udelené body (voliteľné)"
         },
@@ -1054,7 +1054,7 @@
           "badge_labels": "Štítky (voliteľné)",
           "icon": "Ikona odznaku (mdi:xxx)",
           "associated_challenge": "🏁 Súvisiaca výzva",
-          "assigned_to": "🧒 Pridelené deti (voliteľné)",
+          "assigned_to": "🧒 Pridelené deti",
           "award_items": "🎁 ODMENY: Vyberte si body, odmeny, bonusy (voliteľné)",
           "award_points": "🎁 OCENENIA: Udelené body (voliteľné)"
         },
@@ -1084,7 +1084,7 @@
           "custom_interval_unit": "🔄 OPAKOVANIE: Vlastná intervalová jednotka (povinné pre vlastnú frekvenciu)",
           "start_date": "🔄 OPAKOVANIE: Dátum začiatku (voliteľné)",
           "grace_period_days": "🔄 OPAKOVANIE: Tolerančná lehota v dňoch (voliteľné)",
-          "assigned_to": "🧒 Pridelené deti (voliteľné)",
+          "assigned_to": "🧒 Pridelené deti",
           "award_items": "🎁 ODMENY: Vyberte si body, odmeny, bonusy (voliteľné)",
           "award_points": "🎁 OCENENIA: Udelené body (voliteľné)"
         },
@@ -1523,7 +1523,8 @@
       "options": {
         "notify_on_claim": "Upozorniť na reklamáciu",
         "notify_on_approval": "Upozorniť na schválenie",
-        "notify_on_disapproval": "Upozorniť na zamietnutie"
+        "notify_on_disapproval": "Upozorniť na zamietnutie",
+        "notify_on_reminder": "Upozorniť 30 minút pred termínom"
       }
     },
     "recurring_frequency": {
@@ -3409,19 +3410,19 @@
   },
   "exceptions": {
     "kid_not_found_by_name": {
-      "message": "Nenašlo sa žiadne dieťa s menom '{name}'"
+      "message": "Nenašlo sa žiadne dieťa s menom {name}"
     },
     "parent_not_found_by_name": {
-      "message": "Nenašiel sa žiadny rodič s menom '{name}'"
+      "message": "Nenašiel sa žiadny rodič s menom {name}"
     },
     "kid_already_shadow": {
-      "message": "Dieťa „{name}“ je už prepojené s rodičom"
+      "message": "Dieťa {name} je už prepojené s rodičom"
     },
     "kid_not_shadow": {
-      "message": "Dieťa „{name}“ nie je prepojené so žiadnym rodičom"
+      "message": "Dieťa {name} nie je prepojené so žiadnym rodičom"
     },
     "parent_has_different_shadow": {
-      "message": "Rodič '{name}' je už prepojený s iným dieťaťom"
+      "message": "Rodič {name} je už prepojený s iným dieťaťom"
     },
     "error_msg_no_entry_found": {
       "message": "V konfigurácii sa nenašiel žiadny zodpovedajúci záznam."

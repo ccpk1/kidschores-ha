@@ -145,7 +145,7 @@
           "associated_achievement": "🏆 Bijbehorende prestatie",
           "associated_challenge": "🏁 Bijbehorende uitdaging",
           "selected_chores": "🧹 Bijgehouden klusjes (optioneel)",
-          "assigned_to": "🧒 Toegewezen kinderen (optioneel)",
+          "assigned_to": "🧒 Toegewezen kinderen",
           "award_items": "🎁 BELONINGEN: Selecteer punten, beloningen, bonussen, vermenigvuldiger (optioneel)",
           "award_points": "🎁 PRIJZEN: Toegekende punten (optioneel)",
           "points_multiplier": "🎁 BELONINGEN: Puntenvermenigvuldiger (Standaard 💎 1,0x)",
@@ -498,7 +498,7 @@
           "associated_achievement": "🏆 Bijbehorende prestatie",
           "associated_challenge": "🏁 Bijbehorende uitdaging",
           "selected_chores": "🧹 Bijgehouden klusjes (optioneel)",
-          "assigned_to": "🧒 Toegewezen kinderen (optioneel)",
+          "assigned_to": "🧒 Toegewezen kinderen",
           "award_items": "🎁 BELONINGEN: Selecteer punten, beloningen, bonussen, vermenigvuldiger (optioneel)",
           "award_points": "🎁 PRIJZEN: Toegekende punten (optioneel)",
           "points_multiplier": "🎁 BELONINGEN: Puntenvermenigvuldiger (Standaard 💎 1,0x)",
@@ -520,7 +520,7 @@
           "occasion_type": "Kies het type gelegenheid voor deze badge (bijv. feestdag, verjaardag).",
           "associated_achievement": "Koppel deze badge aan een prestatie om deze bij te houden.",
           "associated_challenge": "Koppel deze badge aan een uitdaging om je voortgang bij te houden.",
-          "selected_chores": "Selecteer de klusjes die punten opleveren voor deze badge. Laat dit veld leeg als je alle toegewezen klusjes wilt bijhouden (optioneel).",
+          "selected_chores": "Selecteer de klusjes die punten opleveren voor deze badge. Laat dit veld leeg om alle toegewezen klusjes bij te houden (optioneel).",
           "assigned_to": "Wijs deze badge toe aan specifieke kinderen om hun prestaties te volgen.",
           "award_items": "Selecteer een of meer opties uit punten, beloningen, bonussen of een puntenvermenigvuldiger. Alle geselecteerde items worden toegekend of toegepast wanneer de badge is verdiend. (optioneel)",
           "award_points": "Als punten een gekozen beloningsoptie zijn, geef dan aan hoeveel punten van toepassing zijn wanneer deze badge wordt behaald. (optioneel).",
@@ -544,7 +544,7 @@
           "target_type": "🎯 DAGELIJKS DOEL: Doeltype",
           "threshold_value": "🎯 DAGELIJKS DOEL: Drempelwaarde",
           "selected_chores": "🧹 Bijgehouden klusjes (optioneel)",
-          "assigned_to": "🧒 Toegewezen kinderen (optioneel)",
+          "assigned_to": "🧒 Toegewezen kinderen",
           "award_items": "🎁 BELONINGEN: Selecteer punten, beloningen, bonussen, straffen (optioneel)",
           "award_points": "🎁 PRIJZEN: Toegekende punten (optioneel)"
         },
@@ -576,7 +576,7 @@
           "associated_achievement": "🏆 Bijbehorende prestatie",
           "associated_challenge": "🏁 Bijbehorende uitdaging",
           "selected_chores": "🧹 Bijgehouden klusjes (optioneel)",
-          "assigned_to": "🧒 Toegewezen kinderen (optioneel)",
+          "assigned_to": "🧒 Toegewezen kinderen",
           "award_items": "🎁 BELONINGEN: Selecteer punten, beloningen, bonussen, straffen (optioneel)",
           "award_points": "🎁 PRIJZEN: Toegekende punten (optioneel)",
           "recurring_frequency": "🔄 RESETCYCLUS: Frequentie",
@@ -616,7 +616,7 @@
           "badge_labels": "Labels (optioneel)",
           "icon": "Badge-pictogram (mdi:xxx)",
           "associated_achievement": "🏆 Bijbehorende prestatie",
-          "assigned_to": "🧒 Toegewezen kinderen (optioneel)",
+          "assigned_to": "🧒 Toegewezen kinderen",
           "award_items": "🎁 BELONINGEN: Selecteer punten, beloningen, bonussen (optioneel)",
           "award_points": "🎁 PRIJZEN: Toegekende punten (optioneel)"
         },
@@ -640,7 +640,7 @@
           "badge_labels": "Labels (optioneel)",
           "icon": "Badge-pictogram (mdi:xxx)",
           "associated_challenge": "🏁 Bijbehorende uitdaging",
-          "assigned_to": "🧒 Toegewezen kinderen (optioneel)",
+          "assigned_to": "🧒 Toegewezen kinderen",
           "award_items": "🎁 BELONINGEN: Selecteer punten, beloningen, bonussen (optioneel)",
           "award_points": "🎁 PRIJZEN: Toegekende punten (optioneel)"
         },
@@ -670,7 +670,7 @@
           "custom_interval_unit": "🔄 HERHALING: Aangepaste intervaleenheid (vereist voor aangepaste frequentie)",
           "start_date": "🔄 TERUGKERENDE PERIODE: Startdatum (optioneel)",
           "grace_period_days": "🔄 TERUGKERENDE PIJN: Respijtperiode in dagen (optioneel)",
-          "assigned_to": "🧒 Toegewezen kinderen (optioneel)",
+          "assigned_to": "🧒 Toegewezen kinderen",
           "award_items": "🎁 BELONINGEN: Selecteer punten, beloningen, bonussen (optioneel)",
           "award_points": "🎁 PRIJZEN: Toegekende punten (optioneel)"
         },
@@ -912,7 +912,7 @@
           "associated_achievement": "🏆 Bijbehorende prestatie",
           "associated_challenge": "🏁 Bijbehorende uitdaging",
           "selected_chores": "🧹 Bijgehouden klusjes (optioneel)",
-          "assigned_to": "🧒 Toegewezen kinderen (optioneel)",
+          "assigned_to": "🧒 Toegewezen kinderen",
           "award_items": "🎁 BELONINGEN: Selecteer punten, beloningen, bonussen, vermenigvuldiger (optioneel)",
           "award_points": "🎁 PRIJZEN: Toegekende punten (optioneel)",
           "points_multiplier": "🎁 BELONINGEN: Puntenvermenigvuldiger (Standaard 💎 1,0x)",
@@ -958,7 +958,7 @@
           "target_type": "🎯 DAGELIJKS DOEL: Doeltype",
           "threshold_value": "🎯 DAGELIJKS DOEL: Drempelwaarde",
           "selected_chores": "🧹 Bijgehouden klusjes (optioneel)",
-          "assigned_to": "🧒 Toegewezen kinderen (optioneel)",
+          "assigned_to": "🧒 Toegewezen kinderen",
           "award_items": "🎁 BELONINGEN: Selecteer punten, beloningen, bonussen, straffen (optioneel)",
           "award_points": "🎁 PRIJZEN: Toegekende punten (optioneel)"
         },
@@ -990,7 +990,7 @@
           "associated_achievement": "🏆 Bijbehorende prestatie",
           "associated_challenge": "🏁 Bijbehorende uitdaging",
           "selected_chores": "🧹 Bijgehouden klusjes (optioneel)",
-          "assigned_to": "🧒 Toegewezen kinderen (optioneel)",
+          "assigned_to": "🧒 Toegewezen kinderen",
           "award_items": "🎁 BELONINGEN: Selecteer punten, beloningen, bonussen, straffen (optioneel)",
           "award_points": "🎁 PRIJZEN: Toegekende punten (optioneel)",
           "recurring_frequency": "🔄 RESETCYCLUS: Frequentie",
@@ -1030,7 +1030,7 @@
           "badge_labels": "Labels (optioneel)",
           "icon": "Badge-pictogram (mdi:xxx)",
           "associated_achievement": "🏆 Bijbehorende prestatie",
-          "assigned_to": "🧒 Toegewezen kinderen (optioneel)",
+          "assigned_to": "🧒 Toegewezen kinderen",
           "award_items": "🎁 BELONINGEN: Selecteer punten, beloningen, bonussen (optioneel)",
           "award_points": "🎁 PRIJZEN: Toegekende punten (optioneel)"
         },
@@ -1054,7 +1054,7 @@
           "badge_labels": "Labels (optioneel)",
           "icon": "Badge-pictogram (mdi:xxx)",
           "associated_challenge": "🏁 Bijbehorende uitdaging",
-          "assigned_to": "🧒 Toegewezen kinderen (optioneel)",
+          "assigned_to": "🧒 Toegewezen kinderen",
           "award_items": "🎁 BELONINGEN: Selecteer punten, beloningen, bonussen (optioneel)",
           "award_points": "🎁 PRIJZEN: Toegekende punten (optioneel)"
         },
@@ -1084,7 +1084,7 @@
           "custom_interval_unit": "🔄 HERHALING: Aangepaste intervaleenheid (vereist voor aangepaste frequentie)",
           "start_date": "🔄 TERUGKERENDE PERIODE: Startdatum (optioneel)",
           "grace_period_days": "🔄 TERUGKERENDE PIJN: Respijtperiode in dagen (optioneel)",
-          "assigned_to": "🧒 Toegewezen kinderen (optioneel)",
+          "assigned_to": "🧒 Toegewezen kinderen",
           "award_items": "🎁 BELONINGEN: Selecteer punten, beloningen, bonussen (optioneel)",
           "award_points": "🎁 PRIJZEN: Toegekende punten (optioneel)"
         },
@@ -1523,7 +1523,8 @@
       "options": {
         "notify_on_claim": "Melden bij claim",
         "notify_on_approval": "Melden bij goedkeuring",
-        "notify_on_disapproval": "Melden bij afwijzing"
+        "notify_on_disapproval": "Melden bij afwijzing",
+        "notify_on_reminder": "Meld dit 30 minuten voor de vervaldatum."
       }
     },
     "recurring_frequency": {
@@ -3409,19 +3410,19 @@
   },
   "exceptions": {
     "kid_not_found_by_name": {
-      "message": "Geen kind gevonden met de naam '{name}'"
+      "message": "Geen kind gevonden met de naam {name}"
     },
     "parent_not_found_by_name": {
-      "message": "Geen ouder gevonden met de naam '{name}'"
+      "message": "Geen ouder gevonden met de naam {name}"
     },
     "kid_already_shadow": {
-      "message": "Kind '{name}' is al gekoppeld aan een ouder"
+      "message": "Kind {name} is al gekoppeld aan een ouder"
     },
     "kid_not_shadow": {
-      "message": "Kind '{name}' is niet gekoppeld aan een ouder"
+      "message": "Kind {name} is niet gekoppeld aan een ouder"
     },
     "parent_has_different_shadow": {
-      "message": "Ouder '{name}' is al gekoppeld aan een ander kind"
+      "message": "Ouder {name} is al gekoppeld aan een ander kind"
     },
     "error_msg_no_entry_found": {
       "message": "Geen overeenkomende vermelding gevonden in de configuratie."

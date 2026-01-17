@@ -145,7 +145,7 @@
           "associated_achievement": "🏆 Tilknyttet præstation",
           "associated_challenge": "🏁 Tilknyttet udfordring",
           "selected_chores": "🧹 Registrerede pligter (valgfrit)",
-          "assigned_to": "🧒 Tildelte børn (valgfrit)",
+          "assigned_to": "🧒 Tildelte børn",
           "award_items": "🎁 PRÆMIER: Vælg point, belønninger, bonusser, multiplikator (valgfrit)",
           "award_points": "🎁 PRÆMIER: Tildelte point (valgfrit)",
           "points_multiplier": "🎁 PRÆMIER: Pointmultiplikator (Standard 💎 1,0x)",
@@ -498,7 +498,7 @@
           "associated_achievement": "🏆 Tilknyttet præstation",
           "associated_challenge": "🏁 Tilknyttet udfordring",
           "selected_chores": "🧹 Registrerede pligter (valgfrit)",
-          "assigned_to": "🧒 Tildelte børn (valgfrit)",
+          "assigned_to": "🧒 Tildelte børn",
           "award_items": "🎁 PRÆMIER: Vælg point, belønninger, bonusser, multiplikator (valgfrit)",
           "award_points": "🎁 PRÆMIER: Tildelte point (valgfrit)",
           "points_multiplier": "🎁 PRÆMIER: Pointmultiplikator (Standard 💎 1,0x)",
@@ -520,7 +520,7 @@
           "occasion_type": "Vælg typen af lejlighed for dette badge (f.eks. ferie, fødselsdag).",
           "associated_achievement": "Knyt dette badge til en præstation for sporing.",
           "associated_challenge": "Knyt dette badge til en udfordring til sporing.",
-          "selected_chores": "Vælg de opgaver, der bidrager med point til dette badge. Lad feltet stå tomt, hvis du vil spore alle tildelte opgaver (valgfrit).",
+          "selected_chores": "Vælg de opgaver, der bidrager med point til dette badge. Lad feltet stå tomt for at spore alle tildelte opgaver (valgfrit).",
           "assigned_to": "Tildel dette mærke til bestemte børn til sporing.",
           "award_items": "Vælg en eller flere af point, belønninger, bonusser eller en pointmultiplikator. Alle valgte elementer vil blive tildelt eller anvendt, når badget er optjent. (valgfrit)",
           "award_points": "Hvis pointene er en valgt belønning, skal du angive antallet af point, der skal anvendes, når dette badge optjenes. (valgfrit).",
@@ -544,7 +544,7 @@
           "target_type": "🎯 DAGLIGT MÅL: Måltype",
           "threshold_value": "🎯 DAGLIGT MÅL: Tærskelværdi",
           "selected_chores": "🧹 Registrerede pligter (valgfrit)",
-          "assigned_to": "🧒 Tildelte børn (valgfrit)",
+          "assigned_to": "🧒 Tildelte børn",
           "award_items": "🎁 PRÆMIER: Vælg point, belønninger, bonusser, straffe (valgfrit)",
           "award_points": "🎁 PRÆMIER: Tildelte point (valgfrit)"
         },
@@ -576,7 +576,7 @@
           "associated_achievement": "🏆 Tilknyttet præstation",
           "associated_challenge": "🏁 Tilknyttet udfordring",
           "selected_chores": "🧹 Registrerede pligter (valgfrit)",
-          "assigned_to": "🧒 Tildelte børn (valgfrit)",
+          "assigned_to": "🧒 Tildelte børn",
           "award_items": "🎁 PRÆMIER: Vælg point, belønninger, bonusser, straffe (valgfrit)",
           "award_points": "🎁 PRÆMIER: Tildelte point (valgfrit)",
           "recurring_frequency": "🔄 NULSTILCYKLUS: Frekvens",
@@ -616,7 +616,7 @@
           "badge_labels": "Etiketter (valgfrit)",
           "icon": "Badge-ikon (mdi:xxx)",
           "associated_achievement": "🏆 Tilknyttet præstation",
-          "assigned_to": "🧒 Tildelte børn (valgfrit)",
+          "assigned_to": "🧒 Tildelte børn",
           "award_items": "🎁 PRÆMIER: Vælg point, belønninger, bonusser (valgfrit)",
           "award_points": "🎁 PRÆMIER: Tildelte point (valgfrit)"
         },
@@ -640,7 +640,7 @@
           "badge_labels": "Etiketter (valgfrit)",
           "icon": "Badge-ikon (mdi:xxx)",
           "associated_challenge": "🏁 Tilknyttet udfordring",
-          "assigned_to": "🧒 Tildelte børn (valgfrit)",
+          "assigned_to": "🧒 Tildelte børn",
           "award_items": "🎁 PRÆMIER: Vælg point, belønninger, bonusser (valgfrit)",
           "award_points": "🎁 PRÆMIER: Tildelte point (valgfrit)"
         },
@@ -670,7 +670,7 @@
           "custom_interval_unit": "🔄 GENTAGENDE: Brugerdefineret intervalenhed (påkrævet for brugerdefineret frekvens)",
           "start_date": "🔄 GENTAGENDE: Startdato (valgfrit)",
           "grace_period_days": "🔄 GENTAGENDE: Frist i dage (valgfrit)",
-          "assigned_to": "🧒 Tildelte børn (valgfrit)",
+          "assigned_to": "🧒 Tildelte børn",
           "award_items": "🎁 PRÆMIER: Vælg point, belønninger, bonusser (valgfrit)",
           "award_points": "🎁 PRÆMIER: Tildelte point (valgfrit)"
         },
@@ -912,7 +912,7 @@
           "associated_achievement": "🏆 Tilknyttet præstation",
           "associated_challenge": "🏁 Tilknyttet udfordring",
           "selected_chores": "🧹 Registrerede pligter (valgfrit)",
-          "assigned_to": "🧒 Tildelte børn (valgfrit)",
+          "assigned_to": "🧒 Tildelte børn",
           "award_items": "🎁 PRÆMIER: Vælg point, belønninger, bonusser, multiplikator (valgfrit)",
           "award_points": "🎁 PRÆMIER: Tildelte point (valgfrit)",
           "points_multiplier": "🎁 PRÆMIER: Pointmultiplikator (Standard 💎 1,0x)",
@@ -958,7 +958,7 @@
           "target_type": "🎯 DAGLIGT MÅL: Måltype",
           "threshold_value": "🎯 DAGLIGT MÅL: Tærskelværdi",
           "selected_chores": "🧹 Registrerede pligter (valgfrit)",
-          "assigned_to": "🧒 Tildelte børn (valgfrit)",
+          "assigned_to": "🧒 Tildelte børn",
           "award_items": "🎁 PRÆMIER: Vælg point, belønninger, bonusser, straffe (valgfrit)",
           "award_points": "🎁 PRÆMIER: Tildelte point (valgfrit)"
         },
@@ -990,7 +990,7 @@
           "associated_achievement": "🏆 Tilknyttet præstation",
           "associated_challenge": "🏁 Tilknyttet udfordring",
           "selected_chores": "🧹 Registrerede pligter (valgfrit)",
-          "assigned_to": "🧒 Tildelte børn (valgfrit)",
+          "assigned_to": "🧒 Tildelte børn",
           "award_items": "🎁 PRÆMIER: Vælg point, belønninger, bonusser, straffe (valgfrit)",
           "award_points": "🎁 PRÆMIER: Tildelte point (valgfrit)",
           "recurring_frequency": "🔄 NULSTILCYKLUS: Frekvens",
@@ -1030,7 +1030,7 @@
           "badge_labels": "Etiketter (valgfrit)",
           "icon": "Badge-ikon (mdi:xxx)",
           "associated_achievement": "🏆 Tilknyttet præstation",
-          "assigned_to": "🧒 Tildelte børn (valgfrit)",
+          "assigned_to": "🧒 Tildelte børn",
           "award_items": "🎁 PRÆMIER: Vælg point, belønninger, bonusser (valgfrit)",
           "award_points": "🎁 PRÆMIER: Tildelte point (valgfrit)"
         },
@@ -1054,7 +1054,7 @@
           "badge_labels": "Etiketter (valgfrit)",
           "icon": "Badge-ikon (mdi:xxx)",
           "associated_challenge": "🏁 Tilknyttet udfordring",
-          "assigned_to": "🧒 Tildelte børn (valgfrit)",
+          "assigned_to": "🧒 Tildelte børn",
           "award_items": "🎁 PRÆMIER: Vælg point, belønninger, bonusser (valgfrit)",
           "award_points": "🎁 PRÆMIER: Tildelte point (valgfrit)"
         },
@@ -1084,7 +1084,7 @@
           "custom_interval_unit": "🔄 GENTAGENDE: Brugerdefineret intervalenhed (påkrævet for brugerdefineret frekvens)",
           "start_date": "🔄 GENTAGENDE: Startdato (valgfrit)",
           "grace_period_days": "🔄 GENTAGENDE: Frist i dage (valgfrit)",
-          "assigned_to": "🧒 Tildelte børn (valgfrit)",
+          "assigned_to": "🧒 Tildelte børn",
           "award_items": "🎁 PRÆMIER: Vælg point, belønninger, bonusser (valgfrit)",
           "award_points": "🎁 PRÆMIER: Tildelte point (valgfrit)"
         },
@@ -1523,7 +1523,8 @@
       "options": {
         "notify_on_claim": "Giv besked om krav",
         "notify_on_approval": "Giv besked ved godkendelse",
-        "notify_on_disapproval": "Giv besked ved afvisning"
+        "notify_on_disapproval": "Giv besked ved afvisning",
+        "notify_on_reminder": "Giv besked 30 minutter før forfaldsdato"
       }
     },
     "recurring_frequency": {
@@ -3409,19 +3410,19 @@
   },
   "exceptions": {
     "kid_not_found_by_name": {
-      "message": "Intet barn fundet med navnet '{name}'"
+      "message": "Intet barn fundet med navnet {name}"
     },
     "parent_not_found_by_name": {
-      "message": "Ingen forælder fundet med navnet '{name}'"
+      "message": "Ingen forælder fundet med navnet {name}"
     },
     "kid_already_shadow": {
-      "message": "Barnet '{name}' er allerede knyttet til en forælder"
+      "message": "Barn {name} er allerede knyttet til en forælder"
     },
     "kid_not_shadow": {
-      "message": "Barnet '{name}' er ikke knyttet til nogen forælder"
+      "message": "Barn {name} er ikke knyttet til nogen forælder"
     },
     "parent_has_different_shadow": {
-      "message": "Forælderen '{name}' er allerede knyttet til et andet barn"
+      "message": "Forælder {name} er allerede knyttet til et andet barn"
     },
     "error_msg_no_entry_found": {
       "message": "Ingen matchende post fundet i konfigurationen."

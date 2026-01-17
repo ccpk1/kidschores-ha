@@ -145,7 +145,7 @@
           "associated_achievement": "🏆 Auszeichnung",
           "associated_challenge": "🏁 Zugehörige Herausforderung",
           "selected_chores": "🧹 Erfasste Aufgaben (optional)",
-          "assigned_to": "🧒 Zugewiesene Kinder (optional)",
+          "assigned_to": "🧒 Zugewiesene Kinder",
           "award_items": "🎁 AUSZEICHNUNGEN: Punkte, Prämien, Boni, Multiplikator auswählen (optional)",
           "award_points": "🎁 AUSZEICHNUNGEN: Vergebene Punkte (optional)",
           "points_multiplier": "🎁 AUSZEICHNUNGEN: Punktemultiplikator (Standard 💎 1,0x)",
@@ -498,7 +498,7 @@
           "associated_achievement": "🏆 Auszeichnung",
           "associated_challenge": "🏁 Zugehörige Herausforderung",
           "selected_chores": "🧹 Erfasste Aufgaben (optional)",
-          "assigned_to": "🧒 Zugewiesene Kinder (optional)",
+          "assigned_to": "🧒 Zugewiesene Kinder",
           "award_items": "🎁 AUSZEICHNUNGEN: Punkte, Prämien, Boni, Multiplikator auswählen (optional)",
           "award_points": "🎁 AUSZEICHNUNGEN: Vergebene Punkte (optional)",
           "points_multiplier": "🎁 AUSZEICHNUNGEN: Punktemultiplikator (Standard 💎 1,0x)",
@@ -520,7 +520,7 @@
           "occasion_type": "Wählen Sie die Art des Anlasses für dieses Abzeichen (z. B. Feiertag, Geburtstag).",
           "associated_achievement": "Verknüpfe dieses Abzeichen mit einer Errungenschaft, um deren Erfolg zu verfolgen.",
           "associated_challenge": "Verknüpfe dieses Abzeichen mit einer Herausforderung, um die Nachverfolgung zu ermöglichen.",
-          "selected_chores": "Wählen Sie die Aufgaben aus, die Punkte für dieses Abzeichen einbringen. Lassen Sie das Feld leer, wenn Sie alle zugewiesenen Aufgaben erfassen möchten (optional).",
+          "selected_chores": "Wählen Sie die Aufgaben aus, die Punkte für dieses Abzeichen einbringen. Lassen Sie das Feld leer, um alle zugewiesenen Aufgaben zu erfassen (optional).",
           "assigned_to": "Weisen Sie dieses Abzeichen bestimmten Kindern zur Nachverfolgung zu.",
           "award_items": "Wähle eine oder mehrere der Optionen Punkte, Belohnungen, Boni oder einen Punktemultiplikator aus. Alle ausgewählten Elemente werden gutgeschrieben bzw. angewendet, sobald das Abzeichen verdient wurde. (optional)",
           "award_points": "Wenn Punkte als Auszeichnung ausgewählt sind, geben Sie die Anzahl der Punkte an, die beim Erhalt dieses Abzeichens angerechnet werden sollen. (optional).",
@@ -544,7 +544,7 @@
           "target_type": "🎯 TÄGLICHES ZIEL: Zieltyp",
           "threshold_value": "🎯 TÄGLICHES ZIEL: Schwellenwert",
           "selected_chores": "🧹 Erfasste Aufgaben (optional)",
-          "assigned_to": "🧒 Zugewiesene Kinder (optional)",
+          "assigned_to": "🧒 Zugewiesene Kinder",
           "award_items": "🎁 AUSZEICHNUNGEN: Punkte, Prämien, Boni, Strafen auswählen (optional)",
           "award_points": "🎁 AUSZEICHNUNGEN: Vergebene Punkte (optional)"
         },
@@ -576,7 +576,7 @@
           "associated_achievement": "🏆 Auszeichnung",
           "associated_challenge": "🏁 Zugehörige Herausforderung",
           "selected_chores": "🧹 Erfasste Aufgaben (optional)",
-          "assigned_to": "🧒 Zugewiesene Kinder (optional)",
+          "assigned_to": "🧒 Zugewiesene Kinder",
           "award_items": "🎁 AUSZEICHNUNGEN: Punkte, Prämien, Boni, Strafen auswählen (optional)",
           "award_points": "🎁 AUSZEICHNUNGEN: Vergebene Punkte (optional)",
           "recurring_frequency": "🔄 RESET-ZYKLUS: Frequenz",
@@ -616,7 +616,7 @@
           "badge_labels": "Etiketten (optional)",
           "icon": "Abzeichen-Symbol (mdi:xxx)",
           "associated_achievement": "🏆 Auszeichnung",
-          "assigned_to": "🧒 Zugewiesene Kinder (optional)",
+          "assigned_to": "🧒 Zugewiesene Kinder",
           "award_items": "🎁 AUSZEICHNUNGEN: Punkte, Prämien, Boni auswählen (optional)",
           "award_points": "🎁 AUSZEICHNUNGEN: Vergebene Punkte (optional)"
         },
@@ -640,7 +640,7 @@
           "badge_labels": "Etiketten (optional)",
           "icon": "Abzeichen-Symbol (mdi:xxx)",
           "associated_challenge": "🏁 Zugehörige Herausforderung",
-          "assigned_to": "🧒 Zugewiesene Kinder (optional)",
+          "assigned_to": "🧒 Zugewiesene Kinder",
           "award_items": "🎁 AUSZEICHNUNGEN: Punkte, Prämien, Boni auswählen (optional)",
           "award_points": "🎁 AUSZEICHNUNGEN: Vergebene Punkte (optional)"
         },
@@ -670,7 +670,7 @@
           "custom_interval_unit": "🔄 WIEDERHOLUNG: Benutzerdefinierte Intervalleinheit (erforderlich für benutzerdefinierte Frequenz)",
           "start_date": "🔄 WIEDERHOLUNG: Startdatum (optional)",
           "grace_period_days": "🔄 WIEDERHOLUNG: Nachfrist in Tagen (optional)",
-          "assigned_to": "🧒 Zugewiesene Kinder (optional)",
+          "assigned_to": "🧒 Zugewiesene Kinder",
           "award_items": "🎁 AUSZEICHNUNGEN: Punkte, Prämien, Boni auswählen (optional)",
           "award_points": "🎁 AUSZEICHNUNGEN: Vergebene Punkte (optional)"
         },
@@ -912,7 +912,7 @@
           "associated_achievement": "🏆 Auszeichnung",
           "associated_challenge": "🏁 Zugehörige Herausforderung",
           "selected_chores": "🧹 Erfasste Aufgaben (optional)",
-          "assigned_to": "🧒 Zugewiesene Kinder (optional)",
+          "assigned_to": "🧒 Zugewiesene Kinder",
           "award_items": "🎁 AUSZEICHNUNGEN: Punkte, Prämien, Boni, Multiplikator auswählen (optional)",
           "award_points": "🎁 AUSZEICHNUNGEN: Vergebene Punkte (optional)",
           "points_multiplier": "🎁 AUSZEICHNUNGEN: Punktemultiplikator (Standard 💎 1,0x)",
@@ -958,7 +958,7 @@
           "target_type": "🎯 TÄGLICHES ZIEL: Zieltyp",
           "threshold_value": "🎯 TÄGLICHES ZIEL: Schwellenwert",
           "selected_chores": "🧹 Erfasste Aufgaben (optional)",
-          "assigned_to": "🧒 Zugewiesene Kinder (optional)",
+          "assigned_to": "🧒 Zugewiesene Kinder",
           "award_items": "🎁 AUSZEICHNUNGEN: Punkte, Prämien, Boni, Strafen auswählen (optional)",
           "award_points": "🎁 AUSZEICHNUNGEN: Vergebene Punkte (optional)"
         },
@@ -990,7 +990,7 @@
           "associated_achievement": "🏆 Auszeichnung",
           "associated_challenge": "🏁 Zugehörige Herausforderung",
           "selected_chores": "🧹 Erfasste Aufgaben (optional)",
-          "assigned_to": "🧒 Zugewiesene Kinder (optional)",
+          "assigned_to": "🧒 Zugewiesene Kinder",
           "award_items": "🎁 AUSZEICHNUNGEN: Punkte, Prämien, Boni, Strafen auswählen (optional)",
           "award_points": "🎁 AUSZEICHNUNGEN: Vergebene Punkte (optional)",
           "recurring_frequency": "🔄 RESET-ZYKLUS: Frequenz",
@@ -1030,7 +1030,7 @@
           "badge_labels": "Etiketten (optional)",
           "icon": "Abzeichen-Symbol (mdi:xxx)",
           "associated_achievement": "🏆 Auszeichnung",
-          "assigned_to": "🧒 Zugewiesene Kinder (optional)",
+          "assigned_to": "🧒 Zugewiesene Kinder",
           "award_items": "🎁 AUSZEICHNUNGEN: Punkte, Prämien, Boni auswählen (optional)",
           "award_points": "🎁 AUSZEICHNUNGEN: Vergebene Punkte (optional)"
         },
@@ -1054,7 +1054,7 @@
           "badge_labels": "Etiketten (optional)",
           "icon": "Abzeichen-Symbol (mdi:xxx)",
           "associated_challenge": "🏁 Zugehörige Herausforderung",
-          "assigned_to": "🧒 Zugewiesene Kinder (optional)",
+          "assigned_to": "🧒 Zugewiesene Kinder",
           "award_items": "🎁 AUSZEICHNUNGEN: Punkte, Prämien, Boni auswählen (optional)",
           "award_points": "🎁 AUSZEICHNUNGEN: Vergebene Punkte (optional)"
         },
@@ -1084,7 +1084,7 @@
           "custom_interval_unit": "🔄 WIEDERHOLUNG: Benutzerdefinierte Intervalleinheit (erforderlich für benutzerdefinierte Frequenz)",
           "start_date": "🔄 WIEDERHOLUNG: Startdatum (optional)",
           "grace_period_days": "🔄 WIEDERHOLUNG: Nachfrist in Tagen (optional)",
-          "assigned_to": "🧒 Zugewiesene Kinder (optional)",
+          "assigned_to": "🧒 Zugewiesene Kinder",
           "award_items": "🎁 AUSZEICHNUNGEN: Punkte, Prämien, Boni auswählen (optional)",
           "award_points": "🎁 AUSZEICHNUNGEN: Vergebene Punkte (optional)"
         },
@@ -1523,7 +1523,8 @@
       "options": {
         "notify_on_claim": "Benachrichtigung über den Anspruch",
         "notify_on_approval": "Benachrichtigung bei Genehmigung",
-        "notify_on_disapproval": "Bei Ablehnung benachrichtigen"
+        "notify_on_disapproval": "Bei Ablehnung benachrichtigen",
+        "notify_on_reminder": "Benachrichtigen Sie 30 Minuten vor Fälligkeit"
       }
     },
     "recurring_frequency": {
@@ -3409,19 +3410,19 @@
   },
   "exceptions": {
     "kid_not_found_by_name": {
-      "message": "Kein Kind mit dem Namen '{name}' gefunden"
+      "message": "Kein Kind mit dem Namen {name}gefunden."
     },
     "parent_not_found_by_name": {
-      "message": "Kein übergeordnetes Element mit dem Namen '{name}' gefunden."
+      "message": "Kein übergeordnetes Element mit dem Namen {name}gefunden."
     },
     "kid_already_shadow": {
-      "message": "Kind '{name}' ist bereits mit einem Elternteil verknüpft"
+      "message": "Kind {name} ist bereits mit einem Elternteil verknüpft"
     },
     "kid_not_shadow": {
-      "message": "Kind '{name}' ist keinem Elternteil zugeordnet"
+      "message": "Kind {name} ist keinem Elternteil zugeordnet"
     },
     "parent_has_different_shadow": {
-      "message": "Das übergeordnete Element '{name}' ist bereits mit einem anderen Kind verknüpft."
+      "message": "Das übergeordnete Kind {name} ist bereits mit einem anderen Kind verknüpft."
     },
     "error_msg_no_entry_found": {
       "message": "In der Konfiguration wurde kein passender Eintrag gefunden."

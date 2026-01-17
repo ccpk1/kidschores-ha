@@ -145,7 +145,7 @@
           "associated_achievement": "🏆 Liittyvä saavutus",
           "associated_challenge": "🏁 Liittyvä haaste",
           "selected_chores": "🧹 Seurattavat askareet (valinnainen)",
-          "assigned_to": "🧒 Määrätyt lapset (valinnainen)",
+          "assigned_to": "🧒 Määrätyt lapset",
           "award_items": "🎁 PALKINNOT: Valitse pisteet, palkinnot, bonukset, kerroin (valinnainen)",
           "award_points": "🎁 PALKINNOT: Myönnetyt pisteet (valinnainen)",
           "points_multiplier": "🎁 PALKINNOT: Pistekerroin (Oletus 💎 1,0x)",
@@ -498,7 +498,7 @@
           "associated_achievement": "🏆 Liittyvä saavutus",
           "associated_challenge": "🏁 Liittyvä haaste",
           "selected_chores": "🧹 Seurattavat askareet (valinnainen)",
-          "assigned_to": "🧒 Määrätyt lapset (valinnainen)",
+          "assigned_to": "🧒 Määrätyt lapset",
           "award_items": "🎁 PALKINNOT: Valitse pisteet, palkinnot, bonukset, kerroin (valinnainen)",
           "award_points": "🎁 PALKINNOT: Myönnetyt pisteet (valinnainen)",
           "points_multiplier": "🎁 PALKINNOT: Pistekerroin (Oletus 💎 1,0x)",
@@ -520,7 +520,7 @@
           "occasion_type": "Valitse tämän merkin tilaisuuden tyyppi (esim. loma, syntymäpäivä).",
           "associated_achievement": "Linkitä tämä ansiomerkki saavutukseen seurantaa varten.",
           "associated_challenge": "Linkitä tämä merkki seurantahaasteeseen.",
-          "selected_chores": "Valitse tehtävät, jotka kerryttävät pisteitä tähän merkkiin. Jätä tyhjäksi, jos haluat seurata kaikkia määrättyjä tehtäviä (valinnainen).",
+          "selected_chores": "Valitse tehtävät, jotka kerryttävät pisteitä tähän merkkiin. Jätä tyhjäksi seurataksesi kaikkia määrättyjä tehtäviä (valinnainen).",
           "assigned_to": "Anna tämä merkki tietyille lapsille seurantaa varten.",
           "award_items": "Valitse yksi tai useampi pisteistä, palkinnoista, bonuksista tai pistekertoimesta. Kaikki valitut kohteet myönnetään tai niitä käytetään, kun merkki ansaitaan. (valinnainen)",
           "award_points": "Jos pisteet ovat valittu palkinto, määritä pisteiden määrä, joka lisätään, kun tämä ansiomerkki ansaitaan. (valinnainen)",
@@ -544,7 +544,7 @@
           "target_type": "🎯 PÄIVITTÄINEN TAVOITE: Tavoitteen tyyppi",
           "threshold_value": "🎯 PÄIVITTÄINEN TAVOITE: Kynnysarvo",
           "selected_chores": "🧹 Seurattavat askareet (valinnainen)",
-          "assigned_to": "🧒 Määrätyt lapset (valinnainen)",
+          "assigned_to": "🧒 Määrätyt lapset",
           "award_items": "🎁 PALKINNOT: Valitse pisteet, palkinnot, bonukset, rangaistukset (valinnainen)",
           "award_points": "🎁 PALKINNOT: Myönnetyt pisteet (valinnainen)"
         },
@@ -576,7 +576,7 @@
           "associated_achievement": "🏆 Liittyvä saavutus",
           "associated_challenge": "🏁 Liittyvä haaste",
           "selected_chores": "🧹 Seurattavat askareet (valinnainen)",
-          "assigned_to": "🧒 Määrätyt lapset (valinnainen)",
+          "assigned_to": "🧒 Määrätyt lapset",
           "award_items": "🎁 PALKINNOT: Valitse pisteet, palkinnot, bonukset, rangaistukset (valinnainen)",
           "award_points": "🎁 PALKINNOT: Myönnetyt pisteet (valinnainen)",
           "recurring_frequency": "🔄 NOLLAUSSYKLI: Tiheys",
@@ -616,7 +616,7 @@
           "badge_labels": "Tarrat (valinnainen)",
           "icon": "Tunnuskuvake (mdi:xxx)",
           "associated_achievement": "🏆 Liittyvä saavutus",
-          "assigned_to": "🧒 Määrätyt lapset (valinnainen)",
+          "assigned_to": "🧒 Määrätyt lapset",
           "award_items": "🎁 PALKINNOT: Valitse pisteet, palkinnot, bonukset (valinnainen)",
           "award_points": "🎁 PALKINNOT: Myönnetyt pisteet (valinnainen)"
         },
@@ -640,7 +640,7 @@
           "badge_labels": "Tarrat (valinnainen)",
           "icon": "Tunnuskuvake (mdi:xxx)",
           "associated_challenge": "🏁 Liittyvä haaste",
-          "assigned_to": "🧒 Määrätyt lapset (valinnainen)",
+          "assigned_to": "🧒 Määrätyt lapset",
           "award_items": "🎁 PALKINNOT: Valitse pisteet, palkinnot, bonukset (valinnainen)",
           "award_points": "🎁 PALKINNOT: Myönnetyt pisteet (valinnainen)"
         },
@@ -670,7 +670,7 @@
           "custom_interval_unit": "🔄 TOISTUVUUS: Mukautettu aikavälin yksikkö (pakollinen mukautetulle taajuudelle)",
           "start_date": "🔄 TOISTUVUUS: Aloituspäivämäärä (valinnainen)",
           "grace_period_days": "🔄 TOISTUVA: Lisäaika päivinä (valinnainen)",
-          "assigned_to": "🧒 Määrätyt lapset (valinnainen)",
+          "assigned_to": "🧒 Määrätyt lapset",
           "award_items": "🎁 PALKINNOT: Valitse pisteet, palkinnot, bonukset (valinnainen)",
           "award_points": "🎁 PALKINNOT: Myönnetyt pisteet (valinnainen)"
         },
@@ -912,7 +912,7 @@
           "associated_achievement": "🏆 Liittyvä saavutus",
           "associated_challenge": "🏁 Liittyvä haaste",
           "selected_chores": "🧹 Seurattavat askareet (valinnainen)",
-          "assigned_to": "🧒 Määrätyt lapset (valinnainen)",
+          "assigned_to": "🧒 Määrätyt lapset",
           "award_items": "🎁 PALKINNOT: Valitse pisteet, palkinnot, bonukset, kerroin (valinnainen)",
           "award_points": "🎁 PALKINNOT: Myönnetyt pisteet (valinnainen)",
           "points_multiplier": "🎁 PALKINNOT: Pistekerroin (Oletus 💎 1,0x)",
@@ -958,7 +958,7 @@
           "target_type": "🎯 PÄIVITTÄINEN TAVOITE: Tavoitteen tyyppi",
           "threshold_value": "🎯 PÄIVITTÄINEN TAVOITE: Kynnysarvo",
           "selected_chores": "🧹 Seurattavat askareet (valinnainen)",
-          "assigned_to": "🧒 Määrätyt lapset (valinnainen)",
+          "assigned_to": "🧒 Määrätyt lapset",
           "award_items": "🎁 PALKINNOT: Valitse pisteet, palkinnot, bonukset, rangaistukset (valinnainen)",
           "award_points": "🎁 PALKINNOT: Myönnetyt pisteet (valinnainen)"
         },
@@ -990,7 +990,7 @@
           "associated_achievement": "🏆 Liittyvä saavutus",
           "associated_challenge": "🏁 Liittyvä haaste",
           "selected_chores": "🧹 Seurattavat askareet (valinnainen)",
-          "assigned_to": "🧒 Määrätyt lapset (valinnainen)",
+          "assigned_to": "🧒 Määrätyt lapset",
           "award_items": "🎁 PALKINNOT: Valitse pisteet, palkinnot, bonukset, rangaistukset (valinnainen)",
           "award_points": "🎁 PALKINNOT: Myönnetyt pisteet (valinnainen)",
           "recurring_frequency": "🔄 NOLLAUSSYKLI: Tiheys",
@@ -1030,7 +1030,7 @@
           "badge_labels": "Tarrat (valinnainen)",
           "icon": "Tunnuskuvake (mdi:xxx)",
           "associated_achievement": "🏆 Liittyvä saavutus",
-          "assigned_to": "🧒 Määrätyt lapset (valinnainen)",
+          "assigned_to": "🧒 Määrätyt lapset",
           "award_items": "🎁 PALKINNOT: Valitse pisteet, palkinnot, bonukset (valinnainen)",
           "award_points": "🎁 PALKINNOT: Myönnetyt pisteet (valinnainen)"
         },
@@ -1054,7 +1054,7 @@
           "badge_labels": "Tarrat (valinnainen)",
           "icon": "Tunnuskuvake (mdi:xxx)",
           "associated_challenge": "🏁 Liittyvä haaste",
-          "assigned_to": "🧒 Määrätyt lapset (valinnainen)",
+          "assigned_to": "🧒 Määrätyt lapset",
           "award_items": "🎁 PALKINNOT: Valitse pisteet, palkinnot, bonukset (valinnainen)",
           "award_points": "🎁 PALKINNOT: Myönnetyt pisteet (valinnainen)"
         },
@@ -1084,7 +1084,7 @@
           "custom_interval_unit": "🔄 TOISTUVUUS: Mukautettu aikavälin yksikkö (pakollinen mukautetulle taajuudelle)",
           "start_date": "🔄 TOISTUVUUS: Aloituspäivämäärä (valinnainen)",
           "grace_period_days": "🔄 TOISTUVA: Lisäaika päivinä (valinnainen)",
-          "assigned_to": "🧒 Määrätyt lapset (valinnainen)",
+          "assigned_to": "🧒 Määrätyt lapset",
           "award_items": "🎁 PALKINNOT: Valitse pisteet, palkinnot, bonukset (valinnainen)",
           "award_points": "🎁 PALKINNOT: Myönnetyt pisteet (valinnainen)"
         },
@@ -1523,7 +1523,8 @@
       "options": {
         "notify_on_claim": "Ilmoita vaatimuksesta",
         "notify_on_approval": "Ilmoita hyväksynnästä",
-        "notify_on_disapproval": "Ilmoita hylkäämisestä"
+        "notify_on_disapproval": "Ilmoita hylkäämisestä",
+        "notify_on_reminder": "Ilmoita 30 minuuttia ennen eräpäivää"
       }
     },
     "recurring_frequency": {
@@ -3409,19 +3410,19 @@
   },
   "exceptions": {
     "kid_not_found_by_name": {
-      "message": "Ei löytynyt lasta nimeltä '{name}'"
+      "message": "Nimellä {name}ei löytynyt lasta"
     },
     "parent_not_found_by_name": {
-      "message": "Ei löydy pääobjektia nimellä '{name}'"
+      "message": "Ei löydy pääasiallista kohdetta nimellä {name}"
     },
     "kid_already_shadow": {
-      "message": "Lapsi '{name}' on jo linkitetty vanhempaan"
+      "message": "Lapsi {name} on jo linkitetty vanhempaan"
     },
     "kid_not_shadow": {
-      "message": "Lapsi '{name}' ei ole linkitetty vanhempaan"
+      "message": "Lapsi {name} ei ole linkitetty vanhempaan"
     },
     "parent_has_different_shadow": {
-      "message": "Vanhempi '{name}' on jo linkitetty eri lapseen"
+      "message": "Vanhempi {name} on jo linkitetty toiseen lapseen"
     },
     "error_msg_no_entry_found": {
       "message": "Kokoonpanosta ei löytynyt vastaavaa merkintää."

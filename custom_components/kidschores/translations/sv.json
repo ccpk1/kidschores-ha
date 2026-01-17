@@ -145,7 +145,7 @@
           "associated_achievement": "🏆 Tillhörande prestation",
           "associated_challenge": "🏁 Associerad utmaning",
           "selected_chores": "🧹 Spårade sysslor (valfritt)",
-          "assigned_to": "🧒 Tilldelade barn (valfritt)",
+          "assigned_to": "🧒 Tilldelade barn",
           "award_items": "🎁 UTMÄRKELSER: Välj poäng, belöningar, bonusar, multiplikator (valfritt)",
           "award_points": "🎁 UTMÄRKELSER: Poäng tilldelade (valfritt)",
           "points_multiplier": "🎁 UTMÄRKELSER: Poängmultiplikator (Standard 💎 1.0x)",
@@ -498,7 +498,7 @@
           "associated_achievement": "🏆 Tillhörande prestation",
           "associated_challenge": "🏁 Associerad utmaning",
           "selected_chores": "🧹 Spårade sysslor (valfritt)",
-          "assigned_to": "🧒 Tilldelade barn (valfritt)",
+          "assigned_to": "🧒 Tilldelade barn",
           "award_items": "🎁 UTMÄRKELSER: Välj poäng, belöningar, bonusar, multiplikator (valfritt)",
           "award_points": "🎁 UTMÄRKELSER: Poäng tilldelade (valfritt)",
           "points_multiplier": "🎁 UTMÄRKELSER: Poängmultiplikator (Standard 💎 1.0x)",
@@ -520,7 +520,7 @@
           "occasion_type": "Välj typ av tillfälle för den här märket (t.ex. helgdag, födelsedag).",
           "associated_achievement": "Koppla detta märke till en prestation för spårning.",
           "associated_challenge": "Länka den här etiketten till en utmaning för spårning.",
-          "selected_chores": "Välj de sysslor som bidrar med poäng till detta märke. Lämna tomt om du vill spåra alla tilldelade sysslor (valfritt).",
+          "selected_chores": "Välj de sysslor som bidrar med poäng till detta märke. Lämna tomt för att spåra alla tilldelade sysslor (valfritt).",
           "assigned_to": "Tilldela den här märket till specifika barn för spårning.",
           "award_items": "Välj en eller flera av poäng, belöningar, bonusar eller en poängmultiplikator. Alla valda objekt kommer att beviljas eller tillämpas när märket är intjänat. (valfritt)",
           "award_points": "Om poäng är en vald utmärkelse, ange antalet poäng som ska tillämpas när denna utmärkelse erhålls. (valfritt).",
@@ -544,7 +544,7 @@
           "target_type": "🎯 DAGLIGT MÅL: Måltyp",
           "threshold_value": "🎯 DAGLIGT MÅL: Tröskelvärde",
           "selected_chores": "🧹 Spårade sysslor (valfritt)",
-          "assigned_to": "🧒 Tilldelade barn (valfritt)",
+          "assigned_to": "🧒 Tilldelade barn",
           "award_items": "🎁 UTMÄRKELSER: Välj poäng, belöningar, bonusar, straff (valfritt)",
           "award_points": "🎁 UTMÄRKELSER: Poäng tilldelade (valfritt)"
         },
@@ -576,7 +576,7 @@
           "associated_achievement": "🏆 Tillhörande prestation",
           "associated_challenge": "🏁 Associerad utmaning",
           "selected_chores": "🧹 Spårade sysslor (valfritt)",
-          "assigned_to": "🧒 Tilldelade barn (valfritt)",
+          "assigned_to": "🧒 Tilldelade barn",
           "award_items": "🎁 UTMÄRKELSER: Välj poäng, belöningar, bonusar, straff (valfritt)",
           "award_points": "🎁 UTMÄRKELSER: Poäng tilldelade (valfritt)",
           "recurring_frequency": "🔄 ÅTERSTÄLLNINGSCYKEL: Frekvens",
@@ -616,7 +616,7 @@
           "badge_labels": "Etiketter (valfritt)",
           "icon": "Märkesikon (mdi:xxx)",
           "associated_achievement": "🏆 Tillhörande prestation",
-          "assigned_to": "🧒 Tilldelade barn (valfritt)",
+          "assigned_to": "🧒 Tilldelade barn",
           "award_items": "🎁 UTMÄRKELSER: Välj poäng, belöningar, bonusar (valfritt)",
           "award_points": "🎁 UTMÄRKELSER: Poäng tilldelade (valfritt)"
         },
@@ -640,7 +640,7 @@
           "badge_labels": "Etiketter (valfritt)",
           "icon": "Märkesikon (mdi:xxx)",
           "associated_challenge": "🏁 Associerad utmaning",
-          "assigned_to": "🧒 Tilldelade barn (valfritt)",
+          "assigned_to": "🧒 Tilldelade barn",
           "award_items": "🎁 UTMÄRKELSER: Välj poäng, belöningar, bonusar (valfritt)",
           "award_points": "🎁 UTMÄRKELSER: Poäng tilldelade (valfritt)"
         },
@@ -670,7 +670,7 @@
           "custom_interval_unit": "🔄 ÅTERKOMMANDE: Anpassad intervallenhet (Krävs för anpassad frekvens)",
           "start_date": "🔄 ÅTERKOMMANDE: Startdatum (valfritt)",
           "grace_period_days": "🔄 ÅTERKOMMANDE: Respitperiod i dagar (valfritt)",
-          "assigned_to": "🧒 Tilldelade barn (valfritt)",
+          "assigned_to": "🧒 Tilldelade barn",
           "award_items": "🎁 UTMÄRKELSER: Välj poäng, belöningar, bonusar (valfritt)",
           "award_points": "🎁 UTMÄRKELSER: Poäng tilldelade (valfritt)"
         },
@@ -912,7 +912,7 @@
           "associated_achievement": "🏆 Tillhörande prestation",
           "associated_challenge": "🏁 Associerad utmaning",
           "selected_chores": "🧹 Spårade sysslor (valfritt)",
-          "assigned_to": "🧒 Tilldelade barn (valfritt)",
+          "assigned_to": "🧒 Tilldelade barn",
           "award_items": "🎁 UTMÄRKELSER: Välj poäng, belöningar, bonusar, multiplikator (valfritt)",
           "award_points": "🎁 UTMÄRKELSER: Poäng tilldelade (valfritt)",
           "points_multiplier": "🎁 UTMÄRKELSER: Poängmultiplikator (Standard 💎 1.0x)",
@@ -958,7 +958,7 @@
           "target_type": "🎯 DAGLIGT MÅL: Måltyp",
           "threshold_value": "🎯 DAGLIGT MÅL: Tröskelvärde",
           "selected_chores": "🧹 Spårade sysslor (valfritt)",
-          "assigned_to": "🧒 Tilldelade barn (valfritt)",
+          "assigned_to": "🧒 Tilldelade barn",
           "award_items": "🎁 UTMÄRKELSER: Välj poäng, belöningar, bonusar, straff (valfritt)",
           "award_points": "🎁 UTMÄRKELSER: Poäng tilldelade (valfritt)"
         },
@@ -990,7 +990,7 @@
           "associated_achievement": "🏆 Tillhörande prestation",
           "associated_challenge": "🏁 Associerad utmaning",
           "selected_chores": "🧹 Spårade sysslor (valfritt)",
-          "assigned_to": "🧒 Tilldelade barn (valfritt)",
+          "assigned_to": "🧒 Tilldelade barn",
           "award_items": "🎁 UTMÄRKELSER: Välj poäng, belöningar, bonusar, straff (valfritt)",
           "award_points": "🎁 UTMÄRKELSER: Poäng tilldelade (valfritt)",
           "recurring_frequency": "🔄 ÅTERSTÄLLNINGSCYKEL: Frekvens",
@@ -1030,7 +1030,7 @@
           "badge_labels": "Etiketter (valfritt)",
           "icon": "Märkesikon (mdi:xxx)",
           "associated_achievement": "🏆 Tillhörande prestation",
-          "assigned_to": "🧒 Tilldelade barn (valfritt)",
+          "assigned_to": "🧒 Tilldelade barn",
           "award_items": "🎁 UTMÄRKELSER: Välj poäng, belöningar, bonusar (valfritt)",
           "award_points": "🎁 UTMÄRKELSER: Poäng tilldelade (valfritt)"
         },
@@ -1054,7 +1054,7 @@
           "badge_labels": "Etiketter (valfritt)",
           "icon": "Märkesikon (mdi:xxx)",
           "associated_challenge": "🏁 Associerad utmaning",
-          "assigned_to": "🧒 Tilldelade barn (valfritt)",
+          "assigned_to": "🧒 Tilldelade barn",
           "award_items": "🎁 UTMÄRKELSER: Välj poäng, belöningar, bonusar (valfritt)",
           "award_points": "🎁 UTMÄRKELSER: Poäng tilldelade (valfritt)"
         },
@@ -1084,7 +1084,7 @@
           "custom_interval_unit": "🔄 ÅTERKOMMANDE: Anpassad intervallenhet (Krävs för anpassad frekvens)",
           "start_date": "🔄 ÅTERKOMMANDE: Startdatum (valfritt)",
           "grace_period_days": "🔄 ÅTERKOMMANDE: Respitperiod i dagar (valfritt)",
-          "assigned_to": "🧒 Tilldelade barn (valfritt)",
+          "assigned_to": "🧒 Tilldelade barn",
           "award_items": "🎁 UTMÄRKELSER: Välj poäng, belöningar, bonusar (valfritt)",
           "award_points": "🎁 UTMÄRKELSER: Poäng tilldelade (valfritt)"
         },
@@ -1523,7 +1523,8 @@
       "options": {
         "notify_on_claim": "Meddela vid anspråk",
         "notify_on_approval": "Meddela vid godkännande",
-        "notify_on_disapproval": "Meddela vid avslag"
+        "notify_on_disapproval": "Meddela vid avslag",
+        "notify_on_reminder": "Meddela 30 minuter före förfallodatum"
       }
     },
     "recurring_frequency": {
@@ -3409,19 +3410,19 @@
   },
   "exceptions": {
     "kid_not_found_by_name": {
-      "message": "Inget barn hittades med namnet '{name}'"
+      "message": "Inget barn hittades med namnet {name}"
     },
     "parent_not_found_by_name": {
-      "message": "Ingen förälder hittades med namnet '{name}'"
+      "message": "Ingen förälder hittades med namnet {name}"
     },
     "kid_already_shadow": {
-      "message": "Barnet '{name}' är redan länkat till en förälder"
+      "message": "Barn {name} är redan länkat till en förälder"
     },
     "kid_not_shadow": {
-      "message": "Barnet '{name}' är inte kopplat till någon förälder"
+      "message": "Barn {name} är inte kopplat till någon förälder"
     },
     "parent_has_different_shadow": {
-      "message": "Föräldern '{name}' är redan länkad till ett annat barn"
+      "message": "Förälder {name} är redan länkad till ett annat barn"
     },
     "error_msg_no_entry_found": {
       "message": "Ingen matchande post hittades i konfigurationen."

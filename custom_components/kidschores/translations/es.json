@@ -145,7 +145,7 @@
           "associated_achievement": "🏆 Logro asociado",
           "associated_challenge": "🏁 Desafío asociado",
           "selected_chores": "🧹 Tareas rastreadas (opcional)",
-          "assigned_to": "🧒 Niños asignados (opcional)",
+          "assigned_to": "🧒 Niños asignados",
           "award_items": "🎁 PREMIOS: Seleccione Puntos, Recompensas, Bonificaciones, Multiplicador (Opcional)",
           "award_points": "🎁 PREMIOS: Puntos otorgados (opcional)",
           "points_multiplier": "🎁 PREMIOS: Multiplicador de puntos (Predeterminado 💎 1.0x)",
@@ -498,7 +498,7 @@
           "associated_achievement": "🏆 Logro asociado",
           "associated_challenge": "🏁 Desafío asociado",
           "selected_chores": "🧹 Tareas rastreadas (opcional)",
-          "assigned_to": "🧒 Niños asignados (opcional)",
+          "assigned_to": "🧒 Niños asignados",
           "award_items": "🎁 PREMIOS: Seleccione Puntos, Recompensas, Bonificaciones, Multiplicador (Opcional)",
           "award_points": "🎁 PREMIOS: Puntos otorgados (opcional)",
           "points_multiplier": "🎁 PREMIOS: Multiplicador de puntos (Predeterminado 💎 1.0x)",
@@ -520,7 +520,7 @@
           "occasion_type": "Elija el tipo de ocasión para esta insignia (por ejemplo, feriado, cumpleaños).",
           "associated_achievement": "Vincula esta insignia a un logro para realizar un seguimiento.",
           "associated_challenge": "Vincula esta insignia a un desafío para su seguimiento.",
-          "selected_chores": "Selecciona las tareas que otorgan puntos para esta insignia. Deja en blanco si deseas hacer un seguimiento de todas las tareas asignadas (opcional).",
+          "selected_chores": "Seleccione las tareas que otorgan puntos para esta insignia. Deje en blanco para registrar todas las tareas asignadas (opcional).",
           "assigned_to": "Asigne esta insignia a niños específicos para su seguimiento.",
           "award_items": "Selecciona uno o más elementos: puntos, recompensas, bonificaciones o un multiplicador de puntos. Todos los artículos seleccionados se otorgarán o aplicarán al obtener la insignia. (opcional)",
           "award_points": "Si los puntos son un premio seleccionado, especifique la cantidad de puntos que se aplicarán cuando se obtenga esta insignia. (opcional).",
@@ -544,7 +544,7 @@
           "target_type": "🎯 OBJETIVO DIARIO: Tipo de objetivo",
           "threshold_value": "OBJETIVO DIARIO: Valor Umbral",
           "selected_chores": "🧹 Tareas rastreadas (opcional)",
-          "assigned_to": "🧒 Niños asignados (opcional)",
+          "assigned_to": "🧒 Niños asignados",
           "award_items": "🎁 PREMIOS: Seleccione Puntos, Recompensas, Bonificaciones, Penalizaciones (Opcional)",
           "award_points": "🎁 PREMIOS: Puntos otorgados (opcional)"
         },
@@ -576,7 +576,7 @@
           "associated_achievement": "🏆 Logro asociado",
           "associated_challenge": "🏁 Desafío asociado",
           "selected_chores": "🧹 Tareas rastreadas (opcional)",
-          "assigned_to": "🧒 Niños asignados (opcional)",
+          "assigned_to": "🧒 Niños asignados",
           "award_items": "🎁 PREMIOS: Seleccione Puntos, Recompensas, Bonificaciones, Penalizaciones (Opcional)",
           "award_points": "🎁 PREMIOS: Puntos otorgados (opcional)",
           "recurring_frequency": "🔄 CICLO DE REINICIO: Frecuencia",
@@ -616,7 +616,7 @@
           "badge_labels": "Etiquetas (opcional)",
           "icon": "Icono de insignia (mdi:xxx)",
           "associated_achievement": "🏆 Logro asociado",
-          "assigned_to": "🧒 Niños asignados (opcional)",
+          "assigned_to": "🧒 Niños asignados",
           "award_items": "🎁 PREMIOS: Seleccione Puntos, Recompensas, Bonificaciones (Opcional)",
           "award_points": "🎁 PREMIOS: Puntos otorgados (opcional)"
         },
@@ -640,7 +640,7 @@
           "badge_labels": "Etiquetas (opcional)",
           "icon": "Icono de insignia (mdi:xxx)",
           "associated_challenge": "🏁 Desafío asociado",
-          "assigned_to": "🧒 Niños asignados (opcional)",
+          "assigned_to": "🧒 Niños asignados",
           "award_items": "🎁 PREMIOS: Seleccione Puntos, Recompensas, Bonificaciones (Opcional)",
           "award_points": "🎁 PREMIOS: Puntos otorgados (opcional)"
         },
@@ -670,7 +670,7 @@
           "custom_interval_unit": "🔄 RECURRENCIA: Unidad de intervalo personalizada (obligatoria para la frecuencia personalizada)",
           "start_date": "🔄 RECURRENCIA: Fecha de inicio (Opcional)",
           "grace_period_days": "🔄 RECURRENCIA: Periodo de gracia en días (opcional)",
-          "assigned_to": "🧒 Niños asignados (opcional)",
+          "assigned_to": "🧒 Niños asignados",
           "award_items": "🎁 PREMIOS: Seleccione Puntos, Recompensas, Bonificaciones (Opcional)",
           "award_points": "🎁 PREMIOS: Puntos otorgados (opcional)"
         },
@@ -912,7 +912,7 @@
           "associated_achievement": "🏆 Logro asociado",
           "associated_challenge": "🏁 Desafío asociado",
           "selected_chores": "🧹 Tareas rastreadas (opcional)",
-          "assigned_to": "🧒 Niños asignados (opcional)",
+          "assigned_to": "🧒 Niños asignados",
           "award_items": "🎁 PREMIOS: Seleccione Puntos, Recompensas, Bonificaciones, Multiplicador (Opcional)",
           "award_points": "🎁 PREMIOS: Puntos otorgados (opcional)",
           "points_multiplier": "🎁 PREMIOS: Multiplicador de puntos (Predeterminado 💎 1.0x)",
@@ -958,7 +958,7 @@
           "target_type": "🎯 OBJETIVO DIARIO: Tipo de objetivo",
           "threshold_value": "OBJETIVO DIARIO: Valor Umbral",
           "selected_chores": "🧹 Tareas rastreadas (opcional)",
-          "assigned_to": "🧒 Niños asignados (opcional)",
+          "assigned_to": "🧒 Niños asignados",
           "award_items": "🎁 PREMIOS: Seleccione Puntos, Recompensas, Bonificaciones, Penalizaciones (Opcional)",
           "award_points": "🎁 PREMIOS: Puntos otorgados (opcional)"
         },
@@ -990,7 +990,7 @@
           "associated_achievement": "🏆 Logro asociado",
           "associated_challenge": "🏁 Desafío asociado",
           "selected_chores": "🧹 Tareas rastreadas (opcional)",
-          "assigned_to": "🧒 Niños asignados (opcional)",
+          "assigned_to": "🧒 Niños asignados",
           "award_items": "🎁 PREMIOS: Seleccione Puntos, Recompensas, Bonificaciones, Penalizaciones (Opcional)",
           "award_points": "🎁 PREMIOS: Puntos otorgados (opcional)",
           "recurring_frequency": "🔄 CICLO DE REINICIO: Frecuencia",
@@ -1030,7 +1030,7 @@
           "badge_labels": "Etiquetas (opcional)",
           "icon": "Icono de insignia (mdi:xxx)",
           "associated_achievement": "🏆 Logro asociado",
-          "assigned_to": "🧒 Niños asignados (opcional)",
+          "assigned_to": "🧒 Niños asignados",
           "award_items": "🎁 PREMIOS: Seleccione Puntos, Recompensas, Bonificaciones (Opcional)",
           "award_points": "🎁 PREMIOS: Puntos otorgados (opcional)"
         },
@@ -1054,7 +1054,7 @@
           "badge_labels": "Etiquetas (opcional)",
           "icon": "Icono de insignia (mdi:xxx)",
           "associated_challenge": "🏁 Desafío asociado",
-          "assigned_to": "🧒 Niños asignados (opcional)",
+          "assigned_to": "🧒 Niños asignados",
           "award_items": "🎁 PREMIOS: Seleccione Puntos, Recompensas, Bonificaciones (Opcional)",
           "award_points": "🎁 PREMIOS: Puntos otorgados (opcional)"
         },
@@ -1084,7 +1084,7 @@
           "custom_interval_unit": "🔄 RECURRENCIA: Unidad de intervalo personalizada (obligatoria para la frecuencia personalizada)",
           "start_date": "🔄 RECURRENCIA: Fecha de inicio (Opcional)",
           "grace_period_days": "🔄 RECURRENCIA: Periodo de gracia en días (opcional)",
-          "assigned_to": "🧒 Niños asignados (opcional)",
+          "assigned_to": "🧒 Niños asignados",
           "award_items": "🎁 PREMIOS: Seleccione Puntos, Recompensas, Bonificaciones (Opcional)",
           "award_points": "🎁 PREMIOS: Puntos otorgados (opcional)"
         },
@@ -1523,7 +1523,8 @@
       "options": {
         "notify_on_claim": "Notificar sobre reclamación",
         "notify_on_approval": "Notificar sobre aprobación",
-        "notify_on_disapproval": "Notificar en caso de desaprobación"
+        "notify_on_disapproval": "Notificar en caso de desaprobación",
+        "notify_on_reminder": "Notificar 30 minutos antes del vencimiento"
       }
     },
     "recurring_frequency": {
@@ -3409,19 +3410,19 @@
   },
   "exceptions": {
     "kid_not_found_by_name": {
-      "message": "No se encontró ningún niño con el nombre '{name}'"
+      "message": "No se encontró ningún niño con el nombre {name}"
     },
     "parent_not_found_by_name": {
-      "message": "No se encontró ningún padre con el nombre '{name}'"
+      "message": "No se encontró ningún padre con el nombre {name}"
     },
     "kid_already_shadow": {
-      "message": "El niño '{name}' ya está vinculado a un padre"
+      "message": "El niño {name} ya está vinculado a un padre"
     },
     "kid_not_shadow": {
-      "message": "El niño '{name}' no está vinculado a ningún padre"
+      "message": "El niño {name} no está vinculado a ningún padre"
     },
     "parent_has_different_shadow": {
-      "message": "El padre '{name}' ya está vinculado a un niño diferente"
+      "message": "El padre {name} ya está vinculado a un niño diferente"
     },
     "error_msg_no_entry_found": {
       "message": "No se encontró ninguna entrada coincidente en la configuración."
