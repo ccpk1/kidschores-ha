@@ -41,11 +41,13 @@
         "description": "Kirjoita jokaisen lapsen nimi.",
         "data": {
           "kid_name": "Lapsen nimi",
-          "internal_id": "Sisäinen tunnus",
           "ha_user": "Kotiavustaja-käyttäjä",
-          "enable_mobile_notifications": "Ota mobiili-ilmoitukset käyttöön",
-          "mobile_notify_service": "Ilmoita palvelulle",
-          "enable_persistent_notifications": "Ota käyttöön pysyvät ilmoitukset"
+          "mobile_notify_service": "Ilmoitukset",
+          "dashboard_language": "Kieli"
+        },
+        "data_description": {
+          "mobile_notify_service": "Valitse ilmoituspalvelu ottaaksesi ilmoitukset käyttöön tälle lapselle tai jätä tyhjäksi poistaaksesi ne käytöstä.",
+          "dashboard_language": "Työraporttisi ja ilmoitusten kieli."
         }
       },
       "parent_count": {
@@ -62,10 +64,12 @@
           "parent_name": "Vanhemman nimi",
           "ha_user_id": "Kotiavustaja-käyttäjä",
           "associated_kids": "Liittyneet lapset",
-          "enable_mobile_notifications": "Ota mobiili-ilmoitukset käyttöön",
-          "mobile_notify_service": "Ilmoita palvelulle",
-          "enable_persistent_notifications": "Ota käyttöön pysyvät ilmoitukset",
-          "internal_id": "Sisäinen tunnus"
+          "mobile_notify_service": "Ilmoitukset",
+          "dashboard_language": "Kieli"
+        },
+        "data_description": {
+          "mobile_notify_service": "Valitse ilmoituspalvelu ottaaksesi ilmoitukset käyttöön tälle vanhemmalle tai jätä tyhjäksi poistaaksesi ne käytöstä.",
+          "dashboard_language": "Työraporttisi ja ilmoitusten kieli."
         }
       },
       "chore_count": {
@@ -85,10 +89,10 @@
           "chore_labels": "📋 Tunnisteet (valinnainen)",
           "default_points": "💰 Annetut pisteet",
           "assigned_kids": "👥 Määrätyt lapset",
-          "completion_criteria": "👥 Suoritustyyppi",
-          "approval_reset_type": "➡️ Täydennykset sallittu ja ajoituksen nollaus",
-          "approval_reset_pending_claim_action": "➡️ Vireillä olevat korvaushakemukset nollauksen yhteydessä",
-          "overdue_handling_type": "⏰ Myöhässä: Käsittelytyyppi",
+          "completion_criteria": "👥 Suorituskriteerit",
+          "approval_reset_type": "➡️ Täydennykset sallittu ja hyväksynnän nollausaika",
+          "approval_reset_pending_claim_action": "➡️ Hyväksynnän nollauksessa odottavien korvaushakemusten käsittely",
+          "overdue_handling_type": "⏰ Myöhässä: Käsittely",
           "auto_approve": "✅ Hyväksytäänkö korvaushakemukset automaattisesti?",
           "recurring_frequency": "🔄 Aikataulu: Vuorotiheys",
           "custom_interval": "🔄 Aikataulu: Mukautettu aikaväli (mukautettua taajuutta varten)",
@@ -105,15 +109,15 @@
           "chore_labels": "Tagit askareiden järjestämiseen (esim. 'keittiö', 'ulkona'). Jätä tyhjäksi, jos et tarvitse.",
           "default_points": "Pisteitä ansaitaan suoritettaessa.",
           "assigned_kids": "Lapset, jotka näkevät ja voivat vaatia tämän tehtävän.",
-          "completion_criteria": "Jaettujen kotitöiden toimintaperiaate: Itsenäinen (jokainen lapsi suorittaa erikseen), Jaettu kaikille (kaikkien hyväksyntä) tai Jaettu ensin (ensimmäisen hyväksyntä suorittaa kotitehtävän).",
+          "completion_criteria": "Itsenäinen (jokainen lapsi suorittaa tehtävän erikseen), Jaettu kaikki (kaikkien on suoritettava) tai Jaettu ensin (ensimmäinen, joka lunastaa muut palikoita).",
           "approval_reset_type": "Määrittää, milloin tämä työ nollautuu ja kuinka monta suoritusta sallitaan kyseisenä aikana.",
-          "approval_reset_pending_claim_action": "Kun tämä tehtävä nollautuu (yllä olevan Valmistumisen Nollausajan perusteella), mitä tapahtuu hyväksyntää odottaville vaatimuksille?",
+          "approval_reset_pending_claim_action": "Näin tapahtuu vaatimuksille, jotka odottavat edelleen hyväksyntää, kun hyväksyntä nollataan.",
           "overdue_handling_type": "Toimenpiteet eräpäivän jälkeen: Piilota myöhästymistila, pidä myöhässä, kunnes maksu vaaditaan, tai palauta odottavaan tilaan seuraavalla hyväksymisjaksolla.",
           "auto_approve": "Kun tämä on käytössä, hakemukset hyväksytään välittömästi ilman vanhempien tarkistusta.",
           "recurring_frequency": "Kuinka usein työ toistuu: Päivittäin, Viikoittain, Kuukausittain, Vuosittain, Mukautettu tai Ei lainkaan.",
           "custom_interval": "Toistojen välisten aikayksiköiden määrä (esim. 3, jos haluat 'joka 3 viikko'). Käytetään vain mukautetun taajuuden kanssa.",
           "custom_interval_unit": "Mukautetun aikavälin aikayksikkö (päivät, viikot, kuukaudet). Käytetään vain mukautetun taajuuden kanssa.",
-          "applicable_days": "Rajoita askareita tiettyihin viikonpäiviin. Jätä tyhjäksi kaikkien päivien kohdalla.",
+          "applicable_days": "Jätä tyhjäksi kaikki päivät. Valitse VAIN tietyt päivät rajoitusta varten.",
           "due_date": "Valinnainen määräaika. Voidaan yhdistää toistuviin aikatauluihin.",
           "show_on_calendar": "Näytä tämä tehtävä kalenterinäkymässä.",
           "chore_notifications": "Milloin ilmoituksia lähetetään: Vaatimuksen, hyväksynnän, hylkäämisen tai minkä tahansa näiden yhdistelmän yhteydessä."
@@ -300,6 +304,7 @@
       "duplicate_penalty": "Tämän niminen rangaistus on jo olemassa.",
       "duplicate_reward": "Tämän niminen palkinto on jo olemassa.",
       "duplicate_bonus": "Tämän niminen bonus on jo olemassa.",
+      "shadow_kid_name_conflict": "Tehtävämääräystä ei voida ottaa käyttöön: samanniminen lapsi on jo olemassa. Nimeä ensin olemassa oleva lapsi uudelleen.",
       "due_date_in_past": "Eräpäivän on oltava tulevaisuudessa.",
       "end_date_in_past": "Päättymispäivämäärän on oltava tulevaisuudessa.",
       "end_date_not_after_start_date": "Päättymispäivämäärän on oltava alkamispäivämäärää myöhäisempi",
@@ -343,6 +348,7 @@
       "invalid_date_range": "Ajanjakso on virheellinen. Päättymispäivämäärän on oltava alkamispäivämäärän jälkeen.",
       "missing_required": "Pakollinen kenttä puuttuu. Anna kaikki vaaditut tiedot.",
       "invalid_format": "Muoto on virheellinen. Tarkista syötteesi ja yritä uudelleen.",
+      "chore_options_require_assignment": "Tehtävien työnkulku ja pelillistämisasetukset edellyttävät, että 'Salli tehtävien osoittaminen minulle' on ensin otettu käyttöön.",
       "invalid_update_interval": "Virheellinen päivitysväli. Arvon on oltava positiivinen kokonaisluku.",
       "invalid_calendar_show_period": "Virheellinen kalenterin näyttöjakso. Arvon on oltava positiivinen kokonaisluku.",
       "invalid_retention_period": "Virheellinen säilytysaika. Arvon on oltava positiivinen kokonaisluku.",
@@ -395,10 +401,15 @@
         "data": {
           "kid_name": "Lapsen nimi",
           "ha_user": "Kotiavustaja-käyttäjä",
-          "enable_mobile_notifications": "Ota mobiili-ilmoitukset käyttöön",
-          "mobile_notify_service": "Ilmoita palvelulle",
-          "enable_persistent_notifications": "Ota käyttöön pysyvät ilmoitukset",
+          "mobile_notify_service": "Ilmoitukset",
+          "enable_due_date_reminders": "Eräpäivämuistutukset",
+          "dashboard_language": "Kieli",
           "internal_id": "Sisäinen tunnus"
+        },
+        "data_description": {
+          "mobile_notify_service": "Valitse ilmoituspalvelu ottaaksesi ilmoitukset käyttöön tälle lapselle tai jätä tyhjäksi poistaaksesi ne käytöstä.",
+          "enable_due_date_reminders": "Lähetä muistutusilmoituksia, kun askareita on määrä tehdä 30 minuutin kuluessa.",
+          "dashboard_language": "Työraporttisi ja ilmoitusten kieli."
         }
       },
       "add_parent": {
@@ -408,10 +419,19 @@
           "parent_name": "Vanhemman nimi",
           "ha_user_id": "Kotiavustaja-käyttäjä",
           "associated_kids": "Liittyneet lapset",
-          "enable_mobile_notifications": "Ota mobiili-ilmoitukset käyttöön",
-          "mobile_notify_service": "Ilmoita palvelulle",
-          "enable_persistent_notifications": "Ota käyttöön pysyvät ilmoitukset",
+          "mobile_notify_service": "Ilmoitukset",
+          "dashboard_language": "Kieli",
+          "allow_chore_assignment": "Salli askareiden määrääminen minulle",
+          "enable_chore_workflow": "Ota käyttöön työtehtävä",
+          "enable_gamification": "Ota käyttöön pelillistäminen",
           "internal_id": "Sisäinen tunnus"
+        },
+        "data_description": {
+          "mobile_notify_service": "Valitse ilmoituspalvelu ottaaksesi ilmoitukset käyttöön tälle vanhemmalle tai jätä tyhjäksi poistaaksesi ne käytöstä.",
+          "allow_chore_assignment": "Luo profiilin, jotta tehtäviä voidaan määrittää sinulle. Oletusarvoisesti vain Hyväksy-painike näkyy, jotta tehtävät voidaan suorittaa yhdellä napsautuksella. Huomautus: Valinnan poistaminen säilyttää lapsen profiilin, jonka pääte on '_unlinked', manuaalista puhdistusta varten.",
+          "enable_chore_workflow": "Lisää Vaatimus- ja Hylkää-painikkeet koko työnkulkuun (vaatimus → hyväksy/hylkää).",
+          "enable_gamification": "Seuraa pisteitä, merkkejä ja palkintoja suoritetuista askareistasi.",
+          "dashboard_language": "Työraporttisi ja ilmoitusten kieli."
         }
       },
       "add_chore": {
@@ -424,10 +444,10 @@
           "chore_labels": "📋 Tunnisteet (valinnainen)",
           "default_points": "💰 Annetut pisteet",
           "assigned_kids": "👥 Määrätyt lapset",
-          "completion_criteria": "👥 Suoritustyyppi",
-          "approval_reset_type": "➡️ Täydennykset sallittu ja ajoituksen nollaus",
-          "approval_reset_pending_claim_action": "➡️ Vireillä olevat korvaushakemukset nollauksen yhteydessä",
-          "overdue_handling_type": "⏰ Myöhässä: Käsittelytyyppi",
+          "completion_criteria": "👥 Suorituskriteerit",
+          "approval_reset_type": "➡️ Täydennykset sallittu ja hyväksynnän nollausaika",
+          "approval_reset_pending_claim_action": "➡️ Hyväksynnän nollauksessa odottavien korvaushakemusten käsittely",
+          "overdue_handling_type": "⏰ Myöhässä: Käsittely",
           "auto_approve": "✅ Hyväksytäänkö korvaushakemukset automaattisesti?",
           "recurring_frequency": "🔄 Aikataulu: Vuorotiheys",
           "custom_interval": "🔄 Aikataulu: Mukautettu aikaväli (mukautettua taajuutta varten)",
@@ -444,16 +464,16 @@
           "chore_labels": "Tagit askareiden järjestämiseen (esim. 'keittiö', 'ulkona'). Jätä tyhjäksi, jos et tarvitse.",
           "default_points": "Pisteitä ansaitaan suoritettaessa.",
           "assigned_kids": "Lapset, jotka näkevät ja voivat vaatia tämän tehtävän.",
-          "completion_criteria": "Jaettujen kotitöiden toimintaperiaate: Itsenäinen (jokainen lapsi suorittaa erikseen), Jaettu kaikille (kaikkien hyväksyntä) tai Jaettu ensin (ensimmäisen hyväksyntä suorittaa kotitehtävän).",
-          "approval_reset_type": "Määrittää, milloin tämä työ nollautuu ja kuinka monta suoritusta sallitaan kyseisenä aikana.",
-          "approval_reset_pending_claim_action": "Kun tämä tehtävä nollautuu (yllä olevan Valmistumisen Nollausajan perusteella), mitä tapahtuu hyväksyntää odottaville vaatimuksille?",
+          "completion_criteria": "Itsenäinen (jokainen lapsi suorittaa tehtävän erikseen), Jaettu kaikki (kaikkien on suoritettava) tai Jaettu ensin (ensimmäinen, joka lunastaa muut palikoita).",
+          "approval_reset_type": "Määrittää, milloin tämän työn hyväksyntä nollautuu ja kuinka monta suoritusta sallitaan kyseisenä aikana.",
+          "approval_reset_pending_claim_action": "Näin tapahtuu vaatimuksille, jotka odottavat edelleen hyväksyntää, kun hyväksyntä nollataan.",
           "overdue_handling_type": "Toimenpiteet eräpäivän jälkeen: Piilota myöhästymistila, pidä myöhässä, kunnes maksu vaaditaan, tai palauta odottavaan tilaan seuraavalla hyväksymisjaksolla.",
           "auto_approve": "Kun tämä on käytössä, hakemukset hyväksytään välittömästi ilman vanhempien tarkistusta.",
-          "recurring_frequency": "Kuinka usein työ toistuu: Päivittäin, Viikoittain, Kuukausittain, Vuosittain, Mukautettu tai Ei lainkaan.",
+          "recurring_frequency": "Kuinka usein tehtävä toistuu: Päivittäin, Viikoittain, Kuukausittain, Vuosittain, Mukautettu tai Ei lainkaan. Jos valitset \"Päivittäin - Useita kertoja päivässä\", näkyviin tulee lisänäyttö, jossa voit määrittää tarkat ajat.",
           "custom_interval": "Toistojen välisten aikayksiköiden määrä (esim. 3, jos haluat 'joka 3 viikko'). Käytetään vain mukautetun taajuuden kanssa.",
           "custom_interval_unit": "Mukautetun aikavälin aikayksikkö (päivät, viikot, kuukaudet). Käytetään vain mukautetun taajuuden kanssa.",
-          "applicable_days": "Rajoita askareita tiettyihin viikonpäiviin. Jätä tyhjäksi kaikkien päivien kohdalla.",
-          "due_date": "Valinnainen määräaika. Voidaan yhdistää toistuviin aikatauluihin.",
+          "applicable_days": "Jätä tyhjäksi kaikki päivät. Valitse VAIN tietyt päivät rajoitusta varten.",
+          "due_date": "Valinnainen määräaika. Voidaan yhdistää toistuviin aikatauluihin. ITSENÄISILLE askareille tämä toimii mallina – näkyviin tulee ylimääräinen näyttö, jossa voit määrittää lapsellesi omat päivämäärät.",
           "show_on_calendar": "Näytä tämä tehtävä kalenterinäkymässä.",
           "chore_notifications": "Milloin ilmoituksia lähetetään: Vaatimuksen, hyväksynnän, hylkäämisen tai minkä tahansa näiden yhdistelmän yhteydessä."
         }
@@ -751,10 +771,33 @@
         "data": {
           "kid_name": "Lapsen nimi",
           "ha_user": "Kotiavustaja-käyttäjä",
-          "enable_mobile_notifications": "Ota mobiili-ilmoitukset käyttöön",
-          "mobile_notify_service": "Ilmoita palvelulle",
-          "enable_persistent_notifications": "Ota käyttöön pysyvät ilmoitukset",
+          "mobile_notify_service": "Ilmoitukset",
+          "dashboard_language": "Kieli",
+          "enable_due_date_reminders": "Eräpäivämuistutukset",
           "internal_id": "Sisäinen tunnus"
+        },
+        "data_description": {
+          "mobile_notify_service": "Valitse ilmoituspalvelu ottaaksesi ilmoitukset käyttöön tälle lapselle.",
+          "dashboard_language": "Työraporttisi ja ilmoitusten kieli.",
+          "enable_due_date_reminders": "Lähetä muistutusilmoituksia, kun askareita on määrä tehdä 30 minuutin kuluessa."
+        }
+      },
+      "edit_kid_shadow": {
+        "title": "Muokkaa Varjolapsia",
+        "description": "Muokkaa valitun varjolapsen tietoja. ⚠️ Tämä lapsi on linkitetty vanhempaan. Nimen muuttaminen rikkoo nimen täsmäytysvaatimuksen linkityksen poistamiseksi palvelun kautta.",
+        "data": {
+          "kid_name": "Lapsen nimi",
+          "ha_user": "Kotiavustaja-käyttäjä",
+          "mobile_notify_service": "Ilmoitukset",
+          "dashboard_language": "Kieli",
+          "enable_due_date_reminders": "Eräpäivämuistutukset",
+          "internal_id": "Sisäinen tunnus"
+        },
+        "data_description": {
+          "kid_name": "⚠️ Tämä varjolapsi on linkitetty vanhempaan. Nimen muuttaminen katkaisee palvelun linkityksen purkamistoiminnon, joka edellyttää samoja nimiä.",
+          "mobile_notify_service": "⚠️ Varjosta lapsen ilmoitukset: Yhdistetty vanhempi saa jo ilmoituksia valvotuista askareista. Tämän käyttöönotto luo kaksoisilmoituksia. Hyödyllinen 30 minuutin määräpäivämuistutuksille tai jos käytetään eri ilmoituspalveluita.",
+          "dashboard_language": "Työraporttisi ja ilmoitusten kieli.",
+          "enable_due_date_reminders": "Lähetä muistutusilmoituksia, kun askareita on määrä tehdä 30 minuutin kuluessa."
         }
       },
       "edit_parent": {
@@ -764,10 +807,19 @@
           "parent_name": "Vanhemman nimi",
           "ha_user_id": "Kotiavustaja-käyttäjä",
           "associated_kids": "Liittyneet lapset",
-          "enable_mobile_notifications": "Ota mobiili-ilmoitukset käyttöön",
-          "mobile_notify_service": "Ilmoita palvelulle",
-          "enable_persistent_notifications": "Ota käyttöön pysyvät ilmoitukset",
+          "mobile_notify_service": "Ilmoitukset",
+          "dashboard_language": "Kieli",
+          "allow_chore_assignment": "Salli askareiden määrääminen minulle",
+          "enable_chore_workflow": "Ota käyttöön työtehtävä",
+          "enable_gamification": "Ota käyttöön pelillistäminen",
           "internal_id": "Sisäinen tunnus"
+        },
+        "data_description": {
+          "mobile_notify_service": "Valitse ilmoituspalvelu ottaaksesi ilmoitukset käyttöön tälle vanhemmalle tai jätä tyhjäksi poistaaksesi ne käytöstä.",
+          "allow_chore_assignment": "Luo profiilin, jotta sinulle voidaan määrittää tehtäviä. Oletusarvoisesti vain Hyväksy-painike näkyy, jotta tehtävät voidaan suorittaa yhdellä napsautuksella. Huomautus: Valinnan poistaminen säilyttää lapsen profiilin '_unlinked'-liitteellä manuaalista puhdistusta varten.",
+          "enable_chore_workflow": "Lisää Vaatimus- ja Hylkää-painikkeet koko työnkulkuun (vaatimus → hyväksy/hylkää).",
+          "enable_gamification": "Seuraa pisteitä, merkkejä ja palkintoja suoritetuista askareistasi.",
+          "dashboard_language": "Työraporttisi ja ilmoitusten kieli."
         }
       },
       "edit_chore": {
@@ -781,10 +833,10 @@
           "internal_id": "Sisäinen tunnus",
           "default_points": "💰 Annetut pisteet",
           "assigned_kids": "👥 Määrätyt lapset",
-          "completion_criteria": "👥 Suoritustyyppi",
-          "approval_reset_type": "➡️ Täydennykset sallittu ja ajoituksen nollaus",
-          "approval_reset_pending_claim_action": "➡️ Vireillä olevat korvaushakemukset nollauksen yhteydessä",
-          "overdue_handling_type": "⏰ Myöhässä: Käsittelytyyppi",
+          "completion_criteria": "👥 Suorituskriteerit",
+          "approval_reset_type": "➡️ Täydennykset sallittu ja hyväksynnän nollausaika",
+          "approval_reset_pending_claim_action": "➡️ Hyväksynnän nollauksessa odottavien korvaushakemusten käsittely",
+          "overdue_handling_type": "⏰ Myöhässä: Käsittely",
           "auto_approve": "✅ Hyväksytäänkö korvaushakemukset automaattisesti?",
           "recurring_frequency": "🔄 Aikataulu: Vuorotiheys",
           "custom_interval": "🔄 Aikataulu: Mukautettu aikaväli (mukautettua taajuutta varten)",
@@ -802,15 +854,15 @@
           "chore_labels": "Tagit askareiden järjestämiseen (esim. 'keittiö', 'ulkona'). Jätä tyhjäksi, jos et tarvitse.",
           "default_points": "Pisteitä ansaitaan suoritettaessa.",
           "assigned_kids": "Lapset, jotka näkevät ja voivat vaatia tämän tehtävän.",
-          "completion_criteria": "Jaettujen kotitöiden toimintaperiaate: Itsenäinen (jokainen lapsi suorittaa erikseen), Jaettu kaikille (kaikkien hyväksyntä) tai Jaettu ensin (ensimmäisen hyväksyntä suorittaa kotitehtävän).",
-          "approval_reset_type": "Määrittää, milloin tämä työ nollautuu ja kuinka monta suoritusta sallitaan kyseisenä aikana.",
-          "approval_reset_pending_claim_action": "Kun tämä tehtävä nollautuu (yllä olevan Valmistumisen Nollausajan perusteella), mitä tapahtuu hyväksyntää odottaville vaatimuksille?",
+          "completion_criteria": "Itsenäinen (jokainen lapsi suorittaa tehtävän erikseen), Jaettu kaikki (kaikkien on suoritettava) tai Jaettu ensin (ensimmäinen, joka lunastaa muut palikoita).",
+          "approval_reset_type": "Määrittää, milloin tämän työn hyväksyntä nollautuu ja kuinka monta suoritusta sallitaan kyseisenä aikana.",
+          "approval_reset_pending_claim_action": "Kun tämän tehtävän hyväksyntä nollautuu (yllä olevan hyväksynnän nollausajan perusteella), mitä tapahtuu hyväksyntää odottaville vaatimuksille?",
           "overdue_handling_type": "Toimenpiteet eräpäivän jälkeen: Piilota myöhästymistila, pidä myöhässä, kunnes maksu vaaditaan, tai palauta odottavaan tilaan seuraavalla hyväksymisjaksolla.",
           "auto_approve": "Kun tämä on käytössä, hakemukset hyväksytään välittömästi ilman vanhempien tarkistusta.",
-          "recurring_frequency": "Kuinka usein työ toistuu: Päivittäin, Viikoittain, Kuukausittain, Vuosittain, Mukautettu tai Ei lainkaan.",
+          "recurring_frequency": "Kuinka usein tehtävä toistuu: Päivittäin, Viikoittain, Kuukausittain, Vuosittain, Mukautettu tai Ei lainkaan. Jos valitset \"Päivittäin - Useita kertoja päivässä\", näkyviin tulee lisänäyttö, jossa voit määrittää tarkat ajat.",
           "custom_interval": "Toistojen välisten aikayksiköiden määrä (esim. 3, jos haluat 'joka 3 viikko'). Käytetään vain mukautetun taajuuden kanssa.",
           "custom_interval_unit": "Mukautetun aikavälin aikayksikkö (päivät, viikot, kuukaudet). Käytetään vain mukautetun taajuuden kanssa.",
-          "applicable_days": "Rajoita askareita tiettyihin viikonpäiviin. Jätä tyhjäksi kaikkien päivien kohdalla.",
+          "applicable_days": "Jätä tyhjäksi kaikki päivät. Valitse VAIN tietyt päivät rajoitusta varten.",
           "due_date": "Valinnainen määräaika. Voidaan yhdistää toistuviin aikatauluihin. ITSENÄISILLE askareille tämä toimii mallina – näkyviin tulee ylimääräinen näyttö, jossa voit määrittää lapsellesi omat päivämäärät.",
           "clear_due_date": "Valitse tämä ruutu poistaaksesi määräpäivän tästä tehtävästä.",
           "show_on_calendar": "Näytä tämä tehtävä kalenterinäkymässä.",
@@ -825,6 +877,30 @@
         },
         "data_description": {
           "apply_template_to_all": "Valitse tämä ruutu, jos haluat päätehtävien muokkaussivulla asetetun päivämäärän käytettävän kaikkiin lapsille ja korvata heidän yksilölliset päivämääränsä."
+        }
+      },
+      "chores_daily_multi": {
+        "title": "Aseta päivittäiset ajat: {chore_name}",
+        "description": "Anna kellonajat, jolloin tämän työn tulisi olla käytettävissä kunakin päivänä. Käytä 24-tunnin muotoa (HH:MM) ja erota ne pystyviivalla (|).\n\n**Esimerkki:** 07:00|12:00|18:00 aamulle, keskipäivälle ja illalle.\n\n**Vaatimukset:**\n- Vähintään 2 kertaa, enintään 6 kertaa\n- Aikojen on oltava 24-tunnin muodossa (00:00 - 23:59)\n- Erota useat ajat pystyviivalla (|)\n\n**Huomautus:** Jos asetat määräpäivän päälomakkeelle, vain päivämääräosaa käytetään. Alla antamasi ajat määrittävät, milloin työ on käytettävissä kunakin päivänä.",
+        "data": {
+          "daily_multi_times": "Päivittäiset ajat"
+        },
+        "data_description": {
+          "daily_multi_times": "Syötä 2–6 kertaa 24-tunnin muodossa erotettuna pystyviivalla (|). Esimerkki: 08:00|17:00 aamulle ja illalle."
+        }
+      },
+      "edit_chore_per_kid_details": {
+        "title": "Lapsikohtainen aikataulu: {chore_name}",
+        "description": "Määritä yksilölliset aikatauluasetukset jokaiselle tähän tehtävään määritetylle lapselle. Päälomakkeen arvot toimivat **mallipohjina** – käytä valintaruutuja ottaaksesi ne käyttöön kaikille lapsille tai mukauta kunkin lapsen asetuksia erikseen.\n\n**Huomautus:** Kaikki alla olevat kentät eivät koske kaikkia tehtäviä. Lomake näyttää dynaamisesti asiaankuuluvat vaihtoehdot suoritustavan, tiheyden ja sen perusteella, onko määräpäiviä asetettu.\n\n**Päivittäinen (useita) kellonaikoja:** Jos näkyvissä, anna 2–6 kellonaikaa 24 tunnin muodossa erotettuna pystyviivalla (|). Esimerkki: 08:00|17:00\n\nLapset: {kid_names}{template_info}",
+        "data": {
+          "apply_days_to_all": "Käytä mallipäiviä kaikille lapsille",
+          "apply_times_to_all": "Käytä malliaikoja kaikille lapsille",
+          "apply_template_to_all": "Käytä mallipäivämäärää kaikkiin lapsiin"
+        },
+        "data_description": {
+          "apply_days_to_all": "Rastita käyttääksesi päälomakkeen soveltuvia päiviä kaikille määrätyille lapsille.",
+          "apply_times_to_all": "Rastita, jos haluat käyttää päälomakkeen päivittäisiä aikoja kaikille määrätyille lapsille.",
+          "apply_template_to_all": "Rastita, jos haluat päätehtävälomakkeella asetetun päivämäärän koskevan kaikkia määrättyjä lapsia."
         }
       },
       "edit_badge_cumulative": {
@@ -1283,7 +1359,17 @@
       "corrupt_file": "Valittu tiedosto sisältää virheellisen JSON-tiedoston, eikä sitä voida lukea.",
       "invalid_structure": "Valitusta tiedostosta puuttuu vaadittu tietorakenne.",
       "file_not_found": "Valittua tiedostoa ei löytynyt.",
-      "invalid_selection": "Valitse kelvollinen vaihtoehto."
+      "invalid_selection": "Valitse kelvollinen vaihtoehto.",
+      "error_daily_multi_requires_compatible_reset": "'Useita kertoja päivässä' -tiheys ei ole yhteensopiva keskiyön nollaustyyppien kanssa, koska ne nollaavat hyväksynnät vain kerran keskiyöllä.",
+      "error_daily_multi_independent_multi_kids": "'Useita kertoja päivässä' -tiheys RIIPPUMATTOMASTI suoritetulla suorituksella vaatii täsmälleen yhden lapsen, ellei lapsikohtaisia aikoja ole määritetty. Määritä jokaiselle lapselle eri ajat lapsikohtaisissa asetuksissa.",
+      "error_daily_multi_times_required": "Aikaluettelo vaaditaan, jos tiheys on 'Useita kertoja päivässä'.",
+      "error_daily_multi_times_invalid_format": "Virheellinen aikamuoto. Käytä 24-tunnin muotoa (HH:MM) ja erota se pisteellä | (esim. 08:00|17:00).",
+      "error_daily_multi_times_too_few": "Useita kertoja päivässä -tiheydelle vaaditaan vähintään kaksi kertaa. Yhden kerran tapauksessa käytä tavallista Päivittäistä-tiheyttä.",
+      "error_daily_multi_times_too_many": "Enintään kuusi kertaa päivässä sallitaan 'Useita kertoja päivässä' -tiheydellä.",
+      "error_daily_multi_due_date_required": "Useita kertoja päivässä -tiheys edellyttää määräpäivän asettamista. Päivämäärä määrittää aikataulutuksen aloituspäivän ja ajat määrittävät kunkin päivän saatavuusikkunat.",
+      "error_at_due_date_reset_requires_due_date": "Eräpäivänä tapahtuvat hyväksynnän nollaustyypit (kerran tai useita kertoja) edellyttävät eräpäivän asettamista. Ilman eräpäivää hyväksynnän nollaus ei koskaan käynnisty ja työ pysyy hyväksyttynä toistaiseksi.",
+      "error_per_kid_applicable_days_invalid": "Yhdelle tai useammalle lapselle on virheellinen päivien muoto. Päivien on oltava kokonaislukuja 0–6 (maanantai–sunnuntai) ilman kaksoiskappaleita.",
+      "error_per_kid_daily_multi_times_invalid": "Yhden tai useamman lapsen päivittäisen kellonajan muoto on virheellinen. Käytä 24-tunnin muotoa ja erota se merkillä | (esim. 08:00|17:00)."
     },
     "abort": {
       "invalid_action": "Virheellinen toiminto",
@@ -1410,32 +1496,33 @@
     },
     "completion_criteria": {
       "options": {
-        "shared_all": "Jaettu kaikkien kanssa (Kaikkien lasten on suoritettava yhdessä)",
+        "shared_all": "Jaettu kaikille (Kaikkien lasten on suoritettava yhdessä)",
         "independent": "Itsenäinen (jokainen lapsi suorittaa tehtävän itsenäisesti)",
-        "shared_first": "Jaettu ensimmäisen kanssa (ensimmäinen suoritus lasketaan)"
+        "shared_first": "Jaettu ensin (ensimmäinen suoritus lasketaan)"
       }
     },
     "approval_reset_type": {
       "options": {
-        "at_midnight_once": "Salli yksi suoritus - nollautuu keskiyöllä",
-        "at_midnight_multi": "Salli useita täydennyksiä - nollautuu keskiyöllä",
-        "at_due_date_once": "Salli 1 suoritus - nollautuu määräpäivänä",
-        "at_due_date_multi": "Salli useita täydennyksiä - nollautuu eräpäivänä",
-        "upon_completion": "Salli rajattomasti täydennyksiä - nollautuu valmistumisen jälkeen"
+        "at_midnight_once": "Kerran päivässä - Nollautuu keskiyöllä",
+        "at_midnight_multi": "Useita kertoja päivässä - Nollautuu keskiyöllä",
+        "at_due_date_once": "Kerran kuukaudessa - Nollautuu eräpäivänä",
+        "at_due_date_multi": "Useita kertoja jaksossa - Nollautuu eräpäivänä",
+        "upon_completion": "Rajoittamaton määrä suorituksia - Nollautuu suorituksen jälkeen"
       }
     },
     "overdue_handling_type": {
       "options": {
-        "at_due_date": "Näytä eräpäivän jälkeen erääntyneet (valmistumiseen asti)",
-        "never_overdue": "Älä koskaan näytä myöhästyneenä",
-        "at_due_date_then_reset": "Näytä eräpäivän jälkeen erääntyneet (hyväksynnän nollaukseen asti)"
+        "at_due_date": "Myöhässä, kunnes valmis",
+        "never_overdue": "Ei koskaan myöhässä",
+        "at_due_date_clear_at_approval_reset": "Myöhässä, kunnes hyväksyntä on voimassa",
+        "at_due_date_clear_immediate_on_late": "Myöhässä, kunnes valmis (tyhjennä myöhästyneet hyväksynnät välittömästi)"
       }
     },
     "approval_reset_pending_claim_action": {
       "options": {
-        "hold_pending": "Säilytä vaatimustilassa (odottaa hyväksyntää/hylkäämistä)",
-        "clear_pending": "Tyhjennä kaikki vireillä olevat vaatimukset",
-        "auto_approve_pending": "Hyväksy automaattisesti kaikki vireillä olevat hakemukset"
+        "hold_pending": "Vaatimuksen tila (odottaa hyväksyntää/hylkäämistä)",
+        "clear_pending": "Tyhjennä odottavat vaatimukset",
+        "auto_approve_pending": "Hyväksy odottavat hakemukset automaattisesti"
       }
     },
     "chore_notifications": {
@@ -1449,12 +1536,14 @@
       "options": {
         "none": "Ei mitään",
         "daily": "Päivittäin",
+        "daily_multi": "Päivittäin (useita kertoja päivässä)",
         "weekly": "Viikoittain",
         "biweekly": "Joka toinen viikko",
         "monthly": "Kuukausittain",
         "quarterly": "Neljännesvuosittain",
         "yearly": "Vuosittain",
         "custom": "Mukautettu",
+        "custom_from_complete": "Mukautettu (Ajoita uudelleen valmistumispäivästä)",
         "custom_1_week": "Mukautettu: 1 viikko",
         "custom_1_month": "Mukautettu: 1 kuukausi",
         "custom_1_quarter": "Mukautettu: 1 neljännes",
@@ -1470,6 +1559,7 @@
     },
     "custom_interval_unit": {
       "options": {
+        "hours": "Tunnit",
         "days": "Päivät",
         "weeks": "Viikot",
         "months": "Kuukaudet"
@@ -1508,6 +1598,20 @@
     }
   },
   "services": {
+    "manage_shadow_link": {
+      "name": "Hallinnoi vanhemman varjo-lapsi-linkkiä",
+      "description": "Linkitä tai poista olemassa olevan lapsiprofiilin linkitys vanhemmasta. Edellyttää, että lapsella ja vanhemmalla on samat nimet. Linkityksen poistaminen säilyttää kaikki tiedot ja nimeää lapsen uudelleen päätteellä '_unlinked'.",
+      "fields": {
+        "name": {
+          "name": "Nimi",
+          "description": "Nimi, joka vastaa sekä ylä- että alanimeä (kirjainkokoa ei erotella)"
+        },
+        "action": {
+          "name": "Toiminta",
+          "description": "Linkki yhdistää lapsen vanhempaan varjona. Linkin poistaminen katkaisee yhteyden ja nimeää lapsen uudelleen."
+        }
+      }
+    },
     "claim_chore": {
       "name": "Vaatimustehtävä",
       "description": "Lapsi ilmoittaa kotitehtävästä ja merkitsee sen \"ilmoitetuksi\" vanhempien hyväksyntää varten.",
@@ -1869,17 +1973,17 @@
             "name": "Suorituskriteerit",
             "state": {
               "independent": "Itsenäinen",
-              "shared_first_only": "Jaettu (vain ensimmäinen)",
-              "shared_all_required": "Jaettu (kaikki pakollisia)"
+              "shared_first_only": "Jaettu (ensimmäinen)",
+              "shared_all_required": "Jaettu (kaikki)"
             }
           },
           "approval_reset_type": {
             "name": "Hyväksynnän nollaustyyppi",
             "state": {
-              "at_midnight_once": "Kerran päivässä",
-              "at_midnight_multi": "Useita päivässä",
-              "at_due_date_once": "Kerran eräpäivänä",
-              "at_due_date_multi": "Useita eräpäivää kohden",
+              "at_midnight_once": "Keskiyöllä (kerran)",
+              "at_midnight_multi": "Keskiyöllä (moni)",
+              "at_due_date_once": "Eräpäivänä (kerran)",
+              "at_due_date_multi": "Eräpäivänä (useita)",
               "upon_completion": "Valmistuttuaan"
             }
           },
@@ -1888,10 +1992,18 @@
             "state": {
               "none": "Ei mitään",
               "daily": "Päivittäin",
+              "daily_multi": "Päivittäin (useita kertoja päivässä)",
               "weekly": "Viikoittain",
               "biweekly": "Joka toinen viikko",
               "monthly": "Kuukausittain",
-              "custom": "Mukautettu"
+              "quarterly": "Neljännesvuosittain",
+              "yearly": "Vuosittain",
+              "custom": "Mukautettu",
+              "custom_from_complete": "Mukautettu (Ajoita uudelleen valmistumispäivästä)",
+              "custom_1_week": "Mukautettu: 1 viikko",
+              "custom_1_month": "Mukautettu: 1 kuukausi",
+              "custom_1_quarter": "Mukautettu: 1 neljännes",
+              "custom_1_year": "Mukautettu: 1 vuosi"
             }
           },
           "applicable_days": {
@@ -2529,10 +2641,10 @@
           "approval_reset_type": {
             "name": "Hyväksynnän nollaustyyppi",
             "state": {
-              "at_midnight_once": "Kerran päivässä",
-              "at_midnight_multi": "Useita päivässä",
-              "at_due_date_once": "Kerran eräpäivänä",
-              "at_due_date_multi": "Useita eräpäivää kohden",
+              "at_midnight_once": "Keskiyöllä (kerran)",
+              "at_midnight_multi": "Keskiyöllä (moni)",
+              "at_due_date_once": "Eräpäivänä (kerran)",
+              "at_due_date_multi": "Eräpäivänä (useita)",
               "upon_completion": "Valmistuttuaan"
             }
           },
@@ -2618,23 +2730,98 @@
           "cost": {
             "name": "Maksaa"
           },
-          "reward_claims_count": {
-            "name": "Korvausten kokonaismäärä"
+          "pending_claims": {
+            "name": "Vireillä olevat vaatimukset"
           },
-          "reward_approvals_count": {
-            "name": "Hyväksyntöjen kokonaismäärä"
+          "last_claimed": {
+            "name": "Viimeksi vaadittu"
+          },
+          "last_approved": {
+            "name": "Viimeksi hyväksytty"
+          },
+          "last_disapproved": {
+            "name": "Viimeksi hylätty"
+          },
+          "claimed_today": {
+            "name": "Vaatimukset tänään"
+          },
+          "claimed_week": {
+            "name": "Tämän viikon korvausvaatimukset"
+          },
+          "claimed_month": {
+            "name": "Tämän kuun korvaushakemukset"
+          },
+          "claimed_year": {
+            "name": "Tämän vuoden korvausvaatimukset"
+          },
+          "claimed_all_time": {
+            "name": "Kaikkien aikojen vaatimukset"
+          },
+          "approved_today": {
+            "name": "Hyväksytty tänään"
+          },
+          "approved_week": {
+            "name": "Hyväksytty tällä viikolla"
+          },
+          "approved_month": {
+            "name": "Hyväksytty tässä kuussa"
+          },
+          "approved_year": {
+            "name": "Hyväksytty tänä vuonna"
+          },
+          "approved_all_time": {
+            "name": "Hyväksytty koko ajan"
+          },
+          "disapproved_today": {
+            "name": "Hylätty tänään"
+          },
+          "disapproved_week": {
+            "name": "Hylätty tällä viikolla"
+          },
+          "disapproved_month": {
+            "name": "Hylätty tässä kuussa"
+          },
+          "disapproved_year": {
+            "name": "Hylätty tänä vuonna"
+          },
+          "disapproved_all_time": {
+            "name": "Hylätty koko ajan"
+          },
+          "points_spent_today": {
+            "name": "Tänään käytetyt pisteet"
+          },
+          "points_spent_week": {
+            "name": "Tällä viikolla käytetyt pisteet"
+          },
+          "points_spent_month": {
+            "name": "Tässä kuussa käytetyt pisteet"
+          },
+          "points_spent_year": {
+            "name": "Tänä vuonna käytetyt pisteet"
+          },
+          "points_spent_all_time": {
+            "name": "Koko ajan käytetyt pisteet"
+          },
+          "approval_rate": {
+            "name": "Hyväksymisprosentti (%)"
+          },
+          "claim_rate_week": {
+            "name": "Keskimääräiset korvausvaatimukset päivässä (viikossa)"
+          },
+          "claim_rate_month": {
+            "name": "Keskimääräiset korvausvaatimukset päivässä (kuukausi)"
+          },
+          "claim_button_eid": {
+            "name": "Vaatimuspainikkeen yksikön tunnus"
+          },
+          "approve_button_eid": {
+            "name": "Hyväksyntäpainikkeen yksikön tunnus"
+          },
+          "disapprove_button_eid": {
+            "name": "Hylkäämispainikkeen yksikön tunnus"
           },
           "labels": {
             "name": "Tarrat"
-          },
-          "reward_claim_button_eid": {
-            "name": "Vaatimuspainikkeen yksikön tunnus"
-          },
-          "reward_approve_button_eid": {
-            "name": "Hyväksyntäpainikkeen yksikön tunnus"
-          },
-          "reward_disapprove_button_eid": {
-            "name": "Hylkäämispainikkeen yksikön tunnus"
           }
         }
       },
@@ -2909,6 +3096,23 @@
           }
         }
       },
+      "system_dashboard_translation_sensor": {
+        "name": "Kojelaudan käännökset ({language})",
+        "state_attributes": {
+          "purpose": {
+            "name": "Tarkoitus",
+            "state": {
+              "purpose_dashboard_translation": "Tarjoaa lokalisoituja käyttöliittymäkäännöksiä kojelaudan näyttöä varten"
+            }
+          },
+          "ui_translations": {
+            "name": "Käyttöliittymäkäännökset"
+          },
+          "language": {
+            "name": "Kieli"
+          }
+        }
+      },
       "kid_dashboard_helper_sensor": {
         "name": "Käyttöliittymän kojelaudan apuohjelma",
         "state_attributes": {
@@ -2962,6 +3166,9 @@
           },
           "language": {
             "name": "Kieli"
+          },
+          "translation_sensor": {
+            "name": "Käännösanturi"
           }
         }
       }
@@ -3207,6 +3414,21 @@
     }
   },
   "exceptions": {
+    "kid_not_found_by_name": {
+      "message": "Ei löytynyt lasta nimeltä '{name}'"
+    },
+    "parent_not_found_by_name": {
+      "message": "Ei löydy pääobjektia nimellä '{name}'"
+    },
+    "kid_already_shadow": {
+      "message": "Lapsi '{name}' on jo linkitetty vanhempaan"
+    },
+    "kid_not_shadow": {
+      "message": "Lapsi '{name}' ei ole linkitetty vanhempaan"
+    },
+    "parent_has_different_shadow": {
+      "message": "Vanhempi '{name}' on jo linkitetty eri lapseen"
+    },
     "error_msg_no_entry_found": {
       "message": "Kokoonpanosta ei löytynyt vastaavaa merkintää."
     },

@@ -7,7 +7,7 @@
         "description": "Cet assistant vous guidera tout au long de la configuration de KidsChores."
       },
       "data_recovery": {
-        "title": "Options de récupération de données",
+        "title": "Options de récupération des données",
         "description": "Données KidsChores existantes trouvées dans :\n{storage_path}\n\nFichiers de sauvegarde trouvés : {backup_count} .\n\nQue souhaitez-vous faire ?",
         "data": {
           "backup_selection": "Sélectionnez une option"
@@ -41,11 +41,13 @@
         "description": "Veuillez saisir le nom de chaque enfant.",
         "data": {
           "kid_name": "Nom de l'enfant",
-          "internal_id": "ID interne",
           "ha_user": "Utilisateur de Home Assistant",
-          "enable_mobile_notifications": "Activer les notifications mobiles",
-          "mobile_notify_service": "Service de notification",
-          "enable_persistent_notifications": "Activer les notifications persistantes"
+          "mobile_notify_service": "Notifications",
+          "dashboard_language": "Langue"
+        },
+        "data_description": {
+          "mobile_notify_service": "Sélectionnez un service de notification pour activer les notifications pour cet enfant, ou laissez vide pour les désactiver.",
+          "dashboard_language": "Langue utilisée pour votre tableau de bord des tâches et vos notifications."
         }
       },
       "parent_count": {
@@ -62,10 +64,12 @@
           "parent_name": "Nom du parent",
           "ha_user_id": "Utilisateur de Home Assistant",
           "associated_kids": "Enfants associés",
-          "enable_mobile_notifications": "Activer les notifications mobiles",
-          "mobile_notify_service": "Service de notification",
-          "enable_persistent_notifications": "Activer les notifications persistantes",
-          "internal_id": "ID interne"
+          "mobile_notify_service": "Notifications",
+          "dashboard_language": "Langue"
+        },
+        "data_description": {
+          "mobile_notify_service": "Sélectionnez un service de notification pour activer les notifications concernant ce parent, ou laissez ce champ vide pour les désactiver.",
+          "dashboard_language": "Langue utilisée pour votre tableau de bord des tâches et vos notifications."
         }
       },
       "chore_count": {
@@ -85,10 +89,10 @@
           "chore_labels": "📋 Étiquettes (facultatif)",
           "default_points": "💰 Points attribués",
           "assigned_kids": "👥 Enfants assignés",
-          "completion_criteria": "👥 Type d'achèvement",
-          "approval_reset_type": "➡️ Nombre de complétions autorisées et réinitialisation du temps",
-          "approval_reset_pending_claim_action": "➡️ Réclamations en attente à la réinitialisation",
-          "overdue_handling_type": "⏰ En retard : Type de traitement",
+          "completion_criteria": "👥 Critères d'achèvement",
+          "approval_reset_type": "➡️ Délai d'achèvement autorisé et de réinitialisation de l'approbation",
+          "approval_reset_pending_claim_action": "➡️ Réinitialisation du traitement des demandes en attente d'approbation",
+          "overdue_handling_type": "⏰ En retard : Traitement",
           "auto_approve": "✅ Approbation automatique des demandes ?",
           "recurring_frequency": "🔄 Horaire : Fréquence",
           "custom_interval": "🔄 Programmation : Intervalle personnalisé (pour une fréquence personnalisée)",
@@ -105,15 +109,15 @@
           "chore_labels": "Étiquettes pour organiser les tâches ménagères (ex. : « cuisine », « extérieur »). Laisser vide si non nécessaire.",
           "default_points": "Points obtenus une fois le projet terminé.",
           "assigned_kids": "Les enfants qui peuvent voir et revendiquer cette tâche.",
-          "completion_criteria": "Fonctionnement des tâches partagées : Indépendantes (chaque enfant effectue les tâches séparément), Partagées par tous (l’approbation de tous est requise) ou Partagées en premier (la première approbation valide la tâche).",
+          "completion_criteria": "Indépendant (chaque enfant complète séparément), Partagé pour tous (tous doivent compléter), ou Partagé en premier (le premier à revendiquer bloque les autres).",
           "approval_reset_type": "Contrôle le moment où cette tâche se réinitialise et le nombre de fois où elle peut être effectuée pendant cette période.",
-          "approval_reset_pending_claim_action": "Lorsque cette tâche est réinitialisée (en fonction du délai de réinitialisation de l'achèvement ci-dessus), qu'advient-il des demandes qui attendent encore d'être approuvées ?",
+          "approval_reset_pending_claim_action": "Voici ce qui arrive aux demandes d'indemnisation toujours en attente d'approbation lors de la réinitialisation du processus d'approbation.",
           "overdue_handling_type": "Actions à entreprendre après la date d'échéance : Masquer le statut de retard, maintenir le statut de retard jusqu'à ce que la demande soit réclamée, ou réinitialiser le statut à « en attente » lors du prochain cycle d'approbation.",
           "auto_approve": "Une fois activées, les demandes sont approuvées instantanément sans validation parentale.",
           "recurring_frequency": "Fréquence de répétition de la tâche : Quotidienne, Hebdomadaire, Mensuelle, Annuelle, Personnalisée ou Aucune.",
           "custom_interval": "Nombre d'unités de temps entre les répétitions (ex. : 3 pour « toutes les 3 semaines »). Utilisé uniquement avec la fréquence personnalisée.",
           "custom_interval_unit": "Unité de temps pour l'intervalle personnalisé (jours, semaines, mois). Utilisée uniquement avec la fréquence personnalisée.",
-          "applicable_days": "Limiter la tâche à certains jours de la semaine. Laisser vide pour tous les jours.",
+          "applicable_days": "Laissez vide pour tous les jours. Sélectionnez UNIQUEMENT les jours à exclure.",
           "due_date": "Date limite facultative. Peut être combinée avec des planifications récurrentes.",
           "show_on_calendar": "Afficher cette tâche dans le calendrier.",
           "chore_notifications": "Quand envoyer les notifications : lors de la réclamation, lors de l’approbation, lors du rejet ou toute combinaison de ces éléments."
@@ -300,6 +304,7 @@
       "duplicate_penalty": "Une sanction portant ce nom existe déjà.",
       "duplicate_reward": "Une récompense portant ce nom existe déjà.",
       "duplicate_bonus": "Un bonus portant ce nom existe déjà.",
+      "shadow_kid_name_conflict": "Impossible d'attribuer les tâches : un enfant portant votre nom existe déjà. Veuillez d'abord renommer l'enfant existant.",
       "due_date_in_past": "La date d'échéance doit être future.",
       "end_date_in_past": "La date de fin doit être future.",
       "end_date_not_after_start_date": "La date de fin doit être postérieure à la date de début.",
@@ -343,6 +348,7 @@
       "invalid_date_range": "La plage de dates est invalide. La date de fin doit être postérieure à la date de début.",
       "missing_required": "Champ obligatoire manquant. Veuillez fournir toutes les informations requises.",
       "invalid_format": "Le format est invalide. Veuillez vérifier votre saisie et réessayer.",
+      "chore_options_require_assignment": "Les options de gestion des tâches ménagères et de gamification nécessitent d'abord l'activation de l'option « Autoriser l'attribution de tâches ménagères ».",
       "invalid_update_interval": "Intervalle de mise à jour invalide. Doit être un entier positif.",
       "invalid_calendar_show_period": "Période d'affichage du calendrier invalide. Doit être un entier positif.",
       "invalid_retention_period": "Période de conservation invalide. Doit être un entier positif.",
@@ -395,10 +401,15 @@
         "data": {
           "kid_name": "Nom de l'enfant",
           "ha_user": "Utilisateur de Home Assistant",
-          "enable_mobile_notifications": "Activer les notifications mobiles",
-          "mobile_notify_service": "Service de notification",
-          "enable_persistent_notifications": "Activer les notifications persistantes",
+          "mobile_notify_service": "Notifications",
+          "enable_due_date_reminders": "Rappels d'échéance",
+          "dashboard_language": "Langue",
           "internal_id": "ID interne"
+        },
+        "data_description": {
+          "mobile_notify_service": "Sélectionnez un service de notification pour activer les notifications pour cet enfant, ou laissez vide pour les désactiver.",
+          "enable_due_date_reminders": "Envoyer des notifications de rappel lorsque les tâches ménagères sont dues dans les 30 minutes.",
+          "dashboard_language": "Langue utilisée pour votre tableau de bord des tâches et vos notifications."
         }
       },
       "add_parent": {
@@ -408,10 +419,19 @@
           "parent_name": "Nom du parent",
           "ha_user_id": "Utilisateur de Home Assistant",
           "associated_kids": "Enfants associés",
-          "enable_mobile_notifications": "Activer les notifications mobiles",
-          "mobile_notify_service": "Service de notification",
-          "enable_persistent_notifications": "Activer les notifications persistantes",
+          "mobile_notify_service": "Notifications",
+          "dashboard_language": "Langue",
+          "allow_chore_assignment": "Autorisez-moi à faire des tâches ménagères.",
+          "enable_chore_workflow": "Activer le flux de travail des tâches",
+          "enable_gamification": "Activer la gamification",
           "internal_id": "ID interne"
+        },
+        "data_description": {
+          "mobile_notify_service": "Sélectionnez un service de notification pour activer les notifications concernant ce parent, ou laissez ce champ vide pour les désactiver.",
+          "allow_chore_assignment": "Crée un profil pour que des tâches puissent vous être attribuées. Par défaut, seul un bouton « Approuver » est affiché pour une validation en un clic. Remarque : décocher cette option conserve le profil enfant avec le suffixe « _unlinked » pour un nettoyage manuel.",
+          "enable_chore_workflow": "Ajoute des boutons « Revendiquer » et « Refuser » pour un flux de travail complet (revendiquer → approuver/refuser).",
+          "enable_gamification": "Suivez vos points, badges et récompenses pour vos tâches accomplies.",
+          "dashboard_language": "Langue utilisée pour votre tableau de bord des tâches et vos notifications."
         }
       },
       "add_chore": {
@@ -424,10 +444,10 @@
           "chore_labels": "📋 Étiquettes (facultatif)",
           "default_points": "💰 Points attribués",
           "assigned_kids": "👥 Enfants assignés",
-          "completion_criteria": "👥 Type d'achèvement",
-          "approval_reset_type": "➡️ Nombre de complétions autorisées et réinitialisation du temps",
-          "approval_reset_pending_claim_action": "➡️ Réclamations en attente à la réinitialisation",
-          "overdue_handling_type": "⏰ En retard : Type de traitement",
+          "completion_criteria": "👥 Critères d'achèvement",
+          "approval_reset_type": "➡️ Délai d'achèvement autorisé et de réinitialisation de l'approbation",
+          "approval_reset_pending_claim_action": "➡️ Réinitialisation du traitement des demandes en attente d'approbation",
+          "overdue_handling_type": "⏰ En retard : Traitement",
           "auto_approve": "✅ Approbation automatique des demandes ?",
           "recurring_frequency": "🔄 Horaire : Fréquence",
           "custom_interval": "🔄 Programmation : Intervalle personnalisé (pour une fréquence personnalisée)",
@@ -444,16 +464,16 @@
           "chore_labels": "Étiquettes pour organiser les tâches ménagères (ex. : « cuisine », « extérieur »). Laisser vide si non nécessaire.",
           "default_points": "Points obtenus une fois le projet terminé.",
           "assigned_kids": "Les enfants qui peuvent voir et revendiquer cette tâche.",
-          "completion_criteria": "Fonctionnement des tâches partagées : Indépendantes (chaque enfant effectue les tâches séparément), Partagées par tous (l’approbation de tous est requise) ou Partagées en premier (la première approbation valide la tâche).",
-          "approval_reset_type": "Contrôle le moment où cette tâche se réinitialise et le nombre de fois où elle peut être effectuée pendant cette période.",
-          "approval_reset_pending_claim_action": "Lorsque cette tâche est réinitialisée (en fonction du délai de réinitialisation de l'achèvement ci-dessus), qu'advient-il des demandes qui attendent encore d'être approuvées ?",
+          "completion_criteria": "Indépendant (chaque enfant complète séparément), Partagé pour tous (tous doivent compléter), ou Partagé en premier (le premier à revendiquer bloque les autres).",
+          "approval_reset_type": "Contrôle le moment où l'approbation de cette tâche est réinitialisée et le nombre de tâches pouvant être effectuées pendant cette période.",
+          "approval_reset_pending_claim_action": "Voici ce qui arrive aux demandes d'indemnisation toujours en attente d'approbation lors de la réinitialisation du processus d'approbation.",
           "overdue_handling_type": "Actions à entreprendre après la date d'échéance : Masquer le statut de retard, maintenir le statut de retard jusqu'à ce que la demande soit réclamée, ou réinitialiser le statut à « en attente » lors du prochain cycle d'approbation.",
           "auto_approve": "Une fois activées, les demandes sont approuvées instantanément sans validation parentale.",
-          "recurring_frequency": "Fréquence de répétition de la tâche : Quotidienne, Hebdomadaire, Mensuelle, Annuelle, Personnalisée ou Aucune.",
+          "recurring_frequency": "Fréquence de la tâche : Quotidienne, Hebdomadaire, Mensuelle, Annuelle, Personnalisée ou Aucune. Si vous sélectionnez « Quotidienne – Plusieurs fois par jour », un écran supplémentaire s’affichera pour configurer les horaires précis.",
           "custom_interval": "Nombre d'unités de temps entre les répétitions (ex. : 3 pour « toutes les 3 semaines »). Utilisé uniquement avec la fréquence personnalisée.",
           "custom_interval_unit": "Unité de temps pour l'intervalle personnalisé (jours, semaines, mois). Utilisée uniquement avec la fréquence personnalisée.",
-          "applicable_days": "Limiter la tâche à certains jours de la semaine. Laisser vide pour tous les jours.",
-          "due_date": "Date limite facultative. Peut être combinée avec des planifications récurrentes.",
+          "applicable_days": "Laissez vide pour tous les jours. Sélectionnez UNIQUEMENT les jours à exclure.",
+          "due_date": "Date limite facultative. Peut être combinée avec des calendriers récurrents. Pour les tâches ménagères INDIVIDUELLES, ceci sert de modèle ; un écran supplémentaire apparaîtra permettant de définir des dates individuelles pour chaque enfant.",
           "show_on_calendar": "Afficher cette tâche dans le calendrier.",
           "chore_notifications": "Quand envoyer les notifications : lors de la réclamation, lors de l’approbation, lors du rejet ou toute combinaison de ces éléments."
         }
@@ -751,10 +771,33 @@
         "data": {
           "kid_name": "Nom de l'enfant",
           "ha_user": "Utilisateur de Home Assistant",
-          "enable_mobile_notifications": "Activer les notifications mobiles",
-          "mobile_notify_service": "Service de notification",
-          "enable_persistent_notifications": "Activer les notifications persistantes",
+          "mobile_notify_service": "Notifications",
+          "dashboard_language": "Langue",
+          "enable_due_date_reminders": "Rappels d'échéance",
           "internal_id": "ID interne"
+        },
+        "data_description": {
+          "mobile_notify_service": "Sélectionnez un service de notification pour activer les notifications pour cet enfant.",
+          "dashboard_language": "Langue utilisée pour votre tableau de bord des tâches et vos notifications.",
+          "enable_due_date_reminders": "Envoyer des notifications de rappel lorsque les tâches ménagères sont dues dans les 30 minutes."
+        }
+      },
+      "edit_kid_shadow": {
+        "title": "Modifier Shadow Kid",
+        "description": "Modifiez les détails de l'enfant fantôme sélectionné. ⚠️ Cet enfant est lié à un parent. Modifier son nom empêchera la dissociation via le service de correspondance des noms.",
+        "data": {
+          "kid_name": "Nom de l'enfant",
+          "ha_user": "Utilisateur de Home Assistant",
+          "mobile_notify_service": "Notifications",
+          "dashboard_language": "Langue",
+          "enable_due_date_reminders": "Rappels d'échéance",
+          "internal_id": "ID interne"
+        },
+        "data_description": {
+          "kid_name": "⚠️ Cet enfant fantôme est lié à un parent. Modifier ce nom désactivera la fonction de dissociation du service, qui exige des noms identiques.",
+          "mobile_notify_service": "⚠️ Notifications pour les enfants fantômes : Le parent associé reçoit déjà des notifications pour les tâches supervisées. Activer cette option créera des notifications en double. Utile pour les rappels de 30 minutes ou si vous utilisez différents services de notification.",
+          "dashboard_language": "Langue utilisée pour votre tableau de bord des tâches et vos notifications.",
+          "enable_due_date_reminders": "Envoyer des notifications de rappel lorsque les tâches ménagères sont dues dans les 30 minutes."
         }
       },
       "edit_parent": {
@@ -764,10 +807,19 @@
           "parent_name": "Nom du parent",
           "ha_user_id": "Utilisateur de Home Assistant",
           "associated_kids": "Enfants associés",
-          "enable_mobile_notifications": "Activer les notifications mobiles",
-          "mobile_notify_service": "Service de notification",
-          "enable_persistent_notifications": "Activer les notifications persistantes",
+          "mobile_notify_service": "Notifications",
+          "dashboard_language": "Langue",
+          "allow_chore_assignment": "Autorisez-moi à faire des tâches ménagères.",
+          "enable_chore_workflow": "Activer le flux de travail des tâches",
+          "enable_gamification": "Activer la gamification",
           "internal_id": "ID interne"
+        },
+        "data_description": {
+          "mobile_notify_service": "Sélectionnez un service de notification pour activer les notifications concernant ce parent, ou laissez ce champ vide pour les désactiver.",
+          "allow_chore_assignment": "Crée un profil pour que des tâches puissent vous être attribuées. Par défaut, seul un bouton « Approuver » est affiché pour une validation en un clic. Remarque : décocher cette option conserve le profil enfant avec le suffixe « _unlinked » pour un nettoyage manuel.",
+          "enable_chore_workflow": "Ajoute des boutons « Revendiquer » et « Refuser » pour un flux de travail complet (revendiquer → approuver/refuser).",
+          "enable_gamification": "Suivez vos points, badges et récompenses pour vos tâches accomplies.",
+          "dashboard_language": "Langue utilisée pour votre tableau de bord des tâches et vos notifications."
         }
       },
       "edit_chore": {
@@ -781,10 +833,10 @@
           "internal_id": "ID interne",
           "default_points": "💰 Points attribués",
           "assigned_kids": "👥 Enfants assignés",
-          "completion_criteria": "👥 Type d'achèvement",
-          "approval_reset_type": "➡️ Nombre de complétions autorisées et réinitialisation du temps",
-          "approval_reset_pending_claim_action": "➡️ Réclamations en attente à la réinitialisation",
-          "overdue_handling_type": "⏰ En retard : Type de traitement",
+          "completion_criteria": "👥 Critères d'achèvement",
+          "approval_reset_type": "➡️ Délai d'achèvement autorisé et de réinitialisation de l'approbation",
+          "approval_reset_pending_claim_action": "➡️ Réinitialisation du traitement des demandes en attente d'approbation",
+          "overdue_handling_type": "⏰ En retard : Traitement",
           "auto_approve": "✅ Approbation automatique des demandes ?",
           "recurring_frequency": "🔄 Horaire : Fréquence",
           "custom_interval": "🔄 Programmation : Intervalle personnalisé (pour une fréquence personnalisée)",
@@ -802,15 +854,15 @@
           "chore_labels": "Étiquettes pour organiser les tâches ménagères (ex. : « cuisine », « extérieur »). Laisser vide si non nécessaire.",
           "default_points": "Points obtenus une fois le projet terminé.",
           "assigned_kids": "Les enfants qui peuvent voir et revendiquer cette tâche.",
-          "completion_criteria": "Fonctionnement des tâches partagées : Indépendantes (chaque enfant effectue les tâches séparément), Partagées par tous (l’approbation de tous est requise) ou Partagées en premier (la première approbation valide la tâche).",
-          "approval_reset_type": "Contrôle le moment où cette tâche se réinitialise et le nombre de fois où elle peut être effectuée pendant cette période.",
-          "approval_reset_pending_claim_action": "Lorsque cette tâche est réinitialisée (en fonction du délai de réinitialisation de l'achèvement ci-dessus), qu'advient-il des demandes qui attendent encore d'être approuvées ?",
+          "completion_criteria": "Indépendant (chaque enfant complète séparément), Partagé pour tous (tous doivent compléter), ou Partagé en premier (le premier à revendiquer bloque les autres).",
+          "approval_reset_type": "Contrôle le moment où l'approbation de cette tâche est réinitialisée et le nombre de tâches pouvant être effectuées pendant cette période.",
+          "approval_reset_pending_claim_action": "Lorsque l'approbation de cette tâche est réinitialisée (en fonction du délai de réinitialisation des approbations ci-dessus), qu'advient-il des demandes qui sont toujours en attente d'approbation ?",
           "overdue_handling_type": "Actions à entreprendre après la date d'échéance : Masquer le statut de retard, maintenir le statut de retard jusqu'à ce que la demande soit réclamée, ou réinitialiser le statut à « en attente » lors du prochain cycle d'approbation.",
           "auto_approve": "Une fois activées, les demandes sont approuvées instantanément sans validation parentale.",
-          "recurring_frequency": "Fréquence de répétition de la tâche : Quotidienne, Hebdomadaire, Mensuelle, Annuelle, Personnalisée ou Aucune.",
+          "recurring_frequency": "Fréquence de la tâche : Quotidienne, Hebdomadaire, Mensuelle, Annuelle, Personnalisée ou Aucune. Si vous sélectionnez « Quotidienne – Plusieurs fois par jour », un écran supplémentaire s’affichera pour configurer les horaires précis.",
           "custom_interval": "Nombre d'unités de temps entre les répétitions (ex. : 3 pour « toutes les 3 semaines »). Utilisé uniquement avec la fréquence personnalisée.",
           "custom_interval_unit": "Unité de temps pour l'intervalle personnalisé (jours, semaines, mois). Utilisée uniquement avec la fréquence personnalisée.",
-          "applicable_days": "Limiter la tâche à certains jours de la semaine. Laisser vide pour tous les jours.",
+          "applicable_days": "Laissez vide pour tous les jours. Sélectionnez UNIQUEMENT les jours à exclure.",
           "due_date": "Date limite facultative. Peut être combinée avec des calendriers récurrents. Pour les tâches ménagères INDIVIDUELLES, ceci sert de modèle ; un écran supplémentaire apparaîtra permettant de définir des dates individuelles pour chaque enfant.",
           "clear_due_date": "Cochez cette case pour supprimer la date d'échéance de cette tâche.",
           "show_on_calendar": "Afficher cette tâche dans le calendrier.",
@@ -825,6 +877,30 @@
         },
         "data_description": {
           "apply_template_to_all": "Cochez cette case pour appliquer la date définie sur la page principale de modification des tâches à tous les enfants assignés, en remplaçant leurs dates individuelles."
+        }
+      },
+      "chores_daily_multi": {
+        "title": "Définir les horaires quotidiens : {chore_name}",
+        "description": "Saisissez les plages horaires pendant lesquelles cette tâche doit être disponible chaque jour. Utilisez le format 24 heures (HH:MM) séparées par une barre verticale (|).\n\n**Exemple :** 07:00|12:00|18:00 pour le matin, midi et le soir.\n\n**Conditions :**\n- Minimum 2 plages horaires, maximum 6.\n- Les plages horaires doivent être au format 24 heures (de 00:00 à 23:59).\n- Séparez les plages horaires par une barre verticale (|).\n\n**Remarque :** Si vous définissez une date d'échéance dans le formulaire principal, seule la date est prise en compte. Les plages horaires que vous saisissez ci-dessous détermineront les périodes de disponibilité de la tâche chaque jour.",
+        "data": {
+          "daily_multi_times": "Daily Times"
+        },
+        "data_description": {
+          "daily_multi_times": "Saisissez de 2 à 6 fois au format 24 heures, séparées par | (barre verticale). Exemple : 08:00|17:00 pour le matin et le soir."
+        }
+      },
+      "edit_chore_per_kid_details": {
+        "title": "Horaire par enfant : {chore_name}",
+        "description": "Configurez les paramètres d'horaire individuels pour chaque enfant affecté à cette tâche. Les valeurs principales du formulaire servent de **modèles** : cochez les cases pour les appliquer à tous les enfants ou personnalisez les paramètres de chaque enfant individuellement.\n\n**Remarque :** Tous les champs ci-dessous ne s'appliquent pas à toutes les tâches. Le formulaire affiche dynamiquement les options pertinentes en fonction du mode d'exécution, de la fréquence et de la présence ou non d'une date d'échéance.\n\n**Format Quotidien (Plusieurs) :** Si cette option est affichée, saisissez 2 à 6 fois au format 24 heures, séparées par une barre verticale (|). Exemple : 08:00|17:00\n\nEnfants : {kid_names}{template_info}",
+        "data": {
+          "apply_days_to_all": "Appliquer le modèle de journées à tous les enfants",
+          "apply_times_to_all": "Appliquer les horaires types à tous les enfants",
+          "apply_template_to_all": "Appliquer le modèle de date à tous les enfants"
+        },
+        "data_description": {
+          "apply_days_to_all": "Cochez la case correspondant aux jours applicables indiqués sur le formulaire principal pour tous les enfants assignés.",
+          "apply_times_to_all": "Veuillez cocher la case pour utiliser les horaires journaliers indiqués sur le formulaire principal pour tous les enfants assignés.",
+          "apply_template_to_all": "Cochez cette case pour appliquer la date indiquée sur le formulaire principal des tâches ménagères à tous les enfants assignés."
         }
       },
       "edit_badge_cumulative": {
@@ -1283,7 +1359,17 @@
       "corrupt_file": "Le fichier sélectionné contient un JSON invalide et ne peut pas être lu.",
       "invalid_structure": "Le fichier sélectionné ne contient pas la structure de données requise.",
       "file_not_found": "Le fichier sélectionné est introuvable.",
-      "invalid_selection": "Veuillez sélectionner une option valide."
+      "invalid_selection": "Veuillez sélectionner une option valide.",
+      "error_daily_multi_requires_compatible_reset": "La fréquence « Plusieurs fois par jour » est incompatible avec les types de réinitialisation de minuit, car ceux-ci ne réinitialisent les approbations qu'une seule fois, à minuit.",
+      "error_daily_multi_independent_multi_kids": "L'option « Plusieurs fois par jour » avec réalisation INDÉPENDANTE nécessite un seul enfant, sauf si des horaires spécifiques sont configurés pour chaque enfant. Configurez des horaires différents pour chaque enfant dans les paramètres individuels.",
+      "error_daily_multi_times_required": "Une liste des horaires est requise pour la fréquence « Plusieurs fois par jour ».",
+      "error_daily_multi_times_invalid_format": "Format d'heure invalide. Utilisez le format 24 heures (HH:MM) séparé par | (ex. : 08:00|17:00).",
+      "error_daily_multi_times_too_few": "Il faut au moins deux utilisations pour une fréquence « Plusieurs fois par jour ». Pour une utilisation unique, utilisez la fréquence « Quotidienne ».",
+      "error_daily_multi_times_too_many": "Un maximum de 6 fois par jour est autorisé pour la fréquence « Plusieurs fois par jour ».",
+      "error_daily_multi_due_date_required": "L'option « Plusieurs fois par jour » nécessite la définition d'une date d'échéance. Cette date détermine le début de la planification, tandis que les heures définissent les plages horaires de disponibilité quotidiennes.",
+      "error_at_due_date_reset_requires_due_date": "Les réinitialisations d'approbation de type « À l'échéance » (ponctuelles ou multiples) nécessitent la définition d'une date d'échéance. Sans date d'échéance, la réinitialisation de l'approbation ne sera jamais déclenchée et la tâche restera approuvée indéfiniment.",
+      "error_per_kid_applicable_days_invalid": "Format des jours applicables invalide pour un ou plusieurs enfants. Les jours doivent être des nombres entiers de 0 à 6 (lundi-dimanche) sans doublons.",
+      "error_per_kid_daily_multi_times_invalid": "Format horaire journalier invalide pour un ou plusieurs enfants. Utilisez le format 24 heures séparé par | (ex. : 08:00|17:00)."
     },
     "abort": {
       "invalid_action": "Action invalide",
@@ -1410,32 +1496,33 @@
     },
     "completion_criteria": {
       "options": {
-        "shared_all": "Partagé avec tous (Tous les enfants doivent le compléter ensemble)",
+        "shared_all": "Activité partagée (Tous les enfants doivent la réaliser ensemble)",
         "independent": "Indépendant (Chaque enfant remplit le formulaire individuellement)",
-        "shared_first": "Partagé avec First (Première réalisation comptabilisée)"
+        "shared_first": "Partagé en premier (la première complétion compte)"
       }
     },
     "approval_reset_type": {
       "options": {
-        "at_midnight_once": "Autoriser 1 exécution - réinitialisation à minuit",
-        "at_midnight_multi": "Autoriser plusieurs tentatives - réinitialisation à minuit",
-        "at_due_date_once": "Autoriser 1 réalisation - réinitialise à la date d'échéance",
-        "at_due_date_multi": "Autoriser plusieurs tentatives - réinitialisation à la date d'échéance",
-        "upon_completion": "Autoriser un nombre illimité de tentatives - réinitialisation après la fin"
+        "at_midnight_once": "Une fois par jour - Réinitialisation à minuit",
+        "at_midnight_multi": "Plusieurs fois par jour - Réinitialisation à minuit",
+        "at_due_date_once": "Une fois par période - Réinitialisation à la date d'échéance",
+        "at_due_date_multi": "Plusieurs fois par période - Réinitialisation à la date d'échéance",
+        "upon_completion": "Nombre de complétions illimité - Réinitialisation après la complétion"
       }
     },
     "overdue_handling_type": {
       "options": {
-        "at_due_date": "Afficher les retards après la date d'échéance (jusqu'à achèvement)",
-        "never_overdue": "Ne jamais afficher comme retard de paiement",
-        "at_due_date_then_reset": "Afficher les retards après la date d'échéance (jusqu'à la réinitialisation de l'approbation)"
+        "at_due_date": "En retard jusqu'à achèvement",
+        "never_overdue": "Jamais en retard",
+        "at_due_date_clear_at_approval_reset": "En retard jusqu'à approbation Réinitialisation",
+        "at_due_date_clear_immediate_on_late": "En retard jusqu'à achèvement (Traitez immédiatement les approbations tardives)"
       }
     },
     "approval_reset_pending_claim_action": {
       "options": {
-        "hold_pending": "Maintenir le statut de la demande (En attente d'approbation/de rejet)",
-        "clear_pending": "Effacer toutes les réclamations en cours",
-        "auto_approve_pending": "Approbation automatique de toutes les demandes en attente"
+        "hold_pending": "Statut de la demande en attente (Approbation/Rejet)",
+        "clear_pending": "Effacer les réclamations en cours",
+        "auto_approve_pending": "Approbation automatique des demandes en attente"
       }
     },
     "chore_notifications": {
@@ -1449,12 +1536,14 @@
       "options": {
         "none": "Aucun",
         "daily": "Tous les jours",
+        "daily_multi": "Quotidiennement (Plusieurs fois par jour)",
         "weekly": "Hebdomadaire",
         "biweekly": "Bihebdomadaire",
         "monthly": "Mensuel",
         "quarterly": "Trimestriel",
         "yearly": "Annuel",
         "custom": "Coutume",
+        "custom_from_complete": "Personnalisé (Reprogrammer à partir de la date d'achèvement)",
         "custom_1_week": "Délai de livraison : 1 semaine",
         "custom_1_month": "Personnalisé : 1 mois",
         "custom_1_quarter": "Personnalisé : 1 quart",
@@ -1470,6 +1559,7 @@
     },
     "custom_interval_unit": {
       "options": {
+        "hours": "Heures",
         "days": "Jours",
         "weeks": "Semaines",
         "months": "Mois"
@@ -1508,6 +1598,20 @@
     }
   },
   "services": {
+    "manage_shadow_link": {
+      "name": "Gérer le lien parent-enfant",
+      "description": "Associer ou dissocier un profil enfant existant à un parent. Les noms de l'enfant et du parent doivent correspondre. La dissociation conserve toutes les données et renomme le profil enfant avec le suffixe « _unlinked ».",
+      "fields": {
+        "name": {
+          "name": "Nom",
+          "description": "Nom qui correspond à la fois au parent et à l'enfant (sans tenir compte de la casse)"
+        },
+        "action": {
+          "name": "Action",
+          "description": "Le lien connecte l'enfant à son parent en tant qu'ombre. La déconnexion déconnecte et renomme l'enfant."
+        }
+      }
+    },
     "claim_chore": {
       "name": "Réclamation de tâches ménagères",
       "description": "Un enfant s'approprie une corvée et la marque comme « prise en charge » pour approbation parentale.",
@@ -1869,17 +1973,17 @@
             "name": "Critères d'achèvement",
             "state": {
               "independent": "Indépendant",
-              "shared_first_only": "Partagé (Premier arrivé, premier servi)",
-              "shared_all_required": "Partagé (Tous requis)"
+              "shared_first_only": "Partagé (Premier)",
+              "shared_all_required": "Partagé (Tous)"
             }
           },
           "approval_reset_type": {
             "name": "Type de réinitialisation d'approbation",
             "state": {
-              "at_midnight_once": "Une fois par jour",
-              "at_midnight_multi": "Plusieurs par jour",
-              "at_due_date_once": "Une fois par date d'échéance",
-              "at_due_date_multi": "Plusieurs par date d'échéance",
+              "at_midnight_once": "À minuit (une fois)",
+              "at_midnight_multi": "À minuit (Multi)",
+              "at_due_date_once": "À l'échéance (une seule fois)",
+              "at_due_date_multi": "À l'échéance (Multiple)",
               "upon_completion": "À l'achèvement"
             }
           },
@@ -1888,10 +1992,18 @@
             "state": {
               "none": "Aucun",
               "daily": "Tous les jours",
+              "daily_multi": "Quotidiennement (Plusieurs fois par jour)",
               "weekly": "Hebdomadaire",
               "biweekly": "Bihebdomadaire",
               "monthly": "Mensuel",
-              "custom": "Coutume"
+              "quarterly": "Trimestriel",
+              "yearly": "Annuel",
+              "custom": "Coutume",
+              "custom_from_complete": "Personnalisé (Reprogrammer à partir de la date d'achèvement)",
+              "custom_1_week": "Délai de livraison : 1 semaine",
+              "custom_1_month": "Personnalisé : 1 mois",
+              "custom_1_quarter": "Personnalisé : 1 quart",
+              "custom_1_year": "Personnalisation : 1 an"
             }
           },
           "applicable_days": {
@@ -2529,10 +2641,10 @@
           "approval_reset_type": {
             "name": "Type de réinitialisation d'approbation",
             "state": {
-              "at_midnight_once": "Une fois par jour",
-              "at_midnight_multi": "Plusieurs par jour",
-              "at_due_date_once": "Une fois par date d'échéance",
-              "at_due_date_multi": "Plusieurs par date d'échéance",
+              "at_midnight_once": "À minuit (une fois)",
+              "at_midnight_multi": "À minuit (Multi)",
+              "at_due_date_once": "À l'échéance (une seule fois)",
+              "at_due_date_multi": "À l'échéance (Multiple)",
               "upon_completion": "À l'achèvement"
             }
           },
@@ -2618,23 +2730,98 @@
           "cost": {
             "name": "Coût"
           },
-          "reward_claims_count": {
-            "name": "Total des sinistres"
+          "pending_claims": {
+            "name": "Réclamations en cours"
           },
-          "reward_approvals_count": {
-            "name": "Approbations totales"
+          "last_claimed": {
+            "name": "Dernière réclamation"
+          },
+          "last_approved": {
+            "name": "Dernière approbation"
+          },
+          "last_disapproved": {
+            "name": "Dernière désapprobation"
+          },
+          "claimed_today": {
+            "name": "Réclamations aujourd'hui"
+          },
+          "claimed_week": {
+            "name": "Réclamations cette semaine"
+          },
+          "claimed_month": {
+            "name": "Réclamations ce mois-ci"
+          },
+          "claimed_year": {
+            "name": "Réclamations cette année"
+          },
+          "claimed_all_time": {
+            "name": "Réclamations à tout moment"
+          },
+          "approved_today": {
+            "name": "Approuvé aujourd'hui"
+          },
+          "approved_week": {
+            "name": "Approuvé cette semaine"
+          },
+          "approved_month": {
+            "name": "Approuvé ce mois-ci"
+          },
+          "approved_year": {
+            "name": "Approuvé cette année"
+          },
+          "approved_all_time": {
+            "name": "Approuvé en permanence"
+          },
+          "disapproved_today": {
+            "name": "Désapprouvé aujourd'hui"
+          },
+          "disapproved_week": {
+            "name": "Désapprouvé cette semaine"
+          },
+          "disapproved_month": {
+            "name": "Désapprouvé ce mois-ci"
+          },
+          "disapproved_year": {
+            "name": "Désapprouvé cette année"
+          },
+          "disapproved_all_time": {
+            "name": "Désapprouvé en permanence"
+          },
+          "points_spent_today": {
+            "name": "Points dépensés aujourd'hui"
+          },
+          "points_spent_week": {
+            "name": "Points dépensés cette semaine"
+          },
+          "points_spent_month": {
+            "name": "Points dépensés ce mois-ci"
+          },
+          "points_spent_year": {
+            "name": "Points dépensés cette année"
+          },
+          "points_spent_all_time": {
+            "name": "Points dépensés au total"
+          },
+          "approval_rate": {
+            "name": "Taux d'approbation (%)"
+          },
+          "claim_rate_week": {
+            "name": "Nombre moyen de sinistres par jour (semaine)"
+          },
+          "claim_rate_month": {
+            "name": "Nombre moyen de sinistres par jour (mois)"
+          },
+          "claim_button_eid": {
+            "name": "ID d'entité du bouton de réclamation"
+          },
+          "approve_button_eid": {
+            "name": "ID de l'entité du bouton Approuver"
+          },
+          "disapprove_button_eid": {
+            "name": "ID de l'entité du bouton de désapprobation"
           },
           "labels": {
             "name": "Étiquettes"
-          },
-          "reward_claim_button_eid": {
-            "name": "ID d'entité du bouton de réclamation"
-          },
-          "reward_approve_button_eid": {
-            "name": "ID de l'entité du bouton Approuver"
-          },
-          "reward_disapprove_button_eid": {
-            "name": "ID de l'entité du bouton de désapprobation"
           }
         }
       },
@@ -2909,6 +3096,23 @@
           }
         }
       },
+      "system_dashboard_translation_sensor": {
+        "name": "Traductions du tableau de bord ({language})",
+        "state_attributes": {
+          "purpose": {
+            "name": "But",
+            "state": {
+              "purpose_dashboard_translation": "Fournit des traductions localisées de l'interface utilisateur pour l'affichage du tableau de bord"
+            }
+          },
+          "ui_translations": {
+            "name": "Traductions d'interface utilisateur"
+          },
+          "language": {
+            "name": "Langue"
+          }
+        }
+      },
       "kid_dashboard_helper_sensor": {
         "name": "Assistant de tableau de bord d'interface utilisateur",
         "state_attributes": {
@@ -2962,6 +3166,9 @@
           },
           "language": {
             "name": "Langue"
+          },
+          "translation_sensor": {
+            "name": "Capteur de translation"
           }
         }
       }
@@ -3207,6 +3414,21 @@
     }
   },
   "exceptions": {
+    "kid_not_found_by_name": {
+      "message": "Aucun enfant trouvé avec le nom '{name}'"
+    },
+    "parent_not_found_by_name": {
+      "message": "Aucun parent trouvé avec le nom '{name}'"
+    },
+    "kid_already_shadow": {
+      "message": "L'enfant '{name}' est déjà lié à un parent"
+    },
+    "kid_not_shadow": {
+      "message": "L'enfant '{name}' n'est lié à aucun parent"
+    },
+    "parent_has_different_shadow": {
+      "message": "Le parent '{name}' est déjà lié à un autre enfant"
+    },
     "error_msg_no_entry_found": {
       "message": "Aucune entrée correspondante trouvée dans la configuration."
     },

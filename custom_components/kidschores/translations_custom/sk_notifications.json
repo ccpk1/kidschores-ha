@@ -19,6 +19,10 @@
     "title": "Detské domáce práce: Domáce práce po termíne",
     "message": "Domáca úloha {chore_name} je po termíne! Dátum odovzdania bol {due_date}"
   },
+  "chore_due_soon": {
+    "title": "⏰ Úloha čoskoro!",
+    "message": "{chore_name} je potrebné odovzdať o {minutes} minút (+{points}bodov)"
+  },
   "chore_reminder": {
     "title": "KidsChores: Pripomienka na čakajúcu domácu úlohu",
     "message": "Pripomienka: Domáca úloha {chore_name} nárokovaná používateľom {kid_name} čaká na schválenie"
@@ -75,9 +79,32 @@
     "title": "Detské práce: Uplatnený bonus",
     "message": "Použitý bonus {bonus_name} : +{points} bodov"
   },
+  "pending_chores": {
+    "title": "Detské práce: {kid_name}",
+    "message": "{count} čakajúcich úloh (posledné: {latest_chore} +{points}bodov)"
+  },
+  "status_update": {
+    "title": "✅ Detské práce",
+    "message": "Stav aktualizovaný"
+  },
+  "chore_approved_status": {
+    "title": "✅ Detské práce",
+    "message": "{chore_name} schválené používateľom {parent_name}"
+  },
+  "chore_disapproved_status": {
+    "title": "❌ Detské práce",
+    "message": "{chore_name} zamietnuté používateľom {parent_name}"
+  },
+  "reward_approved_status": {
+    "title": "✅ Detské práce",
+    "message": "{reward_name} odmena schválená"
+  },
   "actions": {
     "approve": "Schváliť",
     "disapprove": "Neschváliť",
-    "remind_30": "Pripomenúť o 30 minút"
+    "remind_30": "Pripomenúť o 30 minút",
+    "approve_latest": "✅ Schváliť najnovšie",
+    "review_all": "👀 Prehodnotiť všetko",
+    "claim": "✋ Uplatniť teraz"
   }
 }

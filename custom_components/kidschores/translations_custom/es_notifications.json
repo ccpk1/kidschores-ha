@@ -19,6 +19,10 @@
     "title": "KidsChores: Tareas atrasadas",
     "message": "¡La tarea {chore_name} está atrasada! La fecha de entrega era {due_date}"
   },
+  "chore_due_soon": {
+    "title": "⏰ ¡Tarea pendiente pronto!",
+    "message": "{chore_name} debe entregarse en {minutes} minutos (+{points}pts)"
+  },
   "chore_reminder": {
     "title": "KidsChores: Recordatorio de tareas pendientes",
     "message": "Recordatorio: La tarea {chore_name} reclamada por {kid_name} está esperando aprobación"
@@ -75,9 +79,32 @@
     "title": "KidsChores: Bonificación aplicada",
     "message": "Bonificación {bonus_name} aplicada: +{points} puntos"
   },
+  "pending_chores": {
+    "title": "Tareas de los niños: {kid_name}",
+    "message": "{count} tareas pendientes (últimas: {latest_chore} +{points}pts)"
+  },
+  "status_update": {
+    "title": "✅ Tareas para niños",
+    "message": "Estado actualizado"
+  },
+  "chore_approved_status": {
+    "title": "✅ Tareas para niños",
+    "message": "{chore_name} aprobado por {parent_name}"
+  },
+  "chore_disapproved_status": {
+    "title": "❌ Tareas de niños",
+    "message": "{chore_name} desaprobado por {parent_name}"
+  },
+  "reward_approved_status": {
+    "title": "✅ Tareas para niños",
+    "message": "{reward_name} recompensa aprobada"
+  },
   "actions": {
     "approve": "Aprobar",
     "disapprove": "Desaprobar",
-    "remind_30": "Recordar en 30 min"
+    "remind_30": "Recordar en 30 min",
+    "approve_latest": "✅ Aprobar lo último",
+    "review_all": "👀 Revisar todo",
+    "claim": "✋ Reclama ahora"
   }
 }

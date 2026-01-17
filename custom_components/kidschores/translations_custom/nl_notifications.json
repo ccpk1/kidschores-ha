@@ -19,6 +19,10 @@
     "title": "KidsChores: Klusjes die al lang hadden moeten gebeuren",
     "message": "De klus {chore_name} is te laat! De uiterste inleverdatum was {due_date}"
   },
+  "chore_due_soon": {
+    "title": "⏰ Klus die binnenkort af moet!",
+    "message": "{chore_name} moet binnen {minutes} minuten (+{points}punten) worden voldaan."
+  },
   "chore_reminder": {
     "title": "KidsChores: Herinnering voor nog uit te voeren klusjes",
     "message": "Herinnering: De taak {chore_name} die is geclaimd door {kid_name} wacht op goedkeuring."
@@ -75,9 +79,32 @@
     "title": "KidsChorks: Bonus toegepast",
     "message": "Bonus {bonus_name} toegepast: +{points} punten"
   },
+  "pending_chores": {
+    "title": "KidsChores: {kid_name}",
+    "message": "{count} taken in behandeling (laatste: {latest_chore} +{points}punten)"
+  },
+  "status_update": {
+    "title": "✅ Kinderklusjes",
+    "message": "Status bijgewerkt"
+  },
+  "chore_approved_status": {
+    "title": "✅ Kinderklusjes",
+    "message": "{chore_name} goedgekeurd door {parent_name}"
+  },
+  "chore_disapproved_status": {
+    "title": "❌ Kinderklusjes",
+    "message": "{chore_name} afgekeurd door {parent_name}"
+  },
+  "reward_approved_status": {
+    "title": "✅ Kinderklusjes",
+    "message": "{reward_name} beloning goedgekeurd"
+  },
   "actions": {
     "approve": "Goedkeuren",
     "disapprove": "Afkeuren",
-    "remind_30": "Herinnering over 30 minuten"
+    "remind_30": "Herinnering over 30 minuten",
+    "approve_latest": "✅ Keur de nieuwste goed",
+    "review_all": "👀 Alles beoordelen",
+    "claim": "✋ Claim nu"
   }
 }

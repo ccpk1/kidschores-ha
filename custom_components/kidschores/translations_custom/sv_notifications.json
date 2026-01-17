@@ -19,6 +19,10 @@
     "title": "Barnsysslor: Sysslor försenade",
     "message": "Syssla {chore_name} är försenad! Förfallodatum var {due_date}"
   },
+  "chore_due_soon": {
+    "title": "⏰ Syssla snart!",
+    "message": "{chore_name} ska vara inlämnad om {minutes} minuter (+{points}poäng)"
+  },
   "chore_reminder": {
     "title": "Barnsysslor: Påminnelse för väntande syssla",
     "message": "Påminnelse: Syssla {chore_name} som tagits an av {kid_name} väntar på godkännande"
@@ -75,9 +79,32 @@
     "title": "Barnsysslor: Bonus tillämpad",
     "message": "Bonus {bonus_name} tillämpad: +{points} poäng"
   },
+  "pending_chores": {
+    "title": "Barnsysslor: {kid_name}",
+    "message": "{count} sysslor som väntar (senaste: {latest_chore} +{points}poäng)"
+  },
+  "status_update": {
+    "title": "✅ Barnsysslor",
+    "message": "Status uppdaterad"
+  },
+  "chore_approved_status": {
+    "title": "✅ Barnsysslor",
+    "message": "{chore_name} godkänd av {parent_name}"
+  },
+  "chore_disapproved_status": {
+    "title": "❌ Barnsysslor",
+    "message": "{chore_name} ogillas av {parent_name}"
+  },
+  "reward_approved_status": {
+    "title": "✅ Barnsysslor",
+    "message": "{reward_name} belöning godkänd"
+  },
   "actions": {
     "approve": "Godkänna",
     "disapprove": "Ogilla",
-    "remind_30": "Påminn om 30 min"
+    "remind_30": "Påminn om 30 min",
+    "approve_latest": "✅ Godkänn senaste",
+    "review_all": "👀 Recensera alla",
+    "claim": "✋ Ansök nu"
   }
 }

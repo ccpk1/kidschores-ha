@@ -19,6 +19,10 @@
     "title": "Børneopgaver: Forsinkede opgaver",
     "message": "Opgave {chore_name} er for sent! Forfaldsdatoen var {due_date}"
   },
+  "chore_due_soon": {
+    "title": "⏰ Huslige pligter skal snart afleveres!",
+    "message": "{chore_name} skal afleveres om {minutes} minutter (+{points}point)"
+  },
   "chore_reminder": {
     "title": "KidsChores: Påmindelse om ventende pligt",
     "message": "Påmindelse: Opgave {chore_name} , som {kid_name} har gjort krav på, venter på godkendelse"
@@ -75,9 +79,32 @@
     "title": "Børneopgaver: Bonus anvendt",
     "message": "Bonus {bonus_name} anvendt: +{points} point"
   },
+  "pending_chores": {
+    "title": "Børneopgaver: {kid_name}",
+    "message": "{count} opgaver i gang (seneste: {latest_chore} +{points}point)"
+  },
+  "status_update": {
+    "title": "✅ Børneopgaver",
+    "message": "Status opdateret"
+  },
+  "chore_approved_status": {
+    "title": "✅ Børneopgaver",
+    "message": "{chore_name} godkendt af {parent_name}"
+  },
+  "chore_disapproved_status": {
+    "title": "❌ Børneopgaver",
+    "message": "{chore_name} afvist af {parent_name}"
+  },
+  "reward_approved_status": {
+    "title": "✅ Børneopgaver",
+    "message": "{reward_name} belønning godkendt"
+  },
   "actions": {
     "approve": "Godkende",
     "disapprove": "Misbillige",
-    "remind_30": "Påmind om 30 min"
+    "remind_30": "Påmind om 30 min",
+    "approve_latest": "✅ Godkend seneste",
+    "review_all": "👀 Anmeld alle",
+    "claim": "✋ Gør krav nu"
   }
 }

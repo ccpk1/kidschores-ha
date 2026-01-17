@@ -41,11 +41,13 @@
         "description": "Geben Sie für jedes Kind den Namen ein.",
         "data": {
           "kid_name": "Kindername",
-          "internal_id": "Interne ID",
           "ha_user": "Home Assistant-Nutzer",
-          "enable_mobile_notifications": "Mobile Benachrichtigungen aktivieren",
-          "mobile_notify_service": "Benachrichtigungsdienst",
-          "enable_persistent_notifications": "Permanente Benachrichtigungen aktivieren"
+          "mobile_notify_service": "Benachrichtigungen",
+          "dashboard_language": "Sprache"
+        },
+        "data_description": {
+          "mobile_notify_service": "Wählen Sie einen Benachrichtigungsdienst aus, um Benachrichtigungen für dieses Kind zu aktivieren, oder lassen Sie das Feld leer, um Benachrichtigungen zu deaktivieren.",
+          "dashboard_language": "Sprache, die für Ihr Aufgaben-Dashboard und Ihre Benachrichtigungen verwendet wird."
         }
       },
       "parent_count": {
@@ -62,10 +64,12 @@
           "parent_name": "Name des Elternteils",
           "ha_user_id": "Home Assistant-Nutzer",
           "associated_kids": "Zugehörige Kinder",
-          "enable_mobile_notifications": "Mobile Benachrichtigungen aktivieren",
-          "mobile_notify_service": "Benachrichtigungsdienst",
-          "enable_persistent_notifications": "Permanente Benachrichtigungen aktivieren",
-          "internal_id": "Interne ID"
+          "mobile_notify_service": "Benachrichtigungen",
+          "dashboard_language": "Sprache"
+        },
+        "data_description": {
+          "mobile_notify_service": "Wählen Sie einen Benachrichtigungsdienst aus, um Benachrichtigungen für dieses übergeordnete Element zu aktivieren, oder lassen Sie das Feld leer, um Benachrichtigungen zu deaktivieren.",
+          "dashboard_language": "Sprache, die für Ihr Aufgaben-Dashboard und Ihre Benachrichtigungen verwendet wird."
         }
       },
       "chore_count": {
@@ -85,10 +89,10 @@
           "chore_labels": "📋 Etiketten (optional)",
           "default_points": "💰 Vergebene Punkte",
           "assigned_kids": "👥 Zugewiesene Kinder",
-          "completion_criteria": "👥 Abschlussart",
-          "approval_reset_type": "➡️ Abschlüsse erlaubt und Zeitmessung zurücksetzen",
-          "approval_reset_pending_claim_action": "➡️ Offene Ansprüche zum Reset",
-          "overdue_handling_type": "⏰ Überfällig: Bearbeitungsart",
+          "completion_criteria": "👥 Abschlusskriterien",
+          "approval_reset_type": "➡️ Zulässige Abschlüsse und Zurücksetzen des Genehmigungszeitraums",
+          "approval_reset_pending_claim_action": "➡️ Bearbeitung ausstehender Anträge nach Genehmigungs-Reset",
+          "overdue_handling_type": "⏰ Überfällig: Bearbeitung",
           "auto_approve": "✅ Automatische Genehmigung von Schadensfällen?",
           "recurring_frequency": "🔄 Zeitplan: Häufigkeit",
           "custom_interval": "🔄 Zeitplan: Benutzerdefiniertes Intervall (für benutzerdefinierte Frequenz)",
@@ -105,15 +109,15 @@
           "chore_labels": "Schlagwörter zur Organisation von Aufgaben (z. B. „Küche“, „Garten“). Felder leer lassen, falls nicht benötigt.",
           "default_points": "Punkte werden nach Abschluss gutgeschrieben.",
           "assigned_kids": "Kinder, die diese Aufgabe sehen und übernehmen können.",
-          "completion_criteria": "So funktioniert die Aufteilung von Aufgaben: Unabhängig (jedes Kind erledigt die Aufgabe separat), Gemeinsam (alle müssen zustimmen) oder Gemeinsam zuerst (die erste Zustimmung führt zur Erledigung der Aufgabe).",
+          "completion_criteria": "Unabhängig (jedes Kind bearbeitet die Aufgabe separat), Gemeinsam für alle (alle müssen die Aufgabe bearbeiten) oder Gemeinsam als Erster (wer zuerst kommt, mahlt zuerst) blockiert die anderen.",
           "approval_reset_type": "Steuert, wann diese Aufgabe zurückgesetzt wird und wie viele Abschlüsse während dieses Zeitraums zulässig sind.",
-          "approval_reset_pending_claim_action": "Was geschieht mit Anträgen, die noch auf Genehmigung warten, wenn diese Aufgabe zurückgesetzt wird (basierend auf dem oben genannten Zeitpunkt für die Rücksetzung des Abschlusses)?",
+          "approval_reset_pending_claim_action": "Dies geschieht mit Anträgen, die noch auf Genehmigung warten, wenn der Genehmigungs-Reset erfolgt.",
           "overdue_handling_type": "Vorgehensweise nach Ablauf der Frist: Überfälligen Status ausblenden, überfällig bis zur Inanspruchnahme beibehalten oder im nächsten Genehmigungszyklus auf ausstehend zurücksetzen.",
           "auto_approve": "Wenn diese Funktion aktiviert ist, werden Anträge sofort und ohne Überprüfung durch die Eltern genehmigt.",
           "recurring_frequency": "Wie häufig die Aufgabe anfällt: Täglich, Wöchentlich, Monatlich, Jährlich, Benutzerdefiniert oder Keine.",
           "custom_interval": "Anzahl der Zeiteinheiten zwischen den Wiederholungen (z. B. 3 für „alle 3 Wochen“). Wird nur bei benutzerdefinierter Frequenz verwendet.",
           "custom_interval_unit": "Zeiteinheit für benutzerdefinierte Intervalle (Tage, Wochen, Monate). Nur bei benutzerdefinierter Frequenz verwendbar.",
-          "applicable_days": "Beschränken Sie die Aufgabe auf bestimmte Wochentage. Lassen Sie das Feld für alle Tage leer.",
+          "applicable_days": "Lassen Sie alle Felder leer. Wählen Sie NUR die gewünschten Tage aus, um die Einschränkung zu aktivieren.",
           "due_date": "Optionale Frist. Kann mit wiederkehrenden Terminen kombiniert werden.",
           "show_on_calendar": "Diese Aufgabe in der Kalenderansicht anzeigen.",
           "chore_notifications": "Wann Benachrichtigungen versendet werden sollen: Bei Antragstellung, bei Genehmigung, bei Ablehnung oder in beliebiger Kombination."
@@ -300,6 +304,7 @@
       "duplicate_penalty": "Es existiert bereits eine Strafe mit diesem Namen.",
       "duplicate_reward": "Eine Belohnung mit diesem Namen existiert bereits.",
       "duplicate_bonus": "Ein Bonus mit diesem Namen existiert bereits.",
+      "shadow_kid_name_conflict": "Aufgabenzuweisung kann nicht aktiviert werden: Ein Kind mit Ihrem Namen existiert bereits. Bitte benennen Sie das bestehende Kind zuerst um.",
       "due_date_in_past": "Der Fälligkeitstermin muss in der Zukunft liegen.",
       "end_date_in_past": "Das Enddatum muss in der Zukunft liegen.",
       "end_date_not_after_start_date": "Das Enddatum muss nach dem Startdatum liegen.",
@@ -343,6 +348,7 @@
       "invalid_date_range": "Der Datumsbereich ist ungültig. Das Enddatum muss nach dem Startdatum liegen.",
       "missing_required": "Ein Pflichtfeld fehlt. Bitte geben Sie alle erforderlichen Informationen an.",
       "invalid_format": "Das Format ist ungültig. Bitte überprüfen Sie Ihre Eingabe und versuchen Sie es erneut.",
+      "chore_options_require_assignment": "Für die Workflow- und Gamification-Optionen im Bereich der Aufgabenverwaltung muss zunächst die Option „Mir erlauben, Aufgaben zugewiesen zu bekommen“ aktiviert werden.",
       "invalid_update_interval": "Ungültiges Aktualisierungsintervall. Muss eine positive ganze Zahl sein.",
       "invalid_calendar_show_period": "Ungültiger Kalenderzeitraum. Muss eine positive ganze Zahl sein.",
       "invalid_retention_period": "Ungültige Aufbewahrungsfrist. Muss eine positive ganze Zahl sein.",
@@ -395,10 +401,15 @@
         "data": {
           "kid_name": "Kindername",
           "ha_user": "Home Assistant-Nutzer",
-          "enable_mobile_notifications": "Mobile Benachrichtigungen aktivieren",
-          "mobile_notify_service": "Benachrichtigungsdienst",
-          "enable_persistent_notifications": "Permanente Benachrichtigungen aktivieren",
+          "mobile_notify_service": "Benachrichtigungen",
+          "enable_due_date_reminders": "Erinnerungen an den Abgabetermin",
+          "dashboard_language": "Sprache",
           "internal_id": "Interne ID"
+        },
+        "data_description": {
+          "mobile_notify_service": "Wählen Sie einen Benachrichtigungsdienst aus, um Benachrichtigungen für dieses Kind zu aktivieren, oder lassen Sie das Feld leer, um Benachrichtigungen zu deaktivieren.",
+          "enable_due_date_reminders": "Sende Erinnerungsbenachrichtigungen, wenn Aufgaben innerhalb von 30 Minuten fällig sind.",
+          "dashboard_language": "Sprache, die für Ihr Aufgaben-Dashboard und Ihre Benachrichtigungen verwendet wird."
         }
       },
       "add_parent": {
@@ -408,10 +419,19 @@
           "parent_name": "Name des Elternteils",
           "ha_user_id": "Home Assistant-Nutzer",
           "associated_kids": "Zugehörige Kinder",
-          "enable_mobile_notifications": "Mobile Benachrichtigungen aktivieren",
-          "mobile_notify_service": "Benachrichtigungsdienst",
-          "enable_persistent_notifications": "Permanente Benachrichtigungen aktivieren",
+          "mobile_notify_service": "Benachrichtigungen",
+          "dashboard_language": "Sprache",
+          "allow_chore_assignment": "Erlaube mir, Aufgaben zugewiesen zu bekommen",
+          "enable_chore_workflow": "Arbeitsablauf für Aufgaben aktivieren",
+          "enable_gamification": "Gamifizierung aktivieren",
           "internal_id": "Interne ID"
+        },
+        "data_description": {
+          "mobile_notify_service": "Wählen Sie einen Benachrichtigungsdienst aus, um Benachrichtigungen für dieses übergeordnete Element zu aktivieren, oder lassen Sie das Feld leer, um Benachrichtigungen zu deaktivieren.",
+          "allow_chore_assignment": "Erstellt ein Profil, damit Ihnen Aufgaben zugewiesen werden können. Standardmäßig wird nur eine Schaltfläche „Genehmigen“ für die Ein-Klick-Erledigung angezeigt. Hinweis: Wenn Sie diese Option deaktivieren, bleibt das Kinderprofil mit dem Suffix „_unlinked“ für die manuelle Bereinigung erhalten.",
+          "enable_chore_workflow": "Fügt Schaltflächen zum Beantragen und Ablehnen für den vollständigen Workflow hinzu (Anspruch → genehmigen/ablehnen).",
+          "enable_gamification": "Verfolge Punkte, Abzeichen und Belohnungen für deine erledigten Aufgaben.",
+          "dashboard_language": "Sprache, die für Ihr Aufgaben-Dashboard und Ihre Benachrichtigungen verwendet wird."
         }
       },
       "add_chore": {
@@ -424,10 +444,10 @@
           "chore_labels": "📋 Etiketten (optional)",
           "default_points": "💰 Vergebene Punkte",
           "assigned_kids": "👥 Zugewiesene Kinder",
-          "completion_criteria": "👥 Abschlussart",
-          "approval_reset_type": "➡️ Abschlüsse erlaubt und Zeitmessung zurücksetzen",
-          "approval_reset_pending_claim_action": "➡️ Offene Ansprüche zum Reset",
-          "overdue_handling_type": "⏰ Überfällig: Bearbeitungsart",
+          "completion_criteria": "👥 Abschlusskriterien",
+          "approval_reset_type": "➡️ Zulässige Abschlüsse und Zurücksetzen des Genehmigungszeitraums",
+          "approval_reset_pending_claim_action": "➡️ Bearbeitung ausstehender Anträge nach Genehmigungs-Reset",
+          "overdue_handling_type": "⏰ Überfällig: Bearbeitung",
           "auto_approve": "✅ Automatische Genehmigung von Schadensfällen?",
           "recurring_frequency": "🔄 Zeitplan: Häufigkeit",
           "custom_interval": "🔄 Zeitplan: Benutzerdefiniertes Intervall (für benutzerdefinierte Frequenz)",
@@ -444,16 +464,16 @@
           "chore_labels": "Schlagwörter zur Organisation von Aufgaben (z. B. „Küche“, „Garten“). Felder leer lassen, falls nicht benötigt.",
           "default_points": "Punkte werden nach Abschluss gutgeschrieben.",
           "assigned_kids": "Kinder, die diese Aufgabe sehen und übernehmen können.",
-          "completion_criteria": "So funktioniert die Aufteilung von Aufgaben: Unabhängig (jedes Kind erledigt die Aufgabe separat), Gemeinsam (alle müssen zustimmen) oder Gemeinsam zuerst (die erste Zustimmung führt zur Erledigung der Aufgabe).",
-          "approval_reset_type": "Steuert, wann diese Aufgabe zurückgesetzt wird und wie viele Abschlüsse während dieses Zeitraums zulässig sind.",
-          "approval_reset_pending_claim_action": "Was geschieht mit Anträgen, die noch auf Genehmigung warten, wenn diese Aufgabe zurückgesetzt wird (basierend auf dem oben genannten Zeitpunkt für die Rücksetzung des Abschlusses)?",
+          "completion_criteria": "Unabhängig (jedes Kind bearbeitet die Aufgabe separat), Gemeinsam für alle (alle müssen die Aufgabe bearbeiten) oder Gemeinsam als Erster (wer zuerst kommt, mahlt zuerst) blockiert die anderen.",
+          "approval_reset_type": "Steuert, wann diese Aufgabengenehmigung zurückgesetzt wird und wie viele Abschlüsse während dieses Zeitraums zulässig sind.",
+          "approval_reset_pending_claim_action": "Dies geschieht mit Anträgen, die noch auf Genehmigung warten, wenn der Genehmigungs-Reset erfolgt.",
           "overdue_handling_type": "Vorgehensweise nach Ablauf der Frist: Überfälligen Status ausblenden, überfällig bis zur Inanspruchnahme beibehalten oder im nächsten Genehmigungszyklus auf ausstehend zurücksetzen.",
           "auto_approve": "Wenn diese Funktion aktiviert ist, werden Anträge sofort und ohne Überprüfung durch die Eltern genehmigt.",
-          "recurring_frequency": "Wie häufig die Aufgabe anfällt: Täglich, Wöchentlich, Monatlich, Jährlich, Benutzerdefiniert oder Keine.",
+          "recurring_frequency": "Wie oft die Aufgabe wiederholt werden soll: Täglich, Wöchentlich, Monatlich, Jährlich, Benutzerdefiniert oder Keine. Wenn Sie „Täglich – Mehrmals pro Tag“ auswählen, erscheint ein zusätzliches Fenster, in dem Sie die genauen Zeiten festlegen können.",
           "custom_interval": "Anzahl der Zeiteinheiten zwischen den Wiederholungen (z. B. 3 für „alle 3 Wochen“). Wird nur bei benutzerdefinierter Frequenz verwendet.",
           "custom_interval_unit": "Zeiteinheit für benutzerdefinierte Intervalle (Tage, Wochen, Monate). Nur bei benutzerdefinierter Frequenz verwendbar.",
-          "applicable_days": "Beschränken Sie die Aufgabe auf bestimmte Wochentage. Lassen Sie das Feld für alle Tage leer.",
-          "due_date": "Optionale Frist. Kann mit wiederkehrenden Terminen kombiniert werden.",
+          "applicable_days": "Lassen Sie alle Felder leer. Wählen Sie NUR die gewünschten Tage aus, um die Einschränkung zu aktivieren.",
+          "due_date": "Optionale Frist. Kann mit wiederkehrenden Aufgaben kombiniert werden. Für individuelle Aufgaben dient dies als Vorlage – ein zusätzliches Fenster öffnet sich, in dem für jedes Kind ein individuelles Datum festgelegt werden kann.",
           "show_on_calendar": "Diese Aufgabe in der Kalenderansicht anzeigen.",
           "chore_notifications": "Wann Benachrichtigungen versendet werden sollen: Bei Antragstellung, bei Genehmigung, bei Ablehnung oder in beliebiger Kombination."
         }
@@ -751,10 +771,33 @@
         "data": {
           "kid_name": "Kindername",
           "ha_user": "Home Assistant-Nutzer",
-          "enable_mobile_notifications": "Mobile Benachrichtigungen aktivieren",
-          "mobile_notify_service": "Benachrichtigungsdienst",
-          "enable_persistent_notifications": "Permanente Benachrichtigungen aktivieren",
+          "mobile_notify_service": "Benachrichtigungen",
+          "dashboard_language": "Sprache",
+          "enable_due_date_reminders": "Erinnerungen an den Abgabetermin",
           "internal_id": "Interne ID"
+        },
+        "data_description": {
+          "mobile_notify_service": "Wählen Sie einen Benachrichtigungsdienst aus, um Benachrichtigungen für dieses Kind zu aktivieren.",
+          "dashboard_language": "Sprache, die für Ihr Aufgaben-Dashboard und Ihre Benachrichtigungen verwendet wird.",
+          "enable_due_date_reminders": "Sende Erinnerungsbenachrichtigungen, wenn Aufgaben innerhalb von 30 Minuten fällig sind."
+        }
+      },
+      "edit_kid_shadow": {
+        "title": "Edit Shadow Kid",
+        "description": "Ändern Sie die Details des ausgewählten Schattenkindes. ⚠️ Dieses Kind ist mit einem Elternteil verknüpft. Durch die Namensänderung wird die Namensübereinstimmungsanforderung für die Aufhebung der Verknüpfung über den Dienst nicht mehr erfüllt.",
+        "data": {
+          "kid_name": "Kindername",
+          "ha_user": "Home Assistant-Nutzer",
+          "mobile_notify_service": "Benachrichtigungen",
+          "dashboard_language": "Sprache",
+          "enable_due_date_reminders": "Erinnerungen an den Abgabetermin",
+          "internal_id": "Interne ID"
+        },
+        "data_description": {
+          "kid_name": "⚠️ Dieses Schattenkind ist mit einem Elternteil verknüpft. Eine Namensänderung führt dazu, dass die Funktion zum Aufheben der Verknüpfung nicht mehr funktioniert, da hierfür übereinstimmende Namen erforderlich sind.",
+          "mobile_notify_service": "⚠️ Benachrichtigungen für beaufsichtigte Kinder: Der verknüpfte Elternteil erhält bereits Benachrichtigungen für beaufsichtigte Aufgaben. Durch Aktivieren dieser Option werden doppelte Benachrichtigungen erzeugt. Nützlich für 30-Minuten-Erinnerungen an Abgabetermine oder bei Verwendung verschiedener Benachrichtigungsdienste.",
+          "dashboard_language": "Sprache, die für Ihr Aufgaben-Dashboard und Ihre Benachrichtigungen verwendet wird.",
+          "enable_due_date_reminders": "Sende Erinnerungsbenachrichtigungen, wenn Aufgaben innerhalb von 30 Minuten fällig sind."
         }
       },
       "edit_parent": {
@@ -764,10 +807,19 @@
           "parent_name": "Name des Elternteils",
           "ha_user_id": "Home Assistant-Nutzer",
           "associated_kids": "Zugehörige Kinder",
-          "enable_mobile_notifications": "Mobile Benachrichtigungen aktivieren",
-          "mobile_notify_service": "Benachrichtigungsdienst",
-          "enable_persistent_notifications": "Permanente Benachrichtigungen aktivieren",
+          "mobile_notify_service": "Benachrichtigungen",
+          "dashboard_language": "Sprache",
+          "allow_chore_assignment": "Erlaube mir, Aufgaben zugewiesen zu bekommen",
+          "enable_chore_workflow": "Arbeitsablauf für Aufgaben aktivieren",
+          "enable_gamification": "Gamifizierung aktivieren",
           "internal_id": "Interne ID"
+        },
+        "data_description": {
+          "mobile_notify_service": "Wählen Sie einen Benachrichtigungsdienst aus, um Benachrichtigungen für dieses übergeordnete Element zu aktivieren, oder lassen Sie das Feld leer, um Benachrichtigungen zu deaktivieren.",
+          "allow_chore_assignment": "Erstellt ein Profil, damit Ihnen Aufgaben zugewiesen werden können. Standardmäßig wird nur eine Schaltfläche „Genehmigen“ für die Ein-Klick-Erledigung angezeigt. Hinweis: Wenn Sie diese Option deaktivieren, bleibt das Kinderprofil mit dem Suffix „_unlinked“ für die manuelle Bereinigung erhalten.",
+          "enable_chore_workflow": "Fügt Schaltflächen zum Beantragen und Ablehnen für den vollständigen Workflow hinzu (Anspruch → genehmigen/ablehnen).",
+          "enable_gamification": "Verfolge Punkte, Abzeichen und Belohnungen für deine erledigten Aufgaben.",
+          "dashboard_language": "Sprache, die für Ihr Aufgaben-Dashboard und Ihre Benachrichtigungen verwendet wird."
         }
       },
       "edit_chore": {
@@ -781,10 +833,10 @@
           "internal_id": "Interne ID",
           "default_points": "💰 Vergebene Punkte",
           "assigned_kids": "👥 Zugewiesene Kinder",
-          "completion_criteria": "👥 Abschlussart",
-          "approval_reset_type": "➡️ Abschlüsse erlaubt und Zeitmessung zurücksetzen",
-          "approval_reset_pending_claim_action": "➡️ Offene Ansprüche zum Reset",
-          "overdue_handling_type": "⏰ Überfällig: Bearbeitungsart",
+          "completion_criteria": "👥 Abschlusskriterien",
+          "approval_reset_type": "➡️ Zulässige Abschlüsse und Zurücksetzen des Genehmigungszeitraums",
+          "approval_reset_pending_claim_action": "➡️ Bearbeitung ausstehender Anträge nach Genehmigungs-Reset",
+          "overdue_handling_type": "⏰ Überfällig: Bearbeitung",
           "auto_approve": "✅ Automatische Genehmigung von Schadensfällen?",
           "recurring_frequency": "🔄 Zeitplan: Häufigkeit",
           "custom_interval": "🔄 Zeitplan: Benutzerdefiniertes Intervall (für benutzerdefinierte Frequenz)",
@@ -802,15 +854,15 @@
           "chore_labels": "Schlagwörter zur Organisation von Aufgaben (z. B. „Küche“, „Garten“). Felder leer lassen, falls nicht benötigt.",
           "default_points": "Punkte werden nach Abschluss gutgeschrieben.",
           "assigned_kids": "Kinder, die diese Aufgabe sehen und übernehmen können.",
-          "completion_criteria": "So funktioniert die Aufteilung von Aufgaben: Unabhängig (jedes Kind erledigt die Aufgabe separat), Gemeinsam (alle müssen zustimmen) oder Gemeinsam zuerst (die erste Zustimmung führt zur Erledigung der Aufgabe).",
-          "approval_reset_type": "Steuert, wann diese Aufgabe zurückgesetzt wird und wie viele Abschlüsse während dieses Zeitraums zulässig sind.",
-          "approval_reset_pending_claim_action": "Was geschieht mit Anträgen, die noch auf Genehmigung warten, wenn diese Aufgabe zurückgesetzt wird (basierend auf dem oben genannten Zeitpunkt für die Rücksetzung des Abschlusses)?",
+          "completion_criteria": "Unabhängig (jedes Kind bearbeitet die Aufgabe separat), Gemeinsam für alle (alle müssen die Aufgabe bearbeiten) oder Gemeinsam als Erster (wer zuerst kommt, mahlt zuerst) blockiert die anderen.",
+          "approval_reset_type": "Steuert, wann diese Aufgabengenehmigung zurückgesetzt wird und wie viele Abschlüsse während dieses Zeitraums zulässig sind.",
+          "approval_reset_pending_claim_action": "Was geschieht mit Anträgen, die noch auf Genehmigung warten, wenn die Genehmigung dieser Aufgabe zurückgesetzt wird (basierend auf dem oben genannten Zeitpunkt für die Zurücksetzung der Genehmigung)?",
           "overdue_handling_type": "Vorgehensweise nach Ablauf der Frist: Überfälligen Status ausblenden, überfällig bis zur Inanspruchnahme beibehalten oder im nächsten Genehmigungszyklus auf ausstehend zurücksetzen.",
           "auto_approve": "Wenn diese Funktion aktiviert ist, werden Anträge sofort und ohne Überprüfung durch die Eltern genehmigt.",
-          "recurring_frequency": "Wie häufig die Aufgabe anfällt: Täglich, Wöchentlich, Monatlich, Jährlich, Benutzerdefiniert oder Keine.",
+          "recurring_frequency": "Wie oft die Aufgabe wiederholt werden soll: Täglich, Wöchentlich, Monatlich, Jährlich, Benutzerdefiniert oder Keine. Wenn Sie „Täglich – Mehrmals pro Tag“ auswählen, erscheint ein zusätzliches Fenster, in dem Sie die genauen Zeiten festlegen können.",
           "custom_interval": "Anzahl der Zeiteinheiten zwischen den Wiederholungen (z. B. 3 für „alle 3 Wochen“). Wird nur bei benutzerdefinierter Frequenz verwendet.",
           "custom_interval_unit": "Zeiteinheit für benutzerdefinierte Intervalle (Tage, Wochen, Monate). Nur bei benutzerdefinierter Frequenz verwendbar.",
-          "applicable_days": "Beschränken Sie die Aufgabe auf bestimmte Wochentage. Lassen Sie das Feld für alle Tage leer.",
+          "applicable_days": "Lassen Sie alle Felder leer. Wählen Sie NUR die gewünschten Tage aus, um die Einschränkung zu aktivieren.",
           "due_date": "Optionale Frist. Kann mit wiederkehrenden Aufgaben kombiniert werden. Für individuelle Aufgaben dient dies als Vorlage – ein zusätzliches Fenster öffnet sich, in dem für jedes Kind ein individuelles Datum festgelegt werden kann.",
           "clear_due_date": "Markieren Sie dieses Kästchen, um das Fälligkeitsdatum für diese Aufgabe zu entfernen.",
           "show_on_calendar": "Diese Aufgabe in der Kalenderansicht anzeigen.",
@@ -825,6 +877,30 @@
         },
         "data_description": {
           "apply_template_to_all": "Aktivieren Sie dieses Kontrollkästchen, um das auf der Hauptseite zur Bearbeitung der Aufgaben festgelegte Datum auf alle zugewiesenen Kinder anzuwenden und deren individuelle Daten zu überschreiben."
+        }
+      },
+      "chores_daily_multi": {
+        "title": "Tägliche Zeiten einstellen: {chore_name}",
+        "description": "Geben Sie die Zeiten ein, zu denen diese Aufgabe täglich verfügbar sein soll. Verwenden Sie das 24-Stunden-Format (HH:MM), getrennt durch | (Pipe).\n\n**Beispiel:** 07:00|12:00|18:00 für Morgen, Mittag und Abend.\n\n**Anforderungen:**\n- Mindestens 2, maximal 6 Zeiten\n- Die Zeiten müssen im 24-Stunden-Format (00:00 bis 23:59) angegeben werden.\n- Mehrere Zeiten durch | (Pipe) trennen.\n\n**Hinweis:** Wenn Sie im Hauptformular ein Fälligkeitsdatum festgelegt haben, wird nur das Datum verwendet. Die unten eingegebenen Zeiten bestimmen, wann die Aufgabe täglich verfügbar ist.",
+        "data": {
+          "daily_multi_times": "Tageszeitung"
+        },
+        "data_description": {
+          "daily_multi_times": "Geben Sie 2 bis 6 Uhrzeiten im 24-Stunden-Format, getrennt durch | (Pipe), ein. Beispiel: 08:00|17:00 für Morgen und Abend."
+        }
+      },
+      "edit_chore_per_kid_details": {
+        "title": "Zeitplan pro Kind: {chore_name}",
+        "description": "Konfigurieren Sie individuelle Zeitplaneinstellungen für jedes Kind, dem diese Aufgabe zugewiesen ist. Die Hauptformularwerte dienen als **Vorlagen** – verwenden Sie die Kontrollkästchen, um sie auf alle Kinder anzuwenden, oder passen Sie die Einstellungen für jedes Kind individuell an.\n\n**Hinweis:** Nicht alle unten stehenden Felder gelten für jede Aufgabe. Das Formular zeigt dynamisch relevante Optionen basierend auf der Ausführungsart, der Häufigkeit und den festgelegten Fälligkeitsterminen an.\n\n**Tägliches (Mehrere) Zeitformat:** Geben Sie, falls angezeigt, 2–6 Uhrzeiten im 24-Stunden-Format, getrennt durch | (Pipe), ein. Beispiel: 08:00|17:00\n\nKinder: {kid_names}{template_info}",
+        "data": {
+          "apply_days_to_all": "Wende die vorgegebenen Tage auf alle Kinder an",
+          "apply_times_to_all": "Die vorgegebenen Zeiten auf alle Kinder anwenden",
+          "apply_template_to_all": "Vorlagedatum auf alle Kinder anwenden"
+        },
+        "data_description": {
+          "apply_days_to_all": "Bitte prüfen Sie, ob die entsprechenden Tage aus dem Hauptformular für alle zugewiesenen Kinder verwendet werden.",
+          "apply_times_to_all": "Bitte prüfen Sie, ob die täglichen Zeiten aus dem Hauptformular für alle zugewiesenen Kinder verwendet werden.",
+          "apply_template_to_all": "Prüfen Sie, ob das im Hauptaufgabenformular festgelegte Datum auf alle zugewiesenen Kinder angewendet werden soll."
         }
       },
       "edit_badge_cumulative": {
@@ -1283,7 +1359,17 @@
       "corrupt_file": "Die ausgewählte Datei enthält ungültiges JSON und kann nicht gelesen werden.",
       "invalid_structure": "Die ausgewählte Datei weist nicht die erforderliche Datenstruktur auf.",
       "file_not_found": "Die ausgewählte Datei konnte nicht gefunden werden.",
-      "invalid_selection": "Bitte wählen Sie eine gültige Option."
+      "invalid_selection": "Bitte wählen Sie eine gültige Option.",
+      "error_daily_multi_requires_compatible_reset": "Die Frequenz „Mehrmals täglich“ ist mit den Mitternachts-Reset-Typen nicht kompatibel, da diese die Genehmigungen nur einmal um Mitternacht zurücksetzen.",
+      "error_daily_multi_independent_multi_kids": "Die Option „Mehrmals täglich“ mit unabhängiger Durchführung erfordert genau ein Kind, sofern keine individuellen Zeiten pro Kind konfiguriert sind. Konfigurieren Sie in den Einstellungen für jedes Kind unterschiedliche Zeiten.",
+      "error_daily_multi_times_required": "Für die Frequenz „Mehrmals täglich“ ist eine Zeitliste erforderlich.",
+      "error_daily_multi_times_invalid_format": "Ungültiges Zeitformat. Bitte verwenden Sie das 24-Stunden-Format (HH:MM), getrennt durch | (z. B. 08:00|17:00).",
+      "error_daily_multi_times_too_few": "Für die Häufigkeit „Mehrmals täglich“ sind mindestens zwei Wiederholungen erforderlich. Für eine einmalige Wiederholung verwenden Sie die reguläre Häufigkeit „Täglich“.",
+      "error_daily_multi_times_too_many": "Bei der Frequenz „Mehrmals täglich“ sind maximal 6 Mal pro Tag zulässig.",
+      "error_daily_multi_due_date_required": "Die Frequenz „Mehrmals täglich“ erfordert die Festlegung eines Fälligkeitsdatums. Das Datum bestimmt den Beginn der Planung, und die Uhrzeiten legen die täglichen Verfügbarkeitsfenster fest.",
+      "error_at_due_date_reset_requires_due_date": "Genehmigungszurücksetzungen vom Typ „Zum Fälligkeitsdatum“ (einmalig oder mehrfach) erfordern die Festlegung eines Fälligkeitsdatums. Ohne ein Fälligkeitsdatum wird die Genehmigungszurücksetzung nicht ausgelöst und die Aufgabe bleibt unbegrenzt genehmigt.",
+      "error_per_kid_applicable_days_invalid": "Ungültiges Format für die Wochentage eines oder mehrerer Kinder. Die Wochentage müssen ganze Zahlen von 0 bis 6 (Montag bis Sonntag) sein und dürfen keine Duplikate enthalten.",
+      "error_per_kid_daily_multi_times_invalid": "Ungültiges Format für die Tageszeiten eines oder mehrerer Kinder. Bitte verwenden Sie das 24-Stunden-Format, getrennt durch | (z. B. 08:00|17:00)."
     },
     "abort": {
       "invalid_action": "Ungültige Aktion",
@@ -1410,32 +1496,33 @@
     },
     "completion_criteria": {
       "options": {
-        "shared_all": "Für alle gemeinsam geeignet (Alle Kinder müssen das gemeinsam ausfüllen)",
+        "shared_all": "Gemeinsame Aufgabe (Alle Kinder müssen sie gemeinsam bearbeiten)",
         "independent": "Selbstständig (Jedes Kind bearbeitet die Aufgabe alleine)",
-        "shared_first": "Mit First geteilt (First-Abschluss zählt)"
+        "shared_first": "Gemeinsamer erster Platz (Erster Abschluss zählt)"
       }
     },
     "approval_reset_type": {
       "options": {
-        "at_midnight_once": "Erlauben Sie 1 Abschluss – wird um Mitternacht zurückgesetzt",
-        "at_midnight_multi": "Mehrere Abschlüsse zulassen – Rücksetzung um Mitternacht",
-        "at_due_date_once": "Erlauben Sie 1 Abschluss - wird zum Fälligkeitsdatum zurückgesetzt",
-        "at_due_date_multi": "Mehrere Abschlüsse zulassen – Rücksetzung zum Fälligkeitsdatum",
-        "upon_completion": "Unbegrenzte Abschlüsse zulassen – wird nach Abschluss zurückgesetzt"
+        "at_midnight_once": "Einmal täglich – Rücksetzung um Mitternacht",
+        "at_midnight_multi": "Mehrmals täglich – Rücksetzung um Mitternacht",
+        "at_due_date_once": "Einmal pro Periode - Wird zum Fälligkeitsdatum zurückgesetzt",
+        "at_due_date_multi": "Mehrmals pro Periode - Wird zum Fälligkeitsdatum zurückgesetzt",
+        "upon_completion": "Unbegrenzte Abschlüsse – Wird nach Abschluss zurückgesetzt"
       }
     },
     "overdue_handling_type": {
       "options": {
-        "at_due_date": "Überfällige Artikel nach Fälligkeitsdatum anzeigen (bis zur Fertigstellung)",
-        "never_overdue": "Nie als überfällig anzeigen",
-        "at_due_date_then_reset": "Überfällige Fälle nach Fälligkeitsdatum anzeigen (bis zur Genehmigungsrücksetzung)"
+        "at_due_date": "Überfällig bis zur Fertigstellung",
+        "never_overdue": "Nie überfällig",
+        "at_due_date_clear_at_approval_reset": "Überfällig bis zur Genehmigung – Zurücksetzen",
+        "at_due_date_clear_immediate_on_late": "Überfällig bis zur Fertigstellung (Verspätete Genehmigungen sofort bearbeiten)"
       }
     },
     "approval_reset_pending_claim_action": {
       "options": {
-        "hold_pending": "Status „Antrag“ beibehalten (Genehmigung/Ablehnung abwarten)",
-        "clear_pending": "Alle ausstehenden Ansprüche löschen",
-        "auto_approve_pending": "Automatische Genehmigung aller ausstehenden Anträge"
+        "hold_pending": "Antragsstatus: Ausstehend (Genehmigung/Ablehnung ausstehend)",
+        "clear_pending": "Offene Ansprüche löschen",
+        "auto_approve_pending": "Automatische Genehmigung ausstehender Anträge"
       }
     },
     "chore_notifications": {
@@ -1449,12 +1536,14 @@
       "options": {
         "none": "Keiner",
         "daily": "Täglich",
+        "daily_multi": "Täglich (mehrmals täglich)",
         "weekly": "Wöchentlich",
         "biweekly": "Zweiwöchentlich",
         "monthly": "Monatlich",
         "quarterly": "Vierteljährlich",
         "yearly": "Jährlich",
         "custom": "Brauch",
+        "custom_from_complete": "Benutzerdefiniert (Terminverschiebung vom Fertigstellungsdatum)",
         "custom_1_week": "Individuell: 1 Woche",
         "custom_1_month": "Individuell: 1 Monat",
         "custom_1_quarter": "Benutzerdefiniert: 1 Viertel",
@@ -1470,6 +1559,7 @@
     },
     "custom_interval_unit": {
       "options": {
+        "hours": "Std",
         "days": "Tage",
         "weeks": "Wochen",
         "months": "Monate"
@@ -1508,6 +1598,20 @@
     }
   },
   "services": {
+    "manage_shadow_link": {
+      "name": "Eltern-Schatten-Kind-Link verwalten",
+      "description": "Ein bestehendes Kinderprofil kann mit einem Elternprofil verknüpft oder von diesem getrennt werden. Voraussetzung ist, dass Kind und Elternteil denselben Namen haben. Beim Trennen der Verknüpfung bleiben alle Daten erhalten und das Kinderprofil wird umbenannt, wobei der Suffix „_unlinked“ hinzugefügt wird.",
+      "fields": {
+        "name": {
+          "name": "Name",
+          "description": "Name, der sowohl dem Elternteil als auch dem Kind entspricht (Groß-/Kleinschreibung wird nicht beachtet)"
+        },
+        "action": {
+          "name": "Aktion",
+          "description": "Die Verknüpfung verbindet das Kind als Schatten mit dem Elternteil. Durch Aufheben der Verknüpfung wird die Verbindung getrennt und das Kind umbenannt."
+        }
+      }
+    },
     "claim_chore": {
       "name": "Aufgaben beanspruchen",
       "description": "Ein Kind beansprucht eine Aufgabe und markiert sie als „beansprucht“, um die Zustimmung der Eltern zu erhalten.",
@@ -1869,17 +1973,17 @@
             "name": "Abschlusskriterien",
             "state": {
               "independent": "Unabhängig",
-              "shared_first_only": "Gemeinsam (nur beim ersten Mal)",
-              "shared_all_required": "Gemeinsam (Alle erforderlich)"
+              "shared_first_only": "Gemeinsam (Erste)",
+              "shared_all_required": "Gemeinsam (Alle)"
             }
           },
           "approval_reset_type": {
             "name": "Genehmigungs-Reset-Typ",
             "state": {
-              "at_midnight_once": "Einmal pro Tag",
-              "at_midnight_multi": "Mehrere pro Tag",
-              "at_due_date_once": "Einmal pro Fälligkeitsdatum",
-              "at_due_date_multi": "Mehrere pro Fälligkeitsdatum",
+              "at_midnight_once": "Um Mitternacht (einmal)",
+              "at_midnight_multi": "Um Mitternacht (Multi)",
+              "at_due_date_once": "Zum Fälligkeitstermin (einmalig)",
+              "at_due_date_multi": "Zum Fälligkeitstermin (Mehrere)",
               "upon_completion": "Nach Fertigstellung"
             }
           },
@@ -1888,10 +1992,18 @@
             "state": {
               "none": "Keiner",
               "daily": "Täglich",
+              "daily_multi": "Täglich (mehrmals täglich)",
               "weekly": "Wöchentlich",
               "biweekly": "Zweiwöchentlich",
               "monthly": "Monatlich",
-              "custom": "Brauch"
+              "quarterly": "Vierteljährlich",
+              "yearly": "Jährlich",
+              "custom": "Brauch",
+              "custom_from_complete": "Benutzerdefiniert (Terminverschiebung vom Fertigstellungsdatum)",
+              "custom_1_week": "Individuell: 1 Woche",
+              "custom_1_month": "Individuell: 1 Monat",
+              "custom_1_quarter": "Benutzerdefiniert: 1 Viertel",
+              "custom_1_year": "Kundenspezifisch: 1 Jahr"
             }
           },
           "applicable_days": {
@@ -2529,10 +2641,10 @@
           "approval_reset_type": {
             "name": "Genehmigungs-Reset-Typ",
             "state": {
-              "at_midnight_once": "Einmal pro Tag",
-              "at_midnight_multi": "Mehrere pro Tag",
-              "at_due_date_once": "Einmal pro Fälligkeitsdatum",
-              "at_due_date_multi": "Mehrere pro Fälligkeitsdatum",
+              "at_midnight_once": "Um Mitternacht (einmal)",
+              "at_midnight_multi": "Um Mitternacht (Multi)",
+              "at_due_date_once": "Zum Fälligkeitstermin (einmalig)",
+              "at_due_date_multi": "Zum Fälligkeitstermin (Mehrere)",
               "upon_completion": "Nach Fertigstellung"
             }
           },
@@ -2618,23 +2730,98 @@
           "cost": {
             "name": "Kosten"
           },
-          "reward_claims_count": {
-            "name": "Gesamtschäden"
+          "pending_claims": {
+            "name": "Anhängige Anträge"
           },
-          "reward_approvals_count": {
-            "name": "Gesamtzahl der Genehmigungen"
+          "last_claimed": {
+            "name": "Zuletzt beansprucht"
+          },
+          "last_approved": {
+            "name": "Zuletzt genehmigt"
+          },
+          "last_disapproved": {
+            "name": "Zuletzt abgelehnt"
+          },
+          "claimed_today": {
+            "name": "Ansprüche heute"
+          },
+          "claimed_week": {
+            "name": "Ansprüche in dieser Woche"
+          },
+          "claimed_month": {
+            "name": "Ansprüche in diesem Monat"
+          },
+          "claimed_year": {
+            "name": "Ansprüche in diesem Jahr"
+          },
+          "claimed_all_time": {
+            "name": "Ansprüche aller Zeiten"
+          },
+          "approved_today": {
+            "name": "Heute genehmigt"
+          },
+          "approved_week": {
+            "name": "Diese Woche genehmigt"
+          },
+          "approved_month": {
+            "name": "Diesen Monat genehmigt"
+          },
+          "approved_year": {
+            "name": "In diesem Jahr genehmigt"
+          },
+          "approved_all_time": {
+            "name": "Immer genehmigt"
+          },
+          "disapproved_today": {
+            "name": "Heute abgelehnt"
+          },
+          "disapproved_week": {
+            "name": "Diese Woche nicht gutgeheißen"
+          },
+          "disapproved_month": {
+            "name": "Diesen Monat abgelehnt"
+          },
+          "disapproved_year": {
+            "name": "Dieses Jahr abgelehnt"
+          },
+          "disapproved_all_time": {
+            "name": "Durchweg abgelehnt"
+          },
+          "points_spent_today": {
+            "name": "Heute eingelöste Punkte"
+          },
+          "points_spent_week": {
+            "name": "Diese Woche ausgegebene Punkte"
+          },
+          "points_spent_month": {
+            "name": "In diesem Monat eingelöste Punkte"
+          },
+          "points_spent_year": {
+            "name": "In diesem Jahr eingelöste Punkte"
+          },
+          "points_spent_all_time": {
+            "name": "Gesamtpunkte"
+          },
+          "approval_rate": {
+            "name": "Zustimmungsrate (%)"
+          },
+          "claim_rate_week": {
+            "name": "Durchschnittliche Schadensfälle pro Tag (Woche)"
+          },
+          "claim_rate_month": {
+            "name": "Durchschnittliche Schadensfälle pro Tag (Monat)"
+          },
+          "claim_button_eid": {
+            "name": "Entitäts-ID der Schaltfläche „Anspruch erheben“"
+          },
+          "approve_button_eid": {
+            "name": "Entitäts-ID der Schaltfläche „Genehmigen“"
+          },
+          "disapprove_button_eid": {
+            "name": "Entitäts-ID der Schaltfläche „Ablehnen“"
           },
           "labels": {
             "name": "Etiketten"
-          },
-          "reward_claim_button_eid": {
-            "name": "Entitäts-ID der Schaltfläche „Anspruch erheben“"
-          },
-          "reward_approve_button_eid": {
-            "name": "Entitäts-ID der Schaltfläche „Genehmigen“"
-          },
-          "reward_disapprove_button_eid": {
-            "name": "Entitäts-ID der Schaltfläche „Ablehnen“"
           }
         }
       },
@@ -2909,6 +3096,23 @@
           }
         }
       },
+      "system_dashboard_translation_sensor": {
+        "name": "Dashboard-Übersetzungen ({language})",
+        "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_dashboard_translation": "Bietet lokalisierte UI-Übersetzungen für die Dashboard-Anzeige"
+            }
+          },
+          "ui_translations": {
+            "name": "UI-Übersetzungen"
+          },
+          "language": {
+            "name": "Sprache"
+          }
+        }
+      },
       "kid_dashboard_helper_sensor": {
         "name": "UI-Dashboard-Helfer",
         "state_attributes": {
@@ -2962,6 +3166,9 @@
           },
           "language": {
             "name": "Sprache"
+          },
+          "translation_sensor": {
+            "name": "Übersetzungssensor"
           }
         }
       }
@@ -3207,6 +3414,21 @@
     }
   },
   "exceptions": {
+    "kid_not_found_by_name": {
+      "message": "Kein Kind mit dem Namen '{name}' gefunden"
+    },
+    "parent_not_found_by_name": {
+      "message": "Kein übergeordnetes Element mit dem Namen '{name}' gefunden."
+    },
+    "kid_already_shadow": {
+      "message": "Kind '{name}' ist bereits mit einem Elternteil verknüpft"
+    },
+    "kid_not_shadow": {
+      "message": "Kind '{name}' ist keinem Elternteil zugeordnet"
+    },
+    "parent_has_different_shadow": {
+      "message": "Das übergeordnete Element '{name}' ist bereits mit einem anderen Kind verknüpft."
+    },
     "error_msg_no_entry_found": {
       "message": "In der Konfiguration wurde kein passender Eintrag gefunden."
     },
