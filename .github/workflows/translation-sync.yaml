@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - l10n-staging
+      - feature/parent-chores
     paths:
       - "custom_components/kidschores/translations/en.json"
       - "custom_components/kidschores/translations_custom/en_dashboard.json"
@@ -61,7 +62,7 @@ jobs:
           create_pull_request: true
           pull_request_title: "chore(l10n): sync translations with Crowdin"
           pull_request_body: "This is an automated sync of the latest translations from Crowdin. It includes community improvements and machine-translated pre-fills for new strings."
-          pull_request_base_branch_name: l10n-staging
+          pull_request_base_branch_name: ${{ github.ref_name }}
           pull_request_labels: "l10n, auto-translated"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
