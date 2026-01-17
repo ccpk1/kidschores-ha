@@ -1,6 +1,23 @@
-name: Manual Translation Sync
+name: Translation Sync
+
+# This workflow syncs translations with Crowdin for automated translation.
+# Source file mappings are defined in crowdin.yml (root directory).
+# Crowdin configuration:
+#   - Source: custom_components/kidschores/translations/en.json
+#   - Source: custom_components/kidschores/translations_custom/en_dashboard.json
+#   - Source: custom_components/kidschores/translations_custom/en_notifications.json
+# 
+# The workflow runs automatically when English source files are modified,
+# or can be triggered manually from the Actions tab (main branch only).
 
 on:
+  push:
+    branches:
+      - main
+      - feature/parent-chores
+    paths:
+      - 'custom_components/kidschores/translations/en.json'
+      - 'custom_components/kidschores/translations_custom/en_*.json'
   workflow_dispatch:
     inputs:
       branch:
