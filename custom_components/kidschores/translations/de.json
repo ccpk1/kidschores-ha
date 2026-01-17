@@ -402,13 +402,11 @@
           "kid_name": "Kindername",
           "ha_user": "Home Assistant-Nutzer",
           "mobile_notify_service": "Benachrichtigungen",
-          "enable_due_date_reminders": "Erinnerungen an den Abgabetermin",
           "dashboard_language": "Sprache",
           "internal_id": "Interne ID"
         },
         "data_description": {
           "mobile_notify_service": "Wählen Sie einen Benachrichtigungsdienst aus, um Benachrichtigungen für dieses Kind zu aktivieren, oder lassen Sie das Feld leer, um Benachrichtigungen zu deaktivieren.",
-          "enable_due_date_reminders": "Sende Erinnerungsbenachrichtigungen, wenn Aufgaben innerhalb von 30 Minuten fällig sind.",
           "dashboard_language": "Sprache, die für Ihr Aufgaben-Dashboard und Ihre Benachrichtigungen verwendet wird."
         }
       },
@@ -773,13 +771,11 @@
           "ha_user": "Home Assistant-Nutzer",
           "mobile_notify_service": "Benachrichtigungen",
           "dashboard_language": "Sprache",
-          "enable_due_date_reminders": "Erinnerungen an den Abgabetermin",
           "internal_id": "Interne ID"
         },
         "data_description": {
           "mobile_notify_service": "Wählen Sie einen Benachrichtigungsdienst aus, um Benachrichtigungen für dieses Kind zu aktivieren.",
-          "dashboard_language": "Sprache, die für Ihr Aufgaben-Dashboard und Ihre Benachrichtigungen verwendet wird.",
-          "enable_due_date_reminders": "Sende Erinnerungsbenachrichtigungen, wenn Aufgaben innerhalb von 30 Minuten fällig sind."
+          "dashboard_language": "Sprache, die für Ihr Aufgaben-Dashboard und Ihre Benachrichtigungen verwendet wird."
         }
       },
       "edit_kid_shadow": {
@@ -790,14 +786,12 @@
           "ha_user": "Home Assistant-Nutzer",
           "mobile_notify_service": "Benachrichtigungen",
           "dashboard_language": "Sprache",
-          "enable_due_date_reminders": "Erinnerungen an den Abgabetermin",
           "internal_id": "Interne ID"
         },
         "data_description": {
           "kid_name": "⚠️ Dieses Schattenkind ist mit einem Elternteil verknüpft. Eine Namensänderung führt dazu, dass die Funktion zum Aufheben der Verknüpfung nicht mehr funktioniert, da hierfür übereinstimmende Namen erforderlich sind.",
           "mobile_notify_service": "⚠️ Benachrichtigungen für beaufsichtigte Kinder: Der verknüpfte Elternteil erhält bereits Benachrichtigungen für beaufsichtigte Aufgaben. Durch Aktivieren dieser Option werden doppelte Benachrichtigungen erzeugt. Nützlich für 30-Minuten-Erinnerungen an Abgabetermine oder bei Verwendung verschiedener Benachrichtigungsdienste.",
-          "dashboard_language": "Sprache, die für Ihr Aufgaben-Dashboard und Ihre Benachrichtigungen verwendet wird.",
-          "enable_due_date_reminders": "Sende Erinnerungsbenachrichtigungen, wenn Aufgaben innerhalb von 30 Minuten fällig sind."
+          "dashboard_language": "Sprache, die für Ihr Aufgaben-Dashboard und Ihre Benachrichtigungen verwendet wird."
         }
       },
       "edit_parent": {

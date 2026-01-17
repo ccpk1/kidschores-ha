@@ -402,13 +402,11 @@
           "kid_name": "Meno dieťaťa",
           "ha_user": "Používateľ domáceho asistenta",
           "mobile_notify_service": "Upozornenia",
-          "enable_due_date_reminders": "Pripomienky termínu",
           "dashboard_language": "Jazyk",
           "internal_id": "Interné ID"
         },
         "data_description": {
           "mobile_notify_service": "Vyberte službu upozornení, ak chcete upozornenia pre toto dieťa povoliť, alebo ich nechajte prázdne, ak ich chcete zakázať.",
-          "enable_due_date_reminders": "Posielajte pripomienky, keď je termín odovzdania domácich úloh do 30 minút.",
           "dashboard_language": "Jazyk používaný pre váš panel úloh a upozornenia."
         }
       },
@@ -773,13 +771,11 @@
           "ha_user": "Používateľ domáceho asistenta",
           "mobile_notify_service": "Upozornenia",
           "dashboard_language": "Jazyk",
-          "enable_due_date_reminders": "Pripomienky termínu",
           "internal_id": "Interné ID"
         },
         "data_description": {
           "mobile_notify_service": "Vyberte službu upozornení, aby ste povolili upozornenia pre toto dieťa.",
-          "dashboard_language": "Jazyk používaný pre váš panel úloh a upozornenia.",
-          "enable_due_date_reminders": "Posielajte pripomienky, keď je termín odovzdania domácich úloh do 30 minút."
+          "dashboard_language": "Jazyk používaný pre váš panel úloh a upozornenia."
         }
       },
       "edit_kid_shadow": {
@@ -790,14 +786,12 @@
           "ha_user": "Používateľ domáceho asistenta",
           "mobile_notify_service": "Upozornenia",
           "dashboard_language": "Jazyk",
-          "enable_due_date_reminders": "Pripomienky termínu",
           "internal_id": "Interné ID"
         },
         "data_description": {
           "kid_name": "⚠️ Toto tieňové dieťa je prepojené s rodičom. Zmenou tohto mena sa preruší funkcia odpojenia služby, ktorá vyžaduje zhodné mená.",
           "mobile_notify_service": "⚠️ Upozornenia pre tieňové deti: Prepojený rodič už dostáva upozornenia na dohliadané domáce úlohy. Povolením tejto možnosti sa vytvoria duplicitné upozornenia. Užitočné pre 30-minútové pripomenutia termínov alebo ak používate rôzne služby upozornení.",
-          "dashboard_language": "Jazyk používaný pre váš panel úloh a upozornenia.",
-          "enable_due_date_reminders": "Posielajte pripomienky, keď je termín odovzdania domácich úloh do 30 minút."
+          "dashboard_language": "Jazyk používaný pre váš panel úloh a upozornenia."
         }
       },
       "edit_parent": {

@@ -402,13 +402,11 @@
           "kid_name": "Nombre del niño",
           "ha_user": "Usuario de Home Assistant",
           "mobile_notify_service": "Notificaciones",
-          "enable_due_date_reminders": "Recordatorios de fechas de vencimiento",
           "dashboard_language": "Idioma",
           "internal_id": "Identificación interna"
         },
         "data_description": {
           "mobile_notify_service": "Seleccione un servicio de notificación para habilitar las notificaciones para este niño o déjelo vacío para deshabilitarlo.",
-          "enable_due_date_reminders": "Envíe notificaciones recordatorias cuando las tareas deban realizarse dentro de los 30 minutos.",
           "dashboard_language": "Idioma utilizado para el panel de tareas y las notificaciones."
         }
       },
@@ -773,13 +771,11 @@
           "ha_user": "Usuario de Home Assistant",
           "mobile_notify_service": "Notificaciones",
           "dashboard_language": "Idioma",
-          "enable_due_date_reminders": "Recordatorios de fechas de vencimiento",
           "internal_id": "Identificación interna"
         },
         "data_description": {
           "mobile_notify_service": "Seleccione un servicio de notificación para habilitar las notificaciones para este niño.",
-          "dashboard_language": "Idioma utilizado para el panel de tareas y las notificaciones.",
-          "enable_due_date_reminders": "Envíe notificaciones recordatorias cuando las tareas deban realizarse dentro de los 30 minutos."
+          "dashboard_language": "Idioma utilizado para el panel de tareas y las notificaciones."
         }
       },
       "edit_kid_shadow": {
@@ -790,14 +786,12 @@
           "ha_user": "Usuario de Home Assistant",
           "mobile_notify_service": "Notificaciones",
           "dashboard_language": "Idioma",
-          "enable_due_date_reminders": "Recordatorios de fechas de vencimiento",
           "internal_id": "Identificación interna"
         },
         "data_description": {
           "kid_name": "⚠️ Este niño sombra está vinculado a un padre. Cambiar este nombre interrumpirá la función de desvinculación del servicio, que requiere que los nombres coincidan.",
           "mobile_notify_service": "⚠️ Notificaciones de niños supervisados: El padre o la madre vinculados ya reciben notificaciones de tareas supervisadas. Al activar esta opción, se crearán notificaciones duplicadas. Útil para recordatorios de fechas de entrega de 30 minutos o si se utilizan diferentes servicios de notificación.",
-          "dashboard_language": "Idioma utilizado para el panel de tareas y las notificaciones.",
-          "enable_due_date_reminders": "Envíe notificaciones recordatorias cuando las tareas deban realizarse dentro de los 30 minutos."
+          "dashboard_language": "Idioma utilizado para el panel de tareas y las notificaciones."
         }
       },
       "edit_parent": {

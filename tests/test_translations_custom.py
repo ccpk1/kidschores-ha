@@ -312,6 +312,8 @@ class TestTranslationQuality:
 
         for key, value in actions.items():
             # Check for common placeholder patterns that indicate missing translation
-            assert "TODO" not in value.upper(), f"{language}.{key}: Contains TODO"
+            # Note: Skip "TODO" check for Spanish where "todo" is a valid word meaning "all"
+            if language != "es":
+                assert "TODO" not in value.upper(), f"{language}.{key}: Contains TODO"
             assert "FIXME" not in value.upper(), f"{language}.{key}: Contains FIXME"
             assert "err-" not in value.lower(), f"{language}.{key}: Contains err-"

@@ -402,13 +402,11 @@
           "kid_name": "Naam van het kind",
           "ha_user": "Home Assistant-gebruiker",
           "mobile_notify_service": "Meldingen",
-          "enable_due_date_reminders": "Herinneringen voor de vervaldatum",
           "dashboard_language": "Taal",
           "internal_id": "Interne ID"
         },
         "data_description": {
           "mobile_notify_service": "Selecteer een notificatieservice om meldingen voor dit kind in te schakelen, of laat het veld leeg om meldingen uit te schakelen.",
-          "enable_due_date_reminders": "Verstuur herinneringsmeldingen wanneer klusjes binnen 30 minuten gedaan moeten worden.",
           "dashboard_language": "De taal die wordt gebruikt voor je takenoverzicht en meldingen."
         }
       },
@@ -773,13 +771,11 @@
           "ha_user": "Home Assistant-gebruiker",
           "mobile_notify_service": "Meldingen",
           "dashboard_language": "Taal",
-          "enable_due_date_reminders": "Herinneringen voor de vervaldatum",
           "internal_id": "Interne ID"
         },
         "data_description": {
           "mobile_notify_service": "Selecteer een notificatieservice om meldingen voor dit kind in te schakelen.",
-          "dashboard_language": "De taal die wordt gebruikt voor je takenoverzicht en meldingen.",
-          "enable_due_date_reminders": "Verstuur herinneringsmeldingen wanneer klusjes binnen 30 minuten gedaan moeten worden."
+          "dashboard_language": "De taal die wordt gebruikt voor je takenoverzicht en meldingen."
         }
       },
       "edit_kid_shadow": {
@@ -790,14 +786,12 @@
           "ha_user": "Home Assistant-gebruiker",
           "mobile_notify_service": "Meldingen",
           "dashboard_language": "Taal",
-          "enable_due_date_reminders": "Herinneringen voor de vervaldatum",
           "internal_id": "Interne ID"
         },
         "data_description": {
           "kid_name": "⚠️ Dit schaduwkind is gekoppeld aan een ouder. Het wijzigen van deze naam zal de functie voor het ontkoppelen van de service, die vereist dat de namen overeenkomen, onbruikbaar maken.",
           "mobile_notify_service": "⚠️ Schaduwmeldingen voor kinderen: De gekoppelde ouder ontvangt al meldingen voor begeleide klusjes. Als u dit hier inschakelt, worden er dubbele meldingen gegenereerd. Handig voor herinneringen met een deadline van 30 minuten of als u verschillende notificatieservices gebruikt.",
-          "dashboard_language": "De taal die wordt gebruikt voor je takenoverzicht en meldingen.",
-          "enable_due_date_reminders": "Verstuur herinneringsmeldingen wanneer klusjes binnen 30 minuten gedaan moeten worden."
+          "dashboard_language": "De taal die wordt gebruikt voor je takenoverzicht en meldingen."
         }
       },
       "edit_parent": {

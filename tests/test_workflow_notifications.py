@@ -604,7 +604,8 @@ class TestNotificationTagging:
 
         assert len(capture.notifications) > 0, "No notification was sent on chore claim"
 
-        # Verify tag is present and has correct format: kidschores-status-{chore_id}-{kid_id}
+        # Verify tag is present and has correct format: kidschores-status-{chore_id[:8]}-{kid_id[:8]}
+        # UUIDs are truncated to 8 chars to stay under Apple's 64-byte limit (v0.5.0+)
         notif = capture.notifications[0]
         extra_data = notif.get("extra_data", {})
         tag = extra_data.get("tag", "")
@@ -612,8 +613,11 @@ class TestNotificationTagging:
         assert tag.startswith("kidschores-status-"), (
             f"Expected tag to start with 'kidschores-status-', got '{tag}'"
         )
-        assert chore_id in tag, f"Expected chore_id '{chore_id}' in tag '{tag}'"
-        assert kid_id in tag, f"Expected kid_id '{kid_id}' in tag '{tag}'"
+        # Check for truncated IDs (first 8 characters)
+        assert chore_id[:8] in tag, (
+            f"Expected chore_id[:8] '{chore_id[:8]}' in tag '{tag}'"
+        )
+        assert kid_id[:8] in tag, f"Expected kid_id[:8] '{kid_id[:8]}' in tag '{tag}'"
 
 
 class TestDueDateReminders:
@@ -644,6 +648,8 @@ class TestDueDateReminders:
         if "per_kid_due_dates" not in chore_info:
             chore_info["per_kid_due_dates"] = {}
         chore_info["per_kid_due_dates"][kid_id] = due_in_25_min.isoformat()
+        # Enable reminders for this chore (per-chore control v0.5.0+)
+        chore_info["notify_on_reminder"] = True
         coordinator._persist()
 
         # Track notifications to kid
@@ -697,6 +703,8 @@ class TestDueDateReminders:
         if "per_kid_due_dates" not in chore_info:
             chore_info["per_kid_due_dates"] = {}
         chore_info["per_kid_due_dates"][kid_id] = due_in_25_min.isoformat()
+        # Enable reminders for this chore (per-chore control v0.5.0+)
+        chore_info["notify_on_reminder"] = True
         coordinator._persist()
 
         notifications_count = 0

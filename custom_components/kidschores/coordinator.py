@@ -9195,17 +9195,18 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.COMPLETION_CRITERIA_INDEPENDENT,
             )
 
+            # Skip if chore has reminders disabled (per-chore control v0.5.0+)
+            if not chore_info.get(
+                const.DATA_CHORE_NOTIFY_ON_REMINDER, const.DEFAULT_NOTIFY_ON_REMINDER
+            ):
+                continue
+
             for kid_id in assigned_kids:
                 # Build unique key for this chore+kid combination
                 reminder_key = f"{chore_id}:{kid_id}"
 
                 # Skip if already sent this reminder (transient tracking)
                 if reminder_key in self._due_soon_reminders_sent:
-                    continue
-
-                # Skip if kid has due date reminders disabled (v0.5.0+)
-                kid_info = self.kids_data.get(kid_id, {})
-                if not kid_info.get(const.DATA_KID_ENABLE_DUE_DATE_REMINDERS, True):
                     continue
 
                 # Skip if kid already claimed or completed this chore
@@ -9239,7 +9240,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
                 # Check: due within 30 min AND not past due yet
                 if timedelta(0) < time_until_due <= reminder_window:
-                    # Send due-soon reminder to kid
+                    # Send due-soon reminder to kid with claim button (v0.5.0+)
+                    from .notification_helper import build_claim_action
+
                     minutes_remaining = int(time_until_due.total_seconds() / 60)
                     chore_name = chore_info.get(const.DATA_CHORE_NAME, "Unknown Chore")
                     points = chore_info.get(const.DATA_CHORE_DEFAULT_POINTS, 0)
@@ -9253,6 +9256,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                             "minutes": minutes_remaining,
                             "points": points,
                         },
+                        actions=build_claim_action(kid_id, chore_id),
                     )
 
                     # Mark as sent (transient - resets on HA restart)
@@ -11384,15 +11388,25 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
             # Look up translations from the loaded notification file
             notification = translations.get(json_key, {})
-            title = notification.get("title", title_key)
+            title_template = notification.get("title", title_key)
             message_template = notification.get("message", message_key)
 
-            # Format message with placeholders
+            # Format both title and message with placeholders
+            try:
+                title = title_template.format(**(message_data or {}))
+            except KeyError as err:
+                const.LOGGER.warning(
+                    "Missing placeholder %s in title for notification '%s'",
+                    err,
+                    json_key,
+                )
+                title = title_template  # Use template without formatting
+
             try:
                 message = message_template.format(**(message_data or {}))
             except KeyError as err:
                 const.LOGGER.warning(
-                    "Missing placeholder %s for notification '%s'",
+                    "Missing placeholder %s in message for notification '%s'",
                     err,
                     json_key,
                 )
@@ -11543,6 +11557,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             if not notify_service:
                 continue
 
+            # Strip "notify." prefix if present (services stored with prefix in v0.5.0+)
+            # e.g., "notify.mobile_app_chads_phone" → "mobile_app_chads_phone"
+            service_name = notify_service.removeprefix("notify.")
+
             # Build clear notification call
             service_data = {
                 "message": "clear_notification",
@@ -11550,7 +11568,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             }
             coro = self.hass.services.async_call(
                 "notify",
-                notify_service,
+                service_name,  # Just "mobile_app_chads_phone" without "notify." prefix
                 service_data,
             )
             clear_tasks.append((parent_id, coro))

@@ -402,13 +402,11 @@
           "kid_name": "Barnets navn",
           "ha_user": "Hjemmeassistent-bruger",
           "mobile_notify_service": "Notifikationer",
-          "enable_due_date_reminders": "Påmindelser om forfaldsdatoer",
           "dashboard_language": "Sprog",
           "internal_id": "Internt ID"
         },
         "data_description": {
           "mobile_notify_service": "Vælg en notifikationstjeneste for at aktivere notifikationer for dette barn, eller lad feltet stå tomt for at deaktivere.",
-          "enable_due_date_reminders": "Send påmindelser, når pligter skal udføres inden for 30 minutter.",
           "dashboard_language": "Sprog, der bruges til dit jobdashboard og dine notifikationer."
         }
       },
@@ -773,13 +771,11 @@
           "ha_user": "Hjemmeassistent-bruger",
           "mobile_notify_service": "Notifikationer",
           "dashboard_language": "Sprog",
-          "enable_due_date_reminders": "Påmindelser om forfaldsdatoer",
           "internal_id": "Internt ID"
         },
         "data_description": {
           "mobile_notify_service": "Vælg en notifikationstjeneste for at aktivere notifikationer for dette barn.",
-          "dashboard_language": "Sprog, der bruges til dit jobdashboard og dine notifikationer.",
-          "enable_due_date_reminders": "Send påmindelser, når pligter skal udføres inden for 30 minutter."
+          "dashboard_language": "Sprog, der bruges til dit jobdashboard og dine notifikationer."
         }
       },
       "edit_kid_shadow": {
@@ -790,14 +786,12 @@
           "ha_user": "Hjemmeassistent-bruger",
           "mobile_notify_service": "Notifikationer",
           "dashboard_language": "Sprog",
-          "enable_due_date_reminders": "Påmindelser om forfaldsdatoer",
           "internal_id": "Internt ID"
         },
         "data_description": {
           "kid_name": "⚠️ Dette skyggebarn er knyttet til en forælder. Ændring af dette navn vil afbryde funktionen til at fjerne tilknytning til tjenesten, som kræver matchende navne.",
           "mobile_notify_service": "⚠️ Skyggenotifikationer for børn: Den tilknyttede forælder modtager allerede notifikationer om overvågede pligter. Aktivering her vil oprette dubletter af notifikationer. Nyttigt til påmindelser om forfaldsdatoer inden for 30 minutter eller hvis du bruger forskellige notifikationstjenester.",
-          "dashboard_language": "Sprog, der bruges til dit jobdashboard og dine notifikationer.",
-          "enable_due_date_reminders": "Send påmindelser, når pligter skal udføres inden for 30 minutter."
+          "dashboard_language": "Sprog, der bruges til dit jobdashboard og dine notifikationer."
         }
       },
       "edit_parent": {

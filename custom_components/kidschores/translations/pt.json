@@ -402,13 +402,11 @@
           "kid_name": "Nome da criança",
           "ha_user": "Utilizador do Home Assistant",
           "mobile_notify_service": "Notificações",
-          "enable_due_date_reminders": "Lembretes de prazos de vencimento",
           "dashboard_language": "Idioma",
           "internal_id": "ID interno"
         },
         "data_description": {
           "mobile_notify_service": "Selecione um serviço de notificações para ativar as notificações para esta criança ou deixe em branco para as desativar.",
-          "enable_due_date_reminders": "Enviar notificações de lembrete quando as tarefas estiverem para expirar em 30 minutos.",
           "dashboard_language": "Idioma utilizado no seu painel de tarefas e nas notificações."
         }
       },
@@ -773,13 +771,11 @@
           "ha_user": "Utilizador do Home Assistant",
           "mobile_notify_service": "Notificações",
           "dashboard_language": "Idioma",
-          "enable_due_date_reminders": "Lembretes de prazos de entrega",
           "internal_id": "ID interno"
         },
         "data_description": {
           "mobile_notify_service": "Selecione um serviço de notificação para ativar as notificações para esta criança.",
-          "dashboard_language": "Idioma utilizado no seu painel de tarefas e nas notificações.",
-          "enable_due_date_reminders": "Enviar notificações de lembrete quando as tarefas estiverem para expirar em 30 minutos."
+          "dashboard_language": "Idioma utilizado no seu painel de tarefas e nas notificações."
         }
       },
       "edit_kid_shadow": {
@@ -790,14 +786,12 @@
           "ha_user": "Utilizador do Home Assistant",
           "mobile_notify_service": "Notificações",
           "dashboard_language": "Idioma",
-          "enable_due_date_reminders": "Lembretes de prazos de entrega",
           "internal_id": "ID interno"
         },
         "data_description": {
           "kid_name": "⚠️ Esta criança fantasma está ligada a um dos progenitores. A alteração deste nome impedirá o funcionamento da função de desvinculação do serviço, que exige que os nomes correspondam.",
           "mobile_notify_service": "⚠️ Notificações de criança sombra: O responsável vinculado já recebe notificações para tarefas supervisionadas. Ativar esta opção aqui criará notificações duplicadas. Útil para lembretes de prazos de 30 minutos ou se utilizar serviços de notificação diferentes.",
-          "dashboard_language": "Idioma utilizado no seu painel de tarefas e nas notificações.",
-          "enable_due_date_reminders": "Enviar notificações de lembrete quando as tarefas estiverem para expirar em 30 minutos."
+          "dashboard_language": "Idioma utilizado no seu painel de tarefas e nas notificações."
         }
       },
       "edit_parent": {

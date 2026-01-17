@@ -402,13 +402,11 @@
           "kid_name": "Nom del nen/a",
           "ha_user": "Usuari de l'Assistent de la Llar",
           "mobile_notify_service": "Notificacions",
-          "enable_due_date_reminders": "Recordatoris de dates de venciment",
           "dashboard_language": "Llengua",
           "internal_id": "ID intern"
         },
         "data_description": {
           "mobile_notify_service": "Seleccioneu un servei de notificacions per activar les notificacions per a aquest nen o deixeu-ho en blanc per desactivar-les.",
-          "enable_due_date_reminders": "Envia notificacions de recordatori quan les tasques s'hagin de lliurar en un termini de 30 minuts.",
           "dashboard_language": "Idioma utilitzat per al tauler de control i les notificacions de les tasques."
         }
       },
@@ -773,13 +771,11 @@
           "ha_user": "Usuari de l'Assistent de la Llar",
           "mobile_notify_service": "Notificacions",
           "dashboard_language": "Llengua",
-          "enable_due_date_reminders": "Recordatoris de dates de venciment",
           "internal_id": "ID intern"
         },
         "data_description": {
           "mobile_notify_service": "Selecciona un servei de notificacions per activar les notificacions per a aquest nen/a.",
-          "dashboard_language": "Idioma utilitzat per al tauler de control i les notificacions de les tasques.",
-          "enable_due_date_reminders": "Envia notificacions de recordatori quan les tasques s'hagin de lliurar en un termini de 30 minuts."
+          "dashboard_language": "Idioma utilitzat per al tauler de control i les notificacions de les tasques."
         }
       },
       "edit_kid_shadow": {
@@ -790,14 +786,12 @@
           "ha_user": "Usuari de l'Assistent de la Llar",
           "mobile_notify_service": "Notificacions",
           "dashboard_language": "Llengua",
-          "enable_due_date_reminders": "Recordatoris de dates de venciment",
           "internal_id": "ID intern"
         },
         "data_description": {
           "kid_name": "⚠️ Aquest fill de l'ombra està vinculat a un pare o mare. Canviar aquest nom trencarà la funció de desvinculació del servei, que requereix noms coincidents.",
           "mobile_notify_service": "⚠️ Notificacions del nen supervisat: El pare o la mare vinculat ja rep notificacions de les tasques supervisades. Si s'activa aquesta opció, es crearan notificacions duplicades. Útil per a recordatoris de dates de venciment de 30 minuts o si s'utilitzen serveis de notificacions diferents.",
-          "dashboard_language": "Idioma utilitzat per al tauler de control i les notificacions de les tasques.",
-          "enable_due_date_reminders": "Envia notificacions de recordatori quan les tasques s'hagin de lliurar en un termini de 30 minuts."
+          "dashboard_language": "Idioma utilitzat per al tauler de control i les notificacions de les tasques."
         }
       },
       "edit_parent": {

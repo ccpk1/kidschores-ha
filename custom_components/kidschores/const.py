@@ -328,7 +328,9 @@ CFOF_KIDS_INPUT_ENABLE_MOBILE_NOTIFICATIONS: Final = "enable_mobile_notification
 CFOF_KIDS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: Final = (
     "enable_persistent_notifications"
 )
-CFOF_KIDS_INPUT_ENABLE_DUE_DATE_REMINDERS: Final = "enable_due_date_reminders"
+CFOF_KIDS_INPUT_ENABLE_DUE_DATE_REMINDERS: Final = (
+    "enable_due_date_reminders"  # Deprecated v0.5.0+ - removed from UI
+)
 CFOF_KIDS_INPUT_HA_USER: Final = "ha_user"
 CFOF_KIDS_INPUT_KID_COUNT: Final = "kid_count"
 CFOF_KIDS_INPUT_KID_NAME: Final = "kid_name"
@@ -809,7 +811,7 @@ DATA_KID_CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_GRACE_END_DATE = (
     "maintenance_grace_end_date"
 )
 DATA_KID_CURRENT_STREAK: Final = "current_streak"
-DATA_KID_ENABLE_DUE_DATE_REMINDERS: Final = "enable_due_date_reminders"
+DATA_KID_ENABLE_DUE_DATE_REMINDERS: Final = "enable_due_date_reminders"  # Deprecated v0.5.0+ - use per-chore DATA_CHORE_NOTIFY_ON_REMINDER
 DATA_KID_ENABLE_NOTIFICATIONS: Final = "enable_notifications"
 DATA_KID_HA_USER_ID: Final = "ha_user_id"
 DATA_KID_ID: Final = "kid_id"

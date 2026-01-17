@@ -463,11 +463,8 @@ async def build_kid_schema(
                     multiple=False,
                 )
             ),
-            # Due date reminder toggle (v0.5.0+)
-            vol.Optional(
-                const.CFOF_KIDS_INPUT_ENABLE_DUE_DATE_REMINDERS,
-                default=default_enable_due_date_reminders,
-            ): selector.BooleanSelector(),
+            # Note: Due date reminders moved to per-chore control (v0.5.0+)
+            # See chore configuration "Send Reminders" toggle
         }
     )
 
@@ -511,10 +508,9 @@ def build_kids_data(
     dashboard_language = user_input.get(
         const.CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
     )
-    # Due date reminders toggle (v0.5.0+) - defaults to True
-    enable_due_date_reminders = user_input.get(
-        const.CFOF_KIDS_INPUT_ENABLE_DUE_DATE_REMINDERS, True
-    )
+    # Note: Due date reminders moved to per-chore control (v0.5.0+)
+    # Kept for backward compatibility but no longer exposed in UI
+    enable_due_date_reminders = True  # Always enabled at kid level
 
     return {
         internal_id: {
@@ -524,7 +520,7 @@ def build_kids_data(
             const.DATA_KID_MOBILE_NOTIFY_SERVICE: notify_service,
             const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS: False,  # Deprecated - always False
             const.DATA_KID_DASHBOARD_LANGUAGE: dashboard_language,
-            const.DATA_KID_ENABLE_DUE_DATE_REMINDERS: enable_due_date_reminders,
+            const.DATA_KID_ENABLE_DUE_DATE_REMINDERS: enable_due_date_reminders,  # Deprecated - kept for migration
             const.DATA_KID_INTERNAL_ID: internal_id,
         }
     }

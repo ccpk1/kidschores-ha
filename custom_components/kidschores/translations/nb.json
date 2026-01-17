@@ -402,13 +402,11 @@
           "kid_name": "Barnenavn",
           "ha_user": "Hjemmeassistentbruker",
           "mobile_notify_service": "Varsler",
-          "enable_due_date_reminders": "Påminnelser om forfallsdato",
           "dashboard_language": "Språk",
           "internal_id": "Intern ID"
         },
         "data_description": {
           "mobile_notify_service": "Velg en varslingstjeneste for å aktivere varsler for dette barnet, eller la feltet stå tomt for å deaktivere.",
-          "enable_due_date_reminders": "Send påminnelsesvarsler når gjøremål forfaller innen 30 minutter.",
           "dashboard_language": "Språk som brukes for gjøremålsdashbordet og varslene dine."
         }
       },
@@ -773,13 +771,11 @@
           "ha_user": "Hjemmeassistentbruker",
           "mobile_notify_service": "Varsler",
           "dashboard_language": "Språk",
-          "enable_due_date_reminders": "Påminnelser om forfallsdato",
           "internal_id": "Intern ID"
         },
         "data_description": {
           "mobile_notify_service": "Velg en varslingstjeneste for å aktivere varsler for dette barnet.",
-          "dashboard_language": "Språk som brukes for gjøremålsdashbordet og varslene dine.",
-          "enable_due_date_reminders": "Send påminnelsesvarsler når gjøremål forfaller innen 30 minutter."
+          "dashboard_language": "Språk som brukes for gjøremålsdashbordet og varslene dine."
         }
       },
       "edit_kid_shadow": {
@@ -790,14 +786,12 @@
           "ha_user": "Hjemmeassistentbruker",
           "mobile_notify_service": "Varsler",
           "dashboard_language": "Språk",
-          "enable_due_date_reminders": "Påminnelser om forfallsdato",
           "internal_id": "Intern ID"
         },
         "data_description": {
           "kid_name": "⚠️ Dette skyggebarnet er knyttet til en forelder. Hvis du endrer dette navnet, vil det ikke lenger fungere som tjenesten kobler fra, og det krever samsvarende navn.",
           "mobile_notify_service": "⚠️ Skyggevarsler for barn: Den tilknyttede forelderen mottar allerede varsler om overvåkede gjøremål. Aktivering her vil opprette duplikater av varsler. Nyttig for påminnelser om forfallsdatoer med 30 minutter eller hvis du bruker forskjellige varslingstjenester.",
-          "dashboard_language": "Språk som brukes for gjøremålsdashbordet og varslene dine.",
-          "enable_due_date_reminders": "Send påminnelsesvarsler når gjøremål forfaller innen 30 minutter."
+          "dashboard_language": "Språk som brukes for gjøremålsdashbordet og varslene dine."
         }
       },
       "edit_parent": {

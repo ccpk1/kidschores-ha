@@ -145,7 +145,7 @@
           "associated_achievement": "🏆 Associated Achievement",
           "associated_challenge": "🏁 Associated Challenge",
           "selected_chores": "🧹 Tracked Chores (Optional)",
-          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "assigned_to": "🧒 Assigned Kids",
           "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses, Multiplier (Optional)",
           "award_points": "🎁 AWARDS: Points Awarded (Optional)",
           "points_multiplier": "🎁 AWARDS: Points Multiplier (Default 💎 1.0x)",
@@ -402,13 +402,11 @@
           "kid_name": "Kid Name",
           "ha_user": "Home Assistant User",
           "mobile_notify_service": "Notifications",
-          "enable_due_date_reminders": "Due Date Reminders",
           "dashboard_language": "Language",
           "internal_id": "Internal ID"
         },
         "data_description": {
           "mobile_notify_service": "Select a notification service to enable notifications for this kid, or leave empty to disable.",
-          "enable_due_date_reminders": "Send reminder notifications when chores are due within 30 minutes.",
           "dashboard_language": "Language used for your chore dashboard and notifications."
         }
       },
@@ -500,7 +498,7 @@
           "associated_achievement": "🏆 Associated Achievement",
           "associated_challenge": "🏁 Associated Challenge",
           "selected_chores": "🧹 Tracked Chores (Optional)",
-          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "assigned_to": "🧒 Assigned Kids",
           "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses, Multiplier (Optional)",
           "award_points": "🎁 AWARDS: Points Awarded (Optional)",
           "points_multiplier": "🎁 AWARDS: Points Multiplier (Default 💎 1.0x)",
@@ -546,7 +544,7 @@
           "target_type": "🎯 DAILY TARGET: Target Type",
           "threshold_value": "🎯 DAILY TARGET: Threshold Value",
           "selected_chores": "🧹 Tracked Chores (Optional)",
-          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "assigned_to": "🧒 Assigned Kids",
           "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses, Penalties (Optional)",
           "award_points": "🎁 AWARDS: Points Awarded (Optional)"
         },
@@ -578,7 +576,7 @@
           "associated_achievement": "🏆 Associated Achievement",
           "associated_challenge": "🏁 Associated Challenge",
           "selected_chores": "🧹 Tracked Chores (Optional)",
-          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "assigned_to": "🧒 Assigned Kids",
           "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses, Penalties (Optional)",
           "award_points": "🎁 AWARDS: Points Awarded (Optional)",
           "recurring_frequency": "🔄 RESET CYCLE: Frequency",
@@ -618,7 +616,7 @@
           "badge_labels": "Labels (Optional)",
           "icon": "Badge Icon (mdi:xxx)",
           "associated_achievement": "🏆 Associated Achievement",
-          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "assigned_to": "🧒 Assigned Kids",
           "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses (Optional)",
           "award_points": "🎁 AWARDS: Points Awarded (Optional)"
         },
@@ -642,7 +640,7 @@
           "badge_labels": "Labels (Optional)",
           "icon": "Badge Icon (mdi:xxx)",
           "associated_challenge": "🏁 Associated Challenge",
-          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "assigned_to": "🧒 Assigned Kids",
           "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses (Optional)",
           "award_points": "🎁 AWARDS: Points Awarded (Optional)"
         },
@@ -672,7 +670,7 @@
           "custom_interval_unit": "🔄 RECURRENCE: Custom Interval Unit (Required for Custom Frequency)",
           "start_date": "🔄 RECURRENCE: Start Date (Optional)",
           "grace_period_days": "🔄 RECURRENCEE: Grace Period in Days (Optional)",
-          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "assigned_to": "🧒 Assigned Kids",
           "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses (Optional)",
           "award_points": "🎁 AWARDS: Points Awarded (Optional)"
         },
@@ -773,13 +771,11 @@
           "ha_user": "Home Assistant User",
           "mobile_notify_service": "Notifications",
           "dashboard_language": "Language",
-          "enable_due_date_reminders": "Due Date Reminders",
           "internal_id": "Internal ID"
         },
         "data_description": {
           "mobile_notify_service": "Select a notification service to enable notifications for this kid.",
-          "dashboard_language": "Language used for your chore dashboard and notifications.",
-          "enable_due_date_reminders": "Send reminder notifications when chores are due within 30 minutes."
+          "dashboard_language": "Language used for your chore dashboard and notifications."
         }
       },
       "edit_kid_shadow": {
@@ -790,14 +786,12 @@
           "ha_user": "Home Assistant User",
           "mobile_notify_service": "Notifications",
           "dashboard_language": "Language",
-          "enable_due_date_reminders": "Due Date Reminders",
           "internal_id": "Internal ID"
         },
         "data_description": {
           "kid_name": "⚠️ This shadow kid is linked to a parent. Changing this name will break the service unlinking feature, which requires matching names.",
           "mobile_notify_service": "⚠️ Shadow kid notifications: The linked parent already receives notifications for supervised chores. Enabling here will create duplicate notifications. Useful for 30-minute due date reminders or if using different notification services.",
-          "dashboard_language": "Language used for your chore dashboard and notifications.",
-          "enable_due_date_reminders": "Send reminder notifications when chores are due within 30 minutes."
+          "dashboard_language": "Language used for your chore dashboard and notifications."
         }
       },
       "edit_parent": {
@@ -918,7 +912,7 @@
           "associated_achievement": "🏆 Associated Achievement",
           "associated_challenge": "🏁 Associated Challenge",
           "selected_chores": "🧹 Tracked Chores (Optional)",
-          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "assigned_to": "🧒 Assigned Kids",
           "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses, Multiplier (Optional)",
           "award_points": "🎁 AWARDS: Points Awarded (Optional)",
           "points_multiplier": "🎁 AWARDS: Points Multiplier (Default 💎 1.0x)",
@@ -964,7 +958,7 @@
           "target_type": "🎯 DAILY TARGET: Target Type",
           "threshold_value": "🎯 DAILY TARGET: Threshold Value",
           "selected_chores": "🧹 Tracked Chores (Optional)",
-          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "assigned_to": "🧒 Assigned Kids",
           "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses, Penalties (Optional)",
           "award_points": "🎁 AWARDS: Points Awarded (Optional)"
         },
@@ -996,7 +990,7 @@
           "associated_achievement": "🏆 Associated Achievement",
           "associated_challenge": "🏁 Associated Challenge",
           "selected_chores": "🧹 Tracked Chores (Optional)",
-          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "assigned_to": "🧒 Assigned Kids",
           "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses, Penalties (Optional)",
           "award_points": "🎁 AWARDS: Points Awarded (Optional)",
           "recurring_frequency": "🔄 RESET CYCLE: Frequency",
@@ -1036,7 +1030,7 @@
           "badge_labels": "Labels (Optional)",
           "icon": "Badge Icon (mdi:xxx)",
           "associated_achievement": "🏆 Associated Achievement",
-          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "assigned_to": "🧒 Assigned Kids",
           "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses (Optional)",
           "award_points": "🎁 AWARDS: Points Awarded (Optional)"
         },
@@ -1060,7 +1054,7 @@
           "badge_labels": "Labels (Optional)",
           "icon": "Badge Icon (mdi:xxx)",
           "associated_challenge": "🏁 Associated Challenge",
-          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "assigned_to": "🧒 Assigned Kids",
           "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses (Optional)",
           "award_points": "🎁 AWARDS: Points Awarded (Optional)"
         },
@@ -1090,7 +1084,7 @@
           "custom_interval_unit": "🔄 RECURRENCE: Custom Interval Unit (Required for Custom Frequency)",
           "start_date": "🔄 RECURRENCE: Start Date (Optional)",
           "grace_period_days": "🔄 RECURRENCEE: Grace Period in Days (Optional)",
-          "assigned_to": "🧒 Assigned Kids (Optional)",
+          "assigned_to": "🧒 Assigned Kids",
           "award_items": "🎁 AWARDS: Select Points, Rewards, Bonuses (Optional)",
           "award_points": "🎁 AWARDS: Points Awarded (Optional)"
         },
@@ -1530,7 +1524,7 @@
         "notify_on_claim": "Notify on Claim",
         "notify_on_approval": "Notify on Approval",
         "notify_on_disapproval": "Notify on Disapproval",
-        "notify_on_reminder": "Notify on Reminder"
+        "notify_on_reminder": "Notify 30 Minutes Before Due"
       }
     },
     "recurring_frequency": {

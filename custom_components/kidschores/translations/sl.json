@@ -402,13 +402,11 @@
           "kid_name": "Ime otroka",
           "ha_user": "Uporabnik domačega pomočnika",
           "mobile_notify_service": "Obvestila",
-          "enable_due_date_reminders": "Opomniki za roke",
           "dashboard_language": "Jezik",
           "internal_id": "Notranja identifikacija"
         },
         "data_description": {
           "mobile_notify_service": "Izberite storitev obveščanja, da omogočite obvestila za tega otroka, ali pustite prazno, da jih onemogočite.",
-          "enable_due_date_reminders": "Pošlji opomnike, ko je treba opravila oddati v 30 minutah.",
           "dashboard_language": "Jezik, ki se uporablja za nadzorno ploščo opravil in obvestila."
         }
       },
@@ -773,13 +771,11 @@
           "ha_user": "Uporabnik domačega pomočnika",
           "mobile_notify_service": "Obvestila",
           "dashboard_language": "Jezik",
-          "enable_due_date_reminders": "Opomniki za roke",
           "internal_id": "Notranja identifikacija"
         },
         "data_description": {
           "mobile_notify_service": "Izberite storitev obveščanja, da omogočite obvestila za tega otroka.",
-          "dashboard_language": "Jezik, ki se uporablja za nadzorno ploščo opravil in obvestila.",
-          "enable_due_date_reminders": "Pošlji opomnike, ko je treba opravila oddati v 30 minutah."
+          "dashboard_language": "Jezik, ki se uporablja za nadzorno ploščo opravil in obvestila."
         }
       },
       "edit_kid_shadow": {
@@ -790,14 +786,12 @@
           "ha_user": "Uporabnik domačega pomočnika",
           "mobile_notify_service": "Obvestila",
           "dashboard_language": "Jezik",
-          "enable_due_date_reminders": "Opomniki za roke",
           "internal_id": "Notranja identifikacija"
         },
         "data_description": {
           "kid_name": "⚠️ Ta senčni otrok je povezan s staršem. Sprememba tega imena bo prekinila funkcijo prekinitve povezave storitve, ki zahteva ujemajoča se imena.",
           "mobile_notify_service": "⚠️ Obvestila za senčnega otroka: Povezani starš že prejema obvestila za nadzorovana opravila. Če to omogočite, boste ustvarili podvojena obvestila. Uporabno za 30-minutne opomnike o roku ali če uporabljate različne storitve obveščanja.",
-          "dashboard_language": "Jezik, ki se uporablja za nadzorno ploščo opravil in obvestila.",
-          "enable_due_date_reminders": "Pošlji opomnike, ko je treba opravila oddati v 30 minutah."
+          "dashboard_language": "Jezik, ki se uporablja za nadzorno ploščo opravil in obvestila."
         }
       },
       "edit_parent": {

@@ -17,7 +17,7 @@ The integration sends **17 different notification types** across 4 categories:
 | **Chore Approved**    | Parent approves claimed chore          | Kid + Parents | No                                  |
 | **Chore Disapproved** | Parent disapproves claimed chore       | Kid + Parents | No                                  |
 | **Chore Overdue**     | Chore past due date                    | Kid + Parents | Kids: Yes - Claim Now / Parents: No |
-| **Chore Due Soon**    | Chore due within reminder window       | Kid           | No (informational)                  |
+| **Chore Due Soon**    | Chore due within reminder window       | Kid           | Yes - Claim Now                     |
 
 ### Reward Notifications
 
@@ -58,14 +58,12 @@ These action buttons allow parents to manage approvals without opening Home Assi
 
 ### Overdue & Due-Soon Notifications
 
-**Overdue** notifications for **kids** include a **"Claim Now"** action button, allowing kids to claim the chore directly from the notification.
+Both **Overdue** and **Due-Soon** notifications for **kids** include a **"Claim Now"** action button, allowing kids to claim the chore directly from the notification.
 
 **Overdue** notifications for **parents** are **informational only** - they do not include Approve/Disapprove buttons.
 
 - **Why?** Approve/Disapprove action buttons only make sense for chores that have been claimed and are awaiting parent review. Overdue chores haven't been claimed yet.
-- **What happens**: When a kid taps "Claim Now" from the overdue notification, the chore is claimed and parents receive a proper approval request with action buttons.
-
-**Due-Soon** notifications are informational only for both kids and parents.
+- **What happens**: When a kid taps "Claim Now" from either notification type, the chore is claimed and parents receive a proper approval request with action buttons.
 
 ---
 
@@ -75,22 +73,24 @@ Notifications use a **smart tagging system** to prevent notification spam. When 
 
 ### How Tags Work
 
-Each notification is tagged with a unique identifier combining the entity type, entity ID, and kid ID:
+Each notification is tagged with a unique identifier combining the entity type and truncated entity IDs. Identifiers are automatically shortened to the first 8 characters to comply with Apple's 64-byte notification header limit while maintaining sufficient uniqueness.
 
-| Notification Type   | Tag Pattern                               | Example                            |
-| ------------------- | ----------------------------------------- | ---------------------------------- |
-| **Chore Approval**  | `kidschores-status-{chore_id}-{kid_id}`   | `kidschores-status-abc123-def456`  |
-| **Reward Approval** | `kidschores-rewards-{reward_id}-{kid_id}` | `kidschores-rewards-xyz789-def456` |
-| **System Alerts**   | `kidschores-system-{kid_id}`              | `kidschores-system-def456`         |
+| Notification Type   | Tag Pattern                                       | Example                               |
+| ------------------- | ------------------------------------------------- | ------------------------------------- |
+| **Chore Approval**  | `kidschores-status-{chore_id[:8]}-{kid_id[:8]}`   | `kidschores-status-abc12345-def6789`  |
+| **Reward Approval** | `kidschores-rewards-{reward_id[:8]}-{kid_id[:8]}` | `kidschores-rewards-xyz78901-def6789` |
+| **System Alerts**   | `kidschores-system-{kid_id[:8]}`                  | `kidschores-system-def67890`          |
+
+**Technical Note**: The integration uses UUIDs internally, which provide sufficient uniqueness in the first 8 characters. This truncation is transparent to users and prevents iOS notification errors.
 
 ### Example: Multiple Chore Notifications
 
 When Zoë claims multiple chores, **each notification remains independent**:
 
-1. Zoë claims "Make Bed" (chore1) → Tag: `kidschores-status-chore1-zoe123`
-2. Zoë claims "Feed Dog" (chore2) → Tag: `kidschores-status-chore2-zoe123`
+1. Zoë claims "Make Bed" (chore1) → Tag: `kidschores-status-abc12345-def67890`
+2. Zoë claims "Feed Dog" (chore2) → Tag: `kidschores-status-xyz78901-def67890`
 
-**Result**: Parents see **both notifications** because each chore has a unique tag.
+**Result**: Parents see **both notifications** because each chore has a unique tag (different chore IDs in first 8 chars).
 
 ### Reminder Notifications
 
@@ -208,6 +208,18 @@ To receive notifications, you must have the **Home Assistant Companion App** ins
 - Ensure you're using Home Assistant Companion app (not browser notifications)
 - Action buttons require HA Companion app v2021.6.0 or later
 - Check Home Assistant logs for errors when pressing buttons
+
+### iOS Error: "apns-collapse-id header must not exceed 64 bytes"
+
+If you see this error in logs, you're running an older version (pre-v0.5.0). **Update to v0.5.0 or later** - the integration now automatically truncates notification tags to comply with Apple's limit.
+
+### Notifications Not Clearing on iOS
+
+If approved/disapproved notifications remain visible on parent devices after handling them via the dashboard:
+
+- **Cause**: Configuration issue with notification service format
+- **Solution**: Verify notification service is set correctly in parent profile (should be `notify.mobile_app_device_name`, not `notify.notify.mobile_app_device_name`)
+- **Fixed in**: v0.5.0+ automatically handles both formats
 
 ### Testing Notifications
 

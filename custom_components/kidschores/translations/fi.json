@@ -402,13 +402,11 @@
           "kid_name": "Lapsen nimi",
           "ha_user": "Kotiavustaja-käyttäjä",
           "mobile_notify_service": "Ilmoitukset",
-          "enable_due_date_reminders": "Eräpäivämuistutukset",
           "dashboard_language": "Kieli",
           "internal_id": "Sisäinen tunnus"
         },
         "data_description": {
           "mobile_notify_service": "Valitse ilmoituspalvelu ottaaksesi ilmoitukset käyttöön tälle lapselle tai jätä tyhjäksi poistaaksesi ne käytöstä.",
-          "enable_due_date_reminders": "Lähetä muistutusilmoituksia, kun askareita on määrä tehdä 30 minuutin kuluessa.",
           "dashboard_language": "Työraporttisi ja ilmoitusten kieli."
         }
       },
@@ -773,13 +771,11 @@
           "ha_user": "Kotiavustaja-käyttäjä",
           "mobile_notify_service": "Ilmoitukset",
           "dashboard_language": "Kieli",
-          "enable_due_date_reminders": "Eräpäivämuistutukset",
           "internal_id": "Sisäinen tunnus"
         },
         "data_description": {
           "mobile_notify_service": "Valitse ilmoituspalvelu ottaaksesi ilmoitukset käyttöön tälle lapselle.",
-          "dashboard_language": "Työraporttisi ja ilmoitusten kieli.",
-          "enable_due_date_reminders": "Lähetä muistutusilmoituksia, kun askareita on määrä tehdä 30 minuutin kuluessa."
+          "dashboard_language": "Työraporttisi ja ilmoitusten kieli."
         }
       },
       "edit_kid_shadow": {
@@ -790,14 +786,12 @@
           "ha_user": "Kotiavustaja-käyttäjä",
           "mobile_notify_service": "Ilmoitukset",
           "dashboard_language": "Kieli",
-          "enable_due_date_reminders": "Eräpäivämuistutukset",
           "internal_id": "Sisäinen tunnus"
         },
         "data_description": {
           "kid_name": "⚠️ Tämä varjolapsi on linkitetty vanhempaan. Nimen muuttaminen katkaisee palvelun linkityksen purkamistoiminnon, joka edellyttää samoja nimiä.",
           "mobile_notify_service": "⚠️ Varjosta lapsen ilmoitukset: Yhdistetty vanhempi saa jo ilmoituksia valvotuista askareista. Tämän käyttöönotto luo kaksoisilmoituksia. Hyödyllinen 30 minuutin määräpäivämuistutuksille tai jos käytetään eri ilmoituspalveluita.",
-          "dashboard_language": "Työraporttisi ja ilmoitusten kieli.",
-          "enable_due_date_reminders": "Lähetä muistutusilmoituksia, kun askareita on määrä tehdä 30 minuutin kuluessa."
+          "dashboard_language": "Työraporttisi ja ilmoitusten kieli."
         }
       },
       "edit_parent": {

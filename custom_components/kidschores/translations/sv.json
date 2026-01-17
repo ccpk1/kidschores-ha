@@ -402,13 +402,11 @@
           "kid_name": "Barnets namn",
           "ha_user": "Hemassistent-användare",
           "mobile_notify_service": "Aviseringar",
-          "enable_due_date_reminders": "Påminnelser om förfallodatum",
           "dashboard_language": "Språk",
           "internal_id": "Internt ID"
         },
         "data_description": {
           "mobile_notify_service": "Välj en aviseringstjänst för att aktivera aviseringar för det här barnet, eller lämna tomt för att inaktivera.",
-          "enable_due_date_reminders": "Skicka påminnelser när sysslor ska vara klara inom 30 minuter.",
           "dashboard_language": "Språk som används för din syssloöversikt och dina aviseringar."
         }
       },
@@ -773,13 +771,11 @@
           "ha_user": "Hemassistent-användare",
           "mobile_notify_service": "Aviseringar",
           "dashboard_language": "Språk",
-          "enable_due_date_reminders": "Påminnelser om förfallodatum",
           "internal_id": "Internt ID"
         },
         "data_description": {
           "mobile_notify_service": "Välj en aviseringstjänst för att aktivera aviseringar för det här barnet.",
-          "dashboard_language": "Språk som används för din syssloöversikt och dina aviseringar.",
-          "enable_due_date_reminders": "Skicka påminnelser när sysslor ska vara klara inom 30 minuter."
+          "dashboard_language": "Språk som används för din syssloöversikt och dina aviseringar."
         }
       },
       "edit_kid_shadow": {
@@ -790,14 +786,12 @@
           "ha_user": "Hemassistent-användare",
           "mobile_notify_service": "Aviseringar",
           "dashboard_language": "Språk",
-          "enable_due_date_reminders": "Påminnelser om förfallodatum",
           "internal_id": "Internt ID"
         },
         "data_description": {
           "kid_name": "⚠️ Detta skuggbarn är länkat till en förälder. Om du ändrar detta namn kommer funktionen för att koppla bort tjänsten att sluta fungera, vilket kräver matchande namn.",
           "mobile_notify_service": "⚠️ Skuggaviseringar för barn: Den länkade föräldern får redan aviseringar för övervakade sysslor. Om du aktiverar här skapas dubbletter aviseringar. Användbart för påminnelser om 30-minuters förfallodatum eller om du använder olika aviseringstjänster.",
-          "dashboard_language": "Språk som används för din syssloöversikt och dina aviseringar.",
-          "enable_due_date_reminders": "Skicka påminnelser när sysslor ska vara klara inom 30 minuter."
+          "dashboard_language": "Språk som används för din syssloöversikt och dina aviseringar."
         }
       },
       "edit_parent": {

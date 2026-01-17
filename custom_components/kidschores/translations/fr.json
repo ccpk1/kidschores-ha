@@ -402,13 +402,11 @@
           "kid_name": "Nom de l'enfant",
           "ha_user": "Utilisateur de Home Assistant",
           "mobile_notify_service": "Notifications",
-          "enable_due_date_reminders": "Rappels d'échéance",
           "dashboard_language": "Langue",
           "internal_id": "ID interne"
         },
         "data_description": {
           "mobile_notify_service": "Sélectionnez un service de notification pour activer les notifications pour cet enfant, ou laissez vide pour les désactiver.",
-          "enable_due_date_reminders": "Envoyer des notifications de rappel lorsque les tâches ménagères sont dues dans les 30 minutes.",
           "dashboard_language": "Langue utilisée pour votre tableau de bord des tâches et vos notifications."
         }
       },
@@ -773,13 +771,11 @@
           "ha_user": "Utilisateur de Home Assistant",
           "mobile_notify_service": "Notifications",
           "dashboard_language": "Langue",
-          "enable_due_date_reminders": "Rappels d'échéance",
           "internal_id": "ID interne"
         },
         "data_description": {
           "mobile_notify_service": "Sélectionnez un service de notification pour activer les notifications pour cet enfant.",
-          "dashboard_language": "Langue utilisée pour votre tableau de bord des tâches et vos notifications.",
-          "enable_due_date_reminders": "Envoyer des notifications de rappel lorsque les tâches ménagères sont dues dans les 30 minutes."
+          "dashboard_language": "Langue utilisée pour votre tableau de bord des tâches et vos notifications."
         }
       },
       "edit_kid_shadow": {
@@ -790,14 +786,12 @@
           "ha_user": "Utilisateur de Home Assistant",
           "mobile_notify_service": "Notifications",
           "dashboard_language": "Langue",
-          "enable_due_date_reminders": "Rappels d'échéance",
           "internal_id": "ID interne"
         },
         "data_description": {
           "kid_name": "⚠️ Cet enfant fantôme est lié à un parent. Modifier ce nom désactivera la fonction de dissociation du service, qui exige des noms identiques.",
           "mobile_notify_service": "⚠️ Notifications pour les enfants fantômes : Le parent associé reçoit déjà des notifications pour les tâches supervisées. Activer cette option créera des notifications en double. Utile pour les rappels de 30 minutes ou si vous utilisez différents services de notification.",
-          "dashboard_language": "Langue utilisée pour votre tableau de bord des tâches et vos notifications.",
-          "enable_due_date_reminders": "Envoyer des notifications de rappel lorsque les tâches ménagères sont dues dans les 30 minutes."
+          "dashboard_language": "Langue utilisée pour votre tableau de bord des tâches et vos notifications."
         }
       },
       "edit_parent": {

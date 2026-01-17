@@ -475,17 +475,20 @@ class TestBuildNotificationTag:
     def test_single_identifier(self) -> None:
         """Test tag generation with single identifier (backwards compatible)."""
         tag = build_notification_tag("status", "kid-123")
+        # Identifiers truncated to 8 chars for Apple's 64-byte limit
         assert tag == "kidschores-status-kid-123"
 
     def test_multiple_identifiers(self) -> None:
         """Test tag generation with chore_id + kid_id for uniqueness."""
         tag = build_notification_tag("status", "chore-456", "kid-123")
-        assert tag == "kidschores-status-chore-456-kid-123"
+        # Identifiers truncated to 8 chars: "chore-456" -> "chore-45", "kid-123" -> "kid-123"
+        assert tag == "kidschores-status-chore-45-kid-123"
 
     def test_reward_identifiers(self) -> None:
         """Test tag generation for reward notifications."""
         tag = build_notification_tag("status", "reward-789", "kid-123")
-        assert tag == "kidschores-status-reward-789-kid-123"
+        # Identifiers truncated: "reward-789" -> "reward-7", "kid-123" -> "kid-123"
+        assert tag == "kidschores-status-reward-7-kid-123"
 
     def test_no_identifiers(self) -> None:
         """Test tag generation with just tag_type (fallback behavior)."""
@@ -497,10 +500,12 @@ class TestBuildNotificationTag:
         # Note: Production code should not pass empty strings, but if it does
         # they are included in the tag (not filtered out)
         tag = build_notification_tag("status", "chore-456", "", "kid-123")
-        assert tag == "kidschores-status-chore-456--kid-123"
+        # Identifiers truncated: "chore-456" -> "chore-45", "" -> "", "kid-123" -> "kid-123"
+        assert tag == "kidschores-status-chore-45--kid-123"
 
     def test_tag_type_preserved(self) -> None:
         """Test different tag types produce different prefixes."""
+        # Identifiers truncated to 8 chars
         status_tag = build_notification_tag("status", "entity-1", "kid-1")
         pending_tag = build_notification_tag("pending", "entity-1", "kid-1")
         rewards_tag = build_notification_tag("rewards", "entity-1", "kid-1")
@@ -511,13 +516,24 @@ class TestBuildNotificationTag:
         assert status_tag != pending_tag != rewards_tag
 
     def test_same_kid_different_chores_unique(self) -> None:
-        """Test same kid with different chores produces unique tags."""
-        tag1 = build_notification_tag("status", "chore-001", "kid-123")
-        tag2 = build_notification_tag("status", "chore-002", "kid-123")
+        """Test same kid with different chores produces unique tags.
+
+        NOTE: Truncation to 8 chars can cause collisions with short test IDs!
+        Production uses UUIDs where first 8 chars provide sufficient uniqueness.
+        Test uses realistic UUID prefixes to demonstrate expected behavior.
+        """
+        # Use realistic UUID-like identifiers (production format)
+        tag1 = build_notification_tag(
+            "status", "abc12345-6789-abcd-ef01-234567890abc", "kid-123"
+        )
+        tag2 = build_notification_tag(
+            "status", "def67890-1234-5678-9abc-def012345678", "kid-123"
+        )
 
         assert tag1 != tag2
-        assert "chore-001" in tag1
-        assert "chore-002" in tag2
+        # Truncated: first 8 chars are different
+        assert "abc12345" in tag1
+        assert "def67890" in tag2
 
     def test_same_chore_different_kids_unique(self) -> None:
         """Test shared chore with different kids produces unique tags."""
@@ -525,5 +541,7 @@ class TestBuildNotificationTag:
         tag2 = build_notification_tag("status", "shared-chore", "kid-bob")
 
         assert tag1 != tag2
-        assert "kid-alice" in tag1
+        # Truncated: "shared-chore" -> "shared-c", "kid-alice" -> "kid-alic", "kid-bob" -> "kid-bob"
+        assert "shared-c" in tag1  # First 8 chars of "shared-chore"
+        assert "kid-alic" in tag1  # First 8 chars of "kid-alice"
         assert "kid-bob" in tag2

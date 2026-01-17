@@ -187,27 +187,36 @@ def build_notification_tag(tag_type: str, *identifiers: str) -> str:
     Tags allow subsequent notifications with the same tag to replace previous ones
     instead of stacking, reducing notification spam.
 
+    CRITICAL: Apple's apns-collapse-id header has a 64-byte limit. Since identifiers
+    are typically UUIDs (36 chars each), we truncate them to 8 chars to stay within
+    the limit while maintaining sufficient uniqueness for tag matching.
+
     Args:
         tag_type: Type of notification (pending, rewards, system, status).
                   Use const.NOTIFY_TAG_TYPE_* constants.
         *identifiers: One or more identifiers to make tag unique.
                      For per-entity tags: (entity_id, kid_id)
                      For per-kid tags: (kid_id,)
+                     Identifiers are truncated to first 8 characters.
 
     Returns:
-        Tag string in format: kidschores-{tag_type}-{id1}-{id2}-...
+        Tag string in format: kidschores-{tag_type}-{id1[:8]}-{id2[:8]}-...
         or kidschores-{tag_type} if no identifiers provided.
+        Maximum length: ~40 bytes (well under Apple's 64-byte limit).
 
     Examples:
         build_notification_tag(const.NOTIFY_TAG_TYPE_STATUS, chore_id, kid_id)
-        -> "kidschores-status-abc123-def456"
+        -> "kidschores-status-abc12345-def67890"
 
         build_notification_tag(const.NOTIFY_TAG_TYPE_SYSTEM, kid_id)
-        -> "kidschores-system-abc123"
+        -> "kidschores-system-abc12345"
     """
     if identifiers:
-        ids = "-".join(identifiers)
-        return f"{const.NOTIFY_TAG_PREFIX}-{tag_type}-{ids}"
+        # Truncate each identifier to 8 chars to stay under Apple's 64-byte limit
+        # Full UUIDs = 91 bytes ("kidschores-status-" + 36 + "-" + 36)
+        # Truncated = ~42 bytes ("kidschores-status-" + 8 + "-" + 8)
+        truncated_ids = "-".join(identifier[:8] for identifier in identifiers)
+        return f"{const.NOTIFY_TAG_PREFIX}-{tag_type}-{truncated_ids}"
     return f"{const.NOTIFY_TAG_PREFIX}-{tag_type}"
 
 
