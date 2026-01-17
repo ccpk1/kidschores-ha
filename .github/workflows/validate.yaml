@@ -10,6 +10,8 @@ on:
 jobs:
   validate-hacs:
     runs-on: "ubuntu-latest"
+    # Skip HACS validation on feature branches - only validate on main
+    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
     steps:
       - uses: "actions/checkout@v3"
       - name: HACS validation

@@ -6,7 +6,7 @@ name: Translation Sync
 #   - Source: custom_components/kidschores/translations/en.json
 #   - Source: custom_components/kidschores/translations_custom/en_dashboard.json
 #   - Source: custom_components/kidschores/translations_custom/en_notifications.json
-# 
+#
 # The workflow runs automatically when English source files are modified,
 # or can be triggered manually from the Actions tab (main branch only).
 
@@ -16,8 +16,8 @@ on:
       - main
       - feature/parent-chores
     paths:
-      - 'custom_components/kidschores/translations/en.json'
-      - 'custom_components/kidschores/translations_custom/en_*.json'
+      - "custom_components/kidschores/translations/en.json"
+      - "custom_components/kidschores/translations_custom/en_*.json"
   workflow_dispatch:
     inputs:
       branch:
@@ -64,16 +64,17 @@ jobs:
           CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
           CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
 
-      # STEP 3: Download & Commit
+      # STEP 3: Download & Create PR
       - name: Download Translations
         uses: crowdin/github-action@v2
         with:
           upload_sources: false
           upload_translations: false
           download_translations: true
-          create_pull_request: false
+          create_pull_request: true
+          pull_request_title: "chore(l10n): sync translations from Crowdin"
           commit_message: "chore(l10n): sync translations from Crowdin"
-          push_translations: true
+          pull_request_base_branch_name: ${{ github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
