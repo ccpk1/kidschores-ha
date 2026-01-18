@@ -77,11 +77,24 @@ async def async_handle_notification_action(hass: HomeAssistant, event: Event) ->
                 chore_id=parsed.entity_id,
                 user_name=kid_name,
             )
+        elif parsed.action_type == const.ACTION_COMPLETE_FOR_KID:
+            # Parent completes chore directly (no claim needed)
+            await coordinator.approve_chore(
+                parent_name=parent_name,
+                kid_id=parsed.kid_id,
+                chore_id=parsed.entity_id,
+            )
         elif parsed.action_type == const.ACTION_DISAPPROVE_CHORE:
             coordinator.disapprove_chore(
                 parent_name=parent_name,
                 kid_id=parsed.kid_id,
                 chore_id=parsed.entity_id,
+            )
+        elif parsed.action_type == const.ACTION_SKIP_CHORE:
+            # Reset overdue chore to pending and reschedule
+            coordinator.reset_overdue_chores(
+                chore_id=parsed.entity_id,
+                kid_id=parsed.kid_id,
             )
         elif parsed.action_type == const.ACTION_APPROVE_REWARD:
             await coordinator.approve_reward(

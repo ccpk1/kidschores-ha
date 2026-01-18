@@ -9088,6 +9088,18 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             )
             # Use system language for date formatting (parent-specific formatting
             # would require restructuring the notification loop)
+            # Build action buttons: Complete (approve directly), Skip (reset/reschedule), Remind
+            from .notification_helper import (
+                build_complete_action,
+                build_remind_action,
+                build_skip_action,
+            )
+
+            parent_actions = []
+            parent_actions.extend(build_complete_action(kid_id, chore_id))
+            parent_actions.extend(build_skip_action(kid_id, chore_id))
+            parent_actions.extend(build_remind_action(kid_id, chore_id))
+
             self.hass.async_create_task(
                 self._notify_parents_translated(
                     kid_id,
@@ -9101,7 +9113,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                             due_date_utc, language=self.hass.config.language
                         ),
                     },
-                    # No actions - informational only (chore not claimed yet)
+                    actions=parent_actions,
                     tag_type=const.NOTIFY_TAG_TYPE_STATUS,
                     tag_identifiers=(chore_id, kid_id),
                 )

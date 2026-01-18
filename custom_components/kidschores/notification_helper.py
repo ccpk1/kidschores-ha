@@ -150,10 +150,12 @@ def parse_notification_action(action_field: str) -> ParsedAction | None:
     valid_actions = (
         const.ACTION_APPROVE_CHORE,
         const.ACTION_CLAIM_CHORE,
+        const.ACTION_COMPLETE_FOR_KID,
         const.ACTION_DISAPPROVE_CHORE,
         const.ACTION_APPROVE_REWARD,
         const.ACTION_DISAPPROVE_REWARD,
         const.ACTION_REMIND_30,
+        const.ACTION_SKIP_CHORE,
     )
 
     if action_type not in valid_actions:
@@ -243,6 +245,68 @@ def build_claim_action(kid_id: str, chore_id: str) -> list[dict[str, str]]:
         {
             const.NOTIFY_ACTION: f"{const.ACTION_CLAIM_CHORE}|{kid_id}|{chore_id}",
             const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_CLAIM,
+        },
+    ]
+
+
+def build_skip_action(kid_id: str, chore_id: str) -> list[dict[str, str]]:
+    """Build skip action button for overdue chores.
+
+    Skip action resets the chore to PENDING state and reschedules it to the
+    next due date. Handles INDEPENDENT (per-kid) vs SHARED (all kids) logic.
+
+    Args:
+        kid_id: The internal ID of the kid
+        chore_id: The internal ID of the chore
+
+    Returns:
+        List with single action dict for Skip button
+    """
+    return [
+        {
+            const.NOTIFY_ACTION: f"{const.ACTION_SKIP_CHORE}|{kid_id}|{chore_id}",
+            const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_SKIP,
+        },
+    ]
+
+
+def build_complete_action(kid_id: str, chore_id: str) -> list[dict[str, str]]:
+    """Build complete action button for overdue chores.
+
+    Complete action directly approves the chore for the kid without requiring
+    a claim step first. Parent can mark overdue chores complete from notification.
+
+    Args:
+        kid_id: The internal ID of the kid
+        chore_id: The internal ID of the chore
+
+    Returns:
+        List with single action dict for Complete button
+    """
+    return [
+        {
+            const.NOTIFY_ACTION: f"{const.ACTION_COMPLETE_FOR_KID}|{kid_id}|{chore_id}",
+            const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_COMPLETE,
+        },
+    ]
+
+
+def build_remind_action(kid_id: str, chore_id: str) -> list[dict[str, str]]:
+    """Build remind action button for chore notifications.
+
+    Remind action schedules a follow-up reminder notification in 30 minutes.
+
+    Args:
+        kid_id: The internal ID of the kid
+        chore_id: The internal ID of the chore
+
+    Returns:
+        List with single action dict for Remind button
+    """
+    return [
+        {
+            const.NOTIFY_ACTION: f"{const.ACTION_REMIND_30}|{kid_id}|{chore_id}",
+            const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_REMIND_30,
         },
     ]
 

@@ -1401,8 +1401,10 @@ CUMULATIVE_BADGE_STATE_DEMOTED = "demoted"
 
 # Action titles for notifications (translation keys)
 TRANS_KEY_NOTIF_ACTION_APPROVE: Final = "notif_action_approve"
+TRANS_KEY_NOTIF_ACTION_COMPLETE: Final = "notif_action_complete"
 TRANS_KEY_NOTIF_ACTION_DISAPPROVE: Final = "notif_action_disapprove"
 TRANS_KEY_NOTIF_ACTION_REMIND_30: Final = "notif_action_remind_30"
+TRANS_KEY_NOTIF_ACTION_SKIP: Final = "notif_action_skip"
 
 # Notification Title Translation Keys
 TRANS_KEY_NOTIF_TITLE_CHORE_ASSIGNED: Final = "notification_title_chore_assigned"
@@ -1497,9 +1499,11 @@ TRANS_KEY_NOTIF_ACTION_CLAIM: Final = "notif_action_claim"
 ACTION_APPROVE_CHORE = "APPROVE_CHORE"
 ACTION_APPROVE_REWARD = "APPROVE_REWARD"
 ACTION_CLAIM_CHORE = "CLAIM_CHORE"
+ACTION_COMPLETE_FOR_KID = "COMPLETE_FOR_KID"
 ACTION_DISAPPROVE_CHORE = "DISAPPROVE_CHORE"
 ACTION_DISAPPROVE_REWARD = "DISAPPROVE_REWARD"
 ACTION_REMIND_30 = "REMIND_30"
+ACTION_SKIP_CHORE = "SKIP_CHORE"
 
 
 # ------------------------------------------------------------------------------------------------
