@@ -101,10 +101,12 @@
   },
   "actions": {
     "approve": "Aprova",
+    "claim": "✋ Reclama ara",
+    "complete": "Complet",
     "disapprove": "Rebutjar",
     "remind_30": "Recorda en 30 minuts",
+    "skip": "Omet",
     "approve_latest": "✅ Aprova l'última versió",
-    "review_all": "👀 Revisa-ho tot",
-    "claim": "✋ Reclama ara"
+    "review_all": "👀 Revisa-ho tot"
   }
 }

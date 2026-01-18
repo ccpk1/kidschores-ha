@@ -101,10 +101,12 @@
   },
   "actions": {
     "approve": "Goedkeuren",
+    "claim": "✋ Claim nu",
+    "complete": "Compleet",
     "disapprove": "Afkeuren",
     "remind_30": "Herinnering over 30 minuten",
+    "skip": "Overslaan",
     "approve_latest": "✅ Keur de nieuwste goed",
-    "review_all": "👀 Alles beoordelen",
-    "claim": "✋ Claim nu"
+    "review_all": "👀 Alles beoordelen"
   }
 }

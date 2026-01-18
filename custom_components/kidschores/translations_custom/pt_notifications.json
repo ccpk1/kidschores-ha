@@ -101,10 +101,12 @@
   },
   "actions": {
     "approve": "Aprovar",
+    "claim": "✋ Reivindique agora",
+    "complete": "Concluir",
     "disapprove": "Desaprovar",
     "remind_30": "Lembrete em 30 minutos",
+    "skip": "Ignorar",
     "approve_latest": "✅ Aprovar mais recente",
-    "review_all": "👀 Analisar tudo",
-    "claim": "✋ Reivindique agora"
+    "review_all": "👀 Analisar tudo"
   }
 }

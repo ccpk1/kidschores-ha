@@ -101,10 +101,12 @@
   },
   "actions": {
     "approve": "Schváliť",
+    "claim": "✋ Uplatniť teraz",
+    "complete": "Dokončené",
     "disapprove": "Neschváliť",
     "remind_30": "Pripomenúť o 30 minút",
+    "skip": "Preskočiť",
     "approve_latest": "✅ Schváliť najnovšie",
-    "review_all": "👀 Prehodnotiť všetko",
-    "claim": "✋ Uplatniť teraz"
+    "review_all": "👀 Prehodnotiť všetko"
   }
 }
