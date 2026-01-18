@@ -57,12 +57,13 @@ import homeassistant.util.dt as dt_util
 from . import const
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Mapping
 
     from homeassistant.auth.models import User
     from homeassistant.core import HomeAssistant
 
     from .coordinator import KidsChoresDataCoordinator  # Used for type checking only
+    from .type_defs import KidData
 
 
 # Module-level translation cache for performance (v0.5.0+)
@@ -329,8 +330,8 @@ def is_shadow_kid(coordinator: KidsChoresDataCoordinator, kid_id: str) -> bool:
     Returns:
         True if the kid is a shadow kid, False otherwise.
     """
-    kid_info = coordinator.kids_data.get(kid_id, {})
-    return kid_info.get(const.DATA_KID_IS_SHADOW, False)
+    kid_info: KidData = cast("KidData", coordinator.kids_data.get(kid_id, {}))
+    return bool(kid_info.get(const.DATA_KID_IS_SHADOW, False))
 
 
 def get_parent_for_shadow_kid(
@@ -345,7 +346,7 @@ def get_parent_for_shadow_kid(
     Returns:
         The parent's data dictionary, or None if not a shadow kid or parent not found.
     """
-    kid_info = coordinator.kids_data.get(kid_id, {})
+    kid_info: KidData = cast("KidData", coordinator.kids_data.get(kid_id, {}))
     parent_id = kid_info.get(const.DATA_KID_LINKED_PARENT_ID)
     if parent_id:
         return coordinator.parents_data.get(parent_id)
@@ -743,160 +744,6 @@ def get_entity_id_or_raise(
     return entity_id
 
 
-# Thin wrapper functions for backward compatibility
-def get_kid_id_or_raise(coordinator: KidsChoresDataCoordinator, kid_name: str) -> str:
-    """Get kid ID by name or raise HomeAssistantError if not found."""
-    return get_entity_id_or_raise(coordinator, const.ENTITY_TYPE_KID, kid_name)
-
-
-def get_chore_id_or_raise(
-    coordinator: KidsChoresDataCoordinator, chore_name: str
-) -> str:
-    """Get chore ID by name or raise HomeAssistantError if not found.
-
-    Args:
-        coordinator: The KidsChores data coordinator.
-        chore_name: The name of the chore to look up.
-
-    Returns:
-        The internal ID (UUID) of the chore.
-
-    Raises:
-        HomeAssistantError: If the chore is not found.
-    """
-    return get_entity_id_or_raise(coordinator, const.ENTITY_TYPE_CHORE, chore_name)
-
-
-def get_reward_id_or_raise(
-    coordinator: KidsChoresDataCoordinator, reward_name: str
-) -> str:
-    """Get reward ID by name or raise HomeAssistantError if not found.
-
-    Args:
-        coordinator: The KidsChores data coordinator.
-        reward_name: The name of the reward to look up.
-
-    Returns:
-        The internal ID (UUID) of the reward.
-
-    Raises:
-        HomeAssistantError: If the reward is not found.
-    """
-    return get_entity_id_or_raise(coordinator, const.ENTITY_TYPE_REWARD, reward_name)
-
-
-def get_penalty_id_or_raise(
-    coordinator: KidsChoresDataCoordinator, penalty_name: str
-) -> str:
-    """Get penalty ID by name or raise HomeAssistantError if not found.
-
-    Args:
-        coordinator: The KidsChores data coordinator.
-        penalty_name: The name of the penalty to look up.
-
-    Returns:
-        The internal ID (UUID) of the penalty.
-
-    Raises:
-        HomeAssistantError: If the penalty is not found.
-    """
-    return get_entity_id_or_raise(coordinator, const.ENTITY_TYPE_PENALTY, penalty_name)
-
-
-def get_badge_id_or_raise(
-    coordinator: KidsChoresDataCoordinator, badge_name: str
-) -> str:
-    """Get badge ID by name or raise HomeAssistantError if not found.
-
-    Args:
-        coordinator: The KidsChores data coordinator.
-        badge_name: The name of the badge to look up.
-
-    Returns:
-        The internal ID (UUID) of the badge.
-
-    Raises:
-        HomeAssistantError: If the badge is not found.
-    """
-    return get_entity_id_or_raise(coordinator, const.ENTITY_TYPE_BADGE, badge_name)
-
-
-def get_bonus_id_or_raise(
-    coordinator: KidsChoresDataCoordinator, bonus_name: str
-) -> str:
-    """Get bonus ID by name or raise HomeAssistantError if not found.
-
-    Args:
-        coordinator: The KidsChores data coordinator.
-        bonus_name: The name of the bonus to look up.
-
-    Returns:
-        The internal ID (UUID) of the bonus.
-
-    Raises:
-        HomeAssistantError: If the bonus is not found.
-    """
-    return get_entity_id_or_raise(coordinator, const.ENTITY_TYPE_BONUS, bonus_name)
-
-
-def get_parent_id_or_raise(
-    coordinator: KidsChoresDataCoordinator, parent_name: str
-) -> str:
-    """Get parent ID by name or raise HomeAssistantError if not found.
-
-    Args:
-        coordinator: The KidsChores data coordinator.
-        parent_name: The name of the parent to look up.
-
-    Returns:
-        The internal ID (UUID) of the parent.
-
-    Raises:
-        HomeAssistantError: If the parent is not found.
-    """
-    return get_entity_id_or_raise(coordinator, const.ENTITY_TYPE_PARENT, parent_name)
-
-
-def get_achievement_id_or_raise(
-    coordinator: KidsChoresDataCoordinator, achievement_name: str
-) -> str:
-    """Get achievement ID by name or raise HomeAssistantError if not found.
-
-    Args:
-        coordinator: The KidsChores data coordinator.
-        achievement_name: The name of the achievement to look up.
-
-    Returns:
-        The internal ID (UUID) of the achievement.
-
-    Raises:
-        HomeAssistantError: If the achievement is not found.
-    """
-    return get_entity_id_or_raise(
-        coordinator, const.ENTITY_TYPE_ACHIEVEMENT, achievement_name
-    )
-
-
-def get_challenge_id_or_raise(
-    coordinator: KidsChoresDataCoordinator, challenge_name: str
-) -> str:
-    """Get challenge ID by name or raise HomeAssistantError if not found.
-
-    Args:
-        coordinator: The KidsChores data coordinator.
-        challenge_name: The name of the challenge to look up.
-
-    Returns:
-        The internal ID (UUID) of the challenge.
-
-    Raises:
-        HomeAssistantError: If the challenge is not found.
-    """
-    return get_entity_id_or_raise(
-        coordinator, const.ENTITY_TYPE_CHALLENGE, challenge_name
-    )
-
-
 # ────────────────────────────────────────────────────────────────
 # 🧮 -------- KidsChores Progress & Completion Helpers --------
 # These helpers provide reusable logic for evaluating daily chore progress,
@@ -909,9 +756,9 @@ def get_challenge_id_or_raise(
 
 
 def get_today_chore_and_point_progress(
-    kid_info: dict,
-    tracked_chores: list,
-) -> tuple[int, int, int, int, dict, dict, dict]:
+    kid_info: Mapping[str, Any],
+    tracked_chores: list[str],
+) -> tuple[int, int, int, int, dict[str, int], dict[str, int], dict[str, int]]:
     """
     Calculate today's points from all sources, points from chores, total chore completions,
     and longest streak for the given kid and tracked chores.
@@ -985,11 +832,11 @@ def get_today_chore_and_point_progress(
 
 
 def get_today_chore_completion_progress(
-    kid_info: dict,
-    tracked_chores: list,
+    kid_info: Mapping[str, Any],
+    tracked_chores: list[str],
     *,
     kid_id: str | None = None,
-    all_chores: dict | None = None,
+    all_chores: Mapping[str, Any] | None = None,
     count_required: int | None = None,
     percent_required: float = 1.0,
     require_no_overdue: bool = False,
@@ -2466,7 +2313,7 @@ def create_system_device_info(config_entry):
 def get_entity_name_or_log_error(
     entity_type: str,
     entity_id: str,
-    entity_data: dict,
+    entity_data: Mapping[str, Any],
     name_key: str,
 ) -> str | None:
     """Get entity name from data dict, log error if missing (data corruption detection).

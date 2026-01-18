@@ -3287,7 +3287,7 @@ def build_achievement_schema(kids_dict, chores_dict, default=None):
         chore_options.append({"value": chore_id, "label": chore_name})
 
     default_selected_chore = default.get(
-        const.CONF_ACHIEVEMENT_SELECTED_CHORE_ID_LEGACY, const.SENTINEL_EMPTY
+        const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID, const.SENTINEL_EMPTY
     )
     if not default_selected_chore or default_selected_chore not in [
         option["value"] for option in chore_options
@@ -3411,7 +3411,7 @@ def build_challenge_schema(kids_dict, chores_dict, default=None):
         chore_options.append({"value": chore_id, "label": chore_name})
 
     default_selected_chore = default.get(
-        const.CONF_CHALLENGE_SELECTED_CHORE_ID_LEGACY, const.SENTINEL_EMPTY
+        const.DATA_CHALLENGE_SELECTED_CHORE_ID, const.SENTINEL_EMPTY
     )
     available_values = [option["value"] for option in chore_options]
     if default_selected_chore not in available_values:

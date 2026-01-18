@@ -1,30 +1,31 @@
-# CREATE CHORE SERVICE - Implementation Plan
+# CREATE & UPDATE CHORE SERVICES - Implementation Plan
 
-**Initiative name**: Create Chore Service  
-**Target release**: v0.5.1  
-**Owner**: TBD  
-**Status**: In Progress  
-**Created**: January 11, 2026  
-**Last Updated**: January 11, 2026
+**Initiative name**: Create & Update Chore Services
+**Target release**: v0.5.1
+**Owner**: TBD
+**Status**: In Progress
+**Created**: January 11, 2026
+**Last Updated**: January 18, 2026
 
 ---
 
 ## Summary Table
 
-| Phase | Description | % Complete | Quick Notes |
-|-------|-------------|------------|-------------|
-| **Phase 1** | Service Design & Schema | 0% | ~60 lines: schema + input mapping function |
-| **Phase 2** | Service Implementation | 0% | ~40 lines: handler reuses `build_chores_data()` |
-| **Phase 3** | Documentation & Translations | 0% | services.yaml (no new en.json needed - reuses existing) |
-| **Phase 4** | Testing | 0% | Test mapping + error handling (validation already tested) |
+| Phase       | Description                  | % Complete | Quick Notes                                          |
+| ----------- | ---------------------------- | ---------- | ---------------------------------------------------- |
+| **Phase 1** | Shared Infrastructure        | 0%         | ~60 lines: schema + mapping helpers (reused by both) |
+| **Phase 2** | Create Chore Service         | 0%         | ~40 lines: handler reuses `build_chores_data()`      |
+| **Phase 3** | Update Chore Service         | 0%         | ~50 lines: merge + validate logic (reuses Phase 1)   |
+| **Phase 4** | Documentation & Translations | 0%         | services.yaml entries (no new en.json needed)        |
+| **Phase 5** | Testing                      | 0%         | Test both services + shared infrastructure           |
 
-**Estimated Total Effort**: ~150 lines of new code (vs ~350 if writing fresh validation)
+**Estimated Total Effort**: ~200 lines of new code (vs ~600 if writing fresh validation for both)
 
 ---
 
 ## Summary Items
 
-1. **Key objective**: Create a Home Assistant service `kidschores.create_chore` that allows programmatic chore creation by **reusing the existing `build_chores_data()` validation** from flow_helpers.py. This approach provides 100% validation parity with the Options Flow while requiring only ~60 lines of mapping code.
+1. **Key objective**: Create two Home Assistant services - `kidschores.create_chore` and `kidschores.update_chore` - that allow programmatic chore management by **reusing the existing `build_chores_data()` validation** from flow_helpers.py. Both services share the same validation infrastructure, providing 100% parity with the Options Flow while requiring only ~200 lines of code total.
 
 2. **Summary of recent work**:
    - ✅ Feasibility analysis complete - reuse is the clear winner
@@ -35,10 +36,11 @@
    - ✅ Confirmed existing error translations (`TRANS_KEY_CFOF_*`) can be reused
 
 3. **Next steps (short term)**:
-   - Phase 1: Define service schema with user-friendly field names (~20 lines)
-   - Phase 1: Implement `_map_create_chore_input_to_form()` helper (~20 lines)
+   - Phase 1: Define shared schema with user-friendly field names (~30 lines)
+   - Phase 1: Implement `_map_chore_input_to_form()` helper (~30 lines)
    - Phase 2: Implement `handle_create_chore()` handler (~40 lines)
-   - Phase 3: Add `create_chore` entry to services.yaml
+   - Phase 3: Implement `handle_update_chore()` handler (~50 lines)
+   - Phase 4: Add both services to services.yaml
 
 4. **Risks / blockers**:
    - **LOW RISK**: All validation logic is inherited from battle-tested `build_chores_data()`
@@ -53,7 +55,7 @@
      - `async_step_add_chore()` (line 495) - Example of calling `build_chores_data()`
    - [coordinator.py](../../custom_components/kidschores/coordinator.py) - `_create_chore()` method
    - [kc_helpers.py](../../custom_components/kidschores/kc_helpers.py) - `build_default_chore_data()` (line 578)
-   - [const.py](../../custom_components/kidschores/const.py) - All CFOF_CHORES_INPUT_* and DATA_CHORE_* constants
+   - [const.py](../../custom_components/kidschores/const.py) - All CFOF*CHORES_INPUT*_ and DATA*CHORE*_ constants
 
 6. **Decisions & completion check**:
    - [x] Decision: Reuse `build_chores_data()` for validation (DRY principle)
@@ -68,27 +70,27 @@
 
 ### What `build_chores_data()` Already Does (lines 798-1044)
 
-| Responsibility | Complexity | Benefit of Reuse |
-|----------------|------------|------------------|
-| Validate chore name (not empty) | Low | ✅ Already handles |
-| Check duplicate name | Medium | ✅ Already handles |
-| Process due date (parse, validate not in past) | **High** | ✅ 50+ lines of date logic |
-| Convert kid NAMES → UUIDs | **Critical** | ✅ Already handles |
-| Validate at least 1 kid assigned | **Critical** | ✅ Already handles |
-| Validate overdue/reset type combo | Medium | ✅ Business rule preserved |
-| Build per_kid_due_dates | **High** | ✅ Complex SHARED vs INDEPENDENT logic |
-| Build partial chore data dict | High | ✅ 21 fields mapped correctly |
-| Call `build_default_chore_data()` | Final step | ✅ Single source of truth |
+| Responsibility                                 | Complexity   | Benefit of Reuse                       |
+| ---------------------------------------------- | ------------ | -------------------------------------- |
+| Validate chore name (not empty)                | Low          | ✅ Already handles                     |
+| Check duplicate name                           | Medium       | ✅ Already handles                     |
+| Process due date (parse, validate not in past) | **High**     | ✅ 50+ lines of date logic             |
+| Convert kid NAMES → UUIDs                      | **Critical** | ✅ Already handles                     |
+| Validate at least 1 kid assigned               | **Critical** | ✅ Already handles                     |
+| Validate overdue/reset type combo              | Medium       | ✅ Business rule preserved             |
+| Build per_kid_due_dates                        | **High**     | ✅ Complex SHARED vs INDEPENDENT logic |
+| Build partial chore data dict                  | High         | ✅ 21 fields mapped correctly          |
+| Call `build_default_chore_data()`              | Final step   | ✅ Single source of truth              |
 
 ### Comparison: Reuse vs Fresh Implementation
 
-| Factor | Reuse `build_chores_data()` | Write Fresh in services.py |
-|--------|----------------------------|---------------------------|
-| **Lines of code** | ~60 (mapping only) | ~180 (full validation) |
-| **Validation completeness** | 100% (inherits all) | Risk of missing edge cases |
-| **Future maintenance** | Single source of truth | Dual maintenance burden |
-| **Translation reuse** | Uses existing `TRANS_KEY_CFOF_*` | Need new `TRANS_KEY_SVC_*` |
-| **Testing effort** | Test mapping layer only | Must test all validation again |
+| Factor                      | Reuse `build_chores_data()`      | Write Fresh in services.py     |
+| --------------------------- | -------------------------------- | ------------------------------ |
+| **Lines of code**           | ~60 (mapping only)               | ~180 (full validation)         |
+| **Validation completeness** | 100% (inherits all)              | Risk of missing edge cases     |
+| **Future maintenance**      | Single source of truth           | Dual maintenance burden        |
+| **Translation reuse**       | Uses existing `TRANS_KEY_CFOF_*` | Need new `TRANS_KEY_SVC_*`     |
+| **Testing effort**          | Test mapping layer only          | Must test all validation again |
 
 ### Verdict: **Reuse Is Worth It** ✅
 
@@ -143,33 +145,33 @@ coordinator.async_update_listeners()
 async def handle_create_chore(call: ServiceCall) -> ServiceResponse:
     """Handle create_chore service call."""
     coordinator = await kc_helpers.async_get_coordinator(hass)
-    
+
     # 1. Build kids_dict for name→UUID conversion
     kids_dict = {
         data[const.DATA_KID_NAME]: eid
         for eid, data in coordinator.kids_data.items()
     }
-    
+
     # 2. Map service input to CFOF_* form keys expected by build_chores_data()
     form_input = _map_service_input_to_form_input(call.data)
-    
+
     # 3. Validate and build chore data using existing function
     chore_data, errors = fh.build_chores_data(
         form_input, kids_dict, coordinator.chores_data
     )
-    
+
     # 4. Raise ServiceValidationError if validation failed
     if errors:
         # Map CFOP_ERROR_* keys to user-friendly messages
         raise ServiceValidationError(...)
-    
+
     # 5. Extract and persist (same as options_flow)
     internal_id = list(chore_data.keys())[0]
     new_chore_data = chore_data[internal_id]
     coordinator._create_chore(internal_id, new_chore_data)
     coordinator._persist()
     coordinator.async_update_listeners()
-    
+
     return {"chore_id": internal_id}
 ```
 
@@ -179,35 +181,35 @@ async def handle_create_chore(call: ServiceCall) -> ServiceResponse:
 
 ### From build_chore_schema() (flow_helpers.py line 587-795)
 
-The actual chore schema uses these form field constants (CFOF_CHORES_INPUT_*):
+The actual chore schema uses these form field constants (CFOF*CHORES_INPUT*\*):
 
 ### Required Fields (3)
 
-| Form Field Constant | Service Field | Default | Type | Validation |
-|---------------------|---------------|---------|------|------------|
-| `CFOF_CHORES_INPUT_NAME` | `name` | - | string | Non-empty, unique |
-| `CFOF_CHORES_INPUT_DEFAULT_POINTS` | `default_points` | DEFAULT_POINTS | number | >= 0 |
-| `CFOF_CHORES_INPUT_ASSIGNED_KIDS` | `assigned_kids` | - | list[string] | **At least 1 kid REQUIRED** |
+| Form Field Constant                | Service Field    | Default        | Type         | Validation                  |
+| ---------------------------------- | ---------------- | -------------- | ------------ | --------------------------- |
+| `CFOF_CHORES_INPUT_NAME`           | `name`           | -              | string       | Non-empty, unique           |
+| `CFOF_CHORES_INPUT_DEFAULT_POINTS` | `default_points` | DEFAULT_POINTS | number       | >= 0                        |
+| `CFOF_CHORES_INPUT_ASSIGNED_KIDS`  | `assigned_kids`  | -              | list[string] | **At least 1 kid REQUIRED** |
 
 ### Optional Fields (from schema)
 
-| Form Field Constant | Service Field | Default | Type | Notes |
-|---------------------|---------------|---------|------|-------|
-| `CFOF_CHORES_INPUT_DESCRIPTION` | `description` | "" | string | multiline |
-| `CFOF_CHORES_INPUT_ICON` | `icon` | DEFAULT_CHORE_ICON | icon | mdi:* |
-| `CFOF_CHORES_INPUT_LABELS` | `labels` | [] | list[string] | HA labels |
-| `CFOF_CHORES_INPUT_COMPLETION_CRITERIA` | `completion_criteria` | INDEPENDENT | enum | independent/shared |
-| `CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE` | `approval_reset_type` | DEFAULT_APPROVAL_RESET_TYPE | enum | |
-| `CFOF_CHORES_INPUT_APPROVAL_RESET_PENDING_CLAIM_ACTION` | `pending_claim_action` | DEFAULT | enum | |
-| `CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE` | `overdue_handling` | DEFAULT_OVERDUE_HANDLING_TYPE | enum | |
-| `CFOF_CHORES_INPUT_AUTO_APPROVE` | `auto_approve` | DEFAULT_CHORE_AUTO_APPROVE | bool | |
-| `CFOF_CHORES_INPUT_RECURRING_FREQUENCY` | `recurring_frequency` | FREQUENCY_NONE | enum | none/daily/weekly/etc |
-| `CFOF_CHORES_INPUT_CUSTOM_INTERVAL` | `custom_interval` | None | int | for custom frequency |
-| `CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT` | `custom_interval_unit` | None | enum | days/weeks/months |
-| `CFOF_CHORES_INPUT_APPLICABLE_DAYS` | `applicable_days` | DEFAULT_APPLICABLE_DAYS | list | weekdays |
-| `CFOF_CHORES_INPUT_DUE_DATE` | `due_date` | None | datetime | ISO format |
-| `CFOF_CHORES_INPUT_SHOW_ON_CALENDAR` | `show_on_calendar` | True | bool | |
-| `CFOF_CHORES_INPUT_NOTIFICATIONS` | `notifications` | [] | list | notify_on_claim, etc |
+| Form Field Constant                                     | Service Field          | Default                       | Type         | Notes                 |
+| ------------------------------------------------------- | ---------------------- | ----------------------------- | ------------ | --------------------- |
+| `CFOF_CHORES_INPUT_DESCRIPTION`                         | `description`          | ""                            | string       | multiline             |
+| `CFOF_CHORES_INPUT_ICON`                                | `icon`                 | DEFAULT_CHORE_ICON            | icon         | mdi:\*                |
+| `CFOF_CHORES_INPUT_LABELS`                              | `labels`               | []                            | list[string] | HA labels             |
+| `CFOF_CHORES_INPUT_COMPLETION_CRITERIA`                 | `completion_criteria`  | INDEPENDENT                   | enum         | independent/shared    |
+| `CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE`                 | `approval_reset_type`  | DEFAULT_APPROVAL_RESET_TYPE   | enum         |                       |
+| `CFOF_CHORES_INPUT_APPROVAL_RESET_PENDING_CLAIM_ACTION` | `pending_claim_action` | DEFAULT                       | enum         |                       |
+| `CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE`               | `overdue_handling`     | DEFAULT_OVERDUE_HANDLING_TYPE | enum         |                       |
+| `CFOF_CHORES_INPUT_AUTO_APPROVE`                        | `auto_approve`         | DEFAULT_CHORE_AUTO_APPROVE    | bool         |                       |
+| `CFOF_CHORES_INPUT_RECURRING_FREQUENCY`                 | `recurring_frequency`  | FREQUENCY_NONE                | enum         | none/daily/weekly/etc |
+| `CFOF_CHORES_INPUT_CUSTOM_INTERVAL`                     | `custom_interval`      | None                          | int          | for custom frequency  |
+| `CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT`                | `custom_interval_unit` | None                          | enum         | days/weeks/months     |
+| `CFOF_CHORES_INPUT_APPLICABLE_DAYS`                     | `applicable_days`      | DEFAULT_APPLICABLE_DAYS       | list         | weekdays              |
+| `CFOF_CHORES_INPUT_DUE_DATE`                            | `due_date`             | None                          | datetime     | ISO format            |
+| `CFOF_CHORES_INPUT_SHOW_ON_CALENDAR`                    | `show_on_calendar`     | True                          | bool         |                       |
+| `CFOF_CHORES_INPUT_NOTIFICATIONS`                       | `notifications`        | []                            | list         | notify_on_claim, etc  |
 
 ### Validation Rules (from build_chores_data())
 
@@ -223,18 +225,20 @@ The actual chore schema uses these form field constants (CFOF_CHORES_INPUT_*):
 
 ---
 
-### Phase 1 – Service Design & Schema (0%)
+### Phase 1 – Shared Infrastructure (0%)
 
-**Goal**: Define service schema with user-friendly field names that map to `CFOF_*` form keys.
+**Goal**: Define shared schema and mapping helpers that both create_chore and update_chore will use.
 
 **Steps / detailed work items**:
 
 1. - [ ] Add SERVICE_CREATE_CHORE constant to [const.py](../../custom_components/kidschores/const.py)
+
    ```python
    SERVICE_CREATE_CHORE = "create_chore"
    ```
 
 2. - [ ] Define SERVICE_CREATE_CHORE_SCHEMA in [services.py](../../custom_components/kidschores/services.py)
+
    ```python
    SERVICE_CREATE_CHORE_SCHEMA = vol.Schema(
        {
@@ -249,7 +253,7 @@ The actual chore schema uses these form field constants (CFOF_CHORES_INPUT_*):
            vol.Optional("icon", default=const.DEFAULT_CHORE_ICON): cv.icon,
            vol.Optional("labels", default=[]): vol.All(cv.ensure_list, [cv.string]),
            vol.Optional(
-               "completion_criteria", 
+               "completion_criteria",
                default=const.COMPLETION_CRITERIA_INDEPENDENT
            ): vol.In([
                const.COMPLETION_CRITERIA_INDEPENDENT,
@@ -338,18 +342,20 @@ The actual chore schema uses these form field constants (CFOF_CHORES_INPUT_*):
    ```
 
 **Key issues**:
-- Verify all const.* values exist (FREQUENCY_VALUES, APPROVAL_RESET_TYPE_VALUES, etc.)
+
+- Verify all const.\* values exist (FREQUENCY_VALUES, APPROVAL_RESET_TYPE_VALUES, etc.)
 - Schema uses kid NAMES (user-friendly), not UUIDs
 
 ---
 
-### Phase 2 – Service Implementation (0%)
+### Phase 2 – Create Chore Service (0%)
 
-**Goal**: Implement service handler that reuses `build_chores_data()` validation.
+**Goal**: Implement create_chore service handler that reuses `build_chores_data()` validation.
 
 **Steps / detailed work items**:
 
 1. - [ ] Implement `handle_create_chore()` in [services.py](../../custom_components/kidschores/services.py)
+
    ```python
    async def handle_create_chore(call: ServiceCall) -> ServiceResponse:
        """Handle create_chore service call."""
@@ -359,21 +365,21 @@ The actual chore schema uses these form field constants (CFOF_CHORES_INPUT_*):
                translation_domain=DOMAIN,
                translation_key=const.TRANS_KEY_ERROR_NO_COORDINATOR,
            )
-       
+
        # Build kids_dict for name→UUID conversion (same as options_flow.py)
        kids_dict = {
            data[const.DATA_KID_NAME]: eid
            for eid, data in coordinator.kids_data.items()
        }
-       
+
        # Map service input to CFOF_* form keys
        form_input = _map_create_chore_input_to_form(dict(call.data))
-       
+
        # Validate and build chore data using EXISTING function
        chore_data, errors = fh.build_chores_data(
            form_input, kids_dict, coordinator.chores_data
        )
-       
+
        # Raise ServiceValidationError if validation failed
        if errors:
            # Get first error for user-friendly message
@@ -383,26 +389,27 @@ The actual chore schema uses these form field constants (CFOF_CHORES_INPUT_*):
                translation_domain=DOMAIN,
                translation_key=error_trans,
            )
-       
+
        # Extract internal_id and chore data (same pattern as options_flow.py)
        internal_id = list(chore_data.keys())[0]
        new_chore_data = chore_data[internal_id]
-       
+
        # Add to coordinator and persist (same as options_flow.py line 522-524)
        coordinator._create_chore(internal_id, new_chore_data)
        coordinator._persist()
        coordinator.async_update_listeners()
-       
+
        const.LOGGER.info(
            "Created chore '%s' via service with ID: %s",
            new_chore_data[const.DATA_CHORE_NAME],
            internal_id,
        )
-       
+
        return {"chore_id": internal_id}
    ```
 
 2. - [ ] Register service in `async_setup_services()`:
+
    ```python
    hass.services.async_register(
        DOMAIN,
@@ -414,6 +421,7 @@ The actual chore schema uses these form field constants (CFOF_CHORES_INPUT_*):
    ```
 
 3. - [ ] Add unregister in `async_unload_services()`:
+
    ```python
    hass.services.async_remove(DOMAIN, const.SERVICE_CREATE_CHORE)
    ```
@@ -424,18 +432,142 @@ The actual chore schema uses these form field constants (CFOF_CHORES_INPUT_*):
    ```
 
 **Key issues**:
-- Error mapping: `build_chores_data()` returns CFOP_ERROR_* keys, need to map to translations
+
+- Error mapping: `build_chores_data()` returns CFOP*ERROR*\* keys, need to map to translations
 - Verify `coordinator._create_chore()` is the correct method (check coordinator.py)
 
 ---
 
-### Phase 3 – Documentation & Translations (0%)
+### Phase 3 – Update Chore Service (0%)
+
+**Goal**: Implement update_chore service that supports partial field updates while reusing validation.
+
+**Steps / detailed work items**:
+
+1. - [ ] Add UPDATE_CHORE schema constant to [services.py](../../custom_components/kidschores/services.py)
+
+   ```python
+   SERVICE_UPDATE_CHORE_SCHEMA = SERVICE_CREATE_CHORE_SCHEMA.extend({
+       vol.Required("chore_id"): cv.string,  # Only difference: chore_id required
+       # All other fields become optional for partial updates
+       vol.Optional("name"): cv.string,
+       vol.Optional("default_points"): vol.All(vol.Coerce(int), vol.Range(min=0)),
+       # ... rest are already optional
+   })
+   ```
+
+2. - [ ] Implement `handle_update_chore()` in [services.py](../../custom_components/kidschores/services.py)
+
+   ```python
+   async def handle_update_chore(call: ServiceCall) -> ServiceResponse:
+       """Handle update_chore service call."""
+       hass = call.hass
+       coordinator = _get_coordinator(hass)
+
+       chore_id = call.data["chore_id"]
+
+       # Verify chore exists
+       if chore_id not in coordinator.chores_data:
+           raise ServiceValidationError(
+               f"Chore with ID '{chore_id}' not found"
+           )
+
+       # Get existing chore data and merge with updates
+       existing_chore = coordinator.chores_data[chore_id]
+
+       # Convert existing assigned kids UUIDs back to names for validation
+       existing_kid_names = [
+           coordinator.kids_data[kid_id][const.DATA_KID_NAME]
+           for kid_id in existing_chore.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+           if kid_id in coordinator.kids_data
+       ]
+
+       # Build merged input (existing + updates)
+       merged_input = {
+           "name": existing_chore.get(const.DATA_CHORE_NAME),
+           "default_points": existing_chore.get(const.DATA_CHORE_DEFAULT_POINTS),
+           "assigned_kids": existing_kid_names,
+           "description": existing_chore.get(const.DATA_CHORE_DESCRIPTION, ""),
+           "icon": existing_chore.get(const.DATA_CHORE_ICON),
+           # ... map all other existing fields
+       }
+
+       # Overlay with service updates (only fields provided)
+       for key, value in call.data.items():
+           if key != "chore_id":  # Skip the ID field
+               merged_input[key] = value
+
+       # Map to form input and validate
+       form_input = _map_chore_input_to_form(merged_input)
+
+       # Build validation dicts
+       kids_dict = {
+           data[const.DATA_KID_NAME]: eid
+           for eid, data in coordinator.kids_data.items()
+       }
+
+       # Exclude current chore from duplicate check
+       chores_dict = {
+           data[const.DATA_CHORE_NAME]: eid
+           for eid, data in coordinator.chores_data.items()
+           if eid != chore_id
+       }
+
+       # Validate merged data
+       chore_data, errors = fh.build_chores_data(
+           form_input, kids_dict, chores_dict
+       )
+
+       if errors:
+           error_key = list(errors.values())[0]
+           error_msg = coordinator.hass.localize(f"component.kidschores.config.error.{error_key}")
+           raise ServiceValidationError(error_msg or error_key)
+
+       # Extract validated data
+       validated_data = chore_data[list(chore_data.keys())[0]]
+
+       # Update chore in coordinator
+       coordinator.chores_data[chore_id].update(validated_data)
+       coordinator._persist()
+       coordinator.async_update_listeners()
+
+       return {"chore_id": chore_id, "updated": True}
+   ```
+
+3. - [ ] Register update service in `async_setup_services()`:
+
+   ```python
+   hass.services.async_register(
+       DOMAIN,
+       const.SERVICE_UPDATE_CHORE,
+       handle_update_chore,
+       schema=SERVICE_UPDATE_CHORE_SCHEMA,
+       supports_response=SupportsResponse.ONLY,
+   )
+   ```
+
+4. - [ ] Add unregister in `async_unload_services()`:
+   ```python
+   hass.services.async_remove(DOMAIN, const.SERVICE_UPDATE_CHORE)
+   ```
+
+**Key issues**:
+
+- Must merge existing data with updates to support partial field changes
+- Must convert existing UUID assigned_kids back to names for validation
+- Exclude current chore from duplicate name check
+- Reuses same `build_chores_data()` validation as create and Options Flow
+
+---
+
+### Phase 4 – Documentation & Translations (0%)
 
 **Goal**: Document the service and add translations.
 
 **Steps / detailed work items**:
 
 1. - [ ] Add service definition to [services.yaml](../../custom_components/kidschores/services.yaml)
+
    ```yaml
    create_chore:
      name: Create chore
@@ -527,6 +659,7 @@ The actual chore schema uses these form field constants (CFOF_CHORES_INPUT_*):
 
 2. - [ ] Add translations to [en.json](../../custom_components/kidschores/translations/en.json)
    - Add `create_chore` entry under `services` section
+   - Add `update_chore` entry under `services` section
    - Verify error translation keys from build_chores_data() exist
 
 3. - [ ] Verify these error translation keys exist in en.json:
@@ -538,27 +671,30 @@ The actual chore schema uses these form field constants (CFOF_CHORES_INPUT_*):
    - `TRANS_KEY_CFOF_INVALID_OVERDUE_RESET_COMBINATION` - "Invalid overdue/reset combination"
 
 **Key issues**:
+
 - services.yaml selectors should be user-friendly
 - All error messages from build_chores_data() must have translations
+- Both services share error translations (no duplication needed)
 
 ---
 
-### Phase 4 – Testing (0%)
+### Phase 5 – Testing (0%)
 
-**Goal**: Comprehensive tests covering all service functionality.
+**Goal**: Comprehensive tests covering both create and update service functionality.
 
 **Steps / detailed work items**:
 
-1. - [ ] Create test file: [tests/test_service_create_chore.py](../../tests/test_service_create_chore.py)
+1. - [ ] Create test file: [tests/test_service_chore_management.py](../../tests/test_service_chore_management.py)
 
 2. - [ ] Test minimal creation (happy path):
+
    ```python
    async def test_create_chore_minimal(hass, scenario_minimal):
        """Test creating chore with only required fields."""
        # Get a kid name from the scenario
        coordinator = await kc_helpers.async_get_coordinator(hass)
        kid_name = list(coordinator.kids_data.values())[0][const.DATA_KID_NAME]
-       
+
        result = await hass.services.async_call(
            DOMAIN,
            SERVICE_CREATE_CHORE,
@@ -590,8 +726,11 @@ The actual chore schema uses these form field constants (CFOF_CHORES_INPUT_*):
 5. - [ ] Test service response returns chore_id
 
 **Key issues**:
+
 - Use existing test fixtures from conftest.py
-- Service accepts kid NAMES, test should use names from scenario data
+- Services accept kid NAMES, tests should use names from scenario data
+- Update tests must create chore first, then update it
+- Verify partial updates don't affect unchanged fields
 
 ---
 
@@ -600,9 +739,10 @@ The actual chore schema uses these form field constants (CFOF_CHORES_INPUT_*):
 **Test Coverage Target**: 95%+ for new service code
 
 **Test Commands**:
+
 ```bash
-# Run service tests
-python -m pytest tests/test_service_create_chore.py -v
+# Run chore management service tests
+python -m pytest tests/test_service_chore_management.py -v
 
 # Run full suite
 python -m pytest tests/ -v --tb=line
@@ -612,11 +752,15 @@ python -m pytest tests/ -v --tb=line
 ```
 
 **Validation Checklist**:
-- [ ] All tests pass
+
+- [ ] All tests pass for both services
 - [ ] Lint passes
-- [ ] Service appears in Developer Tools
-- [ ] Minimal creation works (name + points + assigned_kids)
+- [ ] Both services appear in Developer Tools
+- [ ] Create minimal works (name + assigned_kids)
+- [ ] Update partial works (only specified fields change)
 - [ ] All validation errors handled with clear messages
+- [ ] Duplicate name detection works for both services
+- [ ] Kid name→UUID conversion works correctly
 
 ---
 
@@ -634,6 +778,7 @@ data:
 ```
 
 Creates a chore with all defaults:
+
 - Independent completion (each kid completes separately)
 - No recurring schedule
 - Shows on calendar
@@ -683,24 +828,26 @@ data:
 
 ## Key Differences from Options Flow
 
-| Aspect | Options Flow | Service |
-|--------|-------------|---------|
-| Input keys | `CFOF_CHORES_INPUT_*` | User-friendly names |
-| Kid reference | Kid names in multi-select | Kid names in list |
-| Validation | `build_chores_data()` | Same (via mapping) |
-| Persistence | `coordinator._create_chore()` | Same |
-| Response | Shows updated form | Returns `{"chore_id": "uuid"}` |
+| Aspect             | Options Flow                  | Create Service                 | Update Service                                  |
+| ------------------ | ----------------------------- | ------------------------------ | ----------------------------------------------- |
+| Input keys         | `CFOF_CHORES_INPUT_*`         | User-friendly names            | User-friendly names                             |
+| Kid reference      | Kid names in multi-select     | Kid names in list              | Kid names in list                               |
+| Validation         | `build_chores_data()`         | Same (via mapping)             | Same (via mapping)                              |
+| Persistence        | `coordinator._create_chore()` | Same                           | `chores_data.update()`                          |
+| Response           | Shows updated form            | Returns `{"chore_id": "uuid"}` | Returns `{"chore_id": "uuid", "updated": true}` |
+| Field requirements | All fields shown              | Only provided fields           | Only provided fields (partial update)           |
 
 ---
 
 ## Future Enhancements (Out of Scope)
 
-- `kidschores.update_chore` service for modifying existing chores
 - `kidschores.delete_chore` service for removing chores
+- `kidschores.bulk_create_chores` for creating multiple chores at once
 - Accept kid entity IDs as alternative to names
+- Validation warnings (non-blocking issues like missing icon)
 
 ---
 
 ## Template Usage Notice
 
-*Created from [PLAN_TEMPLATE.md](../PLAN_TEMPLATE.md) following KidsChores planning standards.*
+_Created from [PLAN_TEMPLATE.md](../PLAN_TEMPLATE.md) following KidsChores planning standards._

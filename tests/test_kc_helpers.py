@@ -62,10 +62,14 @@ class TestEntityLookupHelpers:
         self, hass: HomeAssistant, scenario_minimal: SetupResult
     ) -> None:
         """Should raise HomeAssistantError on missing entity."""
+        from custom_components.kidschores import const
+
         coordinator = scenario_minimal.coordinator
 
         with pytest.raises(HomeAssistantError):
-            kh.get_kid_id_or_raise(coordinator, "NonexistentKid")
+            kh.get_entity_id_or_raise(
+                coordinator, const.ENTITY_TYPE_KID, "NonexistentKid"
+            )
 
 
 class TestAuthorizationHelpers:

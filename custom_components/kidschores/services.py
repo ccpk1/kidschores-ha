@@ -6,7 +6,7 @@ Includes UI editor support with selectors for dropdowns and text inputs.
 """
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
@@ -18,6 +18,7 @@ from . import const, flow_helpers as fh, kc_helpers as kh
 
 if TYPE_CHECKING:
     from .coordinator import KidsChoresDataCoordinator
+    from .type_defs import ChoreData
 
 # --- Service Schemas ---
 
@@ -165,8 +166,12 @@ def async_setup_services(hass: HomeAssistant):
 
         # Map kid_name and chore_name to internal_ids
         try:
-            kid_id = kh.get_kid_id_or_raise(coordinator, kid_name)
-            chore_id = kh.get_chore_id_or_raise(coordinator, chore_name)
+            kid_id = kh.get_entity_id_or_raise(
+                coordinator, const.ENTITY_TYPE_KID, kid_name
+            )
+            chore_id = kh.get_entity_id_or_raise(
+                coordinator, const.ENTITY_TYPE_CHORE, chore_name
+            )
         except HomeAssistantError as err:
             const.LOGGER.warning("Claim Chore: %s", err)
             raise
@@ -216,8 +221,12 @@ def async_setup_services(hass: HomeAssistant):
 
         # Map kid_name and chore_name to internal_ids
         try:
-            kid_id = kh.get_kid_id_or_raise(coordinator, kid_name)
-            chore_id = kh.get_chore_id_or_raise(coordinator, chore_name)
+            kid_id = kh.get_entity_id_or_raise(
+                coordinator, const.ENTITY_TYPE_KID, kid_name
+            )
+            chore_id = kh.get_entity_id_or_raise(
+                coordinator, const.ENTITY_TYPE_CHORE, chore_name
+            )
         except HomeAssistantError as err:
             const.LOGGER.warning("Approve Chore: %s", err)
             raise
@@ -273,8 +282,12 @@ def async_setup_services(hass: HomeAssistant):
 
         # Map kid_name and chore_name to internal_ids
         try:
-            kid_id = kh.get_kid_id_or_raise(coordinator, kid_name)
-            chore_id = kh.get_chore_id_or_raise(coordinator, chore_name)
+            kid_id = kh.get_entity_id_or_raise(
+                coordinator, const.ENTITY_TYPE_KID, kid_name
+            )
+            chore_id = kh.get_entity_id_or_raise(
+                coordinator, const.ENTITY_TYPE_CHORE, chore_name
+            )
         except HomeAssistantError as err:
             const.LOGGER.warning("Disapprove Chore: %s", err)
             raise
@@ -327,8 +340,12 @@ def async_setup_services(hass: HomeAssistant):
 
         # Map kid_name and reward_name to internal_ids
         try:
-            kid_id = kh.get_kid_id_or_raise(coordinator, kid_name)
-            reward_id = kh.get_reward_id_or_raise(coordinator, reward_name)
+            kid_id = kh.get_entity_id_or_raise(
+                coordinator, const.ENTITY_TYPE_KID, kid_name
+            )
+            reward_id = kh.get_entity_id_or_raise(
+                coordinator, const.ENTITY_TYPE_REWARD, reward_name
+            )
         except HomeAssistantError as err:
             const.LOGGER.warning("Redeem Reward: %s", err)
             raise
@@ -418,8 +435,12 @@ def async_setup_services(hass: HomeAssistant):
 
         # Map kid_name and reward_name to internal_ids
         try:
-            kid_id = kh.get_kid_id_or_raise(coordinator, kid_name)
-            reward_id = kh.get_reward_id_or_raise(coordinator, reward_name)
+            kid_id = kh.get_entity_id_or_raise(
+                coordinator, const.ENTITY_TYPE_KID, kid_name
+            )
+            reward_id = kh.get_entity_id_or_raise(
+                coordinator, const.ENTITY_TYPE_REWARD, reward_name
+            )
         except HomeAssistantError as err:
             const.LOGGER.warning("Approve Reward: %s", err)
             raise
@@ -471,8 +492,12 @@ def async_setup_services(hass: HomeAssistant):
 
         # Map kid_name and reward_name to internal_ids
         try:
-            kid_id = kh.get_kid_id_or_raise(coordinator, kid_name)
-            reward_id = kh.get_reward_id_or_raise(coordinator, reward_name)
+            kid_id = kh.get_entity_id_or_raise(
+                coordinator, const.ENTITY_TYPE_KID, kid_name
+            )
+            reward_id = kh.get_entity_id_or_raise(
+                coordinator, const.ENTITY_TYPE_REWARD, reward_name
+            )
         except HomeAssistantError as err:
             const.LOGGER.warning("Disapprove Reward: %s", err)
             raise
@@ -525,8 +550,12 @@ def async_setup_services(hass: HomeAssistant):
 
         # Map kid_name and penalty_name to internal_ids
         try:
-            kid_id = kh.get_kid_id_or_raise(coordinator, kid_name)
-            penalty_id = kh.get_penalty_id_or_raise(coordinator, penalty_name)
+            kid_id = kh.get_entity_id_or_raise(
+                coordinator, const.ENTITY_TYPE_KID, kid_name
+            )
+            penalty_id = kh.get_entity_id_or_raise(
+                coordinator, const.ENTITY_TYPE_PENALTY, penalty_name
+            )
         except HomeAssistantError as err:
             const.LOGGER.warning("Apply Penalty: %s", err)
             raise
@@ -581,9 +610,13 @@ def async_setup_services(hass: HomeAssistant):
         penalty_id = None
         try:
             if kid_name:
-                kid_id = kh.get_kid_id_or_raise(coordinator, kid_name)
+                kid_id = kh.get_entity_id_or_raise(
+                    coordinator, const.ENTITY_TYPE_KID, kid_name
+                )
             if penalty_name:
-                penalty_id = kh.get_penalty_id_or_raise(coordinator, penalty_name)
+                penalty_id = kh.get_entity_id_or_raise(
+                    coordinator, const.ENTITY_TYPE_PENALTY, penalty_name
+                )
         except HomeAssistantError as err:
             const.LOGGER.warning("Reset Penalties: %s", err)
             raise
@@ -640,9 +673,13 @@ def async_setup_services(hass: HomeAssistant):
         bonus_id = None
         try:
             if kid_name:
-                kid_id = kh.get_kid_id_or_raise(coordinator, kid_name)
+                kid_id = kh.get_entity_id_or_raise(
+                    coordinator, const.ENTITY_TYPE_KID, kid_name
+                )
             if bonus_name:
-                bonus_id = kh.get_bonus_id_or_raise(coordinator, bonus_name)
+                bonus_id = kh.get_entity_id_or_raise(
+                    coordinator, const.ENTITY_TYPE_BONUS, bonus_name
+                )
         except HomeAssistantError as err:
             const.LOGGER.warning("Reset Bonuses: %s", err)
             raise
@@ -698,9 +735,13 @@ def async_setup_services(hass: HomeAssistant):
         reward_id = None
         try:
             if kid_name:
-                kid_id = kh.get_kid_id_or_raise(coordinator, kid_name)
+                kid_id = kh.get_entity_id_or_raise(
+                    coordinator, const.ENTITY_TYPE_KID, kid_name
+                )
             if reward_name:
-                reward_id = kh.get_reward_id_or_raise(coordinator, reward_name)
+                reward_id = kh.get_entity_id_or_raise(
+                    coordinator, const.ENTITY_TYPE_REWARD, reward_name
+                )
         except HomeAssistantError as err:
             const.LOGGER.warning("Reset Rewards: %s", err)
             raise
@@ -796,8 +837,12 @@ def async_setup_services(hass: HomeAssistant):
 
         # Map kid_name and bonus_name to internal_ids
         try:
-            kid_id = kh.get_kid_id_or_raise(coordinator, kid_name)
-            bonus_id = kh.get_bonus_id_or_raise(coordinator, bonus_name)
+            kid_id = kh.get_entity_id_or_raise(
+                coordinator, const.ENTITY_TYPE_KID, kid_name
+            )
+            bonus_id = kh.get_entity_id_or_raise(
+                coordinator, const.ENTITY_TYPE_BONUS, bonus_name
+            )
         except HomeAssistantError as err:
             const.LOGGER.warning("Apply Bonus: %s", err)
             raise
@@ -925,7 +970,9 @@ def async_setup_services(hass: HomeAssistant):
         # Map names to IDs (optional parameters)
         try:
             if not chore_id and chore_name:
-                chore_id = kh.get_chore_id_or_raise(coordinator, chore_name)
+                chore_id = kh.get_entity_id_or_raise(
+                    coordinator, const.ENTITY_TYPE_CHORE, chore_name
+                )
         except HomeAssistantError as err:
             const.LOGGER.warning("Reset Overdue Chores: %s", err)
             raise
@@ -933,7 +980,9 @@ def async_setup_services(hass: HomeAssistant):
         kid_id: str | None = None
         try:
             if kid_name:
-                kid_id = kh.get_kid_id_or_raise(coordinator, kid_name)
+                kid_id = kh.get_entity_id_or_raise(
+                    coordinator, const.ENTITY_TYPE_KID, kid_name
+                )
         except HomeAssistantError as err:
             const.LOGGER.warning("Reset Overdue Chores: %s", err)
             raise
@@ -970,7 +1019,9 @@ def async_setup_services(hass: HomeAssistant):
 
         # Look up the chore by name:
         try:
-            chore_id = kh.get_chore_id_or_raise(coordinator, chore_name)
+            chore_id = kh.get_entity_id_or_raise(
+                coordinator, const.ENTITY_TYPE_CHORE, chore_name
+            )
         except HomeAssistantError as err:
             const.LOGGER.warning("Set Chore Due Date: %s", err)
             raise
@@ -978,14 +1029,18 @@ def async_setup_services(hass: HomeAssistant):
         # If kid_name is provided, resolve it to kid_id
         if kid_name and not kid_id:
             try:
-                kid_id = kh.get_kid_id_or_raise(coordinator, kid_name)
+                kid_id = kh.get_entity_id_or_raise(
+                    coordinator, const.ENTITY_TYPE_KID, kid_name
+                )
             except HomeAssistantError as err:
                 const.LOGGER.warning("Set Chore Due Date: %s", err)
                 raise
 
         # Validate that if kid_id is provided, the chore is INDEPENDENT and kid is assigned
         if kid_id:
-            chore_info = coordinator.chores_data.get(chore_id, {})
+            chore_info: ChoreData = cast(
+                "ChoreData", coordinator.chores_data.get(chore_id, {})
+            )
             completion_criteria = chore_info.get(
                 const.DATA_CHORE_COMPLETION_CRITERIA,
                 const.COMPLETION_CRITERIA_INDEPENDENT,
@@ -1096,7 +1151,9 @@ def async_setup_services(hass: HomeAssistant):
 
         try:
             if not chore_id and chore_name:
-                chore_id = kh.get_chore_id_or_raise(coordinator, chore_name)
+                chore_id = kh.get_entity_id_or_raise(
+                    coordinator, const.ENTITY_TYPE_CHORE, chore_name
+                )
         except HomeAssistantError as err:
             const.LOGGER.warning("Skip Chore Due Date: %s", err)
             raise
@@ -1113,11 +1170,15 @@ def async_setup_services(hass: HomeAssistant):
 
         # Resolve kid_name to kid_id if provided
         if kid_name and not kid_id:
-            kid_id = kh.get_kid_id_or_raise(coordinator, kid_name)
+            kid_id = kh.get_entity_id_or_raise(
+                coordinator, const.ENTITY_TYPE_KID, kid_name
+            )
 
         # Validate kid_id (if provided)
         if kid_id:
-            chore_info = coordinator.chores_data.get(chore_id, {})
+            chore_info: ChoreData = cast(
+                "ChoreData", coordinator.chores_data.get(chore_id, {})
+            )
             completion_criteria = chore_info.get(
                 const.DATA_CHORE_COMPLETION_CRITERIA,
                 const.COMPLETION_CRITERIA_INDEPENDENT,

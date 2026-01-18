@@ -37,7 +37,7 @@ Bonus/Penalty Application Sensors (2):
 13. KidBonusAppliedSensor - Bonus application count (data in dashboard helper bonuses/penalties list)
 """
 
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
@@ -47,6 +47,9 @@ from homeassistant.helpers.entity_registry import async_get
 from . import const, kc_helpers as kh
 from .coordinator import KidsChoresDataCoordinator
 from .entity import KidsChoresCoordinatorEntity
+
+if TYPE_CHECKING:
+    from .type_defs import BonusData, ChoreData, KidData, PenaltyData, RewardData
 
 # ------------------------------------------------------------------------------------------
 # SYSTEM CHORE APPROVAL SENSORS
@@ -99,7 +102,9 @@ class SystemChoreApprovalsSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> int:
         """Return the total number of chores completed by the kid."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
         return stats.get(
             const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME, const.DEFAULT_ZERO
@@ -160,7 +165,9 @@ class SystemChoreApprovalsDailySensor(KidsChoresCoordinatorEntity, SensorEntity)
     @property
     def native_value(self) -> int:
         """Return the number of chores completed today."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
         return stats.get(const.DATA_KID_CHORE_STATS_APPROVED_TODAY, const.DEFAULT_ZERO)
 
@@ -219,7 +226,9 @@ class SystemChoreApprovalsWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity
     @property
     def native_value(self) -> int:
         """Return the number of chores completed this week."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
         return stats.get(const.DATA_KID_CHORE_STATS_APPROVED_WEEK, const.DEFAULT_ZERO)
 
@@ -278,7 +287,9 @@ class SystemChoreApprovalsMonthlySensor(KidsChoresCoordinatorEntity, SensorEntit
     @property
     def native_value(self) -> int:
         """Return the number of chores completed this month."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
         return stats.get(const.DATA_KID_CHORE_STATS_APPROVED_MONTH, const.DEFAULT_ZERO)
 
@@ -347,7 +358,9 @@ class SystemChoresPendingApprovalSensor(KidsChoresCoordinatorEntity, SensorEntit
                 kh.get_kid_name_by_id(self.coordinator, kid_id)
                 or const.TRANS_KEY_DISPLAY_UNKNOWN_KID
             )
-            chore_info = self.coordinator.chores_data.get(chore_id, {})
+            chore_info: ChoreData = cast(
+                "ChoreData", self.coordinator.chores_data.get(chore_id, {})
+            )
             chore_name = chore_info.get(
                 const.DATA_CHORE_NAME, const.TRANS_KEY_DISPLAY_UNKNOWN_CHORE
             )
@@ -447,7 +460,9 @@ class SystemRewardsPendingApprovalSensor(KidsChoresCoordinatorEntity, SensorEnti
                 kh.get_kid_name_by_id(self.coordinator, kid_id)
                 or const.TRANS_KEY_DISPLAY_UNKNOWN_KID
             )
-            reward_info = self.coordinator.rewards_data.get(reward_id, {})
+            reward_info: RewardData = cast(
+                "RewardData", self.coordinator.rewards_data.get(reward_id, {})
+            )
             reward_name = reward_info.get(
                 const.DATA_REWARD_NAME, const.TRANS_KEY_DISPLAY_UNKNOWN_REWARD
             )
@@ -546,9 +561,14 @@ class KidPointsEarnedDailySensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> int:
         """Return how many net points the kid has earned so far today."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
-        return point_stats.get(const.DATA_KID_POINT_STATS_NET_TODAY, const.DEFAULT_ZERO)
+        value = point_stats.get(
+            const.DATA_KID_POINT_STATS_NET_TODAY, const.DEFAULT_ZERO
+        )
+        return int(cast("float | int", value))
 
     @property
     def native_unit_of_measurement(self) -> str:
@@ -619,9 +639,12 @@ class KidPointsEarnedWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> int:
         """Return how many net points the kid has earned this week."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
-        return point_stats.get(const.DATA_KID_POINT_STATS_NET_WEEK, const.DEFAULT_ZERO)
+        value = point_stats.get(const.DATA_KID_POINT_STATS_NET_WEEK, const.DEFAULT_ZERO)
+        return int(cast("float | int", value))
 
     @property
     def native_unit_of_measurement(self) -> str:
@@ -692,9 +715,14 @@ class KidPointsEarnedMonthlySensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> int:
         """Return how many net points the kid has earned this month."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
-        return point_stats.get(const.DATA_KID_POINT_STATS_NET_MONTH, const.DEFAULT_ZERO)
+        value = point_stats.get(
+            const.DATA_KID_POINT_STATS_NET_MONTH, const.DEFAULT_ZERO
+        )
+        return int(cast("float | int", value))
 
     @property
     def native_unit_of_measurement(self) -> str:
@@ -766,11 +794,14 @@ class KidPointsMaxEverSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> int:
         """Return the highest points total the kid has ever reached."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
-        return point_stats.get(
+        value = point_stats.get(
             const.DATA_KID_POINT_STATS_HIGHEST_BALANCE, const.DEFAULT_ZERO
         )
+        return int(value)
 
     @property
     def icon(self) -> str:
@@ -842,7 +873,9 @@ class KidChoreStreakSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> int:
         """Return the highest current streak among all streak achievements for the kid."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         chore_stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
         return chore_stats.get(
             const.DATA_KID_CHORE_STATS_LONGEST_STREAK_ALL_TIME, const.DEFAULT_ZERO
@@ -949,7 +982,9 @@ class KidPenaltyAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> Any:
         """Return the number of times the penalty has been applied."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         return kid_info.get(const.DATA_KID_PENALTY_APPLIES, {}).get(
             self._penalty_id, const.DEFAULT_ZERO
         )
@@ -957,11 +992,14 @@ class KidPenaltyAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Expose additional details like penalty points and description."""
-        penalty_info = self.coordinator.penalties_data.get(self._penalty_id, {})
+        penalty_info: PenaltyData = cast(
+            "PenaltyData", self.coordinator.penalties_data.get(self._penalty_id, {})
+        )
 
         stored_labels = penalty_info.get(const.DATA_PENALTY_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label) for label in stored_labels
+            kh.get_friendly_label(self.hass, label)
+            for label in stored_labels  # type: ignore[attr-defined]
         ]
 
         # Get the ParentPenaltyApplyButton entity_id
@@ -992,7 +1030,9 @@ class KidPenaltyAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def icon(self):
         """Return the chore's custom icon if set, else fallback."""
-        penalty_info = self.coordinator.penalties_data.get(self._penalty_id, {})
+        penalty_info: PenaltyData = cast(
+            "PenaltyData", self.coordinator.penalties_data.get(self._penalty_id, {})
+        )
         return penalty_info.get(const.DATA_PENALTY_ICON, const.DEFAULT_PENALTY_ICON)
 
 
@@ -1059,7 +1099,9 @@ class KidBonusAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> Any:
         """Return the number of times the bonus has been applied."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         return kid_info.get(const.DATA_KID_BONUS_APPLIES, {}).get(
             self._bonus_id, const.DEFAULT_ZERO
         )
@@ -1067,11 +1109,14 @@ class KidBonusAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Expose additional details like bonus points and description."""
-        bonus_info = self.coordinator.bonuses_data.get(self._bonus_id, {})
+        bonus_info: BonusData = cast(
+            "BonusData", self.coordinator.bonuses_data.get(self._bonus_id, {})
+        )
 
         stored_labels = bonus_info.get(const.DATA_BONUS_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label) for label in stored_labels
+            kh.get_friendly_label(self.hass, label)
+            for label in stored_labels  # type: ignore[attr-defined]
         ]
 
         # Get the ParentBonusApplyButton entity_id
@@ -1102,5 +1147,7 @@ class KidBonusAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def icon(self):
         """Return the bonus's custom icon if set, else fallback."""
-        bonus_info = self.coordinator.bonuses_data.get(self._bonus_id, {})
+        bonus_info: BonusData = cast(
+            "BonusData", self.coordinator.bonuses_data.get(self._bonus_id, {})
+        )
         return bonus_info.get(const.DATA_BONUS_ICON, const.DEFAULT_BONUS_ICON)

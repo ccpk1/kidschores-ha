@@ -15,7 +15,7 @@ Features:
 
 """
 
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
@@ -26,6 +26,9 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from . import const, kc_helpers as kh
 from .coordinator import KidsChoresDataCoordinator
 from .entity import KidsChoresCoordinatorEntity
+
+if TYPE_CHECKING:
+    from .type_defs import BonusData, ChoreData, KidData, PenaltyData, RewardData
 
 # Silver requirement: Parallel Updates
 # Set to 1 (serialized) for action buttons that modify state
@@ -403,10 +406,13 @@ class KidChoreClaimButton(KidsChoresCoordinatorEntity, ButtonEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Include extra state attributes for the button."""
-        chore_info = self.coordinator.chores_data.get(self._chore_id, {})
+        chore_info: ChoreData = cast(
+            "ChoreData", self.coordinator.chores_data.get(self._chore_id, {})
+        )
         stored_labels = chore_info.get(const.DATA_CHORE_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label) for label in stored_labels
+            kh.get_friendly_label(self.hass, label)
+            for label in stored_labels  # type: ignore[attr-defined]
         ]
 
         attributes: dict[str, Any] = {
@@ -530,10 +536,13 @@ class ParentChoreApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Include extra state attributes for the button."""
-        chore_info = self.coordinator.chores_data.get(self._chore_id, {})
+        chore_info: ChoreData = cast(
+            "ChoreData", self.coordinator.chores_data.get(self._chore_id, {})
+        )
         stored_labels = chore_info.get(const.DATA_CHORE_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label) for label in stored_labels
+            kh.get_friendly_label(self.hass, label)
+            for label in stored_labels  # type: ignore[attr-defined]
         ]
 
         attributes: dict[str, Any] = {
@@ -622,7 +631,9 @@ class ParentChoreDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
             user_id = self._context.user_id if self._context else None
 
             # Check if user is the kid (for undo) or a parent/admin (for disapproval)
-            kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+            kid_info: KidData = cast(
+                "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+            )
             kid_ha_user_id = kid_info.get(const.DATA_KID_HA_USER_ID)
             is_kid = user_id and kid_ha_user_id and user_id == kid_ha_user_id
 
@@ -688,10 +699,13 @@ class ParentChoreDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Include extra state attributes for the button."""
-        chore_info = self.coordinator.chores_data.get(self._chore_id, {})
+        chore_info: ChoreData = cast(
+            "ChoreData", self.coordinator.chores_data.get(self._chore_id, {})
+        )
         stored_labels = chore_info.get(const.DATA_CHORE_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label) for label in stored_labels
+            kh.get_friendly_label(self.hass, label)
+            for label in stored_labels  # type: ignore[attr-defined]
         ]
 
         attributes: dict[str, Any] = {
@@ -816,10 +830,13 @@ class KidRewardRedeemButton(KidsChoresCoordinatorEntity, ButtonEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Include extra state attributes for the button."""
-        reward_info = self.coordinator.rewards_data.get(self._reward_id, {})
+        reward_info: RewardData = cast(
+            "RewardData", self.coordinator.rewards_data.get(self._reward_id, {})
+        )
         stored_labels = reward_info.get(const.DATA_REWARD_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label) for label in stored_labels
+            kh.get_friendly_label(self.hass, label)
+            for label in stored_labels  # type: ignore[attr-defined]
         ]
 
         attributes: dict[str, Any] = {
@@ -943,10 +960,13 @@ class ParentRewardApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Include extra state attributes for the button."""
-        reward_info = self.coordinator.rewards_data.get(self._reward_id, {})
+        reward_info: RewardData = cast(
+            "RewardData", self.coordinator.rewards_data.get(self._reward_id, {})
+        )
         stored_labels = reward_info.get(const.DATA_REWARD_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label) for label in stored_labels
+            kh.get_friendly_label(self.hass, label)
+            for label in stored_labels  # type: ignore[attr-defined]
         ]
 
         attributes: dict[str, Any] = {
@@ -1035,7 +1055,9 @@ class ParentRewardDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
             user_id = self._context.user_id if self._context else None
 
             # Check if user is the kid (for undo) or a parent/admin (for disapproval)
-            kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+            kid_info: KidData = cast(
+                "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+            )
             kid_ha_user_id = kid_info.get(const.DATA_KID_HA_USER_ID)
             is_kid = user_id and kid_ha_user_id and user_id == kid_ha_user_id
 
@@ -1101,10 +1123,13 @@ class ParentRewardDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Include extra state attributes for the button."""
-        reward_info = self.coordinator.rewards_data.get(self._reward_id, {})
+        reward_info: RewardData = cast(
+            "RewardData", self.coordinator.rewards_data.get(self._reward_id, {})
+        )
         stored_labels = reward_info.get(const.DATA_REWARD_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label) for label in stored_labels
+            kh.get_friendly_label(self.hass, label)
+            for label in stored_labels  # type: ignore[attr-defined]
         ]
 
         attributes: dict[str, Any] = {
@@ -1238,10 +1263,13 @@ class ParentPenaltyApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Include extra state attributes for the button."""
-        penalty_info = self.coordinator.penalties_data.get(self._penalty_id, {})
+        penalty_info: PenaltyData = cast(
+            "PenaltyData", self.coordinator.penalties_data.get(self._penalty_id, {})
+        )
         stored_labels = penalty_info.get(const.DATA_PENALTY_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label) for label in stored_labels
+            kh.get_friendly_label(self.hass, label)
+            for label in stored_labels  # type: ignore[attr-defined]
         ]
 
         attributes: dict[str, Any] = {
@@ -1501,10 +1529,13 @@ class ParentBonusApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Include extra state attributes for the button."""
-        bonus_info = self.coordinator.bonuses_data.get(self._bonus_id, {})
+        bonus_info: BonusData = cast(
+            "BonusData", self.coordinator.bonuses_data.get(self._bonus_id, {})
+        )
         stored_labels = bonus_info.get(const.DATA_BONUS_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label) for label in stored_labels
+            kh.get_friendly_label(self.hass, label)
+            for label in stored_labels  # type: ignore[attr-defined]
         ]
 
         attributes: dict[str, Any] = {

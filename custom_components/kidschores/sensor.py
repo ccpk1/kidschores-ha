@@ -81,6 +81,19 @@ from .sensor_legacy import (
     SystemChoresPendingApprovalSensor,
     SystemRewardsPendingApprovalSensor,
 )
+from .type_defs import (
+    AchievementData,
+    AchievementProgress,
+    BadgeData,
+    BonusData,
+    ChallengeData,
+    ChallengeProgress,
+    ChoreData,
+    KidData,
+    PenaltyData,
+    PeriodicStatsEntry,
+    RewardData,
+)
 
 # Silver requirement: Parallel Updates
 # Set to 0 (unlimited) for coordinator-based entities that don't poll
@@ -287,7 +300,7 @@ async def async_setup_entry(
             continue
         assigned_kids_ids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
         for kid_id in assigned_kids_ids:
-            kid_data = coordinator.kids_data.get(kid_id, {})
+            kid_data: KidData = cast("KidData", coordinator.kids_data.get(kid_id, {}))
             kid_name = kh.get_entity_name_or_log_error(
                 "kid", kid_id, kid_data, const.DATA_KID_NAME
             )
@@ -310,7 +323,7 @@ async def async_setup_entry(
                 "chore", chore_id, chore_info, const.DATA_CHORE_NAME
             )
             if not chore_name:
-                continue
+                continue  # type: ignore[assignment,call-overload,operator]
             entities.append(
                 SystemChoreSharedStateSensor(coordinator, entry, chore_id, chore_name)
             )
@@ -476,7 +489,9 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         Always returns kid's individual status, not shared chore global state.
         Uses timestamp-based tracking via coordinator helper methods.
         """
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
 
         # Use timestamp-based coordinator helpers for claim/approval status
         if self.coordinator.is_approved_in_current_period(self._kid_id, self._chore_id):
@@ -516,7 +531,9 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         - UI Integration: button entity IDs for claim/approve/disapprove actions
         - State tracking: individual vs shared/global state differentiation
         """
-        chore_info = self.coordinator.chores_data.get(self._chore_id, {})
+        chore_info: ChoreData = cast(
+            "ChoreData", self.coordinator.chores_data.get(self._chore_id, {})
+        )
         completion_criteria = chore_info.get(
             const.DATA_CHORE_COMPLETION_CRITERIA, const.COMPLETION_CRITERIA_INDEPENDENT
         )
@@ -529,7 +546,9 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             for k_id in assigned_kids_ids
         ]
 
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         completion_criteria = chore_info.get(
             const.DATA_CHORE_COMPLETION_CRITERIA, const.COMPLETION_CRITERIA_INDEPENDENT
         )
@@ -542,7 +561,9 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             for k_id in assigned_kids_ids
         ]
 
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {}).get(
             self._chore_id, {}
         )
@@ -552,10 +573,10 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         ).get(const.PERIOD_ALL_TIME, {})
 
         # Use new per-chore data for counts and streaks
-        claims_count = all_time_stats.get(
+        claims_count = all_time_stats.get(  # type: ignore[attr-defined]
             const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, const.DEFAULT_ZERO
         )
-        approvals_count = all_time_stats.get(
+        approvals_count = all_time_stats.get(  # type: ignore[attr-defined]
             const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, const.DEFAULT_ZERO
         )
 
@@ -574,20 +595,20 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         # Try to get the current streak from today's data; if not present, fallback to yesterday's
         current_streak = daily_periods.get(today_local_iso, {}).get(
             const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK
-        ) or daily_periods.get(yesterday_local_iso, {}).get(
+        ) or daily_periods.get(yesterday_local_iso, {}).get(  # type: ignore[arg-type,call-overload]
             const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK, const.DEFAULT_ZERO
         )
 
-        highest_streak = all_time_stats.get(
+        highest_streak = all_time_stats.get(  # type: ignore[attr-defined]
             const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK, const.DEFAULT_ZERO
         )
-        points_earned = all_time_stats.get(
+        points_earned = all_time_stats.get(  # type: ignore[attr-defined]
             const.DATA_KID_CHORE_DATA_PERIOD_POINTS, const.DEFAULT_ZERO
         )
-        overdue_count = all_time_stats.get(
+        overdue_count = all_time_stats.get(  # type: ignore[attr-defined]
             const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE, const.DEFAULT_ZERO
         )
-        disapproved_count = all_time_stats.get(
+        disapproved_count = all_time_stats.get(  # type: ignore[attr-defined]
             const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED, const.DEFAULT_ZERO
         )
         last_longest_streak_date = kid_chore_data.get(
@@ -604,7 +625,8 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         stored_labels = chore_info.get(const.DATA_CHORE_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label) for label in stored_labels
+            kh.get_friendly_label(self.hass, label)
+            for label in stored_labels  # type: ignore[attr-defined]
         ]
 
         # Build attributes dict organized by category:
@@ -767,7 +789,9 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         - overdue: alert-circle (not done in time)
         - fallback: chore's custom icon or default
         """
-        chore_info = self.coordinator.chores_data.get(self._chore_id, {})
+        chore_info: ChoreData = cast(
+            "ChoreData", self.coordinator.chores_data.get(self._chore_id, {})
+        )
 
         # Fallback: use chore's custom icon or default
         return chore_info.get(const.DATA_CHORE_ICON, const.DEFAULT_CHORE_SENSOR_ICON)
@@ -826,7 +850,9 @@ class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> Any:
         """Return the kid's total points."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         return kid_info.get(const.DATA_KID_POINTS, const.DEFAULT_ZERO)
 
     @property
@@ -867,7 +893,9 @@ class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
         Attribute order: common fields first (purpose, kid_name),
         then all point_stat_* fields sorted alphabetically.
         """
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
 
         # Common fields first (consistent ordering across sensors)
@@ -926,7 +954,9 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> Any:
         """Return the total number of chores completed by the kid."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
         return stats.get(
             const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME, const.DEFAULT_ZERO
@@ -942,7 +972,9 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
         Attribute order: common fields first (purpose, kid_name),
         then all chore_stat_* fields sorted alphabetically.
         """
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
 
         # Common fields first (consistent ordering across sensors)
@@ -1003,7 +1035,9 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> str:
         """Return the badge name of the highest-threshold badge the kid has earned."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         cumulative_badge_progress_info = kid_info.get(
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {}
         )
@@ -1015,7 +1049,9 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def icon(self):
         """Return the icon for the highest badge."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         cumulative_badge_progress_info = kid_info.get(
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {}
         )
@@ -1023,7 +1059,9 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_ID,
             const.SENTINEL_NONE_TEXT,
         )
-        highest_badge_info = self.coordinator.badges_data.get(highest_badge_id, {})
+        highest_badge_info: BadgeData = cast(
+            "BadgeData", self.coordinator.badges_data.get(highest_badge_id, {})
+        )
         return highest_badge_info.get(const.DATA_BADGE_ICON, const.DEFAULT_TROPHY_ICON)
 
     @property
@@ -1033,7 +1071,9 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
         reset schedule, maintenance rules, description, and awards if present.
         Also shows baseline points, cycle points, grace_end_date, and points to maintenance if applicable.
         """
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
 
         # Defensive: Handle badges_earned as either dict (v42+) or list (legacy v41)
         badges_earned_data = kid_info.get(const.DATA_KID_BADGES_EARNED, {})
@@ -1106,11 +1146,14 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
             None,
         )
 
-        current_badge_info = self.coordinator.badges_data.get(current_badge_id, {})
+        current_badge_info: BadgeData = cast(
+            "BadgeData", self.coordinator.badges_data.get(current_badge_id, {})
+        )
 
         stored_labels = current_badge_info.get(const.DATA_BADGE_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label) for label in stored_labels
+            kh.get_friendly_label(self.hass, label)
+            for label in stored_labels  # type: ignore[attr-defined]
         ]
 
         # Get last awarded date and award count for the current badge (if earned)
@@ -1281,7 +1324,9 @@ class KidBadgeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> float:
         """Return the badge's overall progress as a percentage."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         badge_progress = kid_info.get(const.DATA_KID_BADGE_PROGRESS, {}).get(
             self._badge_id, {}
         )
@@ -1293,8 +1338,12 @@ class KidBadgeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict:
         """Return the badge progress details as attributes."""
-        badge_info = self.coordinator.badges_data.get(self._badge_id, {})
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        badge_info: BadgeData = cast(
+            "BadgeData", self.coordinator.badges_data.get(self._badge_id, {})
+        )
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         badge_progress = kid_info.get(const.DATA_KID_BADGE_PROGRESS, {}).get(
             self._badge_id, {}
         )
@@ -1355,29 +1404,31 @@ class KidBadgeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.DATA_KID_BADGES_EARNED_AWARD_COUNT: award_count,
         }
 
-        attributes[const.ATTR_DESCRIPTION] = badge_info.get(
+        attributes[const.ATTR_DESCRIPTION] = badge_info.get(  # type: ignore[assignment,call-overload,operator]
             const.DATA_BADGE_DESCRIPTION, const.SENTINEL_EMPTY
         )
 
         # Convert tracked chore IDs to friendly names and add to attributes
-        tracked_chore_ids = attributes.get(
+        tracked_chore_ids: list[str] = attributes.get(  # type: ignore[assignment,call-overload,operator]
             const.DATA_KID_BADGE_PROGRESS_TRACKED_CHORES, []
         )
         if tracked_chore_ids:
             chore_names = [
-                self.coordinator.chores_data.get(chore_id, {}).get(
+                self.coordinator.chores_data.get(chore_id, {}).get(  # type: ignore[assignment,call-overload,operator]
                     const.DATA_CHORE_NAME, chore_id
                 )
                 for chore_id in tracked_chore_ids
             ]
-            attributes[const.DATA_KID_BADGE_PROGRESS_TRACKED_CHORES] = chore_names
+            attributes[const.DATA_KID_BADGE_PROGRESS_TRACKED_CHORES] = chore_names  # type: ignore[assignment,call-overload,operator]
 
         return attributes
 
     @property
     def icon(self) -> str:
         """Return the icon for the badge."""
-        badge_info = self.coordinator.badges_data.get(self._badge_id, {})
+        badge_info: BadgeData = cast(
+            "BadgeData", self.coordinator.badges_data.get(self._badge_id, {})
+        )
         return badge_info.get(const.DATA_BADGE_ICON, const.DEFAULT_BADGE_ICON)
 
 
@@ -1427,14 +1478,18 @@ class SystemBadgeSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> int:
         """State: number of kids who have earned this badge."""
-        badge_info = self.coordinator.badges_data.get(self._badge_id, {})
+        badge_info: BadgeData = cast(
+            "BadgeData", self.coordinator.badges_data.get(self._badge_id, {})
+        )
         kids_earned_ids = badge_info.get(const.DATA_BADGE_EARNED_BY, [])
         return len(kids_earned_ids)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Full badge info, including per-kid earned stats and periods."""
-        badge_info = self.coordinator.badges_data.get(self._badge_id, {})
+        badge_info: BadgeData = cast(
+            "BadgeData", self.coordinator.badges_data.get(self._badge_id, {})
+        )
         attributes: dict[str, Any] = {
             const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_BADGE,
             const.ATTR_BADGE_NAME: self._badge_name,
@@ -1447,7 +1502,7 @@ class SystemBadgeSensor(KidsChoresCoordinatorEntity, SensorEntity):
         )
         attributes[const.ATTR_LABELS] = [
             kh.get_friendly_label(self.hass, label)
-            for label in badge_info.get(const.DATA_BADGE_LABELS, [])
+            for label in badge_info.get(const.DATA_BADGE_LABELS, [])  # type: ignore[attr-defined]
         ]
         # Per-kid earned stats
         kids_earned_ids = badge_info.get(const.DATA_BADGE_EARNED_BY, [])
@@ -1488,7 +1543,7 @@ class SystemBadgeSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.DATA_BADGE_TRACKED_CHORES_SELECTED_CHORES, []
         )
         attributes[const.ATTR_REQUIRED_CHORES] = [
-            self.coordinator.chores_data.get(chore_id, {}).get(
+            self.coordinator.chores_data.get(chore_id, {}).get(  # type: ignore[assignment,call-overload,operator]
                 const.DATA_CHORE_NAME, chore_id
             )
             for chore_id in selected_chore_ids
@@ -1503,7 +1558,9 @@ class SystemBadgeSensor(KidsChoresCoordinatorEntity, SensorEntity):
         for item in award_items:
             if item.startswith(const.AWARD_ITEMS_PREFIX_REWARD):
                 reward_id = item.split(":", 1)[1]
-                reward_info = self.coordinator.rewards_data.get(reward_id, {})
+                reward_info: RewardData = cast(
+                    "RewardData", self.coordinator.rewards_data.get(reward_id, {})
+                )
                 friendly_name = reward_info.get(
                     const.DATA_REWARD_NAME, f"Reward: {reward_id}"
                 )
@@ -1512,7 +1569,9 @@ class SystemBadgeSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 )
             elif item.startswith(const.AWARD_ITEMS_PREFIX_BONUS):
                 bonus_id = item.split(":", 1)[1]
-                bonus_info = self.coordinator.bonuses_data.get(bonus_id, {})
+                bonus_info: BonusData = cast(
+                    "BonusData", self.coordinator.bonuses_data.get(bonus_id, {})
+                )
                 friendly_name = bonus_info.get(
                     const.DATA_BONUS_NAME, f"Bonus: {bonus_id}"
                 )
@@ -1521,7 +1580,9 @@ class SystemBadgeSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 )
             elif item.startswith(const.AWARD_ITEMS_PREFIX_PENALTY):
                 penalty_id = item.split(":", 1)[1]
-                penalty_info = self.coordinator.penalties_data.get(penalty_id, {})
+                penalty_info: PenaltyData = cast(
+                    "PenaltyData", self.coordinator.penalties_data.get(penalty_id, {})
+                )
                 friendly_name = penalty_info.get(
                     const.DATA_PENALTY_NAME, f"Penalty: {penalty_id}"
                 )
@@ -1546,7 +1607,9 @@ class SystemBadgeSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
     @property
     def icon(self) -> str:
-        badge_info = self.coordinator.badges_data.get(self._badge_id, {})
+        badge_info: BadgeData = cast(
+            "BadgeData", self.coordinator.badges_data.get(self._badge_id, {})
+        )
         return badge_info.get(const.DATA_BADGE_ICON, const.DEFAULT_BADGE_ICON)
 
 
@@ -1597,7 +1660,9 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> str:
         """Return the global state for the chore."""
-        chore_info = self.coordinator.chores_data.get(self._chore_id, {})
+        chore_info: ChoreData = cast(
+            "ChoreData", self.coordinator.chores_data.get(self._chore_id, {})
+        )
         return chore_info.get(const.DATA_CHORE_STATE, const.CHORE_STATE_UNKNOWN)
 
     @property
@@ -1610,7 +1675,9 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
         3. Statistics - today's approvals across all assigned kids
         4. Timestamps - last_claimed, last_completed (chore-level)
         """
-        chore_info = self.coordinator.chores_data.get(self._chore_id, {})
+        chore_info: ChoreData = cast(
+            "ChoreData", self.coordinator.chores_data.get(self._chore_id, {})
+        )
         assigned_kids_ids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
         assigned_kids_names = [
             name
@@ -1627,7 +1694,8 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         stored_labels = chore_info.get(const.DATA_CHORE_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label) for label in stored_labels
+            kh.get_friendly_label(self.hass, label)
+            for label in stored_labels  # type: ignore[attr-defined]
         ]
 
         # Get today's approvals from periods structure (not legacy flat field)
@@ -1635,7 +1703,9 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
         today_local_iso = kh.get_today_local_date().isoformat()
 
         for kid_id in assigned_kids_ids:
-            kid_data = self.coordinator.kids_data.get(kid_id, {})
+            kid_data: KidData = cast(
+                "KidData", self.coordinator.kids_data.get(kid_id, {})
+            )
             # Access: kid_data[DATA_KID_CHORE_DATA][chore_id][periods][daily][today_iso][approved]
             kid_chore_data = kid_data.get(const.DATA_KID_CHORE_DATA, {}).get(
                 self._chore_id, {}
@@ -1697,12 +1767,12 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
             claimed_by_name = None
             if claimed_by_id:
-                claimant_info = self.coordinator.kids_data.get(claimed_by_id, {})
+                claimant_info = self.coordinator.kids_data.get(claimed_by_id, {})  # type: ignore[assignment,call-overload,operator]
                 claimed_by_name = claimant_info.get(const.DATA_KID_NAME, claimed_by_id)
 
             completed_by_name = None
             if completed_by_id:
-                completer_info = self.coordinator.kids_data.get(completed_by_id, {})
+                completer_info = self.coordinator.kids_data.get(completed_by_id, {})  # type: ignore[assignment,call-overload,operator]
                 completed_by_name = completer_info.get(
                     const.DATA_KID_NAME, completed_by_id
                 )
@@ -1726,7 +1796,9 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def icon(self) -> str:
         """Return the icon for the chore sensor."""
-        chore_info = self.coordinator.chores_data.get(self._chore_id, {})
+        chore_info: ChoreData = cast(
+            "ChoreData", self.coordinator.chores_data.get(self._chore_id, {})
+        )
         return chore_info.get(const.DATA_CHORE_ICON, const.DEFAULT_CHORE_SENSOR_ICON)
 
 
@@ -1781,7 +1853,9 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> str:
         """Return the current reward status: 'Not Claimed', 'Claimed', or 'Approved'."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         reward_data = kid_info.get(const.DATA_KID_REWARD_DATA, {}).get(
             self._reward_id, {}
         )
@@ -1810,15 +1884,20 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         Returns period-based claims, approvals, disapprovals, points spent,
         timestamps, and calculated rates for dashboard and automation use.
         """
-        reward_info = self.coordinator.rewards_data.get(self._reward_id, {})
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        reward_info: RewardData = cast(
+            "RewardData", self.coordinator.rewards_data.get(self._reward_id, {})
+        )
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         reward_data = kid_info.get(const.DATA_KID_REWARD_DATA, {}).get(
             self._reward_id, {}
         )
 
         stored_labels = reward_info.get(const.DATA_REWARD_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label) for label in stored_labels
+            kh.get_friendly_label(self.hass, label)
+            for label in stored_labels  # type: ignore[attr-defined]
         ]
 
         # Get current period keys
@@ -1836,10 +1915,10 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         yearly = periods.get(const.DATA_KID_REWARD_DATA_PERIODS_YEARLY, {})
 
         # Calculate period stats
-        today_stats = daily.get(today_local_iso, {})
-        week_stats = weekly.get(week_local_iso, {})
-        month_stats = monthly.get(month_local_iso, {})
-        year_stats = yearly.get(year_local_iso, {})
+        today_stats: PeriodicStatsEntry = daily.get(today_local_iso, {})
+        week_stats: PeriodicStatsEntry = weekly.get(week_local_iso, {})
+        month_stats: PeriodicStatsEntry = monthly.get(month_local_iso, {})
+        year_stats: PeriodicStatsEntry = yearly.get(year_local_iso, {})
 
         claimed_today = today_stats.get(const.DATA_KID_REWARD_DATA_PERIOD_CLAIMED, 0)
         claimed_week = week_stats.get(const.DATA_KID_REWARD_DATA_PERIOD_CLAIMED, 0)
@@ -1988,7 +2067,9 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def icon(self) -> str:
         """Use the reward's custom icon if set, else fallback."""
-        reward_info = self.coordinator.rewards_data.get(self._reward_id, {})
+        reward_info: RewardData = cast(
+            "RewardData", self.coordinator.rewards_data.get(self._reward_id, {})
+        )
         return reward_info.get(const.DATA_REWARD_ICON, const.DEFAULT_REWARD_ICON)
 
 
@@ -2038,7 +2119,10 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def native_value(self) -> Any:
         """Return the overall progress percentage toward the achievement."""
 
-        achievement = self.coordinator.achievements_data.get(self._achievement_id, {})
+        achievement: AchievementData = cast(
+            "AchievementData",
+            self.coordinator.achievements_data.get(self._achievement_id, {}),
+        )
         target = achievement.get(const.DATA_ACHIEVEMENT_TARGET_VALUE, 1)
         assigned_kids = achievement.get(const.DATA_ACHIEVEMENT_ASSIGNED_KIDS, [])
 
@@ -2051,9 +2135,12 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
             total_effective_target = const.DEFAULT_ZERO
 
             for kid_id in assigned_kids:
-                progress_data = achievement.get(
-                    const.DATA_ACHIEVEMENT_PROGRESS, {}
-                ).get(kid_id, {})
+                progress_data: AchievementProgress = cast(
+                    "AchievementProgress",
+                    achievement.get(const.DATA_ACHIEVEMENT_PROGRESS, {}).get(
+                        kid_id, {}
+                    ),
+                )
                 baseline = (
                     progress_data.get(
                         const.DATA_ACHIEVEMENT_BASELINE, const.DEFAULT_ZERO
@@ -2062,7 +2149,7 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
                     else const.DEFAULT_ZERO
                 )
                 # Use modern chore_stats structure
-                chore_stats = self.coordinator.kids_data.get(kid_id, {}).get(
+                chore_stats = self.coordinator.kids_data.get(kid_id, {}).get(  # type: ignore[assignment,call-overload,operator]
                     const.DATA_KID_CHORE_STATS, {}
                 )
                 current_total = chore_stats.get(
@@ -2081,9 +2168,12 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
             total_current = const.DEFAULT_ZERO
 
             for kid_id in assigned_kids:
-                progress_data = achievement.get(
-                    const.DATA_ACHIEVEMENT_PROGRESS, {}
-                ).get(kid_id, {})
+                progress_data: AchievementProgress = cast(
+                    "AchievementProgress",
+                    achievement.get(const.DATA_ACHIEVEMENT_PROGRESS, {}).get(
+                        kid_id, {}
+                    ),
+                )
                 total_current += (
                     progress_data.get(
                         const.DATA_ACHIEVEMENT_CURRENT_STREAK, const.DEFAULT_ZERO
@@ -2105,7 +2195,7 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
             for kid_id in assigned_kids:
                 # Use modern chore_stats structure
-                chore_stats = self.coordinator.kids_data.get(kid_id, {}).get(
+                chore_stats = self.coordinator.kids_data.get(kid_id, {}).get(  # type: ignore[assignment,call-overload,operator]
                     const.DATA_KID_CHORE_STATS, {}
                 )
                 daily = chore_stats.get(
@@ -2118,7 +2208,7 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
                     if target > const.DEFAULT_ZERO
                     else const.DEFAULT_ZERO
                 )
-                total_progress += kid_progress
+                total_progress += kid_progress  # type: ignore[assignment,call-overload,operator]
 
             percent = total_progress / len(assigned_kids)
 
@@ -2130,20 +2220,23 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra attributes for this achievement."""
-        achievement = self.coordinator.achievements_data.get(self._achievement_id, {})
+        achievement: AchievementData = cast(
+            "AchievementData",
+            self.coordinator.achievements_data.get(self._achievement_id, {}),
+        )
         progress = achievement.get(const.DATA_ACHIEVEMENT_PROGRESS, {})
         kids_progress = {}
 
         earned_by = []
         for kid_id, data in progress.items():
-            if data.get(const.DATA_ACHIEVEMENT_AWARDED, False):
+            if data.get(const.DATA_ACHIEVEMENT_AWARDED, False):  # type: ignore[attr-defined]
                 kid_name = kh.get_kid_name_by_id(self.coordinator, kid_id) or kid_id
                 earned_by.append(kid_name)
 
         associated_chore = const.SENTINEL_EMPTY
         selected_chore_id = achievement.get(const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID)
         if selected_chore_id:
-            associated_chore = self.coordinator.chores_data.get(
+            associated_chore = self.coordinator.chores_data.get(  # type: ignore[assignment,call-overload,operator]
                 selected_chore_id, {}
             ).get(const.DATA_CHORE_NAME, const.SENTINEL_EMPTY)
 
@@ -2163,8 +2256,9 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
         ach_type = achievement.get(const.DATA_ACHIEVEMENT_TYPE)
         for kid_id in assigned_kids_ids:
             kid_name = kh.get_kid_name_by_id(self.coordinator, kid_id) or kid_id
-            progress_data = achievement.get(const.DATA_ACHIEVEMENT_PROGRESS, {}).get(
-                kid_id, {}
+            progress_data: AchievementProgress = cast(
+                "AchievementProgress",
+                achievement.get(const.DATA_ACHIEVEMENT_PROGRESS, {}).get(kid_id, {}),
             )
             if ach_type == const.ACHIEVEMENT_TYPE_TOTAL:
                 kids_progress[kid_name] = progress_data.get(
@@ -2179,7 +2273,7 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 == const.ACHIEVEMENT_TYPE_DAILY_MIN
             ):
                 # Use modern chore_stats structure
-                chore_stats = self.coordinator.kids_data.get(kid_id, {}).get(
+                chore_stats = self.coordinator.kids_data.get(kid_id, {}).get(  # type: ignore[assignment,call-overload,operator]
                     const.DATA_KID_CHORE_STATS, {}
                 )
                 kids_progress[kid_name] = chore_stats.get(
@@ -2190,7 +2284,8 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         stored_labels = achievement.get(const.DATA_ACHIEVEMENT_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label) for label in stored_labels
+            kh.get_friendly_label(self.hass, label)
+            for label in stored_labels  # type: ignore[attr-defined]
         ]
 
         return {
@@ -2218,8 +2313,9 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def icon(self):
         """Return an icon; you could choose a trophy icon."""
-        achievement_info = self.coordinator.achievements_data.get(
-            self._achievement_id, {}
+        achievement_info: AchievementData = cast(
+            "AchievementData",
+            self.coordinator.achievements_data.get(self._achievement_id, {}),
         )
         return achievement_info.get(
             const.DATA_ACHIEVEMENT_ICON, const.DEFAULT_ACHIEVEMENTS_ICON
@@ -2273,7 +2369,10 @@ class SystemChallengeSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def native_value(self) -> Any:
         """Return the overall progress percentage toward the challenge."""
 
-        challenge = self.coordinator.challenges_data.get(self._challenge_id, {})
+        challenge: ChallengeData = cast(
+            "ChallengeData",
+            self.coordinator.challenges_data.get(self._challenge_id, {}),
+        )
         target = challenge.get(const.DATA_CHALLENGE_TARGET_VALUE, 1)
         assigned_kids = challenge.get(const.DATA_CHALLENGE_ASSIGNED_KIDS, [])
 
@@ -2284,8 +2383,9 @@ class SystemChallengeSensor(KidsChoresCoordinatorEntity, SensorEntity):
         total_progress = const.DEFAULT_ZERO
 
         for kid_id in assigned_kids:
-            progress_data = challenge.get(const.DATA_CHALLENGE_PROGRESS, {}).get(
-                kid_id, {}
+            progress_data: ChallengeProgress = cast(
+                "ChallengeProgress",
+                challenge.get(const.DATA_CHALLENGE_PROGRESS, {}).get(kid_id, {}),
             )
 
             if challenge_type == const.CHALLENGE_TYPE_TOTAL_WITHIN_WINDOW:
@@ -2319,21 +2419,24 @@ class SystemChallengeSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra attributes for this challenge."""
-        challenge = self.coordinator.challenges_data.get(self._challenge_id, {})
+        challenge: ChallengeData = cast(
+            "ChallengeData",
+            self.coordinator.challenges_data.get(self._challenge_id, {}),
+        )
         progress = challenge.get(const.DATA_CHALLENGE_PROGRESS, {})
         kids_progress = {}
         challenge_type = challenge.get(const.DATA_CHALLENGE_TYPE)
 
         earned_by = []
         for kid_id, data in progress.items():
-            if data.get(const.DATA_CHALLENGE_AWARDED, False):
+            if data.get(const.DATA_CHALLENGE_AWARDED, False):  # type: ignore[attr-defined]
                 kid_name = kh.get_kid_name_by_id(self.coordinator, kid_id) or kid_id
                 earned_by.append(kid_name)
 
         associated_chore = const.SENTINEL_EMPTY
         selected_chore_id = challenge.get(const.DATA_CHALLENGE_SELECTED_CHORE_ID)
         if selected_chore_id:
-            associated_chore = self.coordinator.chores_data.get(
+            associated_chore = self.coordinator.chores_data.get(  # type: ignore[assignment,call-overload,operator]
                 selected_chore_id, {}
             ).get(const.DATA_CHORE_NAME, const.SENTINEL_EMPTY)
 
@@ -2353,8 +2456,9 @@ class SystemChallengeSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         for kid_id in assigned_kids_ids:
             kid_name = kh.get_kid_name_by_id(self.coordinator, kid_id) or kid_id
-            progress_data = challenge.get(const.DATA_CHALLENGE_PROGRESS, {}).get(
-                kid_id, {}
+            progress_data: ChallengeProgress = cast(
+                "ChallengeProgress",
+                challenge.get(const.DATA_CHALLENGE_PROGRESS, {}).get(kid_id, {}),
             )
             if challenge_type == const.CHALLENGE_TYPE_TOTAL_WITHIN_WINDOW:
                 kids_progress[kid_name] = progress_data.get(
@@ -2374,7 +2478,8 @@ class SystemChallengeSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         stored_labels = challenge.get(const.DATA_CHALLENGE_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label) for label in stored_labels
+            kh.get_friendly_label(self.hass, label)
+            for label in stored_labels  # type: ignore[attr-defined]
         ]
 
         return {
@@ -2400,7 +2505,10 @@ class SystemChallengeSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def icon(self):
         """Return an icon for challenges (you might want to choose one that fits your theme)."""
-        challenge_info = self.coordinator.challenges_data.get(self._challenge_id, {})
+        challenge_info: ChallengeData = cast(
+            "ChallengeData",
+            self.coordinator.challenges_data.get(self._challenge_id, {}),
+        )
         return challenge_info.get(
             const.DATA_CHALLENGE_ICON, const.DEFAULT_ACHIEVEMENTS_ICON
         )
@@ -2468,13 +2576,19 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         Returns:
             Progress percentage capped at 100.0, rounded to 1 decimal place.
         """
-        achievement = self.coordinator.achievements_data.get(self._achievement_id, {})
+        achievement: AchievementData = cast(
+            "AchievementData",
+            self.coordinator.achievements_data.get(self._achievement_id, {}),
+        )
         target = achievement.get(const.DATA_ACHIEVEMENT_TARGET_VALUE, 1)
         ach_type = achievement.get(const.DATA_ACHIEVEMENT_TYPE)
 
         if ach_type == const.ACHIEVEMENT_TYPE_TOTAL:
-            progress_data = achievement.get(const.DATA_ACHIEVEMENT_PROGRESS, {}).get(
-                self._kid_id, {}
+            progress_data: AchievementProgress = cast(
+                "AchievementProgress",
+                achievement.get(const.DATA_ACHIEVEMENT_PROGRESS, {}).get(
+                    self._kid_id, {}
+                ),
             )
 
             baseline = (
@@ -2483,7 +2597,7 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 else const.DEFAULT_ZERO
             )
 
-            chore_stats = self.coordinator.kids_data.get(self._kid_id, {}).get(
+            chore_stats = self.coordinator.kids_data.get(self._kid_id, {}).get(  # type: ignore[assignment,call-overload,operator]
                 const.DATA_KID_CHORE_STATS, {}
             )
             current_total = chore_stats.get(
@@ -2499,8 +2613,11 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
             )
 
         elif ach_type == const.ACHIEVEMENT_TYPE_STREAK:
-            progress_data = achievement.get(const.DATA_ACHIEVEMENT_PROGRESS, {}).get(
-                self._kid_id, {}
+            progress_data: AchievementProgress = cast(
+                "AchievementProgress",
+                achievement.get(const.DATA_ACHIEVEMENT_PROGRESS, {}).get(
+                    self._kid_id, {}
+                ),
             )
 
             progress = (
@@ -2518,7 +2635,7 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
             )
 
         elif ach_type == const.ACHIEVEMENT_TYPE_DAILY_MIN:
-            chore_stats = self.coordinator.kids_data.get(self._kid_id, {}).get(
+            chore_stats = self.coordinator.kids_data.get(self._kid_id, {}).get(  # type: ignore[assignment,call-overload,operator]
                 const.DATA_KID_CHORE_STATS, {}
             )
             daily = chore_stats.get(
@@ -2539,10 +2656,14 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict:
         """Return extra attributes for the achievement progress."""
-        achievement = self.coordinator.achievements_data.get(self._achievement_id, {})
+        achievement: AchievementData = cast(
+            "AchievementData",
+            self.coordinator.achievements_data.get(self._achievement_id, {}),
+        )
         target = achievement.get(const.DATA_ACHIEVEMENT_TARGET_VALUE, 1)
-        progress_data = achievement.get(const.DATA_ACHIEVEMENT_PROGRESS, {}).get(
-            self._kid_id, {}
+        progress_data: AchievementProgress = cast(
+            "AchievementProgress",
+            achievement.get(const.DATA_ACHIEVEMENT_PROGRESS, {}).get(self._kid_id, {}),
         )
         raw_progress = const.DEFAULT_ZERO
 
@@ -2577,7 +2698,7 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
             achievement.get(const.DATA_ACHIEVEMENT_TYPE)
             == const.ACHIEVEMENT_TYPE_DAILY_MIN
         ):
-            chore_stats = self.coordinator.kids_data.get(self._kid_id, {}).get(
+            chore_stats = self.coordinator.kids_data.get(self._kid_id, {}).get(  # type: ignore[assignment,call-overload,operator]
                 const.DATA_KID_CHORE_STATS, {}
             )
             raw_progress = chore_stats.get(
@@ -2587,7 +2708,7 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         associated_chore = const.SENTINEL_EMPTY
         selected_chore_id = achievement.get(const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID)
         if selected_chore_id:
-            associated_chore = self.coordinator.chores_data.get(
+            associated_chore = self.coordinator.chores_data.get(  # type: ignore[assignment,call-overload,operator]
                 selected_chore_id, {}
             ).get(const.DATA_CHORE_NAME, const.SENTINEL_EMPTY)
 
@@ -2607,7 +2728,8 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         stored_labels = achievement.get(const.DATA_ACHIEVEMENT_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label) for label in stored_labels
+            kh.get_friendly_label(self.hass, label)
+            for label in stored_labels  # type: ignore[attr-defined]
         ]
 
         return {
@@ -2635,7 +2757,10 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def icon(self) -> str:
         """Return the icon for the achievement."""
-        achievement = self.coordinator.achievements_data.get(self._achievement_id, {})
+        achievement: AchievementData = cast(
+            "AchievementData",
+            self.coordinator.achievements_data.get(self._achievement_id, {}),
+        )
         return achievement.get(
             const.DATA_ACHIEVEMENT_ICON, const.DEFAULT_ACHIEVEMENTS_ICON
         )
@@ -2702,11 +2827,15 @@ class KidChallengeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         Returns:
             Progress percentage capped at 100.0, rounded to 1 decimal place.
         """
-        challenge = self.coordinator.challenges_data.get(self._challenge_id, {})
+        challenge: ChallengeData = cast(
+            "ChallengeData",
+            self.coordinator.challenges_data.get(self._challenge_id, {}),
+        )
         target = challenge.get(const.DATA_CHALLENGE_TARGET_VALUE, 1)
         challenge_type = challenge.get(const.DATA_CHALLENGE_TYPE)
-        progress_data = challenge.get(const.DATA_CHALLENGE_PROGRESS, {}).get(
-            self._kid_id
+        progress_data: ChallengeProgress = cast(
+            "ChallengeProgress",
+            challenge.get(const.DATA_CHALLENGE_PROGRESS, {}).get(self._kid_id, {}),
         )
 
         if challenge_type == const.CHALLENGE_TYPE_TOTAL_WITHIN_WINDOW:
@@ -2722,10 +2851,10 @@ class KidChallengeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 raw_progress = sum(daily_counts.values())
 
                 start_date = dt_util.parse_datetime(
-                    challenge.get(const.DATA_CHALLENGE_START_DATE)
+                    challenge.get(const.DATA_CHALLENGE_START_DATE)  # type: ignore[arg-type]
                 )
                 end_date = dt_util.parse_datetime(
-                    challenge.get(const.DATA_CHALLENGE_END_DATE)
+                    challenge.get(const.DATA_CHALLENGE_END_DATE)  # type: ignore[arg-type]
                 )
 
                 if start_date and end_date:
@@ -2753,11 +2882,15 @@ class KidChallengeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict:
         """Return extra attributes for the challenge progress."""
-        challenge = self.coordinator.challenges_data.get(self._challenge_id, {})
+        challenge: ChallengeData = cast(
+            "ChallengeData",
+            self.coordinator.challenges_data.get(self._challenge_id, {}),
+        )
         target = challenge.get(const.DATA_CHALLENGE_TARGET_VALUE, 1)
         challenge_type = challenge.get(const.DATA_CHALLENGE_TYPE)
-        progress_data = challenge.get(const.DATA_CHALLENGE_PROGRESS, {}).get(
-            self._kid_id, {}
+        progress_data: ChallengeProgress = cast(
+            "ChallengeProgress",
+            challenge.get(const.DATA_CHALLENGE_PROGRESS, {}).get(self._kid_id, {}),
         )
         awarded = (
             progress_data.get(const.DATA_CHALLENGE_AWARDED, False)
@@ -2783,7 +2916,7 @@ class KidChallengeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         associated_chore = const.SENTINEL_EMPTY
         selected_chore_id = challenge.get(const.DATA_CHALLENGE_SELECTED_CHORE_ID)
         if selected_chore_id:
-            associated_chore = self.coordinator.chores_data.get(
+            associated_chore = self.coordinator.chores_data.get(  # type: ignore[assignment,call-overload,operator]
                 selected_chore_id, {}
             ).get(const.DATA_CHORE_NAME, const.SENTINEL_EMPTY)
 
@@ -2803,7 +2936,8 @@ class KidChallengeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         stored_labels = challenge.get(const.DATA_CHALLENGE_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label) for label in stored_labels
+            kh.get_friendly_label(self.hass, label)
+            for label in stored_labels  # type: ignore[attr-defined]
         ]
 
         return {
@@ -2834,7 +2968,10 @@ class KidChallengeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         Use the icon provided in the challenge data if set, else fallback to default.
         """
-        challenge = self.coordinator.challenges_data.get(self._challenge_id, {})
+        challenge: ChallengeData = cast(
+            "ChallengeData",
+            self.coordinator.challenges_data.get(self._challenge_id, {}),
+        )
         return challenge.get(const.DATA_CHALLENGE_ICON, const.DEFAULT_CHALLENGES_ICON)
 
 
@@ -2982,7 +3119,9 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         Returns:
             Entity ID of the translation sensor (e.g., 'sensor.kc_ui_dashboard_lang_en')
         """
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         lang_code = kid_info.get(
             const.DATA_KID_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
         )
@@ -3039,7 +3178,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         return next_monday.replace(hour=7, minute=0, second=0, microsecond=0)
 
     def _calculate_chore_attributes(
-        self, chore_id: str, chore_info: dict, kid_info: dict, chore_eid
+        self, chore_id: str, chore_info: ChoreData, kid_info: KidData, chore_eid
     ) -> dict | None:
         """Calculate minimal attributes for a single chore in dashboard helper.
 
@@ -3174,7 +3313,9 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def native_value(self) -> Any:
         """Return an overall summary string. Primary consumers should use attributes."""
         # Provide a short human-readable summary
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         # Count chores by status using timestamp-based coordinator helpers
         chores = []
         for chore_id, chore_info in self.coordinator.chores_data.items():
@@ -3350,7 +3491,9 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             chore_id = approval.get(const.DATA_CHORE_ID)
             if not chore_id:
                 continue
-            chore_info = self.coordinator.chores_data.get(chore_id, {})
+            chore_info: ChoreData = cast(
+                "ChoreData", self.coordinator.chores_data.get(chore_id, {})
+            )
             chore_name = kh.get_entity_name_or_log_error(
                 "chore", chore_id, chore_info, const.DATA_CHORE_NAME
             )
@@ -3395,7 +3538,9 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             reward_id = approval.get(const.DATA_REWARD_ID)
             if not reward_id:
                 continue
-            reward_info = self.coordinator.rewards_data.get(reward_id, {})
+            reward_info: RewardData = cast(
+                "RewardData", self.coordinator.rewards_data.get(reward_id, {})
+            )
             reward_name = kh.get_entity_name_or_log_error(
                 "reward", reward_id, reward_info, const.DATA_REWARD_NAME
             )
@@ -3450,7 +3595,9 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
           ],
         }
         """
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         chores_attr = []
 
         try:
@@ -3788,7 +3935,9 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             ]
 
         # Get kid's preferred dashboard language (default to English)
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         dashboard_language = kid_info.get(
             const.DATA_KID_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
         )

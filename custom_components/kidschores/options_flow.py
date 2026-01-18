@@ -1947,25 +1947,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         per_kid_due_dates
                     )
 
-                    # Handle kids whose dates were cleared (not in per_kid_due_dates)
-                    for kid_id in assigned_kids:
-                        if kid_id not in per_kid_due_dates:
-                            if kid_id in coordinator.kids_data:
-                                kid_info = coordinator.kids_data[kid_id]
-                                kid_chore_data = kid_info.get(
-                                    const.DATA_KID_CHORE_DATA, {}
-                                )
-                                if internal_id in kid_chore_data:
-                                    # LEGACY: Clear kid_chore_data for backward compat (migration support only)
-                                    kid_chore_data[internal_id][
-                                        const.DATA_KID_CHORE_DATA_DUE_DATE_LEGACY
-                                    ] = None
-                                const.LOGGER.debug(
-                                    "Cleared kid %s chore_data due_date for %s",
-                                    kid_info.get(const.DATA_KID_NAME),
-                                    internal_id,
-                                )
-
                     coordinator._persist()
                     coordinator.async_update_listeners()
                     const.LOGGER.debug(

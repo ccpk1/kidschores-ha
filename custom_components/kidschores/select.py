@@ -12,7 +12,7 @@ user wishes to select a chore/reward/penalty dynamically.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.components.select import SelectEntity
 
@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
     from .coordinator import KidsChoresDataCoordinator
+    from .type_defs import KidData
 
 # Silver requirement: Parallel Updates
 # Set to 0 (unlimited) for coordinator-based entities that don't poll
@@ -366,7 +367,9 @@ class KidDashboardHelperChoresSelect(KidsChoresSelectBase):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
-        kid_info = self.coordinator.kids_data.get(self._kid_id, {})
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
         kid_name = kid_info.get(
             const.DATA_KID_NAME, f"{const.TRANS_KEY_LABEL_KID} {self._kid_id}"
         )

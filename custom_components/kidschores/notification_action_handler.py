@@ -8,7 +8,7 @@ action to the appropriate coordinator method.
 Refactored in v0.5.0 to use ParsedAction for type-safe action parsing.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from homeassistant.core import Event, HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -18,6 +18,7 @@ from .notification_helper import parse_notification_action
 
 if TYPE_CHECKING:
     from .coordinator import KidsChoresDataCoordinator
+    from .type_defs import KidData
 
 
 async def async_handle_notification_action(hass: HomeAssistant, event: Event) -> None:
@@ -70,7 +71,9 @@ async def async_handle_notification_action(hass: HomeAssistant, event: Event) ->
             )
         elif parsed.action_type == const.ACTION_CLAIM_CHORE:
             # Kid claiming chore from notification (e.g., overdue reminder)
-            kid_info = coordinator.kids_data.get(parsed.kid_id, {})
+            kid_info: KidData = cast(
+                "KidData", coordinator.kids_data.get(parsed.kid_id, {})
+            )
             kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
             coordinator.claim_chore(
                 kid_id=parsed.kid_id,
