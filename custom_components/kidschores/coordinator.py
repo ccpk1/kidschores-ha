@@ -11026,6 +11026,96 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     # Notifications
     # -------------------------------------------------------------------------------------
 
+    # --- Translation Helpers (shared by kid and parent notification methods) ---
+
+    def _convert_notification_key(self, const_key: str) -> str:
+        """Convert const translation key to JSON key.
+
+        Removes notification prefix from const keys:
+        - "notification_title_chore_assigned" -> "chore_assigned"
+        - "notification_message_reward_claimed" -> "reward_claimed"
+
+        Used by both kid and parent notification methods.
+        """
+        return const_key.replace("notification_title_", "").replace(
+            "notification_message_", ""
+        )
+
+    def _format_notification_text(
+        self,
+        template: str,
+        data: dict[str, Any] | None,
+        json_key: str,
+        text_type: str = "message",
+    ) -> str:
+        """Format notification text with placeholders, handling errors gracefully.
+
+        Args:
+            template: Template string with {placeholder} syntax
+            data: Dictionary of placeholder values
+            json_key: Notification key for logging
+            text_type: "title" or "message" for error logging
+
+        Returns:
+            Formatted string, or original template if formatting fails
+
+        Used by both kid and parent notification methods.
+        """
+        try:
+            return template.format(**(data or {}))
+        except KeyError as err:
+            const.LOGGER.warning(
+                "Missing placeholder %s in %s for notification '%s'",
+                err,
+                text_type,
+                json_key,
+            )
+            return template
+
+    def _translate_action_buttons(
+        self, actions: list[dict[str, str]] | None, translations: dict
+    ) -> list[dict[str, str]] | None:
+        """Translate action button titles using loaded translations.
+
+        Converts action keys like "notif_action_approve" to translation keys
+        like "approve", then looks up translated text from the "actions" section
+        of notification translations.
+
+        Args:
+            actions: List of action dicts with 'action' and 'title' keys
+            translations: Loaded notification translations dict
+
+        Returns:
+            New list with translated action titles, or None if no actions
+
+        Used by both kid and parent notification methods.
+        """
+        if not actions:
+            return None
+
+        action_translations = translations.get("actions", {})
+        translated_actions = []
+
+        for action in actions:
+            translated_action = action.copy()
+            action_title_key = action.get(const.NOTIFY_TITLE, "")
+            # Convert "notif_action_approve" -> "approve"
+            action_key = action_title_key.replace("notif_action_", "")
+            # Look up translation, fallback to original key
+            translated_title = action_translations.get(action_key, action_title_key)
+            translated_action[const.NOTIFY_TITLE] = translated_title
+            translated_actions.append(translated_action)
+
+        const.LOGGER.debug(
+            "Translated action buttons: %s -> %s",
+            [a.get(const.NOTIFY_TITLE) for a in actions],
+            [a.get(const.NOTIFY_TITLE) for a in translated_actions],
+        )
+
+        return translated_actions
+
+    # --- Core Notification Methods ---
+
     async def send_kc_notification(
         self,
         user_id: str | None,
@@ -11193,48 +11283,20 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             language,
         )
 
-        # Convert const key to JSON key by removing prefix
-        # e.g., "notification_title_chore_assigned" -> "chore_assigned"
-        json_key = title_key.replace("notification_title_", "").replace(
-            "notification_message_", ""
+        # Convert const key to JSON key and look up translations
+        json_key = self._convert_notification_key(title_key)
+        notification = translations.get(json_key, {})
+
+        # Format title and message with placeholders
+        title = self._format_notification_text(
+            notification.get("title", title_key), message_data, json_key, "title"
+        )
+        message = self._format_notification_text(
+            notification.get("message", message_key), message_data, json_key, "message"
         )
 
-        # Look up translations from the loaded notification file
-        notification = translations.get(json_key, {})
-        title = notification.get("title", title_key)
-        message_template = notification.get("message", message_key)
-
-        # Format message with placeholders
-        try:
-            message = message_template.format(**(message_data or {}))
-        except KeyError as err:
-            const.LOGGER.warning(
-                "Missing placeholder %s for notification '%s'",
-                err,
-                json_key,
-            )
-            message = message_template  # Use template without formatting
-
         # Translate action button titles
-        translated_actions = None
-        if actions:
-            # Get action translations from the "actions" section
-            action_translations = translations.get("actions", {})
-            translated_actions = []
-            for action in actions:
-                translated_action = action.copy()
-                action_title_key = action.get(const.NOTIFY_TITLE, "")
-                # Convert "notif_action_approve" -> "approve"
-                action_key = action_title_key.replace("notif_action_", "")
-                # Look up translation, fallback to key
-                translated_title = action_translations.get(action_key, action_title_key)
-                translated_action[const.NOTIFY_TITLE] = translated_title
-                translated_actions.append(translated_action)
-            const.LOGGER.debug(
-                "Translated action buttons: %s -> %s",
-                [a.get(const.NOTIFY_TITLE) for a in actions],
-                [a.get(const.NOTIFY_TITLE) for a in translated_actions],
-            )
+        translated_actions = self._translate_action_buttons(actions, translations)
 
         # Call original notification method
         await self._notify_kid(kid_id, title, message, translated_actions, extra_data)
@@ -11392,55 +11454,23 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 self.hass, parent_language
             )
 
-            # Convert const key to JSON key by removing prefix
-            # e.g., "notification_title_chore_assigned" -> "chore_assigned"
-            json_key = title_key.replace("notification_title_", "").replace(
-                "notification_message_", ""
-            )
-
-            # Look up translations from the loaded notification file
+            # Convert const key to JSON key and look up translations
+            json_key = self._convert_notification_key(title_key)
             notification = translations.get(json_key, {})
-            title_template = notification.get("title", title_key)
-            message_template = notification.get("message", message_key)
 
             # Format both title and message with placeholders
-            try:
-                title = title_template.format(**(message_data or {}))
-            except KeyError as err:
-                const.LOGGER.warning(
-                    "Missing placeholder %s in title for notification '%s'",
-                    err,
-                    json_key,
-                )
-                title = title_template  # Use template without formatting
-
-            try:
-                message = message_template.format(**(message_data or {}))
-            except KeyError as err:
-                const.LOGGER.warning(
-                    "Missing placeholder %s in message for notification '%s'",
-                    err,
-                    json_key,
-                )
-                message = message_template  # Use template without formatting
+            title = self._format_notification_text(
+                notification.get("title", title_key), message_data, json_key, "title"
+            )
+            message = self._format_notification_text(
+                notification.get("message", message_key),
+                message_data,
+                json_key,
+                "message",
+            )
 
             # Translate action button titles
-            translated_actions = None
-            if actions:
-                # Get action translations from the "actions" section
-                action_translations = translations.get("actions", {})
-                translated_actions = []
-                for action in actions:
-                    translated_action = action.copy()
-                    action_title_key = action.get(const.NOTIFY_TITLE, "")
-                    # Convert "notif_action_approve" -> "approve"
-                    action_key = action_title_key.replace("notif_action_", "")
-                    # Look up translation, fallback to key
-                    translated_title = action_translations.get(
-                        action_key, action_title_key
-                    )
-                    translated_action[const.NOTIFY_TITLE] = translated_title
-                    translated_actions.append(translated_action)
+            translated_actions = self._translate_action_buttons(actions, translations)
 
             # Build final extra_data with tag if provided (v0.5.0+ smart replacement)
             final_extra_data = dict(extra_data) if extra_data else {}
