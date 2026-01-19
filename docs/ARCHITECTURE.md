@@ -16,13 +16,11 @@ This integration unofficially meets **Home Assistant Silver** quality level requ
 For ongoing reference and to maintain Silver certification (and pathway to Gold), consult:
 
 - **[AGENTS.md](../../core/AGENTS.md)** - Home Assistant's authoritative code quality guide
-
   - Covers all quality scale levels (Bronze, Silver, Gold, Platinum)
   - Documents async patterns, exception handling, entity development
   - Provides code examples and best practices
 
 - **[quality_scale.yaml](../custom_components/kidschores/quality_scale.yaml)** - Current rule status
-
   - Shows which Silver rules are "done"
   - Indicates if any rules are "exempt" with rationale
   - Tracks next steps for Gold certification
@@ -206,6 +204,110 @@ def _persist(self):
 
 ---
 
+## Type System Architecture
+
+**File**: [type_defs.py](../custom_components/kidschores/type_defs.py)
+
+KidsChores uses a **hybrid type approach** balancing type safety with practical code patterns:
+
+### TypedDict for Static Structures
+
+Used for entities and configurations with fixed keys known at design time:
+
+```python
+class ParentData(TypedDict):
+    """Fixed structure - all keys known."""
+    internal_id: str
+    name: str
+    ha_user_id: str
+    associated_kids: list[str]
+    enable_notifications: bool
+    # ...
+
+class ChoreData(TypedDict):
+    """Entity definition with fixed schema."""
+    internal_id: str
+    name: str
+    state: str
+    default_points: float
+    # ...
+```
+
+**Benefits**:
+
+- ✅ Full IDE autocomplete
+- ✅ Mypy catches missing/wrong fields
+- ✅ Self-documenting structure
+
+### dict[str, Any] for Dynamic Structures
+
+Used for runtime-constructed data accessed with variable keys:
+
+```python
+# Type alias with documentation
+KidChoreDataEntry = dict[str, Any]
+"""Per-chore tracking data accessed dynamically.
+
+Common runtime pattern:
+    chore_entry[field_name] = value  # field_name is a variable
+"""
+
+KidChoreStats = dict[str, Any]
+"""Aggregated stats accessed with dynamic period keys.
+
+Common runtime pattern:
+    stats_data[period_key][stat_type] = count  # both are variables
+"""
+```
+
+**Benefits**:
+
+- ✅ Honest about actual code behavior
+- ✅ No type: ignore suppressions needed
+- ✅ Mypy focuses on real issues
+
+### Why Hybrid Approach?
+
+The codebase uses dynamic key patterns extensively (~30 locations):
+
+```python
+# Field name is determined at runtime
+field_name = "last_approved" if approved else "last_claimed"
+kid_chores_data[chore_id][field_name] = kid_name
+
+# Period keys accessed via variables
+for period_key in ["daily", "weekly", "monthly"]:
+    periods_data[period_key][date_str] = stats
+```
+
+**TypedDict requires literal string keys**:
+
+```python
+# This works:
+data["name"] = value  # ✅ Literal key
+
+# This does NOT work:
+field = "name"
+data[field] = value  # ❌ Variable key - mypy error
+```
+
+**Previous attempt**: Full TypedDict resulted in 150+ `# type: ignore[literal-required]` suppressions, effectively disabling type checking where most needed.
+
+**Current approach**: Use appropriate type for actual usage pattern.
+
+### Type Safety Guidelines
+
+| Structure Type      | Use TypedDict When             | Use dict[str, Any] When       |
+| ------------------- | ------------------------------ | ----------------------------- |
+| Entity definitions  | ✅ Keys are fixed in code      | ❌ Keys determined at runtime |
+| Config objects      | ✅ Schema is static            | ❌ Schema varies by context   |
+| Aggregations        | ❌ (period/stat keys vary)     | ✅ Keys built dynamically     |
+| Per-entity tracking | ❌ (field names are variables) | ✅ Accessed with variables    |
+
+See [DEVELOPMENT_STANDARDS.md](DEVELOPMENT_STANDARDS.md#type-system) for implementation details and [type_defs.py](../custom_components/kidschores/type_defs.py) header for full rationale.
+
+---
+
 ## Versioning Architecture
 
 KidsChores uses a **dual versioning system**:
@@ -269,6 +371,39 @@ The **`meta.schema_version`** field in storage data determines the integration's
 2. **Semantic Separation**: Version metadata is separated from entity data, following database schema versioning patterns.
 
 3. **Migration Tracking**: The `meta` section can track migration history, dates, and applied transformations.
+
+---
+
+## Schedule Engine Architecture
+
+### Unified Scheduling: Hybrid rrule + relativedelta Approach
+
+The `schedule_engine.py` module provides a unified scheduling system for chores, badges, and challenges:
+
+- **rrule (RFC 5545)**: Standard patterns (DAILY, WEEKLY, BIWEEKLY, MONTHLY, YEARLY) generate RFC 5545 RRULE strings for iCal export
+- **relativedelta**: Period-end clamping (Jan 31 + 1 month = Feb 28) and DST-aware calculations
+- **Why both?** rrule lacks month-end semantics; relativedelta lacks iCal compliance
+
+### RecurrenceEngine Class
+
+**Location**: `custom_components/kidschores/schedule_engine.py`
+
+**Key Methods**:
+
+- `get_occurrences(start, end, limit=100)` → list[datetime]: Calculate recurrence instances in time window
+- `to_rrule_string()` → str: Generate RFC 5545 RRULE for iCal export
+- `add_interval()` → datetime: DST-safe interval arithmetic
+- `snap_to_weekday()` → datetime: Advance to next applicable weekday
+
+**Data Flow**: coordinator → RecurrenceEngine.get_occurrences() → calendar events (with RRULE) → kc_helpers adapters → chore/badge logic
+
+### iCal Compatibility
+
+Calendar events for timed recurring chores now include RFC 5545 RRULE strings, enabling Google Calendar API sync, CalDAV support, Outlook sync, and third-party calendar viewers (future phases). Full-day/multi-day events omit RRULE to preserve correct iCal semantics.
+
+### Edge Case Handling
+
+Covers 9 scenarios (EC-01 through EC-09): monthly clamping, leap year handling, year boundary crossing, applicable_days constraints, period-end calculations, DST transitions, midnight boundaries, custom base dates, and iteration safety limits.
 
 ---
 

@@ -1,8 +1,39 @@
 """Type definitions for KidsChores data structures.
 
-Uses TypedDict for type-safe dictionary access without changing runtime behavior.
-All entity data is persisted in .storage/kidschores_data as dicts; these types
-document the expected structure for IDE autocomplete and mypy validation.
+ARCHITECTURE DECISION: HYBRID APPROACH (TypedDict + dict[str, Any])
+===================================================================
+
+This file uses a **hybrid type strategy** to balance type safety with practical
+code patterns:
+
+1. **TypedDict for STATIC structures** (fixed keys known at design time):
+   - Entity definitions: ParentData, ChoreData, BadgeData, etc.
+   - Configuration objects: ScheduleConfig, BadgeTarget, etc.
+   - ✅ Benefit: Full type safety, IDE autocomplete, catch bugs early
+
+2. **dict[str, Any] for DYNAMIC structures** (keys determined at runtime):
+   - Per-kid tracking: kid_chore_data[chore_id][dynamic_field]
+   - Period aggregations: stats_data[period_key][dynamic_stat_type]
+   - ✅ Benefit: Honest about runtime patterns, no type: ignore noise
+
+WHY THIS APPROACH?
+==================
+The codebase uses dynamic key patterns extensively (field_name variables,
+period_key lookups, etc.). TypedDict requires literal string keys, making it
+fundamentally incompatible with these patterns.
+
+Previous attempt to use TypedDict everywhere resulted in:
+- 150+ errors requiring # type: ignore[literal-required] suppressions
+- Type checking effectively disabled where it was most needed
+- Dishonest type annotations (claimed static structure, used dynamically)
+
+This hybrid approach:
+- Uses TypedDict where keys are truly fixed
+- Uses dict[str, Any] where keys are dynamic
+- Results in clean mypy output without widespread suppressions
+- Documents actual code behavior instead of aspirational structure
+
+See docs/ARCHITECTURE.md and docs/DEVELOPMENT_STANDARDS.md for details.
 
 IMPORTANT: This file must NOT import from coordinator.py, kc_helpers.py, or
 any file that imports coordinator to avoid circular dependencies.
@@ -245,58 +276,44 @@ class KidChoreDataPeriodEntry(TypedDict, total=False):
     longest_streak: int
 
 
-class KidChoreDataPeriods(TypedDict, total=False):
-    """Period containers for chore tracking.
+# Dynamic structure - keys are period types accessed via period_key variable
+KidChoreDataPeriods = dict[str, Any]
+"""Period containers for chore tracking.
 
-    Keys within each period dict are date strings "2026-01-18" or "all_time".
-    """
+Keys: 'daily', 'weekly', 'monthly', 'yearly', 'all_time'
+Values: dict[date_str, KidChoreDataPeriodEntry] or KidChoreDataPeriodEntry
 
-    daily: NotRequired[dict[str, KidChoreDataPeriodEntry]]
-    weekly: NotRequired[dict[str, KidChoreDataPeriodEntry]]
-    monthly: NotRequired[dict[str, KidChoreDataPeriodEntry]]
-    yearly: NotRequired[dict[str, KidChoreDataPeriodEntry]]
-    all_time: NotRequired[KidChoreDataPeriodEntry]
+Used dynamically as: periods_data[period_key] where period_key is a variable.
+"""
 
 
-class KidChoreDataEntry(TypedDict, total=False):
-    """Per-chore tracking data for a single kid-chore combination.
+# Dynamic structure - accessed with variable keys (field_name, etc.)
+# Using dict[str, Any] instead of TypedDict because code uses patterns like:
+#   chore_entry[field_name] = value  # where field_name is a variable
+KidChoreDataEntry = dict[str, Any]
+"""Per-chore tracking data for a single kid-chore combination.
 
-    Created dynamically via setdefault() in coordinator methods.
-    Key fields are added incrementally as chore is claimed/approved.
-    """
+Created dynamically via setdefault() in coordinator methods.
+Key fields are added incrementally as chore is claimed/approved.
 
-    # State tracking (primary)
-    state: str  # PENDING, CLAIMED, APPROVED, OVERDUE
-    pending_claim_count: NotRequired[int]  # For multi-claim chores
-    name: NotRequired[str]  # Denormalized chore name
+Common keys (not exhaustive, keys added at runtime):
 
-    # Timestamps
-    last_approved: NotRequired[str]  # ISO datetime
-    last_claimed: NotRequired[str]  # ISO datetime
-    last_disapproved: NotRequired[str]  # ISO datetime
-    last_overdue: NotRequired[str]  # ISO datetime
-    approval_period_start: NotRequired[str]  # ISO datetime
-
-    # Statistics
-    total_count: NotRequired[int]
-    total_points: NotRequired[float]
-
-    # Period tracking
-    periods: NotRequired[KidChoreDataPeriods]
-
-    # Badge references (which badges track this chore for this kid)
-    badge_refs: NotRequired[list[str]]  # List of badge UUIDs
-
-    # Streak tracking
-    last_longest_streak_all_time: NotRequired[int]
-
-    # Shared/multi-claim chore tracking (per-kid view)
-    claimed_by: NotRequired[
-        str | list[str]
-    ]  # Who claimed: str for INDEPENDENT/SHARED_FIRST, list for SHARED_ALL
-    completed_by: NotRequired[
-        str | list[str]
-    ]  # Who completed: str for INDEPENDENT/SHARED_FIRST, list for SHARED_ALL
+- state: str (PENDING, CLAIMED, APPROVED, OVERDUE)
+- pending_claim_count: int (for multi-claim chores)
+- name: str (denormalized chore name)
+- last_approved: str (ISO datetime)
+- last_claimed: str (ISO datetime)
+- last_disapproved: str (ISO datetime)
+- last_overdue: str (ISO datetime)
+- approval_period_start: str (ISO datetime)
+- total_count: int
+- total_points: float
+- periods: KidChoreDataPeriods
+- badge_refs: list[str] (badge UUIDs)
+- last_longest_streak_all_time: int
+- claimed_by: str | list[str] (who claimed)
+- completed_by: str | list[str] (who completed)
+"""
 
 
 # =============================================================================
@@ -360,8 +377,8 @@ class KidCumulativeBadgeProgress(TypedDict, total=False):
 
     status: str  # active, grace, demoted
     cycle_points: float
-    maintenance_end_date: NotRequired[str]  # ISO date
-    maintenance_grace_end_date: NotRequired[str]  # ISO date
+    maintenance_end_date: NotRequired[str | None]  # ISO date string or None
+    maintenance_grace_end_date: NotRequired[str | None]  # ISO date string or None
     baseline: NotRequired[float]
 
     # Current badge info (denormalized)
@@ -391,15 +408,14 @@ class KidCumulativeBadgeProgress(TypedDict, total=False):
 # =============================================================================
 
 
-class PeriodicStatsEntry(TypedDict, total=False):
-    """Stats entry for a single period (day/week/month/year).
+# Dynamic structure - period stats aggregation
+PeriodicStatsEntry = dict[str, Any]
+"""Stats entry for a single period (day/week/month/year).
 
-    Used as values in the daily/weekly/monthly/yearly period dicts.
-    """
+Used as values in the daily/weekly/monthly/yearly period dicts.
 
-    claimed: int
-    approved: int
-    disapproved: NotRequired[int]
+Common keys: 'claimed' (int), 'approved' (int), 'disapproved' (int)
+"""
 
 
 class KidRewardDataPeriods(TypedDict, total=False):
@@ -430,99 +446,41 @@ class KidRewardDataEntry(TypedDict, total=False):
     periods: NotRequired[KidRewardDataPeriods]
 
 
-class KidPointStats(TypedDict, total=False):
-    """Point earning/spending statistics."""
+# Dynamic structure - aggregated point stats
+KidPointStats = dict[str, Any]
+"""Point earning/spending statistics.
 
-    # All-time totals (use points_ prefix to match const.py DATA_KID_POINT_STATS_* values)
-    points_earned_all_time: float
-    points_spent_all_time: float
-    points_net_all_time: float
-    highest_balance: NotRequired[float]
+Common keys (added dynamically at runtime):
 
-    # Period breakdowns
-    earned_today: NotRequired[float]
-    earned_week: NotRequired[float]
-    earned_month: NotRequired[float]
-    earned_year: NotRequired[float]
-    spent_today: NotRequired[float]
-    spent_week: NotRequired[float]
-    spent_month: NotRequired[float]
-    spent_year: NotRequired[float]
-    net_today: NotRequired[float]
-    net_week: NotRequired[float]
-    net_month: NotRequired[float]
-    net_year: NotRequired[float]
-
-    # Averages
-    avg_per_day_week: NotRequired[float]
-    avg_per_day_month: NotRequired[float]
-    avg_per_chore: NotRequired[float]
-
-    # Streaks
-    earning_streak_current: NotRequired[int]
-    earning_streak_longest: NotRequired[int]
-
-    # By source (chores, badges, bonuses, penalties)
-    by_source_today: NotRequired[dict[str, float]]
-    by_source_week: NotRequired[dict[str, float]]
-    by_source_month: NotRequired[dict[str, float]]
-    by_source_year: NotRequired[dict[str, float]]
-    points_by_source_all_time: NotRequired[dict[str, float]]
+- points_earned_all_time: float
+- points_spent_all_time: float
+- points_net_all_time: float
+- highest_balance: float
+- earned/spent/net_today/week/month/year: float
+- avg_per_day_week/month: float
+- avg_per_chore: float
+- earning_streak_current/longest: int
+- by_source_today/week/month/year: dict[str, float]
+- points_by_source_all_time: dict[str, float]
+"""
 
 
-class KidChoreStats(TypedDict, total=False):
-    """Chore completion statistics."""
+# Dynamic structure - aggregated stats accessed with variable keys
+KidChoreStats = dict[str, Any]
+"""Chore completion statistics.
 
-    # Totals by period
-    approved_today: int
-    approved_week: int
-    approved_month: int
-    approved_year: int
-    approved_all_time: int
-    claimed_today: NotRequired[int]
-    claimed_week: NotRequired[int]
-    claimed_month: NotRequired[int]
-    claimed_year: NotRequired[int]
-    claimed_all_time: NotRequired[int]
-    disapproved_today: NotRequired[int]
-    disapproved_week: NotRequired[int]
-    disapproved_month: NotRequired[int]
-    disapproved_year: NotRequired[int]
-    disapproved_all_time: NotRequired[int]
-    overdue_today: NotRequired[int]
-    overdue_week: NotRequired[int]
-    overdue_month: NotRequired[int]
-    overdue_year: NotRequired[int]
-    overdue_all_time: NotRequired[int]
+Common keys (added dynamically at runtime):
 
-    # Current state counts
-    current_approved: NotRequired[int]
-    current_claimed: NotRequired[int]
-    current_overdue: NotRequired[int]
-    current_due_today: NotRequired[int]
-
-    # Points from chores
-    total_points_from_chores_today: NotRequired[float]
-    total_points_from_chores_week: NotRequired[float]
-    total_points_from_chores_month: NotRequired[float]
-    total_points_from_chores_year: NotRequired[float]
-    total_points_from_chores_all_time: NotRequired[float]
-
-    # Streaks
-    longest_streak_all_time: NotRequired[int]
-    longest_streak_week: NotRequired[int]
-    longest_streak_month: NotRequired[int]
-    longest_streak_year: NotRequired[int]
-
-    # Most completed
-    most_completed_chore_all_time: NotRequired[str]
-    most_completed_chore_week: NotRequired[str]
-    most_completed_chore_month: NotRequired[str]
-    most_completed_chore_year: NotRequired[str]
-
-    # Averages
-    avg_per_day_week: NotRequired[float]
-    avg_per_day_month: NotRequired[float]
+- approved_today/week/month/year/all_time: int
+- claimed_today/week/month/year/all_time: int
+- disapproved_today/week/month/year/all_time: int
+- overdue_today/week/month/year/all_time: int
+- current_approved/claimed/overdue/due_today: int
+- total_points_from_chores_today/week/month/year/all_time: float
+- longest_streak_all_time/week/month/year: int
+- most_completed_chore_all_time/week/month/year: str
+- avg_per_day_week/month: float
+"""
 
 
 class BadgesEarnedEntry(TypedDict, total=False):

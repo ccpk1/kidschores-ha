@@ -134,13 +134,79 @@ All entity platforms MUST provide both human-readable (`*_EID_*`) and machine-re
 
 ---
 
-### 4. Code Quality & Performance Standards
+### 4. DateTime & Scheduling Standards
+
+#### Always Use dt\_\* Helper Functions
+
+**Required**: All date/time operations MUST use the `dt_*` helper functions from `kc_helpers.py`. Direct use of Python's `datetime` module is forbidden.
+
+**Why**: Ensures consistent timezone handling (UTC-aware, local-aware), DST safety, and testability across the codebase.
+
+**Available DateTime Functions (dt\_\* prefix)**:
+
+| Function                        | Purpose                                           |
+| ------------------------------- | ------------------------------------------------- |
+| `dt_today_local()`              | Today's date in local timezone                    |
+| `dt_today_iso()`                | Today's date as ISO string                        |
+| `dt_now_local()`                | Current time in local timezone                    |
+| `dt_now_iso()`                  | Current time as ISO string                        |
+| `dt_to_utc(dt)`                 | Convert to UTC-aware datetime                     |
+| `dt_parse(value)`               | Parse ISO datetime string                         |
+| `dt_add_interval(dt, interval)` | DST-safe interval arithmetic                      |
+| `dt_next_schedule(config)`      | Calculate next recurrence (uses RecurrenceEngine) |
+| `dt_parse_date(value)`          | Parse date string                                 |
+| `dt_format_short(dt)`           | Format for display                                |
+| `dt_format(dt, fmt)`            | Custom format                                     |
+
+**Anti-Pattern** ❌:
+
+```python
+today = datetime.now().date()
+next_time = datetime.now() + timedelta(days=1)
+```
+
+**Correct Pattern** ✅:
+
+```python
+from custom_components.kidschores.kc_helpers import dt_today_local, dt_add_interval
+today = dt_today_local()
+next_time = dt_add_interval(dt_now_local(), {"interval": 1, "interval_unit": "day"})
+```
+
+#### RecurrenceEngine for Schedule Calculations
+
+For chore/badge recurrence calculations, use `RecurrenceEngine` class instead of manual date arithmetic:
+
+```python
+from custom_components.kidschores.schedule_engine import RecurrenceEngine
+from custom_components.kidschores.type_defs import ScheduleConfig
+
+config: ScheduleConfig = {
+    "frequency": "WEEKLY",
+    "interval": 2,
+    "interval_unit": "week",
+    "base_date": "2026-01-19T00:00:00+00:00",
+    "applicable_days": [0, 1, 2, 3, 4],
+}
+engine = RecurrenceEngine(config)
+occurrences = engine.get_occurrences(start, end, limit=100)
+rrule_str = engine.to_rrule_string()  # For iCal export
+```
+
+**Benefits**: Unified logic, RFC 5545 RRULE generation, edge case handling (monthly clamping, leap years, DST).
+
+---
+
+### 5. Code Quality & Performance Standards
 
 These standards ensure we maintain Silver quality compliance. See [QUALITY_REFERENCE.md](QUALITY_REFERENCE.md) for compliance tracking and Home Assistant alignment.
 
 - **No Hardcoded Strings**: All user-facing text (errors, logs, UI) **must** use constants and translation keys.
 - **Lazy Logging**: Never use f-strings in logging. Use lazy formatting (`_LOGGER.info("Message: %s", variable)`) for performance.
 - **Type Hinting**: 100% type hint coverage for all function arguments and return types.
+  - **TypedDict for static structures**: Entity definitions, config objects with fixed schemas
+  - **dict[str, Any] for dynamic structures**: Runtime-built aggregations, variable key access patterns
+  - See Section 5.1 (Type System) below for details
 - **Docstrings**: All public functions, methods, and classes MUST have docstrings.
   - Module docstrings: Describe purpose and list entity types/count by scope.
   - Class docstrings: Explain entity purpose and when it updates.
@@ -150,9 +216,69 @@ These standards ensure we maintain Silver quality compliance. See [QUALITY_REFER
 - **Header Documentation**: Every entity file MUST include a header listing total count, categorized list (Kid-Specific vs System-Level), and legacy imports with clear numbering.
 - **Test Coverage**: All new code must maintain 95%+ test coverage. See Section 7 for validation commands.
 
+#### 5.1 Type System
+
+**File**: [type_defs.py](../custom_components/kidschores/type_defs.py)
+
+KidsChores uses a **hybrid typing strategy** that matches types to actual code patterns:
+
+**Use TypedDict When**:
+
+- ✅ Structure has fixed keys known at design time
+- ✅ Keys are always accessed with literal strings
+- ✅ IDE autocomplete and type safety are valuable
+
+```python
+class ChoreData(TypedDict):
+    """Entity with fixed schema."""
+    internal_id: str
+    name: str
+    state: str
+    default_points: float
+```
+
+**Use dict[str, Any] When**:
+
+- ✅ Keys are determined at runtime
+- ✅ Code accesses structure with variable keys
+- ✅ Structure is built dynamically from aggregations
+
+```python
+# ❌ WRONG: TypedDict with dynamic access
+class StatsEntry(TypedDict):
+    approved: int
+    claimed: int
+
+# Later in code:
+field_name = "approved" if cond else "claimed"
+stats[field_name] += 1  # ❌ mypy error: variable key not allowed
+
+# ✅ CORRECT: dict[str, Any] for dynamic access
+StatsEntry = dict[str, Any]
+"""Aggregated stats with dynamic keys."""
+
+# Later in code:
+field_name = "approved" if cond else "claimed"
+stats[field_name] += 1  # ✅ Works as intended
+```
+
+**Why This Matters**:
+
+- Using TypedDict for dynamic structures requires 100+ `# type: ignore` suppressions
+- Those suppressions disable type checking where it's most needed
+- Being honest about structure type enables mypy to catch real bugs
+
+**Current Type Breakdown** (`type_defs.py`):
+
+- **TypedDict**: 18 entity/config classes (ParentData, ChoreData, BadgeData, etc.)
+- **dict[str, Any]**: 6 dynamic structures (KidChoreDataEntry, KidChoreStats, etc.)
+- **Total**: 24 type definitions + 9 collection aliases
+
+See [ARCHITECTURE.md](ARCHITECTURE.md#type-system-architecture) for architectural rationale.
+
 ---
 
-### 5. Entity Standards
+### 6. Entity Standards
 
 We enforce strict naming patterns for both **Entity IDs** (runtime identifiers) and **Class Names** (codebase structure) to ensure persistence, readability, and immediate scope identification.
 
@@ -198,7 +324,7 @@ This pattern applies to **all** platforms.
 
 ---
 
-### 6. Error Handling Standards
+### 7. Error Handling Standards
 
 We strictly enforce Home Assistant's exception handling patterns to ensure errors are translatable, actionable, and properly categorized.
 
@@ -235,7 +361,7 @@ if not kid_id:
 
 ---
 
-### 7. Development Workflow & Quality Validation
+### 8. Development Workflow & Quality Validation
 
 Before committing code changes, validate they meet quality standards using these mandatory commands:
 
@@ -299,7 +425,6 @@ python -m pytest tests/ -v --tb=line  # Run complete test suite
 **For Detailed Guidance**:
 
 - **Test Validation & Debugging**: See [AGENT_TESTING_USAGE_GUIDE.md](../tests/AGENT_TESTING_USAGE_GUIDE.md)
-
   - Which tests to run for specific changes
   - Debugging failing tests
   - Module-level suppressions for test files

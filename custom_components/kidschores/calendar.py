@@ -8,7 +8,7 @@ Provides a read-only calendar view of chore due dates and schedule information.
 """
 
 import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.config_entries import ConfigEntry
@@ -18,6 +18,9 @@ from homeassistant.util import dt as dt_util
 
 from . import const, kc_helpers as kh
 from .schedule_engine import RecurrenceEngine
+
+if TYPE_CHECKING:
+    from .type_defs import ScheduleConfig
 
 # Silver requirement: Parallel Updates
 # Set to 0 (unlimited) for coordinator-based entities that don't poll
@@ -343,7 +346,7 @@ class KidScheduleCalendar(CalendarEntity):
         }
 
         try:
-            engine = RecurrenceEngine(schedule_config)
+            engine = RecurrenceEngine(cast("ScheduleConfig", schedule_config))
         except Exception as err:  # pylint: disable=broad-except
             const.LOGGER.warning(
                 "Calendar: Failed to create RecurrenceEngine for %s: %s",

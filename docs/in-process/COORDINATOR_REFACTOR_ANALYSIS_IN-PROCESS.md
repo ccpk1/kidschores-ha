@@ -2,7 +2,8 @@
 
 **Initiative Code**: REFACTOR-COORD-2026
 **Analysis Date**: January 17, 2026
-**Status**: 📋 Analysis Complete - Decision Required
+**Updated**: January 19, 2026 (Phase 1+2 Completed)
+**Status**: ✅ Phase 1+2 Complete - Phase 3 Decision Pending
 **Owner**: Strategic Planning Agent
 
 ---
@@ -66,17 +67,19 @@ select.py, sensor_legacy.py, sensor.py, services.py
 
 ## 2. Proposal Evaluation
 
-### 2.1 Phase 1: Safety & Cleanup — **RECOMMENDED** ✅
+### 2.1 Phase 1: Safety & Cleanup — ✅ **COMPLETE** (Jan 19, 2026)
 
 #### 2.1.1 `type_defs.py` (TypedDicts)
 
-| Aspect            | Assessment                                                      |
-| ----------------- | --------------------------------------------------------------- |
-| **Current state** | 0 TypedDicts in entire codebase                                 |
-| **Value**         | High - enables IDE autocomplete, catches typos at analysis time |
-| **Effort**        | Low (8-16 hours)                                                |
-| **Risk**          | Minimal - additive change, no runtime impact                    |
-| **ROI**           | **Immediate** - improves all future development                 |
+| Aspect             | Assessment                                                      |
+| ------------------ | --------------------------------------------------------------- |
+| **Original state** | 0 TypedDicts in entire codebase                                 |
+| **Current state**  | ✅ **29 TypedDict classes (815 lines) fully integrated**        |
+| **Value**          | High - enables IDE autocomplete, catches typos at analysis time |
+| **Effort**         | Estimated: 8-16h → Actual: ~32h (including Pylance compat)      |
+| **Risk**           | Minimal - additive change, no runtime impact                    |
+| **ROI**            | **Immediate** - improves all future development                 |
+| **Validation**     | ✅ MyPy: 0 errors (from 220) • Tests: 782/782 passing           |
 
 **Analysis**: Currently using `dict[str, Any]` everywhere. TypedDicts would:
 
@@ -115,9 +118,23 @@ def _create_kid(self, kid_id: str, kid_data: KidData):
 - `get_entity_id_or_raise()` (line 720)
 - `get_kid_id_or_raise()`, `get_chore_id_or_raise()`, etc. (thin wrappers)
 
-**Remaining work**: Rename file and consolidate any remaining duplicates. This is a **minor cleanup**, not a major refactor.
+**Remaining work**: Rename file and✅ **COMPLETE** (Jan 19, 2026)
 
-### 2.2 Phase 2: Schedule Engine — **RECOMMENDED** ✅
+#### Implementation Summary
+
+| Component                      | Status      | Details                                   |
+| ------------------------------ | ----------- | ----------------------------------------- |
+| **schedule_engine.py**         | ✅ Created  | 1,001 lines, RecurrenceEngine class       |
+| **Hybrid approach**            | ✅ Complete | rrule + custom wrappers                   |
+| **Phase 2a**: Foundation       | ✅ Complete | TypedDicts + core engine (42 tests)       |
+| **Phase 2b**: Chore migration  | ✅ Complete | kc_helpers adapter pattern                |
+| **Phase 2c**: Badge migration  | ✅ Complete | Automatic via adapter (no changes needed) |
+| **Phase 2d**: Calendar/iCal    | ✅ Complete | RFC 5545 RRULE export                     |
+| **PERIOD\_\*\_END for chores** | ✅ Added    | Feature parity with badges                |
+| **Line reduction**             | ✅ Achieved | kc_helpers: 2,275→2,085 (-190 lines)      |
+| **Tests**                      | ✅ Passing  | 782/782 tests passing                     |
+
+#### Original Assessment (for reference)**RECOMMENDED** ✅
 
 #### Assessment of Scheduling Logic
 
@@ -368,19 +385,40 @@ This achieves 60% of benefits with 20% of risk.
 - `_calculate_next_due_date_from_info` → ScheduleEngine
 - `_calculate_next_multi_daily_due` → ScheduleEngine
 - Badge target handlers (return boolean) → Gamification
+  Status & Next Steps
 
-### B. Partially Extractable (With Interface Design)
+### ✅ Completed Work (January 19, 2026)
 
-- `_manage_badge_maintenance` → Needs careful API
-- `_check_badges_for_kid` → Needs callback for awards
+**Phase 1 (TypedDicts)**: ✅ Complete
 
-### C. Non-Extractable (Core Coordinator)
+- 29 TypedDict classes integrated (815 lines)
+- 220 mypy errors eliminated
+- All 782 tests passing
+- Plan: `docs/completed/PHASE1A_TYPEDEFS_CLEANUP_COMPLETE.md`
 
-- `_process_chore_state` → Heart of state machine
-- `claim_chore`, `approve_chore` → Entry points with auth
-- `_persist`, `async_set_updated_data` → Data layer
+**Phase 2 (Schedule Engine)**: ✅ Complete
 
----
+- schedule_engine.py created (1,001 lines)
+- RecurrenceEngine with rrule hybrid approach
+- kc_helpers refactored (190 lines moved)
+- iCal RRULE export added
+- PERIOD\_\*\_END patterns added to chores
+- Plan: `docs/completed/SCHEDULE_ENGINE_PHASE2_COMPLETE.md`
+
+### Decisions Remaining
+
+1. **Proceed with Phase 3 (Gamification/Chore Manager)?** → [ ] Yes / [ ] Defer
+   - Analysis recommends: **DEFER until after v0.6.0**
+   - Reason: High coupling, 740+ tests affected, 6-8 weeks effort
+   - Alternative: Focus on feature work (parent chores, etc.)
+
+2. **Target release for Phase 1+2 work?** → v0.5.1 / v0.6.0
+
+### Sign-Off
+
+- [x] Phase 1+2 technical implementation complete
+- [x] Test strategy validated (782/782 passing)
+- [ ] Phase 3 decision: Proceed or defer?
 
 ## 9. Completion Requirements
 

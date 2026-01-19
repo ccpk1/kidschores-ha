@@ -322,8 +322,11 @@ class KidDashboardHelperChoresSelect(KidsChoresSelectBase):
         """
         super().__init__(coordinator, entry)
         self._kid_id = kid_id
-        kid_name = coordinator.kids_data.get(kid_id, {}).get(
-            const.DATA_KID_NAME, f"{const.TRANS_KEY_LABEL_KID} {kid_id}"
+        kid_data: dict[str, Any] = cast(
+            "dict[str, Any]", coordinator.kids_data.get(kid_id, {})
+        )
+        kid_name = (
+            kid_data.get(const.DATA_KID_NAME) or f"{const.TRANS_KEY_LABEL_KID} {kid_id}"
         )
         self._attr_unique_id = (
             f"{entry.entry_id}{const.SELECT_KC_UID_MIDFIX_CHORES_SELECT}{kid_id}"

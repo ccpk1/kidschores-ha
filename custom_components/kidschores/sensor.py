@@ -324,7 +324,7 @@ async def async_setup_entry(
                 "chore", chore_id, chore_info, const.DATA_CHORE_NAME
             )
             if not chore_name:
-                continue  # type: ignore[assignment,call-overload,operator]
+                continue
             entities.append(
                 SystemChoreSharedStateSensor(coordinator, entry, chore_id, chore_name)
             )
@@ -562,9 +562,6 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             for k_id in assigned_kids_ids
         ]
 
-        kid_info: KidData = cast(
-            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
-        )
         kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {}).get(
             self._chore_id, {}
         )
@@ -574,10 +571,10 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         ).get(const.PERIOD_ALL_TIME, {})
 
         # Use new per-chore data for counts and streaks
-        claims_count = all_time_stats.get(  # type: ignore[attr-defined]
+        claims_count = all_time_stats.get(
             const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, const.DEFAULT_ZERO
         )
-        approvals_count = all_time_stats.get(  # type: ignore[attr-defined]
+        approvals_count = all_time_stats.get(
             const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, const.DEFAULT_ZERO
         )
 
@@ -596,20 +593,20 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         # Try to get the current streak from today's data; if not present, fallback to yesterday's
         current_streak = daily_periods.get(today_local_iso, {}).get(
             const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK
-        ) or daily_periods.get(yesterday_local_iso, {}).get(  # type: ignore[arg-type,call-overload]
+        ) or daily_periods.get(yesterday_local_iso, {}).get(
             const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK, const.DEFAULT_ZERO
         )
 
-        highest_streak = all_time_stats.get(  # type: ignore[attr-defined]
+        highest_streak = all_time_stats.get(
             const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK, const.DEFAULT_ZERO
         )
-        points_earned = all_time_stats.get(  # type: ignore[attr-defined]
+        points_earned = all_time_stats.get(
             const.DATA_KID_CHORE_DATA_PERIOD_POINTS, const.DEFAULT_ZERO
         )
-        overdue_count = all_time_stats.get(  # type: ignore[attr-defined]
+        overdue_count = all_time_stats.get(
             const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE, const.DEFAULT_ZERO
         )
-        disapproved_count = all_time_stats.get(  # type: ignore[attr-defined]
+        disapproved_count = all_time_stats.get(
             const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED, const.DEFAULT_ZERO
         )
         last_longest_streak_date = kid_chore_data.get(
@@ -627,7 +624,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         stored_labels = chore_info.get(const.DATA_CHORE_LABELS, [])
         friendly_labels = [
             kh.get_friendly_label(self.hass, label)
-            for label in stored_labels  # type: ignore[attr-defined]
+            for label in cast("list", stored_labels)
         ]
 
         # Build attributes dict organized by category:
@@ -1042,9 +1039,11 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
         cumulative_badge_progress_info = kid_info.get(
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {}
         )
-        return cumulative_badge_progress_info.get(
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_NAME,
-            const.SENTINEL_NONE_TEXT,
+        return str(
+            cumulative_badge_progress_info.get(
+                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_NAME,
+                const.SENTINEL_NONE_TEXT,
+            )
         )
 
     @property
@@ -1154,7 +1153,7 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
         stored_labels = current_badge_info.get(const.DATA_BADGE_LABELS, [])
         friendly_labels = [
             kh.get_friendly_label(self.hass, label)
-            for label in stored_labels  # type: ignore[attr-defined]
+            for label in cast("list", stored_labels)
         ]
 
         # Get last awarded date and award count for the current badge (if earned)
@@ -1405,22 +1404,30 @@ class KidBadgeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.DATA_KID_BADGES_EARNED_AWARD_COUNT: award_count,
         }
 
-        attributes[const.ATTR_DESCRIPTION] = badge_info.get(  # type: ignore[assignment,call-overload,operator]
-            const.DATA_BADGE_DESCRIPTION, const.SENTINEL_EMPTY
+        attributes[const.ATTR_DESCRIPTION] = str(
+            badge_info.get(const.DATA_BADGE_DESCRIPTION, const.SENTINEL_EMPTY)
         )
 
         # Convert tracked chore IDs to friendly names and add to attributes
-        tracked_chore_ids: list[str] = attributes.get(  # type: ignore[assignment,call-overload,operator]
+        tracked_chore_ids_raw: list[str] | Any = attributes.get(
             const.DATA_KID_BADGE_PROGRESS_TRACKED_CHORES, []
         )
+        tracked_chore_ids: list[str] = (
+            tracked_chore_ids_raw if isinstance(tracked_chore_ids_raw, list) else []
+        )
         if tracked_chore_ids:
-            chore_names = [
-                self.coordinator.chores_data.get(chore_id, {}).get(  # type: ignore[assignment,call-overload,operator]
-                    const.DATA_CHORE_NAME, chore_id
+            chore_names: list[str] = [
+                str(
+                    cast(
+                        "ChoreData", self.coordinator.chores_data.get(chore_id, {})
+                    ).get(const.DATA_CHORE_NAME)
+                    or chore_id
                 )
                 for chore_id in tracked_chore_ids
             ]
-            attributes[const.DATA_KID_BADGE_PROGRESS_TRACKED_CHORES] = chore_names  # type: ignore[assignment,call-overload,operator]
+            attributes[const.DATA_KID_BADGE_PROGRESS_TRACKED_CHORES] = cast(
+                "str", chore_names
+            )
 
         return attributes
 
@@ -1430,7 +1437,7 @@ class KidBadgeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         badge_info: BadgeData = cast(
             "BadgeData", self.coordinator.badges_data.get(self._badge_id, {})
         )
-        return badge_info.get(const.DATA_BADGE_ICON, const.DEFAULT_BADGE_ICON)
+        return str(badge_info.get(const.DATA_BADGE_ICON, const.DEFAULT_BADGE_ICON))
 
 
 # ------------------------------------------------------------------------------------------
@@ -1503,12 +1510,12 @@ class SystemBadgeSensor(KidsChoresCoordinatorEntity, SensorEntity):
         )
         attributes[const.ATTR_LABELS] = [
             kh.get_friendly_label(self.hass, label)
-            for label in badge_info.get(const.DATA_BADGE_LABELS, [])  # type: ignore[attr-defined]
+            for label in cast("list", badge_info.get(const.DATA_BADGE_LABELS, []))
         ]
         # Per-kid earned stats
         kids_earned_ids = badge_info.get(const.DATA_BADGE_EARNED_BY, [])
         kids_earned = []
-        for kid_id in kids_earned_ids:
+        for kid_id in cast("list", kids_earned_ids):
             kid_info = self.coordinator.kids_data.get(kid_id)
             if not kid_info:
                 continue
@@ -1544,9 +1551,10 @@ class SystemBadgeSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.DATA_BADGE_TRACKED_CHORES_SELECTED_CHORES, []
         )
         attributes[const.ATTR_REQUIRED_CHORES] = [
-            self.coordinator.chores_data.get(chore_id, {}).get(  # type: ignore[assignment,call-overload,operator]
-                const.DATA_CHORE_NAME, chore_id
+            cast("ChoreData", self.coordinator.chores_data.get(chore_id, {})).get(
+                const.DATA_CHORE_NAME
             )
+            or chore_id
             for chore_id in selected_chore_ids
         ]
 
@@ -1611,7 +1619,7 @@ class SystemBadgeSensor(KidsChoresCoordinatorEntity, SensorEntity):
         badge_info: BadgeData = cast(
             "BadgeData", self.coordinator.badges_data.get(self._badge_id, {})
         )
-        return badge_info.get(const.DATA_BADGE_ICON, const.DEFAULT_BADGE_ICON)
+        return str(badge_info.get(const.DATA_BADGE_ICON, const.DEFAULT_BADGE_ICON))
 
 
 # ------------------------------------------------------------------------------------------
@@ -1696,7 +1704,7 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
         stored_labels = chore_info.get(const.DATA_CHORE_LABELS, [])
         friendly_labels = [
             kh.get_friendly_label(self.hass, label)
-            for label in stored_labels  # type: ignore[attr-defined]
+            for label in cast("list", stored_labels)
         ]
 
         # Get today's approvals from periods structure (not legacy flat field)
@@ -1768,12 +1776,18 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
             claimed_by_name = None
             if claimed_by_id:
-                claimant_info = self.coordinator.kids_data.get(claimed_by_id, {})  # type: ignore[assignment,call-overload,operator]
+                claimant_info = cast(
+                    "KidData",
+                    self.coordinator.kids_data.get(claimed_by_id, {}),  # type: ignore[call-overload]
+                )
                 claimed_by_name = claimant_info.get(const.DATA_KID_NAME, claimed_by_id)
 
             completed_by_name = None
             if completed_by_id:
-                completer_info = self.coordinator.kids_data.get(completed_by_id, {})  # type: ignore[assignment,call-overload,operator]
+                completer_info = cast(
+                    "KidData",
+                    self.coordinator.kids_data.get(completed_by_id, {}),  # type: ignore[call-overload]
+                )
                 completed_by_name = completer_info.get(
                     const.DATA_KID_NAME, completed_by_id
                 )
@@ -1898,7 +1912,7 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         stored_labels = reward_info.get(const.DATA_REWARD_LABELS, [])
         friendly_labels = [
             kh.get_friendly_label(self.hass, label)
-            for label in stored_labels  # type: ignore[attr-defined]
+            for label in cast("list", stored_labels)
         ]
 
         # Get current period keys
@@ -2136,12 +2150,9 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
             total_effective_target = const.DEFAULT_ZERO
 
             for kid_id in assigned_kids:
-                progress_data: AchievementProgress = cast(
-                    "AchievementProgress",
-                    achievement.get(const.DATA_ACHIEVEMENT_PROGRESS, {}).get(
-                        kid_id, {}
-                    ),
-                )
+                progress_data: AchievementProgress = achievement.get(
+                    const.DATA_ACHIEVEMENT_PROGRESS, {}
+                ).get(kid_id, {})
                 baseline = (
                     progress_data.get(
                         const.DATA_ACHIEVEMENT_BASELINE, const.DEFAULT_ZERO
@@ -2150,17 +2161,17 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
                     else const.DEFAULT_ZERO
                 )
                 # Use modern chore_stats structure
-                chore_stats = self.coordinator.kids_data.get(kid_id, {}).get(  # type: ignore[assignment,call-overload,operator]
-                    const.DATA_KID_CHORE_STATS, {}
-                )
+                chore_stats = cast(
+                    "KidData", self.coordinator.kids_data.get(kid_id, {})
+                ).get(const.DATA_KID_CHORE_STATS, {})
                 current_total = chore_stats.get(
                     const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME, const.DEFAULT_ZERO
                 )
-                total_current += current_total
-                total_effective_target += baseline + target
+                total_current += int(current_total)
+                total_effective_target += baseline + target  # type: ignore[operator]
 
             percent = (
-                (total_current / total_effective_target * 100)
+                (int(total_current) / total_effective_target * 100)
                 if total_effective_target > const.DEFAULT_ZERO
                 else const.DEFAULT_ZERO
             )
@@ -2169,17 +2180,14 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
             total_current = const.DEFAULT_ZERO
 
             for kid_id in assigned_kids:
-                progress_data: AchievementProgress = cast(
-                    "AchievementProgress",
-                    achievement.get(const.DATA_ACHIEVEMENT_PROGRESS, {}).get(
-                        kid_id, {}
-                    ),
-                )
+                progress_data_2: AchievementProgress = achievement.get(
+                    const.DATA_ACHIEVEMENT_PROGRESS, {}
+                ).get(kid_id, {})
                 total_current += (
-                    progress_data.get(
+                    progress_data_2.get(
                         const.DATA_ACHIEVEMENT_CURRENT_STREAK, const.DEFAULT_ZERO
                     )
-                    if isinstance(progress_data, dict)
+                    if isinstance(progress_data_2, dict)
                     else const.DEFAULT_ZERO
                 )
 
@@ -2196,9 +2204,9 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
             for kid_id in assigned_kids:
                 # Use modern chore_stats structure
-                chore_stats = self.coordinator.kids_data.get(kid_id, {}).get(  # type: ignore[assignment,call-overload,operator]
-                    const.DATA_KID_CHORE_STATS, {}
-                )
+                chore_stats = cast(
+                    "KidData", self.coordinator.kids_data.get(kid_id, {})
+                ).get(const.DATA_KID_CHORE_STATS, {})
                 daily = chore_stats.get(
                     const.DATA_KID_CHORE_STATS_APPROVED_TODAY, const.DEFAULT_ZERO
                 )
@@ -2209,7 +2217,7 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
                     if target > const.DEFAULT_ZERO
                     else const.DEFAULT_ZERO
                 )
-                total_progress += kid_progress  # type: ignore[assignment,call-overload,operator]
+                total_progress += kid_progress
 
             percent = total_progress / len(assigned_kids)
 
@@ -2230,16 +2238,19 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         earned_by = []
         for kid_id, data in progress.items():
-            if data.get(const.DATA_ACHIEVEMENT_AWARDED, False):  # type: ignore[attr-defined]
+            if data.get(const.DATA_ACHIEVEMENT_AWARDED, False):
                 kid_name = kh.get_kid_name_by_id(self.coordinator, kid_id) or kid_id
                 earned_by.append(kid_name)
 
         associated_chore = const.SENTINEL_EMPTY
         selected_chore_id = achievement.get(const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID)
         if selected_chore_id:
-            associated_chore = self.coordinator.chores_data.get(  # type: ignore[assignment,call-overload,operator]
-                selected_chore_id, {}
-            ).get(const.DATA_CHORE_NAME, const.SENTINEL_EMPTY)
+            associated_chore = (
+                cast(
+                    "ChoreData", self.coordinator.chores_data.get(selected_chore_id, {})
+                ).get(const.DATA_CHORE_NAME)
+                or const.SENTINEL_EMPTY
+            )
 
         assigned_kids_ids = achievement.get(const.DATA_ACHIEVEMENT_ASSIGNED_KIDS, [])
         assigned_kids_names = [
@@ -2257,10 +2268,9 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
         ach_type = achievement.get(const.DATA_ACHIEVEMENT_TYPE)
         for kid_id in assigned_kids_ids:
             kid_name = kh.get_kid_name_by_id(self.coordinator, kid_id) or kid_id
-            progress_data: AchievementProgress = cast(
-                "AchievementProgress",
-                achievement.get(const.DATA_ACHIEVEMENT_PROGRESS, {}).get(kid_id, {}),
-            )
+            progress_data: AchievementProgress = achievement.get(
+                const.DATA_ACHIEVEMENT_PROGRESS, {}
+            ).get(kid_id, {})
             if ach_type == const.ACHIEVEMENT_TYPE_TOTAL:
                 kids_progress[kid_name] = progress_data.get(
                     const.DATA_ACHIEVEMENT_CURRENT_VALUE, const.DEFAULT_ZERO
@@ -2274,9 +2284,9 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 == const.ACHIEVEMENT_TYPE_DAILY_MIN
             ):
                 # Use modern chore_stats structure
-                chore_stats = self.coordinator.kids_data.get(kid_id, {}).get(  # type: ignore[assignment,call-overload,operator]
-                    const.DATA_KID_CHORE_STATS, {}
-                )
+                chore_stats = cast(
+                    "KidData", self.coordinator.kids_data.get(kid_id, {})
+                ).get(const.DATA_KID_CHORE_STATS, {})
                 kids_progress[kid_name] = chore_stats.get(
                     const.DATA_KID_CHORE_STATS_APPROVED_TODAY, const.DEFAULT_ZERO
                 )
@@ -2286,7 +2296,7 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
         stored_labels = achievement.get(const.DATA_ACHIEVEMENT_LABELS, [])
         friendly_labels = [
             kh.get_friendly_label(self.hass, label)
-            for label in stored_labels  # type: ignore[attr-defined]
+            for label in cast("list", stored_labels)
         ]
 
         return {
@@ -2384,10 +2394,9 @@ class SystemChallengeSensor(KidsChoresCoordinatorEntity, SensorEntity):
         total_progress = const.DEFAULT_ZERO
 
         for kid_id in assigned_kids:
-            progress_data: ChallengeProgress = cast(
-                "ChallengeProgress",
-                challenge.get(const.DATA_CHALLENGE_PROGRESS, {}).get(kid_id, {}),
-            )
+            progress_data: ChallengeProgress = challenge.get(
+                const.DATA_CHALLENGE_PROGRESS, {}
+            ).get(kid_id, {})
 
             if challenge_type == const.CHALLENGE_TYPE_TOTAL_WITHIN_WINDOW:
                 total_progress += progress_data.get(
@@ -2430,16 +2439,19 @@ class SystemChallengeSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         earned_by = []
         for kid_id, data in progress.items():
-            if data.get(const.DATA_CHALLENGE_AWARDED, False):  # type: ignore[attr-defined]
+            if data.get(const.DATA_CHALLENGE_AWARDED, False):
                 kid_name = kh.get_kid_name_by_id(self.coordinator, kid_id) or kid_id
                 earned_by.append(kid_name)
 
         associated_chore = const.SENTINEL_EMPTY
         selected_chore_id = challenge.get(const.DATA_CHALLENGE_SELECTED_CHORE_ID)
         if selected_chore_id:
-            associated_chore = self.coordinator.chores_data.get(  # type: ignore[assignment,call-overload,operator]
-                selected_chore_id, {}
-            ).get(const.DATA_CHORE_NAME, const.SENTINEL_EMPTY)
+            associated_chore = (
+                cast(
+                    "ChoreData", self.coordinator.chores_data.get(selected_chore_id, {})
+                ).get(const.DATA_CHORE_NAME)
+                or const.SENTINEL_EMPTY
+            )
 
         assigned_kids_ids = challenge.get(const.DATA_CHALLENGE_ASSIGNED_KIDS, [])
         assigned_kids_names = [
@@ -2457,10 +2469,9 @@ class SystemChallengeSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         for kid_id in assigned_kids_ids:
             kid_name = kh.get_kid_name_by_id(self.coordinator, kid_id) or kid_id
-            progress_data: ChallengeProgress = cast(
-                "ChallengeProgress",
-                challenge.get(const.DATA_CHALLENGE_PROGRESS, {}).get(kid_id, {}),
-            )
+            progress_data: ChallengeProgress = challenge.get(
+                const.DATA_CHALLENGE_PROGRESS, {}
+            ).get(kid_id, {})
             if challenge_type == const.CHALLENGE_TYPE_TOTAL_WITHIN_WINDOW:
                 kids_progress[kid_name] = progress_data.get(
                     const.DATA_CHALLENGE_COUNT, const.DEFAULT_ZERO
@@ -2480,7 +2491,7 @@ class SystemChallengeSensor(KidsChoresCoordinatorEntity, SensorEntity):
         stored_labels = challenge.get(const.DATA_CHALLENGE_LABELS, [])
         friendly_labels = [
             kh.get_friendly_label(self.hass, label)
-            for label in stored_labels  # type: ignore[attr-defined]
+            for label in cast("list", stored_labels)
         ]
 
         return {
@@ -2585,12 +2596,9 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         ach_type = achievement.get(const.DATA_ACHIEVEMENT_TYPE)
 
         if ach_type == const.ACHIEVEMENT_TYPE_TOTAL:
-            progress_data: AchievementProgress = cast(
-                "AchievementProgress",
-                achievement.get(const.DATA_ACHIEVEMENT_PROGRESS, {}).get(
-                    self._kid_id, {}
-                ),
-            )
+            progress_data: AchievementProgress = achievement.get(
+                const.DATA_ACHIEVEMENT_PROGRESS, {}
+            ).get(self._kid_id, {})
 
             baseline = (
                 progress_data.get(const.DATA_ACHIEVEMENT_BASELINE, const.DEFAULT_ZERO)
@@ -2598,34 +2606,31 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 else const.DEFAULT_ZERO
             )
 
-            chore_stats = self.coordinator.kids_data.get(self._kid_id, {}).get(  # type: ignore[assignment,call-overload,operator]
-                const.DATA_KID_CHORE_STATS, {}
-            )
+            chore_stats = cast(
+                "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+            ).get(const.DATA_KID_CHORE_STATS, {})
             current_total = chore_stats.get(
                 const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME, const.DEFAULT_ZERO
             )
 
-            effective_target = baseline + target
+            effective_target = baseline + target  # type: ignore[operator]
 
             percent = (
-                (current_total / effective_target * 100)
+                (int(current_total) / effective_target * 100)
                 if effective_target > const.DEFAULT_ZERO
                 else const.DEFAULT_ZERO
             )
 
         elif ach_type == const.ACHIEVEMENT_TYPE_STREAK:
-            progress_data: AchievementProgress = cast(
-                "AchievementProgress",
-                achievement.get(const.DATA_ACHIEVEMENT_PROGRESS, {}).get(
-                    self._kid_id, {}
-                ),
-            )
+            progress_data_elif: AchievementProgress = achievement.get(
+                const.DATA_ACHIEVEMENT_PROGRESS, {}
+            ).get(self._kid_id, {})
 
             progress = (
-                progress_data.get(
+                progress_data_elif.get(
                     const.DATA_ACHIEVEMENT_CURRENT_STREAK, const.DEFAULT_ZERO
                 )
-                if isinstance(progress_data, dict)
+                if isinstance(progress_data_elif, dict)
                 else const.DEFAULT_ZERO
             )
 
@@ -2636,9 +2641,9 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
             )
 
         elif ach_type == const.ACHIEVEMENT_TYPE_DAILY_MIN:
-            chore_stats = self.coordinator.kids_data.get(self._kid_id, {}).get(  # type: ignore[assignment,call-overload,operator]
-                const.DATA_KID_CHORE_STATS, {}
-            )
+            chore_stats = cast(
+                "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+            ).get(const.DATA_KID_CHORE_STATS, {})
             daily = chore_stats.get(
                 const.DATA_KID_CHORE_STATS_APPROVED_TODAY, const.DEFAULT_ZERO
             )
@@ -2662,10 +2667,9 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
             self.coordinator.achievements_data.get(self._achievement_id, {}),
         )
         target = achievement.get(const.DATA_ACHIEVEMENT_TARGET_VALUE, 1)
-        progress_data: AchievementProgress = cast(
-            "AchievementProgress",
-            achievement.get(const.DATA_ACHIEVEMENT_PROGRESS, {}).get(self._kid_id, {}),
-        )
+        progress_data: AchievementProgress = achievement.get(
+            const.DATA_ACHIEVEMENT_PROGRESS, {}
+        ).get(self._kid_id, {})
         raw_progress = const.DEFAULT_ZERO
 
         awarded = (
@@ -2675,11 +2679,16 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         )
 
         if achievement.get(const.DATA_ACHIEVEMENT_TYPE) == const.ACHIEVEMENT_TYPE_TOTAL:
-            raw_progress = (
+            current_value = (
                 progress_data.get(
                     const.DATA_ACHIEVEMENT_CURRENT_VALUE, const.DEFAULT_ZERO
                 )
                 if isinstance(progress_data, dict)
+                else const.DEFAULT_ZERO
+            )
+            raw_progress = (
+                int(current_value)
+                if isinstance(current_value, (int, float, str))
                 else const.DEFAULT_ZERO
             )
 
@@ -2699,9 +2708,9 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
             achievement.get(const.DATA_ACHIEVEMENT_TYPE)
             == const.ACHIEVEMENT_TYPE_DAILY_MIN
         ):
-            chore_stats = self.coordinator.kids_data.get(self._kid_id, {}).get(  # type: ignore[assignment,call-overload,operator]
-                const.DATA_KID_CHORE_STATS, {}
-            )
+            chore_stats = cast(
+                "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+            ).get(const.DATA_KID_CHORE_STATS, {})
             raw_progress = chore_stats.get(
                 const.DATA_KID_CHORE_STATS_APPROVED_TODAY, const.DEFAULT_ZERO
             )
@@ -2709,9 +2718,12 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         associated_chore = const.SENTINEL_EMPTY
         selected_chore_id = achievement.get(const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID)
         if selected_chore_id:
-            associated_chore = self.coordinator.chores_data.get(  # type: ignore[assignment,call-overload,operator]
-                selected_chore_id, {}
-            ).get(const.DATA_CHORE_NAME, const.SENTINEL_EMPTY)
+            associated_chore = (
+                cast(
+                    "ChoreData", self.coordinator.chores_data.get(selected_chore_id, {})
+                ).get(const.DATA_CHORE_NAME)
+                or const.SENTINEL_EMPTY
+            )
 
         assigned_kids_ids = achievement.get(const.DATA_ACHIEVEMENT_ASSIGNED_KIDS, [])
         assigned_kids_names = [
@@ -2730,7 +2742,7 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         stored_labels = achievement.get(const.DATA_ACHIEVEMENT_LABELS, [])
         friendly_labels = [
             kh.get_friendly_label(self.hass, label)
-            for label in stored_labels  # type: ignore[attr-defined]
+            for label in cast("list", stored_labels)
         ]
 
         return {
@@ -2834,10 +2846,9 @@ class KidChallengeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         )
         target = challenge.get(const.DATA_CHALLENGE_TARGET_VALUE, 1)
         challenge_type = challenge.get(const.DATA_CHALLENGE_TYPE)
-        progress_data: ChallengeProgress = cast(
-            "ChallengeProgress",
-            challenge.get(const.DATA_CHALLENGE_PROGRESS, {}).get(self._kid_id, {}),
-        )
+        progress_data: ChallengeProgress = challenge.get(
+            const.DATA_CHALLENGE_PROGRESS, {}
+        ).get(self._kid_id, {})
 
         if challenge_type == const.CHALLENGE_TYPE_TOTAL_WITHIN_WINDOW:
             raw_progress = (
@@ -2852,10 +2863,10 @@ class KidChallengeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 raw_progress = sum(daily_counts.values())
 
                 start_date = dt_util.parse_datetime(
-                    challenge.get(const.DATA_CHALLENGE_START_DATE)  # type: ignore[arg-type]
+                    challenge.get(const.DATA_CHALLENGE_START_DATE) or ""
                 )
                 end_date = dt_util.parse_datetime(
-                    challenge.get(const.DATA_CHALLENGE_END_DATE)  # type: ignore[arg-type]
+                    challenge.get(const.DATA_CHALLENGE_END_DATE) or ""
                 )
 
                 if start_date and end_date:
@@ -2889,10 +2900,9 @@ class KidChallengeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         )
         target = challenge.get(const.DATA_CHALLENGE_TARGET_VALUE, 1)
         challenge_type = challenge.get(const.DATA_CHALLENGE_TYPE)
-        progress_data: ChallengeProgress = cast(
-            "ChallengeProgress",
-            challenge.get(const.DATA_CHALLENGE_PROGRESS, {}).get(self._kid_id, {}),
-        )
+        progress_data: ChallengeProgress = challenge.get(
+            const.DATA_CHALLENGE_PROGRESS, {}
+        ).get(self._kid_id, {})
         awarded = (
             progress_data.get(const.DATA_CHALLENGE_AWARDED, False)
             if isinstance(progress_data, dict)
@@ -2917,9 +2927,12 @@ class KidChallengeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         associated_chore = const.SENTINEL_EMPTY
         selected_chore_id = challenge.get(const.DATA_CHALLENGE_SELECTED_CHORE_ID)
         if selected_chore_id:
-            associated_chore = self.coordinator.chores_data.get(  # type: ignore[assignment,call-overload,operator]
-                selected_chore_id, {}
-            ).get(const.DATA_CHORE_NAME, const.SENTINEL_EMPTY)
+            associated_chore = (
+                cast(
+                    "ChoreData", self.coordinator.chores_data.get(selected_chore_id, {})
+                ).get(const.DATA_CHORE_NAME)
+                or const.SENTINEL_EMPTY
+            )
 
         assigned_kids_ids = challenge.get(const.DATA_CHALLENGE_ASSIGNED_KIDS, [])
         assigned_kids_names = [
@@ -2938,7 +2951,7 @@ class KidChallengeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         stored_labels = challenge.get(const.DATA_CHALLENGE_LABELS, [])
         friendly_labels = [
             kh.get_friendly_label(self.hass, label)
-            for label in stored_labels  # type: ignore[attr-defined]
+            for label in cast("list", stored_labels)
         ]
 
         return {
@@ -3685,7 +3698,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             )
 
         # Sort rewards by name (alphabetically)
-        rewards_attr.sort(key=lambda r: r.get(const.ATTR_NAME, "").lower())
+        rewards_attr.sort(key=lambda r: str(r.get(const.ATTR_NAME, "")).lower())
 
         # Badges assigned to this kid
         # Badge applies if: no kids assigned (applies to all) OR kid is in assigned list
@@ -3754,7 +3767,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 )
 
         # Sort badges by name (alphabetically)
-        badges_attr.sort(key=lambda b: b.get(const.ATTR_NAME, "").lower())
+        badges_attr.sort(key=lambda b: str(b.get(const.ATTR_NAME, "")).lower())
 
         # Bonuses for this kid
         bonuses_attr = []
@@ -3789,7 +3802,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             )
 
         # Sort bonuses by name (alphabetically)
-        bonuses_attr.sort(key=lambda b: b.get(const.ATTR_NAME, "").lower())
+        bonuses_attr.sort(key=lambda b: str(b.get(const.ATTR_NAME, "")).lower())
 
         # Penalties for this kid
         penalties_attr = []
@@ -3824,7 +3837,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             )
 
         # Sort penalties by name (alphabetically)
-        penalties_attr.sort(key=lambda p: p.get(const.ATTR_NAME, "").lower())
+        penalties_attr.sort(key=lambda p: str(p.get(const.ATTR_NAME, "")).lower())
 
         # Achievements assigned to this kid
         achievements_attr = []
@@ -3929,10 +3942,10 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             ]
 
         # Get kid's preferred dashboard language (default to English)
-        kid_info: KidData = cast(
+        kid_info_lang: KidData = cast(
             "KidData", self.coordinator.kids_data.get(self._kid_id, {})
         )
-        dashboard_language = kid_info.get(
+        dashboard_language = kid_info_lang.get(
             const.DATA_KID_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
         )
 

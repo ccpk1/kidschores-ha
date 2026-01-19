@@ -781,7 +781,7 @@ class PreV50Migrator:
             last_longest_streak_date = None
 
             # Find the max streak and last date across all chores for this kid
-            for _chore_id, legacy_streak in legacy_streaks.items():
+            for _chore_id, legacy_streak in legacy_streaks.items():  # type: ignore[attr-defined]
                 max_streak = legacy_streak.get(const.DATA_KID_MAX_STREAK_LEGACY, 0)
                 if max_streak > legacy_max:
                     legacy_max = max_streak
@@ -814,7 +814,7 @@ class PreV50Migrator:
 
             # Migrate all-time claimed count from legacy (use max of any chore's claims or completed_chores_total)
             all_claims = [
-                kid_info.get(const.DATA_KID_CHORE_CLAIMS_LEGACY, {}).get(chore_id, 0)
+                kid_info.get(const.DATA_KID_CHORE_CLAIMS_LEGACY, {}).get(chore_id, 0)  # type: ignore[attr-defined]
                 for chore_id in self.coordinator.chores_data
             ]
             all_claims.append(
@@ -864,7 +864,7 @@ class PreV50Migrator:
                 periods = kid_chore_data[const.DATA_KID_CHORE_DATA_PERIODS]
 
                 # --- Migrate legacy current streaks for this chore ---
-                legacy_streak = legacy_streaks.get(chore_id, {})
+                legacy_streak = legacy_streaks.get(chore_id, {})  # type: ignore[attr-defined]
                 last_date = legacy_streak.get(const.DATA_KID_LAST_STREAK_DATE)
                 if last_date:
                     # Daily
@@ -917,10 +917,10 @@ class PreV50Migrator:
                         ] = legacy_streak.get(const.DATA_KID_MAX_STREAK_LEGACY, 0)
 
                 # --- Migrate claim/approval counts for this chore ---
-                claims = kid_info.get(const.DATA_KID_CHORE_CLAIMS_LEGACY, {}).get(
+                claims = kid_info.get(const.DATA_KID_CHORE_CLAIMS_LEGACY, {}).get(  # type: ignore[attr-defined]
                     chore_id, 0
                 )
-                approvals = kid_info.get(const.DATA_KID_CHORE_APPROVALS_LEGACY, {}).get(
+                approvals = kid_info.get(const.DATA_KID_CHORE_APPROVALS_LEGACY, {}).get(  # type: ignore[attr-defined]
                     chore_id, 0
                 )
 
@@ -1217,7 +1217,7 @@ class PreV50Migrator:
             # Find the highest-value cumulative badge earned by this kid
             highest_badge = None
             highest_points = -1
-            for badge_name in legacy_badge_names:
+            for badge_name in legacy_badge_names:  # type: ignore[attr-defined]
                 # Find badge_id by name and ensure it's cumulative
                 badge_id = None
                 for b_id, b_info in self.coordinator.badges_data.items():
@@ -1245,7 +1245,8 @@ class PreV50Migrator:
             # Set the current cumulative badge progress for this kid
             if highest_badge:
                 progress = kid_info.setdefault(
-                    const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {}
+                    const.DATA_KID_CUMULATIVE_BADGE_PROGRESS,
+                    {},  # type: ignore[typeddict-item]
                 )
                 progress[const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_ID] = (
                     highest_badge.get(const.DATA_BADGE_INTERNAL_ID)
@@ -1274,7 +1275,7 @@ class PreV50Migrator:
             legacy_badge_names = kid_info.get(const.DATA_KID_BADGES_LEGACY, [])
             badges_earned = kid_info.setdefault(const.DATA_KID_BADGES_EARNED, {})
 
-            for badge_name in legacy_badge_names:
+            for badge_name in legacy_badge_names:  # type: ignore[attr-defined]
                 badge_id = kh.get_badge_id_by_name(self.coordinator, badge_name)
 
                 if not badge_id:
@@ -1310,7 +1311,7 @@ class PreV50Migrator:
 
             # Cleanup: remove the legacy badges list after migration
             if const.DATA_KID_BADGES_LEGACY in kid_info:
-                del kid_info[const.DATA_KID_BADGES_LEGACY]
+                del kid_info[const.DATA_KID_BADGES_LEGACY]  # type: ignore[typeddict-item]
 
         self.coordinator._persist()
         self.coordinator.async_set_updated_data(self.coordinator._data)
@@ -1319,25 +1320,25 @@ class PreV50Migrator:
         """Migrate legacy rolling point stats into the new point_data period structure for each kid."""
         for kid_info in self.coordinator.kids_data.values():
             # Legacy values
-            legacy_today = round(
+            legacy_today = round(  # type: ignore[call-overload]
                 kid_info.get(const.DATA_KID_POINTS_EARNED_TODAY_LEGACY, 0.0),
                 const.DATA_FLOAT_PRECISION,
             )
-            legacy_week = round(
+            legacy_week = round(  # type: ignore[call-overload]
                 kid_info.get(const.DATA_KID_POINTS_EARNED_WEEKLY_LEGACY, 0.0),
                 const.DATA_FLOAT_PRECISION,
             )
-            legacy_month = round(
+            legacy_month = round(  # type: ignore[call-overload]
                 kid_info.get(const.DATA_KID_POINTS_EARNED_MONTHLY_LEGACY, 0.0),
                 const.DATA_FLOAT_PRECISION,
             )
-            legacy_max = round(
+            legacy_max = round(  # type: ignore[call-overload]
                 kid_info.get(const.DATA_KID_MAX_POINTS_EVER_LEGACY, 0.0),
                 const.DATA_FLOAT_PRECISION,
             )
 
             # Get or create point_data periods
-            point_data = kid_info.setdefault(const.DATA_KID_POINT_DATA, {})
+            point_data = kid_info.setdefault(const.DATA_KID_POINT_DATA, {})  # type: ignore[typeddict-item]
             periods = point_data.setdefault(const.DATA_KID_POINT_DATA_PERIODS, {})
 
             # Get period keys

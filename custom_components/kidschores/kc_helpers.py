@@ -272,6 +272,7 @@ def get_entity_id_by_name(
         )
 
     data_dict, name_key = entity_map[entity_type]
+    data_dict = cast("dict[str, Any]", data_dict)
     for entity_id, entity_info in data_dict.items():
         if entity_info.get(name_key) == entity_name:
             return entity_id
@@ -349,7 +350,7 @@ def get_parent_for_shadow_kid(
     kid_info: KidData = cast("KidData", coordinator.kids_data.get(kid_id, {}))
     parent_id = kid_info.get(const.DATA_KID_LINKED_PARENT_ID)
     if parent_id:
-        return coordinator.parents_data.get(parent_id)
+        return cast("dict[str, Any] | None", coordinator.parents_data.get(parent_id))
     return None
 
 
