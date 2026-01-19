@@ -4,7 +4,7 @@ Tests for:
 - Entity lookup helpers (get_*_id_by_name, get_*_id_or_raise)
 - Authorization helpers (is_user_authorized_for_global_action, is_user_authorized_for_kid)
 - Progress calculation helpers
-- Datetime boundary handling in adjust_datetime_by_interval
+- Datetime boundary handling in dt_add_interval
 """
 
 from datetime import UTC, datetime
@@ -108,7 +108,7 @@ class TestAuthorizationHelpers:
 
 
 class TestDatetimeBoundaryHandling:
-    """Test datetime handling in adjust_datetime_by_interval."""
+    """Test datetime handling in dt_add_interval."""
 
     async def test_month_end_transition(
         self, hass: HomeAssistant, scenario_minimal: SetupResult
@@ -116,7 +116,7 @@ class TestDatetimeBoundaryHandling:
         """Should handle month-end boundary correctly."""
         jan_31 = datetime(2025, 1, 31, 12, 0, 0, tzinfo=UTC)
 
-        result = kh.adjust_datetime_by_interval(jan_31, const.TIME_UNIT_MONTHS, 1)
+        result = kh.dt_add_interval(jan_31, const.TIME_UNIT_MONTHS, 1)
 
         # Adding 1 month from Jan 31 should give Feb 28 (or 29 in leap year)
         assert result is not None
@@ -129,7 +129,7 @@ class TestDatetimeBoundaryHandling:
         """Should handle year boundary correctly."""
         dec_31 = datetime(2024, 12, 31, 23, 59, 59, tzinfo=UTC)
 
-        result = kh.adjust_datetime_by_interval(dec_31, const.TIME_UNIT_YEARS, 1)
+        result = kh.dt_add_interval(dec_31, const.TIME_UNIT_YEARS, 1)
 
         assert result is not None
         assert isinstance(result, datetime)

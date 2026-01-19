@@ -1144,7 +1144,7 @@ def build_chores_data(
             type(raw_due).__name__,
         )
         try:
-            due_dt = kh.normalize_datetime_input(
+            due_dt = kh.dt_parse(
                 raw_due,
                 default_tzinfo=const.DEFAULT_TIME_ZONE,
                 return_type=const.HELPER_RETURN_DATETIME_UTC,
@@ -3150,12 +3150,12 @@ def build_challenges_data(
 
     try:
         # Normalize dates to UTC-aware datetime objects for comparison
-        start_dt = kh.normalize_datetime_input(
+        start_dt = kh.dt_parse(
             start_date_str,
             default_tzinfo=const.DEFAULT_TIME_ZONE,
             return_type=const.HELPER_RETURN_DATETIME_UTC,
         )
-        end_dt = kh.normalize_datetime_input(
+        end_dt = kh.dt_parse(
             end_date_str,
             default_tzinfo=const.DEFAULT_TIME_ZONE,
             return_type=const.HELPER_RETURN_DATETIME_UTC,

@@ -2067,7 +2067,7 @@ HELPER_RETURN_SELECTOR_DATETIME = "selector_datetime"
 # DateTime Helper Safety Limits
 # ------------------------------------------------------------------------------------------------
 # Maximum number of iterations allowed in date calculation loops to prevent infinite loops
-# Used in get_next_scheduled_datetime() and add_interval_to_datetime() when require_future=True
+# Used in dt_next_schedule() and add_interval_to_datetime() when require_future=True
 MAX_DATE_CALCULATION_ITERATIONS: Final = 1000
 
 # ------------------------------------------------------------------------------------------------

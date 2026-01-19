@@ -448,7 +448,7 @@ class TestCustomFromCompleteDueDateServices:
         """CFC-IND-SKIP: Test skip_chore_due_date for INDEPENDENT CUSTOM_FROM_COMPLETE.
 
         EF-02 has custom_interval=7 days.
-        Skip uses adjust_datetime_by_interval with require_future=True,
+        Skip uses dt_add_interval with require_future=True,
         so result is guaranteed to be after NOW.
 
         Note: The exact date depends on the base date used (completion_timestamp
@@ -633,7 +633,7 @@ class TestCustomFromCompleteDueDateServices:
         """CFC-SF-SKIP: Test skip_chore_due_date for SHARED_FIRST CUSTOM_FROM_COMPLETE.
 
         EF-11 has custom_interval=5 days.
-        Skip uses adjust_datetime_by_interval with require_future=True,
+        Skip uses dt_add_interval with require_future=True,
         so result is guaranteed to be after NOW.
 
         Note: The exact date depends on the base date used (completion_timestamp

@@ -66,6 +66,7 @@ from homeassistant.util import dt as dt_util
 from . import const, kc_helpers as kh
 from .coordinator import KidsChoresDataCoordinator
 from .entity import KidsChoresCoordinatorEntity
+from .schedule_engine import snap_to_weekday
 from .sensor_legacy import (
     KidBonusAppliedSensor,
     KidChoreStreakSensor,
@@ -581,8 +582,8 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         )
 
         # Get today's and yesterday's ISO dates
-        today_local_iso = kh.get_today_local_date().isoformat()
-        yesterday_local_iso = kh.adjust_datetime_by_interval(
+        today_local_iso = kh.dt_today_local().isoformat()
+        yesterday_local_iso = kh.dt_add_interval(
             today_local_iso,
             interval_unit=const.TIME_UNIT_DAYS,
             delta=-1,
@@ -733,7 +734,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         ):
             today_approvals = (
                 periods.get(const.DATA_KID_CHORE_DATA_PERIODS_DAILY, {})
-                .get(kh.get_today_local_date().isoformat(), {})
+                .get(kh.dt_today_local().isoformat(), {})
                 .get(const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, const.DEFAULT_ZERO)
             )
             attributes[const.ATTR_CHORE_APPROVALS_TODAY] = today_approvals
@@ -1700,7 +1701,7 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         # Get today's approvals from periods structure (not legacy flat field)
         total_approvals_today = const.DEFAULT_ZERO
-        today_local_iso = kh.get_today_local_date().isoformat()
+        today_local_iso = kh.dt_today_local().isoformat()
 
         for kid_id in assigned_kids_ids:
             kid_data: KidData = cast(
@@ -1869,7 +1870,7 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         last_approved = reward_data.get(const.DATA_KID_REWARD_DATA_LAST_APPROVED)
         if last_approved:
             try:
-                approved_dt = kh.parse_datetime_to_utc(last_approved)
+                approved_dt = kh.dt_to_utc(last_approved)
                 if approved_dt and approved_dt.date() == dt_util.now().date():
                     return const.REWARD_STATE_APPROVED
             except (ValueError, TypeError):
@@ -1901,8 +1902,8 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         ]
 
         # Get current period keys
-        now_local = kh.get_now_local_time()
-        today_local_iso = kh.get_today_local_date().isoformat()
+        now_local = kh.dt_now_local()
+        today_local_iso = kh.dt_today_local().isoformat()
         week_local_iso = now_local.strftime("%Y-W%V")
         month_local_iso = now_local.strftime("%Y-%m")
         year_local_iso = now_local.strftime("%Y")
@@ -3157,24 +3158,17 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def _get_next_monday_7am_local(self) -> datetime:
         """Calculate the next Monday at 7:00 AM local time.
 
-        Uses kc_helpers.get_next_applicable_day with local return type.
+        Uses snap_to_weekday from schedule_engine to find next Monday.
         If currently Monday before 7am, returns today at 7am, otherwise next Monday.
         """
-        now_local = kh.get_now_local_time()
+        now_local = kh.dt_now_local()
 
         # If today is Monday and before 7am, return today at 7am
         if now_local.weekday() == 0 and now_local.hour < 7:
             return now_local.replace(hour=7, minute=0, second=0, microsecond=0)
 
         # Get next Monday in local time and set to 7am
-        next_monday = cast(
-            "datetime",
-            kh.get_next_applicable_day(
-                dt_util.utcnow(),
-                applicable_days=[0],
-                return_type=const.HELPER_RETURN_DATETIME_LOCAL,
-            ),
-        )
+        next_monday = dt_util.as_local(snap_to_weekday(dt_util.utcnow(), [0]))
         return next_monday.replace(hour=7, minute=0, second=0, microsecond=0)
 
     def _calculate_chore_attributes(
@@ -3237,17 +3231,17 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         due_date_local_dt = None
         if due_date_str:
-            due_date_utc = kh.parse_datetime_to_utc(due_date_str)
+            due_date_utc = kh.dt_to_utc(due_date_str)
             if due_date_utc:
                 # Get datetime object for local calculations
-                due_date_local_dt = kh.format_datetime_with_return_type(
+                due_date_local_dt = kh.dt_format(
                     due_date_utc, const.HELPER_RETURN_DATETIME_LOCAL
                 )
 
         # Calculate is_today_am (only if due date exists and is today)
         is_today_am = None
         if due_date_local_dt and isinstance(due_date_local_dt, datetime):
-            today_local = kh.get_today_local_date()
+            today_local = kh.dt_today_local()
             if due_date_local_dt.date() == today_local and due_date_local_dt.hour < 12:
                 is_today_am = True
             elif due_date_local_dt.date() == today_local:
@@ -3283,7 +3277,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         # Check due date if available
         if due_date_local and isinstance(due_date_local, datetime):
-            today_local = kh.get_today_local_date()
+            today_local = kh.dt_today_local()
 
             # Past due dates -> today group (catches claimed/approved chores that were overdue)
             if due_date_local.date() < today_local:

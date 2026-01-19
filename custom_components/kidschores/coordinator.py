@@ -33,6 +33,7 @@ from .notification_helper import (
     build_extra_data,
     build_reward_actions,
 )
+from .schedule_engine import snap_to_weekday
 from .storage_manager import KidsChoresStorageManager
 from .type_defs import (
     AchievementProgress,
@@ -3366,7 +3367,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 )
 
             # Manage Achievements
-            today_local = kh.get_today_local_date()
+            today_local = kh.dt_today_local()
             for achievement_info in self.achievements_data.values():
                 if (
                     achievement_info.get(const.DATA_ACHIEVEMENT_TYPE)
@@ -3395,7 +3396,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                         self._update_streak_progress(ach_progress, today_local)
 
             # Manage Challenges
-            today_local_iso = kh.get_today_local_iso()
+            today_local_iso = kh.dt_today_iso()
             for challenge_info in self.challenges_data.values():
                 challenge_type = challenge_info.get(const.DATA_CHALLENGE_TYPE)
 
@@ -3411,8 +3412,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     if not start_date_str or not end_date_str:
                         continue
 
-                    start_date_utc = kh.parse_datetime_to_utc(start_date_str)
-                    end_date_utc = kh.parse_datetime_to_utc(end_date_str)
+                    start_date_utc = kh.dt_to_utc(start_date_str)
+                    end_date_utc = kh.dt_to_utc(end_date_str)
 
                     now_utc = dt_util.utcnow()
 
@@ -4192,8 +4193,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             # Since last_approved exists (checked above), the approval is still valid.
             return True
 
-        approved_dt = kh.parse_datetime_to_utc(last_approved)
-        period_start_dt = kh.parse_datetime_to_utc(period_start)
+        approved_dt = kh.dt_to_utc(last_approved)
+        period_start_dt = kh.dt_to_utc(period_start)
 
         if approved_dt is None or period_start_dt is None:
             return False
@@ -4651,8 +4652,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Get period keys using constants
         now_utc = dt_util.utcnow()
         now_iso = now_utc.isoformat()
-        now_local = kh.get_now_local_time()
-        today_local = kh.get_today_local_date()
+        now_local = kh.dt_now_local()
+        today_local = kh.dt_today_local()
         today_local_iso = today_local.isoformat()
         week_local_iso = now_local.strftime("%Y-W%V")
         month_local_iso = now_local.strftime("%Y-%m")
@@ -4736,7 +4737,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 )
 
                 # Calculate today's streak based on yesterday's daily period data
-                yesterday_local_iso = kh.adjust_datetime_by_interval(
+                yesterday_local_iso = kh.dt_add_interval(
                     today_local_iso,
                     interval_unit=const.TIME_UNIT_DAYS,
                     delta=-1,
@@ -4964,8 +4965,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         }
 
         # Get current period keys
-        now_local = kh.get_now_local_time()
-        today_local_iso = kh.get_today_local_date().isoformat()
+        now_local = kh.dt_now_local()
+        today_local_iso = kh.dt_today_local().isoformat()
         week_local_iso = now_local.strftime("%Y-W%V")
         month_local_iso = now_local.strftime("%Y-%m")
         year_local_iso = now_local.strftime("%Y")
@@ -5115,12 +5116,12 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             if not due_datetime_iso:
                 continue
 
-            due_date_local = kh.normalize_datetime_input(
+            due_date_local = kh.dt_parse(
                 due_datetime_iso, return_type=const.HELPER_RETURN_DATETIME_LOCAL
             )
             if due_date_local:
                 try:
-                    today_local = kh.get_today_local_date()
+                    today_local = kh.dt_today_local()
                     # due_date_local is a datetime, convert to date for comparison
                     if (
                         isinstance(due_date_local, datetime)
@@ -5186,7 +5187,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             ),
             const.DATA_FLOAT_PRECISION,
         )
-        now = kh.get_now_local_time()
+        now = kh.dt_now_local()
         days_in_month = monthrange(now.year, now.month)[1]
         stats[const.DATA_KID_CHORE_STATS_AVG_PER_DAY_MONTH] = round(
             (
@@ -5297,8 +5298,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.DATA_KID_POINT_DATA_PERIODS, {}
         )
 
-        now_local = kh.get_now_local_time()
-        today_local_iso = kh.get_today_local_date().isoformat()
+        now_local = kh.dt_now_local()
+        today_local_iso = kh.dt_today_local().isoformat()
         week_local_iso = now_local.strftime("%Y-W%V")
         month_local_iso = now_local.strftime("%Y-%m")
         year_local_iso = now_local.strftime("%Y")
@@ -5460,8 +5461,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.DATA_KID_POINT_DATA_PERIODS, {}
         )
 
-        now_local = kh.get_now_local_time()
-        today_local_iso = kh.get_today_local_date().isoformat()
+        now_local = kh.dt_now_local()
+        today_local_iso = kh.dt_today_local().isoformat()
         week_local_iso = now_local.strftime("%Y-W%V")
         month_local_iso = now_local.strftime("%Y-%m")
         year_local_iso = now_local.strftime("%Y")
@@ -5536,7 +5537,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             if stats[const.DATA_KID_POINT_STATS_EARNED_WEEK]
             else 0.0
         )
-        now = kh.get_now_local_time()
+        now = kh.dt_now_local()
         days_in_month = monthrange(now.year, now.month)[1]
         stats[const.DATA_KID_POINT_STATS_AVG_PER_DAY_MONTH] = (
             round(
@@ -6006,7 +6007,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self._manage_cumulative_badge_maintenance(kid_id)
 
         # OPTIMIZATION: Calculate today_local_iso once per kid instead of per badge
-        today_local_iso = kh.get_today_local_iso()
+        today_local_iso = kh.dt_today_iso()
 
         # OPTIMIZATION: Pre-compute kid's assigned chores once instead of per badge
         kid_assigned_chores = []
@@ -6252,7 +6253,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     ] = const.BADGE_STATE_EARNED
                     badge_progress_dict[badge_id][
                         const.DATA_KID_BADGE_PROGRESS_LAST_AWARDED
-                    ] = kh.get_today_local_iso()
+                    ] = kh.dt_today_iso()
                     self._award_badge(kid_id, badge_id)
 
         # Update badge references to reflect current badge tracking settings
@@ -6523,7 +6524,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         if last_update_day and last_update_day != today_local_iso:
             if progress.get(const.DATA_KID_BADGE_PROGRESS_TODAY_COMPLETED, False):
                 # Only increment streak if yesterday was completed
-                yesterday_iso = kh.adjust_datetime_by_interval(
+                yesterday_iso = kh.dt_add_interval(
                     today_local_iso,
                     interval_unit=const.TIME_UNIT_DAYS,
                     delta=-1,
@@ -6816,8 +6817,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             )
             return
 
-        today_local_iso = kh.get_today_local_iso()
-        now = kh.get_now_local_time()
+        today_local_iso = kh.dt_today_iso()
+        now = kh.dt_now_local()
         week = now.strftime("%Y-W%V")
         month = now.strftime("%Y-%m")
         year = now.strftime("%Y")
@@ -7395,7 +7396,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # First, ensure all badge progress entries have all required fields
         badge_progress = kid_info.setdefault(const.DATA_KID_BADGE_PROGRESS, {})
-        today_local_iso = kh.get_today_local_iso()
+        today_local_iso = kh.dt_today_iso()
 
         # ===============================================================
         # SECTION 2: BADGE INITIALIZATION & SYNC - Create or update badge progress data
@@ -7499,7 +7500,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
             if is_daily or is_custom_1_day:
                 # Use PERIOD_DAY_END to set end date to end of today - See detail above.
-                new_end_date_iso = kh.get_next_scheduled_datetime(
+                new_end_date_iso = kh.dt_next_schedule(
                     str(prior_end_date_iso) if prior_end_date_iso else "",
                     interval_type=const.PERIOD_DAY_END,
                     require_future=True,
@@ -7517,7 +7518,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 )
 
                 if custom_interval and custom_interval_unit:
-                    new_end_date_iso = kh.adjust_datetime_by_interval(
+                    new_end_date_iso = kh.dt_add_interval(
                         str(prior_end_date_iso) if prior_end_date_iso else "",
                         interval_unit=custom_interval_unit,
                         delta=custom_interval,
@@ -7526,7 +7527,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     )
                 else:
                     # Default fallback to weekly
-                    new_end_date_iso = kh.adjust_datetime_by_interval(
+                    new_end_date_iso = kh.dt_add_interval(
                         str(prior_end_date_iso) if prior_end_date_iso else "",
                         interval_unit=const.TIME_UNIT_WEEKS,
                         delta=1,
@@ -7535,7 +7536,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     )
             else:
                 # Use standard frequency helper
-                new_end_date_iso = kh.get_next_scheduled_datetime(
+                new_end_date_iso = kh.dt_next_schedule(
                     str(prior_end_date_iso) if prior_end_date_iso else "",
                     interval_type=recurring_frequency,  # type: ignore[arg-type]
                     require_future=True,
@@ -7560,8 +7561,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                         new_start_date_iso = new_end_date_iso
                     else:
                         # Convert ISO dates to datetime objects
-                        start_dt_utc = kh.parse_datetime_to_utc(existing_start_date_iso)
-                        end_dt_utc = kh.parse_datetime_to_utc(end_date_iso)
+                        start_dt_utc = kh.dt_to_utc(existing_start_date_iso)
+                        end_dt_utc = kh.dt_to_utc(end_date_iso)
 
                         if start_dt_utc and end_dt_utc:
                             # Calculate duration in days
@@ -7570,7 +7571,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                             # Set new start date by subtracting the same duration from new end date
                             # Cast ensures new_end_date_iso is str | date | datetime (not None)
                             new_start_date_iso = str(
-                                kh.adjust_datetime_by_interval(
+                                kh.dt_add_interval(
                                     cast("str | date | datetime", new_end_date_iso),
                                     interval_unit=const.TIME_UNIT_DAYS,
                                     delta=-duration,
@@ -7819,7 +7820,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                             # ---------------------------------------------------------------
                             # Calculate initial end date from today since there is no end date
                             # ---------------------------------------------------------------
-                            today_local_iso = kh.get_today_local_iso()
+                            today_local_iso = kh.dt_today_iso()
                             is_daily = recurring_frequency == const.FREQUENCY_DAILY
                             is_custom_1_day = (
                                 recurring_frequency == const.FREQUENCY_CUSTOM
@@ -7846,7 +7847,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                                     const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT
                                 )
                                 if custom_interval and custom_interval_unit:
-                                    new_end_date_iso = kh.adjust_datetime_by_interval(
+                                    new_end_date_iso = kh.dt_add_interval(
                                         today_local_iso,
                                         interval_unit=custom_interval_unit,
                                         delta=custom_interval,
@@ -7855,7 +7856,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                                     )
                                 else:
                                     # Default fallback to weekly
-                                    new_end_date_iso = kh.adjust_datetime_by_interval(
+                                    new_end_date_iso = kh.dt_add_interval(
                                         today_local_iso,
                                         interval_unit=const.TIME_UNIT_WEEKS,
                                         delta=1,
@@ -7864,7 +7865,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                                     )
                             else:
                                 # Use standard frequency helper
-                                new_end_date_iso = kh.get_next_scheduled_datetime(
+                                new_end_date_iso = kh.dt_next_schedule(
                                     today_local_iso,
                                     interval_type=recurring_frequency,
                                     require_future=True,
@@ -8054,7 +8055,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         )
 
         # Get today's date in ISO format using the local timezone.
-        today_local_iso = kh.get_today_local_iso()
+        today_local_iso = kh.dt_today_iso()
 
         # Get badge level information: highest earned badge, next lower badge, baseline, etc.
         highest_earned, _, next_lower, baseline, _ = self._get_cumulative_badge_levels(
@@ -8186,7 +8187,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             if frequency == const.FREQUENCY_CUSTOM:
                 # If custom interval and unit are valid, calculate next_end make sure it is in the future and past the reference
                 if custom_interval and custom_interval_unit:
-                    next_end = kh.adjust_datetime_by_interval(
+                    next_end = kh.dt_add_interval(
                         base_date=base_date_iso,
                         interval_unit=custom_interval_unit,  # Fix: change from custom_interval_unit to interval_unit
                         delta=custom_interval,  # Fix: change from custom_interval to delta
@@ -8196,7 +8197,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     )
                 else:
                     # Fallback to existing logic if custom interval/unit are invalid
-                    next_end = kh.get_next_scheduled_datetime(
+                    next_end = kh.dt_next_schedule(
                         base_date_iso,
                         interval_type=frequency,
                         require_future=True,
@@ -8206,7 +8207,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             else:
                 # Default behavior for non-custom frequencies
                 base_date_iso = today_local_iso
-                next_end = kh.get_next_scheduled_datetime(
+                next_end = kh.dt_next_schedule(
                     base_date_iso,
                     interval_type=frequency,
                     require_future=True,
@@ -8216,7 +8217,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
             # Compute the grace period end date by adding the grace period (in days) to the maintenance end date
             # Cast ensures next_end is str | date (not None) for the interval calculation
-            next_grace = kh.adjust_datetime_by_interval(
+            next_grace = kh.dt_add_interval(
                 cast("str | date", next_end),
                 const.TIME_UNIT_DAYS,
                 grace_days,
@@ -8523,7 +8524,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         if not kid_info:
             return
 
-        today_local = kh.get_today_local_date()
+        today_local = kh.dt_today_local()
 
         for achievement_id, achievement_info in self._data[
             const.DATA_ACHIEVEMENTS
@@ -8602,7 +8603,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     },
                 )
 
-                today_local_iso = kh.get_today_local_iso()
+                today_local_iso = kh.dt_today_iso()
 
                 # Only award bonus if not awarded today AND the kid's daily count meets the threshold.
                 chore_stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
@@ -8726,11 +8727,11 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 continue
 
             # Check challenge window
-            start_date_utc = kh.parse_datetime_to_utc(
+            start_date_utc = kh.dt_to_utc(
                 challenge_info.get(const.DATA_CHALLENGE_START_DATE)  # type: ignore[arg-type]
             )
 
-            end_date_utc = kh.parse_datetime_to_utc(
+            end_date_utc = kh.dt_to_utc(
                 challenge_info.get(const.DATA_CHALLENGE_END_DATE)  # type: ignore[arg-type]
             )
 
@@ -8938,7 +8939,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # Parse due date
         try:
-            due_date_utc = kh.parse_datetime_to_utc(due_date_iso)
+            due_date_utc = kh.dt_to_utc(due_date_iso)
         except (ValueError, TypeError, AttributeError) as err:
             const.LOGGER.error(
                 "ERROR: Overdue Check - Error parsing due date '%s' for Chore '%s', Kid '%s': %s",
@@ -9086,7 +9087,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         if last_notif_str:
             try:
-                last_dt = kh.parse_datetime_to_utc(last_notif_str)
+                last_dt = kh.dt_to_utc(last_notif_str)
                 if (
                     last_dt is None
                     or (last_dt < due_date_utc)
@@ -9129,7 +9130,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                         "chore_name": chore_info.get(
                             const.DATA_CHORE_NAME, const.DISPLAY_UNNAMED_CHORE
                         ),
-                        "due_date": kh.format_short_datetime(
+                        "due_date": kh.dt_format_short(
                             due_date_utc, language=kid_language
                         ),
                     },
@@ -9159,7 +9160,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                         "chore_name": chore_info.get(
                             const.DATA_CHORE_NAME, const.DISPLAY_UNNAMED_CHORE
                         ),
-                        "due_date": kh.format_short_datetime(
+                        "due_date": kh.dt_format_short(
                             due_date_utc, language=self.hass.config.language
                         ),
                     },
@@ -9294,7 +9295,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     continue
 
                 # Parse due date and check if within reminder window
-                due_dt = kh.parse_datetime_to_utc(due_date_str)
+                due_dt = kh.dt_to_utc(due_date_str)
                 if due_dt is None:
                     continue
 
@@ -9473,7 +9474,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         if not chore_info.get(const.DATA_CHORE_DUE_DATE):
             return
 
-        due_date_utc = kh.parse_datetime_to_utc(chore_info[const.DATA_CHORE_DUE_DATE])  # type: ignore[arg-type]
+        due_date_utc = kh.dt_to_utc(chore_info[const.DATA_CHORE_DUE_DATE])  # type: ignore[arg-type]
         if due_date_utc is None:
             const.LOGGER.debug(
                 "DEBUG: Chore Rescheduling - Error parsing due date for Chore ID '%s'.",
@@ -9519,7 +9520,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 # No due date for this kid - skip
                 continue
 
-            kid_due_utc = kh.parse_datetime_to_utc(kid_due_str)
+            kid_due_utc = kh.dt_to_utc(kid_due_str)
             if kid_due_utc is None:
                 const.LOGGER.debug(
                     "DEBUG: Chore Rescheduling - Error parsing per-kid due date for Chore '%s', Kid '%s'.",
@@ -9688,7 +9689,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         """
         due_date_str = chore_info.get(const.DATA_CHORE_DUE_DATE)
         if due_date_str:
-            due_date_utc = kh.parse_datetime_to_utc(due_date_str)
+            due_date_utc = kh.dt_to_utc(due_date_str)
             if due_date_utc is None:
                 const.LOGGER.debug(
                     "Chore Reset - Failed to parse due date '%s' for Chore ID '%s'",
@@ -9794,7 +9795,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             # Get per-kid due date (source of truth for INDEPENDENT)
             kid_due_str = per_kid_due_dates.get(kid_id)
             if kid_due_str:
-                kid_due_utc = kh.parse_datetime_to_utc(kid_due_str)
+                kid_due_utc = kh.dt_to_utc(kid_due_str)
                 if kid_due_utc is None:
                     const.LOGGER.debug(
                         "Chore Reset - Failed to parse per-kid due date '%s' for Chore '%s', Kid '%s'",
@@ -9974,7 +9975,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         elif raw_applicable:
             applicable_days = [int(d) for d in raw_applicable]
 
-        now_local = kh.get_now_local_time()
+        now_local = kh.dt_now_local()
 
         # Calculate next due date based on frequency
         if freq == const.FREQUENCY_CUSTOM:
@@ -9984,7 +9985,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             assert custom_interval is not None
             next_due_utc = cast(
                 "datetime",
-                kh.adjust_datetime_by_interval(
+                kh.dt_add_interval(
                     base_date=current_due_utc,
                     interval_unit=custom_unit,
                     delta=custom_interval,
@@ -10009,7 +10010,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 return None
             next_due_utc = cast(
                 "datetime",
-                kh.adjust_datetime_by_interval(
+                kh.dt_add_interval(
                     base_date=base_date,
                     interval_unit=custom_unit,
                     delta=custom_interval,
@@ -10027,7 +10028,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         else:
             next_due_utc = cast(
                 "datetime",
-                kh.get_next_scheduled_datetime(
+                kh.dt_next_schedule(
                     base_date=current_due_utc,
                     interval_type=freq,
                     require_future=True,
@@ -10038,15 +10039,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # Snap to applicable weekday if configured
         if applicable_days:
-            next_due_local = cast(
-                "datetime",
-                kh.get_next_applicable_day(
-                    next_due_utc,
-                    applicable_days=applicable_days,
-                    return_type=const.HELPER_RETURN_DATETIME,
-                ),
-            )
-            next_due_utc = dt_util.as_utc(next_due_local)
+            next_due_utc = snap_to_weekday(next_due_utc, applicable_days)
 
         return next_due_utc
 
@@ -10061,7 +10054,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             return
 
         # Parse current due date
-        original_due_utc = kh.parse_datetime_to_utc(due_date_str)
+        original_due_utc = kh.dt_to_utc(due_date_str)
         if not original_due_utc:
             const.LOGGER.debug(
                 "Chore Due Date - Reschedule: Unable to parse due date for %s",
@@ -10074,7 +10067,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         completion_utc: datetime | None = None
         last_completed_str = chore_info.get(const.DATA_CHORE_LAST_COMPLETED)
         if last_completed_str:
-            completion_utc = kh.parse_datetime_to_utc(last_completed_str)
+            completion_utc = kh.dt_to_utc(last_completed_str)
 
         # Use consolidation helper for calculation
         next_due_utc = self._calculate_next_due_date_from_info(
@@ -10170,7 +10163,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # Parse current due date that exists
         try:
-            original_due_utc = kh.parse_datetime_to_utc(current_due_str)
+            original_due_utc = kh.dt_to_utc(current_due_str)
         except (ValueError, TypeError, AttributeError):
             const.LOGGER.debug(
                 "Chore Due Date - Reschedule (per-kid): Unable to parse due date for chore %s, kid %s; clearing due date",
@@ -10189,7 +10182,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {}).get(chore_id, {})
         last_approved_str = kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_APPROVED)
         if last_approved_str:
-            completion_utc = kh.parse_datetime_to_utc(last_approved_str)
+            completion_utc = kh.dt_to_utc(last_approved_str)
 
         # PKAD-2026-001: For INDEPENDENT chores, inject per-kid applicable_days
         # and daily_multi_times into a copy of chore_info before calculation.
@@ -10294,7 +10287,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             if not due_date_str:
                 return False
 
-            due_date = kh.parse_datetime_to_utc(due_date_str)
+            due_date = kh.dt_to_utc(due_date_str)
             if not due_date:
                 return False
 
@@ -10324,7 +10317,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             if not due_date_str:
                 return False
 
-            due_date = kh.parse_datetime_to_utc(due_date_str)
+            due_date = kh.dt_to_utc(due_date_str)
             if not due_date:
                 return False
 

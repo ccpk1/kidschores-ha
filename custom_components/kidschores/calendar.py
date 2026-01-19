@@ -17,6 +17,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
 from . import const, kc_helpers as kh
+from .schedule_engine import RecurrenceEngine
 
 # Silver requirement: Parallel Updates
 # Set to 0 (unlimited) for coordinator-based entities that don't poll
@@ -251,7 +252,7 @@ class KidScheduleCalendar(CalendarEntity):
         gen_start = window_start
         gen_end = min(
             window_end,
-            kh.get_now_local_time() + self._calendar_duration,
+            kh.dt_now_local() + self._calendar_duration,
         )
         current = gen_start
         local_tz = dt_util.get_time_zone(self.hass.config.time_zone)
@@ -304,63 +305,80 @@ class KidScheduleCalendar(CalendarEntity):
         unit: str,
         window_start: datetime.datetime,
         window_end: datetime.datetime,
+        applicable_days: list[int] | None = None,
     ) -> None:
-        """Generate recurring 1-hour events for chore with due date.
+        """Generate recurring 1-hour timed events using RecurrenceEngine.
 
-        Unified handler for weekly, biweekly, monthly, and custom intervals.
-        Creates multiple 1-hour timed events using proven scheduling helpers.
+        Creates RFC 5545 RRULE-compatible events for iCal export.
+        Each occurrence is rendered as a 1-hour block.
+
+        Args:
+            events: List to append events to
+            summary: Event summary (chore name)
+            description: Event description
+            due_dt: First occurrence time (UTC)
+            recurring: Frequency constant (WEEKLY, MONTHLY, etc.)
+            interval: Interval value for CUSTOM frequencies
+            unit: Time unit for CUSTOM frequencies (days, weeks, etc.)
+            window_start: Calendar window start
+            window_end: Calendar window end
+            applicable_days: Weekday constraints (0=Mon, 6=Sun), or None/[]
         """
         const.LOGGER.debug(
-            "Calendar: Creating recurring 1-hour events for '%s' starting at %s",
+            "Calendar: Creating recurring 1-hour events (RRULE) for '%s' starting at %s",
             summary,
             due_dt,
         )
 
-        # Generate recurring events up to window_end
-        current_due = due_dt
-        max_iterations = 100  # Safety limit
-        iteration = 0
+        # Build ScheduleConfig for RecurrenceEngine
+        # Convert applicable_days format if provided
+        app_days = applicable_days if applicable_days else []
 
-        while current_due <= window_end and iteration < max_iterations:
-            iteration += 1
+        schedule_config = {
+            "frequency": recurring,
+            "interval": interval,
+            "interval_unit": unit,
+            "base_date": due_dt.isoformat(),
+            "applicable_days": app_days,
+        }
 
-            # Create 1-hour event at this occurrence
-            if window_start <= current_due <= window_end:
+        try:
+            engine = RecurrenceEngine(schedule_config)
+        except Exception as err:  # pylint: disable=broad-except
+            const.LOGGER.warning(
+                "Calendar: Failed to create RecurrenceEngine for %s: %s",
+                summary,
+                err,
+            )
+            return
+
+        # Generate RRULE string for iCal export (add to TIMED events only)
+        rrule_str = engine.to_rrule_string()
+
+        # Get all occurrences in the window using engine
+        try:
+            occurrences = engine.get_occurrences(
+                start=window_start, end=window_end, limit=100
+            )
+        except Exception as err:  # pylint: disable=broad-except
+            const.LOGGER.warning(
+                "Calendar: Failed to get occurrences for %s: %s",
+                summary,
+                err,
+            )
+            return
+
+        # Create 1-hour event for each occurrence
+        for occurrence_utc in occurrences:
+            if window_start <= occurrence_utc <= window_end:
                 e = CalendarEvent(
                     summary=summary,
-                    start=current_due,
-                    end=current_due + datetime.timedelta(hours=1),
+                    start=occurrence_utc,
+                    end=occurrence_utc + datetime.timedelta(hours=1),
                     description=description,
+                    rrule=rrule_str if rrule_str else None,
                 )
                 self._add_event_if_overlaps(events, e, window_start, window_end)
-
-            # Calculate next occurrence using proven helper
-            if recurring in (
-                const.FREQUENCY_CUSTOM,
-                const.FREQUENCY_CUSTOM_FROM_COMPLETE,
-            ):
-                # Use adjust_datetime_by_interval for custom intervals
-                # Note: CUSTOM_FROM_COMPLETE uses same interval logic for calendar forecasting
-                next_due = kh.adjust_datetime_by_interval(
-                    base_date=current_due,
-                    interval_unit=unit,
-                    delta=interval,
-                    require_future=True,
-                    return_type=const.HELPER_RETURN_DATETIME,
-                )
-            else:
-                # Use get_next_scheduled_datetime for standard frequencies
-                next_due = kh.get_next_scheduled_datetime(
-                    base_date=current_due,
-                    interval_type=recurring,
-                    require_future=True,
-                    return_type=const.HELPER_RETURN_DATETIME,
-                )
-
-            if next_due is None or not isinstance(next_due, datetime.datetime):
-                break
-
-            current_due = next_due
 
     def _generate_recurring_daily_without_due_date(
         self,
@@ -607,7 +625,7 @@ class KidScheduleCalendar(CalendarEntity):
             due_date_str = chore.get(const.DATA_CHORE_DUE_DATE)
         due_dt: datetime.datetime | None = None
         if due_date_str:
-            parsed = kh.normalize_datetime_input(due_date_str)
+            parsed = kh.dt_parse(due_date_str)
             if isinstance(parsed, datetime.datetime):
                 due_dt = parsed
 
@@ -672,6 +690,7 @@ class KidScheduleCalendar(CalendarEntity):
                     unit,
                     window_start,
                     window_end,
+                    applicable_days=applicable_days,
                 )
             elif recurring == const.FREQUENCY_DAILY_MULTI:
                 # CFE-2026-001 Feature 2: Multiple times per day
@@ -779,12 +798,12 @@ class KidScheduleCalendar(CalendarEntity):
             return events  # no valid date range => skip
 
         # Parse to local timezone directly
-        local_start = kh.normalize_datetime_input(
+        local_start = kh.dt_parse(
             start_str,
             default_tzinfo=const.DEFAULT_TIME_ZONE,
             return_type=const.HELPER_RETURN_DATETIME_LOCAL,
         )
-        local_end = kh.normalize_datetime_input(
+        local_end = kh.dt_parse(
             end_str,
             default_tzinfo=const.DEFAULT_TIME_ZONE,
             return_type=const.HELPER_RETURN_DATETIME_LOCAL,

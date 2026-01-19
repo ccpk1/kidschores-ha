@@ -44,8 +44,7 @@ This file is organized into logical sections for easy navigation:
 
 from __future__ import annotations
 
-from calendar import monthrange
-from datetime import date, datetime, time, timedelta, tzinfo
+from datetime import date, datetime, time, tzinfo
 import json
 import os
 from typing import TYPE_CHECKING, Any, cast
@@ -55,15 +54,16 @@ from homeassistant.helpers.label_registry import async_get as async_get_label_re
 import homeassistant.util.dt as dt_util
 
 from . import const
+from .schedule_engine import RecurrenceEngine, add_interval as _add_interval
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping
+    from collections.abc import Mapping
 
     from homeassistant.auth.models import User
     from homeassistant.core import HomeAssistant
 
     from .coordinator import KidsChoresDataCoordinator  # Used for type checking only
-    from .type_defs import KidData
+    from .type_defs import KidData, ScheduleConfig
 
 
 # Module-level translation cache for performance (v0.5.0+)
@@ -775,7 +775,7 @@ def get_today_chore_and_point_progress(
             streak_per_chore: {chore_id: streak_length, ...}
         )
     """
-    today_iso = get_today_local_iso()
+    today_iso = dt_today_iso()
     if not tracked_chores:
         tracked_chores = list(kid_info.get(const.DATA_KID_CHORE_DATA, {}).keys())
 
@@ -868,7 +868,7 @@ def get_today_chore_completion_progress(
             count_required=3, percent_required=0.8, require_no_overdue=True, only_due_today=True
         )
     """
-    today_local = get_now_local_time()
+    today_local = dt_now_local()
     today_iso = today_local.date().isoformat()
     chores_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
 
@@ -947,7 +947,7 @@ def get_today_chore_completion_progress(
 # - Supporting badge and chore scheduling logic
 
 
-def get_today_local_date() -> date:
+def dt_today_local() -> date:
     """
     Return today's date in local timezone as a `datetime.date`.
 
@@ -957,17 +957,17 @@ def get_today_local_date() -> date:
     return dt_util.as_local(dt_util.utcnow()).date()
 
 
-def get_today_local_iso() -> str:
+def dt_today_iso() -> str:
     """
     Return today's date in local timezone as ISO string (YYYY-MM-DD).
 
     Example:
         "2025-04-07"
     """
-    return get_today_local_date().isoformat()
+    return dt_today_local().isoformat()
 
 
-def get_now_local_time() -> datetime:
+def dt_now_local() -> datetime:
     """
     Return the current datetime in local timezone (timezone-aware).
 
@@ -977,14 +977,14 @@ def get_now_local_time() -> datetime:
     return dt_util.as_local(dt_util.utcnow())
 
 
-def get_now_local_iso() -> str:
+def dt_now_iso() -> str:
     """
     Return the current local datetime as an ISO 8601 string.
 
     Example:
         "2025-04-07T14:30:00-05:00"
     """
-    return get_now_local_time().isoformat()
+    return dt_now_local().isoformat()
 
 
 def parse_daily_multi_times(
@@ -1014,15 +1014,15 @@ def parse_daily_multi_times(
 
     # Default to today's date if no reference provided
     if reference_date is None:
-        base_date = get_today_local_date()
+        base_date = dt_today_local()
     elif isinstance(reference_date, datetime):
         base_date = reference_date.date()
     elif isinstance(reference_date, date):
         base_date = reference_date
     else:
         # Try to parse string date
-        parsed = parse_date_safe(reference_date)
-        base_date = parsed if parsed else get_today_local_date()
+        parsed = dt_parse_date(reference_date)
+        base_date = parsed if parsed else dt_today_local()
 
     # Default to system timezone if none provided
     tz_info = timezone_info or const.DEFAULT_TIME_ZONE
@@ -1122,7 +1122,7 @@ def validate_daily_multi_times(times_str: str) -> tuple[bool, str | None]:
     return True, None
 
 
-def parse_datetime_to_utc(dt_str: str) -> datetime | None:
+def dt_to_utc(dt_str: str) -> datetime | None:
     """
     Parse a datetime string, apply timezone if naive, and convert to UTC.
 
@@ -1132,7 +1132,7 @@ def parse_datetime_to_utc(dt_str: str) -> datetime | None:
     Example:
         "2025-04-07T14:30:00" → datetime.datetime(2025, 4, 7, 19, 30, tzinfo=UTC)
     """
-    result = normalize_datetime_input(
+    result = dt_parse(
         dt_str,
         default_tzinfo=const.DEFAULT_TIME_ZONE,
         return_type=const.HELPER_RETURN_DATETIME_UTC,
@@ -1141,7 +1141,7 @@ def parse_datetime_to_utc(dt_str: str) -> datetime | None:
     return cast("datetime | None", result)
 
 
-def parse_date_safe(date_str: str) -> date | None:
+def dt_parse_date(date_str: str) -> date | None:
     """
     Safely parse a date string into a `datetime.date`.
 
@@ -1159,7 +1159,7 @@ def parse_date_safe(date_str: str) -> date | None:
         return None
 
 
-def format_short_datetime(
+def dt_format_short(
     dt_obj: datetime | None,
     language: str = "en",
     include_time: bool = True,
@@ -1199,7 +1199,7 @@ def format_short_datetime(
     return local_dt.strftime("%b %d")
 
 
-def format_datetime_with_return_type(
+def dt_format(
     dt_obj: datetime,
     return_type: str | None = const.HELPER_RETURN_DATETIME,
 ) -> datetime | date | str:
@@ -1240,7 +1240,7 @@ def format_datetime_with_return_type(
     return dt_obj
 
 
-def normalize_datetime_input(  # pyright: ignore[reportReturnType]
+def dt_parse(  # pyright: ignore[reportReturnType]
     dt_input: str | date | datetime,
     default_tzinfo: tzinfo | None = None,
     return_type: str | None = const.HELPER_RETURN_DATETIME,
@@ -1271,10 +1271,10 @@ def normalize_datetime_input(  # pyright: ignore[reportReturnType]
         or None if the input could not be parsed.
 
     Example:
-        >>> normalize_datetime_input("2025-04-15")
+        >>> dt_parse("2025-04-15")
         datetime.datetime(2025, 4, 15, 0, 0, tzinfo=ZoneInfo('America/New_York'))
 
-        >>> normalize_datetime_input("2025-04-15", return_type=const.HELPER_RETURN_ISO_DATETIME)
+        >>> dt_parse("2025-04-15", return_type=const.HELPER_RETURN_ISO_DATETIME)
         '2025-04-15T00:00:00-04:00'
     """
     # Handle empty input
@@ -1297,7 +1297,7 @@ def normalize_datetime_input(  # pyright: ignore[reportReturnType]
                 result = datetime.fromisoformat(dt_input)
         except ValueError:
             # If datetime parsing fails, try to parse as a date
-            result = parse_date_safe(dt_input)
+            result = dt_parse_date(dt_input)
             if result:
                 # Convert date to datetime for consistent handling
                 result = datetime.combine(result, datetime.min.time())
@@ -1321,10 +1321,10 @@ def normalize_datetime_input(  # pyright: ignore[reportReturnType]
         result = result.replace(tzinfo=tz_info)
 
     # Return in the requested format using the shared format function
-    return format_datetime_with_return_type(result, return_type)
+    return dt_format(result, return_type)
 
 
-def adjust_datetime_by_interval(  # pyright: ignore[reportReturnType]
+def dt_add_interval(  # pyright: ignore[reportReturnType]
     base_date: str | date | datetime,
     interval_unit: str,
     delta: int,
@@ -1336,9 +1336,12 @@ def adjust_datetime_by_interval(  # pyright: ignore[reportReturnType]
     """
     Add or Subtract a time interval to a date or datetime and returns the result in the desired format.
 
+    Internally delegates to schedule_engine.add_interval() for all arithmetic,
+    then formats the result according to return_type.
+
     Parameters:
     - base_date: ISO string, datetime.date, or datetime.datetime.
-    - interval_unit: One of the defined const.CONF_* constants:
+    - interval_unit: One of the defined const.TIME_UNIT_* constants:
         - const.TIME_UNIT_MINUTES, const.TIME_UNIT_HOURS, const.TIME_UNIT_DAYS, const.TIME_UNIT_WEEKS,
           const.TIME_UNIT_MONTHS, const.TIME_UNIT_QUARTERS, const.TIME_UNIT_YEARS.
     - delta: Number of time units to add.
@@ -1350,7 +1353,7 @@ def adjust_datetime_by_interval(  # pyright: ignore[reportReturnType]
                         const.PERIOD_QUARTER_END (last day of quarter at 23:59:00),
                         const.PERIOD_YEAR_END (December 31 at 23:59:00).
     - require_future: If True, ensures the result is strictly after reference_datetime.
-                     Default is True.
+                     Default is False.
     - reference_datetime: The reference datetime to compare against when require_future is True.
                          If None, current time is used. Default is None.
     - return_type: Optional; one of the const.HELPER_RETURN_* constants:
@@ -1364,240 +1367,67 @@ def adjust_datetime_by_interval(  # pyright: ignore[reportReturnType]
 
     Notes:
     - Preserves timezone awareness if present in input.
-    - If input is naive (no tzinfo), output will also be naive.
+    - Uses relativedelta for month/year arithmetic to preserve clamping
+      (e.g., Jan 31 + 1 month = Feb 28).
     - If require_future is True, interval will be added repeatedly until the result
       is later than reference_datetime.
     """
     if not base_date:
         const.LOGGER.error(
-            "ERROR: Add Interval To DateTime - base_date is None. Cannot calculate next scheduled datetime."
+            "ERROR: Add Interval To DateTime - base_date is None. "
+            "Cannot calculate next scheduled datetime."
         )
         return None
 
-    # Get the local timezone for reference datetime handling
-    local_tz = const.DEFAULT_TIME_ZONE
-
-    # Use normalize_datetime_input for consistent handling of base_date
-    base_dt = normalize_datetime_input(
-        base_date, default_tzinfo=local_tz, return_type=const.HELPER_RETURN_DATETIME
+    # Normalize base_date to datetime for schedule_engine
+    base_dt = dt_parse(
+        base_date,
+        default_tzinfo=const.DEFAULT_TIME_ZONE,
+        return_type=const.HELPER_RETURN_DATETIME,
     )
-
     if base_dt is None:
         const.LOGGER.error(
             "ERROR: Add Interval To DateTime - Could not parse base_date."
         )
         return None
-
-    # Type guard: normalize_datetime_input with HELPER_RETURN_DATETIME returns datetime
     base_dt = cast("datetime", base_dt)
 
-    # Calculate the basic interval addition.
-    if interval_unit == const.TIME_UNIT_MINUTES:
-        result = base_dt + timedelta(minutes=delta)
-    elif interval_unit == const.TIME_UNIT_HOURS:
-        result = base_dt + timedelta(hours=delta)
-    elif interval_unit == const.TIME_UNIT_DAYS:
-        result = base_dt + timedelta(days=delta)
-    elif interval_unit == const.TIME_UNIT_WEEKS:
-        result = base_dt + timedelta(weeks=delta)
-    elif interval_unit in {const.TIME_UNIT_MONTHS, const.TIME_UNIT_QUARTERS}:
-        multiplier = (
-            const.MONTH_INTERVAL_MULTIPLIER
-            if interval_unit == const.TIME_UNIT_MONTHS
-            else const.MONTHS_PER_QUARTER
+    # Normalize reference_datetime if provided
+    ref_utc: datetime | None = None
+    if reference_datetime:
+        ref_dt = dt_parse(
+            reference_datetime,
+            default_tzinfo=const.DEFAULT_TIME_ZONE,
+            return_type=const.HELPER_RETURN_DATETIME,
         )
-        total_months = base_dt.month - 1 + (delta * multiplier)
-        year = int(base_dt.year + total_months // const.MONTHS_PER_YEAR)
-        month = int(total_months % const.MONTHS_PER_YEAR + 1)
-        day = min(base_dt.day, monthrange(year, month)[1])
-        result = base_dt.replace(year=year, month=month, day=day)
-    elif interval_unit == const.TIME_UNIT_YEARS:
-        year = int(base_dt.year + delta)
-        day = min(base_dt.day, monthrange(year, base_dt.month)[1])
-        result = base_dt.replace(year=year, day=day)
-    else:
-        raise ValueError(f"Unsupported interval unit: {interval_unit}")
+        if ref_dt:
+            ref_utc = dt_util.as_utc(cast("datetime", ref_dt))
 
-    # Adjust result to the end of the period, if specified.
-    if end_of_period:
-        if end_of_period == const.PERIOD_DAY_END:
-            result = result.replace(
-                hour=const.END_OF_DAY_HOUR,
-                minute=const.END_OF_DAY_MINUTE,
-                second=const.END_OF_DAY_SECOND,
-                microsecond=0,
-            )
-        elif end_of_period == const.PERIOD_WEEK_END:
-            # Assuming week ends on Sunday (weekday() returns 0 for Monday; Sunday is 6).
-            days_until_sunday = (const.SUNDAY_WEEKDAY_INDEX - result.weekday()) % 7
-            result = (result + timedelta(days=days_until_sunday)).replace(
-                hour=const.END_OF_DAY_HOUR,
-                minute=const.END_OF_DAY_MINUTE,
-                second=const.END_OF_DAY_SECOND,
-                microsecond=0,
-            )
-        elif end_of_period == const.PERIOD_MONTH_END:
-            last_day = monthrange(result.year, result.month)[1]
-            result = result.replace(
-                day=last_day,
-                hour=const.END_OF_DAY_HOUR,
-                minute=const.END_OF_DAY_MINUTE,
-                second=const.END_OF_DAY_SECOND,
-                microsecond=0,
-            )
-        elif end_of_period == const.PERIOD_QUARTER_END:
-            # Calculate the last month of the current quarter.
-            last_month_of_quarter = (
-                (result.month - 1) // const.MONTHS_PER_QUARTER + 1
-            ) * const.MONTHS_PER_QUARTER
-            last_day = monthrange(result.year, last_month_of_quarter)[1]
-            result = result.replace(
-                month=last_month_of_quarter,
-                day=last_day,
-                hour=const.END_OF_DAY_HOUR,
-                minute=const.END_OF_DAY_MINUTE,
-                second=const.END_OF_DAY_SECOND,
-                microsecond=0,
-            )
-        elif end_of_period == const.PERIOD_YEAR_END:
-            result = result.replace(
-                month=const.LAST_MONTH_OF_YEAR,
-                day=const.LAST_DAY_OF_DECEMBER,
-                hour=const.END_OF_DAY_HOUR,
-                minute=const.END_OF_DAY_MINUTE,
-                second=const.END_OF_DAY_SECOND,
-                microsecond=0,
-            )
-        else:
-            raise ValueError(f"Unsupported end_of_period value: {end_of_period}")
+    # Delegate to schedule_engine.add_interval for all arithmetic
+    result_utc = _add_interval(
+        base_date=base_dt,
+        interval_unit=interval_unit,
+        delta=delta,
+        end_of_period=end_of_period,
+        require_future=require_future,
+        reference_datetime=ref_utc,
+    )
 
-    # Handle require_future logic
-    if require_future:
-        # Process reference_datetime using normalize_datetime_input
-        # Use provided reference_datetime or current time if None
-        ref_dt_input = reference_datetime or get_now_local_time()
-        reference_dt: datetime = cast(
-            "datetime",
-            normalize_datetime_input(
-                ref_dt_input,
-                default_tzinfo=local_tz,
-                return_type=const.HELPER_RETURN_DATETIME,
-            ),
+    if result_utc is None:
+        const.LOGGER.warning(
+            "WARN: Add Interval To DateTime - schedule_engine returned None. "
+            "Params: base_date=%s, interval_unit=%s, delta=%s",
+            base_date,
+            interval_unit,
+            delta,
         )
+        return None
 
-        # Convert to UTC for consistent comparison
-        result_utc = dt_util.as_utc(result)
-        reference_dt_utc = dt_util.as_utc(reference_dt)
-
-        # Loop until we have a future date
-        iteration_count = 0
-
-        while (
-            result_utc <= reference_dt_utc
-            and iteration_count < const.MAX_DATE_CALCULATION_ITERATIONS
-        ):
-            iteration_count += 1
-            previous_result = result  # Store before calculating new interval
-
-            # Add the interval again
-            if interval_unit == const.TIME_UNIT_MINUTES:
-                result = result + timedelta(minutes=delta)
-            elif interval_unit == const.TIME_UNIT_HOURS:
-                result = result + timedelta(hours=delta)
-            elif interval_unit == const.TIME_UNIT_DAYS:
-                result = result + timedelta(days=delta)
-            elif interval_unit == const.TIME_UNIT_WEEKS:
-                result = result + timedelta(weeks=delta)
-            elif interval_unit in {const.TIME_UNIT_MONTHS, const.TIME_UNIT_QUARTERS}:
-                multiplier = (
-                    const.MONTH_INTERVAL_MULTIPLIER
-                    if interval_unit == const.TIME_UNIT_MONTHS
-                    else const.MONTHS_PER_QUARTER
-                )
-                total_months = result.month - 1 + (delta * multiplier)
-                year = result.year + total_months // 12
-                month = total_months % 12 + 1
-                day = min(result.day, monthrange(year, month)[1])
-                result = result.replace(year=year, month=month, day=day)
-            elif interval_unit == const.TIME_UNIT_YEARS:
-                year = result.year + delta
-                day = min(result.day, monthrange(year, result.month)[1])
-                result = result.replace(year=year, day=day)
-
-            # Re-apply end_of_period if needed
-            if end_of_period:
-                if end_of_period == const.PERIOD_DAY_END:
-                    result = result.replace(
-                        hour=const.END_OF_DAY_HOUR,
-                        minute=const.END_OF_DAY_MINUTE,
-                        second=const.END_OF_DAY_SECOND,
-                        microsecond=0,
-                    )
-                elif end_of_period == const.PERIOD_WEEK_END:
-                    days_until_sunday = (
-                        const.SUNDAY_WEEKDAY_INDEX - result.weekday()
-                    ) % 7
-                    result = (result + timedelta(days=days_until_sunday)).replace(
-                        hour=const.END_OF_DAY_HOUR,
-                        minute=const.END_OF_DAY_MINUTE,
-                        second=const.END_OF_DAY_SECOND,
-                        microsecond=0,
-                    )
-                elif end_of_period == const.PERIOD_MONTH_END:
-                    last_day = monthrange(result.year, result.month)[1]
-                    result = result.replace(
-                        day=last_day,
-                        hour=const.END_OF_DAY_HOUR,
-                        minute=const.END_OF_DAY_MINUTE,
-                        second=const.END_OF_DAY_SECOND,
-                        microsecond=0,
-                    )
-                elif end_of_period == const.PERIOD_QUARTER_END:
-                    last_month_of_quarter = (
-                        (result.month - 1) // const.MONTHS_PER_QUARTER + 1
-                    ) * const.MONTHS_PER_QUARTER
-                    last_day = monthrange(result.year, last_month_of_quarter)[1]
-                    result = result.replace(
-                        month=last_month_of_quarter,
-                        day=last_day,
-                        hour=const.END_OF_DAY_HOUR,
-                        minute=const.END_OF_DAY_MINUTE,
-                        second=const.END_OF_DAY_SECOND,
-                        microsecond=0,
-                    )
-                elif end_of_period == const.PERIOD_YEAR_END:
-                    result = result.replace(
-                        month=const.LAST_MONTH_OF_YEAR,
-                        day=const.LAST_DAY_OF_DECEMBER,
-                        hour=const.END_OF_DAY_HOUR,
-                        minute=const.END_OF_DAY_MINUTE,
-                        second=const.END_OF_DAY_SECOND,
-                        microsecond=0,
-                    )
-
-            # Check if we're in a loop (result didn't change)
-            if result == previous_result:
-                # Break the loop by adding 1 hour
-                result = result + timedelta(hours=1)
-
-            result_utc = dt_util.as_utc(result)
-
-            if iteration_count >= const.MAX_DATE_CALCULATION_ITERATIONS:
-                const.LOGGER.warning(
-                    "WARN: Add Interval To DateTime - Maximum iterations (%d) reached! "
-                    "Params: base_date=%s, interval_unit=%s, delta=%s, reference_datetime=%s",
-                    const.MAX_DATE_CALCULATION_ITERATIONS,
-                    base_dt,
-                    interval_unit,
-                    delta,
-                    reference_dt,
-                )
-
-    # Use format_datetime_with_return_type for consistent return formatting
-    return format_datetime_with_return_type(result, return_type)
+    # Use dt_format for consistent return formatting
+    return dt_format(result_utc, return_type)
 
 
-def get_next_scheduled_datetime(
+def dt_next_schedule(
     base_date: str | date | datetime,
     interval_type: str,
     require_future: bool = True,
@@ -1606,6 +1436,9 @@ def get_next_scheduled_datetime(
 ) -> date | datetime | str | None:
     """
     Calculates the next scheduled datetime based on an interval type from a given start date.
+
+    IMPORTANT: This function ALWAYS advances by one interval from base_date first,
+    then (if require_future=True) keeps advancing until the result is after reference.
 
     Supported interval types (using local timezone):
       - Daily:         const.FREQUENCY_DAILY
@@ -1625,276 +1458,113 @@ def get_next_scheduled_datetime(
       - Accepts a string, date, or datetime object for start_date.
       - For period-end types, the helper sets the time to 23:59:00.
       - For other types, the time portion from the input is preserved.
-      - If require_future is True, the schedule is advanced until the resulting datetime is strictly after the given reference_datetime.
-      - The reference_datetime (if provided) can be a string, date, or datetime; if omitted, the current local datetime is used.
+      - If require_future is True, the schedule is advanced until the resulting datetime
+        is strictly after the given reference_datetime.
+      - The reference_datetime (if provided) can be a string, date, or datetime;
+        if omitted, the current local datetime is used.
       - The return_type is optional and defaults to returning a datetime object.
 
+    Internally delegates to RecurrenceEngine for robust scheduling calculations.
+
     Examples:
-      - get_next_scheduled_datetime("2025-04-07", const.FREQUENCY_MONTHLY)
+      - dt_next_schedule("2025-04-07", const.FREQUENCY_MONTHLY)
           → datetime.date(2025, 5, 7)
-      - get_next_scheduled_datetime("2025-04-07T09:00:00", const.FREQUENCY_WEEKLY, return_type=const.HELPER_RETURN_ISO_DATETIME)
+      - dt_next_schedule("2025-04-07T09:00:00", const.FREQUENCY_WEEKLY,
+            return_type=const.HELPER_RETURN_ISO_DATETIME)
           → "2025-04-14T09:00:00"
-      - get_next_scheduled_datetime("2025-04-07", const.PERIOD_MONTH_END, return_type=const.HELPER_RETURN_ISO_DATETIME)
+      - dt_next_schedule("2025-04-07", const.PERIOD_MONTH_END,
+            return_type=const.HELPER_RETURN_ISO_DATETIME)
           → "2025-04-30T23:59:00"
-      - get_next_scheduled_datetime("2024-06-01", const.FREQUENCY_CUSTOM_1_YEAR, require_future=True)
+      - dt_next_schedule("2024-06-01", const.FREQUENCY_CUSTOM_1_YEAR,
+            require_future=True)
           → datetime.date(2025, 6, 1)
     """
     if not base_date:
         const.LOGGER.error(
-            "ERROR: Get Next Schedule DateTime - base_date is None. Cannot calculate next scheduled datetime."
+            "ERROR: Get Next Schedule DateTime - base_date is None. "
+            "Cannot calculate next scheduled datetime."
         )
         return None
 
-    # Get the local timezone.
-    local_tz = const.DEFAULT_TIME_ZONE
-
-    # Use normalize_datetime_input for consistent handling of base_date
-    base_dt: datetime | None = cast(
-        "datetime | None",
-        normalize_datetime_input(
-            base_date, default_tzinfo=local_tz, return_type=const.HELPER_RETURN_DATETIME
-        ),
+    # Normalize base_date to datetime
+    base_dt = dt_parse(
+        base_date,
+        default_tzinfo=const.DEFAULT_TIME_ZONE,
+        return_type=const.HELPER_RETURN_DATETIME,
     )
-
     if base_dt is None:
         const.LOGGER.error(
             "ERROR: Get Next Schedule DateTime - Could not parse base_date."
         )
         return None
+    base_dt = cast("datetime", base_dt)
+    base_utc = dt_util.as_utc(base_dt)
 
-    # Internal function to calculate the next interval.
-    def calculate_next_interval(base_dt: datetime) -> datetime:
-        """
-        Calculate the next datetime based on the interval type using add_interval_to_datetime.
-        """
-        if interval_type in {const.FREQUENCY_DAILY}:
-            result = adjust_datetime_by_interval(
-                base_dt,
-                const.TIME_UNIT_DAYS,
-                1,
-                end_of_period=None,
-                return_type=const.HELPER_RETURN_DATETIME,
-            )
-            return cast("datetime", result)
-        if interval_type in {const.FREQUENCY_WEEKLY, const.FREQUENCY_CUSTOM_1_WEEK}:
-            result = adjust_datetime_by_interval(
-                base_dt,
-                const.TIME_UNIT_WEEKS,
-                1,
-                end_of_period=None,
-                return_type=const.HELPER_RETURN_DATETIME,
-            )
-            return cast("datetime", result)
-        if interval_type == const.FREQUENCY_BIWEEKLY:
-            result = adjust_datetime_by_interval(
-                base_dt,
-                const.TIME_UNIT_WEEKS,
-                2,
-                end_of_period=None,
-                return_type=const.HELPER_RETURN_DATETIME,
-            )
-            return cast("datetime", result)
-        if interval_type in {const.FREQUENCY_MONTHLY, const.FREQUENCY_CUSTOM_1_MONTH}:
-            result = adjust_datetime_by_interval(
-                base_dt,
-                const.TIME_UNIT_MONTHS,
-                1,
-                end_of_period=None,
-                return_type=const.HELPER_RETURN_DATETIME,
-            )
-            return cast("datetime", result)
-        if interval_type == const.FREQUENCY_QUARTERLY:
-            result = adjust_datetime_by_interval(
-                base_dt,
-                const.TIME_UNIT_QUARTERS,
-                1,
-                end_of_period=None,
-                return_type=const.HELPER_RETURN_DATETIME,
-            )
-            return cast("datetime", result)
-        if interval_type in {const.FREQUENCY_YEARLY, const.FREQUENCY_CUSTOM_1_YEAR}:
-            result = adjust_datetime_by_interval(
-                base_dt,
-                const.TIME_UNIT_YEARS,
-                1,
-                end_of_period=None,
-                return_type=const.HELPER_RETURN_DATETIME,
-            )
-            return cast("datetime", result)
-        if interval_type == const.PERIOD_DAY_END:
-            result = adjust_datetime_by_interval(
-                base_dt,
-                const.TIME_UNIT_DAYS,
-                0,
-                end_of_period=const.PERIOD_DAY_END,
-                return_type=const.HELPER_RETURN_DATETIME,
-            )
-            return cast("datetime", result)
-        if interval_type == const.PERIOD_WEEK_END:
-            result = adjust_datetime_by_interval(
-                base_dt,
-                const.TIME_UNIT_DAYS,
-                0,
-                end_of_period=const.PERIOD_WEEK_END,
-                return_type=const.HELPER_RETURN_DATETIME,
-            )
-            return cast("datetime", result)
-        if interval_type == const.PERIOD_MONTH_END:
-            result = adjust_datetime_by_interval(
-                base_dt,
-                const.TIME_UNIT_DAYS,
-                0,
-                end_of_period=const.PERIOD_MONTH_END,
-                return_type=const.HELPER_RETURN_DATETIME,
-            )
-            return cast("datetime", result)
-        if interval_type == const.PERIOD_QUARTER_END:
-            result = adjust_datetime_by_interval(
-                base_dt,
-                const.TIME_UNIT_DAYS,
-                0,
-                end_of_period=const.PERIOD_QUARTER_END,
-                return_type=const.HELPER_RETURN_DATETIME,
-            )
-            return cast("datetime", result)
-        if interval_type == const.PERIOD_YEAR_END:
-            result = adjust_datetime_by_interval(
-                base_dt,
-                const.TIME_UNIT_DAYS,
-                0,
-                end_of_period=const.PERIOD_YEAR_END,
-                return_type=const.HELPER_RETURN_DATETIME,
-            )
-            return cast("datetime", result)
-        raise ValueError(f"Unsupported interval type: {interval_type}")
-
-    # Calculate the initial next scheduled datetime.
-    result = calculate_next_interval(base_dt)
-
-    # Process reference_datetime using normalize_datetime_input
-    # Use provided reference_datetime or current time if None
-    ref_dt_input = reference_datetime or get_now_local_time()
-    reference_dt: datetime = cast(
-        "datetime",
-        normalize_datetime_input(
-            ref_dt_input,
-            default_tzinfo=local_tz,
-            return_type=const.HELPER_RETURN_DATETIME,
-        ),
+    # Prepare reference datetime as UTC
+    ref_dt_input = reference_datetime or dt_now_local()
+    ref_dt = dt_parse(
+        ref_dt_input,
+        default_tzinfo=const.DEFAULT_TIME_ZONE,
+        return_type=const.HELPER_RETURN_DATETIME,
     )
+    ref_dt = cast("datetime", ref_dt)
+    ref_utc = dt_util.as_utc(ref_dt)
 
-    # Convert a copy of result and reference_dt to UTC for future comparison.
-    # Prevents any inadvertent time changes to result
-    result_utc = dt_util.as_utc(result)
-    reference_dt_utc = dt_util.as_utc(reference_dt)
+    # Build ScheduleConfig for RecurrenceEngine
+    config: ScheduleConfig = {
+        "frequency": interval_type,
+        "interval": 1,  # Standard frequencies use interval=1
+        "base_date": base_utc.isoformat(),
+        "reference_datetime": ref_utc.isoformat(),
+    }
 
-    # If require_future is True, loop until result_utc is strictly after reference_dt_utc.
+    # Create engine
+    engine = RecurrenceEngine(config)
+
+    # CRITICAL SEMANTIC: Original function ALWAYS advances by one interval first.
+    # So we call get_next_occurrence with after=base_utc (strictly after base date).
+    # This gives us base_date + 1 interval.
+    result_utc = engine.get_next_occurrence(after=base_utc, require_future=True)
+
+    if result_utc is None:
+        const.LOGGER.warning(
+            "WARN: Get Next Schedule DateTime - RecurrenceEngine returned None. "
+            "Params: base_date=%s, interval_type=%s, reference_datetime=%s",
+            base_date,
+            interval_type,
+            reference_datetime,
+        )
+        return None
+
+    # If require_future=True, ensure result is after reference_datetime.
+    # Keep advancing until result > reference.
     if require_future:
         iteration_count = 0
-
         while (
-            result_utc <= reference_dt_utc
+            result_utc <= ref_utc
             and iteration_count < const.MAX_DATE_CALCULATION_ITERATIONS
         ):
             iteration_count += 1
-            previous_result = result  # Store before calculating new result
-            temp_base = result  # We keep result in local time.
-            result = calculate_next_interval(temp_base)
-
-            # Check if we're in a loop (result didn't change as can happen with period ends)
-            if result == previous_result:
-                # Break the loop by adding 1 hour and recalculating
-                temp_result = adjust_datetime_by_interval(
-                    result,
-                    const.TIME_UNIT_HOURS,
-                    1,
-                    end_of_period=None,
-                    return_type=const.HELPER_RETURN_DATETIME,
-                )
-                # Result type is guaranteed to be datetime with HELPER_RETURN_DATETIME
-                result = cast("datetime", temp_result)
-                result = calculate_next_interval(result)
-
-            result_utc = dt_util.as_utc(result)
-
-            if iteration_count >= const.MAX_DATE_CALCULATION_ITERATIONS:
-                const.LOGGER.warning(
-                    "WARN: Get Next Schedule DateTime - Maximum iterations (%d) reached! "
-                    "Params: base_date=%s, interval_type=%s, reference_datetime=%s",
-                    const.MAX_DATE_CALCULATION_ITERATIONS,
-                    base_date,
-                    interval_type,
-                    reference_dt,
-                )
-
-    # Use format_datetime_with_return_type to handle the return type formatting
-    return format_datetime_with_return_type(result, return_type)
-
-
-def get_next_applicable_day(
-    dt: datetime,
-    applicable_days: Iterable[int],
-    local_tz: tzinfo | None = None,
-    return_type: str | None = const.HELPER_RETURN_DATETIME,
-) -> datetime | date | str:
-    """
-    Advances the provided datetime to the next day (or same day) where the day-of-week
-    (as returned by dt.weekday()) is included in the applicable_days iterable.
-
-    Parameters:
-        dt (datetime): A timezone-aware datetime.
-        applicable_days (Iterable[int]): An iterable of weekday numbers (0 = Monday, ... 6 = Sunday)
-            that are considered valid.
-        local_tz (Optional[tzinfo]): The local timezone to use for conversion. If not provided,
-            defaults to const.DEFAULT_TIME_ZONE.
-        return_type (Optional[str]): Specifies the return format. Options are:
-            - const.HELPER_RETURN_DATETIME: returns a datetime object (default).
-            - const.HELPER_RETURN_DATETIME_UTC: returns a datetime object in UTC timezone.
-            - const.HELPER_RETURN_DATETIME_LOCAL: returns a datetime object in local timezone.
-            - const.HELPER_RETURN_DATE: returns a date object.
-            - const.HELPER_RETURN_ISO_DATETIME: returns an ISO-formatted datetime string.
-            - const.HELPER_RETURN_ISO_DATE: returns an ISO-formatted date string.
-
-    Returns:
-        Union[datetime, date, str]: The adjusted datetime in the format specified by return_type.
-
-    Note:
-        This function is generic with respect to weekdays—it simply compares the numeric result
-        of dt.weekday() against the provided applicable_days. Any mapping from names to numbers
-        should be done before calling this helper.
-
-    Example:
-        Suppose you want the next applicable day to be Monday (0) or Wednesday (2):
-
-            >>> dt_input = datetime(2025, 4, 12, 15, 0, tzinfo=const.DEFAULT_TIME_ZONE)
-            >>> # 2025-04-12 is a Saturday (weekday() == 5), so the next applicable day is Monday (0)
-            >>> get_next_applicable_day(dt_input, applicable_days=[0, 2])
-            2025-04-14 15:00:00-04:00
-    """
-    local_tz = local_tz or const.DEFAULT_TIME_ZONE
-
-    # Convert dt to local time.
-    local_dt = dt_util.as_local(dt)
-    if local_dt.tzinfo != local_tz:
-        local_dt = dt.astimezone(local_tz)
-
-    # Advance dt until its weekday (as an integer) is in applicable_days.
-    while local_dt.weekday() not in applicable_days:
-        # Guard against overflow: if dt is too near datetime.max, raise an error.
-        max_dt = datetime.max.replace(tzinfo=local_tz)
-        if dt >= (max_dt - timedelta(days=1)):
-            const.LOGGER.error(
-                "Overflow in get_next_applicable_day: dt is too close to datetime.max: %s",
-                dt,
+            next_result = engine.get_next_occurrence(
+                after=result_utc, require_future=True
             )
-            raise OverflowError("Date value out of range in get_next_applicable_day.")
-        dt += timedelta(days=1)
-        local_dt = dt_util.as_local(dt)
-        if local_dt.tzinfo != local_tz:
-            local_dt = dt.astimezone(local_tz)
+            if next_result is None or next_result == result_utc:
+                # No more occurrences or stuck - break out
+                break
+            result_utc = next_result
 
-    # Use format_datetime_with_return_type to handle the return type formatting
-    return format_datetime_with_return_type(dt, return_type)
+        if iteration_count >= const.MAX_DATE_CALCULATION_ITERATIONS:
+            const.LOGGER.warning(
+                "WARN: Get Next Schedule DateTime - Maximum iterations (%d) reached! "
+                "Params: base_date=%s, interval_type=%s, reference_datetime=%s",
+                const.MAX_DATE_CALCULATION_ITERATIONS,
+                base_date,
+                interval_type,
+                reference_datetime,
+            )
+
+    # Use dt_format to handle the return type formatting
+    return dt_format(result_utc, return_type)
 
 
 def cleanup_period_data(
@@ -1923,7 +1593,7 @@ def cleanup_period_data(
         retention_monthly: Number of months to retain (default: const.DEFAULT_RETENTION_MONTHLY)
         retention_yearly: Number of years to retain (default: const.DEFAULT_RETENTION_YEARLY)
     """
-    today_local = get_today_local_date()
+    today_local = dt_today_local()
 
     # Use provided values or fall back to defaults
     retention_daily = (
@@ -1948,7 +1618,7 @@ def cleanup_period_data(
     )
 
     # Daily: keep configured days
-    cutoff_daily = adjust_datetime_by_interval(
+    cutoff_daily = dt_add_interval(
         today_local.isoformat(),
         interval_unit=const.TIME_UNIT_DAYS,
         delta=-retention_daily,
@@ -1961,7 +1631,7 @@ def cleanup_period_data(
             del daily_data[day]
 
     # Weekly: keep configured weeks
-    cutoff_date = adjust_datetime_by_interval(
+    cutoff_date = dt_add_interval(
         today_local.isoformat(),
         interval_unit=const.TIME_UNIT_WEEKS,
         delta=-retention_weekly,
@@ -1976,7 +1646,7 @@ def cleanup_period_data(
             del weekly_data[week]
 
     # Monthly: keep configured months
-    cutoff_date = adjust_datetime_by_interval(
+    cutoff_date = dt_add_interval(
         today_local.isoformat(),
         interval_unit=const.TIME_UNIT_MONTHS,
         delta=-retention_monthly,

@@ -712,6 +712,26 @@ class ChallengeData(TypedDict):
 
 
 # =============================================================================
+# Schedule Engine Configuration
+# =============================================================================
+
+
+class ScheduleConfig(TypedDict, total=False):
+    """Configuration for RecurrenceEngine in schedule_engine.py.
+
+    Used to calculate next occurrences for chores, badges, and challenges.
+    All fields are optional (total=False) to support partial configuration.
+    """
+
+    frequency: str  # FREQUENCY_* or PERIOD_*_END constant from const.py
+    interval: int  # Interval count for FREQUENCY_CUSTOM (default: 1)
+    interval_unit: str  # TIME_UNIT_* constant (days, weeks, months, etc.)
+    base_date: str  # ISO datetime string - starting point for calculations
+    applicable_days: list[int]  # Weekday integers (0=Mon, 6=Sun) for filtering
+    reference_datetime: str  # ISO datetime - "after" reference for next occurrence
+
+
+# =============================================================================
 # Collection Type Aliases (for coordinator data properties)
 # =============================================================================
 
@@ -790,4 +810,6 @@ __all__ = [
     "RewardData",
     "RewardId",
     "RewardsCollection",
+    # Schedule Engine
+    "ScheduleConfig",
 ]

@@ -106,7 +106,7 @@ pytest tests/test_config_flow.py -v  # UI flow changes
 pytest tests/ -x  # Stop on first failure (debugging)
 ```
 
-**Datetime**: Always UTC-aware ISO strings. Use `kc_helpers.parse_datetime_to_utc()`
+**Datetime**: Always UTC-aware ISO strings. Use `kc_helpers.dt_to_utc()`
 
 ---
 

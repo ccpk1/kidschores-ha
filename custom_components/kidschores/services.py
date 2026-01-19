@@ -1081,7 +1081,7 @@ def async_setup_services(hass: HomeAssistant):
         if due_date_input:
             try:
                 # Convert the provided date to UTC-aware datetime
-                due_dt_raw = kh.normalize_datetime_input(
+                due_dt_raw = kh.dt_parse(
                     due_date_input,
                     return_type=const.HELPER_RETURN_DATETIME_UTC,
                 )

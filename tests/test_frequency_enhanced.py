@@ -287,7 +287,7 @@ class TestCustomFromComplete:
         set_chore_due_date(coordinator, chore_id, jan_15)
 
         # Test via helper directly (no completion timestamp passed)
-        result = kh.adjust_datetime_by_interval(
+        result = kh.dt_add_interval(
             jan_15,
             TIME_UNIT_DAYS,
             10,
@@ -971,7 +971,7 @@ class TestCustomHours:
 
         # Test the calculation directly
         jan_14_6am = datetime(2026, 1, 14, 6, 0, 0, tzinfo=UTC)
-        result = kh.adjust_datetime_by_interval(jan_14_6am, TIME_UNIT_HOURS, 4)
+        result = kh.dt_add_interval(jan_14_6am, TIME_UNIT_HOURS, 4)
 
         assert result is not None
         result_dt = cast("datetime", result)
@@ -997,7 +997,7 @@ class TestCustomHours:
 
         # Test: 22:00 + 8 hours = 06:00 next day
         jan_14_10pm = datetime(2026, 1, 14, 22, 0, 0, tzinfo=UTC)
-        result = kh.adjust_datetime_by_interval(jan_14_10pm, TIME_UNIT_HOURS, 8)
+        result = kh.dt_add_interval(jan_14_10pm, TIME_UNIT_HOURS, 8)
 
         assert result is not None
         result_dt = cast("datetime", result)
@@ -1011,7 +1011,7 @@ class TestCustomHours:
     ) -> None:
         """F3-03: 36 hour interval works correctly."""
         jan_1_noon = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)
-        result = kh.adjust_datetime_by_interval(jan_1_noon, TIME_UNIT_HOURS, 36)
+        result = kh.dt_add_interval(jan_1_noon, TIME_UNIT_HOURS, 36)
 
         # Jan 1 noon + 36 hours = Jan 3 midnight
         assert result is not None
@@ -1025,7 +1025,7 @@ class TestCustomHours:
     ) -> None:
         """F3-04: 1 hour minimum interval works."""
         jan_14_10am = datetime(2026, 1, 14, 10, 0, 0, tzinfo=UTC)
-        result = kh.adjust_datetime_by_interval(jan_14_10am, TIME_UNIT_HOURS, 1)
+        result = kh.dt_add_interval(jan_14_10am, TIME_UNIT_HOURS, 1)
 
         assert result is not None
         result_dt = cast("datetime", result)
@@ -1073,9 +1073,9 @@ class TestCustomHours:
         """F3-06: Hours + AT_MIDNIGHT_ONCE keeps state until midnight."""
         # This is a validation that hours works with all reset types
 
-        # Test using adjust_datetime_by_interval directly
+        # Test using dt_add_interval directly
         now = datetime(2026, 1, 14, 10, 0, 0, tzinfo=UTC)
-        result = kh.adjust_datetime_by_interval(now, TIME_UNIT_HOURS, 6)
+        result = kh.dt_add_interval(now, TIME_UNIT_HOURS, 6)
 
         assert result is not None
         result_dt = cast("datetime", result)
@@ -1116,7 +1116,7 @@ class TestCustomHours:
     ) -> None:
         """F3-08: Regression - days interval still works correctly."""
         jan_14 = datetime(2026, 1, 14, 10, 0, 0, tzinfo=UTC)
-        result = kh.adjust_datetime_by_interval(jan_14, TIME_UNIT_DAYS, 5)
+        result = kh.dt_add_interval(jan_14, TIME_UNIT_DAYS, 5)
 
         assert result is not None
         expected = datetime(2026, 1, 19, 10, 0, 0, tzinfo=UTC)
@@ -1129,7 +1129,7 @@ class TestCustomHours:
     ) -> None:
         """F3-09: Regression - weeks interval still works correctly."""
         jan_14 = datetime(2026, 1, 14, 10, 0, 0, tzinfo=UTC)
-        result = kh.adjust_datetime_by_interval(jan_14, TIME_UNIT_WEEKS, 2)
+        result = kh.dt_add_interval(jan_14, TIME_UNIT_WEEKS, 2)
 
         assert result is not None
         expected = datetime(2026, 1, 28, 10, 0, 0, tzinfo=UTC)
@@ -1142,7 +1142,7 @@ class TestCustomHours:
     ) -> None:
         """F3-10: Regression - months interval still works correctly."""
         jan_14 = datetime(2026, 1, 14, 10, 0, 0, tzinfo=UTC)
-        result = kh.adjust_datetime_by_interval(jan_14, TIME_UNIT_MONTHS, 1)
+        result = kh.dt_add_interval(jan_14, TIME_UNIT_MONTHS, 1)
 
         assert result is not None
         result_dt = cast("datetime", result)

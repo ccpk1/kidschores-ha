@@ -653,7 +653,7 @@ class PreV50Migrator:
             return dt_str
 
         try:
-            dt_obj_utc = kh.parse_datetime_to_utc(dt_str)
+            dt_obj_utc = kh.dt_to_utc(dt_str)
             if dt_obj_utc:
                 return dt_obj_utc.isoformat()
             raise ValueError("Parsed datetime is None")
@@ -925,7 +925,7 @@ class PreV50Migrator:
                 )
 
                 # --- Migrate period completion and claim counts for this chore ---
-                now_local = kh.get_now_local_time()
+                now_local = kh.dt_now_local()
                 today_iso = now_local.date().isoformat()
                 week_iso = now_local.strftime("%Y-W%V")
                 month_iso = now_local.strftime("%Y-%m")
@@ -1268,7 +1268,7 @@ class PreV50Migrator:
         const.LOGGER.info(
             "INFO: Migration - Starting legacy badges to badges_earned migration"
         )
-        today_local_iso = kh.get_today_local_iso()
+        today_local_iso = kh.dt_today_iso()
 
         for kid_id, kid_info in self.coordinator.kids_data.items():
             legacy_badge_names = kid_info.get(const.DATA_KID_BADGES_LEGACY, [])
@@ -1341,8 +1341,8 @@ class PreV50Migrator:
             periods = point_data.setdefault(const.DATA_KID_POINT_DATA_PERIODS, {})
 
             # Get period keys
-            today_local_iso = kh.get_today_local_date().isoformat()
-            now_local = kh.get_now_local_time()
+            today_local_iso = kh.dt_today_local().isoformat()
+            now_local = kh.dt_now_local()
             week_local_iso = now_local.strftime("%Y-W%V")
             month_local_iso = now_local.strftime("%Y-%m")
             year_local_iso = now_local.strftime("%Y")
