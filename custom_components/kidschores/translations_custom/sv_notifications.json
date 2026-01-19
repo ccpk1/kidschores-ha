@@ -101,10 +101,12 @@
   },
   "actions": {
     "approve": "Godkänna",
+    "claim": "✋ Ansök nu",
+    "complete": "Komplett",
     "disapprove": "Ogilla",
     "remind_30": "Påminn om 30 min",
+    "skip": "Hoppa",
     "approve_latest": "✅ Godkänn senaste",
-    "review_all": "👀 Recensera alla",
-    "claim": "✋ Ansök nu"
+    "review_all": "👀 Recensera alla"
   }
 }
