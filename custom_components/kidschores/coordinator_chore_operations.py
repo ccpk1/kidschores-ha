@@ -2005,7 +2005,7 @@ class ChoreOperations:
         """Check and apply overdue status for a chore (any completion criteria).
 
         Unified handler for INDEPENDENT, SHARED, and SHARED_FIRST completion criteria.
-        Uses _apply_overdue_if_due() for core overdue application logic.
+        Uses _handle_overdue_chore_state() for core overdue application logic.
         Uses _get_effective_due_date() for due date resolution.
 
         Args:
@@ -2088,7 +2088,7 @@ class ChoreOperations:
 
             # Get effective due date and apply overdue check
             due_str = self._get_effective_due_date(chore_id, kid_id)
-            self._apply_overdue_if_due(kid_id, chore_id, due_str, now_utc, chore_info)
+            self._handle_overdue_chore_state(kid_id, chore_id, due_str, now_utc, chore_info)
 
     # -------------------------------------------------------------------------
     # Overdue Notifications
@@ -2512,7 +2512,7 @@ class ChoreOperations:
             const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
             const.OVERDUE_HANDLING_AT_DUE_DATE,
         )
-        should_clear_overdue = (
+        should_clear_chore_overdue_state = (
             overdue_handling
             == const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET
         )
@@ -2521,7 +2521,7 @@ class ChoreOperations:
         # Default: Reset anything that's not PENDING or OVERDUE
         # With AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET: Also reset OVERDUE to PENDING
         states_to_skip = [const.CHORE_STATE_PENDING]
-        if not should_clear_overdue:
+        if not should_clear_chore_overdue_state:
             states_to_skip.append(const.CHORE_STATE_OVERDUE)
 
         # If no due date or the due date has passed, then reset the chore state
@@ -2581,7 +2581,7 @@ class ChoreOperations:
             const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
             const.OVERDUE_HANDLING_AT_DUE_DATE,
         )
-        should_clear_overdue = (
+        should_clear_chore_overdue_state = (
             overdue_handling
             == const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET
         )
@@ -2590,7 +2590,7 @@ class ChoreOperations:
         # Default: Skip PENDING or OVERDUE
         # With AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET: Only skip PENDING (reset OVERDUE to PENDING)
         states_to_skip = [const.CHORE_STATE_PENDING]
-        if not should_clear_overdue:
+        if not should_clear_chore_overdue_state:
             states_to_skip.append(const.CHORE_STATE_OVERDUE)
 
         for kid_id in assigned_kids:
@@ -3104,7 +3104,7 @@ class ChoreOperations:
     # Overdue Logic & Due Date Reminders
     # -------------------------------------------------------------------------
 
-    def _apply_overdue_if_due(
+    def _handle_overdue_chore_state(
         self,
         kid_id: str,
         chore_id: str,
