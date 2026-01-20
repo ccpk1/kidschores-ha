@@ -78,7 +78,7 @@ async def setup_chore_services_scenario(
 
 def get_kid_state_for_chore(coordinator: Any, kid_id: str, chore_id: str) -> str:
     """Get the current chore state for a specific kid."""
-    kid_chore_data = coordinator._get_kid_chore_data(kid_id, chore_id)
+    kid_chore_data = coordinator._get_chore_data_for_kid(kid_id, chore_id)
     return kid_chore_data.get(DATA_KID_CHORE_DATA_STATE, CHORE_STATE_PENDING)
 
 

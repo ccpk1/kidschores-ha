@@ -1190,7 +1190,7 @@ class TestOverdueAtDueDate:
         await coordinator._check_overdue_chores()
 
         # Verify state is now OVERDUE
-        kid_chore_data = coordinator._get_kid_chore_data(zoe_id, chore_id)
+        kid_chore_data = coordinator._get_chore_data_for_kid(zoe_id, chore_id)
         current_state = kid_chore_data.get(DATA_KID_CHORE_DATA_STATE)
 
         assert current_state == CHORE_STATE_OVERDUE, (
@@ -1249,7 +1249,7 @@ class TestOverdueNeverOverdue:
         )
 
         # Get initial state - should be PENDING or None (not yet initialized)
-        kid_chore_data = coordinator._get_kid_chore_data(zoe_id, chore_id)
+        kid_chore_data = coordinator._get_chore_data_for_kid(zoe_id, chore_id)
         initial_state_value = kid_chore_data.get(DATA_KID_CHORE_DATA_STATE)
         assert initial_state_value in (None, CHORE_STATE_PENDING), (
             f"Initial state should be None or PENDING, got {initial_state_value}"
@@ -1262,7 +1262,7 @@ class TestOverdueNeverOverdue:
         await coordinator._check_overdue_chores()
 
         # Verify state is STILL PENDING or None (not overdue despite past due date)
-        kid_chore_data = coordinator._get_kid_chore_data(zoe_id, chore_id)
+        kid_chore_data = coordinator._get_chore_data_for_kid(zoe_id, chore_id)
         current_state = kid_chore_data.get(DATA_KID_CHORE_DATA_STATE)
 
         assert current_state in (None, CHORE_STATE_PENDING), (
@@ -1305,7 +1305,7 @@ class TestOverdueThenReset:
         await coordinator._check_overdue_chores()
 
         # Verify state is OVERDUE
-        kid_chore_data = coordinator._get_kid_chore_data(zoe_id, chore_id)
+        kid_chore_data = coordinator._get_chore_data_for_kid(zoe_id, chore_id)
         current_state = kid_chore_data.get(DATA_KID_CHORE_DATA_STATE)
 
         assert current_state == CHORE_STATE_OVERDUE, (
@@ -1345,7 +1345,7 @@ class TestOverdueThenReset:
         await coordinator._check_overdue_chores()
 
         # Verify chore is overdue
-        kid_chore_data = coordinator._get_kid_chore_data(zoe_id, chore_id)
+        kid_chore_data = coordinator._get_chore_data_for_kid(zoe_id, chore_id)
         assert kid_chore_data.get(DATA_KID_CHORE_DATA_STATE) == CHORE_STATE_OVERDUE
 
         # Run the daily reset - this is what clears AT_DUE_DATE_THEN_RESET chores
@@ -1353,7 +1353,7 @@ class TestOverdueThenReset:
         await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
 
         # After reset, the chore should be back to PENDING
-        kid_chore_data = coordinator._get_kid_chore_data(zoe_id, chore_id)
+        kid_chore_data = coordinator._get_chore_data_for_kid(zoe_id, chore_id)
         current_state = kid_chore_data.get(DATA_KID_CHORE_DATA_STATE)
 
         assert current_state == CHORE_STATE_PENDING, (
@@ -1418,7 +1418,7 @@ class TestOverdueClaimedChoreNotOverdue:
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
 
         # Verify state is CLAIMED
-        kid_chore_data = coordinator._get_kid_chore_data(zoe_id, chore_id)
+        kid_chore_data = coordinator._get_chore_data_for_kid(zoe_id, chore_id)
         state_before = kid_chore_data.get(DATA_KID_CHORE_DATA_STATE)
         assert state_before == CHORE_STATE_CLAIMED, (
             f"State should be CLAIMED after claim, got {state_before}"
@@ -1431,7 +1431,7 @@ class TestOverdueClaimedChoreNotOverdue:
         await coordinator._check_overdue_chores()
 
         # Verify state is STILL CLAIMED (not overdue)
-        kid_chore_data = coordinator._get_kid_chore_data(zoe_id, chore_id)
+        kid_chore_data = coordinator._get_chore_data_for_kid(zoe_id, chore_id)
         state_after = kid_chore_data.get(DATA_KID_CHORE_DATA_STATE)
 
         assert state_after == CHORE_STATE_CLAIMED, (

@@ -2905,7 +2905,7 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
 
         if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
             # INDEPENDENT: Period start is per-kid in kid_chore_data
-            kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
+            kid_chore_data = self._get_chore_data_for_kid(kid_id, chore_id)
             return kid_chore_data.get(const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START)
         # SHARED/SHARED_FIRST/etc.: Period start is at chore level
         return chore_info.get(const.DATA_CHORE_APPROVAL_PERIOD_START)
@@ -7435,7 +7435,7 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
                 return
 
             # Get the PER-KID chore state (not the shared chore state)
-            kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
+            kid_chore_data = self._get_chore_data_for_kid(kid_id, chore_id)
             current_state = kid_chore_data.get(const.DATA_KID_CHORE_DATA_STATE)
 
             # Only resend if the chore is still in a state that needs parent action:

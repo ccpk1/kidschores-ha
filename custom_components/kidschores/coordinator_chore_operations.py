@@ -226,7 +226,7 @@ class ChoreOperations:
             # Determine the appropriate error message based on the error key
             if error_key == const.TRANS_KEY_ERROR_CHORE_COMPLETED_BY_OTHER:
                 # Get the name of who completed the chore
-                kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
+                kid_chore_data = self._get_chore_data_for_kid(kid_id, chore_id)
                 claimed_by = kid_chore_data.get(
                     const.DATA_CHORE_CLAIMED_BY, "another kid"
                 )
@@ -448,7 +448,7 @@ class ChoreOperations:
                 )
                 # Determine the appropriate error message based on the error key
                 if error_key == const.TRANS_KEY_ERROR_CHORE_COMPLETED_BY_OTHER:
-                    kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
+                    kid_chore_data = self._get_chore_data_for_kid(kid_id, chore_id)
                     claimed_by = kid_chore_data.get(
                         const.DATA_CHORE_CLAIMED_BY, "another kid"
                     )
@@ -1481,7 +1481,7 @@ class ChoreOperations:
         Returns:
             True if there's a pending claim (pending_claim_count > 0), False otherwise.
         """
-        kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
+        kid_chore_data = self._get_chore_data_for_kid(kid_id, chore_id)
         if not kid_chore_data:
             return False
 
@@ -1499,7 +1499,7 @@ class ChoreOperations:
         Returns:
             True if the chore is in overdue state, False otherwise.
         """
-        kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
+        kid_chore_data = self._get_chore_data_for_kid(kid_id, chore_id)
         if not kid_chore_data:
             return False
 
@@ -1517,7 +1517,7 @@ class ChoreOperations:
         Returns:
             True if approved in current period, False otherwise.
         """
-        kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
+        kid_chore_data = self._get_chore_data_for_kid(kid_id, chore_id)
         if not kid_chore_data:
             return False
 
@@ -1694,7 +1694,7 @@ class ChoreOperations:
             - (False, translation_key) if claim is blocked
         """
         # Get current state for this kid+chore
-        kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
+        kid_chore_data = self._get_chore_data_for_kid(kid_id, chore_id)
         current_state = kid_chore_data.get(
             const.DATA_KID_CHORE_DATA_STATE, const.CHORE_STATE_PENDING
         )
@@ -1738,7 +1738,7 @@ class ChoreOperations:
             - (False, translation_key) if approval is blocked
         """
         # Get current state for this kid+chore
-        kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
+        kid_chore_data = self._get_chore_data_for_kid(kid_id, chore_id)
         current_state = kid_chore_data.get(
             const.DATA_KID_CHORE_DATA_STATE, const.CHORE_STATE_PENDING
         )
@@ -2500,7 +2500,7 @@ class ChoreOperations:
                 chore_data[chore_id].pop(const.DATA_CHORE_CLAIMED_BY, None)
                 chore_data[chore_id].pop(const.DATA_CHORE_COMPLETED_BY, None)
 
-    def _get_kid_chore_data(
+    def _get_chore_data_for_kid(
         self, kid_id: str, chore_id: str
     ) -> KidChoreDataEntry | dict[str, Any]:
         """Get the chore data dict for a specific kid+chore combination.
@@ -3460,7 +3460,7 @@ class ChoreOperations:
 
             # SHARED_FIRST: Handle special states
             if criteria == const.COMPLETION_CRITERIA_SHARED_FIRST:
-                kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
+                kid_chore_data = self._get_chore_data_for_kid(kid_id, chore_id)
                 current_state = kid_chore_data.get(const.DATA_KID_CHORE_DATA_STATE)
 
                 # Kids in completed_by_other state should never be overdue
