@@ -2088,7 +2088,9 @@ class ChoreOperations:
 
             # Get effective due date and apply overdue check
             due_str = self._get_effective_due_date(chore_id, kid_id)
-            self._handle_overdue_chore_state(kid_id, chore_id, due_str, now_utc, chore_info)
+            self._handle_overdue_chore_state(
+                kid_id, chore_id, due_str, now_utc, chore_info
+            )
 
     # -------------------------------------------------------------------------
     # Overdue Notifications
@@ -3145,7 +3147,9 @@ class ChoreOperations:
         # No due date means no overdue possible - clear if previously set
         if not due_date_iso:
             if chore_id in kid_info.get(const.DATA_KID_OVERDUE_CHORES, []):
-                self._transition_chore_state(kid_id, chore_id, const.CHORE_STATE_PENDING)
+                self._transition_chore_state(
+                    kid_id, chore_id, const.CHORE_STATE_PENDING
+                )
             return False
 
         # Parse due date
@@ -3167,7 +3171,9 @@ class ChoreOperations:
         # Not yet overdue - clear any existing overdue status
         if now_utc < due_date_utc:
             if chore_id in kid_info.get(const.DATA_KID_OVERDUE_CHORES, []):
-                self._transition_chore_state(kid_id, chore_id, const.CHORE_STATE_PENDING)
+                self._transition_chore_state(
+                    kid_id, chore_id, const.CHORE_STATE_PENDING
+                )
             return False
 
         # Past due date - mark as overdue and notify
@@ -3562,7 +3568,9 @@ class ChoreOperations:
                     chore_info, chore_id, kid_id
                 )
                 # Reset chore state to PENDING for this kid
-                self._transition_chore_state(kid_id, chore_id, const.CHORE_STATE_PENDING)
+                self._transition_chore_state(
+                    kid_id, chore_id, const.CHORE_STATE_PENDING
+                )
                 const.LOGGER.info(
                     "Skipped due date for INDEPENDENT chore %s, kid %s - reset to PENDING",
                     chore_info.get(const.DATA_CHORE_NAME),
@@ -3693,7 +3701,9 @@ class ChoreOperations:
                     chore_info.get(const.DATA_CHORE_NAME, chore_id),
                     kid_id,
                 )
-                self._transition_chore_state(kid_id, chore_id, const.CHORE_STATE_PENDING)
+                self._transition_chore_state(
+                    kid_id, chore_id, const.CHORE_STATE_PENDING
+                )
                 self._reschedule_chore_next_due_date_for_kid(
                     chore_info, chore_id, kid_id
                 )

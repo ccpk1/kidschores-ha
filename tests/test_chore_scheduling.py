@@ -1484,7 +1484,9 @@ class TestIsOverdueHelper:
 
         # Verify chore_is_overdue returns False
         result = coordinator.chore_is_overdue(zoe_id, chore_id)
-        assert result is False, "chore_is_overdue() should return False for PENDING chore"
+        assert result is False, (
+            "chore_is_overdue() should return False for PENDING chore"
+        )
 
     @pytest.mark.asyncio
     async def test_is_overdue_returns_false_for_nonexistent_chore(
