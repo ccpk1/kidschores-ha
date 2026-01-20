@@ -323,8 +323,14 @@ The **`meta.schema_version`** field in storage data determines the integration's
 **Key Files**:
 
 - `custom_components/kidschores/const.py`: `SCHEMA_VERSION_STORAGE_ONLY = 42`
-- `custom_components/kidschores/coordinator.py`: Lines 851-856 (version check)
+- `custom_components/kidschores/coordinator.py`: Main coordinator (7,591 lines), uses multiple inheritance
+- `custom_components/kidschores/coordinator_chore_operations.py`: Chore operations class (3,852 lines), 43 methods in 11 sections
 - `custom_components/kidschores/__init__.py`: Lines 45-51 (migration detection)
+
+**Code Organization**: Coordinator uses Python's multiple inheritance to organize features:
+- ChoreOperations class provides 43 chore lifecycle methods organized into 11 logical sections (§1-§11)
+- TYPE_CHECKING pattern provides type hints without runtime imports
+- Pattern enables extraction of 3,688 lines (34% reduction) while maintaining single coordinator interface
 
 **Legacy Format (v41 and below)**:
 

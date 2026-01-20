@@ -5,6 +5,12 @@ This module contains all chore-related coordinator methods extracted from
 coordinator.py to improve code organization. Uses Python's multiple inheritance
 pattern - ChoreOperations is inherited by KidsChoresDataCoordinator.
 
+43 methods organized in 11 logical sections:
+- §1 Service Entry Points (7): claim_chore, approve_chore, etc.
+- §2 Coordinator Public API (7): chore_has_pending_claim, chore_is_overdue, etc.
+- §3 Validation & Authorization (2): _can_claim_chore, _can_approve_chore
+- §4-11: State machine, data management, queries, scheduling, recurring ops, reset, overdue, reminders
+
 IMPORTANT: This is a SURGICAL CODE EXTRACTION, not a refactor.
 - All logic remains IDENTICAL to the original coordinator.py methods
 - No behavior changes, no optimizations, no "improvements"

@@ -4,6 +4,10 @@
 Handles data synchronization, chore claiming and approval, badge tracking,
 reward redemption, penalty application, and recurring chore handling.
 Manages entities primarily using internal_id for consistency.
+
+Code Organization: Uses multiple inheritance to organize features by domain:
+- ChoreOperations (coordinator_chore_operations.py): 43 chore lifecycle methods
+- Future: RewardOperations, BadgeOperations, etc.
 """
 
 # Pylint suppressions for valid coordinator architectural patterns:
@@ -166,19 +170,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
                 const.CONF_RETENTION_YEARLY, const.DEFAULT_RETENTION_YEARLY
             ),
         }
-
-    def _clear_due_soon_reminder(self, chore_id: str, kid_id: str) -> None:
-        """Clear due-soon reminder tracking for a chore+kid combination (v0.5.0+).
-
-        Called when chore is claimed, approved, or rescheduled to allow
-        a fresh reminder for the next occurrence.
-
-        Args:
-            chore_id: The chore internal ID
-            kid_id: The kid internal ID
-        """
-        reminder_key = f"{chore_id}:{kid_id}"
-        self._due_soon_reminders_sent.discard(reminder_key)
 
     # -------------------------------------------------------------------------------------
     # Migrate Data and Converters
