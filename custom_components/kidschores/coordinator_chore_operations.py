@@ -62,7 +62,7 @@ class ChoreOperations:
         - update_chore_state(): Manual state override
 
     State Machine (Internal):
-        - _process_chore_state(): Central state transition logic
+        - _transition_chore_state(): Central state transition logic
         - _update_chore_data_for_kid(): Per-kid statistics tracking
 
     Validation Helpers:
@@ -267,7 +267,7 @@ class ChoreOperations:
                 translation_placeholders={"entity": chore_name},
             )
 
-        # Increment pending_count counter BEFORE _process_chore_state so has_pending_claim()
+        # Increment pending_count counter BEFORE _transition_chore_state so has_pending_claim()
         # returns the correct value during global state computation (v0.4.0+ counter-based tracking)
         # Use _update_chore_data_for_kid to ensure proper initialization
         chore_info = self.chores_data[chore_id]
@@ -282,7 +282,7 @@ class ChoreOperations:
             current_count + 1
         )
 
-        self._process_chore_state(kid_id, chore_id, const.CHORE_STATE_CLAIMED)
+        self._transition_chore_state(kid_id, chore_id, const.CHORE_STATE_CLAIMED)
 
         # Set claimed_by for ALL chore types (helper handles INDEPENDENT/SHARED_FIRST/SHARED)
         claiming_kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
@@ -298,7 +298,7 @@ class ChoreOperations:
             for other_kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
                 if other_kid_id == kid_id:
                     continue
-                self._process_chore_state(
+                self._transition_chore_state(
                     other_kid_id, chore_id, const.CHORE_STATE_COMPLETED_BY_OTHER
                 )
 
@@ -429,14 +429,14 @@ class ChoreOperations:
                 chore_info.get(const.DATA_CHORE_NAME),
             )
             for other_kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
-                self._process_chore_state(
+                self._transition_chore_state(
                     other_kid_id, chore_id, const.CHORE_STATE_PENDING
                 )
             # Clear claimed_by/completed_by for all assigned kids
             self._clear_chore_claimed_completed_by(chore_id)
         else:
             # Normal behavior: only reset the disapproved kid
-            self._process_chore_state(kid_id, chore_id, const.CHORE_STATE_PENDING)
+            self._transition_chore_state(kid_id, chore_id, const.CHORE_STATE_PENDING)
 
         # Send a notification to the kid that chore was disapproved
         if chore_info.get(
@@ -649,7 +649,7 @@ class ChoreOperations:
             )
             for other_kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
                 # Use skip_stats=True to prevent stat tracking for all kids
-                self._process_chore_state(
+                self._transition_chore_state(
                     other_kid_id, chore_id, const.CHORE_STATE_PENDING, skip_stats=True
                 )
                 # Clear claimed_by/completed_by attributes
@@ -662,7 +662,7 @@ class ChoreOperations:
                     chore_data[chore_id].pop(const.DATA_CHORE_COMPLETED_BY, None)
         else:
             # Normal behavior: only reset the kid who is undoing, skip stats
-            self._process_chore_state(
+            self._transition_chore_state(
                 kid_id, chore_id, const.CHORE_STATE_PENDING, skip_stats=True
             )
 
@@ -681,7 +681,7 @@ class ChoreOperations:
     # - Whether another kid completed the chore (SHARED_FIRST mode: completed_by_other)
     # -------------------------------------------------------------------------------------
 
-    def _process_chore_state(
+    def _transition_chore_state(
         self,
         kid_id: str,
         chore_id: str,
@@ -1421,8 +1421,8 @@ class ChoreOperations:
             # Award points only if gamification is enabled
             points_to_award = default_points if enable_gamification else 0.0
 
-            # Note - multiplier will be added in the _update_kid_points method called from _process_chore_state
-            self._process_chore_state(
+            # Note - multiplier will be added in the _update_kid_points method called from _transition_chore_state
+            self._transition_chore_state(
                 kid_id,
                 chore_id,
                 const.CHORE_STATE_APPROVED,
@@ -1431,10 +1431,10 @@ class ChoreOperations:
 
             # Decrement pending_count counter after approval (v0.4.0+ counter-based tracking)
             kid_chores_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
-            # Use get() to avoid overwriting existing data that _process_chore_state just created
+            # Use get() to avoid overwriting existing data that _transition_chore_state just created
             kid_chore_data_entry = kid_chores_data[
                 chore_id
-            ]  # Should exist from _process_chore_state
+            ]  # Should exist from _transition_chore_state
             current_count = kid_chore_data_entry.get(
                 const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT, 0
             )
@@ -1772,7 +1772,7 @@ class ChoreOperations:
                 for assigned_kid_id in chore_info.get(
                     const.DATA_CHORE_ASSIGNED_KIDS, []
                 ):
-                    self._process_chore_state(
+                    self._transition_chore_state(
                         assigned_kid_id,
                         chore_id,
                         const.CHORE_STATE_PENDING,
@@ -2039,7 +2039,7 @@ class ChoreOperations:
             if any_approved:
                 for kid_id in assigned_kids:
                     if self.is_overdue(kid_id, chore_id):
-                        self._process_chore_state(
+                        self._transition_chore_state(
                             kid_id, chore_id, const.CHORE_STATE_PENDING
                         )
                 return
@@ -2073,7 +2073,7 @@ class ChoreOperations:
                 # Kids in completed_by_other state should never be overdue
                 if current_state == const.CHORE_STATE_COMPLETED_BY_OTHER:
                     if self.is_overdue(kid_id, chore_id):
-                        self._process_chore_state(
+                        self._transition_chore_state(
                             kid_id, chore_id, const.CHORE_STATE_COMPLETED_BY_OTHER
                         )
                     continue
@@ -2081,7 +2081,7 @@ class ChoreOperations:
                 # If there's a claimant and this isn't them, clear overdue and skip
                 if claimant_kid_id and kid_id != claimant_kid_id:
                     if self.is_overdue(kid_id, chore_id):
-                        self._process_chore_state(
+                        self._transition_chore_state(
                             kid_id, chore_id, const.CHORE_STATE_PENDING
                         )
                     continue
@@ -2414,7 +2414,7 @@ class ChoreOperations:
                     chore_info, chore_id, kid_id
                 )
                 # Also reset state to PENDING (scheduled reset starts new approval period)
-                self._process_chore_state(
+                self._transition_chore_state(
                     kid_id,
                     chore_id,
                     const.CHORE_STATE_PENDING,
@@ -2541,7 +2541,7 @@ class ChoreOperations:
                     ):
                         continue  # HOLD action - skip reset for this kid
 
-                    self._process_chore_state(
+                    self._transition_chore_state(
                         kid_id,
                         chore_id,
                         const.CHORE_STATE_PENDING,
@@ -2630,7 +2630,7 @@ class ChoreOperations:
                 ):
                     continue  # HOLD action - skip reset for this kid
 
-                self._process_chore_state(
+                self._transition_chore_state(
                     kid_id,
                     chore_id,
                     const.CHORE_STATE_PENDING,
@@ -2714,7 +2714,7 @@ class ChoreOperations:
         if should_reset_state:
             for kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
                 if kid_id:
-                    self._process_chore_state(
+                    self._transition_chore_state(
                         kid_id,
                         chore_id,
                         const.CHORE_STATE_PENDING,
@@ -2840,7 +2840,7 @@ class ChoreOperations:
             == const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE
         )
         if should_reset_state:
-            self._process_chore_state(
+            self._transition_chore_state(
                 kid_id, chore_id, const.CHORE_STATE_PENDING, reset_approval_period=True
             )
 
@@ -3118,7 +3118,7 @@ class ChoreOperations:
         - Phase 5 NEVER_OVERDUE handling
         - Due date parsing with error handling
         - "Not yet due" early exit with overdue clearing
-        - Overdue state application via _process_chore_state
+        - Overdue state application via _transition_chore_state
         - Notification via _notify_overdue_chore
 
         Args:
@@ -3145,7 +3145,7 @@ class ChoreOperations:
         # No due date means no overdue possible - clear if previously set
         if not due_date_iso:
             if chore_id in kid_info.get(const.DATA_KID_OVERDUE_CHORES, []):
-                self._process_chore_state(kid_id, chore_id, const.CHORE_STATE_PENDING)
+                self._transition_chore_state(kid_id, chore_id, const.CHORE_STATE_PENDING)
             return False
 
         # Parse due date
@@ -3167,11 +3167,11 @@ class ChoreOperations:
         # Not yet overdue - clear any existing overdue status
         if now_utc < due_date_utc:
             if chore_id in kid_info.get(const.DATA_KID_OVERDUE_CHORES, []):
-                self._process_chore_state(kid_id, chore_id, const.CHORE_STATE_PENDING)
+                self._transition_chore_state(kid_id, chore_id, const.CHORE_STATE_PENDING)
             return False
 
         # Past due date - mark as overdue and notify
-        self._process_chore_state(kid_id, chore_id, const.CHORE_STATE_OVERDUE)
+        self._transition_chore_state(kid_id, chore_id, const.CHORE_STATE_OVERDUE)
         self._notify_overdue_chore(
             kid_id, chore_id, dict(chore_info), due_date_utc, now_utc
         )
@@ -3423,7 +3423,7 @@ class ChoreOperations:
         # Reset the chore state to Pending and clear pending_count for all kids
         for kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
             if kid_id:
-                self._process_chore_state(
+                self._transition_chore_state(
                     kid_id,
                     chore_id,
                     const.CHORE_STATE_PENDING,
@@ -3562,7 +3562,7 @@ class ChoreOperations:
                     chore_info, chore_id, kid_id
                 )
                 # Reset chore state to PENDING for this kid
-                self._process_chore_state(kid_id, chore_id, const.CHORE_STATE_PENDING)
+                self._transition_chore_state(kid_id, chore_id, const.CHORE_STATE_PENDING)
                 const.LOGGER.info(
                     "Skipped due date for INDEPENDENT chore %s, kid %s - reset to PENDING",
                     chore_info.get(const.DATA_CHORE_NAME),
@@ -3579,7 +3579,7 @@ class ChoreOperations:
                             chore_info, chore_id, assigned_kid_id
                         )
                         # Reset chore state to PENDING for each kid
-                        self._process_chore_state(
+                        self._transition_chore_state(
                             assigned_kid_id, chore_id, const.CHORE_STATE_PENDING
                         )
                 const.LOGGER.info(
@@ -3592,7 +3592,7 @@ class ChoreOperations:
             # Reset chore state to PENDING for all assigned kids
             for assigned_kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
                 if assigned_kid_id and assigned_kid_id in self.kids_data:
-                    self._process_chore_state(
+                    self._transition_chore_state(
                         assigned_kid_id, chore_id, const.CHORE_STATE_PENDING
                     )
             const.LOGGER.info(
@@ -3693,7 +3693,7 @@ class ChoreOperations:
                     chore_info.get(const.DATA_CHORE_NAME, chore_id),
                     kid_id,
                 )
-                self._process_chore_state(kid_id, chore_id, const.CHORE_STATE_PENDING)
+                self._transition_chore_state(kid_id, chore_id, const.CHORE_STATE_PENDING)
                 self._reschedule_chore_next_due_date_for_kid(
                     chore_info, chore_id, kid_id
                 )
@@ -3733,7 +3733,7 @@ class ChoreOperations:
                                 chore_info.get(const.DATA_CHORE_NAME, chore_id),
                                 kid_id,
                             )
-                            self._process_chore_state(
+                            self._transition_chore_state(
                                 kid_id, chore_id, const.CHORE_STATE_PENDING
                             )
                             self._reschedule_chore_next_due_date_for_kid(
@@ -3746,7 +3746,7 @@ class ChoreOperations:
                                 chore_info.get(const.DATA_CHORE_NAME, chore_id),
                                 kid_id,
                             )
-                            self._process_chore_state(
+                            self._transition_chore_state(
                                 kid_id, chore_id, const.CHORE_STATE_PENDING
                             )
         else:
@@ -3770,7 +3770,7 @@ class ChoreOperations:
                                     chore_info.get(const.DATA_CHORE_NAME, chore_id),
                                     kid_id_iter,
                                 )
-                                self._process_chore_state(
+                                self._transition_chore_state(
                                     kid_id_iter, chore_id, const.CHORE_STATE_PENDING
                                 )
                                 self._reschedule_chore_next_due_date_for_kid(
@@ -3840,7 +3840,7 @@ class ChoreOperations:
                 chore_id,
             )
             chore_points = chore_info.get(const.DATA_CHORE_DEFAULT_POINTS, 0.0)
-            self._process_chore_state(
+            self._transition_chore_state(
                 kid_id,
                 chore_id,
                 const.CHORE_STATE_APPROVED,
