@@ -673,7 +673,7 @@ class TestDueDateReminders:
         with patch.object(
             coordinator, "_notify_kid_translated", new=capture_kid_notification
         ):
-            await coordinator._check_due_date_reminders()
+            await coordinator._check_chore_due_reminders()
 
         # Verify reminder was sent
         assert len(kid_notifications) > 0, "No due-soon reminder was sent"
@@ -717,11 +717,11 @@ class TestDueDateReminders:
             coordinator, "_notify_kid_translated", new=count_notifications
         ):
             # First check - should send reminder
-            await coordinator._check_due_date_reminders()
+            await coordinator._check_chore_due_reminders()
             first_count = notifications_count
 
             # Second check - should NOT send duplicate
-            await coordinator._check_due_date_reminders()
+            await coordinator._check_chore_due_reminders()
             second_count = notifications_count
 
         assert first_count == 1, (

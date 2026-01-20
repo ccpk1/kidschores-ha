@@ -280,7 +280,7 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
             await self._check_overdue_chores()
 
             # Check for due-soon reminders (v0.5.0+)
-            await self._check_due_date_reminders()
+            await self._check_chore_due_reminders()
 
             # Notify entities of changes
             self.async_update_listeners()
@@ -400,7 +400,7 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         # Register daily/weekly/monthly resets
         async_track_time_change(
             self.hass,
-            self._handle_recurring_chore_resets,
+            self._process_recurring_chore_resets,
             **const.DEFAULT_DAILY_RESET_TIME,
         )
         async_track_time_change(

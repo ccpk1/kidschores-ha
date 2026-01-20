@@ -107,7 +107,7 @@ class ChoreOperations:
             self, kid_id: str, action: str, value: int = 1
         ) -> None: ...
         def async_set_updated_data(self, data: dict[str, Any]) -> None: ...
-        def _clear_due_soon_reminder(self, chore_id: str, kid_id: str) -> None: ...
+        def _clear_chore_due_reminder(self, chore_id: str, kid_id: str) -> None: ...
         async def _notify_parents_translated(
             self,
             kid_id: str,
@@ -311,7 +311,7 @@ class ChoreOperations:
             const.DATA_CHORE_NOTIFY_ON_CLAIM, const.DEFAULT_NOTIFY_ON_CLAIM
         ):
             # Count total pending chores for this kid (for aggregated notification)
-            pending_count = self._count_pending_chores_for_kid(kid_id)
+            pending_count = self._count_chores_pending_for_kid(kid_id)
             chore_name = self.chores_data[chore_id][const.DATA_CHORE_NAME]
             kid_name = self.kids_data[kid_id][const.DATA_KID_NAME]
             chore_points = chore_info.get(
@@ -361,7 +361,7 @@ class ChoreOperations:
                 )
 
         # Clear due-soon reminder tracking (v0.5.0+) - chore was acted upon
-        self._clear_due_soon_reminder(chore_id, kid_id)
+        self._clear_chore_due_reminder(chore_id, kid_id)
 
         self._persist()
         self.async_set_updated_data(self._data)
@@ -447,12 +447,12 @@ class ChoreOperations:
             )
 
         # Send notification to parents about disapproval with updated pending count
-        remaining_pending = self._count_pending_chores_for_kid(kid_id)
+        remaining_pending = self._count_chores_pending_for_kid(kid_id)
         kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
 
         if remaining_pending > 0:
             # Still have pending chores - send updated aggregated notification
-            latest_pending = self._get_latest_pending_chore(kid_id)
+            latest_pending = self._get_latest_chore_pending(kid_id)
             if latest_pending:
                 latest_chore_id = latest_pending.get(const.DATA_CHORE_ID, "")
                 if latest_chore_id and latest_chore_id in self.chores_data:
@@ -527,7 +527,7 @@ class ChoreOperations:
             return (False, const.TRANS_KEY_ERROR_CHORE_COMPLETED_BY_OTHER)
 
         # Determine if this is a multi-claim mode (needed for checks 2 and 3)
-        allow_multiple_claims = self._allows_multiple_claims(chore_id)
+        allow_multiple_claims = self._chore_allows_multiple_claims(chore_id)
 
         # Check 2: pending claim blocks new claims (unless multi-claim allowed)
         # For MULTI modes, re-claiming is allowed even with a pending claim
@@ -571,7 +571,7 @@ class ChoreOperations:
             return (False, const.TRANS_KEY_ERROR_CHORE_COMPLETED_BY_OTHER)
 
         # Check 2: already approved in current period (unless multi-claim allowed)
-        allow_multiple_claims = self._allows_multiple_claims(chore_id)
+        allow_multiple_claims = self._chore_allows_multiple_claims(chore_id)
 
         if not allow_multiple_claims and self.chore_is_approved_in_period(
             kid_id, chore_id
@@ -1641,9 +1641,7 @@ class ChoreOperations:
             )
 
             # Check if this is a late approval (after reset boundary passed)
-            is_late_approval = self._is_approval_after_reset_boundary(
-                chore_info, kid_id
-            )
+            is_late_approval = self._is_chore_approval_after_reset(chore_info, kid_id)
 
             # Determine if immediate reschedule is needed
             should_reschedule_immediately = (
@@ -1688,7 +1686,7 @@ class ChoreOperations:
                         "CFE-2026-002: All kids approved SHARED chore '%s', rescheduling immediately",
                         chore_info.get(const.DATA_CHORE_NAME),
                     )
-                    self._reschedule_chore_next_due_date(chore_info)
+                    self._reschedule_chore_next_due(chore_info)
 
             # Send a notification to the kid that chore was approved
             if chore_info.get(
@@ -1710,14 +1708,14 @@ class ChoreOperations:
 
             # Replace parent pending notification with status update (v0.5.0+)
             # Check if there are more pending chores or clear with status
-            remaining_pending = self._count_pending_chores_for_kid(kid_id)
+            remaining_pending = self._count_chores_pending_for_kid(kid_id)
             kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
             chore_name = chore_info.get(const.DATA_CHORE_NAME, "Unknown")
 
             if remaining_pending > 0:
                 # Still have pending chores - send updated aggregated notification
                 # Get most recent pending chore for display
-                latest_pending = self._get_latest_pending_chore(kid_id)
+                latest_pending = self._get_latest_chore_pending(kid_id)
                 if latest_pending:
                     latest_chore_id = latest_pending.get(const.DATA_CHORE_ID, "")
                     if latest_chore_id and latest_chore_id in self.chores_data:
@@ -1758,7 +1756,7 @@ class ChoreOperations:
             )
 
             # Clear due-soon reminder tracking (v0.5.0+) - chore was completed
-            self._clear_due_soon_reminder(chore_id, kid_id)
+            self._clear_chore_due_reminder(chore_id, kid_id)
 
             # For UPON_COMPLETION chores, immediately reset to PENDING and check overdue
             # This ensures chore is ready for next completion and reflects accurate state
@@ -1796,7 +1794,7 @@ class ChoreOperations:
     # =========================================================================
     # QUERY HELPERS & SCHEDULING METHODS
     # =========================================================================
-    def _allows_multiple_claims(self, chore_id: str) -> bool:
+    def _chore_allows_multiple_claims(self, chore_id: str) -> bool:
         """Check if chore allows multiple claims per approval period.
 
         Returns True for:
@@ -1843,7 +1841,7 @@ class ChoreOperations:
         )
         return pending_claim_count > 0
 
-    def _count_pending_chores_for_kid(self, kid_id: str) -> int:
+    def _count_chores_pending_for_kid(self, kid_id: str) -> int:
         """Count total pending chores awaiting approval for a specific kid.
 
         Used for tag-based notification aggregation (v0.5.0+) to show
@@ -1868,7 +1866,7 @@ class ChoreOperations:
 
         return count
 
-    def _get_latest_pending_chore(self, kid_id: str) -> dict[str, Any] | None:
+    def _get_latest_chore_pending(self, kid_id: str) -> dict[str, Any] | None:
         """Get the most recently claimed pending chore for a kid.
 
         Used for tag-based notification aggregation (v0.5.0+) to show
@@ -1997,7 +1995,7 @@ class ChoreOperations:
     # assigned are in the same state.
     # -------------------------------------------------------------------------------------
 
-    def _check_overdue_for_chore(
+    def _check_chore_overdue_status(
         self,
         chore_id: str,
         chore_info: ChoreData,
@@ -2088,7 +2086,7 @@ class ChoreOperations:
                     continue
 
             # Get effective due date and apply overdue check
-            due_str = self._get_effective_due_date(chore_id, kid_id)
+            due_str = self._get_chore_effective_due_date(chore_id, kid_id)
             self._handle_overdue_chore_state(
                 kid_id, chore_id, due_str, now_utc, chore_info
             )
@@ -2250,7 +2248,7 @@ class ChoreOperations:
                 continue
 
             # Use unified overdue check handler (handles all completion criteria)
-            self._check_overdue_for_chore(chore_id, chore_info, now_utc)
+            self._check_chore_overdue_status(chore_id, chore_info, now_utc)
 
         const.LOGGER.debug("Overdue Chores - Check completed")
 
@@ -2272,7 +2270,7 @@ class ChoreOperations:
     # Reset/reschedule logic for daily/weekly/monthly recurring chores.
     # Executed during coordinator refresh cycles at scheduled times.
 
-    async def _handle_recurring_chore_resets(self, now: datetime):
+    async def _process_recurring_chore_resets(self, now: datetime):
         """Handle recurring resets for daily, weekly, and monthly frequencies."""
 
         await self._reschedule_recurring_chores(now)
@@ -2375,7 +2373,7 @@ class ChoreOperations:
             const.CHORE_STATE_APPROVED_IN_PART,
         ]:
             # Reschedule the chore (chore-level)
-            self._reschedule_chore_next_due_date(chore_info)
+            self._reschedule_chore_next_due(chore_info)
             const.LOGGER.debug(
                 "DEBUG: Chore Rescheduling - Rescheduled recurring SHARED Chore ID '%s'",
                 chore_info.get(const.DATA_CHORE_NAME, chore_id),
@@ -2563,7 +2561,7 @@ class ChoreOperations:
                     )
 
                     # Handle pending claims (HOLD, AUTO_APPROVE, or CLEAR)
-                    if self._handle_pending_claim_at_reset(
+                    if self._handle_pending_chore_claim_at_reset(
                         kid_id, chore_id, chore_info, kid_chore_data
                     ):
                         continue  # HOLD action - skip reset for this kid
@@ -2652,7 +2650,7 @@ class ChoreOperations:
             # Check if state should be reset based on overdue handling
             if kid_state not in states_to_skip:
                 # Handle pending claims (HOLD, AUTO_APPROVE, or CLEAR)
-                if self._handle_pending_claim_at_reset(
+                if self._handle_pending_chore_claim_at_reset(
                     kid_id, chore_id, chore_info, kid_chore_data
                 ):
                     continue  # HOLD action - skip reset for this kid
@@ -2671,7 +2669,7 @@ class ChoreOperations:
                     const.CHORE_STATE_PENDING,
                 )
 
-    def _reschedule_chore_next_due_date(self, chore_info: ChoreData) -> None:
+    def _reschedule_chore_next_due(self, chore_info: ChoreData) -> None:
         """Reschedule chore's next due date (chore-level). Uses consolidation helper."""
         due_date_str = chore_info.get(const.DATA_CHORE_DUE_DATE)
         if not due_date_str:
@@ -2881,7 +2879,7 @@ class ChoreOperations:
             dt_util.as_local(next_due_utc).isoformat() if next_due_utc else "None",
         )
 
-    def _is_approval_after_reset_boundary(
+    def _is_chore_approval_after_reset(
         self, chore_info: ChoreData, kid_id: str
     ) -> bool:
         """Check if approval is happening after the reset boundary has passed.
@@ -3087,7 +3085,7 @@ class ChoreOperations:
         kid_info: KidData = cast("KidData", self.kids_data.get(kid_id, {}))
         return kid_info.get(const.DATA_KID_CHORE_DATA, {}).get(chore_id, {})
 
-    def _get_effective_due_date(
+    def _get_chore_effective_due_date(
         self,
         chore_id: str,
         kid_id: str | None = None,
@@ -3219,7 +3217,7 @@ class ChoreOperations:
     # Due date reminder notification processing (30-min advance window).
     # Called from coordinator refresh cycle to send timely reminders.
 
-    async def _check_due_date_reminders(self) -> None:
+    async def _check_chore_due_reminders(self) -> None:
         """Check for chores due soon and send reminder notifications to kids (v0.5.0+).
 
         Hooks into coordinator refresh cycle (typically every 5 min) to check for
@@ -3614,7 +3612,7 @@ class ChoreOperations:
                 )
             else:
                 # Skip template and all assigned kids' due dates
-                self._reschedule_chore_next_due_date(chore_info)
+                self._reschedule_chore_next_due(chore_info)
                 for assigned_kid_id in chore_info.get(
                     const.DATA_CHORE_ASSIGNED_KIDS, []
                 ):
@@ -3632,7 +3630,7 @@ class ChoreOperations:
                 )
         else:
             # SHARED chore: skip chore-level due date and reset state for all kids
-            self._reschedule_chore_next_due_date(chore_info)
+            self._reschedule_chore_next_due(chore_info)
             # Reset chore state to PENDING for all assigned kids
             for assigned_kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
                 if assigned_kid_id and assigned_kid_id in self.kids_data:
@@ -3749,7 +3747,7 @@ class ChoreOperations:
                     "Reset Overdue Chores: Rescheduling chore (SHARED or all kids): %s",
                     chore_info.get(const.DATA_CHORE_NAME, chore_id),
                 )
-                self._reschedule_chore_next_due_date(chore_info)
+                self._reschedule_chore_next_due(chore_info)
 
         elif kid_id:
             # Kid-only reset: reset all overdue chores for the specified kid
@@ -3829,7 +3827,7 @@ class ChoreOperations:
                                     chore_info.get(const.DATA_CHORE_NAME, chore_id),
                                     kid_id_iter,
                                 )
-                                self._reschedule_chore_next_due_date(chore_info)
+                                self._reschedule_chore_next_due(chore_info)
 
         self._persist()
         self.async_set_updated_data(self._data)
@@ -3838,7 +3836,7 @@ class ChoreOperations:
     # Penalties: Reset
     # -------------------------------------------------------------------------------------
 
-    def _handle_pending_claim_at_reset(
+    def _handle_pending_chore_claim_at_reset(
         self,
         kid_id: str,
         chore_id: str,
