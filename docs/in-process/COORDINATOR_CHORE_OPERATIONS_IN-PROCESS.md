@@ -422,19 +422,19 @@ rename_method() {
   local old_name=$1
   local new_name=$2
   local file=$3
-  
+
   echo "Renaming: $old_name → $new_name"
-  
+
   # Backup
   cp "$file" "${file}.backup"
-  
+
   # Rename method definition
   sed -i "s/def ${old_name}(/def ${new_name}(/g" "$file"
-  
+
   # Rename method calls (self. prefix)
   sed -i "s/self\.${old_name}(/self.${new_name}(/g" "$file"
   sed -i "s/coordinator\.${old_name}(/coordinator.${new_name}(/g" "$file"
-  
+
   # Run tests
   pytest tests/ -x --tb=line
   if [ $? -eq 0 ]; then
@@ -527,7 +527,7 @@ fi
 
 - [ ] All 852 tests pass
 - [ ] MyPy: 0 errors
-- [ ] Lint: 9.5+ score  
+- [ ] Lint: 9.5+ score
 - [ ] Git: 20-25 commits (1 per rename + reorganization)
 - [ ] No old method names found in codebase
 - [ ] Section headers present in file (12 sections)

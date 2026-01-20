@@ -123,15 +123,15 @@ rename_one_method() {
     local old_name=$1
     local new_name=$2
     local files=("${@:3}")
-    
+
     echo ""
     echo "  Renaming: $old_name → $new_name"
-    
+
     # Backup all affected files
     for file in "${files[@]}"; do
         cp "$file" "${file}.phase4b_backup"
     done
-    
+
     # Apply renames using sed (surgical replacement)
     for file in "${files[@]}"; do
         # Rename method definition
@@ -144,16 +144,16 @@ rename_one_method() {
         # Clean up .bak files
         rm -f "${file}.bak"
     done
-    
+
     # Run tests (fast fail)
     if python -m pytest tests/ -x --tb=line -q > /tmp/pytest_output.txt 2>&1; then
         echo "  ✅ Tests passed"
-        
+
         # Clean up backups
         for file in "${files[@]}"; do
             rm -f "${file}.phase4b_backup"
         done
-        
+
         # Commit
         git add "${files[@]}"
         git commit -m "Phase 4B: Rename $old_name → $new_name" -q
@@ -161,12 +161,12 @@ rename_one_method() {
     else
         echo "  ❌ Tests FAILED - reverting..."
         cat /tmp/pytest_output.txt | tail -20
-        
+
         # Restore backups
         for file in "${files[@]}"; do
             mv "${file}.phase4b_backup" "$file"
         done
-        
+
         return 1
     fi
 }
@@ -182,7 +182,7 @@ FAILED_RENAMES=()
 while IFS=',' read -r old new visibility section; do
     [[ "$old" == "old_name" ]] && continue
     [[ "$visibility" != "private" ]] && continue
-    
+
     if ! rename_one_method "$old" "$new" "$CHORE_OPS_FILE"; then
         FAILED_RENAMES+=("$old → $new")
     fi
@@ -208,14 +208,14 @@ PUBLIC_RENAMES=(
 
 for rename_pair in "${PUBLIC_RENAMES[@]}"; do
     IFS=',' read -r old new <<< "$rename_pair"
-    
+
     # Update all files that call these methods
     FILES_TO_UPDATE=(
         "custom_components/kidschores/coordinator_chore_operations.py"
         "custom_components/kidschores/sensor.py"
         "custom_components/kidschores/button.py"
     )
-    
+
     if ! rename_one_method "$old" "$new" "${FILES_TO_UPDATE[@]}"; then
         FAILED_RENAMES+=("$old → $new (public)")
     fi
@@ -250,13 +250,13 @@ with open(file_path, 'r') as f:
 for old, new in renames:
     # Update in single-line comments
     content = re.sub(rf'(#.*?)\b{old}\b', rf'\1{new}', content)
-    
+
     # Update in docstring references (backtick format)
     content = content.replace(f'`{old}()`', f'`{new}()`')
     content = content.replace(f'`{old}`', f'`{new}`')
-    
+
     # Update plain text references in docstrings
-    content = re.sub(rf'(["\'])([^"\']*?)\b{old}\(\)([^"\']*?)\1', 
+    content = re.sub(rf'(["\'])([^"\']*?)\b{old}\(\)([^"\']*?)\1',
                      rf'\1\2{new}()\3\1', content)
 
 with open(file_path, 'w') as f:

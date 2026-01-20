@@ -54,30 +54,18 @@ class ChoreOperations:
     Extracted from coordinator.py to improve code organization without
     changing behavior. All logic remains identical to original.
 
-    Service Entry Points (Public API):
-        - claim_chore(): Kid claims a chore for completion
-        - approve_chore(): Parent approves a claimed chore (async)
-        - disapprove_chore(): Parent rejects a claimed chore
-        - undo_chore_claim(): Revert a chore to unclaimed state
-        - update_chore_state(): Manual state override
-
-    State Machine (Internal):
-        - _transition_chore_state(): Central state transition logic
-        - _update_kid_chore_data(): Per-kid statistics tracking
-
-    Validation Helpers:
-        - _can_claim_chore(): Check if kid can claim chore
-        - _can_approve_chore(): Check if chore can be approved
-
-    Scheduling:
-        - reset_daily_chores(): Daily chore reset
-        - reschedule_chore(): Calculate next due dates
-        - _get_due_date_for_kid(): Per-kid due date calculation
-
-    Query Helpers:
-        - chore_is_overdue(): Check if chore is past due
-        - chore_has_pending_claim(): Check for pending approval
-        - get_chore_state_for_kid(): Get state for specific kid
+    File Organization:
+        §1  Service Entry Points (7 methods) - HA service handlers
+        §2  Coordinator Public API (7 methods) - Called by sensor.py, button.py
+        §3  Validation Logic (2 methods) - Pre-condition checks
+        §4  State Machine (2 methods) - Core state transitions
+        §5  Data Management (2 methods) - Kid chore data updates
+        §6  Query & Lookup (5 methods) - State/data queries
+        §7  Scheduling Logic (1 method) - Due date reminder processing
+        §8  Recurring Chore Operations (5 methods) - Recurring lifecycle
+        §9  Daily Reset Operations (4 methods) - Midnight resets
+        §10 Overdue Detection & Handling (4 methods) - Overdue processing
+        §11 Reminder Operations (1 method) - Due date notifications
     """
 
     # =========================================================================
@@ -170,16 +158,21 @@ class ChoreOperations:
     # =========================================================================
     # CHORE OPERATIONS METHODS
     # =========================================================================
-    # Methods extracted from coordinator.py following Phase 0 protocol.
-    # Each method is copied verbatim - no changes to logic, formatting, or comments.
+    # CHORE OPERATIONS - EXTRACTED FROM COORDINATOR.PY
+    # =========================================================================
+    # Methods extracted following Phase 0 protocol (Jan 2026).
+    # All logic copied verbatim - no changes to behavior, formatting, or comments.
     #
-    # Phase 2A: Service entry points + state machine (~1,800 lines)
-    # Phase 2B: Scheduling + query helpers (~1,400 lines)
+    # This file is organized into 11 logical sections (§1-§11) for clarity.
+    # Each section groups related operations by purpose and calling context.
     # =========================================================================
 
-    # -------------------------------------------------------------------------
-    # SERVICE ENTRY POINTS (Public API)
-    # -------------------------------------------------------------------------
+    # =========================================================================
+    # §1 SERVICE ENTRY POINTS (7 methods)
+    # =========================================================================
+    # Home Assistant service handlers - called from services.py
+    # External API contract: Service names in services.yaml must remain stable
+    # Internal naming: Method names can change without breaking external contracts
 
     def claim_chore(self, kid_id: str, chore_id: str, user_name: str):
         """Kid claims chore => state=claimed; parent must then approve."""
@@ -502,9 +495,10 @@ class ChoreOperations:
         self._persist()
         self.async_set_updated_data(self._data)
 
-    # -------------------------------------------------------------------------
-    # VALIDATION HELPERS
-    # -------------------------------------------------------------------------
+    # =========================================================================
+    # §3 VALIDATION LOGIC (2 methods)
+    # =========================================================================
+    # Pre-condition checks for chore operations
 
     def _can_claim_chore(self, kid_id: str, chore_id: str) -> tuple[bool, str | None]:
         """Check if a kid can claim a specific chore.
@@ -671,15 +665,11 @@ class ChoreOperations:
         self._persist()
         self.async_set_updated_data(self._data)
 
-    # -------------------------------------------------------------------------------------
-    # Claim & Approval Eligibility Helpers (Phase 4: Approval Reset Timing)
-    # These helpers use timestamp-based logic from kid_chore_data instead of the deprecated
-    # deprecated claimed_chores/approved_chores lists (removed v0.4.0). They determine whether a kid can claim or
-    # have a chore approved based on:
-    # - Whether they have a pending claim (claimed but not yet approved/disapproved)
-    # - Whether the chore was already approved in the current approval period
-    # - Whether another kid completed the chore (SHARED_FIRST mode: completed_by_other)
-    # -------------------------------------------------------------------------------------
+    # =========================================================================
+    # §4 STATE MACHINE (2 methods)
+    # =========================================================================
+    # Core state transition logic - central orchestration of chore lifecycle
+    # Timestamp-based approval tracking (removed deprecated lists in v0.4.0)
 
     def _transition_chore_state(
         self,
@@ -971,6 +961,11 @@ class ChoreOperations:
                 chore_id,
                 chore_info[const.DATA_CHORE_STATE],
             )
+
+    # =========================================================================
+    # §5 DATA MANAGEMENT (2 methods)
+    # =========================================================================
+    # Kid-specific chore data tracking and updates
 
     def _update_kid_chore_data(
         self,
@@ -1824,6 +1819,12 @@ class ChoreOperations:
             const.APPROVAL_RESET_UPON_COMPLETION,
         )
 
+    # =========================================================================
+    # §2 COORDINATOR PUBLIC API (7 methods)
+    # =========================================================================
+    # Public methods called from sensor.py, button.py
+    # Part of internal Python API but external to this operations class
+
     def chore_has_pending_claim(self, kid_id: str, chore_id: str) -> bool:
         """Check if a chore has a pending claim (claimed but not yet approved/disapproved).
 
@@ -2092,6 +2093,12 @@ class ChoreOperations:
                 kid_id, chore_id, due_str, now_utc, chore_info
             )
 
+    # =========================================================================
+    # §11 REMINDER OPERATIONS
+    # =========================================================================
+    # Notification helpers for due date reminders and overdue status.
+    # Called from §7 Scheduling Logic and §10 Overdue Detection.
+
     # -------------------------------------------------------------------------
     # Overdue Notifications
     # -------------------------------------------------------------------------
@@ -2202,6 +2209,12 @@ class ChoreOperations:
                 )
             )
 
+    # =========================================================================
+    # §10 OVERDUE DETECTION & HANDLING
+    # =========================================================================
+    # Periodic checks (coordinator refresh) to detect passed due dates.
+    # Transitions chore state to OVERDUE and sends parent notifications.
+
     async def _check_overdue_chores(self, now: datetime | None = None):
         """Check and mark overdue chores if due date is passed.
 
@@ -2252,6 +2265,12 @@ class ChoreOperations:
             kid_count,
             chore_count * kid_count,
         )
+
+    # =========================================================================
+    # §8 RECURRING CHORE OPERATIONS
+    # =========================================================================
+    # Reset/reschedule logic for daily/weekly/monthly recurring chores.
+    # Executed during coordinator refresh cycles at scheduled times.
 
     async def _handle_recurring_chore_resets(self, now: datetime):
         """Handle recurring resets for daily, weekly, and monthly frequencies."""
@@ -2427,6 +2446,12 @@ class ChoreOperations:
                     chore_info.get(const.DATA_CHORE_NAME, chore_id),
                     kid_info.get(const.DATA_KID_NAME, kid_id),
                 )
+
+    # =========================================================================
+    # §9 DAILY RESET OPERATIONS
+    # =========================================================================
+    # Midnight (and frequency-specific) chore status reset logic.
+    # Handles SHARED/INDEPENDENT completion criteria, approval reset types.
 
     async def _reset_daily_chore_statuses(self, target_freqs: list[str]):
         """Reset chore statuses and clear approved/claimed chores for chores with these freq.
@@ -3047,6 +3072,11 @@ class ChoreOperations:
                 chore_data[chore_id].pop(const.DATA_CHORE_CLAIMED_BY, None)
                 chore_data[chore_id].pop(const.DATA_CHORE_COMPLETED_BY, None)
 
+    # =========================================================================
+    # §6 QUERY & LOOKUP (5 methods)
+    # =========================================================================
+    # Read-only state and data queries
+
     def _get_kid_chore_data(
         self, kid_id: str, chore_id: str
     ) -> KidChoreDataEntry | dict[str, Any]:
@@ -3182,6 +3212,12 @@ class ChoreOperations:
             kid_id, chore_id, dict(chore_info), due_date_utc, now_utc
         )
         return True
+
+    # =========================================================================
+    # §7 SCHEDULING LOGIC
+    # =========================================================================
+    # Due date reminder notification processing (30-min advance window).
+    # Called from coordinator refresh cycle to send timely reminders.
 
     async def _check_due_date_reminders(self) -> None:
         """Check for chores due soon and send reminder notifications to kids (v0.5.0+).
