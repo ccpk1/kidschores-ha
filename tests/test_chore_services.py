@@ -678,7 +678,7 @@ class TestResetOverdueChoresService:
             await coordinator._check_overdue_chores()
 
         # Verify overdue
-        assert coordinator.is_overdue(zoe_id, chore_id), "Chore should be overdue"
+        assert coordinator.chore_is_overdue(zoe_id, chore_id), "Chore should be overdue"
         assert (
             get_kid_state_for_chore(coordinator, zoe_id, chore_id)
             == CHORE_STATE_OVERDUE
@@ -688,7 +688,7 @@ class TestResetOverdueChoresService:
         coordinator.reset_overdue_chores(chore_id, zoe_id)
 
         # Verify reset to pending and rescheduled
-        assert not coordinator.is_overdue(zoe_id, chore_id), (
+        assert not coordinator.chore_is_overdue(zoe_id, chore_id), (
             "Chore should no longer be overdue"
         )
         new_due = get_kid_due_date_for_chore(coordinator, chore_id, zoe_id)

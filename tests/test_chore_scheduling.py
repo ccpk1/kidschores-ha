@@ -483,8 +483,8 @@ class TestOverdueDetection:
             f"Chore with past due date and at_due_date handling should be OVERDUE, got {state}"
         )
 
-        # Also verify using coordinator's is_overdue method
-        assert coordinator.is_overdue(zoe_id, chore_id) is True
+        # Also verify using coordinator's chore_is_overdue method
+        assert coordinator.chore_is_overdue(zoe_id, chore_id) is True
 
     @pytest.mark.asyncio
     async def test_past_due_never_overdue_stays_pending(
@@ -514,8 +514,8 @@ class TestOverdueDetection:
             f"Chore with never_overdue should stay PENDING, got {state}"
         )
 
-        # Also verify using coordinator's is_overdue method
-        assert coordinator.is_overdue(zoe_id, chore_id) is False
+        # Also verify using coordinator's chore_is_overdue method
+        assert coordinator.chore_is_overdue(zoe_id, chore_id) is False
 
     @pytest.mark.asyncio
     async def test_future_due_not_overdue(
@@ -539,7 +539,7 @@ class TestOverdueDetection:
             f"Chore with future due date should be PENDING, got {state}"
         )
 
-        assert coordinator.is_overdue(zoe_id, chore_id) is False
+        assert coordinator.chore_is_overdue(zoe_id, chore_id) is False
 
     @pytest.mark.asyncio
     async def test_weekly_overdue_is_detected(
@@ -834,8 +834,8 @@ class TestApprovalResetAtMidnightOnce:
         state = get_kid_chore_state(coordinator, zoe_id, chore_id)
         assert state == CHORE_STATE_APPROVED
 
-        # Verify is_approved_in_current_period returns True
-        assert coordinator.is_approved_in_current_period(zoe_id, chore_id), (
+        # Verify chore_is_approved_in_period returns True
+        assert coordinator.chore_is_approved_in_period(zoe_id, chore_id), (
             "Should be approved in current period"
         )
 
@@ -1197,9 +1197,9 @@ class TestOverdueAtDueDate:
             f"at_due_date chore with past due date should be OVERDUE, got {current_state}"
         )
 
-        # Verify is_overdue helper returns True
-        assert coordinator.is_overdue(zoe_id, chore_id), (
-            "is_overdue() should return True for OVERDUE state"
+        # Verify chore_is_overdue helper returns True
+        assert coordinator.chore_is_overdue(zoe_id, chore_id), (
+            "chore_is_overdue() should return True for OVERDUE state"
         )
 
     @pytest.mark.asyncio
@@ -1220,7 +1220,7 @@ class TestOverdueAtDueDate:
         await coordinator._check_overdue_chores()
 
         # Verify state is NOT overdue
-        assert not coordinator.is_overdue(zoe_id, chore_id), (
+        assert not coordinator.chore_is_overdue(zoe_id, chore_id), (
             "Chore with future due date should not be overdue"
         )
 
@@ -1269,9 +1269,9 @@ class TestOverdueNeverOverdue:
             f"never_overdue chore should stay PENDING/None, got {current_state}"
         )
 
-        # Verify is_overdue helper returns False
-        assert not coordinator.is_overdue(zoe_id, chore_id), (
-            "is_overdue() should return False for never_overdue chore"
+        # Verify chore_is_overdue helper returns False
+        assert not coordinator.chore_is_overdue(zoe_id, chore_id), (
+            "chore_is_overdue() should return False for never_overdue chore"
         )
 
 
@@ -1312,9 +1312,9 @@ class TestOverdueThenReset:
             f"at_due_date_then_reset chore should be OVERDUE, got {current_state}"
         )
 
-        # Verify is_overdue helper returns True
-        assert coordinator.is_overdue(zoe_id, chore_id), (
-            "is_overdue() should return True for OVERDUE state"
+        # Verify chore_is_overdue helper returns True
+        assert coordinator.chore_is_overdue(zoe_id, chore_id), (
+            "chore_is_overdue() should return True for OVERDUE state"
         )
 
     @pytest.mark.asyncio
@@ -1383,7 +1383,7 @@ class TestOverdueThenReset:
         await coordinator._check_overdue_chores()
 
         # Verify chore is marked overdue
-        assert coordinator.is_overdue(zoe_id, chore_id), (
+        assert coordinator.chore_is_overdue(zoe_id, chore_id), (
             "Chore should be marked overdue before reset"
         )
 
@@ -1392,7 +1392,7 @@ class TestOverdueThenReset:
         await coordinator._check_overdue_chores()
 
         # Still overdue
-        assert coordinator.is_overdue(zoe_id, chore_id), (
+        assert coordinator.chore_is_overdue(zoe_id, chore_id), (
             "Chore should remain overdue until explicit reset"
         )
 
@@ -1440,7 +1440,7 @@ class TestOverdueClaimedChoreNotOverdue:
 
 
 class TestIsOverdueHelper:
-    """Tests for the coordinator.is_overdue() helper method."""
+    """Tests for the coordinator.chore_is_overdue() helper method."""
 
     @pytest.mark.asyncio
     async def test_is_overdue_returns_true_for_overdue_state(
@@ -1448,7 +1448,7 @@ class TestIsOverdueHelper:
         hass: HomeAssistant,
         scheduling_scenario: SetupResult,
     ) -> None:
-        """Test: is_overdue() returns True when chore state is OVERDUE."""
+        """Test: chore_is_overdue() returns True when chore state is OVERDUE."""
         coordinator = scheduling_scenario.coordinator
         zoe_id = scheduling_scenario.kid_ids["Zoë"]
         chore_map = scheduling_scenario.chore_ids
@@ -1461,9 +1461,9 @@ class TestIsOverdueHelper:
         # Run overdue check to mark chore as overdue
         await coordinator._check_overdue_chores()
 
-        # Verify is_overdue returns True
-        result = coordinator.is_overdue(zoe_id, chore_id)
-        assert result is True, "is_overdue() should return True for OVERDUE chore"
+        # Verify chore_is_overdue returns True
+        result = coordinator.chore_is_overdue(zoe_id, chore_id)
+        assert result is True, "chore_is_overdue() should return True for OVERDUE chore"
 
     @pytest.mark.asyncio
     async def test_is_overdue_returns_false_for_pending_state(
@@ -1471,7 +1471,7 @@ class TestIsOverdueHelper:
         hass: HomeAssistant,
         scheduling_scenario: SetupResult,
     ) -> None:
-        """Test: is_overdue() returns False when chore state is PENDING."""
+        """Test: chore_is_overdue() returns False when chore state is PENDING."""
         coordinator = scheduling_scenario.coordinator
         zoe_id = scheduling_scenario.kid_ids["Zoë"]
         chore_map = scheduling_scenario.chore_ids
@@ -1482,9 +1482,9 @@ class TestIsOverdueHelper:
         # Run overdue check
         await coordinator._check_overdue_chores()
 
-        # Verify is_overdue returns False
-        result = coordinator.is_overdue(zoe_id, chore_id)
-        assert result is False, "is_overdue() should return False for PENDING chore"
+        # Verify chore_is_overdue returns False
+        result = coordinator.chore_is_overdue(zoe_id, chore_id)
+        assert result is False, "chore_is_overdue() should return False for PENDING chore"
 
     @pytest.mark.asyncio
     async def test_is_overdue_returns_false_for_nonexistent_chore(
@@ -1492,17 +1492,17 @@ class TestIsOverdueHelper:
         hass: HomeAssistant,
         scheduling_scenario: SetupResult,
     ) -> None:
-        """Test: is_overdue() returns False for non-existent chore."""
+        """Test: chore_is_overdue() returns False for non-existent chore."""
         coordinator = scheduling_scenario.coordinator
         zoe_id = scheduling_scenario.kid_ids["Zoë"]
 
         # Use a fake chore ID
         fake_chore_id = "nonexistent-chore-id-12345"
 
-        # Verify is_overdue returns False (not an error)
-        result = coordinator.is_overdue(zoe_id, fake_chore_id)
+        # Verify chore_is_overdue returns False (not an error)
+        result = coordinator.chore_is_overdue(zoe_id, fake_chore_id)
         assert result is False, (
-            "is_overdue() should return False for non-existent chore"
+            "chore_is_overdue() should return False for non-existent chore"
         )
 
 
@@ -1546,7 +1546,7 @@ class TestPendingClaimHold:
         assert state_before == CHORE_STATE_CLAIMED
 
         # Verify has pending claim
-        assert coordinator.has_pending_claim(zoe_id, chore_id), (
+        assert coordinator.chore_has_pending_claim(zoe_id, chore_id), (
             "Should have pending claim before reset"
         )
 
@@ -1560,7 +1560,7 @@ class TestPendingClaimHold:
         )
 
         # Verify still has pending claim
-        assert coordinator.has_pending_claim(zoe_id, chore_id), (
+        assert coordinator.chore_has_pending_claim(zoe_id, chore_id), (
             "Should still have pending claim after reset with HOLD action"
         )
 
@@ -1659,7 +1659,7 @@ class TestPendingClaimClear:
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
 
         # Verify has pending claim before reset
-        assert coordinator.has_pending_claim(zoe_id, chore_id), (
+        assert coordinator.chore_has_pending_claim(zoe_id, chore_id), (
             "Should have pending claim before reset"
         )
 
@@ -1670,7 +1670,7 @@ class TestPendingClaimClear:
         await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
 
         # Verify pending claim is cleared
-        assert not coordinator.has_pending_claim(zoe_id, chore_id), (
+        assert not coordinator.chore_has_pending_claim(zoe_id, chore_id), (
             "Should NOT have pending claim after reset with CLEAR action"
         )
 
@@ -1811,7 +1811,7 @@ class TestPendingClaimAutoApprove:
         coordinator.claim_chore(zoe_id, chore_id, "Test User")
 
         # Verify has pending claim before reset
-        assert coordinator.has_pending_claim(zoe_id, chore_id), (
+        assert coordinator.chore_has_pending_claim(zoe_id, chore_id), (
             "Should have pending claim before reset"
         )
 
@@ -1822,7 +1822,7 @@ class TestPendingClaimAutoApprove:
         await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
 
         # Verify pending claim is cleared after auto-approval and reset
-        assert not coordinator.has_pending_claim(zoe_id, chore_id), (
+        assert not coordinator.chore_has_pending_claim(zoe_id, chore_id), (
             "Should NOT have pending claim after auto-approval"
         )
 
@@ -1852,7 +1852,7 @@ class TestPendingClaimEdgeCases:
         assert state_before == CHORE_STATE_APPROVED
 
         # Verify no pending claim (already approved)
-        assert not coordinator.has_pending_claim(zoe_id, chore_id), (
+        assert not coordinator.chore_has_pending_claim(zoe_id, chore_id), (
             "Approved chore should not have pending claim"
         )
 
@@ -2205,7 +2205,7 @@ class TestTimeBoundaryCrossing:
         coordinator._persist()
 
         # Approval was before period_start → not approved in current period
-        assert not coordinator.is_approved_in_current_period(zoe_id, chore_id), (
+        assert not coordinator.chore_is_approved_in_period(zoe_id, chore_id), (
             "Approval from yesterday should not count in today's period"
         )
 
@@ -2252,7 +2252,7 @@ class TestTimeBoundaryCrossing:
         coordinator._persist()
 
         # Approval was before period_start → not in current period
-        assert not coordinator.is_approved_in_current_period(zoe_id, chore_id), (
+        assert not coordinator.chore_is_approved_in_period(zoe_id, chore_id), (
             "Approval from before midnight should not count in today's period"
         )
 
@@ -2292,7 +2292,7 @@ class TestTimeBoundaryCrossing:
         coordinator._persist()
 
         # Approval was before period_start → not in current period
-        assert not coordinator.is_approved_in_current_period(zoe_id, chore_id), (
+        assert not coordinator.chore_is_approved_in_period(zoe_id, chore_id), (
             "Old approval should not count after due date passed"
         )
 
@@ -2392,7 +2392,7 @@ class TestSharedChoreApprovalReset:
         await coordinator.approve_chore("parent", zoe_id, chore_id)
 
         # Zoë is now approved for this period
-        assert coordinator.is_approved_in_current_period(zoe_id, chore_id), (
+        assert coordinator.chore_is_approved_in_period(zoe_id, chore_id), (
             "Zoë should be approved in current period"
         )
 
@@ -2474,7 +2474,7 @@ class TestSharedChoreApprovalReset:
         await coordinator.approve_chore("parent", zoe_id, chore_id)
 
         # Verify Zoë is approved in current period
-        zoe_approved = coordinator.is_approved_in_current_period(zoe_id, chore_id)
+        zoe_approved = coordinator.chore_is_approved_in_period(zoe_id, chore_id)
         assert zoe_approved, "Zoë should be approved in current period"
 
         # For SHARED_ALL chores, Max can still complete (he hasn't yet)
