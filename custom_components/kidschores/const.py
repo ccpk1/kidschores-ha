@@ -156,6 +156,12 @@ PERIOD_QUARTER_END: Final = "quarter_end"
 PERIOD_WEEK_END: Final = "week_end"
 PERIOD_YEAR_END: Final = "year_end"
 
+# Period Format Strings (single source of truth for StatisticsEngine)
+PERIOD_FORMAT_DAILY: Final = "%Y-%m-%d"
+PERIOD_FORMAT_WEEKLY: Final = "%Y-W%V"
+PERIOD_FORMAT_MONTHLY: Final = "%Y-%m"
+PERIOD_FORMAT_YEARLY: Final = "%Y"
+
 # Sentinel Values
 SENTINEL_EMPTY: Final = ""
 SENTINEL_NONE: Final = None
@@ -621,6 +627,7 @@ DATA_KID_BADGES_EARNED_PERIODS_DAILY: Final = "daily"
 DATA_KID_BADGES_EARNED_PERIODS_WEEKLY: Final = "weekly"
 DATA_KID_BADGES_EARNED_PERIODS_MONTHLY: Final = "monthly"
 DATA_KID_BADGES_EARNED_PERIODS_YEARLY: Final = "yearly"
+DATA_KID_BADGES_EARNED_PERIODS_ALL_TIME: Final = "all_time"
 
 
 # Badge Progress Data Structure
@@ -854,6 +861,7 @@ DATA_KID_REWARD_DATA_PERIODS_DAILY: Final = "daily"
 DATA_KID_REWARD_DATA_PERIODS_WEEKLY: Final = "weekly"
 DATA_KID_REWARD_DATA_PERIODS_MONTHLY: Final = "monthly"
 DATA_KID_REWARD_DATA_PERIODS_YEARLY: Final = "yearly"
+DATA_KID_REWARD_DATA_PERIODS_ALL_TIME: Final = "all_time"
 DATA_KID_REWARD_DATA_PERIOD_CLAIMED: Final = "claimed"
 DATA_KID_REWARD_DATA_PERIOD_APPROVED: Final = "approved"
 DATA_KID_REWARD_DATA_PERIOD_DISAPPROVED: Final = "disapproved"
@@ -890,6 +898,7 @@ DATA_KID_POINT_DATA_PERIODS_DAILY: Final = "daily"
 DATA_KID_POINT_DATA_PERIODS_WEEKLY: Final = "weekly"
 DATA_KID_POINT_DATA_PERIODS_MONTHLY: Final = "monthly"
 DATA_KID_POINT_DATA_PERIODS_YEARLY: Final = "yearly"
+DATA_KID_POINT_DATA_PERIODS_ALL_TIME: Final = "all_time"
 
 # Within each period entry:
 #   – points_total: net delta for that period

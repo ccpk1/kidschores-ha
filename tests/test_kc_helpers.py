@@ -44,7 +44,9 @@ class TestEntityLookupHelpers:
         kid_info = coordinator.kids_data.get(kid_id, {})
         kid_name = kid_info.get(const.DATA_KID_NAME)
 
-        result = kh.get_kid_id_by_name(coordinator, kid_name)
+        result = kh.get_entity_id_by_name(
+            coordinator, const.ENTITY_TYPE_KID, str(kid_name)
+        )
 
         assert result == kid_id
 
@@ -54,7 +56,9 @@ class TestEntityLookupHelpers:
         """Should return None for missing entity."""
         coordinator = scenario_minimal.coordinator
 
-        result = kh.get_kid_id_by_name(coordinator, "NonexistentKid")
+        result = kh.get_entity_id_by_name(
+            coordinator, const.ENTITY_TYPE_KID, "NonexistentKid"
+        )
 
         assert result is None
 

@@ -242,6 +242,7 @@ class ChoreData(TypedDict):
 - ✅ Keys are determined at runtime
 - ✅ Code accesses structure with variable keys
 - ✅ Structure is built dynamically from aggregations
+- ✅ Enables smart, efficient code patterns that type checkers can't fully understand
 
 ```python
 # ❌ WRONG: TypedDict with dynamic access
@@ -267,6 +268,21 @@ stats[field_name] += 1  # ✅ Works as intended
 - Using TypedDict for dynamic structures requires 100+ `# type: ignore` suppressions
 - Those suppressions disable type checking where it's most needed
 - Being honest about structure type enables mypy to catch real bugs
+- **Variable-based key access is idiomatic, efficient Python**—type checkers flag it because they can't infer runtime key values, not because the code is wrong
+- Type suppressions are **IDE-level hints only**: they don't affect runtime performance or indicate code quality issues
+
+**Acceptable Suppressions** (when TypedDict storage contracts differ from intermediate values):
+
+```python
+# Hybrid types: date objects converted to ISO strings before storage
+progress.update({
+    "maintenance_end_date": next_end  # next_end: str | date | None
+})  # pyright: ignore[reportArgumentType]
+
+# Dynamic field resets in loops
+for field, default in reset_fields:
+    progress[field] = default  # type: ignore[literal-required]
+```
 
 **Current Type Breakdown** (`type_defs.py`):
 

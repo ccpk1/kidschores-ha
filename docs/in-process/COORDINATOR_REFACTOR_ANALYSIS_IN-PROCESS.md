@@ -323,6 +323,343 @@ await self._notify_chore_approval(...)
 
 ### 5.2 Risk Factors by Phase
 
+---
+
+## 6. Alternative Approach: File Organization Without Architectural Change
+
+**User Question**: "Is there benefit in simply separating out the main chore logic and gamification logic into separate .py files to improve the organization and management of this monolith?"
+
+### 6.1 The Pragmatic Middle Ground
+
+**What this means**: Split coordinator.py physically into multiple files WITHOUT extracting into proper manager classes.
+
+**Three implementation patterns**:
+
+#### Option A: **Operations Classes via Multiple Inheritance** ⭐ RECOMMENDED
+
+**Terminology Note**: Python calls these "mixins" (standard term used in Home Assistant core 20+ times), but you can also think of them as:
+
+- "Operations classes" (more descriptive)
+- "Feature modules" (clearer intent)
+- "Behavior classes" (what they provide)
+
+All refer to the same pattern: using multiple inheritance to organize code by feature area.
+
+````python
+# File: coordinator_chore_operations.py
+class ChoreOperations:
+    """Chore-related coordinator methods (1200+ lines).
+
+    This class provides all chore lifecycle operations: claim, approve,
+    disapprove, scheduling, and state management.
+    """
+
+    def claim_chore(self, kid_id: str, chore_id: str, context: Any) -> bool:
+        """Kid claims a chore (service call handler)."""
+        # Access self._data, self.kids_data, etc.
+        # All existing code stays the same
+
+    def approve_chore(self, parent_id: str, kid_id: str, chore_id: str, ...) -> None:
+        """Parent approves chore."""
+        # Existing logic unchanged
+
+    # 20+ more chore methods...
+
+# File: coordinator_badge_operations.py
+class BadgeOperations:
+    """Badge-related coordinator methods (1945+ lines).
+
+    This class provides badge checking, awarding, maintenance, and
+    progress tracking operations.
+    """
+
+    def _check_badges_for_kid(self, kid_id: str) -> None:
+        """Check and award badges for kid."""
+        # Existing logic unchanged
+
+    # 15+ more badge methods...
+
+# File: coordinator.py (NOW ~3000 lines instead of 11,804)
+from .coordinator_chore_operations import ChoreOperations
+from .coordinator_badge_operations import BadgeOperations
+
+class KidsChoresDataCoordinator(
+    ChoreOperations,
+    BadgeOperations,
+    DataUpdateCoordinator
+):
+    """Main coordinator - now organized by feature area via multiple inheritance."""
+    ultiple inheritance is a standard Python pattern (used throughout HA core)
+- ✅ **Test-safe** - no test changes needed (same API)
+- ✅ **Easy navigation** - find chore logic in one file, badges in another
+- ✅ **Reduces merge conflicts** - team members can work on different operation classes
+- ✅ **Incremental** - can move one category at a time
+- ✅ **Clear naming** - files named by purpose (coordinator_chore_operations.py)
+
+**Cons**:
+- ⚠️ Still tightly coupled (operation classes access `self._data` freely)
+- ⚠️ Doesn't solve God Object architecturally (just organizes it)
+- ⚠️ Multiple inheritance requires understanding method resolution order (MRO) (same API)
+- ✅ **Easy navigation** - find chore logic in one file, badges in another
+- ✅ **Reduces merge conflicts** - team members can work on different mixins
+- ✅ **Incremental** - can move one category at a time
+
+**Cons**:
+- ⚠️ Still tightly coupled (mixins access `self._data` freely)
+- ⚠️ Doesn't solve God Object architecturally
+- ⚠️ Multiple inheritance can be confusing
+
+**Effort**: **16-24 hours**
+- Identify logicaloperation class files
+- Update imports in coordinator.py
+- Run full test suite (should pass without changes)
+- No architectural redesign needed
+
+**File naming convention**: `coordinator_<feature>_operations.py`
+- More descriptive than "mixin"
+- Clear what each file contains
+- Standard Python multiple inheritance pattern
+- No architectural redesign needed
+
+#### Option B: **Delegate Pattern** (Middle Complexity)
+
+```python
+# File: coordinator_chore_ops.py
+class ChoreOperations:
+    """Chore operations that need coordinator access."""
+
+    def __init__(self, coordinator: "KidsChoresDataCoordinator"):
+        self._coord = coordinator  # Back-reference
+
+    def claim_chore(self, kid_id: str, chore_id: str, context: Any) -> bool:
+        # Access self._coord._data, self._coord.kids_data, etc.
+        chore_info = self._coord.chores_data[chore_id]
+        # Existing logic...
+
+# File: coordinator.py
+class KidsChoresDataCoordinator(DataUpdateCoordinator):
+    def __init__(self, ...):
+        super().__init__(...)
+        self.chore_ops = ChoreOperations(self)
+        self.badge_ops = BadgeOperations(self)
+
+    def claim_chore(self, kid_id: str, chore_id: str, context: Any) -> bool:
+        """Delegate to chore operations."""
+        return self.chore_ops.claim_chore(kid_id, chore_id, context)
+````
+
+**Pros**:
+
+- ✅ Clearer separation (chores are a "thing")
+- ✅ Easier to test in isolation (can mock coordinator)
+- ✅ Migration path to full extraction later
+
+**Cons**:
+
+- ⚠️ Still coupled (delegate needs full coordinator reference)
+- ⚠️ **Requires test changes** - services call coordinator methods, need wrappers
+- ⚠️ More boilerplate (every method needs wrapper in coordinator)
+
+**Effort**: **40-60 hours**
+
+#### Option C: **File Splitting** (Least Pythonic) ❌ NOT RECOMMENDED
+
+```python
+# Split class across files using import tricks
+# File: coordinator_chore_methods.py
+def claim_chore(self, kid_id: str, chore_id: str, context: Any) -> bool:
+    # Existing logic
+
+# File: coordinator.py
+from .coordinator_chore_methods import *  # Import all methods
+```
+
+**Cons**:
+
+- ❌ Confusing - methods defineOperations Classes via Multiple Inheritance
+
+**Proposed file structure**:
+
+```
+coordinator.py (Core + initialization: ~3000 lines)
+├── coordinator_chore_operations.py (1200 lines)
+│   ├── ChoreOperations class
+│   ├── claim_chore()
+│   ├── approve_chore()
+│   ├── disapprove_chore()
+│   ├── _process_chore_state()
+│   ├── _update_chore_data_for_kid()
+│   └── Chore scheduling helpers
+├── coordinator_badge_operations.py (1945 lines)
+│   ├── BadgeOperations class
+│   ├── _check_badges_for_kid()
+│   ├── _award_badge()
+│   ├── _manage_badge_maintenance()
+│   └── Badge progress tracking
+├── coordinator_reward_operations.py (~500 lines)
+│   ├── RewardOperations class
+│   ├── claim_reward()
+│   ├── approve_reward()
+│   └── Reward validation
+├── coordinator_achievement_operations.py (~300 lines)
+│   ├── AchievementOperations class
+│   ├── _check_achievements()
+│   └── Achievement progress
+├── coordinator_points_operations.py (~400 lines)
+│   ├── PointsOperations class
+│   ├── update_kid_points()
+│   ├── adjust_points()
+│   └── Points history
+└── coordinator_notification_operations.py (~600 lines)
+    ├── NotificationOperations class
+    ├── _notify_kid()
+    ├── _notify_chore_approval()
+    └── Notification dispatching
+```
+
+**Result**: coordinator.py reduces from 11,804 → ~3,000 lines
+
+**Why "operations" naming?**
+
+- | Clearer than "mixin" (which is Python jargon)Operations Classes | Current State |
+  | --------------------------------------------------------------- | ------------- | ------------ | --------- |
+  | **Easier navigation**                                           | ✅ High       | ✅ High      | ❌ Poor   |
+  | **Reduced coupling**                                            | ✅ Yes        | ❌ No        | ❌ No     |
+  | **Test stability**                                              | ⚠️ High risk  | ✅ Stable    | ✅ Stable |
+  | **Merge conflict risk**                                         | ✅ Low        | ✅ Low       | ❌ High   |
+  | **Effort**                                                      | 6-8 weeks     | **2-3 days** | 0         |
+  | **Architectural purity**                                        | ✅ Yes        | ❌ No        |
+  **Result**: coordinator.py reduces from 11,804 → ~3,000 lines
+
+### 6.3 Value Proposition
+
+| Benefit                  | Full Refactor (Phase 3) | Mix-in Pattern | Current State |
+| ------------------------ | ----------------------- | -------------- | ------------- |
+| **Easier navigation**    | ✅ High                 | ✅ High        | ❌ Poor       |
+| **Reduced coupling**     | ✅ Yes                  | ❌ No          | ❌ No         |
+| **Test stability**       | ⚠️ High risk            | ✅ Stable      | ✅ Stable     |
+| **Merge conflict risk**  | ✅ Low                  | ✅ Low         | ❌ High       |
+| **Effort**               | 6-8 weeks               | **2-3 days**   | 0             |
+| **Architectural purity** | ✅ Yes                  | ❌ No          | ❌ No         |
+
+### 6.4 Strategic Assessment
+
+**The operations class pattern is a HIGH-VALUE, LOW-RISK improvement** that:
+
+1. **Addresses the immediate pain** (hard to find code in 11K line file)
+2. **Doesn't risk breaking 782 tests** (zero logic changes)
+3. **Enables parallel development** (team members work on different operation classes)
+4. **Can be done incrementally** (move one category at a time)
+5. **Doesn't preclude future refactoring** (can still do Phase 3 later)
+6. **Clear naming** (operations vs mixin jargon)
+
+**Recommendation**: ✅ **Do operations class refactor NOW** (Phase 2.5)
+
+- Effort: 2-3 days
+- Risk: Minimal
+- Value: Immediate developer experience improvement
+- Timing: Can be done before v0.6.0 release
+
+**Then decide on Phase 3** based on:
+
+- Are we planning major feature additions that would benefit from proper separation?
+- Do we have 6-8 weeks for architectural work?
+- Is the coupling causing active development problems?
+  Operations Class Refactor
+
+**Phase 2.5: Coordinator Organization Refactor**
+
+**Goal**: Split coordinator.py into logical operation class files without changing behavior
+
+**Steps**:
+
+1. **Create operation class files** (2-4 hours)
+   - `coordinator_chore_operations.py`
+   - `coordinator_badge_operations.py`
+   - `coordinator_reward_operations.py`
+   - `coordinator_achievement_operations.py`
+   - `coordinator_points_operations.py`
+   - `coordinator_notification_operations.py`
+
+2. **Move methods by category** (8-12 hours)
+   - Copy methods to appropriate operations class
+   - Add docstring explaining class purpose
+   - Add type hints for `self` if needed (usually not required)
+   - Keep all logic identical
+
+3. **Update coordinator.py** (2 hours)
+   - Add operation class imports
+   - Update class definition to inherit from operation classes
+   - Update class definition
+   - Remove moved methods
+   - Keep initialization logic
+
+4. **Validation** (2-3 hours)
+   - Run MyPy (should pass with 0 errors)
+   - Run full test suite (all 782 tests should pass)
+   - Quick lint check
+   - Verify imports work
+
+**Total effort**: 16-24 hours (2-3 days)
+
+**Success criteria**:
+
+- ✅ MyPy: 0 errors
+- ✅ Tests: 782/782 passing
+- ✅ Lint: 9.5+/10
+- ✅ coordinator.py: <4000 lines
+- ✅ Each mixin: single logical concern
+
+---
+
+## 7. Final Recommendations
+
+### For v0.5.0:
+
+1. ✅ **COMPLETE**: Phase 1 (TypedDicts) - Already done
+2. ✅ **COMPLETE**: Phase Operations Class Organization) - **RECOMMENDED NEXT**
+   - 2-3 days effort
+   - Minimal risk
+   - Immediate developer experience benefit
+   - Clear naming: coordinator\_<feature>\_operations.py
+
+### For v0.6.0+:
+
+4. **Phase 3 Decision Point**: Re-evaluate based on:
+   - Feature roadmap (do we need the flexibility?)
+   - Team capacity (6-8 weeks available?)
+   - Pain points (is coupling causing active problems?)
+
+**If in doubt, DEFER Phase 3** - the operations class pattern gives you 80% of the navigation benefit for 10% of the effort and risk.
+
+---
+
+## Terminology Appendix
+
+**"Mixin" vs "Operations Class"**: Same pattern, different terminology
+
+- **Mixin**: Standard Python/Django term. Used in Home Assistant core (20+ times). Technically correct but jargon-heavy.
+- **Operations Class**: More descriptive, clearer intent. Same implementation (multiple inheritance).
+- **Pattern**: Split large class into feature-focused classes using multiple inheritance
+
+**Example from HA Core**:
+
+```python
+# From homeassistant/components/mqtt/entity.py
+class MqttEntity(MqttAttributesMixin, MqttAvailabilityMixin, Entity):
+    # Entity inherits methods from both mixins
+```
+
+**KidsChores equivalent**:
+
+```python
+# Clearer naming for our use case
+class KidsChoresDataCoordinator(ChoreOperations, BadgeOperations, DataUpdateCoordinator):
+    # Coordinator inherits methods from both operation classes
+```
+
+**If in doubt, DEFER Phase 3** - the mix-in pattern gives you 80% of the navigation benefit for 10% of the effort and risk.
+
 | Phase    | Risk Level | Reason                                |
 | -------- | ---------- | ------------------------------------- |
 | Phase 1  | 🟢 Low     | Additive, no behavior change          |

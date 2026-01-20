@@ -1243,8 +1243,10 @@ def async_setup_services(hass: HomeAssistant):
         action = call.data[const.FIELD_ACTION]
 
         # Resolve name to IDs (case-insensitive)
-        kid_id = kh.get_kid_id_by_name(coordinator, name)
-        parent_id = kh.get_parent_id_by_name(coordinator, name)
+        kid_id = kh.get_entity_id_by_name(coordinator, const.ENTITY_TYPE_KID, name)
+        parent_id = kh.get_entity_id_by_name(
+            coordinator, const.ENTITY_TYPE_PARENT, name
+        )
 
         if action == const.ACTION_LINK:
             # LINK: Validate kid and parent exist with matching names

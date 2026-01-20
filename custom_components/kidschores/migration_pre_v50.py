@@ -834,9 +834,10 @@ class PreV50Migrator:
                 if const.DATA_KID_CHORE_DATA not in kid_info:
                     kid_info[const.DATA_KID_CHORE_DATA] = {}
 
-                if chore_id not in kid_info[const.DATA_KID_CHORE_DATA]:
+                chore_data_dict = kid_info.get(const.DATA_KID_CHORE_DATA, {})
+                if chore_id not in chore_data_dict:
                     chore_name = chore_info.get(const.DATA_CHORE_NAME, chore_id)
-                    kid_info[const.DATA_KID_CHORE_DATA][chore_id] = {
+                    chore_data_dict[chore_id] = {
                         const.DATA_KID_CHORE_DATA_NAME: chore_name,
                         const.DATA_KID_CHORE_DATA_STATE: const.CHORE_STATE_PENDING,
                         const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT: 0,
@@ -855,7 +856,7 @@ class PreV50Migrator:
                         const.DATA_KID_CHORE_DATA_BADGE_REFS: [],
                     }
 
-                kid_chore_data = kid_info[const.DATA_KID_CHORE_DATA][chore_id]
+                kid_chore_data = chore_data_dict[chore_id]
 
                 # Ensure pending_claim_count exists for existing records (added in v42)
                 if const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT not in kid_chore_data:
@@ -1276,7 +1277,9 @@ class PreV50Migrator:
             badges_earned = kid_info.setdefault(const.DATA_KID_BADGES_EARNED, {})
 
             for badge_name in legacy_badge_names:  # type: ignore[attr-defined]
-                badge_id = kh.get_badge_id_by_name(self.coordinator, badge_name)
+                badge_id = kh.get_entity_id_by_name(
+                    self.coordinator, const.ENTITY_TYPE_BADGE, badge_name
+                )
 
                 if not badge_id:
                     badge_id = f"{const.MIGRATION_DATA_LEGACY_ORPHAN}_{random.randint(100000, 999999)}"
@@ -1410,6 +1413,33 @@ class PreV50Migrator:
                     const.POINTS_SOURCE_OTHER
                 ] = legacy_max
 
+            # Create all_time period bucket for points
+            # Use max(max_points_ever_legacy, current_points) as best estimate
+            current_points = round(
+                kid_info.get(const.DATA_KID_POINTS, 0.0),
+                const.DATA_FLOAT_PRECISION,
+            )
+            all_time_points = max(legacy_max, current_points)
+            if all_time_points > 0:
+                all_time_bucket = periods.setdefault(
+                    const.DATA_KID_POINT_DATA_PERIODS_ALL_TIME, {}
+                )
+                all_time_entry = all_time_bucket.setdefault(
+                    const.PERIOD_ALL_TIME,
+                    {
+                        const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL: 0.0,
+                        const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE: {},
+                    },
+                )
+                # Only set if not already populated (idempotent)
+                if all_time_entry[const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL] == 0.0:
+                    all_time_entry[const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL] = (
+                        all_time_points
+                    )
+                    all_time_entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE][
+                        const.POINTS_SOURCE_OTHER
+                    ] = all_time_points
+
             # Migrate legacy max points ever to point_stats highest balance if needed
             point_stats = kid_info.setdefault(const.DATA_KID_POINT_STATS, {})
             if legacy_max > 0 and legacy_max > point_stats.get(
@@ -1417,14 +1447,17 @@ class PreV50Migrator:
             ):
                 point_stats[const.DATA_KID_POINT_STATS_HIGHEST_BALANCE] = legacy_max
 
-            # Set points_earned_all_time to legacy_max if > 0
-            if legacy_max > 0:
-                point_stats[const.DATA_KID_POINT_STATS_EARNED_ALL_TIME] = legacy_max
+            # Set points_earned_all_time using same logic as all_time period bucket
+            # This ensures current balance is considered if higher than legacy max
+            if all_time_points > 0:
+                point_stats[const.DATA_KID_POINT_STATS_EARNED_ALL_TIME] = (
+                    all_time_points
+                )
 
             # --- Migrate all-time points by source ---
-            if legacy_max > 0:
+            if all_time_points > 0:
                 point_stats[const.DATA_KID_POINT_STATS_BY_SOURCE_ALL_TIME] = {
-                    const.POINTS_SOURCE_OTHER: legacy_max
+                    const.POINTS_SOURCE_OTHER: all_time_points
                 }
 
         const.LOGGER.info("Legacy point stats migration complete.")
@@ -1873,6 +1906,7 @@ class PreV50Migrator:
                 const.DATA_KID_REWARD_DATA_PERIODS_WEEKLY: {},
                 const.DATA_KID_REWARD_DATA_PERIODS_MONTHLY: {},
                 const.DATA_KID_REWARD_DATA_PERIODS_YEARLY: {},
+                const.DATA_KID_REWARD_DATA_PERIODS_ALL_TIME: {},
             },
         }
 

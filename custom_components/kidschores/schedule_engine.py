@@ -178,6 +178,54 @@ class RecurrenceEngine:
 
         return occurrences
 
+    def has_missed_occurrences(
+        self,
+        last_completion: datetime,
+        current_completion: datetime,
+    ) -> bool:
+        """Check if any scheduled occurrences were skipped between completions.
+
+        Used for schedule-aware streak calculation. A streak continues if no
+        scheduled occurrences were missed between the last completion and now.
+
+        Args:
+            last_completion: Timestamp of previous approval (UTC).
+            current_completion: Timestamp of current approval (UTC).
+
+        Returns:
+            True if at least one occurrence was missed (streak breaks).
+            False if current completion is on-time or early (streak continues).
+
+        Examples:
+            Daily chore: last=Jan 1, current=Jan 2 → False (on-time)
+            Daily chore: last=Jan 1, current=Jan 3 → True (missed Jan 2)
+            Every 3 days: last=Jan 1, current=Jan 3 → False (Jan 2 not scheduled)
+            Weekly Monday: last=Jan 6, current=Jan 13 → False (consecutive Mondays)
+        """
+        # No schedule = no missed occurrences
+        if self._frequency == const.FREQUENCY_NONE:
+            return False
+
+        # Get all occurrences between completions
+        occurrences = self.get_occurrences(
+            start=last_completion,
+            end=current_completion,
+            limit=100,
+        )
+
+        # Filter to occurrences strictly between the two completion times.
+        # If any such occurrence exists, it was missed.
+        #
+        # NOTE: rrule.after() truncates microseconds to 0, so we must do the same
+        # for current_completion to ensure an occurrence falling at "now" (same
+        # second but different microseconds) is not incorrectly counted as missed.
+        current_truncated = current_completion.replace(microsecond=0)
+        missed = [
+            occ for occ in occurrences if last_completion < occ < current_truncated
+        ]
+
+        return len(missed) > 0
+
     def to_rrule_string(self) -> str:
         """Generate RFC 5545 RRULE string for iCal export.
 

@@ -263,37 +263,25 @@ Common runtime pattern:
 **Benefits**:
 
 - ✅ Honest about actual code behavior
-- ✅ No type: ignore suppressions needed
+- ✅ Minimal type suppressions (1 in dynamic code vs 150+ if forcing TypedDict)
 - ✅ Mypy focuses on real issues
+
+**Note**: Variable-based key access (`entry[field_name]`) is efficient, idiomatic Python. Type suppressions are IDE-level hints only—they don't affect runtime performance or indicate code quality issues.
 
 ### Why Hybrid Approach?
 
-The codebase uses dynamic key patterns extensively (~30 locations):
+**TypedDict requires literal string keys** but KidsChores uses variable-based key access in ~30 locations:
 
 ```python
-# Field name is determined at runtime
+# Variable key access patterns (incompatible with TypedDict):
 field_name = "last_approved" if approved else "last_claimed"
-kid_chores_data[chore_id][field_name] = kid_name
+kid_chores_data[chore_id][field_name] = kid_name  # field_name is variable
 
-# Period keys accessed via variables
 for period_key in ["daily", "weekly", "monthly"]:
-    periods_data[period_key][date_str] = stats
+    periods_data[period_key][date_str] = stats  # period_key is variable
 ```
 
-**TypedDict requires literal string keys**:
-
-```python
-# This works:
-data["name"] = value  # ✅ Literal key
-
-# This does NOT work:
-field = "name"
-data[field] = value  # ❌ Variable key - mypy error
-```
-
-**Previous attempt**: Full TypedDict resulted in 150+ `# type: ignore[literal-required]` suppressions, effectively disabling type checking where most needed.
-
-**Current approach**: Use appropriate type for actual usage pattern.
+**Solution**: Match type system to actual code patterns. Use TypedDict where keys are static, dict[str, Any] where keys are dynamic. This achieves zero mypy errors without type suppressions.
 
 ### Type Safety Guidelines
 

@@ -428,6 +428,7 @@ class KidRewardDataPeriods(TypedDict, total=False):
     weekly: NotRequired[dict[str, PeriodicStatsEntry]]
     monthly: NotRequired[dict[str, PeriodicStatsEntry]]
     yearly: NotRequired[dict[str, PeriodicStatsEntry]]
+    all_time: NotRequired[dict[str, PeriodicStatsEntry]]
 
 
 class KidRewardDataEntry(TypedDict, total=False):

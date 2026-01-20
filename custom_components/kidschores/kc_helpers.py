@@ -216,14 +216,6 @@ def get_first_kidschores_entry(hass: HomeAssistant) -> str | None:
     return next(iter(domain_entries.keys()), None)
 
 
-# ────────────────────────────────────────────────────────────────
-# 🔍 Generic Entity Lookup Helper
-# Central implementation for looking up entity IDs by name across all
-# entity types. Eliminates ~80 lines of duplicate code by providing
-# a single parametrizable function for all entity lookups.
-# ────────────────────────────────────────────────────────────────
-
-
 def get_entity_id_by_name(
     coordinator: KidsChoresDataCoordinator, entity_type: str, entity_name: str
 ) -> str | None:
@@ -279,20 +271,32 @@ def get_entity_id_by_name(
     return None
 
 
-# Thin wrapper functions for backward compatibility and convenience
-def get_kid_id_by_name(
-    coordinator: KidsChoresDataCoordinator, kid_name: str
-) -> str | None:
-    """Retrieve the kid_id for a given kid_name.
+def get_entity_id_from_unique_id(hass: HomeAssistant, unique_id: str) -> str | None:
+    """Look up entity ID from unique ID via entity registry.
+
+    This helper centralizes the entity registry lookup pattern that was
+    duplicated ~10 times across sensor.py. Returns None if lookup fails.
 
     Args:
-        coordinator: The KidsChores data coordinator.
-        kid_name: The name of the kid to look up.
+        hass: Home Assistant instance
+        unique_id: The unique_id to search for
 
     Returns:
-        The internal ID (UUID) of the kid, or None if not found.
+        Entity ID string if found, None otherwise
     """
-    return get_entity_id_by_name(coordinator, const.ENTITY_TYPE_KID, kid_name)
+    try:
+        from homeassistant.helpers.entity_registry import async_get
+
+        entity_registry = async_get(hass)
+        for entity in entity_registry.entities.values():
+            if entity.unique_id == unique_id:
+                return entity.entity_id
+    except (KeyError, ValueError, AttributeError, RuntimeError) as ex:
+        const.LOGGER.debug(
+            "Entity registry lookup failed for unique_id %s: %s", unique_id, ex
+        )
+
+    return None
 
 
 def get_kid_name_by_id(
@@ -311,6 +315,189 @@ def get_kid_name_by_id(
     if kid_info:
         return kid_info.get(const.DATA_KID_NAME)
     return None
+
+
+def get_friendly_label(hass: HomeAssistant, label_name: str) -> str:
+    """Retrieve the friendly name for a given label_name (synchronous cached version).
+
+    Args:
+        hass: The Home Assistant instance.
+        label_name: The label name to look up.
+
+    Returns:
+        The friendly name from the label registry, or the original label_name if not found.
+
+    Note:
+        This is a synchronous wrapper. For fresh lookups, use async_get_friendly_label().
+    """
+    try:
+        registry = async_get_label_registry(hass)
+        label_entry = registry.async_get_label(label_name)
+        return label_entry.name if label_entry else label_name
+    except Exception:
+        # Fallback if label registry unavailable
+        return label_name
+
+
+async def async_get_friendly_label(hass: HomeAssistant, label_name: str) -> str:
+    """Asynchronously retrieve the friendly name for a given label_name.
+
+    Args:
+        hass: The Home Assistant instance.
+        label_name: The label name to look up.
+
+    Returns:
+        The friendly name from the label registry, or the original label_name if not found.
+
+    Raises:
+        No exceptions raised - returns original label_name as fallback on any error.
+    """
+    try:
+        registry = async_get_label_registry(hass)
+        label_entry = registry.async_get_label(label_name)
+        return label_entry.name if label_entry else label_name
+    except Exception:
+        # Fallback if label registry unavailable
+        return label_name
+
+
+# ────────────────────────────────────────────────────────────────
+# �🎯 -------- Entity Lookup Helpers with Error Raising (for Services) --------
+# These helpers wrap the lookup functions above and raise HomeAssistantError
+# when entities are not found. This centralizes the error handling pattern
+# used throughout services.py, eliminating 40+ duplicate lookup blocks.
+# ────────────────────────────────────────────────────────────────
+
+
+def get_entity_id_or_raise(
+    coordinator: KidsChoresDataCoordinator, entity_type: str, entity_name: str
+) -> str:
+    """Get entity ID by name or raise HomeAssistantError if not found.
+
+    Generic version of all *_or_raise() functions. Centralizes error
+    handling pattern for entity lookups across services.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        entity_type: The type of entity ("kid", "chore", "reward", "penalty",
+            "badge", "bonus", "parent", "achievement", "challenge").
+        entity_name: The name of the entity to look up.
+
+    Returns:
+        The internal ID (UUID) of the entity.
+
+    Raises:
+        HomeAssistantError: If the entity is not found.
+    """
+    entity_id = get_entity_id_by_name(coordinator, entity_type, entity_name)
+    if not entity_id:
+        raise HomeAssistantError(
+            f"{entity_type.capitalize()} '{entity_name}' not found"
+        )
+    return entity_id
+
+
+def get_entity_name_or_log_error(
+    entity_type: str,
+    entity_id: str,
+    entity_data: Mapping[str, Any],
+    name_key: str,
+) -> str | None:
+    """Get entity name from data dict, log error if missing (data corruption detection).
+
+    Args:
+        entity_type: Type of entity (for logging) e.g. 'kid', 'chore', 'reward'
+        entity_id: Entity ID (for logging)
+        entity_data: Dict containing entity data
+        name_key: Key to look up name in entity_data
+
+    Returns:
+        Entity name if present, None if missing (with error log)
+    """
+    name = entity_data.get(name_key)
+    if not name:
+        const.LOGGER.error(
+            "Data corruption: %s %s missing %s. Entity will not be created. "
+            "This indicates a storage issue or validation bypass.",
+            entity_type,
+            entity_id,
+            name_key,
+        )
+        return None
+    return name
+
+
+# 📱 -------- Device Info Helpers --------
+def create_kid_device_info(
+    kid_id: str, kid_name: str, config_entry, *, is_shadow_kid: bool = False
+):
+    """Create device info for a kid profile.
+
+    Args:
+        kid_id: Internal ID (UUID) of the kid
+        kid_name: Display name of the kid
+        config_entry: Config entry for this integration instance
+        is_shadow_kid: If True, this is a shadow kid (parent with chore assignment)
+
+    Returns:
+        DeviceInfo dict for the kid device
+    """
+    from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+
+    # Use different model text for shadow kids vs regular kids
+    model = "Parent Profile" if is_shadow_kid else "Kid Profile"
+
+    return DeviceInfo(
+        identifiers={(const.DOMAIN, kid_id)},
+        name=f"{kid_name} ({config_entry.title})",
+        manufacturer="KidsChores",
+        model=model,
+        entry_type=DeviceEntryType.SERVICE,
+    )
+
+
+def create_kid_device_info_from_coordinator(
+    coordinator, kid_id: str, kid_name: str, config_entry
+):
+    """Create device info for a kid profile, auto-detecting shadow kid status.
+
+    This is a convenience wrapper around create_kid_device_info that looks up
+    the shadow kid status from the coordinator's kids_data.
+
+    Args:
+        coordinator: The KidsChoresCoordinator instance
+        kid_id: Internal ID (UUID) of the kid
+        kid_name: Display name of the kid
+        config_entry: Config entry for this integration instance
+
+    Returns:
+        DeviceInfo dict for the kid device with correct model (Kid/Parent Profile)
+    """
+    kid_data = coordinator.kids_data.get(kid_id, {})
+    is_shadow_kid = kid_data.get(const.DATA_KID_IS_SHADOW, False)
+    return create_kid_device_info(
+        kid_id, kid_name, config_entry, is_shadow_kid=is_shadow_kid
+    )
+
+
+def create_system_device_info(config_entry):
+    """Create device info for system/global entities.
+
+    Args:
+        config_entry: Config entry for this integration instance
+
+    Returns:
+        DeviceInfo dict for the system device
+    """
+    from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+
+    return DeviceInfo(
+        identifiers={(const.DOMAIN, f"{config_entry.entry_id}_system")},
+        name=f"System ({config_entry.title})",
+        manufacturer="KidsChores",
+        model="System Controls",
+        entry_type=DeviceEntryType.SERVICE,
+    )
 
 
 # ------------------------------------------------------------------------------
@@ -409,174 +596,6 @@ def should_create_gamification_entities(
     if parent_data:
         return parent_data.get(const.DATA_PARENT_ENABLE_GAMIFICATION, False)
     return False
-
-
-def get_chore_id_by_name(
-    coordinator: KidsChoresDataCoordinator, chore_name: str
-) -> str | None:
-    """Retrieve the chore_id for a given chore_name.
-
-    Args:
-        coordinator: The KidsChores data coordinator.
-        chore_name: The name of the chore to look up.
-
-    Returns:
-        The internal ID (UUID) of the chore, or None if not found.
-    """
-    return get_entity_id_by_name(coordinator, const.ENTITY_TYPE_CHORE, chore_name)
-
-
-def get_reward_id_by_name(
-    coordinator: KidsChoresDataCoordinator, reward_name: str
-) -> str | None:
-    """Retrieve the reward_id for a given reward_name.
-
-    Args:
-        coordinator: The KidsChores data coordinator.
-        reward_name: The name of the reward to look up.
-
-    Returns:
-        The internal ID (UUID) of the reward, or None if not found.
-    """
-    return get_entity_id_by_name(coordinator, const.ENTITY_TYPE_REWARD, reward_name)
-
-
-def get_penalty_id_by_name(
-    coordinator: KidsChoresDataCoordinator, penalty_name: str
-) -> str | None:
-    """Retrieve the penalty_id for a given penalty_name.
-
-    Args:
-        coordinator: The KidsChores data coordinator.
-        penalty_name: The name of the penalty to look up.
-
-    Returns:
-        The internal ID (UUID) of the penalty, or None if not found.
-    """
-    return get_entity_id_by_name(coordinator, const.ENTITY_TYPE_PENALTY, penalty_name)
-
-
-def get_badge_id_by_name(
-    coordinator: KidsChoresDataCoordinator, badge_name: str
-) -> str | None:
-    """Retrieve the badge_id for a given badge_name.
-
-    Args:
-        coordinator: The KidsChores data coordinator.
-        badge_name: The name of the badge to look up.
-
-    Returns:
-        The internal ID (UUID) of the badge, or None if not found.
-    """
-    return get_entity_id_by_name(coordinator, const.ENTITY_TYPE_BADGE, badge_name)
-
-
-def get_bonus_id_by_name(
-    coordinator: KidsChoresDataCoordinator, bonus_name: str
-) -> str | None:
-    """Retrieve the bonus_id for a given bonus_name.
-
-    Args:
-        coordinator: The KidsChores data coordinator.
-        bonus_name: The name of the bonus to look up.
-
-    Returns:
-        The internal ID (UUID) of the bonus, or None if not found.
-    """
-    return get_entity_id_by_name(coordinator, const.ENTITY_TYPE_BONUS, bonus_name)
-
-
-def get_parent_id_by_name(
-    coordinator: KidsChoresDataCoordinator, parent_name: str
-) -> str | None:
-    """Retrieve the parent_id for a given parent_name.
-
-    Args:
-        coordinator: The KidsChores data coordinator.
-        parent_name: The name of the parent to look up.
-
-    Returns:
-        The internal ID (UUID) of the parent, or None if not found.
-    """
-    return get_entity_id_by_name(coordinator, const.ENTITY_TYPE_PARENT, parent_name)
-
-
-def get_achievement_id_by_name(
-    coordinator: KidsChoresDataCoordinator, achievement_name: str
-) -> str | None:
-    """Retrieve the achievement_id for a given achievement_name.
-
-    Args:
-        coordinator: The KidsChores data coordinator.
-        achievement_name: The name of the achievement to look up.
-
-    Returns:
-        The internal ID (UUID) of the achievement, or None if not found.
-    """
-    return get_entity_id_by_name(
-        coordinator, const.ENTITY_TYPE_ACHIEVEMENT, achievement_name
-    )
-
-
-def get_challenge_id_by_name(
-    coordinator: KidsChoresDataCoordinator, challenge_name: str
-) -> str | None:
-    """Retrieve the challenge_id for a given challenge_name.
-
-    Args:
-        coordinator: The KidsChores data coordinator.
-        challenge_name: The name of the challenge to look up.
-
-    Returns:
-        The internal ID (UUID) of the challenge, or None if not found.
-    """
-    return get_entity_id_by_name(
-        coordinator, const.ENTITY_TYPE_CHALLENGE, challenge_name
-    )
-
-
-def get_friendly_label(hass: HomeAssistant, label_name: str) -> str:
-    """Retrieve the friendly name for a given label_name (synchronous cached version).
-
-    Args:
-        hass: The Home Assistant instance.
-        label_name: The label name to look up.
-
-    Returns:
-        The friendly name from the label registry, or the original label_name if not found.
-
-    Note:
-        This is a synchronous wrapper. For fresh lookups, use async_get_friendly_label().
-    """
-    try:
-        registry = async_get_label_registry(hass)
-        label_entry = registry.async_get_label(label_name)
-        return label_entry.name if label_entry else label_name
-    except Exception:
-        # Fallback if label registry unavailable
-        return label_name
-
-
-async def async_get_friendly_label(hass: HomeAssistant, label_name: str) -> str:
-    """Asynchronously retrieve the friendly name for a given label_name.
-
-    Args:
-        hass: The Home Assistant instance.
-        label_name: The label name to look up.
-
-    Returns:
-        The friendly name from the label registry, or the original label_name if not found.
-
-    Raises:
-        No exceptions raised - returns original label_name as fallback on any error.
-    """
-    try:
-        registry = async_get_label_registry(hass)
-        label_entry = registry.async_get_label(label_name)
-        return label_entry.name if label_entry else label_name
-    except Exception:
-        # Fallback if label registry unavailable
-        return label_name
 
 
 # ────────────────────────────────────────────────────────────────
@@ -709,40 +728,108 @@ def build_default_chore_data(
     }
 
 
-# ────────────────────────────────────────────────────────────────
-# �🎯 -------- Entity Lookup Helpers with Error Raising (for Services) --------
-# These helpers wrap the lookup functions above and raise HomeAssistantError
-# when entities are not found. This centralizes the error handling pattern
-# used throughout services.py, eliminating 40+ duplicate lookup blocks.
-# ────────────────────────────────────────────────────────────────
-
-
-def get_entity_id_or_raise(
-    coordinator: KidsChoresDataCoordinator, entity_type: str, entity_name: str
-) -> str:
-    """Get entity ID by name or raise HomeAssistantError if not found.
-
-    Generic version of all *_or_raise() functions. Centralizes error
-    handling pattern for entity lookups across services.
+def cleanup_period_data(
+    self,
+    periods_data: dict,
+    period_keys: dict,
+    retention_daily: int | None = None,
+    retention_weekly: int | None = None,
+    retention_monthly: int | None = None,
+    retention_yearly: int | None = None,
+):
+    """
+    Remove old period data to keep storage manageable for any period-based data (chore, point, etc).
 
     Args:
-        coordinator: The KidsChores data coordinator.
-        entity_type: The type of entity ("kid", "chore", "reward", "penalty",
-            "badge", "bonus", "parent", "achievement", "challenge").
-        entity_name: The name of the entity to look up.
-
-    Returns:
-        The internal ID (UUID) of the entity.
-
-    Raises:
-        HomeAssistantError: If the entity is not found.
+        periods_data: Dictionary containing period data (e.g., for a chore or points)
+        period_keys: Dict mapping logical period names to their constant keys, e.g.:
+            {
+                "daily": const.DATA_KID_CHORE_DATA_PERIODS_DAILY,
+                "weekly": const.DATA_KID_CHORE_DATA_PERIODS_WEEKLY,
+                "monthly": const.DATA_KID_CHORE_DATA_PERIODS_MONTHLY,
+                "yearly": const.DATA_KID_CHORE_DATA_PERIODS_YEARLY,
+            }
+        retention_daily: Number of days to retain (default: const.DEFAULT_RETENTION_DAILY)
+        retention_weekly: Number of weeks to retain (default: const.DEFAULT_RETENTION_WEEKLY)
+        retention_monthly: Number of months to retain (default: const.DEFAULT_RETENTION_MONTHLY)
+        retention_yearly: Number of years to retain (default: const.DEFAULT_RETENTION_YEARLY)
     """
-    entity_id = get_entity_id_by_name(coordinator, entity_type, entity_name)
-    if not entity_id:
-        raise HomeAssistantError(
-            f"{entity_type.capitalize()} '{entity_name}' not found"
-        )
-    return entity_id
+    today_local = dt_today_local()
+
+    # Use provided values or fall back to defaults
+    retention_daily = (
+        retention_daily
+        if retention_daily is not None
+        else const.DEFAULT_RETENTION_DAILY
+    )
+    retention_weekly = (
+        retention_weekly
+        if retention_weekly is not None
+        else const.DEFAULT_RETENTION_WEEKLY
+    )
+    retention_monthly = (
+        retention_monthly
+        if retention_monthly is not None
+        else const.DEFAULT_RETENTION_MONTHLY
+    )
+    retention_yearly = (
+        retention_yearly
+        if retention_yearly is not None
+        else const.DEFAULT_RETENTION_YEARLY
+    )
+
+    # Daily: keep configured days
+    cutoff_daily = dt_add_interval(
+        today_local.isoformat(),
+        interval_unit=const.TIME_UNIT_DAYS,
+        delta=-retention_daily,
+        require_future=False,
+        return_type=const.HELPER_RETURN_ISO_DATE,
+    )
+    daily_data = periods_data.get(period_keys["daily"], {})
+    for day in list(daily_data.keys()):
+        if day < cutoff_daily:
+            del daily_data[day]
+
+    # Weekly: keep configured weeks
+    cutoff_date = dt_add_interval(
+        today_local.isoformat(),
+        interval_unit=const.TIME_UNIT_WEEKS,
+        delta=-retention_weekly,
+        require_future=False,
+        return_type=const.HELPER_RETURN_DATETIME,
+    )
+    # Return type is guaranteed to be datetime with HELPER_RETURN_DATETIME
+    cutoff_weekly = cast("datetime", cutoff_date).strftime("%Y-W%V")
+    weekly_data = periods_data.get(period_keys["weekly"], {})
+    for week in list(weekly_data.keys()):
+        if week < cutoff_weekly:
+            del weekly_data[week]
+
+    # Monthly: keep configured months
+    cutoff_date = dt_add_interval(
+        today_local.isoformat(),
+        interval_unit=const.TIME_UNIT_MONTHS,
+        delta=-retention_monthly,
+        require_future=False,
+        return_type=const.HELPER_RETURN_DATETIME,
+    )
+    # Return type is guaranteed to be datetime with HELPER_RETURN_DATETIME
+    cutoff_monthly = cast("datetime", cutoff_date).strftime("%Y-%m")
+    monthly_data = periods_data.get(period_keys["monthly"], {})
+    for month in list(monthly_data.keys()):
+        if month < cutoff_monthly:
+            del monthly_data[month]
+
+    # Yearly: keep configured years
+    cutoff_yearly = str(int(today_local.strftime("%Y")) - retention_yearly)
+    yearly_data = periods_data.get(period_keys["yearly"], {})
+    for year in list(yearly_data.keys()):
+        if year < cutoff_yearly:
+            del yearly_data[year]
+
+    self._persist()
+    self.async_set_updated_data(self._data)
 
 
 # ────────────────────────────────────────────────────────────────
@@ -1568,111 +1655,7 @@ def dt_next_schedule(
     return dt_format(result_utc, return_type)
 
 
-def cleanup_period_data(
-    self,
-    periods_data: dict,
-    period_keys: dict,
-    retention_daily: int | None = None,
-    retention_weekly: int | None = None,
-    retention_monthly: int | None = None,
-    retention_yearly: int | None = None,
-):
-    """
-    Remove old period data to keep storage manageable for any period-based data (chore, point, etc).
-
-    Args:
-        periods_data: Dictionary containing period data (e.g., for a chore or points)
-        period_keys: Dict mapping logical period names to their constant keys, e.g.:
-            {
-                "daily": const.DATA_KID_CHORE_DATA_PERIODS_DAILY,
-                "weekly": const.DATA_KID_CHORE_DATA_PERIODS_WEEKLY,
-                "monthly": const.DATA_KID_CHORE_DATA_PERIODS_MONTHLY,
-                "yearly": const.DATA_KID_CHORE_DATA_PERIODS_YEARLY,
-            }
-        retention_daily: Number of days to retain (default: const.DEFAULT_RETENTION_DAILY)
-        retention_weekly: Number of weeks to retain (default: const.DEFAULT_RETENTION_WEEKLY)
-        retention_monthly: Number of months to retain (default: const.DEFAULT_RETENTION_MONTHLY)
-        retention_yearly: Number of years to retain (default: const.DEFAULT_RETENTION_YEARLY)
-    """
-    today_local = dt_today_local()
-
-    # Use provided values or fall back to defaults
-    retention_daily = (
-        retention_daily
-        if retention_daily is not None
-        else const.DEFAULT_RETENTION_DAILY
-    )
-    retention_weekly = (
-        retention_weekly
-        if retention_weekly is not None
-        else const.DEFAULT_RETENTION_WEEKLY
-    )
-    retention_monthly = (
-        retention_monthly
-        if retention_monthly is not None
-        else const.DEFAULT_RETENTION_MONTHLY
-    )
-    retention_yearly = (
-        retention_yearly
-        if retention_yearly is not None
-        else const.DEFAULT_RETENTION_YEARLY
-    )
-
-    # Daily: keep configured days
-    cutoff_daily = dt_add_interval(
-        today_local.isoformat(),
-        interval_unit=const.TIME_UNIT_DAYS,
-        delta=-retention_daily,
-        require_future=False,
-        return_type=const.HELPER_RETURN_ISO_DATE,
-    )
-    daily_data = periods_data.get(period_keys["daily"], {})
-    for day in list(daily_data.keys()):
-        if day < cutoff_daily:
-            del daily_data[day]
-
-    # Weekly: keep configured weeks
-    cutoff_date = dt_add_interval(
-        today_local.isoformat(),
-        interval_unit=const.TIME_UNIT_WEEKS,
-        delta=-retention_weekly,
-        require_future=False,
-        return_type=const.HELPER_RETURN_DATETIME,
-    )
-    # Return type is guaranteed to be datetime with HELPER_RETURN_DATETIME
-    cutoff_weekly = cast("datetime", cutoff_date).strftime("%Y-W%V")
-    weekly_data = periods_data.get(period_keys["weekly"], {})
-    for week in list(weekly_data.keys()):
-        if week < cutoff_weekly:
-            del weekly_data[week]
-
-    # Monthly: keep configured months
-    cutoff_date = dt_add_interval(
-        today_local.isoformat(),
-        interval_unit=const.TIME_UNIT_MONTHS,
-        delta=-retention_monthly,
-        require_future=False,
-        return_type=const.HELPER_RETURN_DATETIME,
-    )
-    # Return type is guaranteed to be datetime with HELPER_RETURN_DATETIME
-    cutoff_monthly = cast("datetime", cutoff_date).strftime("%Y-%m")
-    monthly_data = periods_data.get(period_keys["monthly"], {})
-    for month in list(monthly_data.keys()):
-        if month < cutoff_monthly:
-            del monthly_data[month]
-
-    # Yearly: keep configured years
-    cutoff_yearly = str(int(today_local.strftime("%Y")) - retention_yearly)
-    yearly_data = periods_data.get(period_keys["yearly"], {})
-    for year in list(yearly_data.keys()):
-        if year < cutoff_yearly:
-            del yearly_data[year]
-
-    self._persist()
-    self.async_set_updated_data(self._data)
-
-
-# 📝 -------- Dashboard Translation Loaders --------
+# 📝 -------- Custom Translation Loaders --------
 def _read_json_file(file_path: str) -> dict:
     """Read and parse a JSON file. Synchronous helper for executor."""
     with open(file_path, encoding="utf-8") as f:
@@ -1906,134 +1889,3 @@ def clear_translation_cache() -> None:
     """
     _translation_cache.clear()
     const.LOGGER.debug("Translation cache cleared")
-
-
-# 📱 -------- Device Info Helpers --------
-def create_kid_device_info(
-    kid_id: str, kid_name: str, config_entry, *, is_shadow_kid: bool = False
-):
-    """Create device info for a kid profile.
-
-    Args:
-        kid_id: Internal ID (UUID) of the kid
-        kid_name: Display name of the kid
-        config_entry: Config entry for this integration instance
-        is_shadow_kid: If True, this is a shadow kid (parent with chore assignment)
-
-    Returns:
-        DeviceInfo dict for the kid device
-    """
-    from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
-
-    # Use different model text for shadow kids vs regular kids
-    model = "Parent Profile" if is_shadow_kid else "Kid Profile"
-
-    return DeviceInfo(
-        identifiers={(const.DOMAIN, kid_id)},
-        name=f"{kid_name} ({config_entry.title})",
-        manufacturer="KidsChores",
-        model=model,
-        entry_type=DeviceEntryType.SERVICE,
-    )
-
-
-def create_kid_device_info_from_coordinator(
-    coordinator, kid_id: str, kid_name: str, config_entry
-):
-    """Create device info for a kid profile, auto-detecting shadow kid status.
-
-    This is a convenience wrapper around create_kid_device_info that looks up
-    the shadow kid status from the coordinator's kids_data.
-
-    Args:
-        coordinator: The KidsChoresCoordinator instance
-        kid_id: Internal ID (UUID) of the kid
-        kid_name: Display name of the kid
-        config_entry: Config entry for this integration instance
-
-    Returns:
-        DeviceInfo dict for the kid device with correct model (Kid/Parent Profile)
-    """
-    kid_data = coordinator.kids_data.get(kid_id, {})
-    is_shadow_kid = kid_data.get(const.DATA_KID_IS_SHADOW, False)
-    return create_kid_device_info(
-        kid_id, kid_name, config_entry, is_shadow_kid=is_shadow_kid
-    )
-
-
-def create_system_device_info(config_entry):
-    """Create device info for system/global entities.
-
-    Args:
-        config_entry: Config entry for this integration instance
-
-    Returns:
-        DeviceInfo dict for the system device
-    """
-    from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
-
-    return DeviceInfo(
-        identifiers={(const.DOMAIN, f"{config_entry.entry_id}_system")},
-        name=f"System ({config_entry.title})",
-        manufacturer="KidsChores",
-        model="System Controls",
-        entry_type=DeviceEntryType.SERVICE,
-    )
-
-
-def get_entity_name_or_log_error(
-    entity_type: str,
-    entity_id: str,
-    entity_data: Mapping[str, Any],
-    name_key: str,
-) -> str | None:
-    """Get entity name from data dict, log error if missing (data corruption detection).
-
-    Args:
-        entity_type: Type of entity (for logging) e.g. 'kid', 'chore', 'reward'
-        entity_id: Entity ID (for logging)
-        entity_data: Dict containing entity data
-        name_key: Key to look up name in entity_data
-
-    Returns:
-        Entity name if present, None if missing (with error log)
-    """
-    name = entity_data.get(name_key)
-    if not name:
-        const.LOGGER.error(
-            "Data corruption: %s %s missing %s. Entity will not be created. "
-            "This indicates a storage issue or validation bypass.",
-            entity_type,
-            entity_id,
-            name_key,
-        )
-        return None
-    return name
-
-
-def get_entity_id_from_unique_id(hass: HomeAssistant, unique_id: str) -> str | None:
-    """Look up entity ID from unique ID via entity registry.
-
-    This helper centralizes the entity registry lookup pattern that was
-    duplicated ~10 times across sensor.py. Returns None if lookup fails.
-
-    Args:
-        hass: Home Assistant instance
-        unique_id: The unique_id to search for
-
-    Returns:
-        Entity ID string if found, None otherwise
-    """
-    try:
-        from homeassistant.helpers.entity_registry import async_get
-
-        entity_registry = async_get(hass)
-        for entity in entity_registry.entities.values():
-            if entity.unique_id == unique_id:
-                return entity.entity_id
-    except (KeyError, ValueError, AttributeError, RuntimeError) as ex:
-        const.LOGGER.debug(
-            "Entity registry lookup failed for unique_id %s: %s", unique_id, ex
-        )
-
-    return None

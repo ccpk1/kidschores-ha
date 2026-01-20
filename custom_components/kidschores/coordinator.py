@@ -33,7 +33,8 @@ from .notification_helper import (
     build_extra_data,
     build_reward_actions,
 )
-from .schedule_engine import snap_to_weekday
+from .schedule_engine import RecurrenceEngine, snap_to_weekday
+from .statistics_engine import StatisticsEngine
 from .storage_manager import KidsChoresStorageManager
 from .type_defs import (
     AchievementProgress,
@@ -118,6 +119,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Callback for dynamically adding new translation sensors
         self._sensor_add_entities_callback: Any = None
 
+        # Statistics engine for unified period-based tracking (v0.6.0+)
+        self.stats = StatisticsEngine()
+
     # -------------------------------------------------------------------------------------
     # Approval Lock Management (Race Condition Protection v0.5.0+)
     # -------------------------------------------------------------------------------------
@@ -139,6 +143,27 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         if lock_key not in self._approval_locks:
             self._approval_locks[lock_key] = asyncio.Lock()
         return self._approval_locks[lock_key]
+
+    def _get_retention_config(self) -> dict[str, int]:
+        """Get retention configuration for period data pruning.
+
+        Returns:
+            Dict mapping period types to retention counts.
+        """
+        return {
+            "daily": self.config_entry.options.get(
+                const.CONF_RETENTION_DAILY, const.DEFAULT_RETENTION_DAILY
+            ),
+            "weekly": self.config_entry.options.get(
+                const.CONF_RETENTION_WEEKLY, const.DEFAULT_RETENTION_WEEKLY
+            ),
+            "monthly": self.config_entry.options.get(
+                const.CONF_RETENTION_MONTHLY, const.DEFAULT_RETENTION_MONTHLY
+            ),
+            "yearly": self.config_entry.options.get(
+                const.CONF_RETENTION_YEARLY, const.DEFAULT_RETENTION_YEARLY
+            ),
+        }
 
     def _clear_due_soon_reminder(self, chore_id: str, kid_id: str) -> None:
         """Clear due-soon reminder tracking for a chore+kid combination (v0.5.0+).
@@ -3937,15 +3962,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             counter_key: Which counter to increment (claimed/approved/disapproved/points)
             amount: Amount to add (default 1)
         """
-        now = dt_util.now()  # Local time for period keys
+        now_local = kh.dt_now_local()
 
-        # Get period IDs using same format as chore_data and point_data
-        daily_key = now.strftime("%Y-%m-%d")
-        weekly_key = f"{now.isocalendar()[0]}-W{now.isocalendar()[1]:02d}"
-        monthly_key = now.strftime("%Y-%m")
-        yearly_key = now.strftime("%Y")
-
-        # Ensure periods structure exists
+        # Ensure periods structure exists with all_time bucket
         periods = reward_entry.setdefault(
             const.DATA_KID_REWARD_DATA_PERIODS,
             {
@@ -3953,40 +3972,23 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.DATA_KID_REWARD_DATA_PERIODS_WEEKLY: {},
                 const.DATA_KID_REWARD_DATA_PERIODS_MONTHLY: {},
                 const.DATA_KID_REWARD_DATA_PERIODS_YEARLY: {},
+                const.DATA_KID_REWARD_DATA_PERIODS_ALL_TIME: {},
             },
         )
 
-        # Helper to get or create period entry with all counters
-        def _get_period_entry(bucket: dict, period_id: str) -> dict:
-            if period_id not in bucket:
-                bucket[period_id] = {
-                    const.DATA_KID_REWARD_DATA_PERIOD_CLAIMED: 0,
-                    const.DATA_KID_REWARD_DATA_PERIOD_APPROVED: 0,
-                    const.DATA_KID_REWARD_DATA_PERIOD_DISAPPROVED: 0,
-                    const.DATA_KID_REWARD_DATA_PERIOD_POINTS: 0,
-                }
-            return bucket[period_id]
+        # Get period mapping from StatisticsEngine
+        period_mapping = self.stats.get_period_keys(now_local)
 
-        # Increment counter in each period bucket
-        daily = periods.setdefault(const.DATA_KID_REWARD_DATA_PERIODS_DAILY, {})
-        _get_period_entry(daily, daily_key)[counter_key] = (
-            _get_period_entry(daily, daily_key).get(counter_key, 0) + amount
+        # Record transaction using StatisticsEngine
+        self.stats.record_transaction(
+            periods,
+            {counter_key: amount},
+            period_key_mapping=period_mapping,
+            include_all_time=True,
         )
 
-        weekly = periods.setdefault(const.DATA_KID_REWARD_DATA_PERIODS_WEEKLY, {})
-        _get_period_entry(weekly, weekly_key)[counter_key] = (
-            _get_period_entry(weekly, weekly_key).get(counter_key, 0) + amount
-        )
-
-        monthly = periods.setdefault(const.DATA_KID_REWARD_DATA_PERIODS_MONTHLY, {})
-        _get_period_entry(monthly, monthly_key)[counter_key] = (
-            _get_period_entry(monthly, monthly_key).get(counter_key, 0) + amount
-        )
-
-        yearly = periods.setdefault(const.DATA_KID_REWARD_DATA_PERIODS_YEARLY, {})
-        _get_period_entry(yearly, yearly_key)[counter_key] = (
-            _get_period_entry(yearly, yearly_key).get(counter_key, 0) + amount
-        )
+        # Clean up old period data (NEW: rewards now have retention!)
+        self.stats.prune_history(periods, self._get_retention_config())
 
     def has_pending_claim(self, kid_id: str, chore_id: str) -> bool:
         """Check if a chore has a pending claim (claimed but not yet approved/disapproved).
@@ -4673,14 +4675,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME: {},
             },
         )
-        period_keys = [
-            (const.DATA_KID_CHORE_DATA_PERIODS_DAILY, today_local_iso),
-            (const.DATA_KID_CHORE_DATA_PERIODS_WEEKLY, week_local_iso),
-            (const.DATA_KID_CHORE_DATA_PERIODS_MONTHLY, month_local_iso),
-            (const.DATA_KID_CHORE_DATA_PERIODS_YEARLY, year_local_iso),
-            (const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, const.PERIOD_ALL_TIME),
-        ]
-
+        # Build period mapping for StatisticsEngine
+        period_mapping = self.stats.get_period_keys(now_local)
+        # Non-daily mapping for overdue/disapproved (daily handled separately)
+        period_mapping_no_daily = {
+            k: v
+            for k, v in period_mapping.items()
+            if k != const.DATA_KID_CHORE_DATA_PERIODS_DAILY
+        }
         previous_state = kid_chore_data.get(const.DATA_KID_CHORE_DATA_STATE)
         points_awarded = (
             round(points_awarded, const.DATA_FLOAT_PRECISION)
@@ -4691,19 +4693,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # --- All-time stats update helpers ---
         chore_stats = kid_info.setdefault(const.DATA_KID_CHORE_STATS, {})
 
-        def inc_stat(key, amount):
+        def inc_stat(key: str, amount: float) -> None:
             chore_stats[key] = chore_stats.get(key, 0) + amount
-
-        # Helper to update period stats safely for all periods
-        def update_periods(increments: dict, periods: list):
-            for period_key, period_id in periods:
-                period_data_dict = periods_data[period_key].setdefault(
-                    period_id, period_default.copy()
-                )
-                for key, val in period_default.items():
-                    period_data_dict.setdefault(key, val)
-                for inc_key, inc_val in increments.items():
-                    period_data_dict[inc_key] += inc_val
 
         if state is not None:
             kid_chore_data[const.DATA_KID_CHORE_DATA_STATE] = state
@@ -4711,9 +4702,11 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             # --- Handle CLAIMED state ---
             if state == const.CHORE_STATE_CLAIMED:
                 kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_CLAIMED] = now_iso
-                update_periods(
+                self.stats.record_transaction(
+                    periods_data,
                     {const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED: 1},
-                    period_keys,
+                    period_key_mapping=period_mapping,
+                    include_all_time=True,
                 )
                 # Increment all-time claimed count
                 inc_stat(const.DATA_KID_CHORE_STATS_CLAIMED_ALL_TIME, 1)
@@ -4721,6 +4714,11 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             # --- Handle APPROVED state ---
             elif state == const.CHORE_STATE_APPROVED:
                 # Deprecated counters removed - using chore_stats only
+
+                # Get last approved time BEFORE updating it (for streak calculation)
+                previous_last_approved_str = kid_chore_data.get(
+                    const.DATA_KID_CHORE_DATA_LAST_APPROVED
+                )
 
                 kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_APPROVED] = now_iso
 
@@ -4731,15 +4729,17 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 )
 
                 # Update period stats for count and points
-                update_periods(
+                self.stats.record_transaction(
+                    periods_data,
                     {
                         const.DATA_KID_CHORE_DATA_PERIOD_APPROVED: 1,
                         const.DATA_KID_CHORE_DATA_PERIOD_POINTS: points_awarded,
                     },
-                    period_keys,
+                    period_key_mapping=period_mapping,
+                    include_all_time=True,
                 )
 
-                # Calculate today's streak based on yesterday's daily period data
+                # Calculate today's streak using schedule-aware logic
                 yesterday_local_iso = kh.dt_add_interval(
                     today_local_iso,
                     interval_unit=const.TIME_UNIT_DAYS,
@@ -4753,7 +4753,63 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 yesterday_streak = yesterday_chore_data.get(
                     const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK, 0
                 )
-                today_streak = yesterday_streak + 1 if yesterday_streak > 0 else 1
+
+                # Get frequency for schedule-aware check
+                # (use previous_last_approved_str captured above, not the updated value)
+                frequency = chore_info.get(
+                    const.DATA_CHORE_RECURRING_FREQUENCY, const.FREQUENCY_NONE
+                )
+
+                # Calculate streak based on schedule
+                if not previous_last_approved_str:
+                    # First approval ever
+                    today_streak = 1
+                elif not frequency or frequency == const.FREQUENCY_NONE:
+                    # No schedule configured - use legacy day-gap logic
+                    today_streak = yesterday_streak + 1 if yesterday_streak > 0 else 1
+                else:
+                    # Schedule-aware: check if any occurrences were missed
+                    try:
+                        from .type_defs import ScheduleConfig
+
+                        # Build ScheduleConfig with proper types
+                        raw_interval = chore_info.get(const.DATA_CHORE_CUSTOM_INTERVAL)
+                        raw_unit = chore_info.get(const.DATA_CHORE_CUSTOM_INTERVAL_UNIT)
+                        raw_days = chore_info.get(const.DATA_CHORE_APPLICABLE_DAYS, [])
+
+                        # For streak calculation, base_date should be last_approved
+                        # so we can detect occurrences between then and now
+                        schedule_config: ScheduleConfig = {
+                            "frequency": frequency,
+                            "interval": int(raw_interval) if raw_interval else 1,
+                            "interval_unit": str(raw_unit)
+                            if raw_unit
+                            else const.TIME_UNIT_DAYS,
+                            "applicable_days": [
+                                int(d) for d in raw_days if d is not None
+                            ],
+                            "base_date": previous_last_approved_str,
+                        }
+                        engine = RecurrenceEngine(schedule_config)
+                        last_approved_dt = kh.dt_to_utc(previous_last_approved_str)
+
+                        if last_approved_dt and engine.has_missed_occurrences(
+                            last_approved_dt, now_utc
+                        ):
+                            today_streak = 1  # Broke streak
+                        else:
+                            today_streak = (
+                                yesterday_streak + 1 if yesterday_streak > 0 else 1
+                            )
+                    except Exception:  # pylint: disable=broad-except
+                        # Fallback to legacy day-gap logic on any error
+                        const.LOGGER.debug(
+                            "Schedule-aware streak check failed for %s, using legacy",
+                            chore_name,
+                        )
+                        today_streak = (
+                            yesterday_streak + 1 if yesterday_streak > 0 else 1
+                        )
 
                 # Store today's streak as the daily longest streak
                 daily_data = periods_data.get(
@@ -4807,7 +4863,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             # --- Handle OVERDUE state ---
             elif state == const.CHORE_STATE_OVERDUE:
                 kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_OVERDUE] = now_iso
-                daily_bucket = periods_data.get(
+                daily_bucket = periods_data.setdefault(
                     const.DATA_KID_CHORE_DATA_PERIODS_DAILY, {}
                 )
                 daily_data = daily_bucket.setdefault(
@@ -4822,9 +4878,11 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 if first_overdue_today:
                     daily_data[const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE] = 1
                     # Only increment higher periods if this is the first overdue for today
-                    update_periods(
+                    self.stats.record_transaction(
+                        periods_data,
                         {const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE: 1},
-                        period_keys[1:],  # skip daily
+                        period_key_mapping=period_mapping_no_daily,
+                        include_all_time=True,
                     )
                     inc_stat(const.DATA_KID_CHORE_STATS_OVERDUE_ALL_TIME, 1)
 
@@ -4836,7 +4894,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 # Only track disapproval stats if skip_stats is False (parent/admin disapproval)
                 if not skip_stats:
                     kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_DISAPPROVED] = now_iso
-                    daily_bucket_d = periods_data.get(
+                    daily_bucket_d = periods_data.setdefault(
                         const.DATA_KID_CHORE_DATA_PERIODS_DAILY, {}
                     )
                     daily_data = daily_bucket_d.setdefault(
@@ -4851,35 +4909,16 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     )
                     if first_disapproved_today:
                         daily_data[const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED] = 1
-                        update_periods(
+                        self.stats.record_transaction(
+                            periods_data,
                             {const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED: 1},
-                            period_keys[1:],  # skip daily
+                            period_key_mapping=period_mapping_no_daily,
+                            include_all_time=True,
                         )
                         inc_stat(const.DATA_KID_CHORE_STATS_DISAPPROVED_ALL_TIME, 1)
 
         # Clean up old period data to keep storage manageable
-        kh.cleanup_period_data(
-            self,
-            periods_data=periods_data,
-            period_keys={
-                const.FREQUENCY_DAILY: const.DATA_KID_CHORE_DATA_PERIODS_DAILY,
-                const.FREQUENCY_WEEKLY: const.DATA_KID_CHORE_DATA_PERIODS_WEEKLY,
-                const.FREQUENCY_MONTHLY: const.DATA_KID_CHORE_DATA_PERIODS_MONTHLY,
-                const.FREQUENCY_YEARLY: const.DATA_KID_CHORE_DATA_PERIODS_YEARLY,
-            },
-            retention_daily=self.config_entry.options.get(
-                const.CONF_RETENTION_DAILY, const.DEFAULT_RETENTION_DAILY
-            ),
-            retention_weekly=self.config_entry.options.get(
-                const.CONF_RETENTION_WEEKLY, const.DEFAULT_RETENTION_WEEKLY
-            ),
-            retention_monthly=self.config_entry.options.get(
-                const.CONF_RETENTION_MONTHLY, const.DEFAULT_RETENTION_MONTHLY
-            ),
-            retention_yearly=self.config_entry.options.get(
-                const.CONF_RETENTION_YEARLY, const.DEFAULT_RETENTION_YEARLY
-            ),
-        )
+        self.stats.prune_history(periods_data, self._get_retention_config())
 
         # --- Update kid_chore_stats after all per-chore updates ---
         self._recalculate_chore_stats_for_kid(kid_id)
@@ -5314,22 +5353,20 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         )
 
         now_local = kh.dt_now_local()
-        today_local_iso = kh.dt_today_local().isoformat()
-        week_local_iso = now_local.strftime("%Y-W%V")
-        month_local_iso = now_local.strftime("%Y-%m")
-        year_local_iso = now_local.strftime("%Y")
+        period_mapping = self.stats.get_period_keys(now_local)
 
-        for period_key, period_id in [
-            (const.DATA_KID_POINT_DATA_PERIODS_DAILY, today_local_iso),
-            (const.DATA_KID_POINT_DATA_PERIODS_WEEKLY, week_local_iso),
-            (const.DATA_KID_POINT_DATA_PERIODS_MONTHLY, month_local_iso),
-            (const.DATA_KID_POINT_DATA_PERIODS_YEARLY, year_local_iso),
-        ]:
+        # Record points_total using StatisticsEngine
+        self.stats.record_transaction(
+            periods_data,
+            {const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL: delta_value},
+            period_key_mapping=period_mapping,
+            include_all_time=True,
+        )
+
+        # Handle by_source tracking separately (nested structure not handled by engine)
+        for period_key, period_id in period_mapping.items():
             bucket = periods_data.setdefault(period_key, {})
             entry = bucket.setdefault(period_id, {})
-            # Safely initialize fields if missing
-            if const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL not in entry:
-                entry[const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL] = 0.0
             if (
                 const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE not in entry
                 or not isinstance(
@@ -5337,17 +5374,32 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 )
             ):
                 entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE] = {}
-            entry[const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL] += delta_value
-            entry[const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL] = round(
-                entry[const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL],
-                const.DATA_FLOAT_PRECISION,
-            )
             entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE].setdefault(source, 0.0)
-            entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE][source] += delta_value
             entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE][source] = round(
-                entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE][source],
+                entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE][source] + delta_value,
                 const.DATA_FLOAT_PRECISION,
             )
+
+        # Also record by_source for all_time bucket
+        all_time_bucket = periods_data.setdefault(
+            const.DATA_KID_POINT_DATA_PERIODS_ALL_TIME, {}
+        )
+        all_time_entry = all_time_bucket.setdefault(const.PERIOD_ALL_TIME, {})
+        if (
+            const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE not in all_time_entry
+            or not isinstance(
+                all_time_entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE], dict
+            )
+        ):
+            all_time_entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE] = {}
+        all_time_entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE].setdefault(
+            source, 0.0
+        )
+        all_time_entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE][source] = round(
+            all_time_entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE][source]
+            + delta_value,
+            const.DATA_FLOAT_PRECISION,
+        )
 
         # 7) Re‑evaluate everything and persist
         # Note: Call _recalculate_point_stats_for_kid BEFORE updating all-time stats
@@ -5367,28 +5419,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         highest = point_stats.get(const.DATA_KID_POINT_STATS_HIGHEST_BALANCE, 0.0)
         point_stats[const.DATA_KID_POINT_STATS_HIGHEST_BALANCE] = max(highest, new)
-        kh.cleanup_period_data(
-            self,
-            periods_data=periods_data,
-            period_keys={
-                "daily": const.DATA_KID_POINT_DATA_PERIODS_DAILY,
-                "weekly": const.DATA_KID_POINT_DATA_PERIODS_WEEKLY,
-                "monthly": const.DATA_KID_POINT_DATA_PERIODS_MONTHLY,
-                "yearly": const.DATA_KID_POINT_DATA_PERIODS_YEARLY,
-            },
-            retention_daily=self.config_entry.options.get(
-                const.CONF_RETENTION_DAILY, const.DEFAULT_RETENTION_DAILY
-            ),
-            retention_weekly=self.config_entry.options.get(
-                const.CONF_RETENTION_WEEKLY, const.DEFAULT_RETENTION_WEEKLY
-            ),
-            retention_monthly=self.config_entry.options.get(
-                const.CONF_RETENTION_MONTHLY, const.DEFAULT_RETENTION_MONTHLY
-            ),
-            retention_yearly=self.config_entry.options.get(
-                const.CONF_RETENTION_YEARLY, const.DEFAULT_RETENTION_YEARLY
-            ),
-        )
+
+        # Clean up old period data to keep storage manageable
+        self.stats.prune_history(periods_data, self._get_retention_config())
+
         self._check_badges_for_kid(kid_id)
         self._check_achievements_for_kid(kid_id)
         self._check_challenges_for_kid(kid_id)
@@ -6834,34 +6868,42 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             return
 
         today_local_iso = kh.dt_today_iso()
-        now = kh.dt_now_local()
-        week = now.strftime("%Y-W%V")
-        month = now.strftime("%Y-%m")
-        year = now.strftime("%Y")
+        now_local = kh.dt_now_local()
 
         badges_earned = kid_info.setdefault(const.DATA_KID_BADGES_EARNED, {})
 
-        # Use new constants for periods
-        periods_key = const.DATA_KID_BADGES_EARNED_PERIODS
-        period_daily = const.DATA_KID_BADGES_EARNED_PERIODS_DAILY
-        period_weekly = const.DATA_KID_BADGES_EARNED_PERIODS_WEEKLY
-        period_monthly = const.DATA_KID_BADGES_EARNED_PERIODS_MONTHLY
-        period_yearly = const.DATA_KID_BADGES_EARNED_PERIODS_YEARLY
+        # Get period mapping from StatisticsEngine
+        period_mapping = self.stats.get_period_keys(now_local)
+
+        # Declare periods variable for use in both branches
+        periods: dict[str, Any]
 
         if badge_id not in badges_earned:
+            # Create new badge tracking entry with all_time bucket
             badges_earned[badge_id] = {  # pyright: ignore[reportArgumentType]
                 const.DATA_KID_BADGES_EARNED_NAME: badge_info.get(
-                    const.DATA_BADGE_NAME
+                    const.DATA_BADGE_NAME, ""
                 ),
                 const.DATA_KID_BADGES_EARNED_LAST_AWARDED: today_local_iso,
                 const.DATA_KID_BADGES_EARNED_AWARD_COUNT: 1,
-                periods_key: {  # type: ignore[misc]
-                    period_daily: {today_local_iso: 1},
-                    period_weekly: {week: 1},
-                    period_monthly: {month: 1},
-                    period_yearly: {year: 1},
+                const.DATA_KID_BADGES_EARNED_PERIODS: {
+                    const.DATA_KID_BADGES_EARNED_PERIODS_DAILY: {},
+                    const.DATA_KID_BADGES_EARNED_PERIODS_WEEKLY: {},
+                    const.DATA_KID_BADGES_EARNED_PERIODS_MONTHLY: {},
+                    const.DATA_KID_BADGES_EARNED_PERIODS_YEARLY: {},
+                    const.DATA_KID_BADGES_EARNED_PERIODS_ALL_TIME: {},
                 },
             }
+            # Record initial award using StatisticsEngine
+            periods = badges_earned[badge_id][  # type: ignore[assignment]
+                const.DATA_KID_BADGES_EARNED_PERIODS
+            ]
+            self.stats.record_transaction(
+                periods,
+                {const.DATA_KID_BADGES_EARNED_AWARD_COUNT: 1},
+                period_key_mapping=period_mapping,
+                include_all_time=True,
+            )
             const.LOGGER.info(
                 "INFO: Update Kid Badges Earned - Created new tracking for badge '%s' for kid '%s'.",
                 badge_info.get(const.DATA_BADGE_NAME, badge_id),
@@ -6869,60 +6911,37 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             )
         else:
             tracking_entry = badges_earned[badge_id]
-            tracking_entry[const.DATA_KID_BADGES_EARNED_NAME] = badge_info.get(  # type: ignore[typeddict-item]
-                const.DATA_BADGE_NAME
+            tracking_entry[const.DATA_KID_BADGES_EARNED_NAME] = badge_info.get(
+                const.DATA_BADGE_NAME, ""
             )
             tracking_entry[const.DATA_KID_BADGES_EARNED_LAST_AWARDED] = today_local_iso
             tracking_entry[const.DATA_KID_BADGES_EARNED_AWARD_COUNT] = (
                 tracking_entry.get(const.DATA_KID_BADGES_EARNED_AWARD_COUNT, 0) + 1
             )
-            # Ensure periods and sub-dicts exist
-            periods = tracking_entry.setdefault(periods_key, {})  # type: ignore[misc]
-            daily_dict: dict[str, int] = cast(
-                "dict", periods.setdefault(period_daily, {})
+
+            # Ensure periods structure exists with all_time bucket
+            periods = tracking_entry.setdefault(
+                const.DATA_KID_BADGES_EARNED_PERIODS,
+                {},  # type: ignore[typeddict-item]
             )
-            weekly_dict: dict[str, int] = cast(
-                "dict", periods.setdefault(period_weekly, {})
+            periods.setdefault(const.DATA_KID_BADGES_EARNED_PERIODS_ALL_TIME, {})
+
+            # Record award using StatisticsEngine
+            self.stats.record_transaction(
+                periods,
+                {const.DATA_KID_BADGES_EARNED_AWARD_COUNT: 1},
+                period_key_mapping=period_mapping,
+                include_all_time=True,
             )
-            monthly_dict: dict[str, int] = cast(
-                "dict", periods.setdefault(period_monthly, {})
-            )
-            yearly_dict: dict[str, int] = cast(
-                "dict", periods.setdefault(period_yearly, {})
-            )
-            daily_dict[today_local_iso] = daily_dict.get(today_local_iso, 0) + 1
-            weekly_dict[week] = weekly_dict.get(week, 0) + 1
-            monthly_dict[month] = monthly_dict.get(month, 0) + 1
-            yearly_dict[year] = yearly_dict.get(year, 0) + 1
 
             const.LOGGER.info(
                 "INFO: Update Kid Badges Earned - Updated tracking for badge '%s' for kid '%s'.",
                 badge_info.get(const.DATA_BADGE_NAME, badge_id),
                 kid_info.get(const.DATA_KID_NAME, kid_id),
             )
-            # Cleanup old period data
-            kh.cleanup_period_data(
-                self,
-                periods_data=periods,  # pyright: ignore[reportArgumentType]
-                period_keys={
-                    "daily": const.DATA_KID_BADGES_EARNED_PERIODS_DAILY,
-                    "weekly": const.DATA_KID_BADGES_EARNED_PERIODS_WEEKLY,
-                    "monthly": const.DATA_KID_BADGES_EARNED_PERIODS_MONTHLY,
-                    "yearly": const.DATA_KID_BADGES_EARNED_PERIODS_YEARLY,
-                },
-                retention_daily=self.config_entry.options.get(
-                    const.CONF_RETENTION_DAILY, const.DEFAULT_RETENTION_DAILY
-                ),
-                retention_weekly=self.config_entry.options.get(
-                    const.CONF_RETENTION_WEEKLY, const.DEFAULT_RETENTION_WEEKLY
-                ),
-                retention_monthly=self.config_entry.options.get(
-                    const.CONF_RETENTION_MONTHLY, const.DEFAULT_RETENTION_MONTHLY
-                ),
-                retention_yearly=self.config_entry.options.get(
-                    const.CONF_RETENTION_YEARLY, const.DEFAULT_RETENTION_YEARLY
-                ),
-            )
+
+            # Cleanup old period data using StatisticsEngine
+            self.stats.prune_history(periods, self._get_retention_config())
 
         self._persist()
         self.async_set_updated_data(self._data)
@@ -6998,7 +7017,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Convert kid_name to kid_id if provided.
         kid_id = None
         if kid_name:
-            kid_id = kh.get_kid_id_by_name(self, kid_name)
+            kid_id = kh.get_entity_id_by_name(self, const.ENTITY_TYPE_KID, kid_name)
             if kid_id is None:
                 const.LOGGER.error(
                     "ERROR: Remove Awarded Badges - Kid name '%s' not found.", kid_name
@@ -7016,7 +7035,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
         # If badge_name is provided, try to find its corresponding badge_id.
         if badge_name:
-            badge_id = kh.get_badge_id_by_name(self, badge_name)
+            badge_id = kh.get_entity_id_by_name(
+                self, const.ENTITY_TYPE_BADGE, badge_name
+            )
             if not badge_id:
                 # If the badge isn't found, assume the actual badge was deleted but still listed in kid data
                 const.LOGGER.warning(
