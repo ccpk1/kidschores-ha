@@ -671,26 +671,6 @@ class ChoreOperations:
         self._persist()
         self.async_set_updated_data(self._data)
 
-    def update_chore_state(self, chore_id: str, state: str):
-        """Manually override a chore's state."""
-        chore_info: ChoreData | None = self.chores_data.get(chore_id)
-        if not chore_info:
-            const.LOGGER.warning(
-                "WARNING: Update Chore State -  Chore ID '%s' not found", chore_id
-            )
-            return
-        # Set state for all kids assigned to the chore:
-        for kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
-            if kid_id:
-                self._process_chore_state(
-                    kid_id, chore_id, state, reset_approval_period=True
-                )
-        self._persist()
-        self.async_set_updated_data(self._data)
-        const.LOGGER.debug(
-            "DEBUG: Chore ID '%s' manually updated to '%s'", chore_id, state
-        )
-
     # -------------------------------------------------------------------------------------
     # Claim & Approval Eligibility Helpers (Phase 4: Approval Reset Timing)
     # These helpers use timestamp-based logic from kid_chore_data instead of the deprecated

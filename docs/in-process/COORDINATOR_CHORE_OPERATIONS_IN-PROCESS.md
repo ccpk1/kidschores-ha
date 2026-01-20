@@ -17,8 +17,8 @@
 | Phase 2B – Support Extract | Move scheduling + query helper methods        | 100%       | ✅ 30 methods extracted (2,062 lines)         |
 | Phase 3 – Integration      | Update coordinator.py imports and inheritance | 100%       | ✅ Multiple inheritance working               |
 | Phase 4 – Validation       | Run full test suite and quality gates         | 100%       | ✅ 852/852 tests, MyPy clean, Ruff clean      |
-| Phase 5 – Documentation    | Update docstrings and ARCHITECTURE.md         | 0%         | **IN PROGRESS** - plan update in progress     |
-| Phase 6 – Method Renaming  | Standardize inconsistent method names         | 0%         | **DECISION REQUIRED** - see naming analysis   |
+| Phase 4B – Method Renaming | Standardize names + logical file organization | 0%         | **READY** - see Phase 4B section below        |
+| Phase 5 – Documentation    | Update docstrings and ARCHITECTURE.md         | 0%         | Pending Phase 4B completion                   |
 
 1. **Key objective** – Extract **~3,200 lines** (28% of coordinator.py) of chore lifecycle logic into coordinator_chore_operations.py using Python's multiple inheritance pattern, with zero test changes.
 
@@ -177,6 +177,399 @@ python utils/extract_method.py custom_components/kidschores/coordinator.py \
 
 - **Key issues**
   - None. File created successfully.
+
+---
+
+### Phase 4B – Method Renaming & File Organization (Est: 4-6 hours) ⏳ READY
+
+- **Goal**: Standardize all 46 method names following naming conventions and reorganize file with clear logical sections for maintainability.
+
+- **Approach**:
+  - Rename ALL methods (7 service methods + 7 coordinator API + 32 private methods)
+  - Reorganize file into 12 logical sections with clear docstring headers
+  - Update all call sites in services.py, button.py, sensor.py
+  - **No external breaking changes** - service names unchanged (handled by constants)
+
+- **Naming Conventions Applied**:
+  - Service entry points: `<action>_chore()` (no underscore)
+  - Coordinator public API: `chore_<query>()` (no underscore, query-focused)
+  - Private methods: `_<action>_chore_<detail>()` (underscore prefix)
+  - Properties: `pending_chore_<noun>` (no underscore)
+
+#### 4B.1 Future State: Method Organization & Naming
+
+**File Structure**: 12 logical sections with ~20-30 line section headers containing:
+
+- Section purpose
+- Method inventory (3-5 methods per section)
+- Dependencies/relationships
+- Usage notes
+
+| Section                              | Order | Old Name                                    | New Name                                    | Visibility      | Notes                            |
+| ------------------------------------ | ----- | ------------------------------------------- | ------------------------------------------- | --------------- | -------------------------------- |
+| **§1 Service Entry Points**          |       |                                             |                                             | **HA Services** | Called from services.py handlers |
+|                                      | 1     | `claim_chore()`                             | `claim_chore()`                             | Public          | ✅ Keep (standard pattern)       |
+|                                      | 2     | `approve_chore()`                           | `approve_chore()`                           | Public          | ✅ Keep (standard pattern)       |
+|                                      | 3     | `disapprove_chore()`                        | `disapprove_chore()`                        | Public          | ✅ Keep (standard pattern)       |
+|                                      | 4     | `set_chore_due_date()`                      | `set_chore_due_date()`                      | Public          | ✅ Keep (standard pattern)       |
+|                                      | 5     | `skip_chore_due_date()`                     | `skip_chore_due_date()`                     | Public          | ✅ Keep (standard pattern)       |
+|                                      | 6     | `reset_all_chores()`                        | `reset_all_chores()`                        | Public          | ✅ Keep (standard pattern)       |
+|                                      | 7     | `reset_overdue_chores()`                    | `reset_overdue_chores()`                    | Public          | ✅ Keep (standard pattern)       |
+| **§2 Coordinator Public API**        |       |                                             |                                             | **Public**      | Called from sensor.py, button.py |
+|                                      | 8     | `has_pending_claim()`                       | `chore_has_pending_claim()`                 | Public          | 🔄 Add "chore" prefix            |
+|                                      | 9     | `is_overdue()`                              | `chore_is_overdue()`                        | Public          | 🔄 Add "chore" prefix            |
+|                                      | 10    | `is_approved_in_current_period()`           | `chore_is_approved_in_period()`             | Public          | 🔄 Simplify "current"            |
+|                                      | 11    | `get_pending_chore_approvals_computed()`    | `get_pending_chore_approvals()`             | Public          | 🔄 Remove redundant "\_computed" |
+|                                      | 12    | `pending_chore_approvals` (property)        | `pending_chore_approvals`                   | Public          | ✅ Keep (clear property name)    |
+|                                      | 13    | `pending_chore_changed` (property)          | `pending_chore_changed`                     | Public          | ✅ Keep (clear property name)    |
+|                                      | 14    | `undo_chore_claim()`                        | `undo_chore_claim()`                        | Public          | ✅ Keep (button.py uses)         |
+| **§3 Validation & Authorization**    |       |                                             |                                             | **Private**     | Internal validation logic        |
+|                                      | 15    | `_can_claim_chore()`                        | `_can_claim_chore()`                        | Private         | ✅ Keep (clear boolean check)    |
+|                                      | 16    | `_can_approve_chore()`                      | `_can_approve_chore()`                      | Private         | ✅ Keep (clear boolean check)    |
+| **§4 State Machine Core**            |       |                                             |                                             | **Private**     | Central state transitions        |
+|                                      | 17    | `_process_chore_state()`                    | `_transition_chore_state()`                 | Private         | 🔄 "transition" more precise     |
+| **§5 Data Management Helpers**       |       |                                             |                                             | **Private**     | CRUD operations on chore data    |
+|                                      | 19    | `_update_chore_data_for_kid()`              | `_update_kid_chore_data()`                  | Private         | 🔄 Better word order             |
+|                                      | 20    | `_set_chore_claimed_completed_by()`         | `_set_chore_claim_metadata()`               | Private         | 🔄 Clearer purpose               |
+|                                      | 21    | `_clear_chore_claimed_completed_by()`       | `_clear_chore_claim_metadata()`             | Private         | 🔄 Clearer purpose               |
+|                                      | 22    | `_get_kid_chore_data()`                     | `_get_kid_chore_data()`                     | Private         | ✅ Keep (clear accessor)         |
+| **§6 Query & Status Helpers**        |       |                                             |                                             | **Private**     | Internal state queries           |
+|                                      | 23    | `_allows_multiple_claims()`                 | `_chore_allows_multiple_claims()`           | Private         | 🔄 Add "chore" prefix            |
+|                                      | 24    | `_count_pending_chores_for_kid()`           | `_count_chores_pending_for_kid()`           | Private         | 🔄 Better word order             |
+|                                      | 25    | `_get_latest_pending_chore()`               | `_get_latest_chore_pending()`               | Private         | 🔄 Better word order             |
+|                                      | 26    | `_get_effective_due_date()`                 | `_get_chore_effective_due_date()`           | Private         | 🔄 Add "chore" context           |
+| **§7 Scheduling & Rescheduling**     |       |                                             |                                             | **Private**     | Due date calculations            |
+|                                      | 27    | `_reschedule_chore_next_due_date()`         | `_reschedule_chore_next_due()`              | Private         | 🔄 Remove redundant "date"       |
+|                                      | 28    | `_reschedule_chore_next_due_date_for_kid()` | `_reschedule_chore_next_due_date_for_kid()` | Private         | ✅ Keep (clear purpose)          |
+|                                      | 29    | `_is_approval_after_reset_boundary()`       | `_is_chore_approval_after_reset()`          | Private         | 🔄 Add "chore" + simplify        |
+| **§8 Recurring Chore Operations**    |       |                                             |                                             | **Private**     | Recurring chore lifecycle        |
+|                                      | 30    | `_handle_recurring_chore_resets()`          | `_process_recurring_chore_resets()`         | Private         | 🔄 "process" more precise        |
+|                                      | 31    | `_reset_chore_counts()`                     | `_reset_chore_counts()`                     | Private         | ✅ Keep (clear purpose)          |
+|                                      | 32    | `_reschedule_recurring_chores()`            | `_reschedule_recurring_chores()`            | Private         | ✅ Keep (clear purpose)          |
+|                                      | 33    | `_reschedule_shared_recurring_chore()`      | `_reschedule_shared_recurring_chore()`      | Private         | ✅ Keep (clear purpose)          |
+|                                      | 34    | `_reschedule_independent_recurring_chore()` | `_reschedule_independent_recurring_chore()` | Private         | ✅ Keep (clear purpose)          |
+| **§9 Daily Reset Operations**        |       |                                             |                                             | **Private**     | Midnight reset logic             |
+|                                      | 35    | `_reset_daily_chore_statuses()`             | `_reset_daily_chore_statuses()`             | Private         | ✅ Keep (clear purpose)          |
+|                                      | 36    | `_reset_shared_chore_status()`              | `_reset_shared_chore_status()`              | Private         | ✅ Keep (clear purpose)          |
+|                                      | 37    | `_reset_independent_chore_status()`         | `_reset_independent_chore_status()`         | Private         | ✅ Keep (clear purpose)          |
+|                                      | 38    | `_handle_pending_claim_at_reset()`          | `_handle_pending_chore_claim_at_reset()`    | Private         | 🔄 Add "chore" for clarity       |
+| **§10 Overdue Detection & Handling** |       |                                             |                                             | **Private**     | Overdue chore processing         |
+|                                      | 39    | `_check_overdue_for_chore()`                | `_check_chore_overdue_status()`             | Private         | 🔄 Better word order             |
+|                                      | 40    | `_notify_overdue_chore()`                   | `_notify_overdue_chore()`                   | Private         | ✅ Keep (clear purpose)          |
+|                                      | 41    | `_check_overdue_chores()`                   | `_check_overdue_chores()`                   | Private         | ✅ Keep (clear purpose)          |
+|                                      | 42    | `_apply_overdue_if_due()`                   | `_handle_overdue_chore_state()`             | Private         | 🔄 Clearer action verb           |
+| **§11 Reminder System**              |       |                                             |                                             | **Private**     | Due date reminder logic          |
+|                                      | 43    | `_check_due_date_reminders()`               | `_check_chore_due_reminders()`              | Private         | 🔄 Add "chore" + simplify        |
+|                                      | 44    | `_clear_due_soon_reminder()`                | `_clear_chore_due_reminder()`               | Private         | 🔄 Add "chore" + simplify        |
+
+**Summary Statistics**:
+
+- ✅ **Keep as-is**: 24 methods (56%)
+- 🔄 **Rename**: 19 methods (44%)
+- 🗑️ **Deleted**: 3 methods (calculate functions moved to schedule_engine.py + 1 dead code)
+- Total active methods: 43 in file (2 additional in schedule_engine.py)
+
+#### 4B.2 Foolproof Implementation Strategy
+
+**Approach**: Use automated script + structured verification at each stage. NO manual editing of method bodies.
+
+##### Phase 1: Pre-Flight Verification (5 min) - CRITICAL SAFETY CHECK
+
+```bash
+# 1. Create rename mapping file
+cat > /tmp/chore_ops_renames.txt << 'EOF'
+# Format: old_name|new_name|section
+has_pending_claim|chore_has_pending_claim|§2
+is_overdue|chore_is_overdue|§2
+is_approved_in_current_period|chore_is_approved_in_period|§2
+get_pending_chore_approvals_computed|get_pending_chore_approvals|§2
+_process_chore_state|_transition_chore_state|§4
+_update_chore_data_for_kid|_update_kid_chore_data|§5
+_set_chore_claimed_completed_by|_set_chore_claim_metadata|§5
+_clear_chore_claimed_completed_by|_clear_chore_claim_metadata|§5
+_allows_multiple_claims|_chore_allows_multiple_claims|§6
+_count_pending_chores_for_kid|_count_chores_pending_for_kid|§6
+_get_latest_pending_chore|_get_latest_chore_pending|§6
+_get_effective_due_date|_get_chore_effective_due_date|§6
+_reschedule_chore_next_due_date|_reschedule_chore_next_due|§7
+_is_approval_after_reset_boundary|_is_chore_approval_after_reset|§7
+_handle_recurring_chore_resets|_process_recurring_chore_resets|§8
+_handle_pending_claim_at_reset|_handle_pending_chore_claim_at_reset|§9
+_check_overdue_for_chore|_check_chore_overdue_status|§10
+_apply_overdue_if_due|_handle_overdue_chore_state|§10
+_check_due_date_reminders|_check_chore_due_reminders|§11
+_clear_due_soon_reminder|_clear_chore_due_reminder|§11
+EOF
+
+# 2. Verify all methods exist in current file
+echo "Verifying methods exist..."
+while IFS='|' read -r old new section; do
+  [[ "$old" =~ ^# ]] && continue
+  if ! grep -q "def $old(" custom_components/kidschores/coordinator_chore_operations.py; then
+    echo "❌ ABORT: Method '$old' not found!"
+    exit 1
+  fi
+  echo "✓ Found: $old"
+done < /tmp/chore_ops_renames.txt
+
+# 3. Find all call sites (for verification)
+echo "Finding call sites..."
+grep -rn "has_pending_claim\|is_overdue\|is_approved_in_current_period\|get_pending_chore_approvals_computed" \
+  custom_components/kidschores/*.py tests/ > /tmp/call_sites_public.txt
+
+grep -rn "_process_chore_state\|_update_chore_data_for_kid\|_set_chore_claimed_completed_by" \
+  custom_components/kidschores/coordinator*.py > /tmp/call_sites_private.txt
+
+echo "✅ Pre-flight checks complete"
+```
+
+##### Phase 2: Backup & Branch (2 min)
+
+```bash
+# Commit current state
+git add -A
+git commit -m "Pre-Phase-4B: Clean state before renaming"
+
+# Create tracking branch
+git branch phase-4b-checkpoint
+```
+
+##### Phase 3: Reorganize Methods by Section (30 min) - ZERO LOGIC CHANGES
+
+**Approach**: Extract each method verbatim, paste in section order, delete original.
+
+```bash
+# Create reorganized file structure with section headers
+python << 'PYTHON_SCRIPT'
+import re
+
+# Read current file
+with open('custom_components/kidschores/coordinator_chore_operations.py', 'r') as f:
+    content = f.read()
+
+# Section templates
+SECTION_TEMPLATE = '''
+# =============================================================================
+# {title}
+# =============================================================================
+"""
+{description}
+
+Methods in this section:
+{methods}
+
+Dependencies: {dependencies}
+Usage: {usage}
+"""
+'''
+
+sections = {
+    "§1": {
+        "title": "SERVICE ENTRY POINTS (HA Services)",
+        "description": "Public service methods registered in services.py",
+        "methods": "claim_chore, approve_chore, disapprove_chore, set_chore_due_date, skip_chore_due_date, reset_all_chores, reset_overdue_chores",
+        "dependencies": "All sections",
+        "usage": "Called from services.py handlers"
+    },
+    # ... [Continue for all 11 sections]
+}
+
+# Extract methods with exact boundaries
+def extract_method(content, method_name):
+    """Extract method with full signature and body."""
+    pattern = rf'(    def {method_name}\([^)]*\)[^:]*:.*?)(?=\n    def |\n    @property|\nclass |\Z)'
+    match = re.search(pattern, content, re.DOTALL)
+    return match.group(1) if match else None
+
+# Build reorganized content
+# [Implementation details...]
+
+PYTHON_SCRIPT
+
+# Validate: method count unchanged
+old_count=$(grep -c "^    def " custom_components/kidschores/coordinator_chore_operations.py)
+new_count=$(grep -c "^    def " custom_components/kidschores/coordinator_chore_operations_new.py)
+if [ "$old_count" != "$new_count" ]; then
+  echo "❌ Method count mismatch! Old: $old_count, New: $new_count"
+  exit 1
+fi
+
+# Run tests BEFORE replacing file
+mv custom_components/kidschores/coordinator_chore_operations.py coordinator_chore_operations_backup.py
+mv custom_components/kidschores/coordinator_chore_operations_new.py custom_components/kidschores/coordinator_chore_operations.py
+
+pytest tests/ -x --tb=line
+if [ $? -ne 0 ]; then
+  echo "❌ Tests failed after reorganization!"
+  mv coordinator_chore_operations_backup.py custom_components/kidschores/coordinator_chore_operations.py
+  exit 1
+fi
+
+rm coordinator_chore_operations_backup.py
+git add custom_components/kidschores/coordinator_chore_operations.py
+git commit -m "Phase 4B: Reorganize methods by section (no logic changes)"
+```
+
+##### Phase 4: Rename Methods (Multi-Step with Auto-Revert) (2 hours)
+
+**Critical**: Use `sed` for surgical replacements with test validation after EACH rename.
+
+```bash
+# Function to rename one method with full rollback
+rename_method() {
+  local old_name=$1
+  local new_name=$2
+  local file=$3
+  
+  echo "Renaming: $old_name → $new_name"
+  
+  # Backup
+  cp "$file" "${file}.backup"
+  
+  # Rename method definition
+  sed -i "s/def ${old_name}(/def ${new_name}(/g" "$file"
+  
+  # Rename method calls (self. prefix)
+  sed -i "s/self\.${old_name}(/self.${new_name}(/g" "$file"
+  sed -i "s/coordinator\.${old_name}(/coordinator.${new_name}(/g" "$file"
+  
+  # Run tests
+  pytest tests/ -x --tb=line
+  if [ $? -eq 0 ]; then
+    echo "✅ $new_name: Tests passed"
+    rm "${file}.backup"
+    git add "$file"
+    git commit -m "Phase 4B: Rename $old_name → $new_name"
+  else
+    echo "❌ $new_name: Tests FAILED - reverting"
+    mv "${file}.backup" "$file"
+    return 1
+  fi
+}
+
+# Rename private methods (internal calls only)
+rename_method "_process_chore_state" "_transition_chore_state" "custom_components/kidschores/coordinator_chore_operations.py"
+rename_method "_update_chore_data_for_kid" "_update_kid_chore_data" "custom_components/kidschores/coordinator_chore_operations.py"
+# ... [Continue for all 17 private methods]
+
+# Rename public API methods (requires updating call sites)
+for file in custom_components/kidschores/sensor.py custom_components/kidschores/button.py; do
+  sed -i "s/\.has_pending_claim(/.chore_has_pending_claim(/g" "$file"
+  sed -i "s/\.is_overdue(/.chore_is_overdue(/g" "$file"
+  sed -i "s/\.is_approved_in_current_period(/.chore_is_approved_in_period(/g" "$file"
+  sed -i "s/\.get_pending_chore_approvals_computed(/.get_pending_chore_approvals(/g" "$file"
+done
+
+rename_method "has_pending_claim" "chore_has_pending_claim" "custom_components/kidschores/coordinator_chore_operations.py"
+rename_method "is_overdue" "chore_is_overdue" "custom_components/kidschores/coordinator_chore_operations.py"
+rename_method "is_approved_in_current_period" "chore_is_approved_in_period" "custom_components/kidschores/coordinator_chore_operations.py"
+rename_method "get_pending_chore_approvals_computed" "get_pending_chore_approvals" "custom_components/kidschores/coordinator_chore_operations.py"
+```
+
+##### Phase 5: Update All Comments & Docstrings (30 min)
+
+```bash
+# Update method names in docstrings
+python << 'PYTHON'
+import re
+
+renames = [
+    ("has_pending_claim", "chore_has_pending_claim"),
+    ("is_overdue", "chore_is_overdue"),
+    # ... all renames
+]
+
+with open('custom_components/kidschores/coordinator_chore_operations.py', 'r') as f:
+    content = f.read()
+
+for old, new in renames:
+    # Update in docstrings
+    content = re.sub(rf'`{old}\(\)`', f'`{new}()`', content)
+    content = re.sub(rf'{old}\(\)', f'{new}()', content)
+    # Update in comments
+    content = re.sub(rf'# .*{old}', lambda m: m.group(0).replace(old, new), content)
+
+with open('custom_components/kidschores/coordinator_chore_operations.py', 'w') as f:
+    f.write(content)
+PYTHON
+
+git add custom_components/kidschores/coordinator_chore_operations.py
+git commit -m "Phase 4B: Update all comments and docstrings"
+```
+
+##### Phase 6: Final Validation (15 min)
+
+```bash
+# Full test suite
+pytest tests/ -v --tb=short
+
+# Type checking
+mypy custom_components/kidschores/
+
+# Linting
+./utils/quick_lint.sh --fix
+
+# Verify no orphaned old names
+echo "Checking for old method names..."
+grep -r "has_pending_claim\|_process_chore_state\|_apply_overdue_if_due" \
+  custom_components/kidschores/*.py | grep -v "\.pyc" | grep -v "__pycache__"
+
+if [ $? -eq 0 ]; then
+  echo "⚠️  Found old method names - review needed"
+else
+  echo "✅ All method names updated"
+fi
+```
+
+##### Phase 7: Success Validation Checklist
+
+- [ ] All 852 tests pass
+- [ ] MyPy: 0 errors
+- [ ] Lint: 9.5+ score  
+- [ ] Git: 20-25 commits (1 per rename + reorganization)
+- [ ] No old method names found in codebase
+- [ ] Section headers present in file (12 sections)
+- [ ] Comments/docstrings updated
+- [ ] Call sites verified: `grep -r "chore_has_pending_claim" custom_components/ tests/`
+
+#### 4B.3 Risk Mitigation
+
+**Call Site Discovery**:
+
+```bash
+# Before renaming, grep for all call sites
+grep -r "has_pending_claim\|is_overdue\|is_approved_in_current_period" \
+  custom_components/kidschores/*.py tests/*.py
+
+# Verify no external usage (should only find internal files)
+grep -r "\.claim_chore\|\.approve_chore" \
+  custom_components/kidschores/*.py | grep -v "coordinator_chore_operations.py"
+```
+
+**Rollback Plan**:
+
+- Each step commits separately
+- If tests fail at any step: `git reset --hard HEAD^`
+- Worst case: revert entire Phase 4B with single `git revert`
+
+**Breaking Change Verification**:
+
+```bash
+# Verify service names unchanged in services.py
+grep "const.SERVICE_" custom_components/kidschores/services.py
+
+# Should still see: SERVICE_CLAIM_CHORE, SERVICE_APPROVE_CHORE, etc.
+```
+
+#### 4B.4 Success Criteria
+
+- [ ] All 46 methods renamed/organized per table
+- [ ] File has 12 clear sections with headers
+- [ ] 852/852 tests passing
+- [ ] 0 MyPy errors
+- [ ] Lint score 9.5+
+- [ ] No external service name changes (verified in services.yaml)
+- [ ] All call sites updated (sensor.py, button.py, services.py)
 
 ---
 
