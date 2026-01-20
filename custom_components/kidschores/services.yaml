@@ -113,7 +113,7 @@ redeem_reward:
 
 approve_reward:
   name: "Approve Reward"
-  description: "Parent approves a reward claimed by a kid, deducting points."
+  description: "Parent approves a reward claimed by a kid, deducting points. Supports optional cost override for context-aware pricing (e.g., weekend discounts, birthday free grants)."
   fields:
     parent_name:
       name: "Parent Name"
@@ -136,6 +136,16 @@ approve_reward:
       required: true
       selector:
         text:
+    cost_override:
+      name: "Cost Override"
+      description: "Optional cost override. If omitted, uses the reward's configured cost. Set to 0 for a free grant (like birthday gifts). Useful for context-aware pricing via automations."
+      example: 10
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 10000
+          mode: box
 
 disapprove_reward:
   name: "Disapprove Reward"

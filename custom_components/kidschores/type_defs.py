@@ -689,6 +689,7 @@ class ScheduleConfig(TypedDict, total=False):
     base_date: str  # ISO datetime string - starting point for calculations
     applicable_days: list[int]  # Weekday integers (0=Mon, 6=Sun) for filtering
     reference_datetime: str  # ISO datetime - "after" reference for next occurrence
+    daily_multi_times: str  # Pipe-separated times for FREQUENCY_DAILY_MULTI (e.g., "08:00|12:00|18:00")
 
 
 # =============================================================================

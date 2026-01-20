@@ -37,8 +37,6 @@ from homeassistant.util import dt as dt_util
 from . import const
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
-
     from .type_defs import ChoreData, ScheduleConfig
 
 
@@ -114,6 +112,9 @@ class RecurrenceEngine:
         if base_date_str:
             self._base_date = self._parse_to_utc(base_date_str)
 
+        # DAILY_MULTI times (pipe-separated string, e.g., "08:00|12:00|18:00")
+        self._daily_multi_times = config.get("daily_multi_times", "")
+
     def get_next_occurrence(
         self, after: datetime | None = None, require_future: bool = True
     ) -> datetime | None:
@@ -142,6 +143,8 @@ class RecurrenceEngine:
         reference_utc = after if after else dt_util.utcnow()
 
         # Route to appropriate handler
+        if self._frequency == const.FREQUENCY_DAILY_MULTI:
+            return self._calculate_multi_daily(reference_utc)
         if self._frequency in self.PERIOD_END_FREQUENCIES:
             return self._calculate_period_end(reference_utc, require_future)
         if self._is_custom_frequency():
@@ -760,6 +763,69 @@ class RecurrenceEngine:
             return f"{base};BYDAY={days}"
         return base
 
+    def _calculate_multi_daily(self, reference_utc: datetime) -> datetime | None:
+        """Calculate next occurrence for DAILY_MULTI frequency.
+
+        Handles multiple time slots per day (e.g., "08:00|12:00|18:00").
+        Returns the next slot strictly after reference_utc.
+
+        Args:
+            reference_utc: Reference datetime (UTC) for slot comparison.
+
+        Returns:
+            Next slot datetime (UTC), or None if no valid times configured.
+        """
+        from . import kc_helpers as kh  # Local import to avoid circular dependency
+
+        if not self._daily_multi_times:
+            const.LOGGER.warning(
+                "RecurrenceEngine: DAILY_MULTI frequency missing times string"
+            )
+            return None
+
+        # Use base_date for date reference, or reference_utc date if no base
+        if self._base_date:
+            current_local = dt_util.as_local(self._base_date)
+        else:
+            current_local = dt_util.as_local(reference_utc)
+        current_date = current_local.date()
+
+        # Parse times with timezone awareness (returns local-aware datetimes)
+        time_slots_local = kh.parse_daily_multi_times(
+            self._daily_multi_times,
+            reference_date=current_date,
+            timezone_info=const.DEFAULT_TIME_ZONE,
+        )
+
+        if not time_slots_local:
+            const.LOGGER.warning(
+                "RecurrenceEngine: DAILY_MULTI frequency has no valid times"
+            )
+            return None
+
+        # Convert time slots to UTC for comparison
+        time_slots_utc = [dt_util.as_utc(dt) for dt in time_slots_local]
+
+        # Find next available slot (must be strictly after reference time)
+        for slot_utc in time_slots_utc:
+            if slot_utc > reference_utc:
+                return slot_utc
+
+        # Past all slots today, wrap to first slot tomorrow
+        tomorrow_date = current_date + timedelta(days=1)
+        tomorrow_slots = kh.parse_daily_multi_times(
+            self._daily_multi_times,
+            reference_date=tomorrow_date,
+            timezone_info=const.DEFAULT_TIME_ZONE,
+        )
+        if tomorrow_slots:
+            return dt_util.as_utc(tomorrow_slots[0])
+
+        const.LOGGER.warning(
+            "RecurrenceEngine: DAILY_MULTI failed to calculate next slot"
+        )
+        return None
+
 
 # =============================================================================
 # Module-level convenience functions
@@ -973,47 +1039,6 @@ def _apply_period_end(dt: datetime, period: str) -> datetime:
     return dt
 
 
-def snap_to_weekday(
-    dt: datetime,
-    applicable_days: Iterable[int],
-) -> datetime:
-    """Advance datetime to next applicable weekday (or same day if already valid).
-
-    Simple utility to snap a datetime forward to the next day whose weekday()
-    is in the applicable_days iterable. Preserves the time component.
-
-    Args:
-        dt: Input datetime (timezone-aware, typically UTC).
-        applicable_days: Iterable of valid weekday integers (0=Monday, 6=Sunday).
-
-    Returns:
-        Datetime advanced to an applicable weekday (UTC), preserving time.
-        If dt is already on an applicable day, returns dt unchanged.
-
-    Raises:
-        ValueError: If applicable_days is empty.
-
-    Example:
-        >>> # Saturday (5) with applicable_days=[0, 2] snaps to Monday (0)
-        >>> snap_to_weekday(saturday_dt, [0, 2])  # Returns next Monday
-    """
-    days_set = set(applicable_days)
-    if not days_set:
-        raise ValueError("applicable_days cannot be empty")
-
-    local_dt = dt_util.as_local(dt)
-    iteration = 0
-
-    while (
-        local_dt.weekday() not in days_set
-        and iteration < const.MAX_DATE_CALCULATION_ITERATIONS
-    ):
-        local_dt = local_dt + timedelta(days=1)
-        iteration += 1
-
-    return dt_util.as_utc(local_dt)
-
-
 def calculate_next_due_date(
     base_date: str | datetime,
     frequency: str,
@@ -1055,6 +1080,7 @@ def calculate_next_due_date_from_chore_info(
     current_due_utc: datetime | None,
     chore_info: ChoreData,
     completion_timestamp: datetime | None = None,
+    reference_time: datetime | None = None,
 ) -> datetime | None:
     """Calculate next due date for a chore based on frequency (pure calculation helper).
 
@@ -1066,6 +1092,8 @@ def calculate_next_due_date_from_chore_info(
         completion_timestamp: Optional completion timestamp (UTC) for
             FREQUENCY_CUSTOM_FROM_COMPLETE mode. If provided, rescheduling
             uses this as base instead of current_due_utc.
+        reference_time: Reference datetime for calculations. If None, defaults
+            to now. Pass explicit time for deterministic/testable behavior.
 
     Returns:
         datetime: Next due date (UTC) or None if calculation failed
@@ -1114,7 +1142,7 @@ def calculate_next_due_date_from_chore_info(
     elif raw_applicable:
         applicable_days = [int(d) for d in raw_applicable]
 
-    now_local = kh.dt_now_local()
+    now_local = reference_time or kh.dt_now_local()
 
     # Calculate next due date based on frequency
     if freq == const.FREQUENCY_CUSTOM:
@@ -1158,7 +1186,9 @@ def calculate_next_due_date_from_chore_info(
     elif freq == const.FREQUENCY_DAILY_MULTI:
         # CFE-2026-001 Feature 2: Multiple times per day
         # Use dedicated helper for slot-based scheduling
-        result = calculate_next_multi_daily_due(chore_info, current_due_utc)
+        result = calculate_next_multi_daily_due(
+            chore_info, current_due_utc, reference_time=reference_time
+        )
         if result is None:
             return None
         next_due_utc = result
@@ -1174,9 +1204,15 @@ def calculate_next_due_date_from_chore_info(
             ),
         )
 
-    # Snap to applicable weekday if configured
+    # Snap to applicable weekday using engine (handles internally)
     if applicable_days:
-        next_due_utc = snap_to_weekday(next_due_utc, applicable_days)
+        snap_config: ScheduleConfig = {
+            "frequency": const.FREQUENCY_DAILY,
+            "base_date": next_due_utc.isoformat(),
+            "applicable_days": applicable_days,
+        }
+        snap_engine = RecurrenceEngine(snap_config)
+        next_due_utc = snap_engine._snap_to_applicable_day(next_due_utc)
 
     return next_due_utc
 
@@ -1184,21 +1220,23 @@ def calculate_next_due_date_from_chore_info(
 def calculate_next_multi_daily_due(
     chore_info: ChoreData,
     current_due_utc: datetime,
+    reference_time: datetime | None = None,
 ) -> datetime | None:
     """Calculate next due datetime for DAILY_MULTI frequency.
 
     CFE-2026-001 Feature 2: Multiple times per day scheduling.
+    Thin wrapper that delegates to RecurrenceEngine._calculate_multi_daily().
 
     Args:
         chore_info: Chore data containing daily_multi_times
         current_due_utc: Current due datetime (UTC)
+        reference_time: Reference datetime (UTC) for slot comparison.
+            If None, defaults to utcnow(). Pass explicit time for determinism.
 
     Returns:
         Next due datetime (UTC) - same day if before last slot,
         next day's first slot if past all slots today
     """
-    from . import kc_helpers as kh  # Local import to avoid circular dependency
-
     times_raw = chore_info.get(const.DATA_CHORE_DAILY_MULTI_TIMES, "")
     # Normalize to str (could be list[str] from older data formats)
     times_str: str = (
@@ -1211,45 +1249,13 @@ def calculate_next_multi_daily_due(
         )
         return None
 
-    # Convert current due to local timezone for date reference
-    current_local = dt_util.as_local(current_due_utc)
-    current_date = current_local.date()
+    # Build config and delegate to RecurrenceEngine
+    config: ScheduleConfig = {
+        "frequency": const.FREQUENCY_DAILY_MULTI,
+        "base_date": current_due_utc.isoformat(),
+        "daily_multi_times": times_str,
+    }
 
-    # Parse times with timezone awareness (returns local-aware datetimes)
-    time_slots_local = kh.parse_daily_multi_times(
-        times_str,
-        reference_date=current_date,
-        timezone_info=const.DEFAULT_TIME_ZONE,
-    )
-
-    if not time_slots_local:
-        const.LOGGER.warning(
-            "DAILY_MULTI frequency has no valid times for chore: %s",
-            chore_info.get(const.DATA_CHORE_NAME),
-        )
-        return None
-
-    # Convert time slots to UTC for comparison
-    time_slots_utc = [dt_util.as_utc(dt) for dt in time_slots_local]
-    current_utc = dt_util.utcnow()
-
-    # Find next available slot (must be strictly after current time)
-    for slot_utc in time_slots_utc:
-        if slot_utc > current_utc:
-            return slot_utc
-
-    # Past all slots today, wrap to first slot tomorrow
-    tomorrow_date = current_date + timedelta(days=1)
-    tomorrow_slots = kh.parse_daily_multi_times(
-        times_str,
-        reference_date=tomorrow_date,
-        timezone_info=const.DEFAULT_TIME_ZONE,
-    )
-    if tomorrow_slots:
-        return dt_util.as_utc(tomorrow_slots[0])
-
-    const.LOGGER.warning(
-        "DAILY_MULTI failed to calculate next slot for chore: %s",
-        chore_info.get(const.DATA_CHORE_NAME),
-    )
-    return None
+    engine = RecurrenceEngine(config)
+    ref_utc = reference_time or dt_util.utcnow()
+    return engine.get_next_occurrence(after=ref_utc, require_future=True)

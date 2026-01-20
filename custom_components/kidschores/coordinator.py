@@ -2884,48 +2884,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
                     )
         return pending
 
-    def _get_approval_period_start(self, kid_id: str, chore_id: str) -> str | None:
-        """Get the start of the current approval period for this kid+chore.
-
-        For SHARED chores: Uses chore-level approval_period_start
-        For INDEPENDENT chores: Uses per-kid approval_period_start in kid_chore_data
-
-        Returns:
-            ISO timestamp string of period start, or None if not set.
-        """
-        chore_info: ChoreData | None = self.chores_data.get(chore_id)
-        if not chore_info:
-            return None
-
-        # Default to INDEPENDENT if completion_criteria not set (backward compatibility)
-        # This ensures pre-migration chores without completion_criteria are treated as INDEPENDENT
-        completion_criteria = chore_info.get(
-            const.DATA_CHORE_COMPLETION_CRITERIA, const.COMPLETION_CRITERIA_INDEPENDENT
-        )
-
-        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
-            # INDEPENDENT: Period start is per-kid in kid_chore_data
-            kid_chore_data = self._get_chore_data_for_kid(kid_id, chore_id)
-            return kid_chore_data.get(const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START)
-        # SHARED/SHARED_FIRST/etc.: Period start is at chore level
-        return chore_info.get(const.DATA_CHORE_APPROVAL_PERIOD_START)
-
-    def _recalculate_chore_stats_for_kid(self, kid_id: str) -> None:
-        """Delegate chore stats aggregation to StatisticsEngine.
-
-        This method aggregates all kid_chore_stats for a given kid by
-        delegating to the StatisticsEngine, which owns the period data
-        structure knowledge.
-
-        Args:
-            kid_id: The internal ID of the kid.
-        """
-        kid_info: KidData | None = self.kids_data.get(kid_id)
-        if not kid_info:
-            return
-        stats = self.stats.generate_chore_stats(kid_info, self.chores_data)
-        kid_info[const.DATA_KID_CHORE_STATS] = stats
-
     # -------------------------------------------------------------------------------------
     # Kids: Update Points
     # -------------------------------------------------------------------------------------
@@ -3216,17 +3174,97 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         self._persist()
         self.async_set_updated_data(self._data)
 
+    def _grant_reward_to_kid(
+        self,
+        kid_id: str,
+        reward_id: str,
+        cost_deducted: float,
+        notif_id: str | None = None,
+        is_pending_claim: bool = False,
+    ) -> None:
+        """Track a reward grant for a kid (unified logic for approvals and badge awards).
+
+        This helper consolidates reward tracking from approve_reward() and _award_badge()
+        into a single path. It updates all counters and timestamps but does NOT handle
+        point deduction - that must be done by the caller before calling this method.
+
+        Args:
+            kid_id: The internal ID of the kid receiving the reward.
+            reward_id: The internal ID of the reward being granted.
+            cost_deducted: The actual points cost charged (0 for free grants like badges).
+            notif_id: Optional notification ID to remove from tracking list.
+            is_pending_claim: True if approving a pending claim (decrements pending_count).
+        """
+        # Get or create reward tracking entry
+        reward_entry = self._get_kid_reward_data(kid_id, reward_id, create=True)
+
+        # Handle pending claim decrement if applicable
+        if is_pending_claim:
+            reward_entry[const.DATA_KID_REWARD_DATA_PENDING_COUNT] = max(
+                0,
+                reward_entry.get(const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0) - 1,
+            )
+
+        # Update timestamps
+        reward_entry[const.DATA_KID_REWARD_DATA_LAST_APPROVED] = (
+            dt_util.utcnow().isoformat()
+        )
+
+        # Update total counters
+        reward_entry[const.DATA_KID_REWARD_DATA_TOTAL_APPROVED] = (
+            reward_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_APPROVED, 0) + 1
+        )
+
+        # Track points spent only if cost > 0 (badges grant free rewards)
+        if cost_deducted > const.DEFAULT_ZERO:
+            reward_entry[const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT] = (
+                reward_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT, 0)
+                + cost_deducted
+            )
+
+        # Update period-based tracking for approved count
+        self._increment_reward_period_counter(
+            reward_entry, const.DATA_KID_REWARD_DATA_PERIOD_APPROVED
+        )
+
+        # Update period-based tracking for points (only if cost > 0)
+        if cost_deducted > const.DEFAULT_ZERO:
+            self._increment_reward_period_counter(
+                reward_entry,
+                const.DATA_KID_REWARD_DATA_PERIOD_POINTS,
+                amount=int(cost_deducted),
+            )
+
+        # Remove notification ID if provided
+        if notif_id:
+            notif_ids = reward_entry.get(
+                const.DATA_KID_REWARD_DATA_NOTIFICATION_IDS, []
+            )
+            if notif_id in notif_ids:
+                notif_ids.remove(notif_id)
+
     async def approve_reward(
         self,
         parent_name: str,  # Used for stale notification feedback
         kid_id: str,
         reward_id: str,
         notif_id: str | None = None,
+        cost_override: float | None = None,
     ):
         """Parent approves the reward => deduct points.
 
         Thread-safe implementation using asyncio.Lock to prevent race conditions
         when multiple parents click approve simultaneously (v0.5.0+).
+
+        Args:
+            parent_name: Name of approving parent (for stale notification feedback).
+            kid_id: Internal ID of the kid receiving the reward.
+            reward_id: Internal ID of the reward being approved.
+            notif_id: Optional notification ID to clear.
+            cost_override: Optional cost to charge instead of the reward's stored cost.
+                If None, uses reward's configured cost. Set to 0 for free grants
+                (e.g., weekend specials, birthday gifts). Useful for context-aware
+                reward pricing via automations.
         """
         # Acquire lock for this specific kid+reward combination to prevent race conditions
         lock = self._get_approval_lock("approve_reward", kid_id, reward_id)
@@ -3253,7 +3291,11 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
                     },
                 )
 
-            cost = reward_info.get(const.DATA_REWARD_COST, const.DEFAULT_ZERO)
+            # Determine actual cost: use override if provided, else reward's stored cost
+            if cost_override is not None:
+                cost = cost_override
+            else:
+                cost = reward_info.get(const.DATA_REWARD_COST, const.DEFAULT_ZERO)
 
             # Get pending_count from kid_reward_data
             # Re-fetch inside lock for defensive race condition protection
@@ -3262,99 +3304,38 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
                 const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0
             )
 
-            if pending_count > 0:
-                if kid_info[const.DATA_KID_POINTS] < cost:
-                    raise HomeAssistantError(
-                        translation_domain=const.DOMAIN,
-                        translation_key=const.TRANS_KEY_ERROR_INSUFFICIENT_POINTS,
-                        translation_placeholders={
-                            "kid": kid_info[const.DATA_KID_NAME],
-                            "current": str(kid_info[const.DATA_KID_POINTS]),
-                            "required": str(cost),
-                        },
-                    )
+            # Determine if this is a pending claim approval
+            is_pending = pending_count > 0
 
-                # Deduct points for one claim.
+            # Validate sufficient points
+            if kid_info[const.DATA_KID_POINTS] < cost:
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_INSUFFICIENT_POINTS,
+                    translation_placeholders={
+                        "kid": kid_info[const.DATA_KID_NAME],
+                        "current": str(kid_info[const.DATA_KID_POINTS]),
+                        "required": str(cost),
+                    },
+                )
+
+            # Deduct points (use update_kid_points for pending, direct for non-pending)
+            if is_pending:
                 if cost is not None:
                     self.update_kid_points(
                         kid_id, delta=-cost, source=const.POINTS_SOURCE_REWARDS
                     )
-
-                # Update kid_reward_data structure
-                if reward_entry:
-                    reward_entry[const.DATA_KID_REWARD_DATA_PENDING_COUNT] = max(
-                        0,
-                        reward_entry.get(const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0)
-                        - 1,
-                    )
-                    reward_entry[const.DATA_KID_REWARD_DATA_LAST_APPROVED] = (
-                        dt_util.utcnow().isoformat()
-                    )
-                    reward_entry[const.DATA_KID_REWARD_DATA_TOTAL_APPROVED] = (
-                        reward_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_APPROVED, 0)
-                        + 1
-                    )
-                    reward_entry[const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT] = (
-                        reward_entry.get(
-                            const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT, 0
-                        )
-                        + cost
-                    )
-
-                    # Update period-based tracking for approved + points
-                    self._increment_reward_period_counter(
-                        reward_entry, const.DATA_KID_REWARD_DATA_PERIOD_APPROVED
-                    )
-                    self._increment_reward_period_counter(
-                        reward_entry,
-                        const.DATA_KID_REWARD_DATA_PERIOD_POINTS,
-                        amount=int(cost),
-                    )
-
-                    # Remove notification ID if provided
-                    if notif_id:
-                        notif_ids = reward_entry.get(
-                            const.DATA_KID_REWARD_DATA_NOTIFICATION_IDS, []
-                        )
-                        if notif_id in notif_ids:
-                            notif_ids.remove(notif_id)
-
             else:
-                # Direct approval (no pending claim present).
-                if kid_info[const.DATA_KID_POINTS] < cost:
-                    raise HomeAssistantError(
-                        translation_domain=const.DOMAIN,
-                        translation_key=const.TRANS_KEY_ERROR_INSUFFICIENT_POINTS,
-                        translation_placeholders={
-                            "kid": kid_info[const.DATA_KID_NAME],
-                            "current": str(kid_info[const.DATA_KID_POINTS]),
-                            "required": str(cost),
-                        },
-                    )
                 kid_info[const.DATA_KID_POINTS] -= cost
 
-                # Update kid_reward_data structure for direct approval
-                direct_entry = self._get_kid_reward_data(kid_id, reward_id, create=True)
-                direct_entry[const.DATA_KID_REWARD_DATA_LAST_APPROVED] = (
-                    dt_util.utcnow().isoformat()
-                )
-                direct_entry[const.DATA_KID_REWARD_DATA_TOTAL_APPROVED] = (
-                    direct_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_APPROVED, 0) + 1
-                )
-                direct_entry[const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT] = (
-                    direct_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT, 0)
-                    + cost
-                )
-
-                # Update period-based tracking for approved + points
-                self._increment_reward_period_counter(
-                    direct_entry, const.DATA_KID_REWARD_DATA_PERIOD_APPROVED
-                )
-                self._increment_reward_period_counter(
-                    direct_entry,
-                    const.DATA_KID_REWARD_DATA_PERIOD_POINTS,
-                    amount=int(cost),
-                )
+            # Track the reward grant using unified helper
+            self._grant_reward_to_kid(
+                kid_id=kid_id,
+                reward_id=reward_id,
+                cost_deducted=cost,
+                notif_id=notif_id,
+                is_pending_claim=is_pending,
+            )
 
             # Recalculate aggregated reward stats (after either branch)
             self._recalculate_reward_stats_for_kid(kid_id)
@@ -4206,14 +4187,13 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         # 3. Rewards (multiple) - Badge awards grant rewards directly (no claim/approval flow)
         for reward_id in to_award.get(const.AWARD_ITEMS_KEY_REWARDS, []):
             if reward_id in self.rewards_data:
-                # Update modern reward_data tracking
-                reward_data = self._get_kid_reward_data(kid_id, reward_id)
-                reward_data[const.DATA_KID_REWARD_DATA_TOTAL_APPROVED] = (
-                    reward_data.get(const.DATA_KID_REWARD_DATA_TOTAL_APPROVED, 0) + 1
-                )
-                # Increment period counter for this approval
-                self._increment_reward_period_counter(
-                    reward_data, const.DATA_KID_REWARD_DATA_PERIOD_APPROVED
+                # Use unified helper with cost=0 (free grant from badge)
+                self._grant_reward_to_kid(
+                    kid_id=kid_id,
+                    reward_id=reward_id,
+                    cost_deducted=const.DEFAULT_ZERO,  # Badge grants are free
+                    notif_id=None,
+                    is_pending_claim=False,
                 )
                 const.LOGGER.info(
                     "INFO: Award Badge - Granted reward '%s' to kid '%s'.",

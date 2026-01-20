@@ -11,11 +11,6 @@ pattern - ChoreOperations is inherited by KidsChoresDataCoordinator.
 - §3 Validation & Authorization (2): _can_claim_chore, _can_approve_chore
 - §4-11: State machine, data management, queries, scheduling, recurring ops, reset, overdue, reminders
 
-IMPORTANT: This is a SURGICAL CODE EXTRACTION, not a refactor.
-- All logic remains IDENTICAL to the original coordinator.py methods
-- No behavior changes, no optimizations, no "improvements"
-- Success criteria: All 852 tests pass UNCHANGED
-
 Methods access coordinator state through `self` (the parent coordinator instance).
 This file should NOT be instantiated directly.
 
@@ -75,39 +70,69 @@ class ChoreOperations:
     """
 
     if TYPE_CHECKING:
-        # Coordinator attributes accessed by chore operations
-        # NOTE: chores_data and kids_data are @property in coordinator.py
-        # but we declare them as attributes here for simpler type hints
-        _data: dict[str, Any]
+        # ==============================================================================
+        # MIXIN INTERFACE CONTRACT
+        # ==============================================================================
+        # Since this is a Mixin, 'self' at runtime will be the 'KidsChoresDataCoordinator'.
+        # However, static type checkers (MyPy, Pylance) don't know that.
+        #
+        # This block explicitly declares the "Contract":
+        # "I expect the class I am mixed into to provide these attributes and methods."
+        # ==============================================================================
+
+        # --- Section 1: Infrastructure & Core State -----------------------------------
+        hass: Any
+        config_entry: Any
         _test_mode: bool
-        _pending_chore_changed: bool
+
+        # Internal storage and locks
+        _data: dict[str, Any]
         _approval_locks: dict[str, Any]
         _due_soon_reminders_sent: set[str]
-        config_entry: Any
-        hass: Any
+        _pending_chore_changed: bool
 
-        # Coordinator properties (declared as methods returning values)
+        # --- Section 2: Data Access Properties ----------------------------------------
+        # These provide typed access to the raw _data dict
+        @property
+        def kids_data(self) -> dict[str, KidData]: ...
         @property
         def chores_data(self) -> dict[str, ChoreData]: ...
         @property
-        def kids_data(self) -> dict[str, KidData]: ...
+        def achievements_data(self) -> dict[str, Any]: ...
+        @property
+        def challenges_data(self) -> dict[str, Any]: ...
 
-        # Coordinator methods called by chore operations
-        # NOTE: Signatures must match actual coordinator.py methods
+        # --- Section 3: Persistence & State Updates -----------------------------------
         def _persist(self) -> None: ...
-        def _normalize_kid_reward_data(self, kid_info: KidData) -> None: ...
+        def async_set_updated_data(self, data: dict[str, Any]) -> None: ...
+
+        def _get_approval_lock(
+            self, operation: str, *identifiers: str
+        ) -> asyncio.Lock: ...
+
+        # --- Section 4: Gamification & Stats ------------------------------------------
+        stats: Any  # StatisticsEngine instance
+
         def update_kid_points(
             self, kid_id: str, delta: float, *, source: str = ...
         ) -> Any: ...
+
+        def _normalize_kid_reward_data(self, kid_info: KidData) -> None: ...
         def _check_badges_for_kid(self, kid_id: str) -> None: ...
+
         def _update_challenge_progress(
             self, kid_id: str, chore_id: str, points: float
         ) -> None: ...
+
         def _update_achievement_progress(
             self, kid_id: str, action: str, value: int = 1
         ) -> None: ...
-        def async_set_updated_data(self, data: dict[str, Any]) -> None: ...
 
+        def _update_streak_progress(
+            self, progress: AchievementProgress, today: date
+        ) -> None: ...
+
+        # --- Section 5: Notification Services -----------------------------------------
         async def _notify_parents_translated(
             self,
             kid_id: str,
@@ -119,6 +144,7 @@ class ChoreOperations:
             tag_type: str | None = None,
             tag_identifiers: tuple[str, ...] | None = None,
         ) -> None: ...
+
         async def _notify_kid_translated(
             self,
             kid_id: str,
@@ -128,32 +154,16 @@ class ChoreOperations:
             actions: list[dict[str, str]] | None = None,
             extra_data: dict[str, Any] | None = None,
         ) -> None: ...
+
         async def clear_notification_for_parents(
             self,
             kid_id: str,
             tag_type: str,
             entity_id: str,
         ) -> None: ...
-        # Methods still in coordinator.py (not yet extracted)
-        def _get_approval_lock(
-            self, operation: str, *identifiers: str
-        ) -> asyncio.Lock: ...
+
+        # --- Section 6: Configuration Helpers -----------------------------------------
         def _get_retention_config(self) -> dict[str, int]: ...
-        def _recalculate_chore_stats_for_kid(self, kid_id: str) -> None: ...
-        def _update_streak_progress(
-            self, progress: AchievementProgress, today: date
-        ) -> None: ...
-        def _get_approval_period_start(
-            self, kid_id: str, chore_id: str
-        ) -> str | None: ...
-
-        # Additional attributes
-        stats: Any  # StatisticsEngine
-
-        @property
-        def achievements_data(self) -> dict[str, Any]: ...
-        @property
-        def challenges_data(self) -> dict[str, Any]: ...
 
     # =========================================================================
     # §1 SERVICE ENTRY POINTS (7 methods)
@@ -1525,7 +1535,7 @@ class ChoreOperations:
         if not last_approved:
             return False
 
-        period_start = self._get_approval_period_start(kid_id, chore_id)
+        period_start = self._get_chore_approval_period_start(kid_id, chore_id)
         if not period_start:
             # No period_start means chore was never reset after being created.
             # Since last_approved exists (checked above), the approval is still valid.
@@ -2510,6 +2520,22 @@ class ChoreOperations:
         kid_info: KidData = cast("KidData", self.kids_data.get(kid_id, {}))
         return kid_info.get(const.DATA_KID_CHORE_DATA, {}).get(chore_id, {})
 
+    def _recalculate_chore_stats_for_kid(self, kid_id: str) -> None:
+        """Delegate chore stats aggregation to StatisticsEngine.
+
+        This method aggregates all kid_chore_stats for a given kid by
+        delegating to the StatisticsEngine, which owns the period data
+        structure knowledge.
+
+        Args:
+            kid_id: The internal ID of the kid.
+        """
+        kid_info: KidData | None = self.kids_data.get(kid_id)
+        if not kid_info:
+            return
+        stats = self.stats.generate_chore_stats(kid_info, self.chores_data)
+        kid_info[const.DATA_KID_CHORE_STATS] = stats
+
     # =========================================================================
     # §6 QUERY & STATUS HELPERS (5 methods)
     # =========================================================================
@@ -2629,6 +2655,34 @@ class ChoreOperations:
 
         return chore_info.get(const.DATA_CHORE_DUE_DATE)
 
+    def _get_chore_approval_period_start(
+        self, kid_id: str, chore_id: str
+    ) -> str | None:
+        """Get the start of the current approval period for this kid+chore.
+
+        For SHARED chores: Uses chore-level approval_period_start
+        For INDEPENDENT chores: Uses per-kid approval_period_start in kid_chore_data
+
+        Returns:
+            ISO timestamp string of period start, or None if not set.
+        """
+        chore_info: ChoreData | None = self.chores_data.get(chore_id)
+        if not chore_info:
+            return None
+
+        # Default to INDEPENDENT if completion_criteria not set (backward compatibility)
+        # This ensures pre-migration chores without completion_criteria are treated as INDEPENDENT
+        completion_criteria = chore_info.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA, const.COMPLETION_CRITERIA_INDEPENDENT
+        )
+
+        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+            # INDEPENDENT: Period start is per-kid in kid_chore_data
+            kid_chore_data = self._get_chore_data_for_kid(kid_id, chore_id)
+            return kid_chore_data.get(const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START)
+        # SHARED/SHARED_FIRST/etc.: Period start is at chore level
+        return chore_info.get(const.DATA_CHORE_APPROVAL_PERIOD_START)
+
     # =========================================================================
     # §7 SCHEDULING & RESCHEDULING
     # =========================================================================
@@ -2662,8 +2716,12 @@ class ChoreOperations:
             completion_utc = kh.dt_to_utc(last_completed_str)
 
         # Use consolidation helper for calculation
+        # Pass explicit reference_time so caller owns the clock (determinism)
         next_due_utc = calculate_next_due_date_from_chore_info(
-            original_due_utc, chore_info, completion_timestamp=completion_utc
+            original_due_utc,
+            chore_info,
+            completion_timestamp=completion_utc,
+            reference_time=dt_util.utcnow(),
         )
         if not next_due_utc:
             const.LOGGER.warning(
@@ -2796,8 +2854,12 @@ class ChoreOperations:
             ]
 
         # Use consolidation helper with per-kid overrides
+        # Pass explicit reference_time so caller owns the clock (determinism)
         next_due_utc = calculate_next_due_date_from_chore_info(
-            original_due_utc, chore_info_for_calc, completion_timestamp=completion_utc
+            original_due_utc,
+            chore_info_for_calc,
+            completion_timestamp=completion_utc,
+            reference_time=dt_util.utcnow(),
         )
         if not next_due_utc:
             const.LOGGER.warning(

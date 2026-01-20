@@ -1709,6 +1709,10 @@
           "name": "Reward Name",
           "description": "The name of the reward being approved.",
           "example": "Extra Screen Time"
+        },
+        "cost_override": {
+          "name": "Cost override",
+          "description": "Optional cost override. If omitted, uses the reward's stored cost. Set to 0 for a free grant (like badge rewards). Useful for context-aware pricing (weekends, special occasions, etc.)."
         }
       }
     },

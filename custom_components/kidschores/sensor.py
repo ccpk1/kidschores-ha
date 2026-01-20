@@ -53,7 +53,7 @@ Legacy Sensors Imported from sensor_legacy.py (13):
     13. KidBonusAppliedSensor - Bonus application count (data in dashboard helper)
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, cast
 
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
@@ -66,7 +66,6 @@ from homeassistant.util import dt as dt_util
 from . import const, kc_helpers as kh
 from .coordinator import KidsChoresDataCoordinator
 from .entity import KidsChoresCoordinatorEntity
-from .schedule_engine import snap_to_weekday
 from .sensor_legacy import (
     KidBonusAppliedSensor,
     KidChoreStreakSensor,
@@ -704,7 +703,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 kid_chore_data.get(const.DATA_CHORE_COMPLETED_BY)
             ),
             # Use coordinator helper to correctly handle INDEPENDENT (per-kid) vs SHARED (chore-level)
-            const.ATTR_APPROVAL_PERIOD_START: self.coordinator._get_approval_period_start(
+            const.ATTR_APPROVAL_PERIOD_START: self.coordinator._get_chore_approval_period_start(
                 self._kid_id, self._chore_id
             ),
         }
@@ -3176,13 +3175,22 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         """
         now_local = kh.dt_now_local()
 
-        # If today is Monday and before 7am, return today at 7am
-        if now_local.weekday() == 0 and now_local.hour < 7:
-            return now_local.replace(hour=7, minute=0, second=0, microsecond=0)
+        # Calculate days until the upcoming Monday (0 = Monday)
+        # If today is Tuesday (1), (0-1)%7 = 6 days ahead.
+        # If today is Monday (0), (0-0)%7 = 0 days ahead.
+        days_ahead = (0 - now_local.weekday()) % 7
 
-        # Get next Monday in local time and set to 7am
-        next_monday = dt_util.as_local(snap_to_weekday(dt_util.utcnow(), [0]))
-        return next_monday.replace(hour=7, minute=0, second=0, microsecond=0)
+        # Set reference time to Today at 7:00 AM
+        target = now_local.replace(hour=7, minute=0, second=0, microsecond=0)
+
+        # Move forward to the correct day
+        target += timedelta(days=days_ahead)
+
+        # If the result is in the past (e.g., it's Monday 8:00 AM), add 1 week
+        if target <= now_local:
+            target += timedelta(weeks=1)
+
+        return target
 
     def _calculate_chore_attributes(
         self, chore_id: str, chore_info: ChoreData, kid_info: KidData, chore_eid

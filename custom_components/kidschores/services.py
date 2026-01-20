@@ -66,7 +66,12 @@ DISAPPROVE_CHORE_SCHEMA = vol.Schema(_PARENT_KID_CHORE_BASE)
 
 REDEEM_REWARD_SCHEMA = vol.Schema(_PARENT_KID_REWARD_BASE)
 
-APPROVE_REWARD_SCHEMA = vol.Schema(_PARENT_KID_REWARD_BASE)
+APPROVE_REWARD_SCHEMA = vol.Schema(
+    {
+        **_PARENT_KID_REWARD_BASE,  # type: ignore[misc]
+        vol.Optional(const.FIELD_COST_OVERRIDE): vol.Coerce(float),
+    }
+)
 
 DISAPPROVE_REWARD_SCHEMA = vol.Schema(_PARENT_KID_REWARD_BASE)
 
@@ -459,15 +464,24 @@ def async_setup_services(hass: HomeAssistant):
             )
 
         # Approve reward redemption and deduct points
+        # Extract optional cost_override (None if not provided)
+        cost_override = call.data.get(const.FIELD_COST_OVERRIDE)
+
         try:
             await coordinator.approve_reward(
-                parent_name=parent_name, kid_id=kid_id, reward_id=reward_id
+                parent_name=parent_name,
+                kid_id=kid_id,
+                reward_id=reward_id,
+                cost_override=cost_override,
             )
             const.LOGGER.info(
-                "Reward '%s' approved for kid '%s' by parent '%s'",
+                "Reward '%s' approved for kid '%s' by parent '%s'%s",
                 reward_name,
                 kid_name,
                 parent_name,
+                f" (cost override: {cost_override})"
+                if cost_override is not None
+                else "",
             )
             await coordinator.async_request_refresh()
         except HomeAssistantError:  # pylint: disable=try-except-raise  # Log before re-raise
