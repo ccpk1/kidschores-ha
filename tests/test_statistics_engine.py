@@ -178,17 +178,31 @@ class TestRecordTransaction:
 
         assert sample_period_data["all_time"]["points"] == 50
 
-    def test_exclude_all_time_by_default(
+    def test_include_all_time_by_default(
         self, stats: StatisticsEngine, sample_period_data: dict[str, Any]
     ) -> None:
-        """Should not update all_time by default."""
+        """Should update all_time by default (v0.6.0+: all entities have all_time)."""
         stats.record_transaction(
             sample_period_data,
             increments={"points": 50},
             reference_date=date(2026, 1, 19),
         )
 
-        # all_time should remain empty
+        # all_time should be updated by default
+        assert sample_period_data["all_time"]["points"] == 50
+
+    def test_exclude_all_time_when_disabled(
+        self, stats: StatisticsEngine, sample_period_data: dict[str, Any]
+    ) -> None:
+        """Should not update all_time when explicitly disabled (legacy data)."""
+        stats.record_transaction(
+            sample_period_data,
+            increments={"points": 50},
+            include_all_time=False,
+            reference_date=date(2026, 1, 19),
+        )
+
+        # all_time should remain empty when explicitly disabled
         assert sample_period_data.get("all_time", {}).get("points") is None
 
     def test_float_precision(

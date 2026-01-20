@@ -867,6 +867,42 @@ DATA_KID_REWARD_DATA_PERIOD_APPROVED: Final = "approved"
 DATA_KID_REWARD_DATA_PERIOD_DISAPPROVED: Final = "disapproved"
 DATA_KID_REWARD_DATA_PERIOD_POINTS: Final = "points"
 
+# Reward Stats Keys (aggregated stats across all rewards for a kid)
+DATA_KID_REWARD_STATS: Final = "reward_stats"
+
+# --- Claimed Counts (pending approval) ---
+DATA_KID_REWARD_STATS_CLAIMED_TODAY: Final = "claimed_today"
+DATA_KID_REWARD_STATS_CLAIMED_WEEK: Final = "claimed_week"
+DATA_KID_REWARD_STATS_CLAIMED_MONTH: Final = "claimed_month"
+DATA_KID_REWARD_STATS_CLAIMED_YEAR: Final = "claimed_year"
+DATA_KID_REWARD_STATS_CLAIMED_ALL_TIME: Final = "claimed_all_time"
+
+# --- Approved Counts ---
+DATA_KID_REWARD_STATS_APPROVED_TODAY: Final = "approved_today"
+DATA_KID_REWARD_STATS_APPROVED_WEEK: Final = "approved_week"
+DATA_KID_REWARD_STATS_APPROVED_MONTH: Final = "approved_month"
+DATA_KID_REWARD_STATS_APPROVED_YEAR: Final = "approved_year"
+DATA_KID_REWARD_STATS_APPROVED_ALL_TIME: Final = "approved_all_time"
+
+# --- Disapproved Counts ---
+DATA_KID_REWARD_STATS_DISAPPROVED_TODAY: Final = "disapproved_today"
+DATA_KID_REWARD_STATS_DISAPPROVED_WEEK: Final = "disapproved_week"
+DATA_KID_REWARD_STATS_DISAPPROVED_MONTH: Final = "disapproved_month"
+DATA_KID_REWARD_STATS_DISAPPROVED_YEAR: Final = "disapproved_year"
+DATA_KID_REWARD_STATS_DISAPPROVED_ALL_TIME: Final = "disapproved_all_time"
+
+# --- Points Spent (on approved rewards) ---
+DATA_KID_REWARD_STATS_POINTS_SPENT_TODAY: Final = "points_spent_today"
+DATA_KID_REWARD_STATS_POINTS_SPENT_WEEK: Final = "points_spent_week"
+DATA_KID_REWARD_STATS_POINTS_SPENT_MONTH: Final = "points_spent_month"
+DATA_KID_REWARD_STATS_POINTS_SPENT_YEAR: Final = "points_spent_year"
+DATA_KID_REWARD_STATS_POINTS_SPENT_ALL_TIME: Final = "points_spent_all_time"
+
+# --- Most Redeemed Reward ---
+DATA_KID_REWARD_STATS_MOST_REDEEMED_ALL_TIME: Final = "most_redeemed_all_time"
+DATA_KID_REWARD_STATS_MOST_REDEEMED_WEEK: Final = "most_redeemed_week"
+DATA_KID_REWARD_STATS_MOST_REDEEMED_MONTH: Final = "most_redeemed_month"
+
 DATA_KID_USE_PERSISTENT_NOTIFICATIONS: Final = "use_persistent_notifications"
 DATA_KID_DASHBOARD_LANGUAGE: Final = "dashboard_language"
 

@@ -535,6 +535,7 @@ class KidData(TypedDict):
 
     # Reward tracking
     reward_data: dict[str, KidRewardDataEntry]  # reward_id -> entry
+    reward_stats: NotRequired[dict[str, Any]]  # Aggregated reward statistics
 
     # Penalty/bonus application tracking
     penalty_applies: dict[str, bool]  # penalty_id -> applied?
