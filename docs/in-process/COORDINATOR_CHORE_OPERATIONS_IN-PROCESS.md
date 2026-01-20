@@ -63,14 +63,16 @@
      - ✅ Keep all logic identical - no refactoring during extraction
      - ✅ Use multiple inheritance (ChoreOperations as base class)
      - ✅ Split extraction into 2A (core) and 2B (support) for risk reduction
-     - ✅ Method renaming is Phase 6 (optional, separate decision)
+     - ✅ Method renaming is Phase 4B (completed Jan 20, 2026)
      - ✅ Use automated extraction script to prevent human error
      - ✅ **BONUS**: Refactored 2 scheduling methods to schedule_engine.py (module-level functions)
+     - ✅ **BONUS**: Phase 4B completed - renamed 20 methods for improved clarity (2 individual + 11 private + 4 public API + 3 test files)
    - **Completion confirmation**: `[x]` All follow-up items completed:
      - `[x]` coordinator_chore_operations.py created and integrated
      - `[x]` All 852 tests passing unchanged
      - `[x]` MyPy passes with 0 errors
      - `[x]` Lint score maintains 9.5+/10 ✅
+     - `[x]` **Phase 4B** - Method renaming complete (20 methods, all tests passing)
      - `[ ]` ARCHITECTURE.md updated with file structure **← PHASE 5**
      - `[x]` coordinator.py reduced by 3,688 lines (exceeds target)
 
