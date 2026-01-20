@@ -495,13 +495,13 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         )
 
         # Use timestamp-based coordinator helpers for claim/approval status
-        if self.coordinator.is_approved_in_current_period(self._kid_id, self._chore_id):
+        if self.coordinator.chore_is_approved_in_period(self._kid_id, self._chore_id):
             return const.CHORE_STATE_APPROVED
         if self._chore_id in kid_info.get(const.DATA_KID_COMPLETED_BY_OTHER_CHORES, []):
             return const.CHORE_STATE_COMPLETED_BY_OTHER
-        if self.coordinator.has_pending_claim(self._kid_id, self._chore_id):
+        if self.coordinator.chore_has_pending_claim(self._kid_id, self._chore_id):
             return const.CHORE_STATE_CLAIMED
-        if self.coordinator.is_overdue(self._kid_id, self._chore_id):
+        if self.coordinator.chore_is_overdue(self._kid_id, self._chore_id):
             return const.CHORE_STATE_OVERDUE
         return const.CHORE_STATE_PENDING
 
@@ -3212,11 +3212,11 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             return None
 
         # Determine status using timestamp-based coordinator helpers
-        if self.coordinator.is_approved_in_current_period(self._kid_id, chore_id):
+        if self.coordinator.chore_is_approved_in_period(self._kid_id, chore_id):
             status = const.CHORE_STATE_APPROVED
-        elif self.coordinator.has_pending_claim(self._kid_id, chore_id):
+        elif self.coordinator.chore_has_pending_claim(self._kid_id, chore_id):
             status = const.CHORE_STATE_CLAIMED
-        elif self.coordinator.is_overdue(self._kid_id, chore_id):
+        elif self.coordinator.chore_is_overdue(self._kid_id, chore_id):
             status = const.CHORE_STATE_OVERDUE
         elif chore_id in kid_info.get(const.DATA_KID_COMPLETED_BY_OTHER_CHORES, []):
             status = const.CHORE_STATE_COMPLETED_BY_OTHER
@@ -3335,11 +3335,11 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 continue
             # Determine kid-specific status using timestamp-based helpers
             status = const.CHORE_STATE_PENDING
-            if self.coordinator.is_approved_in_current_period(self._kid_id, chore_id):
+            if self.coordinator.chore_is_approved_in_period(self._kid_id, chore_id):
                 status = const.CHORE_STATE_APPROVED
-            elif self.coordinator.has_pending_claim(self._kid_id, chore_id):
+            elif self.coordinator.chore_has_pending_claim(self._kid_id, chore_id):
                 status = const.CHORE_STATE_CLAIMED
-            elif self.coordinator.is_overdue(self._kid_id, chore_id):
+            elif self.coordinator.chore_is_overdue(self._kid_id, chore_id):
                 status = const.CHORE_STATE_OVERDUE
             elif chore_id in kid_info.get(const.DATA_KID_COMPLETED_BY_OTHER_CHORES, []):
                 status = const.CHORE_STATE_COMPLETED_BY_OTHER

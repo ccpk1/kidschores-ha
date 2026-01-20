@@ -187,7 +187,7 @@ class TestApprovalResetOverdueInteraction:
             await coordinator.approve_chore("Parent", kid_id, chore_id)
 
         # Verify approved state
-        assert coordinator.is_approved_in_current_period(kid_id, chore_id)
+        assert coordinator.chore_is_approved_in_period(kid_id, chore_id)
         initial_state = get_kid_state_for_chore(coordinator, kid_id, chore_id)
         assert initial_state == const.CHORE_STATE_APPROVED
 
@@ -203,7 +203,7 @@ class TestApprovalResetOverdueInteraction:
         assert final_state == const.CHORE_STATE_PENDING, (
             f"Expected APPROVED chore to reset to PENDING at due date, got {final_state}"
         )
-        assert not coordinator.is_approved_in_current_period(kid_id, chore_id)
+        assert not coordinator.chore_is_approved_in_period(kid_id, chore_id)
 
     @pytest.mark.asyncio
     async def test_unclaimed_pending_becomes_overdue_at_due_date(
@@ -221,8 +221,8 @@ class TestApprovalResetOverdueInteraction:
         chore_id = setup_at_due_date_scenario.chore_ids["AtDueDateOnce Reset Chore"]
 
         # Verify initial pending state (no claim)
-        assert not coordinator.has_pending_claim(kid_id, chore_id)
-        assert not coordinator.is_approved_in_current_period(kid_id, chore_id)
+        assert not coordinator.chore_has_pending_claim(kid_id, chore_id)
+        assert not coordinator.chore_is_approved_in_period(kid_id, chore_id)
 
         # Set due date to the past
         set_chore_due_date_to_past(coordinator, chore_id, kid_id=kid_id)
@@ -232,7 +232,7 @@ class TestApprovalResetOverdueInteraction:
             await coordinator._check_overdue_chores()
 
         # Verify overdue status
-        assert coordinator.is_overdue(kid_id, chore_id), (
+        assert coordinator.chore_is_overdue(kid_id, chore_id), (
             "Expected unclaimed PENDING chore to become OVERDUE at due date"
         )
         final_state = get_kid_state_for_chore(coordinator, kid_id, chore_id)
@@ -258,7 +258,7 @@ class TestApprovalResetOverdueInteraction:
             coordinator.claim_chore(kid_id, chore_id, "Test User")
 
         # Verify claimed state
-        assert coordinator.has_pending_claim(kid_id, chore_id)
+        assert coordinator.chore_has_pending_claim(kid_id, chore_id)
 
         # Set due date to the past
         set_chore_due_date_to_past(coordinator, chore_id, kid_id=kid_id)
@@ -268,7 +268,7 @@ class TestApprovalResetOverdueInteraction:
             await coordinator._reset_daily_chore_statuses([const.FREQUENCY_DAILY])
 
         # With CLEAR action, pending claim should be cleared and state reset to PENDING
-        assert not coordinator.has_pending_claim(kid_id, chore_id), (
+        assert not coordinator.chore_has_pending_claim(kid_id, chore_id), (
             "Expected pending claim to be cleared after reset"
         )
         final_state = get_kid_state_for_chore(coordinator, kid_id, chore_id)
@@ -303,7 +303,7 @@ class TestApprovalResetOverdueInteraction:
             await coordinator._check_overdue_chores()
 
         # Verify overdue status
-        assert coordinator.is_overdue(kid_id, chore_id)
+        assert coordinator.chore_is_overdue(kid_id, chore_id)
 
         # Now trigger reset cycle - this should clear OVERDUE with "then_reset"
         with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
@@ -312,7 +312,7 @@ class TestApprovalResetOverdueInteraction:
         # EXPECTED BEHAVIOR: OVERDUE status IS cleared with AT_DUE_DATE_THEN_RESET
         # The reset logic includes OVERDUE in states_to_skip when overdue_handling
         # is NOT AT_DUE_DATE_THEN_RESET, but INCLUDES it when it IS "then_reset"
-        assert not coordinator.is_overdue(kid_id, chore_id), (
+        assert not coordinator.chore_is_overdue(kid_id, chore_id), (
             "OVERDUE status should be cleared at reset with AT_DUE_DATE_THEN_RESET"
         )
         final_state = get_kid_state_for_chore(coordinator, kid_id, chore_id)
@@ -346,7 +346,7 @@ class TestApprovalResetOverdueInteraction:
             await coordinator._reset_daily_chore_statuses([const.FREQUENCY_DAILY])
 
         # Verify chore was NOT reset (due date in future)
-        assert coordinator.is_approved_in_current_period(kid_id, chore_id), (
+        assert coordinator.chore_is_approved_in_period(kid_id, chore_id), (
             "Expected approved chore with future due date to NOT be reset"
         )
 
@@ -355,7 +355,7 @@ class TestApprovalResetOverdueInteraction:
             await coordinator._check_overdue_chores()
 
         # Verify NOT marked overdue
-        assert not coordinator.is_overdue(kid_id, chore_id), (
+        assert not coordinator.chore_is_overdue(kid_id, chore_id), (
             "Expected chore with future due date to NOT be marked overdue"
         )
 

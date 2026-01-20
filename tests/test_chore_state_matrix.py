@@ -137,7 +137,7 @@ def is_in_completed_by_other(
     return chore_id in completed_by_other
 
 
-def has_pending_claim(
+def chore_has_pending_claim(
     coordinator: Any,
     kid_id: str,
     chore_id: str,
@@ -154,7 +154,7 @@ def has_pending_claim(
     Returns:
         True if kid has pending claim
     """
-    return coordinator.has_pending_claim(kid_id, chore_id)
+    return coordinator.chore_has_pending_claim(kid_id, chore_id)
 
 
 # =============================================================================
@@ -347,7 +347,7 @@ class TestStateMatrixSharedFirst:
             coordinator.claim_chore(zoe_id, chore_id, "Zoë")
 
         # Zoë should be claimed
-        assert has_pending_claim(coordinator, zoe_id, chore_id) is True
+        assert chore_has_pending_claim(coordinator, zoe_id, chore_id) is True
         assert get_global_chore_state(coordinator, chore_id) == CHORE_STATE_CLAIMED
 
         # Max and Lila should be completed_by_other
@@ -372,7 +372,7 @@ class TestStateMatrixSharedFirst:
             await coordinator.approve_chore("Mom", zoe_id, chore_id)
 
         # Zoë should be approved
-        assert coordinator.is_approved_in_current_period(zoe_id, chore_id) is True
+        assert coordinator.chore_is_approved_in_period(zoe_id, chore_id) is True
 
         # Global state should be APPROVED (chore is complete)
         assert get_global_chore_state(coordinator, chore_id) == CHORE_STATE_APPROVED
@@ -452,7 +452,7 @@ class TestStateMatrixSharedAll:
             coordinator.claim_chore(zoe_id, chore_id, "Zoë")
 
         # Zoë should have pending claim
-        assert has_pending_claim(coordinator, zoe_id, chore_id) is True
+        assert chore_has_pending_claim(coordinator, zoe_id, chore_id) is True
 
         # Global state should be claimed_in_part (not all claimed yet)
         assert (
@@ -478,9 +478,9 @@ class TestStateMatrixSharedAll:
             coordinator.claim_chore(lila_id, chore_id, "Lila")
 
         # All should have pending claims
-        assert has_pending_claim(coordinator, zoe_id, chore_id) is True
-        assert has_pending_claim(coordinator, max_id, chore_id) is True
-        assert has_pending_claim(coordinator, lila_id, chore_id) is True
+        assert chore_has_pending_claim(coordinator, zoe_id, chore_id) is True
+        assert chore_has_pending_claim(coordinator, max_id, chore_id) is True
+        assert chore_has_pending_claim(coordinator, lila_id, chore_id) is True
 
         # Global state should be claimed (all claimed)
         assert get_global_chore_state(coordinator, chore_id) == CHORE_STATE_CLAIMED
@@ -508,7 +508,7 @@ class TestStateMatrixSharedAll:
             await coordinator.approve_chore("Mom", zoe_id, chore_id)
 
         # Zoë should be approved
-        assert coordinator.is_approved_in_current_period(zoe_id, chore_id) is True
+        assert coordinator.chore_is_approved_in_period(zoe_id, chore_id) is True
 
         # Global state should be approved_in_part
         assert (
@@ -541,9 +541,9 @@ class TestStateMatrixSharedAll:
             await coordinator.approve_chore("Mom", lila_id, chore_id)
 
         # All should be approved
-        assert coordinator.is_approved_in_current_period(zoe_id, chore_id) is True
-        assert coordinator.is_approved_in_current_period(max_id, chore_id) is True
-        assert coordinator.is_approved_in_current_period(lila_id, chore_id) is True
+        assert coordinator.chore_is_approved_in_period(zoe_id, chore_id) is True
+        assert coordinator.chore_is_approved_in_period(max_id, chore_id) is True
+        assert coordinator.chore_is_approved_in_period(lila_id, chore_id) is True
 
         # Global state should be approved (all approved)
         assert get_global_chore_state(coordinator, chore_id) == CHORE_STATE_APPROVED
