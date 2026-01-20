@@ -129,49 +129,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         self.stats = StatisticsEngine()
 
     # -------------------------------------------------------------------------------------
-    # Approval Lock Management (Race Condition Protection v0.5.0+)
-    # -------------------------------------------------------------------------------------
-
-    def _get_approval_lock(self, operation: str, *identifiers: str) -> asyncio.Lock:
-        """Get or create a lock for approval operations.
-
-        Creates unique locks per operation+entity combination to prevent race conditions
-        when multiple parents click approve simultaneously, or when a user button-mashes.
-
-        Args:
-            operation: Type of operation (e.g., "approve_chore", "approve_reward")
-            identifiers: Entity identifiers (e.g., kid_id, chore_id)
-
-        Returns:
-            asyncio.Lock for the specific operation+entity combination
-        """
-        lock_key = f"{operation}:{':'.join(identifiers)}"
-        if lock_key not in self._approval_locks:
-            self._approval_locks[lock_key] = asyncio.Lock()
-        return self._approval_locks[lock_key]
-
-    def _get_retention_config(self) -> dict[str, int]:
-        """Get retention configuration for period data pruning.
-
-        Returns:
-            Dict mapping period types to retention counts.
-        """
-        return {
-            "daily": self.config_entry.options.get(
-                const.CONF_RETENTION_DAILY, const.DEFAULT_RETENTION_DAILY
-            ),
-            "weekly": self.config_entry.options.get(
-                const.CONF_RETENTION_WEEKLY, const.DEFAULT_RETENTION_WEEKLY
-            ),
-            "monthly": self.config_entry.options.get(
-                const.CONF_RETENTION_MONTHLY, const.DEFAULT_RETENTION_MONTHLY
-            ),
-            "yearly": self.config_entry.options.get(
-                const.CONF_RETENTION_YEARLY, const.DEFAULT_RETENTION_YEARLY
-            ),
-        }
-
-    # -------------------------------------------------------------------------------------
     # Migrate Data and Converters
     # -------------------------------------------------------------------------------------
 
@@ -185,80 +142,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
 
         migrator = PreV50Migrator(self)
         migrator.run_all_migrations()
-
-    def _assign_kid_to_independent_chores(self, kid_id: str) -> None:
-        """Assign kid to all INDEPENDENT chores they're added to.
-
-        When a kid is added, they inherit the template due date for all
-        INDEPENDENT chores they're assigned to.
-        """
-        chores_data = self._data.get(const.DATA_CHORES, {})
-        for chore_info in chores_data.values():
-            # Only process INDEPENDENT chores
-            if (
-                chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
-                != const.COMPLETION_CRITERIA_INDEPENDENT
-            ):
-                continue
-
-            # If kid is assigned to this chore, add their per-kid due date
-            assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
-            if kid_id in assigned_kids:
-                per_kid_due_dates = chore_info.setdefault(
-                    const.DATA_CHORE_PER_KID_DUE_DATES, {}
-                )
-                template_due_date = chore_info.get(const.DATA_CHORE_DUE_DATE)
-                if kid_id not in per_kid_due_dates:
-                    per_kid_due_dates[kid_id] = template_due_date
-                    const.LOGGER.debug(
-                        "Added kid '%s' to INDEPENDENT chore '%s' with due date: %s",
-                        kid_id,
-                        chore_info.get(const.DATA_CHORE_NAME),
-                        template_due_date,
-                    )
-
-    def _remove_kid_from_independent_chores(self, kid_id: str) -> None:
-        """Remove kid from per-kid due dates when they're removed.
-
-        Template due date remains unchanged; only per-kid entry is deleted.
-        """
-        chores_data = self._data.get(const.DATA_CHORES, {})
-        for chore_info in chores_data.values():
-            # Only process INDEPENDENT chores
-            if (
-                chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
-                != const.COMPLETION_CRITERIA_INDEPENDENT
-            ):
-                continue
-
-            # Remove kid from per-kid due dates if present
-            per_kid_due_dates = chore_info.get(const.DATA_CHORE_PER_KID_DUE_DATES, {})
-            if kid_id in per_kid_due_dates:
-                del per_kid_due_dates[kid_id]
-                const.LOGGER.debug(
-                    "Removed kid '%s' from INDEPENDENT chore '%s' per-kid dates",
-                    kid_id,
-                    chore_info.get(const.DATA_CHORE_NAME),
-                )
-
-    # Note: Migration methods (_migrate_datetime, _migrate_stored_datetimes, etc.)
-    # have been extracted to migration_pre_v50.py and are no longer defined here.
-    # They are now methods of the PreV50Migrator class.
-    # This section previously contained 781 lines of migration code.
-    # All migration methods have been extracted to migration_pre_v50.py.
-
-    # -------------------------------------------------------------------------------------
-    # Normalize Data Structures
-    # -------------------------------------------------------------------------------------
-
-    def _normalize_kid_reward_data(self, kid_info: KidData) -> None:
-        """Ensure reward_data dict is properly initialized.
-
-        Modern reward tracking uses reward_data dict with period-based counters.
-        Legacy lists (pending_rewards, redeemed_rewards) are no longer used.
-        """
-        if not isinstance(kid_info.get(const.DATA_KID_REWARD_DATA), dict):
-            kid_info[const.DATA_KID_REWARD_DATA] = {}
 
     # -------------------------------------------------------------------------------------
     # Periodic + First Refresh
@@ -406,10 +289,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         # Note: KC 3.x config sync is now handled by _run_pre_v50_migrations() above
         # (called when storage_schema_version < 42). No separate config sync needed here.
 
-        # Normalize all kids list fields
-        for kid in self._data.get(const.DATA_KIDS, {}).values():
-            self._normalize_kid_reward_data(kid)
-
         # Initialize badge references in kid chore tracking
         self._update_chore_badge_references_for_kid()
 
@@ -422,20 +301,189 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         await super().async_config_entry_first_refresh()
 
     # -------------------------------------------------------------------------------------
-    # Data Initialization from Config
+    # Storage
     # -------------------------------------------------------------------------------------
-    # NOTE: KC 3.x config sync code (~175 lines) has been extracted to migration_pre_v50.py
-    # This includes:
-    # - _initialize_data_from_config() - Main config sync wrapper
-    # - _ensure_minimal_structure() - Data structure initialization
-    # - _initialize_kids/parents/chores/etc() - Entity type wrappers (9 methods)
-    # - _sync_entities() - Core sync engine comparing config vs storage
-    #
-    # These methods are ONLY used for v41→v50 migration (KC 3.x→4.x+ upgrade).
-    # For v4.2+ users, entity data is already in storage; config contains only system settings.
-    #
-    # CRUD methods (_create_kid, _update_chore, etc.) remain below as they are actively
-    # used by options_flow.py for v4.2+ entity management through the UI.
+
+    def _persist(self, immediate: bool = True):
+        """Save coordinator data to persistent storage.
+
+        Default behavior is immediate synchronous persistence to avoid race conditions
+        between persist operations and config entry reload/unload. This is the safest
+        and simplest approach for a system with frequent entity additions/deletions.
+
+        Args:
+            immediate: If True (default), save immediately without debouncing.
+                      If False, schedule save with 5-second debouncing to batch multiple
+                      updates (NOT currently used - kept for future optimization if needed).
+
+        Philosophy:
+            - Immediate=True is the default because:
+              1. Most _persist() calls are NOT in loops
+              2. Avoids race conditions with config reload timing
+              3. Simplifies debugging and guarantees consistency
+              4. Tests run efficiently without artificial delays
+            - Debouncing (immediate=False) could be added in the future if profiling
+              shows a specific high-frequency operation benefits from it
+        """
+        if immediate:
+            # Cancel any pending debounced save
+            if self._persist_task and not self._persist_task.done():
+                self._persist_task.cancel()
+                self._persist_task = None
+
+            # Immediate synchronous save
+            perf_start = time.perf_counter()
+            self.storage_manager.set_data(self._data)
+            self.hass.add_job(self.storage_manager.async_save)
+            perf_duration = time.perf_counter() - perf_start
+            const.LOGGER.debug(
+                "PERF: _persist(immediate=True) took %.3fs (queued async save)",
+                perf_duration,
+            )
+        else:
+            # Debounced save - cancel existing task and schedule new one
+            if self._persist_task and not self._persist_task.done():
+                self._persist_task.cancel()
+
+            self._persist_task = self.hass.async_create_task(
+                self._persist_debounced_impl()
+            )
+
+    async def _persist_debounced_impl(self):
+        """Implementation of debounced persist with delay."""
+        try:
+            # Wait for debounce period
+            await asyncio.sleep(self._persist_debounce_seconds)
+
+            # PERF: Track storage write frequency
+            perf_start = time.perf_counter()
+
+            self.storage_manager.set_data(self._data)
+            await self.storage_manager.async_save()
+
+            perf_duration = time.perf_counter() - perf_start
+            const.LOGGER.debug(
+                "PERF: _persist_debounced_impl() took %.3fs (async save completed)",
+                perf_duration,
+            )
+        except asyncio.CancelledError:
+            # Task was cancelled, new save scheduled
+            const.LOGGER.debug("Debounced persist cancelled (replaced by new save)")
+            raise
+
+    # -------------------------------------------------------------------------------------
+    # Approval Lock Management
+    # -------------------------------------------------------------------------------------
+
+    def _get_approval_lock(self, operation: str, *identifiers: str) -> asyncio.Lock:
+        """Get or create a lock for approval operations.
+
+        Creates unique locks per operation+entity combination to prevent race conditions
+        when multiple parents click approve simultaneously, or when a user button-mashes.
+
+        Args:
+            operation: Type of operation (e.g., "approve_chore", "approve_reward")
+            identifiers: Entity identifiers (e.g., kid_id, chore_id)
+
+        Returns:
+            asyncio.Lock for the specific operation+entity combination
+        """
+        lock_key = f"{operation}:{':'.join(identifiers)}"
+        if lock_key not in self._approval_locks:
+            self._approval_locks[lock_key] = asyncio.Lock()
+        return self._approval_locks[lock_key]
+
+    # -------------------------------------------------------------------------------------
+    # Statistics Retention Configuration
+    # -------------------------------------------------------------------------------------
+
+    def _get_retention_config(self) -> dict[str, int]:
+        """Get retention configuration for period data pruning.
+
+        Returns:
+            Dict mapping period types to retention counts.
+        """
+        return {
+            "daily": self.config_entry.options.get(
+                const.CONF_RETENTION_DAILY, const.DEFAULT_RETENTION_DAILY
+            ),
+            "weekly": self.config_entry.options.get(
+                const.CONF_RETENTION_WEEKLY, const.DEFAULT_RETENTION_WEEKLY
+            ),
+            "monthly": self.config_entry.options.get(
+                const.CONF_RETENTION_MONTHLY, const.DEFAULT_RETENTION_MONTHLY
+            ),
+            "yearly": self.config_entry.options.get(
+                const.CONF_RETENTION_YEARLY, const.DEFAULT_RETENTION_YEARLY
+            ),
+        }
+
+    # -------------------------------------------------------------------------------------
+    # Properties for Easy Access
+    # -------------------------------------------------------------------------------------
+
+    @property
+    def kids_data(self) -> KidsCollection:
+        """Return the kids data."""
+        return self._data.get(const.DATA_KIDS, {})
+
+    @property
+    def parents_data(self) -> ParentsCollection:
+        """Return the parents data."""
+        return self._data.get(const.DATA_PARENTS, {})
+
+    @property
+    def chores_data(self) -> ChoresCollection:
+        """Return the chores data."""
+        return self._data.get(const.DATA_CHORES, {})
+
+    @property
+    def badges_data(self) -> BadgesCollection:
+        """Return the badges data."""
+        return self._data.get(const.DATA_BADGES, {})
+
+    @property
+    def rewards_data(self) -> RewardsCollection:
+        """Return the rewards data."""
+        return self._data.get(const.DATA_REWARDS, {})
+
+    @property
+    def penalties_data(self) -> PenaltiesCollection:
+        """Return the penalties data."""
+        return self._data.get(const.DATA_PENALTIES, {})
+
+    @property
+    def achievements_data(self) -> AchievementsCollection:
+        """Return the achievements data."""
+        return self._data.get(const.DATA_ACHIEVEMENTS, {})
+
+    @property
+    def challenges_data(self) -> ChallengesCollection:
+        """Return the challenges data."""
+        return self._data.get(const.DATA_CHALLENGES, {})
+
+    @property
+    def bonuses_data(self) -> BonusesCollection:
+        """Return the bonuses data."""
+        return self._data.get(const.DATA_BONUSES, {})
+
+    @property
+    def pending_reward_approvals(self) -> list[dict[str, Any]]:
+        """Return the list of pending reward approvals (computed from modern structure)."""
+        return self.get_pending_reward_approvals_computed()
+
+    @property
+    def pending_reward_changed(self) -> bool:
+        """Return whether pending reward approvals have changed since last reset."""
+        return self._pending_reward_changed
+
+    def reset_pending_change_flags(self) -> None:
+        """Reset the pending change flags after UI has processed the changes.
+
+        Called by dashboard helper sensor after rebuilding attributes.
+        """
+        self._pending_chore_changed = False
+        self._pending_reward_changed = False
 
     # -------------------------------------------------------------------------------------
     # Entity CRUD Methods (Active Use by options_flow.py)
@@ -1030,8 +1078,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
             const.DATA_KID_OVERDUE_CHORES: [],
             const.DATA_KID_OVERDUE_NOTIFICATIONS: {},
         }
-
-        self._normalize_kid_reward_data(self._data[const.DATA_KIDS][kid_id])
 
         const.LOGGER.debug(
             "DEBUG: Kid Added - '%s', ID '%s'",
@@ -2082,7 +2128,7 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         )
 
     # -------------------------------------------------------------------------------------
-    # Public Entity Management Methods (for Options Flow - Phase 3)
+    # Public Entity Management Methods (for Options Flow)
     # These methods provide direct storage updates without triggering config reloads
     # -------------------------------------------------------------------------------------
 
@@ -2586,73 +2632,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         )
 
     # -------------------------------------------------------------------------------------
-    # Properties for Easy Access
-    # -------------------------------------------------------------------------------------
-
-    @property
-    def kids_data(self) -> KidsCollection:
-        """Return the kids data."""
-        return self._data.get(const.DATA_KIDS, {})
-
-    @property
-    def parents_data(self) -> ParentsCollection:
-        """Return the parents data."""
-        return self._data.get(const.DATA_PARENTS, {})
-
-    @property
-    def chores_data(self) -> ChoresCollection:
-        """Return the chores data."""
-        return self._data.get(const.DATA_CHORES, {})
-
-    @property
-    def badges_data(self) -> BadgesCollection:
-        """Return the badges data."""
-        return self._data.get(const.DATA_BADGES, {})
-
-    @property
-    def rewards_data(self) -> RewardsCollection:
-        """Return the rewards data."""
-        return self._data.get(const.DATA_REWARDS, {})
-
-    @property
-    def penalties_data(self) -> PenaltiesCollection:
-        """Return the penalties data."""
-        return self._data.get(const.DATA_PENALTIES, {})
-
-    @property
-    def achievements_data(self) -> AchievementsCollection:
-        """Return the achievements data."""
-        return self._data.get(const.DATA_ACHIEVEMENTS, {})
-
-    @property
-    def challenges_data(self) -> ChallengesCollection:
-        """Return the challenges data."""
-        return self._data.get(const.DATA_CHALLENGES, {})
-
-    @property
-    def bonuses_data(self) -> BonusesCollection:
-        """Return the bonuses data."""
-        return self._data.get(const.DATA_BONUSES, {})
-
-    @property
-    def pending_reward_approvals(self) -> list[dict[str, Any]]:
-        """Return the list of pending reward approvals (computed from modern structure)."""
-        return self.get_pending_reward_approvals_computed()
-
-    @property
-    def pending_reward_changed(self) -> bool:
-        """Return whether pending reward approvals have changed since last reset."""
-        return self._pending_reward_changed
-
-    def reset_pending_change_flags(self) -> None:
-        """Reset the pending change flags after UI has processed the changes.
-
-        Called by dashboard helper sensor after rebuilding attributes.
-        """
-        self._pending_chore_changed = False
-        self._pending_reward_changed = False
-
-    # -------------------------------------------------------------------------------------
     # Translation Sensor Lifecycle Management
     # -------------------------------------------------------------------------------------
 
@@ -2770,119 +2749,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
                 )
                 entity_registry.async_remove(eid)
             self._translation_sensors_created.discard(lang_code)
-
-    # -------------------------------------------------------------------------------------
-    # Chores: Claim, Approve, Disapprove, Compute Global State for Shared Chores
-    # -------------------------------------------------------------------------------------
-
-    def _get_kid_reward_data(
-        self, kid_id: str, reward_id: str, create: bool = False
-    ) -> dict[str, Any]:
-        """Get the reward data dict for a specific kid+reward combination.
-
-        Args:
-            kid_id: The kid's internal ID
-            reward_id: The reward's internal ID
-            create: If True, create the entry if it doesn't exist
-
-        Returns an empty dict if the kid or reward data doesn't exist and create=False.
-        """
-        kid_info: KidData = cast("KidData", self.kids_data.get(kid_id, {}))
-        reward_data = kid_info.setdefault(const.DATA_KID_REWARD_DATA, {})
-        if create and reward_id not in reward_data:
-            reward_data[reward_id] = {
-                const.DATA_KID_REWARD_DATA_NAME: cast(
-                    "RewardData", self.rewards_data.get(reward_id, {})
-                ).get(const.DATA_REWARD_NAME)
-                or "",
-                const.DATA_KID_REWARD_DATA_PENDING_COUNT: 0,
-                const.DATA_KID_REWARD_DATA_NOTIFICATION_IDS: [],
-                const.DATA_KID_REWARD_DATA_LAST_CLAIMED: "",
-                const.DATA_KID_REWARD_DATA_LAST_APPROVED: "",
-                const.DATA_KID_REWARD_DATA_LAST_DISAPPROVED: "",
-                const.DATA_KID_REWARD_DATA_TOTAL_CLAIMS: 0,
-                const.DATA_KID_REWARD_DATA_TOTAL_APPROVED: 0,
-                const.DATA_KID_REWARD_DATA_TOTAL_DISAPPROVED: 0,
-                const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT: 0,
-                const.DATA_KID_REWARD_DATA_PERIODS: {
-                    const.DATA_KID_REWARD_DATA_PERIODS_DAILY: {},
-                    const.DATA_KID_REWARD_DATA_PERIODS_WEEKLY: {},
-                    const.DATA_KID_REWARD_DATA_PERIODS_MONTHLY: {},
-                    const.DATA_KID_REWARD_DATA_PERIODS_YEARLY: {},
-                },
-            }
-        return cast("dict[str, Any]", reward_data.get(reward_id, {}))
-
-    def _increment_reward_period_counter(
-        self,
-        reward_entry: dict[str, Any],
-        counter_key: str,
-        amount: int = 1,
-    ) -> None:
-        """Increment a period counter for a reward entry across all period buckets.
-
-        Args:
-            reward_entry: The reward_data[reward_id] dict
-            counter_key: Which counter to increment (claimed/approved/disapproved/points)
-            amount: Amount to add (default 1)
-        """
-        now_local = kh.dt_now_local()
-
-        # Ensure periods structure exists with all_time bucket
-        periods = reward_entry.setdefault(
-            const.DATA_KID_REWARD_DATA_PERIODS,
-            {
-                const.DATA_KID_REWARD_DATA_PERIODS_DAILY: {},
-                const.DATA_KID_REWARD_DATA_PERIODS_WEEKLY: {},
-                const.DATA_KID_REWARD_DATA_PERIODS_MONTHLY: {},
-                const.DATA_KID_REWARD_DATA_PERIODS_YEARLY: {},
-                const.DATA_KID_REWARD_DATA_PERIODS_ALL_TIME: {},
-            },
-        )
-
-        # Get period mapping from StatisticsEngine
-        period_mapping = self.stats.get_period_keys(now_local)
-
-        # Record transaction using StatisticsEngine
-        self.stats.record_transaction(
-            periods,
-            {counter_key: amount},
-            period_key_mapping=period_mapping,
-        )
-
-        # Clean up old period data (NEW: rewards now have retention!)
-        self.stats.prune_history(periods, self._get_retention_config())
-
-    def get_pending_reward_approvals_computed(self) -> list[dict[str, Any]]:
-        """Compute pending reward approvals dynamically from kid_reward_data.
-
-        Unlike chores (which allow only one pending claim at a time), rewards
-        support multiple pending claims via the pending_count field.
-
-        Returns:
-            List of dicts with keys: kid_id, reward_id, pending_count, timestamp
-            One entry per kid+reward combination with pending_count > 0.
-        """
-        pending: list[dict[str, Any]] = []
-        for kid_id, kid_info in self.kids_data.items():
-            reward_data = kid_info.get(const.DATA_KID_REWARD_DATA, {})
-            for reward_id, entry in reward_data.items():
-                # Skip rewards that no longer exist
-                if reward_id not in self.rewards_data:
-                    continue
-                pending_count = entry.get(const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0)
-                if pending_count > 0:
-                    pending.append(
-                        {
-                            const.DATA_KID_ID: kid_id,
-                            const.DATA_REWARD_ID: reward_id,
-                            "pending_count": pending_count,
-                            const.DATA_REWARD_TIMESTAMP: entry.get(
-                                const.DATA_KID_REWARD_DATA_LAST_CLAIMED, ""
-                            ),
-                        }
-                    )
-        return pending
 
     # -------------------------------------------------------------------------------------
     # Kids: Update Points
@@ -3086,6 +2952,115 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
     # -------------------------------------------------------------------------------------
     # Rewards: Redeem, Approve, Disapprove
     # -------------------------------------------------------------------------------------
+
+    def _get_kid_reward_data(
+        self, kid_id: str, reward_id: str, create: bool = False
+    ) -> dict[str, Any]:
+        """Get the reward data dict for a specific kid+reward combination.
+
+        Args:
+            kid_id: The kid's internal ID
+            reward_id: The reward's internal ID
+            create: If True, create the entry if it doesn't exist
+
+        Returns an empty dict if the kid or reward data doesn't exist and create=False.
+        """
+        kid_info: KidData = cast("KidData", self.kids_data.get(kid_id, {}))
+        reward_data = kid_info.setdefault(const.DATA_KID_REWARD_DATA, {})
+        if create and reward_id not in reward_data:
+            reward_data[reward_id] = {
+                const.DATA_KID_REWARD_DATA_NAME: cast(
+                    "RewardData", self.rewards_data.get(reward_id, {})
+                ).get(const.DATA_REWARD_NAME)
+                or "",
+                const.DATA_KID_REWARD_DATA_PENDING_COUNT: 0,
+                const.DATA_KID_REWARD_DATA_NOTIFICATION_IDS: [],
+                const.DATA_KID_REWARD_DATA_LAST_CLAIMED: "",
+                const.DATA_KID_REWARD_DATA_LAST_APPROVED: "",
+                const.DATA_KID_REWARD_DATA_LAST_DISAPPROVED: "",
+                const.DATA_KID_REWARD_DATA_TOTAL_CLAIMS: 0,
+                const.DATA_KID_REWARD_DATA_TOTAL_APPROVED: 0,
+                const.DATA_KID_REWARD_DATA_TOTAL_DISAPPROVED: 0,
+                const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT: 0,
+                const.DATA_KID_REWARD_DATA_PERIODS: {
+                    const.DATA_KID_REWARD_DATA_PERIODS_DAILY: {},
+                    const.DATA_KID_REWARD_DATA_PERIODS_WEEKLY: {},
+                    const.DATA_KID_REWARD_DATA_PERIODS_MONTHLY: {},
+                    const.DATA_KID_REWARD_DATA_PERIODS_YEARLY: {},
+                },
+            }
+        return cast("dict[str, Any]", reward_data.get(reward_id, {}))
+
+    def _increment_reward_period_counter(
+        self,
+        reward_entry: dict[str, Any],
+        counter_key: str,
+        amount: int = 1,
+    ) -> None:
+        """Increment a period counter for a reward entry across all period buckets.
+
+        Args:
+            reward_entry: The reward_data[reward_id] dict
+            counter_key: Which counter to increment (claimed/approved/disapproved/points)
+            amount: Amount to add (default 1)
+        """
+        now_local = kh.dt_now_local()
+
+        # Ensure periods structure exists with all_time bucket
+        periods = reward_entry.setdefault(
+            const.DATA_KID_REWARD_DATA_PERIODS,
+            {
+                const.DATA_KID_REWARD_DATA_PERIODS_DAILY: {},
+                const.DATA_KID_REWARD_DATA_PERIODS_WEEKLY: {},
+                const.DATA_KID_REWARD_DATA_PERIODS_MONTHLY: {},
+                const.DATA_KID_REWARD_DATA_PERIODS_YEARLY: {},
+                const.DATA_KID_REWARD_DATA_PERIODS_ALL_TIME: {},
+            },
+        )
+
+        # Get period mapping from StatisticsEngine
+        period_mapping = self.stats.get_period_keys(now_local)
+
+        # Record transaction using StatisticsEngine
+        self.stats.record_transaction(
+            periods,
+            {counter_key: amount},
+            period_key_mapping=period_mapping,
+        )
+
+        # Clean up old period data (NEW: rewards now have retention!)
+        self.stats.prune_history(periods, self._get_retention_config())
+
+    def get_pending_reward_approvals_computed(self) -> list[dict[str, Any]]:
+        """Compute pending reward approvals dynamically from kid_reward_data.
+
+        Unlike chores (which allow only one pending claim at a time), rewards
+        support multiple pending claims via the pending_count field.
+
+        Returns:
+            List of dicts with keys: kid_id, reward_id, pending_count, timestamp
+            One entry per kid+reward combination with pending_count > 0.
+        """
+        pending: list[dict[str, Any]] = []
+        for kid_id, kid_info in self.kids_data.items():
+            reward_data = kid_info.get(const.DATA_KID_REWARD_DATA, {})
+            for reward_id, entry in reward_data.items():
+                # Skip rewards that no longer exist
+                if reward_id not in self.rewards_data:
+                    continue
+                pending_count = entry.get(const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0)
+                if pending_count > 0:
+                    pending.append(
+                        {
+                            const.DATA_KID_ID: kid_id,
+                            const.DATA_REWARD_ID: reward_id,
+                            "pending_count": pending_count,
+                            const.DATA_REWARD_TIMESTAMP: entry.get(
+                                const.DATA_KID_REWARD_DATA_LAST_CLAIMED, ""
+                            ),
+                        }
+                    )
+        return pending
 
     def redeem_reward(self, parent_name: str, kid_id: str, reward_id: str):
         """Kid claims a reward => mark as pending approval (no deduction yet)."""
@@ -3503,6 +3478,85 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
             return
         stats = self.stats.generate_reward_stats(kid_info, self.rewards_data)
         kid_info[const.DATA_KID_REWARD_STATS] = stats
+
+    def reset_rewards(
+        self, kid_id: str | None = None, reward_id: str | None = None
+    ) -> None:
+        """Reset rewards based on provided kid_id and reward_id."""
+
+        if reward_id and kid_id:
+            # Reset a specific reward for a specific kid
+            kid_info: KidData | None = self.kids_data.get(kid_id)
+            if not kid_info:
+                const.LOGGER.error(
+                    "ERROR: Reset Rewards - Kid ID '%s' not found.", kid_id
+                )
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                    translation_placeholders={
+                        "entity_type": const.LABEL_KID,
+                        "name": kid_id,
+                    },
+                )
+
+            # Clear reward_data entry for this reward
+            reward_data = kid_info.get(const.DATA_KID_REWARD_DATA, {})
+            reward_data.pop(reward_id, None)
+
+        elif reward_id:
+            # Reset a specific reward for all kids
+            found = False
+            for kid_info_loop in self.kids_data.values():
+                reward_data = kid_info_loop.get(const.DATA_KID_REWARD_DATA, {})
+                if reward_id in reward_data:
+                    found = True
+                    reward_data.pop(reward_id, None)
+
+            if not found:
+                const.LOGGER.warning(
+                    "WARNING: Reset Rewards - Reward '%s' not found in any kid's data.",
+                    reward_id,
+                )
+
+        elif kid_id:
+            # Reset all rewards for a specific kid
+            kid_info_elif: KidData | None = self.kids_data.get(kid_id)
+            if not kid_info_elif:
+                const.LOGGER.error(
+                    "ERROR: Reset Rewards - Kid ID '%s' not found.", kid_id
+                )
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                    translation_placeholders={
+                        "entity_type": const.LABEL_KID,
+                        "name": kid_id,
+                    },
+                )
+
+            # Clear all reward_data for this kid
+            if const.DATA_KID_REWARD_DATA in kid_info_elif:
+                kid_info_elif[const.DATA_KID_REWARD_DATA].clear()
+
+        else:
+            # Reset all rewards for all kids
+            const.LOGGER.info(
+                "INFO: Reset Rewards - Resetting all rewards for all kids."
+            )
+            for kid_info in self.kids_data.values():
+                # Clear all reward_data for this kid
+                if const.DATA_KID_REWARD_DATA in kid_info:
+                    kid_info[const.DATA_KID_REWARD_DATA].clear()
+
+        const.LOGGER.debug(
+            "DEBUG: Reset Rewards - Rewards reset completed - Kid ID '%s', Reward ID '%s'",
+            kid_id,
+            reward_id,
+        )
+
+        self._persist()
+        self.async_set_updated_data(self._data)
 
     # -------------------------------------------------------------------------------------
     # Badges: Check, Award
@@ -4485,14 +4539,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
                                 badge_refs
                             )
 
-    # -------------------------------------------------------------------------------------
-    # Badges: Remove Awarded Badges
-    # Removes awarded badges from kids based on provided kid name and/or badge name.
-    # Converts kid name to kid ID and badge name to badge ID for targeted removal using
-    # the _remove_awarded_badges_by_id method.
-    # If badge_id is not found, it assumes the badge was deleted and removes it from the kid's data.
-    # If neither is provided, it globally removes all awarded badges from all kids.
-    # -------------------------------------------------------------------------------------
     def remove_awarded_badges(
         self, kid_name: str | None = None, badge_name: str | None = None
     ) -> None:
@@ -5945,7 +5991,7 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         )
 
     # -------------------------------------------------------------------------------------
-    # Penalties: Apply
+    # Penalties: Apply, Reset
     # -------------------------------------------------------------------------------------
 
     def apply_penalty(self, parent_name: str, kid_id: str, penalty_id: str):
@@ -6002,8 +6048,94 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         self._persist()
         self.async_set_updated_data(self._data)
 
+    def reset_penalties(
+        self, kid_id: str | None = None, penalty_id: str | None = None
+    ) -> None:
+        """Reset penalties based on provided kid_id and penalty_id."""
+
+        if penalty_id and kid_id:
+            # Reset a specific penalty for a specific kid
+            kid_info: KidData | None = self.kids_data.get(kid_id)
+            if not kid_info:
+                const.LOGGER.error(
+                    "ERROR: Reset Penalties - Kid ID '%s' not found.", kid_id
+                )
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                    translation_placeholders={
+                        "entity_type": const.LABEL_KID,
+                        "name": kid_id,
+                    },
+                )
+            if penalty_id not in kid_info.get(const.DATA_KID_PENALTY_APPLIES, {}):
+                const.LOGGER.error(
+                    "ERROR: Reset Penalties - Penalty ID '%s' does not apply to Kid ID '%s'.",
+                    penalty_id,
+                    kid_id,
+                )
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_ASSIGNED,
+                    translation_placeholders={
+                        "entity": f"penalty '{penalty_id}'",
+                        "kid": kid_id,
+                    },
+                )
+
+            kid_info[const.DATA_KID_PENALTY_APPLIES].pop(penalty_id, None)
+
+        elif penalty_id:
+            # Reset a specific penalty for all kids
+            found = False
+            for kid_info_loop in self.kids_data.values():
+                if penalty_id in kid_info_loop.get(const.DATA_KID_PENALTY_APPLIES, {}):
+                    found = True
+                    kid_info_loop[const.DATA_KID_PENALTY_APPLIES].pop(penalty_id, None)
+
+            if not found:
+                const.LOGGER.warning(
+                    "WARNING: Reset Penalties - Penalty ID '%s' not found in any kid's data.",
+                    penalty_id,
+                )
+
+        elif kid_id:
+            # Reset all penalties for a specific kid
+            kid_info_elif: KidData | None = self.kids_data.get(kid_id)
+            if not kid_info_elif:
+                const.LOGGER.error(
+                    "ERROR: Reset Penalties - Kid ID '%s' not found.", kid_id
+                )
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                    translation_placeholders={
+                        "entity_type": const.LABEL_KID,
+                        "name": kid_id,
+                    },
+                )
+
+            kid_info_elif[const.DATA_KID_PENALTY_APPLIES].clear()
+
+        else:
+            # Reset all penalties for all kids
+            const.LOGGER.info(
+                "INFO: Reset Penalties - Resetting all penalties for all kids"
+            )
+            for kid_info in self.kids_data.values():
+                kid_info[const.DATA_KID_PENALTY_APPLIES].clear()
+
+        const.LOGGER.debug(
+            "DEBUG: Reset Penalties - Penalties reset completed - Kid ID '%s',  Penalty ID '%s'",
+            kid_id,
+            penalty_id,
+        )
+
+        self._persist()
+        self.async_set_updated_data(self._data)
+
     # -------------------------------------------------------------------------
-    # Bonuses: Apply
+    # Bonuses: Apply, Reset
     # -------------------------------------------------------------------------
 
     def apply_bonus(self, parent_name: str, kid_id: str, bonus_id: str):
@@ -6055,6 +6187,92 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
                 },
                 extra_data=extra_data,
             )
+        )
+
+        self._persist()
+        self.async_set_updated_data(self._data)
+
+    def reset_bonuses(
+        self, kid_id: str | None = None, bonus_id: str | None = None
+    ) -> None:
+        """Reset bonuses based on provided kid_id and bonus_id."""
+
+        if bonus_id and kid_id:
+            # Reset a specific bonus for a specific kid
+            kid_info: KidData | None = self.kids_data.get(kid_id)
+            if not kid_info:
+                const.LOGGER.error(
+                    "ERROR: Reset Bonuses - Kid ID '%s' not found.", kid_id
+                )
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                    translation_placeholders={
+                        "entity_type": const.LABEL_KID,
+                        "name": kid_id,
+                    },
+                )
+            if bonus_id not in kid_info.get(const.DATA_KID_BONUS_APPLIES, {}):
+                const.LOGGER.error(
+                    "ERROR: Reset Bonuses - Bonus '%s' does not apply to Kid ID '%s'.",
+                    bonus_id,
+                    kid_id,
+                )
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_ASSIGNED,
+                    translation_placeholders={
+                        "entity": f"bonus '{bonus_id}'",
+                        "kid": kid_id,
+                    },
+                )
+
+            kid_info[const.DATA_KID_BONUS_APPLIES].pop(bonus_id, None)
+
+        elif bonus_id:
+            # Reset a specific bonus for all kids
+            found = False
+            for kid_info_loop in self.kids_data.values():
+                if bonus_id in kid_info_loop.get(const.DATA_KID_BONUS_APPLIES, {}):
+                    found = True
+                    kid_info_loop[const.DATA_KID_BONUS_APPLIES].pop(bonus_id, None)
+
+            if not found:
+                const.LOGGER.warning(
+                    "WARNING: Reset Bonuses - Bonus '%s' not found in any kid's data.",
+                    bonus_id,
+                )
+
+        elif kid_id:
+            # Reset all bonuses for a specific kid
+            kid_info_elif: KidData | None = self.kids_data.get(kid_id)
+            if not kid_info_elif:
+                const.LOGGER.error(
+                    "ERROR: Reset Bonuses - Kid ID '%s' not found.", kid_id
+                )
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                    translation_placeholders={
+                        "entity_type": const.LABEL_KID,
+                        "name": kid_id,
+                    },
+                )
+
+            kid_info_elif[const.DATA_KID_BONUS_APPLIES].clear()
+
+        else:
+            # Reset all bonuses for all kids
+            const.LOGGER.info(
+                "INFO: Reset Bonuses - Resetting all bonuses for all kids."
+            )
+            for kid_info in self.kids_data.values():
+                kid_info[const.DATA_KID_BONUS_APPLIES].clear()
+
+        const.LOGGER.debug(
+            "DEBUG: Reset Bonuses - Bonuses reset completed - Kid ID '%s', Bonus ID '%s'",
+            kid_id,
+            bonus_id,
         )
 
         self._persist()
@@ -6441,318 +6659,11 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
 
         progress[const.DATA_KID_LAST_STREAK_DATE] = today.isoformat()
 
-    async def _bump_past_datetime_helpers(self, now: datetime) -> None:
-        """Advance all datetime helpers to tomorrow at 9 AM.
-
-        Called during midnight processing to advance date/time pickers
-        to the next day at 9 AM, regardless of current value.
-        """
-        if not self.hass:
-            return
-
-        # Get entity registry to find datetime helper entities by unique_id pattern
-        entity_registry = er.async_get(self.hass)
-
-        # Find all datetime helper entities using unique_id pattern
-        for kid_id, kid_info in self.kids_data.items():
-            kid_name = kid_info.get(const.DATA_KID_NAME, f"Kid {kid_id}")
-
-            # Construct unique_id pattern (matches datetime.py)
-            expected_unique_id = f"{self.config_entry.entry_id}_{kid_id}{const.DATETIME_KC_UID_SUFFIX_DATE_HELPER}"
-
-            # Find entity by unique_id
-            entity_entry = entity_registry.async_get_entity_id(
-                "datetime", const.DOMAIN, expected_unique_id
-            )
-
-            if not entity_entry:
-                continue
-
-            # Set to tomorrow at 9 AM local time
-            tomorrow = dt_util.now() + timedelta(days=1)
-            tomorrow_9am = tomorrow.replace(hour=9, minute=0, second=0, microsecond=0)
-
-            await self.hass.services.async_call(
-                "datetime",
-                "set_datetime",
-                {
-                    "entity_id": entity_entry,
-                    "datetime": tomorrow_9am.isoformat(),
-                },
-                blocking=False,
-            )
-            const.LOGGER.debug(
-                "Advanced datetime helper for %s to %s",
-                kid_name,
-                tomorrow_9am.isoformat(),
-            )
-
-    def reset_penalties(
-        self, kid_id: str | None = None, penalty_id: str | None = None
-    ) -> None:
-        """Reset penalties based on provided kid_id and penalty_id."""
-
-        if penalty_id and kid_id:
-            # Reset a specific penalty for a specific kid
-            kid_info: KidData | None = self.kids_data.get(kid_id)
-            if not kid_info:
-                const.LOGGER.error(
-                    "ERROR: Reset Penalties - Kid ID '%s' not found.", kid_id
-                )
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                    translation_placeholders={
-                        "entity_type": const.LABEL_KID,
-                        "name": kid_id,
-                    },
-                )
-            if penalty_id not in kid_info.get(const.DATA_KID_PENALTY_APPLIES, {}):
-                const.LOGGER.error(
-                    "ERROR: Reset Penalties - Penalty ID '%s' does not apply to Kid ID '%s'.",
-                    penalty_id,
-                    kid_id,
-                )
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_ASSIGNED,
-                    translation_placeholders={
-                        "entity": f"penalty '{penalty_id}'",
-                        "kid": kid_id,
-                    },
-                )
-
-            kid_info[const.DATA_KID_PENALTY_APPLIES].pop(penalty_id, None)
-
-        elif penalty_id:
-            # Reset a specific penalty for all kids
-            found = False
-            for kid_info_loop in self.kids_data.values():
-                if penalty_id in kid_info_loop.get(const.DATA_KID_PENALTY_APPLIES, {}):
-                    found = True
-                    kid_info_loop[const.DATA_KID_PENALTY_APPLIES].pop(penalty_id, None)
-
-            if not found:
-                const.LOGGER.warning(
-                    "WARNING: Reset Penalties - Penalty ID '%s' not found in any kid's data.",
-                    penalty_id,
-                )
-
-        elif kid_id:
-            # Reset all penalties for a specific kid
-            kid_info_elif: KidData | None = self.kids_data.get(kid_id)
-            if not kid_info_elif:
-                const.LOGGER.error(
-                    "ERROR: Reset Penalties - Kid ID '%s' not found.", kid_id
-                )
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                    translation_placeholders={
-                        "entity_type": const.LABEL_KID,
-                        "name": kid_id,
-                    },
-                )
-
-            kid_info_elif[const.DATA_KID_PENALTY_APPLIES].clear()
-
-        else:
-            # Reset all penalties for all kids
-            const.LOGGER.info(
-                "INFO: Reset Penalties - Resetting all penalties for all kids"
-            )
-            for kid_info in self.kids_data.values():
-                kid_info[const.DATA_KID_PENALTY_APPLIES].clear()
-
-        const.LOGGER.debug(
-            "DEBUG: Reset Penalties - Penalties reset completed - Kid ID '%s',  Penalty ID '%s'",
-            kid_id,
-            penalty_id,
-        )
-
-        self._persist()
-        self.async_set_updated_data(self._data)
-
     # -------------------------------------------------------------------------------------
-    # Bonuses: Reset
+    # Notifications and Reminders
     # -------------------------------------------------------------------------------------
 
-    def reset_bonuses(
-        self, kid_id: str | None = None, bonus_id: str | None = None
-    ) -> None:
-        """Reset bonuses based on provided kid_id and bonus_id."""
-
-        if bonus_id and kid_id:
-            # Reset a specific bonus for a specific kid
-            kid_info: KidData | None = self.kids_data.get(kid_id)
-            if not kid_info:
-                const.LOGGER.error(
-                    "ERROR: Reset Bonuses - Kid ID '%s' not found.", kid_id
-                )
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                    translation_placeholders={
-                        "entity_type": const.LABEL_KID,
-                        "name": kid_id,
-                    },
-                )
-            if bonus_id not in kid_info.get(const.DATA_KID_BONUS_APPLIES, {}):
-                const.LOGGER.error(
-                    "ERROR: Reset Bonuses - Bonus '%s' does not apply to Kid ID '%s'.",
-                    bonus_id,
-                    kid_id,
-                )
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_ASSIGNED,
-                    translation_placeholders={
-                        "entity": f"bonus '{bonus_id}'",
-                        "kid": kid_id,
-                    },
-                )
-
-            kid_info[const.DATA_KID_BONUS_APPLIES].pop(bonus_id, None)
-
-        elif bonus_id:
-            # Reset a specific bonus for all kids
-            found = False
-            for kid_info_loop in self.kids_data.values():
-                if bonus_id in kid_info_loop.get(const.DATA_KID_BONUS_APPLIES, {}):
-                    found = True
-                    kid_info_loop[const.DATA_KID_BONUS_APPLIES].pop(bonus_id, None)
-
-            if not found:
-                const.LOGGER.warning(
-                    "WARNING: Reset Bonuses - Bonus '%s' not found in any kid's data.",
-                    bonus_id,
-                )
-
-        elif kid_id:
-            # Reset all bonuses for a specific kid
-            kid_info_elif: KidData | None = self.kids_data.get(kid_id)
-            if not kid_info_elif:
-                const.LOGGER.error(
-                    "ERROR: Reset Bonuses - Kid ID '%s' not found.", kid_id
-                )
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                    translation_placeholders={
-                        "entity_type": const.LABEL_KID,
-                        "name": kid_id,
-                    },
-                )
-
-            kid_info_elif[const.DATA_KID_BONUS_APPLIES].clear()
-
-        else:
-            # Reset all bonuses for all kids
-            const.LOGGER.info(
-                "INFO: Reset Bonuses - Resetting all bonuses for all kids."
-            )
-            for kid_info in self.kids_data.values():
-                kid_info[const.DATA_KID_BONUS_APPLIES].clear()
-
-        const.LOGGER.debug(
-            "DEBUG: Reset Bonuses - Bonuses reset completed - Kid ID '%s', Bonus ID '%s'",
-            kid_id,
-            bonus_id,
-        )
-
-        self._persist()
-        self.async_set_updated_data(self._data)
-
-    # -------------------------------------------------------------------------------------
-    # Rewards: Reset
-    # This function resets reward-related data for a specified kid and/or reward by
-    # clearing the reward_data entries which track claims, approvals, and period stats.
-    # -------------------------------------------------------------------------------------
-
-    def reset_rewards(
-        self, kid_id: str | None = None, reward_id: str | None = None
-    ) -> None:
-        """Reset rewards based on provided kid_id and reward_id."""
-
-        if reward_id and kid_id:
-            # Reset a specific reward for a specific kid
-            kid_info: KidData | None = self.kids_data.get(kid_id)
-            if not kid_info:
-                const.LOGGER.error(
-                    "ERROR: Reset Rewards - Kid ID '%s' not found.", kid_id
-                )
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                    translation_placeholders={
-                        "entity_type": const.LABEL_KID,
-                        "name": kid_id,
-                    },
-                )
-
-            # Clear reward_data entry for this reward
-            reward_data = kid_info.get(const.DATA_KID_REWARD_DATA, {})
-            reward_data.pop(reward_id, None)
-
-        elif reward_id:
-            # Reset a specific reward for all kids
-            found = False
-            for kid_info_loop in self.kids_data.values():
-                reward_data = kid_info_loop.get(const.DATA_KID_REWARD_DATA, {})
-                if reward_id in reward_data:
-                    found = True
-                    reward_data.pop(reward_id, None)
-
-            if not found:
-                const.LOGGER.warning(
-                    "WARNING: Reset Rewards - Reward '%s' not found in any kid's data.",
-                    reward_id,
-                )
-
-        elif kid_id:
-            # Reset all rewards for a specific kid
-            kid_info_elif: KidData | None = self.kids_data.get(kid_id)
-            if not kid_info_elif:
-                const.LOGGER.error(
-                    "ERROR: Reset Rewards - Kid ID '%s' not found.", kid_id
-                )
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                    translation_placeholders={
-                        "entity_type": const.LABEL_KID,
-                        "name": kid_id,
-                    },
-                )
-
-            # Clear all reward_data for this kid
-            if const.DATA_KID_REWARD_DATA in kid_info_elif:
-                kid_info_elif[const.DATA_KID_REWARD_DATA].clear()
-
-        else:
-            # Reset all rewards for all kids
-            const.LOGGER.info(
-                "INFO: Reset Rewards - Resetting all rewards for all kids."
-            )
-            for kid_info in self.kids_data.values():
-                # Clear all reward_data for this kid
-                if const.DATA_KID_REWARD_DATA in kid_info:
-                    kid_info[const.DATA_KID_REWARD_DATA].clear()
-
-        const.LOGGER.debug(
-            "DEBUG: Reset Rewards - Rewards reset completed - Kid ID '%s', Reward ID '%s'",
-            kid_id,
-            reward_id,
-        )
-
-        self._persist()
-        self.async_set_updated_data(self._data)
-
-    # -------------------------------------------------------------------------------------
-    # Notifications
-    # -------------------------------------------------------------------------------------
-
-    # --- Translation Helpers (shared by kid and parent notification methods) ---
+    ## --- Translation Helpers (shared by kid and parent notification methods) ---
 
     def _convert_notification_key(self, const_key: str) -> str:
         """Convert const translation key to JSON key.
@@ -6840,7 +6751,7 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
 
         return translated_actions
 
-    # --- Core Notification Methods ---
+    ## --- Core Notification Methods ---
 
     async def send_kc_notification(
         self,
@@ -7503,72 +7414,51 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
             )
 
     # -------------------------------------------------------------------------------------
-    # Storage
+    # Utilities
     # -------------------------------------------------------------------------------------
 
-    def _persist(self, immediate: bool = True):
-        """Save coordinator data to persistent storage.
+    async def _bump_past_datetime_helpers(self, now: datetime) -> None:
+        """Advance all datetime helpers to tomorrow at 9 AM.
 
-        Default behavior is immediate synchronous persistence to avoid race conditions
-        between persist operations and config entry reload/unload. This is the safest
-        and simplest approach for a system with frequent entity additions/deletions.
-
-        Args:
-            immediate: If True (default), save immediately without debouncing.
-                      If False, schedule save with 5-second debouncing to batch multiple
-                      updates (NOT currently used - kept for future optimization if needed).
-
-        Philosophy:
-            - Immediate=True is the default because:
-              1. Most _persist() calls are NOT in loops
-              2. Avoids race conditions with config reload timing
-              3. Simplifies debugging and guarantees consistency
-              4. Tests run efficiently without artificial delays
-            - Debouncing (immediate=False) could be added in the future if profiling
-              shows a specific high-frequency operation benefits from it
+        Called during midnight processing to advance date/time pickers
+        to the next day at 9 AM, regardless of current value.
         """
-        if immediate:
-            # Cancel any pending debounced save
-            if self._persist_task and not self._persist_task.done():
-                self._persist_task.cancel()
-                self._persist_task = None
+        if not self.hass:
+            return
 
-            # Immediate synchronous save
-            perf_start = time.perf_counter()
-            self.storage_manager.set_data(self._data)
-            self.hass.add_job(self.storage_manager.async_save)
-            perf_duration = time.perf_counter() - perf_start
+        # Get entity registry to find datetime helper entities by unique_id pattern
+        entity_registry = er.async_get(self.hass)
+
+        # Find all datetime helper entities using unique_id pattern
+        for kid_id, kid_info in self.kids_data.items():
+            kid_name = kid_info.get(const.DATA_KID_NAME, f"Kid {kid_id}")
+
+            # Construct unique_id pattern (matches datetime.py)
+            expected_unique_id = f"{self.config_entry.entry_id}_{kid_id}{const.DATETIME_KC_UID_SUFFIX_DATE_HELPER}"
+
+            # Find entity by unique_id
+            entity_entry = entity_registry.async_get_entity_id(
+                "datetime", const.DOMAIN, expected_unique_id
+            )
+
+            if not entity_entry:
+                continue
+
+            # Set to tomorrow at 9 AM local time
+            tomorrow = dt_util.now() + timedelta(days=1)
+            tomorrow_9am = tomorrow.replace(hour=9, minute=0, second=0, microsecond=0)
+
+            await self.hass.services.async_call(
+                "datetime",
+                "set_datetime",
+                {
+                    "entity_id": entity_entry,
+                    "datetime": tomorrow_9am.isoformat(),
+                },
+                blocking=False,
+            )
             const.LOGGER.debug(
-                "PERF: _persist(immediate=True) took %.3fs (queued async save)",
-                perf_duration,
+                "Advanced datetime helper for %s to %s",
+                kid_name,
+                tomorrow_9am.isoformat(),
             )
-        else:
-            # Debounced save - cancel existing task and schedule new one
-            if self._persist_task and not self._persist_task.done():
-                self._persist_task.cancel()
-
-            self._persist_task = self.hass.async_create_task(
-                self._persist_debounced_impl()
-            )
-
-    async def _persist_debounced_impl(self):
-        """Implementation of debounced persist with delay."""
-        try:
-            # Wait for debounce period
-            await asyncio.sleep(self._persist_debounce_seconds)
-
-            # PERF: Track storage write frequency
-            perf_start = time.perf_counter()
-
-            self.storage_manager.set_data(self._data)
-            await self.storage_manager.async_save()
-
-            perf_duration = time.perf_counter() - perf_start
-            const.LOGGER.debug(
-                "PERF: _persist_debounced_impl() took %.3fs (async save completed)",
-                perf_duration,
-            )
-        except asyncio.CancelledError:
-            # Task was cancelled, new save scheduled
-            const.LOGGER.debug("Debounced persist cancelled (replaced by new save)")
-            raise

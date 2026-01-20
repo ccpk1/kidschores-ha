@@ -117,7 +117,6 @@ class ChoreOperations:
             self, kid_id: str, delta: float, *, source: str = ...
         ) -> Any: ...
 
-        def _normalize_kid_reward_data(self, kid_info: KidData) -> None: ...
         def _check_badges_for_kid(self, kid_id: str) -> None: ...
 
         def _update_challenge_progress(
@@ -218,8 +217,6 @@ class ChoreOperations:
             )
 
         kid_info = self.kids_data[kid_id]
-
-        self._normalize_kid_reward_data(kid_info)
 
         # Phase 4: Use timestamp-based helpers instead of deprecated lists
         # This checks: completed_by_other, pending_claim, already_approved
@@ -2065,7 +2062,7 @@ class ChoreOperations:
             )
 
     # =========================================================================
-    # §5 DATA MANAGEMENT (2 methods)
+    # §5 DATA MANAGEMENT (4 methods)
     # =========================================================================
     # Kid-specific chore data tracking and updates
 
@@ -2535,6 +2532,61 @@ class ChoreOperations:
             return
         stats = self.stats.generate_chore_stats(kid_info, self.chores_data)
         kid_info[const.DATA_KID_CHORE_STATS] = stats
+
+    def _assign_kid_to_independent_chores(self, kid_id: str) -> None:
+        """Assign kid to all INDEPENDENT chores they're added to.
+
+        When a kid is added, they inherit the template due date for all
+        INDEPENDENT chores they're assigned to.
+        """
+        chores_data = self._data.get(const.DATA_CHORES, {})
+        for chore_info in chores_data.values():
+            # Only process INDEPENDENT chores
+            if (
+                chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
+                != const.COMPLETION_CRITERIA_INDEPENDENT
+            ):
+                continue
+
+            # If kid is assigned to this chore, add their per-kid due date
+            assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+            if kid_id in assigned_kids:
+                per_kid_due_dates = chore_info.setdefault(
+                    const.DATA_CHORE_PER_KID_DUE_DATES, {}
+                )
+                template_due_date = chore_info.get(const.DATA_CHORE_DUE_DATE)
+                if kid_id not in per_kid_due_dates:
+                    per_kid_due_dates[kid_id] = template_due_date
+                    const.LOGGER.debug(
+                        "Added kid '%s' to INDEPENDENT chore '%s' with due date: %s",
+                        kid_id,
+                        chore_info.get(const.DATA_CHORE_NAME),
+                        template_due_date,
+                    )
+
+    def _remove_kid_from_independent_chores(self, kid_id: str) -> None:
+        """Remove kid from per-kid due dates when they're removed.
+
+        Template due date remains unchanged; only per-kid entry is deleted.
+        """
+        chores_data = self._data.get(const.DATA_CHORES, {})
+        for chore_info in chores_data.values():
+            # Only process INDEPENDENT chores
+            if (
+                chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
+                != const.COMPLETION_CRITERIA_INDEPENDENT
+            ):
+                continue
+
+            # Remove kid from per-kid due dates if present
+            per_kid_due_dates = chore_info.get(const.DATA_CHORE_PER_KID_DUE_DATES, {})
+            if kid_id in per_kid_due_dates:
+                del per_kid_due_dates[kid_id]
+                const.LOGGER.debug(
+                    "Removed kid '%s' from INDEPENDENT chore '%s' per-kid dates",
+                    kid_id,
+                    chore_info.get(const.DATA_CHORE_NAME),
+                )
 
     # =========================================================================
     # §6 QUERY & STATUS HELPERS (5 methods)
