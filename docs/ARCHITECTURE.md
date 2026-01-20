@@ -328,6 +328,7 @@ The **`meta.schema_version`** field in storage data determines the integration's
 - `custom_components/kidschores/__init__.py`: Lines 45-51 (migration detection)
 
 **Code Organization**: Coordinator uses Python's multiple inheritance to organize features:
+
 - ChoreOperations class provides 43 chore lifecycle methods organized into 11 logical sections (§1-§11)
 - TYPE_CHECKING pattern provides type hints without runtime imports
 - Pattern enables extraction of 3,688 lines (34% reduction) while maintaining single coordinator interface
