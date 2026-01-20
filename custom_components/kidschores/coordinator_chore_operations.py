@@ -63,7 +63,7 @@ class ChoreOperations:
 
     State Machine (Internal):
         - _transition_chore_state(): Central state transition logic
-        - _update_chore_data_for_kid(): Per-kid statistics tracking
+        - _update_kid_chore_data(): Per-kid statistics tracking
 
     Validation Helpers:
         - _can_claim_chore(): Check if kid can claim chore
@@ -269,10 +269,10 @@ class ChoreOperations:
 
         # Increment pending_count counter BEFORE _transition_chore_state so has_pending_claim()
         # returns the correct value during global state computation (v0.4.0+ counter-based tracking)
-        # Use _update_chore_data_for_kid to ensure proper initialization
+        # Use _update_kid_chore_data to ensure proper initialization
         chore_info = self.chores_data[chore_id]
         chore_name = chore_info.get(const.DATA_CHORE_NAME, chore_id)
-        self._update_chore_data_for_kid(kid_id, chore_id, 0.0)  # Initialize properly
+        self._update_kid_chore_data(kid_id, chore_id, 0.0)  # Initialize properly
         kid_chores_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
         kid_chore_data_entry = kid_chores_data[chore_id]  # Now guaranteed to exist
         current_count = kid_chore_data_entry.get(
@@ -410,7 +410,7 @@ class ChoreOperations:
         kid_chores_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
         # Ensure proper chore data initialization
         if chore_id not in kid_chores_data:
-            self._update_chore_data_for_kid(kid_id, chore_id, 0.0)
+            self._update_kid_chore_data(kid_id, chore_id, 0.0)
         kid_chore_data_entry = kid_chores_data[chore_id]
         current_count = kid_chore_data_entry.get(
             const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT, 0
@@ -628,7 +628,7 @@ class ChoreOperations:
         kid_chores_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
         # Ensure proper chore data initialization
         if chore_id not in kid_chores_data:
-            self._update_chore_data_for_kid(kid_id, chore_id, 0.0)
+            self._update_kid_chore_data(kid_id, chore_id, 0.0)
         kid_chore_data_entry = kid_chores_data[chore_id]
         current_count = kid_chore_data_entry.get(
             const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT, 0
@@ -743,7 +743,7 @@ class ChoreOperations:
             due_date = chore_info.get(const.DATA_CHORE_DUE_DATE)
 
         # Update the kid's chore history
-        self._update_chore_data_for_kid(
+        self._update_kid_chore_data(
             kid_id=kid_id,
             chore_id=chore_id,
             points_awarded=actual_points,
@@ -763,8 +763,8 @@ class ChoreOperations:
         if new_state == const.CHORE_STATE_CLAIMED:
             # Update kid_chore_data with claim timestamp (v0.4.0+ timestamp-based tracking)
             now_iso = dt_util.utcnow().isoformat()
-            # Use _update_chore_data_for_kid to ensure proper initialization
-            self._update_chore_data_for_kid(
+            # Use _update_kid_chore_data to ensure proper initialization
+            self._update_kid_chore_data(
                 kid_id, chore_id, 0.0
             )  # No points awarded for claim
             kid_chores_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
@@ -780,8 +780,8 @@ class ChoreOperations:
         elif new_state == const.CHORE_STATE_APPROVED:
             # Update kid_chore_data with approval timestamp (v0.4.0+ timestamp-based tracking)
             now_iso = dt_util.utcnow().isoformat()
-            # Use _update_chore_data_for_kid to ensure proper initialization
-            self._update_chore_data_for_kid(kid_id, chore_id, points_awarded or 0.0)
+            # Use _update_kid_chore_data to ensure proper initialization
+            self._update_kid_chore_data(kid_id, chore_id, points_awarded or 0.0)
             kid_chores_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
             kid_chore_data_entry = kid_chores_data[
                 chore_id
@@ -825,7 +825,7 @@ class ChoreOperations:
                 if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
                     # INDEPENDENT: Store per-kid approval_period_start in kid_chore_data
                     if chore_id not in kid_chores_data:
-                        self._update_chore_data_for_kid(kid_id, chore_id, 0.0)
+                        self._update_kid_chore_data(kid_id, chore_id, 0.0)
                     kid_chore_data_entry = kid_chores_data[chore_id]
                     kid_chore_data_entry[
                         const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START
@@ -843,7 +843,7 @@ class ChoreOperations:
 
         elif new_state == const.CHORE_STATE_OVERDUE:
             # Overdue state is now tracked via DATA_KID_CHORE_DATA_STATE
-            # (set by _update_chore_data_for_kid above)
+            # (set by _update_kid_chore_data above)
             pass
 
         elif new_state == const.CHORE_STATE_COMPLETED_BY_OTHER:
@@ -972,7 +972,7 @@ class ChoreOperations:
                 chore_info[const.DATA_CHORE_STATE],
             )
 
-    def _update_chore_data_for_kid(
+    def _update_kid_chore_data(
         self,
         kid_id: str,
         chore_id: str,
@@ -1452,7 +1452,7 @@ class ChoreOperations:
                 # INDEPENDENT: Store completing kid's own name in their kid_chore_data
                 kid_chores_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
                 if chore_id not in kid_chores_data:
-                    self._update_chore_data_for_kid(kid_id, chore_id, 0.0)
+                    self._update_kid_chore_data(kid_id, chore_id, 0.0)
                 kid_chores_data[chore_id][const.DATA_CHORE_COMPLETED_BY] = (
                     completing_kid_name
                 )
@@ -1477,7 +1477,7 @@ class ChoreOperations:
                     )
                     # Ensure proper chore data initialization
                     if chore_id not in chore_data:
-                        self._update_chore_data_for_kid(other_kid_id, chore_id, 0.0)
+                        self._update_kid_chore_data(other_kid_id, chore_id, 0.0)
                     chore_entry = chore_data[chore_id]
                     chore_entry[const.DATA_CHORE_COMPLETED_BY] = completing_kid_name
                     const.LOGGER.debug(
@@ -1500,7 +1500,7 @@ class ChoreOperations:
                     )
                     # Ensure proper initialization
                     if chore_id not in assigned_kid_chore_data:
-                        self._update_chore_data_for_kid(assigned_kid_id, chore_id, 0.0)
+                        self._update_kid_chore_data(assigned_kid_id, chore_id, 0.0)
                     chore_entry = assigned_kid_chore_data[chore_id]
 
                     # Initialize as list if not present or if it's not a list
@@ -2958,7 +2958,7 @@ class ChoreOperations:
                 return
             kid_chores_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
             if chore_id not in kid_chores_data:
-                self._update_chore_data_for_kid(kid_id, chore_id, 0.0)
+                self._update_kid_chore_data(kid_id, chore_id, 0.0)
             kid_chores_data[chore_id][field_name] = kid_name
             const.LOGGER.debug(
                 "INDEPENDENT: Set %s='%s' for kid '%s' on chore '%s'",
@@ -2976,7 +2976,7 @@ class ChoreOperations:
                 other_kid_info: KidData = cast(
                     "KidData", self.kids_data.get(other_kid_id, {})
                 )
-                self._update_chore_data_for_kid(other_kid_id, chore_id, 0.0)
+                self._update_kid_chore_data(other_kid_id, chore_id, 0.0)
                 chore_data = other_kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
                 chore_entry = chore_data[chore_id]
                 chore_entry[field_name] = kid_name
@@ -2998,7 +2998,7 @@ class ChoreOperations:
                     const.DATA_KID_CHORE_DATA, {}
                 )
                 if chore_id not in assigned_kid_chore_data:
-                    self._update_chore_data_for_kid(assigned_kid_id, chore_id, 0.0)
+                    self._update_kid_chore_data(assigned_kid_id, chore_id, 0.0)
                 chore_entry = assigned_kid_chore_data[chore_id]
 
                 # Initialize as list if not present or if it's not a list
