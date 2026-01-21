@@ -637,8 +637,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         }
                         new_chore_data[const.DATA_CHORE_DAILY_MULTI_TIMES] = None
 
-                    # Create chore first
-                    coordinator._create_chore(internal_id, new_chore_data)
+                    # Create chore using entity_helpers (direct storage pattern)
+                    chore_entity = eh.build_chore(new_chore_data)
+                    coordinator._data[const.DATA_CHORES][internal_id] = chore_entity
                     coordinator._persist()
                     coordinator.async_update_listeners()
 
@@ -666,7 +667,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     return await self.async_step_init()
 
                 # Multiple kids: create chore, then show per-kid details helper
-                coordinator._create_chore(internal_id, new_chore_data)
+                chore_entity = eh.build_chore(new_chore_data)
+                coordinator._data[const.DATA_CHORES][internal_id] = chore_entity
                 coordinator._persist()
                 coordinator.async_update_listeners()
 
@@ -686,8 +688,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             # CFE-2026-001: Check if DAILY_MULTI needs times collection
             # (non-INDEPENDENT chores with DAILY_MULTI frequency)
             if recurring_frequency == const.FREQUENCY_DAILY_MULTI:
-                # Create chore first, then route to daily_multi times helper
-                coordinator._create_chore(internal_id, new_chore_data)
+                # Create chore using entity_helpers (direct storage pattern)
+                chore_entity = eh.build_chore(new_chore_data)
+                coordinator._data[const.DATA_CHORES][internal_id] = chore_entity
                 coordinator._persist()
                 coordinator.async_update_listeners()
 
@@ -702,7 +705,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 return await self.async_step_chores_daily_multi()
 
             # Standard chore creation (SHARED/SHARED_FIRST or no special handling)
-            coordinator._create_chore(internal_id, new_chore_data)
+            chore_entity = eh.build_chore(new_chore_data)
+            coordinator._data[const.DATA_CHORES][internal_id] = chore_entity
             coordinator._persist()
             coordinator.async_update_listeners()
 
@@ -1005,8 +1009,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             if not errors:
                 try:
                     # Layer 3: Entity helper builds complete structure
-                    # build_reward(user_input) - no existing = create mode
-                    reward_data = eh.build_reward(user_input)
+                    # Convert CFOF_* form keys to DATA_* keys, then build reward
+                    data_input = eh.map_cfof_to_reward_data(user_input)
+                    reward_data = eh.build_reward(data_input)
                     internal_id = reward_data[const.DATA_REWARD_INTERNAL_ID]
 
                     # Layer 4: Coordinator stores (thin wrapper)
@@ -1050,11 +1055,19 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             errors = fh.validate_bonuses_inputs(user_input, bonuses_dict)
 
             if not errors:
-                # Build bonus data
-                bonus_data = fh.build_bonuses_data(user_input, bonuses_dict)
-                internal_id, new_bonus_data = next(iter(bonus_data.items()))
+                # Transform form input keys to DATA_* keys
+                transformed_input = {
+                    const.DATA_BONUS_NAME: user_input[const.CFOF_BONUSES_INPUT_NAME],
+                    const.DATA_BONUS_DESCRIPTION: user_input.get(const.CFOF_BONUSES_INPUT_DESCRIPTION, const.SENTINEL_EMPTY),
+                    const.DATA_BONUS_POINTS: user_input.get(const.CFOF_BONUSES_INPUT_POINTS, const.DEFAULT_BONUS_POINTS),
+                    const.DATA_BONUS_ICON: user_input.get(const.CFOF_BONUSES_INPUT_ICON, const.DEFAULT_BONUS_ICON),
+                }
+                # Build bonus data using unified helper
+                new_bonus_data = eh.build_bonus_or_penalty(transformed_input, "bonus")
+                internal_id = new_bonus_data[const.DATA_BONUS_INTERNAL_ID]
 
-                coordinator._create_bonus(internal_id, new_bonus_data)
+                # Direct storage write
+                coordinator._data[const.DATA_BONUSES][internal_id] = new_bonus_data
                 coordinator._persist()
                 coordinator.async_update_listeners()
 
@@ -1085,11 +1098,19 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             errors = fh.validate_penalties_inputs(user_input, penalties_dict)
 
             if not errors:
-                # Build penalty data
-                penalty_data = fh.build_penalties_data(user_input, penalties_dict)
-                internal_id, new_penalty_data = next(iter(penalty_data.items()))
+                # Transform form input keys to DATA_* keys
+                transformed_input = {
+                    const.DATA_PENALTY_NAME: user_input[const.CFOF_PENALTIES_INPUT_NAME],
+                    const.DATA_PENALTY_DESCRIPTION: user_input.get(const.CFOF_PENALTIES_INPUT_DESCRIPTION, const.SENTINEL_EMPTY),
+                    const.DATA_PENALTY_POINTS: user_input.get(const.CFOF_PENALTIES_INPUT_POINTS, const.DEFAULT_PENALTY_POINTS),
+                    const.DATA_PENALTY_ICON: user_input.get(const.CFOF_PENALTIES_INPUT_ICON, const.DEFAULT_PENALTY_ICON),
+                }
+                # Build penalty data using unified helper
+                new_penalty_data = eh.build_bonus_or_penalty(transformed_input, "penalty")
+                internal_id = new_penalty_data[const.DATA_PENALTY_INTERNAL_ID]
 
-                coordinator._create_penalty(internal_id, new_penalty_data)
+                # Direct storage write
+                coordinator._data[const.DATA_PENALTIES][internal_id] = new_penalty_data
                 coordinator._persist()
                 coordinator.async_update_listeners()
 
@@ -1518,12 +1539,27 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     errors=errors,
                 )
 
-            # Update chore and check if assigned kids changed
-            assignments_changed = coordinator.update_chore_entity(
-                internal_id, updated_chore_data
+            # Check if assigned kids changed (for reload decision)
+            old_assigned = set(chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, []))
+            new_assigned = set(
+                updated_chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+            )
+            assignments_changed = old_assigned != new_assigned
+
+            # Update chore using entity_helpers (direct storage pattern)
+            # build_chore() merges updated_chore_data with existing chore_data
+            merged_chore = eh.build_chore(updated_chore_data, existing=chore_data)
+            coordinator._data[const.DATA_CHORES][internal_id] = merged_chore
+            # Recalculate badges affected by chore changes
+            coordinator._recalculate_all_badges()
+            coordinator._persist()
+            coordinator.async_update_listeners()
+            # Clean up any orphaned kid-chore entities after assignment changes
+            coordinator.hass.async_create_task(
+                coordinator._remove_orphaned_kid_chore_entities()
             )
 
-            new_name = updated_chore_data.get(
+            new_name = merged_chore.get(
                 const.DATA_CHORE_NAME,
                 chore_data.get(const.DATA_CHORE_NAME),
             )
@@ -1633,10 +1669,17 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         # Clear chore-level (per-kid is now source of truth)
                         updated_chore_data[const.DATA_CHORE_DAILY_MULTI_TIMES] = None
 
-                    # Update storage first
-                    coordinator.update_chore_entity(internal_id, updated_chore_data)
+                    # Update storage using entity_helpers (direct storage pattern)
+                    merged_chore = eh.build_chore(
+                        updated_chore_data, existing=chore_data
+                    )
+                    coordinator._data[const.DATA_CHORES][internal_id] = merged_chore
+                    coordinator._recalculate_all_badges()
                     coordinator._persist()
                     coordinator.async_update_listeners()
+                    coordinator.hass.async_create_task(
+                        coordinator._remove_orphaned_kid_chore_entities()
+                    )
 
                     # CFE-2026-001 FIX: Single-kid DAILY_MULTI without times
                     # needs to route to times helper (check per-kid times too)
@@ -1684,9 +1727,15 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 and not existing_times
             ):
                 # DAILY_MULTI selected but no times yet - route to helper
-                coordinator.update_chore_entity(internal_id, updated_chore_data)
+                # Update using entity_helpers (direct storage pattern)
+                merged_chore = eh.build_chore(updated_chore_data, existing=chore_data)
+                coordinator._data[const.DATA_CHORES][internal_id] = merged_chore
+                coordinator._recalculate_all_badges()
                 coordinator._persist()
                 coordinator.async_update_listeners()
+                coordinator.hass.async_create_task(
+                    coordinator._remove_orphaned_kid_chore_entities()
+                )
 
                 updated_chore_data[const.DATA_INTERNAL_ID] = internal_id
                 self._chore_being_edited = updated_chore_data
@@ -2228,10 +2277,15 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 if is_daily_multi:
                     chore_data[const.DATA_CHORE_DAILY_MULTI_TIMES] = None
 
-                # Update storage
-                coordinator.update_chore_entity(internal_id, chore_data)
+                # Update storage using entity_helpers (direct storage pattern)
+                merged_chore = eh.build_chore(chore_data, existing=stored_chore)
+                coordinator._data[const.DATA_CHORES][internal_id] = merged_chore
+                coordinator._recalculate_all_badges()
                 coordinator._persist()
                 coordinator.async_update_listeners()
+                coordinator.hass.async_create_task(
+                    coordinator._remove_orphaned_kid_chore_entities()
+                )
 
                 const.LOGGER.debug(
                     "Updated per-kid details for chore %s: days=%s, dates=%s",
@@ -2415,10 +2469,16 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 # Valid - store times in chore data and persist
                 chore_data[const.DATA_CHORE_DAILY_MULTI_TIMES] = times_str
 
-                # Update storage
-                coordinator.update_chore_entity(internal_id, chore_data)
+                # Update storage using entity_helpers (direct storage pattern)
+                stored_chore = coordinator.chores_data.get(internal_id, {})
+                merged_chore = eh.build_chore(chore_data, existing=stored_chore)
+                coordinator._data[const.DATA_CHORES][internal_id] = merged_chore
+                coordinator._recalculate_all_badges()
                 coordinator._persist()
                 coordinator.async_update_listeners()
+                coordinator.hass.async_create_task(
+                    coordinator._remove_orphaned_kid_chore_entities()
+                )
 
                 const.LOGGER.info(
                     "Set daily multi times for chore '%s': %s",
@@ -2547,9 +2607,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             if not errors:
                 try:
                     # Layer 3: Entity helper builds complete structure
-                    # build_reward(user_input, existing) - with existing = update mode
+                    # Convert CFOF_* form keys to DATA_* keys, then build reward
+                    data_input = eh.map_cfof_to_reward_data(user_input)
                     updated_reward = eh.build_reward(
-                        user_input, existing=existing_reward
+                        data_input, existing=existing_reward
                     )
 
                     # Layer 4: Store updated reward (preserves internal_id)
@@ -2603,11 +2664,22 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             errors = fh.validate_penalties_inputs(user_input, penalties_except_current)
 
             if not errors:
-                # Build updated penalty data
-                penalty_data_dict = fh.build_penalties_data(user_input, penalties_dict)
-                _, updated_penalty_data = next(iter(penalty_data_dict.items()))
+                # Transform form input keys to DATA_* keys
+                transformed_input = {
+                    const.DATA_PENALTY_NAME: user_input.get(const.CFOF_PENALTIES_INPUT_NAME, penalty_data[const.DATA_PENALTY_NAME]),
+                    const.DATA_PENALTY_DESCRIPTION: user_input.get(const.CFOF_PENALTIES_INPUT_DESCRIPTION, penalty_data.get(const.DATA_PENALTY_DESCRIPTION, const.SENTINEL_EMPTY)),
+                    const.DATA_PENALTY_POINTS: user_input.get(const.CFOF_PENALTIES_INPUT_POINTS, penalty_data.get(const.DATA_PENALTY_POINTS, const.DEFAULT_PENALTY_POINTS)),
+                    const.DATA_PENALTY_ICON: user_input.get(const.CFOF_PENALTIES_INPUT_ICON, penalty_data.get(const.DATA_PENALTY_ICON, const.DEFAULT_PENALTY_ICON)),
+                }
+                # Build updated penalty data using unified helper
+                updated_penalty_data = eh.build_bonus_or_penalty(
+                    transformed_input, "penalty", existing=penalty_data
+                )
 
-                coordinator.update_penalty_entity(internal_id, updated_penalty_data)
+                # Direct storage write
+                coordinator._data[const.DATA_PENALTIES][internal_id] = updated_penalty_data
+                coordinator._persist()
+                coordinator.async_update_listeners()
 
                 const.LOGGER.debug(
                     "Edited Penalty '%s' with ID: %s", new_name, internal_id
@@ -2652,11 +2724,22 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             errors = fh.validate_bonuses_inputs(user_input, bonuses_except_current)
 
             if not errors:
-                # Build updated bonus data
-                bonus_data_dict = fh.build_bonuses_data(user_input, bonuses_dict)
-                _, updated_bonus_data = next(iter(bonus_data_dict.items()))
+                # Transform form input keys to DATA_* keys
+                transformed_input = {
+                    const.DATA_BONUS_NAME: user_input.get(const.CFOF_BONUSES_INPUT_NAME, bonus_data[const.DATA_BONUS_NAME]),
+                    const.DATA_BONUS_DESCRIPTION: user_input.get(const.CFOF_BONUSES_INPUT_DESCRIPTION, bonus_data.get(const.DATA_BONUS_DESCRIPTION, const.SENTINEL_EMPTY)),
+                    const.DATA_BONUS_POINTS: user_input.get(const.CFOF_BONUSES_INPUT_POINTS, bonus_data.get(const.DATA_BONUS_POINTS, const.DEFAULT_BONUS_POINTS)),
+                    const.DATA_BONUS_ICON: user_input.get(const.CFOF_BONUSES_INPUT_ICON, bonus_data.get(const.DATA_BONUS_ICON, const.DEFAULT_BONUS_ICON)),
+                }
+                # Build updated bonus data using unified helper
+                updated_bonus_data = eh.build_bonus_or_penalty(
+                    transformed_input, "bonus", existing=bonus_data
+                )
 
-                coordinator.update_bonus_entity(internal_id, updated_bonus_data)
+                # Direct storage write
+                coordinator._data[const.DATA_BONUSES][internal_id] = updated_bonus_data
+                coordinator._persist()
+                coordinator.async_update_listeners()
 
                 const.LOGGER.debug(
                     "Edited Bonus '%s' with ID: %s", new_name, internal_id

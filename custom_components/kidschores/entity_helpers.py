@@ -21,7 +21,56 @@ from typing import Any, cast
 import uuid
 
 from . import const
-from .type_defs import BadgeData, KidData, ParentData, RewardData
+from .type_defs import BadgeData, ChoreData, KidData, ParentData, RewardData
+
+# ==============================================================================
+# HELPER FUNCTIONS FOR FIELD NORMALIZATION
+# ==============================================================================
+
+
+def _normalize_list_field(value: Any) -> list[Any]:
+    """Normalize a field that should be a list.
+
+    Handles cases where the value might be:
+    - Already a list → return as-is
+    - None → return empty list
+    - Other types → return as list
+
+    This prevents bugs like list("08:00") → ['0', '8', ':', '0', '0']
+    """
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    # For strings, don't iterate character by character
+    # This shouldn't happen for list fields, but be safe
+    if isinstance(value, str):
+        return [value] if value else []
+    return list(value) if value else []
+
+
+def _normalize_dict_field(value: Any) -> dict[str, Any]:
+    """Normalize a field that should be a dict.
+
+    Handles cases where the value might be:
+    - Already a dict → return as-is
+    - None → return empty dict
+    """
+    if value is None:
+        return {}
+    if isinstance(value, dict):
+        return dict(value)
+    return {}
+
+
+def _pass_through_field(value: Any, default: Any = None) -> Any:
+    """Pass field value through as-is, returning default if None.
+
+    For fields that can be various types (string, list, etc.) and should
+    not be normalized.
+    """
+    return value if value is not None else default
+
 
 # ==============================================================================
 # EXCEPTIONS
@@ -72,6 +121,36 @@ class EntityValidationError(Exception):
 # ==============================================================================
 
 
+# Mapping from CFOF_* form keys to DATA_* storage keys for rewards
+# Used by config_flow/options_flow to convert UI input before calling build_reward()
+_CFOF_TO_REWARD_DATA_MAPPING: dict[str, str] = {
+    const.CFOF_REWARDS_INPUT_NAME: const.DATA_REWARD_NAME,
+    const.CFOF_REWARDS_INPUT_COST: const.DATA_REWARD_COST,
+    const.CFOF_REWARDS_INPUT_DESCRIPTION: const.DATA_REWARD_DESCRIPTION,
+    const.CFOF_REWARDS_INPUT_ICON: const.DATA_REWARD_ICON,
+    const.CFOF_REWARDS_INPUT_LABELS: const.DATA_REWARD_LABELS,
+}
+
+
+def map_cfof_to_reward_data(user_input: dict[str, Any]) -> dict[str, Any]:
+    """Convert CFOF_* form keys to DATA_* storage keys for rewards.
+
+    Used by config_flow and options_flow to normalize UI input before
+    calling build_reward().
+
+    Args:
+        user_input: Dict with CFOF_REWARDS_INPUT_* keys from UI forms
+
+    Returns:
+        Dict with DATA_REWARD_* keys for build_reward() consumption
+    """
+    return {
+        _CFOF_TO_REWARD_DATA_MAPPING.get(key, key): value
+        for key, value in user_input.items()
+        if key in _CFOF_TO_REWARD_DATA_MAPPING
+    }
+
+
 def build_reward(
     user_input: dict[str, Any],
     existing: RewardData | None = None,
@@ -82,7 +161,7 @@ def build_reward(
     One function handles both create (existing=None) and update (existing=RewardData).
 
     Args:
-        user_input: Form/service data with CFOF_* keys (may have missing fields)
+        user_input: Data with DATA_* keys (may have missing fields)
         existing: None for create, existing RewardData for update
 
     Returns:
@@ -93,50 +172,45 @@ def build_reward(
 
     Examples:
         # CREATE mode - generates UUID, applies const.DEFAULT_* for missing fields
-        reward = build_reward({CFOF_REWARDS_INPUT_NAME: "New Reward"})
+        reward = build_reward({DATA_REWARD_NAME: "New Reward"})
 
         # UPDATE mode - preserves existing fields not in user_input
-        reward = build_reward({CFOF_REWARDS_INPUT_COST: 50}, existing=old_reward)
+        reward = build_reward({DATA_REWARD_COST: 50}, existing=old_reward)
     """
     is_create = existing is None
 
     def get_field(
-        cfof_key: str,
         data_key: str,
         default: Any,
     ) -> Any:
         """Get field value: user_input > existing > default.
 
         Priority:
-        1. If cfof_key in user_input → use user_input value
+        1. If data_key in user_input → use user_input value
         2. If existing is not None → use existing value (update mode)
         3. Fall back to default (create mode)
         """
-        if cfof_key in user_input:
-            return user_input[cfof_key]
+        if data_key in user_input:
+            return user_input[data_key]
         if existing is not None:
             return existing.get(data_key, default)
         return default
 
     # --- Name validation (required for create, optional for update) ---
-    raw_name = get_field(
-        const.CFOF_REWARDS_INPUT_NAME,
-        const.DATA_REWARD_NAME,
-        "",
-    )
+    raw_name = get_field(const.DATA_REWARD_NAME, "")
     name = str(raw_name).strip() if raw_name else ""
 
     # In create mode, name is required
     # In update mode, name is only validated if provided
     if is_create and not name:
         raise EntityValidationError(
-            field=const.CFOF_REWARDS_INPUT_NAME,
+            field=const.DATA_REWARD_NAME,
             translation_key=const.TRANS_KEY_CFOF_INVALID_REWARD_NAME,
         )
     # If name was explicitly provided but is empty/whitespace, reject it
-    if const.CFOF_REWARDS_INPUT_NAME in user_input and not name:
+    if const.DATA_REWARD_NAME in user_input and not name:
         raise EntityValidationError(
-            field=const.CFOF_REWARDS_INPUT_NAME,
+            field=const.DATA_REWARD_NAME,
             translation_key=const.TRANS_KEY_CFOF_INVALID_REWARD_NAME,
         )
 
@@ -150,35 +224,124 @@ def build_reward(
     return RewardData(
         internal_id=internal_id,
         name=name,
-        cost=float(
-            get_field(
-                const.CFOF_REWARDS_INPUT_COST,
-                const.DATA_REWARD_COST,
-                const.DEFAULT_REWARD_COST,
-            )
-        ),
-        description=str(
-            get_field(
-                const.CFOF_REWARDS_INPUT_DESCRIPTION,
-                const.DATA_REWARD_DESCRIPTION,
-                const.SENTINEL_EMPTY,
-            )
-        ),
-        icon=str(
-            get_field(
-                const.CFOF_REWARDS_INPUT_ICON,
-                const.DATA_REWARD_ICON,
-                const.DEFAULT_REWARD_ICON,
-            )
-        ),
-        reward_labels=list(
-            get_field(
-                const.CFOF_REWARDS_INPUT_LABELS,
-                const.DATA_REWARD_LABELS,
-                [],
-            )
-        ),
+        cost=float(get_field(const.DATA_REWARD_COST, const.DEFAULT_REWARD_COST)),
+        description=str(get_field(const.DATA_REWARD_DESCRIPTION, const.SENTINEL_EMPTY)),
+        icon=str(get_field(const.DATA_REWARD_ICON, const.DEFAULT_REWARD_ICON)),
+        reward_labels=list(get_field(const.DATA_REWARD_LABELS, [])),
     )
+
+
+# ==============================================================================
+# BONUSES & PENALTIES (Unified)
+# ==============================================================================
+
+
+def build_bonus_or_penalty(
+    user_input: dict[str, Any],
+    entity_type: str,  # "bonus" or "penalty"
+    existing: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build bonus or penalty data for create or update operations.
+
+    Bonuses and penalties are 95% identical - only differing in:
+    - Points sign: positive for bonus, negative for penalty
+    - Storage location: DATA_BONUSES vs DATA_PENALTIES
+    - Default icon constant
+
+    This unified function handles both entity types to eliminate code duplication.
+
+    Args:
+        user_input: Data with DATA_* keys (may have missing fields)
+        entity_type: "bonus" or "penalty"
+        existing: None for create, existing entity data for update
+
+    Returns:
+        Complete dict ready for storage with DATA_* keys
+
+    Raises:
+        EntityValidationError: If name validation fails (empty/whitespace)
+        ValueError: If entity_type is not "bonus" or "penalty"
+
+    Examples:
+        # CREATE bonus - generates UUID, applies defaults
+        bonus = build_bonus_or_penalty({DATA_BONUS_NAME: "Extra Credit"}, "bonus")
+
+        # UPDATE penalty - preserves existing fields not in user_input
+        penalty = build_bonus_or_penalty({DATA_PENALTY_POINTS: 10}, "penalty", existing=old)
+    """
+    if entity_type not in ("bonus", "penalty"):
+        raise ValueError(
+            f"entity_type must be 'bonus' or 'penalty', got: {entity_type}"
+        )
+
+    is_bonus = entity_type == "bonus"
+    is_create = existing is None
+
+    # --- Field key mapping (different constants for bonus vs penalty) ---
+    name_key = const.DATA_BONUS_NAME if is_bonus else const.DATA_PENALTY_NAME
+    desc_key = (
+        const.DATA_BONUS_DESCRIPTION if is_bonus else const.DATA_PENALTY_DESCRIPTION
+    )
+    labels_key = const.DATA_BONUS_LABELS if is_bonus else const.DATA_PENALTY_LABELS
+    points_key = const.DATA_BONUS_POINTS if is_bonus else const.DATA_PENALTY_POINTS
+    icon_key = const.DATA_BONUS_ICON if is_bonus else const.DATA_PENALTY_ICON
+    internal_id_key = (
+        const.DATA_BONUS_INTERNAL_ID if is_bonus else const.DATA_PENALTY_INTERNAL_ID
+    )
+
+    # --- Default values (different for bonus vs penalty) ---
+    default_points = (
+        const.DEFAULT_BONUS_POINTS if is_bonus else const.DEFAULT_PENALTY_POINTS
+    )
+    default_icon = const.DEFAULT_BONUS_ICON if is_bonus else const.DEFAULT_PENALTY_ICON
+    invalid_name_key = (
+        const.TRANS_KEY_CFOF_INVALID_BONUS_NAME
+        if is_bonus
+        else const.TRANS_KEY_CFOF_INVALID_PENALTY_NAME
+    )
+
+    def get_field(data_key: str, default: Any) -> Any:
+        """Get field value: user_input > existing > default."""
+        if data_key in user_input:
+            return user_input[data_key]
+        if existing is not None:
+            return existing.get(data_key, default)
+        return default
+
+    # --- Name validation (required for create, optional for update) ---
+    raw_name = get_field(name_key, "")
+    name = str(raw_name).strip() if raw_name else ""
+
+    if is_create and not name:
+        raise EntityValidationError(
+            field=name_key,
+            translation_key=invalid_name_key,
+        )
+    if name_key in user_input and not name:
+        raise EntityValidationError(
+            field=name_key,
+            translation_key=invalid_name_key,
+        )
+
+    # --- Points: positive for bonus, negative for penalty ---
+    raw_points = get_field(points_key, default_points)
+    # Ensure correct sign: bonus = positive, penalty = negative
+    stored_points = abs(float(raw_points)) if is_bonus else -abs(float(raw_points))
+
+    # --- Internal ID: generate new for create, preserve for update ---
+    if is_create or existing is None:
+        internal_id = str(uuid.uuid4())
+    else:
+        internal_id = existing.get(internal_id_key, str(uuid.uuid4()))
+
+    return {
+        name_key: name,
+        desc_key: str(get_field(desc_key, const.SENTINEL_EMPTY)),
+        labels_key: list(get_field(labels_key, [])),
+        points_key: stored_points,
+        icon_key: str(get_field(icon_key, default_icon)),
+        internal_id_key: internal_id,
+    }
 
 
 # ==============================================================================
@@ -498,6 +661,224 @@ def build_parent(
         linked_shadow_kid_id=(
             existing.get(const.DATA_PARENT_LINKED_SHADOW_KID_ID) if existing else None
         ),
+    )
+
+
+# ==============================================================================
+# CHORES
+# ==============================================================================
+
+
+def build_chore(
+    user_input: dict[str, Any],
+    existing: ChoreData | None = None,
+) -> ChoreData:
+    """Build chore data for create or update operations.
+
+    This is the SINGLE SOURCE OF TRUTH for chore field handling.
+    One function handles both create (existing=None) and update (existing=ChoreData).
+
+    NOTE: This function does NOT validate for duplicates or complex business rules.
+    Use flow_helpers.build_chores_data() for full validation in UI flows.
+    This function handles field defaults and type coercion only.
+
+    Args:
+        user_input: Form/service data with DATA_* keys (pre-validated by flow_helpers)
+        existing: None for create, existing ChoreData for update
+
+    Returns:
+        Complete ChoreData TypedDict ready for storage
+
+    Raises:
+        EntityValidationError: If name validation fails (empty/whitespace)
+
+    Examples:
+        # CREATE mode - generates UUID, applies const.DEFAULT_* for missing fields
+        chore = build_chore({DATA_CHORE_NAME: "Clean Room", DATA_CHORE_ASSIGNED_KIDS: [...]})
+
+        # UPDATE mode - preserves existing fields not in user_input
+        chore = build_chore({DATA_CHORE_DEFAULT_POINTS: 15}, existing=old_chore)
+    """
+    is_create = existing is None
+
+    def get_field(
+        data_key: str,
+        default: Any,
+    ) -> Any:
+        """Get field value: user_input > existing > default.
+
+        NOTE: Uses DATA_* keys directly (not CFOF_*) since chore data
+        is pre-processed by flow_helpers.build_chores_data().
+        """
+        if data_key in user_input:
+            return user_input[data_key]
+        if existing is not None:
+            return existing.get(data_key, default)
+        return default
+
+    # --- Name validation (required for create, optional for update) ---
+    raw_name = get_field(const.DATA_CHORE_NAME, "")
+    name = str(raw_name).strip() if raw_name else ""
+
+    if is_create and not name:
+        raise EntityValidationError(
+            field=const.CFOF_CHORES_INPUT_NAME,
+            translation_key=const.TRANS_KEY_CFOF_INVALID_CHORE_NAME,
+        )
+    if const.DATA_CHORE_NAME in user_input and not name:
+        raise EntityValidationError(
+            field=const.CFOF_CHORES_INPUT_NAME,
+            translation_key=const.TRANS_KEY_CFOF_INVALID_CHORE_NAME,
+        )
+
+    # --- Internal ID: generate for create, preserve for update ---
+    if is_create or existing is None:
+        internal_id = str(uuid.uuid4())
+    else:
+        internal_id = existing.get(const.DATA_CHORE_INTERNAL_ID, str(uuid.uuid4()))
+
+    # --- Handle custom interval fields based on frequency ---
+    recurring_frequency = get_field(
+        const.DATA_CHORE_RECURRING_FREQUENCY,
+        const.FREQUENCY_NONE,
+    )
+    is_custom_frequency = recurring_frequency in (
+        const.FREQUENCY_CUSTOM,
+        const.FREQUENCY_CUSTOM_FROM_COMPLETE,
+    )
+
+    custom_interval = (
+        get_field(const.DATA_CHORE_CUSTOM_INTERVAL, None)
+        if is_custom_frequency
+        else None
+    )
+    custom_interval_unit = (
+        get_field(const.DATA_CHORE_CUSTOM_INTERVAL_UNIT, None)
+        if is_custom_frequency
+        else None
+    )
+
+    # --- Build complete chore structure ---
+    # Cast to ChoreData - all required fields are populated
+    return cast(
+        "ChoreData",
+        {
+            # Core identification
+            const.DATA_CHORE_INTERNAL_ID: internal_id,
+            const.DATA_CHORE_NAME: name,
+            # State - always starts as PENDING for new chores
+            const.DATA_CHORE_STATE: get_field(
+                const.DATA_CHORE_STATE,
+                const.CHORE_STATE_PENDING,
+            ),
+            # Points and configuration
+            const.DATA_CHORE_DEFAULT_POINTS: float(
+                get_field(const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_POINTS)
+            ),
+            const.DATA_CHORE_APPROVAL_RESET_TYPE: get_field(
+                const.DATA_CHORE_APPROVAL_RESET_TYPE,
+                const.DEFAULT_APPROVAL_RESET_TYPE,
+            ),
+            const.DATA_CHORE_OVERDUE_HANDLING_TYPE: get_field(
+                const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
+                const.DEFAULT_OVERDUE_HANDLING_TYPE,
+            ),
+            const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION: get_field(
+                const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION,
+                const.DEFAULT_APPROVAL_RESET_PENDING_CLAIM_ACTION,
+            ),
+            # Description and display
+            const.DATA_CHORE_DESCRIPTION: str(
+                get_field(const.DATA_CHORE_DESCRIPTION, const.SENTINEL_EMPTY)
+            ),
+            const.DATA_CHORE_LABELS: list(get_field(const.DATA_CHORE_LABELS, [])),
+            const.DATA_CHORE_ICON: str(
+                get_field(const.DATA_CHORE_ICON, const.DEFAULT_ICON)
+            ),
+            # Assignment
+            const.DATA_CHORE_ASSIGNED_KIDS: list(
+                get_field(const.DATA_CHORE_ASSIGNED_KIDS, [])
+            ),
+            # Scheduling
+            const.DATA_CHORE_RECURRING_FREQUENCY: recurring_frequency,
+            const.DATA_CHORE_CUSTOM_INTERVAL: custom_interval,
+            const.DATA_CHORE_CUSTOM_INTERVAL_UNIT: custom_interval_unit,
+            const.DATA_CHORE_DAILY_MULTI_TIMES: _pass_through_field(
+                get_field(const.DATA_CHORE_DAILY_MULTI_TIMES, None), None
+            ),
+            # Due dates
+            const.DATA_CHORE_DUE_DATE: get_field(const.DATA_CHORE_DUE_DATE, None),
+            const.DATA_CHORE_PER_KID_DUE_DATES: _normalize_dict_field(
+                get_field(const.DATA_CHORE_PER_KID_DUE_DATES, {})
+            ),
+            const.DATA_CHORE_APPLICABLE_DAYS: _normalize_list_field(
+                get_field(const.DATA_CHORE_APPLICABLE_DAYS, [])
+            ),
+            const.DATA_CHORE_PER_KID_APPLICABLE_DAYS: _normalize_dict_field(
+                get_field(const.DATA_CHORE_PER_KID_APPLICABLE_DAYS, {})
+            ),
+            const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES: _normalize_dict_field(
+                get_field(const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES, {})
+            ),
+            # Runtime tracking (preserve existing values on update)
+            const.DATA_CHORE_LAST_COMPLETED: get_field(
+                const.DATA_CHORE_LAST_COMPLETED, None
+            ),
+            const.DATA_CHORE_LAST_CLAIMED: get_field(
+                const.DATA_CHORE_LAST_CLAIMED, None
+            ),
+            const.DATA_CHORE_APPROVAL_PERIOD_START: get_field(
+                const.DATA_CHORE_APPROVAL_PERIOD_START, None
+            ),
+            const.DATA_CHORE_CLAIMED_BY: list(
+                get_field(const.DATA_CHORE_CLAIMED_BY, [])
+            ),
+            const.DATA_CHORE_COMPLETED_BY: list(
+                get_field(const.DATA_CHORE_COMPLETED_BY, [])
+            ),
+            # Notifications
+            const.DATA_CHORE_NOTIFY_ON_CLAIM: bool(
+                get_field(
+                    const.DATA_CHORE_NOTIFY_ON_CLAIM, const.DEFAULT_NOTIFY_ON_CLAIM
+                )
+            ),
+            const.DATA_CHORE_NOTIFY_ON_APPROVAL: bool(
+                get_field(
+                    const.DATA_CHORE_NOTIFY_ON_APPROVAL,
+                    const.DEFAULT_NOTIFY_ON_APPROVAL,
+                )
+            ),
+            const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL: bool(
+                get_field(
+                    const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL,
+                    const.DEFAULT_NOTIFY_ON_DISAPPROVAL,
+                )
+            ),
+            const.DATA_CHORE_NOTIFY_ON_REMINDER: bool(
+                get_field(
+                    const.DATA_CHORE_NOTIFY_ON_REMINDER,
+                    const.DEFAULT_NOTIFY_ON_REMINDER,
+                )
+            ),
+            # Calendar and features
+            const.DATA_CHORE_SHOW_ON_CALENDAR: bool(
+                get_field(
+                    const.DATA_CHORE_SHOW_ON_CALENDAR,
+                    const.DEFAULT_CHORE_SHOW_ON_CALENDAR,
+                )
+            ),
+            const.DATA_CHORE_AUTO_APPROVE: bool(
+                get_field(
+                    const.DATA_CHORE_AUTO_APPROVE,
+                    const.DEFAULT_CHORE_AUTO_APPROVE,
+                )
+            ),
+            # Completion criteria
+            const.DATA_CHORE_COMPLETION_CRITERIA: get_field(
+                const.DATA_CHORE_COMPLETION_CRITERIA,
+                const.COMPLETION_CRITERIA_INDEPENDENT,
+            ),
+        },
     )
 
 

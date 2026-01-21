@@ -191,29 +191,180 @@ DELETE_REWARD_SCHEMA = vol.Schema(
     }
 )
 
-# Map service fields to CFOF_* form field names
-# This bridges user-friendly service API → internal form field names
-_SERVICE_TO_REWARD_FORM_MAPPING: dict[str, str] = {
-    const.SERVICE_FIELD_REWARD_NAME: const.CFOF_REWARDS_INPUT_NAME,
-    const.SERVICE_FIELD_REWARD_COST: const.CFOF_REWARDS_INPUT_COST,
-    const.SERVICE_FIELD_REWARD_DESCRIPTION: const.CFOF_REWARDS_INPUT_DESCRIPTION,
-    const.SERVICE_FIELD_REWARD_ICON: const.CFOF_REWARDS_INPUT_ICON,
-    const.SERVICE_FIELD_REWARD_LABELS: const.CFOF_REWARDS_INPUT_LABELS,
+# ============================================================================
+# CHORE CRUD SCHEMAS
+# ============================================================================
+# NOTE: Chore services use DATA_* keys directly (unlike rewards which use CFOF_* keys)
+# because build_chore() in entity_helpers expects pre-processed DATA_* keys.
+#
+# Field validation:
+# - name: required for create, optional for update
+# - assigned_kids: required for create (list of kid names resolved to UUIDs)
+# - completion_criteria: CREATE ONLY (immutable after creation)
+# - Other fields use defaults from const.DEFAULT_*
+
+# Enum validators for select fields
+_FREQUENCY_VALUES = [
+    const.FREQUENCY_NONE,
+    const.FREQUENCY_DAILY,
+    const.FREQUENCY_WEEKLY,
+    const.FREQUENCY_MONTHLY,
+]
+
+_COMPLETION_CRITERIA_VALUES = [
+    const.COMPLETION_CRITERIA_INDEPENDENT,
+    const.COMPLETION_CRITERIA_SHARED_FIRST,
+    const.COMPLETION_CRITERIA_SHARED,
+]
+
+_APPROVAL_RESET_VALUES = [
+    const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+    const.APPROVAL_RESET_AT_MIDNIGHT_MULTI,
+    const.APPROVAL_RESET_AT_DUE_DATE_ONCE,
+    const.APPROVAL_RESET_AT_DUE_DATE_MULTI,
+    const.APPROVAL_RESET_UPON_COMPLETION,
+]
+
+_PENDING_CLAIMS_VALUES = [
+    const.APPROVAL_RESET_PENDING_CLAIM_HOLD,
+    const.APPROVAL_RESET_PENDING_CLAIM_CLEAR,
+    const.APPROVAL_RESET_PENDING_CLAIM_AUTO_APPROVE,
+]
+
+_OVERDUE_HANDLING_VALUES = [
+    const.OVERDUE_HANDLING_AT_DUE_DATE,
+    const.OVERDUE_HANDLING_NEVER_OVERDUE,
+    const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET,
+    const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE,
+]
+
+# Days of week - using raw values since there are no individual DAY_* constants
+_DAY_OF_WEEK_VALUES = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+
+CREATE_CHORE_SCHEMA = vol.Schema(
+    {
+        vol.Required(const.SERVICE_FIELD_CHORE_CRUD_NAME): cv.string,
+        vol.Required(const.SERVICE_FIELD_CHORE_CRUD_ASSIGNED_KIDS): vol.All(
+            cv.ensure_list, [cv.string]
+        ),
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_POINTS): vol.Coerce(float),
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_DESCRIPTION, default=""): cv.string,
+        vol.Optional(
+            const.SERVICE_FIELD_CHORE_CRUD_ICON, default=const.DEFAULT_ICON
+        ): cv.icon,
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_LABELS, default=[]): vol.All(
+            cv.ensure_list, [cv.string]
+        ),
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_FREQUENCY): vol.In(
+            _FREQUENCY_VALUES
+        ),
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_APPLICABLE_DAYS): vol.All(
+            cv.ensure_list, [vol.In(_DAY_OF_WEEK_VALUES)]
+        ),
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_COMPLETION_CRITERIA): vol.In(
+            _COMPLETION_CRITERIA_VALUES
+        ),
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_APPROVAL_RESET): vol.In(
+            _APPROVAL_RESET_VALUES
+        ),
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_PENDING_CLAIMS): vol.In(
+            _PENDING_CLAIMS_VALUES
+        ),
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_OVERDUE_HANDLING): vol.In(
+            _OVERDUE_HANDLING_VALUES
+        ),
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_AUTO_APPROVE): cv.boolean,
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_DUE_DATE): cv.datetime,
+    }
+)
+
+# NOTE: Either chore_id OR name must be provided (resolved in handler)
+# completion_criteria is NOT allowed in update (immutable after creation)
+UPDATE_CHORE_SCHEMA = vol.Schema(
+    {
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_ID): cv.string,
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_NAME): cv.string,
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_ASSIGNED_KIDS): vol.All(
+            cv.ensure_list, [cv.string]
+        ),
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_POINTS): vol.Coerce(float),
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_DESCRIPTION): cv.string,
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_ICON): cv.icon,
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_LABELS): vol.All(
+            cv.ensure_list, [cv.string]
+        ),
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_FREQUENCY): vol.In(
+            _FREQUENCY_VALUES
+        ),
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_APPLICABLE_DAYS): vol.All(
+            cv.ensure_list, [vol.In(_DAY_OF_WEEK_VALUES)]
+        ),
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_APPROVAL_RESET): vol.In(
+            _APPROVAL_RESET_VALUES
+        ),
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_PENDING_CLAIMS): vol.In(
+            _PENDING_CLAIMS_VALUES
+        ),
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_OVERDUE_HANDLING): vol.In(
+            _OVERDUE_HANDLING_VALUES
+        ),
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_AUTO_APPROVE): cv.boolean,
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_DUE_DATE): cv.datetime,
+    }
+)
+
+# NOTE: Either chore_id OR name must be provided (resolved in handler)
+DELETE_CHORE_SCHEMA = vol.Schema(
+    {
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_ID): cv.string,
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_NAME): cv.string,
+    }
+)
+
+# Map service fields to DATA_* storage keys
+# This bridges user-friendly service API → internal storage keys
+# NOTE: Chores use DATA_* keys (unlike rewards which use CFOF_* keys)
+_SERVICE_TO_CHORE_DATA_MAPPING: dict[str, str] = {
+    const.SERVICE_FIELD_CHORE_CRUD_NAME: const.DATA_CHORE_NAME,
+    const.SERVICE_FIELD_CHORE_CRUD_POINTS: const.DATA_CHORE_DEFAULT_POINTS,
+    const.SERVICE_FIELD_CHORE_CRUD_DESCRIPTION: const.DATA_CHORE_DESCRIPTION,
+    const.SERVICE_FIELD_CHORE_CRUD_ICON: const.DATA_CHORE_ICON,
+    const.SERVICE_FIELD_CHORE_CRUD_LABELS: const.DATA_CHORE_LABELS,
+    const.SERVICE_FIELD_CHORE_CRUD_ASSIGNED_KIDS: const.DATA_CHORE_ASSIGNED_KIDS,
+    const.SERVICE_FIELD_CHORE_CRUD_FREQUENCY: const.DATA_CHORE_RECURRING_FREQUENCY,
+    const.SERVICE_FIELD_CHORE_CRUD_APPLICABLE_DAYS: const.DATA_CHORE_APPLICABLE_DAYS,
+    const.SERVICE_FIELD_CHORE_CRUD_COMPLETION_CRITERIA: const.DATA_CHORE_COMPLETION_CRITERIA,
+    const.SERVICE_FIELD_CHORE_CRUD_APPROVAL_RESET: const.DATA_CHORE_APPROVAL_RESET_TYPE,
+    const.SERVICE_FIELD_CHORE_CRUD_PENDING_CLAIMS: const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION,
+    const.SERVICE_FIELD_CHORE_CRUD_OVERDUE_HANDLING: const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
+    const.SERVICE_FIELD_CHORE_CRUD_AUTO_APPROVE: const.DATA_CHORE_AUTO_APPROVE,
+    # NOTE: due_date is handled specially via set_chore_due_date() hook
+}
+
+# Map service fields to DATA_* storage keys for rewards
+# This bridges user-friendly service API → internal storage keys
+# NOTE: Now matches chore pattern (DATA_* keys directly)
+_SERVICE_TO_REWARD_DATA_MAPPING: dict[str, str] = {
+    const.SERVICE_FIELD_REWARD_NAME: const.DATA_REWARD_NAME,
+    const.SERVICE_FIELD_REWARD_COST: const.DATA_REWARD_COST,
+    const.SERVICE_FIELD_REWARD_DESCRIPTION: const.DATA_REWARD_DESCRIPTION,
+    const.SERVICE_FIELD_REWARD_ICON: const.DATA_REWARD_ICON,
+    const.SERVICE_FIELD_REWARD_LABELS: const.DATA_REWARD_LABELS,
 }
 
 
-def _map_service_to_form_input(
+def _map_service_to_data_keys(
     service_data: dict[str, Any],
     mapping: dict[str, str],
 ) -> dict[str, Any]:
-    """Convert service field names to CFOF_* form field names.
+    """Convert service field names to DATA_* storage keys.
 
     Args:
         service_data: Data from service call with user-friendly field names
-        mapping: Dict mapping service field names to CFOF_* constants
+        mapping: Dict mapping service field names to DATA_* constants
 
     Returns:
-        Dict with CFOF_* keys for entity_helpers consumption
+        Dict with DATA_* keys for entity_helpers consumption
     """
     return {
         mapping[key]: value for key, value in service_data.items() if key in mapping
@@ -1475,23 +1626,30 @@ def async_setup_services(hass: HomeAssistant):
             const.COORDINATOR
         ]
 
-        # Map service fields to form fields for entity_helpers
-        form_input = _map_service_to_form_input(
-            dict(call.data), _SERVICE_TO_REWARD_FORM_MAPPING
+        # Map service fields to DATA_* keys for entity_helpers
+        data_input = _map_service_to_data_keys(
+            dict(call.data), _SERVICE_TO_REWARD_DATA_MAPPING
         )
 
-        # Check for duplicate name (Layer 2 validation)
-        errors = fh.validate_rewards_inputs(form_input, coordinator.rewards_data)
-        if errors:
-            trans_key = next(iter(errors.values()))
+        # Check for duplicate name (inline validation with DATA_* keys)
+        reward_name = data_input.get(const.DATA_REWARD_NAME, "").strip()
+        if not reward_name:
             raise HomeAssistantError(
                 translation_domain=const.DOMAIN,
-                translation_key=trans_key,
+                translation_key=const.TRANS_KEY_CFOF_INVALID_REWARD_NAME,
+            )
+        if any(
+            r[const.DATA_REWARD_NAME] == reward_name
+            for r in coordinator.rewards_data.values()
+        ):
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_CFOF_DUPLICATE_REWARD,
             )
 
         try:
             # build_reward(input) - create mode (no existing)
-            reward_dict = eh.build_reward(form_input)
+            reward_dict = eh.build_reward(data_input)
             internal_id = reward_dict[const.DATA_REWARD_INTERNAL_ID]
 
             coordinator._data[const.DATA_REWARDS][internal_id] = dict(reward_dict)
@@ -1577,35 +1735,39 @@ def async_setup_services(hass: HomeAssistant):
 
         existing_reward = coordinator.rewards_data[reward_id]
 
-        # Build form input, excluding reward_name if it was used for lookup
+        # Build data input, excluding reward_name if it was used for lookup
         # (don't treat lookup name as a rename request)
         service_data = dict(call.data)
         if not call.data.get(const.SERVICE_FIELD_REWARD_ID) and reward_name:
             # reward_name was used for lookup, not for renaming
-            # Only include it in form_input if there's ALSO a reward_id (explicit rename)
+            # Only include it in data_input if there's ALSO a reward_id (explicit rename)
             service_data.pop(const.SERVICE_FIELD_REWARD_NAME, None)
 
-        form_input = _map_service_to_form_input(
-            service_data, _SERVICE_TO_REWARD_FORM_MAPPING
+        data_input = _map_service_to_data_keys(
+            service_data, _SERVICE_TO_REWARD_DATA_MAPPING
         )
 
         # Validate name uniqueness (exclude current reward) if name is being updated
-        if const.CFOF_REWARDS_INPUT_NAME in form_input:
-            other_rewards = {
-                rid: r
-                for rid, r in coordinator.rewards_data.items()
-                if rid != reward_id
-            }
-            errors = fh.validate_rewards_inputs(form_input, other_rewards)
-            if errors:
+        if const.DATA_REWARD_NAME in data_input:
+            new_name = data_input[const.DATA_REWARD_NAME].strip()
+            if not new_name:
                 raise HomeAssistantError(
                     translation_domain=const.DOMAIN,
-                    translation_key=next(iter(errors.values())),
+                    translation_key=const.TRANS_KEY_CFOF_INVALID_REWARD_NAME,
+                )
+            if any(
+                r[const.DATA_REWARD_NAME] == new_name
+                for rid, r in coordinator.rewards_data.items()
+                if rid != reward_id
+            ):
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_CFOF_DUPLICATE_REWARD,
                 )
 
         try:
             # build_reward(input, existing) - update mode
-            reward_dict = eh.build_reward(form_input, existing=existing_reward)
+            reward_dict = eh.build_reward(data_input, existing=existing_reward)
 
             coordinator._data[const.DATA_REWARDS][reward_id] = dict(reward_dict)
             coordinator._persist()
@@ -1682,6 +1844,311 @@ def async_setup_services(hass: HomeAssistant):
         const.LOGGER.info("Service deleted reward with ID: %s", reward_id)
 
         return {const.SERVICE_FIELD_REWARD_ID: reward_id}
+
+    # ========================================================================
+    # CHORE CRUD SERVICE HANDLERS
+    # ========================================================================
+
+    async def handle_create_chore(call: ServiceCall) -> dict[str, Any]:
+        """Handle kidschores.create_chore service call.
+
+        Creates a new chore using entity_helpers.build_chore() for consistent
+        field handling with the Options Flow UI.
+
+        Args:
+            call: Service call with name, assigned_kids, and optional fields
+
+        Returns:
+            Dict with chore_id of the created chore
+
+        Raises:
+            HomeAssistantError: If no coordinator available or validation fails
+        """
+        from . import entity_helpers as eh
+        from .entity_helpers import EntityValidationError
+
+        entry_id = kh.get_first_kidschores_entry(hass)
+        if not entry_id:
+            const.LOGGER.warning(
+                "Create Chore: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
+            )
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND,
+            )
+
+        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
+            const.COORDINATOR
+        ]
+
+        # Resolve kid names to UUIDs
+        kid_names = call.data.get(const.SERVICE_FIELD_CHORE_CRUD_ASSIGNED_KIDS, [])
+        kid_ids = []
+        for kid_name in kid_names:
+            try:
+                kid_id = kh.get_entity_id_or_raise(
+                    coordinator, const.ENTITY_TYPE_KID, kid_name
+                )
+                kid_ids.append(kid_id)
+            except HomeAssistantError as err:
+                const.LOGGER.warning("Create Chore - kid lookup failed: %s", err)
+                raise
+
+        # Map service fields to DATA_* keys
+        data_input = _map_service_to_data_keys(
+            dict(call.data), _SERVICE_TO_CHORE_DATA_MAPPING
+        )
+        # Override assigned_kids with resolved UUIDs
+        data_input[const.DATA_CHORE_ASSIGNED_KIDS] = kid_ids
+
+        # Extract due_date for special handling (not passed to build_chore)
+        due_date_input = call.data.get(const.SERVICE_FIELD_CHORE_CRUD_DUE_DATE)
+
+        # Check for duplicate name (Layer 2 validation)
+        chore_name = data_input.get(const.DATA_CHORE_NAME, "").strip()
+        if any(
+            chore[const.DATA_CHORE_NAME] == chore_name
+            for chore in coordinator.chores_data.values()
+        ):
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_CFOF_DUPLICATE_CHORE,
+            )
+
+        try:
+            # build_chore(input) - create mode (no existing)
+            chore_dict = eh.build_chore(data_input)
+            internal_id = chore_dict[const.DATA_CHORE_INTERNAL_ID]
+
+            coordinator._data[const.DATA_CHORES][internal_id] = dict(chore_dict)
+            coordinator._persist()
+
+            # Handle due_date via set_chore_due_date hook (respects SHARED/INDEPENDENT)
+            if due_date_input:
+                coordinator.set_chore_due_date(internal_id, due_date_input, kid_id=None)
+                coordinator._persist()
+
+            # Create chore status sensor entities for all assigned kids
+            from .sensor import create_chore_entities
+
+            create_chore_entities(coordinator, internal_id)
+
+            coordinator.async_update_listeners()
+
+            const.LOGGER.info(
+                "Service created chore '%s' with ID: %s",
+                chore_dict[const.DATA_CHORE_NAME],
+                internal_id,
+            )
+
+            return {const.SERVICE_FIELD_CHORE_CRUD_ID: internal_id}
+
+        except EntityValidationError as err:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=err.translation_key,
+                translation_placeholders=err.placeholders,
+            ) from err
+
+    async def handle_update_chore(call: ServiceCall) -> dict[str, Any]:
+        """Handle kidschores.update_chore service call.
+
+        Updates an existing chore using entity_helpers.build_chore() for consistent
+        field handling with the Options Flow UI. Only provided fields are updated.
+
+        Accepts either chore_id OR name to identify the chore:
+        - name: User-friendly, looks up ID by name (recommended)
+        - id: Direct UUID for advanced automation use
+
+        IMPORTANT: completion_criteria cannot be changed after creation.
+
+        Args:
+            call: Service call with chore identifier and optional update fields
+
+        Returns:
+            Dict with chore_id of the updated chore
+
+        Raises:
+            HomeAssistantError: If chore not found, validation fails, or neither
+                chore_id nor name provided
+        """
+        from . import entity_helpers as eh
+        from .entity_helpers import EntityValidationError
+
+        entry_id = kh.get_first_kidschores_entry(hass)
+        if not entry_id:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND,
+            )
+
+        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
+            const.COORDINATOR
+        ]
+
+        # Resolve chore: either chore_id or name must be provided
+        chore_id = call.data.get(const.SERVICE_FIELD_CHORE_CRUD_ID)
+        chore_name = call.data.get(const.SERVICE_FIELD_CHORE_CRUD_NAME)
+
+        # If name provided without chore_id, look up the ID
+        if not chore_id and chore_name:
+            try:
+                chore_id = kh.get_entity_id_or_raise(
+                    coordinator, const.ENTITY_TYPE_CHORE, chore_name
+                )
+            except HomeAssistantError as err:
+                const.LOGGER.warning("Update Chore: %s", err)
+                raise
+
+        # Validate we have a chore_id at this point
+        if not chore_id:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_MISSING_CHORE_IDENTIFIER,
+            )
+
+        if chore_id not in coordinator.chores_data:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_CHORE_NOT_FOUND,
+                translation_placeholders={const.SERVICE_FIELD_CHORE_CRUD_ID: chore_id},
+            )
+
+        existing_chore = coordinator.chores_data[chore_id]
+
+        # Block completion_criteria changes (immutable after creation)
+        if const.SERVICE_FIELD_CHORE_CRUD_COMPLETION_CRITERIA in call.data:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_COMPLETION_CRITERIA_IMMUTABLE,
+            )
+
+        # Build data input, excluding name if it was used for lookup
+        service_data = dict(call.data)
+        if not call.data.get(const.SERVICE_FIELD_CHORE_CRUD_ID) and chore_name:
+            # name was used for lookup, not for renaming
+            service_data.pop(const.SERVICE_FIELD_CHORE_CRUD_NAME, None)
+
+        # Resolve kid names to UUIDs if assigned_kids is being updated
+        if const.SERVICE_FIELD_CHORE_CRUD_ASSIGNED_KIDS in service_data:
+            kid_names = service_data[const.SERVICE_FIELD_CHORE_CRUD_ASSIGNED_KIDS]
+            kid_ids = []
+            for kid_name in kid_names:
+                try:
+                    kid_id = kh.get_entity_id_or_raise(
+                        coordinator, const.ENTITY_TYPE_KID, kid_name
+                    )
+                    kid_ids.append(kid_id)
+                except HomeAssistantError as err:
+                    const.LOGGER.warning("Update Chore - kid lookup failed: %s", err)
+                    raise
+            service_data[const.SERVICE_FIELD_CHORE_CRUD_ASSIGNED_KIDS] = kid_ids
+
+        # Map service fields to DATA_* keys
+        data_input = _map_service_to_data_keys(
+            service_data, _SERVICE_TO_CHORE_DATA_MAPPING
+        )
+
+        # Extract due_date for special handling
+        due_date_input = call.data.get(const.SERVICE_FIELD_CHORE_CRUD_DUE_DATE)
+
+        # Validate name uniqueness (exclude current chore) if name is being updated
+        if const.DATA_CHORE_NAME in data_input:
+            new_name = data_input[const.DATA_CHORE_NAME].strip()
+            if any(
+                cid != chore_id and chore[const.DATA_CHORE_NAME] == new_name
+                for cid, chore in coordinator.chores_data.items()
+            ):
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_CFOF_DUPLICATE_CHORE,
+                )
+
+        try:
+            # build_chore(input, existing) - update mode
+            chore_dict = eh.build_chore(data_input, existing=existing_chore)
+
+            coordinator._data[const.DATA_CHORES][chore_id] = dict(chore_dict)
+            coordinator._persist()
+
+            # Handle due_date via set_chore_due_date hook (respects SHARED/INDEPENDENT)
+            if due_date_input is not None:
+                coordinator.set_chore_due_date(chore_id, due_date_input, kid_id=None)
+                coordinator._persist()
+
+            coordinator.async_update_listeners()
+
+            const.LOGGER.info(
+                "Service updated chore '%s' with ID: %s",
+                chore_dict[const.DATA_CHORE_NAME],
+                chore_id,
+            )
+
+            return {const.SERVICE_FIELD_CHORE_CRUD_ID: chore_id}
+
+        except EntityValidationError as err:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=err.translation_key,
+            ) from err
+
+    async def handle_delete_chore(call: ServiceCall) -> dict[str, Any]:
+        """Handle kidschores.delete_chore service call.
+
+        Deletes a chore and cleans up all references.
+
+        Accepts either chore_id OR name to identify the chore:
+        - name: User-friendly, looks up ID by name (recommended)
+        - id: Direct UUID for advanced automation use
+
+        Args:
+            call: Service call with chore identifier
+
+        Returns:
+            Dict with chore_id of the deleted chore
+
+        Raises:
+            HomeAssistantError: If chore not found or neither
+                chore_id nor name provided
+        """
+        entry_id = kh.get_first_kidschores_entry(hass)
+        if not entry_id:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND,
+            )
+
+        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
+            const.COORDINATOR
+        ]
+
+        # Resolve chore: either chore_id or name must be provided
+        chore_id = call.data.get(const.SERVICE_FIELD_CHORE_CRUD_ID)
+        chore_name = call.data.get(const.SERVICE_FIELD_CHORE_CRUD_NAME)
+
+        # If name provided without chore_id, look up the ID
+        if not chore_id and chore_name:
+            try:
+                chore_id = kh.get_entity_id_or_raise(
+                    coordinator, const.ENTITY_TYPE_CHORE, chore_name
+                )
+            except HomeAssistantError as err:
+                const.LOGGER.warning("Delete Chore: %s", err)
+                raise
+
+        # Validate we have a chore_id at this point
+        if not chore_id:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_MISSING_CHORE_IDENTIFIER,
+            )
+
+        # Use coordinator's delete method (handles cleanup and persistence)
+        coordinator.delete_chore_entity(chore_id)
+
+        const.LOGGER.info("Service deleted chore with ID: %s", chore_id)
+
+        return {const.SERVICE_FIELD_CHORE_CRUD_ID: chore_id}
 
     hass.services.async_register(
         const.DOMAIN,
@@ -1827,6 +2294,31 @@ def async_setup_services(hass: HomeAssistant):
         supports_response=SupportsResponse.OPTIONAL,
     )
 
+    # Register chore CRUD services
+    hass.services.async_register(
+        const.DOMAIN,
+        const.SERVICE_CREATE_CHORE,
+        handle_create_chore,
+        schema=CREATE_CHORE_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    hass.services.async_register(
+        const.DOMAIN,
+        const.SERVICE_UPDATE_CHORE,
+        handle_update_chore,
+        schema=UPDATE_CHORE_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    hass.services.async_register(
+        const.DOMAIN,
+        const.SERVICE_DELETE_CHORE,
+        handle_delete_chore,
+        schema=DELETE_CHORE_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
     const.LOGGER.info("KidsChores services have been registered successfully")
 
 
@@ -1835,7 +2327,10 @@ async def async_unload_services(hass: HomeAssistant):
     services = [
         const.SERVICE_CLAIM_CHORE,
         const.SERVICE_APPROVE_CHORE,
+        const.SERVICE_CREATE_CHORE,
         const.SERVICE_CREATE_REWARD,
+        const.SERVICE_DELETE_CHORE,
+        const.SERVICE_DELETE_REWARD,
         const.SERVICE_DISAPPROVE_CHORE,
         const.SERVICE_MANAGE_SHADOW_LINK,
         const.SERVICE_REDEEM_REWARD,
@@ -1849,6 +2344,7 @@ async def async_unload_services(hass: HomeAssistant):
         const.SERVICE_RESET_PENALTIES,
         const.SERVICE_RESET_BONUSES,
         const.SERVICE_RESET_REWARDS,
+        const.SERVICE_UPDATE_CHORE,
         const.SERVICE_UPDATE_REWARD,
         const.SERVICE_REMOVE_AWARDED_BADGES,
         const.SERVICE_SET_CHORE_DUE_DATE,

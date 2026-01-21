@@ -97,15 +97,17 @@ See "Lessons Learned from Reward Refactor" section (lines ~400-650) for complete
 
 ## Summary & immediate steps
 
-| Phase / Step              | Description                       | % complete | Quick notes                                                   |
-| ------------------------- | --------------------------------- | ---------- | ------------------------------------------------------------- |
-| Phase 1 – Kids & Parents  | Migrate to entity_helpers pattern | 100%       | ✅ Completed 2026-01-22 - ~100 lines removed from coordinator |
-| Phase 2 – Badges          | Complex but modular code          | 100%       | ✅ Completed 2026-01-22 - ~26 lines removed from coordinator  |
-| Phase 3 – Chores          | Most complex, most used           | 0%         | Services + config/options flow refactor                       |
-| Phase 4 – Simple Entities | Bonuses, Penalties                | 0%         | Mirror reward pattern                                         |
-| Phase 5 – Linked Entities | Achievements, Challenges          | 0%         | Complex relational data                                       |
+| Phase / Step              | Description                       | % complete | Quick notes                                                     |
+| ------------------------- | --------------------------------- | ---------- | --------------------------------------------------------------- |
+| Phase 1 – Kids & Parents  | Migrate to entity_helpers pattern | 100%       | ✅ Completed 2026-01-22 - ~100 lines removed from coordinator   |
+| Phase 2 – Badges          | Complex but modular code          | 100%       | ✅ Completed 2026-01-22 - ~26 lines removed from coordinator    |
+| Phase 3A – Chores (Flow)  | Options flow refactor only        | 100%       | ✅ Completed 2026-01-22 - ~34 lines removed from coordinator    |
+| Phase 3B – Chores (Svc)   | Chore CRUD services               | 100%       | ✅ Completed 2026-01-22 - create/update/delete with 9 E2E tests |
+| Phase 3C – Entity Cleanup | Dynamic entity creation refactor  | 100%       | ✅ Completed 2026-01-22 - ~80 lines removed from coordinator    |
+| Phase 4 – Simple Entities | Bonuses, Penalties                | 100%       | ✅ Completed 2026-01-22 - ~50 lines removed from coordinator    |
+| Phase 5 – Linked Entities | Achievements, Challenges          | 0%         | 🔄 Next phase - complex relational data                         |
 
-1. **Key objective** – Migrate all entity types to modern `entity_helpers.build_X()` pattern. Services for Rewards (✅ done) and Chores. Config + Options flow refactor for all entities. Remove stub methods per entity as refactored.
+1. **Key objective** – Migrate all entity types to modern `entity_helpers.build_X()` pattern. Services for Rewards (✅ done) and Chores (Phase 3B). Config + Options flow refactor for all entities. Remove stub methods per entity as refactored.
 
 2. **Summary of recent work** –
    - **2026-01-20**: Initial analysis identified 9× duplicated CRUD patterns
@@ -136,6 +138,59 @@ See "Lessons Learned from Reward Refactor" section (lines ~400-650) for complete
      - Migrated load_scenario_live.py badge creation to direct storage writes
      - Removed `_create_badge()`, `_update_badge()`, `update_badge_entity()` from coordinator.py (~26 lines)
      - All 34 badge/options flow tests passing, mypy clean
+   - **2026-01-22**: **PHASE 3A COMPLETED - Chores Options Flow** ✅
+     - Refactored all 9 chore call sites in options_flow.py to use `eh.build_chore()`
+     - Pattern: `eh.build_chore(form_data, existing=old_data)` → direct storage assignment
+     - Removed `update_chore_entity()` from coordinator.py (~34 lines)
+     - Fixed field normalization bug in `build_chore()`: added `_normalize_list_field()`, `_normalize_dict_field()`, `_pass_through_field()` helpers
+     - Bug: `daily_multi_times` was being character-iterated (`"08:00|17:00"` → `['0','8',':',...]`)
+     - Fix: Used `_pass_through_field()` for string fields to preserve original value
+     - **Total Phase 3A coordinator reduction**: ~34 lines
+     - All 871 tests passing, mypy clean, lint passes
+   - **2026-01-21**: **PHASE 3B SCOPE FINALIZED** ✅
+     - Decision: Implement `create_chore`, `update_chore`, `delete_chore` services
+     - Pragmatic scope: 14 fields for create, 12 updateable (completion_criteria immutable)
+     - Frequency limited to none/daily/weekly/monthly (no custom/daily_multi)
+     - Per-kid overrides excluded (UI only)
+     - Due date update calls existing `coordinator.set_chore_due_date()` method
+     - Kid names resolved to UUIDs internally (user-friendly)
+     - Full enum value reference documented in plan
+   - **2026-01-21**: **PHASE 3B IMPLEMENTATION STARTED** ✅
+     - Steps 1-6 complete: constants, schemas, handlers, services.yaml, registration, translations
+     - Step 7 pending: E2E tests
+     - All 871 tests passing, mypy clean, lint passes
+   - **2026-01-22**: **PHASE 3B SERVICES COMPLETED** ✅
+     - Created 9 E2E tests for chore CRUD services (test_chore_crud_services.py)
+     - Services fully functional: create_chore, update_chore, delete_chore
+     - All tests validate via kid chore status sensors (true E2E)
+     - Fixed import bug: `from .types import KidData` → `from .type_defs import KidData`
+     - All 880 tests passing (9 new chore service tests), mypy clean, lint passes
+   - **2026-01-22**: **DYNAMIC ENTITY CREATION REFACTORED** ✅
+     - Moved entity creation from coordinator to sensor.py module-level functions
+     - Created `register_chore_reward_callback()`, `create_chore_entities()`, `create_reward_entities()`
+     - Services now call `sensor.create_chore_entities()` after chore creation
+     - Dashboard helper requires coordinator refresh to pick up new entity IDs
+     - Test pattern established: service call → storage → entity creation → coordinator refresh → verification
+     - **Total coordinator reduction**: ~80 lines (removed 3 entity creation methods)
+     - All 880 tests passing, mypy clean
+   - **2026-01-22**: **PHASE 4 COMPLETED - Bonuses & Penalties** ✅
+     - **Synergy Analysis**: Identified 95% code duplication between bonus/penalty helpers
+     - Created unified `entity_helpers.build_bonus_or_penalty()` (~107 lines) with entity_type parameter
+     - Conditional field mapping: `DATA_BONUS_*` vs `DATA_PENALTY_*` keys based on entity_type
+     - Points validation: `abs(points)` for bonus (positive), `-abs(points)` for penalty (negative)
+     - Refactored options_flow.py: 4 methods (add_bonus, add_penalty, edit_bonus, edit_penalty)
+     - **Key Transformation Pattern**: CFOF*\* form keys → DATA*\* storage keys before calling helper
+     - Fixed test failure: FlowTestHelper uses CFOF*\* keys, helper validates DATA*\* keys
+     - Solution: Transform keys in options flow: `{DATA_BONUS_NAME: user_input[CFOF_BONUSES_INPUT_NAME], ...}`
+     - Removed 6 coordinator stub methods: `_create_bonus()`, `_create_penalty()`, `_update_bonus()`, `_update_penalty()`, `update_bonus_entity()`, `update_penalty_entity()` (~50 lines)
+     - **Total coordinator reduction**: ~50 lines (stub removal)
+     - All 880 tests passing (2/2 bonus/penalty CRUD tests), mypy clean
+   - **2026-01-22**: **SENSOR.PY HEADER FIXES** ✅
+     - Fixed sensor count in header: 13 → 14 sensors (was missing SystemDashboardTranslationSensor)
+     - Updated system-level sensor count: 4 → 5 sensors
+     - Added missing sensor to documentation list
+     - Re-added dynamic entity creation functions after accidental revert
+     - All 880 tests passing, no errors
 
 ---
 
@@ -333,20 +388,289 @@ fields:
 
 ---
 
-### Recommendation: Option A (No Chore CRUD Services) or Option B (Simplified)
+### ✅ DECISION FINALIZED [2026-01-21]: Phase 3B Chore Services Scope
 
-**For v0.5.0**: Start with **Option A** (No chore CRUD services)
+**Decision**: Implement `create_chore`, `update_chore`, `delete_chore` services with pragmatic scope
 
-- Focus on entity_helpers pattern migration (Phase 3A)
-- Existing claim/approve/disapprove services cover runtime operations
-- Options Flow handles all configuration complexity
+#### Design Principles
 
-**For v0.6.0+**: Consider **Option B** (Simplified services) if users request
+1. **Call existing coordinator methods** where possible (e.g., `set_chore_due_date()`)
+2. **No field clearing needed** - scheduler handles irrelevant fields automatically
+3. **Completion criteria immutable** after creation (avoids complex state migration)
+4. **Kid names only** - resolve to IDs internally (simpler for users)
 
-- Clear scope: "basic chores only via services"
-- Document limitations prominently
+#### Service Field Mapping Reference
 
-### Phase 3 Execution Plan (Assuming Option A)
+| Service Field         | Const (SERVICE*FIELD*\*)                       | Storage Key (DATA*CHORE*\*)                      | Valid Values                        |
+| --------------------- | ---------------------------------------------- | ------------------------------------------------ | ----------------------------------- |
+| `name`                | `SERVICE_FIELD_CHORE_NAME`                     | `DATA_CHORE_NAME`                                | string (required for create)        |
+| `id`                  | `SERVICE_FIELD_CHORE_ID`                       | `DATA_CHORE_INTERNAL_ID`                         | UUID string                         |
+| `points`              | NEW: `SERVICE_FIELD_CHORE_POINTS`              | `DATA_CHORE_DEFAULT_POINTS`                      | float                               |
+| `description`         | NEW: `SERVICE_FIELD_CHORE_DESCRIPTION`         | `DATA_CHORE_DESCRIPTION`                         | string                              |
+| `icon`                | NEW: `SERVICE_FIELD_CHORE_ICON`                | `DATA_CHORE_ICON`                                | mdi:\* string                       |
+| `labels`              | NEW: `SERVICE_FIELD_CHORE_LABELS`              | `DATA_CHORE_LABELS`                              | list[string]                        |
+| `assigned_kids`       | NEW: `SERVICE_FIELD_CHORE_ASSIGNED_KIDS`       | `DATA_CHORE_ASSIGNED_KIDS`                       | list[kid names] → resolved to UUIDs |
+| `frequency`           | NEW: `SERVICE_FIELD_CHORE_FREQUENCY`           | `DATA_CHORE_RECURRING_FREQUENCY`                 | See below                           |
+| `applicable_days`     | NEW: `SERVICE_FIELD_CHORE_APPLICABLE_DAYS`     | `DATA_CHORE_APPLICABLE_DAYS`                     | list[0-6]                           |
+| `due_date`            | `SERVICE_FIELD_CHORE_DUE_DATE` (exists)        | `DATA_CHORE_DUE_DATE`                            | datetime ISO                        |
+| `completion_criteria` | NEW: `SERVICE_FIELD_CHORE_COMPLETION_CRITERIA` | `DATA_CHORE_COMPLETION_CRITERIA`                 | See below                           |
+| `approval_reset_type` | NEW: `SERVICE_FIELD_CHORE_APPROVAL_RESET`      | `DATA_CHORE_APPROVAL_RESET_TYPE`                 | See below                           |
+| `pending_claims`      | NEW: `SERVICE_FIELD_CHORE_PENDING_CLAIMS`      | `DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION` | See below                           |
+| `overdue_handling`    | NEW: `SERVICE_FIELD_CHORE_OVERDUE_HANDLING`    | `DATA_CHORE_OVERDUE_HANDLING_TYPE`               | See below                           |
+| `auto_approve`        | NEW: `SERVICE_FIELD_CHORE_AUTO_APPROVE`        | `DATA_CHORE_AUTO_APPROVE`                        | bool                                |
+
+#### Enum Value Reference
+
+**Frequency** (`frequency` field - SERVICE supports 4 of 14):
+| Service Value | Const | Notes |
+|---------------|-------|-------|
+| `"none"` | `FREQUENCY_NONE` | One-time chore |
+| `"daily"` | `FREQUENCY_DAILY` | Resets daily at midnight |
+| `"weekly"` | `FREQUENCY_WEEKLY` | Uses `applicable_days` |
+| `"monthly"` | `FREQUENCY_MONTHLY` | Same day each month |
+| ❌ `"custom"` | `FREQUENCY_CUSTOM` | UI only - requires interval config |
+| ❌ `"daily_multi"` | `FREQUENCY_DAILY_MULTI` | UI only - requires times config |
+
+**Completion Criteria** (`completion_criteria` field - CREATE only):
+| Service Value | Const | Notes |
+|---------------|-------|-------|
+| `"independent"` | `COMPLETION_CRITERIA_INDEPENDENT` | Per-kid tracking |
+| `"shared_first"` | `COMPLETION_CRITERIA_SHARED_FIRST` | First kid wins |
+| `"shared_all"` | `COMPLETION_CRITERIA_SHARED` | All complete together |
+
+**Approval Reset** (`approval_reset_type` field):
+| Service Value | Const | Notes |
+|---------------|-------|-------|
+| `"at_midnight_once"` | `APPROVAL_RESET_AT_MIDNIGHT_ONCE` | Reset once at midnight |
+| `"at_midnight_multi"` | `APPROVAL_RESET_AT_MIDNIGHT_MULTI` | Multiple claims per day |
+| `"at_due_date_once"` | `APPROVAL_RESET_AT_DUE_DATE_ONCE` | Reset at due date |
+| `"at_due_date_multi"` | `APPROVAL_RESET_AT_DUE_DATE_MULTI` | Multiple at due date |
+| `"upon_completion"` | `APPROVAL_RESET_UPON_COMPLETION` | Reset on completion |
+
+**Pending Claims Handling** (`pending_claims` field):
+| Service Value | Const | Notes |
+|---------------|-------|-------|
+| `"hold_pending"` | `APPROVAL_RESET_PENDING_CLAIM_HOLD` | Keep pending claims |
+| `"clear_pending"` | `APPROVAL_RESET_PENDING_CLAIM_CLEAR` | Clear on reset |
+| `"auto_approve_pending"` | `APPROVAL_RESET_PENDING_CLAIM_AUTO_APPROVE` | Auto-approve on reset |
+
+**Overdue Handling** (`overdue_handling` field):
+| Service Value | Const | Notes |
+|---------------|-------|-------|
+| `"at_due_date"` | `OVERDUE_HANDLING_AT_DUE_DATE` | Mark overdue at due date |
+| `"never_overdue"` | `OVERDUE_HANDLING_NEVER_OVERDUE` | Never mark overdue |
+| `"at_due_date_clear_at_approval_reset"` | `OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET` | Clear overdue on reset |
+| `"at_due_date_clear_immediate_on_late"` | `OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE` | Clear immediately if late |
+
+#### Service Schemas
+
+**create_chore**:
+
+```yaml
+fields:
+  name: required
+  assigned_kids: required (list of names)
+  points: optional (default 10)
+  description: optional
+  icon: optional (default mdi:checkbox-marked-circle)
+  labels: optional
+  frequency: optional (none/daily/weekly/monthly, default none)
+  applicable_days: optional (for weekly)
+  due_date: optional (datetime, must be future)
+  completion_criteria: optional (independent/shared_first/shared_all, default shared_all)
+  approval_reset_type: optional (default at_midnight_once)
+  pending_claims: optional (default hold_pending)
+  overdue_handling: optional (default at_due_date)
+  auto_approve: optional (default false)
+```
+
+**update_chore**:
+
+```yaml
+fields:
+  id: OR name required (identifier)
+  name: NOT updateable
+  # All fields below updateable:
+  points: ✅
+  description: ✅
+  icon: ✅
+  labels: ✅
+  assigned_kids: ✅
+  frequency: ✅ (none/daily/weekly/monthly only)
+  applicable_days: ✅
+  due_date: ✅ (calls coordinator.set_chore_due_date internally)
+  approval_reset_type: ✅
+  pending_claims: ✅
+  overdue_handling: ✅
+  auto_approve: ✅
+  completion_criteria: ❌ IMMUTABLE (delete & recreate to change)
+```
+
+**delete_chore**:
+
+```yaml
+fields:
+  id: OR name required (identifier)
+```
+
+#### What's NOT Supported (UI Only)
+
+| Feature                                     | Why Excluded                                               |
+| ------------------------------------------- | ---------------------------------------------------------- |
+| `custom` / `custom_from_complete` frequency | Requires `custom_interval` + `custom_interval_unit` config |
+| `daily_multi` frequency                     | Requires `daily_multi_times` config                        |
+| Per-kid due dates                           | Dict structure complex for services                        |
+| Per-kid applicable days                     | Dict structure complex for services                        |
+| Per-kid daily multi times                   | Dict structure complex for services                        |
+| Notification toggles (4 fields)             | Use defaults, customize in UI                              |
+| Rename chore                                | Entity ID stability - delete & recreate                    |
+
+#### Implementation Notes
+
+1. **Due date handling**: If `due_date` provided, call `coordinator.set_chore_due_date()` after main storage write
+2. **Kid resolution**: Resolve `assigned_kids` names to UUIDs using `kh.get_entity_id_or_raise()`
+3. **Validation**: Use `vol.In()` for enum fields with const values
+4. **Testing**: Verify via dashboard helper chores list (E2E pattern)
+
+---
+
+### Phase 3B Execution Plan (Builder Handoff)
+
+**Step 1**: Add new SERVICE*FIELD_CHORE*\* constants to const.py ✅ **COMPLETE**
+
+- Added 15 SERVICE*FIELD_CHORE_CRUD*\* constants
+- Added SERVICE_CREATE_CHORE, SERVICE_UPDATE_CHORE, SERVICE_DELETE_CHORE constants
+- Added TRANS_KEY_ERROR_CHORE_NOT_FOUND, TRANS_KEY_ERROR_MISSING_CHORE_IDENTIFIER, TRANS_KEY_ERROR_COMPLETION_CRITERIA_IMMUTABLE
+
+**Step 2**: Create service schemas in services.py ✅ **COMPLETE**
+
+- `CREATE_CHORE_SCHEMA` - 14 fields (name, assigned_kids required)
+- `UPDATE_CHORE_SCHEMA` - 13 fields (completion_criteria excluded - immutable)
+- `DELETE_CHORE_SCHEMA` - id OR name identifier
+- Created \_SERVICE_TO_CHORE_DATA_MAPPING for field translation
+
+**Step 3**: Implement service handlers ✅ **COMPLETE**
+
+- `handle_create_chore()` - resolves kid names, uses `eh.build_chore()`, calls `set_chore_due_date()` if needed
+- `handle_update_chore()` - blocks completion_criteria changes, uses `eh.build_chore(existing=...)`, calls `set_chore_due_date()` if needed
+- `handle_delete_chore()` - uses `coordinator.delete_chore_entity()` for cleanup
+
+**Step 4**: Add services.yaml documentation ✅ **COMPLETE**
+
+- create_chore: 14 fields with selectors
+- update_chore: 13 fields (completion_criteria excluded, noted as immutable)
+- delete_chore: id OR name
+
+**Step 5**: Register services in `async_setup()` ✅ **COMPLETE**
+
+- Added to service registration block with `supports_response=SupportsResponse.OPTIONAL`
+- Added to `async_unload_services()` list
+
+**Step 6**: Add translations ✅ **COMPLETE**
+
+- Added chore_not_found, missing_chore_identifier, completion_criteria_immutable to en.json
+- Added create_chore, update_chore, delete_chore service translations with all field descriptions
+
+**Step 7**: Create E2E tests using chore status sensor verification ⏳ **PENDING**
+
+**File**: `tests/test_chore_crud_services.py`
+
+**E2E Verification Pattern**:
+All tests MUST verify via chore status sensor (`sensor.kc_{kid}_chore_status_{chore}`) attributes, NOT just coordinator storage. This provides true E2E testing from service call → storage → sensor update.
+
+**Helper Functions to Create**:
+
+```python
+def get_chore_status_sensor(hass, kid_slug: str, chore_slug: str) -> State | None:
+    """Get chore status sensor for a kid/chore combination.
+
+    Entity ID pattern: sensor.kc_{kid}_chore_status_{chore}
+    """
+    eid = f"sensor.kc_{kid_slug}_chore_status_{chore_slug}"
+    return hass.states.get(eid)
+
+def find_chore_in_dashboard_helper(hass, kid_slug: str, chore_name: str) -> dict | None:
+    """Find chore in kid's dashboard helper chores list."""
+    helper_eid = f"sensor.kc_{kid_slug}_ui_dashboard_helper"
+    helper_state = hass.states.get(helper_eid)
+    if not helper_state:
+        return None
+    chores_list = helper_state.attributes.get("chores", [])
+    for chore in chores_list:
+        if chore.get("name") == chore_name:
+            return chore
+    return None
+```
+
+**Tests to Implement** (8 total):
+
+| #   | Test Name                                                  | Type       | Description                                          | Key Assertions                                                       |
+| --- | ---------------------------------------------------------- | ---------- | ---------------------------------------------------- | -------------------------------------------------------------------- |
+| 1   | `test_create_chore_schema_accepts_documented_fields`       | Schema     | Validates service accepts all documented field names | No vol.Invalid, returns `{"id": uuid}`                               |
+| 2   | `test_create_chore_schema_requires_name_and_assigned_kids` | Schema     | name + assigned_kids are required                    | vol.Invalid when missing                                             |
+| 3   | `test_create_chore_schema_rejects_extra_fields`            | Schema     | Unknown fields rejected                              | vol.Invalid with extra field                                         |
+| 4   | `test_create_chore_e2e_sensor_created`                     | E2E        | Created chore has sensor for each assigned kid       | `sensor.kc_{kid}_chore_status_{chore}` exists with state="pending"   |
+| 5   | `test_create_chore_e2e_attributes_populated`               | E2E        | Sensor attributes match service input                | `default_points`, `description`, `labels`, `assigned_kids` all match |
+| 6   | `test_update_chore_e2e_sensor_attributes_changed`          | E2E        | Update changes sensor attributes                     | Update points 10→20, verify sensor attr changed                      |
+| 7   | `test_update_chore_blocks_completion_criteria_change`      | Validation | completion_criteria is immutable                     | HomeAssistantError with `completion_criteria_immutable`              |
+| 8   | `test_delete_chore_e2e_sensor_removed`                     | E2E        | Deleted chore removes all sensors                    | `sensor.kc_{kid}_chore_status_{chore}` returns None                  |
+
+**Test Fixtures**:
+
+- Use `scenario_full` fixture (3 kids: Zoë, Max!, Lila)
+- Kid slugs: `zoe`, `max`, `lila` (used in entity IDs)
+
+**Sensor Attribute Reference** (from KidChoreStatusSensor):
+
+- `native_value`: pending/claimed/approved/overdue
+- `default_points`: chore point value
+- `description`: chore description
+- `labels`: list of label strings
+- `assigned_kids`: list of kid names
+- `completion_criteria`: independent/shared_first/shared_all
+- `recurring_frequency`: none/daily/weekly/monthly
+- `due_date`: ISO timestamp or None
+
+**Example Test Structure**:
+
+```python
+@pytest.mark.asyncio
+async def test_create_chore_e2e_sensor_created(
+    hass: HomeAssistant,
+    scenario_full: SetupResult,
+) -> None:
+    """Created chore has sensor for each assigned kid."""
+    with patch.object(scenario_full.coordinator, "_persist", new=MagicMock()):
+        response = await hass.services.async_call(
+            DOMAIN,
+            "create_chore",
+            {
+                "name": "Service Test Chore",
+                "assigned_kids": ["Zoë", "Max!"],
+                "points": 15,
+            },
+            blocking=True,
+            return_response=True,
+        )
+        await hass.async_block_till_done()
+
+    # Verify sensors created for each assigned kid
+    zoe_sensor = get_chore_status_sensor(hass, "zoe", "service_test_chore")
+    assert zoe_sensor is not None
+    assert zoe_sensor.state == "pending"
+
+    max_sensor = get_chore_status_sensor(hass, "max", "service_test_chore")
+    assert max_sensor is not None
+    assert max_sensor.state == "pending"
+
+    # Lila not assigned - sensor should NOT exist
+    lila_sensor = get_chore_status_sensor(hass, "lila", "service_test_chore")
+    assert lila_sensor is None
+```
+
+---
+
+### Phase 3A Execution Plan (COMPLETED ✅)
 
 **Step 1**: Create `entity_helpers.build_chore()` (~150 lines)
 

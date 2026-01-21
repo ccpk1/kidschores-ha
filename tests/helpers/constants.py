@@ -491,7 +491,7 @@ from custom_components.kidschores.const import (
     REWARD_STATE_CLAIMED,
     REWARD_STATE_NOT_CLAIMED,
     # =========================================================================
-    # SENTINEL VALUES
+    # SERVICE NAMES
     # =========================================================================
     SENTINEL_EMPTY,
     SENTINEL_NONE,
@@ -528,6 +528,9 @@ from custom_components.kidschores.const import (
     # =========================================================================
     # SERVICE NAMES
     # =========================================================================
+    SERVICE_CREATE_CHORE,
+    SERVICE_UPDATE_CHORE,
+    SERVICE_DELETE_CHORE,
     SERVICE_CREATE_REWARD,
     SERVICE_DELETE_REWARD,
     SERVICE_UPDATE_REWARD,

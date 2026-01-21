@@ -16,7 +16,7 @@ See tests/SERVICE_TESTING_PATTERNS.md for patterns used.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import voluptuous as vol
@@ -238,7 +238,7 @@ class TestCreateRewardEndToEnd:
 
         E2E Pattern: Service call → Dashboard helper update → Verify
         """
-        with patch.object(scenario_full.coordinator, "_persist", new=AsyncMock()):
+        with patch.object(scenario_full.coordinator, "_persist", new=MagicMock()):
             # Create reward via service
             response = await hass.services.async_call(
                 DOMAIN,
@@ -285,7 +285,7 @@ class TestCreateRewardEndToEnd:
         """Test created reward exists in coordinator storage with correct data."""
         coordinator = scenario_full.coordinator
 
-        with patch.object(coordinator, "_persist", new=AsyncMock()):
+        with patch.object(coordinator, "_persist", new=MagicMock()):
             # Create reward via service
             response = await hass.services.async_call(
                 DOMAIN,
@@ -332,7 +332,7 @@ class TestUpdateRewardSchemaValidation:
         # Get existing reward ID
         reward_id = scenario_full.reward_ids["Extra Screen Time"]
 
-        with patch.object(scenario_full.coordinator, "_persist", new=AsyncMock()):
+        with patch.object(scenario_full.coordinator, "_persist", new=MagicMock()):
             # Update using reward_id
             response = await hass.services.async_call(
                 DOMAIN,
@@ -355,7 +355,7 @@ class TestUpdateRewardSchemaValidation:
         scenario_full: SetupResult,
     ) -> None:
         """Test update_reward accepts reward_name as identifier."""
-        with patch.object(scenario_full.coordinator, "_persist", new=AsyncMock()):
+        with patch.object(scenario_full.coordinator, "_persist", new=MagicMock()):
             # Update using reward_name
             response = await hass.services.async_call(
                 DOMAIN,
@@ -433,7 +433,7 @@ class TestUpdateRewardEndToEnd:
         """
         reward_id = scenario_full.reward_ids["Extra Screen Time"]
 
-        with patch.object(scenario_full.coordinator, "_persist", new=AsyncMock()):
+        with patch.object(scenario_full.coordinator, "_persist", new=MagicMock()):
             # Update reward cost via service
             await hass.services.async_call(
                 DOMAIN,
@@ -470,7 +470,7 @@ class TestUpdateRewardEndToEnd:
         coordinator = scenario_full.coordinator
         reward_id = scenario_full.reward_ids["Extra Screen Time"]
 
-        with patch.object(coordinator, "_persist", new=AsyncMock()):
+        with patch.object(coordinator, "_persist", new=MagicMock()):
             # Update description
             await hass.services.async_call(
                 DOMAIN,
@@ -499,7 +499,7 @@ class TestUpdateRewardEndToEnd:
         coordinator = scenario_full.coordinator
         reward_id = scenario_full.reward_ids["Extra Screen Time"]
 
-        with patch.object(coordinator, "_persist", new=AsyncMock()):
+        with patch.object(coordinator, "_persist", new=MagicMock()):
             # Update labels via service
             await hass.services.async_call(
                 DOMAIN,
@@ -526,7 +526,7 @@ class TestUpdateRewardEndToEnd:
         coordinator = scenario_full.coordinator
         reward_id = scenario_full.reward_ids["Extra Screen Time"]
 
-        with patch.object(coordinator, "_persist", new=AsyncMock()):
+        with patch.object(coordinator, "_persist", new=MagicMock()):
             # Update via name (not ID)
             await hass.services.async_call(
                 DOMAIN,

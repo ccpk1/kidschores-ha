@@ -2147,7 +2147,9 @@ SERVICE_APPLY_PENALTY: Final = "apply_penalty"
 SERVICE_APPROVE_CHORE: Final = "approve_chore"
 SERVICE_APPROVE_REWARD: Final = "approve_reward"
 SERVICE_CLAIM_CHORE: Final = "claim_chore"
+SERVICE_CREATE_CHORE: Final = "create_chore"
 SERVICE_CREATE_REWARD: Final = "create_reward"
+SERVICE_DELETE_CHORE: Final = "delete_chore"
 SERVICE_DELETE_REWARD: Final = "delete_reward"
 SERVICE_DISAPPROVE_CHORE: Final = "disapprove_chore"
 SERVICE_DISAPPROVE_REWARD: Final = "disapprove_reward"
@@ -2162,6 +2164,7 @@ SERVICE_RESET_REWARDS: Final = "reset_rewards"
 SERVICE_SET_CHORE_DUE_DATE: Final = "set_chore_due_date"
 SERVICE_SKIP_CHORE_DUE_DATE: Final = "skip_chore_due_date"
 SERVICE_MANAGE_SHADOW_LINK: Final = "manage_shadow_link"
+SERVICE_UPDATE_CHORE: Final = "update_chore"
 SERVICE_UPDATE_REWARD: Final = "update_reward"
 
 
@@ -2183,11 +2186,28 @@ SERVICE_FIELD_KID_ID: Final = "kid_id"
 SERVICE_FIELD_PARENT_NAME: Final = "parent_name"
 SERVICE_FIELD_ACTION: Final = "action"
 
-# Chore service fields
+# Chore service fields (workflow)
 SERVICE_FIELD_CHORE_NAME: Final = "chore_name"
 SERVICE_FIELD_CHORE_ID: Final = "chore_id"
 SERVICE_FIELD_CHORE_DUE_DATE: Final = "due_date"
 SERVICE_FIELD_CHORE_POINTS_AWARDED: Final = "points_awarded"
+
+# Chore service fields (CRUD) - user-friendly names for service calls
+SERVICE_FIELD_CHORE_CRUD_ID: Final = "id"
+SERVICE_FIELD_CHORE_CRUD_NAME: Final = "name"
+SERVICE_FIELD_CHORE_CRUD_POINTS: Final = "points"
+SERVICE_FIELD_CHORE_CRUD_DESCRIPTION: Final = "description"
+SERVICE_FIELD_CHORE_CRUD_ICON: Final = "icon"
+SERVICE_FIELD_CHORE_CRUD_LABELS: Final = "labels"
+SERVICE_FIELD_CHORE_CRUD_ASSIGNED_KIDS: Final = "assigned_kids"
+SERVICE_FIELD_CHORE_CRUD_FREQUENCY: Final = "frequency"
+SERVICE_FIELD_CHORE_CRUD_APPLICABLE_DAYS: Final = "applicable_days"
+SERVICE_FIELD_CHORE_CRUD_COMPLETION_CRITERIA: Final = "completion_criteria"
+SERVICE_FIELD_CHORE_CRUD_APPROVAL_RESET: Final = "approval_reset_type"
+SERVICE_FIELD_CHORE_CRUD_PENDING_CLAIMS: Final = "pending_claims"
+SERVICE_FIELD_CHORE_CRUD_OVERDUE_HANDLING: Final = "overdue_handling"
+SERVICE_FIELD_CHORE_CRUD_AUTO_APPROVE: Final = "auto_approve"
+SERVICE_FIELD_CHORE_CRUD_DUE_DATE: Final = "due_date"
 
 # Reward service fields (CRUD + workflow)
 SERVICE_FIELD_REWARD_ID: Final = "id"
@@ -2359,6 +2379,15 @@ TRANS_KEY_ERROR_CHORE_PENDING_CLAIM: Final = (
 )
 TRANS_KEY_ERROR_CHORE_COMPLETED_BY_OTHER: Final = (
     "chore_completed_by_other"  # SHARED_FIRST chore already completed by another kid
+)
+TRANS_KEY_ERROR_CHORE_NOT_FOUND: Final = (
+    "chore_not_found"  # Chore with ID '{chore_id}' not found
+)
+TRANS_KEY_ERROR_MISSING_CHORE_IDENTIFIER: Final = (
+    "missing_chore_identifier"  # Must provide chore_id or chore_name
+)
+TRANS_KEY_ERROR_COMPLETION_CRITERIA_IMMUTABLE: Final = (
+    "completion_criteria_immutable"  # Cannot change completion_criteria after creation
 )
 TRANS_KEY_ERROR_REWARD_NOT_FOUND: Final = (
     "reward_not_found"  # Reward with ID '{reward_id}' not found

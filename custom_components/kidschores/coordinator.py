@@ -953,25 +953,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
     # - options_flow.py (create methods)
     # Full migration versions with notifications/validation are in migration_pre_v50.py
 
-    def _update_chore(self, chore_id: str, chore_data: dict[str, Any]) -> bool:
-        """Update chore data (minimal stub). Returns False (no reload needed)."""
-        chore_info = self._data[const.DATA_CHORES][chore_id]
-        for key, value in chore_data.items():
-            chore_info[key] = value
-        return False  # Options flow handles reloads
-
-    def _update_bonus(self, bonus_id: str, bonus_data: dict[str, Any]) -> None:
-        """Update bonus data (minimal stub)."""
-        bonus_info = self._data[const.DATA_BONUSES][bonus_id]
-        for key, value in bonus_data.items():
-            bonus_info[key] = value
-
-    def _update_penalty(self, penalty_id: str, penalty_data: dict[str, Any]) -> None:
-        """Update penalty data (minimal stub)."""
-        penalty_info = self._data[const.DATA_PENALTIES][penalty_id]
-        for key, value in penalty_data.items():
-            penalty_info[key] = value
-
     def _update_achievement(
         self, achievement_id: str, achievement_data: dict[str, Any]
     ) -> None:
@@ -987,20 +968,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         challenge_info = self._data[const.DATA_CHALLENGES][challenge_id]
         for key, value in challenge_data.items():
             challenge_info[key] = value
-
-    def _create_chore(self, chore_id: str, chore_data: dict[str, Any]) -> None:
-        """Create chore (called by options_flow)."""
-        self._data[const.DATA_CHORES][chore_id] = kh.build_default_chore_data(
-            chore_id, chore_data
-        )
-
-    def _create_bonus(self, bonus_id: str, bonus_data: dict[str, Any]) -> None:
-        """Create bonus (called by options_flow)."""
-        self._data[const.DATA_BONUSES][bonus_id] = bonus_data
-
-    def _create_penalty(self, penalty_id: str, penalty_data: dict[str, Any]) -> None:
-        """Create penalty (called by options_flow)."""
-        self._data[const.DATA_PENALTIES][penalty_id] = penalty_data
 
     def _create_achievement(
         self, achievement_id: str, achievement_data: dict[str, Any]
@@ -1146,29 +1113,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         self.async_update_listeners()
         const.LOGGER.info("INFO: Deleted parent '%s' (ID: %s)", parent_name, parent_id)
 
-    def update_chore_entity(self, chore_id: str, chore_data: dict[str, Any]) -> bool:
-        """Update chore entity in storage (Options Flow).
-
-        Returns True if assigned kids changed (indicating reload is needed).
-        """
-        if chore_id not in self._data.get(const.DATA_CHORES, {}):
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_CHORE,
-                    "name": chore_id,
-                },
-            )
-        assignments_changed = self._update_chore(chore_id, chore_data)
-        # Recalculate badges affected by chore changes
-        self._recalculate_all_badges()
-        self._persist()
-        self.async_update_listeners()
-        # Clean up any orphaned kid-chore entities after assignment changes
-        self.hass.async_create_task(self._remove_orphaned_kid_chore_entities())
-        return assignments_changed
-
     def delete_chore_entity(self, chore_id: str) -> None:
         """Delete chore from storage and cleanup references."""
         if chore_id not in self._data.get(const.DATA_CHORES, {}):
@@ -1265,23 +1209,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         self.async_update_listeners()
         const.LOGGER.info("INFO: Deleted reward '%s' (ID: %s)", reward_name, reward_id)
 
-    def update_penalty_entity(
-        self, penalty_id: str, penalty_data: dict[str, Any]
-    ) -> None:
-        """Update penalty entity in storage (Options Flow - no reload)."""
-        if penalty_id not in self._data.get(const.DATA_PENALTIES, {}):
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_PENALTY,
-                    "name": penalty_id,
-                },
-            )
-        self._update_penalty(penalty_id, penalty_data)
-        self._persist()
-        self.async_update_listeners()
-
     def delete_penalty_entity(self, penalty_id: str) -> None:
         """Delete penalty from storage."""
         if penalty_id not in self._data.get(const.DATA_PENALTIES, {}):
@@ -1307,21 +1234,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         const.LOGGER.info(
             "INFO: Deleted penalty '%s' (ID: %s)", penalty_name, penalty_id
         )
-
-    def update_bonus_entity(self, bonus_id: str, bonus_data: dict[str, Any]) -> None:
-        """Update bonus entity in storage (Options Flow - no reload)."""
-        if bonus_id not in self._data.get(const.DATA_BONUSES, {}):
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_BONUS,
-                    "name": bonus_id,
-                },
-            )
-        self._update_bonus(bonus_id, bonus_data)
-        self._persist()
-        self.async_update_listeners()
 
     def delete_bonus_entity(self, bonus_id: str) -> None:
         """Delete bonus from storage."""

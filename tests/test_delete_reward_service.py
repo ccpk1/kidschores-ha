@@ -7,7 +7,7 @@ of rewards using either reward ID or reward name as identifier.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import MagicMock, patch
 
 from homeassistant.exceptions import HomeAssistantError
 import pytest
@@ -65,7 +65,7 @@ class TestDeleteRewardByID:
         assert reward_id in coordinator.rewards_data
 
         # Mock _persist to avoid file operations
-        with patch.object(coordinator, "_persist", new=AsyncMock()):
+        with patch.object(coordinator, "_persist", new=MagicMock()):
             # Delete the reward
             response = await hass.services.async_call(
                 DOMAIN,
@@ -123,7 +123,7 @@ class TestDeleteRewardByID:
             }
 
         # Mock _persist to avoid file operations
-        with patch.object(coordinator, "_persist", new=AsyncMock()):
+        with patch.object(coordinator, "_persist", new=MagicMock()):
             # Delete the reward
             await hass.services.async_call(
                 DOMAIN,
@@ -157,7 +157,7 @@ class TestDeleteRewardByName:
         assert reward_id in coordinator.rewards_data
 
         # Mock _persist to avoid file operations
-        with patch.object(coordinator, "_persist", new=AsyncMock()):
+        with patch.object(coordinator, "_persist", new=MagicMock()):
             # Delete the reward using name
             response = await hass.services.async_call(
                 DOMAIN,
@@ -224,7 +224,7 @@ class TestDeleteRewardIntegration:
         coordinator = scenario_full.coordinator
 
         # Mock _persist to avoid file operations
-        with patch.object(coordinator, "_persist", new=AsyncMock()):
+        with patch.object(coordinator, "_persist", new=MagicMock()):
             # Create a new reward
             create_response = await hass.services.async_call(
                 DOMAIN,
@@ -268,7 +268,7 @@ class TestDeleteRewardIntegration:
         reward_id = scenario_full.reward_ids[reward_name]
 
         # Mock _persist to avoid file operations
-        with patch.object(coordinator, "_persist", new=AsyncMock()):
+        with patch.object(coordinator, "_persist", new=MagicMock()):
             # Update the reward
             await hass.services.async_call(
                 DOMAIN,

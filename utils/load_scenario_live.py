@@ -14,11 +14,16 @@ import yaml
 
 # Add the HA paths
 sys.path.insert(0, "/workspaces/core")
+# Add kidschores path for entity_helpers import
+sys.path.insert(0, "/workspaces/kidschores-ha")
 
 # pylint: disable=no-name-in-module,import-error  # Legacy/dev script - may use deprecated imports
 from homeassistant.bootstrap import async_setup_hass
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.runner import RuntimeConfig
+
+# Import entity_helpers for build_chore
+from custom_components.kidschores import entity_helpers as eh
 
 
 async def load_scenario_to_running_instance():  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
@@ -254,7 +259,9 @@ async def load_scenario_to_running_instance():  # pylint: disable=too-many-local
             "notify_on_disapproval": True,
             "state": "pending",
         }
-        coordinator._create_chore(chore_id, chore_data)
+        # Use entity_helpers.build_chore for consistent field handling
+        chore_entity = eh.build_chore(chore_data)
+        coordinator._data["chores"][chore_id] = chore_entity
         assigned_names = ", ".join(chore_info.get("assigned_to", []))
         print(f"  ✓ {chore_info['name']} → {assigned_names}")  # noqa: T201
 

@@ -576,3 +576,304 @@ delete_reward:
       example: "Extra Screen Time"
       selector:
         text:
+
+# ============================================================================
+# CHORE CRUD SERVICES
+# ============================================================================
+
+create_chore:
+  name: "Create Chore"
+  description: "Create a new chore. Returns the chore_id of the created chore."
+  fields:
+    name:
+      name: "Chore Name"
+      description: "The name of the chore to create."
+      example: "Clean Room"
+      required: true
+      selector:
+        text:
+    assigned_kids:
+      name: "Assigned Kids"
+      description: "List of kid names to assign to this chore."
+      example: ["Emma", "Jack"]
+      required: true
+      selector:
+        text:
+          multiple: true
+    points:
+      name: "Points"
+      description: "Points awarded when the chore is completed."
+      example: 10
+      required: false
+      selector:
+        number:
+          min: 0
+          mode: box
+    description:
+      name: "Description"
+      description: "Optional description of the chore."
+      example: "Make bed, put toys away, vacuum floor"
+      required: false
+      selector:
+        text:
+          multiline: true
+    icon:
+      name: "Icon"
+      description: "Material Design icon for the chore."
+      example: "mdi:broom"
+      required: false
+      selector:
+        icon:
+    labels:
+      name: "Labels"
+      description: "Optional labels to categorize the chore."
+      example: ["daily", "bedroom"]
+      required: false
+      selector:
+        text:
+          multiple: true
+    frequency:
+      name: "Frequency"
+      description: "How often the chore recurs: none, daily, weekly, or monthly."
+      example: "daily"
+      required: false
+      selector:
+        select:
+          options:
+            - "none"
+            - "daily"
+            - "weekly"
+            - "monthly"
+    applicable_days:
+      name: "Applicable Days"
+      description: "Days of the week when the chore is applicable."
+      example: ["mon", "wed", "fri"]
+      required: false
+      selector:
+        select:
+          multiple: true
+          options:
+            - "mon"
+            - "tue"
+            - "wed"
+            - "thu"
+            - "fri"
+            - "sat"
+            - "sun"
+    completion_criteria:
+      name: "Completion Criteria"
+      description: "How the chore is completed when multiple kids are assigned: independent (each kid completes separately), shared_first (first kid to complete earns points), or shared_all (all kids must complete). Cannot be changed after creation."
+      example: "independent"
+      required: false
+      selector:
+        select:
+          options:
+            - "independent"
+            - "shared_first"
+            - "shared_all"
+    approval_reset_type:
+      name: "Approval Reset Type"
+      description: "When the chore resets for re-completion."
+      example: "at_midnight_once"
+      required: false
+      selector:
+        select:
+          options:
+            - "at_midnight_once"
+            - "at_midnight_multi"
+            - "at_due_date_once"
+            - "at_due_date_multi"
+            - "upon_completion"
+    pending_claims:
+      name: "Pending Claims Action"
+      description: "What to do with pending claims when the approval reset occurs."
+      example: "clear_pending"
+      required: false
+      selector:
+        select:
+          options:
+            - "hold_pending"
+            - "clear_pending"
+            - "auto_approve_pending"
+    overdue_handling:
+      name: "Overdue Handling"
+      description: "How to handle overdue status."
+      example: "at_due_date"
+      required: false
+      selector:
+        select:
+          options:
+            - "at_due_date"
+            - "never_overdue"
+            - "at_due_date_clear_at_approval_reset"
+            - "at_due_date_clear_immediate_on_late"
+    auto_approve:
+      name: "Auto Approve"
+      description: "Automatically approve the chore when claimed."
+      example: false
+      required: false
+      selector:
+        boolean:
+    due_date:
+      name: "Due Date"
+      description: "When the chore is due. For INDEPENDENT chores, sets the due date for all assigned kids."
+      example: "2026-01-15T17:00:00"
+      required: false
+      selector:
+        datetime:
+
+update_chore:
+  name: "Update Chore"
+  description: "Update an existing chore's properties. Provide either id OR name to identify the chore. Only provided fields will be updated. Note: completion_criteria cannot be changed after creation. Returns the chore_id of the updated chore."
+  fields:
+    id:
+      name: "Chore ID"
+      description: "The internal ID of the chore to update (alternative to name)."
+      example: "abc-123-def-456"
+      required: false
+      selector:
+        text:
+    name:
+      name: "Chore Name (Identifier)"
+      description: "The name of the chore to update (alternative to id). Also used to rename the chore if id is provided."
+      example: "Clean Room"
+      required: false
+      selector:
+        text:
+    assigned_kids:
+      name: "Assigned Kids"
+      description: "New list of kid names to assign to this chore."
+      example: ["Emma", "Jack", "Sophia"]
+      required: false
+      selector:
+        text:
+          multiple: true
+    points:
+      name: "Points"
+      description: "New points value."
+      example: 15
+      required: false
+      selector:
+        number:
+          min: 0
+          mode: box
+    description:
+      name: "Description"
+      description: "New description."
+      example: "Make bed, put toys away, vacuum floor, dust surfaces"
+      required: false
+      selector:
+        text:
+          multiline: true
+    icon:
+      name: "Icon"
+      description: "New Material Design icon."
+      example: "mdi:vacuum"
+      required: false
+      selector:
+        icon:
+    labels:
+      name: "Labels"
+      description: "New labels."
+      example: ["daily", "bedroom", "cleaning"]
+      required: false
+      selector:
+        text:
+          multiple: true
+    frequency:
+      name: "Frequency"
+      description: "New frequency: none, daily, weekly, or monthly."
+      example: "weekly"
+      required: false
+      selector:
+        select:
+          options:
+            - "none"
+            - "daily"
+            - "weekly"
+            - "monthly"
+    applicable_days:
+      name: "Applicable Days"
+      description: "New applicable days."
+      example: ["sat", "sun"]
+      required: false
+      selector:
+        select:
+          multiple: true
+          options:
+            - "mon"
+            - "tue"
+            - "wed"
+            - "thu"
+            - "fri"
+            - "sat"
+            - "sun"
+    approval_reset_type:
+      name: "Approval Reset Type"
+      description: "New approval reset type."
+      example: "at_midnight_multi"
+      required: false
+      selector:
+        select:
+          options:
+            - "at_midnight_once"
+            - "at_midnight_multi"
+            - "at_due_date_once"
+            - "at_due_date_multi"
+            - "upon_completion"
+    pending_claims:
+      name: "Pending Claims Action"
+      description: "New pending claims action."
+      example: "auto_approve_pending"
+      required: false
+      selector:
+        select:
+          options:
+            - "hold_pending"
+            - "clear_pending"
+            - "auto_approve_pending"
+    overdue_handling:
+      name: "Overdue Handling"
+      description: "New overdue handling."
+      example: "never_overdue"
+      required: false
+      selector:
+        select:
+          options:
+            - "at_due_date"
+            - "never_overdue"
+            - "at_due_date_clear_at_approval_reset"
+            - "at_due_date_clear_immediate_on_late"
+    auto_approve:
+      name: "Auto Approve"
+      description: "New auto approve setting."
+      example: true
+      required: false
+      selector:
+        boolean:
+    due_date:
+      name: "Due Date"
+      description: "New due date. For INDEPENDENT chores, updates the due date for all assigned kids."
+      example: "2026-01-20T17:00:00"
+      required: false
+      selector:
+        datetime:
+
+delete_chore:
+  name: "Delete Chore"
+  description: "Delete a chore by ID or name. Cleans up all references in achievements, challenges, and kids."
+  fields:
+    id:
+      name: "Chore ID"
+      description: "Internal ID of the chore to delete (use either id OR name)."
+      example: "abc123-def456-789..."
+      required: false
+      selector:
+        text:
+    name:
+      name: "Chore Name"
+      description: "Name of the chore to delete."
+      example: "Clean Room"
+      required: false
+      selector:
+        text:

@@ -9,7 +9,9 @@
 This file defines modern sensor entities for each Kid, Chore, Reward, and Badge.
 Legacy/optional sensors are imported from sensor_legacy.py.
 
-Sensors Defined in This File (13):
+Module-level functions for dynamic entity creation (used by services).
+
+Sensors Defined in This File (14):
 
 # Modern Kid-Specific Sensors (9)
 01. KidChoreStatusSensor
@@ -22,11 +24,12 @@ Sensors Defined in This File (13):
 08. KidChallengeProgressSensor
 09. KidDashboardHelperSensor
 
-# Modern System-Level Sensors (4)
+# Modern System-Level Sensors (5)
 10. SystemBadgeSensor
 11. SystemChoreSharedStateSensor
 12. SystemAchievementSensor
 13. SystemChallengeSensor
+14. SystemDashboardTranslationSensor
 
 Legacy Sensors Imported from sensor_legacy.py (13):
     System Chore Approval Sensors (4):
@@ -406,6 +409,9 @@ async def async_setup_entry(
     # This enables creating new translation sensors when a kid changes to a new language
     coordinator.register_translation_sensor_callback(async_add_entities)
 
+    # Register callback for dynamic chore/reward sensor creation (services)
+    register_chore_reward_callback(async_add_entities)
+
     # Create one translation sensor per unique language
     # Track created sensors on coordinator for lifecycle management
     for lang_code in languages_in_use:
@@ -434,10 +440,138 @@ async def async_setup_entry(
 
 
 # ------------------------------------------------------------------------------------------
+# Module-level callback storage for dynamic entity creation
+# ------------------------------------------------------------------------------------------
+
+_async_add_entities_callback = None
+
+
+def register_chore_reward_callback(async_add_entities):
+    """Register async_add_entities callback for dynamic chore/reward sensor creation.
+
+    Called once during platform setup to enable services to create new sensor entities
+    after chores/rewards are added at runtime.
+    """
+    global _async_add_entities_callback
+    _async_add_entities_callback = async_add_entities
+
+
+def create_chore_entities(
+    coordinator: KidsChoresDataCoordinator, chore_id: str
+) -> None:
+    """Create chore status sensor entities for a newly created chore.
+
+    Called by create_chore service after adding chore to storage.
+    Creates KidChoreStatusSensor for each assigned kid.
+    """
+    if _async_add_entities_callback is None:
+        const.LOGGER.warning("Cannot create chore entities: callback not registered")
+        return
+
+    chore_info = coordinator.chores_data.get(chore_id)
+    if not chore_info:
+        const.LOGGER.warning(
+            "Cannot create chore entities: chore %s not found", chore_id
+        )
+        return
+
+    chore_name = kh.get_entity_name_or_log_error(
+        "chore", chore_id, chore_info, const.DATA_CHORE_NAME
+    )
+    if not chore_name:
+        return
+
+    assigned_kids_ids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+    entities = []
+
+    for kid_id in assigned_kids_ids:
+        kid_data = coordinator.kids_data.get(kid_id, {})
+        kid_name = kh.get_entity_name_or_log_error(
+            "kid", kid_id, kid_data, const.DATA_KID_NAME
+        )
+        if not kid_name:
+            continue
+
+        entities.append(
+            KidChoreStatusSensor(
+                coordinator,
+                coordinator.config_entry,
+                kid_id,
+                kid_name,
+                chore_id,
+                chore_name,
+            )
+        )
+
+    if entities:
+        _async_add_entities_callback(entities)
+        const.LOGGER.debug(
+            "Created %d chore status sensors for chore: %s", len(entities), chore_name
+        )
+
+
+def create_reward_entities(
+    coordinator: KidsChoresDataCoordinator, reward_id: str
+) -> None:
+    """Create reward status sensor entities for a newly created reward.
+
+    Called by create_reward service after adding reward to storage.
+    Creates KidRewardStatusSensor for each kid with gamification enabled.
+    """
+    if _async_add_entities_callback is None:
+        const.LOGGER.warning("Cannot create reward entities: callback not registered")
+        return
+
+    reward_info = coordinator.rewards_data.get(reward_id)
+    if not reward_info:
+        const.LOGGER.warning(
+            "Cannot create reward entities: reward %s not found", reward_id
+        )
+        return
+
+    reward_name = kh.get_entity_name_or_log_error(
+        "reward", reward_id, reward_info, const.DATA_REWARD_NAME
+    )
+    if not reward_name:
+        return
+
+    entities = []
+
+    for kid_id, kid_info in coordinator.kids_data.items():
+        # Skip shadow kids without gamification
+        if not kh.should_create_gamification_entities(coordinator, kid_id):
+            continue
+
+        kid_name = kh.get_entity_name_or_log_error(
+            "kid", kid_id, kid_info, const.DATA_KID_NAME
+        )
+        if not kid_name:
+            continue
+
+        entities.append(
+            KidRewardStatusSensor(
+                coordinator,
+                coordinator.config_entry,
+                kid_id,
+                kid_name,
+                reward_id,
+                reward_name,
+            )
+        )
+
+    if entities:
+        _async_add_entities_callback(entities)
+        const.LOGGER.debug(
+            "Created %d reward status sensors for reward: %s",
+            len(entities),
+            reward_name,
+        )
+
+
+# ------------------------------------------------------------------------------------------
 class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
     """Sensor for chore status: pending/claimed/approved/etc.
-
-    Tracks individual kid's chore state independent of shared chore global state.
+    Tracks individual kid chore state independent of shared chore global state.
     Provides comprehensive attributes including per-chore statistics (claims, approvals,
     streaks, points earned), chore configuration, and button entity IDs for UI integration.
     """

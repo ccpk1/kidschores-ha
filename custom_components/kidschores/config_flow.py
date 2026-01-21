@@ -965,8 +965,9 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                 # Generate internal_id for new reward
                 internal_id = str(uuid.uuid4())
 
-                # Use unified eh.build_reward() pattern
-                reward_data = dict(eh.build_reward(user_input))
+                # Convert CFOF_* form keys to DATA_* keys, then build reward
+                data_input = eh.map_cfof_to_reward_data(user_input)
+                reward_data = dict(eh.build_reward(data_input))
                 self._rewards_temp[internal_id] = reward_data
 
                 reward_name = reward_data[const.DATA_REWARD_NAME]

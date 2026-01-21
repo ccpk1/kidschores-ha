@@ -1862,6 +1862,174 @@
         }
       }
     },
+    "create_chore": {
+      "name": "Create Chore",
+      "description": "Create a new chore that kids can complete to earn points.",
+      "fields": {
+        "name": {
+          "name": "Chore Name",
+          "description": "The name of the chore to create.",
+          "example": "Clean Room"
+        },
+        "assigned_kids": {
+          "name": "Assigned Kids",
+          "description": "List of kid names to assign to this chore.",
+          "example": "Emma, Jack"
+        },
+        "points": {
+          "name": "Points",
+          "description": "Points awarded when the chore is completed.",
+          "example": "10"
+        },
+        "description": {
+          "name": "Description",
+          "description": "Optional description of the chore.",
+          "example": "Make bed, put toys away, vacuum floor"
+        },
+        "icon": {
+          "name": "Icon",
+          "description": "Material Design icon for the chore.",
+          "example": "mdi:broom"
+        },
+        "labels": {
+          "name": "Labels",
+          "description": "Optional labels to categorize the chore.",
+          "example": "daily, bedroom"
+        },
+        "frequency": {
+          "name": "Frequency",
+          "description": "How often the chore recurs: none, daily, weekly, or monthly.",
+          "example": "daily"
+        },
+        "applicable_days": {
+          "name": "Applicable Days",
+          "description": "Days of the week when the chore is applicable.",
+          "example": "mon, wed, fri"
+        },
+        "completion_criteria": {
+          "name": "Completion Criteria",
+          "description": "How the chore is completed when multiple kids are assigned: independent (each kid completes separately), shared_first (first kid to complete earns points), or shared_all (all kids must complete). Cannot be changed after creation.",
+          "example": "independent"
+        },
+        "approval_reset_type": {
+          "name": "Approval Reset Type",
+          "description": "When the chore resets for re-completion.",
+          "example": "at_midnight_once"
+        },
+        "pending_claims": {
+          "name": "Pending Claims Action",
+          "description": "What happens to pending claims when the chore resets: hold_pending (keep claims), clear_pending (remove claims), or auto_approve_pending (approve all pending).",
+          "example": "hold_pending"
+        },
+        "overdue_handling": {
+          "name": "Overdue Handling",
+          "description": "How to handle the chore when it becomes overdue.",
+          "example": "at_due_date"
+        },
+        "auto_approve": {
+          "name": "Auto Approve",
+          "description": "If true, the chore is automatically approved when claimed.",
+          "example": "false"
+        },
+        "due_date": {
+          "name": "Due Date",
+          "description": "Optional due date for the chore. Use the date/time selector to choose a valid date and time.",
+          "example": "2025-03-01T23:59:00Z"
+        }
+      }
+    },
+    "update_chore": {
+      "name": "Update Chore",
+      "description": "Update an existing chore's properties. Provide either id OR name to identify the chore. Only provided fields will be updated. Note: completion_criteria cannot be changed after creation.",
+      "fields": {
+        "id": {
+          "name": "Chore ID",
+          "description": "The internal ID of the chore to update (alternative to name).",
+          "example": "abc-123-def-456"
+        },
+        "name": {
+          "name": "Chore Name (Identifier)",
+          "description": "The name of the chore to update (alternative to id). More user-friendly than id.",
+          "example": "Clean Room"
+        },
+        "assigned_kids": {
+          "name": "Assigned Kids",
+          "description": "New list of kid names to assign to this chore.",
+          "example": "Emma, Jack"
+        },
+        "points": {
+          "name": "Points",
+          "description": "New points value for the chore.",
+          "example": "15"
+        },
+        "description": {
+          "name": "Description",
+          "description": "New description of the chore.",
+          "example": "Make bed, organize desk, vacuum floor"
+        },
+        "icon": {
+          "name": "Icon",
+          "description": "New Material Design icon for the chore.",
+          "example": "mdi:vacuum"
+        },
+        "labels": {
+          "name": "Labels",
+          "description": "New labels for the chore.",
+          "example": "weekly, cleaning"
+        },
+        "frequency": {
+          "name": "Frequency",
+          "description": "New recurring frequency: none, daily, weekly, or monthly.",
+          "example": "weekly"
+        },
+        "applicable_days": {
+          "name": "Applicable Days",
+          "description": "New days of the week when the chore is applicable.",
+          "example": "sat, sun"
+        },
+        "approval_reset_type": {
+          "name": "Approval Reset Type",
+          "description": "New reset type for when the chore resets.",
+          "example": "at_due_date_once"
+        },
+        "pending_claims": {
+          "name": "Pending Claims Action",
+          "description": "New action for pending claims when the chore resets.",
+          "example": "clear_pending"
+        },
+        "overdue_handling": {
+          "name": "Overdue Handling",
+          "description": "New overdue handling behavior.",
+          "example": "never_overdue"
+        },
+        "auto_approve": {
+          "name": "Auto Approve",
+          "description": "New auto-approve setting.",
+          "example": "true"
+        },
+        "due_date": {
+          "name": "Due Date",
+          "description": "New due date for the chore. Use the date/time selector to choose a valid date and time.",
+          "example": "2025-04-01T18:00:00Z"
+        }
+      }
+    },
+    "delete_chore": {
+      "name": "Delete Chore",
+      "description": "Delete a chore by ID or name. All kid-specific statuses and history will be removed.",
+      "fields": {
+        "id": {
+          "name": "Chore ID",
+          "description": "Internal ID of the chore to delete. Use either id OR name.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Name",
+          "description": "Name of the chore to delete.",
+          "example": "Clean Room"
+        }
+      }
+    },
     "reset_all_data": {
       "name": "Reset All Data",
       "description": "Completely clears the KidsChores data from storage."
@@ -3585,6 +3753,15 @@
     },
     "missing_chore": {
       "message": "Must provide either chore ID or chore name."
+    },
+    "missing_chore_identifier": {
+      "message": "Must provide either chore_id or chore_name to identify the chore."
+    },
+    "chore_not_found": {
+      "message": "Chore with ID '{chore_id}' not found."
+    },
+    "completion_criteria_immutable": {
+      "message": "Completion criteria cannot be changed after chore creation. Delete and recreate the chore if you need a different completion criteria."
     },
     "missing_reward_identifier": {
       "message": "Must provide either reward_id or reward_name to identify the reward to update."
