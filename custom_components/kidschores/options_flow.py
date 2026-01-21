@@ -14,7 +14,7 @@ Ensures consistency and reloads the integration upon changes.
 import asyncio
 import contextlib
 from datetime import datetime
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 import uuid
 
 from homeassistant import config_entries
@@ -25,6 +25,9 @@ import voluptuous as vol
 
 from . import const, entity_helpers as eh, flow_helpers as fh, kc_helpers as kh
 from .entity_helpers import EntityValidationError
+
+if TYPE_CHECKING:
+    from .type_defs import BadgeData
 
 # ----------------------------------------------------------------------------------
 # INITIALIZATION & HELPERS
@@ -895,24 +898,44 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 badge_type=badge_type,
             )
 
+            badge_dict: BadgeData | None = None
             if not errors:
-                # --- Build Data ---
-                # Convert form inputs to storage format, handling multi-select conversions
-                updated_badge_data = fh.build_badge_common_data(
-                    user_input=user_input,
-                    internal_id=internal_id,
-                    badge_type=badge_type,
-                )
-                updated_badge_data[const.DATA_BADGE_TYPE] = badge_type
+                # --- Build Data using entity_helpers (modern pattern) ---
+                try:
+                    if is_edit:
+                        existing_badge = badges_dict.get(internal_id)
+                        badge_dict = eh.build_badge(
+                            user_input,
+                            existing=existing_badge,
+                            badge_type=badge_type,
+                        )
+                    else:
+                        badge_dict = eh.build_badge(
+                            user_input,
+                            badge_type=badge_type,
+                        )
+                        # Override internal_id with the one from context
+                        badge_dict[const.DATA_BADGE_INTERNAL_ID] = internal_id
+                except eh.EntityValidationError as err:
+                    errors[err.field] = err.translation_key
+                    badge_dict = None
 
-                # --- Save Data ---
-                # Edit vs Add have different coordinator methods and persistence needs
+            if not errors and badge_dict is not None:
+                # --- Save Data (direct storage write) ---
                 if is_edit:
-                    # Edit: update existing badge (triggers entity state update)
-                    coordinator.update_badge_entity(internal_id, updated_badge_data)
+                    # Edit: update existing badge
+                    coordinator._data[const.DATA_BADGES][internal_id] = dict(badge_dict)
+                    # Phase 4: Sync badge_progress after badge update
+                    for kid_id in coordinator.kids_data:
+                        coordinator._sync_badge_progress_for_kid(kid_id)
+                    coordinator._recalculate_all_badges()
+                    coordinator._persist()
+                    coordinator.async_update_listeners()
                 else:
-                    # Add: create new badge + persist + notify listeners of new entity
-                    coordinator._create_badge(internal_id, updated_badge_data)
+                    # Add: create new badge + persist + notify listeners
+                    coordinator._data.setdefault(const.DATA_BADGES, {})[internal_id] = (
+                        dict(badge_dict)
+                    )
                     # Sync badge progress for all kids (creates progress sensors)
                     for kid_id in coordinator.kids_data:
                         coordinator._sync_badge_progress_for_kid(kid_id)
@@ -924,9 +947,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.LOGGER.debug(
                     "%s Badge '%s' with ID: %s. Data: %s",
                     "Updated" if is_edit else "Added",
-                    updated_badge_data[const.DATA_BADGE_NAME],
+                    badge_dict[const.DATA_BADGE_NAME],
                     internal_id,
-                    updated_badge_data,
+                    badge_dict,
                 )
 
                 self._mark_reload_needed()

@@ -811,7 +811,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
     # (Kids, Parents, Chores, Badges, Rewards, Penalties, Bonus, Achievements and Challenges)
     # -------------------------------------------------------------------------------------
 
-    # -- Kids
     def _create_shadow_kid_for_parent(
         self, parent_id: str, parent_info: dict[str, Any]
     ) -> str:
@@ -961,12 +960,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
             chore_info[key] = value
         return False  # Options flow handles reloads
 
-    def _update_badge(self, badge_id: str, badge_data: dict[str, Any]) -> None:
-        """Update badge data (minimal stub)."""
-        badge_info = self._data[const.DATA_BADGES][badge_id]
-        for key, value in badge_data.items():
-            badge_info[key] = value
-
     def _update_bonus(self, bonus_id: str, bonus_data: dict[str, Any]) -> None:
         """Update bonus data (minimal stub)."""
         bonus_info = self._data[const.DATA_BONUSES][bonus_id]
@@ -1000,10 +993,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         self._data[const.DATA_CHORES][chore_id] = kh.build_default_chore_data(
             chore_id, chore_data
         )
-
-    def _create_badge(self, badge_id: str, badge_data: dict[str, Any]) -> None:
-        """Create badge (called by options_flow)."""
-        self._data.setdefault(const.DATA_BADGES, {})[badge_id] = badge_data
 
     def _create_bonus(self, bonus_id: str, bonus_data: dict[str, Any]) -> None:
         """Create bonus (called by options_flow)."""
@@ -1211,26 +1200,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         self._persist()
         self.async_update_listeners()
         const.LOGGER.info("INFO: Deleted chore '%s' (ID: %s)", chore_name, chore_id)
-
-    def update_badge_entity(self, badge_id: str, badge_data: dict[str, Any]) -> None:
-        """Update badge entity in storage (Options Flow - no reload)."""
-        if badge_id not in self._data.get(const.DATA_BADGES, {}):
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_BADGE,
-                    "name": badge_id,
-                },
-            )
-        self._update_badge(badge_id, badge_data)
-        # Phase 4: Sync badge_progress after badge update (handles assignment changes)
-        for kid_id in self.kids_data:
-            self._sync_badge_progress_for_kid(kid_id)
-        # Recalculate badge progress for all kids
-        self._recalculate_all_badges()
-        self._persist()
-        self.async_update_listeners()
 
     def delete_badge_entity(self, badge_id: str) -> None:
         """Delete badge from storage and cleanup references."""
@@ -1783,7 +1752,7 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         kid_info[const.DATA_KID_POINT_STATS] = stats
 
     # -------------------------------------------------------------------------------------
-    # Rewards: Redeem, Approve, Disapprove
+    # Rewards: Redeem, Approve, Disapprove, Reset
     # -------------------------------------------------------------------------------------
 
     def _get_kid_reward_data(

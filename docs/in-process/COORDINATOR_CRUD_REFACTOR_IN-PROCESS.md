@@ -100,7 +100,7 @@ See "Lessons Learned from Reward Refactor" section (lines ~400-650) for complete
 | Phase / Step              | Description                       | % complete | Quick notes                                                   |
 | ------------------------- | --------------------------------- | ---------- | ------------------------------------------------------------- |
 | Phase 1 – Kids & Parents  | Migrate to entity_helpers pattern | 100%       | ✅ Completed 2026-01-22 - ~100 lines removed from coordinator |
-| Phase 2 – Badges          | Complex but modular code          | 0%         | Progress tracking, assignment logic                           |
+| Phase 2 – Badges          | Complex but modular code          | 100%       | ✅ Completed 2026-01-22 - ~26 lines removed from coordinator  |
 | Phase 3 – Chores          | Most complex, most used           | 0%         | Services + config/options flow refactor                       |
 | Phase 4 – Simple Entities | Bonuses, Penalties                | 0%         | Mirror reward pattern                                         |
 | Phase 5 – Linked Entities | Achievements, Challenges          | 0%         | Complex relational data                                       |
@@ -129,9 +129,322 @@ See "Lessons Learned from Reward Refactor" section (lines ~400-650) for complete
      - Added local `_create_kid()` method to migration_pre_v50.py (frozen, isolated from coordinator)
      - **Total coordinator reduction**: ~100 lines for kids/parents CRUD methods
      - All 871 tests passing, mypy clean, 37 shadow-related tests verified
+   - **2026-01-22**: **PHASE 2 COMPLETED - Badges** ✅
+     - Created `entity_helpers.build_badge()` (~420 lines) handling all 6 badge types
+     - Refactored options_flow.py: `async_add_edit_badge_common()` uses `eh.build_badge()`
+     - Changed options_flow from `coordinator.update_badge_entity()` to direct storage writes
+     - Migrated load_scenario_live.py badge creation to direct storage writes
+     - Removed `_create_badge()`, `_update_badge()`, `update_badge_entity()` from coordinator.py (~26 lines)
+     - All 34 badge/options flow tests passing, mypy clean
+
+---
+
+## ⚠️ PHASE 3 DETAILED ANALYSIS: Chores (Most Complex Entity)
+
+> **Date**: 2026-01-22 (Pre-implementation analysis)
+> **Status**: ANALYSIS COMPLETE - Ready for decision on services scope
+
+### Why Chores Are Different
+
+Chores are the **most complex entity type** in KidsChores due to:
+
+1. **Completion Criteria Modes** (3 modes, each with different behavior):
+   - `SHARED` - All kids complete together, single state
+   - `SHARED_FIRST` - First kid to complete wins
+   - `INDEPENDENT` - Each kid has own tracking (per-kid dates, applicable days, times)
+
+2. **Per-Kid Configuration** (INDEPENDENT mode only):
+   - `per_kid_due_dates` - Each kid can have different due date
+   - `per_kid_applicable_days` - Each kid can have different weekdays
+   - `per_kid_daily_multi_times` - Each kid can have different time slots
+
+3. **DAILY_MULTI Frequency** (special complexity):
+   - Multiple time slots per day (e.g., "08:00,12:00,18:00")
+   - Combined with INDEPENDENT = per-kid time slots
+   - Requires separate "times helper" UI step
+
+4. **Multi-Step Options Flow** (not single form):
+   - Main form → Per-kid details helper (for INDEPENDENT multi-kid)
+   - Main form → Daily multi times helper (for DAILY_MULTI)
+   - Can chain: Main → Per-kid details → Daily multi times
+
+5. **Update Returns Boolean** (unlike other entities):
+   - `update_chore_entity()` returns `True` if assignments changed
+   - Used to trigger reload only when kid entities added/removed
+
+### Existing Code Patterns
+
+**Data Building**: `fh.build_chores_data()` (~300 lines)
+
+- Combines validation + data building (returns tuple `(data_dict, errors)`)
+- Handles due date parsing, kid name→UUID conversion
+- Builds `per_kid_due_dates` for all completion criteria types
+- Complex validation: frequency/reset combos, daily_multi rules
+
+**Coordinator Methods**:
+
+```python
+# Lines 991-998 - Simple stub (3 lines)
+def _create_chore(self, chore_id: str, chore_data: dict[str, Any]) -> None:
+    """Create chore (called by options_flow)."""
+    self._data[DATA_CHORES][chore_id] = kh.build_default_chore_data(chore_id, chore_data)
+
+# Lines 956-962 - Simple stub (7 lines)
+def _update_chore(self, chore_id: str, chore_data: dict[str, Any]) -> bool:
+    """Update chore data. Returns False (no reload needed by stub)."""
+    chore_info = self._data[DATA_CHORES][chore_id]
+    for key, value in chore_data.items():
+        chore_info[key] = value
+    return False
+
+# Lines 1149-1171 - Public method with business logic (~22 lines)
+def update_chore_entity(self, chore_id: str, chore_data: dict[str, Any]) -> bool:
+    """Update chore entity in storage (Options Flow). Returns True if assignments changed."""
+    # Validation, _update_chore call, badge recalculation, orphan cleanup
+```
+
+**Options Flow Callers** (9 total calls):
+
+- `async_step_add_chore`: 4× `_create_chore()` (different code paths)
+- `async_step_edit_chore`: 3× `update_chore_entity()`
+- `async_step_edit_chore_per_kid_details`: 1× `update_chore_entity()`
+- `async_step_chores_daily_multi`: 1× `update_chore_entity()`
+
+**External Callers**:
+
+- `load_scenario_live.py`: 1× `_create_chore()` (test utility)
+- `migration_pre_v50.py`: Has own `_create_chore()` / `_update_chore()` (isolated)
+
+### Recommended Approach: Two-Phase Chore Refactor
+
+#### Phase 3A: Options Flow Refactor (No Services Yet)
+
+**Goal**: Migrate options_flow.py chore handling to entity_helpers pattern
+
+1. **Create `entity_helpers.build_chore()`**:
+   - Extract field mapping from `fh.build_chores_data()`
+   - Handle form input → storage format conversion
+   - DO NOT include validation (keep in `fh.build_chores_data()`)
+   - Handle internal_id override for edit mode
+
+2. **Refactor options_flow.py**:
+   - Replace `coordinator._create_chore()` → direct storage write
+   - Replace `coordinator.update_chore_entity()` → direct storage write + business logic inline
+   - Keep complex multi-step flow unchanged (just update data building)
+
+3. **Remove coordinator stubs**:
+   - `_create_chore()` (~3 lines)
+   - `_update_chore()` (~7 lines)
+   - `update_chore_entity()` (~22 lines) - Move business logic to options_flow
+
+4. **Update `load_scenario_live.py`**:
+   - Change to direct storage write (same as badges)
+
+**Lines removed**: ~32 lines from coordinator.py
+**Tests**: `pytest tests/test_options_flow_entity_crud.py tests/test_workflow_chores.py -v`
+
+#### Phase 3B: Chore Services (Deferred - Requires Decision)
+
+**Question**: What should chore services support?
+
+---
+
+### 🔴 DECISION REQUIRED: Chore Services Scope
+
+#### Option A: No Chore CRUD Services (Recommended)
+
+**Rationale**:
+
+- Chore complexity is primarily UI-driven (per-kid config, multi-step helpers)
+- Services would need to expose all complexity OR be severely limited
+- Users already have claim/approve/disapprove services for runtime operations
+- Options Flow provides complete functionality with proper validation
+
+**Pros**:
+
+- No new service maintenance burden
+- Avoid confusion about what services can/cannot configure
+- Focus on fixing entity_helpers pattern first
+
+**Cons**:
+
+- Can't create chores via automation (edge case use)
+- Inconsistent with reward services
+
+#### Option B: Simplified Chore Services (Create/Update/Delete with Limitations)
+
+**Scope**: Services for BASIC chore management only
+
+**Create Chore Service** (`kidschores.create_chore`):
+
+```yaml
+fields:
+  name: required
+  assigned_kids: required (list of names)
+  points: required (no hidden defaults)
+  # Optional simple fields:
+  description: optional
+  icon: optional
+  labels: optional
+  recurring_frequency: optional (NONE, DAILY, WEEKLY, MONTHLY only)
+  due_date: optional
+  # NOT SUPPORTED (too complex for services):
+  # - completion_criteria (defaults to SHARED)
+  # - DAILY_MULTI frequency
+  # - per_kid_due_dates
+  # - per_kid_applicable_days
+  # - per_kid_daily_multi_times
+  # - custom_interval / custom_interval_unit
+```
+
+**Update Chore Service** (`kidschores.update_chore`):
+
+- Same limited fields as create
+- Cannot change completion_criteria after creation
+- Cannot enable INDEPENDENT mode via service
+
+**Delete Chore Service** (`kidschores.delete_chore`):
+
+- Simple delete by ID or name (same as rewards)
+
+**Pros**:
+
+- Consistent API (rewards have services, chores have services)
+- Covers 80% of simple use cases
+- Clear documentation on what's NOT supported
+
+**Cons**:
+
+- Services are incomplete (power users still need Options Flow)
+- May create user confusion ("why can't I set per-kid dates?")
+- Additional service testing burden
+
+#### Option C: Full Chore Services (Maximum Complexity)
+
+**Scope**: All chore features available via services
+
+**NOT RECOMMENDED** because:
+
+- Service calls with 20+ optional fields are unwieldy
+- INDEPENDENT mode with per-kid config would require nested structures
+- DAILY_MULTI would require separate times_config parameter
+- Testing matrix would be enormous
+- Documentation would be extensive
+
+---
+
+### Recommendation: Option A (No Chore CRUD Services) or Option B (Simplified)
+
+**For v0.5.0**: Start with **Option A** (No chore CRUD services)
+
+- Focus on entity_helpers pattern migration (Phase 3A)
+- Existing claim/approve/disapprove services cover runtime operations
+- Options Flow handles all configuration complexity
+
+**For v0.6.0+**: Consider **Option B** (Simplified services) if users request
+
+- Clear scope: "basic chores only via services"
+- Document limitations prominently
+
+### Phase 3 Execution Plan (Assuming Option A)
+
+**Step 1**: Create `entity_helpers.build_chore()` (~150 lines)
+
+- Extract from `fh.build_chores_data()` the field mapping logic
+- Keep validation in flow_helpers (it returns errors dict)
+- Handle both add (new UUID) and edit (existing data) modes
+
+**Step 2**: Refactor `async_step_add_chore()` in options_flow.py
+
+- Replace `coordinator._create_chore()` with direct storage write
+- Pattern: `coordinator._data[DATA_CHORES][internal_id] = eh.build_chore(...)`
+
+**Step 3**: Refactor `async_step_edit_chore()` in options_flow.py
+
+- Replace `coordinator.update_chore_entity()` with:
+  - Direct storage write
+  - Inline assignment change detection (for reload flag)
+  - Call `coordinator._recalculate_all_badges()` directly
+  - Call `coordinator._remove_orphaned_kid_chore_entities()` directly
+
+**Step 4**: Refactor helper steps (per-kid details, daily_multi)
+
+- Update `update_chore_entity()` calls to direct storage
+
+**Step 5**: Remove coordinator stubs
+
+- `_create_chore()`, `_update_chore()`, `update_chore_entity()`
+- Update `load_scenario_live.py` to direct storage
+
+**Step 6**: Validation
+
+- Run: `pytest tests/test_options_flow_entity_crud.py tests/test_workflow_chores.py -v`
+- Lint + MyPy
+
+---
+
+### ChoreData TypedDict Reference (41 fields)
+
+```python
+class ChoreData(TypedDict):
+    # Core identification (3)
+    internal_id: str
+    name: str
+    state: str  # PENDING, CLAIMED, APPROVED, OVERDUE
+
+    # Points and configuration (4)
+    default_points: float
+    approval_reset_type: str
+    overdue_handling_type: str
+    approval_reset_pending_claim_action: str
+
+    # Description and display (3)
+    description: str
+    chore_labels: list[str]
+    icon: str
+
+    # Assignment (1)
+    assigned_kids: list[str]  # List of kid UUIDs
+
+    # Scheduling (4)
+    recurring_frequency: str
+    custom_interval: NotRequired[int | None]
+    custom_interval_unit: NotRequired[str | None]
+    daily_multi_times: NotRequired[list[str]]
+
+    # Due dates (5)
+    due_date: NotRequired[str | None]
+    per_kid_due_dates: dict[str, str | None]
+    applicable_days: list[str]
+    per_kid_applicable_days: NotRequired[dict[str, list[str]]]
+    per_kid_daily_multi_times: NotRequired[dict[str, list[str]]]
+
+    # Runtime tracking (5)
+    last_completed: NotRequired[str | None]
+    last_claimed: NotRequired[str | None]
+    approval_period_start: NotRequired[str | None]
+    claimed_by: NotRequired[list[str]]
+    completed_by: NotRequired[list[str]]
+
+    # Notifications (4)
+    notify_on_claim: bool
+    notify_on_approval: bool
+    notify_on_disapproval: bool
+    notify_on_reminder: NotRequired[bool]
+
+    # Calendar and features (2)
+    show_on_calendar: NotRequired[bool]
+    auto_approve: NotRequired[bool]
+
+    # Completion criteria (1)
+    completion_criteria: str  # SHARED, SHARED_FIRST, INDEPENDENT
+```
+
+---
 
 3. **Next steps (immediate execution)** –
-   - Start Phase 2: Badges migration (complex but modular code)
+   - Start Phase 3: Chores migration (most complex + services)
+   - **REVIEW Phase 3 Detailed Analysis below before starting**
    - Each entity follows 4-phase pattern: Prepare → Refactor → Cleanup → Test
    - Remove stub methods per-entity as modern pattern implemented
    - Full test suite run after all entities migrated

@@ -16,8 +16,9 @@ import yaml
 sys.path.insert(0, "/workspaces/core")
 
 # pylint: disable=no-name-in-module,import-error  # Legacy/dev script - may use deprecated imports
-from homeassistant.bootstrap import async_from_config_dir
+from homeassistant.bootstrap import async_setup_hass
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
+from homeassistant.runner import RuntimeConfig
 
 
 async def load_scenario_to_running_instance():  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
@@ -28,10 +29,28 @@ async def load_scenario_to_running_instance():  # pylint: disable=too-many-local
     with open(scenario_file, encoding="utf-8") as f:
         scenario = yaml.safe_load(f)
 
-    print("� Starting/Connecting to Home Assistant instance...")  # noqa: T201
+    print("🏠 Starting/Connecting to Home Assistant instance...")  # noqa: T201
 
-    # Get/start the HA instance
-    hass = await async_from_config_dir("/workspaces/core/config")
+    # Get/start the HA instance using RuntimeConfig
+    config_dir = "/workspaces/core/config"
+    runtime_config = RuntimeConfig(
+        config_dir=config_dir,
+        verbose=False,
+        log_rotate_days=None,
+        log_file="",
+        log_no_color=False,
+        skip_pip=True,
+        skip_pip_packages=[],
+        safe_mode=False,
+        debug=False,
+        open_ui=False,
+        recovery_mode=False,
+    )
+    hass = await async_setup_hass(runtime_config)
+
+    if hass is None:
+        print("❌ Failed to create Home Assistant instance")  # noqa: T201
+        return
 
     # Start Home Assistant if not running
     if hass.state.name != "running":
@@ -67,7 +86,7 @@ async def load_scenario_to_running_instance():  # pylint: disable=too-many-local
         )
 
         # If it's a form, submit it (assuming default setup)
-        if result["type"] == "form":
+        if result.get("type") == "form":
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"], user_input={}
             )
@@ -185,7 +204,8 @@ async def load_scenario_to_running_instance():  # pylint: disable=too-many-local
             "maintenance_points_required": maintenance.get("required_points", 0),
             "demote_on_fail": maintenance.get("demote_on_fail", False),
         }
-        coordinator._create_badge(badge_id, badge_data)
+        # Direct storage write (modern pattern)
+        coordinator._data.setdefault("badges", {})[badge_id] = badge_data
         print(f"  ✓ {badge_name} ({badge_info.get('type', 'cumulative')})")  # noqa: T201
 
     # Add earned badges to kids

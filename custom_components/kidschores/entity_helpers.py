@@ -17,11 +17,11 @@ See Also:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 import uuid
 
 from . import const
-from .type_defs import KidData, ParentData, RewardData
+from .type_defs import BadgeData, KidData, ParentData, RewardData
 
 # ==============================================================================
 # EXCEPTIONS
@@ -499,3 +499,408 @@ def build_parent(
             existing.get(const.DATA_PARENT_LINKED_SHADOW_KID_ID) if existing else None
         ),
     )
+
+
+# ==============================================================================
+# BADGES
+# ==============================================================================
+
+
+def build_badge(
+    user_input: dict[str, Any],
+    existing: BadgeData | None = None,
+    *,
+    badge_type: str = const.BADGE_TYPE_CUMULATIVE,
+) -> BadgeData:
+    """Build badge data for create or update operations.
+
+    This is the SINGLE SOURCE OF TRUTH for badge field handling.
+    One function handles both create (existing=None) and update (existing=BadgeData).
+
+    Badge types have different required components:
+    - CUMULATIVE: target (points-only), awards
+    - DAILY: target, awards, assigned_to
+    - PERIODIC: target, awards, assigned_to, reset_schedule, tracked_chores
+    - SPECIAL_OCCASION: special_occasion_type
+    - ACHIEVEMENT_LINKED: associated_achievement
+    - CHALLENGE_LINKED: associated_challenge
+
+    Args:
+        user_input: Form/service data with CFOF_* keys (may have missing fields)
+        existing: None for create, existing BadgeData for update
+        badge_type: Type of badge being created/updated
+
+    Returns:
+        Complete BadgeData TypedDict ready for storage
+
+    Raises:
+        EntityValidationError: If name validation fails (empty/whitespace)
+
+    Examples:
+        # CREATE mode - generates UUID, applies const.DEFAULT_* for missing fields
+        badge = build_badge(
+            {CFOF_BADGES_INPUT_NAME: "Super Star"},
+            badge_type=const.BADGE_TYPE_CUMULATIVE
+        )
+
+        # UPDATE mode - preserves existing fields not in user_input
+        badge = build_badge(
+            {CFOF_BADGES_INPUT_NAME: "Renamed Badge"},
+            existing=old_badge,
+            badge_type=old_badge["badge_type"]
+        )
+    """
+    is_create = existing is None
+
+    def get_field(
+        cfof_key: str,
+        data_key: str,
+        default: Any,
+    ) -> Any:
+        """Get field value: user_input > existing > default."""
+        if cfof_key in user_input:
+            return user_input[cfof_key]
+        if existing is not None:
+            return existing.get(data_key, default)
+        return default
+
+    # --- Name validation (required for create, optional for update) ---
+    raw_name = get_field(
+        const.CFOF_BADGES_INPUT_NAME,
+        const.DATA_BADGE_NAME,
+        "",
+    )
+    name = str(raw_name).strip() if raw_name else ""
+
+    if is_create and not name:
+        raise EntityValidationError(
+            field=const.CFOF_BADGES_INPUT_NAME,
+            translation_key=const.TRANS_KEY_CFOF_INVALID_BADGE_NAME,
+        )
+    if const.CFOF_BADGES_INPUT_NAME in user_input and not name:
+        raise EntityValidationError(
+            field=const.CFOF_BADGES_INPUT_NAME,
+            translation_key=const.TRANS_KEY_CFOF_INVALID_BADGE_NAME,
+        )
+
+    # --- Generate or preserve internal_id ---
+    if is_create or existing is None:
+        internal_id = str(uuid.uuid4())
+    else:
+        internal_id = existing.get(const.DATA_BADGE_INTERNAL_ID, str(uuid.uuid4()))
+
+    # --- Determine which components this badge type includes ---
+    include_target = badge_type in const.INCLUDE_TARGET_BADGE_TYPES
+    include_special_occasion = badge_type in const.INCLUDE_SPECIAL_OCCASION_BADGE_TYPES
+    include_achievement_linked = (
+        badge_type in const.INCLUDE_ACHIEVEMENT_LINKED_BADGE_TYPES
+    )
+    include_challenge_linked = badge_type in const.INCLUDE_CHALLENGE_LINKED_BADGE_TYPES
+    include_tracked_chores = badge_type in const.INCLUDE_TRACKED_CHORES_BADGE_TYPES
+    include_assigned_to = badge_type in const.INCLUDE_ASSIGNED_TO_BADGE_TYPES
+    include_awards = badge_type in const.INCLUDE_AWARDS_BADGE_TYPES
+    include_reset_schedule = badge_type in const.INCLUDE_RESET_SCHEDULE_BADGE_TYPES
+
+    # --- Build base badge data ---
+    badge_data: dict[str, Any] = {
+        const.DATA_BADGE_INTERNAL_ID: internal_id,
+        const.DATA_BADGE_NAME: name,
+        const.DATA_BADGE_TYPE: badge_type,
+        const.DATA_BADGE_DESCRIPTION: str(
+            get_field(
+                const.CFOF_BADGES_INPUT_DESCRIPTION,
+                const.DATA_BADGE_DESCRIPTION,
+                const.SENTINEL_EMPTY,
+            )
+        ),
+        const.DATA_BADGE_LABELS: list(
+            get_field(
+                const.CFOF_BADGES_INPUT_LABELS,
+                const.DATA_BADGE_LABELS,
+                [],
+            )
+        ),
+        const.DATA_BADGE_ICON: str(
+            get_field(
+                const.CFOF_BADGES_INPUT_ICON,
+                const.DATA_BADGE_ICON,
+                const.DEFAULT_BADGE_ICON,
+            )
+        ),
+        # earned_by is runtime state, preserve on update or empty on create
+        const.DATA_BADGE_EARNED_BY: (
+            existing.get(const.DATA_BADGE_EARNED_BY, []) if existing else []
+        ),
+    }
+
+    # --- Target Component ---
+    if include_target:
+        existing_target = existing.get(const.DATA_BADGE_TARGET, {}) if existing else {}
+
+        # For nested dict fields, get directly from user_input or existing nested dict
+        if const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE in user_input:
+            threshold_value_input = user_input[
+                const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE
+            ]
+        elif existing_target:
+            threshold_value_input = existing_target.get(
+                const.DATA_BADGE_TARGET_THRESHOLD_VALUE,
+                const.DEFAULT_BADGE_TARGET_THRESHOLD_VALUE,
+            )
+        else:
+            threshold_value_input = const.DEFAULT_BADGE_TARGET_THRESHOLD_VALUE
+
+        try:
+            threshold_value = float(threshold_value_input)
+        except (TypeError, ValueError, AttributeError):
+            const.LOGGER.warning(
+                "Could not parse target threshold value '%s'. Using default.",
+                threshold_value_input,
+            )
+            threshold_value = float(const.DEFAULT_BADGE_TARGET_THRESHOLD_VALUE)
+
+        if const.CFOF_BADGES_INPUT_MAINTENANCE_RULES in user_input:
+            maintenance_rules_input = user_input[
+                const.CFOF_BADGES_INPUT_MAINTENANCE_RULES
+            ]
+        elif existing_target:
+            maintenance_rules_input = existing_target.get(
+                const.DATA_BADGE_MAINTENANCE_RULES,
+                const.DEFAULT_BADGE_MAINTENANCE_THRESHOLD,
+            )
+        else:
+            maintenance_rules_input = const.DEFAULT_BADGE_MAINTENANCE_THRESHOLD
+
+        target_dict: dict[str, Any] = {
+            const.DATA_BADGE_TARGET_THRESHOLD_VALUE: threshold_value,
+            const.DATA_BADGE_MAINTENANCE_RULES: maintenance_rules_input,
+        }
+
+        # Cumulative badges don't need target_type (they always use points)
+        if badge_type != const.BADGE_TYPE_CUMULATIVE:
+            if const.CFOF_BADGES_INPUT_TARGET_TYPE in user_input:
+                target_type = user_input[const.CFOF_BADGES_INPUT_TARGET_TYPE]
+            elif existing_target:
+                target_type = existing_target.get(
+                    const.DATA_BADGE_TARGET_TYPE,
+                    const.DEFAULT_BADGE_TARGET_TYPE,
+                )
+            else:
+                target_type = const.DEFAULT_BADGE_TARGET_TYPE
+            target_dict[const.DATA_BADGE_TARGET_TYPE] = target_type
+
+        badge_data[const.DATA_BADGE_TARGET] = target_dict
+
+    # --- Special Occasion Component ---
+    if include_special_occasion:
+        badge_data[const.DATA_BADGE_SPECIAL_OCCASION_TYPE] = str(
+            get_field(
+                const.CFOF_BADGES_INPUT_OCCASION_TYPE,
+                const.DATA_BADGE_SPECIAL_OCCASION_TYPE,
+                const.SENTINEL_EMPTY,
+            )
+        )
+
+    # --- Achievement-Linked Component ---
+    if include_achievement_linked:
+        achievement_id = get_field(
+            const.CFOF_BADGES_INPUT_ASSOCIATED_ACHIEVEMENT,
+            const.DATA_BADGE_ASSOCIATED_ACHIEVEMENT,
+            const.SENTINEL_EMPTY,
+        )
+        # Convert sentinel to empty string for storage
+        if achievement_id in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION):
+            achievement_id = ""
+        badge_data[const.DATA_BADGE_ASSOCIATED_ACHIEVEMENT] = achievement_id
+
+    # --- Challenge-Linked Component ---
+    if include_challenge_linked:
+        challenge_id = get_field(
+            const.CFOF_BADGES_INPUT_ASSOCIATED_CHALLENGE,
+            const.DATA_BADGE_ASSOCIATED_CHALLENGE,
+            const.SENTINEL_EMPTY,
+        )
+        # Convert sentinel to empty string for storage
+        if challenge_id in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION):
+            challenge_id = ""
+        badge_data[const.DATA_BADGE_ASSOCIATED_CHALLENGE] = challenge_id
+
+    # --- Tracked Chores Component ---
+    if include_tracked_chores:
+        # Handle nested existing value directly
+        if const.CFOF_BADGES_INPUT_SELECTED_CHORES in user_input:
+            selected_chores = user_input[const.CFOF_BADGES_INPUT_SELECTED_CHORES]
+        elif existing:
+            existing_tracked = existing.get(const.DATA_BADGE_TRACKED_CHORES, {})
+            selected_chores = existing_tracked.get(
+                const.DATA_BADGE_TRACKED_CHORES_SELECTED_CHORES, []
+            )
+        else:
+            selected_chores = []
+
+        if not isinstance(selected_chores, list):
+            selected_chores = [selected_chores] if selected_chores else []
+        selected_chores = [
+            chore_id
+            for chore_id in selected_chores
+            if chore_id and chore_id != const.SENTINEL_EMPTY
+        ]
+
+        badge_data[const.DATA_BADGE_TRACKED_CHORES] = {
+            const.DATA_BADGE_TRACKED_CHORES_SELECTED_CHORES: selected_chores
+        }
+
+    # --- Assigned To Component ---
+    if include_assigned_to:
+        assigned = get_field(
+            const.CFOF_BADGES_INPUT_ASSIGNED_TO,
+            const.DATA_BADGE_ASSIGNED_TO,
+            [],
+        )
+        if not isinstance(assigned, list):
+            assigned = [assigned] if assigned else []
+        assigned = [
+            kid_id for kid_id in assigned if kid_id and kid_id != const.SENTINEL_EMPTY
+        ]
+        badge_data[const.DATA_BADGE_ASSIGNED_TO] = assigned
+
+    # --- Awards Component ---
+    if include_awards:
+        existing_awards = existing.get(const.DATA_BADGE_AWARDS, {}) if existing else {}
+
+        # Get award points from user_input or existing nested dict
+        if const.CFOF_BADGES_INPUT_AWARD_POINTS in user_input:
+            points_input = user_input[const.CFOF_BADGES_INPUT_AWARD_POINTS]
+        elif existing_awards:
+            points_input = existing_awards.get(
+                const.DATA_BADGE_AWARDS_AWARD_POINTS,
+                const.DEFAULT_BADGE_AWARD_POINTS,
+            )
+        else:
+            points_input = const.DEFAULT_BADGE_AWARD_POINTS
+
+        try:
+            points = float(points_input)
+        except (TypeError, ValueError, AttributeError):
+            const.LOGGER.warning(
+                "Could not parse award points value '%s'. Using default.",
+                points_input,
+            )
+            points = float(const.DEFAULT_BADGE_AWARD_POINTS)
+
+        if const.CFOF_BADGES_INPUT_POINTS_MULTIPLIER in user_input:
+            multiplier = user_input[const.CFOF_BADGES_INPUT_POINTS_MULTIPLIER]
+        elif existing_awards:
+            multiplier = existing_awards.get(
+                const.DATA_BADGE_AWARDS_POINT_MULTIPLIER,
+                const.SENTINEL_NONE,
+            )
+        else:
+            multiplier = const.SENTINEL_NONE
+
+        if const.CFOF_BADGES_INPUT_AWARD_ITEMS in user_input:
+            award_items = user_input[const.CFOF_BADGES_INPUT_AWARD_ITEMS]
+        elif existing_awards:
+            award_items = existing_awards.get(
+                const.DATA_BADGE_AWARDS_AWARD_ITEMS,
+                [],
+            )
+        else:
+            award_items = []
+
+        if not isinstance(award_items, list):
+            award_items = [award_items] if award_items else []
+
+        badge_data[const.DATA_BADGE_AWARDS] = {
+            const.DATA_BADGE_AWARDS_AWARD_POINTS: points,
+            const.DATA_BADGE_AWARDS_POINT_MULTIPLIER: multiplier,
+            const.DATA_BADGE_AWARDS_AWARD_ITEMS: award_items,
+        }
+
+    # --- Reset Schedule Component ---
+    if include_reset_schedule:
+        existing_schedule = (
+            existing.get(const.DATA_BADGE_RESET_SCHEDULE, {}) if existing else {}
+        )
+
+        if const.CFOF_BADGES_INPUT_RESET_SCHEDULE_RECURRING_FREQUENCY in user_input:
+            recurring_frequency = user_input[
+                const.CFOF_BADGES_INPUT_RESET_SCHEDULE_RECURRING_FREQUENCY
+            ]
+        elif existing_schedule:
+            recurring_frequency = existing_schedule.get(
+                const.DATA_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY,
+                const.FREQUENCY_WEEKLY,
+            )
+        else:
+            recurring_frequency = const.FREQUENCY_WEEKLY
+
+        if const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE in user_input:
+            start_date = user_input[const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE]
+        elif existing_schedule:
+            start_date = existing_schedule.get(
+                const.DATA_BADGE_RESET_SCHEDULE_START_DATE, None
+            )
+        else:
+            start_date = None
+        start_date = None if start_date in (None, "") else start_date
+
+        if const.CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE in user_input:
+            end_date = user_input[const.CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE]
+        elif existing_schedule:
+            end_date = existing_schedule.get(
+                const.DATA_BADGE_RESET_SCHEDULE_END_DATE, None
+            )
+        else:
+            end_date = None
+        end_date = None if end_date in (None, "") else end_date
+
+        if const.CFOF_BADGES_INPUT_RESET_SCHEDULE_GRACE_PERIOD_DAYS in user_input:
+            grace_period_days = user_input[
+                const.CFOF_BADGES_INPUT_RESET_SCHEDULE_GRACE_PERIOD_DAYS
+            ]
+        elif existing_schedule:
+            grace_period_days = existing_schedule.get(
+                const.DATA_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS,
+                const.DEFAULT_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS,
+            )
+        else:
+            grace_period_days = const.DEFAULT_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS
+
+        if const.CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL in user_input:
+            custom_interval = user_input[
+                const.CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL
+            ]
+        elif existing_schedule:
+            custom_interval = existing_schedule.get(
+                const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL,
+                const.DEFAULT_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL,
+            )
+        else:
+            custom_interval = const.DEFAULT_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL
+
+        if const.CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT in user_input:
+            custom_interval_unit = user_input[
+                const.CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT
+            ]
+        elif existing_schedule:
+            custom_interval_unit = existing_schedule.get(
+                const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT,
+                const.DEFAULT_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT,
+            )
+        else:
+            custom_interval_unit = (
+                const.DEFAULT_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT
+            )
+
+        badge_data[const.DATA_BADGE_RESET_SCHEDULE] = {
+            const.DATA_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY: recurring_frequency,
+            const.DATA_BADGE_RESET_SCHEDULE_START_DATE: start_date,
+            const.DATA_BADGE_RESET_SCHEDULE_END_DATE: end_date,
+            const.DATA_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS: grace_period_days,
+            const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL: custom_interval,
+            const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT: custom_interval_unit,
+        }
+
+    # Cast to BadgeData - the dict has all required keys based on badge_type
+    return cast("BadgeData", badge_data)
