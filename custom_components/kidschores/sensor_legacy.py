@@ -998,8 +998,7 @@ class KidPenaltyAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         stored_labels = penalty_info.get(const.DATA_PENALTY_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label)
-            for label in stored_labels  # type: ignore[attr-defined]
+            kh.get_friendly_label(self.hass, label) for label in stored_labels
         ]
 
         # Get the ParentPenaltyApplyButton entity_id
@@ -1115,8 +1114,7 @@ class KidBonusAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         stored_labels = bonus_info.get(const.DATA_BONUS_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label)
-            for label in stored_labels  # type: ignore[attr-defined]
+            kh.get_friendly_label(self.hass, label) for label in stored_labels
         ]
 
         # Get the ParentBonusApplyButton entity_id

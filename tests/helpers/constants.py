@@ -457,6 +457,7 @@ from custom_components.kidschores.const import (
     DEFAULT_POINTS_ICON,
     DEFAULT_POINTS_LABEL,
     DEFAULT_REWARD_COST,
+    DEFAULT_REWARD_ICON,
     DEFAULT_ZERO,
     DOMAIN,
     # =========================================================================
@@ -527,8 +528,24 @@ from custom_components.kidschores.const import (
     # =========================================================================
     # SERVICE NAMES
     # =========================================================================
+    SERVICE_CREATE_REWARD,
+    SERVICE_DELETE_REWARD,
+    SERVICE_UPDATE_REWARD,
     SERVICE_MANAGE_SHADOW_LINK,
     SERVICE_RESET_ALL_CHORES,
+    # =========================================================================
+    # SERVICE FIELD NAMES (for service call payloads)
+    # =========================================================================
+    SERVICE_FIELD_KID_NAME,
+    SERVICE_FIELD_KID_ID,
+    SERVICE_FIELD_PARENT_NAME,
+    SERVICE_FIELD_REWARD_ID,
+    SERVICE_FIELD_REWARD_NAME,
+    SERVICE_FIELD_REWARD_COST,
+    SERVICE_FIELD_REWARD_COST_OVERRIDE,
+    SERVICE_FIELD_REWARD_DESCRIPTION,
+    SERVICE_FIELD_REWARD_ICON,
+    SERVICE_FIELD_REWARD_LABELS,
     # =========================================================================
     # LEGACY CONF KEYS (for migration tests)
     # =========================================================================

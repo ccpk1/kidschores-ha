@@ -411,8 +411,7 @@ class KidChoreClaimButton(KidsChoresCoordinatorEntity, ButtonEntity):
         )
         stored_labels = chore_info.get(const.DATA_CHORE_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label)
-            for label in stored_labels  # type: ignore[attr-defined]
+            kh.get_friendly_label(self.hass, label) for label in stored_labels
         ]
 
         attributes: dict[str, Any] = {
@@ -541,8 +540,7 @@ class ParentChoreApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
         )
         stored_labels = chore_info.get(const.DATA_CHORE_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label)
-            for label in stored_labels  # type: ignore[attr-defined]
+            kh.get_friendly_label(self.hass, label) for label in stored_labels
         ]
 
         attributes: dict[str, Any] = {
@@ -704,8 +702,7 @@ class ParentChoreDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
         )
         stored_labels = chore_info.get(const.DATA_CHORE_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label)
-            for label in stored_labels  # type: ignore[attr-defined]
+            kh.get_friendly_label(self.hass, label) for label in stored_labels
         ]
 
         attributes: dict[str, Any] = {
@@ -835,8 +832,7 @@ class KidRewardRedeemButton(KidsChoresCoordinatorEntity, ButtonEntity):
         )
         stored_labels = reward_info.get(const.DATA_REWARD_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label)
-            for label in stored_labels  # type: ignore[attr-defined]
+            kh.get_friendly_label(self.hass, label) for label in stored_labels
         ]
 
         attributes: dict[str, Any] = {
@@ -965,8 +961,7 @@ class ParentRewardApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
         )
         stored_labels = reward_info.get(const.DATA_REWARD_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label)
-            for label in stored_labels  # type: ignore[attr-defined]
+            kh.get_friendly_label(self.hass, label) for label in stored_labels
         ]
 
         attributes: dict[str, Any] = {
@@ -1128,8 +1123,7 @@ class ParentRewardDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
         )
         stored_labels = reward_info.get(const.DATA_REWARD_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label)
-            for label in stored_labels  # type: ignore[attr-defined]
+            kh.get_friendly_label(self.hass, label) for label in stored_labels
         ]
 
         attributes: dict[str, Any] = {
@@ -1268,8 +1262,7 @@ class ParentPenaltyApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
         )
         stored_labels = penalty_info.get(const.DATA_PENALTY_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label)
-            for label in stored_labels  # type: ignore[attr-defined]
+            kh.get_friendly_label(self.hass, label) for label in stored_labels
         ]
 
         attributes: dict[str, Any] = {
@@ -1534,8 +1527,7 @@ class ParentBonusApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
         )
         stored_labels = bonus_info.get(const.DATA_BONUS_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label)
-            for label in stored_labels  # type: ignore[attr-defined]
+            kh.get_friendly_label(self.hass, label) for label in stored_labels
         ]
 
         attributes: dict[str, Any] = {

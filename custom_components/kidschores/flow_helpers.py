@@ -2685,43 +2685,6 @@ def build_reward_schema(default=None):
     )
 
 
-def build_rewards_data(
-    user_input: dict[str, Any],
-    existing_rewards: dict[str, Any]
-    | None = None,  # Reserved for API consistency with validate_rewards_inputs
-) -> dict[str, Any]:
-    """Build reward data from user input.
-
-    Converts form input (CFOF_* keys) to storage format (DATA_* keys).
-
-    Args:
-        user_input: Dictionary containing user inputs from the form.
-        existing_rewards: Optional dictionary of existing rewards for duplicate checking.
-
-    Returns:
-        Dictionary with reward data in storage format, keyed by internal_id.
-    """
-    reward_name = user_input.get(const.CFOF_REWARDS_INPUT_NAME, "").strip()
-    internal_id = user_input.get(const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4()))
-
-    return {
-        internal_id: {
-            const.DATA_REWARD_NAME: reward_name,
-            const.DATA_REWARD_COST: user_input[const.CFOF_REWARDS_INPUT_COST],
-            const.DATA_REWARD_DESCRIPTION: user_input.get(
-                const.CFOF_REWARDS_INPUT_DESCRIPTION, const.SENTINEL_EMPTY
-            ),
-            const.DATA_REWARD_LABELS: user_input.get(
-                const.CFOF_REWARDS_INPUT_LABELS, []
-            ),
-            const.DATA_REWARD_ICON: user_input.get(
-                const.CFOF_REWARDS_INPUT_ICON, const.DEFAULT_REWARD_ICON
-            ),
-            const.DATA_REWARD_INTERNAL_ID: internal_id,
-        }
-    }
-
-
 def validate_rewards_inputs(
     user_input: dict[str, Any], existing_rewards: dict[str, Any] | None = None
 ) -> dict[str, str]:

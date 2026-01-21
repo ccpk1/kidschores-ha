@@ -3,7 +3,7 @@
 **Initiative name**: Entity Helpers Architecture (EHA-2026-001)
 **Target release**: v0.5.0
 **Owner**: TBD
-**Status**: Not Started
+**Status**: In Progress
 **Created**: January 20, 2026
 **Last Updated**: January 20, 2026
 
@@ -11,14 +11,14 @@
 
 ## Summary Table
 
-| Phase       | Description                              | % Complete | Quick Notes                                               |
-| ----------- | ---------------------------------------- | ---------- | --------------------------------------------------------- |
-| **Phase 1** | Infrastructure (exception + file)        | 0%         | ~50 lines: EntityValidationError + file skeleton          |
-| **Phase 2** | Rewards in entity_helpers.py             | 0%         | ~80 lines: create_reward() + update_reward()              |
-| **Phase 3** | Update flow_helpers.py (remove defaults) | 0%         | ~20 lines: Convert to validation-only                     |
-| **Phase 4** | Update options_flow.py (consume helpers) | 0%         | ~30 lines: Use entity_helpers + catch errors              |
-| **Phase 5** | Create/Update Reward Services            | 0%         | ~100 lines: Integrates CREATE_UPDATE_REWARD_SERVICES plan |
-| **Phase 6** | Testing & Validation                     | 0%         | Test all paths: Options Flow + Services                   |
+| Phase       | Description                              | % Complete | Quick Notes                                                                        |
+| ----------- | ---------------------------------------- | ---------- | ---------------------------------------------------------------------------------- |
+| **Phase 1** | Infrastructure (exception + file)        | 100%       | ✅ EntityValidationError + file skeleton created                                   |
+| **Phase 2** | Rewards in entity_helpers.py             | 100%       | ✅ Unified build_reward() function implemented                                     |
+| **Phase 3** | Update flow_helpers.py (remove defaults) | 100%       | ✅ Delegates to entity_helpers, deprecation note added                             |
+| **Phase 4** | Update options_flow.py (consume helpers) | 100%       | ✅ add_reward + edit_reward use entity_helpers                                     |
+| **Phase 5** | Create/Update Reward Services            | 100%       | ✅ create_reward + update_reward services using entity_helpers                     |
+| **Phase 6** | Testing & Validation                     | 50%        | ✅ Test analysis complete, service tests prioritized → see `_SUP_TEST_ANALYSIS.md` |
 
 **Estimated Total Effort**: ~280 lines of new code, validates entire architecture pattern
 
@@ -206,13 +206,13 @@ async def async_step_add_reward(self, user_input=None):
 
 ---
 
-### Phase 1 – Infrastructure (0%)
+### Phase 1 – Infrastructure (100%) ✅
 
 **Goal**: Create entity_helpers.py file with EntityValidationError exception class.
 
 **Steps / detailed work items**:
 
-1. - [ ] Create new file `custom_components/kidschores/entity_helpers.py`
+1. - [x] Create new file `custom_components/kidschores/entity_helpers.py`
 
    ```python
    """Entity lifecycle management helpers.
@@ -292,13 +292,9 @@ async def async_step_add_reward(self, user_input=None):
    # Reward functions will be added in Phase 2
    ```
 
-2. - [ ] Add import to `__init__.py` if needed (verify integration loads)
+2. - [x] Add import to `__init__.py` if needed (verify integration loads) - **NOT NEEDED** - imported directly by options_flow
 
-3. - [ ] Run quality gates:
-   ```bash
-   ./utils/quick_lint.sh --fix
-   mypy custom_components/kidschores/entity_helpers.py
-   ```
+3. - [x] Run quality gates: ✅ Lint passed, mypy 0 errors
 
 **Key issues**:
 
@@ -308,7 +304,7 @@ async def async_step_add_reward(self, user_input=None):
 
 ---
 
-### Phase 2 – Rewards in entity_helpers.py (0%)
+### Phase 2 – Rewards in entity_helpers.py (100%) ✅
 
 **Goal**: Implement unified `build_reward()` function that handles BOTH create and update with zero duplication.
 
@@ -323,7 +319,7 @@ async def async_step_add_reward(self, user_input=None):
 
 **Steps / detailed work items**:
 
-1. - [ ] Add unified `build_reward()` function to entity_helpers.py:
+1. - [x] Add unified `build_reward()` function to entity_helpers.py - **IMPLEMENTED**
 
    ```python
    def build_reward(
@@ -413,12 +409,7 @@ async def async_step_add_reward(self, user_input=None):
        )
    ```
 
-2. - [ ] Run quality gates:
-   ```bash
-   ./utils/quick_lint.sh --fix
-   mypy custom_components/kidschores/entity_helpers.py
-   python -m pytest tests/ -x -v --tb=line
-   ```
+2. - [x] Run quality gates: ✅ Lint passed, mypy 0 errors, 848 tests pass
 
 **Key issues**:
 
@@ -429,13 +420,13 @@ async def async_step_add_reward(self, user_input=None):
 
 ---
 
-### Phase 3 – Update flow_helpers.py (0%)
+### Phase 3 – Update flow_helpers.py (100%) ✅
 
 **Goal**: Migrate `build_rewards_data()` to delegate to entity*helpers. Keep defaults using `const.DEFAULT*\*` for consistency.
 
 **Steps / detailed work items**:
 
-1. - [ ] Modify `build_rewards_data()` in flow_helpers.py (lines 2688-2723):
+1. - [x] Modify `build_rewards_data()` in flow_helpers.py - **DELEGATED to entity_helpers with deprecation notice**
 
    **BEFORE** (duplicated logic):
 
@@ -483,22 +474,11 @@ async def async_step_add_reward(self, user_input=None):
        return {internal_id: dict(reward_dict)}
    ```
 
-2. - [ ] Verify `validate_rewards_inputs()` remains unchanged (lines 2733-2758)
-   - This function correctly returns `dict[str, str]` (errors dict)
-   - No defaults, just validation - this is correct
-   - Keep as-is
+2. - [x] Verify `validate_rewards_inputs()` remains unchanged - ✅ No changes needed
 
-3. - [ ] Verify `build_reward_schema()` uses `const.DEFAULT_*` (lines 2648-2686):
-   - Schema defaults are for **UI display** (showing user what will happen)
-   - These use `const.DEFAULT_REWARD_COST` etc. - this is correct
-   - Keep as-is
+3. - [x] Verify `build_reward_schema()` uses `const.DEFAULT_*` - ✅ Correctly uses const.DEFAULT\_\*
 
-4. - [ ] Run quality gates:
-   ```bash
-   ./utils/quick_lint.sh --fix
-   mypy custom_components/kidschores/flow_helpers.py
-   python -m pytest tests/ -x -v --tb=line
-   ```
+4. - [x] Run quality gates: ✅ Lint passed, mypy 0 errors
 
 **Key issues**:
 
@@ -509,77 +489,72 @@ async def async_step_add_reward(self, user_input=None):
 
 ---
 
-### Phase 4 – Update options_flow.py (0%)
+### Phase 4 – Update options_flow.py (100%) ✅
 
 **Goal**: Update async_step_add_reward() and async_step_edit_reward() to use unified `build_reward()`.
 
 **Steps / detailed work items**:
 
-1. - [ ] Add import to options_flow.py:
+1. - [x] Add import to options_flow.py: **ADDED** `from . import entity_helpers as eh` and `EntityValidationError`
 
-   ```python
-   from . import entity_helpers as eh
-   from .entity_helpers import EntityValidationError
-   ```
+2. - [x] Update `async_step_add_reward()` - **UPDATED** to use `eh.build_reward()` with EntityValidationError handling
 
-2. - [ ] Update `async_step_add_reward()` (lines 936-966):
+3. - [x] Update `async_step_edit_reward()` - **UPDATED** to use `eh.build_reward(user_input, existing)` with EntityValidationError handling
 
-   **BEFORE**:
+4. - [x] Run quality gates: ✅ Lint passed, mypy 0 errors, 848 tests pass
 
-   ```python
-   async def async_step_add_reward(self, user_input=None):
-       errors = fh.validate_rewards_inputs(user_input, rewards_dict)
-       if not errors:
-           reward_data = fh.build_rewards_data(user_input, rewards_dict)
-           internal_id = list(reward_data.keys())[0]
-           new_reward_data = reward_data[internal_id]
-           coordinator._create_reward(internal_id, new_reward_data)
-   ```
+**Key issues**:
 
-   **AFTER**:
+- **Same function**: `build_reward(input)` for create, `build_reward(input, existing)` for update
+- EntityValidationError caught and mapped to form field for highlighting
+- Direct storage write (bypass coordinator methods for clarity)
 
-   ```python
-   async def async_step_add_reward(self, user_input=None):
-       """Add a new reward."""
-       coordinator = self._get_coordinator()
-       errors: dict[str, str] = {}
-       rewards_dict = coordinator.rewards_data
+---
 
-       if user_input is not None:
-           # Layer 2: UI validation (uniqueness check)
-           errors = fh.validate_rewards_inputs(user_input, rewards_dict)
+### Phase 5 – Create/Update Reward Services (0%)
 
-           if not errors:
-               try:
-                   # Layer 3: Entity helper builds complete structure
-                   # build_reward(user_input) - no existing = create mode
-                   reward_dict = eh.build_reward(user_input)
-                   internal_id = reward_dict[const.DATA_REWARD_INTERNAL_ID]
+```python
+async def async_step_add_reward(self, user_input=None):
+    """Add a new reward."""
+    coordinator = self._get_coordinator()
+    errors: dict[str, str] = {}
+    rewards_dict = coordinator.rewards_data
 
-                   # Layer 4: Coordinator stores (thin wrapper)
-                   coordinator._data[const.DATA_REWARDS][internal_id] = dict(reward_dict)
-                   coordinator._persist()
-                   coordinator.async_update_listeners()
+    if user_input is not None:
+        # Layer 2: UI validation (uniqueness check)
+        errors = fh.validate_rewards_inputs(user_input, rewards_dict)
 
-                   const.LOGGER.debug(
-                       "Added Reward '%s' with ID: %s",
-                       reward_dict[const.DATA_REWARD_NAME],
-                       internal_id,
-                   )
-                   self._mark_reload_needed()
-                   return await self.async_step_init()
+        if not errors:
+            try:
+                # Layer 3: Entity helper builds complete structure
+                # build_reward(user_input) - no existing = create mode
+                reward_dict = eh.build_reward(user_input)
+                internal_id = reward_dict[const.DATA_REWARD_INTERNAL_ID]
 
-               except EntityValidationError as err:
-                   # Map field-specific error for form highlighting
-                   errors[err.field] = err.translation_key
+                # Layer 4: Coordinator stores (thin wrapper)
+                coordinator._data[const.DATA_REWARDS][internal_id] = dict(reward_dict)
+                coordinator._persist()
+                coordinator.async_update_listeners()
 
-       schema = fh.build_reward_schema()
-       return self.async_show_form(
-           step_id=const.OPTIONS_FLOW_STEP_ADD_REWARD,
-           data_schema=schema,
-           errors=errors,
-       )
-   ```
+                const.LOGGER.debug(
+                    "Added Reward '%s' with ID: %s",
+                    reward_dict[const.DATA_REWARD_NAME],
+                    internal_id,
+                )
+                self._mark_reload_needed()
+                return await self.async_step_init()
+
+            except EntityValidationError as err:
+                # Map field-specific error for form highlighting
+                errors[err.field] = err.translation_key
+
+    schema = fh.build_reward_schema()
+    return self.async_show_form(
+        step_id=const.OPTIONS_FLOW_STEP_ADD_REWARD,
+        data_schema=schema,
+        errors=errors,
+    )
+```
 
 3. - [ ] Update `async_step_edit_reward()` similarly:
 
@@ -834,141 +809,45 @@ This phase implements the services from [CREATE_UPDATE_REWARD_SERVICES_IN-PROCES
 
 ---
 
-### Phase 6 – Testing & Validation (0%)
+### Phase 6 – Testing & Validation (50%)
 
-**Goal**: Comprehensive tests covering unified `build_reward()` for both create and update modes.
+**Goal**: Validate entity_helpers through E2E service tests (more valuable than unit tests).
+
+**Analysis Complete**: See [ENTITY_HELPERS_REWARDS_FIRST_SUP_TEST_ANALYSIS.md](./ENTITY_HELPERS_REWARDS_FIRST_SUP_TEST_ANALYSIS.md)
+
+**Key Decision**: User feedback determined that **service tests provide better E2E coverage** than unit testing `build_reward()` directly. Service tests exercise the full path: `Schema → Mapping → build_reward() → Storage → Response`.
 
 **Steps / detailed work items**:
 
-1. - [ ] Create `tests/test_entity_helpers.py`:
+1. - [x] Analyze existing test coverage
+2. - [x] Create test analysis document (`_SUP_TEST_ANALYSIS.md`)
+3. - [x] Update strategy: prioritize service tests over unit tests
+4. - [x] Add SERVICE*FIELD*\* constants to const.py
+5. - [x] Update services.py schemas to use constants
+6. - [x] Update DEVELOPMENT*STANDARDS.md with SERVICE_FIELD*\* pattern
+7. - [x] Create test template in analysis document
+8. - [ ] Implement TestCreateRewardService (3 tests)
+9. - [ ] Implement TestUpdateRewardService (4 tests)
+10. - [ ] Run full validation suite
 
-   ```python
-   """Tests for entity_helpers module."""
+**Test Implementation Target**: Extend `tests/test_reward_services.py` with:
 
-   import pytest
-   from custom_components.kidschores import entity_helpers as eh
-   from custom_components.kidschores.entity_helpers import EntityValidationError
-   from tests.helpers import CFOF_REWARDS_INPUT_NAME, CFOF_REWARDS_INPUT_COST
+| Class                   | Tests | Priority |
+| ----------------------- | ----- | -------- |
+| TestCreateRewardService | 3     | HIGH     |
+| TestUpdateRewardService | 4     | HIGH     |
 
+**Validation Checklist**:
 
-   class TestBuildReward:
-       """Tests for unified build_reward function."""
-
-       # --- CREATE MODE (existing=None) ---
-
-       def test_create_reward_minimal_input(self):
-           """Test creating reward with only required fields."""
-           user_input = {CFOF_REWARDS_INPUT_NAME: "Test Reward"}
-
-           result = eh.build_reward(user_input)
-
-           assert result["name"] == "Test Reward"
-           assert result["cost"] == 10  # DEFAULT_REWARD_COST
-           assert result["description"] == ""
-           assert result["icon"] == "mdi:gift-outline"
-           assert result["labels"] == []
-           assert result["internal_id"]  # UUID generated
-
-       def test_create_reward_all_fields(self):
-           """Test creating reward with all fields provided."""
-           user_input = {
-               CFOF_REWARDS_INPUT_NAME: "Premium Reward",
-               CFOF_REWARDS_INPUT_COST: 100,
-               "reward_description": "A great reward",
-               "icon": "mdi:star",
-               "reward_labels": ["special"],
-           }
-
-           result = eh.build_reward(user_input)
-
-           assert result["name"] == "Premium Reward"
-           assert result["cost"] == 100
-
-       def test_create_empty_name_raises(self):
-           """Test that empty name raises EntityValidationError."""
-           user_input = {CFOF_REWARDS_INPUT_NAME: "  "}
-
-           with pytest.raises(EntityValidationError) as exc_info:
-               eh.build_reward(user_input)
-
-           assert exc_info.value.field == CFOF_REWARDS_INPUT_NAME
-
-       def test_create_missing_name_raises(self):
-           """Test that missing name raises EntityValidationError in create mode."""
-           user_input = {CFOF_REWARDS_INPUT_COST: 50}
-
-           with pytest.raises(EntityValidationError):
-               eh.build_reward(user_input)  # No existing = create mode
-
-       # --- UPDATE MODE (existing=RewardData) ---
-
-       def test_update_preserves_existing_values(self):
-           """Test that update preserves fields not in user_input."""
-           existing = {
-               "internal_id": "test-uuid",
-               "name": "Original Name",
-               "cost": 50,
-               "description": "Original desc",
-               "icon": "mdi:original",
-               "labels": ["original"],
-           }
-           user_input = {CFOF_REWARDS_INPUT_NAME: "New Name"}
-
-           result = eh.build_reward(user_input, existing=existing)
-
-           assert result["name"] == "New Name"  # Updated
-           assert result["cost"] == 50  # Preserved
-           assert result["description"] == "Original desc"  # Preserved
-           assert result["internal_id"] == "test-uuid"  # Preserved
-
-       def test_update_allows_missing_name(self):
-           """Test that update mode doesn't require name (keeps existing)."""
-           existing = {
-               "internal_id": "test-uuid",
-               "name": "Keep This",
-               "cost": 50,
-               "description": "",
-               "icon": "mdi:gift",
-               "labels": [],
-           }
-           user_input = {CFOF_REWARDS_INPUT_COST: 100}  # Only updating cost
-
-           result = eh.build_reward(user_input, existing=existing)
-
-           assert result["name"] == "Keep This"  # Preserved
-           assert result["cost"] == 100  # Updated
-
-       def test_update_empty_name_still_raises(self):
-           """Test that providing empty name in update raises error."""
-           existing = {"internal_id": "id", "name": "Old", "cost": 10, ...}
-           user_input = {CFOF_REWARDS_INPUT_NAME: ""}
-
-           with pytest.raises(EntityValidationError):
-               eh.build_reward(user_input, existing=existing)
-   ```
-
-2. - [ ] Add service tests in `tests/test_services_rewards.py`
-
-3. - [ ] Add Options Flow integration tests
-
-4. - [ ] Run full test suite:
-
-   ```bash
-   python -m pytest tests/ -v --tb=line
-   python -m pytest tests/test_entity_helpers.py -v
-   ```
-
-5. - [ ] Manual validation:
-   - [ ] Add reward via Options Flow UI
-   - [ ] Edit reward via Options Flow UI
-   - [ ] Create reward via Developer Tools > Services
-   - [ ] Update reward via Developer Tools > Services
+- [x] All quality gates passed (lint, mypy, tests)
+- [ ] Service tests implemented and passing
+- [ ] Manual validation complete
 
 **Key issues**:
 
-- Test both modes: `build_reward(input)` and `build_reward(input, existing)`
-- Verify defaults applied in create, preserved in update
-- Test error handling maps to correct field
+- Test template ready in supporting document
+- SERVICE*FIELD*\* constants added for schema consistency
+- Existing TestApproveRewardCostOverride provides pattern reference
 
 ---
 

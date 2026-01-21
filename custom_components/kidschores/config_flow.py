@@ -12,7 +12,7 @@ from homeassistant.core import callback
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
-from . import const, flow_helpers as fh
+from . import const, entity_helpers as eh, flow_helpers as fh
 from .options_flow import KidsChoresOptionsFlowHandler
 
 # Pylint disable for valid config flow architectural patterns:
@@ -568,13 +568,12 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             )
 
             if not errors:
-                # Build and store kid data
-                kid_data = fh.build_kids_data(user_input, self._kids_temp)
-                self._kids_temp.update(kid_data)
+                # Use unified eh.build_kid() pattern
+                kid_data = dict(eh.build_kid(user_input))
+                internal_id = str(kid_data[const.DATA_KID_INTERNAL_ID])
+                self._kids_temp[internal_id] = kid_data
 
-                # Get internal_id and name for logging
-                internal_id = list(kid_data.keys())[0]
-                kid_name = kid_data[internal_id][const.DATA_KID_NAME]
+                kid_name = str(kid_data[const.DATA_KID_NAME])
                 const.LOGGER.debug(
                     "DEBUG: Added Kid: %s with ID: %s", kid_name, internal_id
                 )
@@ -645,23 +644,36 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             )
 
             if not errors:
-                # Build and store parent data
-                parent_data = fh.build_parents_data(user_input, self._parents_temp)
-
-                # Get internal_id and parent info
-                internal_id = list(parent_data.keys())[0]
-                parent_info = parent_data[internal_id]
-                parent_name = parent_info[const.DATA_PARENT_NAME]
+                # Use unified eh.build_parent() pattern
+                parent_data = dict(eh.build_parent(user_input))
+                internal_id = str(parent_data[const.DATA_PARENT_INTERNAL_ID])
+                parent_name = str(parent_data[const.DATA_PARENT_NAME])
 
                 # Create shadow kid if chore assignment is enabled
-                if parent_info.get(const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT, False):
-                    shadow_kid_id, shadow_kid_data = fh.build_shadow_kid_data(
-                        internal_id, parent_info
+                if parent_data.get(const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT, False):
+                    # Build shadow kid input from parent data
+                    shadow_input = {
+                        const.CFOF_KIDS_INPUT_KID_NAME: parent_name,
+                        const.CFOF_KIDS_INPUT_HA_USER: parent_data.get(
+                            const.DATA_PARENT_HA_USER_ID, ""
+                        ),
+                        const.CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE: parent_data.get(
+                            const.DATA_PARENT_DASHBOARD_LANGUAGE,
+                            const.DEFAULT_DASHBOARD_LANGUAGE,
+                        ),
+                        # Shadow kids have notifications disabled by default
+                        const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: const.SENTINEL_EMPTY,
+                    }
+                    shadow_kid_data = dict(
+                        eh.build_kid(
+                            shadow_input, is_shadow=True, linked_parent_id=internal_id
+                        )
                     )
+                    shadow_kid_id = str(shadow_kid_data[const.DATA_KID_INTERNAL_ID])
                     # Add shadow kid to kids temp so it appears in chore assignment
                     self._kids_temp[shadow_kid_id] = shadow_kid_data
                     # Link shadow kid to parent
-                    parent_info[const.DATA_PARENT_LINKED_SHADOW_KID_ID] = shadow_kid_id
+                    parent_data[const.DATA_PARENT_LINKED_SHADOW_KID_ID] = shadow_kid_id
                     const.LOGGER.debug(
                         "DEBUG: Created shadow kid '%s' (ID: %s) for parent '%s'",
                         shadow_kid_data[const.DATA_KID_NAME],
@@ -669,7 +681,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                         parent_name,
                     )
 
-                self._parents_temp.update(parent_data)
+                self._parents_temp[internal_id] = parent_data
                 const.LOGGER.debug(
                     "DEBUG: Added Parent: %s with ID: %s", parent_name, internal_id
                 )
@@ -950,10 +962,14 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         if user_input is not None:
             errors = fh.validate_rewards_inputs(user_input, self._rewards_temp)
             if not errors:
-                reward_data = fh.build_rewards_data(user_input, self._rewards_temp)
-                self._rewards_temp.update(reward_data)
-                internal_id = list(reward_data.keys())[0]
-                reward_name = reward_data[internal_id][const.DATA_REWARD_NAME]
+                # Generate internal_id for new reward
+                internal_id = str(uuid.uuid4())
+
+                # Use unified eh.build_reward() pattern
+                reward_data = dict(eh.build_reward(user_input))
+                self._rewards_temp[internal_id] = reward_data
+
+                reward_name = reward_data[const.DATA_REWARD_NAME]
                 const.LOGGER.debug(
                     "DEBUG: Added Reward: %s with ID: %s", reward_name, internal_id
                 )

@@ -2147,6 +2147,8 @@ SERVICE_APPLY_PENALTY: Final = "apply_penalty"
 SERVICE_APPROVE_CHORE: Final = "approve_chore"
 SERVICE_APPROVE_REWARD: Final = "approve_reward"
 SERVICE_CLAIM_CHORE: Final = "claim_chore"
+SERVICE_CREATE_REWARD: Final = "create_reward"
+SERVICE_DELETE_REWARD: Final = "delete_reward"
 SERVICE_DISAPPROVE_CHORE: Final = "disapprove_chore"
 SERVICE_DISAPPROVE_REWARD: Final = "disapprove_reward"
 SERVICE_REDEEM_REWARD: Final = "redeem_reward"
@@ -2160,25 +2162,67 @@ SERVICE_RESET_REWARDS: Final = "reset_rewards"
 SERVICE_SET_CHORE_DUE_DATE: Final = "set_chore_due_date"
 SERVICE_SKIP_CHORE_DUE_DATE: Final = "skip_chore_due_date"
 SERVICE_MANAGE_SHADOW_LINK: Final = "manage_shadow_link"
+SERVICE_UPDATE_REWARD: Final = "update_reward"
 
 
 # ------------------------------------------------------------------------------------------------
-# Field Names (for service calls)
+# Service Field Names (user-facing API for service calls)
 # ------------------------------------------------------------------------------------------------
-FIELD_BADGE_NAME = "badge_name"
-FIELD_BONUS_NAME = "bonus_name"
-FIELD_CHORE_ID = "chore_id"
-FIELD_CHORE_NAME = "chore_name"
-FIELD_COST_OVERRIDE = "cost_override"
-FIELD_DUE_DATE = "due_date"
-FIELD_KID_ID = "kid_id"
-FIELD_KID_NAME = "kid_name"
-FIELD_PARENT_NAME = "parent_name"
-FIELD_PENALTY_NAME = "penalty_name"
-FIELD_POINTS_AWARDED = "points_awarded"
-FIELD_REWARD_NAME = "reward_name"
-FIELD_NAME = "name"
-FIELD_ACTION = "action"
+# These are the field names users see in automations/scripts. They should be:
+# - User-friendly ("name" not "reward_name" for create_reward service)
+# - Consistent across similar services
+# - Mapped to CFOF_* constants internally via _SERVICE_TO_*_FORM_MAPPING
+#
+# Pattern: SERVICE_FIELD_{ENTITY}_{FIELD} for entity-specific fields
+#          SERVICE_FIELD_{FIELD} for cross-entity fields (kid_name, parent_name)
+# ------------------------------------------------------------------------------------------------
+
+# Cross-entity service fields (used by multiple services)
+SERVICE_FIELD_KID_NAME: Final = "kid_name"
+SERVICE_FIELD_KID_ID: Final = "kid_id"
+SERVICE_FIELD_PARENT_NAME: Final = "parent_name"
+SERVICE_FIELD_ACTION: Final = "action"
+
+# Chore service fields
+SERVICE_FIELD_CHORE_NAME: Final = "chore_name"
+SERVICE_FIELD_CHORE_ID: Final = "chore_id"
+SERVICE_FIELD_CHORE_DUE_DATE: Final = "due_date"
+SERVICE_FIELD_CHORE_POINTS_AWARDED: Final = "points_awarded"
+
+# Reward service fields (CRUD + workflow)
+SERVICE_FIELD_REWARD_ID: Final = "id"
+SERVICE_FIELD_REWARD_NAME: Final = "name"
+SERVICE_FIELD_REWARD_COST: Final = "cost"
+SERVICE_FIELD_REWARD_COST_OVERRIDE: Final = "cost_override"
+SERVICE_FIELD_REWARD_DESCRIPTION: Final = "description"
+SERVICE_FIELD_REWARD_ICON: Final = "icon"
+SERVICE_FIELD_REWARD_LABELS: Final = "labels"
+
+# Penalty service fields
+SERVICE_FIELD_PENALTY_NAME: Final = "penalty_name"
+
+# Bonus service fields
+SERVICE_FIELD_BONUS_NAME: Final = "bonus_name"
+
+# Badge service fields
+SERVICE_FIELD_BADGE_NAME: Final = "badge_name"
+
+# Legacy aliases (for backwards compatibility with existing automations)
+# TODO: Deprecate in v0.6.0 after migration period
+FIELD_BADGE_NAME = SERVICE_FIELD_BADGE_NAME
+FIELD_BONUS_NAME = SERVICE_FIELD_BONUS_NAME
+FIELD_CHORE_ID = SERVICE_FIELD_CHORE_ID
+FIELD_CHORE_NAME = SERVICE_FIELD_CHORE_NAME
+FIELD_COST_OVERRIDE = SERVICE_FIELD_REWARD_COST_OVERRIDE
+FIELD_DUE_DATE = SERVICE_FIELD_CHORE_DUE_DATE
+FIELD_KID_ID = SERVICE_FIELD_KID_ID
+FIELD_KID_NAME = SERVICE_FIELD_KID_NAME
+FIELD_PARENT_NAME = SERVICE_FIELD_PARENT_NAME
+FIELD_PENALTY_NAME = SERVICE_FIELD_PENALTY_NAME
+FIELD_POINTS_AWARDED = SERVICE_FIELD_CHORE_POINTS_AWARDED
+FIELD_REWARD_NAME = SERVICE_FIELD_REWARD_NAME
+FIELD_NAME = "name"  # Generic, kept for simple services
+FIELD_ACTION = SERVICE_FIELD_ACTION
 
 # Action values for manage_shadow_link service
 ACTION_LINK: Final = "link"
@@ -2301,6 +2345,9 @@ TRANS_KEY_ERROR_INVALID_DATE_FORMAT: Final = (
 )
 TRANS_KEY_ERROR_DATE_IN_PAST: Final = "date_in_past"  # Due date cannot be in the past
 TRANS_KEY_ERROR_MISSING_CHORE: Final = "missing_chore"  # Must provide chore ID or name
+TRANS_KEY_ERROR_MISSING_REWARD_IDENTIFIER: Final = (
+    "missing_reward_identifier"  # Must provide reward_id or reward_name
+)
 TRANS_KEY_ERROR_CHORE_CLAIMED_BY_OTHER: Final = (
     "chore_claimed_by_other"  # Chore already claimed by another kid
 )
@@ -2312,6 +2359,9 @@ TRANS_KEY_ERROR_CHORE_PENDING_CLAIM: Final = (
 )
 TRANS_KEY_ERROR_CHORE_COMPLETED_BY_OTHER: Final = (
     "chore_completed_by_other"  # SHARED_FIRST chore already completed by another kid
+)
+TRANS_KEY_ERROR_REWARD_NOT_FOUND: Final = (
+    "reward_not_found"  # Reward with ID '{reward_id}' not found
 )
 
 # Translation Keys for Phase 2-4 Error Migration (Action Templating)

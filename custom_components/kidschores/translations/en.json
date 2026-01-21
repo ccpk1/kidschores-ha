@@ -1779,6 +1779,89 @@
         }
       }
     },
+    "create_reward": {
+      "name": "Create reward",
+      "description": "Create a new reward programmatically.",
+      "fields": {
+        "name": {
+          "name": "Name",
+          "description": "The name of the reward.",
+          "example": "Extra Screen Time"
+        },
+        "cost": {
+          "name": "Cost",
+          "description": "Points required to claim the reward.",
+          "example": "10"
+        },
+        "description": {
+          "name": "Description",
+          "description": "Optional description of the reward.",
+          "example": "30 minutes of extra tablet time"
+        },
+        "icon": {
+          "name": "Icon",
+          "description": "Icon to represent the reward.",
+          "example": "mdi:gift"
+        },
+        "labels": {
+          "name": "Labels",
+          "description": "Labels for grouping rewards.",
+          "example": "weekend, special"
+        }
+      }
+    },
+    "update_reward": {
+      "name": "Update reward",
+      "description": "Update an existing reward (partial updates supported).",
+      "fields": {
+        "id": {
+          "name": "Reward ID",
+          "description": "Internal ID of the reward to update. Use either id OR name.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Name",
+          "description": "Name of the reward to update, or new name for the reward.",
+          "example": "Extra Screen Time"
+        },
+        "cost": {
+          "name": "Cost",
+          "description": "Updated cost value.",
+          "example": "15"
+        },
+        "description": {
+          "name": "Description",
+          "description": "Updated description.",
+          "example": "45 minutes of extra tablet time"
+        },
+        "icon": {
+          "name": "Icon",
+          "description": "Updated icon.",
+          "example": "mdi:star"
+        },
+        "labels": {
+          "name": "Labels",
+          "description": "Updated labels.",
+          "example": "premium, special"
+        }
+      }
+    },
+    "delete_reward": {
+      "name": "Delete Reward",
+      "description": "Delete a reward by ID or name.",
+      "fields": {
+        "id": {
+          "name": "Reward ID",
+          "description": "Internal ID of the reward to delete. Use either id OR name.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Name",
+          "description": "Name of the reward to delete.",
+          "example": "Extra Screen Time"
+        }
+      }
+    },
     "reset_all_data": {
       "name": "Reset All Data",
       "description": "Completely clears the KidsChores data from storage."
@@ -3488,6 +3571,9 @@
     "shared_chore_cannot_have_kid": {
       "message": "Cannot specify kid for shared chore {chore_name}. Shared chores have one due date for all kids."
     },
+    "reward_not_found": {
+      "message": "Reward with ID '{reward_id}' not found"
+    },
     "required_field": {
       "message": "Must provide {field}"
     },
@@ -3499,6 +3585,9 @@
     },
     "missing_chore": {
       "message": "Must provide either chore ID or chore name."
+    },
+    "missing_reward_identifier": {
+      "message": "Must provide either reward_id or reward_name to identify the reward to update."
     },
     "missing_field": {
       "message": "Required field {field} is missing from {entity}"

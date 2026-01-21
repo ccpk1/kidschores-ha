@@ -6,9 +6,9 @@ Includes UI editor support with selectors for dropdowns and text inputs.
 """
 
 from datetime import datetime
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv, entity_registry as er
 from homeassistant.util import dt as dt_util
@@ -148,6 +148,76 @@ MANAGE_SHADOW_LINK_SCHEMA = vol.Schema(
         ),
     }
 )
+
+# ==============================================================================
+# REWARD CRUD SCHEMAS (using entity_helpers pattern)
+# ==============================================================================
+
+# NOTE: cost is REQUIRED for create_reward - no invisible defaults for automations
+CREATE_REWARD_SCHEMA = vol.Schema(
+    {
+        vol.Required(const.SERVICE_FIELD_REWARD_NAME): cv.string,
+        vol.Required(const.SERVICE_FIELD_REWARD_COST): vol.Coerce(float),
+        vol.Optional(const.SERVICE_FIELD_REWARD_DESCRIPTION, default=""): cv.string,
+        vol.Optional(
+            const.SERVICE_FIELD_REWARD_ICON, default=const.DEFAULT_REWARD_ICON
+        ): cv.icon,
+        vol.Optional(const.SERVICE_FIELD_REWARD_LABELS, default=[]): vol.All(
+            cv.ensure_list, [cv.string]
+        ),
+    }
+)
+
+# NOTE: Either reward_id OR reward_name must be provided (resolved in handler)
+# reward_name is user-friendly; reward_id is for advanced automation use
+UPDATE_REWARD_SCHEMA = vol.Schema(
+    {
+        vol.Optional(const.SERVICE_FIELD_REWARD_ID): cv.string,
+        vol.Optional(const.SERVICE_FIELD_REWARD_NAME): cv.string,
+        vol.Optional(const.SERVICE_FIELD_REWARD_COST): vol.Coerce(float),
+        vol.Optional(const.SERVICE_FIELD_REWARD_DESCRIPTION): cv.string,
+        vol.Optional(const.SERVICE_FIELD_REWARD_ICON): cv.icon,
+        vol.Optional(const.SERVICE_FIELD_REWARD_LABELS): vol.All(
+            cv.ensure_list, [cv.string]
+        ),
+    }
+)
+
+# NOTE: Either reward_id OR reward_name must be provided (resolved in handler)
+DELETE_REWARD_SCHEMA = vol.Schema(
+    {
+        vol.Optional(const.SERVICE_FIELD_REWARD_ID): cv.string,
+        vol.Optional(const.SERVICE_FIELD_REWARD_NAME): cv.string,
+    }
+)
+
+# Map service fields to CFOF_* form field names
+# This bridges user-friendly service API → internal form field names
+_SERVICE_TO_REWARD_FORM_MAPPING: dict[str, str] = {
+    const.SERVICE_FIELD_REWARD_NAME: const.CFOF_REWARDS_INPUT_NAME,
+    const.SERVICE_FIELD_REWARD_COST: const.CFOF_REWARDS_INPUT_COST,
+    const.SERVICE_FIELD_REWARD_DESCRIPTION: const.CFOF_REWARDS_INPUT_DESCRIPTION,
+    const.SERVICE_FIELD_REWARD_ICON: const.CFOF_REWARDS_INPUT_ICON,
+    const.SERVICE_FIELD_REWARD_LABELS: const.CFOF_REWARDS_INPUT_LABELS,
+}
+
+
+def _map_service_to_form_input(
+    service_data: dict[str, Any],
+    mapping: dict[str, str],
+) -> dict[str, Any]:
+    """Convert service field names to CFOF_* form field names.
+
+    Args:
+        service_data: Data from service call with user-friendly field names
+        mapping: Dict mapping service field names to CFOF_* constants
+
+    Returns:
+        Dict with CFOF_* keys for entity_helpers consumption
+    """
+    return {
+        mapping[key]: value for key, value in service_data.items() if key in mapping
+    }
 
 
 def async_setup_services(hass: HomeAssistant):
@@ -1306,18 +1376,16 @@ def async_setup_services(hass: HomeAssistant):
                     translation_placeholders={"name": name},
                 )
 
-            # Link: Update kid to shadow status
-            coordinator._update_kid(
-                kid_id,
+            # Link: Update kid to shadow status (direct storage update)
+            coordinator._data[const.DATA_KIDS][kid_id].update(
                 {
                     const.DATA_KID_IS_SHADOW: True,
                     const.DATA_KID_LINKED_PARENT_ID: parent_id,
-                },
+                }
             )
 
             # Link: Update parent (enable chore assignment, keep existing settings)
-            coordinator._update_parent(
-                parent_id,
+            coordinator._data[const.DATA_PARENTS][parent_id].update(
                 {
                     const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT: True,
                     const.DATA_PARENT_LINKED_SHADOW_KID_ID: kid_id,
@@ -1330,7 +1398,7 @@ def async_setup_services(hass: HomeAssistant):
                         const.DATA_PARENT_ENABLE_GAMIFICATION,
                         const.DEFAULT_PARENT_ENABLE_GAMIFICATION,
                     ),
-                },
+                }
             )
 
             const.LOGGER.info("Linked kid '%s' to parent '%s' as shadow", name, name)
@@ -1370,6 +1438,250 @@ def async_setup_services(hass: HomeAssistant):
         # Persist and refresh
         coordinator._persist()
         await coordinator.async_request_refresh()
+
+    # ==========================================================================
+    # REWARD CRUD SERVICE HANDLERS (using entity_helpers pattern)
+    # ==========================================================================
+
+    async def handle_create_reward(call: ServiceCall) -> dict[str, Any]:
+        """Handle kidschores.create_reward service call.
+
+        Creates a new reward using entity_helpers.build_reward() for consistent
+        field handling with the Options Flow UI.
+
+        Args:
+            call: Service call with name, cost, description, icon, labels
+
+        Returns:
+            Dict with reward_id of the created reward
+
+        Raises:
+            HomeAssistantError: If no coordinator available or validation fails
+        """
+        from . import entity_helpers as eh
+        from .entity_helpers import EntityValidationError
+
+        entry_id = kh.get_first_kidschores_entry(hass)
+        if not entry_id:
+            const.LOGGER.warning(
+                "Create Reward: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
+            )
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND,
+            )
+
+        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
+            const.COORDINATOR
+        ]
+
+        # Map service fields to form fields for entity_helpers
+        form_input = _map_service_to_form_input(
+            dict(call.data), _SERVICE_TO_REWARD_FORM_MAPPING
+        )
+
+        # Check for duplicate name (Layer 2 validation)
+        errors = fh.validate_rewards_inputs(form_input, coordinator.rewards_data)
+        if errors:
+            trans_key = next(iter(errors.values()))
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=trans_key,
+            )
+
+        try:
+            # build_reward(input) - create mode (no existing)
+            reward_dict = eh.build_reward(form_input)
+            internal_id = reward_dict[const.DATA_REWARD_INTERNAL_ID]
+
+            coordinator._data[const.DATA_REWARDS][internal_id] = dict(reward_dict)
+            coordinator._persist()
+            coordinator.async_update_listeners()
+
+            const.LOGGER.info(
+                "Service created reward '%s' with ID: %s",
+                reward_dict[const.DATA_REWARD_NAME],
+                internal_id,
+            )
+
+            return {const.SERVICE_FIELD_REWARD_ID: internal_id}
+
+        except EntityValidationError as err:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=err.translation_key,
+                translation_placeholders=err.placeholders,
+            ) from err
+
+    async def handle_update_reward(call: ServiceCall) -> dict[str, Any]:
+        """Handle kidschores.update_reward service call.
+
+        Updates an existing reward using entity_helpers.build_reward() for consistent
+        field handling with the Options Flow UI. Only provided fields are updated.
+
+        Accepts either reward_id OR reward_name to identify the reward:
+        - reward_name: User-friendly, looks up ID by name (recommended)
+        - reward_id: Direct UUID for advanced automation use
+
+        Args:
+            call: Service call with reward identifier and optional update fields
+
+        Returns:
+            Dict with reward_id of the updated reward
+
+        Raises:
+            HomeAssistantError: If reward not found, validation fails, or neither
+                reward_id nor reward_name provided
+        """
+        from . import entity_helpers as eh
+        from .entity_helpers import EntityValidationError
+
+        entry_id = kh.get_first_kidschores_entry(hass)
+        if not entry_id:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND,
+            )
+
+        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
+            const.COORDINATOR
+        ]
+
+        # Resolve reward: either reward_id or reward_name must be provided
+        reward_id = call.data.get(const.SERVICE_FIELD_REWARD_ID)
+        reward_name = call.data.get(const.SERVICE_FIELD_REWARD_NAME)
+
+        # If reward_name provided without reward_id, look up the ID
+        if not reward_id and reward_name:
+            try:
+                reward_id = kh.get_entity_id_or_raise(
+                    coordinator, const.ENTITY_TYPE_REWARD, reward_name
+                )
+            except HomeAssistantError as err:
+                const.LOGGER.warning("Update Reward: %s", err)
+                raise
+
+        # Validate we have a reward_id at this point
+        if not reward_id:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_MISSING_REWARD_IDENTIFIER,
+            )
+
+        if reward_id not in coordinator.rewards_data:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_REWARD_NOT_FOUND,
+                translation_placeholders={const.SERVICE_FIELD_REWARD_ID: reward_id},
+            )
+
+        existing_reward = coordinator.rewards_data[reward_id]
+
+        # Build form input, excluding reward_name if it was used for lookup
+        # (don't treat lookup name as a rename request)
+        service_data = dict(call.data)
+        if not call.data.get(const.SERVICE_FIELD_REWARD_ID) and reward_name:
+            # reward_name was used for lookup, not for renaming
+            # Only include it in form_input if there's ALSO a reward_id (explicit rename)
+            service_data.pop(const.SERVICE_FIELD_REWARD_NAME, None)
+
+        form_input = _map_service_to_form_input(
+            service_data, _SERVICE_TO_REWARD_FORM_MAPPING
+        )
+
+        # Validate name uniqueness (exclude current reward) if name is being updated
+        if const.CFOF_REWARDS_INPUT_NAME in form_input:
+            other_rewards = {
+                rid: r
+                for rid, r in coordinator.rewards_data.items()
+                if rid != reward_id
+            }
+            errors = fh.validate_rewards_inputs(form_input, other_rewards)
+            if errors:
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=next(iter(errors.values())),
+                )
+
+        try:
+            # build_reward(input, existing) - update mode
+            reward_dict = eh.build_reward(form_input, existing=existing_reward)
+
+            coordinator._data[const.DATA_REWARDS][reward_id] = dict(reward_dict)
+            coordinator._persist()
+            coordinator.async_update_listeners()
+
+            const.LOGGER.info(
+                "Service updated reward '%s' with ID: %s",
+                reward_dict[const.DATA_REWARD_NAME],
+                reward_id,
+            )
+
+            return {const.SERVICE_FIELD_REWARD_ID: reward_id}
+
+        except EntityValidationError as err:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=err.translation_key,
+            ) from err
+
+    async def handle_delete_reward(call: ServiceCall) -> dict[str, Any]:
+        """Handle kidschores.delete_reward service call.
+
+        Deletes a reward and cleans up all references.
+
+        Accepts either reward_id OR reward_name to identify the reward:
+        - reward_name: User-friendly, looks up ID by name (recommended)
+        - reward_id: Direct UUID for advanced automation use
+
+        Args:
+            call: Service call with reward identifier
+
+        Returns:
+            Dict with reward_id of the deleted reward
+
+        Raises:
+            HomeAssistantError: If reward not found or neither
+                reward_id nor reward_name provided
+        """
+        entry_id = kh.get_first_kidschores_entry(hass)
+        if not entry_id:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND,
+            )
+
+        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
+            const.COORDINATOR
+        ]
+
+        # Resolve reward: either reward_id or reward_name must be provided
+        reward_id = call.data.get(const.SERVICE_FIELD_REWARD_ID)
+        reward_name = call.data.get(const.SERVICE_FIELD_REWARD_NAME)
+
+        # If reward_name provided without reward_id, look up the ID
+        if not reward_id and reward_name:
+            try:
+                reward_id = kh.get_entity_id_or_raise(
+                    coordinator, const.ENTITY_TYPE_REWARD, reward_name
+                )
+            except HomeAssistantError as err:
+                const.LOGGER.warning("Delete Reward: %s", err)
+                raise
+
+        # Validate we have a reward_id at this point
+        if not reward_id:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_MISSING_REWARD_IDENTIFIER,
+            )
+
+        # Use coordinator's delete method (handles cleanup and persistence)
+        coordinator.delete_reward_entity(reward_id)
+
+        const.LOGGER.info("Service deleted reward with ID: %s", reward_id)
+
+        return {const.SERVICE_FIELD_REWARD_ID: reward_id}
 
     hass.services.async_register(
         const.DOMAIN,
@@ -1490,6 +1802,31 @@ def async_setup_services(hass: HomeAssistant):
         schema=MANAGE_SHADOW_LINK_SCHEMA,
     )
 
+    # Register reward CRUD services
+    hass.services.async_register(
+        const.DOMAIN,
+        const.SERVICE_CREATE_REWARD,
+        handle_create_reward,
+        schema=CREATE_REWARD_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    hass.services.async_register(
+        const.DOMAIN,
+        const.SERVICE_UPDATE_REWARD,
+        handle_update_reward,
+        schema=UPDATE_REWARD_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    hass.services.async_register(
+        const.DOMAIN,
+        const.SERVICE_DELETE_REWARD,
+        handle_delete_reward,
+        schema=DELETE_REWARD_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
     const.LOGGER.info("KidsChores services have been registered successfully")
 
 
@@ -1498,6 +1835,7 @@ async def async_unload_services(hass: HomeAssistant):
     services = [
         const.SERVICE_CLAIM_CHORE,
         const.SERVICE_APPROVE_CHORE,
+        const.SERVICE_CREATE_REWARD,
         const.SERVICE_DISAPPROVE_CHORE,
         const.SERVICE_MANAGE_SHADOW_LINK,
         const.SERVICE_REDEEM_REWARD,
@@ -1511,6 +1849,7 @@ async def async_unload_services(hass: HomeAssistant):
         const.SERVICE_RESET_PENALTIES,
         const.SERVICE_RESET_BONUSES,
         const.SERVICE_RESET_REWARDS,
+        const.SERVICE_UPDATE_REWARD,
         const.SERVICE_REMOVE_AWARDED_BADGES,
         const.SERVICE_SET_CHORE_DUE_DATE,
         const.SERVICE_SKIP_CHORE_DUE_DATE,

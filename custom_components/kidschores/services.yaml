@@ -464,3 +464,115 @@ manage_shadow_link:
               value: "link"
             - label: "Unlink (disconnect and rename)"
               value: "unlink"
+
+create_reward:
+  name: "Create Reward"
+  description: "Create a new reward that kids can redeem using their points. Returns the reward_id of the created reward."
+  fields:
+    name:
+      name: "Reward Name"
+      description: "The name of the reward to create."
+      example: "Extra Screen Time"
+      required: true
+      selector:
+        text:
+    cost:
+      name: "Cost"
+      description: "The number of points required to redeem this reward."
+      example: 50
+      required: true
+      selector:
+        number:
+          min: 0
+          mode: box
+    description:
+      name: "Description"
+      description: "Optional description of the reward."
+      example: "30 minutes of extra screen time"
+      required: false
+      selector:
+        text:
+          multiline: true
+    icon:
+      name: "Icon"
+      description: "Material Design icon for the reward."
+      example: "mdi:television"
+      required: false
+      selector:
+        icon:
+    labels:
+      name: "Labels"
+      description: "Optional labels to categorize the reward."
+      example: ["fun", "weekend"]
+      required: false
+      selector:
+        text:
+          multiple: true
+
+update_reward:
+  name: "Update Reward"
+  description: "Update an existing reward's properties. Provide either id OR name to identify the reward. Only provided fields will be updated. Returns the reward_id of the updated reward."
+  fields:
+    id:
+      name: "Reward ID"
+      description: "The internal ID of the reward to update (alternative to name)."
+      example: "abc-123-def-456"
+      required: false
+      selector:
+        text:
+    name:
+      name: "Reward Name (Identifier)"
+      description: "The name of the reward to update (alternative to id). More user-friendly than id."
+      example: "Extra Screen Time"
+      required: false
+      selector:
+        text:
+    cost:
+      name: "Cost"
+      description: "The new number of points required to redeem this reward."
+      example: 75
+      required: false
+      selector:
+        number:
+          min: 0
+          mode: box
+    description:
+      name: "Description"
+      description: "The new description for the reward."
+      example: "45 minutes of extra screen time"
+      required: false
+      selector:
+        text:
+          multiline: true
+    icon:
+      name: "Icon"
+      description: "The new Material Design icon for the reward."
+      example: "mdi:gamepad-variant"
+      required: false
+      selector:
+        icon:
+    labels:
+      name: "Labels"
+      description: "The new labels to categorize the reward."
+      example: ["fun", "gaming"]
+      required: false
+      selector:
+        text:
+          multiple: true
+
+delete_reward:
+  name: Delete Reward
+  description: Delete a reward by ID or name
+  fields:
+    id:
+      name: Reward ID
+      description: Internal ID of the reward to delete (use either id OR name)
+      example: "abc123-def456-789..."
+      selector:
+        text:
+    name:
+      name: Name
+      description: Name of the reward to delete
+      example: "Extra Screen Time"
+      selector:
+        text:

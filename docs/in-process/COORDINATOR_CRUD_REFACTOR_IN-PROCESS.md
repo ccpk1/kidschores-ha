@@ -1,35 +1,145 @@
 # Coordinator CRUD & Entity Management Refactor
 
+# Initiative Plan: Coordinator CRUD Refactor
+
+> **Status**: ✅ **READY FOR IMPLEMENTATION** (All decisions finalized 2026-01-21)
+
+## Executive Summary - Builder Handoff
+
+### What This Refactor Does
+
+Migrate all 9 entity types from legacy CRUD patterns to modern `entity_helpers.build_X()` pattern established in Reward refactor (completed 2026-01-21). This eliminates ~47 lines of stub methods from coordinator.py, standardizes all config/options flows, and adds service-based CRUD for Chores.
+
+### Implementation Scope (All Decisions Final)
+
+| **Decision**         | **Answer**                                                                       | **Impact**                                                             |
+| -------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| **Migration Module** | Keep migration_pre_v50.py unchanged, remove coordinator stubs per-entity         | Migration support preserved, coordinator cleaned incrementally         |
+| **Notifications**    | "Chore Assigned" removed from wiki (✅ completed), no implementation             | Wiki corrected, scope reduced                                          |
+| **Entity Order**     | Kids/Parents → Badges → Chores → Bonuses/Penalties → Achievements/Challenges     | Foundation first (field drift), modular code next, simple/complex last |
+| **Services Scope**   | Chores only (Rewards ✅ done). Config+Options flow refactor for ALL entities     | 2 entity types get services, all 9 get flow standardization            |
+| **Testing**          | Chore service tests + per-entity validation. Existing suite sufficient for flows | Focused testing, leverage 871+ existing tests                          |
+| **Release**          | v0.5.0 (beta), no breaking changes                                               | Single coordinated release                                             |
+| **Documentation**    | Not required (plan sufficient)                                                   | Builder executes directly from plan                                    |
+| **Performance**      | Not required (reward refactor shows <1% impact)                                  | No validation step needed                                              |
+
+### Execution Order (Start Here)
+
+**Phase 1**: Kids & Parents (Foundation)
+
+- Create `entity_helpers.build_kid()` and `build_parent()`
+- Refactor config_flow.py kid/parent creation steps
+- Refactor options_flow.py kid/parent edit steps
+- Remove `_create_kid()`, `_update_kid()`, `_create_parent()`, `_update_parent()` stubs
+- Run: `pytest tests/test_config_flow.py tests/test_options_flow.py -v`
+
+**Phase 2**: Badges (Modular Code)
+
+- Verify `entity_helpers.build_badge()` exists (likely needs creation)
+- Refactor config/options flows for badge CRUD
+- Remove `_create_badge()`, `_update_badge()` stubs
+- Run: `pytest tests/test_workflow_badges.py -v`
+
+**Phase 3**: Chores (Most Complex + Services)
+
+- Create chore services: `kidschores.create_chore`, `kidschores.update_chore`, `kidschores.delete_chore`
+- Refactor config/options flows to use `entity_helpers.build_chore()`
+- Add service tests (follow reward service test pattern)
+- Remove `_create_chore()`, `_update_chore()` stubs
+- Run: `pytest tests/test_services_chores.py tests/test_workflow_chores.py -v`
+
+**Phase 4**: Simple Entities (Bonuses, Penalties)
+
+- Mirror reward pattern exactly (simplest entities)
+- Refactor flows, remove stubs
+- Run: `pytest tests/test_workflow_bonuses.py tests/test_workflow_penalties.py -v`
+
+**Phase 5**: Linked Entities (Achievements, Challenges)
+
+- Handle complex chore relationships carefully
+- Verify relational integrity preserved
+- Remove final stubs
+- Run: `pytest tests/test_workflow_achievements.py tests/test_workflow_challenges.py -v`
+
+**Phase 6**: Final Validation
+
+- Run full test suite: `pytest tests/ -v`
+- Run quality gates: `./utils/quick_lint.sh && mypy custom_components/kidschores/`
+- Verify coordinator.py reduction: ~47 lines removed (stubs eliminated)
+
+### Success Criteria
+
+✅ All 9 entity types use `entity_helpers.build_X()` pattern in config/options flows
+✅ All stub methods removed from coordinator.py
+✅ Chore services functional with tests passing
+✅ All 871+ tests passing
+✅ MyPy clean (zero type errors)
+✅ Coordinator ~47 lines smaller (stub removal only)
+
+### Template Available
+
+See "Lessons Learned from Reward Refactor" section (lines ~400-650) for complete implementation template including:
+
+- Field mapping pattern (`_SERVICE_TO_X_FORM_MAPPING`)
+- Service handler structure (create/update)
+- Config/options flow refactor pattern
+- Testing validation checklist
+- Common pitfalls to avoid
+
+---
+
 ## Initiative snapshot
 
 - **Name / Code**: Coordinator CRUD Refactor (CCR-2026-001)
-- **Target release / milestone**: v0.6.1 (post parent-chores merge)
+- **Target release / milestone**: v0.5.0 (beta)
 - **Owner / driver(s)**: Development Team
-- **Status**: Not started (Planning phase)
+- **Status**: Ready for implementation (Planning complete ✅)
 
 ## Summary & immediate steps
 
-| Phase / Step                | Description                                | % complete | Quick notes                                   |
-| --------------------------- | ------------------------------------------ | ---------- | --------------------------------------------- |
-| Phase 1 – Foundation        | Extract generic helpers, add validation    | 0%         | ~800 lines → ~200 lines + helper module       |
-| Phase 2 – Performance       | Optimize entity registry operations        | 0%         | Target: 80%+ reduction in cleanup overhead    |
-| Phase 3 – Organization      | Consolidate cleanup orchestration          | 0%         | 8 cleanup methods → unified orchestrator      |
-| Phase 4 – Advanced (Future) | Audit trail, soft-delete, batch operations | 0%         | Deferred to v0.7.0+ unless priority escalates |
+| Phase / Step              | Description                       | % complete | Quick notes                                                   |
+| ------------------------- | --------------------------------- | ---------- | ------------------------------------------------------------- |
+| Phase 1 – Kids & Parents  | Migrate to entity_helpers pattern | 100%       | ✅ Completed 2026-01-22 - ~100 lines removed from coordinator |
+| Phase 2 – Badges          | Complex but modular code          | 0%         | Progress tracking, assignment logic                           |
+| Phase 3 – Chores          | Most complex, most used           | 0%         | Services + config/options flow refactor                       |
+| Phase 4 – Simple Entities | Bonuses, Penalties                | 0%         | Mirror reward pattern                                         |
+| Phase 5 – Linked Entities | Achievements, Challenges          | 0%         | Complex relational data                                       |
 
-1. **Key objective** – Reduce duplication in coordinator.py CRUD/cleanup methods (lines 421-2566) from ~2,145 lines to ~800 lines while improving performance, maintainability, and adding missing validation.
+1. **Key objective** – Migrate all entity types to modern `entity_helpers.build_X()` pattern. Services for Rewards (✅ done) and Chores. Config + Options flow refactor for all entities. Remove stub methods per entity as refactored.
 
-2. **Summary of recent work** – Analysis completed 2026-01-20. Identified 9× duplicated CRUD patterns, 8 separate cleanup methods, entity registry performance bottleneck (measured at .3fs, scales O(n×m)), missing data validation on all `_create_*` methods.
+2. **Summary of recent work** –
+   - **2026-01-20**: Initial analysis identified 9× duplicated CRUD patterns
+   - **2026-01-21**: **COMPREHENSIVE CODEBASE SEARCH COMPLETED** ✅
+     - Verified 17/18 internal CRUD methods migration-only (moved to migration_pre_v50.py)
+     - Discovered notification gap: "Chore Assigned" documented but not implemented
+     - **DECISION: Remove from wiki** (completed ✅), implement in future if requested
+     - All user decisions captured, plan ready for implementation
+   - **2026-01-22**: **PHASE 1 COMPLETED** ✅
+     - Created `entity_helpers.build_kid()` (~120 lines) and `build_parent()` (~80 lines)
+     - Refactored config_flow.py: kid/parent creation uses `eh.build_kid()` / `eh.build_parent()`
+     - Refactored options_flow.py: add/edit kid/parent use entity_helpers pattern
+     - Shadow kid creation unified: uses `eh.build_kid(is_shadow=True, linked_parent_id=X)`
+     - Removed unused `update_kid_entity()` and `update_parent_entity()` from coordinator.py
+     - Fixed TypedDict `KidData` key: `is_shadow` → `is_shadow_kid` to match const value
+     - All 871 tests passing, mypy clean, lint 9.8+/10
+   - **2026-01-22**: **EXTENDED CLEANUP - All Kid/Parent Stubs Removed** ✅
+     - Removed `_create_kid()`, `_create_parent()`, `_update_kid()`, `_update_parent()` from coordinator.py (~66 lines)
+     - Migrated services.py shadow link handler to direct storage `.update()` calls
+     - Migrated load_scenario_live.py test utility to direct storage writes
+     - Added local `_create_kid()` method to migration_pre_v50.py (frozen, isolated from coordinator)
+     - **Total coordinator reduction**: ~100 lines for kids/parents CRUD methods
+     - All 871 tests passing, mypy clean, 37 shadow-related tests verified
 
-3. **Next steps (short term)** –
-   - Create `crud_helpers.py` with generic validation/CRUD functions
-   - Add schema validation decorators for incoming entity data
-   - Extract common entity registry removal pattern to `kc_helpers.py`
+3. **Next steps (immediate execution)** –
+   - Start Phase 2: Badges migration (complex but modular code)
+   - Each entity follows 4-phase pattern: Prepare → Refactor → Cleanup → Test
+   - Remove stub methods per-entity as modern pattern implemented
+   - Full test suite run after all entities migrated
 
 4. **Risks / blockers** –
-   - Refactor must maintain 100% backward compatibility with existing storage schema
+   - Must maintain 100% backward compatibility (v0.5.0 beta, no breaking changes)
    - Cannot break options flow workflows during transition
-   - Must preserve all existing logging/debug behavior
-   - Performance improvements must be validated with large datasets (100+ kids/chores)
+   - Preserve all existing logging/debug behavior
 
 5. **References** –
    - [ARCHITECTURE.md](../ARCHITECTURE.md) – Storage schema v42+, data model
@@ -39,11 +149,17 @@
 
 6. **Decisions & completion check**
    - **Decisions captured**:
+     - **[2026-01-21] Delete operations architectural decision**: Delete methods will NOT be moved to entity_helpers (deeply coupled to coordinator: `_data`, `_persist()`, `async_update_listeners()`, entity registry, cleanup orchestration). Moving would require passing coordinator everywhere. Documented as acknowledged architectural inconsistency with create/update patterns.
+     - **[2026-01-21] Modern CRUD pattern (reward example)**: Services use `entity_helpers.build_X()` + direct storage manipulation (bypasses internal `_create_*`/`_update_*` layer). Other entity types still use legacy internal method delegation. **Goal**: Migrate ALL entity types to modern pattern during this refactor.
+     - **[2026-01-21] Migration method cleanup**: Internal `_create_*`/`_update_*` stub methods in coordinator.py removed per-entity-type as modern service pattern implemented. Migration-only versions remain in migration_pre_v50.py for pre-v50 upgrade compatibility.
+     - **[2026-01-21] Notification gap resolution**: "Chore Assigned" notification documented in wiki but not implemented. Decision: Remove from wiki documentation, implement in future release if requested by users.
+     - **[2026-01-21] Entity migration scope**: Kids, Parents, Chores, Badges, Rewards (done), Bonuses, Penalties, Achievements, Challenges. Services created for Rewards (done) and Chores only. All entities get config flow + options flow refactor to use entity_helpers pattern.
+     - **[2026-01-21] Testing strategy**: Add service tests for chores only. Existing config/options flow tests sufficient. Run entity-specific tests per refactor, full suite at end.
+     - **[2026-01-21] Release target**: All work targeted for v0.5.0 (beta). No breaking changes.
      - Use decorator pattern for schema validation (non-breaking)
-     - Keep existing `_create_*`/`_update_*` method signatures (internal APIs)
-     - Cache expected entity UIDs on config change events (invalidate on assignment changes)
-     - Defer soft-delete/undo to v0.7.0 (requires storage schema change)
-   - **Completion confirmation**: `[ ]` All follow-up items completed (architecture updates, cleanup, documentation, etc.) before requesting owner approval to mark initiative done.
+     - Keep existing public API signatures (`update_*_entity`, `delete_*_entity`)
+     - Defer soft-delete/undo to future release (requires storage schema change)
+   - **Completion confirmation**: `[ ]` All follow-up items completed (stub removal, config/options flow updates) before requesting owner approval to mark initiative done.
 
 > **Important:** This plan focuses on code consolidation and performance. Shadow kid deletion complexity was explicitly excluded per user request (unlink/relink is sufficient).
 
@@ -51,6 +167,603 @@
 
 - **Summary upkeep**: Update summary table percentages after each phase milestone. Reference commit SHAs for completed steps.
 - **Detailed tracking**: Use phase sections below for granular progress. Do not pollute summary with implementation details.
+
+---
+
+## Lessons Learned from Reward Refactor (Modern Pattern Template)
+
+**Date**: 2026-01-21
+**Refactored Entity**: Rewards
+**Result**: Successfully migrated from legacy `_create_*`/`_update_*` delegation to modern `entity_helpers.build_X()` direct pattern
+
+### Quick Summary (TL;DR)
+
+**What changed**:
+
+- ✅ Services now use `entity_helpers.build_reward()` + direct storage writes
+- ✅ Removed internal `_create_reward()` and `_update_reward()` methods (migration-only)
+- ✅ Reuse validation from Options Flow (`fh.validate_rewards_inputs()`)
+- ✅ Kept `delete_reward_entity()` as public coordinator method (can't be moved)
+- ✅ Verified NO notifications needed for create/update (only for approve/disapprove state changes)
+
+**Lines impacted**:
+
+- services.py: Refactored 3 service handlers (~120 lines)
+- coordinator.py: Removed 2 internal methods (~50 lines)
+- migration_pre_v50.py: Kept legacy methods unchanged (frozen module)
+
+**Time to complete**: ~2 hours (research, implementation, testing, documentation)
+
+**Next entities to migrate**:
+
+1. Kids & Parents (field drift issues, foundational)
+2. Badges (complex but code already modular)
+3. Chores (most complex, most used, code already modular)
+4. Bonuses/Penalties (simple, mirror rewards)
+5. Achievements/Challenges (complex linked data, defer to later in sequence)
+
+### What We Did (Step-by-Step)
+
+#### 1. Service Layer Refactor
+
+**Before** (Legacy Pattern):
+
+```python
+# services.py - Old pattern (other entities still use this)
+async def handle_create_chore(call: ServiceCall):
+    # Build data dict manually
+    chore_data = {
+        DATA_CHORE_NAME: call.data[FIELD_CHORE_NAME],
+        DATA_CHORE_POINTS: call.data[FIELD_POINTS],
+        # ... 15+ fields manually mapped
+    }
+    # Call internal coordinator method
+    coordinator._create_chore(chore_id, chore_data)
+    coordinator._persist()
+```
+
+**After** (Modern Pattern):
+
+```python
+# services.py - New pattern (rewards use this)
+from . import entity_helpers as eh
+
+async def handle_create_reward(call: ServiceCall):
+    # Map service fields to form fields (DRY - reuses Options Flow mapping)
+    form_input = _map_service_to_form_input(
+        dict(call.data), _SERVICE_TO_REWARD_FORM_MAPPING
+    )
+
+    # Validate using existing flow_helpers (Layer 2 validation)
+    errors = fh.validate_rewards_inputs(form_input, coordinator.rewards_data)
+    if errors:
+        raise HomeAssistantError(translation_domain=DOMAIN, translation_key=errors[0])
+
+    # Build entity using entity_helpers (handles defaults, conversions, UUID generation)
+    reward_dict = eh.build_reward(form_input)
+    internal_id = reward_dict[DATA_REWARD_INTERNAL_ID]
+
+    # Direct storage write (no internal method)
+    coordinator._data[DATA_REWARDS][internal_id] = dict(reward_dict)
+    coordinator._persist()
+    coordinator.async_update_listeners()
+```
+
+**Key Changes**:
+
+- ✅ Reuse `_map_service_to_form_input()` mapping (DRY)
+- ✅ Reuse `fh.validate_rewards_inputs()` (same validation as Options Flow)
+- ✅ Use `eh.build_reward()` for data structure creation (consistency)
+- ✅ Direct storage manipulation (no internal `_create_reward()` needed)
+- ✅ No migration logic in active code path (notifications were migration-only)
+
+#### 2. Coordinator Method Cleanup
+
+**Removed Methods**:
+
+- ❌ `_create_reward()` - Was only called from migration_pre_v50.py
+- ❌ `_update_reward()` - Was only called from migration_pre_v50.py
+- ✅ **Kept** `delete_reward_entity()` - Public API method (coordinator-coupled, can't move to helpers)
+
+**Result**: Coordinator reduced by ~50 lines for reward CRUD (just delete method remains)
+
+#### 3. Migration Handling
+
+**Pattern**: Migration-only methods stay in migration_pre_v50.py:
+
+```python
+# migration_pre_v50.py (frozen, not actively developed)
+def _create_reward(self, reward_id: str, reward_data: dict[str, Any]) -> None:
+    """Legacy reward creation with notifications (migration-only)."""
+    # Full notification logic for pre-v50 upgrades
+    self._data[DATA_REWARDS][reward_id] = reward_data
+
+    # Notify assigned kids (legacy behavior preserved)
+    for kid_id in reward_data.get(DATA_REWARD_ASSIGNED_KIDS, []):
+        await self._notify_kid(kid_id, title="New Reward", message=f"...")
+```
+
+**When to Remove**: Can delete entire migration_pre_v50.py module when user base is 100% on v0.5.0+ (target: v0.7.0 or later)
+
+### Critical Findings
+
+#### ❗ Notification Discovery - **CRITICAL GAP FOUND**
+
+**Issue**: User questioned whether entity creation/assignment should trigger kid notifications per wiki documentation.
+
+**Wiki Documentation Claims** ([Configuration:-Notifications.md](../../kidschores-ha.wiki/Configuration:-Notifications.md)):
+
+- **"Chore Assigned"** - Trigger: "Chore assigned to kid via options flow" → Recipients: Kid
+- Translation keys exist: `TRANS_KEY_NOTIF_TITLE_CHORE_ASSIGNED` and `TRANS_KEY_NOTIF_MESSAGE_CHORE_ASSIGNED`
+- Translation content: `"New chore {chore_name} was assigned to you! Due: {due_date}"`
+
+**Code Reality Check**:
+
+1. **Migration methods**: migration_pre_v50.py contains NO calls to these notification keys
+2. **Options Flow**: options_flow.py contains NO notification calls for chore assignment
+3. **Services**: NO calls to chore assignment notifications
+4. **Result**: Translation keys defined in const.py and translations JSON but **NEVER CALLED**
+
+**Status**:
+
+- ❌ **MISSING FEATURE** - Wiki documents "Chore Assigned" notification that doesn't exist in code
+- ⚠️ **Documentation/Code Mismatch** - Users expect notification per wiki, but code doesn't implement it
+- ❓ **Intent Unknown** - Was this feature planned but not implemented? Or removed and wiki not updated?
+
+**Current Active Notifications**:
+
+- ✅ **Chore Claimed** - Kid claims → Parents notified (implemented)
+- ✅ **Chore Approved** - Parent approves → Kid notified (implemented)
+- ✅ **Chore Disapproved** - Parent disapproves → Kid notified (implemented)
+- ✅ **Chore Overdue** - Past due date → Kid + Parents notified (implemented)
+- ✅ **Chore Due Soon** - Due within window → Kid notified (implemented)
+- ✅ **Badge Earned** - Badge completed → Kid + Parents notified (implemented)
+- ✅ **Penalty/Bonus Applied** - Points changed → Kid notified (implemented)
+- ✅ **Achievement/Challenge Completed** - Milestone reached → Kid + Parents notified (implemented)
+
+**Decision Made [2026-01-21]**: **Option 2 - Remove from documentation**
+
+- Update wiki Configuration:-Notifications.md to remove "Chore Assigned" entry
+- Document as potential future enhancement if users request
+- No implementation work during this refactor
+
+**Rationale**: Parent creates/assigns chores via UI, already aware of action. Assignment notifications add complexity without clear user value. Can revisit if users request feature.
+
+**Implementation removed from scope**. Original recommendation was:
+
+- Add notification call after successful assignment
+- Pattern: `await coordinator._notify_kid_translated(kid_id, TRANS_KEY_NOTIF_TITLE_X_ASSIGNED, TRANS_KEY_NOTIF_MESSAGE_X_ASSIGNED, {...})`
+- Only notify on NEW assignments (not edits that don't change assigned kids)
+- Check similar gaps for badges/rewards/achievements
+
+**No action required during this refactor**. Translation keys remain in codebase for potential future use.
+
+**Removed from current scope per user decision [2026-01-21]**.
+
+#### ✅ Delete Methods Stay in Coordinator
+
+**Rationale**: Delete operations are coordinator-coupled:
+
+- Require `self._data` access (storage)
+- Require `self._persist()` call (persistence)
+- Require `self.async_update_listeners()` (HA integration)
+- Require `self._remove_entities_in_ha()` (entity registry cleanup)
+- Require cleanup method calls (`_cleanup_pending_reward_approvals()`, etc.)
+
+**Pattern**: Delete is a public API method that orchestrates multiple coordinator operations:
+
+```python
+def delete_reward_entity(self, reward_id: str) -> None:
+    """Delete reward from storage and cleanup references."""
+    # Validate
+    if reward_id not in self._data.get(DATA_REWARDS, {}):
+        raise HomeAssistantError(...)
+
+    # Delete from storage
+    del self._data[DATA_REWARDS][reward_id]
+
+    # Cleanup entity registry
+    self._remove_entities_in_ha(reward_id)
+
+    # Cleanup relational data
+    self._cleanup_pending_reward_approvals()
+
+    # Persist
+    self._persist()
+    self.async_update_listeners()
+```
+
+**Decision**: All delete methods stay in coordinator. Only create/update migrate to entity_helpers pattern.
+
+### Migration Checklist (Apply to Each Entity Type)
+
+Use this checklist when migrating other entity types (chores, badges, bonuses, penalties, achievements, challenges) to modern pattern:
+
+#### Phase 1: Preparation
+
+- [ ] **Verify entity_helpers.build_X() exists** for entity type
+  - If not, create following `build_reward()` pattern
+  - Handles: defaults, type conversions, UUID generation, validation (Layer 1)
+- [ ] **Identify all service callers** using grep:
+  ```bash
+  grep -rn "handle_create_X\|handle_update_X" custom_components/kidschores/services.py
+  ```
+- [ ] **Verify config_flow.py usage** - Check if entity type used in initial setup wizard:
+  ```bash
+  grep -rn "build_X_data" custom_components/kidschores/config_flow.py
+  ```
+
+#### Phase 2: Service Refactor
+
+- [ ] **Create field mapping** (service fields → form fields):
+  ```python
+  _SERVICE_TO_X_FORM_MAPPING = {
+      FIELD_NAME: CFOF_X_INPUT_NAME,
+      FIELD_POINTS: CFOF_X_INPUT_POINTS,
+      # ... map all service fields
+  }
+  ```
+- [ ] **Update create service**:
+  ```python
+  form_input = _map_service_to_form_input(dict(call.data), _SERVICE_TO_X_FORM_MAPPING)
+  errors = fh.validate_X_inputs(form_input, coordinator.X_data)
+  if errors: raise HomeAssistantError(...)
+  entity_dict = eh.build_X(form_input)
+  coordinator._data[DATA_X][internal_id] = dict(entity_dict)
+  coordinator._persist()
+  coordinator.async_update_listeners()
+  ```
+- [ ] **Update update service** (similar pattern with `existing=` parameter):
+  ```python
+  existing_entity = coordinator.X_data[entity_id]
+  form_input = _map_service_to_form_input(...)
+  entity_dict = eh.build_X(form_input, existing=existing_entity)
+  coordinator._data[DATA_X][entity_id] = dict(entity_dict)
+  coordinator._persist()
+  coordinator.async_update_listeners()
+  ```
+- [ ] **Update config_flow.py** if entity type used in initial setup:
+  - Replace `build_X_data()` call with `entity_helpers.build_X()` pattern
+  - Match options_flow pattern for consistency
+- [ ] **Update options_flow.py** create/edit steps:
+  - Use `entity_helpers.build_X()` instead of direct storage writes
+  - Reuse field mappings for DRY
+- [ ] **Verify delete service** uses `coordinator.delete_X_entity()` (no changes needed)
+
+#### Phase 3: Coordinator Cleanup
+
+- [ ] **Remove internal methods** if migration-only:
+  - [ ] `_create_X()` - Check callers via grep first
+  - [ ] `_update_X()` - Check callers via grep first
+- [ ] **Keep public methods** (coordinator-coupled):
+  - [ ] `update_X_entity()` - If it wraps internal method, refactor to direct storage
+  - [ ] `delete_X_entity()` - Always keep (orchestrates cleanup)
+
+#### Phase 4: Testing
+
+- [ ] **Service calls** - Test create/update/delete via Services tab
+- [ ] **Options Flow** - Verify UI create/edit still works
+- [ ] **Full test suite** - Run pytest for entity type
+- [ ] **Migration test** - If possible, test upgrade from pre-v50 data
+
+#### Phase 5: Coordinator Cleanup & Documentation
+
+- [ ] **After all entities migrated**: Consider removing migration_pre_v50.py in future release if:
+  - User base is 100% on v0.5.0+
+  - Migration support window has passed (e.g., 12+ months)
+- [ ] **Update plan document** with completion status and lessons learned
+
+### Common Pitfalls to Avoid
+
+1. **❌ Don't add notifications to entity creation** - Only state transitions trigger notifications
+2. **❌ Don't move delete methods to entity_helpers** - They're coordinator-coupled
+3. **❌ Don't bypass validation** - Always call `fh.validate_X_inputs()` before `eh.build_X()`
+4. **❌ Don't modify migration methods** - They're frozen for backwards compatibility
+5. **✅ Do reuse field mappings** - Service → Form mappings are DRY
+6. **✅ Do check migration callers first** - Verify method is migration-only before deleting
+7. **✅ Do test both services and Options Flow** - Both code paths must work
+
+### Performance Impact
+
+**Metrics from Reward Refactor**:
+
+- **Lines removed**: 50 lines (internal `_create_reward()` and `_update_reward()` methods)
+- **Validation calls**: Reduced from 2 → 1 (reuse flow validation instead of duplicate logic)
+- **Code paths**: Service and Options Flow now use identical data-building logic
+
+**Projected impact when all entities refactored**:
+
+- **Lines removed**: ~350 lines (7 entity types × ~50 lines each)
+- **Coordinator size**: 6,405 lines → ~6,050 lines (5.5% reduction)
+- **Consistency**: 100% of CRUD operations use same patterns
+
+---
+
+## Method Inventory & Refactor Analysis
+
+**Last Updated**: 2026-01-21 (Comprehensive codebase search completed)
+
+This section catalogs ALL CRUD and helper methods across the codebase with actual caller analysis. Each method group requires a decision on refactor approach.
+
+### Coordinator Internal CRUD Methods (`_create_*` / `_update_*`)
+
+These are internal methods in `coordinator.py` that directly modify storage.
+
+| Method                  | Lines     | Callers                                                                                       | Migration Status              | Recommended Action                            | Alternative                                                         |
+| ----------------------- | --------- | --------------------------------------------------------------------------------------------- | ----------------------------- | --------------------------------------------- | ------------------------------------------------------------------- |
+| **Kids**                |
+| `_create_kid()`         | 1038-1087 | • migration_pre_v50.py:1563<br>• options_flow.py:395<br>• coordinator.py:1265 (shadow kid)    | In use (3 callers)            | **KEEP** - Convert to helper pattern          | N/A - Required by options flow                                      |
+| `_update_kid()`         | 1088-1104 | • migration_pre_v50.py:1564<br>• **NO OTHER CALLERS**                                         | Migration-only                | **ANALYZE** - Check if still needed post-v50  | Extract to migration module if only used there                      |
+| **Parents**             |
+| `_create_parent()`      | 1105-1160 | • migration_pre_v50.py:1568<br>• **NO OTHER CALLERS**                                         | Migration-only                | **ANALYZE** - Check if still needed           | May be legacy from pre-parent services era                          |
+| `_update_parent()`      | 1161-1177 | • migration_pre_v50.py:1569<br>• **NO OTHER CALLERS**                                         | Migration-only                | **ANALYZE** - Check if still needed           | May be legacy from pre-parent services era                          |
+| **Chores**              |
+| `_create_chore()`       | 1359-1388 | • migration_pre_v50.py:1573<br>• **NO OTHER CALLERS**                                         | Migration-only                | **ANALYZE** - Check if still needed           | Options flow uses direct storage writes                             |
+| `_update_chore()`       | 1389-1742 | • migration_pre_v50.py:1574<br>• **NO OTHER CALLERS** (354 lines!)                            | Migration-only                | **ANALYZE** - Complex logic, verify necessity | Contains completion criteria conversion - may be migration-specific |
+| **Badges**              |
+| `_create_badge()`       | 1744-1760 | • migration_pre_v50.py:1578<br>• **NO OTHER CALLERS**                                         | Migration-only                | **ANALYZE** - Check if still needed           | Options flow likely uses direct storage                             |
+| `_update_badge()`       | 1761-1777 | • migration_pre_v50.py:1579<br>• **NO OTHER CALLERS**                                         | Migration-only                | **ANALYZE** - Check if still needed           | Options flow likely uses direct storage                             |
+| **Rewards**             |
+| `_create_reward()`      | 1778-1800 | • migration_pre_v50.py:1586<br>• **NO OTHER CALLERS**                                         | Migration-only                | **ANALYZE** - Check if still needed           | Services/flows use entity_helpers.build_reward()                    |
+| `_update_reward()`      | 1801-1825 | • migration_pre_v50.py:1587<br>• coordinator.py:2435 (wrapper)<br>• **wrapper has 0 callers** | Migration-only + dead wrapper | **SAFE TO REMOVE** after migration module     | Only called by unused update_reward_entity()                        |
+| **Bonuses**             |
+| `_create_bonus()`       | 1826-1848 | • migration_pre_v50.py:1603<br>• **NO OTHER CALLERS**                                         | Migration-only                | **ANALYZE** - Check if still needed           | Options flow likely uses direct storage                             |
+| `_update_bonus()`       | 1849-1872 | • migration_pre_v50.py:1604<br>• **NO OTHER CALLERS**                                         | Migration-only                | **ANALYZE** - Check if still needed           | Options flow likely uses direct storage                             |
+| **Penalties**           |
+| `_create_penalty()`     | 1873-1895 | • migration_pre_v50.py:1594<br>• **NO OTHER CALLERS**                                         | Migration-only                | **ANALYZE** - Check if still needed           | Options flow likely uses direct storage                             |
+| `_update_penalty()`     | 1896-1919 | • migration_pre_v50.py:1595<br>• **NO OTHER CALLERS**                                         | Migration-only                | **ANALYZE** - Check if still needed           | Options flow likely uses direct storage                             |
+| **Achievements**        |
+| `_create_achievement()` | 1920-1967 | • migration_pre_v50.py:1599<br>• **NO OTHER CALLERS**                                         | Migration-only                | **ANALYZE** - Check if still needed           | Options flow likely uses direct storage                             |
+| `_update_achievement()` | 1968-2019 | • migration_pre_v50.py:1600<br>• **NO OTHER CALLERS**                                         | Migration-only                | **ANALYZE** - Check if still needed           | Options flow likely uses direct storage                             |
+| **Challenges**          |
+| `_create_challenge()`   | 2020-2073 | • migration_pre_v50.py:1608<br>• **NO OTHER CALLERS**                                         | Migration-only                | **ANALYZE** - Check if still needed           | Options flow likely uses direct storage                             |
+| `_update_challenge()`   | 2074-2127 | • migration_pre_v50.py:1609<br>• **NO OTHER CALLERS**                                         | Migration-only                | **ANALYZE** - Check if still needed           | Options flow likely uses direct storage                             |
+
+**Key Finding**: Nearly ALL `_create_*` and `_update_*` methods are **ONLY** called from migration_pre_v50.py. This suggests the entire CRUD layer was replaced by direct storage writes in v0.5.0 refactor, but migration methods weren't updated to use the new pattern.
+
+**Decision Required**:
+
+1. **Extract to migration module?** Move all migration-only methods to migration_pre_v50.py
+2. **Delete migration module entirely?** If user base is on v0.5.0+, remove pre-v50 migration support
+3. **Keep as-is?** Maintain for backwards compatibility with very old installations
+
+---
+
+### Coordinator Public Entity Methods (`*_entity()`)
+
+These are public methods in `coordinator.py` that orchestrate CRUD operations (storage + entity registry + cleanup).
+
+| Method                        | Lines     | Callers                                                        | Usage Status                    | Recommended Action                      | Alternative                                       |
+| ----------------------------- | --------- | -------------------------------------------------------------- | ------------------------------- | --------------------------------------- | ------------------------------------------------- |
+| **Kids**                      |
+| `update_kid_entity()`         | 2168-2197 | • options_flow.py:1251                                         | **ACTIVE** (1 caller)           | **KEEP** - Used by options flow edit    | N/A - Required API                                |
+| `delete_kid_entity()`         | 2198-2234 | • options_flow.py:2914<br>• test_parent_shadow_kid.py:536, 681 | **ACTIVE** (1 caller + 2 tests) | **KEEP** - Required for deletion        | N/A - Core functionality                          |
+| **Parents**                   |
+| `update_parent_entity()`      | 2262-2276 | • options_flow.py:1425                                         | **ACTIVE** (1 caller)           | **KEEP** - Used by options flow edit    | N/A - Required API                                |
+| `delete_parent_entity()`      | 2277-2310 | • options_flow.py:2942<br>• test_parent_shadow_kid.py:590, 639 | **ACTIVE** (1 caller + 2 tests) | **KEEP** - Required for deletion        | N/A - Core functionality                          |
+| **Chores**                    |
+| `update_chore_entity()`       | 2312-2334 | • options_flow.py:1530, 1645, 1695, 2240, 2427                 | **ACTIVE** (5 callers)          | **KEEP** - Heavily used by options flow | N/A - Core functionality                          |
+| `delete_chore_entity()`       | 2335-2365 | • options_flow.py:2972                                         | **ACTIVE** (1 caller)           | **KEEP** - Required for deletion        | N/A - Core functionality                          |
+| **Badges**                    |
+| `update_badge_entity()`       | 2367-2386 | • options_flow.py:877                                          | **ACTIVE** (1 caller)           | **KEEP** - Used by options flow edit    | N/A - Required API                                |
+| `delete_badge_entity()`       | 2387-2422 | • options_flow.py:3002                                         | **ACTIVE** (1 caller)           | **KEEP** - Required for deletion        | N/A - Core functionality                          |
+| **Rewards**                   |
+| `update_reward_entity()`      | 2424-2438 | • **NO CALLERS FOUND**                                         | **DEAD CODE** ⚠️                | **SAFE TO REMOVE**                      | Replaced by entity_helpers.build_reward() pattern |
+| `delete_reward_entity()`      | 2439-2467 | • services.py:1682<br>• options_flow.py:3032                   | **ACTIVE** (2 callers)          | **KEEP** - Required thin wrapper        | Could inline cleanup logic in callers             |
+| **Penalties**                 |
+| `update_penalty_entity()`     | 2466-2482 | • options_flow.py:2618                                         | **ACTIVE** (1 caller)           | **KEEP** - Used by options flow edit    | N/A - Required API                                |
+| `delete_penalty_entity()`     | 2483-2508 | • options_flow.py:3062                                         | **ACTIVE** (1 caller)           | **KEEP** - Required for deletion        | N/A - Core functionality                          |
+| **Bonuses**                   |
+| `update_bonus_entity()`       | 2509-2523 | • options_flow.py:2667                                         | **ACTIVE** (1 caller)           | **KEEP** - Used by options flow edit    | N/A - Required API                                |
+| `delete_bonus_entity()`       | 2524-2547 | • options_flow.py:3158                                         | **ACTIVE** (1 caller)           | **KEEP** - Required for deletion        | N/A - Core functionality                          |
+| **Achievements**              |
+| `update_achievement_entity()` | 2548-2564 | • options_flow.py:2726                                         | **ACTIVE** (1 caller)           | **KEEP** - Used by options flow edit    | N/A - Required API                                |
+| `delete_achievement_entity()` | 2565-2590 | • options_flow.py:3094                                         | **ACTIVE** (1 caller)           | **KEEP** - Required for deletion        | N/A - Core functionality                          |
+| **Challenges**                |
+| `update_challenge_entity()`   | 2591-2607 | • options_flow.py:2868                                         | **ACTIVE** (1 caller)           | **KEEP** - Used by options flow edit    | N/A - Required API                                |
+| `delete_challenge_entity()`   | 2608-2634 | • options_flow.py:3128                                         | **ACTIVE** (1 caller)           | **KEEP** - Required for deletion        | N/A - Core functionality                          |
+
+**Critical Finding**: Only `update_reward_entity()` is **confirmed dead code** with zero callers. All other `*_entity()` methods are actively used by options_flow.py.
+
+---
+
+### Flow Helpers Builder Functions (`build_*_data()`)
+
+These are in `flow_helpers.py` and construct entity data dicts from user input.
+
+| Function                    | Lines     | Callers                                                           | Migration Status                | Recommended Action                      | Alternative                                        |
+| --------------------------- | --------- | ----------------------------------------------------------------- | ------------------------------- | --------------------------------------- | -------------------------------------------------- |
+| `build_points_data()`       | 155-174   | • config_flow.py:521<br>• options_flow (system settings)          | **ACTIVE** - System settings    | **KEEP** - Not entity-related           | N/A - Different pattern                            |
+| `build_kids_data()`         | 472-527   | • config_flow.py:572 (setup wizard)                               | **ACTIVE** - Initial setup only | **KEEP** - Config wizard needs it       | Options flow uses direct storage                   |
+| `build_parents_data()`      | 682-747   | • config_flow.py:649 (setup wizard)                               | **ACTIVE** - Initial setup only | **KEEP** - Config wizard needs it       | Options flow uses direct storage                   |
+| `build_shadow_kid_data()`   | 808-858   | • config_flow.py:658 (parent setup)                               | **ACTIVE** - Initial setup only | **KEEP** - Specialized logic            | Shadow kids are unique pattern                     |
+| `build_chores_data()`       | 1091-1407 | • config_flow.py:755 (setup wizard)                               | **ACTIVE** - Initial setup only | **KEEP** - Config wizard needs it       | Options flow uses direct storage                   |
+| `build_badge_common_data()` | 1409-1627 | • config_flow.py:864 (setup wizard)                               | **ACTIVE** - Initial setup only | **KEEP** - Config wizard needs it       | Options flow uses direct storage                   |
+| `build_rewards_data()`      | 2688-2714 | • config_flow.py:953 (setup wizard)<br>• **Deprecated in v0.5.0** | **PARTIALLY REPLACED**          | **REFACTOR config_flow** → remove after | Already delegates to entity_helpers.build_reward() |
+| `build_bonuses_data()`      | 2798-2835 | • config_flow.py:1088 (setup wizard)                              | **ACTIVE** - Initial setup only | **KEEP** - Config wizard needs it       | Options flow uses direct storage                   |
+| `build_penalties_data()`    | 2923-2960 | • config_flow.py:1020 (setup wizard)                              | **ACTIVE** - Initial setup only | **KEEP** - Config wizard needs it       | Options flow uses direct storage                   |
+| `build_achievements_data()` | 2998-3100 | • config_flow.py:1151 (setup wizard)                              | **ACTIVE** - Initial setup only | **KEEP** - Config wizard needs it       | Options flow uses direct storage                   |
+| `build_challenges_data()`   | 3102-3262 | • config_flow.py (setup wizard)                                   | **ACTIVE** - Initial setup only | **KEEP** - Config wizard needs it       | Options flow uses direct storage                   |
+
+**Key Finding**: ALL `build_*_data()` functions are used by config_flow.py (initial setup wizard). These are NOT dead code. Options flow was refactored to use direct storage writes, but config_flow still uses the builder pattern.
+
+**Decision**: Keep all builders - they serve the initial setup wizard. Only `build_rewards_data()` can be refactored to match entity_helpers pattern.
+
+---
+
+### Flow Helpers Schema Functions (`build_*_schema()`)
+
+These generate UI form schemas for options flow.
+
+| Function                             | Lines     | Status                           | Recommended Action |
+| ------------------------------------ | --------- | -------------------------------- | ------------------ |
+| `build_points_schema()`              | 139-153   | **KEEP** - UI presentation layer | No change needed   |
+| `build_chore_schema()`               | 860-1089  | **KEEP** - Complex chore form    | No change needed   |
+| `build_badge_common_schema()`        | 1970-2646 | **KEEP** - Badge type selection  | No change needed   |
+| `build_reward_schema()`              | 2648-2686 | **KEEP** - Reward form UI        | No change needed   |
+| `build_bonus_schema()`               | 2753-2796 | **KEEP** - Bonus form UI         | No change needed   |
+| `build_penalty_schema()`             | 2874-2921 | **KEEP** - Penalty form UI       | No change needed   |
+| `build_achievement_schema()`         | 3264-3386 | **KEEP** - Achievement form UI   | No change needed   |
+| `build_challenge_schema()`           | 3388-3515 | **KEEP** - Challenge form UI     | No change needed   |
+| `build_general_options_schema()`     | 3517-4174 | **KEEP** - System settings UI    | No change needed   |
+| `build_all_system_settings_schema()` | 4176-4343 | **KEEP** - Full settings form    | No change needed   |
+
+**All schema builders are UI presentation layer - no refactor needed.**
+
+---
+
+### Flow Helpers Validation Functions (`validate_*_inputs()`)
+
+These check for duplicate names and other business rules.
+
+| Function                         | Lines     | Status                                | Recommended Action         |
+| -------------------------------- | --------- | ------------------------------------- | -------------------------- |
+| `validate_points_inputs()`       | 176-190   | **KEEP** - System settings validation | No change needed           |
+| `validate_kids_inputs()`         | 529-680   | **KEEP** - Uniqueness checks          | No change needed           |
+| `validate_parents_inputs()`      | 749-806   | **KEEP** - Uniqueness checks          | No change needed           |
+| `validate_badge_common_inputs()` | 1629-1968 | **KEEP** - Badge validation           | No change needed           |
+| `validate_rewards_inputs()`      | 2716-2751 | **KEEP** - Uniqueness checks          | Used by services and flows |
+| `validate_bonuses_inputs()`      | 2837-2872 | **KEEP** - Uniqueness checks          | No change needed           |
+| `validate_penalties_inputs()`    | 2962-2996 | **KEEP** - Uniqueness checks          | No change needed           |
+
+**All validators are UI-layer business rules - no refactor needed.**
+
+---
+
+## Summary of Critical Decisions Needed
+
+### Decision 1: Migration Module Approach ⚠️ CRITICAL
+
+**Question**: What to do with methods only called from migration_pre_v50.py?
+
+**Confirmed Migration-Only Methods** (18 methods, ~800 lines):
+
+- ALL `_create_*()` methods (9 methods) - except `_create_kid()` which has 2 other callers
+- ALL `_update_*()` methods (9 methods) - except none have other callers
+
+**Breakdown**:
+| Method | Lines | Non-Migration Callers |
+|--------|-------|-----------------------|
+| `_create_kid()` | 1038-1087 | ✅ options_flow.py:395, coordinator.py:1265 (shadow) |
+| `_update_kid()` | 1088-1104 | ❌ None - migration-only |
+| `_create_parent()` | 1105-1160 | ❌ None - migration-only |
+| `_update_parent()` | 1161-1177 | ❌ None - migration-only |
+| `_create_chore()` | 1359-1388 | ❌ None - migration-only |
+| `_update_chore()` | 1389-1742 | ❌ None - migration-only (354 lines!) |
+| `_create_badge()` | 1744-1760 | ❌ None - migration-only |
+| `_update_badge()` | 1761-1777 | ❌ None - migration-only |
+| `_create_reward()` | 1778-1800 | ❌ None - migration-only |
+| `_update_reward()` | 1801-1825 | ❌ None - migration-only |
+| `_create_bonus()` | 1826-1848 | ❌ None - migration-only |
+| `_update_bonus()` | 1849-1872 | ❌ None - migration-only |
+| `_create_penalty()` | 1873-1895 | ❌ None - migration-only |
+| `_update_penalty()` | 1896-1919 | ❌ None - migration-only |
+| `_create_achievement()` | 1920-1967 | ❌ None - migration-only |
+| `_update_achievement()` | 1968-2019 | ❌ None - migration-only |
+| `_create_challenge()` | 2020-2073 | ❌ None - migration-only |
+| `_update_challenge()` | 2074-2127 | ❌ None - migration-only |
+
+**Options**:
+
+1. **Extract to migration module** - Move all migration-only methods to migration_pre_v50.py (~750 lines moved)
+   - **Pro**: Clearer separation, coordinator.py ~35% smaller
+   - **Con**: Migration module becomes very large (2,300 + 750 = 3,050 lines)
+   - **Note**: Keep `_create_kid()` in coordinator as it's used for shadow kid creation
+
+2. **Delete migration support entirely** - Remove migration_pre_v50.py if user base is on v0.5.0+
+   - **Pro**: Eliminates ~2,300 + 750 = 3,050 lines of code
+   - **Con**: Breaks upgrades for installations older than v0.5.0
+   - **Question**: When was KC v0.5.0 released? What % of users have upgraded?
+
+3. **Keep as-is** - Maintain current structure for backwards compatibility
+   - **Pro**: No breaking changes, safest option
+   - **Con**: ~750 lines of code in coordinator.py only used during migration
+
+**Recommendation**: **Need user input on migration support policy**. If KC v0.5.0 was released 6+ months ago and adoption is >90%, Option 2 (delete) is cleanest. Otherwise Option 1 (extract).
+
+**Impact**: This decision affects ~35% of coordinator.py CRUD code.
+
+---
+
+### Decision 2: config_flow.py Reward Refactor
+
+**Question**: Should we refactor config_flow.py to use entity_helpers.build_reward() pattern?
+
+**Current State**:
+
+- config_flow.py:953 still calls `build_rewards_data()`
+- build_rewards_data() is deprecated (v0.5.0) but maintained as thin wrapper
+- All other flows (options_flow, services) use entity_helpers directly
+
+**Options**:
+
+1. **Refactor now** - Update config_flow reward step to match options_flow pattern
+   - **Pro**: Consistency across codebase, can delete build_rewards_data() wrapper (24 lines)
+   - **Pro**: Validates entity_helpers pattern works for initial setup wizard
+   - **Con**: Requires testing of setup wizard reward step
+   - **Effort**: ~1 hour (update config_flow.py:945-965, test initial setup)
+
+2. **Leave as-is** - Keep thin wrapper for config_flow
+   - **Pro**: No risk to setup wizard, zero effort
+   - **Con**: Inconsistent patterns (config_flow uses old pattern, everything else uses new)
+   - **Con**: 24 lines of deprecated wrapper code maintained indefinitely
+
+**Recommendation**: **Refactor now** - Initial setup wizard needs comprehensive testing anyway for parent-chores feature. This validates the entity_helpers pattern is robust enough for all use cases.
+
+**Impact**: Can remove 24-line `build_rewards_data()` wrapper + validates unified pattern.
+
+---
+
+### Decision 3: Dead Entity Methods
+
+**Question**: Remove `update_reward_entity()` and verify no other dead `*_entity()` methods?
+
+**Confirmed Dead Code**:
+
+- ✅ `update_reward_entity()` - Zero callers found (15 lines)
+
+**Verified Active Methods** (ALL other `*_entity()` methods are used):
+
+- `update_kid_entity()` - 1 caller (options_flow.py:1251)
+- `delete_kid_entity()` - 1 caller + 2 tests
+- `update_parent_entity()` - 1 caller (options_flow.py:1425)
+- `delete_parent_entity()` - 1 caller + 2 tests
+- `update_chore_entity()` - 5 callers (options_flow.py multiple locations)
+- `delete_chore_entity()` - 1 caller
+- `update_badge_entity()` - 1 caller
+- `delete_badge_entity()` - 1 caller
+- `delete_reward_entity()` - 2 callers (services.py:1682, options_flow.py:3032)
+- `update_penalty_entity()` - 1 caller
+- `delete_penalty_entity()` - 1 caller
+- `update_bonus_entity()` - 1 caller
+- `delete_bonus_entity()` - 1 caller
+- `update_achievement_entity()` - 1 caller
+- `delete_achievement_entity()` - 1 caller
+- `update_challenge_entity()` - 1 caller
+- `delete_challenge_entity()` - 1 caller
+
+**Recommendation**: **Remove `update_reward_entity()` immediately** - It's confirmed dead code. No risk, clean deletion.
+
+**Impact**: 15-line reduction, confirms reward CRUD is fully migrated to unified pattern.
+
+---
+
+## Action Items Before Phase 1
+
+- [x] **Complete systematic grep search** for ALL `*_entity()` method callers ✅
+- [x] **Verify build\_\*\_data usage** - All used by config_flow.py (setup wizard) ✅
+- [x] **Catalog test usage** - test_parent_shadow_kid.py uses delete methods ✅
+- [x] **Document service usage** - Only delete_reward_entity() used by services ✅
+- [x] **Update analysis table** with complete caller breakdown ✅
+- [x] **User decision**: Migration module approach → **EXTRACT** (v0.5.0 not released yet) ✅
+- [x] **Remove dead code**: Delete `update_reward_entity()` (15 lines) ✅ **DONE**
+- [x] **Refactor config_flow.py** reward step to use entity_helpers.build_reward() ✅ **DONE**
+- [x] **Remove deprecated wrapper**: Delete `build_rewards_data()` (30 lines) ✅ **DONE**
+- [ ] **Move migration-only methods** to migration_pre_v50.py:
+  - 3 `remove_deprecated*` methods (~226 lines)
+  - 17 `_create_*`/`_update_*` methods (~750 lines)
+  - **Total**: ~976 lines to move
+- [ ] **Document pattern** for future entity migrations (capture in DEVELOPMENT_STANDARDS.md)
 
 ---
 

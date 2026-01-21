@@ -95,6 +95,7 @@ vol.Required(const.CFOF_PARENTS_INPUT_NAME, default=name): str
 
 - **`ATTR_*`**: Entity state attributes (100+ constants). e.g., `ATTR_KID_NAME`, `ATTR_CHORE_POINTS`.
 - **`SERVICE_*`**: Service action names. e.g., `SERVICE_CLAIM_CHORE`.
+- **`SERVICE_FIELD_*`**: Service input field names. e.g., `SERVICE_FIELD_REWARD_NAME`.
 
 #### Specialized Logic Patterns
 
@@ -121,7 +122,7 @@ All entity platforms MUST provide both human-readable (`*_EID_*`) and machine-re
 
 - **Usage**: Constants actively used in production but planned for replacement in future versions
 - **Code Impact**: Removing these WOULD break existing installations without migration
-- **Organization**: Defined in dedicated section at bottom of `const.py` (lines 2935+)
+- **Organization**: Defined in dedicated section at bottom of `const.py`
 - **Deletion**: Only after feature is refactored AND migration path implemented
 - **Current Status**: None in use (all previous deprecations completed)
 

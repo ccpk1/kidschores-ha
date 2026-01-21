@@ -144,8 +144,8 @@ async def load_scenario_to_running_instance():  # pylint: disable=too-many-local
             },
         }
 
-        # Use coordinator's internal method to create kid
-        coordinator._create_kid(kid_id, kid_data)
+        # Direct storage write (modern pattern)
+        coordinator._data["kids"][kid_id] = kid_data
         print(f"  ✓ {kid_name}: {kid_data['points']} points")  # noqa: T201
 
     # Create parents
@@ -161,7 +161,8 @@ async def load_scenario_to_running_instance():  # pylint: disable=too-many-local
             "use_persistent_notifications": True,
             "dashboard_language": "en",
         }
-        coordinator._create_parent(parent_id, parent_data)
+        # Direct storage write (modern pattern)
+        coordinator._data["parents"][parent_id] = parent_data
         print(f"  ✓ {parent_info['name']}")  # noqa: T201
 
     # Create badges first (needed for kid badge relationships)

@@ -23,7 +23,8 @@ from homeassistant.helpers import selector
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
-from . import const, flow_helpers as fh, kc_helpers as kh
+from . import const, entity_helpers as eh, flow_helpers as fh, kc_helpers as kh
+from .entity_helpers import EntityValidationError
 
 # ----------------------------------------------------------------------------------
 # INITIALIZATION & HELPERS
@@ -382,22 +383,25 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             errors = fh.validate_kids_inputs(user_input, kids_dict, parents_dict)
 
             if not errors:
-                # Build kid data
-                kid_data = fh.build_kids_data(user_input, kids_dict)
+                try:
+                    # Use unified eh.build_kid() pattern
+                    kid_data = eh.build_kid(user_input)
+                    internal_id = kid_data[const.DATA_KID_INTERNAL_ID]
+                    kid_name = kid_data[const.DATA_KID_NAME]
 
-                # Get internal_id and the kid data dict
-                internal_id = list(kid_data.keys())[0]
-                new_kid_data = kid_data[internal_id]
-                kid_name = new_kid_data[const.DATA_KID_NAME]
+                    # Direct storage write (no _create_kid needed)
+                    coordinator._data[const.DATA_KIDS][internal_id] = dict(kid_data)
+                    coordinator._persist()
+                    coordinator.async_update_listeners()
 
-                # Add to coordinator
-                coordinator._create_kid(internal_id, new_kid_data)
-                coordinator._persist()
-                coordinator.async_update_listeners()
+                    const.LOGGER.debug(
+                        "Added Kid '%s' with ID: %s", kid_name, internal_id
+                    )
+                    self._mark_reload_needed()
+                    return await self.async_step_init()
 
-                const.LOGGER.debug("Added Kid '%s' with ID: %s", kid_name, internal_id)
-                self._mark_reload_needed()
-                return await self.async_step_init()
+                except EntityValidationError as err:
+                    errors[err.field] = err.translation_key
 
         # Retrieve HA users for linking
         users = await self.hass.auth.async_get_users()
@@ -428,35 +432,67 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             errors = fh.validate_parents_inputs(user_input, parents_dict, kids_dict)
 
             if not errors:
-                # Build parent data
-                parent_data = fh.build_parents_data(user_input, parents_dict)
+                try:
+                    # Use unified eh.build_parent() pattern
+                    parent_data = dict(eh.build_parent(user_input))
+                    internal_id = str(parent_data[const.DATA_PARENT_INTERNAL_ID])
+                    parent_name = str(parent_data[const.DATA_PARENT_NAME])
 
-                # Get internal_id and the parent data dict
-                internal_id = list(parent_data.keys())[0]
-                new_parent_data = parent_data[internal_id]
-                parent_name = new_parent_data[const.DATA_PARENT_NAME]
+                    # Direct storage write
+                    coordinator._data[const.DATA_PARENTS][internal_id] = parent_data
 
-                # Add to coordinator
-                coordinator._create_parent(internal_id, new_parent_data)
+                    # Create shadow kid if chore assignment is enabled
+                    if parent_data.get(const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT, False):
+                        # Build shadow kid input from parent data
+                        shadow_input = {
+                            const.CFOF_KIDS_INPUT_KID_NAME: parent_name,
+                            const.CFOF_KIDS_INPUT_HA_USER: parent_data.get(
+                                const.DATA_PARENT_HA_USER_ID, ""
+                            ),
+                            const.CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE: parent_data.get(
+                                const.DATA_PARENT_DASHBOARD_LANGUAGE,
+                                const.DEFAULT_DASHBOARD_LANGUAGE,
+                            ),
+                            const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: const.SENTINEL_EMPTY,
+                        }
+                        shadow_kid_data = dict(
+                            eh.build_kid(
+                                shadow_input,
+                                is_shadow=True,
+                                linked_parent_id=internal_id,
+                            )
+                        )
+                        shadow_kid_id = str(shadow_kid_data[const.DATA_KID_INTERNAL_ID])
 
-                # Create shadow kid if chore assignment is enabled
-                if new_parent_data.get(const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT, False):
-                    shadow_kid_id = coordinator._create_shadow_kid_for_parent(
-                        internal_id, new_parent_data
+                        # Direct storage write for shadow kid
+                        coordinator._data[const.DATA_KIDS][shadow_kid_id] = (
+                            shadow_kid_data
+                        )
+
+                        # Link shadow kid to parent
+                        coordinator._data[const.DATA_PARENTS][internal_id][
+                            const.DATA_PARENT_LINKED_SHADOW_KID_ID
+                        ] = shadow_kid_id
+
+                        const.LOGGER.info(
+                            "Created shadow kid '%s' (ID: %s) for parent '%s' (ID: %s)",
+                            parent_name,
+                            shadow_kid_id,
+                            parent_name,
+                            internal_id,
+                        )
+
+                    coordinator._persist()
+                    coordinator.async_update_listeners()
+                    self._mark_reload_needed()
+
+                    const.LOGGER.debug(
+                        "Added Parent '%s' with ID: %s", parent_name, internal_id
                     )
-                    # Link shadow kid to parent
-                    coordinator._data[const.DATA_PARENTS][internal_id][
-                        const.DATA_PARENT_LINKED_SHADOW_KID_ID
-                    ] = shadow_kid_id
+                    return await self.async_step_init()
 
-                coordinator._persist()
-                coordinator.async_update_listeners()
-                self._mark_reload_needed()
-
-                const.LOGGER.debug(
-                    "Added Parent '%s' with ID: %s", parent_name, internal_id
-                )
-                return await self.async_step_init()
+                except EntityValidationError as err:
+                    errors[err.field] = err.translation_key
 
         # Retrieve HA users and existing kids for linking
         users = await self.hass.auth.async_get_users()
@@ -940,22 +976,34 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         rewards_dict = coordinator.rewards_data
 
         if user_input is not None:
+            # Layer 2: UI validation (uniqueness check)
             errors = fh.validate_rewards_inputs(user_input, rewards_dict)
+
             if not errors:
-                reward_data = fh.build_rewards_data(user_input, rewards_dict)
-                internal_id = list(reward_data.keys())[0]
-                new_reward_data = reward_data[internal_id]
+                try:
+                    # Layer 3: Entity helper builds complete structure
+                    # build_reward(user_input) - no existing = create mode
+                    reward_data = eh.build_reward(user_input)
+                    internal_id = reward_data[const.DATA_REWARD_INTERNAL_ID]
 
-                coordinator._create_reward(internal_id, new_reward_data)
-                coordinator._persist()
-                coordinator.async_update_listeners()
+                    # Layer 4: Coordinator stores (thin wrapper)
+                    coordinator._data[const.DATA_REWARDS][internal_id] = dict(
+                        reward_data
+                    )
+                    coordinator._persist()
+                    coordinator.async_update_listeners()
 
-                reward_name = new_reward_data[const.DATA_REWARD_NAME]
-                const.LOGGER.debug(
-                    "Added Reward '%s' with ID: %s", reward_name, internal_id
-                )
-                self._mark_reload_needed()
-                return await self.async_step_init()
+                    const.LOGGER.debug(
+                        "Added Reward '%s' with ID: %s",
+                        reward_data[const.DATA_REWARD_NAME],
+                        internal_id,
+                    )
+                    self._mark_reload_needed()
+                    return await self.async_step_init()
+
+                except EntityValidationError as err:
+                    # Map field-specific error for form highlighting
+                    errors[err.field] = err.translation_key
 
         schema = fh.build_reward_schema()
         return self.async_show_form(
@@ -1180,66 +1228,38 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         kid_data = kids_dict[internal_id]
 
         if user_input is not None:
-            new_name = user_input[const.CFOF_KIDS_INPUT_KID_NAME].strip()
-            ha_user_id = user_input.get(const.CFOF_KIDS_INPUT_HA_USER, "")
-            # Convert sentinel back to empty string for storage
-            ha_user_id = (
-                ""
-                if ha_user_id in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
-                else ha_user_id
-            )
-            mobile_notify_service = user_input.get(
-                const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE, ""
-            )
-            # Convert sentinel back to empty string for storage
-            mobile_notify_service = (
-                ""
-                if mobile_notify_service
-                in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
-                else mobile_notify_service
-            )
-            # Derive enable_notifications from service presence
-            enable_notifications = bool(mobile_notify_service)
+            # Build temporary dict for duplicate checking (excludes current kid)
+            kids_for_validation = {
+                kid_id: kdata
+                for kid_id, kdata in kids_dict.items()
+                if kid_id != internal_id
+            }
 
-            dashboard_language = user_input.get(
-                const.CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE,
-                const.DEFAULT_DASHBOARD_LANGUAGE,
-            )
+            # Layer 2: UI validation (uniqueness check)
+            errors = fh.validate_kids_inputs(user_input, kids_for_validation)
 
-            # Due date reminders toggle (v0.5.0+)
-            enable_due_date_reminders = user_input.get(
-                const.CFOF_KIDS_INPUT_ENABLE_DUE_DATE_REMINDERS, True
-            )
+            if not errors:
+                try:
+                    # Layer 3: Entity helper builds complete structure
+                    # build_kid(user_input, existing) - with existing = update mode
+                    updated_kid = eh.build_kid(user_input, existing=kid_data)
 
-            # Validate name is not empty
-            if not new_name:
-                errors[const.CFOP_ERROR_KID_NAME] = (
-                    const.TRANS_KEY_CFOF_INVALID_KID_NAME
-                )
-            # Check for duplicate names excluding current kid
-            elif any(
-                data[const.DATA_KID_NAME] == new_name and eid != internal_id
-                for eid, data in kids_dict.items()
-            ):
-                errors[const.CFOP_ERROR_KID_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_KID
-            else:
-                # Build update data
-                updated_kid_data = {
-                    const.DATA_KID_NAME: new_name,
-                    const.DATA_KID_HA_USER_ID: ha_user_id,
-                    const.DATA_KID_ENABLE_NOTIFICATIONS: enable_notifications,
-                    const.DATA_KID_MOBILE_NOTIFY_SERVICE: mobile_notify_service,
-                    const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS: False,  # Deprecated
-                    const.DATA_KID_DASHBOARD_LANGUAGE: dashboard_language,
-                    const.DATA_KID_ENABLE_DUE_DATE_REMINDERS: enable_due_date_reminders,
-                }
+                    # Layer 4: Store updated kid (preserves internal_id)
+                    coordinator._data[const.DATA_KIDS][internal_id] = dict(updated_kid)
+                    coordinator._persist()
+                    coordinator.async_update_listeners()
 
-                # Update via coordinator
-                coordinator.update_kid_entity(internal_id, updated_kid_data)
+                    const.LOGGER.debug(
+                        "Edited Kid '%s' with ID: %s",
+                        updated_kid[const.DATA_KID_NAME],
+                        internal_id,
+                    )
+                    self._mark_reload_needed()
+                    return await self.async_step_init()
 
-                const.LOGGER.debug("Edited Kid '%s' with ID: %s", new_name, internal_id)
-                self._mark_reload_needed()
-                return await self.async_step_init()
+                except EntityValidationError as err:
+                    # Map field-specific error for form highlighting
+                    errors[err.field] = err.translation_key
 
         # Retrieve HA users for linking
         users = await self.hass.auth.async_get_users()
@@ -1302,63 +1322,25 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         parent_data = parents_dict[internal_id]
 
         if user_input is not None:
-            new_name = user_input[const.CFOF_PARENTS_INPUT_NAME].strip()
-            ha_user_id = user_input.get(const.CFOF_PARENTS_INPUT_HA_USER, "")
-            # Convert sentinel back to empty string for storage
-            ha_user_id = (
-                ""
-                if ha_user_id in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
-                else ha_user_id
-            )
-            associated_kids = user_input.get(
-                const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS, []
-            )
-            mobile_notify_service = user_input.get(
-                const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE, ""
-            )
-            # Convert sentinel back to empty string for storage
-            mobile_notify_service = (
-                ""
-                if mobile_notify_service
-                in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
-                else mobile_notify_service
-            )
-            # Derive enable_notifications from service presence
-            enable_notifications = bool(mobile_notify_service)
-            # New parent chore capability fields
-            dashboard_language = user_input.get(
-                const.CFOF_PARENTS_INPUT_DASHBOARD_LANGUAGE,
-                const.DEFAULT_DASHBOARD_LANGUAGE,
-            )
+            # Build temporary dict for duplicate checking (excludes current parent)
+            parents_for_validation = {
+                pid: pdata for pid, pdata in parents_dict.items() if pid != internal_id
+            }
+
+            # Layer 2: UI validation (uniqueness check)
+            errors = fh.validate_parents_inputs(user_input, parents_for_validation)
+
+            # Additional validation: when enabling chore assignment, check shadow kid name conflict
             allow_chore_assignment = user_input.get(
                 const.CFOF_PARENTS_INPUT_ALLOW_CHORE_ASSIGNMENT, False
             )
-            enable_chore_workflow = user_input.get(
-                const.CFOF_PARENTS_INPUT_ENABLE_CHORE_WORKFLOW, False
-            )
-            enable_gamification = user_input.get(
-                const.CFOF_PARENTS_INPUT_ENABLE_GAMIFICATION, False
+            was_enabled = parent_data.get(
+                const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT, False
             )
 
-            # Validate name is not empty
-            if not new_name:
-                errors[const.CFOP_ERROR_PARENT_NAME] = (
-                    const.TRANS_KEY_CFOF_INVALID_PARENT_NAME
-                )
-            # Check for duplicate names excluding current parent
-            elif any(
-                data[const.DATA_PARENT_NAME] == new_name and eid != internal_id
-                for eid, data in parents_dict.items()
-            ):
-                errors[const.CFOP_ERROR_PARENT_NAME] = (
-                    const.TRANS_KEY_CFOF_DUPLICATE_PARENT
-                )
-            # When enabling chore assignment, check if parent name conflicts with kid names
-            # (shadow kid would have same name as existing kid)
-            elif allow_chore_assignment and not parent_data.get(
-                const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT, False
-            ):
+            if not errors and allow_chore_assignment and not was_enabled:
                 # Only check when ENABLING chore assignment (not already enabled)
+                new_name = user_input.get(const.CFOF_PARENTS_INPUT_NAME, "").strip()
                 existing_kid_names = {
                     data.get(const.DATA_KID_NAME, "").lower()
                     for data in coordinator.kids_data.values()
@@ -1371,51 +1353,51 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     )
 
             if not errors:
-                updated_parent_data = {
-                    const.DATA_PARENT_NAME: new_name,
-                    const.DATA_PARENT_HA_USER_ID: ha_user_id,
-                    const.DATA_PARENT_ASSOCIATED_KIDS: associated_kids,
-                    const.DATA_PARENT_ENABLE_NOTIFICATIONS: enable_notifications,
-                    const.DATA_PARENT_MOBILE_NOTIFY_SERVICE: mobile_notify_service,
-                    const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS: False,  # Deprecated
-                    const.DATA_PARENT_DASHBOARD_LANGUAGE: dashboard_language,
-                    const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT: allow_chore_assignment,
-                    const.DATA_PARENT_ENABLE_CHORE_WORKFLOW: enable_chore_workflow,
-                    const.DATA_PARENT_ENABLE_GAMIFICATION: enable_gamification,
-                }
+                try:
+                    # Layer 3: Entity helper builds complete structure
+                    # build_parent(user_input, existing) - with existing = update mode
+                    updated_parent = eh.build_parent(user_input, existing=parent_data)
 
-                # Handle shadow kid creation/deletion based on allow_chore_assignment
-                was_enabled = parent_data.get(
-                    const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT, False
-                )
-                existing_shadow_kid_id = parent_data.get(
-                    const.DATA_PARENT_LINKED_SHADOW_KID_ID
-                )
-
-                if allow_chore_assignment and not was_enabled:
-                    # Enabling chore assignment - create shadow kid
-                    shadow_kid_id = coordinator._create_shadow_kid_for_parent(
-                        internal_id, {**parent_data, **updated_parent_data}
+                    # Handle shadow kid creation/deletion based on allow_chore_assignment
+                    existing_shadow_kid_id = parent_data.get(
+                        const.DATA_PARENT_LINKED_SHADOW_KID_ID
                     )
-                    updated_parent_data[const.DATA_PARENT_LINKED_SHADOW_KID_ID] = (
-                        shadow_kid_id
+
+                    if allow_chore_assignment and not was_enabled:
+                        # Enabling chore assignment - create shadow kid
+                        shadow_kid_id = coordinator._create_shadow_kid_for_parent(
+                            internal_id, dict(updated_parent)
+                        )
+                        updated_parent[const.DATA_PARENT_LINKED_SHADOW_KID_ID] = (
+                            shadow_kid_id
+                        )
+                    elif (
+                        not allow_chore_assignment
+                        and was_enabled
+                        and existing_shadow_kid_id
+                    ):
+                        # Disabling chore assignment - unlink shadow kid (preserves data)
+                        coordinator._unlink_shadow_kid(existing_shadow_kid_id)
+                        updated_parent[const.DATA_PARENT_LINKED_SHADOW_KID_ID] = None
+
+                    # Layer 4: Store updated parent (preserves internal_id)
+                    coordinator._data[const.DATA_PARENTS][internal_id] = dict(
+                        updated_parent
                     )
-                elif (
-                    not allow_chore_assignment
-                    and was_enabled
-                    and existing_shadow_kid_id
-                ):
-                    # Disabling chore assignment - unlink shadow kid (preserves data)
-                    coordinator._unlink_shadow_kid(existing_shadow_kid_id)
-                    updated_parent_data[const.DATA_PARENT_LINKED_SHADOW_KID_ID] = None
+                    coordinator._persist()
+                    coordinator.async_update_listeners()
 
-                coordinator.update_parent_entity(internal_id, updated_parent_data)
-                self._mark_reload_needed()
+                    const.LOGGER.debug(
+                        "Edited Parent '%s' with ID: %s",
+                        updated_parent[const.DATA_PARENT_NAME],
+                        internal_id,
+                    )
+                    self._mark_reload_needed()
+                    return await self.async_step_init()
 
-                const.LOGGER.debug(
-                    "Edited Parent '%s' with ID: %s", new_name, internal_id
-                )
-                return await self.async_step_init()
+                except EntityValidationError as err:
+                    # Map field-specific error for form highlighting
+                    errors[err.field] = err.translation_key
 
         # Retrieve HA users and existing kids for linking
         users = await self.hass.auth.async_get_users()
@@ -2528,7 +2510,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             const.LOGGER.error("Edit Reward - Invalid Internal ID '%s'", internal_id)
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_REWARD)
 
-        reward_data = rewards_dict[internal_id]
+        existing_reward = rewards_dict[internal_id]
 
         if user_input is not None:
             # Build a temporary dict for duplicate checking that excludes current reward
@@ -2536,28 +2518,37 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 rid: rdata for rid, rdata in rewards_dict.items() if rid != internal_id
             }
 
+            # Layer 2: UI validation (uniqueness check)
             errors = fh.validate_rewards_inputs(user_input, rewards_for_validation)
+
             if not errors:
-                reward_data = fh.build_rewards_data(user_input, rewards_for_validation)
-                # Extract the reward data (without the internal_id wrapper)
-                updated_reward_data = list(reward_data.values())[0]
-                # Remove internal_id from updated data as it's already set
-                updated_reward_data = {
-                    k: v
-                    for k, v in updated_reward_data.items()
-                    if k != const.DATA_REWARD_INTERNAL_ID
-                }
+                try:
+                    # Layer 3: Entity helper builds complete structure
+                    # build_reward(user_input, existing) - with existing = update mode
+                    updated_reward = eh.build_reward(
+                        user_input, existing=existing_reward
+                    )
 
-                coordinator.update_reward_entity(internal_id, updated_reward_data)
+                    # Layer 4: Store updated reward (preserves internal_id)
+                    coordinator._data[const.DATA_REWARDS][internal_id] = dict(
+                        updated_reward
+                    )
+                    coordinator._persist()
+                    coordinator.async_update_listeners()
 
-                new_name = updated_reward_data[const.DATA_REWARD_NAME]
-                const.LOGGER.debug(
-                    "Edited Reward '%s' with ID: %s", new_name, internal_id
-                )
-                self._mark_reload_needed()
-                return await self.async_step_init()
+                    const.LOGGER.debug(
+                        "Edited Reward '%s' with ID: %s",
+                        updated_reward[const.DATA_REWARD_NAME],
+                        internal_id,
+                    )
+                    self._mark_reload_needed()
+                    return await self.async_step_init()
 
-        schema = fh.build_reward_schema(default=reward_data)
+                except EntityValidationError as err:
+                    # Map field-specific error for form highlighting
+                    errors[err.field] = err.translation_key
+
+        schema = fh.build_reward_schema(default=existing_reward)
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_EDIT_REWARD,
             data_schema=schema,

@@ -29,7 +29,7 @@ from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from . import const, flow_helpers as fh, kc_helpers as kh
+from . import const, entity_helpers as eh, kc_helpers as kh
 from .coordinator_chore_operations import ChoreOperations
 from .notification_helper import (
     async_send_notification,
@@ -806,434 +806,12 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
                     challenge_info.get(const.DATA_CHALLENGE_NAME),
                 )
 
-    async def remove_deprecated_entities(
-        self, hass: HomeAssistant, entry: ConfigEntry
-    ) -> None:
-        """Remove old/deprecated sensor entities from the entity registry that are no longer used."""
-
-        ent_reg = er.async_get(hass)
-
-        for entity_id, entity_entry in list(ent_reg.entities.items()):
-            if not entity_entry.unique_id.startswith(f"{entry.entry_id}_"):
-                continue
-            if any(
-                entity_entry.unique_id.endswith(suffix)
-                for suffix in const.DEPRECATED_SUFFIXES
-            ):
-                ent_reg.async_remove(entity_id)
-                const.LOGGER.debug(
-                    "DEBUG: Removed deprecated Entity '%s', UID '%s'",
-                    entity_id,
-                    entity_entry.unique_id,
-                )
-
-    def remove_deprecated_button_entities(self) -> None:
-        """Remove dynamic button entities that are not present in the current configuration."""
-        ent_reg = er.async_get(self.hass)
-
-        # Build the set of expected unique_ids ("whitelist")
-        allowed_uids = set()
-
-        # --- Chore Buttons ---
-        # For each chore, create expected unique IDs for claim, approve, and disapprove buttons
-        for chore_id, chore_info in self.chores_data.items():
-            for kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
-                # Expected unique_id formats:
-                uid_claim = f"{self.config_entry.entry_id}_{kid_id}_{chore_id}{const.BUTTON_KC_UID_SUFFIX_CLAIM}"
-                uid_approve = f"{self.config_entry.entry_id}_{kid_id}_{chore_id}{const.BUTTON_KC_UID_SUFFIX_APPROVE}"
-                uid_disapprove = f"{self.config_entry.entry_id}_{kid_id}_{chore_id}{const.BUTTON_KC_UID_SUFFIX_DISAPPROVE}"
-                allowed_uids.update({uid_claim, uid_approve, uid_disapprove})
-
-        # --- Reward Buttons ---
-        # For each kid and reward, add expected unique IDs for reward claim, approve, and disapprove buttons.
-        for kid_id in self.kids_data:
-            for reward_id in self.rewards_data:
-                # The reward claim button might be built with a dedicated prefix:
-                uid_claim = f"{self.config_entry.entry_id}_{const.BUTTON_REWARD_PREFIX}{kid_id}_{reward_id}"
-                uid_approve = f"{self.config_entry.entry_id}_{kid_id}_{reward_id}{const.BUTTON_KC_UID_SUFFIX_APPROVE_REWARD}"
-                uid_disapprove = f"{self.config_entry.entry_id}_{kid_id}_{reward_id}{const.BUTTON_KC_UID_SUFFIX_DISAPPROVE_REWARD}"
-                allowed_uids.update({uid_claim, uid_approve, uid_disapprove})
-
-        # --- Penalty Buttons ---
-        for kid_id in self.kids_data:
-            for penalty_id in self.penalties_data:
-                uid = f"{self.config_entry.entry_id}_{const.BUTTON_PENALTY_PREFIX}{kid_id}_{penalty_id}"
-                allowed_uids.add(uid)
-
-        # --- Bonus Buttons ---
-        for kid_id in self.kids_data:
-            for bonus_id in self.bonuses_data:
-                uid = f"{self.config_entry.entry_id}_{const.BUTTON_BONUS_PREFIX}{kid_id}_{bonus_id}"
-                allowed_uids.add(uid)
-
-        # --- Points Adjust Buttons ---
-        # Determine the list of adjustment delta values from configuration or defaults.
-        raw_values = self.config_entry.options.get(const.CONF_POINTS_ADJUST_VALUES)
-        if not raw_values:
-            points_adjust_values = const.DEFAULT_POINTS_ADJUST_VALUES
-        elif isinstance(raw_values, str):
-            points_adjust_values = kh.parse_points_adjust_values(raw_values)
-            if not points_adjust_values:
-                points_adjust_values = const.DEFAULT_POINTS_ADJUST_VALUES
-        elif isinstance(raw_values, list):
-            try:
-                points_adjust_values = [float(v) for v in raw_values]
-            except (ValueError, TypeError):
-                points_adjust_values = const.DEFAULT_POINTS_ADJUST_VALUES
-        else:
-            points_adjust_values = const.DEFAULT_POINTS_ADJUST_VALUES
-
-        for kid_id in self.kids_data:
-            for delta in points_adjust_values:
-                uid = f"{self.config_entry.entry_id}_{kid_id}{const.BUTTON_KC_UID_MIDFIX_ADJUST_POINTS}{delta}"
-                allowed_uids.add(uid)
-
-        # --- Now remove any button entity whose unique_id is not in allowed_uids ---
-        for entity_entry in list(ent_reg.entities.values()):
-            # Only check buttons from our platform (kidschores)
-            if entity_entry.platform != const.DOMAIN or entity_entry.domain != "button":
-                continue
-
-            # If this button doesn't match our whitelist, remove it
-            # This catches old entities from previous configs, migrations, or different entry_ids
-            if entity_entry.unique_id not in allowed_uids:
-                const.LOGGER.info(
-                    "INFO: Removing orphaned/deprecated Button '%s' with unique_id '%s'",
-                    entity_entry.entity_id,
-                    entity_entry.unique_id,
-                )
-                ent_reg.async_remove(entity_entry.entity_id)
-
-    def remove_deprecated_sensor_entities(self) -> None:
-        """Remove dynamic sensor entities that are not present in the current configuration."""
-        ent_reg = er.async_get(self.hass)
-
-        # Build the set of expected unique_ids ("whitelist")
-        allowed_uids = set()
-
-        # --- Chore Status Sensors ---
-        # For each chore, create expected unique IDs for chore status sensors
-        for chore_id, chore_info in self.chores_data.items():
-            for kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
-                uid = f"{self.config_entry.entry_id}_{kid_id}_{chore_id}{const.SENSOR_KC_UID_SUFFIX_CHORE_STATUS_SENSOR}"
-                allowed_uids.add(uid)
-
-        # --- Shared Chore Global State Sensors ---
-        for chore_id, chore_info in self.chores_data.items():
-            if (
-                chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
-                == const.COMPLETION_CRITERIA_SHARED
-            ):
-                uid = f"{self.config_entry.entry_id}_{chore_id}{const.DATA_GLOBAL_STATE_SUFFIX}"
-                allowed_uids.add(uid)
-
-        # --- Reward Status Sensors ---
-        for reward_id in self.rewards_data:
-            for kid_id in self.kids_data:
-                uid = f"{self.config_entry.entry_id}_{kid_id}_{reward_id}{const.SENSOR_KC_UID_SUFFIX_REWARD_STATUS_SENSOR}"
-                allowed_uids.add(uid)
-
-        # --- Penalty/Bonus Apply Sensors ---
-        for kid_id in self.kids_data:
-            for penalty_id in self.penalties_data:
-                uid = f"{self.config_entry.entry_id}_{kid_id}_{penalty_id}{const.SENSOR_KC_UID_SUFFIX_PENALTY_APPLIES_SENSOR}"
-                allowed_uids.add(uid)
-            for bonus_id in self.bonuses_data:
-                uid = f"{self.config_entry.entry_id}_{kid_id}_{bonus_id}{const.SENSOR_KC_UID_SUFFIX_BONUS_APPLIES_SENSOR}"
-                allowed_uids.add(uid)
-
-        # --- Achievement Progress Sensors ---
-        for achievement_id, achievement in self.achievements_data.items():
-            for kid_id in achievement.get(const.DATA_ACHIEVEMENT_ASSIGNED_KIDS, []):
-                uid = f"{self.config_entry.entry_id}_{kid_id}_{achievement_id}{const.SENSOR_KC_UID_SUFFIX_ACHIEVEMENT_PROGRESS_SENSOR}"
-                allowed_uids.add(uid)
-
-        # --- Challenge Progress Sensors ---
-        for challenge_id, challenge in self.challenges_data.items():
-            for kid_id in challenge.get(const.DATA_CHALLENGE_ASSIGNED_KIDS, []):
-                uid = f"{self.config_entry.entry_id}_{kid_id}_{challenge_id}{const.SENSOR_KC_UID_SUFFIX_CHALLENGE_PROGRESS_SENSOR}"
-                allowed_uids.add(uid)
-
-        # --- Kid-specific sensors (not dynamic based on chores/rewards) ---
-        # These are created once per kid and don't need validation against dynamic data
-        for kid_id in self.kids_data:
-            # Standard kid sensors
-            allowed_uids.add(
-                f"{self.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_POINTS_SENSOR}"
-            )
-            allowed_uids.add(
-                f"{self.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_TOTAL_SENSOR}"
-            )
-            allowed_uids.add(
-                f"{self.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_DAILY_SENSOR}"
-            )
-            allowed_uids.add(
-                f"{self.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_WEEKLY_SENSOR}"
-            )
-            allowed_uids.add(
-                f"{self.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_MONTHLY_SENSOR}"
-            )
-            allowed_uids.add(
-                f"{self.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_BADGES_SENSOR}"
-            )
-            allowed_uids.add(
-                f"{self.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_DAILY_SENSOR}"
-            )
-            allowed_uids.add(
-                f"{self.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_WEEKLY_SENSOR}"
-            )
-            allowed_uids.add(
-                f"{self.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_MONTHLY_SENSOR}"
-            )
-            allowed_uids.add(
-                f"{self.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_MAX_POINTS_EVER_SENSOR}"
-            )
-            allowed_uids.add(
-                f"{self.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_HIGHEST_STREAK_SENSOR}"
-            )
-            allowed_uids.add(
-                f"{self.config_entry.entry_id}_{kid_id}_ui_dashboard_helper"
-            )  # Hardcoded in sensor.py
-
-            # Badge progress sensors
-            badge_progress_data = self.kids_data[kid_id].get(
-                const.DATA_KID_BADGE_PROGRESS, {}
-            )
-            for badge_id, progress_info in badge_progress_data.items():
-                badge_type = progress_info.get(const.DATA_KID_BADGE_PROGRESS_TYPE)
-                if badge_type != const.BADGE_TYPE_CUMULATIVE:
-                    uid = f"{self.config_entry.entry_id}_{kid_id}_{badge_id}{const.SENSOR_KC_UID_SUFFIX_BADGE_PROGRESS_SENSOR}"
-                    allowed_uids.add(uid)
-
-        # --- Global sensors (not kid-specific) ---
-        allowed_uids.add(
-            f"{self.config_entry.entry_id}{const.SENSOR_KC_UID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR}"
-        )
-        allowed_uids.add(
-            f"{self.config_entry.entry_id}{const.SENSOR_KC_UID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR}"
-        )
-
-        # --- Now remove any sensor entity whose unique_id is not in allowed_uids ---
-        for entity_entry in list(ent_reg.entities.values()):
-            # Only check sensors from our platform (kidschores)
-            if entity_entry.platform != const.DOMAIN or entity_entry.domain != "sensor":
-                continue
-
-            # If this sensor doesn't match our whitelist, remove it
-            # This catches old entities from previous configs, migrations, or different entry_ids
-            if entity_entry.unique_id not in allowed_uids:
-                const.LOGGER.info(
-                    "INFO: Removing orphaned/deprecated Sensor '%s' with unique_id '%s'",
-                    entity_entry.entity_id,
-                    entity_entry.unique_id,
-                )
-                ent_reg.async_remove(entity_entry.entity_id)
-
     # -------------------------------------------------------------------------------------
     # Create/Update Entities
     # (Kids, Parents, Chores, Badges, Rewards, Penalties, Bonus, Achievements and Challenges)
     # -------------------------------------------------------------------------------------
 
     # -- Kids
-    def _create_kid(self, kid_id: str, kid_data: dict[str, Any]):
-        self._data[const.DATA_KIDS][kid_id] = {
-            const.DATA_KID_NAME: kid_data.get(
-                const.DATA_KID_NAME, const.SENTINEL_EMPTY
-            ),
-            const.DATA_KID_POINTS: kid_data.get(
-                const.DATA_KID_POINTS, const.DEFAULT_ZERO
-            ),
-            const.DATA_KID_BADGES_EARNED: kid_data.get(
-                const.DATA_KID_BADGES_EARNED, {}
-            ),
-            # Note: claimed_chores and approved_chores lists removed in v0.4.0
-            # Now using timestamp-based tracking (last_approved, approval_period_start)
-            # Chore tracking now uses timestamps in kid_chore_data
-            # Deprecated completed_chores counters removed - using chore_stats only
-            const.DATA_KID_HA_USER_ID: kid_data.get(const.DATA_KID_HA_USER_ID),
-            const.DATA_KID_INTERNAL_ID: kid_id,
-            const.DATA_KID_POINTS_MULTIPLIER: kid_data.get(
-                const.DATA_KID_POINTS_MULTIPLIER, const.DEFAULT_KID_POINTS_MULTIPLIER
-            ),
-            const.DATA_KID_PENALTY_APPLIES: kid_data.get(
-                const.DATA_KID_PENALTY_APPLIES, {}
-            ),
-            const.DATA_KID_BONUS_APPLIES: kid_data.get(
-                const.DATA_KID_BONUS_APPLIES, {}
-            ),
-            # Modern reward tracking (v0.5.0+) - timestamp-based with multi-claim support
-            # Legacy fields (pending_rewards, redeemed_rewards, reward_claims, reward_approvals)
-            # have been removed - all reward tracking now uses reward_data structure
-            const.DATA_KID_REWARD_DATA: kid_data.get(const.DATA_KID_REWARD_DATA, {}),
-            # NOTE: max_points_ever is removed - use point_stats.highest_balance instead
-            const.DATA_KID_ENABLE_NOTIFICATIONS: kid_data.get(
-                const.DATA_KID_ENABLE_NOTIFICATIONS, True
-            ),
-            const.DATA_KID_MOBILE_NOTIFY_SERVICE: kid_data.get(
-                const.DATA_KID_MOBILE_NOTIFY_SERVICE, const.SENTINEL_EMPTY
-            ),
-            const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS: kid_data.get(
-                const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS, True
-            ),
-            const.DATA_KID_OVERDUE_CHORES: [],
-            const.DATA_KID_OVERDUE_NOTIFICATIONS: {},
-        }
-
-        const.LOGGER.debug(
-            "DEBUG: Kid Added - '%s', ID '%s'",
-            self._data[const.DATA_KIDS][kid_id][const.DATA_KID_NAME],
-            kid_id,
-        )
-
-    def _update_kid(self, kid_id: str, kid_data: dict[str, Any]):
-        """Update an existing kid entity, only updating fields present in kid_data."""
-
-        kids = self._data.setdefault(const.DATA_KIDS, {})
-        existing = kids.get(kid_id, {})
-        # Only update fields present in kid_data, preserving all others
-        existing.update(kid_data)
-        kids[kid_id] = existing
-
-        kid_name = existing.get(const.DATA_KID_NAME, const.SENTINEL_EMPTY)
-        const.LOGGER.debug(
-            "DEBUG: Kid Updated - '%s', ID '%s'",
-            kid_name,
-            kid_id,
-        )
-
-    # -- Parents
-    def _create_parent(self, parent_id: str, parent_data: dict[str, Any]):
-        associated_kids_ids = []
-        for kid_id in parent_data.get(const.DATA_PARENT_ASSOCIATED_KIDS, []):
-            if kid_id in self.kids_data:
-                associated_kids_ids.append(kid_id)
-            else:
-                const.LOGGER.warning(
-                    "WARNING: Parent '%s': Kid ID '%s' not found. Skipping assignment to parent",
-                    parent_data.get(const.DATA_PARENT_NAME, parent_id),
-                    kid_id,
-                )
-
-        self._data[const.DATA_PARENTS][parent_id] = {
-            const.DATA_PARENT_NAME: parent_data.get(
-                const.DATA_PARENT_NAME, const.SENTINEL_EMPTY
-            ),
-            const.DATA_PARENT_HA_USER_ID: parent_data.get(
-                const.DATA_PARENT_HA_USER_ID, const.SENTINEL_EMPTY
-            ),
-            const.DATA_PARENT_ASSOCIATED_KIDS: associated_kids_ids,
-            const.DATA_PARENT_ENABLE_NOTIFICATIONS: parent_data.get(
-                const.DATA_PARENT_ENABLE_NOTIFICATIONS, True
-            ),
-            const.DATA_PARENT_MOBILE_NOTIFY_SERVICE: parent_data.get(
-                const.DATA_PARENT_MOBILE_NOTIFY_SERVICE, const.SENTINEL_EMPTY
-            ),
-            const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS: parent_data.get(
-                const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS, True
-            ),
-            const.DATA_PARENT_INTERNAL_ID: parent_id,
-            # Parent chore capability fields (v0.6.0+)
-            const.DATA_PARENT_DASHBOARD_LANGUAGE: parent_data.get(
-                const.DATA_PARENT_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
-            ),
-            const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT: parent_data.get(
-                const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT,
-                const.DEFAULT_PARENT_ALLOW_CHORE_ASSIGNMENT,
-            ),
-            const.DATA_PARENT_ENABLE_CHORE_WORKFLOW: parent_data.get(
-                const.DATA_PARENT_ENABLE_CHORE_WORKFLOW,
-                const.DEFAULT_PARENT_ENABLE_CHORE_WORKFLOW,
-            ),
-            const.DATA_PARENT_ENABLE_GAMIFICATION: parent_data.get(
-                const.DATA_PARENT_ENABLE_GAMIFICATION,
-                const.DEFAULT_PARENT_ENABLE_GAMIFICATION,
-            ),
-            const.DATA_PARENT_LINKED_SHADOW_KID_ID: parent_data.get(
-                const.DATA_PARENT_LINKED_SHADOW_KID_ID
-            ),
-        }
-        const.LOGGER.debug(
-            "DEBUG: Parent Added - '%s', ID '%s'",
-            self._data[const.DATA_PARENTS][parent_id][const.DATA_PARENT_NAME],
-            parent_id,
-        )
-
-    def _update_parent(self, parent_id: str, parent_data: dict[str, Any]):
-        parent_info = self._data[const.DATA_PARENTS][parent_id]
-        parent_info[const.DATA_PARENT_NAME] = parent_data.get(
-            const.DATA_PARENT_NAME, parent_info[const.DATA_PARENT_NAME]
-        )
-        parent_info[const.DATA_PARENT_HA_USER_ID] = parent_data.get(
-            const.DATA_PARENT_HA_USER_ID, parent_info[const.DATA_PARENT_HA_USER_ID]
-        )
-
-        # Update associated_kids
-        updated_kids = []
-        for kid_id in parent_data.get(const.DATA_PARENT_ASSOCIATED_KIDS, []):
-            if kid_id in self.kids_data:
-                updated_kids.append(kid_id)
-            else:
-                const.LOGGER.warning(
-                    "WARNING: Parent '%s': Kid ID '%s' not found. Skipping assignment to parent",
-                    parent_info[const.DATA_PARENT_NAME],
-                    kid_id,
-                )
-        parent_info[const.DATA_PARENT_ASSOCIATED_KIDS] = updated_kids
-        parent_info[const.DATA_PARENT_ENABLE_NOTIFICATIONS] = parent_data.get(
-            const.DATA_PARENT_ENABLE_NOTIFICATIONS,
-            parent_info.get(const.DATA_PARENT_ENABLE_NOTIFICATIONS, True),
-        )
-        parent_info[const.DATA_PARENT_MOBILE_NOTIFY_SERVICE] = parent_data.get(
-            const.DATA_PARENT_MOBILE_NOTIFY_SERVICE,
-            parent_info.get(
-                const.DATA_PARENT_MOBILE_NOTIFY_SERVICE, const.SENTINEL_EMPTY
-            ),
-        )
-        parent_info[const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS] = parent_data.get(
-            const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS,
-            parent_info.get(const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS, True),
-        )
-        # Parent chore capability fields (v0.6.0+)
-        parent_info[const.DATA_PARENT_DASHBOARD_LANGUAGE] = parent_data.get(
-            const.DATA_PARENT_DASHBOARD_LANGUAGE,
-            parent_info.get(
-                const.DATA_PARENT_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
-            ),
-        )
-        parent_info[const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT] = parent_data.get(
-            const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT,
-            parent_info.get(
-                const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT,
-                const.DEFAULT_PARENT_ALLOW_CHORE_ASSIGNMENT,
-            ),
-        )
-        parent_info[const.DATA_PARENT_ENABLE_CHORE_WORKFLOW] = parent_data.get(
-            const.DATA_PARENT_ENABLE_CHORE_WORKFLOW,
-            parent_info.get(
-                const.DATA_PARENT_ENABLE_CHORE_WORKFLOW,
-                const.DEFAULT_PARENT_ENABLE_CHORE_WORKFLOW,
-            ),
-        )
-        parent_info[const.DATA_PARENT_ENABLE_GAMIFICATION] = parent_data.get(
-            const.DATA_PARENT_ENABLE_GAMIFICATION,
-            parent_info.get(
-                const.DATA_PARENT_ENABLE_GAMIFICATION,
-                const.DEFAULT_PARENT_ENABLE_GAMIFICATION,
-            ),
-        )
-        # Update shadow kid link if provided (set by options_flow when toggling
-        # allow_chore_assignment)
-        if const.DATA_PARENT_LINKED_SHADOW_KID_ID in parent_data:
-            parent_info[const.DATA_PARENT_LINKED_SHADOW_KID_ID] = parent_data.get(
-                const.DATA_PARENT_LINKED_SHADOW_KID_ID
-            )
-
-        const.LOGGER.debug(
-            "DEBUG: Parent Updated - '%s', ID '%s'",
-            parent_info[const.DATA_PARENT_NAME],
-            parent_id,
-        )
-
     def _create_shadow_kid_for_parent(
         self, parent_id: str, parent_info: dict[str, Any]
     ) -> str:
@@ -1246,8 +824,8 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         - Have notifications disabled by default (editable via Manage Kids)
         - Inherit gamification setting from parent
 
-        Uses shared build_shadow_kid_data() from flow_helpers for consistency
-        between config flow and options flow shadow kid creation.
+        Uses entity_helpers.build_kid() with is_shadow=True for consistent
+        shadow kid creation across config flow and options flow.
 
         Args:
             parent_id: The internal ID of the parent.
@@ -1256,25 +834,36 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         Returns:
             The internal_id of the newly created shadow kid.
         """
-        # Use shared function for consistent shadow kid data structure
-        shadow_kid_id, shadow_kid_data = fh.build_shadow_kid_data(
-            parent_id, parent_info
-        )
+        parent_name = parent_info.get(const.DATA_PARENT_NAME, const.SENTINEL_EMPTY)
 
-        # Use existing _create_kid to set up all standard kid fields
-        self._create_kid(shadow_kid_id, shadow_kid_data)
+        # Build shadow kid input from parent data
+        shadow_input = {
+            const.CFOF_KIDS_INPUT_KID_NAME: parent_name,
+            const.CFOF_KIDS_INPUT_HA_USER: parent_info.get(
+                const.DATA_PARENT_HA_USER_ID, ""
+            ),
+            const.CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE: parent_info.get(
+                const.DATA_PARENT_DASHBOARD_LANGUAGE,
+                const.DEFAULT_DASHBOARD_LANGUAGE,
+            ),
+            # Shadow kids have notifications disabled by default
+            const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: const.SENTINEL_EMPTY,
+        }
 
-        # Add shadow kid markers (after _create_kid, which doesn't know about them)
-        self._data[const.DATA_KIDS][shadow_kid_id][const.DATA_KID_IS_SHADOW] = True
-        self._data[const.DATA_KIDS][shadow_kid_id][const.DATA_KID_LINKED_PARENT_ID] = (
-            parent_id
+        # Use unified eh.build_kid() with shadow markers
+        shadow_kid_data = dict(
+            eh.build_kid(shadow_input, is_shadow=True, linked_parent_id=parent_id)
         )
+        shadow_kid_id = str(shadow_kid_data[const.DATA_KID_INTERNAL_ID])
+
+        # Direct storage write
+        self._data[const.DATA_KIDS][shadow_kid_id] = shadow_kid_data
 
         const.LOGGER.info(
             "Created shadow kid '%s' (ID: %s) for parent '%s' (ID: %s)",
-            parent_info.get(const.DATA_PARENT_NAME),
+            parent_name,
             shadow_kid_id,
-            parent_info.get(const.DATA_PARENT_NAME),
+            parent_name,
             parent_id,
         )
 
@@ -1355,782 +944,86 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
             shadow_kid_id,
         )
 
-    # -- Chores
-    def _create_chore(self, chore_id: str, chore_data: dict[str, Any]):
-        # Use shared helper to build complete chore structure with all defaults
-        # This ensures config flow and coordinator use identical field initialization
-        self._data[const.DATA_CHORES][chore_id] = kh.build_default_chore_data(
-            chore_id, chore_data
-        )
-        const.LOGGER.debug(
-            "DEBUG: Chore Added - '%s', ID '%s'",
-            self._data[const.DATA_CHORES][chore_id][const.DATA_CHORE_NAME],
-            chore_id,
-        )
-
-        # Notify Kids of new chore
-        chore_info = self._data[const.DATA_CHORES][chore_id]
-        new_name = chore_info[const.DATA_CHORE_NAME]
-        due_date = chore_info[const.DATA_CHORE_DUE_DATE]
-        assigned_kids_ids = chore_info[const.DATA_CHORE_ASSIGNED_KIDS]
-        for kid_id in assigned_kids_ids:
-            due_str = due_date if due_date else const.TRANS_KEY_NO_DUE_DATE
-            extra_data = {const.DATA_KID_ID: kid_id, const.DATA_CHORE_ID: chore_id}
-            self.hass.async_create_task(
-                self._notify_kid_translated(
-                    kid_id,
-                    title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_ASSIGNED,
-                    message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_ASSIGNED,
-                    message_data={"chore_name": new_name, "due_date": due_str},
-                    extra_data=extra_data,
-                )
-            )
-
-    def _update_chore(self, chore_id: str, chore_data: dict[str, Any]) -> bool:
-        """Update chore data. Returns True if assigned kids changed (requiring reload)."""
-        chore_info = self._data[const.DATA_CHORES][chore_id]
-        chore_info[const.DATA_CHORE_NAME] = chore_data.get(
-            const.DATA_CHORE_NAME, chore_info[const.DATA_CHORE_NAME]
-        )
-        chore_info[const.DATA_CHORE_STATE] = chore_data.get(
-            const.DATA_CHORE_STATE, chore_info[const.DATA_CHORE_STATE]
-        )
-        chore_info[const.DATA_CHORE_DEFAULT_POINTS] = chore_data.get(
-            const.DATA_CHORE_DEFAULT_POINTS, chore_info[const.DATA_CHORE_DEFAULT_POINTS]
-        )
-        chore_info[const.DATA_CHORE_APPROVAL_RESET_TYPE] = chore_data.get(
-            const.DATA_CHORE_APPROVAL_RESET_TYPE,
-            chore_info.get(
-                const.DATA_CHORE_APPROVAL_RESET_TYPE,
-                const.DEFAULT_APPROVAL_RESET_TYPE,
-            ),
-        )
-        chore_info[const.DATA_CHORE_DESCRIPTION] = chore_data.get(
-            const.DATA_CHORE_DESCRIPTION, chore_info[const.DATA_CHORE_DESCRIPTION]
-        )
-        chore_info[const.DATA_CHORE_LABELS] = chore_data.get(
-            const.DATA_CHORE_LABELS,
-            chore_info.get(const.DATA_CHORE_LABELS, []),
-        )
-        chore_info[const.DATA_CHORE_ICON] = chore_data.get(
-            const.DATA_CHORE_ICON, chore_info[const.DATA_CHORE_ICON]
-        )
-
-        # assigned_kids now contains UUIDs directly from flow helpers (no conversion needed)
-        assigned_kids_ids = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
-        old_assigned = set(chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []))
-        new_assigned = set(assigned_kids_ids)
-
-        # Check if kids were ADDED (reload needed to create new entities)
-        # Removed kids don't need reload - we just remove their entities
-        added_kids = new_assigned - old_assigned
-        assignments_changed = len(added_kids) > 0
-
-        removed_kids = old_assigned - new_assigned
-        for kid in removed_kids:
-            self._remove_kid_chore_entities(kid, chore_id)
-            self._cleanup_chore_from_kid(kid, chore_id)
-
-        # Update the chore's assigned kids list with the new assignments
-        chore_info[const.DATA_CHORE_ASSIGNED_KIDS] = list(new_assigned)
-        chore_info[const.DATA_CHORE_RECURRING_FREQUENCY] = chore_data.get(
-            const.DATA_CHORE_RECURRING_FREQUENCY,
-            chore_info[const.DATA_CHORE_RECURRING_FREQUENCY],
-        )
-
-        # Handle due_date based on completion criteria to avoid KeyError
-        completion_criteria = chore_info.get(
-            const.DATA_CHORE_COMPLETION_CRITERIA,
-            const.COMPLETION_CRITERIA_INDEPENDENT,  # Legacy default
-        )
-        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
-            # For INDEPENDENT chores: chore-level due_date should remain None
-            # (per_kid_due_dates are authoritative)
-            chore_info[const.DATA_CHORE_DUE_DATE] = None
-        else:
-            # For SHARED chores: update chore-level due_date normally
-            chore_info[const.DATA_CHORE_DUE_DATE] = chore_data.get(
-                const.DATA_CHORE_DUE_DATE, chore_info.get(const.DATA_CHORE_DUE_DATE)
-            )
-
-        chore_info[const.DATA_CHORE_LAST_COMPLETED] = chore_data.get(
-            const.DATA_CHORE_LAST_COMPLETED,
-            chore_info.get(const.DATA_CHORE_LAST_COMPLETED),
-        )
-        chore_info[const.DATA_CHORE_LAST_CLAIMED] = chore_data.get(
-            const.DATA_CHORE_LAST_CLAIMED, chore_info.get(const.DATA_CHORE_LAST_CLAIMED)
-        )
-        chore_info[const.DATA_CHORE_APPLICABLE_DAYS] = chore_data.get(
-            const.DATA_CHORE_APPLICABLE_DAYS,
-            chore_info.get(const.DATA_CHORE_APPLICABLE_DAYS, []),
-        )
-        chore_info[const.DATA_CHORE_NOTIFY_ON_CLAIM] = chore_data.get(
-            const.DATA_CHORE_NOTIFY_ON_CLAIM,
-            chore_info.get(
-                const.DATA_CHORE_NOTIFY_ON_CLAIM, const.DEFAULT_NOTIFY_ON_CLAIM
-            ),
-        )
-        chore_info[const.DATA_CHORE_NOTIFY_ON_APPROVAL] = chore_data.get(
-            const.DATA_CHORE_NOTIFY_ON_APPROVAL,
-            chore_info.get(
-                const.DATA_CHORE_NOTIFY_ON_APPROVAL, const.DEFAULT_NOTIFY_ON_APPROVAL
-            ),
-        )
-        chore_info[const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL] = chore_data.get(
-            const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL,
-            chore_info.get(
-                const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL,
-                const.DEFAULT_NOTIFY_ON_DISAPPROVAL,
-            ),
-        )
-
-        if chore_info[const.DATA_CHORE_RECURRING_FREQUENCY] in (
-            const.FREQUENCY_CUSTOM,
-            const.FREQUENCY_CUSTOM_FROM_COMPLETE,
-        ):
-            chore_info[const.DATA_CHORE_CUSTOM_INTERVAL] = chore_data.get(
-                const.DATA_CHORE_CUSTOM_INTERVAL
-            )
-            chore_info[const.DATA_CHORE_CUSTOM_INTERVAL_UNIT] = chore_data.get(
-                const.DATA_CHORE_CUSTOM_INTERVAL_UNIT
-            )
-        else:
-            chore_info[const.DATA_CHORE_CUSTOM_INTERVAL] = None
-            chore_info[const.DATA_CHORE_CUSTOM_INTERVAL_UNIT] = None
-
-        # CFE-2026-001: Handle DAILY_MULTI times field
-        if (
-            chore_info[const.DATA_CHORE_RECURRING_FREQUENCY]
-            == const.FREQUENCY_DAILY_MULTI
-        ):
-            chore_info[const.DATA_CHORE_DAILY_MULTI_TIMES] = chore_data.get(
-                const.DATA_CHORE_DAILY_MULTI_TIMES,
-                chore_info.get(const.DATA_CHORE_DAILY_MULTI_TIMES, ""),
-            )
-        else:
-            # Clear times if frequency changed away from DAILY_MULTI
-            chore_info[const.DATA_CHORE_DAILY_MULTI_TIMES] = None
-
-        # Component 8: Handle completion_criteria changes (INDEPENDENT ↔ SHARED)
-        old_criteria = chore_info.get(
-            const.DATA_CHORE_COMPLETION_CRITERIA,
-            const.COMPLETION_CRITERIA_INDEPENDENT,  # Legacy default
-        )
-        new_criteria = chore_data.get(
-            const.DATA_CHORE_COMPLETION_CRITERIA,
-            old_criteria,  # Keep existing if not provided
-        )
-
-        # Detect criteria change and convert data accordingly
-        if new_criteria != old_criteria:
-            const.LOGGER.info(
-                "INFO: Chore '%s' completion criteria changed: %s → %s",
-                chore_info[const.DATA_CHORE_NAME],
-                old_criteria,
-                new_criteria,
-            )
-            if (
-                old_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
-                and new_criteria == const.COMPLETION_CRITERIA_SHARED
-            ):
-                # INDEPENDENT → SHARED: Remove per_kid_due_dates
-                self._convert_independent_to_shared(chore_id, chore_info, chore_data)
-            elif (
-                old_criteria == const.COMPLETION_CRITERIA_SHARED
-                and new_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
-            ):
-                # SHARED → INDEPENDENT: Populate per_kid_due_dates from template
-                self._convert_shared_to_independent(chore_id, chore_info, chore_data)
-
-        # Update completion_criteria
-        chore_info[const.DATA_CHORE_COMPLETION_CRITERIA] = new_criteria
-
-        # Update per_kid_due_dates if provided in chore_data (from flow)
-        if const.DATA_CHORE_PER_KID_DUE_DATES in chore_data:
-            chore_info[const.DATA_CHORE_PER_KID_DUE_DATES] = chore_data[
-                const.DATA_CHORE_PER_KID_DUE_DATES
-            ]
-
-        # PKAD-2026-001: Update per_kid_applicable_days if provided (from flow)
-        if const.DATA_CHORE_PER_KID_APPLICABLE_DAYS in chore_data:
-            chore_info[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS] = chore_data[
-                const.DATA_CHORE_PER_KID_APPLICABLE_DAYS
-            ]
-
-        # PKAD-2026-001: Update per_kid_daily_multi_times if provided (from flow)
-        if const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES in chore_data:
-            chore_info[const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES] = chore_data[
-                const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES
-            ]
-
-        const.LOGGER.debug(
-            "DEBUG: Chore Updated - '%s', ID '%s'",
-            chore_info[const.DATA_CHORE_NAME],
-            chore_id,
-        )
-
-        self.hass.async_create_task(self._check_overdue_chores())
-        return assignments_changed
-
-    def _convert_independent_to_shared(
-        self,
-        chore_id: str,
-        chore_info: dict[str, Any],
-        chore_data: dict[str, Any],
-    ) -> None:
-        """Convert chore from INDEPENDENT to SHARED mode.
-
-        Component 8: Handles data transformation when user changes completion_criteria.
-
-        Scenario A (INDEPENDENT → SHARED):
-        - Remove per_kid_due_dates (no longer needed)
-        - Keep chore-level due_date as the single source of truth
-        - The chore-level due_date already exists (template), no change needed
-
-        PKAD-2026-001 Q4: Use first kid's applicable_days for chore-level
-        """
-        chore_name = chore_info.get(const.DATA_CHORE_NAME, chore_id)
-        const.LOGGER.debug(
-            "DEBUG: Converting chore '%s' from INDEPENDENT to SHARED mode",
-            chore_name,
-        )
-
-        # PKAD-2026-001: Preserve first kid's applicable_days as chore-level
-        assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
-        per_kid_days = chore_info.get(const.DATA_CHORE_PER_KID_APPLICABLE_DAYS, {})
-        if assigned_kids and assigned_kids[0] in per_kid_days:
-            chore_info[const.DATA_CHORE_APPLICABLE_DAYS] = per_kid_days[
-                assigned_kids[0]
-            ]
-            chore_data[const.DATA_CHORE_APPLICABLE_DAYS] = per_kid_days[
-                assigned_kids[0]
-            ]
-
-        # PKAD-2026-001: Preserve first kid's daily_multi_times as chore-level
-        per_kid_times = chore_info.get(const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES, {})
-        if assigned_kids and assigned_kids[0] in per_kid_times:
-            chore_info[const.DATA_CHORE_DAILY_MULTI_TIMES] = per_kid_times[
-                assigned_kids[0]
-            ]
-            chore_data[const.DATA_CHORE_DAILY_MULTI_TIMES] = per_kid_times[
-                assigned_kids[0]
-            ]
-
-        # Clear per_kid_due_dates - no longer needed in SHARED mode
-        if const.DATA_CHORE_PER_KID_DUE_DATES in chore_info:
-            del chore_info[const.DATA_CHORE_PER_KID_DUE_DATES]
-
-        # Also remove from incoming chore_data if present (prevent re-adding)
-        if const.DATA_CHORE_PER_KID_DUE_DATES in chore_data:
-            del chore_data[const.DATA_CHORE_PER_KID_DUE_DATES]
-
-        # PKAD-2026-001: Clear per_kid_applicable_days - no longer needed
-        if const.DATA_CHORE_PER_KID_APPLICABLE_DAYS in chore_info:
-            del chore_info[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS]
-        if const.DATA_CHORE_PER_KID_APPLICABLE_DAYS in chore_data:
-            del chore_data[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS]
-
-        # PKAD-2026-001: Clear per_kid_daily_multi_times - no longer needed
-        if const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES in chore_info:
-            del chore_info[const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES]
-        if const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES in chore_data:
-            del chore_data[const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES]
-
-        const.LOGGER.debug(
-            "DEBUG: Chore '%s' converted to SHARED - per_kid data removed",
-            chore_name,
-        )
-
-    def _convert_shared_to_independent(
-        self,
-        chore_id: str,
-        chore_info: dict[str, Any],
-        chore_data: dict[str, Any],
-    ) -> None:
-        """Convert chore from SHARED to INDEPENDENT mode.
-
-        Component 8: Handles data transformation when user changes completion_criteria.
-
-        Scenario B (SHARED → INDEPENDENT):
-        - Populate per_kid_due_dates from the chore-level template due_date
-        - Each assigned kid gets the same initial due date (from template)
-        - Future rescheduling will handle per-kid due dates independently
-
-        PKAD-2026-001: Also populate per_kid_applicable_days and per_kid_daily_multi_times
-        from chore-level values, then clear chore-level fields.
-        """
-        chore_name = chore_info.get(const.DATA_CHORE_NAME, chore_id)
-        const.LOGGER.debug(
-            "DEBUG: Converting chore '%s' from SHARED to INDEPENDENT mode",
-            chore_name,
-        )
-
-        # Get template due_date from chore_data (new value) or chore_info (existing)
-        template_due_date = chore_data.get(
-            const.DATA_CHORE_DUE_DATE,
-            chore_info.get(const.DATA_CHORE_DUE_DATE),
-        )
-
-        # Get assigned kids from chore_data (new) or chore_info (existing)
-        assigned_kids = chore_data.get(
-            const.DATA_CHORE_ASSIGNED_KIDS,
-            chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []),
-        )
-
-        # Build per_kid_due_dates with template for all assigned kids
-        per_kid_due_dates: dict[str, str | None] = {}
-        for kid_id in assigned_kids:
-            per_kid_due_dates[kid_id] = template_due_date
-
-        # Set per_kid_due_dates on chore_info
-        chore_info[const.DATA_CHORE_PER_KID_DUE_DATES] = per_kid_due_dates
-
-        # Also update chore_data so the later update loop doesn't overwrite
-        chore_data[const.DATA_CHORE_PER_KID_DUE_DATES] = per_kid_due_dates
-
-        # PKAD-2026-001: Populate per_kid_applicable_days from chore-level
-        template_applicable_days = chore_data.get(
-            const.DATA_CHORE_APPLICABLE_DAYS,
-            chore_info.get(const.DATA_CHORE_APPLICABLE_DAYS, []),
-        )
-        if template_applicable_days:
-            per_kid_applicable_days: dict[str, list[int]] = {}
-            for kid_id in assigned_kids:
-                # Ensure we store as list of integers
-                if template_applicable_days and isinstance(
-                    next(iter(template_applicable_days), None), str
-                ):
-                    order = list(const.WEEKDAY_OPTIONS.keys())
-                    per_kid_applicable_days[kid_id] = [
-                        order.index(d.lower())
-                        for d in template_applicable_days
-                        if d.lower() in order
-                    ]
-                else:
-                    per_kid_applicable_days[kid_id] = list(template_applicable_days)
-            chore_info[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS] = (
-                per_kid_applicable_days
-            )
-            chore_data[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS] = (
-                per_kid_applicable_days
-            )
-            # Clear chore-level (per-kid is now source of truth)
-            chore_info[const.DATA_CHORE_APPLICABLE_DAYS] = None
-            chore_data[const.DATA_CHORE_APPLICABLE_DAYS] = None
-
-        # PKAD-2026-001: Populate per_kid_daily_multi_times from chore-level
-        template_daily_times = chore_data.get(
-            const.DATA_CHORE_DAILY_MULTI_TIMES,
-            chore_info.get(const.DATA_CHORE_DAILY_MULTI_TIMES, ""),
-        )
-        if template_daily_times:
-            per_kid_daily_times: dict[str, str] = {}
-            for kid_id in assigned_kids:
-                per_kid_daily_times[kid_id] = template_daily_times
-            chore_info[const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES] = per_kid_daily_times
-            chore_data[const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES] = per_kid_daily_times
-            # Clear chore-level (per-kid is now source of truth)
-            chore_info[const.DATA_CHORE_DAILY_MULTI_TIMES] = None
-            chore_data[const.DATA_CHORE_DAILY_MULTI_TIMES] = None
-
-        const.LOGGER.debug(
-            "DEBUG: Chore '%s' converted to INDEPENDENT - per_kid data "
-            "populated from template for %d kids",
-            chore_name,
-            len(assigned_kids),
-        )
-
-    # -- Badges
-    def _create_badge(self, badge_id: str, badge_data: dict[str, Any]):
-        """Create a new badge entity."""
-
-        # --- Simplified Logic ---
-        # Directly assign badge_data to badge_info.
-        # This assumes badge_data is already validated and contains all necessary fields.
-        self._data.setdefault(const.DATA_BADGES, {})[badge_id] = badge_data
-
-        badge_info = self._data[const.DATA_BADGES][badge_id]
-        badge_name = badge_info.get(const.DATA_BADGE_NAME, const.SENTINEL_EMPTY)
-
-        const.LOGGER.debug(
-            "DEBUG: Badge Updated - '%s', ID '%s'",
-            badge_name,
-            badge_id,
-        )
-
-    def _update_badge(self, badge_id: str, badge_data: dict[str, Any]):
-        """Update an existing badge entity, only updating fields present in badge_data."""
-
-        badges = self._data.setdefault(const.DATA_BADGES, {})
-        existing = badges.get(badge_id, {})
-        # Only update fields present in badge_data, preserving all others
-        existing.update(badge_data)
-        badges[badge_id] = existing
-
-        badge_name = existing.get(const.DATA_BADGE_NAME, const.SENTINEL_EMPTY)
-        const.LOGGER.debug(
-            "DEBUG: Badge Updated - '%s', ID '%s'",
-            badge_name,
-            badge_id,
-        )
-
-    # -- Rewards
-    def _create_reward(self, reward_id: str, reward_data: dict[str, Any]):
-        self._data[const.DATA_REWARDS][reward_id] = {
-            const.DATA_REWARD_NAME: reward_data.get(
-                const.DATA_REWARD_NAME, const.SENTINEL_EMPTY
-            ),
-            const.DATA_REWARD_COST: reward_data.get(
-                const.DATA_REWARD_COST, const.DEFAULT_REWARD_COST
-            ),
-            const.DATA_REWARD_DESCRIPTION: reward_data.get(
-                const.DATA_REWARD_DESCRIPTION, const.SENTINEL_EMPTY
-            ),
-            const.DATA_REWARD_LABELS: reward_data.get(const.DATA_REWARD_LABELS, []),
-            const.DATA_REWARD_ICON: reward_data.get(
-                const.DATA_REWARD_ICON, const.DEFAULT_REWARD_ICON
-            ),
-            const.DATA_REWARD_INTERNAL_ID: reward_id,
-        }
-        const.LOGGER.debug(
-            "DEBUG: Reward Added - '%s', ID '%s'",
-            self._data[const.DATA_REWARDS][reward_id][const.DATA_REWARD_NAME],
-            reward_id,
-        )
-
-    def _update_reward(self, reward_id: str, reward_data: dict[str, Any]):
-        reward_info = self._data[const.DATA_REWARDS][reward_id]
-
-        reward_info[const.DATA_REWARD_NAME] = reward_data.get(
-            const.DATA_REWARD_NAME, reward_info[const.DATA_REWARD_NAME]
-        )
-        reward_info[const.DATA_REWARD_COST] = reward_data.get(
-            const.DATA_REWARD_COST, reward_info[const.DATA_REWARD_COST]
-        )
-        reward_info[const.DATA_REWARD_DESCRIPTION] = reward_data.get(
-            const.DATA_REWARD_DESCRIPTION, reward_info[const.DATA_REWARD_DESCRIPTION]
-        )
-        reward_info[const.DATA_REWARD_LABELS] = reward_data.get(
-            const.DATA_REWARD_LABELS, reward_info.get(const.DATA_REWARD_LABELS, [])
-        )
-        reward_info[const.DATA_REWARD_ICON] = reward_data.get(
-            const.DATA_REWARD_ICON, reward_info[const.DATA_REWARD_ICON]
-        )
-        const.LOGGER.debug(
-            "DEBUG: Reward Updated - '%s', ID '%s'",
-            reward_info[const.DATA_REWARD_NAME],
-            reward_id,
-        )
-
-    # -- Bonuses
-    def _create_bonus(self, bonus_id: str, bonus_data: dict[str, Any]):
-        self._data[const.DATA_BONUSES][bonus_id] = {
-            const.DATA_BONUS_NAME: bonus_data.get(
-                const.DATA_BONUS_NAME, const.SENTINEL_EMPTY
-            ),
-            const.DATA_BONUS_POINTS: bonus_data.get(
-                const.DATA_BONUS_POINTS, const.DEFAULT_BONUS_POINTS
-            ),
-            const.DATA_BONUS_DESCRIPTION: bonus_data.get(
-                const.DATA_BONUS_DESCRIPTION, const.SENTINEL_EMPTY
-            ),
-            const.DATA_BONUS_LABELS: bonus_data.get(const.DATA_BONUS_LABELS, []),
-            const.DATA_BONUS_ICON: bonus_data.get(
-                const.DATA_BONUS_ICON, const.DEFAULT_BONUS_ICON
-            ),
-            const.DATA_BONUS_INTERNAL_ID: bonus_id,
-        }
-        const.LOGGER.debug(
-            "DEBUG: Bonus Added - '%s', ID '%s'",
-            self._data[const.DATA_BONUSES][bonus_id][const.DATA_BONUS_NAME],
-            bonus_id,
-        )
-
-    def _update_bonus(self, bonus_id: str, bonus_data: dict[str, Any]):
-        bonus_info = self._data[const.DATA_BONUSES][bonus_id]
-        bonus_info[const.DATA_BONUS_NAME] = bonus_data.get(
-            const.DATA_BONUS_NAME, bonus_info[const.DATA_BONUS_NAME]
-        )
-        bonus_info[const.DATA_BONUS_POINTS] = bonus_data.get(
-            const.DATA_BONUS_POINTS, bonus_info[const.DATA_BONUS_POINTS]
-        )
-        bonus_info[const.DATA_BONUS_DESCRIPTION] = bonus_data.get(
-            const.DATA_BONUS_DESCRIPTION, bonus_info[const.DATA_BONUS_DESCRIPTION]
-        )
-        bonus_info[const.DATA_BONUS_LABELS] = bonus_data.get(
-            const.DATA_BONUS_LABELS, bonus_info.get(const.DATA_BONUS_LABELS, [])
-        )
-        bonus_info[const.DATA_BONUS_ICON] = bonus_data.get(
-            const.DATA_BONUS_ICON, bonus_info[const.DATA_BONUS_ICON]
-        )
-        const.LOGGER.debug(
-            "DEBUG: Bonus Updated - '%s', ID '%s'",
-            bonus_info[const.DATA_BONUS_NAME],
-            bonus_id,
-        )
-
-    # -- Penalties
-    def _create_penalty(self, penalty_id: str, penalty_data: dict[str, Any]):
-        self._data[const.DATA_PENALTIES][penalty_id] = {
-            const.DATA_PENALTY_NAME: penalty_data.get(
-                const.DATA_PENALTY_NAME, const.SENTINEL_EMPTY
-            ),
-            const.DATA_PENALTY_POINTS: penalty_data.get(
-                const.DATA_PENALTY_POINTS, -const.DEFAULT_PENALTY_POINTS
-            ),
-            const.DATA_PENALTY_DESCRIPTION: penalty_data.get(
-                const.DATA_PENALTY_DESCRIPTION, const.SENTINEL_EMPTY
-            ),
-            const.DATA_PENALTY_LABELS: penalty_data.get(const.DATA_PENALTY_LABELS, []),
-            const.DATA_PENALTY_ICON: penalty_data.get(
-                const.DATA_PENALTY_ICON, const.DEFAULT_PENALTY_ICON
-            ),
-            const.DATA_PENALTY_INTERNAL_ID: penalty_id,
-        }
-        const.LOGGER.debug(
-            "DEBUG: Penalty Added - '%s', ID '%s'",
-            self._data[const.DATA_PENALTIES][penalty_id][const.DATA_PENALTY_NAME],
-            penalty_id,
-        )
-
-    def _update_penalty(self, penalty_id: str, penalty_data: dict[str, Any]):
-        penalty_info = self._data[const.DATA_PENALTIES][penalty_id]
-        penalty_info[const.DATA_PENALTY_NAME] = penalty_data.get(
-            const.DATA_PENALTY_NAME, penalty_info[const.DATA_PENALTY_NAME]
-        )
-        penalty_info[const.DATA_PENALTY_POINTS] = penalty_data.get(
-            const.DATA_PENALTY_POINTS, penalty_info[const.DATA_PENALTY_POINTS]
-        )
-        penalty_info[const.DATA_PENALTY_DESCRIPTION] = penalty_data.get(
-            const.DATA_PENALTY_DESCRIPTION, penalty_info[const.DATA_PENALTY_DESCRIPTION]
-        )
-        penalty_info[const.DATA_PENALTY_LABELS] = penalty_data.get(
-            const.DATA_PENALTY_LABELS, penalty_info.get(const.DATA_PENALTY_LABELS, [])
-        )
-        penalty_info[const.DATA_PENALTY_ICON] = penalty_data.get(
-            const.DATA_PENALTY_ICON, penalty_info[const.DATA_PENALTY_ICON]
-        )
-        const.LOGGER.debug(
-            "DEBUG: Penalty Updated - '%s', ID '%s'",
-            penalty_info[const.DATA_PENALTY_NAME],
-            penalty_id,
-        )
-
-    # -- Achievements
-    def _create_achievement(
-        self, achievement_id: str, achievement_data: dict[str, Any]
-    ):
-        self._data[const.DATA_ACHIEVEMENTS][achievement_id] = {
-            const.DATA_ACHIEVEMENT_NAME: achievement_data.get(
-                const.DATA_ACHIEVEMENT_NAME, const.SENTINEL_EMPTY
-            ),
-            const.DATA_ACHIEVEMENT_DESCRIPTION: achievement_data.get(
-                const.DATA_ACHIEVEMENT_DESCRIPTION, const.SENTINEL_EMPTY
-            ),
-            const.DATA_ACHIEVEMENT_LABELS: achievement_data.get(
-                const.DATA_ACHIEVEMENT_LABELS, []
-            ),
-            const.DATA_ACHIEVEMENT_ICON: achievement_data.get(
-                const.DATA_ACHIEVEMENT_ICON, const.SENTINEL_EMPTY
-            ),
-            const.DATA_ACHIEVEMENT_ASSIGNED_KIDS: achievement_data.get(
-                const.DATA_ACHIEVEMENT_ASSIGNED_KIDS, []
-            ),
-            const.DATA_ACHIEVEMENT_TYPE: achievement_data.get(
-                const.DATA_ACHIEVEMENT_TYPE, const.ACHIEVEMENT_TYPE_STREAK
-            ),
-            const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID: achievement_data.get(
-                const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID, const.SENTINEL_EMPTY
-            ),
-            const.DATA_ACHIEVEMENT_CRITERIA: achievement_data.get(
-                const.DATA_ACHIEVEMENT_CRITERIA, const.SENTINEL_EMPTY
-            ),
-            const.DATA_ACHIEVEMENT_TARGET_VALUE: achievement_data.get(
-                const.DATA_ACHIEVEMENT_TARGET_VALUE, const.DEFAULT_ACHIEVEMENT_TARGET
-            ),
-            const.DATA_ACHIEVEMENT_REWARD_POINTS: achievement_data.get(
-                const.DATA_ACHIEVEMENT_REWARD_POINTS,
-                const.DEFAULT_ACHIEVEMENT_REWARD_POINTS,
-            ),
-            const.DATA_ACHIEVEMENT_PROGRESS: achievement_data.get(
-                const.DATA_ACHIEVEMENT_PROGRESS, {}
-            ),
-            const.DATA_ACHIEVEMENT_INTERNAL_ID: achievement_id,
-        }
-        const.LOGGER.debug(
-            "DEBUG: Achievement Added - '%s', ID '%s'",
-            self._data[const.DATA_ACHIEVEMENTS][achievement_id][
-                const.DATA_ACHIEVEMENT_NAME
-            ],
-            achievement_id,
-        )
-
-    def _update_achievement(
-        self, achievement_id: str, achievement_data: dict[str, Any]
-    ):
-        achievement_info = self._data[const.DATA_ACHIEVEMENTS][achievement_id]
-        achievement_info[const.DATA_ACHIEVEMENT_NAME] = achievement_data.get(
-            const.DATA_ACHIEVEMENT_NAME, achievement_info[const.DATA_ACHIEVEMENT_NAME]
-        )
-        achievement_info[const.DATA_ACHIEVEMENT_DESCRIPTION] = achievement_data.get(
-            const.DATA_ACHIEVEMENT_DESCRIPTION,
-            achievement_info[const.DATA_ACHIEVEMENT_DESCRIPTION],
-        )
-        achievement_info[const.DATA_ACHIEVEMENT_LABELS] = achievement_data.get(
-            const.DATA_ACHIEVEMENT_LABELS,
-            achievement_info.get(const.DATA_ACHIEVEMENT_LABELS, []),
-        )
-        achievement_info[const.DATA_ACHIEVEMENT_ICON] = achievement_data.get(
-            const.DATA_ACHIEVEMENT_ICON, achievement_info[const.DATA_ACHIEVEMENT_ICON]
-        )
-        achievement_info[const.DATA_ACHIEVEMENT_ASSIGNED_KIDS] = achievement_data.get(
-            const.DATA_ACHIEVEMENT_ASSIGNED_KIDS,
-            achievement_info[const.DATA_ACHIEVEMENT_ASSIGNED_KIDS],
-        )
-        achievement_info[const.DATA_ACHIEVEMENT_TYPE] = achievement_data.get(
-            const.DATA_ACHIEVEMENT_TYPE, achievement_info[const.DATA_ACHIEVEMENT_TYPE]
-        )
-        achievement_info[const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID] = (
-            achievement_data.get(
-                const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID,
-                achievement_info.get(
-                    const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID, const.SENTINEL_EMPTY
-                ),
-            )
-        )
-        achievement_info[const.DATA_ACHIEVEMENT_CRITERIA] = achievement_data.get(
-            const.DATA_ACHIEVEMENT_CRITERIA,
-            achievement_info[const.DATA_ACHIEVEMENT_CRITERIA],
-        )
-        achievement_info[const.DATA_ACHIEVEMENT_TARGET_VALUE] = achievement_data.get(
-            const.DATA_ACHIEVEMENT_TARGET_VALUE,
-            achievement_info[const.DATA_ACHIEVEMENT_TARGET_VALUE],
-        )
-        achievement_info[const.DATA_ACHIEVEMENT_REWARD_POINTS] = achievement_data.get(
-            const.DATA_ACHIEVEMENT_REWARD_POINTS,
-            achievement_info[const.DATA_ACHIEVEMENT_REWARD_POINTS],
-        )
-        const.LOGGER.debug(
-            "DEBUG: Achievement Updated - '%s', ID '%s'",
-            achievement_info[const.DATA_ACHIEVEMENT_NAME],
-            achievement_id,
-        )
-
-    # -- Challenges
-    def _create_challenge(self, challenge_id: str, challenge_data: dict[str, Any]):
-        self._data[const.DATA_CHALLENGES][challenge_id] = {
-            const.DATA_CHALLENGE_NAME: challenge_data.get(
-                const.DATA_CHALLENGE_NAME, const.SENTINEL_EMPTY
-            ),
-            const.DATA_CHALLENGE_DESCRIPTION: challenge_data.get(
-                const.DATA_CHALLENGE_DESCRIPTION, const.SENTINEL_EMPTY
-            ),
-            const.DATA_CHALLENGE_LABELS: challenge_data.get(
-                const.DATA_CHALLENGE_LABELS, []
-            ),
-            const.DATA_CHALLENGE_ICON: challenge_data.get(
-                const.DATA_CHALLENGE_ICON, const.SENTINEL_EMPTY
-            ),
-            const.DATA_CHALLENGE_ASSIGNED_KIDS: challenge_data.get(
-                const.DATA_CHALLENGE_ASSIGNED_KIDS, []
-            ),
-            const.DATA_CHALLENGE_TYPE: challenge_data.get(
-                const.DATA_CHALLENGE_TYPE, const.CHALLENGE_TYPE_DAILY_MIN
-            ),
-            const.DATA_CHALLENGE_SELECTED_CHORE_ID: challenge_data.get(
-                const.DATA_CHALLENGE_SELECTED_CHORE_ID, const.SENTINEL_EMPTY
-            ),
-            const.DATA_CHALLENGE_CRITERIA: challenge_data.get(
-                const.DATA_CHALLENGE_CRITERIA, const.SENTINEL_EMPTY
-            ),
-            const.DATA_CHALLENGE_TARGET_VALUE: challenge_data.get(
-                const.DATA_CHALLENGE_TARGET_VALUE, const.DEFAULT_CHALLENGE_TARGET
-            ),
-            const.DATA_CHALLENGE_REWARD_POINTS: challenge_data.get(
-                const.DATA_CHALLENGE_REWARD_POINTS,
-                const.DEFAULT_CHALLENGE_REWARD_POINTS,
-            ),
-            const.DATA_CHALLENGE_START_DATE: (
-                challenge_data.get(const.DATA_CHALLENGE_START_DATE)
-                if challenge_data.get(const.DATA_CHALLENGE_START_DATE) not in [None, {}]
-                else None
-            ),
-            const.DATA_CHALLENGE_END_DATE: (
-                challenge_data.get(const.DATA_CHALLENGE_END_DATE)
-                if challenge_data.get(const.DATA_CHALLENGE_END_DATE) not in [None, {}]
-                else None
-            ),
-            const.DATA_CHALLENGE_PROGRESS: challenge_data.get(
-                const.DATA_CHALLENGE_PROGRESS, {}
-            ),
-            const.DATA_CHALLENGE_INTERNAL_ID: challenge_id,
-        }
-        const.LOGGER.debug(
-            "DEBUG: Challenge Added - '%s', ID '%s'",
-            self._data[const.DATA_CHALLENGES][challenge_id][const.DATA_CHALLENGE_NAME],
-            challenge_id,
-        )
-
-    def _update_challenge(self, challenge_id: str, challenge_data: dict[str, Any]):
-        challenge_info = self._data[const.DATA_CHALLENGES][challenge_id]
-        challenge_info[const.DATA_CHALLENGE_NAME] = challenge_data.get(
-            const.DATA_CHALLENGE_NAME, challenge_info[const.DATA_CHALLENGE_NAME]
-        )
-        challenge_info[const.DATA_CHALLENGE_DESCRIPTION] = challenge_data.get(
-            const.DATA_CHALLENGE_DESCRIPTION,
-            challenge_info[const.DATA_CHALLENGE_DESCRIPTION],
-        )
-        challenge_info[const.DATA_CHALLENGE_LABELS] = challenge_data.get(
-            const.DATA_CHALLENGE_LABELS,
-            challenge_info.get(const.DATA_CHALLENGE_LABELS, []),
-        )
-        challenge_info[const.DATA_CHALLENGE_ICON] = challenge_data.get(
-            const.DATA_CHALLENGE_ICON, challenge_info[const.DATA_CHALLENGE_ICON]
-        )
-        challenge_info[const.DATA_CHALLENGE_ASSIGNED_KIDS] = challenge_data.get(
-            const.DATA_CHALLENGE_ASSIGNED_KIDS,
-            challenge_info[const.DATA_CHALLENGE_ASSIGNED_KIDS],
-        )
-        challenge_info[const.DATA_CHALLENGE_TYPE] = challenge_data.get(
-            const.DATA_CHALLENGE_TYPE, challenge_info[const.DATA_CHALLENGE_TYPE]
-        )
-        challenge_info[const.DATA_CHALLENGE_SELECTED_CHORE_ID] = challenge_data.get(
-            const.DATA_CHALLENGE_SELECTED_CHORE_ID,
-            challenge_info.get(
-                const.DATA_CHALLENGE_SELECTED_CHORE_ID, const.SENTINEL_EMPTY
-            ),
-        )
-        challenge_info[const.DATA_CHALLENGE_CRITERIA] = challenge_data.get(
-            const.DATA_CHALLENGE_CRITERIA, challenge_info[const.DATA_CHALLENGE_CRITERIA]
-        )
-        challenge_info[const.DATA_CHALLENGE_TARGET_VALUE] = challenge_data.get(
-            const.DATA_CHALLENGE_TARGET_VALUE,
-            challenge_info[const.DATA_CHALLENGE_TARGET_VALUE],
-        )
-        challenge_info[const.DATA_CHALLENGE_REWARD_POINTS] = challenge_data.get(
-            const.DATA_CHALLENGE_REWARD_POINTS,
-            challenge_info[const.DATA_CHALLENGE_REWARD_POINTS],
-        )
-        challenge_info[const.DATA_CHALLENGE_START_DATE] = (
-            challenge_data.get(const.DATA_CHALLENGE_START_DATE)
-            if challenge_data.get(const.DATA_CHALLENGE_START_DATE) not in [None, {}]
-            else None
-        )
-        challenge_info[const.DATA_CHALLENGE_END_DATE] = (
-            challenge_data.get(const.DATA_CHALLENGE_END_DATE)
-            if challenge_data.get(const.DATA_CHALLENGE_END_DATE) not in [None, {}]
-            else None
-        )
-        const.LOGGER.debug(
-            "DEBUG: Challenge Updated - '%s', ID '%s'",
-            challenge_info[const.DATA_CHALLENGE_NAME],
-            challenge_id,
-        )
-
     # -------------------------------------------------------------------------------------
     # Public Entity Management Methods (for Options Flow)
     # These methods provide direct storage updates without triggering config reloads
     # -------------------------------------------------------------------------------------
+
+    # Internal helper methods (minimal stubs for options_flow/services)
+    # Called by:
+    # - options_flow.py (create methods)
+    # Full migration versions with notifications/validation are in migration_pre_v50.py
+
+    def _update_chore(self, chore_id: str, chore_data: dict[str, Any]) -> bool:
+        """Update chore data (minimal stub). Returns False (no reload needed)."""
+        chore_info = self._data[const.DATA_CHORES][chore_id]
+        for key, value in chore_data.items():
+            chore_info[key] = value
+        return False  # Options flow handles reloads
+
+    def _update_badge(self, badge_id: str, badge_data: dict[str, Any]) -> None:
+        """Update badge data (minimal stub)."""
+        badge_info = self._data[const.DATA_BADGES][badge_id]
+        for key, value in badge_data.items():
+            badge_info[key] = value
+
+    def _update_bonus(self, bonus_id: str, bonus_data: dict[str, Any]) -> None:
+        """Update bonus data (minimal stub)."""
+        bonus_info = self._data[const.DATA_BONUSES][bonus_id]
+        for key, value in bonus_data.items():
+            bonus_info[key] = value
+
+    def _update_penalty(self, penalty_id: str, penalty_data: dict[str, Any]) -> None:
+        """Update penalty data (minimal stub)."""
+        penalty_info = self._data[const.DATA_PENALTIES][penalty_id]
+        for key, value in penalty_data.items():
+            penalty_info[key] = value
+
+    def _update_achievement(
+        self, achievement_id: str, achievement_data: dict[str, Any]
+    ) -> None:
+        """Update achievement data (minimal stub)."""
+        achievement_info = self._data[const.DATA_ACHIEVEMENTS][achievement_id]
+        for key, value in achievement_data.items():
+            achievement_info[key] = value
+
+    def _update_challenge(
+        self, challenge_id: str, challenge_data: dict[str, Any]
+    ) -> None:
+        """Update challenge data (minimal stub)."""
+        challenge_info = self._data[const.DATA_CHALLENGES][challenge_id]
+        for key, value in challenge_data.items():
+            challenge_info[key] = value
+
+    def _create_chore(self, chore_id: str, chore_data: dict[str, Any]) -> None:
+        """Create chore (called by options_flow)."""
+        self._data[const.DATA_CHORES][chore_id] = kh.build_default_chore_data(
+            chore_id, chore_data
+        )
+
+    def _create_badge(self, badge_id: str, badge_data: dict[str, Any]) -> None:
+        """Create badge (called by options_flow)."""
+        self._data.setdefault(const.DATA_BADGES, {})[badge_id] = badge_data
+
+    def _create_bonus(self, bonus_id: str, bonus_data: dict[str, Any]) -> None:
+        """Create bonus (called by options_flow)."""
+        self._data[const.DATA_BONUSES][bonus_id] = bonus_data
+
+    def _create_penalty(self, penalty_id: str, penalty_data: dict[str, Any]) -> None:
+        """Create penalty (called by options_flow)."""
+        self._data[const.DATA_PENALTIES][penalty_id] = penalty_data
+
+    def _create_achievement(
+        self, achievement_id: str, achievement_data: dict[str, Any]
+    ) -> None:
+        """Create achievement (called by options_flow)."""
+        self._data[const.DATA_ACHIEVEMENTS][achievement_id] = achievement_data
+
+    def _create_challenge(
+        self, challenge_id: str, challenge_data: dict[str, Any]
+    ) -> None:
+        """Create challenge (called by options_flow)."""
+        self._data[const.DATA_CHALLENGES][challenge_id] = challenge_data
 
     def _update_kid_device_name(self, kid_id: str, kid_name: str) -> None:
         """Update kid device name in device registry.
@@ -2164,36 +1057,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
                 kid_name,
                 kid_id,
             )
-
-    def update_kid_entity(self, kid_id: str, kid_data: dict[str, Any]) -> None:
-        """Update kid entity in storage (Options Flow - no reload).
-
-        Args:
-            kid_id: Internal ID of the kid
-            kid_data: Dictionary with kid fields to update
-        """
-        if kid_id not in self._data.get(const.DATA_KIDS, {}):
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_KID,
-                    "name": kid_id,
-                },
-            )
-
-        # Check if name is changing
-        old_name = self._data[const.DATA_KIDS][kid_id].get(const.DATA_KID_NAME)
-        new_name = kid_data.get(const.DATA_KID_NAME)
-
-        self._update_kid(kid_id, kid_data)
-        self._persist()
-
-        # Update device registry if name changed
-        if new_name and new_name != old_name:
-            self._update_kid_device_name(kid_id, new_name)
-
-        self.async_update_listeners()
 
     def delete_kid_entity(self, kid_id: str) -> None:
         """Delete kid from storage and cleanup references.
@@ -2258,21 +1121,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         self._persist()
         self.async_update_listeners()
         const.LOGGER.info("INFO: Deleted kid '%s' (ID: %s)", kid_name, kid_id)
-
-    def update_parent_entity(self, parent_id: str, parent_data: dict[str, Any]) -> None:
-        """Update parent entity in storage (Options Flow - no reload)."""
-        if parent_id not in self._data.get(const.DATA_PARENTS, {}):
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_PARENT,
-                    "name": parent_id,
-                },
-            )
-        self._update_parent(parent_id, parent_data)
-        self._persist()
-        self.async_update_listeners()
 
     def delete_parent_entity(self, parent_id: str) -> None:
         """Delete parent from storage.
@@ -2420,21 +1268,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         self._persist()
         self.async_update_listeners()
         const.LOGGER.info("INFO: Deleted badge '%s' (ID: %s)", badge_name, badge_id)
-
-    def update_reward_entity(self, reward_id: str, reward_data: dict[str, Any]) -> None:
-        """Update reward entity in storage (Options Flow - no reload)."""
-        if reward_id not in self._data.get(const.DATA_REWARDS, {}):
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_REWARD,
-                    "name": reward_id,
-                },
-            )
-        self._update_reward(reward_id, reward_data)
-        self._persist()
-        self.async_update_listeners()
 
     def delete_reward_entity(self, reward_id: str) -> None:
         """Delete reward from storage and cleanup references."""

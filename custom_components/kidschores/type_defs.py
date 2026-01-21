@@ -91,7 +91,7 @@ class RewardData(TypedDict):
     cost: float
     description: str
     icon: str
-    labels: list[str]
+    reward_labels: list[str]
 
 
 class PenaltyData(TypedDict):
@@ -102,7 +102,7 @@ class PenaltyData(TypedDict):
     points: float
     description: str
     icon: str
-    labels: list[str]
+    penalty_labels: list[str]
 
 
 class BonusData(TypedDict):
@@ -113,7 +113,7 @@ class BonusData(TypedDict):
     points: float
     description: str
     icon: str
-    labels: list[str]
+    bonus_labels: list[str]
 
 
 # =============================================================================
@@ -165,7 +165,7 @@ class ChoreData(TypedDict):
 
     # Description and display
     description: str
-    labels: list[str]
+    chore_labels: list[str]
     icon: str
 
     # Assignment
@@ -515,7 +515,7 @@ class KidData(TypedDict):
 
     # Linkage
     ha_user_id: NotRequired[str | None]
-    is_shadow: NotRequired[bool]
+    is_shadow_kid: NotRequired[bool]
     linked_parent_id: NotRequired[str | None]
 
     # Notifications
@@ -588,7 +588,7 @@ class AchievementData(TypedDict):
     criteria: str  # Description of criteria
     description: str
     icon: str
-    labels: list[str]
+    achievement_labels: list[str]
 
     # Target
     target_value: int
@@ -647,7 +647,7 @@ class ChallengeData(TypedDict):
     criteria: str
     description: str
     icon: str
-    labels: list[str]
+    challenge_labels: list[str]
 
     # Target
     target_value: int
