@@ -17,7 +17,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
 from . import const, kc_helpers as kh
-from .schedule_engine import RecurrenceEngine
+from .engines.schedule import RecurrenceEngine
 
 if TYPE_CHECKING:
     from .type_defs import ScheduleConfig

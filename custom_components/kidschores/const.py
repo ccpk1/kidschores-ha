@@ -43,9 +43,8 @@ COORDINATOR: Final = "coordinator"
 COORDINATOR_SUFFIX: Final = "_coordinator"
 
 # Storage
-STORAGE_MANAGER: Final = "storage_manager"
+STORE: Final = "store"
 STORAGE_KEY: Final = "kidschores_data"
-STORAGE_KEY_LINKED_USERS: Final = "linked_users"
 STORAGE_VERSION: Final = 1
 
 # Default timezone (set once hass is available)
@@ -77,7 +76,6 @@ DATA_KEY_REWARDS: Final = "rewards"
 DATA_KEY_BADGES: Final = "badges"
 DATA_KEY_ACHIEVEMENTS: Final = "achievements"
 DATA_KEY_CHALLENGES: Final = "challenges"
-DATA_KEY_LINKED_USERS: Final = "linked_users"  # Matches STORAGE_KEY_LINKED_USERS
 DATA_CONFIG_ENTRY_SETTINGS: Final = "config_entry_settings"  # Backup/restore key
 
 # Entity Type Identifiers (Phase 2 Step 2 - DRY Refactoring)
@@ -3350,6 +3348,9 @@ DATA_CHORE_PARTIAL_ALLOWED_LEGACY: Final = "partial_allowed"
 # Keep constants for backward-compat migration code in migration_pre_v42.py
 DATA_PENDING_CHORE_APPROVALS_LEGACY: Final = "pending_chore_approvals"
 DATA_PENDING_REWARD_APPROVALS_LEGACY: Final = "pending_reward_approvals"
+# LEGACY (pre-v0.5.0): User linking feature never implemented in production
+# Keep constant to clean up orphaned keys from early development/testing
+DATA_LINKED_USERS_LEGACY: Final = "linked_users"
 
 # Runtime flag keys (stored in hass.data, not persisted)
 RUNTIME_KEY_STARTUP_BACKUP_CREATED: Final = "_startup_backup_created_"

@@ -373,7 +373,7 @@ The **`meta.schema_version`** field in storage data determines the integration's
 
 ### Unified Scheduling: Hybrid rrule + relativedelta Approach
 
-The `schedule_engine.py` module provides a unified scheduling system for chores, badges, and challenges:
+The `engines/schedule.py` module provides a unified scheduling system for chores, badges, and challenges:
 
 - **rrule (RFC 5545)**: Standard patterns (DAILY, WEEKLY, BIWEEKLY, MONTHLY, YEARLY) generate RFC 5545 RRULE strings for iCal export
 - **relativedelta**: Period-end clamping (Jan 31 + 1 month = Feb 28) and DST-aware calculations
@@ -381,7 +381,7 @@ The `schedule_engine.py` module provides a unified scheduling system for chores,
 
 ### RecurrenceEngine Class
 
-**Location**: `custom_components/kidschores/schedule_engine.py`
+**Location**: `custom_components/kidschores/engines/schedule.py`
 
 **Key Methods**:
 
@@ -404,7 +404,7 @@ Covers 9 scenarios (EC-01 through EC-09): monthly clamping, leap year handling, 
 
 ## Statistics Engine Architecture
 
-The `statistics_engine.py` module provides unified time-series tracking for all period-based statistics across KidsChores. It centralizes period key generation, transaction recording, and data pruning.
+The `engines/statistics.py` module provides unified time-series tracking for all period-based statistics across KidsChores. It centralizes period key generation, transaction recording, and data pruning.
 
 ### Design Principles
 
@@ -414,7 +414,7 @@ The `statistics_engine.py` module provides unified time-series tracking for all 
 
 ### StatisticsEngine Class
 
-**Location**: `custom_components/kidschores/statistics_engine.py`
+**Location**: `custom_components/kidschores/engines/statistics.py`
 
 **Key Methods**:
 

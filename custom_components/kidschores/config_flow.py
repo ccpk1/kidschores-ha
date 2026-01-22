@@ -12,7 +12,7 @@ from homeassistant.core import callback
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
-from . import const, data_builders as db, flow_helpers as fh
+from . import backup_helpers as bh, const, data_builders as db, flow_helpers as fh
 from .data_builders import EntityValidationError
 from .options_flow import KidsChoresOptionsFlowHandler
 
@@ -141,8 +141,8 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             storage_path.exists
         )
 
-        # Discover backups (pass None for storage_manager - not needed for discovery)
-        backups = await fh.discover_backups(self.hass, None)
+        # Discover backups (pass None for store - not needed for discovery)
+        backups = await bh.discover_backups(self.hass, None)
 
         # Build options list for SelectSelector (keeping original approach for fixed options)
         # Start with fixed options that get translated via translation_key
@@ -160,7 +160,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         # 2. Static options (start_fresh, etc.) use SelectSelector translation system
         # 3. Emoji provides visual distinction without requiring translation API
         for backup in backups:
-            age_str = fh.format_backup_age(backup["age_hours"])
+            age_str = bh.format_backup_age(backup["age_hours"])
             tag_display = backup["tag"].replace("-", " ").title()
             backup_display = f"[{tag_display}] {backup['filename']} ({age_str})"
             emoji_option = f"📄 {backup_display}"
@@ -202,16 +202,16 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         import os
         from pathlib import Path
 
-        from .storage_manager import KidsChoresStorageManager
+        from .store import KidsChoresStore
 
         try:
-            storage_manager = KidsChoresStorageManager(self.hass)
-            storage_path = Path(storage_manager.get_storage_path())
+            store = KidsChoresStore(self.hass)
+            storage_path = Path(store.get_storage_path())
 
             # Create safety backup if file exists
             if storage_path.exists():
-                backup_name = await fh.create_timestamped_backup(
-                    self.hass, storage_manager, const.BACKUP_TAG_RECOVERY
+                backup_name = await bh.create_timestamped_backup(
+                    self.hass, store, const.BACKUP_TAG_RECOVERY
                 )
                 if backup_name:
                     const.LOGGER.info(
@@ -258,7 +258,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             needs_wrapping = not ("version" in current_data and "data" in current_data)
 
             # Validate structure (validate_backup_json handles both formats)
-            if not fh.validate_backup_json(data_str):
+            if not bh.validate_backup_json(data_str):
                 const.LOGGER.error("Current active file missing required keys")
                 return self.async_abort(
                     reason=const.TRANS_KEY_CFOP_ERROR_INVALID_STRUCTURE
@@ -305,7 +305,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         from pathlib import Path
         import shutil
 
-        from .storage_manager import KidsChoresStorageManager
+        from .store import KidsChoresStore
 
         try:
             # Get storage path directly without creating storage manager yet
@@ -330,7 +330,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                 return self.async_abort(reason=const.TRANS_KEY_CFOP_ERROR_CORRUPT_FILE)
 
             # Validate structure
-            if not fh.validate_backup_json(backup_data_str):
+            if not bh.validate_backup_json(backup_data_str):
                 const.LOGGER.error(
                     "Backup file missing required keys: %s", backup_filename
                 )
@@ -341,10 +341,10 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             # Create safety backup of current file if it exists
             if storage_path.exists():
                 # Create storage manager only for safety backup creation
-                storage_manager = KidsChoresStorageManager(self.hass)
+                store = KidsChoresStore(self.hass)
                 # Note: config_entry not available yet in config flow, settings will be defaults
-                safety_backup = await fh.create_timestamped_backup(
-                    self.hass, storage_manager, const.BACKUP_TAG_RECOVERY, None
+                safety_backup = await bh.create_timestamped_backup(
+                    self.hass, store, const.BACKUP_TAG_RECOVERY, None
                 )
                 if safety_backup:
                     const.LOGGER.info(
@@ -363,9 +363,9 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             else:
                 # Raw data format (like v30, v31, v40beta1 samples)
                 # Load through storage manager to add proper wrapper
-                storage_manager = KidsChoresStorageManager(self.hass)
-                storage_manager.set_data(backup_data)
-                await storage_manager.async_save()
+                store = KidsChoresStore(self.hass)
+                store.set_data(backup_data)
+                await store.async_save()
 
             const.LOGGER.info("Restored backup: %s", backup_filename)
 
@@ -373,7 +373,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             options = {}
             if const.DATA_CONFIG_ENTRY_SETTINGS in backup_data:
                 settings = backup_data[const.DATA_CONFIG_ENTRY_SETTINGS]
-                validated = fh.validate_config_entry_settings(settings)
+                validated = bh.validate_config_entry_settings(settings)
 
                 if validated:
                     # Merge with defaults for any missing keys
@@ -394,9 +394,9 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                 )
 
             # Cleanup old backups
-            storage_manager = KidsChoresStorageManager(self.hass)
+            store = KidsChoresStore(self.hass)
             max_backups = const.DEFAULT_BACKUPS_MAX_RETAINED
-            await fh.cleanup_old_backups(self.hass, storage_manager, max_backups)
+            await bh.cleanup_old_backups(self.hass, store, max_backups)
 
             # Backup successfully restored - create config entry with settings
             # No need to collect kids/chores/points since they were in the backup
@@ -436,7 +436,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                     pasted_data = json.loads(json_text)
 
                     # Validate structure
-                    if not fh.validate_backup_json(json_text):
+                    if not bh.validate_backup_json(json_text):
                         errors["base"] = const.CFOP_ERROR_INVALID_STRUCTURE
                     else:
                         # Determine data format and extract storage data
@@ -1510,7 +1510,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
     async def _create_entry(self):
         """Finalize config entry with direct-to-storage entity data (KC 4.0+ architecture)."""
-        from .storage_manager import KidsChoresStorageManager
+        from .store import KidsChoresStore
 
         # Write all entity data directly to storage BEFORE creating config entry
         # This implements the KC 4.0 storage-only architecture from day one
@@ -1529,9 +1529,9 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         }
 
         # Initialize storage manager and save entity data
-        storage_manager = KidsChoresStorageManager(self.hass)
-        storage_manager.set_data(storage_data)
-        await storage_manager.async_save()
+        store = KidsChoresStore(self.hass)
+        store.set_data(storage_data)
+        await store.async_save()
 
         const.LOGGER.info(
             "INFO: Config Flow saved storage with schema version %s (%d kids, %d parents, %d chores, %d badges, %d rewards, %d bonuses, %d penalties)",

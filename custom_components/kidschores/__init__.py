@@ -18,11 +18,11 @@ from typing import TYPE_CHECKING
 
 from homeassistant.exceptions import ConfigEntryNotReady
 
-from . import const, flow_helpers as fh
+from . import backup_helpers as bh, const
 from .coordinator import KidsChoresDataCoordinator
 from .notification_action_handler import async_handle_notification_action
 from .services import async_setup_services, async_unload_services
-from .storage_manager import KidsChoresStorageManager
+from .store import KidsChoresStore
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -155,12 +155,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     const.set_default_timezone(hass)
 
     # Initialize the storage manager to handle persistent data.
-    storage_manager = KidsChoresStorageManager(hass, const.STORAGE_KEY)
+    store = KidsChoresStore(hass, const.STORAGE_KEY)
     # Initialize new file.
-    await storage_manager.async_initialize()
+    await store.async_initialize()
 
     # DEBUG: Check what was loaded from storage
-    loaded_data = storage_manager.data
+    loaded_data = store.data
     const.LOGGER.debug(
         "DEBUG: __init__ after storage load: %d kids, %d parents, %d chores, %d badges",
         len(loaded_data.get(const.DATA_KIDS, {})),
@@ -174,7 +174,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # loads from storage-only mode (schema_version >= 42)
     from .migration_pre_v50 import migrate_config_to_storage
 
-    await migrate_config_to_storage(hass, entry, storage_manager)
+    await migrate_config_to_storage(hass, entry, store)
 
     # Create safety backup only on true first startup (not on reloads)
     # Use a persistent flag across reloads to prevent duplicate backups
@@ -188,8 +188,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # This prevents race conditions if multiple reloads happen simultaneously
         hass.data[startup_backup_key] = True
 
-        backup_name = await fh.create_timestamped_backup(
-            hass, storage_manager, const.BACKUP_TAG_RECOVERY, entry
+        backup_name = await bh.create_timestamped_backup(
+            hass, store, const.BACKUP_TAG_RECOVERY, entry
         )
         if backup_name:
             const.LOGGER.info(
@@ -210,10 +210,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             const.CONF_BACKUPS_MAX_RETAINED, const.DEFAULT_BACKUPS_MAX_RETAINED
         )
     )
-    await fh.cleanup_old_backups(hass, storage_manager, max_backups)
+    await bh.cleanup_old_backups(hass, store, max_backups)
 
     # Create the data coordinator for managing updates and synchronization.
-    coordinator = KidsChoresDataCoordinator(hass, entry, storage_manager)
+    coordinator = KidsChoresDataCoordinator(hass, entry, store)
 
     try:
         # Perform the first refresh to load data.
@@ -225,7 +225,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Store the coordinator and data manager in hass.data.
     hass.data.setdefault(const.DOMAIN, {})[entry.entry_id] = {
         const.COORDINATOR: coordinator,
-        const.STORAGE_MANAGER: storage_manager,
+        const.STORE: store,
     }
 
     # Set up services required by the integration.
@@ -236,6 +236,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Cleanup legacy entities if flag is disabled (after platform setup)
     await _cleanup_legacy_entities(hass, entry)
+
+    # Cleanup orphaned kid-chore and badge entities (one-time migration)
+    # This removes entities from earlier versions that didn't have orphan cleanup
+    const.LOGGER.debug("Running one-time orphaned entity cleanup")
+    await coordinator._remove_orphaned_kid_chore_entities()
+    await coordinator._remove_orphaned_badge_entities()
 
     # Register update listener for config entry changes (e.g., title changes)
     entry.async_on_unload(entry.add_update_listener(async_update_options))
@@ -314,13 +320,11 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
     # Safely check if data exists before attempting to access it
     if const.DOMAIN in hass.data and entry.entry_id in hass.data[const.DOMAIN]:
-        storage_manager: KidsChoresStorageManager = hass.data[const.DOMAIN][
-            entry.entry_id
-        ][const.STORAGE_MANAGER]
+        store: KidsChoresStore = hass.data[const.DOMAIN][entry.entry_id][const.STORE]
 
         # Create backup before deletion (allows data recovery on re-add)
-        backup_name = await fh.create_timestamped_backup(
-            hass, storage_manager, const.BACKUP_TAG_REMOVAL
+        backup_name = await bh.create_timestamped_backup(
+            hass, store, const.BACKUP_TAG_REMOVAL
         )
         if backup_name:
             const.LOGGER.info(
@@ -333,7 +337,7 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
             )
 
         # Delete active storage file
-        await storage_manager.async_delete_storage()
+        await store.async_delete_storage()
         const.LOGGER.info(
             "KidsChores storage file deleted for entry: %s", entry.entry_id
         )

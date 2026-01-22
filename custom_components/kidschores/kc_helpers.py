@@ -5,41 +5,37 @@
 
 This file is organized into logical sections for easy navigation:
 
-1. **Get Coordinator** (Line 26)
+1. **Entity Registry Utilities** (Line ~80) 🗄️
+   - Entity registry queries, parsing unique IDs, orphan detection regex
+
+2. **Get Coordinator** (Line ~210)
    - Retrieves KidsChores coordinator from hass.data
 
-2. **Authorization for General Actions** (Line 47)
-   - Global authorization checks for coordinator-wide operations
+3. **Authorization Helpers** (Line ~230)
+   - Global and kid-specific authorization checks (parent/kid role validation)
 
-3. **Authorization for Kid-Specific Actions** (Line 85)
-   - Kid-level authorization checks (parent/kid role validation)
-
-4. **Parse Points Adjustment Values** (Line 140)
+4. **Parse Points Adjustment Values** (Line ~325)
    - Button entity configuration parsing for point adjustments
 
-5. **Helper Functions** (Line 160)
-   - Basic ID/name lookups without error raising (safe for optional checks)
+5. **Entity Lookup Helpers** (Line ~350) 🔍
+   - Basic ID/name lookups (returns None if not found)
+   - Error-raising variants for services (raises HomeAssistantError)
+   - Kid name lookups and label registry helpers
 
-6. **Data Structure Builders** (Line 470) 🏗️
-   - build_default_chore_data() - Single source of truth for chore field initialization
+6. **Device Info Helpers** (Line ~540) 📱
+   - Device registry info construction for kid and system devices
 
-7. **Entity Lookup Helpers with Error Raising** (Line 560) 🔍
-   - ID/name lookups that raise HomeAssistantError (for services/actions)
+7. **Shadow Kid Helpers** (Line ~620) 👤
+   - Parent chore capability detection and workflow control
 
-8. **Entity Registry Utilities** (Line 440) 🗄️
-   - Entity registry queries, parsing, regex pattern builders (read-only)
-
-9. **KidsChores Progress & Completion Helpers** (Line 520) 🧮
+8. **Progress & Completion Helpers** (Line ~720) 🧮
    - Badge progress, chore completion, streak calculations
 
-9. **Date & Time Helpers** (Line 690) 🕒
+9. **Date & Time Helpers** (Line ~915) 🕒
    - DateTime parsing, UTC conversion, interval calculations, scheduling
 
-10. **Dashboard Translation Loaders** (Line 1500)
+10. **Dashboard Translation Loaders** (Line ~1540)
     - Helper translations for dashboard UI rendering
-
-11. **Device Info Helpers** (Line 1630)
-    - Device registry and device info construction
 
 """
 
@@ -62,7 +58,7 @@ from homeassistant.helpers.label_registry import async_get as async_get_label_re
 import homeassistant.util.dt as dt_util
 
 from . import const
-from .schedule_engine import RecurrenceEngine, add_interval as _add_interval
+from .engines.schedule import RecurrenceEngine, add_interval as _add_interval
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -74,373 +70,11 @@ if TYPE_CHECKING:
     from .type_defs import KidData, ScheduleConfig
 
 
-# Module-level translation cache for performance (v0.5.0+)
-# Key format: f"{language}_{translation_type}" where translation_type is "dashboard" or "notification"
-# This avoids repeated file I/O when sending notifications to multiple parents with same language
-_translation_cache: dict[str, dict[str, Any]] = {}
-
-
-# 📍 -------- Get Coordinator --------
-def _get_kidschores_coordinator(
-    hass: HomeAssistant,
-) -> KidsChoresDataCoordinator | None:
-    """Retrieve KidsChores coordinator from hass.data."""
-
-    domain_entries = hass.data.get(const.DOMAIN, {})
-    if not domain_entries:
-        return None
-
-    entry_id = next(iter(domain_entries), None)
-    if not entry_id:
-        return None
-
-    data = domain_entries.get(entry_id)
-    if not data or const.COORDINATOR not in data:
-        return None
-
-    return data[const.COORDINATOR]
-
-
-# 🔐 -------- Authorization for General Actions --------
-async def is_user_authorized_for_global_action(
-    hass: HomeAssistant,
-    user_id: str,
-    action: str,
-) -> bool:
-    """Check if the user is allowed to do a global action (penalty, reward, points adjust) that doesn't require a specific kid_id.
-
-    Authorization rules:
-      - Admin users => authorized
-      - Registered KidsChores parents => authorized
-      - Everyone else => not authorized
-    """
-    if not user_id:
-        return False  # no user context => not authorized
-
-    user: User | None = await hass.auth.async_get_user(user_id)
-    if not user:
-        const.LOGGER.warning("WARNING: %s: Invalid user ID '%s'", action, user_id)
-        return False
-
-    if user.is_admin:
-        return True
-
-    # Allow non-admin users if they are registered as a parent in KidsChores.
-    coordinator = _get_kidschores_coordinator(hass)
-    if coordinator:
-        for parent in coordinator.parents_data.values():
-            if parent.get(const.DATA_PARENT_HA_USER_ID) == user.id:
-                return True
-
-    const.LOGGER.warning(
-        "WARNING: %s: Non-admin user '%s' is not authorized in this logic",
-        action,
-        user.name,
-    )
-    return False
-
-
-# 👶 -------- Authorization for Kid-Specific Actions --------
-async def is_user_authorized_for_kid(
-    hass: HomeAssistant,
-    user_id: str,
-    kid_id: str,
-) -> bool:
-    """Check if user is authorized to manage chores/rewards/etc. for the given kid.
-
-    By default:
-      - Admin => authorized
-      - If kid_info['ha_user_id'] == user.id => authorized
-      - Otherwise => not authorized
-    """
-    if not user_id:
-        return False
-
-    user: User | None = await hass.auth.async_get_user(user_id)
-    if not user:
-        const.LOGGER.warning("WARNING: Authorization: Invalid user ID '%s'", user_id)
-        return False
-
-    # Admin => automatically allowed
-    if user.is_admin:
-        return True
-
-    # Allow non-admin users if they are registered as a parent in KidsChores.
-    coordinator: KidsChoresDataCoordinator | None = _get_kidschores_coordinator(hass)
-    if coordinator:
-        for parent in coordinator.parents_data.values():
-            if parent.get(const.DATA_PARENT_HA_USER_ID) == user.id:
-                return True
-
-    if not coordinator:
-        const.LOGGER.warning("WARNING: Authorization: KidsChores coordinator not found")
-        return False
-
-    kid_info = coordinator.kids_data.get(kid_id)
-    if not kid_info:
-        const.LOGGER.warning(
-            "WARNING: Authorization: Kid ID '%s' not found in coordinator data", kid_id
-        )
-        return False
-
-    linked_ha_id = kid_info.get(const.DATA_KID_HA_USER_ID)
-    if linked_ha_id and linked_ha_id == user.id:
-        return True
-
-    const.LOGGER.warning(
-        "WARNING: Authorization: Non-admin user '%s' attempted to manage Kid ID '%s' but is not linked",
-        user.name,
-        kid_info.get(const.DATA_KID_NAME),
-    )
-    return False
-
-
-# 📊 ----------- Parse Points Adjustment Values -----------
-def parse_points_adjust_values(points_str: str) -> list[float]:
-    """Parse a multiline string into a list of float values."""
-
-    values = []
-    for part in points_str.split("|"):
-        part = part.strip()
-        if not part:
-            continue
-
-        try:
-            value = float(part.replace(",", "."))
-            values.append(value)
-        except ValueError:
-            const.LOGGER.error(
-                "ERROR: Invalid number '%s' in points adjust values", part
-            )
-    return values
-
-
-# 🔍 -------- Basic Entity Lookup Helpers --------
-def get_first_kidschores_entry(hass: HomeAssistant) -> str | None:
-    """Retrieve the first KidsChores config entry ID."""
-    domain_entries = hass.data.get(const.DOMAIN)
-    if not domain_entries:
-        return None
-    return next(iter(domain_entries.keys()), None)
-
-
-def get_entity_id_by_name(
-    coordinator: KidsChoresDataCoordinator, entity_type: str, entity_name: str
-) -> str | None:
-    """Generic entity ID lookup by name across all entity types.
-
-    Replaces duplicate get_*_id_by_name() functions with a single parametrizable
-    implementation that maps entity types to their data dictionaries and name keys.
-
-    Args:
-        coordinator: The KidsChores data coordinator.
-        entity_type: The type of entity ("kid", "chore", "reward", "penalty",
-            "badge", "bonus", "parent", "achievement", "challenge").
-        entity_name: The name of the entity to look up.
-
-    Returns:
-        The internal ID (UUID) of the entity, or None if not found.
-
-    Raises:
-        ValueError: If entity_type is not recognized.
-    """
-    # Map entity type to (data dict, name key constant)
-    entity_map = {
-        const.ENTITY_TYPE_KID: (coordinator.kids_data, const.DATA_KID_NAME),
-        const.ENTITY_TYPE_CHORE: (coordinator.chores_data, const.DATA_CHORE_NAME),
-        const.ENTITY_TYPE_REWARD: (coordinator.rewards_data, const.DATA_REWARD_NAME),
-        const.ENTITY_TYPE_PENALTY: (
-            coordinator.penalties_data,
-            const.DATA_PENALTY_NAME,
-        ),
-        const.ENTITY_TYPE_BADGE: (coordinator.badges_data, const.DATA_BADGE_NAME),
-        const.ENTITY_TYPE_BONUS: (coordinator.bonuses_data, const.DATA_BONUS_NAME),
-        const.ENTITY_TYPE_PARENT: (coordinator.parents_data, const.DATA_PARENT_NAME),
-        const.ENTITY_TYPE_ACHIEVEMENT: (
-            coordinator.achievements_data,
-            const.DATA_ACHIEVEMENT_NAME,
-        ),
-        const.ENTITY_TYPE_CHALLENGE: (
-            coordinator.challenges_data,
-            const.DATA_CHALLENGE_NAME,
-        ),
-    }
-
-    if entity_type not in entity_map:
-        raise ValueError(
-            f"Unknown entity_type: {entity_type}. Valid options: {', '.join(entity_map.keys())}"
-        )
-
-    data_dict, name_key = entity_map[entity_type]
-    data_dict = cast("dict[str, Any]", data_dict)
-    for entity_id, entity_info in data_dict.items():
-        if entity_info.get(name_key) == entity_name:
-            return entity_id
-    return None
-
-
-def get_entity_id_from_unique_id(hass: HomeAssistant, unique_id: str) -> str | None:
-    """Look up entity ID from unique ID via entity registry.
-
-    This helper centralizes the entity registry lookup pattern that was
-    duplicated ~10 times across sensor.py. Returns None if lookup fails.
-
-    Args:
-        hass: Home Assistant instance
-        unique_id: The unique_id to search for
-
-    Returns:
-        Entity ID string if found, None otherwise
-    """
-    try:
-        from homeassistant.helpers.entity_registry import async_get
-
-        entity_registry = async_get(hass)
-        for entity in entity_registry.entities.values():
-            if entity.unique_id == unique_id:
-                return entity.entity_id
-    except (KeyError, ValueError, AttributeError, RuntimeError) as ex:
-        const.LOGGER.debug(
-            "Entity registry lookup failed for unique_id %s: %s", unique_id, ex
-        )
-
-    return None
-
-
-def get_kid_name_by_id(
-    coordinator: KidsChoresDataCoordinator, kid_id: str
-) -> str | None:
-    """Retrieve the kid_name for a given kid_id.
-
-    Args:
-        coordinator: The KidsChores data coordinator.
-        kid_id: The internal ID (UUID) of the kid to look up.
-
-    Returns:
-        The name of the kid, or None if not found.
-    """
-    kid_info = coordinator.kids_data.get(kid_id)
-    if kid_info:
-        return kid_info.get(const.DATA_KID_NAME)
-    return None
-
-
-def get_friendly_label(hass: HomeAssistant, label_name: str) -> str:
-    """Retrieve the friendly name for a given label_name (synchronous cached version).
-
-    Args:
-        hass: The Home Assistant instance.
-        label_name: The label name to look up.
-
-    Returns:
-        The friendly name from the label registry, or the original label_name if not found.
-
-    Note:
-        This is a synchronous wrapper. For fresh lookups, use async_get_friendly_label().
-    """
-    try:
-        registry = async_get_label_registry(hass)
-        label_entry = registry.async_get_label(label_name)
-        return label_entry.name if label_entry else label_name
-    except Exception:
-        # Fallback if label registry unavailable
-        return label_name
-
-
-async def async_get_friendly_label(hass: HomeAssistant, label_name: str) -> str:
-    """Asynchronously retrieve the friendly name for a given label_name.
-
-    Args:
-        hass: The Home Assistant instance.
-        label_name: The label name to look up.
-
-    Returns:
-        The friendly name from the label registry, or the original label_name if not found.
-
-    Raises:
-        No exceptions raised - returns original label_name as fallback on any error.
-    """
-    try:
-        registry = async_get_label_registry(hass)
-        label_entry = registry.async_get_label(label_name)
-        return label_entry.name if label_entry else label_name
-    except Exception:
-        # Fallback if label registry unavailable
-        return label_name
-
-
-# ────────────────────────────────────────────────────────────────
-# �🎯 -------- Entity Lookup Helpers with Error Raising (for Services) --------
-# These helpers wrap the lookup functions above and raise HomeAssistantError
-# when entities are not found. This centralizes the error handling pattern
-# used throughout services.py, eliminating 40+ duplicate lookup blocks.
-# ────────────────────────────────────────────────────────────────
-
-
-def get_entity_id_or_raise(
-    coordinator: KidsChoresDataCoordinator, entity_type: str, entity_name: str
-) -> str:
-    """Get entity ID by name or raise HomeAssistantError if not found.
-
-    Generic version of all *_or_raise() functions. Centralizes error
-    handling pattern for entity lookups across services.
-
-    Args:
-        coordinator: The KidsChores data coordinator.
-        entity_type: The type of entity ("kid", "chore", "reward", "penalty",
-            "badge", "bonus", "parent", "achievement", "challenge").
-        entity_name: The name of the entity to look up.
-
-    Returns:
-        The internal ID (UUID) of the entity.
-
-    Raises:
-        HomeAssistantError: If the entity is not found.
-    """
-    entity_id = get_entity_id_by_name(coordinator, entity_type, entity_name)
-    if not entity_id:
-        raise HomeAssistantError(
-            f"{entity_type.capitalize()} '{entity_name}' not found"
-        )
-    return entity_id
-
-
-def get_entity_name_or_log_error(
-    entity_type: str,
-    entity_id: str,
-    entity_data: Mapping[str, Any],
-    name_key: str,
-) -> str | None:
-    """Get entity name from data dict, log error if missing (data corruption detection).
-
-    Args:
-        entity_type: Type of entity (for logging) e.g. 'kid', 'chore', 'reward'
-        entity_id: Entity ID (for logging)
-        entity_data: Dict containing entity data
-        name_key: Key to look up name in entity_data
-
-    Returns:
-        Entity name if present, None if missing (with error log)
-    """
-    name = entity_data.get(name_key)
-    if not name:
-        const.LOGGER.error(
-            "Data corruption: %s %s missing %s. Entity will not be created. "
-            "This indicates a storage issue or validation bypass.",
-            entity_type,
-            entity_id,
-            name_key,
-        )
-        return None
-    return name
-
-
-# ────────────────────────────────────────────────────────────────
-# 🗄️ -------- Entity Registry Utilities --------
+# ==============================================================================
+# Entity Registry Utilities
 # Read-only helpers for querying entity registry, parsing unique IDs,
 # and building regex patterns for efficient entity detection.
-# Destructive operations (entity removal) remain in coordinator.py.
-# ────────────────────────────────────────────────────────────────
+# ==============================================================================
 
 
 def get_integration_entities(
@@ -565,7 +199,351 @@ def build_orphan_detection_regex(
     return re.compile(pattern_str)
 
 
-# 📱 -------- Device Info Helpers --------
+# ==============================================================================
+# Authorization Helpers
+# Global and kid-specific authorization checks for parent/kid role validation.
+# ==============================================================================
+
+
+def _get_kidschores_coordinator(
+    hass: HomeAssistant,
+) -> KidsChoresDataCoordinator | None:
+    """Retrieve KidsChores coordinator from hass.data."""
+
+    domain_entries = hass.data.get(const.DOMAIN, {})
+    if not domain_entries:
+        return None
+
+    entry_id = next(iter(domain_entries), None)
+    if not entry_id:
+        return None
+
+    data = domain_entries.get(entry_id)
+    if not data or const.COORDINATOR not in data:
+        return None
+
+    return data[const.COORDINATOR]
+
+
+async def is_user_authorized_for_global_action(
+    hass: HomeAssistant,
+    user_id: str,
+    action: str,
+) -> bool:
+    """Check if the user is allowed to do a global action (penalty, reward, points adjust) that doesn't require a specific kid_id.
+
+    Authorization rules:
+      - Admin users => authorized
+      - Registered KidsChores parents => authorized
+      - Everyone else => not authorized
+    """
+    if not user_id:
+        return False  # no user context => not authorized
+
+    user: User | None = await hass.auth.async_get_user(user_id)
+    if not user:
+        const.LOGGER.warning("WARNING: %s: Invalid user ID '%s'", action, user_id)
+        return False
+
+    if user.is_admin:
+        return True
+
+    # Allow non-admin users if they are registered as a parent in KidsChores.
+    coordinator = _get_kidschores_coordinator(hass)
+    if coordinator:
+        for parent in coordinator.parents_data.values():
+            if parent.get(const.DATA_PARENT_HA_USER_ID) == user.id:
+                return True
+
+    const.LOGGER.warning(
+        "WARNING: %s: Non-admin user '%s' is not authorized in this logic",
+        action,
+        user.name,
+    )
+    return False
+
+
+async def is_user_authorized_for_kid(
+    hass: HomeAssistant,
+    user_id: str,
+    kid_id: str,
+) -> bool:
+    """Check if user is authorized to manage chores/rewards/etc. for the given kid.
+
+    By default:
+      - Admin => authorized
+      - If kid_info['ha_user_id'] == user.id => authorized
+      - Otherwise => not authorized
+    """
+    if not user_id:
+        return False
+
+    user: User | None = await hass.auth.async_get_user(user_id)
+    if not user:
+        const.LOGGER.warning("WARNING: Authorization: Invalid user ID '%s'", user_id)
+        return False
+
+    # Admin => automatically allowed
+    if user.is_admin:
+        return True
+
+    # Allow non-admin users if they are registered as a parent in KidsChores.
+    coordinator: KidsChoresDataCoordinator | None = _get_kidschores_coordinator(hass)
+    if coordinator:
+        for parent in coordinator.parents_data.values():
+            if parent.get(const.DATA_PARENT_HA_USER_ID) == user.id:
+                return True
+
+    if not coordinator:
+        const.LOGGER.warning("WARNING: Authorization: KidsChores coordinator not found")
+        return False
+
+    kid_info = coordinator.kids_data.get(kid_id)
+    if not kid_info:
+        const.LOGGER.warning(
+            "WARNING: Authorization: Kid ID '%s' not found in coordinator data", kid_id
+        )
+        return False
+
+    linked_ha_id = kid_info.get(const.DATA_KID_HA_USER_ID)
+    if linked_ha_id and linked_ha_id == user.id:
+        return True
+
+    const.LOGGER.warning(
+        "WARNING: Authorization: Non-admin user '%s' attempted to manage Kid ID '%s' but is not linked",
+        user.name,
+        kid_info.get(const.DATA_KID_NAME),
+    )
+    return False
+
+
+# ==============================================================================
+# Parse Points Adjustment Values
+# Button entity configuration parsing for point adjustments.
+# ==============================================================================
+
+
+def parse_points_adjust_values(points_str: str) -> list[float]:
+    """Parse a multiline string into a list of float values."""
+
+    values = []
+    for part in points_str.split("|"):
+        part = part.strip()
+        if not part:
+            continue
+
+        try:
+            value = float(part.replace(",", "."))
+            values.append(value)
+        except ValueError:
+            const.LOGGER.error(
+                "ERROR: Invalid number '%s' in points adjust values", part
+            )
+    return values
+
+
+# ==============================================================================
+# Entity Lookup Helpers
+# Basic ID/name lookups returning None, and error-raising variants for services.
+# Includes kid name lookups and label registry helpers.
+# ==============================================================================
+
+
+def get_first_kidschores_entry(hass: HomeAssistant) -> str | None:
+    """Retrieve the first KidsChores config entry ID."""
+    domain_entries = hass.data.get(const.DOMAIN)
+    if not domain_entries:
+        return None
+    return next(iter(domain_entries.keys()), None)
+
+
+def get_entity_id_from_unique_id(hass: HomeAssistant, unique_id: str) -> str | None:
+    """Look up entity ID from unique ID via entity registry.
+
+    This helper centralizes the entity registry lookup pattern that was
+    duplicated ~10 times across sensor.py. Returns None if lookup fails.
+
+    Args:
+        hass: Home Assistant instance
+        unique_id: The unique_id to search for
+
+    Returns:
+        Entity ID string if found, None otherwise
+    """
+    try:
+        from homeassistant.helpers.entity_registry import async_get
+
+        entity_registry = async_get(hass)
+        for entity in entity_registry.entities.values():
+            if entity.unique_id == unique_id:
+                return entity.entity_id
+    except (KeyError, ValueError, AttributeError, RuntimeError) as ex:
+        const.LOGGER.debug(
+            "Entity registry lookup failed for unique_id %s: %s", unique_id, ex
+        )
+
+    return None
+
+
+def get_entity_id_by_name(
+    coordinator: KidsChoresDataCoordinator, entity_type: str, entity_name: str
+) -> str | None:
+    """Generic entity ID lookup by name across all entity types.
+
+    Replaces duplicate get_*_id_by_name() functions with a single parametrizable
+    implementation that maps entity types to their data dictionaries and name keys.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        entity_type: The type of entity ("kid", "chore", "reward", "penalty",
+            "badge", "bonus", "parent", "achievement", "challenge").
+        entity_name: The name of the entity to look up.
+
+    Returns:
+        The internal ID (UUID) of the entity, or None if not found.
+
+    Raises:
+        ValueError: If entity_type is not recognized.
+    """
+    # Map entity type to (data dict, name key constant)
+    entity_map = {
+        const.ENTITY_TYPE_KID: (coordinator.kids_data, const.DATA_KID_NAME),
+        const.ENTITY_TYPE_CHORE: (coordinator.chores_data, const.DATA_CHORE_NAME),
+        const.ENTITY_TYPE_REWARD: (coordinator.rewards_data, const.DATA_REWARD_NAME),
+        const.ENTITY_TYPE_PENALTY: (
+            coordinator.penalties_data,
+            const.DATA_PENALTY_NAME,
+        ),
+        const.ENTITY_TYPE_BADGE: (coordinator.badges_data, const.DATA_BADGE_NAME),
+        const.ENTITY_TYPE_BONUS: (coordinator.bonuses_data, const.DATA_BONUS_NAME),
+        const.ENTITY_TYPE_PARENT: (coordinator.parents_data, const.DATA_PARENT_NAME),
+        const.ENTITY_TYPE_ACHIEVEMENT: (
+            coordinator.achievements_data,
+            const.DATA_ACHIEVEMENT_NAME,
+        ),
+        const.ENTITY_TYPE_CHALLENGE: (
+            coordinator.challenges_data,
+            const.DATA_CHALLENGE_NAME,
+        ),
+    }
+
+    if entity_type not in entity_map:
+        raise ValueError(
+            f"Unknown entity_type: {entity_type}. Valid options: {', '.join(entity_map.keys())}"
+        )
+
+    data_dict, name_key = entity_map[entity_type]
+    data_dict = cast("dict[str, Any]", data_dict)
+    for entity_id, entity_info in data_dict.items():
+        if entity_info.get(name_key) == entity_name:
+            return entity_id
+    return None
+
+
+def get_entity_id_or_raise(
+    coordinator: KidsChoresDataCoordinator, entity_type: str, entity_name: str
+) -> str:
+    """Get entity ID by name or raise HomeAssistantError if not found.
+
+    Generic version of all *_or_raise() functions. Centralizes error
+    handling pattern for entity lookups across services.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        entity_type: The type of entity ("kid", "chore", "reward", "penalty",
+            "badge", "bonus", "parent", "achievement", "challenge").
+        entity_name: The name of the entity to look up.
+
+    Returns:
+        The internal ID (UUID) of the entity.
+
+    Raises:
+        HomeAssistantError: If the entity is not found.
+    """
+    entity_id = get_entity_id_by_name(coordinator, entity_type, entity_name)
+    if not entity_id:
+        raise HomeAssistantError(
+            f"{entity_type.capitalize()} '{entity_name}' not found"
+        )
+    return entity_id
+
+
+def get_entity_name_or_log_error(
+    entity_type: str,
+    entity_id: str,
+    entity_data: Mapping[str, Any],
+    name_key: str,
+) -> str | None:
+    """Get entity name from data dict, log error if missing (data corruption detection).
+
+    Args:
+        entity_type: Type of entity (for logging) e.g. 'kid', 'chore', 'reward'
+        entity_id: Entity ID (for logging)
+        entity_data: Dict containing entity data
+        name_key: Key to look up name in entity_data
+
+    Returns:
+        Entity name if present, None if missing (with error log)
+    """
+    name = entity_data.get(name_key)
+    if not name:
+        const.LOGGER.error(
+            "Data corruption: %s %s missing %s. Entity will not be created. "
+            "This indicates a storage issue or validation bypass.",
+            entity_type,
+            entity_id,
+            name_key,
+        )
+        return None
+    return name
+
+
+def get_kid_name_by_id(
+    coordinator: KidsChoresDataCoordinator, kid_id: str
+) -> str | None:
+    """Retrieve the kid_name for a given kid_id.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        kid_id: The internal ID (UUID) of the kid to look up.
+
+    Returns:
+        The name of the kid, or None if not found.
+    """
+    kid_info = coordinator.kids_data.get(kid_id)
+    if kid_info:
+        return kid_info.get(const.DATA_KID_NAME)
+    return None
+
+
+def get_friendly_label(hass: HomeAssistant, label_name: str) -> str:
+    """Retrieve the friendly name for a given label_name (synchronous cached version).
+
+    Args:
+        hass: The Home Assistant instance.
+        label_name: The label name to look up.
+
+    Returns:
+        The friendly name from the label registry, or the original label_name if not found.
+
+    Note:
+        This is a synchronous wrapper. For fresh lookups, use async_get_friendly_label().
+    """
+    try:
+        registry = async_get_label_registry(hass)
+        label_entry = registry.async_get_label(label_name)
+        return label_entry.name if label_entry else label_name
+    except Exception:
+        # Fallback if label registry unavailable
+        return label_name
+
+
+# ==============================================================================
+# Device Info Helpers
+# Device registry info construction for kid and system devices.
+# ==============================================================================
+
+
 def create_kid_device_info(
     kid_id: str, kid_name: str, config_entry, *, is_shadow_kid: bool = False
 ):
@@ -638,9 +616,10 @@ def create_system_device_info(config_entry):
     )
 
 
-# ------------------------------------------------------------------------------
-# Shadow Kid Helpers (Parent Chore Capabilities)
-# ------------------------------------------------------------------------------
+# ==============================================================================
+# Shadow Kid Helpers
+# Parent chore capability detection and workflow/gamification control.
+# ==============================================================================
 
 
 def is_shadow_kid(coordinator: KidsChoresDataCoordinator, kid_id: str) -> bool:
@@ -736,146 +715,11 @@ def should_create_gamification_entities(
     return False
 
 
-# ────────────────────────────────────────────────────────────────
-# 🏗️ -------- Data Structure Builders --------
-# These helpers build complete data structures with all required fields.
-# SINGLE SOURCE OF TRUTH for entity field initialization.
-# Used by both UI flows (via data_builders.build_chore) and
-# coordinator (_create_chore).
-# ────────────────────────────────────────────────────────────────
-
-
-def build_default_chore_data(
-    chore_id: str, chore_data: dict[str, Any]
-) -> dict[str, Any]:
-    """Build a complete chore data structure with all fields initialized.
-
-    This is the SINGLE SOURCE OF TRUTH for chore field initialization.
-    Used by data_builders.build_chore() and coordinator's _create_chore().
-
-    Args:
-        chore_id: The internal UUID for the chore.
-        chore_data: Partial chore data dict (from user input or existing data).
-
-    Returns:
-        Complete chore data dict with all fields set to appropriate defaults.
-    """
-    # Extract assigned_kids - these should already be UUIDs from flow helpers
-    assigned_kids_ids = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
-
-    # Handle custom interval fields - only set if frequency uses custom intervals
-    # CFE-2026-001: Include CUSTOM_FROM_COMPLETE (uses interval for post-completion
-    # rescheduling)
-    is_custom_frequency = chore_data.get(const.DATA_CHORE_RECURRING_FREQUENCY) in (
-        const.FREQUENCY_CUSTOM,
-        const.FREQUENCY_CUSTOM_FROM_COMPLETE,
-    )
-
-    return {
-        # Core identification
-        const.DATA_CHORE_INTERNAL_ID: chore_id,
-        const.DATA_CHORE_NAME: chore_data.get(
-            const.DATA_CHORE_NAME, const.SENTINEL_EMPTY
-        ),
-        # State - always starts as PENDING
-        const.DATA_CHORE_STATE: chore_data.get(
-            const.DATA_CHORE_STATE, const.CHORE_STATE_PENDING
-        ),
-        # Points and configuration
-        const.DATA_CHORE_DEFAULT_POINTS: chore_data.get(
-            const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_POINTS
-        ),
-        const.DATA_CHORE_APPROVAL_RESET_TYPE: chore_data.get(
-            const.DATA_CHORE_APPROVAL_RESET_TYPE,
-            const.DEFAULT_APPROVAL_RESET_TYPE,
-        ),
-        const.DATA_CHORE_OVERDUE_HANDLING_TYPE: chore_data.get(
-            const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
-            const.DEFAULT_OVERDUE_HANDLING_TYPE,
-        ),
-        const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION: chore_data.get(
-            const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION,
-            const.DEFAULT_APPROVAL_RESET_PENDING_CLAIM_ACTION,
-        ),
-        # Description and display
-        const.DATA_CHORE_DESCRIPTION: chore_data.get(
-            const.DATA_CHORE_DESCRIPTION, const.SENTINEL_EMPTY
-        ),
-        const.DATA_CHORE_LABELS: chore_data.get(const.DATA_CHORE_LABELS, []),
-        const.DATA_CHORE_ICON: chore_data.get(
-            const.DATA_CHORE_ICON, const.DEFAULT_ICON
-        ),
-        # Assignment
-        const.DATA_CHORE_ASSIGNED_KIDS: assigned_kids_ids,
-        # Scheduling - recurring frequency and custom interval
-        const.DATA_CHORE_RECURRING_FREQUENCY: chore_data.get(
-            const.DATA_CHORE_RECURRING_FREQUENCY, const.FREQUENCY_NONE
-        ),
-        const.DATA_CHORE_CUSTOM_INTERVAL: (
-            chore_data.get(const.DATA_CHORE_CUSTOM_INTERVAL)
-            if is_custom_frequency
-            else None
-        ),
-        const.DATA_CHORE_CUSTOM_INTERVAL_UNIT: (
-            chore_data.get(const.DATA_CHORE_CUSTOM_INTERVAL_UNIT)
-            if is_custom_frequency
-            else None
-        ),
-        # Due dates
-        const.DATA_CHORE_DUE_DATE: chore_data.get(const.DATA_CHORE_DUE_DATE),
-        const.DATA_CHORE_PER_KID_DUE_DATES: chore_data.get(
-            const.DATA_CHORE_PER_KID_DUE_DATES, {}
-        ),
-        const.DATA_CHORE_APPLICABLE_DAYS: chore_data.get(
-            const.DATA_CHORE_APPLICABLE_DAYS, []
-        ),
-        # Runtime tracking fields (initially None/empty)
-        const.DATA_CHORE_LAST_COMPLETED: chore_data.get(
-            const.DATA_CHORE_LAST_COMPLETED
-        ),
-        const.DATA_CHORE_LAST_CLAIMED: chore_data.get(const.DATA_CHORE_LAST_CLAIMED),
-        const.DATA_CHORE_APPROVAL_PERIOD_START: chore_data.get(
-            const.DATA_CHORE_APPROVAL_PERIOD_START
-        ),
-        # Notifications
-        const.DATA_CHORE_NOTIFY_ON_CLAIM: chore_data.get(
-            const.DATA_CHORE_NOTIFY_ON_CLAIM, const.DEFAULT_NOTIFY_ON_CLAIM
-        ),
-        const.DATA_CHORE_NOTIFY_ON_APPROVAL: chore_data.get(
-            const.DATA_CHORE_NOTIFY_ON_APPROVAL, const.DEFAULT_NOTIFY_ON_APPROVAL
-        ),
-        const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL: chore_data.get(
-            const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL,
-            const.DEFAULT_NOTIFY_ON_DISAPPROVAL,
-        ),
-        const.DATA_CHORE_NOTIFY_ON_REMINDER: chore_data.get(
-            const.DATA_CHORE_NOTIFY_ON_REMINDER,
-            const.DEFAULT_NOTIFY_ON_REMINDER,
-        ),
-        # Calendar and features
-        const.DATA_CHORE_SHOW_ON_CALENDAR: chore_data.get(
-            const.DATA_CHORE_SHOW_ON_CALENDAR, const.DEFAULT_CHORE_SHOW_ON_CALENDAR
-        ),
-        const.DATA_CHORE_AUTO_APPROVE: chore_data.get(
-            const.DATA_CHORE_AUTO_APPROVE, const.DEFAULT_CHORE_AUTO_APPROVE
-        ),
-        # Completion criteria (SHARED vs INDEPENDENT)
-        const.DATA_CHORE_COMPLETION_CRITERIA: chore_data.get(
-            const.DATA_CHORE_COMPLETION_CRITERIA,
-            const.COMPLETION_CRITERIA_INDEPENDENT,
-        ),
-    }
-
-
-# ────────────────────────────────────────────────────────────────
-# 🧮 -------- KidsChores Progress & Completion Helpers --------
-# These helpers provide reusable logic for evaluating daily chore progress,
-# points, streaks, and completion criteria for a kid. They are used by
-# badges, achievements, challenges, and other features that need to
-# calculate or check progress for a set of chores.
-# - get_today_chore_and_point_progress: Returns today's points, count, and streaks.
-# - get_today_chore_completion_progress: Returns if completion criteria are met, and actual counts.
-# ────────────────────────────────────────────────────────────────
+# ==============================================================================
+# Progress & Completion Helpers
+# Badge progress, chore completion, streak calculations.
+# Used by badges, achievements, and challenges.
+# ==============================================================================
 
 
 def get_today_chore_and_point_progress(
@@ -1061,13 +905,11 @@ def get_today_chore_completion_progress(
     return True, approved_count, total_count
 
 
-# 🕒 -------- Date & Time Helpers (Local, UTC, Parsing, Formatting, Add Interval) --------
-# These functions provide reusable, timezone-safe utilities for:
-# - Getting current date/time in local or ISO formats
-# - Parsing date or datetime strings safely
-# - Converting naive/local times to UTC
-# - Adding intervals to dates/datetimes (e.g., days, weeks, months, years)
-# - Supporting badge and chore scheduling logic
+# ==============================================================================
+# Date & Time Helpers
+# Timezone-safe utilities for getting current date/time, parsing, UTC conversion,
+# interval calculations, and scheduling support.
+# ==============================================================================
 
 
 def dt_today_local() -> date:
@@ -1690,7 +1532,12 @@ def dt_next_schedule(
     return dt_format(result_utc, return_type)
 
 
-# 📝 -------- Custom Translation Loaders --------
+# ==============================================================================
+# Custom Translation Loaders
+# Dashboard and notification translation loading with caching.
+# ==============================================================================
+
+
 def _read_json_file(file_path: str) -> dict:
     """Read and parse a JSON file. Synchronous helper for executor."""
     with open(file_path, encoding="utf-8") as f:
@@ -1924,3 +1771,9 @@ def clear_translation_cache() -> None:
     """
     _translation_cache.clear()
     const.LOGGER.debug("Translation cache cleared")
+
+
+# Module-level translation cache for performance (v0.5.0+)
+# Key format: f"{language}_{translation_type}" where translation_type is "dashboard" or "notification"
+# This avoids repeated file I/O when sending notifications to multiple parents with same language
+_translation_cache: dict[str, dict[str, Any]] = {}

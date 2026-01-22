@@ -27,25 +27,83 @@ Home Assistant provides `async_dispatcher_send` and `async_dispatcher_connect` f
 
 ### Implementation Pattern
 
+#### Base Manager with emit/listen (Recommended)
+
 ```python
-# const.py
-SIGNAL_POINTS_CHANGE = f"{DOMAIN}_points_change"
-SIGNAL_CHORE_APPROVED = f"{DOMAIN}_chore_approved"
-SIGNAL_BADGE_EARNED = f"{DOMAIN}_badge_earned"
+# managers/base_manager.py
+from abc import ABC, abstractmethod
+from typing import Any, Callable
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.dispatcher import async_dispatcher_connect, async_dispatcher_send
 
+from .. import const, kc_helpers as kh
+
+class BaseManager(ABC):
+    """Base class for all KidsChores managers with scoped event support."""
+
+    def __init__(self, hass: HomeAssistant, coordinator) -> None:
+        """Initialize manager."""
+        self.hass = hass
+        self.coordinator = coordinator
+        self.entry_id = coordinator.config_entry.entry_id
+
+    def emit(self, suffix: str, **payload: Any) -> None:
+        """Emit instance-scoped event.
+
+        Args:
+            suffix: Signal suffix constant (e.g., const.SIGNAL_SUFFIX_POINTS_CHANGE)
+            **payload: Event data passed to listeners
+
+        Example:
+            self.emit(const.SIGNAL_SUFFIX_POINTS_CHANGE, kid_id=kid_id, new_balance=50)
+        """
+        signal = kh.get_event_signal(self.entry_id, suffix)
+        const.LOGGER.debug("Event '%s' emitted for instance %s", suffix, self.entry_id)
+        async_dispatcher_send(self.hass, signal, **payload)
+
+    def listen(self, suffix: str, callback: Callable) -> None:
+        """Subscribe to instance-scoped event with automatic cleanup.
+
+        Args:
+            suffix: Signal suffix constant to listen for
+            callback: Async function to call when event fires
+
+        Example:
+            self.listen(const.SIGNAL_SUFFIX_POINTS_CHANGE, self._on_points_change)
+        """
+        signal = kh.get_event_signal(self.entry_id, suffix)
+        unsub = async_dispatcher_connect(self.hass, signal, callback)
+        self.coordinator.config_entry.async_on_unload(unsub)
+
+    @abstractmethod
+    async def async_setup(self) -> None:
+        """Set up the manager (subscribe to events, etc.)."""
+```
+
+#### Usage in Concrete Managers
+
+```python
 # managers/economy_manager.py
-from homeassistant.helpers.dispatcher import async_dispatcher_send
+from .base_manager import BaseManager
 
-class EconomyManager:
+class EconomyManager(BaseManager):
+    async def async_setup(self) -> None:
+        """Set up economy manager."""
+        # No events to listen to for economy manager
+        pass
+
     async def deposit(self, kid_id: str, amount: float, source: str) -> float:
+        """Add points and emit change event."""
         # ... business logic ...
+        old_balance = kid_data["points"]
+        kid_data["points"] += amount
         new_balance = kid_data["points"]
 
-        # Emit event for listeners
-        async_dispatcher_send(
-            self.hass,
-            SIGNAL_POINTS_CHANGE,
+        # Emit scoped event
+        self.emit(
+            const.SIGNAL_SUFFIX_POINTS_CHANGE,
             kid_id=kid_id,
+            old_balance=old_balance,
             new_balance=new_balance,
             delta=amount,
             source=source,
@@ -53,25 +111,21 @@ class EconomyManager:
         return new_balance
 
 # managers/gamification_manager.py
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
-
-class GamificationManager:
-    def __init__(self, hass, coordinator, ...):
-        self.hass = hass
-        self._unsubscribe_points = async_dispatcher_connect(
-            hass,
-            SIGNAL_POINTS_CHANGE,
-            self._on_points_change,
-        )
+class GamificationManager(BaseManager):
+    async def async_setup(self) -> None:
+        """Set up gamification manager and subscribe to events."""
+        # Listen to points changes
+        self.listen(const.SIGNAL_SUFFIX_POINTS_CHANGE, self._on_points_change)
+        # Listen to chore approvals
+        self.listen(const.SIGNAL_SUFFIX_CHORE_APPROVED, self._on_chore_approved)
 
     async def _on_points_change(self, kid_id: str, new_balance: float, **kwargs) -> None:
         """React to point changes."""
         await self.evaluate_badges_for_kid(kid_id)
 
-    def unsubscribe(self) -> None:
-        """Cleanup on unload."""
-        if self._unsubscribe_points:
-            self._unsubscribe_points()
+    async def _on_chore_approved(self, kid_id: str, chore_id: str, **kwargs) -> None:
+        """React to chore approvals."""
+        await self.update_achievements(kid_id)
 ```
 
 ### Cleanup Pattern
@@ -134,41 +188,127 @@ Use Home Assistant's core event bus.
 
 **Use Home Assistant Dispatcher** (`async_dispatcher_send` / `async_dispatcher_connect`) for all internal manager communication.
 
-### Event Naming Convention
+### Multi-Instance Considerations
+
+**Critical Issue**: If a user installs KidsChores twice (two separate config entries), global signal names would collide.
+
+**Solution**: Scope all signals to `config_entry.entry_id` to ensure complete isolation between instances.
 
 ```python
-# const.py - Event constants (all prefixed with SIGNAL_)
+# ❌ BAD: Global signal (collides with other instances)
+SIGNAL_POINTS_CHANGE = f"{DOMAIN}_points_change"
+
+# ✅ GOOD: Scoped signal per instance
+def get_event_signal(entry_id: str, suffix: str) -> str:
+    """Returns 'kidschores_ENTRYID123_points_change'."""
+    return f"{DOMAIN}_{entry_id}_{suffix}"
+```
+
+### Event Naming Convention
+
+**Pattern**: Store signal _suffixes_ in `const.py`, build scoped signals at runtime using `entry_id`.
+
+#### const.py - Signal Suffixes
+
+```python
+# ==============================================================================
+# Event Signal Suffixes (Manager-to-Manager Communication)
+# ==============================================================================
+# Used with kc_helpers.get_event_signal(entry_id, suffix) to create instance-scoped signals
+# Pattern: get_event_signal(entry_id, "points_change") → "kidschores_{entry_id}_points_change"
 
 # Economy events
-SIGNAL_POINTS_CHANGE = f"{DOMAIN}_points_change"
-SIGNAL_POINTS_INSUFFICIENT = f"{DOMAIN}_points_insufficient"  # NSF
+SIGNAL_SUFFIX_POINTS_CHANGE = "points_change"
+SIGNAL_SUFFIX_POINTS_INSUFFICIENT = "points_insufficient"  # NSF
 
 # Chore events
-SIGNAL_CHORE_CLAIMED = f"{DOMAIN}_chore_claimed"
-SIGNAL_CHORE_APPROVED = f"{DOMAIN}_chore_approved"
-SIGNAL_CHORE_DISAPPROVED = f"{DOMAIN}_chore_disapproved"
-SIGNAL_CHORE_OVERDUE = f"{DOMAIN}_chore_overdue"
-SIGNAL_CHORE_RESET = f"{DOMAIN}_chore_reset"
+SIGNAL_SUFFIX_CHORE_CLAIMED = "chore_claimed"
+SIGNAL_SUFFIX_CHORE_APPROVED = "chore_approved"
+SIGNAL_SUFFIX_CHORE_DISAPPROVED = "chore_disapproved"
+SIGNAL_SUFFIX_CHORE_OVERDUE = "chore_overdue"
+SIGNAL_SUFFIX_CHORE_RESET = "chore_reset"
+SIGNAL_SUFFIX_CHORE_SKIPPED = "chore_skipped"
 
 # Reward events
-SIGNAL_REWARD_CLAIMED = f"{DOMAIN}_reward_claimed"
-SIGNAL_REWARD_APPROVED = f"{DOMAIN}_reward_approved"
-SIGNAL_REWARD_DISAPPROVED = f"{DOMAIN}_reward_disapproved"
+SIGNAL_SUFFIX_REWARD_CLAIMED = "reward_claimed"
+SIGNAL_SUFFIX_REWARD_APPROVED = "reward_approved"
+SIGNAL_SUFFIX_REWARD_DISAPPROVED = "reward_disapproved"
 
 # Gamification events
-SIGNAL_BADGE_EARNED = f"{DOMAIN}_badge_earned"
-SIGNAL_BADGE_LOST = f"{DOMAIN}_badge_lost"  # Maintenance decay
-SIGNAL_ACHIEVEMENT_UNLOCKED = f"{DOMAIN}_achievement_unlocked"
-SIGNAL_CHALLENGE_COMPLETED = f"{DOMAIN}_challenge_completed"
+SIGNAL_SUFFIX_BADGE_EARNED = "badge_earned"
+SIGNAL_SUFFIX_BADGE_LOST = "badge_lost"  # Maintenance decay
+SIGNAL_SUFFIX_ACHIEVEMENT_UNLOCKED = "achievement_unlocked"
+SIGNAL_SUFFIX_CHALLENGE_COMPLETED = "challenge_completed"
+
+# System events
+SIGNAL_SUFFIX_KID_CREATED = "kid_created"
+SIGNAL_SUFFIX_KID_DELETED = "kid_deleted"
+```
+
+#### kc_helpers.py - Scoping Helper
+
+```python
+def get_event_signal(entry_id: str, suffix: str) -> str:
+    """Build instance-scoped event signal name.
+
+    Returns signal in format: 'kidschores_{entry_id}_{suffix}'
+
+    This ensures complete isolation between multiple KidsChores instances:
+    - Instance 1 (entry_id=abc123): 'kidschores_abc123_points_change'
+    - Instance 2 (entry_id=xyz789): 'kidschores_xyz789_points_change'
+
+    Args:
+        entry_id: ConfigEntry.entry_id from coordinator
+        suffix: Signal suffix constant (e.g., SIGNAL_SUFFIX_POINTS_CHANGE)
+
+    Returns:
+        Fully qualified signal name scoped to this instance
+
+    Example:
+        >>> get_event_signal("abc123", const.SIGNAL_SUFFIX_POINTS_CHANGE)
+        'kidschores_abc123_points_change'
+    """
+    return f"{const.DOMAIN}_{entry_id}_{suffix}"
 ```
 
 ### Event Payload Patterns
 
-```python
-# All events should include kid_id for filtering
-# Additional fields depend on event type
+**Recommendation**: Define TypedDicts for all event payloads in `type_defs.py` for type safety.
 
-# SIGNAL_POINTS_CHANGE payload:
+```python
+# type_defs.py
+from typing import TypedDict
+
+class PointsChangeEvent(TypedDict, total=False):
+    """Event payload for SIGNAL_SUFFIX_POINTS_CHANGE."""
+    kid_id: str
+    old_balance: float
+    new_balance: float
+    delta: float
+    source: str  # "chore_approval", "reward_redemption", "penalty", "bonus", "adjustment"
+    reference_id: str | None  # chore_id, reward_id, etc.
+
+class ChoreApprovedEvent(TypedDict, total=False):
+    """Event payload for SIGNAL_SUFFIX_CHORE_APPROVED."""
+    kid_id: str
+    chore_id: str
+    parent_name: str
+    points_awarded: float
+    is_shared: bool
+
+class BadgeEarnedEvent(TypedDict, total=False):
+    """Event payload for SIGNAL_SUFFIX_BADGE_EARNED."""
+    kid_id: str
+    badge_id: str
+    badge_name: str
+    level: int | None  # For cumulative badges
+    points_bonus: float | None
+```
+
+#### Example Payload Structures
+
+```python
+# SIGNAL_SUFFIX_POINTS_CHANGE payload:
 {
     "kid_id": str,
     "old_balance": float,
@@ -245,11 +385,57 @@ User Action: Parent approves chore
 
 ---
 
+## Loop Prevention
+
+**Critical**: Prevent infinite event loops where one event triggers another that triggers the first.
+
+### Common Loop Patterns
+
+```python
+# ❌ BAD: Can cause infinite loop
+class EconomyManager:
+    async def deposit(self, kid_id: str, amount: float) -> None:
+        kid_data["points"] += amount
+        self.emit(SIGNAL_SUFFIX_POINTS_CHANGE, kid_id=kid_id)
+        await self._check_milestones(kid_id)  # Might trigger another deposit!
+
+# ✅ GOOD: Use flags or limit recursion depth
+class EconomyManager:
+    def __init__(self, ...):
+        super().__init__(...)
+        self._updating_points: set[str] = set()  # Track in-progress updates
+
+    async def deposit(self, kid_id: str, amount: float) -> None:
+        if kid_id in self._updating_points:
+            const.LOGGER.warning("Recursive point update detected for %s", kid_id)
+            return
+
+        try:
+            self._updating_points.add(kid_id)
+            kid_data["points"] += amount
+            self.emit(SIGNAL_SUFFIX_POINTS_CHANGE, kid_id=kid_id)
+        finally:
+            self._updating_points.discard(kid_id)
+```
+
+### Guidelines
+
+1. **Never emit events from event handlers** (listeners should not emit the same event type)
+2. **Use flags** to track in-progress operations
+3. **Emit at the end** of operations, not in the middle
+4. **Document** which events can trigger which managers
+
+---
+
 ## Implementation Checklist
 
-- [ ] Add `SIGNAL_*` constants to `const.py`
-- [ ] Create base manager class with subscription helper
-- [ ] Implement dispatcher connections in each manager
-- [ ] Register unsubscribe callbacks in `async_setup_entry`
+- [ ] Add `SIGNAL_SUFFIX_*` constants to `const.py`
+- [ ] Add `get_event_signal()` helper to `kc_helpers.py`
+- [ ] Create `BaseManager` class with `emit()` and `listen()` methods
+- [ ] Define event payload TypedDicts in `type_defs.py`
+- [ ] Implement `async_setup()` in each concrete manager to subscribe to events
+- [ ] Add loop prevention flags where needed (e.g., `_updating_points`)
+- [ ] Register manager cleanup via `entry.async_on_unload` in coordinator init
 - [ ] Add integration tests for event propagation
-- [ ] Document event payloads in `ARCHITECTURE.md`
+- [ ] Add multi-instance test (two config entries, verify isolation)
+- [ ] Document event payloads and flow in `ARCHITECTURE.md`

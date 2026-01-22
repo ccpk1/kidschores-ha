@@ -34,10 +34,10 @@ from dateutil.rrule import (
 )
 from homeassistant.util import dt as dt_util
 
-from . import const
+from .. import const
 
 if TYPE_CHECKING:
-    from .type_defs import ChoreData, ScheduleConfig
+    from ..type_defs import ChoreData, ScheduleConfig
 
 
 class RecurrenceEngine:
@@ -775,7 +775,9 @@ class RecurrenceEngine:
         Returns:
             Next slot datetime (UTC), or None if no valid times configured.
         """
-        from . import kc_helpers as kh  # Local import to avoid circular dependency
+        from custom_components.kidschores import (
+            kc_helpers as kh,  # Local import to avoid circular dependency
+        )
 
         if not self._daily_multi_times:
             const.LOGGER.warning(
@@ -1100,7 +1102,9 @@ def calculate_next_due_date_from_chore_info(
     """
     from typing import cast
 
-    from . import kc_helpers as kh  # Local import to avoid circular dependency
+    from custom_components.kidschores import (
+        kc_helpers as kh,  # Local import to avoid circular dependency
+    )
 
     freq = chore_info.get(const.DATA_CHORE_RECURRING_FREQUENCY, const.FREQUENCY_NONE)
 

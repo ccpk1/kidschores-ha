@@ -17,7 +17,7 @@ from unittest.mock import patch
 import pytest
 
 from custom_components.kidschores import const
-from custom_components.kidschores.statistics_engine import (
+from custom_components.kidschores.engines.statistics import (
     PERIOD_ALL_TIME,
     PERIOD_DAILY,
     PERIOD_MONTHLY,

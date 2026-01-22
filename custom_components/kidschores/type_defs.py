@@ -148,8 +148,8 @@ class ChorePerKidDailyMultiTimes(TypedDict, total=False):
 class ChoreData(TypedDict):
     """Type definition for a chore entity.
 
-    Created via build_default_chore_data() in kc_helpers.py or _create_chore().
-    See kc_helpers.py:588 for canonical field list.
+    Created via data_builders.build_chore().
+    See data_builders.py for canonical field list.
     """
 
     # Core identification

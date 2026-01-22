@@ -23,7 +23,13 @@ from homeassistant.helpers import selector
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
-from . import const, data_builders as db, flow_helpers as fh, kc_helpers as kh
+from . import (
+    backup_helpers as bh,
+    const,
+    data_builders as db,
+    flow_helpers as fh,
+    kc_helpers as kh,
+)
 from .data_builders import EntityValidationError
 
 if TYPE_CHECKING:
@@ -3459,8 +3465,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             storage_path.exists
         )
 
-        # Discover backups (pass None for storage_manager - not needed for discovery)
-        backups = await fh.discover_backups(self.hass, None)
+        # Discover backups (pass None for store - not needed for discovery)
+        backups = await bh.discover_backups(self.hass, None)
         if not isinstance(backups, list):
             backups = []  # Handle any unexpected return type
 
@@ -3487,7 +3493,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         # Build description placeholders for dynamic backup labels
         backup_labels = {}
         for backup in backups:
-            age_str = fh.format_backup_age(backup["age_hours"])
+            age_str = bh.format_backup_age(backup["age_hours"])
             tag_display = backup["tag"].replace("-", " ").title()
             backup_labels[backup["filename"]] = (
                 f"[{tag_display}] {backup['filename']} ({age_str})"
@@ -3524,16 +3530,16 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         import os
         from pathlib import Path
 
-        from .storage_manager import KidsChoresStorageManager
+        from .store import KidsChoresStore
 
         try:
-            storage_manager = KidsChoresStorageManager(self.hass)
-            storage_path = Path(storage_manager.get_storage_path())
+            store = KidsChoresStore(self.hass)
+            storage_path = Path(store.get_storage_path())
 
             # Create safety backup if file exists
             if storage_path.exists():
-                backup_name = await fh.create_timestamped_backup(
-                    self.hass, storage_manager, const.BACKUP_TAG_RECOVERY
+                backup_name = await bh.create_timestamped_backup(
+                    self.hass, store, const.BACKUP_TAG_RECOVERY
                 )
                 if backup_name:
                     const.LOGGER.info(
@@ -3575,7 +3581,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 return self.async_abort(reason="corrupt_file")
 
             # Validate structure
-            if not fh.validate_backup_json(data_str):
+            if not bh.validate_backup_json(data_str):
                 return self.async_abort(reason="invalid_structure")
 
             const.LOGGER.info("Using current active storage file")
@@ -3606,7 +3612,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     pasted_data = json.loads(json_text)
 
                     # Validate structure
-                    if not fh.validate_backup_json(json_text):
+                    if not bh.validate_backup_json(json_text):
                         errors[const.CFOP_ERROR_BASE] = "invalid_structure"
                     else:
                         # Determine data format and extract storage data
@@ -3648,13 +3654,11 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         const.LOGGER.info("Successfully imported JSON data to storage")
 
                         # Cleanup old backups
-                        from .storage_manager import KidsChoresStorageManager
+                        from .store import KidsChoresStore
 
-                        storage_manager = KidsChoresStorageManager(self.hass)
+                        store = KidsChoresStore(self.hass)
                         max_backups = const.DEFAULT_BACKUPS_MAX_RETAINED
-                        await fh.cleanup_old_backups(
-                            self.hass, storage_manager, max_backups
-                        )
+                        await bh.cleanup_old_backups(self.hass, store, max_backups)
 
                         # Reload and return to init
                         self._mark_reload_needed()
@@ -3693,7 +3697,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         from pathlib import Path
         import shutil
 
-        from .storage_manager import KidsChoresStorageManager
+        from .store import KidsChoresStore
 
         try:
             # Get storage path directly without creating storage manager yet
@@ -3716,7 +3720,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 return self.async_abort(reason="corrupt_file")
 
             # Validate structure
-            if not fh.validate_backup_json(backup_data_str):
+            if not bh.validate_backup_json(backup_data_str):
                 const.LOGGER.error(
                     "Backup file missing required keys: %s", backup_filename
                 )
@@ -3725,9 +3729,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             # Create safety backup of current file if it exists
             if storage_path.exists():
                 # Create storage manager only for safety backup creation
-                storage_manager = KidsChoresStorageManager(self.hass)
-                safety_backup = await fh.create_timestamped_backup(
-                    self.hass, storage_manager, const.BACKUP_TAG_RECOVERY
+                store = KidsChoresStore(self.hass)
+                safety_backup = await bh.create_timestamped_backup(
+                    self.hass, store, const.BACKUP_TAG_RECOVERY
                 )
                 if safety_backup:
                     const.LOGGER.info(
@@ -3746,16 +3750,16 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             else:
                 # Raw data format (like v30, v31, v40beta1 samples)
                 # Load through storage manager to add proper wrapper
-                storage_manager = KidsChoresStorageManager(self.hass)
-                storage_manager.set_data(backup_data)
-                await storage_manager.async_save()
+                store = KidsChoresStore(self.hass)
+                store.set_data(backup_data)
+                await store.async_save()
 
             const.LOGGER.info("Restored backup: %s", backup_filename)
 
             # Cleanup old backups
-            storage_manager = KidsChoresStorageManager(self.hass)
+            store = KidsChoresStore(self.hass)
             max_backups = const.DEFAULT_BACKUPS_MAX_RETAINED
-            await fh.cleanup_old_backups(self.hass, storage_manager, max_backups)
+            await bh.cleanup_old_backups(self.hass, store, max_backups)
 
             # Reload and return to init
             self._mark_reload_needed()
@@ -3767,7 +3771,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_backup_actions_menu(self, user_input=None):
         """Show backup management actions menu."""
-        from .storage_manager import KidsChoresStorageManager
+        from .store import KidsChoresStore
 
         if user_input is not None:
             action = user_input[const.CFOF_BACKUP_ACTION_SELECTION]
@@ -3782,8 +3786,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 return await self.async_step_init()
 
         # Discover backups to show count
-        storage_manager = KidsChoresStorageManager(self.hass)
-        backups = await fh.discover_backups(self.hass, storage_manager)
+        store = KidsChoresStore(self.hass)
+        backups = await bh.discover_backups(self.hass, store)
         backup_count = len(backups)
 
         # Calculate total storage usage
@@ -3817,9 +3821,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_select_backup_to_delete(self, user_input=None):
         """Select a backup file to delete."""
-        from .storage_manager import KidsChoresStorageManager
+        from .store import KidsChoresStore
 
-        storage_manager = KidsChoresStorageManager(self.hass)
+        store = KidsChoresStore(self.hass)
 
         if user_input is not None:
             selection = user_input.get(const.CFOF_BACKUP_SELECTION)
@@ -3838,14 +3842,14 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             return await self.async_step_backup_actions_menu()
 
         # Discover all backups
-        backups = await fh.discover_backups(self.hass, storage_manager)
+        backups = await bh.discover_backups(self.hass, store)
 
         # Build backup options - EMOJI ONLY for files (no hardcoded action text)
         # All backups can be deleted (no protected backups concept)
         backup_options = []
 
         for backup in backups:
-            age_str = fh.format_backup_age(backup["age_hours"])
+            age_str = bh.format_backup_age(backup["age_hours"])
             size_kb = backup["size_bytes"] / 1024
             tag_display = backup["tag"].replace("-", " ").title()
 
@@ -3879,9 +3883,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_select_backup_to_restore(self, user_input=None):
         """Select a backup file to restore."""
-        from .storage_manager import KidsChoresStorageManager
+        from .store import KidsChoresStore
 
-        storage_manager = KidsChoresStorageManager(self.hass)
+        store = KidsChoresStore(self.hass)
 
         if user_input is not None:
             selection = user_input.get(const.CFOF_BACKUP_SELECTION)
@@ -3900,7 +3904,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             return await self.async_step_backup_actions_menu()
 
         # Discover all backups
-        backups = await fh.discover_backups(self.hass, storage_manager)
+        backups = await bh.discover_backups(self.hass, store)
 
         if not backups:
             # No backups available - return to menu
@@ -3910,7 +3914,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         backup_options = []
 
         for backup in backups:
-            age_str = fh.format_backup_age(backup["age_hours"])
+            age_str = bh.format_backup_age(backup["age_hours"])
             size_kb = backup["size_bytes"] / 1024
             tag_display = backup["tag"].replace("-", " ").title()
 
@@ -3962,16 +3966,16 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_create_manual_backup(self, user_input=None):
         """Create a manual backup."""
-        from .storage_manager import KidsChoresStorageManager
+        from .store import KidsChoresStore
 
-        storage_manager = KidsChoresStorageManager(self.hass)
+        store = KidsChoresStore(self.hass)
 
         if user_input is not None:
             if user_input.get("confirm"):
                 # Create manual backup
-                backup_filename = await fh.create_timestamped_backup(
+                backup_filename = await bh.create_timestamped_backup(
                     self.hass,
-                    storage_manager,
+                    store,
                     const.BACKUP_TAG_MANUAL,
                     self.config_entry,
                 )
@@ -3983,7 +3987,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         const.CONF_BACKUPS_MAX_RETAINED,
                         const.DEFAULT_BACKUPS_MAX_RETAINED,
                     )
-                    await fh.cleanup_old_backups(self.hass, storage_manager, retention)
+                    await bh.cleanup_old_backups(self.hass, store, retention)
 
                     # Show success message and return to backup menu
                     const.LOGGER.info(
@@ -3995,7 +3999,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             return await self.async_step_backup_actions_menu()
 
         # Get backup count and retention for placeholders
-        available_backups = await fh.discover_backups(self.hass, storage_manager)
+        available_backups = await bh.discover_backups(self.hass, store)
         backup_count = len(available_backups)
         retention = self._entry_options.get(
             const.CONF_BACKUPS_MAX_RETAINED,
@@ -4019,15 +4023,15 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         """Confirm backup deletion."""
         from pathlib import Path
 
-        from .storage_manager import KidsChoresStorageManager
+        from .store import KidsChoresStore
 
         # Get backup filename from context (set by select_backup_to_delete step)
         backup_filename = getattr(self, "_backup_to_delete", None)
 
         if user_input is not None:
             if user_input.get("confirm"):
-                storage_manager = KidsChoresStorageManager(self.hass)
-                storage_path = Path(storage_manager.get_storage_path())
+                store = KidsChoresStore(self.hass)
+                storage_path = Path(store.get_storage_path())
                 # Type guard: ensure backup_filename is a string before using in Path operation
                 if isinstance(backup_filename, str):
                     backup_path = storage_path.parent / backup_filename
@@ -4065,15 +4069,15 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         from pathlib import Path
         import shutil
 
-        from .storage_manager import KidsChoresStorageManager
+        from .store import KidsChoresStore
 
         # Get backup filename from context (set by select_backup_to_restore step)
         backup_filename = getattr(self, "_backup_to_restore", None)
 
         if user_input is not None:
             if user_input.get("confirm"):
-                storage_manager = KidsChoresStorageManager(self.hass)
-                storage_path = Path(storage_manager.get_storage_path())
+                store = KidsChoresStore(self.hass)
+                storage_path = Path(store.get_storage_path())
                 # Type guard: ensure backup_filename is a string before using in Path operation
                 if not isinstance(backup_filename, str):
                     const.LOGGER.error("Invalid backup filename: %s", backup_filename)
@@ -4099,7 +4103,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     self._backup_to_restore = None
                     return await self.async_step_backup_actions_menu()
 
-                if not fh.validate_backup_json(backup_data_str):
+                if not bh.validate_backup_json(backup_data_str):
                     const.LOGGER.error("Invalid backup file: %s", backup_filename)
                     self._backup_to_restore = None
                     return await self.async_step_backup_actions_menu()
@@ -4108,9 +4112,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     import json
 
                     # Create safety backup of current file
-                    safety_backup = await fh.create_timestamped_backup(
+                    safety_backup = await bh.create_timestamped_backup(
                         self.hass,
-                        storage_manager,
+                        store,
                         const.BACKUP_TAG_RECOVERY,
                         self.config_entry,
                     )
@@ -4130,7 +4134,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                     if const.DATA_CONFIG_ENTRY_SETTINGS in backup_data:
                         settings = backup_data[const.DATA_CONFIG_ENTRY_SETTINGS]
-                        validated = fh.validate_config_entry_settings(settings)
+                        validated = bh.validate_config_entry_settings(settings)
 
                         if validated:
                             # Merge with defaults for any missing keys
@@ -4160,7 +4164,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         const.CONF_BACKUPS_MAX_RETAINED,
                         const.DEFAULT_BACKUPS_MAX_RETAINED,
                     )
-                    await fh.cleanup_old_backups(self.hass, storage_manager, retention)
+                    await bh.cleanup_old_backups(self.hass, store, retention)
 
                     # Clear context and reload integration to pick up restored data
                     self._backup_to_restore = None
@@ -4243,6 +4247,18 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         This is called when returning to the main menu after entity changes.
         After reload, triggers an immediate coordinator refresh so new entities get data.
         """
+        # CLEANUP: Remove orphaned kid-chore and badge entities before reload
+        # This handles scenarios like:
+        # - Kid unassigned from chore
+        # - Shadow kid workflow toggle (claim/disapprove buttons orphaned)
+        # - Parent chore assignment flag disabled
+        # - Kid unassigned from badge
+        coordinator = self._get_coordinator()
+        if coordinator:
+            const.LOGGER.debug("Running orphaned entity cleanup before reload")
+            await coordinator._remove_orphaned_kid_chore_entities()
+            await coordinator._remove_orphaned_badge_entities()
+
         const.LOGGER.debug(
             "Reloading entry after entity changes: %s",
             self.config_entry.entry_id,

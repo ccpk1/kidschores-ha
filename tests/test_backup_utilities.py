@@ -1,4 +1,4 @@
-"""Unit tests for backup utility functions in flow_helpers.py.
+"""Unit tests for backup utility functions in backup_helpers.py.
 
 Tests low-level backup infrastructure:
 - create_timestamped_backup(): Backup file creation with tags
@@ -19,7 +19,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from custom_components.kidschores.flow_helpers import (
+from custom_components.kidschores.backup_helpers import (
     cleanup_old_backups,
     create_timestamped_backup,
     format_backup_age,
@@ -62,8 +62,8 @@ def mock_hass():
 # =============================================================================
 
 
-@patch("custom_components.kidschores.flow_helpers.dt_util.utcnow")
-@patch("custom_components.kidschores.flow_helpers.shutil.copy2")
+@patch("custom_components.kidschores.backup_helpers.dt_util.utcnow")
+@patch("custom_components.kidschores.backup_helpers.shutil.copy2")
 @patch("os.path.exists", return_value=True)
 @patch("os.makedirs")
 async def test_create_timestamped_backup_success(
@@ -87,8 +87,8 @@ async def test_create_timestamped_backup_success(
     assert call_args[1] == "/mock/.storage/kidschores_data_2024-12-18_15-30-45_recovery"
 
 
-@patch("custom_components.kidschores.flow_helpers.dt_util.utcnow")
-@patch("custom_components.kidschores.flow_helpers.shutil.copy2")
+@patch("custom_components.kidschores.backup_helpers.dt_util.utcnow")
+@patch("custom_components.kidschores.backup_helpers.shutil.copy2")
 @patch("os.path.exists", return_value=True)
 @patch("os.makedirs")
 async def test_create_timestamped_backup_all_tags(
@@ -134,7 +134,7 @@ async def test_create_timestamped_backup_no_data(mock_hass):
 # =============================================================================
 
 
-@patch("custom_components.kidschores.flow_helpers.discover_backups")
+@patch("custom_components.kidschores.backup_helpers.discover_backups")
 @patch("os.remove")
 async def test_cleanup_old_backups_respects_max_limit(
     mock_remove, mock_discover, mock_hass, mock_storage_manager
@@ -193,7 +193,7 @@ async def test_cleanup_old_backups_respects_max_limit(
     )
 
 
-@patch("custom_components.kidschores.flow_helpers.discover_backups")
+@patch("custom_components.kidschores.backup_helpers.discover_backups")
 @patch("os.remove")
 async def test_cleanup_old_backups_never_deletes_permanent_tags(
     mock_remove, mock_discover, mock_hass, mock_storage_manager
@@ -240,7 +240,7 @@ async def test_cleanup_old_backups_never_deletes_permanent_tags(
     assert "kidschores_data_2024-12-18_08-00-00_recovery" in deleted_file
 
 
-@patch("custom_components.kidschores.flow_helpers.discover_backups")
+@patch("custom_components.kidschores.backup_helpers.discover_backups")
 @patch("os.remove")
 async def test_cleanup_old_backups_disabled_when_zero(
     mock_remove, mock_discover, mock_hass, mock_storage_manager
@@ -263,7 +263,7 @@ async def test_cleanup_old_backups_disabled_when_zero(
     mock_remove.assert_not_called()
 
 
-@patch("custom_components.kidschores.flow_helpers.discover_backups")
+@patch("custom_components.kidschores.backup_helpers.discover_backups")
 @patch("os.remove", side_effect=OSError("Permission denied"))
 async def test_cleanup_old_backups_continues_on_error(
     mock_remove, mock_discover, mock_hass, mock_storage_manager
@@ -301,7 +301,7 @@ async def test_cleanup_old_backups_continues_on_error(
     assert mock_remove.call_count == 2
 
 
-@patch("custom_components.kidschores.flow_helpers.discover_backups")
+@patch("custom_components.kidschores.backup_helpers.discover_backups")
 @patch("os.remove")
 async def test_cleanup_old_backups_handles_non_integer_max_backups(
     mock_remove, mock_discover, mock_hass, mock_storage_manager
@@ -559,8 +559,8 @@ def test_validate_backup_json_store_missing_data_wrapper():
 # =============================================================================
 
 
-@patch("custom_components.kidschores.flow_helpers.dt_util.utcnow")
-@patch("custom_components.kidschores.flow_helpers.shutil.copy2")
+@patch("custom_components.kidschores.backup_helpers.dt_util.utcnow")
+@patch("custom_components.kidschores.backup_helpers.shutil.copy2")
 @patch("os.path.exists", return_value=True)
 @patch("os.makedirs")
 async def test_backup_includes_config_entry_settings(
@@ -635,8 +635,8 @@ async def test_backup_includes_config_entry_settings(
     assert settings[const.CONF_POINTS_ADJUST_VALUES] == [+5.0, -5.0]
 
 
-@patch("custom_components.kidschores.flow_helpers.dt_util.utcnow")
-@patch("custom_components.kidschores.flow_helpers.shutil.copy2")
+@patch("custom_components.kidschores.backup_helpers.dt_util.utcnow")
+@patch("custom_components.kidschores.backup_helpers.shutil.copy2")
 @patch("os.path.exists", return_value=True)
 @patch("os.makedirs")
 async def test_roundtrip_preserves_all_settings(
@@ -651,7 +651,9 @@ async def test_roundtrip_preserves_all_settings(
     from unittest.mock import MagicMock
 
     from custom_components.kidschores import const
-    from custom_components.kidschores.flow_helpers import validate_config_entry_settings
+    from custom_components.kidschores.backup_helpers import (
+        validate_config_entry_settings,
+    )
 
     # Setup with all custom values
     mock_utcnow.return_value = datetime.datetime(

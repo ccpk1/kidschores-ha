@@ -37,7 +37,7 @@ async def async_get_config_entry_diagnostics(
     ]
 
     # Get base storage data
-    diagnostics_data = dict(coordinator.storage_manager.data)
+    diagnostics_data = dict(coordinator.store.data)
 
     # Add config_entry_settings section for complete backup/restore
     diagnostics_data[const.DATA_CONFIG_ENTRY_SETTINGS] = {

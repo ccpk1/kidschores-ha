@@ -144,6 +144,9 @@ combine-as-imports = true
 split-on-trailing-comma = false
 
 [tool.ruff.lint.per-file-ignores]
+# Engines subdirectory uses relative imports for parent package (mypy requirement)
+"custom_components/kidschores/engines/**" = ["TID252"]
+
 # Tests have different requirements
 "tests/**" = [
   "PLR0912",  # Too many branches

@@ -32,14 +32,14 @@ from homeassistant.util import dt as dt_util
 
 from . import const, data_builders as db, kc_helpers as kh
 from .coordinator_chore_operations import ChoreOperations
+from .engines.statistics import StatisticsEngine
 from .notification_helper import (
     async_send_notification,
     build_chore_actions,
     build_extra_data,
     build_reward_actions,
 )
-from .statistics_engine import StatisticsEngine
-from .storage_manager import KidsChoresStorageManager
+from .store import KidsChoresStore
 from .type_defs import (
     AchievementProgress,
     AchievementsCollection,
@@ -79,7 +79,7 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         self,
         hass: HomeAssistant,
         config_entry: ConfigEntry,
-        storage_manager: KidsChoresStorageManager,
+        store: KidsChoresStore,
     ):
         """Initialize the KidsChoresDataCoordinator."""
         update_interval_minutes = config_entry.options.get(
@@ -93,7 +93,7 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
             update_interval=timedelta(minutes=update_interval_minutes),
         )
         self.config_entry = config_entry
-        self.storage_manager = storage_manager
+        self.store = store
         self._data: dict[str, Any] = {}
 
         # Test mode detection for reminder delays
@@ -169,7 +169,7 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         const.LOGGER.debug(
             "DEBUG: Coordinator first refresh - requesting data from storage manager"
         )
-        stored_data = self.storage_manager.data
+        stored_data = self.store.data
         const.LOGGER.debug(
             "DEBUG: Coordinator received data from storage manager: %s entities",
             {
@@ -334,8 +334,8 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
 
             # Immediate synchronous save
             perf_start = time.perf_counter()
-            self.storage_manager.set_data(self._data)
-            self.hass.add_job(self.storage_manager.async_save)
+            self.store.set_data(self._data)
+            self.hass.add_job(self.store.async_save)
             perf_duration = time.perf_counter() - perf_start
             const.LOGGER.debug(
                 "PERF: _persist(immediate=True) took %.3fs (queued async save)",
@@ -359,8 +359,8 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
             # PERF: Track storage write frequency
             perf_start = time.perf_counter()
 
-            self.storage_manager.set_data(self._data)
-            await self.storage_manager.async_save()
+            self.store.set_data(self._data)
+            await self.store.async_save()
 
             perf_duration = time.perf_counter() - perf_start
             const.LOGGER.debug(
@@ -678,6 +678,18 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
     async def _remove_orphaned_kid_chore_entities(self) -> None:
         """Remove kid-chore entities (sensors/buttons) for kids no longer assigned to chores.
 
+        Called when:
+        - Kid unassigned from chore via options flow
+        - Shadow kid workflow toggled (claim/disapprove buttons become orphaned)
+        - Parent chore assignment flag disabled
+        - During initialization (one-time migration cleanup)
+
+        Handles:
+        - KidChoreStatusSensor
+        - KidChoreClaimButton
+        - ParentChoreApproveButton
+        - ParentChoreDisapproveButton
+
         Performance: O(n) using regex pattern matching instead of O(n²) nested loops.
         Pre-builds regex pattern from valid kid IDs for efficient matching.
         """
@@ -812,27 +824,18 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
             assigned_kids_key=const.DATA_CHALLENGE_ASSIGNED_KIDS,
         )
 
-    def _remove_kid_chore_entities(self, kid_id: str, chore_id: str) -> None:
-        """Remove all kid-specific chore entities for a given kid and chore."""
-        ent_reg = er.async_get(self.hass)
-        for entity_entry in list(ent_reg.entities.values()):
-            # Only process entities from our integration
-            if entity_entry.platform != const.DOMAIN:
-                continue
+    async def _remove_orphaned_badge_entities(self) -> None:
+        """Remove badge progress entities for kids no longer assigned.
 
-            # Check if this entity belongs to this kid and chore
-            # The unique_id format is: {entry_id}_{kid_id}_{chore_id}{suffix}
-            if (kid_id in entity_entry.unique_id) and (
-                chore_id in entity_entry.unique_id
-            ):
-                const.LOGGER.debug(
-                    "DEBUG: Removing kid-chore entity '%s' (unique_id: %s) for Kid ID '%s' and Chore '%s'",
-                    entity_entry.entity_id,
-                    entity_entry.unique_id,
-                    kid_id,
-                    chore_id,
-                )
-                ent_reg.async_remove(entity_entry.entity_id)
+        Wrapper around _remove_orphaned_progress_entities() for badges.
+        Handles cleanup when kids are unassigned from badges.
+        """
+        await self._remove_orphaned_progress_entities(
+            entity_type="Badge",
+            entity_list_key=const.DATA_BADGES,
+            progress_suffix=const.SENSOR_KC_UID_SUFFIX_BADGE_PROGRESS_SENSOR,
+            assigned_kids_key=const.DATA_BADGE_ASSIGNED_TO,
+        )
 
     # -------------------------------------------------------------------------------------
     # Public Entity Management Methods (for Options Flow and some Services)
@@ -2235,17 +2238,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
     # -------------------------------------------------------------------------------------
     # Badges: Check, Award
     # -------------------------------------------------------------------------------------
-
-    # -----------------------------------------------------------------------------
-    # Badge Data vs. Kid Badge Progress Data
-    # -----------------------------------------------------------------------------
-    # Badge data (badge_info): stores static configuration for each badge (name, type,
-    # thresholds, tracked chores, reset schedule, etc.).
-    # Kid badge progress data (progress): stores per-kid, per-badge progress (state,
-    # cycle counts, points, start/end dates, etc.).
-    # Always use badge data for config lookups and kid progress data for runtime state.
-    # This separation ensures config changes are reflected and progress is tracked per kid.
-    # -----------------------------------------------------------------------------
 
     def _check_badges_for_kid(self, kid_id: str):
         """Evaluate all badge thresholds for kid and update progress.

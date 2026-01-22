@@ -73,7 +73,7 @@ With over 1,000 constants, we follow strict naming patterns to ensure the code r
 - **Usage**: Form field names in schema definitions during user input
 - **Context**: `vol.Required(const.CFOF_KIDS_INPUT_NAME, ...)`
 - **Rule**: Always plural entity names with `_INPUT_` (`CFOF_KIDS_INPUT_*`, `CFOF_PARENTS_INPUT_*`)
-- **Key Alignment (v0.5.0)**: CFOF** constant *values\* are aligned with DATA*_ values where possible (e.g., both use `"name"`). This allows `user_input` to be passed directly to `build\__()`functions without mapping. See`flow_helpers.py` module docstring for details.
+- **Key Alignment (v0.5.0)**: CFOF\** constant *values\* are aligned with DATA\*\_ values where possible (e.g., both use `"name"`). This allows `user_input` to be passed directly to `build\__()`functions without mapping. See`flow_helpers.py` module docstring for details.
 
 **`CONF_*`** = **Configuration Entry Data Access**
 
@@ -180,7 +180,7 @@ next_time = dt_add_interval(dt_now_local(), {"interval": 1, "interval_unit": "da
 For chore/badge recurrence calculations, use `RecurrenceEngine` class instead of manual date arithmetic:
 
 ```python
-from custom_components.kidschores.schedule_engine import RecurrenceEngine
+from custom_components.kidschores.engines.schedule import RecurrenceEngine
 from custom_components.kidschores.type_defs import ScheduleConfig
 
 config: ScheduleConfig = {

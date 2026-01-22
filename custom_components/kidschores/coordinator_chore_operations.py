@@ -29,8 +29,8 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
 from . import const, kc_helpers as kh
+from .engines.schedule import RecurrenceEngine, calculate_next_due_date_from_chore_info
 from .notification_helper import build_chore_actions, build_extra_data
-from .schedule_engine import RecurrenceEngine, calculate_next_due_date_from_chore_info
 
 if TYPE_CHECKING:
     import asyncio

@@ -20,7 +20,7 @@ if [[ "$1" == "--fix" ]]; then
 
     echo ""
     echo "🔍 Running mypy type checking..."
-    mypy custom_components/kidschores
+    mypy --explicit-package-bases custom_components/kidschores
     mypy_exit=$?
 
     if [ $ruff_check_exit -eq 0 ] && [ $ruff_format_exit -eq 0 ] && [ $mypy_exit -eq 0 ]; then
@@ -45,7 +45,7 @@ else
 
     echo ""
     echo "🔍 Running mypy type checking..."
-    mypy custom_components/kidschores
+    mypy --explicit-package-bases custom_components/kidschores
     mypy_exit=$?
 
     if [ $ruff_check_exit -eq 0 ] && [ $ruff_format_exit -eq 0 ] && [ $mypy_exit -eq 0 ]; then

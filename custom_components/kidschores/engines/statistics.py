@@ -20,12 +20,12 @@ from typing import TYPE_CHECKING, Any, Final, cast
 
 from homeassistant.util import dt as dt_util
 
-from . import const
+from .. import const
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-    from .type_defs import ChoreData, KidData
+    from ..type_defs import ChoreData, KidData
 
 # Period type constants for internal use
 PERIOD_DAILY: Final = "daily"

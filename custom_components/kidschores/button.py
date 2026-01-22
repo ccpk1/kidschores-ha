@@ -1136,6 +1136,138 @@ class ParentRewardDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
         return attributes
 
 
+# ------------------ Bonus Button ------------------
+class ParentBonusApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
+    """Button to apply a bonus for a kid.
+
+    Parent-only button that adds points to kid's balance based on bonus configuration.
+    Validates global parent authorization before execution.
+    """
+
+    _attr_has_entity_name = True
+    _attr_translation_key = const.TRANS_KEY_BUTTON_BONUS_BUTTON
+
+    def __init__(
+        self,
+        coordinator: KidsChoresDataCoordinator,
+        entry: ConfigEntry,
+        kid_id: str,
+        kid_name: str,
+        bonus_id: str,
+        bonus_name: str,
+        icon: str,
+    ):
+        """Initialize the bonus button.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access and updates.
+            entry: ConfigEntry for this integration instance.
+            kid_id: Unique identifier for the kid.
+            kid_name: Display name of the kid.
+            bonus_id: Unique identifier for the bonus.
+            bonus_name: Display name of the bonus.
+            icon: Icon override from bonus configuration or default.
+        """
+        super().__init__(coordinator)
+        self._entry = entry
+        self._kid_id = kid_id
+        self._kid_name = kid_name
+        self._bonus_id = bonus_id
+        self._bonus_name = bonus_name
+        self._attr_unique_id = (
+            f"{entry.entry_id}_{const.BUTTON_BONUS_PREFIX}{kid_id}_{bonus_id}"
+        )
+        self._attr_icon = icon
+        self._attr_translation_placeholders = {
+            const.TRANS_KEY_BUTTON_ATTR_KID_NAME: kid_name,
+            const.TRANS_KEY_BUTTON_ATTR_BONUS_NAME: bonus_name,
+        }
+        # Strip redundant "bonus" suffix from entity_id (bonus_name often ends with "Bonus")
+        bonus_slug = bonus_name.lower().replace(" ", "_")
+        bonus_slug = bonus_slug.removesuffix("_bonus")  # Remove "_bonus" suffix
+        self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_BONUS}{bonus_slug}"
+        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+            self.coordinator, kid_id, kid_name, entry
+        )
+
+    def press(self) -> None:
+        """Synchronous press - not used, Home Assistant calls async_press."""
+
+    async def async_press(self) -> None:
+        """Handle the button press event.
+
+        Validates global parent authorization, retrieves parent name from context,
+        calls coordinator.apply_bonus() to add points to kid's balance based on bonus
+        configuration, and triggers coordinator refresh.
+
+        Raises:
+            HomeAssistantError: If user not authorized for global parent actions.
+        """
+        try:
+            user_id = self._context.user_id if self._context else None
+            if user_id and not await kh.is_user_authorized_for_global_action(
+                self.hass, user_id, const.SERVICE_APPLY_BONUS
+            ):
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION_GLOBAL,
+                    translation_placeholders={
+                        "action": const.ERROR_ACTION_APPLY_BONUSES
+                    },
+                )
+
+            user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
+            parent_name = (user_obj.name if user_obj else None) or const.DISPLAY_UNKNOWN
+
+            self.coordinator.apply_bonus(
+                parent_name=parent_name,
+                kid_id=self._kid_id,
+                bonus_id=self._bonus_id,
+            )
+            const.LOGGER.info(
+                "INFO: Bonus '%s' applied to Kid '%s' by Parent '%s'",
+                self._bonus_name,
+                self._kid_name,
+                parent_name,
+            )
+            await self.coordinator.async_request_refresh()
+
+        except HomeAssistantError as e:
+            const.LOGGER.error(
+                "ERROR: Authorization failed to Apply Bonus '%s' for Kid '%s': %s",
+                self._bonus_name,
+                self._kid_name,
+                e,
+            )
+        except (KeyError, ValueError, AttributeError) as e:
+            const.LOGGER.error(
+                "ERROR: Failed to Apply Bonus '%s' for Kid '%s': %s",
+                self._bonus_name,
+                self._kid_name,
+                e,
+            )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Include extra state attributes for the button."""
+        bonus_info: BonusData = cast(
+            "BonusData", self.coordinator.bonuses_data.get(self._bonus_id, {})
+        )
+        stored_labels = bonus_info.get(const.DATA_BONUS_LABELS, [])
+        friendly_labels = [
+            kh.get_friendly_label(self.hass, label) for label in stored_labels
+        ]
+
+        attributes: dict[str, Any] = {
+            const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_BUTTON_BONUS_APPLY,
+            const.ATTR_KID_NAME: self._kid_name,
+            const.ATTR_BONUS_NAME: self._bonus_name,
+            const.ATTR_LABELS: friendly_labels,
+        }
+
+        return attributes
+
+
 # ------------------ Penalty Button ------------------
 class ParentPenaltyApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
     """Button to apply a penalty for a kid.
@@ -1275,7 +1407,7 @@ class ParentPenaltyApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
         return attributes
 
 
-# ------------------ Points Adjust Button ------------------
+# ------------------ Points Adjust Buttons ------------------
 class ParentPointsAdjustButton(KidsChoresCoordinatorEntity, ButtonEntity):
     """Button that increments or decrements a kid's points by 'delta'.
 
@@ -1407,134 +1539,3 @@ class ParentPointsAdjustButton(KidsChoresCoordinatorEntity, ButtonEntity):
             const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_BUTTON_POINTS_ADJUST,
             const.ATTR_KID_NAME: self._kid_name,
         }
-
-
-class ParentBonusApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
-    """Button to apply a bonus for a kid.
-
-    Parent-only button that adds points to kid's balance based on bonus configuration.
-    Validates global parent authorization before execution.
-    """
-
-    _attr_has_entity_name = True
-    _attr_translation_key = const.TRANS_KEY_BUTTON_BONUS_BUTTON
-
-    def __init__(
-        self,
-        coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
-        kid_id: str,
-        kid_name: str,
-        bonus_id: str,
-        bonus_name: str,
-        icon: str,
-    ):
-        """Initialize the bonus button.
-
-        Args:
-            coordinator: KidsChoresDataCoordinator instance for data access and updates.
-            entry: ConfigEntry for this integration instance.
-            kid_id: Unique identifier for the kid.
-            kid_name: Display name of the kid.
-            bonus_id: Unique identifier for the bonus.
-            bonus_name: Display name of the bonus.
-            icon: Icon override from bonus configuration or default.
-        """
-        super().__init__(coordinator)
-        self._entry = entry
-        self._kid_id = kid_id
-        self._kid_name = kid_name
-        self._bonus_id = bonus_id
-        self._bonus_name = bonus_name
-        self._attr_unique_id = (
-            f"{entry.entry_id}_{const.BUTTON_BONUS_PREFIX}{kid_id}_{bonus_id}"
-        )
-        self._attr_icon = icon
-        self._attr_translation_placeholders = {
-            const.TRANS_KEY_BUTTON_ATTR_KID_NAME: kid_name,
-            const.TRANS_KEY_BUTTON_ATTR_BONUS_NAME: bonus_name,
-        }
-        # Strip redundant "bonus" suffix from entity_id (bonus_name often ends with "Bonus")
-        bonus_slug = bonus_name.lower().replace(" ", "_")
-        bonus_slug = bonus_slug.removesuffix("_bonus")  # Remove "_bonus" suffix
-        self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_BONUS}{bonus_slug}"
-        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
-            self.coordinator, kid_id, kid_name, entry
-        )
-
-    def press(self) -> None:
-        """Synchronous press - not used, Home Assistant calls async_press."""
-
-    async def async_press(self) -> None:
-        """Handle the button press event.
-
-        Validates global parent authorization, retrieves parent name from context,
-        calls coordinator.apply_bonus() to add points to kid's balance based on bonus
-        configuration, and triggers coordinator refresh.
-
-        Raises:
-            HomeAssistantError: If user not authorized for global parent actions.
-        """
-        try:
-            user_id = self._context.user_id if self._context else None
-            if user_id and not await kh.is_user_authorized_for_global_action(
-                self.hass, user_id, const.SERVICE_APPLY_BONUS
-            ):
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION_GLOBAL,
-                    translation_placeholders={
-                        "action": const.ERROR_ACTION_APPLY_BONUSES
-                    },
-                )
-
-            user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
-            parent_name = (user_obj.name if user_obj else None) or const.DISPLAY_UNKNOWN
-
-            self.coordinator.apply_bonus(
-                parent_name=parent_name,
-                kid_id=self._kid_id,
-                bonus_id=self._bonus_id,
-            )
-            const.LOGGER.info(
-                "INFO: Bonus '%s' applied to Kid '%s' by Parent '%s'",
-                self._bonus_name,
-                self._kid_name,
-                parent_name,
-            )
-            await self.coordinator.async_request_refresh()
-
-        except HomeAssistantError as e:
-            const.LOGGER.error(
-                "ERROR: Authorization failed to Apply Bonus '%s' for Kid '%s': %s",
-                self._bonus_name,
-                self._kid_name,
-                e,
-            )
-        except (KeyError, ValueError, AttributeError) as e:
-            const.LOGGER.error(
-                "ERROR: Failed to Apply Bonus '%s' for Kid '%s': %s",
-                self._bonus_name,
-                self._kid_name,
-                e,
-            )
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Include extra state attributes for the button."""
-        bonus_info: BonusData = cast(
-            "BonusData", self.coordinator.bonuses_data.get(self._bonus_id, {})
-        )
-        stored_labels = bonus_info.get(const.DATA_BONUS_LABELS, [])
-        friendly_labels = [
-            kh.get_friendly_label(self.hass, label) for label in stored_labels
-        ]
-
-        attributes: dict[str, Any] = {
-            const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_BUTTON_BONUS_APPLY,
-            const.ATTR_KID_NAME: self._kid_name,
-            const.ATTR_BONUS_NAME: self._bonus_name,
-            const.ATTR_LABELS: friendly_labels,
-        }
-
-        return attributes

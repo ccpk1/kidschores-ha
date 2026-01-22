@@ -19,8 +19,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
-from . import const, flow_helpers as fh, kc_helpers as kh
-from .storage_manager import KidsChoresStorageManager
+from . import backup_helpers as bh, const, data_builders as db, kc_helpers as kh
+from .store import KidsChoresStore
 
 if TYPE_CHECKING:
     from .coordinator import KidsChoresDataCoordinator
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 
 
 async def migrate_config_to_storage(
-    hass: HomeAssistant, entry: ConfigEntry, storage_manager: KidsChoresStorageManager
+    hass: HomeAssistant, entry: ConfigEntry, store: KidsChoresStore
 ) -> None:
     """One-time migration: Move entity data from config_entry.options to storage.
 
@@ -45,10 +45,10 @@ async def migrate_config_to_storage(
     Args:
         hass: Home Assistant instance
         entry: Config entry to migrate
-        storage_manager: Initialized storage manager
+        store: Initialized store instance
 
     """
-    storage_data = storage_manager.data
+    storage_data = store.data
 
     # Check schema version - support both v41 (top-level) and v42+ (meta section)
     # v41 format: {"schema_version": 41, "kids": {...}}
@@ -109,8 +109,8 @@ async def migrate_config_to_storage(
             const.DATA_META_LAST_MIGRATION_DATE: dt_util.utcnow().isoformat(),
             const.DATA_META_MIGRATIONS_APPLIED: [],
         }
-        storage_manager.set_data(storage_data)
-        await storage_manager.async_save()
+        store.set_data(storage_data)
+        await store.async_save()
         return
 
     # Storage-only data (Config Flow import path): let coordinator handle all migrations
@@ -131,8 +131,8 @@ async def migrate_config_to_storage(
 
     # Create backup of storage data before migration
     try:
-        backup_name = await fh.create_timestamped_backup(
-            hass, storage_manager, const.BACKUP_TAG_PRE_MIGRATION
+        backup_name = await bh.create_timestamped_backup(
+            hass, store, const.BACKUP_TAG_PRE_MIGRATION
         )
         if backup_name:
             const.LOGGER.info("INFO: Created pre-migration backup: %s", backup_name)
@@ -237,8 +237,8 @@ async def migrate_config_to_storage(
     storage_data.pop(const.DATA_SCHEMA_VERSION, None)
 
     # Save merged data to storage
-    storage_manager.set_data(storage_data)
-    await storage_manager.async_save()
+    store.set_data(storage_data)
+    await store.async_save()
 
     # Build new config with ONLY system settings
     new_options = {
@@ -704,6 +704,10 @@ class PreV50Migrator:
         # v0.4.0: Remove reward queue - also now computed from per-kid reward_data
         # After migration, delete the legacy key since approvals are computed dynamically
         self.coordinator._data.pop(const.DATA_PENDING_REWARD_APPROVALS_LEGACY, None)
+
+        # pre-v0.5.0: Remove orphaned linked_users key from early development
+        # Feature was never implemented in production, clean up any test/dev data
+        self.coordinator._data.pop(const.DATA_LINKED_USERS_LEGACY, None)
 
         # Migrate datetime on Challenges
         for challenge_info in self.coordinator._data.get(
@@ -1647,9 +1651,6 @@ class PreV50Migrator:
 
             # Remove entity from HA registry
             self.coordinator._remove_entities_in_ha(entity_id)
-            if section == const.DATA_CHORES:
-                for kid_id in self.coordinator.kids_data:
-                    self.coordinator._remove_kid_chore_entities(kid_id, entity_id)
 
             # Remove deleted kids from parents list (cleanup)
             self.coordinator._cleanup_parent_assignments()
@@ -2742,10 +2743,11 @@ class PreV50Migrator:
         )
 
     def _create_chore(self, chore_id: str, chore_data: dict[str, Any]):
-        # Use shared helper to build complete chore structure with all defaults
-        # This ensures config flow and coordinator use identical field initialization
-        self.coordinator._data[const.DATA_CHORES][chore_id] = (
-            kh.build_default_chore_data(chore_id, chore_data)
+        # Use data_builders to build complete chore structure with all defaults
+        # For migration, we pass chore_data with internal_id already set
+        chore_data[const.DATA_CHORE_INTERNAL_ID] = chore_id
+        self.coordinator._data[const.DATA_CHORES][chore_id] = db.build_chore(
+            chore_data, existing=None
         )
         const.LOGGER.debug(
             "DEBUG: Chore Added - '%s', ID '%s'",

@@ -61,9 +61,9 @@ def mock_coordinator(mock_storage_data):
     coordinator = MagicMock()
 
     # Mock storage manager with raw data
-    storage_manager = MagicMock()
-    storage_manager.data = mock_storage_data
-    coordinator.storage_manager = storage_manager
+    store = MagicMock()
+    store.data = mock_storage_data
+    coordinator.store = store
 
     # Mock convenience accessors (point to same data)
     coordinator.kids_data = mock_storage_data[const.DATA_KIDS]
@@ -228,7 +228,7 @@ async def test_diagnostics_simplicity():
     """Test that diagnostics implementation is simple and maintainable.
 
     The simplified approach:
-    - Config entry diagnostics: Returns storage_manager.data directly
+    - Config entry diagnostics: Returns store.data directly
     - Device diagnostics: Returns kid_data snapshot only
     - No parsing, reformatting, or wrapper metadata
     - Byte-for-byte identical to storage file

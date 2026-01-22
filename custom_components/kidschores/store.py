@@ -1,4 +1,4 @@
-# File: storage_manager.py
+# File: store.py
 """Handles persistent data storage for the KidsChores integration.
 
 Uses Home Assistant's Storage helper to save and load chore-related data, ensuring
@@ -18,16 +18,17 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
 
-class KidsChoresStorageManager:
-    """Manages loading, saving, and accessing data from Home Assistant's storage.
+class KidsChoresStore:
+    """Handles persistent storage operations for KidsChores data.
 
-    Utilizes internal_id as the primary key for all entities.
+    Thin wrapper around Home Assistant's Store API for loading, saving, and
+    accessing KidsChores data. Utilizes internal_id as the primary key for all entities.
     """
 
     def __init__(
         self, hass: HomeAssistant, storage_key: str = const.STORAGE_KEY
     ) -> None:
-        """Initialize the storage manager.
+        """Initialize the store.
 
         Args:
             hass: Home Assistant core object.
@@ -75,7 +76,7 @@ class KidsChoresStorageManager:
 
         If no data exists, initializes with an empty structure.
         """
-        const.LOGGER.debug("DEBUG: KidsChoresStorageManager: Loading data from storage")
+        const.LOGGER.debug("DEBUG: KidsChoresStore: Loading data from storage")
         existing_data = await self._store.async_load()
 
         # DEBUG: Check what async_load returned
@@ -99,8 +100,14 @@ class KidsChoresStorageManager:
                 "DEBUG: Loaded existing data from storage: %s entities",
                 {
                     "kids": len(self._data.get(const.DATA_KIDS, {})),
+                    "parents": len(self._data.get(const.DATA_PARENTS, {})),
                     "chores": len(self._data.get(const.DATA_CHORES, {})),
                     "badges": len(self._data.get(const.DATA_BADGES, {})),
+                    "rewards": len(self._data.get(const.DATA_REWARDS, {})),
+                    "penalties": len(self._data.get(const.DATA_PENALTIES, {})),
+                    "bonuses": len(self._data.get(const.DATA_BONUSES, {})),
+                    "achievements": len(self._data.get(const.DATA_ACHIEVEMENTS, {})),
+                    "challenges": len(self._data.get(const.DATA_CHALLENGES, {})),
                     "total_keys": len(self._data.keys()),
                 },
             )
@@ -112,8 +119,14 @@ class KidsChoresStorageManager:
             "DEBUG: Storage manager data property accessed: %s entities",
             {
                 "kids": len(self._data.get(const.DATA_KIDS, {})),
+                "parents": len(self._data.get(const.DATA_PARENTS, {})),
                 "chores": len(self._data.get(const.DATA_CHORES, {})),
                 "badges": len(self._data.get(const.DATA_BADGES, {})),
+                "rewards": len(self._data.get(const.DATA_REWARDS, {})),
+                "penalties": len(self._data.get(const.DATA_PENALTIES, {})),
+                "bonuses": len(self._data.get(const.DATA_BONUSES, {})),
+                "achievements": len(self._data.get(const.DATA_ACHIEVEMENTS, {})),
+                "challenges": len(self._data.get(const.DATA_CHALLENGES, {})),
                 "total_keys": len(self._data.keys()),
             },
         )
@@ -133,77 +146,18 @@ class KidsChoresStorageManager:
             "DEBUG: Storage manager set_data called with: %s entities",
             {
                 "kids": len(new_data.get(const.DATA_KIDS, {})),
+                "parents": len(new_data.get(const.DATA_PARENTS, {})),
                 "chores": len(new_data.get(const.DATA_CHORES, {})),
                 "badges": len(new_data.get(const.DATA_BADGES, {})),
+                "rewards": len(new_data.get(const.DATA_REWARDS, {})),
+                "penalties": len(new_data.get(const.DATA_PENALTIES, {})),
+                "bonuses": len(new_data.get(const.DATA_BONUSES, {})),
+                "achievements": len(new_data.get(const.DATA_ACHIEVEMENTS, {})),
+                "challenges": len(new_data.get(const.DATA_CHALLENGES, {})),
                 "total_keys": len(new_data.keys()),
             },
         )
         self._data = new_data
-
-    def get_kids(self) -> dict[str, Any]:
-        """Retrieve the kids data."""
-        return self._data.get(const.DATA_KIDS, {})
-
-    def get_parents(self) -> dict[str, Any]:
-        """Retrieve the parents data."""
-        return self._data.get(const.DATA_PARENTS, {})
-
-    def get_chores(self) -> dict[str, Any]:
-        """Retrieve the chores data."""
-        return self._data.get(const.DATA_CHORES, {})
-
-    def get_badges(self) -> dict[str, Any]:
-        """Retrieve the badges data."""
-        return self._data.get(const.DATA_BADGES, {})
-
-    def get_rewards(self) -> dict[str, Any]:
-        """Retrieve the rewards data."""
-        return self._data.get(const.DATA_REWARDS, {})
-
-    def get_penalties(self) -> dict[str, Any]:
-        """Retrieve the penalties data."""
-        return self._data.get(const.DATA_PENALTIES, {})
-
-    def get_bonuses(self) -> dict[str, Any]:
-        """Retrieve the bonuses data."""
-        return self._data.get(const.DATA_BONUSES, {})
-
-    def get_achievements(self) -> dict[str, Any]:
-        """Retrieve the achievements data."""
-        return self._data.get(const.DATA_ACHIEVEMENTS, {})
-
-    def get_challenges(self) -> dict[str, Any]:
-        """Retrieve the challenges data."""
-        return self._data.get(const.DATA_CHALLENGES, {})
-
-    # get_pending_chore_approvals removed - use coordinator.pending_chore_approvals
-    # which computes from timestamps dynamically
-
-    # get_pending_reward_approvals removed - use coordinator.pending_reward_approvals
-    # which computes from reward_data dynamically
-
-    async def link_user_to_kid(self, user_id: str, kid_id: str) -> None:
-        """Link a Home Assistant user ID to a specific kid by internal_id."""
-
-        if const.STORAGE_KEY_LINKED_USERS not in self._data:
-            self._data[const.STORAGE_KEY_LINKED_USERS] = {}
-        self._data[const.STORAGE_KEY_LINKED_USERS][user_id] = kid_id
-        await self.async_save()
-
-    async def unlink_user(self, user_id: str) -> None:
-        """Unlink a Home Assistant user ID from any kid."""
-
-        if (
-            const.STORAGE_KEY_LINKED_USERS in self._data
-            and user_id in self._data[const.STORAGE_KEY_LINKED_USERS]
-        ):
-            del self._data[const.STORAGE_KEY_LINKED_USERS][user_id]
-            await self.async_save()
-
-    async def get_linked_kids(self) -> dict[str, str]:
-        """Get all linked users and their associated kids."""
-
-        return self._data.get(const.STORAGE_KEY_LINKED_USERS, {})
 
     async def async_save(self) -> None:
         """Save the current data structure to storage asynchronously.
