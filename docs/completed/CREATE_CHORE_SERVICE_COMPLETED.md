@@ -14,11 +14,11 @@
 
 | Phase       | Description                  | % Complete  | Quick Notes                                                |
 | ----------- | ---------------------------- | ----------- | ---------------------------------------------------------- |
-| **Phase 1** | Shared Infrastructure        | 100% ✅     | ~60 lines: schema + mapping helpers (reused by both)       |
-| **Phase 2** | Create Chore Service         | 100% ✅     | ~40 lines: handler reuses `build_chores_data()`            |
-| **Phase 3** | Update Chore Service         | 100% ✅     | ~50 lines: merge + validate logic (reuses Phase 1)         |
+| **Phase 1** | Shared Infrastructure        | 100% ✅     | ~60 lines: schema + mapping helpers (reused by both)      |
+| **Phase 2** | Create Chore Service         | 100% ✅     | ~40 lines: handler reuses `build_chores_data()`           |
+| **Phase 3** | Update Chore Service         | 100% ✅     | ~50 lines: merge + validate logic (reuses Phase 1)        |
 | **Phase 4** | Documentation & Translations | 100% ✅     | services.yaml entries (reuses existing error translations) |
-| **Phase 5** | Testing                      | 100% ✅     | Test both services + shared infrastructure                 |
+| **Phase 5** | Testing                      | 100% ✅     | Test both services + shared infrastructure                |
 | **BONUS**   | **Delete Chore Service**     | **100% ✅** | **Implemented beyond original scope**                      |
 
 **Estimated Total Effort**: ~250 lines of new code including bonus delete_chore service + comprehensive testing

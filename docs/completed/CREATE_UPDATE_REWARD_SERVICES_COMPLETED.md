@@ -12,14 +12,14 @@
 
 ## Summary Table
 
-| Phase       | Description                  | % Complete | Quick Notes                                                |
-| ----------- | ---------------------------- | ---------- | ---------------------------------------------------------- |
-| **Phase 1** | Shared Infrastructure        | 100% ✅    | ~50 lines: schema + mapping helpers (simpler than chores)  |
-| **Phase 2** | Create Reward Service        | 100% ✅    | ~40 lines: handler reuses `build_rewards_data()`           |
-| **Phase 3** | Update Reward Service        | 100% ✅    | ~40 lines: merge + validate logic (reuses Phase 1)         |
-| **Phase 4** | Documentation & Translations | 100% ✅    | services.yaml entries (reuses existing error translations) |
-| **Phase 5** | Testing                      | 100% ✅    | Test both services + shared infrastructure                 |
-| **BONUS**   | **Delete Reward Service**    | **100% ✅** | **Implemented beyond original scope**                     |
+| Phase       | Description                  | % Complete  | Quick Notes                                                |
+| ----------- | ---------------------------- | ----------- | ---------------------------------------------------------- |
+| **Phase 1** | Shared Infrastructure        | 100% ✅     | ~50 lines: schema + mapping helpers (simpler than chores)  |
+| **Phase 2** | Create Reward Service        | 100% ✅     | ~40 lines: handler reuses `build_rewards_data()`           |
+| **Phase 3** | Update Reward Service        | 100% ✅     | ~40 lines: merge + validate logic (reuses Phase 1)         |
+| **Phase 4** | Documentation & Translations | 100% ✅     | services.yaml entries (reuses existing error translations) |
+| **Phase 5** | Testing                      | 100% ✅     | Test both services + shared infrastructure                 |
+| **BONUS**   | **Delete Reward Service**    | **100% ✅** | **Implemented beyond original scope**                      |
 
 **Estimated Total Effort**: ~170 lines of new code (vs ~500 if writing fresh validation for both)
 
