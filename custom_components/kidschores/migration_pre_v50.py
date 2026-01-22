@@ -2548,7 +2548,7 @@ class PreV50Migrator:
         """Create a new kid entity during migration.
 
         This is a local copy for migration only - production code uses
-        entity_helpers.build_kid() + direct storage writes.
+        data_builders.build_kid() + direct storage writes.
         """
         self.coordinator._data[const.DATA_KIDS][kid_id] = {
             const.DATA_KID_NAME: kid_data.get(

@@ -29,7 +29,7 @@ from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from . import const, entity_helpers as eh, kc_helpers as kh
+from . import const, data_builders as db, kc_helpers as kh
 from .coordinator_chore_operations import ChoreOperations
 from .notification_helper import (
     async_send_notification,
@@ -823,7 +823,7 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         - Have notifications disabled by default (editable via Manage Kids)
         - Inherit gamification setting from parent
 
-        Uses entity_helpers.build_kid() with is_shadow=True for consistent
+        Uses data_builders.build_kid() with is_shadow=True for consistent
         shadow kid creation across config flow and options flow.
 
         Args:
@@ -849,9 +849,9 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
             const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: const.SENTINEL_EMPTY,
         }
 
-        # Use unified eh.build_kid() with shadow markers
+        # Use unified db.build_kid() with shadow markers
         shadow_kid_data = dict(
-            eh.build_kid(shadow_input, is_shadow=True, linked_parent_id=parent_id)
+            db.build_kid(shadow_input, is_shadow=True, linked_parent_id=parent_id)
         )
         shadow_kid_id = str(shadow_kid_data[const.DATA_KID_INTERNAL_ID])
 

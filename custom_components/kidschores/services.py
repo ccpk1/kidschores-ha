@@ -150,7 +150,7 @@ MANAGE_SHADOW_LINK_SCHEMA = vol.Schema(
 )
 
 # ==============================================================================
-# REWARD CRUD SCHEMAS (using entity_helpers pattern)
+# REWARD CRUD SCHEMAS (using data_builders pattern)
 # ==============================================================================
 
 # NOTE: cost is REQUIRED for create_reward - no invisible defaults for automations
@@ -195,7 +195,7 @@ DELETE_REWARD_SCHEMA = vol.Schema(
 # CHORE CRUD SCHEMAS
 # ============================================================================
 # NOTE: Chore services use DATA_* keys directly (unlike rewards which use CFOF_* keys)
-# because build_chore() in entity_helpers expects pre-processed DATA_* keys.
+# because build_chore() in data_builders expects pre-processed DATA_* keys.
 #
 # Field validation:
 # - name: required for create, optional for update
@@ -364,7 +364,7 @@ def _map_service_to_data_keys(
         mapping: Dict mapping service field names to DATA_* constants
 
     Returns:
-        Dict with DATA_* keys for entity_helpers consumption
+        Dict with DATA_* keys for data_builders consumption
     """
     return {
         mapping[key]: value for key, value in service_data.items() if key in mapping
@@ -1591,13 +1591,13 @@ def async_setup_services(hass: HomeAssistant):
         await coordinator.async_request_refresh()
 
     # ==========================================================================
-    # REWARD CRUD SERVICE HANDLERS (using entity_helpers pattern)
+    # REWARD CRUD SERVICE HANDLERS (using data_builders pattern)
     # ==========================================================================
 
     async def handle_create_reward(call: ServiceCall) -> dict[str, Any]:
         """Handle kidschores.create_reward service call.
 
-        Creates a new reward using entity_helpers.build_reward() for consistent
+        Creates a new reward using data_builders.build_reward() for consistent
         field handling with the Options Flow UI.
 
         Args:
@@ -1609,8 +1609,8 @@ def async_setup_services(hass: HomeAssistant):
         Raises:
             HomeAssistantError: If no coordinator available or validation fails
         """
-        from . import entity_helpers as eh
-        from .entity_helpers import EntityValidationError
+        from . import data_builders as db
+        from .data_builders import EntityValidationError
 
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
@@ -1626,13 +1626,13 @@ def async_setup_services(hass: HomeAssistant):
             const.COORDINATOR
         ]
 
-        # Map service fields to DATA_* keys for entity_helpers
+        # Map service fields to DATA_* keys for data_builders
         data_input = _map_service_to_data_keys(
             dict(call.data), _SERVICE_TO_REWARD_DATA_MAPPING
         )
 
         # Validate using shared validation (single source of truth)
-        validation_errors = eh.validate_reward_data(
+        validation_errors = db.validate_reward_data(
             data_input,
             coordinator.rewards_data,
             is_update=False,
@@ -1648,7 +1648,7 @@ def async_setup_services(hass: HomeAssistant):
 
         try:
             # build_reward(input) - create mode (no existing)
-            reward_dict = eh.build_reward(data_input)
+            reward_dict = db.build_reward(data_input)
             internal_id = reward_dict[const.DATA_REWARD_INTERNAL_ID]
 
             coordinator._data[const.DATA_REWARDS][internal_id] = dict(reward_dict)
@@ -1673,7 +1673,7 @@ def async_setup_services(hass: HomeAssistant):
     async def handle_update_reward(call: ServiceCall) -> dict[str, Any]:
         """Handle kidschores.update_reward service call.
 
-        Updates an existing reward using entity_helpers.build_reward() for consistent
+        Updates an existing reward using data_builders.build_reward() for consistent
         field handling with the Options Flow UI. Only provided fields are updated.
 
         Accepts either reward_id OR reward_name to identify the reward:
@@ -1690,8 +1690,8 @@ def async_setup_services(hass: HomeAssistant):
             HomeAssistantError: If reward not found, validation fails, or neither
                 reward_id nor reward_name provided
         """
-        from . import entity_helpers as eh
-        from .entity_helpers import EntityValidationError
+        from . import data_builders as db
+        from .data_builders import EntityValidationError
 
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
@@ -1747,7 +1747,7 @@ def async_setup_services(hass: HomeAssistant):
         )
 
         # Validate using shared validation (single source of truth)
-        validation_errors = eh.validate_reward_data(
+        validation_errors = db.validate_reward_data(
             data_input,
             coordinator.rewards_data,
             is_update=True,
@@ -1763,7 +1763,7 @@ def async_setup_services(hass: HomeAssistant):
 
         try:
             # build_reward(input, existing) - update mode
-            reward_dict = eh.build_reward(data_input, existing=existing_reward)
+            reward_dict = db.build_reward(data_input, existing=existing_reward)
 
             coordinator._data[const.DATA_REWARDS][reward_id] = dict(reward_dict)
             coordinator._persist()
@@ -1848,7 +1848,7 @@ def async_setup_services(hass: HomeAssistant):
     async def handle_create_chore(call: ServiceCall) -> dict[str, Any]:
         """Handle kidschores.create_chore service call.
 
-        Creates a new chore using entity_helpers.build_chore() for consistent
+        Creates a new chore using data_builders.build_chore() for consistent
         field handling with the Options Flow UI.
 
         Args:
@@ -1860,8 +1860,8 @@ def async_setup_services(hass: HomeAssistant):
         Raises:
             HomeAssistantError: If no coordinator available or validation fails
         """
-        from . import entity_helpers as eh
-        from .entity_helpers import EntityValidationError
+        from . import data_builders as db
+        from .data_builders import EntityValidationError
 
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
@@ -1905,7 +1905,7 @@ def async_setup_services(hass: HomeAssistant):
             data_input[const.DATA_CHORE_DUE_DATE] = due_date_input
 
         # Validate using shared validation (single source of truth)
-        validation_errors = eh.validate_chore_data(
+        validation_errors = db.validate_chore_data(
             data_input,
             coordinator.chores_data,
             is_update=False,
@@ -1921,7 +1921,7 @@ def async_setup_services(hass: HomeAssistant):
 
         try:
             # build_chore(input) - create mode (no existing)
-            chore_dict = eh.build_chore(data_input)
+            chore_dict = db.build_chore(data_input)
             internal_id = chore_dict[const.DATA_CHORE_INTERNAL_ID]
 
             coordinator._data[const.DATA_CHORES][internal_id] = dict(chore_dict)
@@ -1957,7 +1957,7 @@ def async_setup_services(hass: HomeAssistant):
     async def handle_update_chore(call: ServiceCall) -> dict[str, Any]:
         """Handle kidschores.update_chore service call.
 
-        Updates an existing chore using entity_helpers.build_chore() for consistent
+        Updates an existing chore using data_builders.build_chore() for consistent
         field handling with the Options Flow UI. Only provided fields are updated.
 
         Accepts either chore_id OR name to identify the chore:
@@ -1976,8 +1976,8 @@ def async_setup_services(hass: HomeAssistant):
             HomeAssistantError: If chore not found, validation fails, or neither
                 chore_id nor name provided
         """
-        from . import entity_helpers as eh
-        from .entity_helpers import EntityValidationError
+        from . import data_builders as db
+        from .data_builders import EntityValidationError
 
         entry_id = kh.get_first_kidschores_entry(hass)
         if not entry_id:
@@ -2078,7 +2078,7 @@ def async_setup_services(hass: HomeAssistant):
                 validation_data[key] = existing_chore.get(key)
 
         # Validate using shared validation (single source of truth)
-        validation_errors = eh.validate_chore_data(
+        validation_errors = db.validate_chore_data(
             validation_data,
             coordinator.chores_data,
             is_update=True,
@@ -2094,7 +2094,7 @@ def async_setup_services(hass: HomeAssistant):
 
         try:
             # build_chore(input, existing) - update mode
-            chore_dict = eh.build_chore(data_input, existing=existing_chore)
+            chore_dict = db.build_chore(data_input, existing=existing_chore)
 
             coordinator._data[const.DATA_CHORES][chore_id] = dict(chore_dict)
             coordinator._persist()

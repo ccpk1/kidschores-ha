@@ -1,13 +1,13 @@
 """Test parents configuration helper functions.
 
-Tests validate that entity_helpers.build_parent() correctly builds parent data
+Tests validate that data_builders.build_parent() correctly builds parent data
 and flow_helpers.validate_parents_inputs() validates form input.
 """
 
 import pytest
 
-from custom_components.kidschores import const, entity_helpers as eh, flow_helpers as fh
-from custom_components.kidschores.entity_helpers import EntityValidationError
+from custom_components.kidschores import const, data_builders as db, flow_helpers as fh
+from custom_components.kidschores.data_builders import EntityValidationError
 
 
 def test_build_parent_with_all_values() -> None:
@@ -19,7 +19,7 @@ def test_build_parent_with_all_values() -> None:
         const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: "mobile_app_iphone",
     }
 
-    result = eh.build_parent(user_input)
+    result = db.build_parent(user_input)
 
     assert result[const.DATA_PARENT_NAME] == "Mom"
     assert result[const.DATA_PARENT_HA_USER_ID] == "user_456"
@@ -39,7 +39,7 @@ def test_build_parent_generates_uuid() -> None:
         const.CFOF_PARENTS_INPUT_NAME: "Dad",
     }
 
-    result = eh.build_parent(user_input)
+    result = db.build_parent(user_input)
 
     # Should have a generated UUID
     assert len(result[const.DATA_PARENT_INTERNAL_ID]) == 36
@@ -52,7 +52,7 @@ def test_build_parent_with_defaults() -> None:
         const.CFOF_PARENTS_INPUT_NAME: "Grandma",
     }
 
-    result = eh.build_parent(user_input)
+    result = db.build_parent(user_input)
 
     assert result[const.DATA_PARENT_NAME] == "Grandma"
     assert result[const.DATA_PARENT_HA_USER_ID] == ""
@@ -70,7 +70,7 @@ def test_build_parent_strips_whitespace_from_name() -> None:
         const.CFOF_PARENTS_INPUT_NAME: "  Uncle Bob  ",
     }
 
-    result = eh.build_parent(user_input)
+    result = db.build_parent(user_input)
 
     assert result[const.DATA_PARENT_NAME] == "Uncle Bob"
 
@@ -82,7 +82,7 @@ def test_build_parent_with_empty_associated_kids() -> None:
         const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: [],
     }
 
-    result = eh.build_parent(user_input)
+    result = db.build_parent(user_input)
 
     assert result[const.DATA_PARENT_ASSOCIATED_KIDS] == []
 
@@ -94,7 +94,7 @@ def test_build_parent_raises_on_empty_name() -> None:
     }
 
     with pytest.raises(EntityValidationError) as exc_info:
-        eh.build_parent(user_input)
+        db.build_parent(user_input)
 
     assert exc_info.value.field == const.CFOF_PARENTS_INPUT_NAME
     assert exc_info.value.translation_key == const.TRANS_KEY_CFOF_INVALID_PARENT_NAME

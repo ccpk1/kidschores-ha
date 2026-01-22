@@ -44,7 +44,7 @@ All entity types now follow the consistent three-function pattern:
 ### Phase B: Badges Migration ✅ (2026-01-21)
 
 - [x] B1: Analyzed `build_badge_common_data()` - only 1 caller in config_flow.py
-- [x] B2: `entity_helpers.build_badge()` already complete (no changes needed)
+- [x] B2: `data_builders.build_badge()` already complete (no changes needed)
 - [x] B3: `validate_badge_common_inputs()` already complete (no changes needed)
 - [x] B4: Updated `async_add_badge_common()` in config_flow.py to use `eh.build_badge()`
 - [x] B5: Removed `build_badge_common_data()` (~218 lines deleted via sed)
@@ -75,7 +75,7 @@ All entity types now follow the consistent three-function pattern:
 - `flow_helpers.py` - Added `transform_chore_cfof_to_data()`, removed `build_chores_data()`
 - `options_flow.py` - Updated add/edit chore flows
 - `config_flow.py` - Updated initial setup chore flow
-- `entity_helpers.py` - Updated docstring references
+- `data_builders.py` - Updated docstring references
 - `kc_helpers.py` - Updated comment references
 - `test_frequency_validation.py` - Updated 4 tests
 - `test_approval_reset_overdue_interaction.py` - Updated 4 tests
@@ -89,8 +89,8 @@ All entity types now follow the consistent three-function pattern:
 
 ## References
 
-- `entity_helpers.build_chore()` - Full chore entity builder
-- `entity_helpers.build_badge()` - Full badge entity builder
+- `data_builders.build_chore()` - Full chore entity builder
+- `data_builders.build_badge()` - Full badge entity builder
 - `flow_helpers.validate_chores_inputs()` - Chore validation only
 - `flow_helpers.validate_badge_common_inputs()` - Badge validation only
 - `flow_helpers.transform_chore_cfof_to_data()` - Chore key transformation
@@ -102,5 +102,5 @@ All entity types now follow the consistent three-function pattern:
 With all entity patterns now consistent, the codebase is ready for Phase 5 (Achievements/Challenges) implementation. The new entities should follow the established pattern:
 
 1. `validate_achievement_inputs()` / `validate_challenge_inputs()` in flow_helpers
-2. `build_achievement()` / `build_challenge()` in entity_helpers
+2. `build_achievement()` / `build_challenge()` in data_builders
 3. Flow steps call validate → build (no intermediate `build_X_data()` functions)

@@ -12,8 +12,8 @@ from homeassistant.core import callback
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
-from . import const, entity_helpers as eh, flow_helpers as fh
-from .entity_helpers import EntityValidationError
+from . import const, data_builders as db, flow_helpers as fh
+from .data_builders import EntityValidationError
 from .options_flow import KidsChoresOptionsFlowHandler
 
 # Pylint disable for valid config flow architectural patterns:
@@ -579,8 +579,8 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             )
 
             if not errors:
-                # Use unified eh.build_kid() pattern
-                kid_data = dict(eh.build_kid(user_input))
+                # Use unified db.build_kid() pattern
+                kid_data = dict(db.build_kid(user_input))
                 internal_id = str(kid_data[const.DATA_KID_INTERNAL_ID])
                 self._kids_temp[internal_id] = kid_data
 
@@ -655,8 +655,8 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             )
 
             if not errors:
-                # Use unified eh.build_parent() pattern
-                parent_data = dict(eh.build_parent(user_input))
+                # Use unified db.build_parent() pattern
+                parent_data = dict(db.build_parent(user_input))
                 internal_id = str(parent_data[const.DATA_PARENT_INTERNAL_ID])
                 parent_name = str(parent_data[const.DATA_PARENT_NAME])
 
@@ -676,7 +676,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                         const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: const.SENTINEL_EMPTY,
                     }
                     shadow_kid_data = dict(
-                        eh.build_kid(
+                        db.build_kid(
                             shadow_input, is_shadow=True, linked_parent_id=internal_id
                         )
                     )
@@ -798,7 +798,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             )
 
             # Build complete chore entity (generates internal_id)
-            new_chore = eh.build_chore(transformed_data)
+            new_chore = db.build_chore(transformed_data)
             internal_id = new_chore[const.DATA_CHORE_INTERNAL_ID]
 
             # Store the chore (cast to dict for _chores_temp type compatibility)
@@ -889,8 +889,8 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             )
 
             if not errors:
-                # --- Build Data using entity_helpers ---
-                updated_badge_data = eh.build_badge(
+                # --- Build Data using data_builders ---
+                updated_badge_data = db.build_badge(
                     user_input=user_input,
                     existing=None,
                     badge_type=badge_type,
@@ -983,7 +983,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                 internal_id = str(uuid.uuid4())
 
                 # CFOF_* keys now aligned with DATA_* keys - pass directly
-                reward_data = dict(eh.build_reward(user_input))
+                reward_data = dict(db.build_reward(user_input))
                 self._rewards_temp[internal_id] = reward_data
 
                 reward_name = reward_data[const.DATA_REWARD_NAME]
@@ -1049,7 +1049,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             errors = fh.validate_penalties_inputs(user_input, self._penalties_temp)
 
             if not errors:
-                # Transform form input keys to DATA_* keys for entity_helpers
+                # Transform form input keys to DATA_* keys for data_builders
                 transformed_input = {
                     const.DATA_PENALTY_NAME: user_input.get(
                         const.CFOF_PENALTIES_INPUT_NAME, const.SENTINEL_EMPTY
@@ -1065,7 +1065,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                     ),
                 }
                 # Build penalty data using unified helper
-                penalty_data = eh.build_bonus_or_penalty(transformed_input, "penalty")
+                penalty_data = db.build_bonus_or_penalty(transformed_input, "penalty")
                 internal_id = penalty_data[const.DATA_PENALTY_INTERNAL_ID]
                 self._penalties_temp[internal_id] = penalty_data
 
@@ -1130,7 +1130,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             errors = fh.validate_bonuses_inputs(user_input, self._bonuses_temp)
 
             if not errors:
-                # Transform form input keys to DATA_* keys for entity_helpers
+                # Transform form input keys to DATA_* keys for data_builders
                 transformed_input = {
                     const.DATA_BONUS_NAME: user_input.get(
                         const.CFOF_BONUSES_INPUT_NAME, const.SENTINEL_EMPTY
@@ -1146,7 +1146,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                     ),
                 }
                 # Build bonus data using unified helper
-                bonus_data = eh.build_bonus_or_penalty(transformed_input, "bonus")
+                bonus_data = db.build_bonus_or_penalty(transformed_input, "bonus")
                 internal_id = bonus_data[const.DATA_BONUS_INTERNAL_ID]
                 self._bonuses_temp[internal_id] = bonus_data
 
@@ -1220,7 +1220,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                     }
 
                     # Layer 3: Convert CFOF_* to DATA_* keys
-                    data_input = eh.map_cfof_to_achievement_data(user_input)
+                    data_input = db.map_cfof_to_achievement_data(user_input)
 
                     # Convert assigned kids from names to IDs
                     assigned_kids_names = data_input.get(
@@ -1235,7 +1235,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                     ]
 
                     # Build complete achievement structure
-                    achievement = eh.build_achievement(data_input)
+                    achievement = db.build_achievement(data_input)
                     internal_id = achievement[const.DATA_ACHIEVEMENT_INTERNAL_ID]
                     self._achievements_temp[internal_id] = dict(achievement)
 
@@ -1327,7 +1327,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                     }
 
                     # Layer 3: Convert CFOF_* to DATA_* keys
-                    data_input = eh.map_cfof_to_challenge_data(user_input)
+                    data_input = db.map_cfof_to_challenge_data(user_input)
 
                     # Convert assigned kids from names to IDs
                     assigned_kids_names = data_input.get(
@@ -1365,7 +1365,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
                     if not errors:
                         # Build complete challenge structure
-                        challenge = eh.build_challenge(data_input)
+                        challenge = db.build_challenge(data_input)
                         internal_id = challenge[const.DATA_CHALLENGE_INTERNAL_ID]
                         self._challenges_temp[internal_id] = dict(challenge)
 

@@ -14,10 +14,10 @@
 | Phase       | Description                              | % Complete | Quick Notes                                                                        |
 | ----------- | ---------------------------------------- | ---------- | ---------------------------------------------------------------------------------- |
 | **Phase 1** | Infrastructure (exception + file)        | 100%       | ✅ EntityValidationError + file skeleton created                                   |
-| **Phase 2** | Rewards in entity_helpers.py             | 100%       | ✅ Unified build_reward() function implemented                                     |
-| **Phase 3** | Update flow_helpers.py (remove defaults) | 100%       | ✅ Delegates to entity_helpers, deprecation note added                             |
-| **Phase 4** | Update options_flow.py (consume helpers) | 100%       | ✅ add_reward + edit_reward use entity_helpers                                     |
-| **Phase 5** | Create/Update Reward Services            | 100%       | ✅ create_reward + update_reward services using entity_helpers                     |
+| **Phase 2** | Rewards in data_builders.py             | 100%       | ✅ Unified build_reward() function implemented                                     |
+| **Phase 3** | Update flow_helpers.py (remove defaults) | 100%       | ✅ Delegates to data_builders, deprecation note added                             |
+| **Phase 4** | Update options_flow.py (consume helpers) | 100%       | ✅ add_reward + edit_reward use data_builders                                     |
+| **Phase 5** | Create/Update Reward Services            | 100%       | ✅ create_reward + update_reward services using data_builders                     |
 | **Phase 6** | Testing & Validation                     | 50%        | ✅ Test analysis complete, service tests prioritized → see `_SUP_TEST_ANALYSIS.md` |
 
 **Estimated Total Effort**: ~280 lines of new code, validates entire architecture pattern
@@ -26,7 +26,7 @@
 
 ## Summary Items
 
-1. **Key objective**: Create `entity_helpers.py` as the **SINGLE SOURCE OF TRUTH** for entity field defaults and business validation, starting with Rewards as the simplest entity (6 fields). This establishes all architectural patterns before tackling complex entities like Chores (34 fields). **Key innovation: One `build_reward()` function handles both create and update** (unlike current chores pattern which has separate functions).
+1. **Key objective**: Create `data_builders.py` as the **SINGLE SOURCE OF TRUTH** for entity field defaults and business validation, starting with Rewards as the simplest entity (6 fields). This establishes all architectural patterns before tackling complex entities like Chores (34 fields). **Key innovation: One `build_reward()` function handles both create and update** (unlike current chores pattern which has separate functions).
 
 2. **Summary of recent work**:
    - ✅ Architectural design complete with 3-layer validation model
@@ -37,10 +37,10 @@
    - ✅ **Consolidated build function**: One `build_reward(user_input, existing=None)` for both create/update
 
 3. **Next steps (short term)**:
-   - Phase 1: Create entity_helpers.py with EntityValidationError class
+   - Phase 1: Create data_builders.py with EntityValidationError class
    - Phase 2: Implement unified `build_reward()` function (handles create AND update)
    - Phase 3: Keep flow*helpers defaults using `const.DEFAULT*\*` constants
-   - Phase 4: Update options_flow.py to use entity_helpers
+   - Phase 4: Update options_flow.py to use data_builders
 
 4. **Risks / blockers**:
    - **LOW RISK**: Rewards are simple (6 fields, no per-kid complexity)
@@ -58,7 +58,7 @@
 
 6. **Decisions & completion check**:
    - [x] Decision: Start with Rewards (simplest entity) to validate all patterns
-   - [x] Decision: entity_helpers.py is a "helper" not "engine" (data structures, not calculations)
+   - [x] Decision: data_builders.py is a "helper" not "engine" (data structures, not calculations)
    - [x] Decision: Keep flow*helpers defaults using `const.DEFAULT*\*` for consistency
    - [x] Decision: EntityValidationError includes field for form highlighting
    - [x] Decision: Config flow unchanged (only system settings, no entity CRUD)
@@ -92,7 +92,7 @@
 │  • ❌ NO DEFAULTS (removed per trap fix)                                   │
 │  • ❌ NO DATA TRANSFORMATION (validation only)                             │
 │                                                                             │
-│  Layer 3: BUSINESS LOGIC (entity_helpers.py) ← NEW                         │
+│  Layer 3: BUSINESS LOGIC (data_builders.py) ← NEW                         │
 │  ───────────────────────────────────────────────                            │
 │  • Cross-field validation (date logic, format validation)                  │
 │  • ✅ ALL DEFAULTS DEFINED HERE (single source of truth)                   │
@@ -118,7 +118,7 @@
 | ------------------------------- | --------------------------------- | ---------------------------------------------- |
 | `const.py`                      | Define default values             | `DEFAULT_REWARD_COST: Final = 10`              |
 | `build_reward_schema()`         | Pre-populate form for user to SEE | Uses `const.DEFAULT_REWARD_COST`               |
-| `entity_helpers.build_reward()` | Build complete structure          | Uses `const.DEFAULT_REWARD_COST`               |
+| `data_builders.build_reward()` | Build complete structure          | Uses `const.DEFAULT_REWARD_COST`               |
 | Services                        | Require critical fields           | `vol.Required("cost")` - no invisible defaults |
 
 **The constant IS the single source of truth** - not where it's applied.
@@ -208,11 +208,11 @@ async def async_step_add_reward(self, user_input=None):
 
 ### Phase 1 – Infrastructure (100%) ✅
 
-**Goal**: Create entity_helpers.py file with EntityValidationError exception class.
+**Goal**: Create data_builders.py file with EntityValidationError exception class.
 
 **Steps / detailed work items**:
 
-1. - [x] Create new file `custom_components/kidschores/entity_helpers.py`
+1. - [x] Create new file `custom_components/kidschores/data_builders.py`
 
    ```python
    """Entity lifecycle management helpers.
@@ -304,7 +304,7 @@ async def async_step_add_reward(self, user_input=None):
 
 ---
 
-### Phase 2 – Rewards in entity_helpers.py (100%) ✅
+### Phase 2 – Rewards in data_builders.py (100%) ✅
 
 **Goal**: Implement unified `build_reward()` function that handles BOTH create and update with zero duplication.
 
@@ -319,7 +319,7 @@ async def async_step_add_reward(self, user_input=None):
 
 **Steps / detailed work items**:
 
-1. - [x] Add unified `build_reward()` function to entity_helpers.py - **IMPLEMENTED**
+1. - [x] Add unified `build_reward()` function to data_builders.py - **IMPLEMENTED**
 
    ```python
    def build_reward(
@@ -426,7 +426,7 @@ async def async_step_add_reward(self, user_input=None):
 
 **Steps / detailed work items**:
 
-1. - [x] Modify `build_rewards_data()` in flow_helpers.py - **DELEGATED to entity_helpers with deprecation notice**
+1. - [x] Modify `build_rewards_data()` in flow_helpers.py - **DELEGATED to data_builders with deprecation notice**
 
    **BEFORE** (duplicated logic):
 
@@ -442,7 +442,7 @@ async def async_step_add_reward(self, user_input=None):
        }
    ```
 
-   **AFTER** (delegates to entity_helpers):
+   **AFTER** (delegates to data_builders):
 
    ```python
    def build_rewards_data(
@@ -451,7 +451,7 @@ async def async_step_add_reward(self, user_input=None):
    ) -> dict[str, Any]:
        """Build reward data from user input.
 
-       Delegates to entity_helpers.build_reward() for consistent field handling.
+       Delegates to data_builders.build_reward() for consistent field handling.
        This function is maintained for backwards compatibility with existing code.
 
        Args:
@@ -462,7 +462,7 @@ async def async_step_add_reward(self, user_input=None):
            Dictionary with reward data in storage format, keyed by internal_id.
        """
        # Import here to avoid circular dependency during module load
-       from . import entity_helpers as eh
+       from . import data_builders as eh
 
        # Check if this is an update (internal_id provided) or create
        existing_id = user_input.get(const.CFOF_GLOBAL_INPUT_INTERNAL_ID)
@@ -482,8 +482,8 @@ async def async_step_add_reward(self, user_input=None):
 
 **Key issues**:
 
-- Use local import `from . import entity_helpers as eh` to avoid circular imports
-- flow_helpers becomes thin wrapper calling entity_helpers
+- Use local import `from . import data_builders as eh` to avoid circular imports
+- flow_helpers becomes thin wrapper calling data_builders
 - Validation functions (`validate_rewards_inputs`) unchanged - they're correct
 - Schema functions (`build_reward_schema`) unchanged - they're correct
 
@@ -495,7 +495,7 @@ async def async_step_add_reward(self, user_input=None):
 
 **Steps / detailed work items**:
 
-1. - [x] Add import to options_flow.py: **ADDED** `from . import entity_helpers as eh` and `EntityValidationError`
+1. - [x] Add import to options_flow.py: **ADDED** `from . import data_builders as eh` and `EntityValidationError`
 
 2. - [x] Update `async_step_add_reward()` - **UPDATED** to use `eh.build_reward()` with EntityValidationError handling
 
@@ -626,7 +626,7 @@ async def async_step_add_reward(self, user_input=None):
 
 **Steps / detailed work items**:
 
-This phase implements the services from [CREATE_UPDATE_REWARD_SERVICES_IN-PROCESS.md](./CREATE_UPDATE_REWARD_SERVICES_IN-PROCESS.md), now using entity_helpers.
+This phase implements the services from [CREATE_UPDATE_REWARD_SERVICES_IN-PROCESS.md](./CREATE_UPDATE_REWARD_SERVICES_IN-PROCESS.md), now using data_builders.
 
 1. - [ ] Add service schemas to services.py (from CREATE_UPDATE_REWARD_SERVICES Phase 1):
 
@@ -685,8 +685,8 @@ This phase implements the services from [CREATE_UPDATE_REWARD_SERVICES_IN-PROCES
    ```python
    async def handle_create_reward(call: ServiceCall) -> ServiceResponse:
        """Handle kidschores.create_reward service call."""
-       from . import entity_helpers as eh
-       from .entity_helpers import EntityValidationError
+       from . import data_builders as eh
+       from .data_builders import EntityValidationError
 
        coordinator = _get_coordinator_for_service(call)
        if not coordinator:
@@ -740,8 +740,8 @@ This phase implements the services from [CREATE_UPDATE_REWARD_SERVICES_IN-PROCES
    ```python
    async def handle_update_reward(call: ServiceCall) -> ServiceResponse:
        """Handle kidschores.update_reward service call."""
-       from . import entity_helpers as eh
-       from .entity_helpers import EntityValidationError
+       from . import data_builders as eh
+       from .data_builders import EntityValidationError
 
        coordinator = _get_coordinator_for_service(call)
        reward_id = call.data["reward_id"]
@@ -805,13 +805,13 @@ This phase implements the services from [CREATE_UPDATE_REWARD_SERVICES_IN-PROCES
 
 - **Same function**: `build_reward(input)` for create, `build_reward(input, existing)` for update
 - Services require `cost` field (no invisible defaults for automations)
-- Both services use identical entity_helpers as Options Flow
+- Both services use identical data_builders as Options Flow
 
 ---
 
 ### Phase 6 – Testing & Validation (50%)
 
-**Goal**: Validate entity_helpers through E2E service tests (more valuable than unit tests).
+**Goal**: Validate data_builders through E2E service tests (more valuable than unit tests).
 
 **Analysis Complete**: See [ENTITY_HELPERS_REWARDS_FIRST_SUP_TEST_ANALYSIS.md](./ENTITY_HELPERS_REWARDS_FIRST_SUP_TEST_ANALYSIS.md)
 
@@ -875,7 +875,7 @@ This phase implements the services from [CREATE_UPDATE_REWARD_SERVICES_IN-PROCES
 │      │                                                                      │
 │      ▼                                                                      │
 │  ┌─────────────────────────┐                                                │
-│  │ entity_helpers          │ ← ✅ SINGLE SOURCE OF DEFAULTS                │
+│  │ data_builders          │ ← ✅ SINGLE SOURCE OF DEFAULTS                │
 │  │ .build_reward()         │   Returns: RewardData TypedDict               │
 │  │ (existing=None)         │   Mode: CREATE (uses const.DEFAULT_*)         │
 │  └─────────────────────────┘                                                │
@@ -909,7 +909,7 @@ This phase implements the services from [CREATE_UPDATE_REWARD_SERVICES_IN-PROCES
 │      │                                                                      │
 │      ▼                                                                      │
 │  ┌─────────────────────────┐                                                │
-│  │ entity_helpers          │ ← ✅ SAME FUNCTION AS OPTIONS FLOW            │
+│  │ data_builders          │ ← ✅ SAME FUNCTION AS OPTIONS FLOW            │
 │  │ .build_reward()         │   Fills ALL defaults automatically             │
 │  │ (existing=None)         │   Mode: CREATE (uses const.DEFAULT_*)         │
 │  └─────────────────────────┘                                                │
@@ -920,7 +920,7 @@ This phase implements the services from [CREATE_UPDATE_REWARD_SERVICES_IN-PROCES
 │  │ + _persist()            │                                                │
 │  └─────────────────────────┘                                                │
 │                                                                             │
-│  ✅ PROVES ARCHITECTURE: Same entity_helpers used by both paths            │
+│  ✅ PROVES ARCHITECTURE: Same data_builders used by both paths            │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -957,7 +957,7 @@ coordinator._update_chore()            → ~140 lines (UPDATE, SEPARATE)
 **New Rewards Pattern** (unified, zero drift):
 
 ```
-entity_helpers.build_reward(input, existing=None) → ~50 lines (BOTH modes)
+data_builders.build_reward(input, existing=None) → ~50 lines (BOTH modes)
                                        ═══════════════════════════════
                                        ~50 lines total, single field list
 ```
@@ -974,7 +974,7 @@ entity_helpers.build_reward(input, existing=None) → ~50 lines (BOTH modes)
 
 | Test Category                    | Expected Outcome                          | Status |
 | -------------------------------- | ----------------------------------------- | ------ |
-| Unit tests (entity_helpers)      | All functions return correct TypedDict    | ⬜     |
+| Unit tests (data_builders)      | All functions return correct TypedDict    | ⬜     |
 | Integration tests (Options Flow) | Add/Edit reward works with new helpers    | ⬜     |
 | Integration tests (Services)     | create_reward/update_reward services work | ⬜     |
 | Manual validation (UI)           | Rewards manageable via Options Flow       | ⬜     |

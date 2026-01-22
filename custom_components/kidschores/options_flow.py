@@ -23,8 +23,8 @@ from homeassistant.helpers import selector
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
-from . import const, entity_helpers as eh, flow_helpers as fh, kc_helpers as kh
-from .entity_helpers import EntityValidationError
+from . import const, data_builders as db, flow_helpers as fh, kc_helpers as kh
+from .data_builders import EntityValidationError
 
 if TYPE_CHECKING:
     from .type_defs import BadgeData
@@ -361,8 +361,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             if not errors:
                 try:
-                    # Use unified eh.build_kid() pattern
-                    kid_data = eh.build_kid(user_input)
+                    # Use unified db.build_kid() pattern
+                    kid_data = db.build_kid(user_input)
                     internal_id = kid_data[const.DATA_KID_INTERNAL_ID]
                     kid_name = kid_data[const.DATA_KID_NAME]
 
@@ -418,7 +418,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 try:
                     # Layer 3: Entity helper builds complete structure
                     # build_kid(user_input, existing) - with existing = update mode
-                    updated_kid = eh.build_kid(user_input, existing=kid_data)
+                    updated_kid = db.build_kid(user_input, existing=kid_data)
 
                     # Layer 4: Store updated kid (preserves internal_id)
                     coordinator._data[const.DATA_KIDS][internal_id] = dict(updated_kid)
@@ -525,8 +525,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             if not errors:
                 try:
-                    # Use unified eh.build_parent() pattern
-                    parent_data = dict(eh.build_parent(user_input))
+                    # Use unified db.build_parent() pattern
+                    parent_data = dict(db.build_parent(user_input))
                     internal_id = str(parent_data[const.DATA_PARENT_INTERNAL_ID])
                     parent_name = str(parent_data[const.DATA_PARENT_NAME])
 
@@ -548,7 +548,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                             const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: const.SENTINEL_EMPTY,
                         }
                         shadow_kid_data = dict(
-                            eh.build_kid(
+                            db.build_kid(
                                 shadow_input,
                                 is_shadow=True,
                                 linked_parent_id=internal_id,
@@ -645,7 +645,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 try:
                     # Layer 3: Entity helper builds complete structure
                     # build_parent(user_input, existing) - with existing = update mode
-                    updated_parent = eh.build_parent(user_input, existing=parent_data)
+                    updated_parent = db.build_parent(user_input, existing=parent_data)
 
                     # Handle shadow kid creation/deletion based on allow_chore_assignment
                     existing_shadow_kid_id = parent_data.get(
@@ -794,7 +794,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             transformed_data = fh.transform_chore_cfof_to_data(
                 user_input, kids_dict, due_date_str
             )
-            new_chore_data = eh.build_chore(transformed_data)
+            new_chore_data = db.build_chore(transformed_data)
             internal_id = new_chore_data[const.DATA_CHORE_INTERNAL_ID]
             chore_name = new_chore_data[const.DATA_CHORE_NAME]
 
@@ -883,7 +883,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         single_kid_updates[const.DATA_CHORE_DAILY_MULTI_TIMES] = ""
 
                     # Build final chore with single-kid updates merged
-                    final_chore = eh.build_chore(
+                    final_chore = db.build_chore(
                         single_kid_updates, existing=new_chore_data
                     )
                     coordinator._data[const.DATA_CHORES][internal_id] = final_chore
@@ -1032,9 +1032,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             new_assigned = set(transformed_data.get(const.DATA_CHORE_ASSIGNED_KIDS, []))
             assignments_changed = old_assigned != new_assigned
 
-            # Update chore using entity_helpers (direct storage pattern)
+            # Update chore using data_builders (direct storage pattern)
             # build_chore() merges transformed_data with existing chore_data
-            merged_chore = eh.build_chore(transformed_data, existing=chore_data)
+            merged_chore = db.build_chore(transformed_data, existing=chore_data)
             coordinator._data[const.DATA_CHORES][internal_id] = merged_chore
             # Recalculate badges affected by chore changes
             coordinator._recalculate_all_badges()
@@ -1156,7 +1156,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         single_kid_updates[const.DATA_CHORE_DAILY_MULTI_TIMES] = None
 
                     # Re-merge with additional single-kid updates
-                    final_chore = eh.build_chore(
+                    final_chore = db.build_chore(
                         single_kid_updates, existing=merged_chore
                     )
                     coordinator._data[const.DATA_CHORES][internal_id] = final_chore
@@ -1755,8 +1755,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 if is_daily_multi:
                     chore_data[const.DATA_CHORE_DAILY_MULTI_TIMES] = None
 
-                # Update storage using entity_helpers (direct storage pattern)
-                merged_chore = eh.build_chore(chore_data, existing=stored_chore)
+                # Update storage using data_builders (direct storage pattern)
+                merged_chore = db.build_chore(chore_data, existing=stored_chore)
                 coordinator._data[const.DATA_CHORES][internal_id] = merged_chore
                 coordinator._recalculate_all_badges()
                 coordinator._persist()
@@ -1947,9 +1947,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 # Valid - store times in chore data and persist
                 chore_data[const.DATA_CHORE_DAILY_MULTI_TIMES] = times_str
 
-                # Update storage using entity_helpers (direct storage pattern)
+                # Update storage using data_builders (direct storage pattern)
                 stored_chore = coordinator.chores_data.get(internal_id, {})
-                merged_chore = eh.build_chore(chore_data, existing=stored_chore)
+                merged_chore = db.build_chore(chore_data, existing=stored_chore)
                 coordinator._data[const.DATA_CHORES][internal_id] = merged_chore
                 coordinator._recalculate_all_badges()
                 coordinator._persist()
@@ -2197,23 +2197,23 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             badge_dict: BadgeData | None = None
             if not errors:
-                # --- Build Data using entity_helpers (modern pattern) ---
+                # --- Build Data using data_builders (modern pattern) ---
                 try:
                     if is_edit:
                         existing_badge = badges_dict.get(internal_id)
-                        badge_dict = eh.build_badge(
+                        badge_dict = db.build_badge(
                             user_input,
                             existing=existing_badge,
                             badge_type=badge_type,
                         )
                     else:
-                        badge_dict = eh.build_badge(
+                        badge_dict = db.build_badge(
                             user_input,
                             badge_type=badge_type,
                         )
                         # Override internal_id with the one from context
                         badge_dict[const.DATA_BADGE_INTERNAL_ID] = internal_id
-                except eh.EntityValidationError as err:
+                except db.EntityValidationError as err:
                     errors[err.field] = err.translation_key
                     badge_dict = None
 
@@ -2395,7 +2395,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 try:
                     # Layer 3: Entity helper builds complete structure
                     # CFOF_* keys now aligned with DATA_* keys - pass directly
-                    reward_data = eh.build_reward(user_input)
+                    reward_data = db.build_reward(user_input)
                     internal_id = reward_data[const.DATA_REWARD_INTERNAL_ID]
 
                     # Layer 4: Coordinator stores (thin wrapper)
@@ -2450,7 +2450,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 try:
                     # Layer 3: Entity helper builds complete structure
                     # CFOF_* keys now aligned with DATA_* keys - pass directly
-                    updated_reward = eh.build_reward(
+                    updated_reward = db.build_reward(
                         user_input, existing=existing_reward
                     )
 
@@ -2537,7 +2537,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     ),
                 }
                 # Build bonus data using unified helper
-                new_bonus_data = eh.build_bonus_or_penalty(transformed_input, "bonus")
+                new_bonus_data = db.build_bonus_or_penalty(transformed_input, "bonus")
                 internal_id = new_bonus_data[const.DATA_BONUS_INTERNAL_ID]
 
                 # Direct storage write
@@ -2603,7 +2603,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     ),
                 }
                 # Build updated bonus data using unified helper
-                updated_bonus_data = eh.build_bonus_or_penalty(
+                updated_bonus_data = db.build_bonus_or_penalty(
                     transformed_input, "bonus", existing=bonus_data
                 )
 
@@ -2689,7 +2689,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     ),
                 }
                 # Build penalty data using unified helper
-                new_penalty_data = eh.build_bonus_or_penalty(
+                new_penalty_data = db.build_bonus_or_penalty(
                     transformed_input, "penalty"
                 )
                 internal_id = new_penalty_data[const.DATA_PENALTY_INTERNAL_ID]
@@ -2762,7 +2762,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     ),
                 }
                 # Build updated penalty data using unified helper
-                updated_penalty_data = eh.build_bonus_or_penalty(
+                updated_penalty_data = db.build_bonus_or_penalty(
                     transformed_input, "penalty", existing=penalty_data
                 )
 
@@ -2843,7 +2843,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     }
 
                     # Layer 3: Convert CFOF_* to DATA_* keys
-                    data_input = eh.map_cfof_to_achievement_data(user_input)
+                    data_input = db.map_cfof_to_achievement_data(user_input)
 
                     # Convert assigned kids from names to IDs (options flow uses names)
                     assigned_kids_names = data_input.get(
@@ -2858,7 +2858,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     ]
 
                     # Build complete achievement structure
-                    achievement = eh.build_achievement(data_input)
+                    achievement = db.build_achievement(data_input)
                     internal_id = achievement[const.DATA_ACHIEVEMENT_INTERNAL_ID]
 
                     # Layer 4: Direct storage write
@@ -2931,7 +2931,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             if not errors:
                 try:
                     # Layer 3: Convert CFOF_* to DATA_* keys
-                    data_input = eh.map_cfof_to_achievement_data(user_input)
+                    data_input = db.map_cfof_to_achievement_data(user_input)
 
                     # Convert assigned kids from names to IDs (options flow uses names)
                     assigned_kids_names = data_input.get(
@@ -2945,9 +2945,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         kids_name_to_id.get(name, name) for name in assigned_kids_names
                     ]
 
-                    # Use entity_helpers pattern with direct storage update
+                    # Use data_builders pattern with direct storage update
                     existing_data = achievements_dict[internal_id]
-                    final_achievement = eh.build_achievement(
+                    final_achievement = db.build_achievement(
                         data_input, existing=existing_data
                     )
                     # Preserve the original internal_id
@@ -3063,7 +3063,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     }
 
                     # Layer 3: Convert CFOF_* to DATA_* keys
-                    data_input = eh.map_cfof_to_challenge_data(user_input)
+                    data_input = db.map_cfof_to_challenge_data(user_input)
 
                     # Convert assigned kids from names to IDs (options flow uses names)
                     assigned_kids_names = data_input.get(
@@ -3101,7 +3101,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                     if not errors:
                         # Build complete challenge structure
-                        challenge = eh.build_challenge(data_input)
+                        challenge = db.build_challenge(data_input)
                         internal_id = challenge[const.DATA_CHALLENGE_INTERNAL_ID]
 
                         # Layer 4: Direct storage write
@@ -3219,7 +3219,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         if not errors:
             try:
                 # Layer 3: Convert CFOF_* to DATA_* keys
-                data_input = eh.map_cfof_to_challenge_data(user_input)
+                data_input = db.map_cfof_to_challenge_data(user_input)
 
                 # Convert assigned kids from names to IDs (options flow uses names)
                 assigned_kids_names = data_input.get(
@@ -3252,9 +3252,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     }
 
                 if not errors:
-                    # Use entity_helpers pattern with direct storage update
+                    # Use data_builders pattern with direct storage update
                     existing_data = challenges_dict[internal_id]
-                    final_challenge = eh.build_challenge(
+                    final_challenge = db.build_challenge(
                         data_input, existing=existing_data
                     )
                     # Preserve the original internal_id

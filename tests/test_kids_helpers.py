@@ -1,13 +1,13 @@
 """Test kids configuration helper functions.
 
-Tests validate that entity_helpers.build_kid() correctly builds kid data
+Tests validate that data_builders.build_kid() correctly builds kid data
 and flow_helpers.validate_kids_inputs() validates form input.
 """
 
 import pytest
 
-from custom_components.kidschores import const, entity_helpers as eh, flow_helpers as fh
-from custom_components.kidschores.entity_helpers import EntityValidationError
+from custom_components.kidschores import const, data_builders as db, flow_helpers as fh
+from custom_components.kidschores.data_builders import EntityValidationError
 
 
 def test_build_kid_with_all_values() -> None:
@@ -18,7 +18,7 @@ def test_build_kid_with_all_values() -> None:
         const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: "mobile_app_phone",
     }
 
-    result = eh.build_kid(user_input)
+    result = db.build_kid(user_input)
 
     assert result[const.DATA_KID_NAME] == "Zoë"
     assert result[const.DATA_KID_HA_USER_ID] == "user_123"
@@ -37,7 +37,7 @@ def test_build_kid_generates_uuid() -> None:
         const.CFOF_KIDS_INPUT_KID_NAME: "Tommy",
     }
 
-    result = eh.build_kid(user_input)
+    result = db.build_kid(user_input)
 
     # Should have a generated UUID
     assert len(result[const.DATA_KID_INTERNAL_ID]) == 36
@@ -50,7 +50,7 @@ def test_build_kid_with_defaults() -> None:
         const.CFOF_KIDS_INPUT_KID_NAME: "Alex",
     }
 
-    result = eh.build_kid(user_input)
+    result = db.build_kid(user_input)
 
     assert result[const.DATA_KID_NAME] == "Alex"
     assert result[const.DATA_KID_HA_USER_ID] == ""
@@ -67,7 +67,7 @@ def test_build_kid_strips_whitespace_from_name() -> None:
         const.CFOF_KIDS_INPUT_KID_NAME: "  Jordan  ",
     }
 
-    result = eh.build_kid(user_input)
+    result = db.build_kid(user_input)
 
     assert result[const.DATA_KID_NAME] == "Jordan"
 
@@ -79,7 +79,7 @@ def test_build_kid_raises_on_empty_name() -> None:
     }
 
     with pytest.raises(EntityValidationError) as exc_info:
-        eh.build_kid(user_input)
+        db.build_kid(user_input)
 
     assert exc_info.value.field == const.CFOF_KIDS_INPUT_KID_NAME
     assert exc_info.value.translation_key == const.TRANS_KEY_CFOF_INVALID_KID_NAME
