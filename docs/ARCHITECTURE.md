@@ -532,7 +532,8 @@ The KidsChores integration utilizes a **Direct-to-Storage** architecture that de
 
 ### Core Design Elements
 
-- **Unified Logic via `flow_helpers.py**`: Both Config and Options flows leverage a shared utility layer to provide consistent validation and schema building. This centralization simplifies ongoing maintenance and ensures a uniform user experience across setup and configuration.
+- **Unified Logic via `flow_helpers.py`**: Both Config and Options flows leverage a shared utility layer to provide consistent validation and schema building. This centralization simplifies ongoing maintenance and ensures a uniform user experience across setup and configuration.
+- **CFOF Key Alignment (v0.5.0)**: Form field keys (`CFOF_*`) align with storage keys (`DATA_*`) where possible, allowing `user_input` to pass directly to `entity_helpers.build_*()` without mapping. Complex entities (chores, badges) still use transform functions.
 - **Direct Storage Writing**: User input is written directly to persistent storage at `.storage/kidschores_data` using **Schema 42**. This approach treats storage as the immediate source of truth, bypassing intermediate configuration entry merging.
 - **Lightweight System Settings**: The `config_entry.options` object is reserved exclusively for nine system-level settings, such as `points_label` and `update_interval`. This keeps the core configuration entry lightweight and easy to validate.
 

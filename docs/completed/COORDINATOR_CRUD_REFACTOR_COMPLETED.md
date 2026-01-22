@@ -106,17 +106,17 @@ See "Lessons Learned from Reward Refactor" section (lines ~400-650) for complete
 
 ## Summary & immediate steps
 
-| Phase / Step               | Description                       | % complete | Quick notes                                                     |
-| -------------------------- | --------------------------------- | ---------- | --------------------------------------------------------------- |
-| Phase 1 – Kids & Parents   | Migrate to entity_helpers pattern | 100%       | ✅ Completed 2026-01-22 - ~100 lines removed from coordinator   |
-| Phase 2 – Badges           | Complex but modular code          | 100%       | ✅ Completed 2026-01-22 - ~26 lines removed from coordinator    |
-| Phase 3A – Chores (Flow)   | Options flow refactor only        | 100%       | ✅ Completed 2026-01-22 - ~34 lines removed from coordinator    |
-| Phase 3B – Chores (Svc)    | Chore CRUD services               | 100%       | ✅ Completed 2026-01-22 - create/update/delete with 9 E2E tests |
-| Phase 3C – Entity Cleanup  | Dynamic entity creation refactor  | 100%       | ✅ Completed 2026-01-22 - ~80 lines removed from coordinator    |
-| Phase 4 – Simple Entities  | Bonuses, Penalties                | 100%       | ✅ Completed 2026-01-22 - ~50 lines removed from coordinator    |
-| Phase 5 – Linked Entities  | Achievements, Challenges          | 100%       | ✅ Completed 2026-01-21 - ~50 lines removed from coordinator    |
-| Phase 6 – CFOF Key Align   | Align CFOF*\* with DATA*\* keys   | 0%         | ⏳ Eliminate mapping functions, form-by-form                    |
-| Phase 7 – Final Validation | Full test suite + quality gates   | 0%         | ⏳ Pending Phase 6                                              |
+| Phase / Step               | Description                       | % complete | Quick notes                                                                     |
+| -------------------------- | --------------------------------- | ---------- | ------------------------------------------------------------------------------- |
+| Phase 1 – Kids & Parents   | Migrate to entity_helpers pattern | 100%       | ✅ Completed 2026-01-22 - ~100 lines removed from coordinator                   |
+| Phase 2 – Badges           | Complex but modular code          | 100%       | ✅ Completed 2026-01-22 - ~26 lines removed from coordinator                    |
+| Phase 3A – Chores (Flow)   | Options flow refactor only        | 100%       | ✅ Completed 2026-01-22 - ~34 lines removed from coordinator                    |
+| Phase 3B – Chores (Svc)    | Chore CRUD services               | 100%       | ✅ Completed 2026-01-22 - create/update/delete with 9 E2E tests                 |
+| Phase 3C – Entity Cleanup  | Dynamic entity creation refactor  | 100%       | ✅ Completed 2026-01-22 - ~80 lines removed from coordinator                    |
+| Phase 4 – Simple Entities  | Bonuses, Penalties                | 100%       | ✅ Completed 2026-01-22 - ~50 lines removed from coordinator                    |
+| Phase 5 – Linked Entities  | Achievements, Challenges          | 100%       | ✅ Completed 2026-01-21 - ~50 lines removed from coordinator                    |
+| Phase 6 – CFOF Key Align   | Align CFOF*\* with DATA*\* keys   | 100%       | ✅ Completed 2026-01-22 - Rewards/Kids/Parents/Bonuses/Penalties/Chores aligned |
+| Phase 7 – Final Validation | Full test suite + quality gates   | 100%       | ✅ Completed 2026-01-22 - 882 tests pass, MyPy clean                            |
 
 1. **Key objective** – Migrate all entity types to modern `entity_helpers.build_X()` pattern. Services for Rewards (✅ done) and Chores (Phase 3B). Config + Options flow refactor for all entities. Remove stub methods per entity as refactored.
 
@@ -211,6 +211,166 @@ See "Lessons Learned from Reward Refactor" section (lines ~400-650) for complete
      - Removed 6 coordinator stub methods: `_create_achievement()`, `_update_achievement()`, `update_achievement_entity()`, `_create_challenge()`, `_update_challenge()`, `update_challenge_entity()` (~50 lines)
      - **Total Phase 5 coordinator reduction**: ~50 lines (stub removal)
      - All 882 tests passing, mypy clean, lint passes
+
+---
+
+## ⚠️ PHASE 6 DETAILED ANALYSIS: CFOF Key Alignment
+
+> **Date**: 2026-01-22 (Planning)
+> **Status**: READY FOR IMPLEMENTATION
+
+### Problem Statement
+
+CFOF*\* constants (UI form keys) have different string values than DATA*\* constants (storage keys), requiring mapping functions to transform between them. This is tech debt from early design.
+
+**Example of current mismatch:**
+
+```python
+# const.py
+CFOF_REWARDS_INPUT_NAME: Final = "reward_name"  # UI key
+DATA_REWARD_NAME: Final = "name"                 # Storage key
+
+# Requires mapping function to convert
+def map_cfof_to_reward_data(user_input):
+    return {DATA_REWARD_NAME: user_input.get(CFOF_REWARDS_INPUT_NAME), ...}
+```
+
+**Proposed fix:**
+
+```python
+# const.py - align values
+CFOF_REWARDS_INPUT_NAME: Final = "name"  # Same as DATA_REWARD_NAME
+DATA_REWARD_NAME: Final = "name"
+
+# No mapping needed - keys match
+```
+
+### Entity Analysis: What Needs Alignment vs What Needs Mapping
+
+| Entity           | Current Pattern                  | CFOF→DATA Mismatch?        | Complex Transformation?      | Action                             |
+| ---------------- | -------------------------------- | -------------------------- | ---------------------------- | ---------------------------------- |
+| **Kids**         | CFOF\_\* directly                | ✅ `kid_name` → `name`     | ❌ No                        | Align keys                         |
+| **Parents**      | CFOF\_\* directly                | ✅ `parent_name` → `name`  | ❌ No                        | Align keys                         |
+| **Rewards**      | `map_cfof_to_reward_data()`      | ✅ `reward_name` → `name`  | ❌ No                        | Align keys, remove mapper          |
+| **Bonuses**      | CFOF\_\* directly                | ✅ `bonus_name` → `name`   | ❌ No                        | Align keys                         |
+| **Penalties**    | CFOF\_\* directly                | ✅ `penalty_name` → `name` | ❌ No                        | Align keys                         |
+| **Achievements** | `map_cfof_to_achievement_data()` | ✅ Several fields          | ❌ No                        | Align keys, remove mapper          |
+| **Challenges**   | `map_cfof_to_challenge_data()`   | ✅ Several fields          | ❌ No                        | Align keys, remove mapper          |
+| **Chores**       | `map_cfof_to_chore_data()`       | ✅ Many fields             | ⚠️ daily_multi_times parsing | Align simple keys, keep parser     |
+| **Badges**       | Embedded in `build_badge()`      | ✅ Many fields             | ⚠️ Nested `target` dict      | Keep embedded (conditional fields) |
+
+### Implementation Steps (Form by Form)
+
+#### Step 1: Rewards (Simplest - Template)
+
+1. Update `const.py`: Change `CFOF_REWARDS_INPUT_*` values to match `DATA_REWARD_*`
+2. Update `strings.json`: Rename translation keys under `config.step.rewards.data.*`
+3. Remove `map_cfof_to_reward_data()` from `entity_helpers.py`
+4. Update call sites to pass `user_input` directly to `build_reward()`
+5. Run: `pytest tests/test_workflow_rewards.py tests/test_services_rewards.py -v`
+
+#### Step 2: Kids
+
+1. Update `const.py`: `CFOF_KIDS_INPUT_KID_NAME = "name"` (was `"kid_name"`)
+2. Update `strings.json`: Rename `kid_name` → `name` under kids step
+3. Verify `build_kid()` works with aligned keys
+4. Run: `pytest tests/test_config_flow.py tests/test_options_flow.py -v`
+
+#### Step 3: Parents
+
+1. Update `const.py`: `CFOF_PARENTS_INPUT_PARENT_NAME = "name"` (was `"parent_name"`)
+2. Update `strings.json`: Rename `parent_name` → `name` under parents step
+3. Verify `build_parent()` works with aligned keys
+4. Run: `pytest tests/test_config_flow.py tests/test_options_flow.py -v`
+
+#### Step 4: Bonuses & Penalties
+
+1. Update `const.py`: Align `CFOF_BONUSES_INPUT_*` and `CFOF_PENALTIES_INPUT_*`
+2. Update `strings.json`: Rename under bonuses/penalties steps
+3. Verify `build_bonus_or_penalty()` works
+4. Run: `pytest tests/test_workflow_bonuses.py tests/test_workflow_penalties.py -v`
+
+#### Step 5: Achievements
+
+1. Update `const.py`: Align `CFOF_ACHIEVEMENTS_INPUT_*` values
+2. Update `strings.json`: Rename under achievements step
+3. Remove `map_cfof_to_achievement_data()` from `entity_helpers.py`
+4. Update call sites to pass `user_input` directly to `build_achievement()`
+5. Run: `pytest tests/test_workflow_achievements.py -v`
+
+#### Step 6: Challenges
+
+1. Update `const.py`: Align `CFOF_CHALLENGES_INPUT_*` values
+2. Update `strings.json`: Rename under challenges step
+3. Remove `map_cfof_to_challenge_data()` from `entity_helpers.py`
+4. Update call sites to pass `user_input` directly to `build_challenge()`
+5. Run: `pytest tests/test_workflow_challenges.py -v`
+
+#### Step 7: Chores (Partial - Keep Complex Parsing)
+
+1. Update `const.py`: Align **simple** `CFOF_CHORES_INPUT_*` fields (name, description, points, etc.)
+2. Update `strings.json`: Rename under chores step
+3. **Keep** `daily_multi_times` parsing logic (string → list conversion)
+4. **Keep** per-kid configuration mapping (complex nested structures)
+5. Simplify `map_cfof_to_chore_data()` to only handle complex fields
+6. Run: `pytest tests/test_workflow_chores.py tests/test_services_chores.py -v`
+
+#### Step 8: Badges (No Change)
+
+- Badges keep embedded mapping in `build_badge()` due to:
+  - Conditional fields based on `badge_type`
+  - Nested `target` dict structure
+  - Different field sets per badge type
+- **No action required** - current pattern is appropriate
+
+### Files to Modify
+
+| File                | Changes                                 |
+| ------------------- | --------------------------------------- |
+| `const.py`          | Update ~40 CFOF\_\* constant values     |
+| `strings.json`      | Rename ~40 translation keys             |
+| `entity_helpers.py` | Remove 4 mapping functions (~100 lines) |
+| `config_flow.py`    | Remove map\_\* calls (~5 call sites)    |
+| `options_flow.py`   | Remove map\_\* calls (~10 call sites)   |
+| `flow_helpers.py`   | Update module docstring                 |
+
+### Benefits
+
+1. **Simpler code**: ~100 lines removed (4 mapping functions)
+2. **Clearer architecture**: CFOF*\* and DATA*\* are same values
+3. **Fewer bugs**: No key mismatch errors possible
+4. **Easier maintenance**: One set of key values to track
+5. **Better DX**: Less cognitive overhead for contributors
+
+### Risks & Mitigations
+
+| Risk                 | Mitigation                                                     |
+| -------------------- | -------------------------------------------------------------- |
+| Translation breakage | Update strings.json atomically with const.py                   |
+| Existing data        | No impact - DATA*\* keys unchanged, only CFOF*\* values change |
+| Test failures        | Run entity-specific tests after each step                      |
+
+### Success Criteria
+
+- [x] ~~4 mapping functions removed from entity_helpers.py~~ N/A - Mapping functions already removed in prior phases
+- [x] All CFOF*\* values match corresponding DATA*\* values (except badges/chores complex fields)
+- [x] strings.json translation keys updated
+- [x] All 882+ tests passing ✅ (882 passed 2026-01-22)
+- [x] MyPy clean ✅ (0 errors 2026-01-22)
+
+### Phase 6 Completion Notes (2026-01-22)
+
+**Aligned Entities:**
+
+1. ✅ Rewards - `CFOF_REWARDS_INPUT_NAME = "name"`, mapping function removed in prior session
+2. ✅ Kids - `CFOF_KIDS_INPUT_KID_NAME = "name"`, error key `CFOP_ERROR_KID_NAME = "name"`
+3. ✅ Parents - `CFOF_PARENTS_INPUT_NAME = "name"`, error key `CFOP_ERROR_PARENT_NAME = "name"`
+4. ✅ Bonuses - `CFOF_BONUSES_INPUT_NAME = "name"`, error key `CFOP_ERROR_BONUS_NAME = "name"`
+5. ✅ Penalties - `CFOF_PENALTIES_INPUT_NAME = "name"`, error key `CFOP_ERROR_PENALTY_NAME = "name"`
+6. ✅ Achievements - Already aligned (`CFOF_ACHIEVEMENTS_INPUT_NAME = "name"`)
+7. ✅ Challenges - Already aligned (`CFOF_CHALLENGES_INPUT_NAME = "name"`)
+8. ✅ Chores - `CFOF_CHORES_INPUT_NAME = "name"`, error key `CFOP_ERROR_CHORE_NAME = "name"`
+9. ✅ Badges - No change needed (embedded mapping appropriate for complex conditional fields)
 
 ---
 

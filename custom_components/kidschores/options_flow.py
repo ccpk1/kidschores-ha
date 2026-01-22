@@ -2394,9 +2394,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             if not errors:
                 try:
                     # Layer 3: Entity helper builds complete structure
-                    # Convert CFOF_* form keys to DATA_* keys, then build reward
-                    data_input = eh.map_cfof_to_reward_data(user_input)
-                    reward_data = eh.build_reward(data_input)
+                    # CFOF_* keys now aligned with DATA_* keys - pass directly
+                    reward_data = eh.build_reward(user_input)
                     internal_id = reward_data[const.DATA_REWARD_INTERNAL_ID]
 
                     # Layer 4: Coordinator stores (thin wrapper)
@@ -2450,10 +2449,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             if not errors:
                 try:
                     # Layer 3: Entity helper builds complete structure
-                    # Convert CFOF_* form keys to DATA_* keys, then build reward
-                    data_input = eh.map_cfof_to_reward_data(user_input)
+                    # CFOF_* keys now aligned with DATA_* keys - pass directly
                     updated_reward = eh.build_reward(
-                        data_input, existing=existing_reward
+                        user_input, existing=existing_reward
                     )
 
                     # Layer 4: Store updated reward (preserves internal_id)

@@ -1,23 +1,38 @@
 # File: flow_helpers.py
 """Helpers for the KidsChores integration's Config and Options flow.
 
-Provides schema builders and UI validation wrappers for internal_id-based management.
+Provides schema builders, UI validation wrappers, and data transformation for
+internal_id-based entity management.
 
-## UNIFIED VALIDATION ARCHITECTURE (v0.5.0+) ##
+## UNIFIED VALIDATION & DATA BUILDING ARCHITECTURE (v0.5.0+) ##
 
-All entity types follow a consistent 4-layer validation pattern:
+All entity types follow a consistent pattern across two modules:
+
+### flow_helpers.py (This Module) - UI Layer
+**Responsibilities:**
+1. Schema Building: `build_<entity>_schema()` - Voluptuous schemas for HA UI forms
+2. UI Validation: `validate_<entity>_inputs()` - Transform CFOF_* keys and validate
+3. Data Building (simple): `build_<entity>_data()` - For system settings only
+
+### entity_helpers.py - Core Logic Layer
+**Responsibilities:**
+1. Core Validation: `validate_<entity>_data()` - Single source of truth validation
+2. Entity Building: `build_<entity>()` - Build complete entity with UUIDs, timestamps
+3. Complex Mapping: `map_cfof_to_<entity>_data()` - Only for entities with complex fields
+
+## LAYER ARCHITECTURE ##
 
 ### Layer 1: Schema Building (flow_helpers)
 **Function:** `build_<entity>_schema(default, kids_dict, ...) -> vol.Schema`
 **Purpose:** Construct voluptuous schemas for Home Assistant UI forms
-**Keys:** Uses CFOF_* constants (Config Flow / Options Flow)
+**Keys:** Uses CFOF_* constants (Config Flow / Options Flow form field names)
 
 ### Layer 2: UI Validation Wrapper (flow_helpers)
 **Function:** `validate_<entity>_inputs(user_input, existing_dict, ...) -> errors_dict`
 **Purpose:** Transform CFOF_* keys to DATA_* keys and delegate to entity_helpers
 **Returns:** Error dict (empty = no errors)
 
-### Layer 3: Single Source of Truth Validation (entity_helpers)
+### Layer 3: Core Validation (entity_helpers)
 **Function:** `validate_<entity>_data(data, existing_dict, ...) -> errors_dict`
 **Purpose:** Core validation logic with DATA_* keys - the authoritative validation
 **Keys:** Uses DATA_* constants (storage format)
@@ -27,21 +42,21 @@ All entity types follow a consistent 4-layer validation pattern:
 **Purpose:** Build complete entity structure with defaults, UUIDs, timestamps
 **Returns:** Fully normalized entity dict ready for storage
 
-### Call Site Pattern
+## CALL SITE PATTERNS ##
+
+### Simple Entities (Aligned Keys - Most Common)
+For entities with CFOF_* values aligned with DATA_* values:
 ```python
-# Step 1: Layer 2 - UI validation (transforms keys + validates)
+# Step 1: UI validation (transforms keys internally)
 errors = fh.validate_reward_inputs(user_input, existing_rewards)
 
 if not errors:
     try:
-        # Step 2: Layer 3 - Map CFOF_* to DATA_* (for entities needing mapping)
-        data_input = eh.map_cfof_to_reward_data(user_input)
-
-        # Step 3: Layer 4 - Build normalized structure
-        reward = eh.build_reward(data_input)
+        # Step 2: Build entity directly from user_input (keys are aligned!)
+        reward = eh.build_reward(user_input)
         internal_id = reward[const.DATA_REWARD_INTERNAL_ID]
 
-        # Step 4: Direct storage write
+        # Step 3: Direct storage write
         coordinator._data[const.DATA_REWARDS][internal_id] = dict(reward)
         coordinator._persist()
 
@@ -49,31 +64,61 @@ if not errors:
         errors[err.field] = err.translation_key
 ```
 
-### Key Mapping Functions (entity_helpers)
-Some entities use CFOF_* keys that differ from DATA_* keys. These need mapping:
+### Complex Entities (Require Mapping)
+For entities with complex field transformations (e.g., daily_multi_times parsing):
+```python
+# Step 1: UI validation
+errors = fh.validate_chore_inputs(user_input, existing_chores, ...)
 
-**Entities requiring explicit CFOF→DATA mapping:**
-- Rewards: `eh.map_cfof_to_reward_data()`
-- Chores: `eh.map_cfof_to_chore_data()`
-- Achievements: `eh.map_cfof_to_achievement_data()`
-- Challenges: `eh.map_cfof_to_challenge_data()`
+if not errors:
+    try:
+        # Step 2: Map complex fields (daily_multi_times string → list, etc.)
+        data_input = eh.map_cfof_to_chore_data(user_input)
 
-**Entities using CFOF_* keys directly (no mapping needed):**
-- Kids: build_kid() accepts CFOF_* keys directly
-- Parents: build_parent() accepts CFOF_* keys directly
-- Bonuses: build_bonus() accepts CFOF_* keys directly
-- Penalties: build_penalty() accepts CFOF_* keys directly
+        # Step 3: Build entity from mapped data
+        chore = eh.build_chore(data_input)
+        internal_id = chore[const.DATA_CHORE_INTERNAL_ID]
+
+        # Step 4: Direct storage write
+        coordinator._data[const.DATA_CHORES][internal_id] = dict(chore)
+        coordinator._persist()
+
+    except EntityValidationError as err:
+        errors[err.field] = err.translation_key
+```
+
+## KEY MAPPING (Phase 6 CFOF Key Alignment) ##
+
+CFOF_* constant values are now aligned with DATA_* values where possible,
+eliminating the need for mapping functions. This simplifies the call site pattern.
+
+**Entities with aligned keys (pass user_input directly to build_*()):**
+- Kids: `CFOF_KIDS_INPUT_KID_NAME = "name"` matches `DATA_KID_NAME = "name"`
+- Parents: `CFOF_PARENTS_INPUT_NAME = "name"` matches `DATA_PARENT_NAME = "name"`
+- Rewards: `CFOF_REWARDS_INPUT_NAME = "name"` matches `DATA_REWARD_NAME = "name"`
+- Bonuses: `CFOF_BONUSES_INPUT_NAME = "name"` matches `DATA_BONUS_NAME = "name"`
+- Penalties: `CFOF_PENALTIES_INPUT_NAME = "name"` matches `DATA_PENALTY_NAME = "name"`
+- Achievements: `CFOF_ACHIEVEMENTS_INPUT_NAME = "name"` matches `DATA_ACHIEVEMENT_NAME`
+- Challenges: `CFOF_CHALLENGES_INPUT_NAME = "name"` matches `DATA_CHALLENGE_NAME`
+- Chores: `CFOF_CHORES_INPUT_NAME = "name"` matches `DATA_CHORE_NAME = "name"`
+
+**Entities requiring explicit CFOF→DATA mapping (complex transformations):**
+- Chores: `eh.map_cfof_to_chore_data()` - Handles daily_multi_times string→list parsing
+  and per-kid configuration mapping (simple field keys are aligned)
 
 **Entities with embedded key mapping (complex conditional fields):**
-- Badges: build_badge() handles CFOF→DATA mapping internally via get_field() closure
+- Badges: `build_badge()` handles CFOF→DATA mapping internally via get_field() closure
   (Badge fields vary by badge_type, so mapping is embedded in build function)
 
-### Benefits of This Architecture
+## BENEFITS OF THIS ARCHITECTURE ##
+
 1. **Single Source of Truth:** All validation logic lives in entity_helpers
 2. **DRY:** No duplicate validation between config_flow and options_flow
 3. **Testable:** entity_helpers validation can be unit tested in isolation
 4. **Consistent:** Same pattern for all entity types
 5. **Type Safe:** Clear key transformation at well-defined boundaries
+6. **Simplified Keys:** CFOF_* and DATA_* values aligned where possible
+7. **Centralized Building:** All entity construction in entity_helpers.build_*()
 """
 
 # pyright: reportArgumentType=false
@@ -244,8 +289,11 @@ def validate_kids_inputs(
     """Validate kid configuration inputs for Options Flow.
 
     This is a UI-specific wrapper that:
-    1. Transforms CFOF_* keys to DATA_* keys
+    1. Extracts DATA_* values from user_input (keys are aligned: CFOF_* = DATA_*)
     2. Calls entity_helpers.validate_kid_data() (single source of truth)
+
+    Note: Since Phase 6 CFOF Key Alignment, CFOF_KIDS_INPUT_KID_NAME = "name"
+    matches DATA_KID_NAME = "name", so no key transformation is needed.
 
     Args:
         user_input: Dictionary containing user inputs from the form (CFOF_* keys).
@@ -392,8 +440,11 @@ def validate_parents_inputs(
     """Validate parent configuration inputs for Options Flow.
 
     This is a UI-specific wrapper that:
-    1. Transforms CFOF_* keys to DATA_* keys
+    1. Extracts DATA_* values from user_input (keys are aligned: CFOF_* = DATA_*)
     2. Calls entity_helpers.validate_parent_data() (single source of truth)
+
+    Note: Since Phase 6 CFOF Key Alignment, CFOF_PARENTS_INPUT_NAME = "name"
+    matches DATA_PARENT_NAME = "name", so no key transformation is needed.
 
     Args:
         user_input: Dictionary containing user inputs from the form (CFOF_* keys).
@@ -677,9 +728,13 @@ def validate_chores_inputs(
     """Validate chore configuration inputs for Options Flow.
 
     This is a UI-specific wrapper that:
-    1. Transforms CFOF_* keys to DATA_* keys
+    1. Extracts DATA_* values from user_input (most keys are aligned: CFOF_* = DATA_*)
     2. Calls entity_helpers.validate_chore_data() (single source of truth)
     3. Handles UI-specific concerns (clear_due_date checkbox, kids_dict mapping)
+
+    Note: Since Phase 6 CFOF Key Alignment, simple fields like name, description,
+    points are aligned. Chores still require transform_chore_cfof_to_data() for
+    complex fields (daily_multi_times parsing, per_kid_due_dates, notification mapping).
 
     Args:
         user_input: Dictionary containing user inputs from the form (CFOF_* keys).
@@ -793,13 +848,19 @@ def transform_chore_cfof_to_data(
     due_date_str: str | None,
     existing_per_kid_due_dates: dict[str, str | None] | None = None,
 ) -> dict[str, Any]:
-    """Transform chore form input (CFOF_* keys) to storage format (DATA_* keys).
+    """Transform chore form input to storage format for complex fields only.
 
-    This function handles the CFOF_* → DATA_* key mapping and:
-    - Converts assigned kid names to UUIDs
-    - Builds per_kid_due_dates dict
+    Since Phase 6 CFOF Key Alignment, simple chore fields (name, description, points)
+    use aligned keys and pass through directly. This function handles the complex
+    transformations that still require processing:
+
+    - Converts assigned kid names to UUIDs (kid_dict lookup)
+    - Builds per_kid_due_dates dict (INDEPENDENT vs SHARED logic)
     - Extracts notification selections from consolidated field
-    - Handles completion_criteria logic for INDEPENDENT vs SHARED
+    - Handles completion_criteria logic for per-kid configuration
+
+    Note: Simple field keys are now aligned (CFOF_CHORES_INPUT_NAME = \"name\" = DATA_CHORE_NAME),
+    so no key renaming is needed for those fields.
 
     Args:
         user_input: Dictionary containing user inputs from the form (CFOF_* keys).
@@ -1128,7 +1189,9 @@ def validate_daily_multi_times(times_str: str) -> dict[str, str]:
 # ----------------------------------------------------------------------------------
 # BADGES - Layer 1: Schema + Layer 2: UI Validation Wrapper
 # Note: Badges use embedded key mapping in build_badge() due to conditional fields
-# that vary by badge_type. No separate map_cfof_to_badge_data() function exists.
+# that vary by badge_type. This is appropriate because badge fields differ significantly
+# per type (cumulative vs periodic), making a simple aligned-key approach impractical.
+# No separate map_cfof_to_badge_data() function exists - mapping is in entity_helpers.
 # ----------------------------------------------------------------------------------
 
 
@@ -2199,8 +2262,12 @@ def validate_rewards_inputs(
     """Validate reward configuration inputs for Options Flow.
 
     This is a UI-specific wrapper that:
-    1. Transforms CFOF_* keys to DATA_* keys
+    1. Extracts DATA_* values from user_input (keys are aligned: CFOF_* = DATA_*)
     2. Calls entity_helpers.validate_reward_data() (single source of truth)
+
+    Note: Since Phase 6 CFOF Key Alignment, CFOF_REWARDS_INPUT_NAME = "name"
+    matches DATA_REWARD_NAME = "name". User_input can be passed directly to
+    entity_helpers.build_reward() after validation.
 
     Args:
         user_input: Dictionary containing user inputs from the form (CFOF_* keys).
@@ -2290,8 +2357,12 @@ def validate_bonuses_inputs(
     """Validate bonus configuration inputs for Options Flow.
 
     This is a UI-specific wrapper that:
-    1. Transforms CFOF_* keys to DATA_* keys
+    1. Extracts DATA_* values from user_input (keys are aligned: CFOF_* = DATA_*)
     2. Calls entity_helpers.validate_bonus_or_penalty_data() (single source of truth)
+
+    Note: Since Phase 6 CFOF Key Alignment, CFOF_BONUSES_INPUT_NAME = "name"
+    matches DATA_BONUS_NAME = "name". User_input can be passed directly to
+    entity_helpers.build_bonus() after validation.
 
     Args:
         user_input: Dictionary containing user inputs from the form (CFOF_* keys).
@@ -2382,8 +2453,12 @@ def validate_penalties_inputs(
     """Validate penalty configuration inputs for Options Flow.
 
     This is a UI-specific wrapper that:
-    1. Transforms CFOF_* keys to DATA_* keys
+    1. Extracts DATA_* values from user_input (keys are aligned: CFOF_* = DATA_*)
     2. Calls entity_helpers.validate_bonus_or_penalty_data() (single source of truth)
+
+    Note: Since Phase 6 CFOF Key Alignment, CFOF_PENALTIES_INPUT_NAME = "name"
+    matches DATA_PENALTY_NAME = "name". User_input can be passed directly to
+    entity_helpers.build_penalty() after validation.
 
     Args:
         user_input: Dictionary containing user inputs from the form (CFOF_* keys).
@@ -2551,11 +2626,15 @@ def validate_achievements_inputs(
 ) -> dict[str, str]:
     """Validate achievement form inputs - UI wrapper for entity_helpers.
 
-    Transforms CFOF_* keys to DATA_* keys and calls the single source of truth
+    Extracts DATA_* values from user_input and calls the single source of truth
     validation function in entity_helpers.
 
+    Note: Since Phase 6 CFOF Key Alignment, CFOF_ACHIEVEMENTS_INPUT_NAME = "name"
+    matches DATA_ACHIEVEMENT_NAME = "name". User_input can be passed directly to
+    entity_helpers.build_achievement() after validation.
+
     Args:
-        user_input: Form data with CFOF_* keys
+        user_input: Form data with CFOF_* keys (values aligned with DATA_*)
         existing_achievements: Existing achievements for duplicate checking
         current_achievement_id: ID of achievement being edited (exclude from dupe check)
 
@@ -2721,11 +2800,15 @@ def validate_challenges_inputs(
 ) -> dict[str, str]:
     """Validate challenge form inputs - UI wrapper for entity_helpers.
 
-    Transforms CFOF_* keys to DATA_* keys and calls the single source of truth
+    Extracts DATA_* values from user_input and calls the single source of truth
     validation function in entity_helpers.
 
+    Note: Since Phase 6 CFOF Key Alignment, CFOF_CHALLENGES_INPUT_NAME = "name"
+    matches DATA_CHALLENGE_NAME = "name". User_input can be passed directly to
+    entity_helpers.build_challenge() after validation.
+
     Args:
-        user_input: Form data with CFOF_* keys
+        user_input: Form data with CFOF_* keys (values aligned with DATA_*)
         existing_challenges: Existing challenges for duplicate checking
         current_challenge_id: ID of challenge being edited (exclude from dupe check)
 

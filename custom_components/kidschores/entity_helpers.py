@@ -4,6 +4,34 @@ This module is the SINGLE SOURCE OF TRUTH for:
 - Entity field defaults
 - Business logic validation
 - Complete entity structure building
+- CFOF→DATA key mapping (where still needed)
+
+## Key Concepts (v0.5.0+)
+
+### CFOF Key Alignment (Phase 6)
+Most CFOF_* constant values are now aligned with DATA_* values:
+- CFOF_*_INPUT_NAME = "name" = DATA_*_NAME (for kids, parents, rewards, etc.)
+- This means user_input from forms can often be passed directly to build_*() functions
+
+### Build Functions
+Each entity type has a `build_<entity>()` function that:
+- Takes user_input or mapped data (DATA_* keys)
+- Generates internal_id (UUID) for new entities
+- Sets timestamps (created_at, updated_at)
+- Applies field defaults
+- Returns complete entity dict ready for storage
+
+### Validation Functions
+Each entity type has a `validate_<entity>_data()` function that:
+- Takes data with DATA_* keys
+- Performs business rule validation
+- Returns dict of errors (empty if valid)
+- Is called by flow_helpers.validate_*_inputs() (UI layer)
+
+### Mapping Functions (Legacy/Complex Only)
+For entities with complex transformations (chores, badges), mapping functions exist:
+- `map_cfof_to_chore_data()` - Handles daily_multi_times parsing
+- Achievements/Challenges mappings retained for documentation/filtering
 
 Consumers:
 - options_flow.py (UI entity management)
@@ -11,7 +39,7 @@ Consumers:
 - coordinator.py (thin storage wrapper)
 
 See Also:
-- flow_helpers.py: UI-specific validation (uniqueness, HA user checks)
+- flow_helpers.py: UI-specific validation and schema building
 - type_defs.py: TypedDict definitions for type safety
 """
 
@@ -123,35 +151,9 @@ class EntityValidationError(Exception):
 # REWARDS
 # ==============================================================================
 
-
-# Mapping from CFOF_* form keys to DATA_* storage keys for rewards
-# Used by config_flow/options_flow to convert UI input before calling build_reward()
-_CFOF_TO_REWARD_DATA_MAPPING: dict[str, str] = {
-    const.CFOF_REWARDS_INPUT_NAME: const.DATA_REWARD_NAME,
-    const.CFOF_REWARDS_INPUT_COST: const.DATA_REWARD_COST,
-    const.CFOF_REWARDS_INPUT_DESCRIPTION: const.DATA_REWARD_DESCRIPTION,
-    const.CFOF_REWARDS_INPUT_ICON: const.DATA_REWARD_ICON,
-    const.CFOF_REWARDS_INPUT_LABELS: const.DATA_REWARD_LABELS,
-}
-
-
-def map_cfof_to_reward_data(user_input: dict[str, Any]) -> dict[str, Any]:
-    """Convert CFOF_* form keys to DATA_* storage keys for rewards.
-
-    Used by config_flow and options_flow to normalize UI input before
-    calling build_reward().
-
-    Args:
-        user_input: Dict with CFOF_REWARDS_INPUT_* keys from UI forms
-
-    Returns:
-        Dict with DATA_REWARD_* keys for build_reward() consumption
-    """
-    return {
-        _CFOF_TO_REWARD_DATA_MAPPING.get(key, key): value
-        for key, value in user_input.items()
-        if key in _CFOF_TO_REWARD_DATA_MAPPING
-    }
+# Note: CFOF_REWARDS_INPUT_* values are now aligned with DATA_REWARD_* values
+# (Phase 6 CFOF Key Alignment), so no mapping function is needed.
+# build_reward() accepts keys directly from UI forms.
 
 
 def validate_reward_data(
@@ -311,6 +313,11 @@ def build_reward(
 # ==============================================================================
 # BONUSES & PENALTIES (Unified)
 # ==============================================================================
+
+# Note: CFOF_BONUSES_INPUT_* and CFOF_PENALTIES_INPUT_* values are now aligned
+# with DATA_BONUS_* and DATA_PENALTY_* values (Phase 6 CFOF Key Alignment),
+# so no mapping function is needed. build_bonus_or_penalty() accepts keys
+# directly from UI forms.
 
 
 def validate_bonus_or_penalty_data(
@@ -498,6 +505,10 @@ def build_bonus_or_penalty(
 # ==============================================================================
 # KIDS
 # ==============================================================================
+
+# Note: CFOF_KIDS_INPUT_* values are now aligned with DATA_KID_* values
+# (Phase 6 CFOF Key Alignment), so no mapping function is needed.
+# build_kid() accepts keys directly from UI forms.
 
 
 def validate_kid_data(
@@ -751,6 +762,10 @@ def build_kid(
 # PARENTS
 # ==============================================================================
 
+# Note: CFOF_PARENTS_INPUT_* values are now aligned with DATA_PARENT_* values
+# (Phase 6 CFOF Key Alignment), so no mapping function is needed.
+# build_parent() accepts keys directly from UI forms.
+
 
 def validate_parent_data(
     data: dict[str, Any],
@@ -975,6 +990,13 @@ def build_parent(
 # ==============================================================================
 # CHORES
 # ==============================================================================
+
+# Note: Most CFOF_CHORES_INPUT_* values are aligned with DATA_CHORE_* values
+# (Phase 6 CFOF Key Alignment). However, transform_chore_cfof_to_data() is
+# still needed for complex fields:
+# - daily_multi_times: CSV string → int list
+# - per_kid_due_dates: per-kid override parsing
+# See flow_helpers.transform_chore_cfof_to_data() for details.
 
 
 def validate_chore_data(
@@ -1368,6 +1390,11 @@ def build_chore(
 # BADGES
 # ==============================================================================
 
+# Note: Badges intentionally use embedded CFOF→DATA key mapping within
+# build_badge() rather than separate aligned constants. This is because badge
+# fields vary significantly by badge_type (cumulative vs periodic vs daily etc).
+# The embedded mapping provides type-specific field handling in one place.
+
 
 def build_badge(
     user_input: dict[str, Any],
@@ -1379,6 +1406,9 @@ def build_badge(
 
     This is the SINGLE SOURCE OF TRUTH for badge field handling.
     One function handles both create (existing=None) and update (existing=BadgeData).
+
+    Note: Unlike other entity types where CFOF keys are aligned with DATA keys
+    (Phase 6), badges use embedded mapping due to badge_type-specific fields.
 
     Badge types have different required components:
     - CUMULATIVE: target (points-only), awards
@@ -1773,9 +1803,15 @@ def build_badge(
 # ACHIEVEMENTS
 # ==============================================================================
 
+# Note: CFOF_ACHIEVEMENTS_INPUT_* values are now aligned with DATA_ACHIEVEMENT_*
+# values (Phase 6 CFOF Key Alignment). map_cfof_to_achievement_data() is retained
+# for explicit key filtering, but performs mostly identity mapping.
 
 # Mapping from CFOF_* form keys to DATA_* storage keys for achievements
-# Used by config_flow/options_flow to convert UI input before calling build_achievement()
+# NOTE (Phase 6 CFOF Key Alignment): Most CFOF_* values now equal DATA_* values
+# (e.g., CFOF_ACHIEVEMENTS_INPUT_NAME = "name" = DATA_ACHIEVEMENT_NAME).
+# This mapping is retained for explicit documentation and future-proofing,
+# but currently performs identity mapping for most fields.
 _CFOF_TO_ACHIEVEMENT_DATA_MAPPING: dict[str, str] = {
     const.CFOF_ACHIEVEMENTS_INPUT_NAME: const.DATA_ACHIEVEMENT_NAME,
     const.CFOF_ACHIEVEMENTS_INPUT_DESCRIPTION: const.DATA_ACHIEVEMENT_DESCRIPTION,
@@ -1793,8 +1829,10 @@ _CFOF_TO_ACHIEVEMENT_DATA_MAPPING: dict[str, str] = {
 def map_cfof_to_achievement_data(user_input: dict[str, Any]) -> dict[str, Any]:
     """Convert CFOF_* form keys to DATA_* storage keys for achievements.
 
-    Used by config_flow and options_flow to normalize UI input before
-    calling build_achievement().
+    NOTE (Phase 6 CFOF Key Alignment): Since CFOF_* values are now aligned with
+    DATA_* values, this function performs mostly identity mapping. User_input can
+    be passed directly to build_achievement() for fields with aligned keys.
+    This function is retained for explicit key filtering and documentation.
 
     Args:
         user_input: Dict with CFOF_ACHIEVEMENTS_INPUT_* keys from UI forms
@@ -1984,9 +2022,15 @@ def build_achievement(
 # CHALLENGES
 # ==============================================================================
 
+# Note: CFOF_CHALLENGES_INPUT_* values are now aligned with DATA_CHALLENGE_*
+# values (Phase 6 CFOF Key Alignment). map_cfof_to_challenge_data() is retained
+# for explicit key filtering and date handling, but performs mostly identity mapping.
 
 # Mapping from CFOF_* form keys to DATA_* storage keys for challenges
-# Used by config_flow/options_flow to convert UI input before calling build_challenge()
+# NOTE (Phase 6 CFOF Key Alignment): Most CFOF_* values now equal DATA_* values
+# (e.g., CFOF_CHALLENGES_INPUT_NAME = "name" = DATA_CHALLENGE_NAME).
+# This mapping is retained for explicit documentation and future-proofing,
+# but currently performs identity mapping for most fields.
 _CFOF_TO_CHALLENGE_DATA_MAPPING: dict[str, str] = {
     const.CFOF_CHALLENGES_INPUT_NAME: const.DATA_CHALLENGE_NAME,
     const.CFOF_CHALLENGES_INPUT_DESCRIPTION: const.DATA_CHALLENGE_DESCRIPTION,
@@ -2006,8 +2050,10 @@ _CFOF_TO_CHALLENGE_DATA_MAPPING: dict[str, str] = {
 def map_cfof_to_challenge_data(user_input: dict[str, Any]) -> dict[str, Any]:
     """Convert CFOF_* form keys to DATA_* storage keys for challenges.
 
-    Used by config_flow and options_flow to normalize UI input before
-    calling build_challenge().
+    NOTE (Phase 6 CFOF Key Alignment): Since CFOF_* values are now aligned with
+    DATA_* values, this function performs mostly identity mapping. User_input can
+    be passed directly to build_challenge() for fields with aligned keys.
+    This function is retained for explicit key filtering and documentation.
 
     Args:
         user_input: Dict with CFOF_CHALLENGES_INPUT_* keys from UI forms

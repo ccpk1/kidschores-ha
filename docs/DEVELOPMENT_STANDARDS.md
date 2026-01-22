@@ -71,8 +71,9 @@ With over 1,000 constants, we follow strict naming patterns to ensure the code r
 **`CFOF_*`** = **Config/Options Flow Input Fields**
 
 - **Usage**: Form field names in schema definitions during user input
-- **Context**: `vol.Required(const.CFOF_KIDS_INPUT_KID_NAME, ...)`
+- **Context**: `vol.Required(const.CFOF_KIDS_INPUT_NAME, ...)`
 - **Rule**: Always plural entity names with `_INPUT_` (`CFOF_KIDS_INPUT_*`, `CFOF_PARENTS_INPUT_*`)
+- **Key Alignment (v0.5.0)**: CFOF** constant *values\* are aligned with DATA*_ values where possible (e.g., both use `"name"`). This allows `user_input` to be passed directly to `build\__()`functions without mapping. See`flow_helpers.py` module docstring for details.
 
 **`CONF_*`** = **Configuration Entry Data Access**
 

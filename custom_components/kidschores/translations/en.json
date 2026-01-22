@@ -40,7 +40,7 @@
         "title": "Define Kid",
         "description": "Enter the name for each kid.",
         "data": {
-          "kid_name": "Kid Name",
+          "name": "Kid Name",
           "ha_user": "Home Assistant User",
           "mobile_notify_service": "Notifications",
           "dashboard_language": "Language"
@@ -61,7 +61,7 @@
         "title": "Define Parent",
         "description": "Enter details for each parent.",
         "data": {
-          "parent_name": "Parent Name",
+          "name": "Parent Name",
           "ha_user_id": "Home Assistant User",
           "associated_kids": "Associated Kids",
           "mobile_notify_service": "Notifications",
@@ -83,7 +83,7 @@
         "title": "Add Chore",
         "description": "Create a new chore with points, assignments, and recurring schedule.",
         "data": {
-          "chore_name": "📋 Chore Name",
+          "name": "📋 Chore Name",
           "chore_description": "📋 Description (optional)",
           "icon": "📋 Icon (mdi:xxx)",
           "chore_labels": "📋 Labels (optional)",
@@ -103,7 +103,7 @@
           "chore_notifications": "🔔 Notification Events (optional)"
         },
         "data_description": {
-          "chore_name": "Unique name displayed throughout the system.",
+          "name": "Unique name displayed throughout the system.",
           "chore_description": "Optional instructions or details about how to complete this chore.",
           "icon": "Material Design Icon (e.g., mdi:broom, mdi:dishwasher).",
           "chore_labels": "Tags to organize chores (e.g., 'kitchen', 'outdoor'). Leave blank if not needed.",
@@ -191,10 +191,10 @@
         "title": "Define Reward",
         "description": "Enter details for each reward.",
         "data": {
-          "reward_name": "Reward Name",
+          "name": "Reward Name",
           "internal_id": "Internal ID",
-          "reward_cost": "Reward Cost",
-          "reward_description": "Description (optional)",
+          "cost": "Reward Cost",
+          "description": "Description (optional)",
           "reward_labels": "Reward Labels",
           "icon": "Icon (mdi:xxx)"
         }
@@ -210,7 +210,7 @@
         "title": "Define Penalty",
         "description": "Enter details for each penalty.",
         "data": {
-          "penalty_name": "Penalty Name",
+          "name": "Penalty Name",
           "penalty_description": "Description (optional)",
           "penalty_labels": "Penalty Labels",
           "internal_id": "Internal ID",
@@ -229,7 +229,7 @@
         "title": "Define Bonus",
         "description": "Enter details for each bonus.",
         "data": {
-          "bonus_name": "Bonus Name",
+          "name": "Bonus Name",
           "bonus_description": "Description (optional)",
           "bonus_labels": "Bonus Labels",
           "internal_id": "Internal ID",
@@ -401,7 +401,7 @@
         "title": "Add Kid",
         "description": "Provide the details for the new kid.",
         "data": {
-          "kid_name": "Kid Name",
+          "name": "Kid Name",
           "ha_user": "Home Assistant User",
           "mobile_notify_service": "Notifications",
           "dashboard_language": "Language",
@@ -416,7 +416,7 @@
         "title": "Add Parent",
         "description": "Provide the details for the new parent.",
         "data": {
-          "parent_name": "Parent Name",
+          "name": "Parent Name",
           "ha_user_id": "Home Assistant User",
           "associated_kids": "Associated Kids",
           "mobile_notify_service": "Notifications",
@@ -438,7 +438,7 @@
         "title": "Add Chore",
         "description": "Create a new chore with points, assignments, and recurring schedule.",
         "data": {
-          "chore_name": "📋 Chore Name",
+          "name": "📋 Chore Name",
           "chore_description": "📋 Description (optional)",
           "icon": "📋 Icon (mdi:xxx)",
           "chore_labels": "📋 Labels (optional)",
@@ -458,7 +458,7 @@
           "chore_notifications": "🔔 Notification Events (optional)"
         },
         "data_description": {
-          "chore_name": "Unique name displayed throughout the system.",
+          "name": "Unique name displayed throughout the system.",
           "chore_description": "Optional instructions or details about how to complete this chore.",
           "icon": "Material Design Icon (e.g., mdi:broom, mdi:dishwasher).",
           "chore_labels": "Tags to organize chores (e.g., 'kitchen', 'outdoor'). Leave blank if not needed.",
@@ -697,10 +697,10 @@
         "title": "Add Reward",
         "description": "Provide the details for the new reward.",
         "data": {
-          "reward_name": "Reward Name",
+          "name": "Reward Name",
           "internal_id": "Internal ID",
-          "reward_cost": "Reward Cost",
-          "reward_description": "Description (optional)",
+          "cost": "Reward Cost",
+          "description": "Description (optional)",
           "reward_labels": "Reward Labels",
           "icon": "Icon (mdi:xxx)"
         }
@@ -709,7 +709,7 @@
         "title": "Add Penalty",
         "description": "Provide the details for the new penalty.",
         "data": {
-          "penalty_name": "Penalty Name",
+          "name": "Penalty Name",
           "penalty_description": "Description (optional)",
           "penalty_labels": "Penalty Labels",
           "internal_id": "Internal ID",
@@ -721,7 +721,7 @@
         "title": "Add Bonus",
         "description": "Provide the details for the new bonus.",
         "data": {
-          "bonus_name": "Bonus Name",
+          "name": "Bonus Name",
           "bonus_description": "Description (optional)",
           "bonus_labels": "Bonus Labels",
           "internal_id": "Internal ID",
@@ -769,7 +769,7 @@
         "title": "Edit Kid",
         "description": "Modify the details of the selected kid.",
         "data": {
-          "kid_name": "Kid Name",
+          "name": "Kid Name",
           "ha_user": "Home Assistant User",
           "mobile_notify_service": "Notifications",
           "dashboard_language": "Language",
@@ -784,14 +784,14 @@
         "title": "Edit Shadow Kid",
         "description": "Modify the details of the selected shadow kid. ⚠️ This kid is linked to a parent. Changing the name will break the name-matching requirement for unlinking via service.",
         "data": {
-          "kid_name": "Kid Name",
+          "name": "Kid Name",
           "ha_user": "Home Assistant User",
           "mobile_notify_service": "Notifications",
           "dashboard_language": "Language",
           "internal_id": "Internal ID"
         },
         "data_description": {
-          "kid_name": "⚠️ This shadow kid is linked to a parent. Changing this name will break the service unlinking feature, which requires matching names.",
+          "name": "⚠️ This shadow kid is linked to a parent. Changing this name will break the service unlinking feature, which requires matching names.",
           "mobile_notify_service": "⚠️ Shadow kid notifications: The linked parent already receives notifications for supervised chores. Enabling here will create duplicate notifications. Useful for 30-minute due date reminders or if using different notification services.",
           "dashboard_language": "Language used for your chore dashboard and notifications."
         }
@@ -800,7 +800,7 @@
         "title": "Edit Parent",
         "description": "Modify the details of the selected parent.",
         "data": {
-          "parent_name": "Parent Name",
+          "name": "Parent Name",
           "ha_user_id": "Home Assistant User",
           "associated_kids": "Associated Kids",
           "mobile_notify_service": "Notifications",
@@ -822,7 +822,7 @@
         "title": "Edit Chore",
         "description": "Modify the details of the selected chore.",
         "data": {
-          "chore_name": "📋 Chore Name",
+          "name": "📋 Chore Name",
           "chore_description": "📋 Description (optional)",
           "icon": "📋 Icon (mdi:xxx)",
           "chore_labels": "📋 Labels (optional)",
@@ -844,7 +844,7 @@
           "chore_notifications": "🔔 Notification Events (optional)"
         },
         "data_description": {
-          "chore_name": "Unique name displayed throughout the system.",
+          "name": "Unique name displayed throughout the system.",
           "chore_description": "Optional instructions or details about how to complete this chore.",
           "icon": "Material Design Icon (e.g., mdi:broom, mdi:dishwasher).",
           "chore_labels": "Tags to organize chores (e.g., 'kitchen', 'outdoor'). Leave blank if not needed.",
@@ -1111,10 +1111,10 @@
         "title": "Edit Reward",
         "description": "Modify the details of the selected reward.",
         "data": {
-          "reward_name": "Reward Name",
+          "name": "Reward Name",
           "internal_id": "Internal ID",
-          "reward_cost": "Reward Cost",
-          "reward_description": "Description (optional)",
+          "cost": "Reward Cost",
+          "description": "Description (optional)",
           "reward_labels": "Reward Labels",
           "icon": "Icon (mdi:xxx)"
         }
@@ -1123,7 +1123,7 @@
         "title": "Edit Penalty",
         "description": "Modify the details of the selected penalty.",
         "data": {
-          "penalty_name": "Penalty Name",
+          "name": "Penalty Name",
           "penalty_description": "Description (optional)",
           "penalty_labels": "Penalty Labels",
           "internal_id": "Internal ID",
@@ -1135,7 +1135,7 @@
         "title": "Edit Bonus",
         "description": "Modify the details of the selected bonus.",
         "data": {
-          "bonus_name": "Bonus Name",
+          "name": "Bonus Name",
           "bonus_description": "Description (optional)",
           "bonus_labels": "Bonus Labels",
           "internal_id": "Internal ID",

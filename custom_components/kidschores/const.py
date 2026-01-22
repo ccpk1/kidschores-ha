@@ -339,7 +339,8 @@ CFOF_KIDS_INPUT_ENABLE_DUE_DATE_REMINDERS: Final = (
 )
 CFOF_KIDS_INPUT_HA_USER: Final = "ha_user"
 CFOF_KIDS_INPUT_KID_COUNT: Final = "kid_count"
-CFOF_KIDS_INPUT_KID_NAME: Final = "kid_name"
+# Phase 6: Aligned with DATA_KID_NAME = "name" (was "kid_name")
+CFOF_KIDS_INPUT_KID_NAME: Final = "name"
 CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: Final = "mobile_notify_service"
 
 # PARENTS
@@ -350,7 +351,7 @@ CFOF_PARENTS_INPUT_ENABLE_PERSISTENT_NOTIFICATIONS: Final = (
 )
 CFOF_PARENTS_INPUT_HA_USER: Final = "ha_user_id"
 CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: Final = "mobile_notify_service"
-CFOF_PARENTS_INPUT_NAME: Final = "parent_name"
+CFOF_PARENTS_INPUT_NAME: Final = "name"
 CFOF_PARENTS_INPUT_PARENT_COUNT: Final = "parent_count"
 
 # Parent Chore Capability Options
@@ -373,7 +374,8 @@ CFOF_CHORES_INPUT_DUE_DATE: Final = "due_date"
 CFOF_CHORES_INPUT_ICON: Final = "icon"
 CFOF_CHORES_INPUT_COMPLETION_CRITERIA: Final = "completion_criteria"
 CFOF_CHORES_INPUT_LABELS: Final = "chore_labels"
-CFOF_CHORES_INPUT_NAME: Final = "chore_name"
+# Phase 6: Aligned with DATA_CHORE_NAME = "name"
+CFOF_CHORES_INPUT_NAME: Final = "name"
 CFOF_CHORES_INPUT_NOTIFY_ON_APPROVAL: Final = "notify_on_approval"
 CFOF_CHORES_INPUT_NOTIFY_ON_CLAIM: Final = "notify_on_claim"
 CFOF_CHORES_INPUT_NOTIFY_ON_DISAPPROVAL: Final = "notify_on_disapproval"
@@ -426,11 +428,14 @@ CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE: Final = "threshold_value"
 CFOF_BADGES_INPUT_TYPE: Final = "badge_type"
 
 # REWARDS
-CFOF_REWARDS_INPUT_COST: Final = "reward_cost"
-CFOF_REWARDS_INPUT_DESCRIPTION: Final = "reward_description"
+# Note: Values aligned with DATA_REWARD_* constants (Phase 6 CFOF Key Alignment)
+CFOF_REWARDS_INPUT_COST: Final = "cost"  # Aligned with DATA_REWARD_COST
+CFOF_REWARDS_INPUT_DESCRIPTION: Final = (
+    "description"  # Aligned with DATA_REWARD_DESCRIPTION
+)
 CFOF_REWARDS_INPUT_ICON: Final = "icon"
 CFOF_REWARDS_INPUT_LABELS: Final = "reward_labels"
-CFOF_REWARDS_INPUT_NAME: Final = "reward_name"
+CFOF_REWARDS_INPUT_NAME: Final = "name"  # Aligned with DATA_REWARD_NAME
 CFOF_REWARDS_INPUT_REWARD_COUNT: Final = "reward_count"
 
 # BONUSES
@@ -438,14 +443,14 @@ CFOF_BONUSES_INPUT_BONUS_COUNT: Final = "bonus_count"
 CFOF_BONUSES_INPUT_DESCRIPTION: Final = "bonus_description"
 CFOF_BONUSES_INPUT_ICON: Final = "icon"
 CFOF_BONUSES_INPUT_LABELS: Final = "bonus_labels"
-CFOF_BONUSES_INPUT_NAME: Final = "bonus_name"
+CFOF_BONUSES_INPUT_NAME: Final = "name"  # Phase 6: Aligned with DATA_BONUS_NAME
 CFOF_BONUSES_INPUT_POINTS: Final = "bonus_points"
 
 # PENALTIES
 CFOF_PENALTIES_INPUT_DESCRIPTION: Final = "penalty_description"
 CFOF_PENALTIES_INPUT_ICON: Final = "icon"
 CFOF_PENALTIES_INPUT_LABELS: Final = "penalty_labels"
-CFOF_PENALTIES_INPUT_NAME: Final = "penalty_name"
+CFOF_PENALTIES_INPUT_NAME: Final = "name"  # Phase 6: Aligned with DATA_PENALTY_NAME
 CFOF_PENALTIES_INPUT_PENALTY_COUNT: Final = "penalty_count"
 CFOF_PENALTIES_INPUT_POINTS: Final = "penalty_points"
 
@@ -2455,16 +2460,22 @@ CFOP_ERROR_FILE_NOT_FOUND: Final = "file_not_found"
 CFOP_ERROR_INVALID_JSON: Final = "invalid_json"
 CFOP_ERROR_NO_BACKUPS_FOUND: Final = "no_backups_found"
 CFOP_ERROR_RESTORE_FAILED: Final = "restore_failed"
-CFOP_ERROR_BONUS_NAME: Final = "bonus_name"
+# Phase 6: Aligned with CFOF_BONUSES_INPUT_NAME = "name"
+CFOP_ERROR_BONUS_NAME: Final = "name"
 CFOP_ERROR_CHALLENGE_NAME: Final = "name"
-CFOP_ERROR_CHORE_NAME: Final = "chore_name"
+# Phase 6: Aligned with CFOF_CHORES_INPUT_NAME = "name"
+CFOP_ERROR_CHORE_NAME: Final = "name"
 CFOP_ERROR_DUE_DATE: Final = "due_date"
 CFOP_ERROR_END_DATE: Final = "end_date"
-CFOP_ERROR_KID_NAME: Final = "kid_name"
-CFOP_ERROR_PARENT_NAME: Final = "parent_name"
-CFOP_ERROR_PENALTY_NAME: Final = "penalty_name"
-CFOP_ERROR_REWARD_NAME: Final = "reward_name"
-CFOP_ERROR_REWARD_COST: Final = "reward_cost"  # Invalid reward cost value
+# Phase 6: Aligned with CFOF_KIDS_INPUT_KID_NAME = "name"
+CFOP_ERROR_KID_NAME: Final = "name"
+# Phase 6: Aligned with CFOF_PARENTS_INPUT_NAME = "name"
+CFOP_ERROR_PARENT_NAME: Final = "name"
+# Phase 6: Aligned with CFOF_PENALTIES_INPUT_NAME = "name"
+CFOP_ERROR_PENALTY_NAME: Final = "name"
+# Phase 6: Aligned with CFOF_REWARDS_INPUT_NAME = "name"
+CFOP_ERROR_REWARD_NAME: Final = "name"
+CFOP_ERROR_REWARD_COST: Final = "cost"  # Phase 6: Aligned with CFOF_REWARDS_INPUT_COST
 CFOP_ERROR_SELECT_CHORE_ID: Final = "selected_chore_id"
 CFOP_ERROR_START_DATE: Final = "start_date"
 CFOP_ERROR_CHORE_OPTIONS: Final = (
