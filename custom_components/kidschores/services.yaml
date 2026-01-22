@@ -503,7 +503,7 @@ create_reward:
     labels:
       name: "Labels"
       description: "Optional labels to categorize the reward."
-      example: ["fun", "weekend"]
+      example: "['fun', 'weekend']"
       required: false
       selector:
         text:
@@ -554,7 +554,7 @@ update_reward:
     labels:
       name: "Labels"
       description: "The new labels to categorize the reward."
-      example: ["fun", "gaming"]
+      example: "['fun', 'gaming']"
       required: false
       selector:
         text:
@@ -595,7 +595,7 @@ create_chore:
     assigned_kids:
       name: "Assigned Kids"
       description: "List of kid names to assign to this chore."
-      example: ["Emma", "Jack"]
+      example: "['Emma', 'Jack']"
       required: true
       selector:
         text:
@@ -627,7 +627,7 @@ create_chore:
     labels:
       name: "Labels"
       description: "Optional labels to categorize the chore."
-      example: ["daily", "bedroom"]
+      example: "['daily', 'bedroom']"
       required: false
       selector:
         text:
@@ -647,7 +647,7 @@ create_chore:
     applicable_days:
       name: "Applicable Days"
       description: "Days of the week when the chore is applicable."
-      example: ["mon", "wed", "fri"]
+      example: "['mon', 'wed', 'fri']"
       required: false
       selector:
         select:
@@ -743,7 +743,7 @@ update_chore:
     assigned_kids:
       name: "Assigned Kids"
       description: "New list of kid names to assign to this chore."
-      example: ["Emma", "Jack", "Sophia"]
+      example: "['Emma', 'Jack', 'Sophia']"
       required: false
       selector:
         text:
@@ -775,7 +775,7 @@ update_chore:
     labels:
       name: "Labels"
       description: "New labels."
-      example: ["daily", "bedroom", "cleaning"]
+      example: "['daily', 'bedroom', 'cleaning']"
       required: false
       selector:
         text:
@@ -795,7 +795,7 @@ update_chore:
     applicable_days:
       name: "Applicable Days"
       description: "New applicable days."
-      example: ["sat", "sun"]
+      example: "['sat', 'sun']"
       required: false
       selector:
         select:

@@ -1631,20 +1631,19 @@ def async_setup_services(hass: HomeAssistant):
             dict(call.data), _SERVICE_TO_REWARD_DATA_MAPPING
         )
 
-        # Check for duplicate name (inline validation with DATA_* keys)
-        reward_name = data_input.get(const.DATA_REWARD_NAME, "").strip()
-        if not reward_name:
+        # Validate using shared validation (single source of truth)
+        validation_errors = eh.validate_reward_data(
+            data_input,
+            coordinator.rewards_data,
+            is_update=False,
+            current_reward_id=None,
+        )
+        if validation_errors:
+            # Get first error and raise
+            error_field, error_key = next(iter(validation_errors.items()))
             raise HomeAssistantError(
                 translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_CFOF_INVALID_REWARD_NAME,
-            )
-        if any(
-            r[const.DATA_REWARD_NAME] == reward_name
-            for r in coordinator.rewards_data.values()
-        ):
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_CFOF_DUPLICATE_REWARD,
+                translation_key=error_key,
             )
 
         try:
@@ -1747,23 +1746,20 @@ def async_setup_services(hass: HomeAssistant):
             service_data, _SERVICE_TO_REWARD_DATA_MAPPING
         )
 
-        # Validate name uniqueness (exclude current reward) if name is being updated
-        if const.DATA_REWARD_NAME in data_input:
-            new_name = data_input[const.DATA_REWARD_NAME].strip()
-            if not new_name:
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_CFOF_INVALID_REWARD_NAME,
-                )
-            if any(
-                r[const.DATA_REWARD_NAME] == new_name
-                for rid, r in coordinator.rewards_data.items()
-                if rid != reward_id
-            ):
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_CFOF_DUPLICATE_REWARD,
-                )
+        # Validate using shared validation (single source of truth)
+        validation_errors = eh.validate_reward_data(
+            data_input,
+            coordinator.rewards_data,
+            is_update=True,
+            current_reward_id=reward_id,
+        )
+        if validation_errors:
+            # Get first error and raise
+            error_field, error_key = next(iter(validation_errors.items()))
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=error_key,
+            )
 
         try:
             # build_reward(input, existing) - update mode
@@ -1904,15 +1900,23 @@ def async_setup_services(hass: HomeAssistant):
         # Extract due_date for special handling (not passed to build_chore)
         due_date_input = call.data.get(const.SERVICE_FIELD_CHORE_CRUD_DUE_DATE)
 
-        # Check for duplicate name (Layer 2 validation)
-        chore_name = data_input.get(const.DATA_CHORE_NAME, "").strip()
-        if any(
-            chore[const.DATA_CHORE_NAME] == chore_name
-            for chore in coordinator.chores_data.values()
-        ):
+        # Include due_date in validation if provided
+        if due_date_input:
+            data_input[const.DATA_CHORE_DUE_DATE] = due_date_input
+
+        # Validate using shared validation (single source of truth)
+        validation_errors = eh.validate_chore_data(
+            data_input,
+            coordinator.chores_data,
+            is_update=False,
+            current_chore_id=None,
+        )
+        if validation_errors:
+            # Get first error and raise
+            error_field, error_key = next(iter(validation_errors.items()))
             raise HomeAssistantError(
                 translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_CFOF_DUPLICATE_CHORE,
+                translation_key=error_key,
             )
 
         try:
@@ -2052,17 +2056,41 @@ def async_setup_services(hass: HomeAssistant):
         # Extract due_date for special handling
         due_date_input = call.data.get(const.SERVICE_FIELD_CHORE_CRUD_DUE_DATE)
 
-        # Validate name uniqueness (exclude current chore) if name is being updated
-        if const.DATA_CHORE_NAME in data_input:
-            new_name = data_input[const.DATA_CHORE_NAME].strip()
-            if any(
-                cid != chore_id and chore[const.DATA_CHORE_NAME] == new_name
-                for cid, chore in coordinator.chores_data.items()
-            ):
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_CFOF_DUPLICATE_CHORE,
-                )
+        # Include due_date in validation if provided
+        if due_date_input is not None:
+            data_input[const.DATA_CHORE_DUE_DATE] = due_date_input
+
+        # For update: merge with existing data for accurate validation
+        # (assigned_kids may not be in data_input if not being updated)
+        validation_data = dict(data_input)
+        if const.DATA_CHORE_ASSIGNED_KIDS not in validation_data:
+            validation_data[const.DATA_CHORE_ASSIGNED_KIDS] = existing_chore.get(
+                const.DATA_CHORE_ASSIGNED_KIDS, []
+            )
+        # Similarly for other fields needed for combination validation
+        for key in (
+            const.DATA_CHORE_RECURRING_FREQUENCY,
+            const.DATA_CHORE_APPROVAL_RESET_TYPE,
+            const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
+            const.DATA_CHORE_COMPLETION_CRITERIA,
+        ):
+            if key not in validation_data:
+                validation_data[key] = existing_chore.get(key)
+
+        # Validate using shared validation (single source of truth)
+        validation_errors = eh.validate_chore_data(
+            validation_data,
+            coordinator.chores_data,
+            is_update=True,
+            current_chore_id=chore_id,
+        )
+        if validation_errors:
+            # Get first error and raise
+            error_field, error_key = next(iter(validation_errors.items()))
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=error_key,
+            )
 
         try:
             # build_chore(input, existing) - update mode

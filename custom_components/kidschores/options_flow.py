@@ -60,12 +60,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         )
         self._chore_template_date_raw: Any = None  # Template date for per-kid helper
 
-    def _get_coordinator(self):
-        """Get the coordinator from hass.data."""
-        return self.hass.data[const.DOMAIN][self.config_entry.entry_id][
-            const.COORDINATOR
-        ]
-
     # ----------------------------------------------------------------------------------
     # MAIN MENU
     # ----------------------------------------------------------------------------------
@@ -132,49 +126,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     )
                 }
             ),
-        )
-
-    async def async_step_manage_points(self, user_input=None):
-        """Let user edit the points label/icon after initial setup."""
-        errors: dict[str, str] = {}
-
-        if user_input is not None:
-            # Validate inputs
-            errors = fh.validate_points_inputs(user_input)
-
-            if not errors:
-                # Build points configuration
-                points_data = fh.build_points_data(user_input)
-
-                # Update options
-                self._entry_options = dict(self.config_entry.options)
-                self._entry_options.update(points_data)
-                const.LOGGER.debug(
-                    "Configured points with name %s and icon %s",
-                    points_data[const.CONF_POINTS_LABEL],
-                    points_data[const.CONF_POINTS_ICON],
-                )
-                await self._update_system_settings_and_reload()
-
-                return await self.async_step_init()
-
-        # Get existing values from entry options
-        current_label = self._entry_options.get(
-            const.CONF_POINTS_LABEL, const.DEFAULT_POINTS_LABEL
-        )
-        current_icon = self._entry_options.get(
-            const.CONF_POINTS_ICON, const.DEFAULT_POINTS_ICON
-        )
-
-        # Build the form
-        points_schema = fh.build_points_schema(
-            default_label=current_label, default_icon=current_icon
-        )
-
-        return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_MANAGE_POINTS,
-            data_schema=points_schema,
-            description_placeholders={},
         )
 
     async def async_step_manage_entity(self, user_input=None):
@@ -346,29 +297,52 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             ),
         )
 
-    def _get_entity_dict(self):
-        """Retrieve appropriate entity dict based on entity_type."""
-        coordinator = self._get_coordinator()
+    # ----------------------------------------------------------------------------------
+    # POINTS MANAGEMENT
+    # ----------------------------------------------------------------------------------
 
-        entity_type_to_data = {
-            const.OPTIONS_FLOW_DIC_KID: const.DATA_KIDS,
-            const.OPTIONS_FLOW_DIC_PARENT: const.DATA_PARENTS,
-            const.OPTIONS_FLOW_DIC_CHORE: const.DATA_CHORES,
-            const.OPTIONS_FLOW_DIC_BADGE: const.DATA_BADGES,
-            const.OPTIONS_FLOW_DIC_REWARD: const.DATA_REWARDS,
-            const.OPTIONS_FLOW_DIC_BONUS: const.DATA_BONUSES,
-            const.OPTIONS_FLOW_DIC_PENALTY: const.DATA_PENALTIES,
-            const.OPTIONS_FLOW_DIC_ACHIEVEMENT: const.DATA_ACHIEVEMENTS,
-            const.OPTIONS_FLOW_DIC_CHALLENGE: const.DATA_CHALLENGES,
-        }
-        key = entity_type_to_data.get(self._entity_type or "", "")
-        if not key:
-            const.LOGGER.error(
-                "Unknown entity type '%s'. Cannot retrieve entity dictionary",
-                self._entity_type,
-            )
-            return {}
-        return coordinator.data.get(key, {})
+    async def async_step_manage_points(self, user_input=None):
+        """Let user edit the points label/icon after initial setup."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            # Validate inputs
+            errors = fh.validate_points_inputs(user_input)
+
+            if not errors:
+                # Build points configuration
+                points_data = fh.build_points_data(user_input)
+
+                # Update options
+                self._entry_options = dict(self.config_entry.options)
+                self._entry_options.update(points_data)
+                const.LOGGER.debug(
+                    "Configured points with name %s and icon %s",
+                    points_data[const.CONF_POINTS_LABEL],
+                    points_data[const.CONF_POINTS_ICON],
+                )
+                await self._update_system_settings_and_reload()
+
+                return await self.async_step_init()
+
+        # Get existing values from entry options
+        current_label = self._entry_options.get(
+            const.CONF_POINTS_LABEL, const.DEFAULT_POINTS_LABEL
+        )
+        current_icon = self._entry_options.get(
+            const.CONF_POINTS_ICON, const.DEFAULT_POINTS_ICON
+        )
+
+        # Build the form
+        points_schema = fh.build_points_schema(
+            default_label=current_label, default_icon=current_icon
+        )
+
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_MANAGE_POINTS,
+            data_schema=points_schema,
+            description_placeholders={},
+        )
 
     # ----------------------------------------------------------------------------------
     # KIDS MANAGEMENT
@@ -417,6 +391,121 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         )
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_ADD_KID, data_schema=schema, errors=errors
+        )
+
+    async def async_step_edit_kid(self, user_input=None):
+        """Edit an existing kid."""
+        coordinator = self._get_coordinator()
+
+        errors: dict[str, str] = {}
+        kids_dict = coordinator.kids_data
+        internal_id = self.context.get(const.DATA_INTERNAL_ID)
+
+        if not internal_id or internal_id not in kids_dict:
+            const.LOGGER.error("Edit Kid - Invalid Internal ID '%s'", internal_id)
+            return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_KID)
+
+        kid_data = kids_dict[internal_id]
+
+        if user_input is not None:
+            # Layer 2: UI validation (excludes current kid from duplicate check)
+            # Note: internal_id is already validated as str above
+            errors = fh.validate_kids_inputs(
+                user_input, kids_dict, current_kid_id=str(internal_id)
+            )
+
+            if not errors:
+                try:
+                    # Layer 3: Entity helper builds complete structure
+                    # build_kid(user_input, existing) - with existing = update mode
+                    updated_kid = eh.build_kid(user_input, existing=kid_data)
+
+                    # Layer 4: Store updated kid (preserves internal_id)
+                    coordinator._data[const.DATA_KIDS][internal_id] = dict(updated_kid)
+                    coordinator._persist()
+                    coordinator.async_update_listeners()
+
+                    const.LOGGER.debug(
+                        "Edited Kid '%s' with ID: %s",
+                        updated_kid[const.DATA_KID_NAME],
+                        internal_id,
+                    )
+                    self._mark_reload_needed()
+                    return await self.async_step_init()
+
+                except EntityValidationError as err:
+                    # Map field-specific error for form highlighting
+                    errors[err.field] = err.translation_key
+
+        # Retrieve HA users for linking
+        users = await self.hass.auth.async_get_users()
+
+        # Check if this is a shadow kid to show appropriate warnings
+        is_shadow_kid = kid_data.get(const.DATA_KID_IS_SHADOW, False)
+
+        schema = await fh.build_kid_schema(
+            self.hass,
+            users=users,
+            default_kid_name=kid_data[const.DATA_KID_NAME],
+            default_ha_user_id=kid_data.get(const.DATA_KID_HA_USER_ID),
+            default_mobile_notify_service=kid_data.get(
+                const.DATA_KID_MOBILE_NOTIFY_SERVICE
+            ),
+            default_dashboard_language=kid_data.get(
+                const.DATA_KID_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
+            ),
+            default_enable_due_date_reminders=kid_data.get(
+                const.DATA_KID_ENABLE_DUE_DATE_REMINDERS, True
+            ),
+        )
+
+        # Use different step_id for shadow kids (shows appropriate warnings)
+        if is_shadow_kid:
+            return self.async_show_form(
+                step_id=const.OPTIONS_FLOW_STEP_EDIT_KID_SHADOW,
+                data_schema=schema,
+                errors=errors,
+            )
+
+        # Regular kid (no warnings)
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_EDIT_KID,
+            data_schema=schema,
+            errors=errors,
+        )
+
+    async def async_step_edit_kid_shadow(self, user_input=None):
+        """Edit a shadow kid - delegates to edit_kid handler.
+
+        Shadow kids use a different translation key to show warnings,
+        but the processing logic is identical to regular kids.
+        """
+        return await self.async_step_edit_kid(user_input)
+
+    async def async_step_delete_kid(self, user_input=None):
+        """Delete a kid."""
+        coordinator = self._get_coordinator()
+        kids_dict = coordinator.kids_data
+        internal_id = self.context.get(const.DATA_INTERNAL_ID)
+
+        if not internal_id or internal_id not in kids_dict:
+            const.LOGGER.error("Delete Kid - Invalid Internal ID '%s'", internal_id)
+            return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_KID)
+
+        kid_name = kids_dict[internal_id][const.DATA_KID_NAME]
+
+        if user_input is not None:
+            coordinator.delete_kid_entity(internal_id)
+
+            const.LOGGER.debug("Deleted Kid '%s' with ID: %s", kid_name, internal_id)
+            return await self.async_step_init()
+
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_DELETE_KID,
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                const.OPTIONS_FLOW_PLACEHOLDER_KID_NAME: kid_name
+            },
         )
 
     # ----------------------------------------------------------------------------------
@@ -523,835 +612,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             errors=errors,
         )
 
-    # ----------------------------------------------------------------------------------
-    # CHORES MANAGEMENT
-    # ----------------------------------------------------------------------------------
-
-    async def async_step_add_chore(self, user_input=None):
-        """Add a new chore."""
-        coordinator = self._get_coordinator()
-        errors: dict[str, str] = {}
-        chores_dict = coordinator.chores_data
-
-        if user_input is not None:
-            # Build kids_dict for name→UUID conversion
-            kids_dict = {
-                data[const.DATA_KID_NAME]: eid
-                for eid, data in coordinator.kids_data.items()
-            }
-
-            # Build and validate chore data
-            chore_data, errors = fh.build_chores_data(
-                user_input, kids_dict, chores_dict
-            )
-
-            if errors:
-                schema = fh.build_chore_schema(kids_dict, default=user_input)
-                return self.async_show_form(
-                    step_id=const.OPTIONS_FLOW_STEP_ADD_CHORE,
-                    data_schema=schema,
-                    errors=errors,
-                )
-
-            # Get internal_id and the chore data dict
-            internal_id = list(chore_data.keys())[0]
-            new_chore_data = chore_data[internal_id]
-            chore_name = new_chore_data[const.DATA_CHORE_NAME]
-            due_date_str = new_chore_data[const.DATA_CHORE_DUE_DATE]
-
-            # Get completion criteria and assigned kids for routing logic
-            completion_criteria = new_chore_data.get(
-                const.DATA_CHORE_COMPLETION_CRITERIA
-            )
-            assigned_kids = new_chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
-            recurring_frequency = new_chore_data.get(
-                const.DATA_CHORE_RECURRING_FREQUENCY
-            )
-
-            # For INDEPENDENT chores with assigned kids, handle per-kid details
-            # (mirrors edit_chore logic for consistency)
-            if (
-                completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
-                and assigned_kids
-            ):
-                # Capture template values from user input before they're cleared
-                clear_due_date = user_input.get(
-                    const.CFOF_CHORES_INPUT_CLEAR_DUE_DATE, False
-                )
-                raw_template_date = (
-                    None
-                    if clear_due_date
-                    else user_input.get(const.CFOF_CHORES_INPUT_DUE_DATE)
-                )
-                template_applicable_days = user_input.get(
-                    const.CFOF_CHORES_INPUT_APPLICABLE_DAYS, []
-                )
-                template_daily_multi_times = user_input.get(
-                    const.CFOF_CHORES_INPUT_DAILY_MULTI_TIMES, ""
-                )
-
-                # Single kid optimization: apply values directly, skip helper
-                if len(assigned_kids) == 1:
-                    kid_id = assigned_kids[0]
-                    per_kid_due_dates: dict[str, str | None] = {}
-
-                    if clear_due_date:
-                        per_kid_due_dates[kid_id] = None
-                    elif raw_template_date:
-                        try:
-                            utc_dt = kh.dt_parse(
-                                raw_template_date,
-                                default_tzinfo=const.DEFAULT_TIME_ZONE,
-                                return_type=const.HELPER_RETURN_DATETIME_UTC,
-                            )
-                            if utc_dt and isinstance(utc_dt, datetime):
-                                per_kid_due_dates[kid_id] = utc_dt.isoformat()
-                        except ValueError as e:
-                            const.LOGGER.warning(
-                                "Failed to parse date for single kid: %s", e
-                            )
-
-                    if per_kid_due_dates:
-                        new_chore_data[const.DATA_CHORE_PER_KID_DUE_DATES] = (
-                            per_kid_due_dates
-                        )
-
-                    # Apply template applicable_days to single kid
-                    if template_applicable_days:
-                        weekday_keys = list(const.WEEKDAY_OPTIONS.keys())
-                        days_as_strings = [
-                            d for d in template_applicable_days if d in weekday_keys
-                        ]
-                        new_chore_data[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS] = {
-                            kid_id: days_as_strings
-                        }
-                        new_chore_data[const.DATA_CHORE_APPLICABLE_DAYS] = None
-
-                    # Apply daily_multi_times to single kid (if DAILY_MULTI)
-                    if (
-                        recurring_frequency == const.FREQUENCY_DAILY_MULTI
-                        and template_daily_multi_times
-                    ):
-                        new_chore_data[const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES] = {
-                            kid_id: template_daily_multi_times
-                        }
-                        new_chore_data[const.DATA_CHORE_DAILY_MULTI_TIMES] = None
-
-                    # Create chore using entity_helpers (direct storage pattern)
-                    chore_entity = eh.build_chore(new_chore_data)
-                    coordinator._data[const.DATA_CHORES][internal_id] = chore_entity
-                    coordinator._persist()
-                    coordinator.async_update_listeners()
-
-                    # CFE-2026-001 FIX: Single-kid DAILY_MULTI without times
-                    # needs to route to times helper (main form doesn't have times field)
-                    if (
-                        recurring_frequency == const.FREQUENCY_DAILY_MULTI
-                        and not template_daily_multi_times
-                    ):
-                        self._chore_being_edited = new_chore_data
-                        new_chore_data[const.DATA_INTERNAL_ID] = internal_id
-                        const.LOGGER.debug(
-                            "Added single-kid INDEPENDENT DAILY_MULTI Chore '%s' "
-                            "- routing to times helper",
-                            chore_name,
-                        )
-                        return await self.async_step_chores_daily_multi()
-
-                    const.LOGGER.debug(
-                        "Added single-kid INDEPENDENT Chore '%s' with ID: %s",
-                        chore_name,
-                        internal_id,
-                    )
-                    self._mark_reload_needed()
-                    return await self.async_step_init()
-
-                # Multiple kids: create chore, then show per-kid details helper
-                chore_entity = eh.build_chore(new_chore_data)
-                coordinator._data[const.DATA_CHORES][internal_id] = chore_entity
-                coordinator._persist()
-                coordinator.async_update_listeners()
-
-                # Store chore data and template values for helper form
-                new_chore_data[const.DATA_INTERNAL_ID] = internal_id
-                self._chore_being_edited = new_chore_data
-                self._chore_template_date_raw = raw_template_date
-                self._chore_template_applicable_days = template_applicable_days
-                self._chore_template_daily_multi_times = template_daily_multi_times
-
-                const.LOGGER.debug(
-                    "Added multi-kid INDEPENDENT Chore '%s' - routing to per-kid helper",
-                    chore_name,
-                )
-                return await self.async_step_edit_chore_per_kid_details()
-
-            # CFE-2026-001: Check if DAILY_MULTI needs times collection
-            # (non-INDEPENDENT chores with DAILY_MULTI frequency)
-            if recurring_frequency == const.FREQUENCY_DAILY_MULTI:
-                # Create chore using entity_helpers (direct storage pattern)
-                chore_entity = eh.build_chore(new_chore_data)
-                coordinator._data[const.DATA_CHORES][internal_id] = chore_entity
-                coordinator._persist()
-                coordinator.async_update_listeners()
-
-                # Store chore data for helper step
-                new_chore_data[const.DATA_INTERNAL_ID] = internal_id
-                self._chore_being_edited = new_chore_data
-
-                const.LOGGER.debug(
-                    "Added DAILY_MULTI Chore '%s' - routing to times helper",
-                    chore_name,
-                )
-                return await self.async_step_chores_daily_multi()
-
-            # Standard chore creation (SHARED/SHARED_FIRST or no special handling)
-            chore_entity = eh.build_chore(new_chore_data)
-            coordinator._data[const.DATA_CHORES][internal_id] = chore_entity
-            coordinator._persist()
-            coordinator.async_update_listeners()
-
-            const.LOGGER.debug(
-                "Added Chore '%s' with ID: %s and Due Date %s",
-                chore_name,
-                internal_id,
-                due_date_str,
-            )
-            self._mark_reload_needed()
-            return await self.async_step_init()
-
-        # Use flow_helpers.build_chore_schema, passing current kids
-        kids_dict = {
-            data[const.DATA_KID_NAME]: eid
-            for eid, data in coordinator.kids_data.items()
-        }
-        schema = fh.build_chore_schema(kids_dict)
-        return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_ADD_CHORE, data_schema=schema, errors=errors
-        )
-
-    # ----------------------------------------------------------------------------------
-    # BADGES MANAGEMENT
-    # ----------------------------------------------------------------------------------
-
-    async def async_step_add_badge(self, user_input=None):
-        """Entry point to add a new badge."""
-        if user_input is not None:
-            badge_type = user_input[const.CFOF_BADGES_INPUT_TYPE]
-            cast("dict[str, Any]", self.context)[const.CFOF_BADGES_INPUT_TYPE] = (
-                badge_type
-            )
-
-            # Redirect to the appropriate step based on badge type
-            if badge_type == const.BADGE_TYPE_CUMULATIVE:
-                return await self.async_step_add_badge_cumulative()
-            if badge_type == const.BADGE_TYPE_DAILY:
-                return await self.async_step_add_badge_daily()
-            if badge_type == const.BADGE_TYPE_PERIODIC:
-                return await self.async_step_add_badge_periodic()
-            if badge_type == const.BADGE_TYPE_ACHIEVEMENT_LINKED:
-                return await self.async_step_add_badge_achievement()
-            if badge_type == const.BADGE_TYPE_CHALLENGE_LINKED:
-                return await self.async_step_add_badge_challenge()
-            if badge_type == const.BADGE_TYPE_SPECIAL_OCCASION:
-                return await self.async_step_add_badge_special()
-            # Fallback to cumulative if unknown.
-            return await self.async_step_add_badge_cumulative()
-
-        badge_type_options = [
-            const.BADGE_TYPE_CUMULATIVE,
-            const.BADGE_TYPE_DAILY,
-            const.BADGE_TYPE_PERIODIC,
-            const.BADGE_TYPE_ACHIEVEMENT_LINKED,
-            const.BADGE_TYPE_CHALLENGE_LINKED,
-            const.BADGE_TYPE_SPECIAL_OCCASION,
-        ]
-        schema = vol.Schema(
-            {
-                vol.Required(const.CFOF_BADGES_INPUT_TYPE): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=badge_type_options,
-                        mode=selector.SelectSelectorMode.LIST,
-                        translation_key=const.TRANS_KEY_CFOF_BADGE_TYPE,
-                    )
-                )
-            }
-        )
-        return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_ADD_BADGE, data_schema=schema
-        )
-
-    # ----- Add Achievement-Linked Badge -----
-    async def async_step_add_badge_achievement(self, user_input=None):
-        """Handle adding an achievement-linked badge."""
-        # Redirect to the common function with the appropriate badge type
-        # Allows customization of the UI text for achievement-linked badges
-        return await self.async_add_edit_badge_common(
-            user_input=user_input,
-            badge_type=const.BADGE_TYPE_ACHIEVEMENT_LINKED,
-            is_edit=False,
-        )
-
-    # ----- Add Challenge-Linked Badge -----
-    async def async_step_add_badge_challenge(self, user_input=None):
-        """Handle adding a challenge-linked badge."""
-        # Redirect to the common function with the appropriate badge type
-        # Allows customization of the UI text for challenge-linked badges
-        return await self.async_add_edit_badge_common(
-            user_input=user_input,
-            badge_type=const.BADGE_TYPE_CHALLENGE_LINKED,
-            is_edit=False,
-        )
-
-    # ----- Add Cumulative Badge (Points-only) -----
-    async def async_step_add_badge_cumulative(self, user_input=None):
-        """Handle adding a cumulative badge."""
-        # Redirect to the common function with the appropriate badge type
-        # Allows customization of the UI text for cumulative badges
-        return await self.async_add_edit_badge_common(
-            user_input=user_input,
-            badge_type=const.BADGE_TYPE_CUMULATIVE,
-            is_edit=False,
-        )
-
-    # ----- Add Daily Badge -----
-    async def async_step_add_badge_daily(self, user_input=None):
-        """Handle adding a daily badge."""
-        # Redirect to the common function with the appropriate badge type
-        # Allows customization of the UI text for daily badges
-        return await self.async_add_edit_badge_common(
-            user_input=user_input,
-            badge_type=const.BADGE_TYPE_DAILY,
-            is_edit=False,
-        )
-
-    # ----- Add Periodic Badge -----
-    async def async_step_add_badge_periodic(self, user_input=None):
-        """Handle adding a periodic badge."""
-        # Redirect to the common function with the appropriate badge type
-        # Allows customization of the UI text for periodic badges
-        return await self.async_add_edit_badge_common(
-            user_input=user_input,
-            badge_type=const.BADGE_TYPE_PERIODIC,
-            is_edit=False,
-        )
-
-    # ----- Add Special Occasion Badge -----
-    async def async_step_add_badge_special(self, user_input=None):
-        """Handle adding a special occasion badge."""
-        # Redirect to the common function with the appropriate badge type
-        # Allows customization of the UI text for special occasion badges
-        return await self.async_add_edit_badge_common(
-            user_input=user_input,
-            badge_type=const.BADGE_TYPE_SPECIAL_OCCASION,
-            is_edit=False,
-        )
-
-    # ----- Add Badge Centralized Function for All Types -----
-    async def async_add_edit_badge_common(
-        self,
-        user_input: dict[str, Any] | None = None,
-        badge_type: str = const.BADGE_TYPE_CUMULATIVE,
-        default_data: dict[str, Any] | None = None,
-        is_edit: bool = False,
-    ):
-        """Handle adding or editing a badge."""
-        coordinator = self._get_coordinator()
-        badges_dict = coordinator.badges_data
-        chores_dict = coordinator.chores_data
-        kids_dict = coordinator.kids_data
-        rewards_dict = coordinator.rewards_data
-        achievements_dict = coordinator.achievements_data
-        challenges_dict = coordinator.challenges_data
-        bonuses_dict = coordinator.bonuses_data
-        penalties_dict = coordinator.penalties_data
-
-        errors: dict[str, str] = {}
-
-        # Determine internal_id (UUID-based primary key, persists across renames)
-        if is_edit:
-            # Edit mode: retrieve internal_id from context (set when user selected badge to edit)
-            # Cast from context dict which returns object type
-            internal_id: str | None = cast(
-                "str | None", self.context.get(const.CFOF_GLOBAL_INPUT_INTERNAL_ID)
-            )
-            # Validate that the badge still exists (defensive: could have been deleted by another process)
-            if not internal_id or internal_id not in badges_dict:
-                const.LOGGER.error("Invalid Internal ID for editing badge.")
-                return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_BADGE)
-        else:
-            # Add mode: generate new UUID and store in context for form resubmissions
-            # Context persists across form validation errors (same internal_id on retry)
-            internal_id = str(uuid.uuid4())
-            # Cast context to dict[str, Any] since HA's ConfigFlowContext doesn't allow arbitrary keys
-            # but we need to store internal_id for form resubmission across validation errors
-            cast("dict[str, Any]", self.context)[
-                const.CFOF_GLOBAL_INPUT_INTERNAL_ID
-            ] = internal_id
-
-        if user_input is not None:
-            # --- Validate Inputs ---
-            # Badge validation is complex: checks name uniqueness, reward/bonus/penalty
-            # existence, and type-specific rules (e.g., periodic requires repeat_interval)
-            errors = fh.validate_badge_common_inputs(
-                user_input=user_input,
-                internal_id=internal_id,
-                existing_badges=badges_dict,
-                rewards_dict=rewards_dict,
-                bonuses_dict=bonuses_dict,
-                penalties_dict=penalties_dict,
-                badge_type=badge_type,
-            )
-
-            badge_dict: BadgeData | None = None
-            if not errors:
-                # --- Build Data using entity_helpers (modern pattern) ---
-                try:
-                    if is_edit:
-                        existing_badge = badges_dict.get(internal_id)
-                        badge_dict = eh.build_badge(
-                            user_input,
-                            existing=existing_badge,
-                            badge_type=badge_type,
-                        )
-                    else:
-                        badge_dict = eh.build_badge(
-                            user_input,
-                            badge_type=badge_type,
-                        )
-                        # Override internal_id with the one from context
-                        badge_dict[const.DATA_BADGE_INTERNAL_ID] = internal_id
-                except eh.EntityValidationError as err:
-                    errors[err.field] = err.translation_key
-                    badge_dict = None
-
-            if not errors and badge_dict is not None:
-                # --- Save Data (direct storage write) ---
-                if is_edit:
-                    # Edit: update existing badge
-                    coordinator._data[const.DATA_BADGES][internal_id] = dict(badge_dict)
-                    # Phase 4: Sync badge_progress after badge update
-                    for kid_id in coordinator.kids_data:
-                        coordinator._sync_badge_progress_for_kid(kid_id)
-                    coordinator._recalculate_all_badges()
-                    coordinator._persist()
-                    coordinator.async_update_listeners()
-                else:
-                    # Add: create new badge + persist + notify listeners
-                    coordinator._data.setdefault(const.DATA_BADGES, {})[internal_id] = (
-                        dict(badge_dict)
-                    )
-                    # Sync badge progress for all kids (creates progress sensors)
-                    for kid_id in coordinator.kids_data:
-                        coordinator._sync_badge_progress_for_kid(kid_id)
-                    # Recalculate badges to trigger initial evaluation
-                    coordinator._recalculate_all_badges()
-                    coordinator._persist()
-                    coordinator.async_update_listeners()
-
-                const.LOGGER.debug(
-                    "%s Badge '%s' with ID: %s. Data: %s",
-                    "Updated" if is_edit else "Added",
-                    badge_dict[const.DATA_BADGE_NAME],
-                    internal_id,
-                    badge_dict,
-                )
-
-                self._mark_reload_needed()
-                return await self.async_step_init()
-
-        # --- Build Schema ---
-        badge_schema_data = user_input if user_input else default_data or {}
-        schema_fields = fh.build_badge_common_schema(
-            default=badge_schema_data,
-            kids_dict=kids_dict,
-            chores_dict=chores_dict,
-            rewards_dict=rewards_dict,
-            achievements_dict=achievements_dict,
-            challenges_dict=challenges_dict,
-            bonuses_dict=bonuses_dict,
-            penalties_dict=penalties_dict,
-            badge_type=badge_type,
-        )
-        data_schema = vol.Schema(schema_fields)
-
-        # Determine step name dynamically
-        step_name = (
-            const.OPTIONS_FLOW_EDIT_STEP.get(badge_type)
-            if is_edit
-            else const.OPTIONS_FLOW_ADD_STEP.get(badge_type)
-        )
-        if not step_name:
-            const.LOGGER.error("Invalid badge type '%s'.", badge_type)
-            return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_BADGE_TYPE)
-
-        return self.async_show_form(
-            step_id=step_name,
-            data_schema=data_schema,
-            errors=errors,
-            description_placeholders=None,
-            last_step=False,
-        )
-
-    # ----------------------------------------------------------------------------------
-    # REWARDS MANAGEMENT
-    # ----------------------------------------------------------------------------------
-
-    async def async_step_add_reward(self, user_input=None):
-        """Add a new reward."""
-        coordinator = self._get_coordinator()
-        errors: dict[str, str] = {}
-        rewards_dict = coordinator.rewards_data
-
-        if user_input is not None:
-            # Layer 2: UI validation (uniqueness check)
-            errors = fh.validate_rewards_inputs(user_input, rewards_dict)
-
-            if not errors:
-                try:
-                    # Layer 3: Entity helper builds complete structure
-                    # Convert CFOF_* form keys to DATA_* keys, then build reward
-                    data_input = eh.map_cfof_to_reward_data(user_input)
-                    reward_data = eh.build_reward(data_input)
-                    internal_id = reward_data[const.DATA_REWARD_INTERNAL_ID]
-
-                    # Layer 4: Coordinator stores (thin wrapper)
-                    coordinator._data[const.DATA_REWARDS][internal_id] = dict(
-                        reward_data
-                    )
-                    coordinator._persist()
-                    coordinator.async_update_listeners()
-
-                    const.LOGGER.debug(
-                        "Added Reward '%s' with ID: %s",
-                        reward_data[const.DATA_REWARD_NAME],
-                        internal_id,
-                    )
-                    self._mark_reload_needed()
-                    return await self.async_step_init()
-
-                except EntityValidationError as err:
-                    # Map field-specific error for form highlighting
-                    errors[err.field] = err.translation_key
-
-        schema = fh.build_reward_schema()
-        return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_ADD_REWARD,
-            data_schema=schema,
-            errors=errors,
-        )
-
-    # ----------------------------------------------------------------------------------
-    # BONUSES MANAGEMENT
-    # ----------------------------------------------------------------------------------
-
-    async def async_step_add_bonus(self, user_input=None):
-        """Add a new bonus."""
-        coordinator = self._get_coordinator()
-        errors: dict[str, str] = {}
-        bonuses_dict = coordinator.bonuses_data
-
-        if user_input is not None:
-            # Validate inputs
-            errors = fh.validate_bonuses_inputs(user_input, bonuses_dict)
-
-            if not errors:
-                # Transform form input keys to DATA_* keys
-                transformed_input = {
-                    const.DATA_BONUS_NAME: user_input[const.CFOF_BONUSES_INPUT_NAME],
-                    const.DATA_BONUS_DESCRIPTION: user_input.get(const.CFOF_BONUSES_INPUT_DESCRIPTION, const.SENTINEL_EMPTY),
-                    const.DATA_BONUS_POINTS: user_input.get(const.CFOF_BONUSES_INPUT_POINTS, const.DEFAULT_BONUS_POINTS),
-                    const.DATA_BONUS_ICON: user_input.get(const.CFOF_BONUSES_INPUT_ICON, const.DEFAULT_BONUS_ICON),
-                }
-                # Build bonus data using unified helper
-                new_bonus_data = eh.build_bonus_or_penalty(transformed_input, "bonus")
-                internal_id = new_bonus_data[const.DATA_BONUS_INTERNAL_ID]
-
-                # Direct storage write
-                coordinator._data[const.DATA_BONUSES][internal_id] = new_bonus_data
-                coordinator._persist()
-                coordinator.async_update_listeners()
-
-                bonus_name = user_input[const.CFOF_BONUSES_INPUT_NAME].strip()
-                const.LOGGER.debug(
-                    "Added Bonus '%s' with ID: %s", bonus_name, internal_id
-                )
-                self._mark_reload_needed()
-                return await self.async_step_init()
-
-        schema = fh.build_bonus_schema()
-        return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_ADD_BONUS, data_schema=schema, errors=errors
-        )
-
-    # ----------------------------------------------------------------------------------
-    # PENALTIES MANAGEMENT
-    # ----------------------------------------------------------------------------------
-
-    async def async_step_add_penalty(self, user_input=None):
-        """Add a new penalty."""
-        coordinator = self._get_coordinator()
-        errors: dict[str, str] = {}
-        penalties_dict = coordinator.penalties_data
-
-        if user_input is not None:
-            # Validate inputs
-            errors = fh.validate_penalties_inputs(user_input, penalties_dict)
-
-            if not errors:
-                # Transform form input keys to DATA_* keys
-                transformed_input = {
-                    const.DATA_PENALTY_NAME: user_input[const.CFOF_PENALTIES_INPUT_NAME],
-                    const.DATA_PENALTY_DESCRIPTION: user_input.get(const.CFOF_PENALTIES_INPUT_DESCRIPTION, const.SENTINEL_EMPTY),
-                    const.DATA_PENALTY_POINTS: user_input.get(const.CFOF_PENALTIES_INPUT_POINTS, const.DEFAULT_PENALTY_POINTS),
-                    const.DATA_PENALTY_ICON: user_input.get(const.CFOF_PENALTIES_INPUT_ICON, const.DEFAULT_PENALTY_ICON),
-                }
-                # Build penalty data using unified helper
-                new_penalty_data = eh.build_bonus_or_penalty(transformed_input, "penalty")
-                internal_id = new_penalty_data[const.DATA_PENALTY_INTERNAL_ID]
-
-                # Direct storage write
-                coordinator._data[const.DATA_PENALTIES][internal_id] = new_penalty_data
-                coordinator._persist()
-                coordinator.async_update_listeners()
-
-                penalty_name = user_input[const.CFOF_PENALTIES_INPUT_NAME].strip()
-                const.LOGGER.debug(
-                    "Added Penalty '%s' with ID: %s", penalty_name, internal_id
-                )
-                self._mark_reload_needed()
-                return await self.async_step_init()
-
-        schema = fh.build_penalty_schema()
-        return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_ADD_PENALTY,
-            data_schema=schema,
-            errors=errors,
-        )
-
-    # ----------------------------------------------------------------------------------
-    # ACHIEVEMENTS MANAGEMENT
-    # ----------------------------------------------------------------------------------
-
-    async def async_step_add_achievement(self, user_input=None):
-        """Add a new achievement."""
-        coordinator = self._get_coordinator()
-        errors: dict[str, str] = {}
-        achievements_dict = coordinator.achievements_data
-        chores_dict = coordinator.chores_data
-
-        if user_input is not None:
-            # Build kids name to ID mapping for options flow
-            kids_name_to_id = {
-                kid[const.DATA_KID_NAME]: kid[const.DATA_KID_INTERNAL_ID]
-                for kid in coordinator.data.get(const.DATA_KIDS, {}).values()
-            }
-
-            # Build achievement data with integrated validation
-            achievement_data, errors = fh.build_achievements_data(
-                user_input, achievements_dict, kids_name_to_id
-            )
-
-            if not errors:
-                internal_id, new_achievement_data = next(iter(achievement_data.items()))
-
-                coordinator._create_achievement(internal_id, new_achievement_data)
-                coordinator._persist()
-                coordinator.async_update_listeners()
-
-                achievement_name = user_input[
-                    const.CFOF_ACHIEVEMENTS_INPUT_NAME
-                ].strip()
-                const.LOGGER.debug(
-                    "Added Achievement '%s' with ID: %s",
-                    achievement_name,
-                    internal_id,
-                )
-                self._mark_reload_needed()
-                return await self.async_step_init()
-
-        kids_dict = {
-            kid_data[const.DATA_KID_NAME]: kid_id
-            for kid_id, kid_data in coordinator.kids_data.items()
-        }
-        achievement_schema = fh.build_achievement_schema(
-            kids_dict=kids_dict, chores_dict=chores_dict, default=None
-        )
-        return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_ADD_ACHIEVEMENT,
-            data_schema=achievement_schema,
-            errors=errors,
-        )
-
-    # ----------------------------------------------------------------------------------
-    # CHALLENGES MANAGEMENT
-    # ----------------------------------------------------------------------------------
-
-    async def async_step_add_challenge(self, user_input=None):
-        """Add a new challenge."""
-        coordinator = self._get_coordinator()
-        errors: dict[str, str] = {}
-        chores_dict = coordinator.chores_data
-
-        if user_input is not None:
-            # Use helper to build and validate challenge data
-            challenge_data, errors = fh.build_challenges_data(
-                user_input,
-                coordinator.kids_data,
-                existing_challenges=coordinator.challenges_data,
-                current_id=None,  # New challenge
-            )
-
-            if not errors and challenge_data:
-                # Additional validation for options flow: dates must be in the future
-                internal_id = list(challenge_data.keys())[0]
-                start_date_str = challenge_data[internal_id][
-                    const.DATA_CHALLENGE_START_DATE
-                ]
-                end_date_str = challenge_data[internal_id][
-                    const.DATA_CHALLENGE_END_DATE
-                ]
-
-                start_dt = dt_util.parse_datetime(start_date_str)
-                end_dt = dt_util.parse_datetime(end_date_str)
-
-                if start_dt and start_dt < dt_util.utcnow():
-                    errors = {
-                        const.CFOP_ERROR_START_DATE: const.TRANS_KEY_CFOF_START_DATE_IN_PAST
-                    }
-                elif end_dt and end_dt <= dt_util.utcnow():
-                    errors = {
-                        const.CFOP_ERROR_END_DATE: const.TRANS_KEY_CFOF_END_DATE_IN_PAST
-                    }
-
-            if not errors and challenge_data:
-                internal_id = list(challenge_data.keys())[0]
-                coordinator._create_challenge(internal_id, challenge_data[internal_id])
-                coordinator._persist()
-                coordinator.async_update_listeners()
-
-                challenge_name = user_input[const.CFOF_CHALLENGES_INPUT_NAME].strip()
-                const.LOGGER.debug(
-                    "Added Challenge '%s' with ID: %s",
-                    challenge_name,
-                    internal_id,
-                )
-                self._mark_reload_needed()
-                return await self.async_step_init()
-
-        kids_dict = {
-            data[const.DATA_KID_NAME]: eid
-            for eid, data in coordinator.kids_data.items()
-        }
-        challenge_schema = fh.build_challenge_schema(
-            kids_dict=kids_dict, chores_dict=chores_dict, default=user_input
-        )
-        return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_ADD_CHALLENGE,
-            data_schema=challenge_schema,
-            errors=errors,
-        )
-
-    # ----------------------------------------------------------------------------------
-    # EDIT METHODS (Cross-Entity - Keep Together)
-    # ----------------------------------------------------------------------------------
-
-    # --- Kids ---
-
-    async def async_step_edit_kid(self, user_input=None):
-        """Edit an existing kid."""
-        coordinator = self._get_coordinator()
-
-        errors: dict[str, str] = {}
-        kids_dict = coordinator.kids_data
-        internal_id = self.context.get(const.DATA_INTERNAL_ID)
-
-        if not internal_id or internal_id not in kids_dict:
-            const.LOGGER.error("Edit Kid - Invalid Internal ID '%s'", internal_id)
-            return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_KID)
-
-        kid_data = kids_dict[internal_id]
-
-        if user_input is not None:
-            # Build temporary dict for duplicate checking (excludes current kid)
-            kids_for_validation = {
-                kid_id: kdata
-                for kid_id, kdata in kids_dict.items()
-                if kid_id != internal_id
-            }
-
-            # Layer 2: UI validation (uniqueness check)
-            errors = fh.validate_kids_inputs(user_input, kids_for_validation)
-
-            if not errors:
-                try:
-                    # Layer 3: Entity helper builds complete structure
-                    # build_kid(user_input, existing) - with existing = update mode
-                    updated_kid = eh.build_kid(user_input, existing=kid_data)
-
-                    # Layer 4: Store updated kid (preserves internal_id)
-                    coordinator._data[const.DATA_KIDS][internal_id] = dict(updated_kid)
-                    coordinator._persist()
-                    coordinator.async_update_listeners()
-
-                    const.LOGGER.debug(
-                        "Edited Kid '%s' with ID: %s",
-                        updated_kid[const.DATA_KID_NAME],
-                        internal_id,
-                    )
-                    self._mark_reload_needed()
-                    return await self.async_step_init()
-
-                except EntityValidationError as err:
-                    # Map field-specific error for form highlighting
-                    errors[err.field] = err.translation_key
-
-        # Retrieve HA users for linking
-        users = await self.hass.auth.async_get_users()
-
-        # Check if this is a shadow kid to show appropriate warnings
-        is_shadow_kid = kid_data.get(const.DATA_KID_IS_SHADOW, False)
-
-        schema = await fh.build_kid_schema(
-            self.hass,
-            users=users,
-            default_kid_name=kid_data[const.DATA_KID_NAME],
-            default_ha_user_id=kid_data.get(const.DATA_KID_HA_USER_ID),
-            default_mobile_notify_service=kid_data.get(
-                const.DATA_KID_MOBILE_NOTIFY_SERVICE
-            ),
-            default_dashboard_language=kid_data.get(
-                const.DATA_KID_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
-            ),
-            default_enable_due_date_reminders=kid_data.get(
-                const.DATA_KID_ENABLE_DUE_DATE_REMINDERS, True
-            ),
-        )
-
-        # Use different step_id for shadow kids (shows appropriate warnings)
-        if is_shadow_kid:
-            return self.async_show_form(
-                step_id=const.OPTIONS_FLOW_STEP_EDIT_KID_SHADOW,
-                data_schema=schema,
-                errors=errors,
-            )
-
-        # Regular kid (no warnings)
-        return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_EDIT_KID,
-            data_schema=schema,
-            errors=errors,
-        )
-
-    async def async_step_edit_kid_shadow(self, user_input=None):
-        """Edit a shadow kid - delegates to edit_kid handler.
-
-        Shadow kids use a different translation key to show warnings,
-        but the processing logic is identical to regular kids.
-        """
-        return await self.async_step_edit_kid(user_input)
-
-    # --- Parents ---
-
     async def async_step_edit_parent(self, user_input=None):
         """Edit an existing parent."""
         coordinator = self._get_coordinator()
@@ -1366,35 +626,20 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         parent_data = parents_dict[internal_id]
 
         if user_input is not None:
-            # Build temporary dict for duplicate checking (excludes current parent)
-            parents_for_validation = {
-                pid: pdata for pid, pdata in parents_dict.items() if pid != internal_id
+            # Layer 2: UI validation (excludes current parent from duplicate check)
+            # Note: internal_id is already validated as str above
+            # For shadow kid conflict: only check non-shadow kids
+            non_shadow_kids = {
+                kid_id: data
+                for kid_id, data in coordinator.kids_data.items()
+                if not data.get(const.DATA_KID_IS_SHADOW, False)
             }
-
-            # Layer 2: UI validation (uniqueness check)
-            errors = fh.validate_parents_inputs(user_input, parents_for_validation)
-
-            # Additional validation: when enabling chore assignment, check shadow kid name conflict
-            allow_chore_assignment = user_input.get(
-                const.CFOF_PARENTS_INPUT_ALLOW_CHORE_ASSIGNMENT, False
+            errors = fh.validate_parents_inputs(
+                user_input,
+                parents_dict,
+                non_shadow_kids,
+                current_parent_id=str(internal_id),
             )
-            was_enabled = parent_data.get(
-                const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT, False
-            )
-
-            if not errors and allow_chore_assignment and not was_enabled:
-                # Only check when ENABLING chore assignment (not already enabled)
-                new_name = user_input.get(const.CFOF_PARENTS_INPUT_NAME, "").strip()
-                existing_kid_names = {
-                    data.get(const.DATA_KID_NAME, "").lower()
-                    for data in coordinator.kids_data.values()
-                    # Exclude shadow kids - they'll be replaced anyway
-                    if not data.get(const.DATA_KID_IS_SHADOW, False)
-                }
-                if new_name.lower() in existing_kid_names:
-                    errors[const.CFOP_ERROR_PARENT_NAME] = (
-                        const.TRANS_KEY_CFOF_DUPLICATE_NAME
-                    )
 
             if not errors:
                 try:
@@ -1405,6 +650,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     # Handle shadow kid creation/deletion based on allow_chore_assignment
                     existing_shadow_kid_id = parent_data.get(
                         const.DATA_PARENT_LINKED_SHADOW_KID_ID
+                    )
+                    allow_chore_assignment = user_input.get(
+                        const.CFOF_PARENTS_INPUT_ALLOW_CHORE_ASSIGNMENT, False
+                    )
+                    was_enabled = parent_data.get(
+                        const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT, False
                     )
 
                     if allow_chore_assignment and not was_enabled:
@@ -1481,7 +732,246 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             errors=errors,
         )
 
-    # --- Chores ---
+    async def async_step_delete_parent(self, user_input=None):
+        """Delete a parent."""
+        coordinator = self._get_coordinator()
+        parents_dict = coordinator.parents_data
+        internal_id = self.context.get(const.DATA_INTERNAL_ID)
+
+        if not internal_id or internal_id not in parents_dict:
+            const.LOGGER.error("Delete Parent - Invalid Internal ID '%s'", internal_id)
+            return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_PARENT)
+
+        parent_name = parents_dict[internal_id][const.DATA_PARENT_NAME]
+
+        if user_input is not None:
+            coordinator.delete_parent_entity(internal_id)
+
+            const.LOGGER.debug(
+                "Deleted Parent '%s' with ID: %s", parent_name, internal_id
+            )
+            return await self.async_step_init()
+
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_DELETE_PARENT,
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                const.OPTIONS_FLOW_PLACEHOLDER_PARENT_NAME: parent_name
+            },
+        )
+
+    # ----------------------------------------------------------------------------------
+    # CHORES MANAGEMENT
+    # ----------------------------------------------------------------------------------
+
+    async def async_step_add_chore(self, user_input=None):
+        """Add a new chore."""
+        coordinator = self._get_coordinator()
+        errors: dict[str, str] = {}
+        chores_dict = coordinator.chores_data
+
+        if user_input is not None:
+            # Build kids_dict for name→UUID conversion
+            kids_dict = {
+                data[const.DATA_KID_NAME]: eid
+                for eid, data in coordinator.kids_data.items()
+            }
+
+            # Validate chore input
+            errors, due_date_str = fh.validate_chores_inputs(
+                user_input, kids_dict, chores_dict
+            )
+
+            if errors:
+                schema = fh.build_chore_schema(kids_dict, default=user_input)
+                return self.async_show_form(
+                    step_id=const.OPTIONS_FLOW_STEP_ADD_CHORE,
+                    data_schema=schema,
+                    errors=errors,
+                )
+
+            # Transform CFOF_* → DATA_* and build chore entity
+            transformed_data = fh.transform_chore_cfof_to_data(
+                user_input, kids_dict, due_date_str
+            )
+            new_chore_data = eh.build_chore(transformed_data)
+            internal_id = new_chore_data[const.DATA_CHORE_INTERNAL_ID]
+            chore_name = new_chore_data[const.DATA_CHORE_NAME]
+
+            # Get completion criteria and assigned kids for routing logic
+            completion_criteria = new_chore_data.get(
+                const.DATA_CHORE_COMPLETION_CRITERIA
+            )
+            assigned_kids = new_chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+            recurring_frequency = new_chore_data.get(
+                const.DATA_CHORE_RECURRING_FREQUENCY
+            )
+
+            # For INDEPENDENT chores with assigned kids, handle per-kid details
+            # (mirrors edit_chore logic for consistency)
+            if (
+                completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
+                and assigned_kids
+            ):
+                # Capture template values from user input before they're cleared
+                clear_due_date = user_input.get(
+                    const.CFOF_CHORES_INPUT_CLEAR_DUE_DATE, False
+                )
+                raw_template_date = (
+                    None
+                    if clear_due_date
+                    else user_input.get(const.CFOF_CHORES_INPUT_DUE_DATE)
+                )
+                template_applicable_days = user_input.get(
+                    const.CFOF_CHORES_INPUT_APPLICABLE_DAYS, []
+                )
+                template_daily_multi_times = user_input.get(
+                    const.CFOF_CHORES_INPUT_DAILY_MULTI_TIMES, ""
+                )
+
+                # Single kid optimization: apply values directly, skip helper
+                if len(assigned_kids) == 1:
+                    kid_id = assigned_kids[0]
+
+                    # Build updates dict for single-kid optimizations
+                    single_kid_updates: dict[str, Any] = {}
+
+                    # Handle per-kid due dates
+                    per_kid_due_dates: dict[str, str | None] = {}
+                    if clear_due_date:
+                        per_kid_due_dates[kid_id] = None
+                    elif raw_template_date:
+                        try:
+                            utc_dt = kh.dt_parse(
+                                raw_template_date,
+                                default_tzinfo=const.DEFAULT_TIME_ZONE,
+                                return_type=const.HELPER_RETURN_DATETIME_UTC,
+                            )
+                            if utc_dt and isinstance(utc_dt, datetime):
+                                per_kid_due_dates[kid_id] = utc_dt.isoformat()
+                        except ValueError as e:
+                            const.LOGGER.warning(
+                                "Failed to parse date for single kid: %s", e
+                            )
+
+                    if per_kid_due_dates:
+                        single_kid_updates[const.DATA_CHORE_PER_KID_DUE_DATES] = (
+                            per_kid_due_dates
+                        )
+
+                    # Apply template applicable_days to single kid
+                    if template_applicable_days:
+                        weekday_keys = list(const.WEEKDAY_OPTIONS.keys())
+                        days_as_strings = [
+                            d for d in template_applicable_days if d in weekday_keys
+                        ]
+                        single_kid_updates[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS] = {
+                            kid_id: days_as_strings
+                        }
+                        # Clear chore-level (per-kid is source of truth)
+                        single_kid_updates[const.DATA_CHORE_APPLICABLE_DAYS] = []
+
+                    # Apply daily_multi_times to single kid (if DAILY_MULTI)
+                    if (
+                        recurring_frequency == const.FREQUENCY_DAILY_MULTI
+                        and template_daily_multi_times
+                    ):
+                        single_kid_updates[
+                            const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES
+                        ] = {kid_id: template_daily_multi_times}
+                        # Clear chore-level (per-kid is source of truth)
+                        single_kid_updates[const.DATA_CHORE_DAILY_MULTI_TIMES] = ""
+
+                    # Build final chore with single-kid updates merged
+                    final_chore = eh.build_chore(
+                        single_kid_updates, existing=new_chore_data
+                    )
+                    coordinator._data[const.DATA_CHORES][internal_id] = final_chore
+                    coordinator._persist()
+                    coordinator.async_update_listeners()
+
+                    # CFE-2026-001 FIX: Single-kid DAILY_MULTI without times
+                    # needs to route to times helper (main form doesn't have times field)
+                    if (
+                        recurring_frequency == const.FREQUENCY_DAILY_MULTI
+                        and not template_daily_multi_times
+                    ):
+                        self._chore_being_edited = dict(final_chore)
+                        self._chore_being_edited[const.DATA_INTERNAL_ID] = internal_id
+                        const.LOGGER.debug(
+                            "Added single-kid INDEPENDENT DAILY_MULTI Chore '%s' "
+                            "- routing to times helper",
+                            chore_name,
+                        )
+                        return await self.async_step_chores_daily_multi()
+
+                    const.LOGGER.debug(
+                        "Added single-kid INDEPENDENT Chore '%s' with ID: %s",
+                        chore_name,
+                        internal_id,
+                    )
+                    self._mark_reload_needed()
+                    return await self.async_step_init()
+
+                # Multiple kids: create chore, then show per-kid details helper
+                coordinator._data[const.DATA_CHORES][internal_id] = new_chore_data
+                coordinator._persist()
+                coordinator.async_update_listeners()
+
+                # Store chore data and template values for helper form
+                self._chore_being_edited = dict(new_chore_data)
+                self._chore_being_edited[const.DATA_INTERNAL_ID] = internal_id
+                self._chore_template_date_raw = raw_template_date
+                self._chore_template_applicable_days = template_applicable_days
+                self._chore_template_daily_multi_times = template_daily_multi_times
+
+                const.LOGGER.debug(
+                    "Added multi-kid INDEPENDENT Chore '%s' - routing to per-kid helper",
+                    chore_name,
+                )
+                return await self.async_step_edit_chore_per_kid_details()
+
+            # CFE-2026-001: Check if DAILY_MULTI needs times collection
+            # (non-INDEPENDENT chores with DAILY_MULTI frequency)
+            if recurring_frequency == const.FREQUENCY_DAILY_MULTI:
+                # Store chore directly (already built by build_chore)
+                coordinator._data[const.DATA_CHORES][internal_id] = new_chore_data
+                coordinator._persist()
+                coordinator.async_update_listeners()
+
+                # Store chore data for helper step
+                self._chore_being_edited = dict(new_chore_data)
+                self._chore_being_edited[const.DATA_INTERNAL_ID] = internal_id
+
+                const.LOGGER.debug(
+                    "Added DAILY_MULTI Chore '%s' - routing to times helper",
+                    chore_name,
+                )
+                return await self.async_step_chores_daily_multi()
+
+            # Standard chore creation (SHARED/SHARED_FIRST or no special handling)
+            coordinator._data[const.DATA_CHORES][internal_id] = new_chore_data
+            coordinator._persist()
+            coordinator.async_update_listeners()
+
+            const.LOGGER.debug(
+                "Added Chore '%s' with ID: %s and Due Date %s",
+                chore_name,
+                internal_id,
+                due_date_str,
+            )
+            self._mark_reload_needed()
+            return await self.async_step_init()
+
+        # Use flow_helpers.build_chore_schema, passing current kids
+        kids_dict = {
+            data[const.DATA_KID_NAME]: eid
+            for eid, data in coordinator.kids_data.items()
+        }
+        schema = fh.build_chore_schema(kids_dict)
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_ADD_CHORE, data_schema=schema, errors=errors
+        )
 
     async def async_step_edit_chore(self, user_input=None):
         """Edit an existing chore."""
@@ -1517,17 +1007,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.DATA_CHORE_PER_KID_DUE_DATES, {}
             )
 
-            # Build and validate chore data using helper function
-            # Pass existing per-kid dates to preserve them for INDEPENDENT chores
-            chore_data_dict, errors = fh.build_chores_data(
-                user_input,
-                kids_dict,
-                chores_for_validation,
-                existing_per_kid_due_dates,
+            # Validate chore input
+            errors, due_date_str = fh.validate_chores_inputs(
+                user_input, kids_dict, chores_for_validation
             )
-
-            # Extract chore data (must be before error check to avoid E0606)
-            updated_chore_data = chore_data_dict.get(internal_id, {})
 
             if errors:
                 default_data = user_input.copy()
@@ -1539,16 +1022,19 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     errors=errors,
                 )
 
+            # Transform CFOF_* → DATA_* and build merged chore entity
+            transformed_data = fh.transform_chore_cfof_to_data(
+                user_input, kids_dict, due_date_str, existing_per_kid_due_dates
+            )
+
             # Check if assigned kids changed (for reload decision)
             old_assigned = set(chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, []))
-            new_assigned = set(
-                updated_chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
-            )
+            new_assigned = set(transformed_data.get(const.DATA_CHORE_ASSIGNED_KIDS, []))
             assignments_changed = old_assigned != new_assigned
 
             # Update chore using entity_helpers (direct storage pattern)
-            # build_chore() merges updated_chore_data with existing chore_data
-            merged_chore = eh.build_chore(updated_chore_data, existing=chore_data)
+            # build_chore() merges transformed_data with existing chore_data
+            merged_chore = eh.build_chore(transformed_data, existing=chore_data)
             coordinator._data[const.DATA_CHORES][internal_id] = merged_chore
             # Recalculate badges affected by chore changes
             coordinator._recalculate_all_badges()
@@ -1571,10 +1057,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 self._mark_reload_needed()
 
             # For INDEPENDENT chores with assigned kids, handle per-kid date editing
-            completion_criteria = updated_chore_data.get(
-                const.DATA_CHORE_COMPLETION_CRITERIA
-            )
-            assigned_kids = updated_chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+            # Use merged_chore (post-update) for routing decisions
+            completion_criteria = merged_chore.get(const.DATA_CHORE_COMPLETION_CRITERIA)
+            assigned_kids = merged_chore.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
             if (
                 completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
                 and assigned_kids
@@ -1584,8 +1069,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     const.CFOF_CHORES_INPUT_CLEAR_DUE_DATE, False
                 )
 
-                # Capture the raw user-entered date BEFORE build_chores_data clears it
-                # (build_chores_data sets due_date to None for INDEPENDENT chores)
+                # Capture the raw user-entered date from form input
+                # (For INDEPENDENT chores, transform_chore_cfof_to_data clears
+                # chore-level due_date - but we use per-kid dates)
                 # If clear checkbox is selected, don't pass template date to helper
                 raw_template_date = (
                     None
@@ -1604,8 +1090,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 # Single kid optimization: skip per-kid popup if only one kid
                 if len(assigned_kids) == 1:
                     kid_id = assigned_kids[0]
-                    per_kid_due_dates = updated_chore_data.get(
-                        const.DATA_CHORE_PER_KID_DUE_DATES, {}
+                    per_kid_due_dates = dict(
+                        merged_chore.get(const.DATA_CHORE_PER_KID_DUE_DATES, {})
                     )
 
                     if clear_due_date:
@@ -1636,10 +1122,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                             )
                     # else: date was blank, preserve existing per-kid date (already done)
 
-                    # Update per_kid_due_dates in chore data (single source of truth)
-                    updated_chore_data[const.DATA_CHORE_PER_KID_DUE_DATES] = (
-                        per_kid_due_dates
-                    )
+                    # Build additional updates dict for single-kid case
+                    single_kid_updates: dict[str, Any] = {
+                        const.DATA_CHORE_PER_KID_DUE_DATES: per_kid_due_dates,
+                    }
 
                     # PKAD-2026-001: Apply template applicable_days to single kid
                     if template_applicable_days:
@@ -1649,31 +1135,31 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                             for d in template_applicable_days
                             if d in weekday_keys
                         ]
-                        updated_chore_data[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS] = {
+                        single_kid_updates[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS] = {
                             kid_id: days_as_ints
                         }
                         # Clear chore-level (per-kid is now source of truth)
-                        updated_chore_data[const.DATA_CHORE_APPLICABLE_DAYS] = None
+                        single_kid_updates[const.DATA_CHORE_APPLICABLE_DAYS] = None
 
                     # PKAD-2026-001: Apply daily_multi_times to single kid (if DAILY_MULTI)
-                    recurring_freq = updated_chore_data.get(
+                    recurring_freq = merged_chore.get(
                         const.DATA_CHORE_RECURRING_FREQUENCY
                     )
                     if (
                         recurring_freq == const.FREQUENCY_DAILY_MULTI
                         and template_daily_multi_times
                     ):
-                        updated_chore_data[
+                        single_kid_updates[
                             const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES
                         ] = {kid_id: template_daily_multi_times}
                         # Clear chore-level (per-kid is now source of truth)
-                        updated_chore_data[const.DATA_CHORE_DAILY_MULTI_TIMES] = None
+                        single_kid_updates[const.DATA_CHORE_DAILY_MULTI_TIMES] = None
 
-                    # Update storage using entity_helpers (direct storage pattern)
-                    merged_chore = eh.build_chore(
-                        updated_chore_data, existing=chore_data
+                    # Re-merge with additional single-kid updates
+                    final_chore = eh.build_chore(
+                        single_kid_updates, existing=merged_chore
                     )
-                    coordinator._data[const.DATA_CHORES][internal_id] = merged_chore
+                    coordinator._data[const.DATA_CHORES][internal_id] = final_chore
                     coordinator._recalculate_all_badges()
                     coordinator._persist()
                     coordinator.async_update_listeners()
@@ -1683,7 +1169,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                     # CFE-2026-001 FIX: Single-kid DAILY_MULTI without times
                     # needs to route to times helper (check per-kid times too)
-                    existing_per_kid_times = updated_chore_data.get(
+                    existing_per_kid_times = final_chore.get(
                         const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES, {}
                     )
                     kid_has_times = existing_per_kid_times.get(kid_id)
@@ -1692,8 +1178,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         and not template_daily_multi_times
                         and not kid_has_times
                     ):
-                        updated_chore_data[const.DATA_INTERNAL_ID] = internal_id
-                        self._chore_being_edited = updated_chore_data
+                        # Store chore data with internal_id for times helper
+                        self._chore_being_edited = dict(final_chore)
+                        self._chore_being_edited[const.DATA_INTERNAL_ID] = internal_id
                         const.LOGGER.debug(
                             "Edited single-kid INDEPENDENT chore to DAILY_MULTI "
                             "- routing to times helper"
@@ -1705,40 +1192,30 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                 # Multiple kids: show unified per-kid details step (PKAD-2026-001)
                 # Store chore data AND template values for the helper form
-                self._chore_being_edited = updated_chore_data
-                # Type guard: updated_chore_data is always dict from chore_data_dict.get()
-                assert self._chore_being_edited is not None
+                self._chore_being_edited = dict(merged_chore)
                 self._chore_being_edited[const.DATA_INTERNAL_ID] = internal_id
-                # Store template values (cleared by build_chores_data for INDEPENDENT)
+                # Store template values for per-kid details step
                 self._chore_template_date_raw = raw_template_date
                 self._chore_template_applicable_days = template_applicable_days
                 self._chore_template_daily_multi_times = template_daily_multi_times
                 return await self.async_step_edit_chore_per_kid_details()
 
             # CFE-2026-001: Check if DAILY_MULTI needs times collection/update
-            recurring_frequency = updated_chore_data.get(
-                const.DATA_CHORE_RECURRING_FREQUENCY
-            )
-            existing_times = updated_chore_data.get(
-                const.DATA_CHORE_DAILY_MULTI_TIMES, ""
-            )
+            recurring_frequency = merged_chore.get(const.DATA_CHORE_RECURRING_FREQUENCY)
+            existing_times = merged_chore.get(const.DATA_CHORE_DAILY_MULTI_TIMES, "")
             if (
                 recurring_frequency == const.FREQUENCY_DAILY_MULTI
                 and not existing_times
             ):
                 # DAILY_MULTI selected but no times yet - route to helper
-                # Update using entity_helpers (direct storage pattern)
-                merged_chore = eh.build_chore(updated_chore_data, existing=chore_data)
-                coordinator._data[const.DATA_CHORES][internal_id] = merged_chore
-                coordinator._recalculate_all_badges()
-                coordinator._persist()
+                # (already persisted above, just need to set up helper state)
+                self._chore_being_edited = dict(merged_chore)
                 coordinator.async_update_listeners()
                 coordinator.hass.async_create_task(
                     coordinator._remove_orphaned_kid_chore_entities()
                 )
 
-                updated_chore_data[const.DATA_INTERNAL_ID] = internal_id
-                self._chore_being_edited = updated_chore_data
+                self._chore_being_edited[const.DATA_INTERNAL_ID] = internal_id
 
                 const.LOGGER.debug(
                     "Edited chore to DAILY_MULTI - routing to times helper"
@@ -1900,8 +1377,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         )
 
         # Get template date from main form (if set)
-        # Use the raw template date stored before build_chores_data cleared it
-        # (build_chores_data sets due_date to None for INDEPENDENT chores)
+        # Use the raw template date stored from form input
+        # (transform_chore_cfof_to_data sets chore-level due_date to None
+        # for INDEPENDENT chores - per-kid dates are used instead)
         raw_template_date = getattr(self, "_chore_template_date_raw", None)
         template_date_str = None
         template_date_display = None
@@ -2083,7 +1561,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             description_placeholders=description_placeholders,
         )
 
-    # ----- PKAD-2026-001: Unified Per-Kid Details Helper -----
+    # ----- Unified Per-Kid Details Helper -----
     async def async_step_edit_chore_per_kid_details(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -2516,6 +1994,297 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             description_placeholders={"chore_name": chore_name},
         )
 
+    async def async_step_delete_chore(self, user_input=None):
+        """Delete a chore."""
+        coordinator = self._get_coordinator()
+        chores_dict = coordinator.chores_data
+        internal_id = self.context.get(const.DATA_INTERNAL_ID)
+
+        if not internal_id or internal_id not in chores_dict:
+            const.LOGGER.error("Delete Chore - Invalid Internal ID '%s'", internal_id)
+            return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_CHORE)
+
+        chore_name = chores_dict[internal_id][const.DATA_CHORE_NAME]
+
+        if user_input is not None:
+            coordinator.delete_chore_entity(internal_id)
+
+            const.LOGGER.debug(
+                "Deleted Chore '%s' with ID: %s", chore_name, internal_id
+            )
+            return await self.async_step_init()
+
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_DELETE_CHORE,
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                const.OPTIONS_FLOW_PLACEHOLDER_CHORE_NAME: chore_name
+            },
+        )
+
+    # ----------------------------------------------------------------------------------
+    # BADGES MANAGEMENT
+    # ----------------------------------------------------------------------------------
+
+    async def async_step_add_badge(self, user_input=None):
+        """Entry point to add a new badge."""
+        if user_input is not None:
+            badge_type = user_input[const.CFOF_BADGES_INPUT_TYPE]
+            cast("dict[str, Any]", self.context)[const.CFOF_BADGES_INPUT_TYPE] = (
+                badge_type
+            )
+
+            # Redirect to the appropriate step based on badge type
+            if badge_type == const.BADGE_TYPE_CUMULATIVE:
+                return await self.async_step_add_badge_cumulative()
+            if badge_type == const.BADGE_TYPE_DAILY:
+                return await self.async_step_add_badge_daily()
+            if badge_type == const.BADGE_TYPE_PERIODIC:
+                return await self.async_step_add_badge_periodic()
+            if badge_type == const.BADGE_TYPE_ACHIEVEMENT_LINKED:
+                return await self.async_step_add_badge_achievement()
+            if badge_type == const.BADGE_TYPE_CHALLENGE_LINKED:
+                return await self.async_step_add_badge_challenge()
+            if badge_type == const.BADGE_TYPE_SPECIAL_OCCASION:
+                return await self.async_step_add_badge_special()
+            # Fallback to cumulative if unknown.
+            return await self.async_step_add_badge_cumulative()
+
+        badge_type_options = [
+            const.BADGE_TYPE_CUMULATIVE,
+            const.BADGE_TYPE_DAILY,
+            const.BADGE_TYPE_PERIODIC,
+            const.BADGE_TYPE_ACHIEVEMENT_LINKED,
+            const.BADGE_TYPE_CHALLENGE_LINKED,
+            const.BADGE_TYPE_SPECIAL_OCCASION,
+        ]
+        schema = vol.Schema(
+            {
+                vol.Required(const.CFOF_BADGES_INPUT_TYPE): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=badge_type_options,
+                        mode=selector.SelectSelectorMode.LIST,
+                        translation_key=const.TRANS_KEY_CFOF_BADGE_TYPE,
+                    )
+                )
+            }
+        )
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_ADD_BADGE, data_schema=schema
+        )
+
+    # ----- Add Achievement-Linked Badge -----
+    async def async_step_add_badge_achievement(self, user_input=None):
+        """Handle adding an achievement-linked badge."""
+        # Redirect to the common function with the appropriate badge type
+        # Allows customization of the UI text for achievement-linked badges
+        return await self.async_add_edit_badge_common(
+            user_input=user_input,
+            badge_type=const.BADGE_TYPE_ACHIEVEMENT_LINKED,
+            is_edit=False,
+        )
+
+    # ----- Add Challenge-Linked Badge -----
+    async def async_step_add_badge_challenge(self, user_input=None):
+        """Handle adding a challenge-linked badge."""
+        # Redirect to the common function with the appropriate badge type
+        # Allows customization of the UI text for challenge-linked badges
+        return await self.async_add_edit_badge_common(
+            user_input=user_input,
+            badge_type=const.BADGE_TYPE_CHALLENGE_LINKED,
+            is_edit=False,
+        )
+
+    # ----- Add Cumulative Badge (Points-only) -----
+    async def async_step_add_badge_cumulative(self, user_input=None):
+        """Handle adding a cumulative badge."""
+        # Redirect to the common function with the appropriate badge type
+        # Allows customization of the UI text for cumulative badges
+        return await self.async_add_edit_badge_common(
+            user_input=user_input,
+            badge_type=const.BADGE_TYPE_CUMULATIVE,
+            is_edit=False,
+        )
+
+    # ----- Add Daily Badge -----
+    async def async_step_add_badge_daily(self, user_input=None):
+        """Handle adding a daily badge."""
+        # Redirect to the common function with the appropriate badge type
+        # Allows customization of the UI text for daily badges
+        return await self.async_add_edit_badge_common(
+            user_input=user_input,
+            badge_type=const.BADGE_TYPE_DAILY,
+            is_edit=False,
+        )
+
+    # ----- Add Periodic Badge -----
+    async def async_step_add_badge_periodic(self, user_input=None):
+        """Handle adding a periodic badge."""
+        # Redirect to the common function with the appropriate badge type
+        # Allows customization of the UI text for periodic badges
+        return await self.async_add_edit_badge_common(
+            user_input=user_input,
+            badge_type=const.BADGE_TYPE_PERIODIC,
+            is_edit=False,
+        )
+
+    # ----- Add Special Occasion Badge -----
+    async def async_step_add_badge_special(self, user_input=None):
+        """Handle adding a special occasion badge."""
+        # Redirect to the common function with the appropriate badge type
+        # Allows customization of the UI text for special occasion badges
+        return await self.async_add_edit_badge_common(
+            user_input=user_input,
+            badge_type=const.BADGE_TYPE_SPECIAL_OCCASION,
+            is_edit=False,
+        )
+
+    # ----- Add Badge Centralized Function for All Types -----
+    async def async_add_edit_badge_common(
+        self,
+        user_input: dict[str, Any] | None = None,
+        badge_type: str = const.BADGE_TYPE_CUMULATIVE,
+        default_data: dict[str, Any] | None = None,
+        is_edit: bool = False,
+    ):
+        """Handle adding or editing a badge."""
+        coordinator = self._get_coordinator()
+        badges_dict = coordinator.badges_data
+        chores_dict = coordinator.chores_data
+        kids_dict = coordinator.kids_data
+        rewards_dict = coordinator.rewards_data
+        achievements_dict = coordinator.achievements_data
+        challenges_dict = coordinator.challenges_data
+        bonuses_dict = coordinator.bonuses_data
+        penalties_dict = coordinator.penalties_data
+
+        errors: dict[str, str] = {}
+
+        # Determine internal_id (UUID-based primary key, persists across renames)
+        if is_edit:
+            # Edit mode: retrieve internal_id from context (set when user selected badge to edit)
+            # Cast from context dict which returns object type
+            internal_id: str | None = cast(
+                "str | None", self.context.get(const.CFOF_GLOBAL_INPUT_INTERNAL_ID)
+            )
+            # Validate that the badge still exists (defensive: could have been deleted by another process)
+            if not internal_id or internal_id not in badges_dict:
+                const.LOGGER.error("Invalid Internal ID for editing badge.")
+                return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_BADGE)
+        else:
+            # Add mode: generate new UUID and store in context for form resubmissions
+            # Context persists across form validation errors (same internal_id on retry)
+            internal_id = str(uuid.uuid4())
+            # Cast context to dict[str, Any] since HA's ConfigFlowContext doesn't allow arbitrary keys
+            # but we need to store internal_id for form resubmission across validation errors
+            cast("dict[str, Any]", self.context)[
+                const.CFOF_GLOBAL_INPUT_INTERNAL_ID
+            ] = internal_id
+
+        if user_input is not None:
+            # --- Validate Inputs ---
+            # Badge validation is complex: checks name uniqueness, reward/bonus/penalty
+            # existence, and type-specific rules (e.g., periodic requires repeat_interval)
+            errors = fh.validate_badge_common_inputs(
+                user_input=user_input,
+                internal_id=internal_id,
+                existing_badges=badges_dict,
+                rewards_dict=rewards_dict,
+                bonuses_dict=bonuses_dict,
+                penalties_dict=penalties_dict,
+                badge_type=badge_type,
+            )
+
+            badge_dict: BadgeData | None = None
+            if not errors:
+                # --- Build Data using entity_helpers (modern pattern) ---
+                try:
+                    if is_edit:
+                        existing_badge = badges_dict.get(internal_id)
+                        badge_dict = eh.build_badge(
+                            user_input,
+                            existing=existing_badge,
+                            badge_type=badge_type,
+                        )
+                    else:
+                        badge_dict = eh.build_badge(
+                            user_input,
+                            badge_type=badge_type,
+                        )
+                        # Override internal_id with the one from context
+                        badge_dict[const.DATA_BADGE_INTERNAL_ID] = internal_id
+                except eh.EntityValidationError as err:
+                    errors[err.field] = err.translation_key
+                    badge_dict = None
+
+            if not errors and badge_dict is not None:
+                # --- Save Data (direct storage write) ---
+                if is_edit:
+                    # Edit: update existing badge
+                    coordinator._data[const.DATA_BADGES][internal_id] = dict(badge_dict)
+                    # Phase 4: Sync badge_progress after badge update
+                    for kid_id in coordinator.kids_data:
+                        coordinator._sync_badge_progress_for_kid(kid_id)
+                    coordinator._recalculate_all_badges()
+                    coordinator._persist()
+                    coordinator.async_update_listeners()
+                else:
+                    # Add: create new badge + persist + notify listeners
+                    coordinator._data.setdefault(const.DATA_BADGES, {})[internal_id] = (
+                        dict(badge_dict)
+                    )
+                    # Sync badge progress for all kids (creates progress sensors)
+                    for kid_id in coordinator.kids_data:
+                        coordinator._sync_badge_progress_for_kid(kid_id)
+                    # Recalculate badges to trigger initial evaluation
+                    coordinator._recalculate_all_badges()
+                    coordinator._persist()
+                    coordinator.async_update_listeners()
+
+                const.LOGGER.debug(
+                    "%s Badge '%s' with ID: %s. Data: %s",
+                    "Updated" if is_edit else "Added",
+                    badge_dict[const.DATA_BADGE_NAME],
+                    internal_id,
+                    badge_dict,
+                )
+
+                self._mark_reload_needed()
+                return await self.async_step_init()
+
+        # --- Build Schema ---
+        badge_schema_data = user_input if user_input else default_data or {}
+        schema_fields = fh.build_badge_common_schema(
+            default=badge_schema_data,
+            kids_dict=kids_dict,
+            chores_dict=chores_dict,
+            rewards_dict=rewards_dict,
+            achievements_dict=achievements_dict,
+            challenges_dict=challenges_dict,
+            bonuses_dict=bonuses_dict,
+            penalties_dict=penalties_dict,
+            badge_type=badge_type,
+        )
+        data_schema = vol.Schema(schema_fields)
+
+        # Determine step name dynamically
+        step_name = (
+            const.OPTIONS_FLOW_EDIT_STEP.get(badge_type)
+            if is_edit
+            else const.OPTIONS_FLOW_ADD_STEP.get(badge_type)
+        )
+        if not step_name:
+            const.LOGGER.error("Invalid badge type '%s'.", badge_type)
+            return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_BADGE_TYPE)
+
+        return self.async_show_form(
+            step_id=step_name,
+            data_schema=data_schema,
+            errors=errors,
+            description_placeholders=None,
+            last_step=False,
+        )
+
     # ----- Edit Achievement-Linked Badge -----
     async def async_step_edit_badge_achievement(
         self, user_input=None, default_data=None
@@ -2580,7 +2349,81 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             is_edit=True,
         )
 
-    # --- Rewards ---
+    async def async_step_delete_badge(self, user_input=None):
+        """Delete a badge."""
+        coordinator = self._get_coordinator()
+        badges_dict = coordinator.badges_data
+        internal_id = self.context.get(const.DATA_INTERNAL_ID)
+
+        if not internal_id or internal_id not in badges_dict:
+            const.LOGGER.error("Delete Badge - Invalid Internal ID '%s'", internal_id)
+            return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_BADGE)
+
+        badge_name = badges_dict[internal_id][const.DATA_BADGE_NAME]
+
+        if user_input is not None:
+            coordinator.delete_badge_entity(internal_id)
+
+            const.LOGGER.debug(
+                "Deleted Badge '%s' with ID: %s", badge_name, internal_id
+            )
+            return await self.async_step_init()
+
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_DELETE_BADGE,
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                const.OPTIONS_FLOW_PLACEHOLDER_BADGE_NAME: badge_name
+            },
+        )
+
+    # ----------------------------------------------------------------------------------
+    # REWARDS MANAGEMENT
+    # ----------------------------------------------------------------------------------
+
+    async def async_step_add_reward(self, user_input=None):
+        """Add a new reward."""
+        coordinator = self._get_coordinator()
+        errors: dict[str, str] = {}
+        rewards_dict = coordinator.rewards_data
+
+        if user_input is not None:
+            # Layer 2: UI validation (uniqueness check)
+            errors = fh.validate_rewards_inputs(user_input, rewards_dict)
+
+            if not errors:
+                try:
+                    # Layer 3: Entity helper builds complete structure
+                    # Convert CFOF_* form keys to DATA_* keys, then build reward
+                    data_input = eh.map_cfof_to_reward_data(user_input)
+                    reward_data = eh.build_reward(data_input)
+                    internal_id = reward_data[const.DATA_REWARD_INTERNAL_ID]
+
+                    # Layer 4: Coordinator stores (thin wrapper)
+                    coordinator._data[const.DATA_REWARDS][internal_id] = dict(
+                        reward_data
+                    )
+                    coordinator._persist()
+                    coordinator.async_update_listeners()
+
+                    const.LOGGER.debug(
+                        "Added Reward '%s' with ID: %s",
+                        reward_data[const.DATA_REWARD_NAME],
+                        internal_id,
+                    )
+                    self._mark_reload_needed()
+                    return await self.async_step_init()
+
+                except EntityValidationError as err:
+                    # Map field-specific error for form highlighting
+                    errors[err.field] = err.translation_key
+
+        schema = fh.build_reward_schema()
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_ADD_REWARD,
+            data_schema=schema,
+            errors=errors,
+        )
 
     async def async_step_edit_reward(self, user_input=None):
         """Edit an existing reward."""
@@ -2639,67 +2482,82 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             errors=errors,
         )
 
-    # --- Penalties ---
-
-    async def async_step_edit_penalty(self, user_input=None):
-        """Edit an existing penalty."""
+    async def async_step_delete_reward(self, user_input=None):
+        """Delete a reward."""
         coordinator = self._get_coordinator()
-        errors: dict[str, str] = {}
-        penalties_dict = coordinator.penalties_data
+        rewards_dict = coordinator.rewards_data
         internal_id = self.context.get(const.DATA_INTERNAL_ID)
 
-        if not internal_id or internal_id not in penalties_dict:
-            const.LOGGER.error("Edit Penalty - Invalid Internal ID '%s'", internal_id)
-            return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_PENALTY)
+        if not internal_id or internal_id not in rewards_dict:
+            const.LOGGER.error("Delete Reward - Invalid Internal ID '%s'", internal_id)
+            return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_REWARD)
 
-        penalty_data = penalties_dict[internal_id]
+        reward_name = rewards_dict[internal_id][const.DATA_REWARD_NAME]
 
         if user_input is not None:
-            new_name = user_input[const.CFOF_PENALTIES_INPUT_NAME].strip()
+            coordinator.delete_reward_entity(internal_id)
 
-            # Check for duplicate names excluding current penalty
-            penalties_except_current = {
-                eid: data for eid, data in penalties_dict.items() if eid != internal_id
-            }
-            errors = fh.validate_penalties_inputs(user_input, penalties_except_current)
+            const.LOGGER.debug(
+                "Deleted Reward '%s' with ID: %s", reward_name, internal_id
+            )
+            return await self.async_step_init()
+
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_DELETE_REWARD,
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                const.OPTIONS_FLOW_PLACEHOLDER_REWARD_NAME: reward_name
+            },
+        )
+
+    # ----------------------------------------------------------------------------------
+    # BONUSES MANAGEMENT
+    # ----------------------------------------------------------------------------------
+
+    async def async_step_add_bonus(self, user_input=None):
+        """Add a new bonus."""
+        coordinator = self._get_coordinator()
+        errors: dict[str, str] = {}
+        bonuses_dict = coordinator.bonuses_data
+
+        if user_input is not None:
+            # Validate inputs
+            errors = fh.validate_bonuses_inputs(user_input, bonuses_dict)
 
             if not errors:
                 # Transform form input keys to DATA_* keys
                 transformed_input = {
-                    const.DATA_PENALTY_NAME: user_input.get(const.CFOF_PENALTIES_INPUT_NAME, penalty_data[const.DATA_PENALTY_NAME]),
-                    const.DATA_PENALTY_DESCRIPTION: user_input.get(const.CFOF_PENALTIES_INPUT_DESCRIPTION, penalty_data.get(const.DATA_PENALTY_DESCRIPTION, const.SENTINEL_EMPTY)),
-                    const.DATA_PENALTY_POINTS: user_input.get(const.CFOF_PENALTIES_INPUT_POINTS, penalty_data.get(const.DATA_PENALTY_POINTS, const.DEFAULT_PENALTY_POINTS)),
-                    const.DATA_PENALTY_ICON: user_input.get(const.CFOF_PENALTIES_INPUT_ICON, penalty_data.get(const.DATA_PENALTY_ICON, const.DEFAULT_PENALTY_ICON)),
+                    const.DATA_BONUS_NAME: user_input[const.CFOF_BONUSES_INPUT_NAME],
+                    const.DATA_BONUS_DESCRIPTION: user_input.get(
+                        const.CFOF_BONUSES_INPUT_DESCRIPTION, const.SENTINEL_EMPTY
+                    ),
+                    const.DATA_BONUS_POINTS: user_input.get(
+                        const.CFOF_BONUSES_INPUT_POINTS, const.DEFAULT_BONUS_POINTS
+                    ),
+                    const.DATA_BONUS_ICON: user_input.get(
+                        const.CFOF_BONUSES_INPUT_ICON, const.DEFAULT_BONUS_ICON
+                    ),
                 }
-                # Build updated penalty data using unified helper
-                updated_penalty_data = eh.build_bonus_or_penalty(
-                    transformed_input, "penalty", existing=penalty_data
-                )
+                # Build bonus data using unified helper
+                new_bonus_data = eh.build_bonus_or_penalty(transformed_input, "bonus")
+                internal_id = new_bonus_data[const.DATA_BONUS_INTERNAL_ID]
 
                 # Direct storage write
-                coordinator._data[const.DATA_PENALTIES][internal_id] = updated_penalty_data
+                coordinator._data[const.DATA_BONUSES][internal_id] = new_bonus_data
                 coordinator._persist()
                 coordinator.async_update_listeners()
 
+                bonus_name = user_input[const.CFOF_BONUSES_INPUT_NAME].strip()
                 const.LOGGER.debug(
-                    "Edited Penalty '%s' with ID: %s", new_name, internal_id
+                    "Added Bonus '%s' with ID: %s", bonus_name, internal_id
                 )
                 self._mark_reload_needed()
                 return await self.async_step_init()
 
-        # Prepare data for schema (convert points to positive for display)
-        display_data = dict(penalty_data)
-        display_data[const.CFOF_PENALTIES_INPUT_POINTS] = abs(
-            display_data[const.DATA_PENALTY_POINTS]
-        )
-        schema = fh.build_penalty_schema(default=display_data)
+        schema = fh.build_bonus_schema()
         return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_EDIT_PENALTY,
-            data_schema=schema,
-            errors=errors,
+            step_id=const.OPTIONS_FLOW_STEP_ADD_BONUS, data_schema=schema, errors=errors
         )
-
-    # --- Bonuses ---
 
     async def async_step_edit_bonus(self, user_input=None):
         """Edit an existing bonus."""
@@ -2717,19 +2575,34 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             new_name = user_input[const.CFOF_BONUSES_INPUT_NAME].strip()
 
-            # Check for duplicate names excluding current bonus
-            bonuses_except_current = {
-                eid: data for eid, data in bonuses_dict.items() if eid != internal_id
-            }
-            errors = fh.validate_bonuses_inputs(user_input, bonuses_except_current)
+            # Validate using shared validator (excludes current bonus from duplicate check)
+            # Note: internal_id is already validated as str above
+            errors = fh.validate_bonuses_inputs(
+                user_input, bonuses_dict, current_bonus_id=str(internal_id)
+            )
 
             if not errors:
                 # Transform form input keys to DATA_* keys
                 transformed_input = {
-                    const.DATA_BONUS_NAME: user_input.get(const.CFOF_BONUSES_INPUT_NAME, bonus_data[const.DATA_BONUS_NAME]),
-                    const.DATA_BONUS_DESCRIPTION: user_input.get(const.CFOF_BONUSES_INPUT_DESCRIPTION, bonus_data.get(const.DATA_BONUS_DESCRIPTION, const.SENTINEL_EMPTY)),
-                    const.DATA_BONUS_POINTS: user_input.get(const.CFOF_BONUSES_INPUT_POINTS, bonus_data.get(const.DATA_BONUS_POINTS, const.DEFAULT_BONUS_POINTS)),
-                    const.DATA_BONUS_ICON: user_input.get(const.CFOF_BONUSES_INPUT_ICON, bonus_data.get(const.DATA_BONUS_ICON, const.DEFAULT_BONUS_ICON)),
+                    const.DATA_BONUS_NAME: user_input.get(
+                        const.CFOF_BONUSES_INPUT_NAME, bonus_data[const.DATA_BONUS_NAME]
+                    ),
+                    const.DATA_BONUS_DESCRIPTION: user_input.get(
+                        const.CFOF_BONUSES_INPUT_DESCRIPTION,
+                        bonus_data.get(
+                            const.DATA_BONUS_DESCRIPTION, const.SENTINEL_EMPTY
+                        ),
+                    ),
+                    const.DATA_BONUS_POINTS: user_input.get(
+                        const.CFOF_BONUSES_INPUT_POINTS,
+                        bonus_data.get(
+                            const.DATA_BONUS_POINTS, const.DEFAULT_BONUS_POINTS
+                        ),
+                    ),
+                    const.DATA_BONUS_ICON: user_input.get(
+                        const.CFOF_BONUSES_INPUT_ICON,
+                        bonus_data.get(const.DATA_BONUS_ICON, const.DEFAULT_BONUS_ICON),
+                    ),
                 }
                 # Build updated bonus data using unified helper
                 updated_bonus_data = eh.build_bonus_or_penalty(
@@ -2759,7 +2632,267 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             errors=errors,
         )
 
-    # --- Achievements ---
+    async def async_step_delete_bonus(self, user_input=None):
+        """Delete a bonus."""
+        coordinator = self._get_coordinator()
+        bonuses_dict = coordinator.bonuses_data
+        internal_id = self.context.get(const.DATA_INTERNAL_ID)
+
+        if not internal_id or internal_id not in bonuses_dict:
+            const.LOGGER.error("Delete Bonus - Invalid Internal ID '%s'", internal_id)
+            return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_BONUS)
+
+        bonus_name = bonuses_dict[internal_id][const.DATA_BONUS_NAME]
+
+        if user_input is not None:
+            coordinator.delete_bonus_entity(internal_id)
+
+            const.LOGGER.debug(
+                "Deleted Bonus '%s' with ID: %s", bonus_name, internal_id
+            )
+            return await self.async_step_init()
+
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_DELETE_BONUS,
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                const.OPTIONS_FLOW_PLACEHOLDER_BONUS_NAME: bonus_name
+            },
+        )
+
+    # ----------------------------------------------------------------------------------
+    # PENALTIES MANAGEMENT
+    # ----------------------------------------------------------------------------------
+
+    async def async_step_add_penalty(self, user_input=None):
+        """Add a new penalty."""
+        coordinator = self._get_coordinator()
+        errors: dict[str, str] = {}
+        penalties_dict = coordinator.penalties_data
+
+        if user_input is not None:
+            # Validate inputs
+            errors = fh.validate_penalties_inputs(user_input, penalties_dict)
+
+            if not errors:
+                # Transform form input keys to DATA_* keys
+                transformed_input = {
+                    const.DATA_PENALTY_NAME: user_input[
+                        const.CFOF_PENALTIES_INPUT_NAME
+                    ],
+                    const.DATA_PENALTY_DESCRIPTION: user_input.get(
+                        const.CFOF_PENALTIES_INPUT_DESCRIPTION, const.SENTINEL_EMPTY
+                    ),
+                    const.DATA_PENALTY_POINTS: user_input.get(
+                        const.CFOF_PENALTIES_INPUT_POINTS, const.DEFAULT_PENALTY_POINTS
+                    ),
+                    const.DATA_PENALTY_ICON: user_input.get(
+                        const.CFOF_PENALTIES_INPUT_ICON, const.DEFAULT_PENALTY_ICON
+                    ),
+                }
+                # Build penalty data using unified helper
+                new_penalty_data = eh.build_bonus_or_penalty(
+                    transformed_input, "penalty"
+                )
+                internal_id = new_penalty_data[const.DATA_PENALTY_INTERNAL_ID]
+
+                # Direct storage write
+                coordinator._data[const.DATA_PENALTIES][internal_id] = new_penalty_data
+                coordinator._persist()
+                coordinator.async_update_listeners()
+
+                penalty_name = user_input[const.CFOF_PENALTIES_INPUT_NAME].strip()
+                const.LOGGER.debug(
+                    "Added Penalty '%s' with ID: %s", penalty_name, internal_id
+                )
+                self._mark_reload_needed()
+                return await self.async_step_init()
+
+        schema = fh.build_penalty_schema()
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_ADD_PENALTY,
+            data_schema=schema,
+            errors=errors,
+        )
+
+    async def async_step_edit_penalty(self, user_input=None):
+        """Edit an existing penalty."""
+        coordinator = self._get_coordinator()
+        errors: dict[str, str] = {}
+        penalties_dict = coordinator.penalties_data
+        internal_id = self.context.get(const.DATA_INTERNAL_ID)
+
+        if not internal_id or internal_id not in penalties_dict:
+            const.LOGGER.error("Edit Penalty - Invalid Internal ID '%s'", internal_id)
+            return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_PENALTY)
+
+        penalty_data = penalties_dict[internal_id]
+
+        if user_input is not None:
+            new_name = user_input[const.CFOF_PENALTIES_INPUT_NAME].strip()
+
+            # Validate using shared validator (excludes current penalty from duplicate check)
+            # Note: internal_id is already validated as str above
+            errors = fh.validate_penalties_inputs(
+                user_input, penalties_dict, current_penalty_id=str(internal_id)
+            )
+
+            if not errors:
+                # Transform form input keys to DATA_* keys
+                transformed_input = {
+                    const.DATA_PENALTY_NAME: user_input.get(
+                        const.CFOF_PENALTIES_INPUT_NAME,
+                        penalty_data[const.DATA_PENALTY_NAME],
+                    ),
+                    const.DATA_PENALTY_DESCRIPTION: user_input.get(
+                        const.CFOF_PENALTIES_INPUT_DESCRIPTION,
+                        penalty_data.get(
+                            const.DATA_PENALTY_DESCRIPTION, const.SENTINEL_EMPTY
+                        ),
+                    ),
+                    const.DATA_PENALTY_POINTS: user_input.get(
+                        const.CFOF_PENALTIES_INPUT_POINTS,
+                        penalty_data.get(
+                            const.DATA_PENALTY_POINTS, const.DEFAULT_PENALTY_POINTS
+                        ),
+                    ),
+                    const.DATA_PENALTY_ICON: user_input.get(
+                        const.CFOF_PENALTIES_INPUT_ICON,
+                        penalty_data.get(
+                            const.DATA_PENALTY_ICON, const.DEFAULT_PENALTY_ICON
+                        ),
+                    ),
+                }
+                # Build updated penalty data using unified helper
+                updated_penalty_data = eh.build_bonus_or_penalty(
+                    transformed_input, "penalty", existing=penalty_data
+                )
+
+                # Direct storage write
+                coordinator._data[const.DATA_PENALTIES][internal_id] = (
+                    updated_penalty_data
+                )
+                coordinator._persist()
+                coordinator.async_update_listeners()
+
+                const.LOGGER.debug(
+                    "Edited Penalty '%s' with ID: %s", new_name, internal_id
+                )
+                self._mark_reload_needed()
+                return await self.async_step_init()
+
+        # Prepare data for schema (convert points to positive for display)
+        display_data = dict(penalty_data)
+        display_data[const.CFOF_PENALTIES_INPUT_POINTS] = abs(
+            display_data[const.DATA_PENALTY_POINTS]
+        )
+        schema = fh.build_penalty_schema(default=display_data)
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_EDIT_PENALTY,
+            data_schema=schema,
+            errors=errors,
+        )
+
+    async def async_step_delete_penalty(self, user_input=None):
+        """Delete a penalty."""
+        coordinator = self._get_coordinator()
+        penalties_dict = coordinator.penalties_data
+        internal_id = self.context.get(const.DATA_INTERNAL_ID)
+
+        if not internal_id or internal_id not in penalties_dict:
+            const.LOGGER.error("Delete Penalty - Invalid Internal ID '%s'", internal_id)
+            return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_PENALTY)
+
+        penalty_name = penalties_dict[internal_id][const.DATA_PENALTY_NAME]
+
+        if user_input is not None:
+            coordinator.delete_penalty_entity(internal_id)
+
+            const.LOGGER.debug(
+                "Deleted Penalty '%s' with ID: %s", penalty_name, internal_id
+            )
+            return await self.async_step_init()
+
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_DELETE_PENALTY,
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                const.OPTIONS_FLOW_PLACEHOLDER_PENALTY_NAME: penalty_name
+            },
+        )
+
+    # ----------------------------------------------------------------------------------
+    # ACHIEVEMENTS MANAGEMENT
+    # ----------------------------------------------------------------------------------
+
+    async def async_step_add_achievement(self, user_input=None):
+        """Add a new achievement."""
+        coordinator = self._get_coordinator()
+        errors: dict[str, str] = {}
+        achievements_dict = coordinator.achievements_data
+        chores_dict = coordinator.chores_data
+
+        if user_input is not None:
+            # Layer 2: UI validation (uniqueness + type-specific checks)
+            errors = fh.validate_achievements_inputs(user_input, achievements_dict)
+
+            if not errors:
+                try:
+                    # Build kids name to ID mapping for options flow
+                    kids_name_to_id = {
+                        kid[const.DATA_KID_NAME]: kid[const.DATA_KID_INTERNAL_ID]
+                        for kid in coordinator.data.get(const.DATA_KIDS, {}).values()
+                    }
+
+                    # Layer 3: Convert CFOF_* to DATA_* keys
+                    data_input = eh.map_cfof_to_achievement_data(user_input)
+
+                    # Convert assigned kids from names to IDs (options flow uses names)
+                    assigned_kids_names = data_input.get(
+                        const.DATA_ACHIEVEMENT_ASSIGNED_KIDS, []
+                    )
+                    if not isinstance(assigned_kids_names, list):
+                        assigned_kids_names = (
+                            [assigned_kids_names] if assigned_kids_names else []
+                        )
+                    data_input[const.DATA_ACHIEVEMENT_ASSIGNED_KIDS] = [
+                        kids_name_to_id.get(name, name) for name in assigned_kids_names
+                    ]
+
+                    # Build complete achievement structure
+                    achievement = eh.build_achievement(data_input)
+                    internal_id = achievement[const.DATA_ACHIEVEMENT_INTERNAL_ID]
+
+                    # Layer 4: Direct storage write
+                    coordinator._data[const.DATA_ACHIEVEMENTS][internal_id] = dict(
+                        achievement
+                    )
+                    coordinator._persist()
+                    coordinator.async_update_listeners()
+
+                    const.LOGGER.debug(
+                        "Added Achievement '%s' with ID: %s",
+                        achievement[const.DATA_ACHIEVEMENT_NAME],
+                        internal_id,
+                    )
+                    self._mark_reload_needed()
+                    return await self.async_step_init()
+
+                except EntityValidationError as err:
+                    errors[err.field] = err.translation_key
+
+        kids_dict = {
+            kid_data[const.DATA_KID_NAME]: kid_id
+            for kid_id, kid_data in coordinator.kids_data.items()
+        }
+        achievement_schema = fh.build_achievement_schema(
+            kids_dict=kids_dict, chores_dict=chores_dict, default=None
+        )
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_ADD_ACHIEVEMENT,
+            data_schema=achievement_schema,
+            errors=errors,
+        )
 
     async def async_step_edit_achievement(self, user_input=None):
         """Edit an existing achievement."""
@@ -2767,7 +2900,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
         achievements_dict = coordinator.achievements_data
 
-        internal_id = self.context.get(const.DATA_INTERNAL_ID)
+        internal_id = cast("str | None", self.context.get(const.DATA_INTERNAL_ID))
         if not internal_id or internal_id not in achievements_dict:
             const.LOGGER.error(
                 "Edit Achievement - Invalid Internal ID '%s'", internal_id
@@ -2790,26 +2923,54 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 for kid in coordinator.data.get(const.DATA_KIDS, {}).values()
             }
 
-            # Build achievement data with integrated validation
-            achievement_data_dict, errors = fh.build_achievements_data(
-                user_input, achievements_except_current, kids_name_to_id
+            # Layer 2: UI validation (uniqueness + type-specific checks)
+            errors = fh.validate_achievements_inputs(
+                user_input,
+                achievements_except_current,
+                current_achievement_id=internal_id,
             )
 
             if not errors:
-                _, updated_achievement_data = next(iter(achievement_data_dict.items()))
+                try:
+                    # Layer 3: Convert CFOF_* to DATA_* keys
+                    data_input = eh.map_cfof_to_achievement_data(user_input)
 
-                coordinator.update_achievement_entity(
-                    internal_id, updated_achievement_data
-                )
+                    # Convert assigned kids from names to IDs (options flow uses names)
+                    assigned_kids_names = data_input.get(
+                        const.DATA_ACHIEVEMENT_ASSIGNED_KIDS, []
+                    )
+                    if not isinstance(assigned_kids_names, list):
+                        assigned_kids_names = (
+                            [assigned_kids_names] if assigned_kids_names else []
+                        )
+                    data_input[const.DATA_ACHIEVEMENT_ASSIGNED_KIDS] = [
+                        kids_name_to_id.get(name, name) for name in assigned_kids_names
+                    ]
 
-                new_name = user_input[const.CFOF_ACHIEVEMENTS_INPUT_NAME].strip()
-                const.LOGGER.debug(
-                    "Edited Achievement '%s' with ID: %s",
-                    new_name,
-                    internal_id,
-                )
-                self._mark_reload_needed()
-                return await self.async_step_init()
+                    # Use entity_helpers pattern with direct storage update
+                    existing_data = achievements_dict[internal_id]
+                    final_achievement = eh.build_achievement(
+                        data_input, existing=existing_data
+                    )
+                    # Preserve the original internal_id
+                    final_achievement[const.DATA_ACHIEVEMENT_INTERNAL_ID] = internal_id
+                    coordinator._data[const.DATA_ACHIEVEMENTS][internal_id] = dict(
+                        final_achievement
+                    )
+                    coordinator._persist()
+                    coordinator.async_update_listeners()
+
+                    new_name = user_input[const.CFOF_ACHIEVEMENTS_INPUT_NAME].strip()
+                    const.LOGGER.debug(
+                        "Edited Achievement '%s' with ID: %s",
+                        new_name,
+                        internal_id,
+                    )
+                    self._mark_reload_needed()
+                    return await self.async_step_init()
+
+                except EntityValidationError as err:
+                    errors[err.field] = err.translation_key
 
         kids_dict = {
             kid_data[const.DATA_KID_NAME]: kid_id
@@ -2845,7 +3006,139 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             errors=errors,
         )
 
-    # --- Challenges ---
+    async def async_step_delete_achievement(self, user_input=None):
+        """Delete an achievement."""
+        coordinator = self._get_coordinator()
+        achievements_dict = coordinator.achievements_data
+        internal_id = self.context.get(const.DATA_INTERNAL_ID)
+
+        if not internal_id or internal_id not in achievements_dict:
+            const.LOGGER.error(
+                "Delete Achievement - Invalid Internal ID '%s'", internal_id
+            )
+            return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_ACHIEVEMENT)
+
+        achievement_name = achievements_dict[internal_id][const.DATA_ACHIEVEMENT_NAME]
+
+        if user_input is not None:
+            coordinator.delete_achievement_entity(internal_id)
+
+            const.LOGGER.debug(
+                "Deleted Achievement '%s' with ID: %s",
+                achievement_name,
+                internal_id,
+            )
+            return await self.async_step_init()
+
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_DELETE_ACHIEVEMENT,
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                const.OPTIONS_FLOW_PLACEHOLDER_ACHIEVEMENT_NAME: achievement_name
+            },
+        )
+
+    # ----------------------------------------------------------------------------------
+    # CHALLENGES MANAGEMENT
+    # ----------------------------------------------------------------------------------
+
+    async def async_step_add_challenge(self, user_input=None):
+        """Add a new challenge."""
+        coordinator = self._get_coordinator()
+        errors: dict[str, str] = {}
+        chores_dict = coordinator.chores_data
+
+        if user_input is not None:
+            # Layer 2: UI validation (uniqueness + type-specific checks)
+            errors = fh.validate_challenges_inputs(
+                user_input,
+                existing_challenges=coordinator.challenges_data,
+                current_challenge_id=None,  # New challenge
+            )
+
+            if not errors:
+                try:
+                    # Build kids name to ID mapping for options flow
+                    kids_name_to_id = {
+                        kid[const.DATA_KID_NAME]: kid[const.DATA_KID_INTERNAL_ID]
+                        for kid in coordinator.data.get(const.DATA_KIDS, {}).values()
+                    }
+
+                    # Layer 3: Convert CFOF_* to DATA_* keys
+                    data_input = eh.map_cfof_to_challenge_data(user_input)
+
+                    # Convert assigned kids from names to IDs (options flow uses names)
+                    assigned_kids_names = data_input.get(
+                        const.DATA_CHALLENGE_ASSIGNED_KIDS, []
+                    )
+                    if not isinstance(assigned_kids_names, list):
+                        assigned_kids_names = (
+                            [assigned_kids_names] if assigned_kids_names else []
+                        )
+                    data_input[const.DATA_CHALLENGE_ASSIGNED_KIDS] = [
+                        kids_name_to_id.get(name, name) for name in assigned_kids_names
+                    ]
+
+                    # Additional validation for options flow: dates must be in the future
+                    start_date_str = data_input.get(const.DATA_CHALLENGE_START_DATE)
+                    end_date_str = data_input.get(const.DATA_CHALLENGE_END_DATE)
+
+                    start_dt = (
+                        dt_util.parse_datetime(start_date_str)
+                        if start_date_str
+                        else None
+                    )
+                    end_dt = (
+                        dt_util.parse_datetime(end_date_str) if end_date_str else None
+                    )
+
+                    if start_dt and start_dt < dt_util.utcnow():
+                        errors = {
+                            const.CFOP_ERROR_START_DATE: const.TRANS_KEY_CFOF_START_DATE_IN_PAST
+                        }
+                    elif end_dt and end_dt <= dt_util.utcnow():
+                        errors = {
+                            const.CFOP_ERROR_END_DATE: const.TRANS_KEY_CFOF_END_DATE_IN_PAST
+                        }
+
+                    if not errors:
+                        # Build complete challenge structure
+                        challenge = eh.build_challenge(data_input)
+                        internal_id = challenge[const.DATA_CHALLENGE_INTERNAL_ID]
+
+                        # Layer 4: Direct storage write
+                        coordinator._data[const.DATA_CHALLENGES][internal_id] = dict(
+                            challenge
+                        )
+                        coordinator._persist()
+                        coordinator.async_update_listeners()
+
+                        challenge_name = user_input[
+                            const.CFOF_CHALLENGES_INPUT_NAME
+                        ].strip()
+                        const.LOGGER.debug(
+                            "Added Challenge '%s' with ID: %s",
+                            challenge_name,
+                            internal_id,
+                        )
+                        self._mark_reload_needed()
+                        return await self.async_step_init()
+
+                except EntityValidationError as err:
+                    errors[err.field] = err.translation_key
+
+        kids_dict = {
+            data[const.DATA_KID_NAME]: eid
+            for eid, data in coordinator.kids_data.items()
+        }
+        challenge_schema = fh.build_challenge_schema(
+            kids_dict=kids_dict, chores_dict=chores_dict, default=user_input
+        )
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_ADD_CHALLENGE,
+            data_schema=challenge_schema,
+            errors=errors,
+        )
 
     async def async_step_edit_challenge(self, user_input=None):
         """Edit an existing challenge."""
@@ -2912,44 +3205,79 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 errors=errors,
             )
 
-        # Use helper to build and validate challenge data
-        challenge_data_dict, errors = fh.build_challenges_data(
+        # Build kids name to ID mapping for options flow
+        kids_name_to_id = {
+            kid[const.DATA_KID_NAME]: kid[const.DATA_KID_INTERNAL_ID]
+            for kid in coordinator.data.get(const.DATA_KIDS, {}).values()
+        }
+
+        # Layer 2: UI validation (uniqueness + type-specific checks)
+        errors = fh.validate_challenges_inputs(
             user_input,
-            coordinator.kids_data,
             existing_challenges=coordinator.challenges_data,
-            current_id=internal_id,  # Editing existing challenge
+            current_challenge_id=internal_id,  # Editing existing challenge
         )
 
-        if not errors and challenge_data_dict:
-            # Additional validation for options flow: dates must be in the future
-            updated_data = challenge_data_dict[internal_id]
-            start_date_str = updated_data[const.DATA_CHALLENGE_START_DATE]
-            end_date_str = updated_data[const.DATA_CHALLENGE_END_DATE]
+        if not errors:
+            try:
+                # Layer 3: Convert CFOF_* to DATA_* keys
+                data_input = eh.map_cfof_to_challenge_data(user_input)
 
-            start_dt = dt_util.parse_datetime(start_date_str)
-            end_dt = dt_util.parse_datetime(end_date_str)
+                # Convert assigned kids from names to IDs (options flow uses names)
+                assigned_kids_names = data_input.get(
+                    const.DATA_CHALLENGE_ASSIGNED_KIDS, []
+                )
+                if not isinstance(assigned_kids_names, list):
+                    assigned_kids_names = (
+                        [assigned_kids_names] if assigned_kids_names else []
+                    )
+                data_input[const.DATA_CHALLENGE_ASSIGNED_KIDS] = [
+                    kids_name_to_id.get(name, name) for name in assigned_kids_names
+                ]
 
-            if start_dt and start_dt < dt_util.utcnow():
-                errors = {
-                    const.CFOP_ERROR_START_DATE: const.TRANS_KEY_CFOF_START_DATE_IN_PAST
-                }
-            elif end_dt and end_dt <= dt_util.utcnow():
-                errors = {
-                    const.CFOP_ERROR_END_DATE: const.TRANS_KEY_CFOF_END_DATE_IN_PAST
-                }
+                # Additional validation for options flow: dates must be in the future
+                start_date_str = data_input.get(const.DATA_CHALLENGE_START_DATE)
+                end_date_str = data_input.get(const.DATA_CHALLENGE_END_DATE)
 
-        if not errors and challenge_data_dict:
-            updated_data = challenge_data_dict[internal_id]
-            coordinator.update_challenge_entity(internal_id, updated_data)
+                start_dt = (
+                    dt_util.parse_datetime(start_date_str) if start_date_str else None
+                )
+                end_dt = dt_util.parse_datetime(end_date_str) if end_date_str else None
 
-            new_name = user_input[const.CFOF_CHALLENGES_INPUT_NAME].strip()
-            const.LOGGER.debug(
-                "Edited Challenge '%s' with ID: %s",
-                new_name,
-                internal_id,
-            )
-            self._mark_reload_needed()
-            return await self.async_step_init()
+                if start_dt and start_dt < dt_util.utcnow():
+                    errors = {
+                        const.CFOP_ERROR_START_DATE: const.TRANS_KEY_CFOF_START_DATE_IN_PAST
+                    }
+                elif end_dt and end_dt <= dt_util.utcnow():
+                    errors = {
+                        const.CFOP_ERROR_END_DATE: const.TRANS_KEY_CFOF_END_DATE_IN_PAST
+                    }
+
+                if not errors:
+                    # Use entity_helpers pattern with direct storage update
+                    existing_data = challenges_dict[internal_id]
+                    final_challenge = eh.build_challenge(
+                        data_input, existing=existing_data
+                    )
+                    # Preserve the original internal_id
+                    final_challenge[const.DATA_CHALLENGE_INTERNAL_ID] = internal_id
+                    coordinator._data[const.DATA_CHALLENGES][internal_id] = dict(
+                        final_challenge
+                    )
+                    coordinator._persist()
+                    coordinator.async_update_listeners()
+
+                    new_name = user_input[const.CFOF_CHALLENGES_INPUT_NAME].strip()
+                    const.LOGGER.debug(
+                        "Edited Challenge '%s' with ID: %s",
+                        new_name,
+                        internal_id,
+                    )
+                    self._mark_reload_needed()
+                    return await self.async_step_init()
+
+            except EntityValidationError as err:
+                errors[err.field] = err.translation_key
 
         # Show form again with validation errors, preserving user input
         kids_dict = {
@@ -2966,224 +3294,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             data_schema=challenge_schema,
             errors=errors,
         )
-
-    # ----------------------------------------------------------------------------------
-    # DELETE METHODS (Cross-Entity - Keep Together)
-    # ----------------------------------------------------------------------------------
-
-    # --- Kids ---
-
-    async def async_step_delete_kid(self, user_input=None):
-        """Delete a kid."""
-        coordinator = self._get_coordinator()
-        kids_dict = coordinator.kids_data
-        internal_id = self.context.get(const.DATA_INTERNAL_ID)
-
-        if not internal_id or internal_id not in kids_dict:
-            const.LOGGER.error("Delete Kid - Invalid Internal ID '%s'", internal_id)
-            return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_KID)
-
-        kid_name = kids_dict[internal_id][const.DATA_KID_NAME]
-
-        if user_input is not None:
-            coordinator.delete_kid_entity(internal_id)
-
-            const.LOGGER.debug("Deleted Kid '%s' with ID: %s", kid_name, internal_id)
-            return await self.async_step_init()
-
-        return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_DELETE_KID,
-            data_schema=vol.Schema({}),
-            description_placeholders={
-                const.OPTIONS_FLOW_PLACEHOLDER_KID_NAME: kid_name
-            },
-        )
-
-    # --- Parents ---
-
-    async def async_step_delete_parent(self, user_input=None):
-        """Delete a parent."""
-        coordinator = self._get_coordinator()
-        parents_dict = coordinator.parents_data
-        internal_id = self.context.get(const.DATA_INTERNAL_ID)
-
-        if not internal_id or internal_id not in parents_dict:
-            const.LOGGER.error("Delete Parent - Invalid Internal ID '%s'", internal_id)
-            return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_PARENT)
-
-        parent_name = parents_dict[internal_id][const.DATA_PARENT_NAME]
-
-        if user_input is not None:
-            coordinator.delete_parent_entity(internal_id)
-
-            const.LOGGER.debug(
-                "Deleted Parent '%s' with ID: %s", parent_name, internal_id
-            )
-            return await self.async_step_init()
-
-        return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_DELETE_PARENT,
-            data_schema=vol.Schema({}),
-            description_placeholders={
-                const.OPTIONS_FLOW_PLACEHOLDER_PARENT_NAME: parent_name
-            },
-        )
-
-    # --- Chores ---
-
-    async def async_step_delete_chore(self, user_input=None):
-        """Delete a chore."""
-        coordinator = self._get_coordinator()
-        chores_dict = coordinator.chores_data
-        internal_id = self.context.get(const.DATA_INTERNAL_ID)
-
-        if not internal_id or internal_id not in chores_dict:
-            const.LOGGER.error("Delete Chore - Invalid Internal ID '%s'", internal_id)
-            return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_CHORE)
-
-        chore_name = chores_dict[internal_id][const.DATA_CHORE_NAME]
-
-        if user_input is not None:
-            coordinator.delete_chore_entity(internal_id)
-
-            const.LOGGER.debug(
-                "Deleted Chore '%s' with ID: %s", chore_name, internal_id
-            )
-            return await self.async_step_init()
-
-        return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_DELETE_CHORE,
-            data_schema=vol.Schema({}),
-            description_placeholders={
-                const.OPTIONS_FLOW_PLACEHOLDER_CHORE_NAME: chore_name
-            },
-        )
-
-    # --- Badges ---
-
-    async def async_step_delete_badge(self, user_input=None):
-        """Delete a badge."""
-        coordinator = self._get_coordinator()
-        badges_dict = coordinator.badges_data
-        internal_id = self.context.get(const.DATA_INTERNAL_ID)
-
-        if not internal_id or internal_id not in badges_dict:
-            const.LOGGER.error("Delete Badge - Invalid Internal ID '%s'", internal_id)
-            return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_BADGE)
-
-        badge_name = badges_dict[internal_id][const.DATA_BADGE_NAME]
-
-        if user_input is not None:
-            coordinator.delete_badge_entity(internal_id)
-
-            const.LOGGER.debug(
-                "Deleted Badge '%s' with ID: %s", badge_name, internal_id
-            )
-            return await self.async_step_init()
-
-        return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_DELETE_BADGE,
-            data_schema=vol.Schema({}),
-            description_placeholders={
-                const.OPTIONS_FLOW_PLACEHOLDER_BADGE_NAME: badge_name
-            },
-        )
-
-    # --- Rewards ---
-
-    async def async_step_delete_reward(self, user_input=None):
-        """Delete a reward."""
-        coordinator = self._get_coordinator()
-        rewards_dict = coordinator.rewards_data
-        internal_id = self.context.get(const.DATA_INTERNAL_ID)
-
-        if not internal_id or internal_id not in rewards_dict:
-            const.LOGGER.error("Delete Reward - Invalid Internal ID '%s'", internal_id)
-            return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_REWARD)
-
-        reward_name = rewards_dict[internal_id][const.DATA_REWARD_NAME]
-
-        if user_input is not None:
-            coordinator.delete_reward_entity(internal_id)
-
-            const.LOGGER.debug(
-                "Deleted Reward '%s' with ID: %s", reward_name, internal_id
-            )
-            return await self.async_step_init()
-
-        return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_DELETE_REWARD,
-            data_schema=vol.Schema({}),
-            description_placeholders={
-                const.OPTIONS_FLOW_PLACEHOLDER_REWARD_NAME: reward_name
-            },
-        )
-
-    # --- Penalties ---
-
-    async def async_step_delete_penalty(self, user_input=None):
-        """Delete a penalty."""
-        coordinator = self._get_coordinator()
-        penalties_dict = coordinator.penalties_data
-        internal_id = self.context.get(const.DATA_INTERNAL_ID)
-
-        if not internal_id or internal_id not in penalties_dict:
-            const.LOGGER.error("Delete Penalty - Invalid Internal ID '%s'", internal_id)
-            return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_PENALTY)
-
-        penalty_name = penalties_dict[internal_id][const.DATA_PENALTY_NAME]
-
-        if user_input is not None:
-            coordinator.delete_penalty_entity(internal_id)
-
-            const.LOGGER.debug(
-                "Deleted Penalty '%s' with ID: %s", penalty_name, internal_id
-            )
-            return await self.async_step_init()
-
-        return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_DELETE_PENALTY,
-            data_schema=vol.Schema({}),
-            description_placeholders={
-                const.OPTIONS_FLOW_PLACEHOLDER_PENALTY_NAME: penalty_name
-            },
-        )
-
-    # --- Achievements ---
-
-    async def async_step_delete_achievement(self, user_input=None):
-        """Delete an achievement."""
-        coordinator = self._get_coordinator()
-        achievements_dict = coordinator.achievements_data
-        internal_id = self.context.get(const.DATA_INTERNAL_ID)
-
-        if not internal_id or internal_id not in achievements_dict:
-            const.LOGGER.error(
-                "Delete Achievement - Invalid Internal ID '%s'", internal_id
-            )
-            return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_ACHIEVEMENT)
-
-        achievement_name = achievements_dict[internal_id][const.DATA_ACHIEVEMENT_NAME]
-
-        if user_input is not None:
-            coordinator.delete_achievement_entity(internal_id)
-
-            const.LOGGER.debug(
-                "Deleted Achievement '%s' with ID: %s",
-                achievement_name,
-                internal_id,
-            )
-            return await self.async_step_init()
-
-        return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_DELETE_ACHIEVEMENT,
-            data_schema=vol.Schema({}),
-            description_placeholders={
-                const.OPTIONS_FLOW_PLACEHOLDER_ACHIEVEMENT_NAME: achievement_name
-            },
-        )
-
-    # --- Challenges ---
 
     async def async_step_delete_challenge(self, user_input=None):
         """Delete a challenge."""
@@ -3212,36 +3322,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             data_schema=vol.Schema({}),
             description_placeholders={
                 const.OPTIONS_FLOW_PLACEHOLDER_CHALLENGE_NAME: challenge_name
-            },
-        )
-
-    # --- Bonuses ---
-
-    async def async_step_delete_bonus(self, user_input=None):
-        """Delete a bonus."""
-        coordinator = self._get_coordinator()
-        bonuses_dict = coordinator.bonuses_data
-        internal_id = self.context.get(const.DATA_INTERNAL_ID)
-
-        if not internal_id or internal_id not in bonuses_dict:
-            const.LOGGER.error("Delete Bonus - Invalid Internal ID '%s'", internal_id)
-            return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_BONUS)
-
-        bonus_name = bonuses_dict[internal_id][const.DATA_BONUS_NAME]
-
-        if user_input is not None:
-            coordinator.delete_bonus_entity(internal_id)
-
-            const.LOGGER.debug(
-                "Deleted Bonus '%s' with ID: %s", bonus_name, internal_id
-            )
-            return await self.async_step_init()
-
-        return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_DELETE_BONUS,
-            data_schema=vol.Schema({}),
-            description_placeholders={
-                const.OPTIONS_FLOW_PLACEHOLDER_BONUS_NAME: bonus_name
             },
         )
 
@@ -4052,7 +4132,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                     if const.DATA_CONFIG_ENTRY_SETTINGS in backup_data:
                         settings = backup_data[const.DATA_CONFIG_ENTRY_SETTINGS]
-                        validated = fh._validate_config_entry_settings(settings)
+                        validated = fh.validate_config_entry_settings(settings)
 
                         if validated:
                             # Merge with defaults for any missing keys
@@ -4115,8 +4195,38 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         )
 
     # ----------------------------------------------------------------------------------
-    # HELPER METHODS (RELOAD & PERSISTENCE)
+    # HELPER METHODS
     # ----------------------------------------------------------------------------------
+
+    def _get_coordinator(self):
+        """Get the coordinator from hass.data."""
+        return self.hass.data[const.DOMAIN][self.config_entry.entry_id][
+            const.COORDINATOR
+        ]
+
+    def _get_entity_dict(self):
+        """Retrieve appropriate entity dict based on entity_type."""
+        coordinator = self._get_coordinator()
+
+        entity_type_to_data = {
+            const.OPTIONS_FLOW_DIC_KID: const.DATA_KIDS,
+            const.OPTIONS_FLOW_DIC_PARENT: const.DATA_PARENTS,
+            const.OPTIONS_FLOW_DIC_CHORE: const.DATA_CHORES,
+            const.OPTIONS_FLOW_DIC_BADGE: const.DATA_BADGES,
+            const.OPTIONS_FLOW_DIC_REWARD: const.DATA_REWARDS,
+            const.OPTIONS_FLOW_DIC_BONUS: const.DATA_BONUSES,
+            const.OPTIONS_FLOW_DIC_PENALTY: const.DATA_PENALTIES,
+            const.OPTIONS_FLOW_DIC_ACHIEVEMENT: const.DATA_ACHIEVEMENTS,
+            const.OPTIONS_FLOW_DIC_CHALLENGE: const.DATA_CHALLENGES,
+        }
+        key = entity_type_to_data.get(self._entity_type or "", "")
+        if not key:
+            const.LOGGER.error(
+                "Unknown entity type '%s'. Cannot retrieve entity dictionary",
+                self._entity_type,
+            )
+            return {}
+        return coordinator.data.get(key, {})
 
     def _mark_reload_needed(self):
         """Mark that a reload is needed after the current flow completes.

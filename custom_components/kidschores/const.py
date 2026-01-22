@@ -2464,6 +2464,7 @@ CFOP_ERROR_KID_NAME: Final = "kid_name"
 CFOP_ERROR_PARENT_NAME: Final = "parent_name"
 CFOP_ERROR_PENALTY_NAME: Final = "penalty_name"
 CFOP_ERROR_REWARD_NAME: Final = "reward_name"
+CFOP_ERROR_REWARD_COST: Final = "reward_cost"  # Invalid reward cost value
 CFOP_ERROR_SELECT_CHORE_ID: Final = "selected_chore_id"
 CFOP_ERROR_START_DATE: Final = "start_date"
 CFOP_ERROR_CHORE_OPTIONS: Final = (
@@ -2484,6 +2485,7 @@ CFOP_ERROR_RETENTION_WEEKLY: Final = "retention_weekly"
 CFOP_ERROR_RETENTION_MONTHLY: Final = "retention_monthly"
 CFOP_ERROR_RETENTION_YEARLY: Final = "retention_yearly"
 CFOP_ERROR_POINTS_ADJUST_VALUES: Final = "points_adjust_values"
+CFOP_ERROR_CHORE_POINTS: Final = "points"  # Invalid chore points value
 # CFE-2026-001: Daily Multi validation error keys
 CFOP_ERROR_DAILY_MULTI_RESET: Final = "recurring_frequency"  # Uses frequency field
 CFOP_ERROR_DAILY_MULTI_KIDS: Final = "assigned_kids"  # Uses assigned_kids field
@@ -2692,6 +2694,7 @@ TRANS_KEY_CFOF_CHALLENGE_INVALID_DATE: Final = "err_invalid_date"
 TRANS_KEY_CFOF_CHALLENGE_TARGET_INVALID: Final = "err_target_invalid"
 TRANS_KEY_CFOF_CHALLENGE_POINTS_NEGATIVE: Final = "err_points_negative"
 TRANS_KEY_CFOF_CHALLENGE_POINTS_INVALID: Final = "err_points_invalid"
+TRANS_KEY_CFOF_INVALID_POINTS: Final = "invalid_points"  # Chore points must be >= 0
 TRANS_KEY_CFOF_INVALID_CHORE: Final = "invalid_chore"
 TRANS_KEY_CFOF_INVALID_CHORE_COUNT: Final = "invalid_chore_count"
 TRANS_KEY_CFOF_INVALID_CHORE_NAME: Final = "invalid_chore_name"
@@ -2728,6 +2731,9 @@ TRANS_KEY_CFOF_INVALID_PENALTY_NAME: Final = "invalid_penalty_name"
 TRANS_KEY_CFOF_INVALID_REWARD: Final = "invalid_reward"
 TRANS_KEY_CFOF_INVALID_REWARD_COUNT: Final = "invalid_reward_count"
 TRANS_KEY_CFOF_INVALID_REWARD_NAME: Final = "invalird_reward_name"
+TRANS_KEY_CFOF_INVALID_REWARD_COST: Final = (
+    "invalid_reward_cost"  # Reward cost must be >= 0
+)
 TRANS_KEY_CFOF_INVALID_SELECTION: Final = "invalid_selection"
 TRANS_KEY_CFOF_INVALID_START_DATE: Final = "invalid_start_date"
 TRANS_KEY_CFOF_POINTS_LABEL_REQUIRED: Final = "points_label_required"

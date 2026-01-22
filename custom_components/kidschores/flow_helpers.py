@@ -1,78 +1,79 @@
 # File: flow_helpers.py
 """Helpers for the KidsChores integration's Config and Options flow.
 
-Provides schema builders and input-processing logic for internal_id-based management.
+Provides schema builders and UI validation wrappers for internal_id-based management.
 
-## REFACTORING PATTERNS ##
+## UNIFIED VALIDATION ARCHITECTURE (v0.5.0+) ##
 
-This module implements TWO distinct refactoring patterns for different entity types:
+All entity types follow a consistent 4-layer validation pattern:
 
-### PATTERN 1: Simple Entities (Separate validate/build functions)
-**Used for:** Kids, Parents, Rewards, Bonuses, Penalties
+### Layer 1: Schema Building (flow_helpers)
+**Function:** `build_<entity>_schema(default, kids_dict, ...) -> vol.Schema`
+**Purpose:** Construct voluptuous schemas for Home Assistant UI forms
+**Keys:** Uses CFOF_* constants (Config Flow / Options Flow)
 
-**Functions:**
-- validate_<entity>_inputs(user_input, internal_id, existing_dict) -> errors_dict
-- build_<entity>_schema(default, kids_dict, ...) -> schema_fields
-- build_<entity>_data(user_input, internal_id) -> entity_dict
+### Layer 2: UI Validation Wrapper (flow_helpers)
+**Function:** `validate_<entity>_inputs(user_input, existing_dict, ...) -> errors_dict`
+**Purpose:** Transform CFOF_* keys to DATA_* keys and delegate to entity_helpers
+**Returns:** Error dict (empty = no errors)
 
-**Characteristics:**
-- Validation returns error dict (empty dict = no errors)
-- Build functions are pure data transformers
-- Clear separation of concerns (validate, display schema, build data)
-- Simpler entities with straightforward validation rules
+### Layer 3: Single Source of Truth Validation (entity_helpers)
+**Function:** `validate_<entity>_data(data, existing_dict, ...) -> errors_dict`
+**Purpose:** Core validation logic with DATA_* keys - the authoritative validation
+**Keys:** Uses DATA_* constants (storage format)
 
-**Example flow:**
+### Layer 4: Entity Building (entity_helpers)
+**Function:** `build_<entity>(data, existing=None) -> normalized_dict`
+**Purpose:** Build complete entity structure with defaults, UUIDs, timestamps
+**Returns:** Fully normalized entity dict ready for storage
+
+### Call Site Pattern
 ```python
-errors = validate_reward_inputs(user_input, internal_id, existing_rewards)
+# Step 1: Layer 2 - UI validation (transforms keys + validates)
+errors = fh.validate_reward_inputs(user_input, existing_rewards)
+
 if not errors:
-    reward_data = build_reward_data(user_input, internal_id)
+    try:
+        # Step 2: Layer 3 - Map CFOF_* to DATA_* (for entities needing mapping)
+        data_input = eh.map_cfof_to_reward_data(user_input)
+
+        # Step 3: Layer 4 - Build normalized structure
+        reward = eh.build_reward(data_input)
+        internal_id = reward[const.DATA_REWARD_INTERNAL_ID]
+
+        # Step 4: Direct storage write
+        coordinator._data[const.DATA_REWARDS][internal_id] = dict(reward)
+        coordinator._persist()
+
+    except EntityValidationError as err:
+        errors[err.field] = err.translation_key
 ```
 
-### PATTERN 2: Complex Entities (Integrated validation with tuple return)
-**Used for:** Chores, Achievements, Challenges
+### Key Mapping Functions (entity_helpers)
+Some entities use CFOF_* keys that differ from DATA_* keys. These need mapping:
 
-**Functions:**
-- validate_<entity>_inputs(user_input, internal_id, existing_dict, ...)
-  -> Tuple[errors_dict, data_dict]
-- build_<entity>_schema(default, kids_dict, ...) -> schema_fields
+**Entities requiring explicit CFOF→DATA mapping:**
+- Rewards: `eh.map_cfof_to_reward_data()`
+- Chores: `eh.map_cfof_to_chore_data()`
+- Achievements: `eh.map_cfof_to_achievement_data()`
+- Challenges: `eh.map_cfof_to_challenge_data()`
 
-**Characteristics:**
-- Validation returns (errors, data) tuple
-- Data is built INSIDE validation when there are no errors
-- Handles complex validation requiring entity context
-- Entities with interdependencies (e.g., shared/multi chores, badge triggers)
+**Entities using CFOF_* keys directly (no mapping needed):**
+- Kids: build_kid() accepts CFOF_* keys directly
+- Parents: build_parent() accepts CFOF_* keys directly
+- Bonuses: build_bonus() accepts CFOF_* keys directly
+- Penalties: build_penalty() accepts CFOF_* keys directly
 
-**Example flow:**
-```python
-errors, chore_data = validate_chore_inputs(
-    user_input, internal_id, existing_chores, kids_dict
-)
-if not errors:
-    # chore_data is already built with all processing done
-    save_data(chore_data)
-```
+**Entities with embedded key mapping (complex conditional fields):**
+- Badges: build_badge() handles CFOF→DATA mapping internally via get_field() closure
+  (Badge fields vary by badge_type, so mapping is embedded in build function)
 
-### CHOOSING A PATTERN ###
-
-Use **Pattern 1 (Simple)** when:
-- Validation rules are straightforward
-- No complex interdependencies between fields
-- Data building is mostly direct mapping from input
-
-Use **Pattern 2 (Complex)** when:
-- Validation requires computing/transforming values (e.g., kidIds from selected names)
-- Entity has special modes (shared chores, multi-approval chores)
-- Need to verify relationships with other entities during validation
-- Data structure depends on validation outcomes
-
-### MIGRATION NOTES ###
-
-All entity types have been refactored from the old direct-processing pattern to
-one of these two patterns. Pattern 2 evolved from Pattern 1 when complexity grew
-beyond what made sense for separate validate/build functions.
-
-Future entities should start with Pattern 1 and only move to Pattern 2 if
-validation logic becomes complex enough to warrant it.
+### Benefits of This Architecture
+1. **Single Source of Truth:** All validation logic lives in entity_helpers
+2. **DRY:** No duplicate validation between config_flow and options_flow
+3. **Testable:** entity_helpers validation can be unit tested in isolation
+4. **Consistent:** Same pattern for all entity types
+5. **Type Safe:** Clear key transformation at well-defined boundaries
 """
 
 # pyright: reportArgumentType=false
@@ -85,7 +86,6 @@ import os
 from pathlib import Path
 import shutil
 from typing import Any, cast
-import uuid
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -94,42 +94,6 @@ from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
 from . import const, kc_helpers as kh
-
-# ----------------------------------------------------------------------------------
-# HELPER FUNCTIONS
-# ----------------------------------------------------------------------------------
-
-
-def _build_notification_defaults(default: dict[str, Any]) -> list[str]:
-    """Build default notification options from config.
-
-    Args:
-        default: Dictionary containing existing configuration defaults.
-
-    Returns:
-        List of selected notification option values.
-    """
-    notifications = []
-    if default.get(
-        const.CFOF_CHORES_INPUT_NOTIFY_ON_CLAIM, const.DEFAULT_NOTIFY_ON_CLAIM
-    ):
-        notifications.append(const.DATA_CHORE_NOTIFY_ON_CLAIM)
-    if default.get(
-        const.CFOF_CHORES_INPUT_NOTIFY_ON_APPROVAL, const.DEFAULT_NOTIFY_ON_APPROVAL
-    ):
-        notifications.append(const.DATA_CHORE_NOTIFY_ON_APPROVAL)
-    if default.get(
-        const.CFOF_CHORES_INPUT_NOTIFY_ON_DISAPPROVAL,
-        const.DEFAULT_NOTIFY_ON_DISAPPROVAL,
-    ):
-        notifications.append(const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL)
-    if default.get(
-        const.CFOF_CHORES_INPUT_NOTIFY_ON_REMINDER,
-        const.DEFAULT_NOTIFY_ON_REMINDER,
-    ):
-        notifications.append(const.DATA_CHORE_NOTIFY_ON_REMINDER)
-    return notifications
-
 
 # ----------------------------------------------------------------------------------
 # POINTS SCHEMA
@@ -194,206 +158,7 @@ def validate_points_inputs(user_input: dict[str, Any]) -> dict[str, str]:
 
 
 # ----------------------------------------------------------------------------------
-# DAILY_MULTI VALIDATION FUNCTIONS (CFE-2026-001)
-# ----------------------------------------------------------------------------------
-
-
-def validate_chore_frequency_reset_combination(
-    recurring_frequency: str,
-    approval_reset_type: str,
-) -> dict[str, str]:
-    """Validate frequency and reset type combination.
-
-    Args:
-        recurring_frequency: The chore's recurring frequency.
-        approval_reset_type: The chore's approval reset type.
-
-    Returns:
-        Dictionary of errors (empty if validation passes).
-        Key is error field (CFOP_ERROR_*), value is translation key.
-    """
-    errors: dict[str, str] = {}
-
-    if recurring_frequency == const.FREQUENCY_DAILY_MULTI:
-        # DAILY_MULTI incompatible with AT_MIDNIGHT_* reset types
-        # Rationale: DAILY_MULTI needs immediate slot advancement, but
-        # AT_MIDNIGHT_* keeps chore APPROVED until midnight (blocks slots)
-        incompatible_reset_types = {
-            const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
-            const.APPROVAL_RESET_AT_MIDNIGHT_MULTI,
-        }
-        if approval_reset_type in incompatible_reset_types:
-            errors[const.CFOP_ERROR_DAILY_MULTI_RESET] = (
-                const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_REQUIRES_COMPATIBLE_RESET
-            )
-
-    return errors
-
-
-def validate_daily_multi_kids(
-    recurring_frequency: str,
-    completion_criteria: str,
-    assigned_kids: list[str],
-    per_kid_times: dict[str, str] | None = None,
-) -> dict[str, str]:
-    """Validate DAILY_MULTI kid assignment rules.
-
-    Args:
-        recurring_frequency: The chore's recurring frequency.
-        completion_criteria: The chore's completion criteria.
-        assigned_kids: List of assigned kid IDs or names.
-        per_kid_times: Per-kid times dict (if provided, allows multi-kids).
-
-    Returns:
-        Dictionary of errors (empty if validation passes).
-        Key is error field (CFOP_ERROR_*), value is translation key.
-
-    PKAD-2026-001: Now allows DAILY_MULTI + INDEPENDENT + multi-kids
-    when per_kid_times is provided (each kid has own time slots).
-    """
-    errors: dict[str, str] = {}
-
-    if recurring_frequency == const.FREQUENCY_DAILY_MULTI:
-        # DAILY_MULTI + INDEPENDENT: allowed if per_kid_times exists
-        # (each kid gets their own time slots)
-        if (
-            completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
-            and len(assigned_kids) > 1
-            and not per_kid_times
-        ):
-            errors[const.CFOP_ERROR_DAILY_MULTI_KIDS] = (
-                const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_INDEPENDENT_MULTI_KIDS
-            )
-
-    return errors
-
-
-def validate_per_kid_applicable_days(
-    per_kid_days: dict[str, list[int]],
-) -> tuple[bool, str | None]:
-    """Validate per-kid applicable days structure.
-
-    Args:
-        per_kid_days: {kid_id: [0, 3], ...} where 0=Mon, 6=Sun
-
-    Returns:
-        Tuple of (is_valid, error_key_or_none)
-
-    Validation Rules (PKAD-2026-001):
-    - Empty dict allowed (use chore-level defaults)
-    - Each kid value must be list of integers (0-6)
-    - Empty list = all days applicable (valid)
-    - No duplicate days in single kid's list
-    """
-    if not per_kid_days:
-        return (True, None)  # Empty = use defaults
-
-    for _kid_id, days in per_kid_days.items():
-        if not isinstance(days, list):
-            return (False, const.TRANS_KEY_CFOF_ERROR_PER_KID_APPLICABLE_DAYS_INVALID)
-
-        if not days:
-            continue  # Empty list = all days (valid)
-
-        for day in days:
-            if not isinstance(day, int) or day < 0 or day > 6:
-                return (
-                    False,
-                    const.TRANS_KEY_CFOF_ERROR_PER_KID_APPLICABLE_DAYS_INVALID,
-                )
-
-        # Check for duplicates
-        if len(days) != len(set(days)):
-            return (False, const.TRANS_KEY_CFOF_ERROR_PER_KID_APPLICABLE_DAYS_INVALID)
-
-    return (True, None)
-
-
-def validate_per_kid_daily_multi_times(
-    per_kid_times: dict[str, str],
-    frequency: str,
-) -> tuple[bool, str | None]:
-    """Validate per-kid daily multi-times (only for DAILY_MULTI frequency).
-
-    Args:
-        per_kid_times: {kid_id: "08:00|17:00", ...}
-        frequency: Chore recurring frequency
-
-    Returns:
-        Tuple of (is_valid, error_key_or_none)
-
-    Note (PKAD-2026-001): Reuses existing validate_daily_multi_times() for format validation.
-    """
-    if frequency != const.FREQUENCY_DAILY_MULTI:
-        return (True, None)  # Not applicable
-
-    if not per_kid_times:
-        return (True, None)  # Empty = use chore-level times
-
-    for _kid_id, times_str in per_kid_times.items():
-        if not times_str or not times_str.strip():
-            continue  # Empty = use chore-level default
-
-        # Reuse existing validation
-        errors = validate_daily_multi_times(times_str)
-        if errors:
-            return (
-                False,
-                const.TRANS_KEY_CFOF_ERROR_PER_KID_DAILY_MULTI_TIMES_INVALID,
-            )
-
-    return (True, None)
-
-
-def validate_daily_multi_times(times_str: str) -> dict[str, str]:
-    """Validate daily multi times format.
-
-    Args:
-        times_str: Pipe-separated time string (e.g., "08:00|17:00").
-
-    Returns:
-        Dictionary of errors (empty if validation passes).
-        Key is error field ("base"), value is translation key.
-
-    Validation rules:
-        - Must have at least 2 times
-        - Must have at most 6 times
-        - Each time must be in HH:MM format (24-hour)
-        - Hours must be 0-23, minutes must be 0-59
-    """
-    errors: dict[str, str] = {}
-
-    if not times_str or not times_str.strip():
-        errors["base"] = const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_REQUIRED
-        return errors
-
-    # Split and clean entries
-    entries = [t.strip() for t in times_str.split("|") if t.strip()]
-
-    # Validate count
-    if len(entries) < 2:
-        errors["base"] = const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_TOO_FEW
-        return errors
-
-    if len(entries) > 6:
-        errors["base"] = const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_TOO_MANY
-        return errors
-
-    # Validate format of each entry
-    import re
-
-    time_pattern = re.compile(r"^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$")
-
-    for entry in entries:
-        if not time_pattern.match(entry):
-            errors["base"] = const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_INVALID_FORMAT
-            return errors
-
-    return errors
-
-
-# ----------------------------------------------------------------------------------
-# KIDS SCHEMA (Pattern 1: Simple - Separate validate/build)
+# KIDS SCHEMA (Layer 1: Schema + Layer 2: UI Validation Wrapper)
 # ----------------------------------------------------------------------------------
 
 
@@ -469,110 +234,48 @@ async def build_kid_schema(
     )
 
 
-def build_kids_data(
-    user_input: dict[str, Any],
-    existing_kids: dict[str, Any]
-    | None = None,  # Reserved for API consistency with validate_kids_inputs
-) -> dict[str, Any]:
-    """Build kid data from user input.
-
-    Converts form input (CFOF_* keys) to storage format (DATA_* keys).
-    Notification configuration is simplified: service selected = enabled, none = disabled.
-
-    Args:
-        user_input: Dictionary containing user inputs from the form.
-        existing_kids: Optional dictionary of existing kids for duplicate checking.
-
-    Returns:
-        Dictionary with kid data in storage format, keyed by internal_id.
-    """
-    kid_name = user_input.get(const.CFOF_KIDS_INPUT_KID_NAME, "").strip()
-    internal_id = user_input.get(const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4()))
-
-    ha_user_id = user_input.get(const.CFOF_KIDS_INPUT_HA_USER, "")
-    # Convert sentinel back to empty string for storage
-    ha_user_id = (
-        ""
-        if ha_user_id in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
-        else ha_user_id
-    )
-    notify_service = user_input.get(const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE, "")
-    # Convert sentinel back to empty string for storage
-    notify_service = (
-        ""
-        if notify_service in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
-        else notify_service
-    )
-    # Derive enable_notifications from service presence (service selected = enabled)
-    enable_notifications = bool(notify_service)
-    dashboard_language = user_input.get(
-        const.CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
-    )
-    # Note: Due date reminders moved to per-chore control (v0.5.0+)
-    # Kept for backward compatibility but no longer exposed in UI
-    enable_due_date_reminders = True  # Always enabled at kid level
-
-    return {
-        internal_id: {
-            const.DATA_KID_NAME: kid_name,
-            const.DATA_KID_HA_USER_ID: ha_user_id,
-            const.DATA_KID_ENABLE_NOTIFICATIONS: enable_notifications,
-            const.DATA_KID_MOBILE_NOTIFY_SERVICE: notify_service,
-            const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS: False,  # Deprecated - always False
-            const.DATA_KID_DASHBOARD_LANGUAGE: dashboard_language,
-            const.DATA_KID_ENABLE_DUE_DATE_REMINDERS: enable_due_date_reminders,  # Deprecated - kept for migration
-            const.DATA_KID_INTERNAL_ID: internal_id,
-        }
-    }
-
-
 def validate_kids_inputs(
     user_input: dict[str, Any],
     existing_kids: dict[str, Any] | None = None,
     existing_parents: dict[str, Any] | None = None,
+    *,
+    current_kid_id: str | None = None,
 ) -> dict[str, str]:
-    """Validate kid configuration inputs.
+    """Validate kid configuration inputs for Options Flow.
+
+    This is a UI-specific wrapper that:
+    1. Transforms CFOF_* keys to DATA_* keys
+    2. Calls entity_helpers.validate_kid_data() (single source of truth)
 
     Args:
-        user_input: Dictionary containing user inputs from the form.
+        user_input: Dictionary containing user inputs from the form (CFOF_* keys).
         existing_kids: Optional dictionary of existing kids for duplicate checking.
         existing_parents: Optional dictionary of existing parents for cross-validation.
+        current_kid_id: ID of kid being edited (to exclude from duplicate check).
 
     Returns:
         Dictionary of errors (empty if validation passes).
     """
-    errors = {}
+    from . import entity_helpers as eh
 
-    kid_name = user_input.get(const.CFOF_KIDS_INPUT_KID_NAME, "").strip()
+    # Build DATA_* dict for shared validation
+    data_dict: dict[str, Any] = {
+        const.DATA_KID_NAME: user_input.get(const.CFOF_KIDS_INPUT_KID_NAME, ""),
+    }
 
-    # Validate name is not empty
-    if not kid_name:
-        errors[const.CFOP_ERROR_KID_NAME] = const.TRANS_KEY_CFOF_INVALID_KID_NAME
-        return errors
-
-    # Check for duplicate names
-    if existing_kids:
-        if any(
-            kid_data[const.DATA_KID_NAME] == kid_name
-            for kid_data in existing_kids.values()
-        ):
-            errors[const.CFOP_ERROR_KID_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_KID
-
-    # Check for conflicts with shadow kid parents only (allow_chore_assignment=True)
-    # Regular parents without allow_chore_assignment don't create kid-like entities
-    if existing_parents:
-        if any(
-            parent_data[const.DATA_PARENT_NAME] == kid_name
-            for parent_data in existing_parents.values()
-            if parent_data.get(const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT, False)
-        ):
-            errors[const.CFOP_ERROR_KID_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_NAME
-
-    return errors
+    # Call shared validation (single source of truth)
+    is_update = current_kid_id is not None
+    return eh.validate_kid_data(
+        data_dict,
+        existing_kids,
+        existing_parents,
+        is_update=is_update,
+        current_kid_id=current_kid_id,
+    )
 
 
 # ----------------------------------------------------------------------------------
-# PARENTS SCHEMA (Pattern 1: Simple - Separate validate/build)
+# PARENTS SCHEMA (Layer 1: Schema + Layer 2: UI Validation Wrapper)
 # ----------------------------------------------------------------------------------
 
 
@@ -679,181 +382,57 @@ async def build_parent_schema(
     )
 
 
-def build_parents_data(
-    user_input: dict[str, Any],
-    existing_parents: dict[str, Any]
-    | None = None,  # Reserved for API consistency with validate_parents_inputs
-) -> dict[str, Any]:
-    """Build parent data from user input.
-
-    Converts form input (CFOF_* keys) to storage format (DATA_* keys).
-    Notification configuration is simplified: service selected = enabled, none = disabled.
-
-    Args:
-        user_input: Dictionary containing user inputs from the form.
-        existing_parents: Optional dictionary of existing parents for duplicate checking.
-
-    Returns:
-        Dictionary with parent data in storage format, keyed by internal_id.
-    """
-    parent_name = user_input.get(const.CFOF_PARENTS_INPUT_NAME, "").strip()
-    internal_id = user_input.get(const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4()))
-
-    ha_user_id = user_input.get(const.CFOF_PARENTS_INPUT_HA_USER, "")
-    # Convert sentinel back to empty string for storage
-    ha_user_id = (
-        ""
-        if ha_user_id in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
-        else ha_user_id
-    )
-    associated_kids = user_input.get(const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS, [])
-    notify_service = user_input.get(const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE, "")
-    # Convert sentinel back to empty string for storage
-    notify_service = (
-        ""
-        if notify_service in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
-        else notify_service
-    )
-    # Derive enable_notifications from service presence (service selected = enabled)
-    enable_notifications = bool(notify_service)
-
-    return {
-        internal_id: {
-            const.DATA_PARENT_NAME: parent_name,
-            const.DATA_PARENT_HA_USER_ID: ha_user_id,
-            const.DATA_PARENT_ASSOCIATED_KIDS: associated_kids,
-            const.DATA_PARENT_ENABLE_NOTIFICATIONS: enable_notifications,
-            const.DATA_PARENT_MOBILE_NOTIFY_SERVICE: notify_service,
-            const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS: False,  # Deprecated - always False
-            const.DATA_PARENT_INTERNAL_ID: internal_id,
-            # Dashboard language
-            const.DATA_PARENT_DASHBOARD_LANGUAGE: user_input.get(
-                const.CFOF_PARENTS_INPUT_DASHBOARD_LANGUAGE,
-                const.DEFAULT_DASHBOARD_LANGUAGE,
-            ),
-            # Parent chore capability flags
-            const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT: user_input.get(
-                const.CFOF_PARENTS_INPUT_ALLOW_CHORE_ASSIGNMENT, False
-            ),
-            const.DATA_PARENT_ENABLE_CHORE_WORKFLOW: user_input.get(
-                const.CFOF_PARENTS_INPUT_ENABLE_CHORE_WORKFLOW, False
-            ),
-            const.DATA_PARENT_ENABLE_GAMIFICATION: user_input.get(
-                const.CFOF_PARENTS_INPUT_ENABLE_GAMIFICATION, False
-            ),
-            const.DATA_PARENT_LINKED_SHADOW_KID_ID: None,  # Set when shadow kid created
-        }
-    }
-
-
 def validate_parents_inputs(
     user_input: dict[str, Any],
     existing_parents: dict[str, Any] | None = None,
     existing_kids: dict[str, Any] | None = None,
+    *,
+    current_parent_id: str | None = None,
 ) -> dict[str, str]:
-    """Validate parent configuration inputs.
+    """Validate parent configuration inputs for Options Flow.
+
+    This is a UI-specific wrapper that:
+    1. Transforms CFOF_* keys to DATA_* keys
+    2. Calls entity_helpers.validate_parent_data() (single source of truth)
 
     Args:
-        user_input: Dictionary containing user inputs from the form.
+        user_input: Dictionary containing user inputs from the form (CFOF_* keys).
         existing_parents: Optional dictionary of existing parents for duplicate checking.
         existing_kids: Optional dictionary of existing kids for cross-validation.
+        current_parent_id: ID of parent being edited (to exclude from duplicate check).
 
     Returns:
         Dictionary of errors (empty if validation passes).
     """
-    errors = {}
+    from . import entity_helpers as eh
 
-    parent_name = user_input.get(const.CFOF_PARENTS_INPUT_NAME, "").strip()
-
-    # Validate name is not empty
-    if not parent_name:
-        errors[const.CFOP_ERROR_PARENT_NAME] = const.TRANS_KEY_CFOF_INVALID_PARENT_NAME
-        return errors
-
-    # Check for duplicate names
-    if existing_parents:
-        if any(
-            parent_data[const.DATA_PARENT_NAME] == parent_name
-            for parent_data in existing_parents.values()
-        ):
-            errors[const.CFOP_ERROR_PARENT_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_PARENT
-
-    # Check for conflicts with existing kids only if allow_chore_assignment is enabled
-    # (when allow_chore_assignment=True, a shadow kid entity will be created with this name)
-    allow_chore_assignment = user_input.get(
-        const.CFOF_PARENTS_INPUT_ALLOW_CHORE_ASSIGNMENT, False
-    )
-    if allow_chore_assignment and existing_kids:
-        if any(
-            kid_data[const.DATA_KID_NAME] == parent_name
-            for kid_data in existing_kids.values()
-        ):
-            errors[const.CFOP_ERROR_PARENT_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_NAME
-
-    # Validate that workflow/gamification options require allow_chore_assignment
-    enable_chore_workflow = user_input.get(
-        const.CFOF_PARENTS_INPUT_ENABLE_CHORE_WORKFLOW, False
-    )
-    enable_gamification = user_input.get(
-        const.CFOF_PARENTS_INPUT_ENABLE_GAMIFICATION, False
-    )
-    if (enable_chore_workflow or enable_gamification) and not allow_chore_assignment:
-        errors[const.CFOP_ERROR_CHORE_OPTIONS] = (
-            const.TRANS_KEY_CFOF_CHORE_OPTIONS_REQUIRE_ASSIGNMENT
-        )
-
-    return errors
-
-
-def build_shadow_kid_data(
-    parent_id: str, parent_data: dict[str, Any]
-) -> tuple[str, dict[str, Any]]:
-    """Build shadow kid data from parent data.
-
-    Creates the data structure for a shadow kid that represents a parent
-    who can be assigned chores. Shadow kids inherit name, HA user, and
-    dashboard language from their parent.
-
-    This function is shared between config_flow (initial setup) and
-    coordinator (options flow updates) to ensure consistent shadow kid
-    creation.
-
-    Args:
-        parent_id: The internal ID of the parent.
-        parent_data: The parent's data dictionary (DATA_* keys).
-
-    Returns:
-        Tuple of (shadow_kid_id, shadow_kid_data) where shadow_kid_data
-        is in storage format (DATA_* keys) with shadow kid markers.
-    """
-    shadow_kid_id = str(uuid.uuid4())
-
-    return shadow_kid_id, {
-        const.DATA_KID_NAME: parent_data.get(
-            const.DATA_PARENT_NAME, const.SENTINEL_EMPTY
+    # Build DATA_* dict for shared validation
+    data_dict: dict[str, Any] = {
+        const.DATA_PARENT_NAME: user_input.get(const.CFOF_PARENTS_INPUT_NAME, ""),
+        const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT: user_input.get(
+            const.CFOF_PARENTS_INPUT_ALLOW_CHORE_ASSIGNMENT, False
         ),
-        const.DATA_KID_HA_USER_ID: parent_data.get(
-            const.DATA_PARENT_HA_USER_ID, const.SENTINEL_EMPTY
+        const.DATA_PARENT_ENABLE_CHORE_WORKFLOW: user_input.get(
+            const.CFOF_PARENTS_INPUT_ENABLE_CHORE_WORKFLOW, False
         ),
-        # Notifications disabled by default (parent usually handles these)
-        # but editable via "Manage Kids" if parent wants kid-specific notifications
-        const.DATA_KID_ENABLE_NOTIFICATIONS: False,
-        const.DATA_KID_MOBILE_NOTIFY_SERVICE: const.SENTINEL_EMPTY,
-        const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS: False,
-        # Due date reminders default enabled (can be toggled in edit)
-        const.DATA_KID_ENABLE_DUE_DATE_REMINDERS: True,
-        const.DATA_KID_DASHBOARD_LANGUAGE: parent_data.get(
-            const.DATA_PARENT_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
+        const.DATA_PARENT_ENABLE_GAMIFICATION: user_input.get(
+            const.CFOF_PARENTS_INPUT_ENABLE_GAMIFICATION, False
         ),
-        const.DATA_KID_INTERNAL_ID: shadow_kid_id,
-        # Shadow kid markers (v0.6.0+)
-        const.DATA_KID_IS_SHADOW: True,
-        const.DATA_KID_LINKED_PARENT_ID: parent_id,
     }
+
+    # Call shared validation (single source of truth)
+    is_update = current_parent_id is not None
+    return eh.validate_parent_data(
+        data_dict,
+        existing_parents,
+        existing_kids,
+        is_update=is_update,
+        current_parent_id=current_parent_id,
+    )
 
 
 # ----------------------------------------------------------------------------------
-# CHORES SCHEMA (Pattern 2: Complex - Integrated validation with tuple return)
+# CHORES SCHEMA (Layer 1: Schema + Layer 2: UI Validation Wrapper)
 # ----------------------------------------------------------------------------------
 
 
@@ -1088,58 +667,53 @@ def build_chore_schema(
     return vol.Schema(schema_fields)
 
 
-def build_chores_data(
+def validate_chores_inputs(
     user_input: dict[str, Any],
     kids_dict: dict[str, Any],
     existing_chores: dict[str, Any] | None = None,
-    existing_per_kid_due_dates: dict[str, str | None] | None = None,
-) -> tuple[dict[str, Any], dict[str, str]]:
-    """Build chore data from user input with validation.
+    *,
+    current_chore_id: str | None = None,
+) -> tuple[dict[str, str], str | None]:
+    """Validate chore configuration inputs for Options Flow.
 
-    Converts form input (CFOF_* keys) to storage format (DATA_* keys).
-    Also validates the due date and converts assigned kid names to UUIDs.
+    This is a UI-specific wrapper that:
+    1. Transforms CFOF_* keys to DATA_* keys
+    2. Calls entity_helpers.validate_chore_data() (single source of truth)
+    3. Handles UI-specific concerns (clear_due_date checkbox, kids_dict mapping)
 
     Args:
-        user_input: Dictionary containing user inputs from the form.
+        user_input: Dictionary containing user inputs from the form (CFOF_* keys).
         kids_dict: Dictionary mapping kid names to kid internal_ids (UUIDs).
         existing_chores: Optional dictionary of existing chores for duplicate checking.
-        existing_per_kid_due_dates: Optional dictionary of existing per-kid due dates
-            to preserve when editing INDEPENDENT chores. Keys are kid UUIDs, values
-            are ISO datetime strings or None. New kids use template date.
+        current_chore_id: ID of chore being edited (to exclude from duplicate check).
 
     Returns:
-        Tuple of (chore_data_dict, errors_dict). If errors exist, chore_data will be empty.
+        Tuple of (errors_dict, due_date_str_or_none).
+        - errors_dict: Dictionary of errors (empty if validation passes).
+        - due_date_str: Validated due date as ISO string, or None if not provided/cleared.
     """
-    errors = {}
-    chore_name = user_input.get(const.CFOF_CHORES_INPUT_NAME, "").strip()
-    internal_id = user_input.get(const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4()))
+    from . import entity_helpers as eh
 
-    # Validate chore name
-    if not chore_name:
-        errors[const.CFOP_ERROR_CHORE_NAME] = const.TRANS_KEY_CFOF_INVALID_CHORE_NAME
-        return {}, errors
+    errors: dict[str, str] = {}
 
-    # Check for duplicate names
-    if existing_chores and any(
-        chore_data[const.DATA_CHORE_NAME] == chore_name
-        for chore_data in existing_chores.values()
-    ):
-        errors[const.CFOP_ERROR_CHORE_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_CHORE
-        return {}, errors
+    # === Transform CFOF_* keys to DATA_* keys for shared validation ===
+    # Resolve assigned kids from names to IDs
+    assigned_kids_names = user_input.get(const.CFOF_CHORES_INPUT_ASSIGNED_KIDS, [])
+    assigned_kids_ids = [
+        kids_dict[kid_name] for kid_name in assigned_kids_names if kid_name in kids_dict
+    ]
 
-    # Process due date
-    # Check if user explicitly wants to clear the date
+    # Handle due date (UI-specific: clear_due_date checkbox)
     clear_due_date = user_input.get(const.CFOF_CHORES_INPUT_CLEAR_DUE_DATE, False)
-    due_date_str = None
+    due_date_str: str | None = None
 
     if clear_due_date:
-        # User explicitly cleared the date
-        const.LOGGER.debug("build_chores_data: user cleared due date via checkbox")
+        const.LOGGER.debug("validate_chores_inputs: user cleared due date via checkbox")
         due_date_str = None
     elif user_input.get(const.CFOF_CHORES_INPUT_DUE_DATE):
         raw_due = user_input[const.CFOF_CHORES_INPUT_DUE_DATE]
         const.LOGGER.debug(
-            "build_chores_data: raw_due input = %s (type: %s)",
+            "validate_chores_inputs: raw_due input = %s (type: %s)",
             raw_due,
             type(raw_due).__name__,
         )
@@ -1149,39 +723,121 @@ def build_chores_data(
                 default_tzinfo=const.DEFAULT_TIME_ZONE,
                 return_type=const.HELPER_RETURN_DATETIME_UTC,
             )
-            const.LOGGER.debug(
-                "build_chores_data: normalized due_dt = %s (type: %s)",
-                due_dt,
-                type(due_dt).__name__ if due_dt else "None",
-            )
             # Type guard: narrow datetime | date | str | None to datetime
             if due_dt and not isinstance(due_dt, datetime.datetime):
                 const.LOGGER.warning(
-                    "build_chores_data: due_dt is not datetime: %s", type(due_dt)
+                    "validate_chores_inputs: due_dt is not datetime: %s", type(due_dt)
                 )
                 errors[const.CFOP_ERROR_DUE_DATE] = (
                     const.TRANS_KEY_CFOF_INVALID_DUE_DATE
                 )
-                return {}, errors
-            if due_dt and due_dt < dt_util.utcnow():
-                const.LOGGER.warning(
-                    "build_chores_data: due_dt in past: %s < %s",
-                    due_dt,
-                    dt_util.utcnow(),
-                )
-                errors[const.CFOP_ERROR_DUE_DATE] = (
-                    const.TRANS_KEY_CFOF_DUE_DATE_IN_PAST
-                )
-                return {}, errors
-            # Store the normalized due date as ISO string
+                return errors, None
             if due_dt:
                 due_date_str = due_dt.isoformat()
         except (ValueError, TypeError, AttributeError) as exc:
             const.LOGGER.warning(
-                "build_chores_data: exception parsing due date: %s", exc
+                "validate_chores_inputs: exception parsing due date: %s", exc
             )
             errors[const.CFOP_ERROR_DUE_DATE] = const.TRANS_KEY_CFOF_INVALID_DUE_DATE
-            return {}, errors
+            return errors, None
+
+    # Build DATA_* dict for shared validation
+    data_dict: dict[str, Any] = {
+        const.DATA_CHORE_NAME: user_input.get(const.CFOF_CHORES_INPUT_NAME, ""),
+        const.DATA_CHORE_ASSIGNED_KIDS: assigned_kids_ids,
+        const.DATA_CHORE_RECURRING_FREQUENCY: user_input.get(
+            const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY, const.FREQUENCY_NONE
+        ),
+        const.DATA_CHORE_APPROVAL_RESET_TYPE: user_input.get(
+            const.CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE,
+            const.DEFAULT_APPROVAL_RESET_TYPE,
+        ),
+        const.DATA_CHORE_OVERDUE_HANDLING_TYPE: user_input.get(
+            const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE,
+            const.DEFAULT_OVERDUE_HANDLING_TYPE,
+        ),
+        const.DATA_CHORE_COMPLETION_CRITERIA: user_input.get(
+            const.CFOF_CHORES_INPUT_COMPLETION_CRITERIA,
+            const.COMPLETION_CRITERIA_INDEPENDENT,
+        ),
+    }
+
+    # Only include due_date if we have one (allows clearing)
+    if due_date_str:
+        data_dict[const.DATA_CHORE_DUE_DATE] = due_date_str
+
+    # Include points if provided
+    if const.CFOF_CHORES_INPUT_DEFAULT_POINTS in user_input:
+        data_dict[const.DATA_CHORE_DEFAULT_POINTS] = user_input[
+            const.CFOF_CHORES_INPUT_DEFAULT_POINTS
+        ]
+
+    # === Call shared validation (single source of truth) ===
+    is_update = current_chore_id is not None
+    errors = eh.validate_chore_data(
+        data_dict,
+        existing_chores,
+        is_update=is_update,
+        current_chore_id=current_chore_id,
+    )
+
+    if errors:
+        return errors, None
+
+    return errors, due_date_str
+
+
+def transform_chore_cfof_to_data(
+    user_input: dict[str, Any],
+    kids_dict: dict[str, Any],
+    due_date_str: str | None,
+    existing_per_kid_due_dates: dict[str, str | None] | None = None,
+) -> dict[str, Any]:
+    """Transform chore form input (CFOF_* keys) to storage format (DATA_* keys).
+
+    This function handles the CFOF_* → DATA_* key mapping and:
+    - Converts assigned kid names to UUIDs
+    - Builds per_kid_due_dates dict
+    - Extracts notification selections from consolidated field
+    - Handles completion_criteria logic for INDEPENDENT vs SHARED
+
+    Args:
+        user_input: Dictionary containing user inputs from the form (CFOF_* keys).
+        kids_dict: Dictionary mapping kid names to kid internal_ids (UUIDs).
+        due_date_str: Validated due date as ISO string (from validate_chores_inputs).
+        existing_per_kid_due_dates: Optional dictionary of existing per-kid due dates
+            to preserve when editing INDEPENDENT chores.
+
+    Returns:
+        Dictionary with DATA_* keys ready for entity_helpers.build_chore().
+    """
+    # Convert assigned kid names to UUIDs
+    assigned_kids_names = user_input.get(const.CFOF_CHORES_INPUT_ASSIGNED_KIDS, [])
+    assigned_kids_ids = [
+        kids_dict[kid_name] for kid_name in assigned_kids_names if kid_name in kids_dict
+    ]
+
+    # Get completion criteria
+    completion_criteria = user_input.get(
+        const.CFOF_CHORES_INPUT_COMPLETION_CRITERIA,
+        const.COMPLETION_CRITERIA_INDEPENDENT,
+    )
+
+    # Check if user explicitly wants to clear the date
+    clear_due_date = user_input.get(const.CFOF_CHORES_INPUT_CLEAR_DUE_DATE, False)
+
+    # Build per_kid_due_dates for ALL chores (SHARED + INDEPENDENT)
+    per_kid_due_dates: dict[str, str | None] = {}
+    for kid_id in assigned_kids_ids:
+        if (
+            existing_per_kid_due_dates
+            and completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
+            and kid_id in existing_per_kid_due_dates
+            and not clear_due_date
+        ):
+            per_kid_due_dates[kid_id] = existing_per_kid_due_dates[kid_id]
+        else:
+            per_kid_due_dates[kid_id] = due_date_str
 
     # Clean up custom interval fields if not using custom frequency
     recurring_freq = user_input.get(const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY)
@@ -1197,145 +853,25 @@ def build_chores_data(
             const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT
         )
 
-    # Convert assigned kid names to UUIDs
-    assigned_kids_names = user_input.get(const.CFOF_CHORES_INPUT_ASSIGNED_KIDS, [])
-    assigned_kids_ids = [
-        kids_dict[kid_name] for kid_name in assigned_kids_names if kid_name in kids_dict
-    ]
+    # Extract notification selections from consolidated field
+    notifications = user_input.get(const.CFOF_CHORES_INPUT_NOTIFICATIONS, [])
 
-    # Validate at least one kid is assigned
-    if not assigned_kids_ids:
-        errors[const.CFOP_ERROR_ASSIGNED_KIDS] = const.TRANS_KEY_CFOF_NO_KIDS_ASSIGNED
-        return {}, errors
-
-    # Validate AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET only works with AT_MIDNIGHT_* reset types
-    overdue_handling = user_input.get(
-        const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE,
-        const.DEFAULT_OVERDUE_HANDLING_TYPE,
-    )
-    approval_reset = user_input.get(
-        const.CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE,
-        const.DEFAULT_APPROVAL_RESET_TYPE,
-    )
-    if overdue_handling == const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET:
-        # AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET requires a reset type that will
-        # actually trigger - midnight resets OR upon_completion (immediate reset)
-        valid_reset_types = {
-            const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
-            const.APPROVAL_RESET_AT_MIDNIGHT_MULTI,
-            const.APPROVAL_RESET_UPON_COMPLETION,
-        }
-        if approval_reset not in valid_reset_types:
-            errors[const.CFOP_ERROR_OVERDUE_RESET_COMBO] = (
-                const.TRANS_KEY_CFOF_INVALID_OVERDUE_RESET_COMBINATION
-            )
-            return {}, errors
-
-    # CFE-2026-001: Validate FREQUENCY_DAILY_MULTI compatibility
-    recurring_frequency = user_input.get(
-        const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY, const.SENTINEL_EMPTY
-    )
-    completion_criteria = user_input.get(
-        const.CFOF_CHORES_INPUT_COMPLETION_CRITERIA,
-        const.COMPLETION_CRITERIA_INDEPENDENT,
-    )
-
-    if recurring_frequency == const.FREQUENCY_DAILY_MULTI:
-        # DAILY_MULTI incompatible with AT_MIDNIGHT_* reset types
-        # Rationale: DAILY_MULTI needs immediate slot advancement, but
-        # AT_MIDNIGHT_* keeps chore APPROVED until midnight (blocks slots)
-        incompatible_reset_types = {
-            const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
-            const.APPROVAL_RESET_AT_MIDNIGHT_MULTI,
-        }
-        if approval_reset in incompatible_reset_types:
-            errors[const.CFOP_ERROR_DAILY_MULTI_RESET] = (
-                const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_REQUIRES_COMPATIBLE_RESET
-            )
-            return {}, errors
-
-        # PKAD-2026-001: DAILY_MULTI + INDEPENDENT + multi-kids is NOW ALLOWED
-        # Per-kid times can be configured in the unified helper form.
-        # The old restriction was: "same times for everyone" - but we now
-        # support per_kid_daily_multi_times where each kid has own times.
-
-        # DAILY_MULTI requires due_date to be set
-        # Rationale: The times string defines daily availability windows,
-        # but the due_date determines when scheduling begins. Without it,
-        # the chore never auto-schedules.
-        # EXCEPTION: INDEPENDENT multi-kid chores set per-kid dates in helper
-        is_independent_multikid_daily_multi = (
-            completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
-            and len(assigned_kids_ids) >= 2
-        )
-        if not due_date_str and not is_independent_multikid_daily_multi:
-            errors[const.CFOP_ERROR_DAILY_MULTI_DUE_DATE] = (
-                const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_DUE_DATE_REQUIRED
-            )
-            return {}, errors
-
-    # Validate AT_DUE_DATE_* reset types require due_date
-    # Rationale: Reset logic (_reset_shared_chore_status, _reset_independent_chore_status)
-    # returns early if no due_date - chore never resets, stays APPROVED forever
-    # Exception: Independent multi-kid chores (per-kid dates set in helper or Configure)
-    is_independent_multikid = (
-        completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
-        and len(assigned_kids_ids) >= 2
-    )
-    if approval_reset in (
-        const.APPROVAL_RESET_AT_DUE_DATE_ONCE,
-        const.APPROVAL_RESET_AT_DUE_DATE_MULTI,
-    ):
-        if not due_date_str and not is_independent_multikid:
-            errors[const.CFOP_ERROR_AT_DUE_DATE_RESET_REQUIRES_DUE_DATE] = (
-                const.TRANS_KEY_CFOF_ERROR_AT_DUE_DATE_RESET_REQUIRES_DUE_DATE
-            )
-            return {}, errors
-
-    # Build chore data (completion_criteria already extracted above)
-
-    # Build per_kid_due_dates for ALL chores (SHARED + INDEPENDENT)
-    # - SHARED: All kids have same date (synced with chore-level)
-    # - INDEPENDENT: Template on creation, preserve existing per-kid overrides on edit
-    #   (unless user explicitly cleared the date via checkbox)
-    per_kid_due_dates: dict[str, str | None] = {}
-    for kid_id in assigned_kids_ids:
-        # For INDEPENDENT chores being edited: preserve existing per-kid dates
-        # UNLESS user explicitly cleared the date via checkbox
-        # For new kids or SHARED chores: use template date
-        if (
-            existing_per_kid_due_dates
-            and completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
-            and kid_id in existing_per_kid_due_dates
-            and not clear_due_date  # Don't preserve if user wants to clear
-        ):
-            # Preserve existing per-kid date (may have been set via service)
-            per_kid_due_dates[kid_id] = existing_per_kid_due_dates[kid_id]
-        else:
-            # New kid, SHARED chore, or explicit clear: use template date (may be None)
-            per_kid_due_dates[kid_id] = due_date_str  # Can be None (never overdue)
-
-    # Build partial chore data from user input
-    # The shared helper (kh.build_default_chore_data) will apply all defaults
-    partial_chore_data = {
-        const.DATA_CHORE_NAME: chore_name,
+    # Build DATA_* keyed dict
+    return {
+        const.DATA_CHORE_NAME: user_input.get(const.CFOF_CHORES_INPUT_NAME, "").strip(),
         const.DATA_CHORE_DEFAULT_POINTS: user_input.get(
             const.CFOF_CHORES_INPUT_DEFAULT_POINTS, const.DEFAULT_POINTS
         ),
-        # Completion criteria (new canonical field)
         const.DATA_CHORE_COMPLETION_CRITERIA: completion_criteria,
-        # Per-kid due dates for independent tracking
         const.DATA_CHORE_PER_KID_DUE_DATES: per_kid_due_dates,
         const.DATA_CHORE_APPROVAL_RESET_TYPE: user_input.get(
             const.CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE,
             const.DEFAULT_APPROVAL_RESET_TYPE,
         ),
-        # Phase 5: Overdue handling type
         const.DATA_CHORE_OVERDUE_HANDLING_TYPE: user_input.get(
             const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE,
             const.DEFAULT_OVERDUE_HANDLING_TYPE,
         ),
-        # Phase 5: Pending claim action at approval reset
         const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION: user_input.get(
             const.CFOF_CHORES_INPUT_APPROVAL_RESET_PENDING_CLAIM_ACTION,
             const.DEFAULT_APPROVAL_RESET_PENDING_CLAIM_ACTION,
@@ -1353,9 +889,7 @@ def build_chores_data(
         ),
         const.DATA_CHORE_CUSTOM_INTERVAL: custom_interval,
         const.DATA_CHORE_CUSTOM_INTERVAL_UNIT: custom_interval_unit,
-        # For INDEPENDENT chores, chore-level due_date is cleared since per_kid_due_dates
-        # are authoritative. The template value is just for UX convenience during editing.
-        # For SHARED chores, chore-level due_date is the source of truth.
+        # For INDEPENDENT chores, chore-level due_date is cleared
         const.DATA_CHORE_DUE_DATE: (
             None
             if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
@@ -1365,24 +899,22 @@ def build_chores_data(
             const.CFOF_CHORES_INPUT_APPLICABLE_DAYS,
             const.DEFAULT_APPLICABLE_DAYS,
         ),
-        # Extract notification selections from consolidated field
+        const.DATA_CHORE_DAILY_MULTI_TIMES: user_input.get(
+            const.CFOF_CHORES_INPUT_DAILY_MULTI_TIMES, None
+        ),
+        # Notification fields from consolidated selector
         const.DATA_CHORE_NOTIFY_ON_CLAIM: (
-            const.DATA_CHORE_NOTIFY_ON_CLAIM
-            in user_input.get(const.CFOF_CHORES_INPUT_NOTIFICATIONS, [])
+            const.DATA_CHORE_NOTIFY_ON_CLAIM in notifications
         ),
         const.DATA_CHORE_NOTIFY_ON_APPROVAL: (
-            const.DATA_CHORE_NOTIFY_ON_APPROVAL
-            in user_input.get(const.CFOF_CHORES_INPUT_NOTIFICATIONS, [])
+            const.DATA_CHORE_NOTIFY_ON_APPROVAL in notifications
         ),
         const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL: (
-            const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL
-            in user_input.get(const.CFOF_CHORES_INPUT_NOTIFICATIONS, [])
+            const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL in notifications
         ),
         const.DATA_CHORE_NOTIFY_ON_REMINDER: (
-            const.DATA_CHORE_NOTIFY_ON_REMINDER
-            in user_input.get(const.CFOF_CHORES_INPUT_NOTIFICATIONS, [])
+            const.DATA_CHORE_NOTIFY_ON_REMINDER in notifications
         ),
-        # Calendar and auto-approve settings
         const.DATA_CHORE_SHOW_ON_CALENDAR: user_input.get(
             const.CFOF_CHORES_INPUT_SHOW_ON_CALENDAR,
             const.DEFAULT_CHORE_SHOW_ON_CALENDAR,
@@ -1393,580 +925,214 @@ def build_chores_data(
         ),
     }
 
-    # Use shared helper to build complete chore data with all defaults
-    # This is the SINGLE SOURCE OF TRUTH for chore field initialization
-    chore_data = kh.build_default_chore_data(internal_id, partial_chore_data)
-
-    return {internal_id: chore_data}, {}
-
 
 # ----------------------------------------------------------------------------------
-# BADGES SCHEMAS
+# DAILY_MULTI VALIDATION FUNCTIONS
 # ----------------------------------------------------------------------------------
 
 
-# --- Consolidated Build Function ---
-def build_badge_common_data(
-    user_input: dict[str, Any],
-    internal_id: str,  # Pass internal_id explicitly
-    badge_type: str = const.BADGE_TYPE_CUMULATIVE,
-) -> dict[str, Any]:
-    """
-    Build the badge data dictionary, including common fields and selected components.
-
-    Args:
-        user_input: The dictionary containing user inputs from the form.
-        internal_id: The internal ID for the badge.
-        badge_type: The type of the badge (cumulative, daily, periodic).
-            Default is cumulative.
-
-    Returns:
-        A dictionary representing the badge's configuration data.
-    """
-    # --- Set include_ flags based on badge type ---
-    include_target = badge_type in const.INCLUDE_TARGET_BADGE_TYPES
-    include_special_occasion = badge_type in const.INCLUDE_SPECIAL_OCCASION_BADGE_TYPES
-    include_achievement_linked = (
-        badge_type in const.INCLUDE_ACHIEVEMENT_LINKED_BADGE_TYPES
-    )
-    include_challenge_linked = badge_type in const.INCLUDE_CHALLENGE_LINKED_BADGE_TYPES
-    include_tracked_chores = badge_type in const.INCLUDE_TRACKED_CHORES_BADGE_TYPES
-    include_assigned_to = badge_type in const.INCLUDE_ASSIGNED_TO_BADGE_TYPES
-    include_awards = badge_type in const.INCLUDE_AWARDS_BADGE_TYPES
-    include_reset_schedule = badge_type in const.INCLUDE_RESET_SCHEDULE_BADGE_TYPES
-
-    # --- Start Common Data ---
-    badge_data = {
-        const.DATA_BADGE_NAME: user_input.get(const.CFOF_BADGES_INPUT_NAME, "").strip(),
-        const.DATA_BADGE_DESCRIPTION: user_input.get(
-            const.CFOF_BADGES_INPUT_DESCRIPTION, const.SENTINEL_EMPTY
-        ),
-        const.DATA_BADGE_LABELS: user_input.get(const.CFOF_BADGES_INPUT_LABELS, []),
-        const.DATA_BADGE_ICON: user_input.get(
-            const.CFOF_BADGES_INPUT_ICON, const.DEFAULT_BADGE_ICON
-        ),
-        const.DATA_BADGE_INTERNAL_ID: internal_id,
-    }
-    # --- End Common Data ---
-
-    # --- Target Component ---
-    if include_target:
-        target_type = user_input.get(
-            const.CFOF_BADGES_INPUT_TARGET_TYPE, const.DEFAULT_BADGE_TARGET_TYPE
-        )
-        threshold_value_input = user_input.get(
-            const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE,
-            const.DEFAULT_BADGE_TARGET_THRESHOLD_VALUE,
-        )
-        threshold_value = const.DEFAULT_BADGE_TARGET_THRESHOLD_VALUE  # Default
-        try:
-            threshold_value = float(threshold_value_input)
-        except (TypeError, ValueError, AttributeError):
-            const.LOGGER.warning(
-                "Could not parse target threshold value '%s' for type '%s'. Using default.",
-                threshold_value_input,
-                target_type,
-            )
-
-        maintenance_rules = user_input.get(
-            const.CFOF_BADGES_INPUT_MAINTENANCE_RULES,
-            const.DEFAULT_BADGE_MAINTENANCE_THRESHOLD,
-        )
-
-        # Build target dict - only add target_type for non-cumulative badges
-        target_dict = {
-            const.DATA_BADGE_TARGET_THRESHOLD_VALUE: threshold_value,
-            const.DATA_BADGE_MAINTENANCE_RULES: maintenance_rules,
-        }
-
-        # Cumulative badges don't need target_type (they always use points)
-        if badge_type != const.BADGE_TYPE_CUMULATIVE:
-            target_dict[const.DATA_BADGE_TARGET_TYPE] = target_type
-
-        badge_data[const.DATA_BADGE_TARGET] = target_dict
-
-    # --- Special Occasion Component ---
-    if include_special_occasion:
-        occasion_type = user_input.get(
-            const.CFOF_BADGES_INPUT_OCCASION_TYPE, const.SENTINEL_EMPTY
-        )
-        badge_data[const.DATA_BADGE_SPECIAL_OCCASION_TYPE] = occasion_type
-
-    # --- Achievement-Linked Component ---
-    if include_achievement_linked:
-        achievement_id = user_input.get(
-            const.CFOF_BADGES_INPUT_ASSOCIATED_ACHIEVEMENT, const.SENTINEL_EMPTY
-        )
-        # Convert sentinel back to empty string for storage
-        achievement_id = (
-            ""
-            if achievement_id in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
-            else achievement_id
-        )
-        badge_data[const.DATA_BADGE_ASSOCIATED_ACHIEVEMENT] = achievement_id
-
-    # --- Challenge-Linked Component ---
-    if include_challenge_linked:
-        challenge_id = user_input.get(
-            const.CFOF_BADGES_INPUT_ASSOCIATED_CHALLENGE, const.SENTINEL_EMPTY
-        )
-        # Convert sentinel back to empty string for storage
-        challenge_id = (
-            ""
-            if challenge_id in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION)
-            else challenge_id
-        )
-        badge_data[const.DATA_BADGE_ASSOCIATED_CHALLENGE] = challenge_id
-
-    # --- Tracked Chores Component ---
-    if include_tracked_chores:  # Use renamed flag
-        selected_chores = user_input.get(const.CFOF_BADGES_INPUT_SELECTED_CHORES, [])
-        if not isinstance(selected_chores, list):
-            selected_chores = [selected_chores] if selected_chores else []
-        selected_chores = [
-            chore_id
-            for chore_id in selected_chores
-            if chore_id and chore_id != const.SENTINEL_EMPTY
-        ]
-        # Output key remains 'tracked' as per spec example, flag name is just for clarity
-        badge_data[const.DATA_BADGE_TRACKED_CHORES] = {
-            const.DATA_BADGE_TRACKED_CHORES_SELECTED_CHORES: selected_chores
-        }
-
-    # --- Assigned To Component ---
-    if include_assigned_to:
-        assigned = user_input.get(const.CFOF_BADGES_INPUT_ASSIGNED_TO, [])
-        if not isinstance(assigned, list):
-            assigned = [assigned] if assigned else []
-        assigned = [
-            kid_id for kid_id in assigned if kid_id and kid_id != const.SENTINEL_EMPTY
-        ]
-        badge_data[const.DATA_BADGE_ASSIGNED_TO] = assigned
-
-    # --- Awards Component ---
-    if include_awards:
-        # Logic from build_badge_awards_data
-        points_input = user_input.get(
-            const.CFOF_BADGES_INPUT_AWARD_POINTS, const.DEFAULT_BADGE_AWARD_POINTS
-        )
-        points = const.DEFAULT_BADGE_AWARD_POINTS  # Default
-        try:
-            points = float(points_input)
-        except (TypeError, ValueError, AttributeError):
-            const.LOGGER.warning(
-                "Could not parse award points value '%s'. Using default.", points_input
-            )
-        multiplier = user_input.get(
-            const.CFOF_BADGES_INPUT_POINTS_MULTIPLIER, const.SENTINEL_NONE
-        )
-
-        # --- Unified Award Items ---
-        award_items = user_input.get(const.CFOF_BADGES_INPUT_AWARD_ITEMS, [])
-        if not isinstance(award_items, list):
-            award_items = [award_items] if award_items else []
-
-        badge_data[const.DATA_BADGE_AWARDS] = {
-            const.DATA_BADGE_AWARDS_AWARD_POINTS: points,
-            const.DATA_BADGE_AWARDS_POINT_MULTIPLIER: multiplier,
-            const.DATA_BADGE_AWARDS_AWARD_ITEMS: award_items,
-        }
-
-    # --- Reset Component ---
-    if include_reset_schedule:
-        recurring_frequency = user_input.get(
-            const.CFOF_BADGES_INPUT_RESET_SCHEDULE_RECURRING_FREQUENCY,
-            const.FREQUENCY_WEEKLY,  # Default mode if not provided
-        )
-        start_date = user_input.get(
-            const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE, None
-        )
-        end_date = user_input.get(const.CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE, None)
-        grace_period_days = user_input.get(
-            const.CFOF_BADGES_INPUT_RESET_SCHEDULE_GRACE_PERIOD_DAYS,
-            const.DEFAULT_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS,
-        )
-        custom_interval = user_input.get(
-            const.CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL,
-            const.DEFAULT_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL,
-        )
-        custom_interval_unit = user_input.get(
-            const.CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT,
-            const.DEFAULT_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT,
-        )
-
-        # Clean empty strings to None
-        start_date = None if start_date in (None, "") else start_date
-        end_date = None if end_date in (None, "") else end_date
-
-        if recurring_frequency == const.FREQUENCY_CUSTOM:
-            start_date = user_input.get(
-                const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE
-            )  # Get raw
-            end_date = user_input.get(
-                const.CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE
-            )  # Get raw
-            # Clean empty strings to None
-            start_date = None if start_date in (None, "") else start_date
-            end_date = None if end_date in (None, "") else end_date
-        # For CONF_NONE or any other non-CUSTOM mode, dates remain None
-
-        badge_data[const.DATA_BADGE_RESET_SCHEDULE] = {
-            const.DATA_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY: recurring_frequency,
-            const.DATA_BADGE_RESET_SCHEDULE_START_DATE: start_date,
-            const.DATA_BADGE_RESET_SCHEDULE_END_DATE: end_date,
-            const.DATA_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS: grace_period_days,
-            const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL: custom_interval,
-            const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT: custom_interval_unit,
-        }
-
-    # --- Return the constructed badge data ---
-    return badge_data
-
-
-# --- Consolidated Validation Function ---
-
-
-def validate_badge_common_inputs(
-    user_input: dict[str, Any],
-    internal_id: str | None,
-    existing_badges: dict[str, Any] | None = None,
-    rewards_dict: dict[str, Any] | None = None,
-    bonuses_dict: dict[str, Any] | None = None,
-    penalties_dict: dict[str, Any] | None = None,
-    badge_type: str = const.BADGE_TYPE_CUMULATIVE,
+def validate_chore_frequency_reset_combination(
+    recurring_frequency: str,
+    approval_reset_type: str,
 ) -> dict[str, str]:
-    """
-    Validate common badge inputs and selected component inputs.
+    """Validate frequency and reset type combination.
 
     Args:
-        user_input: The dictionary containing user inputs from the form.
-        internal_id: The internal ID for the badge (None when adding new).
-        existing_badges: Dictionary of existing badges for uniqueness checks.
-        badge_type: The type of the badge (cumulative, daily, periodic).
-            Default is cumulative.
+        recurring_frequency: The chore's recurring frequency.
+        approval_reset_type: The chore's approval reset type.
 
     Returns:
-        A dictionary of validation errors {field_key: error_message}.
+        Dictionary of errors (empty if validation passes).
+        Key is error field (CFOP_ERROR_*), value is translation key.
     """
     errors: dict[str, str] = {}
-    existing_badges = existing_badges or {}
 
-    rewards_dict = rewards_dict or {}
-    bonuses_dict = bonuses_dict or {}
-    penalties_dict = penalties_dict or {}
-
-    # --- Set include_ flags based on badge type ---
-    include_target = badge_type in const.INCLUDE_TARGET_BADGE_TYPES
-    include_special_occasion = badge_type in const.INCLUDE_SPECIAL_OCCASION_BADGE_TYPES
-    include_achievement_linked = (
-        badge_type in const.INCLUDE_ACHIEVEMENT_LINKED_BADGE_TYPES
-    )
-    include_challenge_linked = badge_type in const.INCLUDE_CHALLENGE_LINKED_BADGE_TYPES
-    include_tracked_chores = badge_type in const.INCLUDE_TRACKED_CHORES_BADGE_TYPES
-    include_assigned_to = badge_type in const.INCLUDE_ASSIGNED_TO_BADGE_TYPES
-    include_awards = badge_type in const.INCLUDE_AWARDS_BADGE_TYPES
-    include_reset_schedule = badge_type in const.INCLUDE_RESET_SCHEDULE_BADGE_TYPES
-
-    is_cumulative = badge_type == const.BADGE_TYPE_CUMULATIVE
-    is_periodic = badge_type == const.BADGE_TYPE_PERIODIC
-    is_daily = badge_type == const.BADGE_TYPE_DAILY
-    is_special_occasion = badge_type == const.BADGE_TYPE_SPECIAL_OCCASION
-
-    # --- Start Common Validation ---
-    badge_name = user_input.get(const.CFOF_BADGES_INPUT_NAME, "").strip()
-
-    # Feature Change v4.2: Validate assigned_to is not empty for badge types that support it
-    if include_assigned_to:
-        assigned_to = user_input.get(const.CFOF_BADGES_INPUT_ASSIGNED_TO, [])
-        if not assigned_to or len(assigned_to) == 0:
-            errors[const.CFOF_BADGES_INPUT_ASSIGNED_TO] = (
-                const.TRANS_KEY_CFOF_BADGE_REQUIRES_ASSIGNMENT
-            )
-
-    if not badge_name:
-        errors[const.CFOF_BADGES_INPUT_NAME] = const.TRANS_KEY_CFOF_INVALID_BADGE_NAME
-
-    # Validate badge is not duplicate (exclude the badge being edited)
-    for badge_id, badge_info in existing_badges.items():
-        if badge_id == internal_id:
-            continue  # Skip the badge being edited
-        if (
-            badge_info.get(const.DATA_BADGE_NAME, "").strip().lower()
-            == badge_name.lower()
-        ):
-            errors[const.CFOF_BADGES_INPUT_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_BADGE
-            break
-    # --- End Common Validation ---
-
-    # --- Target Component Validation ---
-    if include_target:
-        # Special Occasion badge handling - force target type and threshold value
-        if is_special_occasion:
-            # Force special occasion badges to use points with threshold 1
-            user_input[const.CFOF_BADGES_INPUT_TARGET_TYPE] = (
-                const.BADGE_TARGET_THRESHOLD_TYPE_CHORE_COUNT
-            )
-            user_input[const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = 1
-
-        # Cumulative badge handling - force target type to points
-        elif is_cumulative:
-            # Force cumulative badges to use points
-            user_input[const.CFOF_BADGES_INPUT_TARGET_TYPE] = (
-                const.BADGE_TARGET_THRESHOLD_TYPE_POINTS
-            )
-
-            # Validate threshold value
-            target_threshold = user_input.get(
-                const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE
-            )
-
-            if target_threshold is None or str(target_threshold).strip() == "":
-                errors[const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = (
-                    const.TRANS_KEY_CFOF_TARGET_THRESHOLD_REQUIRED
-                )
-            else:
-                try:
-                    value = float(target_threshold)
-                    if value <= 0:
-                        errors[const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = (
-                            const.TRANS_KEY_CFOF_INVALID_BADGE_TARGET_THRESHOLD_VALUE
-                        )
-                except (TypeError, ValueError):
-                    errors[const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = (
-                        const.TRANS_KEY_CFOF_INVALID_BADGE_TARGET_THRESHOLD_VALUE
-                    )
-
-            # Validate maintenance rules
-            maintenance_rules = user_input.get(
-                const.CFOF_BADGES_INPUT_MAINTENANCE_RULES
-            )
-            if maintenance_rules is None or maintenance_rules < 0:
-                errors[const.CFOF_BADGES_INPUT_MAINTENANCE_RULES] = (
-                    const.TRANS_KEY_CFOF_INVALID_MAINTENANCE_RULES
-                )
-        else:
-            # Regular badge validation
-            target_threshold = user_input.get(
-                const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE
-            )
-
-            if target_threshold is None or str(target_threshold).strip() == "":
-                errors[const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = (
-                    const.TRANS_KEY_CFOF_TARGET_THRESHOLD_REQUIRED
-                )
-            else:
-                try:
-                    value = float(target_threshold)
-                    if value <= 0:
-                        errors[const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = (
-                            const.TRANS_KEY_CFOF_INVALID_BADGE_TARGET_THRESHOLD_VALUE
-                        )
-                except (TypeError, ValueError):
-                    errors[const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = (
-                        const.TRANS_KEY_CFOF_INVALID_BADGE_TARGET_THRESHOLD_VALUE
-                    )
-
-        # Handle maintenance rules for non-cumulative badges
-        if not is_cumulative:
-            # If not cumulative, set maintenance rules to Zero
-            user_input[const.CFOF_BADGES_INPUT_MAINTENANCE_RULES] = const.DEFAULT_ZERO
-
-    # --- Special Occasion Validation ---
-    if include_special_occasion:
-        occasion_type = user_input.get(
-            const.CFOF_BADGES_INPUT_OCCASION_TYPE, const.SENTINEL_EMPTY
-        )
-        if not occasion_type or occasion_type == const.SENTINEL_EMPTY:
-            errors[const.CFOF_BADGES_INPUT_OCCASION_TYPE] = (
-                const.TRANS_KEY_CFOF_ERROR_BADGE_OCCASION_TYPE_REQUIRED
-            )
-
-    # --- Achievement-Linked Validation ---
-    if include_achievement_linked:
-        achievement_id = user_input.get(
-            const.CFOF_BADGES_INPUT_ASSOCIATED_ACHIEVEMENT, const.SENTINEL_EMPTY
-        )
-        if not achievement_id or achievement_id in (
-            const.SENTINEL_EMPTY,
-            const.SENTINEL_NO_SELECTION,
-        ):
-            errors[const.CFOF_BADGES_INPUT_ASSOCIATED_ACHIEVEMENT] = (
-                const.TRANS_KEY_CFOF_ERROR_BADGE_ACHIEVEMENT_REQUIRED
-            )
-
-    # --- Challenge-Linked Validation ---
-    if include_challenge_linked:
-        challenge_id = user_input.get(
-            const.CFOF_BADGES_INPUT_ASSOCIATED_CHALLENGE, const.SENTINEL_EMPTY
-        )
-        if not challenge_id or challenge_id in (
-            const.SENTINEL_EMPTY,
-            const.SENTINEL_NO_SELECTION,
-        ):
-            errors[const.CFOF_BADGES_INPUT_ASSOCIATED_CHALLENGE] = (
-                const.TRANS_KEY_CFOF_ERROR_BADGE_CHALLENGE_REQUIRED
-            )
-
-    # --- Tracked Chores Component Validation ---
-    if include_tracked_chores:
-        selected_chores = user_input.get(const.CFOF_BADGES_INPUT_SELECTED_CHORES, [])
-        if not isinstance(selected_chores, list):
-            errors[const.CFOF_BADGES_INPUT_SELECTED_CHORES] = (
-                "invalid_format_list_expected"  # Use translation keys
-            )
-
-    # --- Assigned To Component Validation ---
-    if include_assigned_to:
-        assigned = user_input.get(const.CFOF_BADGES_INPUT_ASSIGNED_TO, [])
-        if not isinstance(assigned, list):
-            errors[const.CFOF_BADGES_INPUT_ASSIGNED_TO] = (
-                "invalid_format_list_expected"  # Use translation keys
-            )
-        # Optional: Check existence of kid IDs here if needed
-
-    # --- Awards Component Validation ---
-    award_items_valid_values = None
-    if include_awards:
-        # ...existing award_mode logic...
-
-        award_items = user_input.get(const.CFOF_BADGES_INPUT_AWARD_ITEMS, [])
-        if not isinstance(award_items, list):
-            award_items = [award_items] if award_items else []
-
-        # If award_items_valid_values is not provided, build it here
-        if award_items_valid_values is None:
-            award_items_valid_values = [
-                const.AWARD_ITEMS_KEY_POINTS,
-                const.AWARD_ITEMS_KEY_POINTS_MULTIPLIER,
-            ]
-            if rewards_dict:
-                award_items_valid_values += [
-                    f"{const.AWARD_ITEMS_PREFIX_REWARD}{reward_id}"
-                    for reward_id in rewards_dict
-                ]
-            if bonuses_dict:
-                award_items_valid_values += [
-                    f"{const.AWARD_ITEMS_PREFIX_BONUS}{bonus_id}"
-                    for bonus_id in bonuses_dict
-                ]
-            if penalties_dict:
-                award_items_valid_values += [
-                    f"{const.AWARD_ITEMS_PREFIX_PENALTY}{penalty_id}"
-                    for penalty_id in penalties_dict
-                ]
-
-        # 1. POINTS: logic
-        if const.AWARD_ITEMS_KEY_POINTS in award_items:
-            points = user_input.get(
-                const.CFOF_BADGES_INPUT_AWARD_POINTS, const.DEFAULT_ZERO
-            )
-            try:
-                if float(points) <= const.DEFAULT_ZERO:
-                    errors[const.CFOF_BADGES_INPUT_AWARD_POINTS] = (
-                        const.TRANS_KEY_CFOF_ERROR_AWARD_POINTS_MINIMUM
-                    )
-            except (TypeError, ValueError):
-                errors[const.CFOF_BADGES_INPUT_AWARD_POINTS] = (
-                    const.TRANS_KEY_CFOF_ERROR_AWARD_POINTS_MINIMUM
-                )
-        else:
-            user_input[const.CFOF_BADGES_INPUT_AWARD_POINTS] = const.DEFAULT_ZERO
-
-        # 2. POINTS MULTIPLIER: logic
-        if const.AWARD_ITEMS_KEY_POINTS_MULTIPLIER in award_items:
-            multiplier = user_input.get(
-                const.CFOF_BADGES_INPUT_POINTS_MULTIPLIER,
-                const.DEFAULT_POINTS_MULTIPLIER,
-            )
-            try:
-                if float(multiplier) <= const.DEFAULT_ZERO:
-                    errors[const.CFOF_BADGES_INPUT_POINTS_MULTIPLIER] = (
-                        const.TRANS_KEY_CFOF_ERROR_AWARD_INVALID_MULTIPLIER
-                    )
-            except (TypeError, ValueError):
-                errors[const.CFOF_BADGES_INPUT_POINTS_MULTIPLIER] = (
-                    const.TRANS_KEY_CFOF_ERROR_AWARD_INVALID_MULTIPLIER
-                )
-        else:
-            user_input[const.CFOF_BADGES_INPUT_POINTS_MULTIPLIER] = const.SENTINEL_NONE
-
-        # 3. All selected award_items must be valid
-        for item in award_items:
-            if item not in award_items_valid_values:
-                errors[const.CFOF_BADGES_INPUT_AWARD_ITEMS] = (
-                    const.TRANS_KEY_CFOF_ERROR_AWARD_INVALID_AWARD_ITEM
-                )
-                break
-
-    # --- Reset Component Validation ---
-    if include_reset_schedule:
-        recurring_frequency = user_input.get(
-            const.CFOF_BADGES_INPUT_RESET_SCHEDULE_RECURRING_FREQUENCY,
-            const.DEFAULT_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY,
-        )
-
-        # Clear custom interval fields if not custom
-        if recurring_frequency != const.FREQUENCY_CUSTOM:
-            # Note: END_DATE not cleared - can be used as reference date
-            user_input.update(
-                {
-                    const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE: const.SENTINEL_NONE,
-                    const.CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL: const.SENTINEL_NONE,
-                    const.CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT: const.SENTINEL_NONE,
-                }
-            )
-
-        start_date = user_input.get(const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE)
-        end_date = user_input.get(const.CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE)
-
-        if recurring_frequency == const.FREQUENCY_CUSTOM:
-            # Validate start and end dates for periodic badges
-            # If no custom interval and custom interval unit, then it will just do a one time reset
-            if is_periodic and not start_date:
-                errors[const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE] = (
-                    const.TRANS_KEY_CFOF_BADGE_RESET_SCHEDULE_START_DATE_REQUIRED
-                )
-            if not end_date:
-                errors[const.CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE] = (
-                    const.TRANS_KEY_CFOF_BADGE_RESET_SCHEDULE_END_DATE_REQUIRED
-                )
-            elif start_date and end_date < start_date:
-                errors[const.CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE] = (
-                    const.TRANS_KEY_CFOF_END_DATE_BEFORE_START
-                )
-
-        # Validate grace period for cumulative badges
-        if is_cumulative:
-            grace_period_days = user_input.get(
-                const.CFOF_BADGES_INPUT_RESET_SCHEDULE_GRACE_PERIOD_DAYS
-            )
-            if grace_period_days is None or grace_period_days < 0:
-                errors[const.CFOF_BADGES_INPUT_RESET_SCHEDULE_GRACE_PERIOD_DAYS] = (
-                    "invalid_grace_period_days"
-                )
-        else:
-            # Set grace period to zero for non-cumulative badges
-            user_input[const.CFOF_BADGES_INPUT_RESET_SCHEDULE_GRACE_PERIOD_DAYS] = (
-                const.DEFAULT_ZERO
-            )
-
-        if is_daily:
-            user_input[const.CFOF_BADGES_INPUT_RESET_SCHEDULE_RECURRING_FREQUENCY] = (
-                const.FREQUENCY_DAILY
-            )
-
-        # Special occasion is just a periodic badge that has a start and end date of the same day.
-        if is_special_occasion:
-            user_input[const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE] = (
-                user_input.get(const.CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE)
+    if recurring_frequency == const.FREQUENCY_DAILY_MULTI:
+        # DAILY_MULTI incompatible with AT_MIDNIGHT_* reset types
+        # Rationale: DAILY_MULTI needs immediate slot advancement, but
+        # AT_MIDNIGHT_* keeps chore APPROVED until midnight (blocks slots)
+        incompatible_reset_types = {
+            const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+            const.APPROVAL_RESET_AT_MIDNIGHT_MULTI,
+        }
+        if approval_reset_type in incompatible_reset_types:
+            errors[const.CFOP_ERROR_DAILY_MULTI_RESET] = (
+                const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_REQUIRES_COMPATIBLE_RESET
             )
 
     return errors
 
 
+def validate_daily_multi_kids(
+    recurring_frequency: str,
+    completion_criteria: str,
+    assigned_kids: list[str],
+    per_kid_times: dict[str, str] | None = None,
+) -> dict[str, str]:
+    """Validate DAILY_MULTI kid assignment rules.
+
+    Args:
+        recurring_frequency: The chore's recurring frequency.
+        completion_criteria: The chore's completion criteria.
+        assigned_kids: List of assigned kid IDs or names.
+        per_kid_times: Per-kid times dict (if provided, allows multi-kids).
+
+    Returns:
+        Dictionary of errors (empty if validation passes).
+        Key is error field (CFOP_ERROR_*), value is translation key.
+
+    PKAD-2026-001: Now allows DAILY_MULTI + INDEPENDENT + multi-kids
+    when per_kid_times is provided (each kid has own time slots).
+    """
+    errors: dict[str, str] = {}
+
+    if recurring_frequency == const.FREQUENCY_DAILY_MULTI:
+        # DAILY_MULTI + INDEPENDENT: allowed if per_kid_times exists
+        # (each kid gets their own time slots)
+        if (
+            completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
+            and len(assigned_kids) > 1
+            and not per_kid_times
+        ):
+            errors[const.CFOP_ERROR_DAILY_MULTI_KIDS] = (
+                const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_INDEPENDENT_MULTI_KIDS
+            )
+
+    return errors
+
+
+def validate_per_kid_applicable_days(
+    per_kid_days: dict[str, list[int]],
+) -> tuple[bool, str | None]:
+    """Validate per-kid applicable days structure.
+
+    Args:
+        per_kid_days: {kid_id: [0, 3], ...} where 0=Mon, 6=Sun
+
+    Returns:
+        Tuple of (is_valid, error_key_or_none)
+
+    Validation Rules (PKAD-2026-001):
+    - Empty dict allowed (use chore-level defaults)
+    - Each kid value must be list of integers (0-6)
+    - Empty list = all days applicable (valid)
+    - No duplicate days in single kid's list
+    """
+    if not per_kid_days:
+        return (True, None)  # Empty = use defaults
+
+    for _kid_id, days in per_kid_days.items():
+        if not isinstance(days, list):
+            return (False, const.TRANS_KEY_CFOF_ERROR_PER_KID_APPLICABLE_DAYS_INVALID)
+
+        if not days:
+            continue  # Empty list = all days (valid)
+
+        for day in days:
+            if not isinstance(day, int) or day < 0 or day > 6:
+                return (
+                    False,
+                    const.TRANS_KEY_CFOF_ERROR_PER_KID_APPLICABLE_DAYS_INVALID,
+                )
+
+        # Check for duplicates
+        if len(days) != len(set(days)):
+            return (False, const.TRANS_KEY_CFOF_ERROR_PER_KID_APPLICABLE_DAYS_INVALID)
+
+    return (True, None)
+
+
+def validate_per_kid_daily_multi_times(
+    per_kid_times: dict[str, str],
+    frequency: str,
+) -> tuple[bool, str | None]:
+    """Validate per-kid daily multi-times (only for DAILY_MULTI frequency).
+
+    Args:
+        per_kid_times: {kid_id: "08:00|17:00", ...}
+        frequency: Chore recurring frequency
+
+    Returns:
+        Tuple of (is_valid, error_key_or_none)
+
+    Note (PKAD-2026-001): Reuses existing validate_daily_multi_times() for format validation.
+    """
+    if frequency != const.FREQUENCY_DAILY_MULTI:
+        return (True, None)  # Not applicable
+
+    if not per_kid_times:
+        return (True, None)  # Empty = use chore-level times
+
+    for _kid_id, times_str in per_kid_times.items():
+        if not times_str or not times_str.strip():
+            continue  # Empty = use chore-level default
+
+        # Reuse existing validation
+        errors = validate_daily_multi_times(times_str)
+        if errors:
+            return (
+                False,
+                const.TRANS_KEY_CFOF_ERROR_PER_KID_DAILY_MULTI_TIMES_INVALID,
+            )
+
+    return (True, None)
+
+
+def validate_daily_multi_times(times_str: str) -> dict[str, str]:
+    """Validate daily multi times format.
+
+    Args:
+        times_str: Pipe-separated time string (e.g., "08:00|17:00").
+
+    Returns:
+        Dictionary of errors (empty if validation passes).
+        Key is error field ("base"), value is translation key.
+
+    Validation rules:
+        - Must have at least 2 times
+        - Must have at most 6 times
+        - Each time must be in HH:MM format (24-hour)
+        - Hours must be 0-23, minutes must be 0-59
+    """
+    errors: dict[str, str] = {}
+
+    if not times_str or not times_str.strip():
+        errors["base"] = const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_REQUIRED
+        return errors
+
+    # Split and clean entries
+    entries = [t.strip() for t in times_str.split("|") if t.strip()]
+
+    # Validate count
+    if len(entries) < 2:
+        errors["base"] = const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_TOO_FEW
+        return errors
+
+    if len(entries) > 6:
+        errors["base"] = const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_TOO_MANY
+        return errors
+
+    # Validate format of each entry
+    import re
+
+    time_pattern = re.compile(r"^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$")
+
+    for entry in entries:
+        if not time_pattern.match(entry):
+            errors["base"] = const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_INVALID_FORMAT
+            return errors
+
+    return errors
+
+
+# ----------------------------------------------------------------------------------
+# BADGES - Layer 1: Schema + Layer 2: UI Validation Wrapper
+# Note: Badges use embedded key mapping in build_badge() due to conditional fields
+# that vary by badge_type. No separate map_cfof_to_badge_data() function exists.
+# ----------------------------------------------------------------------------------
+
+
 # --- Consolidated Schema Function ---
-
-
 def build_badge_common_schema(
     default: dict[str, Any] | None = None,
     kids_dict: dict[str, Any] | None = None,
@@ -2640,8 +1806,347 @@ def build_badge_common_schema(
     return schema_fields
 
 
+# --- Consolidated Validation Function ---
+def validate_badge_common_inputs(
+    user_input: dict[str, Any],
+    internal_id: str | None,
+    existing_badges: dict[str, Any] | None = None,
+    rewards_dict: dict[str, Any] | None = None,
+    bonuses_dict: dict[str, Any] | None = None,
+    penalties_dict: dict[str, Any] | None = None,
+    badge_type: str = const.BADGE_TYPE_CUMULATIVE,
+) -> dict[str, str]:
+    """
+    Validate common badge inputs and selected component inputs.
+
+    Args:
+        user_input: The dictionary containing user inputs from the form.
+        internal_id: The internal ID for the badge (None when adding new).
+        existing_badges: Dictionary of existing badges for uniqueness checks.
+        badge_type: The type of the badge (cumulative, daily, periodic).
+            Default is cumulative.
+
+    Returns:
+        A dictionary of validation errors {field_key: error_message}.
+    """
+    errors: dict[str, str] = {}
+    existing_badges = existing_badges or {}
+
+    rewards_dict = rewards_dict or {}
+    bonuses_dict = bonuses_dict or {}
+    penalties_dict = penalties_dict or {}
+
+    # --- Set include_ flags based on badge type ---
+    include_target = badge_type in const.INCLUDE_TARGET_BADGE_TYPES
+    include_special_occasion = badge_type in const.INCLUDE_SPECIAL_OCCASION_BADGE_TYPES
+    include_achievement_linked = (
+        badge_type in const.INCLUDE_ACHIEVEMENT_LINKED_BADGE_TYPES
+    )
+    include_challenge_linked = badge_type in const.INCLUDE_CHALLENGE_LINKED_BADGE_TYPES
+    include_tracked_chores = badge_type in const.INCLUDE_TRACKED_CHORES_BADGE_TYPES
+    include_assigned_to = badge_type in const.INCLUDE_ASSIGNED_TO_BADGE_TYPES
+    include_awards = badge_type in const.INCLUDE_AWARDS_BADGE_TYPES
+    include_reset_schedule = badge_type in const.INCLUDE_RESET_SCHEDULE_BADGE_TYPES
+
+    is_cumulative = badge_type == const.BADGE_TYPE_CUMULATIVE
+    is_periodic = badge_type == const.BADGE_TYPE_PERIODIC
+    is_daily = badge_type == const.BADGE_TYPE_DAILY
+    is_special_occasion = badge_type == const.BADGE_TYPE_SPECIAL_OCCASION
+
+    # --- Start Common Validation ---
+    badge_name = user_input.get(const.CFOF_BADGES_INPUT_NAME, "").strip()
+
+    # Feature Change v4.2: Validate assigned_to is not empty for badge types that support it
+    if include_assigned_to:
+        assigned_to = user_input.get(const.CFOF_BADGES_INPUT_ASSIGNED_TO, [])
+        if not assigned_to or len(assigned_to) == 0:
+            errors[const.CFOF_BADGES_INPUT_ASSIGNED_TO] = (
+                const.TRANS_KEY_CFOF_BADGE_REQUIRES_ASSIGNMENT
+            )
+
+    if not badge_name:
+        errors[const.CFOF_BADGES_INPUT_NAME] = const.TRANS_KEY_CFOF_INVALID_BADGE_NAME
+
+    # Validate badge is not duplicate (exclude the badge being edited)
+    for badge_id, badge_info in existing_badges.items():
+        if badge_id == internal_id:
+            continue  # Skip the badge being edited
+        if (
+            badge_info.get(const.DATA_BADGE_NAME, "").strip().lower()
+            == badge_name.lower()
+        ):
+            errors[const.CFOF_BADGES_INPUT_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_BADGE
+            break
+    # --- End Common Validation ---
+
+    # --- Target Component Validation ---
+    if include_target:
+        # Special Occasion badge handling - force target type and threshold value
+        if is_special_occasion:
+            # Force special occasion badges to use points with threshold 1
+            user_input[const.CFOF_BADGES_INPUT_TARGET_TYPE] = (
+                const.BADGE_TARGET_THRESHOLD_TYPE_CHORE_COUNT
+            )
+            user_input[const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = 1
+
+        # Cumulative badge handling - force target type to points
+        elif is_cumulative:
+            # Force cumulative badges to use points
+            user_input[const.CFOF_BADGES_INPUT_TARGET_TYPE] = (
+                const.BADGE_TARGET_THRESHOLD_TYPE_POINTS
+            )
+
+            # Validate threshold value
+            target_threshold = user_input.get(
+                const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE
+            )
+
+            if target_threshold is None or str(target_threshold).strip() == "":
+                errors[const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = (
+                    const.TRANS_KEY_CFOF_TARGET_THRESHOLD_REQUIRED
+                )
+            else:
+                try:
+                    value = float(target_threshold)
+                    if value <= 0:
+                        errors[const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = (
+                            const.TRANS_KEY_CFOF_INVALID_BADGE_TARGET_THRESHOLD_VALUE
+                        )
+                except (TypeError, ValueError):
+                    errors[const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = (
+                        const.TRANS_KEY_CFOF_INVALID_BADGE_TARGET_THRESHOLD_VALUE
+                    )
+
+            # Validate maintenance rules
+            maintenance_rules = user_input.get(
+                const.CFOF_BADGES_INPUT_MAINTENANCE_RULES
+            )
+            if maintenance_rules is None or maintenance_rules < 0:
+                errors[const.CFOF_BADGES_INPUT_MAINTENANCE_RULES] = (
+                    const.TRANS_KEY_CFOF_INVALID_MAINTENANCE_RULES
+                )
+        else:
+            # Regular badge validation
+            target_threshold = user_input.get(
+                const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE
+            )
+
+            if target_threshold is None or str(target_threshold).strip() == "":
+                errors[const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = (
+                    const.TRANS_KEY_CFOF_TARGET_THRESHOLD_REQUIRED
+                )
+            else:
+                try:
+                    value = float(target_threshold)
+                    if value <= 0:
+                        errors[const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = (
+                            const.TRANS_KEY_CFOF_INVALID_BADGE_TARGET_THRESHOLD_VALUE
+                        )
+                except (TypeError, ValueError):
+                    errors[const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = (
+                        const.TRANS_KEY_CFOF_INVALID_BADGE_TARGET_THRESHOLD_VALUE
+                    )
+
+        # Handle maintenance rules for non-cumulative badges
+        if not is_cumulative:
+            # If not cumulative, set maintenance rules to Zero
+            user_input[const.CFOF_BADGES_INPUT_MAINTENANCE_RULES] = const.DEFAULT_ZERO
+
+    # --- Special Occasion Validation ---
+    if include_special_occasion:
+        occasion_type = user_input.get(
+            const.CFOF_BADGES_INPUT_OCCASION_TYPE, const.SENTINEL_EMPTY
+        )
+        if not occasion_type or occasion_type == const.SENTINEL_EMPTY:
+            errors[const.CFOF_BADGES_INPUT_OCCASION_TYPE] = (
+                const.TRANS_KEY_CFOF_ERROR_BADGE_OCCASION_TYPE_REQUIRED
+            )
+
+    # --- Achievement-Linked Validation ---
+    if include_achievement_linked:
+        achievement_id = user_input.get(
+            const.CFOF_BADGES_INPUT_ASSOCIATED_ACHIEVEMENT, const.SENTINEL_EMPTY
+        )
+        if not achievement_id or achievement_id in (
+            const.SENTINEL_EMPTY,
+            const.SENTINEL_NO_SELECTION,
+        ):
+            errors[const.CFOF_BADGES_INPUT_ASSOCIATED_ACHIEVEMENT] = (
+                const.TRANS_KEY_CFOF_ERROR_BADGE_ACHIEVEMENT_REQUIRED
+            )
+
+    # --- Challenge-Linked Validation ---
+    if include_challenge_linked:
+        challenge_id = user_input.get(
+            const.CFOF_BADGES_INPUT_ASSOCIATED_CHALLENGE, const.SENTINEL_EMPTY
+        )
+        if not challenge_id or challenge_id in (
+            const.SENTINEL_EMPTY,
+            const.SENTINEL_NO_SELECTION,
+        ):
+            errors[const.CFOF_BADGES_INPUT_ASSOCIATED_CHALLENGE] = (
+                const.TRANS_KEY_CFOF_ERROR_BADGE_CHALLENGE_REQUIRED
+            )
+
+    # --- Tracked Chores Component Validation ---
+    if include_tracked_chores:
+        selected_chores = user_input.get(const.CFOF_BADGES_INPUT_SELECTED_CHORES, [])
+        if not isinstance(selected_chores, list):
+            errors[const.CFOF_BADGES_INPUT_SELECTED_CHORES] = (
+                "invalid_format_list_expected"  # Use translation keys
+            )
+
+    # --- Assigned To Component Validation ---
+    if include_assigned_to:
+        assigned = user_input.get(const.CFOF_BADGES_INPUT_ASSIGNED_TO, [])
+        if not isinstance(assigned, list):
+            errors[const.CFOF_BADGES_INPUT_ASSIGNED_TO] = (
+                "invalid_format_list_expected"  # Use translation keys
+            )
+        # Optional: Check existence of kid IDs here if needed
+
+    # --- Awards Component Validation ---
+    award_items_valid_values = None
+    if include_awards:
+        # ...existing award_mode logic...
+
+        award_items = user_input.get(const.CFOF_BADGES_INPUT_AWARD_ITEMS, [])
+        if not isinstance(award_items, list):
+            award_items = [award_items] if award_items else []
+
+        # If award_items_valid_values is not provided, build it here
+        if award_items_valid_values is None:
+            award_items_valid_values = [
+                const.AWARD_ITEMS_KEY_POINTS,
+                const.AWARD_ITEMS_KEY_POINTS_MULTIPLIER,
+            ]
+            if rewards_dict:
+                award_items_valid_values += [
+                    f"{const.AWARD_ITEMS_PREFIX_REWARD}{reward_id}"
+                    for reward_id in rewards_dict
+                ]
+            if bonuses_dict:
+                award_items_valid_values += [
+                    f"{const.AWARD_ITEMS_PREFIX_BONUS}{bonus_id}"
+                    for bonus_id in bonuses_dict
+                ]
+            if penalties_dict:
+                award_items_valid_values += [
+                    f"{const.AWARD_ITEMS_PREFIX_PENALTY}{penalty_id}"
+                    for penalty_id in penalties_dict
+                ]
+
+        # 1. POINTS: logic
+        if const.AWARD_ITEMS_KEY_POINTS in award_items:
+            points = user_input.get(
+                const.CFOF_BADGES_INPUT_AWARD_POINTS, const.DEFAULT_ZERO
+            )
+            try:
+                if float(points) <= const.DEFAULT_ZERO:
+                    errors[const.CFOF_BADGES_INPUT_AWARD_POINTS] = (
+                        const.TRANS_KEY_CFOF_ERROR_AWARD_POINTS_MINIMUM
+                    )
+            except (TypeError, ValueError):
+                errors[const.CFOF_BADGES_INPUT_AWARD_POINTS] = (
+                    const.TRANS_KEY_CFOF_ERROR_AWARD_POINTS_MINIMUM
+                )
+        else:
+            user_input[const.CFOF_BADGES_INPUT_AWARD_POINTS] = const.DEFAULT_ZERO
+
+        # 2. POINTS MULTIPLIER: logic
+        if const.AWARD_ITEMS_KEY_POINTS_MULTIPLIER in award_items:
+            multiplier = user_input.get(
+                const.CFOF_BADGES_INPUT_POINTS_MULTIPLIER,
+                const.DEFAULT_POINTS_MULTIPLIER,
+            )
+            try:
+                if float(multiplier) <= const.DEFAULT_ZERO:
+                    errors[const.CFOF_BADGES_INPUT_POINTS_MULTIPLIER] = (
+                        const.TRANS_KEY_CFOF_ERROR_AWARD_INVALID_MULTIPLIER
+                    )
+            except (TypeError, ValueError):
+                errors[const.CFOF_BADGES_INPUT_POINTS_MULTIPLIER] = (
+                    const.TRANS_KEY_CFOF_ERROR_AWARD_INVALID_MULTIPLIER
+                )
+        else:
+            user_input[const.CFOF_BADGES_INPUT_POINTS_MULTIPLIER] = const.SENTINEL_NONE
+
+        # 3. All selected award_items must be valid
+        for item in award_items:
+            if item not in award_items_valid_values:
+                errors[const.CFOF_BADGES_INPUT_AWARD_ITEMS] = (
+                    const.TRANS_KEY_CFOF_ERROR_AWARD_INVALID_AWARD_ITEM
+                )
+                break
+
+    # --- Reset Component Validation ---
+    if include_reset_schedule:
+        recurring_frequency = user_input.get(
+            const.CFOF_BADGES_INPUT_RESET_SCHEDULE_RECURRING_FREQUENCY,
+            const.DEFAULT_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY,
+        )
+
+        # Clear custom interval fields if not custom
+        if recurring_frequency != const.FREQUENCY_CUSTOM:
+            # Note: END_DATE not cleared - can be used as reference date
+            user_input.update(
+                {
+                    const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE: const.SENTINEL_NONE,
+                    const.CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL: const.SENTINEL_NONE,
+                    const.CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT: const.SENTINEL_NONE,
+                }
+            )
+
+        start_date = user_input.get(const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE)
+        end_date = user_input.get(const.CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE)
+
+        if recurring_frequency == const.FREQUENCY_CUSTOM:
+            # Validate start and end dates for periodic badges
+            # If no custom interval and custom interval unit, then it will just do a one time reset
+            if is_periodic and not start_date:
+                errors[const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE] = (
+                    const.TRANS_KEY_CFOF_BADGE_RESET_SCHEDULE_START_DATE_REQUIRED
+                )
+            if not end_date:
+                errors[const.CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE] = (
+                    const.TRANS_KEY_CFOF_BADGE_RESET_SCHEDULE_END_DATE_REQUIRED
+                )
+            elif start_date and end_date < start_date:
+                errors[const.CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE] = (
+                    const.TRANS_KEY_CFOF_END_DATE_BEFORE_START
+                )
+
+        # Validate grace period for cumulative badges
+        if is_cumulative:
+            grace_period_days = user_input.get(
+                const.CFOF_BADGES_INPUT_RESET_SCHEDULE_GRACE_PERIOD_DAYS
+            )
+            if grace_period_days is None or grace_period_days < 0:
+                errors[const.CFOF_BADGES_INPUT_RESET_SCHEDULE_GRACE_PERIOD_DAYS] = (
+                    "invalid_grace_period_days"
+                )
+        else:
+            # Set grace period to zero for non-cumulative badges
+            user_input[const.CFOF_BADGES_INPUT_RESET_SCHEDULE_GRACE_PERIOD_DAYS] = (
+                const.DEFAULT_ZERO
+            )
+
+        if is_daily:
+            user_input[const.CFOF_BADGES_INPUT_RESET_SCHEDULE_RECURRING_FREQUENCY] = (
+                const.FREQUENCY_DAILY
+            )
+
+        # Special occasion is just a periodic badge that has a start and end date of the same day.
+        if is_special_occasion:
+            user_input[const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE] = (
+                user_input.get(const.CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE)
+            )
+
+    return errors
+
+
 # ----------------------------------------------------------------------------------
-# REWARDS SCHEMA (Pattern 1: Simple - Separate validate/build)
+# REWARDS SCHEMA (Layer 1: Schema + Layer 2: UI Validation Wrapper)
 # ----------------------------------------------------------------------------------
 
 
@@ -2686,39 +2191,48 @@ def build_reward_schema(default=None):
 
 
 def validate_rewards_inputs(
-    user_input: dict[str, Any], existing_rewards: dict[str, Any] | None = None
+    user_input: dict[str, Any],
+    existing_rewards: dict[str, Any] | None = None,
+    *,
+    current_reward_id: str | None = None,
 ) -> dict[str, str]:
-    """Validate reward configuration inputs.
+    """Validate reward configuration inputs for Options Flow.
+
+    This is a UI-specific wrapper that:
+    1. Transforms CFOF_* keys to DATA_* keys
+    2. Calls entity_helpers.validate_reward_data() (single source of truth)
 
     Args:
-        user_input: Dictionary containing user inputs from the form.
+        user_input: Dictionary containing user inputs from the form (CFOF_* keys).
         existing_rewards: Optional dictionary of existing rewards for duplicate checking.
+        current_reward_id: ID of reward being edited (to exclude from duplicate check).
 
     Returns:
         Dictionary of errors (empty if validation passes).
     """
-    errors = {}
+    from . import entity_helpers as eh
 
-    reward_name = user_input.get(const.CFOF_REWARDS_INPUT_NAME, "").strip()
+    # Build DATA_* dict for shared validation
+    data_dict: dict[str, Any] = {
+        const.DATA_REWARD_NAME: user_input.get(const.CFOF_REWARDS_INPUT_NAME, ""),
+    }
 
-    # Validate name is not empty
-    if not reward_name:
-        errors[const.CFOP_ERROR_REWARD_NAME] = const.TRANS_KEY_CFOF_INVALID_REWARD_NAME
-        return errors
+    # Include cost if provided
+    if const.CFOF_REWARDS_INPUT_COST in user_input:
+        data_dict[const.DATA_REWARD_COST] = user_input[const.CFOF_REWARDS_INPUT_COST]
 
-    # Check for duplicate names
-    if existing_rewards:
-        if any(
-            reward_data[const.DATA_REWARD_NAME] == reward_name
-            for reward_data in existing_rewards.values()
-        ):
-            errors[const.CFOP_ERROR_REWARD_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_REWARD
-
-    return errors
+    # Call shared validation (single source of truth)
+    is_update = current_reward_id is not None
+    return eh.validate_reward_data(
+        data_dict,
+        existing_rewards,
+        is_update=is_update,
+        current_reward_id=current_reward_id,
+    )
 
 
 # ----------------------------------------------------------------------------------
-# BONUSES SCHEMA (Pattern 1: Simple - Separate validate/build)
+# BONUSES SCHEMA (Layer 1: Schema + Layer 2: UI Validation Wrapper)
 # ----------------------------------------------------------------------------------
 
 
@@ -2767,79 +2281,46 @@ def build_bonus_schema(default=None):
     )
 
 
-def build_bonuses_data(
-    user_input: dict[str, Any],
-    existing_bonuses: dict[str, Any]
-    | None = None,  # Reserved for API consistency with validate_bonuses_inputs
-) -> dict[str, Any]:
-    """Build bonus data from user input.
-
-    Converts form input (CFOF_* keys) to storage format (DATA_* keys).
-    Ensures points are positive using abs().
-
-    Args:
-        user_input: Dictionary containing user inputs from the form.
-        existing_bonuses: Optional dictionary of existing bonuses for duplicate checking.
-
-    Returns:
-        Dictionary with bonus data in storage format, keyed by internal_id.
-    """
-    bonus_name = user_input.get(const.CFOF_BONUSES_INPUT_NAME, "").strip()
-    bonus_points = user_input[const.CFOF_BONUSES_INPUT_POINTS]
-    internal_id = user_input.get(const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4()))
-
-    return {
-        internal_id: {
-            const.DATA_BONUS_NAME: bonus_name,
-            const.DATA_BONUS_DESCRIPTION: user_input.get(
-                const.CFOF_BONUSES_INPUT_DESCRIPTION, const.SENTINEL_EMPTY
-            ),
-            const.DATA_BONUS_LABELS: user_input.get(
-                const.CFOF_BONUSES_INPUT_LABELS, []
-            ),
-            const.DATA_BONUS_POINTS: abs(bonus_points),  # Ensure positive
-            const.DATA_BONUS_ICON: user_input.get(
-                const.CFOF_BONUSES_INPUT_ICON, const.DEFAULT_BONUS_ICON
-            ),
-            const.DATA_BONUS_INTERNAL_ID: internal_id,
-        }
-    }
-
-
 def validate_bonuses_inputs(
-    user_input: dict[str, Any], existing_bonuses: dict[str, Any] | None = None
+    user_input: dict[str, Any],
+    existing_bonuses: dict[str, Any] | None = None,
+    *,
+    current_bonus_id: str | None = None,
 ) -> dict[str, str]:
-    """Validate bonus configuration inputs.
+    """Validate bonus configuration inputs for Options Flow.
+
+    This is a UI-specific wrapper that:
+    1. Transforms CFOF_* keys to DATA_* keys
+    2. Calls entity_helpers.validate_bonus_or_penalty_data() (single source of truth)
 
     Args:
-        user_input: Dictionary containing user inputs from the form.
+        user_input: Dictionary containing user inputs from the form (CFOF_* keys).
         existing_bonuses: Optional dictionary of existing bonuses for duplicate checking.
+        current_bonus_id: ID of bonus being edited (to exclude from duplicate check).
 
     Returns:
         Dictionary of errors (empty if validation passes).
     """
-    errors = {}
+    from . import entity_helpers as eh
 
-    bonus_name = user_input.get(const.CFOF_BONUSES_INPUT_NAME, "").strip()
+    # Build DATA_* dict for shared validation
+    data_dict: dict[str, Any] = {
+        const.DATA_BONUS_NAME: user_input.get(const.CFOF_BONUSES_INPUT_NAME, ""),
+    }
 
-    # Validate name is not empty
-    if not bonus_name:
-        errors[const.CFOP_ERROR_BONUS_NAME] = const.TRANS_KEY_CFOF_INVALID_BONUS_NAME
-        return errors
-
-    # Check for duplicate names
-    if existing_bonuses:
-        if any(
-            bonus_data[const.DATA_BONUS_NAME] == bonus_name
-            for bonus_data in existing_bonuses.values()
-        ):
-            errors[const.CFOP_ERROR_BONUS_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_BONUS
-
-    return errors
+    # Call shared validation (single source of truth)
+    is_update = current_bonus_id is not None
+    return eh.validate_bonus_or_penalty_data(
+        data_dict,
+        "bonus",
+        existing_bonuses,
+        is_update=is_update,
+        current_entity_id=current_bonus_id,
+    )
 
 
 # ----------------------------------------------------------------------------------
-# PENALTIES SCHEMA (Pattern 1: Simple - Separate validate/build)
+# PENALTIES SCHEMA (Layer 1: Schema + Layer 2: UI Validation Wrapper)
 # ----------------------------------------------------------------------------------
 
 
@@ -2892,344 +2373,54 @@ def build_penalty_schema(default=None):
     )
 
 
-def build_penalties_data(
-    user_input: dict[str, Any],
-    existing_penalties: dict[str, Any]
-    | None = None,  # Reserved for API consistency with validate_penalties_inputs
-) -> dict[str, Any]:
-    """Build penalty data from user input.
-
-    Converts form input (CFOF_* keys) to storage format (DATA_* keys).
-    Ensures points are negative using -abs().
-
-    Args:
-        user_input: Dictionary containing user inputs from the form.
-        existing_penalties: Optional dictionary of existing penalties for duplicate checking.
-
-    Returns:
-        Dictionary with penalty data in storage format, keyed by internal_id.
-    """
-    penalty_name = user_input.get(const.CFOF_PENALTIES_INPUT_NAME, "").strip()
-    penalty_points = user_input[const.CFOF_PENALTIES_INPUT_POINTS]
-    internal_id = user_input.get(const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4()))
-
-    return {
-        internal_id: {
-            const.DATA_PENALTY_NAME: penalty_name,
-            const.DATA_PENALTY_DESCRIPTION: user_input.get(
-                const.CFOF_PENALTIES_INPUT_DESCRIPTION, const.SENTINEL_EMPTY
-            ),
-            const.DATA_PENALTY_LABELS: user_input.get(
-                const.CFOF_PENALTIES_INPUT_LABELS, []
-            ),
-            const.DATA_PENALTY_POINTS: -abs(penalty_points),  # Ensure negative
-            const.DATA_PENALTY_ICON: user_input.get(
-                const.CFOF_PENALTIES_INPUT_ICON, const.DEFAULT_PENALTY_ICON
-            ),
-            const.DATA_PENALTY_INTERNAL_ID: internal_id,
-        }
-    }
-
-
 def validate_penalties_inputs(
-    user_input: dict[str, Any], existing_penalties: dict[str, Any] | None = None
+    user_input: dict[str, Any],
+    existing_penalties: dict[str, Any] | None = None,
+    *,
+    current_penalty_id: str | None = None,
 ) -> dict[str, str]:
-    """Validate penalty configuration inputs.
+    """Validate penalty configuration inputs for Options Flow.
+
+    This is a UI-specific wrapper that:
+    1. Transforms CFOF_* keys to DATA_* keys
+    2. Calls entity_helpers.validate_bonus_or_penalty_data() (single source of truth)
 
     Args:
-        user_input: Dictionary containing user inputs from the form.
+        user_input: Dictionary containing user inputs from the form (CFOF_* keys).
         existing_penalties: Optional dictionary of existing penalties for duplicate checking.
+        current_penalty_id: ID of penalty being edited (to exclude from duplicate check).
 
     Returns:
         Dictionary of errors (empty if validation passes).
     """
-    errors = {}
+    from . import entity_helpers as eh
 
-    penalty_name = user_input.get(const.CFOF_PENALTIES_INPUT_NAME, "").strip()
-
-    # Validate name is not empty
-    if not penalty_name:
-        errors[const.CFOP_ERROR_PENALTY_NAME] = (
-            const.TRANS_KEY_CFOF_INVALID_PENALTY_NAME
-        )
-        return errors
-
-    # Check for duplicate names
-    if existing_penalties:
-        if any(
-            penalty_data[const.DATA_PENALTY_NAME] == penalty_name
-            for penalty_data in existing_penalties.values()
-        ):
-            errors[const.CFOP_ERROR_PENALTY_NAME] = (
-                const.TRANS_KEY_CFOF_DUPLICATE_PENALTY
-            )
-
-    return errors
-
-
-def build_achievements_data(
-    user_input: dict[str, Any],
-    existing_achievements: dict[str, Any] | None = None,
-    kids_name_to_id: dict[str, str] | None = None,
-) -> tuple[dict[str, Any], dict[str, str]]:
-    """Build achievement data from user input with integrated validation.
-
-    This uses the complex pattern (returns tuple) because achievements have
-    type-specific validation: streak type requires chore selection.
-
-    Args:
-        user_input: Dictionary containing user inputs from the form.
-        existing_achievements: Optional dictionary of existing achievements for duplicate checking.
-        kids_name_to_id: Optional mapping of kid names to internal IDs (for options flow).
-
-    Returns:
-        Tuple of (data_dict, errors_dict). Data dict is keyed by internal_id.
-    """
-    errors = {}
-    achievement_name = user_input.get(const.CFOF_ACHIEVEMENTS_INPUT_NAME, "").strip()
-
-    # Validate name is not empty
-    if not achievement_name:
-        errors[const.CFOP_ERROR_ACHIEVEMENT_NAME] = (
-            const.TRANS_KEY_CFOF_INVALID_ACHIEVEMENT_NAME
-        )
-        return {}, errors
-
-    # Check for duplicate names
-    if existing_achievements:
-        if any(
-            achievement_data[const.DATA_ACHIEVEMENT_NAME] == achievement_name
-            for achievement_data in existing_achievements.values()
-        ):
-            errors[const.CFOP_ERROR_ACHIEVEMENT_NAME] = (
-                const.TRANS_KEY_CFOF_DUPLICATE_ACHIEVEMENT
-            )
-            return {}, errors
-
-    # Type-specific validation: streak type requires chore selection
-    # Streak achievements track consecutive completions of a specific chore
-    # Other achievement types (one_time, recurring) don't need chore selection
-    _type = user_input[const.CFOF_ACHIEVEMENTS_INPUT_TYPE]
-    if _type == const.ACHIEVEMENT_TYPE_STREAK:
-        chore_id = user_input.get(const.CFOF_ACHIEVEMENTS_INPUT_SELECTED_CHORE_ID)
-        # Validate that a chore was actually selected (not None or placeholder)
-        if not chore_id or chore_id == const.SENTINEL_NONE_TEXT:
-            errors[const.CFOP_ERROR_SELECT_CHORE_ID] = (
-                const.TRANS_KEY_CFOF_CHORE_MUST_BE_SELECTED
-            )
-            return {}, errors
-        final_chore_id = chore_id
-    else:
-        # Non-streak types: discard any chore selection to prevent data inconsistency
-        final_chore_id = const.SENTINEL_EMPTY
-
-    # Get assigned kids (convert names to IDs if in options flow)
-    # Different flow contexts use different kid identifiers:
-    # - Config flow: uses internal_ids directly (kids created in same session)
-    # - Options flow: uses kid names (must convert to internal_ids for storage)
-    assigned_kids = user_input[const.CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS]
-    if kids_name_to_id:
-        # Options flow: convert kid names to internal IDs using provided mapping
-        # Fallback to name if mapping fails (defensive programming)
-        assigned_kids_ids = [kids_name_to_id.get(name, name) for name in assigned_kids]
-    else:
-        # Config flow: already has internal IDs from entity creation in same session
-        assigned_kids_ids = assigned_kids
-
-    internal_id = user_input.get(const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4()))
-
-    achievement_data = {
-        internal_id: {
-            const.DATA_ACHIEVEMENT_NAME: achievement_name,
-            const.DATA_ACHIEVEMENT_DESCRIPTION: user_input.get(
-                const.CFOF_ACHIEVEMENTS_INPUT_DESCRIPTION, const.SENTINEL_EMPTY
-            ),
-            const.DATA_ACHIEVEMENT_LABELS: user_input.get(
-                const.CFOF_ACHIEVEMENTS_INPUT_LABELS, []
-            ),
-            const.DATA_ACHIEVEMENT_ICON: user_input.get(
-                const.CFOF_ACHIEVEMENTS_INPUT_ICON,
-                const.DEFAULT_ACHIEVEMENTS_ICON,
-            ),
-            const.DATA_ACHIEVEMENT_ASSIGNED_KIDS: assigned_kids_ids,
-            const.DATA_ACHIEVEMENT_TYPE: _type,
-            const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID: final_chore_id,
-            const.DATA_ACHIEVEMENT_CRITERIA: user_input.get(
-                const.CFOF_ACHIEVEMENTS_INPUT_CRITERIA, const.SENTINEL_EMPTY
-            ).strip(),
-            const.DATA_ACHIEVEMENT_TARGET_VALUE: user_input[
-                const.CFOF_ACHIEVEMENTS_INPUT_TARGET_VALUE
-            ],
-            const.DATA_ACHIEVEMENT_REWARD_POINTS: user_input[
-                const.CFOF_ACHIEVEMENTS_INPUT_REWARD_POINTS
-            ],
-            const.DATA_ACHIEVEMENT_INTERNAL_ID: internal_id,
-            const.DATA_ACHIEVEMENT_PROGRESS: {},
-        }
+    # Build DATA_* dict for shared validation
+    data_dict: dict[str, Any] = {
+        const.DATA_PENALTY_NAME: user_input.get(const.CFOF_PENALTIES_INPUT_NAME, ""),
     }
 
-    return achievement_data, errors
-
-
-def build_challenges_data(
-    user_input: dict,
-    kids_data: dict,
-    existing_challenges: dict | None = None,
-    current_id: str | None = None,
-) -> tuple[dict | None, dict]:
-    """Build challenge data dict from user input with integrated validation.
-
-    Returns: (data_dict, errors_dict) tuple
-    - If validation passes: (data_dict, {})
-    - If validation fails: (None, {"base": "error_key"})
-
-    This uses the COMPLEX pattern (integrated validation) because challenges
-    have date validation that requires checking relationships between fields.
-    """
-    errors: dict[str, str] = {}
-
-    # Validate required fields
-    if not user_input.get(const.CFOF_CHALLENGES_INPUT_NAME, "").strip():
-        return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_NAME_REQUIRED}
-
-    challenge_name = user_input[const.CFOF_CHALLENGES_INPUT_NAME].strip()
-
-    # Check for duplicate names (exclude current challenge when editing)
-    if existing_challenges:
-        for chal_id, chal_data in existing_challenges.items():
-            if chal_id != current_id:  # Skip the current challenge when editing
-                if (
-                    chal_data.get(const.DATA_CHALLENGE_NAME, "").lower()
-                    == challenge_name.lower()
-                ):
-                    return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_NAME_DUPLICATE}
-
-    # Validate dates
-    start_date_str = user_input.get(const.CFOF_CHALLENGES_INPUT_START_DATE)
-    end_date_str = user_input.get(const.CFOF_CHALLENGES_INPUT_END_DATE)
-
-    if not start_date_str or not end_date_str:
-        return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_DATES_REQUIRED}
-
-    try:
-        # Normalize dates to UTC-aware datetime objects for comparison
-        start_dt = kh.dt_parse(
-            start_date_str,
-            default_tzinfo=const.DEFAULT_TIME_ZONE,
-            return_type=const.HELPER_RETURN_DATETIME_UTC,
-        )
-        end_dt = kh.dt_parse(
-            end_date_str,
-            default_tzinfo=const.DEFAULT_TIME_ZONE,
-            return_type=const.HELPER_RETURN_DATETIME_UTC,
-        )
-
-        # Type guard: ensure both are datetime.datetime before operations
-        # (narrow from datetime | date | str | None)
-        if not isinstance(start_dt, datetime.datetime):
-            return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_INVALID_DATE}
-        if not isinstance(end_dt, datetime.datetime):
-            return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_INVALID_DATE}
-
-        # Validate end date is after start date (chronological order required)
-        # Now safe: both are definitely datetime.datetime
-        if end_dt <= start_dt:
-            return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_END_BEFORE_START}
-
-        # Convert to ISO strings for storage
-        # Now safe: both are definitely datetime.datetime with .isoformat() method
-        start_date = start_dt.isoformat()
-        end_date = end_dt.isoformat()
-
-    except (ValueError, TypeError) as ex:
-        const.LOGGER.warning("Challenge date parsing error: %s", ex)
-        return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_INVALID_DATE}
-
-    # Validate target value
-    try:
-        target_value = float(
-            user_input.get(const.CFOF_CHALLENGES_INPUT_TARGET_VALUE, 0)
-        )
-        if target_value <= 0:
-            return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_TARGET_INVALID}
-    except (ValueError, TypeError):
-        return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_TARGET_INVALID}
-
-    # Validate reward points
-    try:
-        reward_points = float(
-            user_input.get(const.CFOF_CHALLENGES_INPUT_REWARD_POINTS, 0)
-        )
-        if reward_points < 0:
-            return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_POINTS_NEGATIVE}
-    except (ValueError, TypeError):
-        return None, {"base": const.TRANS_KEY_CFOF_CHALLENGE_POINTS_INVALID}
-
-    # Convert assigned kids from names to IDs
-    # UI uses kid names (user-friendly), but storage uses internal_ids (rename-safe)
-    assigned_kids_names = user_input.get(const.CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS, [])
-    # Normalize to list (selector might return single value or list)
-    if not isinstance(assigned_kids_names, list):
-        assigned_kids_names = [assigned_kids_names] if assigned_kids_names else []
-
-    assigned_kids_ids = []
-    for kid_name in assigned_kids_names:
-        # Look up internal_id by matching kid name (case-sensitive)
-        kid_id = next(
-            (
-                k_id
-                for k_id, k_data in kids_data.items()
-                if k_data.get(const.DATA_KID_NAME) == kid_name
-            ),
-            None,
-        )
-        if kid_id:
-            assigned_kids_ids.append(kid_id)
-
-    # Get or generate internal_id
-    internal_id = current_id or str(uuid.uuid4())
-
-    # Get challenge type and associated chore
-    _type = user_input.get(
-        const.CFOF_CHALLENGES_INPUT_TYPE, const.CHALLENGE_TYPE_DAILY_MIN
+    # Call shared validation (single source of truth)
+    is_update = current_penalty_id is not None
+    return eh.validate_bonus_or_penalty_data(
+        data_dict,
+        "penalty",
+        existing_penalties,
+        is_update=is_update,
+        current_entity_id=current_penalty_id,
     )
 
-    # Build the challenge data dict
-    challenge_data = {
-        internal_id: {
-            const.DATA_CHALLENGE_NAME: challenge_name,
-            const.DATA_CHALLENGE_DESCRIPTION: user_input.get(
-                const.CFOF_CHALLENGES_INPUT_DESCRIPTION, const.SENTINEL_EMPTY
-            ).strip(),
-            const.DATA_CHALLENGE_LABELS: user_input.get(
-                const.CFOF_CHALLENGES_INPUT_LABELS, []
-            ),
-            const.DATA_CHALLENGE_ICON: user_input.get(
-                const.CFOF_CHALLENGES_INPUT_ICON,
-                const.DEFAULT_CHALLENGES_ICON,
-            ),
-            const.DATA_CHALLENGE_ASSIGNED_KIDS: assigned_kids_ids,
-            const.DATA_CHALLENGE_TYPE: _type,
-            const.DATA_CHALLENGE_SELECTED_CHORE_ID: user_input.get(
-                const.CFOF_CHALLENGES_INPUT_SELECTED_CHORE_ID, const.SENTINEL_EMPTY
-            ),
-            const.DATA_CHALLENGE_CRITERIA: user_input.get(
-                const.CFOF_CHALLENGES_INPUT_CRITERIA, const.SENTINEL_EMPTY
-            ).strip(),
-            const.DATA_CHALLENGE_TARGET_VALUE: target_value,
-            const.DATA_CHALLENGE_REWARD_POINTS: reward_points,
-            const.DATA_CHALLENGE_START_DATE: start_date,
-            const.DATA_CHALLENGE_END_DATE: end_date,
-            const.DATA_CHALLENGE_INTERNAL_ID: internal_id,
-            const.DATA_CHALLENGE_PROGRESS: {},
-        }
-    }
 
-    return challenge_data, errors
+# Penalty points are stored as negative internally, but displayed as positive in the form.
+def process_penalty_form_input(user_input: dict) -> dict:
+    """Ensure penalty points are negative internally."""
+    data = dict(user_input)
+    data[const.DATA_PENALTY_POINTS] = -abs(data[const.CFOF_PENALTIES_INPUT_POINTS])
+    return data
 
 
 # ----------------------------------------------------------------------------------
-# ACHIEVEMENTS SCHEMA (Pattern 2: Complex - Integrated validation with tuple return)
+# ACHIEVEMENTS SCHEMA (Layer 1: Schema + Layer 2: UI Validation Wrapper)
 # ----------------------------------------------------------------------------------
 
 
@@ -3352,8 +2543,49 @@ def build_achievement_schema(kids_dict, chores_dict, default=None):
     )
 
 
+def validate_achievements_inputs(
+    user_input: dict[str, Any],
+    existing_achievements: dict[str, Any] | None = None,
+    *,
+    current_achievement_id: str | None = None,
+) -> dict[str, str]:
+    """Validate achievement form inputs - UI wrapper for entity_helpers.
+
+    Transforms CFOF_* keys to DATA_* keys and calls the single source of truth
+    validation function in entity_helpers.
+
+    Args:
+        user_input: Form data with CFOF_* keys
+        existing_achievements: Existing achievements for duplicate checking
+        current_achievement_id: ID of achievement being edited (exclude from dupe check)
+
+    Returns:
+        Dict of errors (empty if validation passes)
+    """
+    from . import entity_helpers as eh
+
+    # Transform CFOF_* keys to DATA_* keys
+    data = {
+        const.DATA_ACHIEVEMENT_NAME: user_input.get(
+            const.CFOF_ACHIEVEMENTS_INPUT_NAME, ""
+        ),
+        const.DATA_ACHIEVEMENT_TYPE: user_input.get(
+            const.CFOF_ACHIEVEMENTS_INPUT_TYPE, const.ACHIEVEMENT_TYPE_STREAK
+        ),
+        const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID: user_input.get(
+            const.CFOF_ACHIEVEMENTS_INPUT_SELECTED_CHORE_ID, const.SENTINEL_EMPTY
+        ),
+    }
+
+    return eh.validate_achievement_data(
+        data,
+        existing_achievements,
+        current_achievement_id=current_achievement_id,
+    )
+
+
 # ----------------------------------------------------------------------------------
-# CHALLENGES SCHEMA (Pattern 2: Complex - Integrated validation with tuple return)
+# CHALLENGES SCHEMA (Layer 1: Schema + Layer 2: UI Validation Wrapper)
 # ----------------------------------------------------------------------------------
 
 
@@ -3481,6 +2713,51 @@ def build_challenge_schema(kids_dict, chores_dict, default=None):
     )
 
 
+def validate_challenges_inputs(
+    user_input: dict[str, Any],
+    existing_challenges: dict[str, Any] | None = None,
+    *,
+    current_challenge_id: str | None = None,
+) -> dict[str, str]:
+    """Validate challenge form inputs - UI wrapper for entity_helpers.
+
+    Transforms CFOF_* keys to DATA_* keys and calls the single source of truth
+    validation function in entity_helpers.
+
+    Args:
+        user_input: Form data with CFOF_* keys
+        existing_challenges: Existing challenges for duplicate checking
+        current_challenge_id: ID of challenge being edited (exclude from dupe check)
+
+    Returns:
+        Dict of errors (empty if validation passes)
+    """
+    from . import entity_helpers as eh
+
+    # Transform CFOF_* keys to DATA_* keys
+    data = {
+        const.DATA_CHALLENGE_NAME: user_input.get(const.CFOF_CHALLENGES_INPUT_NAME, ""),
+        const.DATA_CHALLENGE_START_DATE: user_input.get(
+            const.CFOF_CHALLENGES_INPUT_START_DATE
+        ),
+        const.DATA_CHALLENGE_END_DATE: user_input.get(
+            const.CFOF_CHALLENGES_INPUT_END_DATE
+        ),
+        const.DATA_CHALLENGE_TARGET_VALUE: user_input.get(
+            const.CFOF_CHALLENGES_INPUT_TARGET_VALUE, 0
+        ),
+        const.DATA_CHALLENGE_REWARD_POINTS: user_input.get(
+            const.CFOF_CHALLENGES_INPUT_REWARD_POINTS, 0
+        ),
+    }
+
+    return eh.validate_challenge_data(
+        data,
+        existing_challenges,
+        current_challenge_id=current_challenge_id,
+    )
+
+
 # ----------------------------------------------------------------------------------
 # GENERAL OPTIONS SCHEMA
 # ----------------------------------------------------------------------------------
@@ -3601,11 +2878,6 @@ def build_general_options_schema(default: dict | None = None) -> vol.Schema:
     )
 
 
-# ----------------------------------------------------------------------------------
-# HELPERS
-# ----------------------------------------------------------------------------------
-
-
 def format_retention_periods(daily: int, weekly: int, monthly: int, yearly: int) -> str:
     """Format retention periods as pipe-separated string for display.
 
@@ -3653,32 +2925,12 @@ def parse_retention_periods(retention_str: str) -> tuple[int, int, int, int]:
         ) from ex
 
 
-# Penalty points are stored as negative internally, but displayed as positive in the form.
-def process_penalty_form_input(user_input: dict) -> dict:
-    """Ensure penalty points are negative internally."""
-    data = dict(user_input)
-    data[const.DATA_PENALTY_POINTS] = -abs(data[const.CFOF_PENALTIES_INPUT_POINTS])
-    return data
-
-
-# Get notify services from HA
-def _get_notify_services(hass: HomeAssistant) -> list[dict[str, str]]:
-    """Return a list of all notify.* services as value/label dictionaries for selector options."""
-    services_list = []
-    all_services = hass.services.async_services()
-    if const.NOTIFY_DOMAIN in all_services:
-        for service_name in all_services[const.NOTIFY_DOMAIN]:
-            fullname = f"{const.NOTIFY_DOMAIN}.{service_name}"
-            services_list.append({"value": fullname, "label": fullname})
-    return services_list
-
-
 # ----------------------------------------------------------------------------------
 # BACKUP HELPERS
 # ----------------------------------------------------------------------------------
 
 
-def _augment_backup_with_settings(
+def augment_backup_with_settings(
     backup_data: dict[str, Any],
     config_entry_options: dict[str, Any],
 ) -> dict[str, Any]:
@@ -3703,7 +2955,7 @@ def _augment_backup_with_settings(
     return augmented
 
 
-def _validate_config_entry_settings(settings: dict[str, Any]) -> dict[str, Any]:
+def validate_config_entry_settings(settings: dict[str, Any]) -> dict[str, Any]:
     """Validate config_entry_settings from backup.
 
     Returns only valid key-value pairs. Invalid entries logged and skipped.
@@ -3786,7 +3038,7 @@ async def create_timestamped_backup(
                 backup_data = json.loads(backup_str)
 
                 # Augment with settings (convert MappingProxyType to dict)
-                augmented = _augment_backup_with_settings(
+                augmented = augment_backup_with_settings(
                     backup_data, dict(config_entry.options)
                 )
 
@@ -4141,7 +3393,7 @@ def validate_backup_json(json_str: str) -> bool:
 
 
 # ----------------------------------------------------------------------------------
-# SYSTEM SETTINGS CONSOLIDATION (Phase 3c)
+# SYSTEM SETTINGS CONSOLIDATION
 # ----------------------------------------------------------------------------------
 
 
@@ -4358,3 +3610,50 @@ def build_all_system_settings_data(user_input: dict[str, Any]) -> dict[str, Any]
 
     # Combine points + other settings into single dict
     return {**points_data, **settings_data}
+
+
+# ----------------------------------------------------------------------------------
+# HELPER FUNCTIONS
+# ----------------------------------------------------------------------------------
+
+
+def _build_notification_defaults(default: dict[str, Any]) -> list[str]:
+    """Build default notification options from config.
+
+    Args:
+        default: Dictionary containing existing configuration defaults.
+
+    Returns:
+        List of selected notification option values.
+    """
+    notifications = []
+    if default.get(
+        const.CFOF_CHORES_INPUT_NOTIFY_ON_CLAIM, const.DEFAULT_NOTIFY_ON_CLAIM
+    ):
+        notifications.append(const.DATA_CHORE_NOTIFY_ON_CLAIM)
+    if default.get(
+        const.CFOF_CHORES_INPUT_NOTIFY_ON_APPROVAL, const.DEFAULT_NOTIFY_ON_APPROVAL
+    ):
+        notifications.append(const.DATA_CHORE_NOTIFY_ON_APPROVAL)
+    if default.get(
+        const.CFOF_CHORES_INPUT_NOTIFY_ON_DISAPPROVAL,
+        const.DEFAULT_NOTIFY_ON_DISAPPROVAL,
+    ):
+        notifications.append(const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL)
+    if default.get(
+        const.CFOF_CHORES_INPUT_NOTIFY_ON_REMINDER,
+        const.DEFAULT_NOTIFY_ON_REMINDER,
+    ):
+        notifications.append(const.DATA_CHORE_NOTIFY_ON_REMINDER)
+    return notifications
+
+
+def _get_notify_services(hass: HomeAssistant) -> list[dict[str, str]]:
+    """Return a list of all notify.* services as value/label dictionaries for selector options."""
+    services_list = []
+    all_services = hass.services.async_services()
+    if const.NOTIFY_DOMAIN in all_services:
+        for service_name in all_services[const.NOTIFY_DOMAIN]:
+            fullname = f"{const.NOTIFY_DOMAIN}.{service_name}"
+            services_list.append({"value": fullname, "label": fullname})
+    return services_list

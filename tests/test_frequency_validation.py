@@ -494,10 +494,11 @@ class TestAtDueDateResetRequiresDueDate:
         }
 
         kids_dict = {"Zoë": zoe_id}
-        chore_data, errors = flow_helpers.build_chores_data(user_input, kids_dict)
+        errors, _due_date_str = flow_helpers.validate_chores_inputs(
+            user_input, kids_dict, {}
+        )
 
         assert const.CFOP_ERROR_AT_DUE_DATE_RESET_REQUIRES_DUE_DATE in errors
-        assert chore_data == {}
 
     @pytest.mark.asyncio
     async def test_independent_single_kid_at_due_date_multi_requires_due_date(
@@ -519,10 +520,11 @@ class TestAtDueDateResetRequiresDueDate:
         }
 
         kids_dict = {"Zoë": zoe_id}
-        chore_data, errors = flow_helpers.build_chores_data(user_input, kids_dict)
+        errors, _due_date_str = flow_helpers.validate_chores_inputs(
+            user_input, kids_dict, {}
+        )
 
         assert const.CFOP_ERROR_AT_DUE_DATE_RESET_REQUIRES_DUE_DATE in errors
-        assert chore_data == {}
 
     @pytest.mark.asyncio
     async def test_independent_multikid_at_due_date_once_allows_missing_due_date(
@@ -549,14 +551,12 @@ class TestAtDueDateResetRequiresDueDate:
         }
 
         kids_dict = {"Zoë": zoe_id, "Max!": max_id}
-        chore_data, errors = flow_helpers.build_chores_data(user_input, kids_dict)
+        errors, _due_date_str = flow_helpers.validate_chores_inputs(
+            user_input, kids_dict, {}
+        )
 
         # Should NOT have validation error
         assert const.CFOP_ERROR_AT_DUE_DATE_RESET_REQUIRES_DUE_DATE not in errors
-        # Chore data should be built successfully
-        assert chore_data != {}
-        chore_dict = next(iter(chore_data.values()))
-        assert chore_dict[const.DATA_CHORE_NAME] == "Test Chore"
 
     @pytest.mark.asyncio
     async def test_independent_multikid_at_due_date_multi_allows_missing_due_date(
@@ -581,11 +581,9 @@ class TestAtDueDateResetRequiresDueDate:
         }
 
         kids_dict = {"Zoë": zoe_id, "Max!": max_id}
-        chore_data, errors = flow_helpers.build_chores_data(user_input, kids_dict)
+        errors, _due_date_str = flow_helpers.validate_chores_inputs(
+            user_input, kids_dict, {}
+        )
 
         # Should NOT have validation error
         assert const.CFOP_ERROR_AT_DUE_DATE_RESET_REQUIRES_DUE_DATE not in errors
-        # Chore data should be built successfully
-        assert chore_data != {}
-        chore_dict = next(iter(chore_data.values()))
-        assert chore_dict[const.DATA_CHORE_NAME] == "Test Chore"

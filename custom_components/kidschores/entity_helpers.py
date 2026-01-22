@@ -17,10 +17,13 @@ See Also:
 
 from __future__ import annotations
 
+import datetime
 from typing import Any, cast
 import uuid
 
-from . import const
+from homeassistant.util import dt as dt_util
+
+from . import const, kc_helpers as kh
 from .type_defs import BadgeData, ChoreData, KidData, ParentData, RewardData
 
 # ==============================================================================
@@ -151,6 +154,80 @@ def map_cfof_to_reward_data(user_input: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def validate_reward_data(
+    data: dict[str, Any],
+    existing_rewards: dict[str, Any] | None = None,
+    *,
+    is_update: bool = False,
+    current_reward_id: str | None = None,
+) -> dict[str, str]:
+    """Validate reward business rules - SINGLE SOURCE OF TRUTH.
+
+    This function contains all reward validation logic used by both:
+    - Options Flow (UI) via flow_helpers.validate_rewards_inputs()
+    - Services (API) via handle_create_reward() / handle_update_reward()
+
+    Works with DATA_* keys (canonical storage format).
+
+    Args:
+        data: Reward data dict with DATA_* keys
+        existing_rewards: All existing rewards for duplicate checking (optional)
+        is_update: True if updating existing reward (some validations skip)
+        current_reward_id: ID of reward being updated (to exclude from duplicate check)
+
+    Returns:
+        Dict of errors: {error_field: translation_key}
+        Empty dict means validation passed.
+
+    Validation Rules:
+        1. Name not empty (create) or not blank (update if provided)
+        2. Name not duplicate
+        3. Cost >= 0 (if provided)
+    """
+    errors: dict[str, str] = {}
+
+    # === 1. Name validation ===
+    name = data.get(const.DATA_REWARD_NAME, "")
+    if isinstance(name, str):
+        name = name.strip()
+
+    if not is_update and not name:
+        errors[const.CFOP_ERROR_REWARD_NAME] = const.TRANS_KEY_CFOF_INVALID_REWARD_NAME
+        return errors
+
+    if is_update and const.DATA_REWARD_NAME in data and not name:
+        errors[const.CFOP_ERROR_REWARD_NAME] = const.TRANS_KEY_CFOF_INVALID_REWARD_NAME
+        return errors
+
+    # === 2. Duplicate name check ===
+    if name and existing_rewards:
+        for reward_id, reward_data in existing_rewards.items():
+            if reward_id == current_reward_id:
+                continue  # Skip self when updating
+            if reward_data.get(const.DATA_REWARD_NAME) == name:
+                errors[const.CFOP_ERROR_REWARD_NAME] = (
+                    const.TRANS_KEY_CFOF_DUPLICATE_REWARD
+                )
+                return errors
+
+    # === 3. Cost >= 0 ===
+    if const.DATA_REWARD_COST in data:
+        cost = data[const.DATA_REWARD_COST]
+        try:
+            if float(cost) < 0:
+                errors[const.CFOP_ERROR_REWARD_COST] = (
+                    const.TRANS_KEY_CFOF_INVALID_REWARD_COST
+                )
+                return errors
+        except (ValueError, TypeError):
+            errors[const.CFOP_ERROR_REWARD_COST] = (
+                const.TRANS_KEY_CFOF_INVALID_REWARD_COST
+            )
+            return errors
+
+    return errors
+
+
 def build_reward(
     user_input: dict[str, Any],
     existing: RewardData | None = None,
@@ -234,6 +311,80 @@ def build_reward(
 # ==============================================================================
 # BONUSES & PENALTIES (Unified)
 # ==============================================================================
+
+
+def validate_bonus_or_penalty_data(
+    data: dict[str, Any],
+    entity_type: str,  # "bonus" or "penalty"
+    existing_entities: dict[str, Any] | None = None,
+    *,
+    is_update: bool = False,
+    current_entity_id: str | None = None,
+) -> dict[str, str]:
+    """Validate bonus/penalty business rules - SINGLE SOURCE OF TRUTH.
+
+    This function contains all bonus/penalty validation logic used by both:
+    - Options Flow (UI) via flow_helpers.validate_bonuses_inputs() / validate_penalties_inputs()
+    - Services (API) - when bonus/penalty CRUD services are added
+
+    Works with DATA_* keys (canonical storage format).
+
+    Args:
+        data: Entity data dict with DATA_* keys
+        entity_type: "bonus" or "penalty"
+        existing_entities: All existing entities for duplicate checking (optional)
+        is_update: True if updating existing entity (some validations skip)
+        current_entity_id: ID of entity being updated (to exclude from duplicate check)
+
+    Returns:
+        Dict of errors: {error_field: translation_key}
+        Empty dict means validation passed.
+
+    Validation Rules:
+        1. Name not empty (create) or not blank (update if provided)
+        2. Name not duplicate
+    """
+    errors: dict[str, str] = {}
+
+    # Determine field names based on entity type
+    if entity_type == "bonus":
+        name_key = const.DATA_BONUS_NAME
+        error_field = const.CFOP_ERROR_BONUS_NAME
+        invalid_name_key = const.TRANS_KEY_CFOF_INVALID_BONUS_NAME
+        duplicate_key = const.TRANS_KEY_CFOF_DUPLICATE_BONUS
+    elif entity_type == "penalty":
+        name_key = const.DATA_PENALTY_NAME
+        error_field = const.CFOP_ERROR_PENALTY_NAME
+        invalid_name_key = const.TRANS_KEY_CFOF_INVALID_PENALTY_NAME
+        duplicate_key = const.TRANS_KEY_CFOF_DUPLICATE_PENALTY
+    else:
+        raise ValueError(
+            f"entity_type must be 'bonus' or 'penalty', got: {entity_type}"
+        )
+
+    # === 1. Name validation ===
+    name = data.get(name_key, "")
+    if isinstance(name, str):
+        name = name.strip()
+
+    if not is_update and not name:
+        errors[error_field] = invalid_name_key
+        return errors
+
+    if is_update and name_key in data and not name:
+        errors[error_field] = invalid_name_key
+        return errors
+
+    # === 2. Duplicate name check ===
+    if name and existing_entities:
+        for entity_id, entity_data in existing_entities.items():
+            if entity_id == current_entity_id:
+                continue  # Skip self when updating
+            if entity_data.get(name_key) == name:
+                errors[error_field] = duplicate_key
+                return errors
+
+    return errors
 
 
 def build_bonus_or_penalty(
@@ -347,6 +498,81 @@ def build_bonus_or_penalty(
 # ==============================================================================
 # KIDS
 # ==============================================================================
+
+
+def validate_kid_data(
+    data: dict[str, Any],
+    existing_kids: dict[str, Any] | None = None,
+    existing_parents: dict[str, Any] | None = None,
+    *,
+    is_update: bool = False,
+    current_kid_id: str | None = None,
+) -> dict[str, str]:
+    """Validate kid business rules - SINGLE SOURCE OF TRUTH.
+
+    This function contains all kid validation logic used by both:
+    - Options Flow (UI) via flow_helpers.validate_kids_inputs()
+    - Services (API) via handle_create_kid() / handle_update_kid()
+
+    Works with DATA_* keys (canonical storage format).
+
+    Args:
+        data: Kid data dict with DATA_* keys
+        existing_kids: All existing kids for duplicate checking (optional)
+        existing_parents: All existing parents for cross-validation (optional)
+        is_update: True if updating existing kid (some validations skip)
+        current_kid_id: ID of kid being updated (to exclude from duplicate check)
+
+    Returns:
+        Dict of errors: {error_field: translation_key}
+        Empty dict means validation passed.
+
+    Validation Rules:
+        1. Name not empty (create) or not blank (update if provided)
+        2. Name not duplicate among kids
+        3. Name not conflict with shadow kid parents (allow_chore_assignment=True)
+    """
+    errors: dict[str, str] = {}
+
+    # === 1. Name validation ===
+    name = data.get(const.DATA_KID_NAME, "")
+    if isinstance(name, str):
+        name = name.strip()
+
+    if not is_update and not name:
+        errors[const.CFOP_ERROR_KID_NAME] = const.TRANS_KEY_CFOF_INVALID_KID_NAME
+        return errors
+
+    if is_update and const.DATA_KID_NAME in data and not name:
+        errors[const.CFOP_ERROR_KID_NAME] = const.TRANS_KEY_CFOF_INVALID_KID_NAME
+        return errors
+
+    # === 2. Duplicate name check among kids (exclude shadow kids) ===
+    # Shadow kids are managed by the parent system - their name conflicts are
+    # handled by rule 3 (parent name conflict check)
+    if name and existing_kids:
+        for kid_id, kid_data in existing_kids.items():
+            if kid_id == current_kid_id:
+                continue  # Skip self when updating
+            if kid_data.get(const.DATA_KID_IS_SHADOW, False):
+                continue  # Shadow kids handled by parent validation
+            if kid_data.get(const.DATA_KID_NAME) == name:
+                errors[const.CFOP_ERROR_KID_NAME] = const.TRANS_KEY_CFOF_DUPLICATE_KID
+                return errors
+
+    # === 3. Conflict with shadow kid parents ===
+    # Check for conflicts with shadow kid parents only (allow_chore_assignment=True)
+    # Regular parents without allow_chore_assignment don't create kid-like entities
+    if name and existing_parents:
+        for parent_data in existing_parents.values():
+            if parent_data.get(const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT, False):
+                if parent_data.get(const.DATA_PARENT_NAME) == name:
+                    errors[const.CFOP_ERROR_KID_NAME] = (
+                        const.TRANS_KEY_CFOF_DUPLICATE_NAME
+                    )
+                    return errors
+
+    return errors
 
 
 def build_kid(
@@ -526,6 +752,88 @@ def build_kid(
 # ==============================================================================
 
 
+def validate_parent_data(
+    data: dict[str, Any],
+    existing_parents: dict[str, Any] | None = None,
+    existing_kids: dict[str, Any] | None = None,
+    *,
+    is_update: bool = False,
+    current_parent_id: str | None = None,
+) -> dict[str, str]:
+    """Validate parent business rules - SINGLE SOURCE OF TRUTH.
+
+    This function contains all parent validation logic used by both:
+    - Options Flow (UI) via flow_helpers.validate_parents_inputs()
+    - Services (API) via handle_create_parent() / handle_update_parent()
+
+    Works with DATA_* keys (canonical storage format).
+
+    Args:
+        data: Parent data dict with DATA_* keys
+        existing_parents: All existing parents for duplicate checking (optional)
+        existing_kids: All existing kids for cross-validation (optional)
+        is_update: True if updating existing parent (some validations skip)
+        current_parent_id: ID of parent being updated (to exclude from duplicate check)
+
+    Returns:
+        Dict of errors: {error_field: translation_key}
+        Empty dict means validation passed.
+
+    Validation Rules:
+        1. Name not empty (create) or not blank (update if provided)
+        2. Name not duplicate among parents
+        3. Name not conflict with kids (only if allow_chore_assignment=True)
+        4. Workflow/gamification require allow_chore_assignment
+    """
+    errors: dict[str, str] = {}
+
+    # === 1. Name validation ===
+    name = data.get(const.DATA_PARENT_NAME, "")
+    if isinstance(name, str):
+        name = name.strip()
+
+    if not is_update and not name:
+        errors[const.CFOP_ERROR_PARENT_NAME] = const.TRANS_KEY_CFOF_INVALID_PARENT_NAME
+        return errors
+
+    if is_update and const.DATA_PARENT_NAME in data and not name:
+        errors[const.CFOP_ERROR_PARENT_NAME] = const.TRANS_KEY_CFOF_INVALID_PARENT_NAME
+        return errors
+
+    # === 2. Duplicate name check among parents ===
+    if name and existing_parents:
+        for parent_id, parent_data in existing_parents.items():
+            if parent_id == current_parent_id:
+                continue  # Skip self when updating
+            if parent_data.get(const.DATA_PARENT_NAME) == name:
+                errors[const.CFOP_ERROR_PARENT_NAME] = (
+                    const.TRANS_KEY_CFOF_DUPLICATE_PARENT
+                )
+                return errors
+
+    # === 3. Conflict with kids (only if allow_chore_assignment) ===
+    # When allow_chore_assignment=True, a shadow kid entity will be created with this name
+    allow_chore_assignment = data.get(const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT, False)
+    if allow_chore_assignment and name and existing_kids:
+        for kid_data in existing_kids.values():
+            if kid_data.get(const.DATA_KID_NAME) == name:
+                errors[const.CFOP_ERROR_PARENT_NAME] = (
+                    const.TRANS_KEY_CFOF_DUPLICATE_NAME
+                )
+                return errors
+
+    # === 4. Workflow/gamification require allow_chore_assignment ===
+    enable_chore_workflow = data.get(const.DATA_PARENT_ENABLE_CHORE_WORKFLOW, False)
+    enable_gamification = data.get(const.DATA_PARENT_ENABLE_GAMIFICATION, False)
+    if (enable_chore_workflow or enable_gamification) and not allow_chore_assignment:
+        errors[const.CFOP_ERROR_CHORE_OPTIONS] = (
+            const.TRANS_KEY_CFOF_CHORE_OPTIONS_REQUIRE_ASSIGNMENT
+        )
+        return errors
+
+    return errors
+
+
 def build_parent(
     user_input: dict[str, Any],
     existing: ParentData | None = None,
@@ -669,6 +977,179 @@ def build_parent(
 # ==============================================================================
 
 
+def validate_chore_data(
+    data: dict[str, Any],
+    existing_chores: dict[str, Any] | None = None,
+    *,
+    is_update: bool = False,
+    current_chore_id: str | None = None,
+) -> dict[str, str]:
+    """Validate chore business rules - SINGLE SOURCE OF TRUTH.
+
+    This function contains all chore validation logic used by both:
+    - Options Flow (UI) via flow_helpers.validate_chores_inputs()
+    - Services (API) via handle_create_chore() / handle_update_chore()
+
+    Works with DATA_* keys (canonical storage format).
+
+    Args:
+        data: Chore data dict with DATA_* keys
+        existing_chores: All existing chores for duplicate checking (optional)
+        is_update: True if updating existing chore (some validations skip)
+        current_chore_id: ID of chore being updated (to exclude from duplicate check)
+
+    Returns:
+        Dict of errors: {error_field: translation_key}
+        Empty dict means validation passed.
+
+    Validation Rules:
+        1. Name not empty (create) or not blank (update if provided)
+        2. Name not duplicate
+        3. At least one kid assigned (create only)
+        4. Points >= 0 (if provided)
+        5. Due date not in past (if provided)
+        6. DAILY_MULTI + reset type combination
+        7. Overdue + reset type combination
+        8. DAILY_MULTI requires due_date (unless INDEPENDENT multi-kid)
+        9. AT_DUE_DATE_* reset types require due_date
+    """
+    errors: dict[str, str] = {}
+
+    # === 1. Name validation ===
+    name = data.get(const.DATA_CHORE_NAME, "")
+    if isinstance(name, str):
+        name = name.strip()
+
+    if not is_update and not name:
+        errors[const.CFOP_ERROR_CHORE_NAME] = const.TRANS_KEY_CFOF_INVALID_CHORE_NAME
+        return errors
+
+    if is_update and const.DATA_CHORE_NAME in data and not name:
+        errors[const.CFOP_ERROR_CHORE_NAME] = const.TRANS_KEY_CFOF_INVALID_CHORE_NAME
+        return errors
+
+    # === 2. Duplicate name check ===
+    if name and existing_chores:
+        for chore_id, chore_data in existing_chores.items():
+            if chore_id == current_chore_id:
+                continue  # Skip self when updating
+            if chore_data.get(const.DATA_CHORE_NAME) == name:
+                errors[const.CFOP_ERROR_CHORE_NAME] = (
+                    const.TRANS_KEY_CFOF_DUPLICATE_CHORE
+                )
+                return errors
+
+    # === 3. Assigned kids validation (create only) ===
+    assigned_kids = data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+    if not is_update and not assigned_kids:
+        errors[const.CFOP_ERROR_ASSIGNED_KIDS] = const.TRANS_KEY_CFOF_NO_KIDS_ASSIGNED
+        return errors
+
+    # === 4. Points >= 0 ===
+    if const.DATA_CHORE_DEFAULT_POINTS in data:
+        points = data[const.DATA_CHORE_DEFAULT_POINTS]
+        try:
+            if float(points) < 0:
+                errors[const.CFOP_ERROR_CHORE_POINTS] = (
+                    const.TRANS_KEY_CFOF_INVALID_POINTS
+                )
+                return errors
+        except (ValueError, TypeError):
+            errors[const.CFOP_ERROR_CHORE_POINTS] = const.TRANS_KEY_CFOF_INVALID_POINTS
+            return errors
+
+    # === 5. Due date not in past ===
+    due_date_raw = data.get(const.DATA_CHORE_DUE_DATE)
+    due_dt: datetime.datetime | None = None
+    if due_date_raw:
+        try:
+            parsed = kh.dt_parse(
+                due_date_raw,
+                default_tzinfo=const.DEFAULT_TIME_ZONE,
+                return_type=const.HELPER_RETURN_DATETIME_UTC,
+            )
+            # Type guard: ensure we got a datetime
+            if parsed and isinstance(parsed, datetime.datetime):
+                due_dt = parsed
+            if due_dt and due_dt < dt_util.utcnow():
+                errors[const.CFOP_ERROR_DUE_DATE] = (
+                    const.TRANS_KEY_CFOF_DUE_DATE_IN_PAST
+                )
+                return errors
+        except (ValueError, TypeError, AttributeError):
+            errors[const.CFOP_ERROR_DUE_DATE] = const.TRANS_KEY_CFOF_INVALID_DUE_DATE
+            return errors
+
+    # === Extract config for combination validations ===
+    recurring_frequency = data.get(
+        const.DATA_CHORE_RECURRING_FREQUENCY, const.FREQUENCY_NONE
+    )
+    approval_reset = data.get(
+        const.DATA_CHORE_APPROVAL_RESET_TYPE, const.DEFAULT_APPROVAL_RESET_TYPE
+    )
+    overdue_handling = data.get(
+        const.DATA_CHORE_OVERDUE_HANDLING_TYPE, const.DEFAULT_OVERDUE_HANDLING_TYPE
+    )
+    completion_criteria = data.get(
+        const.DATA_CHORE_COMPLETION_CRITERIA, const.COMPLETION_CRITERIA_INDEPENDENT
+    )
+
+    # === 6. DAILY_MULTI + reset type validation ===
+    if recurring_frequency == const.FREQUENCY_DAILY_MULTI:
+        incompatible_reset_types = {
+            const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+            const.APPROVAL_RESET_AT_MIDNIGHT_MULTI,
+        }
+        if approval_reset in incompatible_reset_types:
+            errors[const.CFOP_ERROR_DAILY_MULTI_RESET] = (
+                const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_REQUIRES_COMPATIBLE_RESET
+            )
+            return errors
+
+    # === 7. Overdue + reset combination validation ===
+    if overdue_handling == const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET:
+        valid_reset_types = {
+            const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+            const.APPROVAL_RESET_AT_MIDNIGHT_MULTI,
+            const.APPROVAL_RESET_UPON_COMPLETION,
+        }
+        if approval_reset not in valid_reset_types:
+            errors[const.CFOP_ERROR_OVERDUE_RESET_COMBO] = (
+                const.TRANS_KEY_CFOF_INVALID_OVERDUE_RESET_COMBINATION
+            )
+            return errors
+
+    # === Check if INDEPENDENT multi-kid (special case for due date requirements) ===
+    is_independent_multikid = (
+        completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
+        and len(assigned_kids) >= 2
+    )
+
+    # === 8. DAILY_MULTI requires due_date ===
+    if (
+        recurring_frequency == const.FREQUENCY_DAILY_MULTI
+        and not due_date_raw
+        and not is_independent_multikid
+    ):
+        errors[const.CFOP_ERROR_DAILY_MULTI_DUE_DATE] = (
+            const.TRANS_KEY_CFOF_ERROR_DAILY_MULTI_DUE_DATE_REQUIRED
+        )
+        return errors
+
+    # === 9. AT_DUE_DATE_* reset types require due_date ===
+    if approval_reset in (
+        const.APPROVAL_RESET_AT_DUE_DATE_ONCE,
+        const.APPROVAL_RESET_AT_DUE_DATE_MULTI,
+    ):
+        if not due_date_raw and not is_independent_multikid:
+            errors[const.CFOP_ERROR_AT_DUE_DATE_RESET_REQUIRES_DUE_DATE] = (
+                const.TRANS_KEY_CFOF_ERROR_AT_DUE_DATE_RESET_REQUIRES_DUE_DATE
+            )
+            return errors
+
+    return errors
+
+
 def build_chore(
     user_input: dict[str, Any],
     existing: ChoreData | None = None,
@@ -679,7 +1160,8 @@ def build_chore(
     One function handles both create (existing=None) and update (existing=ChoreData).
 
     NOTE: This function does NOT validate for duplicates or complex business rules.
-    Use flow_helpers.build_chores_data() for full validation in UI flows.
+    Use flow_helpers.validate_chores_inputs() for validation, then
+    flow_helpers.transform_chore_cfof_to_data() to convert form keys to DATA_* keys.
     This function handles field defaults and type coercion only.
 
     Args:
@@ -708,7 +1190,7 @@ def build_chore(
         """Get field value: user_input > existing > default.
 
         NOTE: Uses DATA_* keys directly (not CFOF_*) since chore data
-        is pre-processed by flow_helpers.build_chores_data().
+        is pre-processed by flow_helpers.transform_chore_cfof_to_data().
         """
         if data_key in user_input:
             return user_input[data_key]
@@ -1285,3 +1767,476 @@ def build_badge(
 
     # Cast to BadgeData - the dict has all required keys based on badge_type
     return cast("BadgeData", badge_data)
+
+
+# ==============================================================================
+# ACHIEVEMENTS
+# ==============================================================================
+
+
+# Mapping from CFOF_* form keys to DATA_* storage keys for achievements
+# Used by config_flow/options_flow to convert UI input before calling build_achievement()
+_CFOF_TO_ACHIEVEMENT_DATA_MAPPING: dict[str, str] = {
+    const.CFOF_ACHIEVEMENTS_INPUT_NAME: const.DATA_ACHIEVEMENT_NAME,
+    const.CFOF_ACHIEVEMENTS_INPUT_DESCRIPTION: const.DATA_ACHIEVEMENT_DESCRIPTION,
+    const.CFOF_ACHIEVEMENTS_INPUT_LABELS: const.DATA_ACHIEVEMENT_LABELS,
+    const.CFOF_ACHIEVEMENTS_INPUT_ICON: const.DATA_ACHIEVEMENT_ICON,
+    const.CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS: const.DATA_ACHIEVEMENT_ASSIGNED_KIDS,
+    const.CFOF_ACHIEVEMENTS_INPUT_TYPE: const.DATA_ACHIEVEMENT_TYPE,
+    const.CFOF_ACHIEVEMENTS_INPUT_SELECTED_CHORE_ID: const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID,
+    const.CFOF_ACHIEVEMENTS_INPUT_CRITERIA: const.DATA_ACHIEVEMENT_CRITERIA,
+    const.CFOF_ACHIEVEMENTS_INPUT_TARGET_VALUE: const.DATA_ACHIEVEMENT_TARGET_VALUE,
+    const.CFOF_ACHIEVEMENTS_INPUT_REWARD_POINTS: const.DATA_ACHIEVEMENT_REWARD_POINTS,
+}
+
+
+def map_cfof_to_achievement_data(user_input: dict[str, Any]) -> dict[str, Any]:
+    """Convert CFOF_* form keys to DATA_* storage keys for achievements.
+
+    Used by config_flow and options_flow to normalize UI input before
+    calling build_achievement().
+
+    Args:
+        user_input: Dict with CFOF_ACHIEVEMENTS_INPUT_* keys from UI forms
+
+    Returns:
+        Dict with DATA_ACHIEVEMENT_* keys for build_achievement() consumption
+    """
+    return {
+        _CFOF_TO_ACHIEVEMENT_DATA_MAPPING.get(key, key): value
+        for key, value in user_input.items()
+        if key in _CFOF_TO_ACHIEVEMENT_DATA_MAPPING
+    }
+
+
+def validate_achievement_data(
+    data: dict[str, Any],
+    existing_achievements: dict[str, Any] | None = None,
+    *,
+    current_achievement_id: str | None = None,
+) -> dict[str, str]:
+    """Validate achievement business rules - SINGLE SOURCE OF TRUTH.
+
+    This function contains all achievement validation logic used by both:
+    - Options Flow (UI) via flow_helpers.validate_achievements_inputs()
+    - Services (API) if added in future
+
+    Works with DATA_* keys (canonical storage format).
+
+    Args:
+        data: Achievement data dict with DATA_* keys
+        existing_achievements: All existing achievements for duplicate checking
+        current_achievement_id: ID of achievement being updated (exclude from dupe check)
+
+    Returns:
+        Dict of errors: {error_field: translation_key}
+        Empty dict means validation passed.
+
+    Validation Rules:
+        1. Name not empty
+        2. Name not duplicate
+        3. Streak type requires chore selection
+    """
+    errors: dict[str, str] = {}
+
+    # === 1. Name not empty ===
+    name = data.get(const.DATA_ACHIEVEMENT_NAME, "")
+    if isinstance(name, str):
+        name = name.strip()
+
+    if not name:
+        errors[const.CFOP_ERROR_ACHIEVEMENT_NAME] = (
+            const.TRANS_KEY_CFOF_INVALID_ACHIEVEMENT_NAME
+        )
+        return errors
+
+    # === 2. Duplicate name check ===
+    if name and existing_achievements:
+        for ach_id, ach_data in existing_achievements.items():
+            if ach_id == current_achievement_id:
+                continue  # Skip self when updating
+            if ach_data.get(const.DATA_ACHIEVEMENT_NAME) == name:
+                errors[const.CFOP_ERROR_ACHIEVEMENT_NAME] = (
+                    const.TRANS_KEY_CFOF_DUPLICATE_ACHIEVEMENT
+                )
+                return errors
+
+    # === 3. Streak type requires chore selection ===
+    achievement_type = data.get(const.DATA_ACHIEVEMENT_TYPE)
+    if achievement_type == const.ACHIEVEMENT_TYPE_STREAK:
+        chore_id = data.get(const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID)
+        if not chore_id or chore_id in (
+            const.SENTINEL_EMPTY,
+            const.SENTINEL_NONE_TEXT,
+            const.SENTINEL_NO_SELECTION,
+        ):
+            errors[const.CFOP_ERROR_SELECT_CHORE_ID] = (
+                const.TRANS_KEY_CFOF_CHORE_MUST_BE_SELECTED
+            )
+            return errors
+
+    return errors
+
+
+def build_achievement(
+    user_input: dict[str, Any],
+    existing: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build achievement data for create or update operations.
+
+    This is the SINGLE SOURCE OF TRUTH for achievement field handling.
+    One function handles both create (existing=None) and update (existing=dict).
+
+    Args:
+        user_input: Data with DATA_* keys (may have missing fields)
+        existing: None for create, existing achievement data for update
+
+    Returns:
+        Complete dict ready for storage with DATA_* keys
+
+    Raises:
+        EntityValidationError: If name validation fails (empty/whitespace)
+
+    Examples:
+        # CREATE mode - generates UUID, applies defaults
+        achievement = build_achievement({DATA_ACHIEVEMENT_NAME: "First Streak"})
+
+        # UPDATE mode - preserves existing fields not in user_input
+        achievement = build_achievement({DATA_ACHIEVEMENT_TARGET_VALUE: 10}, existing=old)
+    """
+    is_create = existing is None
+
+    def get_field(data_key: str, default: Any) -> Any:
+        """Get field value: user_input > existing > default."""
+        if data_key in user_input:
+            return user_input[data_key]
+        if existing is not None:
+            return existing.get(data_key, default)
+        return default
+
+    # --- Name validation (required for create, optional for update) ---
+    raw_name = get_field(const.DATA_ACHIEVEMENT_NAME, "")
+    name = str(raw_name).strip() if raw_name else ""
+
+    if is_create and not name:
+        raise EntityValidationError(
+            field=const.DATA_ACHIEVEMENT_NAME,
+            translation_key=const.TRANS_KEY_CFOF_INVALID_ACHIEVEMENT_NAME,
+        )
+    if const.DATA_ACHIEVEMENT_NAME in user_input and not name:
+        raise EntityValidationError(
+            field=const.DATA_ACHIEVEMENT_NAME,
+            translation_key=const.TRANS_KEY_CFOF_INVALID_ACHIEVEMENT_NAME,
+        )
+
+    # --- Generate or preserve internal_id ---
+    if is_create or existing is None:
+        internal_id = str(uuid.uuid4())
+    else:
+        internal_id = existing.get(
+            const.DATA_ACHIEVEMENT_INTERNAL_ID, str(uuid.uuid4())
+        )
+
+    # --- Build complete achievement structure ---
+    return {
+        const.DATA_ACHIEVEMENT_INTERNAL_ID: internal_id,
+        const.DATA_ACHIEVEMENT_NAME: name,
+        const.DATA_ACHIEVEMENT_DESCRIPTION: str(
+            get_field(const.DATA_ACHIEVEMENT_DESCRIPTION, const.SENTINEL_EMPTY)
+        ),
+        const.DATA_ACHIEVEMENT_LABELS: _normalize_list_field(
+            get_field(const.DATA_ACHIEVEMENT_LABELS, [])
+        ),
+        const.DATA_ACHIEVEMENT_ICON: str(
+            get_field(const.DATA_ACHIEVEMENT_ICON, const.DEFAULT_ACHIEVEMENTS_ICON)
+        ),
+        const.DATA_ACHIEVEMENT_ASSIGNED_KIDS: _normalize_list_field(
+            get_field(const.DATA_ACHIEVEMENT_ASSIGNED_KIDS, [])
+        ),
+        const.DATA_ACHIEVEMENT_TYPE: str(
+            get_field(const.DATA_ACHIEVEMENT_TYPE, const.ACHIEVEMENT_TYPE_STREAK)
+        ),
+        const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID: str(
+            get_field(const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID, const.SENTINEL_EMPTY)
+        ),
+        const.DATA_ACHIEVEMENT_CRITERIA: str(
+            get_field(const.DATA_ACHIEVEMENT_CRITERIA, const.SENTINEL_EMPTY)
+        ).strip(),
+        const.DATA_ACHIEVEMENT_TARGET_VALUE: float(
+            get_field(
+                const.DATA_ACHIEVEMENT_TARGET_VALUE, const.DEFAULT_ACHIEVEMENT_TARGET
+            )
+        ),
+        const.DATA_ACHIEVEMENT_REWARD_POINTS: float(
+            get_field(
+                const.DATA_ACHIEVEMENT_REWARD_POINTS,
+                const.DEFAULT_ACHIEVEMENT_REWARD_POINTS,
+            )
+        ),
+        # Progress tracking - preserve from existing or initialize empty
+        const.DATA_ACHIEVEMENT_PROGRESS: dict(
+            get_field(const.DATA_ACHIEVEMENT_PROGRESS, {})
+        ),
+    }
+
+
+# ==============================================================================
+# CHALLENGES
+# ==============================================================================
+
+
+# Mapping from CFOF_* form keys to DATA_* storage keys for challenges
+# Used by config_flow/options_flow to convert UI input before calling build_challenge()
+_CFOF_TO_CHALLENGE_DATA_MAPPING: dict[str, str] = {
+    const.CFOF_CHALLENGES_INPUT_NAME: const.DATA_CHALLENGE_NAME,
+    const.CFOF_CHALLENGES_INPUT_DESCRIPTION: const.DATA_CHALLENGE_DESCRIPTION,
+    const.CFOF_CHALLENGES_INPUT_LABELS: const.DATA_CHALLENGE_LABELS,
+    const.CFOF_CHALLENGES_INPUT_ICON: const.DATA_CHALLENGE_ICON,
+    const.CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS: const.DATA_CHALLENGE_ASSIGNED_KIDS,
+    const.CFOF_CHALLENGES_INPUT_TYPE: const.DATA_CHALLENGE_TYPE,
+    const.CFOF_CHALLENGES_INPUT_SELECTED_CHORE_ID: const.DATA_CHALLENGE_SELECTED_CHORE_ID,
+    const.CFOF_CHALLENGES_INPUT_CRITERIA: const.DATA_CHALLENGE_CRITERIA,
+    const.CFOF_CHALLENGES_INPUT_TARGET_VALUE: const.DATA_CHALLENGE_TARGET_VALUE,
+    const.CFOF_CHALLENGES_INPUT_REWARD_POINTS: const.DATA_CHALLENGE_REWARD_POINTS,
+    const.CFOF_CHALLENGES_INPUT_START_DATE: const.DATA_CHALLENGE_START_DATE,
+    const.CFOF_CHALLENGES_INPUT_END_DATE: const.DATA_CHALLENGE_END_DATE,
+}
+
+
+def map_cfof_to_challenge_data(user_input: dict[str, Any]) -> dict[str, Any]:
+    """Convert CFOF_* form keys to DATA_* storage keys for challenges.
+
+    Used by config_flow and options_flow to normalize UI input before
+    calling build_challenge().
+
+    Args:
+        user_input: Dict with CFOF_CHALLENGES_INPUT_* keys from UI forms
+
+    Returns:
+        Dict with DATA_CHALLENGE_* keys for build_challenge() consumption
+    """
+    return {
+        _CFOF_TO_CHALLENGE_DATA_MAPPING.get(key, key): value
+        for key, value in user_input.items()
+        if key in _CFOF_TO_CHALLENGE_DATA_MAPPING
+    }
+
+
+def validate_challenge_data(
+    data: dict[str, Any],
+    existing_challenges: dict[str, Any] | None = None,
+    *,
+    current_challenge_id: str | None = None,
+) -> dict[str, str]:
+    """Validate challenge business rules - SINGLE SOURCE OF TRUTH.
+
+    This function contains all challenge validation logic used by both:
+    - Options Flow (UI) via flow_helpers.validate_challenges_inputs()
+    - Services (API) if added in future
+
+    Works with DATA_* keys (canonical storage format).
+
+    Args:
+        data: Challenge data dict with DATA_* keys
+        existing_challenges: All existing challenges for duplicate checking
+        current_challenge_id: ID of challenge being updated (exclude from dupe check)
+
+    Returns:
+        Dict of errors: {error_field: translation_key}
+        Empty dict means validation passed.
+
+    Validation Rules:
+        1. Name not empty
+        2. Name not duplicate
+        3. Dates required and valid
+        4. End date after start date
+        5. Target value > 0
+        6. Reward points >= 0
+    """
+    errors: dict[str, str] = {}
+
+    # === 1. Name not empty ===
+    name = data.get(const.DATA_CHALLENGE_NAME, "")
+    if isinstance(name, str):
+        name = name.strip()
+
+    if not name:
+        errors["base"] = const.TRANS_KEY_CFOF_CHALLENGE_NAME_REQUIRED
+        return errors
+
+    # === 2. Duplicate name check (case-insensitive) ===
+    if name and existing_challenges:
+        for chal_id, chal_data in existing_challenges.items():
+            if chal_id == current_challenge_id:
+                continue  # Skip self when updating
+            if chal_data.get(const.DATA_CHALLENGE_NAME, "").lower() == name.lower():
+                errors["base"] = const.TRANS_KEY_CFOF_CHALLENGE_NAME_DUPLICATE
+                return errors
+
+    # === 3. Dates required ===
+    start_date_raw = data.get(const.DATA_CHALLENGE_START_DATE)
+    end_date_raw = data.get(const.DATA_CHALLENGE_END_DATE)
+
+    if not start_date_raw or not end_date_raw:
+        errors["base"] = const.TRANS_KEY_CFOF_CHALLENGE_DATES_REQUIRED
+        return errors
+
+    # === 4. Date parsing and end > start validation ===
+    try:
+        start_dt = kh.dt_parse(
+            start_date_raw,
+            default_tzinfo=const.DEFAULT_TIME_ZONE,
+            return_type=const.HELPER_RETURN_DATETIME_UTC,
+        )
+        end_dt = kh.dt_parse(
+            end_date_raw,
+            default_tzinfo=const.DEFAULT_TIME_ZONE,
+            return_type=const.HELPER_RETURN_DATETIME_UTC,
+        )
+
+        # Type guard: ensure both are datetime.datetime
+        if not isinstance(start_dt, datetime.datetime):
+            errors["base"] = const.TRANS_KEY_CFOF_CHALLENGE_INVALID_DATE
+            return errors
+        if not isinstance(end_dt, datetime.datetime):
+            errors["base"] = const.TRANS_KEY_CFOF_CHALLENGE_INVALID_DATE
+            return errors
+
+        # End must be after start
+        if end_dt <= start_dt:
+            errors["base"] = const.TRANS_KEY_CFOF_CHALLENGE_END_BEFORE_START
+            return errors
+
+    except (ValueError, TypeError) as ex:
+        const.LOGGER.warning("Challenge date parsing error: %s", ex)
+        errors["base"] = const.TRANS_KEY_CFOF_CHALLENGE_INVALID_DATE
+        return errors
+
+    # === 5. Target value > 0 ===
+    if const.DATA_CHALLENGE_TARGET_VALUE in data:
+        try:
+            target = float(data[const.DATA_CHALLENGE_TARGET_VALUE])
+            if target <= 0:
+                errors["base"] = const.TRANS_KEY_CFOF_CHALLENGE_TARGET_INVALID
+                return errors
+        except (ValueError, TypeError):
+            errors["base"] = const.TRANS_KEY_CFOF_CHALLENGE_TARGET_INVALID
+            return errors
+
+    # === 6. Reward points >= 0 ===
+    if const.DATA_CHALLENGE_REWARD_POINTS in data:
+        try:
+            points = float(data[const.DATA_CHALLENGE_REWARD_POINTS])
+            if points < 0:
+                errors["base"] = const.TRANS_KEY_CFOF_CHALLENGE_POINTS_NEGATIVE
+                return errors
+        except (ValueError, TypeError):
+            errors["base"] = const.TRANS_KEY_CFOF_CHALLENGE_POINTS_INVALID
+            return errors
+
+    return errors
+
+
+def build_challenge(
+    user_input: dict[str, Any],
+    existing: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build challenge data for create or update operations.
+
+    This is the SINGLE SOURCE OF TRUTH for challenge field handling.
+    One function handles both create (existing=None) and update (existing=dict).
+
+    Args:
+        user_input: Data with DATA_* keys (may have missing fields)
+        existing: None for create, existing challenge data for update
+
+
+    Returns:
+        Complete dict ready for storage with DATA_* keys
+
+    Raises:
+        EntityValidationError: If name validation fails (empty/whitespace)
+
+    Examples:
+        # CREATE mode - generates UUID, applies defaults
+        challenge = build_challenge({DATA_CHALLENGE_NAME: "Weekly Goal"})
+
+        # UPDATE mode - preserves existing fields not in user_input
+        challenge = build_challenge({DATA_CHALLENGE_TARGET_VALUE: 5}, existing=old)
+    """
+    is_create = existing is None
+
+    def get_field(data_key: str, default: Any) -> Any:
+        """Get field value: user_input > existing > default."""
+        if data_key in user_input:
+            return user_input[data_key]
+        if existing is not None:
+            return existing.get(data_key, default)
+        return default
+
+    # --- Name validation (required for create, optional for update) ---
+    raw_name = get_field(const.DATA_CHALLENGE_NAME, "")
+    name = str(raw_name).strip() if raw_name else ""
+
+    if is_create and not name:
+        raise EntityValidationError(
+            field=const.DATA_CHALLENGE_NAME,
+            translation_key=const.TRANS_KEY_CFOF_INVALID_CHALLENGE_NAME,
+        )
+    if const.DATA_CHALLENGE_NAME in user_input and not name:
+        raise EntityValidationError(
+            field=const.DATA_CHALLENGE_NAME,
+            translation_key=const.TRANS_KEY_CFOF_INVALID_CHALLENGE_NAME,
+        )
+
+    # --- Generate or preserve internal_id ---
+    if is_create or existing is None:
+        internal_id = str(uuid.uuid4())
+    else:
+        internal_id = existing.get(const.DATA_CHALLENGE_INTERNAL_ID, str(uuid.uuid4()))
+
+    # --- Build complete challenge structure ---
+    return {
+        const.DATA_CHALLENGE_INTERNAL_ID: internal_id,
+        const.DATA_CHALLENGE_NAME: name,
+        const.DATA_CHALLENGE_DESCRIPTION: str(
+            get_field(const.DATA_CHALLENGE_DESCRIPTION, const.SENTINEL_EMPTY)
+        ),
+        const.DATA_CHALLENGE_LABELS: _normalize_list_field(
+            get_field(const.DATA_CHALLENGE_LABELS, [])
+        ),
+        const.DATA_CHALLENGE_ICON: str(
+            get_field(const.DATA_CHALLENGE_ICON, const.DEFAULT_CHALLENGES_ICON)
+        ),
+        const.DATA_CHALLENGE_ASSIGNED_KIDS: _normalize_list_field(
+            get_field(const.DATA_CHALLENGE_ASSIGNED_KIDS, [])
+        ),
+        const.DATA_CHALLENGE_TYPE: str(
+            get_field(const.DATA_CHALLENGE_TYPE, const.CHALLENGE_TYPE_DAILY_MIN)
+        ),
+        const.DATA_CHALLENGE_SELECTED_CHORE_ID: str(
+            get_field(const.DATA_CHALLENGE_SELECTED_CHORE_ID, const.SENTINEL_EMPTY)
+        ),
+        const.DATA_CHALLENGE_CRITERIA: str(
+            get_field(const.DATA_CHALLENGE_CRITERIA, const.SENTINEL_EMPTY)
+        ).strip(),
+        const.DATA_CHALLENGE_TARGET_VALUE: float(
+            get_field(const.DATA_CHALLENGE_TARGET_VALUE, const.DEFAULT_CHALLENGE_TARGET)
+        ),
+        const.DATA_CHALLENGE_REWARD_POINTS: float(
+            get_field(
+                const.DATA_CHALLENGE_REWARD_POINTS,
+                const.DEFAULT_CHALLENGE_REWARD_POINTS,
+            )
+        ),
+        const.DATA_CHALLENGE_START_DATE: str(
+            get_field(const.DATA_CHALLENGE_START_DATE, const.SENTINEL_EMPTY)
+        ),
+        const.DATA_CHALLENGE_END_DATE: str(
+            get_field(const.DATA_CHALLENGE_END_DATE, const.SENTINEL_EMPTY)
+        ),
+        # Progress tracking - preserve from existing or initialize empty
+        const.DATA_CHALLENGE_PROGRESS: dict(
+            get_field(const.DATA_CHALLENGE_PROGRESS, {})
+        ),
+    }

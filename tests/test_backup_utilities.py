@@ -651,9 +651,7 @@ async def test_roundtrip_preserves_all_settings(
     from unittest.mock import MagicMock
 
     from custom_components.kidschores import const
-    from custom_components.kidschores.flow_helpers import (
-        _validate_config_entry_settings,
-    )
+    from custom_components.kidschores.flow_helpers import validate_config_entry_settings
 
     # Setup with all custom values
     mock_utcnow.return_value = datetime.datetime(
@@ -701,7 +699,7 @@ async def test_roundtrip_preserves_all_settings(
     backed_up_settings = backup_content[const.DATA_CONFIG_ENTRY_SETTINGS]
 
     # Step 3: Simulate restore - validate and compare
-    restored_settings = _validate_config_entry_settings(backed_up_settings)
+    restored_settings = validate_config_entry_settings(backed_up_settings)
 
     # Assert: All 9 settings preserved exactly
     assert len(restored_settings) == 9

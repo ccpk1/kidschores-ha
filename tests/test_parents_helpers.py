@@ -1,95 +1,103 @@
 """Test parents configuration helper functions.
 
-Tests validate that config flow and options flow use the same centralized
-helper functions for parents configuration, ensuring consistency.
+Tests validate that entity_helpers.build_parent() correctly builds parent data
+and flow_helpers.validate_parents_inputs() validates form input.
 """
 
-from custom_components.kidschores import const, flow_helpers as fh
+import pytest
+
+from custom_components.kidschores import const, entity_helpers as eh, flow_helpers as fh
+from custom_components.kidschores.entity_helpers import EntityValidationError
 
 
-def test_build_parents_data_with_all_values() -> None:
-    """Test build_parents_data extracts all values correctly."""
+def test_build_parent_with_all_values() -> None:
+    """Test build_parent extracts all values correctly."""
     user_input = {
         const.CFOF_PARENTS_INPUT_NAME: "Mom",
         const.CFOF_PARENTS_INPUT_HA_USER: "user_456",
         const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: ["kid-1", "kid-2"],
         const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: "mobile_app_iphone",
-        const.CFOF_GLOBAL_INPUT_INTERNAL_ID: "test-parent-id-456",
     }
 
-    result = fh.build_parents_data(user_input)
+    result = eh.build_parent(user_input)
 
-    assert "test-parent-id-456" in result
-    parent_data = result["test-parent-id-456"]
-    assert parent_data[const.DATA_PARENT_NAME] == "Mom"
-    assert parent_data[const.DATA_PARENT_HA_USER_ID] == "user_456"
-    assert parent_data[const.DATA_PARENT_ASSOCIATED_KIDS] == ["kid-1", "kid-2"]
+    assert result[const.DATA_PARENT_NAME] == "Mom"
+    assert result[const.DATA_PARENT_HA_USER_ID] == "user_456"
+    assert result[const.DATA_PARENT_ASSOCIATED_KIDS] == ["kid-1", "kid-2"]
     # With service set, notifications are enabled
-    assert parent_data[const.DATA_PARENT_ENABLE_NOTIFICATIONS] is True
-    assert parent_data[const.DATA_PARENT_MOBILE_NOTIFY_SERVICE] == "mobile_app_iphone"
+    assert result[const.DATA_PARENT_ENABLE_NOTIFICATIONS] is True
+    assert result[const.DATA_PARENT_MOBILE_NOTIFY_SERVICE] == "mobile_app_iphone"
     # Persistent notifications are deprecated, always False
-    assert parent_data[const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS] is False
-    assert parent_data[const.DATA_PARENT_INTERNAL_ID] == "test-parent-id-456"
+    assert result[const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS] is False
+    # UUID should be generated
+    assert len(result[const.DATA_PARENT_INTERNAL_ID]) == 36
 
 
-def test_build_parents_data_generates_uuid_if_missing() -> None:
-    """Test build_parents_data generates UUID when internal_id not provided."""
+def test_build_parent_generates_uuid() -> None:
+    """Test build_parent generates UUID when internal_id not provided."""
     user_input = {
         const.CFOF_PARENTS_INPUT_NAME: "Dad",
     }
 
-    result = fh.build_parents_data(user_input)
+    result = eh.build_parent(user_input)
 
-    # Should have one entry with a generated UUID
-    assert len(result) == 1
-    internal_id = list(result.keys())[0]
-    assert len(internal_id) == 36  # UUID format
-    assert result[internal_id][const.DATA_PARENT_NAME] == "Dad"
+    # Should have a generated UUID
+    assert len(result[const.DATA_PARENT_INTERNAL_ID]) == 36
+    assert result[const.DATA_PARENT_NAME] == "Dad"
 
 
-def test_build_parents_data_with_defaults() -> None:
-    """Test build_parents_data uses defaults for optional fields."""
+def test_build_parent_with_defaults() -> None:
+    """Test build_parent uses defaults for optional fields."""
     user_input = {
         const.CFOF_PARENTS_INPUT_NAME: "Grandma",
-        const.CFOF_GLOBAL_INPUT_INTERNAL_ID: "grandma-id",
     }
 
-    result = fh.build_parents_data(user_input)
+    result = eh.build_parent(user_input)
 
-    parent_data = result["grandma-id"]
-    assert parent_data[const.DATA_PARENT_NAME] == "Grandma"
-    assert parent_data[const.DATA_PARENT_HA_USER_ID] == const.SENTINEL_EMPTY
-    assert parent_data[const.DATA_PARENT_ASSOCIATED_KIDS] == []
+    assert result[const.DATA_PARENT_NAME] == "Grandma"
+    assert result[const.DATA_PARENT_HA_USER_ID] == ""
+    assert result[const.DATA_PARENT_ASSOCIATED_KIDS] == []
     # Without service set, notifications are disabled
-    assert parent_data[const.DATA_PARENT_ENABLE_NOTIFICATIONS] is False
-    assert parent_data[const.DATA_PARENT_MOBILE_NOTIFY_SERVICE] == const.SENTINEL_EMPTY
+    assert result[const.DATA_PARENT_ENABLE_NOTIFICATIONS] is False
+    assert result[const.DATA_PARENT_MOBILE_NOTIFY_SERVICE] == ""
     # Persistent notifications are deprecated, always False
-    assert parent_data[const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS] is False
+    assert result[const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS] is False
 
 
-def test_build_parents_data_strips_whitespace_from_name() -> None:
-    """Test build_parents_data strips leading/trailing whitespace from name."""
+def test_build_parent_strips_whitespace_from_name() -> None:
+    """Test build_parent strips leading/trailing whitespace from name."""
     user_input = {
         const.CFOF_PARENTS_INPUT_NAME: "  Uncle Bob  ",
-        const.CFOF_GLOBAL_INPUT_INTERNAL_ID: "bob-id",
     }
 
-    result = fh.build_parents_data(user_input)
+    result = eh.build_parent(user_input)
 
-    assert result["bob-id"][const.DATA_PARENT_NAME] == "Uncle Bob"
+    assert result[const.DATA_PARENT_NAME] == "Uncle Bob"
 
 
-def test_build_parents_data_with_empty_associated_kids() -> None:
-    """Test build_parents_data handles empty associated kids list."""
+def test_build_parent_with_empty_associated_kids() -> None:
+    """Test build_parent handles empty associated kids list."""
     user_input = {
         const.CFOF_PARENTS_INPUT_NAME: "Aunt Sue",
         const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: [],
-        const.CFOF_GLOBAL_INPUT_INTERNAL_ID: "sue-id",
     }
 
-    result = fh.build_parents_data(user_input)
+    result = eh.build_parent(user_input)
 
-    assert result["sue-id"][const.DATA_PARENT_ASSOCIATED_KIDS] == []
+    assert result[const.DATA_PARENT_ASSOCIATED_KIDS] == []
+
+
+def test_build_parent_raises_on_empty_name() -> None:
+    """Test build_parent raises EntityValidationError for empty name."""
+    user_input = {
+        const.CFOF_PARENTS_INPUT_NAME: "",
+    }
+
+    with pytest.raises(EntityValidationError) as exc_info:
+        eh.build_parent(user_input)
+
+    assert exc_info.value.field == const.CFOF_PARENTS_INPUT_NAME
+    assert exc_info.value.translation_key == const.TRANS_KEY_CFOF_INVALID_PARENT_NAME
 
 
 def test_validate_parents_inputs_success() -> None:

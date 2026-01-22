@@ -1,79 +1,88 @@
 """Test kids configuration helper functions.
 
-Tests validate that config flow and options flow use the same centralized
-helper functions for kids configuration, ensuring consistency.
+Tests validate that entity_helpers.build_kid() correctly builds kid data
+and flow_helpers.validate_kids_inputs() validates form input.
 """
 
-from custom_components.kidschores import const, flow_helpers as fh
+import pytest
+
+from custom_components.kidschores import const, entity_helpers as eh, flow_helpers as fh
+from custom_components.kidschores.entity_helpers import EntityValidationError
 
 
-def test_build_kids_data_with_all_values() -> None:
-    """Test build_kids_data extracts all values correctly."""
+def test_build_kid_with_all_values() -> None:
+    """Test build_kid extracts all values correctly."""
     user_input = {
         const.CFOF_KIDS_INPUT_KID_NAME: "Zoë",
         const.CFOF_KIDS_INPUT_HA_USER: "user_123",
         const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: "mobile_app_phone",
-        const.CFOF_GLOBAL_INPUT_INTERNAL_ID: "test-kid-id-123",
     }
 
-    result = fh.build_kids_data(user_input)
+    result = eh.build_kid(user_input)
 
-    assert "test-kid-id-123" in result
-    kid_data = result["test-kid-id-123"]
-    assert kid_data[const.DATA_KID_NAME] == "Zoë"
-    assert kid_data[const.DATA_KID_HA_USER_ID] == "user_123"
+    assert result[const.DATA_KID_NAME] == "Zoë"
+    assert result[const.DATA_KID_HA_USER_ID] == "user_123"
     # With service set, notifications are enabled
-    assert kid_data[const.DATA_KID_ENABLE_NOTIFICATIONS] is True
-    assert kid_data[const.DATA_KID_MOBILE_NOTIFY_SERVICE] == "mobile_app_phone"
+    assert result[const.DATA_KID_ENABLE_NOTIFICATIONS] is True
+    assert result[const.DATA_KID_MOBILE_NOTIFY_SERVICE] == "mobile_app_phone"
     # Persistent notifications are deprecated, always False
-    assert kid_data[const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS] is False
-    assert kid_data[const.DATA_KID_INTERNAL_ID] == "test-kid-id-123"
+    assert result[const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS] is False
+    # UUID should be generated
+    assert len(result[const.DATA_KID_INTERNAL_ID]) == 36
 
 
-def test_build_kids_data_generates_uuid_if_missing() -> None:
-    """Test build_kids_data generates UUID when internal_id not provided."""
+def test_build_kid_generates_uuid() -> None:
+    """Test build_kid generates UUID when internal_id not provided."""
     user_input = {
         const.CFOF_KIDS_INPUT_KID_NAME: "Tommy",
     }
 
-    result = fh.build_kids_data(user_input)
+    result = eh.build_kid(user_input)
 
-    # Should have one entry with a generated UUID
-    assert len(result) == 1
-    internal_id = list(result.keys())[0]
-    assert len(internal_id) == 36  # UUID format
-    assert result[internal_id][const.DATA_KID_NAME] == "Tommy"
+    # Should have a generated UUID
+    assert len(result[const.DATA_KID_INTERNAL_ID]) == 36
+    assert result[const.DATA_KID_NAME] == "Tommy"
 
 
-def test_build_kids_data_with_defaults() -> None:
-    """Test build_kids_data uses defaults for optional fields."""
+def test_build_kid_with_defaults() -> None:
+    """Test build_kid uses defaults for optional fields."""
     user_input = {
         const.CFOF_KIDS_INPUT_KID_NAME: "Alex",
-        const.CFOF_GLOBAL_INPUT_INTERNAL_ID: "alex-id",
     }
 
-    result = fh.build_kids_data(user_input)
+    result = eh.build_kid(user_input)
 
-    kid_data = result["alex-id"]
-    assert kid_data[const.DATA_KID_NAME] == "Alex"
-    assert kid_data[const.DATA_KID_HA_USER_ID] == const.SENTINEL_EMPTY
+    assert result[const.DATA_KID_NAME] == "Alex"
+    assert result[const.DATA_KID_HA_USER_ID] == ""
     # Without service set, notifications are disabled
-    assert kid_data[const.DATA_KID_ENABLE_NOTIFICATIONS] is False
-    assert kid_data[const.DATA_KID_MOBILE_NOTIFY_SERVICE] == const.SENTINEL_EMPTY
+    assert result[const.DATA_KID_ENABLE_NOTIFICATIONS] is False
+    assert result[const.DATA_KID_MOBILE_NOTIFY_SERVICE] == ""
     # Persistent notifications are deprecated, always False
-    assert kid_data[const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS] is False
+    assert result[const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS] is False
 
 
-def test_build_kids_data_strips_whitespace_from_name() -> None:
-    """Test build_kids_data strips leading/trailing whitespace from name."""
+def test_build_kid_strips_whitespace_from_name() -> None:
+    """Test build_kid strips leading/trailing whitespace from name."""
     user_input = {
         const.CFOF_KIDS_INPUT_KID_NAME: "  Jordan  ",
-        const.CFOF_GLOBAL_INPUT_INTERNAL_ID: "jordan-id",
     }
 
-    result = fh.build_kids_data(user_input)
+    result = eh.build_kid(user_input)
 
-    assert result["jordan-id"][const.DATA_KID_NAME] == "Jordan"
+    assert result[const.DATA_KID_NAME] == "Jordan"
+
+
+def test_build_kid_raises_on_empty_name() -> None:
+    """Test build_kid raises EntityValidationError for empty name."""
+    user_input = {
+        const.CFOF_KIDS_INPUT_KID_NAME: "",
+    }
+
+    with pytest.raises(EntityValidationError) as exc_info:
+        eh.build_kid(user_input)
+
+    assert exc_info.value.field == const.CFOF_KIDS_INPUT_KID_NAME
+    assert exc_info.value.translation_key == const.TRANS_KEY_CFOF_INVALID_KID_NAME
 
 
 def test_validate_kids_inputs_success() -> None:

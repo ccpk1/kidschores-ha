@@ -318,6 +318,7 @@
       "invalid_chore": "Invalid chore",
       "invalid_chore_count": "Invalid chore count",
       "invalid_chore_name": "Invalid chore name",
+      "invalid_points": "Points must be zero or greater",
       "invalid_overdue_reset_combination": "The 'At due date then reset' overdue handling only works with midnight reset types. Please select 'At midnight (once)' or 'At midnight (repeating)' for the approval reset type.",
       "invalid_due_date": "Invalid due date",
       "date_required_for_frequency": "A due date is required for this recurring frequency. Clear dates only works with None, Daily, or Weekly frequency.",
@@ -333,6 +334,7 @@
       "invalid_reward": "Invalid reward",
       "invalid_reward_count": "Invalid reward count",
       "invalid_reward_name": "Invalid reward name",
+      "invalid_reward_cost": "Reward cost must be zero or greater",
       "invalid_bonus": "Invalid bonus",
       "invalid_bonus_count": "Invalid bonus count",
       "invalid_bonus_name": "Invalid bonus name",
@@ -1806,7 +1808,7 @@
         "labels": {
           "name": "Labels",
           "description": "Labels for grouping rewards.",
-          "example": "weekend, special"
+          "example": "['weekend', 'special']"
         }
       }
     },
@@ -1842,7 +1844,7 @@
         "labels": {
           "name": "Labels",
           "description": "Updated labels.",
-          "example": "premium, special"
+          "example": "['premium', 'special']"
         }
       }
     },
@@ -1874,7 +1876,7 @@
         "assigned_kids": {
           "name": "Assigned Kids",
           "description": "List of kid names to assign to this chore.",
-          "example": "Emma, Jack"
+          "example": "['Emma', 'Jack']"
         },
         "points": {
           "name": "Points",
@@ -1894,7 +1896,7 @@
         "labels": {
           "name": "Labels",
           "description": "Optional labels to categorize the chore.",
-          "example": "daily, bedroom"
+          "example": "['daily', 'bedroom']"
         },
         "frequency": {
           "name": "Frequency",
@@ -1904,7 +1906,7 @@
         "applicable_days": {
           "name": "Applicable Days",
           "description": "Days of the week when the chore is applicable.",
-          "example": "mon, wed, fri"
+          "example": "['mon', 'wed', 'fri']"
         },
         "completion_criteria": {
           "name": "Completion Criteria",
@@ -1955,7 +1957,7 @@
         "assigned_kids": {
           "name": "Assigned Kids",
           "description": "New list of kid names to assign to this chore.",
-          "example": "Emma, Jack"
+          "example": "['Emma', 'Jack']"
         },
         "points": {
           "name": "Points",
@@ -1975,7 +1977,7 @@
         "labels": {
           "name": "Labels",
           "description": "New labels for the chore.",
-          "example": "weekly, cleaning"
+          "example": "['weekly', 'cleaning']"
         },
         "frequency": {
           "name": "Frequency",
@@ -1985,7 +1987,7 @@
         "applicable_days": {
           "name": "Applicable Days",
           "description": "New days of the week when the chore is applicable.",
-          "example": "sat, sun"
+          "example": "['sat', 'sun']"
         },
         "approval_reset_type": {
           "name": "Approval Reset Type",

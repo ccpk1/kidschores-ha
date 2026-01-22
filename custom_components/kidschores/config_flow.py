@@ -13,6 +13,7 @@ from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
 from . import const, entity_helpers as eh, flow_helpers as fh
+from .entity_helpers import EntityValidationError
 from .options_flow import KidsChoresOptionsFlowHandler
 
 # Pylint disable for valid config flow architectural patterns:
@@ -60,6 +61,10 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         self._penalty_index: int = 0
         self._bonus_index: int = 0
 
+    # --------------------------------------------------------------------------
+    # INTRO
+    # --------------------------------------------------------------------------
+
     async def async_step_user(self, user_input: dict[str, Any] | None = None):
         """Start the config flow with an intro step."""
 
@@ -83,6 +88,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     # DATA RECOVERY
     # --------------------------------------------------------------------------
+
     async def async_step_data_recovery(self, user_input: dict[str, Any] | None = None):
         """Handle data recovery options when existing storage is found."""
         from pathlib import Path
@@ -367,7 +373,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             options = {}
             if const.DATA_CONFIG_ENTRY_SETTINGS in backup_data:
                 settings = backup_data[const.DATA_CONFIG_ENTRY_SETTINGS]
-                validated = fh._validate_config_entry_settings(settings)
+                validated = fh.validate_config_entry_settings(settings)
 
                 if validated:
                     # Merge with defaults for any missing keys
@@ -508,6 +514,10 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             },
         )
 
+    # --------------------------------------------------------------------------
+    # POINTS
+    # --------------------------------------------------------------------------
+
     async def async_step_points_label(self, user_input: dict[str, Any] | None = None):
         """Let the user define a custom label for points."""
         errors: dict[str, str] = {}
@@ -536,6 +546,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     # --------------------------------------------------------------------------
     # KIDS
     # --------------------------------------------------------------------------
+
     async def async_step_kid_count(self, user_input: dict[str, Any] | None = None):
         """Ask how many kids to define initially."""
         errors: dict[str, str] = {}
@@ -763,8 +774,8 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                 for kid_id, kid_data in self._kids_temp.items()
             }
 
-            # Build and validate chore data
-            chore_data, errors = fh.build_chores_data(
+            # Validate chore input (returns errors dict and processed due_date)
+            errors, due_date_str = fh.validate_chores_inputs(
                 user_input, kids_dict, self._chores_temp
             )
 
@@ -781,12 +792,19 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                     errors=errors,
                 )
 
-            # Store the chore
-            self._chores_temp.update(chore_data)
+            # Transform CFOF_* → DATA_* keys
+            transformed_data = fh.transform_chore_cfof_to_data(
+                user_input, kids_dict, due_date_str
+            )
 
-            # Get internal_id and name for logging
-            internal_id = list(chore_data.keys())[0]
-            chore_name = chore_data[internal_id][const.DATA_CHORE_NAME]
+            # Build complete chore entity (generates internal_id)
+            new_chore = eh.build_chore(transformed_data)
+            internal_id = new_chore[const.DATA_CHORE_INTERNAL_ID]
+
+            # Store the chore (cast to dict for _chores_temp type compatibility)
+            self._chores_temp[internal_id] = dict(new_chore)
+
+            chore_name = new_chore[const.DATA_CHORE_NAME]
             const.LOGGER.debug(
                 "DEBUG: Added Chore: %s with ID: %s", chore_name, internal_id
             )
@@ -871,17 +889,16 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             )
 
             if not errors:
-                # --- Build Data ---
-                internal_id = str(uuid.uuid4())
-                updated_badge_data = fh.build_badge_common_data(
+                # --- Build Data using entity_helpers ---
+                updated_badge_data = eh.build_badge(
                     user_input=user_input,
-                    internal_id=internal_id,
+                    existing=None,
                     badge_type=badge_type,
                 )
-                updated_badge_data[const.DATA_BADGE_TYPE] = badge_type
 
                 # --- Save Data ---
-                self._badges_temp[internal_id] = updated_badge_data
+                internal_id = updated_badge_data[const.DATA_BADGE_INTERNAL_ID]
+                self._badges_temp[internal_id] = dict(updated_badge_data)
 
                 const.LOGGER.debug(
                     "Added Badge '%s' with ID: %s. Data: %s",
@@ -1033,14 +1050,27 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             errors = fh.validate_penalties_inputs(user_input, self._penalties_temp)
 
             if not errors:
-                # Build penalty data
-                penalty_data = fh.build_penalties_data(user_input, self._penalties_temp)
-                self._penalties_temp.update(penalty_data)
+                # Transform form input keys to DATA_* keys for entity_helpers
+                transformed_input = {
+                    const.DATA_PENALTY_NAME: user_input.get(
+                        const.CFOF_PENALTIES_INPUT_NAME, const.SENTINEL_EMPTY
+                    ),
+                    const.DATA_PENALTY_DESCRIPTION: user_input.get(
+                        const.CFOF_PENALTIES_INPUT_DESCRIPTION, const.SENTINEL_EMPTY
+                    ),
+                    const.DATA_PENALTY_POINTS: user_input.get(
+                        const.CFOF_PENALTIES_INPUT_POINTS, const.DEFAULT_PENALTY_POINTS
+                    ),
+                    const.DATA_PENALTY_ICON: user_input.get(
+                        const.CFOF_PENALTIES_INPUT_ICON, const.DEFAULT_PENALTY_ICON
+                    ),
+                }
+                # Build penalty data using unified helper
+                penalty_data = eh.build_bonus_or_penalty(transformed_input, "penalty")
+                internal_id = penalty_data[const.DATA_PENALTY_INTERNAL_ID]
+                self._penalties_temp[internal_id] = penalty_data
 
                 penalty_name = user_input[const.CFOF_PENALTIES_INPUT_NAME].strip()
-                internal_id = user_input.get(
-                    const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
-                )
                 const.LOGGER.debug(
                     "DEBUG: Added Penalty: %s with ID: %s", penalty_name, internal_id
                 )
@@ -1101,14 +1131,27 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             errors = fh.validate_bonuses_inputs(user_input, self._bonuses_temp)
 
             if not errors:
-                # Build bonus data
-                bonus_data = fh.build_bonuses_data(user_input, self._bonuses_temp)
-                self._bonuses_temp.update(bonus_data)
+                # Transform form input keys to DATA_* keys for entity_helpers
+                transformed_input = {
+                    const.DATA_BONUS_NAME: user_input.get(
+                        const.CFOF_BONUSES_INPUT_NAME, const.SENTINEL_EMPTY
+                    ),
+                    const.DATA_BONUS_DESCRIPTION: user_input.get(
+                        const.CFOF_BONUSES_INPUT_DESCRIPTION, const.SENTINEL_EMPTY
+                    ),
+                    const.DATA_BONUS_POINTS: user_input.get(
+                        const.CFOF_BONUSES_INPUT_POINTS, const.DEFAULT_BONUS_POINTS
+                    ),
+                    const.DATA_BONUS_ICON: user_input.get(
+                        const.CFOF_BONUSES_INPUT_ICON, const.DEFAULT_BONUS_ICON
+                    ),
+                }
+                # Build bonus data using unified helper
+                bonus_data = eh.build_bonus_or_penalty(transformed_input, "bonus")
+                internal_id = bonus_data[const.DATA_BONUS_INTERNAL_ID]
+                self._bonuses_temp[internal_id] = bonus_data
 
                 bonus_name = user_input[const.CFOF_BONUSES_INPUT_NAME].strip()
-                internal_id = user_input.get(
-                    const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
-                )
                 const.LOGGER.debug(
                     "DEBUG: Added Bonus '%s' with ID: %s", bonus_name, internal_id
                 )
@@ -1164,30 +1207,56 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # Build achievement data with integrated validation
-            achievement_data, errors = fh.build_achievements_data(
-                user_input, self._achievements_temp, kids_name_to_id={}
+            # Layer 2: UI validation (uniqueness + type-specific checks)
+            errors = fh.validate_achievements_inputs(
+                user_input, self._achievements_temp
             )
 
             if not errors:
-                self._achievements_temp.update(achievement_data)
+                try:
+                    # Config flow uses names directly (no name-to-ID mapping needed)
+                    kids_name_to_id = {
+                        kid_data[const.DATA_KID_NAME]: kid_id
+                        for kid_id, kid_data in self._kids_temp.items()
+                    }
 
-                achievement_name = user_input[
-                    const.CFOF_ACHIEVEMENTS_INPUT_NAME
-                ].strip()
-                internal_id = user_input.get(
-                    const.CFOF_GLOBAL_INPUT_INTERNAL_ID, str(uuid.uuid4())
-                )
-                const.LOGGER.debug(
-                    "DEBUG: Added Achievement '%s' with ID: %s",
-                    achievement_name,
-                    internal_id,
-                )
+                    # Layer 3: Convert CFOF_* to DATA_* keys
+                    data_input = eh.map_cfof_to_achievement_data(user_input)
 
-            self._achievement_index += 1
-            if self._achievement_index >= self._achievement_count:
-                return await self.async_step_challenge_count()
-            return await self.async_step_achievements()
+                    # Convert assigned kids from names to IDs
+                    assigned_kids_names = data_input.get(
+                        const.DATA_ACHIEVEMENT_ASSIGNED_KIDS, []
+                    )
+                    if not isinstance(assigned_kids_names, list):
+                        assigned_kids_names = (
+                            [assigned_kids_names] if assigned_kids_names else []
+                        )
+                    data_input[const.DATA_ACHIEVEMENT_ASSIGNED_KIDS] = [
+                        kids_name_to_id.get(name, name) for name in assigned_kids_names
+                    ]
+
+                    # Build complete achievement structure
+                    achievement = eh.build_achievement(data_input)
+                    internal_id = achievement[const.DATA_ACHIEVEMENT_INTERNAL_ID]
+                    self._achievements_temp[internal_id] = dict(achievement)
+
+                    achievement_name = user_input[
+                        const.CFOF_ACHIEVEMENTS_INPUT_NAME
+                    ].strip()
+                    const.LOGGER.debug(
+                        "DEBUG: Added Achievement '%s' with ID: %s",
+                        achievement_name,
+                        internal_id,
+                    )
+
+                except EntityValidationError as err:
+                    errors[err.field] = err.translation_key
+
+            if not errors:
+                self._achievement_index += 1
+                if self._achievement_index >= self._achievement_count:
+                    return await self.async_step_challenge_count()
+                return await self.async_step_achievements()
 
         kids_dict = {
             kid_data[const.DATA_KID_NAME]: kid_id
@@ -1243,45 +1312,75 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         """Collect each challenge's details using internal_id as the key."""
         errors: dict[str, str] = {}
         if user_input is not None:
-            # Use the helper to build and validate challenge data
-            challenge_data, errors = fh.build_challenges_data(
+            # Layer 2: UI validation (uniqueness + type-specific checks)
+            errors = fh.validate_challenges_inputs(
                 user_input,
-                self._kids_temp,
                 existing_challenges=self._challenges_temp,
-                current_id=None,  # New challenge
+                current_challenge_id=None,  # New challenge
             )
 
-            if not errors and challenge_data:
-                # Additional config flow specific validation: dates must be in the future
-                start_date_str = list(challenge_data.values())[0][
-                    const.DATA_CHALLENGE_START_DATE
-                ]
-                end_date_str = list(challenge_data.values())[0][
-                    const.DATA_CHALLENGE_END_DATE
-                ]
-
-                start_dt = dt_util.parse_datetime(start_date_str)
-                end_dt = dt_util.parse_datetime(end_date_str)
-
-                if start_dt and start_dt < dt_util.utcnow():
-                    errors = {
-                        const.CFOP_ERROR_START_DATE: const.TRANS_KEY_CFOF_START_DATE_IN_PAST
-                    }
-                elif end_dt and end_dt <= dt_util.utcnow():
-                    errors = {
-                        const.CFOP_ERROR_END_DATE: const.TRANS_KEY_CFOF_END_DATE_IN_PAST
+            if not errors:
+                try:
+                    # Config flow uses names directly (need name-to-ID mapping)
+                    kids_name_to_id = {
+                        kid_data[const.DATA_KID_NAME]: kid_id
+                        for kid_id, kid_data in self._kids_temp.items()
                     }
 
-            if not errors and challenge_data:
-                self._challenges_temp.update(challenge_data)
+                    # Layer 3: Convert CFOF_* to DATA_* keys
+                    data_input = eh.map_cfof_to_challenge_data(user_input)
 
-                challenge_name = user_input[const.CFOF_CHALLENGES_INPUT_NAME].strip()
-                internal_id = list(challenge_data.keys())[0]
-                const.LOGGER.debug(
-                    "DEBUG: Added Challenge '%s' with ID: %s",
-                    challenge_name,
-                    internal_id,
-                )
+                    # Convert assigned kids from names to IDs
+                    assigned_kids_names = data_input.get(
+                        const.DATA_CHALLENGE_ASSIGNED_KIDS, []
+                    )
+                    if not isinstance(assigned_kids_names, list):
+                        assigned_kids_names = (
+                            [assigned_kids_names] if assigned_kids_names else []
+                        )
+                    data_input[const.DATA_CHALLENGE_ASSIGNED_KIDS] = [
+                        kids_name_to_id.get(name, name) for name in assigned_kids_names
+                    ]
+
+                    # Additional config flow specific validation: dates must be in the future
+                    start_date_str = data_input.get(const.DATA_CHALLENGE_START_DATE)
+                    end_date_str = data_input.get(const.DATA_CHALLENGE_END_DATE)
+
+                    start_dt = (
+                        dt_util.parse_datetime(start_date_str)
+                        if start_date_str
+                        else None
+                    )
+                    end_dt = (
+                        dt_util.parse_datetime(end_date_str) if end_date_str else None
+                    )
+
+                    if start_dt and start_dt < dt_util.utcnow():
+                        errors = {
+                            const.CFOP_ERROR_START_DATE: const.TRANS_KEY_CFOF_START_DATE_IN_PAST
+                        }
+                    elif end_dt and end_dt <= dt_util.utcnow():
+                        errors = {
+                            const.CFOP_ERROR_END_DATE: const.TRANS_KEY_CFOF_END_DATE_IN_PAST
+                        }
+
+                    if not errors:
+                        # Build complete challenge structure
+                        challenge = eh.build_challenge(data_input)
+                        internal_id = challenge[const.DATA_CHALLENGE_INTERNAL_ID]
+                        self._challenges_temp[internal_id] = dict(challenge)
+
+                        challenge_name = user_input[
+                            const.CFOF_CHALLENGES_INPUT_NAME
+                        ].strip()
+                        const.LOGGER.debug(
+                            "DEBUG: Added Challenge '%s' with ID: %s",
+                            challenge_name,
+                            internal_id,
+                        )
+
+                except EntityValidationError as err:
+                    errors[err.field] = err.translation_key
 
             if not errors:
                 self._challenge_index += 1

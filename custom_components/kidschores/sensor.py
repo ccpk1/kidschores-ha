@@ -56,6 +56,7 @@ Legacy Sensors Imported from sensor_legacy.py (13):
     13. KidBonusAppliedSensor - Bonus application count (data in dashboard helper)
 """
 
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Any, cast
 
@@ -443,16 +444,18 @@ async def async_setup_entry(
 # Module-level callback storage for dynamic entity creation
 # ------------------------------------------------------------------------------------------
 
-_async_add_entities_callback = None
+_async_add_entities_callback: Callable | None = None
 
 
-def register_chore_reward_callback(async_add_entities):
+def register_chore_reward_callback(
+    async_add_entities: Callable,
+) -> None:
     """Register async_add_entities callback for dynamic chore/reward sensor creation.
 
     Called once during platform setup to enable services to create new sensor entities
     after chores/rewards are added at runtime.
     """
-    global _async_add_entities_callback
+    global _async_add_entities_callback  # noqa: PLW0603
     _async_add_entities_callback = async_add_entities
 
 
@@ -482,10 +485,10 @@ def create_chore_entities(
         return
 
     assigned_kids_ids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
-    entities = []
+    entities: list[KidChoreStatusSensor] = []
 
     for kid_id in assigned_kids_ids:
-        kid_data = coordinator.kids_data.get(kid_id, {})
+        kid_data: KidData = cast("KidData", coordinator.kids_data.get(kid_id) or {})
         kid_name = kh.get_entity_name_or_log_error(
             "kid", kid_id, kid_data, const.DATA_KID_NAME
         )

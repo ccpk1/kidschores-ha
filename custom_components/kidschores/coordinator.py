@@ -948,39 +948,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
     # These methods provide direct storage updates without triggering config reloads
     # -------------------------------------------------------------------------------------
 
-    # Internal helper methods (minimal stubs for options_flow/services)
-    # Called by:
-    # - options_flow.py (create methods)
-    # Full migration versions with notifications/validation are in migration_pre_v50.py
-
-    def _update_achievement(
-        self, achievement_id: str, achievement_data: dict[str, Any]
-    ) -> None:
-        """Update achievement data (minimal stub)."""
-        achievement_info = self._data[const.DATA_ACHIEVEMENTS][achievement_id]
-        for key, value in achievement_data.items():
-            achievement_info[key] = value
-
-    def _update_challenge(
-        self, challenge_id: str, challenge_data: dict[str, Any]
-    ) -> None:
-        """Update challenge data (minimal stub)."""
-        challenge_info = self._data[const.DATA_CHALLENGES][challenge_id]
-        for key, value in challenge_data.items():
-            challenge_info[key] = value
-
-    def _create_achievement(
-        self, achievement_id: str, achievement_data: dict[str, Any]
-    ) -> None:
-        """Create achievement (called by options_flow)."""
-        self._data[const.DATA_ACHIEVEMENTS][achievement_id] = achievement_data
-
-    def _create_challenge(
-        self, challenge_id: str, challenge_data: dict[str, Any]
-    ) -> None:
-        """Create challenge (called by options_flow)."""
-        self._data[const.DATA_CHALLENGES][challenge_id] = challenge_data
-
     def _update_kid_device_name(self, kid_id: str, kid_name: str) -> None:
         """Update kid device name in device registry.
 
@@ -1259,23 +1226,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         self.async_update_listeners()
         const.LOGGER.info("INFO: Deleted bonus '%s' (ID: %s)", bonus_name, bonus_id)
 
-    def update_achievement_entity(
-        self, achievement_id: str, achievement_data: dict[str, Any]
-    ) -> None:
-        """Update achievement entity in storage (Options Flow - no reload)."""
-        if achievement_id not in self._data.get(const.DATA_ACHIEVEMENTS, {}):
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_ACHIEVEMENT,
-                    "name": achievement_id,
-                },
-            )
-        self._update_achievement(achievement_id, achievement_data)
-        self._persist()
-        self.async_update_listeners()
-
     def delete_achievement_entity(self, achievement_id: str) -> None:
         """Delete achievement from storage and cleanup references."""
         if achievement_id not in self._data.get(const.DATA_ACHIEVEMENTS, {}):
@@ -1301,23 +1251,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         const.LOGGER.info(
             "INFO: Deleted achievement '%s' (ID: %s)", achievement_name, achievement_id
         )
-
-    def update_challenge_entity(
-        self, challenge_id: str, challenge_data: dict[str, Any]
-    ) -> None:
-        """Update challenge entity in storage (Options Flow - no reload)."""
-        if challenge_id not in self._data.get(const.DATA_CHALLENGES, {}):
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_CHALLENGE,
-                    "name": challenge_id,
-                },
-            )
-        self._update_challenge(challenge_id, challenge_data)
-        self._persist()
-        self.async_update_listeners()
 
     def delete_challenge_entity(self, challenge_id: str) -> None:
         """Delete challenge from storage and cleanup references."""

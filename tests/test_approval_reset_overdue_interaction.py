@@ -417,8 +417,8 @@ class TestOverdueResetValidation:
         # Create kids_dict mapping name to UUID (like coordinator does)
         kids_dict = {"Zoë": "kid_001"}
 
-        # Validate using build_chores_data (the validation function)
-        _chore_data, errors = fh.build_chores_data(
+        # Validate using validate_chores_inputs
+        errors, _due_date_str = fh.validate_chores_inputs(
             user_input=user_input,
             kids_dict=kids_dict,
             existing_chores={},
@@ -469,7 +469,7 @@ class TestOverdueResetValidation:
 
         kids_dict = {"Zoë": "kid_001"}
 
-        chore_data, errors = fh.build_chores_data(
+        errors, _due_date_str = fh.validate_chores_inputs(
             user_input=user_input,
             kids_dict=kids_dict,
             existing_chores={},
@@ -477,7 +477,6 @@ class TestOverdueResetValidation:
 
         # Should be accepted - UPON_COMPLETION provides immediate reset
         assert not errors, f"Expected no errors, got {errors}"
-        assert chore_data, "Expected valid chore data"
 
     @pytest.mark.asyncio
     async def test_at_midnight_once_with_then_reset_accepted(
@@ -512,7 +511,7 @@ class TestOverdueResetValidation:
 
         kids_dict = {"Zoë": "kid_001"}
 
-        chore_data, errors = fh.build_chores_data(
+        errors, _due_date_str = fh.validate_chores_inputs(
             user_input=user_input,
             kids_dict=kids_dict,
             existing_chores={},
@@ -521,7 +520,6 @@ class TestOverdueResetValidation:
         assert not errors, (
             f"Expected no validation errors for valid combination, got {errors}"
         )
-        assert chore_data, "Expected chore_data to be returned for valid combination"
 
     @pytest.mark.asyncio
     async def test_at_midnight_multi_with_then_reset_accepted(
@@ -556,7 +554,7 @@ class TestOverdueResetValidation:
 
         kids_dict = {"Zoë": "kid_001"}
 
-        chore_data, errors = fh.build_chores_data(
+        errors, _due_date_str = fh.validate_chores_inputs(
             user_input=user_input,
             kids_dict=kids_dict,
             existing_chores={},
@@ -565,4 +563,3 @@ class TestOverdueResetValidation:
         assert not errors, (
             f"Expected no validation errors for valid combination, got {errors}"
         )
-        assert chore_data, "Expected chore_data to be returned for valid combination"

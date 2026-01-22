@@ -599,10 +599,11 @@ def should_create_gamification_entities(
 
 
 # ────────────────────────────────────────────────────────────────
-# �️ -------- Data Structure Builders --------
+# 🏗️ -------- Data Structure Builders --------
 # These helpers build complete data structures with all required fields.
 # SINGLE SOURCE OF TRUTH for entity field initialization.
-# Used by both config flow (build_chores_data) and coordinator (_create_chore).
+# Used by both UI flows (via entity_helpers.build_chore) and
+# coordinator (_create_chore).
 # ────────────────────────────────────────────────────────────────
 
 
@@ -612,7 +613,7 @@ def build_default_chore_data(
     """Build a complete chore data structure with all fields initialized.
 
     This is the SINGLE SOURCE OF TRUTH for chore field initialization.
-    Used by both config flow's build_chores_data() and coordinator's _create_chore().
+    Used by entity_helpers.build_chore() and coordinator's _create_chore().
 
     Args:
         chore_id: The internal UUID for the chore.

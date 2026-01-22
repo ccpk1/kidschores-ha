@@ -61,7 +61,15 @@ Migrate all 9 entity types from legacy CRUD patterns to modern `entity_helpers.b
 - Remove final stubs
 - Run: `pytest tests/test_workflow_achievements.py tests/test_workflow_challenges.py -v`
 
-**Phase 6**: Final Validation
+**Phase 6**: CFOF Key Alignment (Eliminate Mapping Functions)
+
+- Align CFOF*\* constant values with DATA*\* values to eliminate mapping boilerplate
+- Update strings.json translation keys form-by-form
+- Remove map*cfof_to*\*\_data() functions from entity_helpers.py
+- Preserve complex handling only where legitimately needed (badges, daily_multi)
+- Run: `pytest tests/ -v` after each entity
+
+**Phase 7**: Final Validation
 
 - Run full test suite: `pytest tests/ -v`
 - Run quality gates: `./utils/quick_lint.sh && mypy custom_components/kidschores/`
@@ -72,7 +80,8 @@ Migrate all 9 entity types from legacy CRUD patterns to modern `entity_helpers.b
 ✅ All 9 entity types use `entity_helpers.build_X()` pattern in config/options flows
 ✅ All stub methods removed from coordinator.py
 ✅ Chore services functional with tests passing
-✅ All 871+ tests passing
+✅ CFOF*\* keys aligned with DATA*\* keys (mapping functions eliminated where possible)
+✅ All 882+ tests passing
 ✅ MyPy clean (zero type errors)
 ✅ Coordinator ~47 lines smaller (stub removal only)
 
@@ -97,15 +106,17 @@ See "Lessons Learned from Reward Refactor" section (lines ~400-650) for complete
 
 ## Summary & immediate steps
 
-| Phase / Step              | Description                       | % complete | Quick notes                                                     |
-| ------------------------- | --------------------------------- | ---------- | --------------------------------------------------------------- |
-| Phase 1 – Kids & Parents  | Migrate to entity_helpers pattern | 100%       | ✅ Completed 2026-01-22 - ~100 lines removed from coordinator   |
-| Phase 2 – Badges          | Complex but modular code          | 100%       | ✅ Completed 2026-01-22 - ~26 lines removed from coordinator    |
-| Phase 3A – Chores (Flow)  | Options flow refactor only        | 100%       | ✅ Completed 2026-01-22 - ~34 lines removed from coordinator    |
-| Phase 3B – Chores (Svc)   | Chore CRUD services               | 100%       | ✅ Completed 2026-01-22 - create/update/delete with 9 E2E tests |
-| Phase 3C – Entity Cleanup | Dynamic entity creation refactor  | 100%       | ✅ Completed 2026-01-22 - ~80 lines removed from coordinator    |
-| Phase 4 – Simple Entities | Bonuses, Penalties                | 100%       | ✅ Completed 2026-01-22 - ~50 lines removed from coordinator    |
-| Phase 5 – Linked Entities | Achievements, Challenges          | 0%         | 🔄 Next phase - complex relational data                         |
+| Phase / Step               | Description                       | % complete | Quick notes                                                     |
+| -------------------------- | --------------------------------- | ---------- | --------------------------------------------------------------- |
+| Phase 1 – Kids & Parents   | Migrate to entity_helpers pattern | 100%       | ✅ Completed 2026-01-22 - ~100 lines removed from coordinator   |
+| Phase 2 – Badges           | Complex but modular code          | 100%       | ✅ Completed 2026-01-22 - ~26 lines removed from coordinator    |
+| Phase 3A – Chores (Flow)   | Options flow refactor only        | 100%       | ✅ Completed 2026-01-22 - ~34 lines removed from coordinator    |
+| Phase 3B – Chores (Svc)    | Chore CRUD services               | 100%       | ✅ Completed 2026-01-22 - create/update/delete with 9 E2E tests |
+| Phase 3C – Entity Cleanup  | Dynamic entity creation refactor  | 100%       | ✅ Completed 2026-01-22 - ~80 lines removed from coordinator    |
+| Phase 4 – Simple Entities  | Bonuses, Penalties                | 100%       | ✅ Completed 2026-01-22 - ~50 lines removed from coordinator    |
+| Phase 5 – Linked Entities  | Achievements, Challenges          | 100%       | ✅ Completed 2026-01-21 - ~50 lines removed from coordinator    |
+| Phase 6 – CFOF Key Align   | Align CFOF*\* with DATA*\* keys   | 0%         | ⏳ Eliminate mapping functions, form-by-form                    |
+| Phase 7 – Final Validation | Full test suite + quality gates   | 0%         | ⏳ Pending Phase 6                                              |
 
 1. **Key objective** – Migrate all entity types to modern `entity_helpers.build_X()` pattern. Services for Rewards (✅ done) and Chores (Phase 3B). Config + Options flow refactor for all entities. Remove stub methods per entity as refactored.
 
@@ -191,6 +202,15 @@ See "Lessons Learned from Reward Refactor" section (lines ~400-650) for complete
      - Added missing sensor to documentation list
      - Re-added dynamic entity creation functions after accidental revert
      - All 880 tests passing, no errors
+   - **2026-01-21**: **PHASE 5 COMPLETED - Achievements & Challenges** ✅
+     - Created `entity_helpers.build_achievement()` (~70 lines) for achievement data management
+     - Created `entity_helpers.build_challenge()` (~80 lines) for challenge data management
+     - Refactored options_flow.py: 4 methods (add/edit achievement, add/edit challenge)
+     - Pattern: `fh.build_*_data()` for validation → `eh.build_*()` for data structure → direct storage write
+     - Preserved progress tracking dict during edits using `existing=` parameter
+     - Removed 6 coordinator stub methods: `_create_achievement()`, `_update_achievement()`, `update_achievement_entity()`, `_create_challenge()`, `_update_challenge()`, `update_challenge_entity()` (~50 lines)
+     - **Total Phase 5 coordinator reduction**: ~50 lines (stub removal)
+     - All 882 tests passing, mypy clean, lint passes
 
 ---
 
