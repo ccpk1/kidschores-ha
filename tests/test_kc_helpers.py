@@ -76,6 +76,118 @@ class TestEntityLookupHelpers:
             )
 
 
+class TestEntityRegistryUtilities:
+    """Test entity registry query and parsing utilities."""
+
+    async def test_get_integration_entities_all_platforms(
+        self, hass: HomeAssistant, scenario_minimal: SetupResult
+    ) -> None:
+        """Should retrieve all integration entities when no platform filter."""
+        entry = scenario_minimal.config_entry
+
+        entities = kh.get_integration_entities(hass, entry.entry_id)
+
+        # Should have sensors, buttons, etc. for minimal scenario
+        assert len(entities) > 0
+        # All entities should belong to this config entry
+        assert all(e.config_entry_id == entry.entry_id for e in entities)
+
+    async def test_get_integration_entities_filtered_by_platform(
+        self, hass: HomeAssistant, scenario_minimal: SetupResult
+    ) -> None:
+        """Should filter entities by platform when specified."""
+        entry = scenario_minimal.config_entry
+
+        sensors = kh.get_integration_entities(hass, entry.entry_id, "sensor")
+        buttons = kh.get_integration_entities(hass, entry.entry_id, "button")
+
+        # Should have both sensors and buttons
+        assert len(sensors) > 0
+        assert len(buttons) > 0
+        # All should be correct platform
+        assert all(e.domain == "sensor" for e in sensors)
+        assert all(e.domain == "button" for e in buttons)
+
+    async def test_parse_entity_reference_valid(
+        self, hass: HomeAssistant, scenario_minimal: SetupResult
+    ) -> None:
+        """Should parse valid entity unique_id correctly."""
+        unique_id = "entry_123_kid_456_chore_789"
+        prefix = "entry_123_"
+
+        result = kh.parse_entity_reference(unique_id, prefix)
+
+        assert result == ("kid", "456", "chore", "789")
+
+    async def test_parse_entity_reference_invalid_prefix(
+        self, hass: HomeAssistant, scenario_minimal: SetupResult
+    ) -> None:
+        """Should return None when prefix doesn't match."""
+        unique_id = "entry_999_kid_456"
+        prefix = "entry_123_"
+
+        result = kh.parse_entity_reference(unique_id, prefix)
+
+        assert result is None
+
+    async def test_parse_entity_reference_empty_remainder(
+        self, hass: HomeAssistant, scenario_minimal: SetupResult
+    ) -> None:
+        """Should return None when nothing after prefix."""
+        unique_id = "entry_123_"
+        prefix = "entry_123_"
+
+        result = kh.parse_entity_reference(unique_id, prefix)
+
+        assert result is None
+
+    async def test_build_orphan_detection_regex_matches_valid(
+        self, hass: HomeAssistant, scenario_minimal: SetupResult
+    ) -> None:
+        """Should match entities belonging to valid IDs."""
+        valid_ids = ["kid_1", "kid_2", "kid_3"]
+        pattern = kh.build_orphan_detection_regex(valid_ids)
+
+        # Should match
+        assert pattern.match("kc_kid_1_chore_123") is not None
+        assert pattern.match("kc_kid_2_reward_456") is not None
+        assert pattern.match("kc_kid_3_points") is not None
+
+    async def test_build_orphan_detection_regex_rejects_invalid(
+        self, hass: HomeAssistant, scenario_minimal: SetupResult
+    ) -> None:
+        """Should not match entities from deleted IDs."""
+        valid_ids = ["kid_1", "kid_2"]
+        pattern = kh.build_orphan_detection_regex(valid_ids)
+
+        # kid_3 not in valid list - should not match
+        assert pattern.match("kc_kid_3_chore_999") is None
+
+    async def test_build_orphan_detection_regex_empty_list(
+        self, hass: HomeAssistant, scenario_minimal: SetupResult
+    ) -> None:
+        """Should return pattern that never matches when no valid IDs."""
+        pattern = kh.build_orphan_detection_regex([])
+
+        # Should not match anything
+        assert pattern.match("kc_kid_1_chore_123") is None
+        assert pattern.match("kc_anything") is None
+
+    async def test_build_orphan_detection_regex_performance(
+        self, hass: HomeAssistant, scenario_minimal: SetupResult
+    ) -> None:
+        """Should handle large ID lists efficiently (performance test)."""
+        # Simulate 100 kids (large installation)
+        valid_ids = [f"kid_{i}" for i in range(100)]
+        pattern = kh.build_orphan_detection_regex(valid_ids)
+
+        # Should still match efficiently
+        assert pattern.match("kc_kid_0_chore_123") is not None
+        assert pattern.match("kc_kid_50_reward_456") is not None
+        assert pattern.match("kc_kid_99_points") is not None
+        assert pattern.match("kc_kid_100_chore_789") is None  # Not in valid list
+
+
 class TestAuthorizationHelpers:
     """Test authorization check functions."""
 

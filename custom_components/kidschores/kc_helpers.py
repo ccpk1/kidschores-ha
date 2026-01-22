@@ -26,7 +26,10 @@ This file is organized into logical sections for easy navigation:
 7. **Entity Lookup Helpers with Error Raising** (Line 560) 🔍
    - ID/name lookups that raise HomeAssistantError (for services/actions)
 
-8. **KidsChores Progress & Completion Helpers** (Line 520) 🧮
+8. **Entity Registry Utilities** (Line 440) 🗄️
+   - Entity registry queries, parsing, regex pattern builders (read-only)
+
+9. **KidsChores Progress & Completion Helpers** (Line 520) 🧮
    - Badge progress, chore completion, streak calculations
 
 9. **Date & Time Helpers** (Line 690) 🕒
@@ -47,9 +50,14 @@ from __future__ import annotations
 from datetime import date, datetime, time, tzinfo
 import json
 import os
+import re
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.entity_registry import (
+    RegistryEntry,
+    async_get as async_get_entity_registry,
+)
 from homeassistant.helpers.label_registry import async_get as async_get_label_registry
 import homeassistant.util.dt as dt_util
 
@@ -425,6 +433,136 @@ def get_entity_name_or_log_error(
         )
         return None
     return name
+
+
+# ────────────────────────────────────────────────────────────────
+# 🗄️ -------- Entity Registry Utilities --------
+# Read-only helpers for querying entity registry, parsing unique IDs,
+# and building regex patterns for efficient entity detection.
+# Destructive operations (entity removal) remain in coordinator.py.
+# ────────────────────────────────────────────────────────────────
+
+
+def get_integration_entities(
+    hass: HomeAssistant,
+    entry_id: str,
+    platform: str | None = None,
+) -> list[RegistryEntry]:
+    """Get all integration entities, optionally filtered by platform.
+
+    Centralizes entity registry queries used across multiple coordinator
+    methods. Read-only utility - does not modify entities.
+
+    Args:
+        hass: HomeAssistant instance.
+        entry_id: Config entry ID to filter entities.
+        platform: Optional platform filter (e.g., "button", "sensor").
+            If None, returns all platforms.
+
+    Returns:
+        List of RegistryEntry objects matching criteria.
+
+    Example:
+        # Get all sensor entities for this integration
+        sensors = get_integration_entities(hass, entry.entry_id, "sensor")
+
+        # Get all entities regardless of platform
+        all_entities = get_integration_entities(hass, entry.entry_id)
+    """
+    entity_registry = async_get_entity_registry(hass)
+    entities = [
+        entry
+        for entry in entity_registry.entities.values()
+        if entry.config_entry_id == entry_id
+    ]
+
+    if platform:
+        entities = [e for e in entities if e.domain == platform]
+
+    return entities
+
+
+def parse_entity_reference(
+    unique_id: str,
+    prefix: str,
+) -> tuple[str, ...] | None:
+    """Parse entity unique_id into component parts after removing prefix.
+
+    Used to extract kid IDs, chore IDs, etc. from entity unique IDs.
+    Read-only utility - does not modify entities.
+
+    Args:
+        unique_id: Entity unique_id (e.g., "entry_123_kid_456_chore_789").
+        prefix: Config entry prefix to strip (e.g., "entry_123_").
+
+    Returns:
+        Tuple of ID components after prefix, or None if invalid format.
+
+    Example:
+        >>> parse_entity_reference("entry_123_kid_456_chore_789", "entry_123_")
+        ('kid_456', 'chore_789')
+
+        >>> parse_entity_reference("invalid", "entry_123_")
+        None
+
+    Note:
+        Uses underscore delimiters. Returns None for malformed IDs.
+    """
+    if not unique_id.startswith(prefix):
+        return None
+
+    # Strip prefix and split by underscore
+    remainder = unique_id[len(prefix) :]
+    if not remainder:
+        return None
+
+    # Split into component parts
+    parts = remainder.split("_")
+    if not parts or any(not part for part in parts):
+        return None
+
+    return tuple(parts)
+
+
+def build_orphan_detection_regex(
+    valid_ids: list[str],
+    separator: str = "_",
+) -> re.Pattern[str]:
+    """Build compiled regex for O(n) orphan detection.
+
+    Pre-compiles regex pattern for efficient entity filtering.
+    Used to detect orphaned entities when kids/parents/items are deleted.
+    Read-only utility - does not modify entities.
+
+    Args:
+        valid_ids: List of valid kid/parent/entity IDs to match.
+        separator: Delimiter between ID components (default "_").
+
+    Returns:
+        Compiled regex pattern for efficient matching.
+
+    Example:
+        >>> pattern = build_orphan_detection_regex(["kid_1", "kid_2"])
+        >>> pattern.match("kc_kid_1_chore_123")  # Matches
+        >>> pattern.match("kc_kid_3_chore_456")  # No match (kid_3 not valid)
+
+    Performance:
+        Enables O(n) detection vs O(n²) nested loops.
+        Pre-compile once, match many times.
+        Essential for large installations with 10+ kids.
+    """
+    if not valid_ids:
+        # Return pattern that never matches
+        return re.compile(r"(?!.*)")
+
+    # Escape separator for regex
+    sep_escaped = re.escape(separator)
+
+    # Build alternation pattern: kc_(id1|id2|id3)_
+    ids_pattern = "|".join(re.escape(id_val) for id_val in valid_ids)
+    pattern_str = f"^kc{sep_escaped}({ids_pattern}){sep_escaped}"
+
+    return re.compile(pattern_str)
 
 
 # 📱 -------- Device Info Helpers --------
