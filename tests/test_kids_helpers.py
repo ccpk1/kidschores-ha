@@ -22,8 +22,7 @@ def test_build_kid_with_all_values() -> None:
 
     assert result[const.DATA_KID_NAME] == "Zoë"
     assert result[const.DATA_KID_HA_USER_ID] == "user_123"
-    # With service set, notifications are enabled
-    assert result[const.DATA_KID_ENABLE_NOTIFICATIONS] is True
+    # Notifications enabled when mobile service is set
     assert result[const.DATA_KID_MOBILE_NOTIFY_SERVICE] == "mobile_app_phone"
     # Persistent notifications are deprecated, always False
     assert result[const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS] is False
@@ -54,8 +53,7 @@ def test_build_kid_with_defaults() -> None:
 
     assert result[const.DATA_KID_NAME] == "Alex"
     assert result[const.DATA_KID_HA_USER_ID] == ""
-    # Without service set, notifications are disabled
-    assert result[const.DATA_KID_ENABLE_NOTIFICATIONS] is False
+    # Notifications disabled when mobile service not set (empty string)
     assert result[const.DATA_KID_MOBILE_NOTIFY_SERVICE] == ""
     # Persistent notifications are deprecated, always False
     assert result[const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS] is False

@@ -16,8 +16,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from homeassistant.exceptions import ConfigEntryNotReady
-
 from . import backup_helpers as bh, const
 from .coordinator import KidsChoresDataCoordinator
 from .notification_action_handler import async_handle_notification_action
@@ -172,9 +170,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # PHASE 2: Migrate entity data from config to storage (one-time hand-off) - LEGACY MIGRATION
     # This must happen BEFORE coordinator initialization to ensure coordinator
     # loads from storage-only mode (schema_version >= 42)
-    from .migration_pre_v50 import migrate_config_to_storage
+    from .migration_pre_v50 import (
+        async_migrate_uid_suffixes_v0_5_1,
+        migrate_config_to_storage,
+    )
 
     await migrate_config_to_storage(hass, entry, store)
+
+    # PHASE 3: Migrate entity unique_ids from generic to explicit suffixes (v0.5.1)
+    # This is a ONE-TIME migration gated by a runtime flag to prevent re-running on reload.
+    # Updates entity registry unique_ids to enable reliable pattern matching for shadow
+    # kid entity gating. Run after storage migration but before coordinator init.
+    uid_migration_key = f"{const.DOMAIN}_uid_migration_done_{entry.entry_id}"
+    if uid_migration_key not in hass.data:
+        async_migrate_uid_suffixes_v0_5_1(hass, entry)
+        hass.data[uid_migration_key] = True
+    else:
+        const.LOGGER.debug(
+            "DEBUG: UID suffix migration already completed for this session, skipping"
+        )
+
+    # PHASE 4: Create coordinator with access to current config
+    temp_coordinator = KidsChoresDataCoordinator(hass, entry, store)
+    await temp_coordinator.async_config_entry_first_refresh()
 
     # Create safety backup only on true first startup (not on reloads)
     # Use a persistent flag across reloads to prevent duplicate backups
@@ -212,15 +230,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     await bh.cleanup_old_backups(hass, store, max_backups)
 
-    # Create the data coordinator for managing updates and synchronization.
-    coordinator = KidsChoresDataCoordinator(hass, entry, store)
-
-    try:
-        # Perform the first refresh to load data.
-        await coordinator.async_config_entry_first_refresh()
-    except ConfigEntryNotReady as e:
-        const.LOGGER.error("ERROR: Failed to refresh coordinator data: %s", e)
-        raise ConfigEntryNotReady from e
+    # Coordinator was already created in PHASE 4 (before cleanup)
+    # Reuse the temp_coordinator instance instead of creating a new one
+    coordinator = temp_coordinator
 
     # Store the coordinator and data manager in hass.data.
     hass.data.setdefault(const.DOMAIN, {})[entry.entry_id] = {
@@ -242,6 +254,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     const.LOGGER.debug("Running one-time orphaned entity cleanup")
     await coordinator._remove_orphaned_kid_chore_entities()
     await coordinator._remove_orphaned_badge_entities()
+    await coordinator._remove_orphaned_manual_adjustment_buttons()
+    await coordinator._remove_orphaned_shadow_kid_buttons()
 
     # Register update listener for config entry changes (e.g., title changes)
     entry.async_on_unload(entry.add_update_listener(async_update_options))

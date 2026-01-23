@@ -324,8 +324,11 @@ async def is_user_authorized_for_kid(
 
 
 def parse_points_adjust_values(points_str: str) -> list[float]:
-    """Parse a multiline string into a list of float values."""
+    """Parse a pipe-separated string into a list of float values.
 
+    Handles international decimal separator differences by converting
+    comma decimal separators to periods before parsing.
+    """
     values = []
     for part in points_str.split("|"):
         part = part.strip()
@@ -712,6 +715,77 @@ def should_create_gamification_entities(
     parent_data = get_parent_for_shadow_kid(coordinator, kid_id)
     if parent_data:
         return parent_data.get(const.DATA_PARENT_ENABLE_GAMIFICATION, False)
+    return False
+
+
+def is_entity_allowed_for_shadow_kid(
+    domain: str,
+    unique_id: str,
+    workflow_enabled: bool,
+    gamification_enabled: bool,
+) -> bool:
+    """Check if an entity is allowed for a shadow kid based on parent settings.
+
+    Uses whitelist logic: explicitly list what shadow kids ARE allowed to have.
+    - Base entities (listed in SHADOW_KID_BASE_*): always allowed
+    - Workflow entities (claim/disapprove): require workflow_enabled
+    - Gamification entities (all others): require gamification_enabled
+
+    Args:
+        domain: The entity domain (\"button\", \"sensor\", etc.)
+        unique_id: The entity's unique_id string.
+        workflow_enabled: Whether parent has chore workflow enabled.
+        gamification_enabled: Whether parent has gamification enabled.
+
+    Returns:
+        True if entity is allowed, False if it should be removed.
+    """
+    # Check calendar - always allowed
+    if domain == "calendar":
+        return True
+
+    # Check select
+    if domain == "select":
+        for suffix in const.SHADOW_KID_BASE_SELECT_ENDSWITH:
+            if unique_id.endswith(suffix):
+                return True
+        # All other selects require gamification
+        return gamification_enabled
+
+    # Check datetime
+    if domain == "datetime":
+        for suffix in const.SHADOW_KID_BASE_DATETIME_ENDSWITH:
+            if unique_id.endswith(suffix):
+                return True
+        # All other datetimes require gamification
+        return gamification_enabled
+
+    # Check buttons
+    if domain == "button":
+        # Check if it's a base button (always allowed)
+        for suffix in const.SHADOW_KID_BASE_BUTTON_ENDSWITH:
+            if unique_id.endswith(suffix):
+                return True
+
+        # Workflow buttons require workflow_enabled
+        for suffix in const.SHADOW_KID_WORKFLOW_BUTTON_ENDSWITH:
+            if unique_id.endswith(suffix):
+                return workflow_enabled
+
+        # Everything else is gamification (points, rewards, bonuses, etc.)
+        return gamification_enabled
+
+    # Check sensors
+    if domain == "sensor":
+        # Check if it's a base sensor (always allowed)
+        for suffix in const.SHADOW_KID_BASE_SENSOR_ENDSWITH:
+            if unique_id.endswith(suffix):
+                return True
+
+        # Everything else is gamification
+        return gamification_enabled
+
+    # Unknown domain - deny by default (safer than allowing)
     return False
 
 

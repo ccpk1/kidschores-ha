@@ -13,10 +13,10 @@ lazy import to avoid any runtime cost.
 from collections import Counter
 from datetime import datetime
 import random
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 
 from . import backup_helpers as bh, const, data_builders as db, kc_helpers as kh
@@ -2207,113 +2207,66 @@ class PreV50Migrator:
             )
 
     def _simplify_notification_config_v50(self) -> None:
-        """Migrate notification config from 3-field to single service selector (v50).
+        """Remove redundant enable_notifications field from kid and parent data.
 
-        Old config structure (3 fields):
-        - enable_notifications: bool (master switch)
-        - mobile_notify_service: str (service name)
-        - use_persistent_notifications: bool (deprecated fallback)
+        The enable_notifications field was always derived from bool(mobile_notify_service),
+        making it redundant. This migration removes the field from storage data.
 
-        New config structure (1 field):
-        - mobile_notify_service: str (empty = disabled, service = enabled)
+        Migration Actions:
+        ————————————————————————————————————————————————————————————————————————
+        1. Remove enable_notifications from all kids
+        2. Remove enable_notifications from all parents
 
-        Migration logic:
-        - If enable_notifications is True AND mobile_notify_service is set → keep service
-        - If enable_notifications is False OR no service → set service to empty
-        - Always set use_persistent_notifications to False (deprecated)
+        The notification logic now checks mobile_notify_service directly:
+        - If mobile_notify_service has value → send mobile notification
+        - Else if use_persistent_notifications → send persistent notification
+        - Else → no notification
+
+        Refs: coordinator._notify_kid(), coordinator._notify_parents()
         """
-        kids_data = self.coordinator._data.get(const.DATA_KIDS, {})
-        parents_data = self.coordinator._data.get(const.DATA_PARENTS, {})
+        const.LOGGER.info("INFO: ==========================================")
+        const.LOGGER.info(
+            "INFO: Schema v50: Removing redundant enable_notifications field"
+        )
 
-        kids_migrated = 0
-        parents_migrated = 0
+        kids_data = self.coordinator.kids_data
+        parents_data = self.coordinator.parents_data
+        changes_made = False
 
-        # Migrate kids
+        # Process all kids - just remove the field
         for _kid_id, kid_info in kids_data.items():
-            migrated = False
-            kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
-
-            # Get current notification config
-            enable_notifications = kid_info.get(
-                const.DATA_KID_ENABLE_NOTIFICATIONS, True
-            )
-            mobile_service = kid_info.get(const.DATA_KID_MOBILE_NOTIFY_SERVICE, "")
-            use_persistent = kid_info.get(
-                const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS, False
-            )
-
-            # Migration logic: service presence = enabled
-            if not enable_notifications:
-                # Master switch off - clear service
-                if mobile_service:
-                    kid_info[const.DATA_KID_MOBILE_NOTIFY_SERVICE] = ""
-                    kid_info[const.DATA_KID_ENABLE_NOTIFICATIONS] = False
-                    migrated = True
-                    const.LOGGER.debug(
-                        "Cleared notify service for kid '%s' (notifications disabled)",
-                        kid_name,
-                    )
-            else:
-                # Master switch on - derive from service presence
-                kid_info[const.DATA_KID_ENABLE_NOTIFICATIONS] = bool(mobile_service)
-
-            # Always set use_persistent_notifications to False (deprecated)
-            if use_persistent:
-                kid_info[const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS] = False
-                migrated = True
-
-            if migrated:
-                kids_migrated += 1
-
-        # Migrate parents
-        for _parent_id, parent_info in parents_data.items():
-            migrated = False
-            parent_name = parent_info.get(const.DATA_PARENT_NAME, "Unknown")
-
-            # Get current notification config
-            enable_notifications = parent_info.get(
-                const.DATA_PARENT_ENABLE_NOTIFICATIONS, True
-            )
-            mobile_service = parent_info.get(
-                const.DATA_PARENT_MOBILE_NOTIFY_SERVICE, ""
-            )
-            use_persistent = parent_info.get(
-                const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS, False
-            )
-
-            # Migration logic: service presence = enabled
-            if not enable_notifications:
-                # Master switch off - clear service
-                if mobile_service:
-                    parent_info[const.DATA_PARENT_MOBILE_NOTIFY_SERVICE] = ""
-                    parent_info[const.DATA_PARENT_ENABLE_NOTIFICATIONS] = False
-                    migrated = True
-                    const.LOGGER.debug(
-                        "Cleared notify service for parent '%s' (notifications disabled)",
-                        parent_name,
-                    )
-            else:
-                # Master switch on - derive from service presence
-                parent_info[const.DATA_PARENT_ENABLE_NOTIFICATIONS] = bool(
-                    mobile_service
+            # Cast to Any to bypass TypedDict strict key checking for legacy field removal
+            kid_dict = cast("dict[str, Any]", kid_info)
+            if "enable_notifications" in kid_dict:
+                kid_dict.pop("enable_notifications")
+                const.LOGGER.debug(
+                    "DEBUG:   Kid '%s': Removed enable_notifications field",
+                    kid_info.get(const.DATA_KID_NAME, "Unknown"),
                 )
+                changes_made = True
 
-            # Always set use_persistent_notifications to False (deprecated)
-            if use_persistent:
-                parent_info[const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS] = False
-                migrated = True
+        # Process all parents - just remove the field
+        for _parent_id, parent_info in parents_data.items():
+            # Cast to Any to bypass TypedDict strict key checking for legacy field removal
+            parent_dict = cast("dict[str, Any]", parent_info)
+            if "enable_notifications" in parent_dict:
+                parent_dict.pop("enable_notifications")
+                const.LOGGER.debug(
+                    "DEBUG:   Parent '%s': Removed enable_notifications field",
+                    parent_info.get(const.DATA_PARENT_NAME, "Unknown"),
+                )
+                changes_made = True
 
-            if migrated:
-                parents_migrated += 1
-
-        if kids_migrated > 0 or parents_migrated > 0:
+        if changes_made:
             const.LOGGER.info(
-                "v50 notification simplification: migrated %s kids, %s parents",
-                kids_migrated,
-                parents_migrated,
+                "INFO:   ✓ Removed enable_notifications field from entities"
             )
         else:
-            const.LOGGER.debug("v50 notification simplification: no migration needed")
+            const.LOGGER.info(
+                "INFO:   ℹ No enable_notifications fields found (already clean)"
+            )
+
+        const.LOGGER.info("INFO: ==========================================")
 
     # -------------------------------------------------------------------------------------
     # Migration-only methods (extracted from coordinator.py)
@@ -2508,8 +2461,8 @@ class PreV50Migrator:
                 f"{self.coordinator.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_KID_HIGHEST_STREAK_SENSOR}"
             )
             allowed_uids.add(
-                f"{self.coordinator.config_entry.entry_id}_{kid_id}_ui_dashboard_helper"
-            )  # Hardcoded in sensor.py
+                f"{self.coordinator.config_entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_UI_DASHBOARD_HELPER}"
+            )
 
             # Badge progress sensors
             badge_progress_data = self.coordinator.kids_data[kid_id].get(
@@ -2545,6 +2498,108 @@ class PreV50Migrator:
                 )
                 ent_reg.async_remove(entity_entry.entity_id)
 
+    def remove_deprecated_calendar_entities(self) -> None:
+        """Remove dynamic calendar entities that are not present in the current configuration."""
+        ent_reg = er.async_get(self.coordinator.hass)
+
+        # Build the set of expected unique_ids ("whitelist")
+        allowed_uids = set()
+
+        # --- Kid Calendar Entities ---
+        for kid_id in self.coordinator.kids_data:
+            uid = f"{self.coordinator.config_entry.entry_id}_{kid_id}{const.CALENDAR_KC_UID_SUFFIX_CALENDAR}"
+            allowed_uids.add(uid)
+
+        # --- Now remove any calendar entity whose unique_id is not in allowed_uids ---
+        for entity_entry in list(ent_reg.entities.values()):
+            # Only check calendars from our platform (kidschores)
+            if (
+                entity_entry.platform != const.DOMAIN
+                or entity_entry.domain != "calendar"
+            ):
+                continue
+
+            # If this calendar doesn't match our whitelist, remove it
+            if entity_entry.unique_id not in allowed_uids:
+                const.LOGGER.info(
+                    "INFO: Removing orphaned/deprecated Calendar '%s' with unique_id '%s'",
+                    entity_entry.entity_id,
+                    entity_entry.unique_id,
+                )
+                ent_reg.async_remove(entity_entry.entity_id)
+
+    def remove_deprecated_datetime_entities(self) -> None:
+        """Remove dynamic datetime entities that are not present in the current configuration."""
+        ent_reg = er.async_get(self.coordinator.hass)
+
+        # Build the set of expected unique_ids ("whitelist")
+        allowed_uids = set()
+
+        # --- Kid Dashboard Date Helper Entities ---
+        for kid_id in self.coordinator.kids_data:
+            uid = f"{self.coordinator.config_entry.entry_id}_{kid_id}{const.DATETIME_KC_UID_SUFFIX_DATE_HELPER}"
+            allowed_uids.add(uid)
+
+        # --- Now remove any datetime entity whose unique_id is not in allowed_uids ---
+        for entity_entry in list(ent_reg.entities.values()):
+            # Only check datetime from our platform (kidschores)
+            if (
+                entity_entry.platform != const.DOMAIN
+                or entity_entry.domain != "datetime"
+            ):
+                continue
+
+            # If this datetime doesn't match our whitelist, remove it
+            if entity_entry.unique_id not in allowed_uids:
+                const.LOGGER.info(
+                    "INFO: Removing orphaned/deprecated Datetime '%s' with unique_id '%s'",
+                    entity_entry.entity_id,
+                    entity_entry.unique_id,
+                )
+                ent_reg.async_remove(entity_entry.entity_id)
+
+    def remove_deprecated_select_entities(self) -> None:
+        """Remove dynamic select entities that are not present in the current configuration."""
+        ent_reg = er.async_get(self.coordinator.hass)
+
+        # Build the set of expected unique_ids ("whitelist")
+        allowed_uids = set()
+
+        # --- Global Select Entities (system-level) ---
+        # These are NOT kid-specific
+        allowed_uids.add(
+            f"{self.coordinator.config_entry.entry_id}{const.SELECT_KC_UID_SUFFIX_CHORES_SELECT}"
+        )
+        allowed_uids.add(
+            f"{self.coordinator.config_entry.entry_id}{const.SELECT_KC_UID_SUFFIX_REWARDS_SELECT}"
+        )
+        allowed_uids.add(
+            f"{self.coordinator.config_entry.entry_id}{const.SELECT_KC_UID_SUFFIX_PENALTIES_SELECT}"
+        )
+        allowed_uids.add(
+            f"{self.coordinator.config_entry.entry_id}{const.SELECT_KC_UID_SUFFIX_BONUSES_SELECT}"
+        )
+
+        # --- Kid-specific Dashboard Helper Select Entities ---
+        for kid_id in self.coordinator.kids_data:
+            uid = f"{self.coordinator.config_entry.entry_id}{const.SELECT_KC_UID_MIDFIX_CHORES_SELECT}{kid_id}"
+            allowed_uids.add(uid)
+
+        # --- Now remove any select entity whose unique_id is not in allowed_uids ---
+        for entity_entry in list(ent_reg.entities.values()):
+            # Only check selects from our platform (kidschores)
+            if entity_entry.platform != const.DOMAIN or entity_entry.domain != "select":
+                continue
+
+            # If this select doesn't match our whitelist, remove it
+            if entity_entry.unique_id not in allowed_uids:
+                const.LOGGER.info(
+                    "INFO: Removing orphaned/deprecated Select '%s' with unique_id '%s'",
+                    entity_entry.entity_id,
+                    entity_entry.unique_id,
+                )
+                ent_reg.async_remove(entity_entry.entity_id)
+
     def _create_kid(self, kid_id: str, kid_data: dict[str, Any]) -> None:
         """Create a new kid entity during migration.
 
@@ -2573,8 +2628,8 @@ class PreV50Migrator:
                 const.DATA_KID_BONUS_APPLIES, {}
             ),
             const.DATA_KID_REWARD_DATA: kid_data.get(const.DATA_KID_REWARD_DATA, {}),
-            const.DATA_KID_ENABLE_NOTIFICATIONS: kid_data.get(
-                const.DATA_KID_ENABLE_NOTIFICATIONS, True
+            const.DATA_KID_ENABLE_NOTIFICATIONS_LEGACY: kid_data.get(
+                const.DATA_KID_ENABLE_NOTIFICATIONS_LEGACY, True
             ),
             const.DATA_KID_MOBILE_NOTIFY_SERVICE: kid_data.get(
                 const.DATA_KID_MOBILE_NOTIFY_SERVICE, const.SENTINEL_EMPTY
@@ -2628,8 +2683,8 @@ class PreV50Migrator:
                 const.DATA_PARENT_HA_USER_ID, const.SENTINEL_EMPTY
             ),
             const.DATA_PARENT_ASSOCIATED_KIDS: associated_kids_ids,
-            const.DATA_PARENT_ENABLE_NOTIFICATIONS: parent_data.get(
-                const.DATA_PARENT_ENABLE_NOTIFICATIONS, True
+            const.DATA_PARENT_ENABLE_NOTIFICATIONS_LEGACY: parent_data.get(
+                const.DATA_PARENT_ENABLE_NOTIFICATIONS_LEGACY, True
             ),
             const.DATA_PARENT_MOBILE_NOTIFY_SERVICE: parent_data.get(
                 const.DATA_PARENT_MOBILE_NOTIFY_SERVICE, const.SENTINEL_EMPTY
@@ -2687,9 +2742,9 @@ class PreV50Migrator:
                     kid_id,
                 )
         parent_info[const.DATA_PARENT_ASSOCIATED_KIDS] = updated_kids
-        parent_info[const.DATA_PARENT_ENABLE_NOTIFICATIONS] = parent_data.get(
-            const.DATA_PARENT_ENABLE_NOTIFICATIONS,
-            parent_info.get(const.DATA_PARENT_ENABLE_NOTIFICATIONS, True),
+        parent_info[const.DATA_PARENT_ENABLE_NOTIFICATIONS_LEGACY] = parent_data.get(
+            const.DATA_PARENT_ENABLE_NOTIFICATIONS_LEGACY,
+            parent_info.get(const.DATA_PARENT_ENABLE_NOTIFICATIONS_LEGACY, True),
         )
         parent_info[const.DATA_PARENT_MOBILE_NOTIFY_SERVICE] = parent_data.get(
             const.DATA_PARENT_MOBILE_NOTIFY_SERVICE,
@@ -2940,7 +2995,7 @@ class PreV50Migrator:
             ),
             const.DATA_REWARD_LABELS: reward_data.get(const.DATA_REWARD_LABELS, []),
             const.DATA_REWARD_ICON: reward_data.get(
-                const.DATA_REWARD_ICON, const.DEFAULT_REWARD_ICON
+                const.DATA_REWARD_ICON, const.SENTINEL_EMPTY
             ),
             const.DATA_REWARD_INTERNAL_ID: reward_id,
         }
@@ -2988,7 +3043,7 @@ class PreV50Migrator:
             ),
             const.DATA_BONUS_LABELS: bonus_data.get(const.DATA_BONUS_LABELS, []),
             const.DATA_BONUS_ICON: bonus_data.get(
-                const.DATA_BONUS_ICON, const.DEFAULT_BONUS_ICON
+                const.DATA_BONUS_ICON, const.SENTINEL_EMPTY
             ),
             const.DATA_BONUS_INTERNAL_ID: bonus_id,
         }
@@ -3034,7 +3089,7 @@ class PreV50Migrator:
             ),
             const.DATA_PENALTY_LABELS: penalty_data.get(const.DATA_PENALTY_LABELS, []),
             const.DATA_PENALTY_ICON: penalty_data.get(
-                const.DATA_PENALTY_ICON, const.DEFAULT_PENALTY_ICON
+                const.DATA_PENALTY_ICON, const.SENTINEL_EMPTY
             ),
             const.DATA_PENALTY_INTERNAL_ID: penalty_id,
         }
@@ -3281,3 +3336,122 @@ class PreV50Migrator:
             challenge_info[const.DATA_CHALLENGE_NAME],
             challenge_id,
         )
+
+
+# ================================================================================================
+# UID Suffix Migration (v0.5.1) - Standalone Entity Registry Update
+# ================================================================================================
+
+
+@callback
+def async_migrate_uid_suffixes_v0_5_1(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+) -> None:
+    """Migrate entity unique_ids from generic to explicit suffixes (v0.5.1).
+
+    This one-time migration updates entity unique_ids to use entity-type-scoped
+    suffixes (e.g., '_status' → '_chore_status') to enable reliable pattern matching
+    for shadow kid entity gating logic.
+
+    Args:
+        hass: Home Assistant instance
+        config_entry: KidsChores config entry
+
+    """
+    # Mapping of old UID suffixes → new UID suffixes (all hardcoded for migration)
+    uid_migration_map: dict[str, str] = {
+        # BUTTONS - Chore/Reward/Entity actions
+        "_approve": "_chore_approve",
+        "_claim": "_chore_claim",
+        "_unclaim": "_chore_unclaim",
+        "_approve_reward": "_reward_approve",
+        "_approve_all_rewards": "_kid_approve_all_rewards",
+        "_remove_kid_rewards": "_kid_remove_all_rewards",
+        "_claim_partial_reward": "_reward_claim_partial",
+        "_delete_chore": "_chore_delete",
+        "_delete_reward": "_reward_delete",
+        "_delete_bonus": "_bonus_delete",
+        "_delete_penalty": "_penalty_delete",
+        "_delete_achievement": "_achievement_delete",
+        "_delete_badge": "_badge_delete",
+        "_delete_challenge": "_challenge_delete",
+        "_reset_badge": "_badge_reset",
+        # SENSORS - Entity status
+        "_status": "_chore_status",
+        "_reward_status": "_reward_status",
+        "_bonus_status": "_bonus_status",
+        "_penalty_status": "_penalty_status",
+        "_achievement_status": "_achievement_status",
+        "_badge_status": "_badge_status",
+        "_challenge_status": "_challenge_status",
+        # SENSORS - Kid aggregations
+        "_chores": "_kid_chores_summary",
+        "_points": "_kid_points",
+        "_dashboard_helper": "_kid_dashboard_helper",
+        # SELECTS
+        "_chores_select": "_select_chores",
+        "_rewards_select": "_select_rewards",
+        # DATETIME
+        "_date_helper": "_dashboard_datetime_picker",
+        # CALENDAR
+        "_calendar": "_kid_calendar",
+    }
+
+    const.LOGGER.info(
+        "Starting UID suffix migration (v0.5.0) for config entry %s",
+        config_entry.entry_id,
+    )
+
+    entity_registry = er.async_get(hass)
+    registry_entries = er.async_entries_for_config_entry(
+        entity_registry, config_entry.entry_id
+    )
+
+    migration_count = 0
+    skip_count = 0
+
+    for entry in registry_entries:
+        # Check if unique_id ends with any old suffix
+        old_suffix = None
+        for old, _ in uid_migration_map.items():
+            if entry.unique_id.endswith(old):
+                old_suffix = old
+                break
+
+        if not old_suffix:
+            skip_count += 1
+            continue
+
+        # Build new unique_id by replacing suffix
+        new_unique_id = (
+            entry.unique_id.removesuffix(old_suffix) + uid_migration_map[old_suffix]
+        )
+
+        const.LOGGER.debug(
+            "Migrating entity '%s' unique_id from '%s' to '%s'",
+            entry.entity_id,
+            entry.unique_id,
+            new_unique_id,
+        )
+
+        try:
+            entity_registry.async_update_entity(
+                entry.entity_id, new_unique_id=new_unique_id
+            )
+            migration_count += 1
+        except ValueError as err:
+            # Conflict: new unique_id already exists (shouldn't happen in practice)
+            const.LOGGER.warning(
+                "Cannot migrate entity '%s' from '%s' to '%s': %s",
+                entry.entity_id,
+                entry.unique_id,
+                new_unique_id,
+                err,
+            )
+
+    const.LOGGER.info(
+        "UID suffix migration (v0.5.0) complete: %s entities migrated, %s skipped",
+        migration_count,
+        skip_count,
+    )

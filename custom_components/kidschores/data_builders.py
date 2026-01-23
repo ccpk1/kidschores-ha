@@ -305,7 +305,7 @@ def build_reward(
         name=name,
         cost=float(get_field(const.DATA_REWARD_COST, const.DEFAULT_REWARD_COST)),
         description=str(get_field(const.DATA_REWARD_DESCRIPTION, const.SENTINEL_EMPTY)),
-        icon=str(get_field(const.DATA_REWARD_ICON, const.DEFAULT_REWARD_ICON)),
+        icon=str(get_field(const.DATA_REWARD_ICON, const.SENTINEL_EMPTY)),
         reward_labels=list(get_field(const.DATA_REWARD_LABELS, [])),
     )
 
@@ -451,7 +451,7 @@ def build_bonus_or_penalty(
     default_points = (
         const.DEFAULT_BONUS_POINTS if is_bonus else const.DEFAULT_PENALTY_POINTS
     )
-    default_icon = const.DEFAULT_BONUS_ICON if is_bonus else const.DEFAULT_PENALTY_ICON
+    default_icon = const.SENTINEL_EMPTY  # Empty = use icons.json translation
     invalid_name_key = (
         const.TRANS_KEY_CFOF_INVALID_BONUS_NAME
         if is_bonus
@@ -676,9 +676,6 @@ def build_kid(
     if notify_service in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION):
         notify_service = ""
 
-    # Derive enable_notifications from service presence
-    enable_notifications = bool(notify_service)
-
     # --- Build complete kid structure ---
     # Include all runtime fields that _create_kid() used to add
     kid_data: KidData = {
@@ -705,7 +702,6 @@ def build_kid(
         # Linkage
         const.DATA_KID_HA_USER_ID: ha_user_id,
         # Notifications
-        const.DATA_KID_ENABLE_NOTIFICATIONS: enable_notifications,
         const.DATA_KID_MOBILE_NOTIFY_SERVICE: notify_service,
         const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS: (
             existing.get(const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS, False)
@@ -931,9 +927,6 @@ def build_parent(
     if notify_service in (const.SENTINEL_EMPTY, const.SENTINEL_NO_SELECTION):
         notify_service = ""
 
-    # Derive enable_notifications from service presence
-    enable_notifications = bool(notify_service)
-
     # --- Build complete parent structure ---
     return ParentData(
         internal_id=internal_id,
@@ -946,7 +939,6 @@ def build_parent(
                 [],
             )
         ),
-        enable_notifications=enable_notifications,
         mobile_notify_service=notify_service,
         use_persistent_notifications=(
             existing.get(const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS, False)
@@ -1297,7 +1289,7 @@ def build_chore(
             ),
             const.DATA_CHORE_LABELS: list(get_field(const.DATA_CHORE_LABELS, [])),
             const.DATA_CHORE_ICON: str(
-                get_field(const.DATA_CHORE_ICON, const.DEFAULT_ICON)
+                get_field(const.DATA_CHORE_ICON, const.SENTINEL_EMPTY)
             ),
             # Assignment
             const.DATA_CHORE_ASSIGNED_KIDS: list(
@@ -1517,7 +1509,7 @@ def build_badge(
             get_field(
                 const.CFOF_BADGES_INPUT_ICON,
                 const.DATA_BADGE_ICON,
-                const.DEFAULT_BADGE_ICON,
+                const.SENTINEL_EMPTY,
             )
         ),
         # earned_by is runtime state, preserve on update or empty on create
@@ -1986,7 +1978,7 @@ def build_achievement(
             get_field(const.DATA_ACHIEVEMENT_LABELS, [])
         ),
         const.DATA_ACHIEVEMENT_ICON: str(
-            get_field(const.DATA_ACHIEVEMENT_ICON, const.DEFAULT_ACHIEVEMENTS_ICON)
+            get_field(const.DATA_ACHIEVEMENT_ICON, const.SENTINEL_EMPTY)
         ),
         const.DATA_ACHIEVEMENT_ASSIGNED_KIDS: _normalize_list_field(
             get_field(const.DATA_ACHIEVEMENT_ASSIGNED_KIDS, [])
@@ -2252,7 +2244,7 @@ def build_challenge(
             get_field(const.DATA_CHALLENGE_LABELS, [])
         ),
         const.DATA_CHALLENGE_ICON: str(
-            get_field(const.DATA_CHALLENGE_ICON, const.DEFAULT_CHALLENGES_ICON)
+            get_field(const.DATA_CHALLENGE_ICON, const.SENTINEL_EMPTY)
         ),
         const.DATA_CHALLENGE_ASSIGNED_KIDS: _normalize_list_field(
             get_field(const.DATA_CHALLENGE_ASSIGNED_KIDS, [])

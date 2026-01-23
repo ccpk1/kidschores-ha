@@ -192,13 +192,17 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_ACTION)
 
         entity_dict = self._get_entity_dict()
-        entity_names = [
-            data.get(
-                const.OPTIONS_FLOW_DATA_ENTITY_NAME,
-                const.TRANS_KEY_DISPLAY_UNKNOWN_ENTITY,
-            )
-            for data in entity_dict.values()
-        ]
+        # Build sorted list of entity names for consistent display order
+        entity_names = sorted(
+            [
+                data.get(
+                    const.OPTIONS_FLOW_DATA_ENTITY_NAME,
+                    const.TRANS_KEY_DISPLAY_UNKNOWN_ENTITY,
+                )
+                for data in entity_dict.values()
+            ],
+            key=str.casefold,  # Case-insensitive sorting
+        )
 
         if user_input is not None:
             selected_name = _ensure_str(
@@ -339,14 +343,21 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             const.CONF_POINTS_ICON, const.DEFAULT_POINTS_ICON
         )
 
-        # Build the form
+        # Build the form with existing values as defaults
         points_schema = fh.build_points_schema(
             default_label=current_label, default_icon=current_icon
         )
 
+        # On validation error, preserve user's attempted input
+        if user_input:
+            points_schema = self.add_suggested_values_to_schema(
+                points_schema, user_input
+            )
+
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_MANAGE_POINTS,
             data_schema=points_schema,
+            errors=errors,
             description_placeholders={},
         )
 
@@ -388,13 +399,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         # Retrieve HA users for linking
         users = await self.hass.auth.async_get_users()
-        schema = await fh.build_kid_schema(
-            self.hass,
-            users=users,
-            default_kid_name=const.SENTINEL_EMPTY,
-            default_ha_user_id=None,
-            default_mobile_notify_service=None,
-        )
+        schema = await fh.build_kid_schema(self.hass, users=users)
+
+        # On validation error, preserve user's attempted input
+        if user_input:
+            schema = self.add_suggested_values_to_schema(schema, user_input)
+
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_ADD_KID, data_schema=schema, errors=errors
         )
@@ -449,21 +459,26 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         # Check if this is a shadow kid to show appropriate warnings
         is_shadow_kid = kid_data.get(const.DATA_KID_IS_SHADOW, False)
 
-        schema = await fh.build_kid_schema(
-            self.hass,
-            users=users,
-            default_kid_name=kid_data[const.DATA_KID_NAME],
-            default_ha_user_id=kid_data.get(const.DATA_KID_HA_USER_ID),
-            default_mobile_notify_service=kid_data.get(
+        # Prepare suggested values for form (current kid data)
+        suggested_values = {
+            const.CFOF_KIDS_INPUT_KID_NAME: kid_data[const.DATA_KID_NAME],
+            const.CFOF_KIDS_INPUT_HA_USER: kid_data.get(const.DATA_KID_HA_USER_ID),
+            const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: kid_data.get(
                 const.DATA_KID_MOBILE_NOTIFY_SERVICE
             ),
-            default_dashboard_language=kid_data.get(
+            const.CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE: kid_data.get(
                 const.DATA_KID_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
             ),
-            default_enable_due_date_reminders=kid_data.get(
-                const.DATA_KID_ENABLE_DUE_DATE_REMINDERS, True
-            ),
-        )
+        }
+
+        # On validation error, merge user's attempted input with existing data
+        if user_input:
+            suggested_values.update(user_input)
+
+        # Build schema with static defaults
+        schema = await fh.build_kid_schema(self.hass, users=users)
+        # Apply values as suggestions
+        schema = self.add_suggested_values_to_schema(schema, suggested_values)
 
         # Use different step_id for shadow kids (shows appropriate warnings)
         if is_shadow_kid:
@@ -594,24 +609,22 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         # Retrieve HA users and existing kids for linking
         users = await self.hass.auth.async_get_users()
+        # Build sorted kids dict for dropdown
         kids_dict = {
             kid_data[const.DATA_KID_NAME]: kid_id
             for kid_id, kid_data in coordinator.kids_data.items()
         }
 
         parent_schema = await fh.build_parent_schema(
-            self.hass,
-            users=users,
-            kids_dict=kids_dict,
-            default_parent_name=const.SENTINEL_EMPTY,
-            default_ha_user_id=None,
-            default_associated_kids=[],
-            default_mobile_notify_service=None,
-            default_dashboard_language=None,
-            default_allow_chore_assignment=False,
-            default_enable_chore_workflow=False,
-            default_enable_gamification=False,
+            self.hass, users=users, kids_dict=kids_dict
         )
+
+        # On validation error, preserve user's attempted input
+        if user_input:
+            parent_schema = self.add_suggested_values_to_schema(
+                parent_schema, user_input
+            )
+
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_ADD_PARENT,
             data_schema=parent_schema,
@@ -681,6 +694,32 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         coordinator._unlink_shadow_kid(existing_shadow_kid_id)
                         updated_parent[const.DATA_PARENT_LINKED_SHADOW_KID_ID] = None
 
+                    # Handle workflow/gamification flag changes for existing shadow kid
+                    if existing_shadow_kid_id and allow_chore_assignment:
+                        old_workflow = parent_data.get(
+                            const.DATA_PARENT_ENABLE_CHORE_WORKFLOW, False
+                        )
+                        new_workflow = user_input.get(
+                            const.CFOF_PARENTS_INPUT_ENABLE_CHORE_WORKFLOW, False
+                        )
+                        old_gamification = parent_data.get(
+                            const.DATA_PARENT_ENABLE_GAMIFICATION, False
+                        )
+                        new_gamification = user_input.get(
+                            const.CFOF_PARENTS_INPUT_ENABLE_GAMIFICATION, False
+                        )
+
+                        # Cleanup entities if flags were disabled
+                        if (
+                            old_workflow != new_workflow
+                            or old_gamification != new_gamification
+                        ):
+                            coordinator._remove_conditional_shadow_kid_entities(
+                                existing_shadow_kid_id,
+                                new_workflow,
+                                new_gamification,
+                            )
+
                     # Layer 4: Store updated parent (preserves internal_id)
                     coordinator._data[const.DATA_PARENTS][internal_id] = dict(
                         updated_parent
@@ -707,31 +746,47 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             for kid_id, kid_data in coordinator.kids_data.items()
         }
 
+        # Prepare suggested values for form (current parent data)
+        suggested_values = {
+            const.CFOF_PARENTS_INPUT_NAME: parent_data[const.DATA_PARENT_NAME],
+            const.CFOF_PARENTS_INPUT_HA_USER: parent_data.get(
+                const.DATA_PARENT_HA_USER_ID
+            ),
+            const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS: parent_data.get(
+                const.DATA_PARENT_ASSOCIATED_KIDS, []
+            ),
+            const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE: parent_data.get(
+                const.DATA_PARENT_MOBILE_NOTIFY_SERVICE
+            ),
+            const.CFOF_PARENTS_INPUT_DASHBOARD_LANGUAGE: parent_data.get(
+                const.DATA_PARENT_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
+            ),
+            const.CFOF_PARENTS_INPUT_ALLOW_CHORE_ASSIGNMENT: parent_data.get(
+                const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT, False
+            ),
+            const.CFOF_PARENTS_INPUT_ENABLE_CHORE_WORKFLOW: parent_data.get(
+                const.DATA_PARENT_ENABLE_CHORE_WORKFLOW, False
+            ),
+            const.CFOF_PARENTS_INPUT_ENABLE_GAMIFICATION: parent_data.get(
+                const.DATA_PARENT_ENABLE_GAMIFICATION, False
+            ),
+        }
+
+        # On validation error, merge user's attempted input with existing data
+        if user_input:
+            suggested_values.update(user_input)
+
+        # Build schema with static defaults
         parent_schema = await fh.build_parent_schema(
             self.hass,
             users=users,
             kids_dict=kids_dict,
-            default_parent_name=parent_data[const.DATA_PARENT_NAME],
-            default_ha_user_id=parent_data.get(const.DATA_PARENT_HA_USER_ID),
-            default_associated_kids=parent_data.get(
-                const.DATA_PARENT_ASSOCIATED_KIDS, []
-            ),
-            default_mobile_notify_service=parent_data.get(
-                const.DATA_PARENT_MOBILE_NOTIFY_SERVICE
-            ),
-            default_dashboard_language=parent_data.get(
-                const.DATA_PARENT_DASHBOARD_LANGUAGE
-            ),
-            default_allow_chore_assignment=parent_data.get(
-                const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT, False
-            ),
-            default_enable_chore_workflow=parent_data.get(
-                const.DATA_PARENT_ENABLE_CHORE_WORKFLOW, False
-            ),
-            default_enable_gamification=parent_data.get(
-                const.DATA_PARENT_ENABLE_GAMIFICATION, False
-            ),
         )
+        # Apply values as suggestions
+        parent_schema = self.add_suggested_values_to_schema(
+            parent_schema, suggested_values
+        )
+
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_EDIT_PARENT,
             data_schema=parent_schema,
@@ -790,6 +845,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             if errors:
                 schema = fh.build_chore_schema(kids_dict, default=user_input)
+                # Apply user's input as suggested values to preserve data on error
+                schema = self.add_suggested_values_to_schema(schema, user_input)
                 return self.async_show_form(
                     step_id=const.OPTIONS_FLOW_STEP_ADD_CHORE,
                     data_schema=schema,
@@ -1019,12 +1076,14 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             )
 
             if errors:
-                default_data = user_input.copy()
+                # Merge original chore data with user's attempted input
+                merged_defaults = {**chore_data, **user_input}
+                schema = fh.build_chore_schema(kids_dict, default=merged_defaults)
+                # Apply merged values as suggestions to preserve data on error
+                schema = self.add_suggested_values_to_schema(schema, merged_defaults)
                 return self.async_show_form(
                     step_id=const.OPTIONS_FLOW_STEP_EDIT_CHORE,
-                    data_schema=fh.build_chore_schema(
-                        kids_dict, default={**chore_data, **default_data}
-                    ),
+                    data_schema=schema,
                     errors=errors,
                 )
 
@@ -1323,14 +1382,61 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             id_to_name.get(kid_id, kid_id) for kid_id in assigned_kids_ids
         ]
 
-        schema = fh.build_chore_schema(
-            kids_dict,
-            default={
-                **chore_data,
-                const.DATA_CHORE_DUE_DATE: existing_due_date,
-                const.DATA_CHORE_ASSIGNED_KIDS: assigned_kids_names,
-            },
-        )
+        # Prepare suggested values for form (current chore data)
+        # Map DATA_CHORE_* fields to CFOF_CHORES_INPUT_* fields
+        suggested_values = {
+            const.CFOF_CHORES_INPUT_NAME: chore_data.get(const.DATA_CHORE_NAME),
+            const.CFOF_CHORES_INPUT_DESCRIPTION: chore_data.get(
+                const.DATA_CHORE_DESCRIPTION
+            ),
+            const.CFOF_CHORES_INPUT_ICON: chore_data.get(const.DATA_CHORE_ICON),
+            const.CFOF_CHORES_INPUT_LABELS: chore_data.get(const.DATA_CHORE_LABELS, []),
+            const.CFOF_CHORES_INPUT_DEFAULT_POINTS: chore_data.get(
+                const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_POINTS
+            ),
+            const.CFOF_CHORES_INPUT_ASSIGNED_KIDS: assigned_kids_names,
+            const.CFOF_CHORES_INPUT_COMPLETION_CRITERIA: chore_data.get(
+                const.DATA_CHORE_COMPLETION_CRITERIA,
+                const.COMPLETION_CRITERIA_INDEPENDENT,
+            ),
+            const.CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: chore_data.get(
+                const.DATA_CHORE_APPROVAL_RESET_TYPE, const.DEFAULT_APPROVAL_RESET_TYPE
+            ),
+            const.CFOF_CHORES_INPUT_APPROVAL_RESET_PENDING_CLAIM_ACTION: chore_data.get(
+                const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION,
+                const.DEFAULT_APPROVAL_RESET_PENDING_CLAIM_ACTION,
+            ),
+            const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: chore_data.get(
+                const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
+                const.DEFAULT_OVERDUE_HANDLING_TYPE,
+            ),
+            const.CFOF_CHORES_INPUT_AUTO_APPROVE: chore_data.get(
+                const.DATA_CHORE_AUTO_APPROVE, const.DEFAULT_CHORE_AUTO_APPROVE
+            ),
+            const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY: chore_data.get(
+                const.DATA_CHORE_RECURRING_FREQUENCY, const.FREQUENCY_NONE
+            ),
+            const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL: chore_data.get(
+                const.DATA_CHORE_CUSTOM_INTERVAL
+            ),
+            const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT: chore_data.get(
+                const.DATA_CHORE_CUSTOM_INTERVAL_UNIT
+            ),
+            const.CFOF_CHORES_INPUT_APPLICABLE_DAYS: chore_data.get(
+                const.DATA_CHORE_APPLICABLE_DAYS, const.DEFAULT_APPLICABLE_DAYS
+            ),
+            const.CFOF_CHORES_INPUT_DAILY_MULTI_TIMES: chore_data.get(
+                const.DATA_CHORE_DAILY_MULTI_TIMES, ""
+            ),
+            const.CFOF_CHORES_INPUT_DUE_DATE: existing_due_date,
+        }
+
+        # Build schema with suggested values as defaults
+        # (this enables "clear due date" checkbox when existing_due_date is set)
+        schema = fh.build_chore_schema(kids_dict, default=suggested_values)
+        # Apply current values as suggestions for UI presentation
+        schema = self.add_suggested_values_to_schema(schema, suggested_values)
+
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_EDIT_CHORE,
             data_schema=schema,
@@ -2424,6 +2530,11 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     errors[err.field] = err.translation_key
 
         schema = fh.build_reward_schema()
+
+        # On validation error, preserve user's attempted input
+        if user_input:
+            schema = self.add_suggested_values_to_schema(schema, user_input)
+
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_ADD_REWARD,
             data_schema=schema,
@@ -2479,7 +2590,30 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     # Map field-specific error for form highlighting
                     errors[err.field] = err.translation_key
 
-        schema = fh.build_reward_schema(default=existing_reward)
+        # Prepare suggested values for form (current reward data)
+        suggested_values = {
+            const.CFOF_REWARDS_INPUT_NAME: existing_reward.get(const.DATA_REWARD_NAME),
+            const.CFOF_REWARDS_INPUT_DESCRIPTION: existing_reward.get(
+                const.DATA_REWARD_DESCRIPTION
+            ),
+            const.CFOF_REWARDS_INPUT_LABELS: existing_reward.get(
+                const.DATA_REWARD_LABELS, []
+            ),
+            const.CFOF_REWARDS_INPUT_COST: existing_reward.get(
+                const.DATA_REWARD_COST, const.DEFAULT_REWARD_COST
+            ),
+            const.CFOF_REWARDS_INPUT_ICON: existing_reward.get(const.DATA_REWARD_ICON),
+        }
+
+        # On validation error, merge user's attempted input with existing data
+        if user_input:
+            suggested_values.update(user_input)
+
+        # Build schema with static defaults
+        schema = fh.build_reward_schema()
+        # Apply values as suggestions
+        schema = self.add_suggested_values_to_schema(schema, suggested_values)
+
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_EDIT_REWARD,
             data_schema=schema,
@@ -2539,7 +2673,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         const.CFOF_BONUSES_INPUT_POINTS, const.DEFAULT_BONUS_POINTS
                     ),
                     const.DATA_BONUS_ICON: user_input.get(
-                        const.CFOF_BONUSES_INPUT_ICON, const.DEFAULT_BONUS_ICON
+                        const.CFOF_BONUSES_INPUT_ICON, const.SENTINEL_EMPTY
                     ),
                 }
                 # Build bonus data using unified helper
@@ -2559,6 +2693,11 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 return await self.async_step_init()
 
         schema = fh.build_bonus_schema()
+
+        # On validation error, preserve user's attempted input
+        if user_input:
+            schema = self.add_suggested_values_to_schema(schema, user_input)
+
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_ADD_BONUS, data_schema=schema, errors=errors
         )
@@ -2605,7 +2744,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     ),
                     const.DATA_BONUS_ICON: user_input.get(
                         const.CFOF_BONUSES_INPUT_ICON,
-                        bonus_data.get(const.DATA_BONUS_ICON, const.DEFAULT_BONUS_ICON),
+                        bonus_data.get(const.DATA_BONUS_ICON, const.SENTINEL_EMPTY),
                     ),
                 }
                 # Build updated bonus data using unified helper
@@ -2624,12 +2763,30 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 self._mark_reload_needed()
                 return await self.async_step_init()
 
-        # Prepare data for schema (convert points to positive for display)
-        display_data = dict(bonus_data)
-        display_data[const.CFOF_BONUSES_INPUT_POINTS] = abs(
-            display_data[const.DATA_BONUS_POINTS]
-        )
-        schema = fh.build_bonus_schema(default=display_data)
+        # Prepare suggested values for form (current bonus data)
+        suggested_values = {
+            const.CFOF_BONUSES_INPUT_NAME: bonus_data.get(const.DATA_BONUS_NAME),
+            const.CFOF_BONUSES_INPUT_DESCRIPTION: bonus_data.get(
+                const.DATA_BONUS_DESCRIPTION
+            ),
+            const.CFOF_BONUSES_INPUT_LABELS: bonus_data.get(
+                const.DATA_BONUS_LABELS, []
+            ),
+            const.CFOF_BONUSES_INPUT_POINTS: bonus_data.get(
+                const.DATA_BONUS_POINTS, const.DEFAULT_BONUS_POINTS
+            ),
+            const.CFOF_BONUSES_INPUT_ICON: bonus_data.get(const.DATA_BONUS_ICON),
+        }
+
+        # On validation error, merge user's attempted input with existing data
+        if user_input:
+            suggested_values.update(user_input)
+
+        # Build schema with static defaults
+        schema = fh.build_bonus_schema()
+        # Apply values as suggestions
+        schema = self.add_suggested_values_to_schema(schema, suggested_values)
+
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_EDIT_BONUS,
             data_schema=schema,
@@ -2691,7 +2848,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         const.CFOF_PENALTIES_INPUT_POINTS, const.DEFAULT_PENALTY_POINTS
                     ),
                     const.DATA_PENALTY_ICON: user_input.get(
-                        const.CFOF_PENALTIES_INPUT_ICON, const.DEFAULT_PENALTY_ICON
+                        const.CFOF_PENALTIES_INPUT_ICON, const.SENTINEL_EMPTY
                     ),
                 }
                 # Build penalty data using unified helper
@@ -2713,6 +2870,11 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 return await self.async_step_init()
 
         schema = fh.build_penalty_schema()
+
+        # On validation error, preserve user's attempted input
+        if user_input:
+            schema = self.add_suggested_values_to_schema(schema, user_input)
+
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_ADD_PENALTY,
             data_schema=schema,
@@ -2733,6 +2895,21 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         penalty_data = penalties_dict[internal_id]
 
         if user_input is not None:
+            # DEBUG: Log what HA actually sends when fields are cleared
+            const.LOGGER.debug(
+                "DEBUG edit_penalty user_input keys: %s", list(user_input.keys())
+            )
+            const.LOGGER.debug(
+                "DEBUG edit_penalty DESCRIPTION in user_input: %s, value: %r",
+                const.CFOF_PENALTIES_INPUT_DESCRIPTION in user_input,
+                user_input.get(const.CFOF_PENALTIES_INPUT_DESCRIPTION, "KEY_MISSING"),
+            )
+            const.LOGGER.debug(
+                "DEBUG edit_penalty ICON in user_input: %s, value: %r",
+                const.CFOF_PENALTIES_INPUT_ICON in user_input,
+                user_input.get(const.CFOF_PENALTIES_INPUT_ICON, "KEY_MISSING"),
+            )
+
             new_name = user_input[const.CFOF_PENALTIES_INPUT_NAME].strip()
 
             # Validate using shared validator (excludes current penalty from duplicate check)
@@ -2743,6 +2920,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             if not errors:
                 # Transform form input keys to DATA_* keys
+                # Note: When user clears optional fields (description, icon), Home Assistant
+                # omits those keys from user_input. We use sentinel/default as fallback
+                # instead of old values, so clearing a field actually clears it.
                 transformed_input = {
                     const.DATA_PENALTY_NAME: user_input.get(
                         const.CFOF_PENALTIES_INPUT_NAME,
@@ -2750,9 +2930,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     ),
                     const.DATA_PENALTY_DESCRIPTION: user_input.get(
                         const.CFOF_PENALTIES_INPUT_DESCRIPTION,
-                        penalty_data.get(
-                            const.DATA_PENALTY_DESCRIPTION, const.SENTINEL_EMPTY
-                        ),
+                        const.SENTINEL_EMPTY,  # Use sentinel if cleared, not old value
                     ),
                     const.DATA_PENALTY_POINTS: user_input.get(
                         const.CFOF_PENALTIES_INPUT_POINTS,
@@ -2762,9 +2940,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     ),
                     const.DATA_PENALTY_ICON: user_input.get(
                         const.CFOF_PENALTIES_INPUT_ICON,
-                        penalty_data.get(
-                            const.DATA_PENALTY_ICON, const.DEFAULT_PENALTY_ICON
-                        ),
+                        const.SENTINEL_EMPTY,  # Use default if cleared, not old value
                     ),
                 }
                 # Build updated penalty data using unified helper
@@ -2785,12 +2961,32 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 self._mark_reload_needed()
                 return await self.async_step_init()
 
-        # Prepare data for schema (convert points to positive for display)
-        display_data = dict(penalty_data)
-        display_data[const.CFOF_PENALTIES_INPUT_POINTS] = abs(
-            display_data[const.DATA_PENALTY_POINTS]
-        )
-        schema = fh.build_penalty_schema(default=display_data)
+        # Prepare suggested values for form (current penalty data)
+        suggested_values = {
+            const.CFOF_PENALTIES_INPUT_NAME: penalty_data.get(const.DATA_PENALTY_NAME),
+            const.CFOF_PENALTIES_INPUT_DESCRIPTION: penalty_data.get(
+                const.DATA_PENALTY_DESCRIPTION
+            ),
+            const.CFOF_PENALTIES_INPUT_LABELS: penalty_data.get(
+                const.DATA_PENALTY_LABELS, []
+            ),
+            const.CFOF_PENALTIES_INPUT_POINTS: abs(
+                penalty_data.get(
+                    const.DATA_PENALTY_POINTS, const.DEFAULT_PENALTY_POINTS
+                )
+            ),
+            const.CFOF_PENALTIES_INPUT_ICON: penalty_data.get(const.DATA_PENALTY_ICON),
+        }
+
+        # On validation error, merge user's attempted input with existing data
+        if user_input:
+            suggested_values.update(user_input)
+
+        # Build schema with static defaults
+        schema = fh.build_penalty_schema()
+        # Apply values as suggestions
+        schema = self.add_suggested_values_to_schema(schema, suggested_values)
+
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_EDIT_PENALTY,
             data_schema=schema,
@@ -2890,7 +3086,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             for kid_id, kid_data in coordinator.kids_data.items()
         }
         achievement_schema = fh.build_achievement_schema(
-            kids_dict=kids_dict, chores_dict=chores_dict, default=None
+            kids_dict=kids_dict, chores_dict=chores_dict, default=user_input
         )
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_ADD_ACHIEVEMENT,
@@ -2996,13 +3192,20 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             id_to_name.get(kid_id, kid_id) for kid_id in assigned_kids_ids
         ]
 
+        # Build default data from existing achievement
+        default_data = {
+            **achievement_data,
+            const.DATA_ACHIEVEMENT_ASSIGNED_KIDS: assigned_kids_names,
+        }
+
+        # On validation error, merge user's attempted input with existing data
+        if user_input:
+            default_data.update(user_input)
+
         achievement_schema = fh.build_achievement_schema(
             kids_dict=kids_dict,
             chores_dict=chores_dict,
-            default={
-                **achievement_data,
-                const.DATA_ACHIEVEMENT_ASSIGNED_KIDS: assigned_kids_names,
-            },
+            default=default_data,
         )
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_EDIT_ACHIEVEMENT,

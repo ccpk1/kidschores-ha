@@ -160,8 +160,8 @@ CREATE_REWARD_SCHEMA = vol.Schema(
         vol.Required(const.SERVICE_FIELD_REWARD_COST): vol.Coerce(float),
         vol.Optional(const.SERVICE_FIELD_REWARD_DESCRIPTION, default=""): cv.string,
         vol.Optional(
-            const.SERVICE_FIELD_REWARD_ICON, default=const.DEFAULT_REWARD_ICON
-        ): cv.icon,
+            const.SERVICE_FIELD_REWARD_ICON, default=const.SENTINEL_EMPTY
+        ): vol.Any(None, "", cv.icon),
         vol.Optional(const.SERVICE_FIELD_REWARD_LABELS, default=[]): vol.All(
             cv.ensure_list, [cv.string]
         ),
@@ -250,8 +250,8 @@ CREATE_CHORE_SCHEMA = vol.Schema(
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_POINTS): vol.Coerce(float),
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_DESCRIPTION, default=""): cv.string,
         vol.Optional(
-            const.SERVICE_FIELD_CHORE_CRUD_ICON, default=const.DEFAULT_ICON
-        ): cv.icon,
+            const.SERVICE_FIELD_CHORE_CRUD_ICON, default=const.SENTINEL_EMPTY
+        ): vol.Any(None, "", cv.icon),
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_LABELS, default=[]): vol.All(
             cv.ensure_list, [cv.string]
         ),
@@ -289,7 +289,7 @@ UPDATE_CHORE_SCHEMA = vol.Schema(
         ),
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_POINTS): vol.Coerce(float),
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_DESCRIPTION): cv.string,
-        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_ICON): cv.icon,
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_ICON): vol.Any(None, "", cv.icon),
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_LABELS): vol.All(
             cv.ensure_list, [cv.string]
         ),
@@ -452,20 +452,16 @@ def async_setup_services(hass: HomeAssistant):
                 }
             )
 
-            # Link: Update parent (enable chore assignment, keep existing settings)
+            # Link: Update parent (enable all chore features for shadow kid)
             coordinator._data[const.DATA_PARENTS][parent_id].update(
                 {
                     const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT: True,
                     const.DATA_PARENT_LINKED_SHADOW_KID_ID: kid_id,
-                    # Keep existing workflow/gamification settings or use defaults
-                    const.DATA_PARENT_ENABLE_CHORE_WORKFLOW: parent_info.get(
-                        const.DATA_PARENT_ENABLE_CHORE_WORKFLOW,
-                        const.DEFAULT_PARENT_ENABLE_CHORE_WORKFLOW,
-                    ),
-                    const.DATA_PARENT_ENABLE_GAMIFICATION: parent_info.get(
-                        const.DATA_PARENT_ENABLE_GAMIFICATION,
-                        const.DEFAULT_PARENT_ENABLE_GAMIFICATION,
-                    ),
+                    # Always enable workflow and gamification when linking
+                    # This gives the parent full chore functionality through their shadow kid
+                    # User can disable these later in options flow if desired
+                    const.DATA_PARENT_ENABLE_CHORE_WORKFLOW: True,
+                    const.DATA_PARENT_ENABLE_GAMIFICATION: True,
                 }
             )
 

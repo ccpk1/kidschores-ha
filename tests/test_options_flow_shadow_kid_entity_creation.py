@@ -141,13 +141,16 @@ class TestShadowKidEntityCreation:
             if e.platform == DOMAIN and shadow_kid_id in e.unique_id
         ]
 
-        # Expected entities for shadow kid:
-        # 1. sensor.kc_<parent_name>_points
-        # 2. sensor.kc_<parent_name>_ui_dashboard_helper
-        # Plus any chore-related sensors if chores are assigned
+        # Expected entities for shadow kid (with gamification disabled):
+        # - sensor.kc_<parent>_chores (always)
+        # - sensor.kc_<parent>_ui_dashboard_helper (always)
+        # - button.kc_<parent>_chore_approval_* (always for each chore)
+        # - button.kc_<parent>_chore_claim_* (if workflow enabled)
+        # - button.kc_<parent>_chore_disapproval_* (if workflow enabled)
+        # Note: points sensor requires enable_gamification=True
 
         assert len(shadow_kid_entities) >= 2, (
-            f"Shadow kid should have at least 2 entities (points + dashboard helper), "
+            f"Shadow kid should have at least 2 entities (chores sensor + dashboard helper), "
             f"found {len(shadow_kid_entities)}"
         )
 

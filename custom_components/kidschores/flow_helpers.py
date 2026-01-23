@@ -204,13 +204,10 @@ def validate_points_inputs(user_input: dict[str, Any]) -> dict[str, str]:
 async def build_kid_schema(
     hass,
     users,
-    default_kid_name=const.SENTINEL_EMPTY,
-    default_ha_user_id=None,
-    default_mobile_notify_service=None,
-    default_dashboard_language=None,
-    default_enable_due_date_reminders=True,
 ):
     """Build a Voluptuous schema for adding/editing a Kid.
+
+    Uses static defaults for optional fields - use suggested_value for edit forms.
 
     Notification configuration simplified to single service selector:
     - Service selected = notifications enabled to that service
@@ -229,17 +226,14 @@ async def build_kid_schema(
     # Get available dashboard languages
     language_options = await kh.get_available_dashboard_languages(hass)
 
-    # Convert empty/None ha_user_id to sentinel for form default
-    ha_user_default = (
-        default_ha_user_id if default_ha_user_id else const.SENTINEL_NO_SELECTION
-    )
-
     return vol.Schema(
         {
-            vol.Required(const.CFOF_KIDS_INPUT_KID_NAME, default=default_kid_name): str,
+            vol.Required(
+                const.CFOF_KIDS_INPUT_KID_NAME, default=const.SENTINEL_EMPTY
+            ): str,
             vol.Optional(
                 const.CFOF_KIDS_INPUT_HA_USER,
-                default=ha_user_default,
+                default=const.SENTINEL_NO_SELECTION,  # Static default enables clearing
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=user_options,
@@ -249,7 +243,7 @@ async def build_kid_schema(
             ),
             vol.Optional(
                 const.CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE,
-                default=default_dashboard_language or const.DEFAULT_DASHBOARD_LANGUAGE,
+                default=const.DEFAULT_DASHBOARD_LANGUAGE,  # Static default
             ): selector.LanguageSelector(
                 selector.LanguageSelectorConfig(
                     languages=language_options,
@@ -259,7 +253,7 @@ async def build_kid_schema(
             # Single notification service selector (None = disabled, service = enabled)
             vol.Optional(
                 const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE,
-                default=default_mobile_notify_service or const.SENTINEL_NO_SELECTION,
+                default=const.SENTINEL_NO_SELECTION,  # Static default enables clearing
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=cast("list[selector.SelectOptionDict]", notify_options),
@@ -325,16 +319,10 @@ async def build_parent_schema(
     hass,
     users,
     kids_dict,
-    default_parent_name=const.SENTINEL_EMPTY,
-    default_ha_user_id=None,
-    default_associated_kids=None,
-    default_mobile_notify_service=None,
-    default_dashboard_language=None,
-    default_allow_chore_assignment=False,
-    default_enable_chore_workflow=False,
-    default_enable_gamification=False,
 ):
     """Build a Voluptuous schema for adding/editing a Parent.
+
+    Uses static defaults for optional fields - use suggested_value for edit forms.
 
     Notification configuration simplified to single service selector:
     - Service selected = notifications enabled to that service
@@ -356,19 +344,14 @@ async def build_parent_schema(
     # Get available dashboard languages
     language_options = await kh.get_available_dashboard_languages(hass)
 
-    # Convert empty/None ha_user_id to sentinel for form default
-    ha_user_default = (
-        default_ha_user_id if default_ha_user_id else const.SENTINEL_NO_SELECTION
-    )
-
     return vol.Schema(
         {
             vol.Required(
-                const.CFOF_PARENTS_INPUT_NAME, default=default_parent_name
+                const.CFOF_PARENTS_INPUT_NAME, default=const.SENTINEL_EMPTY
             ): str,
             vol.Optional(
                 const.CFOF_PARENTS_INPUT_HA_USER,
-                default=ha_user_default,
+                default=const.SENTINEL_NO_SELECTION,  # Static default enables clearing
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=user_options,
@@ -378,7 +361,7 @@ async def build_parent_schema(
             ),
             vol.Optional(
                 const.CFOF_PARENTS_INPUT_ASSOCIATED_KIDS,
-                default=default_associated_kids or [],
+                default=[],  # Static default enables clearing
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=cast("list[selector.SelectOptionDict]", kid_options),
@@ -389,7 +372,7 @@ async def build_parent_schema(
             # Single notification service selector (None = disabled, service = enabled)
             vol.Optional(
                 const.CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE,
-                default=default_mobile_notify_service or const.SENTINEL_NO_SELECTION,
+                default=const.SENTINEL_NO_SELECTION,  # Static default enables clearing
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=cast("list[selector.SelectOptionDict]", notify_options),
@@ -400,7 +383,7 @@ async def build_parent_schema(
             # Dashboard language
             vol.Optional(
                 const.CFOF_PARENTS_INPUT_DASHBOARD_LANGUAGE,
-                default=default_dashboard_language or const.DEFAULT_DASHBOARD_LANGUAGE,
+                default=const.DEFAULT_DASHBOARD_LANGUAGE,  # Static default
             ): selector.LanguageSelector(
                 selector.LanguageSelectorConfig(
                     languages=language_options,
@@ -410,15 +393,15 @@ async def build_parent_schema(
             # Parent chore capability options
             vol.Optional(
                 const.CFOF_PARENTS_INPUT_ALLOW_CHORE_ASSIGNMENT,
-                default=default_allow_chore_assignment,
+                default=False,  # Static default
             ): selector.BooleanSelector(),
             vol.Optional(
                 const.CFOF_PARENTS_INPUT_ENABLE_CHORE_WORKFLOW,
-                default=default_enable_chore_workflow,
+                default=False,  # Static default
             ): selector.BooleanSelector(),
             vol.Optional(
                 const.CFOF_PARENTS_INPUT_ENABLE_GAMIFICATION,
-                default=default_enable_gamification,
+                default=False,  # Static default
             ): selector.BooleanSelector(),
         }
     )
@@ -491,6 +474,9 @@ def build_chore_schema(
     Uses internal_id for entity management.
     Dynamically adds "clear due date" checkbox when editing with existing date.
 
+    Note: Uses static defaults to enable field clearing.
+    For edit forms, use add_suggested_values_to_schema() to show current values.
+
     Args:
         kids_dict: Mapping of kid names to internal IDs.
         default: Default values for form fields (edit mode).
@@ -500,7 +486,6 @@ def build_chore_schema(
     """
     default = default or {}
     frequency_options = frequency_options or const.FREQUENCY_OPTIONS
-    chore_name_default = default.get(const.DATA_CHORE_NAME, const.SENTINEL_EMPTY)
 
     kid_choices = {k: k for k in kids_dict}
 
@@ -511,18 +496,18 @@ def build_chore_schema(
 
     # Build schema fields dict
     schema_fields: dict[Any, Any] = {
-        vol.Required(const.CFOF_CHORES_INPUT_NAME, default=chore_name_default): str,
+        vol.Required(const.CFOF_CHORES_INPUT_NAME, default=const.SENTINEL_EMPTY): str,
         vol.Optional(
             const.CFOF_CHORES_INPUT_DESCRIPTION,
-            default=default.get(const.DATA_CHORE_DESCRIPTION, const.SENTINEL_EMPTY),
+            default=const.SENTINEL_EMPTY,
         ): str,
         vol.Optional(
             const.CFOF_CHORES_INPUT_ICON,
-            default=default.get(const.DATA_CHORE_ICON, const.DEFAULT_CHORE_ICON),
+            default=const.SENTINEL_EMPTY,
         ): selector.IconSelector(),
         vol.Optional(
             const.CFOF_CHORES_INPUT_LABELS,
-            default=default.get(const.CFOF_CHORES_INPUT_LABELS, []),
+            default=[],
         ): selector.LabelSelector(selector.LabelSelectorConfig(multiple=True)),
         vol.Required(
             const.CFOF_CHORES_INPUT_DEFAULT_POINTS,
@@ -937,7 +922,7 @@ def transform_chore_cfof_to_data(
         ),
         const.DATA_CHORE_LABELS: user_input.get(const.CFOF_CHORES_INPUT_LABELS, []),
         const.DATA_CHORE_ICON: user_input.get(
-            const.CFOF_CHORES_INPUT_ICON, const.DEFAULT_CHORE_ICON
+            const.CFOF_CHORES_INPUT_ICON, const.SENTINEL_EMPTY
         ),
         const.DATA_CHORE_RECURRING_FREQUENCY: user_input.get(
             const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY, const.SENTINEL_EMPTY
@@ -1285,9 +1270,7 @@ def build_badge_common_schema(
             ): selector.LabelSelector(selector.LabelSelectorConfig(multiple=True)),
             vol.Optional(
                 const.CFOF_BADGES_INPUT_ICON,
-                default=default.get(
-                    const.CFOF_BADGES_INPUT_ICON, const.DEFAULT_BADGE_ICON
-                ),
+                default=default.get(const.CFOF_BADGES_INPUT_ICON, const.SENTINEL_EMPTY),
             ): selector.IconSelector(),
         }
     )
@@ -2208,30 +2191,29 @@ def validate_badge_common_inputs(
 
 
 def build_reward_schema(default=None):
-    """Build a schema for rewards, keyed by internal_id in the dict."""
+    """Build a schema for rewards, keyed by internal_id in the dict.
+
+    Note: Uses static defaults to enable field clearing.
+    For edit forms, use add_suggested_values_to_schema() to show current values.
+    """
     default = default or {}
-    reward_name_default = default.get(const.DATA_REWARD_NAME, const.SENTINEL_EMPTY)
 
     return vol.Schema(
         {
             vol.Required(
-                const.CFOF_REWARDS_INPUT_NAME, default=reward_name_default
+                const.CFOF_REWARDS_INPUT_NAME, default=const.SENTINEL_EMPTY
             ): str,
             vol.Optional(
                 const.CFOF_REWARDS_INPUT_DESCRIPTION,
-                default=default.get(
-                    const.DATA_REWARD_DESCRIPTION, const.SENTINEL_EMPTY
-                ),
+                default=const.SENTINEL_EMPTY,
             ): str,
             vol.Optional(
                 const.CFOF_REWARDS_INPUT_LABELS,
-                default=default.get(const.CFOF_REWARDS_INPUT_LABELS, []),
+                default=[],
             ): selector.LabelSelector(selector.LabelSelectorConfig(multiple=True)),
             vol.Required(
                 const.CFOF_REWARDS_INPUT_COST,
-                default=default.get(
-                    const.CFOF_REWARDS_INPUT_COST, const.DEFAULT_REWARD_COST
-                ),
+                default=const.DEFAULT_REWARD_COST,
             ): selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     mode=selector.NumberSelectorMode.BOX,
@@ -2241,7 +2223,7 @@ def build_reward_schema(default=None):
             ),
             vol.Optional(
                 const.CFOF_REWARDS_INPUT_ICON,
-                default=default.get(const.DATA_REWARD_ICON, const.SENTINEL_EMPTY),
+                default=const.SENTINEL_EMPTY,
             ): selector.IconSelector(),
         }
     )
@@ -2301,6 +2283,7 @@ def build_bonus_schema(default=None):
     """Build a schema for bonuses, keyed by internal_id in the dict.
 
     Stores bonus_points as positive in the form, converted to negative internally.
+    Uses static defaults for optional fields - use suggested_value for edit forms.
     """
     default = default or {}
     bonus_name_default = default.get(const.DATA_BONUS_NAME, const.SENTINEL_EMPTY)
@@ -2319,11 +2302,11 @@ def build_bonus_schema(default=None):
             ): str,
             vol.Optional(
                 const.CFOF_BONUSES_INPUT_DESCRIPTION,
-                default=default.get(const.DATA_BONUS_DESCRIPTION, const.SENTINEL_EMPTY),
+                default=const.SENTINEL_EMPTY,  # Static default enables clearing
             ): str,
             vol.Optional(
                 const.CFOF_BONUSES_INPUT_LABELS,
-                default=default.get(const.CFOF_BONUSES_INPUT_LABELS, []),
+                default=[],  # Static default enables clearing
             ): selector.LabelSelector(selector.LabelSelectorConfig(multiple=True)),
             vol.Required(
                 const.CFOF_BONUSES_INPUT_POINTS, default=display_points
@@ -2336,7 +2319,7 @@ def build_bonus_schema(default=None):
             ),
             vol.Optional(
                 const.CFOF_BONUSES_INPUT_ICON,
-                default=default.get(const.DATA_BONUS_ICON, const.SENTINEL_EMPTY),
+                default=const.SENTINEL_EMPTY,  # Static default enables clearing
             ): selector.IconSelector(),
         }
     )
@@ -2393,6 +2376,7 @@ def build_penalty_schema(default=None):
     """Build a schema for penalties, keyed by internal_id in the dict.
 
     Stores penalty_points as positive in the form, converted to negative internally.
+    Uses static defaults for optional fields - use suggested_value for edit forms.
     """
     default = default or {}
     penalty_name_default = default.get(const.DATA_PENALTY_NAME, const.SENTINEL_EMPTY)
@@ -2413,13 +2397,11 @@ def build_penalty_schema(default=None):
             ): str,
             vol.Optional(
                 const.CFOF_PENALTIES_INPUT_DESCRIPTION,
-                default=default.get(
-                    const.DATA_PENALTY_DESCRIPTION, const.SENTINEL_EMPTY
-                ),
+                default=const.SENTINEL_EMPTY,  # Static default enables clearing
             ): str,
             vol.Optional(
                 const.CFOF_PENALTIES_INPUT_LABELS,
-                default=default.get(const.CFOF_PENALTIES_INPUT_LABELS, []),
+                default=[],  # Static default enables clearing
             ): selector.LabelSelector(selector.LabelSelectorConfig(multiple=True)),
             vol.Required(
                 const.CFOF_PENALTIES_INPUT_POINTS, default=display_points
@@ -2432,7 +2414,7 @@ def build_penalty_schema(default=None):
             ),
             vol.Optional(
                 const.CFOF_PENALTIES_INPUT_ICON,
-                default=default.get(const.DATA_PENALTY_ICON, const.SENTINEL_EMPTY),
+                default=const.SENTINEL_EMPTY,  # Static default enables clearing
             ): selector.IconSelector(),
         }
     )
@@ -2886,71 +2868,33 @@ def build_general_options_schema(default: dict | None = None) -> vol.Schema:
         {
             vol.Required(
                 const.CFOF_SYSTEM_INPUT_POINTS_ADJUST_VALUES, default=default_points_str
-            ): selector.TextSelector(
-                selector.TextSelectorConfig(
-                    multiline=False,
-                )
-            ),
+            ): str,
             vol.Required(
                 const.CFOF_SYSTEM_INPUT_UPDATE_INTERVAL, default=default_interval
-            ): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    mode=selector.NumberSelectorMode.BOX,
-                    min=1,
-                    step=1,
-                )
-            ),
+            ): cv.positive_int,
             vol.Required(
                 const.CFOF_SYSTEM_INPUT_CALENDAR_SHOW_PERIOD,
                 default=default_calendar_period,
-            ): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    mode=selector.NumberSelectorMode.BOX,
-                    min=1,
-                    step=1,
-                )
-            ),
+            ): cv.positive_int,
             vol.Required(
                 const.CFOF_SYSTEM_INPUT_RETENTION_PERIODS,
                 default=default_retention_periods,
-            ): selector.TextSelector(
-                selector.TextSelectorConfig(
-                    multiline=False,
-                )
-            ),
+            ): str,
             vol.Required(
                 const.CFOF_SYSTEM_INPUT_SHOW_LEGACY_ENTITIES,
                 default=default_show_legacy_entities,
-            ): selector.BooleanSelector(),
+            ): bool,
             vol.Required(
                 const.CFOF_SYSTEM_INPUT_BACKUPS_MAX_RETAINED,
                 default=default.get(
                     const.CONF_BACKUPS_MAX_RETAINED,
                     const.DEFAULT_BACKUPS_MAX_RETAINED,
                 ),
-            ): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    mode=selector.NumberSelectorMode.BOX,
-                    min=const.MIN_BACKUPS_MAX_RETAINED,
-                    max=const.MAX_BACKUPS_MAX_RETAINED,
-                    step=1,
-                )
-            ),
+            ): cv.positive_int,
             vol.Optional(
                 const.CFOF_BACKUP_ACTION_SELECTION,
                 default=const.OPTIONS_FLOW_BACKUP_ACTION_SELECT,
-            ): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=[
-                        const.OPTIONS_FLOW_BACKUP_ACTION_SELECT,
-                        const.OPTIONS_FLOW_BACKUP_ACTION_CREATE,
-                        const.OPTIONS_FLOW_BACKUP_ACTION_DELETE,
-                        const.OPTIONS_FLOW_BACKUP_ACTION_RESTORE,
-                    ],
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                    translation_key=const.TRANS_KEY_CFOF_BACKUP_ACTIONS_MENU,
-                )
-            ),
+            ): str,
         }
     )
 
@@ -3093,12 +3037,19 @@ def build_all_system_settings_schema(
         ): cv.positive_int,
     }
 
-    # Add points adjust values field
+    # Convert points adjust values list to pipe-separated string for form field
+    points_adjust_default = defaults["points_adjust_values"]
+    if isinstance(points_adjust_default, list):
+        points_adjust_str = "|".join(str(v) for v in points_adjust_default)
+    else:
+        points_adjust_str = str(points_adjust_default)
+
+    # Add points adjust values field (simple string, parsed during validation)
     adjust_values_fields = {
         vol.Required(
             const.CFOF_SYSTEM_INPUT_POINTS_ADJUST_VALUES,
-            default=defaults["points_adjust_values"],
-        ): cv.ensure_list,
+            default=points_adjust_str,
+        ): str,
     }
 
     # Combine all fields
@@ -3166,12 +3117,27 @@ def validate_all_system_settings(user_input: dict[str, Any]) -> dict[str, str]:
             except (ValueError, TypeError):
                 errors[error_key] = const.TRANS_KEY_CFOF_INVALID_RETENTION_PERIOD
 
-    # Validate points adjust values is list
+    # Validate points adjust values (parse pipe-separated string)
     adjust_values = user_input.get(const.CFOF_SYSTEM_INPUT_POINTS_ADJUST_VALUES)
-    if adjust_values is not None and not isinstance(adjust_values, list):
-        errors[const.CFOP_ERROR_POINTS_ADJUST_VALUES] = (
-            const.TRANS_KEY_CFOF_INVALID_POINTS_ADJUST_VALUES
-        )
+    if adjust_values is not None:
+        if isinstance(adjust_values, str):
+            try:
+                # Parse pipe-separated values to list of floats (handles decimal separators)
+                parsed_values = [
+                    float(v.strip().replace(",", "."))
+                    for v in adjust_values.split("|")
+                    if v.strip()
+                ]
+                # Update user_input with parsed list for downstream processing
+                user_input[const.CFOF_SYSTEM_INPUT_POINTS_ADJUST_VALUES] = parsed_values
+            except (ValueError, TypeError):
+                errors[const.CFOF_SYSTEM_INPUT_POINTS_ADJUST_VALUES] = (
+                    const.TRANS_KEY_CFOF_INVALID_POINTS_ADJUST_VALUES
+                )
+        elif not isinstance(adjust_values, list):
+            errors[const.CFOP_ERROR_POINTS_ADJUST_VALUES] = (
+                const.TRANS_KEY_CFOF_INVALID_POINTS_ADJUST_VALUES
+            )
 
     return errors
 
@@ -3212,11 +3178,15 @@ def build_all_system_settings_data(user_input: dict[str, Any]) -> dict[str, Any]
         const.CONF_RETENTION_YEARLY: user_input.get(
             const.CFOF_SYSTEM_INPUT_RETENTION_YEARLY, const.DEFAULT_RETENTION_YEARLY
         ),
-        const.CONF_POINTS_ADJUST_VALUES: user_input.get(
-            const.CFOF_SYSTEM_INPUT_POINTS_ADJUST_VALUES,
-            const.DEFAULT_POINTS_ADJUST_VALUES,
-        ),
     }
+
+    # Handle points adjust values - should already be converted to floats by validation
+    points_adjust_values = user_input.get(
+        const.CFOF_SYSTEM_INPUT_POINTS_ADJUST_VALUES,
+        const.DEFAULT_POINTS_ADJUST_VALUES,
+    )
+
+    settings_data[const.CONF_POINTS_ADJUST_VALUES] = points_adjust_values
 
     # Combine points + other settings into single dict
     return {**points_data, **settings_data}

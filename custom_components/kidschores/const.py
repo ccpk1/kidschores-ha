@@ -821,8 +821,6 @@ DATA_KID_CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_GRACE_END_DATE = (
     "maintenance_grace_end_date"
 )
 DATA_KID_CURRENT_STREAK: Final = "current_streak"
-DATA_KID_ENABLE_DUE_DATE_REMINDERS: Final = "enable_due_date_reminders"  # Deprecated v0.5.0+ - use per-chore DATA_CHORE_NOTIFY_ON_REMINDER
-DATA_KID_ENABLE_NOTIFICATIONS: Final = "enable_notifications"
 DATA_KID_HA_USER_ID: Final = "ha_user_id"
 DATA_KID_ID: Final = "kid_id"
 DATA_KID_INTERNAL_ID: Final = "internal_id"
@@ -1021,7 +1019,6 @@ DATA_KID_POINTS_BY_SOURCE_ALL_TIME: Final = "points_by_source_all_time"
 
 # PARENTS
 DATA_PARENT_ASSOCIATED_KIDS: Final = "associated_kids"
-DATA_PARENT_ENABLE_NOTIFICATIONS: Final = "enable_notifications"
 DATA_PARENT_HA_USER_ID: Final = "ha_user_id"
 DATA_PARENT_INTERNAL_ID: Final = "internal_id"
 DATA_PARENT_MOBILE_NOTIFY_SERVICE: Final = "mobile_notify_service"
@@ -1258,36 +1255,20 @@ DATA_CHALLENGE_TYPE: Final = "type"
 # ================================================================================================
 # Default Icons
 # ================================================================================================
-DEFAULT_ACHIEVEMENTS_ICON: Final = "mdi:trophy-award"
-DEFAULT_BADGE_ICON: Final = "mdi:shield-star-outline"
-DEFAULT_BONUS_ICON: Final = "mdi:seal"
-DEFAULT_CALENDAR_ICON: Final = "mdi:calendar"
-DEFAULT_CHALLENGES_ICON: Final = "mdi:trophy"
-DEFAULT_CHORE_ICON: Final = "mdi:broom"
-DEFAULT_CHORE_APPROVE_ICON: Final = "mdi:checkbox-marked-circle-outline"
-DEFAULT_CHORE_CLAIM_ICON: Final = "mdi:clipboard-check-outline"
-DEFAULT_CHORE_SENSOR_ICON: Final = "mdi:checkbox-blank-circle-outline"
-DEFAULT_COMPLETED_CHORES_DAILY_SENSOR_ICON: Final = "mdi:clipboard-check-outline"
-DEFAULT_COMPLETED_CHORES_MONTHLY_SENSOR_ICON: Final = "mdi:clipboard-list-outline"
-DEFAULT_COMPLETED_CHORES_TOTAL_SENSOR_ICON: Final = "mdi:clipboard-text-clock-outline"
-DEFAULT_COMPLETED_CHORES_WEEKLY_SENSOR_ICON: Final = (
-    "mdi:clipboard-check-multiple-outline"
-)
-DEFAULT_DISAPPROVE_ICON: Final = "mdi:close-circle-outline"
-DEFAULT_ICON: Final = "mdi:star-outline"
-DEFAULT_PENALTY_ICON: Final = "mdi:alert-outline"
-DEFAULT_PENDING_CHORE_APPROVALS_SENSOR_ICON: Final = "mdi:checkbox-blank-badge-outline"
-DEFAULT_PENDING_REWARD_APPROVALS_SENSOR_ICON: Final = "mdi:gift-open-outline"
+# System Icon Defaults (user-configurable in system settings)
+# ================================================================================================
+DEFAULT_POINTS_ICON: Final = "mdi:star-outline"
+
+# ================================================================================================
+# Dynamic Button Icons (vary based on runtime conditions)
+# ================================================================================================
 DEFAULT_POINTS_ADJUST_MINUS_ICON: Final = "mdi:minus-circle-outline"
 DEFAULT_POINTS_ADJUST_MINUS_MULTIPLE_ICON: Final = "mdi:minus-circle-multiple-outline"
 DEFAULT_POINTS_ADJUST_PLUS_ICON: Final = "mdi:plus-circle-outline"
 DEFAULT_POINTS_ADJUST_PLUS_MULTIPLE_ICON: Final = "mdi:plus-circle-multiple-outline"
-DEFAULT_POINTS_ICON: Final = "mdi:star-outline"
-DEFAULT_STREAK_ICON: Final = "mdi:blur-linear"
-DEFAULT_REWARD_ICON: Final = "mdi:gift-outline"
-DEFAULT_TROPHY_ICON: Final = "mdi:trophy"
-DEFAULT_TROPHY_OUTLINE: Final = "mdi:trophy-outline"
 
+# All entity icons now defined in icons.json for declarative frontend translation
+# ================================================================================================
 
 # ------------------------------------------------------------------------------------------------
 # Default Values
@@ -1431,9 +1412,10 @@ CHORE_STATE_PENDING = "pending"
 CHORE_STATE_UNKNOWN = "unknown"
 
 # Reward States
-REWARD_STATE_APPROVED = "approved"
-REWARD_STATE_CLAIMED = "claimed"
-REWARD_STATE_NOT_CLAIMED = "not_claimed"
+REWARD_STATE_LOCKED: Final = "locked"
+REWARD_STATE_AVAILABLE: Final = "available"
+REWARD_STATE_REQUESTED: Final = "requested"
+REWARD_STATE_APPROVED: Final = "approved"
 
 # Badge States
 BADGE_STATE_IN_PROGRESS: Final = "in_progress"
@@ -1717,7 +1699,6 @@ ATTR_CHORE_LAST_LONGEST_STREAK_DATE: Final = "chore_last_longest_streak_date"
 ATTR_CHORE_APPROVE_BUTTON_ENTITY_ID: Final = "approve_button_eid"
 ATTR_CHORE_CLAIM_BUTTON_ENTITY_ID: Final = "claim_button_eid"
 ATTR_CHORE_DISAPPROVE_BUTTON_ENTITY_ID: Final = "disapprove_button_eid"
-ATTR_CHORE_ICON: Final = "chore_icon"
 ATTR_CHORE_NAME: Final = "chore_name"
 ATTR_CLAIMED_ON: Final = "Claimed on"
 ATTR_COST: Final = "cost"
@@ -1968,36 +1949,36 @@ DATETIME_KC_EID_MIDFIX_UI_DASHBOARD: Final = "_ui_dashboard_"
 DATETIME_KC_EID_SUFFIX_DATE_HELPER: Final = "date_helper"
 
 # DateTime Unique ID Suffix
-DATETIME_KC_UID_SUFFIX_DATE_HELPER: Final = "_date_helper"
+DATETIME_KC_UID_SUFFIX_DATE_HELPER: Final = "_dashboard_datetime_picker"
 
 # Sensor Unique ID Suffixes
-SENSOR_KC_UID_SUFFIX_ACHIEVEMENT_SENSOR: Final = "_achievement"
+SENSOR_KC_UID_SUFFIX_ACHIEVEMENT_SENSOR: Final = "_achievement_status"
 SENSOR_KC_UID_SUFFIX_ACHIEVEMENT_PROGRESS_SENSOR: Final = "_achievement_progress"
 SENSOR_KC_UID_SUFFIX_BADGE_PROGRESS_SENSOR: Final = "_badge_progress"
-SENSOR_KC_UID_SUFFIX_BADGE_SENSOR: Final = "_badge_sensor"
-SENSOR_KC_UID_SUFFIX_BONUS_APPLIES_SENSOR: Final = "_bonus_applies"
-SENSOR_KC_UID_SUFFIX_CHALLENGE_SENSOR: Final = "_challenge"
+SENSOR_KC_UID_SUFFIX_BADGE_SENSOR: Final = "_badge_status"
+SENSOR_KC_UID_SUFFIX_BONUS_APPLIES_SENSOR: Final = "_bonus_status"
+SENSOR_KC_UID_SUFFIX_CHALLENGE_SENSOR: Final = "_challenge_status"
 SENSOR_KC_UID_SUFFIX_CHALLENGE_PROGRESS_SENSOR: Final = "_challenge_progress"
-SENSOR_KC_UID_SUFFIX_CHORES_SENSOR: Final = "_chores"
-SENSOR_KC_UID_SUFFIX_COMPLETED_DAILY_SENSOR: Final = "_completed_daily"
-SENSOR_KC_UID_SUFFIX_COMPLETED_MONTHLY_SENSOR: Final = "_completed_monthly"
-SENSOR_KC_UID_SUFFIX_COMPLETED_TOTAL_SENSOR: Final = "_completed_total"
-SENSOR_KC_UID_SUFFIX_COMPLETED_WEEKLY_SENSOR: Final = "_completed_weekly"
-SENSOR_KC_UID_SUFFIX_CHORE_STATUS_SENSOR: Final = "_status"
-SENSOR_KC_UID_SUFFIX_KID_BADGES_SENSOR: Final = "_badges"
+SENSOR_KC_UID_SUFFIX_CHORES_SENSOR: Final = "_kid_chores_summary"
+SENSOR_KC_UID_SUFFIX_COMPLETED_DAILY_SENSOR: Final = "_chores_completed_daily"
+SENSOR_KC_UID_SUFFIX_COMPLETED_MONTHLY_SENSOR: Final = "_chores_completed_monthly"
+SENSOR_KC_UID_SUFFIX_COMPLETED_TOTAL_SENSOR: Final = "_chores_completed_total"
+SENSOR_KC_UID_SUFFIX_COMPLETED_WEEKLY_SENSOR: Final = "_chores_completed_weekly"
+SENSOR_KC_UID_SUFFIX_CHORE_STATUS_SENSOR: Final = "_chore_status"
+SENSOR_KC_UID_SUFFIX_KID_BADGES_SENSOR: Final = "_kid_badges"
 SENSOR_KC_UID_SUFFIX_KID_HIGHEST_STREAK_SENSOR: Final = "_chores_highest_streak"
-SENSOR_KC_UID_SUFFIX_KID_MAX_POINTS_EVER_SENSOR: Final = "_max_points_ever"
+SENSOR_KC_UID_SUFFIX_KID_MAX_POINTS_EVER_SENSOR: Final = "_points_max_ever"
 SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_DAILY_SENSOR: Final = "_points_earned_daily"
 SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_MONTHLY_SENSOR: Final = "_points_earned_monthly"
 SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_WEEKLY_SENSOR: Final = "_points_earned_weekly"
-SENSOR_KC_UID_SUFFIX_KID_POINTS_SENSOR: Final = "_points"
-SENSOR_KC_UID_SUFFIX_PENALTY_APPLIES_SENSOR: Final = "_penalty_applies"
-SENSOR_KC_UID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR: Final = "_pending_chore_approvals"
+SENSOR_KC_UID_SUFFIX_KID_POINTS_SENSOR: Final = "_kid_points"
+SENSOR_KC_UID_SUFFIX_PENALTY_APPLIES_SENSOR: Final = "_penalty_status"
+SENSOR_KC_UID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR: Final = "_chores_pending_approvals"
 SENSOR_KC_UID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR: Final = (
-    "_pending_reward_approvals"
+    "_rewards_pending_approvals"
 )
 SENSOR_KC_UID_SUFFIX_REWARD_STATUS_SENSOR: Final = "_reward_status"
-SENSOR_KC_UID_SUFFIX_SHARED_CHORE_GLOBAL_STATE_SENSOR: Final = "_global_state"
+SENSOR_KC_UID_SUFFIX_SHARED_CHORE_GLOBAL_STATE_SENSOR: Final = "_chore_global_status"
 
 # Sensor Entity ID Mid & Suffixes
 SENSOR_KC_EID_MIDFIX_ACHIEVEMENT_PROGRESS_SENSOR: Final = "_achievement_status_"
@@ -2034,6 +2015,7 @@ SENSOR_KC_EID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR: Final = (
 # Sensor Entity ID Midfix and Suffix for UI Dashboard Helper
 SENSOR_KC_EID_MIDFIX_UI_DASHBOARD: Final = "_ui_dashboard_"
 SENSOR_KC_EID_SUFFIX_UI_DASHBOARD_HELPER: Final = "_ui_dashboard_helper"
+SENSOR_KC_UID_SUFFIX_UI_DASHBOARD_HELPER: Final = "_dashboard_helper"
 
 # System-level dashboard translation sensor (one per language in use)
 SENSOR_KC_EID_PREFIX_DASHBOARD_LANG: Final = "ui_dashboard_lang_"
@@ -2050,11 +2032,11 @@ ATTR_TRANSLATION_SENSOR: Final = "translation_sensor"
 SELECT_KC_PREFIX: Final = "select.kc_"
 
 # Select Unique ID Mid & Suffixes
-SELECT_KC_UID_MIDFIX_CHORES_SELECT: Final = "_chores_select_"
-SELECT_KC_UID_SUFFIX_BONUSES_SELECT: Final = "_bonuses_select"
-SELECT_KC_UID_SUFFIX_CHORES_SELECT: Final = "_chores_select"
-SELECT_KC_UID_SUFFIX_PENALTIES_SELECT: Final = "_penalties_select"
-SELECT_KC_UID_SUFFIX_REWARDS_SELECT: Final = "_rewards_select"
+SELECT_KC_UID_MIDFIX_CHORES_SELECT: Final = "_select_chores_"
+SELECT_KC_UID_SUFFIX_BONUSES_SELECT: Final = "_select_bonuses"
+SELECT_KC_UID_SUFFIX_CHORES_SELECT: Final = "_select_chores"
+SELECT_KC_UID_SUFFIX_PENALTIES_SELECT: Final = "_select_penalties"
+SELECT_KC_UID_SUFFIX_REWARDS_SELECT: Final = "_select_rewards"
 
 # Select Entity ID Mid & Suffixes
 SELECT_KC_EID_SUFFIX_ALL_BONUSES: Final = "all_bonuses"
@@ -2071,12 +2053,12 @@ SELECT_KC_EID_SUFFIX_CHORE_LIST: Final = "_ui_dashboard_chore_list_helper"
 BUTTON_KC_PREFIX: Final = "button.kc_"
 
 # Button Unique ID Mid & Suffixes
-BUTTON_KC_UID_MIDFIX_ADJUST_POINTS: Final = "_adjust_points_"
-BUTTON_KC_UID_SUFFIX_APPROVE: Final = "_approve"
-BUTTON_KC_UID_SUFFIX_APPROVE_REWARD: Final = "_approve_reward"
-BUTTON_KC_UID_SUFFIX_CLAIM: Final = "_claim"
-BUTTON_KC_UID_SUFFIX_DISAPPROVE: Final = "_disapprove"
-BUTTON_KC_UID_SUFFIX_DISAPPROVE_REWARD: Final = "_disapprove_reward"
+BUTTON_KC_UID_MIDFIX_ADJUST_POINTS: Final = "_points_adjust_"
+BUTTON_KC_UID_SUFFIX_APPROVE: Final = "_chore_approve"
+BUTTON_KC_UID_SUFFIX_APPROVE_REWARD: Final = "_reward_approve"
+BUTTON_KC_UID_SUFFIX_CLAIM: Final = "_chore_claim"
+BUTTON_KC_UID_SUFFIX_DISAPPROVE: Final = "_chore_disapprove"
+BUTTON_KC_UID_SUFFIX_DISAPPROVE_REWARD: Final = "_reward_disapprove"
 
 # Button Entity ID Mid & Suffixes
 BUTTON_KC_EID_MIDFIX_BONUS: Final = "_bonus_"
@@ -2097,7 +2079,7 @@ BUTTON_KC_EID_SUFFIX_POINTS: Final = "_points"
 CALENDAR_KC_PREFIX: Final = "calendar.kc_"
 
 # Calendar Unique ID Mid & Suffixes
-CALENDAR_KC_UID_SUFFIX_CALENDAR: Final = "_calendar"
+CALENDAR_KC_UID_SUFFIX_CALENDAR: Final = "_kid_calendar"
 
 # ------------------------------------------------------------------------------------------------
 # Helper Return Types
@@ -2322,6 +2304,39 @@ DEFAULT_MIGRATIONS_APPLIED: Final = [
 BUTTON_BONUS_PREFIX: Final = "bonus_button_"
 BUTTON_PENALTY_PREFIX: Final = "penalty_button_"
 BUTTON_REWARD_PREFIX: Final = "reward_button_"
+
+
+# ------------------------------------------------------------------------------------------------
+# Shadow Kid Entity Gating (Single Source of Truth)
+# ------------------------------------------------------------------------------------------------
+# Defines which entities shadow kids are ALLOWED to have (whitelist approach).
+# Logic: Explicitly list all base entities that shadow kids can always access.
+#        Any entity not in these lists requires gamification or workflow flags.
+
+# Base entities: Always allowed for shadow kids (core functionality)
+SHADOW_KID_BASE_BUTTON_ENDSWITH: Final[tuple[str, ...]] = (
+    BUTTON_KC_UID_SUFFIX_APPROVE,  # Approve chore button
+)
+
+SHADOW_KID_BASE_SENSOR_ENDSWITH: Final[tuple[str, ...]] = (
+    SENSOR_KC_UID_SUFFIX_CHORE_STATUS_SENSOR,  # Individual chore status sensors
+    SENSOR_KC_UID_SUFFIX_CHORES_SENSOR,  # Kid's chore summary sensor
+    SENSOR_KC_UID_SUFFIX_UI_DASHBOARD_HELPER,  # Dashboard helper sensor
+)
+
+SHADOW_KID_BASE_SELECT_ENDSWITH: Final[tuple[str, ...]] = (
+    SELECT_KC_UID_SUFFIX_CHORES_SELECT,  # Chores select helper
+)
+
+SHADOW_KID_BASE_DATETIME_ENDSWITH: Final[tuple[str, ...]] = (
+    DATETIME_KC_UID_SUFFIX_DATE_HELPER,  # Dashboard datetime picker
+)
+
+# Workflow entities: Require enable_chore_workflow
+SHADOW_KID_WORKFLOW_BUTTON_ENDSWITH: Final[tuple[str, ...]] = (
+    BUTTON_KC_UID_SUFFIX_CLAIM,  # Claim chore button
+    BUTTON_KC_UID_SUFFIX_DISAPPROVE,  # Disapprove chore button
+)
 
 
 # ------------------------------------------------------------------------------------------------
@@ -2842,6 +2857,7 @@ TRANS_KEY_SENSOR_SHARED_CHORE_GLOBAL_STATUS_SENSOR: Final = (
     "system_chore_shared_state_sensor"
 )
 TRANS_KEY_SENSOR_DASHBOARD_TRANSLATION: Final = "system_dashboard_translation_sensor"
+TRANS_KEY_SENSOR_DASHBOARD_HELPER: Final = "kid_dashboard_helper_sensor"
 
 
 # Sensor Attributes Translation Keys
@@ -3427,6 +3443,11 @@ DATA_CHORE_SHARED_CHORE_LEGACY: Final = (
 DATA_KID_CHORE_DATA_DUE_DATE_LEGACY: Final = (
     "due_date"  # LEGACY: Use chore_info[per_kid_due_dates][kid_id] instead
 )
+
+# Notification Fields (v0.5.0): Removed as redundant
+# enable_notifications was always derived from bool(mobile_notify_service)
+DATA_KID_ENABLE_NOTIFICATIONS_LEGACY: Final = "enable_notifications"  # LEGACY: Deprecated - check bool(mobile_notify_service) instead
+DATA_PARENT_ENABLE_NOTIFICATIONS_LEGACY: Final = "enable_notifications"  # LEGACY: Deprecated - check bool(mobile_notify_service) instead
 
 
 # KC 4.x Beta Cleanup (removed in schema v42)

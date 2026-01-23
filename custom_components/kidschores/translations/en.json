@@ -26,7 +26,25 @@
         "description": "Update system settings like points label and icon.",
         "data": {
           "points_label": "Points Label",
-          "points_icon": "Points Icon"
+          "points_icon": "Points Icon",
+          "update_interval": "Update Interval (minutes)",
+          "calendar_show_period": "Calendar Show Period (days)",
+          "retention_daily": "Daily Retention (days)",
+          "retention_weekly": "Weekly Retention (weeks)",
+          "retention_monthly": "Monthly Retention (months)",
+          "retention_yearly": "Yearly Retention (years)",
+          "points_adjust_values": "Point Adjustment Values (pipe-separated)"
+        },
+        "data_description": {
+          "points_label": "Label displayed for points (e.g., 'Points', 'Stars', 'Coins')",
+          "points_icon": "MDI icon for points (e.g., 'mdi:star', 'mdi:coin', 'mdi:trophy')",
+          "update_interval": "How often to update data (minimum 1 minute)",
+          "calendar_show_period": "Days of history to show in calendar (minimum 1)",
+          "retention_daily": "Days to keep daily aggregates",
+          "retention_weekly": "Weeks to keep weekly aggregates",
+          "retention_monthly": "Months to keep monthly aggregates",
+          "retention_yearly": "Years to keep yearly aggregates",
+          "points_adjust_values": "Pipe-separated point values for manual adjustment buttons (e.g., +1.0|-1.0|+10.0|-10.0)"
         }
       },
       "kid_count": {
@@ -68,6 +86,9 @@
           "dashboard_language": "Language"
         },
         "data_description": {
+          "name": "Unique name for this parent, used throughout the system.",
+          "ha_user_id": "Optional: Link this parent to a Home Assistant user for notifications and dashboard access.",
+          "associated_kids": "Select which kids this parent supervises for notifications and approval actions.",
           "mobile_notify_service": "Select a notification service to enable notifications for this parent, or leave empty to disable.",
           "dashboard_language": "Language used for your chore dashboard and notifications."
         }
@@ -408,6 +429,8 @@
           "internal_id": "Internal ID"
         },
         "data_description": {
+          "name": "Unique name for this kid, used throughout the system.",
+          "ha_user": "Optional: Link this kid to a Home Assistant user for dashboard access control.",
           "mobile_notify_service": "Select a notification service to enable notifications for this kid, or leave empty to disable.",
           "dashboard_language": "Language used for your chore dashboard and notifications."
         }
@@ -427,6 +450,9 @@
           "internal_id": "Internal ID"
         },
         "data_description": {
+          "name": "Unique name for this parent, used throughout the system.",
+          "ha_user_id": "Optional: Link this parent to a Home Assistant user for notifications and dashboard access.",
+          "associated_kids": "Select which kids this parent supervises for notifications and approval actions.",
           "mobile_notify_service": "Select a notification service to enable notifications for this parent, or leave empty to disable.",
           "allow_chore_assignment": "Creates a profile so tasks can be assigned to you. By default, only an Approve button is shown for one-click completion. Note: Unchecking preserves the kid profile with '_unlinked' suffix for manual cleanup.",
           "enable_chore_workflow": "Adds Claim and Disapprove buttons for full workflow (claim → approve/disapprove).",
@@ -776,6 +802,8 @@
           "internal_id": "Internal ID"
         },
         "data_description": {
+          "name": "Unique name for this kid, used throughout the system.",
+          "ha_user": "Optional: Link this kid to a Home Assistant user for dashboard access control.",
           "mobile_notify_service": "Select a notification service to enable notifications for this kid.",
           "dashboard_language": "Language used for your chore dashboard and notifications."
         }
@@ -792,6 +820,7 @@
         },
         "data_description": {
           "name": "⚠️ This shadow kid is linked to a parent. Changing this name will break the service unlinking feature, which requires matching names.",
+          "ha_user": "Optional: Link this kid to a Home Assistant user for dashboard access control.",
           "mobile_notify_service": "⚠️ Shadow kid notifications: The linked parent already receives notifications for supervised chores. Enabling here will create duplicate notifications. Useful for 30-minute due date reminders or if using different notification services.",
           "dashboard_language": "Language used for your chore dashboard and notifications."
         }
@@ -811,6 +840,9 @@
           "internal_id": "Internal ID"
         },
         "data_description": {
+          "name": "Unique name for this parent, used throughout the system.",
+          "ha_user_id": "Optional: Link this parent to a Home Assistant user for notifications and dashboard access.",
+          "associated_kids": "Select which kids this parent supervises for notifications and approval actions.",
           "mobile_notify_service": "Select a notification service to enable notifications for this parent, or leave empty to disable.",
           "allow_chore_assignment": "Creates a profile so tasks can be assigned to you. By default, only an Approve button is shown for one-click completion. Note: Unchecking preserves the kid profile with '_unlinked' suffix for manual cleanup.",
           "enable_chore_workflow": "Adds Claim and Disapprove buttons for full workflow (claim → approve/disapprove).",
@@ -2957,9 +2989,10 @@
       "kid_reward_status_sensor": {
         "name": "Reward status - {reward_name}",
         "state": {
-          "not_claimed": "Not Claimed",
+          "locked": "Locked",
+          "available": "Available",
+          "requested": "Requested",
           "approved": "Approved",
-          "claimed": "Claimed",
           "unknown": "Unknown",
           "none": "None"
         },

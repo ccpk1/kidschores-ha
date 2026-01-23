@@ -596,13 +596,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
         # Retrieve HA users for linking
         users = await self.hass.auth.async_get_users()
-        kid_schema = await fh.build_kid_schema(
-            self.hass,
-            users=users,
-            default_kid_name=const.SENTINEL_EMPTY,
-            default_ha_user_id=None,
-            default_mobile_notify_service=None,
-        )
+        kid_schema = await fh.build_kid_schema(self.hass, users=users)
         return self.async_show_form(
             step_id=const.CONFIG_FLOW_STEP_KIDS, data_schema=kid_schema, errors=errors
         )
@@ -711,17 +705,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         users = await self.hass.auth.async_get_users()
 
         parent_schema = await fh.build_parent_schema(
-            self.hass,
-            users=users,
-            kids_dict=kids_dict,
-            default_parent_name=const.SENTINEL_EMPTY,
-            default_ha_user_id=None,
-            default_associated_kids=[],
-            default_mobile_notify_service=None,
-            default_dashboard_language=None,
-            default_allow_chore_assignment=False,
-            default_enable_chore_workflow=False,
-            default_enable_gamification=False,
+            self.hass, users=users, kids_dict=kids_dict
         )
         return self.async_show_form(
             step_id=const.CONFIG_FLOW_STEP_PARENTS,
@@ -1061,7 +1045,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                         const.CFOF_PENALTIES_INPUT_POINTS, const.DEFAULT_PENALTY_POINTS
                     ),
                     const.DATA_PENALTY_ICON: user_input.get(
-                        const.CFOF_PENALTIES_INPUT_ICON, const.DEFAULT_PENALTY_ICON
+                        const.CFOF_PENALTIES_INPUT_ICON, const.SENTINEL_EMPTY
                     ),
                 }
                 # Build penalty data using unified helper
@@ -1142,7 +1126,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                         const.CFOF_BONUSES_INPUT_POINTS, const.DEFAULT_BONUS_POINTS
                     ),
                     const.DATA_BONUS_ICON: user_input.get(
-                        const.CFOF_BONUSES_INPUT_ICON, const.DEFAULT_BONUS_ICON
+                        const.CFOF_BONUSES_INPUT_ICON, const.SENTINEL_EMPTY
                     ),
                 }
                 # Build bonus data using unified helper

@@ -90,7 +90,7 @@ class SystemChoreApprovalsSensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._kid_name = kid_name
         self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_TOTAL_SENSOR}"
         self._attr_native_unit_of_measurement = const.DEFAULT_CHORES_UNIT
-        self._attr_icon = const.DEFAULT_COMPLETED_CHORES_TOTAL_SENSOR_ICON
+        # Icon defined in icons.json
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }
@@ -153,7 +153,7 @@ class SystemChoreApprovalsDailySensor(KidsChoresCoordinatorEntity, SensorEntity)
         self._kid_name = kid_name
         self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_DAILY_SENSOR}"
         self._attr_native_unit_of_measurement = const.DEFAULT_CHORES_UNIT
-        self._attr_icon = const.DEFAULT_COMPLETED_CHORES_DAILY_SENSOR_ICON
+        # Icon defined in icons.json
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }
@@ -214,7 +214,7 @@ class SystemChoreApprovalsWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity
         self._kid_name = kid_name
         self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_WEEKLY_SENSOR}"
         self._attr_native_unit_of_measurement = const.DEFAULT_CHORES_UNIT
-        self._attr_icon = const.DEFAULT_COMPLETED_CHORES_WEEKLY_SENSOR_ICON
+        # Icon defined in icons.json
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }
@@ -275,7 +275,7 @@ class SystemChoreApprovalsMonthlySensor(KidsChoresCoordinatorEntity, SensorEntit
         self._kid_name = kid_name
         self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_COMPLETED_MONTHLY_SENSOR}"
         self._attr_native_unit_of_measurement = const.DEFAULT_CHORES_UNIT
-        self._attr_icon = const.DEFAULT_COMPLETED_CHORES_MONTHLY_SENSOR_ICON
+        # Icon defined in icons.json
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }
@@ -329,7 +329,7 @@ class SystemChoresPendingApprovalSensor(KidsChoresCoordinatorEntity, SensorEntit
         self._attr_entity_registry_enabled_default = show_legacy
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}{const.SENSOR_KC_UID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR}"
-        self._attr_icon = const.DEFAULT_PENDING_CHORE_APPROVALS_SENSOR_ICON
+        # Icon defined in icons.json
         self._attr_native_unit_of_measurement = const.DEFAULT_PENDING_CHORES_UNIT
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{const.SENSOR_KC_EID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR}"
         self._attr_device_info = kh.create_system_device_info(entry)
@@ -431,7 +431,7 @@ class SystemRewardsPendingApprovalSensor(KidsChoresCoordinatorEntity, SensorEnti
         self._attr_entity_registry_enabled_default = show_legacy
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}{const.SENSOR_KC_UID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR}"
-        self._attr_icon = const.DEFAULT_PENDING_REWARD_APPROVALS_SENSOR_ICON
+        # Icon defined in icons.json
         self._attr_native_unit_of_measurement = const.DEFAULT_PENDING_REWARDS_UNIT
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{const.SENSOR_KC_EID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR}"
         self._attr_device_info = kh.create_system_device_info(entry)
@@ -912,9 +912,9 @@ class KidChoreStreakSensor(KidsChoresCoordinatorEntity, SensorEntity):
         }
 
     @property
-    def icon(self) -> str:
+    def icon(self) -> str | None:
         """Return an icon for 'highest streak'."""
-        return const.DEFAULT_STREAK_ICON
+        return None  # Icon defined in icons.json
 
 
 # ------------------------------------------------------------------------------------------
@@ -1032,7 +1032,7 @@ class KidPenaltyAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
         penalty_info: PenaltyData = cast(
             "PenaltyData", self.coordinator.penalties_data.get(self._penalty_id, {})
         )
-        return penalty_info.get(const.DATA_PENALTY_ICON, const.DEFAULT_PENALTY_ICON)
+        return penalty_info.get(const.DATA_PENALTY_ICON, const.SENTINEL_EMPTY)
 
 
 class KidBonusAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
@@ -1148,4 +1148,4 @@ class KidBonusAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
         bonus_info: BonusData = cast(
             "BonusData", self.coordinator.bonuses_data.get(self._bonus_id, {})
         )
-        return bonus_info.get(const.DATA_BONUS_ICON, const.DEFAULT_BONUS_ICON)
+        return bonus_info.get(const.DATA_BONUS_ICON, const.SENTINEL_EMPTY)

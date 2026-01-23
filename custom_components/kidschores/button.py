@@ -35,6 +35,64 @@ if TYPE_CHECKING:
 PARALLEL_UPDATES = 1
 
 
+async def _cleanup_orphaned_adjustment_buttons(
+    hass: HomeAssistant, entry: ConfigEntry, coordinator: KidsChoresDataCoordinator
+) -> None:
+    """Remove orphaned manual adjustment button entities.
+
+    When points_adjust_values changes, old button entities with obsolete delta
+    values remain in the entity registry. This function identifies and removes them.
+
+    Args:
+        hass: Home Assistant instance
+        entry: Config entry for this integration
+        coordinator: Coordinator with current kid data
+    """
+    from homeassistant.helpers import entity_registry as er
+
+    entity_registry = er.async_get(hass)
+
+    # Get current points adjust values
+    raw_values = entry.options.get(const.CONF_POINTS_ADJUST_VALUES)
+    if isinstance(raw_values, str):
+        current_deltas = set(kh.parse_points_adjust_values(raw_values))
+    elif isinstance(raw_values, list):
+        current_deltas = {float(v) for v in raw_values}
+    else:
+        current_deltas = set(const.DEFAULT_POINTS_ADJUST_VALUES)
+
+    # Get all button entities for this config entry
+    entities = er.async_entries_for_config_entry(entity_registry, entry.entry_id)
+
+    # Find and remove orphaned manual adjustment buttons
+    for entity in entities:
+        # Check if this is a manual adjustment button by looking at unique_id pattern
+        # Format: {entry_id}_{kid_id}_adjust_points_{delta}
+        if const.BUTTON_KC_UID_MIDFIX_ADJUST_POINTS in entity.unique_id:
+            # Extract delta from unique_id
+            try:
+                # unique_id format: "{entry_id}_{kid_id}_adjust_points_{delta}"
+                delta_str = entity.unique_id.split(
+                    const.BUTTON_KC_UID_MIDFIX_ADJUST_POINTS
+                )[1]
+                delta = float(delta_str)
+
+                # If this delta is not in current config, remove the entity
+                if delta not in current_deltas:
+                    const.LOGGER.debug(
+                        "Removing orphaned adjustment button: %s (delta %s not in current config)",
+                        entity.entity_id,
+                        delta,
+                    )
+                    entity_registry.async_remove(entity.entity_id)
+            except (IndexError, ValueError) as ex:
+                const.LOGGER.warning(
+                    "Could not parse delta from button unique_id %s: %s",
+                    entity.unique_id,
+                    ex,
+                )
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -48,6 +106,9 @@ async def async_setup_entry(
         const.CONF_POINTS_LABEL, const.DEFAULT_POINTS_LABEL
     )
 
+    # Clean up orphaned manual adjustment button entities before creating new ones
+    await _cleanup_orphaned_adjustment_buttons(hass, entry, coordinator)
+
     entities: list[ButtonEntity] = []
 
     # Create buttons for chores (Claim, Approve & Disapprove)
@@ -57,14 +118,10 @@ async def async_setup_entry(
         )
         assigned_kids_ids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
 
-        # If user defined an icon, use it; else fallback to default for chore claim
-        chore_claim_icon = chore_info.get(
-            const.DATA_CHORE_ICON, const.DEFAULT_CHORE_CLAIM_ICON
-        )
+        # If user defined an icon, use it; else fallback to SENTINEL_EMPTY for chore claim
+        chore_claim_icon = chore_info.get(const.DATA_CHORE_ICON, const.SENTINEL_EMPTY)
         # For "approve," use a distinct icon
-        chore_approve_icon = chore_info.get(
-            const.DATA_CHORE_ICON, const.DEFAULT_CHORE_APPROVE_ICON
-        )
+        chore_approve_icon = chore_info.get(const.DATA_CHORE_ICON, const.SENTINEL_EMPTY)
 
         for kid_id in assigned_kids_ids:
             kid_name = (
@@ -129,10 +186,8 @@ async def async_setup_entry(
             const.DATA_KID_NAME, f"{const.TRANS_KEY_LABEL_KID} {kid_id}"
         )
         for reward_id, reward_info in coordinator.rewards_data.items():
-            # If no user-defined icon, fallback to const.DEFAULT_REWARD_ICON
-            reward_icon = reward_info.get(
-                const.DATA_REWARD_ICON, const.DEFAULT_REWARD_ICON
-            )
+            # Icon from storage (empty = use icons.json translation)
+            reward_icon = reward_info.get(const.DATA_REWARD_ICON, const.SENTINEL_EMPTY)
             # Redeem Reward Button
             entities.append(
                 KidRewardRedeemButton(
@@ -160,9 +215,7 @@ async def async_setup_entry(
                         const.DATA_REWARD_NAME,
                         f"{const.TRANS_KEY_LABEL_REWARD} {reward_id}",
                     ),
-                    icon=reward_info.get(
-                        const.DATA_REWARD_ICON, const.DEFAULT_REWARD_ICON
-                    ),
+                    icon=reward_info.get(const.DATA_REWARD_ICON, const.SENTINEL_EMPTY),
                 )
             )
             # Disapprove Reward Button
@@ -191,9 +244,9 @@ async def async_setup_entry(
             const.DATA_KID_NAME, f"{const.TRANS_KEY_LABEL_KID} {kid_id}"
         )
         for penalty_id, penalty_info in coordinator.penalties_data.items():
-            # If no user-defined icon, fallback to const.DEFAULT_PENALTY_ICON
+            # Icon from storage (empty = use icons.json translation)
             penalty_icon = penalty_info.get(
-                const.DATA_PENALTY_ICON, const.DEFAULT_PENALTY_ICON
+                const.DATA_PENALTY_ICON, const.SENTINEL_EMPTY
             )
             entities.append(
                 ParentPenaltyApplyButton(
@@ -221,8 +274,8 @@ async def async_setup_entry(
             const.DATA_KID_NAME, f"{const.TRANS_KEY_LABEL_KID} {kid_id}"
         )
         for bonus_id, bonus_info in coordinator.bonuses_data.items():
-            # If no user-defined icon, fallback to const.DEFAULT_BONUS_ICON
-            bonus_icon = bonus_info.get(const.DATA_BONUS_ICON, const.DEFAULT_BONUS_ICON)
+            # If no user-defined icon, fallback to SENTINEL_EMPTY
+            bonus_icon = bonus_info.get(const.DATA_BONUS_ICON, const.SENTINEL_EMPTY)
             entities.append(
                 ParentBonusApplyButton(
                     coordinator=coordinator,
@@ -344,7 +397,6 @@ class KidChoreClaimButton(KidsChoresCoordinatorEntity, ButtonEntity):
         self._attr_unique_id = (
             f"{entry.entry_id}_{kid_id}_{chore_id}{const.BUTTON_KC_UID_SUFFIX_CLAIM}"
         )
-        self._attr_icon = icon
         self._attr_translation_placeholders = {
             const.TRANS_KEY_BUTTON_ATTR_KID_NAME: kid_name,
             const.TRANS_KEY_BUTTON_ATTR_CHORE_NAME: chore_name,
@@ -466,7 +518,6 @@ class ParentChoreApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
         self._attr_unique_id = (
             f"{entry.entry_id}_{kid_id}_{chore_id}{const.BUTTON_KC_UID_SUFFIX_APPROVE}"
         )
-        self._attr_icon = icon
         self._attr_translation_placeholders = {
             const.TRANS_KEY_BUTTON_ATTR_KID_NAME: kid_name,
             const.TRANS_KEY_BUTTON_ATTR_CHORE_NAME: chore_name,
@@ -571,7 +622,7 @@ class ParentChoreDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
         kid_name: str,
         chore_id: str,
         chore_name: str,
-        icon: str = const.DEFAULT_DISAPPROVE_ICON,
+        icon: str | None = None,
     ):
         """Initialize the disapprove chore button.
 
@@ -757,7 +808,6 @@ class KidRewardRedeemButton(KidsChoresCoordinatorEntity, ButtonEntity):
         self._attr_unique_id = (
             f"{entry.entry_id}_{const.BUTTON_REWARD_PREFIX}{kid_id}_{reward_id}"
         )
-        self._attr_icon = icon
         self._attr_translation_placeholders = {
             const.TRANS_KEY_BUTTON_ATTR_KID_NAME: kid_name,
             const.TRANS_KEY_BUTTON_ATTR_REWARD_NAME: reward_name,
@@ -884,7 +934,6 @@ class ParentRewardApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
         self._reward_id = reward_id
         self._reward_name = reward_name
         self._attr_unique_id = f"{entry.entry_id}_{kid_id}_{reward_id}{const.BUTTON_KC_UID_SUFFIX_APPROVE_REWARD}"
-        self._attr_icon = icon
         self._attr_translation_placeholders = {
             const.TRANS_KEY_BUTTON_ATTR_KID_NAME: kid_name,
             const.TRANS_KEY_BUTTON_ATTR_REWARD_NAME: reward_name,
@@ -992,7 +1041,7 @@ class ParentRewardDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
         kid_name: str,
         reward_id: str,
         reward_name: str,
-        icon: str = const.DEFAULT_DISAPPROVE_ICON,
+        icon: str | None = None,
     ):
         """Initialize the disapprove reward button.
 
@@ -1012,7 +1061,6 @@ class ParentRewardDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
         self._reward_id = reward_id
         self._reward_name = reward_name
         self._attr_unique_id = f"{entry.entry_id}_{kid_id}_{reward_id}{const.BUTTON_KC_UID_SUFFIX_DISAPPROVE_REWARD}"
-        self._attr_icon = icon
         self._attr_translation_placeholders = {
             const.TRANS_KEY_BUTTON_ATTR_KID_NAME: kid_name,
             const.TRANS_KEY_BUTTON_ATTR_REWARD_NAME: reward_name,
@@ -1177,7 +1225,7 @@ class ParentBonusApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
         self._attr_unique_id = (
             f"{entry.entry_id}_{const.BUTTON_BONUS_PREFIX}{kid_id}_{bonus_id}"
         )
-        self._attr_icon = icon
+        self._user_icon = icon
         self._attr_translation_placeholders = {
             const.TRANS_KEY_BUTTON_ATTR_KID_NAME: kid_name,
             const.TRANS_KEY_BUTTON_ATTR_BONUS_NAME: bonus_name,
@@ -1192,6 +1240,15 @@ class ParentBonusApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
 
     def press(self) -> None:
         """Synchronous press - not used, Home Assistant calls async_press."""
+
+    @property
+    def icon(self) -> str | None:
+        """Return icon with user override fallback pattern.
+
+        Returns user-configured icon if set (non-empty),
+        otherwise returns None to enable icons.json translation.
+        """
+        return self._user_icon or None
 
     async def async_press(self) -> None:
         """Handle the button press event.
@@ -1310,7 +1367,7 @@ class ParentPenaltyApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
         self._attr_unique_id = (
             f"{entry.entry_id}_{const.BUTTON_PENALTY_PREFIX}{kid_id}_{penalty_id}"
         )
-        self._attr_icon = icon
+        self._user_icon = icon
         self._attr_translation_placeholders = {
             const.TRANS_KEY_BUTTON_ATTR_KID_NAME: kid_name,
             const.TRANS_KEY_BUTTON_ATTR_PENALTY_NAME: penalty_name,
@@ -1322,6 +1379,15 @@ class ParentPenaltyApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
 
     def press(self) -> None:
         """Synchronous press - not used, Home Assistant calls async_press."""
+
+    @property
+    def icon(self) -> str | None:
+        """Return icon with user override fallback pattern.
+
+        Returns user-configured icon if set (non-empty),
+        otherwise returns None to enable icons.json translation.
+        """
+        return self._user_icon or None
 
     async def async_press(self) -> None:
         """Handle the button press event.

@@ -431,7 +431,6 @@ from custom_components.kidschores.const import (
     DATA_PARENT_DASHBOARD_LANGUAGE,
     DATA_PARENT_ENABLE_CHORE_WORKFLOW,
     DATA_PARENT_ENABLE_GAMIFICATION,
-    DATA_PARENT_ENABLE_NOTIFICATIONS,
     DATA_PARENT_MOBILE_NOTIFY_SERVICE,
     DATA_PARENT_HA_USER_ID,
     DATA_PARENT_LINKED_SHADOW_KID_ID,
@@ -457,7 +456,6 @@ from custom_components.kidschores.const import (
     DEFAULT_POINTS_ICON,
     DEFAULT_POINTS_LABEL,
     DEFAULT_REWARD_COST,
-    DEFAULT_REWARD_ICON,
     DEFAULT_ZERO,
     DOMAIN,
     # =========================================================================
@@ -488,8 +486,9 @@ from custom_components.kidschores.const import (
     # REWARD STATES
     # =========================================================================
     REWARD_STATE_APPROVED,
-    REWARD_STATE_CLAIMED,
-    REWARD_STATE_NOT_CLAIMED,
+    REWARD_STATE_AVAILABLE,
+    REWARD_STATE_LOCKED,
+    REWARD_STATE_REQUESTED,
     # =========================================================================
     # SERVICE NAMES
     # =========================================================================
@@ -591,8 +590,9 @@ CHORE_STATE_VALUES: list[str] = [
 ]
 
 REWARD_STATE_VALUES: list[str] = [
-    REWARD_STATE_NOT_CLAIMED,
-    REWARD_STATE_CLAIMED,
+    REWARD_STATE_LOCKED,
+    REWARD_STATE_AVAILABLE,
+    REWARD_STATE_REQUESTED,
     REWARD_STATE_APPROVED,
 ]
 

@@ -73,7 +73,6 @@ class ParentData(TypedDict):
     name: str
     ha_user_id: str
     associated_kids: list[str]  # List of kid UUIDs
-    enable_notifications: bool
     mobile_notify_service: str
     use_persistent_notifications: bool
     dashboard_language: str
@@ -519,7 +518,6 @@ class KidData(TypedDict):
     linked_parent_id: NotRequired[str | None]
 
     # Notifications
-    enable_notifications: bool
     mobile_notify_service: str
     use_persistent_notifications: bool
     dashboard_language: NotRequired[str]

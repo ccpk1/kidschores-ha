@@ -34,7 +34,6 @@ from tests.helpers import (
     DATA_KID_DASHBOARD_LANGUAGE,
     DATA_KIDS,
     DATA_PARENT_DASHBOARD_LANGUAGE,
-    DATA_PARENT_ENABLE_NOTIFICATIONS,
     DATA_PARENT_MOBILE_NOTIFY_SERVICE,
     DATA_PARENTS,
 )
@@ -149,16 +148,10 @@ def enable_parent_notifications(
         coordinator: The coordinator instance
         parent_id: Internal ID of the parent to enable notifications for
     """
-    # Enable mobile notifications
-    coordinator._data[DATA_PARENTS][parent_id][DATA_PARENT_ENABLE_NOTIFICATIONS] = True
-
-    # Set a mock notify service
+    # Set a mock notify service (presence of service enables notifications)
     coordinator._data[DATA_PARENTS][parent_id][DATA_PARENT_MOBILE_NOTIFY_SERVICE] = (
         "notify.notify"
     )
-
-    # Ensure enable_notifications is also set
-    coordinator._data[DATA_PARENTS][parent_id][DATA_PARENT_ENABLE_NOTIFICATIONS] = True
 
     # Persist changes
     coordinator._persist()
@@ -234,9 +227,9 @@ class TestChoreClaimNotifications:
         # Get parent data from coordinator
         parent_data = coordinator._data[DATA_PARENTS][parent_id]
 
-        # Verify notifications were enabled through config flow
-        assert parent_data.get(DATA_PARENT_ENABLE_NOTIFICATIONS) is True, (
-            "Notifications should be enabled through config flow"
+        # Verify notifications were enabled through config flow (via mobile service)
+        assert parent_data.get(DATA_PARENT_MOBILE_NOTIFY_SERVICE), (
+            "Notifications enabled when mobile_notify_service is set"
         )
         assert (
             parent_data.get(DATA_PARENT_MOBILE_NOTIFY_SERVICE)

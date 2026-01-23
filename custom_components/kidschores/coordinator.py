@@ -625,10 +625,16 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         Uses exact delimiter matching to prevent false positives (e.g., kid_1
         should not match kid_10). Checks for item_id preceded/followed by
         underscores or at start/end of unique_id.
+
+        Only scans entities belonging to this config entry for safety.
         """
         ent_reg = er.async_get(self.hass)
         item_id_str = str(item_id)
         for entity_entry in list(ent_reg.entities.values()):
+            # Only process entities from this config entry
+            if entity_entry.config_entry_id != self.config_entry.entry_id:
+                continue
+
             unique_id = str(entity_entry.unique_id)
             # Check if item_id appears with proper delimiters
             # Valid patterns: starts with item_id_, contains _item_id_, ends with _item_id
@@ -644,6 +650,93 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
                     entity_entry.entity_id,
                     entity_entry.unique_id,
                 )
+
+    def _remove_device_from_registry(self, kid_id: str) -> None:
+        """Remove kid device from device registry.
+
+        When a kid is deleted, this function removes the corresponding device
+        registry entry so the device no longer appears in the device list.
+
+        Args:
+            kid_id: Internal UUID of the kid to remove
+        """
+        from homeassistant.helpers import device_registry as dr
+
+        device_registry = dr.async_get(self.hass)
+        device = device_registry.async_get_device(identifiers={(const.DOMAIN, kid_id)})
+
+        if device:
+            device_registry.async_remove_device(device.id)
+            const.LOGGER.debug(
+                "Removed device from registry for kid ID: %s",
+                kid_id,
+            )
+        else:
+            const.LOGGER.debug(
+                "Device not found for kid ID: %s, nothing to remove",
+                kid_id,
+            )
+
+    def _remove_conditional_shadow_kid_entities(
+        self, kid_id: str, workflow_enabled: bool, gamification_enabled: bool
+    ) -> None:
+        """Remove conditional entities for shadow kid based on feature flags.
+
+        Shadow kids have conditional entities based on parent's enable_chore_workflow
+        and enable_gamification flags. This method removes entities when those
+        flags are disabled.
+
+        Uses the same whitelist constants as is_entity_allowed_for_shadow_kid() to
+        ensure consistency. Entities not allowed for the kid's current flags are removed.
+
+        Args:
+            kid_id: Internal UUID of the shadow kid
+            workflow_enabled: Whether workflow buttons should exist
+            gamification_enabled: Whether gamification entities should exist
+        """
+        ent_reg = er.async_get(self.hass)
+        kid_id_str = str(kid_id)
+        removed_count = 0
+
+        # Iterate through entities belonging to this config entry only
+        for entity_entry in list(ent_reg.entities.values()):
+            if entity_entry.config_entry_id != self.config_entry.entry_id:
+                continue
+
+            unique_id = str(entity_entry.unique_id)
+
+            # Check if entity belongs to this kid using delimiter-bounded matching
+            if (
+                not unique_id.startswith(f"{kid_id_str}_")
+                and f"_{kid_id_str}_" not in unique_id
+                and not unique_id.endswith(f"_{kid_id_str}")
+            ):
+                continue
+
+            # Use the whitelist helper for consistent logic
+            if not kh.is_entity_allowed_for_shadow_kid(
+                entity_entry.domain,
+                unique_id,
+                workflow_enabled,
+                gamification_enabled,
+            ):
+                ent_reg.async_remove(entity_entry.entity_id)
+                removed_count += 1
+                const.LOGGER.debug(
+                    "Removed conditional entity '%s' for shadow kid (workflow=%s, gamification=%s)",
+                    entity_entry.entity_id,
+                    workflow_enabled,
+                    gamification_enabled,
+                )
+
+        if removed_count > 0:
+            const.LOGGER.info(
+                "Removed %d conditional entities for shadow kid %s (workflow=%s, gamification=%s)",
+                removed_count,
+                kid_id,
+                workflow_enabled,
+                gamification_enabled,
+            )
 
     async def _remove_orphaned_shared_chore_sensors(self):
         """Remove SystemChoreSharedStateSensor entities for chores no longer marked as shared.
@@ -715,10 +808,10 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         chore_ids = "|".join(re.escape(chore_id) for chore_id in self.chores_data)
         pattern = re.compile(rf"^({kid_ids})_({chore_ids})")
 
-        # Check all entities for orphaned kid-chore entities
+        # Check entities belonging to this config entry for orphaned kid-chore entities
         for entity_entry in list(ent_reg.entities.values()):
-            # Only check our integration's entities
-            if entity_entry.platform != const.DOMAIN:
+            # Only check entities from this config entry (safer than platform check)
+            if entity_entry.config_entry_id != self.config_entry.entry_id:
                 continue
 
             unique_id = str(entity_entry.unique_id)
@@ -837,6 +930,179 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
             assigned_kids_key=const.DATA_BADGE_ASSIGNED_TO,
         )
 
+    async def _remove_orphaned_manual_adjustment_buttons(self) -> None:
+        """Remove manual point adjustment button entities with obsolete delta values.
+
+        Called when CONF_POINTS_ADJUST_VALUES changes via options flow or reconfigure.
+        Removes buttons with old delta values that are no longer in the configuration.
+
+        Button unique_id pattern: {entry_id}_{kid_id}_kc_points_adjust_{delta}
+        Example: abc123_kid1_kc_points_adjust_1.0
+
+        Performance: O(n) entity scan with set lookup for validation.
+        """
+        perf_start = time.perf_counter()
+
+        # Get current configured point adjustment values
+        raw_values = self.config_entry.options.get(const.CONF_POINTS_ADJUST_VALUES)
+        if not raw_values:
+            current_deltas = set(const.DEFAULT_POINTS_ADJUST_VALUES)
+        elif isinstance(raw_values, str):
+            current_deltas = set(kh.parse_points_adjust_values(raw_values))
+        elif isinstance(raw_values, list):
+            try:
+                current_deltas = {float(v) for v in raw_values}
+            except (ValueError, TypeError):
+                current_deltas = set(const.DEFAULT_POINTS_ADJUST_VALUES)
+        else:
+            current_deltas = set(const.DEFAULT_POINTS_ADJUST_VALUES)
+
+        if not current_deltas:
+            current_deltas = set(const.DEFAULT_POINTS_ADJUST_VALUES)
+
+        ent_reg = er.async_get(self.hass)
+        prefix = f"{self.config_entry.entry_id}_"
+        button_midfix = const.BUTTON_KC_UID_MIDFIX_ADJUST_POINTS
+        removed_count = 0
+
+        # Scan entities belonging to this config entry for manual adjustment buttons
+        for entity_entry in list(ent_reg.entities.values()):
+            # Only check entities from this config entry (safer than platform check)
+            if entity_entry.config_entry_id != self.config_entry.entry_id:
+                continue
+
+            unique_id = str(entity_entry.unique_id)
+            if not unique_id.startswith(prefix):
+                continue
+
+            # Check if this is a manual adjustment button
+            if button_midfix not in unique_id:
+                continue
+
+            # Extract delta value from unique_id
+            # Pattern: {entry_id}_{kid_id}_kc_points_adjust_{delta}
+            try:
+                delta_str = unique_id.split(button_midfix)[-1]
+                delta = float(delta_str)
+            except (ValueError, IndexError):
+                const.LOGGER.warning(
+                    "WARNING: Could not parse delta from manual adjustment button unique_id: %s",
+                    unique_id,
+                )
+                continue
+
+            # Remove if delta is no longer in configured values
+            if delta not in current_deltas:
+                const.LOGGER.debug(
+                    "DEBUG: Removing orphaned manual adjustment button '%s' (unique_id: %s) - Delta %.1f no longer configured",
+                    entity_entry.entity_id,
+                    entity_entry.unique_id,
+                    delta,
+                )
+                ent_reg.async_remove(entity_entry.entity_id)
+                removed_count += 1
+
+        # Log cleanup results
+        perf_duration = time.perf_counter() - perf_start
+        if removed_count > 0:
+            const.LOGGER.info(
+                "Removed %d orphaned manual adjustment button(s) in %.3fs",
+                removed_count,
+                perf_duration,
+            )
+        else:
+            const.LOGGER.debug(
+                "PERF: _remove_orphaned_manual_adjustment_buttons() scanned entities in %.3fs - no orphans found",
+                perf_duration,
+            )
+
+    async def _remove_orphaned_shadow_kid_buttons(self) -> None:
+        """Remove entities for shadow kids that are no longer allowed.
+
+        Called when parent's enable_chore_workflow or enable_gamification settings change.
+        Uses whitelist logic: entities not in the allowed list are removed.
+
+        Whitelist: Base (always) + Workflow (if enabled) + Gamification (if enabled)
+        """
+        perf_start = time.perf_counter()
+        ent_reg = er.async_get(self.hass)
+        prefix = f"{self.config_entry.entry_id}_"
+        removed_count = 0
+
+        # Scan entities belonging to this config entry only
+        for entity_entry in list(ent_reg.entities.values()):
+            # Only check entities from this config entry (safer than platform check)
+            if entity_entry.config_entry_id != self.config_entry.entry_id:
+                continue
+
+            unique_id = str(entity_entry.unique_id)
+            if not unique_id.startswith(prefix):
+                continue
+
+            # Extract kid_id from unique_id
+            kid_id = self._extract_kid_id_from_unique_id(unique_id, prefix)
+            if not kid_id or not kh.is_shadow_kid(self, kid_id):
+                continue  # Skip non-shadow kids (they get all entities)
+
+            # Get parent settings for this shadow kid
+            workflow_enabled = kh.should_create_workflow_buttons(self, kid_id)
+            gamification_enabled = kh.should_create_gamification_entities(self, kid_id)
+
+            # Check if entity is allowed using whitelist
+            if not kh.is_entity_allowed_for_shadow_kid(
+                entity_entry.domain, unique_id, workflow_enabled, gamification_enabled
+            ):
+                const.LOGGER.debug(
+                    "Removing disallowed %s entity for shadow kid %s: %s",
+                    entity_entry.domain,
+                    kid_id,
+                    entity_entry.entity_id,
+                )
+                ent_reg.async_remove(entity_entry.entity_id)
+                removed_count += 1
+
+        perf_elapsed = time.perf_counter() - perf_start
+        const.LOGGER.debug(
+            "PERF: _remove_orphaned_shadow_kid_buttons() scanned %d entities in %.3fs",
+            len(ent_reg.entities),
+            perf_elapsed,
+        )
+        if removed_count > 0:
+            const.LOGGER.info(
+                "Removed %d disallowed shadow kid entit(y/ies) based on settings",
+                removed_count,
+            )
+
+    def _extract_kid_id_from_unique_id(self, unique_id: str, prefix: str) -> str | None:
+        """Extract kid_id from a unique_id string.
+
+        Handles different unique_id patterns:
+        - Standard: {entry_id}_{kid_id}_{...}
+        - Reward/Bonus/Penalty buttons: {entry_id}_{prefix}_{kid_id}_{item_id}
+
+        Args:
+            unique_id: The entity's unique_id string.
+            prefix: The config entry prefix ({entry_id}_).
+
+        Returns:
+            The kid_id or None if not found.
+        """
+        # Check for special button prefixes first
+        for button_prefix in (
+            const.BUTTON_REWARD_PREFIX,
+            const.BUTTON_BONUS_PREFIX,
+            const.BUTTON_PENALTY_PREFIX,
+        ):
+            if button_prefix in unique_id:
+                parts = unique_id.split(button_prefix, 1)
+                if len(parts) == 2:
+                    return parts[1].split("_", 1)[0]
+
+        # Standard pattern: {entry_id}_{kid_id}_{...}
+        remainder = unique_id[len(prefix) :]
+        parts = remainder.split("_", 1)
+        return parts[0] if parts else None
+
     # -------------------------------------------------------------------------------------
     # Public Entity Management Methods (for Options Flow and some Services)
     # These methods provide direct storage updates without triggering config reloads
@@ -893,6 +1159,9 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
 
         # Remove HA entities
         self._remove_entities_in_ha(kid_id)
+
+        # Remove device from device registry
+        self._remove_device_from_registry(kid_id)
 
         # Cleanup references
         self._cleanup_deleted_kid_references()
@@ -1380,12 +1649,16 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         new_name = f"{kid_name}_unlinked"
 
         # Remove shadow kid markers (convert to regular kid)
+        # Regular kids always have full workflow and gamification features
         kid_info[const.DATA_KID_IS_SHADOW] = False
         kid_info[const.DATA_KID_LINKED_PARENT_ID] = None
         kid_info[const.DATA_KID_NAME] = new_name
 
         # Update device registry to reflect new name immediately
         self._update_kid_device_name(shadow_kid_id, new_name)
+
+        # Note: No need to explicitly enable workflow/gamification flags here
+        # Regular kids are implicitly full-featured (kc_helpers checks is_shadow_kid)
 
         const.LOGGER.info(
             "Unlinked shadow kid '%s' → '%s' (ID: %s), preserved all data",
@@ -5508,19 +5781,15 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         kid_info: KidData | None = self.kids_data.get(kid_id)
         if not kid_info:
             return
-        if not kid_info.get(const.DATA_KID_ENABLE_NOTIFICATIONS, True):
-            const.LOGGER.debug(
-                "DEBUG: Notification - Notifications disabled for Kid ID '%s'", kid_id
-            )
-            return
-        mobile_enabled = kid_info.get(const.DATA_KID_ENABLE_NOTIFICATIONS, True)
-        persistent_enabled = kid_info.get(
-            const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS, True
-        )
+
         mobile_notify_service = kid_info.get(
             const.DATA_KID_MOBILE_NOTIFY_SERVICE, const.SENTINEL_EMPTY
         )
-        if mobile_enabled and mobile_notify_service:
+        persistent_enabled = kid_info.get(
+            const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS, True
+        )
+
+        if mobile_notify_service:
             await async_send_notification(
                 self.hass,
                 mobile_notify_service,
@@ -5620,22 +5889,15 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         for parent_id, parent_info in self.parents_data.items():
             if kid_id not in parent_info.get(const.DATA_PARENT_ASSOCIATED_KIDS, []):
                 continue
-            if not parent_info.get(const.DATA_PARENT_ENABLE_NOTIFICATIONS, True):
-                const.LOGGER.debug(
-                    "DEBUG: Notification - Notifications disabled for Parent ID '%s'",
-                    parent_id,
-                )
-                continue
-            mobile_enabled = parent_info.get(
-                const.DATA_PARENT_ENABLE_NOTIFICATIONS, True
+
+            mobile_notify_service = parent_info.get(
+                const.DATA_PARENT_MOBILE_NOTIFY_SERVICE, const.SENTINEL_EMPTY
             )
             persistent_enabled = parent_info.get(
                 const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS, True
             )
-            mobile_notify_service = parent_info.get(
-                const.DATA_PARENT_MOBILE_NOTIFY_SERVICE, const.SENTINEL_EMPTY
-            )
-            if mobile_enabled and mobile_notify_service:
+
+            if mobile_notify_service:
                 parent_count += 1
                 await async_send_notification(
                     self.hass,
@@ -5728,12 +5990,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         for parent_id, parent_info in self.parents_data.items():
             if kid_id not in parent_info.get(const.DATA_PARENT_ASSOCIATED_KIDS, []):
                 continue
-            if not parent_info.get(const.DATA_PARENT_ENABLE_NOTIFICATIONS, True):
-                const.LOGGER.debug(
-                    "DEBUG: Notification - Notifications disabled for Parent ID '%s'",
-                    parent_id,
-                )
-                continue
 
             # Use parent's language preference (fallback to kid's language, then system language)
             parent_language = (
@@ -5781,9 +6037,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
                 final_extra_data[const.NOTIFY_TAG] = notification_tag
 
             # Determine notification method and prepare coroutine
-            mobile_enabled = parent_info.get(
-                const.DATA_PARENT_ENABLE_NOTIFICATIONS, True
-            )
             persistent_enabled = parent_info.get(
                 const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS, True
             )
@@ -5791,7 +6044,7 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
                 const.DATA_PARENT_MOBILE_NOTIFY_SERVICE, const.SENTINEL_EMPTY
             )
 
-            if mobile_enabled and mobile_notify_service:
+            if mobile_notify_service:
                 # Prepare mobile notification coroutine
                 notification_tasks.append(
                     (

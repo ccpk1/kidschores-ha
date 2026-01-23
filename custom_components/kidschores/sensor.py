@@ -147,8 +147,8 @@ async def async_setup_entry(
         # Chores sensor with all stats (always created - not gamification)
         entities.append(KidChoresSensor(coordinator, entry, kid_id, kid_name))
 
-        # Legacy chore completion sensors (optional)
-        if show_legacy_entities:
+        # Legacy chore completion sensors (optional, gamification only)
+        if show_legacy_entities and create_gamification:
             entities.append(
                 SystemChoreApprovalsSensor(coordinator, entry, kid_id, kid_name)
             )
@@ -775,9 +775,6 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_CHORE_STATUS,
             const.ATTR_KID_NAME: self._kid_name,
             const.ATTR_CHORE_NAME: self._chore_name,
-            const.ATTR_CHORE_ICON: chore_info.get(
-                const.DATA_CHORE_ICON, const.DEFAULT_CHORE_SENSOR_ICON
-            ),
             const.ATTR_DESCRIPTION: chore_info.get(
                 const.DATA_CHORE_DESCRIPTION, const.SENTINEL_EMPTY
             ),
@@ -927,8 +924,8 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             "ChoreData", self.coordinator.chores_data.get(self._chore_id, {})
         )
 
-        # Fallback: use chore's custom icon or default
-        return chore_info.get(const.DATA_CHORE_ICON, const.DEFAULT_CHORE_SENSOR_ICON)
+        # Fallback: use chore's custom icon or None for icons.json
+        return chore_info.get(const.DATA_CHORE_ICON) or None
 
 
 # ------------------------------------------------------------------------------------------
@@ -995,26 +992,13 @@ class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
         return self._points_label or const.LABEL_POINTS
 
     @property
-    def icon(self) -> str:
-        """Return range-based icon based on current points.
+    def icon(self) -> str | None:
+        """Return custom icon or None for icons.json fallback.
 
-        Maps point levels to icons:
-        - 0-49 points: star-outline (starting out)
-        - 50-99 points: star-half-full (making progress)
-        - 100+ points: star (achieved!)
-        - Custom config icon if set, otherwise defaults above
+        Returns user-configured points icon if set, otherwise None to allow
+        icons.json to provide range-based icon based on current points.
         """
-        # Use custom icon if configured
-        if self._points_icon:
-            return self._points_icon
-
-        # Range-based icon selection
-        current_points = self.native_value or 0
-        if current_points >= 100:
-            return "mdi:star"
-        if current_points >= 50:
-            return "mdi:star-half-full"
-        return "mdi:star-outline"
+        return self._points_icon or None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -1075,7 +1059,7 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._attr_unique_id = (
             f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_CHORES_SENSOR}"
         )
-        self._attr_icon = const.DEFAULT_COMPLETED_CHORES_TOTAL_SENSOR_ICON
+        # Icon defined in icons.json
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
@@ -1198,7 +1182,7 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
         highest_badge_info: BadgeData = cast(
             "BadgeData", self.coordinator.badges_data.get(highest_badge_id, {})
         )
-        return highest_badge_info.get(const.DATA_BADGE_ICON, const.DEFAULT_TROPHY_ICON)
+        return highest_badge_info.get(const.DATA_BADGE_ICON) or None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -1568,12 +1552,13 @@ class KidBadgeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         return attributes
 
     @property
-    def icon(self) -> str:
+    def icon(self) -> str | None:
         """Return the icon for the badge."""
         badge_info: BadgeData = cast(
             "BadgeData", self.coordinator.badges_data.get(self._badge_id, {})
         )
-        return str(badge_info.get(const.DATA_BADGE_ICON, const.DEFAULT_BADGE_ICON))
+        icon = badge_info.get(const.DATA_BADGE_ICON)
+        return str(icon) if icon else None
 
 
 # ------------------------------------------------------------------------------------------
@@ -1751,11 +1736,12 @@ class SystemBadgeSensor(KidsChoresCoordinatorEntity, SensorEntity):
         return attributes
 
     @property
-    def icon(self) -> str:
+    def icon(self) -> str | None:
         badge_info: BadgeData = cast(
             "BadgeData", self.coordinator.badges_data.get(self._badge_id, {})
         )
-        return str(badge_info.get(const.DATA_BADGE_ICON, const.DEFAULT_BADGE_ICON))
+        icon = badge_info.get(const.DATA_BADGE_ICON)
+        return str(icon) if icon else None
 
 
 # ------------------------------------------------------------------------------------------
@@ -1866,9 +1852,6 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
             # --- 1. Identity & Meta ---
             const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_SHARED_CHORE,
             const.ATTR_CHORE_NAME: self._chore_name,
-            const.ATTR_CHORE_ICON: chore_info.get(
-                const.DATA_CHORE_ICON, const.DEFAULT_CHORE_SENSOR_ICON
-            ),
             const.ATTR_DESCRIPTION: chore_info.get(
                 const.DATA_CHORE_DESCRIPTION, const.SENTINEL_EMPTY
             ),
@@ -1945,12 +1928,12 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
         return attributes
 
     @property
-    def icon(self) -> str:
+    def icon(self) -> str | None:
         """Return the icon for the chore sensor."""
         chore_info: ChoreData = cast(
             "ChoreData", self.coordinator.chores_data.get(self._chore_id, {})
         )
-        return chore_info.get(const.DATA_CHORE_ICON, const.DEFAULT_CHORE_SENSOR_ICON)
+        return chore_info.get(const.DATA_CHORE_ICON) or None
 
 
 # ------------------------------------------------------------------------------------------
@@ -2003,7 +1986,7 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self) -> str:
-        """Return the current reward status: 'Not Claimed', 'Claimed', or 'Approved'."""
+        """Return the current reward status: 'locked', 'available', 'requested', or 'approved'."""
         kid_info: KidData = cast(
             "KidData", self.coordinator.kids_data.get(self._kid_id, {})
         )
@@ -2011,10 +1994,10 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             self._reward_id, {}
         )
 
-        # Check pending_count for claimed status
+        # Check pending_count for requested status
         pending_count = reward_data.get(const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0)
         if pending_count > 0:
-            return const.REWARD_STATE_CLAIMED
+            return const.REWARD_STATE_REQUESTED
 
         # Check if approved today using last_approved timestamp
         last_approved = reward_data.get(const.DATA_KID_REWARD_DATA_LAST_APPROVED)
@@ -2026,7 +2009,16 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             except (ValueError, TypeError):
                 pass
 
-        return const.REWARD_STATE_NOT_CLAIMED
+        # Check if kid can afford the reward
+        kid_points = kid_info.get(const.DATA_KID_POINTS, 0)
+        reward_info: RewardData = cast(
+            "RewardData", self.coordinator.rewards_data.get(self._reward_id, {})
+        )
+        reward_cost = int(reward_info.get(const.DATA_REWARD_COST, 0))
+
+        if kid_points >= reward_cost:
+            return const.REWARD_STATE_AVAILABLE
+        return const.REWARD_STATE_LOCKED
 
     @property
     def extra_state_attributes(self) -> dict:
@@ -2216,12 +2208,12 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         }
 
     @property
-    def icon(self) -> str:
-        """Use the reward's custom icon if set, else fallback."""
+    def icon(self) -> str | None:
+        """Use the reward's custom icon if set, else fallback to icons.json."""
         reward_info: RewardData = cast(
             "RewardData", self.coordinator.rewards_data.get(self._reward_id, {})
         )
-        return reward_info.get(const.DATA_REWARD_ICON, const.DEFAULT_REWARD_ICON)
+        return reward_info.get(const.DATA_REWARD_ICON) or None
 
 
 # ------------------------------------------------------------------------------------------
@@ -2458,15 +2450,13 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
         }
 
     @property
-    def icon(self):
-        """Return an icon; you could choose a trophy icon."""
+    def icon(self) -> str | None:
+        """Return achievement custom icon or None for icons.json fallback."""
         achievement_info: AchievementData = cast(
             "AchievementData",
             self.coordinator.achievements_data.get(self._achievement_id, {}),
         )
-        return achievement_info.get(
-            const.DATA_ACHIEVEMENT_ICON, const.DEFAULT_ACHIEVEMENTS_ICON
-        )
+        return achievement_info.get(const.DATA_ACHIEVEMENT_ICON) or None
 
 
 # ------------------------------------------------------------------------------------------
@@ -2651,15 +2641,13 @@ class SystemChallengeSensor(KidsChoresCoordinatorEntity, SensorEntity):
         }
 
     @property
-    def icon(self):
-        """Return an icon for challenges (you might want to choose one that fits your theme)."""
+    def icon(self) -> str | None:
+        """Return challenge custom icon or None for icons.json fallback."""
         challenge_info: ChallengeData = cast(
             "ChallengeData",
             self.coordinator.challenges_data.get(self._challenge_id, {}),
         )
-        return challenge_info.get(
-            const.DATA_CHALLENGE_ICON, const.DEFAULT_ACHIEVEMENTS_ICON
-        )
+        return challenge_info.get(const.DATA_CHALLENGE_ICON) or None
 
 
 # ------------------------------------------------------------------------------------------
@@ -2904,15 +2892,13 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         }
 
     @property
-    def icon(self) -> str:
+    def icon(self) -> str | None:
         """Return the icon for the achievement."""
         achievement: AchievementData = cast(
             "AchievementData",
             self.coordinator.achievements_data.get(self._achievement_id, {}),
         )
-        return achievement.get(
-            const.DATA_ACHIEVEMENT_ICON, const.DEFAULT_ACHIEVEMENTS_ICON
-        )
+        return achievement.get(const.DATA_ACHIEVEMENT_ICON) or None
 
 
 # ------------------------------------------------------------------------------------------
@@ -3113,7 +3099,7 @@ class KidChallengeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         }
 
     @property
-    def icon(self) -> str:
+    def icon(self) -> str | None:
         """Return the icon for the challenge.
 
         Use the icon provided in the challenge data if set, else fallback to default.
@@ -3122,7 +3108,7 @@ class KidChallengeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
             "ChallengeData",
             self.coordinator.challenges_data.get(self._challenge_id, {}),
         )
-        return challenge.get(const.DATA_CHALLENGE_ICON, const.DEFAULT_CHALLENGES_ICON)
+        return challenge.get(const.DATA_CHALLENGE_ICON) or None
 
 
 # ------------------------------------------------------------------------------------------
@@ -3196,9 +3182,9 @@ class SystemDashboardTranslationSensor(KidsChoresCoordinatorEntity, SensorEntity
         }
 
     @property
-    def icon(self) -> str:
-        """Return a translation/language icon."""
-        return "mdi:translate"
+    def icon(self) -> str | None:
+        """Return None for icons.json fallback."""
+        return None
 
 
 # ------------------------------------------------------------------------------------------
@@ -3220,7 +3206,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
     """
 
     _attr_has_entity_name = True
-    _attr_translation_key = "kid_dashboard_helper_sensor"
+    _attr_translation_key = const.TRANS_KEY_SENSOR_DASHBOARD_HELPER
 
     def __init__(
         self,
@@ -3247,7 +3233,9 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._kid_id = kid_id
         self._kid_name = kid_name
         self._points_label = points_label
-        self._attr_unique_id = f"{entry.entry_id}_{kid_id}_ui_dashboard_helper"
+        self._attr_unique_id = (
+            f"{entry.entry_id}_{kid_id}{const.SENSOR_KC_UID_SUFFIX_UI_DASHBOARD_HELPER}"
+        )
         self.entity_id = (
             f"{const.SENSOR_KC_PREFIX}{kid_name}"
             f"{const.SENSOR_KC_EID_SUFFIX_UI_DASHBOARD_HELPER}"
@@ -4184,6 +4172,6 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         }
 
     @property
-    def icon(self) -> str:
-        """Return a dashboard icon."""
-        return "mdi:view-dashboard"
+    def icon(self) -> str | None:
+        """Return None for icons.json fallback."""
+        return None
