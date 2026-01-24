@@ -295,6 +295,158 @@ for field, default in reset_fields:
 
 See [ARCHITECTURE.md](ARCHITECTURE.md#type-system-architecture) for architectural rationale.
 
+#### 5.2 Data Entry Architecture
+
+**Purpose**: Define how user input flows through validation layers into entity storage from **all three entry points**: Config Flow, Options Flow, and Services.
+
+**Key Modules**:
+
+- `flow_helpers.py` - UI layer (schema building, field validation for flows)
+- `data_builders.py` - Core layer (entity validation, entity building - **shared by flows AND services**)
+
+##### The 4-Layer Architecture
+
+All entity types (kids, chores, rewards, badges, etc.) follow a consistent pattern across **three entry points**:
+
+- **Config Flow**: Initial integration setup
+- **Options Flow**: UI-based entity management
+- **Services** (`services.py`): Programmatic CRUD operations via service calls
+
+The same validation and building functions serve all three entry points, ensuring a true single source of truth:
+
+**Layer 1: Schema Building** (`flow_helpers.py`)
+
+- **Function**: `build_<entity>_schema()` → Returns `vol.Schema`
+- **Purpose**: Construct voluptuous schemas for Home Assistant UI forms
+- **Keys**: Uses `CFOF_*` constants (Config Flow / Options Flow form field names)
+- **Example**: `build_chore_schema(default_values, kids_dict, coordinator)`
+
+**Layer 2: Field-Level Validation** (`flow_helpers.py` + `services.py`)
+
+- **Function**: `validate_<entity>_inputs()` → Returns `dict[str, str]` (errors)
+- **Purpose**: Transform `CFOF_*` keys to `DATA_*` keys and delegate to core validation
+- **Pattern**: Calls Layer 3 validation after key transformation
+- **Field Validators**: Individual field validators (e.g., `validate_duration_string()`) used in `vol.All()` chains
+- **Usage**: Options flows call `validate_<entity>_inputs()`; services call Layer 3 directly with `DATA_*` keys
+
+**Layer 3: Entity-Level Validation** (`data_builders.py`)
+
+- **Function**: `validate_<entity>_data()` → Returns `dict[str, str]` (errors)
+- **Purpose**: **SINGLE SOURCE OF TRUTH** for business rule validation
+- **Keys**: Uses `DATA_*` constants (storage format)
+- **Rules**: Cross-field validation, uniqueness checks, business constraints
+- **Consumers**: Config Flow, Options Flow, **AND Services** - all use the same validation
+
+**Layer 4: Entity Building** (`data_builders.py`)
+
+- **Function**: `build_<entity>()` → Returns complete entity dict
+- **Purpose**: Build normalized entity with UUIDs, timestamps, defaults
+- **Output**: Ready-to-store entity dict with all required fields
+- **Consumers**: Config Flow, Options Flow, **AND Services** - all use the same builder
+
+##### Two Types of Validators
+
+**Field-Level Validators** (Layer 2 - `flow_helpers.py`):
+
+- **Usage**: Individual field validation in `vol.All()` chains
+- **Pattern**: `vol.All(cv.string, validate_duration_string)`
+- **Returns**: Raise `vol.Invalid` on error (Voluptuous pattern)
+- **Examples**: `validate_duration_string()`, `validate_time_format()`
+- **Used In**: Service schemas (`services.py`), form schemas (`flow_helpers.py`)
+
+**Entity-Level Validators** (Layer 3 - `data_builders.py`):
+
+- **Usage**: Post-submission validation of complete entity data
+- **Pattern**: Called by `validate_<entity>_inputs()` wrapper
+- **Returns**: Error dict (`{"field_name": "translation_key"}`)
+- **Examples**: `validate_chore_data()`, `validate_badge_data()`
+- **Rules**: Uniqueness, cross-field validation, business logic
+
+##### Standard Call Patterns
+
+**From Options Flow** (Simple Entities - Aligned Keys):
+
+```python
+# Step 1: UI validation (transforms CFOF_* → DATA_* internally)
+errors = flow_helpers.validate_reward_inputs(user_input, existing_rewards)
+
+if not errors:
+    # Step 2: Build entity directly from user_input (keys aligned!)
+    reward = data_builders.build_reward(user_input)
+    internal_id = reward[const.DATA_REWARD_INTERNAL_ID]
+
+    # Step 3: Store
+    coordinator._data[const.DATA_REWARDS][internal_id] = dict(reward)
+    coordinator._persist()
+    coordinator.async_update_listeners()
+```
+
+**From Services** (Direct to Core Layer):
+
+```python
+# Step 1: Validate with DATA_* keys (services receive DATA_* format)
+errors = data_builders.validate_reward_data(service_data, existing_rewards)
+
+if not errors:
+    # Step 2: Build entity (same function as flows!)
+    reward = data_builders.build_reward(service_data)
+    internal_id = reward[const.DATA_REWARD_INTERNAL_ID]
+
+    # Step 3: Store (same pattern as flows!)
+    coordinator._data[const.DATA_REWARDS][internal_id] = dict(reward)
+    coordinator._persist()
+    coordinator.async_update_listeners()
+```
+
+**Complex Entities** (Require Mapping):
+
+```python
+# Step 1: UI validation
+errors = flow_helpers.validate_chore_inputs(user_input, existing_chores, kids)
+
+if not errors:
+    # Step 2: Map complex fields (daily_multi_times string → list)
+    data_input = data_builders.map_cfof_to_chore_data(user_input)
+
+    # Step 3: Build entity
+    chore = data_builders.build_chore(data_input)
+    internal_id = chore[const.DATA_CHORE_INTERNAL_ID]
+
+    # Step 4: Store
+    coordinator._data[const.DATA_CHORES][internal_id] = dict(chore)
+    coordinator._persist()
+    coordinator.async_update_listeners()
+```
+
+##### Key Alignment (Phase 6)
+
+Most `CFOF_*` constant **values** are now aligned with `DATA_*` values to eliminate mapping:
+
+- `CFOF_KIDS_INPUT_NAME = "name"` matches `DATA_KID_NAME = "name"`
+- `CFOF_REWARDS_INPUT_NAME = "name"` matches `DATA_REWARD_NAME = "name"`
+- `CFOF_CHORES_INPUT_NAME = "name"` matches `DATA_CHORE_NAME = "name"`
+
+**Entities with aligned keys** (pass `user_input` directly to `build_*()` after validation):
+
+- Kids, Parents, Rewards, Bonuses, Penalties, Achievements, Challenges
+
+**Entities requiring mapping** (complex transformations):
+
+- **Chores**: `map_cfof_to_chore_data()` - Handles `daily_multi_times` string→list parsing
+- **Badges**: Mapping embedded in `build_badge()` - Fields vary by `badge_type`
+
+##### Benefits
+
+1. **Single Source of Truth**: All validation logic in `data_builders` - **serves Config Flow, Options Flow, AND Services**
+2. **DRY**: No duplicate validation across three entry points (flows + services)
+3. **Testable**: Core validation isolated and unit testable
+4. **Consistent**: Same pattern for all entity types across all entry points
+5. **Type Safe**: Clear key transformation at well-defined boundaries
+6. **Simplified**: Key alignment eliminates most mapping functions
+7. **Service Integration**: Services use the same `validate_*_data()` and `build_*()` functions as flows - true code reuse
+
+**Detailed Documentation**: See module docstrings in `flow_helpers.py` and `data_builders.py` for complete architecture details.
+
 ---
 
 ### 6. Entity Standards

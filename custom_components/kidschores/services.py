@@ -14,7 +14,7 @@ from homeassistant.helpers import config_validation as cv, entity_registry as er
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
-from . import backup_helpers as bh, const, kc_helpers as kh
+from . import backup_helpers as bh, const, flow_helpers, kc_helpers as kh
 
 if TYPE_CHECKING:
     from .coordinator import KidsChoresDataCoordinator
@@ -310,6 +310,12 @@ CREATE_CHORE_SCHEMA = vol.Schema(
         ),
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_AUTO_APPROVE): cv.boolean,
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_DUE_DATE): cv.datetime,
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_DUE_WINDOW_OFFSET): vol.All(
+            cv.string, flow_helpers.validate_duration_string
+        ),
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_DUE_REMINDER_OFFSET): vol.All(
+            cv.string, flow_helpers.validate_duration_string
+        ),
     }
 )
 
@@ -345,6 +351,12 @@ UPDATE_CHORE_SCHEMA = vol.Schema(
         ),
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_AUTO_APPROVE): cv.boolean,
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_DUE_DATE): cv.datetime,
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_DUE_WINDOW_OFFSET): vol.All(
+            cv.string, flow_helpers.validate_duration_string
+        ),
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_DUE_REMINDER_OFFSET): vol.All(
+            cv.string, flow_helpers.validate_duration_string
+        ),
     }
 )
 
@@ -373,6 +385,8 @@ _SERVICE_TO_CHORE_DATA_MAPPING: dict[str, str] = {
     const.SERVICE_FIELD_CHORE_CRUD_PENDING_CLAIMS: const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION,
     const.SERVICE_FIELD_CHORE_CRUD_OVERDUE_HANDLING: const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
     const.SERVICE_FIELD_CHORE_CRUD_AUTO_APPROVE: const.DATA_CHORE_AUTO_APPROVE,
+    const.SERVICE_FIELD_CHORE_CRUD_DUE_WINDOW_OFFSET: const.DATA_CHORE_DUE_WINDOW_OFFSET,
+    const.SERVICE_FIELD_CHORE_CRUD_DUE_REMINDER_OFFSET: const.DATA_CHORE_DUE_REMINDER_OFFSET,
     # NOTE: due_date is handled specially via set_chore_due_date() hook
 }
 

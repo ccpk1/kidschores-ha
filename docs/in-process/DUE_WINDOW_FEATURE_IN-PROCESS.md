@@ -9,19 +9,19 @@
 
 ## Summary & immediate steps
 
-| Phase / Step             | Description                              | % complete | Quick notes                              |
-| ------------------------ | ---------------------------------------- | ---------- | ---------------------------------------- |
-| Phase 1a – Frequencies   | Add missing frequency options to chores  | 100%       | ✅ Complete - all tests pass             |
-| Phase 1b – Configuration | Add due window system settings           | 0%         | Global + per-chore due window offsets    |
-| Phase 2 – State Logic    | Implement DUE state calculation          | 0%         | New state between PENDING and OVERDUE    |
-| Phase 3 – Entity Updates | Update sensors and dashboard integration | 0%         | Frontend display changes                 |
-| Phase 4 – Notifications  | Add due window notification triggers     | 0%         | Integrate with existing notification sys |
+| Phase / Step             | Description                             | % complete | Quick notes                                |
+| ------------------------ | --------------------------------------- | ---------- | ------------------------------------------ |
+| Phase 1a – Frequencies   | Add missing frequency options to chores | 100%       | ✅ Complete - all tests pass               |
+| Phase 1b – Configuration | Add due window per-chore settings       | 100%       | ✅ Duration parser, constants, flow fields |
+| Phase 2 – State Logic    | Implement DUE state calculation         | 100%       | ✅ New state between PENDING and OVERDUE   |
+| Phase 3 – Service/Forms  | Update service schemas and forms        | 100%       | ✅ Complete - UI tested and verified       |
+| Phase 4 – Notifications  | Add due window notification triggers    | 0%         | Integrate with existing notification sys   |
 
 1. **Key objective** – Add a "DUE" state that activates X hours/days before chore due date, providing clearer user guidance on when chores should be started vs just available.
 
-2. **Summary of recent work** – **Phase 1a complete**: Added quarterly, yearly, and period-end (week, month, quarter, year) frequencies to chores. Updated const.py arrays, services.py schema, and translations.
+2. **Summary of recent work** – **Phase 1a complete**: Added quarterly, yearly, and period-end frequencies. **Phase 1b complete**: Duration parser, constants, flow fields. **Phase 2 complete**: DUE state logic in sensors/coordinator. **Phase 3 complete**: Service schemas updated, UI tested and verified. Documentation updated with due window configuration details.
 
-3. **Next steps (short term)** – Manual testing of new frequencies (user step), then proceed to Phase 1b for due window system configuration.
+3. **Next steps (short term)** – Proceed to Phase 4 for notification system updates. Implement due window notification triggers and configurable reminder offsets.
 
 4. **Risks / blockers**
    - Need to ensure backward compatibility with existing chore states
@@ -203,29 +203,32 @@ DATA_CHORE_NOTIFY_DUE_REMINDER: Final = "notify_due_reminder"
 ### Phase 3 – Frontend & Dashboard Integration
 
 - **Goal**: Update entity sensors, dashboard helpers, and UI representations for due window display
+- **Status**: ✅ COMPLETE
 - **Steps / detailed work items**
-  1. `[ ]` Update options flow for due window and notification configuration
-     - Add due window settings to system options flow in `options_flow.py`
-     - Create schema for global due window settings (enabled, default days/hours)
-     - Add configurable notification options (due window notify, reminder timing)
-     - Replace fixed 30-minute reminder with configurable days/hours/minutes options
-     - Add validation for reasonable values (due window: 0-30 days, notifications: 0-30 days)
-  2. `[ ]` Add per-chore due window configuration to chore forms
-     - Update `flow_helpers.py` chore schema builders
-     - Add due window override fields to chore creation/edit forms
-     - Add conditional display logic (only show if global due window enabled)
-  3. `[ ]` Update dashboard helper for due window display
-     - Modify dashboard helper sensor to include due window metadata
-     - Add `due_window_active` and `due_window_remaining` fields to chore objects
-     - Ensure proper sorting of chores by due window status
-  4. `[ ]` Update service schemas for due window support
-     - Add due window fields to `CREATE_CHORE_SCHEMA` and `UPDATE_CHORE_SCHEMA` in `services.py`
-     - Update `_SERVICE_TO_CHORE_DATA_MAPPING` for service field mapping
-     - Add validation for due window service inputs
-  5. `[ ]` Test UI integration
-     - Verify due window settings appear in options flow
-     - Test chore form due window overrides
-     - Validate dashboard helper updates reflect due window state changes
+  1. `[x]` ~~Update options flow for due window and notification configuration~~ **NOT NEEDED**
+     - Per-chore only settings, no global system configuration
+     - Form fields already exist in `flow_helpers.py` (lines 674, 676, 996)
+  2. `[x]` ~~Add per-chore due window configuration to chore forms~~ **ALREADY DONE**
+     - Form fields exist in `flow_helpers.py` (CFOF_CHORES_INPUT_DUE_WINDOW_OFFSET, CFOF_CHORES_INPUT_DUE_REMINDER_OFFSET)
+  3. `[x]` ~~Update dashboard helper for due window display~~ **NOT NEEDED**
+     - Dashboard helper already returns `status: "due"` for chores in due window (Phase 2)
+     - DUE chores already grouped in "today" bucket via `_calculate_primary_group()`
+     - Detailed attributes (`time_until_due`, `time_until_overdue`) available via `state_attr(chore.eid, 'attr')` from ChoreStatusSensor
+     - Dashboard helper intentionally provides minimal attributes (6 fields) for performance
+  4. `[x]` Update service schemas for due window support
+     - Added `SERVICE_FIELD_CHORE_CRUD_DUE_WINDOW_OFFSET` and `SERVICE_FIELD_CHORE_CRUD_DUE_REMINDER_OFFSET` to const.py
+     - Added `due_window_offset` and `due_reminder_offset` fields to `CREATE_CHORE_SCHEMA` in services.py
+     - Added `due_window_offset` and `due_reminder_offset` fields to `UPDATE_CHORE_SCHEMA` in services.py
+     - Added mapping to `_SERVICE_TO_CHORE_DATA_MAPPING` (service field → storage field)
+     - Added field descriptions to `services.yaml` for both create_chore and update_chore
+  5. `[x]` Test UI integration
+     - ✅ Verified due window fields appear in chore creation/edit forms
+     - ✅ Tested service calls accept due_window_offset and due_reminder_offset via Developer Tools
+     - ✅ Validated dashboard helper updates reflect due window state changes
+     - ✅ Confirmed primary_group calculation keeps chores in correct group across state transitions
+     - ✅ Updated documentation (Configuration:-Chores.md, Technical:-Chores.md, Technical:-Chore-Detail.md)
+     - ✅ Added "due" state to dashboard state_map (kc_dashboard_all.yaml)
+     - ✅ Fixed primary_group to check due window status (sensor.py)
 - **Key issues**
   - Need to decide on UX for per-chore overrides (checkboxes, separate fields, etc.)
   - Consider mobile UI space constraints for additional form fields

@@ -731,6 +731,20 @@ create_chore:
       required: false
       selector:
         datetime:
+    due_window_offset:
+      name: "Due Window Offset"
+      description: "Duration before due date when chore enters 'due' state. Format: '30m', '1h', '1d 6h', etc. Use '0' to disable."
+      example: "30m"
+      required: false
+      selector:
+        text:
+    due_reminder_offset:
+      name: "Due Reminder Offset"
+      description: "Duration before due date to send reminder notification. Format: '30m', '1h', '1d 6h', etc. Use '0' to disable."
+      example: "30m"
+      required: false
+      selector:
+        text:
 
 update_chore:
   name: "Update Chore"
@@ -878,6 +892,20 @@ update_chore:
       required: false
       selector:
         datetime:
+    due_window_offset:
+      name: "Due Window Offset"
+      description: "New due window offset. Duration before due date when chore enters 'due' state. Format: '30m', '1h', '1d 6h', etc. Use '0' to disable."
+      example: "30m"
+      required: false
+      selector:
+        text:
+    due_reminder_offset:
+      name: "Due Reminder Offset"
+      description: "New due reminder offset. Duration before due date to send reminder notification. Format: '30m', '1h', '1d 6h', etc. Use '0' to disable."
+      example: "30m"
+      required: false
+      selector:
+        text:
 
 delete_chore:
   name: "Delete Chore"

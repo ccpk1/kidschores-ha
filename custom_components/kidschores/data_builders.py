@@ -1316,6 +1316,13 @@ def build_chore(
             const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES: _normalize_dict_field(
                 get_field(const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES, {})
             ),
+            # Due window configuration (per-chore offsets)
+            const.DATA_CHORE_DUE_WINDOW_OFFSET: get_field(
+                const.DATA_CHORE_DUE_WINDOW_OFFSET, const.DEFAULT_DUE_WINDOW_OFFSET
+            ),
+            const.DATA_CHORE_DUE_REMINDER_OFFSET: get_field(
+                const.DATA_CHORE_DUE_REMINDER_OFFSET, const.DEFAULT_DUE_REMINDER_OFFSET
+            ),
             # Runtime tracking (preserve existing values on update)
             const.DATA_CHORE_LAST_COMPLETED: get_field(
                 const.DATA_CHORE_LAST_COMPLETED, None

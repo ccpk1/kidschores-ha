@@ -1427,6 +1427,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.DATA_CHORE_DAILY_MULTI_TIMES, ""
             ),
             const.CFOF_CHORES_INPUT_DUE_DATE: existing_due_date,
+            const.CFOF_CHORES_INPUT_DUE_WINDOW_OFFSET: chore_data.get(
+                const.DATA_CHORE_DUE_WINDOW_OFFSET, const.DEFAULT_DUE_WINDOW_OFFSET
+            ),
+            const.CFOF_CHORES_INPUT_DUE_REMINDER_OFFSET: chore_data.get(
+                const.DATA_CHORE_DUE_REMINDER_OFFSET, const.DEFAULT_DUE_REMINDER_OFFSET
+            ),
         }
 
         # Build schema with suggested values as defaults

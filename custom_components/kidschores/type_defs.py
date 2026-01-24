@@ -183,6 +183,14 @@ class ChoreData(TypedDict):
     per_kid_applicable_days: NotRequired[dict[str, list[str]]]
     per_kid_daily_multi_times: NotRequired[dict[str, list[str]]]
 
+    # Due window configuration (per-chore offsets)
+    due_window_offset: NotRequired[
+        str | None
+    ]  # Duration string "1d 6h 30m" or "0" disabled
+    due_reminder_offset: NotRequired[
+        str | None
+    ]  # Duration string for reminder notification
+
     # Runtime tracking (set during chore lifecycle)
     last_completed: NotRequired[str | None]  # ISO datetime
     last_claimed: NotRequired[str | None]  # ISO datetime

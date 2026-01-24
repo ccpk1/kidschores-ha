@@ -2028,6 +2028,16 @@
           "name": "Due Date",
           "description": "Optional due date for the chore. Use the date/time selector to choose a valid date and time.",
           "example": "2025-03-01T23:59:00Z"
+        },
+        "due_window_offset": {
+          "name": "Due Window Offset",
+          "description": "Duration before due date when chore enters 'due' state. Format: '30m', '1h', '1d 6h 30m', etc. Use '0' to disable due window feature.",
+          "example": "30m"
+        },
+        "due_reminder_offset": {
+          "name": "Due Reminder Offset",
+          "description": "Duration before due date to send reminder notification. Format: '30m', '1h', '1d 6h 30m', etc. Use '0' to disable reminders.",
+          "example": "30m"
         }
       }
     },
@@ -2104,6 +2114,16 @@
           "name": "Due Date",
           "description": "New due date for the chore. Use the date/time selector to choose a valid date and time.",
           "example": "2025-04-01T18:00:00Z"
+        },
+        "due_window_offset": {
+          "name": "Due Window Offset",
+          "description": "New due window offset. Duration before due date when chore enters 'due' state. Format: '30m', '1h', '1d 6h 30m', etc. Use '0' to disable.",
+          "example": "1h"
+        },
+        "due_reminder_offset": {
+          "name": "Due Reminder Offset",
+          "description": "New due reminder offset. Duration before due date to send reminder notification. Format: '30m', '1h', '1d 6h 30m', etc. Use '0' to disable.",
+          "example": "30m"
         }
       }
     },

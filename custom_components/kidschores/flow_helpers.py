@@ -134,6 +134,44 @@ import voluptuous as vol
 
 from . import const, kc_helpers as kh
 
+# =============================================================================
+# INPUT VALIDATION HELPERS
+# =============================================================================
+
+
+def validate_duration_string(value: str) -> str:
+    """Validate duration string format and reasonable range.
+
+    Args:
+        value: Duration string like "30m", "1d 6h", "0" (disabled)
+
+    Returns:
+        Original value if valid
+
+    Raises:
+        vol.Invalid: If format is invalid or value out of range
+    """
+    if not value or value.strip() == "0":
+        return value  # "0" or empty = disabled (valid)
+
+    td = kh.dt_parse_duration(value)
+    if td is None:
+        raise vol.Invalid(
+            f"Invalid duration format: '{value}'. "
+            "Expected format: '30m', '1h', '1d 6h 30m', or '0' to disable."
+        )
+
+    # Range check: 1 minute to 30 days
+    from datetime import timedelta
+
+    if td < timedelta(minutes=1):
+        raise vol.Invalid("Duration must be at least 1 minute")
+    if td > timedelta(days=30):
+        raise vol.Invalid("Duration must not exceed 30 days")
+
+    return value
+
+
 # ----------------------------------------------------------------------------------
 # POINTS SCHEMA
 # ----------------------------------------------------------------------------------
@@ -696,13 +734,6 @@ def build_chore_schema(
 
     # Add remaining fields
     schema_fields[
-        vol.Required(
-            const.CFOF_CHORES_INPUT_SHOW_ON_CALENDAR,
-            default=default.get(const.CFOF_CHORES_INPUT_SHOW_ON_CALENDAR, True),
-        )
-    ] = selector.BooleanSelector()
-
-    schema_fields[
         vol.Optional(
             const.CFOF_CHORES_INPUT_NOTIFICATIONS,
             default=_build_notification_defaults(default),
@@ -721,6 +752,13 @@ def build_chore_schema(
             translation_key=const.TRANS_KEY_FLOW_HELPERS_CHORE_NOTIFICATIONS,
         )
     )
+
+    schema_fields[
+        vol.Required(
+            const.CFOF_CHORES_INPUT_SHOW_ON_CALENDAR,
+            default=default.get(const.CFOF_CHORES_INPUT_SHOW_ON_CALENDAR, True),
+        )
+    ] = selector.BooleanSelector()
 
     return vol.Schema(schema_fields)
 

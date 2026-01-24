@@ -2218,6 +2218,8 @@ SERVICE_FIELD_CHORE_CRUD_PENDING_CLAIMS: Final = "pending_claims"
 SERVICE_FIELD_CHORE_CRUD_OVERDUE_HANDLING: Final = "overdue_handling"
 SERVICE_FIELD_CHORE_CRUD_AUTO_APPROVE: Final = "auto_approve"
 SERVICE_FIELD_CHORE_CRUD_DUE_DATE: Final = "due_date"
+SERVICE_FIELD_CHORE_CRUD_DUE_WINDOW_OFFSET: Final = "due_window_offset"
+SERVICE_FIELD_CHORE_CRUD_DUE_REMINDER_OFFSET: Final = "due_reminder_offset"
 
 # Reward service fields (CRUD + workflow)
 SERVICE_FIELD_REWARD_ID: Final = "id"
@@ -2430,10 +2432,6 @@ ENTITY_REGISTRY: Final[dict[str, EntityRequirement]] = {
 EXTRA_ENTITY_SUFFIXES: Final[tuple[str, ...]] = tuple(
     suffix for suffix, req in ENTITY_REGISTRY.items() if req == EntityRequirement.EXTRA
 )
-
-# Note: SHADOW_KID_* derived tuples removed - should_create_entity() now uses
-# ENTITY_REGISTRY directly for all creation/filtering decisions.
-
 
 # ------------------------------------------------------------------------------------------------
 # Errors and Warnings
