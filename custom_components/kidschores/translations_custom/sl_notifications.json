@@ -101,10 +101,12 @@
   },
   "actions": {
     "approve": "Odobritev",
+    "claim": "✋ Zahtevajte zdaj",
+    "complete": "Dokončano",
     "disapprove": "Ne odobri",
     "remind_30": "Opomni čez 30 minut",
+    "skip": "Preskoči",
     "approve_latest": "✅ Odobri najnovejše",
-    "review_all": "👀 Preglej vse",
-    "claim": "✋ Zahtevajte zdaj"
+    "review_all": "👀 Preglej vse"
   }
 }

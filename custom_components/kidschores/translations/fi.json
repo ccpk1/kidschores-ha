@@ -13,6 +13,16 @@
           "backup_selection": "Valitse vaihtoehto"
         }
       },
+      "paste_json_input": {
+        "title": "JSON-tietojen tuonti",
+        "description": "Liitä koko JSON-sisältö jommastakummasta:\n\n• KidsChores-datatiedosto (kidschores_data)\n• Diagnostiikkatiedoston lataus\n\nJärjestelmä tunnistaa ja purkaa tiedostomuodon automaattisesti tarpeen mukaan. Sekä raakadatan tallennus- että diagnostiikkatiedostojen vientimuotoja tuetaan.",
+        "data": {
+          "json_data": "JSON-tiedot"
+        },
+        "data_description": {
+          "json_data": "Liitä koko JSON-sisältö tähän. Hyväksyy tiedot kidschores_data-tiedostosta tai diagnostiikkaviennistä (purkaa automaattisesti ylimääräisen rakenteen)."
+        }
+      },
       "points_label": {
         "title": "Pistemerkintä",
         "description": "Valitse pisteille otsikko ja kuvake.",
@@ -26,7 +36,25 @@
         "description": "Päivitä järjestelmäasetukset, kuten pisteiden otsikot ja kuvakkeet.",
         "data": {
           "points_label": "Pistemerkintä",
-          "points_icon": "Pistekuvake"
+          "points_icon": "Pistekuvake",
+          "update_interval": "Päivitysväli (minuuttia)",
+          "calendar_show_period": "Kalenterin näyttöjakso (päivinä)",
+          "retention_daily": "Päivittäinen säilytys (päivää)",
+          "retention_weekly": "Viikoittainen säilytys (viikkoa)",
+          "retention_monthly": "Kuukausittainen säilytys (kuukausina)",
+          "retention_yearly": "Vuosittainen säilytysaika (vuotta)",
+          "points_adjust_values": "Pistesäätöarvot (putkieroteltu)"
+        },
+        "data_description": {
+          "points_label": "Pisteiden nimi (esim. 'Pisteet', 'Tähdet', 'Kolikot')",
+          "points_icon": "MDI-kuvake pisteille (esim. 'mdi:star', 'mdi:coin', 'mdi:trophy')",
+          "update_interval": "Kuinka usein tiedot päivitetään (vähintään 1 minuutin välein)",
+          "calendar_show_period": "Kalenterissa näytettävät historiapäivät (vähintään 1)",
+          "retention_daily": "Päivittäisten koosteiden säilytyspäivät",
+          "retention_weekly": "Viikot viikoittaisten koosteiden säilyttämiseen",
+          "retention_monthly": "Kuukaudet kuukausittaisten koosteiden säilyttämiseen",
+          "retention_yearly": "Vuosittaisten aggregaattien säilytysaika",
+          "points_adjust_values": "Putkittain erotetut pistearvot manuaalisille säätöpainikkeille (esim. +1,0|-1,0|+10,0|-10,0)"
         }
       },
       "kid_count": {
@@ -40,7 +68,7 @@
         "title": "Määrittele lapsi",
         "description": "Kirjoita jokaisen lapsen nimi.",
         "data": {
-          "kid_name": "Lapsen nimi",
+          "name": "Lapsen nimi",
           "ha_user": "Kotiavustaja-käyttäjä",
           "mobile_notify_service": "Ilmoitukset",
           "dashboard_language": "Kieli"
@@ -61,13 +89,16 @@
         "title": "Määritä ylätaso",
         "description": "Anna tiedot jokaisesta vanhemmasta.",
         "data": {
-          "parent_name": "Vanhemman nimi",
+          "name": "Vanhemman nimi",
           "ha_user_id": "Kotiavustaja-käyttäjä",
           "associated_kids": "Liittyneet lapset",
           "mobile_notify_service": "Ilmoitukset",
           "dashboard_language": "Kieli"
         },
         "data_description": {
+          "name": "Tämän pääobjektin yksilöllinen nimi, jota käytetään koko järjestelmässä.",
+          "ha_user_id": "Valinnainen: Yhdistä tämä vanhempi Home Assistant -käyttäjään ilmoituksia ja hallintapaneelin käyttöä varten.",
+          "associated_kids": "Valitse, keitä lapsia tämä vanhempi valvoo ilmoitusten ja hyväksyntätoimintojen osalta.",
           "mobile_notify_service": "Valitse ilmoituspalvelu ottaaksesi ilmoitukset käyttöön tälle vanhemmalle tai jätä tyhjäksi poistaaksesi ne käytöstä.",
           "dashboard_language": "Työraporttisi ja ilmoitusten kieli."
         }
@@ -83,7 +114,7 @@
         "title": "Lisää kotitehtävä",
         "description": "Luo uusi tehtävä, jossa on pisteitä, tehtäviä ja toistuva aikataulu.",
         "data": {
-          "chore_name": "📋 Työn nimi",
+          "name": "📋 Työn nimi",
           "chore_description": "📋 Kuvaus (valinnainen)",
           "icon": "📋 Kuvake (mdi:xxx)",
           "chore_labels": "📋 Tunnisteet (valinnainen)",
@@ -99,11 +130,13 @@
           "custom_interval_unit": "🔄 Aikataulu: Mukautettu intervalliyksikkö",
           "applicable_days": "📅 Aikataulu: Soveltuvat päivät (valinnainen)",
           "due_date": "📅 Aikataulu: Määräpäivä (valinnainen)",
+          "chore_due_window_offset": "⏱️ Eräikkuna: Kuittaa ennen eräpäivää",
+          "chore_due_reminder_offset": "🔔 Eräpäivämuistutus: Kuittaa ennen eräpäivää",
           "show_on_calendar": "📅 Näytetäänkö kalenterissa?",
           "chore_notifications": "🔔 Ilmoitustapahtumat (valinnainen)"
         },
         "data_description": {
-          "chore_name": "Järjestelmässä näkyvä yksilöllinen nimi.",
+          "name": "Järjestelmässä näkyvä yksilöllinen nimi.",
           "chore_description": "Valinnaiset ohjeet tai tiedot tehtävän suorittamisesta.",
           "icon": "Materiaalisuunnittelun kuvake (esim. mdi:luuta, mdi:astianpesukone).",
           "chore_labels": "Tagit askareiden järjestämiseen (esim. 'keittiö', 'ulkona'). Jätä tyhjäksi, jos et tarvitse.",
@@ -119,6 +152,8 @@
           "custom_interval_unit": "Mukautetun aikavälin aikayksikkö (päivät, viikot, kuukaudet). Käytetään vain mukautetun taajuuden kanssa.",
           "applicable_days": "Jätä tyhjäksi kaikki päivät. Valitse VAIN tietyt päivät rajoitusta varten.",
           "due_date": "Valinnainen määräaika. Voidaan yhdistää toistuviin aikatauluihin.",
+          "chore_due_window_offset": "Kun työn tila muuttuu Odottaa-tilasta Määräpäivä-tilaan. Muoto: '1pv 6h 30m' tai vain '30' minuuteille. Syötä '0' poistaaksesi tilan käytöstä. Esimerkki: '1pv' tarkoittaa, että työ näkyy Erääntymistilassa 1 päivä ennen määräaikaa.",
+          "chore_due_reminder_offset": "Milloin lähetetään muistutus eräpäivästä. Muoto: '1pv 6t 30m' tai vain '30' minuuteille. Oletusarvo: 30m (30 minuuttia ennen eräpäivää). Syötä '0' poistaaksesi ilmoituksen käytöstä.",
           "show_on_calendar": "Näytä tämä tehtävä kalenterinäkymässä.",
           "chore_notifications": "Milloin ilmoituksia lähetetään: Vaatimuksen, hyväksynnän, hylkäämisen tai minkä tahansa näiden yhdistelmän yhteydessä."
         }
@@ -191,10 +226,10 @@
         "title": "Määrittele palkkio",
         "description": "Anna tiedot jokaisesta palkinnosta.",
         "data": {
-          "reward_name": "Palkinnon nimi",
+          "name": "Palkinnon nimi",
           "internal_id": "Sisäinen tunnus",
-          "reward_cost": "Palkkion hinta",
-          "reward_description": "Kuvaus (valinnainen)",
+          "cost": "Palkkion hinta",
+          "description": "Kuvaus (valinnainen)",
           "reward_labels": "Palkintotarrat",
           "icon": "Kuvake (mdi:xxx)"
         }
@@ -210,7 +245,7 @@
         "title": "Määrittele rangaistus",
         "description": "Anna tiedot jokaisesta rangaistuksesta.",
         "data": {
-          "penalty_name": "Rangaistuksen nimi",
+          "name": "Rangaistuksen nimi",
           "penalty_description": "Kuvaus (valinnainen)",
           "penalty_labels": "Rangaistustarrat",
           "internal_id": "Sisäinen tunnus",
@@ -229,7 +264,7 @@
         "title": "Määrittele bonus",
         "description": "Anna tiedot jokaisesta bonuksesta.",
         "data": {
-          "bonus_name": "Bonusnimi",
+          "name": "Bonusnimi",
           "bonus_description": "Kuvaus (valinnainen)",
           "bonus_labels": "Bonus-tarrat",
           "internal_id": "Sisäinen tunnus",
@@ -308,6 +343,10 @@
       "due_date_in_past": "Eräpäivän on oltava tulevaisuudessa.",
       "end_date_in_past": "Päättymispäivämäärän on oltava tulevaisuudessa.",
       "end_date_not_after_start_date": "Päättymispäivämäärän on oltava alkamispäivämäärää myöhäisempi",
+      "err_end_before_start": "Päättymispäivämäärän on oltava alkamispäivämäärän jälkeen",
+      "err_name_duplicate": "Tämän niminen haaste on jo olemassa.",
+      "achievement_no_kids_assigned": "Ainakin yhden lapsen on oltava määrätty saavutukseen",
+      "challenge_no_kids_assigned": "Haasteeseen on oltava määrätty vähintään yksi lapsi",
       "invalid_achievement_count": "Virheellinen saavutusten määrä",
       "invalid_achievement_name": "Virheellinen saavutuksen nimi",
       "invalid_badge": "Virheellinen merkki",
@@ -318,6 +357,7 @@
       "invalid_chore": "Virheellinen työtehtävä",
       "invalid_chore_count": "Virheellinen tehtävien määrä",
       "invalid_chore_name": "Virheellinen työn nimi",
+      "invalid_points": "Pisteiden on oltava nolla tai suurempi",
       "invalid_overdue_reset_combination": "”Eräpäivänä nollaa sitten” -myöhästymiskäsittely toimii vain keskiyön nollaustyyppien kanssa. Valitse hyväksynnän nollaustyypiksi ”Keskiyöllä (kerran)” tai ”Keskiyöllä (toistuvasti)”.",
       "invalid_due_date": "Virheellinen eräpäivä",
       "date_required_for_frequency": "Tälle toistuvalle tiheydelle vaaditaan eräpäivä. Tyhjennä päivämääriä toimii vain, jos tiheys on Ei mitään, Päivittäin tai Viikoittain.",
@@ -333,6 +373,7 @@
       "invalid_reward": "Virheellinen palkinto",
       "invalid_reward_count": "Virheellinen palkintojen määrä",
       "invalid_reward_name": "Virheellinen palkinnon nimi",
+      "invalid_reward_cost": "Palkkion hinnan on oltava nolla tai suurempi",
       "invalid_bonus": "Virheellinen bonus",
       "invalid_bonus_count": "Virheellinen bonusten määrä",
       "invalid_bonus_name": "Virheellinen bonuksen nimi",
@@ -399,13 +440,15 @@
         "title": "Lisää lapsi",
         "description": "Anna tiedot uudelle lapselle.",
         "data": {
-          "kid_name": "Lapsen nimi",
+          "name": "Lapsen nimi",
           "ha_user": "Kotiavustaja-käyttäjä",
           "mobile_notify_service": "Ilmoitukset",
           "dashboard_language": "Kieli",
           "internal_id": "Sisäinen tunnus"
         },
         "data_description": {
+          "name": "Tämän lapsen yksilöllinen nimi, jota käytetään koko järjestelmässä.",
+          "ha_user": "Valinnainen: Linkitä tämä lapsi Home Assistant -käyttäjään kojelaudan käyttöoikeuksien hallintaa varten.",
           "mobile_notify_service": "Valitse ilmoituspalvelu ottaaksesi ilmoitukset käyttöön tälle lapselle tai jätä tyhjäksi poistaaksesi ne käytöstä.",
           "dashboard_language": "Työraporttisi ja ilmoitusten kieli."
         }
@@ -414,7 +457,7 @@
         "title": "Lisää ylätaso",
         "description": "Anna tiedot uudelle vanhemmalle.",
         "data": {
-          "parent_name": "Vanhemman nimi",
+          "name": "Vanhemman nimi",
           "ha_user_id": "Kotiavustaja-käyttäjä",
           "associated_kids": "Liittyneet lapset",
           "mobile_notify_service": "Ilmoitukset",
@@ -425,6 +468,9 @@
           "internal_id": "Sisäinen tunnus"
         },
         "data_description": {
+          "name": "Tämän pääobjektin yksilöllinen nimi, jota käytetään koko järjestelmässä.",
+          "ha_user_id": "Valinnainen: Yhdistä tämä vanhempi Home Assistant -käyttäjään ilmoituksia ja hallintapaneelin käyttöä varten.",
+          "associated_kids": "Valitse, keitä lapsia tämä vanhempi valvoo ilmoitusten ja hyväksyntätoimintojen osalta.",
           "mobile_notify_service": "Valitse ilmoituspalvelu ottaaksesi ilmoitukset käyttöön tälle vanhemmalle tai jätä tyhjäksi poistaaksesi ne käytöstä.",
           "allow_chore_assignment": "Luo profiilin, jotta tehtäviä voidaan määrittää sinulle. Oletusarvoisesti vain Hyväksy-painike näkyy, jotta tehtävät voidaan suorittaa yhdellä napsautuksella. Huomautus: Valinnan poistaminen säilyttää lapsen profiilin, jonka pääte on '_unlinked', manuaalista puhdistusta varten.",
           "enable_chore_workflow": "Lisää Vaatimus- ja Hylkää-painikkeet koko työnkulkuun (vaatimus → hyväksy/hylkää).",
@@ -436,7 +482,7 @@
         "title": "Lisää kotitehtävä",
         "description": "Luo uusi tehtävä, jossa on pisteitä, tehtäviä ja toistuva aikataulu.",
         "data": {
-          "chore_name": "📋 Työn nimi",
+          "name": "📋 Työn nimi",
           "chore_description": "📋 Kuvaus (valinnainen)",
           "icon": "📋 Kuvake (mdi:xxx)",
           "chore_labels": "📋 Tunnisteet (valinnainen)",
@@ -452,11 +498,13 @@
           "custom_interval_unit": "🔄 Aikataulu: Mukautettu intervalliyksikkö",
           "applicable_days": "📅 Aikataulu: Soveltuvat päivät (valinnainen)",
           "due_date": "📅 Aikataulu: Määräpäivä (valinnainen)",
+          "chore_due_window_offset": "⏱️ Eräikkuna: Kuittaa ennen eräpäivää",
+          "chore_due_reminder_offset": "🔔 Eräpäivämuistutus: Kuittaa ennen eräpäivää",
           "show_on_calendar": "📅 Näytetäänkö kalenterissa?",
           "chore_notifications": "🔔 Ilmoitustapahtumat (valinnainen)"
         },
         "data_description": {
-          "chore_name": "Järjestelmässä näkyvä yksilöllinen nimi.",
+          "name": "Järjestelmässä näkyvä yksilöllinen nimi.",
           "chore_description": "Valinnaiset ohjeet tai tiedot tehtävän suorittamisesta.",
           "icon": "Materiaalisuunnittelun kuvake (esim. mdi:luuta, mdi:astianpesukone).",
           "chore_labels": "Tagit askareiden järjestämiseen (esim. 'keittiö', 'ulkona'). Jätä tyhjäksi, jos et tarvitse.",
@@ -472,6 +520,8 @@
           "custom_interval_unit": "Mukautetun aikavälin aikayksikkö (päivät, viikot, kuukaudet). Käytetään vain mukautetun taajuuden kanssa.",
           "applicable_days": "Jätä tyhjäksi kaikki päivät. Valitse VAIN tietyt päivät rajoitusta varten.",
           "due_date": "Valinnainen määräaika. Voidaan yhdistää toistuviin aikatauluihin. ITSENÄISILLE askareille tämä toimii mallina – näkyviin tulee ylimääräinen näyttö, jossa voit määrittää lapsellesi omat päivämäärät.",
+          "chore_due_window_offset": "Kun työn tila muuttuu Odottaa-tilasta Määräpäivä-tilaan. Muoto: '1pv 6h 30m' tai vain '30' minuuteille. Syötä '0' poistaaksesi tilan käytöstä. Esimerkki: '1pv' tarkoittaa, että työ näkyy Erääntymistilassa 1 päivä ennen määräaikaa.",
+          "chore_due_reminder_offset": "Milloin lähetetään muistutus eräpäivästä. Muoto: '1pv 6t 30m' tai vain '30' minuuteille. Oletusarvo: 30m (30 minuuttia ennen eräpäivää). Syötä '0' poistaaksesi ilmoituksen käytöstä.",
           "show_on_calendar": "Näytä tämä tehtävä kalenterinäkymässä.",
           "chore_notifications": "Milloin ilmoituksia lähetetään: Vaatimuksen, hyväksynnän, hylkäämisen tai minkä tahansa näiden yhdistelmän yhteydessä."
         }
@@ -695,10 +745,10 @@
         "title": "Lisää palkinto",
         "description": "Anna uuden palkinnon tiedot.",
         "data": {
-          "reward_name": "Palkinnon nimi",
+          "name": "Palkinnon nimi",
           "internal_id": "Sisäinen tunnus",
-          "reward_cost": "Palkkion hinta",
-          "reward_description": "Kuvaus (valinnainen)",
+          "cost": "Palkkion hinta",
+          "description": "Kuvaus (valinnainen)",
           "reward_labels": "Palkintotarrat",
           "icon": "Kuvake (mdi:xxx)"
         }
@@ -707,7 +757,7 @@
         "title": "Lisää rangaistus",
         "description": "Anna uuden rangaistuksen tiedot.",
         "data": {
-          "penalty_name": "Rangaistuksen nimi",
+          "name": "Rangaistuksen nimi",
           "penalty_description": "Kuvaus (valinnainen)",
           "penalty_labels": "Rangaistustarrat",
           "internal_id": "Sisäinen tunnus",
@@ -719,7 +769,7 @@
         "title": "Lisää bonus",
         "description": "Anna uuden bonuksen tiedot.",
         "data": {
-          "bonus_name": "Bonusnimi",
+          "name": "Bonusnimi",
           "bonus_description": "Kuvaus (valinnainen)",
           "bonus_labels": "Bonus-tarrat",
           "internal_id": "Sisäinen tunnus",
@@ -767,13 +817,15 @@
         "title": "Muokkaa lasta",
         "description": "Muokkaa valitun lapsen tietoja.",
         "data": {
-          "kid_name": "Lapsen nimi",
+          "name": "Lapsen nimi",
           "ha_user": "Kotiavustaja-käyttäjä",
           "mobile_notify_service": "Ilmoitukset",
           "dashboard_language": "Kieli",
           "internal_id": "Sisäinen tunnus"
         },
         "data_description": {
+          "name": "Tämän lapsen yksilöllinen nimi, jota käytetään koko järjestelmässä.",
+          "ha_user": "Valinnainen: Linkitä tämä lapsi Home Assistant -käyttäjään kojelaudan käyttöoikeuksien hallintaa varten.",
           "mobile_notify_service": "Valitse ilmoituspalvelu ottaaksesi ilmoitukset käyttöön tälle lapselle.",
           "dashboard_language": "Työraporttisi ja ilmoitusten kieli."
         }
@@ -782,14 +834,15 @@
         "title": "Muokkaa Varjolapsia",
         "description": "Muokkaa valitun varjolapsen tietoja. ⚠️ Tämä lapsi on linkitetty vanhempaan. Nimen muuttaminen rikkoo nimen täsmäytysvaatimuksen linkityksen poistamiseksi palvelun kautta.",
         "data": {
-          "kid_name": "Lapsen nimi",
+          "name": "Lapsen nimi",
           "ha_user": "Kotiavustaja-käyttäjä",
           "mobile_notify_service": "Ilmoitukset",
           "dashboard_language": "Kieli",
           "internal_id": "Sisäinen tunnus"
         },
         "data_description": {
-          "kid_name": "⚠️ Tämä varjolapsi on linkitetty vanhempaan. Nimen muuttaminen katkaisee palvelun linkityksen purkamistoiminnon, joka edellyttää samoja nimiä.",
+          "name": "⚠️ Tämä varjolapsi on linkitetty vanhempaan. Nimen muuttaminen katkaisee palvelun linkityksen purkamistoiminnon, joka edellyttää samoja nimiä.",
+          "ha_user": "Valinnainen: Linkitä tämä lapsi Home Assistant -käyttäjään kojelaudan käyttöoikeuksien hallintaa varten.",
           "mobile_notify_service": "⚠️ Varjosta lapsen ilmoitukset: Yhdistetty vanhempi saa jo ilmoituksia valvotuista askareista. Tämän käyttöönotto luo kaksoisilmoituksia. Hyödyllinen 30 minuutin määräpäivämuistutuksille tai jos käytetään eri ilmoituspalveluita.",
           "dashboard_language": "Työraporttisi ja ilmoitusten kieli."
         }
@@ -798,7 +851,7 @@
         "title": "Muokkaa ylätasapainoa",
         "description": "Muokkaa valitun pääobjektin tietoja.",
         "data": {
-          "parent_name": "Vanhemman nimi",
+          "name": "Vanhemman nimi",
           "ha_user_id": "Kotiavustaja-käyttäjä",
           "associated_kids": "Liittyneet lapset",
           "mobile_notify_service": "Ilmoitukset",
@@ -809,6 +862,9 @@
           "internal_id": "Sisäinen tunnus"
         },
         "data_description": {
+          "name": "Tämän pääobjektin yksilöllinen nimi, jota käytetään koko järjestelmässä.",
+          "ha_user_id": "Valinnainen: Yhdistä tämä vanhempi Home Assistant -käyttäjään ilmoituksia ja hallintapaneelin käyttöä varten.",
+          "associated_kids": "Valitse, keitä lapsia tämä vanhempi valvoo ilmoitusten ja hyväksyntätoimintojen osalta.",
           "mobile_notify_service": "Valitse ilmoituspalvelu ottaaksesi ilmoitukset käyttöön tälle vanhemmalle tai jätä tyhjäksi poistaaksesi ne käytöstä.",
           "allow_chore_assignment": "Luo profiilin, jotta sinulle voidaan määrittää tehtäviä. Oletusarvoisesti vain Hyväksy-painike näkyy, jotta tehtävät voidaan suorittaa yhdellä napsautuksella. Huomautus: Valinnan poistaminen säilyttää lapsen profiilin '_unlinked'-liitteellä manuaalista puhdistusta varten.",
           "enable_chore_workflow": "Lisää Vaatimus- ja Hylkää-painikkeet koko työnkulkuun (vaatimus → hyväksy/hylkää).",
@@ -820,7 +876,7 @@
         "title": "Muokkaa tehtävää",
         "description": "Muokkaa valitun työn tietoja.",
         "data": {
-          "chore_name": "📋 Työn nimi",
+          "name": "📋 Työn nimi",
           "chore_description": "📋 Kuvaus (valinnainen)",
           "icon": "📋 Kuvake (mdi:xxx)",
           "chore_labels": "📋 Tunnisteet (valinnainen)",
@@ -838,11 +894,13 @@
           "applicable_days": "📅 Aikataulu: Soveltuvat päivät (valinnainen)",
           "due_date": "📅 Aikataulu: Määräpäivä (valinnainen)",
           "clear_due_date": "🗑️ Selkeä eräpäivä",
+          "chore_due_window_offset": "⏱️ Eräikkuna: Kuittaa ennen eräpäivää",
+          "chore_due_reminder_offset": "🔔 Eräpäivämuistutus: Kuittaa ennen eräpäivää",
           "show_on_calendar": "📅 Näytetäänkö kalenterissa?",
           "chore_notifications": "🔔 Ilmoitustapahtumat (valinnainen)"
         },
         "data_description": {
-          "chore_name": "Järjestelmässä näkyvä yksilöllinen nimi.",
+          "name": "Järjestelmässä näkyvä yksilöllinen nimi.",
           "chore_description": "Valinnaiset ohjeet tai tiedot tehtävän suorittamisesta.",
           "icon": "Materiaalisuunnittelun kuvake (esim. mdi:luuta, mdi:astianpesukone).",
           "chore_labels": "Tagit askareiden järjestämiseen (esim. 'keittiö', 'ulkona'). Jätä tyhjäksi, jos et tarvitse.",
@@ -859,6 +917,8 @@
           "applicable_days": "Jätä tyhjäksi kaikki päivät. Valitse VAIN tietyt päivät rajoitusta varten.",
           "due_date": "Valinnainen määräaika. Voidaan yhdistää toistuviin aikatauluihin. ITSENÄISILLE askareille tämä toimii mallina – näkyviin tulee ylimääräinen näyttö, jossa voit määrittää lapsellesi omat päivämäärät.",
           "clear_due_date": "Valitse tämä ruutu poistaaksesi määräpäivän tästä tehtävästä.",
+          "chore_due_window_offset": "Kun työn tila muuttuu Odottaa-tilasta Määräpäivä-tilaan. Muoto: '1pv 6h 30m' tai vain '30' minuuteille. Syötä '0' poistaaksesi tilan käytöstä. Esimerkki: '1pv' tarkoittaa, että työ näkyy Erääntymistilassa 1 päivä ennen määräaikaa.",
+          "chore_due_reminder_offset": "Milloin lähetetään muistutus eräpäivästä. Muoto: '1pv 6t 30m' tai vain '30' minuuteille. Oletusarvo: 30m (30 minuuttia ennen eräpäivää). Syötä '0' poistaaksesi ilmoituksen käytöstä.",
           "show_on_calendar": "Näytä tämä tehtävä kalenterinäkymässä.",
           "chore_notifications": "Milloin ilmoituksia lähetetään: Vaatimuksen, hyväksynnän, hylkäämisen tai minkä tahansa näiden yhdistelmän yhteydessä."
         }
@@ -1109,10 +1169,10 @@
         "title": "Muokkaa palkintoa",
         "description": "Muokkaa valitun palkinnon tietoja.",
         "data": {
-          "reward_name": "Palkinnon nimi",
+          "name": "Palkinnon nimi",
           "internal_id": "Sisäinen tunnus",
-          "reward_cost": "Palkkion hinta",
-          "reward_description": "Kuvaus (valinnainen)",
+          "cost": "Palkkion hinta",
+          "description": "Kuvaus (valinnainen)",
           "reward_labels": "Palkintotarrat",
           "icon": "Kuvake (mdi:xxx)"
         }
@@ -1121,7 +1181,7 @@
         "title": "Muokkaa rangaistusta",
         "description": "Muokkaa valitun rangaistuksen tietoja.",
         "data": {
-          "penalty_name": "Rangaistuksen nimi",
+          "name": "Rangaistuksen nimi",
           "penalty_description": "Kuvaus (valinnainen)",
           "penalty_labels": "Rangaistustarrat",
           "internal_id": "Sisäinen tunnus",
@@ -1133,7 +1193,7 @@
         "title": "Muokkaa bonusta",
         "description": "Muokkaa valitun bonuksen tietoja.",
         "data": {
-          "bonus_name": "Bonusnimi",
+          "name": "Bonusnimi",
           "bonus_description": "Kuvaus (valinnainen)",
           "bonus_labels": "Bonus-tarrat",
           "internal_id": "Sisäinen tunnus",
@@ -1281,11 +1341,34 @@
       },
       "select_backup_to_delete": {
         "title": "Valitse poistettava varmuuskopio",
-        "description": "Valitse poistettava varmuuskopiotiedosto.\n\nKäytettävissä olevat varmuuskopiot: {backup_count}\n\n⚠️ Suojattuja varmuuskopioita (ennen siirtoa, manuaalisesti) ei voi poistaa."
+        "description": "Valitse poistettava varmuuskopiotiedosto.\n\nKäytettävissä olevat varmuuskopiot: {backup_count}"
       },
       "select_backup_to_restore": {
         "title": "Valitse varmuuskopio palauttaaksesi",
-        "description": "Valitse palautettava varmuuskopiotiedosto.\n\nKäytettävissä olevat varmuuskopiot: {backup_count}\n\n⚠️ Tämä korvaa nykyiset tietosi!"
+        "description": "Valitse palautettava varmuuskopiotiedosto.\n\nKäytettävissä olevat varmuuskopiot: {backup_count}\n\n⚠️ Tämä korvaa nykyiset tietosi!",
+        "data": {
+          "backup_selection": "Valitse varmuuskopio"
+        },
+        "data_description": {
+          "backup_selection": "Valitse varmuuskopiotiedosto, jonka haluat palauttaa."
+        }
+      },
+      "restore_backup": {
+        "title": "Tietojen palautusvaihtoehdot",
+        "description": "Olemassa olevia KidsChores-tietoja löytyi sijainnista:\n{storage_path}\n\nLöytyi {backup_count} varmuuskopiotiedostoa.\n\nMitä haluat tehdä?",
+        "data": {
+          "backup_selection": "Valitse vaihtoehto"
+        }
+      },
+      "paste_json_restore": {
+        "title": "JSON-tietojen tuonti",
+        "description": "Liitä koko JSON-sisältö jommastakummasta:\n\n• KidsChores-datatiedosto (kidschores_data)\n• Diagnostiikkatiedoston lataus\n\nJärjestelmä tunnistaa ja purkaa tiedostomuodon automaattisesti tarpeen mukaan. Sekä raakadatan tallennus- että diagnostiikkatiedostojen vientimuotoja tuetaan.",
+        "data": {
+          "json_data": "JSON-tiedot"
+        },
+        "data_description": {
+          "json_data": "Liitä koko JSON-sisältö tähän. Hyväksyy tiedot kidschores_data-tiedostosta tai diagnostiikkaviennistä (purkaa automaattisesti ylimääräisen rakenteen)."
+        }
       },
       "create_backup_confirm": {
         "title": "Luo manuaalinen varmuuskopio",
@@ -1331,6 +1414,8 @@
       "due_date_in_past": "Eräpäivän on oltava tulevaisuudessa.",
       "end_date_in_past": "Päättymispäivämäärän on oltava tulevaisuudessa.",
       "end_date_not_after_start_date": "Päättymispäivämäärän on oltava alkamispäivämäärää myöhäisempi",
+      "err_end_before_start": "Päättymispäivämäärän on oltava alkamispäivämäärän jälkeen",
+      "err_name_duplicate": "Tämän niminen haaste on jo olemassa.",
       "invalid_badge": "Virheellinen merkki",
       "invalid_badge_count": "Virheellinen merkkien määrä",
       "invalid_chore": "Virheellinen työtehtävä",
@@ -1341,6 +1426,8 @@
       "invalid_kid_count": "Virheellinen lasten määrä",
       "invalid_kid_name": "Virheellinen lapsen nimi",
       "no_kids_assigned": "Ainakin yksi lapsi on määrättävä tehtävään",
+      "achievement_no_kids_assigned": "Ainakin yhden lapsen on oltava määrätty saavutukseen",
+      "challenge_no_kids_assigned": "Haasteeseen on oltava määrätty vähintään yksi lapsi",
       "invalid_penalty": "Virheellinen rangaistus",
       "invalid_penalty_count": "Virheellinen rangaistuspisteiden määrä",
       "invalid_bonus": "Virheellinen bonus",
@@ -1524,7 +1611,9 @@
         "notify_on_claim": "Ilmoita vaatimuksesta",
         "notify_on_approval": "Ilmoita hyväksynnästä",
         "notify_on_disapproval": "Ilmoita hylkäämisestä",
-        "notify_on_reminder": "Ilmoita 30 minuuttia ennen eräpäivää"
+        "notify_on_reminder": "Ilmoita 30 minuuttia ennen määräaikaa (vanha)",
+        "notify_on_due_window": "Ilmoita, kun eräpäivä alkaa",
+        "notify_due_reminder": "Ilmoita muistutusaikana"
       }
     },
     "recurring_frequency": {
@@ -1542,7 +1631,11 @@
         "custom_1_week": "Mukautettu: 1 viikko",
         "custom_1_month": "Mukautettu: 1 kuukausi",
         "custom_1_quarter": "Mukautettu: 1 neljännes",
-        "custom_1_year": "Mukautettu: 1 vuosi"
+        "custom_1_year": "Mukautettu: 1 vuosi",
+        "week_end": "Viikonloppu",
+        "month_end": "Kuukauden lopussa",
+        "quarter_end": "Neljänneksen loppu",
+        "year_end": "Vuoden lopussa"
       }
     },
     "occasion_type": {
@@ -1709,6 +1802,10 @@
           "name": "Palkinnon nimi",
           "description": "Hyväksyttävän palkinnon nimi.",
           "example": "Ylimääräistä ruutuaikaa"
+        },
+        "cost_override": {
+          "name": "Kustannusten ohitus",
+          "description": "Valinnainen kustannusten ohitus. Jos tämä jätetään pois, käytetään palkinnon tallennettua kustannusta. Aseta arvoksi 0, jos haluat ilmaisen palkinnon (kuten merkkipalkinnot). Hyödyllinen kontekstitietoiseen hinnoitteluun (viikonloput, erityistilaisuudet jne.)."
         }
       }
     },
@@ -1772,6 +1869,277 @@
           "name": "Bonusnimi",
           "description": "Käytettävän bonuksen nimi.",
           "example": "Erittäin hyödyllinen"
+        }
+      }
+    },
+    "create_reward": {
+      "name": "Luo palkinto",
+      "description": "Luo uusi palkinto ohjelmallisesti.",
+      "fields": {
+        "name": {
+          "name": "Nimi",
+          "description": "Palkinnon nimi.",
+          "example": "Ylimääräistä ruutuaikaa"
+        },
+        "cost": {
+          "name": "Maksaa",
+          "description": "Palkinnon lunastamiseen vaadittavat pisteet.",
+          "example": "10"
+        },
+        "description": {
+          "name": "Kuvaus",
+          "description": "Palkinnon valinnainen kuvaus.",
+          "example": "30 minuuttia ylimääräistä tablettiaikaa"
+        },
+        "icon": {
+          "name": "Kuvake",
+          "description": "Palkintoa edustava kuvake.",
+          "example": "mdi:lahja"
+        },
+        "labels": {
+          "name": "Tarrat",
+          "description": "Palkintojen ryhmittelyyn tarkoitetut tunnisteet.",
+          "example": "['viikonloppu', 'erikoinen']"
+        }
+      }
+    },
+    "update_reward": {
+      "name": "Päivitä palkinto",
+      "description": "Päivitä olemassa oleva palkinto (osittaisia päivityksiä tuetaan).",
+      "fields": {
+        "id": {
+          "name": "Palkintotunnus",
+          "description": "Päivitettävän palkinnon sisäinen tunniste. Käytä joko tunnistetta TAI nimeä.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Nimi",
+          "description": "Päivitettävän palkinnon nimi tai palkinnon uusi nimi.",
+          "example": "Ylimääräistä ruutuaikaa"
+        },
+        "cost": {
+          "name": "Maksaa",
+          "description": "Päivitetty kustannusarvo.",
+          "example": "15"
+        },
+        "description": {
+          "name": "Kuvaus",
+          "description": "Päivitetty kuvaus.",
+          "example": "45 minuuttia ylimääräistä tablettiaikaa"
+        },
+        "icon": {
+          "name": "Kuvake",
+          "description": "Päivitetty kuvake.",
+          "example": "mdi:tähti"
+        },
+        "labels": {
+          "name": "Tarrat",
+          "description": "Päivitetyt tunnisteet.",
+          "example": "['premium', 'erikoinen']"
+        }
+      }
+    },
+    "delete_reward": {
+      "name": "Poista palkinto",
+      "description": "Poista palkinto tunnuksen tai nimen perusteella.",
+      "fields": {
+        "id": {
+          "name": "Palkintotunnus",
+          "description": "Poistettavan palkinnon sisäinen tunniste. Käytä joko tunnistetta TAI nimeä.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Nimi",
+          "description": "Poistettavan palkinnon nimi.",
+          "example": "Ylimääräistä ruutuaikaa"
+        }
+      }
+    },
+    "create_chore": {
+      "name": "Luo kotitehtävä",
+      "description": "Keksi uusi kotitehtävä, jonka lapset voivat suorittaa ansaitakseen pisteitä.",
+      "fields": {
+        "name": {
+          "name": "Työn nimi",
+          "description": "Luotavan työn nimi.",
+          "example": "Puhdas huone"
+        },
+        "assigned_kids": {
+          "name": "Määrätyt lapset",
+          "description": "Lista lasten nimistä, jotka tälle tehtävälle annetaan.",
+          "example": "['Emma', 'Jack']"
+        },
+        "points": {
+          "name": "Pisteet",
+          "description": "Pisteitä annetaan, kun tehtävä on suoritettu.",
+          "example": "10"
+        },
+        "description": {
+          "name": "Kuvaus",
+          "description": "Valinnainen tehtävän kuvaus.",
+          "example": "Petaa sänky, laita lelut pois, imuroi lattia"
+        },
+        "icon": {
+          "name": "Kuvake",
+          "description": "Materiaalisuunnittelun kuvake tehtävälle.",
+          "example": "mdi:luuta"
+        },
+        "labels": {
+          "name": "Tarrat",
+          "description": "Valinnaiset tunnisteet tehtävän luokittelemiseksi.",
+          "example": "['päivittäin', 'makuuhuone']"
+        },
+        "frequency": {
+          "name": "Taajuus",
+          "description": "Kuinka usein työ toistuu: ei yhtään, päivittäin, päivittäinen_moni, viikoittain, joka toinen viikko, kuukausittain, neljännesvuosittain, vuosittain, mukautettu, mukautettu_valmistumisesta tai kauden_loppu (viikon_loppu, kuukauden_loppu, neljännesvuoden_loppu, vuoden_loppu).",
+          "example": "päivittäin"
+        },
+        "applicable_days": {
+          "name": "Sovellettavat päivät",
+          "description": "Viikonpäivät, jolloin tehtävä on sovellettavissa.",
+          "example": "['ma', 'ke', 'pe']"
+        },
+        "completion_criteria": {
+          "name": "Suorituskriteerit",
+          "description": "Miten tehtävä suoritetaan, kun siihen on määritetty useita lapsia: itsenäinen (jokainen lapsi suorittaa sen erikseen), jaettu_ensimmäinen (ensimmäisenä tehtävän suorittanut lapsi ansaitsee pisteitä) tai jaettu_kaikki (kaikkien lasten on suoritettava tehtävä). Tätä ei voi muuttaa luomisen jälkeen.",
+          "example": "itsenäinen"
+        },
+        "approval_reset_type": {
+          "name": "Hyväksynnän nollaustyyppi",
+          "description": "Kun tehtävä nollautuu uudelleen suoritettavaksi.",
+          "example": "keskiyöllä"
+        },
+        "pending_claims": {
+          "name": "Vireillä olevat korvauskäsittelyt",
+          "description": "Mitä tapahtuu odottaville vaatimuksille, kun työ nollautuu: hold_pending (säilytä vaatimukset), clear_pending (poista vaatimukset) tai auto_approve_pending (hyväksyy kaikki odottavat).",
+          "example": "odotustilassa"
+        },
+        "overdue_handling": {
+          "name": "Myöhästyneiden käsittely",
+          "description": "Miten hoitaa kotityöt, kun ne tulevat myöhässä.",
+          "example": "eräpäivä"
+        },
+        "auto_approve": {
+          "name": "Automaattinen hyväksyntä",
+          "description": "Jos tämä on totta, työ hyväksytään automaattisesti, kun se on lunastanut tehtävän.",
+          "example": "väärä"
+        },
+        "due_date": {
+          "name": "Eräpäivä",
+          "description": "Valinnainen määräpäivä tehtävälle. Valitse kelvollinen päivämäärä ja kellonaika päivämäärä-/kellonaikavalitsimella.",
+          "example": "2025-03-01T23:59:00Z"
+        },
+        "due_window_offset": {
+          "name": "Eräikkunan siirtymä",
+          "description": "Kesto ennen eräpäivää, kun työ siirtyy määräpäivään. Muoto: '30m', '1h', '1pv 6h 30m' jne. Käytä arvoa '0' poistaaksesi määräaikatoiminnon käytöstä.",
+          "example": "30 metriä"
+        },
+        "due_reminder_offset": {
+          "name": "Eräpäivämuistutuksen siirtymä",
+          "description": "Muistutuksen lähettämisen aika ennen määräpäivää. Muoto: '30 min', '1 h', '1 pv 6 h 30 min' jne. Käytä '0' poistaaksesi muistutukset käytöstä.",
+          "example": "30 metriä"
+        }
+      }
+    },
+    "update_chore": {
+      "name": "Päivitä työtehtävä",
+      "description": "Päivitä olemassa olevan työn ominaisuudet. Anna joko tunnus TAI nimi työn tunnistamiseksi. Vain annetut kentät päivitetään. Huomautus: completion_criteria-arvoa ei voi muuttaa luomisen jälkeen.",
+      "fields": {
+        "id": {
+          "name": "Työn tunnus",
+          "description": "Päivitettävän työn sisäinen tunnus (nimi-vaihtoehdon mukaisesti).",
+          "example": "abc-123-def-456"
+        },
+        "name": {
+          "name": "Työn nimi (tunniste)",
+          "description": "Päivitettävän työn nimi (vaihtoehto id:lle). Käyttäjäystävällisempi kuin id.",
+          "example": "Puhdas huone"
+        },
+        "assigned_kids": {
+          "name": "Määrätyt lapset",
+          "description": "Uusi lista lasten nimistä, jotka tälle tehtävälle annetaan.",
+          "example": "['Emma', 'Jack']"
+        },
+        "points": {
+          "name": "Pisteet",
+          "description": "Uusi pistearvo tehtävälle.",
+          "example": "15"
+        },
+        "description": {
+          "name": "Kuvaus",
+          "description": "Uusi kuvaus tehtävästä.",
+          "example": "Petaa sänky, järjestele työpöytä, imuroi lattia"
+        },
+        "icon": {
+          "name": "Kuvake",
+          "description": "Uusi materiaalisuunnittelun kuvake tehtävälle.",
+          "example": "mdi:tyhjiö"
+        },
+        "labels": {
+          "name": "Tarrat",
+          "description": "Uudet nimikkeet askareelle.",
+          "example": "['viikoittain', 'siivous']"
+        },
+        "frequency": {
+          "name": "Taajuus",
+          "description": "Uusi toistuva tiheys: ei mitään, päivittäin, päivittäinen_moni, viikoittain, joka toinen viikko, kuukausittain, neljännesvuosittain, vuosittain, mukautettu, mukautettu_kokonaisuudesta tai kauden_loppu (viikon_loppu, kuukauden_loppu, neljännesvuoden_loppu, vuoden_loppu).",
+          "example": "viikoittain"
+        },
+        "applicable_days": {
+          "name": "Sovellettavat päivät",
+          "description": "Viikon uudet päivät, jolloin tehtävä on sovellettavissa.",
+          "example": "['la', 'aurinko']"
+        },
+        "approval_reset_type": {
+          "name": "Hyväksynnän nollaustyyppi",
+          "description": "Uusi nollaustyyppi työn nollautumiselle.",
+          "example": "eräpäivänä"
+        },
+        "pending_claims": {
+          "name": "Vireillä olevat korvauskäsittelyt",
+          "description": "Uusi toiminto odottaville vaatimuksille, kun työ nollautuu.",
+          "example": "clear_donding"
+        },
+        "overdue_handling": {
+          "name": "Myöhästyneiden käsittely",
+          "description": "Uusi myöhästymiskäsittelytapa.",
+          "example": "ei koskaan myöhässä"
+        },
+        "auto_approve": {
+          "name": "Automaattinen hyväksyntä",
+          "description": "Uusi automaattisen hyväksynnän asetus.",
+          "example": "totta"
+        },
+        "due_date": {
+          "name": "Eräpäivä",
+          "description": "Työn uusi määräpäivä. Valitse kelvollinen päivämäärä ja kellonaika päivämäärä-/kellonaikavalitsimella.",
+          "example": "2025-04-01T18:00:00Z"
+        },
+        "due_window_offset": {
+          "name": "Eräikkunan siirtymä",
+          "description": "Uusi eräpäivän siirtymä. Aika ennen eräpäivää, kun työ siirtyy eräpäivään. Muoto: '30m', '1h', '1pv 6h 30m' jne. Käytä '0' poistaaksesi käytöstä.",
+          "example": "1 tunti"
+        },
+        "due_reminder_offset": {
+          "name": "Eräpäivämuistutuksen siirtymä",
+          "description": "Uusi eräpäivän muistutusviive. Aika ennen eräpäivää, jolloin muistutus lähetetään. Muoto: '30 min', '1 h', '1 pv 6 h 30 min' jne. Käytä '0' poistaaksesi sen käytöstä.",
+          "example": "30 metriä"
+        }
+      }
+    },
+    "delete_chore": {
+      "name": "Poista työtehtävä",
+      "description": "Poista tehtävä tunnuksen tai nimen perusteella. Kaikki lapsikohtaiset tilat ja historia poistetaan.",
+      "fields": {
+        "id": {
+          "name": "Työn tunnus",
+          "description": "Poistettavan työn sisäinen tunnus. Käytä joko tunnusta TAI nimeä.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Nimi",
+          "description": "Poistettavan työn nimi.",
+          "example": "Puhdas huone"
         }
       }
     },
@@ -1929,6 +2297,7 @@
           "pending": "Odottaa",
           "approved": "Hyväksytty",
           "claimed": "Väitetty",
+          "due": "Erääntyvä",
           "overdue": "Myöhässä",
           "unknown": "Tuntematon",
           "none": "Ei mitään",
@@ -2102,6 +2471,15 @@
           },
           "claim_button_eid": {
             "name": "Vaatimuspainikkeen yksikön tunnus"
+          },
+          "due_window_start": {
+            "name": "Eräikkunan alku"
+          },
+          "time_until_due": {
+            "name": "Määräaikaa jäljellä"
+          },
+          "time_until_overdue": {
+            "name": "Myöhästymisaika"
           }
         }
       },
@@ -2593,6 +2971,7 @@
           "pending": "Odottaa",
           "approved": "Hyväksytty",
           "claimed": "Väitetty",
+          "due": "Erääntyvä",
           "overdue": "Myöhässä",
           "unknown": "Tuntematon",
           "none": "Ei mitään",
@@ -2694,15 +3073,25 @@
           },
           "chore_completed_by": {
             "name": "Valmistuja"
+          },
+          "due_window_start": {
+            "name": "Eräikkunan alku"
+          },
+          "time_until_due": {
+            "name": "Määräaikaa jäljellä"
+          },
+          "time_until_overdue": {
+            "name": "Myöhästymisaika"
           }
         }
       },
       "kid_reward_status_sensor": {
         "name": "Palkinnon tila - {reward_name}",
         "state": {
-          "not_claimed": "Ei vaadittu",
+          "locked": "Lukittu",
+          "available": "Saatavilla",
+          "requested": "Pyydetty",
           "approved": "Hyväksytty",
-          "claimed": "Väitetty",
           "unknown": "Tuntematon",
           "none": "Ei mitään"
         },
@@ -3484,6 +3873,9 @@
     "shared_chore_cannot_have_kid": {
       "message": "Jaetulle tehtävälle ei voi määrittää lasta {chore_name}. Jaetuilla tehtävillä on yksi määräpäivä kaikille lapsille."
     },
+    "reward_not_found": {
+      "message": "Palkintoa tunnuksella '{reward_id}' ei löytynyt"
+    },
     "required_field": {
       "message": "On annettava {field}"
     },
@@ -3495,6 +3887,18 @@
     },
     "missing_chore": {
       "message": "On annettava joko tehtävän tunnus tai tehtävän nimi."
+    },
+    "missing_chore_identifier": {
+      "message": "Työn tunnistamiseksi on annettava joko chore_id tai chore_name."
+    },
+    "chore_not_found": {
+      "message": "Työtä, jonka tunnus on '{chore_id}', ei löytynyt."
+    },
+    "completion_criteria_immutable": {
+      "message": "Suorituskriteerejä ei voi muuttaa työn luomisen jälkeen. Poista työ ja luo se uudelleen, jos tarvitset eri suorituskriteerit."
+    },
+    "missing_reward_identifier": {
+      "message": "Päivitettävän palkinnon tunnistamiseksi on annettava joko reward_id tai reward_name."
     },
     "missing_field": {
       "message": "Pakollinen kenttä {field} puuttuu kohdasta {entity}"

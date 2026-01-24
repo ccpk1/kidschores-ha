@@ -52,7 +52,9 @@
   "custom_1_week": "Personalitzat (1 setmana)",
   "custom_1_year": "Personalitzat (1 any)",
   "current_status": "Estat actual",
+  "custom_from_complete": "Personalitzat (Reprogramar a partir de la data de finalització)",
   "daily": "Diari",
+  "daily_multi": "Diàriament (diverses vegades al dia)",
   "demoted": "degradat",
   "due": "Venciment",
   "due_date": "Data de venciment",
@@ -147,7 +149,11 @@
   "weekly": "Setmanal",
   "weekly_completed": "Setmanalment completat",
   "weekly_performance": "Rendiment setmanal",
+  "week_end": "Cap de setmana",
   "welcome": "Benvingut/da",
   "went_overdue": "Va anar endarrerit",
+  "month_end": "Final de mes",
+  "quarter_end": "Final de trimestre",
+  "year_end": "Final d'any",
   "independent": "Independent"
 }

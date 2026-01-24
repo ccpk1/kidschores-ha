@@ -52,7 +52,9 @@
   "custom_1_week": "Mukautettu (1 viikko)",
   "custom_1_year": "Mukautettu (1 vuosi)",
   "current_status": "Nykyinen tila",
+  "custom_from_complete": "Mukautettu (Ajoita uudelleen valmistumispäivästä)",
   "daily": "Päivittäin",
+  "daily_multi": "Päivittäin (useita kertoja päivässä)",
   "demoted": "Alennettu",
   "due": "Erääntyvä",
   "due_date": "Eräpäivä",
@@ -147,7 +149,11 @@
   "weekly": "Viikoittain",
   "weekly_completed": "Viikoittain valmistunut",
   "weekly_performance": "Viikoittainen suorituskyky",
+  "week_end": "Viikonloppu",
   "welcome": "Tervetuloa",
   "went_overdue": "Meni myöhässä",
+  "month_end": "Kuukauden lopussa",
+  "quarter_end": "Neljänneksen loppu",
+  "year_end": "Vuoden lopussa",
   "independent": "Itsenäinen"
 }

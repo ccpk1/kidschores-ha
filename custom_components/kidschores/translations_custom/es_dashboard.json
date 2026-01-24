@@ -52,7 +52,9 @@
   "custom_1_week": "Personalizado (1 semana)",
   "custom_1_year": "Personalizado (1 año)",
   "current_status": "Estado actual",
+  "custom_from_complete": "Personalizado (Reprogramar a partir de la fecha de finalización)",
   "daily": "A diario",
+  "daily_multi": "Diariamente (varias veces al día)",
   "demoted": "Degradado",
   "due": "Pendiente",
   "due_date": "Fecha de vencimiento",
@@ -147,7 +149,11 @@
   "weekly": "Semanalmente",
   "weekly_completed": "Semanal completado",
   "weekly_performance": "Rendimiento semanal",
+  "week_end": "Fin de semana",
   "welcome": "Bienvenido",
   "went_overdue": "Se atrasó",
+  "month_end": "Fin de mes",
+  "quarter_end": "Fin de trimestre",
+  "year_end": "Fin de año",
   "independent": "Independiente"
 }

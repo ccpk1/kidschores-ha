@@ -52,7 +52,9 @@
   "custom_1_week": "Op maat gemaakt (1 week)",
   "custom_1_year": "Maatwerk (1 jaar)",
   "current_status": "Huidige status",
+  "custom_from_complete": "Aangepast (Verplaatsen van de voltooiingsdatum)",
   "daily": "Dagelijks",
+  "daily_multi": "Dagelijks (meerdere keren per dag)",
   "demoted": "Gedegradeerd",
   "due": "Vanwege",
   "due_date": "Deadline",
@@ -147,7 +149,11 @@
   "weekly": "Wekelijks",
   "weekly_completed": "Wekelijks voltooid",
   "weekly_performance": "Wekelijkse prestatie",
+  "week_end": "Weekend",
   "welcome": "Welkom",
   "went_overdue": "Te laat",
+  "month_end": "Einde van de maand",
+  "quarter_end": "einde kwartaal",
+  "year_end": "Jaareinde",
   "independent": "Onafhankelijk"
 }

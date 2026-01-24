@@ -52,7 +52,9 @@
   "custom_1_week": "Individuell (1 Woche)",
   "custom_1_year": "Kundenspezifisch (1 Jahr)",
   "current_status": "Aktueller Status",
+  "custom_from_complete": "Benutzerdefiniert (Terminverschiebung vom Fertigstellungsdatum)",
   "daily": "Täglich",
+  "daily_multi": "Täglich (mehrmals täglich)",
   "demoted": "Degradiert",
   "due": "Fällig",
   "due_date": "Fälligkeitsdatum",
@@ -147,7 +149,11 @@
   "weekly": "Wöchentlich",
   "weekly_completed": "Wöchentlich abgeschlossen",
   "weekly_performance": "Wöchentliche Leistung",
+  "week_end": "Wochenende",
   "welcome": "Willkommen",
   "went_overdue": "Überfällig",
+  "month_end": "Monatsende",
+  "quarter_end": "Quartalsende",
+  "year_end": "Jahresende",
   "independent": "Unabhängig"
 }

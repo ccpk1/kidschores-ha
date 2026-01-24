@@ -52,7 +52,9 @@
   "custom_1_week": "Vlastné (1 týždeň)",
   "custom_1_year": "Vlastné (1 rok)",
   "current_status": "Aktuálny stav",
+  "custom_from_complete": "Vlastné (Preplánovať od dátumu dokončenia)",
   "daily": "Denne",
+  "daily_multi": "Denne (viacerokrát denne)",
   "demoted": "Znížený",
   "due": "Dátum splatnosti",
   "due_date": "Dátum splatnosti",
@@ -147,7 +149,11 @@
   "weekly": "Týždenne",
   "weekly_completed": "Týždenne dokončené",
   "weekly_performance": "Týždenný výkon",
+  "week_end": "Víkend",
   "welcome": "Vitajte",
   "went_overdue": "Meškalo",
+  "month_end": "Koniec mesiaca",
+  "quarter_end": "Koniec štvrťroka",
+  "year_end": "Koniec roka",
   "independent": "Nezávislý"
 }

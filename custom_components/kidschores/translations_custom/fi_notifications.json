@@ -101,10 +101,12 @@
   },
   "actions": {
     "approve": "Hyväksyä",
+    "claim": "✋ Lunasta nyt",
+    "complete": "Täydellinen",
     "disapprove": "Hylkää",
     "remind_30": "Muistutus 30 minuutin kuluttua",
+    "skip": "Ohita",
     "approve_latest": "✅ Hyväksy viimeisimmät",
-    "review_all": "👀 Arvostele kaikki",
-    "claim": "✋ Lunasta nyt"
+    "review_all": "👀 Arvostele kaikki"
   }
 }

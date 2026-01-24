@@ -52,7 +52,9 @@
   "custom_1_week": "Anpassad (1 vecka)",
   "custom_1_year": "Anpassad (1 år)",
   "current_status": "Nuvarande status",
+  "custom_from_complete": "Anpassad (Omplanera från slutdatum)",
   "daily": "Dagligen",
+  "daily_multi": "Dagligen (flera gånger per dag)",
   "demoted": "Degraderad",
   "due": "Förfaller",
   "due_date": "Förfallodatum",
@@ -147,7 +149,11 @@
   "weekly": "Varje vecka",
   "weekly_completed": "Veckovis slutförd",
   "weekly_performance": "Veckans resultat",
+  "week_end": "Helgen",
   "welcome": "Välkomna",
   "went_overdue": "Gick försenad",
+  "month_end": "Månadsslut",
+  "quarter_end": "Kvartsslut",
+  "year_end": "Årsslut",
   "independent": "Oberoende"
 }

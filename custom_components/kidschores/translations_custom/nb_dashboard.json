@@ -52,7 +52,9 @@
   "custom_1_week": "Tilpasset (1 uke)",
   "custom_1_year": "Tilpasset (1 år)",
   "current_status": "Nåværende status",
+  "custom_from_complete": "Tilpasset (Omplanlegg fra ferdigstillelsesdato)",
   "daily": "Daglig",
+  "daily_multi": "Daglig (flere ganger per dag)",
   "demoted": "Degradert",
   "due": "Forfaller",
   "due_date": "Forfallsdato",
@@ -147,7 +149,11 @@
   "weekly": "Ukentlig",
   "weekly_completed": "Ukentlig fullført",
   "weekly_performance": "Ukentlig ytelse",
+  "week_end": "Helg",
   "welcome": "Velkomst",
   "went_overdue": "Gikk for sent",
+  "month_end": "Månedsslutt",
+  "quarter_end": "Kvartslutt",
+  "year_end": "Årsslutt",
   "independent": "Selvstendig"
 }

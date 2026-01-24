@@ -52,7 +52,9 @@
   "custom_1_week": "Personnalisé (1 semaine)",
   "custom_1_year": "Personnalisé (1 an)",
   "current_status": "État actuel",
+  "custom_from_complete": "Personnalisé (Reprogrammer à partir de la date d'achèvement)",
   "daily": "Tous les jours",
+  "daily_multi": "Quotidiennement (Plusieurs fois par jour)",
   "demoted": "Rétrogradé",
   "due": "Exigible",
   "due_date": "Date d'échéance",
@@ -147,7 +149,11 @@
   "weekly": "Hebdomadaire",
   "weekly_completed": "Travail hebdomadaire terminé",
   "weekly_performance": "Performance hebdomadaire",
+  "week_end": "Fin de semaine",
   "welcome": "Accueillir",
   "went_overdue": "Dépassé le délai",
+  "month_end": "Fin de mois",
+  "quarter_end": "Fin de trimestre",
+  "year_end": "Fin d'année",
   "independent": "Indépendant"
 }

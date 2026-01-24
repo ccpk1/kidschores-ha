@@ -101,10 +101,12 @@
   },
   "actions": {
     "approve": "Godkende",
+    "claim": "✋ Gør krav nu",
+    "complete": "Komplet",
     "disapprove": "Misbillige",
     "remind_30": "Påmind om 30 min",
+    "skip": "Springe",
     "approve_latest": "✅ Godkend seneste",
-    "review_all": "👀 Anmeld alle",
-    "claim": "✋ Gør krav nu"
+    "review_all": "👀 Anmeld alle"
   }
 }

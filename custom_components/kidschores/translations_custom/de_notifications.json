@@ -101,10 +101,12 @@
   },
   "actions": {
     "approve": "Genehmigen",
+    "claim": "✋ Jetzt beanspruchen",
+    "complete": "Vollständig",
     "disapprove": "Missbilligen",
     "remind_30": "Erinnere in 30 Minuten",
+    "skip": "Überspringen",
     "approve_latest": "✅ Neueste Version genehmigen",
-    "review_all": "👀 Alle ansehen",
-    "claim": "✋ Jetzt beanspruchen"
+    "review_all": "👀 Alle ansehen"
   }
 }

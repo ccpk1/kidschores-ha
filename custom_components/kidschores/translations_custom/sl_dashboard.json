@@ -52,7 +52,9 @@
   "custom_1_week": "Po meri (1 teden)",
   "custom_1_year": "Po meri (1 leto)",
   "current_status": "Trenutno stanje",
+  "custom_from_complete": "Po meri (Prestavitev z datuma zaključka)",
   "daily": "Dnevno",
+  "daily_multi": "Dnevno (večkrat na dan)",
   "demoted": "Degradiran",
   "due": "Zapadlo",
   "due_date": "Datum zapadlosti",
@@ -147,7 +149,11 @@
   "weekly": "Tedensko",
   "weekly_completed": "Tedensko dokončano",
   "weekly_performance": "Tedenska uspešnost",
+  "week_end": "Konec tedna",
   "welcome": "Dobrodošli",
   "went_overdue": "Zamujalo",
+  "month_end": "Konec meseca",
+  "quarter_end": "Konec četrtine",
+  "year_end": "Konec leta",
   "independent": "Neodvisen"
 }

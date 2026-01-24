@@ -52,7 +52,9 @@
   "custom_1_week": "Tilpasset (1 uge)",
   "custom_1_year": "Tilpasset (1 år)",
   "current_status": "Aktuel status",
+  "custom_from_complete": "Brugerdefineret (Omplanlæg fra færdiggørelsesdato)",
   "daily": "Daglig",
+  "daily_multi": "Dagligt (flere gange om dagen)",
   "demoted": "Degraderet",
   "due": "Forfalden",
   "due_date": "Forfaldsdato",
@@ -147,7 +149,11 @@
   "weekly": "Ugentlig",
   "weekly_completed": "Ugentlig fuldført",
   "weekly_performance": "Ugentlig præstation",
+  "week_end": "Weekend",
   "welcome": "Velkomst",
   "went_overdue": "Gik for sent",
+  "month_end": "Månedsafslutning",
+  "quarter_end": "Kvartalsafslutning",
+  "year_end": "Årsafslutning",
   "independent": "Uafhængig"
 }

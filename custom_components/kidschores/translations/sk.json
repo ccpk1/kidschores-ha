@@ -13,6 +13,16 @@
           "backup_selection": "Vyberte možnosť"
         }
       },
+      "paste_json_input": {
+        "title": "Importovať údaje JSON",
+        "description": "Vložte kompletný obsah JSON z jednej z možností:\n\n• Dátový súbor KidsChores (kidschores_data)\n• Stiahnutie diagnostického súboru\n\nSystém automaticky rozpozná a rozbalí formát podľa potreby. Podporované sú formáty nespracovaných úložných údajov aj exportu diagnostických údajov.",
+        "data": {
+          "json_data": "Údaje JSON"
+        },
+        "data_description": {
+          "json_data": "Sem vložte kompletný obsah JSON. Prijíma údaje zo súboru kidschores_data alebo exportu diagnostiky (automaticky rozbalí extra štruktúru)."
+        }
+      },
       "points_label": {
         "title": "Označenie bodov",
         "description": "Vyberte označenie a ikonu pre body.",
@@ -26,7 +36,25 @@
         "description": "Aktualizujte systémové nastavenia, ako napríklad označenie a ikonu bodov.",
         "data": {
           "points_label": "Označenie bodov",
-          "points_icon": "Ikona bodov"
+          "points_icon": "Ikona bodov",
+          "update_interval": "Interval aktualizácie (minúty)",
+          "calendar_show_period": "Obdobie zobrazenia kalendára (dni)",
+          "retention_daily": "Denná miera udržania (dni)",
+          "retention_weekly": "Týždenná miera udržania (týždne)",
+          "retention_monthly": "Mesačná retencia (mesiace)",
+          "retention_yearly": "Ročná retencia (roky)",
+          "points_adjust_values": "Hodnoty bodového nastavenia (oddelené potrubím)"
+        },
+        "data_description": {
+          "points_label": "Označenie zobrazené pre body (napr. „Body“, „Hviezdy“, „Mince“)",
+          "points_icon": "Ikona MDI pre body (napr. „mdi:star“, „mdi:coin“, „mdi:trophy“)",
+          "update_interval": "Ako často aktualizovať údaje (minimálne 1 minútu)",
+          "calendar_show_period": "Počet dní histórie, ktoré sa majú zobraziť v kalendári (minimálne 1)",
+          "retention_daily": "Dni na uchovávanie denných agregátov",
+          "retention_weekly": "Týždne na uchovávanie týždenných súhrnov",
+          "retention_monthly": "Mesiace na uchovávanie mesačných súhrnov",
+          "retention_yearly": "Roky na uchovávanie ročných súhrnov",
+          "points_adjust_values": "Bodové hodnoty oddelené rúrkami pre tlačidlá manuálneho nastavenia (napr. +1,0|-1,0|+10,0|-10,0)"
         }
       },
       "kid_count": {
@@ -40,7 +68,7 @@
         "title": "Definujte dieťa",
         "description": "Zadajte meno pre každé dieťa.",
         "data": {
-          "kid_name": "Meno dieťaťa",
+          "name": "Meno dieťaťa",
           "ha_user": "Používateľ domáceho asistenta",
           "mobile_notify_service": "Upozornenia",
           "dashboard_language": "Jazyk"
@@ -61,13 +89,16 @@
         "title": "Definovať rodiča",
         "description": "Zadajte podrobnosti o každom rodičovi.",
         "data": {
-          "parent_name": "Meno rodiča",
+          "name": "Meno rodiča",
           "ha_user_id": "Používateľ domáceho asistenta",
           "associated_kids": "Pridružené deti",
           "mobile_notify_service": "Upozornenia",
           "dashboard_language": "Jazyk"
         },
         "data_description": {
+          "name": "Jedinečný názov pre tohto rodiča, používaný v celom systéme.",
+          "ha_user_id": "Voliteľné: Prepojte tohto rodiča s používateľom Domáceho asistenta, aby ste dostávali upozornenia a mali prístup k ovládaciemu panelu.",
+          "associated_kids": "Vyberte, ktoré deti bude tento rodič dohliadať na upozornenia a schvaľovacie akcie.",
           "mobile_notify_service": "Vyberte službu upozornení, ak chcete povoliť upozornenia pre tohto rodiča, alebo ich nechajte prázdne, ak ich chcete zakázať.",
           "dashboard_language": "Jazyk používaný pre váš panel úloh a upozornenia."
         }
@@ -83,7 +114,7 @@
         "title": "Pridať domácu úlohu",
         "description": "Vytvorte novú úlohu s bodmi, úlohami a opakujúcim sa harmonogramom.",
         "data": {
-          "chore_name": "📋 Názov domácej úlohy",
+          "name": "📋 Názov domácej úlohy",
           "chore_description": "📋 Popis (voliteľné)",
           "icon": "Ikona 📋 (mdi:xxx)",
           "chore_labels": "📋 Štítky (voliteľné)",
@@ -99,11 +130,13 @@
           "custom_interval_unit": "🔄 Rozvrh: Vlastná intervalová jednotka",
           "applicable_days": "📅 Harmonogram: Použiteľné dni (voliteľné)",
           "due_date": "📅 Harmonogram: Termín odovzdania (voliteľné)",
+          "chore_due_window_offset": "⏱️ Termín: Kompenzácia pred dátumom splatnosti",
+          "chore_due_reminder_offset": "🔔 Pripomienka: Započítanie pred dátumom splatnosti",
           "show_on_calendar": "📅 Zobraziť v kalendári?",
           "chore_notifications": "🔔 Udalosti oznámení (voliteľné)"
         },
         "data_description": {
-          "chore_name": "Jedinečný názov zobrazený v celom systéme.",
+          "name": "Jedinečný názov zobrazený v celom systéme.",
           "chore_description": "Voliteľné pokyny alebo podrobnosti o tom, ako túto úlohu dokončiť.",
           "icon": "Ikona materiálového dizajnu (napr. mdi:metla, mdi:umývačka riadu).",
           "chore_labels": "Štítky na organizovanie domácich prác (napr. „kuchyňa“, „vonkajšie“). Ak nie sú potrebné, nechajte pole prázdne.",
@@ -119,6 +152,8 @@
           "custom_interval_unit": "Časová jednotka pre vlastný interval (dni, týždne, mesiace). Používa sa iba s vlastnou frekvenciou.",
           "applicable_days": "Pre všetky dni nechajte prázdne. Vyberte IBA konkrétne dni, ktoré chcete obmedziť.",
           "due_date": "Voliteľný termín. Možno kombinovať s opakujúcimi sa harmonogramami.",
+          "chore_due_window_offset": "Keď sa stav úlohy zmení z Čaká na dokončenie na Termín. Formát: „1d 6h 30m“ alebo len „30“ pre minúty. Zadajte „0“ pre vypnutie. Príklad: „1d“ znamená, že úloha sa zobrazí ako „Termín“ 1 deň pred termínom.",
+          "chore_due_reminder_offset": "Kedy odoslať upozornenie na pripomenutie termínu. Formát: „1d 6h 30m“ alebo len „30“ pre minúty. Predvolené: 30m (30 minút pred termínom). Zadajte „0“ pre vypnutie.",
           "show_on_calendar": "Zobraziť túto úlohu v zobrazení kalendára.",
           "chore_notifications": "Kedy odosielať oznámenia: Pri reklamácii, schválení, zamietnutí alebo akejkoľvek kombinácii."
         }
@@ -191,10 +226,10 @@
         "title": "Definovať odmenu",
         "description": "Zadajte podrobnosti pre každú odmenu.",
         "data": {
-          "reward_name": "Názov odmeny",
+          "name": "Názov odmeny",
           "internal_id": "Interné ID",
-          "reward_cost": "Cena odmeny",
-          "reward_description": "Popis (voliteľné)",
+          "cost": "Cena odmeny",
+          "description": "Popis (voliteľné)",
           "reward_labels": "Štítky odmien",
           "icon": "Ikona (mdi:xxx)"
         }
@@ -210,7 +245,7 @@
         "title": "Definovať trest",
         "description": "Zadajte podrobnosti o každom treste.",
         "data": {
-          "penalty_name": "Názov trestu",
+          "name": "Názov trestu",
           "penalty_description": "Popis (voliteľné)",
           "penalty_labels": "Štítky trestov",
           "internal_id": "Interné ID",
@@ -229,7 +264,7 @@
         "title": "Definovať bonus",
         "description": "Zadajte podrobnosti pre každý bonus.",
         "data": {
-          "bonus_name": "Názov bonusu",
+          "name": "Názov bonusu",
           "bonus_description": "Popis (voliteľné)",
           "bonus_labels": "Bonusové štítky",
           "internal_id": "Interné ID",
@@ -308,6 +343,10 @@
       "due_date_in_past": "Dátum splatnosti musí byť v budúcnosti.",
       "end_date_in_past": "Dátum ukončenia musí byť v budúcnosti.",
       "end_date_not_after_start_date": "Dátum ukončenia musí byť neskorší ako dátum začiatku",
+      "err_end_before_start": "Dátum ukončenia musí byť po dátume začiatku",
+      "err_name_duplicate": "Výzva s týmto názvom už existuje",
+      "achievement_no_kids_assigned": "K úspechu musí byť priradené aspoň jedno dieťa",
+      "challenge_no_kids_assigned": "Do výzvy musí byť pridelené aspoň jedno dieťa",
       "invalid_achievement_count": "Neplatný počet úspechov",
       "invalid_achievement_name": "Neplatný názov úspechu",
       "invalid_badge": "Neplatný odznak",
@@ -318,6 +357,7 @@
       "invalid_chore": "Neplatná úloha",
       "invalid_chore_count": "Neplatný počet úloh",
       "invalid_chore_name": "Neplatný názov úlohy",
+      "invalid_points": "Body musia byť nula alebo viac",
       "invalid_overdue_reset_combination": "Manipulácia s oneskorením „V deň splatnosti a potom reset“ funguje iba s typmi resetovania o polnoci. Ako typ resetovania schválenia vyberte možnosť „O polnoci (raz)“ alebo „O polnoci (opakujúce sa)“.",
       "invalid_due_date": "Neplatný dátum splatnosti",
       "date_required_for_frequency": "Pre túto opakujúcu sa frekvenciu je potrebný dátum splatnosti. Vymazať dátumy funguje iba s frekvenciou Žiadna, Denne alebo Týždenne.",
@@ -333,6 +373,7 @@
       "invalid_reward": "Neplatná odmena",
       "invalid_reward_count": "Neplatný počet odmien",
       "invalid_reward_name": "Neplatný názov odmeny",
+      "invalid_reward_cost": "Cena odmeny musí byť nula alebo vyššia",
       "invalid_bonus": "Neplatný bonus",
       "invalid_bonus_count": "Neplatný počet bonusov",
       "invalid_bonus_name": "Neplatný názov bonusu",
@@ -399,13 +440,15 @@
         "title": "Pridať dieťa",
         "description": "Poskytnite podrobnosti o novom dieťati.",
         "data": {
-          "kid_name": "Meno dieťaťa",
+          "name": "Meno dieťaťa",
           "ha_user": "Používateľ domáceho asistenta",
           "mobile_notify_service": "Upozornenia",
           "dashboard_language": "Jazyk",
           "internal_id": "Interné ID"
         },
         "data_description": {
+          "name": "Jedinečné meno pre toto dieťa, používané v celom systéme.",
+          "ha_user": "Voliteľné: Prepojte toto dieťa s používateľom Domáceho asistenta pre ovládanie prístupu k ovládaciemu panelu.",
           "mobile_notify_service": "Vyberte službu upozornení, ak chcete upozornenia pre toto dieťa povoliť, alebo ich nechajte prázdne, ak ich chcete zakázať.",
           "dashboard_language": "Jazyk používaný pre váš panel úloh a upozornenia."
         }
@@ -414,7 +457,7 @@
         "title": "Pridať rodiča",
         "description": "Poskytnite podrobnosti o novom rodičovi.",
         "data": {
-          "parent_name": "Meno rodiča",
+          "name": "Meno rodiča",
           "ha_user_id": "Používateľ domáceho asistenta",
           "associated_kids": "Pridružené deti",
           "mobile_notify_service": "Upozornenia",
@@ -425,6 +468,9 @@
           "internal_id": "Interné ID"
         },
         "data_description": {
+          "name": "Jedinečný názov pre tohto rodiča, používaný v celom systéme.",
+          "ha_user_id": "Voliteľné: Prepojte tohto rodiča s používateľom Domáceho asistenta, aby ste dostávali upozornenia a mali prístup k ovládaciemu panelu.",
+          "associated_kids": "Vyberte, ktoré deti bude tento rodič dohliadať na upozornenia a schvaľovacie akcie.",
           "mobile_notify_service": "Vyberte službu upozornení, ak chcete povoliť upozornenia pre tohto rodiča, alebo ich nechajte prázdne, ak ich chcete zakázať.",
           "allow_chore_assignment": "Vytvorí profil, aby vám bolo možné priradiť úlohy. Predvolene sa zobrazuje iba tlačidlo Schváliť pre dokončenie jedným kliknutím. Poznámka: Zrušením začiarknutia sa profil dieťaťa zachová s príponou „_unlinked“ pre manuálne čistenie.",
           "enable_chore_workflow": "Pridáva tlačidlá Nárokovať a Zamietnuť pre kompletný pracovný postup (nárokovať → schváliť/zamietnuť).",
@@ -436,7 +482,7 @@
         "title": "Pridať domácu úlohu",
         "description": "Vytvorte novú úlohu s bodmi, úlohami a opakujúcim sa harmonogramom.",
         "data": {
-          "chore_name": "📋 Názov domácej úlohy",
+          "name": "📋 Názov domácej úlohy",
           "chore_description": "📋 Popis (voliteľné)",
           "icon": "Ikona 📋 (mdi:xxx)",
           "chore_labels": "📋 Štítky (voliteľné)",
@@ -452,11 +498,13 @@
           "custom_interval_unit": "🔄 Rozvrh: Vlastná intervalová jednotka",
           "applicable_days": "📅 Harmonogram: Použiteľné dni (voliteľné)",
           "due_date": "📅 Harmonogram: Termín odovzdania (voliteľné)",
+          "chore_due_window_offset": "⏱️ Termín: Kompenzácia pred dátumom splatnosti",
+          "chore_due_reminder_offset": "🔔 Pripomienka: Započítanie pred dátumom splatnosti",
           "show_on_calendar": "📅 Zobraziť v kalendári?",
           "chore_notifications": "🔔 Udalosti oznámení (voliteľné)"
         },
         "data_description": {
-          "chore_name": "Jedinečný názov zobrazený v celom systéme.",
+          "name": "Jedinečný názov zobrazený v celom systéme.",
           "chore_description": "Voliteľné pokyny alebo podrobnosti o tom, ako túto úlohu dokončiť.",
           "icon": "Ikona materiálového dizajnu (napr. mdi:metla, mdi:umývačka riadu).",
           "chore_labels": "Štítky na organizovanie domácich prác (napr. „kuchyňa“, „vonkajšie“). Ak nie sú potrebné, nechajte pole prázdne.",
@@ -472,6 +520,8 @@
           "custom_interval_unit": "Časová jednotka pre vlastný interval (dni, týždne, mesiace). Používa sa iba s vlastnou frekvenciou.",
           "applicable_days": "Pre všetky dni nechajte prázdne. Vyberte IBA konkrétne dni, ktoré chcete obmedziť.",
           "due_date": "Voliteľný termín. Dá sa kombinovať s opakujúcimi sa rozvrhmi. Pre NEZÁVISLÉ domáce práce slúži toto ako šablóna – zobrazí sa ďalšia obrazovka, ktorá umožňuje individuálne termíny pre každé dieťa.",
+          "chore_due_window_offset": "Keď sa stav úlohy zmení z Čaká na dokončenie na Termín. Formát: „1d 6h 30m“ alebo len „30“ pre minúty. Zadajte „0“ pre vypnutie. Príklad: „1d“ znamená, že úloha sa zobrazí ako „Termín“ 1 deň pred termínom.",
+          "chore_due_reminder_offset": "Kedy odoslať upozornenie na pripomenutie termínu. Formát: „1d 6h 30m“ alebo len „30“ pre minúty. Predvolené: 30m (30 minút pred termínom). Zadajte „0“ pre vypnutie.",
           "show_on_calendar": "Zobraziť túto úlohu v zobrazení kalendára.",
           "chore_notifications": "Kedy odosielať oznámenia: Pri reklamácii, schválení, zamietnutí alebo akejkoľvek kombinácii."
         }
@@ -695,10 +745,10 @@
         "title": "Pridať odmenu",
         "description": "Uveďte podrobnosti o novej odmene.",
         "data": {
-          "reward_name": "Názov odmeny",
+          "name": "Názov odmeny",
           "internal_id": "Interné ID",
-          "reward_cost": "Cena odmeny",
-          "reward_description": "Popis (voliteľné)",
+          "cost": "Cena odmeny",
+          "description": "Popis (voliteľné)",
           "reward_labels": "Štítky odmien",
           "icon": "Ikona (mdi:xxx)"
         }
@@ -707,7 +757,7 @@
         "title": "Pridať trest",
         "description": "Uveďte podrobnosti o novom treste.",
         "data": {
-          "penalty_name": "Názov trestu",
+          "name": "Názov trestu",
           "penalty_description": "Popis (voliteľné)",
           "penalty_labels": "Štítky trestov",
           "internal_id": "Interné ID",
@@ -719,7 +769,7 @@
         "title": "Pridať bonus",
         "description": "Uveďte podrobnosti o novom bonuse.",
         "data": {
-          "bonus_name": "Názov bonusu",
+          "name": "Názov bonusu",
           "bonus_description": "Popis (voliteľné)",
           "bonus_labels": "Bonusové štítky",
           "internal_id": "Interné ID",
@@ -767,13 +817,15 @@
         "title": "Upraviť dieťa",
         "description": "Upravte podrobnosti o vybranom dieťati.",
         "data": {
-          "kid_name": "Meno dieťaťa",
+          "name": "Meno dieťaťa",
           "ha_user": "Používateľ domáceho asistenta",
           "mobile_notify_service": "Upozornenia",
           "dashboard_language": "Jazyk",
           "internal_id": "Interné ID"
         },
         "data_description": {
+          "name": "Jedinečné meno pre toto dieťa, používané v celom systéme.",
+          "ha_user": "Voliteľné: Prepojte toto dieťa s používateľom Domáceho asistenta pre ovládanie prístupu k ovládaciemu panelu.",
           "mobile_notify_service": "Vyberte službu upozornení, aby ste povolili upozornenia pre toto dieťa.",
           "dashboard_language": "Jazyk používaný pre váš panel úloh a upozornenia."
         }
@@ -782,14 +834,15 @@
         "title": "Upraviť Shadow Kid",
         "description": "Upravte podrobnosti o vybranom tieňovom dieťati. ⚠️ Toto dieťa je prepojené s rodičom. Zmenou mena sa poruší požiadavka na zhodu mien pre odpojenie prostredníctvom služby.",
         "data": {
-          "kid_name": "Meno dieťaťa",
+          "name": "Meno dieťaťa",
           "ha_user": "Používateľ domáceho asistenta",
           "mobile_notify_service": "Upozornenia",
           "dashboard_language": "Jazyk",
           "internal_id": "Interné ID"
         },
         "data_description": {
-          "kid_name": "⚠️ Toto tieňové dieťa je prepojené s rodičom. Zmenou tohto mena sa preruší funkcia odpojenia služby, ktorá vyžaduje zhodné mená.",
+          "name": "⚠️ Toto tieňové dieťa je prepojené s rodičom. Zmenou tohto mena sa preruší funkcia odpojenia služby, ktorá vyžaduje zhodné mená.",
+          "ha_user": "Voliteľné: Prepojte toto dieťa s používateľom Domáceho asistenta pre ovládanie prístupu k ovládaciemu panelu.",
           "mobile_notify_service": "⚠️ Upozornenia pre tieňové deti: Prepojený rodič už dostáva upozornenia na dohliadané domáce úlohy. Povolením tejto možnosti sa vytvoria duplicitné upozornenia. Užitočné pre 30-minútové pripomenutia termínov alebo ak používate rôzne služby upozornení.",
           "dashboard_language": "Jazyk používaný pre váš panel úloh a upozornenia."
         }
@@ -798,7 +851,7 @@
         "title": "Upraviť nadradenú položku",
         "description": "Upravte podrobnosti o vybranom rodičovi.",
         "data": {
-          "parent_name": "Meno rodiča",
+          "name": "Meno rodiča",
           "ha_user_id": "Používateľ domáceho asistenta",
           "associated_kids": "Pridružené deti",
           "mobile_notify_service": "Upozornenia",
@@ -809,6 +862,9 @@
           "internal_id": "Interné ID"
         },
         "data_description": {
+          "name": "Jedinečný názov pre tohto rodiča, používaný v celom systéme.",
+          "ha_user_id": "Voliteľné: Prepojte tohto rodiča s používateľom Domáceho asistenta, aby ste dostávali upozornenia a mali prístup k ovládaciemu panelu.",
+          "associated_kids": "Vyberte, ktoré deti bude tento rodič dohliadať na upozornenia a schvaľovacie akcie.",
           "mobile_notify_service": "Vyberte službu upozornení, ak chcete povoliť upozornenia pre tohto rodiča, alebo ich nechajte prázdne, ak ich chcete zakázať.",
           "allow_chore_assignment": "Vytvorí profil, aby vám bolo možné priradiť úlohy. Predvolene sa zobrazuje iba tlačidlo Schváliť pre dokončenie jedným kliknutím. Poznámka: Zrušením začiarknutia sa profil dieťaťa zachová s príponou „_unlinked“ pre manuálne čistenie.",
           "enable_chore_workflow": "Pridáva tlačidlá Nárokovať a Zamietnuť pre kompletný pracovný postup (nárokovať → schváliť/zamietnuť).",
@@ -820,7 +876,7 @@
         "title": "Upraviť úlohu",
         "description": "Upravte podrobnosti vybranej úlohy.",
         "data": {
-          "chore_name": "📋 Názov domácej úlohy",
+          "name": "📋 Názov domácej úlohy",
           "chore_description": "📋 Popis (voliteľné)",
           "icon": "Ikona 📋 (mdi:xxx)",
           "chore_labels": "📋 Štítky (voliteľné)",
@@ -838,11 +894,13 @@
           "applicable_days": "📅 Harmonogram: Použiteľné dni (voliteľné)",
           "due_date": "📅 Harmonogram: Termín odovzdania (voliteľné)",
           "clear_due_date": "🗑️ Jasný dátum splatnosti",
+          "chore_due_window_offset": "⏱️ Termín: Kompenzácia pred dátumom splatnosti",
+          "chore_due_reminder_offset": "🔔 Pripomienka: Započítanie pred dátumom splatnosti",
           "show_on_calendar": "📅 Zobraziť v kalendári?",
           "chore_notifications": "🔔 Udalosti oznámení (voliteľné)"
         },
         "data_description": {
-          "chore_name": "Jedinečný názov zobrazený v celom systéme.",
+          "name": "Jedinečný názov zobrazený v celom systéme.",
           "chore_description": "Voliteľné pokyny alebo podrobnosti o tom, ako túto úlohu dokončiť.",
           "icon": "Ikona materiálového dizajnu (napr. mdi:metla, mdi:umývačka riadu).",
           "chore_labels": "Štítky na organizovanie domácich prác (napr. „kuchyňa“, „vonkajšie“). Ak nie sú potrebné, nechajte pole prázdne.",
@@ -859,6 +917,8 @@
           "applicable_days": "Pre všetky dni nechajte prázdne. Vyberte IBA konkrétne dni, ktoré chcete obmedziť.",
           "due_date": "Voliteľný termín. Dá sa kombinovať s opakujúcimi sa rozvrhmi. Pre NEZÁVISLÉ domáce práce slúži toto ako šablóna – zobrazí sa ďalšia obrazovka, ktorá umožňuje individuálne termíny pre každé dieťa.",
           "clear_due_date": "Začiarknite toto políčko, ak chcete odstrániť dátum dokončenia z tejto úlohy.",
+          "chore_due_window_offset": "Keď sa stav úlohy zmení z Čaká na dokončenie na Termín. Formát: „1d 6h 30m“ alebo len „30“ pre minúty. Zadajte „0“ pre vypnutie. Príklad: „1d“ znamená, že úloha sa zobrazí ako „Termín“ 1 deň pred termínom.",
+          "chore_due_reminder_offset": "Kedy odoslať upozornenie na pripomenutie termínu. Formát: „1d 6h 30m“ alebo len „30“ pre minúty. Predvolené: 30m (30 minút pred termínom). Zadajte „0“ pre vypnutie.",
           "show_on_calendar": "Zobraziť túto úlohu v zobrazení kalendára.",
           "chore_notifications": "Kedy odosielať oznámenia: Pri reklamácii, schválení, zamietnutí alebo akejkoľvek kombinácii."
         }
@@ -1109,10 +1169,10 @@
         "title": "Upraviť odmenu",
         "description": "Upravte podrobnosti o vybranej odmene.",
         "data": {
-          "reward_name": "Názov odmeny",
+          "name": "Názov odmeny",
           "internal_id": "Interné ID",
-          "reward_cost": "Cena odmeny",
-          "reward_description": "Popis (voliteľné)",
+          "cost": "Cena odmeny",
+          "description": "Popis (voliteľné)",
           "reward_labels": "Štítky odmien",
           "icon": "Ikona (mdi:xxx)"
         }
@@ -1121,7 +1181,7 @@
         "title": "Upraviť trest",
         "description": "Upravte podrobnosti o vybranom treste.",
         "data": {
-          "penalty_name": "Názov trestu",
+          "name": "Názov trestu",
           "penalty_description": "Popis (voliteľné)",
           "penalty_labels": "Štítky trestov",
           "internal_id": "Interné ID",
@@ -1133,7 +1193,7 @@
         "title": "Bonus za úpravu",
         "description": "Upravte podrobnosti vybraného bonusu.",
         "data": {
-          "bonus_name": "Názov bonusu",
+          "name": "Názov bonusu",
           "bonus_description": "Popis (voliteľné)",
           "bonus_labels": "Bonusové štítky",
           "internal_id": "Interné ID",
@@ -1281,11 +1341,34 @@
       },
       "select_backup_to_delete": {
         "title": "Vyberte zálohu, ktorú chcete odstrániť",
-        "description": "Vyberte záložný súbor, ktorý chcete odstrániť.\n\nDostupné zálohy: {backup_count}\n\n⚠️ Chránené zálohy (pred migráciou, manuálne) nie je možné odstrániť."
+        "description": "Vyberte záložný súbor, ktorý chcete odstrániť.\n\nDostupné zálohy: {backup_count}"
       },
       "select_backup_to_restore": {
         "title": "Vyberte zálohu na obnovenie",
-        "description": "Vyberte záložný súbor, ktorý chcete obnoviť.\n\nDostupné zálohy: {backup_count}\n\n⚠️ Toto nahradí vaše aktuálne údaje!"
+        "description": "Vyberte záložný súbor, ktorý chcete obnoviť.\n\nDostupné zálohy: {backup_count}\n\n⚠️ Toto nahradí vaše aktuálne údaje!",
+        "data": {
+          "backup_selection": "Vyberte zálohu"
+        },
+        "data_description": {
+          "backup_selection": "Vyberte záložný súbor, ktorý chcete obnoviť."
+        }
+      },
+      "restore_backup": {
+        "title": "Možnosti obnovy dát",
+        "description": "Existujúce údaje KidsChores nájdené v:\n{storage_path}\n\nNájdených {backup_count} záložných súborov.\n\nČo chcete urobiť?",
+        "data": {
+          "backup_selection": "Vyberte možnosť"
+        }
+      },
+      "paste_json_restore": {
+        "title": "Importovať údaje JSON",
+        "description": "Vložte kompletný obsah JSON z jednej z možností:\n\n• Dátový súbor KidsChores (kidschores_data)\n• Stiahnutie diagnostického súboru\n\nSystém automaticky rozpozná a rozbalí formát podľa potreby. Podporované sú formáty nespracovaných úložných údajov aj exportu diagnostických údajov.",
+        "data": {
+          "json_data": "Údaje JSON"
+        },
+        "data_description": {
+          "json_data": "Sem vložte kompletný obsah JSON. Prijíma údaje zo súboru kidschores_data alebo exportu diagnostiky (automaticky rozbalí extra štruktúru)."
+        }
       },
       "create_backup_confirm": {
         "title": "Vytvoriť manuálnu zálohu",
@@ -1331,6 +1414,8 @@
       "due_date_in_past": "Dátum splatnosti musí byť v budúcnosti.",
       "end_date_in_past": "Dátum ukončenia musí byť v budúcnosti.",
       "end_date_not_after_start_date": "Dátum ukončenia musí byť neskorší ako dátum začiatku",
+      "err_end_before_start": "Dátum ukončenia musí byť po dátume začiatku",
+      "err_name_duplicate": "Výzva s týmto názvom už existuje",
       "invalid_badge": "Neplatný odznak",
       "invalid_badge_count": "Neplatný počet odznakov",
       "invalid_chore": "Neplatná úloha",
@@ -1341,6 +1426,8 @@
       "invalid_kid_count": "Neplatný počet detí",
       "invalid_kid_name": "Neplatné meno dieťaťa",
       "no_kids_assigned": "Aspoň jedno dieťa musí byť pridelené k úlohe",
+      "achievement_no_kids_assigned": "K úspechu musí byť priradené aspoň jedno dieťa",
+      "challenge_no_kids_assigned": "Do výzvy musí byť pridelené aspoň jedno dieťa",
       "invalid_penalty": "Neplatný trest",
       "invalid_penalty_count": "Neplatný počet penalt",
       "invalid_bonus": "Neplatný bonus",
@@ -1524,7 +1611,9 @@
         "notify_on_claim": "Upozorniť na reklamáciu",
         "notify_on_approval": "Upozorniť na schválenie",
         "notify_on_disapproval": "Upozorniť na zamietnutie",
-        "notify_on_reminder": "Upozorniť 30 minút pred termínom"
+        "notify_on_reminder": "Upozorniť 30 minút pred termínom (staršie)",
+        "notify_on_due_window": "Upozorniť na začiatok lehoty",
+        "notify_due_reminder": "Upozorniť v čase pripomenutia"
       }
     },
     "recurring_frequency": {
@@ -1542,7 +1631,11 @@
         "custom_1_week": "Vlastné: 1 týždeň",
         "custom_1_month": "Vlastné: 1 mesiac",
         "custom_1_quarter": "Vlastné: 1 štvrťrok",
-        "custom_1_year": "Vlastné: 1 rok"
+        "custom_1_year": "Vlastné: 1 rok",
+        "week_end": "Víkend",
+        "month_end": "Koniec mesiaca",
+        "quarter_end": "Koniec štvrťroka",
+        "year_end": "Koniec roka"
       }
     },
     "occasion_type": {
@@ -1709,6 +1802,10 @@
           "name": "Názov odmeny",
           "description": "Názov schvaľovanej odmeny.",
           "example": "Extra čas pred obrazovkou"
+        },
+        "cost_override": {
+          "name": "Prepísanie nákladov",
+          "description": "Voliteľné prepísanie ceny. Ak sa vynechá, použije sa uložená cena odmeny. Nastavte na 0 pre bezplatný grant (ako napríklad odmeny za odznak). Užitočné pre kontextové stanovovanie cien (víkendy, špeciálne príležitosti atď.)."
         }
       }
     },
@@ -1772,6 +1869,277 @@
           "name": "Názov bonusu",
           "description": "Názov bonusu, ktorý sa má uplatniť.",
           "example": "Extra užitočné"
+        }
+      }
+    },
+    "create_reward": {
+      "name": "Vytvoriť odmenu",
+      "description": "Vytvorte novú odmenu programovo.",
+      "fields": {
+        "name": {
+          "name": "Meno",
+          "description": "Názov odmeny.",
+          "example": "Extra čas pred obrazovkou"
+        },
+        "cost": {
+          "name": "Cena",
+          "description": "Body potrebné na uplatnenie odmeny.",
+          "example": "10"
+        },
+        "description": {
+          "name": "Popis",
+          "description": "Voliteľný popis odmeny.",
+          "example": "30 minút navyše na tablet"
+        },
+        "icon": {
+          "name": "Ikona",
+          "description": "Ikona predstavujúca odmenu.",
+          "example": "mdi:darček"
+        },
+        "labels": {
+          "name": "Štítky",
+          "description": "Štítky na zoskupovanie odmien.",
+          "example": "[„víkend“, „špeciál“]"
+        }
+      }
+    },
+    "update_reward": {
+      "name": "Aktualizovať odmenu",
+      "description": "Aktualizujte existujúcu odmenu (čiastočné aktualizácie sú podporované).",
+      "fields": {
+        "id": {
+          "name": "ID odmeny",
+          "description": "Interné ID odmeny, ktorú chcete aktualizovať. Použite buď ID, ALEBO názov.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Meno",
+          "description": "Názov odmeny, ktorú chcete aktualizovať, alebo nový názov odmeny.",
+          "example": "Extra čas pred obrazovkou"
+        },
+        "cost": {
+          "name": "Cena",
+          "description": "Aktualizovaná hodnota nákladov.",
+          "example": "15"
+        },
+        "description": {
+          "name": "Popis",
+          "description": "Aktualizovaný popis.",
+          "example": "45 minút navyše na tablet"
+        },
+        "icon": {
+          "name": "Ikona",
+          "description": "Aktualizovaná ikona.",
+          "example": "mdi:hviezda"
+        },
+        "labels": {
+          "name": "Štítky",
+          "description": "Aktualizované štítky.",
+          "example": "[„prémiový“, „špeciálny“]"
+        }
+      }
+    },
+    "delete_reward": {
+      "name": "Odstrániť odmenu",
+      "description": "Odstrániť odmenu podľa ID alebo mena.",
+      "fields": {
+        "id": {
+          "name": "ID odmeny",
+          "description": "Interné ID odmeny, ktorú chcete odstrániť. Použite buď ID, ALEBO názov.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Meno",
+          "description": "Názov odmeny, ktorú chcete odstrániť.",
+          "example": "Extra čas pred obrazovkou"
+        }
+      }
+    },
+    "create_chore": {
+      "name": "Vytvoriť domácu úlohu",
+      "description": "Vytvorte novú domácu úlohu, ktorú môžu deti splniť a získať body.",
+      "fields": {
+        "name": {
+          "name": "Názov úlohy",
+          "description": "Názov úlohy, ktorú chcete vytvoriť.",
+          "example": "Čistá miestnosť"
+        },
+        "assigned_kids": {
+          "name": "Pridelené deti",
+          "description": "Zoznam mien detí, ktoré sa majú priradiť k tejto úlohe.",
+          "example": "[„Emma“, „Jack“]"
+        },
+        "points": {
+          "name": "Body",
+          "description": "Body udelené po dokončení úlohy.",
+          "example": "10"
+        },
+        "description": {
+          "name": "Popis",
+          "description": "Voliteľný popis práce.",
+          "example": "Ustielajte posteľ, odložte hračky, povysávajte podlahu"
+        },
+        "icon": {
+          "name": "Ikona",
+          "description": "Ikona materiálového dizajnu pre danú povinnosť.",
+          "example": "mdi:metla"
+        },
+        "labels": {
+          "name": "Štítky",
+          "description": "Voliteľné štítky na kategorizáciu úlohy.",
+          "example": "[„denný“, „spálňa“]"
+        },
+        "frequency": {
+          "name": "Frekvencia",
+          "description": "Ako často sa úloha opakuje: žiadna, denne, viacnásobne denne, týždenne, každé dva týždne, mesačne, štvrťročne, ročne, vlastná, vlastná_od_dokončenia alebo na konci obdobia (koniec_týždňa, koniec_mesiaca, koniec_štvrťroka, koniec_roku).",
+          "example": "denne"
+        },
+        "applicable_days": {
+          "name": "Platné dni",
+          "description": "Dni v týždni, kedy je daná práca uplatniteľná.",
+          "example": "[„po“, „st“, „pia“]"
+        },
+        "completion_criteria": {
+          "name": "Kritériá dokončenia",
+          "description": "Spôsob dokončenia úlohy, keď je pridelených viacero detí: nezávislý (každé dieťa dokončí samostatne), zdieľaný_prvý (prvé dieťa, ktoré dokončí úlohu, získa body) alebo zdieľaný_všetkým (všetky deti ju musia dokončiť). Po vytvorení nie je možné zmeniť.",
+          "example": "nezávislý"
+        },
+        "approval_reset_type": {
+          "name": "Typ obnovenia schválenia",
+          "description": "Keď sa úloha resetuje na opätovné dokončenie.",
+          "example": "raz o_polnoci"
+        },
+        "pending_claims": {
+          "name": "Čakajúce na vybavenie reklamácií",
+          "description": "Čo sa stane s čakajúcimi nárokmi po resetovaní úlohy: hold_pending (ponechať nároky), clear_pending (odstrániť nároky) alebo auto_approve_pending (schváliť všetky čakajúce nároky).",
+          "example": "čakajúce_na_podržanie"
+        },
+        "overdue_handling": {
+          "name": "Oneskorené spracovanie",
+          "description": "Ako zvládnuť domácu prácu, keď sa jej termín oneskoril.",
+          "example": "v_dátume_splatnosti"
+        },
+        "auto_approve": {
+          "name": "Automatické schválenie",
+          "description": "Ak je hodnota true, úloha sa automaticky schváli po uplatnení nároku.",
+          "example": "nepravdivé"
+        },
+        "due_date": {
+          "name": "Dátum splatnosti",
+          "description": "Voliteľný dátum dokončenia úlohy. Na výber platného dátumu a času použite volič dátumu/času.",
+          "example": "2025-03-01T23:59:00Z"
+        },
+        "due_window_offset": {
+          "name": "Posun okna splatnosti",
+          "description": "Trvanie pred dátumom dokončenia, keď úloha prejde do stavu „termín“. Formát: „30 min“, „1 h“, „1 d 6 h 30 min“ atď. Na vypnutie funkcie okna termínu použite hodnotu „0“.",
+          "example": "30 metrov"
+        },
+        "due_reminder_offset": {
+          "name": "Posunutie pripomienky splatnosti",
+          "description": "Čas pred dátumom splatnosti, kedy sa má odoslať pripomienka. Formát: „30 min“, „1 h“, „1 deň 6 h 30 min“ atď. Na vypnutie pripomienok použite hodnotu „0“.",
+          "example": "30 metrov"
+        }
+      }
+    },
+    "update_chore": {
+      "name": "Aktualizovať úlohu",
+      "description": "Aktualizujte vlastnosti existujúcej úlohy. Zadajte buď ID, ALEBO názov na identifikáciu úlohy. Aktualizované budú iba poskytnuté polia. Poznámka: Kritériá dokončenia nemožno po vytvorení zmeniť.",
+      "fields": {
+        "id": {
+          "name": "ID úlohy",
+          "description": "Interné ID úlohy, ktorá sa má aktualizovať (alternatíva k názvu).",
+          "example": "abc-123-def-456"
+        },
+        "name": {
+          "name": "Názov úlohy (identifikátor)",
+          "description": "Názov úlohy, ktorá sa má aktualizovať (alternatíva k id). Používateľsky prívetivejšie ako id.",
+          "example": "Čistá miestnosť"
+        },
+        "assigned_kids": {
+          "name": "Pridelené deti",
+          "description": "Nový zoznam mien detí, ktoré sa majú priradiť k tejto úlohe.",
+          "example": "[„Emma“, „Jack“]"
+        },
+        "points": {
+          "name": "Body",
+          "description": "Nová bodová hodnota pre danú úlohu.",
+          "example": "15"
+        },
+        "description": {
+          "name": "Popis",
+          "description": "Nový popis práce.",
+          "example": "Ustlať posteľ, zorganizovať stôl, povysávať podlahu"
+        },
+        "icon": {
+          "name": "Ikona",
+          "description": "Nová ikona Material Design pre túto domácu úlohu.",
+          "example": "mdi:vákuum"
+        },
+        "labels": {
+          "name": "Štítky",
+          "description": "Nové označenia pre túto úlohu.",
+          "example": "[„týždenne“, „upratovanie“]"
+        },
+        "frequency": {
+          "name": "Frekvencia",
+          "description": "Nová opakujúca sa frekvencia: žiadna, denná, denná_viacnásobná, týždenná, dvojtýždenná, mesačná, štvrťročná, ročná, vlastná, vlastná_od_kompletnosti alebo koniec obdobia (koniec_týždňa, koniec_mesiaca, koniec_štvrťroka, koniec_roku).",
+          "example": "týždenne"
+        },
+        "applicable_days": {
+          "name": "Platné dni",
+          "description": "Nové dni v týždni, kedy je daná práca uplatniteľná.",
+          "example": "['sob', 'slnko']"
+        },
+        "approval_reset_type": {
+          "name": "Typ obnovenia schválenia",
+          "description": "Nový typ resetovania pre prípad, keď sa úloha resetuje.",
+          "example": "o_dátume_splatnosti_raz"
+        },
+        "pending_claims": {
+          "name": "Čakajúce na vybavenie reklamácie",
+          "description": "Nová akcia pre čakajúce nároky po resetovaní úlohy.",
+          "example": "vymazať_čakajúce"
+        },
+        "overdue_handling": {
+          "name": "Oneskorené spracovanie",
+          "description": "Nové správanie pri manipulácii s oneskorením.",
+          "example": "nikdy_neodoslané"
+        },
+        "auto_approve": {
+          "name": "Automatické schválenie",
+          "description": "Nové nastavenie automatického schvaľovania.",
+          "example": "pravda"
+        },
+        "due_date": {
+          "name": "Dátum splatnosti",
+          "description": "Nový termín pre úlohu. Pomocou voliča dátumu/času vyberte platný dátum a čas.",
+          "example": "2025-04-01T18:00:00Z"
+        },
+        "due_window_offset": {
+          "name": "Posun okna splatnosti",
+          "description": "Nový posun okna splatnosti. Trvanie pred dátumom splatnosti, keď úloha prejde do stavu „splatnosť“. Formát: „30 min“, „1 h“, „1 deň 6 h 30 min“ atď. Na vypnutie použite „0“.",
+          "example": "1 hodina"
+        },
+        "due_reminder_offset": {
+          "name": "Posunutie pripomienky splatnosti",
+          "description": "Nový posun pripomienky termínu. Čas pred dátumom termínu na odoslanie upozornenia na pripomienku. Formát: „30 min“, „1 h“, „1 deň 6 h 30 min“ atď. Na vypnutie použite „0“.",
+          "example": "30 metrov"
+        }
+      }
+    },
+    "delete_chore": {
+      "name": "Odstrániť úlohu",
+      "description": "Odstrániť domácu úlohu podľa ID alebo mena. Všetky stavy a história špecifické pre dieťa budú odstránené.",
+      "fields": {
+        "id": {
+          "name": "ID úlohy",
+          "description": "Interné ID úlohy, ktorú chcete odstrániť. Použite buď ID, ALEBO názov.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Meno",
+          "description": "Názov úlohy, ktorú chcete odstrániť.",
+          "example": "Čistá miestnosť"
         }
       }
     },
@@ -1929,6 +2297,7 @@
           "pending": "Čaká sa na spracovanie",
           "approved": "Schválené",
           "claimed": "Nárokované",
+          "due": "Dátum splatnosti",
           "overdue": "Po termíne",
           "unknown": "Neznámy",
           "none": "Žiadne",
@@ -2102,6 +2471,15 @@
           },
           "claim_button_eid": {
             "name": "ID entity tlačidla nároku"
+          },
+          "due_window_start": {
+            "name": "Začiatok očakávaného obdobia"
+          },
+          "time_until_due": {
+            "name": "Čas do splatnosti"
+          },
+          "time_until_overdue": {
+            "name": "Čas do splatnosti"
           }
         }
       },
@@ -2593,6 +2971,7 @@
           "pending": "Čaká sa na spracovanie",
           "approved": "Schválené",
           "claimed": "Nárokované",
+          "due": "Dátum splatnosti",
           "overdue": "Po termíne",
           "unknown": "Neznámy",
           "none": "Žiadne",
@@ -2694,15 +3073,25 @@
           },
           "chore_completed_by": {
             "name": "Dokončil/a"
+          },
+          "due_window_start": {
+            "name": "Začiatok očakávaného obdobia"
+          },
+          "time_until_due": {
+            "name": "Čas do splatnosti"
+          },
+          "time_until_overdue": {
+            "name": "Čas do splatnosti"
           }
         }
       },
       "kid_reward_status_sensor": {
         "name": "Stav odmeny - {reward_name}",
         "state": {
-          "not_claimed": "Nenárokované",
+          "locked": "Zamknuté",
+          "available": "K dispozícii",
+          "requested": "Požadované",
           "approved": "Schválené",
-          "claimed": "Nárokované",
           "unknown": "Neznámy",
           "none": "Žiadne"
         },
@@ -3484,6 +3873,9 @@
     "shared_chore_cannot_have_kid": {
       "message": "Pre zdieľanú domácu úlohu {chore_name}nie je možné zadať dieťa. Zdieľané domáce úlohy majú jeden termín odovzdania pre všetky deti."
     },
+    "reward_not_found": {
+      "message": "Odmena s ID '{reward_id}' sa nenašla"
+    },
     "required_field": {
       "message": "Musí byť poskytnuté {field}"
     },
@@ -3495,6 +3887,18 @@
     },
     "missing_chore": {
       "message": "Musíte zadať buď ID úlohy, alebo názov úlohy."
+    },
+    "missing_chore_identifier": {
+      "message": "Na identifikáciu úlohy je potrebné zadať buď chore_id, alebo chore_name."
+    },
+    "chore_not_found": {
+      "message": "Úloha s ID '{chore_id}' sa nenašla."
+    },
+    "completion_criteria_immutable": {
+      "message": "Kritériá dokončenia nie je možné po vytvorení úlohy zmeniť. Ak potrebujete iné kritériá dokončenia, úlohu odstráňte a znova vytvorte."
+    },
+    "missing_reward_identifier": {
+      "message": "Na identifikáciu odmeny, ktorá sa má aktualizovať, je potrebné zadať buď reward_id, alebo reward_name."
     },
     "missing_field": {
       "message": "V {entity}chýba povinné pole {field}"
