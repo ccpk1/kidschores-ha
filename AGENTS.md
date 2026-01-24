@@ -52,6 +52,7 @@ Config entry → **9 system settings only** (points theme, intervals, retention)
 100% coverage enforced by MyPy in CI/CD. Modern syntax: `str | None` not `Optional[str]`
 
 **Type System Strategy** (See [ARCHITECTURE.md § Type System Architecture](../docs/ARCHITECTURE.md#type-system-architecture)):
+
 - **TypedDict**: Static structures with fixed keys (entity definitions, config objects)
 - **dict[str, Any]**: Dynamic structures accessed with variable keys (runtime-built data)
 - **Goal**: Achieve zero mypy errors without type suppressions by matching types to actual code patterns
@@ -106,6 +107,7 @@ Run quality gates (**in this order**):
 - `translations/en.json` - Master translation file
 
 **Constant Naming Patterns** (See [DEVELOPMENT_STANDARDS.md § 3. Constant Naming Standards](../docs/DEVELOPMENT_STANDARDS.md#3-constant-naming-standards)):
+
 - `DATA_*` = Storage keys (singular entity names)
 - `CFOF_*` = Config/Options flow input fields (plural with `_INPUT_`)
 - `CONF_*` = System settings in config_entry.options (9 settings only)
@@ -114,6 +116,7 @@ Run quality gates (**in this order**):
 - `SERVICE_*` / `SERVICE_FIELD_*` = Service actions and parameters
 
 **DateTime Functions** (See [DEVELOPMENT_STANDARDS.md § 4. DateTime & Scheduling Standards](../docs/DEVELOPMENT_STANDARDS.md#4-datetime--scheduling-standards)):
+
 - ALWAYS use `dt_*` helpers from `kc_helpers.py` (never raw `datetime` module)
 - Examples: `dt_now_iso()`, `dt_parse()`, `dt_add_interval()`, `dt_next_schedule()`
 
