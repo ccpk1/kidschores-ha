@@ -726,13 +726,10 @@ def is_entity_allowed_for_shadow_kid(
 ) -> bool:
     """Check if an entity is allowed for a shadow kid based on parent settings.
 
-    Uses whitelist logic: explicitly list what shadow kids ARE allowed to have.
-    - Base entities (listed in SHADOW_KID_BASE_*): always allowed
-    - Workflow entities (claim/disapprove): require workflow_enabled
-    - Gamification entities (all others): require gamification_enabled
+    Delegates to should_create_entity() which uses ENTITY_REGISTRY.
 
     Args:
-        domain: The entity domain (\"button\", \"sensor\", etc.)
+        domain: The entity domain (\"button\", \"sensor\", etc.) - unused, kept for API compatibility
         unique_id: The entity's unique_id string.
         workflow_enabled: Whether parent has chore workflow enabled.
         gamification_enabled: Whether parent has gamification enabled.
@@ -740,52 +737,76 @@ def is_entity_allowed_for_shadow_kid(
     Returns:
         True if entity is allowed, False if it should be removed.
     """
-    # Check calendar - always allowed
-    if domain == "calendar":
-        return True
+    # Delegate to unified filter function
+    # Note: domain is not needed as ENTITY_REGISTRY uses suffix matching
+    # Extra flag not passed here - shadow kid filtering doesn't consider extra
+    # (extra entities are a system-level flag, not shadow-kid specific)
+    return should_create_entity(
+        unique_id,
+        is_shadow_kid=True,
+        workflow_enabled=workflow_enabled,
+        gamification_enabled=gamification_enabled,
+        extra_enabled=False,  # Shadow kid filtering ignores extra entities
+    )
 
-    # Check select
-    if domain == "select":
-        for suffix in const.SHADOW_KID_BASE_SELECT_ENDSWITH:
-            if unique_id.endswith(suffix):
-                return True
-        # All other selects require gamification
-        return gamification_enabled
 
-    # Check datetime
-    if domain == "datetime":
-        for suffix in const.SHADOW_KID_BASE_DATETIME_ENDSWITH:
-            if unique_id.endswith(suffix):
-                return True
-        # All other datetimes require gamification
-        return gamification_enabled
+def should_create_entity(
+    unique_id_suffix: str,
+    *,
+    is_shadow_kid: bool = False,
+    workflow_enabled: bool = True,
+    gamification_enabled: bool = True,
+    extra_enabled: bool = False,
+) -> bool:
+    """Determine if an entity should be created based on its suffix and context.
 
-    # Check buttons
-    if domain == "button":
-        # Check if it's a base button (always allowed)
-        for suffix in const.SHADOW_KID_BASE_BUTTON_ENDSWITH:
-            if unique_id.endswith(suffix):
-                return True
+    Single source of truth for entity creation decisions. Uses ENTITY_REGISTRY.
 
-        # Workflow buttons require workflow_enabled
-        for suffix in const.SHADOW_KID_WORKFLOW_BUTTON_ENDSWITH:
-            if unique_id.endswith(suffix):
-                return workflow_enabled
+    === FLAG LAYERING LOGIC ===
+    | Requirement   | Regular Kid           | Shadow Kid                           |
+    |---------------|-----------------------|--------------------------------------|
+    | ALWAYS        | Created               | Created                              |
+    | WORKFLOW      | Created               | Only if workflow_enabled=True        |
+    | GAMIFICATION  | Created               | Only if gamification_enabled=True    |
+    | EXTRA         | If extra_enabled      | If extra_enabled AND gamification    |
 
-        # Everything else is gamification (points, rewards, bonuses, etc.)
-        return gamification_enabled
+    Args:
+        unique_id_suffix: The entity's unique_id suffix (e.g., "_chore_status")
+        is_shadow_kid: Whether this is a shadow kid
+        workflow_enabled: Whether workflow is enabled (for shadow kids)
+        gamification_enabled: Whether gamification is enabled (for shadow kids)
+        extra_enabled: Whether show_legacy_entities (extra entities) flag is enabled
 
-    # Check sensors
-    if domain == "sensor":
-        # Check if it's a base sensor (always allowed)
-        for suffix in const.SHADOW_KID_BASE_SENSOR_ENDSWITH:
-            if unique_id.endswith(suffix):
-                return True
+    Returns:
+        True if entity should be created, False otherwise.
+    """
+    # Find the matching registry entry
+    requirement: const.EntityRequirement | None = None
+    for suffix, req in const.ENTITY_REGISTRY.items():
+        if unique_id_suffix.endswith(suffix):
+            requirement = req
+            break
 
-        # Everything else is gamification
-        return gamification_enabled
+    # Unknown suffix - default to gamification (safer for shadow kids)
+    if requirement is None:
+        return not is_shadow_kid or gamification_enabled
 
-    # Unknown domain - deny by default (safer than allowing)
+    # Check requirement against context
+    match requirement:
+        case const.EntityRequirement.ALWAYS:
+            return True
+        case const.EntityRequirement.WORKFLOW:
+            return not is_shadow_kid or workflow_enabled
+        case const.EntityRequirement.GAMIFICATION:
+            return not is_shadow_kid or gamification_enabled
+        case const.EntityRequirement.EXTRA:
+            # EXTRA requires BOTH extra flag AND gamification
+            # Regular kids: always have gamification, so just check flag
+            # Shadow kids: need flag AND gamification_enabled
+            if not extra_enabled:
+                return False
+            return not is_shadow_kid or gamification_enabled
+
     return False
 
 

@@ -44,12 +44,19 @@ async def async_setup_entry(
 
     entities = []
     for kid_id, kid_info in coordinator.kids_data.items():
-        kid_name = kid_info.get(
-            const.DATA_KID_NAME, f"{const.TRANS_KEY_LABEL_KID} {kid_id}"
-        )
-        entities.append(
-            KidScheduleCalendar(coordinator, kid_id, kid_name, entry, calendar_duration)
-        )
+        # Use registry-based creation decision for future flexibility
+        if kh.should_create_entity(
+            const.CALENDAR_KC_UID_SUFFIX_CALENDAR,
+            is_shadow_kid=kh.is_shadow_kid(coordinator, kid_id),
+        ):
+            kid_name = kid_info.get(
+                const.DATA_KID_NAME, f"{const.TRANS_KEY_LABEL_KID} {kid_id}"
+            )
+            entities.append(
+                KidScheduleCalendar(
+                    coordinator, kid_id, kid_name, entry, calendar_duration
+                )
+            )
     async_add_entities(entities)
 
 

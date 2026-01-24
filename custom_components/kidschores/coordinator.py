@@ -15,6 +15,7 @@ Code Organization: Uses multiple inheritance to organize features by domain:
 # - too-many-public-methods: Each service/feature requires its own public method
 
 import asyncio
+from collections.abc import Callable
 from datetime import date, datetime, timedelta
 import re
 import sys
@@ -616,40 +617,59 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
                 )
 
     # -------------------------------------------------------------------------------------
-    # Entity Registry Removal
+    # Home Assistant Registry Device and Entity Removal
     # -------------------------------------------------------------------------------------
 
-    def _remove_entities_in_ha(self, item_id: str):
-        """Remove all platform entities whose unique_id references the given item_id.
+    def _remove_entities_in_ha(self, item_id: str) -> int:
+        """Remove all entities whose unique_id references the given item_id.
 
-        Uses exact delimiter matching to prevent false positives (e.g., kid_1
-        should not match kid_10). Checks for item_id preceded/followed by
-        underscores or at start/end of unique_id.
+        Called when deleting kids, chores, rewards, penalties, bonuses, badges.
+        Uses delimiter matching to prevent false positives (e.g., kid_1 should
+        not match kid_10).
 
-        Only scans entities belonging to this config entry for safety.
+        Args:
+            item_id: The UUID of the deleted item.
+
+        Returns:
+            Count of removed entities.
         """
+        perf_start = time.perf_counter()
         ent_reg = er.async_get(self.hass)
+        prefix = f"{self.config_entry.entry_id}_"
         item_id_str = str(item_id)
+        removed_count = 0
+
         for entity_entry in list(ent_reg.entities.values()):
-            # Only process entities from this config entry
             if entity_entry.config_entry_id != self.config_entry.entry_id:
                 continue
 
             unique_id = str(entity_entry.unique_id)
-            # Check if item_id appears with proper delimiters
-            # Valid patterns: starts with item_id_, contains _item_id_, ends with _item_id
-            if (
-                unique_id.startswith(f"{item_id_str}_")
-                or f"_{item_id_str}_" in unique_id
-                or unique_id.endswith(f"_{item_id_str}")
-                or unique_id == item_id_str  # Exact match
-            ):
+
+            # Safety: verify our entry prefix
+            if not unique_id.startswith(prefix):
+                continue
+
+            # Match item_id with proper delimiters (midfix or suffix)
+            # Patterns: ..._{item_id}_... or ..._{item_id}
+            if f"_{item_id_str}_" in unique_id or unique_id.endswith(f"_{item_id_str}"):
                 ent_reg.async_remove(entity_entry.entity_id)
+                removed_count += 1
                 const.LOGGER.debug(
-                    "DEBUG: Auto-removed entity '%s' with UID '%s'",
+                    "Removed entity %s (uid: %s) for deleted item %s",
                     entity_entry.entity_id,
-                    entity_entry.unique_id,
+                    unique_id,
+                    item_id_str,
                 )
+
+        perf_elapsed = time.perf_counter() - perf_start
+        if removed_count > 0:
+            const.LOGGER.info(
+                "Removed %d entities for deleted item in %.3fs",
+                removed_count,
+                perf_elapsed,
+            )
+
+        return removed_count
 
     def _remove_device_from_registry(self, kid_id: str) -> None:
         """Remove kid device from device registry.
@@ -677,174 +697,151 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
                 kid_id,
             )
 
-    def _remove_conditional_shadow_kid_entities(
-        self, kid_id: str, workflow_enabled: bool, gamification_enabled: bool
-    ) -> None:
-        """Remove conditional entities for shadow kid based on feature flags.
+    async def _remove_entities_by_validator(
+        self,
+        *,
+        platforms: list[const.Platform] | None = None,
+        suffix: str | None = None,
+        midfix: str | None = None,
+        is_valid: Callable[[str], bool],
+        entity_type: str = "entity",
+    ) -> int:
+        """Core helper for removing entities that fail validation.
 
-        Shadow kids have conditional entities based on parent's enable_chore_workflow
-        and enable_gamification flags. This method removes entities when those
-        flags are disabled.
-
-        Uses the same whitelist constants as is_entity_allowed_for_shadow_kid() to
-        ensure consistency. Entities not allowed for the kid's current flags are removed.
+        Core method for removing entities whose underlying data relationship
+        no longer exists. Uses efficient platform filtering and consistent
+        logging patterns.
 
         Args:
-            kid_id: Internal UUID of the shadow kid
-            workflow_enabled: Whether workflow buttons should exist
-            gamification_enabled: Whether gamification entities should exist
+            platforms: Platforms to scan (None = all platforms for this entry).
+            suffix: Only check entities with this UID suffix.
+            midfix: Only check entities containing this string.
+            is_valid: Callback(unique_id) → True if entity should be kept.
+            entity_type: Display name for logging.
+
+        Returns:
+            Count of removed entities.
         """
-        ent_reg = er.async_get(self.hass)
-        kid_id_str = str(kid_id)
+        perf_start = time.perf_counter()
+        prefix = f"{self.config_entry.entry_id}_"
         removed_count = 0
+        scanned_count = 0
 
-        # Iterate through entities belonging to this config entry only
-        for entity_entry in list(ent_reg.entities.values()):
-            if entity_entry.config_entry_id != self.config_entry.entry_id:
-                continue
+        ent_reg = er.async_get(self.hass)
 
+        # Get entities to scan (platform-filtered or all for this entry)
+        if platforms:
+            entities_to_scan = []
+            for platform in platforms:
+                entities_to_scan.extend(
+                    kh.get_integration_entities(
+                        self.hass, self.config_entry.entry_id, platform
+                    )
+                )
+        else:
+            entities_to_scan = [
+                e
+                for e in ent_reg.entities.values()
+                if e.config_entry_id == self.config_entry.entry_id
+            ]
+
+        for entity_entry in list(entities_to_scan):
             unique_id = str(entity_entry.unique_id)
 
-            # Check if entity belongs to this kid using delimiter-bounded matching
-            if (
-                not unique_id.startswith(f"{kid_id_str}_")
-                and f"_{kid_id_str}_" not in unique_id
-                and not unique_id.endswith(f"_{kid_id_str}")
-            ):
+            # Apply prefix filter
+            if not unique_id.startswith(prefix):
                 continue
 
-            # Use the whitelist helper for consistent logic
-            if not kh.is_entity_allowed_for_shadow_kid(
-                entity_entry.domain,
-                unique_id,
-                workflow_enabled,
-                gamification_enabled,
-            ):
+            # Apply suffix filter if specified
+            if suffix and not unique_id.endswith(suffix):
+                continue
+
+            # Apply midfix filter if specified
+            if midfix and midfix not in unique_id:
+                continue
+
+            scanned_count += 1
+
+            # Check validity - remove if not valid
+            if not is_valid(unique_id):
+                const.LOGGER.debug(
+                    "Removing orphaned %s: %s (uid: %s)",
+                    entity_type,
+                    entity_entry.entity_id,
+                    unique_id,
+                )
                 ent_reg.async_remove(entity_entry.entity_id)
                 removed_count += 1
-                const.LOGGER.debug(
-                    "Removed conditional entity '%s' for shadow kid (workflow=%s, gamification=%s)",
-                    entity_entry.entity_id,
-                    workflow_enabled,
-                    gamification_enabled,
-                )
 
+        perf_elapsed = time.perf_counter() - perf_start
         if removed_count > 0:
             const.LOGGER.info(
-                "Removed %d conditional entities for shadow kid %s (workflow=%s, gamification=%s)",
+                "Removed %d orphaned %s(s) in %.3fs",
                 removed_count,
-                kid_id,
-                workflow_enabled,
-                gamification_enabled,
+                entity_type,
+                perf_elapsed,
+            )
+        else:
+            const.LOGGER.debug(
+                "PERF: orphan scan for %s: %d checked in %.3fs, none removed",
+                entity_type,
+                scanned_count,
+                perf_elapsed,
             )
 
-    async def _remove_orphaned_shared_chore_sensors(self):
-        """Remove SystemChoreSharedStateSensor entities for chores no longer marked as shared.
+        return removed_count
 
-        Uses kc_helpers.get_integration_entities() for efficient sensor filtering.
-        """
+    async def _remove_orphaned_shared_chore_sensors(self) -> int:
+        """Remove shared chore sensors for chores no longer marked as shared."""
         prefix = f"{self.config_entry.entry_id}_"
         suffix = const.DATA_GLOBAL_STATE_SUFFIX
 
-        # Get all sensor entities for this integration
-        sensor_entities = kh.get_integration_entities(
-            self.hass, self.config_entry.entry_id, const.Platform.SENSOR
+        def is_valid(unique_id: str) -> bool:
+            chore_id = unique_id[len(prefix) : -len(suffix)]
+            chore_info = self.chores_data.get(chore_id)
+            return bool(
+                chore_info
+                and chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
+                == const.COMPLETION_CRITERIA_SHARED
+            )
+
+        return await self._remove_entities_by_validator(
+            platforms=[const.Platform.SENSOR],
+            suffix=suffix,
+            is_valid=is_valid,
+            entity_type="shared chore sensor",
         )
 
-        ent_reg = er.async_get(self.hass)
-        for entity_entry in sensor_entities:
-            unique_id = str(entity_entry.unique_id)
-            if unique_id.startswith(prefix) and unique_id.endswith(suffix):
-                chore_id = unique_id[len(prefix) : -len(suffix)]
-                chore_info: ChoreData | None = self.chores_data.get(chore_id)
-                if (
-                    not chore_info
-                    or chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
-                    != const.COMPLETION_CRITERIA_SHARED
-                ):
-                    ent_reg.async_remove(entity_entry.entity_id)
-                    const.LOGGER.debug(
-                        "DEBUG: Removed orphaned Shared Chore Global State Sensor: %s",
-                        entity_entry.entity_id,
-                    )
-
-    async def _remove_orphaned_kid_chore_entities(self) -> None:
-        """Remove kid-chore entities (sensors/buttons) for kids no longer assigned to chores.
-
-        Called when:
-        - Kid unassigned from chore via options flow
-        - Shadow kid workflow toggled (claim/disapprove buttons become orphaned)
-        - Parent chore assignment flag disabled
-        - During initialization (one-time migration cleanup)
-
-        Handles:
-        - KidChoreStatusSensor
-        - KidChoreClaimButton
-        - ParentChoreApproveButton
-        - ParentChoreDisapproveButton
-
-        Performance: O(n) using regex pattern matching instead of O(n²) nested loops.
-        Pre-builds regex pattern from valid kid IDs for efficient matching.
-        """
-        # PERF: Measure entity registry cleanup duration
-        perf_start = time.perf_counter()
-
+    # ------------------- Has assigned kid relationship -------------------------------------
+    async def _remove_orphaned_kid_chore_entities(self) -> int:
+        """Remove kid-chore entities for kids no longer assigned to chores."""
         if not self.kids_data or not self.chores_data:
-            return  # No kids or chores, nothing to check
+            return 0
 
-        ent_reg = er.async_get(self.hass)
         prefix = f"{self.config_entry.entry_id}_"
 
-        # Build a set of valid kid-chore combinations
-        valid_combinations = set()
+        # Build valid kid-chore combinations
+        valid_combinations: set[tuple[str, str]] = set()
         for chore_id, chore_info in self.chores_data.items():
-            assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
-            for kid_id in assigned_kids:
+            for kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
                 valid_combinations.add((kid_id, chore_id))
 
-        # Build regex pattern for O(n) kid ID extraction
-        # Pattern: ({kid_id_1}|{kid_id_2}|...)_({chore_id_1}|{chore_id_2}|...)
+        # Build regex for efficient extraction
         kid_ids = "|".join(re.escape(kid_id) for kid_id in self.kids_data)
         chore_ids = "|".join(re.escape(chore_id) for chore_id in self.chores_data)
         pattern = re.compile(rf"^({kid_ids})_({chore_ids})")
 
-        # Check entities belonging to this config entry for orphaned kid-chore entities
-        for entity_entry in list(ent_reg.entities.values()):
-            # Only check entities from this config entry (safer than platform check)
-            if entity_entry.config_entry_id != self.config_entry.entry_id:
-                continue
-
-            unique_id = str(entity_entry.unique_id)
-            if not unique_id.startswith(prefix):
-                continue
-
-            # Extract the core part after entry_id prefix
+        def is_valid(unique_id: str) -> bool:
             core = unique_id[len(prefix) :]
-
-            # Use regex to extract kid_id and chore_id in O(1) per entity
             match = pattern.match(core)
-            if match:
-                entity_kid_id = match.group(1)
-                entity_chore_id = match.group(2)
+            if not match:
+                return True  # Not a kid-chore entity, keep it
+            return (match.group(1), match.group(2)) in valid_combinations
 
-                # Check if this kid-chore combination is still valid
-                if (entity_kid_id, entity_chore_id) not in valid_combinations:
-                    const.LOGGER.debug(
-                        "DEBUG: Removing orphaned kid-chore entity '%s' (unique_id: %s) - Kid '%s' no longer assigned to Chore '%s'",
-                        entity_entry.entity_id,
-                        entity_entry.unique_id,
-                        entity_kid_id,
-                        entity_chore_id,
-                    )
-                    ent_reg.async_remove(entity_entry.entity_id)
-
-        # PERF: Log entity registry cleanup duration
-        perf_duration = time.perf_counter() - perf_start
-        entity_count = len(ent_reg.entities)
-        const.LOGGER.debug(
-            "PERF: _remove_orphaned_kid_chore_entities() scanned %d entities in %.3fs (O(n) regex)",
-            entity_count,
-            perf_duration,
+        return await self._remove_entities_by_validator(
+            platforms=[const.Platform.SENSOR, const.Platform.BUTTON],
+            is_valid=is_valid,
+            entity_type="kid-chore entity",
         )
 
     async def _remove_orphaned_progress_entities(
@@ -853,97 +850,60 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         entity_list_key: str,
         progress_suffix: str,
         assigned_kids_key: str,
-    ) -> None:
-        """Remove progress entities for kids no longer assigned (generic).
-
-        Consolidates logic for achievement and challenge progress cleanup.
-        Uses kc_helpers.get_integration_entities() for efficient sensor filtering.
-
-        Args:
-            entity_type: Display name for logging (e.g., "Achievement", "Challenge").
-            entity_list_key: Data key for parent entities (e.g., DATA_ACHIEVEMENTS).
-            progress_suffix: Unique ID suffix for progress entities.
-            assigned_kids_key: Key for assigned kids list in parent entity.
-        """
+    ) -> int:
+        """Remove progress entities for kids no longer assigned (generic)."""
         prefix = f"{self.config_entry.entry_id}_"
-        suffix = progress_suffix
 
-        # Get all sensor entities for this integration
-        sensor_entities = kh.get_integration_entities(
-            self.hass, self.config_entry.entry_id, const.Platform.SENSOR
+        def is_valid(unique_id: str) -> bool:
+            core_id = unique_id[len(prefix) : -len(progress_suffix)]
+            parts = core_id.split("_", 1)
+            if len(parts) != 2:
+                return True  # Can't parse, keep it
+
+            kid_id, parent_entity_id = parts
+            parent_info = self._data.get(entity_list_key, {}).get(parent_entity_id)
+            return bool(
+                parent_info and kid_id in parent_info.get(assigned_kids_key, [])
+            )
+
+        return await self._remove_entities_by_validator(
+            platforms=[const.Platform.SENSOR],
+            suffix=progress_suffix,
+            is_valid=is_valid,
+            entity_type=f"{entity_type} progress sensor",
         )
 
-        ent_reg = er.async_get(self.hass)
-        for entity_entry in sensor_entities:
-            unique_id = str(entity_entry.unique_id)
-            if unique_id.startswith(prefix) and unique_id.endswith(suffix):
-                core_id = unique_id[len(prefix) : -len(suffix)]
-                parts = core_id.split("_", 1)
-                if len(parts) != 2:
-                    continue
-
-                kid_id, parent_entity_id = parts
-                parent_entity_info = self._data.get(entity_list_key, {}).get(
-                    parent_entity_id
-                )
-                if not parent_entity_info or kid_id not in parent_entity_info.get(
-                    assigned_kids_key, []
-                ):
-                    ent_reg.async_remove(entity_entry.entity_id)
-                    const.LOGGER.debug(
-                        "DEBUG: Removed orphaned %s Progress sensor '%s'. Kid ID '%s' is not assigned to %s '%s'",
-                        entity_type,
-                        entity_entry.entity_id,
-                        kid_id,
-                        entity_type,
-                        parent_entity_id,
-                    )
-
-    async def _remove_orphaned_achievement_entities(self) -> None:
-        """Remove achievement progress entities for kids that are no longer assigned."""
-        await self._remove_orphaned_progress_entities(
-            entity_type="Achievement",
+    async def _remove_orphaned_achievement_entities(self) -> int:
+        """Remove achievement progress entities for unassigned kids."""
+        return await self._remove_orphaned_progress_entities(
+            entity_type="achievement",
             entity_list_key=const.DATA_ACHIEVEMENTS,
             progress_suffix=const.DATA_ACHIEVEMENT_PROGRESS_SUFFIX,
             assigned_kids_key=const.DATA_ACHIEVEMENT_ASSIGNED_KIDS,
         )
 
-    async def _remove_orphaned_challenge_entities(self) -> None:
-        """Remove challenge progress sensor entities for kids no longer assigned."""
-        await self._remove_orphaned_progress_entities(
-            entity_type="Challenge",
+    async def _remove_orphaned_challenge_entities(self) -> int:
+        """Remove challenge progress entities for unassigned kids."""
+        return await self._remove_orphaned_progress_entities(
+            entity_type="challenge",
             entity_list_key=const.DATA_CHALLENGES,
             progress_suffix=const.DATA_CHALLENGE_PROGRESS_SUFFIX,
             assigned_kids_key=const.DATA_CHALLENGE_ASSIGNED_KIDS,
         )
 
-    async def _remove_orphaned_badge_entities(self) -> None:
-        """Remove badge progress entities for kids no longer assigned.
-
-        Wrapper around _remove_orphaned_progress_entities() for badges.
-        Handles cleanup when kids are unassigned from badges.
-        """
-        await self._remove_orphaned_progress_entities(
-            entity_type="Badge",
+    # ------------------- Has assigned kid relationship -------------------------------------
+    async def _remove_orphaned_badge_entities(self) -> int:
+        """Remove badge progress entities for unassigned kids."""
+        return await self._remove_orphaned_progress_entities(
+            entity_type="badge",
             entity_list_key=const.DATA_BADGES,
             progress_suffix=const.SENSOR_KC_UID_SUFFIX_BADGE_PROGRESS_SENSOR,
             assigned_kids_key=const.DATA_BADGE_ASSIGNED_TO,
         )
 
-    async def _remove_orphaned_manual_adjustment_buttons(self) -> None:
-        """Remove manual point adjustment button entities with obsolete delta values.
-
-        Called when CONF_POINTS_ADJUST_VALUES changes via options flow or reconfigure.
-        Removes buttons with old delta values that are no longer in the configuration.
-
-        Button unique_id pattern: {entry_id}_{kid_id}_kc_points_adjust_{delta}
-        Example: abc123_kid1_kc_points_adjust_1.0
-
-        Performance: O(n) entity scan with set lookup for validation.
-        """
-        perf_start = time.perf_counter()
-
-        # Get current configured point adjustment values
+    async def _remove_orphaned_manual_adjustment_buttons(self) -> int:
+        """Remove manual adjustment buttons with obsolete delta values."""
+        # Get current configured deltas
         raw_values = self.config_entry.options.get(const.CONF_POINTS_ADJUST_VALUES)
         if not raw_values:
             current_deltas = set(const.DEFAULT_POINTS_ADJUST_VALUES)
@@ -960,78 +920,113 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         if not current_deltas:
             current_deltas = set(const.DEFAULT_POINTS_ADJUST_VALUES)
 
-        ent_reg = er.async_get(self.hass)
-        prefix = f"{self.config_entry.entry_id}_"
-        button_midfix = const.BUTTON_KC_UID_MIDFIX_ADJUST_POINTS
-        removed_count = 0
+        button_suffix = const.BUTTON_KC_UID_SUFFIX_PARENT_POINTS_ADJUST
 
-        # Scan entities belonging to this config entry for manual adjustment buttons
-        for entity_entry in list(ent_reg.entities.values()):
-            # Only check entities from this config entry (safer than platform check)
-            if entity_entry.config_entry_id != self.config_entry.entry_id:
-                continue
-
-            unique_id = str(entity_entry.unique_id)
-            if not unique_id.startswith(prefix):
-                continue
-
-            # Check if this is a manual adjustment button
-            if button_midfix not in unique_id:
-                continue
-
-            # Extract delta value from unique_id
-            # Pattern: {entry_id}_{kid_id}_kc_points_adjust_{delta}
+        def is_valid(unique_id: str) -> bool:
+            # New format: {entry_id}_{kid_id}_{slugified_delta}_parent_points_adjust_button
+            if button_suffix not in unique_id:
+                return False
             try:
-                delta_str = unique_id.split(button_midfix)[-1]
+                # Extract the part before the suffix
+                prefix_part = unique_id.split(button_suffix)[0]
+                # Get last segment which is the slugified delta
+                delta_slug = prefix_part.split("_")[-1]
+                # Convert slugified delta back to float (replace 'neg' prefix and 'p' decimal)
+                delta_str = delta_slug.replace("neg", "-").replace("p", ".")
                 delta = float(delta_str)
+                return delta in current_deltas
             except (ValueError, IndexError):
                 const.LOGGER.warning(
-                    "WARNING: Could not parse delta from manual adjustment button unique_id: %s",
-                    unique_id,
+                    "Could not parse delta from adjustment button uid: %s", unique_id
                 )
-                continue
+                return True  # Can't parse, keep it
 
-            # Remove if delta is no longer in configured values
-            if delta not in current_deltas:
-                const.LOGGER.debug(
-                    "DEBUG: Removing orphaned manual adjustment button '%s' (unique_id: %s) - Delta %.1f no longer configured",
-                    entity_entry.entity_id,
-                    entity_entry.unique_id,
-                    delta,
-                )
-                ent_reg.async_remove(entity_entry.entity_id)
-                removed_count += 1
+        return await self._remove_entities_by_validator(
+            platforms=[const.Platform.BUTTON],
+            midfix=button_suffix,
+            is_valid=is_valid,
+            entity_type="manual adjustment button",
+        )
 
-        # Log cleanup results
-        perf_duration = time.perf_counter() - perf_start
-        if removed_count > 0:
+    async def remove_all_orphaned_entities(self) -> int:
+        """Run all orphan cleanup methods. Called on startup.
+
+        Consolidates all data-driven orphan removal into a single call.
+        Each method checks if underlying data relationships still exist.
+
+        Returns:
+            Total count of removed entities.
+        """
+        perf_start = time.perf_counter()
+        total_removed = 0
+
+        # Run all orphan cleanup methods
+        total_removed += await self._remove_orphaned_kid_chore_entities()
+        total_removed += await self._remove_orphaned_shared_chore_sensors()
+        total_removed += await self._remove_orphaned_badge_entities()
+        total_removed += await self._remove_orphaned_achievement_entities()
+        total_removed += await self._remove_orphaned_challenge_entities()
+        total_removed += await self._remove_orphaned_manual_adjustment_buttons()
+
+        perf_elapsed = time.perf_counter() - perf_start
+        if total_removed > 0:
             const.LOGGER.info(
-                "Removed %d orphaned manual adjustment button(s) in %.3fs",
-                removed_count,
-                perf_duration,
+                "Startup orphan cleanup: removed %d entities in %.3fs",
+                total_removed,
+                perf_elapsed,
             )
         else:
             const.LOGGER.debug(
-                "PERF: _remove_orphaned_manual_adjustment_buttons() scanned entities in %.3fs - no orphans found",
-                perf_duration,
+                "PERF: startup orphan cleanup completed in %.3fs, no orphans found",
+                perf_elapsed,
             )
 
-    async def _remove_orphaned_shadow_kid_buttons(self) -> None:
-        """Remove entities for shadow kids that are no longer allowed.
+        return total_removed
 
-        Called when parent's enable_chore_workflow or enable_gamification settings change.
-        Uses whitelist logic: entities not in the allowed list are removed.
+    async def remove_conditional_entities(
+        self,
+        *,
+        kid_ids: list[str] | None = None,
+    ) -> int:
+        """Remove entities no longer allowed by feature flags.
 
-        Whitelist: Base (always) + Workflow (if enabled) + Gamification (if enabled)
+        Removes entities that are no longer allowed based on current flag settings.
+        Uses should_create_entity() from kc_helpers as single source of truth.
+
+        This consolidates:
+        - Extra entity cleanup (show_legacy_entities flag)
+        - Shadow kid workflow entity cleanup
+        - Shadow kid gamification entity cleanup
+
+        Args:
+            kid_ids: List of kid IDs to check, or None for all kids.
+                     Use targeted kid_ids when a specific kid's flags change.
+                     Use None for bulk cleanup (fresh startup, post-migration).
+
+        Returns:
+            Count of removed entities.
+
+        Call patterns:
+            - Options flow (extra flag changes): kid_ids=None (affects all)
+            - Options flow (parent flags change): kid_ids=[shadow_kid_id]
+            - Unlink service: kid_ids=[shadow_kid_id]
+            - Fresh HA startup (not reload): kid_ids=None
+            - Post-migration: kid_ids=None
         """
         perf_start = time.perf_counter()
         ent_reg = er.async_get(self.hass)
         prefix = f"{self.config_entry.entry_id}_"
         removed_count = 0
 
-        # Scan entities belonging to this config entry only
+        # Get system-wide extra flag
+        extra_enabled = self.config_entry.options.get(
+            const.CONF_SHOW_LEGACY_ENTITIES, False
+        )
+
+        # Build kid filter set (None = check all)
+        target_kids = set(kid_ids) if kid_ids else None
+
         for entity_entry in list(ent_reg.entities.values()):
-            # Only check entities from this config entry (safer than platform check)
             if entity_entry.config_entry_id != self.config_entry.entry_id:
                 continue
 
@@ -1041,44 +1036,54 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
 
             # Extract kid_id from unique_id
             kid_id = self._extract_kid_id_from_unique_id(unique_id, prefix)
-            if not kid_id or not kh.is_shadow_kid(self, kid_id):
-                continue  # Skip non-shadow kids (they get all entities)
+            if not kid_id:
+                continue
 
-            # Get parent settings for this shadow kid
+            # Skip if not in target list (when targeted)
+            if target_kids and kid_id not in target_kids:
+                continue
+
+            # Determine kid context
+            is_shadow = kh.is_shadow_kid(self, kid_id)
             workflow_enabled = kh.should_create_workflow_buttons(self, kid_id)
             gamification_enabled = kh.should_create_gamification_entities(self, kid_id)
 
-            # Check if entity is allowed using whitelist
-            if not kh.is_entity_allowed_for_shadow_kid(
-                entity_entry.domain, unique_id, workflow_enabled, gamification_enabled
+            # Check if entity should exist using unified filter
+            if not kh.should_create_entity(
+                unique_id,
+                is_shadow_kid=is_shadow,
+                workflow_enabled=workflow_enabled,
+                gamification_enabled=gamification_enabled,
+                extra_enabled=extra_enabled,
             ):
                 const.LOGGER.debug(
-                    "Removing disallowed %s entity for shadow kid %s: %s",
-                    entity_entry.domain,
+                    "Removing conditional entity for kid %s: %s (shadow=%s)",
                     kid_id,
                     entity_entry.entity_id,
+                    is_shadow,
                 )
                 ent_reg.async_remove(entity_entry.entity_id)
                 removed_count += 1
 
         perf_elapsed = time.perf_counter() - perf_start
         const.LOGGER.debug(
-            "PERF: _remove_orphaned_shadow_kid_buttons() scanned %d entities in %.3fs",
-            len(ent_reg.entities),
+            "PERF: remove_conditional_entities() scanned in %.3fs, removed %d",
             perf_elapsed,
+            removed_count,
         )
         if removed_count > 0:
             const.LOGGER.info(
-                "Removed %d disallowed shadow kid entit(y/ies) based on settings",
+                "Cleaned up %d conditional entit(y/ies) based on current settings",
                 removed_count,
             )
+        return removed_count
 
     def _extract_kid_id_from_unique_id(self, unique_id: str, prefix: str) -> str | None:
         """Extract kid_id from a unique_id string.
 
         Handles different unique_id patterns:
-        - Standard: {entry_id}_{kid_id}_{...}
-        - Reward/Bonus/Penalty buttons: {entry_id}_{prefix}_{kid_id}_{item_id}
+        - New SUFFIX pattern: {entry_id}_{kid_id}[_{item_id}]{_class_suffix}
+        - Legacy PREFIX pattern: {entry_id}_{prefix}_{kid_id}_{item_id} (deprecated)
 
         Args:
             unique_id: The entity's unique_id string.
@@ -1087,7 +1092,8 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         Returns:
             The kid_id or None if not found.
         """
-        # Check for special button prefixes first
+        # Check for legacy button prefixes (deprecated, kept for migration)
+        # These will be removed once all entities are migrated
         for button_prefix in (
             const.BUTTON_REWARD_PREFIX,
             const.BUTTON_BONUS_PREFIX,
@@ -1098,13 +1104,13 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
                 if len(parts) == 2:
                     return parts[1].split("_", 1)[0]
 
-        # Standard pattern: {entry_id}_{kid_id}_{...}
+        # Standard SUFFIX pattern: {entry_id}_{kid_id}[_{item_id}]{_suffix}
         remainder = unique_id[len(prefix) :]
         parts = remainder.split("_", 1)
         return parts[0] if parts else None
 
     # -------------------------------------------------------------------------------------
-    # Public Entity Management Methods (for Options Flow and some Services)
+    # KidsChores Entity Management Methods (for Options Flow and some Services)
     # These methods provide direct storage updates without triggering config reloads
     # -------------------------------------------------------------------------------------
 
@@ -1143,8 +1149,8 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
                 ] = None
             # Unlink shadow kid (preserves kid + entities)
             self._unlink_shadow_kid(kid_id)
-            # Cleanup unused translation sensors (if language no longer needed)
-            self.cleanup_unused_translation_sensors()
+            # Remove unused translation sensors (if language no longer needed)
+            self.remove_unused_translation_sensors()
             self._persist()
             self.async_update_listeners()
             const.LOGGER.info(
@@ -1168,8 +1174,8 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         self._cleanup_parent_assignments()
         self._cleanup_pending_reward_approvals()
 
-        # Cleanup unused translation sensors (if language no longer needed)
-        self.cleanup_unused_translation_sensors()
+        # Remove unused translation sensors (if language no longer needed)
+        self.remove_unused_translation_sensors()
 
         self._persist()
         self.async_update_listeners()
@@ -1203,8 +1209,8 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
 
         del self._data[const.DATA_PARENTS][parent_id]
 
-        # Cleanup unused translation sensors (if language no longer needed)
-        self.cleanup_unused_translation_sensors()
+        # Remove unused translation sensors (if language no longer needed)
+        self.remove_unused_translation_sensors()
 
         self._persist()
         self.async_update_listeners()
@@ -1427,16 +1433,35 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         """Check if a translation sensor exists for the given language code."""
         return lang_code in self._translation_sensors_created
 
-    def get_translation_sensor_eid(self, lang_code: str) -> str:
+    def get_translation_sensor_eid(self, lang_code: str) -> str | None:
         """Get the entity ID for a translation sensor given a language code.
 
-        Returns the entity ID whether or not the sensor exists yet.
-        Format: sensor.kc_ui_dashboard_lang_{code}
+        Looks up the entity ID from the registry using the unique_id.
+        Falls back to English ('en') if the requested language isn't found.
+        Returns None only if neither the requested language nor English exist.
+
+        Args:
+            lang_code: ISO language code (e.g., 'en', 'es', 'de')
+
+        Returns:
+            Entity ID if found in registry (requested or fallback), None otherwise
         """
-        return (
-            f"{const.SENSOR_KC_PREFIX}"
-            f"{const.SENSOR_KC_EID_PREFIX_DASHBOARD_LANG}{lang_code}"
+        from homeassistant.helpers.entity_registry import async_get
+
+        entity_registry = async_get(self.hass)
+        unique_id = f"{self.config_entry.entry_id}_{lang_code}{const.SENSOR_KC_UID_SUFFIX_DASHBOARD_LANG}"
+        entity_id = entity_registry.async_get_entity_id(
+            "sensor", const.DOMAIN, unique_id
         )
+
+        # If requested language not found and it's not already English, fall back to English
+        if entity_id is None and lang_code != "en":
+            unique_id_en = f"{self.config_entry.entry_id}_en{const.SENSOR_KC_UID_SUFFIX_DASHBOARD_LANG}"
+            entity_id = entity_registry.async_get_entity_id(
+                "sensor", const.DOMAIN, unique_id_en
+            )
+
+        return entity_id
 
     async def ensure_translation_sensor_exists(self, lang_code: str) -> str:
         """Ensure a translation sensor exists for the given language code.
@@ -1450,22 +1475,39 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         # Import here to avoid circular dependency
         from .sensor import SystemDashboardTranslationSensor
 
+        # Try to get entity ID from registry
         eid = self.get_translation_sensor_eid(lang_code)
 
-        # If sensor already exists, just return the entity ID
-        if lang_code in self._translation_sensors_created:
+        # If sensor already exists in registry, return the entity ID
+        if eid:
             return eid
 
-        # If no callback registered (shouldn't happen), log warning and return
+        # If sensor was marked as created but not in registry, use constructed entity_id
+        if lang_code in self._translation_sensors_created:
+            # Construct expected entity_id (sensor exists but not yet in registry)
+            return (
+                f"{const.SENSOR_KC_PREFIX}"
+                f"{const.SENSOR_KC_EID_PREFIX_DASHBOARD_LANG}{lang_code}"
+            )
+
+        # If no callback registered (shouldn't happen), log warning and return fallback
         if self._sensor_add_entities_callback is None:
             const.LOGGER.warning(
                 "Cannot create translation sensor for '%s': no callback registered",
                 lang_code,
             )
-            # Fallback to English if available, otherwise just return the expected EID
+            # Fallback to English if available
             if const.DEFAULT_DASHBOARD_LANGUAGE in self._translation_sensors_created:
-                return self.get_translation_sensor_eid(const.DEFAULT_DASHBOARD_LANGUAGE)
-            return eid
+                fallback_eid = self.get_translation_sensor_eid(
+                    const.DEFAULT_DASHBOARD_LANGUAGE
+                )
+                if fallback_eid:
+                    return fallback_eid
+            # Last resort: construct expected entity_id
+            return (
+                f"{const.SENSOR_KC_PREFIX}"
+                f"{const.SENSOR_KC_EID_PREFIX_DASHBOARD_LANG}{lang_code}"
+            )
 
         # Create the new translation sensor
         const.LOGGER.info(
@@ -1477,7 +1519,11 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         self._sensor_add_entities_callback([new_sensor])
         self._translation_sensors_created.add(lang_code)
 
-        return eid
+        # Return expected entity_id (sensor not yet in registry)
+        return (
+            f"{const.SENSOR_KC_PREFIX}"
+            f"{const.SENSOR_KC_EID_PREFIX_DASHBOARD_LANG}{lang_code}"
+        )
 
     def get_languages_in_use(self) -> set[str]:
         """Get all unique dashboard languages currently in use by kids and parents.
@@ -1499,7 +1545,7 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         languages.add(const.DEFAULT_DASHBOARD_LANGUAGE)
         return languages
 
-    def cleanup_unused_translation_sensors(self) -> None:
+    def remove_unused_translation_sensors(self) -> None:
         """Remove translation sensors for languages no longer in use.
 
         This is an optimization to avoid keeping unused sensors in memory.
@@ -1517,14 +1563,15 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         entity_registry = er.async_get(self.hass)
         for lang_code in unused_languages:
             eid = self.get_translation_sensor_eid(lang_code)
-            entity_entry = entity_registry.async_get(eid)
-            if entity_entry:
-                const.LOGGER.info(
-                    "Removing unused translation sensor: %s (language: %s)",
-                    eid,
-                    lang_code,
-                )
-                entity_registry.async_remove(eid)
+            if eid:  # Only try to remove if entity exists in registry
+                entity_entry = entity_registry.async_get(eid)
+                if entity_entry:
+                    const.LOGGER.info(
+                        "Removing unused translation sensor: %s (language: %s)",
+                        eid,
+                        lang_code,
+                    )
+                    entity_registry.async_remove(eid)
             self._translation_sensors_created.discard(lang_code)
 
     # -------------------------------------------------------------------------------------

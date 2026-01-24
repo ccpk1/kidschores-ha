@@ -32,11 +32,11 @@ Sensors Defined in This File (14):
 14. SystemDashboardTranslationSensor
 
 Legacy Sensors Imported from sensor_legacy.py (13):
-    System Chore Approval Sensors (4):
-    1. SystemChoreApprovalsSensor - Total chores completed (data in KidChoresSensor attributes)
-    2. SystemChoreApprovalsDailySensor - Daily chores completed (data in SystemChoreApprovalsSensor attributes)
-    3. SystemChoreApprovalsWeeklySensor - Weekly chores completed (data in SystemChoreApprovalsSensor attributes)
-    4. SystemChoreApprovalsMonthlySensor - Monthly chores completed (data in SystemChoreApprovalsSensor attributes)
+    Kid Chore Approval Sensors (4):
+    1. KidChoreApprovalsSensor - Total chores completed (data in KidChoresSensor attributes)
+    2. KidChoreApprovalsDailySensor - Daily chores completed (data in KidChoreApprovalsSensor attributes)
+    3. KidChoreApprovalsWeeklySensor - Weekly chores completed (data in KidChoreApprovalsSensor attributes)
+    4. KidChoreApprovalsMonthlySensor - Monthly chores completed (data in KidChoreApprovalsSensor attributes)
 
     Pending Approval Sensors (2):
     5. SystemChoresPendingApprovalSensor - Pending chore approvals (global)
@@ -72,16 +72,16 @@ from .coordinator import KidsChoresDataCoordinator
 from .entity import KidsChoresCoordinatorEntity
 from .sensor_legacy import (
     KidBonusAppliedSensor,
+    KidChoreApprovalsDailySensor,
+    KidChoreApprovalsMonthlySensor,
+    KidChoreApprovalsSensor,
+    KidChoreApprovalsWeeklySensor,
     KidChoreStreakSensor,
     KidPenaltyAppliedSensor,
     KidPointsEarnedDailySensor,
     KidPointsEarnedMonthlySensor,
     KidPointsEarnedWeeklySensor,
     KidPointsMaxEverSensor,
-    SystemChoreApprovalsDailySensor,
-    SystemChoreApprovalsMonthlySensor,
-    SystemChoreApprovalsSensor,
-    SystemChoreApprovalsWeeklySensor,
     SystemChoresPendingApprovalSensor,
     SystemRewardsPendingApprovalSensor,
 )
@@ -118,9 +118,16 @@ async def async_setup_entry(
     show_legacy_entities = entry.options.get(const.CONF_SHOW_LEGACY_ENTITIES, False)
     entities: list[SensorEntity] = []
 
-    # Legacy pending approval sensors (optional)
-    if show_legacy_entities:
+    # System-level pending approval sensors (EXTRA requirement)
+    if kh.should_create_entity(
+        const.SENSOR_KC_UID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR,
+        extra_enabled=show_legacy_entities,
+    ):
         entities.append(SystemChoresPendingApprovalSensor(coordinator, entry))
+    if kh.should_create_entity(
+        const.SENSOR_KC_UID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR,
+        extra_enabled=show_legacy_entities,
+    ):
         entities.append(SystemRewardsPendingApprovalSensor(coordinator, entry))
 
     # For each kid, add standard sensors
@@ -131,75 +138,132 @@ async def async_setup_entry(
         if not kid_name:
             continue
 
-        # Check if this kid should have gamification entities (shadow kids may not)
-        create_gamification = kh.should_create_gamification_entities(
+        # Determine shadow kid context flags for should_create_entity()
+        is_shadow = kh.is_shadow_kid(coordinator, kid_id)
+        gamification_enabled = kh.should_create_gamification_entities(
             coordinator, kid_id
         )
 
-        # Points counter sensor (gamification)
-        if create_gamification:
+        # Points counter sensor (GAMIFICATION requirement)
+        if kh.should_create_entity(
+            const.SENSOR_KC_UID_SUFFIX_KID_POINTS_SENSOR,
+            is_shadow_kid=is_shadow,
+            gamification_enabled=gamification_enabled,
+        ):
             entities.append(
                 KidPointsSensor(
                     coordinator, entry, kid_id, kid_name, points_label, points_icon
                 )
             )
 
-        # Chores sensor with all stats (always created - not gamification)
-        entities.append(KidChoresSensor(coordinator, entry, kid_id, kid_name))
+        # Chores sensor with all stats (ALWAYS created)
+        if kh.should_create_entity(
+            const.SENSOR_KC_UID_SUFFIX_CHORES_SENSOR,
+            is_shadow_kid=is_shadow,
+        ):
+            entities.append(KidChoresSensor(coordinator, entry, kid_id, kid_name))
 
-        # Legacy chore completion sensors (optional, gamification only)
-        if show_legacy_entities and create_gamification:
+        # Chore completion sensors (EXTRA requirement)
+        if kh.should_create_entity(
+            const.SENSOR_KC_UID_SUFFIX_COMPLETED_TOTAL_SENSOR,
+            is_shadow_kid=is_shadow,
+            gamification_enabled=gamification_enabled,
+            extra_enabled=show_legacy_entities,
+        ):
             entities.append(
-                SystemChoreApprovalsSensor(coordinator, entry, kid_id, kid_name)
+                KidChoreApprovalsSensor(coordinator, entry, kid_id, kid_name)
             )
+        if kh.should_create_entity(
+            const.SENSOR_KC_UID_SUFFIX_COMPLETED_DAILY_SENSOR,
+            is_shadow_kid=is_shadow,
+            gamification_enabled=gamification_enabled,
+            extra_enabled=show_legacy_entities,
+        ):
             entities.append(
-                SystemChoreApprovalsDailySensor(coordinator, entry, kid_id, kid_name)
+                KidChoreApprovalsDailySensor(coordinator, entry, kid_id, kid_name)
             )
+        if kh.should_create_entity(
+            const.SENSOR_KC_UID_SUFFIX_COMPLETED_WEEKLY_SENSOR,
+            is_shadow_kid=is_shadow,
+            gamification_enabled=gamification_enabled,
+            extra_enabled=show_legacy_entities,
+        ):
             entities.append(
-                SystemChoreApprovalsWeeklySensor(coordinator, entry, kid_id, kid_name)
+                KidChoreApprovalsWeeklySensor(coordinator, entry, kid_id, kid_name)
             )
+        if kh.should_create_entity(
+            const.SENSOR_KC_UID_SUFFIX_COMPLETED_MONTHLY_SENSOR,
+            is_shadow_kid=is_shadow,
+            gamification_enabled=gamification_enabled,
+            extra_enabled=show_legacy_entities,
+        ):
             entities.append(
-                SystemChoreApprovalsMonthlySensor(coordinator, entry, kid_id, kid_name)
+                KidChoreApprovalsMonthlySensor(coordinator, entry, kid_id, kid_name)
             )
 
-        # Kid Badges (displays highest cumulative badge) - gamification
-        if create_gamification:
+        # Kid Badges (displays highest cumulative badge) (GAMIFICATION requirement)
+        if kh.should_create_entity(
+            const.SENSOR_KC_UID_SUFFIX_KID_BADGES_SENSOR,
+            is_shadow_kid=is_shadow,
+            gamification_enabled=gamification_enabled,
+        ):
             entities.append(KidBadgesSensor(coordinator, entry, kid_id, kid_name))
 
-        # Legacy points earned sensors (optional, gamification only)
-        if show_legacy_entities and create_gamification:
-            # Points obtained per Kid during the day
+        # Points earned sensors (EXTRA requirement)
+        if kh.should_create_entity(
+            const.SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_DAILY_SENSOR,
+            is_shadow_kid=is_shadow,
+            gamification_enabled=gamification_enabled,
+            extra_enabled=show_legacy_entities,
+        ):
             entities.append(
                 KidPointsEarnedDailySensor(
                     coordinator, entry, kid_id, kid_name, points_label, points_icon
                 )
             )
-
-            # Points obtained per Kid during the week
+        if kh.should_create_entity(
+            const.SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_WEEKLY_SENSOR,
+            is_shadow_kid=is_shadow,
+            gamification_enabled=gamification_enabled,
+            extra_enabled=show_legacy_entities,
+        ):
             entities.append(
                 KidPointsEarnedWeeklySensor(
                     coordinator, entry, kid_id, kid_name, points_label, points_icon
                 )
             )
-
-            # Points obtained per Kid during the month
+        if kh.should_create_entity(
+            const.SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_MONTHLY_SENSOR,
+            is_shadow_kid=is_shadow,
+            gamification_enabled=gamification_enabled,
+            extra_enabled=show_legacy_entities,
+        ):
             entities.append(
                 KidPointsEarnedMonthlySensor(
                     coordinator, entry, kid_id, kid_name, points_label, points_icon
                 )
             )
 
-        # Legacy maximum points sensor (optional, gamification only)
-        if show_legacy_entities and create_gamification:
+        # Maximum points sensor (EXTRA requirement)
+        if kh.should_create_entity(
+            const.SENSOR_KC_UID_SUFFIX_KID_MAX_POINTS_EVER_SENSOR,
+            is_shadow_kid=is_shadow,
+            gamification_enabled=gamification_enabled,
+            extra_enabled=show_legacy_entities,
+        ):
             entities.append(
                 KidPointsMaxEverSensor(
                     coordinator, entry, kid_id, kid_name, points_label, points_icon
                 )
             )
 
-        # Legacy penalty/bonus applied sensors (optional, gamification only)
-        if show_legacy_entities and create_gamification:
-            # Penalty Applies
+        # Penalty applied sensors (EXTRA requirement)
+        if kh.should_create_entity(
+            const.SENSOR_KC_UID_SUFFIX_PENALTY_APPLIES_SENSOR,
+            is_shadow_kid=is_shadow,
+            gamification_enabled=gamification_enabled,
+            extra_enabled=show_legacy_entities,
+        ):
             for penalty_id, penalty_info in coordinator.penalties_data.items():
                 penalty_name = kh.get_entity_name_or_log_error(
                     "penalty", penalty_id, penalty_info, const.DATA_PENALTY_NAME
@@ -212,7 +276,13 @@ async def async_setup_entry(
                     )
                 )
 
-            # Bonus Applies
+        # Bonus applied sensors (EXTRA requirement)
+        if kh.should_create_entity(
+            const.SENSOR_KC_UID_SUFFIX_BONUS_APPLIES_SENSOR,
+            is_shadow_kid=is_shadow,
+            gamification_enabled=gamification_enabled,
+            extra_enabled=show_legacy_entities,
+        ):
             for bonus_id, bonus_info in coordinator.bonuses_data.items():
                 bonus_name = kh.get_entity_name_or_log_error(
                     "bonus", bonus_id, bonus_info, const.DATA_BONUS_NAME
@@ -225,8 +295,12 @@ async def async_setup_entry(
                     )
                 )
 
-        # KidBadgeProgressSensor Progress per Kid for each non-cumulative badge (gamification)
-        if create_gamification:
+        # Badge progress sensors (GAMIFICATION requirement)
+        if kh.should_create_entity(
+            const.SENSOR_KC_UID_SUFFIX_BADGE_PROGRESS_SENSOR,
+            is_shadow_kid=is_shadow,
+            gamification_enabled=gamification_enabled,
+        ):
             badge_progress_data = kid_info.get(const.DATA_KID_BADGE_PROGRESS, {})
             for badge_id, progress_info in badge_progress_data.items():
                 badge_type = progress_info.get(const.DATA_KID_BADGE_PROGRESS_TYPE)
@@ -245,8 +319,12 @@ async def async_setup_entry(
                         )
                     )
 
-        # Achievement Progress per Kid (gamification)
-        if create_gamification:
+        # Achievement Progress per Kid (GAMIFICATION requirement)
+        if kh.should_create_entity(
+            const.SENSOR_KC_UID_SUFFIX_ACHIEVEMENT_PROGRESS_SENSOR,
+            is_shadow_kid=is_shadow,
+            gamification_enabled=gamification_enabled,
+        ):
             for achievement_id, achievement in coordinator.achievements_data.items():
                 if kid_id in achievement.get(const.DATA_ACHIEVEMENT_ASSIGNED_KIDS, []):
                     achievement_name = kh.get_entity_name_or_log_error(
@@ -268,8 +346,12 @@ async def async_setup_entry(
                         )
                     )
 
-        # Challenge Progress per Kid (gamification)
-        if create_gamification:
+        # Challenge Progress per Kid (GAMIFICATION requirement)
+        if kh.should_create_entity(
+            const.SENSOR_KC_UID_SUFFIX_CHALLENGE_PROGRESS_SENSOR,
+            is_shadow_kid=is_shadow,
+            gamification_enabled=gamification_enabled,
+        ):
             for challenge_id, challenge in coordinator.challenges_data.items():
                 if kid_id in challenge.get(const.DATA_CHALLENGE_ASSIGNED_KIDS, []):
                     challenge_name = kh.get_entity_name_or_log_error(
@@ -288,9 +370,13 @@ async def async_setup_entry(
                         )
                     )
 
-        # Highest Streak Sensor per Kid
-        # Legacy streak sensor (optional)
-        if show_legacy_entities:
+        # Highest Streak Sensor per Kid (EXTRA requirement)
+        if kh.should_create_entity(
+            const.SENSOR_KC_UID_SUFFIX_KID_HIGHEST_STREAK_SENSOR,
+            is_shadow_kid=is_shadow,
+            gamification_enabled=gamification_enabled,
+            extra_enabled=show_legacy_entities,
+        ):
             entities.append(KidChoreStreakSensor(coordinator, entry, kid_id, kid_name))
 
         # Dashboard helper sensor will be created after all individual entities
@@ -332,7 +418,7 @@ async def async_setup_entry(
                 SystemChoreSharedStateSensor(coordinator, entry, chore_id, chore_name)
             )
 
-    # For each Reward, add a KidRewardStatusSensor (gamification)
+    # For each Reward, add a KidRewardStatusSensor (GAMIFICATION requirement)
     for reward_id, reward_info in coordinator.rewards_data.items():
         reward_name = kh.get_entity_name_or_log_error(
             "reward", reward_id, reward_info, const.DATA_REWARD_NAME
@@ -342,8 +428,16 @@ async def async_setup_entry(
 
         # For each kid with gamification enabled, create the reward status sensor
         for kid_id, kid_info in coordinator.kids_data.items():
-            # Skip shadow kids without gamification
-            if not kh.should_create_gamification_entities(coordinator, kid_id):
+            is_shadow = kh.is_shadow_kid(coordinator, kid_id)
+            gamification_enabled = kh.should_create_gamification_entities(
+                coordinator, kid_id
+            )
+            # Skip shadow kids without gamification using unified check
+            if not kh.should_create_entity(
+                const.SENSOR_KC_UID_SUFFIX_REWARD_STATUS_SENSOR,
+                is_shadow_kid=is_shadow,
+                gamification_enabled=gamification_enabled,
+            ):
                 continue
             kid_name = kh.get_entity_name_or_log_error(
                 "kid", kid_id, kid_info, const.DATA_KID_NAME
@@ -356,7 +450,7 @@ async def async_setup_entry(
                 )
             )
 
-    # For each Badge, add a BadgeSensor
+    # For each Badge, add a BadgeSensor (GAMIFICATION requirement - system-level)
     for badge_id, badge_info in coordinator.badges_data.items():
         badge_name = kh.get_entity_name_or_log_error(
             "badge", badge_id, badge_info, const.DATA_BADGE_NAME
@@ -365,7 +459,7 @@ async def async_setup_entry(
             continue
         entities.append(SystemBadgeSensor(coordinator, entry, badge_id, badge_name))
 
-    # For each Achievement, add an AchievementSensor
+    # For each Achievement, add an AchievementSensor (GAMIFICATION requirement - system-level)
     for achievement_id, achievement in coordinator.achievements_data.items():
         achievement_name = kh.get_entity_name_or_log_error(
             "achievement", achievement_id, achievement, const.DATA_ACHIEVEMENT_NAME
@@ -378,7 +472,7 @@ async def async_setup_entry(
             )
         )
 
-    # For each Challenge, add a ChallengeSensor
+    # For each Challenge, add a ChallengeSensor (GAMIFICATION requirement - system-level)
     for challenge_id, challenge in coordinator.challenges_data.items():
         challenge_name = kh.get_entity_name_or_log_error(
             "challenge", challenge_id, challenge, const.DATA_CHALLENGE_NAME
@@ -2134,8 +2228,8 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         disapprove_button_eid = None
         try:
             entity_registry = async_get(self.hass)
-            # Claim button uses BUTTON_REWARD_PREFIX instead of a UID suffix
-            claim_unique_id = f"{self._entry.entry_id}_{const.BUTTON_REWARD_PREFIX}{self._kid_id}_{self._reward_id}"
+            # Claim button uses UID suffix pattern (v0.43+)
+            claim_unique_id = f"{self._entry.entry_id}_{self._kid_id}_{self._reward_id}{const.BUTTON_KC_UID_SUFFIX_KID_REWARD_REDEEM}"
             claim_button_eid = entity_registry.async_get_entity_id(
                 "button", const.DOMAIN, claim_unique_id
             )
@@ -3247,7 +3341,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             self.coordinator, kid_id, kid_name, entry
         )
 
-    def _get_translation_sensor_eid(self) -> str:
+    def _get_translation_sensor_eid(self) -> str | None:
         """Get the translation sensor entity ID for this kid's current language.
 
         Dynamically computed based on kid's dashboard_language setting.
@@ -3255,7 +3349,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         creation via coordinator.ensure_translation_sensor_exists().
 
         Returns:
-            Entity ID of the translation sensor (e.g., 'sensor.kc_ui_dashboard_lang_en')
+            Entity ID of the translation sensor or None if not found in registry
         """
         kid_info: KidData = cast(
             "KidData", self.coordinator.kids_data.get(self._kid_id, {})
@@ -3270,9 +3364,10 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             self.hass.async_create_task(
                 self.coordinator.ensure_translation_sensor_exists(lang_code)
             )
-            # Return expected entity ID (sensor will exist shortly)
-            return self.coordinator.get_translation_sensor_eid(lang_code)
+            # Return None for now (sensor will exist after async creation completes)
+            return None
 
+        # Look up entity ID from registry
         return self.coordinator.get_translation_sensor_eid(lang_code)
 
     def _handle_coordinator_update(self) -> None:
@@ -3574,8 +3669,8 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         # Datetime helper uses SUFFIX pattern: entry_id_kid_id + SUFFIX
         datetime_unique_id = f"{self._entry.entry_id}_{self._kid_id}{const.DATETIME_KC_UID_SUFFIX_DATE_HELPER}"
 
-        # Select helper uses MIDFIX pattern: entry_id + MIDFIX + kid_id
-        select_unique_id = f"{self._entry.entry_id}{const.SELECT_KC_UID_MIDFIX_CHORES_SELECT}{self._kid_id}"
+        # Select helper uses SUFFIX pattern: entry_id_kid_id + SUFFIX
+        select_unique_id = f"{self._entry.entry_id}_{self._kid_id}{const.SELECT_KC_UID_SUFFIX_KID_DASHBOARD_HELPER_CHORES_SELECT}"
 
         dashboard_helpers = {}
 
@@ -3913,7 +4008,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             # Get ParentBonusApplyButton entity_id
             bonus_eid = None
             if entity_registry:
-                unique_id = f"{self._entry.entry_id}_{const.BUTTON_BONUS_PREFIX}{self._kid_id}_{bonus_id}"
+                unique_id = f"{self._entry.entry_id}_{self._kid_id}_{bonus_id}{const.BUTTON_KC_UID_SUFFIX_PARENT_BONUS_APPLY}"
                 bonus_eid = entity_registry.async_get_entity_id(
                     "button", const.DOMAIN, unique_id
                 )
@@ -3948,7 +4043,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             # Get ParentPenaltyApplyButton entity_id
             penalty_eid = None
             if entity_registry:
-                unique_id = f"{self._entry.entry_id}_{const.BUTTON_PENALTY_PREFIX}{self._kid_id}_{penalty_id}"
+                unique_id = f"{self._entry.entry_id}_{self._kid_id}_{penalty_id}{const.BUTTON_KC_UID_SUFFIX_PARENT_PENALTY_APPLY}"
                 penalty_eid = entity_registry.async_get_entity_id(
                     "button", const.DOMAIN, unique_id
                 )
@@ -4043,27 +4138,37 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         points_buttons_attr = []
         if entity_registry:
             # Find all point adjustment buttons for this kid
-            # They follow pattern: {entry_id}_{kid_id}_adjust_points_{delta}
+            # New format: {entry_id}_{kid_id}_{slugified_delta}_parent_points_adjust_button
+            button_suffix = const.BUTTON_KC_UID_SUFFIX_PARENT_POINTS_ADJUST
             temp_buttons = []
             for entity in entity_registry.entities.values():
                 if (
-                    entity.unique_id.startswith(
-                        f"{self._entry.entry_id}_{self._kid_id}{const.BUTTON_KC_UID_MIDFIX_ADJUST_POINTS}"
+                    button_suffix in entity.unique_id
+                    and entity.unique_id.startswith(
+                        f"{self._entry.entry_id}_{self._kid_id}_"
                     )
                     and entity.domain == "button"
                 ):
                     # Extract delta from unique_id
-                    delta_part = entity.unique_id.split(
-                        const.BUTTON_KC_UID_MIDFIX_ADJUST_POINTS
-                    )[1]
+                    # Format: {entry_id}_{kid_id}_{slugified_delta}_parent_points_adjust_button
                     try:
-                        delta_value = float(delta_part)
-                    except ValueError:
+                        prefix_part = entity.unique_id.split(button_suffix)[0]
+                        delta_slug = prefix_part.split("_")[-1]
+                        # Convert slugified delta back to float
+                        delta_str = delta_slug.replace("neg", "-").replace("p", ".")
+                        delta_value = float(delta_str)
+                        # Format display name (keep + for positive, - for negative)
+                        if delta_value >= 0:
+                            display_name = f"Points +{delta_str}"
+                        else:
+                            display_name = f"Points {delta_str}"
+                    except (ValueError, IndexError):
                         delta_value = 0
+                        display_name = "Points +0"
                     temp_buttons.append(
                         {
                             "eid": entity.entity_id,
-                            "name": f"Points {delta_part}",
+                            "name": display_name,
                             "delta": delta_value,
                         }
                     )

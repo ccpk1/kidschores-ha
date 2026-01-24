@@ -67,15 +67,32 @@ async def _cleanup_orphaned_adjustment_buttons(
     # Find and remove orphaned manual adjustment buttons
     for entity in entities:
         # Check if this is a manual adjustment button by looking at unique_id pattern
-        # Format: {entry_id}_{kid_id}_adjust_points_{delta}
-        if const.BUTTON_KC_UID_MIDFIX_ADJUST_POINTS in entity.unique_id:
+        # New format: {entry_id}_{kid_id}_{slugified_delta}_parent_points_adjust_button
+        # Legacy format: {entry_id}_{kid_id}_adjust_points_{delta} (pre-v0.5.0)
+        if (
+            const.BUTTON_KC_UID_SUFFIX_PARENT_POINTS_ADJUST in entity.unique_id
+            or const.BUTTON_KC_UID_MIDFIX_ADJUST_POINTS_LEGACY in entity.unique_id
+        ):
             # Extract delta from unique_id
             try:
-                # unique_id format: "{entry_id}_{kid_id}_adjust_points_{delta}"
-                delta_str = entity.unique_id.split(
-                    const.BUTTON_KC_UID_MIDFIX_ADJUST_POINTS
-                )[1]
-                delta = float(delta_str)
+                # Try new format first
+                if const.BUTTON_KC_UID_SUFFIX_PARENT_POINTS_ADJUST in entity.unique_id:
+                    # unique_id format: "{entry_id}_{kid_id}_{slugified_delta}_parent_points_adjust_button"
+                    # Extract the part before the suffix
+                    prefix_part = entity.unique_id.split(
+                        const.BUTTON_KC_UID_SUFFIX_PARENT_POINTS_ADJUST
+                    )[0]
+                    # Get last segment which is the slugified delta
+                    delta_slug = prefix_part.split("_")[-1]
+                    # Convert slugified delta back to float (replace 'neg' prefix and 'p' decimal)
+                    delta_str = delta_slug.replace("neg", "-").replace("p", ".")
+                    delta = float(delta_str)
+                else:
+                    # Legacy format: "{entry_id}_{kid_id}_adjust_points_{delta}"
+                    delta_str = entity.unique_id.split(
+                        const.BUTTON_KC_UID_MIDFIX_ADJUST_POINTS_LEGACY
+                    )[1]
+                    delta = float(delta_str)
 
                 # If this delta is not in current config, remove the entity
                 if delta not in current_deltas:
@@ -85,11 +102,10 @@ async def _cleanup_orphaned_adjustment_buttons(
                         delta,
                     )
                     entity_registry.async_remove(entity.entity_id)
-            except (IndexError, ValueError) as ex:
+            except (IndexError, ValueError):
                 const.LOGGER.warning(
-                    "Could not parse delta from button unique_id %s: %s",
+                    "Could not parse delta from adjustment button uid: %s",
                     entity.unique_id,
-                    ex,
                 )
 
 
@@ -129,14 +145,20 @@ async def async_setup_entry(
                 or f"{const.TRANS_KEY_LABEL_KID} {kid_id}"
             )
 
-            # Determine if this is a shadow kid with workflow disabled
-            # Shadow kids without workflow get approval-only mode
-            create_workflow_buttons = kh.should_create_workflow_buttons(
+            # Get flag states for unified entity creation decisions
+            is_shadow = kh.is_shadow_kid(coordinator, kid_id)
+            workflow_enabled = kh.should_create_workflow_buttons(coordinator, kid_id)
+            gamification_enabled = kh.should_create_gamification_entities(
                 coordinator, kid_id
             )
 
-            # Claim Button - only for regular kids or shadow kids with workflow
-            if create_workflow_buttons:
+            # Claim Button - WORKFLOW requirement
+            if kh.should_create_entity(
+                const.BUTTON_KC_UID_SUFFIX_CLAIM,
+                is_shadow_kid=is_shadow,
+                workflow_enabled=workflow_enabled,
+                gamification_enabled=gamification_enabled,
+            ):
                 entities.append(
                     KidChoreClaimButton(
                         coordinator=coordinator,
@@ -149,21 +171,32 @@ async def async_setup_entry(
                     )
                 )
 
-            # Approve Button - always created (all kids can have chores approved)
-            entities.append(
-                ParentChoreApproveButton(
-                    coordinator=coordinator,
-                    entry=entry,
-                    kid_id=kid_id,
-                    kid_name=kid_name,
-                    chore_id=chore_id,
-                    chore_name=chore_name,
-                    icon=chore_approve_icon,
+            # Approve Button - ALWAYS requirement
+            if kh.should_create_entity(
+                const.BUTTON_KC_UID_SUFFIX_APPROVE,
+                is_shadow_kid=is_shadow,
+                workflow_enabled=workflow_enabled,
+                gamification_enabled=gamification_enabled,
+            ):
+                entities.append(
+                    ParentChoreApproveButton(
+                        coordinator=coordinator,
+                        entry=entry,
+                        kid_id=kid_id,
+                        kid_name=kid_name,
+                        chore_id=chore_id,
+                        chore_name=chore_name,
+                        icon=chore_approve_icon,
+                    )
                 )
-            )
 
-            # Disapprove Button - only for regular kids or shadow kids with workflow
-            if create_workflow_buttons:
+            # Disapprove Button - WORKFLOW requirement
+            if kh.should_create_entity(
+                const.BUTTON_KC_UID_SUFFIX_DISAPPROVE,
+                is_shadow_kid=is_shadow,
+                workflow_enabled=workflow_enabled,
+                gamification_enabled=gamification_enabled,
+            ):
                 entities.append(
                     ParentChoreDisapproveButton(
                         coordinator=coordinator,
@@ -805,9 +838,7 @@ class KidRewardRedeemButton(KidsChoresCoordinatorEntity, ButtonEntity):
         self._kid_name = kid_name
         self._reward_id = reward_id
         self._reward_name = reward_name
-        self._attr_unique_id = (
-            f"{entry.entry_id}_{const.BUTTON_REWARD_PREFIX}{kid_id}_{reward_id}"
-        )
+        self._attr_unique_id = f"{entry.entry_id}_{kid_id}_{reward_id}{const.BUTTON_KC_UID_SUFFIX_KID_REWARD_REDEEM}"
         self._attr_translation_placeholders = {
             const.TRANS_KEY_BUTTON_ATTR_KID_NAME: kid_name,
             const.TRANS_KEY_BUTTON_ATTR_REWARD_NAME: reward_name,
@@ -1222,9 +1253,7 @@ class ParentBonusApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
         self._kid_name = kid_name
         self._bonus_id = bonus_id
         self._bonus_name = bonus_name
-        self._attr_unique_id = (
-            f"{entry.entry_id}_{const.BUTTON_BONUS_PREFIX}{kid_id}_{bonus_id}"
-        )
+        self._attr_unique_id = f"{entry.entry_id}_{kid_id}_{bonus_id}{const.BUTTON_KC_UID_SUFFIX_PARENT_BONUS_APPLY}"
         self._user_icon = icon
         self._attr_translation_placeholders = {
             const.TRANS_KEY_BUTTON_ATTR_KID_NAME: kid_name,
@@ -1364,9 +1393,7 @@ class ParentPenaltyApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
         self._kid_name = kid_name
         self._penalty_id = penalty_id
         self._penalty_name = penalty_name
-        self._attr_unique_id = (
-            f"{entry.entry_id}_{const.BUTTON_PENALTY_PREFIX}{kid_id}_{penalty_id}"
-        )
+        self._attr_unique_id = f"{entry.entry_id}_{kid_id}_{penalty_id}{const.BUTTON_KC_UID_SUFFIX_PARENT_PENALTY_APPLY}"
         self._user_icon = icon
         self._attr_translation_placeholders = {
             const.TRANS_KEY_BUTTON_ATTR_KID_NAME: kid_name,
@@ -1522,7 +1549,12 @@ class ParentPointsAdjustButton(KidsChoresCoordinatorEntity, ButtonEntity):
             if delta >= 0
             else f"{const.TRANS_KEY_BUTTON_DELTA_MINUS_TEXT}{delta}"
         )
-        self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.BUTTON_KC_UID_MIDFIX_ADJUST_POINTS}{delta}"
+        # Slugify delta for unique_id (replace decimal point and negative sign)
+        # Examples: 1.0 -> 1p0, -1.0 -> neg1p0, 10.0 -> 10p0
+        delta_slug = str(abs(delta)).replace(".", "p")
+        if delta < 0:
+            delta_slug = f"neg{delta_slug}"
+        self._attr_unique_id = f"{entry.entry_id}_{kid_id}_{delta_slug}{const.BUTTON_KC_UID_SUFFIX_PARENT_POINTS_ADJUST}"
         self._attr_translation_placeholders = {
             const.TRANS_KEY_BUTTON_ATTR_KID_NAME: kid_name,
             const.TRANS_KEY_BUTTON_ATTR_SIGN_LABEL: sign_label,

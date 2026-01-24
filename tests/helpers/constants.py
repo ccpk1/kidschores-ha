@@ -309,6 +309,7 @@ from custom_components.kidschores.const import (
     # =========================================================================
     CONF_POINTS_LABEL,
     CONF_POINTS_ICON,
+    CONF_SHOW_LEGACY_ENTITIES,
     CONF_UPDATE_INTERVAL,
     CONF_BACKUPS_MAX_RETAINED,
     SCHEMA_VERSION_STORAGE_ONLY,

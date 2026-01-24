@@ -2285,7 +2285,7 @@ class PreV50Migrator:
                 continue
             if any(
                 entity_entry.unique_id.endswith(suffix)
-                for suffix in const.DEPRECATED_SUFFIXES
+                for suffix in const.ENTITY_SUFFIXES_LEGACY
             ):
                 ent_reg.async_remove(entity_id)
                 const.LOGGER.debug(
@@ -2354,7 +2354,7 @@ class PreV50Migrator:
 
         for kid_id in self.coordinator.kids_data:
             for delta in points_adjust_values:
-                uid = f"{self.coordinator.config_entry.entry_id}_{kid_id}{const.BUTTON_KC_UID_MIDFIX_ADJUST_POINTS}{delta}"
+                uid = f"{self.coordinator.config_entry.entry_id}_{kid_id}{const.BUTTON_KC_UID_MIDFIX_ADJUST_POINTS_LEGACY}{delta}"
                 allowed_uids.add(uid)
 
         # --- Now remove any button entity whose unique_id is not in allowed_uids ---
@@ -2582,7 +2582,7 @@ class PreV50Migrator:
 
         # --- Kid-specific Dashboard Helper Select Entities ---
         for kid_id in self.coordinator.kids_data:
-            uid = f"{self.coordinator.config_entry.entry_id}{const.SELECT_KC_UID_MIDFIX_CHORES_SELECT}{kid_id}"
+            uid = f"{self.coordinator.config_entry.entry_id}{const.SELECT_KC_UID_MIDFIX_CHORES_SELECT_LEGACY}{kid_id}"
             allowed_uids.add(uid)
 
         # --- Now remove any select entity whose unique_id is not in allowed_uids ---
@@ -3339,12 +3339,12 @@ class PreV50Migrator:
 
 
 # ================================================================================================
-# UID Suffix Migration (v0.5.1) - Standalone Entity Registry Update
+# UID Suffix Migration (v0.5.0) - Standalone Entity Registry Update
 # ================================================================================================
 
 
 @callback
-def async_migrate_uid_suffixes_v0_5_1(
+def async_migrate_uid_suffixes_v0_5_0(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
 ) -> None:
@@ -3354,14 +3354,20 @@ def async_migrate_uid_suffixes_v0_5_1(
     suffixes (e.g., '_status' → '_chore_status') to enable reliable pattern matching
     for shadow kid entity gating logic.
 
+    The migration is idempotent - entities with new suffixes are skipped.
+    Gated by schema version check in __init__.py (only runs if schema < 43).
+
     Args:
         hass: Home Assistant instance
         config_entry: KidsChores config entry
 
     """
     # Mapping of old UID suffixes → new UID suffixes (all hardcoded for migration)
+    # CRITICAL: Old suffixes must be EXACT legacy patterns, not substrings of new ones
     uid_migration_map: dict[str, str] = {
         # BUTTONS - Chore/Reward/Entity actions
+        # NOTE: These generic suffixes like "_approve" can match the end of new
+        # suffixes like "_chore_approve", so we MUST check for new suffixes first
         "_approve": "_chore_approve",
         "_claim": "_chore_claim",
         "_unclaim": "_chore_unclaim",
@@ -3398,6 +3404,10 @@ def async_migrate_uid_suffixes_v0_5_1(
         "_calendar": "_kid_calendar",
     }
 
+    # Build set of NEW suffixes (migration targets) for idempotency check
+    # If entity already ends with a NEW suffix, it's already migrated - skip it
+    new_suffixes: set[str] = set(uid_migration_map.values())
+
     const.LOGGER.info(
         "Starting UID suffix migration (v0.5.0) for config entry %s",
         config_entry.entry_id,
@@ -3410,8 +3420,18 @@ def async_migrate_uid_suffixes_v0_5_1(
 
     migration_count = 0
     skip_count = 0
+    already_migrated_count = 0
 
     for entry in registry_entries:
+        # IDEMPOTENCY CHECK: Skip if entity already has a NEW suffix
+        # This prevents re-migrating already-migrated entities
+        has_new_suffix = any(
+            entry.unique_id.endswith(new_suffix) for new_suffix in new_suffixes
+        )
+        if has_new_suffix:
+            already_migrated_count += 1
+            continue
+
         # Check if unique_id ends with any old suffix
         old_suffix = None
         for old, _ in uid_migration_map.items():
@@ -3451,7 +3471,8 @@ def async_migrate_uid_suffixes_v0_5_1(
             )
 
     const.LOGGER.info(
-        "UID suffix migration (v0.5.0) complete: %s entities migrated, %s skipped",
+        "UID suffix migration (v0.5.1) complete: %s migrated, %s already done, %s skipped",
         migration_count,
+        already_migrated_count,
         skip_count,
     )

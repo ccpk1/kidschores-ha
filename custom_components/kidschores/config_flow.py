@@ -509,9 +509,6 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             step_id="paste_json_input",
             data_schema=data_schema,
             errors=errors,
-            description_placeholders={
-                "help_text": "Paste the complete JSON from diagnostics or backup file"
-            },
         )
 
     # --------------------------------------------------------------------------

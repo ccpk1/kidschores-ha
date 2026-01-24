@@ -213,6 +213,7 @@ from tests.helpers.constants import (
     # System config constants
     CONF_POINTS_ICON,
     CONF_POINTS_LABEL,
+    CONF_SHOW_LEGACY_ENTITIES,
     CONF_UPDATE_INTERVAL,
     # Config flow step IDs
     CONFIG_FLOW_STEP_ACHIEVEMENT_COUNT,

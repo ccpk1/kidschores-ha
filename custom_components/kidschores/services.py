@@ -499,9 +499,13 @@ def async_setup_services(hass: HomeAssistant):
                 "Unlinked shadow kid '%s' (renamed to '%s_unlinked')", name, name
             )
 
-        # Persist and refresh
-        coordinator._persist()
-        await coordinator.async_request_refresh()
+        # Persist changes and wait for storage write to complete
+        coordinator.store.set_data(coordinator._data)
+        await coordinator.store.async_save()
+
+        # Reload config entry to update device info (model changes from Kid/Parent Profile)
+        # This ensures device descriptions update immediately after storage write completes
+        await hass.config_entries.async_reload(coordinator.config_entry.entry_id)
 
     hass.services.async_register(
         const.DOMAIN,

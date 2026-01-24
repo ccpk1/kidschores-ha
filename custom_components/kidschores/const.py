@@ -7,6 +7,7 @@ It also supports localization by defining all labels and UI texts used in sensor
 services, and options flow.
 """
 
+from enum import StrEnum
 import logging
 from typing import Final
 from zoneinfo import ZoneInfo
@@ -2032,7 +2033,10 @@ ATTR_TRANSLATION_SENSOR: Final = "translation_sensor"
 SELECT_KC_PREFIX: Final = "select.kc_"
 
 # Select Unique ID Mid & Suffixes
-SELECT_KC_UID_MIDFIX_CHORES_SELECT: Final = "_select_chores_"
+# Use SUFFIX pattern for consistent entity unique IDs
+SELECT_KC_UID_SUFFIX_KID_DASHBOARD_HELPER_CHORES_SELECT: Final = (
+    "_kid_dashboard_helper_chores_select"
+)
 SELECT_KC_UID_SUFFIX_BONUSES_SELECT: Final = "_select_bonuses"
 SELECT_KC_UID_SUFFIX_CHORES_SELECT: Final = "_select_chores"
 SELECT_KC_UID_SUFFIX_PENALTIES_SELECT: Final = "_select_penalties"
@@ -2053,12 +2057,17 @@ SELECT_KC_EID_SUFFIX_CHORE_LIST: Final = "_ui_dashboard_chore_list_helper"
 BUTTON_KC_PREFIX: Final = "button.kc_"
 
 # Button Unique ID Mid & Suffixes
-BUTTON_KC_UID_MIDFIX_ADJUST_POINTS: Final = "_points_adjust_"
+# Use SUFFIX pattern for consistent entity unique IDs
 BUTTON_KC_UID_SUFFIX_APPROVE: Final = "_chore_approve"
 BUTTON_KC_UID_SUFFIX_APPROVE_REWARD: Final = "_reward_approve"
 BUTTON_KC_UID_SUFFIX_CLAIM: Final = "_chore_claim"
 BUTTON_KC_UID_SUFFIX_DISAPPROVE: Final = "_chore_disapprove"
 BUTTON_KC_UID_SUFFIX_DISAPPROVE_REWARD: Final = "_reward_disapprove"
+# New class-aligned SUFFIX constants for PREFIX/MIDFIX migration
+BUTTON_KC_UID_SUFFIX_KID_REWARD_REDEEM: Final = "_kid_reward_redeem_button"
+BUTTON_KC_UID_SUFFIX_PARENT_BONUS_APPLY: Final = "_parent_bonus_apply_button"
+BUTTON_KC_UID_SUFFIX_PARENT_PENALTY_APPLY: Final = "_parent_penalty_apply_button"
+BUTTON_KC_UID_SUFFIX_PARENT_POINTS_ADJUST: Final = "_parent_points_adjust_button"
 
 # Button Entity ID Mid & Suffixes
 BUTTON_KC_EID_MIDFIX_BONUS: Final = "_bonus_"
@@ -2259,23 +2268,6 @@ LABEL_CHALLENGE: Final = "Challenge"
 # Backup/Restore Labels
 # (backup label constants removed - now using emoji prefixes directly)
 
-# Deprecated entity unique_id suffixes (for cleanup/migration - KC 3.x compatibility)
-DEPRECATED_SUFFIX_BADGES: Final = "_badges"
-DEPRECATED_SUFFIX_REWARD_CLAIMS: Final = "_reward_claims"
-DEPRECATED_SUFFIX_REWARD_APPROVALS: Final = "_reward_approvals"
-DEPRECATED_SUFFIX_CHORE_CLAIMS: Final = "_chore_claims"
-DEPRECATED_SUFFIX_CHORE_APPROVALS: Final = "_chore_approvals"
-DEPRECATED_SUFFIX_STREAK: Final = "_streak"
-
-DEPRECATED_SUFFIXES: Final = [
-    DEPRECATED_SUFFIX_BADGES,
-    DEPRECATED_SUFFIX_REWARD_CLAIMS,
-    DEPRECATED_SUFFIX_REWARD_APPROVALS,
-    DEPRECATED_SUFFIX_CHORE_CLAIMS,
-    DEPRECATED_SUFFIX_CHORE_APPROVALS,
-    DEPRECATED_SUFFIX_STREAK,
-]
-
 # Migration identifiers (for schema version tracking in DATA_META_MIGRATIONS_APPLIED)
 MIGRATION_DATETIME_UTC: Final = "datetime_utc"
 MIGRATION_CHORE_DATA_STRUCTURE: Final = "chore_data_structure"
@@ -2299,44 +2291,132 @@ DEFAULT_MIGRATIONS_APPLIED: Final = [
 
 
 # ------------------------------------------------------------------------------------------------
-# Button Prefixes
+# Button Prefixes (DEPRECATED - kept for migration/cleanup of legacy entities)
 # ------------------------------------------------------------------------------------------------
-BUTTON_BONUS_PREFIX: Final = "bonus_button_"
-BUTTON_PENALTY_PREFIX: Final = "penalty_button_"
-BUTTON_REWARD_PREFIX: Final = "reward_button_"
+# These PREFIX patterns are deprecated. New entities use SUFFIX pattern.
+# Kept only for _extract_kid_id_from_unique_id() and migration scripts.
+# TODO: Remove after v1.0 when all users have migrated
+BUTTON_BONUS_PREFIX: Final = "bonus_button_"  # DEPRECATED
+BUTTON_PENALTY_PREFIX: Final = "penalty_button_"  # DEPRECATED
+BUTTON_REWARD_PREFIX: Final = "reward_button_"  # DEPRECATED
 
 
 # ------------------------------------------------------------------------------------------------
-# Shadow Kid Entity Gating (Single Source of Truth)
+# Entity Registry (Single Source of Truth for Entity Creation & Cleanup)
 # ------------------------------------------------------------------------------------------------
-# Defines which entities shadow kids are ALLOWED to have (whitelist approach).
-# Logic: Explicitly list all base entities that shadow kids can always access.
-#        Any entity not in these lists requires gamification or workflow flags.
+# Defines creation requirements for ALL entity types. Used for:
+# - Proactive filtering at entity creation time
+# - Shadow kid entity gating (whitelist approach)
+# - Extra entity cleanup when flag disabled
+# - Event-based cleanup on delete/unassign
+#
+# Key: unique_id suffix, Value: EntityRequirement
+#
+# === FLAG LAYERING LOGIC ===
+# Requirements define CATEGORIES, not final logic. Evaluation rules:
+#
+# | Requirement   | Regular Kid           | Shadow Kid                           |
+# |---------------|-----------------------|--------------------------------------|
+# | ALWAYS        | Created               | Created                              |
+# | WORKFLOW      | Created               | Only if enable_chore_workflow=True   |
+# | GAMIFICATION  | Created               | Only if enable_gamification=True     |
+# | EXTRA         | If show_extra flag    | If show_extra AND gamification=True  |
+#
+# Note: EXTRA requires BOTH show_legacy_entities system flag AND gamification.
+# (Config key is still 'show_legacy_entities' for backward compatibility, but
+# we call these "extra" entities in the UI and code - they're optional sensors.)
+# For regular kids, gamification is always true, so EXTRA just needs flag.
+# For shadow kids, EXTRA needs flag AND enable_gamification=True.
+#
+# The should_create_entity() function in kc_helpers.py implements this logic.
 
-# Base entities: Always allowed for shadow kids (core functionality)
-SHADOW_KID_BASE_BUTTON_ENDSWITH: Final[tuple[str, ...]] = (
-    BUTTON_KC_UID_SUFFIX_APPROVE,  # Approve chore button
+
+class EntityRequirement(StrEnum):
+    """Defines when an entity should be created.
+
+    These are requirement CATEGORIES. The actual evaluation logic considers:
+    - Kid type (regular vs shadow)
+    - System flags (show_legacy_entities aka "extra entities" in UI)
+    - Parent flags (enable_gamification, enable_chore_workflow) for shadow kids
+
+    EXTRA has compound logic: requires show_legacy_entities AND gamification.
+    (Originally called "legacy" - renamed to "extra" to match UI terminology.)
+    """
+
+    ALWAYS = "always"  # All kids (regular + shadow base)
+    WORKFLOW = "workflow"  # Requires enable_chore_workflow (shadow kids only check)
+    GAMIFICATION = "gamification"  # Requires enable_gamification (shadow kids only)
+    EXTRA = "extra"  # Requires show_legacy_entities AND gamification (optional sensors)
+
+
+# Entity Registry: suffix -> EntityRequirement
+# Organized by platform and requirement type
+ENTITY_REGISTRY: Final[dict[str, EntityRequirement]] = {
+    # === SENSORS: Always (base functionality) ===
+    SENSOR_KC_UID_SUFFIX_CHORE_STATUS_SENSOR: EntityRequirement.ALWAYS,
+    SENSOR_KC_UID_SUFFIX_CHORES_SENSOR: EntityRequirement.ALWAYS,
+    SENSOR_KC_UID_SUFFIX_UI_DASHBOARD_HELPER: EntityRequirement.ALWAYS,
+    # === SENSORS: Gamification ===
+    SENSOR_KC_UID_SUFFIX_KID_POINTS_SENSOR: EntityRequirement.GAMIFICATION,
+    SENSOR_KC_UID_SUFFIX_KID_BADGES_SENSOR: EntityRequirement.GAMIFICATION,
+    SENSOR_KC_UID_SUFFIX_BADGE_PROGRESS_SENSOR: EntityRequirement.GAMIFICATION,
+    SENSOR_KC_UID_SUFFIX_BADGE_SENSOR: EntityRequirement.GAMIFICATION,
+    SENSOR_KC_UID_SUFFIX_REWARD_STATUS_SENSOR: EntityRequirement.GAMIFICATION,
+    SENSOR_KC_UID_SUFFIX_ACHIEVEMENT_SENSOR: EntityRequirement.GAMIFICATION,
+    SENSOR_KC_UID_SUFFIX_ACHIEVEMENT_PROGRESS_SENSOR: EntityRequirement.GAMIFICATION,
+    SENSOR_KC_UID_SUFFIX_CHALLENGE_SENSOR: EntityRequirement.GAMIFICATION,
+    SENSOR_KC_UID_SUFFIX_CHALLENGE_PROGRESS_SENSOR: EntityRequirement.GAMIFICATION,
+    SENSOR_KC_UID_SUFFIX_SHARED_CHORE_GLOBAL_STATE_SENSOR: EntityRequirement.ALWAYS,
+    SENSOR_KC_UID_SUFFIX_DASHBOARD_LANG: EntityRequirement.ALWAYS,
+    # === SENSORS: Extra (optional, flag-controlled via show_legacy_entities) ===
+    # Note: Called "extra" in UI, config key is still "show_legacy_entities" for compat
+    SENSOR_KC_UID_SUFFIX_COMPLETED_TOTAL_SENSOR: EntityRequirement.EXTRA,
+    SENSOR_KC_UID_SUFFIX_COMPLETED_DAILY_SENSOR: EntityRequirement.EXTRA,
+    SENSOR_KC_UID_SUFFIX_COMPLETED_WEEKLY_SENSOR: EntityRequirement.EXTRA,
+    SENSOR_KC_UID_SUFFIX_COMPLETED_MONTHLY_SENSOR: EntityRequirement.EXTRA,
+    SENSOR_KC_UID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR: EntityRequirement.EXTRA,
+    SENSOR_KC_UID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR: EntityRequirement.EXTRA,
+    SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_DAILY_SENSOR: EntityRequirement.EXTRA,
+    SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_WEEKLY_SENSOR: EntityRequirement.EXTRA,
+    SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_MONTHLY_SENSOR: EntityRequirement.EXTRA,
+    SENSOR_KC_UID_SUFFIX_KID_HIGHEST_STREAK_SENSOR: EntityRequirement.EXTRA,
+    SENSOR_KC_UID_SUFFIX_KID_MAX_POINTS_EVER_SENSOR: EntityRequirement.EXTRA,
+    SENSOR_KC_UID_SUFFIX_PENALTY_APPLIES_SENSOR: EntityRequirement.EXTRA,
+    SENSOR_KC_UID_SUFFIX_BONUS_APPLIES_SENSOR: EntityRequirement.EXTRA,
+    # === BUTTONS: Always (base approval) ===
+    BUTTON_KC_UID_SUFFIX_APPROVE: EntityRequirement.ALWAYS,
+    # === BUTTONS: Workflow ===
+    BUTTON_KC_UID_SUFFIX_CLAIM: EntityRequirement.WORKFLOW,
+    BUTTON_KC_UID_SUFFIX_DISAPPROVE: EntityRequirement.WORKFLOW,
+    # === BUTTONS: Gamification ===
+    BUTTON_KC_UID_SUFFIX_PARENT_POINTS_ADJUST: EntityRequirement.GAMIFICATION,
+    BUTTON_KC_UID_SUFFIX_APPROVE_REWARD: EntityRequirement.GAMIFICATION,
+    BUTTON_KC_UID_SUFFIX_DISAPPROVE_REWARD: EntityRequirement.GAMIFICATION,
+    BUTTON_KC_UID_SUFFIX_KID_REWARD_REDEEM: EntityRequirement.GAMIFICATION,
+    BUTTON_KC_UID_SUFFIX_PARENT_BONUS_APPLY: EntityRequirement.GAMIFICATION,
+    BUTTON_KC_UID_SUFFIX_PARENT_PENALTY_APPLY: EntityRequirement.GAMIFICATION,
+    # === SELECT: Always (kid-specific dashboard helpers) ===
+    SELECT_KC_UID_SUFFIX_KID_DASHBOARD_HELPER_CHORES_SELECT: EntityRequirement.ALWAYS,
+    # === SELECT: Extra (system-wide legacy selects) ===
+    SELECT_KC_UID_SUFFIX_CHORES_SELECT: EntityRequirement.EXTRA,
+    SELECT_KC_UID_SUFFIX_REWARDS_SELECT: EntityRequirement.EXTRA,
+    SELECT_KC_UID_SUFFIX_BONUSES_SELECT: EntityRequirement.EXTRA,
+    SELECT_KC_UID_SUFFIX_PENALTIES_SELECT: EntityRequirement.EXTRA,
+    # === DATETIME: Always ===
+    DATETIME_KC_UID_SUFFIX_DATE_HELPER: EntityRequirement.ALWAYS,
+    # === CALENDAR: Always ===
+    CALENDAR_KC_UID_SUFFIX_CALENDAR: EntityRequirement.ALWAYS,
+}
+
+# Derived lists from ENTITY_REGISTRY for efficient lookups
+# Extra entities: optional sensors requiring show_legacy_entities flag
+# (Called "extra" in UI; config key kept as "show_legacy_entities" for backward compat)
+EXTRA_ENTITY_SUFFIXES: Final[tuple[str, ...]] = tuple(
+    suffix for suffix, req in ENTITY_REGISTRY.items() if req == EntityRequirement.EXTRA
 )
 
-SHADOW_KID_BASE_SENSOR_ENDSWITH: Final[tuple[str, ...]] = (
-    SENSOR_KC_UID_SUFFIX_CHORE_STATUS_SENSOR,  # Individual chore status sensors
-    SENSOR_KC_UID_SUFFIX_CHORES_SENSOR,  # Kid's chore summary sensor
-    SENSOR_KC_UID_SUFFIX_UI_DASHBOARD_HELPER,  # Dashboard helper sensor
-)
-
-SHADOW_KID_BASE_SELECT_ENDSWITH: Final[tuple[str, ...]] = (
-    SELECT_KC_UID_SUFFIX_CHORES_SELECT,  # Chores select helper
-)
-
-SHADOW_KID_BASE_DATETIME_ENDSWITH: Final[tuple[str, ...]] = (
-    DATETIME_KC_UID_SUFFIX_DATE_HELPER,  # Dashboard datetime picker
-)
-
-# Workflow entities: Require enable_chore_workflow
-SHADOW_KID_WORKFLOW_BUTTON_ENDSWITH: Final[tuple[str, ...]] = (
-    BUTTON_KC_UID_SUFFIX_CLAIM,  # Claim chore button
-    BUTTON_KC_UID_SUFFIX_DISAPPROVE,  # Disapprove chore button
-)
+# Note: SHADOW_KID_* derived tuples removed - should_create_entity() now uses
+# ENTITY_REGISTRY directly for all creation/filtering decisions.
 
 
 # ------------------------------------------------------------------------------------------------
@@ -3370,6 +3450,7 @@ DATA_LINKED_USERS_LEGACY: Final = "linked_users"
 
 # Runtime flag keys (stored in hass.data, not persisted)
 RUNTIME_KEY_STARTUP_BACKUP_CREATED: Final = "_startup_backup_created_"
+RUNTIME_KEY_ENTITY_CLEANUP_DONE: Final = "_entity_cleanup_done_"
 
 DEFAULT_BADGE_THRESHOLD_VALUE_LEGACY: Final = 50
 DEFAULT_PARTIAL_ALLOWED_LEGACY = False
@@ -3475,3 +3556,29 @@ DATA_BADGE_THRESHOLD_TYPE_LEGACY = (
 DATA_BADGE_THRESHOLD_VALUE_LEGACY = (
     "threshold_value"  # Read in _migrate_badge_schema(), deleted after
 )
+
+# Entity UID Suffix Migration (v0.5.1 - used in async_migrate_uid_suffixes_v0_5_1())
+# These suffixes were used in KC 3.x/4.x; entities are cleaned up via migration
+ENTITY_SUFFIX_BADGES_LEGACY: Final = "_badges"
+ENTITY_SUFFIX_REWARD_CLAIMS_LEGACY: Final = "_reward_claims"
+ENTITY_SUFFIX_REWARD_APPROVALS_LEGACY: Final = "_reward_approvals"
+ENTITY_SUFFIX_CHORE_CLAIMS_LEGACY: Final = "_chore_claims"
+ENTITY_SUFFIX_CHORE_APPROVALS_LEGACY: Final = "_chore_approvals"
+ENTITY_SUFFIX_STREAK_LEGACY: Final = "_streak"
+
+# Button UID pattern migration (pre-v0.5.0 used midfix, v0.5.0+ uses suffix)
+BUTTON_KC_UID_MIDFIX_ADJUST_POINTS_LEGACY: Final = (
+    "_points_adjust_"  # DEPRECATED - use BUTTON_KC_UID_SUFFIX_PARENT_POINTS_ADJUST
+)
+
+# Select UID pattern migration (pre-v0.5.0 used midfix, v0.5.0+ uses suffix)
+SELECT_KC_UID_MIDFIX_CHORES_SELECT_LEGACY: Final = "_select_chores_"  # DEPRECATED - use SELECT_KC_UID_SUFFIX_KID_DASHBOARD_HELPER_CHORES_SELECT
+
+ENTITY_SUFFIXES_LEGACY: Final = [
+    ENTITY_SUFFIX_BADGES_LEGACY,
+    ENTITY_SUFFIX_REWARD_CLAIMS_LEGACY,
+    ENTITY_SUFFIX_REWARD_APPROVALS_LEGACY,
+    ENTITY_SUFFIX_CHORE_CLAIMS_LEGACY,
+    ENTITY_SUFFIX_CHORE_APPROVALS_LEGACY,
+    ENTITY_SUFFIX_STREAK_LEGACY,
+]

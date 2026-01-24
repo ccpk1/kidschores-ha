@@ -41,25 +41,46 @@ async def async_setup_entry(
     data = hass.data[const.DOMAIN][entry.entry_id]
     coordinator: KidsChoresDataCoordinator = data[const.COORDINATOR]
 
-    selects = []
-
-    # Legacy system-wide select entities (disabled by default)
-    show_legacy_entities = entry.options.get(
+    # Get flag states for entity creation decisions
+    extra_enabled = entry.options.get(
         const.CONF_SHOW_LEGACY_ENTITIES, const.DEFAULT_SHOW_LEGACY_ENTITIES
     )
-    if show_legacy_entities:
-        selects.extend(
-            [
-                SystemChoresSelect(coordinator, entry),
-                SystemRewardsSelect(coordinator, entry),
-                SystemPenaltiesSelect(coordinator, entry),
-                SystemBonusesSelect(coordinator, entry),
-            ]
-        )
 
-    # Kid-specific dashboard helper selects
+    selects: list[SelectEntity] = []
+
+    # System-wide select entities (extra/legacy - disabled by default)
+    # All 4 use EXTRA requirement: only created when show_legacy_entities is True
+    if kh.should_create_entity(
+        const.SELECT_KC_UID_SUFFIX_CHORES_SELECT,
+        extra_enabled=extra_enabled,
+    ):
+        selects.append(SystemChoresSelect(coordinator, entry))
+
+    if kh.should_create_entity(
+        const.SELECT_KC_UID_SUFFIX_REWARDS_SELECT,
+        extra_enabled=extra_enabled,
+    ):
+        selects.append(SystemRewardsSelect(coordinator, entry))
+
+    if kh.should_create_entity(
+        const.SELECT_KC_UID_SUFFIX_PENALTIES_SELECT,
+        extra_enabled=extra_enabled,
+    ):
+        selects.append(SystemPenaltiesSelect(coordinator, entry))
+
+    if kh.should_create_entity(
+        const.SELECT_KC_UID_SUFFIX_BONUSES_SELECT,
+        extra_enabled=extra_enabled,
+    ):
+        selects.append(SystemBonusesSelect(coordinator, entry))
+
+    # Kid-specific dashboard helper selects (always created)
     for kid_id in coordinator.kids_data:
-        selects.append(KidDashboardHelperChoresSelect(coordinator, entry, kid_id))
+        if kh.should_create_entity(
+            const.SELECT_KC_UID_SUFFIX_KID_DASHBOARD_HELPER_CHORES_SELECT,
+            is_shadow_kid=kh.is_shadow_kid(coordinator, kid_id),
+        ):
+            selects.append(KidDashboardHelperChoresSelect(coordinator, entry, kid_id))
 
     async_add_entities(selects)
 
@@ -328,9 +349,7 @@ class KidDashboardHelperChoresSelect(KidsChoresSelectBase):
         kid_name = (
             kid_data.get(const.DATA_KID_NAME) or f"{const.TRANS_KEY_LABEL_KID} {kid_id}"
         )
-        self._attr_unique_id = (
-            f"{entry.entry_id}{const.SELECT_KC_UID_MIDFIX_CHORES_SELECT}{kid_id}"
-        )
+        self._attr_unique_id = f"{entry.entry_id}_{kid_id}{const.SELECT_KC_UID_SUFFIX_KID_DASHBOARD_HELPER_CHORES_SELECT}"
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }

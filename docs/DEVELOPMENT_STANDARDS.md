@@ -217,6 +217,7 @@ These standards ensure we maintain Silver quality compliance. See [QUALITY_REFER
 - **Coordinator Persistence**: All entity modifications must follow the **Modify → Persist (`_persist()`) → Notify (`async_update_listeners()`)** pattern.
 - **Header Documentation**: Every entity file MUST include a header listing total count, categorized list (Kid-Specific vs System-Level), and legacy imports with clear numbering.
 - **Test Coverage**: All new code must maintain 95%+ test coverage. See Section 7 for validation commands.
+- **Entity Lifecycle**: Follow the cleanup architecture in Section 6 for proper entity removal and registry management.
 
 #### 5.1 Type System
 
@@ -305,16 +306,19 @@ We enforce strict naming patterns for both **Entity IDs** (runtime identifiers) 
 Entities must support two identifiers to balance human readability with registry persistence:
 
 1.  **UNIQUE_ID** (`unique_id`): Internal, stable registry identifier.
-    - **Format**: `entry_id + [_kid_id] + [_entity_id] + SUFFIX` (e.g., `..._kid123_points`)
+    - **Format**: `{entry_id}[_{kid_id}][_{item_id}]{_SUFFIX}` (e.g., `abc123_kid456_chore789_kid_chore_claim_button`)
+    - **SUFFIX Pattern**: Class name lowercased with underscores (e.g., `_kid_points_sensor`, `_parent_chore_approve_button`)
     - **Why Required**: Ensures history and settings persist even if users rename kids or chores.
+    - ⚠️ **NEVER use MIDFIX or PREFIX patterns in UIDs** – suffix-only ensures consistent registry lookups
 2.  **ENTITY_ID** (`entity_id`): User-visible UI identifier.
-    - **Format**: `domain.kc_[name] + [MIDFIX] + [name2] + [SUFFIX]` (e.g., `sensor.kc_sarah_points`)
+    - **Format**: `domain.kc_[name][_MIDFIX_][name2][_SUFFIX]` (e.g., `sensor.kc_sarah_points`)
     - **Why Required**: Provides descriptive, readable IDs for automations and dashboards.
+    - MIDFIX patterns are acceptable in EIDs for readability (e.g., `_chore_claim_`)
 
 **Pattern Components**:
 
-- **SUFFIX** (`_points`): Appended to end. Used in both UID and EID. Defined in `const.py`.
-- **MIDFIX** (`_chore_claim_`): Embedded between names (EID only) for semantic clarity in multi-part entities.
+- **SUFFIX** (`_kid_points_sensor`): Appended to end. **Required for UID**, optional for EID. Class-aligned naming.
+- **MIDFIX** (`_chore_claim_`): Embedded between names. **EID only** – provides semantic clarity in multi-part entities.
 
 #### Entity Class Naming
 
@@ -339,6 +343,91 @@ This pattern applies to **all** platforms.
 - **Button**: `KidChoreClaimButton` (Action: Claim)
 - **Select**: `SystemRewardsSelect` (List: All Shared Rewards)
 - **Calendar**: `KidScheduleCalendar` (View: Kid's timeline)
+
+#### Feature Flag Implementation Checklist
+
+When adding new feature flags that control entity creation:
+
+1. **Define Constants** (const.py):
+   - [ ] Add `CONF_*` constant for the option key
+   - [ ] Add `DEFAULT_*` constant for default value
+   - [ ] Add to `DEFAULT_OPTIONS` dictionary
+
+2. **Update Entity Logic** (coordinator.py + platform files):
+   - [ ] Add flag check in `should_create_entity()` method
+   - [ ] Add flag check in platform's `async_setup_entry()` or entity `__init__`
+   - [ ] Verify cleanup in `remove_conditional_entities()` handles the flag
+
+3. **Update Config Flow** (options_flow.py):
+   - [ ] Add form field in `async_step_system_settings()` using `CFOF_*` constant
+   - [ ] Add user input handling with proper validation
+
+4. **Add Translations** (translations/en.json):
+   - [ ] Add option title and description under `config.step.system_settings.data`
+   - [ ] Add any new error messages under `config.error`
+
+5. **Update Cleanup** (See Entity Cleanup Architecture above):
+   - [ ] Verify flag-driven cleanup works in BOTH reload paths:
+     - Path 1: System settings → `async_update_options()` (\_\_init\_\_.py)
+     - Path 2: Entity changes → `_reload_entry_after_entity_change()` (options_flow.py)
+   - [ ] Test flag toggle: on → off → on (entities removed/recreated)
+
+6. **Add Tests**:
+   - [ ] Test entity creation when flag enabled
+   - [ ] Test entity removal when flag disabled
+   - [ ] Test toggle cycle doesn't leave orphaned entities
+   - [ ] Test both reload paths trigger cleanup correctly
+
+7. **Documentation**:
+   - [ ] Update Section 6 (Entity Cleanup Architecture) if new cleanup pattern introduced
+   - [ ] Update wiki documentation for user-facing feature
+
+**Common Pitfall**: Adding cleanup to only ONE reload path. Always update BOTH paths to stay synchronized.
+
+#### Entity Cleanup Architecture
+
+KidsChores uses a **dual-path reload system** where both paths must run synchronized cleanup to prevent orphaned entities.
+
+**The Two Reload Paths:**
+
+1. **System Settings Path** (`__init__.py: async_update_options`)
+   - **Trigger**: User changes points theme, update intervals, retention settings
+   - **Flow**: `async_update_entry()` → Update listener fires → Cleanup → Reload
+   - **Cleanup**: Flag-driven + Validation safety net
+   - **Use**: `_update_system_settings_and_reload()` method
+
+2. **Entity Changes Path** (`options_flow.py: _reload_entry_after_entity_change`)
+   - **Trigger**: User adds/edits/deletes kids, chores, badges, parents
+   - **Flow**: `_mark_reload_needed()` flag → User returns to menu → Cleanup → `async_reload()` directly
+   - **Cleanup**: Flag-driven + Data-driven orphaned entities
+   - **Use**: Call `self._mark_reload_needed()` in entity edit handlers
+   - **Why Direct Reload?** Bypasses update listener to avoid interrupting multi-step flows
+   - **Pattern**: Always call after persisting entity changes:
+     ```python
+     # In your async_step_edit_* handler:
+     coordinator._data[const.DATA_CHORES][chore_id] = updated_chore
+     coordinator._persist()
+     coordinator.async_update_listeners()
+     self._mark_reload_needed()  # ← Triggers cleanup on menu return
+     return await self.async_step_init()  # Return to menu
+     ```
+
+**The Three Cleanup Types:**
+
+1. **FLAG-DRIVEN** (`remove_conditional_entities()`)
+   - Removes entities disabled by feature flags (show_legacy_entities, enable_chore_workflow, enable_gamification)
+   - Runs in BOTH paths (system settings + entity changes)
+
+2. **DATA-DRIVEN** (`_remove_orphaned_kid_chore_entities()`, `_remove_orphaned_badge_entities()`)
+   - Removes entities with broken relationships (kid unassigned from chore/badge)
+   - Only kid-chore and kid-badge create per-relationship entities requiring registry cleanup
+   - Runs ONLY in entity changes path (system settings don't affect data relationships)
+
+3. **VALIDATION** (`remove_all_orphaned_entities()`)
+   - Safety net at startup and system settings changes
+   - Catches any entities that slipped through other cleanup
+
+**Critical Rule**: Update listener and deferred reload must call the same flag-driven cleanup. Missing cleanup in either path causes entities to remain after flag toggles.
 
 ---
 

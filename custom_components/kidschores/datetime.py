@@ -37,10 +37,15 @@ async def async_setup_entry(
 
     entities = []
     for kid_id, kid_info in coordinator.kids_data.items():
-        kid_name = kid_info.get(const.DATA_KID_NAME, f"Kid {kid_id}")
-        entities.append(
-            KidDashboardHelperDateTimePicker(coordinator, entry, kid_id, kid_name)
-        )
+        # Use registry-based creation decision for future flexibility
+        if kh.should_create_entity(
+            const.DATETIME_KC_UID_SUFFIX_DATE_HELPER,
+            is_shadow_kid=kh.is_shadow_kid(coordinator, kid_id),
+        ):
+            kid_name = kid_info.get(const.DATA_KID_NAME, f"Kid {kid_id}")
+            entities.append(
+                KidDashboardHelperDateTimePicker(coordinator, entry, kid_id, kid_name)
+            )
 
     async_add_entities(entities)
 

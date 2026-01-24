@@ -82,68 +82,6 @@ async def _update_all_kid_device_names(hass: HomeAssistant, entry: ConfigEntry) 
         )
 
 
-async def _cleanup_legacy_entities(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Remove legacy entities when show_legacy_entities is disabled.
-
-    This function scans the entity registry for legacy sensor entities
-    belonging to this config entry and removes them when the legacy
-    flag is disabled. Prevents entities from appearing as "unavailable".
-
-    Args:
-        hass: Home Assistant instance
-        entry: Config entry to check for legacy flag
-
-    """
-    from homeassistant.helpers import entity_registry as er
-
-    show_legacy = entry.options.get(const.CONF_SHOW_LEGACY_ENTITIES, False)
-    if show_legacy:
-        const.LOGGER.debug("Legacy entities enabled, skipping cleanup")
-        return  # Keep entities when flag is enabled
-
-    entity_registry = er.async_get(hass)
-
-    # Define legacy unique_id suffixes to clean up
-    legacy_suffixes = [
-        const.SENSOR_KC_UID_SUFFIX_COMPLETED_TOTAL_SENSOR,
-        const.SENSOR_KC_UID_SUFFIX_COMPLETED_DAILY_SENSOR,
-        const.SENSOR_KC_UID_SUFFIX_COMPLETED_WEEKLY_SENSOR,
-        const.SENSOR_KC_UID_SUFFIX_COMPLETED_MONTHLY_SENSOR,
-        const.SENSOR_KC_UID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR,
-        const.SENSOR_KC_UID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR,
-        const.SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_DAILY_SENSOR,
-        const.SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_WEEKLY_SENSOR,
-        const.SENSOR_KC_UID_SUFFIX_KID_POINTS_EARNED_MONTHLY_SENSOR,
-        const.SENSOR_KC_UID_SUFFIX_KID_HIGHEST_STREAK_SENSOR,
-        const.SENSOR_KC_UID_SUFFIX_KID_MAX_POINTS_EVER_SENSOR,
-        const.SENSOR_KC_UID_SUFFIX_PENALTY_APPLIES_SENSOR,
-        const.SENSOR_KC_UID_SUFFIX_BONUS_APPLIES_SENSOR,
-    ]
-
-    # Scan and remove legacy entities for this config entry
-    removed_count = 0
-    for entity_entry in er.async_entries_for_config_entry(
-        entity_registry, entry.entry_id
-    ):
-        if entity_entry.domain == "sensor":
-            for suffix in legacy_suffixes:
-                if entity_entry.unique_id.endswith(suffix):
-                    const.LOGGER.debug(
-                        "Removing legacy entity (flag disabled): %s (unique_id: %s)",
-                        entity_entry.entity_id,
-                        entity_entry.unique_id,
-                    )
-                    entity_registry.async_remove(entity_entry.entity_id)
-                    removed_count += 1
-                    break
-
-    if removed_count > 0:
-        const.LOGGER.info(
-            "Removed %d legacy entities (show_legacy_entities=False)",
-            removed_count,
-        )
-
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up the integration from a config entry."""
     const.LOGGER.info("INFO: Starting setup for KidsChores entry: %s", entry.entry_id)
@@ -169,26 +107,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # PHASE 2: Migrate entity data from config to storage (one-time hand-off) - LEGACY MIGRATION
     # This must happen BEFORE coordinator initialization to ensure coordinator
-    # loads from storage-only mode (schema_version >= 42)
+    # loads from storage-only mode (schema_version >= 43)
     from .migration_pre_v50 import (
-        async_migrate_uid_suffixes_v0_5_1,
+        async_migrate_uid_suffixes_v0_5_0,
         migrate_config_to_storage,
     )
 
     await migrate_config_to_storage(hass, entry, store)
 
-    # PHASE 3: Migrate entity unique_ids from generic to explicit suffixes (v0.5.1)
-    # This is a ONE-TIME migration gated by a runtime flag to prevent re-running on reload.
-    # Updates entity registry unique_ids to enable reliable pattern matching for shadow
-    # kid entity gating. Run after storage migration but before coordinator init.
-    uid_migration_key = f"{const.DOMAIN}_uid_migration_done_{entry.entry_id}"
-    if uid_migration_key not in hass.data:
-        async_migrate_uid_suffixes_v0_5_1(hass, entry)
-        hass.data[uid_migration_key] = True
-    else:
-        const.LOGGER.debug(
-            "DEBUG: UID suffix migration already completed for this session, skipping"
-        )
+    # PHASE 3: Migrate entity unique_ids from generic to explicit suffixes
+    # Only needed for upgrades from < schema 43 (0.5.0b3). Fresh installs and already-upgraded
+    # installations have schema >= 43 and skip this.
+    meta_section = loaded_data.get(const.DATA_META, {})
+    schema_version = meta_section.get(
+        const.DATA_META_SCHEMA_VERSION,
+        loaded_data.get(const.DATA_SCHEMA_VERSION, const.DEFAULT_ZERO),
+    )
+    if schema_version < 43:
+        async_migrate_uid_suffixes_v0_5_0(hass, entry)
 
     # PHASE 4: Create coordinator with access to current config
     temp_coordinator = KidsChoresDataCoordinator(hass, entry, store)
@@ -246,16 +182,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Forward the setup to supported platforms (sensors, buttons, etc.).
     await hass.config_entries.async_forward_entry_setups(entry, const.PLATFORMS)
 
-    # Cleanup legacy entities if flag is disabled (after platform setup)
-    await _cleanup_legacy_entities(hass, entry)
+    # Fresh startup entity cleanup (NOT on reload)
+    # Uses runtime key pattern same as backup to detect true first startup
+    cleanup_key = (
+        f"{const.DOMAIN}{const.RUNTIME_KEY_ENTITY_CLEANUP_DONE}{entry.entry_id}"
+    )
+    if not hass.data.get(cleanup_key, False):
+        hass.data[cleanup_key] = True
+        # Run unified conditional entity cleanup (extra, workflow, gamification)
+        removed = await coordinator.remove_conditional_entities()
+        if removed > 0:
+            const.LOGGER.info("Fresh startup: removed %d conditional entities", removed)
 
-    # Cleanup orphaned kid-chore and badge entities (one-time migration)
-    # This removes entities from earlier versions that didn't have orphan cleanup
-    const.LOGGER.debug("Running one-time orphaned entity cleanup")
-    await coordinator._remove_orphaned_kid_chore_entities()
-    await coordinator._remove_orphaned_badge_entities()
-    await coordinator._remove_orphaned_manual_adjustment_buttons()
-    await coordinator._remove_orphaned_shadow_kid_buttons()
+    # Data-driven orphan removal (always runs - handles deleted/changed data)
+    # Unified method runs all orphan checks: kid-chore, shared, badges,
+    # achievements, challenges, manual adjustment buttons
+    await coordinator.remove_all_orphaned_entities()
 
     # Register update listener for config entry changes (e.g., title changes)
     entry.async_on_unload(entry.add_update_listener(async_update_options))
@@ -275,20 +217,50 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Handle options update (e.g., integration name change).
+    """Handle options update (e.g., integration name change, feature flags).
 
     This is called when the config entry is updated, including when the user
-    changes the integration name in the UI. We need to update all kid device
-    names to reflect the new title.
+    changes the integration name, feature flags (show_extra_entities,
+    enable_chore_workflow, enable_gamification), or other options.
+
+    Cleans up stale entities before reload to ensure immediate registry updates.
 
     Args:
         hass: Home Assistant instance
         entry: Updated config entry
 
     """
-    const.LOGGER.debug(
-        "Config entry updated for %s, checking for device name updates", entry.entry_id
+    const.LOGGER.info(
+        "Config entry options updated for %s, cleaning up stale entities",
+        entry.entry_id,
     )
+
+    # Get coordinator for entity cleanup
+    coordinator = hass.data[const.DOMAIN][entry.entry_id][const.COORDINATOR]
+
+    # CRITICAL: Update coordinator's config_entry reference to use NEW options.
+    # Without this, remove_conditional_entities() reads from stale options and
+    # entities remain unavailable instead of being removed from the registry.
+    # The `entry` parameter contains the updated options from async_update_entry().
+    const.LOGGER.info(
+        "DEBUG: Old coordinator options - show_legacy_entities=%s",
+        coordinator.config_entry.options.get(const.CONF_SHOW_LEGACY_ENTITIES),
+    )
+    const.LOGGER.info(
+        "DEBUG: New entry options - show_legacy_entities=%s",
+        entry.options.get(const.CONF_SHOW_LEGACY_ENTITIES),
+    )
+    coordinator.config_entry = entry
+    const.LOGGER.info(
+        "DEBUG: Updated coordinator.config_entry reference, calling cleanup"
+    )
+
+    # Remove entities no longer allowed by feature flags (extra, workflow, gamification)
+    removed_count = await coordinator.remove_conditional_entities()
+    const.LOGGER.info("DEBUG: Cleanup removed %d entities", removed_count)
+
+    # Run full orphan cleanup as safety net (catches data-driven orphans too)
+    await coordinator.remove_all_orphaned_entities()
 
     # Update all kid device names in case title changed
     await _update_all_kid_device_names(hass, entry)

@@ -13,6 +13,16 @@
           "backup_selection": "Select Option"
         }
       },
+      "paste_json_input": {
+        "title": "Import JSON Data",
+        "description": "Paste the complete JSON content from either:\n\n• A KidsChores data file (kidschores_data)\n• A diagnostics download\n\nThe system will automatically detect and unwrap the format as needed. Both raw storage data and diagnostics export formats are supported.",
+        "data": {
+          "json_data": "JSON Data"
+        },
+        "data_description": {
+          "json_data": "Paste the complete JSON content here. Accepts data from kidschores_data file or diagnostics export (automatically unwraps extra structure)."
+        }
+      },
       "points_label": {
         "title": "Points Label",
         "description": "Choose a label and icon for points.",
@@ -1315,11 +1325,34 @@
       },
       "select_backup_to_delete": {
         "title": "Select Backup to Delete",
-        "description": "Choose a backup file to delete.\n\nAvailable backups: {backup_count}\n\n⚠️  Protected backups (pre-migration, manual) cannot be deleted."
+        "description": "Choose a backup file to delete.\n\nAvailable backups: {backup_count}"
       },
       "select_backup_to_restore": {
         "title": "Select Backup to Restore",
-        "description": "Choose a backup file to restore.\n\nAvailable backups: {backup_count}\n\n⚠️  This will replace your current data!"
+        "description": "Choose a backup file to restore.\n\nAvailable backups: {backup_count}\n\n⚠️  This will replace your current data!",
+        "data": {
+          "backup_selection": "Select a Backup"
+        },
+        "data_description": {
+          "backup_selection": "Select the backup file you wish to restore."
+        }
+      },
+      "restore_backup": {
+        "title": "Data Recovery Options",
+        "description": "Existing KidsChores data found in:\n{storage_path}\n\nFound {backup_count} backup files.\n\nWhat would you like to do?",
+        "data": {
+          "backup_selection": "Select Option"
+        }
+      },
+      "paste_json_restore": {
+        "title": "Import JSON Data",
+        "description": "Paste the complete JSON content from either:\n\n• A KidsChores data file (kidschores_data)\n• A diagnostics download\n\nThe system will automatically detect and unwrap the format as needed. Both raw storage data and diagnostics export formats are supported.",
+        "data": {
+          "json_data": "JSON Data"
+        },
+        "data_description": {
+          "json_data": "Paste the complete JSON content here. Accepts data from kidschores_data file or diagnostics export (automatically unwraps extra structure)."
+        }
       },
       "create_backup_confirm": {
         "title": "Create Manual Backup",

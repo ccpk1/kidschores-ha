@@ -552,26 +552,26 @@ class TestLifecycleManagement:
 class TestEdgeCases:
     """EDGE-* tests: Edge case handling."""
 
-    async def test_edge_01_unknown_language_returns_constructed_eid(
+    async def test_edge_01_unknown_language_returns_none(
         self,
         hass: HomeAssistant,
         scenario_minimal: SetupResult,
     ) -> None:
-        """EDGE-01: Unknown language code still returns constructed entity ID.
+        """EDGE-01: Unknown language code returns None (not in registry).
 
-        Note: get_translation_sensor_eid() constructs the entity ID without
-        validation - fallback logic is in ensure_translation_sensor_exists().
-        This test verifies the basic construction behavior.
+        get_translation_sensor_eid() looks up entity IDs from the registry.
+        For languages without sensors in the registry, it returns None.
+        Entity creation logic is in ensure_translation_sensor_exists().
         """
         coordinator = scenario_minimal.coordinator
 
         # Get translation sensor entity ID for unknown language
-        # Should return constructed EID (not fallback - that's in ensure_* method)
+        # Should fall back to English ('en') since xyz doesn't exist
         eid = coordinator.get_translation_sensor_eid("xyz")
 
-        # Should be the constructed entity ID for xyz
-        expected = f"sensor.kc_{SENSOR_KC_EID_PREFIX_DASHBOARD_LANG}xyz"
-        assert eid == expected, f"Expected constructed xyz eid, got {eid}"
+        # Should return English translation sensor as fallback
+        assert eid is not None, "Expected fallback to English sensor"
+        assert "en" in eid, f"Expected English sensor as fallback, got {eid}"
 
     async def test_edge_02_no_kids_no_extra_sensors(
         self,

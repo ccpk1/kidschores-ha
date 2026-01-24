@@ -13,11 +13,11 @@ without entity clutter.
 
 Available Legacy Sensors (13 total):
 
-System Chore Approval Sensors (4):
-1. SystemChoreApprovalsSensor - Total chores completed (data in KidChoresSensor attributes)
-2. SystemChoreApprovalsDailySensor - Daily chores completed (data in SystemChoreApprovalsSensor attributes)
-3. SystemChoreApprovalsWeeklySensor - Weekly chores completed (data in SystemChoreApprovalsSensor attributes)
-4. SystemChoreApprovalsMonthlySensor - Monthly chores completed (data in SystemChoreApprovalsSensor attributes)
+Kid Chore Approval Sensors (4):
+1. KidChoreApprovalsSensor - Total chores completed (data in KidChoresSensor attributes)
+2. KidChoreApprovalsDailySensor - Daily chores completed (data in KidChoreApprovalsSensor attributes)
+3. KidChoreApprovalsWeeklySensor - Weekly chores completed (data in KidChoreApprovalsSensor attributes)
+4. KidChoreApprovalsMonthlySensor - Monthly chores completed (data in KidChoreApprovalsSensor attributes)
 
 Pending Approval Sensors (2):
 5. SystemChoresPendingApprovalSensor - Pending chore approvals (global)
@@ -52,11 +52,11 @@ if TYPE_CHECKING:
     from .type_defs import BonusData, ChoreData, KidData, PenaltyData, RewardData
 
 # ------------------------------------------------------------------------------------------
-# SYSTEM CHORE APPROVAL SENSORS
+# KID CHORE APPROVAL SENSORS
 # ------------------------------------------------------------------------------------------
 
 
-class SystemChoreApprovalsSensor(KidsChoresCoordinatorEntity, SensorEntity):
+class KidChoreApprovalsSensor(KidsChoresCoordinatorEntity, SensorEntity):
     """Legacy sensor tracking total chores completed by kid since integration start.
 
     NOTE: This sensor is legacy/optional. Data is now available as 'chore_stat_approved_all_time'
@@ -119,11 +119,11 @@ class SystemChoreApprovalsSensor(KidsChoresCoordinatorEntity, SensorEntity):
         }
 
 
-class SystemChoreApprovalsDailySensor(KidsChoresCoordinatorEntity, SensorEntity):
+class KidChoreApprovalsDailySensor(KidsChoresCoordinatorEntity, SensorEntity):
     """Legacy sensor tracking chores completed today.
 
     NOTE: This sensor is legacy/optional. Data is now available as 'chore_stat_approved_today'
-    attribute on the SystemChoreApprovalsSensor entity.
+    attribute on the KidChoreApprovalsSensor entity.
     """
 
     _attr_has_entity_name = True
@@ -180,11 +180,11 @@ class SystemChoreApprovalsDailySensor(KidsChoresCoordinatorEntity, SensorEntity)
         }
 
 
-class SystemChoreApprovalsWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity):
+class KidChoreApprovalsWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity):
     """Legacy sensor tracking chores completed this week.
 
     NOTE: This sensor is legacy/optional. Data is now available as 'chore_stat_approved_week'
-    attribute on the SystemChoreApprovalsSensor entity.
+    attribute on the KidChoreApprovalsSensor entity.
     """
 
     _attr_has_entity_name = True
@@ -241,11 +241,11 @@ class SystemChoreApprovalsWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity
         }
 
 
-class SystemChoreApprovalsMonthlySensor(KidsChoresCoordinatorEntity, SensorEntity):
+class KidChoreApprovalsMonthlySensor(KidsChoresCoordinatorEntity, SensorEntity):
     """Legacy sensor tracking chores completed this month.
 
     NOTE: This sensor is legacy/optional. Data is now available as 'chore_stat_approved_month'
-    attribute on the SystemChoreApprovalsSensor entity.
+    attribute on the KidChoreApprovalsSensor entity.
     """
 
     _attr_has_entity_name = True
@@ -1005,7 +1005,7 @@ class KidPenaltyAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
         penalty_button_eid = None
         try:
             entity_registry = async_get(self.hass)
-            unique_id = f"{self._entry.entry_id}_{const.BUTTON_PENALTY_PREFIX}{self._kid_id}_{self._penalty_id}"
+            unique_id = f"{self._entry.entry_id}_{self._kid_id}_{self._penalty_id}{const.BUTTON_KC_UID_SUFFIX_PARENT_PENALTY_APPLY}"
             penalty_button_eid = entity_registry.async_get_entity_id(
                 "button", const.DOMAIN, unique_id
             )
@@ -1121,7 +1121,7 @@ class KidBonusAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
         bonus_button_eid = None
         try:
             entity_registry = async_get(self.hass)
-            unique_id = f"{self._entry.entry_id}_{const.BUTTON_BONUS_PREFIX}{self._kid_id}_{self._bonus_id}"
+            unique_id = f"{self._entry.entry_id}_{self._kid_id}_{self._bonus_id}{const.BUTTON_KC_UID_SUFFIX_PARENT_BONUS_APPLY}"
             bonus_button_eid = entity_registry.async_get_entity_id(
                 "button", const.DOMAIN, unique_id
             )

@@ -2883,7 +2883,7 @@ def build_general_options_schema(default: dict | None = None) -> vol.Schema:
             vol.Required(
                 const.CFOF_SYSTEM_INPUT_SHOW_LEGACY_ENTITIES,
                 default=default_show_legacy_entities,
-            ): bool,
+            ): selector.BooleanSelector(),
             vol.Required(
                 const.CFOF_SYSTEM_INPUT_BACKUPS_MAX_RETAINED,
                 default=default.get(
@@ -2894,7 +2894,18 @@ def build_general_options_schema(default: dict | None = None) -> vol.Schema:
             vol.Optional(
                 const.CFOF_BACKUP_ACTION_SELECTION,
                 default=const.OPTIONS_FLOW_BACKUP_ACTION_SELECT,
-            ): str,
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        const.OPTIONS_FLOW_BACKUP_ACTION_SELECT,
+                        const.OPTIONS_FLOW_BACKUP_ACTION_CREATE,
+                        const.OPTIONS_FLOW_BACKUP_ACTION_RESTORE,
+                        const.OPTIONS_FLOW_BACKUP_ACTION_DELETE,
+                    ],
+                    translation_key=const.TRANS_KEY_CFOF_BACKUP_ACTIONS_MENU,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
         }
     )
 

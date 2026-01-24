@@ -714,10 +714,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                             old_workflow != new_workflow
                             or old_gamification != new_gamification
                         ):
-                            coordinator._remove_conditional_shadow_kid_entities(
-                                existing_shadow_kid_id,
-                                new_workflow,
-                                new_gamification,
+                            await coordinator.remove_conditional_entities(
+                                kid_ids=[existing_shadow_kid_id]
                             )
 
                     # Layer 4: Store updated parent (preserves internal_id)
@@ -3599,11 +3597,17 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     self._entry_options[const.CONF_RETENTION_YEARLY] = (
                         const.DEFAULT_RETENTION_YEARLY
                     )
-            # Update legacy entities toggle
-            self._entry_options[const.CONF_SHOW_LEGACY_ENTITIES] = user_input.get(
+            # Update extra entities toggle (config key: show_legacy_entities)
+            # Track old value to cleanup entities if disabled
+            old_extra_enabled = self._entry_options.get(
+                const.CONF_SHOW_LEGACY_ENTITIES, const.DEFAULT_SHOW_LEGACY_ENTITIES
+            )
+            new_extra_enabled = user_input.get(
                 const.CFOF_SYSTEM_INPUT_SHOW_LEGACY_ENTITIES,
                 const.DEFAULT_SHOW_LEGACY_ENTITIES,
             )
+            self._entry_options[const.CONF_SHOW_LEGACY_ENTITIES] = new_extra_enabled
+
             # Update backup retention (count-based)
             self._entry_options[const.CONF_BACKUPS_MAX_RETAINED] = user_input.get(
                 const.CFOF_SYSTEM_INPUT_BACKUPS_MAX_RETAINED,
@@ -3621,6 +3625,19 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 self._entry_options.get(const.CONF_SHOW_LEGACY_ENTITIES),
                 self._entry_options.get(const.CONF_BACKUPS_MAX_RETAINED),
             )
+
+            # Cleanup EXTRA entities if flag was disabled (True → False)
+            # Must happen before reload to remove entities before new ones are created
+            if old_extra_enabled and not new_extra_enabled:
+                coordinator = self.hass.data[const.DOMAIN][self.config_entry.entry_id][
+                    const.COORDINATOR
+                ]
+                removed = await coordinator.remove_conditional_entities()
+                if removed > 0:
+                    const.LOGGER.info(
+                        "Extra entities disabled: cleaned up %d entities", removed
+                    )
+
             await self._update_system_settings_and_reload()
             # After saving settings, return to main menu
             return await self.async_step_init()
@@ -4001,16 +4018,19 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             data_schema=vol.Schema(
                 {
                     vol.Required(
-                        const.CFOF_BACKUP_ACTION_SELECTION
+                        const.CFOF_BACKUP_ACTION_SELECTION,
+                        description={
+                            "translation_key": const.CFOF_BACKUP_ACTION_SELECTION
+                        },
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=[
-                                "create_backup",
-                                "delete_backup",
-                                "restore_backup",
+                                const.OPTIONS_FLOW_BACKUP_ACTION_CREATE,
+                                const.OPTIONS_FLOW_BACKUP_ACTION_DELETE,
+                                const.OPTIONS_FLOW_BACKUP_ACTION_RESTORE,
                                 "return_to_menu",
                             ],
-                            mode=selector.SelectSelectorMode.LIST,
+                            mode=selector.SelectSelectorMode.DROPDOWN,
                             translation_key=const.TRANS_KEY_CFOF_BACKUP_ACTIONS_MENU,
                         )
                     )
@@ -4445,20 +4465,29 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         self._reload_needed = True
 
     async def _reload_entry_after_entity_change(self):
-        """Reload the config entry to recreate sensors.
+        """Reload config entry after entity data changes (kids, chores, badges, etc.).
 
-        This is called when returning to the main menu after entity changes.
-        After reload, triggers an immediate coordinator refresh so new entities get data.
+        Runs cleanup before reload to remove orphaned entities and entities disabled by flags.
+        Complementary to async_update_options (in __init__.py) which handles system settings.
+        Both paths must run synchronized cleanup - see DEVELOPMENT_STANDARDS.md Section 6.
         """
-        # CLEANUP: Remove orphaned kid-chore and badge entities before reload
-        # This handles scenarios like:
-        # - Kid unassigned from chore
-        # - Shadow kid workflow toggle (claim/disapprove buttons orphaned)
-        # - Parent chore assignment flag disabled
-        # - Kid unassigned from badge
         coordinator = self._get_coordinator()
         if coordinator:
-            const.LOGGER.debug("Running orphaned entity cleanup before reload")
+            const.LOGGER.debug("Running entity cleanup before reload")
+
+            # Update coordinator's config_entry reference to get latest options
+            # (flag changes may have been staged in self._entry_options)
+            coordinator.config_entry = self.config_entry
+
+            # 1. FLAG-DRIVEN: Remove entities disabled by feature toggles
+            const.LOGGER.debug("Checking conditional entities against feature flags")
+            await coordinator.remove_conditional_entities()
+
+            # 2. DATA-DRIVEN: Remove orphaned per-relationship entities
+            # Only kid-chore and kid-badge create dynamic entities per assignment.
+            # Other entity types (rewards, achievements, etc.) are system-wide,
+            # handled by flag-driven cleanup or don't create entities at all.
+            const.LOGGER.debug("Checking orphaned kid-chore and badge entities")
             await coordinator._remove_orphaned_kid_chore_entities()
             await coordinator._remove_orphaned_badge_entities()
 
