@@ -2806,6 +2806,8 @@ TRANS_KEY_CFOF_INVALID_OVERDUE_RESET_COMBINATION: Final = (
     "invalid_overdue_reset_combination"
 )
 TRANS_KEY_CFOF_NO_KIDS_ASSIGNED: Final = "no_kids_assigned"
+TRANS_KEY_CFOF_ACHIEVEMENT_NO_KIDS_ASSIGNED: Final = "achievement_no_kids_assigned"
+TRANS_KEY_CFOF_CHALLENGE_NO_KIDS_ASSIGNED: Final = "challenge_no_kids_assigned"
 TRANS_KEY_CFOF_INVALID_DUE_DATE: Final = "invalid_due_date"
 TRANS_KEY_CFOF_DATE_REQUIRED_FOR_FREQUENCY: Final = "date_required_for_frequency"
 TRANS_KEY_CFOF_INVALID_END_DATE: Final = "invalid_end_date"

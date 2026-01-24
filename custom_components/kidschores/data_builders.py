@@ -1891,7 +1891,15 @@ def validate_achievement_data(
                 )
                 return errors
 
-    # === 3. Streak type requires chore selection ===
+    # === 3. At least one kid must be assigned ===
+    assigned_kids = data.get(const.DATA_ACHIEVEMENT_ASSIGNED_KIDS, [])
+    if not assigned_kids:
+        errors[const.CFOP_ERROR_ASSIGNED_KIDS] = (
+            const.TRANS_KEY_CFOF_ACHIEVEMENT_NO_KIDS_ASSIGNED
+        )
+        return errors
+
+    # === 4. Streak type requires chore selection ===
     achievement_type = data.get(const.DATA_ACHIEVEMENT_TYPE)
     if achievement_type == const.ACHIEVEMENT_TYPE_STREAK:
         chore_id = data.get(const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID)
@@ -2102,7 +2110,15 @@ def validate_challenge_data(
         errors["base"] = const.TRANS_KEY_CFOF_CHALLENGE_NAME_REQUIRED
         return errors
 
-    # === 2. Duplicate name check (case-insensitive) ===
+    # === 2. At least one kid must be assigned ===
+    assigned_kids = data.get(const.DATA_CHALLENGE_ASSIGNED_KIDS, [])
+    if not assigned_kids:
+        errors[const.CFOP_ERROR_ASSIGNED_KIDS] = (
+            const.TRANS_KEY_CFOF_CHALLENGE_NO_KIDS_ASSIGNED
+        )
+        return errors
+
+    # === 3. Duplicate name check (case-insensitive) ===
     if name and existing_challenges:
         for chal_id, chal_data in existing_challenges.items():
             if chal_id == current_challenge_id:
@@ -2111,7 +2127,7 @@ def validate_challenge_data(
                 errors["base"] = const.TRANS_KEY_CFOF_CHALLENGE_NAME_DUPLICATE
                 return errors
 
-    # === 3. Dates required ===
+    # === 4. Dates required ===
     start_date_raw = data.get(const.DATA_CHALLENGE_START_DATE)
     end_date_raw = data.get(const.DATA_CHALLENGE_END_DATE)
 
@@ -2119,7 +2135,7 @@ def validate_challenge_data(
         errors["base"] = const.TRANS_KEY_CFOF_CHALLENGE_DATES_REQUIRED
         return errors
 
-    # === 4. Date parsing and end > start validation ===
+    # === 5. Date parsing and end > start validation ===
     try:
         start_dt = kh.dt_parse(
             start_date_raw,
@@ -2150,7 +2166,7 @@ def validate_challenge_data(
         errors["base"] = const.TRANS_KEY_CFOF_CHALLENGE_INVALID_DATE
         return errors
 
-    # === 5. Target value > 0 ===
+    # === 6. Target value > 0 ===
     if const.DATA_CHALLENGE_TARGET_VALUE in data:
         try:
             target = float(data[const.DATA_CHALLENGE_TARGET_VALUE])
@@ -2161,7 +2177,7 @@ def validate_challenge_data(
             errors["base"] = const.TRANS_KEY_CFOF_CHALLENGE_TARGET_INVALID
             return errors
 
-    # === 6. Reward points >= 0 ===
+    # === 7. Reward points >= 0 ===
     if const.DATA_CHALLENGE_REWARD_POINTS in data:
         try:
             points = float(data[const.DATA_CHALLENGE_REWARD_POINTS])

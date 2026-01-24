@@ -1187,27 +1187,31 @@ def build_badge_common_schema(
     badge_type: str = const.BADGE_TYPE_CUMULATIVE,
 ) -> dict[vol.Marker, Any]:
     """
-    Build a Voluptuous schema for badge configuration, including common fields
-    and selected components.
+    Build a Voluptuous schema for badge configuration.
+
+    This function creates a schema with structural defaults only. Actual field
+    values should be populated using `add_suggested_values_to_schema()` after
+    schema creation.
 
     Args:
-        default: Dictionary containing default values for the fields.
-        kids: Dictionary of available kids for the assigned_to selector.
-        chores: Dictionary of available chores for the tracked selector.
-        rewards: Dictionary of available rewards for the awards selector.
-        badge_type: The type of the badge (cumulative, daily, periodic).
-            Default is cumulative.
-
-    Special Notes:
-        The `default` parameter is populated dynamically:
-        - On first load: receives `badge_data`
-        - After error: receives `user_input`
-        This pre-fills fields while preserving user changes when form
-        is regenerated after validation errors.
-        Note: user_input field names don't always match badge data keys.
+        default: Optional dict for backwards compatibility. When None (recommended),
+                 the schema uses static defaults suitable for new badges.
+        kids_dict: Dictionary of available kids for the assigned_to selector.
+        chores_dict: Dictionary of available chores for the tracked selector.
+        rewards_dict: Dictionary of available rewards for the awards selector.
+        challenges_dict: Dictionary of available challenges for linked badges.
+        achievements_dict: Dictionary of available achievements for linked badges.
+        bonuses_dict: Dictionary of available bonuses for the awards selector.
+        penalties_dict: Dictionary of available penalties for the awards selector.
+        badge_type: The type of the badge (cumulative, daily, periodic, etc.).
 
     Returns:
-        A dictionary representing the Voluptuous schema.
+        A dictionary representing the Voluptuous schema fields.
+
+    Note:
+        The recommended pattern is to call this with `default=None`, then apply
+        actual values via `add_suggested_values_to_schema()`. The `default`
+        parameter is maintained for backwards compatibility with existing code.
     """
     default = default or {}
     kids_dict = kids_dict or {}
@@ -1239,39 +1243,24 @@ def build_badge_common_schema(
     is_special_occasion = badge_type == const.BADGE_TYPE_SPECIAL_OCCASION
 
     const.LOGGER.debug(
-        "Build Badge Common Schema - Badge Data Passed to Schema: %s", default
+        "Build Badge Common Schema - Badge Type: %s, Default: %s", badge_type, default
     )
 
     # --- Start Common Schema ---
-    # See Special Notes above for explanation of default usage rational
+    # Schema defines structure with static defaults. Actual values are applied
+    # via add_suggested_values_to_schema() in the calling flow.
     schema_fields.update(
         {
-            vol.Required(
-                const.CFOF_BADGES_INPUT_NAME,
-                default=default.get(
-                    const.CFOF_BADGES_INPUT_NAME,
-                    default.get(const.DATA_BADGE_NAME, const.SENTINEL_EMPTY),
-                ),
-            ): str,
+            vol.Required(const.CFOF_BADGES_INPUT_NAME): str,
             vol.Optional(
                 const.CFOF_BADGES_INPUT_DESCRIPTION,
-                default=default.get(
-                    const.CFOF_BADGES_INPUT_DESCRIPTION,
-                    default.get(const.DATA_BADGE_DESCRIPTION, const.SENTINEL_EMPTY),
-                ),
+                default="",
             ): str,
-            # CLS - Tried to make this work with tranlation_key, but it doesn't seem to support it
             vol.Optional(
                 const.CFOF_BADGES_INPUT_LABELS,
-                default=default.get(
-                    const.CFOF_BADGES_INPUT_LABELS,
-                    default.get(const.DATA_BADGE_LABELS, []),
-                ),
+                default=[],
             ): selector.LabelSelector(selector.LabelSelectorConfig(multiple=True)),
-            vol.Optional(
-                const.CFOF_BADGES_INPUT_ICON,
-                default=default.get(const.CFOF_BADGES_INPUT_ICON, const.SENTINEL_EMPTY),
-            ): selector.IconSelector(),
+            vol.Optional(const.CFOF_BADGES_INPUT_ICON): selector.IconSelector(),
         }
     )
     # --- End Common Schema ---
@@ -1306,33 +1295,13 @@ def build_badge_common_schema(
                 )
             ]
 
-        default_target_type = default.get(
-            const.CFOF_BADGES_INPUT_TARGET_TYPE,
-            default.get(const.DATA_BADGE_TARGET, {}).get(
-                const.DATA_BADGE_TARGET_TYPE, const.DEFAULT_BADGE_TARGET_TYPE
-            ),
-        )
-        default_threshold = default.get(
-            const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE,
-            default.get(const.DATA_BADGE_TARGET, {}).get(
-                const.DATA_BADGE_TARGET_THRESHOLD_VALUE,
-                const.DEFAULT_BADGE_TARGET_THRESHOLD_VALUE,
-            ),
-        )
-
-        # Ensure default_threshold is always convertible to float
-        try:
-            default_threshold_float = float(default_threshold)
-        except (TypeError, ValueError):
-            default_threshold_float = float(const.DEFAULT_BADGE_TARGET_THRESHOLD_VALUE)
-
         if not (is_cumulative or is_special_occasion):
             # Include the target_type field for non-cumulative badges
             schema_fields.update(
                 {
                     vol.Required(
                         const.CFOF_BADGES_INPUT_TARGET_TYPE,
-                        default=default_target_type,
+                        default=const.DEFAULT_BADGE_TARGET_TYPE,
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=cast(
@@ -1351,7 +1320,7 @@ def build_badge_common_schema(
                 {
                     vol.Required(
                         const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE,
-                        default=default_threshold_float,
+                        default=float(const.DEFAULT_BADGE_TARGET_THRESHOLD_VALUE),
                     ): vol.All(
                         selector.NumberSelector(
                             selector.NumberSelectorConfig(
@@ -1360,8 +1329,8 @@ def build_badge_common_schema(
                                 step=1,
                             )
                         ),
-                        vol.Coerce(float),  # Coerce the input to a float
-                        vol.Range(min=0),  # Ensure non-negative values
+                        vol.Coerce(float),
+                        vol.Range(min=0),
                     ),
                 }
             )
@@ -1372,15 +1341,7 @@ def build_badge_common_schema(
                 {
                     vol.Optional(
                         const.CFOF_BADGES_INPUT_MAINTENANCE_RULES,
-                        default=int(
-                            default.get(
-                                const.CFOF_BADGES_INPUT_MAINTENANCE_RULES,
-                                default.get(const.DATA_BADGE_TARGET, {}).get(
-                                    const.DATA_BADGE_MAINTENANCE_RULES,
-                                    const.DEFAULT_BADGE_MAINTENANCE_THRESHOLD,
-                                ),
-                            )
-                        ),  # Ensure the default is an integer
+                        default=const.DEFAULT_BADGE_MAINTENANCE_THRESHOLD,
                     ): vol.All(
                         selector.NumberSelector(
                             selector.NumberSelectorConfig(
@@ -1389,8 +1350,8 @@ def build_badge_common_schema(
                                 step=1,
                             )
                         ),
-                        vol.Coerce(int),  # Coerce the input to an integer
-                        vol.Range(min=0),  # Ensure non-negative values
+                        vol.Coerce(int),
+                        vol.Range(min=0),
                     ),
                 }
             )
@@ -1398,15 +1359,10 @@ def build_badge_common_schema(
     # --- Special Occasion Component Schema ---
     if include_special_occasion:
         occasion_type_options = const.OCCASION_TYPE_OPTIONS or []
-        default_occasion_type = default.get(
-            const.CFOF_BADGES_INPUT_OCCASION_TYPE,
-            default.get(const.DATA_BADGE_SPECIAL_OCCASION_TYPE, const.SENTINEL_EMPTY),
-        )
         schema_fields.update(
             {
                 vol.Required(
-                    const.CFOF_BADGES_INPUT_OCCASION_TYPE,
-                    default=default_occasion_type,
+                    const.CFOF_BADGES_INPUT_OCCASION_TYPE
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=occasion_type_options,
@@ -1430,19 +1386,11 @@ def build_badge_common_schema(
             }
             for achievement_id, achievement in achievements_dict.items()
         ]
-        # Convert empty string to sentinel for form default
-        stored_achievement = default.get(
-            const.CFOF_BADGES_INPUT_ASSOCIATED_ACHIEVEMENT,
-            default.get(const.DATA_BADGE_ASSOCIATED_ACHIEVEMENT, ""),
-        )
-        default_achievement = (
-            stored_achievement if stored_achievement else const.SENTINEL_NO_SELECTION
-        )
         schema_fields.update(
             {
                 vol.Required(
                     const.CFOF_BADGES_INPUT_ASSOCIATED_ACHIEVEMENT,
-                    default=default_achievement,
+                    default=const.SENTINEL_NO_SELECTION,
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=achievement_options,
@@ -1466,19 +1414,11 @@ def build_badge_common_schema(
             }
             for challenge_id, challenge in challenges_dict.items()
         ]
-        # Convert empty string to sentinel for form default
-        stored_challenge = default.get(
-            const.CFOF_BADGES_INPUT_ASSOCIATED_CHALLENGE,
-            default.get(const.DATA_BADGE_ASSOCIATED_CHALLENGE, ""),
-        )
-        default_challenge = (
-            stored_challenge if stored_challenge else const.SENTINEL_NO_SELECTION
-        )
         schema_fields.update(
             {
                 vol.Required(
                     const.CFOF_BADGES_INPUT_ASSOCIATED_CHALLENGE,
-                    default=default_challenge,
+                    default=const.SENTINEL_NO_SELECTION,
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=challenge_options,
@@ -1490,31 +1430,23 @@ def build_badge_common_schema(
         )
 
     # --- Tracked Chores Component Schema ---
-    if include_tracked_chores:  # Use renamed flag
-        options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}]
-        options += [
+    if include_tracked_chores:
+        chore_options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}]
+        chore_options += [
             {
                 "value": chore_id,
                 "label": chore.get(const.DATA_CHORE_NAME, const.SENTINEL_NONE_TEXT),
             }
             for chore_id, chore in chores_dict.items()
         ]
-        default_selected = default.get(
-            const.CFOF_BADGES_INPUT_SELECTED_CHORES,
-            default.get(const.DATA_BADGE_TRACKED_CHORES, {}).get(
-                const.DATA_BADGE_TRACKED_CHORES_SELECTED_CHORES, []
-            ),
-        )
         schema_fields.update(
             {
                 vol.Optional(
                     const.CFOF_BADGES_INPUT_SELECTED_CHORES,
-                    default=default_selected
-                    if isinstance(default_selected, list)
-                    else [],
+                    default=[],
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=cast("list[selector.SelectOptionDict]", options),
+                        options=cast("list[selector.SelectOptionDict]", chore_options),
                         multiple=True,
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         translation_key=const.TRANS_KEY_CFOF_BADGE_SELECTED_CHORES,
@@ -1525,28 +1457,22 @@ def build_badge_common_schema(
 
     # --- Assigned To Component Schema ---
     if include_assigned_to:
-        options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}]
-        options += [
+        kid_options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}]
+        kid_options += [
             {
                 "value": kid_id,
                 "label": kid.get(const.DATA_KID_NAME, const.SENTINEL_NONE_TEXT),
             }
             for kid_id, kid in kids_dict.items()
         ]
-        default_assigned = default.get(
-            const.CFOF_BADGES_INPUT_ASSIGNED_TO,
-            default.get(const.DATA_BADGE_ASSIGNED_TO, []),
-        )
         schema_fields.update(
             {
                 vol.Optional(
                     const.CFOF_BADGES_INPUT_ASSIGNED_TO,
-                    default=default_assigned
-                    if isinstance(default_assigned, list)
-                    else [],
+                    default=[],
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=cast("list[selector.SelectOptionDict]", options),
+                        options=cast("list[selector.SelectOptionDict]", kid_options),
                         multiple=True,
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         translation_key=const.TRANS_KEY_CFOF_BADGE_ASSIGNED_TO,
@@ -1557,8 +1483,6 @@ def build_badge_common_schema(
 
     # --- Awards Component Schema ---
     if include_awards:
-        # Logic from build_badge_awards_schema
-
         award_items_options = []
 
         award_items_options.append(
@@ -1607,20 +1531,11 @@ def build_badge_common_schema(
                         }
                     )
 
-        default_award_items = default.get(
-            const.CFOF_BADGES_INPUT_AWARD_ITEMS,
-            default.get(const.DATA_BADGE_AWARDS, {}).get(
-                const.DATA_BADGE_AWARDS_AWARD_ITEMS, []
-            ),
-        )
-
         schema_fields.update(
             {
                 vol.Optional(
                     const.CFOF_BADGES_INPUT_AWARD_ITEMS,
-                    default=default_award_items
-                    if isinstance(default_award_items, list)
-                    else [],
+                    default=[],
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=cast(
@@ -1636,32 +1551,19 @@ def build_badge_common_schema(
 
         schema_fields.update(
             {
-                # Points field is technically optional depending on mode, but schema can keep it simple
-                # Validation layer handles the logic of whether value is needed/used
                 vol.Optional(
                     const.CFOF_BADGES_INPUT_AWARD_POINTS,
-                    # Ensure default is treated as float if present
-                    default=float(
-                        default.get(
-                            const.CFOF_BADGES_INPUT_AWARD_POINTS,
-                            default.get(const.DATA_BADGE_AWARDS, {}).get(
-                                const.DATA_BADGE_AWARDS_AWARD_POINTS,
-                                const.DEFAULT_BADGE_AWARD_POINTS,
-                            ),
-                        )
-                    ),
+                    default=float(const.DEFAULT_BADGE_AWARD_POINTS),
                 ): vol.All(
                     selector.NumberSelector(
                         selector.NumberSelectorConfig(
                             mode=selector.NumberSelectorMode.BOX,
-                            min=0.0,  # Allow zero as the minimum value
+                            min=0.0,
                             step=0.1,
                         )
                     ),
-                    vol.Coerce(float),  # Coerce the input to a float
-                    vol.Range(
-                        min=0.0
-                    ),  # Ensure the value is greater than or equal to zero
+                    vol.Coerce(float),
+                    vol.Range(min=0.0),
                 ),
             }
         )
@@ -1669,16 +1571,7 @@ def build_badge_common_schema(
         if is_cumulative:
             schema_fields.update(
                 {
-                    vol.Optional(
-                        const.CFOF_BADGES_INPUT_POINTS_MULTIPLIER,
-                        default=default.get(
-                            const.CFOF_BADGES_INPUT_POINTS_MULTIPLIER,
-                            default.get(const.DATA_BADGE_AWARDS, {}).get(
-                                const.DATA_BADGE_AWARDS_POINT_MULTIPLIER,
-                                None,
-                            ),
-                        ),
-                    ): vol.Any(
+                    vol.Optional(const.CFOF_BADGES_INPUT_POINTS_MULTIPLIER): vol.Any(
                         None,
                         vol.All(
                             selector.NumberSelector(
@@ -1697,56 +1590,7 @@ def build_badge_common_schema(
 
     # --- Reset Component Schema ---
     if include_reset_schedule:
-        # Define defaults at the top for easier adjustments
-        # Get the reset_schedule once instead of repeated lookups
-        reset_schedule = default.get(const.DATA_BADGE_RESET_SCHEDULE, {})
-
-        # Get defaults from user_input first (if present), then from reset_schedule, then use defaults
-        default_recurring_frequency = default.get(
-            const.CFOF_BADGES_INPUT_RESET_SCHEDULE_RECURRING_FREQUENCY,
-            reset_schedule.get(
-                const.DATA_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY,
-                const.DEFAULT_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY,
-            ),
-        )
-        default_custom_interval = default.get(
-            const.CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL,
-            reset_schedule.get(
-                const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL,
-                const.DEFAULT_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL,
-            ),
-        )
-        default_custom_interval_unit = default.get(
-            const.CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT,
-            reset_schedule.get(
-                const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT,
-                const.DEFAULT_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT,
-            ),
-        )
-        default_start_date = default.get(
-            const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE,
-            reset_schedule.get(
-                const.DATA_BADGE_RESET_SCHEDULE_START_DATE,
-                const.DEFAULT_BADGE_RESET_SCHEDULE_START_DATE,
-            ),
-        )
-        default_end_date = default.get(
-            const.CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE,
-            reset_schedule.get(
-                const.DATA_BADGE_RESET_SCHEDULE_END_DATE,
-                const.DEFAULT_BADGE_RESET_SCHEDULE_END_DATE,
-            ),
-        )
-        default_grace_period_days = default.get(
-            const.CFOF_BADGES_INPUT_RESET_SCHEDULE_GRACE_PERIOD_DAYS,
-            reset_schedule.get(
-                const.DATA_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS,
-                const.DEFAULT_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS,
-            ),
-        )
-
-        # For BADGE_TYPE_DAILY hide reset schedule fields
-        # and force value in validation
+        # For BADGE_TYPE_DAILY hide reset schedule fields - values forced in validation
         if not is_daily:
             # Build the schema fields for other badge types
             schema_fields.update(
@@ -1754,7 +1598,7 @@ def build_badge_common_schema(
                     # Recurring Frequency
                     vol.Required(
                         const.CFOF_BADGES_INPUT_RESET_SCHEDULE_RECURRING_FREQUENCY,
-                        default=default_recurring_frequency,
+                        default=const.DEFAULT_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY,
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=cast(
@@ -1768,25 +1612,23 @@ def build_badge_common_schema(
                     # Custom Interval
                     vol.Optional(
                         const.CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL,
-                        default=default_custom_interval,  # Default can be None or an integer
                     ): vol.Any(
                         None,
                         vol.All(
                             selector.NumberSelector(
                                 selector.NumberSelectorConfig(
                                     mode=selector.NumberSelectorMode.BOX,
-                                    min=0,  # Ensure values are greater than or equal to 0
+                                    min=0,
                                     step=1,
                                 )
                             ),
-                            vol.Coerce(int),  # Coerce to integer
-                            vol.Range(min=0),  # Ensure >= 0
+                            vol.Coerce(int),
+                            vol.Range(min=0),
                         ),
                     ),
                     # Custom Interval Unit
                     vol.Optional(
                         const.CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT,
-                        default=default_custom_interval_unit,
                     ): vol.Any(
                         None,
                         selector.SelectSelector(
@@ -1806,7 +1648,6 @@ def build_badge_common_schema(
                     {
                         vol.Optional(
                             const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE,
-                            default=default_start_date,
                         ): vol.Any(None, selector.DateSelector()),
                     }
                 )
@@ -1816,18 +1657,17 @@ def build_badge_common_schema(
                 {
                     vol.Optional(
                         const.CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE,
-                        default=default_end_date,
                     ): vol.Any(None, selector.DateSelector()),
                 }
             )
 
-            # Nested Grace Period Days under is_cumulative flag
+            # Grace Period Days for cumulative badges
             if is_cumulative:
                 schema_fields.update(
                     {
                         vol.Optional(
                             const.CFOF_BADGES_INPUT_RESET_SCHEDULE_GRACE_PERIOD_DAYS,
-                            default=int(default_grace_period_days),
+                            default=const.DEFAULT_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS,
                         ): vol.All(
                             selector.NumberSelector(
                                 selector.NumberSelectorConfig(
@@ -1836,8 +1676,8 @@ def build_badge_common_schema(
                                     step=1,
                                 )
                             ),
-                            vol.Coerce(int),  # Coerce to integer
-                            vol.Range(min=0),  # Ensure non-negative values
+                            vol.Coerce(int),
+                            vol.Range(min=0),
                         ),
                     }
                 )
@@ -2476,12 +2316,12 @@ def process_penalty_form_input(user_input: dict) -> dict:
 
 
 def build_achievement_schema(kids_dict, chores_dict, default=None):
-    """Build a schema for achievements, keyed by internal_id."""
-    default = default or {}
-    achievement_name_default = default.get(
-        const.DATA_ACHIEVEMENT_NAME, const.SENTINEL_EMPTY
-    )
+    """Build a schema for achievements, keyed by internal_id.
 
+    Note: default parameter is kept for backwards compatibility but should NOT
+    be used. Instead, use add_suggested_values_to_schema() after schema creation.
+    This allows users to clear optional fields (suggested values vs defaults).
+    """
     kid_options = [
         {"value": kid_id, "label": kid_name} for kid_name, kid_id in kids_dict.items()
     ]
@@ -2491,43 +2331,21 @@ def build_achievement_schema(kids_dict, chores_dict, default=None):
         chore_name = chore_data.get(const.DATA_CHORE_NAME, f"Chore {chore_id[:6]}")
         chore_options.append({"value": chore_id, "label": chore_name})
 
-    default_selected_chore = default.get(
-        const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID, const.SENTINEL_EMPTY
-    )
-    if not default_selected_chore or default_selected_chore not in [
-        option["value"] for option in chore_options
-    ]:
-        pass
-
-    default_criteria = default.get(
-        const.CFOF_ACHIEVEMENTS_INPUT_CRITERIA, const.SENTINEL_EMPTY
-    )
-    default_assigned_kids = default.get(const.CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS, [])
-    if not isinstance(default_assigned_kids, list):
-        default_assigned_kids = [default_assigned_kids]
-
     return vol.Schema(
         {
-            vol.Required(
-                const.CFOF_ACHIEVEMENTS_INPUT_NAME, default=achievement_name_default
-            ): str,
+            vol.Required(const.CFOF_ACHIEVEMENTS_INPUT_NAME): str,
             vol.Optional(
                 const.CFOF_ACHIEVEMENTS_INPUT_DESCRIPTION,
-                default=default.get(
-                    const.DATA_ACHIEVEMENT_DESCRIPTION, const.SENTINEL_EMPTY
-                ),
+                default="",
             ): str,
             vol.Optional(
                 const.CFOF_ACHIEVEMENTS_INPUT_LABELS,
-                default=default.get(const.CFOF_ACHIEVEMENTS_INPUT_LABELS, []),
+                default=[],
             ): selector.LabelSelector(selector.LabelSelectorConfig(multiple=True)),
-            vol.Optional(
-                const.CFOF_ACHIEVEMENTS_INPUT_ICON,
-                default=default.get(const.DATA_ACHIEVEMENT_ICON, const.SENTINEL_EMPTY),
-            ): selector.IconSelector(),
+            vol.Optional(const.CFOF_ACHIEVEMENTS_INPUT_ICON): selector.IconSelector(),
             vol.Required(
                 const.CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS,
-                default=default_assigned_kids,
+                default=[],
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=cast("list[selector.SelectOptionDict]", kid_options),
@@ -2537,9 +2355,7 @@ def build_achievement_schema(kids_dict, chores_dict, default=None):
             ),
             vol.Required(
                 const.CFOF_ACHIEVEMENTS_INPUT_TYPE,
-                default=default.get(
-                    const.CFOF_ACHIEVEMENTS_INPUT_TYPE, const.ACHIEVEMENT_TYPE_STREAK
-                ),
+                default=const.ACHIEVEMENT_TYPE_STREAK,
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=cast(
@@ -2552,7 +2368,7 @@ def build_achievement_schema(kids_dict, chores_dict, default=None):
             # If type == "chore_streak", let the user choose the chore to track:
             vol.Optional(
                 const.CFOF_ACHIEVEMENTS_INPUT_SELECTED_CHORE_ID,
-                default=default_selected_chore,
+                default=const.SENTINEL_EMPTY,
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=cast("list[selector.SelectOptionDict]", chore_options),
@@ -2562,14 +2378,12 @@ def build_achievement_schema(kids_dict, chores_dict, default=None):
             ),
             # For non-streak achievements the user can type criteria freely:
             vol.Optional(
-                const.CFOF_ACHIEVEMENTS_INPUT_CRITERIA, default=default_criteria
+                const.CFOF_ACHIEVEMENTS_INPUT_CRITERIA,
+                default="",
             ): str,
             vol.Required(
                 const.CFOF_ACHIEVEMENTS_INPUT_TARGET_VALUE,
-                default=default.get(
-                    const.CFOF_ACHIEVEMENTS_INPUT_TARGET_VALUE,
-                    const.DEFAULT_ACHIEVEMENT_TARGET,
-                ),
+                default=const.DEFAULT_ACHIEVEMENT_TARGET,
             ): selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     mode=selector.NumberSelectorMode.BOX,
@@ -2579,10 +2393,7 @@ def build_achievement_schema(kids_dict, chores_dict, default=None):
             ),
             vol.Required(
                 const.CFOF_ACHIEVEMENTS_INPUT_REWARD_POINTS,
-                default=default.get(
-                    const.CFOF_ACHIEVEMENTS_INPUT_REWARD_POINTS,
-                    const.DEFAULT_ACHIEVEMENT_REWARD_POINTS,
-                ),
+                default=const.DEFAULT_ACHIEVEMENT_REWARD_POINTS,
             ): selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     mode=selector.NumberSelectorMode.BOX,
@@ -2620,6 +2431,10 @@ def validate_achievements_inputs(
     from . import data_builders as db
 
     # Transform CFOF_* keys to DATA_* keys
+    assigned_kids = user_input.get(const.CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS, [])
+    if not isinstance(assigned_kids, list):
+        assigned_kids = [assigned_kids] if assigned_kids else []
+
     data = {
         const.DATA_ACHIEVEMENT_NAME: user_input.get(
             const.CFOF_ACHIEVEMENTS_INPUT_NAME, ""
@@ -2630,6 +2445,7 @@ def validate_achievements_inputs(
         const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID: user_input.get(
             const.CFOF_ACHIEVEMENTS_INPUT_SELECTED_CHORE_ID, const.SENTINEL_EMPTY
         ),
+        const.DATA_ACHIEVEMENT_ASSIGNED_KIDS: assigned_kids,
     }
 
     return db.validate_achievement_data(
@@ -2645,68 +2461,50 @@ def validate_achievements_inputs(
 
 
 def build_challenge_schema(kids_dict, chores_dict, default=None):
-    """Build a schema for challenges, keyed by internal_id."""
-    default = default or {}
-    challenge_name_default = default.get(
-        const.DATA_CHALLENGE_NAME, const.SENTINEL_EMPTY
-    )
+    """Build a schema for challenges, referencing kids by name (like chores).
 
-    kid_options = [
-        {"value": kid_id, "label": kid_name} for kid_name, kid_id in kids_dict.items()
-    ]
+    Args:
+        kids_dict: Mapping of kid names to internal IDs (same as chores).
+        chores_dict: Mapping of chore IDs to chore data for selection.
+        default: Optional dict with default/suggested values for the form.
+                 For DateTimeSelector fields, values must be in "%Y-%m-%d %H:%M:%S"
+                 format (local timezone, space separator - NOT ISO format with T).
+    """
+    default = default or {}
+    # Use names as values (same pattern as chores)
+    kid_choices = list(kids_dict.keys())
 
     chore_options = [{"value": const.SENTINEL_EMPTY, "label": const.LABEL_NONE}]
     for chore_id, chore_data in chores_dict.items():
         chore_name = chore_data.get(const.DATA_CHORE_NAME, f"Chore {chore_id[:6]}")
         chore_options.append({"value": chore_id, "label": chore_name})
 
-    default_selected_chore = default.get(
-        const.DATA_CHALLENGE_SELECTED_CHORE_ID, const.SENTINEL_EMPTY
-    )
-    available_values = [option["value"] for option in chore_options]
-    if default_selected_chore not in available_values:
-        default_selected_chore = ""
-
-    default_criteria = default.get(
-        const.CFOF_CHALLENGES_INPUT_CRITERIA, const.SENTINEL_EMPTY
-    )
-    default_assigned_kids = default.get(const.CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS, [])
-    if not isinstance(default_assigned_kids, list):
-        default_assigned_kids = [default_assigned_kids]
-
     return vol.Schema(
         {
-            vol.Required(
-                const.CFOF_CHALLENGES_INPUT_NAME, default=challenge_name_default
-            ): str,
+            vol.Required(const.CFOF_CHALLENGES_INPUT_NAME): str,
             vol.Optional(
                 const.CFOF_CHALLENGES_INPUT_DESCRIPTION,
-                default=default.get(
-                    const.DATA_CHALLENGE_DESCRIPTION, const.SENTINEL_EMPTY
-                ),
+                default="",
             ): str,
             vol.Optional(
                 const.CFOF_CHALLENGES_INPUT_LABELS,
-                default=default.get(const.CFOF_CHALLENGES_INPUT_LABELS, []),
+                default=[],
             ): selector.LabelSelector(selector.LabelSelectorConfig(multiple=True)),
-            vol.Optional(
-                const.CFOF_CHALLENGES_INPUT_ICON,
-                default=default.get(const.DATA_CHALLENGE_ICON, const.SENTINEL_EMPTY),
-            ): selector.IconSelector(),
+            vol.Optional(const.CFOF_CHALLENGES_INPUT_ICON): selector.IconSelector(),
             vol.Required(
-                const.CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS, default=default_assigned_kids
+                const.CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS,
+                default=[],
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=cast("list[selector.SelectOptionDict]", kid_options),
+                    options=kid_choices,
                     translation_key=const.TRANS_KEY_FLOW_HELPERS_ASSIGNED_KIDS,
                     multiple=True,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
             vol.Required(
                 const.CFOF_CHALLENGES_INPUT_TYPE,
-                default=default.get(
-                    const.CFOF_CHALLENGES_INPUT_TYPE, const.CHALLENGE_TYPE_DAILY_MIN
-                ),
+                default=const.CHALLENGE_TYPE_DAILY_MIN,
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=cast(
@@ -2718,7 +2516,7 @@ def build_challenge_schema(kids_dict, chores_dict, default=None):
             # If type == "chore_streak", let the user choose the chore to track:
             vol.Optional(
                 const.CFOF_CHALLENGES_INPUT_SELECTED_CHORE_ID,
-                default=default_selected_chore,
+                default=const.SENTINEL_EMPTY,
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=cast("list[selector.SelectOptionDict]", chore_options),
@@ -2726,16 +2524,14 @@ def build_challenge_schema(kids_dict, chores_dict, default=None):
                     multiple=False,
                 )
             ),
-            # For non-streak achievements the user can type criteria freely:
+            # For non-streak challenges the user can type criteria freely:
             vol.Optional(
-                const.CFOF_CHALLENGES_INPUT_CRITERIA, default=default_criteria
+                const.CFOF_CHALLENGES_INPUT_CRITERIA,
+                default="",
             ): str,
             vol.Required(
                 const.CFOF_CHALLENGES_INPUT_TARGET_VALUE,
-                default=default.get(
-                    const.CFOF_CHALLENGES_INPUT_TARGET_VALUE,
-                    const.DEFAULT_CHALLENGE_TARGET,
-                ),
+                default=const.DEFAULT_CHALLENGE_TARGET,
             ): selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     mode=selector.NumberSelectorMode.BOX,
@@ -2745,10 +2541,7 @@ def build_challenge_schema(kids_dict, chores_dict, default=None):
             ),
             vol.Required(
                 const.CFOF_CHALLENGES_INPUT_REWARD_POINTS,
-                default=default.get(
-                    const.CFOF_CHALLENGES_INPUT_REWARD_POINTS,
-                    const.DEFAULT_CHALLENGE_REWARD_POINTS,
-                ),
+                default=const.DEFAULT_CHALLENGE_REWARD_POINTS,
             ): selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     mode=selector.NumberSelectorMode.BOX,
@@ -2756,14 +2549,14 @@ def build_challenge_schema(kids_dict, chores_dict, default=None):
                     step=0.1,
                 )
             ),
-            vol.Required(
+            vol.Optional(
                 const.CFOF_CHALLENGES_INPUT_START_DATE,
                 default=default.get(const.CFOF_CHALLENGES_INPUT_START_DATE),
-            ): selector.DateTimeSelector(),
-            vol.Required(
+            ): vol.Any(None, selector.DateTimeSelector()),
+            vol.Optional(
                 const.CFOF_CHALLENGES_INPUT_END_DATE,
                 default=default.get(const.CFOF_CHALLENGES_INPUT_END_DATE),
-            ): selector.DateTimeSelector(),
+            ): vol.Any(None, selector.DateTimeSelector()),
         }
     )
 
@@ -2794,8 +2587,13 @@ def validate_challenges_inputs(
     from . import data_builders as db
 
     # Transform CFOF_* keys to DATA_* keys
+    assigned_kids = user_input.get(const.CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS, [])
+    if not isinstance(assigned_kids, list):
+        assigned_kids = [assigned_kids] if assigned_kids else []
+
     data = {
         const.DATA_CHALLENGE_NAME: user_input.get(const.CFOF_CHALLENGES_INPUT_NAME, ""),
+        const.DATA_CHALLENGE_ASSIGNED_KIDS: assigned_kids,
         const.DATA_CHALLENGE_START_DATE: user_input.get(
             const.CFOF_CHALLENGES_INPUT_START_DATE
         ),

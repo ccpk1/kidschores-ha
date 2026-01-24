@@ -5529,21 +5529,47 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
                 required_daily = challenge_info.get(
                     const.DATA_CHALLENGE_REQUIRED_DAILY, 1
                 )
+                # Fallback to target_value if required_daily not set
+                if required_daily == 1:
+                    required_daily = challenge_info.get(
+                        const.DATA_CHALLENGE_TARGET_VALUE, 1
+                    )
 
                 if start_date_utc and end_date_utc:
-                    num_days = (end_date_utc - start_date_utc).days + 1
-                    # Verify for each day:
+                    # Only check days that have PASSED (up to and including today)
+                    # Award is given when challenge window is complete AND all days met minimum
+                    today_utc = dt_util.utcnow().replace(
+                        hour=0, minute=0, second=0, microsecond=0
+                    )
+
+                    # Calculate total days in challenge and days elapsed so far
+                    total_days = (end_date_utc - start_date_utc).days + 1
+
+                    # Determine how many days to check (all days if challenge ended, else days so far)
+                    if now_utc >= end_date_utc:
+                        # Challenge window is complete - check all days
+                        days_to_check = total_days
+                    else:
+                        # Challenge still in progress - check days up to today
+                        days_to_check = min(
+                            (today_utc - start_date_utc).days + 1, total_days
+                        )
+
+                    # Verify each day that should be checked
                     success = True
-                    for n in range(num_days):
+                    daily_counts = progress_item.get(
+                        const.DATA_CHALLENGE_DAILY_COUNTS, {}
+                    )
+                    for n in range(days_to_check):
                         day = (start_date_utc + timedelta(days=n)).date().isoformat()
-                        if int(  # type: ignore[call-overload]
-                            progress[const.DATA_CHALLENGE_DAILY_COUNTS].get(
-                                day, const.DEFAULT_ZERO
-                            )
-                        ) < int(required_daily):
+                        if int(daily_counts.get(day, const.DEFAULT_ZERO)) < int(
+                            required_daily
+                        ):
                             success = False
                             break
-                    if success:
+
+                    # Only award if challenge window is complete and all days succeeded
+                    if success and now_utc >= end_date_utc:
                         self._award_challenge(kid_id, challenge_id)
 
     def _award_challenge(self, kid_id: str, challenge_id: str):

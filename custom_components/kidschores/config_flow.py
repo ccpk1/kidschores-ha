@@ -894,10 +894,9 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                     return await self.async_step_reward_count()
                 return await self.async_step_badges()
 
-        # --- Build Schema ---
-        badge_schema_data = user_input if user_input else default_data or {}
+        # --- Build Schema with Suggested Values ---
         schema_fields = fh.build_badge_common_schema(
-            default=badge_schema_data,
+            default=None,
             kids_dict=self._kids_temp,
             chores_dict=self._chores_temp,
             rewards_dict=self._rewards_temp,
@@ -906,6 +905,10 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             badge_type=badge_type,
         )
         data_schema = vol.Schema(schema_fields)
+
+        # On validation error, preserve user's attempted input
+        if user_input:
+            data_schema = self.add_suggested_values_to_schema(data_schema, user_input)
 
         # Determine step name dynamically
         step_name = const.CONFIG_FLOW_STEP_BADGES

@@ -672,14 +672,26 @@ class ChoreOperations:
                     selected_chore = challenge_info.get(
                         const.DATA_CHALLENGE_SELECTED_CHORE_ID
                     )
-                    if not selected_chore:
-                        const.LOGGER.warning(
-                            "WARNING: Challenge '%s' of type daily minimum has no selected chore id. Skipping progress update.",
-                            challenge_info.get(const.DATA_CHALLENGE_NAME),
-                        )
+                    # If a specific chore is selected, only count that chore
+                    # If no chore selected (empty/""), count ANY chore completion
+                    if selected_chore and selected_chore != chore_id:
                         continue
 
-                    if selected_chore != chore_id:
+                    # Check if we're within the challenge date window
+                    start_date_str = challenge_info.get(const.DATA_CHALLENGE_START_DATE)
+                    end_date_str = challenge_info.get(const.DATA_CHALLENGE_END_DATE)
+                    if not start_date_str or not end_date_str:
+                        continue
+
+                    start_date_utc = kh.dt_to_utc(start_date_str)
+                    end_date_utc = kh.dt_to_utc(end_date_str)
+                    now_utc = dt_util.utcnow()
+
+                    if not (
+                        start_date_utc
+                        and end_date_utc
+                        and start_date_utc <= now_utc <= end_date_utc
+                    ):
                         continue
 
                     if kid_id in challenge_info.get(

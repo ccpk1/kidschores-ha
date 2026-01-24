@@ -2362,10 +2362,107 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 self._mark_reload_needed()
                 return await self.async_step_init()
 
-        # --- Build Schema ---
-        badge_schema_data = user_input if user_input else default_data or {}
+        # --- Build Schema with Suggested Values ---
+        # Build suggested values from existing badge data (edit) or empty (add)
+        suggested_values: dict[str, Any] = {}
+
+        if is_edit and internal_id:
+            existing_badge = badges_dict.get(internal_id, {})
+            # Flatten nested badge data into CFOF_* keys for form population
+            target_data = existing_badge.get(const.DATA_BADGE_TARGET, {})
+            awards_data = existing_badge.get(const.DATA_BADGE_AWARDS, {})
+            tracked_chores_data = existing_badge.get(
+                const.DATA_BADGE_TRACKED_CHORES, {}
+            )
+            reset_schedule_data = existing_badge.get(
+                const.DATA_BADGE_RESET_SCHEDULE, {}
+            )
+
+            suggested_values = {
+                # Common fields
+                const.CFOF_BADGES_INPUT_NAME: existing_badge.get(const.DATA_BADGE_NAME),
+                const.CFOF_BADGES_INPUT_DESCRIPTION: existing_badge.get(
+                    const.DATA_BADGE_DESCRIPTION
+                ),
+                const.CFOF_BADGES_INPUT_LABELS: existing_badge.get(
+                    const.DATA_BADGE_LABELS, []
+                ),
+                const.CFOF_BADGES_INPUT_ICON: existing_badge.get(const.DATA_BADGE_ICON),
+                # Target fields
+                const.CFOF_BADGES_INPUT_TARGET_TYPE: target_data.get(
+                    const.DATA_BADGE_TARGET_TYPE
+                ),
+                const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE: target_data.get(
+                    const.DATA_BADGE_TARGET_THRESHOLD_VALUE
+                ),
+                const.CFOF_BADGES_INPUT_MAINTENANCE_RULES: target_data.get(
+                    const.DATA_BADGE_MAINTENANCE_RULES
+                ),
+                # Special occasion
+                const.CFOF_BADGES_INPUT_OCCASION_TYPE: existing_badge.get(
+                    const.DATA_BADGE_SPECIAL_OCCASION_TYPE
+                ),
+                # Linked entities
+                const.CFOF_BADGES_INPUT_ASSOCIATED_ACHIEVEMENT: existing_badge.get(
+                    const.DATA_BADGE_ASSOCIATED_ACHIEVEMENT
+                ),
+                const.CFOF_BADGES_INPUT_ASSOCIATED_CHALLENGE: existing_badge.get(
+                    const.DATA_BADGE_ASSOCIATED_CHALLENGE
+                ),
+                # Tracked chores
+                const.CFOF_BADGES_INPUT_SELECTED_CHORES: tracked_chores_data.get(
+                    const.DATA_BADGE_TRACKED_CHORES_SELECTED_CHORES, []
+                ),
+                # Assigned to
+                const.CFOF_BADGES_INPUT_ASSIGNED_TO: existing_badge.get(
+                    const.DATA_BADGE_ASSIGNED_TO, []
+                ),
+                # Awards
+                const.CFOF_BADGES_INPUT_AWARD_ITEMS: awards_data.get(
+                    const.DATA_BADGE_AWARDS_AWARD_ITEMS, []
+                ),
+                const.CFOF_BADGES_INPUT_AWARD_POINTS: awards_data.get(
+                    const.DATA_BADGE_AWARDS_AWARD_POINTS
+                ),
+                const.CFOF_BADGES_INPUT_POINTS_MULTIPLIER: awards_data.get(
+                    const.DATA_BADGE_AWARDS_POINT_MULTIPLIER
+                ),
+                # Reset schedule
+                const.CFOF_BADGES_INPUT_RESET_SCHEDULE_RECURRING_FREQUENCY: (
+                    reset_schedule_data.get(
+                        const.DATA_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY
+                    )
+                ),
+                const.CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL: (
+                    reset_schedule_data.get(
+                        const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL
+                    )
+                ),
+                const.CFOF_BADGES_INPUT_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT: (
+                    reset_schedule_data.get(
+                        const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT
+                    )
+                ),
+                const.CFOF_BADGES_INPUT_RESET_SCHEDULE_START_DATE: (
+                    reset_schedule_data.get(const.DATA_BADGE_RESET_SCHEDULE_START_DATE)
+                ),
+                const.CFOF_BADGES_INPUT_RESET_SCHEDULE_END_DATE: (
+                    reset_schedule_data.get(const.DATA_BADGE_RESET_SCHEDULE_END_DATE)
+                ),
+                const.CFOF_BADGES_INPUT_RESET_SCHEDULE_GRACE_PERIOD_DAYS: (
+                    reset_schedule_data.get(
+                        const.DATA_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS
+                    )
+                ),
+            }
+
+        # On validation error, preserve user's attempted input
+        if user_input:
+            suggested_values.update(user_input)
+
+        # Build schema without embedded defaults (values come from suggested_values)
         schema_fields = fh.build_badge_common_schema(
-            default=badge_schema_data,
+            default=None,
             kids_dict=kids_dict,
             chores_dict=chores_dict,
             rewards_dict=rewards_dict,
@@ -2376,6 +2473,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             badge_type=badge_type,
         )
         data_schema = vol.Schema(schema_fields)
+
+        # Apply suggested values to schema
+        data_schema = self.add_suggested_values_to_schema(data_schema, suggested_values)
 
         # Determine step name dynamically
         step_name = (
@@ -3083,12 +3183,19 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             kid_data[const.DATA_KID_NAME]: kid_id
             for kid_id, kid_data in coordinator.kids_data.items()
         }
-        achievement_schema = fh.build_achievement_schema(
-            kids_dict=kids_dict, chores_dict=chores_dict, default=user_input
+
+        # Build schema without defaults
+        schema = fh.build_achievement_schema(
+            kids_dict=kids_dict, chores_dict=chores_dict
         )
+
+        # On validation error, preserve user's attempted input
+        if user_input:
+            schema = self.add_suggested_values_to_schema(schema, user_input)
+
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_ADD_ACHIEVEMENT,
-            data_schema=achievement_schema,
+            data_schema=schema,
             errors=errors,
         )
 
@@ -3190,24 +3297,54 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             id_to_name.get(kid_id, kid_id) for kid_id in assigned_kids_ids
         ]
 
-        # Build default data from existing achievement
-        default_data = {
-            **achievement_data,
-            const.DATA_ACHIEVEMENT_ASSIGNED_KIDS: assigned_kids_names,
+        # Build suggested values for form (CFOF keys → existing DATA values)
+        suggested_values = {
+            const.CFOF_ACHIEVEMENTS_INPUT_NAME: achievement_data.get(
+                const.DATA_ACHIEVEMENT_NAME
+            ),
+            const.CFOF_ACHIEVEMENTS_INPUT_DESCRIPTION: achievement_data.get(
+                const.DATA_ACHIEVEMENT_DESCRIPTION
+            ),
+            const.CFOF_ACHIEVEMENTS_INPUT_LABELS: achievement_data.get(
+                const.DATA_ACHIEVEMENT_LABELS, []
+            ),
+            const.CFOF_ACHIEVEMENTS_INPUT_ICON: achievement_data.get(
+                const.DATA_ACHIEVEMENT_ICON
+            ),
+            const.CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS: assigned_kids_names,
+            const.CFOF_ACHIEVEMENTS_INPUT_TYPE: achievement_data.get(
+                const.DATA_ACHIEVEMENT_TYPE, const.ACHIEVEMENT_TYPE_STREAK
+            ),
+            const.CFOF_ACHIEVEMENTS_INPUT_SELECTED_CHORE_ID: achievement_data.get(
+                const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID, const.SENTINEL_EMPTY
+            ),
+            const.CFOF_ACHIEVEMENTS_INPUT_CRITERIA: achievement_data.get(
+                const.DATA_ACHIEVEMENT_CRITERIA, const.SENTINEL_EMPTY
+            ),
+            const.CFOF_ACHIEVEMENTS_INPUT_TARGET_VALUE: achievement_data.get(
+                const.DATA_ACHIEVEMENT_TARGET_VALUE, const.DEFAULT_ACHIEVEMENT_TARGET
+            ),
+            const.CFOF_ACHIEVEMENTS_INPUT_REWARD_POINTS: achievement_data.get(
+                const.DATA_ACHIEVEMENT_REWARD_POINTS,
+                const.DEFAULT_ACHIEVEMENT_REWARD_POINTS,
+            ),
         }
 
-        # On validation error, merge user's attempted input with existing data
+        # On validation error, merge user's attempted input (preserves user changes)
         if user_input:
-            default_data.update(user_input)
+            suggested_values.update(user_input)
 
-        achievement_schema = fh.build_achievement_schema(
+        # Build schema without defaults (suggestions provide the values)
+        schema = fh.build_achievement_schema(
             kids_dict=kids_dict,
             chores_dict=chores_dict,
-            default=default_data,
         )
+        # Apply suggested values to schema
+        schema = self.add_suggested_values_to_schema(schema, suggested_values)
+
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_EDIT_ACHIEVEMENT,
-            data_schema=achievement_schema,
+            data_schema=schema,
             errors=errors,
         )
 
@@ -3284,27 +3421,48 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         kids_name_to_id.get(name, name) for name in assigned_kids_names
                     ]
 
-                    # Additional validation for options flow: dates must be in the future
-                    start_date_str = data_input.get(const.DATA_CHALLENGE_START_DATE)
-                    end_date_str = data_input.get(const.DATA_CHALLENGE_END_DATE)
+                    # Parse dates using kh.dt_parse (same pattern as chores)
+                    # Dates from DateTimeSelector are local time - convert to UTC
+                    raw_start = data_input.get(const.DATA_CHALLENGE_START_DATE)
+                    raw_end = data_input.get(const.DATA_CHALLENGE_END_DATE)
 
-                    start_dt = (
-                        dt_util.parse_datetime(start_date_str)
-                        if start_date_str
-                        else None
-                    )
-                    end_dt = (
-                        dt_util.parse_datetime(end_date_str) if end_date_str else None
-                    )
+                    start_dt = None
+                    end_dt = None
+                    if raw_start:
+                        start_dt = kh.dt_parse(
+                            raw_start,
+                            default_tzinfo=const.DEFAULT_TIME_ZONE,
+                            return_type=const.HELPER_RETURN_DATETIME_UTC,
+                        )
+                    if raw_end:
+                        end_dt = kh.dt_parse(
+                            raw_end,
+                            default_tzinfo=const.DEFAULT_TIME_ZONE,
+                            return_type=const.HELPER_RETURN_DATETIME_UTC,
+                        )
 
-                    if start_dt and start_dt < dt_util.utcnow():
+                    # Validate dates are in the future (compare UTC to UTC)
+                    now_utc = dt_util.utcnow()
+                    if (
+                        start_dt
+                        and isinstance(start_dt, datetime)
+                        and start_dt < now_utc
+                    ):
                         errors = {
                             const.CFOP_ERROR_START_DATE: const.TRANS_KEY_CFOF_START_DATE_IN_PAST
                         }
-                    elif end_dt and end_dt <= dt_util.utcnow():
+                    elif end_dt and isinstance(end_dt, datetime) and end_dt <= now_utc:
                         errors = {
                             const.CFOP_ERROR_END_DATE: const.TRANS_KEY_CFOF_END_DATE_IN_PAST
                         }
+
+                    # Store dates as ISO UTC strings
+                    if start_dt and isinstance(start_dt, datetime):
+                        data_input[const.DATA_CHALLENGE_START_DATE] = (
+                            start_dt.isoformat()
+                        )
+                    if end_dt and isinstance(end_dt, datetime):
+                        data_input[const.DATA_CHALLENGE_END_DATE] = end_dt.isoformat()
 
                     if not errors:
                         # Build complete challenge structure
@@ -3332,13 +3490,34 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 except EntityValidationError as err:
                     errors[err.field] = err.translation_key
 
+        # Build schema - pass date defaults for DateTimeSelector to work correctly
         kids_dict = {
             data[const.DATA_KID_NAME]: eid
             for eid, data in coordinator.kids_data.items()
         }
+
+        # On error, pass user's date inputs as schema defaults (DateTimeSelector pattern)
+        date_defaults = {}
+        if errors and user_input:
+            date_defaults = {
+                const.CFOF_CHALLENGES_INPUT_START_DATE: user_input.get(
+                    const.CFOF_CHALLENGES_INPUT_START_DATE
+                ),
+                const.CFOF_CHALLENGES_INPUT_END_DATE: user_input.get(
+                    const.CFOF_CHALLENGES_INPUT_END_DATE
+                ),
+            }
+
         challenge_schema = fh.build_challenge_schema(
-            kids_dict=kids_dict, chores_dict=chores_dict, default=user_input
+            kids_dict=kids_dict, chores_dict=chores_dict, default=date_defaults
         )
+
+        # On error, use suggested values to preserve other user input
+        if errors and user_input:
+            challenge_schema = self.add_suggested_values_to_schema(
+                challenge_schema, user_input
+            )
+
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_ADD_CHALLENGE,
             data_schema=challenge_schema,
@@ -3358,142 +3537,195 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         challenge_data = challenges_dict[internal_id]
 
-        if user_input is None:
-            kids_dict = {
-                data[const.DATA_KID_NAME]: kid_id
-                for kid_id, data in coordinator.kids_data.items()
-            }
-            chores_dict = coordinator.chores_data
-
-            # Create reverse mapping from internal_id to name
-            id_to_name = {
-                kid_id: data[const.DATA_KID_NAME]
-                for kid_id, data in coordinator.kids_data.items()
+        if user_input is not None:
+            # Build kids name to ID mapping for conversion
+            kids_name_to_id = {
+                kid[const.DATA_KID_NAME]: kid[const.DATA_KID_INTERNAL_ID]
+                for kid in coordinator.data.get(const.DATA_KIDS, {}).values()
             }
 
-            # Convert assigned_kids from internal_ids to names for display
-            assigned_kids_ids = challenge_data.get(
-                const.DATA_CHALLENGE_ASSIGNED_KIDS, []
-            )
-            assigned_kids_names = [
-                id_to_name.get(kid_id, kid_id) for kid_id in assigned_kids_ids
-            ]
-
-            # Convert stored start/end dates to selector format for display
-            start_date_display = None
-            end_date_display = None
-            if challenge_data.get(const.DATA_CHALLENGE_START_DATE):
-                start_date_display = kh.dt_parse(
-                    challenge_data[const.DATA_CHALLENGE_START_DATE],
-                    default_tzinfo=const.DEFAULT_TIME_ZONE,
-                    return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
-                )
-            if challenge_data.get(const.DATA_CHALLENGE_END_DATE):
-                end_date_display = kh.dt_parse(
-                    challenge_data[const.DATA_CHALLENGE_END_DATE],
-                    default_tzinfo=const.DEFAULT_TIME_ZONE,
-                    return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
-                )
-
-            default_data = {
-                **challenge_data,
-                const.DATA_CHALLENGE_START_DATE: start_date_display,
-                const.DATA_CHALLENGE_END_DATE: end_date_display,
-                const.DATA_CHALLENGE_ASSIGNED_KIDS: assigned_kids_names,
-            }
-            schema = fh.build_challenge_schema(
-                kids_dict=kids_dict, chores_dict=chores_dict, default=default_data
-            )
-            return self.async_show_form(
-                step_id=const.OPTIONS_FLOW_STEP_EDIT_CHALLENGE,
-                data_schema=schema,
-                errors=errors,
+            # Layer 2: UI validation (uniqueness + type-specific checks)
+            errors = fh.validate_challenges_inputs(
+                user_input,
+                existing_challenges=coordinator.challenges_data,
+                current_challenge_id=internal_id,  # Editing existing challenge
             )
 
-        # Build kids name to ID mapping for options flow
-        kids_name_to_id = {
-            kid[const.DATA_KID_NAME]: kid[const.DATA_KID_INTERNAL_ID]
-            for kid in coordinator.data.get(const.DATA_KIDS, {}).values()
+            if not errors:
+                try:
+                    # Layer 3: Convert CFOF_* to DATA_* keys
+                    data_input = db.map_cfof_to_challenge_data(user_input)
+
+                    # Convert assigned kids from names to IDs (form uses names)
+                    assigned_kids_names = data_input.get(
+                        const.DATA_CHALLENGE_ASSIGNED_KIDS, []
+                    )
+                    if not isinstance(assigned_kids_names, list):
+                        assigned_kids_names = (
+                            [assigned_kids_names] if assigned_kids_names else []
+                        )
+                    data_input[const.DATA_CHALLENGE_ASSIGNED_KIDS] = [
+                        kids_name_to_id.get(name, name) for name in assigned_kids_names
+                    ]
+
+                    # Parse dates using kh.dt_parse (same pattern as chores)
+                    # Dates from DateTimeSelector are local time - convert to UTC
+                    raw_start = data_input.get(const.DATA_CHALLENGE_START_DATE)
+                    raw_end = data_input.get(const.DATA_CHALLENGE_END_DATE)
+
+                    start_dt = None
+                    end_dt = None
+                    if raw_start:
+                        start_dt = kh.dt_parse(
+                            raw_start,
+                            default_tzinfo=const.DEFAULT_TIME_ZONE,
+                            return_type=const.HELPER_RETURN_DATETIME_UTC,
+                        )
+                    if raw_end:
+                        end_dt = kh.dt_parse(
+                            raw_end,
+                            default_tzinfo=const.DEFAULT_TIME_ZONE,
+                            return_type=const.HELPER_RETURN_DATETIME_UTC,
+                        )
+
+                    # Validate dates are in the future (compare UTC to UTC)
+                    now_utc = dt_util.utcnow()
+                    if (
+                        start_dt
+                        and isinstance(start_dt, datetime)
+                        and start_dt < now_utc
+                    ):
+                        errors = {
+                            const.CFOP_ERROR_START_DATE: const.TRANS_KEY_CFOF_START_DATE_IN_PAST
+                        }
+                    elif end_dt and isinstance(end_dt, datetime) and end_dt <= now_utc:
+                        errors = {
+                            const.CFOP_ERROR_END_DATE: const.TRANS_KEY_CFOF_END_DATE_IN_PAST
+                        }
+
+                    # Store dates as ISO UTC strings
+                    if start_dt and isinstance(start_dt, datetime):
+                        data_input[const.DATA_CHALLENGE_START_DATE] = (
+                            start_dt.isoformat()
+                        )
+                    if end_dt and isinstance(end_dt, datetime):
+                        data_input[const.DATA_CHALLENGE_END_DATE] = end_dt.isoformat()
+
+                    if not errors:
+                        # Use data_builders pattern with direct storage update
+                        existing_data = challenges_dict[internal_id]
+                        final_challenge = db.build_challenge(
+                            data_input, existing=existing_data
+                        )
+                        # Preserve the original internal_id
+                        final_challenge[const.DATA_CHALLENGE_INTERNAL_ID] = internal_id
+                        coordinator._data[const.DATA_CHALLENGES][internal_id] = dict(
+                            final_challenge
+                        )
+                        coordinator._persist()
+                        coordinator.async_update_listeners()
+
+                        new_name = user_input[const.CFOF_CHALLENGES_INPUT_NAME].strip()
+                        const.LOGGER.debug(
+                            "Edited Challenge '%s' with ID: %s",
+                            new_name,
+                            internal_id,
+                        )
+                        self._mark_reload_needed()
+                        return await self.async_step_init()
+
+                except EntityValidationError as err:
+                    errors[err.field] = err.translation_key
+
+        # Create reverse mapping from internal_id to name (for display)
+        id_to_name = {
+            kid_id: data[const.DATA_KID_NAME]
+            for kid_id, data in coordinator.kids_data.items()
         }
 
-        # Layer 2: UI validation (uniqueness + type-specific checks)
-        errors = fh.validate_challenges_inputs(
-            user_input,
-            existing_challenges=coordinator.challenges_data,
-            current_challenge_id=internal_id,  # Editing existing challenge
-        )
+        # Convert assigned_kids from IDs to names for display (schema uses names)
+        assigned_kids_ids = challenge_data.get(const.DATA_CHALLENGE_ASSIGNED_KIDS, [])
+        assigned_kids_names = [
+            id_to_name.get(kid_id, kid_id) for kid_id in assigned_kids_ids
+        ]
 
-        if not errors:
-            try:
-                # Layer 3: Convert CFOF_* to DATA_* keys
-                data_input = db.map_cfof_to_challenge_data(user_input)
+        # Convert stored start/end dates to selector format for display
+        # Format must be "%Y-%m-%d %H:%M:%S" (space separator, NOT ISO with T)
+        start_date_display = None
+        end_date_display = None
+        if challenge_data.get(const.DATA_CHALLENGE_START_DATE):
+            start_date_display = kh.dt_parse(
+                challenge_data[const.DATA_CHALLENGE_START_DATE],
+                default_tzinfo=const.DEFAULT_TIME_ZONE,
+                return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
+            )
+        if challenge_data.get(const.DATA_CHALLENGE_END_DATE):
+            end_date_display = kh.dt_parse(
+                challenge_data[const.DATA_CHALLENGE_END_DATE],
+                default_tzinfo=const.DEFAULT_TIME_ZONE,
+                return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
+            )
 
-                # Convert assigned kids from names to IDs (options flow uses names)
-                assigned_kids_names = data_input.get(
-                    const.DATA_CHALLENGE_ASSIGNED_KIDS, []
-                )
-                if not isinstance(assigned_kids_names, list):
-                    assigned_kids_names = (
-                        [assigned_kids_names] if assigned_kids_names else []
-                    )
-                data_input[const.DATA_CHALLENGE_ASSIGNED_KIDS] = [
-                    kids_name_to_id.get(name, name) for name in assigned_kids_names
-                ]
-
-                # Additional validation for options flow: dates must be in the future
-                start_date_str = data_input.get(const.DATA_CHALLENGE_START_DATE)
-                end_date_str = data_input.get(const.DATA_CHALLENGE_END_DATE)
-
-                start_dt = (
-                    dt_util.parse_datetime(start_date_str) if start_date_str else None
-                )
-                end_dt = dt_util.parse_datetime(end_date_str) if end_date_str else None
-
-                if start_dt and start_dt < dt_util.utcnow():
-                    errors = {
-                        const.CFOP_ERROR_START_DATE: const.TRANS_KEY_CFOF_START_DATE_IN_PAST
-                    }
-                elif end_dt and end_dt <= dt_util.utcnow():
-                    errors = {
-                        const.CFOP_ERROR_END_DATE: const.TRANS_KEY_CFOF_END_DATE_IN_PAST
-                    }
-
-                if not errors:
-                    # Use data_builders pattern with direct storage update
-                    existing_data = challenges_dict[internal_id]
-                    final_challenge = db.build_challenge(
-                        data_input, existing=existing_data
-                    )
-                    # Preserve the original internal_id
-                    final_challenge[const.DATA_CHALLENGE_INTERNAL_ID] = internal_id
-                    coordinator._data[const.DATA_CHALLENGES][internal_id] = dict(
-                        final_challenge
-                    )
-                    coordinator._persist()
-                    coordinator.async_update_listeners()
-
-                    new_name = user_input[const.CFOF_CHALLENGES_INPUT_NAME].strip()
-                    const.LOGGER.debug(
-                        "Edited Challenge '%s' with ID: %s",
-                        new_name,
-                        internal_id,
-                    )
-                    self._mark_reload_needed()
-                    return await self.async_step_init()
-
-            except EntityValidationError as err:
-                errors[err.field] = err.translation_key
-
-        # Show form again with validation errors, preserving user input
+        # Build schema with date defaults passed directly (like chores pattern)
+        # This ensures DateTimeSelector works correctly when user only changes time
         kids_dict = {
-            kid_data[const.DATA_KID_NAME]: kid_id
-            for kid_id, kid_data in coordinator.kids_data.items()
+            data[const.DATA_KID_NAME]: kid_id
+            for kid_id, data in coordinator.kids_data.items()
         }
         chores_dict = coordinator.chores_data
-
         challenge_schema = fh.build_challenge_schema(
-            kids_dict=kids_dict, chores_dict=chores_dict, default=user_input
+            kids_dict=kids_dict,
+            chores_dict=chores_dict,
+            default={
+                const.CFOF_CHALLENGES_INPUT_START_DATE: start_date_display,
+                const.CFOF_CHALLENGES_INPUT_END_DATE: end_date_display,
+            },
         )
+
+        # Build suggested values from existing data (using CFOF keys for form)
+        # Note: assigned_kids uses names (schema SelectSelector uses names like chores)
+        suggested_values: dict[str, Any] = {
+            const.CFOF_CHALLENGES_INPUT_NAME: challenge_data.get(
+                const.DATA_CHALLENGE_NAME, ""
+            ),
+            const.CFOF_CHALLENGES_INPUT_DESCRIPTION: challenge_data.get(
+                const.DATA_CHALLENGE_DESCRIPTION, ""
+            ),
+            const.CFOF_CHALLENGES_INPUT_LABELS: challenge_data.get(
+                const.DATA_CHALLENGE_LABELS, []
+            ),
+            const.CFOF_CHALLENGES_INPUT_ICON: challenge_data.get(
+                const.DATA_CHALLENGE_ICON
+            ),
+            const.CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS: assigned_kids_names,
+            const.CFOF_CHALLENGES_INPUT_TYPE: challenge_data.get(
+                const.DATA_CHALLENGE_TYPE, const.CHALLENGE_TYPE_DAILY_MIN
+            ),
+            const.CFOF_CHALLENGES_INPUT_SELECTED_CHORE_ID: challenge_data.get(
+                const.DATA_CHALLENGE_SELECTED_CHORE_ID, const.SENTINEL_EMPTY
+            ),
+            const.CFOF_CHALLENGES_INPUT_CRITERIA: challenge_data.get(
+                const.DATA_CHALLENGE_CRITERIA, ""
+            ),
+            const.CFOF_CHALLENGES_INPUT_TARGET_VALUE: challenge_data.get(
+                const.DATA_CHALLENGE_TARGET_VALUE, const.DEFAULT_CHALLENGE_TARGET
+            ),
+            const.CFOF_CHALLENGES_INPUT_REWARD_POINTS: challenge_data.get(
+                const.DATA_CHALLENGE_REWARD_POINTS,
+                const.DEFAULT_CHALLENGE_REWARD_POINTS,
+            ),
+            const.CFOF_CHALLENGES_INPUT_START_DATE: start_date_display,
+            const.CFOF_CHALLENGES_INPUT_END_DATE: end_date_display,
+        }
+
+        # On error, merge user_input to preserve their changes
+        if errors and user_input:
+            suggested_values.update(user_input)
+
+        challenge_schema = self.add_suggested_values_to_schema(
+            challenge_schema, suggested_values
+        )
+
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_EDIT_CHALLENGE,
             data_schema=challenge_schema,
