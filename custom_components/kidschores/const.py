@@ -48,6 +48,106 @@ STORE: Final = "store"
 STORAGE_KEY: Final = "kidschores_data"
 STORAGE_VERSION: Final = 1
 
+# ==============================================================================
+# Event Infrastructure (Phase 0: Layered Architecture Foundation)
+# ==============================================================================
+# Event Signal Suffixes (Manager-to-Manager Communication)
+# ==============================================================================
+# Used with kc_helpers.get_event_signal(entry_id, suffix) to create instance-scoped signals
+# Pattern: get_event_signal(entry_id, "points_changed") → "kidschores_{entry_id}_points_changed"
+#
+# Multi-instance isolation: Each config entry gets its own signal namespace
+# - Instance 1 (entry_id=abc123): "kidschores_abc123_points_changed"
+# - Instance 2 (entry_id=xyz789): "kidschores_xyz789_points_changed"
+#
+# NOTE: This is a comprehensive list based on current coordinator operations.
+# Not all signals need to be implemented immediately - add as needed per phase.
+
+# Economy Events (EconomyManager)
+SIGNAL_SUFFIX_POINTS_CHANGED: Final = "points_changed"
+SIGNAL_SUFFIX_TRANSACTION_FAILED: Final = "transaction_failed"
+
+# Chore Events (ChoreManager)
+SIGNAL_SUFFIX_CHORE_CLAIMED: Final = "chore_claimed"
+SIGNAL_SUFFIX_CHORE_APPROVED: Final = "chore_approved"
+SIGNAL_SUFFIX_CHORE_DISAPPROVED: Final = "chore_disapproved"
+SIGNAL_SUFFIX_CHORE_OVERDUE: Final = "chore_overdue"
+SIGNAL_SUFFIX_CHORE_STATUS_RESET: Final = "chore_status_reset"
+SIGNAL_SUFFIX_CHORE_RESCHEDULED: Final = "chore_rescheduled"
+
+# Reward Events (RewardManager)
+SIGNAL_SUFFIX_REWARD_CLAIMED: Final = "reward_claimed"
+SIGNAL_SUFFIX_REWARD_APPROVED: Final = "reward_approved"
+SIGNAL_SUFFIX_REWARD_DISAPPROVED: Final = "reward_disapproved"
+SIGNAL_SUFFIX_REWARD_STATUS_RESET: Final = "reward_status_reset"
+
+# Penalty Events (PenaltyManager or EconomyManager)
+SIGNAL_SUFFIX_PENALTY_APPLIED: Final = "penalty_applied"
+SIGNAL_SUFFIX_PENALTY_STATUS_RESET: Final = "penalty_status_reset"
+
+# Bonus Events (BonusManager or EconomyManager)
+SIGNAL_SUFFIX_BONUS_APPLIED: Final = "bonus_applied"
+SIGNAL_SUFFIX_BONUS_STATUS_RESET: Final = "bonus_status_reset"
+
+# Gamification Events (GamificationManager) - Badge
+SIGNAL_SUFFIX_BADGE_EARNED: Final = "badge_earned"
+SIGNAL_SUFFIX_BADGE_REVOKED: Final = "badge_revoked"
+SIGNAL_SUFFIX_BADGE_PROGRESS_UPDATED: Final = "badge_progress_updated"
+
+# Gamification Events (GamificationManager) - Achievement
+SIGNAL_SUFFIX_ACHIEVEMENT_UNLOCKED: Final = "achievement_unlocked"
+SIGNAL_SUFFIX_ACHIEVEMENT_PROGRESS_UPDATED: Final = "achievement_progress_updated"
+
+# Gamification Events (GamificationManager) - Challenge
+SIGNAL_SUFFIX_CHALLENGE_COMPLETED: Final = "challenge_completed"
+SIGNAL_SUFFIX_CHALLENGE_PROGRESS_UPDATED: Final = "challenge_progress_updated"
+SIGNAL_SUFFIX_CHALLENGE_EXPIRED: Final = "challenge_expired"
+
+# System/Entity Lifecycle Events - Kid
+SIGNAL_SUFFIX_KID_CREATED: Final = "kid_created"
+SIGNAL_SUFFIX_KID_UPDATED: Final = "kid_updated"
+SIGNAL_SUFFIX_KID_DELETED: Final = "kid_deleted"
+
+# System/Entity Lifecycle Events - Parent
+SIGNAL_SUFFIX_PARENT_CREATED: Final = "parent_created"
+SIGNAL_SUFFIX_PARENT_UPDATED: Final = "parent_updated"
+SIGNAL_SUFFIX_PARENT_DELETED: Final = "parent_deleted"
+
+# System/Entity Lifecycle Events - Chore
+SIGNAL_SUFFIX_CHORE_CREATED: Final = "chore_created"
+SIGNAL_SUFFIX_CHORE_UPDATED: Final = "chore_updated"
+SIGNAL_SUFFIX_CHORE_DELETED: Final = "chore_deleted"
+
+# System/Entity Lifecycle Events - Badge
+SIGNAL_SUFFIX_BADGE_CREATED: Final = "badge_created"
+SIGNAL_SUFFIX_BADGE_UPDATED: Final = "badge_updated"
+SIGNAL_SUFFIX_BADGE_DELETED: Final = "badge_deleted"
+
+# System/Entity Lifecycle Events - Reward
+SIGNAL_SUFFIX_REWARD_CREATED: Final = "reward_created"
+SIGNAL_SUFFIX_REWARD_UPDATED: Final = "reward_updated"
+SIGNAL_SUFFIX_REWARD_DELETED: Final = "reward_deleted"
+
+# System/Entity Lifecycle Events - Achievement
+SIGNAL_SUFFIX_ACHIEVEMENT_CREATED: Final = "achievement_created"
+SIGNAL_SUFFIX_ACHIEVEMENT_UPDATED: Final = "achievement_updated"
+SIGNAL_SUFFIX_ACHIEVEMENT_DELETED: Final = "achievement_deleted"
+
+# System/Entity Lifecycle Events - Challenge
+SIGNAL_SUFFIX_CHALLENGE_CREATED: Final = "challenge_created"
+SIGNAL_SUFFIX_CHALLENGE_UPDATED: Final = "challenge_updated"
+SIGNAL_SUFFIX_CHALLENGE_DELETED: Final = "challenge_deleted"
+
+# System/Entity Lifecycle Events - Penalty
+SIGNAL_SUFFIX_PENALTY_CREATED: Final = "penalty_created"
+SIGNAL_SUFFIX_PENALTY_UPDATED: Final = "penalty_updated"
+SIGNAL_SUFFIX_PENALTY_DELETED: Final = "penalty_deleted"
+
+# System/Entity Lifecycle Events - Bonus
+SIGNAL_SUFFIX_BONUS_CREATED: Final = "bonus_created"
+SIGNAL_SUFFIX_BONUS_UPDATED: Final = "bonus_updated"
+SIGNAL_SUFFIX_BONUS_DELETED: Final = "bonus_deleted"
+
 # Default timezone (set once hass is available)
 # pylint: disable=invalid-name
 DEFAULT_TIME_ZONE: ZoneInfo | None = None

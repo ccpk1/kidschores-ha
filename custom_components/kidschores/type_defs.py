@@ -720,6 +720,224 @@ ChallengeProgressData = ChallengeProgress | dict[str, Any]
 
 
 # =============================================================================
+# Event Payload Types (Manager-to-Manager Communication)
+# =============================================================================
+# Used for type-safe event payloads in BaseManager.emit() calls
+
+
+class PointsChangedEvent(TypedDict, total=False):
+    """Event payload for SIGNAL_SUFFIX_POINTS_CHANGED (past tense).
+
+    Emitted by: EconomyManager.deposit(), EconomyManager.withdraw()
+    Consumed by: GamificationManager (badge evaluation), NotificationManager
+    """
+
+    kid_id: str  # Required
+    old_balance: float  # Required
+    new_balance: float  # Required
+    delta: float  # Required (positive for deposit, negative for withdraw)
+    source: str  # Required: "chore_approval", "reward_redemption", "penalty", etc.
+    reference_id: str | None  # Optional: chore_id, reward_id, etc.
+
+
+class TransactionFailedEvent(TypedDict, total=False):
+    """Event payload for SIGNAL_SUFFIX_TRANSACTION_FAILED.
+
+    Emitted by: EconomyManager when transaction cannot complete
+    Consumed by: NotificationManager (alert user)
+    """
+
+    kid_id: str  # Required
+    attempted_amount: float  # Required
+    current_balance: float  # Required
+    failure_reason: str  # Required: "insufficient_funds", "daily_limit_exceeded", etc.
+    reference_id: str | None  # Optional: reward_id, penalty_id causing the attempt
+
+
+class ChoreClaimedEvent(TypedDict, total=False):
+    """Event payload for SIGNAL_SUFFIX_CHORE_CLAIMED.
+
+    Emitted by: ChoreManager.claim()
+    Consumed by: NotificationManager (parent notification)
+    """
+
+    kid_id: str  # Required
+    chore_id: str  # Required
+    chore_name: str  # Required
+    user_name: str  # Required (who initiated claim)
+
+
+class ChoreApprovedEvent(TypedDict, total=False):
+    """Event payload for SIGNAL_SUFFIX_CHORE_APPROVED.
+
+    Emitted by: ChoreManager.approve()
+    Consumed by: GamificationManager (achievement/streak tracking)
+    """
+
+    kid_id: str  # Required
+    chore_id: str  # Required
+    parent_name: str  # Required
+    points_awarded: float  # Required
+    is_shared: bool  # Required
+    is_multi_claim: bool  # Required
+
+
+class ChoreDisapprovedEvent(TypedDict, total=False):
+    """Event payload for SIGNAL_SUFFIX_CHORE_DISAPPROVED.
+
+    Emitted by: ChoreManager.disapprove()
+    Consumed by: GamificationManager (streak reset?), NotificationManager
+    """
+
+    kid_id: str  # Required
+    chore_id: str  # Required
+    parent_name: str  # Required
+    reason: str | None  # Optional: disapproval reason
+
+
+class ChoreOverdueEvent(TypedDict, total=False):
+    """Event payload for SIGNAL_SUFFIX_CHORE_OVERDUE.
+
+    Emitted by: ChoreManager._check_overdue_chores()
+    Consumed by: NotificationManager, GamificationManager (badge/streak impacts)
+    """
+
+    kid_id: str  # Required
+    chore_id: str  # Required
+    chore_name: str  # Required
+    days_overdue: int  # Required
+    due_date: str  # Required: ISO format
+
+
+class ChoreRescheduledEvent(TypedDict, total=False):
+    """Event payload for SIGNAL_SUFFIX_CHORE_RESCHEDULED (not skipped).
+
+    Emitted by: ChoreManager.skip_chore_due_date()
+    Consumed by: NotificationManager (optional notification)
+    """
+
+    kid_id: str | None  # Optional: If kid-specific, else null for all assigned kids
+    chore_id: str  # Required
+    chore_name: str  # Required
+    old_due_date: str  # Required: ISO format
+    new_due_date: str  # Required: ISO format
+    rescheduled_by: str  # Required: parent_name or "system"
+
+
+class RewardApprovedEvent(TypedDict, total=False):
+    """Event payload for SIGNAL_SUFFIX_REWARD_APPROVED.
+
+    Emitted by: RewardManager.approve()
+    Consumed by: NotificationManager, GamificationManager (milestone tracking?)
+    """
+
+    kid_id: str  # Required
+    reward_id: str  # Required
+    reward_name: str  # Required
+    points_spent: float  # Required
+    parent_name: str  # Required
+
+
+class RewardDisapprovedEvent(TypedDict, total=False):
+    """Event payload for SIGNAL_SUFFIX_REWARD_DISAPPROVED.
+
+    Emitted by: RewardManager.disapprove()
+    Consumed by: NotificationManager
+    """
+
+    kid_id: str  # Required
+    reward_id: str  # Required
+    reward_name: str  # Required
+    parent_name: str  # Required
+    reason: str | None  # Optional: disapproval reason
+
+
+class BadgeEarnedEvent(TypedDict, total=False):
+    """Event payload for SIGNAL_SUFFIX_BADGE_EARNED.
+
+    Emitted by: GamificationManager.evaluate_badges()
+    Consumed by: NotificationManager, EconomyManager (if badge has point bonus)
+    """
+
+    kid_id: str  # Required
+    badge_id: str  # Required
+    badge_name: str  # Required
+    badge_type: str  # Required: "cumulative" or "periodic"
+    level: int | None  # Optional: For cumulative badges (1, 2, 3, ...)
+    points_bonus: float | None  # Optional: Bonus points awarded
+
+
+class BadgeRevokedEvent(TypedDict, total=False):
+    """Event payload for SIGNAL_SUFFIX_BADGE_REVOKED (intentional removal).
+
+    Emitted by: GamificationManager (maintenance decay, manual removal)
+    Consumed by: NotificationManager
+    """
+
+    kid_id: str  # Required
+    badge_id: str  # Required
+    badge_name: str  # Required
+    reason: str  # Required: "maintenance_decay", "manual_removal", etc.
+
+
+class AchievementUnlockedEvent(TypedDict, total=False):
+    """Event payload for SIGNAL_SUFFIX_ACHIEVEMENT_UNLOCKED.
+
+    Emitted by: GamificationManager.evaluate_achievements()
+    Consumed by: NotificationManager
+    """
+
+    kid_id: str  # Required
+    achievement_id: str  # Required
+    achievement_name: str  # Required
+    milestone_reached: str  # Required: Description of what was achieved
+
+
+class ChallengeCompletedEvent(TypedDict, total=False):
+    """Event payload for SIGNAL_SUFFIX_CHALLENGE_COMPLETED.
+
+    Emitted by: GamificationManager.evaluate_challenges()
+    Consumed by: NotificationManager, EconomyManager (challenge rewards)
+    """
+
+    kid_id: str  # Required
+    challenge_id: str  # Required
+    challenge_name: str  # Required
+    points_awarded: float  # Required
+    completion_date: str  # Required: ISO format
+
+
+class PenaltyAppliedEvent(TypedDict, total=False):
+    """Event payload for SIGNAL_SUFFIX_PENALTY_APPLIED.
+
+    Emitted by: EconomyManager.apply_penalty() (or PenaltyManager)
+    Consumed by: NotificationManager, GamificationManager (badge impacts?)
+    """
+
+    kid_id: str  # Required
+    penalty_id: str  # Required
+    penalty_name: str  # Required
+    points_deducted: float  # Required
+    parent_name: str  # Required
+    reason: str | None  # Optional
+
+
+class BonusAppliedEvent(TypedDict, total=False):
+    """Event payload for SIGNAL_SUFFIX_BONUS_APPLIED.
+
+    Emitted by: EconomyManager.apply_bonus() (or BonusManager)
+    Consumed by: NotificationManager, GamificationManager (badge impacts?)
+    """
+
+    kid_id: str  # Required
+    bonus_id: str  # Required
+    bonus_name: str  # Required
+    points_added: float  # Required
+    parent_name: str  # Required
+    reason: str | None  # Optional
+
+
+# =============================================================================
 # Exports
 # =============================================================================
 
@@ -728,28 +946,39 @@ __all__ = [
     # Achievement/Challenge nested types
     "AchievementProgress",
     "AchievementProgressData",
+    # Event Payload Types
+    "AchievementUnlockedEvent",
     "AchievementsCollection",
     "BadgeAwards",
     "BadgeData",
+    "BadgeEarnedEvent",
     "BadgeId",
     "BadgeResetSchedule",
+    "BadgeRevokedEvent",
     # Badge nested types
     "BadgeTarget",
     "BadgesCollection",
     "BadgesEarnedEntry",
+    "BonusAppliedEvent",
     "BonusData",
     "BonusesCollection",
+    "ChallengeCompletedEvent",
     "ChallengeDailyCounts",
     "ChallengeData",
     "ChallengeProgress",
     "ChallengeProgressData",
     "ChallengesCollection",
+    "ChoreApprovedEvent",
+    "ChoreClaimedEvent",
     "ChoreData",
+    "ChoreDisapprovedEvent",
     "ChoreId",
+    "ChoreOverdueEvent",
     "ChorePerKidApplicableDays",
     "ChorePerKidDailyMultiTimes",
     # Chore nested types
     "ChorePerKidDueDates",
+    "ChoreRescheduledEvent",
     "ChoresCollection",
     "ISODate",
     "ISODatetime",
@@ -772,11 +1001,16 @@ __all__ = [
     "ParentData",
     "ParentsCollection",
     "PenaltiesCollection",
+    "PenaltyAppliedEvent",
     "PenaltyData",
     "PeriodicStatsEntry",
+    "PointsChangedEvent",
+    "RewardApprovedEvent",
     "RewardData",
+    "RewardDisapprovedEvent",
     "RewardId",
     "RewardsCollection",
     # Schedule Engine
     "ScheduleConfig",
+    "TransactionFailedEvent",
 ]

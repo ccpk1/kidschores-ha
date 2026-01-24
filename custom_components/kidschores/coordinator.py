@@ -501,30 +501,17 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         if not kid_info:
             return
 
-        # Remove from kid_chore_data (timestamp-based tracking v0.4.0+)
-        if const.DATA_KID_CHORE_DATA in kid_info:
-            if chore_id in kid_info[const.DATA_KID_CHORE_DATA]:
-                del kid_info[const.DATA_KID_CHORE_DATA][chore_id]
-                const.LOGGER.debug(
-                    "DEBUG: Removed Chore '%s' from Kid ID '%s' kid_chore_data",
-                    chore_id,
-                    kid_id,
-                )
-        # Queue filter removed - pending approvals now computed from timestamps
-        # Chore data is already cleaned above via DATA_KID_CHORE_DATA removal
-        self._pending_chore_changed = True
+        # cast() for mypy: KidData is a TypedDict which is a dict[str, Any] at runtime
+        if kh.cleanup_chore_from_kid_data(cast("dict[str, Any]", kid_info), chore_id):
+            self._pending_chore_changed = True
 
     def _cleanup_pending_reward_approvals(self) -> None:
         """Remove reward_data entries for rewards that no longer exist."""
         valid_reward_ids = set(self._data.get(const.DATA_REWARDS, {}).keys())
-        cleaned = False
-        for kid_info in self.kids_data.values():
-            reward_data = kid_info.get(const.DATA_KID_REWARD_DATA, {})
-            invalid_ids = [rid for rid in reward_data if rid not in valid_reward_ids]
-            for rid in invalid_ids:
-                reward_data.pop(rid, None)
-                cleaned = True
-        if cleaned:
+        # cast() for mypy: dict[str, KidData] → dict[str, dict[str, Any]] at runtime
+        if kh.cleanup_orphaned_reward_data(
+            cast("dict[str, dict[str, Any]]", self.kids_data), valid_reward_ids
+        ):
             self._pending_reward_changed = True
 
     def _cleanup_deleted_kid_references(self) -> None:
@@ -532,93 +519,60 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         valid_kid_ids = set(self.kids_data.keys())
 
         # Remove deleted kid IDs from all chore assignments
-        for chore_info in self._data.get(const.DATA_CHORES, {}).values():
-            if const.DATA_CHORE_ASSIGNED_KIDS in chore_info:
-                original = chore_info[const.DATA_CHORE_ASSIGNED_KIDS]
-                filtered = [kid for kid in original if kid in valid_kid_ids]
-                if filtered != original:
-                    chore_info[const.DATA_CHORE_ASSIGNED_KIDS] = filtered
-                    const.LOGGER.debug(
-                        "DEBUG: Removed Assigned Kids in Chore '%s'",
-                        chore_info.get(const.DATA_CHORE_NAME),
-                    )
+        kh.cleanup_orphaned_kid_refs_in_chores(
+            self._data.get(const.DATA_CHORES, {}),
+            valid_kid_ids,
+        )
 
         # Remove progress in achievements and challenges
-        for section in [const.DATA_ACHIEVEMENTS, const.DATA_CHALLENGES]:
-            for entity in self._data.get(section, {}).values():
-                progress = entity.get(const.DATA_PROGRESS, {})
-                keys_to_remove = [kid for kid in progress if kid not in valid_kid_ids]
-                for kid in keys_to_remove:
-                    del progress[kid]
-                    const.LOGGER.debug(
-                        "DEBUG: Removed Progress for deleted Kid ID '%s' in '%s'",
-                        kid,
-                        section,
-                    )
-                if const.DATA_ASSIGNED_KIDS in entity:
-                    original_assigned = entity[const.DATA_ASSIGNED_KIDS]
-                    filtered_assigned = [
-                        kid for kid in original_assigned if kid in valid_kid_ids
-                    ]
-                    if filtered_assigned != original_assigned:
-                        entity[const.DATA_ASSIGNED_KIDS] = filtered_assigned
-                        const.LOGGER.debug(
-                            "DEBUG: Removed Assigned Kids in '%s', '%s'",
-                            section,
-                            entity.get(const.DATA_NAME),
-                        )
+        kh.cleanup_orphaned_kid_refs_in_gamification(
+            self._data.get(const.DATA_ACHIEVEMENTS, {}),
+            valid_kid_ids,
+            "achievements",
+        )
+        kh.cleanup_orphaned_kid_refs_in_gamification(
+            self._data.get(const.DATA_CHALLENGES, {}),
+            valid_kid_ids,
+            "challenges",
+        )
 
     def _cleanup_deleted_chore_references(self) -> None:
         """Remove references to chores that no longer exist from kid data."""
         valid_chore_ids = set(self.chores_data.keys())
-        for kid_info in self.kids_data.values():
-            # Clean up kid_chore_data (timestamp-based tracking v0.4.0+)
-            if const.DATA_KID_CHORE_DATA in kid_info:
-                kid_info[const.DATA_KID_CHORE_DATA] = {
-                    chore: data
-                    for chore, data in kid_info[const.DATA_KID_CHORE_DATA].items()
-                    if chore in valid_chore_ids
-                }
+        # cast() for mypy: dict[str, KidData] → dict[str, dict[str, Any]] at runtime
+        kh.cleanup_orphaned_chore_refs_in_kids(
+            cast("dict[str, dict[str, Any]]", self.kids_data), valid_chore_ids
+        )
 
     def _cleanup_parent_assignments(self) -> None:
         """Remove any kid IDs from parent's 'associated_kids' that no longer exist."""
         valid_kid_ids = set(self.kids_data.keys())
-        for parent_info in self._data.get(const.DATA_PARENTS, {}).values():
-            original = parent_info.get(const.DATA_PARENT_ASSOCIATED_KIDS, [])
-            filtered = [kid_id for kid_id in original if kid_id in valid_kid_ids]
-            if filtered != original:
-                parent_info[const.DATA_PARENT_ASSOCIATED_KIDS] = filtered
-                const.LOGGER.debug(
-                    "DEBUG: Removed Associated Kids for Parent '%s'. Current Associated Kids: %s",
-                    parent_info.get(const.DATA_PARENT_NAME),
-                    filtered,
-                )
+        kh.cleanup_orphaned_kid_refs_in_parents(
+            self._data.get(const.DATA_PARENTS, {}),
+            valid_kid_ids,
+        )
 
     def _cleanup_deleted_chore_in_achievements(self) -> None:
         """Clear selected_chore_id in achievements if the chore no longer exists."""
         valid_chore_ids = set(self.chores_data.keys())
-        for achievement_info in self._data.get(const.DATA_ACHIEVEMENTS, {}).values():
-            selected = achievement_info.get(const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID)
-            if selected and selected not in valid_chore_ids:
-                achievement_info[const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID] = ""
-                const.LOGGER.debug(
-                    "DEBUG: Removed Selected Chore ID in Achievement '%s'",
-                    achievement_info.get(const.DATA_ACHIEVEMENT_NAME),
-                )
+        kh.cleanup_deleted_chore_in_gamification(
+            self._data.get(const.DATA_ACHIEVEMENTS, {}),
+            valid_chore_ids,
+            const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID,
+            "",
+            "achievement",
+        )
 
     def _cleanup_deleted_chore_in_challenges(self) -> None:
         """Clear selected_chore_id in challenges if the chore no longer exists."""
         valid_chore_ids = set(self.chores_data.keys())
-        for challenge_info in self._data.get(const.DATA_CHALLENGES, {}).values():
-            selected = challenge_info.get(const.DATA_CHALLENGE_SELECTED_CHORE_ID)
-            if selected and selected not in valid_chore_ids:
-                challenge_info[const.DATA_CHALLENGE_SELECTED_CHORE_ID] = (
-                    const.SENTINEL_EMPTY
-                )
-                const.LOGGER.debug(
-                    "DEBUG: Removed Selected Chore ID in Challenge '%s'",
-                    challenge_info.get(const.DATA_CHALLENGE_NAME),
-                )
+        kh.cleanup_deleted_chore_in_gamification(
+            self._data.get(const.DATA_CHALLENGES, {}),
+            valid_chore_ids,
+            const.DATA_CHALLENGE_SELECTED_CHORE_ID,
+            const.SENTINEL_EMPTY,
+            "challenge",
+        )
 
     # -------------------------------------------------------------------------------------
     # Home Assistant Registry Device and Entity Removal
@@ -627,9 +581,8 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
     def _remove_entities_in_ha(self, item_id: str) -> int:
         """Remove all entities whose unique_id references the given item_id.
 
+        Delegates to kc_helpers.remove_entities_by_item_id() for the actual work.
         Called when deleting kids, chores, rewards, penalties, bonuses, badges.
-        Uses delimiter matching to prevent false positives (e.g., kid_1 should
-        not match kid_10).
 
         Args:
             item_id: The UUID of the deleted item.
@@ -637,43 +590,11 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         Returns:
             Count of removed entities.
         """
-        perf_start = time.perf_counter()
-        ent_reg = er.async_get(self.hass)
-        prefix = f"{self.config_entry.entry_id}_"
-        item_id_str = str(item_id)
-        removed_count = 0
-
-        for entity_entry in list(ent_reg.entities.values()):
-            if entity_entry.config_entry_id != self.config_entry.entry_id:
-                continue
-
-            unique_id = str(entity_entry.unique_id)
-
-            # Safety: verify our entry prefix
-            if not unique_id.startswith(prefix):
-                continue
-
-            # Match item_id with proper delimiters (midfix or suffix)
-            # Patterns: ..._{item_id}_... or ..._{item_id}
-            if f"_{item_id_str}_" in unique_id or unique_id.endswith(f"_{item_id_str}"):
-                ent_reg.async_remove(entity_entry.entity_id)
-                removed_count += 1
-                const.LOGGER.debug(
-                    "Removed entity %s (uid: %s) for deleted item %s",
-                    entity_entry.entity_id,
-                    unique_id,
-                    item_id_str,
-                )
-
-        perf_elapsed = time.perf_counter() - perf_start
-        if removed_count > 0:
-            const.LOGGER.info(
-                "Removed %d entities for deleted item in %.3fs",
-                removed_count,
-                perf_elapsed,
-            )
-
-        return removed_count
+        return kh.remove_entities_by_item_id(
+            self.hass,
+            self.config_entry.entry_id,
+            item_id,
+        )
 
     def _remove_device_from_registry(self, kid_id: str) -> None:
         """Remove kid device from device registry.

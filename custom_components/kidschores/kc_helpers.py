@@ -8,33 +8,37 @@ This file is organized into logical sections for easy navigation:
 1. **Entity Registry Utilities** (Line ~80) 🗄️
    - Entity registry queries, parsing unique IDs, orphan detection regex
 
-2. **Get Coordinator** (Line ~210)
-   - Retrieves KidsChores coordinator from config entry runtime_data
+2. **Event Signal Helpers** (Line ~200) 📡
+   - Manager communication signals (get_event_signal)
 
-3. **Authorization Helpers** (Line ~230)
+3. **Data Cleanup Helpers** (Line ~240) 🧹
+   - Orphan reference removal during entity deletion (stateless functions)
+   - Entity removal from HA registry by item ID
+
+4. **Authorization Helpers** (Line ~530)
    - Global and kid-specific authorization checks (parent/kid role validation)
 
-4. **Parse Points Adjustment Values** (Line ~325)
+5. **Parse Points Adjustment Values** (Line ~620)
    - Button entity configuration parsing for point adjustments
 
-5. **Entity Lookup Helpers** (Line ~350) 🔍
+6. **Entity Lookup Helpers** (Line ~650) 🔍
    - Basic ID/name lookups (returns None if not found)
    - Error-raising variants for services (raises HomeAssistantError)
    - Kid name lookups and label registry helpers
 
-6. **Device Info Helpers** (Line ~540) 📱
+7. **Device Info Helpers** (Line ~840) 📱
    - Device registry info construction for kid and system devices
 
-7. **Shadow Kid Helpers** (Line ~620) 👤
+8. **Shadow Kid Helpers** (Line ~920) 👤
    - Parent chore capability detection and workflow control
 
-8. **Progress & Completion Helpers** (Line ~720) 🧮
+9. **Progress & Completion Helpers** (Line ~1020) 🧮
    - Badge progress, chore completion, streak calculations
 
-9. **Date & Time Helpers** (Line ~915) 🕒
-   - DateTime parsing, UTC conversion, interval calculations, scheduling
+10. **Date & Time Helpers** (Line ~1215) 🕒
+    - DateTime parsing, UTC conversion, interval calculations, scheduling
 
-10. **Dashboard Translation Loaders** (Line ~1540)
+11. **Dashboard Translation Loaders** (Line ~1840)
     - Helper translations for dashboard UI rendering
 
 """
@@ -197,6 +201,333 @@ def build_orphan_detection_regex(
     pattern_str = f"^kc{sep_escaped}({ids_pattern}){sep_escaped}"
 
     return re.compile(pattern_str)
+
+
+# ==============================================================================
+# Event Signal Helpers (Manager Communication)
+# ==============================================================================
+
+
+def get_event_signal(entry_id: str, suffix: str) -> str:
+    """Build instance-scoped event signal name for dispatcher.
+
+    This ensures complete isolation between multiple KidsChores config entries.
+    Each instance gets its own signal namespace using its config_entry.entry_id.
+
+    Format: 'kidschores_{entry_id}_{suffix}'
+
+    Multi-instance example:
+        - Instance 1 (entry_id="abc123"):
+          get_event_signal("abc123", "points_changed") → "kidschores_abc123_points_changed"
+        - Instance 2 (entry_id="xyz789"):
+          get_event_signal("xyz789", "points_changed") → "kidschores_xyz789_points_changed"
+
+    Managers can emit/listen without cross-talk between instances.
+
+    Args:
+        entry_id: ConfigEntry.entry_id from coordinator
+        suffix: Signal suffix constant from const.py (e.g., SIGNAL_SUFFIX_POINTS_CHANGED)
+
+    Returns:
+        Fully qualified signal name scoped to this integration instance
+
+    Example:
+        >>> from . import const
+        >>> get_event_signal("abc123", const.SIGNAL_SUFFIX_POINTS_CHANGED)
+        'kidschores_abc123_points_changed'
+    """
+    return f"{const.DOMAIN}_{entry_id}_{suffix}"
+
+
+# ==============================================================================
+# Data Cleanup Helpers (Orphan Reference Removal)
+# Stateless functions for cleaning up orphaned references when entities are deleted.
+# These are called by the coordinator during delete operations.
+# ==============================================================================
+
+
+def cleanup_chore_from_kid_data(
+    kid_data: dict[str, Any],
+    chore_id: str,
+) -> bool:
+    """Remove references to a specific chore from a kid's data dict.
+
+    Stateless helper called during chore deletion or reassignment.
+
+    Args:
+        kid_data: The kid's data dict (mutated in place).
+        chore_id: ID of the chore to remove references for.
+
+    Returns:
+        True if any references were removed, False otherwise.
+    """
+    cleaned = False
+
+    # Remove from kid_chore_data (timestamp-based tracking v0.4.0+)
+    if const.DATA_KID_CHORE_DATA in kid_data:
+        if chore_id in kid_data[const.DATA_KID_CHORE_DATA]:
+            del kid_data[const.DATA_KID_CHORE_DATA][chore_id]
+            const.LOGGER.debug(
+                "Removed chore '%s' from kid's chore data",
+                chore_id,
+            )
+            cleaned = True
+
+    return cleaned
+
+
+def cleanup_orphaned_reward_data(
+    kids_data: dict[str, dict[str, Any]],
+    valid_reward_ids: set[str],
+) -> bool:
+    """Remove reward_data entries for rewards that no longer exist.
+
+    Stateless helper called during reward deletion.
+
+    Args:
+        kids_data: Dict of kid_id -> kid_data (mutated in place).
+        valid_reward_ids: Set of reward IDs that still exist.
+
+    Returns:
+        True if any references were removed, False otherwise.
+    """
+    cleaned = False
+    for kid_data in kids_data.values():
+        reward_data = kid_data.get(const.DATA_KID_REWARD_DATA, {})
+        invalid_ids = [rid for rid in reward_data if rid not in valid_reward_ids]
+        for rid in invalid_ids:
+            reward_data.pop(rid, None)
+            cleaned = True
+    return cleaned
+
+
+def cleanup_orphaned_kid_refs_in_chores(
+    chores_data: dict[str, dict[str, Any]],
+    valid_kid_ids: set[str],
+) -> bool:
+    """Remove deleted kid IDs from chore assignments.
+
+    Stateless helper called during kid deletion.
+
+    Args:
+        chores_data: Dict of chore_id -> chore_data (mutated in place).
+        valid_kid_ids: Set of kid IDs that still exist.
+
+    Returns:
+        True if any references were removed, False otherwise.
+    """
+    cleaned = False
+    for chore_info in chores_data.values():
+        if const.DATA_CHORE_ASSIGNED_KIDS in chore_info:
+            original = chore_info[const.DATA_CHORE_ASSIGNED_KIDS]
+            filtered = [kid for kid in original if kid in valid_kid_ids]
+            if filtered != original:
+                chore_info[const.DATA_CHORE_ASSIGNED_KIDS] = filtered
+                const.LOGGER.debug(
+                    "Removed orphaned kid refs from chore '%s'",
+                    chore_info.get(const.DATA_CHORE_NAME),
+                )
+                cleaned = True
+    return cleaned
+
+
+def cleanup_orphaned_kid_refs_in_gamification(
+    entities_data: dict[str, dict[str, Any]],
+    valid_kid_ids: set[str],
+    section_name: str,
+) -> bool:
+    """Remove deleted kid IDs from achievement/challenge progress and assignments.
+
+    Stateless helper called during kid deletion.
+
+    Args:
+        entities_data: Dict of entity_id -> entity_data (mutated in place).
+        valid_kid_ids: Set of kid IDs that still exist.
+        section_name: Name for logging ("achievements" or "challenges").
+
+    Returns:
+        True if any references were removed, False otherwise.
+    """
+    cleaned = False
+    for entity in entities_data.values():
+        progress = entity.get(const.DATA_PROGRESS, {})
+        keys_to_remove = [kid for kid in progress if kid not in valid_kid_ids]
+        for kid in keys_to_remove:
+            del progress[kid]
+            const.LOGGER.debug(
+                "Removed progress for deleted kid '%s' in %s",
+                kid,
+                section_name,
+            )
+            cleaned = True
+
+        if const.DATA_ASSIGNED_KIDS in entity:
+            original_assigned = entity[const.DATA_ASSIGNED_KIDS]
+            filtered_assigned = [
+                kid for kid in original_assigned if kid in valid_kid_ids
+            ]
+            if filtered_assigned != original_assigned:
+                entity[const.DATA_ASSIGNED_KIDS] = filtered_assigned
+                const.LOGGER.debug(
+                    "Removed orphaned kid refs from %s '%s'",
+                    section_name,
+                    entity.get(const.DATA_NAME),
+                )
+                cleaned = True
+    return cleaned
+
+
+def cleanup_orphaned_chore_refs_in_kids(
+    kids_data: dict[str, dict[str, Any]],
+    valid_chore_ids: set[str],
+) -> bool:
+    """Remove deleted chore IDs from all kids' chore data.
+
+    Stateless helper called during chore deletion.
+
+    Args:
+        kids_data: Dict of kid_id -> kid_data (mutated in place).
+        valid_chore_ids: Set of chore IDs that still exist.
+
+    Returns:
+        True if any references were removed, False otherwise.
+    """
+    cleaned = False
+    for kid_data in kids_data.values():
+        if const.DATA_KID_CHORE_DATA in kid_data:
+            original_count = len(kid_data[const.DATA_KID_CHORE_DATA])
+            kid_data[const.DATA_KID_CHORE_DATA] = {
+                chore: data
+                for chore, data in kid_data[const.DATA_KID_CHORE_DATA].items()
+                if chore in valid_chore_ids
+            }
+            if len(kid_data[const.DATA_KID_CHORE_DATA]) < original_count:
+                cleaned = True
+    return cleaned
+
+
+def cleanup_orphaned_kid_refs_in_parents(
+    parents_data: dict[str, dict[str, Any]],
+    valid_kid_ids: set[str],
+) -> bool:
+    """Remove deleted kid IDs from parent's associated_kids lists.
+
+    Stateless helper called during kid deletion.
+
+    Args:
+        parents_data: Dict of parent_id -> parent_data (mutated in place).
+        valid_kid_ids: Set of kid IDs that still exist.
+
+    Returns:
+        True if any references were removed, False otherwise.
+    """
+    cleaned = False
+    for parent_info in parents_data.values():
+        original = parent_info.get(const.DATA_PARENT_ASSOCIATED_KIDS, [])
+        filtered = [kid_id for kid_id in original if kid_id in valid_kid_ids]
+        if filtered != original:
+            parent_info[const.DATA_PARENT_ASSOCIATED_KIDS] = filtered
+            const.LOGGER.debug(
+                "Removed orphaned kid refs from parent '%s'",
+                parent_info.get(const.DATA_PARENT_NAME),
+            )
+            cleaned = True
+    return cleaned
+
+
+def cleanup_deleted_chore_in_gamification(
+    entities_data: dict[str, dict[str, Any]],
+    valid_chore_ids: set[str],
+    selected_chore_key: str,
+    default_value: str,
+    section_name: str,
+) -> bool:
+    """Clear selected_chore_id in achievements/challenges if the chore no longer exists.
+
+    Stateless helper called during chore deletion.
+
+    Args:
+        entities_data: Dict of entity_id -> entity_data (mutated in place).
+        valid_chore_ids: Set of chore IDs that still exist.
+        selected_chore_key: Const key for selected chore (e.g., DATA_ACHIEVEMENT_SELECTED_CHORE_ID).
+        default_value: Value to set when clearing (e.g., "" or SENTINEL_EMPTY).
+        section_name: Name for logging ("achievement" or "challenge").
+
+    Returns:
+        True if any references were removed, False otherwise.
+    """
+    cleaned = False
+    for entity_info in entities_data.values():
+        selected = entity_info.get(selected_chore_key)
+        if selected and selected not in valid_chore_ids:
+            entity_info[selected_chore_key] = default_value
+            const.LOGGER.debug(
+                "Cleared selected chore in %s '%s'",
+                section_name,
+                entity_info.get(const.DATA_NAME),
+            )
+            cleaned = True
+    return cleaned
+
+
+def remove_entities_by_item_id(
+    hass: HomeAssistant,
+    entry_id: str,
+    item_id: str,
+) -> int:
+    """Remove all entities whose unique_id references the given item_id.
+
+    Called when deleting kids, chores, rewards, penalties, bonuses, badges.
+    Uses delimiter matching to prevent false positives (e.g., kid_1 should
+    not match kid_10).
+
+    Args:
+        hass: HomeAssistant instance.
+        entry_id: Config entry ID prefix for unique_id matching.
+        item_id: The UUID of the deleted item.
+
+    Returns:
+        Count of removed entities.
+    """
+    import time
+
+    perf_start = time.perf_counter()
+    ent_reg = async_get_entity_registry(hass)
+    prefix = f"{entry_id}_"
+    item_id_str = str(item_id)
+    removed_count = 0
+
+    for entity_entry in list(ent_reg.entities.values()):
+        if entity_entry.config_entry_id != entry_id:
+            continue
+
+        unique_id = str(entity_entry.unique_id)
+
+        # Safety: verify our entry prefix
+        if not unique_id.startswith(prefix):
+            continue
+
+        # Match item_id with proper delimiters (midfix or suffix)
+        # Patterns: ..._{item_id}_... or ..._{item_id}
+        if f"_{item_id_str}_" in unique_id or unique_id.endswith(f"_{item_id_str}"):
+            ent_reg.async_remove(entity_entry.entity_id)
+            removed_count += 1
+            const.LOGGER.debug(
+                "Removed entity %s (uid: %s) for deleted item %s",
+                entity_entry.entity_id,
+                unique_id,
+                item_id_str,
+            )
+
+    perf_elapsed = time.perf_counter() - perf_start
+    if removed_count > 0:
+        const.LOGGER.info(
+            "Removed %d entities for deleted item in %.3fs",
+            removed_count,
+            perf_elapsed,
+        )
+
+    return removed_count
 
 
 # ==============================================================================

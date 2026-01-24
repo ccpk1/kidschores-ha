@@ -447,6 +447,113 @@ Most `CFOF_*` constant **values** are now aligned with `DATA_*` values to elimin
 
 **Detailed Documentation**: See module docstrings in `flow_helpers.py` and `data_builders.py` for complete architecture details.
 
+#### 5.3 Event Architecture (Manager Communication)
+
+**Purpose**: Define how Managers communicate state changes via Home Assistant's Dispatcher system without tight coupling.
+
+**Key Files**:
+
+- `const.py` - Signal suffix constants (`SIGNAL_SUFFIX_*`)
+- `kc_helpers.py` - `get_event_signal()` helper function
+- `managers/base_manager.py` - `BaseManager` abstract class with emit/listen methods
+- `type_defs.py` - Event payload TypedDicts (`*Event` types)
+
+##### Signal Naming Convention
+
+All signals use the **past-tense naming** pattern to indicate completed actions:
+
+| Category     | Signal Suffix                        | Payload Type               |
+| ------------ | ------------------------------------ | -------------------------- |
+| Economy      | `SIGNAL_SUFFIX_POINTS_CHANGED`       | `PointsChangedEvent`       |
+| Economy      | `SIGNAL_SUFFIX_TRANSACTION_FAILED`   | `TransactionFailedEvent`   |
+| Chore        | `SIGNAL_SUFFIX_CHORE_CLAIMED`        | `ChoreClaimedEvent`        |
+| Chore        | `SIGNAL_SUFFIX_CHORE_APPROVED`       | `ChoreApprovedEvent`       |
+| Chore        | `SIGNAL_SUFFIX_CHORE_DISAPPROVED`    | `ChoreDisapprovedEvent`    |
+| Reward       | `SIGNAL_SUFFIX_REWARD_APPROVED`      | `RewardApprovedEvent`      |
+| Badge        | `SIGNAL_SUFFIX_BADGE_EARNED`         | `BadgeEarnedEvent`         |
+| Gamification | `SIGNAL_SUFFIX_ACHIEVEMENT_UNLOCKED` | `AchievementUnlockedEvent` |
+| CRUD         | `SIGNAL_SUFFIX_ENTITY_CREATED`       | `EntityCreatedEvent`       |
+
+##### Multi-Instance Isolation
+
+Every signal is scoped to a specific config entry using `get_event_signal()`:
+
+```python
+from custom_components.kidschores import kc_helpers as kh, const
+
+# Build instance-scoped signal
+signal = kh.get_event_signal(entry_id, const.SIGNAL_SUFFIX_POINTS_CHANGED)
+# Result: "kidschores_{entry_id}_points_changed"
+
+# Two instances never interfere:
+# Instance A: "kidschores_abc123_points_changed"
+# Instance B: "kidschores_xyz789_points_changed"
+```
+
+##### BaseManager Pattern
+
+All Managers extend `BaseManager` which provides standardized emit/listen methods:
+
+```python
+from custom_components.kidschores.managers import BaseManager
+from custom_components.kidschores import const
+
+class NotificationManager(BaseManager):
+    """Handles all notification dispatch."""
+
+    async def async_setup(self) -> None:
+        """Set up listeners for notification triggers."""
+        # Listen for chore approvals to send congratulations
+        self.listen(const.SIGNAL_SUFFIX_CHORE_APPROVED, self._on_chore_approved)
+
+    async def _on_chore_approved(self, event: ChoreApprovedEvent) -> None:
+        """Handle chore approval - send notification to kid."""
+        await self.send_kid_notification(
+            event["kid_id"],
+            title_key="chore_approved_title",
+            message_key="chore_approved_message",
+        )
+```
+
+##### Event Payload TypedDicts
+
+All event payloads are defined as TypedDicts in `type_defs.py` for type safety:
+
+```python
+class PointsChangedEvent(TypedDict):
+    """Payload for points change events."""
+    kid_id: str
+    old_balance: float
+    new_balance: float
+    delta: float
+    reason: str
+    source: str  # POINTS_SOURCE_* constant
+```
+
+**Required Fields**: All events MUST include `kid_id` (or equivalent identifier) for routing.
+
+##### Anti-Patterns
+
+❌ **WRONG**: Direct method calls between managers
+
+```python
+# Tight coupling - don't do this
+self.economy_manager.update_points(kid_id, points)
+```
+
+✅ **CORRECT**: Emit events, let managers listen
+
+```python
+# Loose coupling - managers react to events
+self.emit(const.SIGNAL_SUFFIX_CHORE_APPROVED, {
+    "kid_id": kid_id,
+    "chore_id": chore_id,
+    "points": points,
+})
+# EconomyManager listens and handles point update
+# NotificationManager listens and sends congratulations
+```
+
 ---
 
 ### 6. Entity Standards

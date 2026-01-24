@@ -9,16 +9,16 @@
 
 ## Summary & immediate steps
 
-| Phase / Step               | Description                              | % complete | Quick notes                               |
-| -------------------------- | ---------------------------------------- | ---------- | ----------------------------------------- |
-| Phase 0 – Event Foundation | Event infrastructure (signals, base mgr) | 0%         | SIGNAL*SUFFIX*\*, BaseManager, TypedDicts |
-| Phase 1 – Infrastructure   | Verify renames, expand helpers           | 0%         | data_builders verified, kc_helpers        |
-| Phase 2 – Notification     | Extract NotificationManager              | 0%         | First manager extraction (lowest risk)    |
-| Phase 3 – Economy          | EconomyEngine + EconomyManager           | 0%         | Ledger system, point transactions         |
-| Phase 4 – Chore            | ChoreEngine + ChoreManager               | 0%         | Refactor existing ChoreOperations mixin   |
-| Phase 5 – Gamification     | GamificationEngine + GamificationManager | 0%         | Unify badges/achievements/challenges      |
-| Phase 6 – Coordinator Slim | Reduce coordinator to routing only       | 0%         | Target: <1000 lines                       |
-| Phase 7 – Testing & Polish | Integration tests, documentation         | 0%         | 95%+ coverage maintained                  |
+| Phase / Step               | Description                              | % complete | Quick notes                                   |
+| -------------------------- | ---------------------------------------- | ---------- | --------------------------------------------- |
+| Phase 0 – Event Foundation | Event infrastructure (signals, base mgr) | 100%       | ✅ COMPLETE 2026-01-24 (51 signals, 15 types) |
+| Phase 1 – Infrastructure   | Verify renames, expand helpers           | 100%       | ✅ COMPLETE 2026-01-24 (8 cleanup helpers)    |
+| Phase 2 – Notification     | Extract NotificationManager              | 0%         | First manager extraction (lowest risk)        |
+| Phase 3 – Economy          | EconomyEngine + EconomyManager           | 0%         | Ledger system, point transactions             |
+| Phase 4 – Chore            | ChoreEngine + ChoreManager               | 0%         | Refactor existing ChoreOperations mixin       |
+| Phase 5 – Gamification     | GamificationEngine + GamificationManager | 0%         | Unify badges/achievements/challenges          |
+| Phase 6 – Coordinator Slim | Reduce coordinator to routing only       | 0%         | Target: <1000 lines                           |
+| Phase 7 – Testing & Polish | Integration tests, documentation         | 0%         | 95%+ coverage maintained                      |
 
 1. **Key objective** – Transform the monolithic 10k+ line coordinator into a layered service architecture with clear separation between routing (Coordinator), state workflows (Managers), and pure logic (Engines). This enables testable units, decoupled features, and easier future feature additions.
 
@@ -26,12 +26,16 @@
    - Current state: `coordinator.py` (6,138 lines) + `coordinator_chore_operations.py` (3,971 lines) = 10,109 lines total
    - Already extracted: `ChoreOperations` mixin, `StatisticsEngine`, `RecurrenceEngine`, `KidsChoresStorageManager`
    - Already renamed: `entity_helpers.py` → `data_builders.py` ✅
+   - **Phase 0 COMPLETE**: Event infrastructure implemented (51 signals, 15 TypedDicts, BaseManager) ✅
+   - **Phase 1 COMPLETE**: Infrastructure cleanup (8 cleanup helpers moved to kc_helpers.py) ✅
 
 3. **Next steps (short term)**
-   - ✅ All architectural decisions resolved (see section 6 below)
-   - ✅ Event bus pattern defined in `_SUP_EVENT_PATTERN.md`
-   - ✅ Directories exist: `engines/` (with schedule.py, statistics.py), `managers/` (empty)
-   - **Next**: Implement Phase 0 - Event infrastructure (7 steps, ~2-3 sessions)
+   - ✅ Phase 0 - Event Infrastructure COMPLETE (2026-01-24)
+   - ✅ Phase 1 - Infrastructure Cleanup COMPLETE (2026-01-24)
+   - **Next**: Implement Phase 2 - Notification Manager
+     - Create `managers/notification_manager.py`
+     - Consolidate notification functions from coordinator
+     - Refactor to use BaseManager event patterns
 
 4. **Risks / blockers**
    - **Breaking changes**: Service names remain stable, but internal method signatures will change
@@ -164,82 +168,60 @@
 
 ## Detailed phase tracking
 
-### Phase 0 – Event Infrastructure (Foundation)
+### Phase 0 – Event Infrastructure (Foundation) ✅ COMPLETE
 
 - **Goal**: Implement event communication infrastructure for manager-to-manager communication. All architectural decisions are now resolved (see section 6 above).
+- **Completion Date**: 2026-01-24
+- **Validation Results**: Lint ✅ | MyPy ✅ (0 errors) | Tests ✅ (902 passed)
 - **Steps / detailed work items**
-  1. - [ ] Add `SIGNAL_SUFFIX_*` constants to `const.py` (~line 2565):
+  1. - [x] Add 51 `SIGNAL_SUFFIX_*` constants to `const.py` (line 60):
+     - Economy (2): `POINTS_CHANGED`, `TRANSACTION_FAILED`
+     - Chore (6): `CHORE_CLAIMED/APPROVED/DISAPPROVED/OVERDUE/STATUS_RESET/RESCHEDULED`
+     - Reward (4): `REWARD_CLAIMED/APPROVED/DISAPPROVED/STATUS_RESET`
+     - Penalty/Bonus (4): `PENALTY_APPLIED/STATUS_RESET`, `BONUS_APPLIED/STATUS_RESET`
+     - Gamification (9): Badge (3), Achievement (2), Challenge (3), progress events
+     - CRUD Lifecycle (27): 9 entity types × 3 operations each
+     - Uses past-tense naming convention per Event Architecture Standards
 
-     ```python
-     # ==============================================================================
-     # Event Signal Suffixes (Manager-to-Manager Communication)
-     # ==============================================================================
-     # Used with kc_helpers.get_event_signal(entry_id, suffix) to create instance-scoped signals
-     # Pattern: get_event_signal(entry_id, "points_change") → "kidschores_{entry_id}_points_change"
-
-     # Economy events
-     SIGNAL_SUFFIX_POINTS_CHANGE = "points_change"
-     SIGNAL_SUFFIX_POINTS_INSUFFICIENT = "points_insufficient"
-
-     # Chore events
-     SIGNAL_SUFFIX_CHORE_CLAIMED = "chore_claimed"
-     SIGNAL_SUFFIX_CHORE_APPROVED = "chore_approved"
-     SIGNAL_SUFFIX_CHORE_DISAPPROVED = "chore_disapproved"
-     SIGNAL_SUFFIX_CHORE_OVERDUE = "chore_overdue"
-     SIGNAL_SUFFIX_CHORE_RESET = "chore_reset"
-     SIGNAL_SUFFIX_CHORE_SKIPPED = "chore_skipped"
-
-     # Reward events
-     SIGNAL_SUFFIX_REWARD_CLAIMED = "reward_claimed"
-     SIGNAL_SUFFIX_REWARD_APPROVED = "reward_approved"
-     SIGNAL_SUFFIX_REWARD_DISAPPROVED = "reward_disapproved"
-
-     # Gamification events
-     SIGNAL_SUFFIX_BADGE_EARNED = "badge_earned"
-     SIGNAL_SUFFIX_BADGE_LOST = "badge_lost"
-     SIGNAL_SUFFIX_ACHIEVEMENT_UNLOCKED = "achievement_unlocked"
-     SIGNAL_SUFFIX_CHALLENGE_COMPLETED = "challenge_completed"
-
-     # System events
-     SIGNAL_SUFFIX_KID_CREATED = "kid_created"
-     SIGNAL_SUFFIX_KID_DELETED = "kid_deleted"
-     ```
-
-  2. - [ ] Add `get_event_signal()` helper to `kc_helpers.py`:
+  2. - [x] Add `get_event_signal()` helper to `kc_helpers.py` (line 210):
      - Function signature: `def get_event_signal(entry_id: str, suffix: str) -> str`
      - Returns: `f"{const.DOMAIN}_{entry_id}_{suffix}"`
-     - Add comprehensive docstring with multi-instance isolation explanation
-     - Location: After datetime helpers, before entity lookups (~line 500)
-  3. - [ ] Create `managers/base_manager.py`:
+     - Full docstring with multi-instance isolation explanation
+
+  3. - [x] Create `managers/base_manager.py`:
      - Abstract base class with `emit()` and `listen()` methods
      - Uses `async_dispatcher_send` / `async_dispatcher_connect` from HA
      - Automatic cleanup via `entry.async_on_unload`
-     - See `_SUP_EVENT_PATTERN.md` lines 36-79 for full implementation
-  4. - [ ] Create `managers/__init__.py`:
-     - Export `BaseManager` for now
-     - Will export concrete managers in later phases
-  5. - [ ] Add event payload TypedDicts to `type_defs.py`:
-     - `PointsChangeEvent` (kid_id, old_balance, new_balance, delta, source, reference_id)
-     - `ChoreApprovedEvent` (kid_id, chore_id, parent_name, points_awarded, is_shared)
-     - `BadgeEarnedEvent` (kid_id, badge_id, badge_name, level, points_bonus)
-     - Add more as needed per `_SUP_EVENT_PATTERN.md` lines 279-315
-  6. - [ ] Create test file `tests/test_event_infrastructure.py`:
-     - Test `get_event_signal()` with various inputs
-     - Test multi-instance isolation (two entry_ids produce different signals)
-     - Test `BaseManager.emit()` / `listen()` with mocked dispatcher
-  7. - [ ] Run validation suite:
-     ```bash
-     ./utils/quick_lint.sh --fix
-     mypy custom_components/kidschores/
-     pytest tests/test_event_infrastructure.py -v
-     pytest tests/ -v --tb=line  # Full regression
-     ```
+     - Uses absolute imports per lint requirements
 
-- **Key issues**
-  - Must not break existing tests during setup
-  - Directory `managers/` already exists but is empty (verified)
-  - Directory `engines/` already has `schedule.py` and `statistics.py` (no changes needed)
-  - No circular imports: managers import from const/kc_helpers, not coordinator
+  4. - [x] Create `managers/__init__.py`:
+     - Exports `BaseManager` for now
+     - Will export concrete managers in later phases
+
+  5. - [x] Add 15 event payload TypedDicts to `type_defs.py`:
+     - `PointsChangedEvent`, `TransactionFailedEvent` (economy)
+     - `ChoreClaimedEvent`, `ChoreApprovedEvent`, `ChoreDisapprovedEvent`, `ChoreOverdueEvent`, `ChoreRescheduledEvent` (chore)
+     - `RewardApprovedEvent`, `RewardDisapprovedEvent` (reward)
+     - `BadgeEarnedEvent`, `BadgeRevokedEvent` (badge)
+     - `AchievementUnlockedEvent`, `ChallengeCompletedEvent` (gamification)
+     - `PenaltyAppliedEvent`, `BonusAppliedEvent` (economy)
+
+  6. - [x] Create test file `tests/test_event_infrastructure.py`:
+     - 8 tests covering: signal formatting, multi-instance isolation, BaseManager emit/listen
+     - All tests passing
+
+  7. - [x] Run validation suite:
+     - `./utils/quick_lint.sh --fix` ✅ (all auto-fixes applied)
+     - `mypy custom_components/kidschores/` ✅ (0 errors)
+     - `pytest tests/test_event_infrastructure.py -v` ✅ (8 passed)
+     - `pytest tests/ -v --tb=line` ✅ (902 passed, no regressions)
+
+- **Key issues resolved**
+  - ✅ Placement: Constants added at line 60 (after Storage section) per guidelines
+  - ✅ Placement: Helper added at line 210 (after Entity Registry section) per guidelines
+  - ✅ Imports: `base_manager.py` uses absolute imports to satisfy TID252
+  - ✅ TypedDicts: Properly exported in `__all__`
+  - ✅ No circular imports: managers import from const/kc_helpers, not coordinator
 
 ---
 
@@ -247,22 +229,32 @@
 
 - **Goal**: Solidify existing helpers and prepare the foundation for manager extraction.
 - **Steps / detailed work items**
-  1. - [ ] Verify `data_builders.py` naming (already renamed from `entity_helpers.py`)
+  1. - [x] Verify `data_builders.py` naming (already renamed from `entity_helpers.py`)
      - File: `custom_components/kidschores/data_builders.py` (2,288 lines)
-     - Run: `grep -r "entity_helpers" custom_components/kidschores/` (should return no results)
-     - Fix any remaining imports if found
-  2. - [ ] Expand `kc_helpers.py` with cleanup methods:
-     - Move from coordinator: `_remove_entities_in_ha()` → `kh.remove_entities_by_pattern()`
-     - Move from coordinator: `_cleanup_*` methods → `kh.cleanup_orphaned_references()`
-     - File: `custom_components/kidschores/kc_helpers.py` (1,926 lines)
-  3. - [ ] Verify `engines/__init__.py` exports (already exists):
-     - Should export: `RecurrenceEngine`, `StatisticsEngine`, `calculate_next_due_date_from_chore_info`
+     - Run: `grep -r "entity_helpers" custom_components/kidschores/` ✅ No results (only stale pycache)
+  2. - [x] Expand `kc_helpers.py` with cleanup methods:
+     - Added 8 stateless cleanup helper functions:
+       - `cleanup_chore_from_kid_data()` - Remove chore refs from kid data
+       - `cleanup_orphaned_reward_data()` - Prune invalid reward_data entries
+       - `cleanup_orphaned_kid_refs_in_chores()` - Clean kid refs from chore assignments
+       - `cleanup_orphaned_kid_refs_in_gamification()` - Clean kid refs from achievements/challenges
+       - `cleanup_orphaned_chore_refs_in_kids()` - Clean chore refs from all kids
+       - `cleanup_orphaned_kid_refs_in_parents()` - Clean kid refs from parent associations
+       - `cleanup_deleted_chore_in_gamification()` - Clear invalid selected_chore_id
+       - `remove_entities_by_item_id()` - HA entity registry cleanup
+     - Coordinator methods now delegate to helpers, reducing code duplication
+     - File: `custom_components/kidschores/kc_helpers.py` (2,336 lines, +291)
+  3. - [x] Verify `engines/__init__.py` exports (already exists):
+     - Exports: `RecurrenceEngine`, `StatisticsEngine`, `calculate_next_due_date_from_chore_info` ✅
      - File: `custom_components/kidschores/engines/__init__.py`
-  4. - [ ] Run full test suite: `pytest tests/ -v --tb=line`
-- **Key issues**
-  - Careful import management to avoid circular dependencies
-  - Helper methods must maintain backward compatibility during transition
-  - `managers/__init__.py` already created in Phase 0 (no duplication needed)
+  4. - [x] Run full test suite: `pytest tests/ -v --tb=line`
+     - 902 tests passed ✅
+     - No regressions from cleanup helper migration
+- **Key issues resolved**
+  - ✅ `data_builders.py` naming verified (no source code references to old name)
+  - ✅ Cleanup helpers are now stateless, reusable functions
+  - ✅ Type compatibility: Used `cast()` for TypedDict → dict[str, Any] conversions
+  - ✅ Coordinator reduced by ~100 lines (delegation pattern)
 
 ---
 
