@@ -130,6 +130,8 @@
           "custom_interval_unit": "🔄 Schedule: Custom Interval Unit",
           "applicable_days": "📅 Schedule: Applicable Days (optional)",
           "due_date": "📅 Schedule: Due Date (optional)",
+          "chore_due_window_offset": "⏱️ Due Window: Offset Before Due Date",
+          "chore_due_reminder_offset": "🔔 Due Reminder: Offset Before Due Date",
           "show_on_calendar": "📅 Show on Calendar?",
           "chore_notifications": "🔔 Notification Events (optional)"
         },
@@ -150,6 +152,8 @@
           "custom_interval_unit": "Time unit for custom interval (days, weeks, months). Only used with Custom frequency.",
           "applicable_days": "Leave blank for all days. ONLY Select specific days to restrict.",
           "due_date": "Optional deadline. Can be combined with recurring schedules.",
+          "chore_due_window_offset": "When the chore state changes from Pending to Due. Format: '1d 6h 30m' or just '30' for minutes. Enter '0' to disable. Example: '1d' means chore shows as 'Due' 1 day before deadline.",
+          "chore_due_reminder_offset": "When to send the due reminder notification. Format: '1d 6h 30m' or just '30' for minutes. Default: 30m (30 minutes before due). Enter '0' to disable.",
           "show_on_calendar": "Display this chore on the calendar view.",
           "chore_notifications": "When to send notifications: On claim, on approval, on rejection, or any combination."
         }
@@ -494,6 +498,8 @@
           "custom_interval_unit": "🔄 Schedule: Custom Interval Unit",
           "applicable_days": "📅 Schedule: Applicable Days (optional)",
           "due_date": "📅 Schedule: Due Date (optional)",
+          "chore_due_window_offset": "⏱️ Due Window: Offset Before Due Date",
+          "chore_due_reminder_offset": "🔔 Due Reminder: Offset Before Due Date",
           "show_on_calendar": "📅 Show on Calendar?",
           "chore_notifications": "🔔 Notification Events (optional)"
         },
@@ -514,6 +520,8 @@
           "custom_interval_unit": "Time unit for custom interval (days, weeks, months). Only used with Custom frequency.",
           "applicable_days": "Leave blank for all days. ONLY Select specific days to restrict.",
           "due_date": "Optional deadline. Can be combined with recurring schedules. For INDEPENDENT chores, this serves as a template—an additional screen will appear allowing individual dates per kid.",
+          "chore_due_window_offset": "When the chore state changes from Pending to Due. Format: '1d 6h 30m' or just '30' for minutes. Enter '0' to disable. Example: '1d' means chore shows as 'Due' 1 day before deadline.",
+          "chore_due_reminder_offset": "When to send the due reminder notification. Format: '1d 6h 30m' or just '30' for minutes. Default: 30m (30 minutes before due). Enter '0' to disable.",
           "show_on_calendar": "Display this chore on the calendar view.",
           "chore_notifications": "When to send notifications: On claim, on approval, on rejection, or any combination."
         }
@@ -886,6 +894,8 @@
           "applicable_days": "📅 Schedule: Applicable Days (optional)",
           "due_date": "📅 Schedule: Due Date (optional)",
           "clear_due_date": "🗑️ Clear Due Date",
+          "chore_due_window_offset": "⏱️ Due Window: Offset Before Due Date",
+          "chore_due_reminder_offset": "🔔 Due Reminder: Offset Before Due Date",
           "show_on_calendar": "📅 Show on Calendar?",
           "chore_notifications": "🔔 Notification Events (optional)"
         },
@@ -907,6 +917,8 @@
           "applicable_days": "Leave blank for all days. ONLY Select specific days to restrict.",
           "due_date": "Optional deadline. Can be combined with recurring schedules. For INDEPENDENT chores, this serves as a template—an additional screen will appear allowing individual dates per kid.",
           "clear_due_date": "Check this box to remove the due date from this chore.",
+          "chore_due_window_offset": "When the chore state changes from Pending to Due. Format: '1d 6h 30m' or just '30' for minutes. Enter '0' to disable. Example: '1d' means chore shows as 'Due' 1 day before deadline.",
+          "chore_due_reminder_offset": "When to send the due reminder notification. Format: '1d 6h 30m' or just '30' for minutes. Default: 30m (30 minutes before due). Enter '0' to disable.",
           "show_on_calendar": "Display this chore on the calendar view.",
           "chore_notifications": "When to send notifications: On claim, on approval, on rejection, or any combination."
         }
@@ -1599,7 +1611,9 @@
         "notify_on_claim": "Notify on Claim",
         "notify_on_approval": "Notify on Approval",
         "notify_on_disapproval": "Notify on Disapproval",
-        "notify_on_reminder": "Notify 30 Minutes Before Due"
+        "notify_on_reminder": "Notify 30 Minutes Before Due (Legacy)",
+        "notify_on_due_window": "Notify When Due Window Starts",
+        "notify_due_reminder": "Notify at Due Reminder Time"
       }
     },
     "recurring_frequency": {
@@ -2263,6 +2277,7 @@
           "pending": "Pending",
           "approved": "Approved",
           "claimed": "Claimed",
+          "due": "Due",
           "overdue": "Overdue",
           "unknown": "Unknown",
           "none": "None",
@@ -2436,6 +2451,15 @@
           },
           "claim_button_eid": {
             "name": "Claim Button Entity ID"
+          },
+          "due_window_start": {
+            "name": "Due Window Start"
+          },
+          "time_until_due": {
+            "name": "Time Until Due"
+          },
+          "time_until_overdue": {
+            "name": "Time Until Overdue"
           }
         }
       },
@@ -2927,6 +2951,7 @@
           "pending": "Pending",
           "approved": "Approved",
           "claimed": "Claimed",
+          "due": "Due",
           "overdue": "Overdue",
           "unknown": "Unknown",
           "none": "None",
@@ -3028,6 +3053,15 @@
           },
           "chore_completed_by": {
             "name": "Completed By"
+          },
+          "due_window_start": {
+            "name": "Due Window Start"
+          },
+          "time_until_due": {
+            "name": "Time Until Due"
+          },
+          "time_until_overdue": {
+            "name": "Time Until Overdue"
           }
         }
       },

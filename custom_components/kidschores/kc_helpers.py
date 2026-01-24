@@ -43,7 +43,7 @@ This file is organized into logical sections for easy navigation:
 
 from __future__ import annotations
 
-from datetime import date, datetime, time, tzinfo
+from datetime import date, datetime, time, timedelta, tzinfo
 import json
 import os
 import re
@@ -1194,6 +1194,145 @@ def dt_to_utc(dt_str: str) -> datetime | None:
     )
     # Return type is guaranteed to be datetime | None by return_type constant
     return cast("datetime | None", result)
+
+
+def dt_parse_duration(
+    duration_str: str | None,
+    default_unit: str = const.TIME_UNIT_MINUTES,
+) -> timedelta | None:
+    """
+    Parse a human-readable duration string into a timedelta.
+
+    Supported formats:
+    - "30" or "30m" → 30 minutes (default unit)
+    - "1d" → 1 day
+    - "6h" → 6 hours
+    - "1d 6h 30m" → compound duration (1 day, 6 hours, 30 minutes)
+    - "0" → None (disabled)
+    - "" or None → None (disabled)
+
+    Parameters:
+        duration_str: Human-readable duration string (e.g., "1d 6h 30m")
+        default_unit: Unit to assume if no suffix provided (default: minutes).
+                      Must be one of: TIME_UNIT_MINUTES, TIME_UNIT_HOURS, TIME_UNIT_DAYS
+
+    Returns:
+        timedelta for valid durations, None for "0", empty, or invalid input.
+
+    Examples:
+        dt_parse_duration("30") → timedelta(minutes=30)
+        dt_parse_duration("1d 6h") → timedelta(days=1, hours=6)
+        dt_parse_duration("0") → None
+        dt_parse_duration("2h", default_unit=TIME_UNIT_HOURS) → timedelta(hours=2)
+    """
+    if not duration_str or duration_str.strip() == "0":
+        return None  # Disabled
+
+    cleaned = duration_str.strip().lower()
+
+    # Pattern: one or more digits followed by optional whitespace and optional unit
+    pattern = r"(\d+)\s*([dhm])?"
+    matches = re.findall(pattern, cleaned)
+
+    if not matches:
+        const.LOGGER.warning(
+            "Invalid duration format: %s - expected format like '30', '1d', '2h 30m'",
+            duration_str,
+        )
+        return None
+
+    total = timedelta()
+    for value_str, unit in matches:
+        num = int(value_str)
+        if unit == "d":
+            total += timedelta(days=num)
+        elif unit == "h":
+            total += timedelta(hours=num)
+        elif unit == "m":
+            total += timedelta(minutes=num)
+        elif not unit:
+            # No unit suffix - use default_unit
+            if default_unit == const.TIME_UNIT_DAYS:
+                total += timedelta(days=num)
+            elif default_unit == const.TIME_UNIT_HOURS:
+                total += timedelta(hours=num)
+            else:  # Default to minutes
+                total += timedelta(minutes=num)
+
+    return total if total > timedelta() else None
+
+
+def dt_format_duration(td: timedelta | None) -> str:
+    """
+    Format a timedelta into a human-readable duration string.
+
+    Converts a timedelta object back to the compact string format
+    used by dt_parse_duration.
+
+    Parameters:
+        td: timedelta object to format, or None
+
+    Returns:
+        Duration string like "1d 6h 30m", or "0" if None/zero.
+
+    Examples:
+        dt_format_duration(timedelta(days=1, hours=6)) → "1d 6h"
+        dt_format_duration(timedelta(minutes=30)) → "30m"
+        dt_format_duration(None) → "0"
+        dt_format_duration(timedelta()) → "0"
+    """
+    if td is None or td <= timedelta():
+        return "0"
+
+    total_seconds = int(td.total_seconds())
+    if total_seconds <= 0:
+        return "0"
+
+    days, remainder = divmod(total_seconds, 86400)  # 24 * 60 * 60
+    hours, remainder = divmod(remainder, 3600)  # 60 * 60
+    minutes = remainder // 60
+
+    parts: list[str] = []
+    if days > 0:
+        parts.append(f"{days}d")
+    if hours > 0:
+        parts.append(f"{hours}h")
+    if minutes > 0:
+        parts.append(f"{minutes}m")
+
+    return " ".join(parts) if parts else "0"
+
+
+def dt_time_until(target_dt: datetime | None) -> str | None:
+    """
+    Calculate human-readable time remaining until a target datetime.
+
+    Uses UTC comparison to calculate time remaining and formats the
+    result using dt_format_duration.
+
+    Parameters:
+        target_dt: Target datetime (should be UTC-aware), or None
+
+    Returns:
+        Formatted duration string (e.g., "2h 30m"), or None if:
+        - target_dt is None
+        - target_dt is in the past
+
+    Examples:
+        dt_time_until(utcnow() + timedelta(hours=2, minutes=30)) → "2h 30m"
+        dt_time_until(utcnow() - timedelta(hours=1)) → None  # past
+        dt_time_until(None) → None
+    """
+    if not target_dt:
+        return None
+
+    now = dt_util.utcnow()
+    if now >= target_dt:
+        # Already past target
+        return None
+
+    time_remaining = target_dt - now
+    return dt_format_duration(time_remaining)
 
 
 def dt_parse_date(date_str: str) -> date | None:

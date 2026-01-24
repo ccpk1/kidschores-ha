@@ -28,6 +28,7 @@ from tests.helpers import (
     CONF_POINTS_ICON,
     CONF_POINTS_LABEL,
     CONF_UPDATE_INTERVAL,
+    DATA_KID_NAME,
     DOMAIN,
     OPTIONS_FLOW_ACHIEVEMENTS,
     OPTIONS_FLOW_ACTIONS_ADD,
@@ -507,8 +508,9 @@ async def test_add_challenge_via_options_flow(
     config_entry = init_integration_with_coordinator.config_entry
     coordinator = init_integration_with_coordinator.coordinator
 
-    # Get existing kid ID for assignment (options flow schema uses IDs as values)
+    # Get existing kid NAME for assignment (options flow schema uses names as values)
     kid_id = next(iter(coordinator.kids_data.keys()))
+    kid_name = coordinator.kids_data[kid_id][DATA_KID_NAME]
 
     # Calculate future dates (options flow validates dates must be in future)
     now = dt_util.utcnow()
@@ -525,8 +527,8 @@ async def test_add_challenge_via_options_flow(
         "start_date": start_date,
         "end_date": end_date,
         "assigned_to": [
-            kid_id
-        ],  # Options flow schema expects kid IDs as selector values
+            kid_name
+        ],  # Options flow schema expects kid NAMES as selector values
     }
 
     form_data = FlowTestHelper.build_challenge_form_data(yaml_challenge)

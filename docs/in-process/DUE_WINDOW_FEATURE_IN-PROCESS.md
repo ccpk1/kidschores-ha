@@ -104,69 +104,101 @@
 
 ### Phase 1b – Configuration & Constants
 
-- **Goal**: Add due window configuration options to system settings and establish new constants
+- **Goal**: Add per-chore due window and reminder configuration fields
+- **Ready for implementation**: ✅ YES
+
+#### Design Decisions
+
+**Architecture Clarification** (per DEVELOPMENT_STANDARDS.md):
+
+- `CONF_*` = **ONLY** system-wide settings in `config_entry.options` (9 existing) - NOT expanded
+- Due window/reminder = **Per-chore settings** stored with chore data
+- `CFOF_CHORES_INPUT_*` = Form input fields for add/edit chore flows
+- `DATA_CHORE_*` = Storage fields in `.storage/kidschores_data`
+
+**Duration Offset Format**:
+
+- Default unit: minutes (e.g., `"30"` = 30 minutes)
+- Full format: `"1d 6h 30m"` for days/hours/minutes
+- Value `"0"` = feature disabled for this chore
+- Stored as string, parsed to timedelta at runtime
+
+**New Constants**:
+
+```python
+# Flow input fields (add/edit chore forms)
+CFOF_CHORES_INPUT_DUE_WINDOW_OFFSET: Final = "chore_due_window_offset"
+CFOF_CHORES_INPUT_DUE_REMINDER_OFFSET: Final = "chore_due_reminder_offset"
+
+# Storage fields (per-chore data)
+DATA_CHORE_DUE_WINDOW_OFFSET: Final = "chore_due_window_offset"
+DATA_CHORE_DUE_REMINDER_OFFSET: Final = "chore_due_reminder_offset"
+DATA_CHORE_NOTIFY_ON_DUE_WINDOW: Final = "notify_on_due_window"
+DATA_CHORE_NOTIFY_DUE_REMINDER: Final = "notify_due_reminder"
+```
+
 - **Steps / detailed work items**
-  1. `[ ]` Add due window constants to `const.py`
-     - `CONF_DUE_WINDOW_ENABLED`: Global enable/disable toggle
-     - `CONF_DUE_WINDOW_DEFAULT_DAYS`: Default days before due date
-     - `CONF_DUE_WINDOW_DEFAULT_HOURS`: Default hours before due date (additional offset)
-     - `CONF_DUE_WINDOW_NOTIFY_ENABLED`: Enable due window start notifications
-     - `CONF_REMINDER_NOTIFY_ENABLED`: Enable configurable reminder notifications
-     - `CONF_REMINDER_DAYS`: Days before due for reminder notification
-     - `CONF_REMINDER_HOURS`: Hours before due for reminder notification
-     - `CONF_REMINDER_MINUTES`: Minutes before due for reminder notification
-     - `CHORE_STATE_DUE`: New state constant
-     - `TRANS_KEY_STATE_DUE`: Translation key for due state
-  2. `[ ]` Add to system settings defaults in `const.py`
-     - Add to `DEFAULT_CONFIG_OPTIONS` dict
-     - Set sensible defaults: due_window(enabled=true, days=1, hours=0)
-     - Add notification settings: due_window_notify=true, reminder_notify=true
-     - Add configurable reminder timing: reminder_days=0, reminder_hours=0, reminder_minutes=30 (replaces fixed 30min)
-  3. `[ ]` Add per-chore due window override fields to chore data schema
-     - `DATA_CHORE_DUE_WINDOW_ENABLED`: Per-chore override (true/false/null for default)
-     - `DATA_CHORE_DUE_WINDOW_DAYS`: Per-chore days override
-     - `DATA_CHORE_DUE_WINDOW_HOURS`: Per-chore hours override
-  4. `[ ]` Update translation files
-     - Add due window labels and descriptions in `translations/en.json`
+  1. `[ ]` Add duration parser helper to `kc_helpers.py`
+     - `parse_duration(value: str) -> timedelta`: Parse "1d 6h 30m" format (default: minutes)
+     - `format_duration(td: timedelta) -> str`: Convert timedelta back to string
+     - Handle: empty/None → disabled, "0" → disabled, invalid format → log warning + return 0
+  2. `[ ]` Add per-chore constants to `const.py`
+     - Flow inputs: `CFOF_CHORES_INPUT_DUE_WINDOW_OFFSET`, `CFOF_CHORES_INPUT_DUE_REMINDER_OFFSET`
+     - Storage: `DATA_CHORE_DUE_WINDOW_OFFSET`, `DATA_CHORE_DUE_REMINDER_OFFSET`
+     - Notifications: `DATA_CHORE_NOTIFY_ON_DUE_WINDOW`, `DATA_CHORE_NOTIFY_DUE_REMINDER`
+     - State: `CHORE_STATE_DUE`
+     - Defaults: `DEFAULT_DUE_WINDOW_OFFSET` ("0" = disabled), `DEFAULT_DUE_REMINDER_OFFSET` ("30m")
+     - Translation keys: `TRANS_KEY_STATE_DUE`, `TRANS_KEY_CFOF_CHORES_DUE_WINDOW_*`
+  3. `[ ]` Update chore notification options
+     - Add to `CHORE_NOTIFICATION_OPTIONS` array: due_window, due_reminder options
+     - Add to `CHORE_NOTIFICATIONS_MAPPING` for notification dispatch
+  4. `[ ]` Update add/edit chore flow schemas
+     - Add due_window_offset and due_reminder_offset fields to chore forms
+     - Add duration format hint in field descriptions
+  5. `[ ]` Update translation files
+     - Add due window/reminder labels and descriptions in `translations/en.json`
      - Add state translation for "Due" state
-     - Add notification configuration labels (due window notify, reminder notify, timing options)
-     - Add notification message templates for due window and configurable reminder notifications
-  5. `[ ]` Test constant integration
+     - Add notification option translations
+  6. `[ ]` Test constant integration
      - Run `./utils/quick_lint.sh --fix` to validate constants
-     - Verify no circular import issues
+     - Run `mypy` to verify type hints
+     - Test duration parser with various inputs
 - **Key issues**
-  - Need to decide if per-chore overrides should be full replacement or additive to global settings
-  - Consider if hours/days should be combined into single offset with unit selector
+  - "0" or empty = disabled (no due window/reminder for this chore)
+  - Duration parser must handle malformed input gracefully
 
 ### Phase 2 – State Logic Implementation
 
 - **Goal**: Implement due state calculation logic in coordinator and sensor classes
 - **Steps / detailed work items**
-  1. `[ ]` Add due window calculation helper to `coordinator_chore_operations.py`
-     - `chore_is_due(kid_id, chore_id) -> bool`: Check if chore is in due window
+  1. `[x]` Add due window calculation helper to `coordinator_chore_operations.py`
+     - `chore_is_due(kid_id | None, chore_id) -> bool`: Check if chore is in due window
      - `get_chore_due_window_start(kid_id, chore_id) -> datetime | None`: Calculate due window start time
-     - Handle global settings + per-chore overrides logic
-  2. `[ ]` Update chore state calculation in `sensor.py`
+     - kid_id=None uses chore-level due date (for global sensor)
+  2. `[x]` Update chore state calculation in `sensor.py`
      - Modify `native_value` property in `ChoreStatusSensor` (around line 720)
-     - Add DUE state to priority order: approved > completed_by_other > claimed > due > overdue > pending
-     - Insert `chore_is_due()` check in appropriate position
-  3. `[ ]` Update dashboard helper state aggregation
+     - Add DUE state: checked at end, only if would otherwise be PENDING
+     - Insert `chore_is_due()` check before returning PENDING
+  3. `[x]` Update dashboard helper state aggregation
      - Modify `sensor.py` dashboard helper logic to handle DUE state
-     - Ensure proper state counting and filtering for dashboard display
-  4. `[ ]` Add due window metadata to chore status attributes
-     - Add `due_window_start` attribute to show when due period began
-     - Add `time_until_due` and `time_until_overdue` calculated attributes
-  5. `[ ]` Update state icons and colors for DUE state
-     - Add appropriate mdi icon for due state (e.g., `mdi:clock-alert`)
-     - Define color scheme (suggest yellow/amber for "due" vs red for "overdue")
-  6. `[ ]` Test state calculation logic
-     - Create test scenarios with various due dates and window settings
-     - Verify state transitions: pending → due → overdue
-     - Test edge cases (no due date, past due date, etc.)
+     - Updated `_build_chore_minimal_attributes()` and `native_value()` in KidDashboardHelperSensor
+     - Updated `_calculate_primary_group()` to put DUE chores in "today" group
+  4. `[x]` Add due window metadata to chore status attributes
+     - Added `due_window_start` attribute to show when due period began
+     - Added `time_until_due` calculated attribute (excluded `time_until_overdue` per user request)
+  5. `[x]` Update state icons and colors for DUE state
+     - Already existed in `icons.json`: `"due": "mdi:clock"` (verified)
+  6. `[x]` Update global chore sensor (SystemChoreSharedStateSensor)
+     - Updated `native_value` to check `chore_is_due(None, chore_id)` when state is PENDING
+     - Uses shared coordinator helper (refactored from duplicate local method)
+  7. `[x]` Test state calculation logic
+     - All 894 tests pass after Phase 2 implementation
+     - Lint and mypy pass with zero errors
 - **Key issues**
-  - Need to ensure state calculation performance is acceptable (consider caching)
-  - Verify that DUE state doesn't interfere with existing chore completion/approval flows
-  - Consider timezone handling for due window calculations
+  - ✅ Performance: Uses same coordinator helper pattern as existing state checks
+  - ✅ DUE state doesn't interfere - only checked when would be PENDING
+  - ✅ Timezone: Uses kh.dt_to_utc() and dt_util.utcnow() consistently
+  - ✅ Shared helper: `chore_is_due(kid_id | None, chore_id)` works for both per-kid and global sensors
 
 ### Phase 3 – Frontend & Dashboard Integration
 

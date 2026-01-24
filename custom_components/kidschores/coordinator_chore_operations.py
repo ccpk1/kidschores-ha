@@ -1525,6 +1525,155 @@ class ChoreOperations:
         current_state = kid_chore_data.get(const.DATA_KID_CHORE_DATA_STATE)
         return current_state == const.CHORE_STATE_OVERDUE
 
+    def chore_is_due(self, kid_id: str | None, chore_id: str) -> bool:
+        """Check if a chore is in the due window (approaching due date).
+
+        A chore is in the due window if:
+        - It has a due_window_offset > 0 configured
+        - Current time is within: (due_date - due_window_offset) <= now < due_date
+        - The chore is not already overdue, claimed, or approved
+
+        This method only determines if the chore is within the due window.
+        The actual state priority (approved > claimed > due > overdue > pending)
+        is handled by the sensor's native_value property.
+
+        Args:
+            kid_id: The internal ID of the kid, or None to use chore-level due date.
+            chore_id: The internal ID of the chore.
+
+        Returns:
+            True if the chore is in the due window, False otherwise.
+        """
+        chore_info = self.chores_data.get(chore_id)
+        if not chore_info:
+            return False
+
+        # Get due window offset (stored as duration string like "1d 6h 30m")
+        due_window_offset_str = cast(
+            "str | None",
+            chore_info.get(
+                const.DATA_CHORE_DUE_WINDOW_OFFSET, const.DEFAULT_DUE_WINDOW_OFFSET
+            ),
+        )
+        due_window_td = kh.dt_parse_duration(due_window_offset_str)
+
+        # If no valid due window offset or disabled (0), not in due window
+        if not due_window_td or due_window_td.total_seconds() <= 0:
+            return False
+
+        # Get due date: per-kid for INDEPENDENT (if kid_id provided), chore-level otherwise
+        due_date_str: str | None = None
+        if kid_id:
+            completion_criteria = chore_info.get(
+                const.DATA_CHORE_COMPLETION_CRITERIA,
+                const.COMPLETION_CRITERIA_INDEPENDENT,
+            )
+            if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+                per_kid_due_dates = chore_info.get(
+                    const.DATA_CHORE_PER_KID_DUE_DATES, {}
+                )
+                due_date_str = per_kid_due_dates.get(kid_id)
+            else:
+                due_date_str = chore_info.get(const.DATA_CHORE_DUE_DATE)
+        else:
+            # No kid_id - use chore-level due date (for global sensor)
+            due_date_str = chore_info.get(const.DATA_CHORE_DUE_DATE)
+
+        if not due_date_str:
+            return False
+
+        due_date_dt = kh.dt_to_utc(due_date_str)
+        if not due_date_dt:
+            return False
+
+        # Calculate due window start: due_date - offset
+        now = dt_util.utcnow()
+        due_window_start = due_date_dt - due_window_td
+
+        # In due window if: due_window_start <= now < due_date
+        return due_window_start <= now < due_date_dt
+
+    def get_chore_due_date(self, kid_id: str | None, chore_id: str) -> datetime | None:
+        """Get the due date for a chore as a datetime.
+
+        Handles INDEPENDENT vs SHARED completion criteria:
+        - INDEPENDENT: Returns per-kid due date
+        - SHARED/SHARED_FIRST: Returns chore-level due date
+        - kid_id=None: Always returns chore-level due date
+
+        Args:
+            kid_id: The internal ID of the kid. If None, uses chore-level due date.
+            chore_id: The internal ID of the chore.
+
+        Returns:
+            datetime of due date, or None if no due date configured.
+        """
+        chore_info = self.chores_data.get(chore_id)
+        if not chore_info:
+            return None
+
+        # Get due date - if kid_id is None, use chore-level due date
+        if kid_id is None:
+            due_date_str = chore_info.get(const.DATA_CHORE_DUE_DATE)
+        else:
+            completion_criteria = chore_info.get(
+                const.DATA_CHORE_COMPLETION_CRITERIA,
+                const.COMPLETION_CRITERIA_INDEPENDENT,
+            )
+            if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+                per_kid_due_dates = chore_info.get(
+                    const.DATA_CHORE_PER_KID_DUE_DATES, {}
+                )
+                due_date_str = per_kid_due_dates.get(kid_id)
+            else:
+                due_date_str = chore_info.get(const.DATA_CHORE_DUE_DATE)
+
+        if not due_date_str:
+            return None
+
+        return kh.dt_to_utc(due_date_str)
+
+    def get_chore_due_window_start(
+        self, kid_id: str | None, chore_id: str
+    ) -> datetime | None:
+        """Calculate when the due window starts for a chore.
+
+        Returns the datetime when the due window begins (due_date - offset),
+        or None if the chore has no due date or no due window configured.
+        Returns None if due window offset is 0 (disabled).
+
+        Args:
+            kid_id: The internal ID of the kid. If None, uses the chore-level
+                due date (appropriate for SHARED chores or global sensor).
+            chore_id: The internal ID of the chore.
+
+        Returns:
+            datetime when due window starts, or None if not applicable.
+        """
+        chore_info = self.chores_data.get(chore_id)
+        if not chore_info:
+            return None
+
+        # Get due window offset - returns None if offset is "0" or missing
+        due_window_offset_str = cast(
+            "str | None",
+            chore_info.get(
+                const.DATA_CHORE_DUE_WINDOW_OFFSET, const.DEFAULT_DUE_WINDOW_OFFSET
+            ),
+        )
+        due_window_td = kh.dt_parse_duration(due_window_offset_str)
+
+        # If no offset or offset is 0, due window is disabled
+        if not due_window_td or due_window_td.total_seconds() <= 0:
+            return None
+
+        # Reuse get_chore_due_date to avoid duplicating INDEPENDENT vs SHARED logic
+        due_date_dt = self.get_chore_due_date(kid_id, chore_id)
+        if not due_date_dt:
+            return None
+
+        return due_date_dt - due_window_td
+
     def chore_is_approved_in_period(self, kid_id: str, chore_id: str) -> bool:
         """Check if a chore is already approved in the current approval period.
 

@@ -696,18 +696,15 @@ async def _configure_challenge_step(
         hass: Home Assistant instance
         result: Current flow result on CHALLENGES step
         challenge_config: Dict with challenge fields (name, type, assigned_kids, etc)
-        kid_name_to_id: Mapping from kid names to internal_ids
+        kid_name_to_id: Mapping from kid names to internal_ids (unused for challenges)
 
     Returns:
         Updated flow result
     """
-    # Translate kid names to IDs in assigned_to field
+    # NOTE: Unlike chores, challenges expect kid NAMES (not UUIDs) in the form
+    # because the challenge form's SelectSelector uses kid names as options.
+    # Do NOT convert names to IDs here.
     challenge_config = challenge_config.copy()
-    if "assigned_to" in challenge_config:
-        names = challenge_config["assigned_to"]
-        challenge_config["assigned_to"] = [
-            kid_name_to_id[name] for name in names if name in kid_name_to_id
-        ]
 
     # Adjust dates if they're in the past (same pattern as chore due dates)
     from datetime import datetime, timedelta

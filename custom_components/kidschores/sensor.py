@@ -717,7 +717,8 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def native_value(self) -> Any:
         """Return the chore's state based on shared or individual tracking.
 
-        Priority order: approved > completed_by_other > claimed > overdue > pending.
+        Priority order: approved > completed_by_other > claimed > overdue > due > pending.
+        DUE state occurs when chore is in due window but not yet overdue.
         Always returns kid's individual status, not shared chore global state.
         Uses timestamp-based tracking via coordinator helper methods.
         """
@@ -734,6 +735,9 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             return const.CHORE_STATE_CLAIMED
         if self.coordinator.chore_is_overdue(self._kid_id, self._chore_id):
             return const.CHORE_STATE_OVERDUE
+        # Check if in due window (approaching due date but not yet overdue)
+        if self.coordinator.chore_is_due(self._kid_id, self._chore_id):
+            return const.CHORE_STATE_DUE
         return const.CHORE_STATE_PENDING
 
     @staticmethod
@@ -752,6 +756,25 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         if isinstance(value, list):
             return ", ".join(value) if value else None
         return value
+
+    def _get_due_window_start_iso(self) -> str | None:
+        """Get the due window start time as ISO string."""
+        due_window_start = self.coordinator.get_chore_due_window_start(
+            self._kid_id, self._chore_id
+        )
+        return due_window_start.isoformat() if due_window_start else None
+
+    def _get_time_until_due(self) -> str | None:
+        """Get human-readable time remaining until due window starts."""
+        return kh.dt_time_until(
+            self.coordinator.get_chore_due_window_start(self._kid_id, self._chore_id)
+        )
+
+    def _get_time_until_overdue(self) -> str | None:
+        """Get human-readable time remaining until due date (overdue)."""
+        return kh.dt_time_until(
+            self.coordinator.get_chore_due_date(self._kid_id, self._chore_id)
+        )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -935,6 +958,10 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_APPROVAL_PERIOD_START: self.coordinator._get_chore_approval_period_start(
                 self._kid_id, self._chore_id
             ),
+            # --- 8. Due window info ---
+            const.ATTR_DUE_WINDOW_START: self._get_due_window_start_iso(),
+            const.ATTR_TIME_UNTIL_DUE: self._get_time_until_due(),
+            const.ATTR_TIME_UNTIL_OVERDUE: self._get_time_until_overdue(),
         }
 
         if (
@@ -1885,11 +1912,22 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self) -> str:
-        """Return the global state for the chore."""
+        """Return the global state for the chore.
+
+        Returns the stored chore state, but if it would be PENDING and
+        the chore is within its due window, returns DUE instead.
+        """
         chore_info: ChoreData = cast(
             "ChoreData", self.coordinator.chores_data.get(self._chore_id, {})
         )
-        return chore_info.get(const.DATA_CHORE_STATE, const.CHORE_STATE_UNKNOWN)
+        state = chore_info.get(const.DATA_CHORE_STATE, const.CHORE_STATE_UNKNOWN)
+
+        # If state would be pending, check if in due window (None = use chore-level due date)
+        if state == const.CHORE_STATE_PENDING:
+            if self.coordinator.chore_is_due(None, self._chore_id):
+                return const.CHORE_STATE_DUE
+
+        return state
 
     @property
     def extra_state_attributes(self) -> dict:
@@ -2020,7 +2058,31 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 const.DATA_CHORE_CUSTOM_INTERVAL_UNIT
             )
 
+        # --- 5. Due window info ---
+        attributes[const.ATTR_DUE_WINDOW_START] = self._get_due_window_start_iso()
+        attributes[const.ATTR_TIME_UNTIL_DUE] = self._get_time_until_due()
+        attributes[const.ATTR_TIME_UNTIL_OVERDUE] = self._get_time_until_overdue()
+
         return attributes
+
+    def _get_due_window_start_iso(self) -> str | None:
+        """Get the due window start time as ISO string."""
+        due_window_start = self.coordinator.get_chore_due_window_start(
+            None, self._chore_id
+        )
+        return due_window_start.isoformat() if due_window_start else None
+
+    def _get_time_until_due(self) -> str | None:
+        """Get human-readable time remaining until due window starts."""
+        return kh.dt_time_until(
+            self.coordinator.get_chore_due_window_start(None, self._chore_id)
+        )
+
+    def _get_time_until_overdue(self) -> str | None:
+        """Get human-readable time remaining until due date (overdue)."""
+        return kh.dt_time_until(
+            self.coordinator.get_chore_due_date(None, self._chore_id)
+        )
 
     @property
     def icon(self) -> str | None:
@@ -3449,6 +3511,8 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             status = const.CHORE_STATE_OVERDUE
         elif chore_id in kid_info.get(const.DATA_KID_COMPLETED_BY_OTHER_CHORES, []):
             status = const.CHORE_STATE_COMPLETED_BY_OTHER
+        elif self.coordinator.chore_is_due(self._kid_id, chore_id):
+            status = const.CHORE_STATE_DUE
         else:
             status = const.CHORE_STATE_PENDING
 
@@ -3513,8 +3577,8 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         Returns: "today", "this_week", or "other"
         """
-        # Overdue chores always go to today group
-        if status == const.CHORE_STATE_OVERDUE:
+        # Overdue and DUE chores always go to today group
+        if status in (const.CHORE_STATE_OVERDUE, const.CHORE_STATE_DUE):
             return const.PRIMARY_GROUP_TODAY
 
         # Check due date if available
@@ -3572,6 +3636,8 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 status = const.CHORE_STATE_OVERDUE
             elif chore_id in kid_info.get(const.DATA_KID_COMPLETED_BY_OTHER_CHORES, []):
                 status = const.CHORE_STATE_COMPLETED_BY_OTHER
+            elif self.coordinator.chore_is_due(self._kid_id, chore_id):
+                status = const.CHORE_STATE_DUE
             chores.append({"id": chore_id, "name": chore_name, "status": status})
 
         # Rewards: list name and cost

@@ -668,6 +668,32 @@ def build_chore_schema(
             vol.Optional(const.CFOF_CHORES_INPUT_CLEAR_DUE_DATE, default=False)
         ] = selector.BooleanSelector()
 
+    # Add due window offset field (duration string like "1d 6h 30m", default minutes)
+    schema_fields[
+        vol.Optional(
+            const.CFOF_CHORES_INPUT_DUE_WINDOW_OFFSET,
+            default=default.get(
+                const.CFOF_CHORES_INPUT_DUE_WINDOW_OFFSET,
+                const.DEFAULT_DUE_WINDOW_OFFSET,
+            ),
+        )
+    ] = selector.TextSelector(
+        selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
+    )
+
+    # Add due reminder offset field (duration string like "30m", default minutes)
+    schema_fields[
+        vol.Optional(
+            const.CFOF_CHORES_INPUT_DUE_REMINDER_OFFSET,
+            default=default.get(
+                const.CFOF_CHORES_INPUT_DUE_REMINDER_OFFSET,
+                const.DEFAULT_DUE_REMINDER_OFFSET,
+            ),
+        )
+    ] = selector.TextSelector(
+        selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
+    )
+
     # Add remaining fields
     schema_fields[
         vol.Required(
@@ -688,6 +714,8 @@ def build_chore_schema(
                 const.DATA_CHORE_NOTIFY_ON_APPROVAL,
                 const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL,
                 const.DATA_CHORE_NOTIFY_ON_REMINDER,
+                const.DATA_CHORE_NOTIFY_ON_DUE_WINDOW,
+                const.DATA_CHORE_NOTIFY_DUE_REMINDER,
             ],
             multiple=True,
             translation_key=const.TRANS_KEY_FLOW_HELPERS_CHORE_NOTIFICATIONS,
@@ -962,6 +990,22 @@ def transform_chore_cfof_to_data(
         const.DATA_CHORE_AUTO_APPROVE: user_input.get(
             const.CFOF_CHORES_INPUT_AUTO_APPROVE,
             const.DEFAULT_CHORE_AUTO_APPROVE,
+        ),
+        # Due window fields (Phase 2 - due window feature)
+        const.DATA_CHORE_DUE_WINDOW_OFFSET: user_input.get(
+            const.CFOF_CHORES_INPUT_DUE_WINDOW_OFFSET,
+            const.DEFAULT_DUE_WINDOW_OFFSET,
+        ),
+        const.DATA_CHORE_DUE_REMINDER_OFFSET: user_input.get(
+            const.CFOF_CHORES_INPUT_DUE_REMINDER_OFFSET,
+            const.DEFAULT_DUE_REMINDER_OFFSET,
+        ),
+        # Due window notification fields from consolidated selector
+        const.DATA_CHORE_NOTIFY_ON_DUE_WINDOW: (
+            const.DATA_CHORE_NOTIFY_ON_DUE_WINDOW in notifications
+        ),
+        const.DATA_CHORE_NOTIFY_DUE_REMINDER: (
+            const.DATA_CHORE_NOTIFY_DUE_REMINDER in notifications
         ),
     }
 
@@ -3034,6 +3078,16 @@ def _build_notification_defaults(default: dict[str, Any]) -> list[str]:
         const.DEFAULT_NOTIFY_ON_REMINDER,
     ):
         notifications.append(const.DATA_CHORE_NOTIFY_ON_REMINDER)
+    if default.get(
+        const.CFOF_CHORES_INPUT_NOTIFY_ON_DUE_WINDOW,
+        const.DEFAULT_NOTIFY_ON_DUE_WINDOW,
+    ):
+        notifications.append(const.DATA_CHORE_NOTIFY_ON_DUE_WINDOW)
+    if default.get(
+        const.CFOF_CHORES_INPUT_NOTIFY_DUE_REMINDER,
+        const.DEFAULT_NOTIFY_DUE_REMINDER,
+    ):
+        notifications.append(const.DATA_CHORE_NOTIFY_DUE_REMINDER)
     return notifications
 
 
