@@ -11,29 +11,26 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.components.datetime import DateTimeEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
 from . import const, kc_helpers as kh
-from .coordinator import KidsChoresDataCoordinator
+from .coordinator import KidsChoresConfigEntry, KidsChoresDataCoordinator
 
-# Silver requirement: Parallel Updates
+# Platinum requirement: Parallel Updates
 # Set to 1 (serialized) for entities that modify state
 PARALLEL_UPDATES = 1
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: KidsChoresConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up KidsChores datetime entities."""
-    coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry.entry_id][
-        const.COORDINATOR
-    ]
+    coordinator: KidsChoresDataCoordinator = entry.runtime_data
 
     entities = []
     for kid_id, kid_info in coordinator.kids_data.items():
@@ -59,7 +56,7 @@ class KidDashboardHelperDateTimePicker(DateTimeEntity, RestoreEntity):
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         kid_id: str,
         kid_name: str,
     ) -> None:

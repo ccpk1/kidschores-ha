@@ -61,14 +61,14 @@ from datetime import datetime, timedelta
 from typing import Any, cast
 
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import PERCENTAGE
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity_registry import async_get
 from homeassistant.util import dt as dt_util
 
 from . import const, kc_helpers as kh
-from .coordinator import KidsChoresDataCoordinator
+from .coordinator import KidsChoresConfigEntry, KidsChoresDataCoordinator
 from .entity import KidsChoresCoordinatorEntity
 from .sensor_legacy import (
     KidBonusAppliedSensor,
@@ -99,17 +99,18 @@ from .type_defs import (
     RewardData,
 )
 
-# Silver requirement: Parallel Updates
+# Platinum requirement: Parallel Updates
 # Set to 0 (unlimited) for coordinator-based entities that don't poll
 PARALLEL_UPDATES = 0
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
-):
+    hass: HomeAssistant,
+    entry: KidsChoresConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
     """Set up sensors for KidsChores integration."""
-    data = hass.data[const.DOMAIN][entry.entry_id]
-    coordinator: KidsChoresDataCoordinator = data[const.DATA_COORDINATOR]
+    coordinator = entry.runtime_data
 
     points_label = entry.options.get(
         const.CONF_POINTS_LABEL, const.DEFAULT_POINTS_LABEL
@@ -679,7 +680,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         kid_id: str,
         kid_name: str,
         chore_id: str,
@@ -1037,7 +1038,7 @@ class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         kid_id: str,
         kid_name: str,
         points_label: str,
@@ -1135,7 +1136,7 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         kid_id: str,
         kid_name: str,
     ):
@@ -1216,7 +1217,7 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         kid_id: str,
         kid_name: str,
     ):
@@ -1503,7 +1504,7 @@ class KidBadgeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         kid_id: str,
         kid_name: str,
         badge_id: str,
@@ -1673,7 +1674,7 @@ class SystemBadgeSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         badge_id: str,
         badge_name: str,
     ):
@@ -1859,7 +1860,7 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         chore_id: str,
         chore_name: str,
     ):
@@ -2045,7 +2046,7 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         kid_id: str,
         kid_name: str,
         reward_id: str,
@@ -2328,7 +2329,7 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         achievement_id: str,
         achievement_name: str,
     ):
@@ -2572,7 +2573,7 @@ class SystemChallengeSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         challenge_id: str,
         challenge_name: str,
     ):
@@ -2761,7 +2762,7 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         kid_id: str,
         kid_name: str,
         achievement_id: str,
@@ -3012,7 +3013,7 @@ class KidChallengeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         kid_id: str,
         kid_name: str,
         challenge_id: str,
@@ -3224,7 +3225,7 @@ class SystemDashboardTranslationSensor(KidsChoresCoordinatorEntity, SensorEntity
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         language_code: str,
     ):
         """Initialize the translation sensor.
@@ -3305,7 +3306,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         kid_id: str,
         kid_name: str,
         points_label: str,

@@ -9,7 +9,7 @@ This file is organized into logical sections for easy navigation:
    - Entity registry queries, parsing unique IDs, orphan detection regex
 
 2. **Get Coordinator** (Line ~210)
-   - Retrieves KidsChores coordinator from hass.data
+   - Retrieves KidsChores coordinator from config entry runtime_data
 
 3. **Authorization Helpers** (Line ~230)
    - Global and kid-specific authorization checks (parent/kid role validation)
@@ -208,21 +208,16 @@ def build_orphan_detection_regex(
 def _get_kidschores_coordinator(
     hass: HomeAssistant,
 ) -> KidsChoresDataCoordinator | None:
-    """Retrieve KidsChores coordinator from hass.data."""
-
-    domain_entries = hass.data.get(const.DOMAIN, {})
-    if not domain_entries:
+    """Retrieve KidsChores coordinator from config entry runtime_data."""
+    entries = hass.config_entries.async_entries(const.DOMAIN)
+    if not entries:
         return None
 
-    entry_id = next(iter(domain_entries), None)
-    if not entry_id:
-        return None
-
-    data = domain_entries.get(entry_id)
-    if not data or const.COORDINATOR not in data:
-        return None
-
-    return data[const.COORDINATOR]
+    # Get first loaded entry
+    for entry in entries:
+        if entry.state.name == "LOADED":
+            return entry.runtime_data
+    return None
 
 
 async def is_user_authorized_for_global_action(
@@ -354,10 +349,10 @@ def parse_points_adjust_values(points_str: str) -> list[float]:
 
 def get_first_kidschores_entry(hass: HomeAssistant) -> str | None:
     """Retrieve the first KidsChores config entry ID."""
-    domain_entries = hass.data.get(const.DOMAIN)
-    if not domain_entries:
+    entries = hass.config_entries.async_entries(const.DOMAIN)
+    if not entries:
         return None
-    return next(iter(domain_entries.keys()), None)
+    return entries[0].entry_id
 
 
 def get_entity_id_from_unique_id(hass: HomeAssistant, unique_id: str) -> str | None:

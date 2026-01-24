@@ -72,12 +72,14 @@ def mock_coordinator(mock_storage_data):
 
 
 @pytest.fixture
-def mock_config_entry():
-    """Create a mock config entry."""
+def mock_config_entry(mock_coordinator):
+    """Create a mock config entry with runtime_data."""
     entry = MagicMock(spec=ConfigEntry)
     entry.entry_id = "test_entry_id"
     entry.version = 1
     entry.title = "KidsChores"
+    # Add runtime_data pointing to coordinator
+    entry.runtime_data = mock_coordinator
     # Add default options for config_entry_settings
     entry.options = {
         const.CONF_POINTS_LABEL: const.DEFAULT_POINTS_LABEL,
@@ -94,17 +96,10 @@ def mock_config_entry():
 
 
 @pytest.fixture
-def mock_hass(mock_coordinator, mock_config_entry):
+def mock_hass():
     """Create a mock Home Assistant instance."""
-    hass = MagicMock(spec=HomeAssistant)
-    hass.data = {
-        const.DOMAIN: {
-            mock_config_entry.entry_id: {
-                const.COORDINATOR: mock_coordinator,
-            }
-        }
-    }
-    return hass
+    # hass.data is no longer used - coordinator accessed via entry.runtime_data
+    return MagicMock(spec=HomeAssistant)
 
 
 @pytest.fixture

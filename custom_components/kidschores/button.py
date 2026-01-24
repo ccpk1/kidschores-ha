@@ -18,25 +18,26 @@ Features:
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.components.button import ButtonEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import const, kc_helpers as kh
-from .coordinator import KidsChoresDataCoordinator
+from .coordinator import KidsChoresConfigEntry, KidsChoresDataCoordinator
 from .entity import KidsChoresCoordinatorEntity
 
 if TYPE_CHECKING:
     from .type_defs import BonusData, ChoreData, KidData, PenaltyData, RewardData
 
-# Silver requirement: Parallel Updates
+# Platinum requirement: Parallel Updates
 # Set to 1 (serialized) for action buttons that modify state
 PARALLEL_UPDATES = 1
 
 
 async def _cleanup_orphaned_adjustment_buttons(
-    hass: HomeAssistant, entry: ConfigEntry, coordinator: KidsChoresDataCoordinator
+    hass: HomeAssistant,
+    entry: KidsChoresConfigEntry,
+    coordinator: KidsChoresDataCoordinator,
 ) -> None:
     """Remove orphaned manual adjustment button entities.
 
@@ -111,12 +112,11 @@ async def _cleanup_orphaned_adjustment_buttons(
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: KidsChoresConfigEntry,
     async_add_entities: AddEntitiesCallback,
-):
+) -> None:
     """Set up dynamic buttons."""
-    data = hass.data[const.DOMAIN][entry.entry_id]
-    coordinator: KidsChoresDataCoordinator = data[const.COORDINATOR]
+    coordinator = entry.runtime_data
 
     points_label = entry.options.get(
         const.CONF_POINTS_LABEL, const.DEFAULT_POINTS_LABEL
@@ -402,7 +402,7 @@ class KidChoreClaimButton(KidsChoresCoordinatorEntity, ButtonEntity):
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         kid_id: str,
         kid_name: str,
         chore_id: str,
@@ -413,7 +413,7 @@ class KidChoreClaimButton(KidsChoresCoordinatorEntity, ButtonEntity):
 
         Args:
             coordinator: KidsChoresDataCoordinator instance for data access and updates.
-            entry: ConfigEntry for this integration instance.
+            entry: KidsChoresConfigEntry for this integration instance.
             kid_id: Unique identifier for the kid.
             kid_name: Display name of the kid.
             chore_id: Unique identifier for the chore.
@@ -523,7 +523,7 @@ class ParentChoreApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         kid_id: str,
         kid_name: str,
         chore_id: str,
@@ -534,7 +534,7 @@ class ParentChoreApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
 
         Args:
             coordinator: KidsChoresDataCoordinator instance for data access and updates.
-            entry: ConfigEntry for this integration instance.
+            entry: KidsChoresConfigEntry for this integration instance.
             kid_id: Unique identifier for the kid.
             kid_name: Display name of the kid.
             chore_id: Unique identifier for the chore.
@@ -650,7 +650,7 @@ class ParentChoreDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         kid_id: str,
         kid_name: str,
         chore_id: str,
@@ -661,7 +661,7 @@ class ParentChoreDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
 
         Args:
             coordinator: KidsChoresDataCoordinator instance for data access and updates.
-            entry: ConfigEntry for this integration instance.
+            entry: KidsChoresConfigEntry for this integration instance.
             kid_id: Unique identifier for the kid.
             kid_name: Display name of the kid.
             chore_id: Unique identifier for the chore.
@@ -814,7 +814,7 @@ class KidRewardRedeemButton(KidsChoresCoordinatorEntity, ButtonEntity):
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         kid_id: str,
         kid_name: str,
         reward_id: str,
@@ -825,7 +825,7 @@ class KidRewardRedeemButton(KidsChoresCoordinatorEntity, ButtonEntity):
 
         Args:
             coordinator: KidsChoresDataCoordinator instance for data access and updates.
-            entry: ConfigEntry for this integration instance.
+            entry: KidsChoresConfigEntry for this integration instance.
             kid_id: Unique identifier for the kid.
             kid_name: Display name of the kid.
             reward_id: Unique identifier for the reward.
@@ -939,7 +939,7 @@ class ParentRewardApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         kid_id: str,
         kid_name: str,
         reward_id: str,
@@ -950,7 +950,7 @@ class ParentRewardApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
 
         Args:
             coordinator: KidsChoresDataCoordinator instance for data access and updates.
-            entry: ConfigEntry for this integration instance.
+            entry: KidsChoresConfigEntry for this integration instance.
             kid_id: Unique identifier for the kid.
             kid_name: Display name of the kid.
             reward_id: Unique identifier for the reward.
@@ -1067,7 +1067,7 @@ class ParentRewardDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         kid_id: str,
         kid_name: str,
         reward_id: str,
@@ -1078,7 +1078,7 @@ class ParentRewardDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
 
         Args:
             coordinator: KidsChoresDataCoordinator instance for data access and updates.
-            entry: ConfigEntry for this integration instance.
+            entry: KidsChoresConfigEntry for this integration instance.
             kid_id: Unique identifier for the kid.
             kid_name: Display name of the kid.
             reward_id: Unique identifier for the reward.
@@ -1229,7 +1229,7 @@ class ParentBonusApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         kid_id: str,
         kid_name: str,
         bonus_id: str,
@@ -1240,7 +1240,7 @@ class ParentBonusApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
 
         Args:
             coordinator: KidsChoresDataCoordinator instance for data access and updates.
-            entry: ConfigEntry for this integration instance.
+            entry: KidsChoresConfigEntry for this integration instance.
             kid_id: Unique identifier for the kid.
             kid_name: Display name of the kid.
             bonus_id: Unique identifier for the bonus.
@@ -1368,7 +1368,7 @@ class ParentPenaltyApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         kid_id: str,
         kid_name: str,
         penalty_id: str,
@@ -1379,7 +1379,7 @@ class ParentPenaltyApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
 
         Args:
             coordinator: KidsChoresDataCoordinator instance for data access and updates.
-            entry: ConfigEntry for this integration instance.
+            entry: KidsChoresConfigEntry for this integration instance.
             kid_id: Unique identifier for the kid.
             kid_name: Display name of the kid.
             penalty_id: Unique identifier for the penalty.
@@ -1515,7 +1515,7 @@ class ParentPointsAdjustButton(KidsChoresCoordinatorEntity, ButtonEntity):
     def __init__(
         self,
         coordinator: KidsChoresDataCoordinator,
-        entry: ConfigEntry,
+        entry: KidsChoresConfigEntry,
         kid_id: str,
         kid_name: str,
         delta: float,
@@ -1525,7 +1525,7 @@ class ParentPointsAdjustButton(KidsChoresCoordinatorEntity, ButtonEntity):
 
         Args:
             coordinator: KidsChoresDataCoordinator instance for data access and updates.
-            entry: ConfigEntry for this integration instance.
+            entry: KidsChoresConfigEntry for this integration instance.
             kid_id: Unique identifier for the kid.
             kid_name: Display name of the kid.
             delta: Points adjustment value (positive for increment, negative for decrement).

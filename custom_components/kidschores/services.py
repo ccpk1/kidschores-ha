@@ -20,6 +20,31 @@ if TYPE_CHECKING:
     from .coordinator import KidsChoresDataCoordinator
     from .type_defs import ChoreData
 
+
+def _get_coordinator_by_entry_id(
+    hass: HomeAssistant, entry_id: str
+) -> "KidsChoresDataCoordinator":
+    """Get coordinator from config entry ID using runtime_data.
+
+    Args:
+        hass: Home Assistant instance
+        entry_id: Config entry ID string
+
+    Returns:
+        KidsChoresDataCoordinator instance
+
+    Raises:
+        HomeAssistantError: If entry not found or not loaded
+    """
+    entry = hass.config_entries.async_get_entry(entry_id)
+    if not entry:
+        raise HomeAssistantError(
+            translation_domain=const.DOMAIN,
+            translation_key=const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND,
+        )
+    return cast("KidsChoresDataCoordinator", entry.runtime_data)
+
+
 # --- Service Schemas ---
 
 # Common schema base patterns for DRY principle
@@ -388,9 +413,7 @@ def async_setup_services(hass: HomeAssistant):
             )
             return
 
-        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
-            const.COORDINATOR
-        ]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
         name = call.data[const.FIELD_NAME]
         action = call.data[const.FIELD_ACTION]
 
@@ -546,9 +569,7 @@ def async_setup_services(hass: HomeAssistant):
                 translation_key=const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND,
             )
 
-        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
-            const.COORDINATOR
-        ]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
 
         # Resolve kid names to UUIDs
         kid_names = call.data.get(const.SERVICE_FIELD_CHORE_CRUD_ASSIGNED_KIDS, [])
@@ -667,9 +688,7 @@ def async_setup_services(hass: HomeAssistant):
                 translation_key=const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND,
             )
 
-        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
-            const.COORDINATOR
-        ]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
 
         # Resolve chore: either chore_id or name must be provided
         chore_id = call.data.get(const.SERVICE_FIELD_CHORE_CRUD_ID)
@@ -835,9 +854,7 @@ def async_setup_services(hass: HomeAssistant):
                 translation_key=const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND,
             )
 
-        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
-            const.COORDINATOR
-        ]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
 
         # Resolve chore: either chore_id or name must be provided
         chore_id = call.data.get(const.SERVICE_FIELD_CHORE_CRUD_ID)
@@ -884,9 +901,7 @@ def async_setup_services(hass: HomeAssistant):
             )
             return
 
-        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
-            const.COORDINATOR
-        ]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
         user_id = call.context.user_id
         kid_name = call.data[const.FIELD_KID_NAME]
         chore_name = call.data[const.FIELD_CHORE_NAME]
@@ -944,9 +959,7 @@ def async_setup_services(hass: HomeAssistant):
             )
             return
 
-        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
-            const.COORDINATOR
-        ]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
         user_id = call.context.user_id
         parent_name = call.data[const.FIELD_PARENT_NAME]
         kid_name = call.data[const.FIELD_KID_NAME]
@@ -1014,9 +1027,7 @@ def async_setup_services(hass: HomeAssistant):
             )
             return
 
-        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
-            const.COORDINATOR
-        ]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
         parent_name = call.data[const.FIELD_PARENT_NAME]
         kid_name = call.data[const.FIELD_KID_NAME]
         chore_name = call.data[const.FIELD_CHORE_NAME]
@@ -1084,9 +1095,7 @@ def async_setup_services(hass: HomeAssistant):
             )
             return
 
-        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
-            const.COORDINATOR
-        ]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
         chore_name = call.data[const.FIELD_CHORE_NAME]
         due_date_input = call.data.get(const.FIELD_DUE_DATE)
         kid_name = call.data.get(const.FIELD_KID_NAME)
@@ -1223,9 +1232,7 @@ def async_setup_services(hass: HomeAssistant):
             )
             return
 
-        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
-            const.COORDINATOR
-        ]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
 
         # Get parameters: either chore_id or chore_name must be provided.
         chore_id = call.data.get(const.FIELD_CHORE_ID)
@@ -1347,9 +1354,7 @@ def async_setup_services(hass: HomeAssistant):
                 translation_key=const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND,
             )
 
-        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
-            const.COORDINATOR
-        ]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
 
         # Map service fields to DATA_* keys for data_builders
         data_input = _map_service_to_data_keys(
@@ -1433,9 +1438,7 @@ def async_setup_services(hass: HomeAssistant):
                 translation_key=const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND,
             )
 
-        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
-            const.COORDINATOR
-        ]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
 
         # Resolve reward: either reward_id or reward_name must be provided
         reward_id = call.data.get(const.SERVICE_FIELD_REWARD_ID)
@@ -1550,9 +1553,7 @@ def async_setup_services(hass: HomeAssistant):
                 translation_key=const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND,
             )
 
-        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
-            const.COORDINATOR
-        ]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
 
         # Resolve reward: either reward_id or reward_name must be provided
         reward_id = call.data.get(const.SERVICE_FIELD_REWARD_ID)
@@ -1599,9 +1600,7 @@ def async_setup_services(hass: HomeAssistant):
             )
             return
 
-        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
-            const.COORDINATOR
-        ]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
         parent_name = call.data[const.FIELD_PARENT_NAME]
         kid_name = call.data[const.FIELD_KID_NAME]
         reward_name = call.data[const.FIELD_REWARD_NAME]
@@ -1700,9 +1699,7 @@ def async_setup_services(hass: HomeAssistant):
             )
             return
 
-        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
-            const.COORDINATOR
-        ]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
         user_id = call.context.user_id
         parent_name = call.data[const.FIELD_PARENT_NAME]
         kid_name = call.data[const.FIELD_KID_NAME]
@@ -1774,9 +1771,7 @@ def async_setup_services(hass: HomeAssistant):
             )
             return
 
-        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
-            const.COORDINATOR
-        ]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
         parent_name = call.data[const.FIELD_PARENT_NAME]
         kid_name = call.data[const.FIELD_KID_NAME]
         reward_name = call.data[const.FIELD_REWARD_NAME]
@@ -1839,9 +1834,7 @@ def async_setup_services(hass: HomeAssistant):
             )
             return
 
-        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
-            const.COORDINATOR
-        ]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
 
         kid_name = call.data.get(const.FIELD_KID_NAME)
         reward_name = call.data.get(const.FIELD_REWARD_NAME)
@@ -1912,9 +1905,7 @@ def async_setup_services(hass: HomeAssistant):
             )
             return
 
-        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
-            const.COORDINATOR
-        ]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
         parent_name = call.data[const.FIELD_PARENT_NAME]
         kid_name = call.data[const.FIELD_KID_NAME]
         penalty_name = call.data[const.FIELD_PENALTY_NAME]
@@ -1976,9 +1967,7 @@ def async_setup_services(hass: HomeAssistant):
             )
             return
 
-        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
-            const.COORDINATOR
-        ]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
 
         kid_name = call.data.get(const.FIELD_KID_NAME)
         penalty_name = call.data.get(const.FIELD_PENALTY_NAME)
@@ -2050,9 +2039,7 @@ def async_setup_services(hass: HomeAssistant):
             )
             return
 
-        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
-            const.COORDINATOR
-        ]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
         parent_name = call.data[const.FIELD_PARENT_NAME]
         kid_name = call.data[const.FIELD_KID_NAME]
         bonus_name = call.data[const.FIELD_BONUS_NAME]
@@ -2112,9 +2099,7 @@ def async_setup_services(hass: HomeAssistant):
             )
             return
 
-        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
-            const.COORDINATOR
-        ]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
 
         kid_name = call.data.get(const.FIELD_KID_NAME)
         bonus_name = call.data.get(const.FIELD_BONUS_NAME)
@@ -2186,9 +2171,7 @@ def async_setup_services(hass: HomeAssistant):
             )
             return
 
-        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
-            const.COORDINATOR
-        ]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
 
         kid_name = call.data.get(const.FIELD_KID_NAME)
         badge_name = call.data.get(const.FIELD_BADGE_NAME)
@@ -2237,12 +2220,7 @@ def async_setup_services(hass: HomeAssistant):
             const.LOGGER.warning("Reset All Data: No KidsChores entry found")
             return
 
-        data = hass.data[const.DOMAIN].get(entry_id)
-        if not data:
-            const.LOGGER.warning("Reset All Data: No coordinator data found")
-            return
-
-        coordinator: KidsChoresDataCoordinator = data[const.COORDINATOR]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
 
         # Step 1: Create backup before factory reset
         try:
@@ -2300,12 +2278,7 @@ def async_setup_services(hass: HomeAssistant):
             const.LOGGER.warning("Reset All Chores: No KidsChores entry found")
             return
 
-        data = hass.data[const.DOMAIN].get(entry_id)
-        if not data:
-            const.LOGGER.warning("Reset All Chores: No coordinator data found")
-            return
-
-        coordinator: KidsChoresDataCoordinator = data[const.COORDINATOR]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
 
         # Delegate to coordinator method
         coordinator.reset_all_chores()
@@ -2328,9 +2301,7 @@ def async_setup_services(hass: HomeAssistant):
             )
             return
 
-        coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry_id][
-            const.COORDINATOR
-        ]
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
 
         # Get parameters
         chore_id = call.data.get(const.FIELD_CHORE_ID)

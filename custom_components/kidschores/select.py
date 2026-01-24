@@ -20,26 +20,24 @@ from . import const, kc_helpers as kh
 from .entity import KidsChoresCoordinatorEntity
 
 if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-    from .coordinator import KidsChoresDataCoordinator
+    from .coordinator import KidsChoresConfigEntry, KidsChoresDataCoordinator
     from .type_defs import KidData
 
-# Silver requirement: Parallel Updates
+# Platinum requirement: Parallel Updates
 # Set to 0 (unlimited) for coordinator-based entities that don't poll
 PARALLEL_UPDATES = 0
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: KidsChoresConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the KidsChores select entities from a config entry."""
-    data = hass.data[const.DOMAIN][entry.entry_id]
-    coordinator: KidsChoresDataCoordinator = data[const.COORDINATOR]
+    coordinator = entry.runtime_data
 
     # Get flag states for entity creation decisions
     extra_enabled = entry.options.get(
@@ -96,12 +94,14 @@ class KidsChoresSelectBase(KidsChoresCoordinatorEntity, SelectEntity):
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SELECT_BASE
 
-    def __init__(self, coordinator: KidsChoresDataCoordinator, entry: ConfigEntry):
+    def __init__(
+        self, coordinator: KidsChoresDataCoordinator, entry: KidsChoresConfigEntry
+    ):
         """Initialize the base select entity.
 
         Args:
             coordinator: KidsChoresDataCoordinator instance for data access.
-            entry: ConfigEntry for this integration instance.
+            entry: KidsChoresConfigEntry for this integration instance.
         """
         super().__init__(coordinator)
         self._entry = entry
@@ -138,12 +138,14 @@ class SystemChoresSelect(KidsChoresSelectBase):
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SELECT_CHORES
 
-    def __init__(self, coordinator: KidsChoresDataCoordinator, entry: ConfigEntry):
+    def __init__(
+        self, coordinator: KidsChoresDataCoordinator, entry: KidsChoresConfigEntry
+    ):
         """Initialize the Chores select entity.
 
         Args:
             coordinator: KidsChoresDataCoordinator instance for data access.
-            entry: ConfigEntry for this integration instance.
+            entry: KidsChoresConfigEntry for this integration instance.
         """
         super().__init__(coordinator, entry)
         self._attr_unique_id = (
@@ -186,12 +188,14 @@ class SystemRewardsSelect(KidsChoresSelectBase):
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SELECT_REWARDS
 
-    def __init__(self, coordinator: KidsChoresDataCoordinator, entry: ConfigEntry):
+    def __init__(
+        self, coordinator: KidsChoresDataCoordinator, entry: KidsChoresConfigEntry
+    ):
         """Initialize the Rewards select entity.
 
         Args:
             coordinator: KidsChoresDataCoordinator instance for data access.
-            entry: ConfigEntry for this integration instance.
+            entry: KidsChoresConfigEntry for this integration instance.
         """
         super().__init__(coordinator, entry)
         self._attr_unique_id = (
@@ -234,12 +238,14 @@ class SystemPenaltiesSelect(KidsChoresSelectBase):
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SELECT_PENALTIES
 
-    def __init__(self, coordinator: KidsChoresDataCoordinator, entry: ConfigEntry):
+    def __init__(
+        self, coordinator: KidsChoresDataCoordinator, entry: KidsChoresConfigEntry
+    ):
         """Initialize the Penalties select entity.
 
         Args:
             coordinator: KidsChoresDataCoordinator instance for data access.
-            entry: ConfigEntry for this integration instance.
+            entry: KidsChoresConfigEntry for this integration instance.
         """
         super().__init__(coordinator, entry)
         self._attr_unique_id = (
@@ -282,12 +288,14 @@ class SystemBonusesSelect(KidsChoresSelectBase):
     _attr_has_entity_name = True
     _attr_translation_key = const.TRANS_KEY_SELECT_BONUSES
 
-    def __init__(self, coordinator: KidsChoresDataCoordinator, entry: ConfigEntry):
+    def __init__(
+        self, coordinator: KidsChoresDataCoordinator, entry: KidsChoresConfigEntry
+    ):
         """Initialize the Bonuses select entity.
 
         Args:
             coordinator: KidsChoresDataCoordinator instance for data access.
-            entry: ConfigEntry for this integration instance.
+            entry: KidsChoresConfigEntry for this integration instance.
         """
         super().__init__(coordinator, entry)
         self._attr_unique_id = (
@@ -332,13 +340,16 @@ class KidDashboardHelperChoresSelect(KidsChoresSelectBase):
     _attr_translation_key = const.TRANS_KEY_SELECT_CHORES_KID
 
     def __init__(
-        self, coordinator: KidsChoresDataCoordinator, entry: ConfigEntry, kid_id: str
+        self,
+        coordinator: KidsChoresDataCoordinator,
+        entry: KidsChoresConfigEntry,
+        kid_id: str,
     ):
         """Initialize the KidDashboardHelperChoresSelect.
 
         Args:
             coordinator: KidsChoresDataCoordinator instance for data access.
-            entry: ConfigEntry for this integration instance.
+            entry: KidsChoresConfigEntry for this integration instance.
             kid_id: Unique identifier for the kid to filter chores.
         """
         super().__init__(coordinator, entry)

@@ -93,7 +93,6 @@ from tests.helpers import (
     CFOF_REWARDS_INPUT_ICON,
     CFOF_REWARDS_INPUT_NAME,
     # Domain and coordinator
-    COORDINATOR,
     DOMAIN,
     # Options flow navigation constants
     OPTIONS_FLOW_ACTIONS_ADD,
@@ -383,7 +382,7 @@ class FlowTestHelper:
 
     @staticmethod
     async def get_coordinator(hass: HomeAssistant) -> Any:
-        """Get the KidsChores coordinator from hass.data.
+        """Get the KidsChores coordinator from config entry runtime_data.
 
         Args:
             hass: Home Assistant instance
@@ -393,7 +392,7 @@ class FlowTestHelper:
         """
         for entry in hass.config_entries.async_entries(DOMAIN):
             if entry.state.name == "LOADED":
-                return hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+                return entry.runtime_data
         return None
 
     @staticmethod

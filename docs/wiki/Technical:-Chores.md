@@ -3,7 +3,7 @@
 **Target Audience**: Developers, Automation Creators, Dashboard Builders
 **Prerequisites**: Basic Home Assistant automation knowledge, Jinja2 templating
 **Covers**: Entity reference, state mapping, Jinja templates, JSON attributes
-**Version**: v0.5.0+ (Silver Quality, Storage Architecture)
+**Version**: v0.5.0+ (Platinum Quality, Storage Architecture)
 **Last Updated**: January 2026
 
 > [!IMPORTANT]

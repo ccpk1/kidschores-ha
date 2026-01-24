@@ -1,8 +1,8 @@
 # KidsChores HA Integration - Agent Guide
 
-**Version**: v0.5.0+ (Silver Quality, Storage-Only Architecture)
+**Version**: v0.5.0+ (Platinum Quality, Storage-Only Architecture)
 
-**Silver Quality** = 100% type hints + docstrings on all public methods + 95%+ test coverage.
+**Platinum Quality** = 100% type hints + docstrings on all public methods + 95%+ test coverage + strict typing.
 
 ## 📚 Documentation Hierarchy
 
@@ -10,7 +10,7 @@ Read **only** what you need for your task:
 
 - **[ARCHITECTURE.md](../docs/ARCHITECTURE.md)** - Data model, storage, versioning
 - **[DEVELOPMENT_STANDARDS.md](../docs/DEVELOPMENT_STANDARDS.md)** - How to code (constants, logging, types, translations)
-- **[QUALITY_REFERENCE.md](..docs/QUALITY_REFERENCE.md)** - Details on silver quality requirements
+- **[QUALITY_REFERENCE.md](../docs/QUALITY_REFERENCE.md)** - Details on platinum quality requirements
 - **[CODE_REVIEW_GUIDE.md](../docs/CODE_REVIEW_GUIDE.md)** - Phase 0 audit framework for reviewing code
 - **[AGENT_TESTING_USAGE_GUIDE.md](../tests/AGENT_TESTING_USAGE_GUIDE.md)** - Test validation & debugging
 

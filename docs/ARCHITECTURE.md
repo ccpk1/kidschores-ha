@@ -2,18 +2,18 @@
 
 **Integration Version**: 0.5.0+
 **Storage Schema Version**: 42 (Storage-Only Mode with Meta Section)
-**Quality Scale Level**: ⭐ **Silver** (Unofficially Meets Standards)
+**Quality Scale Level**: ⭐ **Platinum** (Meets All Quality Standards)
 **Date**: January 2026
 
 ---
 
-## 🎯 Silver Quality Standards
+## 🎯 Platinum Quality Standards
 
-This integration unofficially meets **Home Assistant Silver** quality level requirements. See [quality_scale.yaml](../custom_components/kidschores/quality_scale.yaml) for current rule status and [AGENTS.md](../../core/AGENTS.md) and [Home Assistant's Integration Quality Scale](https://developers.home-assistant.io/docs/integration_quality_scale_index/) for ongoing Home Assistant quality standards.
+This integration meets **Home Assistant Platinum** quality level requirements. See [quality_scale.yaml](../custom_components/kidschores/quality_scale.yaml) for current rule status and [AGENTS.md](../../core/AGENTS.md) and [Home Assistant's Integration Quality Scale](https://developers.home-assistant.io/docs/integration_quality_scale_index/) for ongoing Home Assistant quality standards.
 
 ### Home Assistant Quality Standards Reference
 
-For ongoing reference and to maintain Silver certification (and pathway to Gold), consult:
+For ongoing reference and to maintain Platinum certification, consult:
 
 - **[AGENTS.md](../../core/AGENTS.md)** - Home Assistant's authoritative code quality guide
   - Covers all quality scale levels (Bronze, Silver, Gold, Platinum)
@@ -21,9 +21,8 @@ For ongoing reference and to maintain Silver certification (and pathway to Gold)
   - Provides code examples and best practices
 
 - **[quality_scale.yaml](../custom_components/kidschores/quality_scale.yaml)** - Current rule status
-  - Shows which Silver rules are "done"
+  - Shows which Platinum rules are "done"
   - Indicates if any rules are "exempt" with rationale
-  - Tracks next steps for Gold certification
 
 - **[CODE_REVIEW_GUIDE.md](../docs/CODE_REVIEW_GUIDE.md)** - KidsChores-specific review patterns
   - Phase 0 audit framework for new files

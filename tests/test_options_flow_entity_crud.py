@@ -28,7 +28,6 @@ from tests.helpers import (
     CONF_POINTS_ICON,
     CONF_POINTS_LABEL,
     CONF_UPDATE_INTERVAL,
-    COORDINATOR,
     DOMAIN,
     OPTIONS_FLOW_ACHIEVEMENTS,
     OPTIONS_FLOW_ACTIONS_ADD,
@@ -580,7 +579,7 @@ async def test_add_entities_from_minimal_scenario(
     assert result.get("step_id") == OPTIONS_FLOW_STEP_INIT
 
     # After options flow add, integration reloads - get fresh coordinator
-    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+    coordinator = config_entry.runtime_data
     kid_names = [k["name"] for k in coordinator.kids_data.values()]
     assert "New Scenario Kid" in kid_names
 
@@ -598,7 +597,7 @@ async def test_add_entities_from_minimal_scenario(
     assert result.get("step_id") == OPTIONS_FLOW_STEP_INIT
 
     # Get fresh coordinator again after reload
-    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+    coordinator = config_entry.runtime_data
     reward_names = [r["name"] for r in coordinator.rewards_data.values()]
     assert "New Scenario Reward" in reward_names
 

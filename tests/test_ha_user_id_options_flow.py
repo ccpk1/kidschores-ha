@@ -26,10 +26,8 @@ from tests.helpers import (
     CFOF_PARENTS_INPUT_MOBILE_NOTIFY_SERVICE,
     CFOF_PARENTS_INPUT_NAME,
     # Common constants
-    COORDINATOR,
     DATA_KID_HA_USER_ID,
     DATA_PARENT_HA_USER_ID,
-    DOMAIN,
     OPTIONS_FLOW_ACTIONS_EDIT,
     OPTIONS_FLOW_INPUT_ENTITY_NAME,
     OPTIONS_FLOW_INPUT_MANAGE_ACTION,
@@ -120,7 +118,7 @@ class TestHaUserIdClearing:
         assert result.get("step_id") == OPTIONS_FLOW_STEP_INIT
 
         # Verify user ID was set
-        coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+        coordinator = config_entry.runtime_data
         kid_data = coordinator.kids_data.get(kid_id, {})
         assert kid_data.get(DATA_KID_HA_USER_ID) == test_ha_user.id
 
@@ -158,7 +156,7 @@ class TestHaUserIdClearing:
         assert result.get("step_id") == OPTIONS_FLOW_STEP_INIT
 
         # Step 7: Verify user ID was cleared
-        coordinator_after = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+        coordinator_after = config_entry.runtime_data
         kid_data_after = coordinator_after.kids_data.get(kid_id, {})
         ha_user_id_after = kid_data_after.get(DATA_KID_HA_USER_ID, "NOT_FOUND")
 
@@ -217,7 +215,7 @@ class TestHaUserIdClearing:
             )
 
         # Verify user ID was set
-        coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+        coordinator = config_entry.runtime_data
         parent_data = coordinator.parents_data.get(parent_id, {})
         assert parent_data.get(DATA_PARENT_HA_USER_ID) == test_ha_user.id
 
@@ -256,7 +254,7 @@ class TestHaUserIdClearing:
             )
 
         # Step 7: Verify user ID was cleared
-        coordinator_after = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+        coordinator_after = config_entry.runtime_data
         parent_data_after = coordinator_after.parents_data.get(parent_id, {})
         ha_user_id_after = parent_data_after.get(DATA_PARENT_HA_USER_ID, "NOT_FOUND")
 

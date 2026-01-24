@@ -63,6 +63,10 @@ from .type_defs import (
     RewardsCollection,
 )
 
+# Type alias for typed config entry access (modern HA pattern)
+# Must be defined after imports but before class since it references the class
+type KidsChoresConfigEntry = ConfigEntry["KidsChoresDataCoordinator"]
+
 
 class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
     """Coordinator for KidsChores integration.

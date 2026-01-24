@@ -1149,8 +1149,8 @@ async def setup_scenario(
     # -------------------------------------------------------------------------
     await hass.async_block_till_done()
 
-    # Get coordinator
-    coordinator = hass.data[const.DOMAIN][config_entry.entry_id][const.COORDINATOR]
+    # Get coordinator from config entry runtime_data
+    coordinator = config_entry.runtime_data
 
     # -------------------------------------------------------------------------
     # Add badges via options flow (supports all badge types)
@@ -1165,7 +1165,7 @@ async def setup_scenario(
         await hass.async_block_till_done()
         # IMPORTANT: Get fresh coordinator reference after badge adds
         # Each badge add triggers a config entry reload, creating a new coordinator
-        coordinator = hass.data[const.DOMAIN][config_entry.entry_id][const.COORDINATOR]
+        coordinator = config_entry.runtime_data
         await coordinator.async_refresh()
         await hass.async_block_till_done()
 

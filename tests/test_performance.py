@@ -17,7 +17,7 @@ from unittest.mock import AsyncMock, patch
 from homeassistant.core import HomeAssistant
 import pytest
 
-from tests.helpers import CHORE_STATE_APPROVED, CHORE_STATE_CLAIMED, COORDINATOR, DOMAIN
+from tests.helpers import CHORE_STATE_APPROVED, CHORE_STATE_CLAIMED
 
 pytestmark = pytest.mark.performance
 
@@ -35,7 +35,7 @@ async def test_performance_baseline_with_scenario_full(
     Run with: pytest tests/test_performance.py -v -s -m performance
     """
     config_entry, _ = scenario_full  # name_to_id_map unused but needed for fixture
-    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+    coordinator = config_entry.runtime_data
 
     with (
         patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),

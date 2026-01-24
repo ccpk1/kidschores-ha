@@ -3629,9 +3629,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             # Cleanup EXTRA entities if flag was disabled (True → False)
             # Must happen before reload to remove entities before new ones are created
             if old_extra_enabled and not new_extra_enabled:
-                coordinator = self.hass.data[const.DOMAIN][self.config_entry.entry_id][
-                    const.COORDINATOR
-                ]
+                coordinator = self._get_coordinator()
                 removed = await coordinator.remove_conditional_entities()
                 if removed > 0:
                     const.LOGGER.info(
@@ -4424,10 +4422,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     # ----------------------------------------------------------------------------------
 
     def _get_coordinator(self):
-        """Get the coordinator from hass.data."""
-        return self.hass.data[const.DOMAIN][self.config_entry.entry_id][
-            const.COORDINATOR
-        ]
+        """Get the coordinator from config entry runtime_data."""
+        return self.config_entry.runtime_data
 
     def _get_entity_dict(self):
         """Retrieve appropriate entity dict based on entity_type."""

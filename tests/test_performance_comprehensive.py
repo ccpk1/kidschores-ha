@@ -25,7 +25,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 import pytest
 
-from tests.helpers import COORDINATOR, DOMAIN, setup_from_yaml
+from tests.helpers import setup_from_yaml
 
 pytestmark = pytest.mark.performance
 
@@ -85,7 +85,7 @@ async def run_performance_test(
     """
     setup_result = await setup_from_yaml(hass, mock_hass_users, scenario_file)
     config_entry = setup_result.config_entry
-    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+    coordinator = config_entry.runtime_data
 
     # Test badge checking for all kids
     badge_start = time.perf_counter()

@@ -51,6 +51,10 @@ from .entity import KidsChoresCoordinatorEntity
 if TYPE_CHECKING:
     from .type_defs import BonusData, ChoreData, KidData, PenaltyData, RewardData
 
+# Platinum requirement: Parallel Updates
+# Set to 0 (unlimited) for coordinator-based entities that don't poll
+PARALLEL_UPDATES = 0
+
 # ------------------------------------------------------------------------------------------
 # KID CHORE APPROVAL SENSORS
 # ------------------------------------------------------------------------------------------

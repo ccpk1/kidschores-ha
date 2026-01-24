@@ -5,20 +5,17 @@ The diagnostics JSON returns raw storage data - byte-for-byte identical to
 the kidschores_data file for direct paste during data recovery.
 """
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntry
 
 from . import const
-
-if TYPE_CHECKING:
-    from .coordinator import KidsChoresDataCoordinator
+from .coordinator import KidsChoresConfigEntry
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant, entry: KidsChoresConfigEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry.
 
@@ -32,9 +29,7 @@ async def async_get_config_entry_diagnostics(
     - Direct paste during recovery
     - Coordinator migration handles schema differences
     """
-    coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry.entry_id][
-        const.COORDINATOR
-    ]
+    coordinator = entry.runtime_data
 
     # Get base storage data
     diagnostics_data = dict(coordinator.store.data)
@@ -49,15 +44,13 @@ async def async_get_config_entry_diagnostics(
 
 
 async def async_get_device_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry, device: DeviceEntry
+    hass: HomeAssistant, entry: KidsChoresConfigEntry, device: DeviceEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a device entry.
 
     Provides kid-specific view of data for troubleshooting individual kids.
     """
-    coordinator: KidsChoresDataCoordinator = hass.data[const.DOMAIN][entry.entry_id][
-        const.COORDINATOR
-    ]
+    coordinator = entry.runtime_data
 
     # Extract kid_id from device identifiers
     kid_id = None

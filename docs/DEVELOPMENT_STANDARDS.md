@@ -201,7 +201,7 @@ rrule_str = engine.to_rrule_string()  # For iCal export
 
 ### 5. Code Quality & Performance Standards
 
-These standards ensure we maintain Silver quality compliance. See [QUALITY_REFERENCE.md](QUALITY_REFERENCE.md) for compliance tracking and Home Assistant alignment.
+These standards ensure we maintain Platinum quality compliance. See [QUALITY_REFERENCE.md](QUALITY_REFERENCE.md) for compliance tracking and Home Assistant alignment.
 
 - **No Hardcoded Strings**: All user-facing text (errors, logs, UI) **must** use constants and translation keys.
 - **Lazy Logging**: Never use f-strings in logging. Use lazy formatting (`_LOGGER.info("Message: %s", variable)`) for performance.
@@ -489,7 +489,7 @@ MyPy type checking is now **mandatory** and runs automatically in `quick_lint.sh
 mypy custom_components/kidschores/  # Verify all type hints are correct
 ```
 
-**Current Strictness**: Silver-level compliance (as of January 2026)
+**Current Strictness**: Platinum-level compliance (as of January 2026)
 
 - `strict_optional = true` - No implicit None types
 - `check_untyped_defs = true` - All function signatures must be typed

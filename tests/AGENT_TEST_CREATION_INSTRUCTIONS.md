@@ -19,7 +19,7 @@
 ### 2. Use Established Patterns
 
 - **Check existing tests**: Search for similar tests to see established patterns before inventing your own
-- **Coordinator access**: Use `hass.data[DOMAIN][entry.entry_id][COORDINATOR]` (NOT `config_entry.runtime_data`)
+- **Coordinator access**: Use `config_entry.runtime_data` (NOT `hass.data[DOMAIN][entry.entry_id][COORDINATOR]`)
 - **Field names**: Check `flow_helpers.py` for exact field names expected by schema builders (e.g., `type` not `recurring_frequency`, `assigned_to` not `assigned_kids`)
 
 ### 3. Pre-Implementation Checklist
@@ -695,4 +695,4 @@ _For family background, see `README.md`._
 6. **Use SetupResult** - access `coordinator`, `kid_ids`, `chore_ids` by name
 7. **Mock notifications** - `patch.object(coordinator, "_notify_kid", new=AsyncMock())`
 8. **Pass user context** - service calls need `context=Context(user_id=...)`
-9. **Get fresh coordinator after reload** - use `hass.data[DOMAIN][entry_id][COORDINATOR]` pattern
+9. **Get fresh coordinator after reload** - use `config_entry.runtime_data` pattern

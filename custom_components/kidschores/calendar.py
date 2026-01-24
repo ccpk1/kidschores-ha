@@ -11,29 +11,31 @@ import datetime
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from . import const, kc_helpers as kh
+from .coordinator import KidsChoresConfigEntry
 from .engines.schedule import RecurrenceEngine
 
 if TYPE_CHECKING:
     from .type_defs import ScheduleConfig
 
-# Silver requirement: Parallel Updates
+# Platinum requirement: Parallel Updates
 # Set to 0 (unlimited) for coordinator-based entities that don't poll
 PARALLEL_UPDATES = 0
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
-):
+    hass: HomeAssistant,
+    entry: KidsChoresConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
     """Set up the KidsChores calendar platform."""
-    try:
-        coordinator = hass.data[const.DOMAIN][entry.entry_id][const.COORDINATOR]
-    except KeyError:
+    coordinator = entry.runtime_data
+    if not coordinator:
         const.LOGGER.error("Coordinator not found for entry %s", entry.entry_id)
         return
 

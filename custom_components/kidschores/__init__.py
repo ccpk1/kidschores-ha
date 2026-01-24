@@ -17,17 +17,18 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from . import backup_helpers as bh, const
-from .coordinator import KidsChoresDataCoordinator
+from .coordinator import KidsChoresConfigEntry, KidsChoresDataCoordinator
 from .notification_action_handler import async_handle_notification_action
 from .services import async_setup_services, async_unload_services
 from .store import KidsChoresStore
 
 if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigEntry
-    from homeassistant.core import HomeAssistant
+    from homeassistant.core import Event, HomeAssistant
 
 
-async def _update_all_kid_device_names(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def _update_all_kid_device_names(
+    hass: HomeAssistant, entry: KidsChoresConfigEntry
+) -> None:
     """Update all kid device names when config entry title changes.
 
     When the integration name (config entry title) changes, all kid device
@@ -41,16 +42,13 @@ async def _update_all_kid_device_names(hass: HomeAssistant, entry: ConfigEntry) 
     """
     from homeassistant.helpers import device_registry as dr
 
-    # Get coordinator to access kid data
-    if const.DOMAIN not in hass.data or entry.entry_id not in hass.data[const.DOMAIN]:
+    # Get coordinator from runtime_data (modern HA pattern)
+    coordinator = entry.runtime_data
+    if not coordinator:
         const.LOGGER.debug(
             "Coordinator not found for entry %s, skipping device name updates",
             entry.entry_id,
         )
-        return
-
-    coordinator = hass.data[const.DOMAIN][entry.entry_id].get(const.COORDINATOR)
-    if not coordinator:
         return
 
     device_registry = dr.async_get(hass)
@@ -82,7 +80,7 @@ async def _update_all_kid_device_names(hass: HomeAssistant, entry: ConfigEntry) 
         )
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: KidsChoresConfigEntry) -> bool:
     """Set up the integration from a config entry."""
     const.LOGGER.info("INFO: Starting setup for KidsChores entry: %s", entry.entry_id)
 
@@ -170,11 +168,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Reuse the temp_coordinator instance instead of creating a new one
     coordinator = temp_coordinator
 
-    # Store the coordinator and data manager in hass.data.
-    hass.data.setdefault(const.DOMAIN, {})[entry.entry_id] = {
-        const.COORDINATOR: coordinator,
-        const.STORE: store,
-    }
+    # Store coordinator in runtime_data (modern HA pattern)
+    # Store is accessible via coordinator.store
+    entry.runtime_data = coordinator
 
     # Set up services required by the integration.
     async_setup_services(hass)
@@ -204,7 +200,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Listen for notification actions from the companion app.
     # Wrapped in async_on_unload to ensure cleanup when integration is unloaded.
-    async def handle_notification_event(event):
+    async def handle_notification_event(event: Event) -> None:
         """Handle notification action events."""
         await async_handle_notification_action(hass, event)
 
@@ -216,7 +212,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def async_update_options(
+    hass: HomeAssistant, entry: KidsChoresConfigEntry
+) -> None:
     """Handle options update (e.g., integration name change, feature flags).
 
     This is called when the config entry is updated, including when the user
@@ -235,8 +233,8 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
         entry.entry_id,
     )
 
-    # Get coordinator for entity cleanup
-    coordinator = hass.data[const.DOMAIN][entry.entry_id][const.COORDINATOR]
+    # Get coordinator from runtime_data (modern HA pattern)
+    coordinator = entry.runtime_data
 
     # CRITICAL: Update coordinator's config_entry reference to use NEW options.
     # Without this, remove_conditional_entities() reads from stale options and
@@ -269,13 +267,14 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     await hass.config_entries.async_reload(entry.entry_id)
 
 
-async def async_unload_entry(hass, entry):
+async def async_unload_entry(hass: HomeAssistant, entry: KidsChoresConfigEntry) -> bool:
     """Unload a config entry."""
     const.LOGGER.info("INFO: Unloading KidsChores entry: %s", entry.entry_id)
 
     # Force immediate save of any pending changes before unload
-    if const.DOMAIN in hass.data and entry.entry_id in hass.data[const.DOMAIN]:
-        coordinator = hass.data[const.DOMAIN][entry.entry_id][const.COORDINATOR]
+    # Access coordinator from runtime_data (modern HA pattern)
+    coordinator = entry.runtime_data
+    if coordinator:
         coordinator._persist()
         const.LOGGER.debug("Forced immediate persist before unload")
 
@@ -283,15 +282,13 @@ async def async_unload_entry(hass, entry):
     unload_ok = await hass.config_entries.async_unload_platforms(entry, const.PLATFORMS)
 
     if unload_ok:
-        hass.data[const.DOMAIN].pop(entry.entry_id)
-
         # Await service unloading
         await async_unload_services(hass)
 
     return unload_ok
 
 
-async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def async_remove_entry(hass: HomeAssistant, entry: KidsChoresConfigEntry) -> None:
     """Handle removal of a config entry.
 
     Creates a backup before deletion to allow data recovery if integration
@@ -304,9 +301,10 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """
     const.LOGGER.info("INFO: Removing KidsChores entry: %s", entry.entry_id)
 
-    # Safely check if data exists before attempting to access it
-    if const.DOMAIN in hass.data and entry.entry_id in hass.data[const.DOMAIN]:
-        store: KidsChoresStore = hass.data[const.DOMAIN][entry.entry_id][const.STORE]
+    # Access store via coordinator.store (modern HA pattern)
+    coordinator = entry.runtime_data
+    if coordinator and coordinator.store:
+        store = coordinator.store
 
         # Create backup before deletion (allows data recovery on re-add)
         backup_name = await bh.create_timestamped_backup(
