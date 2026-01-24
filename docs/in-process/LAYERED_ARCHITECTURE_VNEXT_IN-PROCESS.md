@@ -260,40 +260,67 @@
 
 ### Phase 2 – Notification Manager ("The Voice")
 
-- **Goal**: Extract all notification logic into a dedicated manager. This is the lowest-risk extraction since notifications are side effects with no return values.
+- **Goal**: Extract all notification-sending logic into a dedicated manager. Keep action handler separate (incoming vs outgoing separation).
+- **Architecture**:
+  - `NotificationManager` = **Outgoing** (send notifications, translate, build actions)
+  - `notification_action_handler.py` = **Incoming** (parse button press, route to coordinator)
 - **Steps / detailed work items**
   1. - [ ] Create `managers/notification_manager.py`:
-     - Consolidate: `notification_helper.py` functions → manager methods
-     - Consolidate: `coordinator._notify_kid()`, `_notify_parents()`, `_notify_*_translated()`
-     - Add: `send_kc_notification()` as primary dispatch method
+     - Move from coordinator: `_notify_kid()`, `_notify_parents()`, `_notify_kid_translated()`, `_notify_parents_translated()`
+     - Move from coordinator: `send_kc_notification()`, `clear_notification_for_parents()`, `remind_in_minutes()`
+     - Move from coordinator: `_convert_notification_key()`, `_format_notification_text()`, `_translate_action_buttons()`
+     - Move from `notification_helper.py`: `async_send_notification()`, `build_notification_tag()`
+     - Move from `notification_helper.py`: `build_chore_actions()`, `build_reward_actions()`, `build_extra_data()`, etc.
   2. - [ ] Define NotificationManager interface:
+
      ```python
-     class NotificationManager:
+     class NotificationManager(BaseManager):
          def __init__(self, hass: HomeAssistant, coordinator: Coordinator):
-             ...
+             super().__init__(hass, coordinator.config_entry)
+             self._coordinator = coordinator
+
+         # Core send methods (translated)
          async def send_kid_notification(self, kid_id, title_key, message_key, ...): ...
          async def send_parent_notification(self, kid_id, title_key, message_key, ...): ...
-         async def clear_notification(self, tag: str): ...
-         def build_chore_actions(self, kid_id, chore_id): ...
-         def build_reward_actions(self, kid_id, reward_id, notif_id): ...
+
+         # Raw send methods (for non-translated paths)
+         async def send_kid_notification_raw(self, kid_id, title, message, ...): ...
+         async def send_parent_notification_raw(self, kid_id, title, message, ...): ...
+
+         # Utility methods
+         async def clear_notification(self, kid_id, tag_type, entity_id): ...
+         async def remind_in_minutes(self, kid_id, minutes, chore_id, reward_id): ...
+
+         # Action builders (static or class methods)
+         @staticmethod
+         def build_chore_actions(kid_id, chore_id) -> list[dict]: ...
+         @staticmethod
+         def build_reward_actions(kid_id, reward_id, notif_id) -> list[dict]: ...
      ```
-  3. - [ ] Move localization loading from coordinator:
-     - `_convert_notification_key()` → manager method
-     - `_format_notification_text()` → manager method
-     - `_translate_action_buttons()` → manager method
-  4. - [ ] Update coordinator to use NotificationManager:
-     - Replace direct `_notify_*` calls with `self.notification_manager.send_*`
-     - Inject manager in coordinator `__init__`
-  5. - [ ] Retain `notification_helper.py` as thin wrapper for backward compat:
-     - `async_send_notification()` delegates to manager
-     - `ParsedAction` dataclass stays (used by action handler)
-  6. - [ ] Update imports in `coordinator.py`, `coordinator_chore_operations.py`
-  7. - [ ] Tests:
-     - Move notification tests to `tests/test_notification_manager.py`
-     - Verify all notification scenarios still work
+
+  3. - [ ] Update `notification_action_handler.py`:
+     - Move `ParsedAction` dataclass and `parse_notification_action()` INTO this file (from notification_helper)
+     - Keep routing logic to coordinator methods (approve_chore, etc.)
+     - This file stays separate - it handles INCOMING actions, not outgoing
+  4. - [ ] Delete `notification_helper.py` entirely:
+     - All functions absorbed into NotificationManager or action_handler
+     - No backward compat wrapper needed (no external consumers)
+  5. - [ ] Update coordinator to use NotificationManager:
+     - Initialize: `self.notification_manager = NotificationManager(hass, self)`
+     - Replace all `self._notify_*` calls with `self.notification_manager.send_*`
+     - Replace all `build_chore_actions()` imports with manager method
+  6. - [ ] Update imports in `coordinator.py`, `coordinator_chore_operations.py`:
+     - Remove imports from `notification_helper`
+     - Add imports from `managers.notification_manager`
+  7. - [ ] Update `managers/__init__.py` to export NotificationManager
+  8. - [ ] Tests:
+     - Create `tests/test_notification_manager.py` for unit tests
+     - Verify existing notification workflow tests still pass
+
 - **Key issues**
   - Must handle both translated and non-translated notification paths
-  - Action button building is tightly coupled with notification dispatch
+  - Coordinator needs reference to manager (injected in `__init__`)
+  - Action handler stays separate (routes to coordinator, not manager)
 
 ---
 

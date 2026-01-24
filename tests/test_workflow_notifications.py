@@ -258,7 +258,7 @@ class TestChoreClaimNotifications:
         capture = NotificationCapture()
 
         with patch(
-            "custom_components.kidschores.coordinator.async_send_notification",
+            "custom_components.kidschores.managers.notification_manager.async_send_notification",
             new=capture.capture,
         ):
             coordinator.claim_chore(kid_id, chore_id, "Zoë")
@@ -282,7 +282,7 @@ class TestChoreClaimNotifications:
         capture = NotificationCapture()
 
         with patch(
-            "custom_components.kidschores.coordinator.async_send_notification",
+            "custom_components.kidschores.managers.notification_manager.async_send_notification",
             new=capture.capture,
         ):
             coordinator.claim_chore(kid_id, chore_id, "Zoë")
@@ -313,7 +313,7 @@ class TestChoreClaimNotifications:
         capture = NotificationCapture()
 
         with patch(
-            "custom_components.kidschores.coordinator.async_send_notification",
+            "custom_components.kidschores.managers.notification_manager.async_send_notification",
             new=capture.capture,
         ):
             coordinator.claim_chore(kid_id, chore_id, "Zoë")
@@ -355,7 +355,7 @@ class TestNotificationLanguage:
         capture = NotificationCapture()
 
         with patch(
-            "custom_components.kidschores.coordinator.async_send_notification",
+            "custom_components.kidschores.managers.notification_manager.async_send_notification",
             new=capture.capture,
         ):
             coordinator.claim_chore(kid_id, chore_id, "Zoë")
@@ -402,7 +402,7 @@ class TestNotificationLanguage:
         capture = NotificationCapture()
 
         with patch(
-            "custom_components.kidschores.coordinator.async_send_notification",
+            "custom_components.kidschores.managers.notification_manager.async_send_notification",
             new=capture.capture,
         ):
             coordinator.claim_chore(kid_id, chore_id, "Max!")
@@ -453,7 +453,7 @@ class TestNotificationLanguage:
         capture = NotificationCapture()
 
         with patch(
-            "custom_components.kidschores.coordinator.async_send_notification",
+            "custom_components.kidschores.managers.notification_manager.async_send_notification",
             new=capture.capture,
         ):
             coordinator.claim_chore(kid_id, chore_id, "Max!")
@@ -507,7 +507,7 @@ class TestNotificationActions:
         capture = NotificationCapture()
 
         with patch(
-            "custom_components.kidschores.coordinator.async_send_notification",
+            "custom_components.kidschores.managers.notification_manager.async_send_notification",
             new=capture.capture,
         ):
             coordinator.claim_chore(kid_id, chore_id, "Zoë")
@@ -543,7 +543,7 @@ class TestNotificationActions:
         capture = NotificationCapture()
 
         with patch(
-            "custom_components.kidschores.coordinator.async_send_notification",
+            "custom_components.kidschores.managers.notification_manager.async_send_notification",
             new=capture.capture,
         ):
             coordinator.claim_chore(kid_id, chore_id, "Zoë")
@@ -589,7 +589,7 @@ class TestNotificationTagging:
         capture = NotificationCapture()
 
         with patch(
-            "custom_components.kidschores.coordinator.async_send_notification",
+            "custom_components.kidschores.managers.notification_manager.async_send_notification",
             new=capture.capture,
         ):
             coordinator.claim_chore(kid_id, chore_id, "Zoë")
@@ -814,7 +814,7 @@ class TestConcurrentNotifications:
         capture = NotificationCapture()
 
         with patch(
-            "custom_components.kidschores.coordinator.async_send_notification",
+            "custom_components.kidschores.managers.notification_manager.async_send_notification",
             new=capture.capture,
         ):
             coordinator.claim_chore(kid_id, chore_id, "Zoë")
@@ -830,10 +830,18 @@ class TestConcurrentNotifications:
         scenario_notifications: SetupResult,
     ) -> None:
         """One parent notification failure doesn't prevent others from receiving."""
+        from custom_components.kidschores.managers import notification_manager
 
         coordinator = scenario_notifications.coordinator
         kid_id = scenario_notifications.kid_ids["Zoë"]
-        chore_id = scenario_notifications.chore_ids["Feed the cat"]
+        # Use "Walk the dog" which hasn't been claimed yet (shared chore)
+        chore_id = scenario_notifications.chore_ids["Walk the dog"]
+
+        # Register the mock notify service for the second parent BEFORE adding them
+        async def mock_notify_service(call: Any) -> None:
+            """Mock notify service handler."""
+
+        hass.services.async_register("notify", "mobile_app_dad", mock_notify_service)
 
         # Add a second parent with notifications enabled
         parent_id_2 = "test_parent_2"
@@ -854,7 +862,8 @@ class TestConcurrentNotifications:
             service: str,
             title: str,
             message: str,
-            **kwargs: Any,
+            actions: list[dict[str, Any]] | None = None,
+            extra_data: dict[str, Any] | None = None,
         ) -> None:
             nonlocal call_count
             call_count += 1
@@ -863,13 +872,19 @@ class TestConcurrentNotifications:
                 raise Exception("Simulated notification failure")  # noqa: TRY002
             successful_notifications.append(service)
 
-        with patch(
-            "custom_components.kidschores.coordinator.async_send_notification",
+        # Use patch.object to patch the function directly in the module namespace
+        with patch.object(
+            notification_manager,
+            "async_send_notification",
             new=mixed_success_notification,
         ):
             # This should not raise - failures are logged but don't propagate
             coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            # CRITICAL: async_block_till_done() MUST be inside the patch context
+            # because claim_chore() schedules notification tasks that run AFTER
+            # the sync method returns. If we await outside the patch, the tasks
+            # run without the mock applied.
             await hass.async_block_till_done()
 
-        # At least one notification should have succeeded despite the failure
-        assert call_count >= 1, "Expected notifications to be attempted"
+            # At least one notification should have succeeded despite the failure
+            assert call_count >= 1, "Expected notifications to be attempted"

@@ -34,12 +34,7 @@ from homeassistant.util import dt as dt_util
 from . import const, data_builders as db, kc_helpers as kh
 from .coordinator_chore_operations import ChoreOperations
 from .engines.statistics import StatisticsEngine
-from .notification_helper import (
-    async_send_notification,
-    build_chore_actions,
-    build_extra_data,
-    build_reward_actions,
-)
+from .managers import NotificationManager
 from .store import KidsChoresStore
 from .type_defs import (
     AchievementProgress,
@@ -50,7 +45,6 @@ from .type_defs import (
     BonusesCollection,
     ChallengeProgress,
     ChallengesCollection,
-    ChoreData,
     ChoresCollection,
     KidBadgeProgress,
     KidCumulativeBadgeProgress,
@@ -133,6 +127,9 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
 
         # Statistics engine for unified period-based tracking (v0.6.0+)
         self.stats = StatisticsEngine()
+
+        # Notification manager for all outgoing notifications (v0.5.0+)
+        self.notification_manager = NotificationManager(hass, self)
 
     # -------------------------------------------------------------------------------------
     # Migrate Data and Converters
@@ -2049,8 +2046,10 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         )
 
         # Send a notification to the parents using helpers (DRY refactor v0.5.0+)
-        actions = build_reward_actions(kid_id, reward_id, notif_id)
-        extra_data = build_extra_data(kid_id, reward_id=reward_id, notif_id=notif_id)
+        actions = NotificationManager.build_reward_actions(kid_id, reward_id, notif_id)
+        extra_data = NotificationManager.build_extra_data(
+            kid_id, reward_id=reward_id, notif_id=notif_id
+        )
         self.hass.async_create_task(
             self._notify_parents_translated(
                 kid_id,
@@ -5597,98 +5596,8 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         progress[const.DATA_KID_LAST_STREAK_DATE] = today.isoformat()
 
     # -------------------------------------------------------------------------------------
-    # Notifications and Reminders
+    # Notifications and Reminders (delegates to NotificationManager)
     # -------------------------------------------------------------------------------------
-
-    ## --- Translation Helpers (shared by kid and parent notification methods) ---
-
-    def _convert_notification_key(self, const_key: str) -> str:
-        """Convert const translation key to JSON key.
-
-        Removes notification prefix from const keys:
-        - "notification_title_chore_assigned" -> "chore_assigned"
-        - "notification_message_reward_claimed" -> "reward_claimed"
-
-        Used by both kid and parent notification methods.
-        """
-        return const_key.replace("notification_title_", "").replace(
-            "notification_message_", ""
-        )
-
-    def _format_notification_text(
-        self,
-        template: str,
-        data: dict[str, Any] | None,
-        json_key: str,
-        text_type: str = "message",
-    ) -> str:
-        """Format notification text with placeholders, handling errors gracefully.
-
-        Args:
-            template: Template string with {placeholder} syntax
-            data: Dictionary of placeholder values
-            json_key: Notification key for logging
-            text_type: "title" or "message" for error logging
-
-        Returns:
-            Formatted string, or original template if formatting fails
-
-        Used by both kid and parent notification methods.
-        """
-        try:
-            return template.format(**(data or {}))
-        except KeyError as err:
-            const.LOGGER.warning(
-                "Missing placeholder %s in %s for notification '%s'",
-                err,
-                text_type,
-                json_key,
-            )
-            return template
-
-    def _translate_action_buttons(
-        self, actions: list[dict[str, str]] | None, translations: dict
-    ) -> list[dict[str, str]] | None:
-        """Translate action button titles using loaded translations.
-
-        Converts action keys like "notif_action_approve" to translation keys
-        like "approve", then looks up translated text from the "actions" section
-        of notification translations.
-
-        Args:
-            actions: List of action dicts with 'action' and 'title' keys
-            translations: Loaded notification translations dict
-
-        Returns:
-            New list with translated action titles, or None if no actions
-
-        Used by both kid and parent notification methods.
-        """
-        if not actions:
-            return None
-
-        action_translations = translations.get("actions", {})
-        translated_actions = []
-
-        for action in actions:
-            translated_action = action.copy()
-            action_title_key = action.get(const.NOTIFY_TITLE, "")
-            # Convert "notif_action_approve" -> "approve"
-            action_key = action_title_key.replace("notif_action_", "")
-            # Look up translation, fallback to original key
-            translated_title = action_translations.get(action_key, action_title_key)
-            translated_action[const.NOTIFY_TITLE] = translated_title
-            translated_actions.append(translated_action)
-
-        const.LOGGER.debug(
-            "Translated action buttons: %s -> %s",
-            [a.get(const.NOTIFY_TITLE) for a in actions],
-            [a.get(const.NOTIFY_TITLE) for a in translated_actions],
-        )
-
-        return translated_actions
-
-    ## --- Core Notification Methods ---
 
     async def send_kc_notification(
         self,
@@ -5697,74 +5606,10 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         message: str,
         notification_id: str,
     ) -> None:
-        """Send a persistent notification to a user if possible.
-
-        Fallback to a general persistent notification if the user is not found or not set.
-        """
-
-        hass = self.hass
-        if not user_id:
-            # If no user_id is provided, use a general notification
-            const.LOGGER.debug(
-                "DEBUG: Notification - No User ID provided. Sending a general persistent notification"
-            )
-            await hass.services.async_call(
-                const.NOTIFY_PERSISTENT_NOTIFICATION,
-                const.NOTIFY_CREATE,
-                {
-                    const.NOTIFY_TITLE: title,
-                    const.NOTIFY_MESSAGE: message,
-                    const.NOTIFY_NOTIFICATION_ID: notification_id,
-                },
-                blocking=True,
-            )
-            return
-
-        try:
-            user_obj = await hass.auth.async_get_user(user_id)
-            if not user_obj:
-                const.LOGGER.warning(
-                    "WARNING: Notification - User ID '%s' not found. Sending fallback persistent notification",
-                    user_id,
-                )
-                await hass.services.async_call(
-                    const.NOTIFY_PERSISTENT_NOTIFICATION,
-                    const.NOTIFY_CREATE,
-                    {
-                        const.NOTIFY_TITLE: title,
-                        const.NOTIFY_MESSAGE: message,
-                        const.NOTIFY_NOTIFICATION_ID: notification_id,
-                    },
-                    blocking=True,
-                )
-                return
-
-            await hass.services.async_call(
-                const.NOTIFY_PERSISTENT_NOTIFICATION,
-                const.NOTIFY_CREATE,
-                {
-                    const.NOTIFY_TITLE: title,
-                    const.NOTIFY_MESSAGE: message,
-                    const.NOTIFY_NOTIFICATION_ID: notification_id,
-                },
-                blocking=True,
-            )
-        except Exception as err:
-            const.LOGGER.warning(
-                "WARNING: Notification - Failed to send notification to '%s': %s. Fallback to persistent notification",
-                user_id,
-                err,
-            )
-            await hass.services.async_call(
-                const.NOTIFY_PERSISTENT_NOTIFICATION,
-                const.NOTIFY_CREATE,
-                {
-                    const.NOTIFY_TITLE: title,
-                    const.NOTIFY_MESSAGE: message,
-                    const.NOTIFY_NOTIFICATION_ID: notification_id,
-                },
-                blocking=True,
-            )
+        """Send a persistent notification. Delegates to NotificationManager."""
+        await self.notification_manager.send_persistent_notification(
+            user_id, title, message, notification_id
+        )
 
     async def _notify_kid(
         self,
@@ -5772,46 +5617,12 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         title: str,
         message: str,
         actions: list[dict[str, str]] | None = None,
-        extra_data: dict | None = None,
+        extra_data: dict[str, Any] | None = None,
     ) -> None:
-        """Notify a kid using their configured notification settings."""
-
-        kid_info: KidData | None = self.kids_data.get(kid_id)
-        if not kid_info:
-            return
-
-        mobile_notify_service = kid_info.get(
-            const.DATA_KID_MOBILE_NOTIFY_SERVICE, const.SENTINEL_EMPTY
+        """Notify a kid. Delegates to NotificationManager."""
+        await self.notification_manager.notify_kid(
+            kid_id, title, message, actions, extra_data
         )
-        persistent_enabled = kid_info.get(
-            const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS, True
-        )
-
-        if mobile_notify_service:
-            await async_send_notification(
-                self.hass,
-                mobile_notify_service,
-                title,
-                message,
-                actions=actions,
-                extra_data=extra_data,
-            )
-        elif persistent_enabled:
-            await self.hass.services.async_call(
-                const.NOTIFY_PERSISTENT_NOTIFICATION,
-                const.NOTIFY_CREATE,
-                {
-                    const.NOTIFY_TITLE: title,
-                    const.NOTIFY_MESSAGE: message,
-                    const.NOTIFY_NOTIFICATION_ID: f"kid_{kid_id}",
-                },
-                blocking=True,
-            )
-        else:
-            const.LOGGER.debug(
-                "DEBUG: Notification - No notification method configured for Kid ID '%s'",
-                kid_id,
-            )
 
     async def _notify_kid_translated(
         self,
@@ -5820,56 +5631,12 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         message_key: str,
         message_data: dict[str, Any] | None = None,
         actions: list[dict[str, str]] | None = None,
-        extra_data: dict | None = None,
+        extra_data: dict[str, Any] | None = None,
     ) -> None:
-        """Notify a kid using translated title and message.
-
-        Args:
-            kid_id: The internal ID of the kid
-            title_key: Translation key for the notification title
-            message_key: Translation key for the notification message
-            message_data: Dictionary of placeholder values for message formatting
-            actions: Optional list of notification actions
-            extra_data: Optional extra data for mobile notifications
-        """
-        # Get kid's preferred language (or fall back to system language)
-        kid_info: KidData = cast("KidData", self.kids_data.get(kid_id, {}))
-        language = kid_info.get(
-            const.DATA_KID_DASHBOARD_LANGUAGE,
-            self.hass.config.language,
+        """Notify a kid (translated). Delegates to NotificationManager."""
+        await self.notification_manager.notify_kid_translated(
+            kid_id, title_key, message_key, message_data, actions, extra_data
         )
-        const.LOGGER.debug(
-            "Notification: kid_id=%s, language=%s, title_key=%s",
-            kid_id,
-            language,
-            title_key,
-        )
-
-        # Load notification translations from custom translations directory
-        translations = await kh.load_notification_translation(self.hass, language)
-        const.LOGGER.debug(
-            "Notification translations loaded: %d keys, language=%s",
-            len(translations),
-            language,
-        )
-
-        # Convert const key to JSON key and look up translations
-        json_key = self._convert_notification_key(title_key)
-        notification = translations.get(json_key, {})
-
-        # Format title and message with placeholders
-        title = self._format_notification_text(
-            notification.get("title", title_key), message_data, json_key, "title"
-        )
-        message = self._format_notification_text(
-            notification.get("message", message_key), message_data, json_key, "message"
-        )
-
-        # Translate action button titles
-        translated_actions = self._translate_action_buttons(actions, translations)
-
-        # Call original notification method
-        await self._notify_kid(kid_id, title, message, translated_actions, extra_data)
 
     async def _notify_parents(
         self,
@@ -5877,59 +5644,11 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         title: str,
         message: str,
         actions: list[dict[str, str]] | None = None,
-        extra_data: dict | None = None,
+        extra_data: dict[str, Any] | None = None,
     ) -> None:
-        """Notify all parents associated with a kid using their settings."""
-        # PERF: Measure parent notification latency (sequential vs concurrent)
-        perf_start = time.perf_counter()
-        parent_count = 0
-
-        for parent_id, parent_info in self.parents_data.items():
-            if kid_id not in parent_info.get(const.DATA_PARENT_ASSOCIATED_KIDS, []):
-                continue
-
-            mobile_notify_service = parent_info.get(
-                const.DATA_PARENT_MOBILE_NOTIFY_SERVICE, const.SENTINEL_EMPTY
-            )
-            persistent_enabled = parent_info.get(
-                const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS, True
-            )
-
-            if mobile_notify_service:
-                parent_count += 1
-                await async_send_notification(
-                    self.hass,
-                    mobile_notify_service,
-                    title,
-                    message,
-                    actions=actions,
-                    extra_data=extra_data,
-                )
-            elif persistent_enabled:
-                parent_count += 1
-                await self.hass.services.async_call(
-                    const.NOTIFY_PERSISTENT_NOTIFICATION,
-                    const.NOTIFY_CREATE,
-                    {
-                        const.NOTIFY_TITLE: title,
-                        const.NOTIFY_MESSAGE: message,
-                        const.NOTIFY_NOTIFICATION_ID: f"parent_{parent_id}",
-                    },
-                    blocking=True,
-                )
-            else:
-                const.LOGGER.debug(
-                    "DEBUG: Notification - No notification method configured for Parent ID '%s'",
-                    parent_id,
-                )
-
-        # PERF: Log parent notification latency
-        perf_duration = time.perf_counter() - perf_start
-        const.LOGGER.debug(
-            "PERF: _notify_parents() sent %d notifications in %.3fs (sequential, avg %.3fs/parent)",
-            parent_count,
-            perf_duration,
-            perf_duration / parent_count if parent_count > 0 else 0,
+        """Notify all parents. Delegates to NotificationManager."""
+        await self.notification_manager.notify_parents(
+            kid_id, title, message, actions, extra_data
         )
 
     async def _notify_parents_translated(
@@ -5939,175 +5658,20 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         message_key: str,
         message_data: dict[str, Any] | None = None,
         actions: list[dict[str, str]] | None = None,
-        extra_data: dict | None = None,
+        extra_data: dict[str, Any] | None = None,
         tag_type: str | None = None,
         tag_identifiers: tuple[str, ...] | None = None,
     ) -> None:
-        """Notify parents using translated title and message.
-
-        Each parent receives notifications in their own preferred language.
-        Supports tag-based notification replacement (v0.5.0+).
-        Uses concurrent notification sending for ~3x performance improvement (v0.5.0+).
-
-        Args:
-            kid_id: The internal ID of the kid (to find associated parents)
-            title_key: Translation key for the notification title
-            message_key: Translation key for the notification message
-            message_data: Dictionary of placeholder values for message formatting
-            actions: Optional list of notification actions
-            extra_data: Optional extra data for mobile notifications
-            tag_type: Optional tag type for smart notification replacement.
-                      Use const.NOTIFY_TAG_TYPE_* constants.
-            tag_identifiers: Optional tuple of identifiers for tag uniqueness.
-                            When provided, generates tag "kidschores-{tag_type}-{id1}-{id2}".
-                            If None, defaults to (kid_id,) for backwards compatibility.
-        """
-        import asyncio
-
-        from .notification_helper import build_notification_tag
-
-        # PERF: Measure parent notification latency
-        perf_start = time.perf_counter()
-
-        # Build notification tag if tag_type provided (v0.5.0+ smart replacement)
-        notification_tag = None
-        if tag_type:
-            # Use provided identifiers or default to kid_id for backwards compatibility
-            identifiers = tag_identifiers if tag_identifiers else (kid_id,)
-            notification_tag = build_notification_tag(tag_type, *identifiers)
-            const.LOGGER.debug(
-                "Using notification tag '%s' for identifiers %s",
-                notification_tag,
-                identifiers,
-            )
-
-        # Phase 1: Prepare all parent notifications (translations, formatting)
-        # This is done sequentially since translations may need I/O
-        notification_tasks: list[tuple[str, Any]] = []
-
-        for parent_id, parent_info in self.parents_data.items():
-            if kid_id not in parent_info.get(const.DATA_PARENT_ASSOCIATED_KIDS, []):
-                continue
-
-            # Use parent's language preference (fallback to kid's language, then system language)
-            parent_language = (
-                parent_info.get(const.DATA_PARENT_DASHBOARD_LANGUAGE)
-                or cast("KidData", self.kids_data.get(kid_id, {})).get(
-                    const.DATA_KID_DASHBOARD_LANGUAGE
-                )
-                or self.hass.config.language
-            )
-
-            const.LOGGER.debug(
-                "Parent notification: kid_id=%s, parent_id=%s, language=%s, title_key=%s",
-                kid_id,
-                parent_id,
-                parent_language,
-                title_key,
-            )
-
-            # Load notification translations for this parent's language (uses cache)
-            translations = await kh.load_notification_translation(
-                self.hass, parent_language
-            )
-
-            # Convert const key to JSON key and look up translations
-            json_key = self._convert_notification_key(title_key)
-            notification = translations.get(json_key, {})
-
-            # Format both title and message with placeholders
-            title = self._format_notification_text(
-                notification.get("title", title_key), message_data, json_key, "title"
-            )
-            message = self._format_notification_text(
-                notification.get("message", message_key),
-                message_data,
-                json_key,
-                "message",
-            )
-
-            # Translate action button titles
-            translated_actions = self._translate_action_buttons(actions, translations)
-
-            # Build final extra_data with tag if provided (v0.5.0+ smart replacement)
-            final_extra_data = dict(extra_data) if extra_data else {}
-            if notification_tag:
-                final_extra_data[const.NOTIFY_TAG] = notification_tag
-
-            # Determine notification method and prepare coroutine
-            persistent_enabled = parent_info.get(
-                const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS, True
-            )
-            mobile_notify_service = parent_info.get(
-                const.DATA_PARENT_MOBILE_NOTIFY_SERVICE, const.SENTINEL_EMPTY
-            )
-
-            if mobile_notify_service:
-                # Prepare mobile notification coroutine
-                notification_tasks.append(
-                    (
-                        parent_id,
-                        async_send_notification(
-                            self.hass,
-                            mobile_notify_service,
-                            title,
-                            message,
-                            actions=translated_actions,
-                            extra_data=final_extra_data if final_extra_data else None,
-                        ),
-                    )
-                )
-            elif persistent_enabled:
-                # Prepare persistent notification coroutine
-                notification_tasks.append(
-                    (
-                        parent_id,
-                        self.hass.services.async_call(
-                            const.NOTIFY_PERSISTENT_NOTIFICATION,
-                            const.NOTIFY_CREATE,
-                            {
-                                const.NOTIFY_TITLE: title,
-                                const.NOTIFY_MESSAGE: message,
-                                const.NOTIFY_NOTIFICATION_ID: f"parent_{parent_id}",
-                            },
-                            blocking=True,
-                        ),
-                    )
-                )
-            else:
-                const.LOGGER.debug(
-                    "DEBUG: Notification - No notification method configured for Parent ID '%s'",
-                    parent_id,
-                )
-
-        # Phase 2: Send all notifications concurrently (v0.5.0+ performance improvement)
-        parent_count = len(notification_tasks)
-        if notification_tasks:
-            # Use asyncio.gather with return_exceptions=True to prevent one failure
-            # from blocking others
-            results = await asyncio.gather(
-                *[coro for _, coro in notification_tasks],
-                return_exceptions=True,
-            )
-
-            # Log any errors (don't fail the whole operation)
-            for idx, result in enumerate(results):
-                if isinstance(result, Exception):
-                    parent_id = notification_tasks[idx][0]
-                    const.LOGGER.warning(
-                        "Failed to send notification to parent '%s': %s",
-                        parent_id,
-                        result,
-                    )
-
-        # PERF: Log parent notification latency (now concurrent)
-        perf_duration = time.perf_counter() - perf_start
-        const.LOGGER.debug(
-            "PERF: _notify_parents_translated() sent %d notifications in %.3fs "
-            "(concurrent, avg %.3fs/parent)",
-            parent_count,
-            perf_duration,
-            perf_duration / parent_count if parent_count > 0 else 0,
+        """Notify parents (translated). Delegates to NotificationManager."""
+        await self.notification_manager.notify_parents_translated(
+            kid_id,
+            title_key,
+            message_key,
+            message_data,
+            actions,
+            extra_data,
+            tag_type,
+            tag_identifiers,
         )
 
     async def clear_notification_for_parents(
@@ -6116,78 +5680,10 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         tag_type: str,
         entity_id: str,
     ) -> None:
-        """Clear a notification for all parents of a kid.
-
-        Sends "clear_notification" message to each parent's notification service
-        with the appropriate tag. This allows dashboard approvals to dismiss
-        stale mobile notifications.
-
-        Args:
-            kid_id: The internal ID of the kid (to find associated parents)
-            tag_type: Tag type constant (e.g., NOTIFY_TAG_TYPE_STATUS)
-            entity_id: The chore/reward ID to include in the tag
-        """
-        import asyncio
-
-        from .notification_helper import build_notification_tag
-
-        # Build the tag for this entity
-        notification_tag = build_notification_tag(tag_type, entity_id, kid_id)
-
-        const.LOGGER.debug(
-            "Clearing notification with tag '%s' for kid '%s'",
-            notification_tag,
-            kid_id,
+        """Clear notifications for parents. Delegates to NotificationManager."""
+        await self.notification_manager.clear_notification_for_parents(
+            kid_id, tag_type, entity_id
         )
-
-        # Build clear tasks for all parents associated with this kid
-        clear_tasks: list[tuple[str, Any]] = []
-
-        for parent_id, parent_info in self.parents_data.items():
-            # Skip parents not associated with this kid
-            if kid_id not in parent_info.get(const.DATA_PARENT_ASSOCIATED_KIDS, []):
-                continue
-
-            # Get notification service (mobile app)
-            notify_service = parent_info.get(const.DATA_PARENT_MOBILE_NOTIFY_SERVICE)
-            if not notify_service:
-                continue
-
-            # Strip "notify." prefix if present (services stored with prefix in v0.5.0+)
-            # e.g., "notify.mobile_app_chads_phone" → "mobile_app_chads_phone"
-            service_name = notify_service.removeprefix("notify.")
-
-            # Build clear notification call
-            service_data = {
-                "message": "clear_notification",
-                "data": {"tag": notification_tag},
-            }
-            coro = self.hass.services.async_call(
-                "notify",
-                service_name,  # Just "mobile_app_chads_phone" without "notify." prefix
-                service_data,
-            )
-            clear_tasks.append((parent_id, coro))
-
-        # Execute all clears concurrently
-        if clear_tasks:
-            results = await asyncio.gather(
-                *[coro for _, coro in clear_tasks],
-                return_exceptions=True,
-            )
-            for idx, result in enumerate(results):
-                if isinstance(result, Exception):
-                    parent_id = clear_tasks[idx][0]
-                    const.LOGGER.warning(
-                        "Failed to clear notification for parent '%s': %s",
-                        parent_id,
-                        result,
-                    )
-        else:
-            const.LOGGER.debug(
-                "No parents with notification service found for kid '%s'",
-                kid_id,
-            )
 
     async def remind_in_minutes(
         self,
@@ -6197,138 +5693,10 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         chore_id: str | None = None,
         reward_id: str | None = None,
     ) -> None:
-        """
-        Wait for the specified number of minutes and then resend the parent's
-        notification if the chore or reward is still pending approval.
-
-        If a chore_id is provided, the method checks the corresponding chore’s state.
-        If a reward_id is provided, it checks whether that reward is still pending.
-        """
-        const.LOGGER.debug(
-            "DEBUG: Notification - Scheduling reminder for Kid ID '%s', Chore ID '%s', Reward ID '%s' in %d minutes",
-            kid_id,
-            chore_id,
-            reward_id,
-            minutes,
+        """Schedule a reminder. Delegates to NotificationManager."""
+        await self.notification_manager.remind_in_minutes(
+            kid_id, minutes, chore_id=chore_id, reward_id=reward_id
         )
-        # Use 5 seconds in test mode, convert minutes to seconds in production
-        delay_seconds = 5 if self._test_mode else (minutes * 60)
-        await asyncio.sleep(delay_seconds)
-
-        kid_info: KidData | None = self.kids_data.get(kid_id)
-        if not kid_info:
-            const.LOGGER.warning(
-                "WARNING: Notification - Kid ID '%s' not found during reminder check",
-                kid_id,
-            )
-            return
-
-        if chore_id:
-            chore_info: ChoreData | None = self.chores_data.get(chore_id)
-            if not chore_info:
-                const.LOGGER.warning(
-                    "WARNING: Notification - Chore ID '%s' not found during reminder check",
-                    chore_id,
-                )
-                return
-
-            # Check if reminders are enabled for this chore (per-chore setting)
-            if not chore_info.get(
-                const.DATA_CHORE_NOTIFY_ON_REMINDER, const.DEFAULT_NOTIFY_ON_REMINDER
-            ):
-                const.LOGGER.debug(
-                    "DEBUG: Notification - Reminders disabled for Chore ID '%s'. Skipping reminder",
-                    chore_id,
-                )
-                return
-
-            # Get the PER-KID chore state (not the shared chore state)
-            kid_chore_data = self._get_chore_data_for_kid(kid_id, chore_id)
-            current_state = kid_chore_data.get(const.DATA_KID_CHORE_DATA_STATE)
-
-            # Only resend if the chore is still in a state that needs parent action:
-            # - PENDING: Kid hasn't claimed yet (might need reminder about it)
-            # - OVERDUE: Past due date, parent should review
-            # Do NOT send for: claimed, approved, approved_in_part, completed_by_other
-            if current_state not in [
-                const.CHORE_STATE_PENDING,
-                const.CHORE_STATE_OVERDUE,
-            ]:
-                const.LOGGER.info(
-                    "INFO: Notification - Chore ID '%s' for Kid ID '%s' is in state '%s'. No reminder sent",
-                    chore_id,
-                    kid_id,
-                    current_state,
-                )
-                return
-
-            # Use helpers for action buttons (DRY refactor v0.5.0+)
-            actions = build_chore_actions(kid_id, chore_id)
-            extra_data = build_extra_data(kid_id, chore_id=chore_id)
-            await self._notify_parents_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_REMINDER,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_REMINDER,
-                message_data={
-                    "chore_name": chore_info.get(
-                        const.DATA_CHORE_NAME, const.DISPLAY_UNNAMED_CHORE
-                    ),
-                    "kid_name": kid_info.get(
-                        const.DATA_KID_NAME, const.DISPLAY_UNNAMED_KID
-                    ),
-                },
-                actions=actions,
-                extra_data=extra_data,
-                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
-                tag_identifiers=(chore_id, kid_id),
-            )
-            const.LOGGER.info(
-                "INFO: Notification - Resent reminder for Chore ID '%s' for Kid ID '%s'",
-                chore_id,
-                kid_id,
-            )
-        elif reward_id:
-            # Check if the reward is still pending approval using modern reward_data
-            reward_data = kid_info.get(const.DATA_KID_REWARD_DATA, {}).get(
-                reward_id, {}
-            )
-            pending_count = reward_data.get(const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0)
-            if pending_count <= 0:
-                const.LOGGER.info(
-                    "INFO: Notification - Reward ID '%s' is no longer pending approval for Kid ID '%s'. No reminder sent",
-                    reward_id,
-                    kid_id,
-                )
-                return
-            # Use helpers for action buttons (DRY refactor v0.5.0+)
-            actions = build_reward_actions(kid_id, reward_id)
-            extra_data = build_extra_data(kid_id, reward_id=reward_id)
-            reward_info: RewardData = cast(
-                "RewardData", self.rewards_data.get(reward_id, {})
-            )
-            reward_name = reward_info.get(const.DATA_REWARD_NAME, "the reward")
-            await self._notify_parents_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_REMINDER,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_REMINDER,
-                message_data={
-                    "reward_name": reward_name,
-                    "kid_name": kid_info.get(const.DATA_KID_NAME, "A kid"),
-                },
-                actions=actions,
-                extra_data=extra_data,
-                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
-                tag_identifiers=(reward_id, kid_id),
-            )
-            const.LOGGER.info(
-                "INFO: Notification - Resent reminder for Reward ID '%s' for Kid ID '%s'",
-                reward_id,
-                kid_id,
-            )
-        else:
-            const.LOGGER.warning(
-                "WARNING: Notification - No Chore ID or Reward ID provided for reminder action"
-            )
 
     # -------------------------------------------------------------------------------------
     # Utilities

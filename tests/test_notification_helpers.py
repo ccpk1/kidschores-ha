@@ -1,4 +1,4 @@
-"""Unit tests for notification_helper.py pure functions.
+"""Unit tests for notification helper functions.
 
 APPROVED EXCEPTION - Direct Function Calls (Rule 2 Approach B):
 This test file uses direct function calls instead of service-based testing because
@@ -11,21 +11,18 @@ it tests pure helper functions with no Home Assistant dependencies. These functi
 Approved by: Phase 5 plan in NOTIFICATION_REFACTOR_IN-PROCESS.md
 Permission granted: Testing pure helper functions added in Phases 1 and 3
 
-Tests the following notification_helper.py functions:
-- build_chore_actions(): Builds 3 action dicts for chore notifications
-- build_reward_actions(): Builds 3 action dicts for reward notifications
+Tests the following functions:
+- NotificationManager.build_chore_actions(): Builds 3 action dicts for chore notifications
+- NotificationManager.build_reward_actions(): Builds 3 action dicts for reward notifications
 - ParsedAction: Dataclass with is_chore/is_reward/is_reminder properties
 
 These tests do NOT duplicate test_workflow_notifications.py which tests the
 full notification WORKFLOW (sending notifications, action button presses, etc.).
 """
 
-from custom_components.kidschores.notification_helper import (
+from custom_components.kidschores.managers import NotificationManager
+from custom_components.kidschores.notification_action_handler import (
     ParsedAction,
-    build_chore_actions,
-    build_extra_data,
-    build_notification_tag,
-    build_reward_actions,
     parse_notification_action,
 )
 from tests.helpers import (
@@ -44,6 +41,12 @@ from tests.helpers import (
     TRANS_KEY_NOTIF_ACTION_DISAPPROVE,
     TRANS_KEY_NOTIF_ACTION_REMIND_30,
 )
+
+# Convenience aliases for static methods
+build_chore_actions = NotificationManager.build_chore_actions
+build_reward_actions = NotificationManager.build_reward_actions
+build_extra_data = NotificationManager.build_extra_data
+build_notification_tag = NotificationManager.build_notification_tag
 
 # =============================================================================
 # build_chore_actions() Tests

@@ -30,7 +30,7 @@ from homeassistant.util import dt as dt_util
 
 from . import const, kc_helpers as kh
 from .engines.schedule import RecurrenceEngine, calculate_next_due_date_from_chore_info
-from .notification_helper import build_chore_actions, build_extra_data
+from .managers import NotificationManager
 
 if TYPE_CHECKING:
     import asyncio
@@ -314,8 +314,8 @@ class ChoreOperations:
             )
 
             # Build action buttons using helper (DRY refactor v0.5.0+)
-            actions = build_chore_actions(kid_id, chore_id)
-            extra_data = build_extra_data(kid_id, chore_id=chore_id)
+            actions = NotificationManager.build_chore_actions(kid_id, chore_id)
+            extra_data = NotificationManager.build_extra_data(kid_id, chore_id=chore_id)
 
             # Use aggregated notification if multiple pending, else standard single
             if pending_count > 1:
@@ -813,7 +813,9 @@ class ChoreOperations:
                             const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_ZERO
                         )
                         # Use helpers for action buttons (DRY refactor v0.5.0+)
-                        actions = build_chore_actions(kid_id, latest_chore_id)
+                        actions = NotificationManager.build_chore_actions(
+                            kid_id, latest_chore_id
+                        )
                         self.hass.async_create_task(
                             self._notify_parents_translated(
                                 kid_id,
@@ -826,7 +828,7 @@ class ChoreOperations:
                                     "points": int(latest_points),
                                 },
                                 actions=actions,
-                                extra_data=build_extra_data(
+                                extra_data=NotificationManager.build_extra_data(
                                     kid_id, chore_id=latest_chore_id
                                 ),
                                 tag_type=const.NOTIFY_TAG_TYPE_STATUS,
@@ -967,7 +969,9 @@ class ChoreOperations:
                         const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_ZERO
                     )
                     # Use helpers for action buttons (DRY refactor v0.5.0+)
-                    actions = build_chore_actions(kid_id, latest_chore_id)
+                    actions = NotificationManager.build_chore_actions(
+                        kid_id, latest_chore_id
+                    )
                     self.hass.async_create_task(
                         self._notify_parents_translated(
                             kid_id,
@@ -980,7 +984,7 @@ class ChoreOperations:
                                 "points": int(latest_points),
                             },
                             actions=actions,
-                            extra_data=build_extra_data(
+                            extra_data=NotificationManager.build_extra_data(
                                 kid_id, chore_id=latest_chore_id
                             ),
                             tag_type=const.NOTIFY_TAG_TYPE_STATUS,
@@ -3811,7 +3815,6 @@ class ChoreOperations:
             # Overdue notifications for KIDS include a Claim button (v0.5.0+)
             # Overdue notifications for PARENTS are informational only (no action buttons)
             # Approve/Disapprove only make sense for claimed chores awaiting approval
-            from .notification_helper import build_claim_action
 
             # Get kid's language for date formatting
             kid_language = kid_info.get(
@@ -3830,22 +3833,23 @@ class ChoreOperations:
                             due_date_utc, language=kid_language
                         ),
                     },
-                    actions=build_claim_action(kid_id, chore_id),
+                    actions=NotificationManager.build_claim_action(kid_id, chore_id),
                 )
             )
             # Use system language for date formatting (parent-specific formatting
             # would require restructuring the notification loop)
             # Build action buttons: Complete (approve directly), Skip (reset/reschedule), Remind
-            from .notification_helper import (
-                build_complete_action,
-                build_remind_action,
-                build_skip_action,
-            )
 
             parent_actions = []
-            parent_actions.extend(build_complete_action(kid_id, chore_id))
-            parent_actions.extend(build_skip_action(kid_id, chore_id))
-            parent_actions.extend(build_remind_action(kid_id, chore_id))
+            parent_actions.extend(
+                NotificationManager.build_complete_action(kid_id, chore_id)
+            )
+            parent_actions.extend(
+                NotificationManager.build_skip_action(kid_id, chore_id)
+            )
+            parent_actions.extend(
+                NotificationManager.build_remind_action(kid_id, chore_id)
+            )
 
             self.hass.async_create_task(
                 self._notify_parents_translated(
@@ -4083,7 +4087,6 @@ class ChoreOperations:
                 # Check: due within 30 min AND not past due yet
                 if timedelta(0) < time_until_due <= reminder_window:
                     # Send due-soon reminder to kid with claim button (v0.5.0+)
-                    from .notification_helper import build_claim_action
 
                     minutes_remaining = int(time_until_due.total_seconds() / 60)
                     chore_name = chore_info.get(const.DATA_CHORE_NAME, "Unknown Chore")
@@ -4098,7 +4101,9 @@ class ChoreOperations:
                             "minutes": minutes_remaining,
                             "points": points,
                         },
-                        actions=build_claim_action(kid_id, chore_id),
+                        actions=NotificationManager.build_claim_action(
+                            kid_id, chore_id
+                        ),
                     )
 
                     # Mark as sent (transient - resets on HA restart)
