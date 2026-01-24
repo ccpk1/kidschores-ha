@@ -634,7 +634,7 @@ create_chore:
           multiple: true
     frequency:
       name: "Frequency"
-      description: "How often the chore recurs: none, daily, weekly, or monthly."
+      description: "How often the chore recurs: none, daily, daily_multi, weekly, biweekly, monthly, quarterly, yearly, custom, custom_from_complete, or period-end (week_end, month_end, quarter_end, year_end)."
       example: "daily"
       required: false
       selector:
@@ -642,8 +642,18 @@ create_chore:
           options:
             - "none"
             - "daily"
+            - "daily_multi"
             - "weekly"
+            - "biweekly"
             - "monthly"
+            - "quarterly"
+            - "yearly"
+            - "custom"
+            - "custom_from_complete"
+            - "week_end"
+            - "month_end"
+            - "quarter_end"
+            - "year_end"
     applicable_days:
       name: "Applicable Days"
       description: "Days of the week when the chore is applicable."
@@ -782,7 +792,7 @@ update_chore:
           multiple: true
     frequency:
       name: "Frequency"
-      description: "New frequency: none, daily, weekly, or monthly."
+      description: "New frequency: none, daily, daily_multi, weekly, biweekly, monthly, quarterly, yearly, custom, custom_from_complete, or period-end (week_end, month_end, quarter_end, year_end)."
       example: "weekly"
       required: false
       selector:
@@ -790,8 +800,18 @@ update_chore:
           options:
             - "none"
             - "daily"
+            - "daily_multi"
             - "weekly"
+            - "biweekly"
             - "monthly"
+            - "quarterly"
+            - "yearly"
+            - "custom"
+            - "custom_from_complete"
+            - "week_end"
+            - "month_end"
+            - "quarter_end"
+            - "year_end"
     applicable_days:
       name: "Applicable Days"
       description: "New applicable days."

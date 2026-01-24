@@ -1617,7 +1617,11 @@
         "custom_1_week": "Custom: 1 Week",
         "custom_1_month": "Custom: 1 Month",
         "custom_1_quarter": "Custom: 1 Quarter",
-        "custom_1_year": "Custom: 1 Year"
+        "custom_1_year": "Custom: 1 Year",
+        "week_end": "Week-End",
+        "month_end": "Month-End",
+        "quarter_end": "Quarter-End",
+        "year_end": "Year-End"
       }
     },
     "occasion_type": {
@@ -1973,7 +1977,7 @@
         },
         "frequency": {
           "name": "Frequency",
-          "description": "How often the chore recurs: none, daily, weekly, or monthly.",
+          "description": "How often the chore recurs: none, daily, daily_multi, weekly, biweekly, monthly, quarterly, yearly, custom, custom_from_complete, or period-end (week_end, month_end, quarter_end, year_end).",
           "example": "daily"
         },
         "applicable_days": {
@@ -2054,7 +2058,7 @@
         },
         "frequency": {
           "name": "Frequency",
-          "description": "New recurring frequency: none, daily, weekly, or monthly.",
+          "description": "New recurring frequency: none, daily, daily_multi, weekly, biweekly, monthly, quarterly, yearly, custom, custom_from_complete, or period-end (week_end, month_end, quarter_end, year_end).",
           "example": "weekly"
         },
         "applicable_days": {

@@ -768,7 +768,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                     data_schema=fh.build_chore_schema(
                         kids_dict,
                         default_data,
-                        frequency_options=const.FREQUENCY_OPTIONS_CONFIG_FLOW,
+                        frequency_options=const.CHORE_FREQUENCY_OPTIONS_CONFIG_FLOW,
                     ),
                     errors=errors,
                 )
@@ -805,7 +805,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         chore_schema = fh.build_chore_schema(
             kids_dict,
             default_data,
-            frequency_options=const.FREQUENCY_OPTIONS_CONFIG_FLOW,
+            frequency_options=const.CHORE_FREQUENCY_OPTIONS_CONFIG_FLOW,
         )
         return self.async_show_form(
             step_id=const.CONFIG_FLOW_STEP_CHORES,

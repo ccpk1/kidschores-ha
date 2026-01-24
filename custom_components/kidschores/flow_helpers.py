@@ -481,11 +481,11 @@ def build_chore_schema(
         kids_dict: Mapping of kid names to internal IDs.
         default: Default values for form fields (edit mode).
         frequency_options: List of frequency options to show. Defaults to
-            const.FREQUENCY_OPTIONS (all frequencies). Config flow should pass
-            const.FREQUENCY_OPTIONS_CONFIG_FLOW to exclude DAILY_MULTI.
+            const.CHORE_FREQUENCY_OPTIONS (all frequencies). Config flow should pass
+            const.CHORE_FREQUENCY_OPTIONS_CONFIG_FLOW to exclude DAILY_MULTI.
     """
     default = default or {}
-    frequency_options = frequency_options or const.FREQUENCY_OPTIONS
+    frequency_options = frequency_options or const.CHORE_FREQUENCY_OPTIONS
 
     kid_choices = {k: k for k in kids_dict}
 

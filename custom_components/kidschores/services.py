@@ -229,11 +229,21 @@ DELETE_REWARD_SCHEMA = vol.Schema(
 # - Other fields use defaults from const.DEFAULT_*
 
 # Enum validators for select fields
-_FREQUENCY_VALUES = [
+_CHORE_FREQUENCY_VALUES = [
     const.FREQUENCY_NONE,
     const.FREQUENCY_DAILY,
     const.FREQUENCY_WEEKLY,
+    const.FREQUENCY_BIWEEKLY,
     const.FREQUENCY_MONTHLY,
+    const.FREQUENCY_QUARTERLY,
+    const.FREQUENCY_YEARLY,
+    const.FREQUENCY_CUSTOM,
+    const.FREQUENCY_CUSTOM_FROM_COMPLETE,
+    # Period-end frequencies
+    const.PERIOD_WEEK_END,
+    const.PERIOD_MONTH_END,
+    const.PERIOD_QUARTER_END,
+    const.PERIOD_YEAR_END,
 ]
 
 _COMPLETION_CRITERIA_VALUES = [
@@ -281,7 +291,7 @@ CREATE_CHORE_SCHEMA = vol.Schema(
             cv.ensure_list, [cv.string]
         ),
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_FREQUENCY): vol.In(
-            _FREQUENCY_VALUES
+            _CHORE_FREQUENCY_VALUES
         ),
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_APPLICABLE_DAYS): vol.All(
             cv.ensure_list, [vol.In(_DAY_OF_WEEK_VALUES)]
@@ -319,7 +329,7 @@ UPDATE_CHORE_SCHEMA = vol.Schema(
             cv.ensure_list, [cv.string]
         ),
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_FREQUENCY): vol.In(
-            _FREQUENCY_VALUES
+            _CHORE_FREQUENCY_VALUES
         ),
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_APPLICABLE_DAYS): vol.All(
             cv.ensure_list, [vol.In(_DAY_OF_WEEK_VALUES)]

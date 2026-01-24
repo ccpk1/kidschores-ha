@@ -9,16 +9,16 @@
 
 ## Summary & immediate steps
 
-| Phase / Step               | Description                              | % complete | Quick notes                             |
-| -------------------------- | ---------------------------------------- | ---------- | --------------------------------------- |
-| Phase 0 – Prerequisites    | Establish patterns, event bus decision   | 0%         | Event bus & directory structure         |
-| Phase 1 – Infrastructure   | Rename files, expand helpers, event bus  | 0%         | Foundation for manager/engine pattern   |
-| Phase 2 – Notification     | Extract NotificationManager              | 0%         | First manager extraction (lowest risk)  |
-| Phase 3 – Economy          | EconomyEngine + EconomyManager           | 0%         | Ledger system, point transactions       |
-| Phase 4 – Chore            | ChoreEngine + ChoreManager               | 0%         | Refactor existing ChoreOperations mixin |
-| Phase 5 – Gamification     | GamificationEngine + GamificationManager | 0%         | Unify badges/achievements/challenges    |
-| Phase 6 – Coordinator Slim | Reduce coordinator to routing only       | 0%         | Target: <1000 lines                     |
-| Phase 7 – Testing & Polish | Integration tests, documentation         | 0%         | 95%+ coverage maintained                |
+| Phase / Step               | Description                              | % complete | Quick notes                               |
+| -------------------------- | ---------------------------------------- | ---------- | ----------------------------------------- |
+| Phase 0 – Event Foundation | Event infrastructure (signals, base mgr) | 0%         | SIGNAL*SUFFIX*\*, BaseManager, TypedDicts |
+| Phase 1 – Infrastructure   | Verify renames, expand helpers           | 0%         | data_builders verified, kc_helpers        |
+| Phase 2 – Notification     | Extract NotificationManager              | 0%         | First manager extraction (lowest risk)    |
+| Phase 3 – Economy          | EconomyEngine + EconomyManager           | 0%         | Ledger system, point transactions         |
+| Phase 4 – Chore            | ChoreEngine + ChoreManager               | 0%         | Refactor existing ChoreOperations mixin   |
+| Phase 5 – Gamification     | GamificationEngine + GamificationManager | 0%         | Unify badges/achievements/challenges      |
+| Phase 6 – Coordinator Slim | Reduce coordinator to routing only       | 0%         | Target: <1000 lines                       |
+| Phase 7 – Testing & Polish | Integration tests, documentation         | 0%         | 95%+ coverage maintained                  |
 
 1. **Key objective** – Transform the monolithic 10k+ line coordinator into a layered service architecture with clear separation between routing (Coordinator), state workflows (Managers), and pure logic (Engines). This enables testable units, decoupled features, and easier future feature additions.
 
@@ -28,9 +28,10 @@
    - Already renamed: `entity_helpers.py` → `data_builders.py` ✅
 
 3. **Next steps (short term)**
-   - Define the event bus pattern for manager-to-manager communication (see `_SUP_EVENT_PATTERN.md`)
-   - Create `engines/` and `managers/` directory structure
-   - Start Phase 1: Infrastructure setup
+   - ✅ All architectural decisions resolved (see section 6 below)
+   - ✅ Event bus pattern defined in `_SUP_EVENT_PATTERN.md`
+   - ✅ Directories exist: `engines/` (with schedule.py, statistics.py), `managers/` (empty)
+   - **Next**: Implement Phase 0 - Event infrastructure (7 steps, ~2-3 sessions)
 
 4. **Risks / blockers**
    - **Breaking changes**: Service names remain stable, but internal method signatures will change
@@ -40,10 +41,12 @@
    - **Deferred edge cases**: CHORE_LOGIC_AUDIT analysis identified edge cases; these can be fixed post-refactor as needed
 
 5. **References**
+   - [\_SUP_EVENT_PATTERN.md](./LAYERED_ARCHITECTURE_VNEXT_SUP_EVENT_PATTERN.md) – Event pattern analysis and decisions
+   - [\_SUP_PHASE0_IMPL.md](./LAYERED_ARCHITECTURE_VNEXT_SUP_PHASE0_IMPL.md) – **Phase 0 implementation guide (step-by-step)**
    - [ARCHITECTURE.md](../ARCHITECTURE.md) – Current storage schema, data model
    - [DEVELOPMENT_STANDARDS.md](../DEVELOPMENT_STANDARDS.md) – Coding patterns, constants
    - [coordinator_chore_operations.py](../../custom_components/kidschores/coordinator_chore_operations.py) – Existing extraction pattern
-   - [statistics_engine.py](../../custom_components/kidschores/statistics_engine.py) – Engine pattern reference
+   - [engines/](../../custom_components/kidschores/engines/) – Engine pattern reference (`schedule.py`, `statistics.py`)
    - [tests/AGENT_TEST_CREATION_INSTRUCTIONS.md](../../tests/AGENT_TEST_CREATION_INSTRUCTIONS.md) – Test patterns
 
 6. **Decisions & completion check**
@@ -53,6 +56,11 @@
      - ✅ No ConfigurationManager – CRUD stays in coordinator with data_builders
      - ✅ Engines are stateless, pure Python – no coordinator/hass references
      - ✅ Managers are stateful, can emit/listen to events
+     - ✅ Event bus: Use HA Dispatcher (`async_dispatcher_send`/`async_dispatcher_connect`)
+     - ✅ Signal naming: Use `SIGNAL_SUFFIX_*` constants (not `EVENT_*`)
+     - ✅ Multi-instance isolation: Scope signals via `entry_id` at runtime
+     - ✅ Engines location: `engines/` directory (see `schedule.py`, `statistics.py`)
+     - ✅ Reward events: Include `SIGNAL_SUFFIX_REWARD_DISAPPROVED` for symmetry
    - **Completion confirmation**: `[ ]` All follow-up items completed before marking done
 
 ---
@@ -156,35 +164,82 @@
 
 ## Detailed phase tracking
 
-### Phase 0 – Prerequisites
+### Phase 0 – Event Infrastructure (Foundation)
 
-- **Goal**: Establish foundational patterns and make architectural decisions before major refactor. (Note: CHORE_LOGIC_AUDIT deferred - edge cases can be addressed post-refactor.)
+- **Goal**: Implement event communication infrastructure for manager-to-manager communication. All architectural decisions are now resolved (see section 6 above).
 - **Steps / detailed work items**
-  1. - [ ] Define event bus pattern (see supporting doc: `_SUP_EVENT_PATTERN.md`)
-     - Choose between HA's built-in `async_dispatcher_send` or custom event system
-     - Define event constants (`EVENT_POINTS_CHANGE`, `EVENT_CHORE_APPROVED`, etc.)
-  2. - [ ] Create directory structure:
+  1. - [ ] Add `SIGNAL_SUFFIX_*` constants to `const.py` (~line 2565):
+
+     ```python
+     # ==============================================================================
+     # Event Signal Suffixes (Manager-to-Manager Communication)
+     # ==============================================================================
+     # Used with kc_helpers.get_event_signal(entry_id, suffix) to create instance-scoped signals
+     # Pattern: get_event_signal(entry_id, "points_change") → "kidschores_{entry_id}_points_change"
+
+     # Economy events
+     SIGNAL_SUFFIX_POINTS_CHANGE = "points_change"
+     SIGNAL_SUFFIX_POINTS_INSUFFICIENT = "points_insufficient"
+
+     # Chore events
+     SIGNAL_SUFFIX_CHORE_CLAIMED = "chore_claimed"
+     SIGNAL_SUFFIX_CHORE_APPROVED = "chore_approved"
+     SIGNAL_SUFFIX_CHORE_DISAPPROVED = "chore_disapproved"
+     SIGNAL_SUFFIX_CHORE_OVERDUE = "chore_overdue"
+     SIGNAL_SUFFIX_CHORE_RESET = "chore_reset"
+     SIGNAL_SUFFIX_CHORE_SKIPPED = "chore_skipped"
+
+     # Reward events
+     SIGNAL_SUFFIX_REWARD_CLAIMED = "reward_claimed"
+     SIGNAL_SUFFIX_REWARD_APPROVED = "reward_approved"
+     SIGNAL_SUFFIX_REWARD_DISAPPROVED = "reward_disapproved"
+
+     # Gamification events
+     SIGNAL_SUFFIX_BADGE_EARNED = "badge_earned"
+     SIGNAL_SUFFIX_BADGE_LOST = "badge_lost"
+     SIGNAL_SUFFIX_ACHIEVEMENT_UNLOCKED = "achievement_unlocked"
+     SIGNAL_SUFFIX_CHALLENGE_COMPLETED = "challenge_completed"
+
+     # System events
+     SIGNAL_SUFFIX_KID_CREATED = "kid_created"
+     SIGNAL_SUFFIX_KID_DELETED = "kid_deleted"
      ```
-     custom_components/kidschores/
-     ├── engines/
-     │   ├── __init__.py
-     │   ├── chore_engine.py
-     │   ├── economy_engine.py
-     │   └── gamification_engine.py
-     └── managers/
-         ├── __init__.py
-         ├── notification_manager.py
-         ├── economy_manager.py
-         ├── chore_manager.py
-         └── gamification_manager.py
+
+  2. - [ ] Add `get_event_signal()` helper to `kc_helpers.py`:
+     - Function signature: `def get_event_signal(entry_id: str, suffix: str) -> str`
+     - Returns: `f"{const.DOMAIN}_{entry_id}_{suffix}"`
+     - Add comprehensive docstring with multi-instance isolation explanation
+     - Location: After datetime helpers, before entity lookups (~line 500)
+  3. - [ ] Create `managers/base_manager.py`:
+     - Abstract base class with `emit()` and `listen()` methods
+     - Uses `async_dispatcher_send` / `async_dispatcher_connect` from HA
+     - Automatic cleanup via `entry.async_on_unload`
+     - See `_SUP_EVENT_PATTERN.md` lines 36-79 for full implementation
+  4. - [ ] Create `managers/__init__.py`:
+     - Export `BaseManager` for now
+     - Will export concrete managers in later phases
+  5. - [ ] Add event payload TypedDicts to `type_defs.py`:
+     - `PointsChangeEvent` (kid_id, old_balance, new_balance, delta, source, reference_id)
+     - `ChoreApprovedEvent` (kid_id, chore_id, parent_name, points_awarded, is_shared)
+     - `BadgeEarnedEvent` (kid_id, badge_id, badge_name, level, points_bonus)
+     - Add more as needed per `_SUP_EVENT_PATTERN.md` lines 279-315
+  6. - [ ] Create test file `tests/test_event_infrastructure.py`:
+     - Test `get_event_signal()` with various inputs
+     - Test multi-instance isolation (two entry_ids produce different signals)
+     - Test `BaseManager.emit()` / `listen()` with mocked dispatcher
+  7. - [ ] Run validation suite:
+     ```bash
+     ./utils/quick_lint.sh --fix
+     mypy custom_components/kidschores/
+     pytest tests/test_event_infrastructure.py -v
+     pytest tests/ -v --tb=line  # Full regression
      ```
-  3. - [ ] Define manager interface contract (abstract base or protocol)
-  4. - [ ] Add constants to `const.py`:
-     - `EVENT_*` constants for inter-manager communication
-     - `TRANS_KEY_*` for any new notification keys
+
 - **Key issues**
   - Must not break existing tests during setup
-  - Event pattern decision affects all subsequent phases
+  - Directory `managers/` already exists but is empty (verified)
+  - Directory `engines/` already has `schedule.py` and `statistics.py` (no changes needed)
+  - No circular imports: managers import from const/kc_helpers, not coordinator
 
 ---
 
@@ -194,28 +249,20 @@
 - **Steps / detailed work items**
   1. - [ ] Verify `data_builders.py` naming (already renamed from `entity_helpers.py`)
      - File: `custom_components/kidschores/data_builders.py` (2,288 lines)
-     - Ensure all imports reference new name
+     - Run: `grep -r "entity_helpers" custom_components/kidschores/` (should return no results)
+     - Fix any remaining imports if found
   2. - [ ] Expand `kc_helpers.py` with cleanup methods:
      - Move from coordinator: `_remove_entities_in_ha()` → `kh.remove_entities_by_pattern()`
      - Move from coordinator: `_cleanup_*` methods → `kh.cleanup_orphaned_references()`
      - File: `custom_components/kidschores/kc_helpers.py` (1,926 lines)
-  3. - [ ] Create `engines/__init__.py` with exports
-  4. - [ ] Create `managers/__init__.py` with exports
-  5. - [ ] Add event constants to `const.py` (~line 2565):
-     ```python
-     # Event bus constants (Manager communication)
-     EVENT_POINTS_CHANGE = "kidschores_points_change"
-     EVENT_CHORE_APPROVED = "kidschores_chore_approved"
-     EVENT_CHORE_CLAIMED = "kidschores_chore_claimed"
-     EVENT_REWARD_REDEEMED = "kidschores_reward_redeemed"
-     EVENT_BADGE_EARNED = "kidschores_badge_earned"
-     EVENT_ACHIEVEMENT_UNLOCKED = "kidschores_achievement_unlocked"
-     EVENT_CHALLENGE_COMPLETED = "kidschores_challenge_completed"
-     ```
-  6. - [ ] Run full test suite: `pytest tests/ -v --tb=line`
+  3. - [ ] Verify `engines/__init__.py` exports (already exists):
+     - Should export: `RecurrenceEngine`, `StatisticsEngine`, `calculate_next_due_date_from_chore_info`
+     - File: `custom_components/kidschores/engines/__init__.py`
+  4. - [ ] Run full test suite: `pytest tests/ -v --tb=line`
 - **Key issues**
   - Careful import management to avoid circular dependencies
   - Helper methods must maintain backward compatibility during transition
+  - `managers/__init__.py` already created in Phase 0 (no duplication needed)
 
 ---
 
@@ -625,6 +672,128 @@
 2. **Economy second**: Central to all operations, enables event-based gamification
 3. **Chores third**: Largest extraction, benefits from economy manager being ready
 4. **Gamification last**: Becomes event listener rather than inline call
+
+### Dependencies Between Managers
+
+```
+NotificationManager ← (used by all managers)
+       ↑
+EconomyManager ← (emits events, used by ChoreManager)
+       ↑
+ChoreManager ← (uses EconomyManager for points)
+       ↑
+GamificationManager ← (listens to events from Economy/Chore)
+```
+
+---
+
+## Phase 0 Pre-Handoff Checklist
+
+**Purpose**: Ensure builder agent has all context needed for successful Phase 0 implementation.
+
+### Documentation Review
+
+- [x] Main plan (`LAYERED_ARCHITECTURE_VNEXT_IN-PROCESS.md`) reviewed
+  - All architectural decisions documented
+  - Phase 0 steps clearly defined
+  - Dependencies and risks identified
+- [x] Implementation guide (`LAYERED_ARCHITECTURE_VNEXT_SUP_PHASE0_IMPL.md`) complete
+  - 56 signal suffix constants defined with past-tense naming
+  - 15 event payload TypedDicts specified
+  - Event Architecture Standards documented
+  - 7 implementation steps with exact code blocks
+  - Validation commands for each step
+  - **Critical**: Placement instructions specify exact line numbers and context
+- [x] Event pattern guide (`LAYERED_ARCHITECTURE_VNEXT_SUP_EVENT_PATTERN.md`) reviewed
+  - Home Assistant Dispatcher pattern explained
+  - BaseManager abstract class design documented
+  - Multi-instance isolation strategy defined
+
+### File Structure Verification
+
+- [x] Target directories confirmed:
+  - `custom_components/kidschores/managers/` exists (empty, ready for files)
+  - `custom_components/kidschores/engines/` exists (has `schedule.py`, `statistics.py` as examples)
+- [x] Target files identified for modification:
+  - `custom_components/kidschores/const.py` (~3587 lines, organized sections)
+  - `custom_components/kidschores/kc_helpers.py` (~1870 lines, organized sections)
+  - `custom_components/kidschores/type_defs.py` (existing TypedDicts, will add more)
+- [x] No existing event infrastructure to conflict with:
+  - `grep "SIGNAL_SUFFIX_"` returns 0 matches ✅
+  - `grep "async_dispatcher"` returns 0 matches ✅
+
+### Constant Placement Instructions
+
+**Critical Success Factor**: Avoid adding constants in the middle of existing groupings.
+
+- [x] **`const.py` placement verified**:
+  - **Location**: Line 60 (after Storage section, before Float Precision section)
+  - **Context lines documented**: Clear before/after markers in implementation guide
+  - **Section header**: New "Event Infrastructure (Phase 0)" section created
+  - **Why this location**: Groups all integration infrastructure together (Storage, Events, Schema)
+
+- [x] **`kc_helpers.py` placement verified**:
+  - **Location**: Line 210 (after Entity Registry Utilities, before Get Coordinator)
+  - **Context lines documented**: Clear section boundary markers
+  - **Section header**: New "Event Signal Helpers" section
+  - **Why this location**: Foundational infrastructure, close to top for easy reference
+
+### Test Strategy
+
+- [x] Test file structure defined:
+  - `tests/test_event_infrastructure.py` (5 tests specified)
+  - Tests cover: `get_event_signal()` formatting, multi-instance isolation, BaseManager emit/listen
+  - Uses AsyncMock and Home Assistant test fixtures
+- [x] Validation commands documented:
+  - Lint: `./utils/quick_lint.sh --fix`
+  - Type check: `mypy custom_components/kidschores/`
+  - Unit tests: `pytest tests/test_event_infrastructure.py -v`
+  - Full regression: `pytest tests/ -v --tb=line`
+
+### Implementation Readiness
+
+- [x] All code blocks ready in implementation guide:
+  - Step 1: 56 constants with groupings and comments
+  - Step 2: `get_event_signal()` function with full docstring
+  - Step 3: `BaseManager` abstract class (complete implementation)
+  - Step 4: `managers/__init__.py` exports
+  - Step 5: 15 TypedDict definitions with field descriptions
+  - Step 6: Test file with 5 test cases
+  - Step 7: Validation command sequence
+- [x] No blockers identified:
+  - No feature dependencies
+  - No schema changes required
+  - No migration logic needed
+  - No external library additions
+
+### Builder Agent Handoff Package
+
+**Files to Reference**:
+
+1. **Main Plan**: `docs/in-process/LAYERED_ARCHITECTURE_VNEXT_IN-PROCESS.md`
+2. **Implementation Guide**: `docs/in-process/LAYERED_ARCHITECTURE_VNEXT_SUP_PHASE0_IMPL.md` ⭐ (PRIMARY)
+3. **Event Pattern**: `docs/in-process/LAYERED_ARCHITECTURE_VNEXT_SUP_EVENT_PATTERN.md`
+4. **Development Standards**: `docs/DEVELOPMENT_STANDARDS.md` (constants, logging, types)
+5. **Architecture Reference**: `docs/ARCHITECTURE.md` (data model context)
+
+**Key Instruction for Builder**:
+
+> Follow `LAYERED_ARCHITECTURE_VNEXT_SUP_PHASE0_IMPL.md` steps 1-7 sequentially. Pay special attention to placement instructions in Steps 1-2 to avoid disrupting existing constant groupings. Use exact context lines provided to locate insertion points. Validate after each step.
+
+**Estimated Effort**: 2-3 focused sessions (~4-6 hours total)
+
+**Success Criteria**:
+
+- All 56 constants added in correct location (line 60 of `const.py`)
+- `get_event_signal()` helper added in correct location (line 210 of `kc_helpers.py`)
+- `BaseManager` abstract class created with emit/listen methods
+- 15 event payload TypedDicts added to `type_defs.py`
+- Test file created with 5 passing tests
+- All validation commands pass (lint 9.5+/10, mypy 0 errors, pytest 100% pass)
+
+---
+
+## Implementation Notes (Tracking)
 
 ### Dependencies Between Managers
 

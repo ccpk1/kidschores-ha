@@ -52,7 +52,9 @@
   "custom_1_week": "Custom (1 Week)",
   "custom_1_year": "Custom (1 Year)",
   "current_status": "Current Status",
+  "custom_from_complete": "Custom (Reschedule from completion date)",
   "daily": "Daily",
+  "daily_multi": "Daily (Multiple times per day)",
   "demoted": "Demoted",
   "due": "Due",
   "due_date": "Due Date",
@@ -147,7 +149,11 @@
   "weekly": "Weekly",
   "weekly_completed": "Weekly Completed",
   "weekly_performance": "Weekly Performance",
+  "week_end": "Week-End",
   "welcome": "Welcome",
   "went_overdue": "Went Overdue",
+  "month_end": "Month-End",
+  "quarter_end": "Quarter-End",
+  "year_end": "Year-End",
   "independent": "Independent"
 }
