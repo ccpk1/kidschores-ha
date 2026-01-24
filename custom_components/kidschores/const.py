@@ -940,6 +940,20 @@ DATA_KID_OVERALL_CHORE_STREAK: Final = "overall_chore_streak"
 DATA_KID_PENALTY_APPLIES: Final = "penalty_applies"
 DATA_KID_POINTS: Final = "points"
 DATA_KID_POINTS_MULTIPLIER: Final = "points_multiplier"
+DATA_KID_LEDGER: Final = "ledger"  # Transaction history (list of LedgerEntry)
+
+# ——————————————————————————————————————————————
+# Ledger Entry Structure Constants (Phase 3 - Economy Stack)
+# Used by EconomyEngine for transaction history
+# ——————————————————————————————————————————————
+DATA_LEDGER_TIMESTAMP: Final = "timestamp"  # ISO datetime string
+DATA_LEDGER_AMOUNT: Final = "amount"  # Transaction delta (signed float)
+DATA_LEDGER_BALANCE_AFTER: Final = "balance_after"  # Balance after transaction
+DATA_LEDGER_SOURCE: Final = "source"  # Transaction source type (uses POINTS_SOURCE_*)
+DATA_LEDGER_REFERENCE_ID: Final = "reference_id"  # Related entity ID (optional)
+
+# Default ledger limit to prevent storage bloat
+DEFAULT_LEDGER_MAX_ENTRIES: Final = 50
 
 # ——————————————————————————————————————————————
 # Kid Reward Data Structure Constants (Modern - v0.5.0+)

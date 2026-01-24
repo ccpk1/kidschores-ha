@@ -69,7 +69,8 @@ class BaseManager(ABC):
             self.entry_id,
             list(payload.keys()),
         )
-        async_dispatcher_send(self.hass, signal, **payload)
+        # Pass payload as single dict argument (dispatcher only supports *args)
+        async_dispatcher_send(self.hass, signal, payload)
 
     def listen(self, suffix: str, callback: Callable[..., None]) -> None:
         """Subscribe to instance-scoped event with automatic cleanup.
@@ -78,11 +79,13 @@ class BaseManager(ABC):
 
         Args:
             suffix: Signal suffix constant to listen for
-            callback: Async function called when event fires (receives **payload)
+            callback: Function called when event fires (receives payload dict as arg)
 
         Example:
-            async def _on_points_changed(self, kid_id: str, new_balance: float, **kwargs):
-                await self.recalculate_badges(kid_id)
+            def _on_points_changed(self, payload: dict[str, Any]) -> None:
+                kid_id = payload["kid_id"]
+                new_balance = payload["new_balance"]
+                self.recalculate_badges(kid_id)
 
             # In async_setup():
             self.listen(const.SIGNAL_SUFFIX_POINTS_CHANGED, self._on_points_changed)

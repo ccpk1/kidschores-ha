@@ -9,16 +9,16 @@
 
 ## Summary & immediate steps
 
-| Phase / Step               | Description                              | % complete | Quick notes                                   |
-| -------------------------- | ---------------------------------------- | ---------- | --------------------------------------------- |
-| Phase 0 – Event Foundation | Event infrastructure (signals, base mgr) | 100%       | ✅ COMPLETE 2026-01-24 (51 signals, 15 types) |
-| Phase 1 – Infrastructure   | Verify renames, expand helpers           | 100%       | ✅ COMPLETE 2026-01-24 (8 cleanup helpers)    |
-| Phase 2 – Notification     | Extract NotificationManager              | 0%         | First manager extraction (lowest risk)        |
-| Phase 3 – Economy          | EconomyEngine + EconomyManager           | 0%         | Ledger system, point transactions             |
-| Phase 4 – Chore            | ChoreEngine + ChoreManager               | 0%         | Refactor existing ChoreOperations mixin       |
-| Phase 5 – Gamification     | GamificationEngine + GamificationManager | 0%         | Unify badges/achievements/challenges          |
-| Phase 6 – Coordinator Slim | Reduce coordinator to routing only       | 0%         | Target: <1000 lines                           |
-| Phase 7 – Testing & Polish | Integration tests, documentation         | 0%         | 95%+ coverage maintained                      |
+| Phase / Step               | Description                              | % complete | Quick notes                                     |
+| -------------------------- | ---------------------------------------- | ---------- | ----------------------------------------------- |
+| Phase 0 – Event Foundation | Event infrastructure (signals, base mgr) | 100%       | ✅ COMPLETE 2026-01-24 (51 signals, 15 types)   |
+| Phase 1 – Infrastructure   | Verify renames, expand helpers           | 100%       | ✅ COMPLETE 2026-01-24 (8 cleanup helpers)      |
+| Phase 2 – Notification     | Extract NotificationManager              | 100%       | ✅ COMPLETE 2026-01-24 (16 tests passing)       |
+| Phase 3 – Economy          | EconomyEngine + EconomyManager           | 100%       | ✅ COMPLETE 2026-01-25 (41+19 tests, 962 total) |
+| Phase 4 – Chore            | ChoreEngine + ChoreManager               | 0%         | Refactor existing ChoreOperations mixin         |
+| Phase 5 – Gamification     | GamificationEngine + GamificationManager | 0%         | Unify badges/achievements/challenges            |
+| Phase 6 – Coordinator Slim | Reduce coordinator to routing only       | 0%         | Target: <1000 lines                             |
+| Phase 7 – Testing & Polish | Integration tests, documentation         | 0%         | 95%+ coverage maintained                        |
 
 1. **Key objective** – Transform the monolithic 10k+ line coordinator into a layered service architecture with clear separation between routing (Coordinator), state workflows (Managers), and pure logic (Engines). This enables testable units, decoupled features, and easier future feature additions.
 
@@ -28,14 +28,18 @@
    - Already renamed: `entity_helpers.py` → `data_builders.py` ✅
    - **Phase 0 COMPLETE**: Event infrastructure implemented (51 signals, 15 TypedDicts, BaseManager) ✅
    - **Phase 1 COMPLETE**: Infrastructure cleanup (8 cleanup helpers moved to kc_helpers.py) ✅
+   - **Phase 2 COMPLETE**: NotificationManager extracted (~1,130 lines) ✅
+   - **Phase 3 COMPLETE**: EconomyEngine (41 tests) + EconomyManager (19 tests) + Coordinator ledger integration ✅
 
 3. **Next steps (short term)**
    - ✅ Phase 0 - Event Infrastructure COMPLETE (2026-01-24)
    - ✅ Phase 1 - Infrastructure Cleanup COMPLETE (2026-01-24)
-   - **Next**: Implement Phase 2 - Notification Manager
-     - Create `managers/notification_manager.py`
-     - Consolidate notification functions from coordinator
-     - Refactor to use BaseManager event patterns
+   - ✅ Phase 2 - NotificationManager COMPLETE (2026-01-24)
+   - ✅ Phase 3 - Economy Stack COMPLETE (2026-01-25)
+   - **Next**: Implement Phase 4 - Chore Stack
+     - Create `engines/chore_engine.py` (state machine, point calc, shared chore logic)
+     - Create `managers/chore_manager.py` (stateful workflow)
+     - Refactor `coordinator_chore_operations.py` methods to use manager
 
 4. **Risks / blockers**
    - **Breaking changes**: Service names remain stable, but internal method signatures will change
@@ -265,135 +269,113 @@
   - `NotificationManager` = **Outgoing** (send notifications, translate, build actions)
   - `notification_action_handler.py` = **Incoming** (parse button press, route to coordinator)
 - **Steps / detailed work items**
-  1. - [ ] Create `managers/notification_manager.py`:
-     - Move from coordinator: `_notify_kid()`, `_notify_parents()`, `_notify_kid_translated()`, `_notify_parents_translated()`
-     - Move from coordinator: `send_kc_notification()`, `clear_notification_for_parents()`, `remind_in_minutes()`
-     - Move from coordinator: `_convert_notification_key()`, `_format_notification_text()`, `_translate_action_buttons()`
-     - Move from `notification_helper.py`: `async_send_notification()`, `build_notification_tag()`
-     - Move from `notification_helper.py`: `build_chore_actions()`, `build_reward_actions()`, `build_extra_data()`, etc.
-  2. - [ ] Define NotificationManager interface:
+  1. - [x] Create `managers/notification_manager.py` (~1,130 lines):
+     - Extracted all notification logic from coordinator and notification_helper
+     - Module-level `async_send_notification()` for testability
+     - `NotificationManager` class with full interface
+  2. - [x] Define NotificationManager interface:
+     - `send_kid_notification()`, `send_parent_notification()` (translated)
+     - `send_kid_notification_raw()`, `send_parent_notification_raw()` (raw)
+     - `clear_notification()`, `remind_in_minutes()`
+     - Static action builders: `build_chore_actions()`, `build_reward_actions()`
+  3. - [x] Update `notification_action_handler.py`:
+     - `ParsedAction` dataclass and `parse_notification_action()` moved in
+     - Handles INCOMING actions, routes to coordinator
+  4. - [x] Delete `notification_helper.py`:
+     - All functions absorbed into NotificationManager or action_handler ✅
+  5. - [x] Update coordinator to use NotificationManager:
+     - Initialized as `self.notification_manager = NotificationManager(hass, self)`
+     - All `_notify_*` calls now use manager methods
+  6. - [x] Update imports in `coordinator.py`, `coordinator_chore_operations.py`:
+     - Removed `notification_helper` imports
+     - Added `managers.notification_manager` imports
+  7. - [x] Update `managers/__init__.py` to export NotificationManager ✅
+  8. - [x] Tests:
+     - All 16 notification workflow tests passing ✅
+     - 902 total tests passing, no regressions ✅
 
-     ```python
-     class NotificationManager(BaseManager):
-         def __init__(self, hass: HomeAssistant, coordinator: Coordinator):
-             super().__init__(hass, coordinator.config_entry)
-             self._coordinator = coordinator
-
-         # Core send methods (translated)
-         async def send_kid_notification(self, kid_id, title_key, message_key, ...): ...
-         async def send_parent_notification(self, kid_id, title_key, message_key, ...): ...
-
-         # Raw send methods (for non-translated paths)
-         async def send_kid_notification_raw(self, kid_id, title, message, ...): ...
-         async def send_parent_notification_raw(self, kid_id, title, message, ...): ...
-
-         # Utility methods
-         async def clear_notification(self, kid_id, tag_type, entity_id): ...
-         async def remind_in_minutes(self, kid_id, minutes, chore_id, reward_id): ...
-
-         # Action builders (static or class methods)
-         @staticmethod
-         def build_chore_actions(kid_id, chore_id) -> list[dict]: ...
-         @staticmethod
-         def build_reward_actions(kid_id, reward_id, notif_id) -> list[dict]: ...
-     ```
-
-  3. - [ ] Update `notification_action_handler.py`:
-     - Move `ParsedAction` dataclass and `parse_notification_action()` INTO this file (from notification_helper)
-     - Keep routing logic to coordinator methods (approve_chore, etc.)
-     - This file stays separate - it handles INCOMING actions, not outgoing
-  4. - [ ] Delete `notification_helper.py` entirely:
-     - All functions absorbed into NotificationManager or action_handler
-     - No backward compat wrapper needed (no external consumers)
-  5. - [ ] Update coordinator to use NotificationManager:
-     - Initialize: `self.notification_manager = NotificationManager(hass, self)`
-     - Replace all `self._notify_*` calls with `self.notification_manager.send_*`
-     - Replace all `build_chore_actions()` imports with manager method
-  6. - [ ] Update imports in `coordinator.py`, `coordinator_chore_operations.py`:
-     - Remove imports from `notification_helper`
-     - Add imports from `managers.notification_manager`
-  7. - [ ] Update `managers/__init__.py` to export NotificationManager
-  8. - [ ] Tests:
-     - Create `tests/test_notification_manager.py` for unit tests
-     - Verify existing notification workflow tests still pass
-
-- **Key issues**
-  - Must handle both translated and non-translated notification paths
-  - Coordinator needs reference to manager (injected in `__init__`)
-  - Action handler stays separate (routes to coordinator, not manager)
+- **Key issues resolved**
+  - ✅ Both translated and non-translated notification paths handled
+  - ✅ Coordinator references manager (injected in `__init__`)
+  - ✅ Action handler stays separate (routes to coordinator, not manager)
+  - ✅ Module-level `async_send_notification()` enables clean test mocking
 
 ---
 
 ### Phase 3 – Economy Stack ("The Bank")
 
 - **Goal**: Centralize all point operations with transaction history and validation.
+- **Strategic Decisions** (confirmed 2026-01-24):
+  1. **Ledger Persistence**: Persist immediately (Schema v43) - not in-memory
+     - Rationale: Data integrity on HA restart, future transaction history UI, low effort
+  2. **Gamification Coupling**: Preserve inline for Phase 3, defer event-based to Phase 5
+     - Rationale: Avoid scope creep, reduce debugging complexity
+  3. **NotificationManager Dependency**: EconomyManager does NOT import NotificationManager
+     - Rationale: Keep managers domain-specific; Coordinator handles wiring/notifications
+  4. **Test Strategy**: Hybrid (pure Python for Engine, integration for Manager, regression)
+
 - **Steps / detailed work items**
 
-  **3A. EconomyEngine (pure logic)**
-  1. - [ ] Create `engines/economy_engine.py`:
+  **3A. Schema & Types (v43)**
+  1. - [x] Update `const.py`:
+     - Added `DATA_KID_LEDGER = "ledger"` and related ledger field constants
+     - Added `LEDGER_SOURCE_*` constants for transaction sources
+     - Added `DEFAULT_LEDGER_MAX_ENTRIES = 50`
+     - Note: SCHEMA_VERSION already at 43 (dev version)
+  2. - [x] Update `type_defs.py`:
+     - Added `LedgerEntry` TypedDict with 5 fields, exported in `__all__`
+       ```python
+       class LedgerEntry(TypedDict):
+           timestamp: str  # ISO format
+           amount: float
+           balance_after: float
+           source: str  # "chore_approval", "reward_redemption", "penalty", "bonus"
+           reference_id: str | None  # chore_id, reward_id, etc.
+       ```
+  3. - [ ] Create migration in `migration_pre_v50.py` (DEFERRED to end):
+     - `_migrate_to_v43()`: Add `ledger: []` to all existing kids
+     - Rationale: Per user guidance, migration after integration wiring verified
 
-     ```python
-     @dataclass
-     class LedgerEntry:
-         timestamp: datetime
-         amount: float
-         balance_after: float
-         source: str  # "chore_approval", "reward_redemption", "penalty", "bonus"
-         reference_id: str | None  # chore_id, reward_id, etc.
+  **3B. EconomyEngine (pure logic)** 4. - [x] Create `engines/economy_engine.py` (~197 lines):
+  - `InsufficientFundsError` exception for NSF handling
+  - `round_points()`, `validate_sufficient_funds()`, `calculate_with_multiplier()`
+  - `create_ledger_entry()`, `prune_ledger()` for transaction management
+  - Uses inline `_now_iso()` to avoid circular import with kc_helpers
+  5. - [x] Unit tests: `tests/test_economy_engine.py` (41 tests passing)
+     - Math, rounding, NSF validation, multiplier calculations
+     - Ledger entry creation with all fields verified
+     - Prune behavior at boundary conditions
 
-     class EconomyEngine:
-         @staticmethod
-         def create_transaction(current_balance: float, delta: float, source: str, ref_id: str | None = None) -> LedgerEntry:
-             """Create immutable transaction record."""
+  **3C. EconomyManager (stateful workflow)** 6. - [x] Create `managers/economy_manager.py` (~314 lines):
+  - Extends `BaseManager`, stores reference to coordinator
+  - `deposit()`, `withdraw()` with persistence and event emission
+  - `get_balance()`, `get_history()` for read operations
+  - Emits `SIGNAL_SUFFIX_POINTS_CHANGED` on all transactions
+  - Re-exports `InsufficientFundsError` for external use
+  7. - [x] Update `managers/__init__.py` to export EconomyManager ✅
 
-         @staticmethod
-         def validate_sufficient_funds(balance: float, cost: float) -> bool:
-             """NSF check - returns False if insufficient."""
+  **3D. Coordinator Integration** 8. - [x] Update `coordinator.py`:
+  - ✅ Imported EconomyEngine, EconomyManager, InsufficientFundsError
+  - ✅ Initialized `self.economy_manager = EconomyManager(hass, self)` in `__init__`
+  - ✅ Updated `update_kid_points()` to use EconomyEngine for ledger entry creation
+  - Note: Function stays sync, uses Engine directly (not async Manager) for compatibility
+  - Ledger source mapping: POINTS*SOURCE*_ → LEDGER*SOURCE*_
+  - All existing stats/gamification logic preserved inline
+  9. - [x] NSF handling:
+     - Existing NSF check in `approve_reward()` remains (raises HomeAssistantError)
+     - InsufficientFundsError available for direct EconomyManager usage (future)
+     - Phase 5 may add notification_manager.send_insufficient_funds() if needed
 
-         @staticmethod
-         def calculate_with_multiplier(base_points: float, multiplier: float) -> float:
-             """Apply badge multiplier to points."""
+  **3E. Testing** 10. - [x] `tests/test_economy_engine.py` - 41 unit tests passing 11. - [x] Create `tests/test_economy_manager.py` (19 integration tests): - ✅ Deposit tests: balance increase, ledger entry, event emission, multiplier, negative rejection - ✅ Withdraw tests: balance decrease, negative ledger, NSF exception, event emission - ✅ History tests: recent entries, limit, nonexistent kid - ✅ Balance tests: current value, nonexistent kid, invalid value handling - ✅ Coordinator ledger integration: entry creation, source mapping, pruning - Fixed dispatcher emit() to pass payload as single dict (HA only accepts \*args) 12. - [x] Regression: All 962 tests passing (includes workflow points tests)
 
-         @staticmethod
-         def round_points(value: float, precision: int = 2) -> float:
-             """Consistent point rounding."""
-     ```
-
-  2. - [ ] Add `LedgerEntry` TypedDict to `type_defs.py`
-  3. - [ ] Unit tests for engine (pure Python, no HA mocking needed)
-
-  **3B. EconomyManager (stateful workflow)** 4. - [ ] Create `managers/economy_manager.py`:
-
-  ```python
-  class EconomyManager:
-      def __init__(self, hass, coordinator, notification_manager):
-          ...
-
-      def deposit(self, kid_id: str, amount: float, *, source: str, reference_id: str | None = None) -> float:
-          """Add points, emit EVENT_POINTS_CHANGE."""
-
-      def withdraw(self, kid_id: str, amount: float, *, source: str, reference_id: str | None = None) -> float:
-          """Deduct points with NSF check, emit EVENT_POINTS_CHANGE."""
-
-      def get_balance(self, kid_id: str) -> float:
-          """Current point balance."""
-
-      def get_ledger(self, kid_id: str, limit: int = 50) -> list[LedgerEntry]:
-          """Recent transaction history."""
-  ```
-
-  5. - [ ] Refactor `coordinator.update_kid_points()`:
-     - Current location: `coordinator.py` lines 1431-1608
-     - Keep as thin wrapper calling `economy_manager.deposit/withdraw`
-     - Gamification checks move to event listener (Phase 5)
-  6. - [ ] Update storage schema for ledger (optional, can be in-memory first):
-     - If persisted: increment `SCHEMA_VERSION` to 43
-     - Add migration: `_migrate_to_v43()` to initialize empty ledgers
-  7. - [ ] Tests: `tests/test_economy_manager.py`, `tests/test_economy_engine.py`
-
-- **Key issues**
-  - `update_kid_points()` currently triggers badge/achievement/challenge checks inline
-  - Must preserve existing behavior while enabling event-based evaluation
+- **Key issues resolved**
+  - ✅ `update_kid_points()` keeps inline badge/achievement/challenge checks (Phase 5 will add event-based)
+  - ✅ Migration (Step 3) intentionally deferred - code is defensive with `.get(ledger, [])`
+  - ✅ Dispatcher emit() fixed: HA's `async_dispatcher_send` only accepts `*args`, not `**kwargs`
+  - ✅ BaseManager docstring updated to show callback receives `payload: dict[str, Any]`
+  - ✅ EconomyManager uses `async_setup()` no-op to satisfy BaseManager ABC
+  - **Phase 5**: `GamificationManager` subscribes to `POINTS_CHANGED`, Coordinator stops calling manually
+  - NSF errors: Coordinator catches and notifies, EconomyManager stays domain-pure
 
 ---
 

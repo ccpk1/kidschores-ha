@@ -720,6 +720,27 @@ ChallengeProgressData = ChallengeProgress | dict[str, Any]
 
 
 # =============================================================================
+# Ledger Types (Economy Stack - Phase 3)
+# =============================================================================
+# Used by EconomyEngine and EconomyManager for transaction history
+
+
+class LedgerEntry(TypedDict):
+    """A single transaction record in a kid's point ledger.
+
+    Created by: EconomyEngine.create_ledger_entry()
+    Stored in: KidData["ledger"] (list of entries)
+    Managed by: EconomyManager (append, prune, persist)
+    """
+
+    timestamp: str  # ISO datetime string
+    amount: float  # Transaction delta (positive=deposit, negative=withdraw)
+    balance_after: float  # Balance after this transaction
+    source: str  # Transaction type: "chore_approval", "reward_redemption", etc.
+    reference_id: str | None  # Related entity ID (chore_id, reward_id, etc.)
+
+
+# =============================================================================
 # Event Payload Types (Manager-to-Manager Communication)
 # =============================================================================
 # Used for type-safe event payloads in BaseManager.emit() calls
@@ -998,6 +1019,8 @@ __all__ = [
     "KidRewardDataPeriods",
     # Collection aliases
     "KidsCollection",
+    # Ledger types (Economy Stack)
+    "LedgerEntry",
     "ParentData",
     "ParentsCollection",
     "PenaltiesCollection",

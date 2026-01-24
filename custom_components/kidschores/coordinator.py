@@ -33,8 +33,9 @@ from homeassistant.util import dt as dt_util
 
 from . import const, data_builders as db, kc_helpers as kh
 from .coordinator_chore_operations import ChoreOperations
+from .engines.economy_engine import EconomyEngine
 from .engines.statistics import StatisticsEngine
-from .managers import NotificationManager
+from .managers import EconomyManager, NotificationManager
 from .store import KidsChoresStore
 from .type_defs import (
     AchievementProgress,
@@ -127,6 +128,9 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
 
         # Statistics engine for unified period-based tracking (v0.6.0+)
         self.stats = StatisticsEngine()
+
+        # Economy manager for point transactions and ledger (v0.5.0+)
+        self.economy_manager = EconomyManager(hass, self)
 
         # Notification manager for all outgoing notifications (v0.5.0+)
         self.notification_manager = NotificationManager(hass, self)
@@ -1726,6 +1730,24 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
             old = 0.0
         new = old + delta_value
         kid_info[const.DATA_KID_POINTS] = new
+
+        # 2b) Create and append ledger entry for transaction history (v0.5.0+)
+        # Ledger uses POINTS_SOURCE_* directly - no mapping needed
+        ledger_entry = EconomyEngine.create_ledger_entry(
+            current_balance=old,
+            delta=delta_value,
+            source=source,
+            reference_id=None,  # Could be passed from caller in future
+        )
+
+        # Ensure ledger exists and append entry
+        if const.DATA_KID_LEDGER not in kid_info:
+            kid_info[const.DATA_KID_LEDGER] = []  # type: ignore[typeddict-unknown-key]
+        ledger = cast("list[dict[str, Any]]", kid_info[const.DATA_KID_LEDGER])  # type: ignore[typeddict-item]
+        ledger.append(cast("dict[str, Any]", ledger_entry))
+        EconomyEngine.prune_ledger(
+            cast("list[Any]", ledger), const.DEFAULT_LEDGER_MAX_ENTRIES
+        )
 
         # 3) Legacy cumulative badge logic
         progress = kid_info.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {})

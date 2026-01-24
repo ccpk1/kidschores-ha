@@ -123,9 +123,10 @@ class TestBaseManager:
             )
             assert mock_send.call_args[0][1] == expected_signal
 
-            # Verify payload kwargs were passed
-            assert mock_send.call_args[1]["kid_id"] == "kid1"
-            assert mock_send.call_args[1]["delta"] == 10.0
+            # Verify payload was passed as third positional arg (dict)
+            payload = mock_send.call_args[0][2]
+            assert payload["kid_id"] == "kid1"
+            assert payload["delta"] == 10.0
 
     def test_listen_subscribes_and_registers_cleanup(
         self, mock_hass: MagicMock, mock_coordinator: MagicMock
