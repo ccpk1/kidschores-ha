@@ -239,11 +239,47 @@ config_entry = result.config_entry
 
 ---
 
-## Rule 2: Two Testing Approaches
+## Rule 2: Testing Approaches (Priority Order)
 
-### Approach A: Service Calls via Dashboard Helper (REQUIRED unless explicit permission to deviate)
+### Testing Method Hierarchy
 
-**This is the expected approach.** It provides true end-to-end testing that mirrors real user interaction through Home Assistant entities:
+| Priority                       | Method                                               | User Context        | Use Case                                           |
+| ------------------------------ | ---------------------------------------------------- | ------------------- | -------------------------------------------------- |
+| **1. REQUIRED**                | Button press with `Context(user_id=...)`             | ✅ Kid/Parent/Admin | E2E workflow tests with authorization              |
+| **2. ACCEPTABLE**              | Service call to `kidschores.*` services              | ❌ Always admin     | Service layer tests (no auth testing)              |
+| **3. FORBIDDEN for workflows** | Direct coordinator API (`coordinator.claim_chore()`) | N/A                 | Internal logic only - requires explicit permission |
+
+### Why Button Presses Are Required (Not Just Preferred)
+
+**Button presses can mock user privileges**:
+
+```python
+# Test as a kid - can verify kids CANNOT approve their own chores
+kid_context = Context(user_id=mock_hass_users["kid1"].id)
+await hass.services.async_call("button", "press", {"entity_id": claim_btn}, context=kid_context)
+
+# Test as a parent - can verify parents CAN approve chores
+parent_context = Context(user_id=mock_hass_users["parent1"].id)
+await hass.services.async_call("button", "press", {"entity_id": approve_btn}, context=parent_context)
+```
+
+**Service calls ALWAYS run as admin**:
+
+```python
+# ⚠️ This ALWAYS runs with admin privileges - cannot test authorization
+await hass.services.async_call("kidschores", "approve_chore", {...})
+```
+
+**Direct coordinator API BYPASSES all security and UI layers**:
+
+```python
+# ❌ FORBIDDEN for workflow tests - bypasses everything
+coordinator.claim_chore(kid_id, chore_id, "Zoë")  # No user context, no button, no security
+```
+
+### Approach A: Button Press with User Context (REQUIRED for workflow tests)
+
+**This is the primary approach.** It provides true end-to-end testing including authorization:
 
 ```python
 from homeassistant.core import Context
@@ -278,9 +314,47 @@ async def test_claim_via_button(hass, scenario_minimal, mock_hass_users):
 **Why preferred:**
 
 - Tests the full integration path from UI to coordinator to entity state
+- **Tests authorization** - can verify kids can't approve their own chores, etc.
 - Validates that sensors, buttons, and states work together correctly
 - Catches integration issues that direct API calls would miss
 - Mirrors actual user experience
+
+### Approach A.1: Service Calls to `kidschores.*` Services (Acceptable for non-auth tests)
+
+When a button entity doesn't exist for an action, use defined services from `services.py`:
+
+```python
+async def test_approve_via_service(hass, scenario_minimal):
+    # Service calls always run as admin - cannot test authorization
+    await hass.services.async_call(
+        "kidschores", "approve_chore",
+        {
+            "config_entry_id": scenario_minimal.entry.entry_id,
+            "chore_name": "Make bed",
+            "kid_name": "Zoë",
+        },
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    # Verify state changed
+    chore_state = hass.states.get("sensor.kc_zoe_chore_make_bed")
+    assert chore_state.state == CHORE_STATE_APPROVED
+```
+
+**Available services** (see `services.py`):
+
+- `kidschores.claim_chore` - Claim a chore for a kid
+- `kidschores.approve_chore` - Approve a claimed chore
+- `kidschores.disapprove_chore` - Disapprove a claimed chore
+
+**When to use:**
+
+- Actions without button entities
+- Tests that don't require user authorization verification
+- Admin-level operations
+
+**⚠️ LIMITATION**: Service calls cannot mock user privileges - always run as admin.
 
 ### Approach B: Direct Coordinator API (Requires explicit permission)
 
@@ -292,20 +366,16 @@ Use **only** when testing:
 - Coordinator-specific edge cases
 
 ```python
-async def test_claim_changes_state(hass, scenario_minimal):
+async def test_internal_calculation(hass, scenario_minimal):
     coordinator = scenario_minimal.coordinator
     kid_id = scenario_minimal.kid_ids["Zoë"]
     chore_id = scenario_minimal.chore_ids["Make bed"]
 
-    # Use coordinator API directly (fallback for non-UI testing)
-    coordinator.claim_chore(kid_id, chore_id, "Zoë")
+    # ⚠️ REQUIRES PERMISSION - bypasses UI layer
+    # Only for internal logic tests, not workflow tests
+    result = coordinator._calculate_streak_multiplier(kid_id, chore_id)
 
-    # Read state from coordinator data
-    kid_data = coordinator.kids_data.get(kid_id, {})
-    chore_data = kid_data.get(DATA_KID_CHORE_DATA, {}).get(chore_id, {})
-    state = chore_data.get(DATA_KID_CHORE_DATA_STATE)
-
-    assert state == CHORE_STATE_CLAIMED
+    assert result == 1.5
 ```
 
 **When to use:**
@@ -313,6 +383,54 @@ async def test_claim_changes_state(hass, scenario_minimal):
 - Testing internal calculations (point multipliers, badge progress)
 - Validating data structures not directly visible in UI
 - Testing coordinator methods that have no button/service equivalent
+
+### ❌ FORBIDDEN: Direct Coordinator API for Workflow Tests
+
+**NEVER use direct coordinator calls for workflow tests:**
+
+```python
+# ❌ FORBIDDEN - bypasses user context, security, and UI layers
+coordinator.claim_chore(kid_id, chore_id, "Zoë")
+coordinator.approve_chore(kid_id, chore_id, ...)
+await coordinator.apply_bonus(...)
+await coordinator.claim_reward(...)
+
+# These methods are internal implementation details.
+# Tests using them will pass even when the real UI path is broken.
+```
+
+**Why this is forbidden:**
+
+1. **No user context**: Cannot verify authorization (who can do what)
+2. **Bypasses button entities**: Doesn't test the actual user-facing API
+3. **Hidden bugs**: Tests pass but users encounter errors
+4. **Timestamp issues**: May not trigger all side effects that buttons trigger
+
+**✅ CORRECT - Use button press with user context:**
+
+```python
+# Get button entity ID from dashboard helper or chore sensor
+claim_button_eid = chore_state.attributes[ATTR_CHORE_CLAIM_BUTTON_ENTITY_ID]
+
+# Press button WITH user context to test real user flow
+kid_context = Context(user_id=mock_hass_users["kid1"].id)
+await hass.services.async_call(
+    "button", "press",
+    {"entity_id": claim_button_eid},
+    blocking=True, context=kid_context,
+)
+```
+
+**✅ ACCEPTABLE - Use service call when button doesn't exist:**
+
+```python
+# Service calls are acceptable but cannot test authorization
+await hass.services.async_call(
+    "kidschores", "approve_chore",
+    {"config_entry_id": entry.entry_id, "chore_name": "Make bed", "kid_name": "Zoë"},
+    blocking=True,
+)
+```
 
 ---
 

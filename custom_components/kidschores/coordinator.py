@@ -27,6 +27,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
@@ -35,7 +36,7 @@ from . import const, data_builders as db, kc_helpers as kh
 from .coordinator_chore_operations import ChoreOperations
 from .engines.economy_engine import EconomyEngine
 from .engines.statistics import StatisticsEngine
-from .managers import EconomyManager, NotificationManager
+from .managers import ChoreManager, EconomyManager, NotificationManager
 from .store import KidsChoresStore
 from .type_defs import (
     AchievementProgress,
@@ -134,6 +135,11 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
 
         # Notification manager for all outgoing notifications (v0.5.0+)
         self.notification_manager = NotificationManager(hass, self)
+
+        # Chore manager for chore workflow orchestration (v0.5.0+)
+        # Phase 4: Initialized but not yet wired - ChoreOperations mixin remains active
+        # Future phases will delegate ChoreOperations methods to this manager
+        self.chore_manager = ChoreManager(hass, self, self.economy_manager)
 
     # -------------------------------------------------------------------------------------
     # Migrate Data and Converters
@@ -304,6 +310,37 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
             self._recalculate_chore_stats_for_kid(kid_id)
             self._recalculate_point_stats_for_kid(kid_id)
 
+        # =================================================================
+        # Phase 4.5: Event Loopback for Gamification Bridge
+        # =================================================================
+        # Subscribe to Manager events to trigger legacy badge/achievement checks.
+        # This bridges the new Manager architecture with existing gamification logic
+        # until Phase 5 (GamificationManager) takes over.
+        for signal_suffix in [
+            const.SIGNAL_SUFFIX_CHORE_APPROVED,
+            const.SIGNAL_SUFFIX_POINTS_CHANGED,
+        ]:
+            signal = kh.get_event_signal(self.config_entry.entry_id, signal_suffix)
+            self.config_entry.async_on_unload(
+                async_dispatcher_connect(
+                    self.hass, signal, self._handle_legacy_gamification_trigger
+                )
+            )
+
+        # Subscribe to CHORE_CLAIMED for notification handling
+        claimed_signal = kh.get_event_signal(
+            self.config_entry.entry_id, const.SIGNAL_SUFFIX_CHORE_CLAIMED
+        )
+        self.config_entry.async_on_unload(
+            async_dispatcher_connect(
+                self.hass, claimed_signal, self._handle_chore_claimed_notification
+            )
+        )
+
+        const.LOGGER.debug(
+            "Event loopback registered for CHORE_APPROVED, POINTS_CHANGED, CHORE_CLAIMED"
+        )
+
         self._persist(immediate=True)  # Startup persist should be immediate
         await super().async_config_entry_first_refresh()
 
@@ -377,6 +414,129 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
             # Task was cancelled, new save scheduled
             const.LOGGER.debug("Debounced persist cancelled (replaced by new save)")
             raise
+
+    # -------------------------------------------------------------------------------------
+    # Phase 4.5: Event Loopback for Legacy Gamification
+    # -------------------------------------------------------------------------------------
+
+    async def _handle_legacy_gamification_trigger(
+        self, payload: dict[str, Any]
+    ) -> None:
+        """Bridge Manager events to legacy gamification checks.
+
+        This is a temporary handler for Phase 4/5 transition. When ChoreManager
+        or EconomyManager emits events, this triggers the existing badge,
+        achievement, and challenge evaluation logic.
+
+        Once Phase 5 (GamificationManager) is complete, this bridge will be removed
+        and gamification will be fully event-driven.
+
+        Args:
+            payload: Event payload dict containing at minimum 'kid_id'
+        """
+        kid_id = payload.get("kid_id")
+        if not kid_id:
+            const.LOGGER.warning("Event Loopback: No kid_id in payload, skipping")
+            return
+
+        const.LOGGER.debug(
+            "Event Loopback: Triggering legacy gamification for kid %s", kid_id
+        )
+        self._check_badges_for_kid(kid_id)
+        self._check_achievements_for_kid(kid_id)
+        self._check_challenges_for_kid(kid_id)
+
+    async def _handle_chore_claimed_notification(self, payload: dict[str, Any]) -> None:
+        """Handle CHORE_CLAIMED event - send notification to parents.
+
+        This bridges ChoreManager events to the notification system.
+        Notifications are NOT sent if auto_approve is enabled (manager handles that).
+
+        Args:
+            payload: Event payload dict containing 'kid_id', 'chore_id', and optional
+                     'chore_name', 'user_name', etc.
+        """
+        from .managers import NotificationManager
+        from .type_defs import ChoreData
+
+        kid_id = payload.get("kid_id")
+        chore_id = payload.get("chore_id")
+
+        if not kid_id or not chore_id:
+            const.LOGGER.warning(
+                "CHORE_CLAIMED notification skipped: missing kid_id or chore_id"
+            )
+            return
+
+        chore_info: ChoreData | None = self.chores_data.get(chore_id)
+        if not chore_info:
+            return
+
+        # Skip notification if auto_approve is enabled
+        if chore_info.get(
+            const.DATA_CHORE_AUTO_APPROVE, const.DEFAULT_CHORE_AUTO_APPROVE
+        ):
+            return
+
+        # Skip if notify_on_claim is disabled
+        if not chore_info.get(
+            const.DATA_CHORE_NOTIFY_ON_CLAIM, const.DEFAULT_NOTIFY_ON_CLAIM
+        ):
+            return
+
+        kid_info: KidData | None = self.kids_data.get(kid_id)
+        if not kid_info:
+            return
+        chore_name = payload.get("chore_name") or chore_info.get(
+            const.DATA_CHORE_NAME, ""
+        )
+        kid_name = kid_info.get(const.DATA_KID_NAME, "")
+        chore_points = chore_info.get(
+            const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_ZERO
+        )
+
+        # Count pending chores for aggregation
+        pending_count = self._count_chores_pending_for_kid(kid_id)
+
+        # Build action buttons
+        actions = NotificationManager.build_chore_actions(kid_id, chore_id)
+        extra_data = NotificationManager.build_extra_data(kid_id, chore_id=chore_id)
+
+        if pending_count > 1:
+            # Aggregated notification
+            await self._notify_parents_translated(
+                kid_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_PENDING_CHORES,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_PENDING_CHORES,
+                message_data={
+                    "kid_name": kid_name,
+                    "count": pending_count,
+                    "latest_chore": chore_name,
+                    "points": int(chore_points),
+                },
+                actions=actions,
+                extra_data=extra_data,
+                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+                tag_identifiers=(chore_id, kid_id),
+            )
+        else:
+            # Single chore notification
+            await self._notify_parents_translated(
+                kid_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_CLAIMED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_CLAIMED,
+                message_data={
+                    "kid_name": kid_name,
+                    "chore_name": chore_name,
+                },
+                actions=actions,
+                extra_data=extra_data,
+                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+                tag_identifiers=(chore_id, kid_id),
+            )
+
+        # Clear due-soon reminder tracking
+        self._clear_chore_due_reminder(chore_id, kid_id)
 
     # -------------------------------------------------------------------------------------
     # Approval Lock Management

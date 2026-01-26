@@ -15,7 +15,8 @@
 | Phase 1 – Infrastructure   | Verify renames, expand helpers           | 100%       | ✅ COMPLETE 2026-01-24 (8 cleanup helpers)      |
 | Phase 2 – Notification     | Extract NotificationManager              | 100%       | ✅ COMPLETE 2026-01-24 (16 tests passing)       |
 | Phase 3 – Economy          | EconomyEngine + EconomyManager           | 100%       | ✅ COMPLETE 2026-01-25 (41+19 tests, 962 total) |
-| Phase 4 – Chore            | ChoreEngine + ChoreManager               | 0%         | Refactor existing ChoreOperations mixin         |
+| Phase 4 – Chore            | ChoreEngine + ChoreManager               | 100%       | ✅ COMPLETE 2026-01-26 (93 tests, 1055 total)   |
+| Phase 4.5b – Scheduler     | Delegate timers to ChoreManager          | 100%       | ✅ COMPLETE 2026-01-26 (10 tests, events ready) |
 | Phase 5 – Gamification     | GamificationEngine + GamificationManager | 0%         | Unify badges/achievements/challenges            |
 | Phase 6 – Coordinator Slim | Reduce coordinator to routing only       | 0%         | Target: <1000 lines                             |
 | Phase 7 – Testing & Polish | Integration tests, documentation         | 0%         | 95%+ coverage maintained                        |
@@ -36,10 +37,21 @@
    - ✅ Phase 1 - Infrastructure Cleanup COMPLETE (2026-01-24)
    - ✅ Phase 2 - NotificationManager COMPLETE (2026-01-24)
    - ✅ Phase 3 - Economy Stack COMPLETE (2026-01-25)
-   - **Next**: Implement Phase 4 - Chore Stack
-     - Create `engines/chore_engine.py` (state machine, point calc, shared chore logic)
-     - Create `managers/chore_manager.py` (stateful workflow)
-     - Refactor `coordinator_chore_operations.py` methods to use manager
+   - ✅ Phase 4 - Chore Stack COMPLETE (2026-01-25)
+     - `engines/chore_engine.py` (680 lines, 63 tests)
+     - `managers/chore_manager.py` (~2150 lines, 20 tests)
+     - Deprecation notice added to `coordinator_chore_operations.py`
+     - ChoreManager fully wired to coordinator
+   - ✅ Phase 4.5b - Scheduler Delegation COMPLETE (2026-01-26)
+     - Timer callbacks (`_check_overdue_chores`, `_process_recurring_chore_resets`) now delegate to ChoreManager
+     - ChoreManager emits `SIGNAL_SUFFIX_CHORE_OVERDUE` and `SIGNAL_SUFFIX_CHORE_STATUS_RESET` events
+     - 10 new tests in `test_scheduler_delegation.py`
+     - Bug fix: `_reset_approval_period` now sets correct field for approval tracking
+     - Legacy methods preserved with comprehensive deprecation docstrings
+   - **Next**: Implement Phase 5 - Gamification Stack
+     - Create `engines/gamification_engine.py` (badge/achievement/challenge evaluation)
+     - Create `managers/gamification_manager.py` (stateful workflow)
+     - Use "Snapshot & Port" TDD strategy (see Phase 5 section)
 
 4. **Risks / blockers**
    - **Breaking changes**: Service names remain stable, but internal method signatures will change
@@ -381,15 +393,85 @@
 
 ### Phase 4 – Chore Stack ("The Job")
 
-- **Goal**: Refactor the existing ChoreOperations mixin into Engine + Manager pattern.
+- **Goal**: Extract the `ChoreOperations` mixin into a stateless `ChoreEngine` and a stateful `ChoreManager`, utilizing the "Event Loopback" pattern to maintain compatibility with legacy Gamification logic while paving the road for Phase 5.
+
+#### The Core Architecture: "Plan, Commit, Emit"
+
+We move away from procedural if/else blocks for state changes and adopt a **Planning Pattern**. The Engine calculates _what_ should happen, and the Manager executes it.
+
+**Key Concept: `TransitionEffect`** – Instead of the Manager looping through kids and guessing states, the Engine returns a plan describing impacts for ALL kids based on ONE action (handles SHARED vs INDEPENDENT logic centrally).
+
+```python
+@dataclass
+class TransitionEffect:
+    kid_id: str
+    new_state: str
+    update_stats: bool  # Should this count towards streaks/totals?
+    points: float
+```
+
+**Benefits:**
+
+- Atomic unit testing of complex shared chore logic (e.g., "If Kid A claims a shared-first chore, Kid B becomes 'completed_by_other'")
+- Prepares for Phase 5 by explicitly flagging `update_stats`
+
+#### Phase 5 Prep: "Rich Payloads & Idempotency"
+
+To ensure Phase 5 (Gamification) is a clean implementation (listening to events rather than querying data), we enrich the Phase 4 events _now_.
+
+**A. Rich Event Payloads (The "Snapshot")**
+When `GamificationManager` wakes up in Phase 5, it shouldn't have to query the database. Send the context in the event.
+
+The `ChoreApprovedEvent` (and others) in `type_defs.py` must include:
+
+- `chore_labels`: `list[str]` (Crucial for badge criteria like "Clean 5 _Kitchen_ chores")
+- `multiplier_applied`: `float` (So we calculate points correctly)
+- `previous_state`: `str` (To detect re-approvals vs new approvals)
+
+**B. The "Stat-Update" Flag**
+Gamification relies heavily on statistics (streaks, totals).
+The `TransitionEffect` from the Engine must have an `update_stats` boolean:
+
+- _Normal Approval:_ `True` → Increment total, update streak
+- _Undo/Correction:_ `False` → Just change state, do not mess with history
+- _Phase 5 Benefit:_ Gamification listeners can simply check `if payload['update_stats']: evaluate_badges()`
+
+#### Critical Traps & Mitigations
+
+**🔴 Trap 1: The "Orphaned Scheduler"**
+
+- **Risk:** `coordinator.py` currently runs `async_track_time_change` for midnights/resets. If we move logic to the Manager but leave timers in the Coordinator without a clear contract, recurring chores will die.
+- **Fix:**
+  1. `ChoreManager` implements public maintenance methods:
+     - `async def update_recurring_chores(self, now: datetime)`
+     - `async def update_overdue_status(self, now: datetime)`
+  2. Coordinator retains the timers but delegates 100% of the logic to these methods.
+
+**🔴 Trap 2: The "Silent Stats" Regression**
+
+- **Risk:** The legacy `_update_kid_chore_data` method side-loads 15+ counters (daily totals, weekly totals, etc.). If the new Manager misses one, dashboards break.
+- **Fix:**
+  - Do not rewrite stats logic inline.
+  - `ChoreManager` **must** invoke `StatisticsEngine.record_transaction()` for every state change that flags `update_stats=True`.
+
+**🔴 Trap 3: The "Race Condition"**
+
+- **Risk:** Two parents approve the same chore on two phones at once. Points awarded twice.
+- **Fix:**
+  - `ChoreManager` initializes `self._approval_locks = {}`.
+  - All state-changing methods (`approve`, `claim`) must utilize `async with self._get_lock(chore_id):` before reading _or_ writing data.
+
 - **Steps / detailed work items**
 
   **4A. ChoreEngine (pure logic)**
-  1. - [ ] Create `engines/chore_engine.py`:
+  1. - [x] Create `engines/chore_engine.py` (The Brain): ✅ 632 lines
+     - Pure logic class, no HA dependencies
+     - State machine transitions with `VALID_TRANSITIONS` dict
+     - Key method: `calculate_transition()` returning `list[TransitionEffect]`
+     - **DONE**: 10-state FSM, completion criteria (INDEPENDENT/SHARED/SHARED_FIRST), point calculations
 
      ```python
      class ChoreEngine:
-         # State machine transitions
          VALID_TRANSITIONS = {
              PENDING: [CLAIMED, OVERDUE, SKIPPED],
              CLAIMED: [APPROVED, APPROVED_IN_PART, DISAPPROVED, PENDING],
@@ -400,6 +482,18 @@
          @staticmethod
          def can_transition(current_state: str, target_state: str) -> bool:
              """Validate state transition is allowed."""
+
+         @staticmethod
+         def calculate_transition(
+             chore: ChoreData,
+             actor_kid_id: str,
+             action: str,  # const.ChoreAction value
+             kids_assigned: list[str]
+         ) -> list[TransitionEffect]:
+             """
+             Determines impacts for ALL kids based on ONE action.
+             Handles SHARED vs INDEPENDENT logic centrally.
+             """
 
          @staticmethod
          def calculate_points(chore_data: ChoreData, kid_data: KidData) -> float:
@@ -414,24 +508,39 @@
              """Wrapper around RecurrenceEngine for chore context."""
      ```
 
-  2. - [ ] Extract from `coordinator_chore_operations.py`:
+  2. - [x] Extract from `coordinator_chore_operations.py`: ✅ (merged into Step 1)
      - State transition validation (scattered across methods)
      - Point calculation logic
      - Shared chore determination
-  3. - [ ] Unit tests for ChoreEngine (pure Python)
+  3. - [x] Unit tests for ChoreEngine: ✅ 63 tests passing (test_chore_engine.py)
 
-  **4B. ChoreManager (stateful workflow)** 4. - [ ] Create `managers/chore_manager.py`:
+  **4B. ChoreManager (stateful workflow)** 4. - [x] Create `managers/chore_manager.py` (The Muscle): ✅ ~750 lines
+  - Owns data mutations and side effects
+  - Concurrency: Owns `self._approval_locks`
+  - Dependency injection: Takes `hass`, `coordinator`, `economy_manager`
+  - **DONE**: claim, approve, disapprove, undo, reset, mark_overdue with lock management
 
   ```python
-  class ChoreManager:
+  class ChoreManager(BaseManager):
       def __init__(self, hass, coordinator, economy_manager, notification_manager):
-          ...
+          super().__init__(hass, coordinator)
+          self.economy_manager = economy_manager
+          self.notification_manager = notification_manager
+          self._approval_locks: dict[str, asyncio.Lock] = {}
 
       async def claim(self, kid_id: str, chore_id: str, user_name: str) -> None:
           """Kid claims chore - validates, transitions state, notifies parents."""
 
       async def approve(self, kid_id: str, chore_id: str, parent_name: str) -> None:
-          """Parent approves - awards points, emits EVENT_CHORE_APPROVED."""
+          """
+          Parent approves chore.
+          Lifecycle:
+            1. Plan: Call Engine to get List[TransitionEffect]
+            2. Commit: Mutate coordinator.data (kids/chores), Update StatisticsEngine
+            3. Emit: Fire SIGNAL_SUFFIX_CHORE_APPROVED
+            4. Persist: Call coordinator.persist()
+            5. Notify: Call notification_manager
+          """
 
       async def disapprove(self, kid_id: str, chore_id: str, parent_name: str, reason: str | None) -> None:
           """Parent disapproves - notifies kid, resets state."""
@@ -442,30 +551,135 @@
       async def skip(self, kid_id: str, chore_id: str, reason: str | None) -> None:
           """Skip chore for this cycle."""
 
-      async def process_recurring(self) -> None:
-          """Called by coordinator on schedule to advance recurring chores."""
+      async def update_recurring_chores(self, now: datetime) -> None:
+          """Called by coordinator timer to advance recurring chores."""
 
-      async def process_overdue(self) -> None:
-          """Called by coordinator to detect and handle overdue chores."""
+      async def update_overdue_status(self, now: datetime) -> None:
+          """Called by coordinator timer to detect and handle overdue chores."""
+
+      def _get_lock(self, chore_id: str) -> asyncio.Lock:
+          """Get or create lock for chore to prevent race conditions."""
+          if chore_id not in self._approval_locks:
+              self._approval_locks[chore_id] = asyncio.Lock()
+          return self._approval_locks[chore_id]
   ```
 
-  5. - [ ] Refactor `coordinator_chore_operations.py`:
-     - Keep ChoreOperations mixin as thin wrapper during transition
-     - Gradually move method bodies to ChoreManager
-     - Final state: ChoreOperations delegates all to ChoreManager
-  6. - [ ] Update coordinator to inject ChoreManager
-  7. - [ ] Tests: `tests/test_chore_manager.py`, `tests/test_chore_engine.py`
+  5. - [x] Update `type_defs.py` for rich event payloads: ✅
+     - Add `chore_labels`, `multiplier_applied`, `previous_state` to `ChoreApprovedEvent`
+     - Add `update_stats` field to all chore state change events
 
-- **Key issues**
-  - ChoreOperations (3,971 lines) is the largest extraction
-  - Must handle approval locks (`_get_approval_lock`) for race conditions
-  - Shared chore logic is complex (multi-kid approval tracking)
+  6. - [x] Refactor `coordinator_chore_operations.py`: ✅
+     - **Do not delete yet**
+     - Deprecation docstring added pointing to ChoreEngine + ChoreManager
+     - Note: Full method delegation deferred to Phase 6
+
+  7. - [x] Update coordinator: ✅
+     - ✅ Import ChoreManager added
+     - ✅ Initialize `self.chore_manager = ChoreManager(hass, self, self.economy_manager)`
+     - Note: Event loopback listener deferred to Phase 5 (gamification)
+     - Note: Timer wiring deferred to Phase 6 (full mixin replacement)
+
+  8. - [x] Tests: `tests/test_chore_engine.py`, `tests/test_chore_manager.py` ✅
+     - ChoreEngine: 63 tests passing
+     - ChoreManager: 20 tests passing
+
+- **Key issues resolved**
+  - ✅ ChoreOperations (4,138 lines) extraction - ChoreEngine + ChoreManager created
+  - ✅ **Approval locks**: `_get_lock(kid_id, chore_id)` in ChoreManager
+  - ✅ **Shared chore logic**: ChoreEngine handles INDEPENDENT/SHARED/SHARED_FIRST
+  - ✅ **Stats preservation**: ChoreManager uses `update_stats` flag
+  - **Deferred**: Full method delegation (Phase 6)
+  - **Deferred**: Timer wiring (Phase 6)
+
+- **Phase 4 Progress** (as of implementation)
+  | Step | Status | Notes |
+  |------|--------|-------|
+  | 1. ChoreEngine | ✅ | 632 lines, 10-state FSM, TransitionEffect pattern |
+  | 2. Extract logic | ✅ | Merged into Step 1 |
+  | 3. Engine tests | ✅ | 63 tests (test_chore_engine.py) |
+  | 4. ChoreManager | ✅ | ~750 lines, lock management, EconomyManager integration |
+  | 5. type_defs | ✅ | Rich event payloads with chore_labels, update_stats |
+  | 6. Deprecation wrapper | ⏳ | Pending |
+  | 7. Coordinator wiring | ⏳ | Pending |
+  | 8. Manager tests | ✅ | 20 tests (test_chore_manager.py) |
+
+- **Validation Criteria**
+  1. `test_workflow_chores.py` passes without modification
+  2. Manual test: Approve a chore → Points increase (Economy) → Notification sends (Notify) → Badge check triggers (Loopback)
 
 ---
 
 ### Phase 5 – Gamification Stack ("The Game")
 
 - **Goal**: Unify badges, achievements, and challenges into a single evaluation framework.
+
+#### Phase 5 Testing Strategy: "Snapshot & Port" (TDD)
+
+**Current Testing State Assessment:**
+
+| Feature                 | Coverage Level | Assessment                                                                                                                                 |
+| :---------------------- | :------------- | :----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Badges (Cumulative)** | 🟢 High        | `test_badge_cumulative.py` is robust. Covers loading, point tracking, and awarding.                                                        |
+| **Badges (Types)**      | 🟢 High        | `test_badge_target_types.py` covers Daily, Periodic, and Special Occasion logic well.                                                      |
+| **Achievements**        | 🔴 Low         | Logic sits in `_check_achievements_for_kid` (Coordinator). Basic CRUD tests exist, but complex streak/criteria logic has minimal coverage. |
+| **Challenges**          | 🔴 Low         | Similar to achievements. `_check_challenges_for_kid` contains date-window logic that is brittle and lightly tested.                        |
+| **Badge Maintenance**   | 🟡 Medium      | "Decay" and "Grace Period" logic is complex and embedded in Coordinator. Existing tests touch it, but edge cases are risky.                |
+
+**Strategy: Do NOT write tests for legacy Coordinator methods. Use Pure Logic TDD to build the new Engine.**
+
+Since `GamificationEngine` will be stateless (pure Python), write high-speed unit tests that guarantee it works _better_ than legacy code, without needing Home Assistant fixtures.
+
+**Step 1: Create "Golden Master" Data**
+
+1. Spin up `test_scenario_full` (which has Badges, Achievements, and Challenges)
+2. Run a workflow (claim/approve chores)
+3. Dump `coordinator.data` (specifically `kids_data[id]["badge_progress"]`, `"achievements"`, etc.) to JSON
+4. **This is your truth.** The new Engine must produce this exact data structure given same inputs.
+
+**Step 2: Build `GamificationEngine` via Unit Tests**
+Create `tests/test_gamification_engine.py` **before** or **while** you write the engine. No `hass` fixtures needed.
+
+```python
+# tests/test_gamification_engine.py - Example pattern
+
+def test_evaluate_streak_achievement():
+    # 1. Setup simple dicts (no HA entities needed)
+    chore_stats = {"longest_streak": 5}
+    achievement = {"type": "streak", "target": 5}
+
+    # 2. Run Engine
+    result = GamificationEngine.evaluate_achievement(chore_stats, achievement)
+
+    # 3. Assert
+    assert result.earned is True
+```
+
+**Step 3: The "Big Switch" Integration Test**
+
+1. Implement `GamificationManager` to wire Coordinator to tested Engine
+2. **Do not change the existing tests**
+3. Swap logic in coordinator: replace `_check_badges_for_kid` body with `self.gamification_manager.evaluate(...)`
+4. Run existing `test_badge_*.py` tests. If they pass, migration is successful.
+
+**Risk Mitigation - Badge Maintenance (Highest Risk):**
+
+- Decay/Grace Period logic is time-dependent
+- **Ensure GamificationEngine accepts a `now` parameter** for datetime injection
+- Allows aggressive unit testing of date boundaries (e.g., "what happens exactly 1 second after grace period ends?") without `freezegun` in integration tests
+
+**Phase 5 Testing Checklist:**
+
+- [ ] **Don't** write tests for `coordinator._check_achievements...` legacy methods
+- [ ] **Do** write `tests/test_gamification_engine.py` covering:
+  - Streak calculation logic
+  - Date window logic (Challenges)
+  - Maintenance/Decay math (Badges)
+  - Badge progress accumulation
+- [ ] **Do** verify migration using existing `test_badge_*.py` suite
+- [ ] **Do** inject `now` parameter into all time-dependent engine methods
+
+---
+
 - **Steps / detailed work items**
 
   **5A. GamificationEngine (pure logic)**

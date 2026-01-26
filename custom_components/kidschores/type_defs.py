@@ -780,12 +780,16 @@ class ChoreClaimedEvent(TypedDict, total=False):
 
     Emitted by: ChoreManager.claim()
     Consumed by: NotificationManager (parent notification)
+
+    Phase 5 additions: chore_labels, update_stats for badge/achievement filtering.
     """
 
     kid_id: str  # Required
     chore_id: str  # Required
     chore_name: str  # Required
     user_name: str  # Required (who initiated claim)
+    chore_labels: list[str]  # For badge criteria filtering (e.g., "kitchen", "daily")
+    update_stats: bool  # Whether this counts toward stats (False for undo/corrections)
 
 
 class ChoreApprovedEvent(TypedDict, total=False):
@@ -793,6 +797,9 @@ class ChoreApprovedEvent(TypedDict, total=False):
 
     Emitted by: ChoreManager.approve()
     Consumed by: GamificationManager (achievement/streak tracking)
+
+    Phase 5 additions: chore_labels, multiplier_applied, previous_state, update_stats.
+    GamificationManager uses these to decide badge awarding without database queries.
     """
 
     kid_id: str  # Required
@@ -801,6 +808,11 @@ class ChoreApprovedEvent(TypedDict, total=False):
     points_awarded: float  # Required
     is_shared: bool  # Required
     is_multi_claim: bool  # Required
+    chore_name: str  # For notification/display
+    chore_labels: list[str]  # For badge criteria (e.g., "Clean 5 Kitchen chores")
+    multiplier_applied: float  # For point calculation verification
+    previous_state: str  # To detect re-approvals vs new approvals
+    update_stats: bool  # Whether to update statistics (False for corrections)
 
 
 class ChoreDisapprovedEvent(TypedDict, total=False):
@@ -808,12 +820,18 @@ class ChoreDisapprovedEvent(TypedDict, total=False):
 
     Emitted by: ChoreManager.disapprove()
     Consumed by: GamificationManager (streak reset?), NotificationManager
+
+    Phase 5 additions: chore_labels, previous_state, update_stats.
     """
 
     kid_id: str  # Required
     chore_id: str  # Required
     parent_name: str  # Required
     reason: str | None  # Optional: disapproval reason
+    chore_name: str  # For notification/display
+    chore_labels: list[str]  # For badge criteria filtering
+    previous_state: str  # The state before disapproval (for audit/undo)
+    update_stats: bool  # Whether this counts toward stats
 
 
 class ChoreOverdueEvent(TypedDict, total=False):
@@ -821,6 +839,8 @@ class ChoreOverdueEvent(TypedDict, total=False):
 
     Emitted by: ChoreManager._check_overdue_chores()
     Consumed by: NotificationManager, GamificationManager (badge/streak impacts)
+
+    Phase 5 addition: chore_labels for badge criteria filtering.
     """
 
     kid_id: str  # Required
@@ -828,6 +848,7 @@ class ChoreOverdueEvent(TypedDict, total=False):
     chore_name: str  # Required
     days_overdue: int  # Required
     due_date: str  # Required: ISO format
+    chore_labels: list[str]  # For badge criteria filtering
 
 
 class ChoreRescheduledEvent(TypedDict, total=False):
