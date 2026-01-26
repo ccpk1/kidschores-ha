@@ -19,6 +19,7 @@ from .chore_engine import (
     TransitionEffect,
 )
 from .economy_engine import EconomyEngine, InsufficientFundsError
+from .gamification_engine import GamificationEngine
 from .schedule import RecurrenceEngine, calculate_next_due_date_from_chore_info
 from .statistics import StatisticsEngine
 
@@ -31,6 +32,7 @@ __all__ = [
     "CHORE_ACTION_UNDO",
     "ChoreEngine",
     "EconomyEngine",
+    "GamificationEngine",
     "InsufficientFundsError",
     "RecurrenceEngine",
     "StatisticsEngine",

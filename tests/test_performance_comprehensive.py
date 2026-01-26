@@ -87,10 +87,11 @@ async def run_performance_test(
     config_entry = setup_result.config_entry
     coordinator = config_entry.runtime_data
 
-    # Test badge checking for all kids
+    # Test badge checking for all kids (via GamificationManager)
     badge_start = time.perf_counter()
     for kid_id in coordinator.kids_data:
-        coordinator._check_badges_for_kid(kid_id)
+        coordinator.gamification_manager._mark_dirty(kid_id)
+    coordinator.gamification_manager._evaluate_dirty_kids()
     badge_duration_ms = (time.perf_counter() - badge_start) * 1000
 
     # Test overdue checking

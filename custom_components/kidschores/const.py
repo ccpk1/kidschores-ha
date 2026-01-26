@@ -103,6 +103,12 @@ SIGNAL_SUFFIX_CHALLENGE_COMPLETED: Final = "challenge_completed"
 SIGNAL_SUFFIX_CHALLENGE_PROGRESS_UPDATED: Final = "challenge_progress_updated"
 SIGNAL_SUFFIX_CHALLENGE_EXPIRED: Final = "challenge_expired"
 
+# Gamification Events (GamificationManager) - Engine Coordination
+SIGNAL_SUFFIX_GAMIFICATION_EVALUATED: Final = "gamification_evaluated"
+SIGNAL_SUFFIX_BADGE_CRITERIA_MET: Final = "badge_criteria_met"
+SIGNAL_SUFFIX_BADGE_MAINTENANCE_CHECK: Final = "badge_maintenance_check"
+SIGNAL_SUFFIX_GAMIFICATION_BATCH_COMPLETE: Final = "gamification_batch_complete"
+
 # System/Entity Lifecycle Events - Kid
 SIGNAL_SUFFIX_KID_CREATED: Final = "kid_created"
 SIGNAL_SUFFIX_KID_UPDATED: Final = "kid_updated"

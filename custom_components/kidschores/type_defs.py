@@ -720,6 +720,114 @@ ChallengeProgressData = ChallengeProgress | dict[str, Any]
 
 
 # =============================================================================
+# Gamification Engine Types (Phase 5 - Engine/Manager Architecture)
+# =============================================================================
+# Used by GamificationEngine for pure evaluation logic and GamificationManager
+# for coordination. These types ensure consistent data shapes between components.
+
+
+class _EvaluationContextRequired(TypedDict):
+    """Required fields for EvaluationContext."""
+
+    # Required: Core kid identifiers
+    kid_id: str  # Kid UUID
+    kid_name: str  # For logging/debugging
+
+    # Required: Point data
+    current_points: float  # Current point balance
+    total_points_earned: float  # All-time points earned (from point_stats)
+
+    # Required: Progress tracking
+    chore_stats: KidChoreStats  # Aggregate chore statistics
+    badge_progress: dict[str, KidBadgeProgress]  # Per-badge progress tracking
+    cumulative_badge_progress: KidCumulativeBadgeProgress  # Cumulative badge state
+    badges_earned: dict[str, BadgesEarnedEntry]  # Already earned badges
+    achievement_progress: dict[str, AchievementProgress]  # Per-achievement progress
+    challenge_progress: dict[str, ChallengeProgress]  # Per-challenge progress
+
+    # Required: Date context
+    today_iso: str  # Today's date as ISO string
+
+
+class EvaluationContext(_EvaluationContextRequired, total=False):
+    """Minimal data needed to evaluate gamification criteria.
+
+    This is the input to GamificationEngine.evaluate_* methods.
+    Contains only the data needed for evaluation - NOT the full KidData.
+    Built by GamificationManager._build_evaluation_context() from coordinator data.
+
+    Design principle: Pass only what's needed. Don't pass entire KidData object.
+
+    Inherits required fields from _EvaluationContextRequired.
+    Additional optional fields defined below.
+    """
+
+    # Optional: Current entity being evaluated (set by Manager before calling engine)
+    current_badge_progress: KidBadgeProgress  # Progress for badge being evaluated
+    current_achievement_progress: AchievementProgress  # Progress for achievement
+    current_challenge_progress: ChallengeProgress  # Progress for challenge
+
+    # Optional: Pre-computed daily stats (set by Manager for daily evaluations)
+    today_stats: dict[str, Any]  # Today's computed stats
+    today_completion: dict[str, Any]  # Today's completion state (all tracked)
+    today_completion_due: dict[str, Any]  # Today's completion (due today only)
+
+
+class CriterionResult(TypedDict):
+    """The result of a single criterion check.
+
+    Returned by criterion handler functions (e.g., _evaluate_points).
+    Multiple CriterionResults can be combined for multi-criteria badges.
+    """
+
+    criterion_type: str  # Type identifier (e.g., "points", "streak_all_chores")
+    met: bool  # True if criterion threshold is satisfied
+    progress: float  # 0.0 to 1.0 (capped at 1.0)
+    threshold: float  # Target value to meet criterion
+    current_value: float  # Current achieved value
+    reason: str  # Human-readable explanation
+
+
+class EvaluationResult(TypedDict):
+    """The final verdict on a badge/achievement/challenge.
+
+    Returned by GamificationEngine.evaluate_badge(), evaluate_achievement(), etc.
+    This is the RAW evaluation result - the Manager determines earned/kept/notify logic.
+    """
+
+    entity_id: str  # Badge/Achievement/Challenge UUID
+    entity_type: str  # "badge", "achievement", or "challenge"
+    entity_name: str  # For logging/notifications
+    criteria_met: bool  # True if all criteria are satisfied
+    overall_progress: float  # 0.0 to 1.0 average across criteria
+    criterion_results: list[CriterionResult]  # Individual criterion outcomes
+    reason: str  # Optional explanation (for edge cases)
+    evaluated_at: str  # ISO timestamp of evaluation
+
+
+class GamificationBatchResult(TypedDict):
+    """Results from evaluating all gamification for a kid.
+
+    Returned by GamificationEngine.evaluate_all() or GamificationManager._evaluate_dirty_kids().
+    Provides a complete picture of what changed for a single kid.
+    """
+
+    kid_id: str
+    kid_name: str
+    badge_results: list[EvaluationResult]
+    achievement_results: list[EvaluationResult]
+    challenge_results: list[EvaluationResult]
+    # Action lists (IDs of entities that need state changes)
+    badges_to_award: list[str]  # Badge IDs to award
+    badges_to_revoke: list[str]  # Badge IDs to revoke (maintenance failure)
+    achievements_to_award: list[str]  # Achievement IDs to award
+    challenges_to_complete: list[str]  # Challenge IDs to mark complete
+    # Summary flags
+    had_changes: bool  # True if any state changed
+    evaluation_duration_ms: float  # Performance tracking
+
+
+# =============================================================================
 # Ledger Types (Economy Stack - Phase 3)
 # =============================================================================
 # Used by EconomyEngine and EconomyManager for transaction history
@@ -1022,6 +1130,11 @@ __all__ = [
     "ChorePerKidDueDates",
     "ChoreRescheduledEvent",
     "ChoresCollection",
+    # Gamification Engine types (Phase 5)
+    "CriterionResult",
+    "EvaluationContext",
+    "EvaluationResult",
+    "GamificationBatchResult",
     "ISODate",
     "ISODatetime",
     "KidBadgeProgress",

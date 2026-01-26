@@ -9,17 +9,17 @@
 
 ## Summary & immediate steps
 
-| Phase / Step               | Description                              | % complete | Quick notes                                     |
-| -------------------------- | ---------------------------------------- | ---------- | ----------------------------------------------- |
-| Phase 0 – Event Foundation | Event infrastructure (signals, base mgr) | 100%       | ✅ COMPLETE 2026-01-24 (51 signals, 15 types)   |
-| Phase 1 – Infrastructure   | Verify renames, expand helpers           | 100%       | ✅ COMPLETE 2026-01-24 (8 cleanup helpers)      |
-| Phase 2 – Notification     | Extract NotificationManager              | 100%       | ✅ COMPLETE 2026-01-24 (16 tests passing)       |
-| Phase 3 – Economy          | EconomyEngine + EconomyManager           | 100%       | ✅ COMPLETE 2026-01-25 (41+19 tests, 962 total) |
-| Phase 4 – Chore            | ChoreEngine + ChoreManager               | 100%       | ✅ COMPLETE 2026-01-26 (93 tests, 1055 total)   |
-| Phase 4.5b – Scheduler     | Delegate timers to ChoreManager          | 100%       | ✅ COMPLETE 2026-01-26 (10 tests, events ready) |
-| Phase 5 – Gamification     | GamificationEngine + GamificationManager | 0%         | Unify badges/achievements/challenges            |
-| Phase 6 – Coordinator Slim | Reduce coordinator to routing only       | 0%         | Target: <1000 lines                             |
-| Phase 7 – Testing & Polish | Integration tests, documentation         | 0%         | 95%+ coverage maintained                        |
+| Phase / Step               | Description                              | % complete | Quick notes                                       |
+| -------------------------- | ---------------------------------------- | ---------- | ------------------------------------------------- |
+| Phase 0 – Event Foundation | Event infrastructure (signals, base mgr) | 100%       | ✅ COMPLETE 2026-01-24 (51 signals, 15 types)     |
+| Phase 1 – Infrastructure   | Verify renames, expand helpers           | 100%       | ✅ COMPLETE 2026-01-24 (8 cleanup helpers)        |
+| Phase 2 – Notification     | Extract NotificationManager              | 100%       | ✅ COMPLETE 2026-01-24 (16 tests passing)         |
+| Phase 3 – Economy          | EconomyEngine + EconomyManager           | 100%       | ✅ COMPLETE 2026-01-25 (41+19 tests, 962 total)   |
+| Phase 4 – Chore            | ChoreEngine + ChoreManager               | 100%       | ✅ COMPLETE 2026-01-26 (93 tests, 1055 total)     |
+| Phase 4.5b – Scheduler     | Delegate timers to ChoreManager          | 100%       | ✅ COMPLETE 2026-01-26 (10 tests, events ready)   |
+| Phase 5 – Gamification     | GamificationEngine + GamificationManager | 100%       | ✅ COMPLETE 2026-01-26 (33+663 lines, 1098 tests) |
+| Phase 6 – Coordinator Slim | Reduce coordinator to routing only       | 0%         | Target: <1000 lines                               |
+| Phase 7 – Testing & Polish | Integration tests, documentation         | 0%         | 95%+ coverage maintained                          |
 
 1. **Key objective** – Transform the monolithic 10k+ line coordinator into a layered service architecture with clear separation between routing (Coordinator), state workflows (Managers), and pure logic (Engines). This enables testable units, decoupled features, and easier future feature additions.
 

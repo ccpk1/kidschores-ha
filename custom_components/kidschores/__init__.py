@@ -172,6 +172,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: KidsChoresConfigEntry) -
     # Store is accessible via coordinator.store
     entry.runtime_data = coordinator
 
+    # Initialize all managers (v0.5.x+)
+    # Each manager's async_setup() subscribes to relevant events
+    await coordinator.economy_manager.async_setup()
+    await coordinator.notification_manager.async_setup()
+    await coordinator.chore_manager.async_setup()
+    await coordinator.gamification_manager.async_setup()
+
     # Set up services required by the integration.
     async_setup_services(hass)
 

@@ -47,9 +47,11 @@ async def test_performance_baseline_with_scenario_full(
         # Test 2: Persist operation
         coordinator._persist()
 
-        # Test 3: Badge evaluation for each kid
+        # Test 3: Badge evaluation for each kid (via GamificationManager)
         for kid_id in coordinator.kids_data:
-            coordinator._check_badges_for_kid(kid_id)
+            coordinator.gamification_manager._mark_dirty(kid_id)
+        # Trigger immediate evaluation
+        coordinator.gamification_manager._evaluate_dirty_kids()
 
         # Test 4: Parent notifications
         if coordinator.parents_data and coordinator.kids_data:
