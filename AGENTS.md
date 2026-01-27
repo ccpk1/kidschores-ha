@@ -14,7 +14,24 @@ Read **only** what you need for your task:
 - **[CODE_REVIEW_GUIDE.md](../docs/CODE_REVIEW_GUIDE.md)** - Phase 0 audit framework for reviewing code
 - **[AGENT_TESTING_USAGE_GUIDE.md](../tests/AGENT_TESTING_USAGE_GUIDE.md)** - Test validation & debugging
 
-## 🛑 Definition of Done (Non-Negotiable)
+## � Lexicon Warning (Critical)
+
+**STOP using "Entity" for data records!** This causes catastrophic confusion.
+
+| ❌ NEVER Say | ✅ ALWAYS Say | Example |
+|--------------|--------------|----------|
+| "Chore Entity" | "Chore Item" / "Chore Record" | "Update the Chore Item in storage" |
+| "Kid Entity" | "Kid Item" / "Kid Record" | "Fetch Kid Item by UUID" |
+| "Badge Entity" | "Badge Item" / "Badge Record" | "Create new Badge Item" |
+
+**Remember**:
+- **Item/Record** = JSON data in `.storage/kidschores_data`
+- **Entity** = Home Assistant platform object (Sensor, Button, Select)
+- **Entity ID** = HA registry string like `sensor.kc_alice_points`
+
+**When in doubt**: If it has a UUID and lives in storage, it's an **Item**. If it has an `entity_id` and lives in HA registry, it's an **Entity**.
+
+## 🦾 Definition of Done (Non-Negotiable)
 
 **Nothing is complete until ALL THREE pass**:
 
@@ -64,6 +81,77 @@ const.LOGGER.debug("Value: %s", var)  # ✅ Correct
 const.LOGGER.debug(f"Value: {var}")   # ❌ NEVER f-strings in logs
 ```
 
+## 🧠 Logic Placement Cheat-Sheet
+
+**Before writing ANY code, ask these questions:**
+
+### 1. Does it need `hass`?
+
+- **YES** → `helpers/` (if it's a tool) or `managers/` (if it's a workflow)
+- **NO** → `utils/` (if it's a tool) or `engines/` (if it's logic)
+
+### 2. Does it change state (write to storage)?
+
+- **YES** → **MUST** be in `managers/` (only Managers can write)
+- **NO** → `engines/` (read-only logic) or `utils/` (formatting)
+
+### 3. Is it pure calculation?
+
+- **YES** → `engines/` (schedule math, FSM transitions, point calculations)
+- **NO** → Check if it needs HA objects (sensors, buttons)
+
+### 4. Decision Tree Summary
+
+```
+                    Does it write to _data?
+                           /        \
+                         YES         NO
+                          |           |
+                    MANAGERS/    Does it need hass?
+                                    /        \
+                                  YES        NO
+                                   |          |
+                               HELPERS/   Is it pure?
+                              or           /      \
+                              MANAGERS/  YES      NO
+                                          |        |
+                                      ENGINES/  UTILS/
+```
+
+### 5. Examples
+
+| Task | Location | Reason |
+|------|----------|--------|
+| Calculate next chore due date | `engines/schedule.py` | Pure math, no HA, no state |
+| Update kid points | `managers/kid_manager.py` | Writes to storage |
+| Format points display | `utils/formatting.py` | Pure function, no HA |
+| Get kid by user_id | `kc_helpers.py` | Needs HA registry access |
+| Parse datetime string | `kc_helpers.py` (dt_parse) | Uses HA timezone |
+| Build chore data dict | `data_builders.py` | Sanitization, no HA |
+
+### 6. CRUD Ownership Rules
+
+**Non-Negotiable**: Only Manager methods can call `coordinator._persist()`.
+
+**Forbidden**:
+- ❌ `options_flow.py` writing to storage
+- ❌ `services.py` calling `_persist()` directly
+- ❌ Any file outside `managers/` modifying `_data`
+
+**Correct Pattern**:
+```python
+# services.py - Service delegates to manager
+async def handle_claim_chore(call: ServiceCall) -> None:
+    chore_id = call.data[SERVICE_FIELD_CHORE_ID]
+    await coordinator.chore_manager.claim_chore(chore_id)  # ✅ Manager handles write
+
+# managers/chore_manager.py - Manager owns the write
+async def claim_chore(self, chore_id: str) -> None:
+    self._data[DATA_CHORES][chore_id]["state"] = CHORE_STATE_CLAIMED
+    self.coordinator._persist()  # ✅ Only Managers do this
+    async_dispatcher_send(self.hass, SIGNAL_SUFFIX_CHORE_UPDATED)
+```
+
 ## 🎯 Fast Implementation Strategy
 
 ### Before Writing Code
@@ -90,12 +178,15 @@ Run quality gates (**in this order**):
 
 ## 🚫 Common Mistakes (Avoid These)
 
+❌ Calling "Chore" an "Entity" → ✅ Use "Chore Item" or "Chore Record"
 ❌ Hardcoded strings → ✅ Use `const.TRANS_KEY_*`
 ❌ `Optional[str]` → ✅ Use `str | None`
 ❌ F-strings in logs → ✅ Use lazy logging `%s`
-❌ Entity names for lookups → ✅ Use `internal_id`
+❌ Entity names for lookups → ✅ Use `internal_id` (UUID)
 ❌ Touching `config_entry.data` → ✅ Use `.storage/kidschores_data`
-❌ Direct storage writes → ✅ Use `coordinator._persist()`
+❌ Direct storage writes → ✅ Use Manager method that calls `coordinator._persist()`
+❌ Importing `homeassistant` in `utils/` → ✅ Keep utils pure (no HA imports)
+❌ Writing to `_data` outside Managers → ✅ Delegate to Manager methods
 
 ## 📦 Quick Reference
 
@@ -108,14 +199,14 @@ Run quality gates (**in this order**):
 
 **Constant Naming Patterns** (See [DEVELOPMENT_STANDARDS.md § 3. Constant Naming Standards](../docs/DEVELOPMENT_STANDARDS.md#3-constant-naming-standards)):
 
-- `DATA_*` = Storage keys (singular entity names)
+- `DATA_*` = Storage keys for Domain Items (singular names: `DATA_KID_*`, `DATA_CHORE_*`)
 - `CFOF_*` = Config/Options flow input fields (plural with `_INPUT_`)
 - `CONF_*` = System settings in config_entry.options (9 settings only)
 - `TRANS_KEY_*` = Translation identifiers
-- `ATTR_*` = Entity state attributes
+- `ATTR_*` = Entity state attributes (for HA Entities, not Items)
 - `SERVICE_*` / `SERVICE_FIELD_*` = Service actions and parameters
 
-**DateTime Functions** (See [DEVELOPMENT_STANDARDS.md § 4. DateTime & Scheduling Standards](../docs/DEVELOPMENT_STANDARDS.md#4-datetime--scheduling-standards)):
+**DateTime Functions** (See [DEVELOPMENT_STANDARDS.md § 6. DateTime & Scheduling Standards](../docs/DEVELOPMENT_STANDARDS.md#6-datetime--scheduling-standards)):
 
 - ALWAYS use `dt_*` helpers from `kc_helpers.py` (never raw `datetime` module)
 - Examples: `dt_now_iso()`, `dt_parse()`, `dt_add_interval()`, `dt_next_schedule()`

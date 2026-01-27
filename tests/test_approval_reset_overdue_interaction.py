@@ -420,7 +420,7 @@ class TestOverdueResetValidation:
     ) -> None:
         """Test that AT_DUE_DATE_ONCE + AT_DUE_DATE_THEN_RESET is rejected."""
         # Import flow_helpers to test validation directly
-        from custom_components.kidschores import flow_helpers as fh
+        from custom_components.kidschores.helpers import flow_helpers as fh
 
         # Create minimal chore input with invalid combination
         user_input = {
@@ -474,7 +474,7 @@ class TestOverdueResetValidation:
         This combination is valid because UPON_COMPLETION provides immediate reset
         on approval, which effectively clears the overdue status immediately.
         """
-        from custom_components.kidschores import flow_helpers as fh
+        from custom_components.kidschores.helpers import flow_helpers as fh
 
         user_input = {
             const.CFOF_CHORES_INPUT_NAME: "Test Chore",
@@ -516,7 +516,7 @@ class TestOverdueResetValidation:
         hass: HomeAssistant,
     ) -> None:
         """Test that AT_MIDNIGHT_ONCE + AT_DUE_DATE_THEN_RESET is accepted."""
-        from custom_components.kidschores import flow_helpers as fh
+        from custom_components.kidschores.helpers import flow_helpers as fh
 
         user_input = {
             const.CFOF_CHORES_INPUT_NAME: "Test Chore",
@@ -559,7 +559,7 @@ class TestOverdueResetValidation:
         hass: HomeAssistant,
     ) -> None:
         """Test that AT_MIDNIGHT_MULTI + AT_DUE_DATE_THEN_RESET is accepted."""
-        from custom_components.kidschores import flow_helpers as fh
+        from custom_components.kidschores.helpers import flow_helpers as fh
 
         user_input = {
             const.CFOF_CHORES_INPUT_NAME: "Test Chore",

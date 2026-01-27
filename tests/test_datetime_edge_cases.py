@@ -14,7 +14,12 @@ unique edge cases that provide value in the modern test suite.
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
-from custom_components.kidschores import kc_helpers as kh
+from custom_components.kidschores.utils.dt_utils import (
+    dt_add_interval,
+    dt_parse,
+    dt_parse_date,
+    dt_to_utc,
+)
 
 
 class TestDatetimeParsingEdgeCases:
@@ -23,40 +28,40 @@ class TestDatetimeParsingEdgeCases:
     def test_dt_to_utc_invalid_inputs(self) -> None:
         """Test dt_to_utc with invalid/malformed inputs."""
         # Empty string
-        result = kh.dt_to_utc("")
+        result = dt_to_utc("")
         assert result is None
 
         # None
-        result = kh.dt_to_utc(None)  # type: ignore[arg-type]
+        result = dt_to_utc(None)  # type: ignore[arg-type]
         assert result is None
 
         # Malformed strings
-        result = kh.dt_to_utc("not-a-date")
+        result = dt_to_utc("not-a-date")
         assert result is None
 
-        result = kh.dt_to_utc("2025-13-45")  # Invalid month/day
+        result = dt_to_utc("2025-13-45")  # Invalid month/day
         assert result is None
 
     def test_dt_to_utc_valid_iso_formats(self) -> None:
         """Test dt_to_utc with valid ISO formats."""
         # ISO date only
-        result = kh.dt_to_utc("2025-06-15")
+        result = dt_to_utc("2025-06-15")
         assert result is not None
         assert result.year == 2025
         assert result.month == 6
         assert result.day == 15
 
         # ISO datetime with UTC
-        result = kh.dt_to_utc("2025-06-15T14:30:00+00:00")
+        result = dt_to_utc("2025-06-15T14:30:00+00:00")
         assert result is not None
 
         # ISO datetime with negative offset (UTC-4)
-        result = kh.dt_to_utc("2025-06-15T14:30:00-04:00")
+        result = dt_to_utc("2025-06-15T14:30:00-04:00")
         assert result is not None
 
     def test_dt_to_utc_returns_utc_aware(self) -> None:
         """Test that dt_to_utc returns UTC-aware datetime."""
-        result = kh.dt_to_utc("2025-06-15T14:30:00-04:00")
+        result = dt_to_utc("2025-06-15T14:30:00-04:00")
         assert result is not None
         assert result.tzinfo is not None
         # UTC offset should be 0 (converted to UTC)
@@ -66,13 +71,13 @@ class TestDatetimeParsingEdgeCases:
     def test_parse_datetime_with_different_timezones(self) -> None:
         """Test that dt_to_utc handles different timezone offsets."""
         # UTC+9 (Tokyo) - 14:30+09:00 should convert to 05:30 UTC
-        result = kh.dt_to_utc("2025-06-15T14:30:00+09:00")
+        result = dt_to_utc("2025-06-15T14:30:00+09:00")
         assert result is not None
         # Should convert to UTC (subtract 9 hours)
         assert result.hour == 5  # 14 - 9 = 5
 
         # UTC-8 (Los Angeles) - 14:30-08:00 should convert to 22:30 UTC
-        result = kh.dt_to_utc("2025-06-15T14:30:00-08:00")
+        result = dt_to_utc("2025-06-15T14:30:00-08:00")
         assert result is not None
         # Should convert to UTC (add 8 hours)
         assert result.hour == 22  # 14 + 8 = 22
@@ -80,25 +85,25 @@ class TestDatetimeParsingEdgeCases:
     def test_parse_iso_datetime_with_timezone_offset(self) -> None:
         """Test parsing ISO datetime with various timezone offsets."""
         # Positive offset (UTC-4)
-        result = kh.dt_to_utc("2025-06-15T14:30:00-04:00")
+        result = dt_to_utc("2025-06-15T14:30:00-04:00")
         assert result is not None
         assert result.year == 2025
 
         # Positive offset (UTC+9)
-        result = kh.dt_to_utc("2025-06-15T14:30:00+09:00")
+        result = dt_to_utc("2025-06-15T14:30:00+09:00")
         assert result is not None
 
         # UTC offset
-        result = kh.dt_to_utc("2025-06-15T14:30:00+00:00")
+        result = dt_to_utc("2025-06-15T14:30:00+00:00")
         assert result is not None
 
         # Z suffix (UTC)
-        result = kh.dt_to_utc("2025-06-15T14:30:00Z")
+        result = dt_to_utc("2025-06-15T14:30:00Z")
         assert result is not None
 
     def test_parse_iso_datetime_without_timezone(self) -> None:
         """Test parsing ISO datetime without timezone (local assumed)."""
-        result = kh.dt_to_utc("2025-06-15T14:30:00")
+        result = dt_to_utc("2025-06-15T14:30:00")
         # Should parse - implementation may assume local or UTC
         assert result is not None
 
@@ -109,7 +114,7 @@ class TestDatetimeSafeParsingEdgeCases:
     def test_parse_date_safe_valid_formats(self) -> None:
         """Test parse_date_safe with valid date formats."""
         # ISO format - note: parse_date_safe may accept string or datetime objects
-        result = kh.dt_parse_date("2025-06-15")
+        result = dt_parse_date("2025-06-15")
         # Result could be None if function doesn't support string input
         # or it could be the parsed date
         assert result is None or result == date(2025, 6, 15)
@@ -117,75 +122,75 @@ class TestDatetimeSafeParsingEdgeCases:
     def test_parse_date_safe_invalid_inputs(self) -> None:
         """Test parse_date_safe with invalid/malformed inputs."""
         # Empty string
-        result = kh.dt_parse_date("")
+        result = dt_parse_date("")
         assert result is None
 
         # None
-        result = kh.dt_parse_date(None)  # type: ignore[arg-type]
+        result = dt_parse_date(None)  # type: ignore[arg-type]
         assert result is None
 
         # Malformed strings
-        result = kh.dt_parse_date("not-a-date")
+        result = dt_parse_date("not-a-date")
         assert result is None
 
         # Invalid dates
-        result = kh.dt_parse_date("2025-02-30")  # No Feb 30
+        result = dt_parse_date("2025-02-30")  # No Feb 30
         assert result is None
 
-        result = kh.dt_parse_date("2025-13-01")  # Invalid month
+        result = dt_parse_date("2025-13-01")  # Invalid month
         assert result is None
 
     def test_parse_date_safe_leap_year(self) -> None:
         """Test handling of Feb 29 in leap and non-leap years."""
         # Leap year (2024)
-        result = kh.dt_parse_date("2024-02-29")
+        result = dt_parse_date("2024-02-29")
         assert result is None or result == date(2024, 2, 29)
 
         # Non-leap year (2025)
-        result = kh.dt_parse_date("2025-02-29")
+        result = dt_parse_date("2025-02-29")
         assert result is None
 
     def test_parse_date_safe_month_boundaries(self) -> None:
         """Test parsing of various month boundary dates."""
         # January 31
-        result = kh.dt_parse_date("2025-01-31")
+        result = dt_parse_date("2025-01-31")
         assert result is None or result == date(2025, 1, 31)
 
         # February 28 (non-leap)
-        result = kh.dt_parse_date("2025-02-28")
+        result = dt_parse_date("2025-02-28")
         assert result is None or result == date(2025, 2, 28)
 
         # April 30
-        result = kh.dt_parse_date("2025-04-30")
+        result = dt_parse_date("2025-04-30")
         assert result is None or result == date(2025, 4, 30)
 
         # December 31
-        result = kh.dt_parse_date("2025-12-31")
+        result = dt_parse_date("2025-12-31")
         assert result is None or result == date(2025, 12, 31)
 
     def test_parse_date_safe_with_datetime_object(self) -> None:
         """Test parse_date_safe with datetime object input."""
         dt = datetime(2025, 6, 15, 14, 30, 0)
-        result = kh.dt_parse_date(dt)  # type: ignore[arg-type]
+        result = dt_parse_date(dt)  # type: ignore[arg-type]
         # Result could be None or the parsed date
         assert result is None or result == date(2025, 6, 15)
 
     def test_parse_date_safe_year_boundaries(self) -> None:
         """Test parsing dates at year boundaries."""
         # Dec 31
-        result = kh.dt_parse_date("2024-12-31")
+        result = dt_parse_date("2024-12-31")
         assert result is None or result == date(2024, 12, 31)
 
         # Jan 1
-        result = kh.dt_parse_date("2025-01-01")
+        result = dt_parse_date("2025-01-01")
         assert result is None or result == date(2025, 1, 1)
 
         # Year 2000 (leap year)
-        result = kh.dt_parse_date("2000-02-29")
+        result = dt_parse_date("2000-02-29")
         assert result is None or result == date(2000, 2, 29)
 
         # Year 1900 (NOT a leap year by century rule)
-        result = kh.dt_parse_date("1900-02-29")
+        result = dt_parse_date("1900-02-29")
         assert result is None
 
 
@@ -197,7 +202,7 @@ class TestDatetimeNormalizationEdgeCases:
         tz = ZoneInfo("America/New_York")
 
         # Valid ISO date
-        result = kh.dt_parse("2025-06-15", tz)
+        result = dt_parse("2025-06-15", tz)
         assert result is not None
 
     def test_dt_parse_invalid_inputs(self) -> None:
@@ -205,15 +210,15 @@ class TestDatetimeNormalizationEdgeCases:
         tz = ZoneInfo("America/New_York")
 
         # Empty string
-        result = kh.dt_parse("", tz)
+        result = dt_parse("", tz)
         assert result is None
 
         # None
-        result = kh.dt_parse(None, tz)  # type: ignore[arg-type]
+        result = dt_parse(None, tz)  # type: ignore[arg-type]
         assert result is None
 
         # Malformed string
-        result = kh.dt_parse("not-a-date", tz)
+        result = dt_parse("not-a-date", tz)
         assert result is None
 
     def test_normalize_datetime_returns_utc_aware(self) -> None:
@@ -221,7 +226,7 @@ class TestDatetimeNormalizationEdgeCases:
         tz = ZoneInfo("America/New_York")
 
         # Normalize with timezone
-        result = kh.dt_parse("2025-06-15", tz)
+        result = dt_parse("2025-06-15", tz)
         if result and isinstance(result, datetime):
             assert result.tzinfo is not None, "Result should be timezone-aware"
 
@@ -234,7 +239,7 @@ class TestDatetimeIntervalAdjustment:
         dt = datetime(2025, 6, 15, 12, 0, 0, tzinfo=ZoneInfo("UTC"))
 
         # Add 1 day using 'days' unit (only days/weeks/months supported)
-        result = kh.dt_add_interval(dt, "days", 1)
+        result = dt_add_interval(dt, "days", 1)
         if result:
             if isinstance(result, datetime):
                 assert result.day == 16
@@ -244,7 +249,7 @@ class TestDatetimeIntervalAdjustment:
         dt = datetime(2025, 6, 15, 12, 0, 0, tzinfo=ZoneInfo("UTC"))
 
         # Add 1 week
-        result = kh.dt_add_interval(dt, "weeks", 1)
+        result = dt_add_interval(dt, "weeks", 1)
         if result:
             if isinstance(result, datetime):
                 # 1 week later = June 22
@@ -255,7 +260,7 @@ class TestDatetimeIntervalAdjustment:
         dt = datetime(2025, 6, 15, 12, 0, 0, tzinfo=ZoneInfo("UTC"))
 
         # Add 1 month
-        result = kh.dt_add_interval(dt, "months", 1)
+        result = dt_add_interval(dt, "months", 1)
         if result:
             if isinstance(result, datetime):
                 assert result.month == 7
@@ -265,7 +270,7 @@ class TestDatetimeIntervalAdjustment:
         dt = datetime(2025, 6, 15, 12, 0, 0, tzinfo=ZoneInfo("UTC"))
 
         # Add 2 months
-        result = kh.dt_add_interval(dt, "months", 2)
+        result = dt_add_interval(dt, "months", 2)
         if result:
             if isinstance(result, datetime):
                 assert result.month == 8

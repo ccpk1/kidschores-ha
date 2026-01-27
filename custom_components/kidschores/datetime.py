@@ -18,6 +18,7 @@ from homeassistant.util import dt as dt_util
 
 from . import const, kc_helpers as kh
 from .coordinator import KidsChoresConfigEntry, KidsChoresDataCoordinator
+from .helpers.device_helpers import create_kid_device_info_from_coordinator
 
 # Platinum requirement: Parallel Updates
 # Set to 1 (serialized) for entities that modify state
@@ -77,7 +78,7 @@ class KidDashboardHelperDateTimePicker(DateTimeEntity, RestoreEntity):
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }
-        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+        self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
 

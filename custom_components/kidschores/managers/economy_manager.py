@@ -19,7 +19,7 @@ to evaluate badges/achievements/challenges automatically.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.exceptions import HomeAssistantError
 
@@ -73,10 +73,85 @@ class EconomyManager(BaseManager):
     async def async_setup(self) -> None:
         """Set up the EconomyManager.
 
-        Phase 3: No event subscriptions needed - Coordinator calls us directly.
-        Phase 5: Will subscribe to events when gamification is decoupled.
+        Subscribe to gamification award events to handle point deposits.
+        This decouples GamificationManager from direct deposit calls.
         """
-        # No-op for Phase 3 - EconomyManager doesn't listen to events yet
+        # Listen for gamification award events (Phase 7.2 - Event-Driven Awards)
+        self.listen(
+            const.SIGNAL_SUFFIX_BADGE_EARNED,
+            self._on_badge_earned,
+        )
+        self.listen(
+            const.SIGNAL_SUFFIX_ACHIEVEMENT_UNLOCKED,
+            self._on_achievement_unlocked,
+        )
+        self.listen(
+            const.SIGNAL_SUFFIX_CHALLENGE_COMPLETED,
+            self._on_challenge_completed,
+        )
+
+    def _on_badge_earned(self, payload: dict[str, Any]) -> None:
+        """Handle badge earned event - deposit award points.
+
+        Args:
+            payload: Event data containing kid_id, badge_id, badge_points
+        """
+        kid_id = payload.get("kid_id")
+        badge_id = payload.get("badge_id")
+        badge_points = payload.get("badge_points", 0.0)
+
+        if badge_points > 0 and kid_id:
+            # Use async_create_task since dispatcher callbacks are sync
+            self.hass.async_create_task(
+                self.deposit(
+                    kid_id=kid_id,
+                    amount=badge_points,
+                    source=const.POINTS_SOURCE_BADGES,
+                    reference_id=badge_id,
+                )
+            )
+
+    def _on_achievement_unlocked(self, payload: dict[str, Any]) -> None:
+        """Handle achievement unlocked event - deposit award points.
+
+        Args:
+            payload: Event data containing kid_id, achievement_id, achievement_points
+        """
+        kid_id = payload.get("kid_id")
+        achievement_id = payload.get("achievement_id")
+        achievement_points = payload.get("achievement_points", 0.0)
+
+        if achievement_points > 0 and kid_id:
+            # Use async_create_task since dispatcher callbacks are sync
+            self.hass.async_create_task(
+                self.deposit(
+                    kid_id=kid_id,
+                    amount=achievement_points,
+                    source=const.POINTS_SOURCE_ACHIEVEMENTS,
+                    reference_id=achievement_id,
+                )
+            )
+
+    def _on_challenge_completed(self, payload: dict[str, Any]) -> None:
+        """Handle challenge completed event - deposit award points.
+
+        Args:
+            payload: Event data containing kid_id, challenge_id, challenge_points
+        """
+        kid_id = payload.get("kid_id")
+        challenge_id = payload.get("challenge_id")
+        challenge_points = payload.get("challenge_points", 0.0)
+
+        if challenge_points > 0 and kid_id:
+            # Use async_create_task since dispatcher callbacks are sync
+            self.hass.async_create_task(
+                self.deposit(
+                    kid_id=kid_id,
+                    amount=challenge_points,
+                    source=const.POINTS_SOURCE_CHALLENGES,
+                    reference_id=challenge_id,
+                )
+            )
 
     def _get_kid(self, kid_id: str) -> KidData | None:
         """Get kid data by ID.

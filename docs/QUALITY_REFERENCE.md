@@ -1,153 +1,145 @@
 # 📊 Quality Reference & Compliance Tracking
 
-**Purpose**: Track KidsChores quality standards against Home Assistant's official AGENTS.md requirements. Maps implementation status and provides compliance checklists.
+**Purpose**: This document maps the KidsChores codebase to the Home Assistant Platinum Quality Scale. It serves as our 'Compliance Constitution.'
 
-**Audience**: Code reviewers, quality assurance, maintainers tracking Platinum quality scale compliance.
+**Maintenance**: Update this file only when new quality tiers are reached or when mapping internal logic to HA requirements changes.
 
-**Contents**: Quality scale mapping, compliance status, code examples, linting standards, test coverage validation.
-
-**Last Updated**: January 4, 2026
-**Integration Version**: 0.5.0
+**Last Updated**: January 27, 2026
+**Integration Version**: 0.5.0+
 **Quality Level**: Platinum (Certified)
+
+**Audience**: Code reviewers, maintainers, auditors verifying Platinum compliance.
 
 **See Also**:
 
-- [DEVELOPMENT_STANDARDS.md](DEVELOPMENT_STANDARDS.md) – How we code (prescriptive standards)
-- [CODE_REVIEW_GUIDE.md](CODE_REVIEW_GUIDE.md) – Code review process and Phase 0 audit framework
+- [DEVELOPMENT_STANDARDS.md](DEVELOPMENT_STANDARDS.md) – How we code (prescriptive standards with examples)
+- [CODE_REVIEW_GUIDE.md](CODE_REVIEW_GUIDE.md) – Boundary checks and review procedures
+- [ARCHITECTURE.md](ARCHITECTURE.md) – Data model and layered architecture
 - [AGENTS.md](../../core/AGENTS.md) – Home Assistant's authoritative quality guidance
 
 ---
 
-# Quality Maintenance Reference Guide
+## 🎯 Platinum Requirement Map
+
+**How KidsChores Architecture Satisfies Home Assistant Platinum Standards**
+
+| HA Platinum Requirement    | KidsChores Implementation Statement                                                                                                    | Evidence Location                             | Standards Reference                                                            |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------ |
+| **Strict Typing**          | 100% MyPy coverage enforced in CI/CD via `quick_lint.sh`. Zero type errors across all modules.                                         | `pyproject.toml` (mypy config), CI workflow   | [DEV_STDS § 4](DEVELOPMENT_STANDARDS.md#4-type-hints-mandatory)                |
+| **Decoupling**             | Logic (Engines) physically isolated from Framework (Managers) via `utils/` and `engines/` split. No `homeassistant.*` imports allowed. | `utils/`, `engines/` directories              | [DEV_STDS § 5](DEVELOPMENT_STANDARDS.md#5-utils-vs-helpers-boundary)           |
+| **Zero Hardcoded Strings** | All user-facing text routed through `const.py` → `translations/en.json`. Enforced via Phase 0 Audit Step C.                            | `const.py` (2500+ constants), `translations/` | [DEV_STDS § 1](DEVELOPMENT_STANDARDS.md#1-no-hardcoded-strings)                |
+| **Scalability**            | Storage-Only architecture removes Config Entry size limits. Reload 8x faster (2.5s → 0.3s).                                            | `.storage/kidschores_data`                    | [ARCHITECTURE § Data](ARCHITECTURE.md#storage-only-mode-advantages)            |
+| **Async Dependencies**     | All I/O operations use async patterns. No blocking calls. Data coordinator pattern for efficient updates.                              | `coordinator.py`, all entity platforms        | [AGENTS.md § Async](../../core/AGENTS.md)                                      |
+| **Config Flow**            | UI-based setup required. Reauthentication and reconfiguration supported.                                                               | `config_flow.py`, `options_flow.py`           | [DEV_STDS § Config Flow](DEVELOPMENT_STANDARDS.md#config-flow)                 |
+| **Entity Unique IDs**      | Every entity has persistent UUID-based unique ID.                                                                                      | All entity platforms (`sensor.py`, etc.)      | [AGENTS.md § Unique IDs](../../core/AGENTS.md)                                 |
+| **Service Actions**        | Registered in `async_setup()`. Validation checks entry state. Exception translations used.                                             | `services.py`                                 | [DEV_STDS § Services](DEVELOPMENT_STANDARDS.md#service-actions)                |
+| **Entity Translations**    | Full i18n support via `translations/en.json` with Crowdin automation.                                                                  | `translations/` (14 languages)                | [DEV_STDS § 2](DEVELOPMENT_STANDARDS.md#2-localization--translation-standards) |
+| **Test Coverage**          | 95%+ coverage enforced. 1000+ passing tests across workflow scenarios.                                                                 | `tests/` directory                            | [Test Reports](../tests/)                                                      |
+| **Documentation**          | Comprehensive docs covering architecture, standards, review process.                                                                   | `docs/` directory                             | This file                                                                      |
+| **Terminology Clarity**    | Strict lexicon: "Items" (storage) vs "Entities" (HA platform). Enforced via Phase 0 Audit Step B.                                      | All code and docs                             | [ARCHITECTURE § Lexicon](ARCHITECTURE.md#-lexicon-standards-critical)          |
+
+**Platinum Certification Date**: January 2026
+
+**Quality Scale File**: [quality_scale.yaml](../custom_components/kidschores/quality_scale.yaml) - All 64 rules marked "done" or "exempt" with justification for each.
 
 ---
 
-## 📋 How to Use This Guide
+## 🏛️ Architecture as Quality
 
-When developing or reviewing code for KidsChores, use this guide to:
+**Why Layered Architecture IS Quality Assurance**
 
-1. **Find relevant quality standards** - Locate which standards apply to your work
-2. **Reference official guidance** - Get links to Home Assistant's authoritative AGENTS.md
-3. **Check implementation status** - Verify KidsChores has already implemented each rule
-4. **Review examples** - See code examples from KidsChores codebase
+KidsChores achieves Platinum quality not through manual review, but through architectural constraints that make defects unlikely.
 
-**Key Documents**:
+### Reliability Through Persistence
 
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - KidsChores architecture and quality standards (NEW Section: Quality Standards & Maintenance Guide)
-- **[CODE_REVIEW_GUIDE.md](CODE_REVIEW_GUIDE.md)** - Phase 0 Audit Framework and detailed review checklists
-- **[AGENTS.md](../../core/AGENTS.md)** - Home Assistant's official integration quality guidance (authoritative source)
-- **[quality_scale.yaml](../custom_components/kidschores/quality_scale.yaml)** - Current rule implementation status
+**Challenge**: Gamification state (badge progress, streaks) must survive HA restarts.
 
----
+**Solution**: Persisted Evaluation Queues store all badge conditions in `.storage/kidschores_data`. On coordinator init, badges are re-evaluated from storage, not recalculated from scratch.
 
-## 🎯 Platinum Quality Scale Mapping
+**Quality Impact**: Zero "lost progress" bugs. State is always recoverable.
 
-### AGENTS.md Sections → KidsChores Implementation
+**Reference**: [ARCHITECTURE.md § Badge Lifecycle](ARCHITECTURE.md#badge-lifecycle)
 
-| HA Quality Rule            | AGENTS.md Section                   | KidsChores Status | Implementation File             | ARCHITECTURE.md Ref   |
-| -------------------------- | ----------------------------------- | ----------------- | ------------------------------- | --------------------- |
-| **Configuration Flow**     | Config Flow Patterns                | ✅ Done           | config_flow.py                  | Quality Standards § 1 |
-| **Entity Unique IDs**      | Unique IDs                          | ✅ Done           | sensor.py, button.py, select.py | Quality Standards § 2 |
-| **Service Actions**        | Service Registration Patterns       | ✅ Done           | services.py                     | Quality Standards § 3 |
-| **Entity Unavailability**  | State Handling, Entity Availability | ✅ Done           | All entity classes              | Quality Standards § 4 |
-| **Parallel Updates**       | Update Patterns                     | ✅ Done           | sensor.py (line ~40)            | Quality Standards § 5 |
-| **Unavailability Logging** | Unavailability Logging              | ✅ Done           | coordinator.py                  | Quality Standards § 6 |
+### Auditability Through Automatic Timestamps
 
----
+**Challenge**: Debugging state changes requires knowing "who changed what, when."
 
-## 🔍 Code Quality Standards Mapping
+**Solution**: `data_builders.py` automatically sets `updated_at` timestamps on every Item modification. Managers never manually set timestamps.
 
-### Type Hints (100% Required)
+**Quality Impact**: Built-in audit trail. Every change is traceable.
 
-**HA Guidance**: [AGENTS.md § Python Requirements - Strict Typing](../../core/AGENTS.md)
-
-**KidsChores Implementation**:
-
-- ✅ All functions have complete type hints (args + return)
-- ✅ Properties include return type hints
-- ✅ Use Python 3.10+ syntax (`str | None` not `Optional[str]`)
-- ✅ Use modern dict syntax (`dict[str, Any]` not `Dict[str, Any]`)
-
-**Example**:
+**Code Pattern**:
 
 ```python
-async def async_claim_chore(
-    self,
-    kid_id: str,
-    chore_id: str,
-) -> tuple[bool, str]:
-    """Claim a chore for a kid."""
+# data_builders.py
+def build_kid_data(...) -> KidData:
+    return {
+        "name": name.strip(),
+        "updated_at": dt_now_iso(),  # ✅ Automatic
+        ...
+    }
 ```
 
-**Reference**: [ARCHITECTURE.md § Code Quality Standards - Type Hints](ARCHITECTURE.md#code-quality-standards-all-implemented-)
+**Reference**: [DEV_STDS § 4. Data Write Standards](DEVELOPMENT_STANDARDS.md#4-data-write-standards-crud-ownership)
+
+### Predictability Through Single Write Path
+
+**Challenge**: Multiple code paths writing to storage cause race conditions and data corruption.
+
+**Solution**: ONLY Manager methods can call `coordinator._persist()`. UI flows and services MUST delegate.
+
+**Quality Impact**: Eliminates "dirty write" bugs. Data integrity is architecturally guaranteed.
+
+**Enforcement**: Phase 0 Audit Step C verifies this boundary.
+
+**Reference**: [ARCHITECTURE.md § Layered Architecture](ARCHITECTURE.md#layered-architecture)
 
 ---
 
-### Type Checking Standards (Platinum Compliance)
+## 🔡 Lexicon Requirement for Platinum Status
 
-**HA Guidance**: [AGENTS.md § Strict Typing (Platinum)](../../core/AGENTS.md)
+**Quality Rule**: Terminology Clarity (Platinum-Specific)
 
-**KidsChores Status**: ✅ **Platinum-Compliant** (MyPy Integrated January 2026)
+**Requirement**: Documents and code MUST distinguish between:
 
-- ✅ MyPy integrated in CI/CD via `quick_lint.sh`
-- ✅ Zero type errors across 20 source files (206 errors fixed)
-- ✅ Enforced: `strict_optional`, `check_untyped_defs`
-- ✅ All functions have complete type hints
+- **Items** / **Records**: Data in `.storage/kidschores_data` (JSON with UUIDs)
+- **Entities**: Home Assistant platform objects (Sensors, Buttons, Selects)
 
-**Strictness Comparison**:
+**Rationale**: Ambiguous use of "Entity" causes:
 
-| Setting                    | HA Core (Platinum) | KidsChores (Platinum) | Status    |
-| -------------------------- | ------------------ | --------------------- | --------- |
-| `strict_optional`          | ✅                 | ✅                    | Compliant |
-| `check_untyped_defs`       | ✅                 | ✅                    | Compliant |
-| `warn_return_any`          | ✅                 | ✅                    | Compliant |
-| `warn_unreachable`         | ✅                 | ✅                    | Compliant |
-| `disallow_any_generics`    | ✅                 | ✅                    | Compliant |
-| `disallow_untyped_calls`   | ✅                 | ✅                    | Compliant |
-| `disallow_untyped_defs`    | ✅                 | ✅                    | Compliant |
-| `disallow_incomplete_defs` | ✅                 | ✅                    | Compliant |
-| `no_implicit_reexport`     | ✅                 | ✅                    | Compliant |
+1. **Developer confusion**: Is this a JSON dict or an HA class?
+2. **Incorrect refactoring**: Moving storage logic into entity classes
+3. **Documentation errors**: Users don't understand what "entity" means
 
-**MyPy Configuration** (`pyproject.toml`):
-
-```toml
-[tool.mypy]
-python_version = "3.12"
-strict_optional = true
-check_untyped_defs = true
-warn_return_any = true
-```
-
-**Validation Command**:
-
-```bash
-mypy custom_components/kidschores/  # Must return zero errors
-```
-
-**Platinum Compliance Status**:
-
-- **Current**: Platinum-level strictness achieved
-- **Rationale**: 894 passing tests, zero mypy errors, all 64 quality rules satisfied
-- **Maintenance**: Continue enforcing strict typing on all new code
-
----
-
-### Lazy Logging (100% Required)
-
-**HA Guidance**: [AGENTS.md § Logging](../../core/AGENTS.md)
-
-**KidsChores Implementation**:
-
-- ✅ 100% compliance - zero f-strings in logging
-- ✅ Always use `%s`, `%d` placeholders (lazy evaluation)
-- ✅ Never evaluate in log calls (performance critical)
-
-**Correct Pattern**:
+**Anti-Pattern** (❌ Gold-Level Mistake):
 
 ```python
-_LOGGER.debug("Processing chore for kid: %s", kid_name)
-_LOGGER.info("Points adjusted for kid: %s to %s", kid_name, new_points)
+def update_chore_entity(self, chore_id: str) -> None:
+    """Update the chore entity in storage."""  # ❌ Ambiguous
+    self._data[DATA_CHORES][chore_id]["state"] = "claimed"
 ```
+
+**Correct Pattern** (✅ Platinum-Compliant):
+
+```python
+def update_chore_item(self, chore_id: str) -> None:
+    """Update the Chore Item (storage record) for the given UUID."""
+    self._data[DATA_CHORES][chore_id]["state"] = "claimed"
+```
+
+**Enforcement**:
+
+- Phase 0 Audit Step B: Lexicon Check
+- Automated: `grep -rn "Chore Entity" custom_components/kidschores/`
+- Manual: Code reviewer rejects PRs with ambiguous terminology
+
+**Consequence of Violation**: PR blocked until terminology corrected. Platinum status requires this discipline.
+
+**Reference**: [ARCHITECTURE.md § Lexicon Standards](ARCHITECTURE.md#-lexicon-standards-critical)
+
+---
+
+## ✅ Quality Compliance Checklist
 
 **Wrong Pattern** (Never use):
 
@@ -282,8 +274,8 @@ class KidPointsSensor(CoordinatorEntity, SensorEntity):
 
 **KidsChores Status**:
 
-- ✅ 560/560 tests passing (100% baseline)
-- ✅ 10 intentionally skipped (not counted)
+- ✅ All tests/\*.py passing without warnings (100% baseline)
+- ✅ Small group of intentionally skipped acceptable (not counted)
 - ✅ 95%+ code coverage across all modules
 - ✅ All test categories covered:
   - Config flow tests (test_config_flow.py)
@@ -424,7 +416,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
 **Test References**:
 
-- [tests/](../tests/) - 560+ tests covering all functionality
+- [tests/](../tests/) - 1000+ tests covering all functionality
 - [TESTING_AGENT_INSTRUCTIONS.md](../tests/TESTING_AGENT_INSTRUCTIONS.md) - Testing guidance
 
 ---
@@ -515,6 +507,65 @@ grep -r "LANGUAGES = \[" custom_components/kidschores/ | grep -v "homeassistant.
 
 **Reference**: [ARCHITECTURE.md § Language Selection Architecture](ARCHITECTURE.md#language-selection-architecture) for full design details.
 
+---
+
+## ✅ Quality Compliance Checklist
+
+**For code reviewers and maintainers: Verify these items before approving PRs.**
+
+### Platinum Boundary Enforcement
+
+- [ ] **Purity Check**: No `homeassistant.*` imports in `utils/`, `engines/`, `data_builders.py`
+- [ ] **Lexicon Check**: No "Chore Entity" or "Kid Entity" in docstrings/comments (use "Item"/"Record")
+- [ ] **CRUD Ownership**: No `_data[` or `_persist()` in `options_flow.py` or `services.py`
+- [ ] **Type Checking**: `mypy custom_components/kidschores/` returns zero errors
+- [ ] **Test Coverage**: New code has 95%+ test coverage
+
+### Code Quality Standards
+
+- [ ] All functions have complete type hints (args + return)
+- [ ] Modern syntax used (`str | None` not `Optional[str]`)
+- [ ] All logging uses lazy evaluation (no f-strings)
+- [ ] No hardcoded user-facing strings (all via `const.py` → `translations/`)
+- [ ] Specific exceptions used (not bare `except Exception:`)
+- [ ] All public methods have docstrings
+
+### Architecture Compliance
+
+- [ ] Pure logic in `engines/` or `utils/` (no HA imports)
+- [ ] HA-dependent code in `managers/` or `kc_helpers.py`
+- [ ] Data writes ONLY through Manager methods
+- [ ] `data_builders.py` sets all timestamps automatically
+- [ ] Event-driven: Managers use Dispatcher, not direct calls
+
+**Reference**: [CODE_REVIEW_GUIDE.md § Phase 0 Boundary Check](CODE_REVIEW_GUIDE.md#phase-0-boundary-check-required-first-step)
+
+---
+
+## 📚 Standards Reference Links
+
+**For detailed syntax patterns and code examples, consult:**
+
+- **[DEVELOPMENT_STANDARDS.md](DEVELOPMENT_STANDARDS.md)** - Complete coding standards with examples:
+  - § 1: No Hardcoded Strings - Translation patterns
+  - § 3: Constant Naming Standards - Prefix patterns and usage
+  - § 4: Data Write Standards - CRUD ownership rules
+  - § 5: Utils vs Helpers Boundary - Import restrictions
+  - § 6: DateTime & Scheduling - Always use `dt_*` helpers
+
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System design and quality rationale:
+  - § Lexicon Standards - Item vs Entity terminology
+  - § Layered Architecture - Component responsibilities
+  - § Type System Architecture - TypedDict vs dict[str, Any] strategy
+
+- **[CODE_REVIEW_GUIDE.md](CODE_REVIEW_GUIDE.md)** - Review procedures:
+  - § Phase 0: Boundary Check - Audit steps with grep commands
+  - § Boundary Validation Table - File placement rules
+
+**Note**: This document focuses on COMPLIANCE MAPPING, not coding HOW-TO. For implementation patterns, always refer to the standards documents above.
+
+---
+
 ### Before Marking "Ready for Review"
 
 - [ ] All linting passes (`./utils/quick_lint.sh --fix`)
@@ -552,6 +603,7 @@ All Gold requirements satisfied.
 - ✅ Strict Typing (100% type hints, zero mypy errors)
 - ✅ runtime_data pattern
 - ✅ All 64 quality scale rules (done or legitimately exempt)
+- ✅ Terminology Clarity (Item vs Entity lexicon enforced)
 
 See [quality_scale.yaml](../custom_components/kidschores/quality_scale.yaml) for complete rule status.
 
@@ -563,8 +615,8 @@ This guide is maintained alongside the ARCHITECTURE.md document. When updating:
 
 1. **Update both documents** if quality standards change
 2. **Keep links current** (especially to AGENTS.md sections)
-3. **Add examples from code** when illustrating standards
+3. **Update Platinum Requirement Map** when new mappings established
 4. **Mark completion date** when new standards are implemented
 
-**Last Updated**: January 4, 2026
+**Last Updated**: January 27, 2026
 **Maintained By**: KidsChores Development Team

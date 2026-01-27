@@ -132,7 +132,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv, selector
 import voluptuous as vol
 
-from . import const, kc_helpers as kh
+from .. import const, kc_helpers as kh
+from ..utils.dt_utils import dt_parse, dt_parse_duration
 
 # =============================================================================
 # INPUT VALIDATION HELPERS
@@ -154,7 +155,7 @@ def validate_duration_string(value: str) -> str:
     if not value or value.strip() == "0":
         return value  # "0" or empty = disabled (valid)
 
-    td = kh.dt_parse_duration(value)
+    td = dt_parse_duration(value)
     if td is None:
         raise vol.Invalid(
             f"Invalid duration format: '{value}'. "
@@ -330,7 +331,7 @@ def validate_kids_inputs(
     Returns:
         Dictionary of errors (empty if validation passes).
     """
-    from . import data_builders as db
+    from .. import data_builders as db
 
     # Build DATA_* dict for shared validation
     data_dict: dict[str, Any] = {
@@ -470,7 +471,7 @@ def validate_parents_inputs(
     Returns:
         Dictionary of errors (empty if validation passes).
     """
-    from . import data_builders as db
+    from .. import data_builders as db
 
     # Build DATA_* dict for shared validation
     data_dict: dict[str, Any] = {
@@ -792,7 +793,7 @@ def validate_chores_inputs(
         - errors_dict: Dictionary of errors (empty if validation passes).
         - due_date_str: Validated due date as ISO string, or None if not provided/cleared.
     """
-    from . import data_builders as db
+    from .. import data_builders as db
 
     errors: dict[str, str] = {}
 
@@ -818,7 +819,7 @@ def validate_chores_inputs(
             type(raw_due).__name__,
         )
         try:
-            due_dt = kh.dt_parse(
+            due_dt = dt_parse(
                 raw_due,
                 default_tzinfo=const.DEFAULT_TIME_ZONE,
                 return_type=const.HELPER_RETURN_DATETIME_UTC,
@@ -2175,7 +2176,7 @@ def validate_rewards_inputs(
     Returns:
         Dictionary of errors (empty if validation passes).
     """
-    from . import data_builders as db
+    from .. import data_builders as db
 
     # Build DATA_* dict for shared validation
     data_dict: dict[str, Any] = {
@@ -2271,7 +2272,7 @@ def validate_bonuses_inputs(
     Returns:
         Dictionary of errors (empty if validation passes).
     """
-    from . import data_builders as db
+    from .. import data_builders as db
 
     # Build DATA_* dict for shared validation
     data_dict: dict[str, Any] = {
@@ -2366,7 +2367,7 @@ def validate_penalties_inputs(
     Returns:
         Dictionary of errors (empty if validation passes).
     """
-    from . import data_builders as db
+    from .. import data_builders as db
 
     # Build DATA_* dict for shared validation
     data_dict: dict[str, Any] = {
@@ -2510,7 +2511,7 @@ def validate_achievements_inputs(
     Returns:
         Dict of errors (empty if validation passes)
     """
-    from . import data_builders as db
+    from .. import data_builders as db
 
     # Transform CFOF_* keys to DATA_* keys
     assigned_kids = user_input.get(const.CFOF_ACHIEVEMENTS_INPUT_ASSIGNED_KIDS, [])
@@ -2666,7 +2667,7 @@ def validate_challenges_inputs(
     Returns:
         Dict of errors (empty if validation passes)
     """
-    from . import data_builders as db
+    from .. import data_builders as db
 
     # Transform CFOF_* keys to DATA_* keys
     assigned_kids = user_input.get(const.CFOF_CHALLENGES_INPUT_ASSIGNED_KIDS, [])

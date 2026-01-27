@@ -15,11 +15,16 @@ from zoneinfo import ZoneInfo
 from homeassistant.const import Platform
 import homeassistant.util.dt as dt_util
 
+from .utils import dt_utils
+
 
 def set_default_timezone(hass):
     """Set the default timezone based on the Home Assistant configuration."""
     global DEFAULT_TIME_ZONE  # noqa: PLW0603
     DEFAULT_TIME_ZONE = dt_util.get_time_zone(hass.config.time_zone)
+    # Also configure the pure Python dt_utils module
+    if DEFAULT_TIME_ZONE:
+        dt_utils.set_default_timezone(DEFAULT_TIME_ZONE)
 
 
 # ================================================================================================

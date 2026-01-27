@@ -23,14 +23,11 @@ from homeassistant.helpers import selector
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
-from . import (
-    backup_helpers as bh,
-    const,
-    data_builders as db,
-    flow_helpers as fh,
-    kc_helpers as kh,
-)
+from . import const, data_builders as db
 from .data_builders import EntityValidationError
+from .helpers import backup_helpers as bh, flow_helpers as fh
+from .utils.dt_utils import dt_parse, validate_daily_multi_times
+from .utils.math_utils import parse_points_adjust_values
 
 if TYPE_CHECKING:
     from .type_defs import BadgeData
@@ -903,7 +900,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         per_kid_due_dates[kid_id] = None
                     elif raw_template_date:
                         try:
-                            utc_dt = kh.dt_parse(
+                            utc_dt = dt_parse(
                                 raw_template_date,
                                 default_tzinfo=const.DEFAULT_TIME_ZONE,
                                 return_type=const.HELPER_RETURN_DATETIME_UTC,
@@ -1167,7 +1164,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     elif raw_template_date:
                         # User set a date - apply it directly to the single kid
                         try:
-                            utc_dt = kh.dt_parse(
+                            utc_dt = dt_parse(
                                 raw_template_date,
                                 default_tzinfo=const.DEFAULT_TIME_ZONE,
                                 return_type=const.HELPER_RETURN_DATETIME_UTC,
@@ -1325,7 +1322,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 common_date = next(iter(all_kid_dates))
                 if common_date:  # Only show if not None
                     try:
-                        existing_due_date = kh.dt_parse(
+                        existing_due_date = dt_parse(
                             common_date,
                             default_tzinfo=const.DEFAULT_TIME_ZONE,
                             return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
@@ -1358,7 +1355,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             try:
                 # Parse to local datetime string for DateTimeSelector
                 # Storage is UTC ISO; display is local timezone
-                existing_due_date = kh.dt_parse(
+                existing_due_date = dt_parse(
                     existing_due_str,
                     default_tzinfo=const.DEFAULT_TIME_ZONE,
                     return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
@@ -1502,7 +1499,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         if raw_template_date:
             try:
                 # Convert to UTC ISO for storage/comparison
-                utc_dt = kh.dt_parse(
+                utc_dt = dt_parse(
                     raw_template_date,
                     default_tzinfo=const.DEFAULT_TIME_ZONE,
                     return_type=const.HELPER_RETURN_DATETIME_UTC,
@@ -1510,7 +1507,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 if utc_dt and isinstance(utc_dt, datetime):
                     template_date_str = utc_dt.isoformat()
                 # Also get display format for UI
-                template_date_display = kh.dt_parse(
+                template_date_display = dt_parse(
                     raw_template_date,
                     default_tzinfo=const.DEFAULT_TIME_ZONE,
                     return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
@@ -1556,7 +1553,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         # Convert to UTC datetime, then to ISO string for storage
                         # Per quality specs: dates stored in UTC ISO format
                         try:
-                            utc_dt = kh.dt_parse(
+                            utc_dt = dt_parse(
                                 date_value,
                                 default_tzinfo=const.DEFAULT_TIME_ZONE,
                                 return_type=const.HELPER_RETURN_DATETIME_UTC,
@@ -1633,7 +1630,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             default_value = None
             if existing_date:
                 with contextlib.suppress(ValueError, TypeError):
-                    default_value = kh.dt_parse(
+                    default_value = dt_parse(
                         existing_date,
                         default_tzinfo=const.DEFAULT_TIME_ZONE,
                         return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
@@ -1738,14 +1735,14 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         template_date_display = None
         if raw_template_date:
             with contextlib.suppress(ValueError, TypeError):
-                utc_dt = kh.dt_parse(
+                utc_dt = dt_parse(
                     raw_template_date,
                     default_tzinfo=const.DEFAULT_TIME_ZONE,
                     return_type=const.HELPER_RETURN_DATETIME_UTC,
                 )
                 if utc_dt and isinstance(utc_dt, datetime):
                     template_date_str = utc_dt.isoformat()
-                template_date_display = kh.dt_parse(
+                template_date_display = dt_parse(
                     raw_template_date,
                     default_tzinfo=const.DEFAULT_TIME_ZONE,
                     return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
@@ -1827,7 +1824,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     date_value = user_input.get(f"due_date_{kid_name}")
                     if date_value:
                         with contextlib.suppress(ValueError, TypeError):
-                            utc_dt = kh.dt_parse(
+                            utc_dt = dt_parse(
                                 date_value,
                                 default_tzinfo=const.DEFAULT_TIME_ZONE,
                                 return_type=const.HELPER_RETURN_DATETIME_UTC,
@@ -1969,7 +1966,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             default_date_value = None
             if existing_date:
                 with contextlib.suppress(ValueError, TypeError):
-                    default_date_value = kh.dt_parse(
+                    default_date_value = dt_parse(
                         existing_date,
                         default_tzinfo=const.DEFAULT_TIME_ZONE,
                         return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
@@ -2055,7 +2052,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             ).strip()
 
             # Validate the times string
-            is_valid, error_key = kh.validate_daily_multi_times(times_str)
+            is_valid, error_key = validate_daily_multi_times(times_str)
 
             if not is_valid and error_key:
                 errors[const.CFOF_CHORES_INPUT_DAILY_MULTI_TIMES] = error_key
@@ -3431,7 +3428,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         kids_name_to_id.get(name, name) for name in assigned_kids_names
                     ]
 
-                    # Parse dates using kh.dt_parse (same pattern as chores)
+                    # Parse dates using dt_parse (same pattern as chores)
                     # Dates from DateTimeSelector are local time - convert to UTC
                     raw_start = data_input.get(const.DATA_CHALLENGE_START_DATE)
                     raw_end = data_input.get(const.DATA_CHALLENGE_END_DATE)
@@ -3439,13 +3436,13 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     start_dt = None
                     end_dt = None
                     if raw_start:
-                        start_dt = kh.dt_parse(
+                        start_dt = dt_parse(
                             raw_start,
                             default_tzinfo=const.DEFAULT_TIME_ZONE,
                             return_type=const.HELPER_RETURN_DATETIME_UTC,
                         )
                     if raw_end:
-                        end_dt = kh.dt_parse(
+                        end_dt = dt_parse(
                             raw_end,
                             default_tzinfo=const.DEFAULT_TIME_ZONE,
                             return_type=const.HELPER_RETURN_DATETIME_UTC,
@@ -3578,7 +3575,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         kids_name_to_id.get(name, name) for name in assigned_kids_names
                     ]
 
-                    # Parse dates using kh.dt_parse (same pattern as chores)
+                    # Parse dates using dt_parse (same pattern as chores)
                     # Dates from DateTimeSelector are local time - convert to UTC
                     raw_start = data_input.get(const.DATA_CHALLENGE_START_DATE)
                     raw_end = data_input.get(const.DATA_CHALLENGE_END_DATE)
@@ -3586,13 +3583,13 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     start_dt = None
                     end_dt = None
                     if raw_start:
-                        start_dt = kh.dt_parse(
+                        start_dt = dt_parse(
                             raw_start,
                             default_tzinfo=const.DEFAULT_TIME_ZONE,
                             return_type=const.HELPER_RETURN_DATETIME_UTC,
                         )
                     if raw_end:
-                        end_dt = kh.dt_parse(
+                        end_dt = dt_parse(
                             raw_end,
                             default_tzinfo=const.DEFAULT_TIME_ZONE,
                             return_type=const.HELPER_RETURN_DATETIME_UTC,
@@ -3664,13 +3661,13 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         start_date_display = None
         end_date_display = None
         if challenge_data.get(const.DATA_CHALLENGE_START_DATE):
-            start_date_display = kh.dt_parse(
+            start_date_display = dt_parse(
                 challenge_data[const.DATA_CHALLENGE_START_DATE],
                 default_tzinfo=const.DEFAULT_TIME_ZONE,
                 return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
             )
         if challenge_data.get(const.DATA_CHALLENGE_END_DATE):
-            end_date_display = kh.dt_parse(
+            end_date_display = dt_parse(
                 challenge_data[const.DATA_CHALLENGE_END_DATE],
                 default_tzinfo=const.DEFAULT_TIME_ZONE,
                 return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
@@ -3797,7 +3794,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             ).strip()
             if points_str:
                 # Parse the values by splitting on separator.
-                parsed_values = kh.parse_points_adjust_values(points_str)
+                parsed_values = parse_points_adjust_values(points_str)
                 # Always store as a list of floats.
                 self._entry_options[const.CONF_POINTS_ADJUST_VALUES] = parsed_values
             else:

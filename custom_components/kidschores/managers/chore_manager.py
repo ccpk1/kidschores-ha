@@ -35,10 +35,18 @@ from custom_components.kidschores.engines.chore_engine import (
     ChoreEngine,
     TransitionEffect,
 )
-from custom_components.kidschores.engines.schedule import (
+from custom_components.kidschores.engines.schedule_engine import (
     calculate_next_due_date_from_chore_info,
 )
 from custom_components.kidschores.managers.base_manager import BaseManager
+from custom_components.kidschores.utils.dt_utils import (
+    dt_add_interval,
+    dt_format_short,
+    dt_now_iso,
+    dt_parse_duration,
+    dt_to_utc,
+    dt_today_local,
+)
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -194,9 +202,8 @@ class ChoreManager(BaseManager):
             self._apply_effect(effect, chore_id)
 
         # Set last_claimed timestamp for the claiming kid
-        from custom_components.kidschores import kc_helpers as kh
 
-        kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_CLAIMED] = kh.dt_now_iso()
+        kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_CLAIMED] = dt_now_iso()
 
         # Clear due-soon reminder tracking (allows fresh reminder for next period)
         self.clear_chore_due_reminder(chore_id, kid_id)
@@ -548,7 +555,7 @@ class ChoreManager(BaseManager):
                     continue
 
                 # Parse due date
-                due_date_utc = kh.dt_to_utc(due_str)
+                due_date_utc = dt_to_utc(due_str)
                 if due_date_utc is None:
                     continue
 
@@ -831,7 +838,7 @@ class ChoreManager(BaseManager):
         # Check due date
         due_date_str = chore_info.get(const.DATA_CHORE_DUE_DATE)
         if due_date_str:
-            due_date_utc = kh.dt_to_utc(due_date_str)
+            due_date_utc = dt_to_utc(due_date_str)
             if due_date_utc is None:
                 return 0
             if now_utc < due_date_utc:
@@ -902,7 +909,7 @@ class ChoreManager(BaseManager):
             # Get this kid's effective due date
             due_str = self.get_chore_effective_due_date(chore_id, kid_id)
             if due_str:
-                due_date_utc = kh.dt_to_utc(due_str)
+                due_date_utc = dt_to_utc(due_str)
                 if due_date_utc is None:
                     continue
                 if now_utc < due_date_utc:
@@ -1476,7 +1483,7 @@ class ChoreManager(BaseManager):
         due_window_offset_str = chore_info.get(
             const.DATA_CHORE_DUE_WINDOW_OFFSET, const.DEFAULT_DUE_WINDOW_OFFSET
         )
-        due_window_td = kh.dt_parse_duration(cast("str | None", due_window_offset_str))
+        due_window_td = dt_parse_duration(cast("str | None", due_window_offset_str))
 
         # If no valid due window offset or disabled (0), not in due window
         if not due_window_td or due_window_td.total_seconds() <= 0:
@@ -1503,7 +1510,7 @@ class ChoreManager(BaseManager):
         if not due_date_str:
             return False
 
-        due_date_dt = kh.dt_to_utc(due_date_str)
+        due_date_dt = dt_to_utc(due_date_str)
         if not due_date_dt:
             return False
 
@@ -1552,7 +1559,7 @@ class ChoreManager(BaseManager):
         if not due_date_str:
             return None
 
-        return kh.dt_to_utc(due_date_str)
+        return dt_to_utc(due_date_str)
 
     def get_chore_due_window_start(
         self, kid_id: str | None, chore_id: str
@@ -1578,7 +1585,7 @@ class ChoreManager(BaseManager):
         due_window_offset_str = chore_info.get(
             const.DATA_CHORE_DUE_WINDOW_OFFSET, const.DEFAULT_DUE_WINDOW_OFFSET
         )
-        due_window_td = kh.dt_parse_duration(cast("str | None", due_window_offset_str))
+        due_window_td = dt_parse_duration(cast("str | None", due_window_offset_str))
 
         # If no offset or offset is 0, due window is disabled
         if not due_window_td or due_window_td.total_seconds() <= 0:
@@ -1616,8 +1623,8 @@ class ChoreManager(BaseManager):
             # No period_start means chore was never reset after being created.
             return True
 
-        approved_dt = kh.dt_to_utc(last_approved)
-        period_start_dt = kh.dt_to_utc(period_start)
+        approved_dt = dt_to_utc(last_approved)
+        period_start_dt = dt_to_utc(period_start)
 
         if approved_dt is None or period_start_dt is None:
             return False
@@ -1896,7 +1903,7 @@ class ChoreManager(BaseManager):
             if not due_date_str:
                 return False
 
-            due_date = kh.dt_to_utc(due_date_str)
+            due_date = dt_to_utc(due_date_str)
             if not due_date:
                 return False
 
@@ -1926,7 +1933,7 @@ class ChoreManager(BaseManager):
             if not due_date_str:
                 return False
 
-            due_date = kh.dt_to_utc(due_date_str)
+            due_date = dt_to_utc(due_date_str)
             if not due_date:
                 return False
 
@@ -2005,15 +2012,14 @@ class ChoreManager(BaseManager):
         # CAPTURE OLD STATE (Required for streak calculation)
         # Must happen BEFORE applying effects or updating timestamps
         # =====================================================================
-        from custom_components.kidschores import kc_helpers as kh
 
         previous_last_approved = kid_chore_data.get(
             const.DATA_KID_CHORE_DATA_LAST_APPROVED
         )
 
         # Get yesterday's streak for continuation check
-        today_iso = kh.dt_today_local().isoformat()
-        yesterday_iso = kh.dt_add_interval(
+        today_iso = dt_today_local().isoformat()
+        yesterday_iso = dt_add_interval(
             today_iso,
             interval_unit=const.TIME_UNIT_DAYS,
             delta=-1,
@@ -2046,7 +2052,7 @@ class ChoreManager(BaseManager):
         # =====================================================================
         # UPDATE TIMESTAMPS AND CALCULATE STREAK
         # =====================================================================
-        now_iso = kh.dt_now_iso()
+        now_iso = dt_now_iso()
 
         # Set last_approved timestamp
         kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_APPROVED] = now_iso
@@ -2228,9 +2234,8 @@ class ChoreManager(BaseManager):
             self._apply_effect(effect, chore_id)
 
         # Set last_disapproved timestamp for the disapproved kid
-        from custom_components.kidschores import kc_helpers as kh
 
-        kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_DISAPPROVED] = kh.dt_now_iso()
+        kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_DISAPPROVED] = dt_now_iso()
 
         # Update global chore state
         self._update_global_state(chore_id)
@@ -2431,7 +2436,7 @@ class ChoreManager(BaseManager):
             if not due_date_str:
                 return False
 
-            due_date = kh.dt_to_utc(due_date_str)
+            due_date = dt_to_utc(due_date_str)
             if not due_date:
                 return False
 
@@ -2461,7 +2466,7 @@ class ChoreManager(BaseManager):
             if not due_date_str:
                 return False
 
-            due_date = kh.dt_to_utc(due_date_str)
+            due_date = dt_to_utc(due_date_str)
             if not due_date:
                 return False
 
@@ -2780,13 +2785,12 @@ class ChoreManager(BaseManager):
             kid_id: The kid's internal ID
             chore_id: The chore's internal ID
         """
-        from custom_components.kidschores import kc_helpers as kh
 
         chore_info = self._coordinator.chores_data.get(chore_id)
         if not chore_info:
             return
 
-        now_iso = kh.dt_now_iso()
+        now_iso = dt_now_iso()
         completion_criteria = chore_info.get(
             const.DATA_CHORE_COMPLETION_CRITERIA, const.COMPLETION_CRITERIA_SHARED
         )
@@ -2927,7 +2931,7 @@ class ChoreManager(BaseManager):
             kid_chore_data[const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT] = 0
 
             if reset_approval_period:
-                now_iso = kh.dt_now_iso()
+                now_iso = dt_now_iso()
                 completion_criteria = chore_info.get(
                     const.DATA_CHORE_COMPLETION_CRITERIA, const.SENTINEL_EMPTY
                 )
@@ -2959,7 +2963,7 @@ class ChoreManager(BaseManager):
             return
 
         # Parse current due date
-        original_due_utc = kh.dt_to_utc(due_date_str)
+        original_due_utc = dt_to_utc(due_date_str)
         if not original_due_utc:
             const.LOGGER.debug(
                 "Chore Due Date - Reschedule: Unable to parse due date for %s",
@@ -2971,7 +2975,7 @@ class ChoreManager(BaseManager):
         completion_utc = None
         last_completed_str = chore_info.get(const.DATA_CHORE_LAST_COMPLETED)
         if last_completed_str:
-            completion_utc = kh.dt_to_utc(last_completed_str)
+            completion_utc = dt_to_utc(last_completed_str)
 
         # Use schedule engine for calculation
         next_due_utc = calculate_next_due_date_from_chore_info(
@@ -3056,7 +3060,7 @@ class ChoreManager(BaseManager):
 
         # Parse current due date
         try:
-            original_due_utc = kh.dt_to_utc(current_due_str)
+            original_due_utc = dt_to_utc(current_due_str)
         except (ValueError, TypeError, AttributeError):
             const.LOGGER.debug(
                 "Chore Due Date - Reschedule: Unable to parse due date for %s, kid %s",
@@ -3073,7 +3077,7 @@ class ChoreManager(BaseManager):
         kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {}).get(chore_id, {})
         last_approved_str = kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_APPROVED)
         if last_approved_str:
-            completion_utc = kh.dt_to_utc(last_approved_str)
+            completion_utc = dt_to_utc(last_approved_str)
 
         # Build chore info for calculation with per-kid overrides
         chore_info_for_calc = dict(chore_info)
@@ -3180,7 +3184,7 @@ class ChoreManager(BaseManager):
         if not chore_info.get(const.DATA_CHORE_DUE_DATE):
             return
 
-        due_date_utc = kh.dt_to_utc(chore_info.get(const.DATA_CHORE_DUE_DATE) or "")
+        due_date_utc = dt_to_utc(chore_info.get(const.DATA_CHORE_DUE_DATE) or "")
         if due_date_utc is None:
             return
 
@@ -3210,7 +3214,7 @@ class ChoreManager(BaseManager):
             if not kid_due_str:
                 continue
 
-            kid_due_utc = kh.dt_to_utc(kid_due_str)
+            kid_due_utc = dt_to_utc(kid_due_str)
             if kid_due_utc is None:
                 continue
 
@@ -3342,7 +3346,7 @@ class ChoreManager(BaseManager):
                     continue
 
                 # Parse due date and check if within reminder window
-                due_dt = kh.dt_to_utc(due_date_str)
+                due_dt = dt_to_utc(due_date_str)
                 if due_dt is None:
                     continue
 
@@ -3518,7 +3522,7 @@ class ChoreManager(BaseManager):
             return False
 
         # Parse due date
-        due_date_utc = kh.dt_to_utc(due_date_iso)
+        due_date_utc = dt_to_utc(due_date_iso)
         if not due_date_utc:
             const.LOGGER.error(
                 "Overdue Check - Error parsing due date '%s' for Chore '%s', Kid '%s'",
@@ -3567,7 +3571,7 @@ class ChoreManager(BaseManager):
         notify = False
 
         if last_notif_str:
-            last_dt = kh.dt_to_utc(last_notif_str)
+            last_dt = dt_to_utc(last_notif_str)
             if (
                 last_dt is None
                 or (last_dt < due_date_utc)
@@ -3597,7 +3601,7 @@ class ChoreManager(BaseManager):
                 chore_name=chore_info.get(
                     const.DATA_CHORE_NAME, const.DISPLAY_UNNAMED_CHORE
                 ),
-                due_date=kh.dt_format_short(due_date_utc, language=kid_language),
+                due_date=dt_format_short(due_date_utc, language=kid_language),
                 kid_language=kid_language,
                 parent_language=self.hass.config.language,
             )

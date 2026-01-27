@@ -18,6 +18,10 @@ from homeassistant.components.select import SelectEntity
 
 from . import const, kc_helpers as kh
 from .entity import KidsChoresCoordinatorEntity
+from .helpers.device_helpers import (
+    create_kid_device_info_from_coordinator,
+    create_system_device_info,
+)
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -157,7 +161,7 @@ class SystemChoresSelect(KidsChoresSelectBase):
         self.entity_id = (
             f"{const.SELECT_KC_PREFIX}{const.SELECT_KC_EID_SUFFIX_ALL_CHORES}"
         )
-        self._attr_device_info = kh.create_system_device_info(entry)
+        self._attr_device_info = create_system_device_info(entry)
 
     @property
     def options(self) -> list[str]:
@@ -207,7 +211,7 @@ class SystemRewardsSelect(KidsChoresSelectBase):
         self.entity_id = (
             f"{const.SELECT_KC_PREFIX}{const.SELECT_KC_EID_SUFFIX_ALL_REWARDS}"
         )
-        self._attr_device_info = kh.create_system_device_info(entry)
+        self._attr_device_info = create_system_device_info(entry)
 
     @property
     def options(self) -> list[str]:
@@ -257,7 +261,7 @@ class SystemPenaltiesSelect(KidsChoresSelectBase):
         self.entity_id = (
             f"{const.SELECT_KC_PREFIX}{const.SELECT_KC_EID_SUFFIX_ALL_PENALTIES}"
         )
-        self._attr_device_info = kh.create_system_device_info(entry)
+        self._attr_device_info = create_system_device_info(entry)
 
     @property
     def options(self) -> list[str]:
@@ -307,7 +311,7 @@ class SystemBonusesSelect(KidsChoresSelectBase):
         self.entity_id = (
             f"{const.SELECT_KC_PREFIX}{const.SELECT_KC_EID_SUFFIX_ALL_BONUSES}"
         )
-        self._attr_device_info = kh.create_system_device_info(entry)
+        self._attr_device_info = create_system_device_info(entry)
 
     @property
     def options(self) -> list[str]:
@@ -367,7 +371,7 @@ class KidDashboardHelperChoresSelect(KidsChoresSelectBase):
         self.entity_id = (
             f"{const.SELECT_KC_PREFIX}{kid_name}{const.SELECT_KC_EID_SUFFIX_CHORE_LIST}"
         )
-        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+        self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
 

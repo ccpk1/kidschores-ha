@@ -19,8 +19,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 
-from . import backup_helpers as bh, const, data_builders as db, kc_helpers as kh
+from . import const, data_builders as db, kc_helpers as kh
+from .helpers import backup_helpers as bh
 from .store import KidsChoresStore
+from .utils.dt_utils import dt_now_local, dt_to_utc, dt_today_iso, dt_today_local
+from .utils.math_utils import parse_points_adjust_values
 
 if TYPE_CHECKING:
     from .coordinator import KidsChoresDataCoordinator
@@ -654,7 +657,7 @@ class PreV50Migrator:
             return dt_str
 
         try:
-            dt_obj_utc = kh.dt_to_utc(dt_str)
+            dt_obj_utc = dt_to_utc(dt_str)
             if dt_obj_utc:
                 return dt_obj_utc.isoformat()
             raise ValueError("Parsed datetime is None")
@@ -931,7 +934,7 @@ class PreV50Migrator:
                 )
 
                 # --- Migrate period completion and claim counts for this chore ---
-                now_local = kh.dt_now_local()
+                now_local = dt_now_local()
                 today_iso = now_local.date().isoformat()
                 week_iso = now_local.strftime("%Y-W%V")
                 month_iso = now_local.strftime("%Y-%m")
@@ -1275,7 +1278,7 @@ class PreV50Migrator:
         const.LOGGER.info(
             "INFO: Migration - Starting legacy badges to badges_earned migration"
         )
-        today_local_iso = kh.dt_today_iso()
+        today_local_iso = dt_today_iso()
 
         for kid_id, kid_info in self.coordinator.kids_data.items():
             legacy_badge_names = kid_info.get(const.DATA_KID_BADGES_LEGACY, [])
@@ -1350,8 +1353,8 @@ class PreV50Migrator:
             periods = point_data.setdefault(const.DATA_KID_POINT_DATA_PERIODS, {})
 
             # Get period keys
-            today_local_iso = kh.dt_today_local().isoformat()
-            now_local = kh.dt_now_local()
+            today_local_iso = dt_today_local().isoformat()
+            now_local = dt_now_local()
             week_local_iso = now_local.strftime("%Y-W%V")
             month_local_iso = now_local.strftime("%Y-%m")
             year_local_iso = now_local.strftime("%Y")
@@ -2341,7 +2344,7 @@ class PreV50Migrator:
         if not raw_values:
             points_adjust_values = const.DEFAULT_POINTS_ADJUST_VALUES
         elif isinstance(raw_values, str):
-            points_adjust_values = kh.parse_points_adjust_values(raw_values)
+            points_adjust_values = parse_points_adjust_values(raw_values)
             if not points_adjust_values:
                 points_adjust_values = const.DEFAULT_POINTS_ADJUST_VALUES
         elif isinstance(raw_values, list):

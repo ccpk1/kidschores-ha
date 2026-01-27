@@ -1,12 +1,14 @@
 # KidsChores Code Review Guide
 
-**Purpose**: Systematic code review checklist for maintaining quality, consistency, and performance across the KidsChores integration.
+**Purpose**: This document is a procedural manual for verifying code contributions. It defines the 'Search & Destroy' steps for identifying monolithic anti-patterns.
 
-**Version**: 2.0
-**Last Updated**: January 11, 2026
+**Maintenance**: Update this file only when a new verification step or automated check is added to the review process.
+
+**Version**: 3.0
+**Last Updated**: January 27, 2026
 **Target**: KidsChores v0.5.0+ (Storage-Only Architecture)
 
-**Focus**: Phase 0 Audit Framework, platform-specific reviews, and performance validation. For coding standards, see [DEVELOPMENT_STANDARDS.md](DEVELOPMENT_STANDARDS.md).
+**For Syntax & Naming Standards**: All coding patterns, naming conventions, and style rules are documented in [DEVELOPMENT_STANDARDS.md](DEVELOPMENT_STANDARDS.md). Reviewers should verify compliance with those rules—this guide focuses on architectural boundary enforcement.
 
 ---
 
@@ -20,15 +22,121 @@
 
 ---
 
-## Phase 0: Repeatable Audit Framework
+## Phase 0: Boundary Check (REQUIRED FIRST STEP)
 
-**CRITICAL**: All new files must be audited using this framework BEFORE code review. This ensures consistent identification of user-facing strings, data constants, logging patterns, and translation requirements.
+**CRITICAL**: All new files must pass these boundary checks BEFORE detailed code review. These audits enforce architectural purity and prevent monolithic regressions.
 
-**When to use**: Auditing any new Python file for integration into the KidsChores codebase (entity platforms, helper modules, coordinator changes, etc.)
+**When to use**: For any new or modified Python file in the KidsChores codebase.
 
-**Output**: Standardized audit report (JSON format) documenting findings and required constants.
+**Output**: Pass/Fail for each audit step. Any failure blocks merge until corrected.
 
-### Step 1: Logging Audit
+---
+
+### Audit Step A: Purity Check (Engines/Utils)
+
+**Goal**: Ensure business logic and utilities remain framework-independent.
+
+**Action**:
+
+```bash
+# Check for Home Assistant imports in pure modules
+grep -r "from homeassistant" custom_components/kidschores/utils/
+grep -r "from homeassistant" custom_components/kidschores/engines/
+grep -r "import homeassistant" custom_components/kidschores/utils/
+grep -r "import homeassistant" custom_components/kidschores/engines/
+grep -r "from homeassistant" custom_components/kidschores/data_builders.py
+```
+
+**Pass Criteria**: Zero results from all grep commands.
+
+**Fail Criteria**: Any reference to `homeassistant.*` in `utils/`, `engines/`, or `data_builders.py`.
+
+**Remediation**: Move HA-dependent code to `kc_helpers.py` or appropriate Manager.
+
+---
+
+### Audit Step B: Lexicon Check (Docstrings & Comments)
+
+**Goal**: Enforce terminology standards—distinguish Items (storage) from Entities (HA platform objects).
+
+**Action**:
+
+```bash
+# Search for ambiguous "Entity" usage in code comments
+grep -rn "Chore Entity\|Kid Entity\|Badge Entity\|Reward Entity" custom_components/kidschores/data_builders.py
+grep -rn "Chore Entity\|Kid Entity\|Badge Entity\|Reward Entity" custom_components/kidschores/managers/
+grep -rn "entity data\|Entity data" custom_components/kidschores/ | grep -v "# Entity data" | grep -v "Entity ID"
+```
+
+**Pass Criteria**:
+
+- Must use "Chore Item", "Kid Record", etc.
+- "Entity" only appears when referring to HA platform objects (Sensors, Buttons)
+- Comments distinguish "Item" (storage) vs "Entity" (HA registry)
+
+**Fail Criteria**: Docstrings or comments use "Entity" for storage records.
+
+**Remediation**: Replace with "Item" or "Record" terminology per [ARCHITECTURE.md § Lexicon Standards](ARCHITECTURE.md#-lexicon-standards-critical).
+
+---
+
+### Audit Step C: CRUD Ownership Check
+
+**Goal**: Enforce Single Write Path—only Managers write to storage.
+
+**Action**:
+
+```bash
+# Check for direct storage writes in UI/Service layers
+grep -n "coordinator._data\[\|self._data\[" custom_components/kidschores/options_flow.py
+grep -n "coordinator._persist()\|self._persist()" custom_components/kidschores/options_flow.py
+grep -n "coordinator._data\[\|self._data\[" custom_components/kidschores/services.py
+grep -n "coordinator._persist()\|self._persist()" custom_components/kidschores/services.py
+grep -n "\[const.DATA_" custom_components/kidschores/options_flow.py
+grep -n "\[const.DATA_" custom_components/kidschores/services.py
+```
+
+**Pass Criteria**: Zero matches in `options_flow.py` and `services.py`.
+
+**Fail Criteria**: Any direct writes to `_data` or calls to `_persist()` outside Manager methods.
+
+**Remediation**: Refactor to delegate through Manager methods (e.g., `coordinator.kid_manager.update_points()`).
+
+**Reference**: [DEVELOPMENT_STANDARDS.md § 4. Data Write Standards](DEVELOPMENT_STANDARDS.md#4-data-write-standards-crud-ownership)
+
+---
+
+### Audit Step D: Boundary Validation Table
+
+**Goal**: Verify files are placed in correct architectural layer.
+
+**Checklist**:
+
+| Question                                            | Required Location                       | Forbidden Locations          |
+| --------------------------------------------------- | --------------------------------------- | ---------------------------- |
+| Is it pure math/logic with no side effects?         | `engines/` or `utils/`                  | `managers/`, `kc_helpers.py` |
+| Does it use `hass.services` or `hass.bus`?          | `managers/`                             | `utils/`, `engines/`         |
+| Does it use `entity_registry` or `device_registry`? | `kc_helpers.py`                         | `utils/`, `engines/`         |
+| Does it call `coordinator._persist()`?              | `managers/` ONLY                        | Anywhere else                |
+| Does it sanitize/validate user input?               | `data_builders.py` or `flow_helpers.py` | `managers/`, `services.py`   |
+
+**Validation Process**:
+
+1. Identify primary function of new/modified file
+2. Match function to table row
+3. Verify file location matches "Required Location"
+4. If mismatch, file must be moved or refactored
+
+**Example**:
+
+- File: `calculate_next_schedule.py` in `managers/`
+- Function: Pure date arithmetic, no HA imports
+- ❌ **FAIL**: Should be in `engines/schedule.py`
+- Remediation: Move to `engines/` and remove HA dependencies
+
+---
+
+### Step 1: Type Checking Validation (MyPy)
 
 ```bash
 # Search for all logging statements in file
@@ -50,153 +158,58 @@ grep -n "const\.LOGGER\.\(debug\|info\|warning\|error\)" file.py
 - Compliance: **100%** (or list issues found)
 - Example: "22 log statements reviewed; 100% compliant; all use correct lazy logging patterns"
 
-### Step 1b: Type Checking Validation
+### Step 1: Type Checking Validation (MyPy)
 
-**CRITICAL**: MyPy type checking is now enforced in CI/CD (integrated January 2026). All code must pass with zero errors.
-
-```bash
-# Validate type compliance for specific file
-mypy custom_components/kidschores/[filename].py
-```
-
-**Checklist**:
-
-- [ ] Run mypy on the file being audited
-- [ ] Verify zero mypy errors reported
-- [ ] Check all functions have type hints (args + return)
-- [ ] Verify no `# type: ignore` without justification comment
-- [ ] Confirm modern type syntax (`str | None` not `Optional[str]`)
-- [ ] Check imports from `collections.abc` not `typing` for generic types
-
-**Documentation**:
-
-- MyPy errors found: **N** (must be 0 for approval)
-- Functions without type hints: **X** (must be 0)
-- Unjustified `# type: ignore`: **Y** (must be 0)
-- Compliance: **100%** (or list issues found)
-- Example: "Zero mypy errors; all functions fully typed; 2 type: ignore comments justified"
-
-**Common Type Issues to Flag**:
-
-```python
-# ❌ BAD: No return type
-def calculate_points(kid_id, chore_id):
-    return points
-
-# ✅ GOOD: Complete type hints
-def calculate_points(kid_id: str, chore_id: str) -> float:
-    return points
-
-# ❌ BAD: Old Optional syntax
-from typing import Optional
-def get_kid(kid_id: str) -> Optional[dict]:
-    pass
-
-# ✅ GOOD: Modern syntax
-def get_kid(kid_id: str) -> dict[str, Any] | None:
-    pass
-```
-
-**Validation Command**:
+**Action**:
 
 ```bash
-# Must pass before proceeding to Step 2
-mypy custom_components/kidschores/[filename].py
-# Expected output: "Success: no issues found in X source files"
+# Validate type compliance for entire integration
+mypy custom_components/kidschores/
 ```
 
-**Reference**: [DEVELOPMENT_STANDARDS.md § Type Checking](DEVELOPMENT_STANDARDS.md#type-checking-100-coverage---enforced-in-cicd)
+**Pass Criteria**: Zero mypy errors.
 
-### Step 2: User-Facing String Identification
+**Fail Criteria**: Any mypy error reported.
 
-**Checklist**:
+**Quick Checklist**:
 
-- [ ] Identify all user-facing validation error messages (config flow, options flow)
-- [ ] Identify all field labels and descriptions (schema builders)
-- [ ] Identify all entity names, descriptions used in UI
-- [ ] Identify all error messages returned to user
-- [ ] Identify all notification titles and messages (coordinator notification calls)
-- [ ] Search for hardcoded strings in error dicts: `errors['field'] = 'hardcoded_string'`
-- [ ] Search for strings in field builders: `vol.Optional("name", description="...")`
-- [ ] Search for hardcoded notification strings: `title="..."`, `message=...`
+- [ ] All functions have complete type hints (args + return)
+- [ ] Modern syntax used (`str | None` not `Optional[str]`)
+- [ ] No unjustified `# type: ignore` comments
 
-**Search patterns**:
+**Reference**: [DEVELOPMENT_STANDARDS.md § Type System Standards](DEVELOPMENT_STANDARDS.md#4-type-hints-mandatory) for syntax patterns and examples.
 
-```python
-errors["field"] = "hardcoded"  # ❌ Identify these
-vol.Optional("field", description="Hardcoded text")  # ❌ Identify these
-return vol.Schema({...})  # Check for embedded strings
-```
+### Step 2: Logging Audit
 
-**Notification-specific patterns**:
+**Action**:
 
 ```bash
-# Find hardcoded notification titles
-grep -n 'title="[A-Z]' file.py
-
-# Find hardcoded notification messages (often with f-strings)
-grep -n 'message=.*f"' file.py
-
-# Find notification function calls
-grep -n '_notify_kid\|_notify_parents\|async_send_notification' file.py
+# Search for all logging statements
+grep -n "const\.LOGGER\.\(debug\|info\|warning\|error\)" [filename].py
 ```
 
-**Documentation**:
+**Pass Criteria**: All logging uses lazy evaluation (no f-strings).
 
-- Total user-facing strings found: **N**
-- Error messages: **X**
-- Field labels: **Y**
-- Descriptions: **Z**
-- Notification titles/messages: **W**
-- Other UI text: **V**
-- Hardcoded (non-constant) strings: **List with line numbers**
+**Reference**: [DEVELOPMENT_STANDARDS.md § Logging Standards](DEVELOPMENT_STANDARDS.md#5-lazy-logging-only) for correct patterns and anti-patterns.
 
-### Step 3: Data/Lookup Constant Identification
+---
 
-**Checklist**:
+### Step 3: Constant & Translation Audit
 
-- [ ] Search for repeated string literals (use `grep` with frequency count)
-- [ ] Identify dictionary keys used 2+ times: `dict['key']`, `dict.get('key')`
-- [ ] Identify enum-like strings: status values, type names, tag names
-- [ ] Identify format strings: date formats, filename patterns, templates
-- [ ] Identify magic numbers and delimiters: hardcoded lengths, delimiters
-
-**Search patterns**:
+**Action**:
 
 ```bash
-# Find most-repeated string literals (potential constants)
-grep -oE "'[^']+'|\"[^\"]+\"" file.py | sort | uniq -c | sort -rn | head -20
-
-# Find dictionary access patterns
-grep -E "\[.?['\"][^'\"]+['\"]" file.py
-
-# Find hardcoded delimiters or formats
-grep -E "(split|join|format|strftime)" file.py
+# Find hardcoded strings that should be constants
+grep -n "errors\[.*\] = \"" [filename].py
+grep -n "description=\"[A-Z]" [filename].py
+grep -n "title=\"[A-Z]" [filename].py
 ```
 
-**Documentation**:
+**Pass Criteria**: Zero hardcoded user-facing strings found.
 
-- Total data constants needed: **N**
-- Dictionary keys: **X** items
-- Entity type/enum values: **Y** items
-- Format strings: **Z** items
-- Magic strings: **W** items
-- **Breakdown by priority**:
-  - HIGH (>5 occurrences): **X** items
-  - MEDIUM (2-4 occurrences): **Y** items
-  - LOW (1 occurrence): **Z** items
+**Reference**: [DEVELOPMENT_STANDARDS.md § 1. No Hardcoded Strings](DEVELOPMENT_STANDARDS.md#1-no-hardcoded-strings) for translation patterns.
 
-### Step 4: Pattern Analysis
-
-**Checklist**:
-
-- [ ] Verify error messages follow `CFOP_ERROR_*` → `TRANS_KEY_CFOF_*` pattern
-- [ ] Verify field labels use appropriate `CFOF_*` or `LABEL_*` constants
-- [ ] Verify data structure access is consistent (dict keys vs. const references)
-- [ ] Verify logging compliance (no f-strings, lazy evaluation)
-- [ ] Search for `const.` usage to understand naming patterns in file
-
-**Documentation**:
+---
 
 - Pattern compliance: **X%** (Y errors, Z warnings)
 - Naming patterns identified: (e.g., "BACKUP*KEY*", "ENTITY*KEY*", etc.)
@@ -658,14 +671,12 @@ mypy custom_components/kidschores/
 **For Each Platform File:**
 
 1. **Open file and scan structure**
-
    - [ ] File docstring complete
    - [ ] Imports organized (stdlib, third-party, local)
    - [ ] Constants defined at top
    - [ ] Helper functions before classes
 
 2. **Review each entity class**
-
    - [ ] Use entity checklist above
    - [ ] Check all properties
    - [ ] Verify all attributes

@@ -20,7 +20,9 @@ from zoneinfo import ZoneInfo
 from homeassistant.core import HomeAssistant
 import pytest
 
-from custom_components.kidschores import const, flow_helpers, kc_helpers as kh
+from custom_components.kidschores import const
+from custom_components.kidschores.helpers import flow_helpers
+from custom_components.kidschores.utils.dt_utils import parse_daily_multi_times
 from tests.helpers import (
     APPROVAL_RESET_AT_DUE_DATE_MULTI,
     APPROVAL_RESET_AT_DUE_DATE_ONCE,
@@ -257,7 +259,7 @@ class TestParseDailyMultiTimes:
     ) -> None:
         """P-01: Parse two valid times correctly."""
         current = datetime(2026, 1, 14, 12, 0, 0, tzinfo=UTC)
-        result = kh.parse_daily_multi_times("08:00|17:00", current, current.tzinfo)
+        result = parse_daily_multi_times("08:00|17:00", current, current.tzinfo)
 
         assert len(result) == 2
         assert result[0].hour == 8
@@ -272,7 +274,7 @@ class TestParseDailyMultiTimes:
     ) -> None:
         """P-02: Parse six valid times correctly."""
         current = datetime(2026, 1, 14, 12, 0, 0, tzinfo=UTC)
-        result = kh.parse_daily_multi_times(
+        result = parse_daily_multi_times(
             "06:00|08:00|10:00|12:00|14:00|16:00",
             current,
             current.tzinfo,
@@ -289,9 +291,7 @@ class TestParseDailyMultiTimes:
     ) -> None:
         """P-03: Unsorted input gets sorted in output."""
         current = datetime(2026, 1, 14, 12, 0, 0, tzinfo=UTC)
-        result = kh.parse_daily_multi_times(
-            "17:00|08:00|12:00", current, current.tzinfo
-        )
+        result = parse_daily_multi_times("17:00|08:00|12:00", current, current.tzinfo)
 
         assert len(result) == 3
         hours = [slot.hour for slot in result]
@@ -304,9 +304,7 @@ class TestParseDailyMultiTimes:
     ) -> None:
         """P-04: Invalid hour (25) is skipped."""
         current = datetime(2026, 1, 14, 12, 0, 0, tzinfo=UTC)
-        result = kh.parse_daily_multi_times(
-            "25:00|08:00|17:00", current, current.tzinfo
-        )
+        result = parse_daily_multi_times("25:00|08:00|17:00", current, current.tzinfo)
 
         assert len(result) == 2
         hours = [slot.hour for slot in result]
@@ -320,7 +318,7 @@ class TestParseDailyMultiTimes:
     ) -> None:
         """P-05: Invalid minute (70) is skipped."""
         current = datetime(2026, 1, 14, 12, 0, 0, tzinfo=UTC)
-        result = kh.parse_daily_multi_times("08:70|17:00", current, current.tzinfo)
+        result = parse_daily_multi_times("08:70|17:00", current, current.tzinfo)
 
         assert len(result) == 1
         assert result[0].hour == 17
@@ -332,7 +330,7 @@ class TestParseDailyMultiTimes:
     ) -> None:
         """P-06: Non-numeric entries are skipped."""
         current = datetime(2026, 1, 14, 12, 0, 0, tzinfo=UTC)
-        result = kh.parse_daily_multi_times("morning|17:00", current, current.tzinfo)
+        result = parse_daily_multi_times("morning|17:00", current, current.tzinfo)
 
         assert len(result) == 1
         assert result[0].hour == 17
@@ -344,7 +342,7 @@ class TestParseDailyMultiTimes:
     ) -> None:
         """P-07: Whitespace is trimmed correctly."""
         current = datetime(2026, 1, 14, 12, 0, 0, tzinfo=UTC)
-        result = kh.parse_daily_multi_times(" 08:00 | 17:00 ", current, current.tzinfo)
+        result = parse_daily_multi_times(" 08:00 | 17:00 ", current, current.tzinfo)
 
         assert len(result) == 2
         assert result[0].hour == 8
@@ -358,7 +356,7 @@ class TestParseDailyMultiTimes:
         """P-08: Parsed times have timezone info set."""
         eastern = ZoneInfo("America/New_York")
         current = datetime(2026, 1, 14, 12, 0, 0, tzinfo=eastern)
-        result = kh.parse_daily_multi_times("08:00|17:00", current, eastern)
+        result = parse_daily_multi_times("08:00|17:00", current, eastern)
 
         assert len(result) == 2
         for slot in result:

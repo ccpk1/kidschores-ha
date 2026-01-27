@@ -13,8 +13,9 @@ from typing import TYPE_CHECKING, Any, cast
 
 import pytest
 
-from custom_components.kidschores import const, kc_helpers as kh
+from custom_components.kidschores import const
 from custom_components.kidschores.engines.gamification_engine import GamificationEngine
+from custom_components.kidschores.utils.dt_utils import dt_now_local, dt_today_iso
 from tests.helpers import SetupResult, setup_from_yaml
 
 if TYPE_CHECKING:
@@ -112,7 +113,7 @@ class TestBadgeShadowComparison:
             "chore_stats": kid_data.get(const.DATA_KID_CHORE_STATS, {}),
             "achievement_progress": {},
             "challenge_progress": {},
-            "today_iso": kh.dt_today_iso(),
+            "today_iso": dt_today_iso(),
         }
 
         # Evaluate with new engine
@@ -186,7 +187,7 @@ class TestBadgeShadowComparison:
             "chore_stats": kid_data.get(const.DATA_KID_CHORE_STATS, {}),
             "achievement_progress": {},
             "challenge_progress": {},
-            "today_iso": kh.dt_today_iso(),
+            "today_iso": dt_today_iso(),
         }
 
         # Evaluate with new engine
@@ -256,7 +257,7 @@ class TestAchievementShadowComparison:
             "chore_stats": chore_stats,
             "achievement_progress": {},
             "challenge_progress": {},
-            "today_iso": kh.dt_today_iso(),
+            "today_iso": dt_today_iso(),
         }
 
         # Evaluate with new engine
@@ -298,7 +299,7 @@ class TestChallengeShadowComparison:
             pytest.skip("No challenges in scenario_full")
 
         # Set challenge dates to include today
-        today = kh.dt_now_local()
+        today = dt_now_local()
         challenge_data[const.DATA_CHALLENGE_START_DATE] = (
             today - timedelta(days=1)
         ).isoformat()
@@ -320,7 +321,7 @@ class TestChallengeShadowComparison:
             "chore_stats": kid_data.get(const.DATA_KID_CHORE_STATS, {}),
             "achievement_progress": {},
             "challenge_progress": {},
-            "today_iso": kh.dt_today_iso(),
+            "today_iso": dt_today_iso(),
         }
 
         # Evaluate with new engine
@@ -403,7 +404,7 @@ class TestManagerDryRunMethods:
 
         # Set challenge to active date window
         challenge_data = coordinator.challenges_data[challenge_id]
-        today = kh.dt_now_local()
+        today = dt_now_local()
         challenge_data[const.DATA_CHALLENGE_START_DATE] = (
             today - timedelta(days=1)
         ).isoformat()

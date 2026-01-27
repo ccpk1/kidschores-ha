@@ -70,6 +70,11 @@ from homeassistant.util import dt as dt_util
 from . import const, kc_helpers as kh
 from .coordinator import KidsChoresConfigEntry, KidsChoresDataCoordinator
 from .entity import KidsChoresCoordinatorEntity
+from .helpers.device_helpers import (
+    create_kid_device_info_from_coordinator,
+    create_system_device_info,
+)
+from .helpers.entity_helpers import get_friendly_label
 from .sensor_legacy import (
     KidBonusAppliedSensor,
     KidChoreApprovalsDailySensor,
@@ -97,6 +102,14 @@ from .type_defs import (
     PenaltyData,
     PeriodicStatsEntry,
     RewardData,
+)
+from .utils.dt_utils import (
+    dt_add_interval,
+    dt_format,
+    dt_now_local,
+    dt_time_until,
+    dt_to_utc,
+    dt_today_local,
 )
 
 # Platinum requirement: Parallel Updates
@@ -709,7 +722,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
             const.TRANS_KEY_SENSOR_ATTR_CHORE_NAME: chore_name,
         }
-        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+        self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
 
@@ -794,7 +807,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             return None
 
         # Calculate time until window start
-        result = kh.dt_time_until(due_window_start)
+        result = dt_time_until(due_window_start)
         # If already past (None), return 0d 0h 0m
         return result if result else "0d 0h 0m"
 
@@ -809,7 +822,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         if not due_date:
             return None
 
-        result = kh.dt_time_until(due_date)
+        result = dt_time_until(due_date)
         # If already past (None), return 0d 0h 0m
         return result if result else "0d 0h 0m"
 
@@ -870,8 +883,8 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         )
 
         # Get today's and yesterday's ISO dates
-        today_local_iso = kh.dt_today_local().isoformat()
-        yesterday_local_iso = kh.dt_add_interval(
+        today_local_iso = dt_today_local().isoformat()
+        yesterday_local_iso = dt_add_interval(
             today_local_iso,
             interval_unit=const.TIME_UNIT_DAYS,
             delta=-1,
@@ -914,7 +927,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         stored_labels = chore_info.get(const.DATA_CHORE_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label)
+            get_friendly_label(self.hass, label)
             for label in cast("list", stored_labels)
         ]
 
@@ -1022,7 +1035,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         ):
             today_approvals = (
                 periods.get(const.DATA_KID_CHORE_DATA_PERIODS_DAILY, {})
-                .get(kh.dt_today_local().isoformat(), {})
+                .get(dt_today_local().isoformat(), {})
                 .get(const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, const.DEFAULT_ZERO)
             )
             attributes[const.ATTR_CHORE_APPROVALS_TODAY] = today_approvals
@@ -1134,7 +1147,7 @@ class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_POINTS: self._points_label,
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_POINTS_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+        self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
 
@@ -1225,7 +1238,7 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_CHORES_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+        self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
 
@@ -1306,7 +1319,7 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_BADGES_SENSOR}"
-        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+        self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
 
@@ -1432,7 +1445,7 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         stored_labels = current_badge_info.get(const.DATA_BADGE_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label)
+            get_friendly_label(self.hass, label)
             for label in cast("list", stored_labels)
         ]
 
@@ -1597,7 +1610,7 @@ class KidBadgeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_BADGE_NAME: badge_name,
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_MIDFIX_BADGE_PROGRESS_SENSOR}{badge_name}"
-        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+        self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
 
@@ -1762,7 +1775,7 @@ class SystemBadgeSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_BADGE_NAME: badge_name
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{badge_name}{const.SENSOR_KC_EID_SUFFIX_BADGE_SENSOR}"
-        self._attr_device_info = kh.create_system_device_info(entry)
+        self._attr_device_info = create_system_device_info(entry)
 
     @property
     def native_value(self) -> int:
@@ -1790,7 +1803,7 @@ class SystemBadgeSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.DATA_BADGE_TYPE, const.BADGE_TYPE_CUMULATIVE
         )
         attributes[const.ATTR_LABELS] = [
-            kh.get_friendly_label(self.hass, label)
+            get_friendly_label(self.hass, label)
             for label in cast("list", badge_info.get(const.DATA_BADGE_LABELS, []))
         ]
         # Per-kid earned stats
@@ -1945,7 +1958,7 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_CHORE_NAME: chore_name,
         }
-        self._attr_device_info = kh.create_system_device_info(entry)
+        self._attr_device_info = create_system_device_info(entry)
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{const.SENSOR_KC_EID_MIDFIX_SHARED_CHORE_GLOBAL_STATUS_SENSOR}{chore_name}"
 
     @property
@@ -1996,13 +2009,13 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         stored_labels = chore_info.get(const.DATA_CHORE_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label)
+            get_friendly_label(self.hass, label)
             for label in cast("list", stored_labels)
         ]
 
         # Get today's approvals from periods structure (not legacy flat field)
         total_approvals_today = const.DEFAULT_ZERO
-        today_local_iso = kh.dt_today_local().isoformat()
+        today_local_iso = dt_today_local().isoformat()
 
         for kid_id in assigned_kids_ids:
             kid_data: KidData = cast(
@@ -2132,7 +2145,7 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
             return None
 
         # Calculate time until window start
-        result = kh.dt_time_until(due_window_start)
+        result = dt_time_until(due_window_start)
         # If already past (None), return 0d 0h 0m
         return result if result else "0d 0h 0m"
 
@@ -2147,7 +2160,7 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
         if not due_date:
             return None
 
-        result = kh.dt_time_until(due_date)
+        result = dt_time_until(due_date)
         # If already past (None), return 0d 0h 0m
         return result if result else "0d 0h 0m"
 
@@ -2204,7 +2217,7 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_REWARD_NAME: reward_name,
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_MIDFIX_REWARD_STATUS_SENSOR}{reward_name}"
-        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+        self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
 
@@ -2227,7 +2240,7 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         last_approved = reward_data.get(const.DATA_KID_REWARD_DATA_LAST_APPROVED)
         if last_approved:
             try:
-                approved_dt = kh.dt_to_utc(last_approved)
+                approved_dt = dt_to_utc(last_approved)
                 if approved_dt and approved_dt.date() == dt_util.now().date():
                     return const.REWARD_STATE_APPROVED
             except (ValueError, TypeError):
@@ -2263,13 +2276,13 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         stored_labels = reward_info.get(const.DATA_REWARD_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label)
+            get_friendly_label(self.hass, label)
             for label in cast("list", stored_labels)
         ]
 
         # Get current period keys
-        now_local = kh.dt_now_local()
-        today_local_iso = kh.dt_today_local().isoformat()
+        now_local = dt_now_local()
+        today_local_iso = dt_today_local().isoformat()
         week_local_iso = now_local.strftime("%Y-W%V")
         month_local_iso = now_local.strftime("%Y-%m")
         year_local_iso = now_local.strftime("%Y")
@@ -2479,7 +2492,7 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_ACHIEVEMENT_NAME: achievement_name,
         }
-        self._attr_device_info = kh.create_system_device_info(entry)
+        self._attr_device_info = create_system_device_info(entry)
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{const.SENSOR_KC_EID_MIDFIX_ACHIEVEMENT_SENSOR}{achievement_name}"
 
     @property
@@ -2647,7 +2660,7 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         stored_labels = achievement.get(const.DATA_ACHIEVEMENT_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label)
+            get_friendly_label(self.hass, label)
             for label in cast("list", stored_labels)
         ]
 
@@ -2723,7 +2736,7 @@ class SystemChallengeSensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_CHALLENGE_NAME: challenge_name,
         }
-        self._attr_device_info = kh.create_system_device_info(entry)
+        self._attr_device_info = create_system_device_info(entry)
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{const.SENSOR_KC_EID_MIDFIX_CHALLENGE_SENSOR}{challenge_name}"
 
     @property
@@ -2840,7 +2853,7 @@ class SystemChallengeSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         stored_labels = challenge.get(const.DATA_CHALLENGE_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label)
+            get_friendly_label(self.hass, label)
             for label in cast("list", stored_labels)
         ]
 
@@ -2920,7 +2933,7 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_ACHIEVEMENT_NAME: achievement_name,
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_MIDFIX_ACHIEVEMENT_PROGRESS_SENSOR}{achievement_name}"
-        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+        self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
 
@@ -3089,7 +3102,7 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         stored_labels = achievement.get(const.DATA_ACHIEVEMENT_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label)
+            get_friendly_label(self.hass, label)
             for label in cast("list", stored_labels)
         ]
 
@@ -3171,7 +3184,7 @@ class KidChallengeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_CHALLENGE_NAME: challenge_name,
         }
         self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_MIDFIX_CHALLENGE_PROGRESS_SENSOR}{challenge_name}"
-        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+        self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
 
@@ -3296,7 +3309,7 @@ class KidChallengeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         stored_labels = challenge.get(const.DATA_CHALLENGE_LABELS, [])
         friendly_labels = [
-            kh.get_friendly_label(self.hass, label)
+            get_friendly_label(self.hass, label)
             for label in cast("list", stored_labels)
         ]
 
@@ -3375,7 +3388,7 @@ class SystemDashboardTranslationSensor(KidsChoresCoordinatorEntity, SensorEntity
         self._attr_translation_placeholders = {
             const.TRANS_KEY_ATTR_LANGUAGE: language_code,
         }
-        self._attr_device_info = kh.create_system_device_info(entry)
+        self._attr_device_info = create_system_device_info(entry)
 
         # Translations cache - loaded async on entity add
         self._ui_translations: dict[str, Any] = {}
@@ -3467,7 +3480,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }
-        self._attr_device_info = kh.create_kid_device_info_from_coordinator(
+        self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
 
@@ -3523,7 +3536,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         Uses snap_to_weekday from schedule_engine to find next Monday.
         If currently Monday before 7am, returns today at 7am, otherwise next Monday.
         """
-        now_local = kh.dt_now_local()
+        now_local = dt_now_local()
 
         # Calculate days until the upcoming Monday (0 = Monday)
         # If today is Tuesday (1), (0-1)%7 = 6 days ahead.
@@ -3608,17 +3621,17 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         due_date_local_dt = None
         if due_date_str:
-            due_date_utc = kh.dt_to_utc(due_date_str)
+            due_date_utc = dt_to_utc(due_date_str)
             if due_date_utc:
                 # Get datetime object for local calculations
-                due_date_local_dt = kh.dt_format(
+                due_date_local_dt = dt_format(
                     due_date_utc, const.HELPER_RETURN_DATETIME_LOCAL
                 )
 
         # Calculate is_today_am (only if due date exists and is today)
         is_today_am = None
         if due_date_local_dt and isinstance(due_date_local_dt, datetime):
-            today_local = kh.dt_today_local()
+            today_local = dt_today_local()
             if due_date_local_dt.date() == today_local and due_date_local_dt.hour < 12:
                 is_today_am = True
             elif due_date_local_dt.date() == today_local:
@@ -3662,7 +3675,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         # Check due date if available
         if due_date_local and isinstance(due_date_local, datetime):
-            today_local = kh.dt_today_local()
+            today_local = dt_today_local()
 
             # Past due dates -> today group (catches claimed/approved chores that were overdue)
             if due_date_local.date() < today_local:

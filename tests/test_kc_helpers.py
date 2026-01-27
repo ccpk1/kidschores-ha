@@ -5,6 +5,10 @@ Tests for:
 - Authorization helpers (is_user_authorized_for_global_action, is_user_authorized_for_kid)
 - Progress calculation helpers
 - Datetime boundary handling in dt_add_interval
+
+NOTE: Some functions have been migrated to helpers/ modules:
+- entity_helpers: get_integration_entities, parse_entity_reference, build_orphan_detection_regex
+- auth_helpers: is_user_authorized_for_global_action, is_user_authorized_for_kid
 """
 
 from datetime import UTC, datetime
@@ -15,6 +19,15 @@ from homeassistant.exceptions import HomeAssistantError
 import pytest
 
 from custom_components.kidschores import const, kc_helpers as kh
+from custom_components.kidschores.helpers.auth_helpers import (
+    is_user_authorized_for_global_action,
+)
+from custom_components.kidschores.helpers.entity_helpers import (
+    build_orphan_detection_regex,
+    get_integration_entities,
+    parse_entity_reference,
+)
+from custom_components.kidschores.utils.dt_utils import dt_add_interval
 from tests.helpers.setup import SetupResult, setup_from_yaml
 
 
@@ -85,7 +98,7 @@ class TestEntityRegistryUtilities:
         """Should retrieve all integration entities when no platform filter."""
         entry = scenario_minimal.config_entry
 
-        entities = kh.get_integration_entities(hass, entry.entry_id)
+        entities = get_integration_entities(hass, entry.entry_id)
 
         # Should have sensors, buttons, etc. for minimal scenario
         assert len(entities) > 0
@@ -98,8 +111,8 @@ class TestEntityRegistryUtilities:
         """Should filter entities by platform when specified."""
         entry = scenario_minimal.config_entry
 
-        sensors = kh.get_integration_entities(hass, entry.entry_id, "sensor")
-        buttons = kh.get_integration_entities(hass, entry.entry_id, "button")
+        sensors = get_integration_entities(hass, entry.entry_id, "sensor")
+        buttons = get_integration_entities(hass, entry.entry_id, "button")
 
         # Should have both sensors and buttons
         assert len(sensors) > 0
@@ -115,7 +128,7 @@ class TestEntityRegistryUtilities:
         unique_id = "entry_123_kid_456_chore_789"
         prefix = "entry_123_"
 
-        result = kh.parse_entity_reference(unique_id, prefix)
+        result = parse_entity_reference(unique_id, prefix)
 
         assert result == ("kid", "456", "chore", "789")
 
@@ -126,7 +139,7 @@ class TestEntityRegistryUtilities:
         unique_id = "entry_999_kid_456"
         prefix = "entry_123_"
 
-        result = kh.parse_entity_reference(unique_id, prefix)
+        result = parse_entity_reference(unique_id, prefix)
 
         assert result is None
 
@@ -137,7 +150,7 @@ class TestEntityRegistryUtilities:
         unique_id = "entry_123_"
         prefix = "entry_123_"
 
-        result = kh.parse_entity_reference(unique_id, prefix)
+        result = parse_entity_reference(unique_id, prefix)
 
         assert result is None
 
@@ -146,32 +159,32 @@ class TestEntityRegistryUtilities:
     ) -> None:
         """Should match entities belonging to valid IDs."""
         valid_ids = ["kid_1", "kid_2", "kid_3"]
-        pattern = kh.build_orphan_detection_regex(valid_ids)
+        pattern = build_orphan_detection_regex(valid_ids)
 
-        # Should match
-        assert pattern.match("kc_kid_1_chore_123") is not None
-        assert pattern.match("kc_kid_2_reward_456") is not None
-        assert pattern.match("kc_kid_3_points") is not None
+        # Should match using search() - pattern matches valid IDs anywhere in string
+        assert pattern.search("kc_kid_1_chore_123") is not None
+        assert pattern.search("kc_kid_2_reward_456") is not None
+        assert pattern.search("entry_kid_3_points") is not None
 
     async def test_build_orphan_detection_regex_rejects_invalid(
         self, hass: HomeAssistant, scenario_minimal: SetupResult
     ) -> None:
         """Should not match entities from deleted IDs."""
         valid_ids = ["kid_1", "kid_2"]
-        pattern = kh.build_orphan_detection_regex(valid_ids)
+        pattern = build_orphan_detection_regex(valid_ids)
 
         # kid_3 not in valid list - should not match
-        assert pattern.match("kc_kid_3_chore_999") is None
+        assert pattern.search("kc_kid_3_chore_999") is None
 
     async def test_build_orphan_detection_regex_empty_list(
         self, hass: HomeAssistant, scenario_minimal: SetupResult
     ) -> None:
         """Should return pattern that never matches when no valid IDs."""
-        pattern = kh.build_orphan_detection_regex([])
+        pattern = build_orphan_detection_regex([])
 
         # Should not match anything
-        assert pattern.match("kc_kid_1_chore_123") is None
-        assert pattern.match("kc_anything") is None
+        assert pattern.search("kc_kid_1_chore_123") is None
+        assert pattern.search("kc_anything") is None
 
     async def test_build_orphan_detection_regex_performance(
         self, hass: HomeAssistant, scenario_minimal: SetupResult
@@ -179,13 +192,13 @@ class TestEntityRegistryUtilities:
         """Should handle large ID lists efficiently (performance test)."""
         # Simulate 100 kids (large installation)
         valid_ids = [f"kid_{i}" for i in range(100)]
-        pattern = kh.build_orphan_detection_regex(valid_ids)
+        pattern = build_orphan_detection_regex(valid_ids)
 
-        # Should still match efficiently
-        assert pattern.match("kc_kid_0_chore_123") is not None
-        assert pattern.match("kc_kid_50_reward_456") is not None
-        assert pattern.match("kc_kid_99_points") is not None
-        assert pattern.match("kc_kid_100_chore_789") is None  # Not in valid list
+        # Should still match efficiently using search()
+        assert pattern.search("kc_kid_0_chore_123") is not None
+        assert pattern.search("kc_kid_50_reward_456") is not None
+        assert pattern.search("entry_kid_99_points") is not None
+        assert pattern.search("kc_kid_100_chore_789") is None  # Not in valid list
 
 
 class TestAuthorizationHelpers:
@@ -200,7 +213,7 @@ class TestAuthorizationHelpers:
         """Admin user should be authorized for global actions."""
         admin_user = mock_hass_users["admin"]
 
-        is_authorized = await kh.is_user_authorized_for_global_action(
+        is_authorized = await is_user_authorized_for_global_action(
             hass, admin_user.id, "approve_chores"
         )
 
@@ -215,7 +228,7 @@ class TestAuthorizationHelpers:
         """Registered parent user should be authorized for global actions."""
         parent_user = mock_hass_users["parent1"]
 
-        is_authorized = await kh.is_user_authorized_for_global_action(
+        is_authorized = await is_user_authorized_for_global_action(
             hass, parent_user.id, "approve_chores"
         )
 
@@ -232,7 +245,7 @@ class TestDatetimeBoundaryHandling:
         """Should handle month-end boundary correctly."""
         jan_31 = datetime(2025, 1, 31, 12, 0, 0, tzinfo=UTC)
 
-        result = kh.dt_add_interval(jan_31, const.TIME_UNIT_MONTHS, 1)
+        result = dt_add_interval(jan_31, const.TIME_UNIT_MONTHS, 1)
 
         # Adding 1 month from Jan 31 should give Feb 28 (or 29 in leap year)
         assert result is not None
@@ -245,7 +258,7 @@ class TestDatetimeBoundaryHandling:
         """Should handle year boundary correctly."""
         dec_31 = datetime(2024, 12, 31, 23, 59, 59, tzinfo=UTC)
 
-        result = kh.dt_add_interval(dec_31, const.TIME_UNIT_YEARS, 1)
+        result = dt_add_interval(dec_31, const.TIME_UNIT_YEARS, 1)
 
         assert result is not None
         assert isinstance(result, datetime)

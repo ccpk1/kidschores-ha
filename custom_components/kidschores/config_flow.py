@@ -12,8 +12,9 @@ from homeassistant.core import callback
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
-from . import backup_helpers as bh, const, data_builders as db, flow_helpers as fh
+from . import const, data_builders as db
 from .data_builders import EntityValidationError
+from .helpers import backup_helpers as bh, flow_helpers as fh
 from .options_flow import KidsChoresOptionsFlowHandler
 
 # Pylint disable for valid config flow architectural patterns:

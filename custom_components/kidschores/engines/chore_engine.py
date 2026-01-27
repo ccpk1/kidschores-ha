@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from custom_components.kidschores import const
+from custom_components.kidschores.utils.dt_utils import dt_parse_duration, dt_to_utc
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -594,18 +595,17 @@ class ChoreEngine:
         Returns:
             True if the chore is in the due window, False otherwise.
         """
-        from custom_components.kidschores import kc_helpers as kh
 
         if not due_date_iso:
             return False
 
         # Parse due window offset
-        due_window_td = kh.dt_parse_duration(due_window_offset_str)
+        due_window_td = dt_parse_duration(due_window_offset_str)
         if not due_window_td or due_window_td.total_seconds() <= 0:
             return False
 
         # Parse due date
-        due_date_dt = kh.dt_to_utc(due_date_iso)
+        due_date_dt = dt_to_utc(due_date_iso)
         if not due_date_dt:
             return False
 
@@ -633,18 +633,17 @@ class ChoreEngine:
         Returns:
             datetime when due window starts, or None if not applicable.
         """
-        from custom_components.kidschores import kc_helpers as kh
 
         if not due_date_iso:
             return None
 
         # Parse due window offset
-        due_window_td = kh.dt_parse_duration(due_window_offset_str)
+        due_window_td = dt_parse_duration(due_window_offset_str)
         if not due_window_td or due_window_td.total_seconds() <= 0:
             return None
 
         # Parse due date
-        due_date_dt = kh.dt_to_utc(due_date_iso)
+        due_date_dt = dt_to_utc(due_date_iso)
         if not due_date_dt:
             return None
 
@@ -669,7 +668,6 @@ class ChoreEngine:
         Returns:
             True if approved in current period, False otherwise.
         """
-        from custom_components.kidschores import kc_helpers as kh
 
         last_approved = kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_APPROVED)
         if not last_approved:
@@ -680,8 +678,8 @@ class ChoreEngine:
             # Since last_approved exists (checked above), the approval is still valid.
             return True
 
-        approved_dt = kh.dt_to_utc(last_approved)
-        period_start_dt = kh.dt_to_utc(period_start_iso)
+        approved_dt = dt_to_utc(last_approved)
+        period_start_dt = dt_to_utc(period_start_iso)
 
         if approved_dt is None or period_start_dt is None:
             return False
@@ -817,8 +815,9 @@ class ChoreEngine:
             New streak value: 1 if first approval or streak broken,
                              current_streak + 1 if on-time
         """
-        from custom_components.kidschores import kc_helpers as kh
-        from custom_components.kidschores.engines.schedule import RecurrenceEngine
+        from custom_components.kidschores.engines.schedule_engine import (
+            RecurrenceEngine,
+        )
 
         # First approval ever = streak of 1
         if not previous_last_approved_iso:
@@ -832,8 +831,8 @@ class ChoreEngine:
         # No schedule (manual/one-time chore) = simple daily logic
         if frequency == const.FREQUENCY_NONE:
             # Check if previous approval was yesterday (simple streak)
-            prev_dt = kh.dt_to_utc(previous_last_approved_iso)
-            now_dt = kh.dt_to_utc(now_iso)
+            prev_dt = dt_to_utc(previous_last_approved_iso)
+            now_dt = dt_to_utc(now_iso)
             if prev_dt and now_dt:
                 days_diff = (now_dt.date() - prev_dt.date()).days
                 if days_diff <= 1:
@@ -873,8 +872,8 @@ class ChoreEngine:
             engine = RecurrenceEngine(schedule_config)
 
             # Parse timestamps to datetime for engine
-            prev_dt = kh.dt_to_utc(previous_last_approved_iso)
-            now_dt = kh.dt_to_utc(now_iso)
+            prev_dt = dt_to_utc(previous_last_approved_iso)
+            now_dt = dt_to_utc(now_iso)
 
             if not prev_dt or not now_dt:
                 return 1  # Can't calculate, reset streak

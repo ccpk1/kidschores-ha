@@ -15,6 +15,8 @@ See: docs/in-process/CHORE_FREQUENCY_ENHANCEMENTS_IN-PROCESS.md
 
 # pylint: disable=redefined-outer-name
 
+from collections.abc import Generator
+from contextlib import contextmanager
 from datetime import UTC, datetime, time, timedelta
 from typing import Any, cast
 from unittest.mock import AsyncMock, patch
@@ -24,7 +26,11 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 import pytest
 
-from custom_components.kidschores import const, kc_helpers as kh
+from custom_components.kidschores import const
+from custom_components.kidschores.utils.dt_utils import (
+    dt_add_interval,
+    parse_daily_multi_times,
+)
 from tests.helpers import (
     APPROVAL_RESET_AT_DUE_DATE_MULTI,
     APPROVAL_RESET_AT_DUE_DATE_ONCE,
@@ -51,6 +57,45 @@ from tests.helpers import (
     SetupResult,
     setup_from_yaml,
 )
+
+# =============================================================================
+# TEST HELPERS
+# =============================================================================
+
+
+@contextmanager
+def mock_datetime(mock_time: datetime) -> Generator[None]:
+    """Mock datetime.now() in dt_utils module for testing.
+
+    This patches both homeassistant.util.dt.utcnow AND datetime.now in dt_utils,
+    ensuring consistent time mocking for schedule calculations.
+
+    Args:
+        mock_time: The datetime to return from datetime.now() calls.
+
+    Yields:
+        None - context manager for use in with statements.
+    """
+    # Create a mock datetime class that wraps the real one
+    real_datetime = datetime
+
+    class MockDatetime(datetime):
+        """Mock datetime class that returns fixed time for now()."""
+
+        @classmethod
+        def now(cls, tz: Any = None) -> datetime:
+            """Return the mocked time."""
+            return mock_time
+
+    with (
+        patch("homeassistant.util.dt.utcnow", return_value=mock_time),
+        patch(
+            "custom_components.kidschores.utils.dt_utils.datetime",
+            MockDatetime,
+        ),
+    ):
+        yield
+
 
 # =============================================================================
 # FIXTURES
@@ -175,7 +220,7 @@ class TestCustomFromComplete:
             patch.object(
                 coordinator.notification_manager, "notify_kid", new=AsyncMock()
             ),
-            patch("homeassistant.util.dt.utcnow", return_value=jan_12),
+            mock_datetime(jan_12),
         ):
             # Both kids must claim and be approved for shared_all to trigger reschedule
             await coordinator.chore_manager.claim_chore(kid_zoe_id, chore_id, "Zoë")
@@ -220,7 +265,7 @@ class TestCustomFromComplete:
             patch.object(
                 coordinator.notification_manager, "notify_kid", new=AsyncMock()
             ),
-            patch("homeassistant.util.dt.utcnow", return_value=jan_18),
+            mock_datetime(jan_18),
         ):
             # Both kids must complete for shared_all
             await coordinator.chore_manager.claim_chore(kid_zoe_id, chore_id, "Zoë")
@@ -262,7 +307,7 @@ class TestCustomFromComplete:
             patch.object(
                 coordinator.notification_manager, "notify_kid", new=AsyncMock()
             ),
-            patch("homeassistant.util.dt.utcnow", return_value=jan_15),
+            mock_datetime(jan_15),
         ):
             # Both kids must complete for shared_all
             await coordinator.chore_manager.claim_chore(kid_zoe_id, chore_id, "Zoë")
@@ -305,7 +350,7 @@ class TestCustomFromComplete:
         set_chore_due_date(coordinator, chore_id, jan_15)
 
         # Test via helper directly (no completion timestamp passed)
-        result = kh.dt_add_interval(
+        result = dt_add_interval(
             jan_15,
             TIME_UNIT_DAYS,
             10,
@@ -343,7 +388,7 @@ class TestCustomFromComplete:
             patch.object(
                 coordinator.notification_manager, "notify_kid", new=AsyncMock()
             ),
-            patch("homeassistant.util.dt.utcnow", return_value=jan_10),
+            mock_datetime(jan_10),
         ):
             await coordinator.chore_manager.claim_chore(kid1_id, chore_id, "Zoë")
             await coordinator.chore_manager.approve_chore(
@@ -356,7 +401,7 @@ class TestCustomFromComplete:
             patch.object(
                 coordinator.notification_manager, "notify_kid", new=AsyncMock()
             ),
-            patch("homeassistant.util.dt.utcnow", return_value=jan_12),
+            mock_datetime(jan_12),
         ):
             await coordinator.chore_manager.claim_chore(kid2_id, chore_id, "Max!")
             await coordinator.chore_manager.approve_chore(
@@ -505,7 +550,7 @@ class TestDailyMulti:
         current = datetime(2026, 1, 14, 6, 0, 0, tzinfo=UTC)
 
         # Parse and find next slot
-        slots = kh.parse_daily_multi_times(times_str, current, current.tzinfo)
+        slots = parse_daily_multi_times(times_str, current, current.tzinfo)
         assert len(slots) == 2
 
         # Next slot should be 07:00 today
@@ -531,7 +576,7 @@ class TestDailyMulti:
         # Current time: 12:00 (between 07:00 and 18:00)
         current = datetime(2026, 1, 14, 12, 0, 0, tzinfo=UTC)
 
-        slots = kh.parse_daily_multi_times(times_str, current, current.tzinfo)
+        slots = parse_daily_multi_times(times_str, current, current.tzinfo)
 
         # Find next slot after current time
         next_slot = None
@@ -565,7 +610,7 @@ class TestDailyMulti:
 
         # All slots are before current time, so next should be first slot tomorrow
         tomorrow = current.date() + timedelta(days=1)
-        tomorrow_slots = kh.parse_daily_multi_times(
+        tomorrow_slots = parse_daily_multi_times(
             times_str,
             datetime.combine(tomorrow, time(0, 0), tzinfo=UTC),
             current.tzinfo,
@@ -592,7 +637,7 @@ class TestDailyMulti:
         # Current time: 10:00 (between 08:00 and 12:00)
         current = datetime(2026, 1, 14, 10, 0, 0, tzinfo=UTC)
 
-        slots = kh.parse_daily_multi_times(times_str, current, current.tzinfo)
+        slots = parse_daily_multi_times(times_str, current, current.tzinfo)
         assert len(slots) == 3
 
         # Find next slot
@@ -638,7 +683,7 @@ class TestDailyMulti:
             patch.object(
                 coordinator.notification_manager, "notify_kid", new=AsyncMock()
             ),
-            patch("homeassistant.util.dt.utcnow", return_value=jan_14_330pm_utc),
+            mock_datetime(jan_14_330pm_utc),
         ):
             # Kid 1 claims and gets approved
             await coordinator.chore_manager.claim_chore(kid_zoe_id, chore_id, "Zoë")
@@ -687,7 +732,7 @@ class TestDailyMulti:
             patch.object(
                 coordinator.notification_manager, "notify_kid", new=AsyncMock()
             ),
-            patch("homeassistant.util.dt.utcnow", return_value=jan_15_230am_utc),
+            mock_datetime(jan_15_230am_utc),
         ):
             # Kid 1 claims and gets approved
             await coordinator.chore_manager.claim_chore(kid_zoe_id, chore_id, "Zoë")
@@ -746,7 +791,7 @@ class TestDailyMulti:
 
         # Parse times to verify structure
         current = datetime(2026, 1, 14, 0, 0, 0, tzinfo=UTC)
-        slots = kh.parse_daily_multi_times(times_str, current, current.tzinfo)
+        slots = parse_daily_multi_times(times_str, current, current.tzinfo)
         assert len(slots) == 3
 
         # Verify times are 08:00, 12:00, 17:00
@@ -929,7 +974,7 @@ class TestDailyMulti:
             patch.object(
                 coordinator.notification_manager, "notify_kid", new=AsyncMock()
             ),
-            patch("homeassistant.util.dt.utcnow", return_value=jan_14_5pm_utc),
+            mock_datetime(jan_14_5pm_utc),
         ):
             # Kid 1 claims and gets approved
             await coordinator.chore_manager.claim_chore(kid_zoe_id, chore_id, "Zoë")
@@ -957,7 +1002,7 @@ class TestDailyMulti:
         """F2-15: Empty times string returns None."""
         current = datetime(2026, 1, 14, 12, 0, 0, tzinfo=UTC)
 
-        result = kh.parse_daily_multi_times("", current, current.tzinfo)
+        result = parse_daily_multi_times("", current, current.tzinfo)
 
         # Should return empty list for empty input
         assert result == []
@@ -971,7 +1016,7 @@ class TestDailyMulti:
         current = datetime(2026, 1, 14, 12, 0, 0, tzinfo=UTC)
 
         # "8am" is invalid, "17:00" is valid
-        result = kh.parse_daily_multi_times("8am|17:00", current, current.tzinfo)
+        result = parse_daily_multi_times("8am|17:00", current, current.tzinfo)
 
         # Should only return valid entries
         assert len(result) == 1
@@ -987,7 +1032,7 @@ class TestDailyMulti:
         current = datetime(2026, 1, 14, 12, 0, 0, tzinfo=UTC)
 
         times_str = "06:00|08:00|10:00|12:00|14:00|16:00"
-        result = kh.parse_daily_multi_times(times_str, current, current.tzinfo)
+        result = parse_daily_multi_times(times_str, current, current.tzinfo)
 
         assert len(result) == 6
         hours = [slot.hour for slot in result]
@@ -1003,7 +1048,7 @@ class TestDailyMulti:
         eastern = ZoneInfo("America/New_York")
         current_eastern = datetime(2026, 1, 14, 12, 0, 0, tzinfo=eastern)
 
-        result = kh.parse_daily_multi_times("08:00|17:00", current_eastern, eastern)
+        result = parse_daily_multi_times("08:00|17:00", current_eastern, eastern)
 
         # Results should have timezone info
         assert len(result) == 2
@@ -1041,7 +1086,7 @@ class TestCustomHours:
 
         # Test the calculation directly
         jan_14_6am = datetime(2026, 1, 14, 6, 0, 0, tzinfo=UTC)
-        result = kh.dt_add_interval(jan_14_6am, TIME_UNIT_HOURS, 4)
+        result = dt_add_interval(jan_14_6am, TIME_UNIT_HOURS, 4)
 
         assert result is not None
         result_dt = cast("datetime", result)
@@ -1067,7 +1112,7 @@ class TestCustomHours:
 
         # Test: 22:00 + 8 hours = 06:00 next day
         jan_14_10pm = datetime(2026, 1, 14, 22, 0, 0, tzinfo=UTC)
-        result = kh.dt_add_interval(jan_14_10pm, TIME_UNIT_HOURS, 8)
+        result = dt_add_interval(jan_14_10pm, TIME_UNIT_HOURS, 8)
 
         assert result is not None
         result_dt = cast("datetime", result)
@@ -1081,7 +1126,7 @@ class TestCustomHours:
     ) -> None:
         """F3-03: 36 hour interval works correctly."""
         jan_1_noon = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)
-        result = kh.dt_add_interval(jan_1_noon, TIME_UNIT_HOURS, 36)
+        result = dt_add_interval(jan_1_noon, TIME_UNIT_HOURS, 36)
 
         # Jan 1 noon + 36 hours = Jan 3 midnight
         assert result is not None
@@ -1095,7 +1140,7 @@ class TestCustomHours:
     ) -> None:
         """F3-04: 1 hour minimum interval works."""
         jan_14_10am = datetime(2026, 1, 14, 10, 0, 0, tzinfo=UTC)
-        result = kh.dt_add_interval(jan_14_10am, TIME_UNIT_HOURS, 1)
+        result = dt_add_interval(jan_14_10am, TIME_UNIT_HOURS, 1)
 
         assert result is not None
         result_dt = cast("datetime", result)
@@ -1151,7 +1196,7 @@ class TestCustomHours:
 
         # Test using dt_add_interval directly
         now = datetime(2026, 1, 14, 10, 0, 0, tzinfo=UTC)
-        result = kh.dt_add_interval(now, TIME_UNIT_HOURS, 6)
+        result = dt_add_interval(now, TIME_UNIT_HOURS, 6)
 
         assert result is not None
         result_dt = cast("datetime", result)
@@ -1196,7 +1241,7 @@ class TestCustomHours:
     ) -> None:
         """F3-08: Regression - days interval still works correctly."""
         jan_14 = datetime(2026, 1, 14, 10, 0, 0, tzinfo=UTC)
-        result = kh.dt_add_interval(jan_14, TIME_UNIT_DAYS, 5)
+        result = dt_add_interval(jan_14, TIME_UNIT_DAYS, 5)
 
         assert result is not None
         expected = datetime(2026, 1, 19, 10, 0, 0, tzinfo=UTC)
@@ -1209,7 +1254,7 @@ class TestCustomHours:
     ) -> None:
         """F3-09: Regression - weeks interval still works correctly."""
         jan_14 = datetime(2026, 1, 14, 10, 0, 0, tzinfo=UTC)
-        result = kh.dt_add_interval(jan_14, TIME_UNIT_WEEKS, 2)
+        result = dt_add_interval(jan_14, TIME_UNIT_WEEKS, 2)
 
         assert result is not None
         expected = datetime(2026, 1, 28, 10, 0, 0, tzinfo=UTC)
@@ -1222,7 +1267,7 @@ class TestCustomHours:
     ) -> None:
         """F3-10: Regression - months interval still works correctly."""
         jan_14 = datetime(2026, 1, 14, 10, 0, 0, tzinfo=UTC)
-        result = kh.dt_add_interval(jan_14, TIME_UNIT_MONTHS, 1)
+        result = dt_add_interval(jan_14, TIME_UNIT_MONTHS, 1)
 
         assert result is not None
         result_dt = cast("datetime", result)

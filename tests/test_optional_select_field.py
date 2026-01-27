@@ -8,7 +8,7 @@ import pytest
 import voluptuous_serialize
 
 from custom_components.kidschores import const
-from custom_components.kidschores.flow_helpers import build_parent_schema
+from custom_components.kidschores.helpers.flow_helpers import build_parent_schema
 
 
 class TestOptionalSelectFieldValidation:

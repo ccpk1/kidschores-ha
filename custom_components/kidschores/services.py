@@ -14,7 +14,14 @@ from homeassistant.helpers import config_validation as cv, entity_registry as er
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
-from . import backup_helpers as bh, const, flow_helpers, kc_helpers as kh
+from . import const, kc_helpers as kh
+from .helpers import backup_helpers as bh, flow_helpers
+from .helpers.auth_helpers import (
+    is_user_authorized_for_global_action,
+    is_user_authorized_for_kid,
+)
+from .helpers.entity_helpers import get_first_kidschores_entry
+from .utils.dt_utils import dt_parse
 
 if TYPE_CHECKING:
     from .coordinator import KidsChoresDataCoordinator
@@ -430,7 +437,7 @@ def async_setup_services(hass: HomeAssistant):
 
     async def handle_manage_shadow_link(call: ServiceCall):
         """Handle linking or unlinking a shadow kid."""
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
                 "Manage Shadow Link: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
@@ -583,7 +590,7 @@ def async_setup_services(hass: HomeAssistant):
         from . import data_builders as db
         from .data_builders import EntityValidationError
 
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
                 "Create Chore: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
@@ -707,7 +714,7 @@ def async_setup_services(hass: HomeAssistant):
         from . import data_builders as db
         from .data_builders import EntityValidationError
 
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
             raise HomeAssistantError(
                 translation_domain=const.DOMAIN,
@@ -875,7 +882,7 @@ def async_setup_services(hass: HomeAssistant):
             HomeAssistantError: If chore not found or neither
                 chore_id nor name provided
         """
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
             raise HomeAssistantError(
                 translation_domain=const.DOMAIN,
@@ -922,7 +929,7 @@ def async_setup_services(hass: HomeAssistant):
 
     async def handle_claim_chore(call: ServiceCall):
         """Handle claiming a chore."""
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
                 "Claim Chore: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
@@ -947,7 +954,7 @@ def async_setup_services(hass: HomeAssistant):
             raise
 
         # Check if user is authorized
-        if user_id and not await kh.is_user_authorized_for_kid(hass, user_id, kid_id):
+        if user_id and not await is_user_authorized_for_kid(hass, user_id, kid_id):
             const.LOGGER.warning(
                 "Claim Chore: %s", const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION
             )
@@ -979,7 +986,7 @@ def async_setup_services(hass: HomeAssistant):
 
     async def handle_approve_chore(call: ServiceCall):
         """Handle approving a claimed chore."""
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
 
         if not entry_id:
             const.LOGGER.warning(
@@ -1007,7 +1014,7 @@ def async_setup_services(hass: HomeAssistant):
             raise
 
         # Check if user is authorized
-        if user_id and not await kh.is_user_authorized_for_global_action(
+        if user_id and not await is_user_authorized_for_global_action(
             hass, user_id, const.SERVICE_APPROVE_CHORE
         ):
             const.LOGGER.warning(
@@ -1047,7 +1054,7 @@ def async_setup_services(hass: HomeAssistant):
 
     async def handle_disapprove_chore(call: ServiceCall):
         """Handle disapproving a chore."""
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
                 "Disapprove Chore: %s",
@@ -1074,7 +1081,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Check if user is authorized
         user_id = call.context.user_id
-        if user_id and not await kh.is_user_authorized_for_global_action(
+        if user_id and not await is_user_authorized_for_global_action(
             hass, user_id, const.SERVICE_DISAPPROVE_CHORE
         ):
             const.LOGGER.warning(
@@ -1115,7 +1122,7 @@ def async_setup_services(hass: HomeAssistant):
         For INDEPENDENT chores, optionally specify kid_id or kid_name.
         For SHARED chores, kid_id is ignored (single due date for all kids).
         """
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
                 "Set Chore Due Date: %s",
@@ -1193,7 +1200,7 @@ def async_setup_services(hass: HomeAssistant):
         if due_date_input:
             try:
                 # Convert the provided date to UTC-aware datetime
-                due_dt_raw = kh.dt_parse(
+                due_dt_raw = dt_parse(
                     due_date_input,
                     return_type=const.HELPER_RETURN_DATETIME_UTC,
                 )
@@ -1252,7 +1259,7 @@ def async_setup_services(hass: HomeAssistant):
         For INDEPENDENT chores, you can optionally specify kid_name or kid_id.
         For SHARED chores, you must not specify a kid.
         """
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
                 "Skip Chore Due Date: %s",
@@ -1372,7 +1379,7 @@ def async_setup_services(hass: HomeAssistant):
         from . import data_builders as db
         from .data_builders import EntityValidationError
 
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
                 "Create Reward: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
@@ -1459,7 +1466,7 @@ def async_setup_services(hass: HomeAssistant):
         from . import data_builders as db
         from .data_builders import EntityValidationError
 
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
             raise HomeAssistantError(
                 translation_domain=const.DOMAIN,
@@ -1574,7 +1581,7 @@ def async_setup_services(hass: HomeAssistant):
             HomeAssistantError: If reward not found or neither
                 reward_id nor reward_name provided
         """
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
             raise HomeAssistantError(
                 translation_domain=const.DOMAIN,
@@ -1621,7 +1628,7 @@ def async_setup_services(hass: HomeAssistant):
 
     async def handle_redeem_reward(call: ServiceCall):
         """Handle redeeming a reward (claiming without deduction)."""
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
                 "Redeem Reward: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
@@ -1647,7 +1654,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Check if user is authorized
         user_id = call.context.user_id
-        if user_id and not await kh.is_user_authorized_for_kid(hass, user_id, kid_id):
+        if user_id and not await is_user_authorized_for_kid(hass, user_id, kid_id):
             const.LOGGER.warning(
                 "Redeem Reward: %s", const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION
             )
@@ -1720,7 +1727,7 @@ def async_setup_services(hass: HomeAssistant):
 
     async def handle_approve_reward(call: ServiceCall):
         """Handle approving a reward claimed by a kid."""
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
                 "Approve Reward: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
@@ -1746,7 +1753,7 @@ def async_setup_services(hass: HomeAssistant):
             raise
 
         # Check if user is authorized
-        if user_id and not await kh.is_user_authorized_for_global_action(
+        if user_id and not await is_user_authorized_for_global_action(
             hass, user_id, const.SERVICE_APPROVE_REWARD
         ):
             const.LOGGER.warning(
@@ -1791,7 +1798,7 @@ def async_setup_services(hass: HomeAssistant):
 
     async def handle_disapprove_reward(call: ServiceCall):
         """Handle disapproving a reward."""
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
                 "Disapprove Reward: %s",
@@ -1818,7 +1825,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Check if user is authorized
         user_id = call.context.user_id
-        if user_id and not await kh.is_user_authorized_for_global_action(
+        if user_id and not await is_user_authorized_for_global_action(
             hass, user_id, const.SERVICE_DISAPPROVE_REWARD
         ):
             const.LOGGER.warning(
@@ -1855,7 +1862,7 @@ def async_setup_services(hass: HomeAssistant):
 
     async def handle_reset_rewards(call: ServiceCall):
         """Handle resetting rewards counts."""
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
                 "Reset Rewards: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
@@ -1885,7 +1892,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Check if user is authorized
         user_id = call.context.user_id
-        if user_id and not await kh.is_user_authorized_for_global_action(
+        if user_id and not await is_user_authorized_for_global_action(
             hass, user_id, const.SERVICE_RESET_REWARDS
         ):
             const.LOGGER.warning(
@@ -1928,7 +1935,7 @@ def async_setup_services(hass: HomeAssistant):
 
     async def handle_apply_penalty(call: ServiceCall):
         """Handle applying a penalty."""
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
                 "Apply Penalty: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
@@ -1954,7 +1961,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Check if user is authorized
         user_id = call.context.user_id
-        if user_id and not await kh.is_user_authorized_for_global_action(
+        if user_id and not await is_user_authorized_for_global_action(
             hass, user_id, const.SERVICE_APPLY_PENALTY
         ):
             const.LOGGER.warning(
@@ -1990,7 +1997,7 @@ def async_setup_services(hass: HomeAssistant):
 
     async def handle_reset_penalties(call: ServiceCall):
         """Handle resetting penalties."""
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
                 "Reset Penalties: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
@@ -2020,7 +2027,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Check if user is authorized
         user_id = call.context.user_id
-        if user_id and not await kh.is_user_authorized_for_global_action(
+        if user_id and not await is_user_authorized_for_global_action(
             hass, user_id, const.SERVICE_RESET_PENALTIES
         ):
             const.LOGGER.warning(
@@ -2064,7 +2071,7 @@ def async_setup_services(hass: HomeAssistant):
 
     async def handle_apply_bonus(call: ServiceCall):
         """Handle applying a bonus."""
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
                 "Apply Bonus: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
@@ -2090,7 +2097,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Check if user is authorized
         user_id = call.context.user_id
-        if user_id and not await kh.is_user_authorized_for_global_action(
+        if user_id and not await is_user_authorized_for_global_action(
             hass, user_id, const.SERVICE_APPLY_BONUS
         ):
             const.LOGGER.warning("Apply Bonus: User not authorized")
@@ -2124,7 +2131,7 @@ def async_setup_services(hass: HomeAssistant):
 
     async def handle_reset_bonuses(call: ServiceCall):
         """Handle resetting bonuses."""
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
                 "Reset Bonuses: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
@@ -2154,7 +2161,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Check if user is authorized
         user_id = call.context.user_id
-        if user_id and not await kh.is_user_authorized_for_global_action(
+        if user_id and not await is_user_authorized_for_global_action(
             hass, user_id, const.SERVICE_RESET_BONUSES
         ):
             const.LOGGER.warning(
@@ -2197,7 +2204,7 @@ def async_setup_services(hass: HomeAssistant):
 
     async def handle_remove_awarded_badges(call: ServiceCall):
         """Handle removing awarded badges."""
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
                 "Remove Awarded Badges: %s",
@@ -2212,7 +2219,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Check if user is authorized
         user_id = call.context.user_id
-        if user_id and not await kh.is_user_authorized_for_global_action(
+        if user_id and not await is_user_authorized_for_global_action(
             hass, user_id, const.SERVICE_REMOVE_AWARDED_BADGES
         ):
             const.LOGGER.warning("Remove Awarded Badges: User not authorized.")
@@ -2251,7 +2258,7 @@ def async_setup_services(hass: HomeAssistant):
 
     async def handle_reset_all_data(_call: ServiceCall):
         """Handle manually resetting ALL data in KidsChores (factory reset)."""
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning("Reset All Data: No KidsChores entry found")
             return
@@ -2309,7 +2316,7 @@ def async_setup_services(hass: HomeAssistant):
 
     async def handle_reset_all_chores(_call: ServiceCall):
         """Handle manually resetting all chores to pending, clearing claims/approvals."""
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning("Reset All Chores: No KidsChores entry found")
             return
@@ -2329,7 +2336,7 @@ def async_setup_services(hass: HomeAssistant):
     async def handle_reset_overdue_chores(call: ServiceCall) -> None:
         """Handle resetting overdue chores."""
 
-        entry_id = kh.get_first_kidschores_entry(hass)
+        entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
             const.LOGGER.warning(
                 "Reset Overdue Chores: %s",

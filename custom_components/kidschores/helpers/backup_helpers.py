@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.util import dt as dt_util
 
-from . import const
+from .. import const
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry

@@ -14,6 +14,22 @@
 
 ---
 
+## 🔡 Lexicon Standards (Non-Negotiable)
+
+To prevent confusion between Home Assistant's registry and our internal data:
+
+| Term | Usage | Example |
+|------|-------|---------|
+| **Item** / **Record** | A data entry in our JSON storage | "A Chore Item", "Kid Record" |
+| **Domain Item** | Collective term for all stored data types | Kids, Chores, Badges (as JSON records) |
+| **Internal ID** | The UUID for a record | `kid_id`, `chore_id` |
+| **Entity** | ONLY a Home Assistant object | Sensor, Button, Select |
+| **Entity ID** | The HA string | `sensor.kc_alice_points` |
+
+**Critical Rule**: Never use "Entity" when referring to a Chore, Kid, Badge, etc. These are **Items** in storage, not HA registry objects.
+
+---
+
 ## 🏛️ KidsChores Repository Standards
 
 ### 1. Git & Workflow Standards
@@ -136,7 +152,111 @@ All entity platforms MUST provide both human-readable (`*_EID_*`) and machine-re
 
 ---
 
-### 4. DateTime & Scheduling Standards
+### 4. Data Write Standards (CRUD Ownership)
+
+**Single Write Path**: All modifications to `coordinator._data` MUST happen inside a Manager method. Direct writes are **prohibited**.
+
+#### The CRUD Contract
+
+Every data modification must follow this atomic pattern:
+
+```python
+# Inside a Manager method only (e.g., managers/kid_manager.py)
+async def update_kid_points(self, kid_id: str, points: int) -> None:
+    """Update kid points - atomic operation."""
+    # 1. Update memory
+    self._data[const.DATA_KIDS][kid_id][const.DATA_KID_POINTS] = points
+    
+    # 2. Persist to storage
+    self.coordinator._persist()
+    
+    # 3. Emit signal for listeners
+    async_dispatcher_send(self.hass, SIGNAL_SUFFIX_KID_UPDATED)
+```
+
+#### Forbidden Patterns
+
+**UI/Service Purity**: `options_flow.py` and `services.py` are **strictly forbidden** from:
+- Calling `coordinator._persist()` directly
+- Writing to `coordinator._data` directly
+- Setting `updated_at` timestamps manually
+
+**Correct Pattern**: Always delegate to Manager methods:
+
+```python
+# services.py - CORRECT
+async def handle_claim_chore(call: ServiceCall) -> None:
+    """Service handler delegates to manager."""
+    chore_id = call.data[SERVICE_FIELD_CHORE_ID]
+    await coordinator.chore_manager.claim_chore(chore_id)  # ✅ Manager handles everything
+```
+
+#### Automatic Metadata
+
+All data builders (in `data_builders.py`) MUST set `updated_at` timestamps automatically:
+
+```python
+# data_builders.py
+def build_kid_data(...) -> KidData:
+    """Build kid data with automatic timestamp."""
+    return {
+        "name": name.strip(),
+        "points": points,
+        "updated_at": dt_now_iso(),  # ✅ Builder sets timestamp
+        ...
+    }
+```
+
+**Rule**: Managers never manually set `updated_at`—builders handle all metadata.
+
+---
+
+### 5. Utils vs Helpers Boundary
+
+**Rule of Purity**: Files in `utils/` and `engines/` are prohibited from importing `homeassistant.*`. They must be testable in a standard Python environment without HA fixtures.
+
+| Component | Location | HA Imports? | Purpose | Example |
+|-----------|----------|-------------|---------|---------|
+| **Utils** | `utils/` | ❌ Forbidden | Pure Python functions | `format_points()`, `validate_uuid()` |
+| **Engines** | `engines/` | ❌ Forbidden | Pure business logic | `RecurrenceEngine`, `ChoreStateEngine` |
+| **Helpers** | `kc_helpers.py` | ✅ Required | HA-specific tools | `get_kid_by_user_id()`, `construct_device_info()` |
+| **Managers** | `managers/` | ✅ Required | Orchestration | `KidManager`, `ChoreManager` |
+
+**Why This Matters**:
+- **Testability**: Utils/Engines run in pure pytest without mocking HA
+- **Portability**: Logic can be extracted to standalone libraries
+- **Performance**: Pure functions are faster to test and debug
+
+**Example - WRONG**:
+```python
+# utils/point_utils.py
+from homeassistant.core import HomeAssistant  # ❌ FORBIDDEN
+
+def calculate_points(hass: HomeAssistant, chore_id: str) -> int:
+    """Utils cannot depend on HA."""
+    ...
+```
+
+**Example - CORRECT**:
+```python
+# utils/point_utils.py
+def calculate_points(base_points: int, multiplier: float) -> int:  # ✅ Pure function
+    """Calculate points with multiplier."""
+    return round(base_points * multiplier)
+
+# kc_helpers.py
+from homeassistant.core import HomeAssistant
+
+def get_chore_points(hass: HomeAssistant, chore_id: str) -> int:  # ✅ HA-aware helper
+    """Fetch chore from registry and calculate points."""
+    coordinator = hass.data[DOMAIN]
+    chore = coordinator._data[DATA_CHORES][chore_id]
+    return calculate_points(chore["base_points"], chore.get("multiplier", 1.0))
+```
+
+---
+
+### 6. DateTime & Scheduling Standards
 
 #### Always Use dt\_\* Helper Functions
 

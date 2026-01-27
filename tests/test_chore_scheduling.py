@@ -77,7 +77,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 import pytest
 
-from custom_components.kidschores import kc_helpers as kh
+from custom_components.kidschores.utils.dt_utils import dt_to_utc
 from tests.helpers import (
     APPROVAL_RESET_AT_DUE_DATE_MULTI,
     APPROVAL_RESET_AT_DUE_DATE_ONCE,
@@ -247,7 +247,7 @@ def get_chore_due_date(
     due_str = chore_info.get(DATA_CHORE_DUE_DATE)
     if not due_str:
         return None
-    return kh.dt_to_utc(due_str)
+    return dt_to_utc(due_str)
 
 
 def get_kid_due_date(
@@ -275,13 +275,13 @@ def get_kid_due_date(
     if kid_id in per_kid_due_dates:
         due_str = per_kid_due_dates[kid_id]
         if due_str:
-            return kh.dt_to_utc(due_str)
+            return dt_to_utc(due_str)
 
     # Fall back to chore-level due date (SHARED chores or template)
     due_str = chore_info.get(DATA_CHORE_DUE_DATE)
     if not due_str:
         return None
-    return kh.dt_to_utc(due_str)
+    return dt_to_utc(due_str)
 
 
 def get_kid_chore_state(
@@ -2077,7 +2077,7 @@ class TestMultiWeekScheduling:
         assert chore_state is not None, "Chore entity should exist"
         initial_due_str = chore_state.attributes.get("due_date")
         assert initial_due_str is not None, "Should have initial due date"
-        initial_due_date = kh.dt_to_utc(initial_due_str)
+        initial_due_date = dt_to_utc(initial_due_str)
 
         # Claim and approve
         await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Test User")
@@ -2089,7 +2089,7 @@ class TestMultiWeekScheduling:
         assert chore_state is not None, "Chore entity should still exist"
         new_due_str = chore_state.attributes.get("due_date")
         assert new_due_str is not None, "Should have new due date after approval"
-        new_due_date = kh.dt_to_utc(new_due_str)
+        new_due_date = dt_to_utc(new_due_str)
         assert new_due_date is not None, "New due date should parse"
         assert initial_due_date is not None, "Initial due date should parse"
 
@@ -2139,7 +2139,7 @@ class TestMultiWeekScheduling:
         assert chore_state is not None, "Chore entity should exist"
         initial_due_str = chore_state.attributes.get("due_date")
         assert initial_due_str is not None, "Should have initial due date"
-        initial_due_date = kh.dt_to_utc(initial_due_str)
+        initial_due_date = dt_to_utc(initial_due_str)
 
         # Claim and approve
         await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Test User")
@@ -2151,7 +2151,7 @@ class TestMultiWeekScheduling:
         assert chore_state is not None, "Chore entity should still exist"
         new_due_str = chore_state.attributes.get("due_date")
         assert new_due_str is not None, "Should have new due date after approval"
-        new_due_date = kh.dt_to_utc(new_due_str)
+        new_due_date = dt_to_utc(new_due_str)
         assert new_due_date is not None, "New due date should parse"
         assert initial_due_date is not None, "Initial due date should parse"
 

@@ -22,14 +22,15 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import callback
 
-from custom_components.kidschores import const, kc_helpers as kh
+from custom_components.kidschores import const
 from custom_components.kidschores.managers.base_manager import BaseManager
+from custom_components.kidschores.utils.dt_utils import dt_now_local
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
     from custom_components.kidschores.coordinator import KidsChoresDataCoordinator
-    from custom_components.kidschores.engines.statistics import StatisticsEngine
+    from custom_components.kidschores.engines.statistics_engine import StatisticsEngine
 
 
 __all__ = ["StatisticsManager"]
@@ -183,7 +184,7 @@ class StatisticsManager(BaseManager):
             const.DATA_KID_POINT_DATA, {}
         ).setdefault(const.DATA_KID_POINT_DATA_PERIODS, {})
 
-        now_local = kh.dt_now_local()
+        now_local = dt_now_local()
         period_mapping = self._stats_engine.get_period_keys(now_local)
 
         # Record points_total using StatisticsEngine

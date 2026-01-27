@@ -20,7 +20,7 @@ from homeassistant.util import dt as dt_util
 import pytest
 
 from custom_components.kidschores import const
-from custom_components.kidschores.engines.schedule import (
+from custom_components.kidschores.engines.schedule_engine import (
     RecurrenceEngine,
     calculate_next_due_date,
 )

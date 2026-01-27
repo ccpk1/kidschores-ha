@@ -27,8 +27,6 @@ from unittest.mock import AsyncMock, patch
 from homeassistant.core import HomeAssistant
 import pytest
 
-from custom_components.kidschores import kc_helpers as kh
-
 # Additional constants not in tests.helpers yet - import directly
 # fmt: off
 from custom_components.kidschores.const import (
@@ -42,6 +40,7 @@ from custom_components.kidschores.const import (
     FREQUENCY_CUSTOM,
     TIME_UNIT_DAYS,
 )
+from custom_components.kidschores.utils.dt_utils import dt_today_local
 from tests.helpers import (
     DATA_CHORE_DUE_DATE,
     DATA_CHORE_RECURRING_FREQUENCY,
@@ -234,7 +233,7 @@ class TestStreakCalculation:
             await coordinator.chore_manager.approve_chore("Mom", kid_id, chore_id)
 
         # Verify streak is 1 (use local date since coordinator stores by local date)
-        today_iso = kh.dt_today_local().isoformat()
+        today_iso = dt_today_local().isoformat()
         streak = get_daily_streak(coordinator, kid_id, chore_id, today_iso)
         assert streak == 1, "First approval should set streak to 1"
 
@@ -255,7 +254,7 @@ class TestStreakCalculation:
         set_chore_frequency(coordinator, chore_id, FREQUENCY_DAILY)
 
         # Use local dates (coordinator stores streaks by local date)
-        today_local = kh.dt_today_local()
+        today_local = dt_today_local()
         yesterday_local = today_local - timedelta(days=1)
         yesterday_iso = yesterday_local.isoformat()
 
@@ -292,7 +291,7 @@ class TestStreakCalculation:
         set_chore_frequency(coordinator, chore_id, FREQUENCY_DAILY)
 
         # Use local dates (coordinator stores streaks by local date)
-        today_local = kh.dt_today_local()
+        today_local = dt_today_local()
         yesterday_local = today_local - timedelta(days=1)
         yesterday_iso = yesterday_local.isoformat()
 
@@ -328,7 +327,7 @@ class TestStreakCalculation:
         set_chore_frequency(coordinator, chore_id, FREQUENCY_WEEKLY)
 
         # Use local dates (coordinator stores streaks by local date)
-        today_local = kh.dt_today_local()
+        today_local = dt_today_local()
         yesterday_local = today_local - timedelta(days=1)
         yesterday_iso = yesterday_local.isoformat()
 
@@ -364,7 +363,7 @@ class TestStreakCalculation:
         set_chore_frequency(coordinator, chore_id, FREQUENCY_WEEKLY)
 
         # Use local dates (coordinator stores streaks by local date)
-        today_local = kh.dt_today_local()
+        today_local = dt_today_local()
         yesterday_local = today_local - timedelta(days=1)
         yesterday_iso = yesterday_local.isoformat()
 
@@ -400,7 +399,7 @@ class TestStreakCalculation:
         set_chore_frequency(coordinator, chore_id, FREQUENCY_NONE)
 
         # Use local dates (coordinator stores streaks by local date)
-        today_local = kh.dt_today_local()
+        today_local = dt_today_local()
         yesterday_local = today_local - timedelta(days=1)
         yesterday_iso = yesterday_local.isoformat()
 
@@ -444,7 +443,7 @@ class TestStreakCalculation:
         )
 
         # Use local dates (coordinator stores streaks by local date)
-        today_local = kh.dt_today_local()
+        today_local = dt_today_local()
         yesterday_local = today_local - timedelta(days=1)
         yesterday_iso = yesterday_local.isoformat()
 
@@ -486,7 +485,7 @@ class TestStreakCalculation:
         )
 
         # Use local dates (coordinator stores streaks by local date)
-        today_local = kh.dt_today_local()
+        today_local = dt_today_local()
         yesterday_local = today_local - timedelta(days=1)
         yesterday_iso = yesterday_local.isoformat()
 
@@ -522,7 +521,7 @@ class TestStreakCalculation:
         set_chore_frequency(coordinator, chore_id, FREQUENCY_DAILY)
 
         # Use local dates (coordinator stores streaks by local date)
-        today_local = kh.dt_today_local()
+        today_local = dt_today_local()
         yesterday_local = today_local - timedelta(days=1)
         yesterday_iso = yesterday_local.isoformat()
 
@@ -570,7 +569,7 @@ class TestStreakEdgeCases:
         chore_info[DATA_CHORE_DUE_DATE] = None  # Clear base_date source
 
         # Use local dates (coordinator stores streaks by local date)
-        today_local = kh.dt_today_local()
+        today_local = dt_today_local()
         yesterday_local = today_local - timedelta(days=1)
         yesterday_iso = yesterday_local.isoformat()
 
@@ -611,7 +610,7 @@ class TestStreakEdgeCases:
         )
 
         # Use local dates (coordinator stores streaks by local date)
-        today_local = kh.dt_today_local()
+        today_local = dt_today_local()
         yesterday_local = today_local - timedelta(days=1)
         yesterday_iso = yesterday_local.isoformat()
 

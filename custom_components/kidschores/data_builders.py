@@ -51,8 +51,9 @@ import uuid
 
 from homeassistant.util import dt as dt_util
 
-from . import const, kc_helpers as kh
+from . import const
 from .type_defs import BadgeData, ChoreData, KidData, ParentData, RewardData
+from .utils.dt_utils import dt_parse
 
 # ==============================================================================
 # HELPER FUNCTIONS FOR FIELD NORMALIZATION
@@ -1077,7 +1078,7 @@ def validate_chore_data(
     due_dt: datetime.datetime | None = None
     if due_date_raw:
         try:
-            parsed = kh.dt_parse(
+            parsed = dt_parse(
                 due_date_raw,
                 default_tzinfo=const.DEFAULT_TIME_ZONE,
                 return_type=const.HELPER_RETURN_DATETIME_UTC,
@@ -2144,12 +2145,12 @@ def validate_challenge_data(
 
     # === 5. Date parsing and end > start validation ===
     try:
-        start_dt = kh.dt_parse(
+        start_dt = dt_parse(
             start_date_raw,
             default_tzinfo=const.DEFAULT_TIME_ZONE,
             return_type=const.HELPER_RETURN_DATETIME_UTC,
         )
-        end_dt = kh.dt_parse(
+        end_dt = dt_parse(
             end_date_raw,
             default_tzinfo=const.DEFAULT_TIME_ZONE,
             return_type=const.HELPER_RETURN_DATETIME_UTC,

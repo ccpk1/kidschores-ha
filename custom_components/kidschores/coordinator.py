@@ -32,7 +32,12 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from . import const, data_builders as db, kc_helpers as kh
-from .engines.statistics import StatisticsEngine
+from .engines.statistics_engine import StatisticsEngine
+from .helpers.entity_helpers import (
+    get_integration_entities,
+    parse_entity_reference,
+    remove_entities_by_item_id,
+)
 from .managers import (
     ChoreManager,
     EconomyManager,
@@ -55,6 +60,7 @@ from .type_defs import (
     PenaltiesCollection,
     RewardsCollection,
 )
+from .utils.math_utils import parse_points_adjust_values
 
 # Type alias for typed config entry access (modern HA pattern)
 # Must be defined after imports but before class since it references the class
@@ -532,7 +538,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         Returns:
             Count of removed entities.
         """
-        return kh.remove_entities_by_item_id(
+        return remove_entities_by_item_id(
             self.hass,
             self.config_entry.entry_id,
             item_id,
@@ -601,7 +607,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             entities_to_scan = []
             for platform in platforms:
                 entities_to_scan.extend(
-                    kh.get_integration_entities(
+                    get_integration_entities(
                         self.hass, self.config_entry.entry_id, platform
                     )
                 )
@@ -757,7 +763,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         if not raw_values:
             current_deltas = set(const.DEFAULT_POINTS_ADJUST_VALUES)
         elif isinstance(raw_values, str):
-            current_deltas = set(kh.parse_points_adjust_values(raw_values))
+            current_deltas = set(parse_points_adjust_values(raw_values))
         elif isinstance(raw_values, list):
             try:
                 current_deltas = {float(v) for v in raw_values}
@@ -902,7 +908,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 continue
 
             # Extract kid_id from unique_id using helper
-            parts = kh.parse_entity_reference(unique_id, prefix)
+            parts = parse_entity_reference(unique_id, prefix)
             if not parts:
                 continue
             kid_id = parts[0]

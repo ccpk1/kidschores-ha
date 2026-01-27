@@ -22,6 +22,12 @@ from homeassistant.exceptions import HomeAssistantError
 from custom_components.kidschores import const, kc_helpers as kh
 from custom_components.kidschores.engines.gamification_engine import GamificationEngine
 from custom_components.kidschores.managers.base_manager import BaseManager
+from custom_components.kidschores.utils.dt_utils import (
+    dt_add_interval,
+    dt_next_schedule,
+    dt_now_local,
+    dt_today_iso,
+)
 
 if TYPE_CHECKING:
     import asyncio
@@ -284,21 +290,15 @@ class GamificationManager(BaseManager):
         extra_points = achievement_info.get(
             const.DATA_ACHIEVEMENT_REWARD_POINTS, const.DEFAULT_ZERO
         )
-        kid_info_points = self.coordinator.kids_data.get(kid_id)
-        if kid_info_points is not None and extra_points > 0:
-            await self.coordinator.economy_manager.deposit(
-                kid_id=kid_id,
-                amount=extra_points,
-                source=const.POINTS_SOURCE_ACHIEVEMENTS,
-                reference_id=achievement_id,
-            )
 
         # Emit event for NotificationManager to send notifications
+        # EconomyManager listens to this and handles point deposit
         self.emit(
             const.SIGNAL_SUFFIX_ACHIEVEMENT_UNLOCKED,
             kid_id=kid_id,
             achievement_id=achievement_id,
             achievement_name=achievement_info.get(const.DATA_ACHIEVEMENT_NAME, ""),
+            achievement_points=extra_points,
         )
 
         const.LOGGER.debug(
@@ -342,25 +342,19 @@ class GamificationManager(BaseManager):
             const.DATA_CHALLENGE_TARGET_VALUE, 1
         )
 
-        # Award extra reward points from the challenge
+        # Get extra reward points from the challenge
         extra_points = challenge_info.get(
             const.DATA_CHALLENGE_REWARD_POINTS, const.DEFAULT_ZERO
         )
-        kid_info = self.coordinator.kids_data.get(kid_id)
-        if kid_info is not None and extra_points > 0:
-            await self.coordinator.economy_manager.deposit(
-                kid_id=kid_id,
-                amount=extra_points,
-                source=const.POINTS_SOURCE_CHALLENGES,
-                reference_id=challenge_id,
-            )
 
         # Emit event for NotificationManager to send notifications
+        # EconomyManager listens to this and handles point deposit
         self.emit(
             const.SIGNAL_SUFFIX_CHALLENGE_COMPLETED,
             kid_id=kid_id,
             challenge_id=challenge_id,
             challenge_name=challenge_info.get(const.DATA_CHALLENGE_NAME, ""),
+            challenge_points=extra_points,
         )
 
         const.LOGGER.debug(
@@ -579,12 +573,20 @@ class GamificationManager(BaseManager):
             )
             await self.award_badge(kid_id, badge_id)
 
+            # Get badge points for the event payload
+            award_data = badge_data.get(const.DATA_BADGE_AWARDS, {})
+            badge_points = award_data.get(
+                const.DATA_BADGE_AWARDS_AWARD_POINTS, const.DEFAULT_ZERO
+            )
+
             # Emit event for any additional listeners
+            # EconomyManager listens to this and handles point deposit
             self.emit(
                 const.SIGNAL_SUFFIX_BADGE_EARNED,
                 kid_id=kid_id,
                 badge_id=badge_id,
                 badge_name=badge_data.get(const.DATA_BADGE_NAME, "Unknown"),
+                badge_points=badge_points,
                 result=result,
             )
 
@@ -778,7 +780,7 @@ class GamificationManager(BaseManager):
             return None
 
         # Get today's ISO date using helper
-        today_iso = kh.dt_today_iso()
+        today_iso = dt_today_iso()
 
         # Get point stats for total earned (nested in point_stats dict)
         point_stats = kid_data.get(const.DATA_KID_POINT_STATS, {})
@@ -1154,8 +1156,8 @@ class GamificationManager(BaseManager):
             )
             return
 
-        today_local_iso = kh.dt_today_iso()
-        now_local = kh.dt_now_local()
+        today_local_iso = dt_today_iso()
+        now_local = dt_now_local()
 
         badges_earned = kid_info.setdefault(const.DATA_KID_BADGES_EARNED, {})
 
@@ -1833,7 +1835,8 @@ class GamificationManager(BaseManager):
             self.coordinator.penalties_data,
         )
 
-        # 1. Points
+        # 1. Points - handled by EconomyManager via BADGE_EARNED event
+        # (deposit call removed in Phase 7.2 - event-driven awards)
         if any(
             item == const.AWARD_ITEMS_KEY_POINTS
             or item.startswith(const.AWARD_ITEMS_PREFIX_POINTS)
@@ -1841,14 +1844,9 @@ class GamificationManager(BaseManager):
         ):
             if points_awarded > const.DEFAULT_ZERO:
                 const.LOGGER.info(
-                    "INFO: Award Badge - Awarding points: %s for kid '%s'.",
+                    "INFO: Award Badge - Points: %s for kid '%s' (via event).",
                     points_awarded,
                     kid_name,
-                )
-                await self.coordinator.economy_manager.deposit(
-                    kid_id=kid_id,
-                    amount=points_awarded,
-                    source=const.POINTS_SOURCE_BADGES,
                 )
 
         # 2. Multiplier (only for cumulative badges)
@@ -2131,7 +2129,7 @@ class GamificationManager(BaseManager):
                             )
                         else:
                             # Calculate initial end date from today
-                            today_local_iso = kh.dt_today_iso()
+                            today_local_iso = dt_today_iso()
                             is_daily = recurring_frequency == const.FREQUENCY_DAILY
                             is_custom_1_day = (
                                 recurring_frequency == const.FREQUENCY_CUSTOM
@@ -2157,7 +2155,7 @@ class GamificationManager(BaseManager):
                                     const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT
                                 )
                                 if custom_interval and custom_interval_unit:
-                                    new_end_date_iso = kh.dt_add_interval(
+                                    new_end_date_iso = dt_add_interval(
                                         today_local_iso,
                                         interval_unit=custom_interval_unit,
                                         delta=custom_interval,
@@ -2166,7 +2164,7 @@ class GamificationManager(BaseManager):
                                     )
                                 else:
                                     # Default fallback to weekly
-                                    new_end_date_iso = kh.dt_add_interval(
+                                    new_end_date_iso = dt_add_interval(
                                         today_local_iso,
                                         interval_unit=const.TIME_UNIT_WEEKS,
                                         delta=1,
@@ -2175,7 +2173,7 @@ class GamificationManager(BaseManager):
                                     )
                             else:
                                 # Use standard frequency helper
-                                new_end_date_iso = kh.dt_next_schedule(
+                                new_end_date_iso = dt_next_schedule(
                                     today_local_iso,
                                     interval_type=recurring_frequency,
                                     require_future=True,

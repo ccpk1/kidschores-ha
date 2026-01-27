@@ -6,8 +6,9 @@ and flow_helpers.validate_parents_inputs() validates form input.
 
 import pytest
 
-from custom_components.kidschores import const, data_builders as db, flow_helpers as fh
+from custom_components.kidschores import const, data_builders as db
 from custom_components.kidschores.data_builders import EntityValidationError
+from custom_components.kidschores.helpers import flow_helpers as fh
 
 
 def test_build_parent_with_all_values() -> None:

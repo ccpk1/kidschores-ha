@@ -16,8 +16,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from . import backup_helpers as bh, const
+from . import const
 from .coordinator import KidsChoresConfigEntry, KidsChoresDataCoordinator
+from .helpers import backup_helpers as bh
 from .notification_action_handler import async_handle_notification_action
 from .services import async_setup_services, async_unload_services
 from .store import KidsChoresStore

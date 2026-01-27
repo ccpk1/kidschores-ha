@@ -1,7 +1,7 @@
 # KidsChores Integration Architecture
 
 **Integration Version**: 0.5.0+
-**Storage Schema Version**: 42 (Storage-Only Mode with Meta Section)
+**Storage Schema Version**: 43 (Storage-Only Mode with Meta Section)
 **Quality Scale Level**: ⭐ **Platinum** (Meets All Quality Standards)
 **Date**: January 2026
 
@@ -32,6 +32,51 @@ For ongoing reference and to maintain Platinum certification, consult:
 
 ---
 
+## 🔡 Lexicon Standards (Critical)
+
+**To prevent confusion between Home Assistant's registry and KidsChores internal data:**
+
+| Term | Usage | Example |
+|------|-------|---------|
+| **Item** / **Record** | A data entry in `.storage/kidschores_data` | "A Chore Item", "Kid Record" |
+| **Domain Item** | Collective term for all stored data types | Kids, Chores, Badges (as JSON records) |
+| **Internal ID** | UUID identifying a stored record | `kid_id`, `chore_id` (always UUIDs) |
+| **Entity** | ONLY a Home Assistant platform object | Sensor, Button, Select, Calendar |
+| **Entity ID** | The Home Assistant registry string | `sensor.kc_alice_points` |
+| **Entity Data** | State attributes of an HA entity | What appears in `more-info` dialog |
+
+**Critical Rule**: Never use "Entity" when referring to a Chore, Kid, Badge, etc. These are **Items** stored in JSON, not HA registry objects.
+
+**Storage Contains**: Domain Items (Kids, Chores, Badges, etc.) as JSON records with UUIDs.
+
+**HA Registry Contains**: Entities (Sensors, Buttons) that are ephemeral wrappers representing the state of Domain Items to the user.
+
+---
+
+## Layered Architecture
+
+**Component Responsibilities & Constraints**
+
+| Component | Stateful? | Hass Objects? | Side Effects? | Responsibility | File Location |
+|-----------|-----------|---------------|---------------|----------------|---------------|
+| **Engine** | ❌ No | ❌ Forbidden | ❌ Forbidden | Pure logic: FSM transitions, schedule calculations, recurrence math | `engines/` |
+| **Manager** | ✅ Yes | ✅ Yes | ✅ Yes | Orchestration: State changes, firing events, calling `_persist()` | `managers/` |
+| **Util** | ❌ No | ❌ Forbidden | ❌ No | Pure functions: formatting, validation, date parsing | `utils/` |
+| **Helper** | ❌ No | ✅ Yes | ✅ Yes | HA-specific tools: Registry lookups, auth checks, DeviceInfo | `kc_helpers.py` |
+| **Data Builder** | ❌ No | ❌ Forbidden | ❌ No | Sanitization: Strip strings, validate types, set timestamps | `data_builders.py` |
+
+### Architectural Rules
+
+**Rule of Purity**: Files in `utils/`, `engines/`, and `data_builders.py` are **prohibited** from importing `homeassistant.*`. They must be testable in a standard Python environment without HA fixtures.
+
+**Single Write Path**: Only Manager methods may call `coordinator._persist()`. UI flows (`options_flow.py`) and services (`services.py`) must delegate to Manager methods.
+
+**Event-Driven Orchestration**: Managers communicate via the Dispatcher (e.g., `SIGNAL_SUFFIX_KID_UPDATED`). Direct cross-manager calls are forbidden to prevent tight coupling.
+
+**Automatic Metadata**: All data builders must set `updated_at` timestamps. Managers never manually set timestamps.
+
+---
+
 ## Data Architecture
 
 ```
@@ -41,7 +86,7 @@ For ongoing reference and to maintain Platinum certification, consult:
 
 ┌────────────────────────┐        ┌──────────────────────────┐
 │ config_entry.options   │        │ .storage/kidschores_data │
-│ (System Settings Only) │        │ (Entity Data + Runtime)  │
+│ (System Settings Only) │        │ (Domain Items + Runtime) │
 ├────────────────────────┤        ├──────────────────────────┤
 │ • points_label         │        │ • kids                   │
 │ • points_icon          │        │ • parents                │
@@ -177,9 +222,13 @@ async def _update_system_settings_and_reload(self):
 }
 ```
 
+**Storage Contains**: Domain Items (JSON records with UUIDs), NOT Home Assistant Entities.
+
+**Entities** (Sensors, Buttons) are ephemeral platform objects created at runtime to represent these Items in the HA UI. Entity states reflect Item data but are not persisted—only the underlying Items are stored.
+
 ### Coordinator Persistence Pattern
 
-All entity modifications follow this pattern:
+All Domain Item modifications follow this pattern:
 
 ```python
 # 1. Modify data in memory

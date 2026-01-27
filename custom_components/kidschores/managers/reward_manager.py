@@ -27,7 +27,8 @@ import uuid
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
-from custom_components.kidschores import const, kc_helpers as kh
+from custom_components.kidschores import const
+from custom_components.kidschores.utils.dt_utils import dt_now_local
 
 from .base_manager import BaseManager
 from .notification_manager import NotificationManager
@@ -196,7 +197,7 @@ class RewardManager(BaseManager):
             counter_key: Which counter to increment (claimed/approved/disapproved/points)
             amount: Amount to add (default 1)
         """
-        now_local = kh.dt_now_local()
+        now_local = dt_now_local()
 
         # Ensure periods structure exists with all_time bucket
         periods = reward_entry.setdefault(

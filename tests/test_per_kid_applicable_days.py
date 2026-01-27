@@ -22,8 +22,9 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 import pytest
 
-from custom_components.kidschores import const, flow_helpers as fh
+from custom_components.kidschores import const
 from custom_components.kidschores.coordinator import KidsChoresDataCoordinator
+from custom_components.kidschores.helpers import flow_helpers as fh
 from custom_components.kidschores.migration_pre_v50 import PreV50Migrator
 from tests.helpers.setup import SetupResult, setup_from_yaml
 
