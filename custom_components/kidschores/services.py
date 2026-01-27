@@ -645,9 +645,11 @@ def async_setup_services(hass: HomeAssistant):
             coordinator._data[const.DATA_CHORES][internal_id] = dict(chore_dict)
             coordinator._persist()
 
-            # Handle due_date via set_chore_due_date hook (respects SHARED/INDEPENDENT)
+            # Handle due_date via chore_manager (respects SHARED/INDEPENDENT)
             if due_date_input:
-                coordinator.set_chore_due_date(internal_id, due_date_input, kid_id=None)
+                await coordinator.chore_manager.set_due_date(
+                    internal_id, due_date_input, kid_id=None
+                )
                 coordinator._persist()
 
             # Create chore status sensor entities for all assigned kids
@@ -823,9 +825,11 @@ def async_setup_services(hass: HomeAssistant):
             coordinator._data[const.DATA_CHORES][chore_id] = dict(chore_dict)
             coordinator._persist()
 
-            # Handle due_date via set_chore_due_date hook (respects SHARED/INDEPENDENT)
+            # Handle due_date via chore_manager (respects SHARED/INDEPENDENT)
             if due_date_input is not None:
-                coordinator.set_chore_due_date(chore_id, due_date_input, kid_id=None)
+                await coordinator.chore_manager.set_due_date(
+                    chore_id, due_date_input, kid_id=None
+                )
                 coordinator._persist()
 
             coordinator.async_update_listeners()
@@ -953,8 +957,8 @@ def async_setup_services(hass: HomeAssistant):
                 translation_placeholders={"action": const.ERROR_ACTION_CLAIM_CHORES},
             )
 
-        # Process chore claim
-        coordinator.claim_chore(
+        # Process chore claim via ChoreManager
+        await coordinator.chore_manager.claim_chore(
             kid_id=kid_id, chore_id=chore_id, user_name=f"user:{user_id}"
         )
 
@@ -1017,11 +1021,11 @@ def async_setup_services(hass: HomeAssistant):
 
         # Approve chore and assign points
         try:
-            await coordinator.approve_chore(
+            await coordinator.chore_manager.approve_chore(
                 parent_name=parent_name,
                 kid_id=kid_id,
                 chore_id=chore_id,
-                points_awarded=points_awarded,
+                points_override=points_awarded,
             )
             const.LOGGER.info(
                 "Chore '%s' approved for kid '%s' by parent '%s'. Points Awarded: %s",
@@ -1084,8 +1088,8 @@ def async_setup_services(hass: HomeAssistant):
                 },
             )
 
-        # Disapprove the chore
-        coordinator.disapprove_chore(
+        # Disapprove the chore via ChoreManager
+        await coordinator.chore_manager.disapprove_chore(
             parent_name=parent_name,
             kid_id=kid_id,
             chore_id=chore_id,
@@ -1219,7 +1223,7 @@ def async_setup_services(hass: HomeAssistant):
                 raise
 
             # Update the chore’s due_date:
-            coordinator.set_chore_due_date(chore_id, due_dt, kid_id)
+            await coordinator.chore_manager.set_due_date(chore_id, due_dt, kid_id)
             const.LOGGER.info(
                 "Set due date for chore '%s' (ID: %s) to %s",
                 chore_name,
@@ -1228,7 +1232,7 @@ def async_setup_services(hass: HomeAssistant):
             )
         else:
             # Clear the due date by setting it to None
-            coordinator.set_chore_due_date(chore_id, None, kid_id)
+            await coordinator.chore_manager.set_due_date(chore_id, None, kid_id)
             const.LOGGER.info(
                 "Cleared due date for chore '%s' (ID: %s)", chore_name, chore_id
             )
@@ -1329,7 +1333,7 @@ def async_setup_services(hass: HomeAssistant):
                     },
                 )
 
-        coordinator.skip_chore_due_date(chore_id, kid_id)
+        await coordinator.chore_manager.skip_due_date(chore_id, kid_id)
         kid_context = f" for kid '{kid_name or kid_id}'" if kid_id else ""
         const.LOGGER.info(
             "Skipped due date for chore '%s' (ID: %s)%s",
@@ -1694,7 +1698,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Process reward claim without deduction
         try:
-            coordinator.redeem_reward(
+            await coordinator.reward_manager.redeem(
                 parent_name=parent_name, kid_id=kid_id, reward_id=reward_id
             )
             const.LOGGER.info(
@@ -1759,7 +1763,7 @@ def async_setup_services(hass: HomeAssistant):
         cost_override = call.data.get(const.FIELD_COST_OVERRIDE)
 
         try:
-            await coordinator.approve_reward(
+            await coordinator.reward_manager.approve(
                 parent_name=parent_name,
                 kid_id=kid_id,
                 reward_id=reward_id,
@@ -1829,7 +1833,7 @@ def async_setup_services(hass: HomeAssistant):
             )
 
         # Disapprove the reward
-        coordinator.disapprove_reward(
+        await coordinator.reward_manager.disapprove(
             parent_name=parent_name,
             kid_id=kid_id,
             reward_id=reward_id,
@@ -1906,7 +1910,9 @@ def async_setup_services(hass: HomeAssistant):
             )
 
         # Reset rewards
-        coordinator.reset_rewards(kid_id=kid_id, reward_id=reward_id)
+        await coordinator.reward_manager.reset_rewards(
+            kid_id=kid_id, reward_id=reward_id
+        )
         await coordinator.async_request_refresh()
 
     hass.services.async_register(
@@ -1962,7 +1968,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Apply penalty
         try:
-            coordinator.apply_penalty(
+            await coordinator.economy_manager.apply_penalty(
                 parent_name=parent_name, kid_id=kid_id, penalty_id=penalty_id
             )
             const.LOGGER.info(
@@ -2040,7 +2046,9 @@ def async_setup_services(hass: HomeAssistant):
             )
 
         # Reset penalties
-        coordinator.reset_penalties(kid_id=kid_id, penalty_id=penalty_id)
+        await coordinator.economy_manager.reset_penalties(
+            kid_id=kid_id, penalty_id=penalty_id
+        )
         await coordinator.async_request_refresh()
 
     hass.services.async_register(
@@ -2094,7 +2102,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Apply bonus
         try:
-            coordinator.apply_bonus(
+            await coordinator.economy_manager.apply_bonus(
                 parent_name=parent_name, kid_id=kid_id, bonus_id=bonus_id
             )
             const.LOGGER.info(
@@ -2171,7 +2179,9 @@ def async_setup_services(hass: HomeAssistant):
             )
 
         # Reset bonuses
-        coordinator.reset_bonuses(kid_id=kid_id, bonus_id=bonus_id)
+        await coordinator.economy_manager.reset_bonuses(
+            kid_id=kid_id, bonus_id=bonus_id
+        )
         await coordinator.async_request_refresh()
 
     hass.services.async_register(
@@ -2222,8 +2232,10 @@ def async_setup_services(hass: HomeAssistant):
         else:
             const.LOGGER.info("Removing badge '%s' for kid '%s'.", badge_name, kid_name)
 
-        # Remove awarded badges
-        coordinator.remove_awarded_badges(kid_name=kid_name, badge_name=badge_name)
+        # Remove awarded badges via GamificationManager
+        coordinator.gamification_manager.remove_awarded_badges(
+            kid_name=kid_name, badge_name=badge_name
+        )
         await coordinator.async_request_refresh()
 
     hass.services.async_register(
@@ -2304,8 +2316,8 @@ def async_setup_services(hass: HomeAssistant):
 
         coordinator = _get_coordinator_by_entry_id(hass, entry_id)
 
-        # Delegate to coordinator method
-        coordinator.reset_all_chores()
+        # Delegate to ChoreManager
+        await coordinator.chore_manager.reset_all_chores()
 
     hass.services.async_register(
         const.DOMAIN,
@@ -2352,7 +2364,9 @@ def async_setup_services(hass: HomeAssistant):
             const.LOGGER.warning("Reset Overdue Chores: %s", err)
             raise
 
-        coordinator.reset_overdue_chores(chore_id=chore_id, kid_id=kid_id)
+        await coordinator.chore_manager.reset_overdue_chores(
+            chore_id=chore_id, kid_id=kid_id
+        )
 
         const.LOGGER.info(
             "Reset overdue chores (chore_id=%s, kid_id=%s)", chore_id, kid_id

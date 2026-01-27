@@ -78,7 +78,7 @@ async def setup_chore_services_scenario(
 
 def get_kid_state_for_chore(coordinator: Any, kid_id: str, chore_id: str) -> str:
     """Get the current chore state for a specific kid."""
-    kid_chore_data = coordinator._get_chore_data_for_kid(kid_id, chore_id)
+    kid_chore_data = coordinator.chore_manager.get_chore_data_for_kid(kid_id, chore_id)
     return kid_chore_data.get(DATA_KID_CHORE_DATA_STATE, CHORE_STATE_PENDING)
 
 
@@ -183,8 +183,10 @@ class TestClaimChoreService:
         chore_id = setup_chore_services_scenario.chore_ids["Independent Daily Task"]
 
         # Claim the chore
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
 
         # Verify state
         state = get_kid_state_for_chore(coordinator, kid_id, chore_id)
@@ -203,8 +205,10 @@ class TestClaimChoreService:
         chore_id = setup_chore_services_scenario.chore_ids["Shared All Daily Task"]
 
         # Zoë claims
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
 
         # Zoë is claimed, Max is still pending
         assert (
@@ -229,8 +233,10 @@ class TestClaimChoreService:
         chore_id = setup_chore_services_scenario.chore_ids["Shared First Daily Task"]
 
         # Zoë claims first
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
 
         # Zoë is claimed
         assert (
@@ -266,9 +272,11 @@ class TestApproveDisapproveChoreService:
         initial_points = get_kid_points(coordinator, kid_id)
 
         # Claim and approve
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Mom", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", kid_id, chore_id)
 
         # Verify approved and points awarded
         assert (
@@ -289,9 +297,11 @@ class TestApproveDisapproveChoreService:
         chore_id = setup_chore_services_scenario.chore_ids["Independent Daily Task"]
 
         # Claim and disapprove
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            coordinator.disapprove_chore("Mom", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.disapprove_chore("Mom", kid_id, chore_id)
 
         # Verify back to pending
         assert (
@@ -312,9 +322,11 @@ class TestApproveDisapproveChoreService:
         chore_id = setup_chore_services_scenario.chore_ids["Shared First Daily Task"]
 
         # Zoë claims and gets approved
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Mom", zoe_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", zoe_id, chore_id)
 
         # Zoë is approved, Max is completed_by_other
         assert (
@@ -355,7 +367,7 @@ class TestSetChoreDueDateService:
         new_due_date = datetime.now(UTC) + timedelta(days=3)
         new_due_date = new_due_date.replace(hour=18, minute=0, second=0, microsecond=0)
 
-        coordinator.set_chore_due_date(chore_id, new_due_date)
+        await coordinator.chore_manager.set_due_date(chore_id, new_due_date)
 
         # Verify per-kid due dates were updated
         zoe_due = get_kid_due_date_for_chore(coordinator, chore_id, zoe_id)
@@ -384,7 +396,9 @@ class TestSetChoreDueDateService:
         new_due_date = datetime.now(UTC) + timedelta(days=5)
         new_due_date = new_due_date.replace(hour=18, minute=0, second=0, microsecond=0)
 
-        coordinator.set_chore_due_date(chore_id, new_due_date, kid_id=zoe_id)
+        await coordinator.chore_manager.set_due_date(
+            chore_id, new_due_date, kid_id=zoe_id
+        )
 
         # Zoë updated, Max unchanged
         zoe_due = get_kid_due_date_for_chore(coordinator, chore_id, zoe_id)
@@ -414,7 +428,7 @@ class TestSetChoreDueDateService:
         new_due_date = datetime.now(UTC) + timedelta(days=2)
         new_due_date = new_due_date.replace(hour=19, minute=0, second=0, microsecond=0)
 
-        coordinator.set_chore_due_date(chore_id, new_due_date)
+        await coordinator.chore_manager.set_due_date(chore_id, new_due_date)
 
         # Verify chore-level due date was updated
         chore_due = get_chore_due_date(coordinator, chore_id)
@@ -455,7 +469,7 @@ class TestSetChoreDueDateService:
         new_due_date = datetime.now(UTC) + timedelta(days=4)
         new_due_date = new_due_date.replace(hour=20, minute=0, second=0, microsecond=0)
 
-        coordinator.set_chore_due_date(chore_id, new_due_date)
+        await coordinator.chore_manager.set_due_date(chore_id, new_due_date)
 
         # Verify chore-level due date was updated
         chore_due = get_chore_due_date(coordinator, chore_id)
@@ -490,7 +504,9 @@ class TestSetChoreDueDateService:
 
         # For now, verify the behavior (which may need fixing)
         # The coordinator should handle shared_first like shared for due dates
-        coordinator.set_chore_due_date(chore_id, new_due_date, kid_id=zoe_id)
+        await coordinator.chore_manager.set_due_date(
+            chore_id, new_due_date, kid_id=zoe_id
+        )
 
         # Check if chore-level due date was updated (correct behavior)
         # or if per-kid due date was created (bug behavior)
@@ -519,7 +535,7 @@ class TestSetChoreDueDateService:
         assert initial_due is not None
 
         # Clear the due date
-        coordinator.set_chore_due_date(chore_id, None)
+        await coordinator.chore_manager.set_due_date(chore_id, None)
 
         # Verify cleared
         chore_due = get_chore_due_date(coordinator, chore_id)
@@ -553,7 +569,7 @@ class TestSkipChoreDueDateService:
         max_original = get_kid_due_date_for_chore(coordinator, chore_id, max_id)
 
         # Skip the due date
-        coordinator.skip_chore_due_date(chore_id)
+        await coordinator.chore_manager.skip_due_date(chore_id)
 
         # Both should be rescheduled (different from original)
         zoe_new = get_kid_due_date_for_chore(coordinator, chore_id, zoe_id)
@@ -579,7 +595,7 @@ class TestSkipChoreDueDateService:
         max_original = get_kid_due_date_for_chore(coordinator, chore_id, max_id)
 
         # Skip for Zoë only
-        coordinator.skip_chore_due_date(chore_id, kid_id=zoe_id)
+        await coordinator.chore_manager.skip_due_date(chore_id, kid_id=zoe_id)
 
         # Zoë rescheduled, Max unchanged
         zoe_new = get_kid_due_date_for_chore(coordinator, chore_id, zoe_id)
@@ -603,7 +619,7 @@ class TestSkipChoreDueDateService:
         assert original_due is not None
 
         # Skip the due date
-        coordinator.skip_chore_due_date(chore_id)
+        await coordinator.chore_manager.skip_due_date(chore_id)
 
         # Verify rescheduled
         new_due = get_chore_due_date(coordinator, chore_id)
@@ -637,7 +653,7 @@ class TestSkipChoreDueDateService:
         )
 
         # Skip the due date
-        coordinator.skip_chore_due_date(chore_id)
+        await coordinator.chore_manager.skip_due_date(chore_id)
 
         # Verify chore-level due date was rescheduled
         new_due = get_chore_due_date(coordinator, chore_id)
@@ -674,21 +690,25 @@ class TestResetOverdueChoresService:
         set_chore_due_date_to_past(coordinator, chore_id, kid_id=zoe_id)
 
         # Trigger overdue check to mark as overdue
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            await coordinator._check_overdue_chores()
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.check_overdue_chores()
 
         # Verify overdue
-        assert coordinator.chore_is_overdue(zoe_id, chore_id), "Chore should be overdue"
+        assert coordinator.chore_manager.chore_is_overdue(zoe_id, chore_id), (
+            "Chore should be overdue"
+        )
         assert (
             get_kid_state_for_chore(coordinator, zoe_id, chore_id)
             == CHORE_STATE_OVERDUE
         )
 
-        # Reset
-        coordinator.reset_overdue_chores(chore_id, zoe_id)
+        # Reset (via ChoreManager directly)
+        await coordinator.chore_manager.reset_overdue_chores(chore_id, zoe_id)
 
         # Verify reset to pending and rescheduled
-        assert not coordinator.chore_is_overdue(zoe_id, chore_id), (
+        assert not coordinator.chore_manager.chore_is_overdue(zoe_id, chore_id), (
             "Chore should no longer be overdue"
         )
         new_due = get_kid_due_date_for_chore(coordinator, chore_id, zoe_id)
@@ -728,14 +748,20 @@ class TestResetAllChoresService:
         ]
 
         # Set up various states
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Claim independent for Zoë
-            coordinator.claim_chore(zoe_id, independent_chore, "Zoë")
+            await coordinator.chore_manager.claim_chore(
+                zoe_id, independent_chore, "Zoë"
+            )
             # Claim and approve shared for Zoë
-            coordinator.claim_chore(zoe_id, shared_chore, "Zoë")
-            await coordinator.approve_chore("Mom", zoe_id, shared_chore)
+            await coordinator.chore_manager.claim_chore(zoe_id, shared_chore, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", zoe_id, shared_chore)
             # Claim shared_first for Max (Zoë becomes completed_by_other)
-            coordinator.claim_chore(max_id, shared_first_chore, "Max!")
+            await coordinator.chore_manager.claim_chore(
+                max_id, shared_first_chore, "Max!"
+            )
 
         # Verify non-pending states before reset
         assert (
@@ -816,7 +842,9 @@ class TestServiceHandlerValidation:
         new_due_date = datetime.now(UTC) + timedelta(days=2)
 
         # Coordinator should update chore-level date (shared chore ignores kid_id)
-        coordinator.set_chore_due_date(chore_id, new_due_date, kid_id=kid_id)
+        await coordinator.chore_manager.set_due_date(
+            chore_id, new_due_date, kid_id=kid_id
+        )
 
         chore_due = get_chore_due_date(coordinator, chore_id)
         expected_iso = dt_util.as_utc(new_due_date).isoformat()
@@ -836,7 +864,7 @@ class TestServiceHandlerValidation:
         original_due = get_chore_due_date(coordinator, chore_id)
 
         # Coordinator should reschedule chore-level date (shared chore ignores kid_id)
-        coordinator.skip_chore_due_date(chore_id, kid_id=kid_id)
+        await coordinator.chore_manager.skip_due_date(chore_id, kid_id=kid_id)
 
         new_due = get_chore_due_date(coordinator, chore_id)
         assert new_due != original_due, "Shared chore should be rescheduled"
@@ -881,7 +909,7 @@ class TestSetDueDateDataStructureConsistency:
         # Set due date
         new_due_date = datetime.now(UTC) + timedelta(days=2)
         new_due_date = new_due_date.replace(hour=15, minute=0, second=0, microsecond=0)
-        coordinator.set_chore_due_date(chore_id, new_due_date)
+        await coordinator.chore_manager.set_due_date(chore_id, new_due_date)
 
         # Verify chore-level due_date was added (correct for SHARED)
         assert DATA_CHORE_DUE_DATE in chore_info, (
@@ -918,7 +946,9 @@ class TestSetDueDateDataStructureConsistency:
         # Set due date for specific kid
         new_due_date = datetime.now(UTC) + timedelta(days=3)
         new_due_date = new_due_date.replace(hour=16, minute=0, second=0, microsecond=0)
-        coordinator.set_chore_due_date(chore_id, new_due_date, kid_id=zoe_id)
+        await coordinator.chore_manager.set_due_date(
+            chore_id, new_due_date, kid_id=zoe_id
+        )
 
         # Verify chore-level due_date was NOT added (correct for INDEPENDENT)
         assert DATA_CHORE_DUE_DATE not in chore_info, (
@@ -953,7 +983,7 @@ class TestSetDueDateDataStructureConsistency:
         # Set due date for ALL kids (no kid_id parameter)
         new_due_date = datetime.now(UTC) + timedelta(days=4)
         new_due_date = new_due_date.replace(hour=17, minute=0, second=0, microsecond=0)
-        coordinator.set_chore_due_date(chore_id, new_due_date)
+        await coordinator.chore_manager.set_due_date(chore_id, new_due_date)
 
         # Verify NO chore-level due_date even when setting for all kids
         assert DATA_CHORE_DUE_DATE not in chore_info, (
@@ -1004,7 +1034,7 @@ class TestSkipDueDateNullHandling:
         per_kid_due_dates[zoe_id] = None
 
         # Call skip - should be a no-op, not crash
-        coordinator.skip_chore_due_date(chore_id, kid_id=zoe_id)
+        await coordinator.chore_manager.skip_due_date(chore_id, kid_id=zoe_id)
 
         # Verify kid entry still exists with None value (not deleted)
         assert zoe_id in chore_info[DATA_CHORE_PER_KID_DUE_DATES], (
@@ -1033,7 +1063,7 @@ class TestSkipDueDateNullHandling:
         per_kid_due_dates[zoe_id] = original_date
 
         # Call skip - should advance the date
-        coordinator.skip_chore_due_date(chore_id, kid_id=zoe_id)
+        await coordinator.chore_manager.skip_due_date(chore_id, kid_id=zoe_id)
 
         # Verify due date was advanced
         new_date = per_kid_due_dates.get(zoe_id)
@@ -1057,7 +1087,7 @@ class TestSkipDueDateNullHandling:
         chore_info[DATA_CHORE_PER_KID_DUE_DATES] = {}
 
         # Call skip - should be a no-op (not crash)
-        coordinator.skip_chore_due_date(chore_id, kid_id=zoe_id)
+        await coordinator.chore_manager.skip_due_date(chore_id, kid_id=zoe_id)
 
         # Verify no changes (still empty)
         per_kid_due_dates = chore_info.get(DATA_CHORE_PER_KID_DUE_DATES, {})
@@ -1108,7 +1138,7 @@ class TestSkipDueDateKidChoreDataFallback:
 
         # Call skip for Zoë - should be no-op since per_kid_due_dates[zoe_id] is None
         # (modern coordinator only reads from per_kid_due_dates, not kid_chore_data)
-        coordinator.skip_chore_due_date(chore_id, kid_id=zoe_id)
+        await coordinator.chore_manager.skip_due_date(chore_id, kid_id=zoe_id)
 
         # Zoë's per_kid_due_dates should still be None (no skip occurred)
         assert per_kid_due_dates.get(zoe_id) is None, (
@@ -1143,14 +1173,14 @@ class TestSetSkipServiceIntegration:
         # 1. Set due date
         initial_due = datetime.now(UTC) + timedelta(days=1)
         initial_due = initial_due.replace(hour=10, minute=0, second=0, microsecond=0)
-        coordinator.set_chore_due_date(chore_id, initial_due)
+        await coordinator.chore_manager.set_due_date(chore_id, initial_due)
 
         # Verify SHARED chore has chore-level due_date
         assert DATA_CHORE_DUE_DATE in chore_info
         initial_iso = chore_info[DATA_CHORE_DUE_DATE]
 
         # 2. Skip the due date
-        coordinator.skip_chore_due_date(chore_id)
+        await coordinator.chore_manager.skip_due_date(chore_id)
 
         # Verify structure maintained and date advanced
         assert DATA_CHORE_DUE_DATE in chore_info, (
@@ -1178,7 +1208,9 @@ class TestSetSkipServiceIntegration:
         # 1. Set due date for Zoë
         initial_due = datetime.now(UTC) + timedelta(days=2)
         initial_due = initial_due.replace(hour=14, minute=0, second=0, microsecond=0)
-        coordinator.set_chore_due_date(chore_id, initial_due, kid_id=zoe_id)
+        await coordinator.chore_manager.set_due_date(
+            chore_id, initial_due, kid_id=zoe_id
+        )
 
         # Verify structure
         assert DATA_CHORE_DUE_DATE not in chore_info, (
@@ -1189,7 +1221,7 @@ class TestSetSkipServiceIntegration:
         assert initial_iso is not None
 
         # 2. Skip for Zoë
-        coordinator.skip_chore_due_date(chore_id, kid_id=zoe_id)
+        await coordinator.chore_manager.skip_due_date(chore_id, kid_id=zoe_id)
 
         # Verify structure maintained and date advanced
         assert DATA_CHORE_DUE_DATE not in chore_info, (
@@ -1219,7 +1251,7 @@ class TestSetSkipServiceIntegration:
         # 1. Set due date
         initial_due = datetime.now(UTC) + timedelta(days=1)
         initial_due = initial_due.replace(hour=18, minute=0, second=0, microsecond=0)
-        coordinator.set_chore_due_date(chore_id, initial_due)
+        await coordinator.chore_manager.set_due_date(chore_id, initial_due)
 
         # Verify SHARED_FIRST chore has chore-level due_date (like SHARED)
         assert DATA_CHORE_DUE_DATE in chore_info, (
@@ -1228,7 +1260,7 @@ class TestSetSkipServiceIntegration:
         initial_iso = chore_info[DATA_CHORE_DUE_DATE]
 
         # 2. Skip the due date
-        coordinator.skip_chore_due_date(chore_id)
+        await coordinator.chore_manager.skip_due_date(chore_id)
 
         # Verify structure maintained
         assert DATA_CHORE_DUE_DATE in chore_info, (

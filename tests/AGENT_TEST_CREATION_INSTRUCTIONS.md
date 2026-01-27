@@ -689,7 +689,7 @@ class TestChoreWorkflow:
 
         initial_points = coordinator.kids_data[kid_id].get(DATA_KID_POINTS, 0.0)
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(coordinator.notification_manager, "notify_kid", new=AsyncMock()):
             # Claim
             coordinator.claim_chore(kid_id, chore_id, "Zoë")
             assert get_kid_chore_state(coordinator, kid_id, chore_id) == CHORE_STATE_CLAIMED
@@ -811,6 +811,6 @@ _For family background, see `README.md`._
 4. **Use Stårblüm Family scenarios** - reusable test data via `setup_from_yaml()`, don't invent new names
 5. **Get entity IDs from dashboard helper** - never construct them manually
 6. **Use SetupResult** - access `coordinator`, `kid_ids`, `chore_ids` by name
-7. **Mock notifications** - `patch.object(coordinator, "_notify_kid", new=AsyncMock())`
+7. **Mock notifications** - `patch.object(coordinator.notification_manager, "notify_kid", new=AsyncMock())`
 8. **Pass user context** - service calls need `context=Context(user_id=...)`
 9. **Get fresh coordinator after reload** - use `config_entry.runtime_data` pattern

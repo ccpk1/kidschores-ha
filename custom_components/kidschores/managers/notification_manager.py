@@ -6,10 +6,16 @@ This manager handles all outgoing notification logic:
 - Translation and localization
 - Action button building
 - Notification tag management for smart replacement
+- Event-driven notifications (listens to domain events and sends appropriate notifications)
 
 Separation of concerns (v0.5.0+):
 - NotificationManager = "The Voice" (OUTGOING notifications)
 - notification_action_handler.py = "The Router" (INCOMING action button callbacks)
+
+Event-driven architecture (v0.5.0+):
+- Subscribes to domain events (badge_earned, reward_claimed, etc.)
+- Sends notifications in response to events
+- Managers emit events, NotificationManager reacts
 """
 
 from __future__ import annotations
@@ -17,6 +23,8 @@ from __future__ import annotations
 import asyncio
 import time
 from typing import TYPE_CHECKING, Any, cast
+
+from homeassistant.core import callback
 
 from custom_components.kidschores import const, kc_helpers as kh
 
@@ -119,12 +127,50 @@ class NotificationManager(BaseManager):
         # No additional state needed - manager delegates to coordinator data
 
     async def async_setup(self) -> None:
-        """Set up the notification manager.
+        """Set up the notification manager with event subscriptions.
 
-        Currently no event subscriptions needed. Notifications are fire-and-forget.
+        Subscribes to domain events that require notifications:
+        - Badge earned → notify kid and parents
+        - Achievement unlocked → notify kid and parents
+        - Challenge completed → notify kid and parents
+        - Reward claimed → notify parents (approval needed)
+        - Reward approved → notify kid
+        - Reward disapproved → notify kid
+        - Bonus applied → notify kid
+        - Penalty applied → notify kid
         """
+        # Badge events
+        self.listen(const.SIGNAL_SUFFIX_BADGE_EARNED, self._handle_badge_earned)
+
+        # Achievement/Challenge events
+        self.listen(
+            const.SIGNAL_SUFFIX_ACHIEVEMENT_UNLOCKED, self._handle_achievement_unlocked
+        )
+        self.listen(
+            const.SIGNAL_SUFFIX_CHALLENGE_COMPLETED, self._handle_challenge_completed
+        )
+
+        # Chore events
+        self.listen(const.SIGNAL_SUFFIX_CHORE_CLAIMED, self._handle_chore_claimed)
+
+        # Reward events
+        self.listen(const.SIGNAL_SUFFIX_REWARD_CLAIMED, self._handle_reward_claimed)
+        self.listen(const.SIGNAL_SUFFIX_REWARD_APPROVED, self._handle_reward_approved)
+        self.listen(
+            const.SIGNAL_SUFFIX_REWARD_DISAPPROVED, self._handle_reward_disapproved
+        )
+
+        # Bonus/Penalty events
+        self.listen(const.SIGNAL_SUFFIX_BONUS_APPLIED, self._handle_bonus_applied)
+        self.listen(const.SIGNAL_SUFFIX_PENALTY_APPLIED, self._handle_penalty_applied)
+
+        # Chore reminder events
+        self.listen(const.SIGNAL_SUFFIX_CHORE_DUE_SOON, self._handle_chore_due_soon)
+        self.listen(const.SIGNAL_SUFFIX_CHORE_OVERDUE, self._handle_chore_overdue)
+
         const.LOGGER.debug(
-            "NotificationManager initialized for entry %s", self.entry_id
+            "NotificationManager initialized with 11 event subscriptions for entry %s",
+            self.entry_id,
         )
 
     # =========================================================================
@@ -1042,7 +1088,14 @@ class NotificationManager(BaseManager):
                 return
 
             # Get the per-kid chore state
-            kid_chore_data = self.coordinator._get_chore_data_for_kid(kid_id, chore_id)
+            kid_info = self.coordinator.kids_data.get(kid_id)
+            if not kid_info:
+                const.LOGGER.debug(
+                    "Kid ID '%s' not found in data. Skipping reminder",
+                    kid_id,
+                )
+                return
+            kid_chore_data = kh.get_chore_data_for_kid(kid_info, chore_id)
             current_state = kid_chore_data.get(const.DATA_KID_CHORE_DATA_STATE)
 
             # Only resend if still pending/overdue
@@ -1127,3 +1180,557 @@ class NotificationManager(BaseManager):
             const.LOGGER.warning(
                 "No Chore ID or Reward ID provided for reminder action"
             )
+
+    # =========================================================================
+    # Event Handlers (Event-Driven Notifications)
+    # =========================================================================
+
+    @callback
+    def _handle_badge_earned(self, payload: dict[str, Any]) -> None:
+        """Handle BADGE_EARNED event - send notifications to kid and parents.
+
+        Args:
+            payload: Event data containing kid_id, badge_id, badge_name
+        """
+        kid_id = payload.get("kid_id", "")
+        badge_id = payload.get("badge_id", "")
+        badge_name = payload.get("badge_name", "Unknown Badge")
+
+        if not kid_id:
+            return
+
+        kid_info = self.coordinator.kids_data.get(kid_id)
+        if not kid_info:
+            return
+
+        kid_name = kid_info.get(const.DATA_KID_NAME, "")
+        extra_data = {const.DATA_KID_ID: kid_id, const.DATA_BADGE_ID: badge_id}
+
+        # Notify kid
+        self.hass.async_create_task(
+            self.notify_kid_translated(
+                kid_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_BADGE_EARNED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_BADGE_EARNED_KID,
+                message_data={"badge_name": badge_name},
+                extra_data=extra_data,
+            )
+        )
+
+        # Notify parents
+        self.hass.async_create_task(
+            self.notify_parents_translated(
+                kid_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_BADGE_EARNED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_BADGE_EARNED_PARENT,
+                message_data={"kid_name": kid_name, "badge_name": badge_name},
+                extra_data=extra_data,
+            )
+        )
+
+        const.LOGGER.debug(
+            "NotificationManager: Sent badge earned notifications for kid=%s, badge=%s",
+            kid_id,
+            badge_name,
+        )
+
+    @callback
+    def _handle_achievement_unlocked(self, payload: dict[str, Any]) -> None:
+        """Handle ACHIEVEMENT_UNLOCKED event - send notifications to kid and parents.
+
+        Args:
+            payload: Event data containing kid_id, achievement_id, achievement_name
+        """
+        kid_id = payload.get("kid_id", "")
+        achievement_id = payload.get("achievement_id", "")
+        achievement_name = payload.get("achievement_name", "Unknown Achievement")
+
+        if not kid_id:
+            return
+
+        kid_info = self.coordinator.kids_data.get(kid_id)
+        if not kid_info:
+            return
+
+        kid_name = kid_info.get(const.DATA_KID_NAME, "")
+        extra_data = {
+            const.DATA_KID_ID: kid_id,
+            const.DATA_ACHIEVEMENT_ID: achievement_id,
+        }
+
+        # Notify kid
+        self.hass.async_create_task(
+            self.notify_kid_translated(
+                kid_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_ACHIEVEMENT_EARNED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_ACHIEVEMENT_EARNED_KID,
+                message_data={"achievement_name": achievement_name},
+                extra_data=extra_data,
+            )
+        )
+
+        # Notify parents
+        self.hass.async_create_task(
+            self.notify_parents_translated(
+                kid_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_ACHIEVEMENT_EARNED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_ACHIEVEMENT_EARNED_PARENT,
+                message_data={
+                    "kid_name": kid_name,
+                    "achievement_name": achievement_name,
+                },
+                extra_data=extra_data,
+            )
+        )
+
+        const.LOGGER.debug(
+            "NotificationManager: Sent achievement notifications for kid=%s, achievement=%s",
+            kid_id,
+            achievement_name,
+        )
+
+    @callback
+    def _handle_challenge_completed(self, payload: dict[str, Any]) -> None:
+        """Handle CHALLENGE_COMPLETED event - send notifications to kid and parents.
+
+        Args:
+            payload: Event data containing kid_id, challenge_id, challenge_name
+        """
+        kid_id = payload.get("kid_id", "")
+        challenge_id = payload.get("challenge_id", "")
+        challenge_name = payload.get("challenge_name", "Unknown Challenge")
+
+        if not kid_id:
+            return
+
+        kid_info = self.coordinator.kids_data.get(kid_id)
+        if not kid_info:
+            return
+
+        kid_name = kid_info.get(const.DATA_KID_NAME, "")
+        extra_data = {const.DATA_KID_ID: kid_id, const.DATA_CHALLENGE_ID: challenge_id}
+
+        # Notify kid
+        self.hass.async_create_task(
+            self.notify_kid_translated(
+                kid_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHALLENGE_COMPLETED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHALLENGE_COMPLETED_KID,
+                message_data={"challenge_name": challenge_name},
+                extra_data=extra_data,
+            )
+        )
+
+        # Notify parents
+        self.hass.async_create_task(
+            self.notify_parents_translated(
+                kid_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHALLENGE_COMPLETED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHALLENGE_COMPLETED_PARENT,
+                message_data={"kid_name": kid_name, "challenge_name": challenge_name},
+                extra_data=extra_data,
+            )
+        )
+
+        const.LOGGER.debug(
+            "NotificationManager: Sent challenge notifications for kid=%s, challenge=%s",
+            kid_id,
+            challenge_name,
+        )
+
+    @callback
+    def _handle_chore_claimed(self, payload: dict[str, Any]) -> None:
+        """Handle CHORE_CLAIMED event - send notification to parents for approval.
+
+        This bridges ChoreManager events to the notification system.
+        Notifications are NOT sent if auto_approve is enabled or notify_on_claim is disabled.
+
+        Args:
+            payload: Event data containing kid_id, chore_id, and optional chore_name
+        """
+        kid_id = payload.get("kid_id", "")
+        chore_id = payload.get("chore_id", "")
+
+        if not kid_id or not chore_id:
+            const.LOGGER.warning(
+                "CHORE_CLAIMED notification skipped: missing kid_id or chore_id"
+            )
+            return
+
+        chore_info = self.coordinator.chores_data.get(chore_id)
+        if not chore_info:
+            return
+
+        # Skip notification if auto_approve is enabled
+        if chore_info.get(
+            const.DATA_CHORE_AUTO_APPROVE, const.DEFAULT_CHORE_AUTO_APPROVE
+        ):
+            return
+
+        # Skip if notify_on_claim is disabled
+        if not chore_info.get(
+            const.DATA_CHORE_NOTIFY_ON_CLAIM, const.DEFAULT_NOTIFY_ON_CLAIM
+        ):
+            return
+
+        kid_info = self.coordinator.kids_data.get(kid_id)
+        if not kid_info:
+            return
+
+        chore_name = payload.get("chore_name") or chore_info.get(
+            const.DATA_CHORE_NAME, ""
+        )
+        kid_name = kid_info.get(const.DATA_KID_NAME, "")
+        chore_points = chore_info.get(
+            const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_ZERO
+        )
+
+        # Count pending chores for aggregation
+        pending_count = self.coordinator.chore_manager.count_chores_pending_for_kid(
+            kid_id
+        )
+
+        # Build action buttons
+        actions = self.build_chore_actions(kid_id, chore_id)
+        extra_data = self.build_extra_data(kid_id, chore_id=chore_id)
+
+        if pending_count > 1:
+            # Aggregated notification
+            self.hass.async_create_task(
+                self.notify_parents_translated(
+                    kid_id,
+                    title_key=const.TRANS_KEY_NOTIF_TITLE_PENDING_CHORES,
+                    message_key=const.TRANS_KEY_NOTIF_MESSAGE_PENDING_CHORES,
+                    message_data={
+                        "kid_name": kid_name,
+                        "count": pending_count,
+                        "latest_chore": chore_name,
+                        "points": int(chore_points),
+                    },
+                    actions=actions,
+                    extra_data=extra_data,
+                    tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+                    tag_identifiers=(chore_id, kid_id),
+                )
+            )
+        else:
+            # Single chore notification
+            self.hass.async_create_task(
+                self.notify_parents_translated(
+                    kid_id,
+                    title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_CLAIMED,
+                    message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_CLAIMED,
+                    message_data={
+                        "kid_name": kid_name,
+                        "chore_name": chore_name,
+                    },
+                    actions=actions,
+                    extra_data=extra_data,
+                    tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+                    tag_identifiers=(chore_id, kid_id),
+                )
+            )
+
+        # Clear due-soon reminder tracking
+        self.coordinator.chore_manager.clear_chore_due_reminder(chore_id, kid_id)
+
+        const.LOGGER.debug(
+            "NotificationManager: Sent chore claimed notification for kid=%s, chore=%s",
+            kid_id,
+            chore_name,
+        )
+
+    @callback
+    def _handle_reward_claimed(self, payload: dict[str, Any]) -> None:
+        """Handle REWARD_CLAIMED event - send notification to parents for approval.
+
+        Args:
+            payload: Event data containing kid_id, reward_id, reward_name, points, notif_id
+        """
+        kid_id = payload.get("kid_id", "")
+        reward_id = payload.get("reward_id", "")
+        reward_name = payload.get("reward_name", "Unknown Reward")
+        points = payload.get("points", 0)
+        notif_id = payload.get("notif_id", "")
+
+        if not kid_id:
+            return
+
+        kid_info = self.coordinator.kids_data.get(kid_id)
+        if not kid_info:
+            return
+
+        kid_name = kid_info.get(const.DATA_KID_NAME, "")
+
+        # Build actions for parents
+        actions = self.build_reward_actions(kid_id, reward_id, notif_id)
+        extra_data = self.build_extra_data(
+            kid_id, reward_id=reward_id, notif_id=notif_id
+        )
+
+        # Notify parents
+        self.hass.async_create_task(
+            self.notify_parents_translated(
+                kid_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_CLAIMED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_CLAIMED_PARENT,
+                message_data={
+                    "kid_name": kid_name,
+                    "reward_name": reward_name,
+                    "points": points,
+                },
+                actions=actions,
+                extra_data=extra_data,
+                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+                tag_identifiers=(reward_id, kid_id),
+            )
+        )
+
+        const.LOGGER.debug(
+            "NotificationManager: Sent reward claimed notification for kid=%s, reward=%s",
+            kid_id,
+            reward_name,
+        )
+
+    @callback
+    def _handle_reward_approved(self, payload: dict[str, Any]) -> None:
+        """Handle REWARD_APPROVED event - send notification to kid.
+
+        Args:
+            payload: Event data containing kid_id, reward_id, reward_name
+        """
+        kid_id = payload.get("kid_id", "")
+        reward_id = payload.get("reward_id", "")
+        reward_name = payload.get("reward_name", "Unknown Reward")
+
+        if not kid_id:
+            return
+
+        extra_data = {const.DATA_KID_ID: kid_id, const.DATA_REWARD_ID: reward_id}
+
+        # Notify kid
+        self.hass.async_create_task(
+            self.notify_kid_translated(
+                kid_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_APPROVED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_APPROVED,
+                message_data={"reward_name": reward_name},
+                extra_data=extra_data,
+            )
+        )
+
+        # Clear the original claim notification from parents' devices
+        self.hass.async_create_task(
+            self.clear_notification_for_parents(
+                kid_id,
+                const.NOTIFY_TAG_TYPE_STATUS,
+                reward_id,
+            )
+        )
+
+        const.LOGGER.debug(
+            "NotificationManager: Sent reward approved notification for kid=%s, reward=%s",
+            kid_id,
+            reward_name,
+        )
+
+    @callback
+    def _handle_reward_disapproved(self, payload: dict[str, Any]) -> None:
+        """Handle REWARD_DISAPPROVED event - send notification to kid.
+
+        Args:
+            payload: Event data containing kid_id, reward_id, reward_name
+        """
+        kid_id = payload.get("kid_id", "")
+        reward_id = payload.get("reward_id", "")
+        reward_name = payload.get("reward_name", "Unknown Reward")
+
+        if not kid_id:
+            return
+
+        extra_data = {const.DATA_KID_ID: kid_id, const.DATA_REWARD_ID: reward_id}
+
+        # Notify kid
+        self.hass.async_create_task(
+            self.notify_kid_translated(
+                kid_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_DISAPPROVED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_DISAPPROVED,
+                message_data={"reward_name": reward_name},
+                extra_data=extra_data,
+            )
+        )
+
+        # Clear the original claim notification from parents' devices
+        self.hass.async_create_task(
+            self.clear_notification_for_parents(
+                kid_id,
+                const.NOTIFY_TAG_TYPE_STATUS,
+                reward_id,
+            )
+        )
+
+        const.LOGGER.debug(
+            "NotificationManager: Sent reward disapproved notification for kid=%s, reward=%s",
+            kid_id,
+            reward_name,
+        )
+
+    @callback
+    def _handle_bonus_applied(self, payload: dict[str, Any]) -> None:
+        """Handle BONUS_APPLIED event - send notification to kid.
+
+        Args:
+            payload: Event data containing kid_id, bonus_id, bonus_name, points
+        """
+        kid_id = payload.get("kid_id", "")
+        bonus_id = payload.get("bonus_id", "")
+        bonus_name = payload.get("bonus_name", "Unknown Bonus")
+        points = payload.get("points", 0)
+
+        if not kid_id:
+            return
+
+        extra_data = {const.DATA_KID_ID: kid_id, const.DATA_BONUS_ID: bonus_id}
+
+        # Notify kid
+        self.hass.async_create_task(
+            self.notify_kid_translated(
+                kid_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_BONUS_APPLIED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_BONUS_APPLIED,
+                message_data={"bonus_name": bonus_name, "points": points},
+                extra_data=extra_data,
+            )
+        )
+
+        const.LOGGER.debug(
+            "NotificationManager: Sent bonus applied notification for kid=%s, bonus=%s",
+            kid_id,
+            bonus_name,
+        )
+
+    @callback
+    def _handle_penalty_applied(self, payload: dict[str, Any]) -> None:
+        """Handle PENALTY_APPLIED event - send notification to kid.
+
+        Args:
+            payload: Event data containing kid_id, penalty_id, penalty_name, points
+        """
+        kid_id = payload.get("kid_id", "")
+        penalty_id = payload.get("penalty_id", "")
+        penalty_name = payload.get("penalty_name", "Unknown Penalty")
+        points = payload.get("points", 0)
+
+        if not kid_id:
+            return
+
+        extra_data = {const.DATA_KID_ID: kid_id, const.DATA_PENALTY_ID: penalty_id}
+
+        # Notify kid
+        self.hass.async_create_task(
+            self.notify_kid_translated(
+                kid_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_PENALTY_APPLIED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_PENALTY_APPLIED,
+                message_data={"penalty_name": penalty_name, "points": points},
+                extra_data=extra_data,
+            )
+        )
+
+        const.LOGGER.debug(
+            "NotificationManager: Sent penalty applied notification for kid=%s, penalty=%s",
+            kid_id,
+            penalty_name,
+        )
+
+    @callback
+    def _handle_chore_due_soon(self, payload: dict[str, Any]) -> None:
+        """Handle CHORE_DUE_SOON event - send reminder to kid with claim button.
+
+        Args:
+            payload: Event data containing kid_id, chore_id, chore_name, minutes, points
+        """
+        kid_id = payload.get("kid_id", "")
+        chore_id = payload.get("chore_id", "")
+        chore_name = payload.get("chore_name", "Unknown Chore")
+        minutes = payload.get("minutes", 0)
+        points = payload.get("points", 0)
+
+        if not kid_id or not chore_id:
+            return
+
+        # Notify kid with claim action
+        self.hass.async_create_task(
+            self.notify_kid_translated(
+                kid_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_DUE_SOON,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_DUE_SOON,
+                message_data={
+                    "chore_name": chore_name,
+                    "minutes": minutes,
+                    "points": points,
+                },
+                actions=self.build_claim_action(kid_id, chore_id),
+            )
+        )
+
+        const.LOGGER.debug(
+            "NotificationManager: Sent due-soon reminder for chore=%s to kid=%s (%d min)",
+            chore_name,
+            kid_id,
+            minutes,
+        )
+
+    @callback
+    def _handle_chore_overdue(self, payload: dict[str, Any]) -> None:
+        """Handle CHORE_OVERDUE event - notify kid and parents with actions.
+
+        Args:
+            payload: Event data containing kid_id, chore_id, chore_name, due_date
+        """
+        kid_id = payload.get("kid_id", "")
+        chore_id = payload.get("chore_id", "")
+        chore_name = payload.get("chore_name", "Unknown Chore")
+        due_date = payload.get("due_date", "")
+
+        if not kid_id or not chore_id:
+            return
+
+        # Notify kid with claim action
+        self.hass.async_create_task(
+            self.notify_kid_translated(
+                kid_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE,
+                message_data={"chore_name": chore_name, "due_date": due_date},
+                actions=self.build_claim_action(kid_id, chore_id),
+            )
+        )
+
+        # Build parent actions
+        parent_actions: list[dict[str, str]] = []
+        parent_actions.extend(self.build_complete_action(kid_id, chore_id))
+        parent_actions.extend(self.build_skip_action(kid_id, chore_id))
+        parent_actions.extend(self.build_remind_action(kid_id, chore_id))
+
+        # Format due date for parents (using parent language)
+        # Note: due_date is pre-formatted by ChoreManager for kid language,
+        # so we pass through for parents (could refactor to pass raw datetime)
+        self.hass.async_create_task(
+            self.notify_parents_translated(
+                kid_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE,
+                message_data={"chore_name": chore_name, "due_date": due_date},
+                actions=parent_actions,
+                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+                tag_identifiers=(chore_id, kid_id),
+            )
+        )
+
+        const.LOGGER.debug(
+            "NotificationManager: Sent overdue notification for chore=%s to kid=%s and parents",
+            chore_name,
+            kid_id,
+        )

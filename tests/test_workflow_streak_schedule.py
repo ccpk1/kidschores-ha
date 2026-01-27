@@ -227,9 +227,11 @@ class TestStreakCalculation:
         assert kid_chore_data.get(DATA_KID_CHORE_DATA_LAST_APPROVED) is None
 
         # Approve chore
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Mom", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", kid_id, chore_id)
 
         # Verify streak is 1 (use local date since coordinator stores by local date)
         today_iso = kh.dt_today_local().isoformat()
@@ -263,9 +265,11 @@ class TestStreakCalculation:
         set_yesterday_streak(coordinator, kid_id, chore_id, yesterday_iso, 5)
 
         # Approve today
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Mom", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", kid_id, chore_id)
 
         # Verify streak is now 6
         today_iso = today_local.isoformat()
@@ -297,9 +301,11 @@ class TestStreakCalculation:
         set_yesterday_streak(coordinator, kid_id, chore_id, yesterday_iso, 5)
 
         # Approve today (missed yesterday)
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Mom", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", kid_id, chore_id)
 
         # Verify streak reset to 1
         today_iso = today_local.isoformat()
@@ -331,9 +337,11 @@ class TestStreakCalculation:
         set_yesterday_streak(coordinator, kid_id, chore_id, yesterday_iso, 3)
 
         # Approve today (exactly 1 week later)
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Mom", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", kid_id, chore_id)
 
         # Verify streak continues (3 + 1 = 4)
         today_iso = today_local.isoformat()
@@ -365,9 +373,11 @@ class TestStreakCalculation:
         set_yesterday_streak(coordinator, kid_id, chore_id, yesterday_iso, 10)
 
         # Approve today (missed at least one week)
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Mom", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", kid_id, chore_id)
 
         # Verify streak reset to 1
         today_iso = today_local.isoformat()
@@ -399,9 +409,11 @@ class TestStreakCalculation:
         set_yesterday_streak(coordinator, kid_id, chore_id, yesterday_iso, 5)
 
         # Approve today
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Mom", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", kid_id, chore_id)
 
         # Legacy logic: yesterday had streak, so continue
         today_iso = today_local.isoformat()
@@ -441,9 +453,11 @@ class TestStreakCalculation:
         set_yesterday_streak(coordinator, kid_id, chore_id, yesterday_iso, 4)
 
         # Approve today (exactly 3 days later = on schedule)
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Mom", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", kid_id, chore_id)
 
         # Verify streak continues
         today_iso = today_local.isoformat()
@@ -481,9 +495,11 @@ class TestStreakCalculation:
         set_yesterday_streak(coordinator, kid_id, chore_id, yesterday_iso, 8)
 
         # Approve today (missed the day-3 occurrence)
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Mom", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", kid_id, chore_id)
 
         # Verify streak reset
         today_iso = today_local.isoformat()
@@ -515,9 +531,11 @@ class TestStreakCalculation:
         set_yesterday_streak(coordinator, kid_id, chore_id, yesterday_iso, 10)
 
         # Approve today
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Mom", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", kid_id, chore_id)
 
         # Verify streak is 11 (10 + 1)
         today_iso = today_local.isoformat()
@@ -561,9 +579,11 @@ class TestStreakEdgeCases:
         set_yesterday_streak(coordinator, kid_id, chore_id, yesterday_iso, 3)
 
         # Should not crash, should use fallback
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Mom", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", kid_id, chore_id)
 
         # Just verify we got a streak (either continued or reset, but not crashed)
         today_iso = today_local.isoformat()
@@ -600,9 +620,11 @@ class TestStreakEdgeCases:
         set_yesterday_streak(coordinator, kid_id, chore_id, yesterday_iso, 5)
 
         # Should continue streak normally (empty means no filter)
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Mom", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", kid_id, chore_id)
 
         today_iso = today_local.isoformat()
         streak = get_daily_streak(coordinator, kid_id, chore_id, today_iso)

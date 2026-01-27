@@ -64,7 +64,7 @@ if TYPE_CHECKING:
 
 def get_kid_state_for_chore(coordinator: Any, kid_id: str, chore_id: str) -> str:
     """Get the current chore state for a specific kid."""
-    kid_chore_data = coordinator._get_chore_data_for_kid(kid_id, chore_id)
+    kid_chore_data = coordinator.chore_manager.get_chore_data_for_kid(kid_id, chore_id)
     return kid_chore_data.get(DATA_KID_CHORE_DATA_STATE, CHORE_STATE_PENDING)
 
 
@@ -217,9 +217,11 @@ class TestImmediateOnLateAtMidnightMulti:
         original_due_date = get_chore_due_date(coordinator, chore_id, kid_id)
 
         # Claim and approve the chore (late approval)
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Test User")
-            await coordinator.approve_chore("Parent", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Test User")
+            await coordinator.chore_manager.approve_chore("Parent", kid_id, chore_id)
 
         # Verify immediate reset: state should be PENDING
         state = get_kid_state_for_chore(coordinator, kid_id, chore_id)
@@ -270,9 +272,11 @@ class TestImmediateOnLateAtMidnightMulti:
         set_chore_due_date_directly(coordinator, chore_id, today_5pm, kid_id=kid_id)
 
         # Claim and approve the chore (on-time approval)
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Test User")
-            await coordinator.approve_chore("Parent", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Test User")
+            await coordinator.chore_manager.approve_chore("Parent", kid_id, chore_id)
 
         # Verify state is APPROVED (not reset)
         state = get_kid_state_for_chore(coordinator, kid_id, chore_id)
@@ -323,9 +327,11 @@ class TestImmediateOnLateAtDueDateMulti:
         original_due_date = get_chore_due_date(coordinator, chore_id, kid_id)
 
         # Claim and approve the chore (late approval)
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Test User")
-            await coordinator.approve_chore("Parent", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Test User")
+            await coordinator.chore_manager.approve_chore("Parent", kid_id, chore_id)
 
         # Verify immediate reset
         state = get_kid_state_for_chore(coordinator, kid_id, chore_id)
@@ -389,9 +395,11 @@ class TestImmediateOnLateIndependent:
         set_chore_due_date_directly(coordinator, chore_id, two_days_ago, kid_id=max_id)
 
         # Zoë claims and approves late
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(zoe_id, chore_id, "Test User")
-            await coordinator.approve_chore("Parent", zoe_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Test User")
+            await coordinator.chore_manager.approve_chore("Parent", zoe_id, chore_id)
 
         # Verify Zoë reset, Max unchanged
         zoe_state = get_kid_state_for_chore(coordinator, zoe_id, chore_id)
@@ -404,9 +412,11 @@ class TestImmediateOnLateIndependent:
         )
 
         # Max claims and approves late
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(max_id, chore_id, "Test User")
-            await coordinator.approve_chore("Parent", max_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(max_id, chore_id, "Test User")
+            await coordinator.chore_manager.approve_chore("Parent", max_id, chore_id)
 
         # Verify Max also reset
         max_state = get_kid_state_for_chore(coordinator, max_id, chore_id)
@@ -465,9 +475,11 @@ class TestImmediateOnLateShared:
         original_due_date = get_chore_due_date(coordinator, chore_id)
 
         # Zoë claims and approves (first kid)
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(zoe_id, chore_id, "Test User")
-            await coordinator.approve_chore("Parent", zoe_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Test User")
+            await coordinator.chore_manager.approve_chore("Parent", zoe_id, chore_id)
 
         # Verify Zoë is approved but chore hasn't reset yet
         zoe_state = get_kid_state_for_chore(coordinator, zoe_id, chore_id)
@@ -482,9 +494,11 @@ class TestImmediateOnLateShared:
         )
 
         # Max claims and approves (second/last kid)
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(max_id, chore_id, "Test User")
-            await coordinator.approve_chore("Parent", max_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(max_id, chore_id, "Test User")
+            await coordinator.chore_manager.approve_chore("Parent", max_id, chore_id)
 
         # Now chore should have reset
         zoe_state = get_kid_state_for_chore(coordinator, zoe_id, chore_id)
@@ -532,9 +546,11 @@ class TestRegressionExistingOptions:
         set_chore_due_date_directly(coordinator, chore_id, yesterday, kid_id=kid_id)
 
         # Claim and approve
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Test User")
-            await coordinator.approve_chore("Parent", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Test User")
+            await coordinator.chore_manager.approve_chore("Parent", kid_id, chore_id)
 
         # Verify stays APPROVED (does NOT reset immediately)
         state = get_kid_state_for_chore(coordinator, kid_id, chore_id)
@@ -564,9 +580,11 @@ class TestRegressionExistingOptions:
         set_chore_due_date_directly(coordinator, chore_id, tomorrow, kid_id=kid_id)
 
         # Claim and approve
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Test User")
-            await coordinator.approve_chore("Parent", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Test User")
+            await coordinator.chore_manager.approve_chore("Parent", kid_id, chore_id)
 
         # Verify resets immediately (UPON_COMPLETION behavior)
         state = get_kid_state_for_chore(coordinator, kid_id, chore_id)
@@ -603,7 +621,9 @@ class TestIsApprovalAfterResetBoundary:
         set_chore_due_date_directly(coordinator, chore_id, today, kid_id=kid_id)
 
         # Check boundary
-        is_late = coordinator._is_chore_approval_after_reset(chore_info, kid_id)
+        is_late = coordinator.chore_manager.is_chore_approval_after_reset(
+            chore_info, kid_id
+        )
         assert not is_late, "Due date today should not be late"
 
     @pytest.mark.asyncio
@@ -633,7 +653,9 @@ class TestIsApprovalAfterResetBoundary:
         set_chore_due_date_directly(coordinator, chore_id, two_days_ago, kid_id=kid_id)
 
         # Check boundary
-        is_late = coordinator._is_chore_approval_after_reset(chore_info, kid_id)
+        is_late = coordinator.chore_manager.is_chore_approval_after_reset(
+            chore_info, kid_id
+        )
         assert is_late, "Due date 2 days ago should be late (before last midnight)"
 
     @pytest.mark.asyncio
@@ -657,7 +679,9 @@ class TestIsApprovalAfterResetBoundary:
         set_chore_due_date_directly(coordinator, chore_id, tomorrow, kid_id=kid_id)
 
         # Check boundary
-        is_late = coordinator._is_chore_approval_after_reset(chore_info, kid_id)
+        is_late = coordinator.chore_manager.is_chore_approval_after_reset(
+            chore_info, kid_id
+        )
         assert not is_late, "Due date tomorrow should not be late"
 
     @pytest.mark.asyncio
@@ -681,5 +705,7 @@ class TestIsApprovalAfterResetBoundary:
         set_chore_due_date_directly(coordinator, chore_id, yesterday, kid_id=kid_id)
 
         # Check boundary
-        is_late = coordinator._is_chore_approval_after_reset(chore_info, kid_id)
+        is_late = coordinator.chore_manager.is_chore_approval_after_reset(
+            chore_info, kid_id
+        )
         assert is_late, "Due date yesterday should be late for AT_DUE_DATE type"

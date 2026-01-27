@@ -102,12 +102,16 @@ class TestApproveRewardCostOverride:
         starting_points = 100.0
         coordinator.kids_data[kid_id][DATA_KID_POINTS] = starting_points
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             with patch.object(
-                coordinator, "_notify_parents_translated", new=AsyncMock()
+                coordinator.notification_manager,
+                "notify_parents_translated",
+                new=AsyncMock(),
             ):
-                # Kid claims the reward (redeem_reward is the claim method)
-                coordinator.redeem_reward(
+                # Kid claims the reward (redeem is the claim method)
+                await coordinator.reward_manager.redeem(
                     parent_name="Môm Astrid Stârblüm",
                     kid_id=kid_id,
                     reward_id=reward_id,
@@ -119,7 +123,7 @@ class TestApproveRewardCostOverride:
 
                 # Parent approves with lesser cost (20 instead of 50)
                 lesser_cost = 20.0
-                await coordinator.approve_reward(
+                await coordinator.reward_manager.approve(
                     parent_name="Môm Astrid Stârblüm",
                     kid_id=kid_id,
                     reward_id=reward_id,

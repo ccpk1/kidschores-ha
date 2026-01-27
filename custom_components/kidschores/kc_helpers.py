@@ -678,6 +678,25 @@ def parse_points_adjust_values(points_str: str) -> list[float]:
 # ==============================================================================
 
 
+def get_chore_data_for_kid(
+    kid_data: Mapping[str, Any], chore_id: str
+) -> dict[str, Any]:
+    """Get the chore data dict for a specific kid+chore combination.
+
+    Stateless helper function for accessing per-kid chore data from kid_data.
+    Returns an empty dict if the chore data doesn't exist.
+
+    Args:
+        kid_data: The kid's data dict (from kids_data[kid_id])
+        chore_id: The internal ID of the chore
+
+    Returns:
+        The kid's chore data dict for this chore, or empty dict if not found.
+    """
+    chore_data_map = kid_data.get(const.DATA_KID_CHORE_DATA, {})
+    return chore_data_map.get(chore_id, {})
+
+
 def get_first_kidschores_entry(hass: HomeAssistant) -> str | None:
     """Retrieve the first KidsChores config entry ID."""
     entries = hass.config_entries.async_entries(const.DOMAIN)

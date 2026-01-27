@@ -262,10 +262,12 @@ class TestGoldenMasterCapture:
                 continue
 
             # Claim the chore
-            coordinator.claim_chore(kid_id, chore_id, kid_name)
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, kid_name)
 
             # Approve the chore
-            await coordinator.approve_chore("TestParent", kid_id, chore_id)
+            await coordinator.chore_manager.approve_chore(
+                "TestParent", kid_id, chore_id
+            )
 
         # Now capture the gamification state
         gamification_data = extract_gamification_data(coordinator)

@@ -145,16 +145,18 @@ class TestKidUndoChore:
         kid_id = scenario_minimal.kid_ids["Zoë"]
         chore_id = scenario_minimal.chore_ids["Make bed"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Kid claims chore
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
             assert (
                 get_kid_chore_state(coordinator, kid_id, chore_id)
                 == CHORE_STATE_CLAIMED
             )
 
             # Kid undoes claim (no parent_name parameter)
-            coordinator.undo_chore_claim(kid_id, chore_id)
+            await coordinator.chore_manager.undo_claim(kid_id, chore_id)
 
         # State should be reset to pending
         state = get_kid_chore_state(coordinator, kid_id, chore_id)
@@ -171,16 +173,18 @@ class TestKidUndoChore:
         kid_id = scenario_minimal.kid_ids["Zoë"]
         chore_id = scenario_minimal.chore_ids["Make bed"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Kid claims chore
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
 
             # Get initial stats
             initial_stats = get_disapproval_stats(coordinator, kid_id, chore_id)
             initial_all_time = get_chore_stats_disapproved(coordinator, kid_id)
 
             # Kid undoes claim
-            coordinator.undo_chore_claim(kid_id, chore_id)
+            await coordinator.chore_manager.undo_claim(kid_id, chore_id)
 
             # Get final stats
             final_stats = get_disapproval_stats(coordinator, kid_id, chore_id)
@@ -217,15 +221,17 @@ class TestParentDisapproveChore:
         kid_id = scenario_minimal.kid_ids["Zoë"]
         chore_id = scenario_minimal.chore_ids["Make bed"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Kid claims chore
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
 
             # Get initial stats
             initial_all_time = get_chore_stats_disapproved(coordinator, kid_id)
 
             # Parent disapproves
-            coordinator.disapprove_chore("Mom", kid_id, chore_id)
+            await coordinator.chore_manager.disapprove_chore("Mom", kid_id, chore_id)
 
             # Get final stats
             final_stats = get_disapproval_stats(coordinator, kid_id, chore_id)
@@ -281,9 +287,13 @@ class TestSharedFirstUndo:
         kid2_id = scenario_shared.kid_ids["Max!"]
         kid3_id = scenario_shared.kid_ids["Lila"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Kid1 claims the SHARED_FIRST chore
-            coordinator.claim_chore(kid1_id, shared_first_chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(
+                kid1_id, shared_first_chore_id, "Zoë"
+            )
 
             # Verify kid1 is claimed, others are completed_by_other
             assert (
@@ -292,7 +302,7 @@ class TestSharedFirstUndo:
             )
 
             # Kid1 undoes the claim
-            coordinator.undo_chore_claim(kid1_id, shared_first_chore_id)
+            await coordinator.chore_manager.undo_claim(kid1_id, shared_first_chore_id)
 
         # ALL kids should be reset to pending
         assert (
@@ -328,18 +338,20 @@ class TestMultipleUndos:
         kid_id = scenario_minimal.kid_ids["Zoë"]
         chore_id = scenario_minimal.chore_ids["Make bed"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Undo 3 times
             for _ in range(3):
                 # Kid claims chore
-                coordinator.claim_chore(kid_id, chore_id, "Zoë")
+                await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
                 assert (
                     get_kid_chore_state(coordinator, kid_id, chore_id)
                     == CHORE_STATE_CLAIMED
                 )
 
                 # Kid undoes claim
-                coordinator.undo_chore_claim(kid_id, chore_id)
+                await coordinator.chore_manager.undo_claim(kid_id, chore_id)
                 assert (
                     get_kid_chore_state(coordinator, kid_id, chore_id)
                     == CHORE_STATE_PENDING

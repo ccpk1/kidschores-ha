@@ -353,7 +353,6 @@
   - ✅ **DONE** - 4 tests: within date window, outside date window, progress calculation, below target
 
 - [x] **3.10** Run tests and verify coverage
-
   ```bash
   pytest tests/test_gamification_engine.py -v --cov=custom_components.kidschores.engines.gamification_engine
   ```

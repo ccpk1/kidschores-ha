@@ -128,7 +128,7 @@ class TestOverdueEventEmission:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Trigger overdue check via Coordinator (which delegates to Manager)
-        await coordinator._check_overdue_chores()
+        await coordinator.chore_manager.check_overdue_chores()
 
         # Verify CHORE_OVERDUE event was emitted
         overdue_events = [
@@ -174,7 +174,7 @@ class TestOverdueEventEmission:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=2)
 
         # Trigger overdue check
-        await coordinator._check_overdue_chores()
+        await coordinator.chore_manager.check_overdue_chores()
 
         # Verify NO CHORE_OVERDUE event was emitted for this chore
         overdue_events_for_chore = [
@@ -231,7 +231,7 @@ class TestOverdueEventEmission:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Trigger overdue check
-        await coordinator._check_overdue_chores()
+        await coordinator.chore_manager.check_overdue_chores()
 
         # Verify overdue event was emitted for this kid
         overdue_events_for_kid = [
@@ -273,8 +273,8 @@ class TestRecurringResetEventEmission:
         chore_id = scheduling_scenario.chore_ids["Reset Midnight Once"]
 
         # Claim and approve the chore first (so reset has something to reset)
-        coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-        await coordinator.approve_chore("TestParent", zoe_id, chore_id)
+        await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+        await coordinator.chore_manager.approve_chore("TestParent", zoe_id, chore_id)
 
         # Track emitted events
         emitted_events: list[tuple[str, dict[str, Any]]] = []
@@ -319,7 +319,7 @@ class TestRecurringResetEventEmission:
         chore_id = scheduling_scenario.chore_ids["Reset Midnight Once"]
 
         # Claim the chore first
-        coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+        await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
 
         # Track emitted events
         emitted_events: list[tuple[str, dict[str, Any]]] = []
@@ -332,7 +332,7 @@ class TestRecurringResetEventEmission:
         coordinator.chore_manager.emit = tracking_emit
 
         # Call reset directly on Manager
-        coordinator.chore_manager.reset_chore(zoe_id, chore_id)
+        await coordinator.chore_manager.reset_chore(zoe_id, chore_id)
 
         # Verify CHORE_STATUS_RESET event was emitted
         reset_events = [
@@ -376,7 +376,7 @@ class TestDelegationPath:
         coordinator.chore_manager.update_overdue_status = tracking_method
 
         # Call Coordinator method
-        await coordinator._check_overdue_chores()
+        await coordinator.chore_manager.check_overdue_chores()
 
         # Verify Manager method was called
         assert manager_called, (
@@ -409,7 +409,7 @@ class TestDelegationPath:
         # Call Coordinator method with current time
         from homeassistant.util import dt as dt_util
 
-        await coordinator._process_recurring_chore_resets(dt_util.utcnow())
+        await coordinator.chore_manager.process_recurring_chore_resets(dt_util.utcnow())
 
         # Verify Manager method was called
         assert manager_called, (
@@ -448,7 +448,9 @@ class TestServiceDelegation:
         from homeassistant.util import dt as dt_util
 
         future_date = dt_util.utcnow() + timedelta(days=7)
-        coordinator.set_chore_due_date(chore_id, future_date, kid_id=zoe_id)
+        await coordinator.chore_manager.set_due_date(
+            chore_id, future_date, kid_id=zoe_id
+        )
 
         # Verify Manager method was called
         assert manager_called, (
@@ -476,7 +478,7 @@ class TestServiceDelegation:
         coordinator.chore_manager.reset_all_chores = tracking_method
 
         # Call Coordinator service method
-        coordinator.reset_all_chores()
+        await coordinator.chore_manager.reset_all_chores()
 
         # Verify Manager method was called
         assert manager_called, (
@@ -495,7 +497,7 @@ class TestServiceDelegation:
         chore_id = scheduling_scenario.chore_ids["Reset Midnight Once"]
 
         # Claim the chore first
-        coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+        await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
 
         # Track if Manager method was called
         manager_called = False
@@ -509,7 +511,7 @@ class TestServiceDelegation:
         coordinator.chore_manager.undo_claim = tracking_method
 
         # Call Coordinator service method
-        coordinator.undo_chore_claim(zoe_id, chore_id)
+        await coordinator.chore_manager.undo_claim(zoe_id, chore_id)
 
         # Verify Manager method was called
         assert manager_called, (

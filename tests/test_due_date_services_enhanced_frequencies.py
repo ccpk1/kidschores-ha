@@ -143,7 +143,7 @@ class TestDailyMultiDueDateServices:
         # Set a specific due date for Zoë (10:30 AM tomorrow)
         new_due = datetime.now(UTC) + timedelta(days=1)
         new_due = new_due.replace(hour=10, minute=30, second=0, microsecond=0)
-        coordinator.set_chore_due_date(chore_id, new_due, kid_id=zoe_id)
+        await coordinator.chore_manager.set_due_date(chore_id, new_due, kid_id=zoe_id)
 
         # Verify per-kid due date was set with EXACT time
         kid_due = get_kid_due_date_for_chore(coordinator, chore_id, zoe_id)
@@ -187,7 +187,7 @@ class TestDailyMultiDueDateServices:
         now_before_skip = datetime.now(UTC)
 
         # Skip to next occurrence
-        coordinator.skip_chore_due_date(chore_id, kid_id=zoe_id)
+        await coordinator.chore_manager.skip_due_date(chore_id, kid_id=zoe_id)
 
         # Verify due date advanced to a FUTURE time
         new_due = get_kid_due_date_for_chore(coordinator, chore_id, zoe_id)
@@ -229,7 +229,7 @@ class TestDailyMultiDueDateServices:
         # Set a specific due date (6:45 PM, 2 days from now)
         new_due = datetime.now(UTC) + timedelta(days=2)
         new_due = new_due.replace(hour=18, minute=45, second=0, microsecond=0)
-        coordinator.set_chore_due_date(chore_id, new_due)
+        await coordinator.chore_manager.set_due_date(chore_id, new_due)
 
         # Verify chore-level due date was set with EXACT time
         chore_due = get_chore_due_date(coordinator, chore_id)
@@ -271,7 +271,7 @@ class TestDailyMultiDueDateServices:
         now_before_skip = datetime.now(UTC)
 
         # Skip to next occurrence
-        coordinator.skip_chore_due_date(chore_id)
+        await coordinator.chore_manager.skip_due_date(chore_id)
 
         # Verify due date advanced
         new_due = get_chore_due_date(coordinator, chore_id)
@@ -314,7 +314,7 @@ class TestDailyMultiDueDateServices:
         # Set a specific due date (8:15 AM tomorrow)
         new_due = datetime.now(UTC) + timedelta(days=1)
         new_due = new_due.replace(hour=8, minute=15, second=0, microsecond=0)
-        coordinator.set_chore_due_date(chore_id, new_due)
+        await coordinator.chore_manager.set_due_date(chore_id, new_due)
 
         # Verify chore-level due date was set (SHARED_FIRST uses chore-level)
         chore_due = get_chore_due_date(coordinator, chore_id)
@@ -358,7 +358,7 @@ class TestDailyMultiDueDateServices:
         now_before_skip = datetime.now(UTC)
 
         # Skip to next occurrence
-        coordinator.skip_chore_due_date(chore_id)
+        await coordinator.chore_manager.skip_due_date(chore_id)
 
         # Verify due date advanced
         new_due = get_chore_due_date(coordinator, chore_id)
@@ -427,7 +427,7 @@ class TestCustomFromCompleteDueDateServices:
         # Set a specific due date for Zoë (2:30 PM, 5 days from now)
         new_due = datetime.now(UTC) + timedelta(days=5)
         new_due = new_due.replace(hour=14, minute=30, second=0, microsecond=0)
-        coordinator.set_chore_due_date(chore_id, new_due, kid_id=zoe_id)
+        await coordinator.chore_manager.set_due_date(chore_id, new_due, kid_id=zoe_id)
 
         # Verify per-kid due date was set with EXACT time
         kid_due = get_kid_due_date_for_chore(coordinator, chore_id, zoe_id)
@@ -475,7 +475,7 @@ class TestCustomFromCompleteDueDateServices:
         now_before_skip = datetime.now(UTC)
 
         # Skip to next occurrence
-        coordinator.skip_chore_due_date(chore_id, kid_id=zoe_id)
+        await coordinator.chore_manager.skip_due_date(chore_id, kid_id=zoe_id)
 
         # Verify due date advanced
         new_due = get_kid_due_date_for_chore(coordinator, chore_id, zoe_id)
@@ -522,7 +522,7 @@ class TestCustomFromCompleteDueDateServices:
         # Set a specific due date (5:45 PM, 8 days from now)
         new_due = datetime.now(UTC) + timedelta(days=8)
         new_due = new_due.replace(hour=17, minute=45, second=0, microsecond=0)
-        coordinator.set_chore_due_date(chore_id, new_due)
+        await coordinator.chore_manager.set_due_date(chore_id, new_due)
 
         # Verify chore-level due date was set with EXACT time
         chore_due = get_chore_due_date(coordinator, chore_id)
@@ -560,7 +560,7 @@ class TestCustomFromCompleteDueDateServices:
         assert initial_dt is not None, "Initial due date should be parseable"
 
         # Skip to next occurrence
-        coordinator.skip_chore_due_date(chore_id)
+        await coordinator.chore_manager.skip_due_date(chore_id)
 
         # Verify due date advanced
         new_due = get_chore_due_date(coordinator, chore_id)
@@ -610,7 +610,7 @@ class TestCustomFromCompleteDueDateServices:
         # Set a specific due date (3:20 PM, 3 days from now)
         new_due = datetime.now(UTC) + timedelta(days=3)
         new_due = new_due.replace(hour=15, minute=20, second=0, microsecond=0)
-        coordinator.set_chore_due_date(chore_id, new_due)
+        await coordinator.chore_manager.set_due_date(chore_id, new_due)
 
         # Verify chore-level due date was set (SHARED_FIRST uses chore-level)
         chore_due = get_chore_due_date(coordinator, chore_id)
@@ -659,7 +659,7 @@ class TestCustomFromCompleteDueDateServices:
         now_before_skip = datetime.now(UTC)
 
         # Skip to next occurrence
-        coordinator.skip_chore_due_date(chore_id)
+        await coordinator.chore_manager.skip_due_date(chore_id)
 
         # Verify due date advanced
         new_due = get_chore_due_date(coordinator, chore_id)

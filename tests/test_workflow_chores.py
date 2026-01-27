@@ -165,9 +165,11 @@ class TestIndependentChores:
         assert initial_state == CHORE_STATE_PENDING
 
         # Mock notifications to avoid side effects
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Claim the chore (API: kid_id, chore_id, user_name)
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
 
         # State should now be claimed
         new_state = get_kid_chore_state(coordinator, kid_id, chore_id)
@@ -186,12 +188,14 @@ class TestIndependentChores:
 
         initial_points = get_kid_points(coordinator, kid_id)
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Claim the chore (API: kid_id, chore_id, user_name)
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
 
             # Approve the chore (API: parent_name, kid_id, chore_id)
-            await coordinator.approve_chore("Mom", kid_id, chore_id)
+            await coordinator.chore_manager.approve_chore("Mom", kid_id, chore_id)
 
         # Points should increase by chore value (5 points)
         final_points = get_kid_points(coordinator, kid_id)
@@ -212,9 +216,11 @@ class TestIndependentChores:
         kid_id = scenario_minimal.kid_ids["Zoë"]
         chore_id = scenario_minimal.chore_ids["Make bed"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Claim the chore
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
 
             # Verify claimed
             assert (
@@ -223,7 +229,7 @@ class TestIndependentChores:
             )
 
             # Disapprove (API: parent_name, kid_id, chore_id)
-            coordinator.disapprove_chore("Mom", kid_id, chore_id)
+            await coordinator.chore_manager.disapprove_chore("Mom", kid_id, chore_id)
 
         # State should be reset to pending
         state = get_kid_chore_state(coordinator, kid_id, chore_id)
@@ -242,9 +248,11 @@ class TestIndependentChores:
 
         initial_points = get_kid_points(coordinator, kid_id)
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            coordinator.disapprove_chore("Mom", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.disapprove_chore("Mom", kid_id, chore_id)
 
         # Points should be unchanged
         final_points = get_kid_points(coordinator, kid_id)
@@ -274,9 +282,14 @@ class TestAutoApprove:
 
         initial_points = get_kid_points(coordinator, kid_id)
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Claim the auto-approve chore
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+
+        # Wait for auto-approve task to complete
+        await hass.async_block_till_done()
 
         # State should be approved (skipped claimed)
         state = get_kid_chore_state(coordinator, kid_id, chore_id)
@@ -314,9 +327,11 @@ class TestSharedFirstChores:
         lila_id = scenario_shared.kid_ids["Lila"]
         chore_id = scenario_shared.chore_ids["Take out trash"]  # shared_first, 3 kids
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Zoë claims first
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
 
         # Zoë should be claimed
         assert get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_CLAIMED
@@ -348,10 +363,12 @@ class TestSharedFirstChores:
         initial_max_points = get_kid_points(coordinator, max_id)
         initial_lila_points = get_kid_points(coordinator, lila_id)
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Zoë claims and gets approved
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Mom", zoe_id, chore_id)
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", zoe_id, chore_id)
 
         # Zoë should be approved with points
         assert (
@@ -386,16 +403,18 @@ class TestSharedFirstChores:
             "Organize garage"
         ]  # shared_first, Zoë + Max only
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Zoë claims (Max becomes completed_by_other)
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
             assert (
                 get_kid_chore_state(coordinator, max_id, chore_id)
                 == CHORE_STATE_COMPLETED_BY_OTHER
             )
 
             # Disapprove Zoë
-            coordinator.disapprove_chore("Mom", zoe_id, chore_id)
+            await coordinator.chore_manager.disapprove_chore("Mom", zoe_id, chore_id)
 
         # Both should be reset to pending
         assert get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_PENDING
@@ -433,17 +452,19 @@ class TestSharedAllChores:
         initial_zoe = get_kid_points(coordinator, zoe_id)
         initial_max = get_kid_points(coordinator, max_id)
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Zoë claims and gets approved
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Mom", zoe_id, chore_id)
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", zoe_id, chore_id)
 
             # Zoë gets points immediately
             assert get_kid_points(coordinator, zoe_id) == initial_zoe + 8.0
 
             # Max claims and gets approved
-            coordinator.claim_chore(max_id, chore_id, "Max")
-            await coordinator.approve_chore("Mom", max_id, chore_id)
+            await coordinator.chore_manager.claim_chore(max_id, chore_id, "Max")
+            await coordinator.chore_manager.approve_chore("Mom", max_id, chore_id)
 
             # Max gets points
             assert get_kid_points(coordinator, max_id) == initial_max + 8.0
@@ -467,18 +488,20 @@ class TestSharedAllChores:
         initial_max = get_kid_points(coordinator, max_id)
         initial_lila = get_kid_points(coordinator, lila_id)
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # All three claim and get approved one by one
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Mom", zoe_id, chore_id)
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", zoe_id, chore_id)
             assert get_kid_points(coordinator, zoe_id) == initial_zoe + 10.0
 
-            coordinator.claim_chore(max_id, chore_id, "Max")
-            await coordinator.approve_chore("Mom", max_id, chore_id)
+            await coordinator.chore_manager.claim_chore(max_id, chore_id, "Max")
+            await coordinator.chore_manager.approve_chore("Mom", max_id, chore_id)
             assert get_kid_points(coordinator, max_id) == initial_max + 10.0
 
-            coordinator.claim_chore(lila_id, chore_id, "Lila")
-            await coordinator.approve_chore("Mom", lila_id, chore_id)
+            await coordinator.chore_manager.claim_chore(lila_id, chore_id, "Lila")
+            await coordinator.chore_manager.approve_chore("Mom", lila_id, chore_id)
             assert get_kid_points(coordinator, lila_id) == initial_lila + 10.0
 
     @pytest.mark.asyncio
@@ -496,10 +519,12 @@ class TestSharedAllChores:
             "Family dinner cleanup"
         ]  # shared_all, 3 kids
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Only Zoë completes the chore
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Mom", zoe_id, chore_id)
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", zoe_id, chore_id)
 
         # Zoë is approved
         assert (
@@ -550,15 +575,19 @@ class TestApprovalResetNoDueDate:
 
         initial_kid1_points = get_kid_points(coordinator, kid1_id)
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Kid1 claims and gets approved
-            coordinator.claim_chore(kid1_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid1_id, chore_id, "Zoë")
             assert (
                 get_kid_chore_state(coordinator, kid1_id, chore_id)
                 == CHORE_STATE_CLAIMED
             )
 
-            await coordinator.approve_chore("TestParent", kid1_id, chore_id)
+            await coordinator.chore_manager.approve_chore(
+                "TestParent", kid1_id, chore_id
+            )
             assert (
                 get_kid_chore_state(coordinator, kid1_id, chore_id)
                 == CHORE_STATE_APPROVED
@@ -571,8 +600,12 @@ class TestApprovalResetNoDueDate:
         )
 
         # Trigger approval reset (frequency="none" chores always included per line 7876)
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager._reset_daily_chore_statuses(
+                [FREQUENCY_DAILY]
+            )
 
         # Kid1 should reset to PENDING (ready for next round)
         assert (
@@ -612,9 +645,11 @@ class TestApprovalResetNoDueDate:
 
         initial_kid1_points = get_kid_points(coordinator, kid1_id)
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Kid1 claims (Kid2 becomes completed_by_other)
-            coordinator.claim_chore(kid1_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid1_id, chore_id, "Zoë")
             assert (
                 get_kid_chore_state(coordinator, kid1_id, chore_id)
                 == CHORE_STATE_CLAIMED
@@ -625,7 +660,9 @@ class TestApprovalResetNoDueDate:
             )
 
             # Kid1 gets approved
-            await coordinator.approve_chore("TestParent", kid1_id, chore_id)
+            await coordinator.chore_manager.approve_chore(
+                "TestParent", kid1_id, chore_id
+            )
             assert (
                 get_kid_chore_state(coordinator, kid1_id, chore_id)
                 == CHORE_STATE_APPROVED
@@ -633,8 +670,12 @@ class TestApprovalResetNoDueDate:
             assert get_kid_points(coordinator, kid1_id) == initial_kid1_points + 15.0
 
         # Trigger approval reset
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager._reset_daily_chore_statuses(
+                [FREQUENCY_DAILY]
+            )
 
         # BOTH kids should reset to PENDING (shared_first resets all)
         assert (
@@ -672,10 +713,14 @@ class TestApprovalResetNoDueDate:
         initial_kid1_points = get_kid_points(coordinator, kid1_id)
         initial_kid2_points = get_kid_points(coordinator, kid2_id)
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Kid1 claims and gets approved
-            coordinator.claim_chore(kid1_id, chore_id, "Zoë")
-            await coordinator.approve_chore("TestParent", kid1_id, chore_id)
+            await coordinator.chore_manager.claim_chore(kid1_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore(
+                "TestParent", kid1_id, chore_id
+            )
             assert (
                 get_kid_chore_state(coordinator, kid1_id, chore_id)
                 == CHORE_STATE_APPROVED
@@ -683,8 +728,10 @@ class TestApprovalResetNoDueDate:
             assert get_kid_points(coordinator, kid1_id) == initial_kid1_points + 20.0
 
             # Kid2 claims and gets approved
-            coordinator.claim_chore(kid2_id, chore_id, "Max!")
-            await coordinator.approve_chore("TestParent", kid2_id, chore_id)
+            await coordinator.chore_manager.claim_chore(kid2_id, chore_id, "Max!")
+            await coordinator.chore_manager.approve_chore(
+                "TestParent", kid2_id, chore_id
+            )
             assert (
                 get_kid_chore_state(coordinator, kid2_id, chore_id)
                 == CHORE_STATE_APPROVED
@@ -692,8 +739,12 @@ class TestApprovalResetNoDueDate:
             assert get_kid_points(coordinator, kid2_id) == initial_kid2_points + 20.0
 
         # Trigger approval reset
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager._reset_daily_chore_statuses(
+                [FREQUENCY_DAILY]
+            )
 
         # BOTH kids should reset to PENDING
         assert (
@@ -720,17 +771,23 @@ class TestApprovalResetNoDueDate:
             "No Due Date Independent"
         ]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Kid1 claims but does NOT get approved
-            coordinator.claim_chore(kid1_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid1_id, chore_id, "Zoë")
             assert (
                 get_kid_chore_state(coordinator, kid1_id, chore_id)
                 == CHORE_STATE_CLAIMED
             )
 
         # Trigger approval reset
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager._reset_daily_chore_statuses(
+                [FREQUENCY_DAILY]
+            )
 
         # Should reset to PENDING (default pending_claim_action is "clear")
         assert (
@@ -766,8 +823,10 @@ class TestWorkflowIntegrationEdgeCases:
 
         initial_points = get_kid_points(coordinator, kid_id)
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
 
         # Points should NOT change on claim
         final_points = get_kid_points(coordinator, kid_id)
@@ -794,10 +853,12 @@ class TestWorkflowIntegrationEdgeCases:
         # "Walk the dog" is shared_all (acts like independent per-kid tracking)
         chore_id = chore_map["Walk the dog"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Both kids can claim the same chore
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            coordinator.claim_chore(max_id, chore_id, "Max")
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(max_id, chore_id, "Max")
 
         # Both should be CLAIMED (independent tracking)
         assert get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_CLAIMED
@@ -825,9 +886,11 @@ class TestWorkflowIntegrationEdgeCases:
         chore_stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
         initial_count = chore_stats.get(const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME, 0)
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Mom", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", kid_id, chore_id)
 
         # Get final approval count
         kid_info = coordinator.kids_data.get(kid_id, {})
@@ -861,9 +924,11 @@ class TestWorkflowIntegrationEdgeCases:
             const.DATA_KID_CHORE_STATS_DISAPPROVED_ALL_TIME, 0
         )
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            coordinator.disapprove_chore("Mom", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.disapprove_chore("Mom", kid_id, chore_id)
 
         # Get final disapproval count
         kid_info = coordinator.kids_data.get(kid_id, {})
@@ -893,10 +958,12 @@ class TestWorkflowIntegrationEdgeCases:
 
         initial_points = get_kid_points(coordinator, kid_id)
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
             # Approval uses default points (5) - points_awarded param is reserved
-            await coordinator.approve_chore("Mom", kid_id, chore_id)
+            await coordinator.chore_manager.approve_chore("Mom", kid_id, chore_id)
 
         final_points = get_kid_points(coordinator, kid_id)
         assert final_points == initial_points + 5.0, (
@@ -927,10 +994,12 @@ class TestWorkflowResetIntegration:
         kid_id = scenario_minimal.kid_ids["Zoë"]
         chore_id = scenario_minimal.chore_ids["Make bed"]  # daily chore
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Complete the workflow: claim -> approve
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Mom", kid_id, chore_id)
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", kid_id, chore_id)
 
             # Verify approved
             assert (
@@ -939,7 +1008,9 @@ class TestWorkflowResetIntegration:
             )
 
             # Trigger daily reset
-            await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
+            await coordinator.chore_manager._reset_daily_chore_statuses(
+                [FREQUENCY_DAILY]
+            )
 
         # Should be back to PENDING (ready for next day)
         assert get_kid_chore_state(coordinator, kid_id, chore_id) == CHORE_STATE_PENDING
@@ -960,16 +1031,20 @@ class TestWorkflowResetIntegration:
         kid_id = scenario_minimal.kid_ids["Zoë"]
         chore_id = scenario_minimal.chore_ids["Make bed"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Claim but don't approve
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
             assert (
                 get_kid_chore_state(coordinator, kid_id, chore_id)
                 == CHORE_STATE_CLAIMED
             )
 
             # Trigger daily reset
-            await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
+            await coordinator.chore_manager._reset_daily_chore_statuses(
+                [FREQUENCY_DAILY]
+            )
 
         # Should be reset to PENDING (claim cleared)
         assert get_kid_chore_state(coordinator, kid_id, chore_id) == CHORE_STATE_PENDING
@@ -988,17 +1063,23 @@ class TestWorkflowResetIntegration:
         kid_id = scenario_minimal.kid_ids["Zoë"]
         chore_id = scenario_minimal.chore_ids["Make bed"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Mom", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", kid_id, chore_id)
 
         # Record points after approval
         points_after_approval = get_kid_points(coordinator, kid_id)
         assert points_after_approval > 0
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Trigger reset
-            await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
+            await coordinator.chore_manager._reset_daily_chore_statuses(
+                [FREQUENCY_DAILY]
+            )
 
         # Points should be unchanged
         points_after_reset = get_kid_points(coordinator, kid_id)
@@ -1047,16 +1128,20 @@ class TestEnhancedFrequencyWorkflows:
         # Initial state should be PENDING
         assert get_kid_chore_state(coordinator, kid_id, chore_id) == CHORE_STATE_PENDING
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Claim the chore
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
             assert (
                 get_kid_chore_state(coordinator, kid_id, chore_id)
                 == CHORE_STATE_CLAIMED
             )
 
             # Approve the chore
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_id, chore_id)
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_id, chore_id
+            )
 
         # After approval, state should change (APPROVED or PENDING based on reset)
         final_state = get_kid_chore_state(coordinator, kid_id, chore_id)
@@ -1089,16 +1174,20 @@ class TestEnhancedFrequencyWorkflows:
         # Initial state should be PENDING
         assert get_kid_chore_state(coordinator, kid_id, chore_id) == CHORE_STATE_PENDING
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Claim the chore
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
             assert (
                 get_kid_chore_state(coordinator, kid_id, chore_id)
                 == CHORE_STATE_CLAIMED
             )
 
             # Approve the chore
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_id, chore_id)
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_id, chore_id
+            )
 
         # After approval with UPON_COMPLETION reset, should be PENDING
         final_state = get_kid_chore_state(coordinator, kid_id, chore_id)
@@ -1130,16 +1219,20 @@ class TestEnhancedFrequencyWorkflows:
         # Initial state should be PENDING
         assert get_kid_chore_state(coordinator, kid_id, chore_id) == CHORE_STATE_PENDING
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Claim the chore
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
             assert (
                 get_kid_chore_state(coordinator, kid_id, chore_id)
                 == CHORE_STATE_CLAIMED
             )
 
             # Approve the chore
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_id, chore_id)
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_id, chore_id
+            )
 
         # After approval, state should change
         final_state = get_kid_chore_state(coordinator, kid_id, chore_id)
@@ -1165,15 +1258,17 @@ class TestEnhancedFrequencyWorkflows:
         chore = coordinator.chores_data.get(chore_id, {})
         assert chore.get(DATA_CHORE_RECURRING_FREQUENCY) == FREQUENCY_DAILY
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Standard workflow: claim -> approve
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
             assert (
                 get_kid_chore_state(coordinator, kid_id, chore_id)
                 == CHORE_STATE_CLAIMED
             )
 
-            await coordinator.approve_chore("Mom", kid_id, chore_id)
+            await coordinator.chore_manager.approve_chore("Mom", kid_id, chore_id)
 
         # Should be APPROVED (standard behavior)
         assert (

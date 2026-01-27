@@ -38,11 +38,17 @@ async def test_performance_baseline_with_scenario_full(
     coordinator = config_entry.runtime_data
 
     with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        patch.object(
+            coordinator.notification_manager, "notify_kid_translated", new=AsyncMock()
+        ),
+        patch.object(
+            coordinator.notification_manager,
+            "notify_parents_translated",
+            new=AsyncMock(),
+        ),
     ):
         # Test 1: Check overdue chores (O(chores × kids))
-        await coordinator._check_overdue_chores()
+        await coordinator.chore_manager.check_overdue_chores()
 
         # Test 2: Persist operation
         coordinator._persist()
@@ -53,10 +59,10 @@ async def test_performance_baseline_with_scenario_full(
         # Trigger immediate evaluation
         coordinator.gamification_manager._evaluate_dirty_kids()
 
-        # Test 4: Parent notifications
+        # Test 4: Parent notifications (via NotificationManager directly)
         if coordinator.parents_data and coordinator.kids_data:
             first_kid_id = list(coordinator.kids_data.keys())[0]
-            await coordinator._notify_parents_translated(
+            await coordinator.notification_manager.notify_parents_translated(
                 first_kid_id,
                 "notification_title_chore_claimed",
                 "notification_message_chore_claimed",
@@ -87,7 +93,9 @@ async def test_performance_baseline_with_scenario_full(
                     break
 
             if claimable_chore_id:
-                coordinator.claim_chore(kid_id, claimable_chore_id, "test_user")
+                await coordinator.chore_manager.claim_chore(
+                    kid_id, claimable_chore_id, "test_user"
+                )
 
         # Test 7: Chore approval and point addition
         if coordinator.chores_data and coordinator.kids_data:
@@ -104,7 +112,7 @@ async def test_performance_baseline_with_scenario_full(
                     break
 
             if chore_id_to_approve:
-                await coordinator.approve_chore(
+                await coordinator.chore_manager.approve_chore(
                     "test_user", kid_id, chore_id_to_approve
                 )
 
@@ -127,9 +135,13 @@ async def test_performance_baseline_with_scenario_full(
                         # Reset chore state to pending first
                         coordinator._process_chore_state(kid_id, chore_id, "pending")
                         # Claim it
-                        coordinator.claim_chore(kid_id, chore_id, "test_user")
+                        await coordinator.chore_manager.claim_chore(
+                            kid_id, chore_id, "test_user"
+                        )
                         # Approve it
-                        await coordinator.approve_chore("test_user", kid_id, chore_id)
+                        await coordinator.chore_manager.approve_chore(
+                            "test_user", kid_id, chore_id
+                        )
                         operations_count += 2
                         if (
                             operations_count >= 6

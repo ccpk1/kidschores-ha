@@ -154,7 +154,7 @@ def chore_has_pending_claim(
     Returns:
         True if kid has pending claim
     """
-    return coordinator.chore_has_pending_claim(kid_id, chore_id)
+    return coordinator.chore_manager.chore_has_pending_claim(kid_id, chore_id)
 
 
 # =============================================================================
@@ -193,8 +193,10 @@ class TestStateMatrixIndependent:
         kid_id = scenario_minimal.kid_ids["Zoë"]
         chore_id = scenario_minimal.chore_ids["Make bed"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
 
         per_kid_state = get_kid_chore_state(coordinator, kid_id, chore_id)
         global_state = get_global_chore_state(coordinator, chore_id)
@@ -213,9 +215,11 @@ class TestStateMatrixIndependent:
         kid_id = scenario_minimal.kid_ids["Zoë"]
         chore_id = scenario_minimal.chore_ids["Make bed"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Mom", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", kid_id, chore_id)
 
         per_kid_state = get_kid_chore_state(coordinator, kid_id, chore_id)
         global_state = get_global_chore_state(coordinator, chore_id)
@@ -234,9 +238,11 @@ class TestStateMatrixIndependent:
         kid_id = scenario_minimal.kid_ids["Zoë"]
         chore_id = scenario_minimal.chore_ids["Make bed"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            coordinator.disapprove_chore("Mom", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.disapprove_chore("Mom", kid_id, chore_id)
 
         per_kid_state = get_kid_chore_state(coordinator, kid_id, chore_id)
         global_state = get_global_chore_state(coordinator, chore_id)
@@ -257,7 +263,9 @@ class TestStateMatrixIndependent:
 
         states_observed = []
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Initial state
             states_observed.append(
                 {
@@ -268,7 +276,7 @@ class TestStateMatrixIndependent:
             )
 
             # Claim
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
             states_observed.append(
                 {
                     "step": "after_claim",
@@ -278,7 +286,7 @@ class TestStateMatrixIndependent:
             )
 
             # Approve
-            await coordinator.approve_chore("Mom", kid_id, chore_id)
+            await coordinator.chore_manager.approve_chore("Mom", kid_id, chore_id)
             states_observed.append(
                 {
                     "step": "after_approve",
@@ -342,9 +350,11 @@ class TestStateMatrixSharedFirst:
         lila_id = scenario_shared.kid_ids["Lila"]
         chore_id = scenario_shared.chore_ids["Take out trash"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Zoë claims first
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
 
         # Zoë should be claimed
         assert chore_has_pending_claim(coordinator, zoe_id, chore_id) is True
@@ -367,12 +377,17 @@ class TestStateMatrixSharedFirst:
         lila_id = scenario_shared.kid_ids["Lila"]
         chore_id = scenario_shared.chore_ids["Take out trash"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Mom", zoe_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", zoe_id, chore_id)
 
         # Zoë should be approved
-        assert coordinator.chore_is_approved_in_period(zoe_id, chore_id) is True
+        assert (
+            coordinator.chore_manager.chore_is_approved_in_period(zoe_id, chore_id)
+            is True
+        )
 
         # Global state should be APPROVED (chore is complete)
         assert get_global_chore_state(coordinator, chore_id) == CHORE_STATE_APPROVED
@@ -394,9 +409,11 @@ class TestStateMatrixSharedFirst:
         lila_id = scenario_shared.kid_ids["Lila"]
         chore_id = scenario_shared.chore_ids["Take out trash"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            coordinator.disapprove_chore("Mom", zoe_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.disapprove_chore("Mom", zoe_id, chore_id)
 
         # Global state should be back to pending
         assert get_global_chore_state(coordinator, chore_id) == CHORE_STATE_PENDING
@@ -448,8 +465,10 @@ class TestStateMatrixSharedAll:
         zoe_id = scenario_shared.kid_ids["Zoë"]
         chore_id = scenario_shared.chore_ids["Family dinner cleanup"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
 
         # Zoë should have pending claim
         assert chore_has_pending_claim(coordinator, zoe_id, chore_id) is True
@@ -472,10 +491,12 @@ class TestStateMatrixSharedAll:
         lila_id = scenario_shared.kid_ids["Lila"]
         chore_id = scenario_shared.chore_ids["Family dinner cleanup"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            coordinator.claim_chore(max_id, chore_id, "Max!")
-            coordinator.claim_chore(lila_id, chore_id, "Lila")
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(max_id, chore_id, "Max!")
+            await coordinator.chore_manager.claim_chore(lila_id, chore_id, "Lila")
 
         # All should have pending claims
         assert chore_has_pending_claim(coordinator, zoe_id, chore_id) is True
@@ -498,17 +519,22 @@ class TestStateMatrixSharedAll:
         lila_id = scenario_shared.kid_ids["Lila"]
         chore_id = scenario_shared.chore_ids["Family dinner cleanup"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # All claim
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            coordinator.claim_chore(max_id, chore_id, "Max!")
-            coordinator.claim_chore(lila_id, chore_id, "Lila")
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(max_id, chore_id, "Max!")
+            await coordinator.chore_manager.claim_chore(lila_id, chore_id, "Lila")
 
             # Only Zoë approved
-            await coordinator.approve_chore("Mom", zoe_id, chore_id)
+            await coordinator.chore_manager.approve_chore("Mom", zoe_id, chore_id)
 
         # Zoë should be approved
-        assert coordinator.chore_is_approved_in_period(zoe_id, chore_id) is True
+        assert (
+            coordinator.chore_manager.chore_is_approved_in_period(zoe_id, chore_id)
+            is True
+        )
 
         # Global state should be approved_in_part
         assert (
@@ -529,21 +555,32 @@ class TestStateMatrixSharedAll:
         lila_id = scenario_shared.kid_ids["Lila"]
         chore_id = scenario_shared.chore_ids["Family dinner cleanup"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # All claim
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            coordinator.claim_chore(max_id, chore_id, "Max!")
-            coordinator.claim_chore(lila_id, chore_id, "Lila")
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(max_id, chore_id, "Max!")
+            await coordinator.chore_manager.claim_chore(lila_id, chore_id, "Lila")
 
             # All approved
-            await coordinator.approve_chore("Mom", zoe_id, chore_id)
-            await coordinator.approve_chore("Mom", max_id, chore_id)
-            await coordinator.approve_chore("Mom", lila_id, chore_id)
+            await coordinator.chore_manager.approve_chore("Mom", zoe_id, chore_id)
+            await coordinator.chore_manager.approve_chore("Mom", max_id, chore_id)
+            await coordinator.chore_manager.approve_chore("Mom", lila_id, chore_id)
 
         # All should be approved
-        assert coordinator.chore_is_approved_in_period(zoe_id, chore_id) is True
-        assert coordinator.chore_is_approved_in_period(max_id, chore_id) is True
-        assert coordinator.chore_is_approved_in_period(lila_id, chore_id) is True
+        assert (
+            coordinator.chore_manager.chore_is_approved_in_period(zoe_id, chore_id)
+            is True
+        )
+        assert (
+            coordinator.chore_manager.chore_is_approved_in_period(max_id, chore_id)
+            is True
+        )
+        assert (
+            coordinator.chore_manager.chore_is_approved_in_period(lila_id, chore_id)
+            is True
+        )
 
         # Global state should be approved (all approved)
         assert get_global_chore_state(coordinator, chore_id) == CHORE_STATE_APPROVED
@@ -561,13 +598,15 @@ class TestStateMatrixSharedAll:
         _lila_id = scenario_shared.kid_ids["Lila"]  # Lila stays pending (no action)
         chore_id = scenario_shared.chore_ids["Family dinner cleanup"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Zoë claims and gets approved
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Mom", zoe_id, chore_id)
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Mom", zoe_id, chore_id)
 
             # Max claims but not approved yet
-            coordinator.claim_chore(max_id, chore_id, "Max!")
+            await coordinator.chore_manager.claim_chore(max_id, chore_id, "Max!")
 
             # Lila hasn't claimed (pending)
 
@@ -605,32 +644,34 @@ class TestGlobalStateConsistency:
 
         global_states_observed = []
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Initial
             global_states_observed.append(
                 ("initial", get_global_chore_state(coordinator, chore_id))
             )
 
             # Zoë claims
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
             global_states_observed.append(
                 ("zoe_claim", get_global_chore_state(coordinator, chore_id))
             )
 
             # Max claims
-            coordinator.claim_chore(max_id, chore_id, "Max!")
+            await coordinator.chore_manager.claim_chore(max_id, chore_id, "Max!")
             global_states_observed.append(
                 ("max_claim", get_global_chore_state(coordinator, chore_id))
             )
 
             # Zoë approved
-            await coordinator.approve_chore("Mom", zoe_id, chore_id)
+            await coordinator.chore_manager.approve_chore("Mom", zoe_id, chore_id)
             global_states_observed.append(
                 ("zoe_approve", get_global_chore_state(coordinator, chore_id))
             )
 
             # Max approved
-            await coordinator.approve_chore("Mom", max_id, chore_id)
+            await coordinator.chore_manager.approve_chore("Mom", max_id, chore_id)
             global_states_observed.append(
                 ("max_approve", get_global_chore_state(coordinator, chore_id))
             )
@@ -664,21 +705,23 @@ class TestGlobalStateConsistency:
         max_id = scenario_shared.kid_ids["Max!"]
         chore_id = scenario_shared.chore_ids["Walk the dog"]  # shared_all, 2 kids
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Both claim
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            coordinator.claim_chore(max_id, chore_id, "Max!")
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(max_id, chore_id, "Max!")
             assert get_global_chore_state(coordinator, chore_id) == CHORE_STATE_CLAIMED
 
             # Zoë approved
-            await coordinator.approve_chore("Mom", zoe_id, chore_id)
+            await coordinator.chore_manager.approve_chore("Mom", zoe_id, chore_id)
             assert (
                 get_global_chore_state(coordinator, chore_id)
                 == CHORE_STATE_APPROVED_IN_PART
             )
 
             # Max disapproved - only Max should reset, Zoë stays approved
-            coordinator.disapprove_chore("Mom", max_id, chore_id)
+            await coordinator.chore_manager.disapprove_chore("Mom", max_id, chore_id)
 
         # Max is now pending, Zoë is still approved = approved_in_part
         assert (

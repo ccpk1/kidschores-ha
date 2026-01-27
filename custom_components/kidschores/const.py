@@ -72,6 +72,7 @@ SIGNAL_SUFFIX_CHORE_CLAIMED: Final = "chore_claimed"
 SIGNAL_SUFFIX_CHORE_APPROVED: Final = "chore_approved"
 SIGNAL_SUFFIX_CHORE_DISAPPROVED: Final = "chore_disapproved"
 SIGNAL_SUFFIX_CHORE_OVERDUE: Final = "chore_overdue"
+SIGNAL_SUFFIX_CHORE_DUE_SOON: Final = "chore_due_soon"
 SIGNAL_SUFFIX_CHORE_STATUS_RESET: Final = "chore_status_reset"
 SIGNAL_SUFFIX_CHORE_RESCHEDULED: Final = "chore_rescheduled"
 

@@ -5,9 +5,10 @@ Handles data synchronization, chore claiming and approval, badge tracking,
 reward redemption, penalty application, and recurring chore handling.
 Manages entities primarily using internal_id for consistency.
 
-Code Organization: Uses multiple inheritance to organize features by domain:
-- ChoreOperations (coordinator_chore_operations.py): 43 chore lifecycle methods
-- Future: RewardOperations, BadgeOperations, etc.
+Architecture (v0.5.0+):
+    - Coordinator = Routing layer (handles persistence, routes to Managers)
+    - Managers = Stateful workflows (ChoreManager, EconomyManager, etc.)
+    - Engines = Pure logic (ChoreEngine, EconomyEngine, etc.)
 """
 
 # Pylint suppressions for valid coordinator architectural patterns:
@@ -16,53 +17,42 @@ Code Organization: Uses multiple inheritance to organize features by domain:
 
 import asyncio
 from collections.abc import Callable
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 import re
 import sys
 import time
 from typing import Any, cast
-import uuid
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.dispatcher import (
-    async_dispatcher_connect,
-    async_dispatcher_send,
-)
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
 from . import const, data_builders as db, kc_helpers as kh
-from .coordinator_chore_operations import ChoreOperations
-from .engines.economy_engine import EconomyEngine
 from .engines.statistics import StatisticsEngine
 from .managers import (
     ChoreManager,
     EconomyManager,
     GamificationManager,
     NotificationManager,
+    RewardManager,
+    StatisticsManager,
 )
 from .store import KidsChoresStore
 from .type_defs import (
-    AchievementProgress,
     AchievementsCollection,
-    BadgeData,
     BadgesCollection,
-    BonusData,
     BonusesCollection,
     ChallengesCollection,
     ChoresCollection,
-    KidBadgeProgress,
     KidCumulativeBadgeProgress,
     KidData,
     KidsCollection,
     ParentsCollection,
     PenaltiesCollection,
-    PenaltyData,
-    RewardData,
     RewardsCollection,
 )
 
@@ -71,14 +61,15 @@ from .type_defs import (
 type KidsChoresConfigEntry = ConfigEntry["KidsChoresDataCoordinator"]
 
 
-class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
+class KidsChoresDataCoordinator(DataUpdateCoordinator):
     """Coordinator for KidsChores integration.
 
     Manages data primarily using internal_id for entities.
 
-    Inherits from:
-        - ChoreOperations: Chore lifecycle methods (claim, approve, etc.)
-        - DataUpdateCoordinator: HA coordinator base class
+    Architecture (v0.5.0+):
+        - Coordinator = Routing layer (calls Managers, handles persistence)
+        - Managers = Stateful workflows (ChoreManager, EconomyManager, etc.)
+        - Engines = Pure logic (ChoreEngine, EconomyEngine, etc.)
     """
 
     config_entry: ConfigEntry  # Override base class to enforce non-None
@@ -134,7 +125,7 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         # Callback for dynamically adding new translation sensors
         self._sensor_add_entities_callback: Any = None
 
-        # Statistics engine for unified period-based tracking (v0.6.0+)
+        # Statistics engine for unified period-based tracking (v0.5.0+)
         self.stats = StatisticsEngine()
 
         # Economy manager for point transactions and ledger (v0.5.0+)
@@ -148,9 +139,19 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         # Future phases will delegate ChoreOperations methods to this manager
         self.chore_manager = ChoreManager(hass, self, self.economy_manager)
 
+        # Reward manager for reward redemption lifecycle (v0.5.0+)
+        # Phase 6: Owns redeem/approve/disapprove/undo/reset workflows
+        self.reward_manager = RewardManager(
+            hass, self, self.economy_manager, self.notification_manager
+        )
+
         # Gamification manager for badge/achievement/challenge evaluation (v0.5.x+)
         # Uses debounced evaluation triggered by coordinator events
         self.gamification_manager = GamificationManager(hass, self)
+
+        # Statistics manager for event-driven stats aggregation (v0.5.0+)
+        # Listens to POINTS_CHANGED, CHORE_APPROVED, REWARD_APPROVED events
+        self.statistics_manager = StatisticsManager(hass, self)
 
     # -------------------------------------------------------------------------------------
     # Migrate Data and Converters
@@ -175,10 +176,10 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         """Periodic update."""
         try:
             # Check overdue chores
-            await self._check_overdue_chores()
+            await self.chore_manager.check_overdue_chores()
 
             # Check for due-soon reminders (v0.5.0+)
-            await self._check_chore_due_reminders()
+            await self.chore_manager.check_chore_due_reminders()
 
             # Notify entities of changes
             self.async_update_listeners()
@@ -298,11 +299,13 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         # Register daily/weekly/monthly resets
         async_track_time_change(
             self.hass,
-            self._process_recurring_chore_resets,
+            self.chore_manager.process_recurring_chore_resets,
             **const.DEFAULT_DAILY_RESET_TIME,
         )
         async_track_time_change(
-            self.hass, self._check_overdue_chores, **const.DEFAULT_DAILY_RESET_TIME
+            self.hass,
+            self.chore_manager.check_overdue_chores,
+            **const.DEFAULT_DAILY_RESET_TIME,
         )
         async_track_time_change(
             self.hass,
@@ -314,27 +317,16 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         # (called when storage_schema_version < 42). No separate config sync needed here.
 
         # Initialize badge references in kid chore tracking
-        self._update_chore_badge_references_for_kid()
+        self.gamification_manager.update_chore_badge_references_for_kid()
 
         # Initialize chore and point stats
-        for kid_id in self.kids_data:
-            self._recalculate_chore_stats_for_kid(kid_id)
-            self._recalculate_point_stats_for_kid(kid_id)
+        for kid_id, kid_info in self.kids_data.items():
+            self.chore_manager.recalculate_chore_stats_for_kid(kid_id)
+            stats = self.stats.generate_point_stats(kid_info)
+            kid_info[const.DATA_KID_POINT_STATS] = stats
 
-        # =================================================================
-        # Phase 4.5: Event Loopback for Gamification Bridge
-        # =================================================================
-        # Subscribe to CHORE_CLAIMED for notification handling
-        claimed_signal = kh.get_event_signal(
-            self.config_entry.entry_id, const.SIGNAL_SUFFIX_CHORE_CLAIMED
-        )
-        self.config_entry.async_on_unload(
-            async_dispatcher_connect(
-                self.hass, claimed_signal, self._handle_chore_claimed_notification
-            )
-        )
-
-        const.LOGGER.debug("Event loopback registered for CHORE_CLAIMED notification")
+        # Note: CHORE_CLAIMED notifications now handled by NotificationManager
+        # via event subscription in async_setup()
 
         self._persist(immediate=True)  # Startup persist should be immediate
         await super().async_config_entry_first_refresh()
@@ -409,102 +401,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
             # Task was cancelled, new save scheduled
             const.LOGGER.debug("Debounced persist cancelled (replaced by new save)")
             raise
-
-    # -------------------------------------------------------------------------------------
-    # Event Handlers for Notifications
-    # -------------------------------------------------------------------------------------
-
-    async def _handle_chore_claimed_notification(self, payload: dict[str, Any]) -> None:
-        """Handle CHORE_CLAIMED event - send notification to parents.
-
-        This bridges ChoreManager events to the notification system.
-        Notifications are NOT sent if auto_approve is enabled (manager handles that).
-
-        Args:
-            payload: Event payload dict containing 'kid_id', 'chore_id', and optional
-                     'chore_name', 'user_name', etc.
-        """
-        from .managers import NotificationManager
-        from .type_defs import ChoreData
-
-        kid_id = payload.get("kid_id")
-        chore_id = payload.get("chore_id")
-
-        if not kid_id or not chore_id:
-            const.LOGGER.warning(
-                "CHORE_CLAIMED notification skipped: missing kid_id or chore_id"
-            )
-            return
-
-        chore_info: ChoreData | None = self.chores_data.get(chore_id)
-        if not chore_info:
-            return
-
-        # Skip notification if auto_approve is enabled
-        if chore_info.get(
-            const.DATA_CHORE_AUTO_APPROVE, const.DEFAULT_CHORE_AUTO_APPROVE
-        ):
-            return
-
-        # Skip if notify_on_claim is disabled
-        if not chore_info.get(
-            const.DATA_CHORE_NOTIFY_ON_CLAIM, const.DEFAULT_NOTIFY_ON_CLAIM
-        ):
-            return
-
-        kid_info: KidData | None = self.kids_data.get(kid_id)
-        if not kid_info:
-            return
-        chore_name = payload.get("chore_name") or chore_info.get(
-            const.DATA_CHORE_NAME, ""
-        )
-        kid_name = kid_info.get(const.DATA_KID_NAME, "")
-        chore_points = chore_info.get(
-            const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_ZERO
-        )
-
-        # Count pending chores for aggregation
-        pending_count = self._count_chores_pending_for_kid(kid_id)
-
-        # Build action buttons
-        actions = NotificationManager.build_chore_actions(kid_id, chore_id)
-        extra_data = NotificationManager.build_extra_data(kid_id, chore_id=chore_id)
-
-        if pending_count > 1:
-            # Aggregated notification
-            await self._notify_parents_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_PENDING_CHORES,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_PENDING_CHORES,
-                message_data={
-                    "kid_name": kid_name,
-                    "count": pending_count,
-                    "latest_chore": chore_name,
-                    "points": int(chore_points),
-                },
-                actions=actions,
-                extra_data=extra_data,
-                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
-                tag_identifiers=(chore_id, kid_id),
-            )
-        else:
-            # Single chore notification
-            await self._notify_parents_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_CLAIMED,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_CLAIMED,
-                message_data={
-                    "kid_name": kid_name,
-                    "chore_name": chore_name,
-                },
-                actions=actions,
-                extra_data=extra_data,
-                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
-                tag_identifiers=(chore_id, kid_id),
-            )
-
-        # Clear due-soon reminder tracking
-        self._clear_chore_due_reminder(chore_id, kid_id)
 
     # -------------------------------------------------------------------------------------
     # Approval Lock Management
@@ -604,8 +500,8 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
 
     @property
     def pending_reward_approvals(self) -> list[dict[str, Any]]:
-        """Return the list of pending reward approvals (computed from modern structure)."""
-        return self.get_pending_reward_approvals_computed()
+        """Return the list of pending reward approvals (computed via RewardManager)."""
+        return self.reward_manager.get_pending_approvals()
 
     @property
     def pending_reward_changed(self) -> bool:
@@ -619,89 +515,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         """
         self._pending_chore_changed = False
         self._pending_reward_changed = False
-
-    # -------------------------------------------------------------------------------------
-    # Data Cleanup
-    # -------------------------------------------------------------------------------------
-
-    def _cleanup_chore_from_kid(self, kid_id: str, chore_id: str) -> None:
-        """Remove references to a specific chore from a kid's data."""
-        kid_info: KidData | None = self.kids_data.get(kid_id)
-        if not kid_info:
-            return
-
-        # cast() for mypy: KidData is a TypedDict which is a dict[str, Any] at runtime
-        if kh.cleanup_chore_from_kid_data(cast("dict[str, Any]", kid_info), chore_id):
-            self._pending_chore_changed = True
-
-    def _cleanup_pending_reward_approvals(self) -> None:
-        """Remove reward_data entries for rewards that no longer exist."""
-        valid_reward_ids = set(self._data.get(const.DATA_REWARDS, {}).keys())
-        # cast() for mypy: dict[str, KidData] → dict[str, dict[str, Any]] at runtime
-        if kh.cleanup_orphaned_reward_data(
-            cast("dict[str, dict[str, Any]]", self.kids_data), valid_reward_ids
-        ):
-            self._pending_reward_changed = True
-
-    def _cleanup_deleted_kid_references(self) -> None:
-        """Remove references to kids that no longer exist from other sections."""
-        valid_kid_ids = set(self.kids_data.keys())
-
-        # Remove deleted kid IDs from all chore assignments
-        kh.cleanup_orphaned_kid_refs_in_chores(
-            self._data.get(const.DATA_CHORES, {}),
-            valid_kid_ids,
-        )
-
-        # Remove progress in achievements and challenges
-        kh.cleanup_orphaned_kid_refs_in_gamification(
-            self._data.get(const.DATA_ACHIEVEMENTS, {}),
-            valid_kid_ids,
-            "achievements",
-        )
-        kh.cleanup_orphaned_kid_refs_in_gamification(
-            self._data.get(const.DATA_CHALLENGES, {}),
-            valid_kid_ids,
-            "challenges",
-        )
-
-    def _cleanup_deleted_chore_references(self) -> None:
-        """Remove references to chores that no longer exist from kid data."""
-        valid_chore_ids = set(self.chores_data.keys())
-        # cast() for mypy: dict[str, KidData] → dict[str, dict[str, Any]] at runtime
-        kh.cleanup_orphaned_chore_refs_in_kids(
-            cast("dict[str, dict[str, Any]]", self.kids_data), valid_chore_ids
-        )
-
-    def _cleanup_parent_assignments(self) -> None:
-        """Remove any kid IDs from parent's 'associated_kids' that no longer exist."""
-        valid_kid_ids = set(self.kids_data.keys())
-        kh.cleanup_orphaned_kid_refs_in_parents(
-            self._data.get(const.DATA_PARENTS, {}),
-            valid_kid_ids,
-        )
-
-    def _cleanup_deleted_chore_in_achievements(self) -> None:
-        """Clear selected_chore_id in achievements if the chore no longer exists."""
-        valid_chore_ids = set(self.chores_data.keys())
-        kh.cleanup_deleted_chore_in_gamification(
-            self._data.get(const.DATA_ACHIEVEMENTS, {}),
-            valid_chore_ids,
-            const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID,
-            "",
-            "achievement",
-        )
-
-    def _cleanup_deleted_chore_in_challenges(self) -> None:
-        """Clear selected_chore_id in challenges if the chore no longer exists."""
-        valid_chore_ids = set(self.chores_data.keys())
-        kh.cleanup_deleted_chore_in_gamification(
-            self._data.get(const.DATA_CHALLENGES, {}),
-            valid_chore_ids,
-            const.DATA_CHALLENGE_SELECTED_CHORE_ID,
-            const.SENTINEL_EMPTY,
-            "challenge",
-        )
 
     # -------------------------------------------------------------------------------------
     # Home Assistant Registry Device and Entity Removal
@@ -898,6 +711,16 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
             entity_type="kid-chore entity",
         )
 
+    # ------------------- Has assigned kid relationship -------------------------------------
+    async def _remove_orphaned_badge_entities(self) -> int:
+        """Remove badge progress entities for unassigned kids."""
+        return await self._remove_orphaned_progress_entities(
+            entity_type="badge",
+            entity_list_key=const.DATA_BADGES,
+            progress_suffix=const.SENSOR_KC_UID_SUFFIX_BADGE_PROGRESS_SENSOR,
+            assigned_kids_key=const.DATA_BADGE_ASSIGNED_TO,
+        )
+
     async def _remove_orphaned_progress_entities(
         self,
         entity_type: str,
@@ -925,34 +748,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
             suffix=progress_suffix,
             is_valid=is_valid,
             entity_type=f"{entity_type} progress sensor",
-        )
-
-    async def _remove_orphaned_achievement_entities(self) -> int:
-        """Remove achievement progress entities for unassigned kids."""
-        return await self._remove_orphaned_progress_entities(
-            entity_type="achievement",
-            entity_list_key=const.DATA_ACHIEVEMENTS,
-            progress_suffix=const.DATA_ACHIEVEMENT_PROGRESS_SUFFIX,
-            assigned_kids_key=const.DATA_ACHIEVEMENT_ASSIGNED_KIDS,
-        )
-
-    async def _remove_orphaned_challenge_entities(self) -> int:
-        """Remove challenge progress entities for unassigned kids."""
-        return await self._remove_orphaned_progress_entities(
-            entity_type="challenge",
-            entity_list_key=const.DATA_CHALLENGES,
-            progress_suffix=const.DATA_CHALLENGE_PROGRESS_SUFFIX,
-            assigned_kids_key=const.DATA_CHALLENGE_ASSIGNED_KIDS,
-        )
-
-    # ------------------- Has assigned kid relationship -------------------------------------
-    async def _remove_orphaned_badge_entities(self) -> int:
-        """Remove badge progress entities for unassigned kids."""
-        return await self._remove_orphaned_progress_entities(
-            entity_type="badge",
-            entity_list_key=const.DATA_BADGES,
-            progress_suffix=const.SENSOR_KC_UID_SUFFIX_BADGE_PROGRESS_SENSOR,
-            assigned_kids_key=const.DATA_BADGE_ASSIGNED_TO,
         )
 
     async def _remove_orphaned_manual_adjustment_buttons(self) -> int:
@@ -1000,6 +795,24 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
             midfix=button_suffix,
             is_valid=is_valid,
             entity_type="manual adjustment button",
+        )
+
+    async def _remove_orphaned_achievement_entities(self) -> int:
+        """Remove achievement progress entities for unassigned kids."""
+        return await self._remove_orphaned_progress_entities(
+            entity_type="achievement",
+            entity_list_key=const.DATA_ACHIEVEMENTS,
+            progress_suffix=const.DATA_ACHIEVEMENT_PROGRESS_SUFFIX,
+            assigned_kids_key=const.DATA_ACHIEVEMENT_ASSIGNED_KIDS,
+        )
+
+    async def _remove_orphaned_challenge_entities(self) -> int:
+        """Remove challenge progress entities for unassigned kids."""
+        return await self._remove_orphaned_progress_entities(
+            entity_type="challenge",
+            entity_list_key=const.DATA_CHALLENGES,
+            progress_suffix=const.DATA_CHALLENGE_PROGRESS_SUFFIX,
+            assigned_kids_key=const.DATA_CHALLENGE_ASSIGNED_KIDS,
         )
 
     async def remove_all_orphaned_entities(self) -> int:
@@ -1088,10 +901,11 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
             if not unique_id.startswith(prefix):
                 continue
 
-            # Extract kid_id from unique_id
-            kid_id = self._extract_kid_id_from_unique_id(unique_id, prefix)
-            if not kid_id:
+            # Extract kid_id from unique_id using helper
+            parts = kh.parse_entity_reference(unique_id, prefix)
+            if not parts:
                 continue
+            kid_id = parts[0]
 
             # Skip if not in target list (when targeted)
             if target_kids and kid_id not in target_kids:
@@ -1131,37 +945,6 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
                 removed_count,
             )
         return removed_count
-
-    def _extract_kid_id_from_unique_id(self, unique_id: str, prefix: str) -> str | None:
-        """Extract kid_id from a unique_id string.
-
-        Handles different unique_id patterns:
-        - New SUFFIX pattern: {entry_id}_{kid_id}[_{item_id}]{_class_suffix}
-        - Legacy PREFIX pattern: {entry_id}_{prefix}_{kid_id}_{item_id} (deprecated)
-
-        Args:
-            unique_id: The entity's unique_id string.
-            prefix: The config entry prefix ({entry_id}_).
-
-        Returns:
-            The kid_id or None if not found.
-        """
-        # Check for legacy button prefixes (deprecated, kept for migration)
-        # These will be removed once all entities are migrated
-        for button_prefix in (
-            const.BUTTON_REWARD_PREFIX,
-            const.BUTTON_BONUS_PREFIX,
-            const.BUTTON_PENALTY_PREFIX,
-        ):
-            if button_prefix in unique_id:
-                parts = unique_id.split(button_prefix, 1)
-                if len(parts) == 2:
-                    return parts[1].split("_", 1)[0]
-
-        # Standard SUFFIX pattern: {entry_id}_{kid_id}[_{item_id}]{_suffix}
-        remainder = unique_id[len(prefix) :]
-        parts = remainder.split("_", 1)
-        return parts[0] if parts else None
 
     # -------------------------------------------------------------------------------------
     # KidsChores Entity Management Methods (for Options Flow and some Services)
@@ -1319,15 +1102,17 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         )
         del self._data[const.DATA_BADGES][badge_id]
 
-        # Remove awarded badges from kids
-        self._remove_awarded_badges_by_id(badge_id=badge_id)
+        # Remove awarded badges from kids via GamificationManager
+        self.gamification_manager.remove_awarded_badges_by_id(badge_id=badge_id)
 
         # Phase 4: Clean up badge_progress from all kids after badge deletion
         # Also recalculate cumulative badge progress since a cumulative badge may have been deleted
         for kid_id in self.kids_data:
-            self._sync_badge_progress_for_kid(kid_id)
+            self.gamification_manager.sync_badge_progress_for_kid(kid_id)
             # Refresh cumulative badge progress (handles case when cumulative badge is deleted)
-            cumulative_progress = self._get_cumulative_badge_progress(kid_id)
+            cumulative_progress = (
+                self.gamification_manager.get_cumulative_badge_progress(kid_id)
+            )
             self.kids_data[kid_id][const.DATA_KID_CUMULATIVE_BADGE_PROGRESS] = cast(
                 "KidCumulativeBadgeProgress", cumulative_progress
             )
@@ -1469,164 +1254,87 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
         )
 
     # -------------------------------------------------------------------------------------
-    # Translation Sensor Lifecycle Management
+    # Data Cleanup
     # -------------------------------------------------------------------------------------
 
-    def register_translation_sensor_callback(self, async_add_entities) -> None:
-        """Register the callback for dynamically adding translation sensors.
-
-        Called by sensor.py during async_setup_entry to enable dynamic sensor creation.
-        """
-        self._sensor_add_entities_callback = async_add_entities
-
-    def mark_translation_sensor_created(self, lang_code: str) -> None:
-        """Mark that a translation sensor for this language has been created."""
-        self._translation_sensors_created.add(lang_code)
-
-    def is_translation_sensor_created(self, lang_code: str) -> bool:
-        """Check if a translation sensor exists for the given language code."""
-        return lang_code in self._translation_sensors_created
-
-    def get_translation_sensor_eid(self, lang_code: str) -> str | None:
-        """Get the entity ID for a translation sensor given a language code.
-
-        Looks up the entity ID from the registry using the unique_id.
-        Falls back to English ('en') if the requested language isn't found.
-        Returns None only if neither the requested language nor English exist.
-
-        Args:
-            lang_code: ISO language code (e.g., 'en', 'es', 'de')
-
-        Returns:
-            Entity ID if found in registry (requested or fallback), None otherwise
-        """
-        from homeassistant.helpers.entity_registry import async_get
-
-        entity_registry = async_get(self.hass)
-        unique_id = f"{self.config_entry.entry_id}_{lang_code}{const.SENSOR_KC_UID_SUFFIX_DASHBOARD_LANG}"
-        entity_id = entity_registry.async_get_entity_id(
-            "sensor", const.DOMAIN, unique_id
-        )
-
-        # If requested language not found and it's not already English, fall back to English
-        if entity_id is None and lang_code != "en":
-            unique_id_en = f"{self.config_entry.entry_id}_en{const.SENSOR_KC_UID_SUFFIX_DASHBOARD_LANG}"
-            entity_id = entity_registry.async_get_entity_id(
-                "sensor", const.DOMAIN, unique_id_en
-            )
-
-        return entity_id
-
-    async def ensure_translation_sensor_exists(self, lang_code: str) -> str:
-        """Ensure a translation sensor exists for the given language code.
-
-        If the sensor doesn't exist, creates it dynamically using the stored
-        async_add_entities callback. Returns the entity ID.
-
-        This is called when a kid's dashboard language changes to a new language
-        that doesn't have a translation sensor yet.
-        """
-        # Import here to avoid circular dependency
-        from .sensor import SystemDashboardTranslationSensor
-
-        # Try to get entity ID from registry
-        eid = self.get_translation_sensor_eid(lang_code)
-
-        # If sensor already exists in registry, return the entity ID
-        if eid:
-            return eid
-
-        # If sensor was marked as created but not in registry, use constructed entity_id
-        if lang_code in self._translation_sensors_created:
-            # Construct expected entity_id (sensor exists but not yet in registry)
-            return (
-                f"{const.SENSOR_KC_PREFIX}"
-                f"{const.SENSOR_KC_EID_PREFIX_DASHBOARD_LANG}{lang_code}"
-            )
-
-        # If no callback registered (shouldn't happen), log warning and return fallback
-        if self._sensor_add_entities_callback is None:
-            const.LOGGER.warning(
-                "Cannot create translation sensor for '%s': no callback registered",
-                lang_code,
-            )
-            # Fallback to English if available
-            if const.DEFAULT_DASHBOARD_LANGUAGE in self._translation_sensors_created:
-                fallback_eid = self.get_translation_sensor_eid(
-                    const.DEFAULT_DASHBOARD_LANGUAGE
-                )
-                if fallback_eid:
-                    return fallback_eid
-            # Last resort: construct expected entity_id
-            return (
-                f"{const.SENSOR_KC_PREFIX}"
-                f"{const.SENSOR_KC_EID_PREFIX_DASHBOARD_LANG}{lang_code}"
-            )
-
-        # Create the new translation sensor
-        const.LOGGER.info(
-            "Creating translation sensor for newly-used language: %s", lang_code
-        )
-        new_sensor = SystemDashboardTranslationSensor(
-            self, self.config_entry, lang_code
-        )
-        self._sensor_add_entities_callback([new_sensor])
-        self._translation_sensors_created.add(lang_code)
-
-        # Return expected entity_id (sensor not yet in registry)
-        return (
-            f"{const.SENSOR_KC_PREFIX}"
-            f"{const.SENSOR_KC_EID_PREFIX_DASHBOARD_LANG}{lang_code}"
-        )
-
-    def get_languages_in_use(self) -> set[str]:
-        """Get all unique dashboard languages currently in use by kids and parents.
-
-        Used to determine which translation sensors are needed.
-        """
-        languages: set[str] = set()
-        for kid_info in self.kids_data.values():
-            lang = kid_info.get(
-                const.DATA_KID_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
-            )
-            languages.add(lang)
-        for parent_info in self.parents_data.values():
-            lang = parent_info.get(
-                const.DATA_PARENT_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
-            )
-            languages.add(lang)
-        # Always include English as fallback
-        languages.add(const.DEFAULT_DASHBOARD_LANGUAGE)
-        return languages
-
-    def remove_unused_translation_sensors(self) -> None:
-        """Remove translation sensors for languages no longer in use.
-
-        This is an optimization to avoid keeping unused sensors in memory.
-        Called when a kid/parent is deleted or their language is changed.
-
-        Note: Entity removal is handled via entity registry; we just update tracking.
-        """
-        languages_in_use = self.get_languages_in_use()
-        unused_languages = self._translation_sensors_created - languages_in_use
-
-        if not unused_languages:
+    def _cleanup_chore_from_kid(self, kid_id: str, chore_id: str) -> None:
+        """Remove references to a specific chore from a kid's data."""
+        kid_info: KidData | None = self.kids_data.get(kid_id)
+        if not kid_info:
             return
 
-        # Get entity registry and remove unused translation sensors
-        entity_registry = er.async_get(self.hass)
-        for lang_code in unused_languages:
-            eid = self.get_translation_sensor_eid(lang_code)
-            if eid:  # Only try to remove if entity exists in registry
-                entity_entry = entity_registry.async_get(eid)
-                if entity_entry:
-                    const.LOGGER.info(
-                        "Removing unused translation sensor: %s (language: %s)",
-                        eid,
-                        lang_code,
-                    )
-                    entity_registry.async_remove(eid)
-            self._translation_sensors_created.discard(lang_code)
+        # cast() for mypy: KidData is a TypedDict which is a dict[str, Any] at runtime
+        if kh.cleanup_chore_from_kid_data(cast("dict[str, Any]", kid_info), chore_id):
+            self._pending_chore_changed = True
+
+    def _cleanup_pending_reward_approvals(self) -> None:
+        """Remove reward_data entries for rewards that no longer exist."""
+        valid_reward_ids = set(self._data.get(const.DATA_REWARDS, {}).keys())
+        # cast() for mypy: dict[str, KidData] → dict[str, dict[str, Any]] at runtime
+        if kh.cleanup_orphaned_reward_data(
+            cast("dict[str, dict[str, Any]]", self.kids_data), valid_reward_ids
+        ):
+            self._pending_reward_changed = True
+
+    def _cleanup_deleted_kid_references(self) -> None:
+        """Remove references to kids that no longer exist from other sections."""
+        valid_kid_ids = set(self.kids_data.keys())
+
+        # Remove deleted kid IDs from all chore assignments
+        kh.cleanup_orphaned_kid_refs_in_chores(
+            self._data.get(const.DATA_CHORES, {}),
+            valid_kid_ids,
+        )
+
+        # Remove progress in achievements and challenges
+        kh.cleanup_orphaned_kid_refs_in_gamification(
+            self._data.get(const.DATA_ACHIEVEMENTS, {}),
+            valid_kid_ids,
+            "achievements",
+        )
+        kh.cleanup_orphaned_kid_refs_in_gamification(
+            self._data.get(const.DATA_CHALLENGES, {}),
+            valid_kid_ids,
+            "challenges",
+        )
+
+    def _cleanup_deleted_chore_references(self) -> None:
+        """Remove references to chores that no longer exist from kid data."""
+        valid_chore_ids = set(self.chores_data.keys())
+        # cast() for mypy: dict[str, KidData] → dict[str, dict[str, Any]] at runtime
+        kh.cleanup_orphaned_chore_refs_in_kids(
+            cast("dict[str, dict[str, Any]]", self.kids_data), valid_chore_ids
+        )
+
+    def _cleanup_parent_assignments(self) -> None:
+        """Remove any kid IDs from parent's 'associated_kids' that no longer exist."""
+        valid_kid_ids = set(self.kids_data.keys())
+        kh.cleanup_orphaned_kid_refs_in_parents(
+            self._data.get(const.DATA_PARENTS, {}),
+            valid_kid_ids,
+        )
+
+    def _cleanup_deleted_chore_in_achievements(self) -> None:
+        """Clear selected_chore_id in achievements if the chore no longer exists."""
+        valid_chore_ids = set(self.chores_data.keys())
+        kh.cleanup_deleted_chore_in_gamification(
+            self._data.get(const.DATA_ACHIEVEMENTS, {}),
+            valid_chore_ids,
+            const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID,
+            "",
+            "achievement",
+        )
+
+    def _cleanup_deleted_chore_in_challenges(self) -> None:
+        """Clear selected_chore_id in challenges if the chore no longer exists."""
+        valid_chore_ids = set(self.chores_data.keys())
+        kh.cleanup_deleted_chore_in_gamification(
+            self._data.get(const.DATA_CHALLENGES, {}),
+            valid_chore_ids,
+            const.DATA_CHALLENGE_SELECTED_CHORE_ID,
+            const.SENTINEL_EMPTY,
+            "challenge",
+        )
 
     # -------------------------------------------------------------------------------------
     # Shadow Kid: Creation and Unlinking Methods
@@ -1802,2829 +1510,164 @@ class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
             )
 
     # -------------------------------------------------------------------------------------
-    # Kids: Update Points
+    # Translation Sensor Lifecycle Management
     # -------------------------------------------------------------------------------------
 
-    def update_kid_points(
-        self, kid_id: str, delta: float, *, source: str = const.POINTS_SOURCE_OTHER
-    ):
+    def register_translation_sensor_callback(self, async_add_entities) -> None:
+        """Register the callback for dynamically adding translation sensors.
+
+        Called by sensor.py during async_setup_entry to enable dynamic sensor creation.
         """
-        Adjust a kid's points by delta (±), track by-source, update legacy stats,
-        record into new point_data history, then recheck badges/achievements/challenges.
-        Also updates all-time and highest balance stats using constants.
-        If the source is chores, applies the kid's multiplier.
-        """
-        kid_info: KidData | None = self.kids_data.get(kid_id)
-        if not kid_info:
-            const.LOGGER.warning(
-                "WARNING: Update Kid Points - Kid ID '%s' not found", kid_id
-            )
-            return
+        self._sensor_add_entities_callback = async_add_entities
 
-        # 1) Sanitize delta
-        try:
-            delta_value = round(float(delta), const.DATA_FLOAT_PRECISION)
-        except (ValueError, TypeError):
-            const.LOGGER.warning(
-                "WARNING: Update Kid Points - Invalid delta '%s' for Kid ID '%s'.",
-                delta,
-                kid_id,
-            )
-            return
-        if delta_value == 0:
-            const.LOGGER.debug(
-                "DEBUG: Update Kid Points - No change (delta=0) for Kid ID '%s'", kid_id
-            )
-            return
+    def mark_translation_sensor_created(self, lang_code: str) -> None:
+        """Mark that a translation sensor for this language has been created."""
+        self._translation_sensors_created.add(lang_code)
 
-        # If source is chores, apply multiplier
-        if source == const.POINTS_SOURCE_CHORES:
-            multiplier = kid_info.get(const.DATA_KID_POINTS_MULTIPLIER, 1.0)
-            delta_value = round(
-                delta_value * float(multiplier), const.DATA_FLOAT_PRECISION
-            )
+    def is_translation_sensor_created(self, lang_code: str) -> bool:
+        """Check if a translation sensor exists for the given language code."""
+        return lang_code in self._translation_sensors_created
 
-        # 2) Compute new balance
-        try:
-            old = round(
-                float(kid_info.get(const.DATA_KID_POINTS, 0.0)),
-                const.DATA_FLOAT_PRECISION,
-            )
-        except (ValueError, TypeError):
-            const.LOGGER.warning(
-                "WARNING: Update Kid Points - Invalid old_points for Kid ID '%s'. Defaulting to 0.0.",
-                kid_id,
-            )
-            old = 0.0
-        new = old + delta_value
-        kid_info[const.DATA_KID_POINTS] = new
+    def get_translation_sensor_eid(self, lang_code: str) -> str | None:
+        """Get the entity ID for a translation sensor given a language code.
 
-        # 2b) Create and append ledger entry for transaction history (v0.5.0+)
-        # Ledger uses POINTS_SOURCE_* directly - no mapping needed
-        ledger_entry = EconomyEngine.create_ledger_entry(
-            current_balance=old,
-            delta=delta_value,
-            source=source,
-            reference_id=None,  # Could be passed from caller in future
-        )
-
-        # Ensure ledger exists and append entry
-        if const.DATA_KID_LEDGER not in kid_info:
-            kid_info[const.DATA_KID_LEDGER] = []  # type: ignore[typeddict-unknown-key]
-        ledger = cast("list[dict[str, Any]]", kid_info[const.DATA_KID_LEDGER])  # type: ignore[typeddict-item]
-        ledger.append(cast("dict[str, Any]", ledger_entry))
-        EconomyEngine.prune_ledger(
-            cast("list[Any]", ledger), const.DEFAULT_LEDGER_MAX_ENTRIES
-        )
-
-        # 3) Legacy cumulative badge logic
-        progress = kid_info.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {})
-        if delta_value > 0:
-            cycle_points = progress.get(
-                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS, 0.0
-            )
-            cycle_points += delta_value
-            progress[const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS] = round(
-                cycle_points, const.DATA_FLOAT_PRECISION
-            )
-
-        # 5) All-time and highest balance stats (handled incrementally)
-        point_stats = kid_info.setdefault(const.DATA_KID_POINT_STATS, {})
-        point_stats.setdefault(const.DATA_KID_POINT_STATS_EARNED_ALL_TIME, 0.0)
-        point_stats.setdefault(const.DATA_KID_POINT_STATS_SPENT_ALL_TIME, 0.0)
-        point_stats.setdefault(const.DATA_KID_POINT_STATS_NET_ALL_TIME, 0.0)
-        point_stats.setdefault(const.DATA_KID_POINT_STATS_BY_SOURCE_ALL_TIME, {})
-        point_stats.setdefault(const.DATA_KID_POINT_STATS_HIGHEST_BALANCE, 0.0)
-
-        if delta_value > 0:
-            earned = point_stats.get(const.DATA_KID_POINT_STATS_EARNED_ALL_TIME, 0.0)
-            point_stats[const.DATA_KID_POINT_STATS_EARNED_ALL_TIME] = round(
-                earned + delta_value, const.DATA_FLOAT_PRECISION
-            )
-        elif delta_value < 0:
-            spent = point_stats.get(const.DATA_KID_POINT_STATS_SPENT_ALL_TIME, 0.0)
-            point_stats[const.DATA_KID_POINT_STATS_SPENT_ALL_TIME] = round(
-                spent + delta_value, const.DATA_FLOAT_PRECISION
-            )
-        net = point_stats.get(const.DATA_KID_POINT_STATS_NET_ALL_TIME, 0.0)
-        point_stats[const.DATA_KID_POINT_STATS_NET_ALL_TIME] = round(
-            net + delta_value, const.DATA_FLOAT_PRECISION
-        )
-
-        # 6) Record into new point_data history (use same date logic as chore_data)
-        periods_data = kid_info.setdefault(const.DATA_KID_POINT_DATA, {}).setdefault(  # type: ignore[typeddict-item]
-            const.DATA_KID_POINT_DATA_PERIODS, {}
-        )
-
-        now_local = kh.dt_now_local()
-        period_mapping = self.stats.get_period_keys(now_local)
-
-        # Record points_total using StatisticsEngine
-        self.stats.record_transaction(
-            periods_data,
-            {const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL: delta_value},
-            period_key_mapping=period_mapping,
-        )
-
-        # Handle by_source tracking separately (nested structure not handled by engine)
-        for period_key, period_id in period_mapping.items():
-            bucket = periods_data.setdefault(period_key, {})
-            entry = bucket.setdefault(period_id, {})
-            if (
-                const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE not in entry
-                or not isinstance(
-                    entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE], dict
-                )
-            ):
-                entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE] = {}
-            entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE].setdefault(source, 0.0)
-            entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE][source] = round(
-                entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE][source] + delta_value,
-                const.DATA_FLOAT_PRECISION,
-            )
-
-        # Also record by_source for all_time bucket
-        all_time_bucket = periods_data.setdefault(
-            const.DATA_KID_POINT_DATA_PERIODS_ALL_TIME, {}
-        )
-        all_time_entry = all_time_bucket.setdefault(const.PERIOD_ALL_TIME, {})
-        if (
-            const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE not in all_time_entry
-            or not isinstance(
-                all_time_entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE], dict
-            )
-        ):
-            all_time_entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE] = {}
-        all_time_entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE].setdefault(
-            source, 0.0
-        )
-        all_time_entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE][source] = round(
-            all_time_entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE][source]
-            + delta_value,
-            const.DATA_FLOAT_PRECISION,
-        )
-
-        # 7) Re‑evaluate everything and persist
-        # Note: Call _recalculate_point_stats_for_kid BEFORE updating all-time stats
-        # so that it preserves the incrementally-tracked all-time values
-        self._recalculate_point_stats_for_kid(kid_id)
-
-        # 8) Update all-time by-source stats (must be done AFTER recalculate to avoid being overwritten)
-        point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
-        by_source_all_time = point_stats.get(
-            const.DATA_KID_POINT_STATS_BY_SOURCE_ALL_TIME, {}
-        )
-        by_source_all_time.setdefault(source, 0.0)
-        by_source_all_time[source] += delta_value
-        by_source_all_time[source] = round(
-            by_source_all_time[source], const.DATA_FLOAT_PRECISION
-        )
-
-        highest = point_stats.get(const.DATA_KID_POINT_STATS_HIGHEST_BALANCE, 0.0)
-        point_stats[const.DATA_KID_POINT_STATS_HIGHEST_BALANCE] = max(highest, new)
-
-        # Clean up old period data to keep storage manageable
-        self.stats.prune_history(periods_data, self._get_retention_config())
-
-        # Emit POINTS_CHANGED event for GamificationManager
-        # This ensures gamification triggers even for legacy paths that don't use EconomyManager
-        signal_name = kh.get_event_signal(
-            self.config_entry.entry_id, const.SIGNAL_SUFFIX_POINTS_CHANGED
-        )
-        async_dispatcher_send(
-            self.hass,
-            signal_name,
-            {
-                "kid_id": kid_id,
-                "old_balance": old,
-                "new_balance": new,
-                "delta": delta_value,
-                "source": source,
-            },
-        )
-
-        self._persist()
-        self.async_set_updated_data(self._data)
-
-        const.LOGGER.debug(
-            "DEBUG: Update Kid Points - Kid ID '%s': delta=%.2f, old=%.2f, new=%.2f, source=%s",
-            kid_id,
-            delta_value,
-            old,
-            new,
-            source,
-        )
-
-    def _recalculate_point_stats_for_kid(self, kid_id: str) -> None:
-        """Delegate point stats aggregation to StatisticsEngine.
-
-        This method aggregates all kid_point_stats for a given kid by
-        delegating to the StatisticsEngine, which owns the period data
-        structure knowledge.
+        Looks up the entity ID from the registry using the unique_id.
+        Falls back to English ('en') if the requested language isn't found.
+        Returns None only if neither the requested language nor English exist.
 
         Args:
-            kid_id: The internal ID of the kid.
-        """
-        kid_info: KidData | None = self.kids_data.get(kid_id)
-        if not kid_info:
-            return
-        stats = self.stats.generate_point_stats(kid_info)
-        kid_info[const.DATA_KID_POINT_STATS] = stats
-
-    # -------------------------------------------------------------------------------------
-    # Rewards: Redeem, Approve, Disapprove, Reset
-    # -------------------------------------------------------------------------------------
-
-    def _get_kid_reward_data(
-        self, kid_id: str, reward_id: str, create: bool = False
-    ) -> dict[str, Any]:
-        """Get the reward data dict for a specific kid+reward combination.
-
-        Args:
-            kid_id: The kid's internal ID
-            reward_id: The reward's internal ID
-            create: If True, create the entry if it doesn't exist
-
-        Returns an empty dict if the kid or reward data doesn't exist and create=False.
-        """
-        kid_info: KidData = cast("KidData", self.kids_data.get(kid_id, {}))
-        reward_data = kid_info.setdefault(const.DATA_KID_REWARD_DATA, {})
-        if create and reward_id not in reward_data:
-            reward_data[reward_id] = {
-                const.DATA_KID_REWARD_DATA_NAME: cast(
-                    "RewardData", self.rewards_data.get(reward_id, {})
-                ).get(const.DATA_REWARD_NAME)
-                or "",
-                const.DATA_KID_REWARD_DATA_PENDING_COUNT: 0,
-                const.DATA_KID_REWARD_DATA_NOTIFICATION_IDS: [],
-                const.DATA_KID_REWARD_DATA_LAST_CLAIMED: "",
-                const.DATA_KID_REWARD_DATA_LAST_APPROVED: "",
-                const.DATA_KID_REWARD_DATA_LAST_DISAPPROVED: "",
-                const.DATA_KID_REWARD_DATA_TOTAL_CLAIMS: 0,
-                const.DATA_KID_REWARD_DATA_TOTAL_APPROVED: 0,
-                const.DATA_KID_REWARD_DATA_TOTAL_DISAPPROVED: 0,
-                const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT: 0,
-                const.DATA_KID_REWARD_DATA_PERIODS: {
-                    const.DATA_KID_REWARD_DATA_PERIODS_DAILY: {},
-                    const.DATA_KID_REWARD_DATA_PERIODS_WEEKLY: {},
-                    const.DATA_KID_REWARD_DATA_PERIODS_MONTHLY: {},
-                    const.DATA_KID_REWARD_DATA_PERIODS_YEARLY: {},
-                },
-            }
-        return cast("dict[str, Any]", reward_data.get(reward_id, {}))
-
-    def _increment_reward_period_counter(
-        self,
-        reward_entry: dict[str, Any],
-        counter_key: str,
-        amount: int = 1,
-    ) -> None:
-        """Increment a period counter for a reward entry across all period buckets.
-
-        Args:
-            reward_entry: The reward_data[reward_id] dict
-            counter_key: Which counter to increment (claimed/approved/disapproved/points)
-            amount: Amount to add (default 1)
-        """
-        now_local = kh.dt_now_local()
-
-        # Ensure periods structure exists with all_time bucket
-        periods = reward_entry.setdefault(
-            const.DATA_KID_REWARD_DATA_PERIODS,
-            {
-                const.DATA_KID_REWARD_DATA_PERIODS_DAILY: {},
-                const.DATA_KID_REWARD_DATA_PERIODS_WEEKLY: {},
-                const.DATA_KID_REWARD_DATA_PERIODS_MONTHLY: {},
-                const.DATA_KID_REWARD_DATA_PERIODS_YEARLY: {},
-                const.DATA_KID_REWARD_DATA_PERIODS_ALL_TIME: {},
-            },
-        )
-
-        # Get period mapping from StatisticsEngine
-        period_mapping = self.stats.get_period_keys(now_local)
-
-        # Record transaction using StatisticsEngine
-        self.stats.record_transaction(
-            periods,
-            {counter_key: amount},
-            period_key_mapping=period_mapping,
-        )
-
-        # Clean up old period data (NEW: rewards now have retention!)
-        self.stats.prune_history(periods, self._get_retention_config())
-
-    def get_pending_reward_approvals_computed(self) -> list[dict[str, Any]]:
-        """Compute pending reward approvals dynamically from kid_reward_data.
-
-        Unlike chores (which allow only one pending claim at a time), rewards
-        support multiple pending claims via the pending_count field.
+            lang_code: ISO language code (e.g., 'en', 'es', 'de')
 
         Returns:
-            List of dicts with keys: kid_id, reward_id, pending_count, timestamp
-            One entry per kid+reward combination with pending_count > 0.
+            Entity ID if found in registry (requested or fallback), None otherwise
         """
-        pending: list[dict[str, Any]] = []
-        for kid_id, kid_info in self.kids_data.items():
-            reward_data = kid_info.get(const.DATA_KID_REWARD_DATA, {})
-            for reward_id, entry in reward_data.items():
-                # Skip rewards that no longer exist
-                if reward_id not in self.rewards_data:
-                    continue
-                pending_count = entry.get(const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0)
-                if pending_count > 0:
-                    pending.append(
-                        {
-                            const.DATA_KID_ID: kid_id,
-                            const.DATA_REWARD_ID: reward_id,
-                            "pending_count": pending_count,
-                            const.DATA_REWARD_TIMESTAMP: entry.get(
-                                const.DATA_KID_REWARD_DATA_LAST_CLAIMED, ""
-                            ),
-                        }
-                    )
-        return pending
+        from homeassistant.helpers.entity_registry import async_get
 
-    def redeem_reward(self, parent_name: str, kid_id: str, reward_id: str):
-        """Kid claims a reward => mark as pending approval (no deduction yet)."""
-        reward_info: RewardData | None = self.rewards_data.get(reward_id)
-        if not reward_info:
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_REWARD,
-                    "name": reward_id,
-                },
+        entity_registry = async_get(self.hass)
+        unique_id = f"{self.config_entry.entry_id}_{lang_code}{const.SENSOR_KC_UID_SUFFIX_DASHBOARD_LANG}"
+        entity_id = entity_registry.async_get_entity_id(
+            "sensor", const.DOMAIN, unique_id
+        )
+
+        # If requested language not found and it's not already English, fall back to English
+        if entity_id is None and lang_code != "en":
+            unique_id_en = f"{self.config_entry.entry_id}_en{const.SENSOR_KC_UID_SUFFIX_DASHBOARD_LANG}"
+            entity_id = entity_registry.async_get_entity_id(
+                "sensor", const.DOMAIN, unique_id_en
             )
 
-        kid_info: KidData | None = self.kids_data.get(kid_id)
-        if not kid_info:
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_KID,
-                    "name": kid_id,
-                },
-            )
+        return entity_id
 
-        cost = reward_info.get(const.DATA_REWARD_COST, const.DEFAULT_ZERO)
-        if kid_info[const.DATA_KID_POINTS] < cost:
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_INSUFFICIENT_POINTS,
-                translation_placeholders={
-                    "kid": kid_info[const.DATA_KID_NAME],
-                    "current": str(kid_info[const.DATA_KID_POINTS]),
-                    "required": str(cost),
-                },
-            )
+    async def ensure_translation_sensor_exists(self, lang_code: str) -> str:
+        """Ensure a translation sensor exists for the given language code.
 
-        # Update kid_reward_data structure
-        reward_entry = self._get_kid_reward_data(kid_id, reward_id, create=True)
-        reward_entry[const.DATA_KID_REWARD_DATA_PENDING_COUNT] = (
-            reward_entry.get(const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0) + 1
-        )
-        reward_entry[const.DATA_KID_REWARD_DATA_LAST_CLAIMED] = (
-            dt_util.utcnow().isoformat()
-        )
-        reward_entry[const.DATA_KID_REWARD_DATA_TOTAL_CLAIMS] = (
-            reward_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_CLAIMS, 0) + 1
-        )
+        If the sensor doesn't exist, creates it dynamically using the stored
+        async_add_entities callback. Returns the entity ID.
 
-        # Update period-based tracking for claimed
-        self._increment_reward_period_counter(
-            reward_entry, const.DATA_KID_REWARD_DATA_PERIOD_CLAIMED
-        )
-
-        # Recalculate aggregated reward stats
-        self._recalculate_reward_stats_for_kid(kid_id)
-
-        # Generate a unique notification ID for this claim.
-        notif_id = uuid.uuid4().hex
-
-        # Track notification ID for this claim
-        reward_entry.setdefault(const.DATA_KID_REWARD_DATA_NOTIFICATION_IDS, []).append(
-            notif_id
-        )
-
-        # Send a notification to the parents using helpers (DRY refactor v0.5.0+)
-        actions = NotificationManager.build_reward_actions(kid_id, reward_id, notif_id)
-        extra_data = NotificationManager.build_extra_data(
-            kid_id, reward_id=reward_id, notif_id=notif_id
-        )
-        self.hass.async_create_task(
-            self._notify_parents_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_CLAIMED,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_CLAIMED_PARENT,
-                message_data={
-                    "kid_name": kid_info[const.DATA_KID_NAME],
-                    "reward_name": reward_info[const.DATA_REWARD_NAME],
-                    "points": reward_info[const.DATA_REWARD_COST],
-                },
-                actions=actions,
-                extra_data=extra_data,
-                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
-                tag_identifiers=(reward_id, kid_id),
-            )
-        )
-
-        self._persist()
-        self.async_set_updated_data(self._data)
-
-    def _grant_reward_to_kid(
-        self,
-        kid_id: str,
-        reward_id: str,
-        cost_deducted: float,
-        notif_id: str | None = None,
-        is_pending_claim: bool = False,
-    ) -> None:
-        """Track a reward grant for a kid (unified logic for approvals and badge awards).
-
-        This helper consolidates reward tracking from approve_reward() and _award_badge()
-        into a single path. It updates all counters and timestamps but does NOT handle
-        point deduction - that must be done by the caller before calling this method.
-
-        Args:
-            kid_id: The internal ID of the kid receiving the reward.
-            reward_id: The internal ID of the reward being granted.
-            cost_deducted: The actual points cost charged (0 for free grants like badges).
-            notif_id: Optional notification ID to remove from tracking list.
-            is_pending_claim: True if approving a pending claim (decrements pending_count).
+        This is called when a kid's dashboard language changes to a new language
+        that doesn't have a translation sensor yet.
         """
-        # Get or create reward tracking entry
-        reward_entry = self._get_kid_reward_data(kid_id, reward_id, create=True)
+        # Import here to avoid circular dependency
+        from .sensor import SystemDashboardTranslationSensor
 
-        # Handle pending claim decrement if applicable
-        if is_pending_claim:
-            reward_entry[const.DATA_KID_REWARD_DATA_PENDING_COUNT] = max(
-                0,
-                reward_entry.get(const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0) - 1,
+        # Try to get entity ID from registry
+        eid = self.get_translation_sensor_eid(lang_code)
+
+        # If sensor already exists in registry, return the entity ID
+        if eid:
+            return eid
+
+        # If sensor was marked as created but not in registry, use constructed entity_id
+        if lang_code in self._translation_sensors_created:
+            # Construct expected entity_id (sensor exists but not yet in registry)
+            return (
+                f"{const.SENSOR_KC_PREFIX}"
+                f"{const.SENSOR_KC_EID_PREFIX_DASHBOARD_LANG}{lang_code}"
             )
 
-        # Update timestamps
-        reward_entry[const.DATA_KID_REWARD_DATA_LAST_APPROVED] = (
-            dt_util.utcnow().isoformat()
-        )
-
-        # Update total counters
-        reward_entry[const.DATA_KID_REWARD_DATA_TOTAL_APPROVED] = (
-            reward_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_APPROVED, 0) + 1
-        )
-
-        # Track points spent only if cost > 0 (badges grant free rewards)
-        if cost_deducted > const.DEFAULT_ZERO:
-            reward_entry[const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT] = (
-                reward_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT, 0)
-                + cost_deducted
+        # If no callback registered (shouldn't happen), log warning and return fallback
+        if self._sensor_add_entities_callback is None:
+            const.LOGGER.warning(
+                "Cannot create translation sensor for '%s': no callback registered",
+                lang_code,
             )
-
-        # Update period-based tracking for approved count
-        self._increment_reward_period_counter(
-            reward_entry, const.DATA_KID_REWARD_DATA_PERIOD_APPROVED
-        )
-
-        # Update period-based tracking for points (only if cost > 0)
-        if cost_deducted > const.DEFAULT_ZERO:
-            self._increment_reward_period_counter(
-                reward_entry,
-                const.DATA_KID_REWARD_DATA_PERIOD_POINTS,
-                amount=int(cost_deducted),
-            )
-
-        # Remove notification ID if provided
-        if notif_id:
-            notif_ids = reward_entry.get(
-                const.DATA_KID_REWARD_DATA_NOTIFICATION_IDS, []
-            )
-            if notif_id in notif_ids:
-                notif_ids.remove(notif_id)
-
-    async def approve_reward(
-        self,
-        parent_name: str,  # Used for stale notification feedback
-        kid_id: str,
-        reward_id: str,
-        notif_id: str | None = None,
-        cost_override: float | None = None,
-    ):
-        """Parent approves the reward => deduct points.
-
-        Thread-safe implementation using asyncio.Lock to prevent race conditions
-        when multiple parents click approve simultaneously (v0.5.0+).
-
-        Args:
-            parent_name: Name of approving parent (for stale notification feedback).
-            kid_id: Internal ID of the kid receiving the reward.
-            reward_id: Internal ID of the reward being approved.
-            notif_id: Optional notification ID to clear.
-            cost_override: Optional cost to charge instead of the reward's stored cost.
-                If None, uses reward's configured cost. Set to 0 for free grants
-                (e.g., weekend specials, birthday gifts). Useful for context-aware
-                reward pricing via automations.
-        """
-        # Acquire lock for this specific kid+reward combination to prevent race conditions
-        lock = self._get_approval_lock("approve_reward", kid_id, reward_id)
-        async with lock:
-            kid_info: KidData | None = self.kids_data.get(kid_id)
-            if not kid_info:
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                    translation_placeholders={
-                        "entity_type": const.LABEL_KID,
-                        "name": kid_id,
-                    },
+            # Fallback to English if available
+            if const.DEFAULT_DASHBOARD_LANGUAGE in self._translation_sensors_created:
+                fallback_eid = self.get_translation_sensor_eid(
+                    const.DEFAULT_DASHBOARD_LANGUAGE
                 )
-
-            reward_info: RewardData | None = self.rewards_data.get(reward_id)
-            if not reward_info:
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                    translation_placeholders={
-                        "entity_type": const.LABEL_REWARD,
-                        "name": reward_id,
-                    },
-                )
-
-            # Determine actual cost: use override if provided, else reward's stored cost
-            if cost_override is not None:
-                cost = cost_override
-            else:
-                cost = reward_info.get(const.DATA_REWARD_COST, const.DEFAULT_ZERO)
-
-            # Get pending_count from kid_reward_data
-            # Re-fetch inside lock for defensive race condition protection
-            reward_entry = self._get_kid_reward_data(kid_id, reward_id, create=False)
-            pending_count = reward_entry.get(
-                const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0
+                if fallback_eid:
+                    return fallback_eid
+            # Last resort: construct expected entity_id
+            return (
+                f"{const.SENSOR_KC_PREFIX}"
+                f"{const.SENSOR_KC_EID_PREFIX_DASHBOARD_LANG}{lang_code}"
             )
 
-            # Determine if this is a pending claim approval
-            is_pending = pending_count > 0
-
-            # Validate sufficient points
-            if kid_info[const.DATA_KID_POINTS] < cost:
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_INSUFFICIENT_POINTS,
-                    translation_placeholders={
-                        "kid": kid_info[const.DATA_KID_NAME],
-                        "current": str(kid_info[const.DATA_KID_POINTS]),
-                        "required": str(cost),
-                    },
-                )
-
-            # Deduct points (use update_kid_points for pending, direct for non-pending)
-            if is_pending:
-                if cost is not None:
-                    self.update_kid_points(
-                        kid_id, delta=-cost, source=const.POINTS_SOURCE_REWARDS
-                    )
-            else:
-                kid_info[const.DATA_KID_POINTS] -= cost
-
-            # Track the reward grant using unified helper
-            self._grant_reward_to_kid(
-                kid_id=kid_id,
-                reward_id=reward_id,
-                cost_deducted=cost,
-                notif_id=notif_id,
-                is_pending_claim=is_pending,
-            )
-
-            # Recalculate aggregated reward stats (after either branch)
-            self._recalculate_reward_stats_for_kid(kid_id)
-
-            # NOTE: Badge checks handled by GamificationManager via REWARD_APPROVED event
-
-            # Notify the kid that the reward has been approved
-            extra_data = {const.DATA_KID_ID: kid_id, const.DATA_REWARD_ID: reward_id}
-            self.hass.async_create_task(
-                self._notify_kid_translated(
-                    kid_id,
-                    title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_APPROVED,
-                    message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_APPROVED,
-                    message_data={"reward_name": reward_info[const.DATA_REWARD_NAME]},
-                    extra_data=extra_data,
-                )
-            )
-
-            # Clear the original claim notification from parents' devices (v0.5.0+)
-            self.hass.async_create_task(
-                self.clear_notification_for_parents(
-                    kid_id,
-                    const.NOTIFY_TAG_TYPE_STATUS,
-                    reward_id,
-                )
-            )
-
-            self._persist()
-            self.async_set_updated_data(self._data)
-
-    def disapprove_reward(self, parent_name: str, kid_id: str, reward_id: str):
-        """Disapprove a reward for kid_id."""
-
-        reward_info: RewardData | None = self.rewards_data.get(reward_id)
-        if not reward_info:
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_REWARD,
-                    "name": reward_id,
-                },
-            )
-
-        kid_info: KidData | None = self.kids_data.get(kid_id)
-
-        # Update kid_reward_data structure
-        if kid_info:
-            reward_entry = self._get_kid_reward_data(kid_id, reward_id, create=False)
-            if reward_entry:
-                reward_entry[const.DATA_KID_REWARD_DATA_PENDING_COUNT] = max(
-                    0, reward_entry.get(const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0) - 1
-                )
-                reward_entry[const.DATA_KID_REWARD_DATA_LAST_DISAPPROVED] = (
-                    dt_util.utcnow().isoformat()
-                )
-                reward_entry[const.DATA_KID_REWARD_DATA_TOTAL_DISAPPROVED] = (
-                    reward_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_DISAPPROVED, 0)
-                    + 1
-                )
-
-                # Update period-based tracking for disapproved
-                self._increment_reward_period_counter(
-                    reward_entry, const.DATA_KID_REWARD_DATA_PERIOD_DISAPPROVED
-                )
-
-            # Recalculate aggregated reward stats
-            self._recalculate_reward_stats_for_kid(kid_id)
-
-        # Send a notification to the kid that reward was disapproved
-        extra_data = {const.DATA_KID_ID: kid_id, const.DATA_REWARD_ID: reward_id}
-        self.hass.async_create_task(
-            self._notify_kid_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_DISAPPROVED,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_DISAPPROVED,
-                message_data={"reward_name": reward_info[const.DATA_REWARD_NAME]},
-                extra_data=extra_data,
-            )
-        )
-
-        # Clear the original claim notification from parents' devices (v0.5.0+)
-        self.hass.async_create_task(
-            self.clear_notification_for_parents(
-                kid_id,
-                const.NOTIFY_TAG_TYPE_STATUS,
-                reward_id,
-            )
-        )
-
-        self._persist()
-        self.async_set_updated_data(self._data)
-
-    def undo_reward_claim(self, kid_id: str, reward_id: str):
-        """Allow kid to undo their own reward claim (no stat tracking).
-
-        This method provides a way for kids to remove their pending reward claim
-        without it counting as a disapproval. Similar to disapprove_reward but:
-        - Does NOT track disapproval stats (no last_disapproved, no counters)
-        - Does NOT send notifications (silent undo)
-        - Only decrements pending_count
-
-        Args:
-            kid_id: The kid's internal ID
-            reward_id: The reward's internal ID
-
-        Raises:
-            HomeAssistantError: If kid or reward not found
-        """
-        reward_info: RewardData | None = self.rewards_data.get(reward_id)
-        if not reward_info:
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_REWARD,
-                    "name": reward_id,
-                },
-            )
-
-        kid_info: KidData | None = self.kids_data.get(kid_id)
-        if not kid_info:
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_KID,
-                    "name": kid_id,
-                },
-            )
-
-        # Update kid_reward_data structure - only decrement pending_count
-        # Do NOT update last_disapproved, total_disapproved, or period counters
-        reward_entry = self._get_kid_reward_data(kid_id, reward_id, create=False)
-        if reward_entry:
-            reward_entry[const.DATA_KID_REWARD_DATA_PENDING_COUNT] = max(
-                0, reward_entry.get(const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0) - 1
-            )
-            # Explicitly skip stat tracking - no last_disapproved, no total_disapproved, no period updates
-
-        # Recalculate aggregated reward stats (pending count changed)
-        self._recalculate_reward_stats_for_kid(kid_id)
-
-        # No notification sent (silent undo)
-
-        self._persist()
-        self.async_set_updated_data(self._data)
-
-    def _recalculate_reward_stats_for_kid(self, kid_id: str) -> None:
-        """Delegate reward stats aggregation to StatisticsEngine.
-
-        This method aggregates all kid_reward_stats for a given kid by
-        delegating to the StatisticsEngine, which owns the period data
-        structure knowledge.
-
-        Note: Reward stats are computed and stored in kid_info but not yet
-        exposed in the UI. Ready for future entity integration.
-
-        Args:
-            kid_id: The internal ID of the kid.
-        """
-        kid_info: KidData | None = self.kids_data.get(kid_id)
-        if not kid_info:
-            return
-        stats = self.stats.generate_reward_stats(kid_info, self.rewards_data)
-        kid_info[const.DATA_KID_REWARD_STATS] = stats
-
-    def reset_rewards(
-        self, kid_id: str | None = None, reward_id: str | None = None
-    ) -> None:
-        """Reset rewards based on provided kid_id and reward_id."""
-
-        if reward_id and kid_id:
-            # Reset a specific reward for a specific kid
-            kid_info: KidData | None = self.kids_data.get(kid_id)
-            if not kid_info:
-                const.LOGGER.error(
-                    "ERROR: Reset Rewards - Kid ID '%s' not found.", kid_id
-                )
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                    translation_placeholders={
-                        "entity_type": const.LABEL_KID,
-                        "name": kid_id,
-                    },
-                )
-
-            # Clear reward_data entry for this reward
-            reward_data = kid_info.get(const.DATA_KID_REWARD_DATA, {})
-            reward_data.pop(reward_id, None)
-
-        elif reward_id:
-            # Reset a specific reward for all kids
-            found = False
-            for kid_info_loop in self.kids_data.values():
-                reward_data = kid_info_loop.get(const.DATA_KID_REWARD_DATA, {})
-                if reward_id in reward_data:
-                    found = True
-                    reward_data.pop(reward_id, None)
-
-            if not found:
-                const.LOGGER.warning(
-                    "WARNING: Reset Rewards - Reward '%s' not found in any kid's data.",
-                    reward_id,
-                )
-
-        elif kid_id:
-            # Reset all rewards for a specific kid
-            kid_info_elif: KidData | None = self.kids_data.get(kid_id)
-            if not kid_info_elif:
-                const.LOGGER.error(
-                    "ERROR: Reset Rewards - Kid ID '%s' not found.", kid_id
-                )
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                    translation_placeholders={
-                        "entity_type": const.LABEL_KID,
-                        "name": kid_id,
-                    },
-                )
-
-            # Clear all reward_data for this kid
-            if const.DATA_KID_REWARD_DATA in kid_info_elif:
-                kid_info_elif[const.DATA_KID_REWARD_DATA].clear()
-
-        else:
-            # Reset all rewards for all kids
-            const.LOGGER.info(
-                "INFO: Reset Rewards - Resetting all rewards for all kids."
-            )
-            for kid_info in self.kids_data.values():
-                # Clear all reward_data for this kid
-                if const.DATA_KID_REWARD_DATA in kid_info:
-                    kid_info[const.DATA_KID_REWARD_DATA].clear()
-
-        const.LOGGER.debug(
-            "DEBUG: Reset Rewards - Rewards reset completed - Kid ID '%s', Reward ID '%s'",
-            kid_id,
-            reward_id,
-        )
-
-        self._persist()
-        self.async_set_updated_data(self._data)
-
-    # -------------------------------------------------------------------------------------
-    # Badges: Helper Functions
-    # -------------------------------------------------------------------------------------
-
-    def _get_badge_in_scope_chores_list(
-        self,
-        badge_info: BadgeData,
-        kid_id: str,
-        kid_assigned_chores: list | None = None,
-    ) -> list:
-        """Get the list of chore IDs that are in-scope for this badge evaluation.
-
-        For badges with tracked chores:
-        - Returns only those specific chore IDs that are also assigned to the kid
-        For badges without tracked chores:
-        - Returns all chore IDs assigned to the kid
-
-        Args:
-            badge_info: Badge configuration dictionary
-            kid_id: Kid's internal ID
-            kid_assigned_chores: Optional pre-computed list of chores assigned to kid
-                                (optimization to avoid re-iterating all chores)
-        """
-        badge_type = badge_info.get(const.DATA_BADGE_TYPE, const.BADGE_TYPE_PERIODIC)
-        include_tracked_chores = badge_type in const.INCLUDE_TRACKED_CHORES_BADGE_TYPES
-
-        # OPTIMIZATION: Use pre-computed list if provided, otherwise compute
-        if kid_assigned_chores is None:
-            kid_assigned_chores = []
-            # Get all chores assigned to this kid
-            for chore_id, chore_info in self.chores_data.items():
-                chore_assigned_to = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
-                if not chore_assigned_to or kid_id in chore_assigned_to:
-                    kid_assigned_chores.append(chore_id)
-
-        # If badge does not include tracked chores, return empty list
-        if include_tracked_chores:
-            tracked_chores = badge_info.get(const.DATA_BADGE_TRACKED_CHORES, {})
-            tracked_chore_ids = tracked_chores.get(
-                const.DATA_BADGE_TRACKED_CHORES_SELECTED_CHORES, []
-            )
-
-            if tracked_chore_ids:
-                # Badge has specific tracked chores, return only those that are also assigned to the kid
-                return [
-                    chore_id
-                    for chore_id in tracked_chore_ids
-                    if chore_id in kid_assigned_chores
-                ]
-            # Badge considers all chores, return all chores assigned to the kid
-            return kid_assigned_chores
-        # Badge does not include tracked chores component, return empty list
-        return []
-
-    # -------------------------------------------------------------------------------------
-    # Badges: Award
-    # -------------------------------------------------------------------------------------
-
-    def _award_badge(self, kid_id: str, badge_id: str):
-        """Add the badge to kid's 'earned_by' and kid's 'badges' list."""
-        badge_info: BadgeData | None = self.badges_data.get(badge_id)
-        kid_info: KidData = cast("KidData", self.kids_data.get(kid_id, {}))
-        if not kid_info:
-            const.LOGGER.error("Award Badge - Kid ID '%s' not found.", kid_id)
-            return
-        if not badge_info:
-            const.LOGGER.error(
-                "ERROR: Award Badge - Badge ID '%s' not found. Cannot be awarded to Kid ID '%s'",
-                badge_id,
-                kid_id,
-            )
-            return
-
-        badge_type = badge_info.get(const.DATA_BADGE_TYPE, const.BADGE_TYPE_CUMULATIVE)
-        badge_name = badge_info.get(const.DATA_BADGE_NAME)
-        kid_name = kid_info[const.DATA_KID_NAME]
-
-        # Award the badge (for all types, including special occasion).
+        # Create the new translation sensor
         const.LOGGER.info(
-            "INFO: Award Badge - Awarding badge '%s' (%s) to kid '%s' (%s).",
-            badge_id,
-            badge_name,
-            kid_id,
-            kid_name,
+            "Creating translation sensor for newly-used language: %s", lang_code
         )
-        earned_by_list = badge_info.setdefault(const.DATA_BADGE_EARNED_BY, [])
-        if kid_id not in earned_by_list:
-            earned_by_list.append(kid_id)
-        self._update_badges_earned_for_kid(kid_id, badge_id)
-
-        # --- Unified Award Items Logic ---
-        award_data = badge_info.get(const.DATA_BADGE_AWARDS, {})
-        award_items = award_data.get(const.DATA_BADGE_AWARDS_AWARD_ITEMS, [])
-        points_awarded = award_data.get(
-            const.DATA_BADGE_AWARDS_AWARD_POINTS, const.DEFAULT_ZERO
+        new_sensor = SystemDashboardTranslationSensor(
+            self, self.config_entry, lang_code
         )
-        multiplier = award_data.get(
-            const.DATA_BADGE_AWARDS_POINT_MULTIPLIER,
-            const.DEFAULT_KID_POINTS_MULTIPLIER,
-        )
+        self._sensor_add_entities_callback([new_sensor])
+        self._translation_sensors_created.add(lang_code)
 
-        # Process award_items using helper
-        to_award, _ = self.process_award_items(
-            award_items,
-            self.rewards_data,
-            self.bonuses_data,
-            self.penalties_data,
-        )
-
-        # 1. Points
-        if any(
-            item == const.AWARD_ITEMS_KEY_POINTS
-            or item.startswith(const.AWARD_ITEMS_PREFIX_POINTS)
-            for item in award_items
-        ):
-            if points_awarded > const.DEFAULT_ZERO:
-                const.LOGGER.info(
-                    "INFO: Award Badge - Awarding points: %s for kid '%s'.",
-                    points_awarded,
-                    kid_name,
-                )
-                self.update_kid_points(
-                    kid_id,
-                    delta=points_awarded,
-                    source=const.POINTS_SOURCE_BADGES,
-                )
-
-        # 2. Multiplier (only for cumulative badges)
-        if any(
-            item == const.AWARD_ITEMS_KEY_POINTS_MULTIPLIER
-            or item.startswith(const.AWARD_ITEMS_PREFIX_POINTS_MULTIPLIER)
-            for item in award_items
-        ):
-            if float(cast("float", multiplier)) > const.DEFAULT_ZERO:
-                kid_info[const.DATA_KID_POINTS_MULTIPLIER] = multiplier  # type: ignore[typeddict-item]
-                const.LOGGER.info(
-                    "INFO: Award Badge - Set points multiplier to %.2f for kid '%s'.",
-                    multiplier,
-                    kid_name,
-                )
-            else:
-                kid_info[const.DATA_KID_POINTS_MULTIPLIER] = (
-                    const.DEFAULT_POINTS_MULTIPLIER
-                )
-
-        # 3. Rewards (multiple) - Badge awards grant rewards directly (no claim/approval flow)
-        for reward_id in to_award.get(const.AWARD_ITEMS_KEY_REWARDS, []):
-            if reward_id in self.rewards_data:
-                # Use unified helper with cost=0 (free grant from badge)
-                self._grant_reward_to_kid(
-                    kid_id=kid_id,
-                    reward_id=reward_id,
-                    cost_deducted=const.DEFAULT_ZERO,  # Badge grants are free
-                    notif_id=None,
-                    is_pending_claim=False,
-                )
-                const.LOGGER.info(
-                    "INFO: Award Badge - Granted reward '%s' to kid '%s'.",
-                    self.rewards_data[reward_id].get(const.DATA_REWARD_NAME, reward_id),
-                    kid_name,
-                )
-
-        # 4. Bonuses (multiple)
-        for bonus_id in to_award.get(const.AWARD_ITEMS_KEY_BONUSES, []):
-            if bonus_id in self.bonuses_data:
-                self.apply_bonus(kid_name, kid_id, bonus_id)
-
-        # --- Notification ---
-        message = f"You earned a new badge: '{badge_name}'!"
-        if to_award.get(const.AWARD_ITEMS_KEY_REWARDS):
-            reward_names = [
-                self.rewards_data[rid].get(const.DATA_REWARD_NAME, rid)
-                for rid in to_award[const.AWARD_ITEMS_KEY_REWARDS]
-            ]
-            message += f" Rewards: {', '.join(reward_names)}."
-        if to_award.get(const.AWARD_ITEMS_KEY_BONUSES):
-            bonus_names = [
-                self.bonuses_data[bid].get(const.DATA_BONUS_NAME, bid)
-                for bid in to_award[const.AWARD_ITEMS_KEY_BONUSES]
-            ]
-            message += f" Bonuses: {', '.join(bonus_names)}."
-        if any(
-            item == const.AWARD_ITEMS_KEY_POINTS
-            or item.startswith(const.AWARD_ITEMS_PREFIX_POINTS)
-            for item in award_items
-        ):
-            message += f" Points: {points_awarded}."
-        if badge_type == const.BADGE_TYPE_CUMULATIVE and any(
-            item == const.AWARD_ITEMS_KEY_POINTS_MULTIPLIER
-            or item.startswith(const.AWARD_ITEMS_PREFIX_POINTS_MULTIPLIER)
-            for item in award_items
-        ):
-            message += f" Multiplier: {multiplier}x."
-
-        parent_message = f"'{kid_name}' earned a new badge: '{badge_name}'."
-        if to_award.get(const.AWARD_ITEMS_KEY_REWARDS):
-            reward_names = [
-                self.rewards_data[rid].get(const.DATA_REWARD_NAME, rid)
-                for rid in to_award[const.AWARD_ITEMS_KEY_REWARDS]
-            ]
-            parent_message += f" Rewards: {', '.join(reward_names)}."
-        if to_award.get(const.AWARD_ITEMS_KEY_BONUSES):
-            bonus_names = [
-                self.bonuses_data[bid].get(const.DATA_BONUS_NAME, bid)
-                for bid in to_award[const.AWARD_ITEMS_KEY_BONUSES]
-            ]
-            parent_message += f" Bonuses: {', '.join(bonus_names)}."
-        if any(
-            item == const.AWARD_ITEMS_KEY_POINTS
-            or item.startswith(const.AWARD_ITEMS_PREFIX_POINTS)
-            for item in award_items
-        ):
-            parent_message += f" Points: {points_awarded}."
-        if badge_type == const.BADGE_TYPE_CUMULATIVE and any(
-            item == const.AWARD_ITEMS_KEY_POINTS_MULTIPLIER
-            or item.startswith(const.AWARD_ITEMS_PREFIX_POINTS_MULTIPLIER)
-            for item in award_items
-        ):
-            parent_message += f" Multiplier: {multiplier}x."
-
-        extra_data = {const.DATA_KID_ID: kid_id, const.DATA_BADGE_ID: badge_id}
-        self.hass.async_create_task(
-            self._notify_kid_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_BADGE_EARNED,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_BADGE_EARNED_KID,
-                message_data={"badge_name": badge_info.get(const.DATA_BADGE_NAME)},
-                extra_data=extra_data,
-            )
-        )
-        self.hass.async_create_task(
-            self._notify_parents_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_BADGE_EARNED,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_BADGE_EARNED_PARENT,
-                message_data={
-                    "kid_name": self.kids_data[kid_id][const.DATA_KID_NAME],
-                    "badge_name": badge_info.get(const.DATA_BADGE_NAME),
-                },
-                extra_data=extra_data,
-            )
-        )
-
-        self._persist()
-        self.async_set_updated_data(self._data)
-        # NOTE: Recursive badge checks removed - GamificationManager handles evaluation
-
-    def _demote_cumulative_badge(self, kid_id: str) -> None:
-        """Update cumulative badge status to DEMOTED when maintenance fails.
-
-        This is called by GamificationManager when a cumulative badge's
-        maintenance requirements are no longer met. The badge is not removed,
-        but the kid's status is set to DEMOTED which affects their multiplier.
-
-        Args:
-            kid_id: The internal UUID of the kid
-        """
-        kid_info = self.kids_data.get(kid_id)
-        if not kid_info:
-            const.LOGGER.error(
-                "Demote Cumulative Badge - Kid ID '%s' not found", kid_id
-            )
-            return
-
-        progress = kid_info.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS)
-        if not progress:
-            # No cumulative badge progress to demote
-            const.LOGGER.debug(
-                "Demote Cumulative Badge - No cumulative badge progress for kid '%s'",
-                kid_id,
-            )
-            return
-
-        # Only update if not already demoted
-        current_status = progress.get(
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_STATUS,
-            const.CUMULATIVE_BADGE_STATE_ACTIVE,
-        )
-        if current_status != const.CUMULATIVE_BADGE_STATE_DEMOTED:
-            progress[const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_STATUS] = (
-                const.CUMULATIVE_BADGE_STATE_DEMOTED
-            )
-
-            # Recalculate multiplier immediately so the penalty takes effect
-            self._update_point_multiplier_for_kid(kid_id)
-
-            self._persist()
-            self.async_set_updated_data(self._data)
-
-            kid_name = kid_info.get(const.DATA_KID_NAME, kid_id)
-            const.LOGGER.info(
-                "Demoted cumulative badge status for kid '%s' (%s)",
-                kid_name,
-                kid_id,
-            )
-
-    def process_award_items(
-        self, award_items, rewards_dict, bonuses_dict, penalties_dict
-    ):
-        """Process award_items and return dicts of items to award or penalize."""
-        to_award: dict[str, list[str]] = {
-            const.AWARD_ITEMS_KEY_REWARDS: [],
-            const.AWARD_ITEMS_KEY_BONUSES: [],
-        }
-        to_penalize = []
-        for item in award_items:
-            if item.startswith(const.AWARD_ITEMS_PREFIX_REWARD):
-                reward_id = item.split(":", 1)[1]
-                if reward_id in rewards_dict:
-                    to_award[const.AWARD_ITEMS_KEY_REWARDS].append(reward_id)
-            elif item.startswith(const.AWARD_ITEMS_PREFIX_BONUS):
-                bonus_id = item.split(":", 1)[1]
-                if bonus_id in bonuses_dict:
-                    to_award[const.AWARD_ITEMS_KEY_BONUSES].append(bonus_id)
-            elif item.startswith(const.AWARD_ITEMS_PREFIX_PENALTY):
-                penalty_id = item.split(":", 1)[1]
-                if penalty_id in penalties_dict:
-                    to_penalize.append(penalty_id)
-        return to_award, to_penalize
-
-    def _update_point_multiplier_for_kid(self, kid_id: str):
-        """Update the kid's points multiplier based on the current (effective) cumulative badge only."""
-
-        kid_info: KidData | None = self.kids_data.get(kid_id)
-        if not kid_info:
-            return
-
-        progress = kid_info.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {})
-        current_badge_id = progress.get(
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_ID
-        )
-
-        if current_badge_id:
-            current_badge_info: BadgeData = cast(
-                "BadgeData", self.badges_data.get(current_badge_id, {})
-            )
-            badge_awards = current_badge_info.get(const.DATA_BADGE_AWARDS, {})
-            multiplier = badge_awards.get(
-                const.DATA_BADGE_AWARDS_POINT_MULTIPLIER,
-                const.DEFAULT_KID_POINTS_MULTIPLIER,
-            )
-        else:
-            multiplier = const.DEFAULT_KID_POINTS_MULTIPLIER
-
-        kid_info[const.DATA_KID_POINTS_MULTIPLIER] = multiplier  # type: ignore[typeddict-item]
-
-    def _update_badges_earned_for_kid(self, kid_id: str, badge_id: str) -> None:
-        """Update the kid's badges-earned tracking for the given badge, including period stats."""
-        kid_info: KidData | None = self.kids_data.get(kid_id)
-        if not kid_info:
-            const.LOGGER.error(
-                "ERROR: Update Kid Badges Earned - Kid ID '%s' not found.", kid_id
-            )
-            return
-
-        badge_info: BadgeData | None = self.badges_data.get(badge_id)
-        if not badge_info:
-            const.LOGGER.error(
-                "ERROR: Update Kid Badges Earned - Badge ID '%s' not found.", badge_id
-            )
-            return
-
-        today_local_iso = kh.dt_today_iso()
-        now_local = kh.dt_now_local()
-
-        badges_earned = kid_info.setdefault(const.DATA_KID_BADGES_EARNED, {})
-
-        # Get period mapping from StatisticsEngine
-        period_mapping = self.stats.get_period_keys(now_local)
-
-        # Declare periods variable for use in both branches
-        periods: dict[str, Any]
-
-        if badge_id not in badges_earned:
-            # Create new badge tracking entry with all_time bucket
-            badges_earned[badge_id] = {  # pyright: ignore[reportArgumentType]
-                const.DATA_KID_BADGES_EARNED_NAME: badge_info.get(
-                    const.DATA_BADGE_NAME, ""
-                ),
-                const.DATA_KID_BADGES_EARNED_LAST_AWARDED: today_local_iso,
-                const.DATA_KID_BADGES_EARNED_AWARD_COUNT: 1,
-                const.DATA_KID_BADGES_EARNED_PERIODS: {
-                    const.DATA_KID_BADGES_EARNED_PERIODS_DAILY: {},
-                    const.DATA_KID_BADGES_EARNED_PERIODS_WEEKLY: {},
-                    const.DATA_KID_BADGES_EARNED_PERIODS_MONTHLY: {},
-                    const.DATA_KID_BADGES_EARNED_PERIODS_YEARLY: {},
-                    const.DATA_KID_BADGES_EARNED_PERIODS_ALL_TIME: {},
-                },
-            }
-            # Record initial award using StatisticsEngine
-            periods = badges_earned[badge_id][  # type: ignore[assignment]
-                const.DATA_KID_BADGES_EARNED_PERIODS
-            ]
-            self.stats.record_transaction(
-                periods,
-                {const.DATA_KID_BADGES_EARNED_AWARD_COUNT: 1},
-                period_key_mapping=period_mapping,
-            )
-            const.LOGGER.info(
-                "INFO: Update Kid Badges Earned - Created new tracking for badge '%s' for kid '%s'.",
-                badge_info.get(const.DATA_BADGE_NAME, badge_id),
-                kid_info.get(const.DATA_KID_NAME, kid_id),
-            )
-        else:
-            tracking_entry = badges_earned[badge_id]
-            tracking_entry[const.DATA_KID_BADGES_EARNED_NAME] = badge_info.get(
-                const.DATA_BADGE_NAME, ""
-            )
-            tracking_entry[const.DATA_KID_BADGES_EARNED_LAST_AWARDED] = today_local_iso
-            tracking_entry[const.DATA_KID_BADGES_EARNED_AWARD_COUNT] = (
-                tracking_entry.get(const.DATA_KID_BADGES_EARNED_AWARD_COUNT, 0) + 1
-            )
-
-            # Ensure periods structure exists with all_time bucket
-            periods = tracking_entry.setdefault(
-                const.DATA_KID_BADGES_EARNED_PERIODS,
-                {},  # type: ignore[typeddict-item]
-            )
-            periods.setdefault(const.DATA_KID_BADGES_EARNED_PERIODS_ALL_TIME, {})
-
-            # Record award using StatisticsEngine
-            self.stats.record_transaction(
-                periods,
-                {const.DATA_KID_BADGES_EARNED_AWARD_COUNT: 1},
-                period_key_mapping=period_mapping,
-            )
-
-            const.LOGGER.info(
-                "INFO: Update Kid Badges Earned - Updated tracking for badge '%s' for kid '%s'.",
-                badge_info.get(const.DATA_BADGE_NAME, badge_id),
-                kid_info.get(const.DATA_KID_NAME, kid_id),
-            )
-
-            # Cleanup old period data using StatisticsEngine
-            self.stats.prune_history(periods, self._get_retention_config())
-
-        self._persist()
-        self.async_set_updated_data(self._data)
-
-    def _update_chore_badge_references_for_kid(
-        self, include_cumulative_badges: bool = False
-    ):
-        """Update badge reference lists in kid chore data.
-
-        This maintains a list of which badges reference each chore,
-        useful for quick lookups when evaluating badges.
-
-        Args:
-            include_cumulative_badges: Whether to include cumulative badges in the references.
-                                    Default is False which excludes them since they are currently points only
-        """
-        # Clear existing badge references
-        for _kid_id, kid_info in self.kids_data.items():
-            if const.DATA_KID_CHORE_DATA not in kid_info:
-                continue
-
-            for chore_data in kid_info[const.DATA_KID_CHORE_DATA].values():
-                chore_data[const.DATA_KID_CHORE_DATA_BADGE_REFS] = []
-
-        # Add badge references to relevant chores
-        for badge_id, badge_info in self.badges_data.items():
-            # Skip cumulative badges if not explicitly included
-            if (
-                not include_cumulative_badges
-                and badge_info.get(const.DATA_BADGE_TYPE) == const.BADGE_TYPE_CUMULATIVE
-            ):
-                continue
-
-            # For each kid this badge is assigned to
-            assigned_to = badge_info.get(const.DATA_BADGE_ASSIGNED_TO, [])
-            for kid_id in (
-                assigned_to or self.kids_data.keys()
-            ):  # If empty, apply to all kids
-                kid_info_loop: KidData | None = self.kids_data.get(kid_id)
-                if not kid_info_loop or const.DATA_KID_CHORE_DATA not in kid_info_loop:
-                    continue
-
-                # Use the helper function to get the correct in-scope chores for this badge and kid
-                in_scope_chores_list = self._get_badge_in_scope_chores_list(
-                    badge_info, kid_id
-                )
-
-                # Add badge reference to each tracked chore
-                for chore_id in in_scope_chores_list:
-                    if chore_id in kid_info_loop[const.DATA_KID_CHORE_DATA]:
-                        chore_entry = kid_info_loop[const.DATA_KID_CHORE_DATA][chore_id]
-                        badge_refs: list[str] = chore_entry.get(
-                            const.DATA_KID_CHORE_DATA_BADGE_REFS, []
-                        )
-                        if badge_id not in badge_refs:
-                            badge_refs.append(badge_id)
-                            chore_entry[const.DATA_KID_CHORE_DATA_BADGE_REFS] = (
-                                badge_refs
-                            )
-
-    def remove_awarded_badges(
-        self, kid_name: str | None = None, badge_name: str | None = None
-    ) -> None:
-        """Remove awarded badges based on provided kid_name and badge_name."""
-        # Convert kid_name to kid_id if provided.
-        kid_id = None
-        if kid_name:
-            kid_id = kh.get_entity_id_by_name(self, const.ENTITY_TYPE_KID, kid_name)
-            if kid_id is None:
-                const.LOGGER.error(
-                    "ERROR: Remove Awarded Badges - Kid name '%s' not found.", kid_name
-                )
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                    translation_placeholders={
-                        "entity_type": const.LABEL_KID,
-                        "name": kid_name,
-                    },
-                )
-        else:
-            kid_id = None
-
-        # If badge_name is provided, try to find its corresponding badge_id.
-        if badge_name:
-            badge_id = kh.get_entity_id_by_name(
-                self, const.ENTITY_TYPE_BADGE, badge_name
-            )
-            if not badge_id:
-                # If the badge isn't found, assume the actual badge was deleted but still listed in kid data
-                const.LOGGER.warning(
-                    "WARNING: Remove Awarded Badges - Badge name '%s' not found in badges_data. Removing from kid data only.",
-                    badge_name,
-                )
-                # Remove badge name from a specific kid if kid_id is provided,
-                # or from all kids if not.
-                if kid_id:
-                    kid_info: KidData | None = self.kids_data.get(kid_id)
-                    if kid_info:
-                        # Remove badge from the kid's earned badges
-                        badges_earned = kid_info.get(const.DATA_KID_BADGES_EARNED, {})
-                        to_remove = [
-                            badge_id
-                            for badge_id, entry in badges_earned.items()
-                            if entry.get(const.DATA_KID_BADGES_EARNED_NAME)
-                            == badge_name
-                        ]
-                        for badge_id in to_remove:
-                            del badges_earned[badge_id]
-                else:
-                    for kid_info in self.kids_data.values():
-                        # Remove badge from the kid's earned badges
-                        badges_earned = kid_info.get(const.DATA_KID_BADGES_EARNED, {})
-                        to_remove = [
-                            badge_id
-                            for badge_id, entry in badges_earned.items()
-                            if entry.get(const.DATA_KID_BADGES_EARNED_NAME)
-                            == badge_name
-                        ]
-                        for badge_id in to_remove:
-                            del badges_earned[badge_id]
-
-                self._persist()
-                self.async_set_updated_data(self._data)
-                return
-        else:
-            badge_id = None
-
-        self._remove_awarded_badges_by_id(kid_id, badge_id)
-
-    def _remove_awarded_badges_by_id(
-        self, kid_id: str | None = None, badge_id: str | None = None
-    ) -> None:
-        """Removes awarded badges based on provided kid_id and badge_id."""
-
-        const.LOGGER.info("Remove Awarded Badges - Starting removal process.")
-        found = False
-
-        if badge_id and kid_id:
-            # Reset a specific badge for a specific kid.
-            kid_info: KidData | None = self.kids_data.get(kid_id)
-            badge_info: BadgeData | None = self.badges_data.get(badge_id)
-            if not kid_info:
-                const.LOGGER.error(
-                    "ERROR: Remove Awarded Badges - Kid ID '%s' not found.", kid_id
-                )
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                    translation_placeholders={
-                        "entity_type": const.LABEL_KID,
-                        "name": kid_id,
-                    },
-                )
-            if not badge_info:
-                const.LOGGER.error(
-                    "ERROR: Remove Awarded Badges - Badge ID '%s' not found.", badge_id
-                )
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                    translation_placeholders={
-                        "entity_type": const.LABEL_BADGE,
-                        "name": badge_id,
-                    },
-                )
-            badge_name = badge_info.get(const.DATA_BADGE_NAME, badge_id)
-            kid_name = kid_info.get(const.DATA_KID_NAME, kid_id)
-            badge_type = badge_info.get(const.DATA_BADGE_TYPE)
-            # Remove the badge from the kid's badges_earned.
-            badges_earned = kid_info.setdefault(const.DATA_KID_BADGES_EARNED, {})
-            if badge_id in badges_earned:
-                found = True
-                const.LOGGER.warning(
-                    "WARNING: Remove Awarded Badges - Removing badge '%s' from kid '%s'.",
-                    badge_name,
-                    kid_name,
-                )
-                del badges_earned[badge_id]
-
-            # Remove the kid from the badge earned_by list.
-            earned_by_list = badge_info.get(const.DATA_BADGE_EARNED_BY, [])
-            if kid_id in earned_by_list:
-                earned_by_list.remove(kid_id)
-
-            # Update multiplier if cumulative badge was removed
-            if found and badge_type == const.BADGE_TYPE_CUMULATIVE:
-                self._update_point_multiplier_for_kid(kid_id)
-
-            if not found:
-                const.LOGGER.warning(
-                    "WARNING: Remove Awarded Badges - Badge '%s' ('%s') not found in kid '%s' ('%s') data.",
-                    badge_id,
-                    badge_name,
-                    kid_id,
-                    kid_name,
-                )
-
-        elif badge_id:
-            # Remove a specific awarded badge for all kids.
-            badge_info_elif: BadgeData | None = self.badges_data.get(badge_id)
-            if not badge_info_elif:
-                const.LOGGER.warning(
-                    "WARNING: Remove Awarded Badges - Badge ID '%s' not found in badges data.",
-                    badge_id,
-                )
-            else:
-                badge_name = badge_info_elif.get(const.DATA_BADGE_NAME, badge_id)
-                badge_type = badge_info_elif.get(const.DATA_BADGE_TYPE)
-                kids_affected: list[str] = []
-                for kid_id, kid_info in self.kids_data.items():
-                    kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown Kid")
-                    # Remove the badge from the kid's badges_earned.
-                    badges_earned = kid_info.setdefault(
-                        const.DATA_KID_BADGES_EARNED, {}
-                    )
-                    if badge_id in badges_earned:
-                        found = True
-                        kids_affected.append(kid_id)
-                        const.LOGGER.warning(
-                            "WARNING: Remove Awarded Badges - Removing badge '%s' from kid '%s'.",
-                            badge_name,
-                            kid_name,
-                        )
-                        del badges_earned[badge_id]
-
-                    # Remove the kid from the badge earned_by list.
-                    earned_by_list = badge_info_elif.get(const.DATA_BADGE_EARNED_BY, [])
-                    if kid_id in earned_by_list:
-                        earned_by_list.remove(kid_id)
-
-                # Update multiplier for all affected kids if cumulative badge was removed
-                if badge_type == const.BADGE_TYPE_CUMULATIVE:
-                    for affected_kid_id in kids_affected:
-                        self._update_point_multiplier_for_kid(affected_kid_id)
-
-                # All kids should already be removed from the badge earned_by list, but in case of orphans, clear those fields
-                if const.DATA_BADGE_EARNED_BY in badge_info_elif:
-                    badge_info_elif[const.DATA_BADGE_EARNED_BY].clear()
-
-                if not found:
-                    const.LOGGER.warning(
-                        "WARNING: Remove Awarded Badges - Badge '%s' ('%s') not found in any kid's data.",
-                        badge_id,
-                        badge_name,
-                    )
-
-        elif kid_id:
-            # Remove all awarded badges for a specific kid.
-            kid_info_elif: KidData | None = self.kids_data.get(kid_id)
-            if not kid_info_elif:
-                const.LOGGER.error(
-                    "ERROR: Remove Awarded Badges - Kid ID '%s' not found.", kid_id
-                )
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                    translation_placeholders={
-                        "entity_type": const.LABEL_KID,
-                        "name": kid_id,
-                    },
-                )
-            kid_name = kid_info_elif.get(const.DATA_KID_NAME, "Unknown Kid")
-            had_cumulative = False
-            for badge_id, badge_info in self.badges_data.items():
-                badge_name = badge_info.get(const.DATA_BADGE_NAME, "")
-                badge_type = badge_info.get(const.DATA_BADGE_TYPE)
-                earned_by_list = badge_info.get(const.DATA_BADGE_EARNED_BY, [])
-                badges_earned = kid_info_elif.setdefault(
-                    const.DATA_KID_BADGES_EARNED, {}
-                )
-                if kid_id in earned_by_list:
-                    found = True
-                    if badge_type == const.BADGE_TYPE_CUMULATIVE:
-                        had_cumulative = True
-                    # Remove kid from badge earned_by list
-                    earned_by_list.remove(kid_id)
-                    # Remove the badge from the kid's badges_earned.
-                    if badge_id in badges_earned:
-                        found = True
-                        const.LOGGER.warning(
-                            "WARNING: Remove Awarded Badges - Removing badge '%s' from kid '%s'.",
-                            badge_name,
-                            kid_name,
-                        )
-                        del badges_earned[badge_id]
-
-            # All badges should already be removed from the kid's badges list, but in case of orphans, clear those fields
-            if const.DATA_KID_BADGES_EARNED in kid_info_elif:
-                kid_info_elif[const.DATA_KID_BADGES_EARNED].clear()
-            # CLS Should also clear all extra fields for all badge types later
-
-            # Update multiplier if any cumulative badges were removed
-            if had_cumulative:
-                self._update_point_multiplier_for_kid(kid_id)
-
-            if not found:
-                const.LOGGER.warning(
-                    "WARNING: Remove Awarded Badges - No badge found for kid '%s'.",
-                    kid_info_elif.get(const.DATA_KID_NAME, kid_id),
-                )
-
-        else:
-            # Remove Awarded Badges for all kids.
-            const.LOGGER.info(
-                "INFO: Remove Awarded Badges - Removing all awarded badges for all kids."
-            )
-            kids_with_cumulative: set[str] = set()
-            for badge_id, badge_info in self.badges_data.items():
-                badge_name = badge_info.get(const.DATA_BADGE_NAME, "")
-                badge_type = badge_info.get(const.DATA_BADGE_TYPE)
-                for kid_id, kid_info in self.kids_data.items():
-                    kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown Kid")
-                    # Remove the badge from the kid's badges_earned.
-                    badges_earned = kid_info.setdefault(
-                        const.DATA_KID_BADGES_EARNED, {}
-                    )
-                    if badge_id in badges_earned:
-                        found = True
-                        if badge_type == const.BADGE_TYPE_CUMULATIVE:
-                            kids_with_cumulative.add(kid_id)
-                        const.LOGGER.warning(
-                            "WARNING: Remove Awarded Badges - Removing badge '%s' from kid '%s'.",
-                            badge_name,
-                            kid_name,
-                        )
-                        del badges_earned[badge_id]
-
-                    # Remove the kid from the badge earned_by list.
-                    earned_by_list = badge_info.get(const.DATA_BADGE_EARNED_BY, [])
-                    if kid_id in earned_by_list:
-                        earned_by_list.remove(kid_id)
-
-                    # All badges should already be removed from the kid's badges list, but in case of orphans, clear those fields
-                    if const.DATA_KID_BADGES_EARNED in kid_info:
-                        kid_info[const.DATA_KID_BADGES_EARNED].clear()
-                    # CLS Should also clear all extra fields for all badge types later
-
-                # All kids should already be removed from the badge earned_by list, but in case of orphans, clear those fields
-                if const.DATA_BADGE_EARNED_BY in badge_info:
-                    badge_info[const.DATA_BADGE_EARNED_BY].clear()
-
-            # Update multiplier for all kids who had cumulative badges removed
-            for affected_kid_id in kids_with_cumulative:
-                self._update_point_multiplier_for_kid(affected_kid_id)
-
-            if not found:
-                const.LOGGER.warning(
-                    "WARNING: Remove Awarded Badges - No awarded badges found in any kid's data."
-                )
-
-        const.LOGGER.info(
-            "INFO: Remove Awarded Badges - Badge removal process completed."
-        )
-        self._persist()
-        self.async_set_updated_data(self._data)
-
-    def _recalculate_all_badges(self):
-        """Global re-check of all badges for all kids.
-
-        NOTE: This now triggers GamificationManager to re-evaluate all kids.
-        """
-        const.LOGGER.info("Recalculate All Badges - Starting Recalculation")
-
-        # Mark all kids dirty so GamificationManager re-evaluates them
-        for kid_id in self.kids_data:
-            self.gamification_manager._mark_dirty(kid_id)
-
-        self._persist()
-        self.async_set_updated_data(self._data)
-        const.LOGGER.info("Recalculate All Badges - Recalculation Complete")
-
-    def _get_cumulative_badge_progress(self, kid_id: str) -> dict[str, Any]:
-        """
-        Builds and returns the full cumulative badge progress block for a kid.
-        Uses badge level logic, progress tracking, and next-tier metadata.
-        Does not mutate state.
-        """
-        kid_info: KidData | None = self.kids_data.get(kid_id)
-        if not kid_info:
-            return {}
-
-        # Make a copy of the existing progress so that we don't modify the stored data.
-        stored_progress = kid_info.get(
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {}
-        ).copy()
-
-        # Compute values from badge level logic.
-        (highest_earned, next_higher, next_lower, baseline, cycle_points) = (
-            self._get_cumulative_badge_levels(kid_id)
-        )
-        total_points = baseline + cycle_points
-
-        # Determine which badge should be considered current.
-        # If the stored status is "demoted", then set current badge to next_lower; otherwise, use highest_earned.
-        current_status = stored_progress.get(
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_STATUS,
-            const.CUMULATIVE_BADGE_STATE_ACTIVE,
-        )
-        if current_status == const.CUMULATIVE_BADGE_STATE_DEMOTED:
-            current_badge_info = next_lower
-        else:
-            current_badge_info = highest_earned
-
-        # Build a new dictionary with computed values.
-        computed_progress = {
-            # Maintenance tracking (we'll merge stored values below)
-            # For keys like status we prefer the stored value, or the default.
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_STATUS: stored_progress.get(
-                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_STATUS,
-                const.CUMULATIVE_BADGE_STATE_ACTIVE,
-            ),
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_BASELINE: baseline,
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS: cycle_points,
-            # Highest earned badge
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_ID: highest_earned.get(
-                const.DATA_BADGE_INTERNAL_ID
-            )
-            if highest_earned
-            else None,
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_NAME: highest_earned.get(
-                const.DATA_BADGE_NAME
-            )
-            if highest_earned
-            else None,
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_THRESHOLD: float(
-                highest_earned.get(const.DATA_BADGE_TARGET, {}).get(
-                    const.DATA_BADGE_TARGET_THRESHOLD_VALUE, 0
-                )
-            )
-            if highest_earned
-            else None,
-            # Current badge in effect
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_ID: current_badge_info.get(
-                const.DATA_BADGE_INTERNAL_ID
-            )
-            if current_badge_info
-            else None,
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_NAME: current_badge_info.get(
-                const.DATA_BADGE_NAME
-            )
-            if current_badge_info
-            else None,
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_THRESHOLD: float(
-                current_badge_info.get(const.DATA_BADGE_TARGET, {}).get(
-                    const.DATA_BADGE_TARGET_THRESHOLD_VALUE, 0
-                )
-            )
-            if current_badge_info
-            else None,
-            # Next higher tier
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_BADGE_ID: next_higher.get(
-                const.DATA_BADGE_INTERNAL_ID
-            )
-            if next_higher
-            else None,
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_BADGE_NAME: next_higher.get(
-                const.DATA_BADGE_NAME
-            )
-            if next_higher
-            else None,
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_THRESHOLD: float(
-                next_higher.get(const.DATA_BADGE_TARGET, {}).get(
-                    const.DATA_BADGE_TARGET_THRESHOLD_VALUE, 0
-                )
-            )
-            if next_higher
-            else None,
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_POINTS_NEEDED: (
-                max(
-                    0.0,
-                    float(
-                        next_higher.get(const.DATA_BADGE_TARGET, {}).get(
-                            const.DATA_BADGE_TARGET_THRESHOLD_VALUE, 0
-                        )
-                    )
-                    - total_points,
-                )
-                if next_higher
-                else None
-            ),
-            # Next lower tier
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_BADGE_ID: next_lower.get(
-                const.DATA_BADGE_INTERNAL_ID
-            )
-            if next_lower
-            else None,
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_BADGE_NAME: next_lower.get(
-                const.DATA_BADGE_NAME
-            )
-            if next_lower
-            else None,
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_THRESHOLD: float(
-                next_lower.get(const.DATA_BADGE_TARGET_THRESHOLD_VALUE, 0)
-            )
-            if next_lower
-            else None,
-        }
-
-        # Merge the computed values over the stored progress.
-        stored_progress.update(computed_progress)  # type: ignore[typeddict-item]
-
-        # Return the merged dictionary without modifying the underlying stored data.
-        return cast("dict[str, Any]", stored_progress)
-
-    def _sync_badge_progress_for_kid(self, kid_id: str) -> None:
-        """Sync badge progress for a specific kid."""
-        # Initialize badge progress for any badges that don't have progress data yet
-
-        kid_info: KidData | None = self.kids_data.get(kid_id)
-        if not kid_info:
-            return
-
-        # Phase 4: Clean up badge_progress for badges no longer assigned to this kid
-        if const.DATA_KID_BADGE_PROGRESS in kid_info:
-            badges_to_remove = []
-            for progress_badge_id in kid_info[const.DATA_KID_BADGE_PROGRESS]:
-                badge_info: BadgeData | None = self.badges_data.get(progress_badge_id)
-                # Remove if badge deleted OR kid not in assigned_to list
-                if not badge_info or kid_id not in badge_info.get(
-                    const.DATA_BADGE_ASSIGNED_TO, []
-                ):
-                    badges_to_remove.append(progress_badge_id)
-
-            for badge_id in badges_to_remove:
-                del kid_info[const.DATA_KID_BADGE_PROGRESS][badge_id]
-                const.LOGGER.debug(
-                    "DEBUG: Removed badge_progress for badge '%s' from kid '%s' (unassigned or deleted)",
-                    badge_id,
-                    kid_info.get(const.DATA_KID_NAME, kid_id),
-                )
-
-        for badge_id, badge_info in self.badges_data.items():
-            # Feature Change v4.2: Badges now require explicit assignment.
-            # Empty assigned_to means badge is not assigned to any kid.
-            assigned_to_list = badge_info.get(const.DATA_BADGE_ASSIGNED_TO, [])
-            is_assigned_to = kid_id in assigned_to_list
-            if not is_assigned_to:
-                continue
-
-            # Skip cumulative badges (handled separately)
-            if badge_info.get(const.DATA_BADGE_TYPE) == const.BADGE_TYPE_CUMULATIVE:
-                continue
-
-            # Initialize progress structure if it doesn't exist
-            if const.DATA_KID_BADGE_PROGRESS not in kid_info:
-                kid_info[const.DATA_KID_BADGE_PROGRESS] = {}
-
-            badge_type = badge_info.get(const.DATA_BADGE_TYPE)
-
-            # --- Set flags based on badge type ---
-            has_target = badge_type in const.INCLUDE_TARGET_BADGE_TYPES
-            has_special_occasion = (
-                badge_type in const.INCLUDE_SPECIAL_OCCASION_BADGE_TYPES
-            )
-            has_achievement_linked = (
-                badge_type in const.INCLUDE_ACHIEVEMENT_LINKED_BADGE_TYPES
-            )
-            has_challenge_linked = (
-                badge_type in const.INCLUDE_CHALLENGE_LINKED_BADGE_TYPES
-            )
-            has_tracked_chores = badge_type in const.INCLUDE_TRACKED_CHORES_BADGE_TYPES
-            has_assigned_to = badge_type in const.INCLUDE_ASSIGNED_TO_BADGE_TYPES
-            has_reset_schedule = badge_type in const.INCLUDE_RESET_SCHEDULE_BADGE_TYPES
-
-            # ===============================================================
-            # SECTION 1: NEW BADGE SETUP - Create initial progress structure
-            # ===============================================================
-            badge_progress_dict = kid_info.get(const.DATA_KID_BADGE_PROGRESS, {})
-            if badge_id not in badge_progress_dict:
-                # Get badge details
-
-                # --- Common fields ---
-                progress: dict[str, Any] = {
-                    const.DATA_KID_BADGE_PROGRESS_NAME: badge_info.get(
-                        const.DATA_BADGE_NAME
-                    ),
-                    const.DATA_KID_BADGE_PROGRESS_TYPE: badge_type,
-                    const.DATA_KID_BADGE_PROGRESS_STATUS: const.BADGE_STATE_IN_PROGRESS,
-                }
-
-                # --- Target fields ---
-                if has_target:
-                    target_type = badge_info.get(const.DATA_BADGE_TARGET, {}).get(
-                        const.DATA_BADGE_TARGET_TYPE
-                    )
-                    threshold_value = float(
-                        badge_info.get(const.DATA_BADGE_TARGET, {}).get(
-                            const.DATA_BADGE_TARGET_THRESHOLD_VALUE, 0
-                        )
-                    )
-                    progress[const.DATA_KID_BADGE_PROGRESS_TARGET_TYPE] = target_type
-                    progress[const.DATA_KID_BADGE_PROGRESS_TARGET_THRESHOLD_VALUE] = (
-                        threshold_value
-                    )
-
-                    # Initialize all possible progress fields to their defaults if not present
-                    progress.setdefault(
-                        const.DATA_KID_BADGE_PROGRESS_POINTS_CYCLE_COUNT, 0.0
-                    )
-                    progress.setdefault(
-                        const.DATA_KID_BADGE_PROGRESS_CHORES_CYCLE_COUNT, 0
-                    )
-                    progress.setdefault(
-                        const.DATA_KID_BADGE_PROGRESS_DAYS_CYCLE_COUNT, 0
-                    )
-                    progress.setdefault(
-                        const.DATA_KID_BADGE_PROGRESS_CHORES_COMPLETED, {}
-                    )
-                    progress.setdefault(
-                        const.DATA_KID_BADGE_PROGRESS_DAYS_COMPLETED, {}
-                    )
-
-                # --- Achievement Linked fields ---
-                if has_achievement_linked:
-                    # Store the associated achievement ID if present
-                    achievement_id = badge_info.get(
-                        const.DATA_BADGE_ASSOCIATED_ACHIEVEMENT
-                    )
-                    if achievement_id:
-                        progress[const.DATA_BADGE_ASSOCIATED_ACHIEVEMENT] = (
-                            achievement_id
-                        )
-
-                # --- Challenge Linked fields ---
-                if has_challenge_linked:
-                    # Store the associated challenge ID if present
-                    challenge_id = badge_info.get(const.DATA_BADGE_ASSOCIATED_CHALLENGE)
-                    if challenge_id:
-                        progress[const.DATA_BADGE_ASSOCIATED_CHALLENGE] = challenge_id
-
-                # --- Tracked Chores fields ---
-                if has_tracked_chores and not has_special_occasion:
-                    progress[const.DATA_KID_BADGE_PROGRESS_TRACKED_CHORES] = (
-                        self._get_badge_in_scope_chores_list(badge_info, kid_id)
-                    )
-
-                # --- Assigned To fields ---
-                if has_assigned_to:
-                    assigned_to = badge_info.get(const.DATA_BADGE_ASSIGNED_TO, [])
-                    progress[const.DATA_BADGE_ASSIGNED_TO] = assigned_to
-
-                # --- Awards fields --- Not required for now
-                # if has_awards:
-                #    awards = badge_info.get(const.DATA_BADGE_AWARDS, {})
-                #    progress[const.DATA_BADGE_AWARDS] = awards
-
-                # --- Reset Schedule fields ---
-                if has_reset_schedule:
-                    reset_schedule = badge_info.get(const.DATA_BADGE_RESET_SCHEDULE, {})
-                    recurring_frequency = reset_schedule.get(
-                        const.DATA_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY,
-                        const.FREQUENCY_NONE,
-                    )
-                    start_date_iso = reset_schedule.get(
-                        const.DATA_BADGE_RESET_SCHEDULE_START_DATE
-                    )
-                    end_date_iso = reset_schedule.get(
-                        const.DATA_BADGE_RESET_SCHEDULE_END_DATE
-                    )
-                    progress[const.DATA_KID_BADGE_PROGRESS_RECURRING_FREQUENCY] = (
-                        recurring_frequency
-                    )
-
-                    # Set initial schedule if there is a frequency and no end date
-                    if recurring_frequency != const.FREQUENCY_NONE:
-                        if end_date_iso:
-                            progress[const.DATA_KID_BADGE_PROGRESS_START_DATE] = (
-                                start_date_iso
-                            )
-                            progress[const.DATA_KID_BADGE_PROGRESS_END_DATE] = (
-                                end_date_iso
-                            )
-                            progress[const.DATA_KID_BADGE_PROGRESS_CYCLE_COUNT] = (
-                                const.DEFAULT_ZERO
-                            )
-                        else:
-                            # ---------------------------------------------------------------
-                            # Calculate initial end date from today since there is no end date
-                            # ---------------------------------------------------------------
-                            today_local_iso = kh.dt_today_iso()
-                            is_daily = recurring_frequency == const.FREQUENCY_DAILY
-                            is_custom_1_day = (
-                                recurring_frequency == const.FREQUENCY_CUSTOM
-                                and reset_schedule.get(
-                                    const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL
-                                )
-                                == 1
-                                and reset_schedule.get(
-                                    const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT
-                                )
-                                == const.TIME_UNIT_DAYS
-                            )
-
-                            if is_daily or is_custom_1_day:
-                                # This is special case where if you set a daily badge, you don't want it to get scheduled with
-                                # tomorrow as the end date.
-                                new_end_date_iso: str | date | None = today_local_iso
-                            elif recurring_frequency == const.FREQUENCY_CUSTOM:
-                                # Handle other custom frequencies
-                                custom_interval = reset_schedule.get(
-                                    const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL
-                                )
-                                custom_interval_unit = reset_schedule.get(
-                                    const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT
-                                )
-                                if custom_interval and custom_interval_unit:
-                                    new_end_date_iso = kh.dt_add_interval(
-                                        today_local_iso,
-                                        interval_unit=custom_interval_unit,
-                                        delta=custom_interval,
-                                        require_future=True,
-                                        return_type=const.HELPER_RETURN_ISO_DATE,
-                                    )
-                                else:
-                                    # Default fallback to weekly
-                                    new_end_date_iso = kh.dt_add_interval(
-                                        today_local_iso,
-                                        interval_unit=const.TIME_UNIT_WEEKS,
-                                        delta=1,
-                                        require_future=True,
-                                        return_type=const.HELPER_RETURN_ISO_DATE,
-                                    )
-                            else:
-                                # Use standard frequency helper
-                                new_end_date_iso = kh.dt_next_schedule(
-                                    today_local_iso,
-                                    interval_type=recurring_frequency,
-                                    require_future=True,
-                                    return_type=const.HELPER_RETURN_ISO_DATE,
-                                )
-
-                            progress[const.DATA_KID_BADGE_PROGRESS_START_DATE] = (
-                                start_date_iso
-                            )
-                            progress[const.DATA_KID_BADGE_PROGRESS_END_DATE] = (
-                                new_end_date_iso
-                            )
-                            progress[const.DATA_KID_BADGE_PROGRESS_CYCLE_COUNT] = (
-                                const.DEFAULT_ZERO
-                            )
-
-                            # Set penalty applied to False
-                            # This is to ensure that if the badge is not earned, the penalty will be applied
-                            progress[const.DATA_KID_BADGE_PROGRESS_PENALTY_APPLIED] = (
-                                False
-                            )
-
-                # --- Special Occasion fields ---
-                if has_special_occasion:
-                    # Add occasion type if present
-                    occasion_type = badge_info.get(const.DATA_BADGE_OCCASION_TYPE)
-                    if occasion_type:
-                        progress[const.DATA_BADGE_OCCASION_TYPE] = occasion_type
-
-                # Store the progress data
-                kid_info[const.DATA_KID_BADGE_PROGRESS][badge_id] = cast(  # pyright: ignore[reportTypedDictNotRequiredAccess]
-                    "KidBadgeProgress", progress
-                )
-
-            # ===============================================================
-            # SECTION 2: BADGE SYNC - Update existing badge progress data
-            # ===============================================================
-            else:
-                # --- Remove badge progress if badge is no longer available or not assigned to this kid ---
-                if badge_id not in self.badges_data or (
-                    badge_info.get(const.DATA_BADGE_ASSIGNED_TO, [])
-                    and kid_id not in badge_info.get(const.DATA_BADGE_ASSIGNED_TO, [])
-                ):
-                    if badge_id in badge_progress_dict:
-                        del badge_progress_dict[badge_id]
-                        const.LOGGER.info(
-                            "INFO: Badge Maintenance - Removed badge progress for badge '%s' from kid '%s' (badge deleted or unassigned).",
-                            badge_id,
-                            kid_info.get(const.DATA_KID_NAME, kid_id),
-                        )
-                    continue
-
-                # The badge already exists in progress data - sync configuration fields
-                progress_sync: dict[str, Any] = cast(
-                    "dict[str, Any]", badge_progress_dict[badge_id]
-                )
-
-                # --- Common fields ---
-                progress_sync[const.DATA_KID_BADGE_PROGRESS_NAME] = badge_info.get(
-                    const.DATA_BADGE_NAME, "Unknown Badge"
-                )
-                progress_sync[const.DATA_KID_BADGE_PROGRESS_TYPE] = badge_type
-
-                # --- Target fields ---
-                if has_target:
-                    target_type = badge_info.get(const.DATA_BADGE_TARGET, {}).get(
-                        const.DATA_BADGE_TARGET_TYPE,
-                        const.BADGE_TARGET_THRESHOLD_TYPE_POINTS,
-                    )
-                    progress_sync[const.DATA_KID_BADGE_PROGRESS_TARGET_TYPE] = (
-                        target_type
-                    )
-
-                    progress_sync[
-                        const.DATA_KID_BADGE_PROGRESS_TARGET_THRESHOLD_VALUE
-                    ] = badge_info.get(const.DATA_BADGE_TARGET, {}).get(
-                        const.DATA_BADGE_TARGET_THRESHOLD_VALUE, 0
-                    )
-
-                # --- Special Occasion fields ---
-                if has_special_occasion:
-                    # Add occasion type if present
-                    occasion_type = badge_info.get(const.DATA_BADGE_OCCASION_TYPE)
-                    if occasion_type:
-                        progress_sync[const.DATA_BADGE_OCCASION_TYPE] = occasion_type
-
-                # --- Achievement Linked fields ---
-                if has_achievement_linked:
-                    achievement_id = badge_info.get(
-                        const.DATA_BADGE_ASSOCIATED_ACHIEVEMENT
-                    )
-                    if achievement_id:
-                        progress_sync[const.DATA_BADGE_ASSOCIATED_ACHIEVEMENT] = (
-                            achievement_id
-                        )
-
-                # --- Challenge Linked fields ---
-                if has_challenge_linked:
-                    challenge_id = badge_info.get(const.DATA_BADGE_ASSOCIATED_CHALLENGE)
-                    if challenge_id:
-                        progress_sync[const.DATA_BADGE_ASSOCIATED_CHALLENGE] = (
-                            challenge_id
-                        )
-
-                # --- Tracked Chores fields ---
-                if has_tracked_chores and not has_special_occasion:
-                    progress_sync[const.DATA_KID_BADGE_PROGRESS_TRACKED_CHORES] = (
-                        self._get_badge_in_scope_chores_list(badge_info, kid_id)
-                    )
-
-                # --- Assigned To fields ---
-                if has_assigned_to:
-                    assigned_to = badge_info.get(const.DATA_BADGE_ASSIGNED_TO, [])
-                    progress_sync[const.DATA_BADGE_ASSIGNED_TO] = assigned_to
-
-                # --- Awards fields --- Not required for now
-                # if has_awards:
-                #    awards = badge_info.get(const.DATA_BADGE_AWARDS, {})
-                #    progress_sync[const.DATA_BADGE_AWARDS] = awards
-
-                # --- Reset Schedule fields ---
-                if has_reset_schedule:
-                    reset_schedule = badge_info.get(const.DATA_BADGE_RESET_SCHEDULE, {})
-                    recurring_frequency = reset_schedule.get(
-                        const.DATA_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY,
-                        const.FREQUENCY_NONE,
-                    )
-                    start_date_iso = reset_schedule.get(
-                        const.DATA_BADGE_RESET_SCHEDULE_START_DATE
-                    )
-                    end_date_iso = reset_schedule.get(
-                        const.DATA_BADGE_RESET_SCHEDULE_END_DATE
-                    )
-                    progress_sync[const.DATA_KID_BADGE_PROGRESS_RECURRING_FREQUENCY] = (
-                        recurring_frequency
-                    )
-                    # Only update start and end dates if they have values
-                    if start_date_iso:
-                        progress_sync[const.DATA_KID_BADGE_PROGRESS_START_DATE] = (
-                            start_date_iso
-                        )
-                    if end_date_iso:
-                        progress_sync[const.DATA_KID_BADGE_PROGRESS_END_DATE] = (
-                            end_date_iso
-                        )
-
-    def _get_cumulative_badge_levels(
-        self, kid_id: str
-    ) -> tuple[dict | None, dict | None, dict | None, float, float]:
-        """
-        Determines the highest earned cumulative badge for a kid, and the next higher/lower badge tiers.
-
-        Returns:
-            - highest_earned_badge_info (dict or None)
-            - next_higher_badge_info (dict or None)
-            - next_lower_badge_info (dict or None)
-            - baseline (float)
-            - cycle_points (float)
-        """
-
-        kid_info: KidData | None = self.kids_data.get(kid_id)
-        if not kid_info:
-            return None, None, None, 0.0, 0.0
-
-        progress = kid_info.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {})
-        baseline = round(
-            float(progress.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_BASELINE, 0)),
-            const.DATA_FLOAT_PRECISION,
-        )
-        cycle_points = round(
-            float(
-                progress.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS, 0)
-            ),
-            const.DATA_FLOAT_PRECISION,
-        )
-        total_points = baseline + cycle_points
-
-        # Get sorted list of cumulative badges (lowest to highest threshold)
-        cumulative_badges = sorted(
-            (
-                (badge_id, badge_info)
-                for badge_id, badge_info in self.badges_data.items()
-                if badge_info.get(const.DATA_BADGE_TYPE) == const.BADGE_TYPE_CUMULATIVE
-            ),
-            key=lambda item: float(
-                item[1]
-                .get(const.DATA_BADGE_TARGET, {})
-                .get(const.DATA_BADGE_TARGET_THRESHOLD_VALUE, 0)
-            ),
-        )
-
-        if not cumulative_badges:
-            # No cumulative badges exist - reset tracking values to 0
-            # When a new cumulative badge is added, tracking will start fresh
-            return None, None, None, 0.0, 0.0
-
-        highest_earned = None
-        next_higher = None
-        next_lower = None
-        previous_badge_info = None
-
-        for _badge_id, badge_info in cumulative_badges:
-            threshold = float(
-                badge_info.get(const.DATA_BADGE_TARGET, {}).get(
-                    const.DATA_BADGE_TARGET_THRESHOLD_VALUE, 0
-                )
-            )
-
-            # Set the is_assigned_to flag: True if the list is empty or if kid_id is in the assigned list
-            is_assigned_to = not badge_info.get(
-                const.DATA_BADGE_ASSIGNED_TO, []
-            ) or kid_id in badge_info.get(const.DATA_BADGE_ASSIGNED_TO, [])
-
-            if is_assigned_to:
-                if total_points >= threshold:
-                    highest_earned = badge_info
-                    next_lower = previous_badge_info
-                else:
-                    next_higher = badge_info
-                    break
-
-                previous_badge_info = badge_info
-
+        # Return expected entity_id (sensor not yet in registry)
         return (
-            cast("dict[Any, Any] | None", highest_earned),
-            cast("dict[Any, Any] | None", next_higher),
-            cast("dict[Any, Any] | None", next_lower),
-            baseline,
-            cycle_points,
+            f"{const.SENSOR_KC_PREFIX}"
+            f"{const.SENSOR_KC_EID_PREFIX_DASHBOARD_LANG}{lang_code}"
         )
 
-    # -------------------------------------------------------------------------------------
-    # Penalties: Apply, Reset
-    # -------------------------------------------------------------------------------------
+    def get_languages_in_use(self) -> set[str]:
+        """Get all unique dashboard languages currently in use by kids and parents.
 
-    def apply_penalty(self, parent_name: str, kid_id: str, penalty_id: str):
-        """Apply penalty => negative points to reduce kid's points."""
-        penalty_info: PenaltyData | None = self.penalties_data.get(penalty_id)
-        if not penalty_info:
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_PENALTY,
-                    "name": penalty_id,
-                },
-            )
-
-        kid_info: KidData | None = self.kids_data.get(kid_id)
-        if not kid_info:
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_KID,
-                    "name": kid_id,
-                },
-            )
-
-        penalty_pts = penalty_info.get(const.DATA_PENALTY_POINTS, const.DEFAULT_ZERO)
-        self.update_kid_points(
-            kid_id, delta=penalty_pts, source=const.POINTS_SOURCE_PENALTIES
-        )
-
-        # increment penalty_applies
-        penalty_applies = kid_info[const.DATA_KID_PENALTY_APPLIES]
-        if penalty_id in penalty_applies:
-            penalty_applies[penalty_id] = int(penalty_applies[penalty_id]) + 1  # type: ignore[assignment]
-        else:
-            penalty_applies[penalty_id] = 1  # type: ignore[assignment]
-
-        # Send a notification to the kid that a penalty was applied
-        extra_data = {const.DATA_KID_ID: kid_id, const.DATA_PENALTY_ID: penalty_id}
-        self.hass.async_create_task(
-            self._notify_kid_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_PENALTY_APPLIED,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_PENALTY_APPLIED,
-                message_data={
-                    "penalty_name": penalty_info[const.DATA_PENALTY_NAME],
-                    "points": penalty_pts,
-                },
-                extra_data=extra_data,
-            )
-        )
-
-        self._persist()
-        self.async_set_updated_data(self._data)
-
-    def reset_penalties(
-        self, kid_id: str | None = None, penalty_id: str | None = None
-    ) -> None:
-        """Reset penalties based on provided kid_id and penalty_id."""
-
-        if penalty_id and kid_id:
-            # Reset a specific penalty for a specific kid
-            kid_info: KidData | None = self.kids_data.get(kid_id)
-            if not kid_info:
-                const.LOGGER.error(
-                    "ERROR: Reset Penalties - Kid ID '%s' not found.", kid_id
-                )
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                    translation_placeholders={
-                        "entity_type": const.LABEL_KID,
-                        "name": kid_id,
-                    },
-                )
-            if penalty_id not in kid_info.get(const.DATA_KID_PENALTY_APPLIES, {}):
-                const.LOGGER.error(
-                    "ERROR: Reset Penalties - Penalty ID '%s' does not apply to Kid ID '%s'.",
-                    penalty_id,
-                    kid_id,
-                )
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_ASSIGNED,
-                    translation_placeholders={
-                        "entity": f"penalty '{penalty_id}'",
-                        "kid": kid_id,
-                    },
-                )
-
-            kid_info[const.DATA_KID_PENALTY_APPLIES].pop(penalty_id, None)
-
-        elif penalty_id:
-            # Reset a specific penalty for all kids
-            found = False
-            for kid_info_loop in self.kids_data.values():
-                if penalty_id in kid_info_loop.get(const.DATA_KID_PENALTY_APPLIES, {}):
-                    found = True
-                    kid_info_loop[const.DATA_KID_PENALTY_APPLIES].pop(penalty_id, None)
-
-            if not found:
-                const.LOGGER.warning(
-                    "WARNING: Reset Penalties - Penalty ID '%s' not found in any kid's data.",
-                    penalty_id,
-                )
-
-        elif kid_id:
-            # Reset all penalties for a specific kid
-            kid_info_elif: KidData | None = self.kids_data.get(kid_id)
-            if not kid_info_elif:
-                const.LOGGER.error(
-                    "ERROR: Reset Penalties - Kid ID '%s' not found.", kid_id
-                )
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                    translation_placeholders={
-                        "entity_type": const.LABEL_KID,
-                        "name": kid_id,
-                    },
-                )
-
-            kid_info_elif[const.DATA_KID_PENALTY_APPLIES].clear()
-
-        else:
-            # Reset all penalties for all kids
-            const.LOGGER.info(
-                "INFO: Reset Penalties - Resetting all penalties for all kids"
-            )
-            for kid_info in self.kids_data.values():
-                kid_info[const.DATA_KID_PENALTY_APPLIES].clear()
-
-        const.LOGGER.debug(
-            "DEBUG: Reset Penalties - Penalties reset completed - Kid ID '%s',  Penalty ID '%s'",
-            kid_id,
-            penalty_id,
-        )
-
-        self._persist()
-        self.async_set_updated_data(self._data)
-
-    # -------------------------------------------------------------------------
-    # Bonuses: Apply, Reset
-    # -------------------------------------------------------------------------
-
-    def apply_bonus(self, parent_name: str, kid_id: str, bonus_id: str):
-        """Apply bonus => positive points to increase kid's points."""
-        bonus_info: BonusData | None = self.bonuses_data.get(bonus_id)
-        if not bonus_info:
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_BONUS,
-                    "name": bonus_id,
-                },
-            )
-
-        kid_info: KidData | None = self.kids_data.get(kid_id)
-        if not kid_info:
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_KID,
-                    "name": kid_id,
-                },
-            )
-
-        bonus_pts = bonus_info.get(const.DATA_BONUS_POINTS, const.DEFAULT_ZERO)
-        self.update_kid_points(
-            kid_id, delta=bonus_pts, source=const.POINTS_SOURCE_BONUSES
-        )
-
-        # increment bonus_applies
-        bonus_applies = kid_info[const.DATA_KID_BONUS_APPLIES]
-        if bonus_id in bonus_applies:
-            bonus_applies[bonus_id] = int(bonus_applies[bonus_id]) + 1  # type: ignore[assignment]
-        else:
-            bonus_applies[bonus_id] = 1  # type: ignore[assignment]
-
-        # Send a notification to the kid that a bonus was applied
-        extra_data = {const.DATA_KID_ID: kid_id, const.DATA_BONUS_ID: bonus_id}
-        self.hass.async_create_task(
-            self._notify_kid_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_BONUS_APPLIED,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_BONUS_APPLIED,
-                message_data={
-                    "bonus_name": bonus_info[const.DATA_BONUS_NAME],
-                    "points": bonus_pts,
-                },
-                extra_data=extra_data,
-            )
-        )
-
-        self._persist()
-        self.async_set_updated_data(self._data)
-
-    def reset_bonuses(
-        self, kid_id: str | None = None, bonus_id: str | None = None
-    ) -> None:
-        """Reset bonuses based on provided kid_id and bonus_id."""
-
-        if bonus_id and kid_id:
-            # Reset a specific bonus for a specific kid
-            kid_info: KidData | None = self.kids_data.get(kid_id)
-            if not kid_info:
-                const.LOGGER.error(
-                    "ERROR: Reset Bonuses - Kid ID '%s' not found.", kid_id
-                )
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                    translation_placeholders={
-                        "entity_type": const.LABEL_KID,
-                        "name": kid_id,
-                    },
-                )
-            if bonus_id not in kid_info.get(const.DATA_KID_BONUS_APPLIES, {}):
-                const.LOGGER.error(
-                    "ERROR: Reset Bonuses - Bonus '%s' does not apply to Kid ID '%s'.",
-                    bonus_id,
-                    kid_id,
-                )
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_ASSIGNED,
-                    translation_placeholders={
-                        "entity": f"bonus '{bonus_id}'",
-                        "kid": kid_id,
-                    },
-                )
-
-            kid_info[const.DATA_KID_BONUS_APPLIES].pop(bonus_id, None)
-
-        elif bonus_id:
-            # Reset a specific bonus for all kids
-            found = False
-            for kid_info_loop in self.kids_data.values():
-                if bonus_id in kid_info_loop.get(const.DATA_KID_BONUS_APPLIES, {}):
-                    found = True
-                    kid_info_loop[const.DATA_KID_BONUS_APPLIES].pop(bonus_id, None)
-
-            if not found:
-                const.LOGGER.warning(
-                    "WARNING: Reset Bonuses - Bonus '%s' not found in any kid's data.",
-                    bonus_id,
-                )
-
-        elif kid_id:
-            # Reset all bonuses for a specific kid
-            kid_info_elif: KidData | None = self.kids_data.get(kid_id)
-            if not kid_info_elif:
-                const.LOGGER.error(
-                    "ERROR: Reset Bonuses - Kid ID '%s' not found.", kid_id
-                )
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                    translation_placeholders={
-                        "entity_type": const.LABEL_KID,
-                        "name": kid_id,
-                    },
-                )
-
-            kid_info_elif[const.DATA_KID_BONUS_APPLIES].clear()
-
-        else:
-            # Reset all bonuses for all kids
-            const.LOGGER.info(
-                "INFO: Reset Bonuses - Resetting all bonuses for all kids."
-            )
-            for kid_info in self.kids_data.values():
-                kid_info[const.DATA_KID_BONUS_APPLIES].clear()
-
-        const.LOGGER.debug(
-            "DEBUG: Reset Bonuses - Bonuses reset completed - Kid ID '%s', Bonus ID '%s'",
-            kid_id,
-            bonus_id,
-        )
-
-        self._persist()
-        self.async_set_updated_data(self._data)
-
-    # -------------------------------------------------------------------------
-    # Achievements: Check, Award
-    # -------------------------------------------------------------------------
-    def _award_achievement(self, kid_id: str, achievement_id: str):
-        """Award the achievement to the kid.
-
-        Update the achievement progress to indicate it is earned,
-        and send notifications to both the kid and their parents.
+        Used to determine which translation sensors are needed.
         """
-        achievement_info = self.achievements_data.get(achievement_id)
-        if not achievement_info:
-            const.LOGGER.error(
-                "ERROR: Achievement Award - Achievement ID '%s' not found.",
-                achievement_id,
+        languages: set[str] = set()
+        for kid_info in self.kids_data.values():
+            lang = kid_info.get(
+                const.DATA_KID_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
             )
+            languages.add(lang)
+        for parent_info in self.parents_data.values():
+            lang = parent_info.get(
+                const.DATA_PARENT_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
+            )
+            languages.add(lang)
+        # Always include English as fallback
+        languages.add(const.DEFAULT_DASHBOARD_LANGUAGE)
+        return languages
+
+    def remove_unused_translation_sensors(self) -> None:
+        """Remove translation sensors for languages no longer in use.
+
+        This is an optimization to avoid keeping unused sensors in memory.
+        Called when a kid/parent is deleted or their language is changed.
+
+        Note: Entity removal is handled via entity registry; we just update tracking.
+        """
+        languages_in_use = self.get_languages_in_use()
+        unused_languages = self._translation_sensors_created - languages_in_use
+
+        if not unused_languages:
             return
 
-        # Get or create the existing progress dictionary for this kid
-        progress_for_kid = achievement_info.setdefault(
-            const.DATA_ACHIEVEMENT_PROGRESS, {}
-        ).get(kid_id)
-        if progress_for_kid is None:
-            # If it doesn't exist, initialize it with baseline from the kid's current total.
-            kid_info: KidData = cast("KidData", self.kids_data.get(kid_id, {}))
-            chore_stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
-            progress_dict = {
-                const.DATA_ACHIEVEMENT_BASELINE: chore_stats.get(
-                    const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME, const.DEFAULT_ZERO
-                ),
-                const.DATA_ACHIEVEMENT_CURRENT_VALUE: const.DEFAULT_ZERO,
-                const.DATA_ACHIEVEMENT_AWARDED: False,
-            }
-            achievement_info[const.DATA_ACHIEVEMENT_PROGRESS][kid_id] = cast(
-                "AchievementProgress", progress_dict
-            )
-            progress_for_kid = cast("AchievementProgress", progress_dict)
-
-        # Type narrow: progress_for_kid is now guaranteed to be AchievementProgress (not None)
-        progress_for_kid_checked: AchievementProgress = progress_for_kid
-
-        # Mark achievement as earned for the kid by storing progress (e.g. set to target)
-        progress_for_kid_checked[const.DATA_ACHIEVEMENT_AWARDED] = True
-        progress_for_kid_checked[const.DATA_ACHIEVEMENT_CURRENT_VALUE] = (  # type: ignore[typeddict-unknown-key]
-            achievement_info.get(const.DATA_ACHIEVEMENT_TARGET_VALUE, 1)
-        )
-
-        # Award the extra reward points defined in the achievement
-        extra_points = achievement_info.get(
-            const.DATA_ACHIEVEMENT_REWARD_POINTS, const.DEFAULT_ZERO
-        )
-        kid_info_points: KidData | None = self.kids_data.get(kid_id)
-        if kid_info_points is not None:
-            self.update_kid_points(
-                kid_id, delta=extra_points, source=const.POINTS_SOURCE_ACHIEVEMENTS
-            )
-
-        # Notify kid and parents
-        extra_data = {
-            const.DATA_KID_ID: kid_id,
-            const.DATA_ACHIEVEMENT_ID: achievement_id,
-        }
-        self.hass.async_create_task(
-            self._notify_kid_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_ACHIEVEMENT_EARNED,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_ACHIEVEMENT_EARNED_KID,
-                message_data={
-                    "achievement_name": achievement_info.get(
-                        const.DATA_ACHIEVEMENT_NAME
-                    ),
-                },
-                extra_data=extra_data,
-            )
-        )
-        self.hass.async_create_task(
-            self._notify_parents_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_ACHIEVEMENT_EARNED,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_ACHIEVEMENT_EARNED_PARENT,
-                message_data={
-                    "kid_name": self.kids_data[kid_id][const.DATA_KID_NAME],
-                    "achievement_name": achievement_info.get(
-                        const.DATA_ACHIEVEMENT_NAME
-                    ),
-                },
-                extra_data=extra_data,
-            )
-        )
-        const.LOGGER.debug(
-            "DEBUG: Achievement Award - Achievement ID '%s' to Kid ID '%s'",
-            achievement_info.get(const.DATA_ACHIEVEMENT_NAME),
-            kid_id,
-        )
-        self._persist()
-        self.async_set_updated_data(self._data)
-
-    # -------------------------------------------------------------------------
-    # Challenges: Check, Award
-    # -------------------------------------------------------------------------
-    def _award_challenge(self, kid_id: str, challenge_id: str):
-        """Award the challenge to the kid.
-
-        Update progress and notify kid/parents.
-        """
-        challenge_info = self.challenges_data.get(challenge_id)
-        if not challenge_info:
-            const.LOGGER.error(
-                "ERROR: Challenge Award - Challenge ID '%s' not found", challenge_id
-            )
-            return
-
-        # Get or create the existing progress dictionary for this kid
-        progress_for_kid = challenge_info.setdefault(
-            const.DATA_CHALLENGE_PROGRESS, {}
-        ).setdefault(
-            kid_id,
-            {
-                const.DATA_CHALLENGE_COUNT: const.DEFAULT_ZERO,
-                const.DATA_CHALLENGE_AWARDED: False,
-            },
-        )
-
-        # Mark challenge as earned for the kid by storing progress
-        progress_for_kid[const.DATA_CHALLENGE_AWARDED] = True
-        progress_for_kid[const.DATA_CHALLENGE_COUNT] = challenge_info.get(
-            const.DATA_CHALLENGE_TARGET_VALUE, 1
-        )
-
-        # Award extra reward points from the challenge
-        extra_points = challenge_info.get(
-            const.DATA_CHALLENGE_REWARD_POINTS, const.DEFAULT_ZERO
-        )
-        kid_info: KidData | None = self.kids_data.get(kid_id)
-        if kid_info is not None:
-            self.update_kid_points(
-                kid_id, delta=extra_points, source=const.POINTS_SOURCE_CHALLENGES
-            )
-
-        # Notify kid and parents
-        extra_data = {const.DATA_KID_ID: kid_id, const.DATA_CHALLENGE_ID: challenge_id}
-        self.hass.async_create_task(
-            self._notify_kid_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHALLENGE_COMPLETED,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHALLENGE_COMPLETED_KID,
-                message_data={
-                    "challenge_name": challenge_info.get(const.DATA_CHALLENGE_NAME),
-                },
-                extra_data=extra_data,
-            )
-        )
-        self.hass.async_create_task(
-            self._notify_parents_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHALLENGE_COMPLETED,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHALLENGE_COMPLETED_PARENT,
-                message_data={
-                    "kid_name": self.kids_data[kid_id][const.DATA_KID_NAME],
-                    "challenge_name": challenge_info.get(const.DATA_CHALLENGE_NAME),
-                },
-                extra_data=extra_data,
-            )
-        )
-        const.LOGGER.debug(
-            "DEBUG: Challenge Award - Challenge ID '%s' to Kid ID '%s'",
-            challenge_info.get(const.DATA_CHALLENGE_NAME),
-            kid_id,
-        )
-        self._persist()
-        self.async_set_updated_data(self._data)
-
-    def _update_streak_progress(
-        self, progress: AchievementProgress, today: date
-    ) -> None:
-        """Update a streak progress dict.
-
-        If the last approved date was yesterday, increment the streak.
-        Otherwise, reset to 1.
-        """
-        last_date = None
-        last_date_str = progress.get(const.DATA_KID_LAST_STREAK_DATE)
-        if last_date_str:
-            try:
-                last_date = date.fromisoformat(last_date_str)
-            except (ValueError, TypeError, KeyError):
-                last_date = None
-
-        # If already updated today, do nothing
-        if last_date == today:
-            return
-
-        # If yesterday was the last update, increment the streak
-        if last_date == today - timedelta(days=1):
-            current_streak = progress.get(const.DATA_KID_CURRENT_STREAK, 0)
-            progress[const.DATA_KID_CURRENT_STREAK] = current_streak + 1
-
-        # Reset to 1 if not done yesterday
-        else:
-            progress[const.DATA_KID_CURRENT_STREAK] = 1
-
-        progress[const.DATA_KID_LAST_STREAK_DATE] = today.isoformat()
-
-    # -------------------------------------------------------------------------------------
-    # Notifications and Reminders (delegates to NotificationManager)
-    # -------------------------------------------------------------------------------------
-
-    async def send_kc_notification(
-        self,
-        user_id: str | None,
-        title: str,
-        message: str,
-        notification_id: str,
-    ) -> None:
-        """Send a persistent notification. Delegates to NotificationManager."""
-        await self.notification_manager.send_persistent_notification(
-            user_id, title, message, notification_id
-        )
-
-    async def _notify_kid(
-        self,
-        kid_id: str,
-        title: str,
-        message: str,
-        actions: list[dict[str, str]] | None = None,
-        extra_data: dict[str, Any] | None = None,
-    ) -> None:
-        """Notify a kid. Delegates to NotificationManager."""
-        await self.notification_manager.notify_kid(
-            kid_id, title, message, actions, extra_data
-        )
-
-    async def _notify_kid_translated(
-        self,
-        kid_id: str,
-        title_key: str,
-        message_key: str,
-        message_data: dict[str, Any] | None = None,
-        actions: list[dict[str, str]] | None = None,
-        extra_data: dict[str, Any] | None = None,
-    ) -> None:
-        """Notify a kid (translated). Delegates to NotificationManager."""
-        await self.notification_manager.notify_kid_translated(
-            kid_id, title_key, message_key, message_data, actions, extra_data
-        )
-
-    async def _notify_parents(
-        self,
-        kid_id: str,
-        title: str,
-        message: str,
-        actions: list[dict[str, str]] | None = None,
-        extra_data: dict[str, Any] | None = None,
-    ) -> None:
-        """Notify all parents. Delegates to NotificationManager."""
-        await self.notification_manager.notify_parents(
-            kid_id, title, message, actions, extra_data
-        )
-
-    async def _notify_parents_translated(
-        self,
-        kid_id: str,
-        title_key: str,
-        message_key: str,
-        message_data: dict[str, Any] | None = None,
-        actions: list[dict[str, str]] | None = None,
-        extra_data: dict[str, Any] | None = None,
-        tag_type: str | None = None,
-        tag_identifiers: tuple[str, ...] | None = None,
-    ) -> None:
-        """Notify parents (translated). Delegates to NotificationManager."""
-        await self.notification_manager.notify_parents_translated(
-            kid_id,
-            title_key,
-            message_key,
-            message_data,
-            actions,
-            extra_data,
-            tag_type,
-            tag_identifiers,
-        )
-
-    async def clear_notification_for_parents(
-        self,
-        kid_id: str,
-        tag_type: str,
-        entity_id: str,
-    ) -> None:
-        """Clear notifications for parents. Delegates to NotificationManager."""
-        await self.notification_manager.clear_notification_for_parents(
-            kid_id, tag_type, entity_id
-        )
-
-    async def remind_in_minutes(
-        self,
-        kid_id: str,
-        minutes: int,
-        *,
-        chore_id: str | None = None,
-        reward_id: str | None = None,
-    ) -> None:
-        """Schedule a reminder. Delegates to NotificationManager."""
-        await self.notification_manager.remind_in_minutes(
-            kid_id, minutes, chore_id=chore_id, reward_id=reward_id
-        )
+        # Get entity registry and remove unused translation sensors
+        entity_registry = er.async_get(self.hass)
+        for lang_code in unused_languages:
+            eid = self.get_translation_sensor_eid(lang_code)
+            if eid:  # Only try to remove if entity exists in registry
+                entity_entry = entity_registry.async_get(eid)
+                if entity_entry:
+                    const.LOGGER.info(
+                        "Removing unused translation sensor: %s (language: %s)",
+                        eid,
+                        lang_code,
+                    )
+                    entity_registry.async_remove(eid)
+            self._translation_sensors_created.discard(lang_code)
 
     # -------------------------------------------------------------------------------------
     # Utilities

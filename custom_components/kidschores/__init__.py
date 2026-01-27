@@ -178,6 +178,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: KidsChoresConfigEntry) -
     await coordinator.notification_manager.async_setup()
     await coordinator.chore_manager.async_setup()
     await coordinator.gamification_manager.async_setup()
+    await coordinator.statistics_manager.async_setup()
 
     # Set up services required by the integration.
     async_setup_services(hass)

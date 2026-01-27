@@ -31,9 +31,10 @@ def mock_hass() -> MagicMock:
 
 
 @pytest.fixture
-def mock_economy_manager() -> AsyncMock:
+def mock_economy_manager() -> MagicMock:
     """Create mock EconomyManager."""
-    manager = AsyncMock()
+    manager = MagicMock()
+    # deposit and withdraw are now async methods
     manager.deposit = AsyncMock(return_value=100.0)
     manager.withdraw = AsyncMock(return_value=90.0)
     return manager
@@ -91,7 +92,7 @@ def mock_coordinator(sample_chore_data: dict, sample_kid_data: dict) -> MagicMoc
 def chore_manager(
     mock_hass: MagicMock,
     mock_coordinator: MagicMock,
-    mock_economy_manager: AsyncMock,
+    mock_economy_manager: MagicMock,
 ) -> ChoreManager:
     """Create ChoreManager instance with mocks."""
     manager = ChoreManager(mock_hass, mock_coordinator, mock_economy_manager)
@@ -140,9 +141,10 @@ class TestValidation:
 class TestClaimWorkflow:
     """Tests for chore claim workflow."""
 
-    def test_claim_chore_success(self, chore_manager: ChoreManager) -> None:
+    @pytest.mark.asyncio
+    async def test_claim_chore_success(self, chore_manager: ChoreManager) -> None:
         """Test successful chore claim."""
-        chore_manager.claim_chore("kid-1", "chore-1", "Alice")
+        await chore_manager.claim_chore("kid-1", "chore-1", "Alice")
 
         # Verify state changed to claimed
         kid_chore_data = chore_manager._coordinator.kids_data["kid-1"][
@@ -165,7 +167,8 @@ class TestClaimWorkflow:
         # Verify persist called
         chore_manager._coordinator._persist.assert_called_once()
 
-    def test_claim_chore_not_assigned(self, chore_manager: ChoreManager) -> None:
+    @pytest.mark.asyncio
+    async def test_claim_chore_not_assigned(self, chore_manager: ChoreManager) -> None:
         """Test claim fails when kid not assigned to chore."""
         from homeassistant.exceptions import HomeAssistantError
 
@@ -176,11 +179,12 @@ class TestClaimWorkflow:
         }
 
         with pytest.raises(HomeAssistantError) as exc_info:
-            chore_manager.claim_chore("kid-3", "chore-1", "Charlie")
+            await chore_manager.claim_chore("kid-3", "chore-1", "Charlie")
 
         assert exc_info.value.translation_key == const.TRANS_KEY_ERROR_NOT_ASSIGNED
 
-    def test_claim_with_auto_approve(
+    @pytest.mark.asyncio
+    async def test_claim_with_auto_approve(
         self,
         chore_manager: ChoreManager,
         mock_coordinator: MagicMock,
@@ -189,7 +193,7 @@ class TestClaimWorkflow:
         # Enable auto-approve
         mock_coordinator.chores_data["chore-1"][const.DATA_CHORE_AUTO_APPROVE] = True
 
-        chore_manager.claim_chore("kid-1", "chore-1", "Alice")
+        await chore_manager.claim_chore("kid-1", "chore-1", "Alice")
 
         # Verify async_create_task was called for auto-approve
         chore_manager.hass.async_create_task.assert_called()
@@ -207,11 +211,11 @@ class TestApproveWorkflow:
     async def test_approve_chore_success(
         self,
         chore_manager: ChoreManager,
-        mock_economy_manager: AsyncMock,
+        mock_economy_manager: MagicMock,
     ) -> None:
         """Test successful chore approval."""
         # First claim the chore
-        chore_manager.claim_chore("kid-1", "chore-1", "Alice")
+        await chore_manager.claim_chore("kid-1", "chore-1", "Alice")
         chore_manager.emit.reset_mock()
 
         # Now approve
@@ -249,7 +253,7 @@ class TestApproveWorkflow:
     ) -> None:
         """Test that race condition is handled gracefully."""
         # Claim first
-        chore_manager.claim_chore("kid-1", "chore-1", "Alice")
+        await chore_manager.claim_chore("kid-1", "chore-1", "Alice")
 
         # Mark as already approved in period
         chore_manager._coordinator.chore_is_approved_in_period.return_value = True
@@ -275,7 +279,7 @@ class TestDisapproveWorkflow:
     ) -> None:
         """Test successful chore disapproval."""
         # First claim the chore
-        chore_manager.claim_chore("kid-1", "chore-1", "Alice")
+        await chore_manager.claim_chore("kid-1", "chore-1", "Alice")
         chore_manager.emit.reset_mock()
 
         # Now disapprove
@@ -304,14 +308,15 @@ class TestDisapproveWorkflow:
 class TestResetAndOverdue:
     """Tests for reset and overdue workflows."""
 
-    def test_reset_chore(self, chore_manager: ChoreManager) -> None:
+    @pytest.mark.asyncio
+    async def test_reset_chore(self, chore_manager: ChoreManager) -> None:
         """Test chore reset."""
         # Claim and approve first
-        chore_manager.claim_chore("kid-1", "chore-1", "Alice")
+        await chore_manager.claim_chore("kid-1", "chore-1", "Alice")
         chore_manager.emit.reset_mock()
 
         # Reset
-        chore_manager.reset_chore("kid-1", "chore-1")
+        await chore_manager.reset_chore("kid-1", "chore-1")
 
         # Verify state reset to pending
         kid_chore_data = chore_manager._coordinator.kids_data["kid-1"][
@@ -326,9 +331,9 @@ class TestResetAndOverdue:
         call_args = chore_manager.emit.call_args
         assert call_args[0][0] == const.SIGNAL_SUFFIX_CHORE_STATUS_RESET
 
-    def test_mark_overdue(self, chore_manager: ChoreManager) -> None:
+    async def test_mark_overdue(self, chore_manager: ChoreManager) -> None:
         """Test marking chore as overdue."""
-        chore_manager.mark_overdue(
+        await chore_manager.mark_overdue(
             "kid-1", "chore-1", days_overdue=2, due_date="2024-01-01"
         )
 
@@ -355,7 +360,8 @@ class TestResetAndOverdue:
 class TestUndoWorkflow:
     """Tests for chore undo workflow."""
 
-    def test_undo_chore(self, chore_manager: ChoreManager) -> None:
+    @pytest.mark.asyncio
+    async def test_undo_chore(self, chore_manager: ChoreManager) -> None:
         """Test chore undo."""
         # Set up approved state with points
         kid_data = chore_manager._coordinator.kids_data["kid-1"]
@@ -366,7 +372,7 @@ class TestUndoWorkflow:
             }
         }
 
-        chore_manager.undo_chore("kid-1", "chore-1", "Parent")
+        await chore_manager.undo_chore("kid-1", "chore-1", "Parent")
 
         # Verify state reset to pending
         kid_chore_data = kid_data[const.DATA_KID_CHORE_DATA]["chore-1"]
@@ -383,10 +389,11 @@ class TestUndoWorkflow:
 class TestCompletionCriteria:
     """Tests for completion criteria handling."""
 
-    def test_independent_completion(self, chore_manager: ChoreManager) -> None:
+    @pytest.mark.asyncio
+    async def test_independent_completion(self, chore_manager: ChoreManager) -> None:
         """Test INDEPENDENT completion sets completed_by for actor only."""
         # Claim and complete
-        chore_manager.claim_chore("kid-1", "chore-1", "Alice")
+        await chore_manager.claim_chore("kid-1", "chore-1", "Alice")
 
         # Set up for approval
         chore_manager._handle_completion_criteria("chore-1", "kid-1", "Alice")
@@ -473,9 +480,10 @@ class TestCompletionCriteria:
 class TestEventPayloads:
     """Tests for event payload contents."""
 
-    def test_claim_event_has_labels(self, chore_manager: ChoreManager) -> None:
+    @pytest.mark.asyncio
+    async def test_claim_event_has_labels(self, chore_manager: ChoreManager) -> None:
         """Test claim event includes chore labels."""
-        chore_manager.claim_chore("kid-1", "chore-1", "Alice")
+        await chore_manager.claim_chore("kid-1", "chore-1", "Alice")
 
         call_args = chore_manager.emit.call_args
         assert call_args[1]["chore_labels"] == ["kitchen", "daily"]
@@ -486,7 +494,7 @@ class TestEventPayloads:
         chore_manager: ChoreManager,
     ) -> None:
         """Test approval event includes rich payload for gamification."""
-        chore_manager.claim_chore("kid-1", "chore-1", "Alice")
+        await chore_manager.claim_chore("kid-1", "chore-1", "Alice")
         chore_manager.emit.reset_mock()
 
         await chore_manager.approve_chore("Parent", "kid-1", "chore-1")

@@ -727,16 +727,22 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         )
 
         # Use timestamp-based coordinator helpers for claim/approval status
-        if self.coordinator.chore_is_approved_in_period(self._kid_id, self._chore_id):
+        if self.coordinator.chore_manager.chore_is_approved_in_period(
+            self._kid_id, self._chore_id
+        ):
             return const.CHORE_STATE_APPROVED
         if self._chore_id in kid_info.get(const.DATA_KID_COMPLETED_BY_OTHER_CHORES, []):
             return const.CHORE_STATE_COMPLETED_BY_OTHER
-        if self.coordinator.chore_has_pending_claim(self._kid_id, self._chore_id):
+        if self.coordinator.chore_manager.chore_has_pending_claim(
+            self._kid_id, self._chore_id
+        ):
             return const.CHORE_STATE_CLAIMED
-        if self.coordinator.chore_is_overdue(self._kid_id, self._chore_id):
+        if self.coordinator.chore_manager.chore_is_overdue(
+            self._kid_id, self._chore_id
+        ):
             return const.CHORE_STATE_OVERDUE
         # Check if in due window (approaching due date but not yet overdue)
-        if self.coordinator.chore_is_due(self._kid_id, self._chore_id):
+        if self.coordinator.chore_manager.chore_is_due(self._kid_id, self._chore_id):
             return const.CHORE_STATE_DUE
         return const.CHORE_STATE_PENDING
 
@@ -759,7 +765,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
     def _get_due_window_start_iso(self) -> str | None:
         """Get the due window start time as ISO string."""
-        due_window_start = self.coordinator.get_chore_due_window_start(
+        due_window_start = self.coordinator.chore_manager.get_chore_due_window_start(
             self._kid_id, self._chore_id
         )
         return due_window_start.isoformat() if due_window_start else None
@@ -781,7 +787,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         if due_window_offset == "0":
             return self._get_time_until_overdue()
 
-        due_window_start = self.coordinator.get_chore_due_window_start(
+        due_window_start = self.coordinator.chore_manager.get_chore_due_window_start(
             self._kid_id, self._chore_id
         )
         if not due_window_start:
@@ -797,7 +803,9 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         Returns "0d 0h 0m" if already overdue (past).
         """
-        due_date = self.coordinator.get_chore_due_date(self._kid_id, self._chore_id)
+        due_date = self.coordinator.chore_manager.get_chore_due_date(
+            self._kid_id, self._chore_id
+        )
         if not due_date:
             return None
 
@@ -987,7 +995,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 kid_chore_data.get(const.DATA_CHORE_COMPLETED_BY)
             ),
             # Use coordinator helper to correctly handle INDEPENDENT (per-kid) vs SHARED (chore-level)
-            const.ATTR_APPROVAL_PERIOD_START: self.coordinator._get_chore_approval_period_start(
+            const.ATTR_APPROVAL_PERIOD_START: self.coordinator.chore_manager._get_chore_approval_period_start(
                 self._kid_id, self._chore_id
             ),
         }
@@ -1020,8 +1028,10 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             attributes[const.ATTR_CHORE_APPROVALS_TODAY] = today_approvals
 
         # Add can_claim and can_approve computed attributes using coordinator helpers
-        can_claim, _ = self.coordinator._can_claim_chore(self._kid_id, self._chore_id)
-        can_approve, _ = self.coordinator._can_approve_chore(
+        can_claim, _ = self.coordinator.chore_manager.can_claim_chore(
+            self._kid_id, self._chore_id
+        )
+        can_approve, _ = self.coordinator.chore_manager.can_approve_chore(
             self._kid_id, self._chore_id
         )
         attributes[const.ATTR_CAN_CLAIM] = can_claim
@@ -1952,7 +1962,7 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         # If state would be pending, check if in due window (None = use chore-level due date)
         if state == const.CHORE_STATE_PENDING:
-            if self.coordinator.chore_is_due(None, self._chore_id):
+            if self.coordinator.chore_manager.chore_is_due(None, self._chore_id):
                 return const.CHORE_STATE_DUE
 
         return state
@@ -2093,7 +2103,7 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
     def _get_due_window_start_iso(self) -> str | None:
         """Get the due window start time as ISO string."""
-        due_window_start = self.coordinator.get_chore_due_window_start(
+        due_window_start = self.coordinator.chore_manager.get_chore_due_window_start(
             None, self._chore_id
         )
         return due_window_start.isoformat() if due_window_start else None
@@ -2115,7 +2125,7 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
         if due_window_offset == "0":
             return self._get_time_until_overdue()
 
-        due_window_start = self.coordinator.get_chore_due_window_start(
+        due_window_start = self.coordinator.chore_manager.get_chore_due_window_start(
             None, self._chore_id
         )
         if not due_window_start:
@@ -2131,7 +2141,9 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         Returns "0d 0h 0m" if already overdue (past).
         """
-        due_date = self.coordinator.get_chore_due_date(None, self._chore_id)
+        due_date = self.coordinator.chore_manager.get_chore_due_date(
+            None, self._chore_id
+        )
         if not due_date:
             return None
 
@@ -3497,7 +3509,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         # Check if pending approvals changed - forces attribute rebuild
         # Flags are reset in extra_state_attributes after rebuild
         if (
-            self.coordinator.pending_chore_changed
+            self.coordinator.chore_manager.pending_chore_changed
             or self.coordinator.pending_reward_changed
         ):
             # Flag set - attributes will rebuild in next extra_state_attributes call
@@ -3558,15 +3570,19 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             return None
 
         # Determine status using timestamp-based coordinator helpers
-        if self.coordinator.chore_is_approved_in_period(self._kid_id, chore_id):
+        if self.coordinator.chore_manager.chore_is_approved_in_period(
+            self._kid_id, chore_id
+        ):
             status = const.CHORE_STATE_APPROVED
-        elif self.coordinator.chore_has_pending_claim(self._kid_id, chore_id):
+        elif self.coordinator.chore_manager.chore_has_pending_claim(
+            self._kid_id, chore_id
+        ):
             status = const.CHORE_STATE_CLAIMED
-        elif self.coordinator.chore_is_overdue(self._kid_id, chore_id):
+        elif self.coordinator.chore_manager.chore_is_overdue(self._kid_id, chore_id):
             status = const.CHORE_STATE_OVERDUE
         elif chore_id in kid_info.get(const.DATA_KID_COMPLETED_BY_OTHER_CHORES, []):
             status = const.CHORE_STATE_COMPLETED_BY_OTHER
-        elif self.coordinator.chore_is_due(self._kid_id, chore_id):
+        elif self.coordinator.chore_manager.chore_is_due(self._kid_id, chore_id):
             status = const.CHORE_STATE_DUE
         else:
             status = const.CHORE_STATE_PENDING
@@ -3641,7 +3657,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             return const.PRIMARY_GROUP_TODAY
 
         # If chore is in due window (regardless of actual due date), it goes to today
-        if self.coordinator.chore_is_due(self._kid_id, chore_id):
+        if self.coordinator.chore_manager.chore_is_due(self._kid_id, chore_id):
             return const.PRIMARY_GROUP_TODAY
 
         # Check due date if available
@@ -3691,15 +3707,21 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 continue
             # Determine kid-specific status using timestamp-based helpers
             status = const.CHORE_STATE_PENDING
-            if self.coordinator.chore_is_approved_in_period(self._kid_id, chore_id):
+            if self.coordinator.chore_manager.chore_is_approved_in_period(
+                self._kid_id, chore_id
+            ):
                 status = const.CHORE_STATE_APPROVED
-            elif self.coordinator.chore_has_pending_claim(self._kid_id, chore_id):
+            elif self.coordinator.chore_manager.chore_has_pending_claim(
+                self._kid_id, chore_id
+            ):
                 status = const.CHORE_STATE_CLAIMED
-            elif self.coordinator.chore_is_overdue(self._kid_id, chore_id):
+            elif self.coordinator.chore_manager.chore_is_overdue(
+                self._kid_id, chore_id
+            ):
                 status = const.CHORE_STATE_OVERDUE
             elif chore_id in kid_info.get(const.DATA_KID_COMPLETED_BY_OTHER_CHORES, []):
                 status = const.CHORE_STATE_COMPLETED_BY_OTHER
-            elif self.coordinator.chore_is_due(self._kid_id, chore_id):
+            elif self.coordinator.chore_manager.chore_is_due(self._kid_id, chore_id):
                 status = const.CHORE_STATE_DUE
             chores.append({"id": chore_id, "name": chore_name, "status": status})
 
@@ -3845,7 +3867,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         pending_rewards = []
 
         # Get all pending approvals from coordinator via public properties
-        pending_chore_approvals = self.coordinator.pending_chore_approvals
+        pending_chore_approvals = self.coordinator.chore_manager.pending_chore_approvals
         pending_reward_approvals = self.coordinator.pending_reward_approvals
 
         # Filter for this kid's pending chores

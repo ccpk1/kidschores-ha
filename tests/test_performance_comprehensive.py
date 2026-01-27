@@ -96,11 +96,17 @@ async def run_performance_test(
 
     # Test overdue checking
     with (
-        patch.object(coordinator, "_notify_kid_translated", new=AsyncMock()),
-        patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()),
+        patch.object(
+            coordinator.notification_manager, "notify_kid_translated", new=AsyncMock()
+        ),
+        patch.object(
+            coordinator.notification_manager,
+            "notify_parents_translated",
+            new=AsyncMock(),
+        ),
     ):
         overdue_start = time.perf_counter()
-        await coordinator._check_overdue_chores()
+        await coordinator.chore_manager.check_overdue_chores()
         overdue_duration_ms = (time.perf_counter() - overdue_start) * 1000
 
     # Test persistence

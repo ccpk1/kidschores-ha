@@ -172,14 +172,20 @@ class TestCustomFromComplete:
         jan_12 = datetime(2026, 1, 12, 10, 0, 0, tzinfo=UTC)
 
         with (
-            patch.object(coordinator, "_notify_kid", new=AsyncMock()),
+            patch.object(
+                coordinator.notification_manager, "notify_kid", new=AsyncMock()
+            ),
             patch("homeassistant.util.dt.utcnow", return_value=jan_12),
         ):
             # Both kids must claim and be approved for shared_all to trigger reschedule
-            coordinator.claim_chore(kid_zoe_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_zoe_id, chore_id)
-            coordinator.claim_chore(kid_max_id, chore_id, "Max!")
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_max_id, chore_id)
+            await coordinator.chore_manager.claim_chore(kid_zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_zoe_id, chore_id
+            )
+            await coordinator.chore_manager.claim_chore(kid_max_id, chore_id, "Max!")
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_max_id, chore_id
+            )
 
         # Next due should be Jan 12 + 10 days = Jan 22
         new_due = get_chore_due_date(coordinator, chore_id)
@@ -211,14 +217,20 @@ class TestCustomFromComplete:
         jan_18 = datetime(2026, 1, 18, 10, 0, 0, tzinfo=UTC)
 
         with (
-            patch.object(coordinator, "_notify_kid", new=AsyncMock()),
+            patch.object(
+                coordinator.notification_manager, "notify_kid", new=AsyncMock()
+            ),
             patch("homeassistant.util.dt.utcnow", return_value=jan_18),
         ):
             # Both kids must complete for shared_all
-            coordinator.claim_chore(kid_zoe_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_zoe_id, chore_id)
-            coordinator.claim_chore(kid_max_id, chore_id, "Max!")
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_max_id, chore_id)
+            await coordinator.chore_manager.claim_chore(kid_zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_zoe_id, chore_id
+            )
+            await coordinator.chore_manager.claim_chore(kid_max_id, chore_id, "Max!")
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_max_id, chore_id
+            )
 
         # Next due should be Jan 18 + 10 days = Jan 28
         new_due = get_chore_due_date(coordinator, chore_id)
@@ -247,14 +259,20 @@ class TestCustomFromComplete:
 
         # Mock completion time to Jan 15 (exactly on due)
         with (
-            patch.object(coordinator, "_notify_kid", new=AsyncMock()),
+            patch.object(
+                coordinator.notification_manager, "notify_kid", new=AsyncMock()
+            ),
             patch("homeassistant.util.dt.utcnow", return_value=jan_15),
         ):
             # Both kids must complete for shared_all
-            coordinator.claim_chore(kid_zoe_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_zoe_id, chore_id)
-            coordinator.claim_chore(kid_max_id, chore_id, "Max!")
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_max_id, chore_id)
+            await coordinator.chore_manager.claim_chore(kid_zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_zoe_id, chore_id
+            )
+            await coordinator.chore_manager.claim_chore(kid_max_id, chore_id, "Max!")
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_max_id, chore_id
+            )
 
         # Next due should be Jan 15 + 10 days = Jan 25
         new_due = get_chore_due_date(coordinator, chore_id)
@@ -322,20 +340,28 @@ class TestCustomFromComplete:
         # Kid1 completes Jan 10
         jan_10 = datetime(2026, 1, 10, 10, 0, 0, tzinfo=UTC)
         with (
-            patch.object(coordinator, "_notify_kid", new=AsyncMock()),
+            patch.object(
+                coordinator.notification_manager, "notify_kid", new=AsyncMock()
+            ),
             patch("homeassistant.util.dt.utcnow", return_value=jan_10),
         ):
-            coordinator.claim_chore(kid1_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid1_id, chore_id)
+            await coordinator.chore_manager.claim_chore(kid1_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid1_id, chore_id
+            )
 
         # Kid2 completes Jan 12
         jan_12 = datetime(2026, 1, 12, 10, 0, 0, tzinfo=UTC)
         with (
-            patch.object(coordinator, "_notify_kid", new=AsyncMock()),
+            patch.object(
+                coordinator.notification_manager, "notify_kid", new=AsyncMock()
+            ),
             patch("homeassistant.util.dt.utcnow", return_value=jan_12),
         ):
-            coordinator.claim_chore(kid2_id, chore_id, "Max!")
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid2_id, chore_id)
+            await coordinator.chore_manager.claim_chore(kid2_id, chore_id, "Max!")
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid2_id, chore_id
+            )
 
         # Verify both kids can process the chore independently
         kid1_state = get_kid_chore_state(coordinator, kid1_id, chore_id)
@@ -365,8 +391,10 @@ class TestCustomFromComplete:
         assert state2 == CHORE_STATE_PENDING
 
         # One kid claims
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid1_id, chore_id, "Zoë")
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid1_id, chore_id, "Zoë")
 
         # After claim, kid1 is claimed, kid2 should still be pending (shared)
         state1 = get_kid_chore_state(coordinator, kid1_id, chore_id)
@@ -394,11 +422,17 @@ class TestCustomFromComplete:
         )
 
         # Both kids must complete for SHARED chore with shared_all criteria
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_zoe_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_zoe_id, chore_id)
-            coordinator.claim_chore(kid_max_id, chore_id, "Max!")
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_max_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_zoe_id, chore_id
+            )
+            await coordinator.chore_manager.claim_chore(kid_max_id, chore_id, "Max!")
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_max_id, chore_id
+            )
 
         # With UPON_COMPLETION + all kids done, should reset to PENDING immediately
         state = get_kid_chore_state(coordinator, kid_zoe_id, chore_id)
@@ -424,9 +458,13 @@ class TestCustomFromComplete:
             == APPROVAL_RESET_AT_DUE_DATE_ONCE
         )
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_id, chore_id
+            )
 
         # With AT_DUE_DATE_ONCE, should stay APPROVED
         state = get_kid_chore_state(coordinator, kid_id, chore_id)
@@ -597,15 +635,21 @@ class TestDailyMulti:
         # Complete at 15:30 UTC (07:30 local)
         jan_14_330pm_utc = datetime(2026, 1, 14, 15, 30, 0, tzinfo=UTC)
         with (
-            patch.object(coordinator, "_notify_kid", new=AsyncMock()),
+            patch.object(
+                coordinator.notification_manager, "notify_kid", new=AsyncMock()
+            ),
             patch("homeassistant.util.dt.utcnow", return_value=jan_14_330pm_utc),
         ):
             # Kid 1 claims and gets approved
-            coordinator.claim_chore(kid_zoe_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_zoe_id, chore_id)
+            await coordinator.chore_manager.claim_chore(kid_zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_zoe_id, chore_id
+            )
             # Kid 2 claims and gets approved (triggers reschedule)
-            coordinator.claim_chore(kid_max_id, chore_id, "Max!")
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_max_id, chore_id)
+            await coordinator.chore_manager.claim_chore(kid_max_id, chore_id, "Max!")
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_max_id, chore_id
+            )
 
         # Due date should advance to second slot: local 18:00 = UTC 02:00 next day
         new_due = get_chore_due_date(coordinator, chore_id)
@@ -640,15 +684,21 @@ class TestDailyMulti:
         # Complete at 02:30 UTC (18:30 local Jan 14)
         jan_15_230am_utc = datetime(2026, 1, 15, 2, 30, 0, tzinfo=UTC)
         with (
-            patch.object(coordinator, "_notify_kid", new=AsyncMock()),
+            patch.object(
+                coordinator.notification_manager, "notify_kid", new=AsyncMock()
+            ),
             patch("homeassistant.util.dt.utcnow", return_value=jan_15_230am_utc),
         ):
             # Kid 1 claims and gets approved
-            coordinator.claim_chore(kid_zoe_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_zoe_id, chore_id)
+            await coordinator.chore_manager.claim_chore(kid_zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_zoe_id, chore_id
+            )
             # Kid 2 claims and gets approved (triggers reschedule)
-            coordinator.claim_chore(kid_max_id, chore_id, "Max!")
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_max_id, chore_id)
+            await coordinator.chore_manager.claim_chore(kid_max_id, chore_id, "Max!")
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_max_id, chore_id
+            )
 
         # Due date should advance to first slot tomorrow:
         # Local 07:00 Jan 15 = UTC 15:00 Jan 15
@@ -725,8 +775,10 @@ class TestDailyMulti:
         assert state1 == state2 == CHORE_STATE_PENDING
 
         # After one claims, verify shared behavior
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid1_id, chore_id, "Zoë")
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid1_id, chore_id, "Zoë")
 
         state1 = get_kid_chore_state(coordinator, kid1_id, chore_id)
         assert state1 == CHORE_STATE_CLAIMED
@@ -755,8 +807,10 @@ class TestDailyMulti:
         assert len(assigned) == 1
 
         # Should work normally
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
 
         state = get_kid_chore_state(coordinator, kid_id, chore_id)
         assert state == CHORE_STATE_CLAIMED
@@ -783,13 +837,19 @@ class TestDailyMulti:
         )
 
         # Both kids must complete (SHARED chore with shared_all)
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Kid 1 claims and gets approved
-            coordinator.claim_chore(kid_zoe_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_zoe_id, chore_id)
+            await coordinator.chore_manager.claim_chore(kid_zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_zoe_id, chore_id
+            )
             # Kid 2 claims and gets approved (triggers UPON_COMPLETION reset)
-            coordinator.claim_chore(kid_max_id, chore_id, "Max!")
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_max_id, chore_id)
+            await coordinator.chore_manager.claim_chore(kid_max_id, chore_id, "Max!")
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_max_id, chore_id
+            )
 
         # Should be PENDING after UPON_COMPLETION reset (check Zoë's state)
         state = get_kid_chore_state(coordinator, kid_zoe_id, chore_id)
@@ -813,9 +873,13 @@ class TestDailyMulti:
             == APPROVAL_RESET_AT_DUE_DATE_MULTI
         )
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_id, chore_id
+            )
 
         # State depends on whether due_date has passed
         state = get_kid_chore_state(coordinator, kid_id, chore_id)
@@ -862,15 +926,21 @@ class TestDailyMulti:
         # Both kids complete 2 hours late at 17:00 UTC (09:00 local)
         jan_14_5pm_utc = datetime(2026, 1, 14, 17, 0, 0, tzinfo=UTC)
         with (
-            patch.object(coordinator, "_notify_kid", new=AsyncMock()),
+            patch.object(
+                coordinator.notification_manager, "notify_kid", new=AsyncMock()
+            ),
             patch("homeassistant.util.dt.utcnow", return_value=jan_14_5pm_utc),
         ):
             # Kid 1 claims and gets approved
-            coordinator.claim_chore(kid_zoe_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_zoe_id, chore_id)
+            await coordinator.chore_manager.claim_chore(kid_zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_zoe_id, chore_id
+            )
             # Kid 2 claims and gets approved (triggers reschedule)
-            coordinator.claim_chore(kid_max_id, chore_id, "Max!")
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_max_id, chore_id)
+            await coordinator.chore_manager.claim_chore(kid_max_id, chore_id, "Max!")
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_max_id, chore_id
+            )
 
         # Due should advance to second slot: local 18:00 = UTC 02:00 next day
         new_due = get_chore_due_date(coordinator, chore_id)
@@ -1052,13 +1122,19 @@ class TestCustomHours:
         )
 
         # Both kids must complete (SHARED chore with shared_all)
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Kid 1 claims and gets approved
-            coordinator.claim_chore(kid_zoe_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_zoe_id, chore_id)
+            await coordinator.chore_manager.claim_chore(kid_zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_zoe_id, chore_id
+            )
             # Kid 2 claims and gets approved (triggers UPON_COMPLETION reset)
-            coordinator.claim_chore(kid_max_id, chore_id, "Max!")
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_max_id, chore_id)
+            await coordinator.chore_manager.claim_chore(kid_max_id, chore_id, "Max!")
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_max_id, chore_id
+            )
 
         # Should be PENDING (UPON_COMPLETION reset) - check Zoë's state
         state = get_kid_chore_state(coordinator, kid_zoe_id, chore_id)
@@ -1101,9 +1177,13 @@ class TestCustomHours:
             == APPROVAL_RESET_AT_DUE_DATE_ONCE
         )
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
-            await coordinator.approve_chore("Môm Astrid Stârblüm", kid_id, chore_id)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore(
+                "Môm Astrid Stârblüm", kid_id, chore_id
+            )
 
         # With AT_DUE_DATE_ONCE, should stay APPROVED
         state = get_kid_chore_state(coordinator, kid_id, chore_id)

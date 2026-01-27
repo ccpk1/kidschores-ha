@@ -57,7 +57,7 @@ class TestEconomyManagerDeposit:
         kid_id = list(coordinator.kids_data.keys())[0]
         initial_balance = manager.get_balance(kid_id)
 
-        # Deposit points
+        # Deposit points (async method)
         new_balance = await manager.deposit(
             kid_id=kid_id,
             amount=10.0,
@@ -82,7 +82,7 @@ class TestEconomyManagerDeposit:
         kid = coordinator.kids_data[kid_id]
         kid[const.DATA_KID_LEDGER] = []  # type: ignore[typeddict-unknown-key]
 
-        # Deposit
+        # Deposit (async method)
         await manager.deposit(
             kid_id=kid_id,
             amount=15.0,
@@ -147,7 +147,7 @@ class TestEconomyManagerDeposit:
 
         initial_balance = manager.get_balance(kid_id)
 
-        # Deposit with multiplier
+        # Deposit with multiplier (async method)
         new_balance = await manager.deposit(
             kid_id=kid_id,
             amount=10.0,
@@ -318,7 +318,7 @@ class TestEconomyManagerHistory:
         kid[const.DATA_KID_POINTS] = 0.0
         kid[const.DATA_KID_LEDGER] = []  # type: ignore[typeddict-unknown-key]
 
-        # Multiple deposits
+        # Multiple deposits (async method)
         await manager.deposit(kid_id, 10.0, source=const.POINTS_SOURCE_CHORES)
         await manager.deposit(kid_id, 20.0, source=const.POINTS_SOURCE_BONUSES)
         await manager.deposit(kid_id, 30.0, source=const.POINTS_SOURCE_MANUAL)
@@ -344,7 +344,7 @@ class TestEconomyManagerHistory:
         kid[const.DATA_KID_POINTS] = 0.0
         kid[const.DATA_KID_LEDGER] = []  # type: ignore[typeddict-unknown-key]
 
-        # Add 5 entries
+        # Add 5 entries (async method)
         for i in range(5):
             await manager.deposit(
                 kid_id, float(i + 1), source=const.POINTS_SOURCE_MANUAL
@@ -413,25 +413,25 @@ class TestEconomyManagerBalance:
         assert manager.get_balance(kid_id) == 0.0
 
 
-class TestCoordinatorUpdateKidPointsLedger:
-    """Tests for ledger integration in coordinator.update_kid_points()."""
+class TestEconomyManagerLedgerIntegration:
+    """Tests for ledger integration via EconomyManager deposit/withdraw."""
 
-    def test_update_kid_points_creates_ledger_entry(
+    @pytest.mark.asyncio
+    async def test_deposit_creates_ledger_entry(
         self,
         scenario_minimal: SetupResult,
     ) -> None:
-        """Test that coordinator.update_kid_points creates ledger entries."""
+        """Test that EconomyManager.deposit creates ledger entries."""
         coordinator = scenario_minimal.coordinator
+        manager = coordinator.economy_manager
 
         kid_id = list(coordinator.kids_data.keys())[0]
         kid = coordinator.kids_data[kid_id]
         kid[const.DATA_KID_POINTS] = 0.0
         kid[const.DATA_KID_LEDGER] = []  # type: ignore[typeddict-unknown-key]
 
-        # Use coordinator's method (not manager)
-        coordinator.update_kid_points(
-            kid_id, delta=50.0, source=const.POINTS_SOURCE_CHORES
-        )
+        # Use economy_manager.deposit
+        await manager.deposit(kid_id, amount=50.0, source=const.POINTS_SOURCE_CHORES)
 
         # Check ledger was created
         ledger = kid.get(const.DATA_KID_LEDGER, [])
@@ -440,12 +440,14 @@ class TestCoordinatorUpdateKidPointsLedger:
         # Source is passed through directly (no mapping)
         assert entry[const.DATA_LEDGER_SOURCE] == const.POINTS_SOURCE_CHORES
 
-    def test_update_kid_points_ledger_source_passthrough(
+    @pytest.mark.asyncio
+    async def test_ledger_source_passthrough(
         self,
         scenario_minimal: SetupResult,
     ) -> None:
         """Test that POINTS_SOURCE_* passes through to ledger directly."""
         coordinator = scenario_minimal.coordinator
+        manager = coordinator.economy_manager
 
         kid_id = list(coordinator.kids_data.keys())[0]
         kid = coordinator.kids_data[kid_id]
@@ -453,10 +455,8 @@ class TestCoordinatorUpdateKidPointsLedger:
         # Test various sources - all should pass through unchanged
         test_sources = [
             const.POINTS_SOURCE_CHORES,
-            const.POINTS_SOURCE_REWARDS,
             const.POINTS_SOURCE_BONUSES,
-            const.POINTS_SOURCE_PENALTIES,
-            const.POINTS_SOURCE_OTHER,
+            const.POINTS_SOURCE_MANUAL,
             const.POINTS_SOURCE_BADGES,
             const.POINTS_SOURCE_ACHIEVEMENTS,
         ]
@@ -465,18 +465,20 @@ class TestCoordinatorUpdateKidPointsLedger:
             kid[const.DATA_KID_LEDGER] = []  # type: ignore[typeddict-unknown-key]
             kid[const.DATA_KID_POINTS] = 100.0
 
-            coordinator.update_kid_points(kid_id, delta=5.0, source=source)
+            await manager.deposit(kid_id, amount=5.0, source=source)
 
             ledger = kid.get(const.DATA_KID_LEDGER, [])
             assert len(ledger) == 1, f"Failed for source {source}"
             assert ledger[0][const.DATA_LEDGER_SOURCE] == source
 
-    def test_update_kid_points_prunes_ledger(
+    @pytest.mark.asyncio
+    async def test_deposit_prunes_ledger(
         self,
         scenario_minimal: SetupResult,
     ) -> None:
         """Test that ledger is pruned to MAX_ENTRIES."""
         coordinator = scenario_minimal.coordinator
+        manager = coordinator.economy_manager
 
         kid_id = list(coordinator.kids_data.keys())[0]
         kid = coordinator.kids_data[kid_id]
@@ -485,9 +487,7 @@ class TestCoordinatorUpdateKidPointsLedger:
 
         # Add more than max entries
         for i in range(const.DEFAULT_LEDGER_MAX_ENTRIES + 10):
-            coordinator.update_kid_points(
-                kid_id, delta=1.0, source=const.POINTS_SOURCE_OTHER
-            )
+            await manager.deposit(kid_id, amount=1.0, source=const.POINTS_SOURCE_OTHER)
 
         ledger = kid.get(const.DATA_KID_LEDGER, [])
         assert len(ledger) == const.DEFAULT_LEDGER_MAX_ENTRIES

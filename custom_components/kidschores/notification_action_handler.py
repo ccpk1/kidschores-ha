@@ -229,7 +229,7 @@ async def async_handle_notification_action(hass: HomeAssistant, event: Event) ->
 
     try:
         if parsed.action_type == const.ACTION_APPROVE_CHORE:
-            await coordinator.approve_chore(
+            await coordinator.chore_manager.approve_chore(
                 parent_name=parent_name,
                 kid_id=parsed.kid_id,
                 chore_id=parsed.entity_id,
@@ -240,46 +240,48 @@ async def async_handle_notification_action(hass: HomeAssistant, event: Event) ->
                 "KidData", coordinator.kids_data.get(parsed.kid_id, {})
             )
             kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
-            coordinator.claim_chore(
+            # Async method with lock protection
+            await coordinator.chore_manager.claim_chore(
                 kid_id=parsed.kid_id,
                 chore_id=parsed.entity_id,
                 user_name=kid_name,
             )
         elif parsed.action_type == const.ACTION_COMPLETE_FOR_KID:
             # Parent completes chore directly (no claim needed)
-            await coordinator.approve_chore(
+            await coordinator.chore_manager.approve_chore(
                 parent_name=parent_name,
                 kid_id=parsed.kid_id,
                 chore_id=parsed.entity_id,
             )
         elif parsed.action_type == const.ACTION_DISAPPROVE_CHORE:
-            coordinator.disapprove_chore(
+            await coordinator.chore_manager.disapprove_chore(
                 parent_name=parent_name,
                 kid_id=parsed.kid_id,
                 chore_id=parsed.entity_id,
             )
         elif parsed.action_type == const.ACTION_SKIP_CHORE:
             # Reset overdue chore to pending and reschedule
-            coordinator.reset_overdue_chores(
+            await coordinator.chore_manager.reset_overdue_chores(
                 chore_id=parsed.entity_id,
                 kid_id=parsed.kid_id,
             )
         elif parsed.action_type == const.ACTION_APPROVE_REWARD:
-            await coordinator.approve_reward(
+            await coordinator.reward_manager.approve(
                 parent_name=parent_name,
                 kid_id=parsed.kid_id,
                 reward_id=parsed.entity_id,
                 notif_id=parsed.notif_id,
             )
         elif parsed.action_type == const.ACTION_DISAPPROVE_REWARD:
-            coordinator.disapprove_reward(
+            # Async method with lock protection
+            await coordinator.reward_manager.disapprove(
                 parent_name=parent_name,
                 kid_id=parsed.kid_id,
                 reward_id=parsed.entity_id,
             )
         elif parsed.action_type == const.ACTION_REMIND_30:
             # Reminder can be for chore or reward - use computed properties
-            await coordinator.remind_in_minutes(
+            await coordinator.notification_manager.remind_in_minutes(
                 kid_id=parsed.kid_id,
                 chore_id=parsed.chore_id,
                 reward_id=parsed.reward_id,

@@ -460,7 +460,7 @@ class KidChoreClaimButton(KidsChoresCoordinatorEntity, ButtonEntity):
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
             user_name = (user_obj.name if user_obj else None) or const.DISPLAY_UNKNOWN
 
-            self.coordinator.claim_chore(
+            await self.coordinator.chore_manager.claim_chore(
                 kid_id=self._kid_id,
                 chore_id=self._chore_id,
                 user_name=user_name,
@@ -589,7 +589,7 @@ class ParentChoreApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
             parent_name = (user_obj.name if user_obj else None) or const.DISPLAY_UNKNOWN
 
-            await self.coordinator.approve_chore(
+            await self.coordinator.chore_manager.approve_chore(
                 parent_name=parent_name,
                 kid_id=self._kid_id,
                 chore_id=self._chore_id,
@@ -700,7 +700,7 @@ class ParentChoreDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
         """
         try:
             # Check if there's a pending approval for this kid and chore.
-            pending_approvals = self.coordinator.pending_chore_approvals
+            pending_approvals = self.coordinator.chore_manager.pending_chore_approvals
             if not any(
                 approval[const.DATA_KID_ID] == self._kid_id
                 and approval[const.DATA_CHORE_ID] == self._chore_id
@@ -721,7 +721,7 @@ class ParentChoreDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
 
             if is_kid:
                 # Kid undo: Remove own claim without stat tracking
-                self.coordinator.undo_chore_claim(
+                await self.coordinator.chore_manager.undo_claim(
                     kid_id=self._kid_id,
                     chore_id=self._chore_id,
                 )
@@ -750,7 +750,7 @@ class ParentChoreDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
                     user_obj.name if user_obj else None
                 ) or const.DISPLAY_UNKNOWN
 
-                self.coordinator.disapprove_chore(
+                await self.coordinator.chore_manager.disapprove_chore(
                     parent_name=parent_name,
                     kid_id=self._kid_id,
                     chore_id=self._chore_id,
@@ -855,7 +855,7 @@ class KidRewardRedeemButton(KidsChoresCoordinatorEntity, ButtonEntity):
         """Handle the button press event.
 
         Validates user authorization for kid, retrieves user name from context,
-        calls coordinator.redeem_reward() to deduct points and create pending approval,
+        calls reward_manager.redeem() to create pending approval (no immediate deduction),
         and triggers coordinator refresh to update all dependent entities.
 
         Raises:
@@ -877,7 +877,7 @@ class KidRewardRedeemButton(KidsChoresCoordinatorEntity, ButtonEntity):
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
             parent_name = (user_obj.name if user_obj else None) or const.DISPLAY_UNKNOWN
 
-            self.coordinator.redeem_reward(
+            await self.coordinator.reward_manager.redeem(
                 parent_name=parent_name,
                 kid_id=self._kid_id,
                 reward_id=self._reward_id,
@@ -981,8 +981,8 @@ class ParentRewardApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
         """Handle the button press event.
 
         Validates global parent authorization, retrieves parent name from context,
-        calls coordinator.approve_reward() to confirm redemption and remove from pending
-        queue, triggers notifications, and refreshes all dependent entities.
+        calls reward_manager.approve() to confirm redemption and deduct points,
+        triggers notifications, and refreshes all dependent entities.
 
         Raises:
             HomeAssistantError: If user not authorized for global parent actions.
@@ -1004,7 +1004,7 @@ class ParentRewardApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
             parent_name = (user_obj.name if user_obj else None) or const.DISPLAY_UNKNOWN
 
             # Approve the reward
-            await self.coordinator.approve_reward(
+            await self.coordinator.reward_manager.approve(
                 parent_name=parent_name,
                 kid_id=self._kid_id,
                 reward_id=self._reward_id,
@@ -1109,7 +1109,8 @@ class ParentRewardDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
 
         Validates pending approval exists for this kid/reward combination, checks
         global parent authorization, retrieves parent name from context, calls
-        coordinator.disapprove_reward() to refund points and remove from approval queue.
+        reward_manager.disapprove() to remove from approval queue (no refund - points
+        weren't deducted at claim time).
 
         Raises:
             HomeAssistantError: If no pending approval found or user not authorized.
@@ -1137,7 +1138,7 @@ class ParentRewardDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
 
             if is_kid:
                 # Kid undo: Remove own reward claim without stat tracking
-                self.coordinator.undo_reward_claim(
+                await self.coordinator.reward_manager.undo_claim(
                     kid_id=self._kid_id,
                     reward_id=self._reward_id,
                 )
@@ -1166,7 +1167,7 @@ class ParentRewardDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
                     user_obj.name if user_obj else None
                 ) or const.DISPLAY_UNKNOWN
 
-                self.coordinator.disapprove_reward(
+                await self.coordinator.reward_manager.disapprove(
                     parent_name=parent_name,
                     kid_id=self._kid_id,
                     reward_id=self._reward_id,
@@ -1283,7 +1284,7 @@ class ParentBonusApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
         """Handle the button press event.
 
         Validates global parent authorization, retrieves parent name from context,
-        calls coordinator.apply_bonus() to add points to kid's balance based on bonus
+        calls economy_manager.apply_bonus() to add points to kid's balance based on bonus
         configuration, and triggers coordinator refresh.
 
         Raises:
@@ -1305,7 +1306,7 @@ class ParentBonusApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
             parent_name = (user_obj.name if user_obj else None) or const.DISPLAY_UNKNOWN
 
-            self.coordinator.apply_bonus(
+            await self.coordinator.economy_manager.apply_bonus(
                 parent_name=parent_name,
                 kid_id=self._kid_id,
                 bonus_id=self._bonus_id,
@@ -1420,7 +1421,7 @@ class ParentPenaltyApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
         """Handle the button press event.
 
         Validates global parent authorization, retrieves parent name from context,
-        calls coordinator.apply_penalty() to deduct points from kid's balance based
+        calls economy_manager.apply_penalty() to deduct points from kid's balance based
         on penalty configuration, and triggers coordinator refresh.
 
         Raises:
@@ -1448,14 +1449,14 @@ class ParentPenaltyApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
 
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
             parent_name = (user_obj.name if user_obj else None) or const.DISPLAY_UNKNOWN
-            const.LOGGER.debug("About to call coordinator.apply_penalty")
+            const.LOGGER.debug("About to call economy_manager.apply_penalty")
 
-            self.coordinator.apply_penalty(
+            await self.coordinator.economy_manager.apply_penalty(
                 parent_name=parent_name,
                 kid_id=self._kid_id,
                 penalty_id=self._penalty_id,
             )
-            const.LOGGER.debug("coordinator.apply_penalty completed")
+            const.LOGGER.debug("economy_manager.apply_penalty completed")
             const.LOGGER.info(
                 "INFO: Penalty '%s' applied to Kid '%s' by Parent '%s'",
                 self._penalty_name,
@@ -1583,8 +1584,8 @@ class ParentPointsAdjustButton(KidsChoresCoordinatorEntity, ButtonEntity):
     async def async_press(self) -> None:
         """Handle the button press event.
 
-        Validates global parent authorization, calls coordinator.update_kid_points()
-        with delta value and manual source, logs adjustment, and triggers coordinator
+        Validates global parent authorization, uses EconomyManager.deposit() or
+        .withdraw() based on delta sign, logs adjustment, and triggers coordinator
         refresh to update points balance and all dependent entities.
 
         Raises:
@@ -1603,11 +1604,19 @@ class ParentPointsAdjustButton(KidsChoresCoordinatorEntity, ButtonEntity):
                     },
                 )
 
-            self.coordinator.update_kid_points(
-                kid_id=self._kid_id,
-                delta=self._delta,
-                source=const.POINTS_SOURCE_MANUAL,
-            )
+            # Use EconomyManager for point transactions
+            if self._delta >= 0:
+                await self.coordinator.economy_manager.deposit(
+                    kid_id=self._kid_id,
+                    amount=self._delta,
+                    source=const.POINTS_SOURCE_MANUAL,
+                )
+            else:
+                await self.coordinator.economy_manager.withdraw(
+                    kid_id=self._kid_id,
+                    amount=abs(self._delta),
+                    source=const.POINTS_SOURCE_MANUAL,
+                )
             const.LOGGER.info(
                 "INFO: Adjusted points for Kid '%s' by %d.",
                 self._kid_name,

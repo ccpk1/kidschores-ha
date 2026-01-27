@@ -97,7 +97,9 @@ class TestDailyMultiOptionsFlow:
 
         # Add chore with DAILY_MULTI frequency
         due_date = datetime.now(UTC) + timedelta(hours=1)
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             result = await hass.config_entries.options.async_configure(
                 flow_id,  # type: ignore[arg-type]
                 user_input={
@@ -145,7 +147,9 @@ class TestDailyMultiOptionsFlow:
 
         # Add chore with DAILY_MULTI
         due_date = datetime.now(UTC) + timedelta(hours=1)
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             result = await hass.config_entries.options.async_configure(
                 flow_id,  # type: ignore[arg-type]
                 user_input={
@@ -214,7 +218,9 @@ class TestDailyMultiOptionsFlow:
 
         # Add chore with DAILY_MULTI
         due_date = datetime.now(UTC) + timedelta(hours=1)
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             result = await hass.config_entries.options.async_configure(
                 flow_id,  # type: ignore[arg-type]
                 user_input={
@@ -274,7 +280,9 @@ class TestDailyMultiOptionsFlow:
 
         # Add chore with DAILY_MULTI
         due_date = datetime.now(UTC) + timedelta(hours=1)
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             result = await hass.config_entries.options.async_configure(
                 flow_id,  # type: ignore[arg-type]
                 user_input={
@@ -334,7 +342,9 @@ class TestDailyMultiOptionsFlow:
 
         # Add chore with DAILY_MULTI
         due_date = datetime.now(UTC) + timedelta(hours=1)
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             result = await hass.config_entries.options.async_configure(
                 flow_id,  # type: ignore[arg-type]
                 user_input={
@@ -396,7 +406,9 @@ class TestDailyMultiOptionsFlow:
 
         # Add chore with DAILY_MULTI
         due_date = datetime.now(UTC) + timedelta(hours=1)
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             result = await hass.config_entries.options.async_configure(
                 flow_id,  # type: ignore[arg-type]
                 user_input={

@@ -261,7 +261,7 @@ class TestChoreClaimNotifications:
             "custom_components.kidschores.managers.notification_manager.async_send_notification",
             new=capture.capture,
         ):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
             await hass.async_block_till_done()
 
         # Notification should be sent
@@ -285,7 +285,7 @@ class TestChoreClaimNotifications:
             "custom_components.kidschores.managers.notification_manager.async_send_notification",
             new=capture.capture,
         ):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
             await hass.async_block_till_done()
 
         # Should have notification with actions
@@ -316,7 +316,7 @@ class TestChoreClaimNotifications:
             "custom_components.kidschores.managers.notification_manager.async_send_notification",
             new=capture.capture,
         ):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
             await hass.async_block_till_done()
 
         # Auto-approve should send kid notification (approval) but no parent notification
@@ -358,7 +358,7 @@ class TestNotificationLanguage:
             "custom_components.kidschores.managers.notification_manager.async_send_notification",
             new=capture.capture,
         ):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
             await hass.async_block_till_done()
 
         # Get expected English action titles
@@ -405,7 +405,7 @@ class TestNotificationLanguage:
             "custom_components.kidschores.managers.notification_manager.async_send_notification",
             new=capture.capture,
         ):
-            coordinator.claim_chore(kid_id, chore_id, "Max!")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Max!")
             await hass.async_block_till_done()
 
         # Get expected English action titles (parent's language, not kid's)
@@ -456,7 +456,7 @@ class TestNotificationLanguage:
             "custom_components.kidschores.managers.notification_manager.async_send_notification",
             new=capture.capture,
         ):
-            coordinator.claim_chore(kid_id, chore_id, "Max!")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Max!")
             await hass.async_block_till_done()
 
         # Actions should be English (parent's language)
@@ -510,7 +510,7 @@ class TestNotificationActions:
             "custom_components.kidschores.managers.notification_manager.async_send_notification",
             new=capture.capture,
         ):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
             await hass.async_block_till_done()
 
         action_titles = capture.get_action_titles()
@@ -546,7 +546,7 @@ class TestNotificationActions:
             "custom_components.kidschores.managers.notification_manager.async_send_notification",
             new=capture.capture,
         ):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
             await hass.async_block_till_done()
 
         notifs_with_actions = capture.get_with_actions()
@@ -592,7 +592,7 @@ class TestNotificationTagging:
             "custom_components.kidschores.managers.notification_manager.async_send_notification",
             new=capture.capture,
         ):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
             await hass.async_block_till_done()
 
         assert len(capture.notifications) > 0, "No notification was sent on chore claim"
@@ -664,9 +664,11 @@ class TestDueDateReminders:
             )
 
         with patch.object(
-            coordinator, "_notify_kid_translated", new=capture_kid_notification
+            coordinator.notification_manager,
+            "notify_kid_translated",
+            new=capture_kid_notification,
         ):
-            await coordinator._check_chore_due_reminders()
+            await coordinator.chore_manager.check_chore_due_reminders()
 
         # Verify reminder was sent
         assert len(kid_notifications) > 0, "No due-soon reminder was sent"
@@ -707,14 +709,16 @@ class TestDueDateReminders:
             notifications_count += 1
 
         with patch.object(
-            coordinator, "_notify_kid_translated", new=count_notifications
+            coordinator.notification_manager,
+            "notify_kid_translated",
+            new=count_notifications,
         ):
             # First check - should send reminder
-            await coordinator._check_chore_due_reminders()
+            await coordinator.chore_manager.check_chore_due_reminders()
             first_count = notifications_count
 
             # Second check - should NOT send duplicate
-            await coordinator._check_chore_due_reminders()
+            await coordinator.chore_manager.check_chore_due_reminders()
             second_count = notifications_count
 
         assert first_count == 1, (
@@ -740,7 +744,7 @@ class TestDueDateReminders:
         assert reminder_key in coordinator._due_soon_reminders_sent
 
         # Claim the chore - should clear the reminder tracking
-        coordinator.claim_chore(kid_id, chore_id, "Zoë")
+        await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
 
         assert reminder_key not in coordinator._due_soon_reminders_sent, (
             "Claiming should clear due-soon reminder tracking"
@@ -764,18 +768,22 @@ class TestRaceConditionPrevention:
         chore_id = scenario_notifications.chore_ids["Feed the cat"]
 
         # Claim the chore first
-        coordinator.claim_chore(kid_id, chore_id, "Zoë")
+        await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
 
         # Get initial points
         initial_points = coordinator.kids_data[kid_id].get("points", 0)
         chore_points = coordinator.chores_data[chore_id].get("default_points", 10)
 
         # Mock parent notification to prevent actual sends
-        with patch.object(coordinator, "_notify_parents_translated", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager,
+            "notify_parents_translated",
+            new=AsyncMock(),
+        ):
             # Simulate two parents clicking approve at the same time
             results = await asyncio.gather(
-                coordinator.approve_chore("Mom", kid_id, chore_id),
-                coordinator.approve_chore("Dad", kid_id, chore_id),
+                coordinator.chore_manager.approve_chore("Mom", kid_id, chore_id),
+                coordinator.chore_manager.approve_chore("Dad", kid_id, chore_id),
                 return_exceptions=True,
             )
 
@@ -817,7 +825,7 @@ class TestConcurrentNotifications:
             "custom_components.kidschores.managers.notification_manager.async_send_notification",
             new=capture.capture,
         ):
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
             await hass.async_block_till_done()
 
         # At least one parent should receive notification
@@ -879,7 +887,7 @@ class TestConcurrentNotifications:
             new=mixed_success_notification,
         ):
             # This should not raise - failures are logged but don't propagate
-            coordinator.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
             # CRITICAL: async_block_till_done() MUST be inside the patch context
             # because claim_chore() schedules notification tasks that run AFTER
             # the sync method returns. If we await outside the patch, the tasks

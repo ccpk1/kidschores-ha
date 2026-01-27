@@ -554,6 +554,83 @@ self.emit(const.SIGNAL_SUFFIX_CHORE_APPROVED, {
 # NotificationManager listens and sends congratulations
 ```
 
+#### 5.4 Async/Await Standards (Manager Methods)
+
+**Purpose**: Define when methods must be `async def` vs `def` to ensure future-proofing and Home Assistant best practices.
+
+##### Golden Rule
+
+**Public Manager methods that mutate state must be `async def`.**
+
+Even if a method only modifies in-memory dictionaries today, it should be async to support future database operations, API calls, or transaction logging without breaking callers.
+
+##### Method Categories
+
+| Category                   | Pattern     | Rationale                              |
+| -------------------------- | ----------- | -------------------------------------- |
+| **State-changing methods** | `async def` | May need I/O in future (database, API) |
+| **Getter methods**         | `def`       | Pure in-memory lookups, no I/O needed  |
+| **Engine methods**         | `def`       | Pure computation, stateless logic      |
+
+##### Examples by Category
+
+**State-Changing Methods** (MUST be `async def`):
+
+```python
+# ✅ Correct: State changes use async
+async def reset_chore(self, kid_id: str, chore_id: str) -> None:
+    """Reset chore state to pending."""
+    kid_chore_data[const.DATA_KID_CHORE_DATA_STATE] = const.CHORE_STATE_PENDING
+    self._coordinator._persist()
+
+async def deposit(self, kid_id: str, amount: float, reason: str) -> None:
+    """Add points to kid's balance."""
+    kid_info[const.DATA_KID_POINTS] += amount
+    self._coordinator._persist()
+```
+
+**Getter Methods** (can be `def`):
+
+```python
+# ✅ Correct: Pure lookups stay sync
+def get_chore_state(self, kid_id: str, chore_id: str) -> str:
+    """Return current chore state."""
+    return kid_chore_data.get(const.DATA_KID_CHORE_DATA_STATE, const.CHORE_STATE_PENDING)
+
+def chore_is_overdue(self, kid_id: str, chore_id: str) -> bool:
+    """Check if chore is overdue."""
+    return state == const.CHORE_STATE_OVERDUE
+```
+
+**Engine Methods** (MUST be `def`):
+
+```python
+# ✅ Correct: Pure computation, no state
+def calculate_next_due_date(self, config: ScheduleConfig) -> datetime:
+    """Calculate next occurrence from schedule config."""
+    return RecurrenceEngine(config).get_next_occurrence()
+```
+
+##### Caller Requirements
+
+All callers **MUST** await async methods:
+
+```python
+# ✅ Correct
+await coordinator.chore_manager.reset_chore(kid_id, chore_id)
+await coordinator.economy_manager.deposit(kid_id, points, reason)
+
+# ❌ Wrong - missing await causes RuntimeWarning
+coordinator.chore_manager.reset_chore(kid_id, chore_id)  # Coroutine never awaited!
+```
+
+##### Why This Matters
+
+1. **Future-proofing**: Today's `dict.pop()` might become `await db.delete()` in v1.0
+2. **Consistency**: Callers don't need to know implementation details
+3. **Home Assistant alignment**: HA best practices require async for all I/O operations
+4. **Test safety**: Async tests catch missing awaits via RuntimeWarnings
+
 ---
 
 ### 6. Entity Standards

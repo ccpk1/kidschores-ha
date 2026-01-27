@@ -155,9 +155,14 @@ class TestSharedAllAutoApprove:
         # Get points before
         points_before = get_kid_points(coordinator, zoe_id)
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Claim the chore (should auto-approve)
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+
+        # Wait for auto-approve task to complete
+        await hass.async_block_till_done()
 
         # Verify Zoë's state is APPROVED
         state = get_kid_chore_state(coordinator, zoe_id, chore_id)
@@ -181,16 +186,26 @@ class TestSharedAllAutoApprove:
 
         chore_id = chore_map["Shared All Auto Approve"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # First kid claims
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+
+        # Wait for auto-approve task to complete
+        await hass.async_block_till_done()
 
         # Get Max's points before
         max_points_before = get_kid_points(coordinator, max_id)
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Second kid claims (should also auto-approve)
-            coordinator.claim_chore(max_id, chore_id, "Max")
+            await coordinator.chore_manager.claim_chore(max_id, chore_id, "Max")
+
+        # Wait for auto-approve task to complete
+        await hass.async_block_till_done()
 
         # Verify Max's state is APPROVED
         max_state = get_kid_chore_state(coordinator, max_id, chore_id)
@@ -220,11 +235,16 @@ class TestSharedAllAutoApprove:
         max_before = get_kid_points(coordinator, max_id)
         lila_before = get_kid_points(coordinator, lila_id)
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # All kids claim (each should auto-approve)
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-            coordinator.claim_chore(max_id, chore_id, "Max")
-            coordinator.claim_chore(lila_id, chore_id, "Lila")
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(max_id, chore_id, "Max")
+            await coordinator.chore_manager.claim_chore(lila_id, chore_id, "Lila")
+
+        # Wait for all auto-approve tasks to complete
+        await hass.async_block_till_done()
 
         # All should have APPROVED state
         assert (
@@ -278,9 +298,14 @@ class TestSharedFirstAutoApprove:
         # Get points before
         points_before = get_kid_points(coordinator, zoe_id)
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # First kid claims (should auto-approve)
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+
+        # Wait for auto-approve task to complete
+        await hass.async_block_till_done()
 
         # Verify Zoë's state is APPROVED
         state = get_kid_chore_state(coordinator, zoe_id, chore_id)
@@ -305,9 +330,14 @@ class TestSharedFirstAutoApprove:
 
         chore_id = chore_map["Shared First Auto Approve"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Zoë claims first (auto-approve)
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+
+        # Wait for auto-approve task to complete
+        await hass.async_block_till_done()
 
         # Zoë should be APPROVED
         assert (
@@ -338,9 +368,14 @@ class TestSharedFirstAutoApprove:
         zoe_before = get_kid_points(coordinator, zoe_id)
         max_before = get_kid_points(coordinator, max_id)
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Zoë claims first
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+
+        # Wait for auto-approve task to complete
+        await hass.async_block_till_done()
 
         # Only Zoë should have points increase
         assert get_kid_points(coordinator, zoe_id) == zoe_before + 15.0
@@ -377,15 +412,15 @@ class TestSharedAllPendingClaimHold:
         )
 
         # Both kids claim
-        coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-        coordinator.claim_chore(max_id, chore_id, "Max")
+        await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+        await coordinator.chore_manager.claim_chore(max_id, chore_id, "Max")
 
         # Verify both CLAIMED before reset
         assert get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_CLAIMED
         assert get_kid_chore_state(coordinator, max_id, chore_id) == CHORE_STATE_CLAIMED
 
         # Trigger reset (HOLD chores are exempt from due date check)
-        await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
 
         # Both should STILL be CLAIMED (hold action)
         assert get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_CLAIMED
@@ -417,14 +452,14 @@ class TestSharedAllPendingClaimClear:
         )
 
         # Both kids claim
-        coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-        coordinator.claim_chore(max_id, chore_id, "Max")
+        await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+        await coordinator.chore_manager.claim_chore(max_id, chore_id, "Max")
 
         # Set due date to past so reset will process
         set_chore_due_date_to_past(coordinator, chore_id, days_ago=1)
 
         # Trigger reset
-        await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
 
         # Both should be PENDING (claims cleared)
         assert get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_PENDING
@@ -449,12 +484,12 @@ class TestSharedAllPendingClaimClear:
         max_before = get_kid_points(coordinator, max_id)
 
         # Both kids claim
-        coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-        coordinator.claim_chore(max_id, chore_id, "Max")
+        await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+        await coordinator.chore_manager.claim_chore(max_id, chore_id, "Max")
 
         # Set due date to past and trigger reset
         set_chore_due_date_to_past(coordinator, chore_id, days_ago=1)
-        await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
 
         # No points should have been awarded
         assert get_kid_points(coordinator, zoe_id) == zoe_before
@@ -491,12 +526,12 @@ class TestSharedAllPendingClaimAutoApprove:
         max_before = get_kid_points(coordinator, max_id)
 
         # Both kids claim
-        coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-        coordinator.claim_chore(max_id, chore_id, "Max")
+        await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+        await coordinator.chore_manager.claim_chore(max_id, chore_id, "Max")
 
         # Set due date to past and trigger reset
         set_chore_due_date_to_past(coordinator, chore_id, days_ago=1)
-        await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
 
         # Both should have received points (auto-approval)
         assert get_kid_points(coordinator, zoe_id) == zoe_before + chore_points
@@ -517,12 +552,12 @@ class TestSharedAllPendingClaimAutoApprove:
         chore_id = chore_map["Shared All Pending Auto Approve"]
 
         # Both kids claim
-        coordinator.claim_chore(zoe_id, chore_id, "Zoë")
-        coordinator.claim_chore(max_id, chore_id, "Max")
+        await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+        await coordinator.chore_manager.claim_chore(max_id, chore_id, "Max")
 
         # Set due date to past and trigger reset
         set_chore_due_date_to_past(coordinator, chore_id, days_ago=1)
-        await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
 
         # Both should be PENDING after auto-approval + reset
         assert get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_PENDING
@@ -559,7 +594,7 @@ class TestSharedFirstPendingClaimHold:
         )
 
         # Zoë claims first (Max becomes completed_by_other)
-        coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+        await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
 
         # Verify states before reset
         assert get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_CLAIMED
@@ -569,7 +604,7 @@ class TestSharedFirstPendingClaimHold:
         )
 
         # Trigger reset (HOLD chores are exempt from due date check)
-        await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
 
         # Zoë should STILL be CLAIMED (hold action)
         assert get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_CLAIMED
@@ -600,11 +635,11 @@ class TestSharedFirstPendingClaimClear:
         )
 
         # Zoë claims first
-        coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+        await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
 
         # Set due date to past and trigger reset
         set_chore_due_date_to_past(coordinator, chore_id, days_ago=1)
-        await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
 
         # Both should be PENDING (race reset)
         assert get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_PENDING
@@ -641,11 +676,11 @@ class TestSharedFirstPendingClaimAutoApprove:
         max_before = get_kid_points(coordinator, max_id)
 
         # Zoë claims first (Max becomes completed_by_other)
-        coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+        await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
 
         # Set due date to past and trigger reset
         set_chore_due_date_to_past(coordinator, chore_id, days_ago=1)
-        await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
 
         # Only Zoë should have received points
         assert get_kid_points(coordinator, zoe_id) == zoe_before + chore_points
@@ -666,11 +701,11 @@ class TestSharedFirstPendingClaimAutoApprove:
         chore_id = chore_map["Shared First Pending Auto Approve"]
 
         # Zoë claims first
-        coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+        await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
 
         # Set due date to past and trigger reset
         set_chore_due_date_to_past(coordinator, chore_id, days_ago=1)
-        await coordinator._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
 
         # Both should be PENDING after reset (new race begins)
         assert get_kid_chore_state(coordinator, zoe_id, chore_id) == CHORE_STATE_PENDING
@@ -712,9 +747,11 @@ class TestSharedFirstEdgeCases:
         # Use a non-auto-approve shared_first chore
         chore_id = chore_map["Shared First Pending Clear"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Zoë claims first (Max becomes completed_by_other)
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
 
             assert (
                 get_kid_chore_state(coordinator, zoe_id, chore_id)
@@ -726,7 +763,7 @@ class TestSharedFirstEdgeCases:
             )
 
             # Parent disapproves Zoë - this resets all kids
-            coordinator.disapprove_chore("Mom", zoe_id, chore_id)
+            await coordinator.chore_manager.disapprove_chore("Mom", zoe_id, chore_id)
 
             # Both should be reset to PENDING
             assert (
@@ -739,7 +776,7 @@ class TestSharedFirstEdgeCases:
             )
 
             # NOW: Max can claim (new race!)
-            coordinator.claim_chore(max_id, chore_id, "Max")
+            await coordinator.chore_manager.claim_chore(max_id, chore_id, "Max")
 
             # Max should be CLAIMED, Zoë should be COMPLETED_BY_OTHER
             assert (
@@ -774,9 +811,11 @@ class TestSharedFirstEdgeCases:
         # Initial global state (may be None/pending)
         initial_state = chore_info.get(DATA_CHORE_STATE)
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # First kid claims
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
 
         # Global state should now be CLAIMED
         claimed_state = coordinator.chores_data[chore_id].get(DATA_CHORE_STATE)
@@ -803,16 +842,18 @@ class TestSharedFirstEdgeCases:
 
         chore_id = chore_map["Shared First Pending Clear"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # First kid claims
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
 
             # Verify claimed state
             claimed_state = coordinator.chores_data[chore_id].get(DATA_CHORE_STATE)
             assert claimed_state == CHORE_STATE_CLAIMED
 
             # Parent approves
-            await coordinator.approve_chore("Mom", zoe_id, chore_id)
+            await coordinator.chore_manager.approve_chore("Mom", zoe_id, chore_id)
 
         # Global state should now be APPROVED
         approved_state = coordinator.chores_data[chore_id].get(DATA_CHORE_STATE)
@@ -845,9 +886,14 @@ class TestSharedFirstEdgeCases:
         max_before = get_kid_points(coordinator, max_id)
         lila_before = get_kid_points(coordinator, lila_id)
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Zoë claims first (auto-approved)
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+
+        # Wait for auto-approve task to complete
+        await hass.async_block_till_done()
 
         # Zoë should be APPROVED (auto-approve chore)
         assert (
@@ -888,9 +934,11 @@ class TestSharedFirstEdgeCases:
 
         chore_id = chore_map["Shared First Pending Clear"]
 
-        with patch.object(coordinator, "_notify_kid", new=AsyncMock()):
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
             # Zoë claims (Max becomes completed_by_other)
-            coordinator.claim_chore(zoe_id, chore_id, "Zoë")
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
 
             # Verify Max is in completed_by_other
             max_completed_by_other = coordinator.kids_data[max_id].get(
@@ -899,7 +947,7 @@ class TestSharedFirstEdgeCases:
             assert chore_id in max_completed_by_other
 
             # Disapprove Zoë
-            coordinator.disapprove_chore("Mom", zoe_id, chore_id)
+            await coordinator.chore_manager.disapprove_chore("Mom", zoe_id, chore_id)
 
         # Max should no longer have chore in completed_by_other
         max_completed_by_other = coordinator.kids_data[max_id].get(

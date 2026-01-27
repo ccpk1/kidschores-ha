@@ -5,7 +5,7 @@
 - **Name / Code**: LAYERED_ARCHITECTURE_VNEXT – Coordinator-to-Service Architecture Refactor
 - **Target release / milestone**: v0.5.0 (Major architectural release)
 - **Owner / driver(s)**: KidsChores Core Team
-- **Status**: Not started
+- **Status**: Phase 6 In Progress (Phases 0-5 Complete)
 
 ## Summary & immediate steps
 
@@ -18,40 +18,48 @@
 | Phase 4 – Chore            | ChoreEngine + ChoreManager               | 100%       | ✅ COMPLETE 2026-01-26 (93 tests, 1055 total)     |
 | Phase 4.5b – Scheduler     | Delegate timers to ChoreManager          | 100%       | ✅ COMPLETE 2026-01-26 (10 tests, events ready)   |
 | Phase 5 – Gamification     | GamificationEngine + GamificationManager | 100%       | ✅ COMPLETE 2026-01-26 (33+663 lines, 1098 tests) |
-| Phase 6 – Coordinator Slim | Reduce coordinator to routing only       | 0%         | Target: <1000 lines                               |
+| Phase 6 – Coordinator Slim | Reduce coordinator to routing only       | 15%        | 🔄 Detailed plan created; 6 decisions pending     |
 | Phase 7 – Testing & Polish | Integration tests, documentation         | 0%         | 95%+ coverage maintained                          |
 
 1. **Key objective** – Transform the monolithic 10k+ line coordinator into a layered service architecture with clear separation between routing (Coordinator), state workflows (Managers), and pure logic (Engines). This enables testable units, decoupled features, and easier future feature additions.
 
 2. **Summary of recent work**
-   - Current state: `coordinator.py` (6,138 lines) + `coordinator_chore_operations.py` (3,971 lines) = 10,109 lines total
-   - Already extracted: `ChoreOperations` mixin, `StatisticsEngine`, `RecurrenceEngine`, `KidsChoresStorageManager`
-   - Already renamed: `entity_helpers.py` → `data_builders.py` ✅
-   - **Phase 0 COMPLETE**: Event infrastructure implemented (51 signals, 15 TypedDicts, BaseManager) ✅
-   - **Phase 1 COMPLETE**: Infrastructure cleanup (8 cleanup helpers moved to kc_helpers.py) ✅
-   - **Phase 2 COMPLETE**: NotificationManager extracted (~1,130 lines) ✅
-   - **Phase 3 COMPLETE**: EconomyEngine (41 tests) + EconomyManager (19 tests) + Coordinator ledger integration ✅
+   - **Current State** (2026-01-26):
+     - `coordinator.py`: 4,755 lines (target: <1,000)
+     - `coordinator_chore_operations.py`: DELETED ✅
+     - `managers/chore_manager.py`: 3,644 lines (chore workflows complete)
+     - `managers/notification_manager.py`: 1,136 lines
+     - `managers/economy_manager.py`: 323 lines
+     - `managers/gamification_manager.py`: 698 lines
+   - **Phases Complete**:
+     - ✅ Phase 0: Event infrastructure (51 signals, 15 TypedDicts, BaseManager)
+     - ✅ Phase 1: Infrastructure cleanup (8 cleanup helpers)
+     - ✅ Phase 2: NotificationManager extraction (~1,130 lines)
+     - ✅ Phase 3: EconomyEngine + EconomyManager (60 tests)
+     - ✅ Phase 4: ChoreEngine + ChoreManager (83 tests)
+     - ✅ Phase 4.5b: Scheduler delegation (10 tests)
+     - ✅ Phase 5: GamificationEngine + GamificationManager (33 tests)
+   - **Phase 6 Status**: Detailed implementation plan created
+     - See: [PHASE6_COORDINATOR_SLIM_IN-PROCESS.md](./PHASE6_COORDINATOR_SLIM_IN-PROCESS.md)
+     - 6 architectural decisions must be resolved before implementation
+     - Remaining to extract from coordinator:
+       - Reward operations (~675 lines) → NEW RewardManager
+       - Badge operations (~1,400 lines) → GamificationManager
+       - Achievement/Challenge (~200 lines) → GamificationManager
+       - Penalty/Bonus (~290 lines) → EconomyManager
+       - Point statistics (~230 lines) → EconomyManager
+   - **Test Status**: 1,098 tests passing ✅
 
 3. **Next steps (short term)**
-   - ✅ Phase 0 - Event Infrastructure COMPLETE (2026-01-24)
-   - ✅ Phase 1 - Infrastructure Cleanup COMPLETE (2026-01-24)
-   - ✅ Phase 2 - NotificationManager COMPLETE (2026-01-24)
-   - ✅ Phase 3 - Economy Stack COMPLETE (2026-01-25)
-   - ✅ Phase 4 - Chore Stack COMPLETE (2026-01-25)
-     - `engines/chore_engine.py` (680 lines, 63 tests)
-     - `managers/chore_manager.py` (~2150 lines, 20 tests)
-     - Deprecation notice added to `coordinator_chore_operations.py`
-     - ChoreManager fully wired to coordinator
-   - ✅ Phase 4.5b - Scheduler Delegation COMPLETE (2026-01-26)
-     - Timer callbacks (`_check_overdue_chores`, `_process_recurring_chore_resets`) now delegate to ChoreManager
-     - ChoreManager emits `SIGNAL_SUFFIX_CHORE_OVERDUE` and `SIGNAL_SUFFIX_CHORE_STATUS_RESET` events
-     - 10 new tests in `test_scheduler_delegation.py`
-     - Bug fix: `_reset_approval_period` now sets correct field for approval tracking
-     - Legacy methods preserved with comprehensive deprecation docstrings
-   - **Next**: Implement Phase 5 - Gamification Stack
-     - Create `engines/gamification_engine.py` (badge/achievement/challenge evaluation)
-     - Create `managers/gamification_manager.py` (stateful workflow)
-     - Use "Snapshot & Port" TDD strategy (see Phase 5 section)
+   - **IMMEDIATE**: Resolve 6 architectural decisions in PHASE6_COORDINATOR_SLIM_IN-PROCESS.md:
+     1. RewardManager creation vs EconomyManager extension
+     2. Badge delegation strategy (full vs partial)
+     3. Penalty/Bonus location (EconomyManager vs IncentiveManager)
+     4. Point statistics location (split vs single owner)
+     5. Method signature compatibility (deprecation wrappers vs direct)
+     6. Test strategy (parallel vs big bang)
+   - **THEN**: Execute Phase 6 implementation (7 steps)
+   - **FINALLY**: Phase 7 polish and documentation
 
 4. **Risks / blockers**
    - **Breaking changes**: Service names remain stable, but internal method signatures will change
@@ -61,13 +69,16 @@
    - **Deferred edge cases**: CHORE_LOGIC_AUDIT analysis identified edge cases; these can be fixed post-refactor as needed
 
 5. **References**
+   - [PHASE6_COORDINATOR_SLIM_IN-PROCESS.md](./PHASE6_COORDINATOR_SLIM_IN-PROCESS.md) – **Phase 6 detailed implementation plan** ⭐
    - [\_SUP_EVENT_PATTERN.md](./LAYERED_ARCHITECTURE_VNEXT_SUP_EVENT_PATTERN.md) – Event pattern analysis and decisions
-   - [\_SUP_PHASE0_IMPL.md](./LAYERED_ARCHITECTURE_VNEXT_SUP_PHASE0_IMPL.md) – **Phase 0 implementation guide (step-by-step)**
+   - [\_SUP_PHASE0_IMPL.md](./LAYERED_ARCHITECTURE_VNEXT_SUP_PHASE0_IMPL.md) – Phase 0 implementation guide
    - [ARCHITECTURE.md](../ARCHITECTURE.md) – Current storage schema, data model
    - [DEVELOPMENT_STANDARDS.md](../DEVELOPMENT_STANDARDS.md) – Coding patterns, constants
-   - [coordinator_chore_operations.py](../../custom_components/kidschores/coordinator_chore_operations.py) – Existing extraction pattern
    - [engines/](../../custom_components/kidschores/engines/) – Engine pattern reference (`schedule.py`, `statistics.py`)
    - [tests/AGENT_TEST_CREATION_INSTRUCTIONS.md](../../tests/AGENT_TEST_CREATION_INSTRUCTIONS.md) – Test patterns
+   - **Completed Plans**:
+     - [PHASE5_GAMIFICATION_ENGINE_COMPLETED.md](../completed/PHASE5_GAMIFICATION_ENGINE_COMPLETED.md)
+     - [CHORE_OPERATIONS_MIGRATION_COMPLETED.md](../completed/CHORE_OPERATIONS_MIGRATION_COMPLETED.md)
 
 6. **Decisions & completion check**
    - **Decisions captured**:
@@ -771,35 +782,29 @@ def test_evaluate_streak_achievement():
 ### Phase 6 – Coordinator Slim Down
 
 - **Goal**: Reduce coordinator to pure routing and storage, delegating all business logic to managers.
+- **Current State** (4,755 lines): ChoreOperations mixin deleted, but major domain logic remains:
+  - ❌ **Reward operations** (~500 lines): `redeem_reward`, `approve_reward`, `disapprove_reward`, `undo_reward_claim`, `_grant_reward_to_kid`, `reset_rewards` → should move to `RewardManager`
+  - ❌ **Badge/Gamification** (~1500 lines): `_award_badge`, `_demote_cumulative_badge`, `process_award_items`, `_sync_badge_progress_for_kid`, `_recalculate_all_badges`, `_get_cumulative_badge_progress/levels` → should delegate to `GamificationManager`
+  - ❌ **Achievement/Challenge** (~200 lines): `_award_achievement`, `_award_challenge`, `_update_streak_progress` → should delegate to `GamificationManager`
+  - ❌ **Penalty/Bonus** (~300 lines): `apply_penalty`, `reset_penalties`, `apply_bonus`, `reset_bonuses` → could move to `EconomyManager` or new `IncentiveManager`
+  - ❌ **Point statistics** (~300 lines): `update_kid_points`, `_recalculate_point_stats_for_kid`, `_recalculate_reward_stats_for_kid` → should delegate to `EconomyManager`
+
 - **Steps / detailed work items**
-  1. - [ ] Audit remaining coordinator methods:
-     - Identify any methods not yet delegated to managers
-     - Document which manager should own each
-  2. - [ ] Move CRUD operations pattern:
+  1. - [x] ~~Audit remaining coordinator methods~~ (Completed - see above inventory)
+  2. - [x] Move CRUD operations pattern:
      - `delete_*_entity()` methods stay (use `data_builders` + persist)
      - Entity creation stays (routing to `data_builders`)
      - Keep property accessors (`kids_data`, `chores_data`, etc.)
-  3. - [ ] Remove inheritance from `ChoreOperations`:
-
-     ```python
-     # Before
-     class KidsChoresDataCoordinator(ChoreOperations, DataUpdateCoordinator):
-
-     # After
-     class KidsChoresDataCoordinator(DataUpdateCoordinator):
-         def __init__(self, ...):
-             self.chore_manager = ChoreManager(...)
-             self.economy_manager = EconomyManager(...)
-             self.gamification_manager = GamificationManager(...)
-             self.notification_manager = NotificationManager(...)
-     ```
-
-  4. - [ ] Update service handlers in `services.py`:
-     - Services call `coordinator.chore_manager.claim()` instead of `coordinator.claim_chore()`
-     - Or keep coordinator as facade: `coordinator.claim_chore()` → `self.chore_manager.claim()`
-  5. - [ ] Delete `coordinator_chore_operations.py` after migration complete
-  6. - [ ] Target line count: coordinator.py < 1000 lines
-  7. - [ ] Full regression test suite
+  3. - [x] Remove inheritance from `ChoreOperations` ✅
+  4. - [x] Update service handlers for chore operations ✅
+  5. - [x] Delete `coordinator_chore_operations.py` ✅ DELETED
+  6. - [x] Fix mypy type annotation errors in chore_manager.py ✅ (0 errors)
+  7. - [ ] **Create RewardManager** and migrate reward operations (~500 lines)
+  8. - [ ] **Delegate badge/achievement/challenge logic to GamificationManager** (~1700 lines)
+  9. - [ ] **Delegate penalty/bonus to EconomyManager** (or new IncentiveManager) (~300 lines)
+  10. - [ ] **Delegate point statistics to EconomyManager** (~300 lines)
+  11. - [ ] Target line count: coordinator.py < 1000 lines (CURRENT: 4,755)
+  12. - [ ] Full regression test suite (1098 tests passing ✅)
 
 - **Key issues**
   - Backward compatibility for any external integrations calling coordinator methods
@@ -869,17 +874,18 @@ def test_evaluate_streak_achievement():
 
 ### File Size Targets
 
-| File                               | Current | Target |
-| ---------------------------------- | ------- | ------ |
-| `coordinator.py`                   | 6,138   | <1,000 |
-| `coordinator_chore_operations.py`  | 3,971   | DELETE |
-| `managers/chore_manager.py`        | N/A     | ~1,500 |
-| `managers/economy_manager.py`      | N/A     | ~500   |
-| `managers/gamification_manager.py` | N/A     | ~1,500 |
-| `managers/notification_manager.py` | N/A     | ~800   |
-| `engines/chore_engine.py`          | N/A     | ~400   |
-| `engines/economy_engine.py`        | N/A     | ~200   |
-| `engines/gamification_engine.py`   | N/A     | ~600   |
+| File                               | Current | Target | Status | Notes                                                    |
+| ---------------------------------- | ------- | ------ | ------ | -------------------------------------------------------- |
+| `coordinator.py`                   | 4,755   | <1,000 | ⚠️ 25% | Needs: Rewards, Badge ops, Penalty/Bonus, Point stats    |
+| `coordinator_chore_operations.py`  | DELETED | DELETE | ✅     |                                                          |
+| `managers/chore_manager.py`        | 3,638   | ~2,500 | ⚠️     | Mypy fixed ✅                                            |
+| `managers/economy_manager.py`      | ~500    | ~800   | ⏳     | Needs: Point stats, possibly penalty/bonus               |
+| `managers/gamification_manager.py` | 663     | ~2,000 | ⏳     | Needs: Badge ops, achievement/challenge from coordinator |
+| `managers/reward_manager.py`       | N/A     | ~500   | ⏳ NEW | Needs creation for reward operations                     |
+| `managers/notification_manager.py` | ~1,130  | ~800   | ✅     |
+| `engines/chore_engine.py`          | 680     | ~400   | ✅     |
+| `engines/economy_engine.py`        | ~200    | ~200   | ✅     |
+| `engines/gamification_engine.py`   | 1,095   | ~600   | ✅     |
 
 ### Implementation Order Rationale
 

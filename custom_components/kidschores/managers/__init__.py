@@ -9,6 +9,8 @@ from .chore_manager import ChoreManager
 from .economy_manager import EconomyManager
 from .gamification_manager import GamificationManager
 from .notification_manager import NotificationManager
+from .reward_manager import RewardManager
+from .statistics_manager import StatisticsManager
 
 __all__ = [
     "BaseManager",
@@ -16,4 +18,6 @@ __all__ = [
     "EconomyManager",
     "GamificationManager",
     "NotificationManager",
+    "RewardManager",
+    "StatisticsManager",
 ]

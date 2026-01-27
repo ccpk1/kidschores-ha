@@ -1100,7 +1100,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             merged_chore = db.build_chore(transformed_data, existing=chore_data)
             coordinator._data[const.DATA_CHORES][internal_id] = merged_chore
             # Recalculate badges affected by chore changes
-            coordinator._recalculate_all_badges()
+            coordinator.gamification_manager.recalculate_all_badges()
             coordinator._persist()
             coordinator.async_update_listeners()
             # Clean up any orphaned kid-chore entities after assignment changes
@@ -1223,7 +1223,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         single_kid_updates, existing=merged_chore
                     )
                     coordinator._data[const.DATA_CHORES][internal_id] = final_chore
-                    coordinator._recalculate_all_badges()
+                    coordinator.gamification_manager.recalculate_all_badges()
                     coordinator._persist()
                     coordinator.async_update_listeners()
                     coordinator.hass.async_create_task(
@@ -1874,7 +1874,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 # Update storage using data_builders (direct storage pattern)
                 merged_chore = db.build_chore(chore_data, existing=stored_chore)
                 coordinator._data[const.DATA_CHORES][internal_id] = merged_chore
-                coordinator._recalculate_all_badges()
+                coordinator.gamification_manager.recalculate_all_badges()
                 coordinator._persist()
                 coordinator.async_update_listeners()
                 coordinator.hass.async_create_task(
@@ -2067,7 +2067,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 stored_chore = coordinator.chores_data.get(internal_id, {})
                 merged_chore = db.build_chore(chore_data, existing=stored_chore)
                 coordinator._data[const.DATA_CHORES][internal_id] = merged_chore
-                coordinator._recalculate_all_badges()
+                coordinator.gamification_manager.recalculate_all_badges()
                 coordinator._persist()
                 coordinator.async_update_listeners()
                 coordinator.hass.async_create_task(
@@ -2340,8 +2340,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     coordinator._data[const.DATA_BADGES][internal_id] = dict(badge_dict)
                     # Phase 4: Sync badge_progress after badge update
                     for kid_id in coordinator.kids_data:
-                        coordinator._sync_badge_progress_for_kid(kid_id)
-                    coordinator._recalculate_all_badges()
+                        coordinator.gamification_manager.sync_badge_progress_for_kid(
+                            kid_id
+                        )
+                    coordinator.gamification_manager.recalculate_all_badges()
                     coordinator._persist()
                     coordinator.async_update_listeners()
                 else:
@@ -2351,9 +2353,11 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     )
                     # Sync badge progress for all kids (creates progress sensors)
                     for kid_id in coordinator.kids_data:
-                        coordinator._sync_badge_progress_for_kid(kid_id)
+                        coordinator.gamification_manager.sync_badge_progress_for_kid(
+                            kid_id
+                        )
                     # Recalculate badges to trigger initial evaluation
-                    coordinator._recalculate_all_badges()
+                    coordinator.gamification_manager.recalculate_all_badges()
                     coordinator._persist()
                     coordinator.async_update_listeners()
 

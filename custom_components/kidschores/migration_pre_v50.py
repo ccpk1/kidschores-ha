@@ -1517,8 +1517,8 @@ class PreV50Migrator:
                     "WARNING: No initializer found for section '%s'", section_key
                 )
 
-        # Recalculate Badges on reload
-        self.coordinator._recalculate_all_badges()
+        # Recalculate Badges on reload (marks all kids dirty for evaluation)
+        self.coordinator.gamification_manager.recalculate_all_badges()
 
     def _ensure_minimal_structure(self) -> None:
         """Ensure that all necessary data sections are present in storage."""
