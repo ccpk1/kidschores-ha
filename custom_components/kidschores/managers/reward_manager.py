@@ -271,7 +271,7 @@ class RewardManager(BaseManager):
 
         # Clean up old period data
         self.coordinator.stats.prune_history(
-            periods, self.coordinator._get_retention_config()
+            periods, self.coordinator.statistics_manager.get_retention_config()
         )
 
     def _recalculate_stats_for_kid(self, kid_id: str) -> None:
@@ -968,8 +968,16 @@ class RewardManager(BaseManager):
             reward_id,
         )
 
-        # Cleanup pending reward approvals (coordinator has the cleanup method)
-        self.coordinator._cleanup_pending_reward_approvals()
+        # Clean own domain: remove deleted reward refs from kid reward_data
+        valid_reward_ids = set(self.coordinator.rewards_data.keys())
+        for kid_data in self.coordinator.kids_data.values():
+            reward_data = kid_data.get(const.DATA_KID_REWARD_DATA, {})
+            orphaned = [rid for rid in reward_data if rid not in valid_reward_ids]
+            for rid in orphaned:
+                del reward_data[rid]
+                const.LOGGER.debug(
+                    "Removed orphaned reward '%s' from kid reward_data", rid
+                )
 
         self.coordinator._persist()
         self.coordinator.async_update_listeners()

@@ -20,7 +20,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 
 from . import const, data_builders as db, kc_helpers as kh
-from .helpers import backup_helpers as bh
+from .helpers import backup_helpers as bh, entity_helpers as eh
 from .store import KidsChoresStore
 from .utils.dt_utils import dt_now_local, dt_to_utc, dt_today_iso, dt_today_local
 from .utils.math_utils import parse_points_adjust_values
@@ -1659,14 +1659,35 @@ class PreV50Migrator:
             del self.coordinator._data[section][entity_id]
 
             # Remove entity from HA registry
-            self.coordinator._remove_entities_in_ha(entity_id)
+            eh.remove_entities_by_item_id(
+                self.coordinator.hass,
+                self.coordinator.config_entry.entry_id,
+                entity_id,
+            )
 
-            # Remove deleted kids from parents list (cleanup)
-            self.coordinator._cleanup_parent_assignments()
+            # Cleanup references to deleted entity
+            if section == const.DATA_KIDS:
+                # Remove deleted kid from parents' kids lists
+                for parent in self.coordinator._data.get(
+                    const.DATA_PARENTS, {}
+                ).values():
+                    if entity_id in parent.get(const.DATA_PARENT_KIDS, []):
+                        parent[const.DATA_PARENT_KIDS].remove(entity_id)
 
-            # Remove reward approvals on reward delete
             if section == const.DATA_REWARDS:
-                self.coordinator._cleanup_pending_reward_approvals()
+                # Remove deleted reward from pending approvals
+                for kid_data in self.coordinator._data.get(
+                    const.DATA_KIDS, {}
+                ).values():
+                    approvals = kid_data.get(
+                        const.DATA_KID_PENDING_REWARD_APPROVALS, []
+                    )
+                    kid_data[const.DATA_KID_PENDING_REWARD_APPROVALS] = [
+                        a
+                        for a in approvals
+                        if a.get(const.DATA_KID_PENDING_REWARD_APPROVAL_REWARD_ID)
+                        != entity_id
+                    ]
 
         # Add or update entities
         for entity_id, entity_body in config_data.items():
@@ -1675,21 +1696,44 @@ class PreV50Migrator:
             else:
                 update_method(entity_id, entity_body)
 
-        # Remove orphaned chore-related entities
+        # Remove orphaned chore-related entities (using entity_helpers directly)
         if section == const.DATA_CHORES:
             self.coordinator.hass.async_create_task(
-                self.coordinator._remove_orphaned_shared_chore_sensors()
+                eh.remove_orphaned_shared_chore_sensors(
+                    self.coordinator.hass,
+                    self.coordinator.config_entry.entry_id,
+                    self.coordinator.chores_data,
+                )
             )
             self.coordinator.hass.async_create_task(
-                self.coordinator._remove_orphaned_kid_chore_entities()
+                eh.remove_orphaned_kid_chore_entities(
+                    self.coordinator.hass,
+                    self.coordinator.config_entry.entry_id,
+                    self.coordinator.kids_data,
+                    self.coordinator.chores_data,
+                )
             )
 
         # Remove orphaned achievement and challenges sensors
         self.coordinator.hass.async_create_task(
-            self.coordinator._remove_orphaned_achievement_entities()
+            eh.remove_orphaned_progress_entities(
+                self.coordinator.hass,
+                self.coordinator.config_entry.entry_id,
+                self.coordinator.achievements_data,
+                entity_type="achievement",
+                progress_suffix=const.DATA_ACHIEVEMENT_PROGRESS_SUFFIX,
+                assigned_kids_key=const.DATA_ACHIEVEMENT_ASSIGNED_KIDS,
+            )
         )
         self.coordinator.hass.async_create_task(
-            self.coordinator._remove_orphaned_challenge_entities()
+            eh.remove_orphaned_progress_entities(
+                self.coordinator.hass,
+                self.coordinator.config_entry.entry_id,
+                self.coordinator.challenges_data,
+                entity_type="challenge",
+                progress_suffix=const.DATA_CHALLENGE_PROGRESS_SUFFIX,
+                assigned_kids_key=const.DATA_CHALLENGE_ASSIGNED_KIDS,
+            )
         )
 
         # Remove deprecated sensors (sync method - no async_create_task needed)

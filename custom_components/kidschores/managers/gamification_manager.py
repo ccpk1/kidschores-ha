@@ -119,8 +119,9 @@ class GamificationManager(BaseManager):
         self.listen(const.SIGNAL_SUFFIX_BONUS_APPLIED, self._on_bonus_applied)
         self.listen(const.SIGNAL_SUFFIX_PENALTY_APPLIED, self._on_penalty_applied)
 
-        # Kid deletion - remove from pending queue (Phase 7.4)
+        # Lifecycle events - reactive cleanup (Platinum Architecture)
         self.listen(const.SIGNAL_SUFFIX_KID_DELETED, self._on_kid_deleted)
+        self.listen(const.SIGNAL_SUFFIX_CHORE_DELETED, self._on_chore_deleted)
 
         # Recover pending evaluations from storage (restart resilience)
         pending = self.coordinator._data.get(const.DATA_META, {}).get(
@@ -455,18 +456,122 @@ class GamificationManager(BaseManager):
         )
 
     def _on_kid_deleted(self, payload: dict[str, Any]) -> None:
-        """Remove deleted kid from pending evaluations.
+        """Remove deleted kid from pending evaluations and gamification data.
+
+        Follows Platinum Architecture (Choreography): GamificationManager reacts
+        to KID_DELETED signal and cleans its own domain data.
+
+        Handles cleanup of:
+        - Pending evaluation queue
+        - Achievement progress/assignments
+        - Challenge progress/assignments
 
         Args:
             payload: Event data containing kid_id
         """
         kid_id = payload.get("kid_id", "")
-        if kid_id and kid_id in self._pending_evaluations:
+        if not kid_id:
+            return
+
+        # 1. Clean up pending evaluation queue
+        if kid_id in self._pending_evaluations:
             self._pending_evaluations.discard(kid_id)
             self._persist_pending()
             const.LOGGER.debug(
                 "GamificationManager: Removed deleted kid %s from pending queue",
                 kid_id,
+            )
+
+        # 2. Clean up achievement/challenge progress and assignments (inline)
+        cleaned = False
+        for entities_data, section_name in [
+            (self.coordinator._data.get(const.DATA_ACHIEVEMENTS, {}), "achievements"),
+            (self.coordinator._data.get(const.DATA_CHALLENGES, {}), "challenges"),
+        ]:
+            for entity in entities_data.values():
+                # Remove kid from progress dict
+                progress = entity.get(const.DATA_PROGRESS, {})
+                if kid_id in progress:
+                    del progress[kid_id]
+                    const.LOGGER.debug(
+                        "Removed progress for deleted kid '%s' in %s",
+                        kid_id,
+                        section_name,
+                    )
+                    cleaned = True
+
+                # Remove kid from assigned_kids list
+                if const.DATA_ASSIGNED_KIDS in entity:
+                    original_assigned = entity[const.DATA_ASSIGNED_KIDS]
+                    if kid_id in original_assigned:
+                        entity[const.DATA_ASSIGNED_KIDS] = [
+                            k for k in original_assigned if k != kid_id
+                        ]
+                        const.LOGGER.debug(
+                            "Removed deleted kid from %s '%s' assigned_kids",
+                            section_name,
+                            entity.get(const.DATA_NAME),
+                        )
+                        cleaned = True
+
+        if cleaned:
+            self.coordinator._persist()
+
+        const.LOGGER.debug(
+            "GamificationManager: Cleaned gamification refs for deleted kid %s",
+            kid_id,
+        )
+
+    def _on_chore_deleted(self, payload: dict[str, Any]) -> None:
+        """Clear selected_chore_id in achievements/challenges if deleted chore was selected.
+
+        Follows Platinum Architecture (Choreography): GamificationManager reacts
+        to CHORE_DELETED signal and cleans its own domain data.
+
+        Args:
+            payload: Event data containing chore_id, chore_name
+        """
+        chore_id = payload.get("chore_id", "")
+        chore_name = payload.get("chore_name", "")
+        if not chore_id:
+            return
+
+        valid_chore_ids = set(self.coordinator.chores_data.keys())
+        cleaned = False
+
+        # Clean achievements: clear selected_chore_id if chore no longer exists
+        for achievement_info in self.coordinator._data.get(
+            const.DATA_ACHIEVEMENTS, {}
+        ).values():
+            selected = achievement_info.get(const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID)
+            if selected and selected not in valid_chore_ids:
+                achievement_info[const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID] = ""
+                const.LOGGER.debug(
+                    "Cleared selected chore in achievement '%s'",
+                    achievement_info.get(const.DATA_NAME),
+                )
+                cleaned = True
+
+        # Clean challenges: clear selected_chore_id if chore no longer exists
+        for challenge_info in self.coordinator._data.get(
+            const.DATA_CHALLENGES, {}
+        ).values():
+            selected = challenge_info.get(const.DATA_CHALLENGE_SELECTED_CHORE_ID)
+            if selected and selected not in valid_chore_ids:
+                challenge_info[const.DATA_CHALLENGE_SELECTED_CHORE_ID] = (
+                    const.SENTINEL_EMPTY
+                )
+                const.LOGGER.debug(
+                    "Cleared selected chore in challenge '%s'",
+                    challenge_info.get(const.DATA_NAME),
+                )
+                cleaned = True
+
+        if cleaned:
+            self.coordinator._persist()
+            const.LOGGER.debug(
+                "GamificationManager: Cleaned gamification refs for deleted chore '%s'",
+                chore_name,
             )
 
     def _schedule_evaluation(self) -> None:
@@ -1302,7 +1407,7 @@ class GamificationManager(BaseManager):
 
             # Cleanup old period data using StatisticsEngine
             self.coordinator.stats.prune_history(
-                periods, self.coordinator._get_retention_config()
+                periods, self.coordinator.statistics_manager.get_retention_config()
             )
 
         self.coordinator._persist()

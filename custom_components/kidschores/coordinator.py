@@ -16,27 +16,26 @@ Architecture (v0.5.0+):
 # - too-many-public-methods: Each service/feature requires its own public method
 
 import asyncio
-from collections.abc import Callable
 from datetime import datetime, timedelta
-import re
 import sys
 import time
-from typing import Any, cast
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from . import const, data_builders as db, kc_helpers as kh
+from . import const, kc_helpers as kh
 from .engines.statistics_engine import StatisticsEngine, filter_persistent_stats
 from .helpers.entity_helpers import (
-    get_integration_entities,
     parse_entity_reference,
-    remove_entities_by_item_id,
+    remove_orphaned_kid_chore_entities,
+    remove_orphaned_manual_adjustment_buttons,
+    remove_orphaned_progress_entities,
+    remove_orphaned_shared_chore_sensors,
 )
 from .managers import (
     ChoreManager,
@@ -45,6 +44,7 @@ from .managers import (
     NotificationManager,
     RewardManager,
     StatisticsManager,
+    SystemManager,
     UserManager,
 )
 from .store import KidsChoresStore
@@ -54,7 +54,6 @@ from .type_defs import (
     BonusesCollection,
     ChallengesCollection,
     ChoresCollection,
-    KidData,
     KidsCollection,
     ParentsCollection,
     PenaltiesCollection,
@@ -116,10 +115,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self._persist_task: asyncio.Task | None = None
         self._persist_debounce_seconds = 5
 
-        # Race condition protection for approval methods (v0.5.0+)
-        # Prevents duplicate point awards when multiple parents click approve simultaneously
-        self._approval_locks: dict[str, asyncio.Lock] = {}
-
         # Due date reminder tracking (v0.5.0+)
         # Transient set tracking which chore+kid combos have been sent due-soon reminders
         # Key format: "{chore_id}:{kid_id}" - resets on HA restart (acceptable)
@@ -162,6 +157,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Statistics manager for event-driven stats aggregation (v0.5.0+)
         # Listens to POINTS_CHANGED, CHORE_APPROVED, REWARD_APPROVED events
         self.statistics_manager = StatisticsManager(hass, self)
+
+        # System manager for reactive entity registry cleanup (v0.5.0+)
+        # Listens to DELETED signals, runs startup safety net
+        self.system_manager = SystemManager(hass, self)
 
     # -------------------------------------------------------------------------------------
     # Migrate Data and Converters
@@ -425,53 +424,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             raise
 
     # -------------------------------------------------------------------------------------
-    # Approval Lock Management
-    # -------------------------------------------------------------------------------------
-
-    def _get_approval_lock(self, operation: str, *identifiers: str) -> asyncio.Lock:
-        """Get or create a lock for approval operations.
-
-        Creates unique locks per operation+entity combination to prevent race conditions
-        when multiple parents click approve simultaneously, or when a user button-mashes.
-
-        Args:
-            operation: Type of operation (e.g., "approve_chore", "approve_reward")
-            identifiers: Entity identifiers (e.g., kid_id, chore_id)
-
-        Returns:
-            asyncio.Lock for the specific operation+entity combination
-        """
-        lock_key = f"{operation}:{':'.join(identifiers)}"
-        if lock_key not in self._approval_locks:
-            self._approval_locks[lock_key] = asyncio.Lock()
-        return self._approval_locks[lock_key]
-
-    # -------------------------------------------------------------------------------------
-    # Statistics Retention Configuration
-    # -------------------------------------------------------------------------------------
-
-    def _get_retention_config(self) -> dict[str, int]:
-        """Get retention configuration for period data pruning.
-
-        Returns:
-            Dict mapping period types to retention counts.
-        """
-        return {
-            "daily": self.config_entry.options.get(
-                const.CONF_RETENTION_DAILY, const.DEFAULT_RETENTION_DAILY
-            ),
-            "weekly": self.config_entry.options.get(
-                const.CONF_RETENTION_WEEKLY, const.DEFAULT_RETENTION_WEEKLY
-            ),
-            "monthly": self.config_entry.options.get(
-                const.CONF_RETENTION_MONTHLY, const.DEFAULT_RETENTION_MONTHLY
-            ),
-            "yearly": self.config_entry.options.get(
-                const.CONF_RETENTION_YEARLY, const.DEFAULT_RETENTION_YEARLY
-            ),
-        }
-
-    # -------------------------------------------------------------------------------------
     # Properties for Easy Access
     # -------------------------------------------------------------------------------------
 
@@ -539,323 +491,69 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self._pending_reward_changed = False
 
     # -------------------------------------------------------------------------------------
-    # Home Assistant Registry Device and Entity Removal
+
     # -------------------------------------------------------------------------------------
-
-    def _remove_entities_in_ha(self, item_id: str) -> int:
-        """Remove all entities whose unique_id references the given item_id.
-
-        Delegates to kc_helpers.remove_entities_by_item_id() for the actual work.
-        Called when deleting kids, chores, rewards, penalties, bonuses, badges.
-
-        Args:
-            item_id: The UUID of the deleted item.
-
-        Returns:
-            Count of removed entities.
-        """
-        return remove_entities_by_item_id(
-            self.hass,
-            self.config_entry.entry_id,
-            item_id,
-        )
-
-    def _remove_device_from_registry(self, kid_id: str) -> None:
-        """Remove kid device from device registry.
-
-        When a kid is deleted, this function removes the corresponding device
-        registry entry so the device no longer appears in the device list.
-
-        Args:
-            kid_id: Internal UUID of the kid to remove
-        """
-        from homeassistant.helpers import device_registry as dr
-
-        device_registry = dr.async_get(self.hass)
-        device = device_registry.async_get_device(identifiers={(const.DOMAIN, kid_id)})
-
-        if device:
-            device_registry.async_remove_device(device.id)
-            const.LOGGER.debug(
-                "Removed device from registry for kid ID: %s",
-                kid_id,
-            )
-        else:
-            const.LOGGER.debug(
-                "Device not found for kid ID: %s, nothing to remove",
-                kid_id,
-            )
-
-    async def _remove_entities_by_validator(
-        self,
-        *,
-        platforms: list[const.Platform] | None = None,
-        suffix: str | None = None,
-        midfix: str | None = None,
-        is_valid: Callable[[str], bool],
-        entity_type: str = "entity",
-    ) -> int:
-        """Core helper for removing entities that fail validation.
-
-        Core method for removing entities whose underlying data relationship
-        no longer exists. Uses efficient platform filtering and consistent
-        logging patterns.
-
-        Args:
-            platforms: Platforms to scan (None = all platforms for this entry).
-            suffix: Only check entities with this UID suffix.
-            midfix: Only check entities containing this string.
-            is_valid: Callback(unique_id) → True if entity should be kept.
-            entity_type: Display name for logging.
-
-        Returns:
-            Count of removed entities.
-        """
-        perf_start = time.perf_counter()
-        prefix = f"{self.config_entry.entry_id}_"
-        removed_count = 0
-        scanned_count = 0
-
-        ent_reg = er.async_get(self.hass)
-
-        # Get entities to scan (platform-filtered or all for this entry)
-        if platforms:
-            entities_to_scan = []
-            for platform in platforms:
-                entities_to_scan.extend(
-                    get_integration_entities(
-                        self.hass, self.config_entry.entry_id, platform
-                    )
-                )
-        else:
-            entities_to_scan = [
-                e
-                for e in ent_reg.entities.values()
-                if e.config_entry_id == self.config_entry.entry_id
-            ]
-
-        for entity_entry in list(entities_to_scan):
-            unique_id = str(entity_entry.unique_id)
-
-            # Apply prefix filter
-            if not unique_id.startswith(prefix):
-                continue
-
-            # Apply suffix filter if specified
-            if suffix and not unique_id.endswith(suffix):
-                continue
-
-            # Apply midfix filter if specified
-            if midfix and midfix not in unique_id:
-                continue
-
-            scanned_count += 1
-
-            # Check validity - remove if not valid
-            if not is_valid(unique_id):
-                const.LOGGER.debug(
-                    "Removing orphaned %s: %s (uid: %s)",
-                    entity_type,
-                    entity_entry.entity_id,
-                    unique_id,
-                )
-                ent_reg.async_remove(entity_entry.entity_id)
-                removed_count += 1
-
-        perf_elapsed = time.perf_counter() - perf_start
-        if removed_count > 0:
-            const.LOGGER.info(
-                "Removed %d orphaned %s(s) in %.3fs",
-                removed_count,
-                entity_type,
-                perf_elapsed,
-            )
-        else:
-            const.LOGGER.debug(
-                "PERF: orphan scan for %s: %d checked in %.3fs, none removed",
-                entity_type,
-                scanned_count,
-                perf_elapsed,
-            )
-
-        return removed_count
-
-    async def _remove_orphaned_shared_chore_sensors(self) -> int:
-        """Remove shared chore sensors for chores no longer marked as shared."""
-        prefix = f"{self.config_entry.entry_id}_"
-        suffix = const.DATA_GLOBAL_STATE_SUFFIX
-
-        def is_valid(unique_id: str) -> bool:
-            chore_id = unique_id[len(prefix) : -len(suffix)]
-            chore_info = self.chores_data.get(chore_id)
-            return bool(
-                chore_info
-                and chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
-                == const.COMPLETION_CRITERIA_SHARED
-            )
-
-        return await self._remove_entities_by_validator(
-            platforms=[const.Platform.SENSOR],
-            suffix=suffix,
-            is_valid=is_valid,
-            entity_type="shared chore sensor",
-        )
-
-    # ------------------- Has assigned kid relationship -------------------------------------
-    async def _remove_orphaned_kid_chore_entities(self) -> int:
-        """Remove kid-chore entities for kids no longer assigned to chores."""
-        if not self.kids_data or not self.chores_data:
-            return 0
-
-        prefix = f"{self.config_entry.entry_id}_"
-
-        # Build valid kid-chore combinations
-        valid_combinations: set[tuple[str, str]] = set()
-        for chore_id, chore_info in self.chores_data.items():
-            for kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
-                valid_combinations.add((kid_id, chore_id))
-
-        # Build regex for efficient extraction
-        kid_ids = "|".join(re.escape(kid_id) for kid_id in self.kids_data)
-        chore_ids = "|".join(re.escape(chore_id) for chore_id in self.chores_data)
-        pattern = re.compile(rf"^({kid_ids})_({chore_ids})")
-
-        def is_valid(unique_id: str) -> bool:
-            core = unique_id[len(prefix) :]
-            match = pattern.match(core)
-            if not match:
-                return True  # Not a kid-chore entity, keep it
-            return (match.group(1), match.group(2)) in valid_combinations
-
-        return await self._remove_entities_by_validator(
-            platforms=[const.Platform.SENSOR, const.Platform.BUTTON],
-            is_valid=is_valid,
-            entity_type="kid-chore entity",
-        )
-
-    # ------------------- Has assigned kid relationship -------------------------------------
-    async def _remove_orphaned_badge_entities(self) -> int:
-        """Remove badge progress entities for unassigned kids."""
-        return await self._remove_orphaned_progress_entities(
-            entity_type="badge",
-            entity_list_key=const.DATA_BADGES,
-            progress_suffix=const.SENSOR_KC_UID_SUFFIX_BADGE_PROGRESS_SENSOR,
-            assigned_kids_key=const.DATA_BADGE_ASSIGNED_TO,
-        )
-
-    async def _remove_orphaned_progress_entities(
-        self,
-        entity_type: str,
-        entity_list_key: str,
-        progress_suffix: str,
-        assigned_kids_key: str,
-    ) -> int:
-        """Remove progress entities for kids no longer assigned (generic)."""
-        prefix = f"{self.config_entry.entry_id}_"
-
-        def is_valid(unique_id: str) -> bool:
-            core_id = unique_id[len(prefix) : -len(progress_suffix)]
-            parts = core_id.split("_", 1)
-            if len(parts) != 2:
-                return True  # Can't parse, keep it
-
-            kid_id, parent_entity_id = parts
-            parent_info = self._data.get(entity_list_key, {}).get(parent_entity_id)
-            return bool(
-                parent_info and kid_id in parent_info.get(assigned_kids_key, [])
-            )
-
-        return await self._remove_entities_by_validator(
-            platforms=[const.Platform.SENSOR],
-            suffix=progress_suffix,
-            is_valid=is_valid,
-            entity_type=f"{entity_type} progress sensor",
-        )
-
-    async def _remove_orphaned_manual_adjustment_buttons(self) -> int:
-        """Remove manual adjustment buttons with obsolete delta values."""
-        # Get current configured deltas
-        raw_values = self.config_entry.options.get(const.CONF_POINTS_ADJUST_VALUES)
-        if not raw_values:
-            current_deltas = set(const.DEFAULT_POINTS_ADJUST_VALUES)
-        elif isinstance(raw_values, str):
-            current_deltas = set(parse_points_adjust_values(raw_values))
-        elif isinstance(raw_values, list):
-            try:
-                current_deltas = {float(v) for v in raw_values}
-            except (ValueError, TypeError):
-                current_deltas = set(const.DEFAULT_POINTS_ADJUST_VALUES)
-        else:
-            current_deltas = set(const.DEFAULT_POINTS_ADJUST_VALUES)
-
-        if not current_deltas:
-            current_deltas = set(const.DEFAULT_POINTS_ADJUST_VALUES)
-
-        button_suffix = const.BUTTON_KC_UID_SUFFIX_PARENT_POINTS_ADJUST
-
-        def is_valid(unique_id: str) -> bool:
-            # New format: {entry_id}_{kid_id}_{slugified_delta}_parent_points_adjust_button
-            if button_suffix not in unique_id:
-                return False
-            try:
-                # Extract the part before the suffix
-                prefix_part = unique_id.split(button_suffix)[0]
-                # Get last segment which is the slugified delta
-                delta_slug = prefix_part.split("_")[-1]
-                # Convert slugified delta back to float (replace 'neg' prefix and 'p' decimal)
-                delta_str = delta_slug.replace("neg", "-").replace("p", ".")
-                delta = float(delta_str)
-                return delta in current_deltas
-            except (ValueError, IndexError):
-                const.LOGGER.warning(
-                    "Could not parse delta from adjustment button uid: %s", unique_id
-                )
-                return True  # Can't parse, keep it
-
-        return await self._remove_entities_by_validator(
-            platforms=[const.Platform.BUTTON],
-            midfix=button_suffix,
-            is_valid=is_valid,
-            entity_type="manual adjustment button",
-        )
-
-    async def _remove_orphaned_achievement_entities(self) -> int:
-        """Remove achievement progress entities for unassigned kids."""
-        return await self._remove_orphaned_progress_entities(
-            entity_type="achievement",
-            entity_list_key=const.DATA_ACHIEVEMENTS,
-            progress_suffix=const.DATA_ACHIEVEMENT_PROGRESS_SUFFIX,
-            assigned_kids_key=const.DATA_ACHIEVEMENT_ASSIGNED_KIDS,
-        )
-
-    async def _remove_orphaned_challenge_entities(self) -> int:
-        """Remove challenge progress entities for unassigned kids."""
-        return await self._remove_orphaned_progress_entities(
-            entity_type="challenge",
-            entity_list_key=const.DATA_CHALLENGES,
-            progress_suffix=const.DATA_CHALLENGE_PROGRESS_SUFFIX,
-            assigned_kids_key=const.DATA_CHALLENGE_ASSIGNED_KIDS,
-        )
+    # Orphan Entity Removal (delegates to entity_helpers)
+    # -------------------------------------------------------------------------------------
 
     async def remove_all_orphaned_entities(self) -> int:
         """Run all orphan cleanup methods. Called on startup.
 
         Consolidates all data-driven orphan removal into a single call.
-        Each method checks if underlying data relationships still exist.
+        Delegates to entity_helpers functions for the actual cleanup.
 
         Returns:
             Total count of removed entities.
         """
         perf_start = time.perf_counter()
         total_removed = 0
+        entry_id = self.config_entry.entry_id
 
-        # Run all orphan cleanup methods
-        total_removed += await self._remove_orphaned_kid_chore_entities()
-        total_removed += await self._remove_orphaned_shared_chore_sensors()
-        total_removed += await self._remove_orphaned_badge_entities()
-        total_removed += await self._remove_orphaned_achievement_entities()
-        total_removed += await self._remove_orphaned_challenge_entities()
-        total_removed += await self._remove_orphaned_manual_adjustment_buttons()
+        # Kid-chore assignment orphans
+        total_removed += await remove_orphaned_kid_chore_entities(
+            self.hass, entry_id, self.kids_data, self.chores_data
+        )
+
+        # Shared chore sensor orphans
+        total_removed += await remove_orphaned_shared_chore_sensors(
+            self.hass, entry_id, self.chores_data
+        )
+
+        # Badge progress orphans
+        total_removed += await remove_orphaned_progress_entities(
+            self.hass,
+            entry_id,
+            self.badges_data,
+            entity_type="badge",
+            progress_suffix=const.SENSOR_KC_UID_SUFFIX_BADGE_PROGRESS_SENSOR,
+            assigned_kids_key=const.DATA_BADGE_ASSIGNED_TO,
+        )
+
+        # Achievement progress orphans
+        total_removed += await remove_orphaned_progress_entities(
+            self.hass,
+            entry_id,
+            self.achievements_data,
+            entity_type="achievement",
+            progress_suffix=const.DATA_ACHIEVEMENT_PROGRESS_SUFFIX,
+            assigned_kids_key=const.DATA_ACHIEVEMENT_ASSIGNED_KIDS,
+        )
+
+        # Challenge progress orphans
+        total_removed += await remove_orphaned_progress_entities(
+            self.hass,
+            entry_id,
+            self.challenges_data,
+            entity_type="challenge",
+            progress_suffix=const.DATA_CHALLENGE_PROGRESS_SUFFIX,
+            assigned_kids_key=const.DATA_CHALLENGE_ASSIGNED_KIDS,
+        )
+
+        # Manual adjustment button orphans
+        current_deltas = self._get_current_adjustment_deltas()
+        total_removed += await remove_orphaned_manual_adjustment_buttons(
+            self.hass, entry_id, current_deltas
+        )
 
         perf_elapsed = time.perf_counter() - perf_start
         if total_removed > 0:
@@ -871,6 +569,27 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             )
 
         return total_removed
+
+    def _get_current_adjustment_deltas(self) -> set[float]:
+        """Get current configured adjustment delta values.
+
+        Returns:
+            Set of valid adjustment delta floats.
+        """
+        raw_values = self.config_entry.options.get(const.CONF_POINTS_ADJUST_VALUES)
+        if not raw_values:
+            return set(const.DEFAULT_POINTS_ADJUST_VALUES)
+
+        if isinstance(raw_values, str):
+            return set(parse_points_adjust_values(raw_values))
+
+        if isinstance(raw_values, list):
+            try:
+                return {float(v) for v in raw_values}
+            except (ValueError, TypeError):
+                return set(const.DEFAULT_POINTS_ADJUST_VALUES)
+
+        return set(const.DEFAULT_POINTS_ADJUST_VALUES)
 
     async def remove_conditional_entities(
         self,
@@ -967,262 +686,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 removed_count,
             )
         return removed_count
-
-    # -------------------------------------------------------------------------------------
-    # Data Cleanup
-    # -------------------------------------------------------------------------------------
-
-    def _cleanup_chore_from_kid(self, kid_id: str, chore_id: str) -> None:
-        """Remove references to a specific chore from a kid's data."""
-        kid_info: KidData | None = self.kids_data.get(kid_id)
-        if not kid_info:
-            return
-
-        # cast() for mypy: KidData is a TypedDict which is a dict[str, Any] at runtime
-        if kh.cleanup_chore_from_kid_data(cast("dict[str, Any]", kid_info), chore_id):
-            self._pending_chore_changed = True
-
-    def _cleanup_pending_reward_approvals(self) -> None:
-        """Remove reward_data entries for rewards that no longer exist."""
-        valid_reward_ids = set(self._data.get(const.DATA_REWARDS, {}).keys())
-        # cast() for mypy: dict[str, KidData] → dict[str, dict[str, Any]] at runtime
-        if kh.cleanup_orphaned_reward_data(
-            cast("dict[str, dict[str, Any]]", self.kids_data), valid_reward_ids
-        ):
-            self._pending_reward_changed = True
-
-    def _cleanup_deleted_kid_references(self) -> None:
-        """Remove references to kids that no longer exist from other sections."""
-        valid_kid_ids = set(self.kids_data.keys())
-
-        # Remove deleted kid IDs from all chore assignments
-        kh.cleanup_orphaned_kid_refs_in_chores(
-            self._data.get(const.DATA_CHORES, {}),
-            valid_kid_ids,
-        )
-
-        # Remove progress in achievements and challenges
-        kh.cleanup_orphaned_kid_refs_in_gamification(
-            self._data.get(const.DATA_ACHIEVEMENTS, {}),
-            valid_kid_ids,
-            "achievements",
-        )
-        kh.cleanup_orphaned_kid_refs_in_gamification(
-            self._data.get(const.DATA_CHALLENGES, {}),
-            valid_kid_ids,
-            "challenges",
-        )
-
-    def _cleanup_deleted_chore_references(self) -> None:
-        """Remove references to chores that no longer exist from kid data."""
-        valid_chore_ids = set(self.chores_data.keys())
-        # cast() for mypy: dict[str, KidData] → dict[str, dict[str, Any]] at runtime
-        kh.cleanup_orphaned_chore_refs_in_kids(
-            cast("dict[str, dict[str, Any]]", self.kids_data), valid_chore_ids
-        )
-
-    def _cleanup_parent_assignments(self) -> None:
-        """Remove any kid IDs from parent's 'associated_kids' that no longer exist."""
-        valid_kid_ids = set(self.kids_data.keys())
-        kh.cleanup_orphaned_kid_refs_in_parents(
-            self._data.get(const.DATA_PARENTS, {}),
-            valid_kid_ids,
-        )
-
-    def _cleanup_deleted_chore_in_achievements(self) -> None:
-        """Clear selected_chore_id in achievements if the chore no longer exists."""
-        valid_chore_ids = set(self.chores_data.keys())
-        kh.cleanup_deleted_chore_in_gamification(
-            self._data.get(const.DATA_ACHIEVEMENTS, {}),
-            valid_chore_ids,
-            const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID,
-            "",
-            "achievement",
-        )
-
-    def _cleanup_deleted_chore_in_challenges(self) -> None:
-        """Clear selected_chore_id in challenges if the chore no longer exists."""
-        valid_chore_ids = set(self.chores_data.keys())
-        kh.cleanup_deleted_chore_in_gamification(
-            self._data.get(const.DATA_CHALLENGES, {}),
-            valid_chore_ids,
-            const.DATA_CHALLENGE_SELECTED_CHORE_ID,
-            const.SENTINEL_EMPTY,
-            "challenge",
-        )
-
-    # -------------------------------------------------------------------------------------
-    # Shadow Kid: Creation and Unlinking Methods
-    # -------------------------------------------------------------------------------------
-
-    def _create_shadow_kid_for_parent(
-        self, parent_id: str, parent_info: dict[str, Any]
-    ) -> str:
-        """Create a shadow kid entity for a parent who enables chore assignment.
-
-        Shadow kids are special kid entities that:
-        - Use the parent's name and dashboard language
-        - Are marked with is_shadow_kid=True
-        - Link back to the parent via linked_parent_id
-        - Have notifications disabled by default (editable via Manage Kids)
-        - Inherit gamification setting from parent
-
-        Uses data_builders.build_kid() with is_shadow=True for consistent
-        shadow kid creation across config flow and options flow.
-
-        Args:
-            parent_id: The internal ID of the parent.
-            parent_info: The parent's data dictionary.
-
-        Returns:
-            The internal_id of the newly created shadow kid.
-        """
-        parent_name = parent_info.get(const.DATA_PARENT_NAME, const.SENTINEL_EMPTY)
-
-        # Build shadow kid input from parent data
-        shadow_input = {
-            const.CFOF_KIDS_INPUT_KID_NAME: parent_name,
-            const.CFOF_KIDS_INPUT_HA_USER: parent_info.get(
-                const.DATA_PARENT_HA_USER_ID, ""
-            ),
-            const.CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE: parent_info.get(
-                const.DATA_PARENT_DASHBOARD_LANGUAGE,
-                const.DEFAULT_DASHBOARD_LANGUAGE,
-            ),
-            # Shadow kids have notifications disabled by default
-            const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: const.SENTINEL_EMPTY,
-        }
-
-        # Use unified db.build_kid() with shadow markers
-        shadow_kid_data = dict(
-            db.build_kid(shadow_input, is_shadow=True, linked_parent_id=parent_id)
-        )
-        shadow_kid_id = str(shadow_kid_data[const.DATA_KID_INTERNAL_ID])
-
-        # Direct storage write
-        self._data[const.DATA_KIDS][shadow_kid_id] = shadow_kid_data
-
-        const.LOGGER.info(
-            "Created shadow kid '%s' (ID: %s) for parent '%s' (ID: %s)",
-            parent_name,
-            shadow_kid_id,
-            parent_name,
-            parent_id,
-        )
-
-        return shadow_kid_id
-
-    def _unlink_shadow_kid(self, shadow_kid_id: str) -> None:
-        """Unlink a shadow kid from parent, converting to regular kid.
-
-        This preserves all kid data (points, history, badges, etc.) while
-        removing the shadow link. The kid is renamed with '_unlinked' suffix
-        to prevent name conflicts with the parent.
-
-        Used when:
-        - Parent unchecks "Allow Chores" in options flow
-        - Service call to unlink shadow kid
-
-        Args:
-            shadow_kid_id: The internal ID of the shadow kid to unlink.
-
-        Raises:
-            ServiceValidationError: If kid not found or not a shadow kid.
-        """
-        if shadow_kid_id not in self._data[const.DATA_KIDS]:
-            const.LOGGER.warning(
-                "Attempted to unlink non-existent shadow kid: %s", shadow_kid_id
-            )
-            raise ServiceValidationError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_KID,
-                    "name": shadow_kid_id,
-                },
-            )
-
-        kid_info = self._data[const.DATA_KIDS][shadow_kid_id]
-        kid_name = kid_info.get(const.DATA_KID_NAME, shadow_kid_id)
-
-        # Verify this is actually a shadow kid
-        if not kid_info.get(const.DATA_KID_IS_SHADOW, False):
-            const.LOGGER.error("Attempted to unlink non-shadow kid '%s'", kid_name)
-            raise ServiceValidationError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_KID_NOT_SHADOW,
-                translation_placeholders={"name": kid_name},
-            )
-
-        # Get linked parent to clear their reference
-        parent_id = kid_info.get(const.DATA_KID_LINKED_PARENT_ID)
-        if parent_id and parent_id in self._data.get(const.DATA_PARENTS, {}):
-            # Clear parent's link to this shadow kid
-            self._data[const.DATA_PARENTS][parent_id][
-                const.DATA_PARENT_LINKED_SHADOW_KID_ID
-            ] = None
-            const.LOGGER.debug(
-                "Cleared parent '%s' link to shadow kid '%s'",
-                self._data[const.DATA_PARENTS][parent_id].get(
-                    const.DATA_PARENT_NAME, parent_id
-                ),
-                kid_name,
-            )
-
-        # Rename kid with _unlinked suffix to prevent conflicts
-        new_name = f"{kid_name}_unlinked"
-
-        # Remove shadow kid markers (convert to regular kid)
-        # Regular kids always have full workflow and gamification features
-        kid_info[const.DATA_KID_IS_SHADOW] = False
-        kid_info[const.DATA_KID_LINKED_PARENT_ID] = None
-        kid_info[const.DATA_KID_NAME] = new_name
-
-        # Update device registry to reflect new name immediately
-        self._update_kid_device_name(shadow_kid_id, new_name)
-
-        # Note: No need to explicitly enable workflow/gamification flags here
-        # Regular kids are implicitly full-featured (kc_helpers checks is_shadow_kid)
-
-        const.LOGGER.info(
-            "Unlinked shadow kid '%s' → '%s' (ID: %s), preserved all data",
-            kid_name,
-            new_name,
-            shadow_kid_id,
-        )
-
-    def _update_kid_device_name(self, kid_id: str, kid_name: str) -> None:
-        """Update kid device name in device registry.
-
-        When a kid's name changes, this function updates the corresponding
-        device registry entry so the device name reflects immediately without
-        requiring a reboot. This also cascades to entity friendly names.
-
-        Args:
-            kid_id: Internal UUID of the kid
-            kid_name: New name for the kid
-
-        """
-        from homeassistant.helpers import device_registry as dr
-
-        device_registry = dr.async_get(self.hass)
-        device = device_registry.async_get_device(identifiers={(const.DOMAIN, kid_id)})
-
-        if device:
-            new_device_name = f"{kid_name} ({self.config_entry.title})"
-            device_registry.async_update_device(device.id, name=new_device_name)
-            const.LOGGER.debug(
-                "Updated device name for kid '%s' (ID: %s) to '%s'",
-                kid_name,
-                kid_id,
-                new_device_name,
-            )
-        else:
-            const.LOGGER.warning(
-                "Device not found for kid '%s' (ID: %s), cannot update name",
-                kid_name,
-                kid_id,
-            )
 
     # -------------------------------------------------------------------------------------
     # Translation Sensor Lifecycle Management

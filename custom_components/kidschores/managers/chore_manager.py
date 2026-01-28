@@ -43,6 +43,8 @@ from custom_components.kidschores.engines.statistics_engine import (
 )
 from custom_components.kidschores.helpers.entity_helpers import (
     remove_entities_by_item_id,
+    remove_orphaned_kid_chore_entities,
+    remove_orphaned_shared_chore_sensors,
 )
 from custom_components.kidschores.managers.base_manager import BaseManager
 from custom_components.kidschores.utils.dt_utils import (
@@ -109,10 +111,47 @@ class ChoreManager(BaseManager):
     async def async_setup(self) -> None:
         """Set up the ChoreManager.
 
-        Phase 4: No event subscriptions needed - receives direct calls from Coordinator.
-        Future: May subscribe to timer events for scheduled resets.
+        Subscribes to cross-domain events for cleanup coordination.
         """
+        # Listen for kid deletion to remove orphaned assignments
+        self.listen(const.SIGNAL_SUFFIX_KID_DELETED, self._on_kid_deleted)
         const.LOGGER.debug("ChoreManager initialized for entry %s", self.entry_id)
+
+    def _on_kid_deleted(self, payload: dict[str, Any]) -> None:
+        """Remove deleted kid from all chore assignments.
+
+        Follows Platinum Architecture (Choreography): ChoreManager reacts
+        to KID_DELETED signal and cleans its own domain data (chore assignments).
+
+        Args:
+            payload: Event data containing kid_id
+        """
+        kid_id = payload.get("kid_id", "")
+        if not kid_id:
+            return
+
+        # Clean own domain: remove deleted kid from chore assigned_kids
+        chores_data = self._coordinator._data.get(const.DATA_CHORES, {})
+        cleaned = False
+        for chore_info in chores_data.values():
+            assigned_kids = chore_info.get(const.DATA_ASSIGNED_KIDS, [])
+            if kid_id in assigned_kids:
+                chore_info[const.DATA_ASSIGNED_KIDS] = [
+                    k for k in assigned_kids if k != kid_id
+                ]
+                const.LOGGER.debug(
+                    "Removed deleted kid %s from chore '%s' assigned_kids",
+                    kid_id,
+                    chore_info.get(const.DATA_CHORE_NAME),
+                )
+                cleaned = True
+
+        if cleaned:
+            self._coordinator._persist()
+            const.LOGGER.debug(
+                "ChoreManager: Cleaned chore assignments for deleted kid %s",
+                kid_id,
+            )
 
     # =========================================================================
     # §1 WORKFLOW METHODS (public API)
@@ -1495,7 +1534,12 @@ class ChoreManager(BaseManager):
 
         # Clean up any orphaned kid-chore entities after assignment changes
         self._coordinator.hass.async_create_task(
-            self._coordinator._remove_orphaned_kid_chore_entities()
+            remove_orphaned_kid_chore_entities(
+                self.hass,
+                self._coordinator.config_entry.entry_id,
+                self._coordinator.kids_data,
+                self._coordinator.chores_data,
+            )
         )
 
         chore_name = str(updated_chore.get(const.DATA_CHORE_NAME, ""))
@@ -1517,6 +1561,12 @@ class ChoreManager(BaseManager):
 
     def delete_chore(self, chore_id: str) -> None:
         """Delete a chore from storage and cleanup references.
+
+        Follows Platinum Architecture (Choreography over Orchestration):
+        - ChoreManager cleans its own domain data (kid chore_data)
+        - Emits CHORE_DELETED signal for cross-domain cleanup
+        - GamificationManager reacts to signal for achievement/challenge cleanup
+        - SystemManager reacts to signal for entity registry cleanup
 
         Args:
             chore_id: Internal UUID of the chore to delete.
@@ -1543,27 +1593,34 @@ class ChoreManager(BaseManager):
         # Delete from storage
         del self._coordinator._data[const.DATA_CHORES][chore_id]
 
-        # Remove HA entities
+        # Remove HA entities (targeted cleanup)
         remove_entities_by_item_id(
             self.hass,
             self._coordinator.config_entry.entry_id,
             chore_id,
         )
 
-        # Cleanup references (coordinator has the cleanup methods)
-        self._coordinator._cleanup_deleted_chore_references()
-        self._coordinator._cleanup_deleted_chore_in_achievements()
-        self._coordinator._cleanup_deleted_chore_in_challenges()
+        # Clean own domain: remove deleted chore refs from kid chore_data
+        # (This is chore-tracking data that lives in kid records)
+        for kid_data in self._coordinator.kids_data.values():
+            kid_chore_data = kid_data.get(const.DATA_KID_CHORE_DATA, {})
+            if chore_id in kid_chore_data:
+                del kid_chore_data[chore_id]
+                const.LOGGER.debug("Removed chore '%s' from kid chore_data", chore_id)
 
         # Remove orphaned shared chore sensors
         self.hass.async_create_task(
-            self._coordinator._remove_orphaned_shared_chore_sensors()
+            remove_orphaned_shared_chore_sensors(
+                self.hass,
+                self._coordinator.config_entry.entry_id,
+                self._coordinator.chores_data,
+            )
         )
 
         self._coordinator._persist()
         self._coordinator.async_update_listeners()
 
-        # Emit lifecycle event
+        # Emit lifecycle event (triggers GamificationManager, SystemManager)
         self.emit(
             const.SIGNAL_SUFFIX_CHORE_DELETED,
             chore_id=chore_id,

@@ -180,6 +180,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: KidsChoresConfigEntry) -
     await coordinator.chore_manager.async_setup()
     await coordinator.gamification_manager.async_setup()
     await coordinator.statistics_manager.async_setup()
+    await coordinator.system_manager.async_setup()
 
     # Set up services required by the integration.
     async_setup_services(hass)
@@ -200,9 +201,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: KidsChoresConfigEntry) -
             const.LOGGER.info("Fresh startup: removed %d conditional entities", removed)
 
     # Data-driven orphan removal (always runs - handles deleted/changed data)
-    # Unified method runs all orphan checks: kid-chore, shared, badges,
+    # SystemManager runs all orphan checks: kid-chore, shared, badges,
     # achievements, challenges, manual adjustment buttons
-    await coordinator.remove_all_orphaned_entities()
+    await coordinator.system_manager.run_startup_safety_net()
 
     # Register update listener for config entry changes (e.g., title changes)
     entry.async_on_unload(entry.add_update_listener(async_update_options))
@@ -267,7 +268,7 @@ async def async_update_options(
     const.LOGGER.info("DEBUG: Cleanup removed %d entities", removed_count)
 
     # Run full orphan cleanup as safety net (catches data-driven orphans too)
-    await coordinator.remove_all_orphaned_entities()
+    await coordinator.system_manager.run_startup_safety_net()
 
     # Update all kid device names in case title changed
     await _update_all_kid_device_names(hass, entry)

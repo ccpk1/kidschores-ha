@@ -11,6 +11,7 @@ from .gamification_manager import GamificationManager
 from .notification_manager import NotificationManager
 from .reward_manager import RewardManager
 from .statistics_manager import StatisticsManager
+from .system_manager import SystemManager
 from .user_manager import UserManager
 
 __all__ = [
@@ -21,5 +22,6 @@ __all__ = [
     "NotificationManager",
     "RewardManager",
     "StatisticsManager",
+    "SystemManager",
     "UserManager",
 ]

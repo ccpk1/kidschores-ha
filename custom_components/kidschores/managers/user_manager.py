@@ -9,8 +9,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.helpers import device_registry as dr
 
 from custom_components.kidschores import const, data_builders as db
+from custom_components.kidschores.helpers.entity_helpers import (
+    remove_entities_by_item_id,
+)
 
 from .base_manager import BaseManager
 
@@ -54,10 +58,47 @@ class UserManager(BaseManager):
     async def async_setup(self) -> None:
         """Set up the user manager.
 
-        Currently no event subscriptions needed as UserManager
-        is the source of kid/parent events, not a consumer.
+        Subscribes to cross-domain events for cleanup coordination.
         """
+        # Listen for kid deletion to clean parent associations
+        self.listen(const.SIGNAL_SUFFIX_KID_DELETED, self._on_kid_deleted)
         const.LOGGER.debug("UserManager async_setup complete")
+
+    def _on_kid_deleted(self, payload: dict[str, Any]) -> None:
+        """Remove deleted kid from parent associated_kids lists.
+
+        Follows Platinum Architecture (Choreography): UserManager reacts
+        to KID_DELETED signal and cleans its own domain data (parent refs).
+
+        Args:
+            payload: Event data containing kid_id
+        """
+        kid_id = payload.get("kid_id", "")
+        if not kid_id:
+            return
+
+        # Clean own domain: remove deleted kid from parent associated_kids
+        parents_data = self._data.get(const.DATA_PARENTS, {})
+        cleaned = False
+        for parent_info in parents_data.values():
+            assoc_kids = parent_info.get(const.DATA_PARENT_ASSOCIATED_KIDS, [])
+            if kid_id in assoc_kids:
+                parent_info[const.DATA_PARENT_ASSOCIATED_KIDS] = [
+                    k for k in assoc_kids if k != kid_id
+                ]
+                const.LOGGER.debug(
+                    "Removed deleted kid %s from parent '%s' associated_kids",
+                    kid_id,
+                    parent_info.get(const.DATA_PARENT_NAME),
+                )
+                cleaned = True
+
+        if cleaned:
+            self.coordinator._persist()
+            const.LOGGER.debug(
+                "UserManager: Cleaned parent associations for deleted kid %s",
+                kid_id,
+            )
 
     # -------------------------------------------------------------------------
     # KID CRUD OPERATIONS
@@ -221,16 +262,32 @@ class UserManager(BaseManager):
         # Normal kid deletion continues below
         del self._data[const.DATA_KIDS][kid_id]
 
-        # Remove HA entities
-        self.coordinator._remove_entities_in_ha(kid_id)
+        # Remove HA entities for this kid
+        remove_entities_by_item_id(
+            self.hass,
+            self.coordinator.config_entry.entry_id,
+            kid_id,
+        )
 
         # Remove device from device registry
-        self.coordinator._remove_device_from_registry(kid_id)
+        device_registry = dr.async_get(self.hass)
+        device = device_registry.async_get_device(identifiers={(const.DOMAIN, kid_id)})
+        if device:
+            device_registry.async_remove_device(device.id)
+            const.LOGGER.debug("Removed device from registry for kid ID: %s", kid_id)
 
-        # Cleanup references
-        self.coordinator._cleanup_deleted_kid_references()
-        self.coordinator._cleanup_parent_assignments()
-        self.coordinator._cleanup_pending_reward_approvals()
+        # Emit kid deleted event BEFORE cleanup so managers can handle their cleanup
+        self.emit(
+            const.SIGNAL_SUFFIX_KID_DELETED,
+            kid_id=kid_id,
+            kid_name=kid_name,
+            was_shadow=False,
+        )
+
+        # Note: Cleanup is now handled by signal listeners in each Manager:
+        # - ChoreManager._on_kid_deleted() removes kid from chore assignments
+        # - GamificationManager._on_kid_deleted() removes achievement/challenge refs
+        # - UserManager._on_kid_deleted() removes parent associations
 
         # Remove unused translation sensors (if language no longer needed)
         self.coordinator.remove_unused_translation_sensors()
@@ -238,14 +295,6 @@ class UserManager(BaseManager):
         self.coordinator._persist()
         self.coordinator.async_update_listeners()
         const.LOGGER.info("Deleted kid '%s' (ID: %s)", kid_name, kid_id)
-
-        # Emit kid deleted event
-        self.emit(
-            const.SIGNAL_SUFFIX_KID_DELETED,
-            kid_id=kid_id,
-            kid_name=kid_name,
-            was_shadow=False,
-        )
 
     # -------------------------------------------------------------------------
     # PARENT CRUD OPERATIONS

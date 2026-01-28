@@ -99,6 +99,29 @@ class StatisticsManager(BaseManager):
         """Get the StatisticsEngine from coordinator."""
         return self._coordinator.stats
 
+    def get_retention_config(self) -> dict[str, int]:
+        """Get retention configuration for period data pruning.
+
+        Reads from config_entry.options for user-configurable retention limits.
+
+        Returns:
+            Dict mapping period types to retention counts.
+        """
+        return {
+            "daily": self._coordinator.config_entry.options.get(
+                const.CONF_RETENTION_DAILY, const.DEFAULT_RETENTION_DAILY
+            ),
+            "weekly": self._coordinator.config_entry.options.get(
+                const.CONF_RETENTION_WEEKLY, const.DEFAULT_RETENTION_WEEKLY
+            ),
+            "monthly": self._coordinator.config_entry.options.get(
+                const.CONF_RETENTION_MONTHLY, const.DEFAULT_RETENTION_MONTHLY
+            ),
+            "yearly": self._coordinator.config_entry.options.get(
+                const.CONF_RETENTION_YEARLY, const.DEFAULT_RETENTION_YEARLY
+            ),
+        }
+
     async def async_setup(self) -> None:
         """Set up event subscriptions for statistics tracking.
 
@@ -316,9 +339,7 @@ class StatisticsManager(BaseManager):
         )
 
         # 6) Prune old period data
-        self._stats_engine.prune_history(
-            periods_data, self._coordinator._get_retention_config()
-        )
+        self._stats_engine.prune_history(periods_data, self.get_retention_config())
 
         # 7) Persist changes
         self._coordinator._persist()

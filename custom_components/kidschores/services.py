@@ -548,8 +548,8 @@ def async_setup_services(hass: HomeAssistant):
                     translation_placeholders={"name": name},
                 )
 
-            # Use coordinator helper (reusable code)
-            coordinator._unlink_shadow_kid(kid_id)
+            # Use UserManager's unlink method (delegates to Manager pattern)
+            coordinator.user_manager._unlink_shadow_kid(kid_id)
 
             const.LOGGER.info(
                 "Unlinked shadow kid '%s' (renamed to '%s_unlinked')", name, name

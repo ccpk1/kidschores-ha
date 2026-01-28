@@ -4543,17 +4543,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             # (flag changes may have been staged in self._entry_options)
             coordinator.config_entry = self.config_entry
 
-            # 1. FLAG-DRIVEN: Remove entities disabled by feature toggles
+            # FLAG-DRIVEN: Remove entities disabled by feature toggles
+            # Data-driven orphan cleanup is NOT done here - it's handled by:
+            # 1. Managers doing targeted cleanup when they delete/update items
+            # 2. Startup safety net (remove_all_orphaned_entities) catching stragglers
             const.LOGGER.debug("Checking conditional entities against feature flags")
             await coordinator.remove_conditional_entities()
-
-            # 2. DATA-DRIVEN: Remove orphaned per-relationship entities
-            # Only kid-chore and kid-badge create dynamic entities per assignment.
-            # Other entity types (rewards, achievements, etc.) are system-wide,
-            # handled by flag-driven cleanup or don't create entities at all.
-            const.LOGGER.debug("Checking orphaned kid-chore and badge entities")
-            await coordinator._remove_orphaned_kid_chore_entities()
-            await coordinator._remove_orphaned_badge_entities()
 
         const.LOGGER.debug(
             "Reloading entry after entity changes: %s",
