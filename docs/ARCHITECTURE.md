@@ -61,9 +61,10 @@ For ongoing reference and to maintain Platinum certification, consult:
 | ---------------- | --------- | ------------- | ------------- | ------------------------------------------------------------------- | ------------------ |
 | **Engine**       | ❌ No     | ❌ Forbidden  | ❌ Forbidden  | Pure logic: FSM transitions, schedule calculations, recurrence math | `engines/`         |
 | **Manager**      | ✅ Yes    | ✅ Yes        | ✅ Yes        | Orchestration: State changes, firing events, calling `_persist()`   | `managers/`        |
-| **Util**         | ❌ No     | ❌ Forbidden  | ❌ No         | Pure functions: formatting, validation, date parsing                | `utils/`           |
-| **Helper**       | ❌ No     | ✅ Yes        | ✅ Yes        | HA-specific tools: Registry lookups, auth checks, DeviceInfo        | `kc_helpers.py`    |
+| **Util**         | ❌ No     | ❌ Forbidden  | ❌ No         | Pure functions: datetime parsing, point math, validation            | `utils/`           |
+| **Helper**       | ❌ No     | ✅ Yes        | ✅ Yes        | HA-specific tools: Registry lookups, auth checks, DeviceInfo        | `helpers/`         |
 | **Data Builder** | ❌ No     | ❌ Forbidden  | ❌ No         | Sanitization: Strip strings, validate types, set timestamps         | `data_builders.py` |
+| **Coordinator**  | ✅ Yes    | ✅ Yes        | ✅ Yes        | Infrastructure hub: holds `_data`, `_persist()`, Manager routing    | `coordinator.py`   |
 
 ### Architectural Rules
 
@@ -452,7 +453,7 @@ The `engines/schedule.py` module provides a unified scheduling system for chores
 - `add_interval()` → datetime: DST-safe interval arithmetic
 - `snap_to_weekday()` → datetime: Advance to next applicable weekday
 
-**Data Flow**: coordinator → RecurrenceEngine.get_occurrences() → calendar events (with RRULE) → kc_helpers adapters → chore/badge logic
+**Data Flow**: coordinator → RecurrenceEngine.get_occurrences() → calendar events (with RRULE) → entity_helpers adapters → chore/badge logic
 
 ### iCal Compatibility
 

@@ -51,7 +51,7 @@ grep -r "from homeassistant" custom_components/kidschores/data_builders.py
 
 **Fail Criteria**: Any reference to `homeassistant.*` in `utils/`, `engines/`, or `data_builders.py`.
 
-**Remediation**: Move HA-dependent code to `kc_helpers.py` or appropriate Manager.
+**Remediation**: Move HA-dependent code to `helpers/` (entity_helpers.py, auth_helpers.py, etc.) or appropriate Manager.
 
 ---
 
@@ -112,13 +112,13 @@ grep -n "\[const.DATA_" custom_components/kidschores/services.py
 
 **Checklist**:
 
-| Question                                            | Required Location                       | Forbidden Locations          |
-| --------------------------------------------------- | --------------------------------------- | ---------------------------- |
-| Is it pure math/logic with no side effects?         | `engines/` or `utils/`                  | `managers/`, `kc_helpers.py` |
-| Does it use `hass.services` or `hass.bus`?          | `managers/`                             | `utils/`, `engines/`         |
-| Does it use `entity_registry` or `device_registry`? | `kc_helpers.py`                         | `utils/`, `engines/`         |
-| Does it call `coordinator._persist()`?              | `managers/` ONLY                        | Anywhere else                |
-| Does it sanitize/validate user input?               | `data_builders.py` or `flow_helpers.py` | `managers/`, `services.py`   |
+| Question                                            | Required Location                       | Forbidden Locations        |
+| --------------------------------------------------- | --------------------------------------- | -------------------------- |
+| Is it pure math/logic with no side effects?         | `engines/` or `utils/`                  | `managers/`, `helpers/`    |
+| Does it use `hass.services` or `hass.bus`?          | `managers/`                             | `utils/`, `engines/`       |
+| Does it use `entity_registry` or `device_registry`? | `helpers/entity_helpers.py`             | `utils/`, `engines/`       |
+| Does it call `coordinator._persist()`?              | `managers/` ONLY                        | Anywhere else              |
+| Does it sanitize/validate user input?               | `data_builders.py` or `flow_helpers.py` | `managers/`, `services.py` |
 
 **Validation Process**:
 

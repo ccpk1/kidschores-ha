@@ -19,8 +19,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 
-from . import const, data_builders as db, kc_helpers as kh
+from . import const, data_builders as db
 from .helpers import backup_helpers as bh, entity_helpers as eh
+from .helpers.entity_helpers import get_item_id_by_name
 from .store import KidsChoresStore
 from .utils.dt_utils import dt_now_local, dt_to_utc, dt_today_iso, dt_today_local
 from .utils.math_utils import parse_points_adjust_values
@@ -818,11 +819,10 @@ class PreV50Migrator:
                             const.DATA_KID_CHORE_DATA_LAST_LONGEST_STREAK_ALL_TIME
                         ] = last_longest_streak_date
 
-            # Migrate all-time and yearly completed counts from legacy (once per kid)
+            # Migrate all-time completed count from legacy (once per kid)
+            # Note: approved_year is NOT set here - it's derived from period buckets
+            # (see line ~1008 where legacy approvals populate periods.yearly.approved)
             chore_stats[const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME] = kid_info.get(
-                const.DATA_KID_COMPLETED_CHORES_TOTAL_LEGACY, 0
-            )
-            chore_stats[const.DATA_KID_CHORE_STATS_APPROVED_YEAR] = kid_info.get(
                 const.DATA_KID_COMPLETED_CHORES_TOTAL_LEGACY, 0
             )
 
@@ -1291,7 +1291,7 @@ class PreV50Migrator:
             badges_earned = kid_info.setdefault(const.DATA_KID_BADGES_EARNED, {})
 
             for badge_name in legacy_badge_names:  # type: ignore[attr-defined]
-                badge_id = kh.get_entity_id_by_name(
+                badge_id = get_item_id_by_name(
                     self.coordinator, const.ENTITY_TYPE_BADGE, badge_name
                 )
 
@@ -1671,23 +1671,18 @@ class PreV50Migrator:
                 for parent in self.coordinator._data.get(
                     const.DATA_PARENTS, {}
                 ).values():
-                    if entity_id in parent.get(const.DATA_PARENT_KIDS, []):
-                        parent[const.DATA_PARENT_KIDS].remove(entity_id)
+                    if entity_id in parent.get(const.DATA_PARENT_ASSOCIATED_KIDS, []):
+                        parent[const.DATA_PARENT_ASSOCIATED_KIDS].remove(entity_id)
 
             if section == const.DATA_REWARDS:
-                # Remove deleted reward from pending approvals
-                for kid_data in self.coordinator._data.get(
-                    const.DATA_KIDS, {}
-                ).values():
-                    approvals = kid_data.get(
-                        const.DATA_KID_PENDING_REWARD_APPROVALS, []
-                    )
-                    kid_data[const.DATA_KID_PENDING_REWARD_APPROVALS] = [
-                        a
-                        for a in approvals
-                        if a.get(const.DATA_KID_PENDING_REWARD_APPROVAL_REWARD_ID)
-                        != entity_id
-                    ]
+                # Remove deleted reward from root-level pending approvals (legacy schema)
+                # In KC 3.x, pending_reward_approvals was at data root, not per-kid
+                approvals = self.coordinator._data.get(
+                    const.DATA_PENDING_REWARD_APPROVALS_LEGACY, []
+                )
+                self.coordinator._data[const.DATA_PENDING_REWARD_APPROVALS_LEGACY] = [
+                    a for a in approvals if a.get("reward_id") != entity_id
+                ]
 
         # Add or update entities
         for entity_id, entity_body in config_data.items():

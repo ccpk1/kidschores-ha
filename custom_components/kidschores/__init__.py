@@ -196,7 +196,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: KidsChoresConfigEntry) -
     if not hass.data.get(cleanup_key, False):
         hass.data[cleanup_key] = True
         # Run unified conditional entity cleanup (extra, workflow, gamification)
-        removed = await coordinator.remove_conditional_entities()
+        removed = await coordinator.system_manager.remove_conditional_entities()
         if removed > 0:
             const.LOGGER.info("Fresh startup: removed %d conditional entities", removed)
 
@@ -264,7 +264,7 @@ async def async_update_options(
     )
 
     # Remove entities no longer allowed by feature flags (extra, workflow, gamification)
-    removed_count = await coordinator.remove_conditional_entities()
+    removed_count = await coordinator.system_manager.remove_conditional_entities()
     const.LOGGER.info("DEBUG: Cleanup removed %d entities", removed_count)
 
     # Run full orphan cleanup as safety net (catches data-driven orphans too)

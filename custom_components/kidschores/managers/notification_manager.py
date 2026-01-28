@@ -26,15 +26,16 @@ from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.core import callback
 
-from custom_components.kidschores import const, kc_helpers as kh
-
+from .. import const
+from ..engines.chore_engine import ChoreEngine
+from ..helpers import translation_helpers as th
 from .base_manager import BaseManager
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
-    from custom_components.kidschores.coordinator import KidsChoresDataCoordinator
-    from custom_components.kidschores.type_defs import ChoreData, KidData, RewardData
+    from ..coordinator import KidsChoresDataCoordinator
+    from ..type_defs import ChoreData, KidData, RewardData
 
 
 # =============================================================================
@@ -138,6 +139,11 @@ class NotificationManager(BaseManager):
         - Reward disapproved → notify kid
         - Bonus applied → notify kid
         - Penalty applied → notify kid
+
+        Also subscribes to DELETED events to clear ghost notifications:
+        - Chore deleted → clear pending approval notifications
+        - Reward deleted → clear pending claim notifications
+        - Kid deleted → clear all notifications for that kid
         """
         # Badge events
         self.listen(const.SIGNAL_SUFFIX_BADGE_EARNED, self._handle_badge_earned)
@@ -168,8 +174,13 @@ class NotificationManager(BaseManager):
         self.listen(const.SIGNAL_SUFFIX_CHORE_DUE_SOON, self._handle_chore_due_soon)
         self.listen(const.SIGNAL_SUFFIX_CHORE_OVERDUE, self._handle_chore_overdue)
 
+        # DELETED events - clear ghost notifications (Phase 7.3.7)
+        self.listen(const.SIGNAL_SUFFIX_CHORE_DELETED, self._handle_chore_deleted)
+        self.listen(const.SIGNAL_SUFFIX_REWARD_DELETED, self._handle_reward_deleted)
+        self.listen(const.SIGNAL_SUFFIX_KID_DELETED, self._handle_kid_deleted)
+
         const.LOGGER.debug(
-            "NotificationManager initialized with 11 event subscriptions for entry %s",
+            "NotificationManager initialized with 14 event subscriptions for entry %s",
             self.entry_id,
         )
 
@@ -192,7 +203,7 @@ class NotificationManager(BaseManager):
             tag_type: Type of notification (pending, rewards, system, status).
                       Use const.NOTIFY_TAG_TYPE_* constants.
             *identifiers: One or more identifiers to make tag unique.
-                         For per-entity tags: (entity_id, kid_id)
+                         For per-item tags: (item_id, kid_id)
                          For per-kid tags: (kid_id,)
                          Identifiers are truncated to first 8 characters.
 
@@ -714,7 +725,7 @@ class NotificationManager(BaseManager):
         )
 
         # Load notification translations from custom translations directory
-        translations = await kh.load_notification_translation(self.hass, language)
+        translations = await th.load_notification_translation(self.hass, language)
         const.LOGGER.debug(
             "Notification translations loaded: %d keys, language=%s",
             len(translations),
@@ -866,7 +877,7 @@ class NotificationManager(BaseManager):
             )
 
             # Load notification translations for this parent's language
-            translations = await kh.load_notification_translation(
+            translations = await th.load_notification_translation(
                 self.hass, parent_language
             )
 
@@ -970,7 +981,7 @@ class NotificationManager(BaseManager):
         self,
         kid_id: str,
         tag_type: str,
-        entity_id: str,
+        item_id: str,
     ) -> None:
         """Clear a notification for all parents of a kid.
 
@@ -978,12 +989,12 @@ class NotificationManager(BaseManager):
         with the appropriate tag.
 
         Args:
-            kid_id: The internal ID of the kid (to find associated parents)
+            kid_id: The internal ID of the Kid Item (to find associated parents)
             tag_type: Tag type constant (e.g., NOTIFY_TAG_TYPE_STATUS)
-            entity_id: The chore/reward ID to include in the tag
+            item_id: The Chore/Reward Item ID (UUID) to include in the tag
         """
-        # Build the tag for this entity
-        notification_tag = self.build_notification_tag(tag_type, entity_id, kid_id)
+        # Build the tag for this item
+        notification_tag = self.build_notification_tag(tag_type, item_id, kid_id)
 
         const.LOGGER.debug(
             "Clearing notification with tag '%s' for kid '%s'",
@@ -1095,7 +1106,7 @@ class NotificationManager(BaseManager):
                     kid_id,
                 )
                 return
-            kid_chore_data = kh.get_chore_data_for_kid(kid_info, chore_id)
+            kid_chore_data = ChoreEngine.get_chore_data_for_kid(kid_info, chore_id)
             current_state = kid_chore_data.get(const.DATA_KID_CHORE_DATA_STATE)
 
             # Only resend if still pending/overdue
@@ -1734,3 +1745,141 @@ class NotificationManager(BaseManager):
             chore_name,
             kid_id,
         )
+
+    # =========================================================================
+    # DELETED Event Handlers - Clear Ghost Notifications (Phase 7.3.7)
+    # =========================================================================
+
+    @callback
+    def _handle_chore_deleted(self, payload: dict[str, Any]) -> None:
+        """Handle CHORE_DELETED event - clear any pending notifications for deleted chore.
+
+        When a chore is deleted, we need to clear notifications that reference it:
+        - Pending approval notifications sent to parents
+        - Due soon / overdue reminders
+
+        Args:
+            payload: Event data containing chore_id, chore_name, and optionally
+                     assigned_kids (list of kid IDs that had this chore assigned)
+        """
+        chore_id = payload.get("chore_id", "")
+        chore_name = payload.get("chore_name", "Unknown")
+        assigned_kids = payload.get("assigned_kids", [])
+
+        if not chore_id:
+            const.LOGGER.warning(
+                "CHORE_DELETED notification cleanup skipped: missing chore_id"
+            )
+            return
+
+        const.LOGGER.debug(
+            "Clearing notifications for deleted chore '%s' (id=%s), assigned_kids=%s",
+            chore_name,
+            chore_id,
+            assigned_kids,
+        )
+
+        # Clear notifications for each kid that had this chore assigned
+        for kid_id in assigned_kids:
+            # Clear STATUS tag notifications (pending approvals, due/overdue)
+            self.hass.async_create_task(
+                self.clear_notification_for_parents(
+                    kid_id,
+                    const.NOTIFY_TAG_TYPE_STATUS,
+                    chore_id,
+                )
+            )
+
+    @callback
+    def _handle_reward_deleted(self, payload: dict[str, Any]) -> None:
+        """Handle REWARD_DELETED event - clear any pending notifications for deleted reward.
+
+        When a reward is deleted, we need to clear notifications that reference it:
+        - Pending reward claim notifications sent to parents
+        - Reward approval/disapproval notifications
+
+        Args:
+            payload: Event data containing reward_id, reward_name
+        """
+        reward_id = payload.get("reward_id", "")
+        reward_name = payload.get("reward_name", "Unknown")
+
+        if not reward_id:
+            const.LOGGER.warning(
+                "REWARD_DELETED notification cleanup skipped: missing reward_id"
+            )
+            return
+
+        const.LOGGER.debug(
+            "Clearing notifications for deleted reward '%s' (id=%s)",
+            reward_name,
+            reward_id,
+        )
+
+        # Clear REWARDS tag notifications for all kids
+        # Rewards can be claimed by any kid, so we iterate through all kids
+        for kid_id in self.coordinator.kids_data:
+            self.hass.async_create_task(
+                self.clear_notification_for_parents(
+                    kid_id,
+                    const.NOTIFY_TAG_TYPE_REWARDS,
+                    reward_id,
+                )
+            )
+
+    @callback
+    def _handle_kid_deleted(self, payload: dict[str, Any]) -> None:
+        """Handle KID_DELETED event - clear all notifications involving deleted kid.
+
+        When a kid is deleted, we need to clear all notifications that reference them:
+        - All pending approval notifications for this kid's chores
+        - All reward claim notifications involving this kid
+        - Any status/system notifications for this kid
+
+        Note: This is a best-effort cleanup. Some notifications may have already
+        been dismissed or may not have used tags. The system is designed to be
+        resilient to orphaned notifications.
+
+        Args:
+            payload: Event data containing kid_id, kid_name, was_shadow
+        """
+        kid_id = payload.get("kid_id", "")
+        kid_name = payload.get("kid_name", "Unknown")
+        was_shadow = payload.get("was_shadow", False)
+
+        if not kid_id:
+            const.LOGGER.warning(
+                "KID_DELETED notification cleanup skipped: missing kid_id"
+            )
+            return
+
+        # Shadow kids don't typically have notifications
+        if was_shadow:
+            const.LOGGER.debug(
+                "Skipping notification cleanup for shadow kid '%s'",
+                kid_name,
+            )
+            return
+
+        const.LOGGER.debug(
+            "Clearing all notifications for deleted kid '%s' (id=%s)",
+            kid_name,
+            kid_id,
+        )
+
+        # Clear all notification tag types for this kid
+        # We use kid_id as the item_id since we want to clear all notifications
+        # that have this kid_id in their tag
+        for tag_type in (
+            const.NOTIFY_TAG_TYPE_STATUS,
+            const.NOTIFY_TAG_TYPE_REWARDS,
+            const.NOTIFY_TAG_TYPE_PENDING,
+            const.NOTIFY_TAG_TYPE_SYSTEM,
+        ):
+            self.hass.async_create_task(
+                self.clear_notification_for_parents(
+                    kid_id,
+                    tag_type,
+                    kid_id,  # Use kid_id as item_id to match tags like "status-kidid-kidid"
+                )
+            )

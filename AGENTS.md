@@ -18,13 +18,14 @@ Read **only** what you need for your task:
 
 **STOP using "Entity" for data records!** This causes catastrophic confusion.
 
-| ❌ NEVER Say | ✅ ALWAYS Say | Example |
-|--------------|--------------|----------|
+| ❌ NEVER Say   | ✅ ALWAYS Say                 | Example                            |
+| -------------- | ----------------------------- | ---------------------------------- |
 | "Chore Entity" | "Chore Item" / "Chore Record" | "Update the Chore Item in storage" |
-| "Kid Entity" | "Kid Item" / "Kid Record" | "Fetch Kid Item by UUID" |
-| "Badge Entity" | "Badge Item" / "Badge Record" | "Create new Badge Item" |
+| "Kid Entity"   | "Kid Item" / "Kid Record"     | "Fetch Kid Item by UUID"           |
+| "Badge Entity" | "Badge Item" / "Badge Record" | "Create new Badge Item"            |
 
 **Remember**:
+
 - **Item/Record** = JSON data in `.storage/kidschores_data`
 - **Entity** = Home Assistant platform object (Sensor, Button, Select)
 - **Entity ID** = HA registry string like `sensor.kc_alice_points`
@@ -42,6 +43,7 @@ python -m pytest tests/ -v --tb=line  # All tests pass
 ```
 
 **Integrated Quality Gates** (as of January 2026):
+
 - Ruff check/format (code quality + formatting)
 - MyPy (type checking)
 - **Boundary checker** (architectural rules) ← NEW
@@ -125,25 +127,27 @@ const.LOGGER.debug(f"Value: {var}")   # ❌ NEVER f-strings in logs
 
 ### 5. Examples
 
-| Task | Location | Reason |
-|------|----------|--------|
-| Calculate next chore due date | `engines/schedule.py` | Pure math, no HA, no state |
-| Update kid points | `managers/kid_manager.py` | Writes to storage |
-| Format points display | `utils/formatting.py` | Pure function, no HA |
-| Get kid by user_id | `kc_helpers.py` | Needs HA registry access |
-| Parse datetime string | `kc_helpers.py` (dt_parse) | Uses HA timezone |
-| Build chore data dict | `data_builders.py` | Sanitization, no HA |
+| Task                          | Location                      | Reason                     |
+| ----------------------------- | ----------------------------- | -------------------------- |
+| Calculate next chore due date | `engines/schedule_engine.py`  | Pure math, no HA, no state |
+| Update kid points             | `managers/economy_manager.py` | Writes to storage          |
+| Format points display         | `utils/math_utils.py`         | Pure function, no HA       |
+| Get kid by user_id            | `helpers/entity_helpers.py`   | Needs HA registry access   |
+| Parse datetime string         | `utils/dt_utils.py`           | Pure datetime parsing      |
+| Build chore data dict         | `data_builders.py`            | Sanitization, no HA        |
 
 ### 6. CRUD Ownership Rules
 
 **Non-Negotiable**: Only Manager methods can call `coordinator._persist()`.
 
 **Forbidden**:
+
 - ❌ `options_flow.py` writing to storage
 - ❌ `services.py` calling `_persist()` directly
 - ❌ Any file outside `managers/` modifying `_data`
 
 **Correct Pattern**:
+
 ```python
 # services.py - Service delegates to manager
 async def handle_claim_chore(call: ServiceCall) -> None:
@@ -198,7 +202,8 @@ Run quality gates (**in this order**):
 **Key Files**:
 
 - `const.py` (2565 lines) - All constants
-- `coordinator.py` (8987 lines) - Business logic
+- `coordinator.py` (~470 lines) - Infrastructure hub (routing, persistence)
+- `managers/` - Stateful workflows (ChoreManager, EconomyManager, UIManager, etc.)
 - `kc_helpers.py` - Shared utilities
 - `translations/en.json` - Master translation file
 
@@ -213,7 +218,7 @@ Run quality gates (**in this order**):
 
 **DateTime Functions** (See [DEVELOPMENT_STANDARDS.md § 6. DateTime & Scheduling Standards](../docs/DEVELOPMENT_STANDARDS.md#6-datetime--scheduling-standards)):
 
-- ALWAYS use `dt_*` helpers from `kc_helpers.py` (never raw `datetime` module)
+- ALWAYS use `dt_*` helpers from `utils/dt_utils.py` (never raw `datetime` module)
 - Examples: `dt_now_iso()`, `dt_parse()`, `dt_add_interval()`, `dt_next_schedule()`
 
 **Common Test Scenarios** (run after making changes):

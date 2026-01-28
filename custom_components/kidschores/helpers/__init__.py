@@ -13,14 +13,23 @@ Submodules:
     - device_helpers: DeviceInfo construction
     - flow_helpers: Config/options flow helpers and validators
     - backup_helpers: Backup/restore utilities
+    - translation_helpers: Translation file loading and caching
 
 Usage:
     from custom_components.kidschores.helpers import entity_helpers
     from custom_components.kidschores.helpers.auth_helpers import is_user_authorized_for_kid
     from custom_components.kidschores.helpers import flow_helpers as fh
+    from custom_components.kidschores.helpers import translation_helpers as th
 """
 
-from . import auth_helpers, backup_helpers, device_helpers, entity_helpers, flow_helpers
+from . import (
+    auth_helpers,
+    backup_helpers,
+    device_helpers,
+    entity_helpers,
+    flow_helpers,
+    translation_helpers,
+)
 
 __all__ = [
     "auth_helpers",
@@ -28,4 +37,5 @@ __all__ = [
     "device_helpers",
     "entity_helpers",
     "flow_helpers",
+    "translation_helpers",
 ]

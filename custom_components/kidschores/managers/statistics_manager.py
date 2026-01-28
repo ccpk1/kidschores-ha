@@ -32,20 +32,18 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import callback
 
-from custom_components.kidschores import const
-from custom_components.kidschores.engines.statistics_engine import (
-    filter_persistent_stats,
-)
-from custom_components.kidschores.managers.base_manager import BaseManager
-from custom_components.kidschores.utils.dt_utils import dt_now_local
+from .. import const
+from ..engines.statistics_engine import filter_persistent_stats
+from ..utils.dt_utils import dt_now_local
+from .base_manager import BaseManager
 
 if TYPE_CHECKING:
     from asyncio import TimerHandle
 
     from homeassistant.core import HomeAssistant
 
-    from custom_components.kidschores.coordinator import KidsChoresDataCoordinator
-    from custom_components.kidschores.engines.statistics_engine import StatisticsEngine
+    from ..coordinator import KidsChoresDataCoordinator
+    from ..engines.statistics_engine import StatisticsEngine
 
 
 __all__ = ["StatisticsManager"]

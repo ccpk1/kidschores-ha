@@ -235,12 +235,12 @@ await self.coordinator.economy_manager.apply_bonus(kid_id, bonus_id)
 
 **Rule of Purity**: Files in `utils/` and `engines/` are prohibited from importing `homeassistant.*`. They must be testable in a standard Python environment without HA fixtures.
 
-| Component    | Location        | HA Imports?  | Purpose               | Example                                           |
-| ------------ | --------------- | ------------ | --------------------- | ------------------------------------------------- |
-| **Utils**    | `utils/`        | ❌ Forbidden | Pure Python functions | `format_points()`, `validate_uuid()`              |
-| **Engines**  | `engines/`      | ❌ Forbidden | Pure business logic   | `RecurrenceEngine`, `ChoreStateEngine`            |
-| **Helpers**  | `kc_helpers.py` | ✅ Required  | HA-specific tools     | `get_kid_by_user_id()`, `construct_device_info()` |
-| **Managers** | `managers/`     | ✅ Required  | Orchestration         | `KidManager`, `ChoreManager`                      |
+| Component    | Location    | HA Imports?  | Purpose               | Example                                                     |
+| ------------ | ----------- | ------------ | --------------------- | ----------------------------------------------------------- |
+| **Utils**    | `utils/`    | ❌ Forbidden | Pure Python functions | `format_points()`, `validate_uuid()`                        |
+| **Engines**  | `engines/`  | ❌ Forbidden | Pure business logic   | `RecurrenceEngine`, `ChoreStateEngine`                      |
+| **Helpers**  | `helpers/`  | ✅ Required  | HA-specific tools     | `entity_helpers.py`, `auth_helpers.py`, `device_helpers.py` |
+| **Managers** | `managers/` | ✅ Required  | Orchestration         | `ChoreManager`, `EconomyManager`, `NotificationManager`     |
 
 **Why This Matters**:
 
@@ -267,7 +267,7 @@ def calculate_points(base_points: int, multiplier: float) -> int:  # ✅ Pure fu
     """Calculate points with multiplier."""
     return round(base_points * multiplier)
 
-# kc_helpers.py
+# helpers/entity_helpers.py
 from homeassistant.core import HomeAssistant
 
 def get_chore_points(hass: HomeAssistant, chore_id: str) -> int:  # ✅ HA-aware helper
@@ -356,7 +356,7 @@ These standards ensure we maintain Platinum quality compliance. See [QUALITY_REF
   - Module docstrings: Describe purpose and list entity types/count by scope.
   - Class docstrings: Explain entity purpose and when it updates.
   - Method docstrings: Brief description of what it does (especially for complex logic).
-- **Entity Lookup Pattern**: Always use the `get_*_id_or_raise()` helper functions in `kc_helpers.py` for service handlers to eliminate code duplication.
+- **Entity Lookup Pattern**: Always use the `get_*_id_or_raise()` helper functions in `helpers/entity_helpers.py` for service handlers to eliminate code duplication.
 - **Coordinator Persistence**: All entity modifications must follow the **Modify → Persist (`_persist()`) → Notify (`async_update_listeners()`)** pattern.
 - **Header Documentation**: Every entity file MUST include a header listing total count, categorized list (Kid-Specific vs System-Level), and legacy imports with clear numbering.
 - **Test Coverage**: All new code must maintain 95%+ test coverage. See Section 7 for validation commands.
@@ -597,7 +597,7 @@ Most `CFOF_*` constant **values** are now aligned with `DATA_*` values to elimin
 **Key Files**:
 
 - `const.py` - Signal suffix constants (`SIGNAL_SUFFIX_*`)
-- `kc_helpers.py` - `get_event_signal()` helper function
+- `helpers/entity_helpers.py` - `get_event_signal()` helper function
 - `managers/base_manager.py` - `BaseManager` abstract class with emit/listen methods
 - `type_defs.py` - Event payload TypedDicts (`*Event` types)
 
@@ -622,10 +622,11 @@ All signals use the **past-tense naming** pattern to indicate completed actions:
 Every signal is scoped to a specific config entry using `get_event_signal()`:
 
 ```python
-from custom_components.kidschores import kc_helpers as kh, const
+from custom_components.kidschores import const
+from custom_components.kidschores.helpers import entity_helpers
 
 # Build instance-scoped signal
-signal = kh.get_event_signal(entry_id, const.SIGNAL_SUFFIX_POINTS_CHANGED)
+signal = entity_helpers.get_event_signal(entry_id, const.SIGNAL_SUFFIX_POINTS_CHANGED)
 # Result: "kidschores_{entry_id}_points_changed"
 
 # Two instances never interfere:

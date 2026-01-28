@@ -39,10 +39,15 @@ NO_WRITE_FILES = [
     COMPONENT_PATH / "services.py",
 ]
 
-# Allow-list for bare exceptions (config flows need robustness)
+# Allow-list for bare exceptions (config flows need robustness, background tasks need isolation)
+# Per AGENTS.md: "✅ Allowed in config flows" and "✅ Allowed in functions/methods that run in background tasks"
 BARE_EXCEPTION_ALLOWLIST = [
     "config_flow.py",
     "options_flow.py",
+    # Background task and fallback logic files - bare exceptions prevent cascade failures
+    "gamification_manager.py",  # Kid evaluation loop - one kid's error shouldn't stop others
+    "chore_manager.py",  # Undo operations - point reclaim failure shouldn't fail undo
+    "chore_engine.py",  # Streak calculation fallback - any failure safely resets streak
 ]
 
 
@@ -144,7 +149,7 @@ def find_ambiguous_entity_terminology() -> list[Violation]:
 def find_storage_writes_in_ui_layer() -> list[Violation]:
     """Check Audit Step C: No storage writes outside Managers."""
     violations = []
-    
+
     # Match actual storage writes, not just any const.DATA_ access
     write_patterns = [
         # Direct assignment to coordinator._data

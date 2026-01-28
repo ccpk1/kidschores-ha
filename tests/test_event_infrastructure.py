@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from custom_components.kidschores import const
-from custom_components.kidschores.kc_helpers import get_event_signal
+from custom_components.kidschores.helpers.entity_helpers import get_event_signal
 from custom_components.kidschores.managers.base_manager import BaseManager
 
 

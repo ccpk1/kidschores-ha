@@ -147,6 +147,15 @@ split-on-trailing-comma = false
 # Engines subdirectory uses relative imports for parent package (mypy requirement)
 "custom_components/kidschores/engines/**" = ["TID252"]
 
+# Helpers subdirectory uses relative imports for parent package (sub-package pattern)
+"custom_components/kidschores/helpers/**" = ["TID252"]
+
+# Managers subdirectory uses relative imports for parent package (consistency)
+"custom_components/kidschores/managers/**" = ["TID252"]
+
+# Calendar platform uses relative imports (HA component pattern)
+"custom_components/kidschores/calendar.py" = ["TID252"]
+
 # Tests have different requirements
 "tests/**" = [
   "PLR0912",  # Too many branches
@@ -158,6 +167,8 @@ split-on-trailing-comma = false
   "PT017",    # Found assertion on exception message
   "PT015",    # Assertion always fails
   "PT012",    # pytest.raises() block should contain a single statement
+  "F841",     # Local variable assigned but never used (test data setup)
+  "T201",     # print found (intentional for test output/debugging)
   "PTH",      # flake8-pathlib (temporary, per Home Assistant)
   "PLC0415",  # Import-outside-top-level (intentional lazy imports in test fixtures)
   "PLC2401",  # Non-ASCII variable names (test data like zoë_id)

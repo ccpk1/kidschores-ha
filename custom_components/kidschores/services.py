@@ -14,13 +14,17 @@ from homeassistant.helpers import config_validation as cv, entity_registry as er
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
-from . import const, kc_helpers as kh
+from . import const
 from .helpers import backup_helpers as bh, flow_helpers
 from .helpers.auth_helpers import (
     is_user_authorized_for_global_action,
     is_user_authorized_for_kid,
 )
-from .helpers.entity_helpers import get_first_kidschores_entry
+from .helpers.entity_helpers import (
+    get_first_kidschores_entry,
+    get_item_id_by_name,
+    get_item_id_or_raise,
+)
 from .utils.dt_utils import dt_parse
 
 if TYPE_CHECKING:
@@ -449,10 +453,8 @@ def async_setup_services(hass: HomeAssistant):
         action = call.data[const.FIELD_ACTION]
 
         # Resolve name to IDs (case-insensitive)
-        kid_id = kh.get_entity_id_by_name(coordinator, const.ENTITY_TYPE_KID, name)
-        parent_id = kh.get_entity_id_by_name(
-            coordinator, const.ENTITY_TYPE_PARENT, name
-        )
+        kid_id = get_item_id_by_name(coordinator, const.ENTITY_TYPE_KID, name)
+        parent_id = get_item_id_by_name(coordinator, const.ENTITY_TYPE_PARENT, name)
 
         if action == const.ACTION_LINK:
             # LINK: Validate kid and parent exist with matching names
@@ -609,7 +611,7 @@ def async_setup_services(hass: HomeAssistant):
         kid_ids = []
         for kid_name in kid_names:
             try:
-                kid_id = kh.get_entity_id_or_raise(
+                kid_id = get_item_id_or_raise(
                     coordinator, const.ENTITY_TYPE_KID, kid_name
                 )
                 kid_ids.append(kid_id)
@@ -727,7 +729,7 @@ def async_setup_services(hass: HomeAssistant):
         # If name provided without chore_id, look up the ID
         if not chore_id and chore_name:
             try:
-                chore_id = kh.get_entity_id_or_raise(
+                chore_id = get_item_id_or_raise(
                     coordinator, const.ENTITY_TYPE_CHORE, chore_name
                 )
             except HomeAssistantError as err:
@@ -769,7 +771,7 @@ def async_setup_services(hass: HomeAssistant):
             kid_ids = []
             for kid_name in kid_names:
                 try:
-                    kid_id = kh.get_entity_id_or_raise(
+                    kid_id = get_item_id_or_raise(
                         coordinator, const.ENTITY_TYPE_KID, kid_name
                     )
                     kid_ids.append(kid_id)
@@ -890,7 +892,7 @@ def async_setup_services(hass: HomeAssistant):
         # If name provided without chore_id, look up the ID
         if not chore_id and chore_name:
             try:
-                chore_id = kh.get_entity_id_or_raise(
+                chore_id = get_item_id_or_raise(
                     coordinator, const.ENTITY_TYPE_CHORE, chore_name
                 )
             except HomeAssistantError as err:
@@ -935,10 +937,8 @@ def async_setup_services(hass: HomeAssistant):
 
         # Map kid_name and chore_name to internal_ids
         try:
-            kid_id = kh.get_entity_id_or_raise(
-                coordinator, const.ENTITY_TYPE_KID, kid_name
-            )
-            chore_id = kh.get_entity_id_or_raise(
+            kid_id = get_item_id_or_raise(coordinator, const.ENTITY_TYPE_KID, kid_name)
+            chore_id = get_item_id_or_raise(
                 coordinator, const.ENTITY_TYPE_CHORE, chore_name
             )
         except HomeAssistantError as err:
@@ -995,10 +995,8 @@ def async_setup_services(hass: HomeAssistant):
 
         # Map kid_name and chore_name to internal_ids
         try:
-            kid_id = kh.get_entity_id_or_raise(
-                coordinator, const.ENTITY_TYPE_KID, kid_name
-            )
-            chore_id = kh.get_entity_id_or_raise(
+            kid_id = get_item_id_or_raise(coordinator, const.ENTITY_TYPE_KID, kid_name)
+            chore_id = get_item_id_or_raise(
                 coordinator, const.ENTITY_TYPE_CHORE, chore_name
             )
         except HomeAssistantError as err:
@@ -1061,10 +1059,8 @@ def async_setup_services(hass: HomeAssistant):
 
         # Map kid_name and chore_name to internal_ids
         try:
-            kid_id = kh.get_entity_id_or_raise(
-                coordinator, const.ENTITY_TYPE_KID, kid_name
-            )
-            chore_id = kh.get_entity_id_or_raise(
+            kid_id = get_item_id_or_raise(coordinator, const.ENTITY_TYPE_KID, kid_name)
+            chore_id = get_item_id_or_raise(
                 coordinator, const.ENTITY_TYPE_CHORE, chore_name
             )
         except HomeAssistantError as err:
@@ -1130,7 +1126,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Look up the chore by name:
         try:
-            chore_id = kh.get_entity_id_or_raise(
+            chore_id = get_item_id_or_raise(
                 coordinator, const.ENTITY_TYPE_CHORE, chore_name
             )
         except HomeAssistantError as err:
@@ -1140,7 +1136,7 @@ def async_setup_services(hass: HomeAssistant):
         # If kid_name is provided, resolve it to kid_id
         if kid_name and not kid_id:
             try:
-                kid_id = kh.get_entity_id_or_raise(
+                kid_id = get_item_id_or_raise(
                     coordinator, const.ENTITY_TYPE_KID, kid_name
                 )
             except HomeAssistantError as err:
@@ -1267,7 +1263,7 @@ def async_setup_services(hass: HomeAssistant):
 
         try:
             if not chore_id and chore_name:
-                chore_id = kh.get_entity_id_or_raise(
+                chore_id = get_item_id_or_raise(
                     coordinator, const.ENTITY_TYPE_CHORE, chore_name
                 )
         except HomeAssistantError as err:
@@ -1286,9 +1282,7 @@ def async_setup_services(hass: HomeAssistant):
 
         # Resolve kid_name to kid_id if provided
         if kid_name and not kid_id:
-            kid_id = kh.get_entity_id_or_raise(
-                coordinator, const.ENTITY_TYPE_KID, kid_name
-            )
+            kid_id = get_item_id_or_raise(coordinator, const.ENTITY_TYPE_KID, kid_name)
 
         # Validate kid_id (if provided)
         if kid_id:
@@ -1470,7 +1464,7 @@ def async_setup_services(hass: HomeAssistant):
         # If reward_name provided without reward_id, look up the ID
         if not reward_id and reward_name:
             try:
-                reward_id = kh.get_entity_id_or_raise(
+                reward_id = get_item_id_or_raise(
                     coordinator, const.ENTITY_TYPE_REWARD, reward_name
                 )
             except HomeAssistantError as err:
@@ -1490,8 +1484,6 @@ def async_setup_services(hass: HomeAssistant):
                 translation_key=const.TRANS_KEY_ERROR_REWARD_NOT_FOUND,
                 translation_placeholders={const.SERVICE_FIELD_REWARD_ID: reward_id},
             )
-
-        existing_reward = coordinator.rewards_data[reward_id]
 
         # Build data input, excluding reward_name if it was used for lookup
         # (don't treat lookup name as a rename request)
@@ -1583,7 +1575,7 @@ def async_setup_services(hass: HomeAssistant):
         # If reward_name provided without reward_id, look up the ID
         if not reward_id and reward_name:
             try:
-                reward_id = kh.get_entity_id_or_raise(
+                reward_id = get_item_id_or_raise(
                     coordinator, const.ENTITY_TYPE_REWARD, reward_name
                 )
             except HomeAssistantError as err:
@@ -1628,10 +1620,8 @@ def async_setup_services(hass: HomeAssistant):
 
         # Map kid_name and reward_name to internal_ids
         try:
-            kid_id = kh.get_entity_id_or_raise(
-                coordinator, const.ENTITY_TYPE_KID, kid_name
-            )
-            reward_id = kh.get_entity_id_or_raise(
+            kid_id = get_item_id_or_raise(coordinator, const.ENTITY_TYPE_KID, kid_name)
+            reward_id = get_item_id_or_raise(
                 coordinator, const.ENTITY_TYPE_REWARD, reward_name
             )
         except HomeAssistantError as err:
@@ -1728,10 +1718,8 @@ def async_setup_services(hass: HomeAssistant):
 
         # Map kid_name and reward_name to internal_ids
         try:
-            kid_id = kh.get_entity_id_or_raise(
-                coordinator, const.ENTITY_TYPE_KID, kid_name
-            )
-            reward_id = kh.get_entity_id_or_raise(
+            kid_id = get_item_id_or_raise(coordinator, const.ENTITY_TYPE_KID, kid_name)
+            reward_id = get_item_id_or_raise(
                 coordinator, const.ENTITY_TYPE_REWARD, reward_name
             )
         except HomeAssistantError as err:
@@ -1799,10 +1787,8 @@ def async_setup_services(hass: HomeAssistant):
 
         # Map kid_name and reward_name to internal_ids
         try:
-            kid_id = kh.get_entity_id_or_raise(
-                coordinator, const.ENTITY_TYPE_KID, kid_name
-            )
-            reward_id = kh.get_entity_id_or_raise(
+            kid_id = get_item_id_or_raise(coordinator, const.ENTITY_TYPE_KID, kid_name)
+            reward_id = get_item_id_or_raise(
                 coordinator, const.ENTITY_TYPE_REWARD, reward_name
             )
         except HomeAssistantError as err:
@@ -1865,11 +1851,11 @@ def async_setup_services(hass: HomeAssistant):
         reward_id = None
         try:
             if kid_name:
-                kid_id = kh.get_entity_id_or_raise(
+                kid_id = get_item_id_or_raise(
                     coordinator, const.ENTITY_TYPE_KID, kid_name
                 )
             if reward_name:
-                reward_id = kh.get_entity_id_or_raise(
+                reward_id = get_item_id_or_raise(
                     coordinator, const.ENTITY_TYPE_REWARD, reward_name
                 )
         except HomeAssistantError as err:
@@ -1935,10 +1921,8 @@ def async_setup_services(hass: HomeAssistant):
 
         # Map kid_name and penalty_name to internal_ids
         try:
-            kid_id = kh.get_entity_id_or_raise(
-                coordinator, const.ENTITY_TYPE_KID, kid_name
-            )
-            penalty_id = kh.get_entity_id_or_raise(
+            kid_id = get_item_id_or_raise(coordinator, const.ENTITY_TYPE_KID, kid_name)
+            penalty_id = get_item_id_or_raise(
                 coordinator, const.ENTITY_TYPE_PENALTY, penalty_name
             )
         except HomeAssistantError as err:
@@ -2000,11 +1984,11 @@ def async_setup_services(hass: HomeAssistant):
         penalty_id = None
         try:
             if kid_name:
-                kid_id = kh.get_entity_id_or_raise(
+                kid_id = get_item_id_or_raise(
                     coordinator, const.ENTITY_TYPE_KID, kid_name
                 )
             if penalty_name:
-                penalty_id = kh.get_entity_id_or_raise(
+                penalty_id = get_item_id_or_raise(
                     coordinator, const.ENTITY_TYPE_PENALTY, penalty_name
                 )
         except HomeAssistantError as err:
@@ -2071,10 +2055,8 @@ def async_setup_services(hass: HomeAssistant):
 
         # Map kid_name and bonus_name to internal_ids
         try:
-            kid_id = kh.get_entity_id_or_raise(
-                coordinator, const.ENTITY_TYPE_KID, kid_name
-            )
-            bonus_id = kh.get_entity_id_or_raise(
+            kid_id = get_item_id_or_raise(coordinator, const.ENTITY_TYPE_KID, kid_name)
+            bonus_id = get_item_id_or_raise(
                 coordinator, const.ENTITY_TYPE_BONUS, bonus_name
             )
         except HomeAssistantError as err:
@@ -2134,11 +2116,11 @@ def async_setup_services(hass: HomeAssistant):
         bonus_id = None
         try:
             if kid_name:
-                kid_id = kh.get_entity_id_or_raise(
+                kid_id = get_item_id_or_raise(
                     coordinator, const.ENTITY_TYPE_KID, kid_name
                 )
             if bonus_name:
-                bonus_id = kh.get_entity_id_or_raise(
+                bonus_id = get_item_id_or_raise(
                     coordinator, const.ENTITY_TYPE_BONUS, bonus_name
                 )
         except HomeAssistantError as err:
@@ -2340,7 +2322,7 @@ def async_setup_services(hass: HomeAssistant):
         # Map names to IDs (optional parameters)
         try:
             if not chore_id and chore_name:
-                chore_id = kh.get_entity_id_or_raise(
+                chore_id = get_item_id_or_raise(
                     coordinator, const.ENTITY_TYPE_CHORE, chore_name
                 )
         except HomeAssistantError as err:
@@ -2350,7 +2332,7 @@ def async_setup_services(hass: HomeAssistant):
         kid_id: str | None = None
         try:
             if kid_name:
-                kid_id = kh.get_entity_id_or_raise(
+                kid_id = get_item_id_or_raise(
                     coordinator, const.ENTITY_TYPE_KID, kid_name
                 )
         except HomeAssistantError as err:

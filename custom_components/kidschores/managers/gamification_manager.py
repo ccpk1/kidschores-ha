@@ -24,26 +24,24 @@ from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.exceptions import HomeAssistantError
 
-from custom_components.kidschores import const, data_builders as db, kc_helpers as kh
-from custom_components.kidschores.engines.gamification_engine import GamificationEngine
-from custom_components.kidschores.helpers.entity_helpers import (
-    remove_entities_by_item_id,
-)
-from custom_components.kidschores.managers.base_manager import BaseManager
-from custom_components.kidschores.utils.dt_utils import (
+from .. import const, data_builders as db
+from ..engines.gamification_engine import GamificationEngine
+from ..helpers.entity_helpers import get_item_id_by_name, remove_entities_by_item_id
+from ..utils.dt_utils import (
     dt_add_interval,
     dt_next_schedule,
     dt_now_local,
     dt_today_iso,
 )
+from .base_manager import BaseManager
 
 if TYPE_CHECKING:
     import asyncio
 
     from homeassistant.core import HomeAssistant
 
-    from custom_components.kidschores.coordinator import KidsChoresDataCoordinator
-    from custom_components.kidschores.type_defs import (
+    from ..coordinator import KidsChoresDataCoordinator
+    from ..type_defs import (
         AchievementData,
         AchievementProgress,
         BadgeData,
@@ -122,6 +120,7 @@ class GamificationManager(BaseManager):
         # Lifecycle events - reactive cleanup (Platinum Architecture)
         self.listen(const.SIGNAL_SUFFIX_KID_DELETED, self._on_kid_deleted)
         self.listen(const.SIGNAL_SUFFIX_CHORE_DELETED, self._on_chore_deleted)
+        self.listen(const.SIGNAL_SUFFIX_CHORE_UPDATED, self._on_chore_updated)
 
         # Recover pending evaluations from storage (restart resilience)
         pending = self.coordinator._data.get(const.DATA_META, {}).get(
@@ -187,6 +186,21 @@ class GamificationManager(BaseManager):
 
         if kid_id:
             self._mark_pending(kid_id)
+
+    def _on_chore_updated(self, payload: dict[str, Any]) -> None:
+        """Handle chore_updated event (Platinum Architecture: event-driven).
+
+        When a chore is updated (assignments changed, config modified), we need
+        to recalculate badges for all kids since badge criteria may reference
+        any chore and assignment changes affect which kids can earn badges.
+
+        Args:
+            payload: Event data with chore_id, chore_name, etc.
+        """
+        const.LOGGER.debug(
+            "GamificationManager: Chore updated, recalculating all badges"
+        )
+        self.recalculate_all_badges()
 
     def _on_chore_approved(self, payload: dict[str, Any]) -> None:
         """Handle chore_approved event.
@@ -1661,7 +1675,7 @@ class GamificationManager(BaseManager):
         # Convert kid_name to kid_id if provided
         kid_id: str | None = None
         if kid_name:
-            kid_id = kh.get_entity_id_by_name(
+            kid_id = get_item_id_by_name(
                 self.coordinator, const.ENTITY_TYPE_KID, kid_name
             )
             if kid_id is None:
@@ -1680,7 +1694,7 @@ class GamificationManager(BaseManager):
         # If badge_name is provided, try to find its corresponding badge_id
         badge_id: str | None = None
         if badge_name:
-            badge_id = kh.get_entity_id_by_name(
+            badge_id = get_item_id_by_name(
                 self.coordinator, const.ENTITY_TYPE_BADGE, badge_name
             )
             if not badge_id:

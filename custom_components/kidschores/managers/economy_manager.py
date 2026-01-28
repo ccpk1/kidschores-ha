@@ -23,21 +23,17 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.exceptions import HomeAssistantError
 
-from custom_components.kidschores import const, data_builders as db
-from custom_components.kidschores.engines.economy_engine import (
-    EconomyEngine,
-    InsufficientFundsError,
-)
-from custom_components.kidschores.helpers.entity_helpers import (
-    remove_entities_by_item_id,
-)
-from custom_components.kidschores.managers.base_manager import BaseManager
+from .. import const, data_builders as db
+from ..engines.economy_engine import EconomyEngine, InsufficientFundsError
+from ..helpers.entity_helpers import remove_entities_by_item_id
+from ..utils.math_utils import parse_points_adjust_values
+from .base_manager import BaseManager
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
-    from custom_components.kidschores.coordinator import KidsChoresDataCoordinator
-    from custom_components.kidschores.type_defs import KidData, LedgerEntry
+    from ..coordinator import KidsChoresDataCoordinator
+    from ..type_defs import KidData, LedgerEntry
 
 
 # Re-export exception for external use
@@ -72,6 +68,19 @@ class EconomyManager(BaseManager):
         """
         super().__init__(hass, coordinator)
         self._coordinator = coordinator
+
+    @property
+    def adjustment_deltas(self) -> list[float]:
+        """Get the authorized list of point adjustment values.
+
+        Returns normalized float values from config, with defaults if not configured.
+        Values are rounded to DATA_FLOAT_PRECISION for stable unique_id generation.
+
+        Returns:
+            List of adjustment delta floats (e.g., [1.0, -1.0, 5.0, -5.0])
+        """
+        raw = self.coordinator.config_entry.options.get(const.CONF_POINTS_ADJUST_VALUES)
+        return parse_points_adjust_values(raw)
 
     async def async_setup(self) -> None:
         """Set up the EconomyManager.

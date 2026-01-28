@@ -16,12 +16,13 @@ from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.components.select import SelectEntity
 
-from . import const, kc_helpers as kh
+from . import const
 from .entity import KidsChoresCoordinatorEntity
 from .helpers.device_helpers import (
     create_kid_device_info_from_coordinator,
     create_system_device_info,
 )
+from .helpers.entity_helpers import is_shadow_kid, should_create_entity
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -52,25 +53,25 @@ async def async_setup_entry(
 
     # System-wide select entities (extra/legacy - disabled by default)
     # All 4 use EXTRA requirement: only created when show_legacy_entities is True
-    if kh.should_create_entity(
+    if should_create_entity(
         const.SELECT_KC_UID_SUFFIX_CHORES_SELECT,
         extra_enabled=extra_enabled,
     ):
         selects.append(SystemChoresSelect(coordinator, entry))
 
-    if kh.should_create_entity(
+    if should_create_entity(
         const.SELECT_KC_UID_SUFFIX_REWARDS_SELECT,
         extra_enabled=extra_enabled,
     ):
         selects.append(SystemRewardsSelect(coordinator, entry))
 
-    if kh.should_create_entity(
+    if should_create_entity(
         const.SELECT_KC_UID_SUFFIX_PENALTIES_SELECT,
         extra_enabled=extra_enabled,
     ):
         selects.append(SystemPenaltiesSelect(coordinator, entry))
 
-    if kh.should_create_entity(
+    if should_create_entity(
         const.SELECT_KC_UID_SUFFIX_BONUSES_SELECT,
         extra_enabled=extra_enabled,
     ):
@@ -78,9 +79,9 @@ async def async_setup_entry(
 
     # Kid-specific dashboard helper selects (always created)
     for kid_id in coordinator.kids_data:
-        if kh.should_create_entity(
+        if should_create_entity(
             const.SELECT_KC_UID_SUFFIX_KID_DASHBOARD_HELPER_CHORES_SELECT,
-            is_shadow_kid=kh.is_shadow_kid(coordinator, kid_id),
+            is_shadow_kid=is_shadow_kid(coordinator, kid_id),
         ):
             selects.append(KidDashboardHelperChoresSelect(coordinator, entry, kid_id))
 

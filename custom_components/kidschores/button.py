@@ -22,7 +22,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import const, kc_helpers as kh
+from . import const
 from .coordinator import KidsChoresConfigEntry, KidsChoresDataCoordinator
 from .entity import KidsChoresCoordinatorEntity
 from .helpers.auth_helpers import (
@@ -30,8 +30,14 @@ from .helpers.auth_helpers import (
     is_user_authorized_for_kid,
 )
 from .helpers.device_helpers import create_kid_device_info_from_coordinator
-from .helpers.entity_helpers import get_friendly_label
-from .utils.math_utils import parse_points_adjust_values
+from .helpers.entity_helpers import (
+    get_friendly_label,
+    get_kid_name_by_id,
+    is_shadow_kid,
+    should_create_entity,
+    should_create_gamification_entities,
+    should_create_workflow_buttons,
+)
 
 if TYPE_CHECKING:
     from .type_defs import BonusData, ChoreData, KidData, PenaltyData, RewardData
@@ -60,14 +66,8 @@ async def _cleanup_orphaned_adjustment_buttons(
 
     entity_registry = er.async_get(hass)
 
-    # Get current points adjust values
-    raw_values = entry.options.get(const.CONF_POINTS_ADJUST_VALUES)
-    if isinstance(raw_values, str):
-        current_deltas = set(parse_points_adjust_values(raw_values))
-    elif isinstance(raw_values, list):
-        current_deltas = {float(v) for v in raw_values}
-    else:
-        current_deltas = set(const.DEFAULT_POINTS_ADJUST_VALUES)
+    # Get current points adjust values from EconomyManager (single source of truth)
+    current_deltas = set(coordinator.economy_manager.adjustment_deltas)
 
     # Get all button entities for this config entry
     entities = er.async_entries_for_config_entry(entity_registry, entry.entry_id)
@@ -148,19 +148,19 @@ async def async_setup_entry(
 
         for kid_id in assigned_kids_ids:
             kid_name = (
-                kh.get_kid_name_by_id(coordinator, kid_id)
+                get_kid_name_by_id(coordinator, kid_id)
                 or f"{const.TRANS_KEY_LABEL_KID} {kid_id}"
             )
 
             # Get flag states for unified entity creation decisions
-            is_shadow = kh.is_shadow_kid(coordinator, kid_id)
-            workflow_enabled = kh.should_create_workflow_buttons(coordinator, kid_id)
-            gamification_enabled = kh.should_create_gamification_entities(
+            is_shadow = is_shadow_kid(coordinator, kid_id)
+            workflow_enabled = should_create_workflow_buttons(coordinator, kid_id)
+            gamification_enabled = should_create_gamification_entities(
                 coordinator, kid_id
             )
 
             # Claim Button - WORKFLOW requirement
-            if kh.should_create_entity(
+            if should_create_entity(
                 const.BUTTON_KC_UID_SUFFIX_CLAIM,
                 is_shadow_kid=is_shadow,
                 workflow_enabled=workflow_enabled,
@@ -179,7 +179,7 @@ async def async_setup_entry(
                 )
 
             # Approve Button - ALWAYS requirement
-            if kh.should_create_entity(
+            if should_create_entity(
                 const.BUTTON_KC_UID_SUFFIX_APPROVE,
                 is_shadow_kid=is_shadow,
                 workflow_enabled=workflow_enabled,
@@ -198,7 +198,7 @@ async def async_setup_entry(
                 )
 
             # Disapprove Button - WORKFLOW requirement
-            if kh.should_create_entity(
+            if should_create_entity(
                 const.BUTTON_KC_UID_SUFFIX_DISAPPROVE,
                 is_shadow_kid=is_shadow,
                 workflow_enabled=workflow_enabled,
@@ -219,7 +219,7 @@ async def async_setup_entry(
     # Only for regular kids or shadow kids with gamification enabled
     for kid_id, kid_info in coordinator.kids_data.items():
         # Skip shadow kids without gamification
-        if not kh.should_create_gamification_entities(coordinator, kid_id):
+        if not should_create_gamification_entities(coordinator, kid_id):
             continue
 
         kid_name = kid_info.get(
@@ -277,7 +277,7 @@ async def async_setup_entry(
     # Only for regular kids or shadow kids with gamification enabled
     for kid_id, kid_info in coordinator.kids_data.items():
         # Skip shadow kids without gamification
-        if not kh.should_create_gamification_entities(coordinator, kid_id):
+        if not should_create_gamification_entities(coordinator, kid_id):
             continue
 
         kid_name = kid_info.get(
@@ -307,7 +307,7 @@ async def async_setup_entry(
     # Only for regular kids or shadow kids with gamification enabled
     for kid_id, kid_info in coordinator.kids_data.items():
         # Skip shadow kids without gamification
-        if not kh.should_create_gamification_entities(coordinator, kid_id):
+        if not should_create_gamification_entities(coordinator, kid_id):
             continue
 
         kid_name = kid_info.get(
@@ -332,44 +332,18 @@ async def async_setup_entry(
             )
 
     # Create "points adjustment" buttons for each kid (±1, ±2, ±10, etc.)
-    # IMPORTANT: Always normalize to floats for consistent entity unique IDs
-    # (restored data may have integers, options flow saves as floats)
-    raw_values = coordinator.config_entry.options.get(const.CONF_POINTS_ADJUST_VALUES)
-    if not raw_values:
-        points_adjust_values = const.DEFAULT_POINTS_ADJUST_VALUES
-        const.LOGGER.debug(
-            "DEBUG: Button - PointsAdjustValue - Using default points adjust values: %s",
-            points_adjust_values,
-        )
-    elif isinstance(raw_values, str):
-        points_adjust_values = parse_points_adjust_values(raw_values)
-        if not points_adjust_values:
-            points_adjust_values = const.DEFAULT_POINTS_ADJUST_VALUES
-            const.LOGGER.warning(
-                "WARNING: Parsed points adjust values empty. Falling back to defaults"
-            )
-        else:
-            const.LOGGER.debug(
-                "DEBUG: Parsed points adjust values from string: %s",
-                points_adjust_values,
-            )
-    elif isinstance(raw_values, list):
-        try:
-            # Always convert to floats for consistent unique IDs
-            points_adjust_values = [float(v) for v in raw_values]
-        except (ValueError, TypeError):
-            points_adjust_values = const.DEFAULT_POINTS_ADJUST_VALUES
-            const.LOGGER.error(
-                "ERROR: Failed converting RAW values to floats. Falling back to defaults"
-            )
-    else:
-        points_adjust_values = const.DEFAULT_POINTS_ADJUST_VALUES
+    # Get normalized float values from EconomyManager (single source of truth)
+    points_adjust_values = coordinator.economy_manager.adjustment_deltas
+    const.LOGGER.debug(
+        "DEBUG: Button - PointsAdjustValue - Using adjustment deltas: %s",
+        points_adjust_values,
+    )
 
     # Create a points adjust button for each kid and each delta value
     # Only for regular kids or shadow kids with gamification enabled
     for kid_id, kid_info in coordinator.kids_data.items():
         # Skip shadow kids without gamification
-        if not kh.should_create_gamification_entities(coordinator, kid_id):
+        if not should_create_gamification_entities(coordinator, kid_id):
             continue
 
         kid_name = kid_info.get(

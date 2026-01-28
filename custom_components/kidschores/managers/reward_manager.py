@@ -27,21 +27,18 @@ import uuid
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
-from custom_components.kidschores import const, data_builders as db
-from custom_components.kidschores.helpers.entity_helpers import (
-    remove_entities_by_item_id,
-)
-from custom_components.kidschores.utils.dt_utils import dt_now_local
-
+from .. import const, data_builders as db
+from ..helpers.entity_helpers import remove_entities_by_item_id
+from ..utils.dt_utils import dt_now_local
 from .base_manager import BaseManager
 from .notification_manager import NotificationManager
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
-    from custom_components.kidschores.coordinator import KidsChoresDataCoordinator
-    from custom_components.kidschores.managers.economy_manager import EconomyManager
-    from custom_components.kidschores.type_defs import KidData, RewardData
+    from ..coordinator import KidsChoresDataCoordinator
+    from ..type_defs import KidData, RewardData
+    from .economy_manager import EconomyManager
 
 
 class RewardManager(BaseManager):

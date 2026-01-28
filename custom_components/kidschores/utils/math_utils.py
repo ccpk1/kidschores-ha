@@ -10,7 +10,8 @@ Functions:
     - round_points: Consistent rounding to configured precision
     - apply_multiplier: Multiplier arithmetic with proper rounding
     - calculate_percentage: Progress percentage calculations
-    - parse_points_adjust_values: Parse pipe-separated point values
+    - parse_points_adjust_values: Parse pipe-separated point values (string input)
+    - parse_points_adjust_values: Parse and normalize any adjustment value input
 """
 
 from __future__ import annotations
@@ -129,38 +130,67 @@ def clamp(value: float, min_val: float, max_val: float) -> float:
 # ==============================================================================
 
 
-def parse_points_adjust_values(points_str: str | None) -> list[float]:
-    """Parse a pipe-separated string into a list of float values.
+def parse_points_adjust_values(raw_input: str | list | None = None) -> list[float]:
+    """Parse adjustment delta values from any input type into normalized list of floats.
 
-    Handles international decimal separator differences by converting
-    comma decimal separators to periods before parsing.
+    Handles multiple input types:
+    - None: Returns default adjustment values
+    - list: Converts each element to float with precision rounding
+    - str: Parses pipe-separated values with international decimal support
+
+    All values are rounded to 2 decimal places for consistent unique_id generation.
+    Handles international decimal separators (comma → period) for string input.
 
     Args:
-        points_str: Pipe-separated string of point values (e.g., "5|10|15")
+        raw_input: Raw config value (list, str, or None)
 
     Returns:
-        List of parsed float values. Invalid entries are skipped with warning.
+        List of normalized float adjustment values, or defaults if invalid
 
     Examples:
-        parse_points_adjust_values("5|10|15") → [5.0, 10.0, 15.0]
-        parse_points_adjust_values("5,5|10,5") → [5.5, 10.5]  # European format
+        parse_points_adjust_values(None) → [1.0, -1.0, 2.0, -2.0, 10.0, -10.0]
+        parse_points_adjust_values([1, 5, 10]) → [1.0, 5.0, 10.0]
+        parse_points_adjust_values("2.5|5|10") → [2.5, 5.0, 10.0]
+        parse_points_adjust_values("2,5|5|10") → [2.5, 5.0, 10.0]  # European format
         parse_points_adjust_values("invalid|10") → [10.0]  # Skips invalid
-        parse_points_adjust_values(None) → []
     """
-    if not points_str:
-        return []
+    # Default fallback (hardcoded to avoid const import violation)
+    default_values = [1.0, -1.0, 2.0, -2.0, 10.0, -10.0]
+    precision = 2  # DATA_FLOAT_PRECISION hardcoded to avoid const import
 
-    values: list[float] = []
-    for part in points_str.split("|"):
-        part = part.strip()
-        if not part:
-            continue
+    if not raw_input:
+        return default_values
 
+    # Handle list input
+    if isinstance(raw_input, list):
         try:
-            # Handle European decimal separators (comma → period)
-            value = float(part.replace(",", "."))
-            values.append(value)
-        except ValueError:
-            _LOGGER.error("Invalid number '%s' in points adjust values", part)
+            return [round(float(v), precision) for v in raw_input]
+        except (ValueError, TypeError):
+            _LOGGER.error(
+                "Invalid adjustment values list: %s, using defaults", raw_input
+            )
+            return default_values
 
-    return values
+    # Handle string input (original pipe-separated logic)
+    if isinstance(raw_input, str):
+        values: list[float] = []
+        for part in raw_input.split("|"):
+            part = part.strip()
+            if not part:
+                continue
+
+            try:
+                # Handle European decimal separators (comma → period)
+                value = round(float(part.replace(",", ".")), precision)
+                values.append(value)
+            except ValueError:
+                _LOGGER.error("Invalid number '%s' in points adjust values", part)
+
+        # Return parsed values or defaults if nothing valid
+        return values if values else default_values
+
+    # Unknown type
+    _LOGGER.error(
+        "Unexpected adjustment values type: %s, using defaults", type(raw_input)
+    )
+    return default_values

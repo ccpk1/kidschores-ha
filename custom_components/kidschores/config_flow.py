@@ -17,12 +17,6 @@ from .data_builders import EntityValidationError
 from .helpers import backup_helpers as bh, flow_helpers as fh
 from .options_flow import KidsChoresOptionsFlowHandler
 
-# Pylint disable for valid config flow architectural patterns:
-# - too-many-lines: Config flows legitimately need many steps
-# - too-many-instance-attributes: Config flows track state across multiple steps
-# - too-many-public-methods: Each config step requires its own method
-# - abstract-method: is_matching is not required for config flows in current HA versions
-
 
 class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
     """Config Flow for KidsChores with internal_id-based entity management."""

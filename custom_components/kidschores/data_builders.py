@@ -49,11 +49,9 @@ import datetime
 from typing import Any, cast
 import uuid
 
-from homeassistant.util import dt as dt_util
-
 from . import const
 from .type_defs import BadgeData, ChoreData, KidData, ParentData, RewardData
-from .utils.dt_utils import dt_parse
+from .utils.dt_utils import dt_now_utc, dt_parse
 
 # ==============================================================================
 # HELPER FUNCTIONS FOR FIELD NORMALIZATION
@@ -824,7 +822,7 @@ def validate_parent_data(
                 return errors
 
     # === 3. Conflict with kids (only if allow_chore_assignment) ===
-    # When allow_chore_assignment=True, a shadow kid entity will be created with this name
+    # When allow_chore_assignment=True, a shadow kid record will be created with this name
     allow_chore_assignment = data.get(const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT, False)
     if allow_chore_assignment and name and existing_kids:
         for kid_data in existing_kids.values():
@@ -1086,7 +1084,7 @@ def validate_chore_data(
             # Type guard: ensure we got a datetime
             if parsed and isinstance(parsed, datetime.datetime):
                 due_dt = parsed
-            if due_dt and due_dt < dt_util.utcnow():
+            if due_dt and due_dt < dt_now_utc():
                 errors[const.CFOP_ERROR_DUE_DATE] = (
                     const.TRANS_KEY_CFOF_DUE_DATE_IN_PAST
                 )

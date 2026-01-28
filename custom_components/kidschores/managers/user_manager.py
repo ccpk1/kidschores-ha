@@ -11,17 +11,14 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 
-from custom_components.kidschores import const, data_builders as db
-from custom_components.kidschores.helpers.entity_helpers import (
-    remove_entities_by_item_id,
-)
-
+from .. import const, data_builders as db
+from ..helpers.entity_helpers import remove_entities_by_item_id
 from .base_manager import BaseManager
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
-    from custom_components.kidschores.coordinator import KidsChoresDataCoordinator
+    from ..coordinator import KidsChoresDataCoordinator
 
 
 class UserManager(BaseManager):
@@ -240,7 +237,7 @@ class UserManager(BaseManager):
             # Unlink shadow kid (preserves kid + entities)
             self._unlink_shadow_kid(kid_id)
             # Remove unused translation sensors (if language no longer needed)
-            self.coordinator.remove_unused_translation_sensors()
+            self.coordinator.ui_manager.remove_unused_translation_sensors()
             self.coordinator._persist()
             self.coordinator.async_update_listeners()
 
@@ -290,7 +287,7 @@ class UserManager(BaseManager):
         # - UserManager._on_kid_deleted() removes parent associations
 
         # Remove unused translation sensors (if language no longer needed)
-        self.coordinator.remove_unused_translation_sensors()
+        self.coordinator.ui_manager.remove_unused_translation_sensors()
 
         self.coordinator._persist()
         self.coordinator.async_update_listeners()
@@ -469,7 +466,7 @@ class UserManager(BaseManager):
         del self._data[const.DATA_PARENTS][parent_id]
 
         # Remove unused translation sensors (if language no longer needed)
-        self.coordinator.remove_unused_translation_sensors()
+        self.coordinator.ui_manager.remove_unused_translation_sensors()
 
         self.coordinator._persist()
         self.coordinator.async_update_listeners()
@@ -489,9 +486,9 @@ class UserManager(BaseManager):
     def _create_shadow_kid_for_parent(
         self, parent_id: str, parent_info: dict[str, Any]
     ) -> str:
-        """Create a shadow kid entity for a parent who enables chore assignment.
+        """Create a shadow kid record for a parent who enables chore assignment.
 
-        Shadow kids are special kid entities that:
+        Shadow kids are special kid records that:
         - Use the parent's name and dashboard language
         - Are marked with is_shadow_kid=True
         - Link back to the parent via linked_parent_id

@@ -26,7 +26,14 @@ from custom_components.kidschores.managers.chore_manager import ChoreManager
 def mock_hass() -> MagicMock:
     """Create mock Home Assistant instance."""
     hass = MagicMock()
-    hass.async_create_task = MagicMock(side_effect=lambda coro: coro)
+
+    # Use a proper handler that cancels the coroutine to avoid warnings
+    def handle_create_task(coro):
+        """Mock async_create_task that properly closes coroutines."""
+        coro.close()  # Close the coroutine to avoid 'never awaited' warning
+        return MagicMock()  # Return a mock task
+
+    hass.async_create_task = MagicMock(side_effect=handle_create_task)
     return hass
 
 

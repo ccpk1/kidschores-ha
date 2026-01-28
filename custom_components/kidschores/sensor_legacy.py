@@ -44,14 +44,14 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.helpers.entity_registry import async_get
 
-from . import const, kc_helpers as kh
+from . import const
 from .coordinator import KidsChoresDataCoordinator
 from .entity import KidsChoresCoordinatorEntity
 from .helpers.device_helpers import (
     create_kid_device_info_from_coordinator,
     create_system_device_info,
 )
-from .helpers.entity_helpers import get_friendly_label
+from .helpers.entity_helpers import get_friendly_label, get_kid_name_by_id
 
 if TYPE_CHECKING:
     from .type_defs import BonusData, ChoreData, KidData, PenaltyData, RewardData
@@ -364,7 +364,7 @@ class SystemChoresPendingApprovalSensor(KidsChoresCoordinatorEntity, SensorEntit
             kid_id = approval[const.DATA_KID_ID]
             chore_id = approval[const.DATA_CHORE_ID]
             kid_name = (
-                kh.get_kid_name_by_id(self.coordinator, kid_id)
+                get_kid_name_by_id(self.coordinator, kid_id)
                 or const.TRANS_KEY_DISPLAY_UNKNOWN_KID
             )
             chore_info: ChoreData = cast(
@@ -466,7 +466,7 @@ class SystemRewardsPendingApprovalSensor(KidsChoresCoordinatorEntity, SensorEnti
             kid_id = approval[const.DATA_KID_ID]
             reward_id = approval[const.DATA_REWARD_ID]
             kid_name = (
-                kh.get_kid_name_by_id(self.coordinator, kid_id)
+                get_kid_name_by_id(self.coordinator, kid_id)
                 or const.TRANS_KEY_DISPLAY_UNKNOWN_KID
             )
             reward_info: RewardData = cast(

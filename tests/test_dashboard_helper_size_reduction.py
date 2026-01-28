@@ -533,14 +533,14 @@ class TestLifecycleManagement:
         """LIFE-05: Coordinator tracks created translation sensors."""
         coordinator = scenario_minimal.coordinator
 
-        # Coordinator should have tracking set
-        assert hasattr(coordinator, "_translation_sensors_created"), (
-            "Coordinator missing _translation_sensors_created tracking set"
+        # UIManager should have tracking set
+        assert hasattr(coordinator.ui_manager, "_translation_sensors_created"), (
+            "UIManager missing _translation_sensors_created tracking set"
         )
 
         # Should track that English sensor was created
-        assert coordinator.is_translation_sensor_created("en"), (
-            "Coordinator not tracking English sensor creation"
+        assert coordinator.ui_manager.is_translation_sensor_created("en"), (
+            "UIManager not tracking English sensor creation"
         )
 
 
@@ -567,7 +567,7 @@ class TestEdgeCases:
 
         # Get translation sensor entity ID for unknown language
         # Should fall back to English ('en') since xyz doesn't exist
-        eid = coordinator.get_translation_sensor_eid("xyz")
+        eid = coordinator.ui_manager.get_translation_sensor_eid("xyz")
 
         # Should return English translation sensor as fallback
         assert eid is not None, "Expected fallback to English sensor"

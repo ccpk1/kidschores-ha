@@ -16,11 +16,11 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from custom_components.kidschores.engines.schedule_engine import RecurrenceEngine
-
-from . import const, kc_helpers as kh
+from . import const
 from .coordinator import KidsChoresConfigEntry
+from .engines.schedule_engine import RecurrenceEngine
 from .helpers.device_helpers import create_kid_device_info_from_coordinator
+from .helpers.entity_helpers import is_shadow_kid, should_create_entity
 from .utils.dt_utils import dt_now_local, dt_parse, parse_daily_multi_times
 
 if TYPE_CHECKING:
@@ -50,9 +50,9 @@ async def async_setup_entry(
     entities = []
     for kid_id, kid_info in coordinator.kids_data.items():
         # Use registry-based creation decision for future flexibility
-        if kh.should_create_entity(
+        if should_create_entity(
             const.CALENDAR_KC_UID_SUFFIX_CALENDAR,
-            is_shadow_kid=kh.is_shadow_kid(coordinator, kid_id),
+            is_shadow_kid=is_shadow_kid(coordinator, kid_id),
         ):
             kid_name = kid_info.get(
                 const.DATA_KID_NAME, f"{const.TRANS_KEY_LABEL_KID} {kid_id}"

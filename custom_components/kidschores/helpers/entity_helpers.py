@@ -9,11 +9,11 @@ All functions here require a `hass` object or interact with HA registries.
 
 from __future__ import annotations
 
-from collections.abc import Callable
 import re
 import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_registry import (
     RegistryEntry,
     async_get as async_get_entity_registry,
@@ -23,7 +23,48 @@ from homeassistant.helpers.label_registry import async_get as async_get_label_re
 from .. import const
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Mapping
+
     from homeassistant.core import HomeAssistant
+
+    from ..coordinator import KidsChoresDataCoordinator
+    from ..type_defs import KidData
+
+
+# ==============================================================================
+# Event Signal Helpers (Manager Communication)
+# ==============================================================================
+
+
+def get_event_signal(entry_id: str, suffix: str) -> str:
+    """Build instance-scoped event signal name for dispatcher.
+
+    This ensures complete isolation between multiple KidsChores config entries.
+    Each instance gets its own signal namespace using its config_entry.entry_id.
+
+    Format: 'kidschores_{entry_id}_{suffix}'
+
+    Multi-instance example:
+        - Instance 1 (entry_id="abc123"):
+          get_event_signal("abc123", "points_changed") → "kidschores_abc123_points_changed"
+        - Instance 2 (entry_id="xyz789"):
+          get_event_signal("xyz789", "points_changed") → "kidschores_xyz789_points_changed"
+
+    Managers can emit/listen without cross-talk between instances.
+
+    Args:
+        entry_id: ConfigEntry.entry_id from coordinator
+        suffix: Signal suffix constant from const.py (e.g., SIGNAL_SUFFIX_POINTS_CHANGED)
+
+    Returns:
+        Fully qualified signal name scoped to this integration instance
+
+    Example:
+        >>> from .. import const
+        >>> get_event_signal("abc123", const.SIGNAL_SUFFIX_POINTS_CHANGED)
+        'kidschores_abc123_points_changed'
+    """
+    return f"{const.DOMAIN}_{entry_id}_{suffix}"
 
 
 # ==============================================================================
@@ -261,6 +302,145 @@ def get_friendly_label(hass: HomeAssistant, label_name: str) -> str:
     if label_entry:
         return label_entry.name
     return label_name
+
+
+# ==============================================================================
+# Item Lookup Helpers (Domain Items in Storage)
+# Basic ID/name lookups returning None, and error-raising variants for services.
+# These operate on Domain Items (Kid, Chore, Reward, etc.), NOT HA Entities.
+# ==============================================================================
+
+
+def get_item_id_by_name(
+    coordinator: KidsChoresDataCoordinator, item_type: str, item_name: str
+) -> str | None:
+    """Look up a Domain Item's internal ID (UUID) by name.
+
+    Searches the storage for a Domain Item (Kid, Chore, Reward, etc.) by its name
+    and returns the internal_id (UUID) if found. This is NOT looking up an HA Entity.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        item_type: The type of Domain Item ("kid", "chore", "reward", "penalty",
+            "badge", "bonus", "parent", "achievement", "challenge").
+        item_name: The name of the Item to look up.
+
+    Returns:
+        The internal ID (UUID) of the Item, or None if not found.
+
+    Raises:
+        ValueError: If item_type is not recognized.
+    """
+    # Map item type to (data dict, name key constant)
+    item_map = {
+        const.ENTITY_TYPE_KID: (coordinator.kids_data, const.DATA_KID_NAME),
+        const.ENTITY_TYPE_CHORE: (coordinator.chores_data, const.DATA_CHORE_NAME),
+        const.ENTITY_TYPE_REWARD: (coordinator.rewards_data, const.DATA_REWARD_NAME),
+        const.ENTITY_TYPE_PENALTY: (
+            coordinator.penalties_data,
+            const.DATA_PENALTY_NAME,
+        ),
+        const.ENTITY_TYPE_BADGE: (coordinator.badges_data, const.DATA_BADGE_NAME),
+        const.ENTITY_TYPE_BONUS: (coordinator.bonuses_data, const.DATA_BONUS_NAME),
+        const.ENTITY_TYPE_PARENT: (coordinator.parents_data, const.DATA_PARENT_NAME),
+        const.ENTITY_TYPE_ACHIEVEMENT: (
+            coordinator.achievements_data,
+            const.DATA_ACHIEVEMENT_NAME,
+        ),
+        const.ENTITY_TYPE_CHALLENGE: (
+            coordinator.challenges_data,
+            const.DATA_CHALLENGE_NAME,
+        ),
+    }
+
+    if item_type not in item_map:
+        raise ValueError(
+            f"Unknown item_type: {item_type}. Valid options: {', '.join(item_map.keys())}"
+        )
+
+    data_dict, name_key = item_map[item_type]
+    data_dict = cast("dict[str, Any]", data_dict)
+    for item_id, item_info in data_dict.items():
+        if item_info.get(name_key) == item_name:
+            return item_id
+    return None
+
+
+def get_item_id_or_raise(
+    coordinator: KidsChoresDataCoordinator, item_type: str, item_name: str
+) -> str:
+    """Look up a Domain Item's internal ID (UUID) by name, or raise error if not found.
+
+    Generic version for service handlers. Centralizes error handling pattern
+    for Item lookups across services. This is NOT looking up an HA Entity.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        item_type: The type of Domain Item ("kid", "chore", "reward", "penalty",
+            "badge", "bonus", "parent", "achievement", "challenge").
+        item_name: The name of the Item to look up.
+
+    Returns:
+        The internal ID (UUID) of the Item.
+
+    Raises:
+        HomeAssistantError: If the Item is not found in storage.
+    """
+    item_id = get_item_id_by_name(coordinator, item_type, item_name)
+    if not item_id:
+        raise HomeAssistantError(
+            f"{item_type.capitalize()} item '{item_name}' not found"
+        )
+    return item_id
+
+
+def get_item_name_or_log_error(
+    item_type: str,
+    item_id: str,
+    item_data: Mapping[str, Any],
+    name_key: str,
+) -> str | None:
+    """Get Domain Item name from storage data, log error if missing (data corruption detection).
+
+    Args:
+        item_type: Type of Domain Item (for logging) e.g. 'kid', 'chore', 'reward'
+        item_id: Internal ID/UUID of the Item (for logging)
+        item_data: Dict containing the Item's data from storage
+        name_key: Key to look up name in item_data
+
+    Returns:
+        Item name if present, None if missing (with error log).
+        A missing name indicates data corruption in storage.
+    """
+    name = item_data.get(name_key)
+    if not name:
+        const.LOGGER.error(
+            "Data corruption: %s item %s missing %s. HA Entity will not be created. "
+            "This indicates a storage issue or validation bypass.",
+            item_type,
+            item_id,
+            name_key,
+        )
+        return None
+    return name
+
+
+def get_kid_name_by_id(
+    coordinator: KidsChoresDataCoordinator, kid_id: str
+) -> str | None:
+    """Retrieve the kid_name for a given kid_id.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        kid_id: The internal ID (UUID) of the kid to look up.
+
+    Returns:
+        The name of the kid, or None if not found.
+    """
+    kid_info = coordinator.kids_data.get(kid_id)
+    if kid_info:
+        return kid_info.get(const.DATA_KID_NAME)
+    return None
 
 
 # ==============================================================================
@@ -544,3 +724,162 @@ async def remove_orphaned_manual_adjustment_buttons(
         is_valid=is_valid,
         entity_type="manual adjustment button",
     )
+
+
+# ==============================================================================
+# Shadow Kid Helpers
+# Parent chore capability detection and workflow/gamification control.
+# ==============================================================================
+
+
+def is_shadow_kid(coordinator: KidsChoresDataCoordinator, kid_id: str) -> bool:
+    """Check if a kid is a shadow kid (linked to a parent).
+
+    Shadow kids are created when a parent enables chore assignment. They
+    represent the parent's profile in the chore tracking system.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        kid_id: The internal ID (UUID) of the kid to check.
+
+    Returns:
+        True if the kid is a shadow kid, False otherwise.
+    """
+    kid_info: KidData = cast("KidData", coordinator.kids_data.get(kid_id, {}))
+    return bool(kid_info.get(const.DATA_KID_IS_SHADOW, False))
+
+
+def get_parent_for_shadow_kid(
+    coordinator: KidsChoresDataCoordinator, kid_id: str
+) -> dict[str, Any] | None:
+    """Get the parent data for a shadow kid.
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        kid_id: The internal ID (UUID) of the shadow kid.
+
+    Returns:
+        The parent's data dictionary, or None if not a shadow kid or parent not found.
+    """
+    kid_info: KidData = cast("KidData", coordinator.kids_data.get(kid_id, {}))
+    parent_id = kid_info.get(const.DATA_KID_LINKED_PARENT_ID)
+    if parent_id:
+        return cast("dict[str, Any] | None", coordinator.parents_data.get(parent_id))
+    return None
+
+
+def should_create_workflow_buttons(
+    coordinator: KidsChoresDataCoordinator, kid_id: str
+) -> bool:
+    """Determine if claim/disapprove buttons should be created for a kid.
+
+    Workflow buttons (Claim, Disapprove) are created for:
+    - Regular kids (always have full workflow)
+    - Shadow kids with enable_chore_workflow=True
+
+    They are NOT created for:
+    - Shadow kids with enable_chore_workflow=False (approval-only mode)
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        kid_id: The internal ID (UUID) of the kid.
+
+    Returns:
+        True if workflow buttons should be created, False otherwise.
+    """
+    if not is_shadow_kid(coordinator, kid_id):
+        return True  # Regular kids always get workflow buttons
+
+    parent_data = get_parent_for_shadow_kid(coordinator, kid_id)
+    if parent_data:
+        return parent_data.get(const.DATA_PARENT_ENABLE_CHORE_WORKFLOW, False)
+    return False
+
+
+def should_create_gamification_entities(
+    coordinator: KidsChoresDataCoordinator, kid_id: str
+) -> bool:
+    """Determine if gamification entities should be created for a kid.
+
+    Gamification entities (points sensors, badge progress, reward/bonus/penalty
+    buttons, points adjust buttons) are created for:
+    - Regular kids (always have gamification)
+    - Shadow kids with enable_gamification=True
+
+    They are NOT created for:
+    - Shadow kids with enable_gamification=False
+
+    Args:
+        coordinator: The KidsChores data coordinator.
+        kid_id: The internal ID (UUID) of the kid.
+
+    Returns:
+        True if gamification entities should be created, False otherwise.
+    """
+    if not is_shadow_kid(coordinator, kid_id):
+        return True  # Regular kids always get gamification
+
+    parent_data = get_parent_for_shadow_kid(coordinator, kid_id)
+    if parent_data:
+        return parent_data.get(const.DATA_PARENT_ENABLE_GAMIFICATION, False)
+    return False
+
+
+def should_create_entity(
+    unique_id_suffix: str,
+    *,
+    is_shadow_kid: bool = False,
+    workflow_enabled: bool = True,
+    gamification_enabled: bool = True,
+    extra_enabled: bool = False,
+) -> bool:
+    """Determine if an entity should be created based on its suffix and context.
+
+    Single source of truth for entity creation decisions. Uses ENTITY_REGISTRY.
+
+    === FLAG LAYERING LOGIC ===
+    | Requirement   | Regular Kid           | Shadow Kid                           |
+    |---------------|-----------------------|--------------------------------------|
+    | ALWAYS        | Created               | Created                              |
+    | WORKFLOW      | Created               | Only if workflow_enabled=True        |
+    | GAMIFICATION  | Created               | Only if gamification_enabled=True    |
+    | EXTRA         | If extra_enabled      | If extra_enabled AND gamification    |
+
+    Args:
+        unique_id_suffix: The entity's unique_id suffix (e.g., "_chore_status")
+        is_shadow_kid: Whether this is a shadow kid
+        workflow_enabled: Whether workflow is enabled (for shadow kids)
+        gamification_enabled: Whether gamification is enabled (for shadow kids)
+        extra_enabled: Whether show_legacy_entities (extra entities) flag is enabled
+
+    Returns:
+        True if entity should be created, False otherwise.
+    """
+    # Find the matching registry entry
+    requirement: const.EntityRequirement | None = None
+    for suffix, req in const.ENTITY_REGISTRY.items():
+        if unique_id_suffix.endswith(suffix):
+            requirement = req
+            break
+
+    # Unknown suffix - default to gamification (safer for shadow kids)
+    if requirement is None:
+        return not is_shadow_kid or gamification_enabled
+
+    # Check requirement against context
+    match requirement:
+        case const.EntityRequirement.ALWAYS:
+            return True
+        case const.EntityRequirement.WORKFLOW:
+            return not is_shadow_kid or workflow_enabled
+        case const.EntityRequirement.GAMIFICATION:
+            return not is_shadow_kid or gamification_enabled
+        case const.EntityRequirement.EXTRA:
+            # EXTRA requires BOTH extra flag AND gamification
+            # Regular kids: always have gamification, so just check flag
+            # Shadow kids: need flag AND gamification_enabled
+            if not extra_enabled:
+                return False
+            return not is_shadow_kid or gamification_enabled
+
+    return False

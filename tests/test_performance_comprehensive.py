@@ -63,9 +63,9 @@ def save_performance_results(scenario_name: str, results: dict[str, Any]) -> Non
     try:
         with open(results_file, "w") as f:
             json.dump(all_results, f, indent=2)
-        print(f"📝 Results saved to {results_file}")  # noqa: T201
+        print(f"📝 Results saved to {results_file}")
     except Exception as e:
-        print(f"⚠️  Could not save results: {e}")  # noqa: T201
+        print(f"⚠️  Could not save results: {e}")
 
 
 async def run_performance_test(
@@ -160,7 +160,7 @@ async def test_scenario_performance(
     ha_logger.setLevel(logging.WARNING)
 
     try:
-        print(f"\n📊 Running performance test: {scenario_name}")  # noqa: T201
+        print(f"\n📊 Running performance test: {scenario_name}")
 
         # Run the performance test
         results = await run_performance_test(hass, mock_hass_users, scenario_file)
@@ -169,13 +169,13 @@ async def test_scenario_performance(
         save_performance_results(scenario_name, results)
 
         # Print summary
-        print(  # noqa: T201
+        print(
             f"🚀 PERFORMANCE: {results['entity_count']} entities | "
             f"Badge: {results['badge_duration_ms']:.2f}ms | "
             f"Overdue: {results['overdue_duration_ms']:.2f}ms | "
             f"Persist: {results['persist_queue_us']:.1f}µs"
         )
-        print(  # noqa: T201
+        print(
             f"   Dataset: {results['kids_count']} kids, "
             f"{results['chores_count']} chores, "
             f"{results['badges_count']} badges"

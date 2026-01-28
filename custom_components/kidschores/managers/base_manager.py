@@ -10,14 +10,15 @@ from homeassistant.helpers.dispatcher import (
     async_dispatcher_send,
 )
 
-from custom_components.kidschores import const, kc_helpers as kh
+from .. import const
+from ..helpers.entity_helpers import get_event_signal
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from homeassistant.core import HomeAssistant
 
-    from custom_components.kidschores.coordinator import KidsChoresDataCoordinator
+    from ..coordinator import KidsChoresDataCoordinator
 
 
 class BaseManager(ABC):
@@ -62,7 +63,7 @@ class BaseManager(ABC):
                 source="chore_approval"
             )
         """
-        signal = kh.get_event_signal(self.entry_id, suffix)
+        signal = get_event_signal(self.entry_id, suffix)
         const.LOGGER.debug(
             "Emitting event '%s' for instance %s with payload keys: %s",
             suffix,
@@ -90,7 +91,7 @@ class BaseManager(ABC):
             # In async_setup():
             self.listen(const.SIGNAL_SUFFIX_POINTS_CHANGED, self._on_points_changed)
         """
-        signal = kh.get_event_signal(self.entry_id, suffix)
+        signal = get_event_signal(self.entry_id, suffix)
         unsub = async_dispatcher_connect(self.hass, signal, callback)
         self.coordinator.config_entry.async_on_unload(unsub)
         const.LOGGER.debug(

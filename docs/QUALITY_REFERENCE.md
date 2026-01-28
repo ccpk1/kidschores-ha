@@ -158,15 +158,15 @@ This single command runs all quality checks in sequence:
 
 Automated enforcement of architectural standards from CODE_REVIEW_GUIDE.md Phase 0:
 
-| Check Category | Rule | Auto-Detected |
-|----------------|------|---------------|
-| **Purity Boundary** | No `homeassistant.*` imports in `utils/` or `engines/` | ✅ Yes |
-| **Lexicon Standards** | Use "Item"/"Record", not "Entity" for storage data | ✅ Yes |
-| **CRUD Ownership** | Only Managers can call `coordinator._persist()` | ✅ Yes |
-| **Translation Constants** | Use `const.TRANS_KEY_*`, not hardcoded strings | ✅ Yes |
-| **Logging Quality** | Use lazy logging (`%s`), not f-strings | ✅ Yes |
-| **Type Syntax** | Use `str \| None`, not `Optional[str]` | ✅ Yes |
-| **Exception Handling** | Use specific exceptions, not bare `Exception:` | ✅ Yes |
+| Check Category            | Rule                                                   | Auto-Detected |
+| ------------------------- | ------------------------------------------------------ | ------------- |
+| **Purity Boundary**       | No `homeassistant.*` imports in `utils/` or `engines/` | ✅ Yes        |
+| **Lexicon Standards**     | Use "Item"/"Record", not "Entity" for storage data     | ✅ Yes        |
+| **CRUD Ownership**        | Only Managers can call `coordinator._persist()`        | ✅ Yes        |
+| **Translation Constants** | Use `const.TRANS_KEY_*`, not hardcoded strings         | ✅ Yes        |
+| **Logging Quality**       | Use lazy logging (`%s`), not f-strings                 | ✅ Yes        |
+| **Type Syntax**           | Use `str \| None`, not `Optional[str]`                 | ✅ Yes        |
+| **Exception Handling**    | Use specific exceptions, not bare `Exception:`         | ✅ Yes        |
 
 **Current Baseline**: 11 known violations as of v0.5.0-beta3 (architectural migration in progress).
 
@@ -570,7 +570,7 @@ grep -r "LANGUAGES = \[" custom_components/kidschores/ | grep -v "homeassistant.
 ### Architecture Compliance
 
 - [ ] Pure logic in `engines/` or `utils/` (no HA imports)
-- [ ] HA-dependent code in `managers/` or `kc_helpers.py`
+- [ ] HA-dependent code in `managers/` or `helpers/` (entity_helpers.py, auth_helpers.py, etc.)
 - [ ] Data writes ONLY through Manager methods
 - [ ] `data_builders.py` sets all timestamps automatically
 - [ ] Event-driven: Managers use Dispatcher, not direct calls

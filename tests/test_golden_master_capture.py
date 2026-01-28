@@ -381,7 +381,7 @@ class TestGoldenMasterCapture:
             assert isinstance(badge_info, dict)
 
         # Verify kid data structure
-        for kid_id, kid_data in data["per_kid_data"].items():
+        for kid_data in data["per_kid_data"].values():
             assert "kid_name" in kid_data
             assert "badge_progress" in kid_data
             assert "badges_earned" in kid_data

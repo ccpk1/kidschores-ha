@@ -11,10 +11,6 @@ Architecture (v0.5.0+):
     - Engines = Pure logic (ChoreEngine, EconomyEngine, etc.)
 """
 
-# Pylint suppressions for valid coordinator architectural patterns:
-# - too-many-lines: Complex coordinators legitimately need comprehensive logic
-# - too-many-public-methods: Each service/feature requires its own public method
-
 import asyncio
 from datetime import datetime, timedelta
 import sys
@@ -23,20 +19,12 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from . import const, kc_helpers as kh
+from . import const
 from .engines.statistics_engine import StatisticsEngine, filter_persistent_stats
-from .helpers.entity_helpers import (
-    parse_entity_reference,
-    remove_orphaned_kid_chore_entities,
-    remove_orphaned_manual_adjustment_buttons,
-    remove_orphaned_progress_entities,
-    remove_orphaned_shared_chore_sensors,
-)
 from .managers import (
     ChoreManager,
     EconomyManager,
@@ -45,6 +33,7 @@ from .managers import (
     RewardManager,
     StatisticsManager,
     SystemManager,
+    UIManager,
     UserManager,
 )
 from .store import KidsChoresStore
@@ -59,7 +48,6 @@ from .type_defs import (
     PenaltiesCollection,
     RewardsCollection,
 )
-from .utils.math_utils import parse_points_adjust_values
 
 # Type alias for typed config entry access (modern HA pattern)
 # Must be defined after imports but before class since it references the class
@@ -120,12 +108,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Key format: "{chore_id}:{kid_id}" - resets on HA restart (acceptable)
         self._due_soon_reminders_sent: set[str] = set()
 
-        # Translation sensor lifecycle management
-        # Tracks which language codes have translation sensors created
-        self._translation_sensors_created: set[str] = set()
-        # Callback for dynamically adding new translation sensors
-        self._sensor_add_entities_callback: Any = None
-
         # Statistics engine for unified period-based tracking (v0.5.0+)
         self.stats = StatisticsEngine()
 
@@ -161,6 +143,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # System manager for reactive entity registry cleanup (v0.5.0+)
         # Listens to DELETED signals, runs startup safety net
         self.system_manager = SystemManager(hass, self)
+
+        # UI manager for translation sensors and dashboard features (v0.5.0+)
+        # Phase 7.7: Extracted from Coordinator to achieve < 500 line target
+        self.ui_manager = UIManager(hass, self)
 
     # -------------------------------------------------------------------------------------
     # Migrate Data and Converters
@@ -329,12 +315,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         )
         async_track_time_change(
             self.hass,
-            self._bump_past_datetime_helpers,
+            self.ui_manager.bump_past_datetime_helpers,
             **const.DEFAULT_DAILY_RESET_TIME,
         )
-
-        # Note: KC 3.x config sync is now handled by _run_pre_v50_migrations() above
-        # (called when storage_schema_version < 42). No separate config sync needed here.
 
         # Initialize badge references in kid chore tracking
         self.gamification_manager.update_chore_badge_references_for_kid()
@@ -345,9 +328,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             stats = self.stats.generate_point_stats(kid_info)
             # Only persist non-temporal stats (Phase 7.5: temporal lives in cache)
             kid_info[const.DATA_KID_POINT_STATS] = filter_persistent_stats(stats)
-
-        # Note: CHORE_CLAIMED notifications now handled by NotificationManager
-        # via event subscription in async_setup()
 
         self._persist(immediate=True)  # Startup persist should be immediate
         await super().async_config_entry_first_refresh()
@@ -489,410 +469,3 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         """
         self._pending_chore_changed = False
         self._pending_reward_changed = False
-
-    # -------------------------------------------------------------------------------------
-
-    # -------------------------------------------------------------------------------------
-    # Orphan Entity Removal (delegates to entity_helpers)
-    # -------------------------------------------------------------------------------------
-
-    async def remove_all_orphaned_entities(self) -> int:
-        """Run all orphan cleanup methods. Called on startup.
-
-        Consolidates all data-driven orphan removal into a single call.
-        Delegates to entity_helpers functions for the actual cleanup.
-
-        Returns:
-            Total count of removed entities.
-        """
-        perf_start = time.perf_counter()
-        total_removed = 0
-        entry_id = self.config_entry.entry_id
-
-        # Kid-chore assignment orphans
-        total_removed += await remove_orphaned_kid_chore_entities(
-            self.hass, entry_id, self.kids_data, self.chores_data
-        )
-
-        # Shared chore sensor orphans
-        total_removed += await remove_orphaned_shared_chore_sensors(
-            self.hass, entry_id, self.chores_data
-        )
-
-        # Badge progress orphans
-        total_removed += await remove_orphaned_progress_entities(
-            self.hass,
-            entry_id,
-            self.badges_data,
-            entity_type="badge",
-            progress_suffix=const.SENSOR_KC_UID_SUFFIX_BADGE_PROGRESS_SENSOR,
-            assigned_kids_key=const.DATA_BADGE_ASSIGNED_TO,
-        )
-
-        # Achievement progress orphans
-        total_removed += await remove_orphaned_progress_entities(
-            self.hass,
-            entry_id,
-            self.achievements_data,
-            entity_type="achievement",
-            progress_suffix=const.DATA_ACHIEVEMENT_PROGRESS_SUFFIX,
-            assigned_kids_key=const.DATA_ACHIEVEMENT_ASSIGNED_KIDS,
-        )
-
-        # Challenge progress orphans
-        total_removed += await remove_orphaned_progress_entities(
-            self.hass,
-            entry_id,
-            self.challenges_data,
-            entity_type="challenge",
-            progress_suffix=const.DATA_CHALLENGE_PROGRESS_SUFFIX,
-            assigned_kids_key=const.DATA_CHALLENGE_ASSIGNED_KIDS,
-        )
-
-        # Manual adjustment button orphans
-        current_deltas = self._get_current_adjustment_deltas()
-        total_removed += await remove_orphaned_manual_adjustment_buttons(
-            self.hass, entry_id, current_deltas
-        )
-
-        perf_elapsed = time.perf_counter() - perf_start
-        if total_removed > 0:
-            const.LOGGER.info(
-                "Startup orphan cleanup: removed %d entities in %.3fs",
-                total_removed,
-                perf_elapsed,
-            )
-        else:
-            const.LOGGER.debug(
-                "PERF: startup orphan cleanup completed in %.3fs, no orphans found",
-                perf_elapsed,
-            )
-
-        return total_removed
-
-    def _get_current_adjustment_deltas(self) -> set[float]:
-        """Get current configured adjustment delta values.
-
-        Returns:
-            Set of valid adjustment delta floats.
-        """
-        raw_values = self.config_entry.options.get(const.CONF_POINTS_ADJUST_VALUES)
-        if not raw_values:
-            return set(const.DEFAULT_POINTS_ADJUST_VALUES)
-
-        if isinstance(raw_values, str):
-            return set(parse_points_adjust_values(raw_values))
-
-        if isinstance(raw_values, list):
-            try:
-                return {float(v) for v in raw_values}
-            except (ValueError, TypeError):
-                return set(const.DEFAULT_POINTS_ADJUST_VALUES)
-
-        return set(const.DEFAULT_POINTS_ADJUST_VALUES)
-
-    async def remove_conditional_entities(
-        self,
-        *,
-        kid_ids: list[str] | None = None,
-    ) -> int:
-        """Remove entities no longer allowed by feature flags.
-
-        Removes entities that are no longer allowed based on current flag settings.
-        Uses should_create_entity() from kc_helpers as single source of truth.
-
-        This consolidates:
-        - Extra entity cleanup (show_legacy_entities flag)
-        - Shadow kid workflow entity cleanup
-        - Shadow kid gamification entity cleanup
-
-        Args:
-            kid_ids: List of kid IDs to check, or None for all kids.
-                     Use targeted kid_ids when a specific kid's flags change.
-                     Use None for bulk cleanup (fresh startup, post-migration).
-
-        Returns:
-            Count of removed entities.
-
-        Call patterns:
-            - Options flow (extra flag changes): kid_ids=None (affects all)
-            - Options flow (parent flags change): kid_ids=[shadow_kid_id]
-            - Unlink service: kid_ids=[shadow_kid_id]
-            - Fresh HA startup (not reload): kid_ids=None
-            - Post-migration: kid_ids=None
-        """
-        perf_start = time.perf_counter()
-        ent_reg = er.async_get(self.hass)
-        prefix = f"{self.config_entry.entry_id}_"
-        removed_count = 0
-
-        # Get system-wide extra flag
-        extra_enabled = self.config_entry.options.get(
-            const.CONF_SHOW_LEGACY_ENTITIES, False
-        )
-
-        # Build kid filter set (None = check all)
-        target_kids = set(kid_ids) if kid_ids else None
-
-        for entity_entry in list(ent_reg.entities.values()):
-            if entity_entry.config_entry_id != self.config_entry.entry_id:
-                continue
-
-            unique_id = str(entity_entry.unique_id)
-            if not unique_id.startswith(prefix):
-                continue
-
-            # Extract kid_id from unique_id using helper
-            parts = parse_entity_reference(unique_id, prefix)
-            if not parts:
-                continue
-            kid_id = parts[0]
-
-            # Skip if not in target list (when targeted)
-            if target_kids and kid_id not in target_kids:
-                continue
-
-            # Determine kid context
-            is_shadow = kh.is_shadow_kid(self, kid_id)
-            workflow_enabled = kh.should_create_workflow_buttons(self, kid_id)
-            gamification_enabled = kh.should_create_gamification_entities(self, kid_id)
-
-            # Check if entity should exist using unified filter
-            if not kh.should_create_entity(
-                unique_id,
-                is_shadow_kid=is_shadow,
-                workflow_enabled=workflow_enabled,
-                gamification_enabled=gamification_enabled,
-                extra_enabled=extra_enabled,
-            ):
-                const.LOGGER.debug(
-                    "Removing conditional entity for kid %s: %s (shadow=%s)",
-                    kid_id,
-                    entity_entry.entity_id,
-                    is_shadow,
-                )
-                ent_reg.async_remove(entity_entry.entity_id)
-                removed_count += 1
-
-        perf_elapsed = time.perf_counter() - perf_start
-        const.LOGGER.debug(
-            "PERF: remove_conditional_entities() scanned in %.3fs, removed %d",
-            perf_elapsed,
-            removed_count,
-        )
-        if removed_count > 0:
-            const.LOGGER.info(
-                "Cleaned up %d conditional entit(y/ies) based on current settings",
-                removed_count,
-            )
-        return removed_count
-
-    # -------------------------------------------------------------------------------------
-    # Translation Sensor Lifecycle Management
-    # -------------------------------------------------------------------------------------
-
-    def register_translation_sensor_callback(self, async_add_entities) -> None:
-        """Register the callback for dynamically adding translation sensors.
-
-        Called by sensor.py during async_setup_entry to enable dynamic sensor creation.
-        """
-        self._sensor_add_entities_callback = async_add_entities
-
-    def mark_translation_sensor_created(self, lang_code: str) -> None:
-        """Mark that a translation sensor for this language has been created."""
-        self._translation_sensors_created.add(lang_code)
-
-    def is_translation_sensor_created(self, lang_code: str) -> bool:
-        """Check if a translation sensor exists for the given language code."""
-        return lang_code in self._translation_sensors_created
-
-    def get_translation_sensor_eid(self, lang_code: str) -> str | None:
-        """Get the entity ID for a translation sensor given a language code.
-
-        Looks up the entity ID from the registry using the unique_id.
-        Falls back to English ('en') if the requested language isn't found.
-        Returns None only if neither the requested language nor English exist.
-
-        Args:
-            lang_code: ISO language code (e.g., 'en', 'es', 'de')
-
-        Returns:
-            Entity ID if found in registry (requested or fallback), None otherwise
-        """
-        from homeassistant.helpers.entity_registry import async_get
-
-        entity_registry = async_get(self.hass)
-        unique_id = f"{self.config_entry.entry_id}_{lang_code}{const.SENSOR_KC_UID_SUFFIX_DASHBOARD_LANG}"
-        entity_id = entity_registry.async_get_entity_id(
-            "sensor", const.DOMAIN, unique_id
-        )
-
-        # If requested language not found and it's not already English, fall back to English
-        if entity_id is None and lang_code != "en":
-            unique_id_en = f"{self.config_entry.entry_id}_en{const.SENSOR_KC_UID_SUFFIX_DASHBOARD_LANG}"
-            entity_id = entity_registry.async_get_entity_id(
-                "sensor", const.DOMAIN, unique_id_en
-            )
-
-        return entity_id
-
-    async def ensure_translation_sensor_exists(self, lang_code: str) -> str:
-        """Ensure a translation sensor exists for the given language code.
-
-        If the sensor doesn't exist, creates it dynamically using the stored
-        async_add_entities callback. Returns the entity ID.
-
-        This is called when a kid's dashboard language changes to a new language
-        that doesn't have a translation sensor yet.
-        """
-        # Import here to avoid circular dependency
-        from .sensor import SystemDashboardTranslationSensor
-
-        # Try to get entity ID from registry
-        eid = self.get_translation_sensor_eid(lang_code)
-
-        # If sensor already exists in registry, return the entity ID
-        if eid:
-            return eid
-
-        # If sensor was marked as created but not in registry, use constructed entity_id
-        if lang_code in self._translation_sensors_created:
-            # Construct expected entity_id (sensor exists but not yet in registry)
-            return (
-                f"{const.SENSOR_KC_PREFIX}"
-                f"{const.SENSOR_KC_EID_PREFIX_DASHBOARD_LANG}{lang_code}"
-            )
-
-        # If no callback registered (shouldn't happen), log warning and return fallback
-        if self._sensor_add_entities_callback is None:
-            const.LOGGER.warning(
-                "Cannot create translation sensor for '%s': no callback registered",
-                lang_code,
-            )
-            # Fallback to English if available
-            if const.DEFAULT_DASHBOARD_LANGUAGE in self._translation_sensors_created:
-                fallback_eid = self.get_translation_sensor_eid(
-                    const.DEFAULT_DASHBOARD_LANGUAGE
-                )
-                if fallback_eid:
-                    return fallback_eid
-            # Last resort: construct expected entity_id
-            return (
-                f"{const.SENSOR_KC_PREFIX}"
-                f"{const.SENSOR_KC_EID_PREFIX_DASHBOARD_LANG}{lang_code}"
-            )
-
-        # Create the new translation sensor
-        const.LOGGER.info(
-            "Creating translation sensor for newly-used language: %s", lang_code
-        )
-        new_sensor = SystemDashboardTranslationSensor(
-            self, self.config_entry, lang_code
-        )
-        self._sensor_add_entities_callback([new_sensor])
-        self._translation_sensors_created.add(lang_code)
-
-        # Return expected entity_id (sensor not yet in registry)
-        return (
-            f"{const.SENSOR_KC_PREFIX}"
-            f"{const.SENSOR_KC_EID_PREFIX_DASHBOARD_LANG}{lang_code}"
-        )
-
-    def get_languages_in_use(self) -> set[str]:
-        """Get all unique dashboard languages currently in use by kids and parents.
-
-        Used to determine which translation sensors are needed.
-        """
-        languages: set[str] = set()
-        for kid_info in self.kids_data.values():
-            lang = kid_info.get(
-                const.DATA_KID_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
-            )
-            languages.add(lang)
-        for parent_info in self.parents_data.values():
-            lang = parent_info.get(
-                const.DATA_PARENT_DASHBOARD_LANGUAGE, const.DEFAULT_DASHBOARD_LANGUAGE
-            )
-            languages.add(lang)
-        # Always include English as fallback
-        languages.add(const.DEFAULT_DASHBOARD_LANGUAGE)
-        return languages
-
-    def remove_unused_translation_sensors(self) -> None:
-        """Remove translation sensors for languages no longer in use.
-
-        This is an optimization to avoid keeping unused sensors in memory.
-        Called when a kid/parent is deleted or their language is changed.
-
-        Note: Entity removal is handled via entity registry; we just update tracking.
-        """
-        languages_in_use = self.get_languages_in_use()
-        unused_languages = self._translation_sensors_created - languages_in_use
-
-        if not unused_languages:
-            return
-
-        # Get entity registry and remove unused translation sensors
-        entity_registry = er.async_get(self.hass)
-        for lang_code in unused_languages:
-            eid = self.get_translation_sensor_eid(lang_code)
-            if eid:  # Only try to remove if entity exists in registry
-                entity_entry = entity_registry.async_get(eid)
-                if entity_entry:
-                    const.LOGGER.info(
-                        "Removing unused translation sensor: %s (language: %s)",
-                        eid,
-                        lang_code,
-                    )
-                    entity_registry.async_remove(eid)
-            self._translation_sensors_created.discard(lang_code)
-
-    # -------------------------------------------------------------------------------------
-    # Utilities
-    # -------------------------------------------------------------------------------------
-
-    async def _bump_past_datetime_helpers(self, now: datetime) -> None:
-        """Advance all datetime helpers to tomorrow at 9 AM.
-
-        Called during midnight processing to advance date/time pickers
-        to the next day at 9 AM, regardless of current value.
-        """
-        if not self.hass:
-            return
-
-        # Get entity registry to find datetime helper entities by unique_id pattern
-        entity_registry = er.async_get(self.hass)
-
-        # Find all datetime helper entities using unique_id pattern
-        for kid_id, kid_info in self.kids_data.items():
-            kid_name = kid_info.get(const.DATA_KID_NAME, f"Kid {kid_id}")
-
-            # Construct unique_id pattern (matches datetime.py)
-            expected_unique_id = f"{self.config_entry.entry_id}_{kid_id}{const.DATETIME_KC_UID_SUFFIX_DATE_HELPER}"
-
-            # Find entity by unique_id
-            entity_entry = entity_registry.async_get_entity_id(
-                "datetime", const.DOMAIN, expected_unique_id
-            )
-
-            if not entity_entry:
-                continue
-
-            # Set to tomorrow at 9 AM local time
-            tomorrow = dt_util.now() + timedelta(days=1)
-            tomorrow_9am = tomorrow.replace(hour=9, minute=0, second=0, microsecond=0)
-
-            await self.hass.services.async_call(
-                "datetime",
-                "set_datetime",
-                {
-                    "entity_id": entity_entry,
-                    "datetime": tomorrow_9am.isoformat(),
-                },
-                blocking=False,
-            )
-            const.LOGGER.debug(
-                "Advanced datetime helper for %s to %s",
-                kid_name,
-                tomorrow_9am.isoformat(),
-            )

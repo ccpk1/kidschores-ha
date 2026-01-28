@@ -19,17 +19,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from custom_components.kidschores import const
-from custom_components.kidschores.utils.dt_utils import dt_parse_duration, dt_to_utc
+from .. import const
+from ..utils.dt_utils import dt_parse_duration, dt_to_utc
 
 if TYPE_CHECKING:
     from datetime import datetime
 
-    from custom_components.kidschores.type_defs import (
-        ChoreData,
-        KidData,
-        ScheduleConfig,
-    )
+    from ..type_defs import ChoreData, KidData, ScheduleConfig
 
 
 # =============================================================================

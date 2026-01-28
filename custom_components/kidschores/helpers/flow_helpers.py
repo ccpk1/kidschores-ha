@@ -132,8 +132,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv, selector
 import voluptuous as vol
 
-from .. import const, kc_helpers as kh
+from .. import const
 from ..utils.dt_utils import dt_parse, dt_parse_duration
+from . import translation_helpers as th
 
 # =============================================================================
 # INPUT VALIDATION HELPERS
@@ -263,7 +264,7 @@ async def build_kid_schema(
     ]
 
     # Get available dashboard languages
-    language_options = await kh.get_available_dashboard_languages(hass)
+    language_options = await th.get_available_dashboard_languages(hass)
 
     return vol.Schema(
         {
@@ -381,7 +382,7 @@ async def build_parent_schema(
     ]
 
     # Get available dashboard languages
-    language_options = await kh.get_available_dashboard_languages(hass)
+    language_options = await th.get_available_dashboard_languages(hass)
 
     return vol.Schema(
         {

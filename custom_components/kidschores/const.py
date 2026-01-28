@@ -58,7 +58,7 @@ STORAGE_VERSION: Final = 1
 # ==============================================================================
 # Event Signal Suffixes (Manager-to-Manager Communication)
 # ==============================================================================
-# Used with kc_helpers.get_event_signal(entry_id, suffix) to create instance-scoped signals
+# Used with helpers.entity_helpers.get_event_signal(entry_id, suffix) to create instance-scoped signals
 # Pattern: get_event_signal(entry_id, "points_changed") → "kidschores_{entry_id}_points_changed"
 #
 # Multi-instance isolation: Each config entry gets its own signal namespace
@@ -2580,7 +2580,7 @@ BUTTON_REWARD_PREFIX: Final = "reward_button_"  # DEPRECATED
 # For regular kids, gamification is always true, so EXTRA just needs flag.
 # For shadow kids, EXTRA needs flag AND enable_gamification=True.
 #
-# The should_create_entity() function in kc_helpers.py implements this logic.
+# The should_create_entity() function in helpers/entity_helpers.py implements this logic.
 
 
 class EntityRequirement(StrEnum):

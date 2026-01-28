@@ -1,13 +1,15 @@
 """Edge case tests for kc_helpers module.
 
 Tests for:
-- Entity lookup helpers (get_*_id_by_name, get_*_id_or_raise)
+- Item lookup helpers (get_item_id_by_name, get_item_id_or_raise)
 - Authorization helpers (is_user_authorized_for_global_action, is_user_authorized_for_kid)
 - Progress calculation helpers
 - Datetime boundary handling in dt_add_interval
 
 NOTE: Some functions have been migrated to helpers/ modules:
-- entity_helpers: get_integration_entities, parse_entity_reference, build_orphan_detection_regex
+- entity_helpers: get_integration_entities, parse_entity_reference, build_orphan_detection_regex,
+                  get_item_id_by_name, get_item_id_or_raise, get_item_name_or_log_error,
+                  get_kid_name_by_id, get_event_signal
 - auth_helpers: is_user_authorized_for_global_action, is_user_authorized_for_kid
 """
 
@@ -18,13 +20,15 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 import pytest
 
-from custom_components.kidschores import const, kc_helpers as kh
+from custom_components.kidschores import const
 from custom_components.kidschores.helpers.auth_helpers import (
     is_user_authorized_for_global_action,
 )
 from custom_components.kidschores.helpers.entity_helpers import (
     build_orphan_detection_regex,
     get_integration_entities,
+    get_item_id_by_name,
+    get_item_id_or_raise,
     parse_entity_reference,
 )
 from custom_components.kidschores.utils.dt_utils import dt_add_interval
@@ -57,9 +61,7 @@ class TestEntityLookupHelpers:
         kid_info = coordinator.kids_data.get(kid_id, {})
         kid_name = kid_info.get(const.DATA_KID_NAME)
 
-        result = kh.get_entity_id_by_name(
-            coordinator, const.ENTITY_TYPE_KID, str(kid_name)
-        )
+        result = get_item_id_by_name(coordinator, const.ENTITY_TYPE_KID, str(kid_name))
 
         assert result == kid_id
 
@@ -69,7 +71,7 @@ class TestEntityLookupHelpers:
         """Should return None for missing entity."""
         coordinator = scenario_minimal.coordinator
 
-        result = kh.get_entity_id_by_name(
+        result = get_item_id_by_name(
             coordinator, const.ENTITY_TYPE_KID, "NonexistentKid"
         )
 
@@ -84,9 +86,7 @@ class TestEntityLookupHelpers:
         coordinator = scenario_minimal.coordinator
 
         with pytest.raises(HomeAssistantError):
-            kh.get_entity_id_or_raise(
-                coordinator, const.ENTITY_TYPE_KID, "NonexistentKid"
-            )
+            get_item_id_or_raise(coordinator, const.ENTITY_TYPE_KID, "NonexistentKid")
 
 
 class TestEntityRegistryUtilities:
@@ -263,33 +263,3 @@ class TestDatetimeBoundaryHandling:
         assert result is not None
         assert isinstance(result, datetime)
         assert result.tzinfo == UTC
-
-
-class TestProgressCalculation:
-    """Test progress calculation helpers."""
-
-    async def test_progress_with_scenario_data(
-        self, hass: HomeAssistant, scenario_minimal: SetupResult
-    ) -> None:
-        """Should calculate progress safely."""
-        coordinator = scenario_minimal.coordinator
-        kid_id = scenario_minimal.kid_ids["Zoë"]
-
-        kid_info = coordinator.kids_data.get(kid_id, {})
-        # tracked_chores should be a list of chore IDs (strings), not dicts
-        tracked_chore_ids = [
-            chore_id
-            for chore_id, chore_info in coordinator.chores_data.items()
-            if kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
-        ]
-
-        # Function returns tuple: (met_requirement, completed_count, total_count)
-        met_req, completed, total = kh.get_today_chore_completion_progress(
-            kid_info, tracked_chore_ids
-        )
-
-        assert isinstance(met_req, bool)
-        assert isinstance(completed, int)
-        assert isinstance(total, int)
-        assert completed >= 0
-        assert total >= 0

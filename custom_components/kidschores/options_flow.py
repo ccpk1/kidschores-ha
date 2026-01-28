@@ -4,12 +4,6 @@
 Handles add/edit/delete operations with entities referenced internally by internal_id.
 Ensures consistency and reloads the integration upon changes.
 """
-# pylint: disable=import-outside-toplevel
-# protected-access: Options flow is tightly coupled to coordinator and needs direct access
-# to internal creation/persistence methods (_create_* and _persist).
-# broad-exception-caught: Reload operations use broad catch to ensure robustness per HA guidelines.
-# too-many-lines: Options flow inherently large (2862 lines) due to menu-driven architecture
-# import-outside-toplevel: Backup operations conditionally import to avoid circular deps/performance
 
 import asyncio
 import contextlib
@@ -641,8 +635,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                             old_workflow != new_workflow
                             or old_gamification != new_gamification
                         ):
-                            await coordinator.remove_conditional_entities(
-                                kid_ids=[existing_shadow_kid_id]
+                            await (
+                                coordinator.system_manager.remove_conditional_entities(
+                                    kid_ids=[existing_shadow_kid_id]
+                                )
                             )
 
                     # Use UserManager for parent update (handles shadow kid create/unlink)
@@ -1188,9 +1184,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 # (already persisted above, just need to set up helper state)
                 self._chore_being_edited = dict(merged_chore)
                 coordinator.async_update_listeners()
-                coordinator.hass.async_create_task(
-                    coordinator._remove_orphaned_kid_chore_entities()
-                )
+                # Orphan cleanup handled by ChoreManager CRUD methods (Phase 7.3)
 
                 self._chore_being_edited[const.DATA_INTERNAL_ID] = internal_id
 
@@ -3698,7 +3692,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             # Must happen before reload to remove entities before new ones are created
             if old_extra_enabled and not new_extra_enabled:
                 coordinator = self._get_coordinator()
-                removed = await coordinator.remove_conditional_entities()
+                removed = await coordinator.system_manager.remove_conditional_entities()
                 if removed > 0:
                     const.LOGGER.info(
                         "Extra entities disabled: cleaned up %d entities", removed
@@ -4548,7 +4542,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             # 1. Managers doing targeted cleanup when they delete/update items
             # 2. Startup safety net (remove_all_orphaned_entities) catching stragglers
             const.LOGGER.debug("Checking conditional entities against feature flags")
-            await coordinator.remove_conditional_entities()
+            await coordinator.system_manager.remove_conditional_entities()
 
         const.LOGGER.debug(
             "Reloading entry after entity changes: %s",

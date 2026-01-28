@@ -24,8 +24,8 @@ from typing import TYPE_CHECKING, Any, cast
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
-from custom_components.kidschores import const, data_builders as db, kc_helpers as kh
-from custom_components.kidschores.engines.chore_engine import (
+from .. import const, data_builders as db
+from ..engines.chore_engine import (
     CHORE_ACTION_APPROVE,
     CHORE_ACTION_CLAIM,
     CHORE_ACTION_DISAPPROVE,
@@ -35,19 +35,14 @@ from custom_components.kidschores.engines.chore_engine import (
     ChoreEngine,
     TransitionEffect,
 )
-from custom_components.kidschores.engines.schedule_engine import (
-    calculate_next_due_date_from_chore_info,
-)
-from custom_components.kidschores.engines.statistics_engine import (
-    filter_persistent_stats,
-)
-from custom_components.kidschores.helpers.entity_helpers import (
+from ..engines.schedule_engine import calculate_next_due_date_from_chore_info
+from ..engines.statistics_engine import filter_persistent_stats
+from ..helpers.entity_helpers import (
     remove_entities_by_item_id,
     remove_orphaned_kid_chore_entities,
     remove_orphaned_shared_chore_sensors,
 )
-from custom_components.kidschores.managers.base_manager import BaseManager
-from custom_components.kidschores.utils.dt_utils import (
+from ..utils.dt_utils import (
     dt_add_interval,
     dt_format_short,
     dt_now_iso,
@@ -55,19 +50,16 @@ from custom_components.kidschores.utils.dt_utils import (
     dt_to_utc,
     dt_today_local,
 )
+from .base_manager import BaseManager
 
 if TYPE_CHECKING:
     from datetime import datetime
 
     from homeassistant.core import HomeAssistant
 
-    from custom_components.kidschores.coordinator import KidsChoresDataCoordinator
-    from custom_components.kidschores.managers.economy_manager import EconomyManager
-    from custom_components.kidschores.type_defs import (
-        ChoreData,
-        KidChoreDataEntry,
-        KidData,
-    )
+    from ..coordinator import KidsChoresDataCoordinator
+    from ..type_defs import ChoreData, KidChoreDataEntry, KidData
+    from .economy_manager import EconomyManager
 
 
 __all__ = ["ChoreManager"]
@@ -389,8 +381,7 @@ class ChoreManager(BaseManager):
                     source=const.POINTS_SOURCE_OTHER,  # "other" for corrections
                     reference_id=chore_id,
                 )
-            except Exception:  # pylint: disable=broad-except
-                # NSF or other error - log but don't fail the undo
+            except Exception:
                 const.LOGGER.warning(
                     "Could not reclaim points for undo: kid=%s points=%.2f",
                     kid_id,
@@ -964,7 +955,7 @@ class ChoreManager(BaseManager):
             kid_info: KidData | dict[str, Any] = self._coordinator.kids_data.get(
                 kid_id, {}
             )
-            kid_chore_data = kh.get_chore_data_for_kid(kid_info, chore_id)
+            kid_chore_data = ChoreEngine.get_chore_data_for_kid(kid_info, chore_id)
             current_state = kid_chore_data.get(const.DATA_KID_CHORE_DATA_STATE)
             if current_state == const.CHORE_STATE_PENDING:
                 continue  # Already reset
@@ -1409,7 +1400,9 @@ class ChoreManager(BaseManager):
                 other_kid_info: KidData | dict[str, Any] = (
                     self._coordinator.kids_data.get(other_kid_id, {})
                 )
-                other_kid_chore = kh.get_chore_data_for_kid(other_kid_info, chore_id)
+                other_kid_chore = ChoreEngine.get_chore_data_for_kid(
+                    other_kid_info, chore_id
+                )
                 if other_kid_chore:
                     other_kid_chore.pop(const.DATA_CHORE_CLAIMED_BY, None)
                     other_kid_chore.pop(const.DATA_CHORE_COMPLETED_BY, None)
@@ -1526,8 +1519,8 @@ class ChoreManager(BaseManager):
         # Store updated chore
         self._coordinator._data[const.DATA_CHORES][chore_id] = updated_chore
 
-        # Recalculate badges affected by chore changes
-        self._coordinator.gamification_manager.recalculate_all_badges()
+        # NOTE: Badge recalculation is handled by GamificationManager via
+        # SIGNAL_SUFFIX_CHORE_UPDATED event (Platinum Architecture: event-driven)
 
         self._coordinator._persist()
         self._coordinator.async_update_listeners()
@@ -1588,7 +1581,10 @@ class ChoreManager(BaseManager):
                 },
             )
 
-        chore_name = chores_data[chore_id].get(const.DATA_CHORE_NAME, chore_id)
+        chore_info = chores_data[chore_id]
+        chore_name = chore_info.get(const.DATA_CHORE_NAME, chore_id)
+        # Capture assigned_kids before deletion for notification cleanup
+        assigned_kids = list(chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []))
 
         # Delete from storage
         del self._coordinator._data[const.DATA_CHORES][chore_id]
@@ -1620,11 +1616,12 @@ class ChoreManager(BaseManager):
         self._coordinator._persist()
         self._coordinator.async_update_listeners()
 
-        # Emit lifecycle event (triggers GamificationManager, SystemManager)
+        # Emit lifecycle event (triggers GamificationManager, SystemManager, NotificationManager)
         self.emit(
             const.SIGNAL_SUFFIX_CHORE_DELETED,
             chore_id=chore_id,
             chore_name=chore_name,
+            assigned_kids=assigned_kids,
         )
 
         const.LOGGER.info(
@@ -1664,7 +1661,7 @@ class ChoreManager(BaseManager):
             kid_data: KidData | dict[str, Any] = self._coordinator.kids_data.get(
                 kid_id, {}
             )
-            kid_chore_data = kh.get_chore_data_for_kid(kid_data, chore_id)
+            kid_chore_data = ChoreEngine.get_chore_data_for_kid(kid_data, chore_id)
             return kid_chore_data.get(const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START)
         # SHARED/SHARED_FIRST/etc.: Period start is at chore level
         return chore_info.get(const.DATA_CHORE_APPROVAL_PERIOD_START)
@@ -1679,7 +1676,7 @@ class ChoreManager(BaseManager):
             True if there's a pending claim (pending_claim_count > 0), False otherwise.
         """
         kid_data: KidData | dict[str, Any] = self._coordinator.kids_data.get(kid_id, {})
-        kid_chore_data = kh.get_chore_data_for_kid(kid_data, chore_id)
+        kid_chore_data = ChoreEngine.get_chore_data_for_kid(kid_data, chore_id)
         if not kid_chore_data:
             return False
 
@@ -1697,7 +1694,7 @@ class ChoreManager(BaseManager):
             True if the chore is in overdue state, False otherwise.
         """
         kid_data: KidData | dict[str, Any] = self._coordinator.kids_data.get(kid_id, {})
-        kid_chore_data = kh.get_chore_data_for_kid(kid_data, chore_id)
+        kid_chore_data = ChoreEngine.get_chore_data_for_kid(kid_data, chore_id)
         if not kid_chore_data:
             return False
 
@@ -1854,7 +1851,7 @@ class ChoreManager(BaseManager):
             True if approved in current period, False otherwise.
         """
         kid_data: KidData | dict[str, Any] = self._coordinator.kids_data.get(kid_id, {})
-        kid_chore_data = kh.get_chore_data_for_kid(kid_data, chore_id)
+        kid_chore_data = ChoreEngine.get_chore_data_for_kid(kid_data, chore_id)
         if not kid_chore_data:
             return False
 
@@ -3704,7 +3701,7 @@ class ChoreManager(BaseManager):
 
             # SHARED_FIRST: Handle special states
             if criteria == const.COMPLETION_CRITERIA_SHARED_FIRST:
-                kid_chore_data = kh.get_chore_data_for_kid(
+                kid_chore_data = ChoreEngine.get_chore_data_for_kid(
                     cast("KidData", self._coordinator.kids_data.get(kid_id, {})),
                     chore_id,
                 )
