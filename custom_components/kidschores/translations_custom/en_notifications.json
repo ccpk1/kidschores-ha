@@ -23,6 +23,14 @@
     "title": "⏰ Chore Due Soon!",
     "message": "{chore_name} is due in {minutes} minutes (+{points}pts)"
   },
+  "chore_due_reminder": {
+    "title": "⏰ Chore Due Soon!",
+    "message": "{chore_name} is due in {minutes} minutes (+{points}pts)"
+  },
+  "chore_due_window": {
+    "title": "🔔 Chore Now Due",
+    "message": "{chore_name} is now due! Complete it within {hours} hour(s) to earn {points} points"
+  },
   "chore_reminder": {
     "title": "KidsChores: Reminder for Pending Chore",
     "message": "Reminder: Chore {chore_name} claimed by {kid_name} is waiting for approval"

@@ -239,11 +239,10 @@ class ChoreManager(BaseManager):
             self._apply_effect(effect, chore_id)
 
         # Set last_claimed timestamp for the claiming kid
-
         kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_CLAIMED] = dt_now_iso()
 
-        # Clear due-soon reminder tracking (allows fresh reminder for next period)
-        self.clear_chore_due_reminder(chore_id, kid_id)
+        # Clear notification tracking (allows fresh notifications for next period)
+        self.clear_chore_notifications(chore_id, kid_id)
 
         # Update global chore state
         self._update_global_state(chore_id)
@@ -447,6 +446,9 @@ class ChoreManager(BaseManager):
             chore_id=chore_id,
             chore_name=chore_data.get(const.DATA_CHORE_NAME, ""),
         )
+
+        # Clear notification tracking (both due window and reminder)
+        self.clear_chore_notifications(chore_id, kid_id)
 
         self._coordinator._persist()
         self._coordinator.async_set_updated_data(self._coordinator._data)
@@ -2046,18 +2048,25 @@ class ChoreManager(BaseManager):
 
         return chore_info.get(const.DATA_CHORE_DUE_DATE)
 
-    def clear_chore_due_reminder(self, chore_id: str, kid_id: str) -> None:
-        """Clear due-soon reminder tracking for a chore+kid combination (v0.5.0+).
+    def clear_chore_notifications(self, chore_id: str, kid_id: str) -> None:
+        """Clear ALL notification tracking for a chore+kid combination (v0.6.0+).
 
-        Called when chore is claimed, approved, or rescheduled to allow
-        a fresh reminder for the next occurrence.
+        Clears both due window and due reminder tracking to allow fresh
+        notifications in next period.
+
+        Called when:
+        - Chore claimed
+        - Chore approved/disapproved
+        - Chore skipped
+        - Chore reset
 
         Args:
             chore_id: The chore internal ID
             kid_id: The kid internal ID
         """
         reminder_key = f"{chore_id}:{kid_id}"
-        self._coordinator._due_soon_reminders_sent.discard(reminder_key)
+        self._coordinator._due_window_notif_sent.discard(reminder_key)
+        self._coordinator._due_reminder_notif_sent.discard(reminder_key)
 
     def recalculate_chore_stats_for_kid(self, kid_id: str) -> None:
         """Delegate chore stats aggregation to StatisticsEngine.
@@ -2425,6 +2434,9 @@ class ChoreManager(BaseManager):
             update_stats=True,
         )
 
+        # Clear notification tracking (both due window and reminder)
+        self.clear_chore_notifications(chore_id, kid_id)
+
         # Persist
         self._coordinator._persist()
         self._coordinator.async_set_updated_data(self._coordinator._data)
@@ -2507,6 +2519,9 @@ class ChoreManager(BaseManager):
             previous_state=previous_state,
             update_stats=True,
         )
+
+        # Clear notification tracking (both due window and reminder)
+        self.clear_chore_notifications(chore_id, kid_id)
 
         # Persist
         self._coordinator._persist()
@@ -3525,17 +3540,20 @@ class ChoreManager(BaseManager):
         await self.update_overdue_status(now=now)
 
     async def check_chore_due_reminders(self) -> None:
-        """Check for chores due soon and send reminder notifications (v0.5.0+).
+        """Check for chores within due reminder window and send reminder notifications.
 
         Hooks into coordinator refresh cycle (typically every 5 min) to check for
-        chores that are due within the next 30 minutes and haven't had reminders sent.
+        chores that are due within their configured reminder offset and haven't
+        had reminders sent.
 
-        Tracking uses coordinator's transient _due_soon_reminders_sent set.
+        Uses per-chore `due_reminder_offset` field (default "30m").
+        Respects per-chore `notify_due_reminder` setting.
+
+        Tracking uses coordinator's transient _due_reminder_notif_sent set.
         """
         from datetime import timedelta
 
         now_utc = dt_util.utcnow()
-        reminder_window = timedelta(minutes=30)
         reminders_sent = 0
 
         const.LOGGER.debug(
@@ -3557,8 +3575,17 @@ class ChoreManager(BaseManager):
 
             # Skip if chore has reminders disabled (per-chore control v0.5.0+)
             if not chore_info.get(
-                const.DATA_CHORE_NOTIFY_ON_REMINDER, const.DEFAULT_NOTIFY_ON_REMINDER
+                const.DATA_CHORE_NOTIFY_DUE_REMINDER, const.DEFAULT_NOTIFY_DUE_REMINDER
             ):
+                continue
+
+            # Get configurable reminder offset (replaces hardcoded 30 minutes)
+            reminder_offset_str = chore_info.get(
+                const.DATA_CHORE_DUE_REMINDER_OFFSET,
+                const.DEFAULT_DUE_REMINDER_OFFSET,
+            )
+            reminder_offset = dt_parse_duration(cast("str | None", reminder_offset_str))
+            if not reminder_offset or reminder_offset.total_seconds() <= 0:
                 continue
 
             for kid_id in assigned_kids:
@@ -3566,7 +3593,7 @@ class ChoreManager(BaseManager):
                 reminder_key = f"{chore_id}:{kid_id}"
 
                 # Skip if already sent this reminder (transient tracking)
-                if reminder_key in self._coordinator._due_soon_reminders_sent:
+                if reminder_key in self._coordinator._due_reminder_notif_sent:
                     continue
 
                 # Skip if kid already claimed or completed this chore
@@ -3598,8 +3625,8 @@ class ChoreManager(BaseManager):
 
                 time_until_due = due_dt - now_utc
 
-                # Check: due within 30 min AND not past due yet
-                if timedelta(0) < time_until_due <= reminder_window:
+                # Check: due within reminder offset AND not past due yet
+                if timedelta(0) < time_until_due <= reminder_offset:
                     # Send due-soon reminder to kid with claim button
                     minutes_remaining = int(time_until_due.total_seconds() / 60)
                     chore_name = chore_info.get(const.DATA_CHORE_NAME, "Unknown Chore")
@@ -3607,7 +3634,7 @@ class ChoreManager(BaseManager):
 
                     # Emit event for NotificationManager
                     self.emit(
-                        const.SIGNAL_SUFFIX_CHORE_DUE_SOON,
+                        const.SIGNAL_SUFFIX_CHORE_DUE_REMINDER,
                         kid_id=kid_id,
                         chore_id=chore_id,
                         chore_name=chore_name,
@@ -3616,11 +3643,11 @@ class ChoreManager(BaseManager):
                     )
 
                     # Mark as sent (transient - resets on HA restart)
-                    self._coordinator._due_soon_reminders_sent.add(reminder_key)
+                    self._coordinator._due_reminder_notif_sent.add(reminder_key)
                     reminders_sent += 1
 
                     const.LOGGER.debug(
-                        "Sent due-soon reminder for chore '%s' to kid '%s' (%d min remaining)",
+                        "Sent due-reminder notification for chore '%s' to kid '%s' (%d min remaining)",
                         chore_name,
                         kid_id,
                         minutes_remaining,
@@ -3630,6 +3657,104 @@ class ChoreManager(BaseManager):
             const.LOGGER.debug(
                 "Due date reminders - Sent %d reminder(s)",
                 reminders_sent,
+            )
+
+    async def check_chore_due_window_transitions(self) -> None:
+        """Check for chores entering due window and send notifications (v0.6.0+).
+
+        Hooks into coordinator refresh cycle to check for chores that have
+        transitioned from PENDING to DUE state (entered their due window).
+
+        Uses per-chore `due_window_offset` field to determine when due window starts.
+        Respects per-chore `notify_on_due_window` setting.
+
+        Tracking uses coordinator's transient _due_window_notif_sent set.
+        """
+        now_utc = dt_util.utcnow()
+        notifications_sent = 0
+
+        const.LOGGER.debug(
+            "Due window transitions - Starting check at %s",
+            now_utc.isoformat(),
+        )
+
+        for chore_id, chore_info in self._coordinator.chores_data.items():
+            # Get assigned kids for this chore
+            assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+            if not assigned_kids:
+                continue
+
+            # Skip if chore has due window notifications disabled
+            if not chore_info.get(
+                const.DATA_CHORE_NOTIFY_ON_DUE_WINDOW,
+                const.DEFAULT_NOTIFY_ON_DUE_WINDOW,
+            ):
+                continue
+
+            # Get due window offset
+            due_window_offset_str = chore_info.get(
+                const.DATA_CHORE_DUE_WINDOW_OFFSET,
+                const.DEFAULT_DUE_WINDOW_OFFSET,
+            )
+            due_window_offset = dt_parse_duration(
+                cast("str | None", due_window_offset_str)
+            )
+            if not due_window_offset or due_window_offset.total_seconds() <= 0:
+                continue
+
+            for kid_id in assigned_kids:
+                # Build unique key for this chore+kid combination
+                window_key = f"{chore_id}:{kid_id}"
+
+                # Skip if already sent this notification
+                if window_key in self._coordinator._due_window_notif_sent:
+                    continue
+
+                # Skip if kid already claimed or completed this chore
+                if self.chore_has_pending_claim(kid_id, chore_id):
+                    continue
+                if self.chore_is_approved_in_period(kid_id, chore_id):
+                    continue
+
+                # Check if chore is in due window
+                if self.chore_is_due(kid_id, chore_id):
+                    # Calculate time remaining until due
+                    due_dt = self.get_chore_due_date(kid_id, chore_id)
+                    if not due_dt:
+                        continue
+
+                    time_until_due = due_dt - now_utc
+                    hours_remaining = max(0, int(time_until_due.total_seconds() / 3600))
+
+                    chore_name = chore_info.get(const.DATA_CHORE_NAME, "Unknown Chore")
+                    points = chore_info.get(const.DATA_CHORE_DEFAULT_POINTS, 0)
+
+                    # Emit event for NotificationManager
+                    self.emit(
+                        const.SIGNAL_SUFFIX_CHORE_DUE_WINDOW,
+                        kid_id=kid_id,
+                        chore_id=chore_id,
+                        chore_name=chore_name,
+                        hours=hours_remaining,
+                        points=points,
+                        due_date=due_dt.isoformat(),
+                    )
+
+                    # Mark as sent (transient - resets on HA restart)
+                    self._coordinator._due_window_notif_sent.add(window_key)
+                    notifications_sent += 1
+
+                    const.LOGGER.debug(
+                        "Sent due window notification for chore '%s' to kid '%s' (%d hrs remaining)",
+                        chore_name,
+                        kid_id,
+                        hours_remaining,
+                    )
+
+        if notifications_sent > 0:
+            const.LOGGER.debug(
+                "Due window transitions - Sent %d notification(s)",
+                notifications_sent,
             )
 
     def _check_chore_overdue_status(

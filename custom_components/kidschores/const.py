@@ -77,7 +77,8 @@ SIGNAL_SUFFIX_CHORE_CLAIMED: Final = "chore_claimed"
 SIGNAL_SUFFIX_CHORE_APPROVED: Final = "chore_approved"
 SIGNAL_SUFFIX_CHORE_DISAPPROVED: Final = "chore_disapproved"
 SIGNAL_SUFFIX_CHORE_OVERDUE: Final = "chore_overdue"
-SIGNAL_SUFFIX_CHORE_DUE_SOON: Final = "chore_due_soon"
+SIGNAL_SUFFIX_CHORE_DUE_REMINDER: Final = "chore_due_reminder"
+SIGNAL_SUFFIX_CHORE_DUE_WINDOW: Final = "chore_due_window"
 SIGNAL_SUFFIX_CHORE_STATUS_RESET: Final = "chore_status_reset"
 SIGNAL_SUFFIX_CHORE_RESCHEDULED: Final = "chore_rescheduled"
 
@@ -1692,6 +1693,10 @@ TRANS_KEY_NOTIF_TITLE_CHORE_DISAPPROVED: Final = "notification_title_chore_disap
 TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE: Final = "notification_title_chore_overdue"
 TRANS_KEY_NOTIF_TITLE_CHORE_REMINDER: Final = "notification_title_chore_reminder"
 TRANS_KEY_NOTIF_TITLE_CHORE_DUE_SOON: Final = "notification_title_chore_due_soon"
+TRANS_KEY_NOTIF_TITLE_CHORE_DUE_REMINDER: Final = (
+    "notification_title_chore_due_reminder"  # Alias for due_soon
+)
+TRANS_KEY_NOTIF_TITLE_CHORE_DUE_WINDOW: Final = "notification_title_chore_due_window"
 
 TRANS_KEY_NOTIF_TITLE_REWARD_CLAIMED: Final = "notification_title_reward_claimed"
 TRANS_KEY_NOTIF_TITLE_REWARD_APPROVED: Final = "notification_title_reward_approved"
@@ -1721,6 +1726,12 @@ TRANS_KEY_NOTIF_MESSAGE_CHORE_DISAPPROVED: Final = (
 TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE: Final = "notification_message_chore_overdue"
 TRANS_KEY_NOTIF_MESSAGE_CHORE_REMINDER: Final = "notification_message_chore_reminder"
 TRANS_KEY_NOTIF_MESSAGE_CHORE_DUE_SOON: Final = "notification_message_chore_due_soon"
+TRANS_KEY_NOTIF_MESSAGE_CHORE_DUE_REMINDER: Final = (
+    "notification_message_chore_due_reminder"  # Alias for due_soon
+)
+TRANS_KEY_NOTIF_MESSAGE_CHORE_DUE_WINDOW: Final = (
+    "notification_message_chore_due_window"
+)
 
 TRANS_KEY_NOTIF_MESSAGE_REWARD_CLAIMED_KID: Final = (
     "notification_message_reward_claimed_kid"

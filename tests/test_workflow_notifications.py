@@ -737,18 +737,139 @@ class TestDueDateReminders:
         kid_id = scenario_notifications.kid_ids["Zoë"]
         chore_id = scenario_notifications.chore_ids["Feed the cat"]
 
-        # Manually mark as sent
+        # Manually mark as sent (renamed in v0.6.0)
         reminder_key = f"{chore_id}:{kid_id}"
-        coordinator._due_soon_reminders_sent.add(reminder_key)
+        coordinator._due_reminder_notif_sent.add(reminder_key)
 
-        assert reminder_key in coordinator._due_soon_reminders_sent
+        assert reminder_key in coordinator._due_reminder_notif_sent
 
         # Claim the chore - should clear the reminder tracking
         await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
 
-        assert reminder_key not in coordinator._due_soon_reminders_sent, (
+        assert reminder_key not in coordinator._due_reminder_notif_sent, (
             "Claiming should clear due-soon reminder tracking"
         )
+
+    @pytest.mark.asyncio
+    async def test_due_window_notification_sent_on_pending_to_due_transition(
+        self,
+        hass: HomeAssistant,
+        scenario_notifications: SetupResult,
+    ) -> None:
+        """Chore entering due window (PENDING→DUE) triggers notification (v0.6.0+)."""
+        from datetime import timedelta
+
+        from homeassistant.util import dt as dt_util
+
+        coordinator = scenario_notifications.coordinator
+        kid_id = scenario_notifications.kid_ids["Zoë"]
+        chore_id = scenario_notifications.chore_ids["Feed the cat"]
+
+        # Set up chore with due window (1 hour before due date)
+        now = dt_util.utcnow()
+        due_in_45_min = now + timedelta(minutes=45)
+
+        chore_info = coordinator.chores_data[chore_id]
+        if "per_kid_due_dates" not in chore_info:
+            chore_info["per_kid_due_dates"] = {}
+        chore_info["per_kid_due_dates"][kid_id] = due_in_45_min.isoformat()
+
+        # Enable due window notifications (v0.6.0+)
+        chore_info["notify_on_due_window"] = True
+        chore_info["chore_due_window_offset"] = "1h"  # Window starts 1 hour before
+        coordinator._persist()
+
+        # Track kid notifications
+        kid_notifications: list[dict[str, Any]] = []
+
+        async def capture_kid_notification(
+            kid_id_arg: str,
+            title_key: str,
+            message_key: str,
+            **kwargs: Any,
+        ) -> None:
+            kid_notifications.append(
+                {
+                    "kid_id": kid_id_arg,
+                    "title_key": title_key,
+                    "message_key": message_key,
+                    **kwargs,
+                }
+            )
+
+        with patch.object(
+            coordinator.notification_manager,
+            "notify_kid_translated",
+            new=capture_kid_notification,
+        ):
+            # Check for due window transitions
+            await coordinator.chore_manager.check_chore_due_window_transitions()
+
+        # Verify due window notification was sent
+        assert len(kid_notifications) > 0, "No due window notification was sent"
+        assert kid_notifications[0]["kid_id"] == kid_id
+        assert "due_window" in kid_notifications[0]["title_key"].lower()
+
+    @pytest.mark.asyncio
+    async def test_configurable_reminder_offset_respected(
+        self,
+        hass: HomeAssistant,
+        scenario_notifications: SetupResult,
+    ) -> None:
+        """Chore reminder uses configurable offset, not hardcoded 30min (v0.6.0+)."""
+        from datetime import timedelta
+
+        from homeassistant.util import dt as dt_util
+
+        coordinator = scenario_notifications.coordinator
+        kid_id = scenario_notifications.kid_ids["Zoë"]
+        chore_id = scenario_notifications.chore_ids["Feed the cat"]
+
+        # Set due date 50 minutes from now
+        now = dt_util.utcnow()
+        due_in_50_min = now + timedelta(minutes=50)
+
+        chore_info = coordinator.chores_data[chore_id]
+        if "per_kid_due_dates" not in chore_info:
+            chore_info["per_kid_due_dates"] = {}
+        chore_info["per_kid_due_dates"][kid_id] = due_in_50_min.isoformat()
+
+        # Set custom reminder offset (1 hour before due)
+        chore_info["notify_on_reminder"] = True
+        chore_info["chore_due_reminder_offset"] = "1h"
+        coordinator._persist()
+
+        # Track notifications
+        kid_notifications: list[dict[str, Any]] = []
+
+        async def capture_kid_notification(
+            kid_id_arg: str,
+            title_key: str,
+            message_key: str,
+            **kwargs: Any,
+        ) -> None:
+            kid_notifications.append(
+                {
+                    "kid_id": kid_id_arg,
+                    "title_key": title_key,
+                    "message_key": message_key,
+                    **kwargs,
+                }
+            )
+
+        with patch.object(
+            coordinator.notification_manager,
+            "notify_kid_translated",
+            new=capture_kid_notification,
+        ):
+            # Check for reminders - should trigger because we're within 1-hour window
+            await coordinator.chore_manager.check_chore_due_reminders()
+
+        # Verify reminder was sent (custom 1h offset, not hardcoded 30min)
+        assert len(kid_notifications) > 0, (
+            "No reminder sent with custom 1h offset (50min until due)"
+        )
+        assert kid_notifications[0]["kid_id"] == kid_id
 
 
 class TestRaceConditionPrevention:

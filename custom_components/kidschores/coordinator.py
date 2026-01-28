@@ -106,7 +106,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Due date reminder tracking (v0.5.0+)
         # Transient set tracking which chore+kid combos have been sent due-soon reminders
         # Key format: "{chore_id}:{kid_id}" - resets on HA restart (acceptable)
-        self._due_soon_reminders_sent: set[str] = set()
+        self._due_reminder_notif_sent: set[str] = set()  # Was: _due_soon_reminders_sent
+        self._due_window_notif_sent: set[str] = (
+            set()
+        )  # NEW: Track due window notifications
 
         # Statistics engine for unified period-based tracking (v0.5.0+)
         self.stats = StatisticsEngine()
@@ -172,6 +175,9 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         try:
             # Check overdue chores
             await self.chore_manager.check_overdue_chores()
+
+            # Check for due window transitions (v0.6.0+)
+            await self.chore_manager.check_chore_due_window_transitions()
 
             # Check for due-soon reminders (v0.5.0+)
             await self.chore_manager.check_chore_due_reminders()

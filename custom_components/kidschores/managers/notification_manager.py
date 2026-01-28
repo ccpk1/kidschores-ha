@@ -170,8 +170,11 @@ class NotificationManager(BaseManager):
         self.listen(const.SIGNAL_SUFFIX_BONUS_APPLIED, self._handle_bonus_applied)
         self.listen(const.SIGNAL_SUFFIX_PENALTY_APPLIED, self._handle_penalty_applied)
 
-        # Chore reminder events
-        self.listen(const.SIGNAL_SUFFIX_CHORE_DUE_SOON, self._handle_chore_due_soon)
+        # Chore due date notification events (v0.6.0+: dual notification types)
+        self.listen(const.SIGNAL_SUFFIX_CHORE_DUE_WINDOW, self._handle_chore_due_window)
+        self.listen(
+            const.SIGNAL_SUFFIX_CHORE_DUE_REMINDER, self._handle_chore_due_reminder
+        )
         self.listen(const.SIGNAL_SUFFIX_CHORE_OVERDUE, self._handle_chore_overdue)
 
         # DELETED events - clear ghost notifications (Phase 7.3.7)
@@ -1656,8 +1659,52 @@ class NotificationManager(BaseManager):
         )
 
     @callback
-    def _handle_chore_due_soon(self, payload: dict[str, Any]) -> None:
-        """Handle CHORE_DUE_SOON event - send reminder to kid with claim button.
+    def _handle_chore_due_window(self, payload: dict[str, Any]) -> None:
+        """Handle CHORE_DUE_WINDOW event - notify kid when chore enters due window (v0.6.0+).
+
+        Triggered when chore transitions from PENDING → DUE state.
+
+        Args:
+            payload: Event data containing kid_id, chore_id, chore_name,
+                     hours (remaining), points, due_date
+        """
+        kid_id = payload.get("kid_id", "")
+        chore_id = payload.get("chore_id", "")
+        chore_name = payload.get("chore_name", "Unknown Chore")
+        hours = payload.get("hours", 0)
+        points = payload.get("points", 0)
+
+        if not kid_id or not chore_id:
+            return
+
+        # Notify kid with claim action
+        self.hass.async_create_task(
+            self.notify_kid_translated(
+                kid_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_DUE_WINDOW,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_DUE_WINDOW,
+                message_data={
+                    "chore_name": chore_name,
+                    "hours": hours,
+                    "points": points,
+                },
+                actions=self.build_claim_action(kid_id, chore_id),
+            )
+        )
+
+        const.LOGGER.debug(
+            "NotificationManager: Sent due window notification for chore=%s to kid=%s (%d hrs)",
+            chore_name,
+            kid_id,
+            hours,
+        )
+
+    @callback
+    def _handle_chore_due_reminder(self, payload: dict[str, Any]) -> None:
+        """Handle CHORE_DUE_REMINDER event - send reminder to kid with claim button (v0.6.0+).
+
+        Renamed from _handle_chore_due_soon to clarify purpose.
+        Uses configurable per-chore `due_reminder_offset` timing.
 
         Args:
             payload: Event data containing kid_id, chore_id, chore_name, minutes, points
@@ -1671,7 +1718,7 @@ class NotificationManager(BaseManager):
         if not kid_id or not chore_id:
             return
 
-        # Notify kid with claim action
+        # Notify kid with claim action (using legacy translation keys for backward compatibility)
         self.hass.async_create_task(
             self.notify_kid_translated(
                 kid_id,
@@ -1687,7 +1734,7 @@ class NotificationManager(BaseManager):
         )
 
         const.LOGGER.debug(
-            "NotificationManager: Sent due-soon reminder for chore=%s to kid=%s (%d min)",
+            "NotificationManager: Sent due-reminder notification for chore=%s to kid=%s (%d min)",
             chore_name,
             kid_id,
             minutes,

@@ -5,7 +5,7 @@
 - **Name / Code**: LAYERED_ARCHITECTURE_VNEXT – Coordinator-to-Service Architecture Refactor
 - **Target release / milestone**: v0.5.0 (Major architectural release)
 - **Owner / driver(s)**: KidsChores Core Team
-- **Status**: Phase 6 In Progress (Phases 0-5 Complete)
+- **Status**: ✅ COMPLETED - All Phases 0-7 Complete
 
 ## Summary & immediate steps
 
@@ -18,8 +18,8 @@
 | Phase 4 – Chore            | ChoreEngine + ChoreManager               | 100%       | ✅ COMPLETE 2026-01-26 (93 tests, 1055 total)     |
 | Phase 4.5b – Scheduler     | Delegate timers to ChoreManager          | 100%       | ✅ COMPLETE 2026-01-26 (10 tests, events ready)   |
 | Phase 5 – Gamification     | GamificationEngine + GamificationManager | 100%       | ✅ COMPLETE 2026-01-26 (33+663 lines, 1098 tests) |
-| Phase 6 – Coordinator Slim | Reduce coordinator to routing only       | 15%        | 🔄 Detailed plan created; 6 decisions pending     |
-| Phase 7 – Testing & Polish | Integration tests, documentation         | 0%         | 95%+ coverage maintained                          |
+| Phase 6 – Coordinator Slim | Reduce coordinator to routing only       | 100%       | ✅ COMPLETE 2026-01-27 (4,607→1,720 lines, -63%)  |
+| Phase 7 – Platinum Refactor| Helper/Utils split, Manager CRUD, Persistence | 100%    | ✅ COMPLETE 2026-01-28 (Coordinator→471 lines)    |
 
 1. **Key objective** – Transform the monolithic 10k+ line coordinator into a layered service architecture with clear separation between routing (Coordinator), state workflows (Managers), and pure logic (Engines). This enables testable units, decoupled features, and easier future feature additions.
 
@@ -92,7 +92,7 @@
      - ✅ Multi-instance isolation: Scope signals via `entry_id` at runtime
      - ✅ Engines location: `engines/` directory (see `schedule.py`, `statistics.py`)
      - ✅ Reward events: Include `SIGNAL_SUFFIX_REWARD_DISAPPROVED` for symmetry
-   - **Completion confirmation**: `[ ]` All follow-up items completed before marking done
+   - **Completion confirmation**: `[x]` All follow-up items completed - Plan archived as COMPLETED
 
 ---
 
