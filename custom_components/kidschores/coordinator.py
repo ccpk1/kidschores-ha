@@ -25,14 +25,14 @@ from typing import Any, cast
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
 from . import const, data_builders as db, kc_helpers as kh
-from .engines.statistics_engine import StatisticsEngine
+from .engines.statistics_engine import StatisticsEngine, filter_persistent_stats
 from .helpers.entity_helpers import (
     get_integration_entities,
     parse_entity_reference,
@@ -45,6 +45,7 @@ from .managers import (
     NotificationManager,
     RewardManager,
     StatisticsManager,
+    UserManager,
 )
 from .store import KidsChoresStore
 from .type_defs import (
@@ -53,7 +54,6 @@ from .type_defs import (
     BonusesCollection,
     ChallengesCollection,
     ChoresCollection,
-    KidCumulativeBadgeProgress,
     KidData,
     KidsCollection,
     ParentsCollection,
@@ -144,6 +144,10 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         # Phase 4: Initialized but not yet wired - ChoreOperations mixin remains active
         # Future phases will delegate ChoreOperations methods to this manager
         self.chore_manager = ChoreManager(hass, self, self.economy_manager)
+
+        # User manager for Kid/Parent CRUD operations (v0.5.0+)
+        # Phase 7.3b: Centralized create/update/delete with proper event signaling
+        self.user_manager = UserManager(hass, self)
 
         # Reward manager for reward redemption lifecycle (v0.5.0+)
         # Phase 6: Owns redeem/approve/disapprove/undo/reset workflows
@@ -247,6 +251,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                         dt_util.UTC
                     ).isoformat(),
                     const.DATA_META_MIGRATIONS_APPLIED: const.DEFAULT_MIGRATIONS_APPLIED,
+                    const.DATA_META_PENDING_EVALUATIONS: [],
                 }
 
                 # DEBUG: Verify what got assigned
@@ -271,6 +276,16 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                     "Storage already at schema version %s, skipping migration",
                     storage_schema_version,
                 )
+
+            # Ensure pending_evaluations field exists in meta (added in Phase 7.4)
+            if const.DATA_META in self._data:
+                if (
+                    const.DATA_META_PENDING_EVALUATIONS
+                    not in self._data[const.DATA_META]
+                ):
+                    self._data[const.DATA_META][
+                        const.DATA_META_PENDING_EVALUATIONS
+                    ] = []
 
             # Clean up legacy migration keys from KC 4.x beta (schema v41)
             # These keys are redundant with schema_version and should be removed
@@ -329,7 +344,8 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         for kid_id, kid_info in self.kids_data.items():
             self.chore_manager.recalculate_chore_stats_for_kid(kid_id)
             stats = self.stats.generate_point_stats(kid_info)
-            kid_info[const.DATA_KID_POINT_STATS] = stats
+            # Only persist non-temporal stats (Phase 7.5: temporal lives in cache)
+            kid_info[const.DATA_KID_POINT_STATS] = filter_persistent_stats(stats)
 
         # Note: CHORE_CLAIMED notifications now handled by NotificationManager
         # via event subscription in async_setup()
@@ -951,313 +967,6 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 removed_count,
             )
         return removed_count
-
-    # -------------------------------------------------------------------------------------
-    # KidsChores Entity Management Methods (for Options Flow and some Services)
-    # These methods provide direct storage updates without triggering config reloads
-    # -------------------------------------------------------------------------------------
-
-    def delete_kid_entity(self, kid_id: str) -> None:
-        """Delete kid from storage and cleanup references.
-
-        For shadow kids (parent-linked profiles), this disables the parent's
-        chore assignment flag and uses the existing shadow kid cleanup flow.
-
-        Args:
-            kid_id: Internal ID of the kid to delete
-        """
-        if kid_id not in self._data.get(const.DATA_KIDS, {}):
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_KID,
-                    "name": kid_id,
-                },
-            )
-
-        kid_info = self._data[const.DATA_KIDS][kid_id]
-        kid_name = kid_info.get(const.DATA_KID_NAME, kid_id)
-
-        # Shadow kid handling: disable parent flag and use existing cleanup
-        if kid_info.get(const.DATA_KID_IS_SHADOW, False):
-            parent_id = kid_info.get(const.DATA_KID_LINKED_PARENT_ID)
-            if parent_id and parent_id in self._data.get(const.DATA_PARENTS, {}):
-                # Disable chore assignment on parent and clear link
-                self._data[const.DATA_PARENTS][parent_id][
-                    const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT
-                ] = False
-                self._data[const.DATA_PARENTS][parent_id][
-                    const.DATA_PARENT_LINKED_SHADOW_KID_ID
-                ] = None
-            # Unlink shadow kid (preserves kid + entities)
-            self._unlink_shadow_kid(kid_id)
-            # Remove unused translation sensors (if language no longer needed)
-            self.remove_unused_translation_sensors()
-            self._persist()
-            self.async_update_listeners()
-            const.LOGGER.info(
-                "INFO: Deleted shadow kid '%s' (ID: %s) via parent flag disable",
-                kid_name,
-                kid_id,
-            )
-            return  # Done - don't continue to normal kid deletion
-
-        # Normal kid deletion continues below
-        del self._data[const.DATA_KIDS][kid_id]
-
-        # Remove HA entities
-        self._remove_entities_in_ha(kid_id)
-
-        # Remove device from device registry
-        self._remove_device_from_registry(kid_id)
-
-        # Cleanup references
-        self._cleanup_deleted_kid_references()
-        self._cleanup_parent_assignments()
-        self._cleanup_pending_reward_approvals()
-
-        # Remove unused translation sensors (if language no longer needed)
-        self.remove_unused_translation_sensors()
-
-        self._persist()
-        self.async_update_listeners()
-        const.LOGGER.info("INFO: Deleted kid '%s' (ID: %s)", kid_name, kid_id)
-
-    def delete_parent_entity(self, parent_id: str) -> None:
-        """Delete parent from storage.
-
-        Cascades deletion to any linked shadow kid before removing the parent.
-        """
-        if parent_id not in self._data.get(const.DATA_PARENTS, {}):
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_PARENT,
-                    "name": parent_id,
-                },
-            )
-
-        parent_data = self._data[const.DATA_PARENTS][parent_id]
-        parent_name = parent_data.get(const.DATA_PARENT_NAME, parent_id)
-
-        # Cascade unlink shadow kid if exists (preserves data)
-        shadow_kid_id = parent_data.get(const.DATA_PARENT_LINKED_SHADOW_KID_ID)
-        if shadow_kid_id:
-            self._unlink_shadow_kid(shadow_kid_id)
-            const.LOGGER.info(
-                "INFO: Cascade unlinked shadow kid for parent '%s'", parent_name
-            )
-
-        del self._data[const.DATA_PARENTS][parent_id]
-
-        # Remove unused translation sensors (if language no longer needed)
-        self.remove_unused_translation_sensors()
-
-        self._persist()
-        self.async_update_listeners()
-        const.LOGGER.info("INFO: Deleted parent '%s' (ID: %s)", parent_name, parent_id)
-
-    def delete_chore_entity(self, chore_id: str) -> None:
-        """Delete chore from storage and cleanup references."""
-        if chore_id not in self._data.get(const.DATA_CHORES, {}):
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_CHORE,
-                    "name": chore_id,
-                },
-            )
-
-        chore_name = self._data[const.DATA_CHORES][chore_id].get(
-            const.DATA_CHORE_NAME, chore_id
-        )
-        del self._data[const.DATA_CHORES][chore_id]
-
-        # Remove HA entities
-        self._remove_entities_in_ha(chore_id)
-
-        # Cleanup references
-        self._cleanup_deleted_chore_references()
-        self._cleanup_deleted_chore_in_achievements()
-        self._cleanup_deleted_chore_in_challenges()
-
-        # Remove orphaned shared chore sensors
-        self.hass.async_create_task(self._remove_orphaned_shared_chore_sensors())
-
-        self._persist()
-        self.async_update_listeners()
-        const.LOGGER.info("INFO: Deleted chore '%s' (ID: %s)", chore_name, chore_id)
-
-    def delete_badge_entity(self, badge_id: str) -> None:
-        """Delete badge from storage and cleanup references."""
-        if badge_id not in self._data.get(const.DATA_BADGES, {}):
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_BADGE,
-                    "name": badge_id,
-                },
-            )
-
-        badge_name = self._data[const.DATA_BADGES][badge_id].get(
-            const.DATA_BADGE_NAME, badge_id
-        )
-        del self._data[const.DATA_BADGES][badge_id]
-
-        # Remove awarded badges from kids via GamificationManager
-        self.gamification_manager.remove_awarded_badges_by_id(badge_id=badge_id)
-
-        # Phase 4: Clean up badge_progress from all kids after badge deletion
-        # Also recalculate cumulative badge progress since a cumulative badge may have been deleted
-        for kid_id in self.kids_data:
-            self.gamification_manager.sync_badge_progress_for_kid(kid_id)
-            # Refresh cumulative badge progress (handles case when cumulative badge is deleted)
-            cumulative_progress = (
-                self.gamification_manager.get_cumulative_badge_progress(kid_id)
-            )
-            self.kids_data[kid_id][const.DATA_KID_CUMULATIVE_BADGE_PROGRESS] = cast(
-                "KidCumulativeBadgeProgress", cumulative_progress
-            )
-
-        # Remove badge-related entities from Home Assistant registry
-        self._remove_entities_in_ha(badge_id)
-
-        self._persist()
-        self.async_update_listeners()
-        const.LOGGER.info("INFO: Deleted badge '%s' (ID: %s)", badge_name, badge_id)
-
-    def delete_reward_entity(self, reward_id: str) -> None:
-        """Delete reward from storage and cleanup references."""
-        if reward_id not in self._data.get(const.DATA_REWARDS, {}):
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_REWARD,
-                    "name": reward_id,
-                },
-            )
-
-        reward_name = self._data[const.DATA_REWARDS][reward_id].get(
-            const.DATA_REWARD_NAME, reward_id
-        )
-        del self._data[const.DATA_REWARDS][reward_id]
-
-        # Remove HA entities
-        self._remove_entities_in_ha(reward_id)
-
-        # Cleanup pending reward approvals
-        self._cleanup_pending_reward_approvals()
-
-        self._persist()
-        self.async_update_listeners()
-        const.LOGGER.info("INFO: Deleted reward '%s' (ID: %s)", reward_name, reward_id)
-
-    def delete_penalty_entity(self, penalty_id: str) -> None:
-        """Delete penalty from storage."""
-        if penalty_id not in self._data.get(const.DATA_PENALTIES, {}):
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_PENALTY,
-                    "name": penalty_id,
-                },
-            )
-
-        penalty_name = self._data[const.DATA_PENALTIES][penalty_id].get(
-            const.DATA_PENALTY_NAME, penalty_id
-        )
-        del self._data[const.DATA_PENALTIES][penalty_id]
-
-        # Remove HA entities
-        self._remove_entities_in_ha(penalty_id)
-
-        self._persist()
-        self.async_update_listeners()
-        const.LOGGER.info(
-            "INFO: Deleted penalty '%s' (ID: %s)", penalty_name, penalty_id
-        )
-
-    def delete_bonus_entity(self, bonus_id: str) -> None:
-        """Delete bonus from storage."""
-        if bonus_id not in self._data.get(const.DATA_BONUSES, {}):
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_BONUS,
-                    "name": bonus_id,
-                },
-            )
-
-        bonus_name = self._data[const.DATA_BONUSES][bonus_id].get(
-            const.DATA_BONUS_NAME, bonus_id
-        )
-        del self._data[const.DATA_BONUSES][bonus_id]
-
-        # Remove HA entities
-        self._remove_entities_in_ha(bonus_id)
-
-        self._persist()
-        self.async_update_listeners()
-        const.LOGGER.info("INFO: Deleted bonus '%s' (ID: %s)", bonus_name, bonus_id)
-
-    def delete_achievement_entity(self, achievement_id: str) -> None:
-        """Delete achievement from storage and cleanup references."""
-        if achievement_id not in self._data.get(const.DATA_ACHIEVEMENTS, {}):
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_ACHIEVEMENT,
-                    "name": achievement_id,
-                },
-            )
-
-        achievement_name = self._data[const.DATA_ACHIEVEMENTS][achievement_id].get(
-            const.DATA_ACHIEVEMENT_NAME, achievement_id
-        )
-        del self._data[const.DATA_ACHIEVEMENTS][achievement_id]
-
-        # Remove orphaned achievement entities
-        self.hass.async_create_task(self._remove_orphaned_achievement_entities())
-
-        self._persist()
-        self.async_update_listeners()
-        const.LOGGER.info(
-            "INFO: Deleted achievement '%s' (ID: %s)", achievement_name, achievement_id
-        )
-
-    def delete_challenge_entity(self, challenge_id: str) -> None:
-        """Delete challenge from storage and cleanup references."""
-        if challenge_id not in self._data.get(const.DATA_CHALLENGES, {}):
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
-                translation_placeholders={
-                    "entity_type": const.LABEL_CHALLENGE,
-                    "name": challenge_id,
-                },
-            )
-
-        challenge_name = self._data[const.DATA_CHALLENGES][challenge_id].get(
-            const.DATA_CHALLENGE_NAME, challenge_id
-        )
-        del self._data[const.DATA_CHALLENGES][challenge_id]
-
-        # Remove orphaned challenge entities
-        self.hass.async_create_task(self._remove_orphaned_challenge_entities())
-
-        self._persist()
-        self.async_update_listeners()
-        const.LOGGER.info(
-            "INFO: Deleted challenge '%s' (ID: %s)", challenge_name, challenge_id
-        )
 
     # -------------------------------------------------------------------------------------
     # Data Cleanup

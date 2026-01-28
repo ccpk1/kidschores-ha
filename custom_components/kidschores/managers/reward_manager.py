@@ -27,7 +27,10 @@ import uuid
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
-from custom_components.kidschores import const
+from custom_components.kidschores import const, data_builders as db
+from custom_components.kidschores.helpers.entity_helpers import (
+    remove_entities_by_item_id,
+)
 from custom_components.kidschores.utils.dt_utils import dt_now_local
 
 from .base_manager import BaseManager
@@ -80,9 +83,54 @@ class RewardManager(BaseManager):
     async def async_setup(self) -> None:
         """Set up the RewardManager.
 
-        Currently no event subscriptions needed - RewardManager is called directly.
+        Subscribes to BADGE_EARNED events to grant free rewards from badges.
         """
+        # Phase 7: Signal-First Logic - listen for badge award manifests
+        self.listen(
+            const.SIGNAL_SUFFIX_BADGE_EARNED,
+            self._on_badge_earned,
+        )
         const.LOGGER.debug("RewardManager initialized for entry %s", self.entry_id)
+
+    def _on_badge_earned(self, payload: dict[str, Any]) -> None:
+        """Handle badge earned event - grant free rewards from badge manifest.
+
+        Phase 7 Signal-First Logic: Inventory Manager grants rewards from badges.
+        Rewards from badges are free (cost_deducted=0).
+
+        Args:
+            payload: Award Manifest containing reward_ids list
+        """
+        kid_id = payload.get("kid_id")
+        reward_ids = payload.get("reward_ids", [])
+        badge_name = payload.get("badge_name", "Badge")
+
+        if not kid_id or not reward_ids:
+            return
+
+        for reward_id in reward_ids:
+            if reward_id in self.coordinator.rewards_data:
+                # Badge rewards are free grants
+                self._grant_to_kid(
+                    kid_id=kid_id,
+                    reward_id=reward_id,
+                    cost_deducted=const.DEFAULT_ZERO,
+                    notif_id=None,
+                    is_pending_claim=False,
+                )
+                reward_name = self.coordinator.rewards_data[reward_id].get(
+                    const.DATA_REWARD_NAME, reward_id
+                )
+                const.LOGGER.info(
+                    "RewardManager: Granted reward '%s' to kid %s from badge '%s'",
+                    reward_name,
+                    kid_id,
+                    badge_name,
+                )
+
+        # Persist reward tracking updates
+        self.coordinator._persist()
+        self.coordinator.async_set_updated_data(self.coordinator._data)
 
     # =========================================================================
     # Lock Management
@@ -788,3 +836,153 @@ class RewardManager(BaseManager):
 
         self.coordinator._persist()
         self.coordinator.async_set_updated_data(self.coordinator._data)
+
+    # =========================================================================
+    # CRUD METHODS (Manager-owned create/update/delete)
+    # =========================================================================
+    # These methods own the write operations for reward entities.
+    # Called by options_flow.py and services.py - they must NOT write directly.
+
+    def create_reward(self, user_input: dict[str, Any]) -> dict[str, Any]:
+        """Create a new reward in storage.
+
+        Args:
+            user_input: Reward data with DATA_* keys.
+
+        Returns:
+            Complete RewardData dict ready for use.
+
+        Emits:
+            SIGNAL_SUFFIX_REWARD_CREATED with reward_id and reward_name.
+        """
+        # Build complete reward data structure
+        reward_data = dict(db.build_reward(user_input))
+        internal_id = str(reward_data[const.DATA_REWARD_INTERNAL_ID])
+        reward_name = str(reward_data.get(const.DATA_REWARD_NAME, ""))
+
+        # Store in coordinator data
+        self.coordinator._data[const.DATA_REWARDS][internal_id] = reward_data
+        self.coordinator._persist()
+        self.coordinator.async_update_listeners()
+
+        # Emit lifecycle event
+        self.emit(
+            const.SIGNAL_SUFFIX_REWARD_CREATED,
+            reward_id=internal_id,
+            reward_name=reward_name,
+        )
+
+        const.LOGGER.info(
+            "Created reward '%s' (ID: %s)",
+            reward_name,
+            internal_id,
+        )
+
+        return reward_data
+
+    def update_reward(self, reward_id: str, updates: dict[str, Any]) -> dict[str, Any]:
+        """Update an existing reward in storage.
+
+        Args:
+            reward_id: Internal UUID of the reward to update.
+            updates: Partial reward data with DATA_* keys to merge.
+
+        Returns:
+            Updated RewardData dict.
+
+        Raises:
+            HomeAssistantError: If reward not found.
+
+        Emits:
+            SIGNAL_SUFFIX_REWARD_UPDATED with reward_id and reward_name.
+        """
+        rewards_data = self.coordinator._data.get(const.DATA_REWARDS, {})
+        if reward_id not in rewards_data:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_REWARD,
+                    "name": reward_id,
+                },
+            )
+
+        existing = rewards_data[reward_id]
+        # Build updated reward (merge existing with updates)
+        updated_reward = dict(db.build_reward(updates, existing=existing))
+
+        # Store updated reward
+        self.coordinator._data[const.DATA_REWARDS][reward_id] = updated_reward
+        self.coordinator._persist()
+        self.coordinator.async_update_listeners()
+
+        reward_name = str(updated_reward.get(const.DATA_REWARD_NAME, ""))
+
+        # Emit lifecycle event
+        self.emit(
+            const.SIGNAL_SUFFIX_REWARD_UPDATED,
+            reward_id=reward_id,
+            reward_name=reward_name,
+        )
+
+        const.LOGGER.debug(
+            "Updated reward '%s' (ID: %s)",
+            reward_name,
+            reward_id,
+        )
+
+        return updated_reward
+
+    def delete_reward(self, reward_id: str) -> None:
+        """Delete a reward from storage and cleanup references.
+
+        Args:
+            reward_id: Internal UUID of the reward to delete.
+
+        Raises:
+            HomeAssistantError: If reward not found.
+
+        Emits:
+            SIGNAL_SUFFIX_REWARD_DELETED with reward_id and reward_name.
+        """
+        rewards_data = self.coordinator._data.get(const.DATA_REWARDS, {})
+        if reward_id not in rewards_data:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_REWARD,
+                    "name": reward_id,
+                },
+            )
+
+        reward_name = rewards_data[reward_id].get(const.DATA_REWARD_NAME, reward_id)
+
+        # Delete from storage
+        del self.coordinator._data[const.DATA_REWARDS][reward_id]
+
+        # Remove HA entities
+        remove_entities_by_item_id(
+            self.hass,
+            self.coordinator.config_entry.entry_id,
+            reward_id,
+        )
+
+        # Cleanup pending reward approvals (coordinator has the cleanup method)
+        self.coordinator._cleanup_pending_reward_approvals()
+
+        self.coordinator._persist()
+        self.coordinator.async_update_listeners()
+
+        # Emit lifecycle event
+        self.emit(
+            const.SIGNAL_SUFFIX_REWARD_DELETED,
+            reward_id=reward_id,
+            reward_name=reward_name,
+        )
+
+        const.LOGGER.info(
+            "Deleted reward '%s' (ID: %s)",
+            reward_name,
+            reward_id,
+        )

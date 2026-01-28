@@ -23,7 +23,12 @@ if [[ "$1" == "--fix" ]]; then
     mypy --explicit-package-bases custom_components/kidschores
     mypy_exit=$?
 
-    if [ $ruff_check_exit -eq 0 ] && [ $ruff_format_exit -eq 0 ] && [ $mypy_exit -eq 0 ]; then
+    echo ""
+    echo "🏛️ Running architectural boundary checks..."
+    python utils/check_boundaries.py
+    boundary_exit=$?
+
+    if [ $ruff_check_exit -eq 0 ] && [ $ruff_format_exit -eq 0 ] && [ $mypy_exit -eq 0 ] && [ $boundary_exit -eq 0 ]; then
         echo ""
         echo "✅ All auto-fixes applied! Verify changes and commit."
         exit 0
@@ -48,7 +53,12 @@ else
     mypy --explicit-package-bases custom_components/kidschores
     mypy_exit=$?
 
-    if [ $ruff_check_exit -eq 0 ] && [ $ruff_format_exit -eq 0 ] && [ $mypy_exit -eq 0 ]; then
+    echo ""
+    echo "🏛️ Running architectural boundary checks..."
+    python utils/check_boundaries.py
+    boundary_exit=$?
+
+    if [ $ruff_check_exit -eq 0 ] && [ $ruff_format_exit -eq 0 ] && [ $mypy_exit -eq 0 ] && [ $boundary_exit -eq 0 ]; then
         echo ""
         echo "✅ All checks passed! Ready to commit."
         exit 0

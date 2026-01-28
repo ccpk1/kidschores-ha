@@ -375,15 +375,11 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             if not errors:
                 try:
-                    # Use unified db.build_kid() pattern
-                    kid_data = db.build_kid(user_input)
-                    internal_id = kid_data[const.DATA_KID_INTERNAL_ID]
-                    kid_name = kid_data[const.DATA_KID_NAME]
-
-                    # Direct storage write (no _create_kid needed)
-                    coordinator._data[const.DATA_KIDS][internal_id] = dict(kid_data)
-                    coordinator._persist()
-                    coordinator.async_update_listeners()
+                    # Use UserManager for kid creation
+                    internal_id = coordinator.user_manager.create_kid(user_input)
+                    kid_name = user_input.get(
+                        const.CFOF_KIDS_INPUT_KID_NAME, internal_id
+                    )
 
                     const.LOGGER.debug(
                         "Added Kid '%s' with ID: %s", kid_name, internal_id
@@ -429,14 +425,13 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             if not errors:
                 try:
-                    # Layer 3: Entity helper builds complete structure
-                    # build_kid(user_input, existing) - with existing = update mode
+                    # Build merged kid data using data_builders
                     updated_kid = db.build_kid(user_input, existing=kid_data)
 
-                    # Layer 4: Store updated kid (preserves internal_id)
-                    coordinator._data[const.DATA_KIDS][internal_id] = dict(updated_kid)
-                    coordinator._persist()
-                    coordinator.async_update_listeners()
+                    # Use UserManager for kid update
+                    coordinator.user_manager.update_kid(
+                        str(internal_id), dict(updated_kid)
+                    )
 
                     const.LOGGER.debug(
                         "Edited Kid '%s' with ID: %s",
@@ -513,7 +508,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         kid_name = kids_dict[internal_id][const.DATA_KID_NAME]
 
         if user_input is not None:
-            coordinator.delete_kid_entity(internal_id)
+            # Use UserManager for kid deletion
+            coordinator.user_manager.delete_kid(str(internal_id))
 
             const.LOGGER.debug("Deleted Kid '%s' with ID: %s", kid_name, internal_id)
             return await self.async_step_init()
@@ -543,57 +539,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             if not errors:
                 try:
-                    # Use unified db.build_parent() pattern
-                    parent_data = dict(db.build_parent(user_input))
-                    internal_id = str(parent_data[const.DATA_PARENT_INTERNAL_ID])
-                    parent_name = str(parent_data[const.DATA_PARENT_NAME])
+                    # Use UserManager for parent creation (handles shadow kid internally)
+                    internal_id = coordinator.user_manager.create_parent(user_input)
+                    parent_name = user_input.get(
+                        const.CFOF_PARENTS_INPUT_NAME, internal_id
+                    )
 
-                    # Direct storage write
-                    coordinator._data[const.DATA_PARENTS][internal_id] = parent_data
-
-                    # Create shadow kid if chore assignment is enabled
-                    if parent_data.get(const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT, False):
-                        # Build shadow kid input from parent data
-                        shadow_input = {
-                            const.CFOF_KIDS_INPUT_KID_NAME: parent_name,
-                            const.CFOF_KIDS_INPUT_HA_USER: parent_data.get(
-                                const.DATA_PARENT_HA_USER_ID, ""
-                            ),
-                            const.CFOF_KIDS_INPUT_DASHBOARD_LANGUAGE: parent_data.get(
-                                const.DATA_PARENT_DASHBOARD_LANGUAGE,
-                                const.DEFAULT_DASHBOARD_LANGUAGE,
-                            ),
-                            const.CFOF_KIDS_INPUT_MOBILE_NOTIFY_SERVICE: const.SENTINEL_EMPTY,
-                        }
-                        shadow_kid_data = dict(
-                            db.build_kid(
-                                shadow_input,
-                                is_shadow=True,
-                                linked_parent_id=internal_id,
-                            )
-                        )
-                        shadow_kid_id = str(shadow_kid_data[const.DATA_KID_INTERNAL_ID])
-
-                        # Direct storage write for shadow kid
-                        coordinator._data[const.DATA_KIDS][shadow_kid_id] = (
-                            shadow_kid_data
-                        )
-
-                        # Link shadow kid to parent
-                        coordinator._data[const.DATA_PARENTS][internal_id][
-                            const.DATA_PARENT_LINKED_SHADOW_KID_ID
-                        ] = shadow_kid_id
-
-                        const.LOGGER.info(
-                            "Created shadow kid '%s' (ID: %s) for parent '%s' (ID: %s)",
-                            parent_name,
-                            shadow_kid_id,
-                            parent_name,
-                            internal_id,
-                        )
-
-                    coordinator._persist()
-                    coordinator.async_update_listeners()
                     self._mark_reload_needed()
 
                     const.LOGGER.debug(
@@ -659,39 +610,18 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             if not errors:
                 try:
-                    # Layer 3: Entity helper builds complete structure
-                    # build_parent(user_input, existing) - with existing = update mode
+                    # Build merged parent data using data_builders
                     updated_parent = db.build_parent(user_input, existing=parent_data)
 
-                    # Handle shadow kid creation/deletion based on allow_chore_assignment
+                    # Handle workflow/gamification flag changes for existing shadow kid
+                    # This must happen BEFORE update_parent because we need old vs new comparison
                     existing_shadow_kid_id = parent_data.get(
                         const.DATA_PARENT_LINKED_SHADOW_KID_ID
                     )
                     allow_chore_assignment = user_input.get(
                         const.CFOF_PARENTS_INPUT_ALLOW_CHORE_ASSIGNMENT, False
                     )
-                    was_enabled = parent_data.get(
-                        const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT, False
-                    )
 
-                    if allow_chore_assignment and not was_enabled:
-                        # Enabling chore assignment - create shadow kid
-                        shadow_kid_id = coordinator._create_shadow_kid_for_parent(
-                            internal_id, dict(updated_parent)
-                        )
-                        updated_parent[const.DATA_PARENT_LINKED_SHADOW_KID_ID] = (
-                            shadow_kid_id
-                        )
-                    elif (
-                        not allow_chore_assignment
-                        and was_enabled
-                        and existing_shadow_kid_id
-                    ):
-                        # Disabling chore assignment - unlink shadow kid (preserves data)
-                        coordinator._unlink_shadow_kid(existing_shadow_kid_id)
-                        updated_parent[const.DATA_PARENT_LINKED_SHADOW_KID_ID] = None
-
-                    # Handle workflow/gamification flag changes for existing shadow kid
                     if existing_shadow_kid_id and allow_chore_assignment:
                         old_workflow = parent_data.get(
                             const.DATA_PARENT_ENABLE_CHORE_WORKFLOW, False
@@ -715,12 +645,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                                 kid_ids=[existing_shadow_kid_id]
                             )
 
-                    # Layer 4: Store updated parent (preserves internal_id)
-                    coordinator._data[const.DATA_PARENTS][internal_id] = dict(
-                        updated_parent
+                    # Use UserManager for parent update (handles shadow kid create/unlink)
+                    coordinator.user_manager.update_parent(
+                        str(internal_id), dict(updated_parent)
                     )
-                    coordinator._persist()
-                    coordinator.async_update_listeners()
 
                     const.LOGGER.debug(
                         "Edited Parent '%s' with ID: %s",
@@ -801,7 +729,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         parent_name = parents_dict[internal_id][const.DATA_PARENT_NAME]
 
         if user_input is not None:
-            coordinator.delete_parent_entity(internal_id)
+            # Use UserManager for parent deletion
+            coordinator.user_manager.delete_parent(str(internal_id))
 
             const.LOGGER.debug(
                 "Deleted Parent '%s' with ID: %s", parent_name, internal_id
@@ -944,9 +873,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     final_chore = db.build_chore(
                         single_kid_updates, existing=new_chore_data
                     )
-                    coordinator._data[const.DATA_CHORES][internal_id] = final_chore
-                    coordinator._persist()
-                    coordinator.async_update_listeners()
+                    # Use Manager-owned CRUD (prebuilt=True since final_chore is ready)
+                    coordinator.chore_manager.create_chore(
+                        final_chore, internal_id=internal_id, prebuilt=True
+                    )
 
                     # CFE-2026-001 FIX: Single-kid DAILY_MULTI without times
                     # needs to route to times helper (main form doesn't have times field)
@@ -972,9 +902,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     return await self.async_step_init()
 
                 # Multiple kids: create chore, then show per-kid details helper
-                coordinator._data[const.DATA_CHORES][internal_id] = new_chore_data
-                coordinator._persist()
-                coordinator.async_update_listeners()
+                # Use Manager-owned CRUD (prebuilt=True since new_chore_data is ready)
+                coordinator.chore_manager.create_chore(
+                    new_chore_data, internal_id=internal_id, prebuilt=True
+                )
 
                 # Store chore data and template values for helper form
                 self._chore_being_edited = dict(new_chore_data)
@@ -992,10 +923,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             # CFE-2026-001: Check if DAILY_MULTI needs times collection
             # (non-INDEPENDENT chores with DAILY_MULTI frequency)
             if recurring_frequency == const.FREQUENCY_DAILY_MULTI:
-                # Store chore directly (already built by build_chore)
-                coordinator._data[const.DATA_CHORES][internal_id] = new_chore_data
-                coordinator._persist()
-                coordinator.async_update_listeners()
+                # Use Manager-owned CRUD (prebuilt=True since new_chore_data is ready)
+                coordinator.chore_manager.create_chore(
+                    new_chore_data, internal_id=internal_id, prebuilt=True
+                )
 
                 # Store chore data for helper step
                 self._chore_being_edited = dict(new_chore_data)
@@ -1008,9 +939,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 return await self.async_step_chores_daily_multi()
 
             # Standard chore creation (SHARED/SHARED_FIRST or no special handling)
-            coordinator._data[const.DATA_CHORES][internal_id] = new_chore_data
-            coordinator._persist()
-            coordinator.async_update_listeners()
+            # Use Manager-owned CRUD (prebuilt=True since new_chore_data is ready)
+            coordinator.chore_manager.create_chore(
+                new_chore_data, internal_id=internal_id, prebuilt=True
+            )
 
             const.LOGGER.debug(
                 "Added Chore '%s' with ID: %s and Due Date %s",
@@ -1092,17 +1024,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             new_assigned = set(transformed_data.get(const.DATA_CHORE_ASSIGNED_KIDS, []))
             assignments_changed = old_assigned != new_assigned
 
-            # Update chore using data_builders (direct storage pattern)
-            # build_chore() merges transformed_data with existing chore_data
-            merged_chore = db.build_chore(transformed_data, existing=chore_data)
-            coordinator._data[const.DATA_CHORES][internal_id] = merged_chore
-            # Recalculate badges affected by chore changes
-            coordinator.gamification_manager.recalculate_all_badges()
-            coordinator._persist()
-            coordinator.async_update_listeners()
-            # Clean up any orphaned kid-chore entities after assignment changes
-            coordinator.hass.async_create_task(
-                coordinator._remove_orphaned_kid_chore_entities()
+            # Use Manager-owned CRUD (handles badge recalc and orphan cleanup)
+            merged_chore = coordinator.chore_manager.update_chore(
+                str(internal_id), transformed_data
             )
 
             new_name = merged_chore.get(
@@ -1215,16 +1139,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         # Clear chore-level (per-kid is now source of truth)
                         single_kid_updates[const.DATA_CHORE_DAILY_MULTI_TIMES] = None
 
-                    # Re-merge with additional single-kid updates
-                    final_chore = db.build_chore(
-                        single_kid_updates, existing=merged_chore
-                    )
-                    coordinator._data[const.DATA_CHORES][internal_id] = final_chore
-                    coordinator.gamification_manager.recalculate_all_badges()
-                    coordinator._persist()
-                    coordinator.async_update_listeners()
-                    coordinator.hass.async_create_task(
-                        coordinator._remove_orphaned_kid_chore_entities()
+                    # Use Manager-owned CRUD for final update
+                    final_chore = coordinator.chore_manager.update_chore(
+                        str(internal_id), single_kid_updates
                     )
 
                     # CFE-2026-001 FIX: Single-kid DAILY_MULTI without times
@@ -1585,15 +1502,14 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     )
 
             if not errors:
-                # Update the chore's per_kid_due_dates in storage (single source of truth)
+                # Update the chore's per_kid_due_dates using Manager CRUD
                 chores_data = coordinator.chores_data
                 if internal_id in chores_data:
-                    chores_data[internal_id][const.DATA_CHORE_PER_KID_DUE_DATES] = (
-                        per_kid_due_dates
+                    # Pass only the field to update; Manager merges with existing
+                    coordinator.chore_manager.update_chore(
+                        str(internal_id),
+                        {const.DATA_CHORE_PER_KID_DUE_DATES: per_kid_due_dates},
                     )
-
-                    coordinator._persist()
-                    coordinator.async_update_listeners()
                     const.LOGGER.debug(
                         "Updated per-kid due dates for chore %s: %s",
                         internal_id,
@@ -1868,15 +1784,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 if is_daily_multi:
                     chore_data[const.DATA_CHORE_DAILY_MULTI_TIMES] = None
 
-                # Update storage using data_builders (direct storage pattern)
-                merged_chore = db.build_chore(chore_data, existing=stored_chore)
-                coordinator._data[const.DATA_CHORES][internal_id] = merged_chore
-                coordinator.gamification_manager.recalculate_all_badges()
-                coordinator._persist()
-                coordinator.async_update_listeners()
-                coordinator.hass.async_create_task(
-                    coordinator._remove_orphaned_kid_chore_entities()
-                )
+                # Use Manager-owned CRUD (handles badge recalc and orphan cleanup)
+                coordinator.chore_manager.update_chore(str(internal_id), chore_data)
 
                 const.LOGGER.debug(
                     "Updated per-kid details for chore %s: days=%s, dates=%s",
@@ -2057,19 +1966,11 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             if not is_valid and error_key:
                 errors[const.CFOF_CHORES_INPUT_DAILY_MULTI_TIMES] = error_key
             else:
-                # Valid - store times in chore data and persist
+                # Valid - store times in chore data using Manager CRUD
                 chore_data[const.DATA_CHORE_DAILY_MULTI_TIMES] = times_str
 
-                # Update storage using data_builders (direct storage pattern)
-                stored_chore = coordinator.chores_data.get(internal_id, {})
-                merged_chore = db.build_chore(chore_data, existing=stored_chore)
-                coordinator._data[const.DATA_CHORES][internal_id] = merged_chore
-                coordinator.gamification_manager.recalculate_all_badges()
-                coordinator._persist()
-                coordinator.async_update_listeners()
-                coordinator.hass.async_create_task(
-                    coordinator._remove_orphaned_kid_chore_entities()
-                )
+                # Use Manager-owned CRUD (handles badge recalc and orphan cleanup)
+                coordinator.chore_manager.update_chore(str(internal_id), chore_data)
 
                 const.LOGGER.info(
                     "Set daily multi times for chore '%s': %s",
@@ -2120,7 +2021,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         chore_name = chores_dict[internal_id][const.DATA_CHORE_NAME]
 
         if user_input is not None:
-            coordinator.delete_chore_entity(internal_id)
+            # Use Manager-owned CRUD method
+            coordinator.chore_manager.delete_chore(str(internal_id))
 
             const.LOGGER.debug(
                 "Deleted Chore '%s' with ID: %s", chore_name, internal_id
@@ -2331,32 +2233,15 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     badge_dict = None
 
             if not errors and badge_dict is not None:
-                # --- Save Data (direct storage write) ---
+                # Use Manager-owned CRUD methods (handles sync, recalc, persist)
                 if is_edit:
-                    # Edit: update existing badge
-                    coordinator._data[const.DATA_BADGES][internal_id] = dict(badge_dict)
-                    # Phase 4: Sync badge_progress after badge update
-                    for kid_id in coordinator.kids_data:
-                        coordinator.gamification_manager.sync_badge_progress_for_kid(
-                            kid_id
-                        )
-                    coordinator.gamification_manager.recalculate_all_badges()
-                    coordinator._persist()
-                    coordinator.async_update_listeners()
-                else:
-                    # Add: create new badge + persist + notify listeners
-                    coordinator._data.setdefault(const.DATA_BADGES, {})[internal_id] = (
-                        dict(badge_dict)
+                    coordinator.gamification_manager.update_badge(
+                        str(internal_id), user_input, badge_type=badge_type
                     )
-                    # Sync badge progress for all kids (creates progress sensors)
-                    for kid_id in coordinator.kids_data:
-                        coordinator.gamification_manager.sync_badge_progress_for_kid(
-                            kid_id
-                        )
-                    # Recalculate badges to trigger initial evaluation
-                    coordinator.gamification_manager.recalculate_all_badges()
-                    coordinator._persist()
-                    coordinator.async_update_listeners()
+                else:
+                    coordinator.gamification_manager.create_badge(
+                        user_input, internal_id=internal_id, badge_type=badge_type
+                    )
 
                 const.LOGGER.debug(
                     "%s Badge '%s' with ID: %s. Data: %s",
@@ -2579,7 +2464,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         badge_name = badges_dict[internal_id][const.DATA_BADGE_NAME]
 
         if user_input is not None:
-            coordinator.delete_badge_entity(internal_id)
+            # Use Manager-owned CRUD method
+            coordinator.gamification_manager.delete_badge(str(internal_id))
 
             const.LOGGER.debug(
                 "Deleted Badge '%s' with ID: %s", badge_name, internal_id
@@ -2610,22 +2496,13 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             if not errors:
                 try:
-                    # Layer 3: Entity helper builds complete structure
-                    # CFOF_* keys now aligned with DATA_* keys - pass directly
-                    reward_data = db.build_reward(user_input)
-                    internal_id = reward_data[const.DATA_REWARD_INTERNAL_ID]
-
-                    # Layer 4: Coordinator stores (thin wrapper)
-                    coordinator._data[const.DATA_REWARDS][internal_id] = dict(
-                        reward_data
-                    )
-                    coordinator._persist()
-                    coordinator.async_update_listeners()
+                    # Use Manager-owned CRUD method
+                    reward_data = coordinator.reward_manager.create_reward(user_input)
 
                     const.LOGGER.debug(
                         "Added Reward '%s' with ID: %s",
                         reward_data[const.DATA_REWARD_NAME],
-                        internal_id,
+                        reward_data[const.DATA_REWARD_INTERNAL_ID],
                     )
                     self._mark_reload_needed()
                     return await self.async_step_init()
@@ -2670,18 +2547,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             if not errors:
                 try:
-                    # Layer 3: Entity helper builds complete structure
-                    # CFOF_* keys now aligned with DATA_* keys - pass directly
-                    updated_reward = db.build_reward(
-                        user_input, existing=existing_reward
+                    # Use Manager-owned CRUD method
+                    updated_reward = coordinator.reward_manager.update_reward(
+                        str(internal_id), user_input
                     )
-
-                    # Layer 4: Store updated reward (preserves internal_id)
-                    coordinator._data[const.DATA_REWARDS][internal_id] = dict(
-                        updated_reward
-                    )
-                    coordinator._persist()
-                    coordinator.async_update_listeners()
 
                     const.LOGGER.debug(
                         "Edited Reward '%s' with ID: %s",
@@ -2738,7 +2607,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         reward_name = rewards_dict[internal_id][const.DATA_REWARD_NAME]
 
         if user_input is not None:
-            coordinator.delete_reward_entity(internal_id)
+            # Use Manager-owned CRUD method
+            coordinator.reward_manager.delete_reward(str(internal_id))
 
             const.LOGGER.debug(
                 "Deleted Reward '%s' with ID: %s", reward_name, internal_id
@@ -2781,18 +2651,14 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         const.CFOF_BONUSES_INPUT_ICON, const.SENTINEL_EMPTY
                     ),
                 }
-                # Build bonus data using unified helper
-                new_bonus_data = db.build_bonus_or_penalty(transformed_input, "bonus")
-                internal_id = new_bonus_data[const.DATA_BONUS_INTERNAL_ID]
-
-                # Direct storage write
-                coordinator._data[const.DATA_BONUSES][internal_id] = new_bonus_data
-                coordinator._persist()
-                coordinator.async_update_listeners()
+                # Use Manager-owned CRUD method
+                bonus_data = coordinator.economy_manager.create_bonus(transformed_input)
 
                 bonus_name = user_input[const.CFOF_BONUSES_INPUT_NAME].strip()
                 const.LOGGER.debug(
-                    "Added Bonus '%s' with ID: %s", bonus_name, internal_id
+                    "Added Bonus '%s' with ID: %s",
+                    bonus_name,
+                    bonus_data[const.DATA_BONUS_INTERNAL_ID],
                 )
                 self._mark_reload_needed()
                 return await self.async_step_init()
@@ -2852,15 +2718,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         bonus_data.get(const.DATA_BONUS_ICON, const.SENTINEL_EMPTY),
                     ),
                 }
-                # Build updated bonus data using unified helper
-                updated_bonus_data = db.build_bonus_or_penalty(
-                    transformed_input, "bonus", existing=bonus_data
+                # Use Manager-owned CRUD method
+                coordinator.economy_manager.update_bonus(
+                    str(internal_id), transformed_input
                 )
-
-                # Direct storage write
-                coordinator._data[const.DATA_BONUSES][internal_id] = updated_bonus_data
-                coordinator._persist()
-                coordinator.async_update_listeners()
 
                 const.LOGGER.debug(
                     "Edited Bonus '%s' with ID: %s", new_name, internal_id
@@ -2911,7 +2772,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         bonus_name = bonuses_dict[internal_id][const.DATA_BONUS_NAME]
 
         if user_input is not None:
-            coordinator.delete_bonus_entity(internal_id)
+            # Use Manager-owned CRUD method
+            coordinator.economy_manager.delete_bonus(str(internal_id))
 
             const.LOGGER.debug(
                 "Deleted Bonus '%s' with ID: %s", bonus_name, internal_id
@@ -2956,20 +2818,16 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         const.CFOF_PENALTIES_INPUT_ICON, const.SENTINEL_EMPTY
                     ),
                 }
-                # Build penalty data using unified helper
-                new_penalty_data = db.build_bonus_or_penalty(
-                    transformed_input, "penalty"
+                # Use Manager-owned CRUD method
+                penalty_data = coordinator.economy_manager.create_penalty(
+                    transformed_input
                 )
-                internal_id = new_penalty_data[const.DATA_PENALTY_INTERNAL_ID]
-
-                # Direct storage write
-                coordinator._data[const.DATA_PENALTIES][internal_id] = new_penalty_data
-                coordinator._persist()
-                coordinator.async_update_listeners()
 
                 penalty_name = user_input[const.CFOF_PENALTIES_INPUT_NAME].strip()
                 const.LOGGER.debug(
-                    "Added Penalty '%s' with ID: %s", penalty_name, internal_id
+                    "Added Penalty '%s' with ID: %s",
+                    penalty_name,
+                    penalty_data[const.DATA_PENALTY_INTERNAL_ID],
                 )
                 self._mark_reload_needed()
                 return await self.async_step_init()
@@ -3048,17 +2906,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         const.SENTINEL_EMPTY,  # Use default if cleared, not old value
                     ),
                 }
-                # Build updated penalty data using unified helper
-                updated_penalty_data = db.build_bonus_or_penalty(
-                    transformed_input, "penalty", existing=penalty_data
+                # Use Manager-owned CRUD method
+                coordinator.economy_manager.update_penalty(
+                    str(internal_id), transformed_input
                 )
-
-                # Direct storage write
-                coordinator._data[const.DATA_PENALTIES][internal_id] = (
-                    updated_penalty_data
-                )
-                coordinator._persist()
-                coordinator.async_update_listeners()
 
                 const.LOGGER.debug(
                     "Edited Penalty '%s' with ID: %s", new_name, internal_id
@@ -3111,7 +2962,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         penalty_name = penalties_dict[internal_id][const.DATA_PENALTY_NAME]
 
         if user_input is not None:
-            coordinator.delete_penalty_entity(internal_id)
+            # Use Manager-owned CRUD method
+            coordinator.economy_manager.delete_penalty(str(internal_id))
 
             const.LOGGER.debug(
                 "Deleted Penalty '%s' with ID: %s", penalty_name, internal_id
@@ -3164,20 +3016,17 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         kids_name_to_id.get(name, name) for name in assigned_kids_names
                     ]
 
-                    # Build complete achievement structure
-                    achievement = db.build_achievement(data_input)
-                    internal_id = achievement[const.DATA_ACHIEVEMENT_INTERNAL_ID]
-
-                    # Layer 4: Direct storage write
-                    coordinator._data[const.DATA_ACHIEVEMENTS][internal_id] = dict(
-                        achievement
+                    # Use GamificationManager for achievement creation
+                    internal_id = coordinator.gamification_manager.create_achievement(
+                        data_input
                     )
-                    coordinator._persist()
-                    coordinator.async_update_listeners()
+                    achievement_name = data_input.get(
+                        const.DATA_ACHIEVEMENT_NAME, internal_id
+                    )
 
                     const.LOGGER.debug(
                         "Added Achievement '%s' with ID: %s",
-                        achievement[const.DATA_ACHIEVEMENT_NAME],
+                        achievement_name,
                         internal_id,
                     )
                     self._mark_reload_needed()
@@ -3259,18 +3108,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         kids_name_to_id.get(name, name) for name in assigned_kids_names
                     ]
 
-                    # Use data_builders pattern with direct storage update
-                    existing_data = achievements_dict[internal_id]
-                    final_achievement = db.build_achievement(
-                        data_input, existing=existing_data
+                    # Use GamificationManager for achievement update
+                    coordinator.gamification_manager.update_achievement(
+                        str(internal_id), data_input
                     )
-                    # Preserve the original internal_id
-                    final_achievement[const.DATA_ACHIEVEMENT_INTERNAL_ID] = internal_id
-                    coordinator._data[const.DATA_ACHIEVEMENTS][internal_id] = dict(
-                        final_achievement
-                    )
-                    coordinator._persist()
-                    coordinator.async_update_listeners()
 
                     new_name = user_input[const.CFOF_ACHIEVEMENTS_INPUT_NAME].strip()
                     const.LOGGER.debug(
@@ -3370,7 +3211,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         achievement_name = achievements_dict[internal_id][const.DATA_ACHIEVEMENT_NAME]
 
         if user_input is not None:
-            coordinator.delete_achievement_entity(internal_id)
+            # Use Manager-owned CRUD method
+            coordinator.gamification_manager.delete_achievement(str(internal_id))
 
             const.LOGGER.debug(
                 "Deleted Achievement '%s' with ID: %s",
@@ -3472,16 +3314,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         data_input[const.DATA_CHALLENGE_END_DATE] = end_dt.isoformat()
 
                     if not errors:
-                        # Build complete challenge structure
-                        challenge = db.build_challenge(data_input)
-                        internal_id = challenge[const.DATA_CHALLENGE_INTERNAL_ID]
-
-                        # Layer 4: Direct storage write
-                        coordinator._data[const.DATA_CHALLENGES][internal_id] = dict(
-                            challenge
+                        # Use GamificationManager for challenge creation
+                        internal_id = coordinator.gamification_manager.create_challenge(
+                            data_input
                         )
-                        coordinator._persist()
-                        coordinator.async_update_listeners()
 
                         challenge_name = user_input[
                             const.CFOF_CHALLENGES_INPUT_NAME
@@ -3619,18 +3455,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         data_input[const.DATA_CHALLENGE_END_DATE] = end_dt.isoformat()
 
                     if not errors:
-                        # Use data_builders pattern with direct storage update
-                        existing_data = challenges_dict[internal_id]
-                        final_challenge = db.build_challenge(
-                            data_input, existing=existing_data
+                        # Use GamificationManager for challenge update
+                        coordinator.gamification_manager.update_challenge(
+                            str(internal_id), data_input
                         )
-                        # Preserve the original internal_id
-                        final_challenge[const.DATA_CHALLENGE_INTERNAL_ID] = internal_id
-                        coordinator._data[const.DATA_CHALLENGES][internal_id] = dict(
-                            final_challenge
-                        )
-                        coordinator._persist()
-                        coordinator.async_update_listeners()
 
                         new_name = user_input[const.CFOF_CHALLENGES_INPUT_NAME].strip()
                         const.LOGGER.debug(
@@ -3754,7 +3582,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         challenge_name = challenges_dict[internal_id][const.DATA_CHALLENGE_NAME]
 
         if user_input is not None:
-            coordinator.delete_challenge_entity(internal_id)
+            # Use Manager-owned CRUD method
+            coordinator.gamification_manager.delete_challenge(str(internal_id))
 
             const.LOGGER.debug(
                 "Deleted Challenge '%s' with ID: %s", challenge_name, internal_id
@@ -3965,7 +3794,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     selector.SelectSelectorConfig(
                         options=options,
                         mode=selector.SelectSelectorMode.LIST,
-                        translation_key="data_recovery_selection",
+                        translation_key=const.TRANS_KEY_CFOF_DATA_RECOVERY_SELECTION,
                         custom_value=True,  # Allow backup filenames not in translations
                     )
                 )

@@ -42,6 +42,26 @@ DEFAULT_RETENTION: Final[dict[str, int]] = {
 }
 
 
+def filter_persistent_stats(stats: dict[str, Any]) -> dict[str, Any]:
+    """Filter stats dict to retain only persistent (non-temporal) keys.
+
+    Used to strip temporal values (_today, _week, _month, _year, etc.)
+    before persisting to storage. Temporal stats should only live in the
+    StatisticsManager._stats_cache (Phase 7.5 Architecture).
+
+    Args:
+        stats: Full stats dictionary from generate_*_stats() methods.
+
+    Returns:
+        New dict containing only persistent keys (all_time, highest, etc.).
+    """
+    return {
+        key: value
+        for key, value in stats.items()
+        if not any(key.endswith(suffix) for suffix in const.STATS_TEMPORAL_SUFFIXES)
+    }
+
+
 class StatisticsEngine:
     """Unified engine for tracking period-based statistics.
 

@@ -498,25 +498,27 @@ def async_setup_services(hass: HomeAssistant):
                     translation_placeholders={"name": name},
                 )
 
-            # Link: Update kid to shadow status (direct storage update)
-            coordinator._data[const.DATA_KIDS][kid_id].update(
+            # Link: Update kid to shadow status
+            coordinator.user_manager.update_kid(
+                kid_id,
                 {
                     const.DATA_KID_IS_SHADOW: True,
                     const.DATA_KID_LINKED_PARENT_ID: parent_id,
-                }
+                },
             )
 
             # Link: Update parent (enable all chore features for shadow kid)
-            coordinator._data[const.DATA_PARENTS][parent_id].update(
+            # Always enable workflow and gamification when linking
+            # This gives the parent full chore functionality through their shadow kid
+            # User can disable these later in options flow if desired
+            coordinator.user_manager.update_parent(
+                parent_id,
                 {
                     const.DATA_PARENT_ALLOW_CHORE_ASSIGNMENT: True,
                     const.DATA_PARENT_LINKED_SHADOW_KID_ID: kid_id,
-                    # Always enable workflow and gamification when linking
-                    # This gives the parent full chore functionality through their shadow kid
-                    # User can disable these later in options flow if desired
                     const.DATA_PARENT_ENABLE_CHORE_WORKFLOW: True,
                     const.DATA_PARENT_ENABLE_GAMIFICATION: True,
-                }
+                },
             )
 
             const.LOGGER.info("Linked kid '%s' to parent '%s' as shadow", name, name)
@@ -645,26 +647,21 @@ def async_setup_services(hass: HomeAssistant):
             )
 
         try:
-            # build_chore(input) - create mode (no existing)
-            chore_dict = db.build_chore(data_input)
-            internal_id = chore_dict[const.DATA_CHORE_INTERNAL_ID]
-
-            coordinator._data[const.DATA_CHORES][internal_id] = dict(chore_dict)
-            coordinator._persist()
+            # Create chore via ChoreManager (handles build, persist, signal)
+            chore_dict = coordinator.chore_manager.create_chore(data_input)
+            internal_id = str(chore_dict[const.DATA_CHORE_INTERNAL_ID])
 
             # Handle due_date via chore_manager (respects SHARED/INDEPENDENT)
+            # Note: set_due_date handles its own persist
             if due_date_input:
                 await coordinator.chore_manager.set_due_date(
                     internal_id, due_date_input, kid_id=None
                 )
-                coordinator._persist()
 
             # Create chore status sensor entities for all assigned kids
             from .sensor import create_chore_entities
 
             create_chore_entities(coordinator, internal_id)
-
-            coordinator.async_update_listeners()
 
             const.LOGGER.info(
                 "Service created chore '%s' with ID: %s",
@@ -826,20 +823,15 @@ def async_setup_services(hass: HomeAssistant):
             )
 
         try:
-            # build_chore(input, existing) - update mode
-            chore_dict = db.build_chore(data_input, existing=existing_chore)
-
-            coordinator._data[const.DATA_CHORES][chore_id] = dict(chore_dict)
-            coordinator._persist()
+            # Update chore via ChoreManager (handles build, persist, signal)
+            chore_dict = coordinator.chore_manager.update_chore(chore_id, data_input)
 
             # Handle due_date via chore_manager (respects SHARED/INDEPENDENT)
+            # Note: set_due_date handles its own persist
             if due_date_input is not None:
                 await coordinator.chore_manager.set_due_date(
                     chore_id, due_date_input, kid_id=None
                 )
-                coordinator._persist()
-
-            coordinator.async_update_listeners()
 
             const.LOGGER.info(
                 "Service updated chore '%s' with ID: %s",
@@ -912,8 +904,8 @@ def async_setup_services(hass: HomeAssistant):
                 translation_key=const.TRANS_KEY_ERROR_MISSING_CHORE_IDENTIFIER,
             )
 
-        # Use coordinator's delete method (handles cleanup and persistence)
-        coordinator.delete_chore_entity(chore_id)
+        # Use Manager-owned CRUD method (handles cleanup and persistence)
+        coordinator.chore_manager.delete_chore(chore_id)
 
         const.LOGGER.info("Service deleted chore with ID: %s", chore_id)
 
@@ -1412,13 +1404,9 @@ def async_setup_services(hass: HomeAssistant):
             )
 
         try:
-            # build_reward(input) - create mode (no existing)
-            reward_dict = db.build_reward(data_input)
-            internal_id = reward_dict[const.DATA_REWARD_INTERNAL_ID]
-
-            coordinator._data[const.DATA_REWARDS][internal_id] = dict(reward_dict)
-            coordinator._persist()
-            coordinator.async_update_listeners()
+            # Create reward via RewardManager (handles build, persist, signal)
+            reward_dict = coordinator.reward_manager.create_reward(data_input)
+            internal_id = str(reward_dict[const.DATA_REWARD_INTERNAL_ID])
 
             const.LOGGER.info(
                 "Service created reward '%s' with ID: %s",
@@ -1533,12 +1521,10 @@ def async_setup_services(hass: HomeAssistant):
             )
 
         try:
-            # build_reward(input, existing) - update mode
-            reward_dict = db.build_reward(data_input, existing=existing_reward)
-
-            coordinator._data[const.DATA_REWARDS][reward_id] = dict(reward_dict)
-            coordinator._persist()
-            coordinator.async_update_listeners()
+            # Update reward via RewardManager (handles build, persist, signal)
+            reward_dict = coordinator.reward_manager.update_reward(
+                reward_id, data_input
+            )
 
             const.LOGGER.info(
                 "Service updated reward '%s' with ID: %s",
@@ -1611,8 +1597,8 @@ def async_setup_services(hass: HomeAssistant):
                 translation_key=const.TRANS_KEY_ERROR_MISSING_REWARD_IDENTIFIER,
             )
 
-        # Use coordinator's delete method (handles cleanup and persistence)
-        coordinator.delete_reward_entity(reward_id)
+        # Use Manager-owned CRUD method (handles cleanup and persistence)
+        coordinator.reward_manager.delete_reward(reward_id)
 
         const.LOGGER.info("Service deleted reward with ID: %s", reward_id)
 

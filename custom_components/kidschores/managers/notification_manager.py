@@ -1431,8 +1431,8 @@ class NotificationManager(BaseManager):
                 )
             )
 
-        # Clear due-soon reminder tracking
-        self.coordinator.chore_manager.clear_chore_due_reminder(chore_id, kid_id)
+        # Note: Due-soon reminder tracking is already cleared by ChoreManager.claim_chore()
+        # per Cross-Manager Directive 2 (Direct Writes are FORBIDDEN)
 
         const.LOGGER.debug(
             "NotificationManager: Sent chore claimed notification for kid=%s, chore=%s",

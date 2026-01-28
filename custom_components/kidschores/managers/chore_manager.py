@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, Any, cast
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
-from custom_components.kidschores import const, kc_helpers as kh
+from custom_components.kidschores import const, data_builders as db, kc_helpers as kh
 from custom_components.kidschores.engines.chore_engine import (
     CHORE_ACTION_APPROVE,
     CHORE_ACTION_CLAIM,
@@ -37,6 +37,12 @@ from custom_components.kidschores.engines.chore_engine import (
 )
 from custom_components.kidschores.engines.schedule_engine import (
     calculate_next_due_date_from_chore_info,
+)
+from custom_components.kidschores.engines.statistics_engine import (
+    filter_persistent_stats,
+)
+from custom_components.kidschores.helpers.entity_helpers import (
+    remove_entities_by_item_id,
 )
 from custom_components.kidschores.managers.base_manager import BaseManager
 from custom_components.kidschores.utils.dt_utils import (
@@ -1390,6 +1396,187 @@ class ChoreManager(BaseManager):
         self._coordinator.async_set_updated_data(self._coordinator._data)
 
     # =========================================================================
+    # §1.55 CRUD METHODS (Manager-owned create/update/delete)
+    # =========================================================================
+    # These methods own the write operations for chore entities.
+    # Called by options_flow.py and services.py - they must NOT write directly.
+
+    def create_chore(
+        self,
+        user_input: dict[str, Any],
+        internal_id: str | None = None,
+        prebuilt: bool = False,
+    ) -> dict[str, Any]:
+        """Create a new chore in storage.
+
+        Args:
+            user_input: Chore data with DATA_* keys.
+            internal_id: Optional pre-generated UUID (for form resubmissions).
+            prebuilt: If True, user_input is already a complete ChoreData dict.
+
+        Returns:
+            Complete ChoreData dict ready for use.
+
+        Emits:
+            SIGNAL_SUFFIX_CHORE_CREATED with chore_id and chore_name.
+        """
+        # Build complete chore data structure (or use pre-built)
+        if prebuilt:
+            chore_data = dict(user_input)
+        else:
+            chore_data = dict(db.build_chore(user_input))
+
+        # Override internal_id if provided (for form resubmission consistency)
+        if internal_id:
+            chore_data[const.DATA_CHORE_INTERNAL_ID] = internal_id
+
+        final_id = str(chore_data[const.DATA_CHORE_INTERNAL_ID])
+        chore_name = str(chore_data.get(const.DATA_CHORE_NAME, ""))
+
+        # Store in coordinator data
+        self._coordinator._data[const.DATA_CHORES][final_id] = chore_data
+        self._coordinator._persist()
+        self._coordinator.async_update_listeners()
+
+        # Emit lifecycle event
+        self.emit(
+            const.SIGNAL_SUFFIX_CHORE_CREATED,
+            chore_id=final_id,
+            chore_name=chore_name,
+        )
+
+        const.LOGGER.info(
+            "Created chore '%s' (ID: %s)",
+            chore_name,
+            final_id,
+        )
+
+        return chore_data
+
+    def update_chore(self, chore_id: str, updates: dict[str, Any]) -> dict[str, Any]:
+        """Update an existing chore in storage.
+
+        Args:
+            chore_id: Internal UUID of the chore to update.
+            updates: Partial chore data with DATA_* keys to merge.
+
+        Returns:
+            Updated ChoreData dict.
+
+        Raises:
+            HomeAssistantError: If chore not found.
+
+        Emits:
+            SIGNAL_SUFFIX_CHORE_UPDATED with chore_id and chore_name.
+        """
+        chores_data = self._coordinator._data.get(const.DATA_CHORES, {})
+        if chore_id not in chores_data:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_CHORE,
+                    "name": chore_id,
+                },
+            )
+
+        existing = chores_data[chore_id]
+        # Build updated chore (merge existing with updates)
+        updated_chore = dict(db.build_chore(updates, existing=existing))
+
+        # Store updated chore
+        self._coordinator._data[const.DATA_CHORES][chore_id] = updated_chore
+
+        # Recalculate badges affected by chore changes
+        self._coordinator.gamification_manager.recalculate_all_badges()
+
+        self._coordinator._persist()
+        self._coordinator.async_update_listeners()
+
+        # Clean up any orphaned kid-chore entities after assignment changes
+        self._coordinator.hass.async_create_task(
+            self._coordinator._remove_orphaned_kid_chore_entities()
+        )
+
+        chore_name = str(updated_chore.get(const.DATA_CHORE_NAME, ""))
+
+        # Emit lifecycle event
+        self.emit(
+            const.SIGNAL_SUFFIX_CHORE_UPDATED,
+            chore_id=chore_id,
+            chore_name=chore_name,
+        )
+
+        const.LOGGER.debug(
+            "Updated chore '%s' (ID: %s)",
+            chore_name,
+            chore_id,
+        )
+
+        return updated_chore
+
+    def delete_chore(self, chore_id: str) -> None:
+        """Delete a chore from storage and cleanup references.
+
+        Args:
+            chore_id: Internal UUID of the chore to delete.
+
+        Raises:
+            HomeAssistantError: If chore not found.
+
+        Emits:
+            SIGNAL_SUFFIX_CHORE_DELETED with chore_id and chore_name.
+        """
+        chores_data = self._coordinator._data.get(const.DATA_CHORES, {})
+        if chore_id not in chores_data:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_CHORE,
+                    "name": chore_id,
+                },
+            )
+
+        chore_name = chores_data[chore_id].get(const.DATA_CHORE_NAME, chore_id)
+
+        # Delete from storage
+        del self._coordinator._data[const.DATA_CHORES][chore_id]
+
+        # Remove HA entities
+        remove_entities_by_item_id(
+            self.hass,
+            self._coordinator.config_entry.entry_id,
+            chore_id,
+        )
+
+        # Cleanup references (coordinator has the cleanup methods)
+        self._coordinator._cleanup_deleted_chore_references()
+        self._coordinator._cleanup_deleted_chore_in_achievements()
+        self._coordinator._cleanup_deleted_chore_in_challenges()
+
+        # Remove orphaned shared chore sensors
+        self.hass.async_create_task(
+            self._coordinator._remove_orphaned_shared_chore_sensors()
+        )
+
+        self._coordinator._persist()
+        self._coordinator.async_update_listeners()
+
+        # Emit lifecycle event
+        self.emit(
+            const.SIGNAL_SUFFIX_CHORE_DELETED,
+            chore_id=chore_id,
+            chore_name=chore_name,
+        )
+
+        const.LOGGER.info(
+            "Deleted chore '%s' (ID: %s)",
+            chore_name,
+            chore_id,
+        )
+
+    # =========================================================================
     # §1.6 QUERY METHODS (read-only state queries)
     # =========================================================================
     # These methods provide chore state queries used by sensors and dashboards.
@@ -1825,6 +2012,10 @@ class ChoreManager(BaseManager):
         delegating to the StatisticsEngine, which owns the period data
         structure knowledge.
 
+        Note: Only persistent stats (all_time, highest, etc.) are written to
+        storage. Temporal stats (today/week/month) live in the presentation
+        cache (Phase 7.5 Architecture).
+
         Args:
             kid_id: The internal ID of the kid.
         """
@@ -1834,7 +2025,8 @@ class ChoreManager(BaseManager):
         stats = self._coordinator.stats.generate_chore_stats(
             kid_info, self._coordinator.chores_data
         )
-        kid_info[const.DATA_KID_CHORE_STATS] = stats
+        # Only persist non-temporal stats (Phase 7.5: temporal lives in cache)
+        kid_info[const.DATA_KID_CHORE_STATS] = filter_persistent_stats(stats)
 
     def _chore_allows_multiple_claims(self, chore_id: str) -> bool:
         """Check if chore allows multiple claims per approval period.

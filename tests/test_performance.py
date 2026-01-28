@@ -57,7 +57,7 @@ async def test_performance_baseline_with_scenario_full(
         for kid_id in coordinator.kids_data:
             coordinator.gamification_manager._mark_dirty(kid_id)
         # Trigger immediate evaluation
-        coordinator.gamification_manager._evaluate_dirty_kids()
+        coordinator.gamification_manager._evaluate_pending_kids()
 
         # Test 4: Parent notifications (via NotificationManager directly)
         if coordinator.parents_data and coordinator.kids_data:

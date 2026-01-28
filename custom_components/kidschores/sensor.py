@@ -1181,12 +1181,17 @@ class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
         'point_stat_' for frontend access to detailed breakdowns (earned, spent,
         bonuses, penalties, sources, etc.).
 
+        Phase 7.5: Merges persistent stats (all_time, highest) from storage
+        with temporal stats (today, week, month, year) from presentation cache.
+        Temporal stats use PRES_* keys mapped to backward-compatible attribute names.
+
         Attribute order: common fields first (purpose, kid_name),
         then all point_stat_* fields sorted alphabetically.
         """
         kid_info: KidData = cast(
             "KidData", self.coordinator.kids_data.get(self._kid_id, {})
         )
+        # Get persistent stats from storage (all_time values, highest_balance, etc.)
         point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
 
         # Common fields first (consistent ordering across sensors)
@@ -1194,9 +1199,20 @@ class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_POINTS,
             const.ATTR_KID_NAME: self._kid_name,
         }
-        # Add all point stats as attributes, prefixed for clarity and sorted alphabetically
+
+        # Add persistent stats from storage (sorted)
         for key in sorted(point_stats.keys()):
             attributes[f"{const.ATTR_PREFIX_POINT_STAT}{key}"] = point_stats[key]
+
+        # Phase 7.5: Add temporal stats from presentation cache
+        # PRES_KID_* keys map to backward-compatible names by stripping "pres_kid_" prefix
+        pres_stats = self.coordinator.statistics_manager.get_stats(self._kid_id)
+        for pres_key, value in pres_stats.items():
+            if pres_key.startswith(("pres_kid_points_", "pres_kid_avg_points_")):
+                # Strip "pres_kid_" prefix to get backward-compatible attribute name
+                attr_key = pres_key[9:]  # "pres_kid_points_xxx" -> "points_xxx"
+                attributes[f"{const.ATTR_PREFIX_POINT_STAT}{attr_key}"] = value
+
         return attributes
 
 
@@ -1260,12 +1276,17 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
         Dynamically includes all DATA_KID_CHORE_STATS fields prefixed with
         'chore_stat_' for frontend access (approved, claimed, overdue counts, etc.).
 
+        Phase 7.5: Merges persistent stats (all_time, streak) from storage
+        with temporal stats (today, week, month, year) from presentation cache.
+        Temporal stats use PRES_* keys mapped to backward-compatible attribute names.
+
         Attribute order: common fields first (purpose, kid_name),
         then all chore_stat_* fields sorted alphabetically.
         """
         kid_info: KidData = cast(
             "KidData", self.coordinator.kids_data.get(self._kid_id, {})
         )
+        # Get persistent stats from storage (all_time values, streaks, etc.)
         stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
 
         # Common fields first (consistent ordering across sensors)
@@ -1273,9 +1294,20 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_CHORES,
             const.ATTR_KID_NAME: self._kid_name,
         }
-        # Add all chore stats as attributes, prefixed for clarity and sorted alphabetically
+
+        # Add persistent stats from storage (sorted)
         for key in sorted(stats.keys()):
             attributes[f"{const.ATTR_PREFIX_CHORE_STAT}{key}"] = stats[key]
+
+        # Phase 7.5: Add temporal stats from presentation cache
+        # PRES_KID_* keys map to backward-compatible names by stripping "pres_kid_" prefix
+        pres_stats = self.coordinator.statistics_manager.get_stats(self._kid_id)
+        for pres_key, value in pres_stats.items():
+            if pres_key.startswith(("pres_kid_chores_", "pres_kid_top_chores_")):
+                # Strip "pres_kid_" prefix to get backward-compatible attribute name
+                attr_key = pres_key[9:]  # "pres_kid_chores_xxx" -> "chores_xxx"
+                attributes[f"{const.ATTR_PREFIX_CHORE_STAT}{attr_key}"] = value
+
         return attributes
 
 
@@ -1575,7 +1607,7 @@ class KidBadgeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
     """
 
     _attr_has_entity_name = True
-    _attr_translation_key = "kid_badge_progress_sensor"
+    _attr_translation_key = const.TRANS_KEY_SENSOR_KID_BADGE_PROGRESS_SENSOR
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = PERCENTAGE
 
@@ -2568,12 +2600,10 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
             total_progress = const.DEFAULT_ZERO
 
             for kid_id in assigned_kids:
-                # Use modern chore_stats structure
-                chore_stats = cast(
-                    "KidData", self.coordinator.kids_data.get(kid_id, {})
-                ).get(const.DATA_KID_CHORE_STATS, {})
-                daily = chore_stats.get(
-                    const.DATA_KID_CHORE_STATS_APPROVED_TODAY, const.DEFAULT_ZERO
+                # Use Phase 7.5 cache API for temporal stats (not storage)
+                cache_stats = self.coordinator.statistics_manager.get_stats(kid_id)
+                daily = cache_stats.get(
+                    const.PRES_KID_CHORES_APPROVED_TODAY, const.DEFAULT_ZERO
                 )
                 kid_progress = (
                     100
@@ -2648,12 +2678,10 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 achievement.get(const.DATA_ACHIEVEMENT_TYPE)
                 == const.ACHIEVEMENT_TYPE_DAILY_MIN
             ):
-                # Use modern chore_stats structure
-                chore_stats = cast(
-                    "KidData", self.coordinator.kids_data.get(kid_id, {})
-                ).get(const.DATA_KID_CHORE_STATS, {})
-                kids_progress[kid_name] = chore_stats.get(
-                    const.DATA_KID_CHORE_STATS_APPROVED_TODAY, const.DEFAULT_ZERO
+                # Use Phase 7.5 cache API for temporal stats (not storage)
+                cache_stats = self.coordinator.statistics_manager.get_stats(kid_id)
+                kids_progress[kid_name] = cache_stats.get(
+                    const.PRES_KID_CHORES_APPROVED_TODAY, const.DEFAULT_ZERO
                 )
             else:
                 kids_progress[kid_name] = const.DEFAULT_ZERO
@@ -3002,11 +3030,10 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
             )
 
         elif ach_type == const.ACHIEVEMENT_TYPE_DAILY_MIN:
-            chore_stats = cast(
-                "KidData", self.coordinator.kids_data.get(self._kid_id, {})
-            ).get(const.DATA_KID_CHORE_STATS, {})
-            daily = chore_stats.get(
-                const.DATA_KID_CHORE_STATS_APPROVED_TODAY, const.DEFAULT_ZERO
+            # Use Phase 7.5 cache API for temporal stats (not storage)
+            cache_stats = self.coordinator.statistics_manager.get_stats(self._kid_id)
+            daily = cache_stats.get(
+                const.PRES_KID_CHORES_APPROVED_TODAY, const.DEFAULT_ZERO
             )
 
             percent = (
@@ -3069,11 +3096,10 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
             achievement.get(const.DATA_ACHIEVEMENT_TYPE)
             == const.ACHIEVEMENT_TYPE_DAILY_MIN
         ):
-            chore_stats = cast(
-                "KidData", self.coordinator.kids_data.get(self._kid_id, {})
-            ).get(const.DATA_KID_CHORE_STATS, {})
-            raw_progress = chore_stats.get(
-                const.DATA_KID_CHORE_STATS_APPROVED_TODAY, const.DEFAULT_ZERO
+            # Use Phase 7.5 cache API for temporal stats (not storage)
+            cache_stats = self.coordinator.statistics_manager.get_stats(self._kid_id)
+            raw_progress = cache_stats.get(
+                const.PRES_KID_CHORES_APPROVED_TODAY, const.DEFAULT_ZERO
             )
 
         associated_chore = const.SENTINEL_EMPTY

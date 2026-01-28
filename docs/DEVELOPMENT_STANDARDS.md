@@ -18,13 +18,13 @@
 
 To prevent confusion between Home Assistant's registry and our internal data:
 
-| Term | Usage | Example |
-|------|-------|---------|
-| **Item** / **Record** | A data entry in our JSON storage | "A Chore Item", "Kid Record" |
-| **Domain Item** | Collective term for all stored data types | Kids, Chores, Badges (as JSON records) |
-| **Internal ID** | The UUID for a record | `kid_id`, `chore_id` |
-| **Entity** | ONLY a Home Assistant object | Sensor, Button, Select |
-| **Entity ID** | The HA string | `sensor.kc_alice_points` |
+| Term                  | Usage                                     | Example                                |
+| --------------------- | ----------------------------------------- | -------------------------------------- |
+| **Item** / **Record** | A data entry in our JSON storage          | "A Chore Item", "Kid Record"           |
+| **Domain Item**       | Collective term for all stored data types | Kids, Chores, Badges (as JSON records) |
+| **Internal ID**       | The UUID for a record                     | `kid_id`, `chore_id`                   |
+| **Entity**            | ONLY a Home Assistant object              | Sensor, Button, Select                 |
+| **Entity ID**         | The HA string                             | `sensor.kc_alice_points`               |
 
 **Critical Rule**: Never use "Entity" when referring to a Chore, Kid, Badge, etc. These are **Items** in storage, not HA registry objects.
 
@@ -166,10 +166,10 @@ async def update_kid_points(self, kid_id: str, points: int) -> None:
     """Update kid points - atomic operation."""
     # 1. Update memory
     self._data[const.DATA_KIDS][kid_id][const.DATA_KID_POINTS] = points
-    
+
     # 2. Persist to storage
     self.coordinator._persist()
-    
+
     # 3. Emit signal for listeners
     async_dispatcher_send(self.hass, SIGNAL_SUFFIX_KID_UPDATED)
 ```
@@ -177,6 +177,7 @@ async def update_kid_points(self, kid_id: str, points: int) -> None:
 #### Forbidden Patterns
 
 **UI/Service Purity**: `options_flow.py` and `services.py` are **strictly forbidden** from:
+
 - Calling `coordinator._persist()` directly
 - Writing to `coordinator._data` directly
 - Setting `updated_at` timestamps manually
@@ -211,23 +212,44 @@ def build_kid_data(...) -> KidData:
 
 ---
 
+### 4b. Cross-Manager Communication Rules
+
+| Rule                         | Description                                                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Reads OK**                 | Manager A can call Manager B's read methods (counts, names, statuses)                                              |
+| **Writes FORBIDDEN**         | Manager A must emit a Signal; Manager B listens and handles its own write                                          |
+| **Workflows = Event-Chains** | `CHORE_APPROVED` → Economy deposits → `POINTS_CHANGED` → Gamification checks → `BADGE_EARNED` → Notification sends |
+
+```python
+# ✅ CORRECT: Emit signal with payload
+self.emit(SIGNAL_SUFFIX_BADGE_EARNED, kid_id=kid_id, bonus_ids=bonus_ids)
+# EconomyManager._on_badge_earned() handles point deposit + bonus application
+
+# ❌ WRONG: Direct cross-manager write
+await self.coordinator.economy_manager.apply_bonus(kid_id, bonus_id)
+```
+
+---
+
 ### 5. Utils vs Helpers Boundary
 
 **Rule of Purity**: Files in `utils/` and `engines/` are prohibited from importing `homeassistant.*`. They must be testable in a standard Python environment without HA fixtures.
 
-| Component | Location | HA Imports? | Purpose | Example |
-|-----------|----------|-------------|---------|---------|
-| **Utils** | `utils/` | ❌ Forbidden | Pure Python functions | `format_points()`, `validate_uuid()` |
-| **Engines** | `engines/` | ❌ Forbidden | Pure business logic | `RecurrenceEngine`, `ChoreStateEngine` |
-| **Helpers** | `kc_helpers.py` | ✅ Required | HA-specific tools | `get_kid_by_user_id()`, `construct_device_info()` |
-| **Managers** | `managers/` | ✅ Required | Orchestration | `KidManager`, `ChoreManager` |
+| Component    | Location        | HA Imports?  | Purpose               | Example                                           |
+| ------------ | --------------- | ------------ | --------------------- | ------------------------------------------------- |
+| **Utils**    | `utils/`        | ❌ Forbidden | Pure Python functions | `format_points()`, `validate_uuid()`              |
+| **Engines**  | `engines/`      | ❌ Forbidden | Pure business logic   | `RecurrenceEngine`, `ChoreStateEngine`            |
+| **Helpers**  | `kc_helpers.py` | ✅ Required  | HA-specific tools     | `get_kid_by_user_id()`, `construct_device_info()` |
+| **Managers** | `managers/`     | ✅ Required  | Orchestration         | `KidManager`, `ChoreManager`                      |
 
 **Why This Matters**:
+
 - **Testability**: Utils/Engines run in pure pytest without mocking HA
 - **Portability**: Logic can be extracted to standalone libraries
 - **Performance**: Pure functions are faster to test and debug
 
 **Example - WRONG**:
+
 ```python
 # utils/point_utils.py
 from homeassistant.core import HomeAssistant  # ❌ FORBIDDEN
@@ -238,6 +260,7 @@ def calculate_points(hass: HomeAssistant, chore_id: str) -> int:
 ```
 
 **Example - CORRECT**:
+
 ```python
 # utils/point_utils.py
 def calculate_points(base_points: int, multiplier: float) -> int:  # ✅ Pure function
@@ -260,7 +283,7 @@ def get_chore_points(hass: HomeAssistant, chore_id: str) -> int:  # ✅ HA-aware
 
 #### Always Use dt\_\* Helper Functions
 
-**Required**: All date/time operations MUST use the `dt_*` helper functions from `kc_helpers.py`. Direct use of Python's `datetime` module is forbidden.
+**Required**: All date/time operations MUST use the `dt_*` helper functions from `utils/dt_utils.py`. Direct use of Python's `datetime` module is forbidden.
 
 **Why**: Ensures consistent timezone handling (UTC-aware, local-aware), DST safety, and testability across the codebase.
 
@@ -290,7 +313,7 @@ next_time = datetime.now() + timedelta(days=1)
 **Correct Pattern** ✅:
 
 ```python
-from custom_components.kidschores.kc_helpers import dt_today_local, dt_add_interval
+from custom_components.kidschores.utils.dt_utils import dt_today_local, dt_add_interval
 today = dt_today_local()
 next_time = dt_add_interval(dt_now_local(), {"interval": 1, "interval_unit": "day"})
 ```

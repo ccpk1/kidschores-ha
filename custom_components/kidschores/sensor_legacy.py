@@ -173,12 +173,12 @@ class KidChoreApprovalsDailySensor(KidsChoresCoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self) -> int:
-        """Return the number of chores completed today."""
-        kid_info: KidData = cast(
-            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
-        )
-        stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
-        return stats.get(const.DATA_KID_CHORE_STATS_APPROVED_TODAY, const.DEFAULT_ZERO)
+        """Return the number of chores completed today.
+
+        Phase 7.5: Uses presentation cache instead of persisted stats.
+        """
+        stats = self.coordinator.statistics_manager.get_stats(self._kid_id)
+        return stats.get(const.PRES_KID_CHORES_APPROVED_TODAY, const.DEFAULT_ZERO)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -234,12 +234,12 @@ class KidChoreApprovalsWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self) -> int:
-        """Return the number of chores completed this week."""
-        kid_info: KidData = cast(
-            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
-        )
-        stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
-        return stats.get(const.DATA_KID_CHORE_STATS_APPROVED_WEEK, const.DEFAULT_ZERO)
+        """Return the number of chores completed this week.
+
+        Phase 7.5: Uses presentation cache instead of persisted stats.
+        """
+        stats = self.coordinator.statistics_manager.get_stats(self._kid_id)
+        return stats.get(const.PRES_KID_CHORES_APPROVED_WEEK, const.DEFAULT_ZERO)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -295,12 +295,12 @@ class KidChoreApprovalsMonthlySensor(KidsChoresCoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self) -> int:
-        """Return the number of chores completed this month."""
-        kid_info: KidData = cast(
-            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
-        )
-        stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
-        return stats.get(const.DATA_KID_CHORE_STATS_APPROVED_MONTH, const.DEFAULT_ZERO)
+        """Return the number of chores completed this month.
+
+        Phase 7.5: Uses presentation cache instead of persisted stats.
+        """
+        stats = self.coordinator.statistics_manager.get_stats(self._kid_id)
+        return stats.get(const.PRES_KID_CHORES_APPROVED_MONTH, const.DEFAULT_ZERO)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -569,14 +569,12 @@ class KidPointsEarnedDailySensor(KidsChoresCoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self) -> int:
-        """Return how many net points the kid has earned so far today."""
-        kid_info: KidData = cast(
-            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
-        )
-        point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
-        value = point_stats.get(
-            const.DATA_KID_POINT_STATS_NET_TODAY, const.DEFAULT_ZERO
-        )
+        """Return how many net points the kid has earned so far today.
+
+        Phase 7.5: Uses presentation cache instead of persisted stats.
+        """
+        stats = self.coordinator.statistics_manager.get_stats(self._kid_id)
+        value = stats.get(const.PRES_KID_POINTS_NET_TODAY, const.DEFAULT_ZERO)
         return int(cast("float | int", value))
 
     @property
@@ -647,12 +645,12 @@ class KidPointsEarnedWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self) -> int:
-        """Return how many net points the kid has earned this week."""
-        kid_info: KidData = cast(
-            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
-        )
-        point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
-        value = point_stats.get(const.DATA_KID_POINT_STATS_NET_WEEK, const.DEFAULT_ZERO)
+        """Return how many net points the kid has earned this week.
+
+        Phase 7.5: Uses presentation cache instead of persisted stats.
+        """
+        stats = self.coordinator.statistics_manager.get_stats(self._kid_id)
+        value = stats.get(const.PRES_KID_POINTS_NET_WEEK, const.DEFAULT_ZERO)
         return int(cast("float | int", value))
 
     @property
@@ -723,14 +721,12 @@ class KidPointsEarnedMonthlySensor(KidsChoresCoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self) -> int:
-        """Return how many net points the kid has earned this month."""
-        kid_info: KidData = cast(
-            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
-        )
-        point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
-        value = point_stats.get(
-            const.DATA_KID_POINT_STATS_NET_MONTH, const.DEFAULT_ZERO
-        )
+        """Return how many net points the kid has earned this month.
+
+        Phase 7.5: Uses presentation cache instead of persisted stats.
+        """
+        stats = self.coordinator.statistics_manager.get_stats(self._kid_id)
+        value = stats.get(const.PRES_KID_POINTS_NET_MONTH, const.DEFAULT_ZERO)
         return int(cast("float | int", value))
 
     @property

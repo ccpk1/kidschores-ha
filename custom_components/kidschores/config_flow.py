@@ -181,7 +181,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                     selector.SelectSelectorConfig(
                         options=options,
                         mode=selector.SelectSelectorMode.LIST,
-                        translation_key="data_recovery_selection",
+                        translation_key=const.TRANS_KEY_CFOF_DATA_RECOVERY_SELECTION,
                         custom_value=True,  # Allow backup filenames with prefixes
                     )
                 )

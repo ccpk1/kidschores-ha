@@ -388,6 +388,12 @@ class PreV50Migrator:
         self.remove_deprecated_button_entities()
         self.remove_deprecated_sensor_entities()
 
+        # Phase 9: Strip temporal stats from storage (Phase 7.5 - The Great Stripping)
+        # Derivative Data is Ephemeral - clock-based stats MUST NOT be saved to JSON.
+        # These fields are now derived on-demand from period buckets (point_data.periods).
+        # Keep: earned_all_time, highest_balance, longest_streak_all_time (High-Water Marks)
+        self._strip_temporal_stats()
+
         const.LOGGER.info("All pre-v50 migrations completed successfully")
 
     def _migrate_independent_chores(self) -> None:
@@ -2270,6 +2276,150 @@ class PreV50Migrator:
             )
 
         const.LOGGER.info("INFO: ==========================================")
+
+    def _strip_temporal_stats(self) -> None:
+        """Remove temporal (clock-derived) fields from point_stats and chore_stats (Phase 7.5).
+
+        Phase 7.5 Directive: Derivative Data is Ephemeral
+        Clock-based statistics (today, week, month) MUST NOT be persisted to JSON storage.
+        These values are now derived on-demand from period buckets (point_data.periods).
+
+        High-Water Marks to KEEP (require persistence):
+        - points_earned_all_time: Cumulative total (bucket aggregate)
+        - points_spent_all_time: Cumulative spent (bucket aggregate)
+        - highest_balance: All-time peak balance (cannot be recalculated from buckets)
+        - longest_streak_all_time: Peak streak (cannot be recalculated from buckets)
+        - approved_all_time: Cumulative chore completions (bucket aggregate)
+
+        Temporal fields to STRIP (now derived from buckets):
+        - Point stats: earned/spent/net_today/week/month/year, avg_*, by_source_today/week/month
+        - Chore stats: approved/claimed/overdue/disapproved_today/week/month/year, avg_*
+        - Most completed: most_completed_chore_week/month/year (all-time kept)
+        """
+        const.LOGGER.info(
+            "Phase 9: Stripping temporal stats from storage (Phase 7.5 - The Great Stripping)"
+        )
+
+        # Define temporal fields to strip from point_stats
+        # Note: We use the raw string values to match what's actually in storage
+        point_stats_temporal_fields = [
+            # Earned (temporal periods - all-time stays)
+            const.DATA_KID_POINT_STATS_EARNED_TODAY,
+            const.DATA_KID_POINT_STATS_EARNED_WEEK,
+            const.DATA_KID_POINT_STATS_EARNED_MONTH,
+            const.DATA_KID_POINT_STATS_EARNED_YEAR,
+            # Spent (temporal periods - all-time stays)
+            const.DATA_KID_POINT_STATS_SPENT_TODAY,
+            const.DATA_KID_POINT_STATS_SPENT_WEEK,
+            const.DATA_KID_POINT_STATS_SPENT_MONTH,
+            const.DATA_KID_POINT_STATS_SPENT_YEAR,
+            # Net (temporal periods - all-time stays)
+            const.DATA_KID_POINT_STATS_NET_TODAY,
+            const.DATA_KID_POINT_STATS_NET_WEEK,
+            const.DATA_KID_POINT_STATS_NET_MONTH,
+            const.DATA_KID_POINT_STATS_NET_YEAR,
+            # By-source breakdowns (temporal periods)
+            const.DATA_KID_POINT_STATS_BY_SOURCE_TODAY,
+            const.DATA_KID_POINT_STATS_BY_SOURCE_WEEK,
+            const.DATA_KID_POINT_STATS_BY_SOURCE_MONTH,
+            const.DATA_KID_POINT_STATS_BY_SOURCE_YEAR,
+            # Averages (derived values)
+            const.DATA_KID_POINT_STATS_AVG_PER_DAY_WEEK,
+            const.DATA_KID_POINT_STATS_AVG_PER_DAY_MONTH,
+            const.DATA_KID_POINT_STATS_AVG_PER_CHORE,
+        ]
+
+        # Define temporal fields to strip from chore_stats
+        chore_stats_temporal_fields = [
+            # Approved counts (temporal periods - all-time stays)
+            const.DATA_KID_CHORE_STATS_APPROVED_TODAY,
+            const.DATA_KID_CHORE_STATS_APPROVED_WEEK,
+            const.DATA_KID_CHORE_STATS_APPROVED_MONTH,
+            const.DATA_KID_CHORE_STATS_APPROVED_YEAR,
+            # Claimed counts (temporal periods - all-time stays)
+            const.DATA_KID_CHORE_STATS_CLAIMED_TODAY,
+            const.DATA_KID_CHORE_STATS_CLAIMED_WEEK,
+            const.DATA_KID_CHORE_STATS_CLAIMED_MONTH,
+            const.DATA_KID_CHORE_STATS_CLAIMED_YEAR,
+            # Overdue counts (temporal periods - all-time stays)
+            const.DATA_KID_CHORE_STATS_OVERDUE_TODAY,
+            const.DATA_KID_CHORE_STATS_OVERDUE_WEEK,
+            const.DATA_KID_CHORE_STATS_OVERDUE_MONTH,
+            const.DATA_KID_CHORE_STATS_OVERDUE_YEAR,
+            # Disapproved counts (temporal periods - all-time stays)
+            const.DATA_KID_CHORE_STATS_DISAPPROVED_TODAY,
+            const.DATA_KID_CHORE_STATS_DISAPPROVED_WEEK,
+            const.DATA_KID_CHORE_STATS_DISAPPROVED_MONTH,
+            const.DATA_KID_CHORE_STATS_DISAPPROVED_YEAR,
+            # Total points from chores (temporal periods - all-time stays)
+            const.DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_TODAY,
+            const.DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_WEEK,
+            const.DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_MONTH,
+            const.DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_YEAR,
+            # Most completed chore (temporal periods - all-time stays)
+            const.DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_WEEK,
+            const.DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_MONTH,
+            const.DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_YEAR,
+            # Longest streaks (temporal periods - all-time stays)
+            const.DATA_KID_CHORE_STATS_LONGEST_STREAK_WEEK,
+            const.DATA_KID_CHORE_STATS_LONGEST_STREAK_MONTH,
+            const.DATA_KID_CHORE_STATS_LONGEST_STREAK_YEAR,
+            # Averages (derived values)
+            const.DATA_KID_CHORE_STATS_AVG_PER_DAY_WEEK,
+            const.DATA_KID_CHORE_STATS_AVG_PER_DAY_MONTH,
+            # Current counts (live state, not historical)
+            const.DATA_KID_CHORE_STATS_CURRENT_DUE_TODAY,
+            const.DATA_KID_CHORE_STATS_CURRENT_OVERDUE,
+            const.DATA_KID_CHORE_STATS_CURRENT_CLAIMED,
+            const.DATA_KID_CHORE_STATS_CURRENT_APPROVED,
+        ]
+
+        kids_data = self.coordinator._data.get(const.DATA_KIDS, {})
+        kids_processed = 0
+        point_fields_removed = 0
+        chore_fields_removed = 0
+
+        for kid_id, kid_info in kids_data.items():
+            kid_name = kid_info.get(const.DATA_KID_NAME, kid_id)
+            kid_had_changes = False
+
+            # Strip temporal fields from point_stats
+            point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
+            for field in point_stats_temporal_fields:
+                if field in point_stats:
+                    del point_stats[field]
+                    point_fields_removed += 1
+                    kid_had_changes = True
+
+            # Strip temporal fields from chore_stats
+            chore_stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
+            for field in chore_stats_temporal_fields:
+                if field in chore_stats:
+                    del chore_stats[field]
+                    chore_fields_removed += 1
+                    kid_had_changes = True
+
+            if kid_had_changes:
+                kids_processed += 1
+                const.LOGGER.debug(
+                    "Stripped temporal stats from kid '%s'",
+                    kid_name,
+                )
+
+        total_removed = point_fields_removed + chore_fields_removed
+        if total_removed > 0:
+            const.LOGGER.info(
+                "Phase 9 complete: Removed %s temporal fields from %s kids "
+                "(point_stats: %s, chore_stats: %s)",
+                total_removed,
+                kids_processed,
+                point_fields_removed,
+                chore_fields_removed,
+            )
+        else:
+            const.LOGGER.debug(
+                "Phase 9 complete: No temporal stats fields found to strip (already clean)"
+            )
 
     # -------------------------------------------------------------------------------------
     # Migration-only methods (extracted from coordinator.py)

@@ -141,6 +141,43 @@ def update_chore_item(self, chore_id: str) -> None:
 
 ## ✅ Quality Compliance Checklist
 
+### Automated Quality Gates (Enforced in CI/CD)
+
+**Command**: `./utils/quick_lint.sh --fix`
+
+This single command runs all quality checks in sequence:
+
+1. **Ruff Check** - Code quality (unused imports, complexity, style)
+2. **Ruff Format** - Code formatting (line length, indentation)
+3. **MyPy** - Type checking (100% coverage required)
+4. **Boundary Checker** - Architectural rules (NEW: January 2026)
+
+**Exit Code**: Must be 0 before committing. All checks must pass.
+
+#### Boundary Checker (`utils/check_boundaries.py`)
+
+Automated enforcement of architectural standards from CODE_REVIEW_GUIDE.md Phase 0:
+
+| Check Category | Rule | Auto-Detected |
+|----------------|------|---------------|
+| **Purity Boundary** | No `homeassistant.*` imports in `utils/` or `engines/` | ✅ Yes |
+| **Lexicon Standards** | Use "Item"/"Record", not "Entity" for storage data | ✅ Yes |
+| **CRUD Ownership** | Only Managers can call `coordinator._persist()` | ✅ Yes |
+| **Translation Constants** | Use `const.TRANS_KEY_*`, not hardcoded strings | ✅ Yes |
+| **Logging Quality** | Use lazy logging (`%s`), not f-strings | ✅ Yes |
+| **Type Syntax** | Use `str \| None`, not `Optional[str]` | ✅ Yes |
+| **Exception Handling** | Use specific exceptions, not bare `Exception:` | ✅ Yes |
+
+**Current Baseline**: 11 known violations as of v0.5.0-beta3 (architectural migration in progress).
+
+**Target**: Zero violations before Platinum recertification.
+
+**Reference**: [CODE_REVIEW_GUIDE.md § Phase 0: Boundary Check](CODE_REVIEW_GUIDE.md#phase-0-boundary-check-mandatory)
+
+---
+
+### Manual Code Review Standards
+
 **Wrong Pattern** (Never use):
 
 ```python

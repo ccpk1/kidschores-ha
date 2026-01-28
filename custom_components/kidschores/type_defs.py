@@ -808,7 +808,7 @@ class EvaluationResult(TypedDict):
 class GamificationBatchResult(TypedDict):
     """Results from evaluating all gamification for a kid.
 
-    Returned by GamificationEngine.evaluate_all() or GamificationManager._evaluate_dirty_kids().
+    Returned by GamificationEngine.evaluate_all() or GamificationManager._evaluate_pending_kids().
     Provides a complete picture of what changed for a single kid.
     """
 
@@ -1005,16 +1005,27 @@ class RewardDisapprovedEvent(TypedDict, total=False):
 class BadgeEarnedEvent(TypedDict, total=False):
     """Event payload for SIGNAL_SUFFIX_BADGE_EARNED.
 
-    Emitted by: GamificationManager.evaluate_badges()
-    Consumed by: NotificationManager, EconomyManager (if badge has point bonus)
+    Emitted by: GamificationManager._apply_badge_result()
+    Consumed by:
+        - EconomyManager: points, multiplier, bonuses, penalties
+        - RewardManager: reward grants (free)
+        - NotificationManager: kid/parent notifications
+
+    This is the "Award Manifest" - GamificationManager builds it and domain
+    experts (Banker, Inventory) pick up their respective items.
     """
 
-    kid_id: str  # Required
-    badge_id: str  # Required
-    badge_name: str  # Required
-    badge_type: str  # Required: "cumulative" or "periodic"
-    level: int | None  # Optional: For cumulative badges (1, 2, 3, ...)
-    points_bonus: float | None  # Optional: Bonus points awarded
+    # Required fields
+    kid_id: str
+    badge_id: str
+    badge_name: str
+
+    # The Award Manifest (all handled by listeners, not GamificationManager)
+    points: float  # EconomyManager deposits
+    multiplier: float | None  # EconomyManager updates (Banker owns currency rules)
+    reward_ids: list[str]  # RewardManager grants (free, cost=0)
+    bonus_ids: list[str]  # EconomyManager applies
+    penalty_ids: list[str]  # EconomyManager applies
 
 
 class BadgeRevokedEvent(TypedDict, total=False):

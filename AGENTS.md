@@ -36,10 +36,15 @@ Read **only** what you need for your task:
 **Nothing is complete until ALL THREE pass**:
 
 ```bash
-./utils/quick_lint.sh --fix    # Must pass (9.5+/10)
+./utils/quick_lint.sh --fix    # Must pass (includes boundary checks)
 mypy custom_components/kidschores/  # Zero errors required
 python -m pytest tests/ -v --tb=line  # All tests pass
 ```
+
+**Integrated Quality Gates** (as of January 2026):
+- Ruff check/format (code quality + formatting)
+- MyPy (type checking)
+- **Boundary checker** (architectural rules) ← NEW
 
 **Error Recovery**: If `mypy` fails more than twice on the same error, STOP and ask for clarification. Do NOT suppress with `# type: ignore`.
 

@@ -179,6 +179,7 @@ DATA_META: Final = "meta"
 DATA_META_SCHEMA_VERSION: Final = "schema_version"
 DATA_META_LAST_MIGRATION_DATE: Final = "last_migration_date"
 DATA_META_MIGRATIONS_APPLIED: Final = "migrations_applied"
+DATA_META_PENDING_EVALUATIONS: Final = "pending_evaluations"
 
 # Storage Data Keys (Phase 2b)
 # Top-level keys in .storage/kidschores_data (not entity-specific DATA_KID_*, DATA_CHORE_*, etc.)
@@ -819,6 +820,9 @@ DATA_KID_CHORE_DATA_BADGE_REFS: Final = "badge_refs"
 DATA_KID_CHORE_STATS: Final = "chore_stats"
 
 # --- Approval Counts = Completion Counts ---
+# NOTE: *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are computed at runtime by statistics_engine.py
+# but NOT persisted to storage (Phase 7.5: Derivative Data is Ephemeral).
+# Only *_ALL_TIME keys are persisted. Temporal values live in StatisticsManager cache.
 DATA_KID_CHORE_STATS_APPROVED_TODAY: Final = "approved_today"
 DATA_KID_CHORE_STATS_APPROVED_WEEK: Final = "approved_week"
 DATA_KID_CHORE_STATS_APPROVED_MONTH: Final = "approved_month"
@@ -837,6 +841,7 @@ DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_YEAR: Final = "most_completed_chore_ye
 DATA_KID_CHORE_DATA_APPROVED_LAST_DATE: Final = "approved_last_date"
 
 # --- Total Points from Chores ---
+# NOTE: *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are NOT persisted (Phase 7.5).
 DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_TODAY: Final = (
     "total_points_from_chores_today"
 )
@@ -854,6 +859,7 @@ DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_ALL_TIME = (
 )
 
 # --- Overdue Counts ---
+# NOTE: *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are NOT persisted (Phase 7.5).
 DATA_KID_CHORE_STATS_OVERDUE_TODAY: Final = "overdue_today"
 DATA_KID_CHORE_STATS_OVERDUE_WEEK: Final = "overdue_week"
 DATA_KID_CHORE_STATS_OVERDUE_MONTH: Final = "overdue_month"
@@ -861,6 +867,7 @@ DATA_KID_CHORE_STATS_OVERDUE_YEAR: Final = "overdue_year"
 DATA_KID_CHORE_STATS_OVERDUE_ALL_TIME: Final = "overdue_count_all_time"
 
 # --- Claimed Counts ---
+# NOTE: *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are computed at runtime but NOT persisted (Phase 7.5).
 DATA_KID_CHORE_STATS_CLAIMED_TODAY: Final = "claimed_today"
 DATA_KID_CHORE_STATS_CLAIMED_WEEK: Final = "claimed_week"
 DATA_KID_CHORE_STATS_CLAIMED_MONTH: Final = "claimed_month"
@@ -868,6 +875,7 @@ DATA_KID_CHORE_STATS_CLAIMED_YEAR: Final = "claimed_year"
 DATA_KID_CHORE_STATS_CLAIMED_ALL_TIME: Final = "claimed_all_time"
 
 # --- Claimed but Not Approved ---
+# NOTE: *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are NOT persisted (Phase 7.5).
 DATA_KID_CHORE_STATS_DISAPPROVED_TODAY: Final = "disapproved_today"
 DATA_KID_CHORE_STATS_DISAPPROVED_WEEK: Final = "disapproved_week"
 DATA_KID_CHORE_STATS_DISAPPROVED_MONTH: Final = "disapproved_month"
@@ -875,18 +883,21 @@ DATA_KID_CHORE_STATS_DISAPPROVED_YEAR: Final = "disapproved_year"
 DATA_KID_CHORE_STATS_DISAPPROVED_ALL_TIME: Final = "disapproved_all_time"
 
 # --- Chores Current Stats ---
+# NOTE: current_* keys are NOT persisted (Phase 7.5) - they're point-in-time snapshots.
 DATA_KID_CHORE_STATS_CURRENT_DUE_TODAY: Final = "current_due_today"
 DATA_KID_CHORE_STATS_CURRENT_OVERDUE: Final = "current_overdue"
 DATA_KID_CHORE_STATS_CURRENT_CLAIMED: Final = "current_claimed"
 DATA_KID_CHORE_STATS_CURRENT_APPROVED: Final = "current_approved"
 
 # --- Longest Streaks ---
+# NOTE: *_WEEK/*_MONTH/*_YEAR keys are NOT persisted (Phase 7.5). Only *_ALL_TIME is persisted.
 DATA_KID_CHORE_STATS_LONGEST_STREAK_WEEK: Final = "longest_streak_week"
 DATA_KID_CHORE_STATS_LONGEST_STREAK_MONTH: Final = "longest_streak_month"
 DATA_KID_CHORE_STATS_LONGEST_STREAK_YEAR: Final = "longest_streak_year"
 DATA_KID_CHORE_STATS_LONGEST_STREAK_ALL_TIME: Final = "longest_streak_all_time"
 
 # --- Average Chores Per Day ---
+# NOTE: avg_per_day_* keys are NOT persisted (Phase 7.5).
 DATA_KID_CHORE_STATS_AVG_PER_DAY_MONTH: Final = "avg_per_day_month"
 DATA_KID_CHORE_STATS_AVG_PER_DAY_WEEK: Final = "avg_per_day_week"
 
@@ -1103,6 +1114,9 @@ POINTS_SOURCE_OPTIONS = [
 DATA_KID_POINT_STATS: Final = "point_stats"
 
 # --- Per-period totals ---
+# NOTE: *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are computed at runtime by statistics_engine.py
+# but NOT persisted to storage (Phase 7.5: Derivative Data is Ephemeral).
+# Only *_ALL_TIME keys are persisted. Temporal values live in StatisticsManager cache.
 DATA_KID_POINT_STATS_EARNED_TODAY: Final = "points_earned_today"
 DATA_KID_POINT_STATS_EARNED_WEEK: Final = "points_earned_week"
 DATA_KID_POINT_STATS_EARNED_MONTH: Final = "points_earned_month"
@@ -1110,6 +1124,7 @@ DATA_KID_POINT_STATS_EARNED_YEAR: Final = "points_earned_year"
 DATA_KID_POINT_STATS_EARNED_ALL_TIME: Final = "points_earned_all_time"
 
 # --- Per-period by-source breakdowns ---
+# NOTE: *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are NOT persisted (Phase 7.5).
 DATA_KID_POINT_STATS_BY_SOURCE_TODAY: Final = "points_by_source_today"
 DATA_KID_POINT_STATS_BY_SOURCE_WEEK: Final = "points_by_source_week"
 DATA_KID_POINT_STATS_BY_SOURCE_MONTH: Final = "points_by_source_month"
@@ -1117,6 +1132,7 @@ DATA_KID_POINT_STATS_BY_SOURCE_YEAR: Final = "points_by_source_year"
 DATA_KID_POINT_STATS_BY_SOURCE_ALL_TIME: Final = "points_by_source_all_time"
 
 # --- Per-period spent (negative deltas) ---
+# NOTE: *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are NOT persisted (Phase 7.5).
 DATA_KID_POINT_STATS_SPENT_TODAY: Final = "points_spent_today"
 DATA_KID_POINT_STATS_SPENT_WEEK: Final = "points_spent_week"
 DATA_KID_POINT_STATS_SPENT_MONTH: Final = "points_spent_month"
@@ -1124,6 +1140,7 @@ DATA_KID_POINT_STATS_SPENT_YEAR: Final = "points_spent_year"
 DATA_KID_POINT_STATS_SPENT_ALL_TIME: Final = "points_spent_all_time"
 
 # --- Per-period net (earned - spent) ---
+# NOTE: *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are NOT persisted (Phase 7.5).
 DATA_KID_POINT_STATS_NET_TODAY: Final = "points_net_today"
 DATA_KID_POINT_STATS_NET_WEEK: Final = "points_net_week"
 DATA_KID_POINT_STATS_NET_MONTH: Final = "points_net_month"
@@ -1135,6 +1152,7 @@ DATA_KID_POINT_STATS_EARNING_STREAK_CURRENT: Final = "points_earning_streak_curr
 DATA_KID_POINT_STATS_EARNING_STREAK_LONGEST: Final = "points_earning_streak_longest"
 
 # --- Averages ---
+# NOTE: avg_*_week/month keys are NOT persisted (Phase 7.5). avg_per_chore is persisted.
 DATA_KID_POINT_STATS_AVG_PER_DAY_WEEK: Final = "avg_points_per_day_week"
 DATA_KID_POINT_STATS_AVG_PER_DAY_MONTH: Final = "avg_points_per_day_month"
 DATA_KID_POINT_STATS_AVG_PER_CHORE: Final = "avg_points_per_chore"
@@ -1147,6 +1165,96 @@ DATA_KID_POINTS_EARNED_ALL_TIME: Final = "points_earned_all_time"
 DATA_KID_POINTS_SPENT_ALL_TIME: Final = "points_spent_all_time"
 DATA_KID_POINTS_NET_ALL_TIME: Final = "points_net_all_time"
 DATA_KID_POINTS_BY_SOURCE_ALL_TIME: Final = "points_by_source_all_time"
+
+# =============================================================================
+# PRESENTATION CONSTANTS (PRES_KID_*) - Memory-only cache keys (NOT in storage)
+# =============================================================================
+# These constants are used ONLY in StatisticsManager._stats_cache.
+# They represent ephemeral, derived data that can be regenerated from buckets.
+# Directive: Derivative Data is Ephemeral - these MUST NOT be persisted.
+# See Phase 7.5: Statistics Presenter & Data Sanitization
+# Naming: PRES_KID_* follows DATA_KID_* pattern for kid-specific values.
+
+# --- Presentation: Point Stats (derived from period buckets) ---
+PRES_KID_POINTS_EARNED_TODAY: Final = "pres_kid_points_earned_today"
+PRES_KID_POINTS_EARNED_WEEK: Final = "pres_kid_points_earned_week"
+PRES_KID_POINTS_EARNED_MONTH: Final = "pres_kid_points_earned_month"
+PRES_KID_POINTS_EARNED_YEAR: Final = "pres_kid_points_earned_year"
+
+PRES_KID_POINTS_SPENT_TODAY: Final = "pres_kid_points_spent_today"
+PRES_KID_POINTS_SPENT_WEEK: Final = "pres_kid_points_spent_week"
+PRES_KID_POINTS_SPENT_MONTH: Final = "pres_kid_points_spent_month"
+PRES_KID_POINTS_SPENT_YEAR: Final = "pres_kid_points_spent_year"
+
+PRES_KID_POINTS_NET_TODAY: Final = "pres_kid_points_net_today"
+PRES_KID_POINTS_NET_WEEK: Final = "pres_kid_points_net_week"
+PRES_KID_POINTS_NET_MONTH: Final = "pres_kid_points_net_month"
+PRES_KID_POINTS_NET_YEAR: Final = "pres_kid_points_net_year"
+
+PRES_KID_POINTS_BY_SOURCE_TODAY: Final = "pres_kid_points_by_source_today"
+PRES_KID_POINTS_BY_SOURCE_WEEK: Final = "pres_kid_points_by_source_week"
+PRES_KID_POINTS_BY_SOURCE_MONTH: Final = "pres_kid_points_by_source_month"
+PRES_KID_POINTS_BY_SOURCE_YEAR: Final = "pres_kid_points_by_source_year"
+
+PRES_KID_POINTS_AVG_PER_DAY_WEEK: Final = "pres_kid_avg_points_per_day_week"
+PRES_KID_POINTS_AVG_PER_DAY_MONTH: Final = "pres_kid_avg_points_per_day_month"
+
+# --- Presentation: Chore Stats (derived from period buckets) ---
+PRES_KID_CHORES_APPROVED_TODAY: Final = "pres_kid_chores_approved_today"
+PRES_KID_CHORES_APPROVED_WEEK: Final = "pres_kid_chores_approved_week"
+PRES_KID_CHORES_APPROVED_MONTH: Final = "pres_kid_chores_approved_month"
+PRES_KID_CHORES_APPROVED_YEAR: Final = "pres_kid_chores_approved_year"
+
+PRES_KID_CHORES_CLAIMED_TODAY: Final = "pres_kid_chores_claimed_today"
+PRES_KID_CHORES_CLAIMED_WEEK: Final = "pres_kid_chores_claimed_week"
+PRES_KID_CHORES_CLAIMED_MONTH: Final = "pres_kid_chores_claimed_month"
+PRES_KID_CHORES_CLAIMED_YEAR: Final = "pres_kid_chores_claimed_year"
+
+PRES_KID_CHORES_POINTS_TODAY: Final = "pres_kid_chores_points_today"
+PRES_KID_CHORES_POINTS_WEEK: Final = "pres_kid_chores_points_week"
+PRES_KID_CHORES_POINTS_MONTH: Final = "pres_kid_chores_points_month"
+PRES_KID_CHORES_POINTS_YEAR: Final = "pres_kid_chores_points_year"
+
+PRES_KID_TOP_CHORES_WEEK: Final = "pres_kid_top_chores_week"
+PRES_KID_TOP_CHORES_MONTH: Final = "pres_kid_top_chores_month"
+PRES_KID_TOP_CHORES_ALL_TIME: Final = "pres_kid_top_chores_all_time"
+
+# --- Presentation: Reward Stats (derived from period buckets) ---
+PRES_KID_REWARDS_CLAIMED_TODAY: Final = "pres_kid_rewards_claimed_today"
+PRES_KID_REWARDS_CLAIMED_WEEK: Final = "pres_kid_rewards_claimed_week"
+PRES_KID_REWARDS_CLAIMED_MONTH: Final = "pres_kid_rewards_claimed_month"
+
+PRES_KID_REWARDS_APPROVED_TODAY: Final = "pres_kid_rewards_approved_today"
+PRES_KID_REWARDS_APPROVED_WEEK: Final = "pres_kid_rewards_approved_week"
+PRES_KID_REWARDS_APPROVED_MONTH: Final = "pres_kid_rewards_approved_month"
+
+# --- Presentation: Cache Metadata ---
+PRES_KID_LAST_UPDATED: Final = "pres_kid_last_updated"
+PRES_KID_CACHE_VERSION: Final = "pres_kid_cache_version"
+
+# =============================================================================
+# TEMPORAL STAT KEY SUFFIXES (for migration stripping - Phase 7.5)
+# =============================================================================
+# These suffixes identify temporal keys in *_stats dicts that should NOT be
+# persisted to storage. Used by migration_pre_v50._strip_temporal_stats() and
+# statistics_engine filter functions. Keys ending with these ARE temporal.
+# Note: all_time and highest_balance are NOT temporal - they persist.
+STATS_TEMPORAL_SUFFIXES: Final[tuple[str, ...]] = (
+    "_today",
+    "_week",
+    "_month",
+    "_year",
+    "_avg_per_day_week",
+    "_avg_per_day_month",
+    "_avg_per_chore",
+    "_current_due_today",
+    "_current_overdue",
+    "_current_claimed",
+    "_current_approved",
+    "most_completed_chore_week",
+    "most_completed_chore_month",
+    "most_completed_chore_year",
+)
 
 # PARENTS
 DATA_PARENT_ASSOCIATED_KIDS: Final = "associated_kids"
@@ -2800,6 +2908,7 @@ TRANS_KEY_NO_DUE_DATE: Final = "no_due_date"
 # Data Recovery
 TRANS_KEY_CFOF_DATA_RECOVERY_TITLE: Final = "data_recovery_title"
 TRANS_KEY_CFOF_DATA_RECOVERY_DESCRIPTION: Final = "data_recovery_description"
+TRANS_KEY_CFOF_DATA_RECOVERY_SELECTION: Final = "data_recovery_selection"
 TRANS_KEY_CFOF_BACKUP_CURRENT_ACTIVE: Final = "backup_current_active"
 TRANS_KEY_CFOF_BACKUP_AGE: Final = "backup_age"
 TRANS_KEY_CFOF_RESTORE_WARNING: Final = "restore_warning"
@@ -3039,6 +3148,7 @@ TRANS_KEY_FLOW_HELPERS_THRESHOLD_TYPE: Final = "threshold_type"
 TRANS_KEY_SENSOR_ACHIEVEMENT_PROGRESS_SENSOR: Final = "kid_achievement_progress_sensor"
 TRANS_KEY_SENSOR_ACHIEVEMENT_STATE_SENSOR: Final = "system_achievement_sensor"
 TRANS_KEY_SENSOR_BADGE_SENSOR: Final = "system_badge_sensor"
+TRANS_KEY_SENSOR_KID_BADGE_PROGRESS_SENSOR: Final = "kid_badge_progress_sensor"
 TRANS_KEY_SENSOR_BONUS_APPLIES_SENSOR: Final = "kid_bonus_applied_sensor"
 TRANS_KEY_SENSOR_CHALLENGE_PROGRESS_SENSOR: Final = "kid_challenge_progress_sensor"
 TRANS_KEY_SENSOR_CHALLENGE_STATE_SENSOR: Final = "system_challenge_sensor"

@@ -1,7 +1,7 @@
 """Gamification Manager - Debounced badge/achievement/challenge evaluation.
 
 This manager handles gamification evaluation with debouncing:
-- Dirty tracking: Which kids need re-evaluation
+- Pending tracking: Which kids need re-evaluation (persisted to storage)
 - Debounced evaluation: Batch evaluations to avoid redundant processing
 - Event listening: Responds to points_changed, chore_approved, etc.
 - Result application: Awards/revokes badges, achievements, challenges
@@ -10,6 +10,11 @@ ARCHITECTURE (v0.5.0+):
 - GamificationManager = "The Judge" (STATEFUL orchestration)
 - GamificationEngine = Pure evaluation logic (STATELESS)
 - Coordinator provides context data and receives result notifications
+
+RELIABILITY (Phase 7.4):
+- Pending evaluations are persisted to storage meta
+- On restart, pending evaluations are recovered and processed
+- Kid deletion removes kid from pending queue
 """
 
 from __future__ import annotations
@@ -19,8 +24,11 @@ from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.exceptions import HomeAssistantError
 
-from custom_components.kidschores import const, kc_helpers as kh
+from custom_components.kidschores import const, data_builders as db, kc_helpers as kh
 from custom_components.kidschores.engines.gamification_engine import GamificationEngine
+from custom_components.kidschores.helpers.entity_helpers import (
+    remove_entities_by_item_id,
+)
 from custom_components.kidschores.managers.base_manager import BaseManager
 from custom_components.kidschores.utils.dt_utils import (
     dt_add_interval,
@@ -43,6 +51,7 @@ if TYPE_CHECKING:
         EvaluationContext,
         EvaluationResult,
         KidBadgeProgress,
+        KidCumulativeBadgeProgress,
         KidData,
     )
 
@@ -80,8 +89,8 @@ class GamificationManager(BaseManager):
         """
         super().__init__(hass, coordinator)
 
-        # Dirty tracking - kids needing re-evaluation
-        self._dirty_kids: set[str] = set()
+        # Pending evaluations - kids needing re-evaluation (persisted to storage)
+        self._pending_evaluations: set[str] = set()
 
         # Debounce timer handle
         self._eval_timer: asyncio.TimerHandle | None = None
@@ -93,6 +102,7 @@ class GamificationManager(BaseManager):
         """Set up the GamificationManager.
 
         Subscribe to all events that can trigger gamification checks.
+        Recover any pending evaluations from storage (restart resilience).
         """
         # Point changes affect point-based badges
         self.listen(const.SIGNAL_SUFFIX_POINTS_CHANGED, self._on_points_changed)
@@ -108,6 +118,21 @@ class GamificationManager(BaseManager):
         # Bonus/penalty events affect points
         self.listen(const.SIGNAL_SUFFIX_BONUS_APPLIED, self._on_bonus_applied)
         self.listen(const.SIGNAL_SUFFIX_PENALTY_APPLIED, self._on_penalty_applied)
+
+        # Kid deletion - remove from pending queue (Phase 7.4)
+        self.listen(const.SIGNAL_SUFFIX_KID_DELETED, self._on_kid_deleted)
+
+        # Recover pending evaluations from storage (restart resilience)
+        pending = self.coordinator._data.get(const.DATA_META, {}).get(
+            const.DATA_META_PENDING_EVALUATIONS, []
+        )
+        if pending:
+            const.LOGGER.info(
+                "GamificationManager: Recovering %d pending evaluations from storage",
+                len(pending),
+            )
+            self._pending_evaluations.update(pending)
+            self._schedule_evaluation()
 
         const.LOGGER.debug(
             "GamificationManager initialized with %s second debounce",
@@ -160,7 +185,7 @@ class GamificationManager(BaseManager):
                 )
 
         if kid_id:
-            self._mark_dirty(kid_id)
+            self._mark_pending(kid_id)
 
     def _on_chore_approved(self, payload: dict[str, Any]) -> None:
         """Handle chore_approved event.
@@ -170,7 +195,7 @@ class GamificationManager(BaseManager):
         """
         kid_id = payload.get("kid_id")
         if kid_id:
-            self._mark_dirty(kid_id)
+            self._mark_pending(kid_id)
 
     def _on_chore_disapproved(self, payload: dict[str, Any]) -> None:
         """Handle chore_disapproved event.
@@ -180,7 +205,7 @@ class GamificationManager(BaseManager):
         """
         kid_id = payload.get("kid_id")
         if kid_id:
-            self._mark_dirty(kid_id)
+            self._mark_pending(kid_id)
 
     def _on_chore_status_reset(self, payload: dict[str, Any]) -> None:
         """Handle chore_status_reset event.
@@ -190,7 +215,7 @@ class GamificationManager(BaseManager):
         """
         kid_id = payload.get("kid_id")
         if kid_id:
-            self._mark_dirty(kid_id)
+            self._mark_pending(kid_id)
 
     def _on_reward_approved(self, payload: dict[str, Any]) -> None:
         """Handle reward_approved event.
@@ -200,7 +225,7 @@ class GamificationManager(BaseManager):
         """
         kid_id = payload.get("kid_id")
         if kid_id:
-            self._mark_dirty(kid_id)
+            self._mark_pending(kid_id)
 
     def _on_bonus_applied(self, payload: dict[str, Any]) -> None:
         """Handle bonus_applied event.
@@ -210,7 +235,7 @@ class GamificationManager(BaseManager):
         """
         kid_id = payload.get("kid_id")
         if kid_id:
-            self._mark_dirty(kid_id)
+            self._mark_pending(kid_id)
 
     def _on_penalty_applied(self, payload: dict[str, Any]) -> None:
         """Handle penalty_applied event.
@@ -220,7 +245,7 @@ class GamificationManager(BaseManager):
         """
         kid_id = payload.get("kid_id")
         if kid_id:
-            self._mark_dirty(kid_id)
+            self._mark_pending(kid_id)
 
     # =========================================================================
     # PUBLIC API
@@ -234,7 +259,7 @@ class GamificationManager(BaseManager):
         """
         const.LOGGER.info("Recalculate All Badges - Starting recalculation")
         for kid_id in self.coordinator.kids_data:
-            self._mark_dirty(kid_id)
+            self._mark_pending(kid_id)
         const.LOGGER.info("Recalculate All Badges - All kids marked for evaluation")
 
     async def award_achievement(self, kid_id: str, achievement_id: str) -> None:
@@ -401,22 +426,48 @@ class GamificationManager(BaseManager):
         progress[const.DATA_KID_LAST_STREAK_DATE] = today.isoformat()
 
     # =========================================================================
-    # DIRTY TRACKING AND DEBOUNCE
+    # PENDING TRACKING AND DEBOUNCE (Phase 7.4: Persisted Queue)
     # =========================================================================
 
-    def _mark_dirty(self, kid_id: str) -> None:
-        """Mark a kid as needing re-evaluation.
+    def _persist_pending(self) -> None:
+        """Persist pending evaluation queue to storage meta.
+
+        This ensures restart resilience - if HA restarts during debounce window,
+        pending evaluations will be recovered on next startup.
+        """
+        meta = self.coordinator._data.setdefault(const.DATA_META, {})
+        meta[const.DATA_META_PENDING_EVALUATIONS] = list(self._pending_evaluations)
+        self.coordinator._persist()
+
+    def _mark_pending(self, kid_id: str) -> None:
+        """Mark a kid as needing re-evaluation (persisted).
 
         Args:
             kid_id: The internal UUID of the kid
         """
-        self._dirty_kids.add(kid_id)
+        self._pending_evaluations.add(kid_id)
+        self._persist_pending()
         self._schedule_evaluation()
         const.LOGGER.debug(
-            "Kid %s marked dirty for gamification evaluation, %d total dirty",
+            "Kid %s marked pending for gamification evaluation, %d total pending",
             kid_id,
-            len(self._dirty_kids),
+            len(self._pending_evaluations),
         )
+
+    def _on_kid_deleted(self, payload: dict[str, Any]) -> None:
+        """Remove deleted kid from pending evaluations.
+
+        Args:
+            payload: Event data containing kid_id
+        """
+        kid_id = payload.get("kid_id", "")
+        if kid_id and kid_id in self._pending_evaluations:
+            self._pending_evaluations.discard(kid_id)
+            self._persist_pending()
+            const.LOGGER.debug(
+                "GamificationManager: Removed deleted kid %s from pending queue",
+                kid_id,
+            )
 
     def _schedule_evaluation(self) -> None:
         """Schedule debounced evaluation.
@@ -429,20 +480,22 @@ class GamificationManager(BaseManager):
 
         self._eval_timer = self.hass.loop.call_later(
             self._debounce_seconds,
-            lambda: self.hass.async_create_task(self._evaluate_dirty_kids()),
+            lambda: self.hass.async_create_task(self._evaluate_pending_kids()),
         )
 
-    async def _evaluate_dirty_kids(self) -> None:
-        """Evaluate all dirty kids in batch.
+    async def _evaluate_pending_kids(self) -> None:
+        """Evaluate all pending kids in batch.
 
         This is the main evaluation loop that runs after debounce timer fires.
+        Clears the persistent queue after successful evaluation.
         """
         # Clear timer reference
         self._eval_timer = None
 
-        # Capture and clear dirty set atomically
-        kids_to_evaluate = self._dirty_kids.copy()
-        self._dirty_kids.clear()
+        # Capture and clear pending set atomically
+        kids_to_evaluate = self._pending_evaluations.copy()
+        self._pending_evaluations.clear()
+        self._persist_pending()  # Clear from storage
 
         if not kids_to_evaluate:
             return
@@ -565,29 +618,49 @@ class GamificationManager(BaseManager):
         criteria_met = result.get("criteria_met", False)
 
         if criteria_met and not already_earned:
-            # Award badge - use local method (handles data update + notifications)
+            # Award badge - update GamificationManager's own data only
             const.LOGGER.info(
                 "Kid %s earned badge %s",
                 kid_id,
                 badge_id,
             )
-            await self.award_badge(kid_id, badge_id)
+            # Update badge tracking (GamificationManager's domain)
+            await self._record_badge_earned(kid_id, badge_id, badge_data)
 
-            # Get badge points for the event payload
+            # Build the Award Manifest using helper
             award_data = badge_data.get(const.DATA_BADGE_AWARDS, {})
-            badge_points = award_data.get(
-                const.DATA_BADGE_AWARDS_AWARD_POINTS, const.DEFAULT_ZERO
+            award_items = award_data.get(const.DATA_BADGE_AWARDS_AWARD_ITEMS, [])
+            to_award, to_penalize = self.process_award_items(
+                award_items,
+                self.coordinator.rewards_data,
+                self.coordinator.bonuses_data,
+                self.coordinator.penalties_data,
             )
 
-            # Emit event for any additional listeners
-            # EconomyManager listens to this and handles point deposit
+            # Extract manifest fields for emit
+            points = award_data.get(
+                const.DATA_BADGE_AWARDS_AWARD_POINTS, const.DEFAULT_ZERO
+            )
+            multiplier = award_data.get(const.DATA_BADGE_AWARDS_POINT_MULTIPLIER)
+            reward_ids = to_award.get(const.AWARD_ITEMS_KEY_REWARDS, [])
+            bonus_ids = to_award.get(const.AWARD_ITEMS_KEY_BONUSES, [])
+            penalty_ids = to_penalize
+
+            # Emit the Award Manifest - domain experts handle their items
+            # Phase 7: Signal-First Logic (Cross-Manager Directive 2)
+            # - EconomyManager: points, multiplier, bonuses, penalties
+            # - RewardManager: reward grants (free)
+            # - NotificationManager: kid/parent notifications
             self.emit(
                 const.SIGNAL_SUFFIX_BADGE_EARNED,
                 kid_id=kid_id,
                 badge_id=badge_id,
                 badge_name=badge_data.get(const.DATA_BADGE_NAME, "Unknown"),
-                badge_points=badge_points,
-                result=result,
+                points=points,
+                multiplier=multiplier,
+                reward_ids=reward_ids,
+                bonus_ids=bonus_ids,
+                penalty_ids=penalty_ids,
             )
 
         elif not criteria_met and already_earned:
@@ -1772,188 +1845,102 @@ class GamificationManager(BaseManager):
     # BADGE AWARDING AND PROGRESS SYNC (State-Modifying Methods)
     # =========================================================================
 
-    async def award_badge(self, kid_id: str, badge_id: str) -> None:
-        """Add the badge to kid's 'earned_by' and kid's 'badges' list.
+    async def _record_badge_earned(
+        self, kid_id: str, badge_id: str, badge_data: BadgeData
+    ) -> None:
+        """Record that a kid earned a badge (GamificationManager's domain only).
 
-        Handles all aspects of badge awarding:
-        - Updates badge earned_by list and kid's badges_earned
-        - Processes award items (points, rewards, bonuses, multipliers)
-        - Sends notifications to kid and parents
-        - Persists changes
+        Phase 7 Signal-First Logic: This method ONLY updates badge tracking data.
+        All award processing (points, multiplier, rewards, bonuses, penalties)
+        is handled by domain experts via BADGE_EARNED signal:
+        - EconomyManager: points, multiplier, bonuses, penalties
+        - RewardManager: reward grants
+
+        Args:
+            kid_id: The kid's internal UUID
+            badge_id: The badge's internal UUID
+            badge_data: Badge definition
+        """
+        kid_info = self.coordinator.kids_data.get(kid_id)
+        if not kid_info:
+            const.LOGGER.error("_record_badge_earned: Kid ID '%s' not found", kid_id)
+            return
+
+        badge_name = badge_data.get(const.DATA_BADGE_NAME, badge_id)
+        kid_name = kid_info.get(const.DATA_KID_NAME, kid_id)
+
+        # Update badge's earned_by list
+        earned_by_list = badge_data.setdefault(const.DATA_BADGE_EARNED_BY, [])
+        if kid_id not in earned_by_list:
+            earned_by_list.append(kid_id)
+
+        # Update kid's badges_earned dict
+        self.update_badges_earned_for_kid(kid_id, badge_id)
+
+        const.LOGGER.info(
+            "Badge recorded: '%s' earned by kid '%s'",
+            badge_name,
+            kid_name,
+        )
+
+        # Persist badge tracking data
+        self.coordinator._persist()
+        self.coordinator.async_set_updated_data(self.coordinator._data)
+
+    async def award_badge(self, kid_id: str, badge_id: str) -> None:
+        """Award a badge to a kid (public API, emits full manifest).
+
+        This is the public method for manually awarding badges (e.g., special occasion).
+        It delegates to _record_badge_earned for tracking and emits the Award Manifest
+        so domain experts handle their items:
+        - EconomyManager: points, multiplier, bonuses, penalties
+        - RewardManager: reward grants (free)
+
+        For automatic badge evaluation, use _apply_badge_result instead.
 
         Args:
             kid_id: The kid's internal UUID
             badge_id: The badge's internal UUID
         """
         badge_info: BadgeData | None = self.coordinator.badges_data.get(badge_id)
-        kid_info: KidData = cast("KidData", self.coordinator.kids_data.get(kid_id, {}))
+        kid_info: KidData | None = self.coordinator.kids_data.get(kid_id)
         if not kid_info:
-            const.LOGGER.error("Award Badge - Kid ID '%s' not found.", kid_id)
+            const.LOGGER.error("award_badge: Kid ID '%s' not found", kid_id)
             return
         if not badge_info:
             const.LOGGER.error(
-                "ERROR: Award Badge - Badge ID '%s' not found. "
-                "Cannot be awarded to Kid ID '%s'",
+                "award_badge: Badge ID '%s' not found",
                 badge_id,
-                kid_id,
             )
             return
 
-        badge_type = badge_info.get(const.DATA_BADGE_TYPE, const.BADGE_TYPE_CUMULATIVE)
-        badge_name = badge_info.get(const.DATA_BADGE_NAME)
-        kid_name = kid_info[const.DATA_KID_NAME]
+        # Record badge in GamificationManager's domain
+        await self._record_badge_earned(kid_id, badge_id, badge_info)
 
-        # Award the badge (for all types, including special occasion).
-        const.LOGGER.info(
-            "INFO: Award Badge - Awarding badge '%s' (%s) to kid '%s' (%s).",
-            badge_id,
-            badge_name,
-            kid_id,
-            kid_name,
-        )
-        earned_by_list = badge_info.setdefault(const.DATA_BADGE_EARNED_BY, [])
-        if kid_id not in earned_by_list:
-            earned_by_list.append(kid_id)
-        self.update_badges_earned_for_kid(kid_id, badge_id)
-
-        # --- Unified Award Items Logic ---
+        # Build and emit Award Manifest for domain experts
         award_data = badge_info.get(const.DATA_BADGE_AWARDS, {})
         award_items = award_data.get(const.DATA_BADGE_AWARDS_AWARD_ITEMS, [])
-        points_awarded = award_data.get(
-            const.DATA_BADGE_AWARDS_AWARD_POINTS, const.DEFAULT_ZERO
-        )
-        multiplier = award_data.get(
-            const.DATA_BADGE_AWARDS_POINT_MULTIPLIER,
-            const.DEFAULT_KID_POINTS_MULTIPLIER,
-        )
-
-        # Process award_items using helper
-        to_award, _ = self.process_award_items(
+        to_award, to_penalize = self.process_award_items(
             award_items,
             self.coordinator.rewards_data,
             self.coordinator.bonuses_data,
             self.coordinator.penalties_data,
         )
 
-        # 1. Points - handled by EconomyManager via BADGE_EARNED event
-        # (deposit call removed in Phase 7.2 - event-driven awards)
-        if any(
-            item == const.AWARD_ITEMS_KEY_POINTS
-            or item.startswith(const.AWARD_ITEMS_PREFIX_POINTS)
-            for item in award_items
-        ):
-            if points_awarded > const.DEFAULT_ZERO:
-                const.LOGGER.info(
-                    "INFO: Award Badge - Points: %s for kid '%s' (via event).",
-                    points_awarded,
-                    kid_name,
-                )
-
-        # 2. Multiplier (only for cumulative badges)
-        if any(
-            item == const.AWARD_ITEMS_KEY_POINTS_MULTIPLIER
-            or item.startswith(const.AWARD_ITEMS_PREFIX_POINTS_MULTIPLIER)
-            for item in award_items
-        ):
-            multiplier_float = float(cast("float", multiplier))
-            if multiplier_float > const.DEFAULT_ZERO:
-                kid_info[const.DATA_KID_POINTS_MULTIPLIER] = multiplier_float
-                const.LOGGER.info(
-                    "INFO: Award Badge - Set points multiplier to %.2f for kid '%s'.",
-                    multiplier_float,
-                    kid_name,
-                )
-            else:
-                kid_info[const.DATA_KID_POINTS_MULTIPLIER] = (
-                    const.DEFAULT_POINTS_MULTIPLIER
-                )
-
-        # 3. Rewards (multiple) - Badge awards grant rewards directly
-        for reward_id in to_award.get(const.AWARD_ITEMS_KEY_REWARDS, []):
-            if reward_id in self.coordinator.rewards_data:
-                # Use RewardManager helper with cost=0 (free grant from badge)
-                self.coordinator.reward_manager._grant_to_kid(
-                    kid_id=kid_id,
-                    reward_id=reward_id,
-                    cost_deducted=const.DEFAULT_ZERO,  # Badge grants are free
-                    notif_id=None,
-                    is_pending_claim=False,
-                )
-                const.LOGGER.info(
-                    "INFO: Award Badge - Granted reward '%s' to kid '%s'.",
-                    self.coordinator.rewards_data[reward_id].get(
-                        const.DATA_REWARD_NAME, reward_id
-                    ),
-                    kid_name,
-                )
-
-        # 4. Bonuses (multiple)
-        for bonus_id in to_award.get(const.AWARD_ITEMS_KEY_BONUSES, []):
-            if bonus_id in self.coordinator.bonuses_data:
-                await self.coordinator.economy_manager.apply_bonus(
-                    kid_name, kid_id, bonus_id
-                )
-
-        # --- Notification ---
-        message = f"You earned a new badge: '{badge_name}'!"
-        if to_award.get(const.AWARD_ITEMS_KEY_REWARDS):
-            reward_names = [
-                self.coordinator.rewards_data[rid].get(const.DATA_REWARD_NAME, rid)
-                for rid in to_award[const.AWARD_ITEMS_KEY_REWARDS]
-            ]
-            message += f" Rewards: {', '.join(reward_names)}."
-        if to_award.get(const.AWARD_ITEMS_KEY_BONUSES):
-            bonus_names = [
-                self.coordinator.bonuses_data[bid].get(const.DATA_BONUS_NAME, bid)
-                for bid in to_award[const.AWARD_ITEMS_KEY_BONUSES]
-            ]
-            message += f" Bonuses: {', '.join(bonus_names)}."
-        if any(
-            item == const.AWARD_ITEMS_KEY_POINTS
-            or item.startswith(const.AWARD_ITEMS_PREFIX_POINTS)
-            for item in award_items
-        ):
-            message += f" Points: {points_awarded}."
-        if badge_type == const.BADGE_TYPE_CUMULATIVE and any(
-            item == const.AWARD_ITEMS_KEY_POINTS_MULTIPLIER
-            or item.startswith(const.AWARD_ITEMS_PREFIX_POINTS_MULTIPLIER)
-            for item in award_items
-        ):
-            message += f" Multiplier: {multiplier}x."
-
-        parent_message = f"'{kid_name}' earned a new badge: '{badge_name}'."
-        if to_award.get(const.AWARD_ITEMS_KEY_REWARDS):
-            reward_names = [
-                self.coordinator.rewards_data[rid].get(const.DATA_REWARD_NAME, rid)
-                for rid in to_award[const.AWARD_ITEMS_KEY_REWARDS]
-            ]
-            parent_message += f" Rewards: {', '.join(reward_names)}."
-        if to_award.get(const.AWARD_ITEMS_KEY_BONUSES):
-            bonus_names = [
-                self.coordinator.bonuses_data[bid].get(const.DATA_BONUS_NAME, bid)
-                for bid in to_award[const.AWARD_ITEMS_KEY_BONUSES]
-            ]
-            parent_message += f" Bonuses: {', '.join(bonus_names)}."
-        if any(
-            item == const.AWARD_ITEMS_KEY_POINTS
-            or item.startswith(const.AWARD_ITEMS_PREFIX_POINTS)
-            for item in award_items
-        ):
-            parent_message += f" Points: {points_awarded}."
-        if badge_type == const.BADGE_TYPE_CUMULATIVE and any(
-            item == const.AWARD_ITEMS_KEY_POINTS_MULTIPLIER
-            or item.startswith(const.AWARD_ITEMS_PREFIX_POINTS_MULTIPLIER)
-            for item in award_items
-        ):
-            parent_message += f" Multiplier: {multiplier}x."
-
-        # NOTE: message and parent_message are built but not used in translated notifications
-        # They exist for potential future use with non-translated notifications
-        # The BADGE_EARNED event was already emitted by the caller (_check_badge_for_kid)
-        # We just persist here
-        self.coordinator._persist()
-        self.coordinator.async_set_updated_data(self.coordinator._data)
-        # NOTE: Recursive badge checks removed - GamificationManager handles evaluation
+        # Emit the Award Manifest
+        self.emit(
+            const.SIGNAL_SUFFIX_BADGE_EARNED,
+            kid_id=kid_id,
+            badge_id=badge_id,
+            badge_name=badge_info.get(const.DATA_BADGE_NAME, "Unknown"),
+            points=award_data.get(
+                const.DATA_BADGE_AWARDS_AWARD_POINTS, const.DEFAULT_ZERO
+            ),
+            multiplier=award_data.get(const.DATA_BADGE_AWARDS_POINT_MULTIPLIER),
+            reward_ids=to_award.get(const.AWARD_ITEMS_KEY_REWARDS, []),
+            bonus_ids=to_award.get(const.AWARD_ITEMS_KEY_BONUSES, []),
+            penalty_ids=to_penalize,
+        )
 
     def sync_badge_progress_for_kid(self, kid_id: str) -> None:
         """Sync badge progress for a specific kid.
@@ -2312,3 +2299,539 @@ class GamificationManager(BaseManager):
                         progress_sync[const.DATA_KID_BADGE_PROGRESS_END_DATE] = (
                             end_date_iso
                         )
+
+    # =========================================================================
+    # CRUD METHODS (Manager-owned create/update/delete)
+    # =========================================================================
+    # These methods own the write operations for badge entities.
+    # Called by options_flow.py and services.py - they must NOT write directly.
+
+    def create_badge(
+        self,
+        user_input: dict[str, Any],
+        internal_id: str | None = None,
+        badge_type: str | None = None,
+    ) -> dict[str, Any]:
+        """Create a new badge in storage.
+
+        Args:
+            user_input: Badge data with DATA_* keys.
+            internal_id: Optional pre-generated UUID (for form resubmissions).
+            badge_type: Optional badge type override.
+
+        Returns:
+            Complete BadgeData dict ready for use.
+
+        Emits:
+            SIGNAL_SUFFIX_BADGE_CREATED with badge_id and badge_name.
+        """
+        # Build complete badge data structure
+        if badge_type:
+            badge_data = dict(db.build_badge(user_input, badge_type=badge_type))
+        else:
+            badge_data = dict(db.build_badge(user_input))
+
+        # Override internal_id if provided (for form resubmission consistency)
+        if internal_id:
+            badge_data[const.DATA_BADGE_INTERNAL_ID] = internal_id
+
+        final_id = str(badge_data[const.DATA_BADGE_INTERNAL_ID])
+        badge_name = str(badge_data.get(const.DATA_BADGE_NAME, ""))
+
+        # Store in coordinator data
+        self.coordinator._data[const.DATA_BADGES][final_id] = badge_data
+
+        # Sync badge progress for all kids (creates progress sensors)
+        for kid_id in self.coordinator.kids_data:
+            self.sync_badge_progress_for_kid(kid_id)
+        # Recalculate badges to trigger initial evaluation
+        self.recalculate_all_badges()
+
+        self.coordinator._persist()
+        self.coordinator.async_update_listeners()
+
+        # Emit lifecycle event
+        self.emit(
+            const.SIGNAL_SUFFIX_BADGE_CREATED,
+            badge_id=final_id,
+            badge_name=badge_name,
+        )
+
+        const.LOGGER.info(
+            "Created badge '%s' (ID: %s)",
+            badge_name,
+            final_id,
+        )
+
+        return badge_data
+
+    def update_badge(
+        self,
+        badge_id: str,
+        updates: dict[str, Any],
+        badge_type: str | None = None,
+    ) -> dict[str, Any]:
+        """Update an existing badge in storage.
+
+        Args:
+            badge_id: Internal UUID of the badge to update.
+            updates: Partial badge data with DATA_* keys to merge.
+            badge_type: Optional badge type override.
+
+        Returns:
+            Updated BadgeData dict.
+
+        Raises:
+            HomeAssistantError: If badge not found.
+
+        Emits:
+            SIGNAL_SUFFIX_BADGE_UPDATED with badge_id and badge_name.
+        """
+        badges_data = self.coordinator._data.get(const.DATA_BADGES, {})
+        if badge_id not in badges_data:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_BADGE,
+                    "name": badge_id,
+                },
+            )
+
+        existing = badges_data[badge_id]
+        # Build updated badge (merge existing with updates)
+        if badge_type:
+            updated_badge = dict(
+                db.build_badge(updates, existing=existing, badge_type=badge_type)
+            )
+        else:
+            updated_badge = dict(db.build_badge(updates, existing=existing))
+
+        # Store updated badge
+        self.coordinator._data[const.DATA_BADGES][badge_id] = updated_badge
+
+        # Sync badge progress for all kids after badge update
+        for kid_id in self.coordinator.kids_data:
+            self.sync_badge_progress_for_kid(kid_id)
+        self.recalculate_all_badges()
+
+        self.coordinator._persist()
+        self.coordinator.async_update_listeners()
+
+        badge_name = str(updated_badge.get(const.DATA_BADGE_NAME, ""))
+
+        # Emit lifecycle event
+        self.emit(
+            const.SIGNAL_SUFFIX_BADGE_UPDATED,
+            badge_id=badge_id,
+            badge_name=badge_name,
+        )
+
+        const.LOGGER.debug(
+            "Updated badge '%s' (ID: %s)",
+            badge_name,
+            badge_id,
+        )
+
+        return updated_badge
+
+    def delete_badge(self, badge_id: str) -> None:
+        """Delete a badge from storage and cleanup references.
+
+        Args:
+            badge_id: Internal UUID of the badge to delete.
+
+        Raises:
+            HomeAssistantError: If badge not found.
+
+        Emits:
+            SIGNAL_SUFFIX_BADGE_DELETED with badge_id and badge_name.
+        """
+        badges_data = self.coordinator._data.get(const.DATA_BADGES, {})
+        if badge_id not in badges_data:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_BADGE,
+                    "name": badge_id,
+                },
+            )
+
+        badge_name = badges_data[badge_id].get(const.DATA_BADGE_NAME, badge_id)
+
+        # Delete from storage
+        del self.coordinator._data[const.DATA_BADGES][badge_id]
+
+        # Remove awarded badges from kids (this manager has the method)
+        self.remove_awarded_badges_by_id(badge_id=badge_id)
+
+        # Sync badge progress for all kids after badge deletion
+        # Also recalculate cumulative badge progress since a cumulative badge may
+        # have been deleted
+        for kid_id in self.coordinator.kids_data:
+            self.sync_badge_progress_for_kid(kid_id)
+            # Refresh cumulative badge progress
+            cumulative_progress = self.get_cumulative_badge_progress(kid_id)
+            self.coordinator.kids_data[kid_id][
+                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS
+            ] = cast("KidCumulativeBadgeProgress", cumulative_progress)
+
+        # Remove badge-related entities from Home Assistant registry
+        remove_entities_by_item_id(
+            self.hass,
+            self.coordinator.config_entry.entry_id,
+            badge_id,
+        )
+
+        self.coordinator._persist()
+        self.coordinator.async_update_listeners()
+
+        # Emit lifecycle event
+        self.emit(
+            const.SIGNAL_SUFFIX_BADGE_DELETED,
+            badge_id=badge_id,
+            badge_name=badge_name,
+        )
+
+        const.LOGGER.info(
+            "Deleted badge '%s' (ID: %s)",
+            badge_name,
+            badge_id,
+        )
+
+    # =========================================================================
+    # ACHIEVEMENT CRUD
+    # =========================================================================
+
+    def create_achievement(
+        self,
+        user_input: dict[str, Any],
+        internal_id: str | None = None,
+    ) -> str:
+        """Create a new achievement in storage.
+
+        Args:
+            user_input: Achievement data with DATA_* keys.
+            internal_id: Optional pre-generated UUID.
+
+        Returns:
+            The internal_id of the created achievement.
+
+        Emits:
+            SIGNAL_SUFFIX_ACHIEVEMENT_CREATED with achievement_id and achievement_name.
+        """
+        # Build complete achievement data structure
+        achievement_data = dict(db.build_achievement(user_input))
+
+        # Override internal_id if provided
+        if internal_id:
+            achievement_data[const.DATA_ACHIEVEMENT_INTERNAL_ID] = internal_id
+
+        final_id = str(achievement_data[const.DATA_ACHIEVEMENT_INTERNAL_ID])
+        achievement_name = str(achievement_data.get(const.DATA_ACHIEVEMENT_NAME, ""))
+
+        # Store in coordinator data
+        self.coordinator._data.setdefault(const.DATA_ACHIEVEMENTS, {})[final_id] = (
+            achievement_data
+        )
+
+        self.coordinator._persist()
+        self.coordinator.async_update_listeners()
+
+        # Emit lifecycle event
+        self.emit(
+            const.SIGNAL_SUFFIX_ACHIEVEMENT_CREATED,
+            achievement_id=final_id,
+            achievement_name=achievement_name,
+        )
+
+        const.LOGGER.info(
+            "Created achievement '%s' (ID: %s)",
+            achievement_name,
+            final_id,
+        )
+
+        return final_id
+
+    def update_achievement(
+        self,
+        achievement_id: str,
+        updates: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Update an existing achievement in storage.
+
+        Args:
+            achievement_id: Internal UUID of the achievement to update.
+            updates: Partial achievement data with DATA_* keys to merge.
+
+        Returns:
+            Updated AchievementData dict.
+
+        Raises:
+            HomeAssistantError: If achievement not found.
+
+        Emits:
+            SIGNAL_SUFFIX_ACHIEVEMENT_UPDATED with achievement_id and achievement_name.
+        """
+        achievements_data = self.coordinator._data.get(const.DATA_ACHIEVEMENTS, {})
+        if achievement_id not in achievements_data:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_ACHIEVEMENT,
+                    "name": achievement_id,
+                },
+            )
+
+        existing = achievements_data[achievement_id]
+        # Build updated achievement (merge existing with updates)
+        updated_achievement = dict(db.build_achievement(updates, existing=existing))
+        # Preserve internal_id
+        updated_achievement[const.DATA_ACHIEVEMENT_INTERNAL_ID] = achievement_id
+
+        # Store updated achievement
+        self.coordinator._data[const.DATA_ACHIEVEMENTS][achievement_id] = (
+            updated_achievement
+        )
+
+        self.coordinator._persist()
+        self.coordinator.async_update_listeners()
+
+        achievement_name = str(updated_achievement.get(const.DATA_ACHIEVEMENT_NAME, ""))
+
+        # Emit lifecycle event
+        self.emit(
+            const.SIGNAL_SUFFIX_ACHIEVEMENT_UPDATED,
+            achievement_id=achievement_id,
+            achievement_name=achievement_name,
+        )
+
+        const.LOGGER.debug(
+            "Updated achievement '%s' (ID: %s)",
+            achievement_name,
+            achievement_id,
+        )
+
+        return updated_achievement
+
+    def delete_achievement(self, achievement_id: str) -> None:
+        """Delete an achievement from storage and cleanup references.
+
+        Args:
+            achievement_id: Internal UUID of the achievement to delete.
+
+        Raises:
+            HomeAssistantError: If achievement not found.
+
+        Emits:
+            SIGNAL_SUFFIX_ACHIEVEMENT_DELETED with achievement_id and achievement_name.
+        """
+        achievements_data = self.coordinator._data.get(const.DATA_ACHIEVEMENTS, {})
+        if achievement_id not in achievements_data:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_ACHIEVEMENT,
+                    "name": achievement_id,
+                },
+            )
+
+        achievement_name = achievements_data[achievement_id].get(
+            const.DATA_ACHIEVEMENT_NAME, achievement_id
+        )
+
+        # Delete from storage
+        del self.coordinator._data[const.DATA_ACHIEVEMENTS][achievement_id]
+
+        # Remove achievement-related entities from Home Assistant registry
+        remove_entities_by_item_id(
+            self.hass,
+            self.coordinator.config_entry.entry_id,
+            achievement_id,
+        )
+
+        self.coordinator._persist()
+        self.coordinator.async_update_listeners()
+
+        # Emit lifecycle event
+        self.emit(
+            const.SIGNAL_SUFFIX_ACHIEVEMENT_DELETED,
+            achievement_id=achievement_id,
+            achievement_name=achievement_name,
+        )
+
+        const.LOGGER.info(
+            "Deleted achievement '%s' (ID: %s)",
+            achievement_name,
+            achievement_id,
+        )
+
+    # =========================================================================
+    # CHALLENGE CRUD
+    # =========================================================================
+
+    def create_challenge(
+        self,
+        user_input: dict[str, Any],
+        internal_id: str | None = None,
+    ) -> str:
+        """Create a new challenge in storage.
+
+        Args:
+            user_input: Challenge data with DATA_* keys.
+            internal_id: Optional pre-generated UUID.
+
+        Returns:
+            The internal_id of the created challenge.
+
+        Emits:
+            SIGNAL_SUFFIX_CHALLENGE_CREATED with challenge_id and challenge_name.
+        """
+        # Build complete challenge data structure
+        challenge_data = dict(db.build_challenge(user_input))
+
+        # Override internal_id if provided
+        if internal_id:
+            challenge_data[const.DATA_CHALLENGE_INTERNAL_ID] = internal_id
+
+        final_id = str(challenge_data[const.DATA_CHALLENGE_INTERNAL_ID])
+        challenge_name = str(challenge_data.get(const.DATA_CHALLENGE_NAME, ""))
+
+        # Store in coordinator data
+        self.coordinator._data.setdefault(const.DATA_CHALLENGES, {})[final_id] = (
+            challenge_data
+        )
+
+        self.coordinator._persist()
+        self.coordinator.async_update_listeners()
+
+        # Emit lifecycle event
+        self.emit(
+            const.SIGNAL_SUFFIX_CHALLENGE_CREATED,
+            challenge_id=final_id,
+            challenge_name=challenge_name,
+        )
+
+        const.LOGGER.info(
+            "Created challenge '%s' (ID: %s)",
+            challenge_name,
+            final_id,
+        )
+
+        return final_id
+
+    def update_challenge(
+        self,
+        challenge_id: str,
+        updates: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Update an existing challenge in storage.
+
+        Args:
+            challenge_id: Internal UUID of the challenge to update.
+            updates: Partial challenge data with DATA_* keys to merge.
+
+        Returns:
+            Updated ChallengeData dict.
+
+        Raises:
+            HomeAssistantError: If challenge not found.
+
+        Emits:
+            SIGNAL_SUFFIX_CHALLENGE_UPDATED with challenge_id and challenge_name.
+        """
+        challenges_data = self.coordinator._data.get(const.DATA_CHALLENGES, {})
+        if challenge_id not in challenges_data:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_CHALLENGE,
+                    "name": challenge_id,
+                },
+            )
+
+        existing = challenges_data[challenge_id]
+        # Build updated challenge (merge existing with updates)
+        updated_challenge = dict(db.build_challenge(updates, existing=existing))
+        # Preserve internal_id
+        updated_challenge[const.DATA_CHALLENGE_INTERNAL_ID] = challenge_id
+
+        # Store updated challenge
+        self.coordinator._data[const.DATA_CHALLENGES][challenge_id] = updated_challenge
+
+        self.coordinator._persist()
+        self.coordinator.async_update_listeners()
+
+        challenge_name = str(updated_challenge.get(const.DATA_CHALLENGE_NAME, ""))
+
+        # Emit lifecycle event
+        self.emit(
+            const.SIGNAL_SUFFIX_CHALLENGE_UPDATED,
+            challenge_id=challenge_id,
+            challenge_name=challenge_name,
+        )
+
+        const.LOGGER.debug(
+            "Updated challenge '%s' (ID: %s)",
+            challenge_name,
+            challenge_id,
+        )
+
+        return updated_challenge
+
+    def delete_challenge(self, challenge_id: str) -> None:
+        """Delete a challenge from storage and cleanup references.
+
+        Args:
+            challenge_id: Internal UUID of the challenge to delete.
+
+        Raises:
+            HomeAssistantError: If challenge not found.
+
+        Emits:
+            SIGNAL_SUFFIX_CHALLENGE_DELETED with challenge_id and challenge_name.
+        """
+        challenges_data = self.coordinator._data.get(const.DATA_CHALLENGES, {})
+        if challenge_id not in challenges_data:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_CHALLENGE,
+                    "name": challenge_id,
+                },
+            )
+
+        challenge_name = challenges_data[challenge_id].get(
+            const.DATA_CHALLENGE_NAME, challenge_id
+        )
+
+        # Delete from storage
+        del self.coordinator._data[const.DATA_CHALLENGES][challenge_id]
+
+        # Remove challenge-related entities from Home Assistant registry
+        remove_entities_by_item_id(
+            self.hass,
+            self.coordinator.config_entry.entry_id,
+            challenge_id,
+        )
+
+        self.coordinator._persist()
+        self.coordinator.async_update_listeners()
+
+        # Emit lifecycle event
+        self.emit(
+            const.SIGNAL_SUFFIX_CHALLENGE_DELETED,
+            challenge_id=challenge_id,
+            challenge_name=challenge_name,
+        )
+
+        const.LOGGER.info(
+            "Deleted challenge '%s' (ID: %s)",
+            challenge_name,
+            challenge_id,
+        )

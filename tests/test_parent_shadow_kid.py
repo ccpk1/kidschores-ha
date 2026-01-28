@@ -533,7 +533,7 @@ class TestShadowKidDeletion:
         assert dad_data.get(DATA_PARENT_ALLOW_CHORE_ASSIGNMENT) is True
 
         # Delete the shadow kid directly
-        coordinator.delete_kid_entity(shadow_kid_id)
+        coordinator.user_manager.delete_kid(shadow_kid_id)
 
         # Refresh parent data
         _, updated_dad_data = get_parent_by_name(coordinator, "Dad Leo")
@@ -587,7 +587,7 @@ class TestShadowKidDeletion:
         assert dad_id in coordinator.parents_data, "Dad should exist"
 
         # Delete the parent
-        coordinator.delete_parent_entity(dad_id)
+        coordinator.user_manager.delete_parent(dad_id)
 
         # Verify: Parent removed
         assert dad_id not in coordinator.parents_data, (
@@ -636,7 +636,7 @@ class TestShadowKidDeletion:
         kids_count_before = len(coordinator.kids_data)
 
         # Delete the parent
-        coordinator.delete_parent_entity(mom_id)
+        coordinator.user_manager.delete_parent(mom_id)
 
         # Verify: Parent removed
         assert mom_id not in coordinator.parents_data, (
@@ -678,7 +678,7 @@ class TestShadowKidDeletion:
         shadow_kid_id = dad_data.get(DATA_PARENT_LINKED_SHADOW_KID_ID)
 
         # Delete the regular kid
-        coordinator.delete_kid_entity(zoe_id)
+        coordinator.user_manager.delete_kid(zoe_id)
 
         # Verify: Kid removed
         assert zoe_id not in coordinator.kids_data, (

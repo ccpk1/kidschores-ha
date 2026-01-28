@@ -36,14 +36,14 @@ For ongoing reference and to maintain Platinum certification, consult:
 
 **To prevent confusion between Home Assistant's registry and KidsChores internal data:**
 
-| Term | Usage | Example |
-|------|-------|---------|
-| **Item** / **Record** | A data entry in `.storage/kidschores_data` | "A Chore Item", "Kid Record" |
-| **Domain Item** | Collective term for all stored data types | Kids, Chores, Badges (as JSON records) |
-| **Internal ID** | UUID identifying a stored record | `kid_id`, `chore_id` (always UUIDs) |
-| **Entity** | ONLY a Home Assistant platform object | Sensor, Button, Select, Calendar |
-| **Entity ID** | The Home Assistant registry string | `sensor.kc_alice_points` |
-| **Entity Data** | State attributes of an HA entity | What appears in `more-info` dialog |
+| Term                  | Usage                                      | Example                                |
+| --------------------- | ------------------------------------------ | -------------------------------------- |
+| **Item** / **Record** | A data entry in `.storage/kidschores_data` | "A Chore Item", "Kid Record"           |
+| **Domain Item**       | Collective term for all stored data types  | Kids, Chores, Badges (as JSON records) |
+| **Internal ID**       | UUID identifying a stored record           | `kid_id`, `chore_id` (always UUIDs)    |
+| **Entity**            | ONLY a Home Assistant platform object      | Sensor, Button, Select, Calendar       |
+| **Entity ID**         | The Home Assistant registry string         | `sensor.kc_alice_points`               |
+| **Entity Data**       | State attributes of an HA entity           | What appears in `more-info` dialog     |
 
 **Critical Rule**: Never use "Entity" when referring to a Chore, Kid, Badge, etc. These are **Items** stored in JSON, not HA registry objects.
 
@@ -57,13 +57,13 @@ For ongoing reference and to maintain Platinum certification, consult:
 
 **Component Responsibilities & Constraints**
 
-| Component | Stateful? | Hass Objects? | Side Effects? | Responsibility | File Location |
-|-----------|-----------|---------------|---------------|----------------|---------------|
-| **Engine** | ❌ No | ❌ Forbidden | ❌ Forbidden | Pure logic: FSM transitions, schedule calculations, recurrence math | `engines/` |
-| **Manager** | ✅ Yes | ✅ Yes | ✅ Yes | Orchestration: State changes, firing events, calling `_persist()` | `managers/` |
-| **Util** | ❌ No | ❌ Forbidden | ❌ No | Pure functions: formatting, validation, date parsing | `utils/` |
-| **Helper** | ❌ No | ✅ Yes | ✅ Yes | HA-specific tools: Registry lookups, auth checks, DeviceInfo | `kc_helpers.py` |
-| **Data Builder** | ❌ No | ❌ Forbidden | ❌ No | Sanitization: Strip strings, validate types, set timestamps | `data_builders.py` |
+| Component        | Stateful? | Hass Objects? | Side Effects? | Responsibility                                                      | File Location      |
+| ---------------- | --------- | ------------- | ------------- | ------------------------------------------------------------------- | ------------------ |
+| **Engine**       | ❌ No     | ❌ Forbidden  | ❌ Forbidden  | Pure logic: FSM transitions, schedule calculations, recurrence math | `engines/`         |
+| **Manager**      | ✅ Yes    | ✅ Yes        | ✅ Yes        | Orchestration: State changes, firing events, calling `_persist()`   | `managers/`        |
+| **Util**         | ❌ No     | ❌ Forbidden  | ❌ No         | Pure functions: formatting, validation, date parsing                | `utils/`           |
+| **Helper**       | ❌ No     | ✅ Yes        | ✅ Yes        | HA-specific tools: Registry lookups, auth checks, DeviceInfo        | `kc_helpers.py`    |
+| **Data Builder** | ❌ No     | ❌ Forbidden  | ❌ No         | Sanitization: Strip strings, validate types, set timestamps         | `data_builders.py` |
 
 ### Architectural Rules
 
@@ -254,11 +254,11 @@ def _persist(self):
 
 KidsChores separates **source data** (persisted) from **derived data** (computed at runtime):
 
-| Layer | Example | Persisted? | Purpose |
-|-------|---------|------------|---------|
-| **Period Buckets** | `daily["2025-01-28"]`, `weekly["2025-W04"]` | ✅ Yes | Source of truth for historical data |
-| **Stats Aggregations** | `approved_today`, `approved_week` | ❌ No | Derived views, rebuilt on refresh |
-| **All-Time Totals** | `approved_all_time` | ✅ Yes | No rollup source, must persist |
+| Layer                  | Example                                     | Persisted? | Purpose                             |
+| ---------------------- | ------------------------------------------- | ---------- | ----------------------------------- |
+| **Period Buckets**     | `daily["2025-01-28"]`, `weekly["2025-W04"]` | ✅ Yes     | Source of truth for historical data |
+| **Stats Aggregations** | `approved_today`, `approved_week`           | ❌ No      | Derived views, rebuilt on refresh   |
+| **All-Time Totals**    | `approved_all_time`                         | ✅ Yes     | No rollup source, must persist      |
 
 **Historical Queries**: To find "chores completed 6 months ago", query the monthly period bucket directly—`chore_data["periods"]["monthly"]["2024-07"]`. Retention settings (`retention_daily`, etc.) control how long each granularity is kept.
 

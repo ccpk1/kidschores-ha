@@ -741,11 +741,10 @@ def get_today_chore_and_point_progress(
         streak_per_chore[chore_id] = streak_today
         longest_chore_streak = max(longest_chore_streak, streak_today)
 
-    # Points from all sources (if tracked in kid point_stats)
-    point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
-    total_points_all_sources = point_stats.get(
-        const.DATA_KID_POINT_STATS_EARNED_TODAY, total_points_chores
-    )
+    # Note: total_points_all_sources equals total_points_chores here because this
+    # helper reads directly from chore period buckets. For accurate all-source
+    # totals including bonuses/badges, use StatisticsManager.get_stats() cache.
+    total_points_all_sources = total_points_chores
 
     return (
         total_points_all_sources,

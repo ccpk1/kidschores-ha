@@ -23,10 +23,13 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.exceptions import HomeAssistantError
 
-from custom_components.kidschores import const
+from custom_components.kidschores import const, data_builders as db
 from custom_components.kidschores.engines.economy_engine import (
     EconomyEngine,
     InsufficientFundsError,
+)
+from custom_components.kidschores.helpers.entity_helpers import (
+    remove_entities_by_item_id,
 )
 from custom_components.kidschores.managers.base_manager import BaseManager
 
@@ -91,24 +94,91 @@ class EconomyManager(BaseManager):
         )
 
     def _on_badge_earned(self, payload: dict[str, Any]) -> None:
-        """Handle badge earned event - deposit award points.
+        """Handle badge earned event - process full Award Manifest.
+
+        Phase 7 Signal-First Logic: The "Banker" (EconomyManager) owns all
+        currency-related awards. GamificationManager emits the Award Manifest,
+        and we handle: points, multiplier, bonuses, penalties.
 
         Args:
-            payload: Event data containing kid_id, badge_id, badge_points
+            payload: Award Manifest containing:
+                - kid_id, badge_id, badge_name (identifiers)
+                - points: float (deposit amount)
+                - multiplier: float | None (currency rule update)
+                - bonus_ids: list[str] (bonus applications)
+                - penalty_ids: list[str] (penalty applications)
         """
         kid_id = payload.get("kid_id")
         badge_id = payload.get("badge_id")
-        badge_points = payload.get("badge_points", 0.0)
+        if not kid_id:
+            return
 
-        if badge_points > 0 and kid_id:
-            # Use async_create_task since dispatcher callbacks are sync
+        # 1. Points - deposit to kid's balance
+        points = payload.get("points", 0.0)
+        if points > 0:
             self.hass.async_create_task(
                 self.deposit(
                     kid_id=kid_id,
-                    amount=badge_points,
+                    amount=points,
                     source=const.POINTS_SOURCE_BADGES,
                     reference_id=badge_id,
                 )
+            )
+
+        # 2. Multiplier - Banker owns currency rules
+        multiplier = payload.get("multiplier")
+        if multiplier is not None:
+            self._update_multiplier(kid_id, float(multiplier), badge_id)
+
+        # 3. Bonuses - apply each bonus
+        bonus_ids = payload.get("bonus_ids", [])
+        for bonus_id in bonus_ids:
+            if bonus_id in self._coordinator.bonuses_data:
+                self.hass.async_create_task(
+                    self.apply_bonus(
+                        parent_name="Badge Award",
+                        kid_id=kid_id,
+                        bonus_id=bonus_id,
+                    )
+                )
+
+        # 4. Penalties - apply each penalty
+        penalty_ids = payload.get("penalty_ids", [])
+        for penalty_id in penalty_ids:
+            if penalty_id in self._coordinator.penalties_data:
+                self.hass.async_create_task(
+                    self.apply_penalty(
+                        parent_name="Badge Award",
+                        kid_id=kid_id,
+                        penalty_id=penalty_id,
+                    )
+                )
+
+    def _update_multiplier(
+        self, kid_id: str, multiplier: float, reference_id: str | None = None
+    ) -> None:
+        """Update kid's points multiplier (Banker owns currency rules).
+
+        Args:
+            kid_id: The kid's internal ID
+            multiplier: New multiplier value
+            reference_id: Optional reference (badge_id, etc.) for audit
+        """
+        kid_info = self._get_kid(kid_id)
+        if not kid_info:
+            return
+
+        old_multiplier = kid_info.get(
+            const.DATA_KID_POINTS_MULTIPLIER, const.DEFAULT_KID_POINTS_MULTIPLIER
+        )
+        if multiplier > const.DEFAULT_ZERO:
+            kid_info[const.DATA_KID_POINTS_MULTIPLIER] = multiplier
+            const.LOGGER.info(
+                "EconomyManager: Updated multiplier for kid %s: %.2f -> %.2f (ref: %s)",
+                kid_id,
+                old_multiplier,
+                multiplier,
+                reference_id or "manual",
             )
 
     def _on_achievement_unlocked(self, payload: dict[str, Any]) -> None:
@@ -798,3 +868,313 @@ class EconomyManager(BaseManager):
 
         self._coordinator._persist()
         self._coordinator.async_set_updated_data(self._coordinator._data)
+
+    # =========================================================================
+    # CRUD METHODS - BONUS (Manager-owned create/update/delete)
+    # =========================================================================
+    # These methods own the write operations for bonus entities.
+    # Called by options_flow.py and services.py - they must NOT write directly.
+
+    def create_bonus(self, user_input: dict[str, Any]) -> dict[str, Any]:
+        """Create a new bonus in storage.
+
+        Args:
+            user_input: Bonus data with DATA_* keys.
+
+        Returns:
+            Complete BonusData dict ready for use.
+
+        Emits:
+            SIGNAL_SUFFIX_BONUS_CREATED with bonus_id and bonus_name.
+        """
+        # Build complete bonus data structure
+        bonus_data = dict(
+            db.build_bonus_or_penalty(user_input, const.ENTITY_TYPE_BONUS)
+        )
+        internal_id = str(bonus_data[const.DATA_BONUS_INTERNAL_ID])
+        bonus_name = str(bonus_data.get(const.DATA_BONUS_NAME, ""))
+
+        # Store in coordinator data
+        self._coordinator._data[const.DATA_BONUSES][internal_id] = bonus_data
+        self._coordinator._persist()
+        self._coordinator.async_update_listeners()
+
+        # Emit lifecycle event
+        self.emit(
+            const.SIGNAL_SUFFIX_BONUS_CREATED,
+            bonus_id=internal_id,
+            bonus_name=bonus_name,
+        )
+
+        const.LOGGER.info(
+            "Created bonus '%s' (ID: %s)",
+            bonus_name,
+            internal_id,
+        )
+
+        return bonus_data
+
+    def update_bonus(self, bonus_id: str, updates: dict[str, Any]) -> dict[str, Any]:
+        """Update an existing bonus in storage.
+
+        Args:
+            bonus_id: Internal UUID of the bonus to update.
+            updates: Partial bonus data with DATA_* keys to merge.
+
+        Returns:
+            Updated BonusData dict.
+
+        Raises:
+            HomeAssistantError: If bonus not found.
+
+        Emits:
+            SIGNAL_SUFFIX_BONUS_UPDATED with bonus_id and bonus_name.
+        """
+        bonuses_data = self._coordinator._data.get(const.DATA_BONUSES, {})
+        if bonus_id not in bonuses_data:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_BONUS,
+                    "name": bonus_id,
+                },
+            )
+
+        existing = bonuses_data[bonus_id]
+        # Build updated bonus (merge existing with updates)
+        updated_bonus = dict(
+            db.build_bonus_or_penalty(
+                updates, const.ENTITY_TYPE_BONUS, existing=existing
+            )
+        )
+
+        # Store updated bonus
+        self._coordinator._data[const.DATA_BONUSES][bonus_id] = updated_bonus
+        self._coordinator._persist()
+        self._coordinator.async_update_listeners()
+
+        bonus_name = str(updated_bonus.get(const.DATA_BONUS_NAME, ""))
+
+        # Emit lifecycle event
+        self.emit(
+            const.SIGNAL_SUFFIX_BONUS_UPDATED,
+            bonus_id=bonus_id,
+            bonus_name=bonus_name,
+        )
+
+        const.LOGGER.debug(
+            "Updated bonus '%s' (ID: %s)",
+            bonus_name,
+            bonus_id,
+        )
+
+        return updated_bonus
+
+    def delete_bonus(self, bonus_id: str) -> None:
+        """Delete a bonus from storage.
+
+        Args:
+            bonus_id: Internal UUID of the bonus to delete.
+
+        Raises:
+            HomeAssistantError: If bonus not found.
+
+        Emits:
+            SIGNAL_SUFFIX_BONUS_DELETED with bonus_id and bonus_name.
+        """
+        bonuses_data = self._coordinator._data.get(const.DATA_BONUSES, {})
+        if bonus_id not in bonuses_data:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_BONUS,
+                    "name": bonus_id,
+                },
+            )
+
+        bonus_name = bonuses_data[bonus_id].get(const.DATA_BONUS_NAME, bonus_id)
+
+        # Delete from storage
+        del self._coordinator._data[const.DATA_BONUSES][bonus_id]
+
+        # Remove HA entities
+        remove_entities_by_item_id(
+            self.hass,
+            self._coordinator.config_entry.entry_id,
+            bonus_id,
+        )
+
+        self._coordinator._persist()
+        self._coordinator.async_update_listeners()
+
+        # Emit lifecycle event
+        self.emit(
+            const.SIGNAL_SUFFIX_BONUS_DELETED,
+            bonus_id=bonus_id,
+            bonus_name=bonus_name,
+        )
+
+        const.LOGGER.info(
+            "Deleted bonus '%s' (ID: %s)",
+            bonus_name,
+            bonus_id,
+        )
+
+    # =========================================================================
+    # CRUD METHODS - PENALTY (Manager-owned create/update/delete)
+    # =========================================================================
+    # These methods own the write operations for penalty entities.
+    # Called by options_flow.py and services.py - they must NOT write directly.
+
+    def create_penalty(self, user_input: dict[str, Any]) -> dict[str, Any]:
+        """Create a new penalty in storage.
+
+        Args:
+            user_input: Penalty data with DATA_* keys.
+
+        Returns:
+            Complete PenaltyData dict ready for use.
+
+        Emits:
+            SIGNAL_SUFFIX_PENALTY_CREATED with penalty_id and penalty_name.
+        """
+        # Build complete penalty data structure
+        penalty_data = dict(
+            db.build_bonus_or_penalty(user_input, const.ENTITY_TYPE_PENALTY)
+        )
+        internal_id = str(penalty_data[const.DATA_PENALTY_INTERNAL_ID])
+        penalty_name = str(penalty_data.get(const.DATA_PENALTY_NAME, ""))
+
+        # Store in coordinator data
+        self._coordinator._data[const.DATA_PENALTIES][internal_id] = penalty_data
+        self._coordinator._persist()
+        self._coordinator.async_update_listeners()
+
+        # Emit lifecycle event
+        self.emit(
+            const.SIGNAL_SUFFIX_PENALTY_CREATED,
+            penalty_id=internal_id,
+            penalty_name=penalty_name,
+        )
+
+        const.LOGGER.info(
+            "Created penalty '%s' (ID: %s)",
+            penalty_name,
+            internal_id,
+        )
+
+        return penalty_data
+
+    def update_penalty(
+        self, penalty_id: str, updates: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Update an existing penalty in storage.
+
+        Args:
+            penalty_id: Internal UUID of the penalty to update.
+            updates: Partial penalty data with DATA_* keys to merge.
+
+        Returns:
+            Updated PenaltyData dict.
+
+        Raises:
+            HomeAssistantError: If penalty not found.
+
+        Emits:
+            SIGNAL_SUFFIX_PENALTY_UPDATED with penalty_id and penalty_name.
+        """
+        penalties_data = self._coordinator._data.get(const.DATA_PENALTIES, {})
+        if penalty_id not in penalties_data:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_PENALTY,
+                    "name": penalty_id,
+                },
+            )
+
+        existing = penalties_data[penalty_id]
+        # Build updated penalty (merge existing with updates)
+        updated_penalty = dict(
+            db.build_bonus_or_penalty(
+                updates, const.ENTITY_TYPE_PENALTY, existing=existing
+            )
+        )
+
+        # Store updated penalty
+        self._coordinator._data[const.DATA_PENALTIES][penalty_id] = updated_penalty
+        self._coordinator._persist()
+        self._coordinator.async_update_listeners()
+
+        penalty_name = str(updated_penalty.get(const.DATA_PENALTY_NAME, ""))
+
+        # Emit lifecycle event
+        self.emit(
+            const.SIGNAL_SUFFIX_PENALTY_UPDATED,
+            penalty_id=penalty_id,
+            penalty_name=penalty_name,
+        )
+
+        const.LOGGER.debug(
+            "Updated penalty '%s' (ID: %s)",
+            penalty_name,
+            penalty_id,
+        )
+
+        return updated_penalty
+
+    def delete_penalty(self, penalty_id: str) -> None:
+        """Delete a penalty from storage.
+
+        Args:
+            penalty_id: Internal UUID of the penalty to delete.
+
+        Raises:
+            HomeAssistantError: If penalty not found.
+
+        Emits:
+            SIGNAL_SUFFIX_PENALTY_DELETED with penalty_id and penalty_name.
+        """
+        penalties_data = self._coordinator._data.get(const.DATA_PENALTIES, {})
+        if penalty_id not in penalties_data:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_FOUND,
+                translation_placeholders={
+                    "entity_type": const.LABEL_PENALTY,
+                    "name": penalty_id,
+                },
+            )
+
+        penalty_name = penalties_data[penalty_id].get(
+            const.DATA_PENALTY_NAME, penalty_id
+        )
+
+        # Delete from storage
+        del self._coordinator._data[const.DATA_PENALTIES][penalty_id]
+
+        # Remove HA entities
+        remove_entities_by_item_id(
+            self.hass,
+            self._coordinator.config_entry.entry_id,
+            penalty_id,
+        )
+
+        self._coordinator._persist()
+        self._coordinator.async_update_listeners()
+
+        # Emit lifecycle event
+        self.emit(
+            const.SIGNAL_SUFFIX_PENALTY_DELETED,
+            penalty_id=penalty_id,
+            penalty_name=penalty_name,
+        )
+
+        const.LOGGER.info(
+            "Deleted penalty '%s' (ID: %s)",
+            penalty_name,
+            penalty_id,
+        )
