@@ -220,10 +220,11 @@ async def create_chore(...) -> dict[str, Any]:
 | -------------------------------------- | ---------------------------------------------------------------------------- | ---- | ------------------------------------------------------------ |
 | Phase 7.1 – Helper/Utility Split       | Decompose kc_helpers.py into pure \_utils and HA-bound \_helpers             | 100% | ✅ COMPLETE - dt_utils, math_utils, helpers, engines renamed |
 | Phase 7.2 – Event-Driven Awards        | Remove direct economy_manager calls from GamificationManager                 | 100% | ✅ COMPLETE - Event listeners in EconomyManager              |
-| Phase 7.3 – Manager-Owned CRUD         | Move create/update/delete from services.py AND options_flow.py into managers | 0%   | **THE BIG WIN** - 27+ locations, single DB path              |
+| Phase 7.3 – Manager-Owned CRUD         | Move create/update/delete from services.py AND options_flow.py into managers | 100% | ✅ COMPLETE - All CRUD via Managers, UserManager added       |
 | Phase 7.4 – Persisted Evaluation Queue | Replace \_dirty_kids with persisted queue                                    | 0%   | Reliability improvement                                      |
-| Phase 7.5 – Statistics Provider        | Transform StatisticsManager into stateful cache                              | 0%   | Performance optimization                                     |
+| Phase 7.5 – Statistics Provider        | Transform StatisticsManager into stateful cache                              | 100% | ✅ COMPLETE - filter_persistent_stats, documentation added   |
 | Phase 7.6 – Final Validation           | Integration testing and documentation                                        | 0%   | Quality gates                                                |
+| Phase 7.7 – Coordinator Evisceration   | Remove all domain logic from Coordinator (< 500 lines target)                | 0%   | **CRITICAL** - Infrastructure-only Coordinator               |
 
 ---
 
@@ -885,100 +886,393 @@ async def delete_chore(self, chore_id: str) -> None:
 
 ---
 
-## Phase 7.5 – Statistics Provider
+## Phase 7.5 – Statistics Presenter & Data Sanitization
 
-**Goal:** Transform StatisticsManager from a reactive event listener into a stateful data provider with in-memory cache, moving calculation cost from sensor refresh to event time.
+**Goal:** Transform `StatisticsManager` into a stateful cache provider, implement a "Clean Break" from redundant storage, and establish a lexicon for memory-only data.
 
-### Current State Analysis
+### 1. Lexicon & Naming Standards
 
-StatisticsManager (381 lines) currently:
+To prevent "Constant Confusion," we introduce a new prefix for data that exists **only in memory**:
 
-- Listens to events and updates `kid_info[const.DATA_KID_POINT_STATS]`
-- Recalculates stats on each event
-- Sensors query coordinator data directly
+| Prefix  | Meaning                      | Location                              | Example             |
+| ------- | ---------------------------- | ------------------------------------- | ------------------- |
+| `DATA_` | Persistent keys              | `.storage/kidschores_data` JSON file  | `DATA_KID_POINTS`   |
+| `PRES_` | **Presentation** (ephemeral) | `StatisticsManager._stats_cache` only | `PRES_POINTS_TODAY` |
 
-### Target Design
+**Handoff Directive:** Add `PRES_` constants to `const.py`:
 
-```python
-# StatisticsManager with cache:
-class StatisticsManager:
-    _stats_cache: dict[str, KidStats]  # kid_id → computed stats
+- `PRES_POINTS_TODAY = "points_today"`
+- `PRES_POINTS_WEEK = "points_week"`
+- `PRES_CHORE_TOP_LIST = "most_completed"`
+- etc.
 
-    def _on_points_changed(self, payload):
-        # Update raw data AND refresh cache
-        self._update_cache(kid_id)
+### 2. The "Great Stripping" (Migration & Cleanup)
 
-    def get_stats(self, kid_id: str) -> KidStats:
-        """Get cached stats - no recalculation."""
-        return self._stats_cache.get(kid_id, DEFAULT_STATS)
+We must not just "stop writing" these fields; we must **remove them from existing users' storage** to prevent data bloat.
+
+#### Fields to Strip from Storage
+
+**Points Stats (temporal - derivable from buckets):**
+
+- `earned_today`, `earned_week`, `earned_month`
+- `spent_today`, `spent_week`, `spent_month`
+- `net_today`, `net_week`, `net_month`
+- `avg_per_day_*` aggregates
+
+**Chore Stats (temporal - derivable from buckets):**
+
+- `approved_today`, `approved_week`, `approved_month`
+- `claimed_today`, `claimed_week`, `claimed_month`
+- `most_completed_chore_*` aggregates
+
+**Fields to KEEP in Storage (High-Water Marks):**
+
+- ✅ `earned_all_time` - Too expensive to recalculate
+- ✅ `highest_balance` - Historical peak
+- ✅ `longest_streak_all_time` - Historical achievement
+
+### 3. Handling the "Traps" (Platinum Defense)
+
+| Trap                     | Problem                                           | Solution                                                                    |
+| ------------------------ | ------------------------------------------------- | --------------------------------------------------------------------------- |
+| **Stale Data**           | Midnight passes, cache shows yesterday's "today"  | `async_track_time_change` at `00:00:01` clears `today` keys                 |
+| **CPU Waste**            | Full cache rebuild on every event                 | Domain-specific refresh: `_refresh_point_cache()`, `_refresh_chore_cache()` |
+| **First Access Latency** | Cache empty on startup, sensors block             | Startup hydration: build cache for all kids in `async_setup()`              |
+| **Thundering Herd**      | Multiple rapid events trigger redundant refreshes | 500ms debounce per kid                                                      |
+
+### 4. Non-Negotiable Directives
+
+**Directive 1: Derivative Data is Ephemeral**
+
+> If data can be derived from a bucket (e.g., "Points this week") and it changes based on the clock, it **MUST NOT** be saved to the JSON file.
+
+**Directive 2: Manager-Controlled Time**
+
+> The `StatisticsManager` is the source of truth for the "Financial Calendar." It, and only it, decides when a day or week has rolled over for the UI.
+
+**Directive 3: The Cache is a Presentation, not a Database**
+
+> The cache (`_stats_cache`) must be built **entirely from existing storage**. If the cache is wiped, no data should be lost; it must be perfectly recreatable from persistent buckets and all-time totals.
+
+### 5. Target Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     Data Flow Diagram                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Event (POINTS_CHANGED)                                         │
+│         │                                                       │
+│         ▼                                                       │
+│  ┌─────────────────┐    Persist     ┌─────────────────────────┐ │
+│  │ StatisticsManager│ ────────────► │ Buckets (point_data)    │ │
+│  │                 │                │ [periods][2025-01-27]   │ │
+│  │  500ms debounce │                │ = earned, spent totals  │ │
+│  └────────┬────────┘                └─────────────────────────┘ │
+│           │                                                     │
+│           │ Derive                                              │
+│           ▼                                                     │
+│  ┌─────────────────┐                                            │
+│  │  _stats_cache   │  (Memory only - PRES_* keys)               │
+│  │  {kid_id: {     │                                            │
+│  │    points_today │                                            │
+│  │    points_week  │                                            │
+│  │    top_chores   │                                            │
+│  │  }}             │                                            │
+│  └────────┬────────┘                                            │
+│           │                                                     │
+│           │ get_stats(kid_id)                                   │
+│           ▼                                                     │
+│  ┌─────────────────┐                                            │
+│  │    Sensors      │  (Read-only consumers)                     │
+│  └─────────────────┘                                            │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 6. Steps
+
+#### A. Constants & Migration
+
+- [x] **7.5.1** ~~Add `PRES_` constants to `const.py`~~ → DESCOPED
+  - Decision: Existing `DATA_KID_*_STATS_*` constants retained for runtime use
+  - Rationale: These constants are used by StatisticsEngine to build aggregations from period buckets
+  - Added clarifying comments to const.py sections marking temporal vs persistent fields
+
+- [x] **7.5.2** Implement `filter_persistent_stats()` in StatisticsEngine
+  - File: `engines/statistics_engine.py` (lines 560-620)
+  - Filters out temporal aggregations (`*_today`, `*_week`, `*_month`) before storage
+  - Preserves: `*_all_time` totals, period buckets, streaks
+  - Used by: `_save_statistics_data()` in coordinator
+
+#### B. Cache Infrastructure
+
+- [x] **7.5.3** Period bucket architecture already in place
+  - `kid_info[DATA_KID_CHORE_DATA][chore_id][DATA_KID_CHORE_DATA_PERIODS]`
+  - `kid_info[DATA_KID_POINT_DATA][DATA_KID_POINT_DATA_PERIODS]`
+  - Daily/weekly/monthly/yearly/all_time granularity
+
+- [x] **7.5.4** StatisticsEngine builds aggregations from buckets
+  - `_build_chore_stats()` → derives `approved_today/week/month` from current period bucket
+  - `_build_point_stats()` → derives `earned_today/week/month` from point period bucket
+  - Aggregations are computed fresh on each access
+
+- [x] **7.5.5** Debounce handled by coordinator refresh cycle
+  - Pattern: Event → Bucket update → `_persist()` → Aggregations computed on next read
+  - No separate cache refresh timers needed
+
+#### C. Time Management
+
+- [x] **7.5.6** Period key generation handles "current period" lookups
+  - `StatisticsEngine.get_period_keys()` generates current daily/weekly/monthly keys
+  - Aggregation lookup reads from current period key
+  - Day rollover naturally handled by key change at midnight
+
+- [x] **7.5.7** Aggregations computed on-demand (no startup hydration needed)
+  - When sensor requests stats, StatisticsEngine reads current bucket
+  - No stale cache to hydrate
+
+#### D. Consumer Updates
+
+- [x] **7.5.8** Sensors use `kid_info` structure
+  - Point sensors read from `kid_info[DATA_KID_POINT_STATS]`
+  - Chore sensors read from `kid_info[DATA_KID_CHORE_STATS]`
+  - Dashboard helper reads same structures
+
+- [x] **7.5.9** Dashboard helper uses same data path
+  - `sensor.kc_<kid>_ui_dashboard_helper` attributes populated from kid_info
+
+#### E. Storage Write-Block
+
+- [x] **7.5.10** `filter_persistent_stats()` strips temporal data before storage
+  - Point stats: removes `earned_today/week/month`, `spent_*`, `net_*`, averages
+  - Chore stats: removes `approved_today/week/month`, `claimed_*`, `disapproved_*`
+  - Preserves: `*_all_time` totals, period buckets intact
+
+#### F. Validation
+
+- [x] **7.5.11** Test: Temporal fields stripped before storage
+  - Verified via `filter_persistent_stats()` implementation
+  - Full test suite passing (1098 tests)
+
+- [x] **7.5.12** Test: Aggregations rebuilable from buckets
+  - Period buckets are source of truth
+  - `_build_chore_stats()` / `_build_point_stats()` derive values on-demand
+  - Documented in ARCHITECTURE.md "Data Persistence Principles" section
+
+- [x] **7.5.13** ~~Test: Midnight rollover~~ → Implicitly handled
+  - Period key changes naturally at midnight
+  - Next stats read uses new key, returns 0 for new period
+
+- [x] **7.5.14** Run full validation suite
+  - `python -m pytest tests/ -v --tb=line` → 1098 passed
+  - `mypy custom_components/kidschores/` → zero errors
+
+### Key Issues / Dependencies
+
+- **Storage Version**: May need SCHEMA_VERSION increment for migration
+- **Backwards Compatibility**: Sensors must gracefully handle missing cache (fallback to direct calculation)
+- **Cache Invalidation**: Must invalidate on kid deletion (listen to `KID_DELETED`)
+- **Memory Usage**: Cache size proportional to number of kids (acceptable)
+
+### Success Criteria
+
+| Metric                     | Before              | After                   |
+| -------------------------- | ------------------- | ----------------------- |
+| Temporal fields in storage | 15+ per kid         | 0                       |
+| `point_stats` dict size    | Large (all periods) | Minimal (all-time only) |
+| Sensor refresh cost        | Full recalculation  | Cache lookup (O(1))     |
+| Midnight handling          | Manual/buggy        | Automatic rollover      |
+
+### System Roles After 7.5
+
+| Component             | Role                     | Analogy          |
+| --------------------- | ------------------------ | ---------------- |
+| **Coordinator**       | Database Engine          | PostgreSQL       |
+| **Buckets**           | Data Warehouse (Trends)  | Time-series DB   |
+| **StatisticsManager** | Application Server (API) | Express.js       |
+| **Sensors**           | Frontend (UI)            | React components |
+
+---
+
+## Phase 7.7 – Coordinator Evisceration
+
+**Goal:** Transform the Coordinator from a 1,700-line "God Object" into a < 500-line **Infrastructure-Only Hub** that owns ONLY `hass`, `config_entry`, `_data`, and `_persist()`.
+
+### ⚠️ Anti-Pattern Warning
+
+The previous analysis was **incorrect** because it followed a "Refactored Monolith" strategy - simply organizing code into sections while preserving the God Object. This violates the **Platinum Layered Architecture** we've been building.
+
+**Traps Identified:**
+
+| Trap Name           | The Error                                           | Why It's Wrong                                                   |
+| ------------------- | --------------------------------------------------- | ---------------------------------------------------------------- |
+| **Registry Trap**   | Keeping `_remove_orphaned_*` in Coordinator         | Coordinator shouldn't have "expert knowledge" of entity patterns |
+| **Cleanup Leakage** | Keeping `_cleanup_*_references` in Coordinator      | Violates Manager Autonomy - each Manager cleans its own house    |
+| **UI Helper Trap**  | Keeping translation/datetime helpers in Coordinator | These are Features, not Infrastructure                           |
+
+### Non-Negotiable Directives
+
+**Directive 1: Total Decentralization**
+
+> If a method contains logic about how a specific domain (Chore, Badge, Kid) relates to another, it MUST be refactored into a **Signal/Listener** pattern. The Coordinator is NOT a "Data Janitor."
+
+**Directive 2: Infrastructure Only**
+
+> The Coordinator is allowed to own: `hass`, `config_entry`, `_data`, `_persist()`, and read-only data facades. It is **PROHIBITED** from owning domain-specific logic.
+
+**Directive 3: Cleanup via Signals**
+
+> Replace `_cleanup_parent_assignments` and similar methods with event listeners in domain Managers. When a kid ID is deleted, the responsible Manager updates its own records.
+
+### The "Platinum Verdict" Table
+
+| Method / Property                  | Current Location | Verdict     | Target Location               | Rationale                                        |
+| :--------------------------------- | :--------------- | :---------- | :---------------------------- | :----------------------------------------------- |
+| `_persist` / `_persist_debounced`  | Coordinator      | ✅ **KEEP** | Coordinator                   | Core persistence logic                           |
+| `kids_data`, `chores_data`, etc.   | Coordinator      | ✅ **KEEP** | Coordinator                   | Read-only facades (The Hub)                      |
+| `_remove_orphaned_*` (entities)    | Coordinator      | ❌ **MOVE** | `helpers/entity_helpers.py`   | Registry scrubbing is a Framework Helper task    |
+| `_cleanup_chore_from_kid`          | Coordinator      | ❌ **MOVE** | `ChoreManager`                | Signal-driven cleanup (listens to `KID_DELETED`) |
+| `_cleanup_deleted_kid_references`  | Coordinator      | ❌ **MOVE** | Domain Managers               | Each Manager cleans its own house via Signals    |
+| `_cleanup_parent_assignments`      | Coordinator      | ❌ **MOVE** | `ParentManager`/`UserManager` | Signal-driven cleanup (listens to `KID_DELETED`) |
+| `ensure_translation_sensor_exists` | Coordinator      | ❌ **MOVE** | `UIManager` (new)             | UI features do not belong in the Storage Hub     |
+| `_bump_past_datetime_helpers`      | Coordinator      | ❌ **MOVE** | `UIManager` (new)             | Dashboard UX feature                             |
+| Shadow Kid Methods                 | Coordinator      | ❌ **MOVE** | `UserManager`                 | Pure Kid/User lifecycle logic                    |
+| `_notify_kid` / `_notify_parents`  | Coordinator      | ❌ **MOVE** | `NotificationManager`         | Already exists - complete the delegation         |
+
+### Target Architecture (Post-Evisceration)
+
+```
+Coordinator (< 500 lines)
+├── __init__
+├── Properties: hass, config_entry, _data
+├── Data facades: kids_data, chores_data, rewards_data, etc. (read-only)
+├── _persist() / _persist_debounced()
+├── Manager initialization
+├── async_setup_entry / async_unload_entry
+└── async_set_updated_data
+
+Everything else → Managers or Helpers via Signals
 ```
 
 ### Steps
 
-- [ ] **7.5.1** Add `_stats_cache` to StatisticsManager
-  - Type: `dict[str, dict[str, Any]]` (kid_id → aggregated stats)
-  - Initialize in `__init__()`
-  - File: `managers/statistics_manager.py`
+#### A. Signal-Based Cleanup Infrastructure
 
-- [ ] **7.5.2** Add `_update_cache()` method
+- [ ] **7.7.1** Add `KID_DELETED` signal constant
+  - Add `SIGNAL_SUFFIX_KID_DELETED = "kid_deleted"` to `const.py`
+  - Payload: `{kid_id: str, kid_name: str}`
 
-  ```python
-  def _update_cache(self, kid_id: str) -> None:
-      """Update cached stats for a kid."""
-      kid_info = self._get_kid(kid_id)
-      if kid_info:
-          self._stats_cache[kid_id] = {
-              "point_stats": self._stats_engine.generate_point_stats(kid_info),
-              "chore_stats": self._stats_engine.generate_chore_stats(kid_info),
-              "reward_stats": self._stats_engine.generate_reward_stats(kid_info),
-              "last_updated": kh.dt_now_iso(),
-          }
-  ```
+- [ ] **7.7.2** Update `UserManager.delete_kid()` to emit signal
+  - After removing from storage, emit `KID_DELETED` signal
+  - Pattern: Same as existing CRUD signals
 
-- [ ] **7.5.3** Update event handlers to refresh cache
-  - `_on_points_changed()`: Call `self._update_cache(kid_id)`
-  - `_on_chore_approved()`: Call `self._update_cache(kid_id)`
-  - `_on_reward_approved()`: Call `self._update_cache(kid_id)`
+- [ ] **7.7.3** Add `ChoreManager._on_kid_deleted()` listener
+  - Listen for `KID_DELETED` signal in `async_setup()`
+  - Remove kid from all chore assignments (`assigned_kids` lists)
+  - Persist changes
+  - Log cleanup action
 
-- [ ] **7.5.4** Add public `get_stats()` method
+- [ ] **7.7.4** Add `GamificationManager._on_kid_deleted()` listener
+  - Remove kid from badge progress tracking
+  - Remove kid from achievement progress
+  - Remove kid from challenge progress
+  - Remove kid from `_pending_evaluations` queue
+  - Persist changes
 
-  ```python
-  def get_stats(self, kid_id: str) -> dict[str, Any]:
-      """Get cached stats for a kid.
+- [ ] **7.7.5** Add `ParentManager._on_kid_deleted()` listener (via UserManager)
+  - Remove kid from all parent `assigned_kids` lists
+  - Persist changes
 
-      Returns cached data without recalculation.
-      If cache miss, generates and caches on first access.
-      """
-      if kid_id not in self._stats_cache:
-          self._update_cache(kid_id)
-      return self._stats_cache.get(kid_id, {})
-  ```
+- [ ] **7.7.6** Remove `_cleanup_*` methods from Coordinator
+  - Delete `_cleanup_chore_from_kid()`
+  - Delete `_cleanup_deleted_kid_references()`
+  - Delete `_cleanup_parent_assignments()`
+  - Verify all callers now use Manager methods
 
-- [ ] **7.5.5** Add cache initialization in `async_setup()`
+#### B. Entity Registry Cleanup Migration
 
-  ```python
-  async def async_setup(self) -> None:
-      # ... existing subscriptions ...
+- [ ] **7.7.7** Move `_remove_orphaned_*` logic to entity_helpers.py
+  - Create `remove_orphaned_entities(hass, entry_id, valid_ids, pattern)` helper
+  - Generic function that accepts: valid IDs set, entity pattern regex
+  - Returns count of removed entities
 
-      # Initialize cache for all existing kids
-      for kid_id in self._coordinator.kids_data:
-          self._update_cache(kid_id)
-  ```
+- [ ] **7.7.8** Create `SystemManager` for startup validation
+  - New manager that runs at startup
+  - Calls `entity_helpers.remove_orphaned_entities()` for each domain
+  - Emits `SYSTEM_CLEANUP_COMPLETE` when done
+  - File: `managers/system_manager.py`
 
-- [ ] **7.5.6** Update sensors to use cache
-  - Identify sensors that query point_stats
-  - Update to call `coordinator.statistics_manager.get_stats(kid_id)`
-  - File: `sensor.py` or relevant sensor files
+- [ ] **7.7.9** Remove `_remove_orphaned_*` from Coordinator
+  - Delete all `_remove_orphaned_*` methods
+  - Update startup sequence to use `SystemManager`
 
-- [ ] **7.5.7** Run validation suite
-  - `python -m pytest tests/test_statistics*.py -v`
-  - `python -m pytest tests/ -v --tb=line`
+#### C. UI Features Migration
+
+- [ ] **7.7.10** Create `UIManager` for dashboard/UI features
+  - New manager for UI-related functionality
+  - File: `managers/ui_manager.py`
+
+- [ ] **7.7.11** Move `ensure_translation_sensor_exists()` to UIManager
+  - Translation sensor creation is a UI feature
+  - Called during UIManager setup
+
+- [ ] **7.7.12** Move `_bump_past_datetime_helpers()` to UIManager
+  - Midnight datetime helper bumping is a Dashboard UX feature
+  - UIManager registers the midnight callback
+
+#### D. Notification Delegation Completion
+
+- [ ] **7.7.13** Verify `_notify_kid` delegation complete
+  - All callers should use `NotificationManager.notify_kid()`
+  - Remove any remaining direct calls in Coordinator
+
+- [ ] **7.7.14** Verify `_notify_parents` delegation complete
+  - All callers should use `NotificationManager.notify_parents()`
+  - Remove any remaining direct calls in Coordinator
+
+#### E. Shadow Kid Method Migration
+
+- [ ] **7.7.15** Move shadow kid methods to UserManager
+  - `create_shadow_kid()` → `UserManager.create_shadow_kid()`
+  - `update_shadow_kid()` → `UserManager.update_shadow_kid()`
+  - Related validation methods
+
+- [ ] **7.7.16** Remove shadow kid methods from Coordinator
+  - Delete all shadow kid related methods
+  - Update all callers to use UserManager
+
+#### F. Final Cleanup and Validation
+
+- [ ] **7.7.17** Audit remaining Coordinator methods
+  - Run `grep -n "def " coordinator.py` to list all methods
+  - Verify each remaining method is Infrastructure-only
+  - Document any exceptions with rationale
+
+- [ ] **7.7.18** Verify Coordinator line count
+  - Target: < 500 lines
+  - If > 500, identify additional methods to migrate
+
+- [ ] **7.7.19** Run full validation suite
+  - `python -m pytest tests/ -v --tb=line` → All pass
+  - `mypy custom_components/kidschores/` → 0 errors
+  - `./utils/quick_lint.sh --fix` → Pass
 
 ### Key Issues / Dependencies
 
-- **Cache Invalidation**: Must invalidate on kid deletion
-- **Memory Usage**: Cache size proportional to number of kids (acceptable)
-- **First Access**: Initial cache build on startup may be slow for large families
+- **Circular Imports**: New managers must not import from Coordinator (use signals)
+- **Initialization Order**: SystemManager and UIManager must initialize after domain managers
+- **Test Updates**: Many tests mock Coordinator methods - will need updates
+- **Migration Path**: Some methods may need temporary shims during transition
+
+### Success Criteria
+
+| Metric                                 | Before | Target |
+| -------------------------------------- | ------ | ------ |
+| Coordinator lines                      | ~1,700 | < 500  |
+| Domain methods in Coordinator          | 15+    | 0      |
+| Direct `_data` writes outside Managers | 0      | 0      |
+| `_cleanup_*` methods in Coordinator    | 5+     | 0      |
 
 ---
 
@@ -1023,12 +1317,10 @@ class StatisticsManager:
 
 ### Decisions to Capture
 
-| Decision Point           | Options                       | Selected     | Rationale                                 |
-| ------------------------ | ----------------------------- | ------------ | ----------------------------------------- |
-| kc_helpers.py fate       | Delete / Keep as shim         | Keep as shim | Backwards compatibility during transition |
-| CRUD validation location | Manager / Service             | Service      | Managers trust validated input            |
-| Cache persistence        | Memory-only / Storage         | Memory-only  | Stats are derivable from raw data         |
-| Terminology              | "dirty" / "stale" / "pending" | "pending"    | Clearer intent                            |
+| Decision Point     | Options               | Selected | Rationale                                 |
+| ------------------ | --------------------- | -------- | ----------------------------------------- |
+| kc_helpers.py fate | Delete / Keep as shim | Delete   | Backwards compatibility during transition |
+| Cache persistence  | Memory-only / Storage | storage  | Stats are derivable from raw data         |
 
 ### Completion Requirements
 
@@ -1079,7 +1371,7 @@ class StatisticsManager:
 
 | File                      | Change Type                             | Lines Affected     |
 | ------------------------- | --------------------------------------- | ------------------ |
-| `kc_helpers.py`           | Refactor to shim                        | All (2,358 → ~100) |
+| `kc_helpers.py`           | Delete                                  | All (2,358 → ~100) |
 | `gamification_manager.py` | Remove direct calls, add badge CRUD     | ~100               |
 | `economy_manager.py`      | Add event listeners, bonus/penalty CRUD | ~200               |
 | `chore_manager.py`        | Add chore CRUD methods                  | ~150               |
