@@ -250,6 +250,20 @@ def _persist(self):
     self.hass.add_job(self.storage_manager.async_save)
 ```
 
+### Data Persistence Principles
+
+KidsChores separates **source data** (persisted) from **derived data** (computed at runtime):
+
+| Layer | Example | Persisted? | Purpose |
+|-------|---------|------------|---------|
+| **Period Buckets** | `daily["2025-01-28"]`, `weekly["2025-W04"]` | ✅ Yes | Source of truth for historical data |
+| **Stats Aggregations** | `approved_today`, `approved_week` | ❌ No | Derived views, rebuilt on refresh |
+| **All-Time Totals** | `approved_all_time` | ✅ Yes | No rollup source, must persist |
+
+**Historical Queries**: To find "chores completed 6 months ago", query the monthly period bucket directly—`chore_data["periods"]["monthly"]["2024-07"]`. Retention settings (`retention_daily`, etc.) control how long each granularity is kept.
+
+**Implementation**: `StatisticsEngine.record_transaction()` writes to period buckets; `filter_persistent_stats()` strips temporal aggregations before storage; aggregations rebuild from buckets at coordinator refresh.
+
 ---
 
 ## Type System Architecture
