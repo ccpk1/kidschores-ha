@@ -903,10 +903,10 @@ class PreV50Migrator:
                             const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED: 0,
                             const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE: 0,
                             const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED: 0,
-                            const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK: 0,
+                            const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY: 0,
                         },
                     )
-                    daily_data[const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK] = (
+                    daily_data[const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY] = (
                         legacy_streak.get(const.DATA_KID_CURRENT_STREAK, 0)
                     )
 
@@ -967,7 +967,7 @@ class PreV50Migrator:
                         const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED: 0,
                         const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE: 0,
                         const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED: 0,
-                        const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK: 0,
+                        const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY: 0,
                     },
                 )
                 # No per chore data available for daily period

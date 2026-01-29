@@ -2277,9 +2277,18 @@ class ChoreManager(BaseManager):
         # Must happen BEFORE applying effects or updating timestamps
         # =====================================================================
 
-        previous_last_approved = kid_chore_data.get(
-            const.DATA_KID_CHORE_DATA_LAST_APPROVED
+        # Get previous last_completed for streak calculation (parent-lag-proof)
+        # INDEPENDENT: per-kid, SHARED: chore-level
+        completion_criteria = chore_data.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA,
+            const.COMPLETION_CRITERIA_INDEPENDENT,
         )
+        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+            previous_last_completed = kid_chore_data.get(
+                const.DATA_KID_CHORE_DATA_LAST_COMPLETED
+            )
+        else:
+            previous_last_completed = chore_data.get(const.DATA_CHORE_LAST_COMPLETED)
 
         # Check if this is a direct approval (no pending claim)
         # Used to set claim fields for consistency
@@ -2301,7 +2310,7 @@ class ChoreManager(BaseManager):
         )
         yesterday_data = daily_periods.get(yesterday_iso, {})
         previous_streak = yesterday_data.get(
-            const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK, 0
+            const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY, 0
         )
 
         # Calculate effects
@@ -2339,19 +2348,20 @@ class ChoreManager(BaseManager):
             or now_iso
         )
 
-        # Calculate streak using schedule-aware logic
+        # Calculate streak using schedule-aware logic (parent-lag-proof)
+        # Uses last_completed (work date) not last_approved (parent action date)
         new_streak = ChoreEngine.calculate_streak(
             current_streak=previous_streak,
-            previous_last_approved_iso=previous_last_approved,
-            now_iso=now_iso,
+            previous_last_completed_iso=previous_last_completed,
+            current_work_date_iso=effective_date_iso,
             chore_data=chore_data,
         )
 
-        # Store streak in today's period data
+        # Store streak_tally in today's period data (daily value)
         today_data = daily_periods.setdefault(today_iso, {})
-        today_data[const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK] = new_streak
+        today_data[const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY] = new_streak
 
-        # Update all-time longest streak if this is a new record
+        # Update all-time longest_streak if this is a new high water mark
         all_time_data = periods_data.setdefault(
             const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}
         )
@@ -2479,6 +2489,7 @@ class ChoreManager(BaseManager):
             previous_state=previous_state,
             update_stats=True,
             effective_date=effective_date_iso,
+            streak_tally=new_streak,
         )
 
         # Clear notification tracking (both due window and reminder)
@@ -3057,8 +3068,11 @@ class ChoreManager(BaseManager):
         )
 
         if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
-            # Use this kid's effective_date
-            chore_data[const.DATA_CHORE_LAST_COMPLETED] = effective_date_iso
+            # INDEPENDENT: Store in per-kid data (each kid has their own completion)
+            kid_chore_data_item = self._get_kid_chore_data(kid_id, chore_id)
+            kid_chore_data_item[const.DATA_KID_CHORE_DATA_LAST_COMPLETED] = (
+                effective_date_iso
+            )
 
         elif completion_criteria == const.COMPLETION_CRITERIA_SHARED:
             # SHARED_ALL: Collect all assigned kids' last_claimed, use max

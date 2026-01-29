@@ -792,31 +792,31 @@ class ChoreEngine:
     @staticmethod
     def calculate_streak(
         current_streak: int,
-        previous_last_approved_iso: str | None,
-        now_iso: str,
+        previous_last_completed_iso: str | None,
+        current_work_date_iso: str,
         chore_data: ChoreData | dict[str, Any],
     ) -> int:
         """Calculate new streak value based on schedule-aware logic.
 
-        Must be called BEFORE updating last_approved timestamp, using the
+        Must be called BEFORE updating last_completed timestamp, using the
         previous value to determine if the schedule gap was missed.
 
         Args:
             current_streak: The streak value from the previous day (or 0)
-            previous_last_approved_iso: ISO timestamp of last approval BEFORE this one
-            now_iso: Current ISO timestamp (the new approval time)
+            previous_last_completed_iso: ISO timestamp of LAST completion (work date)
+            current_work_date_iso: ISO timestamp of THIS completion (effective_date)
             chore_data: Chore definition containing frequency/schedule info
 
         Returns:
-            New streak value: 1 if first approval or streak broken,
+            New streak value: 1 if first completion or streak broken,
                              current_streak + 1 if on-time
         """
         from custom_components.kidschores.engines.schedule_engine import (
             RecurrenceEngine,
         )
 
-        # First approval ever = streak of 1
-        if not previous_last_approved_iso:
+        # First completion ever = streak of 1
+        if not previous_last_completed_iso:
             return 1
 
         # Get schedule configuration from chore
@@ -826,11 +826,11 @@ class ChoreEngine:
 
         # No schedule (manual/one-time chore) = simple daily logic
         if frequency == const.FREQUENCY_NONE:
-            # Check if previous approval was yesterday (simple streak)
-            prev_dt = dt_to_utc(previous_last_approved_iso)
-            now_dt = dt_to_utc(now_iso)
-            if prev_dt and now_dt:
-                days_diff = (now_dt.date() - prev_dt.date()).days
+            # Check if previous completion was yesterday (simple streak)
+            prev_dt = dt_to_utc(previous_last_completed_iso)
+            current_dt = dt_to_utc(current_work_date_iso)
+            if prev_dt and current_dt:
+                days_diff = (current_dt.date() - prev_dt.date()).days
                 if days_diff <= 1:
                     return current_streak + 1
             return 1  # Broke streak
@@ -859,7 +859,7 @@ class ChoreEngine:
             "interval_unit": str(interval_unit_raw)
             if interval_unit_raw
             else const.TIME_UNIT_DAYS,
-            "base_date": previous_last_approved_iso,
+            "base_date": previous_last_completed_iso,
             "applicable_days": applicable_days_int,
             "daily_multi_times": str(daily_multi_raw) if daily_multi_raw else "",
         }
@@ -868,14 +868,14 @@ class ChoreEngine:
             engine = RecurrenceEngine(schedule_config)
 
             # Parse timestamps to datetime for engine
-            prev_dt = dt_to_utc(previous_last_approved_iso)
-            now_dt = dt_to_utc(now_iso)
+            prev_dt = dt_to_utc(previous_last_completed_iso)
+            current_dt = dt_to_utc(current_work_date_iso)
 
-            if not prev_dt or not now_dt:
+            if not prev_dt or not current_dt:
                 return 1  # Can't calculate, reset streak
 
             # Check if any scheduled occurrences were missed
-            if engine.has_missed_occurrences(prev_dt, now_dt):
+            if engine.has_missed_occurrences(prev_dt, current_dt):
                 return 1  # Broke streak
 
             return current_streak + 1  # On-time, continue streak

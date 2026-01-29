@@ -33,7 +33,9 @@ from custom_components.kidschores.const import (
     DATA_CHORE_APPLICABLE_DAYS,
     DATA_CHORE_CUSTOM_INTERVAL,
     DATA_CHORE_CUSTOM_INTERVAL_UNIT,
+    DATA_KID_CHORE_DATA_LAST_COMPLETED,
     DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK,
+    DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY,
     DATA_KID_CHORE_DATA_PERIODS,
     DATA_KID_CHORE_DATA_PERIODS_ALL_TIME,
     DATA_KID_CHORE_DATA_PERIODS_DAILY,
@@ -119,7 +121,7 @@ def get_daily_streak(
     periods = chore_data.get(DATA_KID_CHORE_DATA_PERIODS, {})
     daily = periods.get(DATA_KID_CHORE_DATA_PERIODS_DAILY, {})
     day_data = daily.get(date_iso, {})
-    return day_data.get(DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK, 0)
+    return day_data.get(DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY, 0)
 
 
 def get_all_time_streak(
@@ -165,20 +167,24 @@ def set_chore_frequency(
         chore_info[DATA_CHORE_APPLICABLE_DAYS] = applicable_days
 
 
-def set_last_approved(
+def set_last_completed(
     coordinator: Any,
     kid_id: str,
     chore_id: str,
-    last_approved_dt: datetime,
+    last_completed_dt: datetime,
 ) -> None:
-    """Set last approved timestamp for a chore.
+    """Set last completed timestamp for a chore (for streak testing).
 
-    DATA INJECTION: Setting last_approved for streak testing - approved per Rule 2.1
+    DATA INJECTION: Setting last_completed for streak testing - approved per Rule 2.1
+
+    Note: For INDEPENDENT chores, sets per-kid last_completed.
+    For SHARED chores, would need to set chore-level (not implemented here
+    as streak tests use INDEPENDENT chores via Reset Upon Completion).
     """
     kid_data = coordinator.kids_data.get(kid_id, {})
     chore_data = kid_data.setdefault(DATA_KID_CHORE_DATA, {})
     per_chore = chore_data.setdefault(chore_id, {})
-    per_chore[DATA_KID_CHORE_DATA_LAST_APPROVED] = last_approved_dt.isoformat()
+    per_chore[DATA_KID_CHORE_DATA_LAST_COMPLETED] = last_completed_dt.isoformat()
 
 
 def set_yesterday_streak(
@@ -198,7 +204,7 @@ def set_yesterday_streak(
     periods = per_chore.setdefault(DATA_KID_CHORE_DATA_PERIODS, {})
     daily = periods.setdefault(DATA_KID_CHORE_DATA_PERIODS_DAILY, {})
     day_data = daily.setdefault(yesterday_iso, {})
-    day_data[DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK] = streak
+    day_data[DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY] = streak
 
 
 # =============================================================================
@@ -258,9 +264,9 @@ class TestStreakCalculation:
         yesterday_local = today_local - timedelta(days=1)
         yesterday_iso = yesterday_local.isoformat()
 
-        # last_approved needs to be a UTC timestamp representing yesterday
+        # last_completed needs to be a UTC timestamp representing yesterday
         yesterday_utc = datetime.now(UTC) - timedelta(days=1)
-        set_last_approved(coordinator, kid_id, chore_id, yesterday_utc)
+        set_last_completed(coordinator, kid_id, chore_id, yesterday_utc)
         set_yesterday_streak(coordinator, kid_id, chore_id, yesterday_iso, 5)
 
         # Approve today
@@ -296,7 +302,7 @@ class TestStreakCalculation:
         yesterday_iso = yesterday_local.isoformat()
 
         two_days_ago_utc = datetime.now(UTC) - timedelta(days=2)
-        set_last_approved(coordinator, kid_id, chore_id, two_days_ago_utc)
+        set_last_completed(coordinator, kid_id, chore_id, two_days_ago_utc)
         set_yesterday_streak(coordinator, kid_id, chore_id, yesterday_iso, 5)
 
         # Approve today (missed yesterday)
@@ -332,7 +338,7 @@ class TestStreakCalculation:
         yesterday_iso = yesterday_local.isoformat()
 
         one_week_ago_utc = datetime.now(UTC) - timedelta(days=7)
-        set_last_approved(coordinator, kid_id, chore_id, one_week_ago_utc)
+        set_last_completed(coordinator, kid_id, chore_id, one_week_ago_utc)
         set_yesterday_streak(coordinator, kid_id, chore_id, yesterday_iso, 3)
 
         # Approve today (exactly 1 week later)
@@ -368,7 +374,7 @@ class TestStreakCalculation:
         yesterday_iso = yesterday_local.isoformat()
 
         two_weeks_ago_utc = datetime.now(UTC) - timedelta(days=15)  # More than 14 days
-        set_last_approved(coordinator, kid_id, chore_id, two_weeks_ago_utc)
+        set_last_completed(coordinator, kid_id, chore_id, two_weeks_ago_utc)
         set_yesterday_streak(coordinator, kid_id, chore_id, yesterday_iso, 10)
 
         # Approve today (missed at least one week)
@@ -404,7 +410,7 @@ class TestStreakCalculation:
         yesterday_iso = yesterday_local.isoformat()
 
         yesterday_utc = datetime.now(UTC) - timedelta(days=1)
-        set_last_approved(coordinator, kid_id, chore_id, yesterday_utc)
+        set_last_completed(coordinator, kid_id, chore_id, yesterday_utc)
         set_yesterday_streak(coordinator, kid_id, chore_id, yesterday_iso, 5)
 
         # Approve today
@@ -448,7 +454,7 @@ class TestStreakCalculation:
         yesterday_iso = yesterday_local.isoformat()
 
         three_days_ago_utc = datetime.now(UTC) - timedelta(days=3)
-        set_last_approved(coordinator, kid_id, chore_id, three_days_ago_utc)
+        set_last_completed(coordinator, kid_id, chore_id, three_days_ago_utc)
         set_yesterday_streak(coordinator, kid_id, chore_id, yesterday_iso, 4)
 
         # Approve today (exactly 3 days later = on schedule)
@@ -490,7 +496,7 @@ class TestStreakCalculation:
         yesterday_iso = yesterday_local.isoformat()
 
         seven_days_ago_utc = datetime.now(UTC) - timedelta(days=7)
-        set_last_approved(coordinator, kid_id, chore_id, seven_days_ago_utc)
+        set_last_completed(coordinator, kid_id, chore_id, seven_days_ago_utc)
         set_yesterday_streak(coordinator, kid_id, chore_id, yesterday_iso, 8)
 
         # Approve today (missed the day-3 occurrence)
@@ -526,7 +532,7 @@ class TestStreakCalculation:
         yesterday_iso = yesterday_local.isoformat()
 
         yesterday_utc = datetime.now(UTC) - timedelta(days=1)
-        set_last_approved(coordinator, kid_id, chore_id, yesterday_utc)
+        set_last_completed(coordinator, kid_id, chore_id, yesterday_utc)
         set_yesterday_streak(coordinator, kid_id, chore_id, yesterday_iso, 10)
 
         # Approve today
@@ -574,7 +580,7 @@ class TestStreakEdgeCases:
         yesterday_iso = yesterday_local.isoformat()
 
         yesterday_utc = datetime.now(UTC) - timedelta(days=1)
-        set_last_approved(coordinator, kid_id, chore_id, yesterday_utc)
+        set_last_completed(coordinator, kid_id, chore_id, yesterday_utc)
         set_yesterday_streak(coordinator, kid_id, chore_id, yesterday_iso, 3)
 
         # Should not crash, should use fallback
@@ -615,7 +621,7 @@ class TestStreakEdgeCases:
         yesterday_iso = yesterday_local.isoformat()
 
         yesterday_utc = datetime.now(UTC) - timedelta(days=1)
-        set_last_approved(coordinator, kid_id, chore_id, yesterday_utc)
+        set_last_completed(coordinator, kid_id, chore_id, yesterday_utc)
         set_yesterday_streak(coordinator, kid_id, chore_id, yesterday_iso, 5)
 
         # Should continue streak normally (empty means no filter)

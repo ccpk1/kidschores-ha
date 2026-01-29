@@ -901,11 +901,11 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         daily_periods = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_DAILY, {})
 
-        # Try to get the current streak from today's data; if not present, fallback to yesterday's
+        # Try to get the current streak_tally from today's data; if not present, fallback to yesterday's
         current_streak = daily_periods.get(today_local_iso, {}).get(
-            const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK
+            const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY
         ) or daily_periods.get(yesterday_local_iso, {}).get(
-            const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK, const.DEFAULT_ZERO
+            const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY, const.DEFAULT_ZERO
         )
 
         highest_streak = all_time_stats.get(

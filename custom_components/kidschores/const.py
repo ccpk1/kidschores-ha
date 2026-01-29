@@ -795,6 +795,7 @@ DATA_KID_CHORE_DATA_NAME: Final = "name"
 # due_date moved to LEGACY section - use per_kid_due_dates at chore level instead
 DATA_KID_CHORE_DATA_LAST_APPROVED: Final = "last_approved"
 DATA_KID_CHORE_DATA_LAST_CLAIMED: Final = "last_claimed"
+DATA_KID_CHORE_DATA_LAST_COMPLETED: Final = "last_completed"
 DATA_KID_CHORE_DATA_LAST_DISAPPROVED: Final = "last_disapproved"
 DATA_KID_CHORE_DATA_LAST_OVERDUE: Final = "last_overdue"
 DATA_KID_CHORE_DATA_LAST_LONGEST_STREAK_ALL_TIME: Final = "last_longest_streak_all_time"
@@ -813,7 +814,12 @@ DATA_KID_CHORE_DATA_PERIOD_APPROVED: Final = "approved"
 DATA_KID_CHORE_DATA_PERIOD_CLAIMED: Final = "claimed"
 DATA_KID_CHORE_DATA_PERIOD_COMPLETED: Final = "completed"
 DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED: Final = "disapproved"
-DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK: Final = "longest_streak"
+DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY: Final = (
+    "streak_tally"  # Daily: streak value on that day
+)
+DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK: Final = (
+    "longest_streak"  # All-time: high water mark (HWM)
+)
 DATA_KID_CHORE_DATA_PERIOD_OVERDUE: Final = "overdue"
 DATA_KID_CHORE_DATA_PERIOD_POINTS: Final = "points"
 DATA_KID_CHORE_DATA_BADGE_REFS: Final = "badge_refs"

@@ -923,6 +923,7 @@ class ChoreApprovedEvent(TypedDict, total=False):
     previous_state: str  # To detect re-approvals vs new approvals
     update_stats: bool  # Whether to update statistics (False for corrections)
     effective_date: str  # ISO timestamp when kid did work (last_claimed with fallbacks)
+    streak_tally: int  # Current streak value after this approval (for stats recording)
 
 
 class ChoreDisapprovedEvent(TypedDict, total=False):
