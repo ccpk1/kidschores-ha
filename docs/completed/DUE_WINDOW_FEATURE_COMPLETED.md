@@ -9,16 +9,16 @@
 
 ## Summary & immediate steps
 
-| Phase / Step                | Description                             | % complete | Quick notes                                    |
-| --------------------------- | --------------------------------------- | ---------- | ---------------------------------------------- |
-| Phase 1a – Frequencies      | Add missing frequency options to chores | 100%       | ✅ Complete - all tests pass                   |
-| Phase 1b – Configuration    | Add due window per-chore settings       | 100%       | ✅ Duration parser, constants, flow fields     |
-| Phase 2 – State Logic       | Implement DUE state calculation         | 100%       | ✅ New state between PENDING and OVERDUE       |
-| Phase 3 – Service/Forms     | Update service schemas and forms        | 100%       | ✅ Complete - UI tested and verified           |
-| Phase 4.1 – Legacy Refactor | Make 30min reminder configurable        | 100%       | ✅ Configurable per-chore offset               |
-| Phase 4.2 – Due Window      | Add PENDING→DUE notifications           | 100%       | ✅ Handler+signal+coordinator hook complete    |
-| Phase 4.3 – Cleanup         | Consistent notification tracking clear  | 100%       | ✅ Method unified, all calls added             |
-| Phase 4.4 – Tests           | Comprehensive notification tests        | 100%       | ✅ 2 new tests + 1 updated, all passing        |
+| Phase / Step                | Description                             | % complete | Quick notes                                 |
+| --------------------------- | --------------------------------------- | ---------- | ------------------------------------------- |
+| Phase 1a – Frequencies      | Add missing frequency options to chores | 100%       | ✅ Complete - all tests pass                |
+| Phase 1b – Configuration    | Add due window per-chore settings       | 100%       | ✅ Duration parser, constants, flow fields  |
+| Phase 2 – State Logic       | Implement DUE state calculation         | 100%       | ✅ New state between PENDING and OVERDUE    |
+| Phase 3 – Service/Forms     | Update service schemas and forms        | 100%       | ✅ Complete - UI tested and verified        |
+| Phase 4.1 – Legacy Refactor | Make 30min reminder configurable        | 100%       | ✅ Configurable per-chore offset            |
+| Phase 4.2 – Due Window      | Add PENDING→DUE notifications           | 100%       | ✅ Handler+signal+coordinator hook complete |
+| Phase 4.3 – Cleanup         | Consistent notification tracking clear  | 100%       | ✅ Method unified, all calls added          |
+| Phase 4.4 – Tests           | Comprehensive notification tests        | 100%       | ✅ 2 new tests + 1 updated, all passing     |
 
 1. **Key objective** – Add a "DUE" state that activates X hours/days before chore due date, providing clearer user guidance on when chores should be started vs just available.
 
@@ -441,6 +441,7 @@ python -m pytest tests/test_frequency*.py -v
 **Objective**: Replace hardcoded 30min reminder with configurable per-chore offset
 
 **Implementation Summary**:
+
 - [x] Renamed signal: `SIGNAL_SUFFIX_CHORE_DUE_SOON` → `SIGNAL_SUFFIX_CHORE_DUE_REMINDER`
 - [x] Updated coordinator tracking set: `_due_soon_reminders_sent` → `_due_reminder_notif_sent`
 - [x] Modified `check_chore_due_reminders()` to use `DATA_CHORE_DUE_REMINDER_OFFSET` field
@@ -449,6 +450,7 @@ python -m pytest tests/test_frequency*.py -v
 - [x] All lint and mypy checks pass ✅
 
 **Files Modified**:
+
 - `custom_components/kidschores/const.py` (signal + translation constants)
 - `custom_components/kidschores/coordinator.py` (tracking set rename)
 - `custom_components/kidschores/managers/chore_manager.py` (logic update)
@@ -460,6 +462,7 @@ python -m pytest tests/test_frequency*.py -v
 **Objective**: Add notifications when chore enters due window (PENDING → DUE transition)
 
 **Implementation Summary**:
+
 - [x] Added signal: `SIGNAL_SUFFIX_CHORE_DUE_WINDOW`
 - [x] Added coordinator tracking set: `_due_window_notif_sent`
 - [x] Created `check_chore_due_window_transitions()` method (116 lines)
@@ -473,7 +476,8 @@ python -m pytest tests/test_frequency*.py -v
 **Objective**: Clear both notification tracking sets on chore state changes
 
 **Implementation Summary**:
-- [x] Renamed `clear_chore_due_reminder()` → `clear_chore_notifications()` 
+
+- [x] Renamed `clear_chore_due_reminder()` → `clear_chore_notifications()`
 - [x] Method now clears both `_due_reminder_notif_sent` and `_due_window_notif_sent` sets
 - [x] Added cleanup calls to 4 methods:
   - `approve_chore()` ✅ Line ~2427
@@ -486,11 +490,12 @@ python -m pytest tests/test_frequency*.py -v
 **Objective**: Add 2 workflow tests for dual notification system
 
 **Implementation Summary**:
+
 - [x] Added `test_due_window_notification_sent_on_pending_to_due_transition()`
   - Tests chore entering due window triggers notification
   - Uses per-kid due dates with configurable `chore_due_window_offset`
   - Verifies `notify_kid_translated` called with "due_window" title key
-  
+
 - [x] Added `test_configurable_reminder_offset_respected()`
   - Tests reminder uses configurable offset (not hardcoded 30min)
   - Sets custom 1-hour reminder offset via `chore_due_reminder_offset`
@@ -503,6 +508,7 @@ python -m pytest tests/test_frequency*.py -v
 **Location**: [`tests/test_workflow_notifications.py`](../../tests/test_workflow_notifications.py) - `TestDueDateReminders` class
 
 **Validation**:
+
 - ✅ All 5 tests in `TestDueDateReminders` pass
 - ✅ Full test suite: 18/18 tests pass in `test_workflow_notifications.py`
 - ✅ Lint/mypy/architectural: All passing
@@ -510,11 +516,13 @@ python -m pytest tests/test_frequency*.py -v
 ### Validation Status
 
 **Quality Gates** (Phase 4.1 + 4.2):
+
 - ✅ `./utils/quick_lint.sh --fix` - Passed (score 9.8/10)
 - ✅ `mypy custom_components/kidschores/` - Zero errors
 - ⏸️ Tests pending (Phase 4.4 blocked)
 
 **Files Edited (6 total)**:
+
 1. `custom_components/kidschores/const.py`
 2. `custom_components/kidschores/coordinator.py`
 3. `custom_components/kidschores/managers/chore_manager.py`
@@ -524,9 +532,8 @@ python -m pytest tests/test_frequency*.py -v
 
 ### Remaining Work Summary
 
-| Task                                   | Complexity | Estimated Time |
-| -------------------------------------- | ---------- | -------------- |
-| Add coordinator hook (Phase 4.2)       | Low        | 2 minutes      |
-| Add cleanup calls (Phase 4.3)          | Low        | 5 minutes      |
+| Task                                      | Complexity | Estimated Time         |
+| ----------------------------------------- | ---------- | ---------------------- |
+| Add coordinator hook (Phase 4.2)          | Low        | 2 minutes              |
+| Add cleanup calls (Phase 4.3)             | Low        | 5 minutes              |
 | Test strategy decision + impl (Phase 4.4) | Medium     | User decision required |
-

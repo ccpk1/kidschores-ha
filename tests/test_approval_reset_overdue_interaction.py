@@ -63,11 +63,25 @@ async def setup_at_due_date_scenario(
 
 
 def get_kid_state_for_chore(coordinator: Any, kid_id: str, chore_id: str) -> str:
-    """Get the current chore state for a specific kid."""
-    kid_chore_data = coordinator.chore_manager.get_chore_data_for_kid(kid_id, chore_id)
-    return kid_chore_data.get(
-        const.DATA_KID_CHORE_DATA_STATE, const.CHORE_STATE_PENDING
-    )
+    """Get the current chore state for a specific kid.
+
+    Uses the same logic as the sensor to determine state based on
+    approval period timestamps, not just the cached state field.
+    """
+    kid_info = coordinator.kids_data.get(kid_id, {})
+
+    # Check approval status first (same order as sensor.py line 750)
+    if coordinator.chore_manager.chore_is_approved_in_period(kid_id, chore_id):
+        return const.CHORE_STATE_APPROVED
+    if chore_id in kid_info.get(const.DATA_KID_COMPLETED_BY_OTHER_CHORES, []):
+        return const.CHORE_STATE_COMPLETED_BY_OTHER
+    if coordinator.chore_manager.chore_has_pending_claim(kid_id, chore_id):
+        return const.CHORE_STATE_CLAIMED
+    if coordinator.chore_manager.chore_is_overdue(kid_id, chore_id):
+        return const.CHORE_STATE_OVERDUE
+    if coordinator.chore_manager.chore_is_due(kid_id, chore_id):
+        return const.CHORE_STATE_DUE
+    return const.CHORE_STATE_PENDING
 
 
 def set_chore_due_date_to_past(
@@ -147,6 +161,36 @@ def set_chore_due_date_to_future(
         chore_info[DATA_CHORE_DUE_DATE] = future_date_iso
 
     return future_date
+
+
+def set_per_kid_due_dates_mixed(
+    coordinator: Any,
+    chore_id: str,
+    kid1_id: str,
+    kid2_id: str,
+    kid1_days_ago: int = 1,
+    kid2_days_ahead: int = 2,
+) -> tuple[datetime, datetime]:
+    """Set different due dates for two kids: one past, one future.
+
+    Args:
+        coordinator: KidsChoresDataCoordinator instance
+        chore_id: Chore UUID to update
+        kid1_id: First kid UUID (will get past due date)
+        kid2_id: Second kid UUID (will get future due date)
+        kid1_days_ago: Days in past for kid1's due date
+        kid2_days_ahead: Days in future for kid2's due date
+
+    Returns:
+        Tuple of (past_date, future_date) as datetime objects
+    """
+    past_date = set_chore_due_date_to_past(
+        coordinator, chore_id, kid_id=kid1_id, days_ago=kid1_days_ago
+    )
+    future_date = set_chore_due_date_to_future(
+        coordinator, chore_id, kid_id=kid2_id, days_ahead=kid2_days_ahead
+    )
+    return past_date, future_date
 
 
 # ============================================================================
@@ -594,4 +638,226 @@ class TestOverdueResetValidation:
 
         assert not errors, (
             f"Expected no validation errors for valid combination, got {errors}"
+        )
+
+
+# ============================================================================
+# TEST CLASS: Per-Kid Reset Isolation (Phase 1 - HIGH PRIORITY)
+# ============================================================================
+
+
+class TestPerKidResetIsolation:
+    """Test that INDEPENDENT chores reset only for kids with past due dates.
+
+    This tests Finding #1 from TEST_AUDIT_FINDINGS_IN-PROCESS.md:
+    Verify that INDEPENDENT chores with multiple kids only reset for kids
+    whose due dates have passed, not all assigned kids simultaneously.
+
+    Key behavior:
+    - INDEPENDENT chore with kids A and B
+    - Kid A has due date in PAST → should reset to PENDING
+    - Kid B has due date in FUTURE → should stay APPROVED
+    - Reset operation should respect per-kid due dates
+    """
+
+    @pytest.mark.asyncio
+    async def test_independent_multi_kid_reset_respects_per_kid_due_dates(
+        self,
+        hass: HomeAssistant,
+        setup_at_due_date_scenario: SetupResult,
+    ) -> None:
+        """Test that INDEPENDENT chore resets only for kid with past due date.
+
+        Scenario:
+        - 2 kids (Zoë, Max) both complete INDEPENDENT chore
+        - Zoë's due date set to PAST
+        - Max's due date set to FUTURE
+        - Trigger reset cycle
+
+        Expected:
+        - Zoë's chore: APPROVED → PENDING (due date passed)
+        - Max's chore: APPROVED → APPROVED (due date in future)
+        """
+        coordinator = setup_at_due_date_scenario.coordinator
+        kid1_id = setup_at_due_date_scenario.kid_ids["Zoë"]
+        kid2_id = setup_at_due_date_scenario.kid_ids["Max!"]
+        chore_id = setup_at_due_date_scenario.chore_ids["Multi Kid Reset Test"]
+
+        # Both kids claim and get approved
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid1_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Parent", kid1_id, chore_id)
+            await coordinator.chore_manager.claim_chore(kid2_id, chore_id, "Max!")
+            await coordinator.chore_manager.approve_chore("Parent", kid2_id, chore_id)
+
+        # Verify both approved
+        assert (
+            get_kid_state_for_chore(coordinator, kid1_id, chore_id)
+            == const.CHORE_STATE_APPROVED
+        )
+        assert (
+            get_kid_state_for_chore(coordinator, kid2_id, chore_id)
+            == const.CHORE_STATE_APPROVED
+        )
+
+        # Set kid1 due date to PAST, kid2 due date to FUTURE
+        _past_date, _future_date = set_per_kid_due_dates_mixed(
+            coordinator,
+            chore_id,
+            kid1_id,
+            kid2_id,
+            kid1_days_ago=1,
+            kid2_days_ahead=2,
+        )
+
+        # Trigger reset cycle (this is what runs at midnight)
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager._reset_daily_chore_statuses(
+                [const.FREQUENCY_DAILY]
+            )
+
+        # ASSERT: Kid1 (past due date) should reset to PENDING
+        kid1_state = get_kid_state_for_chore(coordinator, kid1_id, chore_id)
+        assert kid1_state == const.CHORE_STATE_PENDING, (
+            f"Kid1 with past due date should reset to PENDING, got {kid1_state}"
+        )
+
+        # ASSERT: Kid2 (future due date) should remain APPROVED
+        kid2_state = get_kid_state_for_chore(coordinator, kid2_id, chore_id)
+        assert kid2_state == const.CHORE_STATE_APPROVED, (
+            f"Kid2 with future due date should stay APPROVED, got {kid2_state}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_independent_all_kids_reset_when_all_past_due(
+        self,
+        hass: HomeAssistant,
+        setup_at_due_date_scenario: SetupResult,
+    ) -> None:
+        """Test that ALL kids reset when ALL their due dates have passed.
+
+        Scenario:
+        - 2 kids (Zoë, Max) both complete INDEPENDENT chore
+        - BOTH kids' due dates set to PAST
+        - Trigger reset cycle
+
+        Expected:
+        - Both kids: APPROVED → PENDING (all due dates passed)
+        """
+        coordinator = setup_at_due_date_scenario.coordinator
+        kid1_id = setup_at_due_date_scenario.kid_ids["Zoë"]
+        kid2_id = setup_at_due_date_scenario.kid_ids["Max!"]
+        chore_id = setup_at_due_date_scenario.chore_ids["Multi Kid Reset Test"]
+
+        # Both kids claim and get approved
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid1_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Parent", kid1_id, chore_id)
+            await coordinator.chore_manager.claim_chore(kid2_id, chore_id, "Max!")
+            await coordinator.chore_manager.approve_chore("Parent", kid2_id, chore_id)
+
+        # Verify both approved
+        assert (
+            get_kid_state_for_chore(coordinator, kid1_id, chore_id)
+            == const.CHORE_STATE_APPROVED
+        )
+        assert (
+            get_kid_state_for_chore(coordinator, kid2_id, chore_id)
+            == const.CHORE_STATE_APPROVED
+        )
+
+        # Set BOTH due dates to PAST
+        set_chore_due_date_to_past(coordinator, chore_id, kid_id=kid1_id, days_ago=1)
+        set_chore_due_date_to_past(coordinator, chore_id, kid_id=kid2_id, days_ago=1)
+
+        # Trigger reset cycle
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager._reset_daily_chore_statuses(
+                [const.FREQUENCY_DAILY]
+            )
+
+        # ASSERT: BOTH kids should reset to PENDING
+        kid1_state = get_kid_state_for_chore(coordinator, kid1_id, chore_id)
+        kid2_state = get_kid_state_for_chore(coordinator, kid2_id, chore_id)
+
+        assert kid1_state == const.CHORE_STATE_PENDING, (
+            f"Kid1 with past due date should reset to PENDING, got {kid1_state}"
+        )
+        assert kid2_state == const.CHORE_STATE_PENDING, (
+            f"Kid2 with past due date should reset to PENDING, got {kid2_state}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_independent_no_kids_reset_when_all_future_due(
+        self,
+        hass: HomeAssistant,
+        setup_at_due_date_scenario: SetupResult,
+    ) -> None:
+        """Test that NO kids reset when ALL due dates are in future.
+
+        Scenario:
+        - 2 kids (Zoë, Max) both complete INDEPENDENT chore
+        - BOTH kids' due dates set to FUTURE
+        - Trigger reset cycle
+
+        Expected:
+        - Both kids: APPROVED → APPROVED (no due dates passed)
+        """
+        coordinator = setup_at_due_date_scenario.coordinator
+        kid1_id = setup_at_due_date_scenario.kid_ids["Zoë"]
+        kid2_id = setup_at_due_date_scenario.kid_ids["Max!"]
+        chore_id = setup_at_due_date_scenario.chore_ids["Multi Kid Reset Test"]
+
+        # Both kids claim and get approved
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid1_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Parent", kid1_id, chore_id)
+            await coordinator.chore_manager.claim_chore(kid2_id, chore_id, "Max!")
+            await coordinator.chore_manager.approve_chore("Parent", kid2_id, chore_id)
+
+        # Verify both approved
+        assert (
+            get_kid_state_for_chore(coordinator, kid1_id, chore_id)
+            == const.CHORE_STATE_APPROVED
+        )
+        assert (
+            get_kid_state_for_chore(coordinator, kid2_id, chore_id)
+            == const.CHORE_STATE_APPROVED
+        )
+
+        # Set BOTH due dates to FUTURE
+        set_chore_due_date_to_future(
+            coordinator, chore_id, kid_id=kid1_id, days_ahead=2
+        )
+        set_chore_due_date_to_future(
+            coordinator, chore_id, kid_id=kid2_id, days_ahead=3
+        )
+
+        # Trigger reset cycle
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager._reset_daily_chore_statuses(
+                [const.FREQUENCY_DAILY]
+            )
+
+        # ASSERT: BOTH kids should stay APPROVED (no reset)
+        kid1_state = get_kid_state_for_chore(coordinator, kid1_id, chore_id)
+        kid2_state = get_kid_state_for_chore(coordinator, kid2_id, chore_id)
+
+        assert kid1_state == const.CHORE_STATE_APPROVED, (
+            f"Kid1 with future due date should stay APPROVED, got {kid1_state}"
+        )
+        assert kid2_state == const.CHORE_STATE_APPROVED, (
+            f"Kid2 with future due date should stay APPROVED, got {kid2_state}"
         )

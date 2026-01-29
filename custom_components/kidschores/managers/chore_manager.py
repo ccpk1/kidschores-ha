@@ -436,8 +436,10 @@ class ChoreManager(BaseManager):
         self._update_global_state(chore_id)
 
         # Handle approval period reset if requested
+        # force_update=True ensures SHARED/SHARED_FIRST chore-level approval_period_start
+        # is updated even if already set, invalidating previous approvals
         if reset_approval_period:
-            self._reset_approval_period(kid_id, chore_id)
+            self._reset_approval_period(kid_id, chore_id, force_update=True)
 
         # Emit status reset event
         self.emit(
@@ -953,14 +955,16 @@ class ChoreManager(BaseManager):
                 if now_utc < due_date_utc:
                     continue  # Not yet due for this kid
 
-            # Check if already in PENDING state
-            kid_info: KidData | dict[str, Any] = self._coordinator.kids_data.get(
-                kid_id, {}
-            )
-            kid_chore_data = ChoreEngine.get_chore_data_for_kid(kid_info, chore_id)
-            current_state = kid_chore_data.get(const.DATA_KID_CHORE_DATA_STATE)
-            if current_state == const.CHORE_STATE_PENDING:
-                continue  # Already reset
+            # Check if chore needs reset using timestamp-based checks (Option A)
+            # A chore needs reset if any of these are true:
+            # - Approved in current period (needs to become claimable again)
+            # - Has pending claim (needs claim handling)
+            # - Is overdue (needs overdue status cleared for AT_DUE_DATE_THEN_RESET)
+            is_approved = self.chore_is_approved_in_period(kid_id, chore_id)
+            has_pending_claim = self.chore_has_pending_claim(kid_id, chore_id)
+            is_overdue = self.chore_is_overdue(kid_id, chore_id)
+            if not is_approved and not has_pending_claim and not is_overdue:
+                continue  # Already in pending state - no reset needed
 
             # Handle pending claims before reset
             # Use _get_kid_chore_data for mutable access
@@ -1845,9 +1849,12 @@ class ChoreManager(BaseManager):
         """Check if a chore is already approved in the current approval period.
 
         A chore is considered approved in the current period if:
-        - last_approved timestamp exists, AND EITHER:
-          a. approval_period_start doesn't exist (chore was never reset), OR
-          b. last_approved >= approval_period_start
+        - last_approved timestamp exists, AND
+        - approval_period_start exists, AND
+        - last_approved >= approval_period_start
+
+        When approval_period_start is None, the chore has been reset to pending
+        (e.g., UPON_COMPLETION reset), so return False.
 
         Returns:
             True if approved in current period, False otherwise.
@@ -1863,8 +1870,9 @@ class ChoreManager(BaseManager):
 
         period_start = self._get_chore_approval_period_start(kid_id, chore_id)
         if not period_start:
-            # No period_start means chore was never reset after being created.
-            return True
+            # approval_period_start is None when chore has been reset to pending
+            # (e.g., UPON_COMPLETION reset). Return False to indicate not approved.
+            return False
 
         approved_dt = dt_to_utc(last_approved)
         period_start_dt = dt_to_utc(period_start)
@@ -2387,16 +2395,33 @@ class ChoreManager(BaseManager):
             # INDEPENDENT: Reset only the current kid, reschedule only their due date
             if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
                 self._reset_kid_chore_to_pending(kid_id, chore_id)
+                # Set kid-level approval_period_start for INDEPENDENT
+                # Use FRESH timestamp to ensure it's AFTER last_approved
+                reset_period_start = dt_now_iso()
+                kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
+                kid_chore_data[const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = (
+                    reset_period_start
+                )
                 self._update_global_state(chore_id)
                 self._reschedule_due_dates_upon_completion(chore_id, [kid_id])
 
             # SHARED/SHARED_FIRST: Only reset when ALL assigned kids have approved
             elif self._all_kids_approved(chore_id, kids_assigned):
+                # Set chore-level approval_period_start ONCE for SHARED/SHARED_FIRST
+                # Use FRESH timestamp to ensure it's AFTER last_approved
+                reset_period_start = dt_now_iso()
+                chore_data[const.DATA_CHORE_APPROVAL_PERIOD_START] = reset_period_start
                 for assigned_kid_id in kids_assigned:
                     if assigned_kid_id:
                         self._reset_kid_chore_to_pending(assigned_kid_id, chore_id)
                 self._update_global_state(chore_id)
                 self._reschedule_due_dates_upon_completion(chore_id, kids_assigned)
+        # For non-UPON_COMPLETION reset types (AT_MIDNIGHT_*, AT_DUE_DATE_*):
+        # Do NOT set approval_period_start here. It is ONLY set on RESET events.
+        # The chore remains approved until the scheduled reset updates approval_period_start.
+        # approval_period_start was set at: initial creation, or last reset.
+        # last_approved was just set above, so:
+        #   is_approved = (last_approved >= approval_period_start) = True
 
         # Award points via EconomyManager
         if points_to_award > 0:
@@ -2600,11 +2625,25 @@ class ChoreManager(BaseManager):
         )
 
         if chore_id not in kid_chores:
-            kid_chores[chore_id] = {
+            default_data: dict[str, Any] = {
                 const.DATA_KID_CHORE_DATA_STATE: const.CHORE_STATE_PENDING,
                 const.DATA_KID_CHORE_DATA_TOTAL_POINTS: 0.0,
                 const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT: 0,
             }
+            # Only set kid-level approval_period_start for INDEPENDENT chores
+            # SHARED chores use chore-level approval_period_start instead
+            chore_info: ChoreData | dict[str, Any] = self._coordinator.chores_data.get(
+                chore_id, {}
+            )
+            criteria = chore_info.get(
+                const.DATA_CHORE_COMPLETION_CRITERIA,
+                const.COMPLETION_CRITERIA_INDEPENDENT,
+            )
+            if criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+                default_data[const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = (
+                    dt_now_iso()
+                )
+            kid_chores[chore_id] = default_data
 
         return kid_chores[chore_id]
 
@@ -3029,15 +3068,22 @@ class ChoreManager(BaseManager):
                 ):
                     completed_list.append(completing_kid_name)
 
-    def _reset_approval_period(self, kid_id: str, chore_id: str) -> None:
+    def _reset_approval_period(
+        self,
+        kid_id: str,
+        chore_id: str,
+        timestamp: str | None = None,
+        *,
+        force_update: bool = False,
+    ) -> None:
         """Reset the approval period tracking for a kid+chore.
 
-        Sets approval_period_start to current time, which marks the start of a new
-        approval period. The chore_is_approved_in_period() check compares:
+        Sets approval_period_start to mark the start of a new approval period.
+        The chore_is_approved_in_period() check compares:
             last_approved >= approval_period_start
 
-        So after calling this, if last_approved was from before now, the chore
-        becomes claimable again because it's not approved in the current period.
+        So after calling this, if last_approved was from before the period start,
+        the chore becomes claimable again because it's not approved in the current period.
 
         For INDEPENDENT chores: stores approval_period_start in kid_chore_data
         For SHARED chores: stores at chore level
@@ -3045,13 +3091,19 @@ class ChoreManager(BaseManager):
         Args:
             kid_id: The kid's internal ID
             chore_id: The chore's internal ID
+            timestamp: Optional timestamp to use. If None, uses current time.
+                      Pass same timestamp as last_approved to ensure consistency.
+            force_update: If True, always update approval_period_start even if
+                         already set. Use this for scheduled resets.
+                         If False (default), only set if not already set
+                         (for tracking first approval in period).
         """
 
         chore_info = self._coordinator.chores_data.get(chore_id)
         if not chore_info:
             return
 
-        now_iso = dt_now_iso()
+        now_iso = timestamp if timestamp else dt_now_iso()
         completion_criteria = chore_info.get(
             const.DATA_CHORE_COMPLETION_CRITERIA, const.COMPLETION_CRITERIA_SHARED
         )
@@ -3060,8 +3112,12 @@ class ChoreManager(BaseManager):
             # INDEPENDENT: Store per-kid approval_period_start in kid_chore_data
             kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
             kid_chore_data[const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = now_iso
-        else:
-            # SHARED/SHARED_FIRST: Store at chore level
+        # SHARED/SHARED_FIRST: Store at chore level
+        # Only set if not already set OR force_update is True
+        # - force_update=False (default): preserves period start for all kids
+        #   when multiple kids are approved in the same period
+        # - force_update=True: used by scheduled resets to invalidate previous approvals
+        elif force_update or not chore_info.get(const.DATA_CHORE_APPROVAL_PERIOD_START):
             chore_info[const.DATA_CHORE_APPROVAL_PERIOD_START] = now_iso
 
     def _update_chore_stats(
@@ -3147,8 +3203,10 @@ class ChoreManager(BaseManager):
         kid_chore_data.pop(const.DATA_CHORE_CLAIMED_BY, None)
         kid_chore_data.pop(const.DATA_CHORE_COMPLETED_BY, None)
 
-        # Reset approval period for new cycle
-        kid_chore_data[const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = None
+        # NOTE: Does NOT set approval_period_start here.
+        # Caller handles this based on completion criteria:
+        # - INDEPENDENT: caller sets kid-level approval_period_start
+        # - SHARED/SHARED_FIRST: caller sets chore-level approval_period_start ONCE
 
     # =========================================================================
     # §4 SCHEDULING METHODS (due date rescheduling)

@@ -1330,7 +1330,8 @@ def build_chore(
                 const.DATA_CHORE_LAST_CLAIMED, None
             ),
             const.DATA_CHORE_APPROVAL_PERIOD_START: get_field(
-                const.DATA_CHORE_APPROVAL_PERIOD_START, None
+                const.DATA_CHORE_APPROVAL_PERIOD_START,
+                dt_now_utc().isoformat(),  # Default to now for new SHARED chores
             ),
             const.DATA_CHORE_CLAIMED_BY: list(
                 get_field(const.DATA_CHORE_CLAIMED_BY, [])

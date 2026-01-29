@@ -21,6 +21,12 @@ kids:
     dashboard_language: "en"
     mobile_notify_service: ""
 
+  - name: "Max!"
+    ha_user: "kid2"
+    points: 100
+    dashboard_language: "en"
+    mobile_notify_service: ""
+
 parents:
   - name: "Môm Astrid Stârblüm"
     ha_user: "parent1"
@@ -56,6 +62,18 @@ chores:
     icon: "mdi:account-group"
     recurring_frequency: "daily"
     completion_criteria: "shared_all"
+    approval_reset_type: "at_midnight_once"
+    overdue_handling_type: "at_due_date_clear_at_approval_reset"
+    pending_claim_action: "clear_pending"
+    auto_approve: false
+
+  # Multi-kid INDEPENDENT chore for per-kid reset isolation testing
+  - name: "Multi Kid Reset Test"
+    assigned_to: ["Zoë", "Max!"]
+    points: 10.0
+    icon: "mdi:account-multiple"
+    recurring_frequency: "daily"
+    completion_criteria: "independent"
     approval_reset_type: "at_midnight_once"
     overdue_handling_type: "at_due_date_clear_at_approval_reset"
     pending_claim_action: "clear_pending"
