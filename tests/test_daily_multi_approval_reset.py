@@ -88,12 +88,11 @@ async def daily_multi_scenario(
     - Water Plants 2x Daily Auto Approve (1 kid, 2x daily, INDEPENDENT)
     - Regular Daily Chore (control)
     """
-    coordinator = await setup_from_yaml(
+    return await setup_from_yaml(
         hass,
         mock_hass_users,
         "tests/scenarios/scenario_daily_multi_upon_completion.yaml",
     )
-    return coordinator
 
 
 @pytest_asyncio.fixture
@@ -110,12 +109,11 @@ async def daily_multi_scenario_shared(
     - Water Plants 2x Daily Auto Approve Shared (1 kid, 2x daily, SHARED_ALL)
     - Regular Daily Chore Shared (control)
     """
-    coordinator = await setup_from_yaml(
+    return await setup_from_yaml(
         hass,
         mock_hass_users,
         "tests/scenarios/scenario_daily_multi_upon_completion_shared.yaml",
     )
-    return coordinator
 
 
 # =============================================================================

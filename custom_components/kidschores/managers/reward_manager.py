@@ -568,6 +568,13 @@ class RewardManager(BaseManager):
             dt_util.utcnow().isoformat()
         )
 
+        # If NOT from a pending claim, this is a direct approval or badge grant
+        # Set last_claimed to match approval (combined claim+approve action)
+        if not is_pending_claim:
+            reward_entry[const.DATA_KID_REWARD_DATA_LAST_CLAIMED] = (
+                dt_util.utcnow().isoformat()
+            )
+
         # Update total counters
         reward_entry[const.DATA_KID_REWARD_DATA_TOTAL_APPROVED] = (
             reward_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_APPROVED, 0) + 1

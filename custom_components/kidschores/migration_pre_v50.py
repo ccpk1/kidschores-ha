@@ -598,9 +598,19 @@ class PreV50Migrator:
                 # INDEPENDENT chores: Initialize per-kid approval_period_start in kid_chore_data
                 assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
                 for kid_id in assigned_kids:
-                    kid_info = kids_data.get(kid_id, {})
-                    kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
-                    chore_tracking = kid_chore_data.get(chore_id, {})
+                    kid_info = kids_data.get(kid_id)
+                    if not kid_info:
+                        continue
+
+                    # Ensure kid_chore_data structure exists
+                    if const.DATA_KID_CHORE_DATA not in kid_info:
+                        kid_info[const.DATA_KID_CHORE_DATA] = {}
+                    kid_chore_data = kid_info[const.DATA_KID_CHORE_DATA]
+
+                    # Ensure chore_tracking entry exists for this chore
+                    if chore_id not in kid_chore_data:
+                        kid_chore_data[chore_id] = {}
+                    chore_tracking = kid_chore_data[chore_id]
 
                     # Only initialize if not already set
                     if (
@@ -610,13 +620,8 @@ class PreV50Migrator:
                         chore_tracking[
                             const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START
                         ] = now_utc_iso
-                        # Ensure the nested structure exists
-                        if chore_id not in kid_chore_data:
-                            kid_chore_data[chore_id] = chore_tracking
-                        if const.DATA_KID_CHORE_DATA not in kid_info:
-                            kid_info[const.DATA_KID_CHORE_DATA] = kid_chore_data
                         chores_migrated += 1
-            # SHARED chores: Initialize approval_period_start at chore level
+            # SHARED/SHARED_FIRST chores: Initialize approval_period_start at chore level
             elif const.DATA_CHORE_APPROVAL_PERIOD_START not in chore_info:
                 chore_info[const.DATA_CHORE_APPROVAL_PERIOD_START] = now_utc_iso
                 chores_migrated += 1

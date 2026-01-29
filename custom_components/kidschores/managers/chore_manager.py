@@ -2280,6 +2280,10 @@ class ChoreManager(BaseManager):
             const.DATA_KID_CHORE_DATA_LAST_APPROVED
         )
 
+        # Check if this is a direct approval (no pending claim)
+        # Used to set claim fields for consistency
+        has_pending_claim = self.chore_has_pending_claim(kid_id, chore_id)
+
         # Get yesterday's streak for continuation check
         today_iso = dt_today_local().isoformat()
         yesterday_iso = dt_add_interval(
@@ -2319,6 +2323,12 @@ class ChoreManager(BaseManager):
 
         # Set last_approved timestamp
         kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_APPROVED] = now_iso
+
+        # If no pending claim existed, this is a direct approval
+        # Set claim fields to match approval (combined claim+approve action)
+        if not has_pending_claim:
+            kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_CLAIMED] = now_iso
+            kid_chore_data[const.DATA_CHORE_CLAIMED_BY] = kid_name
 
         # Calculate streak using schedule-aware logic
         new_streak = ChoreEngine.calculate_streak(
