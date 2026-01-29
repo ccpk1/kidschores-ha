@@ -161,6 +161,52 @@ async def claim_chore(self, chore_id: str) -> None:
     async_dispatcher_send(self.hass, SIGNAL_SUFFIX_CHORE_UPDATED)
 ```
 
+### 7. Signal-First Communication Rules
+
+**Non-Negotiable**: Managers NEVER call other Managers' write methods directly. All cross-domain logic uses the Event Bus (Dispatcher).
+
+**Why This Matters**:
+
+- **Prevents circular dependencies** between managers
+- **Enables testability** - each manager can be tested in isolation
+- **Maintains data consistency** - listeners only react to confirmed state changes
+- **Avoids "phantom state"** - no signals for operations that failed
+
+**Pattern**:
+
+```python
+# ❌ WRONG: Direct manager coupling
+await self.coordinator.economy_manager.deposit(kid_id, 50)
+
+# ✅ CORRECT: Signal-based communication
+self.emit(const.SIGNAL_SUFFIX_BADGE_EARNED, kid_id=kid_id, points=50)
+# EconomyManager listens for BADGE_EARNED and deposits automatically
+```
+
+**Transactional Integrity (Critical)**:
+
+```python
+async def create_chore(self, user_input: dict[str, Any]) -> dict[str, Any]:
+    # 1. Build the entity dict
+    chore_dict = db.build_chore(user_input)
+    internal_id = chore_dict[const.DATA_CHORE_INTERNAL_ID]
+
+    # 2. Write to in-memory storage (atomic operation)
+    self._data[DATA_CHORES][internal_id] = dict(chore_dict)
+
+    # 3. Persist
+    self.coordinator._persist()
+
+    # 4. ONLY emit signal after successful write ⚠️
+    self.emit(const.SIGNAL_SUFFIX_CHORE_CREATED, chore_id=internal_id)
+
+    return chore_dict
+```
+
+**Rule**: Emit signals ONLY after `_persist()` succeeds. Never emit in a `try` block before persistence.
+
+**Reference**: [DEVELOPMENT_STANDARDS.md § 5.3](../docs/DEVELOPMENT_STANDARDS.md#53-event-architecture-manager-communication)
+
 ## 🎯 Fast Implementation Strategy
 
 ### Before Writing Code

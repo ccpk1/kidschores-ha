@@ -811,6 +811,7 @@ DATA_KID_CHORE_DATA_PERIODS_MONTHLY: Final = "monthly"
 DATA_KID_CHORE_DATA_PERIODS_YEARLY: Final = "yearly"
 DATA_KID_CHORE_DATA_PERIOD_APPROVED: Final = "approved"
 DATA_KID_CHORE_DATA_PERIOD_CLAIMED: Final = "claimed"
+DATA_KID_CHORE_DATA_PERIOD_COMPLETED: Final = "completed"
 DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED: Final = "disapproved"
 DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK: Final = "longest_streak"
 DATA_KID_CHORE_DATA_PERIOD_OVERDUE: Final = "overdue"
@@ -829,6 +830,16 @@ DATA_KID_CHORE_STATS_APPROVED_WEEK: Final = "approved_week"
 DATA_KID_CHORE_STATS_APPROVED_MONTH: Final = "approved_month"
 DATA_KID_CHORE_STATS_APPROVED_YEAR: Final = "approved_year"
 DATA_KID_CHORE_STATS_APPROVED_ALL_TIME: Final = "approved_all_time"
+
+# --- Completed Counts (Work Date Tracking) ---
+# NOTE: "completed" tracks when work was DONE (claim date), not when approved.
+# This enables parent-lag-proof statistics - kids get credit for the day they did the work.
+# *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are computed at runtime but NOT persisted (Phase 7.5).
+DATA_KID_CHORE_STATS_COMPLETED_TODAY: Final = "completed_today"
+DATA_KID_CHORE_STATS_COMPLETED_WEEK: Final = "completed_week"
+DATA_KID_CHORE_STATS_COMPLETED_MONTH: Final = "completed_month"
+DATA_KID_CHORE_STATS_COMPLETED_YEAR: Final = "completed_year"
+DATA_KID_CHORE_STATS_COMPLETED_ALL_TIME: Final = "completed_all_time"
 
 # --- Most Completed Chore ---
 DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_ALL_TIME: Final = (
@@ -1205,6 +1216,13 @@ PRES_KID_CHORES_APPROVED_TODAY: Final = "pres_kid_chores_approved_today"
 PRES_KID_CHORES_APPROVED_WEEK: Final = "pres_kid_chores_approved_week"
 PRES_KID_CHORES_APPROVED_MONTH: Final = "pres_kid_chores_approved_month"
 PRES_KID_CHORES_APPROVED_YEAR: Final = "pres_kid_chores_approved_year"
+
+# --- Presentation: Completed Stats (work date tracking - parent-lag-proof) ---
+# These track when work was DONE (claim date), not when approved.
+PRES_KID_CHORES_COMPLETED_TODAY: Final = "pres_kid_chores_completed_today"
+PRES_KID_CHORES_COMPLETED_WEEK: Final = "pres_kid_chores_completed_week"
+PRES_KID_CHORES_COMPLETED_MONTH: Final = "pres_kid_chores_completed_month"
+PRES_KID_CHORES_COMPLETED_YEAR: Final = "pres_kid_chores_completed_year"
 
 PRES_KID_CHORES_CLAIMED_TODAY: Final = "pres_kid_chores_claimed_today"
 PRES_KID_CHORES_CLAIMED_WEEK: Final = "pres_kid_chores_claimed_week"

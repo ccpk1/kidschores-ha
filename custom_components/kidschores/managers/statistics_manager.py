@@ -645,6 +645,10 @@ class StatisticsManager(BaseManager):
         approved_week = 0
         approved_month = 0
         approved_year = 0
+        completed_today = 0
+        completed_week = 0
+        completed_month = 0
+        completed_year = 0
         claimed_today = 0
         claimed_week = 0
         claimed_month = 0
@@ -663,6 +667,9 @@ class StatisticsManager(BaseManager):
             approved_today += today_entry.get(
                 const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0
             )
+            completed_today += today_entry.get(
+                const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED, 0
+            )
             claimed_today += today_entry.get(
                 const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, 0
             )
@@ -674,6 +681,9 @@ class StatisticsManager(BaseManager):
             approved_week += week_entry.get(
                 const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0
             )
+            completed_week += week_entry.get(
+                const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED, 0
+            )
             claimed_week += week_entry.get(const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, 0)
             points_week += week_entry.get(const.DATA_KID_CHORE_DATA_PERIOD_POINTS, 0)
 
@@ -682,6 +692,9 @@ class StatisticsManager(BaseManager):
             month_entry = monthly_periods.get(month_local_iso, {})
             approved_month += month_entry.get(
                 const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0
+            )
+            completed_month += month_entry.get(
+                const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED, 0
             )
             claimed_month += month_entry.get(
                 const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, 0
@@ -694,6 +707,9 @@ class StatisticsManager(BaseManager):
             approved_year += year_entry.get(
                 const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0
             )
+            completed_year += year_entry.get(
+                const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED, 0
+            )
             claimed_year += year_entry.get(const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, 0)
             points_year += year_entry.get(const.DATA_KID_CHORE_DATA_PERIOD_POINTS, 0)
 
@@ -702,6 +718,10 @@ class StatisticsManager(BaseManager):
         cache[const.PRES_KID_CHORES_APPROVED_WEEK] = approved_week
         cache[const.PRES_KID_CHORES_APPROVED_MONTH] = approved_month
         cache[const.PRES_KID_CHORES_APPROVED_YEAR] = approved_year
+        cache[const.PRES_KID_CHORES_COMPLETED_TODAY] = completed_today
+        cache[const.PRES_KID_CHORES_COMPLETED_WEEK] = completed_week
+        cache[const.PRES_KID_CHORES_COMPLETED_MONTH] = completed_month
+        cache[const.PRES_KID_CHORES_COMPLETED_YEAR] = completed_year
         cache[const.PRES_KID_CHORES_CLAIMED_TODAY] = claimed_today
         cache[const.PRES_KID_CHORES_CLAIMED_WEEK] = claimed_week
         cache[const.PRES_KID_CHORES_CLAIMED_MONTH] = claimed_month

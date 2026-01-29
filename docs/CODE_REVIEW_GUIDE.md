@@ -136,6 +136,64 @@ grep -n "\[const.DATA_" custom_components/kidschores/services.py
 
 ---
 
+### Audit Step E: Manager Coupling Check (Signal-First Logic)
+
+**Goal**: Ensure Managers use event-driven communication instead of direct cross-manager calls.
+
+**Action**:
+
+```bash
+# Search for Manager-to-Manager direct calls in managers/
+grep -rn "self\.coordinator\.\w*_manager\." custom_components/kidschores/managers/ | grep -v "# OK:" | grep -v "^\s*#"
+grep -rn "await.*_manager\." custom_components/kidschores/managers/ | grep -v "# OK:" | grep -v "^\s*#"
+
+# Verify signals are emitted after persistence
+grep -B5 "self\.emit\|async_dispatcher_send" custom_components/kidschores/managers/*.py | grep "_persist()"
+```
+
+**Pass Criteria**:
+
+- Zero Manager-to-Manager write method calls (reads are OK)
+- All signal emissions occur AFTER `_persist()` calls
+- Managers only call their own methods or `self.emit()`
+
+**Fail Criteria**:
+
+- Pattern: `self.coordinator.economy_manager.deposit()`
+- Pattern: `await self.reward_manager.claim_reward()`
+- Signal emitted before `_persist()` completes
+
+**Allowed Exceptions**:
+
+- Read-only queries: `self.coordinator.economy_manager.get_points(kid_id)` ✅
+- Coordinator infrastructure methods: `self.coordinator._persist()` ✅
+
+**Remediation**:
+
+1. Replace direct manager call with signal emission
+2. Create listener in target Manager to handle the signal
+3. Ensure signal emits AFTER successful `_persist()`
+
+**Example Fix**:
+
+```python
+# ❌ BEFORE: Direct call
+async def process_badge(self, kid_id: str) -> None:
+    badge_data = self._calculate_badge()
+    await self.coordinator.economy_manager.deposit(kid_id, 50)  # ❌ Coupling
+
+# ✅ AFTER: Signal-based
+async def process_badge(self, kid_id: str) -> None:
+    badge_data = self._calculate_badge()
+    self._data[DATA_BADGES][badge_id] = badge_data
+    self.coordinator._persist()
+    self.emit(SIGNAL_SUFFIX_BADGE_EARNED, kid_id=kid_id, points=50)  # ✅ Decoupled
+```
+
+**Reference**: [DEVELOPMENT_STANDARDS.md § 4b & 5.3](DEVELOPMENT_STANDARDS.md#4b-cross-manager-communication-rules)
+
+---
+
 ### Step 1: Type Checking Validation (MyPy)
 
 ```bash

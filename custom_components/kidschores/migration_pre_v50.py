@@ -395,6 +395,11 @@ class PreV50Migrator:
         # Keep: earned_all_time, highest_balance, longest_streak_all_time (High-Water Marks)
         self._strip_temporal_stats()
 
+        # Phase 10: Backfill 'completed' metric from 'approved' (v0.5.0-beta4)
+        # New parent-lag-proof statistics track work completion by claim date, not approval date.
+        # Historical approvals have no 'completed' tracking - backfill with approved counts.
+        self._migrate_completed_metric()
+
         const.LOGGER.info("All pre-v50 migrations completed successfully")
 
     def _migrate_independent_chores(self) -> None:
@@ -1480,6 +1485,59 @@ class PreV50Migrator:
                 }
 
         const.LOGGER.info("Legacy point stats migration complete.")
+
+    def _migrate_completed_metric(self) -> None:
+        """Backfill 'completed' metric from 'approved' in period buckets (v0.5.0-beta4).
+
+        Phase 4 introduces parent-lag-proof statistics: the 'completed' metric tracks
+        work completion by claim date (when kid did the work), not approval date.
+
+        Historical approvals have no 'completed' tracking because this feature didn't exist.
+        Backfill assumption: completed = approved (best estimate for pre-Phase 4 data).
+
+        This migration is idempotent: if 'completed' already exists in a bucket, skip it.
+        """
+        const.LOGGER.info(
+            "Starting 'completed' metric backfill migration (v0.5.0-beta4)"
+        )
+
+        kids_data: dict[str, Any] = self.coordinator._data.get(const.DATA_KIDS, {})
+        if not kids_data:
+            const.LOGGER.info("No kids data found, skipping completed metric migration")
+            return
+
+        buckets_migrated: int = 0
+
+        for _kid_id, kid_info in kids_data.items():
+            chore_data: dict[str, Any] = kid_info.get(const.DATA_KID_CHORE_DATA, {})
+
+            for _chore_id, chore_info in chore_data.items():
+                periods: dict[str, Any] = chore_info.get(
+                    const.DATA_KID_CHORE_DATA_PERIODS, {}
+                )
+
+                # Iterate all period types using constants
+                for period_type in [
+                    const.DATA_KID_CHORE_DATA_PERIODS_DAILY,
+                    const.DATA_KID_CHORE_DATA_PERIODS_WEEKLY,
+                    const.DATA_KID_CHORE_DATA_PERIODS_MONTHLY,
+                    const.DATA_KID_CHORE_DATA_PERIODS_YEARLY,
+                ]:
+                    period_buckets: dict[str, Any] = periods.get(period_type, {})
+
+                    for _period_key, bucket in period_buckets.items():
+                        # Use constants for metric keys
+                        approved_key = const.DATA_KID_CHORE_DATA_PERIOD_APPROVED
+                        completed_key = const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED
+
+                        # Only backfill if approved exists and completed doesn't
+                        if approved_key in bucket and completed_key not in bucket:
+                            bucket[completed_key] = bucket[approved_key]
+                            buckets_migrated += 1
+
+        const.LOGGER.info(
+            "✓ Completed metric backfill: Migrated %d period buckets", buckets_migrated
+        )
 
     # -------------------------------------------------------------------------------------
     # KC 3.x Config Sync to Storage (v41→v42 Migration Compatibility)

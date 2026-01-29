@@ -2692,6 +2692,18 @@
           "chore_stat_disapproved_all_time": {
             "name": "Disapproved All Time"
           },
+          "chore_stat_chores_completed_today": {
+            "name": "Completed Today"
+          },
+          "chore_stat_chores_completed_week": {
+            "name": "Completed This Week"
+          },
+          "chore_stat_chores_completed_month": {
+            "name": "Completed This Month"
+          },
+          "chore_stat_chores_completed_year": {
+            "name": "Completed This Year"
+          },
           "chore_stat_current_due_today": {
             "name": "Current Due Today"
           },

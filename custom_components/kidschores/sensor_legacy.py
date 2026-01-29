@@ -13,11 +13,11 @@ without entity clutter.
 
 Available Legacy Sensors (13 total):
 
-Kid Chore Approval Sensors (4):
-1. KidChoreApprovalsSensor - Total chores completed (data in KidChoresSensor attributes)
-2. KidChoreApprovalsDailySensor - Daily chores completed (data in KidChoreApprovalsSensor attributes)
-3. KidChoreApprovalsWeeklySensor - Weekly chores completed (data in KidChoreApprovalsSensor attributes)
-4. KidChoreApprovalsMonthlySensor - Monthly chores completed (data in KidChoreApprovalsSensor attributes)
+Kid Chore Completion Sensors (4):
+1. KidChoreCompletionSensor - Total chores completed (data in KidChoresSensor attributes)
+2. KidChoreCompletionDailySensor - Daily chores completed (data in KidChoreCompletionSensor attributes)
+3. KidChoreCompletionWeeklySensor - Weekly chores completed (data in KidChoreCompletionSensor attributes)
+4. KidChoreCompletionMonthlySensor - Monthly chores completed (data in KidChoreCompletionSensor attributes)
 
 Pending Approval Sensors (2):
 5. SystemChoresPendingApprovalSensor - Pending chore approvals (global)
@@ -61,15 +61,18 @@ if TYPE_CHECKING:
 PARALLEL_UPDATES = 0
 
 # ------------------------------------------------------------------------------------------
-# KID CHORE APPROVAL SENSORS
+# KID CHORE COMPLETION SENSORS
 # ------------------------------------------------------------------------------------------
 
 
-class KidChoreApprovalsSensor(KidsChoresCoordinatorEntity, SensorEntity):
+class KidChoreCompletionSensor(KidsChoresCoordinatorEntity, SensorEntity):
     """Legacy sensor tracking total chores completed by kid since integration start.
 
-    NOTE: This sensor is legacy/optional. Data is now available as 'chore_stat_approved_all_time'
-    attribute on the KidChoresSensor entity.
+    NOTE: This sensor is legacy/optional. Data is now available as 'chore_stat_chores_completed_*'
+    attributes on the KidChoresSensor entity.
+
+    Phase 4.5 Migration: Now uses 'completed' metric (work date) instead of 'approved' metric
+    (approval date) for accurate work completion tracking.
     """
 
     _attr_has_entity_name = True
@@ -110,13 +113,17 @@ class KidChoreApprovalsSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self) -> int:
-        """Return the total number of chores completed by the kid."""
+        """Return the total number of chores completed by the kid.
+
+        Phase 4.5: Uses 'completed' metric (work date) for accurate tracking.
+        Reads from persisted stats for all-time total.
+        """
         kid_info: KidData = cast(
             "KidData", self.coordinator.kids_data.get(self._kid_id, {})
         )
         stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
         return stats.get(
-            const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME, const.DEFAULT_ZERO
+            const.DATA_KID_CHORE_STATS_COMPLETED_ALL_TIME, const.DEFAULT_ZERO
         )
 
     @property
@@ -128,11 +135,13 @@ class KidChoreApprovalsSensor(KidsChoresCoordinatorEntity, SensorEntity):
         }
 
 
-class KidChoreApprovalsDailySensor(KidsChoresCoordinatorEntity, SensorEntity):
+class KidChoreCompletionDailySensor(KidsChoresCoordinatorEntity, SensorEntity):
     """Legacy sensor tracking chores completed today.
 
-    NOTE: This sensor is legacy/optional. Data is now available as 'chore_stat_approved_today'
-    attribute on the KidChoreApprovalsSensor entity.
+    NOTE: This sensor is legacy/optional. Data is now available as 'chore_stat_chores_completed_today'
+    attribute on the KidChoresSensor entity.
+
+    Phase 4.5 Migration: Uses 'completed' metric (work date) instead of 'approved' metric.
     """
 
     _attr_has_entity_name = True
@@ -175,10 +184,10 @@ class KidChoreApprovalsDailySensor(KidsChoresCoordinatorEntity, SensorEntity):
     def native_value(self) -> int:
         """Return the number of chores completed today.
 
-        Phase 7.5: Uses presentation cache instead of persisted stats.
+        Phase 4.5: Uses 'completed' metric (work date) for accurate tracking.
         """
         stats = self.coordinator.statistics_manager.get_stats(self._kid_id)
-        return stats.get(const.PRES_KID_CHORES_APPROVED_TODAY, const.DEFAULT_ZERO)
+        return stats.get(const.PRES_KID_CHORES_COMPLETED_TODAY, const.DEFAULT_ZERO)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -189,11 +198,13 @@ class KidChoreApprovalsDailySensor(KidsChoresCoordinatorEntity, SensorEntity):
         }
 
 
-class KidChoreApprovalsWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity):
+class KidChoreCompletionWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity):
     """Legacy sensor tracking chores completed this week.
 
-    NOTE: This sensor is legacy/optional. Data is now available as 'chore_stat_approved_week'
-    attribute on the KidChoreApprovalsSensor entity.
+    NOTE: This sensor is legacy/optional. Data is now available as 'chore_stat_chores_completed_week'
+    attribute on the KidChoresSensor entity.
+
+    Phase 4.5 Migration: Uses 'completed' metric (work date) instead of 'approved' metric.
     """
 
     _attr_has_entity_name = True
@@ -236,10 +247,10 @@ class KidChoreApprovalsWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity):
     def native_value(self) -> int:
         """Return the number of chores completed this week.
 
-        Phase 7.5: Uses presentation cache instead of persisted stats.
+        Phase 4.5: Uses 'completed' metric (work date) for accurate tracking.
         """
         stats = self.coordinator.statistics_manager.get_stats(self._kid_id)
-        return stats.get(const.PRES_KID_CHORES_APPROVED_WEEK, const.DEFAULT_ZERO)
+        return stats.get(const.PRES_KID_CHORES_COMPLETED_WEEK, const.DEFAULT_ZERO)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -250,11 +261,13 @@ class KidChoreApprovalsWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity):
         }
 
 
-class KidChoreApprovalsMonthlySensor(KidsChoresCoordinatorEntity, SensorEntity):
+class KidChoreCompletionMonthlySensor(KidsChoresCoordinatorEntity, SensorEntity):
     """Legacy sensor tracking chores completed this month.
 
-    NOTE: This sensor is legacy/optional. Data is now available as 'chore_stat_approved_month'
-    attribute on the KidChoreApprovalsSensor entity.
+    NOTE: This sensor is legacy/optional. Data is now available as 'chore_stat_chores_completed_month'
+    attribute on the KidChoresSensor entity.
+
+    Phase 4.5 Migration: Uses 'completed' metric (work date) instead of 'approved' metric.
     """
 
     _attr_has_entity_name = True
@@ -297,10 +310,10 @@ class KidChoreApprovalsMonthlySensor(KidsChoresCoordinatorEntity, SensorEntity):
     def native_value(self) -> int:
         """Return the number of chores completed this month.
 
-        Phase 7.5: Uses presentation cache instead of persisted stats.
+        Phase 4.5: Uses 'completed' metric (work date) for accurate tracking.
         """
         stats = self.coordinator.statistics_manager.get_stats(self._kid_id)
-        return stats.get(const.PRES_KID_CHORES_APPROVED_MONTH, const.DEFAULT_ZERO)
+        return stats.get(const.PRES_KID_CHORES_COMPLETED_MONTH, const.DEFAULT_ZERO)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

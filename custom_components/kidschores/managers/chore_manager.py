@@ -37,6 +37,9 @@ from ..engines.chore_engine import (
 )
 from ..engines.schedule_engine import calculate_next_due_date_from_chore_info
 from ..engines.statistics_engine import filter_persistent_stats
+
+if TYPE_CHECKING:
+    from datetime import datetime
 from ..helpers.entity_helpers import (
     remove_entities_by_item_id,
     remove_orphaned_kid_chore_entities,
@@ -53,8 +56,6 @@ from ..utils.dt_utils import (
 from .base_manager import BaseManager
 
 if TYPE_CHECKING:
-    from datetime import datetime
-
     from homeassistant.core import HomeAssistant
 
     from ..coordinator import KidsChoresDataCoordinator
@@ -2321,7 +2322,7 @@ class ChoreManager(BaseManager):
         # =====================================================================
         now_iso = dt_now_iso()
 
-        # Set last_approved timestamp
+        # Set last_approved timestamp (audit/financial timestamp)
         kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_APPROVED] = now_iso
 
         # If no pending claim existed, this is a direct approval
@@ -2329,6 +2330,14 @@ class ChoreManager(BaseManager):
         if not has_pending_claim:
             kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_CLAIMED] = now_iso
             kid_chore_data[const.DATA_CHORE_CLAIMED_BY] = kid_name
+
+        # Extract effective_date (when kid did the work) for statistics/scheduling
+        # Fallback hierarchy: last_claimed → last_approved → now_iso
+        effective_date_iso = (
+            kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_CLAIMED)
+            or kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_APPROVED)
+            or now_iso
+        )
 
         # Calculate streak using schedule-aware logic
         new_streak = ChoreEngine.calculate_streak(
@@ -2355,8 +2364,10 @@ class ChoreManager(BaseManager):
         # Update global chore state
         self._update_global_state(chore_id)
 
-        # Update chore stats (approved count + points)
-        self._update_chore_stats(kid_id, "approved", points_to_award)
+        # Update chore stats (approved count + points) using effective_date for period bucketing
+        self._update_chore_stats(
+            kid_id, "approved", points_to_award, effective_date_iso
+        )
 
         # Decrement pending count
         self._decrement_pending_count(kid_id, chore_id)
@@ -2391,10 +2402,10 @@ class ChoreManager(BaseManager):
             should_reset_immediately = True
 
         if should_reset_immediately:
-            # Set chore-level last_completed BEFORE rescheduling
-            # This is used by FREQUENCY_CUSTOM_FROM_COMPLETE to calculate
-            # next due date from completion timestamp instead of original due date
-            chore_data[const.DATA_CHORE_LAST_COMPLETED] = now_iso
+            # Set chore-level last_completed based on completion criteria
+            self._set_last_completed_timestamp(
+                chore_id, kid_id, effective_date_iso, now_iso
+            )
 
             # Get completion criteria to determine reset strategy
             completion_criteria = chore_data.get(
@@ -2467,6 +2478,7 @@ class ChoreManager(BaseManager):
             multiplier_applied=multiplier,
             previous_state=previous_state,
             update_stats=True,
+            effective_date=effective_date_iso,
         )
 
         # Clear notification tracking (both due window and reminder)
@@ -3023,6 +3035,55 @@ class ChoreManager(BaseManager):
         kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
         kid_chore_data.pop(field, None)
 
+    def _set_last_completed_timestamp(
+        self,
+        chore_id: str,
+        kid_id: str,
+        effective_date_iso: str,
+        fallback_iso: str,
+    ) -> None:
+        """Set chore-level last_completed based on completion criteria.
+
+        Args:
+            chore_id: The chore's internal ID
+            kid_id: The kid who completed (used for INDEPENDENT/SHARED_FIRST)
+            effective_date_iso: When the kid did the work (claim timestamp)
+            fallback_iso: Fallback timestamp if no claims found (now_iso)
+        """
+        chore_data = self._coordinator.chores_data[chore_id]
+        completion_criteria = chore_data.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA,
+            const.COMPLETION_CRITERIA_INDEPENDENT,
+        )
+
+        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+            # Use this kid's effective_date
+            chore_data[const.DATA_CHORE_LAST_COMPLETED] = effective_date_iso
+
+        elif completion_criteria == const.COMPLETION_CRITERIA_SHARED:
+            # SHARED_ALL: Collect all assigned kids' last_claimed, use max
+            kids_assigned = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+            claim_timestamps: list[str] = []
+            for assigned_kid_id in kids_assigned:
+                if not assigned_kid_id:
+                    continue
+                kid_chore_data_item = self._get_kid_chore_data(
+                    assigned_kid_id, chore_id
+                )
+                claim_ts = kid_chore_data_item.get(
+                    const.DATA_KID_CHORE_DATA_LAST_CLAIMED
+                )
+                if claim_ts:
+                    claim_timestamps.append(claim_ts)
+            # Use latest claim (or fallback if none found)
+            chore_data[const.DATA_CHORE_LAST_COMPLETED] = (
+                max(claim_timestamps) if claim_timestamps else fallback_iso
+            )
+
+        else:
+            # SHARED_FIRST: Use winner's claim timestamp
+            chore_data[const.DATA_CHORE_LAST_COMPLETED] = effective_date_iso
+
     def _handle_completion_criteria(
         self,
         chore_id: str,
@@ -3135,6 +3196,7 @@ class ChoreManager(BaseManager):
         kid_id: str,
         stat_type: str,
         points: float = 0.0,
+        effective_date: str | None = None,
     ) -> None:
         """Update kid's chore statistics for approval/disapproval/claim events.
 
@@ -3142,6 +3204,7 @@ class ChoreManager(BaseManager):
             kid_id: The kid's internal ID
             stat_type: One of 'approved', 'disapproved', 'claimed'
             points: Points to add for 'approved' stat type (default 0.0)
+            effective_date: ISO timestamp for period bucketing (default: current time)
         """
         kid_info = self._coordinator.kids_data.get(kid_id)
         if not kid_info:
@@ -3401,12 +3464,20 @@ class ChoreManager(BaseManager):
             chore_info[const.DATA_CHORE_PER_KID_DUE_DATES] = per_kid_due_dates
             return
 
-        # Extract per-kid completion timestamp
+        # Extract per-kid completion timestamp (Phase 5: use last_claimed for work date)
+        # Fallback hierarchy: last_claimed → last_approved (backward compat)
         completion_utc = None
         kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {}).get(chore_id, {})
-        last_approved_str = kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_APPROVED)
-        if last_approved_str:
-            completion_utc = dt_to_utc(last_approved_str)
+        last_claimed_str = kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_CLAIMED)
+        if last_claimed_str:
+            completion_utc = dt_to_utc(last_claimed_str)
+        else:
+            # Backward compat: fall back to last_approved for legacy data
+            last_approved_str = kid_chore_data.get(
+                const.DATA_KID_CHORE_DATA_LAST_APPROVED
+            )
+            if last_approved_str:
+                completion_utc = dt_to_utc(last_approved_str)
 
         # Build chore info for calculation with per-kid overrides
         chore_info_for_calc = dict(chore_info)

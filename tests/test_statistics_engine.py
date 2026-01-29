@@ -141,6 +141,59 @@ class TestRecordTransaction:
         # Check yearly
         assert sample_period_data["yearly"]["2026"]["approved"] == 1
 
+    def test_completed_metric_increment(
+        self, stats: StatisticsEngine, sample_period_data: dict[str, Any]
+    ) -> None:
+        """Should increment completed metric in all period buckets.
+
+        The 'completed' metric tracks work completion by work date (claim time),
+        separate from 'approved' which tracks approval date. This enables
+        parent-lag-proof statistics where kids get credit for the day they
+        did the work, not the day the parent approved it.
+        """
+        stats.record_transaction(
+            sample_period_data,
+            increments={"completed": 1},
+            reference_date=date(2026, 1, 19),
+        )
+
+        # Check all period buckets have completed metric
+        assert sample_period_data["daily"]["2026-01-19"]["completed"] == 1
+        assert sample_period_data["weekly"]["2026-W04"]["completed"] == 1
+        assert sample_period_data["monthly"]["2026-01"]["completed"] == 1
+        assert sample_period_data["yearly"]["2026"]["completed"] == 1
+
+    def test_completed_and_approved_independent(
+        self, stats: StatisticsEngine, sample_period_data: dict[str, Any]
+    ) -> None:
+        """Completed and approved metrics should track independently.
+
+        Scenario: Kid claims Monday, parent approves Wednesday.
+        - completed +1 in Monday bucket (work date)
+        - approved +1 in Wednesday bucket (approval date)
+        """
+        # Record completed for Monday (when kid did the work)
+        stats.record_transaction(
+            sample_period_data,
+            increments={"completed": 1},
+            reference_date=date(2026, 1, 19),  # Monday
+        )
+
+        # Record approved for Wednesday (when parent approved)
+        stats.record_transaction(
+            sample_period_data,
+            increments={"approved": 1},
+            reference_date=date(2026, 1, 21),  # Wednesday
+        )
+
+        # Completed in Monday bucket
+        assert sample_period_data["daily"]["2026-01-19"]["completed"] == 1
+        assert sample_period_data["daily"]["2026-01-19"].get("approved") is None
+
+        # Approved in Wednesday bucket
+        assert sample_period_data["daily"]["2026-01-21"]["approved"] == 1
+        assert sample_period_data["daily"]["2026-01-21"].get("completed") is None
+
     def test_cumulative_increments(
         self, stats: StatisticsEngine, sample_period_data: dict[str, Any]
     ) -> None:

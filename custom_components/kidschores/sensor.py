@@ -32,11 +32,11 @@ Sensors Defined in This File (14):
 14. SystemDashboardTranslationSensor
 
 Legacy Sensors Imported from sensor_legacy.py (13):
-    Kid Chore Approval Sensors (4):
-    1. KidChoreApprovalsSensor - Total chores completed (data in KidChoresSensor attributes)
-    2. KidChoreApprovalsDailySensor - Daily chores completed (data in KidChoreApprovalsSensor attributes)
-    3. KidChoreApprovalsWeeklySensor - Weekly chores completed (data in KidChoreApprovalsSensor attributes)
-    4. KidChoreApprovalsMonthlySensor - Monthly chores completed (data in KidChoreApprovalsSensor attributes)
+    Kid Chore Completion Sensors (4):
+    1. KidChoreCompletionSensor - Total chores completed (data in KidChoresSensor attributes)
+    2. KidChoreCompletionDailySensor - Daily chores completed (data in KidChoreCompletionSensor attributes)
+    3. KidChoreCompletionWeeklySensor - Weekly chores completed (data in KidChoreCompletionSensor attributes)
+    4. KidChoreCompletionMonthlySensor - Monthly chores completed (data in KidChoreCompletionSensor attributes)
 
     Pending Approval Sensors (2):
     5. SystemChoresPendingApprovalSensor - Pending chore approvals (global)
@@ -86,10 +86,10 @@ from .helpers.entity_helpers import (
 from .helpers.translation_helpers import load_dashboard_translation
 from .sensor_legacy import (
     KidBonusAppliedSensor,
-    KidChoreApprovalsDailySensor,
-    KidChoreApprovalsMonthlySensor,
-    KidChoreApprovalsSensor,
-    KidChoreApprovalsWeeklySensor,
+    KidChoreCompletionDailySensor,
+    KidChoreCompletionMonthlySensor,
+    KidChoreCompletionSensor,
+    KidChoreCompletionWeeklySensor,
     KidChoreStreakSensor,
     KidPenaltyAppliedSensor,
     KidPointsEarnedDailySensor,
@@ -192,7 +192,7 @@ async def async_setup_entry(
             extra_enabled=show_legacy_entities,
         ):
             entities.append(
-                KidChoreApprovalsSensor(coordinator, entry, kid_id, kid_name)
+                KidChoreCompletionSensor(coordinator, entry, kid_id, kid_name)
             )
         if should_create_entity(
             const.SENSOR_KC_UID_SUFFIX_COMPLETED_DAILY_SENSOR,
@@ -201,7 +201,7 @@ async def async_setup_entry(
             extra_enabled=show_legacy_entities,
         ):
             entities.append(
-                KidChoreApprovalsDailySensor(coordinator, entry, kid_id, kid_name)
+                KidChoreCompletionDailySensor(coordinator, entry, kid_id, kid_name)
             )
         if should_create_entity(
             const.SENSOR_KC_UID_SUFFIX_COMPLETED_WEEKLY_SENSOR,
@@ -210,7 +210,7 @@ async def async_setup_entry(
             extra_enabled=show_legacy_entities,
         ):
             entities.append(
-                KidChoreApprovalsWeeklySensor(coordinator, entry, kid_id, kid_name)
+                KidChoreCompletionWeeklySensor(coordinator, entry, kid_id, kid_name)
             )
         if should_create_entity(
             const.SENSOR_KC_UID_SUFFIX_COMPLETED_MONTHLY_SENSOR,
@@ -219,7 +219,7 @@ async def async_setup_entry(
             extra_enabled=show_legacy_entities,
         ):
             entities.append(
-                KidChoreApprovalsMonthlySensor(coordinator, entry, kid_id, kid_name)
+                KidChoreCompletionMonthlySensor(coordinator, entry, kid_id, kid_name)
             )
 
         # Kid Badges (displays highest cumulative badge) (GAMIFICATION requirement)

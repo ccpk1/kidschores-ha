@@ -549,6 +549,14 @@ class StatisticsEngine:
             const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME: existing_stats.get(
                 const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME, 0
             ),
+            # Completed counts (work date tracking - parent-lag-proof)
+            const.DATA_KID_CHORE_STATS_COMPLETED_TODAY: 0,
+            const.DATA_KID_CHORE_STATS_COMPLETED_WEEK: 0,
+            const.DATA_KID_CHORE_STATS_COMPLETED_MONTH: 0,
+            const.DATA_KID_CHORE_STATS_COMPLETED_YEAR: 0,
+            const.DATA_KID_CHORE_STATS_COMPLETED_ALL_TIME: existing_stats.get(
+                const.DATA_KID_CHORE_STATS_COMPLETED_ALL_TIME, 0
+            ),
             # Claimed counts
             const.DATA_KID_CHORE_STATS_CLAIMED_TODAY: 0,
             const.DATA_KID_CHORE_STATS_CLAIMED_WEEK: 0,
@@ -628,9 +636,9 @@ class StatisticsEngine:
         for chore_id, chore_data in kid_info.get(const.DATA_KID_CHORE_DATA, {}).items():
             periods = chore_data.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
 
-            # Most completed chore (all time)
+            # Most completed chore (all time) - uses completed metric (work date)
             all_time = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {})
-            total_count = all_time.get(const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0)
+            total_count = all_time.get(const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED, 0)
             most_completed[chore_id] = total_count
 
             # Daily
@@ -651,6 +659,9 @@ class StatisticsEngine:
             stats[const.DATA_KID_CHORE_STATS_CLAIMED_TODAY] += today_stats.get(
                 const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, 0
             )
+            stats[const.DATA_KID_CHORE_STATS_COMPLETED_TODAY] += today_stats.get(
+                const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED, 0
+            )
 
             # Weekly
             weekly = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_WEEKLY, {})
@@ -670,8 +681,11 @@ class StatisticsEngine:
             stats[const.DATA_KID_CHORE_STATS_CLAIMED_WEEK] += week_stats.get(
                 const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, 0
             )
+            stats[const.DATA_KID_CHORE_STATS_COMPLETED_WEEK] += week_stats.get(
+                const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED, 0
+            )
             most_completed_week[chore_id] = week_stats.get(
-                const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0
+                const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED, 0
             )
             max_streak_week = max(
                 max_streak_week,
@@ -696,8 +710,11 @@ class StatisticsEngine:
             stats[const.DATA_KID_CHORE_STATS_CLAIMED_MONTH] += month_stats.get(
                 const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, 0
             )
+            stats[const.DATA_KID_CHORE_STATS_COMPLETED_MONTH] += month_stats.get(
+                const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED, 0
+            )
             most_completed_month[chore_id] = month_stats.get(
-                const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0
+                const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED, 0
             )
             max_streak_month = max(
                 max_streak_month,
@@ -722,8 +739,11 @@ class StatisticsEngine:
             stats[const.DATA_KID_CHORE_STATS_CLAIMED_YEAR] += year_stats.get(
                 const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, 0
             )
+            stats[const.DATA_KID_CHORE_STATS_COMPLETED_YEAR] += year_stats.get(
+                const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED, 0
+            )
             most_completed_year[chore_id] = year_stats.get(
-                const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0
+                const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED, 0
             )
             max_streak_year = max(
                 max_streak_year,

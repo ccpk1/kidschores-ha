@@ -82,6 +82,41 @@ def build_kid_data(...) -> KidData:
 
 **Reference**: [DEV_STDS § 4. Data Write Standards](DEVELOPMENT_STANDARDS.md#4-data-write-standards-crud-ownership)
 
+### Decoupling Through Event-Driven Design
+
+**Challenge**: When one domain (badges) needs another domain (points) to act, traditional architectures create tight coupling.
+
+**Solution**: Managers never call each other directly. All cross-domain workflows use `async_dispatcher_send` with typed event payloads.
+
+**Quality Impact**:
+
+- **Testability**: Each Manager can be tested in isolation without mocking all dependencies
+- **Maintainability**: Changing one Manager doesn't require changes in unrelated Managers
+- **Reliability**: Eliminates circular dependency risks and "phantom state" bugs
+
+**Code Pattern**:
+
+```python
+# GamificationManager (badge logic)
+async def _evaluate_badge(self, kid_id: str) -> None:
+    if self._badge_condition_met(kid_id):
+        self._data[DATA_BADGES][badge_id] = badge_data
+        self.coordinator._persist()
+        # Emit signal - EconomyManager listens independently
+        self.emit(SIGNAL_SUFFIX_BADGE_EARNED, kid_id=kid_id, points=50)
+
+# EconomyManager (points logic) - separate file
+async def _on_badge_earned(self, event: BadgeEarnedEvent) -> None:
+    """Listener registered in __init__."""
+    kid_id = event["kid_id"]
+    points = event["points"]
+    self._deposit(kid_id, points)
+```
+
+**Architectural Validation**: [CODE_REVIEW_GUIDE.md § Audit Step E](CODE_REVIEW_GUIDE.md#audit-step-e-manager-coupling-check-signal-first-logic)
+
+**Reference**: [ARCHITECTURE.md § Event-Driven Orchestration](ARCHITECTURE.md#architectural-rules)
+
 ### Predictability Through Single Write Path
 
 **Challenge**: Multiple code paths writing to storage cause race conditions and data corruption.

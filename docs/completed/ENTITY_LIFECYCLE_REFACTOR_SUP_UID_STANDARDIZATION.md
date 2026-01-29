@@ -281,21 +281,21 @@ UNIQUE_ID = {entry_id}[_{kid_id}][_{item_id}]{_class_name_suffix}
 
 ⚠️ **Class Name Corrections Required**: 4 classes are named "System\*" but are actually PER-KID (they use `kid_id` in UID and `create_kid_device_info`). These classes must be renamed before UID alignment.
 
-| Current Class Name                      | Actual Scope | RENAME TO                        | Current Suffix               | New Class-Aligned Suffix                  |
-| --------------------------------------- | ------------ | -------------------------------- | ---------------------------- | ----------------------------------------- |
-| ~~`SystemChoreApprovalsSensor`~~        | PER-KID      | `KidChoreApprovalsSensor`        | `_chores_completed_total`    | `_kid_chore_approvals_sensor`             |
-| ~~`SystemChoreApprovalsDailySensor`~~   | PER-KID      | `KidChoreApprovalsDailySensor`   | `_chores_completed_daily`    | `_kid_chore_approvals_daily_sensor`       |
-| ~~`SystemChoreApprovalsWeeklySensor`~~  | PER-KID      | `KidChoreApprovalsWeeklySensor`  | `_chores_completed_weekly`   | `_kid_chore_approvals_weekly_sensor`      |
-| ~~`SystemChoreApprovalsMonthlySensor`~~ | PER-KID      | `KidChoreApprovalsMonthlySensor` | `_chores_completed_monthly`  | `_kid_chore_approvals_monthly_sensor`     |
-| `SystemChoresPendingApprovalSensor`     | SYSTEM ✓     | _(no change)_                    | `_chores_pending_approvals`  | `_system_chores_pending_approval_sensor`  |
-| `SystemRewardsPendingApprovalSensor`    | SYSTEM ✓     | _(no change)_                    | `_rewards_pending_approvals` | `_system_rewards_pending_approval_sensor` |
-| `KidPointsEarnedDailySensor`            | PER-KID ✓    | _(no change)_                    | `_points_earned_daily`       | `_kid_points_earned_daily_sensor`         |
-| `KidPointsEarnedWeeklySensor`           | PER-KID ✓    | _(no change)_                    | `_points_earned_weekly`      | `_kid_points_earned_weekly_sensor`        |
-| `KidPointsEarnedMonthlySensor`          | PER-KID ✓    | _(no change)_                    | `_points_earned_monthly`     | `_kid_points_earned_monthly_sensor`       |
-| `KidPointsMaxEverSensor`                | PER-KID ✓    | _(no change)_                    | `_points_max_ever`           | `_kid_points_max_ever_sensor`             |
-| `KidChoreStreakSensor`                  | PER-KID ✓    | _(no change)_                    | `_chores_highest_streak`     | `_kid_chore_streak_sensor`                |
-| `KidPenaltyAppliedSensor`               | PER-KID ✓    | _(no change)_                    | `_penalty_status`            | `_kid_penalty_applied_sensor`             |
-| `KidBonusAppliedSensor`                 | PER-KID ✓    | _(no change)_                    | `_bonus_status`              | `_kid_bonus_applied_sensor`               |
+| Current Class Name                      | Actual Scope | RENAME TO                         | Current Suffix               | New Class-Aligned Suffix                  |
+| --------------------------------------- | ------------ | --------------------------------- | ---------------------------- | ----------------------------------------- |
+| ~~`SystemChoreApprovalsSensor`~~        | PER-KID      | `KidChoreCompletionSensor`        | `_chores_completed_total`    | `_kid_chore_completion_sensor`            |
+| ~~`SystemChoreApprovalsDailySensor`~~   | PER-KID      | `KidChoreCompletionDailySensor`   | `_chores_completed_daily`    | `_kid_chore_completion_daily_sensor`      |
+| ~~`SystemChoreApprovalsWeeklySensor`~~  | PER-KID      | `KidChoreCompletionWeeklySensor`  | `_chores_completed_weekly`   | `_kid_chore_completion_weekly_sensor`     |
+| ~~`SystemChoreApprovalsMonthlySensor`~~ | PER-KID      | `KidChoreCompletionMonthlySensor` | `_chores_completed_monthly`  | `_kid_chore_completion_monthly_sensor`    |
+| `SystemChoresPendingApprovalSensor`     | SYSTEM ✓     | _(no change)_                     | `_chores_pending_approvals`  | `_system_chores_pending_approval_sensor`  |
+| `SystemRewardsPendingApprovalSensor`    | SYSTEM ✓     | _(no change)_                     | `_rewards_pending_approvals` | `_system_rewards_pending_approval_sensor` |
+| `KidPointsEarnedDailySensor`            | PER-KID ✓    | _(no change)_                     | `_points_earned_daily`       | `_kid_points_earned_daily_sensor`         |
+| `KidPointsEarnedWeeklySensor`           | PER-KID ✓    | _(no change)_                     | `_points_earned_weekly`      | `_kid_points_earned_weekly_sensor`        |
+| `KidPointsEarnedMonthlySensor`          | PER-KID ✓    | _(no change)_                     | `_points_earned_monthly`     | `_kid_points_earned_monthly_sensor`       |
+| `KidPointsMaxEverSensor`                | PER-KID ✓    | _(no change)_                     | `_points_max_ever`           | `_kid_points_max_ever_sensor`             |
+| `KidChoreStreakSensor`                  | PER-KID ✓    | _(no change)_                     | `_chores_highest_streak`     | `_kid_chore_streak_sensor`                |
+| `KidPenaltyAppliedSensor`               | PER-KID ✓    | _(no change)_                     | `_penalty_status`            | `_kid_penalty_applied_sensor`             |
+| `KidBonusAppliedSensor`                 | PER-KID ✓    | _(no change)_                     | `_bonus_status`              | `_kid_bonus_applied_sensor`               |
 
 #### BUTTONS (9 total)
 

@@ -907,6 +907,7 @@ class ChoreApprovedEvent(TypedDict, total=False):
     Consumed by: GamificationManager (achievement/streak tracking)
 
     Phase 5 additions: chore_labels, multiplier_applied, previous_state, update_stats.
+    Phase 6 additions: effective_date (when kid did work, for parent-lag proof stats).
     GamificationManager uses these to decide badge awarding without database queries.
     """
 
@@ -921,6 +922,7 @@ class ChoreApprovedEvent(TypedDict, total=False):
     multiplier_applied: float  # For point calculation verification
     previous_state: str  # To detect re-approvals vs new approvals
     update_stats: bool  # Whether to update statistics (False for corrections)
+    effective_date: str  # ISO timestamp when kid did work (last_claimed with fallbacks)
 
 
 class ChoreDisapprovedEvent(TypedDict, total=False):
