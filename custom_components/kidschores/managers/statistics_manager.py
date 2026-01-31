@@ -13,6 +13,10 @@ ARCHITECTURE (v0.5.0+ "Clean Break"):
 Event subscriptions:
 - SIGNAL_SUFFIX_POINTS_CHANGED → _on_points_changed()
 - SIGNAL_SUFFIX_CHORE_APPROVED → _on_chore_approved()
+- SIGNAL_SUFFIX_CHORE_COMPLETED → _on_chore_completed()
+- SIGNAL_SUFFIX_CHORE_CLAIMED → _on_chore_claimed()
+- SIGNAL_SUFFIX_CHORE_DISAPPROVED → _on_chore_disapproved()
+- SIGNAL_SUFFIX_CHORE_OVERDUE → _on_chore_overdue()
 - SIGNAL_SUFFIX_REWARD_APPROVED → _on_reward_approved()
 
 PHASE 7.5 ARCHITECTURE (Statistics Presenter & Data Sanitization):
@@ -28,17 +32,18 @@ Cache Architecture:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.core import callback
 
 from .. import const
 from ..engines.statistics_engine import filter_persistent_stats
-from ..utils.dt_utils import dt_now_local
+from ..utils.dt_utils import dt_now_local, dt_parse
 from .base_manager import BaseManager
 
 if TYPE_CHECKING:
     from asyncio import TimerHandle
+    from datetime import datetime
 
     from homeassistant.core import HomeAssistant
 
@@ -124,50 +129,75 @@ class StatisticsManager(BaseManager):
         """Set up event subscriptions for statistics tracking.
 
         Subscribe to:
+        - CHORES_READY: Startup cascade - hydrate stats → emit STATS_READY
         - POINTS_CHANGED: Track point transactions
         - CHORE_APPROVED: Track chore completions
         - REWARD_APPROVED: Track reward redemptions
 
         Phase 7.5:
         - Midnight Rollover: Clear 'today' cache keys at midnight
-        - Startup Hydration: Build cache for all existing kids
+        - Startup Hydration: Now triggered by CHORES_READY signal (cascade)
         """
+        # Startup cascade - wait for chores to be ready before hydrating stats
+        self.listen(const.SIGNAL_SUFFIX_CHORES_READY, self._on_chores_ready)
+
         # Subscribe to point change events
         self.listen(const.SIGNAL_SUFFIX_POINTS_CHANGED, self._on_points_changed)
 
-        # Subscribe to chore approval events
+        # Subscribe to chore events
         self.listen(const.SIGNAL_SUFFIX_CHORE_APPROVED, self._on_chore_approved)
+        self.listen(const.SIGNAL_SUFFIX_CHORE_COMPLETED, self._on_chore_completed)
+        self.listen(const.SIGNAL_SUFFIX_CHORE_CLAIMED, self._on_chore_claimed)
+        self.listen(const.SIGNAL_SUFFIX_CHORE_DISAPPROVED, self._on_chore_disapproved)
+        self.listen(const.SIGNAL_SUFFIX_CHORE_OVERDUE, self._on_chore_overdue)
 
         # Subscribe to reward approval events
         self.listen(const.SIGNAL_SUFFIX_REWARD_APPROVED, self._on_reward_approved)
 
-        # Phase 7.5.6: Midnight rollover listener
-        # Clear 'today' cache keys at midnight so sensors show 0 immediately
-        from homeassistant.helpers.event import async_track_time_change
+        # Midnight rollover - listen to SystemManager's signal (Timer Owner pattern)
+        # Clears 'today' cache keys at midnight so sensors show 0 immediately
+        self.listen(const.SIGNAL_SUFFIX_MIDNIGHT_ROLLOVER, self._on_midnight_rollover)
 
-        @callback
-        def _on_midnight_rollover(now: Any) -> None:
-            """Handle midnight rollover - invalidate all caches.
+        # Note: Startup hydration is now triggered by CHORES_READY signal (cascade)
+        # See _on_chores_ready() handler below
 
-            At midnight, all 'today' values become stale. Rather than surgically
-            removing only PRES_*_TODAY keys, we invalidate the entire cache.
-            Lazy hydration will rebuild on next get_stats() call.
-            """
-            const.LOGGER.info("StatisticsManager: Midnight rollover - clearing cache")
-            self.invalidate_cache()
+        const.LOGGER.debug("StatisticsManager: Event subscriptions initialized")
 
-        # Register the midnight listener (hour=0, minute=0, second=1 to avoid race)
-        self.coordinator.config_entry.async_on_unload(
-            async_track_time_change(
-                self.hass, _on_midnight_rollover, hour=0, minute=0, second=1
-            )
+    @callback
+    def _on_midnight_rollover(self, payload: dict[str, Any]) -> None:
+        """Handle midnight rollover - invalidate all caches.
+
+        At midnight, all 'today' values become stale. Rather than surgically
+        removing only PRES_*_TODAY keys, we invalidate the entire cache.
+        Lazy hydration will rebuild on next get_stats() call.
+
+        Args:
+            payload: Event data (unused)
+        """
+        const.LOGGER.info("StatisticsManager: Midnight rollover - clearing cache")
+        self.invalidate_cache()
+
+    async def _on_chores_ready(self, payload: dict[str, Any]) -> None:
+        """Handle startup cascade - hydrate stats after chores are ready.
+
+        Cascade Position: CHORES_READY → StatisticsManager → STATS_READY
+
+        Hydrates the statistics cache for all kids, then signals downstream
+        managers (GamificationManager) to continue their initialization.
+
+        Args:
+            payload: Event data (unused)
+        """
+        const.LOGGER.debug(
+            "StatisticsManager: Processing CHORES_READY - hydrating cache"
         )
 
         # Phase 7.5.7: Startup hydration
         # Build cache for all existing kids so sensors have data immediately
         await self._hydrate_cache_all_kids()
 
-        const.LOGGER.debug("StatisticsManager: Event subscriptions initialized")
+        # Signal cascade continues
+        self.emit(const.SIGNAL_SUFFIX_STATS_READY)
 
     def _get_kid(self, kid_id: str) -> dict[str, Any] | None:
         """Get kid data by ID.
@@ -350,44 +380,201 @@ class StatisticsManager(BaseManager):
             source,
         )
 
-    @callback
-    def _on_chore_approved(self, payload: dict[str, Any]) -> None:
-        """Handle CHORE_APPROVED event - update chore statistics.
+    # ────────────────────────────────────────────────────────────────
+    # Chore Transaction Helper
+    # ────────────────────────────────────────────────────────────────
 
-        This is called when ChoreManager approves a chore claim.
-        Updates period-based chore completion stats.
+    def _record_chore_transaction(
+        self,
+        kid_id: str,
+        chore_id: str,
+        increments: dict[str, int | float],
+        effective_date: str | None = None,
+        persist: bool = True,
+    ) -> bool:
+        """Record a chore transaction to period buckets.
 
-        Note: Point stats are handled separately by _on_points_changed
-        when EconomyManager.deposit() is called for the chore points.
+        Common helper for CHORE_APPROVED, CHORE_CLAIMED, CHORE_DISAPPROVED,
+        CHORE_OVERDUE, and CHORE_COMPLETED signals. Handles:
+        - Getting/creating kid_chore_data.periods structure
+        - Recording increments to period buckets via StatisticsEngine
+        - Pruning old period data
+        - Optionally persisting and refreshing cache
 
         Args:
-            payload: Event data containing:
-                - kid_id: The kid's internal ID
-                - chore_id: The chore's internal ID
-                - points_awarded: Points given for completion
-                - parent_name: Name of approving parent
-        """
-        # Extract payload values
-        kid_id = payload.get("kid_id", "")
-        chore_id = payload.get("chore_id", "")
-        points_awarded = payload.get("points_awarded", 0.0)
+            kid_id: The kid's internal ID.
+            chore_id: The chore's internal ID.
+            increments: Dict of metric keys to increment values.
+            effective_date: ISO timestamp for parent-lag-proof bucketing.
+                           If None, uses current time.
+            persist: If True, calls _persist() and _refresh_chore_cache().
+                    Set to False when batching multiple kids.
 
+        Returns:
+            True if successful, False if kid not found.
+        """
         kid_info = self._get_kid(kid_id)
         if not kid_info:
             const.LOGGER.warning(
-                "StatisticsManager._on_chore_approved: Kid '%s' not found",
+                "StatisticsManager._record_chore_transaction: Kid '%s' not found",
                 kid_id,
+            )
+            return False
+
+        # Get/create chore_data for this kid+chore
+        chore_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
+        kid_chore_data = chore_data.setdefault(chore_id, {})
+        periods = kid_chore_data.setdefault(
+            const.DATA_KID_CHORE_DATA_PERIODS,
+            {
+                const.DATA_KID_CHORE_DATA_PERIODS_DAILY: {},
+                const.DATA_KID_CHORE_DATA_PERIODS_WEEKLY: {},
+                const.DATA_KID_CHORE_DATA_PERIODS_MONTHLY: {},
+                const.DATA_KID_CHORE_DATA_PERIODS_YEARLY: {},
+                const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME: {},
+            },
+        )
+
+        # Use effective_date for parent-lag-proof bucketing
+        # dt_parse defaults to HELPER_RETURN_DATETIME, returns datetime | None
+        bucket_dt = (
+            cast("datetime | None", dt_parse(effective_date))
+            if effective_date
+            else None
+        )
+        period_mapping = self._stats_engine.get_period_keys(bucket_dt)
+
+        # Record transaction to period buckets
+        self._stats_engine.record_transaction(
+            periods,
+            increments,
+            period_key_mapping=period_mapping,
+        )
+
+        # Prune old period data
+        self._stats_engine.prune_history(periods, self.get_retention_config())
+
+        # Optionally persist and refresh cache
+        if persist:
+            self._coordinator._persist()
+            self._refresh_chore_cache(kid_id)
+
+        return True
+
+    # ────────────────────────────────────────────────────────────────
+    # Chore Event Listeners
+    # ────────────────────────────────────────────────────────────────
+
+    @callback
+    def _on_chore_approved(self, payload: dict[str, Any]) -> None:
+        """Handle CHORE_APPROVED event - update approval statistics.
+
+        Records approved count and points to period buckets.
+        Note: Completion is tracked separately via CHORE_COMPLETED signal.
+        """
+        kid_id = payload.get("kid_id", "")
+        chore_id = payload.get("chore_id", "")
+        points_awarded = payload.get("points_awarded", 0.0)
+        effective_date = payload.get("effective_date")
+
+        increments: dict[str, int | float] = {
+            const.DATA_KID_CHORE_DATA_PERIOD_APPROVED: 1,
+        }
+        if points_awarded > 0:
+            increments[const.DATA_KID_CHORE_DATA_PERIOD_POINTS] = points_awarded
+
+        if self._record_chore_transaction(kid_id, chore_id, increments, effective_date):
+            const.LOGGER.debug(
+                "StatisticsManager._on_chore_approved: kid=%s, chore=%s, points=%.2f",
+                kid_id,
+                chore_id,
+                points_awarded,
+            )
+
+    @callback
+    def _on_chore_completed(self, payload: dict[str, Any]) -> None:
+        """Handle CHORE_COMPLETED event - update completion statistics.
+
+        Called when completion criteria is satisfied:
+        - INDEPENDENT: Immediately on approval
+        - SHARED_FIRST: First approving kid only
+        - SHARED (all): All kids when last is approved
+        """
+        chore_id = payload.get("chore_id", "")
+        kid_ids = payload.get("kid_ids", [])
+        effective_date = payload.get("effective_date")
+
+        if not kid_ids:
+            const.LOGGER.warning(
+                "StatisticsManager._on_chore_completed: No kid_ids for chore=%s",
+                chore_id,
             )
             return
 
-        # The chore_data stats are already handled by ChoreManager during approval
-        # This handler is for future expansion (e.g., aggregated chore analytics)
+        # Record completion for each kid (batch mode - persist once at end)
+        for kid_id in kid_ids:
+            if self._record_chore_transaction(
+                kid_id,
+                chore_id,
+                {const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED: 1},
+                effective_date,
+                persist=False,  # Batch: persist once after loop
+            ):
+                self._refresh_chore_cache(kid_id)
+
+        # Persist once after all kids updated
+        self._coordinator._persist()
+
         const.LOGGER.debug(
-            "StatisticsManager._on_chore_approved: kid=%s, chore=%s, points=%.2f",
-            kid_id,
+            "StatisticsManager._on_chore_completed: chore=%s, kids=%s",
             chore_id,
-            points_awarded,
+            kid_ids,
         )
+
+    @callback
+    def _on_chore_claimed(self, payload: dict[str, Any]) -> None:
+        """Handle CHORE_CLAIMED event - record claim count to period buckets."""
+        kid_id = payload.get("kid_id", "")
+        chore_id = payload.get("chore_id", "")
+
+        if self._record_chore_transaction(
+            kid_id, chore_id, {const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED: 1}
+        ):
+            const.LOGGER.debug(
+                "StatisticsManager._on_chore_claimed: kid=%s, chore=%s",
+                kid_id,
+                chore_id,
+            )
+
+    @callback
+    def _on_chore_disapproved(self, payload: dict[str, Any]) -> None:
+        """Handle CHORE_DISAPPROVED event - record disapproval to period buckets."""
+        kid_id = payload.get("kid_id", "")
+        chore_id = payload.get("chore_id", "")
+
+        if self._record_chore_transaction(
+            kid_id, chore_id, {const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED: 1}
+        ):
+            const.LOGGER.debug(
+                "StatisticsManager._on_chore_disapproved: kid=%s, chore=%s",
+                kid_id,
+                chore_id,
+            )
+
+    @callback
+    def _on_chore_overdue(self, payload: dict[str, Any]) -> None:
+        """Handle CHORE_OVERDUE event - record overdue to period buckets."""
+        kid_id = payload.get("kid_id", "")
+        chore_id = payload.get("chore_id", "")
+
+        if self._record_chore_transaction(
+            kid_id, chore_id, {const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE: 1}
+        ):
+            const.LOGGER.debug(
+                "StatisticsManager._on_chore_overdue: kid=%s, chore=%s",
+                kid_id,
+                chore_id,
+            )
 
     @callback
     def _on_reward_approved(self, payload: dict[str, Any]) -> None:

@@ -1491,21 +1491,19 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         """Finalize config entry with direct-to-storage entity data (KC 4.0+ architecture)."""
         from .store import KidsChoresStore
 
-        # Write all entity data directly to storage BEFORE creating config entry
-        # This implements the KC 4.0 storage-only architecture from day one
-        storage_data = {
-            const.DATA_SCHEMA_VERSION: const.SCHEMA_VERSION_STORAGE_ONLY,
-            const.DATA_KIDS: self._kids_temp,
-            const.DATA_PARENTS: self._parents_temp,
-            const.DATA_CHORES: self._chores_temp,
-            const.DATA_BADGES: self._badges_temp,
-            const.DATA_REWARDS: self._rewards_temp,
-            const.DATA_PENALTIES: self._penalties_temp,
-            const.DATA_BONUSES: self._bonuses_temp,
-            const.DATA_ACHIEVEMENTS: self._achievements_temp,
-            const.DATA_CHALLENGES: self._challenges_temp,
-            # Legacy queues removed in v0.4.0 - computed from timestamps/reward_data
-        }
+        # Start with canonical structure from Store (SINGLE SOURCE OF TRUTH)
+        storage_data = KidsChoresStore.get_default_structure()
+
+        # Populate with user-configured entities from config flow
+        storage_data[const.DATA_KIDS] = self._kids_temp
+        storage_data[const.DATA_PARENTS] = self._parents_temp
+        storage_data[const.DATA_CHORES] = self._chores_temp
+        storage_data[const.DATA_BADGES] = self._badges_temp
+        storage_data[const.DATA_REWARDS] = self._rewards_temp
+        storage_data[const.DATA_PENALTIES] = self._penalties_temp
+        storage_data[const.DATA_BONUSES] = self._bonuses_temp
+        storage_data[const.DATA_ACHIEVEMENTS] = self._achievements_temp
+        storage_data[const.DATA_CHALLENGES] = self._challenges_temp
 
         # Initialize storage manager and save entity data
         store = KidsChoresStore(self.hass)

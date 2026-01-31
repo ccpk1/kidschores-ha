@@ -29,6 +29,7 @@ from homeassistant.core import callback
 from .. import const
 from ..engines.chore_engine import ChoreEngine
 from ..helpers import translation_helpers as th
+from ..utils.dt_utils import dt_now_iso, dt_to_utc
 from .base_manager import BaseManager
 
 if TYPE_CHECKING:
@@ -227,6 +228,207 @@ class NotificationManager(BaseManager):
             truncated_ids = "-".join(identifier[:8] for identifier in identifiers)
             return f"{const.NOTIFY_TAG_PREFIX}-{tag_type}-{truncated_ids}"
         return f"{const.NOTIFY_TAG_PREFIX}-{tag_type}"
+
+    # =========================================================================
+    # Chore Notification Schedule-Lock Helpers (Platinum Pattern v0.5.0+)
+    # =========================================================================
+    #
+    # These helpers implement the "Schedule-Lock" pattern for persistent
+    # chore notification deduplication. Key architectural points:
+    #
+    # 1. SEPARATE BUCKET: NotificationManager owns DATA_NOTIFICATIONS bucket.
+    #    We do NOT write to ChoreManager's chore_data (domain separation).
+    #
+    # 2. READ-ONLY QUERY: We read approval_period_start from ChoreManager's
+    #    data for the Schedule-Lock comparison (query, not mutation).
+    #
+    # 3. AUTOMATIC INVALIDATION: When chore resets, approval_period_start
+    #    advances. Any old notification timestamps become obsolete because
+    #    last_notified < new_period_start.
+    #
+    # 4. CLEANUP VIA SIGNALS: CHORE_DELETED and KID_DELETED signals trigger
+    #    cleanup in our notifications bucket (choreographed janitor pattern).
+    #
+    # Structure: notifications[kid_id][chore_id] = {
+    #     "last_due_start": ISO timestamp,
+    #     "last_due_reminder": ISO timestamp,
+    #     "last_overdue": ISO timestamp,
+    # }
+    # =========================================================================
+
+    def _get_chore_notifications_bucket(self) -> dict[str, Any]:
+        """Get or create the chore notifications top-level bucket.
+
+        Returns:
+            Mutable dict reference to notifications bucket
+        """
+        return self.coordinator._data.setdefault(const.DATA_NOTIFICATIONS, {})
+
+    def _get_chore_notification_record(
+        self, kid_id: str, chore_id: str
+    ) -> dict[str, Any]:
+        """Get or create chore notification record for a kid+chore combination.
+
+        Args:
+            kid_id: The kid's internal ID (UUID)
+            chore_id: The chore's internal ID (UUID)
+
+        Returns:
+            Mutable dict reference to notification record
+        """
+        notifications = self._get_chore_notifications_bucket()
+        kid_notifs = notifications.setdefault(kid_id, {})
+        return kid_notifs.setdefault(chore_id, {})
+
+    def _get_chore_approval_period_start(
+        self, kid_id: str, chore_id: str
+    ) -> str | None:
+        """Query the approval_period_start from ChoreManager (read-only).
+
+        Uses ChoreManager's public read method for cross-manager queries.
+        This follows the "Reads OK" pattern from DEVELOPMENT_STANDARDS.md § 4b.
+
+        Args:
+            kid_id: The kid's internal ID (UUID)
+            chore_id: The chore's internal ID (UUID)
+
+        Returns:
+            ISO datetime string of approval_period_start, or None if not found
+        """
+        return self.coordinator.chore_manager.get_approval_period_start(
+            kid_id, chore_id
+        )
+
+    def _get_chore_notif_key(self, notif_type: str) -> str:
+        """Map chore notification type to storage key.
+
+        Args:
+            notif_type: "due_start", "due_reminder", or "overdue"
+
+        Returns:
+            Storage key constant
+        """
+        key_map = {
+            "due_start": const.DATA_NOTIF_LAST_DUE_START,
+            "due_reminder": const.DATA_NOTIF_LAST_DUE_REMINDER,
+            "overdue": const.DATA_NOTIF_LAST_OVERDUE,
+        }
+        return key_map.get(notif_type, const.DATA_NOTIF_LAST_DUE_START)
+
+    def _should_send_chore_notification(
+        self, kid_id: str, chore_id: str, notif_type: str
+    ) -> bool:
+        """Check if chore notification should be sent using Schedule-Lock pattern.
+
+        The Schedule-Lock pattern compares the last notification timestamp
+        (from our notifications bucket) against the approval_period_start
+        (queried from ChoreManager's chore_data).
+
+        A notification is only suppressed if it was already sent WITHIN
+        the current period. When a chore resets, approval_period_start
+        advances, making old timestamps obsolete (automatic invalidation).
+
+        Args:
+            kid_id: The kid's internal ID (UUID)
+            chore_id: The chore's internal ID (UUID)
+            notif_type: "due_start", "due_reminder", or "overdue"
+
+        Returns:
+            True if notification should be sent, False if should be suppressed
+        """
+        notif_key = self._get_chore_notif_key(notif_type)
+
+        # Get our notification record (from our bucket)
+        notif_record = self._get_chore_notification_record(kid_id, chore_id)
+        last_notified_str = notif_record.get(notif_key)
+        if not last_notified_str:
+            return True  # Never notified - send it
+
+        # Query approval_period_start from ChoreManager (read-only)
+        period_start_str = self._get_chore_approval_period_start(kid_id, chore_id)
+        if not period_start_str:
+            return True  # No period defined - send it
+
+        last_notified = dt_to_utc(last_notified_str)
+        period_start = dt_to_utc(period_start_str)
+
+        if last_notified is None or period_start is None:
+            return True  # Parse error - send to be safe
+
+        # Schedule-Lock: Suppress only if notified WITHIN current period
+        return last_notified < period_start
+
+    def _record_chore_notification_sent(
+        self, kid_id: str, chore_id: str, notif_type: str
+    ) -> None:
+        """Record chore notification timestamp in our bucket and persist.
+
+        Updates the notification timestamp in our DATA_NOTIFICATIONS bucket
+        to "lock" this occurrence. Subsequent calls within the same period
+        will be suppressed by _should_send_chore_notification().
+
+        Args:
+            kid_id: The kid's internal ID (UUID)
+            chore_id: The chore's internal ID (UUID)
+            notif_type: "due_start", "due_reminder", or "overdue"
+        """
+        notif_key = self._get_chore_notif_key(notif_type)
+
+        notif_record = self._get_chore_notification_record(kid_id, chore_id)
+        notif_record[notif_key] = dt_now_iso()
+        self.coordinator._persist()  # Debounced persist
+
+        const.LOGGER.debug(
+            "Recorded chore notification timestamp for kid=%s chore=%s type=%s",
+            kid_id[:8],
+            chore_id[:8],
+            notif_type,
+        )
+
+    def _cleanup_chore_notifications(self, chore_id: str) -> None:
+        """Remove all notification records for a deleted chore.
+
+        Called when CHORE_DELETED signal is received. Prevents ghost records
+        in our bucket after chore deletion.
+
+        Args:
+            chore_id: The deleted chore's internal ID (UUID)
+        """
+        notifications = self._get_chore_notifications_bucket()
+        cleaned = 0
+        for kid_id in list(notifications.keys()):
+            if chore_id in notifications.get(kid_id, {}):
+                del notifications[kid_id][chore_id]
+                cleaned += 1
+                # Clean up empty kid dict
+                if not notifications[kid_id]:
+                    del notifications[kid_id]
+
+        if cleaned > 0:
+            self.coordinator._persist()
+            const.LOGGER.debug(
+                "Cleaned %d notification records for deleted chore=%s",
+                cleaned,
+                chore_id[:8],
+            )
+
+    def _cleanup_kid_chore_notifications(self, kid_id: str) -> None:
+        """Remove all chore notification records for a deleted kid.
+
+        Called when KID_DELETED signal is received. Prevents ghost records
+        in our bucket after kid deletion.
+
+        Args:
+            kid_id: The deleted kid's internal ID (UUID)
+        """
+        notifications = self._get_chore_notifications_bucket()
+        if kid_id in notifications:
+            del notifications[kid_id]
+            self.coordinator._persist()
+            const.LOGGER.debug(
+                "Cleaned notification records for deleted kid=%s",
+                kid_id[:8],
+            )
 
     # =========================================================================
     # Action Button Builders
@@ -1663,6 +1865,7 @@ class NotificationManager(BaseManager):
         """Handle CHORE_DUE_WINDOW event - notify kid when chore enters due window (v0.6.0+).
 
         Triggered when chore transitions from PENDING → DUE state.
+        Uses Schedule-Lock pattern to prevent duplicate notifications within same period.
 
         Args:
             payload: Event data containing kid_id, chore_id, chore_name,
@@ -1675,6 +1878,16 @@ class NotificationManager(BaseManager):
         points = payload.get("points", 0)
 
         if not kid_id or not chore_id:
+            return
+
+        # Schedule-Lock: Check if already notified this period
+        if not self._should_send_chore_notification(kid_id, chore_id, "due_start"):
+            const.LOGGER.debug(
+                "NotificationManager: Suppressing due start notification (Schedule-Lock) "
+                "for chore=%s to kid=%s",
+                chore_name,
+                kid_id,
+            )
             return
 
         # Notify kid with claim action
@@ -1692,8 +1905,11 @@ class NotificationManager(BaseManager):
             )
         )
 
+        # Record notification sent (persists to storage)
+        self._record_chore_notification_sent(kid_id, chore_id, "due_start")
+
         const.LOGGER.debug(
-            "NotificationManager: Sent due window notification for chore=%s to kid=%s (%d hrs)",
+            "NotificationManager: Sent due start notification for chore=%s to kid=%s (%d hrs)",
             chore_name,
             kid_id,
             hours,
@@ -1705,9 +1921,10 @@ class NotificationManager(BaseManager):
 
         Renamed from _handle_chore_due_soon to clarify purpose.
         Uses configurable per-chore `due_reminder_offset` timing.
+        Uses Schedule-Lock pattern to prevent duplicate notifications within same period.
 
         Args:
-            payload: Event data containing kid_id, chore_id, chore_name, minutes, points
+            payload: Event data containing kid_id, chore_id, chore_name, minutes, points, due_date
         """
         kid_id = payload.get("kid_id", "")
         chore_id = payload.get("chore_id", "")
@@ -1716,6 +1933,16 @@ class NotificationManager(BaseManager):
         points = payload.get("points", 0)
 
         if not kid_id or not chore_id:
+            return
+
+        # Schedule-Lock: Check if already notified this period
+        if not self._should_send_chore_notification(kid_id, chore_id, "due_reminder"):
+            const.LOGGER.debug(
+                "NotificationManager: Suppressing due-reminder notification (Schedule-Lock) "
+                "for chore=%s to kid=%s",
+                chore_name,
+                kid_id,
+            )
             return
 
         # Notify kid with claim action (using legacy translation keys for backward compatibility)
@@ -1733,6 +1960,9 @@ class NotificationManager(BaseManager):
             )
         )
 
+        # Record notification sent (persists to storage)
+        self._record_chore_notification_sent(kid_id, chore_id, "due_reminder")
+
         const.LOGGER.debug(
             "NotificationManager: Sent due-reminder notification for chore=%s to kid=%s (%d min)",
             chore_name,
@@ -1744,6 +1974,8 @@ class NotificationManager(BaseManager):
     def _handle_chore_overdue(self, payload: dict[str, Any]) -> None:
         """Handle CHORE_OVERDUE event - notify kid and parents with actions.
 
+        Uses Schedule-Lock pattern to prevent duplicate notifications within same period.
+
         Args:
             payload: Event data containing kid_id, chore_id, chore_name, due_date
         """
@@ -1753,6 +1985,16 @@ class NotificationManager(BaseManager):
         due_date = payload.get("due_date", "")
 
         if not kid_id or not chore_id:
+            return
+
+        # Schedule-Lock: Check if already notified this period
+        if not self._should_send_chore_notification(kid_id, chore_id, "overdue"):
+            const.LOGGER.debug(
+                "NotificationManager: Suppressing overdue notification (Schedule-Lock) "
+                "for chore=%s to kid=%s",
+                chore_name,
+                kid_id,
+            )
             return
 
         # Notify kid with claim action
@@ -1787,6 +2029,9 @@ class NotificationManager(BaseManager):
             )
         )
 
+        # Record notification sent (persists to storage)
+        self._record_chore_notification_sent(kid_id, chore_id, "overdue")
+
         const.LOGGER.debug(
             "NotificationManager: Sent overdue notification for chore=%s to kid=%s and parents",
             chore_name,
@@ -1804,6 +2049,7 @@ class NotificationManager(BaseManager):
         When a chore is deleted, we need to clear notifications that reference it:
         - Pending approval notifications sent to parents
         - Due soon / overdue reminders
+        - Notification records in our DATA_NOTIFICATIONS bucket (Schedule-Lock janitor)
 
         Args:
             payload: Event data containing chore_id, chore_name, and optionally
@@ -1825,6 +2071,9 @@ class NotificationManager(BaseManager):
             chore_id,
             assigned_kids,
         )
+
+        # Clean up notification records in our bucket (Schedule-Lock janitor)
+        self._cleanup_chore_notifications(chore_id)
 
         # Clear notifications for each kid that had this chore assigned
         for kid_id in assigned_kids:
@@ -1882,6 +2131,7 @@ class NotificationManager(BaseManager):
         - All pending approval notifications for this kid's chores
         - All reward claim notifications involving this kid
         - Any status/system notifications for this kid
+        - Notification records in our DATA_NOTIFICATIONS bucket (Schedule-Lock janitor)
 
         Note: This is a best-effort cleanup. Some notifications may have already
         been dismissed or may not have used tags. The system is designed to be
@@ -1899,6 +2149,9 @@ class NotificationManager(BaseManager):
                 "KID_DELETED notification cleanup skipped: missing kid_id"
             )
             return
+
+        # Clean up notification records in our bucket (Schedule-Lock janitor)
+        self._cleanup_kid_chore_notifications(kid_id)
 
         # Shadow kids don't typically have notifications
         if was_shadow:

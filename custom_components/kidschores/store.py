@@ -40,25 +40,24 @@ class KidsChoresStore:
         self._store: Store = Store(hass, const.STORAGE_VERSION, storage_key)
         self._data: dict[str, Any] = {}  # In-memory data cache for quick access.
 
-    def _get_default_structure(self) -> dict[str, Any]:
-        """Get the default empty data structure.
+    @staticmethod
+    def get_default_structure() -> dict[str, Any]:
+        """Return canonical empty data structure for fresh installations.
+
+        This is the SINGLE SOURCE OF TRUTH for KidsChores storage schema.
+        Used by:
+        - Store.async_initialize() when no storage file exists
+        - ConfigFlow._create_entry() when creating fresh installation
+        - Coordinator._get_default_structure() delegates here
 
         Returns:
-            dict: Default structure with all data keys initialized.
+            dict: Default structure with all buckets and meta initialized.
         """
-        from datetime import datetime
-
-        from homeassistant.util import dt as dt_util
-
         return {
             const.DATA_META: {
-                const.DATA_META_SCHEMA_VERSION: const.DEFAULT_ZERO,  # Will be set by migration
-                const.DATA_META_LAST_MIGRATION_DATE: datetime.now(
-                    dt_util.UTC
-                ).isoformat(),
-                const.DATA_META_MIGRATIONS_APPLIED: [],
+                const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_STORAGE_ONLY,
+                const.DATA_META_PENDING_EVALUATIONS: [],
             },
-            const.DATA_SCHEMA_VERSION: const.DEFAULT_ZERO,  # Top-level schema version for backward compatibility
             const.DATA_KIDS: {},
             const.DATA_CHORES: {},
             const.DATA_BADGES: {},
@@ -68,7 +67,7 @@ class KidsChoresStore:
             const.DATA_PARENTS: {},
             const.DATA_ACHIEVEMENTS: {},
             const.DATA_CHALLENGES: {},
-            # Legacy queues removed in v0.4.0 - computed from timestamps/reward_data
+            const.DATA_NOTIFICATIONS: {},  # Chore notification timestamps (v0.5.0+)
         }
 
     async def async_initialize(self) -> None:
@@ -88,7 +87,7 @@ class KidsChoresStore:
         if existing_data is None:
             # No existing data, create a new default structure.
             const.LOGGER.info("INFO: No existing storage found. Initializing new data")
-            self._data = self._get_default_structure()
+            self._data = KidsChoresStore.get_default_structure()
             const.LOGGER.debug(
                 "DEBUG: Initialized with default structure: %s keys",
                 len(self._data.keys()),
@@ -201,7 +200,7 @@ class KidsChoresStore:
         self._data.clear()
 
         # Set the default empty structure
-        self._data = self._get_default_structure()
+        self._data = KidsChoresStore.get_default_structure()
         await self.async_save()
 
     async def async_delete_storage(self) -> None:

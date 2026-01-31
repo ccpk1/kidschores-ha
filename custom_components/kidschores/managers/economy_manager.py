@@ -101,6 +101,26 @@ class EconomyManager(BaseManager):
             const.SIGNAL_SUFFIX_CHALLENGE_COMPLETED,
             self._on_challenge_completed,
         )
+        # Listen for chore workflow events (Platinum Architecture - Signal-First)
+        # EconomyManager handles point transactions when chores are approved/undone
+        self.listen(
+            const.SIGNAL_SUFFIX_CHORE_APPROVED,
+            self._on_chore_approved,
+        )
+        self.listen(
+            const.SIGNAL_SUFFIX_CHORE_AUTO_APPROVED,
+            self._on_chore_auto_approved,
+        )
+        self.listen(
+            const.SIGNAL_SUFFIX_CHORE_UNDONE,
+            self._on_chore_undone,
+        )
+        # Listen for reward workflow events (Platinum Architecture - Signal-First)
+        # EconomyManager handles point withdrawals when rewards are approved
+        self.listen(
+            const.SIGNAL_SUFFIX_REWARD_APPROVED,
+            self._on_reward_approved,
+        )
 
     def _on_badge_earned(self, payload: dict[str, Any]) -> None:
         """Handle badge earned event - process full Award Manifest.
@@ -230,6 +250,98 @@ class EconomyManager(BaseManager):
                     source=const.POINTS_SOURCE_CHALLENGES,
                     reference_id=challenge_id,
                 )
+            )
+
+    async def _on_chore_approved(self, payload: dict[str, Any]) -> None:
+        """Handle chore approved event - deposit points to kid's balance.
+
+        Follows Platinum Architecture (Choreography): EconomyManager reacts to
+        CHORE_APPROVED signal and handles its own domain (point transactions).
+        ChoreManager no longer calls deposit() directly.
+
+        Args:
+            payload: Event data containing:
+                - kid_id: The kid's internal UUID
+                - chore_id: The chore's internal UUID
+                - base_points: Raw points before multiplier
+                - apply_multiplier: Whether to apply kid's multiplier
+        """
+        kid_id = payload.get("kid_id")
+        chore_id = payload.get("chore_id")
+        base_points = payload.get("base_points", 0.0)
+        apply_multiplier = payload.get("apply_multiplier", True)
+
+        if base_points > 0 and kid_id:
+            await self.deposit(
+                kid_id=kid_id,
+                amount=base_points,
+                source=const.POINTS_SOURCE_CHORES,
+                reference_id=chore_id,
+                apply_multiplier=apply_multiplier,
+            )
+
+    async def _on_chore_auto_approved(self, payload: dict[str, Any]) -> None:
+        """Handle chore auto-approved event during reset.
+
+        Similar to _on_chore_approved but triggered by automatic approval
+        during chore reset (when pending_claim_action is AUTO_APPROVE).
+
+        Args:
+            payload: Event data containing kid_id, chore_id, base_points
+        """
+        # Delegate to standard approval handler - same point logic
+        await self._on_chore_approved(payload)
+
+    async def _on_reward_approved(self, payload: dict[str, Any]) -> None:
+        """Handle reward approved event - withdraw points from kid's balance.
+
+        Follows Platinum Architecture (Choreography): EconomyManager reacts to
+        REWARD_APPROVED signal and handles its own domain (point transactions).
+        RewardManager no longer calls withdraw() directly.
+
+        Args:
+            payload: Event data containing:
+                - kid_id: The kid's internal UUID
+                - reward_id: The reward's internal UUID
+                - cost: Points to deduct
+        """
+        kid_id = payload.get("kid_id")
+        reward_id = payload.get("reward_id")
+        cost = payload.get("cost", 0.0)
+
+        if cost > 0 and kid_id:
+            await self.withdraw(
+                kid_id=kid_id,
+                amount=cost,
+                source=const.POINTS_SOURCE_REWARDS,
+                reference_id=reward_id,
+                allow_negative=False,  # Kids must afford rewards
+            )
+
+    async def _on_chore_undone(self, payload: dict[str, Any]) -> None:
+        """Handle chore undone event - withdraw points from kid's balance.
+
+        Follows Platinum Architecture: EconomyManager handles point reclamation
+        when a chore approval is undone. NSF (insufficient funds) is handled
+        gracefully - logged but doesn't fail the undo operation.
+
+        Args:
+            payload: Event data containing:
+                - kid_id: The kid's internal UUID
+                - chore_id: The chore's internal UUID
+                - points_to_reclaim: Amount to withdraw
+        """
+        kid_id = payload.get("kid_id")
+        chore_id = payload.get("chore_id")
+        points_to_reclaim = payload.get("points_to_reclaim", 0.0)
+
+        if points_to_reclaim > 0 and kid_id:
+            await self.withdraw(
+                kid_id=kid_id,
+                amount=points_to_reclaim,
+                source=const.POINTS_SOURCE_OTHER,
+                reference_id=chore_id,
+                # allow_negative=True by default - undo can go negative
             )
 
     def _get_kid(self, kid_id: str) -> KidData | None:
@@ -397,6 +509,7 @@ class EconomyManager(BaseManager):
         *,
         source: str,
         reference_id: str | None = None,
+        allow_negative: bool = True,
     ) -> float:
         """Remove points from a kid's balance.
 
@@ -405,13 +518,15 @@ class EconomyManager(BaseManager):
             amount: Amount to remove (must be positive - will be negated internally)
             source: Transaction source (POINTS_SOURCE_REWARDS, POINTS_SOURCE_PENALTIES, etc.)
             reference_id: Optional related entity ID (reward_id, etc.)
+            allow_negative: If True (default), allows balance to go negative (parent actions).
+                           If False, raises InsufficientFundsError on NSF (reward claims).
 
         Returns:
             New balance after withdrawal
 
         Raises:
             ValueError: If kid not found or amount is negative
-            InsufficientFundsError: If balance is less than amount (NSF)
+            InsufficientFundsError: If allow_negative=False and balance < amount (NSF)
         """
         kid = self._get_kid(kid_id)
         if not kid:
@@ -427,8 +542,10 @@ class EconomyManager(BaseManager):
         # Get current balance
         current_balance = self.get_balance(kid_id)
 
-        # NSF check
-        if not EconomyEngine.validate_sufficient_funds(current_balance, amount):
+        # NSF check - only enforced when allow_negative=False (e.g., reward claims)
+        if not allow_negative and not EconomyEngine.validate_sufficient_funds(
+            current_balance, amount
+        ):
             const.LOGGER.warning(
                 "EconomyManager.withdraw: NSF for kid=%s, balance=%.2f, requested=%.2f",
                 kid_id,
@@ -531,33 +648,14 @@ class EconomyManager(BaseManager):
 
         penalty_pts = penalty_info.get(const.DATA_PENALTY_POINTS, const.DEFAULT_ZERO)
 
-        # Penalties are negative - use withdraw for deduction
-        # Note: Penalties can go negative, so we don't use NSF check
-        # We manually update balance to allow negative
-        current_balance = self.get_balance(kid_id)
-        new_balance = current_balance - abs(penalty_pts)
-        kid_info[const.DATA_KID_POINTS] = new_balance
-
-        # Create ledger entry
-        entry = EconomyEngine.create_ledger_entry(
-            current_balance=current_balance,
-            delta=-abs(penalty_pts),
-            source=const.POINTS_SOURCE_PENALTIES,
-            reference_id=penalty_id,
-        )
-        ledger = self._ensure_ledger(kid_info)
-        ledger.append(entry)
-        EconomyEngine.prune_ledger(ledger, const.DEFAULT_LEDGER_MAX_ENTRIES)
-
-        # Emit event for GamificationManager
-        self.emit(
-            const.SIGNAL_SUFFIX_POINTS_CHANGED,
+        # Use withdraw() with allow_negative=True (default) for penalties
+        # Parent authority actions can take balance negative
+        new_balance = await self.withdraw(
             kid_id=kid_id,
-            old_balance=current_balance,
-            new_balance=new_balance,
-            delta=-abs(penalty_pts),
+            amount=abs(penalty_pts),
             source=const.POINTS_SOURCE_PENALTIES,
             reference_id=penalty_id,
+            # allow_negative=True by default
         )
 
         # Update penalty tracking counter
@@ -566,6 +664,17 @@ class EconomyManager(BaseManager):
             penalty_applies[penalty_id] = int(penalty_applies[penalty_id]) + 1  # type: ignore[assignment]
         else:
             penalty_applies[penalty_id] = 1  # type: ignore[assignment]
+
+        const.LOGGER.debug(
+            "EconomyManager.apply_penalty: kid=%s, penalty=%s, pts=%.2f, new_balance=%.2f",
+            kid_id,
+            penalty_id,
+            penalty_pts,
+            new_balance,
+        )
+
+        # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
+        self._coordinator._persist()
 
         # Emit event for NotificationManager to send notification
         self.emit(
@@ -576,15 +685,6 @@ class EconomyManager(BaseManager):
             points=penalty_pts,
         )
 
-        const.LOGGER.debug(
-            "EconomyManager.apply_penalty: kid=%s, penalty=%s, pts=%.2f, new_balance=%.2f",
-            kid_id,
-            penalty_id,
-            penalty_pts,
-            new_balance,
-        )
-
-        self._coordinator._persist()
         self._coordinator.async_set_updated_data(self._coordinator._data)
 
         return new_balance
@@ -755,6 +855,17 @@ class EconomyManager(BaseManager):
         else:
             bonus_applies[bonus_id] = 1  # type: ignore[assignment]
 
+        const.LOGGER.debug(
+            "EconomyManager.apply_bonus: kid=%s, bonus=%s, pts=%.2f, new_balance=%.2f",
+            kid_id,
+            bonus_id,
+            bonus_pts,
+            new_balance,
+        )
+
+        # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
+        self._coordinator._persist()
+
         # Emit event for NotificationManager to send notification
         self.emit(
             const.SIGNAL_SUFFIX_BONUS_APPLIED,
@@ -764,15 +875,6 @@ class EconomyManager(BaseManager):
             points=bonus_pts,
         )
 
-        const.LOGGER.debug(
-            "EconomyManager.apply_bonus: kid=%s, bonus=%s, pts=%.2f, new_balance=%.2f",
-            kid_id,
-            bonus_id,
-            bonus_pts,
-            new_balance,
-        )
-
-        self._coordinator._persist()
         self._coordinator.async_set_updated_data(self._coordinator._data)
 
         return new_balance

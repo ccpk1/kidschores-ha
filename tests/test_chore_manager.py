@@ -10,7 +10,7 @@ Tests verify:
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -35,16 +35,6 @@ def mock_hass() -> MagicMock:
 
     hass.async_create_task = MagicMock(side_effect=handle_create_task)
     return hass
-
-
-@pytest.fixture
-def mock_economy_manager() -> MagicMock:
-    """Create mock EconomyManager."""
-    manager = MagicMock()
-    # deposit and withdraw are now async methods
-    manager.deposit = AsyncMock(return_value=100.0)
-    manager.withdraw = AsyncMock(return_value=90.0)
-    return manager
 
 
 @pytest.fixture
@@ -99,10 +89,9 @@ def mock_coordinator(sample_chore_data: dict, sample_kid_data: dict) -> MagicMoc
 def chore_manager(
     mock_hass: MagicMock,
     mock_coordinator: MagicMock,
-    mock_economy_manager: MagicMock,
 ) -> ChoreManager:
     """Create ChoreManager instance with mocks."""
-    manager = ChoreManager(mock_hass, mock_coordinator, mock_economy_manager)
+    manager = ChoreManager(mock_hass, mock_coordinator)
     # Mock the emit method to track events
     manager.emit = MagicMock()
     return manager
@@ -218,7 +207,6 @@ class TestApproveWorkflow:
     async def test_approve_chore_success(
         self,
         chore_manager: ChoreManager,
-        mock_economy_manager: MagicMock,
     ) -> None:
         """Test successful chore approval."""
         # First claim the chore
@@ -240,18 +228,21 @@ class TestApproveWorkflow:
         # Verify pending count decremented
         assert kid_chore_data[const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT] == 0
 
-        # Verify points deposited
-        mock_economy_manager.deposit.assert_called_once()
-        deposit_call = mock_economy_manager.deposit.call_args
-        assert deposit_call[1]["kid_id"] == "kid-1"
-        assert deposit_call[1]["source"] == const.POINTS_SOURCE_CHORES
-
-        # Verify event emitted
+        # Verify CHORE_APPROVED signal emitted with correct payload
+        # (Signal-First Architecture: EconomyManager deposits points via signal listener)
         chore_manager.emit.assert_called()
-        call_args = chore_manager.emit.call_args
-        assert call_args[0][0] == const.SIGNAL_SUFFIX_CHORE_APPROVED
-        assert call_args[1]["kid_id"] == "kid-1"
-        assert call_args[1]["parent_name"] == "Parent"
+        # Find the CHORE_APPROVED call in the list (CHORE_COMPLETED may also be emitted)
+        approved_call = None
+        for call in chore_manager.emit.call_args_list:
+            if call[0][0] == const.SIGNAL_SUFFIX_CHORE_APPROVED:
+                approved_call = call
+                break
+        assert approved_call is not None, "CHORE_APPROVED signal not emitted"
+        assert approved_call[1]["kid_id"] == "kid-1"
+        assert approved_call[1]["parent_name"] == "Parent"
+        # Signal includes base_points for EconomyManager to apply multiplier
+        assert "base_points" in approved_call[1]
+        assert approved_call[1]["base_points"] == 10.0  # From sample_chore_data
 
     @pytest.mark.asyncio
     async def test_approve_race_condition_protection(
@@ -506,8 +497,14 @@ class TestEventPayloads:
 
         await chore_manager.approve_chore("Parent", "kid-1", "chore-1")
 
-        call_args = chore_manager.emit.call_args
-        payload = call_args[1]
+        # Find the CHORE_APPROVED call in the list (CHORE_COMPLETED may also be emitted)
+        approved_call = None
+        for call in chore_manager.emit.call_args_list:
+            if call[0][0] == const.SIGNAL_SUFFIX_CHORE_APPROVED:
+                approved_call = call
+                break
+        assert approved_call is not None, "CHORE_APPROVED signal not emitted"
+        payload = approved_call[1]
 
         # Verify rich payload fields
         assert "points_awarded" in payload

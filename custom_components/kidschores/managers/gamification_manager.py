@@ -99,9 +99,16 @@ class GamificationManager(BaseManager):
     async def async_setup(self) -> None:
         """Set up the GamificationManager.
 
-        Subscribe to all events that can trigger gamification checks.
+        Subscribe to:
+        - STATS_READY: Startup cascade - initialize badge refs → emit GAMIFICATION_READY
+        - Domain events that can trigger gamification checks
+        - Lifecycle events for reactive cleanup
+
         Recover any pending evaluations from storage (restart resilience).
         """
+        # Startup cascade - wait for stats to be ready before initializing badges
+        self.listen(const.SIGNAL_SUFFIX_STATS_READY, self._on_stats_ready)
+
         # Point changes affect point-based badges
         self.listen(const.SIGNAL_SUFFIX_POINTS_CHANGED, self._on_points_changed)
 
@@ -138,6 +145,28 @@ class GamificationManager(BaseManager):
             "GamificationManager initialized with %s second debounce",
             self._debounce_seconds,
         )
+
+    def _on_stats_ready(self, payload: dict[str, Any]) -> None:
+        """Handle startup cascade - initialize badge references after stats ready.
+
+        Cascade Position: STATS_READY → GamificationManager → GAMIFICATION_READY
+
+        Updates chore badge references for all kids, then signals completion
+        of the startup cascade. UIManager can listen for dashboard finalization.
+
+        Args:
+            payload: Event data (unused)
+        """
+        const.LOGGER.debug(
+            "GamificationManager: Processing STATS_READY - updating badge references"
+        )
+
+        # Initialize badge references in kid chore tracking
+        self.update_chore_badge_references_for_kid()
+
+        # Signal cascade complete
+        self.emit(const.SIGNAL_SUFFIX_GAMIFICATION_READY)
+        const.LOGGER.info("KidsChores initialization cascade complete")
 
     # =========================================================================
     # EVENT HANDLERS
@@ -331,6 +360,15 @@ class GamificationManager(BaseManager):
             const.DATA_ACHIEVEMENT_REWARD_POINTS, const.DEFAULT_ZERO
         )
 
+        const.LOGGER.debug(
+            "DEBUG: Achievement Award - Achievement ID '%s' to Kid ID '%s'",
+            achievement_info.get(const.DATA_ACHIEVEMENT_NAME),
+            kid_id,
+        )
+
+        # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
+        self.coordinator._persist()
+
         # Emit event for NotificationManager to send notifications
         # EconomyManager listens to this and handles point deposit
         self.emit(
@@ -341,12 +379,6 @@ class GamificationManager(BaseManager):
             achievement_points=extra_points,
         )
 
-        const.LOGGER.debug(
-            "DEBUG: Achievement Award - Achievement ID '%s' to Kid ID '%s'",
-            achievement_info.get(const.DATA_ACHIEVEMENT_NAME),
-            kid_id,
-        )
-        self.coordinator._persist()
         self.coordinator.async_set_updated_data(self.coordinator._data)
 
     async def award_challenge(self, kid_id: str, challenge_id: str) -> None:
@@ -387,6 +419,15 @@ class GamificationManager(BaseManager):
             const.DATA_CHALLENGE_REWARD_POINTS, const.DEFAULT_ZERO
         )
 
+        const.LOGGER.debug(
+            "DEBUG: Challenge Award - Challenge ID '%s' to Kid ID '%s'",
+            challenge_info.get(const.DATA_CHALLENGE_NAME),
+            kid_id,
+        )
+
+        # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
+        self.coordinator._persist()
+
         # Emit event for NotificationManager to send notifications
         # EconomyManager listens to this and handles point deposit
         self.emit(
@@ -397,12 +438,6 @@ class GamificationManager(BaseManager):
             challenge_points=extra_points,
         )
 
-        const.LOGGER.debug(
-            "DEBUG: Challenge Award - Challenge ID '%s' to Kid ID '%s'",
-            challenge_info.get(const.DATA_CHALLENGE_NAME),
-            kid_id,
-        )
-        self.coordinator._persist()
         self.coordinator.async_set_updated_data(self.coordinator._data)
 
     def update_streak_progress(
@@ -593,6 +628,17 @@ class GamificationManager(BaseManager):
 
         Cancels any existing timer and schedules a new one.
         This batches rapid changes into a single evaluation pass.
+
+        Uses call_soon_threadsafe to safely interact with event loop
+        since this method may be called from dispatcher (SyncWorker thread).
+        """
+        self.hass.loop.call_soon_threadsafe(self._schedule_evaluation_impl)
+
+    def _schedule_evaluation_impl(self) -> None:
+        """Internal implementation that runs on the event loop thread.
+
+        This method must only be called from the event loop thread
+        (via call_soon_threadsafe from _schedule_evaluation).
         """
         if self._eval_timer:
             self._eval_timer.cancel()

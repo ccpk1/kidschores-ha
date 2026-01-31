@@ -236,9 +236,19 @@ class UserManager(BaseManager):
                 ] = None
             # Unlink shadow kid (preserves kid + entities)
             self._unlink_shadow_kid(kid_id)
-            # Remove unused translation sensors (if language no longer needed)
-            self.coordinator.ui_manager.remove_unused_translation_sensors()
+
+            # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
             self.coordinator._persist()
+
+            # Emit kid deleted event - UIManager listens to clean up translation sensors
+            # (Platinum Architecture: signal-first, no cross-manager writes)
+            self.emit(
+                const.SIGNAL_SUFFIX_KID_DELETED,
+                kid_id=kid_id,
+                kid_name=kid_name,
+                was_shadow=True,
+            )
+
             self.coordinator.async_update_listeners()
 
             const.LOGGER.info(
@@ -247,13 +257,6 @@ class UserManager(BaseManager):
                 kid_id,
             )
 
-            # Emit kid deleted event
-            self.emit(
-                const.SIGNAL_SUFFIX_KID_DELETED,
-                kid_id=kid_id,
-                kid_name=kid_name,
-                was_shadow=True,
-            )
             return  # Done - don't continue to normal kid deletion
 
         # Normal kid deletion continues below
@@ -273,7 +276,16 @@ class UserManager(BaseManager):
             device_registry.async_remove_device(device.id)
             const.LOGGER.debug("Removed device from registry for kid ID: %s", kid_id)
 
-        # Emit kid deleted event BEFORE cleanup so managers can handle their cleanup
+        # Note: Cleanup is now handled by signal listeners in each Manager:
+        # - ChoreManager._on_kid_deleted() removes kid from chore assignments
+        # - GamificationManager._on_kid_deleted() removes achievement/challenge refs
+        # - UserManager._on_kid_deleted() removes parent associations
+        # - UIManager._on_user_deleted() removes unused translation sensors
+
+        # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
+        self.coordinator._persist()
+
+        # Emit kid deleted event AFTER persist so managers see consistent state
         self.emit(
             const.SIGNAL_SUFFIX_KID_DELETED,
             kid_id=kid_id,
@@ -281,15 +293,6 @@ class UserManager(BaseManager):
             was_shadow=False,
         )
 
-        # Note: Cleanup is now handled by signal listeners in each Manager:
-        # - ChoreManager._on_kid_deleted() removes kid from chore assignments
-        # - GamificationManager._on_kid_deleted() removes achievement/challenge refs
-        # - UserManager._on_kid_deleted() removes parent associations
-
-        # Remove unused translation sensors (if language no longer needed)
-        self.coordinator.ui_manager.remove_unused_translation_sensors()
-
-        self.coordinator._persist()
         self.coordinator.async_update_listeners()
         const.LOGGER.info("Deleted kid '%s' (ID: %s)", kid_name, kid_id)
 
@@ -465,19 +468,19 @@ class UserManager(BaseManager):
 
         del self._data[const.DATA_PARENTS][parent_id]
 
-        # Remove unused translation sensors (if language no longer needed)
-        self.coordinator.ui_manager.remove_unused_translation_sensors()
-
+        # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
         self.coordinator._persist()
-        self.coordinator.async_update_listeners()
-        const.LOGGER.info("Deleted parent '%s' (ID: %s)", parent_name, parent_id)
 
-        # Emit parent deleted event
+        # Emit parent deleted event - UIManager listens to clean up translation sensors
+        # (Platinum Architecture: signal-first, no cross-manager writes)
         self.emit(
             const.SIGNAL_SUFFIX_PARENT_DELETED,
             parent_id=parent_id,
             parent_name=parent_name,
         )
+
+        self.coordinator.async_update_listeners()
+        const.LOGGER.info("Deleted parent '%s' (ID: %s)", parent_name, parent_id)
 
     # -------------------------------------------------------------------------
     # SHADOW KID HELPERS
@@ -596,4 +599,46 @@ class UserManager(BaseManager):
             kid_name,
             shadow_kid_id,
             new_name,
+        )
+
+    async def unlink_shadow(self, shadow_kid_id: str) -> None:
+        """Public API to unlink a shadow kid from parent.
+
+        Delegates to internal _unlink_shadow_kid() and handles persistence.
+        This is the correct entry point for services.py to call.
+
+        Per Platinum Architecture:
+        - Manager owns the write (persist + signal)
+        - Service layer only orchestrates
+
+        Args:
+            shadow_kid_id: The internal ID of the shadow kid to unlink
+
+        Raises:
+            ServiceValidationError: If kid not found or not a shadow kid
+        """
+        # Get kid name before unlinking for signal payload
+        kid_info = self._data.get(const.DATA_KIDS, {}).get(shadow_kid_id, {})
+        kid_name = kid_info.get(const.DATA_KID_NAME, shadow_kid_id)
+
+        # Perform the unlink (modifies _data)
+        self._unlink_shadow_kid(shadow_kid_id)
+
+        # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
+        self.coordinator._persist()
+
+        # Emit signal for SystemManager to clean up conditional entities
+        self.emit(
+            const.SIGNAL_SUFFIX_KID_UPDATED,
+            kid_id=shadow_kid_id,
+            kid_name=f"{kid_name}_unlinked",
+            was_shadow_unlink=True,
+        )
+
+        self.coordinator.async_update_listeners()
+
+        const.LOGGER.info(
+            "Completed shadow unlink for kid '%s' (ID: %s)",
+            kid_name,
+            shadow_kid_id,
         )

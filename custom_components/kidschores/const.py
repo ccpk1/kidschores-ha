@@ -68,6 +68,34 @@ STORAGE_VERSION: Final = 1
 # NOTE: This is a comprehensive list based on current coordinator operations.
 # Not all signals need to be implemented immediately - add as needed per phase.
 
+# ==============================================================================
+# Lifecycle Events (Boot Cascade & System Timers)
+# ==============================================================================
+# Boot Cascade Order (strict sequence - each signal triggers the next):
+#   1. Coordinator loads data from storage
+#   2. await system_manager.ensure_data_integrity() [BLOCKING]
+#   3. SystemManager emits DATA_READY after migrations/cleanup
+#   4. ChoreManager initializes → emits CHORES_READY
+#   5. StatisticsManager hydrates → emits STATS_READY
+#   6. GamificationManager evaluates → emits GAMIFICATION_READY
+#   7. UIManager builds dashboard data (system ready for entity requests)
+#
+# Timer Events (SystemManager owns ALL async_track_time_change registrations):
+#   - MIDNIGHT_ROLLOVER: Daily reset tasks (chore resets, stats rollover)
+#   - PERIODIC_UPDATE: 5-minute refresh pulse (overdue checks, reminders)
+
+# Lifecycle Events (SystemManager → Domain Managers)
+SIGNAL_SUFFIX_DATA_READY: Final = "data_ready"  # Data migrated, registry clean
+SIGNAL_SUFFIX_CHORES_READY: Final = "chores_ready"  # ChoreManager init complete
+SIGNAL_SUFFIX_STATS_READY: Final = "stats_ready"  # StatisticsManager hydration complete
+SIGNAL_SUFFIX_GAMIFICATION_READY: Final = (
+    "gamification_ready"  # GamificationManager complete
+)
+
+# Timer-Triggered Events (SystemManager owns timers)
+SIGNAL_SUFFIX_PERIODIC_UPDATE: Final = "periodic_update"  # 5-minute refresh pulse
+SIGNAL_SUFFIX_MIDNIGHT_ROLLOVER: Final = "midnight_rollover"  # Daily reset broadcast
+
 # Economy Events (EconomyManager)
 SIGNAL_SUFFIX_POINTS_CHANGED: Final = "points_changed"
 SIGNAL_SUFFIX_TRANSACTION_FAILED: Final = "transaction_failed"
@@ -75,7 +103,10 @@ SIGNAL_SUFFIX_TRANSACTION_FAILED: Final = "transaction_failed"
 # Chore Events (ChoreManager)
 SIGNAL_SUFFIX_CHORE_CLAIMED: Final = "chore_claimed"
 SIGNAL_SUFFIX_CHORE_APPROVED: Final = "chore_approved"
+SIGNAL_SUFFIX_CHORE_COMPLETED: Final = "chore_completed"
 SIGNAL_SUFFIX_CHORE_DISAPPROVED: Final = "chore_disapproved"
+SIGNAL_SUFFIX_CHORE_UNDONE: Final = "chore_undone"
+SIGNAL_SUFFIX_CHORE_AUTO_APPROVED: Final = "chore_auto_approved"
 SIGNAL_SUFFIX_CHORE_OVERDUE: Final = "chore_overdue"
 SIGNAL_SUFFIX_CHORE_DUE_REMINDER: Final = "chore_due_reminder"
 SIGNAL_SUFFIX_CHORE_DUE_WINDOW: Final = "chore_due_window"
@@ -738,6 +769,15 @@ DATA_PARENTS: Final = "parents"
 DATA_PENALTIES: Final = "penalties"
 DATA_PROGRESS: Final = "progress"
 DATA_REWARDS: Final = "rewards"
+
+# NOTIFICATIONS (v0.5.0+ Platinum Pattern - Owned by NotificationManager)
+# Separate bucket for notification history to maintain domain ownership.
+# ChoreManager owns chore_data, NotificationManager owns notifications.
+# Structure: notifications[kid_id][chore_id] = {last_due_start, last_due_reminder, last_overdue}
+DATA_NOTIFICATIONS: Final = "notifications"
+DATA_NOTIF_LAST_DUE_START: Final = "last_due_start"
+DATA_NOTIF_LAST_DUE_REMINDER: Final = "last_due_reminder"
+DATA_NOTIF_LAST_OVERDUE: Final = "last_overdue"
 
 # KIDS
 DATA_KID_BADGES_EARNED_NAME: Final = "badge_name"
@@ -1938,6 +1978,7 @@ TRANS_KEY_ATTR_CAN_APPROVE: Final = "can_approve"
 TRANS_KEY_ATTR_COMPLETION_CRITERIA: Final = "completion_criteria"
 TRANS_KEY_ATTR_LAST_APPROVED: Final = "last_approved"
 TRANS_KEY_ATTR_LAST_CLAIMED: Final = "last_claimed"
+TRANS_KEY_ATTR_LAST_COMPLETED: Final = "last_completed"
 TRANS_KEY_ATTR_APPROVAL_PERIOD_START: Final = "approval_period_start"
 
 
@@ -1973,6 +2014,7 @@ ATTR_CHALLENGE_TYPE: Final = "challenge_type"
 ATTR_CHORE_APPROVALS_COUNT: Final = "chore_approvals_count"
 ATTR_CHORE_APPROVALS_TODAY: Final = "chore_approvals_today"
 ATTR_CHORE_CLAIMS_COUNT: Final = "chore_claims_count"
+ATTR_CHORE_COMPLETED_COUNT: Final = "chore_completed_count"
 ATTR_CHORE_CURRENT_STREAK: Final = "chore_current_streak"
 ATTR_CHORE_HIGHEST_STREAK: Final = "chore_highest_streak"
 ATTR_CHORE_POINTS_EARNED: Final = "chore_points_earned"
@@ -2108,6 +2150,7 @@ ATTR_KIDS_EARNED: Final = "kids_earned"
 ATTR_LABELS: Final = "labels"
 ATTR_LAST_APPROVED: Final = "last_approved"
 ATTR_LAST_CLAIMED: Final = "last_claimed"
+ATTR_LAST_COMPLETED: Final = "last_completed"
 ATTR_LAST_DISAPPROVED: Final = "last_disapproved"
 ATTR_LAST_OVERDUE: Final = "last_overdue"
 ATTR_NEXT_HIGHER_BADGE_NAME: Final = "next_higher_badge_name"

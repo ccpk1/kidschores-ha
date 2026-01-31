@@ -12,7 +12,7 @@ following the Platinum Architecture principle of Infrastructure-Only Coordinator
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
@@ -52,12 +52,110 @@ class UIManager(BaseManager):
         # Callback for adding new translation sensors dynamically
         self._sensor_add_entities_callback: Callable[..., None] | None = None
 
+        # Dashboard optimization: track when pending approvals change
+        # Flags are True on first load to force initial attribute build
+        self._pending_chore_changed: bool = True
+        self._pending_reward_changed: bool = True
+
     async def async_setup(self) -> None:
         """Set up the UI manager.
 
         Called once during coordinator initialization.
+        Subscribes to user deletion events to clean up unused translation sensors.
+        Subscribes to chore/reward events to track pending approval changes.
         """
+        # Listen for user deletion to clean up translation sensors
+        # Follows Platinum Architecture: UIManager reacts to signals instead of
+        # being called directly by UserManager
+        self.listen(const.SIGNAL_SUFFIX_KID_DELETED, self._on_user_deleted)
+        self.listen(const.SIGNAL_SUFFIX_PARENT_DELETED, self._on_user_deleted)
+
+        # Listen for chore state changes that affect pending approvals
+        # These signals are already emitted by ChoreManager - no coupling needed
+        self.listen(const.SIGNAL_SUFFIX_CHORE_CLAIMED, self._on_chore_changed)
+        self.listen(const.SIGNAL_SUFFIX_CHORE_APPROVED, self._on_chore_changed)
+        self.listen(const.SIGNAL_SUFFIX_CHORE_DISAPPROVED, self._on_chore_changed)
+        self.listen(const.SIGNAL_SUFFIX_CHORE_UNDONE, self._on_chore_changed)
+        self.listen(const.SIGNAL_SUFFIX_CHORE_STATUS_RESET, self._on_chore_changed)
+
+        # Listen for reward state changes that affect pending approvals
+        # These signals are already emitted by RewardManager - no coupling needed
+        self.listen(const.SIGNAL_SUFFIX_REWARD_CLAIMED, self._on_reward_changed)
+        self.listen(const.SIGNAL_SUFFIX_REWARD_APPROVED, self._on_reward_changed)
+        self.listen(const.SIGNAL_SUFFIX_REWARD_DISAPPROVED, self._on_reward_changed)
+        self.listen(const.SIGNAL_SUFFIX_REWARD_STATUS_RESET, self._on_reward_changed)
+
+        # Listen for midnight rollover to bump datetime helpers
+        self.listen(const.SIGNAL_SUFFIX_MIDNIGHT_ROLLOVER, self._on_midnight_rollover)
+
         const.LOGGER.debug("UIManager setup complete for entry %s", self.entry_id)
+
+    async def _on_midnight_rollover(self, payload: dict[str, Any]) -> None:
+        """Handle midnight rollover - bump datetime helpers past current time.
+
+        Follows Platinum Architecture (Choreography): UIManager reacts
+        to MIDNIGHT_ROLLOVER signal and performs its own nightly tasks.
+
+        Args:
+            payload: Event data (unused, but required by signal handler signature)
+        """
+        const.LOGGER.debug("UIManager: Processing midnight rollover")
+        now = dt_util.utcnow()
+        try:
+            await self.bump_past_datetime_helpers(now)
+        except Exception:
+            const.LOGGER.exception("UIManager: Error during midnight rollover")
+
+    def _on_user_deleted(self, payload: dict[str, Any]) -> None:
+        """Handle user deletion - clean up unused translation sensors.
+
+        Follows Platinum Architecture (Choreography): UIManager reacts to
+        KID_DELETED/PARENT_DELETED signals and cleans its own domain
+        (translation sensors that are no longer needed).
+
+        Args:
+            payload: Event data (kid_id/parent_id - not used, we scan all users)
+        """
+        # Don't need payload data - just check if any languages are now unused
+        self.remove_unused_translation_sensors()
+
+    def _on_chore_changed(self, payload: dict[str, Any]) -> None:
+        """Handle chore state change - mark pending approvals as changed.
+
+        Args:
+            payload: Event data (not used, just sets flag)
+        """
+        self._pending_chore_changed = True
+
+    def _on_reward_changed(self, payload: dict[str, Any]) -> None:
+        """Handle reward state change - mark pending approvals as changed.
+
+        Args:
+            payload: Event data (not used, just sets flag)
+        """
+        self._pending_reward_changed = True
+
+    # -------------------------------------------------------------------------------------
+    # Pending Approval Change Tracking (Dashboard Optimization)
+    # -------------------------------------------------------------------------------------
+
+    @property
+    def pending_chore_changed(self) -> bool:
+        """Return whether pending chore approvals have changed since last reset."""
+        return self._pending_chore_changed
+
+    @property
+    def pending_reward_changed(self) -> bool:
+        """Return whether pending reward approvals have changed since last reset."""
+        return self._pending_reward_changed
+
+    def reset_pending_change_flags(self) -> None:
+        """Reset the pending change flags after UI has processed the changes.
+
+        Called by dashboard helper sensor after rebuilding attributes.
+        """
+        self._pending_chore_changed = False
+        self._pending_reward_changed = False
 
     # -------------------------------------------------------------------------------------
     # Translation Sensor Lifecycle Management

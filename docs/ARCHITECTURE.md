@@ -76,6 +76,35 @@ For ongoing reference and to maintain Platinum certification, consult:
 
 **Automatic Metadata**: All data builders must set `updated_at` timestamps. Managers never manually set timestamps.
 
+### Infrastructure Coordinator Pattern
+
+The Coordinator is a **pure infrastructure hub** with zero domain knowledge:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│            Coordinator (Infrastructure Only)                │
+│  async_config_entry_first_refresh():                        │
+│    1. Load storage (via Store)                              │
+│    2. await system_manager.ensure_data_integrity()          │
+│    3. _persist()                                            │
+│                                                             │
+│  Owns: _data holder, _persist(), Store wrapper              │
+│  Owns NOT: domain logic, timers, manager orchestration      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Boot Cascade**: Managers self-organize via lifecycle signals:
+
+```
+DATA_READY → ChoreManager → CHORES_READY
+                              ↓
+         StatisticsManager → STATS_READY
+                              ↓
+       GamificationManager → GAMIFICATION_READY
+```
+
+**Timer Ownership**: SystemManager owns ALL `async_track_time_change` calls. Other managers listen to `MIDNIGHT_ROLLOVER` and `PERIODIC_UPDATE` signals.
+
 ---
 
 ## Data Architecture
@@ -99,7 +128,7 @@ For ongoing reference and to maintain Platinum certification, consult:
 │ (9 settings total)     │        │ • achievements           │
 │                        │        │ • challenges             │
 │ Requires Reload: YES   │        │ • pending_approvals      │
-│                        │        │ • meta.schema_version: 42│
+│                        │        │ • meta.schema_version:50+│
 │                        │        │                          │
 │                        │        │ Requires Reload: NO      │
 └────────────────────────┘        └──────────────────────────┘

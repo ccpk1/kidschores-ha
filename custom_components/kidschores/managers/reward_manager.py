@@ -2,20 +2,22 @@
 
 This manager handles the complete reward lifecycle:
 - Redeem: Kid claims a reward (enters pending approval state)
-- Approve: Parent approves pending reward (deducts points via EconomyManager)
+- Approve: Parent approves pending reward (emits signal, EconomyManager deducts points)
 - Disapprove: Parent rejects reward (resets to available)
 - Undo: Kid cancels own pending claim
 
-ARCHITECTURE (v0.5.0+ "Clean Break"):
+ARCHITECTURE (v0.5.0+ Signal-First):
 - RewardManager owns the entire reward workflow
-- Point deductions via EconomyManager.withdraw() (emits POINTS_CHANGED)
+- Point deductions via REWARD_APPROVED signal (EconomyManager listens)
 - GamificationManager listens to POINTS_CHANGED (Event Bus coupling only)
 - Coordinator provides data access and persistence
 
 Event Flow:
-    RewardManager.approve() -> EconomyManager.withdraw() -> emit(POINTS_CHANGED)
-                                                                    |
-                    GamificationManager (listener) <----------------+
+    RewardManager.approve() -> emit(REWARD_APPROVED) -> EconomyManager.withdraw()
+                                                               |
+                                                        emit(POINTS_CHANGED)
+                                                               |
+                    GamificationManager (listener) <-----------+
 """
 
 from __future__ import annotations
@@ -38,7 +40,6 @@ if TYPE_CHECKING:
 
     from ..coordinator import KidsChoresDataCoordinator
     from ..type_defs import KidData, RewardData
-    from .economy_manager import EconomyManager
 
 
 class RewardManager(BaseManager):
@@ -48,11 +49,11 @@ class RewardManager(BaseManager):
     - Handle reward claims (redeem)
     - Process approvals/disapprovals
     - Track pending reward states
-    - Coordinate with EconomyManager for point deductions
+    - Emit signals for EconomyManager to handle point deductions
     - Send notifications via coordinator's notification routing
 
     NOT responsible for:
-    - Point balance management (delegated to EconomyManager)
+    - Point balance management (delegated to EconomyManager via signals)
     - Gamification checks (handled by GamificationManager via events)
     - Direct storage persistence (delegated to coordinator)
     """
@@ -61,20 +62,14 @@ class RewardManager(BaseManager):
         self,
         hass: HomeAssistant,
         coordinator: KidsChoresDataCoordinator,
-        economy_manager: EconomyManager,
-        notification_manager: NotificationManager,
     ) -> None:
         """Initialize the RewardManager.
 
         Args:
             hass: Home Assistant instance
             coordinator: The main KidsChores coordinator
-            economy_manager: Manager for point transactions
-            notification_manager: Manager for sending notifications
         """
         super().__init__(hass, coordinator)
-        self._economy = economy_manager
-        self._notification = notification_manager
         self._approval_locks: dict[str, asyncio.Lock] = {}
 
     async def async_setup(self) -> None:
@@ -391,6 +386,9 @@ class RewardManager(BaseManager):
             kid_id, reward_id=reward_id, notif_id=notif_id
         )
 
+        # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
+        self.coordinator._persist()
+
         # Emit event for NotificationManager to send notifications
         self.emit(
             const.SIGNAL_SUFFIX_REWARD_CLAIMED,
@@ -402,10 +400,6 @@ class RewardManager(BaseManager):
             extra_data=extra_data,
         )
 
-        # Mark reward changed for dashboard helper
-        self.coordinator._pending_reward_changed = True
-
-        self.coordinator._persist()
         self.coordinator.async_set_updated_data(self.coordinator._data)
 
     # =========================================================================
@@ -495,15 +489,6 @@ class RewardManager(BaseManager):
                 },
             )
 
-        # Deduct points via EconomyManager (emits POINTS_CHANGED)
-        if cost > 0:
-            await self._economy.withdraw(
-                kid_id=kid_id,
-                amount=cost,
-                source=const.POINTS_SOURCE_REWARDS,
-                reference_id=reward_id,
-            )
-
         # Track the reward grant
         self._grant_to_kid(
             kid_id=kid_id,
@@ -518,18 +503,19 @@ class RewardManager(BaseManager):
 
         # NOTE: Badge checks handled by GamificationManager via POINTS_CHANGED event
 
-        # Emit event for NotificationManager to send notification and clear parent claim
+        # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
+        self.coordinator._persist()
+
+        # Emit event - EconomyManager handles point withdrawal, NotificationManager sends notification
+        # (Platinum Architecture: signal-first, no cross-manager writes)
         self.emit(
             const.SIGNAL_SUFFIX_REWARD_APPROVED,
             kid_id=kid_id,
             reward_id=reward_id,
             reward_name=reward_info[const.DATA_REWARD_NAME],
+            cost=cost,  # EconomyManager deducts points
         )
 
-        # Mark reward changed for dashboard helper
-        self.coordinator._pending_reward_changed = True
-
-        self.coordinator._persist()
         self.coordinator.async_set_updated_data(self.coordinator._data)
 
     def _grant_to_kid(
@@ -670,6 +656,9 @@ class RewardManager(BaseManager):
             # Recalculate aggregated reward stats
             self._recalculate_stats_for_kid(kid_id)
 
+        # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
+        self.coordinator._persist()
+
         # Emit event for NotificationManager to send notification and clear parent claim
         self.emit(
             const.SIGNAL_SUFFIX_REWARD_DISAPPROVED,
@@ -678,10 +667,6 @@ class RewardManager(BaseManager):
             reward_name=reward_info[const.DATA_REWARD_NAME],
         )
 
-        # Mark reward changed for dashboard helper
-        self.coordinator._pending_reward_changed = True
-
-        self.coordinator._persist()
         self.coordinator.async_set_updated_data(self.coordinator._data)
 
     # =========================================================================
@@ -736,9 +721,6 @@ class RewardManager(BaseManager):
 
         # Recalculate aggregated reward stats (pending count changed)
         self._recalculate_stats_for_kid(kid_id)
-
-        # Mark reward changed for dashboard helper
-        self.coordinator._pending_reward_changed = True
 
         # No notification sent (silent undo)
 
@@ -834,9 +816,6 @@ class RewardManager(BaseManager):
             kid_id,
             reward_id,
         )
-
-        # Mark reward changed for dashboard helper
-        self.coordinator._pending_reward_changed = True
 
         self.coordinator._persist()
         self.coordinator.async_set_updated_data(self.coordinator._data)

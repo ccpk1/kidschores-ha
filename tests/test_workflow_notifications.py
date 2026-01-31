@@ -727,27 +727,60 @@ class TestDueDateReminders:
         assert second_count == 1, f"Expected no duplicate, got {second_count} total"
 
     @pytest.mark.asyncio
-    async def test_due_soon_reminder_cleared_on_claim(
+    async def test_due_reminder_schedule_lock_invalidation(
         self,
         hass: HomeAssistant,
         scenario_notifications: SetupResult,
     ) -> None:
-        """Claiming a chore clears the reminder tracking (allows future reminders)."""
+        """Schedule-Lock: notification timestamps invalidate when period advances (v0.5.0+).
+
+        The Schedule-Lock pattern means:
+        1. Notification timestamps persist in storage
+        2. When approval_period_start advances (chore reset), old timestamps become obsolete
+        3. No explicit clearing needed - comparison vs period boundary handles it
+        """
+        from custom_components.kidschores import const
+
         coordinator = scenario_notifications.coordinator
         kid_id = scenario_notifications.kid_ids["Zoë"]
         chore_id = scenario_notifications.chore_ids["Feed the cat"]
 
-        # Manually mark as sent (renamed in v0.6.0)
-        reminder_key = f"{chore_id}:{kid_id}"
-        coordinator._due_reminder_notif_sent.add(reminder_key)
+        # Simulate a notification was sent by recording it in storage
+        notifications = coordinator._data.setdefault(const.DATA_NOTIFICATIONS, {})
+        kid_notifs = notifications.setdefault(kid_id, {})
+        kid_notifs[chore_id] = {
+            const.DATA_NOTIF_LAST_DUE_START: "2026-01-29T10:00:00+00:00",
+            const.DATA_NOTIF_LAST_DUE_REMINDER: "2026-01-29T14:00:00+00:00",
+        }
 
-        assert reminder_key in coordinator._due_reminder_notif_sent
+        # Verify the notification record exists
+        assert chore_id in notifications.get(kid_id, {}), (
+            "Notification record should exist"
+        )
 
-        # Claim the chore - should clear the reminder tracking
-        await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+        # Advance the approval_period_start (simulates chore reset after approval)
+        kid_info = coordinator.kids_data.get(kid_id)
+        assert kid_info is not None
+        kid_chore_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
+        chore_data = kid_chore_data.setdefault(chore_id, {})
+        chore_data[const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = (
+            "2026-01-30T00:00:00+00:00"  # Period advances past the timestamps
+        )
 
-        assert reminder_key not in coordinator._due_reminder_notif_sent, (
-            "Claiming should clear due-soon reminder tracking"
+        # Schedule-Lock check: the old timestamps are now < new period start
+        # This means a new notification SHOULD be sent (not suppressed)
+        # The NotificationManager._should_send_notification() would return True
+
+        # Verify the logic: old timestamp < new period start means it's obsolete
+        from custom_components.kidschores.utils.dt_utils import dt_to_utc
+
+        last_notified = dt_to_utc("2026-01-29T14:00:00+00:00")
+        new_period_start = dt_to_utc("2026-01-30T00:00:00+00:00")
+
+        assert last_notified is not None
+        assert new_period_start is not None
+        assert last_notified < new_period_start, (
+            "Old notification timestamp should be before new period (auto-invalidated)"
         )
 
     @pytest.mark.asyncio

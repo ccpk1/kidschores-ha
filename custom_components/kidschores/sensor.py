@@ -920,6 +920,9 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         disapproved_count = all_time_stats.get(
             const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED, const.DEFAULT_ZERO
         )
+        completed_count = all_time_stats.get(
+            const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED, const.DEFAULT_ZERO
+        )
         last_longest_streak_date = kid_chore_data.get(
             const.DATA_KID_CHORE_DATA_LAST_LONGEST_STREAK_ALL_TIME
         )
@@ -927,6 +930,16 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         # Collect timestamp fields
         last_claimed = kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_CLAIMED)
         last_approved = kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_APPROVED)
+        # last_completed is stored differently based on completion criteria:
+        # - INDEPENDENT: stored in per-kid data (fallback to last_claimed if not yet approved)
+        # - SHARED (FIRST or ALL): stored at chore level
+        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+            last_completed = kid_chore_data.get(
+                const.DATA_KID_CHORE_DATA_LAST_COMPLETED
+            )
+        else:
+            # SHARED chores store last_completed at chore level
+            last_completed = chore_info.get(const.DATA_CHORE_LAST_COMPLETED)
         last_disapproved = kid_chore_data.get(
             const.DATA_KID_CHORE_DATA_LAST_DISAPPROVED
         )
@@ -989,8 +1002,9 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_TIME_UNTIL_OVERDUE: self._get_time_until_overdue(),
             # --- 3. Statistics (counts) ---
             const.ATTR_CHORE_POINTS_EARNED: points_earned,
-            const.ATTR_CHORE_APPROVALS_COUNT: approvals_count,
             const.ATTR_CHORE_CLAIMS_COUNT: claims_count,
+            const.ATTR_CHORE_COMPLETED_COUNT: completed_count,
+            const.ATTR_CHORE_APPROVALS_COUNT: approvals_count,
             const.ATTR_CHORE_DISAPPROVED_COUNT: disapproved_count,
             const.ATTR_CHORE_OVERDUE_COUNT: overdue_count,
             # --- 4. Statistics (streaks) ---
@@ -1000,6 +1014,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             # --- 5. Timestamps (last_* events) ---
             const.ATTR_LAST_CLAIMED: last_claimed,
             const.ATTR_LAST_APPROVED: last_approved,
+            const.ATTR_LAST_COMPLETED: last_completed,
             const.ATTR_LAST_DISAPPROVED: last_disapproved,
             const.ATTR_LAST_OVERDUE: last_overdue,
             # --- 6. State info ---
@@ -1015,7 +1030,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 kid_chore_data.get(const.DATA_CHORE_COMPLETED_BY)
             ),
             # Use coordinator helper to correctly handle INDEPENDENT (per-kid) vs SHARED (chore-level)
-            const.ATTR_APPROVAL_PERIOD_START: self.coordinator.chore_manager._get_chore_approval_period_start(
+            const.ATTR_APPROVAL_PERIOD_START: self.coordinator.chore_manager.get_approval_period_start(
                 self._kid_id, self._chore_id
             ),
         }
@@ -1307,12 +1322,18 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
             attributes[f"{const.ATTR_PREFIX_CHORE_STAT}{key}"] = stats[key]
 
         # Phase 7.5: Add temporal stats from presentation cache
-        # PRES_KID_* keys map to backward-compatible names by stripping "pres_kid_" prefix
+        # PRES_KID_CHORES_* keys need full prefix stripped to match translation keys
         pres_stats = self.coordinator.statistics_manager.get_stats(self._kid_id)
         for pres_key, value in pres_stats.items():
-            if pres_key.startswith(("pres_kid_chores_", "pres_kid_top_chores_")):
-                # Strip "pres_kid_" prefix to get backward-compatible attribute name
-                attr_key = pres_key[9:]  # "pres_kid_chores_xxx" -> "chores_xxx"
+            if pres_key.startswith("pres_kid_chores_"):
+                # Strip "pres_kid_chores_" prefix (16 chars) to match translation keys
+                # "pres_kid_chores_approved_today" -> "approved_today"
+                attr_key = pres_key[16:]
+                attributes[f"{const.ATTR_PREFIX_CHORE_STAT}{attr_key}"] = value
+            elif pres_key.startswith("pres_kid_top_chores_"):
+                # Strip "pres_kid_" prefix for top_chores keys
+                # "pres_kid_top_chores_xxx" -> "top_chores_xxx"
+                attr_key = pres_key[9:]
                 attributes[f"{const.ATTR_PREFIX_CHORE_STAT}{attr_key}"] = value
 
         return attributes
@@ -3555,8 +3576,8 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         # Check if pending approvals changed - forces attribute rebuild
         # Flags are reset in extra_state_attributes after rebuild
         if (
-            self.coordinator.chore_manager.pending_chore_changed
-            or self.coordinator.pending_reward_changed
+            self.coordinator.ui_manager.pending_chore_changed
+            or self.coordinator.ui_manager.pending_reward_changed
         ):
             # Flag set - attributes will rebuild in next extra_state_attributes call
             pass
@@ -3914,7 +3935,9 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         # Get all pending approvals from coordinator via public properties
         pending_chore_approvals = self.coordinator.chore_manager.pending_chore_approvals
-        pending_reward_approvals = self.coordinator.pending_reward_approvals
+        pending_reward_approvals = (
+            self.coordinator.reward_manager.get_pending_approvals()
+        )
 
         # Filter for this kid's pending chores
         for approval in pending_chore_approvals:
@@ -4424,7 +4447,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         pending_approvals = self._build_pending_approvals(entity_registry)
 
         # Reset change flags after building attributes
-        self.coordinator.reset_pending_change_flags()
+        self.coordinator.ui_manager.reset_pending_change_flags()
 
         # Build core sensors dict (used by dashboard to avoid slug construction)
         core_sensors = self._build_core_sensors(entity_registry)

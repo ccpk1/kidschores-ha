@@ -400,7 +400,46 @@ class PreV50Migrator:
         # Historical approvals have no 'completed' tracking - backfill with approved counts.
         self._migrate_completed_metric()
 
+        # Phase 11: Finalize migration metadata (MUST be last)
+        # Sets v50+ meta section and cleans up legacy keys
+        self._finalize_migration_meta()
+
         const.LOGGER.info("All pre-v50 migrations completed successfully")
+
+    def _finalize_migration_meta(self) -> None:
+        """Set up v50+ meta section and clean legacy keys.
+
+        This MUST run at the end of all migrations because:
+        1. Schema version should only be updated after ALL migrations succeed
+        2. Legacy keys might be needed during migration (safety)
+
+        This method will be REMOVED when migration_pre_v50.py is dropped.
+        """
+        from homeassistant.util import dt as dt_util
+
+        # Set modern meta section
+        self.coordinator._data[const.DATA_META] = {
+            const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_STORAGE_ONLY,
+            const.DATA_META_LAST_MIGRATION_DATE: datetime.now(dt_util.UTC).isoformat(),
+            const.DATA_META_MIGRATIONS_APPLIED: const.DEFAULT_MIGRATIONS_APPLIED,
+            const.DATA_META_PENDING_EVALUATIONS: [],
+        }
+
+        # Remove old top-level schema_version if present (v42 → v50)
+        self.coordinator._data.pop(const.DATA_SCHEMA_VERSION, None)
+
+        # Clean up legacy beta keys (KC 4.x beta, schema v41)
+        if const.MIGRATION_PERFORMED in self.coordinator._data:
+            const.LOGGER.debug("Cleaning up legacy key: migration_performed")
+            del self.coordinator._data[const.MIGRATION_PERFORMED]
+        if const.MIGRATION_KEY_VERSION in self.coordinator._data:
+            const.LOGGER.debug("Cleaning up legacy key: migration_key_version")
+            del self.coordinator._data[const.MIGRATION_KEY_VERSION]
+
+        const.LOGGER.debug(
+            "Migration meta finalized: schema_version=%s",
+            const.SCHEMA_VERSION_STORAGE_ONLY,
+        )
 
     def _migrate_independent_chores(self) -> None:
         """Populate per_kid_due_dates for all INDEPENDENT chores (one-time migration).
@@ -1220,7 +1259,7 @@ class PreV50Migrator:
                 if field in badge_info:
                     del badge_info[field]
 
-        self.coordinator._persist()
+        self.coordinator._persist(immediate=True)  # Migration must be immediate
         self.coordinator.async_set_updated_data(self.coordinator._data)
 
         const.LOGGER.info(
@@ -1340,7 +1379,7 @@ class PreV50Migrator:
             if const.DATA_KID_BADGES_LEGACY in kid_info:
                 del kid_info[const.DATA_KID_BADGES_LEGACY]  # type: ignore[typeddict-item]
 
-        self.coordinator._persist()
+        self.coordinator._persist(immediate=True)  # Migration must be immediate
         self.coordinator.async_set_updated_data(self.coordinator._data)
 
     def _migrate_legacy_point_stats(self) -> None:

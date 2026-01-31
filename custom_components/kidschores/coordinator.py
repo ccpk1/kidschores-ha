@@ -12,19 +12,18 @@ Architecture (v0.5.0+):
 """
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import timedelta
 import sys
 import time
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.event import async_track_time_change
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.util import dt as dt_util
 
 from . import const
-from .engines.statistics_engine import StatisticsEngine, filter_persistent_stats
+from .engines.statistics_engine import StatisticsEngine
 from .managers import (
     ChoreManager,
     EconomyManager,
@@ -88,99 +87,75 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         self.store = store
         self._data: dict[str, Any] = {}
 
-        # Test mode detection for reminder delays
+        # Test mode detection for reminder delays and persist debounce
         self._test_mode = "pytest" in sys.modules
         const.LOGGER.debug(
             "Coordinator initialized in %s mode",
             "TEST" if self._test_mode else "PRODUCTION",
         )
 
-        # Change tracking for pending approvals (for dashboard helper optimization)
-        self._pending_chore_changed: bool = True  # True on first load
-        self._pending_reward_changed: bool = True  # True on first load
-
         # Debounced persist tracking (Phase 2 optimization)
+        # Test mode uses 0 debounce to avoid 5-second waits in async_block_till_done()
         self._persist_task: asyncio.Task | None = None
-        self._persist_debounce_seconds = 5
+        self._persist_debounce_seconds = 0 if self._test_mode else 5
 
-        # Due date reminder tracking (v0.5.0+)
-        # Transient set tracking which chore+kid combos have been sent due-soon reminders
-        # Key format: "{chore_id}:{kid_id}" - resets on HA restart (acceptable)
-        self._due_reminder_notif_sent: set[str] = set()  # Was: _due_soon_reminders_sent
-        self._due_window_notif_sent: set[str] = (
-            set()
-        )  # NEW: Track due window notifications
+        # System manager for reactive entity registry cleanup (v0.5.0+)
+        # Listens to DELETED signals, runs startup safety net
+        self.system_manager = SystemManager(hass, self)
 
-        # Statistics engine for unified period-based tracking (v0.5.0+)
-        self.stats = StatisticsEngine()
+        # Chore manager for chore workflow orchestration (v0.5.0+)
+        # Signal-first: emits to EconomyManager for point transactions
+        self.chore_manager = ChoreManager(hass, self)
 
         # Economy manager for point transactions and ledger (v0.5.0+)
         self.economy_manager = EconomyManager(hass, self)
-
-        # Notification manager for all outgoing notifications (v0.5.0+)
-        self.notification_manager = NotificationManager(hass, self)
-
-        # Chore manager for chore workflow orchestration (v0.5.0+)
-        # Phase 4: Initialized but not yet wired - ChoreOperations mixin remains active
-        # Future phases will delegate ChoreOperations methods to this manager
-        self.chore_manager = ChoreManager(hass, self, self.economy_manager)
 
         # User manager for Kid/Parent CRUD operations (v0.5.0+)
         # Phase 7.3b: Centralized create/update/delete with proper event signaling
         self.user_manager = UserManager(hass, self)
 
         # Reward manager for reward redemption lifecycle (v0.5.0+)
-        # Phase 6: Owns redeem/approve/disapprove/undo/reset workflows
-        self.reward_manager = RewardManager(
-            hass, self, self.economy_manager, self.notification_manager
-        )
+        # Signal-first: emits to EconomyManager for point withdrawals
+        self.reward_manager = RewardManager(hass, self)
 
         # Gamification manager for badge/achievement/challenge evaluation (v0.5.x+)
         # Uses debounced evaluation triggered by coordinator events
         self.gamification_manager = GamificationManager(hass, self)
 
+        # Statistics engine for unified period-based tracking (v0.5.0+)
+        self.stats = StatisticsEngine()
+
         # Statistics manager for event-driven stats aggregation (v0.5.0+)
         # Listens to POINTS_CHANGED, CHORE_APPROVED, REWARD_APPROVED events
         self.statistics_manager = StatisticsManager(hass, self)
-
-        # System manager for reactive entity registry cleanup (v0.5.0+)
-        # Listens to DELETED signals, runs startup safety net
-        self.system_manager = SystemManager(hass, self)
 
         # UI manager for translation sensors and dashboard features (v0.5.0+)
         # Phase 7.7: Extracted from Coordinator to achieve < 500 line target
         self.ui_manager = UIManager(hass, self)
 
-    # -------------------------------------------------------------------------------------
-    # Migrate Data and Converters
-    # -------------------------------------------------------------------------------------
-
-    def _run_pre_v50_migrations(self) -> None:
-        """Run pre-v50 schema migrations if needed.
-
-        Lazy-loads the migration module to avoid any cost for v50+ users.
-        All migration methods are encapsulated in the PreV50Migrator class.
-        """
-        from .migration_pre_v50 import PreV50Migrator
-
-        migrator = PreV50Migrator(self)
-        migrator.run_all_migrations()
+        # Notification manager for all outgoing notifications (v0.5.0+)
+        self.notification_manager = NotificationManager(hass, self)
 
     # -------------------------------------------------------------------------------------
     # Periodic + First Refresh
     # -------------------------------------------------------------------------------------
 
     async def _async_update_data(self):
-        """Periodic update."""
+        """Periodic update - emit pulse, managers react.
+
+        Phase 3 Refactor: Instead of calling managers directly, emit a signal.
+        Each manager subscribes to PERIODIC_UPDATE and performs its own maintenance.
+        This decouples Coordinator from domain-specific logic.
+        """
         try:
-            # Check overdue chores
-            await self.chore_manager.check_overdue_chores()
+            # Emit periodic pulse - managers subscribe to perform maintenance:
+            # - ChoreManager: check_overdue_chores, check_due_window_transitions, check_due_reminders
+            from .helpers.entity_helpers import get_event_signal
 
-            # Check for due window transitions (v0.6.0+)
-            await self.chore_manager.check_chore_due_window_transitions()
-
-            # Check for due-soon reminders (v0.5.0+)
-            await self.chore_manager.check_chore_due_reminders()
+            signal = get_event_signal(
+                self.config_entry.entry_id, const.SIGNAL_SUFFIX_PERIODIC_UPDATE
+            )
+            async_dispatcher_send(self.hass, signal, {})
 
             # Notify entities of changes
             self.async_update_listeners()
@@ -190,10 +165,20 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             raise UpdateFailed(f"Error updating KidsChores data: {err}") from err
 
     async def async_config_entry_first_refresh(self):
-        """Load from storage and merge config options."""
+        """Load from storage and hand off to SystemManager for integrity.
+
+        Baton Start Pattern (v0.5.0+):
+        1. Physical Load (Infrastructure responsibility)
+        2. Version Check (Read-only, for passing to SystemManager)
+        3. BLOCKING Integrity Gate (SystemManager ensures clean data)
+        4. Domain Initialization (Managers self-init via DATA_READY cascade)
+        5. Finalize Infrastructure (persist result)
+        """
         const.LOGGER.debug(
             "DEBUG: Coordinator first refresh - requesting data from storage manager"
         )
+
+        # 1. Physical Load (Infrastructure responsibility)
         stored_data = self.store.data
         const.LOGGER.debug(
             "DEBUG: Coordinator received data from storage manager: %s entities",
@@ -207,134 +192,35 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 ),
             },
         )
-        if stored_data:
-            self._data = stored_data
 
-            # Get schema version from meta section (v50+) or top-level (v42-)
-            meta = self._data.get(const.DATA_META, {})
-            storage_schema_version = meta.get(
-                const.DATA_META_SCHEMA_VERSION,
-                self._data.get(const.DATA_SCHEMA_VERSION, const.DEFAULT_ZERO),
-            )
+        # Set data pointer (use stored data or fresh structure from Store)
+        self._data = stored_data if stored_data else self.store.get_default_structure()
 
-            if storage_schema_version < const.SCHEMA_VERSION_STORAGE_ONLY:
-                const.LOGGER.info(
-                    "INFO: Storage schema version %s < %s, running pre-v50 migrations",
-                    storage_schema_version,
-                    const.SCHEMA_VERSION_STORAGE_ONLY,
-                )
-                self._run_pre_v50_migrations()
-
-                # Update to current schema version in meta section
-                # Use module-level datetime and dt_util imports
-
-                # DEBUG: Check DEFAULT_MIGRATIONS_APPLIED value
-                const.LOGGER.debug(
-                    "DEFAULT_MIGRATIONS_APPLIED constant: %s (type: %s, len: %d)",
-                    const.DEFAULT_MIGRATIONS_APPLIED,
-                    type(const.DEFAULT_MIGRATIONS_APPLIED),
-                    len(const.DEFAULT_MIGRATIONS_APPLIED),
-                )
-
-                self._data[const.DATA_META] = {
-                    const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_STORAGE_ONLY,
-                    const.DATA_META_LAST_MIGRATION_DATE: datetime.now(
-                        dt_util.UTC
-                    ).isoformat(),
-                    const.DATA_META_MIGRATIONS_APPLIED: const.DEFAULT_MIGRATIONS_APPLIED,
-                    const.DATA_META_PENDING_EVALUATIONS: [],
-                }
-
-                # DEBUG: Verify what got assigned
-                const.LOGGER.debug(
-                    "migrations_applied after assignment: %s (len: %d)",
-                    self._data[const.DATA_META][const.DATA_META_MIGRATIONS_APPLIED],
-                    len(
-                        self._data[const.DATA_META][const.DATA_META_MIGRATIONS_APPLIED]
-                    ),
-                )
-
-                # Remove old top-level schema_version if present (v42 → v50 migration)
-                self._data.pop(const.DATA_SCHEMA_VERSION, None)
-
-                const.LOGGER.info(
-                    "Migrated storage from schema version %s to %s",
-                    storage_schema_version,
-                    const.SCHEMA_VERSION_STORAGE_ONLY,
-                )
-            else:
-                const.LOGGER.debug(
-                    "Storage already at schema version %s, skipping migration",
-                    storage_schema_version,
-                )
-
-            # Ensure pending_evaluations field exists in meta (added in Phase 7.4)
-            if const.DATA_META in self._data:
-                if (
-                    const.DATA_META_PENDING_EVALUATIONS
-                    not in self._data[const.DATA_META]
-                ):
-                    self._data[const.DATA_META][
-                        const.DATA_META_PENDING_EVALUATIONS
-                    ] = []
-
-            # Clean up legacy migration keys from KC 4.x beta (schema v41)
-            # These keys are redundant with schema_version and should be removed
-            if const.MIGRATION_PERFORMED in self._data:
-                const.LOGGER.debug("Cleaning up legacy key: migration_performed")
-                del self._data[const.MIGRATION_PERFORMED]
-            if const.MIGRATION_KEY_VERSION in self._data:
-                const.LOGGER.debug("Cleaning up legacy key: migration_key_version")
-                del self._data[const.MIGRATION_KEY_VERSION]
-
-            # NOTE: Field migrations (show_on_calendar, auto_approve, overdue_handling_type,
-            # approval_reset_pending_claim_action) are now handled in migration_pre_v50.py
-            # via _add_chore_optional_fields(). For v50+ data, these fields are already
-            # set by flow_helpers.py during entity creation via the UI.
-
-        else:
-            self._data = {
-                const.DATA_KIDS: {},
-                const.DATA_CHORES: {},
-                const.DATA_BADGES: {},
-                const.DATA_REWARDS: {},
-                const.DATA_PARENTS: {},
-                const.DATA_PENALTIES: {},
-                const.DATA_BONUSES: {},
-                const.DATA_ACHIEVEMENTS: {},
-                const.DATA_CHALLENGES: {},
-                # Chore and reward queues now computed dynamically from timestamps
-                # Legacy fields DATA_PENDING_*_APPROVALS_DEPRECATED removed - computed from timestamps
-            }
-            self._data[const.DATA_SCHEMA_VERSION] = const.SCHEMA_VERSION_STORAGE_ONLY
-
-        # Register daily/weekly/monthly resets
-        async_track_time_change(
-            self.hass,
-            self.chore_manager.process_recurring_chore_resets,
-            **const.DEFAULT_DAILY_RESET_TIME,
-        )
-        async_track_time_change(
-            self.hass,
-            self.chore_manager.check_overdue_chores,
-            **const.DEFAULT_DAILY_RESET_TIME,
-        )
-        async_track_time_change(
-            self.hass,
-            self.ui_manager.bump_past_datetime_helpers,
-            **const.DEFAULT_DAILY_RESET_TIME,
+        # 2. Version Check (Read-only, for passing to SystemManager)
+        meta = self._data.get(const.DATA_META, {})
+        current_version = meta.get(
+            const.DATA_META_SCHEMA_VERSION,
+            self._data.get(const.DATA_SCHEMA_VERSION, const.DEFAULT_ZERO),
         )
 
-        # Initialize badge references in kid chore tracking
-        self.gamification_manager.update_chore_badge_references_for_kid()
+        # 3. BLOCKING Integrity Gate (The "Baton Pass")
+        # Coordinator: "I have data, but don't know if it's correct for v50.
+        # SystemManager, please fix it and don't return until it's safe."
+        await self.system_manager.ensure_data_integrity(current_version=current_version)
 
-        # Initialize chore and point stats
-        for kid_id, kid_info in self.kids_data.items():
-            self.chore_manager.recalculate_chore_stats_for_kid(kid_id)
-            stats = self.stats.generate_point_stats(kid_info)
-            # Only persist non-temporal stats (Phase 7.5: temporal lives in cache)
-            kid_info[const.DATA_KID_POINT_STATS] = filter_persistent_stats(stats)
+        # 4. Domain Initialization (Managers self-init via DATA_READY cascade)
+        # SystemManager.ensure_data_integrity() emits DATA_READY at the end, triggering:
+        # - ChoreManager listens for DATA_READY → recalcs stats → emits CHORES_READY
+        # - StatisticsManager listens for CHORES_READY → hydrates cache → emits STATS_READY
+        # - GamificationManager listens for STATS_READY → updates badge refs → emits GAMIFICATION_READY
+        # Coordinator no longer calls managers directly - cascade handles initialization order
 
+        # Timer registrations moved to SystemManager.async_setup() (Phase 2.5)
+        # SystemManager emits MIDNIGHT_ROLLOVER signal, domain managers subscribe:
+        # - ChoreManager: process_recurring_chore_resets, check_overdue_chores
+        # - UIManager: bump_past_datetime_helpers
+
+        # 5. Finalize Infrastructure (persist result)
         self._persist(immediate=True)  # Startup persist should be immediate
         await super().async_config_entry_first_refresh()
 
@@ -342,28 +228,32 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     # Storage
     # -------------------------------------------------------------------------------------
 
-    def _persist(self, immediate: bool = True):
+    def _persist(self, immediate: bool = False):
         """Save coordinator data to persistent storage.
 
-        Default behavior is immediate synchronous persistence to avoid race conditions
-        between persist operations and config entry reload/unload. This is the safest
-        and simplest approach for a system with frequent entity additions/deletions.
+        Default behavior is debounced persistence (5-10 second delay) to batch multiple
+        updates during approval sessions and reduce SD card wear on embedded devices.
 
         Args:
-            immediate: If True (default), save immediately without debouncing.
-                      If False, schedule save with 5-second debouncing to batch multiple
-                      updates (NOT currently used - kept for future optimization if needed).
+            immediate: If True, save immediately without debouncing. Use this for:
+                      - Startup/migration persists (data integrity)
+                      - Config flow operations (user expects immediate feedback)
+                      - Unload operations (must complete before shutdown)
+                      If False (default), schedule save with debouncing to batch updates.
 
         Philosophy:
-            - Immediate=True is the default because:
-              1. Most _persist() calls are NOT in loops
-              2. Avoids race conditions with config reload timing
-              3. Simplifies debugging and guarantees consistency
-              4. Tests run efficiently without artificial delays
-            - Debouncing (immediate=False) could be added in the future if profiling
-              shows a specific high-frequency operation benefits from it
+            - Debounced=True (immediate=False) is the default because:
+              1. Approval sessions often involve multiple rapid operations
+              2. SD card/flash storage benefits from batched writes
+              3. Any pending debounced write completes on next immediate write
+              4. HA persists on clean shutdown, so only abrupt crashes lose last 5s
+            - Use immediate=True only for critical paths where data integrity
+              or user feedback timing is essential
         """
-        if immediate:
+        # Treat 0 debounce (test mode) as immediate to avoid task overhead
+        effective_immediate = immediate or self._persist_debounce_seconds == 0
+
+        if effective_immediate:
             # Cancel any pending debounced save
             if self._persist_task and not self._persist_task.done():
                 self._persist_task.cancel()
@@ -457,21 +347,3 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
     def bonuses_data(self) -> BonusesCollection:
         """Return the bonuses data."""
         return self._data.get(const.DATA_BONUSES, {})
-
-    @property
-    def pending_reward_approvals(self) -> list[dict[str, Any]]:
-        """Return the list of pending reward approvals (computed via RewardManager)."""
-        return self.reward_manager.get_pending_approvals()
-
-    @property
-    def pending_reward_changed(self) -> bool:
-        """Return whether pending reward approvals have changed since last reset."""
-        return self._pending_reward_changed
-
-    def reset_pending_change_flags(self) -> None:
-        """Reset the pending change flags after UI has processed the changes.
-
-        Called by dashboard helper sensor after rebuilding attributes.
-        """
-        self._pending_chore_changed = False
-        self._pending_reward_changed = False

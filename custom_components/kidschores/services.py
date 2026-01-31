@@ -10,7 +10,11 @@ from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import config_validation as cv, entity_registry as er
+from homeassistant.helpers import (
+    config_validation as cv,
+    device_registry as dr,
+    entity_registry as er,
+)
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
@@ -525,6 +529,10 @@ def async_setup_services(hass: HomeAssistant):
 
             const.LOGGER.info("Linked kid '%s' to parent '%s' as shadow", name, name)
 
+            # LINK action: Reload to update device info (model changes from Kid → Shadow Kid)
+            # Note: update_kid() and update_parent() already persisted
+            await hass.config_entries.async_reload(coordinator.config_entry.entry_id)
+
         elif action == const.ACTION_UNLINK:
             # UNLINK: Validate kid exists
             if not kid_id:
@@ -550,20 +558,25 @@ def async_setup_services(hass: HomeAssistant):
                     translation_placeholders={"name": name},
                 )
 
-            # Use UserManager's unlink method (delegates to Manager pattern)
-            coordinator.user_manager._unlink_shadow_kid(kid_id)
+            # Use UserManager's public unlink method (per Platinum Architecture)
+            # Manager handles: data modification + persist + signal emission
+            await coordinator.user_manager.unlink_shadow(kid_id)
 
-            const.LOGGER.info(
-                "Unlinked shadow kid '%s' (renamed to '%s_unlinked')", name, name
+            # Update device info via device registry (avoids full reload)
+            # The kid's model changes from "Parent Profile" → "Kid Profile"
+            device_registry = dr.async_get(hass)
+            device = device_registry.async_get_device(
+                identifiers={(const.DOMAIN, kid_id)}
             )
-
-        # Persist changes and wait for storage write to complete
-        coordinator.store.set_data(coordinator._data)
-        await coordinator.store.async_save()
-
-        # Reload config entry to update device info (model changes from Kid/Parent Profile)
-        # This ensures device descriptions update immediately after storage write completes
-        await hass.config_entries.async_reload(coordinator.config_entry.entry_id)
+            if device:
+                device_registry.async_update_device(
+                    device.id,
+                    model="Kid Profile",
+                )
+                const.LOGGER.debug(
+                    "Updated device model for unlinked kid %s to 'Kid Profile'",
+                    kid_id,
+                )
 
     hass.services.async_register(
         const.DOMAIN,
@@ -2263,14 +2276,15 @@ def async_setup_services(hass: HomeAssistant):
 
         const.LOGGER.info("Removed %d entity registry entries", entity_count)
 
-        # Step 3: Clear everything from storage (resets to empty kids/chores/badges structure)
-        await coordinator.store.async_clear_data()
+        # Step 3: Delegate storage clear to SystemManager (per Platinum Architecture)
+        # SystemManager owns destructive storage operations
+        should_reload = await coordinator.system_manager.async_factory_reset()
 
         # Step 4: Reload config entry to clean up platforms and reinitialize
         # This ensures all internal state is properly reset
-        await hass.config_entries.async_reload(entry_id)
+        if should_reload:
+            await hass.config_entries.async_reload(entry_id)
 
-        coordinator.async_set_updated_data(coordinator.data)
         const.LOGGER.info(
             "Factory reset complete. Backup created, entity registry cleaned, all data cleared."
         )

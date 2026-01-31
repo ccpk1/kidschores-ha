@@ -236,7 +236,11 @@ class TestEconomyManagerWithdraw:
         self,
         scenario_minimal: SetupResult,
     ) -> None:
-        """Test that withdraw with insufficient funds raises InsufficientFundsError."""
+        """Test that withdraw with insufficient funds raises InsufficientFundsError.
+
+        Note: withdraw() defaults to allow_negative=True (parent authority pattern).
+        Only reward redemptions explicitly set allow_negative=False for NSF.
+        """
         coordinator = scenario_minimal.coordinator
         manager = coordinator.economy_manager
 
@@ -249,6 +253,7 @@ class TestEconomyManagerWithdraw:
                 kid_id=kid_id,
                 amount=50.0,  # Trying to withdraw 50
                 source=const.POINTS_SOURCE_REWARDS,
+                allow_negative=False,  # Explicitly test NSF behavior
             )
 
         error = exc_info.value

@@ -73,14 +73,17 @@ class BaseManager(ABC):
         # Pass payload as single dict argument (dispatcher only supports *args)
         async_dispatcher_send(self.hass, signal, payload)
 
-    def listen(self, suffix: str, callback: Callable[..., None]) -> None:
+    def listen(self, suffix: str, callback: Callable[..., Any]) -> None:
         """Subscribe to instance-scoped event with automatic cleanup.
 
         The subscription is automatically cleaned up when the config entry is unloaded.
+        Supports both sync and async callbacks - HA dispatcher handles async via
+        async_run_hass_job().
 
         Args:
             suffix: Signal suffix constant to listen for
             callback: Function called when event fires (receives payload dict as arg)
+                      Can be sync (returns None) or async (returns Coroutine)
 
         Example:
             def _on_points_changed(self, payload: dict[str, Any]) -> None:

@@ -285,7 +285,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: KidsChoresConfigEntry) 
     # Access coordinator from runtime_data (modern HA pattern)
     coordinator = entry.runtime_data
     if coordinator:
-        coordinator._persist()
+        coordinator._persist(immediate=True)  # Unload must be immediate
         const.LOGGER.debug("Forced immediate persist before unload")
 
     # Unload platforms

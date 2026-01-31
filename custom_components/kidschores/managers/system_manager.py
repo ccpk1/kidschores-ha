@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import callback
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.event import async_track_time_change
 
 from .. import const
 from ..helpers.entity_helpers import (
@@ -47,6 +48,8 @@ from ..helpers.entity_helpers import (
 from .base_manager import BaseManager
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from homeassistant.core import HomeAssistant
 
     from ..coordinator import KidsChoresDataCoordinator
@@ -57,6 +60,11 @@ class SystemManager(BaseManager):
 
     Handles reactive entity registry cleanup via domain signals.
     Runs startup safety net to catch orphaned entities.
+
+    Boot Cascade Role (v0.5.0+):
+    - Coordinator calls ensure_data_integrity() (BLOCKING)
+    - SystemManager runs migrations, ensures meta fields, runs safety net
+    - SystemManager emits DATA_READY to trigger cascade
     """
 
     def __init__(
@@ -75,20 +83,108 @@ class SystemManager(BaseManager):
     async def async_setup(self) -> None:
         """Set up the system manager.
 
-        Subscribes to DELETED signals for reactive cleanup.
+        Responsibilities:
+        1. Timer Owner - registers ALL `async_track_time_change` calls (single source)
+        2. Signal Listener - subscribes to DELETED signals for reactive cleanup
+
         Note: Startup safety net is called separately AFTER platform setup
         via run_startup_safety_net() - not in async_setup().
+        Note: Data integrity (migrations, meta fields) is handled in ensure_data_integrity()
+        which is called BLOCKING from Coordinator before managers start.
         """
-        # Subscribe to lifecycle DELETED signals
+        # 1. Timer Owner: Register ALL System Heartbeats
+        # Midnight Rollover - single timer for all nightly tasks
+        # Domain managers subscribe to MIDNIGHT_ROLLOVER and perform their own tasks
+        async_track_time_change(
+            self.hass,
+            self._on_midnight_tick,
+            **const.DEFAULT_DAILY_RESET_TIME,
+        )
+
+        # 2. Signal Listener: Subscribe to lifecycle DELETED signals
         self.listen(const.SIGNAL_SUFFIX_KID_DELETED, self._handle_kid_deleted)
         self.listen(const.SIGNAL_SUFFIX_CHORE_DELETED, self._handle_chore_deleted)
         self.listen(const.SIGNAL_SUFFIX_REWARD_DELETED, self._handle_reward_deleted)
         self.listen(const.SIGNAL_SUFFIX_BADGE_DELETED, self._handle_badge_deleted)
 
         const.LOGGER.debug(
-            "SystemManager initialized with 4 DELETED signal subscriptions for entry %s",
+            "SystemManager initialized: timer registered, 4 DELETED signal subscriptions for entry %s",
             self.entry_id,
         )
+
+    @callback
+    def _on_midnight_tick(self, _: datetime) -> None:
+        """Handle midnight timer tick.
+
+        Emits MIDNIGHT_ROLLOVER signal for all domain managers to react.
+        Each manager subscribes and performs its own nightly tasks:
+        - ChoreManager: recurring resets, overdue checks
+        - UIManager: bump past datetime helpers
+        """
+        const.LOGGER.debug("SystemManager: Midnight rollover triggered")
+        self.emit(const.SIGNAL_SUFFIX_MIDNIGHT_ROLLOVER)
+
+    # =========================================================================
+    # Data Integrity (Boot Cascade - called from Coordinator)
+    # =========================================================================
+
+    async def ensure_data_integrity(self, current_version: int) -> None:
+        """Ensure data is migrated and clean before domain managers start.
+
+        This is a BLOCKING call from Coordinator. No domain manager should
+        see data until this method returns.
+
+        Boot Cascade Position: Called FIRST, emits DATA_READY when complete.
+
+        Args:
+            current_version: Schema version detected by Coordinator
+        """
+        const.LOGGER.debug(
+            "SystemManager: Ensuring data integrity (schema version: %s)",
+            current_version,
+        )
+
+        # 1. Execute Migrations if needed (pre-v50 → v50)
+        # NOTE: The migrator handles ALL pre-v50 logic including meta section setup
+        # and legacy key cleanup. This keeps migration logic in one droppable module.
+        if current_version < const.SCHEMA_VERSION_STORAGE_ONLY:
+            self._run_pre_v50_migrations()
+            const.LOGGER.info(
+                "SystemManager: Migrated from schema %s to %s",
+                current_version,
+                const.SCHEMA_VERSION_STORAGE_ONLY,
+            )
+
+        # 2. Future version migrations (v0.5.1+ pattern)
+        # When adding new meta fields in future versions:
+        #   - Add field to Store.get_default_structure() (fresh installs)
+        #   - Increment SCHEMA_VERSION (e.g., 50 → 51)
+        #   - Add version-gated migration here:
+        #     if current_version < 51:
+        #         self._migrate_to_v51()
+        # This keeps migrations versioned and traceable.
+
+        # 3. Startup Safety Net (Registry validation)
+        await self.run_startup_safety_net()
+        const.LOGGER.info("SystemManager: Data integrity verified")
+
+        # 4. THE BATON PASS: Data is now clean and safe
+        # Signal domain managers to begin their initialization
+        self.emit(const.SIGNAL_SUFFIX_DATA_READY)
+
+    def _run_pre_v50_migrations(self) -> None:
+        """Run pre-v50 schema migrations.
+
+        Lazy-loads the migration module to avoid any cost for v50+ users.
+        The PreV50Migrator handles ALL migration logic including:
+        - Schema transformations
+        - Meta section initialization (schema_version, migration_date)
+        - Legacy key cleanup (migration_performed, migration_key_version)
+        """
+        from ..migration_pre_v50 import PreV50Migrator
+
+        migrator = PreV50Migrator(self.coordinator)
+        migrator.run_all_migrations()
 
     async def run_startup_safety_net(self) -> int:
         """Run startup safety net - removes orphaned entities.
@@ -418,3 +514,31 @@ class SystemManager(BaseManager):
                 removed_count,
             )
         return removed_count
+
+    # =========================================================================
+    # Factory Reset
+    # =========================================================================
+
+    async def async_factory_reset(self) -> bool:
+        """Execute factory reset - clear all user data from storage.
+
+        Per Platinum Architecture:
+        - SystemManager owns destructive storage operations
+        - Service layer handles entity registry cleanup BEFORE calling this
+        - Service layer handles reload AFTER this returns
+
+        Returns:
+            True if reset was successful and caller should reload config entry
+        """
+        const.LOGGER.info("SystemManager executing factory reset")
+
+        # Clear all user data from storage (resets to empty structure)
+        await self.coordinator.store.async_clear_data()
+
+        const.LOGGER.info(
+            "Factory reset complete - storage cleared for entry %s",
+            self.entry_id,
+        )
+
+        # Signal that caller should reload config entry
+        return True

@@ -25,7 +25,7 @@ Test Organization:
 
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from homeassistant.core import Context, HomeAssistant
 import pytest
@@ -1590,7 +1590,7 @@ class TestRecurringChoreReset:
 
         # Trigger update_recurring_chores
         with (
-            patch.object(coordinator, "_persist", new=AsyncMock()),
+            patch.object(coordinator, "_persist", new=MagicMock()),
             patch.object(
                 coordinator.notification_manager, "notify_kid", new=AsyncMock()
             ),
@@ -1641,7 +1641,7 @@ class TestRecurringChoreReset:
 
         # Trigger update_recurring_chores
         with (
-            patch.object(coordinator, "_persist", new=AsyncMock()),
+            patch.object(coordinator, "_persist", new=MagicMock()),
             patch.object(
                 coordinator.notification_manager, "notify_kid", new=AsyncMock()
             ),
@@ -1671,7 +1671,7 @@ class TestRecurringChoreReset:
         freezer.move_to(wrong_time)
 
         # Trigger update_recurring_chores
-        with patch.object(coordinator, "_persist", new=AsyncMock()):
+        with patch.object(coordinator, "_persist", new=MagicMock()):
             reset_count = await coordinator.chore_manager.update_recurring_chores(
                 wrong_time
             )

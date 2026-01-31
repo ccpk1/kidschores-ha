@@ -33,7 +33,7 @@ async def test_async_initialize_creates_default_structure(
 
     data = store.data
 
-    # Verify all expected keys exist (modern structure - no deprecated fields)
+    # Verify all expected keys exist (modern structure with DATA_META)
     assert const.DATA_KIDS in data
     assert const.DATA_CHORES in data
     assert const.DATA_BADGES in data
@@ -43,11 +43,12 @@ async def test_async_initialize_creates_default_structure(
     assert const.DATA_PARENTS in data
     assert const.DATA_ACHIEVEMENTS in data
     assert const.DATA_CHALLENGES in data
-    assert const.DATA_SCHEMA_VERSION in data
+    assert const.DATA_META in data
 
-    # Verify default values
+    # Verify default values (meta section contains schema_version)
     assert data[const.DATA_KIDS] == {}
-    assert data[const.DATA_SCHEMA_VERSION] == const.DEFAULT_ZERO
+    meta = data[const.DATA_META]
+    assert meta[const.DATA_META_SCHEMA_VERSION] == const.SCHEMA_VERSION_STORAGE_ONLY
 
 
 async def test_async_initialize_loads_existing_data(

@@ -14,22 +14,6 @@
 
 ---
 
-## 🔡 Lexicon Standards (Non-Negotiable)
-
-To prevent confusion between Home Assistant's registry and our internal data:
-
-| Term                  | Usage                                     | Example                                |
-| --------------------- | ----------------------------------------- | -------------------------------------- |
-| **Item** / **Record** | A data entry in our JSON storage          | "A Chore Item", "Kid Record"           |
-| **Domain Item**       | Collective term for all stored data types | Kids, Chores, Badges (as JSON records) |
-| **Internal ID**       | The UUID for a record                     | `kid_id`, `chore_id`                   |
-| **Entity**            | ONLY a Home Assistant object              | Sensor, Button, Select                 |
-| **Entity ID**         | The HA string                             | `sensor.kc_alice_points`               |
-
-**Critical Rule**: Never use "Entity" when referring to a Chore, Kid, Badge, etc. These are **Items** in storage, not HA registry objects.
-
----
-
 ## 🏛️ KidsChores Repository Standards
 
 ### 1. Git & Workflow Standards
@@ -221,7 +205,11 @@ def build_kid_data(...) -> KidData:
 | **Workflows = Event-Chains** | `CHORE_APPROVED` → Economy deposits → `POINTS_CHANGED` → Gamification checks → `BADGE_EARNED` → Notification sends |
 
 ```python
-# ✅ CORRECT: Emit signal with payload
+# ✅ CORRECT: Read data from another manager's domain via coordinator
+period_start = self.coordinator.chore_manager.get_approval_period_start(kid_id, chore_id)
+# NotificationManager queries ChoreManager data for Schedule-Lock comparison
+
+# ✅ CORRECT: Emit signal with payload (for writes)
 self.emit(SIGNAL_SUFFIX_BADGE_EARNED, kid_id=kid_id, bonus_ids=bonus_ids)
 # EconomyManager._on_badge_earned() handles point deposit + bonus application
 
@@ -605,6 +593,21 @@ Most `CFOF_*` constant **values** are now aligned with `DATA_*` values to elimin
 
 All signals use the **past-tense naming** pattern to indicate completed actions:
 
+**Lifecycle Events (Boot Cascade)**:
+
+| Category  | Signal Suffix                      | Emitter             | Description                      |
+| --------- | ---------------------------------- | ------------------- | -------------------------------- |
+| Lifecycle | `SIGNAL_SUFFIX_DATA_READY`         | SystemManager       | Data migrated, registry clean    |
+| Lifecycle | `SIGNAL_SUFFIX_CHORES_READY`       | ChoreManager        | Chore initialization complete    |
+| Lifecycle | `SIGNAL_SUFFIX_STATS_READY`        | StatisticsManager   | Stats hydration complete         |
+| Lifecycle | `SIGNAL_SUFFIX_GAMIFICATION_READY` | GamificationManager | Gamification evaluation complete |
+| Timer     | `SIGNAL_SUFFIX_PERIODIC_UPDATE`    | SystemManager       | 5-minute refresh pulse           |
+| Timer     | `SIGNAL_SUFFIX_MIDNIGHT_ROLLOVER`  | SystemManager       | Daily reset broadcast            |
+
+**Boot Cascade Order**: `DATA_READY` → `CHORES_READY` → `STATS_READY` → `GAMIFICATION_READY`
+
+**Domain Events**:
+
 | Category     | Signal Suffix                        | Payload Type               |
 | ------------ | ------------------------------------ | -------------------------- |
 | Economy      | `SIGNAL_SUFFIX_POINTS_CHANGED`       | `PointsChangedEvent`       |
@@ -697,6 +700,52 @@ self.emit(const.SIGNAL_SUFFIX_CHORE_APPROVED, {
 # EconomyManager listens and handles point update
 # NotificationManager listens and sends congratulations
 ```
+
+❌ **WRONG**: Direct manager calls from Coordinator
+
+```python
+# Coordinator should NOT have domain knowledge
+async def _async_update_data(self):
+    self.chore_manager.recalculate_stats()  # ❌ Don't call
+    self.stats_manager.rebuild_cache()       # ❌ Don't call
+```
+
+✅ **CORRECT**: Coordinator emits, managers listen
+
+```python
+# Coordinator is pure infrastructure - just emit
+async def _async_update_data(self):
+    self.emit(const.SIGNAL_SUFFIX_PERIODIC_UPDATE)  # ✅ Managers subscribe
+```
+
+**Golden Rule: "Don't call, just listen."** The Coordinator emits lifecycle signals; managers subscribe and self-organize.
+
+##### Persist → Emit Pattern (Non-Negotiable)
+
+**Order MUST be: Persist → Emit.** Reversing creates "Ghost Fact" risk (listeners act on data that crashes before save).
+
+```python
+async def _approve_chore_locked(self, kid_id: str, chore_id: str, ...) -> None:
+    # 1. Validate
+    if not self._can_approve(kid_id, chore_id):
+        raise ServiceValidationError(...)
+
+    # 2. Transform in-memory state
+    kid_chore_data[const.DATA_KID_CHORE_DATA_STATE] = const.CHORE_STATE_APPROVED
+
+    # 3. Commit (point of no return)
+    self._coordinator._persist()
+
+    # 4. Signal (safe - data is durable)
+    self.emit(const.SIGNAL_SUFFIX_CHORE_APPROVED, kid_id=kid_id, ...)
+
+    # 5. Refresh UI
+    self._coordinator.async_update_listeners()
+```
+
+**Review Rule**: Reject PRs where `self.emit()` appears before `_persist()` for state-changing operations.
+
+**Exception**: Non-data-changing signals (e.g., reminders) have nothing to persist.
 
 #### 5.4 Async/Await Standards (Manager Methods)
 
@@ -1020,3 +1069,19 @@ python -m pytest tests/ -v --tb=line  # Run complete test suite
   - Only needed for genuinely new functionality
   - Modern testing patterns and fixtures
   - Scenario-based test setup
+
+### 9. Lexicon Standards (Non-Negotiable)
+
+To prevent confusion between Home Assistant's registry and our internal data:
+
+| Term                  | Usage                                     | Example                                |
+| --------------------- | ----------------------------------------- | -------------------------------------- |
+| **Item** / **Record** | A data entry in our JSON storage          | "A Chore Item", "Kid Record"           |
+| **Domain Item**       | Collective term for all stored data types | Kids, Chores, Badges (as JSON records) |
+| **Internal ID**       | The UUID for a record                     | `kid_id`, `chore_id`                   |
+| **Entity**            | ONLY a Home Assistant object              | Sensor, Button, Select                 |
+| **Entity ID**         | The HA string                             | `sensor.kc_alice_points`               |
+
+**Critical Rule**: Never use "Entity" when referring to a Chore, Kid, Badge, etc. These are **Items** in storage, not HA registry objects.
+
+---

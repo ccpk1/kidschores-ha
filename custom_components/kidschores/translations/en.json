@@ -2399,13 +2399,16 @@
             }
           },
           "chore_points_earned": {
-            "name": "Points Earned"
+            "name": "Points Earned (All Time)"
           },
           "chore_approvals_count": {
             "name": "Approvals (All Time)"
           },
           "chore_claims_count": {
             "name": "Claims (All Time)"
+          },
+          "chore_completed_count": {
+            "name": "Completed (All Time)"
           },
           "chore_disapproved_count": {
             "name": "Disapprovals (All Time)"
@@ -2420,7 +2423,7 @@
             "name": "Current Streak"
           },
           "chore_highest_streak": {
-            "name": "Highest Streak"
+            "name": "Longest Streak"
           },
           "chore_last_longest_streak_date": {
             "name": "Last Longest Streak Date"
@@ -2430,6 +2433,9 @@
           },
           "last_approved": {
             "name": "Last Approved"
+          },
+          "last_completed": {
+            "name": "Last Completed"
           },
           "last_disapproved": {
             "name": "Last Disapproved"
@@ -3082,6 +3088,9 @@
           "last_approved": {
             "name": "Last Approved"
           },
+          "last_completed": {
+            "name": "Last Completed"
+          },
           "chore_claimed_by": {
             "name": "Claimed By"
           },
@@ -3136,6 +3145,9 @@
           },
           "last_approved": {
             "name": "Last Approved"
+          },
+          "last_completed": {
+            "name": "Last Completed"
           },
           "last_disapproved": {
             "name": "Last Disapproved"

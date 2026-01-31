@@ -461,13 +461,13 @@ class SystemRewardsPendingApprovalSensor(KidsChoresCoordinatorEntity, SensorEnti
     @property
     def native_value(self) -> str:
         """Return a summary of pending reward approvals."""
-        approvals = self.coordinator.pending_reward_approvals
+        approvals = self.coordinator.reward_manager.get_pending_approvals()
         return f"{len(approvals)}"
 
     @property
     def extra_state_attributes(self) -> dict[str, list[dict[str, Any]]]:
         """Return detailed pending rewards."""
-        approvals = self.coordinator.pending_reward_approvals
+        approvals = self.coordinator.reward_manager.get_pending_approvals()
         grouped_by_kid: dict[str, list[dict[str, Any]]] = {}
 
         try:

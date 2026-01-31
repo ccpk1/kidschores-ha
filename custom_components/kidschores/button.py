@@ -1098,7 +1098,7 @@ class ParentRewardDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
         """
         try:
             # Check if there's a pending approval for this kid and reward.
-            pending_approvals = self.coordinator.pending_reward_approvals
+            pending_approvals = self.coordinator.reward_manager.get_pending_approvals()
             if not any(
                 approval[const.DATA_KID_ID] == self._kid_id
                 and approval[const.DATA_REWARD_ID] == self._reward_id

@@ -216,3 +216,52 @@ class TestMultiInstanceIsolation:
             actual_signal = mock_send.call_args[0][1]
             assert "unique_instance_xyz" in actual_signal
             assert const.SIGNAL_SUFFIX_BADGE_EARNED in actual_signal
+
+
+class TestStartupCascade:
+    """Tests for the startup cascade signal sequence.
+
+    Verifies the "Infrastructure Coordinator" pattern:
+    - Coordinator emits DATA_READY after integrity check
+    - Managers chain: DATA_READY → CHORES_READY → STATS_READY → GAMIFICATION_READY
+    """
+
+    def test_lifecycle_signals_defined(self) -> None:
+        """Verify all lifecycle signals are defined in const.py."""
+        # Core cascade signals
+        assert hasattr(const, "SIGNAL_SUFFIX_DATA_READY")
+        assert hasattr(const, "SIGNAL_SUFFIX_CHORES_READY")
+        assert hasattr(const, "SIGNAL_SUFFIX_STATS_READY")
+        assert hasattr(const, "SIGNAL_SUFFIX_GAMIFICATION_READY")
+
+        # Timer signals (SystemManager owns all timers)
+        assert hasattr(const, "SIGNAL_SUFFIX_MIDNIGHT_ROLLOVER")
+        assert hasattr(const, "SIGNAL_SUFFIX_PERIODIC_UPDATE")
+
+    def test_cascade_signal_values(self) -> None:
+        """Verify signal values follow naming convention."""
+        assert const.SIGNAL_SUFFIX_DATA_READY == "data_ready"
+        assert const.SIGNAL_SUFFIX_CHORES_READY == "chores_ready"
+        assert const.SIGNAL_SUFFIX_STATS_READY == "stats_ready"
+        assert const.SIGNAL_SUFFIX_GAMIFICATION_READY == "gamification_ready"
+        assert const.SIGNAL_SUFFIX_MIDNIGHT_ROLLOVER == "midnight_rollover"
+        assert const.SIGNAL_SUFFIX_PERIODIC_UPDATE == "periodic_update"
+
+    def test_cascade_managers_have_ready_handlers(self) -> None:
+        """Verify managers implement _on_*_ready handlers for cascade."""
+        from custom_components.kidschores.managers.chore_manager import ChoreManager
+        from custom_components.kidschores.managers.gamification_manager import (
+            GamificationManager,
+        )
+        from custom_components.kidschores.managers.statistics_manager import (
+            StatisticsManager,
+        )
+
+        # ChoreManager listens to DATA_READY, emits CHORES_READY
+        assert hasattr(ChoreManager, "_on_data_ready")
+
+        # StatisticsManager listens to CHORES_READY, emits STATS_READY
+        assert hasattr(StatisticsManager, "_on_chores_ready")
+
+        # GamificationManager listens to STATS_READY, emits GAMIFICATION_READY
+        assert hasattr(GamificationManager, "_on_stats_ready")
