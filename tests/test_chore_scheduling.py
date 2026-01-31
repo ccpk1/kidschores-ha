@@ -63,7 +63,7 @@ Controls HOW overdue status is handled when due date passes.
       _reset_independent_chore_status() / _reset_shared_chore_status()
     - When should_clear_overdue=True, OVERDUE state is NOT skipped during reset
 
-Coordinator method: _check_overdue_chores()
+Coordinator method: _process_time_checks()
   - Checks all chores and marks them OVERDUE based on overdue_handling_type
   - Does NOT reset chores - that's handled by the reset methods above
 ===============================================================================
@@ -77,7 +77,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 import pytest
 
-from custom_components.kidschores.utils.dt_utils import dt_to_utc
+from custom_components.kidschores.utils.dt_utils import dt_now_utc, dt_to_utc
 from tests.helpers import (
     APPROVAL_RESET_AT_DUE_DATE_MULTI,
     APPROVAL_RESET_AT_DUE_DATE_ONCE,
@@ -475,7 +475,7 @@ class TestOverdueDetection:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Trigger overdue check by calling the coordinator's check method
-        await coordinator.chore_manager.check_overdue_chores()
+        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
 
         # Verify state is OVERDUE
         state = get_kid_chore_state(coordinator, zoe_id, chore_id)
@@ -506,7 +506,7 @@ class TestOverdueDetection:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Trigger overdue check
-        await coordinator.chore_manager.check_overdue_chores()
+        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
 
         # Verify state is still PENDING (not overdue)
         state = get_kid_chore_state(coordinator, zoe_id, chore_id)
@@ -531,7 +531,7 @@ class TestOverdueDetection:
         chore_id = chore_map["Reset Midnight Once"]
 
         # Trigger overdue check
-        await coordinator.chore_manager.check_overdue_chores()
+        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
 
         # Verify state is PENDING (not overdue)
         state = get_kid_chore_state(coordinator, zoe_id, chore_id)
@@ -561,7 +561,7 @@ class TestOverdueDetection:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=3)
 
         # Trigger overdue check
-        await coordinator.chore_manager.check_overdue_chores()
+        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
 
         # Verify state is OVERDUE
         state = get_kid_chore_state(coordinator, zoe_id, chore_id)
@@ -1191,7 +1191,7 @@ class TestOverdueAtDueDate:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Run the overdue check
-        await coordinator.chore_manager.check_overdue_chores()
+        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
 
         # Verify state is now OVERDUE
         kid_chore_data = coordinator.chore_manager.get_chore_data_for_kid(
@@ -1223,7 +1223,7 @@ class TestOverdueAtDueDate:
         chore_id = chore_map["Reset Midnight Once"]  # Has due_date_relative: "future"
 
         # Run overdue check
-        await coordinator.chore_manager.check_overdue_chores()
+        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
 
         # Verify state is NOT overdue
         assert not coordinator.chore_manager.chore_is_overdue(zoe_id, chore_id), (
@@ -1267,7 +1267,7 @@ class TestOverdueNeverOverdue:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Run overdue check
-        await coordinator.chore_manager.check_overdue_chores()
+        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
 
         # Verify state is STILL PENDING or None (not overdue despite past due date)
         kid_chore_data = coordinator.chore_manager.get_chore_data_for_kid(
@@ -1312,7 +1312,7 @@ class TestOverdueThenReset:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Run overdue check
-        await coordinator.chore_manager.check_overdue_chores()
+        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
 
         # Verify state is OVERDUE
         kid_chore_data = coordinator.chore_manager.get_chore_data_for_kid(
@@ -1354,7 +1354,7 @@ class TestOverdueThenReset:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Run overdue check - should become overdue
-        await coordinator.chore_manager.check_overdue_chores()
+        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
 
         # Verify chore is overdue
         kid_chore_data = coordinator.chore_manager.get_chore_data_for_kid(
@@ -1396,7 +1396,7 @@ class TestOverdueThenReset:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=2)
 
         # Run overdue check
-        await coordinator.chore_manager.check_overdue_chores()
+        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
 
         # Verify chore is marked overdue
         assert coordinator.chore_manager.chore_is_overdue(zoe_id, chore_id), (
@@ -1405,7 +1405,7 @@ class TestOverdueThenReset:
 
         # Without running reset, chore should stay overdue
         # Run overdue check again (simulates time passing but no reset)
-        await coordinator.chore_manager.check_overdue_chores()
+        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
 
         # Still overdue
         assert coordinator.chore_manager.chore_is_overdue(zoe_id, chore_id), (
@@ -1446,7 +1446,7 @@ class TestOverdueClaimedChoreNotOverdue:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Run overdue check
-        await coordinator.chore_manager.check_overdue_chores()
+        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
 
         # Verify state is STILL CLAIMED (not overdue)
         kid_chore_data = coordinator.chore_manager.get_chore_data_for_kid(
@@ -1479,7 +1479,7 @@ class TestIsOverdueHelper:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Run overdue check to mark chore as overdue
-        await coordinator.chore_manager.check_overdue_chores()
+        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
 
         # Verify chore_is_overdue returns True
         result = coordinator.chore_manager.chore_is_overdue(zoe_id, chore_id)
@@ -1500,7 +1500,7 @@ class TestIsOverdueHelper:
         chore_id = chore_map["Reset Midnight Once"]
 
         # Run overdue check
-        await coordinator.chore_manager.check_overdue_chores()
+        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
 
         # Verify chore_is_overdue returns False
         result = coordinator.chore_manager.chore_is_overdue(zoe_id, chore_id)

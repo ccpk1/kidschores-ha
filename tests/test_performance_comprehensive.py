@@ -25,6 +25,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 import pytest
 
+from custom_components.kidschores.utils.dt_utils import dt_now_utc
 from tests.helpers import setup_from_yaml
 
 pytestmark = pytest.mark.performance
@@ -106,7 +107,7 @@ async def run_performance_test(
         ),
     ):
         overdue_start = time.perf_counter()
-        await coordinator.chore_manager.check_overdue_chores()
+        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
         overdue_duration_ms = (time.perf_counter() - overdue_start) * 1000
 
     # Test persistence

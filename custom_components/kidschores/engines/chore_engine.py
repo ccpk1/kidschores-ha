@@ -571,6 +571,45 @@ class ChoreEngine:
         return chore_data.get(const.DATA_CHORE_DUE_DATE)
 
     @staticmethod
+    def get_last_completed_for_kid(
+        chore_data: ChoreData | dict[str, Any],
+        kid_data: KidData | dict[str, Any],
+        kid_id: str | None,
+    ) -> str | None:
+        """Get the last_completed timestamp for a kid+chore combination.
+
+        For SHARED/SHARED_FIRST chores: Returns chore-level last_completed.
+        For INDEPENDENT chores: Returns per-kid last_completed from kid_data.
+        If kid_id is None: Always returns chore-level last_completed.
+
+        Args:
+            chore_data: The chore definition
+            kid_data: The kid's data dict (needed for INDEPENDENT)
+            kid_id: The kid's internal ID, or None for chore-level
+
+        Returns:
+            ISO timestamp string of last completion, or None if never completed.
+        """
+        if kid_id is None:
+            # No kid specified - use chore-level last_completed
+            return chore_data.get(const.DATA_CHORE_LAST_COMPLETED)
+
+        # Check completion criteria
+        criteria = chore_data.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA,
+            const.COMPLETION_CRITERIA_INDEPENDENT,
+        )
+
+        if criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+            # INDEPENDENT: Use per-kid last_completed from kid_chore_data
+            chore_id = chore_data.get(const.DATA_CHORE_INTERNAL_ID, "")
+            kid_chore_data = ChoreEngine.get_chore_data_for_kid(kid_data, chore_id)
+            return kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_COMPLETED)
+
+        # SHARED or SHARED_FIRST: Use chore-level last_completed
+        return chore_data.get(const.DATA_CHORE_LAST_COMPLETED)
+
+    @staticmethod
     def chore_is_due(
         due_date_iso: str | None,
         due_window_offset_str: str | None,

@@ -33,6 +33,7 @@ from custom_components.kidschores.const import (
     DATA_KID_CHORE_DATA,
     DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START,
 )
+from custom_components.kidschores.utils.dt_utils import dt_now_utc
 from tests.helpers.setup import SetupResult, setup_from_yaml
 
 if TYPE_CHECKING:
@@ -285,7 +286,7 @@ class TestApprovalResetOverdueInteraction:
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager.check_overdue_chores()
+            await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
 
         # Verify overdue status
         assert coordinator.chore_manager.chore_is_overdue(kid_id, chore_id), (
@@ -364,7 +365,7 @@ class TestApprovalResetOverdueInteraction:
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager.check_overdue_chores()
+            await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
 
         # Verify overdue status
         assert coordinator.chore_manager.chore_is_overdue(kid_id, chore_id)
@@ -428,7 +429,7 @@ class TestApprovalResetOverdueInteraction:
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager.check_overdue_chores()
+            await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
 
         # Verify NOT marked overdue
         assert not coordinator.chore_manager.chore_is_overdue(kid_id, chore_id), (

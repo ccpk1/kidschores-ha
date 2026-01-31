@@ -668,7 +668,7 @@ class TestDueDateReminders:
             "notify_kid_translated",
             new=capture_kid_notification,
         ):
-            await coordinator.chore_manager.check_chore_due_reminders()
+            await coordinator.chore_manager._on_periodic_update({})
 
         # Verify reminder was sent
         assert len(kid_notifications) > 0, "No due-soon reminder was sent"
@@ -714,11 +714,11 @@ class TestDueDateReminders:
             new=count_notifications,
         ):
             # First check - should send reminder
-            await coordinator.chore_manager.check_chore_due_reminders()
+            await coordinator.chore_manager._on_periodic_update({})
             first_count = notifications_count
 
             # Second check - should NOT send duplicate
-            await coordinator.chore_manager.check_chore_due_reminders()
+            await coordinator.chore_manager._on_periodic_update({})
             second_count = notifications_count
 
         assert first_count == 1, (
@@ -836,7 +836,7 @@ class TestDueDateReminders:
             new=capture_kid_notification,
         ):
             # Check for due window transitions
-            await coordinator.chore_manager.check_chore_due_window_transitions()
+            await coordinator.chore_manager._on_periodic_update({})
 
         # Verify due window notification was sent
         assert len(kid_notifications) > 0, "No due window notification was sent"
@@ -896,7 +896,7 @@ class TestDueDateReminders:
             new=capture_kid_notification,
         ):
             # Check for reminders - should trigger because we're within 1-hour window
-            await coordinator.chore_manager.check_chore_due_reminders()
+            await coordinator.chore_manager._on_periodic_update({})
 
         # Verify reminder was sent (custom 1h offset, not hardcoded 30min)
         assert len(kid_notifications) > 0, (

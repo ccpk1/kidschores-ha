@@ -1602,7 +1602,7 @@ class NotificationManager(BaseManager):
         )
 
         # Count pending chores for aggregation
-        pending_count = self.coordinator.chore_manager.count_chores_pending_for_kid(
+        pending_count = self.coordinator.chore_manager.get_pending_chore_count_for_kid(
             kid_id
         )
 

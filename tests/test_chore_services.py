@@ -25,6 +25,7 @@ from unittest.mock import AsyncMock, patch
 from homeassistant.util import dt as dt_util
 import pytest
 
+from custom_components.kidschores.utils.dt_utils import dt_now_utc
 from tests.helpers import (
     CHORE_STATE_APPROVED,
     CHORE_STATE_CLAIMED,
@@ -693,7 +694,7 @@ class TestResetOverdueChoresService:
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager.check_overdue_chores()
+            await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
 
         # Verify overdue
         assert coordinator.chore_manager.chore_is_overdue(zoe_id, chore_id), (

@@ -890,18 +890,21 @@ class TestWorkflowIntegrationEdgeCases:
     ) -> None:
         """Test: Approval increments the kid's chore approval count stats.
 
-        The chore_stats track approved_all_time which increments on each approval.
-        NOTE: Uses coordinator data access for stats verification (internal data).
+        StatisticsManager records approval counts in period buckets (including all_time)
+        via _on_chore_approved listener.
         """
         from custom_components.kidschores import const
 
         coordinator = scenario_minimal.coordinator
         kid_id = scenario_minimal.kid_ids["Zoë"]
+        chore_id = scenario_minimal.chore_ids["Make bed"]
 
-        # Get initial approval count from chore stats
+        # Get initial approval count from period all_time bucket
         kid_info: KidData | dict[str, Any] = coordinator.kids_data.get(kid_id, {})
-        chore_stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
-        initial_count = chore_stats.get(const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME, 0)
+        kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {}).get(chore_id, {})
+        periods = kid_chore_data.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
+        all_time = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {})
+        initial_count = all_time.get(const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0)
 
         # Claim and approve via button presses
         kid_ctx = Context(user_id=mock_hass_users["kid1"].id)
@@ -910,10 +913,12 @@ class TestWorkflowIntegrationEdgeCases:
         await claim_chore(hass, "zoe", "Make bed", kid_ctx)
         await approve_chore(hass, "zoe", "Make bed", parent_ctx)
 
-        # Get final approval count
+        # Get final approval count from period all_time bucket
         kid_info = coordinator.kids_data.get(kid_id, {})
-        chore_stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
-        final_count = chore_stats.get(const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME, 0)
+        kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {}).get(chore_id, {})
+        periods = kid_chore_data.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
+        all_time = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {})
+        final_count = all_time.get(const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0)
 
         assert final_count == initial_count + 1, (
             f"Approval count should increment: {initial_count} -> {final_count}"
@@ -928,20 +933,21 @@ class TestWorkflowIntegrationEdgeCases:
     ) -> None:
         """Test: Disapproval increments disapproval count.
 
-        Validates that disapproval is tracked separately.
-        NOTE: Uses coordinator data access for stats verification (internal data).
+        StatisticsManager records disapproval counts in period buckets (including all_time)
+        via _on_chore_disapproved listener.
         """
         from custom_components.kidschores import const
 
         coordinator = scenario_minimal.coordinator
         kid_id = scenario_minimal.kid_ids["Zoë"]
+        chore_id = scenario_minimal.chore_ids["Make bed"]
 
-        # Get initial disapproval count from chore stats
+        # Get initial disapproval count from period all_time bucket
         kid_info: KidData | dict[str, Any] = coordinator.kids_data.get(kid_id, {})
-        chore_stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
-        initial_count = chore_stats.get(
-            const.DATA_KID_CHORE_STATS_DISAPPROVED_ALL_TIME, 0
-        )
+        kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {}).get(chore_id, {})
+        periods = kid_chore_data.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
+        all_time = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {})
+        initial_count = all_time.get(const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED, 0)
 
         # Claim and disapprove via button presses
         kid_ctx = Context(user_id=mock_hass_users["kid1"].id)
@@ -950,12 +956,12 @@ class TestWorkflowIntegrationEdgeCases:
         await claim_chore(hass, "zoe", "Make bed", kid_ctx)
         await disapprove_chore(hass, "zoe", "Make bed", parent_ctx)
 
-        # Get final disapproval count
+        # Get final disapproval count from period all_time bucket
         kid_info = coordinator.kids_data.get(kid_id, {})
-        chore_stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
-        final_count = chore_stats.get(
-            const.DATA_KID_CHORE_STATS_DISAPPROVED_ALL_TIME, 0
-        )
+        kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {}).get(chore_id, {})
+        periods = kid_chore_data.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
+        all_time = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {})
+        final_count = all_time.get(const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED, 0)
 
         assert final_count == initial_count + 1, (
             f"Disapproval count should increment: {initial_count} -> {final_count}"

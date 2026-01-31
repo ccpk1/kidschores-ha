@@ -35,10 +35,6 @@ from ..engines.chore_engine import (
     TransitionEffect,
 )
 from ..engines.schedule_engine import calculate_next_due_date_from_chore_info
-from ..engines.statistics_engine import filter_persistent_stats
-
-if TYPE_CHECKING:
-    from datetime import datetime
 from ..helpers.entity_helpers import (
     remove_entities_by_item_id,
     remove_orphaned_kid_chore_entities,
@@ -46,7 +42,6 @@ from ..helpers.entity_helpers import (
 )
 from ..utils.dt_utils import (
     dt_add_interval,
-    dt_format_short,
     dt_now_iso,
     dt_parse_duration,
     dt_to_utc,
@@ -55,10 +50,17 @@ from ..utils.dt_utils import (
 from .base_manager import BaseManager
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from homeassistant.core import HomeAssistant
 
     from ..coordinator import KidsChoresDataCoordinator
     from ..type_defs import ChoreData, KidChoreDataEntry, KidData
+
+
+# Type alias for scan results - uses dict for simplicity
+# Keys: chore_id, kid_id, due_dt (datetime), chore_info (dict), time_until_due (timedelta)
+ChoreTimeEntry = dict[str, Any]
 
 
 __all__ = ["ChoreManager"]
@@ -79,6 +81,11 @@ class ChoreManager(BaseManager):
     - Achievement/badge tracking (events handled by GamificationManager)
     - Point transactions (handled by EconomyManager via signals)
     """
+
+    # =========================================================================
+    # §0 LIFECYCLE & INITIALIZATION
+    # =========================================================================
+    # Class setup, signal subscriptions, periodic scan handlers.
 
     def __init__(
         self,
@@ -120,21 +127,24 @@ class ChoreManager(BaseManager):
 
         const.LOGGER.debug("ChoreManager initialized for entry %s", self.entry_id)
 
-    def _on_data_ready(self, payload: dict[str, Any]) -> None:
+    async def _on_data_ready(self, payload: dict[str, Any]) -> None:
         """Handle startup initialization after data integrity is verified.
 
         Cascade Position: DATA_READY → ChoreManager → CHORES_READY
 
-        Recalculates chore stats for all kids, then signals downstream
-        managers (StatisticsManager) to continue their initialization.
+        Performs initial time-based checks (overdue, due-window, reminders)
+        then signals downstream managers (StatisticsManager) to continue.
 
         Args:
             payload: Event data (unused)
         """
-        const.LOGGER.debug("ChoreManager: Processing DATA_READY - recalculating stats")
-        for kid_id in self.coordinator.kids_data:
-            self.recalculate_chore_stats_for_kid(kid_id)
-
+        const.LOGGER.debug("ChoreManager: Processing DATA_READY")
+        # Process time-based checks on startup (overdue, due-window, reminders)
+        now_utc = dt_util.utcnow()
+        scan = self.process_time_checks(now_utc)
+        await self._process_overdue(scan["overdue"], now_utc)
+        self._process_due_window(scan["in_due_window"])
+        self._process_due_reminder(scan["due_reminder"])
         # Signal cascade continues
         self.emit(const.SIGNAL_SUFFIX_CHORES_READY)
 
@@ -144,6 +154,10 @@ class ChoreManager(BaseManager):
         Follows Platinum Architecture (Choreography): ChoreManager reacts
         to MIDNIGHT_ROLLOVER signal and performs its own nightly tasks.
 
+        Note: Time-based checks (overdue, due-window, reminders) are handled
+        by PERIODIC_UPDATE, not midnight rollover. This prevents duplicate
+        processing and keeps concerns separated.
+
         Args:
             payload: Event data (unused, but required by signal handler signature)
         """
@@ -152,8 +166,7 @@ class ChoreManager(BaseManager):
         try:
             # Process recurring chore resets (daily/weekly/monthly)
             await self.process_recurring_chore_resets(now)
-            # Check and mark overdue chores
-            await self.check_overdue_chores(now)
+            # Time checks handled by periodic update - no duplicate overdue call
         except Exception:
             const.LOGGER.exception("ChoreManager: Error during midnight rollover")
 
@@ -165,20 +178,309 @@ class ChoreManager(BaseManager):
 
         Called every ~5 minutes by Coordinator's update cycle.
 
+        Performance Optimization (v0.5.0+):
+        Uses consolidated single-pass scanner instead of 3 separate iterations.
+        Previously: 3 full passes through all chores (overdue, due-window, reminders)
+        Now: 1 pass categorizes all actionable chores by time status
+
         Args:
             payload: Event data (unused, but required by signal handler signature)
         """
         try:
-            # Check overdue chores (also done at midnight, but periodic catches intra-day)
-            await self.check_overdue_chores()
+            now_utc = dt_util.utcnow()
 
-            # Check for due window transitions (v0.6.0+)
-            await self.check_chore_due_window_transitions()
+            # Single-pass scan categorizes all actionable chores by time status
+            scan = self.process_time_checks(now_utc)
 
-            # Check for due-soon reminders (v0.5.0+)
-            await self.check_chore_due_reminders()
+            # Process each category with pre-computed data
+            await self._process_overdue(scan["overdue"], now_utc)
+            self._process_due_window(scan["in_due_window"])
+            self._process_due_reminder(scan["due_reminder"])
         except Exception:
             const.LOGGER.exception("ChoreManager: Error during periodic update")
+
+    def process_time_checks(self, now_utc: datetime) -> dict[str, list[ChoreTimeEntry]]:
+        """Single-pass scan of all chores, categorizing by time status.
+
+        Performance Optimization: Instead of 3 separate iterations through
+        all chores (overdue, due-window, reminders), this method does ONE pass
+        and categorizes each actionable (kid, chore) pair by time status.
+
+        Categories:
+        - overdue: Past due date (needs overdue state transition)
+        - in_due_window: Within due_window_offset of due date (notify entry)
+        - due_reminder: Within reminder_offset of due date (notify soon)
+        - pending: Has due date but not yet in any notification window
+
+        Args:
+            now_utc: Current UTC datetime for comparison
+
+        Returns:
+            Dict with category keys mapping to lists of ChoreTimeEntry
+        """
+        result: dict[str, list[ChoreTimeEntry]] = {
+            "overdue": [],
+            "in_due_window": [],
+            "due_reminder": [],
+        }
+
+        for chore_id, chore_info in self._coordinator.chores_data.items():
+            # Get assigned kids for this chore
+            assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+            if not assigned_kids:
+                continue
+
+            # Get chore notification settings (used for categorization)
+            notify_due_window = chore_info.get(
+                const.DATA_CHORE_NOTIFY_ON_DUE_WINDOW,
+                const.DEFAULT_NOTIFY_ON_DUE_WINDOW,
+            )
+            notify_reminder = chore_info.get(
+                const.DATA_CHORE_NOTIFY_DUE_REMINDER,
+                const.DEFAULT_NOTIFY_DUE_REMINDER,
+            )
+
+            # Get overdue handling type
+            overdue_handling = chore_info.get(
+                const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
+                const.OVERDUE_HANDLING_AT_DUE_DATE,
+            )
+            can_be_overdue = overdue_handling != const.OVERDUE_HANDLING_NEVER_OVERDUE
+
+            # Parse offsets once per chore
+            due_window_offset = dt_parse_duration(
+                cast(
+                    "str | None",
+                    chore_info.get(
+                        const.DATA_CHORE_DUE_WINDOW_OFFSET,
+                        const.DEFAULT_DUE_WINDOW_OFFSET,
+                    ),
+                )
+            )
+            reminder_offset = dt_parse_duration(
+                cast(
+                    "str | None",
+                    chore_info.get(
+                        const.DATA_CHORE_DUE_REMINDER_OFFSET,
+                        const.DEFAULT_DUE_REMINDER_OFFSET,
+                    ),
+                )
+            )
+
+            # Check each assigned kid
+            for kid_id in assigned_kids:
+                if not kid_id:
+                    continue
+
+                # Skip if kid already claimed or approved
+                if not self.chore_is_actionable(kid_id, chore_id):
+                    continue
+
+                # Get due date (single call per kid-chore pair)
+                due_dt = self.get_due_date(chore_id, kid_id)
+                if not due_dt:
+                    continue
+
+                # Calculate time until due (negative = overdue)
+                time_until_due = due_dt - now_utc
+
+                # Build entry once, categorize into multiple buckets as needed
+                entry: ChoreTimeEntry = {
+                    "chore_id": chore_id,
+                    "kid_id": kid_id,
+                    "due_dt": due_dt,
+                    "chore_info": cast("dict[str, Any]", chore_info),
+                    "time_until_due": time_until_due,
+                }
+
+                # Categorize by time status (entries can be in multiple categories)
+                if time_until_due.total_seconds() < 0 and can_be_overdue:
+                    # Past due - needs overdue transition
+                    result["overdue"].append(entry)
+                elif time_until_due.total_seconds() > 0:
+                    # Not yet due - check notification windows
+                    if (
+                        notify_due_window
+                        and due_window_offset
+                        and time_until_due <= due_window_offset
+                    ):
+                        result["in_due_window"].append(entry)
+
+                    if (
+                        notify_reminder
+                        and reminder_offset
+                        and time_until_due <= reminder_offset
+                    ):
+                        result["due_reminder"].append(entry)
+
+        const.LOGGER.debug(
+            "Chore time scan: %d overdue, %d in_due_window, %d due_reminder",
+            len(result["overdue"]),
+            len(result["in_due_window"]),
+            len(result["due_reminder"]),
+        )
+
+        return result
+
+    async def process_overdue_chores(self, now_utc: datetime) -> int:
+        """Scan all chores and process any that are overdue.
+
+        Public API for triggering overdue checks. Combines scanning
+        and processing in a single call.
+
+        Args:
+            now_utc: Current UTC datetime for comparison
+
+        Returns:
+            Number of chores marked overdue
+        """
+        scan = self.process_time_checks(now_utc)
+        overdue_entries = scan.get("overdue", [])
+        if overdue_entries:
+            await self._process_overdue(overdue_entries, now_utc)
+        return len(overdue_entries)
+
+    async def _process_overdue(
+        self, entries: list[ChoreTimeEntry], now_utc: datetime
+    ) -> None:
+        """Process overdue entries - mark as overdue and emit signals.
+
+        Inlines the mark_overdue() logic directly for single-pass efficiency.
+
+        Args:
+            entries: List of ChoreTimeEntry for chores past due
+            now_utc: Current UTC datetime
+        """
+        if not entries:
+            return
+
+        marked_count = 0
+        for entry in entries:
+            chore_id = entry["chore_id"]
+            kid_id = entry["kid_id"]
+            due_dt = entry["due_dt"]
+            chore_info = entry["chore_info"]
+
+            # Validate kid and chore exist
+            try:
+                self._validate_kid_and_chore(kid_id, chore_id)
+            except HomeAssistantError as err:
+                const.LOGGER.debug(
+                    "Could not mark chore '%s' overdue for kid '%s': %s",
+                    chore_info.get(const.DATA_CHORE_NAME, chore_id),
+                    kid_id,
+                    err,
+                )
+                continue
+
+            # Get data for transition calculation
+            chore_data = self._coordinator.chores_data[chore_id]
+            kid_info = self._coordinator.kids_data[kid_id]
+            kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
+            kids_assigned = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+
+            # Calculate and apply state transition via Engine
+            effects = ChoreEngine.calculate_transition(
+                chore_data=chore_data,
+                actor_kid_id=kid_id,
+                action=CHORE_ACTION_OVERDUE,
+                kids_assigned=kids_assigned,
+                kid_name=kid_name,
+            )
+
+            for effect in effects:
+                self._apply_effect(effect, chore_id)
+
+            # Update global chore state
+            self._update_global_state(chore_id)
+
+            # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
+            self._coordinator._persist()
+
+            # Calculate days overdue and emit signal
+            days_overdue = (now_utc - due_dt).days
+            self.emit(
+                const.SIGNAL_SUFFIX_CHORE_OVERDUE,
+                kid_id=kid_id,
+                chore_id=chore_id,
+                chore_name=chore_data.get(const.DATA_CHORE_NAME, ""),
+                days_overdue=days_overdue,
+                due_date=due_dt.isoformat(),
+                chore_labels=chore_data.get(const.DATA_CHORE_LABELS, []),
+            )
+
+            marked_count += 1
+
+        if marked_count > 0:
+            self._coordinator.async_set_updated_data(self._coordinator._data)
+            const.LOGGER.debug(
+                "Processed %d overdue chore(s)",
+                marked_count,
+            )
+
+    def _process_due_window(self, entries: list[ChoreTimeEntry]) -> None:
+        """Process due window entries and emit signals.
+
+        Args:
+            entries: List of ChoreTimeEntry for chores in due window
+        """
+        if not entries:
+            return
+
+        for entry in entries:
+            chore_info = entry["chore_info"]
+            time_until_due = entry["time_until_due"]
+            hours_remaining = max(0, int(time_until_due.total_seconds() / 3600))
+
+            chore_name = chore_info.get(const.DATA_CHORE_NAME, "Unknown Chore")
+            points = chore_info.get(const.DATA_CHORE_DEFAULT_POINTS, 0)
+
+            self.emit(
+                const.SIGNAL_SUFFIX_CHORE_DUE_WINDOW,
+                kid_id=entry["kid_id"],
+                chore_id=entry["chore_id"],
+                chore_name=chore_name,
+                hours=hours_remaining,
+                points=points,
+                due_date=entry["due_dt"].isoformat(),
+            )
+
+        const.LOGGER.debug(
+            "Due window transitions - Emitted %d signal(s)",
+            len(entries),
+        )
+
+    def _process_due_reminder(self, entries: list[ChoreTimeEntry]) -> None:
+        """Process due reminder entries and emit signals.
+
+        Args:
+            entries: List of ChoreTimeEntry for chores within reminder window
+        """
+        if not entries:
+            return
+
+        for entry in entries:
+            chore_info = entry["chore_info"]
+            time_until_due = entry["time_until_due"]
+            minutes_remaining = max(0, int(time_until_due.total_seconds() / 60))
+
+            chore_name = chore_info.get(const.DATA_CHORE_NAME, "Unknown Chore")
+            points = chore_info.get(const.DATA_CHORE_DEFAULT_POINTS, 0)
+
+            self.emit(
+                const.SIGNAL_SUFFIX_CHORE_DUE_REMINDER,
+                kid_id=entry["kid_id"],
+                chore_id=entry["chore_id"],
+                chore_name=chore_name,
+                minutes=minutes_remaining,
+                points=points,
+                due_date=entry["due_dt"].isoformat(),
+            )
+
+        const.LOGGER.debug(
+            "Due reminders - Emitted %d signal(s)",
+            len(entries),
+        )
 
     def _on_kid_deleted(self, payload: dict[str, Any]) -> None:
         """Remove deleted kid from all chore assignments.
@@ -279,7 +581,7 @@ class ChoreManager(BaseManager):
 
         # Get validation inputs for engine
         has_pending = ChoreEngine.chore_has_pending_claim(kid_chore_data)
-        is_approved = self._is_approved_in_period(kid_id, chore_id)
+        is_approved = self.chore_is_approved_in_period(kid_id, chore_id)
 
         # Delegate validation to engine (stateless pure logic)
         can_claim, error_key = ChoreEngine.can_claim_chore(
@@ -403,7 +705,7 @@ class ChoreManager(BaseManager):
         )
 
         # Get validation inputs
-        is_approved = self._is_approved_in_period(kid_id, chore_id)
+        is_approved = self.chore_is_approved_in_period(kid_id, chore_id)
 
         # Re-validate inside lock (race condition protection)
         can_approve, error_key = ChoreEngine.can_approve_chore(
@@ -444,17 +746,7 @@ class ChoreManager(BaseManager):
         # =====================================================================
 
         # Get previous last_completed for streak calculation (parent-lag-proof)
-        # INDEPENDENT: per-kid, SHARED: chore-level
-        completion_criteria = chore_data.get(
-            const.DATA_CHORE_COMPLETION_CRITERIA,
-            const.COMPLETION_CRITERIA_INDEPENDENT,
-        )
-        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
-            previous_last_completed = kid_chore_data.get(
-                const.DATA_KID_CHORE_DATA_LAST_COMPLETED
-            )
-        else:
-            previous_last_completed = chore_data.get(const.DATA_CHORE_LAST_COMPLETED)
+        previous_last_completed = self.get_chore_last_completed(chore_id, kid_id)
 
         # Check if this is a direct approval (no pending claim)
         # Used to set claim fields for consistency
@@ -540,11 +832,6 @@ class ChoreManager(BaseManager):
         # Update global chore state
         self._update_global_state(chore_id)
 
-        # Update chore stats (approved count + points) using effective_date for period bucketing
-        self._update_chore_stats(
-            kid_id, "approved", points_to_award, effective_date_iso
-        )
-
         # Set last_completed timestamp (always runs on approval)
         # Stored per completion criteria: INDEPENDENT in kid data, SHARED at chore level
         self._set_last_completed_timestamp(
@@ -578,7 +865,7 @@ class ChoreManager(BaseManager):
         elif (
             overdue_handling
             == const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE
-            and self._is_approval_after_reset_boundary(chore_data, kid_id)
+            and self._is_chore_approval_after_reset(chore_data, kid_id)
         ):
             # immediate_on_late: Reset to PENDING if approval is after reset boundary
             should_reset_immediately = True
@@ -601,7 +888,7 @@ class ChoreManager(BaseManager):
                     reset_period_start
                 )
                 self._update_global_state(chore_id)
-                self._reschedule_due_dates_upon_completion(chore_id, [kid_id])
+                self._reschedule_chore_due(chore_id, kid_id)
 
             # SHARED/SHARED_FIRST: Only reset when ALL assigned kids have approved
             elif self._all_kids_approved(chore_id, kids_assigned):
@@ -613,7 +900,7 @@ class ChoreManager(BaseManager):
                     if assigned_kid_id:
                         self._reset_kid_chore_to_pending(assigned_kid_id, chore_id)
                 self._update_global_state(chore_id)
-                self._reschedule_due_dates_upon_completion(chore_id, kids_assigned)
+                self._reschedule_chore_due(chore_id)
         # For non-UPON_COMPLETION reset types (AT_MIDNIGHT_*, AT_DUE_DATE_*):
         # Do NOT set approval_period_start here. It is ONLY set on RESET events.
         # The chore remains approved until the scheduled reset updates approval_period_start.
@@ -762,9 +1049,6 @@ class ChoreManager(BaseManager):
 
         # Update global chore state
         self._update_global_state(chore_id)
-
-        # Update chore stats (disapproval count)
-        self._update_chore_stats(kid_id, "disapproved")
 
         # Clear claimed_by
         self._clear_claimed_completed_by(chore_id, kid_id, const.DATA_CHORE_CLAIMED_BY)
@@ -958,187 +1242,7 @@ class ChoreManager(BaseManager):
         self._coordinator._persist()
         self._coordinator.async_set_updated_data(self._coordinator._data)
 
-    async def mark_overdue(
-        self,
-        kid_id: str,
-        chore_id: str,
-        days_overdue: int,
-        due_date: str,
-    ) -> None:
-        """Mark a chore as overdue.
-
-        Args:
-            kid_id: The internal UUID of the kid
-            chore_id: The internal UUID of the chore
-            days_overdue: Number of days past due
-            due_date: ISO format due date string
-        """
-        self._validate_kid_and_chore(kid_id, chore_id)
-
-        chore_data = self._coordinator.chores_data[chore_id]
-        kid_info = self._coordinator.kids_data[kid_id]
-
-        kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
-        kids_assigned = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
-
-        effects = ChoreEngine.calculate_transition(
-            chore_data=chore_data,
-            actor_kid_id=kid_id,
-            action=CHORE_ACTION_OVERDUE,
-            kids_assigned=kids_assigned,
-            kid_name=kid_name,
-        )
-
-        for effect in effects:
-            self._apply_effect(effect, chore_id)
-
-        # Update global chore state
-        self._update_global_state(chore_id)
-
-        # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
-        self._coordinator._persist()
-
-        # Emit overdue event
-        self.emit(
-            const.SIGNAL_SUFFIX_CHORE_OVERDUE,
-            kid_id=kid_id,
-            chore_id=chore_id,
-            chore_name=chore_data.get(const.DATA_CHORE_NAME, ""),
-            days_overdue=days_overdue,
-            due_date=due_date,
-            chore_labels=chore_data.get(const.DATA_CHORE_LABELS, []),
-        )
-
-        self._coordinator.async_set_updated_data(self._coordinator._data)
-
-    async def update_overdue_status(
-        self,
-        now: datetime | None = None,
-    ) -> list[tuple[str, str]]:
-        """Check all chores and mark overdue if due date has passed.
-
-        This is the Manager entry point for scheduled overdue detection.
-        Delegates to existing coordinator helper methods for the complex
-        completion criteria logic (SHARED, INDEPENDENT, SHARED_FIRST),
-        but emits events via mark_overdue() for downstream consumers.
-
-        Args:
-            now: Current datetime (UTC). If None, uses current time.
-
-        Returns:
-            List of (chore_id, kid_id) tuples that were marked overdue.
-        """
-        import time
-
-        perf_start = time.perf_counter()
-        now_utc = now or dt_util.utcnow()
-        marked_overdue: list[tuple[str, str]] = []
-
-        const.LOGGER.debug(
-            "ChoreManager.update_overdue_status - Starting at %s",
-            now_utc.isoformat(),
-        )
-
-        for chore_id, chore_info in self._coordinator.chores_data.items():
-            # Get the list of assigned kids
-            assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
-            if not assigned_kids:
-                continue
-
-            # Skip if all kids have already acted
-            all_kids_acted = all(
-                self.chore_has_pending_claim(kid_id, chore_id)
-                or self.chore_is_approved_in_period(kid_id, chore_id)
-                for kid_id in assigned_kids
-            )
-            if all_kids_acted:
-                continue
-
-            # Check overdue handling type - skip NEVER_OVERDUE
-            overdue_handling = chore_info.get(
-                const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
-                const.OVERDUE_HANDLING_AT_DUE_DATE,
-            )
-            if overdue_handling == const.OVERDUE_HANDLING_NEVER_OVERDUE:
-                continue
-
-            # Get completion criteria
-            criteria = chore_info.get(
-                const.DATA_CHORE_COMPLETION_CRITERIA,
-                const.COMPLETION_CRITERIA_SHARED,
-            )
-
-            # Process each assigned kid
-            for kid_id in assigned_kids:
-                if not kid_id:
-                    continue
-
-                # Skip if already claimed or approved
-                if self.chore_has_pending_claim(kid_id, chore_id):
-                    continue
-                if self.chore_is_approved_in_period(kid_id, chore_id):
-                    continue
-
-                # SHARED_FIRST special handling
-                if criteria == const.COMPLETION_CRITERIA_SHARED_FIRST:
-                    # Find if there's a claimant
-                    claimant_kid_id = next(
-                        (
-                            k
-                            for k in assigned_kids
-                            if self.chore_has_pending_claim(k, chore_id)
-                        ),
-                        None,
-                    )
-                    # If someone else claimed, skip this kid
-                    if claimant_kid_id and kid_id != claimant_kid_id:
-                        continue
-
-                # Get effective due date
-                due_str = self.get_chore_effective_due_date(chore_id, kid_id)
-                if not due_str:
-                    continue
-
-                # Parse due date
-                due_date_utc = dt_to_utc(due_str)
-                if due_date_utc is None:
-                    continue
-
-                # Check if past due
-                if now_utc <= due_date_utc:
-                    continue
-
-                # Calculate days overdue
-                days_overdue = (now_utc - due_date_utc).days
-
-                # Mark as overdue via Manager method (emits event)
-                try:
-                    await self.mark_overdue(
-                        kid_id=kid_id,
-                        chore_id=chore_id,
-                        days_overdue=days_overdue,
-                        due_date=due_str,
-                    )
-                    marked_overdue.append((chore_id, kid_id))
-                except HomeAssistantError as err:
-                    const.LOGGER.warning(
-                        "Failed to mark chore overdue: chore=%s kid=%s error=%s",
-                        chore_id,
-                        kid_id,
-                        err,
-                    )
-
-        # Performance logging
-        perf_duration = time.perf_counter() - perf_start
-        const.LOGGER.debug(
-            "ChoreManager.update_overdue_status - Completed in %.3fs, marked %d overdue",
-            perf_duration,
-            len(marked_overdue),
-        )
-
-        return marked_overdue
-
-    async def update_recurring_chores(
+    async def process_scheduled_resets(
         self,
         now: datetime,
     ) -> int:
@@ -1159,7 +1263,7 @@ class ChoreManager(BaseManager):
         reset_count = 0
 
         const.LOGGER.debug(
-            "ChoreManager.update_recurring_chores - Starting at %s",
+            "ChoreManager.process_scheduled_resets - Starting at %s",
             now.isoformat(),
         )
 
@@ -1187,13 +1291,13 @@ class ChoreManager(BaseManager):
 
         if not target_freqs:
             const.LOGGER.debug(
-                "ChoreManager.update_recurring_chores - No frequencies to reset at hour=%d",
+                "ChoreManager.process_scheduled_resets - No frequencies to reset at hour=%d",
                 now.hour,
             )
             return 0
 
         const.LOGGER.debug(
-            "ChoreManager.update_recurring_chores - Resetting frequencies: %s",
+            "ChoreManager.process_scheduled_resets - Resetting frequencies: %s",
             target_freqs,
         )
 
@@ -1237,66 +1341,9 @@ class ChoreManager(BaseManager):
                 )
 
         const.LOGGER.debug(
-            "ChoreManager.update_recurring_chores - Completed, reset %d chores",
+            "ChoreManager.process_scheduled_resets - Completed, reset %d chores",
             reset_count,
         )
-
-        return reset_count
-
-    async def _reset_daily_chore_statuses(
-        self,
-        target_freqs: list[str],
-    ) -> int:
-        """Reset chore statuses for chores matching target frequencies.
-
-        This method is primarily used by tests to directly trigger resets
-        for specific frequencies without time-based checks.
-
-        Args:
-            target_freqs: List of frequency constants to reset (e.g., [FREQUENCY_DAILY])
-
-        Returns:
-            Count of chores reset.
-        """
-        reset_count = 0
-        now_utc = dt_util.utcnow()
-
-        for chore_id, chore_info in self._coordinator.chores_data.items():
-            frequency = chore_info.get(
-                const.DATA_CHORE_RECURRING_FREQUENCY, const.FREQUENCY_NONE
-            )
-
-            # For non-recurring chores, only process if approval_reset_type is AT_MIDNIGHT_*
-            if frequency == const.FREQUENCY_NONE:
-                approval_reset_type = chore_info.get(
-                    const.DATA_CHORE_APPROVAL_RESET_TYPE,
-                    const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
-                )
-                if approval_reset_type not in (
-                    const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
-                    const.APPROVAL_RESET_AT_MIDNIGHT_MULTI,
-                ):
-                    continue
-            elif frequency not in target_freqs:
-                continue
-
-            # Get completion criteria
-            criteria = chore_info.get(
-                const.DATA_CHORE_COMPLETION_CRITERIA,
-                const.COMPLETION_CRITERIA_SHARED,
-            )
-
-            # Check if chore is ready for reset based on due date
-            if criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
-                reset_count += await self._reset_independent_chore(
-                    chore_id, chore_info, now_utc
-                )
-            else:
-                reset_count += await self._reset_shared_chore(
-                    chore_id, chore_info, now_utc
-                )
-
-        self._coordinator._persist()
 
         return reset_count
 
@@ -1363,6 +1410,63 @@ class ChoreManager(BaseManager):
             kid_chore_data[const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT] = 0
 
         return False  # Continue with reset
+
+    async def _reset_daily_chore_statuses(
+        self,
+        target_freqs: list[str],
+    ) -> int:
+        """Reset chore statuses for chores matching target frequencies.
+
+        This method is primarily used by tests to directly trigger resets
+        for specific frequencies without time-based checks.
+
+        Args:
+            target_freqs: List of frequency constants to reset (e.g., [FREQUENCY_DAILY])
+
+        Returns:
+            Count of chores reset.
+        """
+        reset_count = 0
+        now_utc = dt_util.utcnow()
+
+        for chore_id, chore_info in self._coordinator.chores_data.items():
+            frequency = chore_info.get(
+                const.DATA_CHORE_RECURRING_FREQUENCY, const.FREQUENCY_NONE
+            )
+
+            # For non-recurring chores, only process if approval_reset_type is AT_MIDNIGHT_*
+            if frequency == const.FREQUENCY_NONE:
+                approval_reset_type = chore_info.get(
+                    const.DATA_CHORE_APPROVAL_RESET_TYPE,
+                    const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+                )
+                if approval_reset_type not in (
+                    const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+                    const.APPROVAL_RESET_AT_MIDNIGHT_MULTI,
+                ):
+                    continue
+            elif frequency not in target_freqs:
+                continue
+
+            # Get completion criteria
+            criteria = chore_info.get(
+                const.DATA_CHORE_COMPLETION_CRITERIA,
+                const.COMPLETION_CRITERIA_SHARED,
+            )
+
+            # Check if chore is ready for reset based on due date
+            if criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+                reset_count += await self._reset_independent_chore(
+                    chore_id, chore_info, now_utc
+                )
+            else:
+                reset_count += await self._reset_shared_chore(
+                    chore_id, chore_info, now_utc
+                )
+
+        self._coordinator._persist()
+
+        return reset_count
 
     async def reset_chore(
         self,
@@ -1507,11 +1611,8 @@ class ChoreManager(BaseManager):
                 continue
 
             # Get this kid's effective due date
-            due_str = self.get_chore_effective_due_date(chore_id, kid_id)
-            if due_str:
-                due_date_utc = dt_to_utc(due_str)
-                if due_date_utc is None:
-                    continue
+            due_date_utc = self.get_due_date(chore_id, kid_id)
+            if due_date_utc:
                 if now_utc < due_date_utc:
                     continue  # Not yet due for this kid
 
@@ -2120,210 +2221,62 @@ class ChoreManager(BaseManager):
         """Return whether pending chore approvals have changed since last reset."""
         return self._coordinator.ui_manager.pending_chore_changed
 
-    def get_approval_period_start(self, kid_id: str, chore_id: str) -> str | None:
-        """Get the start of the current approval period for this kid+chore.
-
-        Public read method for cross-manager queries (e.g., NotificationManager
-        uses this for Schedule-Lock deduplication). Follows the "Reads OK" pattern
-        from DEVELOPMENT_STANDARDS.md § 4b.
-
-        For SHARED chores: Uses chore-level approval_period_start
-        For INDEPENDENT chores: Uses per-kid approval_period_start in kid_chore_data
-
-        Returns:
-            ISO timestamp string of period start, or None if not set.
-        """
-        chore_info = self._coordinator.chores_data.get(chore_id)
-        if not chore_info:
-            return None
-
-        # Default to INDEPENDENT if completion_criteria not set (backward compatibility)
-        completion_criteria = chore_info.get(
-            const.DATA_CHORE_COMPLETION_CRITERIA, const.COMPLETION_CRITERIA_INDEPENDENT
+    def _chore_allows_multiple_claims(self, chore_id: str) -> bool:
+        """Check if chore allows multiple claims. Manager provides data, Engine provides verdict."""
+        return ChoreEngine.chore_allows_multiple_claims(
+            self._coordinator.chores_data.get(chore_id, {})
         )
-
-        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
-            # INDEPENDENT: Period start is per-kid in kid_chore_data
-            kid_data: KidData | dict[str, Any] = self._coordinator.kids_data.get(
-                kid_id, {}
-            )
-            kid_chore_data = ChoreEngine.get_chore_data_for_kid(kid_data, chore_id)
-            return kid_chore_data.get(const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START)
-        # SHARED/SHARED_FIRST/etc.: Period start is at chore level
-        return chore_info.get(const.DATA_CHORE_APPROVAL_PERIOD_START)
 
     def chore_has_pending_claim(self, kid_id: str, chore_id: str) -> bool:
-        """Check if a chore has a pending claim (claimed but not yet approved/disapproved).
+        """Check if a chore has a pending claim. Manager provides data, Engine provides verdict."""
+        return ChoreEngine.chore_has_pending_claim(
+            self._get_kid_chore_data(kid_id, chore_id)
+        )
 
-        Uses the pending_count counter which is incremented on claim and
-        decremented on approve/disapprove.
+    def chore_is_actionable(self, kid_id: str, chore_id: str) -> bool:
+        """Check if a kid can take action on a chore (not pending claim, not approved).
+
+        This is the inverse of the common "skip" check in loops. A chore is
+        actionable if the kid has not claimed it AND has not been approved
+        in the current period.
+
+        Use this to filter kids in due/overdue/reminder checks.
+
+        Args:
+            kid_id: The kid's internal ID
+            chore_id: The chore's internal ID
 
         Returns:
-            True if there's a pending claim (pending_claim_count > 0), False otherwise.
+            True if the kid can act on this chore, False if already claimed/approved.
         """
-        kid_data: KidData | dict[str, Any] = self._coordinator.kids_data.get(kid_id, {})
-        kid_chore_data = ChoreEngine.get_chore_data_for_kid(kid_data, chore_id)
-        if not kid_chore_data:
+        if self.chore_has_pending_claim(kid_id, chore_id):
             return False
-
-        pending_claim_count = kid_chore_data.get(
-            const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT, 0
-        )
-        return pending_claim_count > 0
+        if self.chore_is_approved_in_period(kid_id, chore_id):
+            return False
+        return True
 
     def chore_is_overdue(self, kid_id: str, chore_id: str) -> bool:
-        """Check if a chore is in overdue state for a specific kid.
-
-        Uses the per-kid chore state field (single source of truth).
-
-        Returns:
-            True if the chore is in overdue state, False otherwise.
-        """
-        kid_data: KidData | dict[str, Any] = self._coordinator.kids_data.get(kid_id, {})
-        kid_chore_data = ChoreEngine.get_chore_data_for_kid(kid_data, chore_id)
-        if not kid_chore_data:
-            return False
-
-        current_state = kid_chore_data.get(const.DATA_KID_CHORE_DATA_STATE)
-        return current_state == const.CHORE_STATE_OVERDUE
+        """Check if a chore is in overdue state. Manager provides data, Engine provides verdict."""
+        return ChoreEngine.chore_is_overdue(self._get_kid_chore_data(kid_id, chore_id))
 
     def chore_is_due(self, kid_id: str | None, chore_id: str) -> bool:
-        """Check if a chore is in the due window (approaching due date).
+        """Check if chore is in due window (approaching due date).
 
-        A chore is in the due window if:
-        - It has a due_window_offset > 0 configured
-        - Current time is within: (due_date - due_window_offset) <= now < due_date
-        - The chore is not already overdue, claimed, or approved
-
-        Args:
-            kid_id: The internal ID of the kid, or None to use chore-level due date.
-            chore_id: The internal ID of the chore.
-
-        Returns:
-            True if the chore is in the due window, False otherwise.
+        Thin wrapper that delegates to Engine for calculation.
         """
-        chore_info = self._coordinator.chores_data.get(chore_id)
-        if not chore_info:
+        due_dt = self.get_due_date(chore_id, kid_id)
+        if not due_dt:
             return False
-
-        # Get due window offset (stored as duration string like "1d 6h 30m")
-        due_window_offset_str = chore_info.get(
-            const.DATA_CHORE_DUE_WINDOW_OFFSET, const.DEFAULT_DUE_WINDOW_OFFSET
+        chore_info: ChoreData | dict[str, Any] = self._coordinator.chores_data.get(
+            chore_id, {}
         )
-        due_window_td = dt_parse_duration(cast("str | None", due_window_offset_str))
-
-        # If no valid due window offset or disabled (0), not in due window
-        if not due_window_td or due_window_td.total_seconds() <= 0:
-            return False
-
-        # Get due date: per-kid for INDEPENDENT (if kid_id provided), chore-level otherwise
-        due_date_str: str | None = None
-        if kid_id:
-            completion_criteria = chore_info.get(
-                const.DATA_CHORE_COMPLETION_CRITERIA,
-                const.COMPLETION_CRITERIA_INDEPENDENT,
-            )
-            if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
-                per_kid_due_dates = chore_info.get(
-                    const.DATA_CHORE_PER_KID_DUE_DATES, {}
-                )
-                due_date_str = per_kid_due_dates.get(kid_id)
-            else:
-                due_date_str = chore_info.get(const.DATA_CHORE_DUE_DATE)
-        else:
-            # No kid_id - use chore-level due date (for global sensor)
-            due_date_str = chore_info.get(const.DATA_CHORE_DUE_DATE)
-
-        if not due_date_str:
-            return False
-
-        due_date_dt = dt_to_utc(due_date_str)
-        if not due_date_dt:
-            return False
-
-        # Calculate due window start: due_date - offset
-        now = dt_util.utcnow()
-        due_window_start = due_date_dt - due_window_td
-
-        # In due window if: due_window_start <= now < due_date
-        return due_window_start <= now < due_date_dt
-
-    def get_chore_due_date(self, kid_id: str | None, chore_id: str) -> datetime | None:
-        """Get the due date for a chore as a datetime.
-
-        Handles INDEPENDENT vs SHARED completion criteria:
-        - INDEPENDENT: Returns per-kid due date
-        - SHARED/SHARED_FIRST: Returns chore-level due date
-        - kid_id=None: Always returns chore-level due date
-
-        Args:
-            kid_id: The internal ID of the kid. If None, uses chore-level due date.
-            chore_id: The internal ID of the chore.
-
-        Returns:
-            datetime of due date, or None if no due date configured.
-        """
-        chore_info = self._coordinator.chores_data.get(chore_id)
-        if not chore_info:
-            return None
-
-        # Get due date - if kid_id is None, use chore-level due date
-        if kid_id is None:
-            due_date_str = chore_info.get(const.DATA_CHORE_DUE_DATE)
-        else:
-            completion_criteria = chore_info.get(
-                const.DATA_CHORE_COMPLETION_CRITERIA,
-                const.COMPLETION_CRITERIA_INDEPENDENT,
-            )
-            if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
-                per_kid_due_dates = chore_info.get(
-                    const.DATA_CHORE_PER_KID_DUE_DATES, {}
-                )
-                due_date_str = per_kid_due_dates.get(kid_id)
-            else:
-                due_date_str = chore_info.get(const.DATA_CHORE_DUE_DATE)
-
-        if not due_date_str:
-            return None
-
-        return dt_to_utc(due_date_str)
-
-    def get_chore_due_window_start(
-        self, kid_id: str | None, chore_id: str
-    ) -> datetime | None:
-        """Calculate when the due window starts for a chore.
-
-        Returns the datetime when the due window begins (due_date - offset),
-        or None if the chore has no due date or no due window configured.
-
-        Args:
-            kid_id: The internal ID of the kid. If None, uses the chore-level
-                due date (appropriate for SHARED chores or global sensor).
-            chore_id: The internal ID of the chore.
-
-        Returns:
-            datetime when due window starts, or None if not applicable.
-        """
-        chore_info = self._coordinator.chores_data.get(chore_id)
-        if not chore_info:
-            return None
-
-        # Reuse get_chore_due_date to avoid duplicating INDEPENDENT vs SHARED logic
-        due_date_dt = self.get_chore_due_date(kid_id, chore_id)
-        if not due_date_dt:
-            return None
-
-        # Get due window offset - if offset is 0 or missing, return due_date itself
-        due_window_offset_str = chore_info.get(
-            const.DATA_CHORE_DUE_WINDOW_OFFSET, const.DEFAULT_DUE_WINDOW_OFFSET
+        offset = cast(
+            "str | None",
+            chore_info.get(
+                const.DATA_CHORE_DUE_WINDOW_OFFSET, const.DEFAULT_DUE_WINDOW_OFFSET
+            ),
         )
-        due_window_td = dt_parse_duration(cast("str | None", due_window_offset_str))
-
-        # If no offset or offset is 0, due window start equals due date
-        if not due_window_td or due_window_td.total_seconds() <= 0:
-            return due_date_dt
-
-        return due_date_dt - due_window_td
+        return ChoreEngine.chore_is_due(due_dt.isoformat(), offset, dt_util.utcnow())
 
     def chore_is_approved_in_period(self, kid_id: str, chore_id: str) -> bool:
         """Check if a chore is already approved in the current approval period.
@@ -2362,6 +2315,88 @@ class ChoreManager(BaseManager):
 
         return approved_dt >= period_start_dt
 
+    def get_approval_period_start(self, kid_id: str, chore_id: str) -> str | None:
+        """Get the start of the current approval period for this kid+chore.
+
+        Public read method for cross-manager queries (e.g., NotificationManager
+        uses this for Schedule-Lock deduplication). Follows the "Reads OK" pattern
+        from DEVELOPMENT_STANDARDS.md § 4b.
+
+        For SHARED chores: Uses chore-level approval_period_start
+        For INDEPENDENT chores: Uses per-kid approval_period_start in kid_chore_data
+
+        Returns:
+            ISO timestamp string of period start, or None if not set.
+        """
+        chore_info = self._coordinator.chores_data.get(chore_id)
+        if not chore_info:
+            return None
+
+        # Default to INDEPENDENT if completion_criteria not set (backward compatibility)
+        completion_criteria = chore_info.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA, const.COMPLETION_CRITERIA_INDEPENDENT
+        )
+
+        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+            # INDEPENDENT: Period start is per-kid in kid_chore_data
+            kid_data: KidData | dict[str, Any] = self._coordinator.kids_data.get(
+                kid_id, {}
+            )
+            kid_chore_data = ChoreEngine.get_chore_data_for_kid(kid_data, chore_id)
+            return kid_chore_data.get(const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START)
+        # SHARED/SHARED_FIRST/etc.: Period start is at chore level
+        return chore_info.get(const.DATA_CHORE_APPROVAL_PERIOD_START)
+
+    def get_due_date(self, chore_id: str, kid_id: str | None = None) -> datetime | None:
+        """Get the due date for a chore as datetime.
+
+        Handles INDEPENDENT vs SHARED completion criteria resolution internally.
+
+        Args:
+            chore_id: The chore's internal ID
+            kid_id: The kid's internal ID (for INDEPENDENT chores).
+                    None = use chore-level due date (SHARED)
+
+        Returns:
+            datetime or None if no due date configured.
+        """
+        chore_info: ChoreData | dict[str, Any] = self._coordinator.chores_data.get(
+            chore_id, {}
+        )
+        due_str = ChoreEngine.get_due_date_for_kid(chore_info, kid_id)
+        return dt_to_utc(due_str) if due_str else None
+
+    def get_due_window_start(
+        self, chore_id: str, kid_id: str | None = None
+    ) -> datetime | None:
+        """Calculate when the due window starts (due_date - offset).
+
+        Args:
+            chore_id: The chore's internal ID
+            kid_id: The kid's internal ID (for INDEPENDENT chores).
+                    None = use chore-level due date (SHARED)
+
+        Returns:
+            datetime when due window starts, or None if not applicable.
+        """
+        due_dt = self.get_due_date(chore_id, kid_id)
+        if not due_dt:
+            return None
+
+        chore_info: ChoreData | dict[str, Any] = self._coordinator.chores_data.get(
+            chore_id, {}
+        )
+        due_window_offset_str = chore_info.get(
+            const.DATA_CHORE_DUE_WINDOW_OFFSET, const.DEFAULT_DUE_WINDOW_OFFSET
+        )
+        due_window_td = dt_parse_duration(cast("str | None", due_window_offset_str))
+
+        # If no offset or offset is 0, due window start equals due date
+        if not due_window_td or due_window_td.total_seconds() <= 0:
+            return due_dt
+
+        return due_dt - due_window_td
+
     def get_pending_chore_approvals(self) -> list[dict[str, Any]]:
         """Compute pending chore approvals dynamically from timestamp data.
 
@@ -2389,7 +2424,7 @@ class ChoreManager(BaseManager):
                     )
         return pending
 
-    def count_chores_pending_for_kid(self, kid_id: str) -> int:
+    def get_pending_chore_count_for_kid(self, kid_id: str) -> int:
         """Count total pending chores awaiting approval for a specific kid.
 
         Used for tag-based notification aggregation (v0.5.0+) to show
@@ -2494,85 +2529,105 @@ class ChoreManager(BaseManager):
 
         return (True, None)
 
-    def get_chore_effective_due_date(
+    def get_chore_last_completed(
         self,
         chore_id: str,
         kid_id: str | None = None,
     ) -> str | None:
-        """Get the effective due date for a kid+chore combination.
+        """Get last_completed timestamp. Manager provides data, Engine provides verdict."""
+        chore_data: ChoreData | dict[str, Any] = self._coordinator.chores_data.get(
+            chore_id, {}
+        )
+        kid_data: KidData | dict[str, Any] = (
+            self._coordinator.kids_data.get(kid_id, {}) if kid_id else {}
+        )
+        return ChoreEngine.get_last_completed_for_kid(chore_data, kid_data, kid_id)
 
-        For INDEPENDENT chores: Returns per-kid due date from per_kid_due_dates
-        For SHARED/SHARED_FIRST: Returns chore-level due date
+    def get_chore_status_context(self, kid_id: str, chore_id: str) -> dict[str, Any]:
+        """Return all derived chore states for a kid+chore in one call.
 
-        Args:
-            chore_id: The chore's internal ID
-            kid_id: The kid's internal ID (required for INDEPENDENT,
-                    ignored for SHARED)
+        Sensors should call this once and read from the returned dict
+        rather than calling multiple individual wrapper methods. This
+        provides O(1) lookups after a single data fetch.
 
         Returns:
-            ISO datetime string or None if no due date set
+            Dict with keys:
+            - state: str (derived display state with priority)
+            - stored_state: str (raw state from storage)
+            - is_overdue: bool
+            - is_due: bool
+            - has_pending_claim: bool
+            - is_approved_in_period: bool
+            - is_completed_by_other: bool
+            - can_claim: bool
+            - can_claim_error: str | None
+            - can_approve: bool
+            - can_approve_error: str | None
+            - due_date: str | None
+            - last_completed: str | None
+
+        Display state priority:
+            approved > completed_by_other > claimed > overdue > due > pending
         """
-        chore_info: ChoreData | dict[str, Any] = self._coordinator.chores_data.get(
-            chore_id, {}
+        # Single data fetch
+        kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
+
+        # Pre-compute all status flags using Engine methods
+        has_pending = ChoreEngine.chore_has_pending_claim(kid_chore_data)
+        is_overdue = ChoreEngine.chore_is_overdue(kid_chore_data)
+        is_due = self.chore_is_due(kid_id, chore_id)
+
+        # These require Manager context (approval_period_start lookup)
+        is_approved = self.chore_is_approved_in_period(kid_id, chore_id)
+        can_claim, claim_error = self.can_claim_chore(kid_id, chore_id)
+        can_approve, approve_error = self.can_approve_chore(kid_id, chore_id)
+
+        # Check completed_by_other from kid_info list
+        kid_info: KidData | dict[str, Any] = self._coordinator.kids_data.get(kid_id, {})
+        completed_by_other_list = kid_info.get(
+            const.DATA_KID_COMPLETED_BY_OTHER_CHORES, []
         )
-        criteria = chore_info.get(
-            const.DATA_CHORE_COMPLETION_CRITERIA,
-            const.COMPLETION_CRITERIA_SHARED,
+        is_completed_by_other = chore_id in completed_by_other_list
+
+        # Raw stored state
+        stored_state = kid_chore_data.get(
+            const.DATA_KID_CHORE_DATA_STATE, const.CHORE_STATE_PENDING
         )
 
-        if criteria == const.COMPLETION_CRITERIA_INDEPENDENT and kid_id:
-            per_kid_due_dates = chore_info.get(const.DATA_CHORE_PER_KID_DUE_DATES, {})
-            return per_kid_due_dates.get(kid_id)
+        # Derive display state with priority
+        # Priority: approved > completed_by_other > claimed > overdue > due > pending
+        if is_approved:
+            display_state = const.CHORE_STATE_APPROVED
+        elif is_completed_by_other:
+            display_state = const.CHORE_STATE_COMPLETED_BY_OTHER
+        elif has_pending:
+            display_state = const.CHORE_STATE_CLAIMED
+        elif is_overdue:
+            display_state = const.CHORE_STATE_OVERDUE
+        elif is_due:
+            display_state = const.CHORE_STATE_DUE
+        else:
+            display_state = const.CHORE_STATE_PENDING
 
-        return chore_info.get(const.DATA_CHORE_DUE_DATE)
-
-    def recalculate_chore_stats_for_kid(self, kid_id: str) -> None:
-        """Delegate chore stats aggregation to StatisticsEngine.
-
-        This method aggregates all kid_chore_stats for a given kid by
-        delegating to the StatisticsEngine, which owns the period data
-        structure knowledge.
-
-        Note: Only persistent stats (all_time, highest, etc.) are written to
-        storage. Temporal stats (today/week/month) live in the presentation
-        cache (Phase 7.5 Architecture).
-
-        Args:
-            kid_id: The internal ID of the kid.
-        """
-        kid_info = self._coordinator.kids_data.get(kid_id)
-        if not kid_info:
-            return
-        stats = self._coordinator.stats.generate_chore_stats(
-            kid_info, self._coordinator.chores_data
-        )
-        # Only persist non-temporal stats (Phase 7.5: temporal lives in cache)
-        kid_info[const.DATA_KID_CHORE_STATS] = filter_persistent_stats(stats)
-
-    def _chore_allows_multiple_claims(self, chore_id: str) -> bool:
-        """Check if chore allows multiple claims per approval period.
-
-        Returns True for:
-        - AT_MIDNIGHT_MULTI
-        - AT_DUE_DATE_MULTI
-        - UPON_COMPLETION
-
-        Returns False for:
-        - AT_MIDNIGHT_ONCE (default)
-        - AT_DUE_DATE_ONCE
-        """
-        chore_info: ChoreData | dict[str, Any] = self._coordinator.chores_data.get(
-            chore_id, {}
-        )
-        approval_reset_type = chore_info.get(
-            const.DATA_CHORE_APPROVAL_RESET_TYPE,
-            const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
-        )
-        return approval_reset_type in (
-            const.APPROVAL_RESET_AT_MIDNIGHT_MULTI,
-            const.APPROVAL_RESET_AT_DUE_DATE_MULTI,
-            const.APPROVAL_RESET_UPON_COMPLETION,
-        )
+        return {
+            "state": display_state,
+            "stored_state": stored_state,
+            "is_overdue": is_overdue,
+            "is_due": is_due,
+            "has_pending_claim": has_pending,
+            "is_approved_in_period": is_approved,
+            "is_completed_by_other": is_completed_by_other,
+            "can_claim": can_claim,
+            "can_claim_error": claim_error,
+            "can_approve": can_approve,
+            "can_approve_error": approve_error,
+            "due_date": (
+                due_dt.isoformat()
+                if (due_dt := self.get_due_date(chore_id, kid_id))
+                else None
+            ),
+            "last_completed": self.get_chore_last_completed(chore_id, kid_id),
+        }
 
     def get_chore_data_for_kid(
         self, kid_id: str, chore_id: str
@@ -2584,7 +2639,32 @@ class ChoreManager(BaseManager):
         kid_info: KidData = cast("KidData", self._coordinator.kids_data.get(kid_id, {}))
         return kid_info.get(const.DATA_KID_CHORE_DATA, {}).get(chore_id, {})
 
-    def is_chore_approval_after_reset(self, chore_info: ChoreData, kid_id: str) -> bool:
+    def get_chore_claimant(self, chore_id: str) -> str | None:
+        """Get the kid_id of the current claimant for a chore.
+
+        For SHARED_FIRST chores, returns the kid who has claimed but not yet
+        been approved. For other chores, returns the first kid with a pending
+        claim (though typically only one would exist).
+
+        Args:
+            chore_id: The chore's internal ID
+
+        Returns:
+            kid_id of the claimant, or None if no pending claims.
+        """
+        chore_info = self._coordinator.chores_data.get(chore_id)
+        if not chore_info:
+            return None
+
+        assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+        for kid_id in assigned_kids:
+            if kid_id and self.chore_has_pending_claim(kid_id, chore_id):
+                return kid_id
+        return None
+
+    def _is_chore_approval_after_reset(
+        self, chore_info: ChoreData, kid_id: str
+    ) -> bool:
         """Check if approval is happening after the reset boundary has passed.
 
         For AT_MIDNIGHT types: Due date must be before last midnight
@@ -2592,9 +2672,15 @@ class ChoreManager(BaseManager):
 
         Returns True if "late", False otherwise.
         """
+        chore_id = chore_info.get(const.DATA_CHORE_INTERNAL_ID, "")
         approval_reset_type = chore_info.get(
             const.DATA_CHORE_APPROVAL_RESET_TYPE, const.DEFAULT_APPROVAL_RESET_TYPE
         )
+
+        # Get due date using unified helper
+        due_date = self.get_due_date(chore_id, kid_id)
+        if not due_date:
+            return False
 
         now_utc = dt_util.utcnow()
 
@@ -2603,30 +2689,11 @@ class ChoreManager(BaseManager):
             const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
             const.APPROVAL_RESET_AT_MIDNIGHT_MULTI,
         ):
-            # Get due date (per-kid for INDEPENDENT, chore-level for SHARED)
-            completion_criteria = chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
-            if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
-                per_kid_due_dates = chore_info.get(
-                    const.DATA_CHORE_PER_KID_DUE_DATES, {}
-                )
-                due_date_str = per_kid_due_dates.get(kid_id)
-            else:
-                due_date_str = chore_info.get(const.DATA_CHORE_DUE_DATE)
-
-            if not due_date_str:
-                return False
-
-            due_date = dt_to_utc(due_date_str)
-            if not due_date:
-                return False
-
-            # Calculate last midnight in local time, convert to UTC
             local_now = dt_util.as_local(now_utc)
             last_midnight_local = local_now.replace(
                 hour=0, minute=0, second=0, microsecond=0
             )
             last_midnight_utc = dt_util.as_utc(last_midnight_local)
-
             return due_date < last_midnight_utc
 
         # AT_DUE_DATE types: Check if past the due date
@@ -2634,22 +2701,6 @@ class ChoreManager(BaseManager):
             const.APPROVAL_RESET_AT_DUE_DATE_ONCE,
             const.APPROVAL_RESET_AT_DUE_DATE_MULTI,
         ):
-            completion_criteria = chore_info.get(const.DATA_CHORE_COMPLETION_CRITERIA)
-            if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
-                per_kid_due_dates = chore_info.get(
-                    const.DATA_CHORE_PER_KID_DUE_DATES, {}
-                )
-                due_date_str = per_kid_due_dates.get(kid_id)
-            else:
-                due_date_str = chore_info.get(const.DATA_CHORE_DUE_DATE)
-
-            if not due_date_str:
-                return False
-
-            due_date = dt_to_utc(due_date_str)
-            if not due_date:
-                return False
-
             return now_utc > due_date
 
         return False
@@ -2672,6 +2723,44 @@ class ChoreManager(BaseManager):
         if lock_key not in self._approval_locks:
             self._approval_locks[lock_key] = asyncio.Lock()
         return self._approval_locks[lock_key]
+
+    def _set_approval_period_start(
+        self,
+        chore_id: str,
+        kid_id: str | None,
+        timestamp: str,
+    ) -> None:
+        """Set the approval period start timestamp.
+
+        Handles INDEPENDENT vs SHARED storage location:
+        - INDEPENDENT: Sets per-kid approval_period_start in kid_chore_data
+        - SHARED/SHARED_FIRST: Sets chore-level approval_period_start
+
+        Args:
+            chore_id: The chore's internal ID
+            kid_id: The kid's internal ID (required for INDEPENDENT, can be None for SHARED)
+            timestamp: ISO format timestamp to set
+        """
+        chore_info = self._coordinator.chores_data.get(chore_id)
+        if not chore_info:
+            return
+
+        completion_criteria = chore_info.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA,
+            const.COMPLETION_CRITERIA_INDEPENDENT,
+        )
+
+        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+            if not kid_id:
+                const.LOGGER.warning(
+                    "Cannot set approval_period_start for INDEPENDENT chore without kid_id"
+                )
+                return
+            kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
+            kid_chore_data[const.DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = timestamp
+        else:
+            # SHARED/SHARED_FIRST: chore-level
+            chore_info[const.DATA_CHORE_APPROVAL_PERIOD_START] = timestamp
 
     def _validate_kid_and_chore(self, kid_id: str, chore_id: str) -> None:
         """Validate kid and chore exist.
@@ -2741,21 +2830,6 @@ class ChoreManager(BaseManager):
 
         return kid_chores[chore_id]
 
-    def _is_approved_in_period(self, kid_id: str, chore_id: str) -> bool:
-        """Check if chore is already approved in current period.
-
-        Delegates to coordinator's existing method.
-
-        Args:
-            kid_id: The kid's internal ID
-            chore_id: The chore's internal ID
-
-        Returns:
-            True if already approved in current period
-        """
-        # Delegate to coordinator's existing implementation
-        return self.chore_is_approved_in_period(kid_id, chore_id)
-
     def _all_kids_approved(self, chore_id: str, assigned_kids: list[str]) -> bool:
         """Check if all assigned kids have approved the chore.
 
@@ -2783,90 +2857,6 @@ class ChoreManager(BaseManager):
                 return False
 
         return True
-
-    def _is_approval_after_reset_boundary(
-        self,
-        chore_data: ChoreData,
-        kid_id: str,
-    ) -> bool:
-        """Check if approval is happening after the reset boundary has passed.
-
-        For AT_MIDNIGHT types: Due date must be before last midnight
-        For AT_DUE_DATE types: Current time must be past the due date
-
-        This is used for immediate_on_late functionality - when a chore is
-        approved "late", it immediately resets to PENDING instead of waiting
-        for the scheduled reset.
-
-        Args:
-            chore_data: The chore's data dict
-            kid_id: The kid's internal ID
-
-        Returns:
-            True if approval is "late" (after reset boundary), False otherwise.
-        """
-        approval_reset_type = chore_data.get(
-            const.DATA_CHORE_APPROVAL_RESET_TYPE,
-            const.DEFAULT_APPROVAL_RESET_TYPE,
-        )
-
-        now_utc = dt_util.utcnow()
-
-        # AT_MIDNIGHT types: Check if due date was before last midnight
-        if approval_reset_type in (
-            const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
-            const.APPROVAL_RESET_AT_MIDNIGHT_MULTI,
-        ):
-            # Get due date (per-kid for INDEPENDENT, chore-level for SHARED)
-            completion_criteria = chore_data.get(const.DATA_CHORE_COMPLETION_CRITERIA)
-            if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
-                per_kid_due_dates = chore_data.get(
-                    const.DATA_CHORE_PER_KID_DUE_DATES, {}
-                )
-                due_date_str = per_kid_due_dates.get(kid_id)
-            else:
-                due_date_str = chore_data.get(const.DATA_CHORE_DUE_DATE)
-
-            if not due_date_str:
-                return False
-
-            due_date = dt_to_utc(due_date_str)
-            if not due_date:
-                return False
-
-            # Calculate last midnight in local time, convert to UTC
-            local_now = dt_util.as_local(now_utc)
-            last_midnight_local = local_now.replace(
-                hour=0, minute=0, second=0, microsecond=0
-            )
-            last_midnight_utc = dt_util.as_utc(last_midnight_local)
-
-            return due_date < last_midnight_utc
-
-        # AT_DUE_DATE types: Check if past the due date
-        if approval_reset_type in (
-            const.APPROVAL_RESET_AT_DUE_DATE_ONCE,
-            const.APPROVAL_RESET_AT_DUE_DATE_MULTI,
-        ):
-            completion_criteria = chore_data.get(const.DATA_CHORE_COMPLETION_CRITERIA)
-            if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
-                per_kid_due_dates = chore_data.get(
-                    const.DATA_CHORE_PER_KID_DUE_DATES, {}
-                )
-                due_date_str = per_kid_due_dates.get(kid_id)
-            else:
-                due_date_str = chore_data.get(const.DATA_CHORE_DUE_DATE)
-
-            if not due_date_str:
-                return False
-
-            due_date = dt_to_utc(due_date_str)
-            if not due_date:
-                return False
-
-            return now_utc > due_date
-
-        return False
 
     def _apply_effect(self, effect: TransitionEffect, chore_id: str) -> None:
         """Apply a single TransitionEffect to coordinator data.
@@ -3010,6 +3000,7 @@ class ChoreManager(BaseManager):
         else:
             chore_data[const.DATA_CHORE_STATE] = const.CHORE_STATE_INDEPENDENT
 
+    # TODO: Do we need this, only used once?
     def _raise_claim_error(
         self, kid_id: str, chore_id: str, error_key: str | None
     ) -> None:
@@ -3049,6 +3040,7 @@ class ChoreManager(BaseManager):
             translation_placeholders={"entity": chore_name},
         )
 
+    # TODO: Do we need this or should we just dynamically get this?
     def _increment_pending_count(self, kid_id: str, chore_id: str) -> None:
         """Increment pending claim counter for kid+chore.
 
@@ -3060,6 +3052,7 @@ class ChoreManager(BaseManager):
         current = kid_chore_data.get(const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT, 0)
         kid_chore_data[const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT] = current + 1
 
+    # TODO: Do we need this or should we just dynamically get this?
     def _decrement_pending_count(self, kid_id: str, chore_id: str) -> None:
         """Decrement pending claim counter for kid+chore.
 
@@ -3266,75 +3259,7 @@ class ChoreManager(BaseManager):
         elif force_update or not chore_info.get(const.DATA_CHORE_APPROVAL_PERIOD_START):
             chore_info[const.DATA_CHORE_APPROVAL_PERIOD_START] = now_iso
 
-    def _update_chore_stats(
-        self,
-        kid_id: str,
-        stat_type: str,
-        points: float = 0.0,
-        effective_date: str | None = None,
-    ) -> None:
-        """Update kid's chore statistics for approval/disapproval/claim events.
-
-        Args:
-            kid_id: The kid's internal ID
-            stat_type: One of 'approved', 'disapproved', 'claimed'
-            points: Points to add for 'approved' stat type (default 0.0)
-            effective_date: ISO timestamp for period bucketing (default: current time)
-        """
-        kid_info = self._coordinator.kids_data.get(kid_id)
-        if not kid_info:
-            return
-
-        chore_stats = kid_info.setdefault(const.DATA_KID_CHORE_STATS, {})
-
-        # Mapping stat_type to the all-time counter key
-        stat_key_map = {
-            "approved": const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME,
-            "disapproved": const.DATA_KID_CHORE_STATS_DISAPPROVED_ALL_TIME,
-            "claimed": const.DATA_KID_CHORE_STATS_CLAIMED_ALL_TIME,
-        }
-
-        key = stat_key_map.get(stat_type)
-        if key:
-            chore_stats[key] = chore_stats.get(key, 0) + 1
-
-        # For approvals, also track points
-        if stat_type == "approved" and points > 0:
-            points_key = const.DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_ALL_TIME
-            chore_stats[points_key] = chore_stats.get(points_key, 0.0) + points
-
-    def _reschedule_due_dates_upon_completion(
-        self, chore_id: str, assigned_kids: list[str]
-    ) -> None:
-        """Reschedule due dates after UPON_COMPLETION approval.
-
-        For INDEPENDENT chores, reschedules each kid's due date separately.
-        For SHARED chores, reschedules the chore-level due date.
-
-        Args:
-            chore_id: The chore's internal ID
-            assigned_kids: List of assigned kid IDs
-        """
-        chore_data = self._coordinator.chores_data.get(chore_id)
-        if not chore_data:
-            return
-
-        completion_criteria = chore_data.get(
-            const.DATA_CHORE_COMPLETION_CRITERIA, const.COMPLETION_CRITERIA_INDEPENDENT
-        )
-
-        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
-            # INDEPENDENT: Reschedule per-kid due dates
-            for kid_id in assigned_kids:
-                if kid_id:
-                    self._reschedule_chore_next_due_date_for_kid(
-                        chore_data, chore_id, kid_id
-                    )
-        else:
-            # SHARED: Reschedule chore-level due date (affects all kids uniformly)
-            # Use coordinator's method for shared chore rescheduling
-            self._reschedule_chore_next_due(chore_data)
-
+    # TODO: Consider merging with _transition_chore_state?
     def _reset_kid_chore_to_pending(self, kid_id: str, chore_id: str) -> None:
         """Reset a single kid's chore state to PENDING.
 
@@ -3415,6 +3340,50 @@ class ChoreManager(BaseManager):
             if chore_id in overdue_notifs:
                 overdue_notifs.pop(chore_id)
             kid_info[const.DATA_KID_OVERDUE_NOTIFICATIONS] = overdue_notifs
+
+    def _reschedule_chore_due(
+        self,
+        chore_id: str,
+        kid_id: str | None = None,
+    ) -> None:
+        """Unified dispatcher for due date rescheduling.
+
+        Handles INDEPENDENT vs SHARED based on completion criteria:
+        - INDEPENDENT + kid_id: Reschedules that kid's per-kid due date
+        - INDEPENDENT + no kid_id: Reschedules all assigned kids
+        - SHARED/SHARED_FIRST: Reschedules chore-level due date
+
+        Args:
+            chore_id: The chore's internal ID
+            kid_id: Optional kid_id for INDEPENDENT per-kid rescheduling
+        """
+        chore_info = self._coordinator.chores_data.get(chore_id)
+        if not chore_info:
+            return
+
+        completion_criteria = chore_info.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA,
+            const.COMPLETION_CRITERIA_INDEPENDENT,
+        )
+
+        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+            if kid_id:
+                # Single kid reschedule
+                self._reschedule_chore_next_due_date_for_kid(
+                    chore_info, chore_id, kid_id
+                )
+            else:
+                # All assigned kids
+                for assigned_kid_id in chore_info.get(
+                    const.DATA_CHORE_ASSIGNED_KIDS, []
+                ):
+                    if assigned_kid_id:
+                        self._reschedule_chore_next_due_date_for_kid(
+                            chore_info, chore_id, assigned_kid_id
+                        )
+        else:
+            # SHARED/SHARED_FIRST: chore-level
+            self._reschedule_chore_next_due(chore_info)
 
     def _reschedule_chore_next_due(self, chore_info: ChoreData) -> None:
         """Reschedule chore's next due date (chore-level for SHARED chores)."""
@@ -3729,443 +3698,11 @@ class ChoreManager(BaseManager):
         """Handle recurring resets for daily, weekly, and monthly frequencies.
 
         Called by coordinator timer registration (async_track_time_change).
-        Delegates to update_recurring_chores which handles both:
+        Delegates to process_scheduled_resets which handles both:
         - Rescheduling due dates for approved recurring chores
         - Resetting chore statuses for daily/weekly/monthly frequencies
 
         Args:
             now: Current UTC datetime (passed by Home Assistant scheduler)
         """
-        await self.update_recurring_chores(now)
-
-    async def check_overdue_chores(self, now: datetime | None = None) -> None:
-        """Check and mark overdue chores if due date is passed.
-
-        Called by coordinator refresh cycle (_async_update_data) and daily timer.
-        Delegates to update_overdue_status() for the actual processing.
-
-        Args:
-            now: Optional override for current time (uses UTC now if not provided)
-        """
-        # Delegate to the unified update_overdue_status method
-        await self.update_overdue_status(now=now)
-
-    async def check_chore_due_reminders(self) -> None:
-        """Check for chores within due reminder window and emit reminder signals.
-
-        Hooks into coordinator refresh cycle (typically every 5 min) to check for
-        chores that are due within their configured reminder offset.
-
-        Uses per-chore `due_reminder_offset` field (default "30m").
-        Respects per-chore `notify_due_reminder` setting.
-
-        Emits CHORE_DUE_REMINDER signals for NotificationManager to handle.
-        NotificationManager enforces deduplication via Schedule-Lock pattern.
-        """
-        from datetime import timedelta
-
-        now_utc = dt_util.utcnow()
-        signals_emitted = 0
-
-        const.LOGGER.debug(
-            "Due date reminders - Starting check at %s",
-            now_utc.isoformat(),
-        )
-
-        for chore_id, chore_info in self._coordinator.chores_data.items():
-            # Get assigned kids for this chore
-            assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
-            if not assigned_kids:
-                continue
-
-            # Check completion criteria to determine due date handling
-            completion_criteria = chore_info.get(
-                const.DATA_CHORE_COMPLETION_CRITERIA,
-                const.COMPLETION_CRITERIA_INDEPENDENT,
-            )
-
-            # Skip if chore has reminders disabled (per-chore control v0.5.0+)
-            if not chore_info.get(
-                const.DATA_CHORE_NOTIFY_DUE_REMINDER, const.DEFAULT_NOTIFY_DUE_REMINDER
-            ):
-                continue
-
-            # Get configurable reminder offset (replaces hardcoded 30 minutes)
-            reminder_offset_str = chore_info.get(
-                const.DATA_CHORE_DUE_REMINDER_OFFSET,
-                const.DEFAULT_DUE_REMINDER_OFFSET,
-            )
-            reminder_offset = dt_parse_duration(cast("str | None", reminder_offset_str))
-            if not reminder_offset or reminder_offset.total_seconds() <= 0:
-                continue
-
-            for kid_id in assigned_kids:
-                # Skip if kid already claimed or completed this chore
-                if self.chore_has_pending_claim(kid_id, chore_id):
-                    continue
-                if self.chore_is_approved_in_period(kid_id, chore_id):
-                    continue
-
-                # Get due date based on completion criteria
-                if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
-                    # Independent chores: per-kid due date in per_kid_due_dates
-                    per_kid_due_dates = chore_info.get(
-                        const.DATA_CHORE_PER_KID_DUE_DATES, {}
-                    )
-                    due_date_str = per_kid_due_dates.get(kid_id, const.SENTINEL_EMPTY)
-                else:
-                    # Shared chores: single due date on chore level
-                    due_date_str = chore_info.get(
-                        const.DATA_CHORE_DUE_DATE, const.SENTINEL_EMPTY
-                    )
-
-                if not due_date_str:
-                    continue
-
-                # Parse due date and check if within reminder window
-                due_dt = dt_to_utc(due_date_str)
-                if due_dt is None:
-                    continue
-
-                time_until_due = due_dt - now_utc
-
-                # Check: due within reminder offset AND not past due yet
-                if timedelta(0) < time_until_due <= reminder_offset:
-                    # Emit fact for NotificationManager to handle
-                    minutes_remaining = int(time_until_due.total_seconds() / 60)
-                    chore_name = chore_info.get(const.DATA_CHORE_NAME, "Unknown Chore")
-                    points = chore_info.get(const.DATA_CHORE_DEFAULT_POINTS, 0)
-
-                    # Emit event for NotificationManager (with due_date for Schedule-Lock)
-                    self.emit(
-                        const.SIGNAL_SUFFIX_CHORE_DUE_REMINDER,
-                        kid_id=kid_id,
-                        chore_id=chore_id,
-                        chore_name=chore_name,
-                        minutes=minutes_remaining,
-                        points=points,
-                        due_date=due_date_str,
-                    )
-                    signals_emitted += 1
-
-                    const.LOGGER.debug(
-                        "Emitted due-reminder signal for chore '%s' to kid '%s' (%d min remaining)",
-                        chore_name,
-                        kid_id,
-                        minutes_remaining,
-                    )
-
-        if signals_emitted > 0:
-            const.LOGGER.debug(
-                "Due date reminders - Emitted %d signal(s)",
-                signals_emitted,
-            )
-
-    async def check_chore_due_window_transitions(self) -> None:
-        """Check for chores entering due window and emit signals (v0.6.0+).
-
-        Hooks into coordinator refresh cycle to check for chores that have
-        transitioned from PENDING to DUE state (entered their due window).
-
-        Uses per-chore `due_window_offset` field to determine when due window starts.
-        Respects per-chore `notify_on_due_window` setting.
-
-        Emits CHORE_DUE_WINDOW signals for NotificationManager to handle.
-        NotificationManager enforces deduplication via Schedule-Lock pattern.
-        """
-        now_utc = dt_util.utcnow()
-        signals_emitted = 0
-
-        const.LOGGER.debug(
-            "Due window transitions - Starting check at %s",
-            now_utc.isoformat(),
-        )
-
-        for chore_id, chore_info in self._coordinator.chores_data.items():
-            # Get assigned kids for this chore
-            assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
-            if not assigned_kids:
-                continue
-
-            # Skip if chore has due window notifications disabled
-            if not chore_info.get(
-                const.DATA_CHORE_NOTIFY_ON_DUE_WINDOW,
-                const.DEFAULT_NOTIFY_ON_DUE_WINDOW,
-            ):
-                continue
-
-            # Get due window offset
-            due_window_offset_str = chore_info.get(
-                const.DATA_CHORE_DUE_WINDOW_OFFSET,
-                const.DEFAULT_DUE_WINDOW_OFFSET,
-            )
-            due_window_offset = dt_parse_duration(
-                cast("str | None", due_window_offset_str)
-            )
-            if not due_window_offset or due_window_offset.total_seconds() <= 0:
-                continue
-
-            for kid_id in assigned_kids:
-                # Skip if kid already claimed or completed this chore
-                if self.chore_has_pending_claim(kid_id, chore_id):
-                    continue
-                if self.chore_is_approved_in_period(kid_id, chore_id):
-                    continue
-
-                # Check if chore is in due window
-                if self.chore_is_due(kid_id, chore_id):
-                    # Calculate time remaining until due
-                    due_dt = self.get_chore_due_date(kid_id, chore_id)
-                    if not due_dt:
-                        continue
-
-                    time_until_due = due_dt - now_utc
-                    hours_remaining = max(0, int(time_until_due.total_seconds() / 3600))
-
-                    chore_name = chore_info.get(const.DATA_CHORE_NAME, "Unknown Chore")
-                    points = chore_info.get(const.DATA_CHORE_DEFAULT_POINTS, 0)
-
-                    # Emit fact for NotificationManager to handle (with due_date for Schedule-Lock)
-                    self.emit(
-                        const.SIGNAL_SUFFIX_CHORE_DUE_WINDOW,
-                        kid_id=kid_id,
-                        chore_id=chore_id,
-                        chore_name=chore_name,
-                        hours=hours_remaining,
-                        points=points,
-                        due_date=due_dt.isoformat(),
-                    )
-                    signals_emitted += 1
-
-                    const.LOGGER.debug(
-                        "Emitted due window signal for chore '%s' to kid '%s' (%d hrs remaining)",
-                        chore_name,
-                        kid_id,
-                        hours_remaining,
-                    )
-
-        if signals_emitted > 0:
-            const.LOGGER.debug(
-                "Due window transitions - Emitted %d signal(s)",
-                signals_emitted,
-            )
-
-    def _check_chore_overdue_status(
-        self,
-        chore_id: str,
-        chore_info: ChoreData,
-        now_utc: datetime,
-    ) -> None:
-        """Check and apply overdue status for a chore (any completion criteria).
-
-        Unified handler for INDEPENDENT, SHARED, and SHARED_FIRST completion criteria.
-
-        Args:
-            chore_id: The chore's internal ID
-            chore_info: The chore data dictionary
-            now_utc: Current UTC datetime for comparison
-        """
-        # Early exit for NEVER_OVERDUE
-        overdue_handling = chore_info.get(
-            const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
-            const.OVERDUE_HANDLING_AT_DUE_DATE,
-        )
-        if overdue_handling == const.OVERDUE_HANDLING_NEVER_OVERDUE:
-            return
-
-        criteria = chore_info.get(
-            const.DATA_CHORE_COMPLETION_CRITERIA,
-            const.COMPLETION_CRITERIA_SHARED,
-        )
-        assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
-
-        # SHARED_FIRST special handling
-        claimant_kid_id: str | None = None
-        if criteria == const.COMPLETION_CRITERIA_SHARED_FIRST:
-            # Check if chore is already completed by any kid
-            any_approved = any(
-                self.chore_is_approved_in_period(kid_id, chore_id)
-                for kid_id in assigned_kids
-            )
-            # If any kid completed it, clear overdue for everyone and exit
-            if any_approved:
-                for kid_id in assigned_kids:
-                    if self.chore_is_overdue(kid_id, chore_id):
-                        self._transition_chore_state(
-                            kid_id, chore_id, const.CHORE_STATE_PENDING
-                        )
-                return
-
-            # Find claimant (if any) - only claimant can be overdue in SHARED_FIRST
-            claimant_kid_id = next(
-                (
-                    kid_id
-                    for kid_id in assigned_kids
-                    if self.chore_has_pending_claim(kid_id, chore_id)
-                ),
-                None,
-            )
-
-        # Check each assigned kid
-        for kid_id in assigned_kids:
-            if not kid_id:
-                continue
-
-            # Skip if already claimed or approved (applies to all criteria)
-            if self.chore_has_pending_claim(kid_id, chore_id):
-                continue
-            if self.chore_is_approved_in_period(kid_id, chore_id):
-                continue
-
-            # SHARED_FIRST: Handle special states
-            if criteria == const.COMPLETION_CRITERIA_SHARED_FIRST:
-                kid_chore_data = ChoreEngine.get_chore_data_for_kid(
-                    cast("KidData", self._coordinator.kids_data.get(kid_id, {})),
-                    chore_id,
-                )
-                current_state = kid_chore_data.get(const.DATA_KID_CHORE_DATA_STATE)
-
-                # Kids in completed_by_other state should never be overdue
-                if current_state == const.CHORE_STATE_COMPLETED_BY_OTHER:
-                    if self.chore_is_overdue(kid_id, chore_id):
-                        self._transition_chore_state(
-                            kid_id, chore_id, const.CHORE_STATE_COMPLETED_BY_OTHER
-                        )
-                    continue
-
-                # If there's a claimant and this isn't them, clear overdue and skip
-                if claimant_kid_id and kid_id != claimant_kid_id:
-                    if self.chore_is_overdue(kid_id, chore_id):
-                        self._transition_chore_state(
-                            kid_id, chore_id, const.CHORE_STATE_PENDING
-                        )
-                    continue
-
-            # Get effective due date and apply overdue check
-            due_str = self.get_chore_effective_due_date(chore_id, kid_id)
-            self._handle_overdue_chore_state(
-                kid_id, chore_id, due_str, now_utc, chore_info
-            )
-
-    def _handle_overdue_chore_state(
-        self,
-        kid_id: str,
-        chore_id: str,
-        due_date_iso: str | None,
-        now_utc: datetime,
-        chore_info: ChoreData,
-    ) -> bool:
-        """Check if chore is past due and apply overdue state if so.
-
-        Args:
-            kid_id: The kid to check/mark overdue
-            chore_id: The chore to check
-            due_date_iso: ISO format due date string (or None if no due date)
-            now_utc: Current UTC datetime for comparison
-            chore_info: Chore info dict for notification context
-
-        Returns:
-            True if overdue was applied, False if not
-        """
-        kid_info: KidData = cast("KidData", self._coordinator.kids_data.get(kid_id, {}))
-
-        # Phase 5: Check overdue handling type
-        overdue_handling = chore_info.get(
-            const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
-            const.OVERDUE_HANDLING_AT_DUE_DATE,
-        )
-        if overdue_handling == const.OVERDUE_HANDLING_NEVER_OVERDUE:
-            return False
-
-        # No due date means no overdue possible - clear if previously set
-        if not due_date_iso:
-            if chore_id in kid_info.get(const.DATA_KID_OVERDUE_CHORES, []):
-                self._transition_chore_state(
-                    kid_id, chore_id, const.CHORE_STATE_PENDING
-                )
-            return False
-
-        # Parse due date
-        due_date_utc = dt_to_utc(due_date_iso)
-        if not due_date_utc:
-            const.LOGGER.error(
-                "Overdue Check - Error parsing due date '%s' for Chore '%s', Kid '%s'",
-                due_date_iso,
-                chore_info.get(const.DATA_CHORE_NAME, chore_id),
-                kid_id,
-            )
-            return False
-
-        # Not yet overdue - clear any existing overdue status
-        if now_utc < due_date_utc:
-            if chore_id in kid_info.get(const.DATA_KID_OVERDUE_CHORES, []):
-                self._transition_chore_state(
-                    kid_id, chore_id, const.CHORE_STATE_PENDING
-                )
-            return False
-
-        # Past due date - mark as overdue and notify
-        self._transition_chore_state(kid_id, chore_id, const.CHORE_STATE_OVERDUE)
-        self._notify_overdue_chore(
-            kid_id, chore_id, dict(chore_info), due_date_utc, now_utc
-        )
-        return True
-
-    def _notify_overdue_chore(
-        self,
-        kid_id: str,
-        chore_id: str,
-        chore_info: dict[str, Any],
-        due_date_utc: datetime,
-        now_utc: datetime,
-    ) -> None:
-        """Send overdue notification to kid and parents if not recently sent."""
-        from datetime import timedelta
-
-        kid_info: KidData = cast("KidData", self._coordinator.kids_data.get(kid_id, {}))
-
-        # Check notification timestamp
-        if const.DATA_KID_OVERDUE_NOTIFICATIONS not in kid_info:
-            kid_info[const.DATA_KID_OVERDUE_NOTIFICATIONS] = {}
-
-        overdue_notifs: dict[str, str] = kid_info.get(
-            const.DATA_KID_OVERDUE_NOTIFICATIONS, {}
-        )
-        last_notif_str = overdue_notifs.get(chore_id)
-        notify = False
-
-        if last_notif_str:
-            last_dt = dt_to_utc(last_notif_str)
-            if (
-                last_dt is None
-                or (last_dt < due_date_utc)
-                or (
-                    (now_utc - last_dt)
-                    >= timedelta(hours=const.DEFAULT_NOTIFY_DELAY_REMINDER)
-                )
-            ):
-                notify = True
-        else:
-            notify = True
-
-        if notify:
-            overdue_notifs[chore_id] = now_utc.isoformat()
-            kid_info[const.DATA_KID_OVERDUE_NOTIFICATIONS] = overdue_notifs
-
-            # Get languages for date formatting
-            kid_language = kid_info.get(
-                const.DATA_KID_DASHBOARD_LANGUAGE, self.hass.config.language
-            )
-
-            # Emit event for NotificationManager
-            self.emit(
-                const.SIGNAL_SUFFIX_CHORE_OVERDUE,
-                kid_id=kid_id,
-                chore_id=chore_id,
-                chore_name=chore_info.get(
-                    const.DATA_CHORE_NAME, const.DISPLAY_UNNAMED_CHORE
-                ),
-                due_date=dt_format_short(due_date_utc, language=kid_language),
-                kid_language=kid_language,
-                parent_language=self.hass.config.language,
-            )
+        await self.process_scheduled_resets(now)

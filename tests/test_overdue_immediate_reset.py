@@ -599,7 +599,7 @@ class TestRegressionExistingOptions:
 
 
 class TestIsApprovalAfterResetBoundary:
-    """Test the _is_chore_approval_after_reset helper method."""
+    """Test the __is_chore_approval_after_reset helper method."""
 
     @pytest.mark.asyncio
     async def test_midnight_type_before_midnight_not_late(
@@ -621,7 +621,7 @@ class TestIsApprovalAfterResetBoundary:
         set_chore_due_date_directly(coordinator, chore_id, today, kid_id=kid_id)
 
         # Check boundary
-        is_late = coordinator.chore_manager.is_chore_approval_after_reset(
+        is_late = coordinator.chore_manager._is_chore_approval_after_reset(
             chore_info, kid_id
         )
         assert not is_late, "Due date today should not be late"
@@ -653,7 +653,7 @@ class TestIsApprovalAfterResetBoundary:
         set_chore_due_date_directly(coordinator, chore_id, two_days_ago, kid_id=kid_id)
 
         # Check boundary
-        is_late = coordinator.chore_manager.is_chore_approval_after_reset(
+        is_late = coordinator.chore_manager._is_chore_approval_after_reset(
             chore_info, kid_id
         )
         assert is_late, "Due date 2 days ago should be late (before last midnight)"
@@ -679,7 +679,7 @@ class TestIsApprovalAfterResetBoundary:
         set_chore_due_date_directly(coordinator, chore_id, tomorrow, kid_id=kid_id)
 
         # Check boundary
-        is_late = coordinator.chore_manager.is_chore_approval_after_reset(
+        is_late = coordinator.chore_manager._is_chore_approval_after_reset(
             chore_info, kid_id
         )
         assert not is_late, "Due date tomorrow should not be late"
@@ -705,7 +705,7 @@ class TestIsApprovalAfterResetBoundary:
         set_chore_due_date_directly(coordinator, chore_id, yesterday, kid_id=kid_id)
 
         # Check boundary
-        is_late = coordinator.chore_manager.is_chore_approval_after_reset(
+        is_late = coordinator.chore_manager._is_chore_approval_after_reset(
             chore_info, kid_id
         )
         assert is_late, "Due date yesterday should be late for AT_DUE_DATE type"

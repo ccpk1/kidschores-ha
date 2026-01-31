@@ -34,7 +34,6 @@ from tests.helpers import (
     DATA_KID_CHORE_DATA_LAST_DISAPPROVED,
     DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT,
     DATA_KID_CHORE_DATA_STATE,
-    DATA_KID_CHORE_STATS,
     DATA_KID_REWARD_DATA,
     DATA_KID_REWARD_DATA_PENDING_COUNT,
 )
@@ -107,11 +106,19 @@ def get_disapproval_stats(
 def get_chore_stats_disapproved(
     coordinator: Any,
     kid_id: str,
+    chore_id: str,
 ) -> int:
-    """Get all-time disapproved count from chore_stats."""
+    """Get all-time disapproved count from chore_data periods.
+
+    Stats are stored per-chore in chore_data[chore_id]["periods"]["all_time"]["disapproved"],
+    NOT in a top-level chore_stats aggregation.
+    """
     kid_data = coordinator.kids_data.get(kid_id, {})
-    chore_stats = kid_data.get(DATA_KID_CHORE_STATS, {})
-    return chore_stats.get("disapproved_all_time", 0)
+    chore_data = kid_data.get(DATA_KID_CHORE_DATA, {})
+    per_chore = chore_data.get(chore_id, {})
+    periods = per_chore.get("periods", {})
+    all_time = periods.get("all_time", {})
+    return all_time.get("disapproved", 0)
 
 
 def get_reward_pending_count(
@@ -181,14 +188,16 @@ class TestKidUndoChore:
 
             # Get initial stats
             initial_stats = get_disapproval_stats(coordinator, kid_id, chore_id)
-            initial_all_time = get_chore_stats_disapproved(coordinator, kid_id)
+            initial_all_time = get_chore_stats_disapproved(
+                coordinator, kid_id, chore_id
+            )
 
             # Kid undoes claim
             await coordinator.chore_manager.undo_claim(kid_id, chore_id)
 
             # Get final stats
             final_stats = get_disapproval_stats(coordinator, kid_id, chore_id)
-            final_all_time = get_chore_stats_disapproved(coordinator, kid_id)
+            final_all_time = get_chore_stats_disapproved(coordinator, kid_id, chore_id)
 
         # last_disapproved should NOT be updated (remains None or empty)
         assert final_stats["last_disapproved"] in ("", None)
@@ -228,14 +237,16 @@ class TestParentDisapproveChore:
             await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
 
             # Get initial stats
-            initial_all_time = get_chore_stats_disapproved(coordinator, kid_id)
+            initial_all_time = get_chore_stats_disapproved(
+                coordinator, kid_id, chore_id
+            )
 
             # Parent disapproves
             await coordinator.chore_manager.disapprove_chore("Mom", kid_id, chore_id)
 
             # Get final stats
             final_stats = get_disapproval_stats(coordinator, kid_id, chore_id)
-            final_all_time = get_chore_stats_disapproved(coordinator, kid_id)
+            final_all_time = get_chore_stats_disapproved(coordinator, kid_id, chore_id)
 
         # last_disapproved SHOULD be updated (non-empty timestamp)
         assert final_stats["last_disapproved"] != ""
@@ -359,7 +370,7 @@ class TestMultipleUndos:
 
             # Get final stats
             final_stats = get_disapproval_stats(coordinator, kid_id, chore_id)
-            final_all_time = get_chore_stats_disapproved(coordinator, kid_id)
+            final_all_time = get_chore_stats_disapproved(coordinator, kid_id, chore_id)
 
         # last_disapproved should still be None or empty (never set)
         assert final_stats["last_disapproved"] in ("", None)

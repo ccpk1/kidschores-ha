@@ -1433,7 +1433,7 @@ class TestOverdueEngine:
 
 
 class TestLateApprovalDetection:
-    """Tests for is_chore_approval_after_reset (chore_manager.py:2137-2197).
+    """Tests for _is_chore_approval_after_reset (chore_manager.py:2137-2197).
 
     This method checks if approval happened after reset boundary.
     CRITICAL: For INDEPENDENT chores, must use per_kid_due_dates[kid_id].
@@ -1471,7 +1471,7 @@ class TestLateApprovalDetection:
         chore_info[DATA_CHORE_PER_KID_DUE_DATES] = {kid_id: yesterday.isoformat()}
 
         # Check if late
-        result = coordinator.chore_manager.is_chore_approval_after_reset(
+        result = coordinator.chore_manager._is_chore_approval_after_reset(
             chore_info, kid_id
         )
         # Due date was yesterday, before last midnight → late approval
@@ -1509,7 +1509,7 @@ class TestLateApprovalDetection:
         chore_info[DATA_CHORE_PER_KID_DUE_DATES] = {kid_id: past_due.isoformat()}
 
         # Check if late
-        result = coordinator.chore_manager.is_chore_approval_after_reset(
+        result = coordinator.chore_manager._is_chore_approval_after_reset(
             chore_info, kid_id
         )
         # Now > due_date → late approval
@@ -1546,7 +1546,7 @@ class TestLateApprovalDetection:
         chore_info[DATA_CHORE_PER_KID_DUE_DATES] = {kid_id: future_due.isoformat()}
 
         # Check if late
-        result = coordinator.chore_manager.is_chore_approval_after_reset(
+        result = coordinator.chore_manager._is_chore_approval_after_reset(
             chore_info, kid_id
         )
         # Now < due_date → NOT late
@@ -1559,7 +1559,7 @@ class TestLateApprovalDetection:
 
 
 class TestRecurringChoreReset:
-    """Tests for update_recurring_chores frequency matching (chore_manager.py:650-737)."""
+    """Tests for process_scheduled_resets frequency matching (chore_manager.py:650-737)."""
 
     @pytest.mark.asyncio
     async def test_recurring_daily_resets_at_reset_hour(
@@ -1588,19 +1588,17 @@ class TestRecurringChoreReset:
         reset_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
         freezer.move_to(reset_time)
 
-        # Trigger update_recurring_chores
+        # Trigger process_recurring_chore_resets
         with (
             patch.object(coordinator, "_persist", new=MagicMock()),
             patch.object(
                 coordinator.notification_manager, "notify_kid", new=AsyncMock()
             ),
         ):
-            reset_count = await coordinator.chore_manager.update_recurring_chores(
-                reset_time
-            )
+            await coordinator.chore_manager.process_recurring_chore_resets(reset_time)
 
-        # Should process at least the daily chore
-        assert reset_count >= 0
+        # Method completes without error (no return value to check)
+        assert True
 
     @pytest.mark.asyncio
     async def test_recurring_weekly_resets_on_reset_day(
@@ -1639,14 +1637,14 @@ class TestRecurringChoreReset:
         )
         freezer.move_to(reset_time)
 
-        # Trigger update_recurring_chores
+        # Trigger process_scheduled_resets
         with (
             patch.object(coordinator, "_persist", new=MagicMock()),
             patch.object(
                 coordinator.notification_manager, "notify_kid", new=AsyncMock()
             ),
         ):
-            reset_count = await coordinator.chore_manager.update_recurring_chores(
+            reset_count = await coordinator.chore_manager.process_scheduled_resets(
                 reset_time
             )
 
@@ -1670,9 +1668,9 @@ class TestRecurringChoreReset:
         wrong_time = now.replace(hour=6, minute=0, second=0, microsecond=0)
         freezer.move_to(wrong_time)
 
-        # Trigger update_recurring_chores
+        # Trigger process_scheduled_resets
         with patch.object(coordinator, "_persist", new=MagicMock()):
-            reset_count = await coordinator.chore_manager.update_recurring_chores(
+            reset_count = await coordinator.chore_manager.process_scheduled_resets(
                 wrong_time
             )
 

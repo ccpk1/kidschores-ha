@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 from custom_components.kidschores import const
+from custom_components.kidschores.utils.dt_utils import dt_now_utc
 from tests.helpers import SetupResult, setup_from_yaml
 
 if TYPE_CHECKING:
@@ -106,8 +107,8 @@ class TestOverdueEventEmission:
     ) -> None:
         """Test: Overdue check via Manager emits SIGNAL_SUFFIX_CHORE_OVERDUE.
 
-        When a chore's due date passes, the timer callback should delegate
-        to ChoreManager.update_overdue_status(), which calls mark_overdue()
+        When a chore's due date passes, the process_time_checks() method
+        runs single-pass time processing which calls _process_overdue()
         and emits the CHORE_OVERDUE event.
         """
         coordinator = scheduling_scenario.coordinator
@@ -128,7 +129,7 @@ class TestOverdueEventEmission:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Trigger overdue check via Coordinator (which delegates to Manager)
-        await coordinator.chore_manager.check_overdue_chores()
+        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
 
         # Verify CHORE_OVERDUE event was emitted
         overdue_events = [
@@ -174,7 +175,7 @@ class TestOverdueEventEmission:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=2)
 
         # Trigger overdue check
-        await coordinator.chore_manager.check_overdue_chores()
+        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
 
         # Verify NO CHORE_OVERDUE event was emitted for this chore
         overdue_events_for_chore = [
@@ -231,7 +232,7 @@ class TestOverdueEventEmission:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Trigger overdue check
-        await coordinator.chore_manager.check_overdue_chores()
+        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
 
         # Verify overdue event was emitted for this kid
         overdue_events_for_kid = [
@@ -265,7 +266,7 @@ class TestRecurringResetEventEmission:
         """Test: Recurring reset via Manager emits SIGNAL_SUFFIX_CHORE_STATUS_RESET.
 
         When scheduled reset occurs (midnight, due date), the timer callback
-        should delegate to ChoreManager.update_recurring_chores(), which
+        should delegate to ChoreManager.process_scheduled_resets(), which
         calls reset_chore() and emits CHORE_STATUS_RESET event.
         """
         coordinator = scheduling_scenario.coordinator
@@ -292,7 +293,7 @@ class TestRecurringResetEventEmission:
         from homeassistant.util import dt as dt_util
 
         now = dt_util.utcnow()
-        await coordinator.chore_manager.update_recurring_chores(now)
+        await coordinator.chore_manager.process_scheduled_resets(now)
 
         # Verify CHORE_STATUS_RESET event was emitted
         reset_events = [
@@ -353,43 +354,12 @@ class TestDelegationPath:
     """Tests verifying the delegation path from Coordinator to Manager."""
 
     @pytest.mark.asyncio
-    async def test_coordinator_check_overdue_delegates_to_manager(
-        self,
-        hass: HomeAssistant,
-        scheduling_scenario: SetupResult,
-    ) -> None:
-        """Test: Coordinator._check_overdue_chores() delegates to Manager.update_overdue_status().
-
-        This verifies the delegation path is connected correctly.
-        """
-        coordinator = scheduling_scenario.coordinator
-
-        # Track if Manager method was called
-        manager_called = False
-        original_method = coordinator.chore_manager.update_overdue_status
-
-        async def tracking_method(*args: Any, **kwargs: Any) -> Any:
-            nonlocal manager_called
-            manager_called = True
-            return await original_method(*args, **kwargs)
-
-        coordinator.chore_manager.update_overdue_status = tracking_method
-
-        # Call Coordinator method
-        await coordinator.chore_manager.check_overdue_chores()
-
-        # Verify Manager method was called
-        assert manager_called, (
-            "Coordinator._check_overdue_chores should delegate to ChoreManager.update_overdue_status"
-        )
-
-    @pytest.mark.asyncio
     async def test_coordinator_process_recurring_delegates_to_manager(
         self,
         hass: HomeAssistant,
         scheduling_scenario: SetupResult,
     ) -> None:
-        """Test: Coordinator._process_recurring_chore_resets() delegates to Manager.update_recurring_chores().
+        """Test: Coordinator._process_recurring_chore_resets() delegates to Manager.process_scheduled_resets().
 
         This verifies the delegation path is connected correctly.
         """
@@ -397,14 +367,14 @@ class TestDelegationPath:
 
         # Track if Manager method was called
         manager_called = False
-        original_method = coordinator.chore_manager.update_recurring_chores
+        original_method = coordinator.chore_manager.process_scheduled_resets
 
         async def tracking_method(*args: Any, **kwargs: Any) -> Any:
             nonlocal manager_called
             manager_called = True
             return await original_method(*args, **kwargs)
 
-        coordinator.chore_manager.update_recurring_chores = tracking_method
+        coordinator.chore_manager.process_scheduled_resets = tracking_method
 
         # Call Coordinator method with current time
         from homeassistant.util import dt as dt_util
@@ -413,7 +383,7 @@ class TestDelegationPath:
 
         # Verify Manager method was called
         assert manager_called, (
-            "Coordinator._process_recurring_chore_resets should delegate to ChoreManager.update_recurring_chores"
+            "Coordinator._process_recurring_chore_resets should delegate to ChoreManager.process_scheduled_resets"
         )
 
 

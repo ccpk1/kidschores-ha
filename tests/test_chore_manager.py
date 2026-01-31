@@ -9,13 +9,15 @@ Tests verify:
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.managers.chore_manager import ChoreManager
+from custom_components.kidschores.utils.dt_utils import dt_now_utc
 
 # ============================================================================
 # Test Fixtures
@@ -77,7 +79,10 @@ def mock_coordinator(sample_chore_data: dict, sample_kid_data: dict) -> MagicMoc
     }
     coordinator._persist = MagicMock()
     coordinator.async_set_updated_data = MagicMock()
-    coordinator._data = {}
+    # Include chores data for tests that access _data[DATA_CHORES]
+    coordinator._data = {
+        const.DATA_CHORES: {"chore-1": sample_chore_data.copy()},
+    }
 
     # Mock chore_is_approved_in_period
     coordinator.chore_is_approved_in_period = MagicMock(return_value=False)
@@ -329,25 +334,45 @@ class TestResetAndOverdue:
         call_args = chore_manager.emit.call_args
         assert call_args[0][0] == const.SIGNAL_SUFFIX_CHORE_STATUS_RESET
 
-    async def test_mark_overdue(self, chore_manager: ChoreManager) -> None:
-        """Test marking chore as overdue."""
-        await chore_manager.mark_overdue(
-            "kid-1", "chore-1", days_overdue=2, due_date="2024-01-01"
+    async def test_mark_overdue_via_time_check(
+        self, chore_manager: ChoreManager
+    ) -> None:
+        """Test that process_overdue_chores calls process_time_checks and returns count.
+
+        Note: This tests the public API interface. Full integration testing
+        of overdue state transitions is covered by test_scheduler_delegation.py.
+        """
+        # Mock process_time_checks to return a known overdue entry
+        mock_entry = {
+            "chore_id": "chore-1",
+            "kid_id": "kid-1",
+            "due_dt": dt_now_utc() - timedelta(days=1),
+            "time_until_due": timedelta(days=-1),
+        }
+        chore_manager.process_time_checks = MagicMock(
+            return_value={
+                "overdue": [mock_entry],
+                "in_due_window": [],
+                "due_reminder": [],
+            }
         )
 
-        # Verify state changed to overdue
-        kid_chore_data = chore_manager._coordinator.kids_data["kid-1"][
-            const.DATA_KID_CHORE_DATA
-        ]["chore-1"]
-        assert (
-            kid_chore_data[const.DATA_KID_CHORE_DATA_STATE] == const.CHORE_STATE_OVERDUE
-        )
+        # Mock _process_overdue
+        chore_manager._process_overdue = AsyncMock(return_value=None)
 
-        # Verify event emitted
-        chore_manager.emit.assert_called()
-        call_args = chore_manager.emit.call_args
-        assert call_args[0][0] == const.SIGNAL_SUFFIX_CHORE_OVERDUE
-        assert call_args[1]["days_overdue"] == 2
+        # Process overdue checks
+        result = await chore_manager.process_overdue_chores(dt_now_utc())
+
+        # Verify process_time_checks was called
+        chore_manager.process_time_checks.assert_called_once()
+
+        # Verify _process_overdue was called with the overdue entries
+        chore_manager._process_overdue.assert_called_once()
+        call_args = chore_manager._process_overdue.call_args[0]
+        assert len(call_args[0]) == 1  # One overdue entry
+
+        # Verify return value is the count
+        assert result == 1
 
 
 # ============================================================================

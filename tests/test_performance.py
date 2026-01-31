@@ -17,6 +17,7 @@ from unittest.mock import AsyncMock, patch
 from homeassistant.core import HomeAssistant
 import pytest
 
+from custom_components.kidschores.utils.dt_utils import dt_now_utc
 from tests.helpers import CHORE_STATE_APPROVED, CHORE_STATE_CLAIMED
 
 pytestmark = pytest.mark.performance
@@ -48,7 +49,7 @@ async def test_performance_baseline_with_scenario_full(
         ),
     ):
         # Test 1: Check overdue chores (O(chores × kids))
-        await coordinator.chore_manager.check_overdue_chores()
+        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
 
         # Test 2: Persist operation
         coordinator._persist()
